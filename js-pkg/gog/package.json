@@ -1,0 +1,48 @@
+{
+  "name": "grammar-of-graphics",
+  "version": "0.0.1",
+  "description": "A Grammar of Graphics as a specification language — one Rust engine, spoken in JavaScript",
+  "keywords": [
+    "grammar-of-graphics",
+    "visualization",
+    "dataviz",
+    "plotting",
+    "charts",
+    "svg",
+    "statistics"
+  ],
+  "homepage": "https://psychometrician.github.io/gog-book/",
+  "bugs": "https://github.com/psychometrician/gog/issues",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/psychometrician/gog.git",
+    "directory": "js-pkg/gog"
+  },
+  "license": "Apache-2.0",
+  "author": "psychometrician <psychometrician@gmail.com>",
+  "type": "module",
+  "main": "./src/index.js",
+  "exports": {
+    ".": "./src/index.js"
+  },
+  "files": [
+    "src",
+    "bin",
+    "README.md",
+    "LICENSE",
+    "NOTICE"
+  ],
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "test": "node --test test/*.mjs"
+  },
+  "optionalDependencies": {
+    "grammar-of-graphics-darwin-arm64": "0.0.1",
+    "grammar-of-graphics-darwin-x64": "0.0.1",
+    "grammar-of-graphics-linux-arm64": "0.0.1",
+    "grammar-of-graphics-linux-x64": "0.0.1",
+    "grammar-of-graphics-win32-x64": "0.0.1"
+  }
+}

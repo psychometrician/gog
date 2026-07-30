@@ -1,0 +1,620 @@
+---
+# Re-stamped on every render, so the landing page reports how current this copy
+# is. The fixed counterpart, the first-published date, is `book: date:` in
+# `_quarto.yml`. This one belongs here because it must reach the landing page
+# alone; see the comment beside its partner for what the other placements do.
+date-modified: today
+---
+
+# Preface {.unnumbered}
+
+```{r}
+#| include: false
+source("R/setup.R")
+```
+
+GOG is a single graphics engine written in [Rust](https://www.rust-lang.org/),
+callable from [R](https://www.r-project.org/), [Python](https://www.python.org/),
+[Julia](https://julialang.org/), and
+[JavaScript](https://developer.mozilla.org/en-US/docs/Web/JavaScript).
+Its discipline comes from Hangeul (한글), the Korean
+alphabet; its vocabulary from Wilkinson's *The Grammar of Graphics*; and its
+working shape from ggplot2. Behind all three is one promise: **a beginner
+should be able to read any plot specification aloud on day one and write it
+themselves on day two.**
+
+## *A* grammar, not *the* grammar
+
+Wilkinson opens his book by defending the definite article in his title, the
+word *The*. His grammar is a formal system: a fixed set of rules that states
+what it can build and where it stops. Those stated limits are what make the
+claim testable. A looser approach, such as a list of chart types, has no such
+boundary. Nothing says where that list ends, so there is nothing to measure it
+against. No rival can even claim to cover more. Wilkinson wrote his limits
+down, and that is why *the* is a claim he earned.
+
+This book takes the indefinite article on purpose. GOG is not a restatement of
+Wilkinson's system, and it is not a subset of it either. His grammar rests on an
+algebra of variable sets, in which `*` crosses, `/` nests and `+` blends, and the
+four operators you will meet in this book mean none of those things. What GOG
+took from him is the inventory rather than the algebra: most of the names in its
+vocabulary come from his chapters on statistics, geometry, coordinates and
+aesthetics, which is a real debt and a large one. What GOG is instead is a
+deliberately small **kernel** of marks, channels, transforms and operators, grown
+one decision at a time and answerable to [nine laws](design-laws.qmd) of its own.
+The kernel is that whole vocabulary: every name the grammar has, and nothing
+outside it. What those four kinds of name mean is spelled out later in this
+preface. When a design question is genuinely open, he is still the tiebreaker, and the
+package carries his book's name. But the cover says *a*, not *the*. GOG is one
+of the grammars that could be built, and it claims nothing more.
+
+The small article also does something the definite one cannot. *A Grammar of
+Graphics* abbreviates to **agog**, English for eager, expectant, impatient to
+see what comes next. The acronym is not merely lucky; it names the mental
+state this grammar runs on. A plot is a specification, not drawing code: you
+never place a stroke yourself. You declare what you want to see, and then there
+is a gap (brief, but real, and felt every time) before the engine shows you
+what you said.
+
+Everyone who writes a plot in GOG stands in that gap. Reading this book, you see
+the far side of it. Every plot on these pages was drawn by the engine while the
+page was being built, not pasted in as a screenshot. That waiting is over by the
+time the page reaches you: the plot is already sitting under the code. Run one of
+these code blocks on your own computer, and the gap is yours. An analyst
+stands in it while exploring data, after swapping one channel and before the
+picture changes. The people who write GOG stand in it too, for whole sessions,
+waiting to see what a new mark or transform will draw. The package is `gog`;
+the state of working with it is *agog*.
+
+The hexagon at the top of this page says that without a sentence. What sits
+inside it is a face. Its eyes are `+` and `*`. Its nose is `/` and `|`, and
+its mouth is the package name. Those four symbols are every operator GOG has.
+
+The two pairs sit where they do for a reason. `+` and `*` build a single plot,
+and read as *"…and also…"* and *"…derived by…"*. `/` and `|` arrange finished
+plots, and the panels one plot is split into, and read as *"…below…"* and
+*"…beside…"*. One pair composes inside a picture, the other between pictures.
+The face is the state this
+section has been describing: someone who has written a specification and is
+waiting to see it drawn.
+
+## Where this began: 1443
+
+Nearly every writing system in use today grew by accretion. Traders bent a
+neighbor's letters around new sounds, scribes wore pictures down into
+strokes, and nobody wrote down why. Hangeul is the great exception. In the
+winter of 1443, King Sejong announced twenty-eight letters of
+deliberate design. The 1446 book that introduced them, the *Hunminjeongeum*
+("The Correct Sounds for the Instruction of the People"), opens by saying why
+[@hunminjeongeum1446]. The spoken language differed from written Chinese, so
+ordinary people "who have something they wish to say are, in the end, unable
+to express their feelings." Therefore, new
+letters, few and simple, "wishing only that everyone may learn them with
+ease and use them daily, with convenience."
+
+![King Sejong's preface to the *Hunminjeongeum*, written out in the new Korean letters themselves, the very words quoted above. It names the need before it teaches a single letter.[^hunmin-img]](images/Hunmin_Jeongeum.svg){fig-alt="King Sejong's preface to the Hunminjeongeum, set in the Korean alphabet, the founding text of Hangeul" width="320" fig-align="center"}
+
+[^hunmin-img]: Image from [Wikimedia Commons](https://commons.wikimedia.org/wiki/File:Hunmin_Jeongeum.svg); public domain.
+
+Read plainly, that royal preface is a requirements document. It names the
+users: not the royal court, but the ordinary people the old system excluded.
+It names the failure: having something to say and no way to say it. It names the
+success criterion: easy to learn, used daily. And the book's postface adds
+the performance target: *a wise man can learn the letters before the morning
+is over; even a slow one, within ten days.* It claims universality, too:
+with these letters, the sound of the wind, the cry of the crane, the crowing
+of the cock and the barking of dogs can all be written down.
+
+## What made the letters learnable
+
+The letters earned those claims through design. The consonants draw the
+mouth making the sound; the vowels build from three shapes: a dot for
+heaven, a flat stroke for earth, an upright stroke for the human standing
+between them. Linguists eventually had to coin a new category, *featural*, for
+a script this systematic [@sampson1985]. In a featural script the shape of a
+letter shows a property of the sound it makes. But the property this package is
+actually built on is not the smallness of the letter set. English also has a
+small alphabet, and takes years, because its composition is riddled with
+exceptions ("ough" alone is five different sounds). Hangeul is learnable in
+a morning because its **composition has no exceptions**. An **atom** is a piece
+that nothing divides further, here a single letter. The power is not the atoms.
+It is the regularity with which they combine.
+
+The opposition understood the stakes precisely. In 1444 a senior scholar of
+the court academy petitioned against the new script. Civilized writing meant
+Chinese characters. The clerks already had a workaround, 이두 (*idu*), and it
+served everyone who had trained in it. And if letters were easy, people would
+abandon the hard study through which learning had always been earned. It is the eternal argument of the
+fluent expert: *the difficulty earns its keep; my fluency is capital.* You
+have heard its modern form: *everyone already knows what `alpha` means.*
+Sejong overruled it. The script outlived a royal ban in 1504, survived five
+centuries in private letters and popular novels, was named *Hangeul* around
+1912, and is today the alphabet of one of the most literate countries on
+earth. Systems that are well defined and easy to use win, in the end, because
+every new learner is a fresh vote for them.
+
+## The same predicament, in graphics
+
+Now look at the tools we draw data with. Most are logographies, writing systems
+in which each symbol stands for a whole word. They are a zoo of
+chart types, each memorized whole. A histogram function here, a pie
+function there, each with its own arguments in its own order. That is the
+logographic predicament of graphics: not a grammar but a stockpile of
+special cases, powerful only in a trained hand.
+
+That predicament already had its reformers. Wilkinson found the grammar
+underneath the zoo, and ggplot2 carried it into the daily work of hundreds of
+thousands [@wickham2008thesis; @wickham2016ggplot2]. The two of them did for
+graphics what Sejong did for writing. They traded a stack of memorized charts
+for a real, generative language, and a better one than anything built before
+it. GOG stands on that achievement, written in its debt, and adds a single
+ambition of its own, the one Hangeul is famous for: no exceptions in how the
+pieces compose. That is the standard GOG holds itself to, and the aim is to
+narrow what still stands between what a plot *means* and what its code lets
+you *say*.
+
+So GOG asks nothing new of the medium, only Sejong's old question, carried to
+its last clause: not *which charts should exist*, but *what is the smallest
+set of letters, and the most regular rule of composition, from which every
+chart can be derived?* Wilkinson's grammar answers what exists
+[@wilkinson2005]. ggplot2 found the shape that made such an answer usable, and
+most of how a sentence here is assembled is its idea. Hangeul disciplines how
+it composes. Marks are the consonants, silent until placed. Positions are the
+vowels that give them somewhere to stand. A histogram is nothing to memorize:
+it is `bar * bin`, derived, the way ㅋ (*k*) is derived from ㄱ (*g*) rather
+than invented fresh.
+
+```{r}
+data(gapminder_2007) + bar * bin + x(life)
+```
+
+*"Given gapminder 2007: bars derived by bin, x is life."* That is the whole
+program, and the plot above was drawn from those words as this page built.
+There is no histogram function in this package and no argument that turns bars
+into one. `bar` is the mark, `bin` is the transform that cuts a continuous
+column into intervals and counts the rows falling into each, `x` is the
+channel, which is the visual property a column is bound to, and `*` is the
+operator that puts a transform on a mark. It is the *derived by* in the
+sentence above. Read `*` as a spinning wheel rather than as a multiplication
+sign. Its spokes show one thing being turned into another, the way ㄱ shows
+the shape of the mouth that says it. Nothing there is memorized. The names are
+ordinary English words, and the rule that joins them never changes. Knowing
+those four parts is knowing this plot, and every other statistical chart in
+this book is the same four kinds of part in a different arrangement.
+
+And one law stands over the whole package: **no exceptions.** A rule you learn
+on one mark holds on every mark, or the package has failed you.
+
+## What the grammar refuses
+
+That law is easy to read as *everything combines with everything*. Here is the
+other half of it, which is the half that does the work.
+
+Hangeul can write the crowing of a cock. Hangeul cannot write ㄱㄴ. A
+syllable is not a pile of letters; it is a set of slots, an initial consonant,
+then a vowel, then an optional final consonant, and each class of letter belongs
+to one of them. Two consonants with no vowel between them fill nothing. ㄱ on
+its own is silent, and a lone vowel cannot stand either: to write the bare
+sound *a* you supply a carrier for the empty initial slot, and what you write
+is 아. The script that
+boasts it can capture the barking of a dog refuses most of the arrangements
+you could make of its own letters.
+
+Those are not two facts. They are one. Take the slots away, let any letters
+stack in any order, and the script does not become more expressive; it becomes
+unreadable. A block would no longer tell you how to say it, and you would be
+back to memorizing shapes whole, which is where writing began. The refusals are
+what make the script readable at first sight. A reader meeting a word for the
+first time still knows which part is the consonant, because nothing else could
+have been in that slot.
+
+A plot is the same. GOG will not draw a `point` from an x alone. A mark with
+one position has not said where to put it. GOG will not map a column to `size`
+on a `bar` either. The bar's length already shows the quantity, so a size would
+have nothing left to show. Neither refusal is a missing feature. Both come from
+the rule that lets you read a specification you have never seen before. If
+every mark accepted every channel, knowing the mark would tell you nothing. A
+plot would go back to being something you memorize. The engine says no out
+loud, and every no points to what you meant instead. That is why this book
+renders its refusals live, on the page, beside the plots that work.
+
+The goal is that one small set of atoms draws every plot, the way one small
+set of letters writes every Korean sound. Neither is a claim of completeness.
+
+Hangeul does not write everything. It does not mark tone, and it does not mark
+how fast a syllable is said. Some sounds it cannot spell at all. Those gaps
+were left as gaps, because the sounds behind them are not the ones most
+speakers need. The letters were not built to be perfect. They were built to be
+a means of writing sound.
+
+GOG is built the same way. It does not promise that every visualization is
+possible. Reaching some of them would mean stepping outside the grammar's own
+rules and adding an exception, and no chart is worth that.
+
+What the grammar will not do is refuse a plot for being a bad idea. 꿲 (*kkwek*)
+breaks no rule of Korean, and no one has ever needed to write it. Its graphics
+equivalent is a color scale, the rule that turns a column's values into colors,
+stretched over three hundred categories, and it
+is legal here, because well-formedness and usefulness are different judgments
+belonging to different people. The engine guarantees the first, always. The
+second is yours, and it is what most of this book is about.
+
+## The promise, and the rules this book plays by
+
+This book inherits the 1446 promise, restated for graphics: **read the whole
+grammar in a morning; write it fluently within ten days.** Part I is built
+to be finished in one sitting. The rest of the book deepens what the
+morning introduced; it never replaces it.
+
+Five rules govern every page, and you can hold the book to them:
+
+- **Every plot is live.** Each is drawn by the engine as the page builds;
+  no plot in this book is a screenshot. The one static image is historical:
+  the *Hunminjeongeum* page shown earlier, which no engine could draw.
+- **Questions first.** Every teaching chapter opens with a question about
+  data, and answers it before it names a feature.
+- **A small cast.** Five families of table carry three out of four plots in
+  this book. A chapter that needs a frame of its own introduces it where it is
+  drawn. New columns cost attention; the diversity lives in the questions.
+- **Read it aloud.** The first specification in every chapter is followed by
+  its English sentence. Read that one aloud, and the rest of the chapter reads
+  the same way. If a sentence cannot be read aloud cleanly, that is a bug in
+  the grammar, not in you.
+- **Errors on stage.** Refusals render live in these pages, because the
+  engine's *no*, always with a direction, is half of what it teaches.
+
+One thing to be clear about before you start: this package is young. The
+version number is 0.0.1 and it means what it says. What exists is a minimum
+viable package, so do not expect everything to work the first time. If you use
+it for an experiment or a paper, you are taking a risk. This warning is here so
+that the risk is one you chose, and not one you found out about later.
+
+Expect it to move quickly. New atoms and new features will arrive, and they will
+arrive often. A plot you write today may have a shorter way to say it next
+month. What I will try hard not to do is take anything away. A sentence that
+draws today should still draw a year from now. If that ever has to break, I will
+say why rather than let it break quietly. I cannot promise it, though, and at
+version 0.0.1 nobody honestly could.
+
+This book moves with the package. Because every plot here is live, a change to
+the engine reaches these pages on the next render. The text is rewritten
+whenever it stops matching. Expect the book to change as often as the package
+does. Once the grammar settles, a section recording what changed and when will
+be worth adding. That is a promise for later, not something you will find here
+today.
+
+Please report the bugs and issues you hit. A package this young improves mainly
+by being used, and that is what I am hoping for.
+
+One kind of report is worth more than the others, and it is the one I cannot
+write myself. Take a dataset you know well and draw it in GOG. Then draw the
+same thing in a tool you already trust. Any tool at all:
+[ggplot2](https://ggplot2.tidyverse.org/) or
+[matplotlib](https://matplotlib.org/),
+[Excel](https://www.microsoft.com/en-us/microsoft-365/excel) or
+[Tableau](https://www.tableau.com/), [Stata](https://www.stata.com/) or
+[SPSS](https://www.ibm.com/products/spss-statistics),
+[Vega-Lite](https://vega.github.io/vega-lite/) or [D3](https://d3js.org/). Put
+the two pictures side by side and tell me where they differ. A standard dataset
+is ideal, because the picture it should produce is already familiar to
+everybody.
+
+Here is why that comparison is worth so much. This package tests itself
+thoroughly, but in one direction only. Every sentence in this book is drawn in
+all four languages, and the four files have to match to the byte. Every refusal
+on these pages is run again on every build. All of that proves GOG agrees with
+itself. None of it proves the picture is right. A box whose whiskers reached the
+wrong value would pass every test this project has, four times over, in four
+languages, and this book would print it on the page as though it were correct.
+
+A difference is not automatically a defect, and it is fair to know that before
+you spend the time. Some differences are decisions. A GOG box spans the lower
+and upper quartiles, as most software does, while Tukey's original spans the
+hinges, and the [box](marks/box.qmd) chapter says so and says why. So a
+comparison gets one of
+two answers: this is a bug and thank you, or this is a choice and here is the
+reasoning behind it. Both are worth the message.
+
+Not everything reported will be built. I am this project's benevolent dictator
+for life. The phrase is a tongue-in-cheek open-source title for a founder who
+keeps the final say in a dispute. It was first used in 1995 for [Guido van
+Rossum](https://en.wikipedia.org/wiki/Guido_van_Rossum), who created Python.
+Many people would say I am not qualified to hold
+it. I am holding it until this package is in the hands of a user community and
+of people better than me.
+
+## The cast
+
+Five groups of table carry most of the book, eight tables in all. Meet them
+once, here:
+
+- **`gapminder_2007`**, 142 countries in 2007: `gdp` (per capita),
+  `life` (expectancy in years), `population`, `continent`, `country`.
+  The workhorse, and an excerpt of the Gapminder Foundation's data
+  [@bryan2025gapminder]. **`gapminder_asia`** is five Asian countries traced
+  1952–2007, and **`gm_all`** is the full half-century sweep.
+- **`iris_flowers`**, 150 flowers: `sepal_length`, `sepal_width`,
+  `petal_length` (all in cm) and `species`. Three measurements on one
+  scale, and a category that separates cleanly. The measurements are Edgar
+  Anderson's, and they reach most software through Fisher's 1936 paper
+  [@fisher1936] and R's own `datasets` package [@rcore2026].
+- **`medals`**, five countries' Olympic `gold`, `silver`, `bronze`
+  counts. Small enough to check by eye.
+- **`actuals`** and **`forecast`**, yearly `sales`: history in one
+  table, expectation in another. The two-table pair.
+- **`six_weeks`**, 42 consecutive days of `orders`, with `day` a real
+  `Date`, for calendar axes.
+
+Those five groups answer most of the questions asked here. A handful of marks
+need a shape none of them has, and each brings its own small frame, introduced
+on the page that first draws it rather than in this list. Wind observations
+for the circular axes in [polar](polar.qmd). A mountain's elevation grid for
+[surface](marks/surface.qmd). Two gliders' coiling flight paths for the third
+dimension. Thresholds and shaded spans for the marks that annotate. None of
+them arrives to add variety. A new column costs the reader attention, so the
+variety in this book stays in the questions.
+
+## How this book runs
+
+The shape of the book borrows from the *Hunminjeongeum* itself, which
+stated its whole system in a few pages, then explained each letter class,
+then showed assembly, then ended its explanations with ninety-four ordinary
+words in use:
+
+1. **A morning**, the whole grammar, fast: a first plot, the kernel on
+   one page, reading practice, writing practice.
+2. **The letters**, each atom family in depth: the data you bind once,
+   the marks, the refining channels, setting vs mapping, the transforms,
+   and the scales.
+3. **Sentences**, composition: layering, deriving, scope, faceting, whole
+   plots arranged on a page, the third dimension, the plane bent into a
+   circle, the panel packed into regions, and a plot played in time.
+4. **The cookbook**, recipes organized by your data's shape and your
+   question, never by chart name; every recipe ends one atom away from
+   its neighbors.
+5. **The reasons**, the nine laws the package never breaks, and why.
+6. **The bindings**, one short chapter apiece for [R](bindings/r.qmd),
+   [Python](bindings/python.qmd), [Julia](bindings/julia.qmd) and
+   [JavaScript](bindings/javascript.qmd). A binding is the package that lets
+   one language write GOG sentences and send them to the engine. These
+   chapters hold what belongs to the host language rather than to the grammar.
+
+Five appendices follow. The [kernel card](kernel-card.qmd) is the whole
+vocabulary on one page. The [mark-by-channel grid](combinations.qmd) shows
+what combines and what the engine refuses, generated from the engine's own
+rule table on every build so it cannot drift from the code. A
+[dictionary](chart-names.qmd) runs from chart names to sentences. A
+[phrasebook](phrasebook.qmd) serves readers arriving from ggplot2. And [what
+GOG does not do, and why](coverage.qmd) closes the book.
+
+This book is written in R. [Python](bindings/python.qmd),
+[Julia](bindings/julia.qmd) and [JavaScript](bindings/javascript.qmd) speak
+the same sentences into the same engine. Those three chapters are the whole of
+the difference: how each language captures a column name, and, for JavaScript
+alone, the four words it needs because it cannot give `+ * | /` a meaning of
+its own. Most code blocks are executed during render: the plots you see are
+drawn by the engine as the page builds. Examples that use roadmap features
+remain display-only until those features land.
+
+## What is released, and what is not
+
+Every plot on this site was drawn by the engine while the page was being built.
+The engine works, and so do all four bindings. One of them you can now install
+with a single command.
+
+Python is published. `pip install gog` brings it from
+[PyPI](https://pypi.org/project/gog/). Every platform has its own package, and
+each one carries the engine inside it. Installing needs no Rust
+[@klabnik2023rust] toolchain. The [Python](bindings/python.qmd) chapter has the
+details.
+
+The other three are not on a registry yet. GOG is not on CRAN, npm, or the Julia
+General registry. Those bindings run from a copy of the source for now, and their
+chapters show how: [R](bindings/r.qmd), [Julia](bindings/julia.qmd) and
+[JavaScript](bindings/javascript.qmd).
+
+So this book is still ahead of its software, on purpose. The manual is what is
+being tested here. If a page shows a sentence, the engine drew it. If a page
+shows a refusal, the engine refused it. Publishing the manual first is how that
+stays true while the packaging is finished.
+
+The prose in this book is licensed [CC BY-NC-SA
+4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/). The code is licensed
+[Apache 2.0](https://www.apache.org/licenses/LICENSE-2.0), the same license as
+the engine, so the examples can be used in your own work.
+
+## Who wrote this
+
+This book carries five names, and the division of labor behind them is worth
+stating plainly rather than leaving in a footnote.
+
+One of the five is not a name. I publish as **psychometrician**, and the wish
+is an old one. I have wanted a pen name since I learned statistics in 1992,
+which is when I met *Student*. Student was [William Sealy
+Gosset](https://en.wikipedia.org/wiki/William_Sealy_Gosset), an English chemist
+and statistician, and the t-distribution carries his pen name instead of his
+own. My own papers are few, and no academic journal would let me publish
+under a pen name. This book is the first chance to use one.
+
+The word does a second job. Most people do not know the job title, and anyone
+who uses this package now knows that a
+[psychometrician](https://en.wikipedia.org/wiki/Psychometrics) started it and
+maintains it. What they are less likely to know is how much psychometricians
+care about data visualization. As far as I know, only one academic journal
+runs a visualization competition, and it is ours: *[Educational Measurement:
+Issues and Practice](https://onlinelibrary.wiley.com/journal/17453992)*,
+published by Wiley for the [National Council on Measurement in
+Education](https://www.ncme.org/) (NCME). Every year it asks its members for
+thoughtful and creative diagrams that communicate a clear message about
+educational or psychological data. The winning entries become the journal's covers, and the
+strong runners-up are shown inside. The [cover
+gallery](https://onlinelibrary.wiley.com/page/journal/17453992/homepage/cover_gallery.htm)
+is worth your time. This package may not be able to draw all of them.
+
+Psychometricians have cared about data visualization for a long time. My own
+history with it starts in 2005. I was writing my dissertation, and every
+conditional plot in its simulation chapters came out of the **lattice**
+package [@sarkar2008lattice]. It was the first graphics tool that impressed me.
+After that I was a heavy ggplot2 user for years. What changed was the day I
+understood that ggplot2 had a grammar. From then on it felt like there was no
+end to the plots I could make.
+
+I owe [Hadley Wickham](https://hadley.nz/) more than a citation for that. Before
+his package and his book, a plot was a task to get through. You looked up the
+function for the chart you had been asked for, learned whatever arguments it
+happened to want, and moved on. The grammar changed what the work was. Visualization became a
+creative act rather than an item on a list. It is creativity inside a
+boundary, the one the grammar draws. That is the part I most want to pass on.
+
+The design is mine. The founding question, the Hangeul discipline, the nine
+laws, and the ruling at every fork about what this grammar would and would not
+become: those are the parts I am answerable for. The hex sticker is mine as
+well. I designed it myself in [Canva](https://www.canva.com), with no sticker
+package and no model. I am not an artist, and what I wanted was not a beautiful
+sticker but an unmistakable one. The Rust
+engine was written entirely by the four Claude models on the cover, as were all
+four language bindings and the test suites. They also did the work nobody is
+ever thanked for, which is running every sentence in this manual through four
+languages, again and again, until all four agreed to the byte.
+
+The text is a third case, and the honest comparison is a ghostwritten
+autobiography. The public figure whose name is on the cover usually did not
+type it. A professional writer interviews them, and what comes back is their
+thinking in another person's prose. These pages work the same way, with one
+difference. Not every idea in this book started with me. Claude often suggested
+something better than what I first brought, and my task was to accept it or
+reject it. Claude put all of it into English. The sentences are not mine; the
+decisions behind all of them are.
+
+Naming them as co-authors is meant literally. A line reading "with assistance
+from" would understate the work by an order of magnitude, and this is a book
+about saying what you mean.
+
+They were not one kind of collaborator, and it would be a poor tribute to
+pretend they were. On some days they were assistants: fast, tireless, and so
+eager to be useful that "done" tended to arrive some time before done did. A
+change to how bars are drawn was once confirmed by checking a stroke color
+instead of looking at the plot, and the report came back clean while every bar
+on the page was still wrong. Most of the checks now guarding this repository
+exist because of an afternoon like that, and not one of them was added to catch
+a careless human.
+
+On other days they were advisors, and that is the part I did not expect to be
+writing about here. A design question asked at the wrong hour, asked badly,
+asked for the third time in a worse form than the first: it got taken as
+seriously as if it were a good one. A fair number of the refusals in this
+engine exist because I said "why not just" and got a patient answer rather
+than an agreeable one, and some of the reasoning in Part V was settled in an
+argument I was not winning. An assistant that agrees with you is the easy
+thing to build. This grammar would be a good deal worse if that is what I had
+had.
+
+Taken together, it felt like a research meeting. Smart researchers filled the
+room, eager to listen to me and eager to carry out the plan once I had decided.
+I have not had both of those at once before. It was always a good time, and
+sometimes an expensive one. A small question would open into a long detour, and
+I would lose several hours in it. Accepting that invitation was my decision
+every time, so none of this is a complaint.
+
+Responsibility does not divide the same way. Every error in these pages, every
+refusal the engine gets wrong, and every design decision that turns out to have
+been the wrong one is mine, because I chose it and I kept it. I organized this
+project and I maintain it. The credit is shared; the fault is not.
+
+One last item belongs in an honest accounting. I work as a psychometrician, and
+this package was never part of that job. It was built late at night, on
+weekends, and on vacation days. That time belonged to my wife and daughter, and
+I spent it talking to the four Claude models on the cover instead. I am not
+going to dress that up as devotion to the craft. To my wife and daughter: sorry.
+I would like to end by saying it is finished. It is not. The version is 0.0.1,
+and what comes next will cost the same nights, weekends and vacation days.
+
+## Thanks to Posit
+
+[Posit PBC](https://posit.co/), called RStudio PBC until 2022, builds a large
+part of what a working R user touches in a day. The parts I depend on are free,
+and there are three of them.
+
+The [tidyverse](https://www.tidyverse.org/) [@wickham2019tidyverse] is the one I
+would miss first. It is the vocabulary I think in
+when I handle data, and has been since long before this project. You will not
+find it in this book, whose tables are built in base R because `gog` imports
+only `jsonlite` [@ooms2014jsonlite] and I want it to install anywhere. That is a
+rule for the package. It is not how I work the rest of the day.
+
+Their editors are the second. I worked in
+[RStudio](https://posit.co/products/open-source/rstudio/) for years, and I work
+now in [Positron](https://positron.posit.co/), which is newer and holds R and
+Python in one window. The two are not the same program under different names: RStudio is
+still here and still maintained, and Positron sits beside it.
+
+Quarto is the third, and it belongs here rather than in a colophon, because the
+first of the five rules above rests entirely on it. *Every plot is live* is a
+claim about honesty rather than convenience. Every code block on these pages ran
+while the page was being built. One that draws a plot really drew it, and one
+that shows a refusal was really refused. [Quarto](https://quarto.org/) is what
+executes those blocks. Without it, every plot here would be a screenshot and
+every code block would be text that nobody had run. The book would drift out of
+step with the package it describes, and no one would notice.
+
+Quarto gives the book three more things it could not have faked. Four languages
+spell the same sentence in one tabbed block, so a reader sees the parity instead
+of taking it on trust. One source builds both an HTML site and a printable PDF,
+Korean letters and all, from the same executed chunks. And a block is allowed
+to fail without stopping the build, so the engine's refusals appear beside the
+plots that work instead of in an appendix.
+
+None of that announces itself while you read, which is the mark of a tool doing
+its job well. Without Quarto there would be no book here at all.
+
+I will not be modest about what the tidyverse and their editors are worth
+either. My work as a psychometrician would be harder, and a good deal more
+miserable, without what this company gives away. Thank you.
+
+## Thanks to Anthropic
+
+Soon after Claude came out, I built a web application. It was React on the
+front, Supabase for the database, and the Google APIs behind it. I did not know
+React well, and I did not know Supabase at all. The application got finished
+anyway.
+
+Then it failed, and the reason had nothing to do with the code. I could not
+market it. I did not know how to reach the people it was built for, and after a
+while I shut it down.
+
+The lesson was not the one I went looking for. Building the thing was no longer
+the hard part. If I plan carefully, keep at it, and work through the problem
+with Claude, I can finish what I set out to build. So I began to want something
+else: my own packages, in the two languages I actually work in, R mainly and
+Python occasionally. This one came out of that.
+
+A grammar of graphics is a larger promise than a web application. It is an
+engine, and an engine has to be written, tested, and kept working. I am a
+psychometrician, with no team on this project, no funding, and no ability to
+write Rust. Without [Claude Code](https://claude.com/claude-code), this package
+would still be a plan.
+
+One more item belongs on that list. English is not my first language. Every
+conversation behind this package was held in my own broken English, from the
+first design question to the last bug report. I chose the wrong words and put
+them in the wrong order. I left out the small words that hold an English
+sentence together. Claude understood what I meant nearly every time. Twenty
+years of thinking about this field reached the engine through sentences full of
+mistakes. None of that thinking was lost on the way. You can do better than I
+did.
+
+I think this may have been luck, and I would rather say so than not. I happened
+to be thinking about data visualization. I happened to be thinking about
+Hangeul. Then Claude Code arrived. What I did was stand between the two and let
+them meet.
+
+There is nothing rare about that position. Anyone could be standing in it. If
+you have been thinking about your own subject for a long time, and you are
+willing to play with this tool, you are already there. Much bigger things than
+this package will come out of that.
+
+So, thank you to the people at [Anthropic](https://www.anthropic.com/) who built
+Claude Code, and to the four models named on this book's cover. I do not know
+most of your names. I know two of them from YouTube:
+[Boris Cherny](https://x.com/bcherny) and [Cat Wu](https://x.com/_catwu). You
+built the thing that let a psychometrician write a graphics engine. Thank you.

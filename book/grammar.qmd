@@ -1,0 +1,278 @@
+# The grammar
+
+```{r}
+#| include: false
+source("R/setup.R")
+```
+
+What do you have to say about your data before a plot can be drawn? GOG's whole
+vocabulary is a short list of ordinary English words. Learn them once and you
+can read, and write, any plot.
+
+## The kernel
+
+| Kind | The words |
+|---|---|
+| **Marks** | `point` `line` `area` `bar` `step` `interval` `box` `ribbon` `text` `path` `rule` `zone` `surface` |
+| **Channels** | `x` `y` `z` `color` `size` `shape` `pattern` `opacity` `group` `label` `play` |
+| **Selections** | `click`⬜ `brush`⬜ `lasso`⬜ |
+| **Transforms** | `bin` `smooth` `count` `density` `proportion` `sum` `mean` `median` `max` `min` `range` `confidence` `bounds` `partition`, and the three that resolve collisions, `dodge` `stack` `jitter` |
+| **Scales** | `linear` `log` `time` `category` `order` |
+| **Spaces** | `flat` `space` `polar` `nest` `globe`⬜ `map`⬜ |
+| **Labels** | `title` `x_label` `y_label` `z_label` |
+| **Settings** | `style` `theme` `palette` |
+| **Facets** | `facet` |
+| **Operators** | `+` layers, `*` derives, `|` and `/` arrange |
+
+⬜ designed, not drawn yet.
+
+Every sentence is a table, then words from this list:
+
+```
+data(table) + mark + x(column) + y(column)
+```
+
+No abbreviations, no acronyms, no silent letters.
+
+The kernel above is the *designed* vocabulary. The five words marked ⬜ are not
+drawn yet, and they are not callable either, so your language will report a
+missing function rather than GOG explaining itself. What GOG never does is
+accept one of these names and quietly ignore it. Every **mark** draws today,
+`surface` being the last to arrive, and `play` draws too. What is left is the
+three selections and the `globe` and `map` spaces.
+See [Design laws](design-laws.qmd) for the difference between
+**illegal** (the grammar forbids it) and **unsupported** (the grammar allows it;
+the engine cannot draw it yet). Each table below marks what renders today.
+
+## Marks: the "consonants"
+
+A mark is the geometric form drawn for each row of data.
+
+| Mark | What it draws | Today |
+|------|--------------|-------|
+| `point` | One glyph per row | ✅ |
+| `line` | Rows connected in **x order**: a function read along a domain | ✅ |
+| `bar` | Rectangle from baseline to value | ✅ vertical or horizontal |
+| `area` | Filled region between a line and the baseline | ✅ |
+| `step` | A line that holds each value until it changes (CDFs, histogram outlines) | ✅ |
+| `interval` | A whisker spanning low→high at each x: error bars, ranges; needs a `range` transform | ✅ |
+| `box` | Distribution per group: box, median, whiskers to 1.5×IQR, outliers as dots; carries its own summary | ✅ |
+| `ribbon` | A filled band from a low boundary to a high one across x: confidence / spread bands; needs a `range` transform | ✅ |
+| `text` | A string at each position: its content comes from the `label` channel | ✅ |
+| `path` | Rows connected in **the table's order**: a route that may double back; takes `style(arrow = )` | ✅ |
+| `rule` | A line at one position, spanning the other axis: reference lines, and rugs via `style(reach = "edge")` | ✅ |
+| `zone` | A shaded rectangle: bounded where its sides are known, spanning the panel where they are not. Four things know them — a **categorical position** (a category owns a slot: the tile plot), `bounds` (names them), `bin` (cuts them: the heatmap), `density` (cuts or traces them) | ✅ |
+| `surface` | A sheet over a floor whose cells tile: one row per (x, y) crossing with a face between each block of four, or one row per cut cell with a flat plateau on each. The only mark that draws in the cube alone | ✅ |
+
+## Channels: the "vowels" and the "final consonants"
+
+A channel maps a data column to a visual property of the mark. They do not all
+play the same part, and what tells them apart is what each one *earns*:
+
+| Channel | Visual property | Earns | Today |
+|---------|----------------|-------|-------|
+| `x` | Horizontal position | an axis | ✅ numeric or categorical |
+| `y` | Vertical position | an axis | ✅ numeric or categorical |
+| `z` | Depth: the third position, makes a plot 3-D | an axis | ✅ six marks: `point` cloud, `path` route, `bar` column, `interval` span, `box` summary, `surface` sheet |
+| `color` | Fill / stroke color | a legend | ✅ categorical *or* continuous |
+| `size` | Radius | a legend | ✅ |
+| `shape` | Glyph (circle, square, triangle…) | a legend | ✅ `point` |
+| `pattern` | Texture: a fill's hatch, a stroke's dash | a legend | ✅ all but `point`, `text` and `surface` |
+| `opacity` | Transparency | a legend | ✅ `point`, `bar`; as a *setting* it reaches every mark |
+| `group` | Splits a mark into one series per category, without encoding it | nothing | ✅ eight marks: `line`, `step`, `area`, `ribbon`, `interval`, `box`, `path`, `surface` |
+| `label` | The string a `text` mark draws (its content) | nothing | ✅ `text` |
+| `play` | Cuts the plot into frames and plays them in sequence | a strip | ✅ numeric *or* categorical |
+
+The **Earns** column sorts the channels into four kinds. A Korean syllable has
+three slots: an initial consonant, then a vowel, then an optional final
+consonant. The mark is the initial consonant, which is why this section's title
+names only the other two.
+
+`x`, `y` and `z` are the **vowels**: a mark without one of them is silent, so
+at least one is required, and each earns an axis to be read against.
+
+The five that earn a legend are the **final consonants**, the optional ㅁ that
+turns 가 into 감. None is ever required, and each changes what the plot says,
+which is exactly why each needs a key to decode it.
+
+`group` and `label` are neither. `group` splits without encoding: on a `line`
+it performs the very same split `color` does, one polyline per category, and
+then stops. It is what is left of `color` once the decoding is taken away,
+which makes it closer to the space between words than to a letter. `label`
+supplies a `text` mark's content rather than refining it.
+
+`play` is the fourth kind, and it stands outside the syllable the way faceting
+does. It does not refine one picture. It cuts the plot into frames and plays
+them in order, so what it earns is a **strip** naming the frame on screen. See
+[Play](play.qmd).
+
+Not every channel applies to every mark: a `line` is drawn with a single
+stroke, so it takes no per-row `size` or `opacity`. GOG states the rule rather
+than guessing; see [Design laws](design-laws.qmd), and
+[Combinations](combinations.qmd) for the whole mark-by-channel grid on one page.
+
+## Scales: how a number becomes a position
+
+A scale is written on the **binding**, the channel with its column in it. It is
+not an atom of its own, because it belongs to one channel and nothing else can
+combine with it:
+
+```{r}
+data(gapminder_2007) + point + x(gdp, scale = "log") + y(life) +
+  x_label("GDP per capita")
+```
+
+*"Given gapminder 2007: points, x is gdp on a log scale, y is life."*
+
+| Scale | What it does | Today |
+|-------|-------------|-------|
+| `linear` | Equal steps for equal differences | ✅ the default |
+| `log` | Equal steps for equal ratios | ✅ on `x`, `y`, `color`, `size`, `opacity`; any `base` |
+| `time` | Positions dates and times | ✅ chosen from the column type: `Date` / `POSIXct` |
+| `category` | One slot per distinct value | ✅ chosen from the column type: text and factor columns |
+| `order` | Which way a categorical axis runs | ✅, or [declare it on the column](data.qmd) — a factor in R, `ordered()` in the other three |
+
+A scale is not a transform: it produces no new values, only different positions
+for the ones you have. Where the two meet, what a log scale means for
+`bar * bin` or `bar * sum`, is set out in [Scales](scales.qmd).
+
+The same binding takes `limits`, which says what range the channel runs over
+when the data is not the authority on that:
+
+```{r}
+data(tide) + line + x(hour, limits = c(0, 24)) + y(height) + polar()
+```
+
+The gauge reads every three hours, so the readings run from hour 1 to hour 22.
+A circular axis joins its two ends. It cannot tell that the hours between 22 and
+1 belong to the day as well. Left to fit the data, it would close the circle at
+hour 22. The first and last readings would then land on the same spoke, though
+21 hours separate them. `limits = c(0, 24)` says the day is 24 hours long, so
+every reading sits where a clock would put it. The curve still does not close,
+because no reading was taken at midnight and stating a domain does not invent
+one. [Polar](polar.qmd) follows that through. `limits` works on every channel
+that measures, `NA` leaves an end to the data, and the whole of what it does is
+in [Scales](scales.qmd).
+
+A position binding takes one more, `tick_count`, which says how densely the axis
+should be labeled. It is written in the same place and for the same reason: how
+many ticks an axis gets is a property of the scale, so it belongs to the sentence
+that describes the scale rather than to `theme()`, which is the page. Unlike
+`limits` it reaches only `x`, `y` and `z`, because those are the three that draw an
+axis at all — a legend names both ends and the middle, and there is no count to
+choose. [Scales](scales.qmd) has the rest, including what it does and does not
+promise.
+
+## Settings: values you *set* rather than *map*
+
+Every channel above answers a question about the data. `color(species)` asks
+"which species?", and earns a legend so the reader can answer it.
+
+Making every point one color asks nothing. It maps no column, needs no scale,
+and has nothing to decode, so it is not a channel. That is `style`:
+
+| Setting | What it fixes | Today |
+|---------|--------------|-------|
+| `style(color = )` | One color for the whole layer | ✅ |
+| `style(opacity = )` | One opacity, `0`–`1` | ✅ |
+| `style(size = )` | Point radius, or line stroke width | ✅ |
+| `style(shape = )` | One glyph for every point | ✅ |
+| `style(pattern = )` | The texture of a mark's paint: a stroke's dash (solid/dashed/dotted), a fill's hatch (hatch/crosshatch/grid/dots) | ✅ all but `point`, `text` and `surface` |
+| `palette( )` | Which colors the `color` channel hands out | ✅ |
+
+```{r}
+# map: color carries the continent, and a legend decodes it
+data(gapminder_2007) + point + x(gdp) + y(life) + color(continent)
+```
+
+```{r}
+# set: one color, no question asked, no legend drawn
+data(gapminder_2007) + point + x(gdp) + y(life) +
+  style(color = "tomato", opacity = 0.5)
+```
+
+See [Setting vs mapping](style.qmd) for the full rules.
+
+## The `+` operator: layering
+
+`+` composes atoms into a specification.
+The result is a `PlotSpec`, rendered to SVG. Raster formats come from
+converting that SVG. Three dimensions already draw: `space()` projects the cube
+into the same SVG, so there is one renderer rather than a second one for depth
+(see [Space](space.qmd)). What is still on the roadmap is turning that cube
+yourself. Drag-to-rotate, and the real occlusion that goes with it, need a live
+canvas rather than a fixed SVG. Today you name the angle instead, with
+`space(turn =, tilt =)`.
+
+```{r}
+# One layer
+data(gapminder_2007) + point + x(gdp) + y(life)
+```
+
+```{r}
+# Two layers — bars behind, points on top
+data(actuals) + x(year) + y(sales) +
+  bar + style(color = "lightsteelblue") +
+  point + style(color = "steelblue", size = 6)
+```
+
+Each mark opens a new layer.
+Layers are rendered in order: first mark drawn first (at the bottom).
+
+## The `*` operator: combining a mark with a transform
+
+`*` binds a mark to a transform, creating a derived mark type.
+The mark is always on the left; the transform is on the right.
+
+```r
+bar * bin      # histogram
+line * smooth  # smoothed trend line
+zone * bin     # heatmap — the same `bin`, cutting both axes
+```
+
+The last line is the pattern worth noticing: one transform means one thing, and
+the mark decides how it lands. A `bar` leaves an axis free to measure the count
+along, so `bin` cuts the other one; a `zone` measures nothing by length and
+needs an extent on both, so the same word cuts every axis with a width to cut
+and the count becomes the color. On a zone with one categorical position it
+cuts the other one only, since a category arrived already cut.
+
+The summaries divide by the same arithmetic, read the other way round. `zone *
+mean + x(a) + y(b) + color(v)` averages `v` within every cell two categories
+cross, because a summary groups by every position the mark does *not* measure
+with and reduces the column named on the one it does — which on a bar is `y`,
+on a zone is `color`, and in [`space()`](space.qmd) is `z`.
+
+See [Operators](operators.qmd) for the full rules,
+and [Transforms](transforms.qmd) for each transform in detail.
+
+## The `|` and `/` operators: faceting, or composing
+
+`|` puts things side by side and `/` puts one above the other. What things —
+panels or whole plots — is decided by what you write on the right.
+
+With `facet()` on the right they split *one* plot into panels, one per category
+of the column it names:
+
+```{r}
+# One panel per continent, side by side
+data(gapminder_2007) + point + x(gdp) + y(life) | facet(continent)
+```
+
+Every panel shares one scale, that is what makes them comparable, and both
+operators together cross into a grid. See [Faceting](faceting.qmd) for the
+full rules.
+
+With another *plot* on the right they arrange the two on one page, each keeping
+its own coordinate space:
+
+```{r}
+# Two plots, side by side
+(data(gapminder_2007) + point + x(gdp) + y(life)) |
+  (data(gapminder_2007) + bar * count + x(continent))
+```
+
+Composed plots share nothing until they name the same column on the same axis,
+and then they share that axis outright — one scale, one extent, drawn once. That
+single rule is what makes a marginal plot two operators rather than a chart type.
+See [Composition](composition.qmd).

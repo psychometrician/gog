@@ -1,0 +1,91 @@
+# Afterword {.unnumbered}
+
+The 1446 book closed with a postface making two claims for its little
+alphabet: that the quick could learn it in a morning and anyone within ten
+days, and that it could write down any sound at all: wind, crane, cock,
+dog. This book closes by restating both, because they are its own measures
+of success.
+
+## The ten-days challenge
+
+The morning is behind you; here is the rest of the promise. For the next ten
+days, bring one question a day from **your own data**, not the cast's,
+and answer it in one sentence. Start where the [cookbook](cookbook/one-variable.qmd)
+starts: what shape is the data, what do you want to know. By day three the
+recipes will feel like spellings of things you already say. By day ten you
+should be writing sentences this book never showed you, which is the only
+outcome that would prove the grammar, rather than the examples, is what you
+learned.
+
+If a sentence surprises you (renders when you expected a refusal, or
+refuses with a direction you disagree with), that is worth reporting. A
+grammar this small stays honest by being argued with.
+
+## What is still to come
+
+The kernel you learned is the *designed* vocabulary, and the engine tells
+you honestly which parts are not drawn yet rather than ignoring them. **Every
+mark in it now draws**, `surface` having been the last one waiting. What is left
+is not marks. On the roadmap, in rough order: the `globe` and `map`
+spaces (`polar` now draws, and the marks it does not yet bend are named on
+its own page), and the selections (`click`, `brush`, `lasso`)
+that make plots answer back. (`play` now draws: a time-lapse is faceting read
+in time, and it has its own page.) (The collision modifiers are complete: `dodge`,
+`stack`, and `jitter` all ship.) None of these will add a new kind of grammar:
+each is one more letter in a system whose assembly rules you already know.
+
+The same sentence you write in R is a small, engine-neutral description
+under the hood, and that is what the other front ends speak, same words,
+different capture idiom. All three speak it today, and each one's chapter is
+its difference list, a page long apiece:
+[Python](bindings/python.qmd), [Julia](bindings/julia.qmd),
+[JavaScript](bindings/javascript.qmd).
+
+```python
+# Python
+(data(gapminder) + point + x(col.gdp) + y(col.life)
+  + color(col.continent))
+```
+
+```julia
+# Julia
+data(gapminder) + point + x(:gdp) + y(:life) + color(:continent)
+```
+
+```js
+// JavaScript, the one binding that cannot overload the operators
+plot(data(gapminder), point, x(col.gdp), y(col.life), color(col.continent))
+```
+
+And one far goal, recorded here so you can hold the project to it: a build
+of the engine that runs inside the page, so that every example in this
+book becomes editable in place: change `color(continent)` to
+`shape(continent)` and watch the plot redraw. The book you are reading is
+already the test suite for that future: everything in it is a live
+specification, waiting for a faster reader.
+
+## Writing quickly is not writing well
+
+I think Hangeul (한글) is a perfect writing system. I should admit that I may be
+biased, because it is the language I speak. What cannot be argued is that it is
+fast to read and fast to write.
+
+Writing quickly is not the same as writing well. There is no shortcut to good
+writing: you read good writing, and you practice. Visualization is no
+different. This tool is new and it has problems, and what I hope it can be for
+now is something worth practicing on.
+
+King Sejong made the alphabet. He was not its great author. I am not a great
+author of plots either. What I do have is twenty years in this field as a user,
+watching and listening and reading. That is what I built from: a tool that is
+easy to learn and easy to use.
+
+I hope good work comes out of it.
+
+## The gap
+
+A specification is a sentence said before the picture exists. Everyone who
+uses this grammar (reader, analyst, engine-builder) lives in the moment
+between declaring what they want to see and finding out whether the engine
+agrees. The package is `gog`. The state of working with it is *agog*. We
+hope the book kept you there.

@@ -1,0 +1,227 @@
+# Publish the six npm packages on a tag, with no credential stored anywhere.
+#
+# The upload uses **trusted publishing**: the job asks GitHub for a short-lived
+# OIDC token, npm checks that it came from this repository running this workflow
+# file, and mints publish rights for a few minutes. No token is stored, so there
+# is none to leak or rotate. It also means the publisher registered on npm names
+# *this filename* — renaming this file breaks the release until every
+# registration is updated to match.
+#
+# **Two things about npm that shape this file, and neither has a workaround.**
+#
+# npm has no counterpart to PyPI's *pending* publisher: a trusted publisher can
+# only be configured on a package the registry already knows about. So the very
+# first publish of each of the six is a manual one from a laptop, and this
+# workflow owns every release after that. The Python side had the same shape for
+# the same reason, where a manual `twine upload` first claimed the name.
+#
+# And **provenance is not generated for a private repository**, even for a public
+# package. Trusted publishing still works; the attestation is simply absent. So
+# this workflow is worth nothing until the repository is public, which is why it
+# is written now and first used later.
+#
+# The order is deliberate and each step can only fail forward:
+#
+#   version  → the tag, all seven version declarations and the five dependency
+#              pins agree, and npm does not already have this number. A published
+#              npm version is never reusable, so discovering a mismatch at upload
+#              time spends the number on a failed release.
+#   packages → `js-packages.yml`, unchanged: five platforms, each package
+#              carrying its own engine, each installed somewhere with no checkout
+#              above it and asked to draw before it counts as built.
+#   collect  → six tarballs, named rather than counted.
+#   publish  → gated on a GitHub Environment with a required reviewer, because
+#              the upload is the one step here that cannot be undone.
+
+name: js release
+
+on:
+  push:
+    tags: ["js-v*"]
+
+permissions:
+  contents: read
+
+jobs:
+  version:
+    name: the tag and the twelve declarations agree
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: One grammar, one number
+        shell: bash
+        env:
+          TAG: ${{ github.ref_name }}
+        # `--input-type=module` because this script uses `import` and a top-level
+        # `await`; node reads stdin as CommonJS otherwise and fails on the first
+        # line.
+        run: |
+          node --input-type=module <<'JS'
+          import fs from "node:fs";
+          import process from "node:process";
+
+          const prefix = "js-v";
+          const tag = process.env.TAG;
+          if (!tag.startsWith(prefix)) {
+            console.error(`tag ${tag} is not a JavaScript release tag (${prefix}X.Y.Z)`);
+            process.exit(1);
+          }
+          const want = tag.slice(prefix.length);
+
+          // The same seven the R suite compares and the Python release checks,
+          // for the same reason it grew a seventh: a release process reads a
+          // manifest, and a user reads a version string. Those two disagreed
+          // through five built wheels once, and no manifest check could see it.
+          const QUOTED = /^ *"?version"? *[=:] *"([^"]+)"/;
+          const SOURCES = {
+            "r-pkg/gog/DESCRIPTION": /^Version: *(.+?) *$/,
+            "py-pkg/gog/pyproject.toml": QUOTED,
+            "js-pkg/gog/package.json": QUOTED,
+            "jl-pkg/GrammarOfGraphics/Project.toml": QUOTED,
+            "gog-core/Cargo.toml": QUOTED,
+            "gog-cli/Cargo.toml": QUOTED,
+            "py-pkg/gog/gog/__init__.py": /^__version__ *= *"([^"]+)"/,
+          };
+
+          const found = {};
+          for (const [path, pattern] of Object.entries(SOURCES)) {
+            const hit = fs.readFileSync(path, "utf8").split("\n")
+              .map((line) => line.match(pattern)).find(Boolean);
+            if (!hit) { console.error(`no version line found in ${path}`); process.exit(1); }
+            found[path] = hit[1];
+          }
+
+          const wrong = Object.entries(found).filter(([, v]) => v !== want);
+          if (wrong.length) {
+            console.error(`the tag says ${want}; these do not:`);
+            for (const [path, value] of wrong) console.error(`  ${value.padEnd(12)} ${path}`);
+            console.error("One grammar, one number. Move all seven together or not at all.");
+            process.exit(1);
+          }
+
+          // And the five pins. A platform package pinned away from the main
+          // package's version is a dependency npm reports as *nothing*, because
+          // it omits an optional dependency it cannot resolve without failing
+          // the install — so this cannot be left to be noticed later.
+          const manifest = JSON.parse(fs.readFileSync("js-pkg/gog/package.json", "utf8"));
+          const pins = Object.entries(manifest.optionalDependencies ?? {});
+          if (pins.length !== 5) {
+            console.error(`expected five platform packages, found ${pins.length}`);
+            process.exit(1);
+          }
+          for (const [name, pin] of pins) {
+            if (pin !== want) {
+              console.error(`${name} is pinned at ${pin}, not ${want}`);
+              process.exit(1);
+            }
+          }
+
+          // A published npm version never comes back, so this is checked before
+          // anything is built rather than discovered at the upload.
+          for (const name of [manifest.name, ...pins.map(([n]) => n)]) {
+            const response = await fetch(`https://registry.npmjs.org/${name}`);
+            if (response.status === 404) continue;   // never published; nothing to clash with
+            if (!response.ok) {
+              console.error(`could not read ${name} from the registry: ${response.status}`);
+              process.exit(1);
+            }
+            const released = await response.json();
+            if (Object.hasOwn(released.versions ?? {}, want)) {
+              console.error(`${name} ${want} is already on npm, and a published version never comes back`);
+              process.exit(1);
+            }
+          }
+
+          console.log(`all seven declare ${want}, five pins match, and npm has none of the six at that version`);
+          JS
+
+  packages:
+    name: packages
+    needs: version
+    uses: ./.github/workflows/js-packages.yml
+
+  collect:
+    name: six tarballs
+    needs: packages
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: npm-*
+          path: dist
+          merge-multiple: true
+
+      - name: Check what is about to be uploaded
+        shell: bash
+        run: |
+          set -euo pipefail
+          ls -l dist
+
+          # Named rather than counted, so a missing platform says which one. This
+          # list moves with the matrix in `js-packages.yml` and with
+          # `ENGINE_PLATFORMS` in `src/render.js`.
+          for name in grammar-of-graphics \
+                      grammar-of-graphics-darwin-arm64 \
+                      grammar-of-graphics-darwin-x64 \
+                      grammar-of-graphics-linux-arm64 \
+                      grammar-of-graphics-linux-x64 \
+                      grammar-of-graphics-win32-x64; do
+            compgen -G "dist/$name-[0-9]*.tgz" > /dev/null \
+              || { echo "::error::no tarball for $name"; exit 1; }
+          done
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: npm-dist
+          path: dist/*.tgz
+
+  publish:
+    name: publish to npm
+    needs: collect
+    runs-on: ubuntu-latest
+    # Configure this environment with a required reviewer. The job then waits for
+    # a human before the one action in this workflow that cannot be undone.
+    environment:
+      name: npm
+      url: https://www.npmjs.com/package/grammar-of-graphics
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: npm-dist
+          path: dist
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          registry-url: https://registry.npmjs.org
+
+      # Node 22 ships npm 10, and trusted publishing needs 11.5.1 or later.
+      - name: A version of npm that can publish without a token
+        run: npm install -g npm@latest && npm --version
+
+      # **The platform packages go first, and the main package last.** A missing
+      # optional dependency does not fail an install — npm omits it and reports
+      # success — so publishing the binding before the engines exist would give
+      # anyone installing in that window a package that draws nothing, with no
+      # error to explain it.
+      - name: The engines
+        shell: bash
+        run: |
+          set -euo pipefail
+          for target in darwin-arm64 darwin-x64 linux-arm64 linux-x64 win32-x64; do
+            tarball="$(ls dist/grammar-of-graphics-$target-[0-9]*.tgz)"
+            echo "publishing $tarball"
+            npm publish "$tarball" --access public
+          done
+
+      - name: The binding
+        shell: bash
+        run: npm publish "$(ls dist/grammar-of-graphics-[0-9]*.tgz)" --access public

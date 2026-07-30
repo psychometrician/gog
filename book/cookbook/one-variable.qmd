@@ -1,0 +1,130 @@
+# One variable
+
+```{r}
+#| include: false
+source("../R/setup.R")
+```
+
+You have one column in front of you. What can it tell you? The questions it can
+answer, and the sentence for each.
+
+## How many of each?
+
+A text column's first question. Counting rows is a derivation, not a
+different kind of chart, so it is `bar` with `* count`:
+
+```{r}
+data(gapminder_2007) + bar * count + x(continent)
+```
+
+*"Bars derived by count: x is continent."* No `y()` is bound because the
+count is synthesized, and the axis labels itself.
+
+**One atom away.** Long category names? Put the categories on `y` and the
+bars lie down, same sentence, positions swapped:
+
+```{r}
+data(gapminder_2007) + bar * count + y(continent)
+```
+
+The count still measures along the synthesized axis, which is now x.
+Owning chapters: [Bar](../marks/bar.qmd), [Transforms](../transforms.qmd).
+
+## What share of the whole is each?
+
+Swap `count` for `proportion` and the tallies become fractions that sum
+to one:
+
+```{r}
+data(iris_flowers) + bar * proportion + x(species)
+```
+
+**One atom away.** Back to raw tallies: `* count`. Sorted by size:
+add [`order()`](../data.qmd).
+
+## How is a measurement distributed?
+
+The continuous column's first question. `bin` cuts the axis into
+intervals and counts rows into each; `bar` draws the counts touching,
+because the intervals are adjacent:
+
+```{r}
+data(iris_flowers) + bar * bin + x(petal_length)
+```
+
+**One atom away.** `bin` takes a count or a width when the default
+guesses wrong. `bin(30)` for thirty bins, or intervals in the data's own
+units:
+
+```{r}
+data(iris_flowers) + bar * bin(width = 0.5) + x(petal_length)
+```
+
+A `line * bin` draws the same counts as a frequency polygon. Owning
+chapters: [Bar](../marks/bar.qmd), [Transforms](../transforms.qmd).
+
+## What is its smooth shape?
+
+The binned view depends on where the bin edges fall; the density estimate
+smooths that decision away:
+
+```{r}
+data(gapminder_2007) + line * density + x(life)
+```
+
+*"A line derived by density: x is life."* Same question as the
+histogram, one derivation over. Use both when the bumps matter. One atom tunes
+the smoothing: `density(0.5)` sharpens the bumps, `density(2)` irons them out,
+and `density(bandwidth = 1)` fixes the kernel width in years.
+
+## Where does the distribution step?
+
+The third rendering of `bin`: an unfilled staircase silhouette, tracing
+bin tops without any fill. It earns its keep when several distributions
+share an axis, see [Many groups](groups.qmd), but reads cleanly alone
+too:
+
+```{r}
+data(gapminder_2007) + step * bin + x(life)
+```
+
+Three marks (`bar`, `line`, `step`), one `bin`. The transform never
+changed; only the geometry drawing its output did. That is the
+[No Exceptions law](../design-laws.qmd) doing its quiet work.
+
+## And when there are only thirty rows?
+
+Every answer above summarizes: `bin` needs a bin width, `density` needs a
+bandwidth, and both choices show more when there are fewer rows to
+average over. With thirty numbers you can skip the choice and draw all
+thirty. Add `stack` and a `point` piles one dot per observation:
+
+```{r}
+data(gm_europe) + point * bin * stack + x(life) +
+  x_label("Life expectancy (years)") + title("Thirty countries, thirty dots")
+```
+
+*"Points, binned and piled: x is life."* The pile's height is a count, so
+the tallest column can be read off the axis or simply counted, and no
+observation has been averaged into anything. Compare the same thirty as
+bars, where a single bin edge moving would redraw the shape:
+
+```{r}
+data(gm_europe) + bar * bin + x(life) +
+  x_label("Life expectancy (years)") + title("The same thirty, summarized")
+```
+
+**One atom away.** A categorical column instead: `point * count * stack`
+piles one dot per row in each category. Owning chapter:
+[Transforms](../transforms.qmd).
+
+## What this section refuses
+
+A distribution question needs a continuous column. Ask `density` about a
+category and the refusal names the type the estimate needs. The
+categorical version of this question is the share recipe above:
+
+```{r}
+#| error: true
+data(gapminder_2007) + line * density + x(continent)
+```

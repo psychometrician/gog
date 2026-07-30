@@ -1,0 +1,151 @@
+# Writing practice
+
+```{r}
+#| include: false
+source("R/setup.R")
+```
+
+How does a question about your data turn into a specification? Reading was
+recognition; writing is recall. This chapter builds three sentences from three
+questions, the way you will actually work: start with the smallest legal
+sentence, look, refine. Then it introduces the other half of writing: what
+happens when a sentence is wrong, and why GOG's refusals are the fastest
+teacher in the book.
+
+## Which continents live longest?
+
+Start by looking at everything, the smallest sentence that shows the data:
+
+```{r}
+data(gapminder_2007) + point + x(continent) + y(life)
+```
+
+*"Points, x is continent, y is life."* Informative, but the question asked
+for a comparison of *typical* values, not a cloud. Derive the summary,
+swap the mark's derivation, keep everything else:
+
+```{r}
+data(gapminder_2007) + bar * mean + x(continent) + y(life)
+```
+
+Comparison wants order. `order()` sorts a categorical axis by a value,
+something no bare column can say:
+
+```{r}
+data(gapminder_2007) + bar * mean + x(continent) + y(life) +
+  order(life, desc = TRUE)
+```
+
+Three steps, and each step *added* a word or swapped one: no rewriting,
+no second syntax. That is what compositionality buys you in practice.
+
+## How do petal lengths differ by species?
+
+The one-variable question first, then the split:
+
+```{r}
+data(iris_flowers) + bar * bin + x(petal_length)
+```
+
+```{r}
+data(iris_flowers) + bar * bin + x(petal_length) + color(species)
+```
+
+And if the overlap bothers you, the outline form is one mark away; the
+staircase silhouette holds each bin's height as an unfilled stroke, so the
+three species never paint over each other:
+
+```{r}
+data(iris_flowers) + step * bin + x(petal_length) + color(species)
+```
+
+The transform never changed. `bin` cut the same intervals all three times;
+only the geometry drawing them moved. A derivation you learn once works
+under every mark that can carry it.
+
+## Where is the world's wealth, and its health?
+
+The full sentence from the first chapter, written in one breath this time:
+
+```{r}
+data(gapminder_2007) + point +
+  x(gdp, scale = "log") + y(life) +
+  color(continent) + size(population) +
+  title("The health and wealth of nations, 2007")
+```
+
+*"Given gapminder 2007: points, x is gdp on a log scale, y is life, color
+by continent, size by population, titled."* Six atoms past the minimum,
+and still one sentence with no new grammar in it.
+
+## When the engine says no
+
+You will write wrong sentences. Everyone does. GOG's design promise is
+that a wrong sentence is refused *with a direction*, never absorbed into a
+silently wrong picture. Meet the refusals you are most likely to see this
+week.
+
+Forgetting to bind the table. The sentence must start with the data:
+
+```{r}
+#| error: true
+gapminder_2007 + point + x(gdp) + y(life)
+```
+
+Quoting a column name, a habit from other packages. The refusal says
+which fix it wants:
+
+```{r}
+#| error: true
+data(gapminder_2007) + point + x("gdp") + y("life")
+```
+
+Mapping a channel to a column that cannot answer its question. `size`
+encodes magnitude, and a category has none:
+
+```{r}
+#| error: true
+data(gapminder_2007) + point + x(gdp) + y(life) + size(continent)
+```
+
+Asking a transform to read a column you never named:
+
+```{r}
+#| error: true
+data(gapminder_2007) + bar * mean + x(continent)
+```
+
+Binning a category. `bin` cuts a continuous axis, and the refusal points
+at the atom that does count categories:
+
+```{r}
+#| error: true
+data(gapminder_2007) + bar * bin + x(continent)
+```
+
+Each message names the rule and the way forward. Nothing rendered behind
+your back; nothing was dropped to make the picture come out. When you hit
+a refusal outside this list, read it the same way: it is the grammar
+telling you which law your sentence brushed against, and the fix is in
+the message.
+
+Every refusal closes with a second offer, to set `GOG_STRICT=0` and draw
+the plot anyway. That is an environment variable, and what it does to each
+kind of refusal (along with the one line that sets it in R, Python, Julia
+and JavaScript) is [Drawing it anyway](design-laws.qmd#drawing-it-anyway).
+For now, take the first offer: at this stage the refusals are the lesson.
+
+## The morning checkpoint
+
+If you started this part in one sitting, check yourself against its promise:
+
+- Read any sentence in this book aloud before looking at its plot.
+- Given a question (*distribution? comparison? relationship? change over
+  time?*), name the mark and transform that answer it.
+- Predict whether a sentence will render or refuse, and roughly what the
+  refusal will say.
+
+If that mostly works, the morning did its job. Part II gives every letter
+its full chapter; or jump straight to [the cookbook](cookbook/one-variable.qmd)
+and start answering your own questions, following the links back whenever
+a recipe uses a word you want more of.

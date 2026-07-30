@@ -1,0 +1,168 @@
+# Run every suite the project is held to, on every push and pull request.
+#
+# The discipline this guards is the one the project is built on: four bindings
+# are one grammar with four spellings, and a binding left behind is supposed to
+# show up as a disagreement rather than as a small debt. Until now that was
+# enforced by a person running seven commands in order. A stranger's pull request
+# had nothing checking it at all.
+#
+# Two layers, because they answer different questions:
+#
+#   bindings — does each binding still pass its own suite? Four jobs so a failure
+#              names the language rather than stopping at the first one.
+#   parity   — do all four draw the *same sentence* identically? Every sentence in
+#              the manual, re-recorded from R and compared. This is the check that
+#              actually settles "done", and the one no single suite can make.
+#
+# The engine is built once and passed along as an artifact. That is not only
+# speed: it means every job tests the same binary, which is the thing a user
+# receives, rather than five separately compiled ones.
+
+name: tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  engine:
+    name: engine
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+
+      - name: Test the engine
+        run: cargo test --release
+
+      # A green `cargo test` does not mean this binary was rebuilt — the test
+      # harness and the CLI are separate artifacts, and that gap once hid a stale
+      # binary for a whole session. Build it explicitly and assert it exists.
+      - name: Build the engine the bindings will use
+        run: |
+          cargo build --release -p gog-cli
+          test -x target/release/gog-cli
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: gog-cli
+          path: target/release/gog-cli
+
+  bindings:
+    name: ${{ matrix.name }}
+    needs: engine
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: R
+            lang: r
+          - name: Python
+            lang: python
+          - name: JavaScript
+            lang: js
+          - name: Julia
+            lang: julia
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/engine
+
+      - if: matrix.lang == 'r'
+        uses: r-lib/actions/setup-r@v2
+        with:
+          use-public-rspm: true
+      # `pkgload` is what makes the suite honor the hand-written NAMESPACE, so a
+      # missing export fails at load time instead of passing invisibly. The other
+      # three are what the book's own checks need, which this suite runs.
+      - if: matrix.lang == 'r'
+        uses: r-lib/actions/setup-r-dependencies@v2
+        with:
+          packages: pkgload, jsonlite, knitr, gapminder
+      - if: matrix.lang == 'r'
+        run: Rscript r-pkg/gog/tests/test_basic.R
+
+      # No dependencies on purpose: the binding reads a table by duck-typing, so
+      # pandas is supported without being required, and the suite proves that by
+      # importing neither.
+      - if: matrix.lang == 'python'
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - if: matrix.lang == 'python'
+        run: python3 py-pkg/gog/tests/test_basic.py
+
+      - if: matrix.lang == 'js'
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - if: matrix.lang == 'js'
+        run: node --test js-pkg/gog/test/*.mjs
+
+      - if: matrix.lang == 'julia'
+        uses: julia-actions/setup-julia@v2
+        with:
+          version: "1"
+      - if: matrix.lang == 'julia'
+        run: julia --project=jl-pkg/GrammarOfGraphics jl-pkg/GrammarOfGraphics/test/runtests.jl
+
+  parity:
+    name: every sentence, all four bindings
+    needs: engine
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/engine
+
+      - uses: r-lib/actions/setup-r@v2
+        with:
+          use-public-rspm: true
+      - uses: r-lib/actions/setup-r-dependencies@v2
+        with:
+          packages: pkgload, jsonlite, knitr, gapminder
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - uses: julia-actions/setup-julia@v2
+        with:
+          version: "1"
+
+      # `book/R/setup.R` shells out to `python3` to build the language tabs, and
+      # the Python chapter runs a real subprocess. Node and Julia are *not* needed
+      # for that — their tabs are emitted by R in-process — but both are needed
+      # below to run their own parity harness.
+      - name: pandas, for the book's Python chapter
+        run: python3 -m pip install --upgrade pip pandas
+
+      # Re-record first, always. The corpus is R's answer for every sentence in
+      # the manual, so a corpus older than the engine would have all three
+      # harnesses agreeing with a plot the engine no longer draws.
+      - name: Re-record the corpus from the manual
+        run: Rscript py-pkg/gog/tests/book_parity/extract.R
+
+      - name: Python draws every sentence
+        run: python3 py-pkg/gog/tests/book_parity/run.py
+      - name: JavaScript draws every sentence
+        run: node js-pkg/gog/test/book_parity/run.mjs
+      # The only environment here that needs resolving. The package itself depends
+      # on `Dates` alone — a standard library — which is why its suite runs with no
+      # setup at all; this harness reads the corpus, so it wants `JSON` from the
+      # registry. Its `Manifest.toml` is committed for exactly this reason, and
+      # records `GrammarOfGraphics` as a relative path, so the version under test
+      # is the checkout rather than a release.
+      - name: Resolve the parity harness's environment
+        run: |
+          julia --project=jl-pkg/GrammarOfGraphics/test/book_parity \
+                -e 'using Pkg; Pkg.instantiate()'
+
+      - name: Julia draws every sentence
+        run: |
+          julia --project=jl-pkg/GrammarOfGraphics/test/book_parity \
+                jl-pkg/GrammarOfGraphics/test/book_parity/run.jl

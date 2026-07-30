@@ -1,0 +1,14 @@
+# `tools/rust/target/` is cargo's build directory. `configure` creates it during
+# `R CMD INSTALL`, so it only exists here if a tarball is built from a tree that
+# was already installed once — and it is hundreds of megabytes.
+#
+# `tools/rust/vendor/` is NOT excluded: when `.prepare` is run with GOG_VENDOR=1
+# the vendored crates are the whole point, since CRAN forbids network during a
+# build and the sources must travel.
+^tools/rust/target$
+
+# `.prepare` runs on the *cloned repository*, before `R CMD build` — so it has
+# already done its work by the time a tarball exists and has no business being
+# inside one. `R CMD check` flags it as a hidden file "most likely included in
+# error", and that is right.
+^\.prepare$

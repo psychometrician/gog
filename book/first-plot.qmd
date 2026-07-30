@@ -1,0 +1,116 @@
+# A first plot
+
+```{r}
+#| include: false
+source("R/setup.R")
+```
+
+Do countries that earn more live longer?
+
+That is a question about data (142 countries, each with a GDP per capita
+and a life expectancy), and in GOG you answer it by saying what the data
+means, not by drawing anything:
+
+```{r}
+data(gapminder_2007) + point + x(gdp) + y(life)
+```
+
+Read it aloud: *"Given gapminder 2007: points, x is gdp, y is life."*
+
+That sentence is the entire program. You named a table, a mark, and two
+positions; the engine chose the axes, the ticks, the margins, and drew one
+point per row. There is no draw call to make, because a plot here is a
+*specification* (a sentence about the picture, not a claim about the data), and
+rendering it is the engine's job, not yours.
+
+::: {.content-visible when-format="pdf"}
+That sentence has four spellings, and this edition prints all of them under every
+example: the R above, then Python, Julia and JavaScript. They are not translations
+of each other. Each is its own binding writing the same specification, which one
+engine then draws, so the plot below is rendered once and would be
+byte-identical from any of the four. Read whichever is yours and ignore the rest;
+nothing else in this book is language-specific.
+
+They are in that order because the first three are very nearly one sentence. The
+operators are the same and only the way a column is named moves: a bare `gdp` in R,
+`col.gdp` in Python, `:gdp` in Julia. JavaScript is the one that reads differently,
+because it cannot give `+ * | /` new meanings and spells them as words instead, so
+it comes last, after the pattern the other three share is established. Each binding
+also has a chapter of its own at the end, a difference list about a page long:
+[R](bindings/r.qmd), [Python](bindings/python.qmd), [Julia](bindings/julia.qmd),
+[JavaScript](bindings/javascript.qmd).
+:::
+
+## Add a word, ask a richer question
+
+Which continent is which? Say so, one more word in the sentence:
+
+```{r}
+data(gapminder_2007) + point + x(gdp) + y(life) + color(continent)
+```
+
+*"…and color by continent."* The `color()` channel maps a column to a
+visual property, and because a mapping poses a question (*which continent
+is this dot?*), the engine draws the legend that answers it. You never
+asked for a legend. A mapped column earns one; that is the rule.
+
+## An incomplete sentence is refused
+
+What happens if you forget a position? An incomplete sentence is refused the
+way a half-syllable is unpronounceable, and the refusal tells you what is
+missing:
+
+```{r}
+#| error: true
+data(gapminder_2007) + point + x(gdp)
+```
+
+This is worth meeting on your first page, because it is half of what makes
+GOG learnable. A **binding** is a channel with a column in it, like `x(gdp)`.
+The engine never accepts one and silently drops it,
+and every *no* comes with a direction. The errors are teachers here; the
+[writing practice](writing.qmd) chapter collects the ones you will meet
+first.
+
+## Refine, don't rebuild
+
+The income axis is crowded on the left: most of the world earns far less
+than the richest countries. A logarithmic view is a property of *how x is
+read*, so it is written on the binding, and nothing else changes:
+
+```{r}
+data(gapminder_2007) + point + x(gdp, scale = "log") + y(life) +
+  color(continent) +
+  title("The health and wealth of nations, 2007")
+```
+
+*"Given gapminder 2007: points, x is gdp on a log scale, y is life, color
+by continent, titled."* Four refinements in, the sentence still reads left
+to right, and the first three words you learned are still doing the work.
+
+## The shape of every sentence
+
+Every plot in this book, through the 3-D scenes at the end, is this same
+shape:
+
+```
+data(table) + mark + positions + refinements
+```
+
+A table bound once, so columns are bare names. A mark, the visible form.
+Positions, where the marks stand. Then any number of optional refinements:
+channels like `color()`, and labels like `title()`.
+
+Two more parts join with an operator of their own. A transform attaches to
+its mark with `*`, which is how the preface's `bar * bin` made a histogram.
+A facet splits the finished plot into panels with `|` or `/`. A scale is not
+a separate part at all: it is written on the position it belongs to, the way
+`x(gdp, scale = "log")` was written above. So the shape in full is:
+
+```
+data(table) + mark * transform + positions + refinements | facet(column)
+```
+
+The transform and the facet are optional; everything before them is the
+sentence you have already written twice. The next chapter lays out the whole
+vocabulary on one page, and it is shorter than you expect.

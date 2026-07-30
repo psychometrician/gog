@@ -1,0 +1,263 @@
+# Area
+
+```{r}
+#| include: false
+source("../R/setup.R")
+```
+
+How much was there across a span, for each group? `area` fills the region
+between the data and a baseline at zero. It is `line` plus the ground beneath
+it: the same boundary, drawn as a quantity rather than as a path.
+
+## Basic usage
+
+```{r}
+data(gapminder_asia) + area + x(year) + y(life) +
+  group(country) + style(opacity = 0.4) +
+  title("Life expectancy, five Asian countries")
+```
+
+*"Given gapminder Asia: areas, x is year, y is life, grouped by country."*
+
+An area's two axes are different kinds of thing, and it is worth naming the
+difference early because most of the mark follows from it. `x` is the **domain**,
+the axis the boundary is read along; `y` is the **measure**, the quantity the
+region fills to. That is why an area has no horizontal form the way a `bar` does:
+a bar reads which of its axes measures off the bindings, and an area does not
+need to, because the answer is always `y`.
+
+Notice the fill reaches the left and right edges of the panel. A filled region
+has no glyph to clip against the frame, so its position axis sits flush to the
+data rather than leaving the breathing margin a scatter gets; the reason is in
+[Scales](../scales.qmd#the-axis-fits-your-data).
+
+## The baseline is the whole point
+
+A `line` says *where*; an `area` says *how much*. The fill is the quantity, so
+it has to start from zero: an area drawn from an arbitrary floor would put a
+number on the page that nothing measured.
+
+That makes the mark a real choice rather than decoration. Life expectancy has
+no meaningful zero, and the plot above spends most of its ink on the fifty
+years below every observation. Sales do have a meaningful zero, and the same
+mark reads correctly:
+
+```{r}
+data(actuals) + area + x(year) + y(sales) +
+  y_label("Sales") + title("Sales — zero means zero")
+```
+
+When the quantity you are drawing has no zero, `line` is the mark that says
+so:
+
+```{r}
+data(gapminder_asia) + line + x(year) + y(life) + color(country) +
+  title("The same data, as paths rather than quantities")
+```
+
+## Multiple series
+
+A categorical column *splits* a mark, one region per category, exactly as
+`color` splits `line` into one polyline each:
+
+```{r}
+data(gapminder_asia) + area + x(year) + y(life) + color(country) +
+  style(opacity = 0.45) +
+  title("One region per country")
+```
+
+Regions are filled, so unlike polylines they hide one another. Write that plot
+without an opacity and GOG says so rather than letting you read a chart with a
+series missing underneath:
+
+```{r}
+#| message: true
+data(gapminder_asia) + area + x(year) + y(life) + color(country) +
+  title("Opaque regions — the last one drawn wins")
+```
+
+Compare the legend with the picture: every country is named in the key, and the
+ones with the lowest values are painted over by the ones drawn after them. The note
+above the plot is advice rather than a refusal: the plot still renders,
+because the grammar has no objection to it, and GOG guides taste without
+blocking it. Stacking the regions instead of overlaying them is the real answer,
+and it ships as `area * stack`, an area's collision modifier. Its sibling `dodge`
+subdivides a *width*, which an area has none of; an area is offset by
+*accumulating*, so `stack` is its tool. Each region sits on the cumulative height
+of the ones below, and they abut into one band instead of hiding each other:
+
+```{r}
+data(gapminder_asia) + area * stack + x(year) + y(population) + color(country) +
+  y_label("Population") +
+  title("Five Asian countries, population stacked")
+```
+
+Read one color's *thickness* for that country; the band's top edge is the
+five-country total. The measure moved from `life` to `population` on purpose:
+you stack quantities that *add* (populations sum to a real total), not indices
+that do not (a stack of life expectancies would be meaningless). The
+[Transforms](../transforms.qmd) chapter covers `stack`, and stacked bars, in
+full.
+
+## Giving an area an edge
+
+An area takes no outline of its own. The edge on top of a filled region is a
+`line`, and layering one over the other is how you ask for it:
+
+```{r}
+data(actuals) + x(year) + y(sales) +
+  area + style(color = "steelblue", opacity = 0.25) +
+  line + style(color = "steelblue", size = 2.5) +
+  title("area + line — the fill and its edge, composed")
+```
+
+There is deliberately no outline option on `area` to reach for instead. Two
+marks that already exist, combined with `+`, beat a new knob on one of them,
+and the composed version is more capable anyway, since the edge can take its
+own color, width and opacity as a `line`.
+
+## One region, one fill
+
+An area is a single filled region, so `opacity` is a *setting* here and not a
+channel: there is nothing for a per-row opacity to vary along, since a row is
+a vertex of the boundary rather than a region of its own. That is the same
+reasoning that makes `opacity` a setting on `line`, one dimension up:
+
+```{r}
+#| error: true
+render_svg(data(gapminder_asia) + area + x(year) + y(life) + opacity(gdp))
+```
+
+`size` goes further: on `area` it cannot even be set. A stroke's width is free,
+so `line` lets you set it, but an area's extent is pinned by its x, its y and
+its baseline, and there is no size left over to choose:
+
+```{r}
+#| error: true
+render_svg(data(actuals) + area + x(year) + y(sales) + style(size = 4))
+```
+
+Two marks, two different answers, both derived from what the mark *is* rather
+than listed in a table of options. `style(color = )` and `style(opacity = )`
+work on both.
+
+## With transforms
+
+Transforms behave identically on every mark, so an area takes the same ones a
+bar or a line does. Binned, it is a filled histogram:
+
+```{r}
+data(gapminder_2007) + area * bin + x(life) +
+  x_label("Life expectancy (years)") +
+  title("area * bin — a filled histogram")
+```
+
+Smoothed into a density, it is the distribution as a shape:
+
+```{r}
+data(gapminder_2007) + area * density + x(life) +
+  x_label("Life expectancy (years)") +
+  title("area * density")
+```
+
+Give that same sentence a category to stand in and a number to spread along,
+and the estimate is drawn *across each category's slot* instead of along the
+whole axis — one distribution per group, closed on the slot's center line. It
+is the half violin, and the mirrored form is [`ribbon *
+density`](ribbon.qmd#the-violin-a-distribution-per-category), where the choice
+between the two readings of its width is also explained:
+
+```{r}
+data(gapminder_2007) + area * density + x(continent) + y(life) +
+  y_label("Life expectancy") +
+  title("area * density + x(continent) — the half violin")
+```
+
+The two sentences differ by one binding, and that difference is exactly what
+the extra binding buys. With only `x(life)` there is a free axis for the
+estimate to be measured along. With a category there is not, so it is measured
+across the slot instead.
+
+And an aggregation summarizes before filling, exactly as it does for `bar`:
+
+```{r}
+data(gapminder_asia) + area * mean + x(year) + y(life) +
+  y_label("Mean life expectancy") +
+  title("area * mean — five countries averaged per year")
+```
+
+## A category on the domain
+
+The domain takes a category as readily as a number. Each category gets a slot,
+the boundary runs across them in axis order, and the region fills to the same
+baseline it always fills to:
+
+```{r}
+data(gapminder_2007) + area * mean + x(continent) + y(life) +
+  y_label("Mean life expectancy") +
+  title("area * mean + x(continent) — the filled profile")
+```
+
+Whether that is the right picture is your call, not the grammar's. The straight
+segments between two categories pass through space where there is no data, which
+is a real objection: nothing lives between Africa and the Americas. Read the
+vertices and the segments are a guide for the eye; read the segments and they
+say something the data does not. When the comparison is what matters, the bar
+chart of the same sentence is the safer reading, and it is one atom away.
+
+What the fill does earn you is a *shape*, and shapes survive being bent. This is
+the same expression in [polar coordinates](../polar.qmd), where it is the plot
+everyone calls a radar:
+
+```{r}
+data(gapminder_2007) + area * mean + x(continent) + y(life) + polar() +
+  title("the same sentence, read in a circle")
+```
+
+## What you can set
+
+```{r}
+#| echo: false
+#| results: asis
+cat("| Setting | Value |\n|---|---|\n")
+mark_options("area")
+```
+
+An area takes the shortest list in the book, and both absences are arguments.
+There is no `size`, because the region's extent comes from the data and the
+baseline. And there is no border, because the edge you would want is a *data
+curve*, which is already a `line`:
+
+```{r}
+data(actuals) + x(year) + y(sales) +
+  area + style(color = "seagreen", pattern = "hatch", opacity = 0.5) +
+  line + style(color = "seagreen", size = 2) +
+  y_label("Sales") + title("A textured fill, and a line for the edge")
+```
+
+Layering the line is strictly more capable than a border setting would be: it can
+be dashed, colored differently, or smoothed, and it traces only the data
+boundary rather than the closure down to the baseline that a rim would also
+stroke.
+
+## What it refuses
+
+The measure is where the mark draws its line. A region fills to a baseline at
+zero, and a category has no zero to fill to, so a categorical `y` is refused
+with the direction back to the mark that lays categories along the measured
+axis:
+
+```{r}
+#| error: true
+render_svg(data(gapminder_2007) + area * mean + x(life) + y(continent))
+```
+
+The transforms that describe how values spread along an axis refuse a category
+too, on either axis, and for the same reason: they need a number line. `area *
+bin` and `area * density` want a continuous domain, and each refusal names the
+atom that asks their question of categories.
+
+```{r}
+#| error: true
+render_svg(data(gapminder_2007) + area * bin + x(continent))
+```

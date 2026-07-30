@@ -1,0 +1,126 @@
+# This file starts by ignoring everything, then names what is public. A denylist
+# fails open -- anything added later ships unless someone remembers to exclude
+# it -- and git history cannot be unpublished. An allowlist fails closed instead:
+# a new top-level path stays invisible until it is named here.
+#
+# Order matters: ignore all, allow the public paths, then re-ignore build output
+# that lives inside them.
+
+/*
+
+# The engine
+!/gog-core/
+!/gog-cli/
+
+# The four bindings
+!/r-pkg/
+!/py-pkg/
+!/js-pkg/
+!/jl-pkg/
+
+# The manual. It stays with the engine because every plot in it is drawn by
+# `gog-cli` at render time, so one engine change invalidates every page at once.
+!/book/
+
+!/.github/
+
+# The README's five language logos, normalized to one optical size. Named here
+# because the allowlist above fails closed: without this line the directory is
+# absent from the public tree and the README shows five broken images, which is
+# a failure only a reader would see.
+!/images/
+
+# Root files
+!/README.md
+!/CONTRIBUTING.md
+!/LICENSE
+!/NOTICE
+!/Cargo.toml
+!/Cargo.lock
+!/.gitattributes
+!/.gitignore
+
+# Secrets
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+
+# Rust
+# `target/` is unanchored on purpose: `/target/` would miss a stray
+# `gog-core/target/` left by a subdirectory build.
+target/
+**/*.rs.bk
+
+# Cargo.lock is committed -- gog-cli is a binary crate, so the pinned versions
+# are part of the build contract.
+
+# Generated output
+/output/
+/js-pkg/gog/test/book_parity/translations.json
+/jl-pkg/GrammarOfGraphics/test/book_parity/translations.json
+
+# Only the *package's*. The parity harness beside it is an application rather
+# than a package, so its Manifest is committed on purpose.
+/jl-pkg/GrammarOfGraphics/Manifest.toml
+
+# Quarto
+/book/_book/
+/book/.quarto/
+/book/site_libs/
+/book/_freeze/
+**/*.quarto_ipynb
+
+# R
+.Rproj.user/
+.Rhistory
+.RData
+.Rapp.history
+.Ruserdata
+*.Rproj
+*.Rcheck/
+r-pkg/*.tar.gz
+
+# Both are produced during a build rather than written by hand: `configure`
+# copies the engine into inst/bin/, and `.prepare` stages the crate sources
+# into tools/rust/.
+r-pkg/gog/inst/bin/
+r-pkg/gog/tools/rust/
+
+# Jupyter
+.ipynb_checkpoints/
+*.ipynb
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+book/.venv/
+dist/
+build/
+*.whl
+.pytest_cache/
+
+# JavaScript. This one needs saying out loud, because the allowlist above does
+# not cover it: `/*` hides new paths at the *top level*, and `node_modules/`
+# appears inside `/js-pkg/`, which is allowlisted. Nothing has installed it yet,
+# so the day it first appears is the day it would otherwise be staged.
+node_modules/
+
+# OS / editor
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+Thumbs.db
+desktop.ini
+.vscode/
+.idea/
+*.swp
+*~
+*.bak
+*.orig

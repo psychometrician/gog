@@ -1,0 +1,30 @@
+name = "GrammarOfGraphics"
+uuid = "c00c8485-9aac-4319-bba4-e242535f49e2"
+authors = ["psychometrician"]
+version = "0.0.1"
+
+# Dates is the one dependency, and it is a standard library. Julia is the only
+# binding whose language draws R's own `Date` / `POSIXct` distinction, which is
+# the distinction the engine's temporal unit needs; JavaScript has one `Date` and
+# has to read the unit off the values.
+#
+# Notably absent: a JSON package. The binding only ever *writes* JSON — the
+# engine answers with SVG, not with a document to parse — so `src/json.jl` is a
+# small writer rather than a dependency the package would owe compat bounds for.
+[deps]
+Dates = "ade2ca70-3891-5945-98fb-dc099432e06a"
+
+[compat]
+julia = "1.6"
+
+# Test-only. The parity corpus is a JSON document R recorded, and reading it is
+# the one thing this repository asks Julia to do that Python and JavaScript get
+# from their standard libraries. A dependency confined to `[targets] test` costs
+# a user of the package nothing, which is why the writer in `src/json.jl` is
+# hand-rolled and this is not: the package must stay clean, the harness need not.
+[extras]
+Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
+JSON = "682c06a0-de6a-54ab-a142-c8b1cf79cde6"
+
+[targets]
+test = ["Test", "JSON"]

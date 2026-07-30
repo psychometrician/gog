@@ -1,0 +1,159 @@
+# Build one Python wheel per platform, each carrying the engine it needs.
+#
+# The Python package is a bridge to `gog-cli`, so a wheel without that binary
+# installs and then cannot draw. Shipping it is deliberate: compiling Rust
+# during `pip install` would put a toolchain on every user, and native FFI buys
+# no speed at the sizes plots actually run at.
+#
+# `py-pkg/gog/hatch_build.py` does the packing. This only builds the binary for
+# each target and tells the hook which tag to stamp, because the tag a release
+# needs is not the one a build machine reports: PyPI rejects a bare
+# `linux_x86_64`, and a macOS wheel claims its deployment target rather than the
+# runner's OS version. Neither does the *machine* have to be the one the tag
+# names — see the two `macos-14` entries below.
+#
+# This uploads artifacts and stops. `python-release.yml` calls it and publishes
+# what comes out, so the two triggers stay separate: every pull request proves
+# the wheels still build, and only a tag sends them anywhere.
+
+name: python wheels
+
+on:
+  workflow_call:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - "py-pkg/**"
+      - "gog-core/**"
+      - "gog-cli/**"
+      - ".github/workflows/python-wheels.yml"
+
+jobs:
+  wheels:
+    name: ${{ matrix.tag }}
+    runs-on: ${{ matrix.os }}
+    container: ${{ matrix.container }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: macos-14
+            tag: macosx_11_0_arm64
+            macos_target: "11.0"
+          # The Intel wheel is cross-compiled from the Apple Silicon runner
+          # rather than built on `macos-13`, which used to be this entry. That
+          # image is the last Intel one and GitHub is retiring it; on its first
+          # and only run this job never *started*, sitting queued for 55 minutes
+          # while the other four finished in minutes. A release that waits on a
+          # scarce runner is a release that does not ship. Verified before the
+          # swap: the cross-built engine reports as `Mach-O 64-bit executable
+          # x86_64` and, run under Rosetta, drew a parity sentence byte-identical
+          # to the arm64 engine's output.
+          - os: macos-14
+            tag: macosx_10_12_x86_64
+            macos_target: "10.12"
+            rust_target: x86_64-apple-darwin
+          # The manylinux image is what makes the wheel installable on any
+          # reasonably modern Linux: it pins an old enough glibc that the
+          # binary does not demand the build machine's.
+          - os: ubuntu-latest
+            container: quay.io/pypa/manylinux_2_28_x86_64
+            tag: manylinux_2_28_x86_64
+          - os: ubuntu-24.04-arm
+            container: quay.io/pypa/manylinux_2_28_aarch64
+            tag: manylinux_2_28_aarch64
+          - os: windows-latest
+            tag: win_amd64
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      # A cross build lands in `target/<triple>/release/`, which is not where
+      # `hatch_build.py` looks, so it is pointed at the binary explicitly. The
+      # native builds keep using the hook's own search and stay on the path
+      # every existing wheel was built with.
+      - name: Build the engine
+        shell: bash
+        run: |
+          if [ -n "${{ matrix.rust_target }}" ]; then
+            rustup target add "${{ matrix.rust_target }}"
+            cargo build --release -p gog-cli --target "${{ matrix.rust_target }}"
+            echo "GOG_CLI_PATH=$PWD/target/${{ matrix.rust_target }}/release/gog-cli" >> "$GITHUB_ENV"
+          else
+            cargo build --release -p gog-cli
+          fi
+        env:
+          MACOSX_DEPLOYMENT_TARGET: ${{ matrix.macos_target }}
+
+      - name: Set up Python
+        if: ${{ !matrix.container }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      # The manylinux image ships several Pythons and no `python` on PATH; any
+      # of them can build this wheel, because it holds no compiled extension
+      # module. That is also why one wheel per platform is enough rather than
+      # one per interpreter version: the tag is `py3-none-<platform>`.
+      - name: Build the wheel
+        shell: bash
+        run: |
+          PYTHON=python
+          if [ -n "${{ matrix.container }}" ]; then PYTHON=/opt/python/cp312-cp312/bin/python; fi
+          "$PYTHON" -m pip install --upgrade build
+          GOG_WHEEL_PLAT="${{ matrix.tag }}" "$PYTHON" -m build --wheel --outdir dist py-pkg/gog
+
+      # The check that matters, and the one the R package has never passed:
+      # install what was just built somewhere with no checkout in sight, unset
+      # every hint, and draw a plot.
+      #
+      # The cross-compiled Intel wheel is the one entry that cannot always run
+      # its own engine, because the runner is Apple Silicon and executing an
+      # x86_64 binary there needs Rosetta. So the architecture is asserted from
+      # the packed file either way, and the draw is attempted only when Rosetta
+      # answers — never skipped silently, and never softened into a check that
+      # would pass on a broken engine.
+      - name: Prove it draws with no toolchain and no checkout
+        shell: bash
+        run: |
+          PYTHON=python
+          if [ -n "${{ matrix.container }}" ]; then PYTHON=/opt/python/cp312-cp312/bin/python; fi
+          "$PYTHON" -m venv /tmp/check
+          # Windows puts a venv's programs in `Scripts`, every other platform in
+          # `bin`, and this job runs on both.
+          BIN=/tmp/check/bin
+          [ -d /tmp/check/Scripts ] && BIN=/tmp/check/Scripts
+          "$BIN"/pip install dist/*.whl
+
+          # The engine that actually shipped, wherever pip put it.
+          ENGINE="$("$BIN"/python -c 'import gog, os, sys; print(os.path.join(os.path.dirname(gog.__file__), "_bin", "gog-cli.exe" if os.name == "nt" else "gog-cli"))')"
+          test -f "$ENGINE" || { echo "::error::the wheel carries no engine at $ENGINE"; exit 1; }
+
+          if [ -n "${{ matrix.rust_target }}" ]; then
+            file "$ENGINE"
+            file "$ENGINE" | grep -q "executable x86_64" \
+              || { echo "::error::cross-compiled wheel does not carry an x86_64 engine"; exit 1; }
+            if ! arch -x86_64 /usr/bin/true 2>/dev/null; then
+              echo "::warning::Rosetta is absent, so this runner cannot execute the Intel engine — architecture verified, drawing not attempted"
+              exit 0
+            fi
+            echo "Rosetta answers; running the Intel engine under it"
+          fi
+
+          cd /tmp
+          unset GOG_CLI_PATH
+          "$BIN"/python -c "
+          from gog import *
+          plot = data({'a': [1.0, 2.0], 'b': [3.0, 4.0]}, name='t') + line + x(col.a) + y(col.b)
+          svg = plot.render()
+          assert svg.startswith('<svg'), svg[:200]
+          print('drew', len(svg), 'bytes with the shipped engine')
+          "
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: wheel-${{ matrix.tag }}
+          path: dist/*.whl

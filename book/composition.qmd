@@ -1,0 +1,197 @@
+# Composition
+
+```{r}
+#| include: false
+source("R/setup.R")
+```
+
+How do you put two different plots on one page? Faceting splits one plot into
+panels. Composition does the opposite: it takes plots that were never one plot
+and arranges them on a page. Wilkinson keeps the two apart in the same words,
+noting that "some tabled graphics are really two or more graphics glued
+together", and GOG keeps them apart in the operators you have already learned.
+`|` and `/` place things side by side and one above the other, whatever those
+things are:
+
+* `plot | facet(continent)` — one plot, split by a column, panels side by side
+* `plot_a | plot_b` — two plots, arranged side by side
+* `plot_a / plot_b` — two plots, one above the other
+
+A facet is *semantic*: one plot, one coordinate space, split by a variable and
+sharing everything. A page is *presentational*: each plot keeps its own space,
+its own marks, its own measurements. Which one you get is decided by what you
+write on the right of the operator, and nothing else needs saying.
+
+## Two plots, one page
+
+```{r}
+(data(gapminder_2007) + point + x(gdp) + y(life)) |
+  (data(gapminder_2007) + bar * count + x(continent) + theme(tick_angle = 45))
+```
+
+*"Points, x is gdp, y is life, beside bars derived by count, x is continent."*
+
+Two entirely different measurements: a country's income against its life
+expectancy, and how many countries each continent holds. They share nothing —
+not a scale, not an axis, not a legend — because there is nothing to share. The
+page divides evenly between them.
+
+`/` stacks the same two:
+
+```{r}
+(data(gapminder_2007) + point + x(gdp) + y(life)) /
+  (data(gapminder_2007) + bar * count + x(continent))
+```
+
+Both operators take pages as well as plots, so a page nests: `(a | b) / c` is two
+plots in a row above one across the bottom. In R, and in Python and Julia,
+**`/` binds tighter than `|`** — so `a | b / c` reads as `a | (b / c)`.
+Parenthesize when the reading matters.
+
+## The one rule: a shared column is a shared axis
+
+Two composed plots are unrelated until they name the same column on the same
+axis. When they do, that is not two axes that happen to look alike; it is one
+axis, and GOG treats it as one:
+
+> **The same column on the same axis in two composed plots is one axis** — one
+> scale, one panel extent, drawn once.
+
+Here are two plots, both reading `gdp` on x:
+
+```{r}
+(data(gapminder_2007) + bar * bin + x(gdp) + theme(height = 150)) /
+  (data(gapminder_2007) + point + x(gdp) + y(life))
+```
+
+Look at what the rule did. The histogram's panel is exactly as wide as the
+scatter's, so a bar stands over the points it counts. Both plots measure `gdp`
+over the same range, so the bar edges and the point positions mean the same
+distance. And the `gdp` axis is written once, along the bottom, because there is
+one axis: the same decision faceting makes when it puts tick labels only under
+the bottom row of panels.
+
+That last part is why the histogram sits flush against the scatter rather than a
+tick label's height above it. An axis a plot does not draw costs it no margin.
+
+## The marginal plot
+
+Put a second marginal on the right and the picture is the marginal plot, which
+usually arrives as a chart type with a name of its own:
+
+```{r}
+(data(gapminder_2007) + bar * bin + x(gdp) + theme(height = 130)) /
+  ((data(gapminder_2007) + point + x(gdp) + y(life)) |
+     (data(gapminder_2007) + bar * bin + y(life) + theme(width = 130)))
+```
+
+Three ordinary plots and two operators. The top histogram shares `gdp` with the
+scatter, so it is aligned and squeezed to the scatter's panel; the right-hand one
+shares `life`, so it is aligned to the scatter's rows and the `life` axis is
+drawn once, on the left. The empty top-right corner is not a spacer anyone asked
+for and there is no atom for one: it is the room the shared extent left over.
+
+Nothing about the marginals is special-cased. `bar * bin + y(life)` is the
+histogram you already know, lying down because that is what binding the
+measurement to `y` means. And the shared column need not be continuous: two
+plots reading the same *category* on x share its slots, so a box plot's summary
+stands over the cloud it summarizes, category for category:
+
+```{r}
+(data(gapminder_2007) + box + x(continent) + y(life) + theme(height = 150)) /
+  (data(gapminder_2007) + point + x(continent) + y(gdp) + color(continent))
+```
+
+## How thin is the marginal? `theme(width =, height =)`
+
+A plot states how much room it wants in pixels, and the plots that ask for
+nothing split what is left. That is the whole of the sizing above: the marginal
+histogram asks for 130 pixels of height, the scatter asks for nothing and takes
+the rest.
+
+The same words size a plot drawn on its own, where the room in question is the
+image:
+
+```{r}
+data(gapminder_2007) + point + x(gdp) + y(life) + theme(width = 420, height = 320)
+```
+
+One meaning in two places, which is Compositional Invariance: the sentence that
+says a plot is 130 pixels tall says it whether or not anything is composed with
+it. Do not confuse it with `theme(ratio = )`, which shapes the *panel* inside
+whatever room the plot was given and never resizes the image.
+
+Asking for more page than there is refuses, with the arithmetic in the message:
+
+```{r}
+#| error: true
+render_svg(
+  (data(gapminder_2007) + point + x(gdp) + y(life) + theme(height = 500)) /
+    (data(gapminder_2007) + point + x(gdp) + y(life) + theme(height = 500))
+)
+```
+
+## What a page is not
+
+A page is plots arranged, so anything belonging to *one* plot is written into
+that plot before it is composed. An atom added to a page refuses and says so:
+
+```{r}
+#| error: true
+render_svg(((data(gapminder_2007) + point + x(gdp) + y(life)) |
+              (data(gapminder_2007) + bar * count + x(continent))) + title("Two views"))
+```
+
+And a page cannot be faceted, because a facet splits one plot by a column and a
+page is not one plot:
+
+```{r}
+#| error: true
+render_svg(((data(gapminder_2007) + point + x(gdp) + y(life)) |
+              (data(gapminder_2007) + bar * count + x(continent))) | facet(continent))
+```
+
+Facet first, then compose: `(plot | facet(g)) | other_plot` is a faceted plot
+beside another plot, and it is perfectly legal.
+
+## Where these operators come from
+
+Neither reading of `|` is this grammar's invention, and the two were borrowed
+from different places.
+
+The **facet** reading is the older. Trellis display wrote a conditioned plot as
+`y ~ x | g` [@becker1996trellis], and lattice writes it that way still; the bar
+reads "given", straight out of conditional-probability notation. That is exactly
+what `plot | facet(continent)` says.
+
+The **composition** reading is the one you will recognize if you use patchwork
+[@pedersen2019patchwork], which pairs `p1 | p2` for side by side with `p1 / p2`
+for one above the other. GOG spells composition the same way on purpose: a reader
+who knows that package already knows this page, and a third spelling of an
+established idea would cost everyone something and buy nobody anything.
+
+Composing pictures with operators is older than either. Henderson's *Functional
+Geometry* [@henderson1982] set out an algebra of pictures whose combining
+operations are `beside` and `above`, which is the picture language SICP went on
+to teach and which Haskell's diagrams library spells `|||` and `===`. That
+lineage is why the JavaScript binding, having no operators to overload, calls its
+two words `beside()` and `below()`: the names were already there.
+
+One divergence is worth naming, since Wilkinson is this project's usual
+tiebreaker. His graph algebra also has a `/`, and it means **nest** (`a/b`, "a
+within b"), not "below". GOG's facet operators claim his *crossing* and
+deliberately do not claim his nesting, so `/` here is free to mean the page.
+
+## Composition or faceting?
+
+The two answer different questions, and the choice is not a matter of taste:
+
+* **Faceting** when the panels are *the same measurement* on different subsets.
+  One scale, one legend, and the comparison between panels is the point.
+* **Composition** when the plots are *different measurements* that belong on one
+  page. Each keeps its own space, and what they have in common — if anything —
+  is the variable they share.
+
+A marginal plot is composition because the histogram and the scatter measure
+different things: one counts countries, the other places them. They share
+`gdp`, and that shared column is exactly what the rule above picks up.

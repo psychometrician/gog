@@ -1,0 +1,210 @@
+# JavaScript
+
+```{r}
+#| include: false
+source("../R/setup.R")
+source("../R/javascript.R")
+```
+
+The grammar does not change when the language does. One engine reads one
+specification, so a sentence means what it means whoever wrote it, and
+everything in this book up to here is as true in JavaScript as it is in R.
+
+The *sentence*, though, is spelled differently here, and this is the one chapter
+in the book where that is so. Every other binding writes the same words joined by
+the same four operators. JavaScript cannot join them, because `+`, `*`, `|` and
+`/` cannot be given a meaning on objects: whatever you put on either side, `a + b`
+is a number and `a | b` is a bitwise integer. There is no version of the language
+in which `data(gm) + point` builds a plot.
+
+So JavaScript spells the four operators as four words. That is all that changes,
+and it is worth reading the two lines side by side before anything else:
+
+```r
+data(gm) + bar * bin + x(life) | facet(era)
+```
+
+```js
+plot(data(gm), layer(bar, bin), x(col.life), across(col.era))
+```
+
+Every JavaScript block below was executed to draw the plot beside it, through the
+same engine every other chapter uses.
+
+## The comma is `+`
+
+A GOG sentence is a list of words, and in JavaScript it is a list of arguments.
+`plot()` is what gives the comma its meaning:
+
+```{r}
+#| echo: false
+js_plot("plot(data(gapminder_2007), point, x(col.gdp, { scale: 'log' }), y(col.life), color(col.continent))")
+```
+
+That is [A first plot](../first-plot.qmd) exactly: the same words, in the same
+order, reading the same way. Position still decides scope ([Encoding
+scope](../encoding-scope.qmd)), so a channel written after a mark belongs to that
+mark and one written before belongs to the plot. The commas change nothing about
+that; they are the `+` signs.
+
+## `layer()` is `*`
+
+In R, `*` binds tighter than `+`, which is how `bar * bin + x(life)` reads as a
+binned bar rather than a bar plus a bin. JavaScript has no precedence to lean on,
+so the tighter binding becomes nesting:
+
+```{r}
+#| echo: false
+js_plot("plot(data(gapminder_2007), layer(bar, mean), x(col.continent), y(col.life))")
+```
+
+Nesting is arguably the better of the two. A reader who does not already know
+that `*` binds tighter than `+` has to be told; a reader looking at
+`layer(bar, mean)` can see it.
+
+Most sentences need no `layer()` at all. Of the 500 sentences in this book, 264
+are a flat list of words, and the ones that do use it usually hold two:
+
+```{r}
+#| echo: false
+js_plot("plot(data(gapminder_2007), layer(bar, count), x(col.continent), style({ color: 'steelblue' }))")
+```
+
+## `across()` and `down()` are `|` and `/`
+
+Faceting in R is `plot | facet(era)`, panels side by side, or `plot / facet(era)`,
+panels stacked. The `|` and the `facet()` were always one phrase (neither means
+anything without the other), so JavaScript writes the phrase as one word:
+
+```{r}
+#| echo: false
+js_plot("plot(data(gapminder_2007), point, x(col.gdp, { scale: 'log' }), y(col.life), across(col.continent))")
+```
+
+`down()` stacks them instead, and writing both crosses the two into a grid, which
+is what `plot | facet(a) / facet(b)` does in R.
+
+Because the pair is one word here, there is no separate `facet()` to write. Typing
+one from memory says where it went:
+
+```{r}
+#| echo: false
+js_error("plot(data(gapminder_2007), point, x(col.gdp), y(col.life), facet(col.continent))")
+```
+
+## `beside()` and `below()` are `|` and `/` between two plots
+
+R's `|` means two things, told apart by what is on its right: `plot | facet(g)`
+splits one plot into panels, `plot_a | plot_b` arranges two plots on a page. With
+no operator to overload there is nothing to tell apart, so the second reading is
+its own word — `beside()`, and `below()` for `/`:
+
+```{r}
+#| echo: false
+js_plot("below(plot(data(gapminder_2007), layer(bar, bin), x(col.gdp), theme({ height: 130 })), plot(data(gapminder_2007), point, x(col.gdp), y(col.life)))")
+```
+
+The two words are not new coinages: Henderson's *Functional Geometry*
+[@henderson1982] built its algebra of pictures out of `beside` and `above`, and
+that is the picture language SICP teaches. Both take pages as well as plots, so
+`below(top, beside(main, right))` is the marginal plot, exactly as
+`top / (main | right)` is in R. What the composed
+plots share is decided by the engine and not by the spelling: the same column on
+the same axis in two of them is one axis. See [Composition](../composition.qmd).
+
+## A column is written `col.gdp`
+
+R writes a column as a bare name, Julia as a symbol, Python and JavaScript through
+a small accessor. The two languages with no bare names give the same answer, and
+they give it for the same reason: in this grammar a plain string is how you spell
+a *value*, as in `style({ color: "tomato" })`, `title("…")`, `palette("okabe")`.
+Without the accessor a column and a value would look identical, and the grammar's
+oldest rule (a channel takes a column, never a value) would be invisible in the
+one place it most needs saying.
+
+So a string where a column belongs is refused, and told what to write:
+
+```{r}
+#| echo: false
+js_error("plot(data(gapminder_2007), point, x('gdp'), y(col.life))")
+```
+
+The message offers both spellings because both are real: one *maps* a column and
+earns a legend, the other *sets* one value and earns none ([Setting is not
+mapping](../style.qmd)). The mistake in the other direction is refused the same
+way:
+
+```{r}
+#| echo: false
+js_error("plot(data(gapminder_2007), point, x(col.gdp), y(col.life), style({ color: col.continent }))")
+```
+
+A column whose name is not a JavaScript identifier takes the bracket form
+instead, `col["life exp"]`, which is also how you reach a name with a space or a
+dot in it. Names in other scripts need no such thing: `col.지역` is a perfectly
+ordinary identifier.
+
+## A named argument is one trailing object
+
+R writes `x(gdp, scale = "log")`. JavaScript has no syntax for a named argument,
+so the named ones gather into a single object at the end while the positional
+ones stay where they are:
+
+```{r}
+#| echo: false
+js_plot("plot(data(gapminder_2007), point, x(col.gdp, { scale: 'log', base: 2 }), y(col.life), title('Doublings of income'))")
+```
+
+`style()` is the case where every argument is named, so it is written as one
+object throughout the book: `style({ color: "tomato", size: 3 })`.
+
+## The table, and the one thing that is genuinely lost
+
+A table is an object of columns, so a first plot needs nothing installed:
+
+```{r}
+#| echo: false
+js_plot(
+  "plot(data(heights), bar, x(col.person), y(col.cm))",
+  setup = "const heights = { person: ['Ada', 'Alan', 'Grace'], cm: [160, 172, 181] };"
+)
+```
+
+R reads the table's *name* off the expression you wrote, and Python off the
+frame you called from. JavaScript can do neither, and the name matters: a layer
+resolves its columns against the nearest table by that name ([Bind
+once](../data.qmd)). So an unnamed table is given a unique one, which is enough
+for two tables in one sentence to stay apart, and `data(df, { name: "notes" })`
+is there for when a message should say `notes` rather than `data2`.
+
+## A sub-expression is a value
+
+One thing this spelling gains over R's. A piece of a sentence is an ordinary
+JavaScript value, so it can be named, reused, and passed around, and it means the
+same thing everywhere it lands:
+
+```{r}
+#| echo: false
+js_show(
+  "const piled = layer(point, bin, stack);\nconsole.log(String(plot(data(gapminder_2007), piled, x(col.life))));"
+)
+```
+
+That is the sixth of the [nine laws](../design-laws.qmd) holding in a language
+that had to be talked into the other eight.
+
+## Getting it
+
+The binding is a thin layer over the same engine, and it depends on nothing:
+
+```js
+import { plot, data, point, x, y, col, render_svg } from "grammar-of-graphics";
+
+const gm = { gdp: [1000, 2000, 3000], life: [60, 70, 80] };
+console.log(render_svg(plot(data(gm), point, x(col.gdp), y(col.life))));
+```
+
+`render_svg()` returns the SVG as a string, which in a browser goes straight into
+the DOM and on a server goes straight into a response. There is no viewer and no
+raster step, which is the one place JavaScript fits the engine better than any
+other language does.

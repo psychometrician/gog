@@ -1,0 +1,178 @@
+#!/bin/sh
+# configure — put the engine in the package
+#
+# The R package is a bridge to a Rust binary, so an installed copy that cannot
+# find that binary cannot draw anything. That was the recorded blocker on
+# releasing this binding, and it had been true since
+# the bridge was built: `R CMD INSTALL` succeeded and `render_svg()` then failed
+# on a machine with no `target/`. The decision taken was to **ship the binary**,
+# and this is R's half of it — the counterpart to `py-pkg/gog/hatch_build.py`,
+# which force-includes the same executable into a wheel.
+#
+# Mechanically: put `gog-cli` at `inst/bin/`, which `R CMD INSTALL` copies to
+# `<lib>/gog/bin/`, which is where `find_gog_cli()` looks second (after the
+# `GOG_CLI_PATH` override and before `PATH`).
+#
+# Five ways the engine arrives, in the order they are tried:
+#
+#   1. already in `inst/bin/`  — a release tarball, prepared by CI, *and* no
+#                                workspace beside the package (see step 1)
+#   2. $GOG_CLI_PATH           — an engine built somewhere else
+#   3. ../../target/{release,debug} — a development checkout
+#   4. built from ../../       — the crate sources that traveled with the repo
+#   5. built from tools/rust/  — the crate sources staged *inside* the package
+#
+# Step 4 is what makes `remotes::install_github()` work. A GitHub tarball carries
+# `gog-core/`, `gog-cli/`, `Cargo.toml` and `Cargo.lock` but not `target/` (it is
+# gitignored), so before this step a GitHub install failed at step 3 — measured,
+# not assumed. Building takes about ten seconds, which is why it is last: any
+# engine already present is preferred over compiling one.
+#
+# Failing loudly when none of the four holds is the point. Installing a package
+# that is guaranteed not to draw is the silent drop this project refuses
+# everywhere else; §12 says a diagnostic must give direction, so this one does.
+#
+# Step 5 is what makes a **subdirectory build** work, and it is the one that r-universe
+# needs. That farm clones the whole repository but then runs `R CMD build` on the
+# `subdir` alone, so `../../` does not exist in the resulting tarball and steps 3
+# and 4 both miss. `.prepare` runs before that build, in the full clone, and copies
+# the crates to `tools/rust/` — a directory `R CMD build` ships and `R CMD INSTALL`
+# does not try to compile. The same staging is what a CRAN submission needs, for a
+# different reason: CRAN forbids shipping a binary *and* forbids network during a
+# build, so the sources must travel and `.prepare`'s `GOG_VENDOR=1` brings the
+# dependency crates with them.
+
+set -e
+
+# `configure.win` sources this file with the Windows name set, so the two
+# platforms share one copy of the logic rather than two that can drift.
+EXE="${GOG_EXE_NAME:-gog-cli}"
+DEST="inst/bin"
+WORKSPACE="../.."
+STAGED="tools/rust"
+
+# Build `gog-cli` from a workspace manifest and report the binary's path on
+# success, nothing on failure. Shared by steps 4 and 5 so the two cannot drift in
+# the flags they pass — `-j 2` in one and not the other would be a difference
+# nobody would notice until CRAN complained.
+#
+# `cargo` is looked for in `~/.cargo/bin` as well as on `PATH`, because rustup
+# installs it there and adds it to the *interactive* shell's profile — which the
+# non-interactive shell `R CMD INSTALL` runs has not read. Verified: `cargo` was
+# absent from a plain `sh -c` on the development machine until that path was
+# added by hand, so relying on `PATH` alone would fail for the common setup.
+build_engine() {
+  _root="$1"
+  _cargo=""
+  if command -v cargo >/dev/null 2>&1; then
+    _cargo="cargo"
+  elif [ -x "${HOME}/.cargo/bin/cargo" ]; then
+    _cargo="${HOME}/.cargo/bin/cargo"
+  fi
+  [ -n "${_cargo}" ] || return 0
+
+  echo "* gog: no prebuilt engine found — building it from ${_root}/." >&2
+  "${_cargo}" --version >&2 || true
+
+  # **Build from inside the workspace, not with `--manifest-path` from outside.**
+  # Cargo looks for `.cargo/config.toml` by walking up from the *working
+  # directory*, not up from the manifest. `.prepare --vendor` writes that config
+  # at `tools/rust/.cargo/config.toml`, which is *below* this script's directory,
+  # so building from here would never find it and cargo would go to crates.io for
+  # every dependency. On CRAN, where there is no network, that is a failed build.
+  #
+  # It looked fine locally for the worst possible reason: cargo's own cache in
+  # `~/.cargo` already held the crates, so `--offline` succeeded without ever
+  # consulting the vendor directory. Re-running with an empty `CARGO_HOME` is what
+  # exposed it — `no matching package named 'serde' found`.
+  #
+  # A subshell keeps the directory change local, so the caller's relative paths
+  # below still resolve.
+  #
+  # `-j 2` is CRAN's cap ("needs to be set explicitly to N=1 or 2"), honored here
+  # so the CRAN route is not a different command with different behavior.
+  # `|| true` because a build failure should reach the message at the bottom of
+  # this script, which names every fix, rather than exiting on cargo's alone.
+  ( cd "${_root}" && "${_cargo}" build --release -p gog-cli -j 2 ) >&2 || true
+
+  [ -f "${_root}/target/release/${EXE}" ] && echo "${_root}/target/release/${EXE}"
+}
+
+# 1. A release tarball already carries it — and *already carries it* has to be
+#    told apart from *has a leftover from the last install*, which this step could
+#    not do until 2026-07-26 and which made the pre-commit gate lie.
+#
+#    `inst/bin/` is gitignored, so in a development checkout it is whatever the
+#    previous `R CMD INSTALL` put there. Preferring it unconditionally meant that
+#    once it existed, every later install shipped that engine no matter how far the
+#    sources had moved: `R CMD INSTALL` printed `DONE (gog)` and the installed copy
+#    refused a mark the engine beside it had drawn for hours. That is the stale
+#    binary trap one artifact over, and it defeated the one check that is supposed
+#    to prove an installed package works.
+#
+#    The fact that separates the two is not an mtime, it is *what you are
+#    installing*: a release package tarball has no workspace beside it, and a
+#    development checkout does. So a bundled engine is authoritative only when
+#    there is nothing to rebuild it from.
+if [ -f "${DEST}/${EXE}" ] && [ ! -f "${WORKSPACE}/Cargo.toml" ]; then
+  echo "* gog: using the engine already in ${DEST}/"
+  exit 0
+fi
+
+FOUND=""
+
+# 2. An engine built elsewhere.
+if [ -n "${GOG_CLI_PATH}" ] && [ -f "${GOG_CLI_PATH}" ]; then
+  FOUND="${GOG_CLI_PATH}"
+else
+  # 3. A development checkout: r-pkg/gog/ -> ../../target/
+  for BUILD in release debug; do
+    if [ -f "${WORKSPACE}/target/${BUILD}/${EXE}" ]; then
+      FOUND="${WORKSPACE}/target/${BUILD}/${EXE}"
+      break
+    fi
+  done
+fi
+
+# 4. Build it from the crate sources that came along with the repo — a
+#    `remotes::install_github()` install, where the tarball carries the whole tree.
+if [ -z "${FOUND}" ] && [ -f "${WORKSPACE}/Cargo.toml" ] && [ -f "${WORKSPACE}/gog-cli/Cargo.toml" ]; then
+  FOUND="$(build_engine "${WORKSPACE}")"
+fi
+
+# 5. Build it from the crate sources staged *inside* the package by `.prepare` — a
+#    subdirectory build, which is how r-universe and the CRAN route both arrive.
+#    There is no `../../` in that tarball, so this is the only source left.
+if [ -z "${FOUND}" ] && [ -f "${STAGED}/Cargo.toml" ] && [ -f "${STAGED}/gog-cli/Cargo.toml" ]; then
+  FOUND="$(build_engine "${STAGED}")"
+fi
+
+if [ -z "${FOUND}" ]; then
+  echo "gog: this package carries the engine, and there is no engine to carry." >&2
+  echo "" >&2
+  echo "None of the five sources had one:" >&2
+  echo "  * a prebuilt engine in ${DEST}/" >&2
+  echo "  * \$GOG_CLI_PATH" >&2
+  echo "  * a build at ${WORKSPACE}/target/{release,debug}/" >&2
+  echo "  * a source build from ${WORKSPACE}/ (the whole repository)" >&2
+  echo "  * a source build from ${STAGED}/ (sources staged by .prepare)" >&2
+  echo "" >&2
+  echo "Fixes, cheapest first:" >&2
+  echo "  Build it:        cargo build --release -p gog-cli" >&2
+  echo "  Or point at one: GOG_CLI_PATH=/path/to/gog-cli R CMD INSTALL ..." >&2
+  echo "  No Rust?         install it from https://rustup.rs/" >&2
+  echo "" >&2
+  echo "If this is a subdirectory build (r-universe, or a CRAN-style tarball)," >&2
+  echo "the likely cause is that .prepare did not run or did not finish: the" >&2
+  echo "farm invokes it as \`|| true\`, so its failure is swallowed and surfaces" >&2
+  echo "here instead. Check the build log for a \`gog/.prepare:\` line." >&2
+  echo "" >&2
+  echo "Installing without it would produce a package that cannot draw a plot," >&2
+  echo "which is the failure this check exists to make loud." >&2
+  exit 1
+fi
+
+mkdir -p "${DEST}"
+cp "${FOUND}" "${DEST}/${EXE}"
+chmod 0755 "${DEST}/${EXE}"
+echo "* gog: bundled the engine from ${FOUND}"

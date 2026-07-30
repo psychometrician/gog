@@ -1,0 +1,24 @@
+# The letters
+
+After stating its system in brief, the 1446 book slowed down and walked the
+letters one class at a time (the initial consonants, the vowels, the final
+consonants), each class explained by the same method.
+
+This part does the same for GOG's letters. The marks are the consonants:
+visible forms that are silent until a position gives them somewhere to
+stand. The positions are the vowels: `x`, `y`, and `z`, plus the scales
+that decide how a number, a category, or a date becomes a place on an
+axis. The refining channels are the finals: `color`, `size`, `shape`,
+`pattern`, `opacity`. Optional, and each earns the legend that decodes it.
+`group` sits outside both classes: it splits a mark without encoding
+anything, so it earns no key, and is closer to the space between words.
+Around the letters sit the pieces that complete a layer: the transforms
+that derive new statements from a mark, the table you bind once, and the
+line between *mapping* a column and *setting* a constant.
+
+The mark chapters follow one template: what it draws, what it requires,
+what refines it, what derives from it, what you can set on it, and what it
+refuses. The last two are always the last two, under those names. That
+sameness is the point: it is the No Exceptions law applied to a book's
+structure, and it means learning the second mark is faster than the first,
+and the fifth is nearly free.

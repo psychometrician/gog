@@ -1,0 +1,80 @@
+# The ggplot2 phrasebook
+
+ggplot2 proved that a grammar of graphics could be a working tool and not only
+a theory. Most readers of this book arrive from it. GOG makes its own choices
+inside that same idea, and this appendix is the translation between them: what
+to reach for, and what will feel different.
+
+It assumes the plot you want can be drawn. For whether it can,
+[Coverage](coverage.qmd) reads ggplot2's whole reference index against the
+kernel and sorts the difference both ways.
+
+## Side by side
+
+| | ggplot2 | GOG |
+|---|---|---|
+| Languages | R | R, Python, Julia and JavaScript, one engine under all of them |
+| Naming | `geom_point`, `aes`, `alpha` | `point`, channels by plain name, `opacity` |
+| Where `x`/`y` live | inside each `aes()` | plot-level when written first, shared by all layers |
+| The histogram | `geom_histogram()` *or* `stat_bin(geom = "bar")` | `bar * bin` |
+| Log axis | `scale_x_log10()` | `x(gdp, scale = "log")`, written on the binding |
+| 3-D | external packages | one more position: `z` |
+| Animation | gganimate, a separate package | `play` is a channel of the kernel: `+ play(year)` |
+
+## Translations
+
+| You write in ggplot2 | You write in GOG |
+|---|---|
+| `ggplot(df, aes(x = a, y = b))` | `data(df) + x(a) + y(b) + …` |
+| `geom_point()` | `point` |
+| `geom_line()` | `line` |
+| `geom_step()` | `step` |
+| `geom_area()` | `area` |
+| `geom_col()` | `bar` |
+| `geom_bar()`, which counts the rows for you | `bar * count`, where the count is a word in the sentence |
+| `geom_histogram(bins = 30)` | `bar * bin(30)` |
+| `geom_freqpoly()` | `line * bin` |
+| `geom_density()` | `line * density` |
+| `geom_smooth()` | `line * smooth` |
+| `stat_summary(fun = mean, geom = "bar")` | `bar * mean` |
+| `aes(color = g)` | `color(g)` |
+| `aes(size = v)` | `size(v)` |
+| `aes(shape = g)` | `shape(g)` |
+| `aes(alpha = v)` | `opacity(v)` |
+| `aes(group = g)` | `group(g)` |
+| `scale_x_log10()` | `x(v, scale = "log")` |
+| `scale_color_viridis_c()` | `color(v) + palette("viridis")` |
+| `facet_grid(r ~ c)` | `\| facet(c) / facet(r)` |
+| `facet_wrap(~ g, ncol = 4)` | `\| facet(g, wrap = 4)`; `/` runs the same line down instead, so one number replaces `nrow` *and* `ncol` |
+| `facet_*(scales = "free_y")` | `y(v, free = TRUE)` — written on the axis it frees, so there is no `free_x`/`free_y`/`free` to choose between |
+| patchwork's <code>p1 &#124; p2</code>, `p1 / p2` | <code>plot_a &#124; plot_b</code>, `plot_a / plot_b` — the same two operators, told apart by the operand |
+| patchwork's `plot_spacer()`, `plot_layout(widths =)` | `theme(width =, height =)` on the plot that wants the room; the blank corner of a marginal plot is what a shared axis leaves over |
+| ggExtra's `ggMarginal()` | <code>top / (main &#124; right)</code>, three ordinary plots ([Composition](composition.qmd)) |
+| `coord_flip()` | swap the `x` and `y` bindings: orientation is read, not switched |
+| `labs(title = , x = , y = )` | `title()`, `x_label()`, `y_label()`, `z_label()` |
+| `color = "red"`, `alpha = 0.5` inside a `geom_*()` | `style(color = "red", opacity = 0.5)` |
+| `theme(…)` | `theme()`, the page rather than the ink; `style()` stays with a layer's constants |
+| `ggsave("plot.svg")` | the rendered plot *is* SVG; write it to a file from R as text |
+
+## What to expect to feel different
+
+- **`+` is still `+`, and on purpose.** ggplot2's author has said he would
+  use the pipe today, so the obvious question is why GOG kept the operator he
+  regrets. Short version: Python has no pipe to keep the four languages
+  spelling one syntax, and a pipe makes every atom a function, which would
+  leave `bar * bin` meaning nothing. [Operators](operators.qmd) has the long
+  version, including what commutes here that did not there.
+- **Nothing is computed unless you name it.** `bar` draws your numbers as
+  they arrive; if you want counting, you write `count`. Where a geom counts
+  for you, GOG waits to be asked.
+- **There is one spelling.** No geom/stat pairs, no "specify either one."
+  If you can say a plot two ways here, one of them is a bug. Report it.
+- **The scale rides the binding.** You name a channel once, and its scale
+  is a property of that binding, not a second sentence about it.
+- **Setting is not mapping.** A constant maps no column, earns no legend,
+  and lives in `style()`. The quoted-string ambiguity (`color("red")`)
+  does not exist here: it is refused, with the fix named.
+- **Refusals give direction.** A sentence GOG cannot draw is refused, and
+  the message names the sentence it would accept. If you are used to a
+  warning and a plot, expect a stop instead. The errors are part of the
+  manual: this book renders them on purpose.

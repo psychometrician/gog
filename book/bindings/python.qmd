@@ -1,0 +1,228 @@
+# Python
+
+```{r}
+#| include: false
+source("../R/setup.R")
+source("../R/python.R")
+```
+
+The grammar does not change when the language does. One engine reads one
+specification, so a sentence means what it means whoever wrote it, and
+everything in this book up to here is as true in Python as it is in R. What
+differs is small enough to state on one page, and this chapter is that page.
+
+Every Python block below was executed to draw the plot beside it, through the
+same engine every other chapter uses.
+
+## A column is written `col.gdp`
+
+R writes a column as a bare name, Julia as a symbol, Python through a small
+accessor:
+
+```{r}
+#| echo: false
+py_plot("data(gapminder_2007) + point + x(col.gdp, scale='log') + y(col.life) + color(col.continent)")
+```
+
+The R form of that sentence is the one from [A first plot](../first-plot.qmd),
+with `col.` in front of each column. Those four characters buy something worth
+paying for. In R a bare `gdp` cannot be anything except a name; Python has no
+bare names, and in this grammar a plain string is how you spell a *value*:
+`style(color="tomato")`, `title("…")`, `palette("okabe")`. Without the accessor
+a column and a value would look identical, and the grammar's oldest rule (a
+channel takes a column, never a value) would be invisible in the one language
+that cannot see it.
+
+So a string where a column belongs is refused, and told what to write:
+
+```{r}
+#| echo: false
+py_error("data(gapminder_2007) + point + x('gdp') + y(col.life)")
+```
+
+The message offers both spellings because both are real: one *maps* a column and
+earns a legend, the other *sets* one value and earns none ([Setting is not
+mapping](../style.qmd)). The mistake in the other direction is refused the same
+way:
+
+```{r}
+#| echo: false
+py_error("data(gapminder_2007) + point + x(col.gdp) + y(col.life) + style(color=col.continent)")
+```
+
+A column whose name Python cannot spell as an attribute takes the bracket form
+instead, `col["life exp"]`, which is also how you reach a name with a space or a
+dot in it.
+
+## A sentence over several lines takes parentheses
+
+R continues a line that ends in `+`. Python ends the statement there, so a
+sentence spanning several lines is wrapped in parentheses:
+
+```{r}
+#| echo: false
+py_plot("(data(gapminder_2007) + point + x(col.gdp, scale='log') + y(col.life)\n + color(col.continent) + size(col.population)\n + title('Wealth and life expectancy, 2007'))")
+```
+
+That is Python's rule about lines rather than anything of GOG's, and together
+with the accessor it accounts for almost every difference you will type.
+
+## The table
+
+A table is a dict of columns, so a first plot needs nothing installed at all:
+
+```{r}
+#| echo: false
+py_plot("data({'level': ['Low', 'Medium', 'High'], 'count': [30.0, 20.0, 10.0]},\n     name='small') + bar + x(col.level) + y(col.count)")
+```
+
+Anything carrying `.columns` and `df[name]` is also a table, which covers pandas
+and polars. They are duck-typed rather than imported, so neither is a dependency
+of the binding, and the ordinary way in is the one you already use:
+
+```{r}
+#| echo: false
+py_show("import pandas as pd\n\ngapminder_2007 = pd.read_csv(GAPMINDER_CSV)\nprint(gapminder_2007.shape, list(gapminder_2007.columns))")
+```
+
+Every plot on this page reads that frame. Types cross as you would expect:
+numbers become positions, text becomes categories, `datetime64` and Python's own
+`date` and `datetime` become a calendar axis, and `NaN` or `None` is a missing
+value the engine drops from the rows it cannot place, saying how many. A pandas
+`Categorical` carries its declared order across, which is the counterpart of R's
+`factor(x, levels = …)`; a plain dict of strings has nowhere to put that, so
+there the categories fall back to the order the rows came in, which
+[Data](../data.qmd) describes.
+
+## Computation is pandas' job, not the grammar's
+
+A channel takes a column name and never an expression. There is no
+`x(log(gdp))`, and GOG grows no small language for deriving values, because
+Python already is one: compute the column, then bind it by name.
+
+```{r}
+#| include: false
+# One definition, used by the block the reader sees and again by the plot below
+# it: each snippet on this page is its own process, so the frame is rebuilt
+# rather than carried, and rebuilding it by re-running the shown code is what
+# keeps the two from drifting.
+europe <- paste0(
+  "europe = gapminder_2007[gapminder_2007.continent == 'Europe'].copy()\n",
+  "europe['gdp_thousands'] = europe.gdp / 1000\n",
+  "europe = europe.sort_values('life', ascending=False)\n"
+)
+```
+
+```{r}
+#| echo: false
+py_show(paste0(europe, "print(europe[['country', 'gdp_thousands', 'life']].head(3).to_string(index=False))"))
+```
+
+That frame is a table like any other, and the sentence over it is the sentence
+you already know:
+
+```{r}
+#| echo: false
+py_plot("(data(europe) + point + x(col.gdp_thousands) + y(col.life)\n + size(col.population) + style(color='steelblue')\n + x_label('GDP per capita (thousands)')\n + title('Europe, 2007'))", setup = europe)
+```
+
+The division stayed in pandas, where the reader can see it, and the plot names a
+column that exists. That split is deliberate rather than a missing feature: a
+plot is a mapping from a table ([Data](../data.qmd)), so a channel names one of
+its columns, and anything you would rather compute is computed before the
+sentence starts.
+
+## Showing the plot
+
+In a Jupyter notebook a plot displays itself, as it does in the R console. A
+script displays nothing on its own, so say where the plot goes:
+
+```{r}
+#| echo: false
+py_show("plot = data(gapminder_2007) + point + x(col.gdp) + y(col.life)\nprint(plot)\nprint(plot.save('/tmp/life.svg'))")
+```
+
+`save()` writes the SVG, `show()` opens it in a browser, and `render()` returns
+it as a string. R's `print()` opens the viewer without being asked; Python waits
+to be told, which is the convention each language already has.
+
+## Five names Python already uses
+
+`bin`, `sum`, `min`, `max` and `range` are transforms here and builtins there,
+so `from gog import *` puts GOG's over Python's for the rest of the file. The R
+package does the same thing to `base::range` and `base::sum`: a grammar keeps
+its own vocabulary. Calling one says so rather than failing obscurely:
+
+```{r}
+#| echo: false
+py_show("try:\n    range(10)\nexcept GogError as error:\n    print(error)")
+```
+
+A module that needs both can `import gog` and write `gog.point`, or take the
+builtin back with `from builtins import sum`.
+
+## What does not change
+
+The four operators, including how tightly they bind. `*` groups before `+`, `+`
+before `|`, and `/` sits beside `*`, which are Python's own precedences as well
+as R's, so a derived layer and a crossed facet group exactly as they do in
+[Operators](../operators.qmd):
+
+```{r}
+#| echo: false
+py_plot("(data(gapminder_2007) + bar * mean + x(col.continent) + y(col.life)\n + order(col.life, desc=True) + palette('okabe')\n + title('Mean life expectancy, highest first'))")
+```
+
+The vocabulary does not change either: every mark, transform, channel, setting
+and plot-level atom in [the kernel](../kernel-card.qmd) exists in Python under
+the same name. Neither do the refusals, because they are the engine's and not
+the binding's, word for word:
+
+```{r}
+#| echo: false
+py_error("data(gapminder_2007) + bar + x(col.continent)")
+```
+
+How far apart are the two spellings, then? That is measured rather than argued.
+Every sentence in this book, 481 of them, was translated by rule and run through
+the Python binding: 379 drew a **byte-identical** plot, 88 earned a
+word-identical refusal, and seven differed only in the example inside the
+message, where each binding teaches its own syntax. Seven sentences do not carry
+over at all, and every one of them is in [R](r.qmd), about R's pipes. Two
+rewrites account for nearly all the rest: the accessor, 471 times, and the
+parentheses, 326.
+
+## Getting it running
+
+A plot is drawn by the engine, which is a compiled Rust binary, so the Python
+package has to be able to find one. The released wheel **carries it**: one wheel
+per platform, each holding the engine built for that platform, so installing
+needs no Rust toolchain.
+
+```bash
+pip install gog
+```
+
+That command works today. `gog` is on [PyPI](https://pypi.org/project/gog/).
+Five wheels cover macOS, Linux and Windows, on both common processor families.
+Python is the first of the four bindings to be published. The other three still
+need a copy of the source.
+
+To work from a checkout instead, build the engine once and import the package
+from where it sits:
+
+```bash
+cargo build --release -p gog-cli
+```
+
+```python
+import sys
+sys.path.insert(0, "py-pkg/gog")
+
+from gog import *
+```
+
+The engine is looked for in four places, in this order: the `GOG_CLI_PATH`
+environment variable, the copy inside the installed package, `gog-cli` on your
+`PATH`, and a local `target/release` build. The first three are how an installed
+copy works; the last is how this page was rendered.

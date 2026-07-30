@@ -1,0 +1,105 @@
+/* gog.css — the book's only stylesheet, and it exists for one reason.
+ *
+ * A `gog:` diagnostic is a paragraph written on a single line. That is the right
+ * shape for the engine to emit: a message goes to stderr, to an R condition, to a
+ * Python exception and to a JavaScript `Error`, and none of those knows how wide
+ * anything is. Deciding a column count in `legality.rs` would be the wrong layer
+ * choosing, and it would put a page's geometry inside the grammar.
+ *
+ * So the wrapping belongs to whoever is displaying it, and here that is the page.
+ * Quarto renders chunk output as a bare `<pre><code>`, which scrolls sideways
+ * rather than wrapping, so a long refusal ran off the right edge and a reader saw
+ * only the half that fitted — including, for the longest ones, losing the part
+ * that says what to do instead, which is the whole point of the message.
+ *
+ * `code-overflow: wrap` does not do this. It is a Quarto option that styles
+ * *source* blocks; measured on a probe document, it leaves chunk **output**
+ * untouched, which is the block a diagnostic lands in. Hence a rule of our own.
+ *
+ * The PDF needs the same thing said in LaTeX, and `_quarto.yml` says it there with
+ * `fvextra`'s `breaklines` — on both `Highlighting` and `verbatim`, for the same
+ * source-versus-output reason.
+ */
+
+.cell-output pre,
+.cell-output pre code {
+  white-space: pre-wrap;
+  /* `break-word` rather than `anywhere`: a diagnostic is prose and breaks at its
+   * spaces, and this is only for the rare token with no space in it — a long
+   * column name, or a path. `anywhere` would split short words mid-letter to
+   * tighten a line, which reads worse than a slightly ragged edge. */
+  overflow-wrap: break-word;
+}
+
+/* ---------------------------------------------------------------------------
+ * Telling a diagnostic apart from the prose around it.
+ *
+ * A refusal used to arrive as unshaded monospace, which put it in the same
+ * visual register as body text while a *source* block got a gray box — so the
+ * one thing on the page that is the engine talking looked like the least
+ * emphasized thing on it.
+ *
+ * **Two treatments, because the grammar makes the distinction** (spec §12). A
+ * refusal is fatal and nothing was drawn; an Assumption is advice and the plot
+ * is right there beside it. Giving both the same background would flatten a
+ * difference the book actively teaches — half its diagnostic chapters turn on
+ * it — so they get the two hues that already mean this in the plots.
+ *
+ * The colors are the **engine's own palette** (`render/palette.rs`), not new
+ * ones invented in CSS: `#e15759` is its red and `#f28e2b` its orange, so a
+ * page reads as one system rather than as a plot with a stylesheet beside it.
+ * The fill is a ~10% tint of each over white, which is enough to separate the
+ * block from prose and not enough to compete with the plots.
+ *
+ * Deliberately not a callout box. Boxed asides read as an interruption here,
+ * and all 33 of them were folded into prose once already.
+ * This is a tint and a left rule on a block that already existed — no card, no
+ * icon, no title bar, nothing that has to be dismissed to keep reading.
+ *
+ * The left rule carries the same information as the fill, so the two kinds stay
+ * distinguishable without relying on hue alone.
+ * ------------------------------------------------------------------------- */
+
+/* A refusal: fatal, and no plot was drawn. */
+.cell-output-error > pre {
+  background-color: #fceeee;
+  border-left: 3px solid #e15759;
+  padding: 0.6rem 0.8rem;
+  border-radius: 0 3px 3px 0;
+}
+
+/* An Assumption: the engine drew the plot and is telling you what it assumed. */
+.cell-output-stderr > pre {
+  background-color: #fef4ea;
+  border-left: 3px solid #f28e2b;
+  padding: 0.6rem 0.8rem;
+  border-radius: 0 3px 3px 0;
+}
+
+/* `cell-output-stdout` is deliberately left alone: it is not a diagnostic. It is
+ * whatever the chunk printed — a `head()` of the data, a parsed spec — and it
+ * belongs in the neutral register that plain program output already has. */
+
+/* The `<code>` inside inherits the tint rather than painting its own. Quarto
+ * gives a bare `pre > code` a transparent background already, but saying so here
+ * stops a theme change from putting a gray rectangle inside the tinted one. */
+.cell-output-error > pre > code,
+.cell-output-stderr > pre > code {
+  background-color: transparent;
+}
+
+/* The hex sticker on the preface -------------------------------------------
+ *
+ * Quarto drops `book: cover-image:` in as the first thing after the landing
+ * page's opening heading, with `img-fluid`, which only caps it at the column
+ * width. The file is 1002px wide, so left alone it fills the text column and
+ * the preface starts below the fold. A badge is meant to be taken in at a
+ * glance, so it is sized like one and centered. The percentage cap is what
+ * keeps it from crowding a narrow phone screen.
+ * ------------------------------------------------------------------------- */
+.quarto-cover-image {
+  display: block;
+  width: 190px;
+  max-width: 45%;
+  margin: 1.75rem auto 2.25rem;
+}

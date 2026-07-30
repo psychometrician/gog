@@ -1,0 +1,19 @@
+# The sentences
+
+Letters are not yet writing. The 1446 book, after explaining each letter
+class, devoted a chapter to assembly: how letters pack into syllable
+blocks, blocks into words, words into sentences.
+
+This part is GOG's assembly chapter. The `+` operator layers marks in one
+panel; the `*` operator derives a new statement from a mark and a
+transform; position in the sentence decides which layer a channel binds
+to; and the `|` and `/` operators multiply one plot into a disciplined
+grid of panels. Last come the two coordinate spaces. `space` turns a flat
+plot into a three-dimensional one by adding a single vowel, `z`; `polar`
+bends the same plane into a circle and asks nothing new of the sentence
+at all.
+
+The rule that holds this part together is Compositional Invariance: a
+composed expression means the same thing wherever it appears. What you
+build in one chapter can be carried into the next without changing under
+you, which is exactly what makes sentences worth building.

@@ -1,0 +1,249 @@
+project:
+  type: book
+
+  # The book's example tables, as CSV. Quarto copies these into `_book/`, and
+  # `publish.sh` rsyncs all of `_book/` to the site, so each frame ends up at a
+  # stable public URL under `psychometrician.github.io/gog-book/data/`. That URL
+  # is what makes the manual reproducible for a reader in any of the four
+  # languages — spec §20, "The cast is fetched, not shipped".
+  #
+  # Declared rather than left to Quarto's own resource discovery, because the
+  # book renders offline from these same files by relative path and a chapter
+  # that only *reads* one does not make it a discovered dependency.
+  resources:
+    - data/
+
+book:
+  title: "GOG: A Grammar of Graphics"
+  subtitle: "One engine. Every language."
+
+  # The hex sticker, designed by the author in Canva. It is the cover, not a
+  # placeholder for one, and no sticker package or model made it. Quarto puts it
+  # straight after the landing page's first heading, and the preface's *agog*
+  # section explains what the four symbols in it are; `gog.css` gives it a
+  # size, since the file is 1002px wide and `img-fluid` alone would run it to
+  # the column edge.
+  cover-image: images/gog_hex.png
+  cover-image-alt: >-
+    The GOG hex sticker. A peach hexagon with a black border, holding a face
+    built from the package's four operators: a plus and an asterisk as its two
+    eyes, a slash and a vertical bar as its nose, and the package name as its
+    mouth.
+  # Five names, and the division of labor behind them is stated in the
+  # preface ("Who wrote this") rather than left to a reader to guess. The
+  # four models wrote the engine, the four bindings and the test suites, and
+  # put the text into English; the thinking the text expresses is the human's,
+  # the way a ghostwritten autobiography is its subject's. The copyright
+  # holder and sole package author is the human, because a model cannot hold
+  # one.
+  author:
+    - "psychometrician"
+    - "Claude Sonnet 4.6"
+    - "Claude Opus 4.8"
+    - "Claude Opus 5"
+    - "Claude Fable 5"
+  # Two dates, and only one of them moves. `date` is the day the book first went
+  # up as a public website, written out in full so no render can change it. Its
+  # partner `date-modified` re-stamps on every build, and lives in `index.qmd`'s
+  # front matter rather than here: `book:` rejects the key outright, and setting
+  # it at this file's top level instead would stamp an "Updated" row onto all
+  # 55 chapter pages, when only the landing page is a record of anything. Both
+  # labels are renamed under `language:` below.
+  date: "2026-07-28"
+
+  # The site is served from a repository holding only the *rendered* book, so
+  # "edit this page" has no source file to open and is left off. An issue link
+  # still works, and is how a reader reports a typo. `site-url` is not needed to
+  # serve the book; it is what gives the pages canonical URLs and a sitemap.
+  repo-url: https://github.com/psychometrician/gog-book
+  repo-actions: [issue]
+  site-url: https://psychometrician.github.io/gog-book/
+
+  # Two licenses, because the book is mostly executable code. The prose is
+  # NonCommercial so a print edition stays worth publishing; the code samples
+  # are Apache 2.0 so they can be used in real work.
+  page-footer: |
+    Prose licensed [CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/).
+    Code samples licensed [Apache 2.0](https://www.apache.org/licenses/LICENSE-2.0).
+
+  # A toggle in the top right that folds away the chapter sidebar and the table
+  # of contents, leaving the prose and the plots the whole width. It is off
+  # until the reader asks for it, and the browser remembers the choice across
+  # pages. The plots are what make it worth having: the engine draws every SVG
+  # at a fixed 800px, which is wider than the reading column on most screens,
+  # so a dense figure — a faceted grid, a cube, the Mark × Channel table — is
+  # the first thing to benefit from the two columns going away.
+  reader-mode: true
+
+  # The shape borrows from the Hunminjeongeum (1446): the system stated
+  # fast, then each letter class, then assembly, then words in use, then
+  # the reasons. Part titles stay plain English — the correspondence is
+  # told in each part's introduction, never used as navigation.
+  chapters:
+    - index.qmd
+
+    - part: parts/morning.qmd            # the whole grammar, one sitting
+      chapters:
+        - first-plot.qmd
+        - grammar.qmd                    # the kernel block lives here — check_vocabulary.R reads it
+        - reading.qmd
+        - writing.qmd
+
+    - part: parts/letters.qmd            # each atom family in depth
+      chapters:
+        - data.qmd
+        - book-data.qmd                  # the shared tables, and their public CSVs
+        - marks/index.qmd
+        - marks/point.qmd
+        - marks/line.qmd
+        - marks/bar.qmd
+        - marks/area.qmd
+        - marks/step.qmd
+        - marks/interval.qmd
+        - marks/box.qmd
+        - marks/ribbon.qmd
+        - marks/text.qmd
+        - marks/path.qmd
+        - marks/rule.qmd
+        - marks/zone.qmd
+        - marks/surface.qmd
+        - channels.qmd
+        - style.qmd
+        - transforms.qmd
+        - scales.qmd
+
+    - part: parts/sentences.qmd          # composition: layer, derive, scope, facet, 3-D
+      chapters:
+        - operators.qmd
+        - encoding-scope.qmd
+        - faceting.qmd
+        - composition.qmd
+        - space.qmd
+        - polar.qmd
+        - nest.qmd
+        - play.qmd
+        # globe, map — coming, alongside space.qmd and polar.qmd
+
+    - part: parts/cookbook.qmd           # recipes by data shape and question
+      chapters:
+        - cookbook/one-variable.qmd
+        - cookbook/two-variables.qmd
+        - cookbook/three-or-more.qmd
+        - cookbook/over-time.qmd
+        - cookbook/groups.qmd
+        # composition is a *sentence*, not a recipe: it is in composition.qmd,
+        # beside faceting, because the two are one pair of operators
+
+    - part: parts/reasons.qmd            # the nine laws, and why the engine says no
+      chapters:
+        - design-laws.qmd
+
+    - part: parts/bindings.qmd           # what belongs to the host language, not the grammar
+      chapters:
+        - bindings/r.qmd
+        - bindings/python.qmd
+        - bindings/julia.qmd
+        - bindings/javascript.qmd
+
+    - afterword.qmd
+    - references.qmd
+
+  appendices:
+    - kernel-card.qmd
+    - combinations.qmd
+    - chart-names.qmd
+    - phrasebook.qmd
+    - coverage.qmd
+
+bibliography: references.bib
+
+# APA 7th, because this book's field uses it. The preface names the author as a
+# psychometrician and cites *Educational Measurement: Issues and Practice*, and
+# APA is the house style across psychology and educational measurement. Without
+# this key pandoc falls back to Chicago author-date, which is a fine style and
+# simply not the one a reader here expects.
+#
+# The file is committed rather than fetched. Quarto ships no CSL styles at all,
+# so a build machine without this file beside `_quarto.yml` would silently get
+# Chicago back, and a citation style that changes depending on who ran the
+# render is the same class of problem as a plot that changes with the machine.
+# It is the Zotero distribution of the official style, "APA Style 7th edition",
+# and it stays a quoted external file: the American English rule governs prose
+# this book writes, never text it carries.
+csl: apa.csl
+
+# Quarto's default labels for the two dates above are "Published" and
+# "Modified". Both are renamed rather than accepted: "Published" alone read as
+# one date when there are two, and "Modified" describes a file where the reader
+# wants to know how current the book is.
+language:
+  title-block-published: "First published"
+  title-block-modified: "Updated"
+
+format:
+  html:
+    theme: cosmo
+    # One rule, and it is about the diagnostics. `gog:` messages are written as
+    # *paragraphs on one line* — the engine has no idea how wide a page is, and
+    # baking a column count into a message would be the wrong layer deciding.
+    # Chunk output is a `<pre>`, which scrolls sideways by default, so a long
+    # refusal ran off the edge and a reader saw the half that fitted.
+    # `code-overflow: wrap` does not reach these: it styles *source* blocks only.
+    css: gog.css
+    code-copy: true
+    toc: true
+    toc-depth: 3
+    number-sections: true
+
+  # PDF, enabled 2026-07-26. It had been off since the book began, for a reason
+  # that was true when written: `knit_print.gog_spec` short-circuited on LaTeX and
+  # emitted "(plot not shown in PDF output)", so a PDF was text-only. That is
+  # fixed — it now writes each plot's SVG out and converts it with
+  # `rsvg-convert -f pdf`, vector in and vector out, so a figure on the page keeps
+  # the resolution the SVG had.
+  #
+  # Two build requirements, neither of them optional:
+  #
+  #   * **lualatex**, for the Hangeul fallback below.
+  #   * **rsvg-convert** on `PATH` (or `$RSVG_CONVERT_PATH`). Without it every
+  #     plot becomes a named box rather than vanishing, so a build that lacks it
+  #     says so on the page instead of shipping 600 blank pages.
+  #   * the TeX Live packages **fvextra** and **baekmuk**
+  #     (`tlmgr install fvextra baekmuk`).
+  pdf:
+    documentclass: scrreprt
+    number-sections: true
+    pdf-engine: lualatex
+    include-in-header:
+      text: |
+        % Long lines wrap instead of running off the page. Both environments are
+        % needed and neither is Quarto's `code-overflow: wrap`, which reaches the
+        % *source* blocks only: `Highlighting` is the code a chunk shows and
+        % `verbatim` is what the chunk printed, and a `gog:` diagnostic is the
+        % second one. Unwrapped, LaTeX's own answer to an over-wide verbatim line
+        % is to let it run past the margin and be clipped, so the reader lost the
+        % half of the message that says what to do about it.
+        \usepackage{fvextra}
+        \DefineVerbatimEnvironment{Highlighting}{Verbatim}{breaklines,breakanywhere,commandchars=\\\{\}}
+        \DefineVerbatimEnvironment{verbatim}{Verbatim}{breaklines,breakanywhere}
+        % Hangeul, and this is not cosmetic: the book's central analogy *is* the
+        % letters. Latin Modern has no Korean coverage, so ㄱ, ㅋ, 하 and 꿲 came out
+        % as replacement glyphs — the 하 law and the 꿲 law printed with their
+        % subjects missing, in a 600-page PDF that exited 0 and warned about
+        % nothing. A fallback keeps Latin in Latin Modern and sends anything it
+        % cannot draw to a Korean face.
+        %
+        % `batang.ttf` is TeX Live's own (the `baekmuk` package) and is named by
+        % file rather than by family on purpose: it resolves on any TeX Live
+        % without a system font install, where "Apple SD Gothic Neo" — which also
+        % works, and was what proved the fallback — would make the book buildable
+        % on one operating system.
+        \directlua{luaotfload.add_fallback("goghangeul", { "batang.ttf:mode=harf;" })}
+        \setmainfont{Latin Modern Roman}[RawFeature={fallback=goghangeul}]
+        \setsansfont{Latin Modern Sans}[RawFeature={fallback=goghangeul}]
+        \setmonofont{Latin Modern Mono}[RawFeature={fallback=goghangeul}]
+
+execute:
+  echo: true
+  warning: false
+  message: false

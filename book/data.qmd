@@ -1,0 +1,272 @@
+# Data
+
+```{r}
+#| include: false
+source("R/setup.R")
+```
+
+## Binding a table
+
+Where does a plot get its numbers? `data()` takes a data frame directly from
+your R environment. Column names after that are bare words: no quotes, no `$`,
+no indexing.
+
+```{r}
+data(gapminder_2007) + point + x(gdp) + y(life)
+```
+
+*"Given gapminder 2007: points, x is gdp, y is life."*
+
+GOG looks up `gdp` and `life` inside the `gapminder_2007` data frame automatically.
+This is the **Bind-Once Law**: name the table once, then use columns freely.
+
+`gapminder_2007` here is just a regular R data frame (or tibble) in your workspace:
+no registration step, no special wrapping required.
+
+`data()` is not ceremony, and skipping it refuses with direction. The call is
+what *names* the table. The name travels with the plot, later layers resolve
+their bare columns against the nearest one, and a bare frame has no name to
+bind:
+
+```{r}
+#| error: true
+gapminder_2007 + point + x(gdp) + y(life)
+```
+
+The same advice comes back if a bare frame appears mid-expression (write
+`+ data(forecast)`, not `+ forecast`) or if the sentence has no data at all
+(`point + x(gdp)` with nothing before it).
+
+## Plot-level vs. layer-level data
+
+`data()` at the start of the expression is the **plot-level default**:
+it applies to all layers that don't declare their own table.
+
+```{r}
+# Both layers read from "gapminder_2007"
+data(gapminder_2007) + x(gdp) + y(life) +
+  line +
+  point
+```
+
+A `data()` that appears **between two marks** overrides the table for
+the layer that follows it:
+
+```{r}
+# line uses "actuals"; point uses "forecast"
+data(actuals) + x(year) + y(sales) +
+  line +
+  data(forecast) +
+  point
+```
+
+The rule: **nearest `data()` wins.**
+
+## Multi-table layered plots
+
+Each layer can draw from a completely different data frame as long as `x` and `y`
+map to comparable columns:
+
+```{r}
+data(actuals) + x(year) + y(sales) +
+  line +
+  data(forecast) +
+  point
+```
+
+## Passing data in R
+
+Pass any R data frame or tibble directly, no setup required:
+
+```r
+library(gog)
+
+# gapminder_df is a regular data frame in your environment
+data(gapminder_df) + point + x(gdp) + y(life) + color(continent)
+```
+
+That first line prints a long list of masked names, and it is worth knowing now
+that most of the list cannot affect you. `mean(x)` and `sum(x)` keep working,
+because R skips a name that is not a function when it resolves a call. Eight
+names do take over, `data` among them, and the [R](bindings/r.qmd) chapter lists
+all eight with the qualified form of each.
+
+Under the hood the table currently crosses to the engine as an in-memory
+`DataFrame`; Apache Arrow (zero-copy, no serialization penalty even for
+millions of rows) is on the roadmap to replace it.
+
+## Factors decide the order of categories
+
+A plain text column has no order of its own, so GOG draws its categories in the
+order the rows happen to arrive:
+
+```{r}
+severity <- data.frame(
+  level = c("High", "Low", "Medium"),
+  count = c(30.0, 10.0, 20.0)
+)
+
+data(severity) + bar + x(level) + y(count) +
+  title("Text column — the order the rows came in")
+```
+
+That is rarely what you want here. Make it a **factor** and say what order you
+mean:
+
+```{r}
+severity$level <- factor(severity$level, levels = c("Low", "Medium", "High"))
+
+data(severity) + bar + x(level) + y(count) +
+  title("Factor — the order you declared")
+```
+
+The `levels =` travels with the column, so **every part of the chart agrees**:
+the axis, the color assignment, and the legend all read in the same order.
+
+```{r}
+data(severity) + point + x(count) + y(count) + color(level) +
+  title("The legend follows the same order")
+```
+
+The order holds even when GOG does the counting for you. These tickets arrive
+`High` first, but `bar * count` still reads Low, Medium, High. A summary carries
+the declared order onto its axis, it does not fall back to first-appearance:
+
+```{r}
+tickets <- data.frame(
+  level = factor(
+    c("High", "Low", "High", "Medium", "High", "Low", "Medium", "High"),
+    levels = c("Low", "Medium", "High")
+  )
+)
+
+data(tickets) + bar * count + x(level) +
+  title("bar * count — the levels still order the axis")
+```
+
+R has two kinds of factor: `factor(x, ordered = TRUE)`, meaning Low really is
+*less than* High, and a plain factor that merely lists its levels. GOG honors
+the order in both cases, because most people reach for a plain factor purely to
+fix the display order and mean nothing mathematical by it.
+
+### The same declaration in the other three languages
+
+`factor()` is R's word for this. Python, Julia and JavaScript have no factor
+type, so GOG supplies the declaration itself, under one name: `ordered()`. It
+takes the column's values and the order its categories go in. Declare it where
+you build the table, and everything after that reads the same in all four
+languages.
+
+**R**
+
+```r
+severity <- data.frame(
+  level = factor(c("High", "Low", "Medium"), levels = c("Low", "Medium", "High")),
+  count = c(30.0, 10.0, 20.0)
+)
+```
+
+**Python**
+
+```python
+severity = {
+    "level": ordered(["High", "Low", "Medium"], ["Low", "Medium", "High"]),
+    "count": [30.0, 10.0, 20.0],
+}
+```
+
+**Julia**
+
+```julia
+severity = Dict(
+    "level" => ordered(["High", "Low", "Medium"], ["Low", "Medium", "High"]),
+    "count" => [30.0, 10.0, 20.0],
+)
+```
+
+**JavaScript**
+
+```js
+const severity = {
+  level: ordered(["High", "Low", "Medium"], ["Low", "Medium", "High"]),
+  count: [30.0, 10.0, 20.0],
+};
+```
+
+Python reads a pandas `Categorical` as well, and takes its categories as the
+levels. `ordered()` is what a plain dictionary of lists uses, because GOG does
+not require pandas.
+
+Two rules worth knowing:
+
+- **Levels say what order, the data says what is there.** A level with no rows
+  draws no bar and gets no slot on the axis: an empty labeled gap is harder to
+  read than a shorter axis. A value in the data that is *not* in the levels is
+  never dropped; it goes on the end.
+- **An explicit `order()` wins.** You wrote it in the plot, which is nearer than
+  the table. Name a *different* column and it overrides the levels, which is what
+  lets you sort by value:
+
+```{r}
+data(severity) + bar + x(level) + y(count) + order(count, desc = TRUE) +
+  title("order() overrides the levels")
+```
+
+Name the **category column itself** and you are asking for that column's own
+order, so there is nothing to override. A plain text column carries nothing but
+its spelling and sorts alphabetically; a factor carries its levels, so it keeps
+them, and `desc = TRUE` reverses them. That leaves no way to alphabetize a
+factor's labels from inside the plot, and it is the right thing to lose:
+relevel it in the host, where the levels are.
+
+## Missing values
+
+Real data has gaps: `penguins` is missing two flipper measurements, and most
+survey data far more. A row with no value where the plot needs one cannot be
+placed, so GOG drops it and **says how many**, rather than quietly changing the
+count under you:
+
+```{r}
+#| message: true
+patchy <- data.frame(
+  weight = c(3.1, 4.2, NA, 5.8, 6.0, NA, 4.9, 5.1, 3.7, 5.5),
+  batch  = c("A", "A", "B", "B", "A", "B", "A", "B", "A", "B")
+)
+data(patchy) + bar * bin + x(weight) +
+  x_label("Weight") + title("Two rows have no weight")
+```
+
+The drop is scoped to the columns the plot **maps**. The message names `weight`
+because `weight` is bound to `x`, and a row with no `x` has nowhere to stand. A
+missing value in a column the plot never reads costs nothing: leave `batch`
+unbound and its gaps are ignored; bind it to `color` and a row missing its batch
+drops too, because now it has no color to take. This is the rule other plotting
+tools follow: only the channels actually in use decide which rows survive, so a
+stray `NA` in an unused column never silently shrinks the picture.
+
+## Labels are used verbatim
+
+Category names, titles, and axis labels are drawn exactly as they appear in your
+data. Characters with meaning in the output format (`&`, `<`, `>`) are escaped
+for you, so a department called `R&D` needs no special handling:
+
+```{r}
+special <- data.frame(
+  firm  = c("R&D", "Sales & Ops", "<10% unit"),
+  spend = c(10, 25, 15)
+)
+data(special) + bar + x(firm) + y(spend) + title("Q3 <spend> & forecast")
+```
+
+Non-Latin scripts work the same way, including as bare column names:
+
+```{r}
+지역별 <- data.frame(
+  지역 = c("서울", "부산", "대구"),
+  값   = c(10, 25, 15)
+)
+data(지역별) + bar + x(지역) + y(값) + title("한국 지역별 값")
+```
+
+Label widths are measured per character, so full-width scripts reserve the right
+amount of margin rather than three times too much.

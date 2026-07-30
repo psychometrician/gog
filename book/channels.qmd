@@ -1,0 +1,562 @@
+# Channels and legends
+
+```{r}
+#| include: false
+source("R/setup.R")
+```
+
+Which visual property should carry which column? Channels animate a mark by
+binding a data column to a visual property, and they do not all play the same
+part. `x`, `y` and `z` are the **vowels**: without one a mark is silent. The
+five below that earn a legend are the **final consonants**, the optional ㅁ
+(*m*) that turns 가 (*ga*) into 감 (*gam*): never required, and each one changes
+what the plot says. Every channel atom follows the same pattern:
+
+```
+channel(field)
+```
+
+No exceptions.  `x` and `y` are channels too: the same rule applies everywhere.
+
+The word for this is not settled outside GOG, so you may know it as something
+else. Bertin set the vocabulary down first, in *Sémiologie graphique*
+[@bertin1967], separating the plane's two dimensions from six **retinal
+variables** (size, value, texture, color, orientation, shape) on the grounds
+that the eye does not read them the same way. Wilkinson and ggplot2 both say
+**aesthetic**, which is why you write `aes()` there and nothing like it here.
+The visualization literature settled instead on **channel**, paired with the
+mark it modifies [@munzner2014], and that is the word GOG takes. A channel is
+something a signal travels down, which is what this is, and Plain Names asks
+for the everyday word that says the job. **Encoding**
+is the same idea named as an act rather than a thing, and both uses survive here:
+a channel is what you write, an encoding is what it does, and [Encoding
+scope](encoding-scope.qmd) is about the second.
+
+| Atom | Visual property | Variable type |
+|------|----------------|---------------|
+| `x(field)` | horizontal position | any |
+| `y(field)` | vertical position | any |
+| `z(field)` | depth: the third position, which makes a plot 3-D | continuous |
+| `color(field)` | fill / stroke color | categorical *or* continuous |
+| `size(field)` | point radius | continuous |
+| `shape(field)` | glyph shape | categorical |
+| `pattern(field)` | fill hatch / stroke dash | categorical |
+| `opacity(field)` | transparency | continuous |
+| `group(field)` | splits a mark into one series per category, without encoding it | categorical |
+| `label(field)` | the string a `text` mark draws | any |
+| `play(field)` | cuts the plot into frames and plays them in sequence | any |
+
+A legend is generated automatically whenever one of the five refining channels
+is bound to a column, with no configuration required. `x` and `y` earn an axis
+instead, and `group` earns neither: it splits a mark without encoding anything,
+so there is nothing for a key to decode.
+
+---
+
+## `color`
+
+`color(field)` maps a column to color, and a legend appears automatically.
+It takes *either* kind of column, and the kind decides what color means.
+
+It is spelled `color`, and only `color`. GOG writes American English throughout
+and accepts no second spelling, so there is no `colour` here as there is in
+ggplot2; writing one earns a refusal that names the fix (see
+[Law 3](design-laws.qmd)).
+
+A **text** column asks *"which one?"* Each category gets its own hue from the
+palette:
+
+```{r}
+data(gapminder_2007) + point + x(gdp) + y(life) +
+  color(continent)
+```
+
+A **numeric** column asks *"how much?"* Values run along a sequential ramp,
+light to dark, and the legend is the ramp itself, labeled at its minimum,
+midpoint, and maximum:
+
+```{r}
+data(gapminder_2007) + point + x(gdp) + y(life) +
+  color(life) + style(size = 6)
+```
+
+Notice the legend: color gets one continuous strip while `size` and `opacity`
+get three sampled examples. A legend should show the *scale*, and color is
+the only continuous channel whose whole range fits in a fixed space; there is
+no way to draw a continuum of circles. Same rule, different shapes. The
+difference matters most for a multi-hue ramp: given three swatches of
+`viridis` a reader cannot guess what lies between them, whereas three circles
+obviously interpolate.
+
+The default ramp is one hue, not a rainbow, and that too is deliberate. A
+sequential ramp encodes magnitude, and **lightness** is what a reader
+perceives as *more*: one hue running light→dark is readable at a glance,
+survives grayscale printing and color blindness, and does not compete with
+the categorical palette when both appear in one figure. A rainbow encodes
+magnitude as *hue*, which has no intrinsic order, so the reader has to consult
+the legend for every point. GOG's default is a single blue built on the same
+hue as the first categorical color, so the two scales read as one system.
+See [Ramps](#ramps) below for the multi-hue alternatives, the diverging ramps,
+and custom stops.
+
+`color` also implies grouping for line marks. Each unique value gets its own
+connected line:
+
+```{r}
+data(gapminder_asia) + x(year) + y(life) + color(country) +
+  line + point
+```
+
+Position decides which layers a channel reaches. `color(country)` is written
+*before* any mark above, so it belongs to the plot and colors both the
+lines and the points. Written *after* a mark it binds to that mark alone:
+
+```{r}
+data(gapminder_asia) + x(year) + y(life) +
+  line  + color(country) +
+  point + size(population)
+```
+
+Channels bind forward, never backward. See
+[Encoding scope](encoding-scope.qmd).
+
+---
+
+## `size`
+
+`size(field)` scales point radius linearly from 3 px (min) to 12 px (max).
+A size legend shows three representative circles.
+
+```{r}
+data(gapminder_2007) + point + x(gdp) + y(life) +
+  size(population)
+```
+
+Combine `color` and `size` for a classic bubble chart:
+
+```{r}
+data(gapminder_2007) + point + x(gdp) + y(life) +
+  color(continent) + size(population)
+```
+
+---
+
+## `shape`
+
+`shape(field)` maps a categorical column to one of five glyphs:
+circle, square, triangle, diamond, cross.
+Useful for distinguishing groups in black-and-white prints.
+
+```{r}
+data(gapminder_2007) + point + x(gdp) + y(life) +
+  shape(continent)
+```
+
+`color` and `shape` can be bound to the same field. This double-encodes
+the grouping, improving accessibility:
+
+```{r}
+data(gapminder_2007) + point + x(gdp) + y(life) +
+  color(continent) + shape(continent)
+```
+
+---
+
+## `pattern`
+
+`pattern(field)` is `shape`'s twin one geometry class over: it maps a categorical
+column to a **texture** rather than a glyph, realized by the mark's geometry — a
+**hatch** on the fills (`bar`, `box`, `area`, `ribbon`), a **dash** on the strokes
+(`line`, `step`, `interval`). Textures read without hue, so a plot mapped by
+`pattern` stays legible in grayscale or with color-blindness. The first category is
+always the plain one (solid), the rest textured:
+
+```{r}
+data(iris_flowers) + bar * mean + x(species) + y(petal_length) +
+  pattern(species) + y_label("Mean petal length (cm)")
+```
+
+The point of the channel is **redundant encoding** — the same column on `color`
+*and* `pattern`, so series are told apart by hue *and* texture at once (the
+accessibility best practice). GOG draws these as **one merged legend**, not two:
+
+```{r}
+sales <- data.frame(
+  quarter = rep(c("Q1", "Q2", "Q3"), each = 2),
+  channel = rep(c("Retail", "Online"), 3),
+  revenue = c(4, 3, 5, 6, 4, 8)
+)
+data(sales) + bar * sum * dodge + x(quarter) + y(revenue) + color(channel) +
+  pattern(channel) + title("Grouped bars, told apart by hue and hatch")
+```
+
+On a stroke the same channel dashes each series instead — the color-free line
+chart:
+
+```{r}
+trend <- data.frame(
+  month = rep(1:6, 2),
+  team  = rep(c("North", "South"), each = 6),
+  sales = c(2, 3, 4, 5, 6, 7,  5, 4, 4, 3, 2, 2)
+)
+data(trend) + line + x(month) + y(sales) + color(team) + pattern(team) +
+  title("Two series, by hue and dash")
+```
+
+The texture palette is deliberately small — five hatches on a fill, three dashes on
+a stroke — so `pattern` suits a handful of categories, not dozens; past the palette
+size the textures repeat. To fix one texture for a whole layer rather than map a
+column, that is the [`style(pattern = )`](style.qmd) setting.
+
+---
+
+## `opacity`
+
+`opacity(field)` maps a continuous column to transparency.  Useful when marks
+overlap and you want the crowded regions to read as denser.
+
+```{r}
+data(gapminder_2007) + point + x(gdp) + y(life) + opacity(population) +
+  title("Opacity — larger populations drawn more solidly")
+```
+
+Mapped values run from 0.15 to 0.95 rather than 0 to 1: a fully transparent mark
+is invisible, which is never what a reader wants.  Marks with no `opacity`
+binding are drawn at 0.82, unless [`style(opacity = )`](style.qmd) sets one.
+
+Like `size`, `opacity` produces a legend showing the minimum, midpoint, and
+maximum of the column.
+
+On `line`, `opacity` cannot be *mapped*: a stroke has *one* opacity, and one
+value cannot carry a column. This is the same rule that rules out per-row `size`
+on a line, not a special case for `opacity`:
+
+```
+gog: `opacity` cannot be bound to `line` — a line has no opacity feature.
+     Remove `opacity(dist)`, or use a mark that has one.
+```
+
+That one stroke still *has* an opacity, though, so you can *set* it for the
+whole line:
+
+```{r}
+data(gapminder_asia) + line + x(year) + y(life) + group(country) +
+  style(opacity = 0.4)
+```
+
+To distinguish lines *by data*, use `color` or `group`.
+
+`color` is the one that does not follow `size` and `opacity` here, and the
+difference is worth being exact about, because it looks like an exception and is
+not. A width, an opacity and a dash are properties of the **whole stroke**: ask
+where along the line the width is 3px and the question has no answer. A color is
+not like that. You can point at one place on a line and ask what color it is,
+so a measure can vary along it, and `color` on a stroke mark accepts either kind
+of column:
+
+```{r}
+data(gapminder_asia) + line + x(year) + y(life) + group(country) +
+  color(gdp, scale = "log") + palette("viridis") +
+  y_label("Life expectancy") + title("One line per country, colored by income")
+```
+
+A category on `color` splits the mark into one stroke per group, as it always
+has. A measure varies the color *along* each stroke and earns the gradient key
+instead of a swatch per series. Same channel, same mark, two questions, and the
+column decides which one you asked. `group` still does the splitting either way,
+which is why the sentence above draws one line per country *and* ramps each.
+See [Setting vs mapping](style.qmd).
+
+---
+
+## `group`
+
+`group(field)` connects line segments within the same group without
+adding a color distinction.  Use it when you want a single color for
+all lines but still need them separated by category.
+
+```{r}
+data(gapminder_asia) + line + x(year) + y(life) +
+  group(country)
+```
+
+When you want color *and* grouping, use `color(field)` alone:
+it implies grouping automatically.
+
+---
+
+## Multiple channels
+
+Channels compose freely.  Every combination that makes visual sense is valid:
+
+```{r}
+# Color + size + shape on the same plot
+data(gapminder_2007) + point + x(gdp) + y(life) +
+  color(continent) + size(population) + shape(continent) +
+  title("GDP vs Life Expectancy — 2007")
+```
+
+---
+
+## Palettes
+
+`palette()` chooses the colors the `color` channel hands out. There is no
+separate atom for gradients: the same word covers both, because whether a color
+vector means *one color per category* or *stops to interpolate between* follows
+from the column `color` is bound to.
+
+There are three kinds of named palette, and they say three different things: a
+**categorical** palette gives each category its own color, a **sequential** ramp
+runs from little to much, and a **diverging** ramp measures distance from a
+center in either direction. Which kinds a name may meet is decided by the
+column, so the sections below are in that order.
+
+GOG uses a 20-color default palette so you won't run out of colors for
+typical datasets. When categories exceed the palette size, additional
+colors are generated automatically via the HSL color wheel, guaranteed
+unique for any number of categories.
+
+### Categorical palettes
+
+| Name | Colors | Best for |
+|------|--------|----------|
+| `"gog"` | 20 (default) | General use |
+| `"okabe"` | 8 base + 8 light variants | Colorblind accessibility |
+| `"soft"` | 8, muted | Paint that covers ground: bars, areas, zones |
+
+`"okabe"` is Okabe and Ito's set [@okabe2008], chosen so that its eight colors
+stay distinct for readers with the common forms of color blindness:
+
+```{r}
+data(gapminder_2007) + point + x(gdp) + y(life) +
+  color(continent) + palette("okabe")
+```
+
+The default is tuned for points and lines, where a color occupies a few pixels
+and has to carry from across the page. A fill has the opposite problem. It
+already has the reader's attention by covering ground, so the saturation that
+made a 4.5px dot findable is more weight than a bar needs. A row of them
+competes with the numbers they are there to show. `soft` is the same set of
+jobs done at lower saturation. Compare these two, which differ only in the
+palette:
+
+```{r}
+data(gapminder_2007) + bar * count + x(continent) + color(continent) +
+  title("The default, over filled bars")
+```
+
+```{r}
+data(gapminder_2007) + bar * count + x(continent) + color(continent) +
+  palette("soft") + title("palette(\"soft\")")
+```
+
+Nothing is wrong with the first one, and on a scatter of the same data it is
+the better choice. The difference is what the ink is doing: a point asks to be
+found, a bar is already found and only has to be told apart from its
+neighbors.
+
+### Ramps {#ramps}
+
+For a **numeric** color column, `palette()` names a ramp instead. These run one
+way, from little to much, and lightness is what carries the ordering.
+
+| Name | What it is | Use it when |
+|------|-----------|-------------|
+| `"blue"` | the default: one hue, light→dark | almost always |
+| `"viridis"` | perceptually uniform, multi-hue | dense data where fine levels must be told apart |
+| `"magma"` | viridis's family: black through purple to cream | a dark, high-contrast field |
+| `"inferno"` | the same family, hotter | as above, warmer |
+| `"plasma"` | the same family, blue through magenta to yellow | as above, cooler at the low end |
+| `"cividis"` | the family's colorblind-optimized member | the ramp itself has to survive dichromacy |
+| `"gray"` | one hue, no hue | figures that will be printed in black and white |
+
+A table is a poor way to choose a ramp. Here are six of the seven on one field,
+the Maungawhau crater cut into cells and colored by mean height, which is the
+kind of dense continuous surface a ramp is picked for. `palette()` is a
+property of the plot, so six ramps means six plots, and `|` and `/` put them on
+one page:
+
+```{r}
+#| fig-height: 7
+((data(maunga_whau) + zone * bin(16) * mean + x(east) + y(north) +
+    color(elevation) + palette("viridis") + title("viridis")) |
+   (data(maunga_whau) + zone * bin(16) * mean + x(east) + y(north) +
+      color(elevation) + palette("magma") + title("magma"))) /
+  ((data(maunga_whau) + zone * bin(16) * mean + x(east) + y(north) +
+      color(elevation) + palette("inferno") + title("inferno")) |
+     (data(maunga_whau) + zone * bin(16) * mean + x(east) + y(north) +
+        color(elevation) + palette("plasma") + title("plasma"))) /
+  ((data(maunga_whau) + zone * bin(16) * mean + x(east) + y(north) +
+      color(elevation) + palette("cividis") + title("cividis")) |
+     (data(maunga_whau) + zone * bin(16) * mean + x(east) + y(north) +
+        color(elevation) + palette("gray") + title("gray")))
+```
+
+That is the same sentence six times with one word changed, written out rather
+than wrapped in a helper, because a helper would be an R function and this book
+draws every sentence in four languages.
+
+Three things are worth reading off that page.
+
+**`gray` runs the other way.** Its crater is dark at the summit while the other
+five are bright there. That is not a mistake in either: GOG's own ramps (`gray`
+and the default `blue`) run light to dark, because for a single hue more ink
+reads as more, which is also how the figure survives a photocopier. The
+viridis family runs dark to light, because that is what those ramps are, and
+re-pitching them would leave you with something called `magma` that is not
+magma. The legend is what settles it in any given plot, and it is the reason a
+mapped channel always gets one: read the top label and you know which end is
+which.
+
+**The four imported ramps end on a near-white.** `magma`'s last stop holds
+barely any contrast against the panel, so the very top of the scale nearly
+disappears, which you can see in the pale flat summits above. That is the price
+of perceptual uniformity rather than an oversight, and it is why `blue` is the
+default rather than one of these. `blue` and `gray` are pitched to keep their
+pale end on the page.
+
+**`cividis` is the quiet one**, and deliberately: it spends its range on the
+two hues that survive the common forms of color blindness, so it has less
+contrast to give than `inferno` does. That is the trade, and it is the right
+one whenever the ramp itself has to be readable rather than merely pretty.
+
+`gray` is for the figure that has to survive photocopying. It is a ramp only:
+there is no categorical gray palette, because grays stop being tellable apart
+after about four and the grammar already has a better answer for categories in
+a print figure. That answer is [`pattern`](style.qmd), which separates them
+without spending color at all, and asking for `palette("gray")` on a text
+column says so:
+
+```{r}
+#| error: true
+data(gapminder_2007) + point + x(gdp) + y(life) +
+  color(continent) + palette("gray")
+```
+
+### Diverging ramps
+
+A sequential ramp means *more*. A **diverging** ramp means *away from a center,
+in two directions*, which is what a change, a residual, a correlation and an
+anomaly all are. Two ship:
+
+| Name | What it is | Use it when |
+|------|-----------|-------------|
+| `"blue_red"` | blue → neutral → red | the usual choice |
+| `"brown_teal"` | brown → neutral → teal | the sign of the value is the whole point, and readers may be colorblind |
+
+The name reads low to high, so `blue_red` paints the smallest values blue and
+the largest red. Both turn through the same gray, and that gray is the color of
+"nothing here".
+
+Which value gets the neutral is not a property of the palette. It is the
+middle of the scale's domain, so **`limits` is what puts zero in the middle**,
+and without it the middle falls wherever the data's own midpoint happens to
+land. Here the cash flow runs from -32 to 120, so the midpoint is 44: that is
+what gets painted gray, and zero comes out blue.
+
+```{r}
+data(cashflow) + point + x(step) + y(delta) +
+  color(delta) + palette("blue_red") + style(size = 9) +
+  title("The neutral lands at 44, not at 0")
+```
+
+State a symmetric domain and it lands where it means something. Read the
+"Closing" point, which is exactly zero:
+
+```{r}
+data(cashflow) + point + x(step) + y(delta) +
+  color(delta, limits = c(-120, 120)) + palette("blue_red") + style(size = 9) +
+  title("limits = c(-120, 120) puts zero on the neutral")
+```
+
+Two things follow from doing it this way. The ramp stays **linear**: equal
+distance in color is equal distance in the data on both arms, which is not
+true of a scale that pins a midpoint and then stretches each side to reach the
+data's own ends. And `limits` [removes rows outside it](scales.qmd), so the
+domain has to be wide enough to hold the data: `c(-50, 50)` here would drop
+the opening balance and say so. The cost is the other side of the same coin,
+and it is worth knowing before you reach for this. A signed column that is
+lopsided, -2 to 100 say, spends almost none of its blue arm, because a
+symmetric domain is mostly empty on the short side.
+
+A vector of colors becomes the **stops**, interpolated between:
+
+```{r}
+data(gapminder_2007) + point + x(gdp) + y(life) +
+  color(life) + palette(c("white", "navy")) + style(size = 6) +
+  title("Custom stops")
+```
+
+Asking for a palette of the wrong kind is refused rather than guessed at. A
+categorical palette cannot serve a numeric column:
+
+```{r}
+#| error: true
+data(gapminder_2007) + point + x(gdp) + y(life) +
+  color(life) + palette("okabe")
+```
+
+No ramp survives a skewed column, and swapping palettes will not help. A
+linear ramp spends most of its range on the values you have most of: color
+`population` and nearly every country lands at the light end, because two
+countries are an order of magnitude larger than the rest. That is the data,
+not the palette, so the fix is a [log scale](scales.qmd) on the channel:
+
+```{r}
+data(gapminder_2007) + point + x(gdp, scale = "log") + y(life) +
+  color(population, scale = "log") +
+  x_label("GDP per capita")
+```
+
+`color`, `size` and `opacity` all take `scale =`, because all three answer "how
+far along?". `shape` and `group` do not: they answer "which one?".
+
+### Custom colors
+
+Pass a character vector (hex values, CSS color names, or a mix):
+
+```{r}
+data(gapminder_2007) + point + x(gdp) + y(life) +
+  color(continent) +
+  palette(c("#e41a1c", "#377eb8", "#4daf4a", "#984ea3", "#ff7f00"))
+```
+
+```{r}
+data(gapminder_2007) + point + x(gdp) + y(life) +
+  color(continent) +
+  palette(c("firebrick", "steelblue", "seagreen", "rebeccapurple", "darkorange"))
+```
+
+A color GOG cannot recognize is refused with the nearest match offered, rather
+than handed to the renderer to be painted black:
+
+```{r}
+#| error: true
+data(gapminder_2007) + point + x(gdp) + y(life) +
+  color(continent) + palette(c("firebrick", "stelblue"))
+```
+
+Colors are assigned in **first-appearance order** in the data (the first
+unique value gets the first palette color, the second unique value gets the
+second, and so on), so color assignment is deterministic and predictable.
+(Unless the column [declares its order](data.qmd), whose levels win.)
+
+One near-miss to know about: a single color is not a palette. `palette()`
+takes a palette *name* or a *vector* of colors, and `palette("red")` is
+neither; it is an attempt to set one constant color, which is
+[`style(color = "red")`](style.qmd):
+
+```{r}
+#| error: true
+data(gapminder_2007) + point + x(gdp) + y(life) +
+  color(continent) + palette("red")
+```
+
+---
+
+## Legend placement
+
+Legends are always placed to the right of the plot area.
+The plot area shrinks automatically to make room, no manual margin setting.
+Legend suppression (`show_legend = FALSE`) and manual legend position
+(`legend_position`) are on the roadmap.

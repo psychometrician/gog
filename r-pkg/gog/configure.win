@@ -1,0 +1,11 @@
+#!/bin/sh
+# configure.win — put the engine in the package, on Windows
+#
+# R runs this instead of `configure` on Windows, under Rtools' shell. The logic
+# is `configure`'s exactly; only the executable's name differs, so the two are
+# one file with the name passed in rather than two copies that can drift. A
+# per-platform copy of this block is the Law-1 gap the settable-rule tests exist
+# to catch, one level down from the grammar.
+
+set -e
+GOG_EXE_NAME="gog-cli.exe" . ./configure

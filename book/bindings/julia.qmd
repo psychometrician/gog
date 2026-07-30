@@ -1,0 +1,182 @@
+# Julia
+
+```{r}
+#| include: false
+source("../R/setup.R")
+source("../R/julia.R")
+```
+
+The grammar does not change when the language does. One engine reads one
+specification, so a sentence means what it means whoever wrote it, and everything
+in this book up to here is as true in Julia as it is in R.
+
+Of the four languages, Julia is the one with the least to say for itself, and
+that is the interesting fact about it. It is the only binding besides R that can
+spell all four assembly operators, and its symbols keep a column apart from a
+value the way R's bare names do. So a sentence differs from the R above it by one
+colon:
+
+```r
+data(gm) + bar * bin + x(life) | facet(era)
+```
+
+```julia
+data(gm) + bar * bin + x(:life) | facet(:era)
+```
+
+Every Julia block below was executed to draw the plot beside it, through the same
+engine every other chapter uses.
+
+## A column is a symbol
+
+```{r}
+#| echo: false
+jl_plot("data(gapminder_2007) + point + x(:gdp, scale = \"log\") + y(:life) + color(:continent)")
+```
+
+That is [A first plot](../first-plot.qmd) with a colon in front of each column.
+The colon is doing the work R's bare name does and Python's `col.` accessor has to
+be built for: in this grammar a plain string is how you spell a *value*, as in
+`style(color = "tomato")` or `palette("okabe")`, and a symbol is visibly not a
+string. The grammar's oldest rule, that a channel takes a column and never a
+value, is therefore in the syntax rather than in a check.
+
+So a string where a column belongs is refused, and told what to write:
+
+```{r}
+#| echo: false
+jl_error("data(gapminder_2007) + point + x(\"gdp\") + y(:life)")
+```
+
+The mistake in the other direction is refused the same way, and for the same
+reason ([Setting is not mapping](../style.qmd)):
+
+```{r}
+#| echo: false
+jl_error("data(gapminder_2007) + point + x(:gdp) + y(:life) + style(color = :continent)")
+```
+
+A column whose name is not a Julia identifier is written `Symbol("life exp")`.
+Names in other scripts need no such thing: `:지역` is an ordinary symbol, because
+Julia identifiers are Unicode.
+
+## The operators are R's, and the precedence was checked
+
+Julia's precedence table is not R's. R puts `|` below `+`; Julia puts it in the
+*addition* tier, alongside `+`. That could have broken every faceted sentence in
+this book, so it was measured rather than assumed:
+
+| Written | Julia builds | R builds |
+|---|---|---|
+| `a + b + c \| d` | `(a + b + c) \| d` | the same |
+| `a \| b / c` | `a \| (b / c)` | the same |
+| `a * b + c` | `(a * b) + c` | the same |
+| `a \| b + c` | `(a \| b) + c` | `a \| (b + c)` |
+
+Only the last row differs, and it is the shape where something is written *after*
+a facet. None of the 500 sentences in this book has it, and R refuses that shape
+anyway, so every sentence the manual teaches parses identically in both
+languages. Left associativity is what saves the first row: `|` sitting beside `+`
+rather than below it does not matter when everything to its left was written
+first.
+
+Faceting therefore reads exactly as it does in R:
+
+```{r}
+#| echo: false
+jl_plot("data(gapminder_2007) + point + x(:gdp, scale = \"log\") + y(:life) | facet(:continent)")
+```
+
+And so does a transform, with `*` binding tighter than `+`:
+
+```{r}
+#| echo: false
+jl_plot("data(gapminder_2007) + bar * mean + x(:continent) + y(:life)")
+```
+
+## Nine words need naming twice
+
+This is Julia's one real wrinkle, and every Julia programmer has met it before.
+Nine of the fifty-one kernel words are also names in `Base` — `bin`, `count`, `sum`,
+`min`, `max`, `range`, `size`, `step`, `stack` — and Julia will not silently pick
+a winner between two modules that export the same name. Using one bare gives an
+`UndefVarError` with a hint rather than the wrong function, which is the good
+outcome, but it does mean a second import line:
+
+```{r}
+#| echo: false
+jl_show("println(bar * bin)\nprintln(Base.sum([1, 2, 3]))")
+```
+
+The preamble that made that work is the one every snippet on this page runs, and
+it is worth seeing in full:
+
+```julia
+using GrammarOfGraphics
+using GrammarOfGraphics: bin, count, sum, min, max, range, size, step, stack
+```
+
+`Base.sum` is still there, as the second line of output shows. This is the third
+language to hit the same wall from a different side: R's `range`, `sum` and `min`
+belong to base R, Python's `bin`, `sum` and `max` are builtins, and Julia's are
+`Base`. A grammar keeps its own vocabulary; what changes is how each language
+asks you to say which one you meant.
+
+## The table
+
+A table is a named tuple of columns, so a first plot needs nothing installed:
+
+```{r}
+#| echo: false
+jl_plot(
+  "data(heights) + bar + x(:person) + y(:cm)",
+  setup = "heights = (person = [\"Ada\", \"Alan\", \"Grace\"], cm = [160.0, 172.0, 181.0])"
+)
+```
+
+A `Dict` works too, and so does anything that answers `names` and `[!, col]`,
+which is what a DataFrame does. That last one is duck-typed rather than imported,
+so the binding depends on nothing but `Dates`.
+
+Julia and R are also the only two languages here that draw a *date* apart from a
+*timestamp*, which is the distinction the engine's time axis wants: a `Date`
+column gets day ticks and a `DateTime` column keeps its clock, with no inference
+in between.
+
+R reads a table's name off the expression you wrote, and Julia cannot, so an
+unnamed table is given a unique one and `data(df, name = "notes")` is there when
+a message should say `notes` rather than `data2` ([Bind once](../data.qmd)).
+
+## Getting it
+
+The Julia package is named `GrammarOfGraphics`. Once it is in the General
+registry, installing it is one line:
+
+```julia
+using Pkg
+Pkg.add("GrammarOfGraphics")
+```
+
+That is the shape of the answer rather than a command you can run today. The
+package is not registered yet. Until it is, work from a checkout of the
+repository. Build the engine once, then add the package from the path where it
+sits:
+
+```bash
+cargo build --release -p gog-cli
+```
+
+```julia
+using Pkg
+Pkg.develop(path = "jl-pkg/GrammarOfGraphics")
+
+using GrammarOfGraphics
+```
+
+The engine is looked for in four places, in this order: the `GOG_CLI_PATH`
+environment variable, the copy inside the installed package, `gog-cli` on your
+`PATH`, and a local `target/release` build. The first three are how an installed
+copy works; the last is how this page was rendered.
+
+`render_svg(plot)` returns the SVG as a string, and a plot shown in a notebook
+draws itself, because the binding answers the `image/svg+xml` MIME type.

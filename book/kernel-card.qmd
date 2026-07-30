@@ -1,0 +1,35 @@
+# The kernel card
+
+The whole taught vocabulary, on one page. This card is extracted live from
+[The kernel](grammar.qmd) as the book builds, so it cannot drift from the
+chapter that owns it.
+
+```{r}
+#| echo: false
+#| results: asis
+# The kernel is a table as of 2026-07-28, not a monospace listing, so the rows
+# are emitted as markdown rather than wrapped in a code fence. Wrapping a table
+# in ``` would print its pipes and asterisks at the reader.
+g <- readLines("grammar.qmd")
+start <- grep("^## The kernel", g)[1]
+rest  <- g[start:length(g)]
+end   <- which(!grepl("^\\|", rest) & nzchar(trimws(rest)) & seq_along(rest) > 2)[1]
+cat(rest[seq_len(end)][grepl("^\\|", rest[seq_len(end)])], sep = "\n")
+```
+
+**The minimum sentence**, a table, a mark, and the mark's required
+positions:
+
+```r
+data(table) + mark + x(column) + y(column)
+```
+
+**Reading order**, every sentence reads left to right as
+*data, mark, positions, refinements*. A channel written before any mark
+is shared by all layers; written after a mark, it belongs to that mark
+alone. The nearest `data()` wins.
+
+**When it refuses**, the message names the rule and the fix. **Illegal**
+means the grammar forbids it: rewrite. **Unsupported** means the engine
+cannot draw it yet: another atom, or patience. A warning means a default
+was chosen: confirm it is what you meant.

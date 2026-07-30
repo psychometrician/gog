@@ -1,0 +1,609 @@
+# Scales
+
+```{r}
+#| include: false
+source("R/setup.R")
+```
+
+What do you do when most of your data is crowded into one corner? A **scale**
+decides how a number becomes a position. It is written on the binding, not as
+an atom of its own:
+
+```r
+x(gdp, scale = "log")
+```
+
+Scales are a property of the axis, so they live where the axis is bound. There
+is no `scale()` atom to write separately: that would make you name the channel
+twice, once to bind it and once to scale it, and the two could then disagree.
+
+There is a second gain, and it is about remembering rather than being correct.
+The scale sits inside the thing it measures, so there is only one place to
+look. A reader who wants to know how `gdp` is being read finds the answer in
+`x(gdp, scale = "log")` itself. Nothing else in the sentence can change it, and
+there is no second function to go and find.
+
+## A scale is not a transform
+
+`bin` and `mean` are **transforms**: they read your data and produce different
+data. A scale produces no new values at all. It changes how far along the axis a
+number lands and what the ticks say, and nothing else.
+
+The difference shows up in what the reader sees. Here is `gdp` plotted with a
+log **scale**:
+
+```{r}
+data(gapminder_2007) + point + x(gdp, scale = "log") + y(life) +
+  color(continent) +
+  x_label("GDP per capita") +
+  title("Income and life expectancy — log scale")
+```
+
+*"Given gapminder 2007: points, x is gdp on a log scale, y is life, color by continent."*
+
+The axis reads 100, 1K, 10K, 100K. Those are dollars, the units you supplied.
+
+Now the same picture drawn by logging the column yourself:
+
+```{r}
+gm_logged <- gapminder_2007
+gm_logged$log_gdp <- log10(gm_logged$gdp)
+
+data(gm_logged) + point + x(log_gdp) + y(life) +
+  color(continent) +
+  title("The same shape, in units nobody asked for")
+```
+
+Identical shape, and the axis now reads 2, 3, 4, 5. To know what a point is
+worth, the reader has to raise ten to a power in their head. That arithmetic is
+the work a scale exists to do for them.
+
+So the choice between the two is about what the quantity *is*. Log the column
+when the logarithm is itself the quantity of interest: a log-odds, a decibel,
+a pH. Use a log scale when the quantity is still dollars or people, and you
+only want to see it across orders of magnitude.
+
+## Where a scale sits in the pipeline
+
+Once a transform is in the plot, "the scale is only about display" stops being
+quite true, because a transform has to decide *which space* to work in. GOG
+follows one rule, and it has no per-transform exceptions:
+
+> A scale applies *before* the transform on the axis it groups by, and
+> *after* it on the axis the transform writes.
+
+### Grouping happens in the space you will see
+
+`bin` groups by x, so a log x is applied first and the bins are cut in log
+space. Each bin then spans one constant *ratio*, so the bars land at a constant
+spacing and cover the axis:
+
+```{r}
+data(gapminder_2007) + bar * bin + x(gdp, scale = "log") +
+  x_label("GDP per capita") +
+  title("Bins cut in log space are evenly spaced")
+```
+
+Had the bins been cut in dollars and only the *drawing* been logarithmic, they
+would have bunched into the right-hand end. On this data the gaps between bars
+run 176, 82, 54, 40, 32, 27 pixels, and the left half of the plot is empty. That
+reads as a broken picture rather than as a modeling choice, which is why the
+grouping axis is scaled first.
+
+### The measured value keeps its own units
+
+`sum` writes to y, so a log y is applied *after* the sum. The bars below total
+100 and 10:
+
+```{r}
+receipts <- data.frame(
+  store = c("North", "North", "South", "South"),
+  sales = c(10.0, 90.0, 1.0, 9.0)
+)
+
+data(receipts) + bar * sum + x(store) + y(sales, scale = "log") +
+  title("A sum is still a sum")
+```
+
+If the scale had been applied first, GOG would have added the *logarithms*,
+giving the log of a product, which is not a quantity anyone asked for. Summing
+first and displaying second keeps `sum` meaning what its name says.
+
+The order is worth knowing if you arrive from ggplot2, where it runs the other
+way: under `scale_y_log10()`, a `stat_summary(fun = mean)` averages the logged
+values and returns a geometric mean. GOG computes the summary in your data's
+units and scales the result, so the number the bar stands for is the number you
+would get from `sum()` or `mean()` yourself.
+
+### A smoother fits in the space it groups by
+
+`smooth` groups by x, so a log x means the curve is fitted against log income,
+which is what makes a straight line out of a relationship that is otherwise all
+bunched into the left margin:
+
+```{r}
+data(gapminder_2007) + point + x(gdp, scale = "log") + y(life) +
+  style(color = "lightgrey") +
+  line * smooth + x(gdp, scale = "log") + y(life) +
+  x_label("GDP per capita") +
+  title("A LOESS fitted against log income")
+```
+
+## What a log scale refuses
+
+A logarithm is undefined at zero and below, so those rows have no position on
+the axis. GOG says so rather than dropping them quietly:
+
+```{r}
+#| error: true
+readings <- data.frame(
+  depth = c(1.0, 0.0, -4.0, 100.0),
+  temp  = c(12.0, 14.0, 15.0, 9.0)
+)
+
+data(readings) + point + x(depth, scale = "log") + y(temp)
+```
+
+The message names how many rows are affected and how far down the column goes,
+because "some of your data cannot be drawn" is not enough to act on.
+
+Text has no logarithm either, and a text column already gets a categorical axis
+without being asked:
+
+```{r}
+#| error: true
+data(gapminder_2007) + point + x(continent, scale = "log") + y(life)
+```
+
+## Choosing the base
+
+`scale = "log"` means base 10 unless you say otherwise:
+
+```r
+x(freq, scale = "log", base = 2)
+```
+
+The base is a **number**, not a name. There is no `"log2"` or `"ln"` scale,
+because that would enumerate what one parameter already derives, the same
+objection that rules out ggplot2's `scale_x_log10` / `scale_x_sqrt` family.
+
+### The base is almost entirely cosmetic
+
+This is the surprising part, and it is worth knowing before you reach for it.
+log_b(x) differs from log₁₀(x) by a constant factor, and GOG normalizes every
+axis by its own range, so the factor cancels and **every base draws the same
+picture**. It even survives the transforms: bins of equal width in log₂ space
+are equal width in log₁₀ space, so `bar * bin` cuts at the same values whichever
+base you name.
+
+What the base actually chooses is **where the gridlines fall and how they read**.
+Here are the same six octaves on base 10 and base 2:
+
+```{r}
+octaves <- data.frame(
+  freq  = c(55.0, 110.0, 220.0, 440.0, 880.0, 1760.0),
+  level = c(3.0, 6.0, 9.0, 7.0, 4.0, 2.0)
+)
+
+data(octaves) + point + x(freq, scale = "log") + y(level) +
+  x_label("Frequency (Hz)") + title("Base 10 — gridlines at 100, 1K")
+```
+
+```{r}
+data(octaves) + point + x(freq, scale = "log", base = 2) + y(level) +
+  x_label("Frequency (Hz)") + title("Base 2 — gridlines on every octave")
+```
+
+The points have not moved. The second chart puts a gridline on each doubling,
+which is what "an octave" means, so for pitch, bits, or doubling times, base 2
+is the one that makes the axis say something.
+
+### Natural log
+
+R has no `e` constant, so it is `base = exp(1)`:
+
+```{r}
+decay <- data.frame(
+  hours  = 0:5 + 0.0,
+  amount = exp(-(0:5)) * 100
+)
+
+data(decay) + point + x(amount, scale = "log", base = exp(1)) + y(hours) +
+  x_label("Amount remaining") +
+  title("Gridlines at each e-folding")
+```
+
+Notice the labels: **e, e², e³**, not 2.718, 7.389, 20.09. That follows from one
+rule GOG applies to every base:
+
+> Label the quantity when it reads cleanly; otherwise label the power.
+
+Base 10 gives 1, 10, 100, 1K, always clean. Base 2 gives 1, 2, 4 … 1048576,
+clean until it grows too wide to sit under a tick, and then `2²⁴`. Base *e*
+has no clean quantities at all, so it always reads as a power, which is
+precisely what somebody counting e-foldings wanted. If instead you want the
+axis to read 0, 1, 2, 3 in ln units, you do not want a log scale at all. You
+want `log()` applied to the column, and an axis honestly labeled in log units,
+as at the top of this chapter. A scale keeps the reader's units; a logged
+column changes them.
+
+A base only means something as the base *of* a logarithm, so GOG refuses one
+that has no log scale to belong to:
+
+```{r}
+#| error: true
+data(octaves) + point + x(freq, base = 2) + y(level)
+```
+
+## Time: a date reads as a calendar
+
+The time scale is the one scale you never write. A `Date` or `POSIXct` column
+*is* temporal, the type already says so, and GOG reads the calendar from the
+type, the same way a text column already gets a categorical axis:
+
+```{r}
+revenue <- data.frame(
+  day   = as.Date(paste0(1994:2019, "-06-30")),
+  sales = c(52, 57, 55, 61, 64, 60, 68, 66, 71, 75, 74, 80, 78, 85,
+            72, 72, 79, 84, 88, 87, 93, 96, 94, 101, 105, 103)
+)
+
+data(revenue) + line + x(day) + y(sales) +
+  title("Twenty-six years, ticked in years")
+```
+
+No `scale = "time"` anywhere: writing it is allowed and means nothing extra,
+exactly like writing `scale = "linear"` on a number.
+
+The ticks land on **calendar boundaries**, because the calendar is not decimal.
+An axis of years walks 1-2-5 like any other number line, but below the year the
+`nice_number` habit has no meaning: nobody reads an axis cut in fifths of a
+year. Months step by 1, 2, 3 or 6 so that January stays a gridline and
+3-month steps read as quarters; weeks land on **Mondays**; days, hours and
+minutes take the steps a clock face suggests.
+
+```{r}
+# six_weeks is the cast's daily orders table — see the Preface
+data(six_weeks) + line + x(day) + y(orders) +
+  title("Six weeks, ticked on Mondays")
+```
+
+A tick is labeled at its own resolution: `2010` for a year step, `Jan 2024`
+for a month step, `Mar 4` for a day step. A `Date` column never grows clock
+ticks, however narrow its range; a `POSIXct` may:
+
+```{r}
+monitoring <- data.frame(
+  at   = as.POSIXct("2024-03-04 06:00", tz = "UTC") + 3600 * 0:36,
+  load = round(40 + 25 * sin(0:36 / 4) + (0:36 %% 5))
+)
+
+data(monitoring) + line + x(at) + y(load) +
+  title("A day and a half, ticked by the clock")
+```
+
+Midnight's clock face says nothing, `00:00` happens every day, so the
+midnight tick borrows the day's name instead. That is the label rule stated
+once: *a tick names the finest unit that distinguishes it from its
+neighbors.*
+
+### Bars sit on dates; they never measure one
+
+Bars positioned at dates are an ordinary time series, and the ticks still come
+from the calendar rather than one per bar. Wilkinson's stock-price example
+[@wilkinson2005] ticks Sundays, not trades:
+
+```{r}
+data(six_weeks) + bar + x(day) + y(orders) +
+  title("Daily bars, weekly ticks")
+```
+
+The other direction is refused. A bar's *length* is an amount, and a moment in
+time is not an amount. A bar "reaching" 2007 would be measured from 1970,
+an origin nobody chose:
+
+```{r}
+#| error: true
+data(revenue) + bar + x(sales) + y(day)
+```
+
+### What a time axis refuses
+
+A moment has no logarithm. The calendar's zero is an arbitrary convention,
+and a logarithm measured from an arbitrary zero measures nothing:
+
+```{r}
+#| error: true
+data(revenue) + line + x(day, scale = "log") + y(sales)
+```
+
+And the request only runs one way. A date column is temporal by type, so a
+plain number cannot be *declared* temporal at the binding. The engine cannot
+know whether `20656` means a day, a second, or a year:
+
+```{r}
+#| error: true
+data(revenue) + point + x(sales, scale = "time") + y(sales)
+```
+
+The fix belongs in the data, where the answer is known: convert the column
+with `as.Date()` or `as.POSIXct()`.
+
+A word on timezones: the engine is naive on purpose. It draws the clock time
+you see in R: a `POSIXct` is formatted in its own timezone on the way out and
+never converted again, so the axis can never disagree with what `print()`
+showed you. If two series must share an axis, put them in one timezone before
+plotting; that decision belongs to the analysis, not the renderer.
+
+### Time on the other channels
+
+A scale answers *how far along?* on every channel that measures, and a date
+column is no exception: recency as a color ramp is a perfectly good
+question. A legend row has no neighboring ticks to borrow context from, so
+it carries the full self-contained date:
+
+```{r}
+data(six_weeks) + point + x(day) + y(orders) + color(day) +
+  title("Recent days, darker")
+```
+
+## The scales, and what works today
+
+| Scale | What it does | Today |
+|---|---|---|
+| `linear` | Equal steps for equal differences | ✅ the default |
+| `log` | Equal steps for equal ratios | ✅ on `x`, `y`, `color`, `size`, `opacity`; any `base` |
+| `time` | Positions dates and times | ✅ chosen from the column type: `Date` and `POSIXct` columns, on every channel that measures |
+| `category` | One slot per distinct value | ✅ chosen from the column type: text and factor columns |
+
+## The axis fits your data
+
+An axis shows round numbers on its ticks, but the **range** follows your data,
+not the round numbers. The ticks are the nice values that fall *inside* the
+data; the axis does not stretch out to the next ten just to end on one. A span
+of 1952–2007 is drawn as 1952–2007, with ticks at 1960, 1980 and 2000, not
+padded to 1940–2020 with a third of the panel left blank:
+
+```{r}
+data(gapminder_asia) + area + x(year) + y(life) +
+  group(country) + style(opacity = 0.4) +
+  title("The year axis fits 1952–2007; the ticks fall inside it")
+```
+
+Two things are calibrated on top of that fit, each for a reason you can see in
+the plot. A **free end breathes** a little, so a mark is not welded to the
+frame. A point at the exact maximum would otherwise be sliced in half by the
+panel edge:
+
+```{r}
+data(gapminder_2007) + point + x(gdp) + y(life) + color(continent) +
+  x_label("GDP per capita") + title("Points breathe off every edge")
+```
+
+A **baseline does not breathe.** When a bar or an area measures from zero, that
+zero is a real coordinate, and a gap beneath it would draw the baseline where
+the baseline is not, so it sits flush. An `area` also has no glyph to clip, so
+on the axis it fills along it reaches the panel edges instead of leaving an
+empty strip each side. That is why the area above spans the full width while the
+scatter here keeps its margins: a fill's edges *are* the shape, a point's are
+not.
+
+## A scale is not only for axes
+
+`x` and `y` turn a number into a position, but so do `color`, `size` and
+`opacity`: a ramp position, a radius, a transparency. All four answer *how far
+along?*, so all four take a scale.
+
+This matters most for a column spread across orders of magnitude. `population`
+runs from about 200 thousand to 1.3 billion, and on a linear ramp the median
+country sits in the bottom 2% of the range, so nearly every point comes out
+the same color:
+
+```{r}
+data(gapminder_2007) + point + x(gdp, scale = "log") + y(life) +
+  color(population) +
+  x_label("GDP per capita") + title("Linear color — nearly one flat color")
+```
+
+```{r}
+data(gapminder_2007) + point + x(gdp, scale = "log") + y(life) +
+  color(population, scale = "log") +
+  x_label("GDP per capita") + title("Log color — the ramp is actually used")
+```
+
+The same is true of `size`, where a linear scale leaves almost every point at
+the minimum radius:
+
+```{r}
+data(gapminder_2007) + point + x(gdp, scale = "log") + y(life) +
+  size(population, scale = "log") + style(color = "steelblue") +
+  x_label("GDP per capita") + title("Log size")
+```
+
+Look at the middle of the color legend above. On a linear ramp it is the
+arithmetic midpoint; on a log ramp it is the **geometric** one: √(min · max),
+about 16M rather than 660M. It has to be, because that label names the color
+painted at the middle of the strip.
+
+`shape` and `group` take no `scale` argument. They answer *which one?*, and
+there is no distance between circle and square for a scale to run along.
+
+## `limits`: when your data is not the authority
+
+Everything above derives the range from the data, which is right by default and
+wrong whenever the data is not the whole story. A tide gauge reading every three
+hours never reaches midnight, and a periodic axis has no way to know the missing
+hours are still part of the day — nothing in a column of hours says the day
+wraps. `limits` says the domain out loud:
+
+```{r}
+data(tide) + line + x(hour, limits = c(0, 24)) + y(height) + polar() +
+  title("The whole day, whatever the gauge happened to catch")
+```
+
+Without that, one turn would cover 1 to 22 and the first and last readings would
+be drawn on the same spoke. With it, each sits where a clock would put it. The
+curve still does not close, and should not: the gauge took no reading at
+midnight, and a domain says what range the axis covers rather than inventing an
+observation to fill it. That gap is the data's, drawn at its true width —
+[Polar](polar.qmd) sets out the three ways a circle does and does not close.
+
+`limits` is written on the binding, beside `scale` and `base`, for the same
+reason they are: a domain belongs to one channel, and an atom of its own would
+name that channel twice. A stated end is drawn exactly where you state it — the
+breathing margin exists to keep a glyph off the frame, and an end you chose is
+not a data extreme that needs the room.
+
+**Stating a domain widens as readily as it narrows.** Nothing was dropped above:
+the readings run 1 through 22 and all of them lie inside 0 through 24. Narrowing
+is the direction that removes rows, and it says so:
+
+```{r}
+data(gapminder_2007) + point + x(gdp, limits = c(0, 30000)) + y(life) +
+  color(continent) + x_label("GDP per capita") +
+  title("Under $30,000 — and the countries above it are counted aloud")
+```
+
+Rendering that prints a line to the console naming how many rows fell outside
+and what the domain was. That is deliberate: removing them is what you asked
+for, so the plot draws, but GOG will not remove data without saying so. Ask for
+a domain no row can satisfy and it refuses instead, because the alternative is
+an empty panel with axes drawn over nothing.
+
+**Either end alone.** `NA` leaves that end to the data, which is how you pin a
+baseline without capping the top:
+
+```{r}
+data(gapminder_2007) + point * mean + x(continent) + y(life, limits = c(0, NA)) +
+  title("y from zero, top still fitted to the data")
+```
+
+**It is not only for axes.** A domain is a property of the scale, so it reaches
+every channel that measures — which is how you hold one color ramp still across
+plots that have different data in them:
+
+```{r}
+data(gapminder_2007) + point + x(gdp, scale = "log") + y(life) +
+  color(population, scale = "log", limits = c(1e5, 2e9)) +
+  x_label("GDP per capita") + title("A ramp fixed from 100K to 2B")
+```
+
+On a categorical axis `limits` is refused, and the refusal points you at the
+atom that does the job you probably meant. A category has no range to lie
+inside. Choosing *which* categories appear is filtering your table, and
+choosing what order they appear in is `order()`.
+
+```{r}
+#| error: true
+data(gapminder_2007) + bar * mean + x(continent, limits = c(0, 3)) + y(life)
+```
+
+## Which kind of axis you get is the column's type
+
+The scales in the table above are not all chosen the same way. You ask for
+`log`. You do not ask for `time` or `category`, because GOG reads those off the
+column: a `Date` column gets a calendar axis, and a text column gets one slot
+per distinct value.
+
+You may still say them out loud. Writing `scale = "category"` on a text column
+is allowed and changes nothing, in the same way `scale = "linear"` on a number
+changes nothing. The plot below is identical to the one without it:
+
+```{r}
+data(gapminder_2007) + bar * mean + x(continent, scale = "category") + y(life) +
+  title("Saying it out loud draws the same plot")
+```
+
+What you cannot do is use a scale to contradict the column. Ask for a
+categorical axis on a number and GOG refuses:
+
+```{r}
+#| error: true
+data(gapminder_2007) + point + x(gdp, scale = "category") + y(life)
+```
+
+The reason behind that refusal also explains three others in this chapter. A
+scale says **how** a measured column is placed. Whether the axis measures at
+all is the column's type. So `log` on a text column is refused, `time` on a
+plain number is refused, and a date column cannot be turned back into raw
+numbers by asking for `linear`. Every one of those refusals tells you to change
+the column, because the column is where the answer lives.
+
+There are two things you might mean by "draw this number as categories", and
+GOG has a word for each. For one slot per distinct value, make the column text:
+a factor in R, `ordered()` in the other three bindings, both shown in
+[Data](data.qmd). For ranges, use `bin`, which cuts the numbers into intervals
+and is covered in [Transforms](transforms.qmd).
+
+## `tick_count`: how many ticks the axis aims for
+
+An axis picks five ticks or so by default, and the count is the one thing
+about the fit you may want a say in. A crowded axis reads better with fewer;
+an axis someone will read values off reads better with more. `tick_count` is
+written on the binding, beside `scale`, `base` and `limits`, and for the same
+reason. How many ticks an axis gets is a property of the **scale**, so it
+belongs to the sentence that describes the scale rather than to `theme()`,
+which is the page.
+
+```{r}
+#| layout-ncol: 2
+data(gapminder_2007) + point + x(gdp, tick_count = 3) + y(life) +
+  x_label("GDP per capita") + title("Three ticks: the shape, not the numbers")
+
+data(gapminder_2007) + point + x(gdp, tick_count = 12) + y(life) +
+  x_label("GDP per capita") + title("Twelve: for reading values off")
+```
+
+It is a **target rather than a promise**, and the difference is worth
+understanding because it is not a defect. The count chooses a *step*, and the
+step is then rounded to a number a person would pick, so asking for eight on an
+axis running 0 to 100 gets a step of 10 and eleven ticks. What you can rely on is
+the direction: ask for more and you get more, and every tick still falls on a
+round number.
+
+The two ends of the range are the same range in both panels above. That is the
+rule the parameter is careful about: it changes how densely an axis is
+*labeled*, never where the axis stops. Ask for two ticks and the axis does not
+shrink to the two values it draws.
+
+```{r}
+data(gapminder_asia) + line + x(year, tick_count = 2) + y(life) +
+  group(country) + style(opacity = 0.4) +
+  title("Two ticks, and still 1952 to 2007")
+```
+
+A **categorical axis has one tick per category**, so the count there is the
+data's rather than yours, and the refusal points at the two atoms that do the
+jobs you might have meant:
+
+```{r}
+#| error: true
+data(gapminder_2007) + bar * mean + x(continent, tick_count = 3) + y(life)
+```
+
+And a **legend is not a short axis.** `limits` reaches every channel that
+measures, because every one of them has a domain; `tick_count` reaches only
+the three that draw an axis. A color bar names three rows, both ends and the
+middle, and those come from the scale's own shape rather than from a count you
+could choose. On a log ramp the middle row is the geometric mean, the label
+for the color actually painted halfway along the strip. So `color()`, `size()`
+and `opacity()` take no `tick_count` at all, the same way `shape()` takes no
+`scale` and no `limits` — the parameter is absent rather than refused, which
+is the strongest form the refusal can take.
+
+### Crowding is answered differently in the plane and in the cube
+
+Worth knowing if you read the same plot both ways, because the two answers
+look inconsistent and are not. A flat axis draws *every* tick it chose,
+however tight they get. The panel is as wide as it is going to be, and the
+labels sit in a margin reserved for them. An edge label that would overhang
+its panel is anchored inward instead. Nothing is dropped, so what you asked
+for is what you count.
+
+A cube cannot make that promise. An axis in [space](space.qmd) is drawn at
+whatever length the viewing angle leaves it, and tilted far enough it has no room
+for its numbers at all, so the frame draws as many as fit and leaves the rest
+out. Both are the same rule underneath, *do not print one number through
+another*, and they differ only in what is available to spend: the plane can
+reserve room in advance, and the cube cannot. When a count you stated has to be
+thinned that way, the engine says so rather than quietly drawing fewer.

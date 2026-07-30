@@ -1,0 +1,212 @@
+# Build one npm package per platform, each carrying the engine it needs.
+#
+# The JavaScript package is a bridge to `gog-cli`, so a package without that
+# binary installs and then cannot draw. The engine therefore ships beside it as
+# five small packages named `grammar-of-graphics-<platform>-<arch>`, listed under
+# the main package's `optionalDependencies` and filtered by npm's `os`/`cpu`
+# fields, so an install downloads exactly one 2 MB engine. It is the same
+# decision the Python wheels make, written the way npm already understands.
+#
+# `js-pkg/gog/tools/platform-package.mjs` does the packing. This builds the
+# binary for each target, hands it to that script, and then asks the result the
+# only question that settles it: installed somewhere with no checkout in sight,
+# does it draw?
+#
+# **The Linux builds target musl, and that is deliberate rather than incidental.**
+# Half of Node's Linux audience runs in Alpine containers, where a glibc-linked
+# binary dies with a message about a missing loader that names nothing the user
+# can act on. `gog-cli` depends on nothing but serde, so a statically linked musl
+# build costs nothing and covers glibc and musl with one artifact. The Python
+# wheels cannot do this — manylinux is what PyPI understands — so this is one
+# place the two release paths correctly differ.
+#
+# This uploads artifacts and stops. `js-release.yml` calls it and publishes what
+# comes out, so the two triggers stay separate: every pull request proves the
+# packages still build, and only a tag sends them anywhere.
+
+name: js packages
+
+on:
+  workflow_call:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - "js-pkg/**"
+      - "gog-core/**"
+      - "gog-cli/**"
+      - ".github/workflows/js-packages.yml"
+
+jobs:
+  engines:
+    name: ${{ matrix.target }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: macos-14
+            target: darwin-arm64
+          # Cross-compiled from the Apple Silicon runner rather than built on
+          # `macos-13`. That image is the last Intel one and GitHub is retiring
+          # it; the Python matrix had a job sit queued 55 minutes on it and never
+          # start. A release that waits on a scarce runner is a release that does
+          # not ship.
+          - os: macos-14
+            target: darwin-x64
+            rust_target: x86_64-apple-darwin
+            macos_target: "10.12"
+          - os: ubuntu-latest
+            target: linux-x64
+            rust_target: x86_64-unknown-linux-musl
+          - os: ubuntu-24.04-arm
+            target: linux-arm64
+            rust_target: aarch64-unknown-linux-musl
+          - os: windows-latest
+            target: win32-x64
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      # Pure Rust needs no C toolchain, but the musl targets still link through a
+      # `musl-gcc` that the runner images do not carry.
+      - name: Install the musl toolchain
+        if: ${{ contains(matrix.rust_target, 'musl') }}
+        run: sudo apt-get update && sudo apt-get install -y musl-tools
+
+      - name: Add the target
+        if: ${{ matrix.rust_target }}
+        run: rustup target add ${{ matrix.rust_target }}
+
+      - name: Build the engine
+        shell: bash
+        env:
+          MACOSX_DEPLOYMENT_TARGET: ${{ matrix.macos_target }}
+        run: |
+          if [ -n "${{ matrix.rust_target }}" ]; then
+            cargo build --release -p gog-cli --target "${{ matrix.rust_target }}"
+            echo "ENGINE=$PWD/target/${{ matrix.rust_target }}/release/gog-cli" >> "$GITHUB_ENV"
+          else
+            cargo build --release -p gog-cli
+            echo "ENGINE=$PWD/target/release/gog-cli" >> "$GITHUB_ENV"
+          fi
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      # The Windows engine is `gog-cli.exe`, and the build wrote it under that
+      # name; every other target has no suffix. The generator reads the platform
+      # out of its first argument and expects the path it is given to exist.
+      - name: Build the platform package
+        shell: bash
+        working-directory: js-pkg/gog
+        run: |
+          ENGINE_PATH="$ENGINE"
+          [ "${{ matrix.target }}" = "win32-x64" ] && ENGINE_PATH="$ENGINE.exe"
+          node tools/platform-package.mjs "${{ matrix.target }}" "$ENGINE_PATH"
+          cd "dist/grammar-of-graphics-${{ matrix.target }}"
+          npm pack --pack-destination "$GITHUB_WORKSPACE/dist"
+          ls -l "$GITHUB_WORKSPACE/dist"
+
+      # The check that matters: install what was just built somewhere with no
+      # checkout above it, unset every hint, and draw.
+      #
+      # Both tarballs are installed explicitly rather than letting npm resolve
+      # the optional dependency, because at release time the platform package is
+      # not on the registry yet — this job is what decides whether it goes there.
+      # Resolution is still what is under test: the assertion is that the engine
+      # the binding found is *inside the platform package*, so a stray `gog-cli`
+      # on PATH cannot pass this for it.
+      #
+      # The cross-compiled Intel package is the one entry that cannot always run
+      # its own engine, since the runner is Apple Silicon. So the architecture is
+      # asserted from the packed file either way, and the draw is attempted only
+      # when Rosetta answers — never skipped silently, and never softened into a
+      # check that would pass on a broken engine.
+      - name: Prove it draws with no toolchain and no checkout
+        shell: bash
+        env:
+          PLATFORM_PACKAGE: grammar-of-graphics-${{ matrix.target }}
+        run: |
+          set -euo pipefail
+          PACKED="$(ls "$GITHUB_WORKSPACE"/dist/grammar-of-graphics-${{ matrix.target }}-*.tgz)"
+
+          if [ -n "${{ matrix.rust_target }}" ] && [ "${{ matrix.target }}" = "darwin-x64" ]; then
+            file "$ENGINE"
+            file "$ENGINE" | grep -q "executable x86_64" \
+              || { echo "::error::the darwin-x64 package does not carry an x86_64 engine"; exit 1; }
+            if ! arch -x86_64 /usr/bin/true 2>/dev/null; then
+              echo "::warning::Rosetta is absent, so this runner cannot execute the Intel engine — architecture verified, drawing not attempted"
+              exit 0
+            fi
+            echo "Rosetta answers; running the Intel engine under it"
+          fi
+
+          MAIN="$(cd js-pkg/gog && npm pack --pack-destination "$RUNNER_TEMP" | tail -1)"
+
+          WORK="$RUNNER_TEMP/check"
+          rm -rf "$WORK"; mkdir -p "$WORK"
+          cd "$WORK"
+          npm init -y > /dev/null
+          npm install --no-audit --no-fund "$RUNNER_TEMP/$MAIN" "$PACKED"
+
+          cat > draw.mjs <<'EOF'
+          import process from "node:process";
+          import { plot, data, line, x, y, col, render_svg, find_gog_cli }
+            from "grammar-of-graphics";
+
+          const engine = find_gog_cli();
+          console.log("engine:", engine);
+          if (!engine.includes(process.env.PLATFORM_PACKAGE)) {
+            console.error(`the engine did not come from ${process.env.PLATFORM_PACKAGE}`);
+            process.exit(1);
+          }
+
+          const svg = render_svg(plot(
+            data({ a: [1, 2], b: [3, 4] }, { name: "t" }), line, x(col.a), y(col.b)));
+          if (!svg.startsWith("<svg")) {
+            console.error(svg.slice(0, 200));
+            process.exit(1);
+          }
+          console.log("drew", svg.length, "bytes with the shipped engine");
+          EOF
+
+          unset GOG_CLI_PATH
+          node draw.mjs
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: npm-${{ matrix.target }}
+          path: dist/*.tgz
+
+  # The main package is pure JavaScript and platform-independent, so it is packed
+  # once rather than five times. The platform jobs each pack their own copy for
+  # the draw test above; only this one is published.
+  main:
+    name: the binding itself
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      # The glob, not `node --test test/`. Handed a directory this runner tries to
+      # import the path as a module and dies on `Cannot find module …/test`, which
+      # is how `npm test` here was broken without anyone noticing: the documented
+      # command has always been the glob, so nothing ran the other form.
+      - name: Test and pack
+        working-directory: js-pkg/gog
+        shell: bash
+        run: |
+          node --test test/*.mjs
+          npm pack --pack-destination "$GITHUB_WORKSPACE/dist"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: npm-main
+          path: dist/*.tgz

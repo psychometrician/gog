@@ -1,0 +1,7 @@
+"step","delta","total"
+"Opening","120.0","TRUE"
+"Sales","45.0","FALSE"
+"Refunds","-18.0","FALSE"
+"Costs","-32.0","FALSE"
+"Tax","-14.0","FALSE"
+"Closing","0.0","TRUE"

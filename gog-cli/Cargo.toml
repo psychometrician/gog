@@ -1,0 +1,11 @@
+[package]
+name = "gog-cli"
+version = "0.0.1"
+edition = "2021"
+license = "Apache-2.0"
+description = "Command-line renderer: reads a JSON render-request from stdin, writes SVG to stdout."
+
+[dependencies]
+gog-core = { path = "../gog-core" }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"

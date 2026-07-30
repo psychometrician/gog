@@ -1,0 +1,18 @@
+[package]
+name    = "gog-core"
+version = "0.0.1"
+edition = "2021"
+license = "Apache-2.0"
+
+[dependencies]
+serde      = { version = "1", features = ["derive"] }
+serde_json = "1"
+
+[[example]]
+name = "scatter"
+
+[[example]]
+name = "bar"
+
+[[example]]
+name = "transforms"

@@ -1,0 +1,246 @@
+# R
+
+```{r}
+#| include: false
+source("../R/setup.R")
+```
+
+## Pipes
+
+R has two pipes in common use, and R users reasonably want to start a plot
+with the table they already have in hand. The short answer: the native pipe
+works, and gives you exactly the plot you would have written by hand.
+
+```{r}
+gapminder_2007 |> data() + point + x(gdp) + y(life)
+```
+
+That is not a second way of saying it, and GOG does not implement it. By the
+time the engine sees anything, the two forms are the *same expression*. You can
+watch R rewrite one into the other, because `quote()` shows what the parser
+built rather than what you typed:
+
+```{r}
+quote(gapminder_2007 |> data() + point + x(gdp) + y(life))
+```
+
+Two facts about R combine to make that work, and both have to hold.
+
+The first is precedence. `|>` binds more tightly than `+`, so the pipe closes
+before the chain begins: it takes the table into `data()` and hands the
+finished result to `+`. Derivation with `*` sits between the two, which is
+where it needs to be, so a transform still binds to its mark first:
+
+```{r}
+gm_all |> data() + bar * count + x(continent)
+```
+
+The second is *when* it happens. The native pipe is a parser transformation:
+writing `df |> data()` produces the code `data(df)` before any of it runs.
+That matters more than it sounds, because `data()` reads the table's name off
+the expression you wrote. The pipe leaves it a plain name, so nothing is lost.
+Naming the table is the whole job of `data()` (see [Data](../data.qmd)), and it
+is what a later layer resolves its bare columns against.
+
+Arguments still land where you would expect, since the piped value fills the
+first one:
+
+```{r}
+gapminder_2007 |> data(name = "gapminder") + point + x(gdp) + y(life)
+```
+
+## What `%>%` does to the table's name
+
+The magrittr pipe, `%>%`, is the one most R code still uses, and here it
+behaves differently. It is an ordinary function rather than a parser rule, so
+it *evaluates* the left side and passes the value along under its own
+placeholder, `.`. The name never reaches `data()`:
+
+```{r}
+#| warning: true
+library(magrittr)
+gapminder_2007 %>% data() + point + x(gdp) + y(life)
+```
+
+The plot is right, and for a single table it stays right. What is gone is the
+name, so GOG says so and tells you how to put it back. Either use the native
+pipe, or name the table yourself:
+
+```{r}
+gapminder_2007 %>% data(name = "gapminder_2007") + point + x(gdp) + y(life)
+```
+
+Only the placeholder draws that warning, and it is worth being clear about what
+does *not*. Filtering on the way in is the pipe's most useful shape, and it stays
+silent: the expression you piped is not a plain name, but it is still yours and
+still distinct, so GOG keeps it as the table's name rather than lecturing you
+about it.
+
+```{r}
+gm_all |> subset(year == 2007 & continent == "Europe") |> data() +
+  point + x(gdp) + y(life)
+```
+
+The table there is called `subset(gm_all, year == 2007 & continent == "Europe")`,
+which is ugly and works. `name =` is available when you would rather read
+something else, and becomes worth using once a second table is involved:
+
+```{r}
+gm_all |> subset(year == 2007 & continent == "Europe") |> data(name = "europe") +
+  point + x(gdp) + y(life)
+```
+
+## Why the name is worth a warning
+
+An unnamed table is fine until there are two of them. A second `data()` gives
+a layer its own table, and "nearest table wins" is decided *by name*, so two
+tables that both lost theirs leave the rule nothing to choose between:
+
+```{r}
+#| error: true
+data(actuals, name = "series") + x(year) + y(sales) + line +
+  data(forecast, name = "series") + point
+```
+
+Before the warning existed, that plot did not refuse. It drew the first table
+twice and reported the second table's columns as misspellings, which blames
+the reader for something the binding lost. Two `%>%` pipes in one expression
+reached exactly that state, both tables having arrived as `.`.
+
+## What the pipe does not change
+
+The pipe feeds `data()`. It does not replace `+`, and there is no piped form
+of the rest of the sentence: marks, channels, and transforms compose with `+`
+and `*` as they do everywhere else in this book. GOG has no pipe of its own
+and will not grow one, because that would be a second spelling for something
+the language already spells.
+
+This section is about R specifically. Julia's `|>` is a function-application
+operator with different behavior, and Python has no pipe at all, so their
+chapters will answer the same question their own way.
+
+## Eighteen names base R already uses
+
+`library(gog)` prints a long list of masked names, and the list is alarming out
+of proportion to the problem. Eighteen of the package's exports are also names in
+the packages R attaches for you:
+
+| from | names |
+|---|---|
+| `stats` | `density` `line` `median` `smooth` `step` |
+| `graphics` | `box` `text` `title` |
+| `grDevices` | `palette` |
+| `utils` | `data` `stack` |
+| `base` | `jitter` `max` `mean` `min` `order` `range` `sum` |
+
+**Ten of the eighteen cannot hurt you, and the reason is a rule in R itself.**
+Every mark and every value transform is an *object*, not a function. When R
+evaluates a call, it looks for a function of that name and skips any binding that
+is not one. So base R still answers, even with GOG's `mean` sitting closer:
+
+```{r}
+is.function(mean)   # GOG's `mean` is an object, so a call cannot reach it
+mean(1:10)          # and base R's function answers anyway
+```
+
+That holds for the functions that take another function as an argument, because
+they resolve the name the same way:
+
+```{r}
+sapply(gapminder_2007["life"], mean)
+```
+
+**The other eight are functions, and those do take over**: `box`, `data`,
+`density`, `jitter`, `order`, `palette`, `stack` and `title`. Qualify the one you
+want, and both remain available:
+
+| you write | you get | for base R's, write |
+|---|---|---|
+| `order(population)` | the plot's sort order | `base::order(df$population)` |
+| `data(gapminder_2007)` | the plot's table | `utils::data(diamonds)` |
+| `density(2)` | the smoothing transform | `stats::density(x)` |
+| `jitter(0.5)` | the offset transform | `base::jitter(x)` |
+| `stack(share = TRUE)` | the piling transform | `utils::stack(df)` |
+| `palette("soft")` | the plot's colors | `grDevices::palette()` |
+| `title("Life expectancy")` | the plot's title | `graphics::title(main = "…")` |
+| `box()` | the box-and-whisker mark | `graphics::box()` |
+
+`order` is the one that used to hurt. Sorting a data frame beside a plot is
+ordinary work. GOG's `order` returns an atom, not the row positions that `[`
+expects. So the failure used to arrive far from the line that caused it, and it
+named neither `order` nor GOG. It now says which function you reached, and how to
+reach the other one:
+
+```{r}
+#| error: true
+gapminder_2007[order(gapminder_2007$population), ]
+```
+
+Qualified, it sorts:
+
+```{r}
+ranked <- gapminder_2007[base::order(-gapminder_2007$population), ]
+head(ranked[c("country", "population")], 3)
+```
+
+This book does that in three chapters, for exactly this reason.
+
+Two of the eight refuse nothing, because nothing tells the two intentions apart.
+`data(mtcars)` is well formed in both readings. It returns a plot's table and no
+complaint, so write `utils::data()` when you mean to load a dataset.
+`title("...")` is the same case: a string is what both want.
+
+The names stay as they are. A grammar keeps its own vocabulary, which is Law 3 and
+a decided question (spec §18). Renaming `order` to `sort_by` would trade a word
+every reader knows for one only this package uses. Where another *package* owns a
+name you want, attach `gog` after it so its names win, or qualify it as
+`gog::interval`.
+
+All four languages meet this wall, and each one hits it differently. Julia will
+not choose between two modules that export one name. It raises, and you import
+the one you meant. Python has no rule about skipping non-functions, so
+`from gog import *` really does replace five builtins. Calling one of them raises
+rather than misbehaving. R is the quiet one of the four, which is why the eight
+names above refuse out loud. JavaScript has no collision at all, because nothing
+reaches your scope unless you import it by name.
+
+## Getting it
+
+A plot is drawn by the engine, which is a compiled Rust binary, so the R package
+has to be able to find one. An installed copy **carries its own**. The package's
+`configure` script bundles the engine at install time, and refuses to install at
+all rather than leave you a package that cannot draw.
+
+```r
+install.packages("gog")
+```
+
+That is the shape of the answer rather than a command you can run today. The
+package is not on CRAN yet. `remotes::install_github()` will work before CRAN
+does, because a source tarball carries the engine's crates and `configure` builds
+them, but that route needs a public repository and there is not one yet.
+
+Until then, work from a checkout. Build the engine once, then load the package
+from where it sits:
+
+```bash
+cargo build --release -p gog-cli
+```
+
+```r
+pkgload::load_all("r-pkg/gog")
+```
+
+Installing from that same checkout is the better test, because it runs
+`configure` and proves the bundling works:
+
+```bash
+R CMD INSTALL r-pkg/gog
+```
+
+The engine is looked for in five places, in this order: the `GOG_CLI_PATH`
+environment variable, a `target/` build in a surrounding checkout, the copy
+inside the installed package, `gog-cli` on your `PATH`, and one last search
+upward from the working directory. A checkout outranks the bundled copy on
+purpose. Inside a checkout the bundled engine is a leftover build artifact, and
+preferring it is how a stale engine gets served to the person editing the engine.

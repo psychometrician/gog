@@ -1,0 +1,89 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "gog"
+# `0.0.1`, not `0.1.0`, and not the `0.0.0.dev0` this held until the PyPI claim
+# was scheduled. Two reasons, both about what a first upload commits you to.
+# PEP 541 protects a name for a *reachable, active owner with a real release*,
+# and a `.devN` is a pre-release `pip install gog` skips unless the user passes
+# `--pre` — so it holds the name weakly. And a released version can never be
+# reused on PyPI even after deletion, so the first
+# number spent should be the cheapest one that counts. The binding is at full
+# parity with R and could justify `0.1.0`; that is exactly why it is worth
+# keeping in reserve while the engine is pre-1.0 and the API can still move.
+version = "0.0.1"
+description = "A Grammar of Graphics — one engine, spoken from Python"
+readme = "README.md"
+requires-python = ">=3.9"
+# An SPDX expression says *which* license this is; the files beside it say what
+# it means. Apache 2.0 §4(a) makes whoever hands out a copy hand out the License
+# with it, and the repository's one `LICENSE` sits above every package
+# directory, where a wheel built from this one cannot reach it. So this
+# directory keeps its own copy, checked in rather than written by a build step:
+# Julia's registry reads the *repository*, so a step it never runs would leave
+# that binding uncovered, and one rule for all four is worth more than a
+# duplicate saved. `test_basic.R` fails if any copy drifts from the root.
+license = "Apache-2.0"
+license-files = ["LICENSE", "NOTICE"]
+# The same identity the R package's `Authors@R` carries and the book publishes
+# under. The GitHub handle stays a handle: it names an account and a URL, not a
+# person, and the two do not have to agree.
+authors = [{ name = "psychometrician", email = "psychometrician@gmail.com" }]
+# Deliberately empty. The binding is a bridge: it builds a JSON specification
+# and shells out to `gog-cli`. A table is read by duck-typing (a dict of lists,
+# or anything with `.columns`), so pandas is supported without being required —
+# the same promise the Rust workspace keeps by depending on nothing but serde.
+dependencies = []
+
+# The links on the PyPI project page.
+#
+# `Source` was held back while `github.com/psychometrician/gog` was an empty
+# repository. Linking one advertises it, and PEP 541 protects a name on evidence
+# of a reachable, active owner — an empty repository is evidence the other way.
+# It is here now because the seeded repository is what the next wheel will point
+# at, and because nothing in this file reaches an index until a wheel is built:
+# `0.0.1` is already published and its metadata is frozen, so this lands for a
+# user at `0.0.2`.
+[project.urls]
+Homepage = "https://psychometrician.github.io/gog-book/"
+Documentation = "https://psychometrician.github.io/gog-book/"
+Source = "https://github.com/psychometrician/gog"
+Issues = "https://github.com/psychometrician/gog/issues"
+
+[project.optional-dependencies]
+test = ["pytest"]
+
+[tool.hatch.build.targets.wheel]
+packages = ["gog"]
+
+# The engine rides in the wheel, one per platform. `hatch_build.py` force-
+# includes the compiled `gog-cli` at `gog/_bin/` and tags the wheel for the
+# platform it was built on; `render.py` looks there first. This is what makes
+# `pip install gog` enough — the alternative, compiling Rust during the install,
+# would put a toolchain requirement on every user.
+[tool.hatch.build.targets.wheel.hooks.custom]
+path = "hatch_build.py"
+
+[tool.hatch.build.targets.sdist]
+# Source, not binaries: an sdist that carried one platform's executable would be
+# lying about what it is.
+#
+# **This sdist cannot currently be installed by anyone, and must not be
+# uploaded.** The sentence that used to sit here — "building a wheel from an
+# sdist needs a `cargo build`, which is the documented path for a platform CI
+# does not cover" — described a path that does not exist. `R CMD build` packages
+# only `r-pkg/gog/`, and this packages only `py-pkg/gog/`, so `gog-core/` and
+# `gog-cli/` live *above* the sdist root and never enter it. `hatch_build.py`
+# ships, finds no engine and no crates to build one from, and raises: the
+# install dies telling the user to run `cargo build -p gog-cli`, which is
+# impossible from inside a tarball that contains no crates. Measured 2026-07-28
+# in a clean venv, not inferred.
+#
+# So the release is **wheels only** until the sdist vendors the crate sources.
+# A user on an uncovered platform then gets pip's honest "no matching
+# distribution" instead of a download that builds and fails on advice it cannot
+# follow. Vendoring is most of the CRAN-route machinery and is a project of its
+# own, not a prerequisite for claiming the name.
+exclude = ["gog/_bin"]

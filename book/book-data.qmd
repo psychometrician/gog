@@ -1,0 +1,166 @@
+# The book's data
+
+```{r}
+#| include: false
+source("R/setup.R")
+```
+
+Where do `gapminder_2007`, `medals` and `winds` come from, and how do you get
+them?
+
+Every chapter of this book draws from a small set of shared tables. They are
+published beside the book as CSV files, one per table, so you can run any
+example in this book yourself. Each file sits at a fixed address:
+
+```
+https://psychometrician.github.io/gog-book/data/<name>.csv
+```
+
+`gapminder_2007.csv` holds the 142 countries the first chapter plots.
+`winds.csv` holds the wind observations behind the polar chapter. The full list
+is at the end of this page.
+
+Nothing needs installing to read them. R, Python, Julia and JavaScript each
+read a CSV with their own standard library, so fetching a table adds no
+dependency to your project.
+
+## Reading a table
+
+Here is the first sentence of the book, run from the published file, in each of
+the four languages.
+
+::: {.panel-tabset}
+
+## R
+
+```r
+gapminder_2007 <- read.csv(
+  "https://psychometrician.github.io/gog-book/data/gapminder_2007.csv"
+)
+
+data(gapminder_2007) + point + x(gdp) + y(life)
+```
+
+## Python
+
+```python
+import csv, urllib.request
+
+url = "https://psychometrician.github.io/gog-book/data/gapminder_2007.csv"
+with urllib.request.urlopen(url) as response:
+    rows = list(csv.DictReader(response.read().decode("utf-8").splitlines()))
+
+gapminder_2007 = {name: [row[name] for row in rows] for name in rows[0]}
+for name in ("gdp", "life", "population"):
+    gapminder_2007[name] = [float(value) for value in gapminder_2007[name]]
+
+data(gapminder_2007) + point + x(col.gdp) + y(col.life)
+```
+
+With pandas, the whole read is one line:
+`gapminder_2007 = pd.read_csv(url)`.
+
+## Julia
+
+```julia
+using Downloads, DelimitedFiles
+
+url = "https://psychometrician.github.io/gog-book/data/gapminder_2007.csv"
+raw, header = readdlm(Downloads.download(url), ',', String; header = true)
+gapminder_2007 = Dict(strip(name, '"') => raw[:, i] for (i, name) in enumerate(header))
+
+for name in ("gdp", "life", "population")
+    gapminder_2007[name] = parse.(Float64, gapminder_2007[name])
+end
+
+data(gapminder_2007) + point + x(:gdp) + y(:life)
+```
+
+## JavaScript
+
+```javascript
+const url = "https://psychometrician.github.io/gog-book/data/gapminder_2007.csv";
+const text = await (await fetch(url)).text();
+
+const [head, ...body] = text.trim().split("\n").map((line) =>
+  line.split(",").map((cell) => cell.replace(/^"|"$/g, "")));
+const gapminder_2007 = Object.fromEntries(
+  head.map((name, i) => [name, body.map((row) => row[i])]));
+
+for (const name of ["gdp", "life", "population"])
+  gapminder_2007[name] = gapminder_2007[name].map(Number);
+
+plot(data(gapminder_2007), point, x(col.gdp), y(col.life));
+```
+
+:::
+
+The plot is the same in all four, because the table is the same file and the
+engine is the same program.
+
+## Two things a CSV cannot say
+
+A CSV is text. It records what a value is, never what kind of thing it is. Two
+kinds of information are therefore lost in the file and have to be restored when
+you read it. Both matter to the plot, so this book states them rather than
+hiding them.
+
+**The order of a category.** A column such as `direction` holds the eight points
+of the compass. Their order is N, NE, E, SE, S, SW, W, NW, which is the order a
+compass runs in. A CSV cannot record that, so every language sorts them
+alphabetically instead: E, N, NE, NW, S, SE, SW, W. The plot still draws, and it
+is wrong in a way that is easy to miss. Declaring the order fixes it:
+
+```{r}
+winds_local <- read.csv("data/winds.csv")
+compass <- c("N", "NE", "E", "SE", "S", "SW", "W", "NW")
+winds_local$direction <- factor(winds_local$direction, levels = compass)
+
+data(winds_local) + bar * count + x(direction) + polar()
+```
+
+*"Given the winds read from the file: bars derived by count, x is direction."*
+
+The compass now runs the way a compass runs. Without the third line it would
+start at E and the wind rose would point the wrong way.
+
+Each language spells the declaration differently: R uses `factor(levels = )`,
+Python and JavaScript use `ordered()`, and Julia uses `ordered()` too. The
+[Data](data.qmd) chapter covers this in full, because declared order is part of
+the grammar and not a detail of file formats.
+
+**Labels that look like numbers.** Three columns in these tables hold text that a
+reader will turn into numbers unless told otherwise. `census.csv` has an `age`
+column of `0`, `5`, `10`, which are the names of age bands rather than
+quantities. `sessions.csv` has a `session` column of `01`, `02`, `03`, and a
+number cannot keep a leading zero, so `01` comes back as `1`. Read those columns
+as text:
+
+```r
+census <- read.csv("census.csv", colClasses = c(age = "character"))
+```
+
+In Python's `csv` module every value is already text, so nothing is needed. With
+pandas, pass `dtype={"age": str}`. In Julia, read with `String`. In JavaScript,
+values arrive as strings and only become numbers where you convert them.
+
+## The tables
+
+```{r}
+#| echo: false
+files <- sort(list.files("data", pattern = "[.]csv$"))
+info <- data.frame(
+  Table = sub("[.]csv$", "", files),
+  Rows  = vapply(files, function(f) nrow(read.csv(file.path("data", f))), integer(1)),
+  Columns = vapply(files, function(f) ncol(read.csv(file.path("data", f))), integer(1))
+)
+knitr::kable(info, row.names = FALSE)
+```
+
+The tables are not all equally serious. The gapminder cuts are real figures from
+the Gapminder Foundation, released into the public domain. `iris_flowers`,
+`maunga_whau` and `quakes_fiji` are reshaped from tables that ship with R, and
+carry R's own license. Everything else is written for this book to make a
+particular point, and `census` in particular is two plausible city profiles
+rather than any real census. The terms for each are in
+[`data/LICENSE.md`](data/LICENSE.md).

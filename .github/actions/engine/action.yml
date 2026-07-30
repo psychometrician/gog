@@ -1,0 +1,29 @@
+# Fetch the engine the `engine` job built, and make it runnable.
+#
+# Every binding is a bridge to `gog-cli`, so each job needs the binary before its
+# suite means anything. Building it five times would be slower and, worse, would
+# test five binaries instead of the one a user receives.
+#
+# **The `chmod` is the whole reason this is a shared action rather than two lines
+# repeated.** GitHub's artifact upload does not preserve the executable bit, so a
+# downloaded `gog-cli` arrives as mode 644 and every suite fails with "permission
+# denied" — a failure that reads like a broken engine and is not one.
+
+name: engine
+description: Download the compiled gog-cli and put it where the bindings look
+
+runs:
+  using: composite
+  steps:
+    - uses: actions/download-artifact@v4
+      with:
+        name: gog-cli
+        path: target/release
+
+    - shell: bash
+      run: |
+        chmod +x target/release/gog-cli
+        # Assert rather than assume: a binary that cannot run should say so here,
+        # not thirty lines into a test suite's output.
+        target/release/gog-cli --rules > /dev/null
+        echo "GOG_CLI_PATH=$PWD/target/release/gog-cli" >> "$GITHUB_ENV"

@@ -1,0 +1,34 @@
+Programming language logos in README.md
+=======================================
+
+This file sits beside the images it describes, and not in the repository's root
+NOTICE, because no package ships these files. The four packaged bindings each
+carry a copy of that NOTICE (Apache 2.0 section 4(a)), and a wheel or an npm
+tarball claiming to contain a share-alike licensed image it does not contain is
+a claim a license scanner reads and a reader cannot check.
+
+`images/` holds the logos of the five languages this project is built from and
+spoken from, shown in README.md to identify them. Each is used nominatively, to
+name the language it stands for, and no endorsement by any of these projects is
+claimed or implied. Every mark remains the property of its owner.
+
+Each file was resized and centered on a common canvas so the five read at one
+size. None was recolored, cropped, redrawn or stretched, with one stated
+exception: the Rust and Julia marks are near-black and would be invisible on a
+dark page background, so each also has a light-on-dark variant, served by a
+`prefers-color-scheme` switch. In the Rust variant the black is white. In the
+Julia variant only the near-black wordmark is white and the four colored dots
+are untouched.
+
+    R           The R logo, (C) 2016 The R Foundation, licensed CC BY-SA 4.0.
+                https://www.r-project.org/logo/
+    Python      The Python logo, a trademark of the Python Software Foundation.
+    Julia       The Julia logo, from the Julia programming language project.
+    Rust        The Rust logo, a trademark of the Rust Foundation.
+    JavaScript  The "JS" mark, an unofficial community logo rather than an
+                official one, no official JavaScript logo existing.
+                "JavaScript" is a trademark of Oracle Corporation.
+
+The R logo is share-alike licensed, which is why it appears in README.md, under
+Apache 2.0, and not in the book, whose prose is CC BY-NC-SA 4.0: a
+NonCommercial restriction cannot be added on top of CC BY-SA.

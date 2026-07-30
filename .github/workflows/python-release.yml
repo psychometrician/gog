@@ -1,0 +1,181 @@
+# Publish the Python wheels to PyPI, on a tag, with no stored credential.
+#
+# The upload uses **Trusted Publishing**: the job asks GitHub for a short-lived
+# OIDC token, PyPI checks that it came from this repository running this
+# workflow file, and mints an upload token good for a few minutes. No API token
+# is stored anywhere, so there is none to leak or rotate. It also means the
+# publisher registered on PyPI names *this filename* — renaming this file breaks
+# the release until the publisher is updated to match.
+#
+# The order is deliberate and each step can only fail forward:
+#
+#   version  → the tag and all seven version declarations agree, and PyPI does
+#              not already have this number. A PyPI version is never reusable,
+#              even after a delete, so discovering a mismatch at upload time
+#              spends the number on a failed release.
+#   wheels   → `python-wheels.yml`, unchanged: five platforms, each wheel
+#              carrying its own engine, each installed into a bare venv and
+#              asked to draw before it counts as built.
+#   collect  → five wheels and no sdist. The sdist cannot install for anyone
+#              (the crates live above its root), so it must never reach an index.
+#   testpypi → the same artifacts against a real index, catching metadata
+#              problems while the version number is still spendable.
+#   pypi     → gated on a GitHub Environment with a required reviewer, because
+#              the upload is the one step in this file that cannot be undone.
+
+name: python release
+
+on:
+  push:
+    tags: ["py-v*"]
+
+permissions:
+  contents: read
+
+jobs:
+  version:
+    name: the tag and the seven declarations agree
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: One grammar, one number
+        shell: bash
+        env:
+          TAG: ${{ github.ref_name }}
+        run: |
+          python3 - <<'PY'
+          import json, os, re, sys, urllib.request
+
+          tag = os.environ["TAG"]
+          prefix = "py-v"
+          if not tag.startswith(prefix):
+              sys.exit(f"tag {tag!r} is not a Python release tag ({prefix}X.Y.Z)")
+          want = tag[len(prefix):]
+
+          # The same seven the R suite compares, and listed here for the same
+          # reason it grew a seventh: a release process reads a manifest, and a
+          # user reads `gog.__version__`. Those two disagreed through five built
+          # wheels once, and no manifest check could see it.
+          QUOTED = r'^ *"?version"? *[=:] *"([^"]+)"'
+          SOURCES = {
+              "r-pkg/gog/DESCRIPTION": r"^Version: *(.+?) *$",
+              "py-pkg/gog/pyproject.toml": QUOTED,
+              "js-pkg/gog/package.json": QUOTED,
+              "jl-pkg/GrammarOfGraphics/Project.toml": QUOTED,
+              "gog-core/Cargo.toml": QUOTED,
+              "gog-cli/Cargo.toml": QUOTED,
+              "py-pkg/gog/gog/__init__.py": r'^__version__ *= *"([^"]+)"',
+          }
+
+          found = {}
+          for path, pattern in SOURCES.items():
+              with open(path, encoding="utf-8") as handle:
+                  hits = [m.group(1) for m in (re.match(pattern, ln) for ln in handle) if m]
+              if not hits:
+                  sys.exit(f"no version line found in {path}")
+              found[path] = hits[0]
+
+          wrong = {p: v for p, v in found.items() if v != want}
+          if wrong:
+              print(f"the tag says {want}; these do not:")
+              for path, value in wrong.items():
+                  print(f"  {value:<12} {path}")
+              sys.exit("One grammar, one number. Move all seven together or not at all.")
+
+          with urllib.request.urlopen("https://pypi.org/pypi/gog/json") as response:
+              released = json.load(response)["releases"]
+          if want in released:
+              sys.exit(f"gog {want} is already on PyPI, and a released version never comes back")
+
+          print(f"all seven declare {want}, and PyPI does not have it yet")
+          PY
+
+  wheels:
+    name: wheels
+    needs: version
+    uses: ./.github/workflows/python-wheels.yml
+
+  collect:
+    name: five wheels and no sdist
+    needs: wheels
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: wheel-*
+          path: dist
+          merge-multiple: true
+
+      - name: Check what is about to be uploaded
+        shell: bash
+        run: |
+          ls -l dist
+
+          # An sdist would install for nobody: `R CMD build`'s Python
+          # counterpart packages `py-pkg/gog/` alone, so the crates sit above
+          # the tarball's root and the build hook finds no engine and no way to
+          # make one. pip would download it on any platform the wheels miss and
+          # fail on advice the user cannot follow. Better that pip says there is
+          # no build for their machine.
+          if compgen -G "dist/*.tar.gz" > /dev/null; then
+            echo "::error::an sdist reached the upload set; it is uninstallable by design"
+            exit 1
+          fi
+
+          # Named rather than counted, so a missing platform says which one.
+          # This list moves with the matrix in `python-wheels.yml`.
+          for tag in macosx_11_0_arm64 macosx_10_12_x86_64 \
+                     manylinux_2_28_x86_64 manylinux_2_28_aarch64 win_amd64; do
+            compgen -G "dist/*-$tag.whl" > /dev/null \
+              || { echo "::error::no wheel for $tag"; exit 1; }
+          done
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: dist
+          path: dist/*.whl
+
+  testpypi:
+    name: rehearse on TestPyPI
+    needs: collect
+    runs-on: ubuntu-latest
+    environment:
+      name: testpypi
+      url: https://test.pypi.org/p/gog
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: dist
+          path: dist
+      # `skip-existing` because a re-run of the same tag is a normal thing to do
+      # here and a duplicate on a rehearsal index is not a failure.
+      - uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          repository-url: https://test.pypi.org/legacy/
+          skip-existing: true
+
+  pypi:
+    name: publish to PyPI
+    needs: testpypi
+    runs-on: ubuntu-latest
+    # Configure this environment with a required reviewer. The job then waits
+    # for a human before the one action in this workflow that cannot be undone.
+    environment:
+      name: pypi
+      url: https://pypi.org/p/gog
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: dist
+          path: dist
+      # Attestations are on by default for trusted publishing, so each wheel
+      # arrives with signed provenance tying it to this run. The manual
+      # `twine upload` that first claimed the name could not offer that.
+      - uses: pypa/gh-action-pypi-publish@release/v1

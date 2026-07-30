@@ -1,0 +1,123 @@
+#!/bin/sh
+# .prepare — stage the engine's sources into the package, before it is tarred up
+#
+# r-universe builds a monorepo package like this:
+#
+#     git clone <repo>            # the whole repository, crates included
+#     PKGDIR=<repo>/r-pkg/gog     # the `subdir` field in packages.json
+#     (cd $PKGDIR; sh .prepare) || true      # ← this script, in the FULL clone
+#     R CMD build $PKGDIR         # → gog_x.y.z.tar.gz, from the subdir ALONE
+#                                 #   every platform binary is built from that
+#
+# The trap is the last line. `gog-core/` and `gog-cli/` sit *above* `$PKGDIR`, so
+# they never enter the tarball, and `inst/bin/` is gitignored so it arrives empty.
+# A tarball built that way carries no engine and no way to make one, and
+# `configure` then refuses on every platform — correctly, but pointing at the
+# wrong step.
+#
+# This script is the one moment the crates are still reachable. It copies them to
+# `tools/rust/`, which `R CMD build` includes in the tarball and `R CMD INSTALL`
+# does not try to compile. `configure` then has a source that travels.
+#
+# **It verifies its own work, and that is not defensive habit.** r-universe runs
+# it as `|| true`, so a failure here is *swallowed* and resurfaces much later as a
+# configure error on five platforms at once. A staging step that fails silently is
+# the same silent drop this project refuses everywhere else, so the exit code is
+# checked here and `configure` fails loudly if the staging did not happen.
+#
+# Not r-universe specific. `tools/rust/` is also what a CRAN submission needs, for
+# a different reason: CRAN forbids shipping a binary *and* forbids network access
+# during a build, so the sources must travel and be built offline. Set
+# `GOG_VENDOR=1` to vendor the dependency crates alongside them, which is what
+# makes the offline build possible.
+#
+# Usage:  sh .prepare            stage the crate sources (needs network at build)
+#         GOG_VENDOR=1 sh .prepare    also vendor deps, for an offline build
+
+set -e
+
+WORKSPACE="../.."
+DEST="tools/rust"
+
+# ---------------------------------------------------------------------------
+# Refuse early rather than half-stage. If the crates are not above us, this is
+# not the layout the script was written for, and copying nothing while exiting 0
+# is the exact failure it exists to prevent.
+# ---------------------------------------------------------------------------
+if [ ! -f "${WORKSPACE}/Cargo.toml" ] || [ ! -d "${WORKSPACE}/gog-core" ]; then
+  echo "gog/.prepare: no crate sources at ${WORKSPACE}/ — nothing to stage." >&2
+  echo "  Expected ${WORKSPACE}/Cargo.toml and ${WORKSPACE}/gog-core/." >&2
+  echo "  This script runs from the package directory inside a full checkout." >&2
+  exit 1
+fi
+
+echo "* gog/.prepare: staging the engine sources into ${DEST}/"
+
+rm -rf "${DEST}"
+mkdir -p "${DEST}"
+
+cp "${WORKSPACE}/Cargo.toml"  "${DEST}/Cargo.toml"
+cp "${WORKSPACE}/Cargo.lock"  "${DEST}/Cargo.lock"
+cp -R "${WORKSPACE}/gog-core" "${DEST}/gog-core"
+cp -R "${WORKSPACE}/gog-cli"  "${DEST}/gog-cli"
+
+# A development checkout may have a warm `target/` inside a crate directory. It is
+# hundreds of megabytes and rebuilt anyway, so it must not travel.
+rm -rf "${DEST}/gog-core/target" "${DEST}/gog-cli/target"
+
+# `gog-core/Cargo.toml` declares three `[[example]]` targets. Cargo validates the
+# manifest for every workspace member even when building only `gog-cli`, so the
+# example *files* have to come along or the build fails on a manifest error
+# rather than on anything real. They are 28 KB; the alternative is editing the
+# manifest during staging, which would make the shipped crate differ from the
+# one that is tested.
+if [ ! -f "${DEST}/gog-core/examples/scatter.rs" ]; then
+  echo "gog/.prepare: gog-core/examples/ did not copy — the manifest declares" >&2
+  echo "  [[example]] targets, so cargo would fail on a missing file." >&2
+  exit 1
+fi
+
+# ---------------------------------------------------------------------------
+# Vendoring — off by default, and the reason is size against need.
+#
+# The dependency tree is 11 crates and 6.8 MB, of which `syn` alone is 2.4 MB,
+# against 2.2 MB for the engine itself. r-universe's builders have network access,
+# so cargo fetches what it needs and the tarball stays small. CRAN's do not, which
+# is why this exists at all.
+# ---------------------------------------------------------------------------
+if [ -n "${GOG_VENDOR}" ]; then
+  CARGO=""
+  if command -v cargo >/dev/null 2>&1; then
+    CARGO="cargo"
+  elif [ -x "${HOME}/.cargo/bin/cargo" ]; then
+    CARGO="${HOME}/.cargo/bin/cargo"
+  fi
+  if [ -z "${CARGO}" ]; then
+    echo "gog/.prepare: GOG_VENDOR is set but cargo was not found." >&2
+    exit 1
+  fi
+
+  echo "* gog/.prepare: vendoring dependencies for an offline build"
+  mkdir -p "${DEST}/.cargo"
+  ( cd "${DEST}" && "${CARGO}" vendor vendor > .cargo/config.toml )
+
+  if [ ! -d "${DEST}/vendor/serde" ]; then
+    echo "gog/.prepare: vendoring reported success but produced no crates." >&2
+    exit 1
+  fi
+fi
+
+# ---------------------------------------------------------------------------
+# Verify. Everything above can appear to work and leave a tarball that cannot
+# build, so the postconditions are checked rather than assumed.
+# ---------------------------------------------------------------------------
+for f in "${DEST}/Cargo.toml" "${DEST}/Cargo.lock" \
+         "${DEST}/gog-core/Cargo.toml" "${DEST}/gog-core/src/lib.rs" \
+         "${DEST}/gog-cli/Cargo.toml"  "${DEST}/gog-cli/src/main.rs"; do
+  if [ ! -f "$f" ]; then
+    echo "gog/.prepare: staging incomplete — $f is missing." >&2
+    exit 1
+  fi
+done
+
+echo "* gog/.prepare: staged $(du -sh "${DEST}" | cut -f1) into ${DEST}/"

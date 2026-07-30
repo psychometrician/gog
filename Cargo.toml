@@ -1,0 +1,3 @@
+[workspace]
+members = ["gog-core", "gog-cli"]
+resolver = "2"

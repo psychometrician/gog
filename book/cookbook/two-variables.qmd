@@ -1,0 +1,120 @@
+# Two variables
+
+```{r}
+#| include: false
+source("../R/setup.R")
+```
+
+You have two columns. Do they move together, or do they differ by group? The
+questions split by type: two measurements ask about
+*relationship*; a category and a measurement ask about *comparison*.
+
+## Are two measurements related?
+
+```{r}
+data(gapminder_2007) + point + x(gdp) + y(life)
+```
+
+*"Points, x is gdp, y is life."* The scatter is the plainest sentence in
+the grammar: a mark and its two positions, nothing else.
+
+**One atom away.** When one variable spans orders of magnitude, read its
+axis logarithmically. A property of the binding, not a new plot:
+
+```{r}
+data(gapminder_2007) + point + x(gdp, scale = "log") + y(life)
+```
+
+Owning chapters: [Point](../marks/point.qmd), [Scales](../scales.qmd).
+
+## What is the trend through the cloud?
+
+Layer a derived line over the points; `+` stacks layers in one panel,
+and `* smooth` fits where the cloud is heading:
+
+```{r}
+data(gapminder_2007) + x(gdp) + y(life) +
+  point + color(continent) +
+  line * smooth
+```
+
+The positions are written before any mark, so both layers share them;
+`color` is written after `point`, so only the points split.
+[Encoding scope](../encoding-scope.qmd) owns that rule.
+
+## How much was there, over the range?
+
+A line says *where the value went*; an area says *how much there was*.
+It fills to zero so the quantity is the ink:
+
+```{r}
+data(actuals) + area + x(year) + y(sales)
+```
+
+**One atom away.** If zero is not a meaningful floor for your variable,
+you wanted [`line`](../marks/line.qmd), not `area`.
+
+## What is the typical value per group?
+
+A category and a measurement, summarized. The aggregation family
+(`mean`, `median`, `sum`, `max`, `min`) all read a bound `y` and collapse
+each group to one number:
+
+```{r}
+data(gapminder_2007) + bar * mean + x(continent) + y(life)
+```
+
+**One atom away.** Robust to outliers? Swap the word:
+
+```{r}
+data(gapminder_2007) + bar * median + x(continent) + y(life)
+```
+
+## What does *every* value per group look like?
+
+Summaries hide spread. The strip plot is the same sentence with the
+derivation removed. One dot per row, stacked over each category's slot:
+
+```{r}
+data(gapminder_2007) + point + x(continent) + y(life)
+```
+
+When the dots pile onto one line, `* jitter` spreads them sideways, along
+the category axis only, so every dot keeps its exact height:
+
+```{r}
+data(gapminder_2007) + point * jitter + x(continent) + y(life) + style(opacity = 0.6)
+```
+
+**One atom away.** Swap the positions and the strips lie down, useful
+when the category names are long. See [Point](../marks/point.qmd) and
+[`jitter`](../transforms.qmd).
+
+## The numbers are already the answer: just draw them
+
+When the table already holds one value per category, no transform is
+involved; `bar` draws data as it arrives:
+
+```{r}
+data(medals) + bar + x(country) + y(gold)
+```
+
+**One atom away.** Ranked, because comparison reads best sorted:
+
+```{r}
+data(medals) + bar + x(country) + y(gold) + order(gold, desc = TRUE)
+```
+
+There is no hidden counting here to surprise you: if you want a
+computation, you write its name. That is why this recipe and
+[How many of each?](one-variable.qmd) are different sentences.
+
+## What this section refuses
+
+A bar needs exactly one of its axes to be a number. Two categories give
+it nothing to measure, and the refusal points at the counting derivation:
+
+```{r}
+#| error: true
+data(gapminder_2007) + bar + x(country) + y(continent)
+```
