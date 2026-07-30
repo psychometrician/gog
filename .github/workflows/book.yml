@@ -87,10 +87,6 @@ jobs:
         with:
           packages: any::gapminder, any::jsonlite, any::knitr, any::magrittr, any::rmarkdown
 
-      - uses: actions/setup-python@v5
-        with:
-          python-version: "3.12"
-
       # pandas and nothing else. `bindings/python.qmd` runs real pandas examples,
       # and the language tabs shell out to a translator — but neither needs the
       # `gog` package *installed*: `book/R/python.R` reaches the binding through
@@ -99,66 +95,84 @@ jobs:
       # wheel here would invoke its build hook and demand an engine path for
       # nothing.
       #
-      # Pinning `GOG_BOOK_PYTHON` rather than letting `book/R/python.R` fall back
-      # to `Sys.which("python3")` removes a resolution question from CI entirely:
-      # the interpreter pip installed into is the interpreter the book uses, by
-      # name.
+      # **A virtual environment built from the system interpreter, and deliberately
+      # not `actions/setup-python`.** The tool-cache interpreter is dynamically
+      # linked against a `libpython` that is only findable through the
+      # `LD_LIBRARY_PATH` that action exports, and that variable does not survive
+      # into every subprocess: with it, `import pandas` worked from `Rscript`; under
+      # `quarto render` the same interpreter, holding the same pandas, failed. The
+      # system interpreter's `libpython` sits where the loader looks anyway, so a
+      # venv over it does not depend on an inherited variable to start.
+      #
+      # `pip install --upgrade pip` is also deliberately absent. Fresh venv, no
+      # reason to; and doing it in the same command as another package makes pip
+      # replace itself mid-transaction, which is its own source of trouble.
+      #
+      # Pinning `GOG_BOOK_PYTHON` rather than letting `book/R/python.R` fall back to
+      # `Sys.which("python3")` removes the resolution question instead of answering
+      # it: the interpreter pandas went into is the interpreter the book uses, by
+      # absolute path.
       - name: pandas, for the book's Python chapter
         shell: bash
         run: |
-          python3 -m pip install --upgrade pip pandas
-          echo "GOG_BOOK_PYTHON=$(command -v python3)" >> "$GITHUB_ENV"
-
-      # "pip installed pandas" and "the book can use pandas" are two different
-      # claims, and the first one passing is what made the second one's failure
-      # confusing. The book never imports pandas itself — it shells out to the
-      # interpreter *from R*, which is a different environment: R rewrites
-      # `LD_LIBRARY_PATH` at startup, and the tool-cache interpreter is
-      # dynamically linked against its own `libpython`. So this asks the question
-      # the way the book asks it, and asks it here, where the answer costs two
-      # minutes instead of a rendered book's worth.
-      #
-      # It also repairs a blind spot in the check it is imitating.
-      # `py_require_pandas()` throws away stderr, so *any* failure to start the
-      # interpreter reads as "this interpreter has no pandas". This one prints
-      # what actually happened.
-      - name: Prove R can reach that interpreter, the way the book does
-        shell: bash
-        run: |
-          cat > "$RUNNER_TEMP/where.py" <<'EOF'
-          import sys, os
-          print("executable  ", sys.executable)
-          print("prefix      ", sys.prefix)
-          print("base_prefix ", sys.base_prefix)
-          print("sys.path    ", *sys.path, sep="\n              ")
-          for v in ("PYTHONHOME", "PYTHONPATH", "PYTHONNOUSERSITE", "VIRTUAL_ENV"):
-              print(f"{v:12}", os.environ.get(v, "(unset)"))
-          try:
-              import pandas
-              print("pandas      ", pandas.__version__, pandas.__file__)
-          except Exception as e:
-              print("pandas       FAILED:", type(e).__name__, e)
-          EOF
-
-          echo "################ from bash ################"
-          "$GOG_BOOK_PYTHON" "$RUNNER_TEMP/where.py"
-
-          echo
-          echo "################ from R (how the book asks) ################"
-          cat > "$RUNNER_TEMP/check-python.R" <<'EOF'
-          py <- Sys.getenv("GOG_BOOK_PYTHON")
-          out <- suppressWarnings(system2(py, shQuote(Sys.getenv("WHERE_PY")),
-                                          stdout = TRUE, stderr = TRUE))
-          cat(out, sep = "\n"); cat("\n")
-          status <- attr(out, "status"); if (is.null(status)) status <- 0
-          if (status != 0) {
-            stop("R cannot import pandas through this interpreter, so the book ",
-                 "would fail at bindings/python.qmd for the same reason")
-          }
-          EOF
-          WHERE_PY="$RUNNER_TEMP/where.py" Rscript "$RUNNER_TEMP/check-python.R"
+          /usr/bin/python3 -m venv "$RUNNER_TEMP/bookenv"
+          "$RUNNER_TEMP/bookenv/bin/pip" install --quiet pandas
+          echo "GOG_BOOK_PYTHON=$RUNNER_TEMP/bookenv/bin/python" >> "$GITHUB_ENV"
 
       - uses: quarto-dev/quarto-actions/setup@v2
+
+      # This has to run **through quarto**, and the reason is a check that lied.
+      #
+      # An earlier version asked the same question from `Rscript` and passed, while
+      # the render then failed at `bindings/python.qmd` with the very error the
+      # check exists to catch. Three environments are involved, not two: bash, R
+      # launched from bash, and R launched by quarto's knitr engine. Only the third
+      # one is the book's, and it was the only one not being asked.
+      #
+      # A guard that passes when the thing it guards fails is worse than no guard,
+      # so the probe is a real `.qmd` rendered by real quarto. Fifteen seconds, and
+      # it either reproduces the failure with the interpreter's own diagnosis or
+      # proves the render will get past chapter 47.
+      #
+      # It also repairs a blind spot in the check it imitates:
+      # `py_require_pandas()` discards stderr, so *any* failure to start the
+      # interpreter reads as "this interpreter has no pandas". That is what made
+      # the first two diagnoses wrong. This one prints what actually happened.
+      - name: Prove the book's interpreter works, through quarto
+        shell: bash
+        run: |
+          PROBE="$RUNNER_TEMP/probe"
+          rm -rf "$PROBE"; mkdir -p "$PROBE"
+          cat > "$PROBE/probe.qmd" <<'EOF'
+          ---
+          title: probe
+          ---
+
+          ```{r}
+          py <- Sys.getenv("GOG_BOOK_PYTHON")
+          cat("GOG_BOOK_PYTHON:", py, "\n")
+          for (v in c("PYTHONHOME", "PYTHONPATH", "PYTHONNOUSERSITE",
+                      "VIRTUAL_ENV", "LD_LIBRARY_PATH")) {
+            cat(sprintf("%-18s %s\n", v, Sys.getenv(v, unset = "(unset)")))
+          }
+          code <- paste("import sys, pandas",
+                        "print('prefix ', sys.prefix)",
+                        "print('pandas ', pandas.__version__, pandas.__file__)",
+                        sep = "; ")
+          out <- suppressWarnings(system2(py, c("-c", shQuote(code)),
+                                          stdout = TRUE, stderr = TRUE))
+          status <- attr(out, "status")
+          if (is.null(status)) status <- 0
+          cat("status:", status, "\n")
+          cat(out, sep = "\n")
+          cat("\n")
+          if (status != 0) {
+            stop("through quarto, this interpreter cannot import pandas, so the ",
+                 "render would fail at bindings/python.qmd for the same reason")
+          }
+          ```
+          EOF
+          cd "$PROBE" && quarto render probe.qmd --to html
 
       - name: Render the whole book to HTML
         working-directory: book
