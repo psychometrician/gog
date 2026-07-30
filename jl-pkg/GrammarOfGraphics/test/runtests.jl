@@ -1067,3 +1067,70 @@ end
     @test occursin("stroke=\"white\"", edged)
     @test !occursin("stroke=\"white\"", mosaic)
 end
+
+# ---------------------------------------------------------------------------
+# query() — the table that is not in memory
+#
+# The guard is the one that matters and it is the same in all four bindings: the
+# *same sentence*, over a materialized table and over a query returning the same
+# rows, must render byte-identical SVG. If those diverge, `query()` has stopped
+# being a way of naming rows and become a second way of drawing them.
+#
+# SQLite and DBInterface are `[extras]`, so they resolve under `Pkg.test()` and
+# not under a direct `julia test/runtests.jl`. The byte-identity half therefore
+# skips when they are absent, exactly as R's skips without DBI — the package
+# itself depends on neither, and `resolve_query` looks DBInterface up in the
+# session rather than importing it.
+# ---------------------------------------------------------------------------
+
+const HAVE_DB = try
+    @eval using SQLite, DBInterface
+    true
+catch
+    false
+end
+
+@testset "query() — a table that lives in a database" begin
+    rows = (status  = ["open", "shipped", "shipped", "closed", "open", "refunded"],
+            revenue = [120.0, 240.5, 95.25, 310.75, 60.0, 45.0])
+    frame = Dict("status" => collect(rows.status), "revenue" => collect(rows.revenue))
+
+    if HAVE_DB
+        db = SQLite.DB()
+        DBInterface.execute(db, "CREATE TABLE orders (status TEXT, revenue REAL)")
+        for (s, r) in zip(rows.status, rows.revenue)
+            DBInterface.execute(db, "INSERT INTO orders VALUES (?, ?)", (s, r))
+        end
+        sql = "SELECT status, revenue FROM orders"
+
+        for (label, sentence) in [
+            ("point with two positions", t -> t + point + x(:revenue) + y(:status)),
+            ("bar * count",              t -> t + bar * count + x(:status)),
+            ("bar with a mapped color",
+                t -> t + bar + x(:status) + y(:revenue) + color(:status)),
+        ]
+            from_table = render_svg(sentence(data(frame, name = "orders")))
+            from_query = render_svg(sentence(query(db, sql, name = "orders")))
+            @test from_table == from_query
+        end
+    else
+        @info "SKIP: query() byte-identity needs SQLite and DBInterface (both [extras])"
+    end
+
+    # The query does not run when the sentence is written. An eager query would
+    # foreclose pushing the transform down, since the planner has to see the
+    # whole sentence before it knows what to ask the database for.
+    lazy = query(nothing, "SELECT nonsense FROM nowhere", name = "orders")
+    @test lazy.frames["orders"] isa GrammarOfGraphics.Query
+
+    # `query("SELECT ...")` is the mistake `data()` invites, that atom taking one
+    # argument. All four bindings answer it with the fix rather than the host
+    # language's own arity error — here Julia's `MethodError`.
+    err = try; query("SELECT 1"); catch e; e; end
+    @test err isa GogError
+    @test occursin("connection first", sprint(showerror, err))
+
+    err = try; query(nothing, 123); catch e; e; end
+    @test err isa GogError
+    @test occursin("SELECT as text", sprint(showerror, err))
+end

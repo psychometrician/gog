@@ -1226,4 +1226,62 @@ assert 'stroke="white"' not in mosaic, "an unasked-for border must not appear"
 ok("a `zone` carries `style(border_color=, border_size=)`")
 
 
+# ---------------------------------------------------------------------------
+# query() — the table that is not in memory
+#
+# The guard is the one that matters and it is the same in all four bindings: the
+# *same sentence*, over a materialized frame and over a query returning the same
+# rows, must render byte-identical SVG. If those ever diverge, `query()` has
+# stopped being a way of naming rows and become a second way of drawing them.
+# ---------------------------------------------------------------------------
+
+import sqlite3
+
+from gog import query
+from gog.render import Query
+
+_ROWS = [("open", 120.0), ("shipped", 240.5), ("shipped", 95.25),
+         ("closed", 310.75), ("open", 60.0), ("refunded", 45.0)]
+_FRAME = {"status": [s for s, _ in _ROWS], "revenue": [r for _, r in _ROWS]}
+
+_con = sqlite3.connect(":memory:")
+_con.execute("CREATE TABLE orders (status TEXT, revenue REAL)")
+_con.executemany("INSERT INTO orders VALUES (?, ?)", _ROWS)
+_SQL = "SELECT status, revenue FROM orders"
+
+for _label, _sentence in (
+    ("point with two positions",
+     lambda t: t + point + x(col.revenue) + y(col.status)),
+    ("bar * count",
+     lambda t: t + bar * count + x(col.status)),
+    ("bar with a mapped color",
+     lambda t: t + bar + x(col.status) + y(col.revenue) + color(col.status)),
+):
+    _a = render_svg(_sentence(data(_FRAME, name="orders")))
+    _b = render_svg(_sentence(query(_con, _SQL, name="orders")))
+    assert _a == _b, f"query() and data() disagree on {_label}"
+    ok(f"query() draws {_label} byte-identically to data()")
+
+# The query does not run when the sentence is written. An eager query would
+# foreclose pushing the transform down, since the planner has to see the whole
+# sentence before it can know what to ask the database for.
+_lazy = query(_con, "SELECT nonsense FROM nowhere", name="orders")
+assert isinstance(_lazy.frames["orders"], Query)
+ok("query() holds the SQL rather than running it when the sentence is built")
+
+refuses(
+    "query('SELECT ...') with no connection",
+    lambda: query(_SQL),
+)
+refuses(
+    "query() given a query that is not text",
+    lambda: query(_con, 123),
+)
+refuses(
+    "query() on an object that is neither PEP 249 nor Spark",
+    lambda: render_svg(query(object(), _SQL) + bar * count + x(col.status)),
+)
+
+_con.close()
+
 print(f"\nAll {passed} checks passed.")

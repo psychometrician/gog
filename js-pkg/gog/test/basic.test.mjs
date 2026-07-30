@@ -13,12 +13,14 @@
 
 import assert from "node:assert/strict";
 import fs from "node:fs";
+import { DatabaseSync } from "node:sqlite";
 import test from "node:test";
 
-import { ENGINE_PLATFORMS, platform_package } from "../src/render.js";
+import { ENGINE_PLATFORMS, Query, platform_package } from "../src/render.js";
 
 import {
   GogError,
+  query,
   across,
   area,
   bar,
@@ -1522,4 +1524,75 @@ test("nothing in the manifest blocks a publish", () => {
   for (const file of ["src", "LICENSE", "NOTICE", "README.md"]) {
     assert.ok(manifest.files.includes(file), `\`${file}\` is not in the published set`);
   }
+});
+
+// ---------------------------------------------------------------------------
+// query() — the table that is not in memory
+//
+// The guard is the one that matters and it is the same in all four bindings: the
+// *same sentence*, over a materialized table and over a query returning the same
+// rows, must render byte-identical SVG. If those diverge, `query()` has stopped
+// being a way of naming rows and become a second way of drawing them.
+//
+// `node:sqlite` is used rather than a driver from npm because it is standard
+// library from Node 22, and this package depends on nothing. It is also exactly
+// the shape `query()` duck-types on — `.prepare(sql).all()`, synchronous.
+// ---------------------------------------------------------------------------
+
+test("query() draws what data() draws, byte for byte", () => {
+  const rows = [
+    { status: "open", revenue: 120 },
+    { status: "shipped", revenue: 240.5 },
+    { status: "shipped", revenue: 95.25 },
+    { status: "closed", revenue: 310.75 },
+    { status: "open", revenue: 60 },
+    { status: "refunded", revenue: 45 },
+  ];
+  const frame = {
+    status: rows.map((r) => r.status),
+    revenue: rows.map((r) => r.revenue),
+  };
+  const db = new DatabaseSync(":memory:");
+  db.exec("CREATE TABLE orders (status TEXT, revenue REAL)");
+  const insert = db.prepare("INSERT INTO orders VALUES (?, ?)");
+  for (const r of rows) insert.run(r.status, r.revenue);
+  const sql = "SELECT status, revenue FROM orders";
+
+  for (const [label, sentence] of [
+    ["point with two positions", (t) => plot(t, point, x(col.revenue), y(col.status))],
+    ["layer(bar, count)", (t) => plot(t, layer(bar, count), x(col.status))],
+    ["bar with a mapped color",
+      (t) => plot(t, bar, x(col.status), y(col.revenue), color(col.status))],
+  ]) {
+    const fromTable = render_svg(sentence(data(frame, { name: "orders" })));
+    const fromQuery = render_svg(sentence(query(db, sql, { name: "orders" })));
+    assert.equal(fromQuery, fromTable, `query() and data() disagree on ${label}`);
+  }
+  db.close();
+});
+
+test("query() holds the SQL rather than running it when the sentence is built", () => {
+  // An eager query would foreclose pushing the transform down, since the planner
+  // has to see the whole sentence before it knows what to ask the database for.
+  const atom = query({ prepare: () => { throw new Error("ran too early"); } },
+    "SELECT nonsense FROM nowhere");
+  assert.ok(atom.fields.table instanceof Query);
+});
+
+test("query() refuses what it cannot draw, and says what to do", () => {
+  // The mistake `data()` invites, that atom taking one argument.
+  assert.throws(() => query("SELECT 1"), /takes the connection first/);
+  assert.throws(() => query({}, 123), /takes a SELECT as text/);
+
+  // `render_svg` is synchronous, so an async driver cannot be awaited here. It
+  // is named rather than left to fail as `[object Promise]` on the wire.
+  assert.throws(
+    () => render_svg(plot(query({ query: () => Promise.resolve() }, "SELECT 1"),
+      layer(bar, count), x(col.status))),
+    /looks asynchronous/
+  );
+  assert.throws(
+    () => render_svg(plot(query({}, "SELECT 1"), layer(bar, count), x(col.status))),
+    /must be a synchronous one/
+  );
 });

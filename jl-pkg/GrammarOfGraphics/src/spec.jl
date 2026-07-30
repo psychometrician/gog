@@ -252,16 +252,32 @@ function resolve_query(q::Query, table::AbstractString)
         throw(GogError("gog: the query for `$table` failed: $(err)"))
     end
 
-    rows = collect(result)
-    isempty(rows) && throw(GogError(
+    # **The values are read during the one pass, not after it.** A database
+    # cursor is commonly a *forward-only* iterator whose rows are valid only
+    # while being iterated — SQLite.jl says so outright, and collecting the row
+    # handles to read later fails with "row 1 is no longer valid". So each row is
+    # materialized into a NamedTuple as it goes by. Using nothing but
+    # `propertynames`/`getproperty` keeps this working for every DBInterface
+    # driver without `Tables.jl` being a dependency.
+    cols = Dict{String,Vector{Any}}()
+    names = Symbol[]
+    for row in result
+        if isempty(names)
+            names = collect(propertynames(row))
+            for n in names
+                cols[String(n)] = Any[]
+            end
+        end
+        for n in names
+            push!(cols[String(n)], getproperty(row, n))
+        end
+    end
+
+    isempty(names) && throw(GogError(
         "gog: the query for `$table` returned no rows, so there is nothing to " *
         "draw and no columns to name."))
 
-    cols = Dict{String,Any}()
-    for n in propertynames(first(rows))
-        cols[String(n)] = [getproperty(r, n) for r in rows]
-    end
-    cols
+    Dict{String,Any}(k => v for (k, v) in cols)
 end
 
 resolve_query(table, ::AbstractString) = table

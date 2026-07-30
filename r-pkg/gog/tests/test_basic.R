@@ -77,6 +77,69 @@ svg3 <- render_svg(
 if (!grepl("<svg", svg3)) stop("FAIL: bar output not SVG")
 cat("PASS: bar chart rendered (", nchar(svg3), " chars)\n")
 
+# ---------------------------------------------------------------------------
+# query() — the table that is not in memory
+#
+# The guard is the one that matters and it is the same in all four bindings: the
+# *same sentence*, over a materialized frame and over a query returning the same
+# rows, must render byte-identical SVG. If those diverge, `query()` has stopped
+# being a way of naming rows and become a second way of drawing them.
+#
+# DBI and RSQLite are Suggests rather than Imports — a user who never writes SQL
+# should not install a database stack to draw a plot — so the byte-identity half
+# skips when they are absent. The refusals do not need a database and always run.
+# ---------------------------------------------------------------------------
+
+rows <- data.frame(
+  status  = c("open", "shipped", "shipped", "closed", "open", "refunded"),
+  revenue = c(120, 240.5, 95.25, 310.75, 60, 45),
+  stringsAsFactors = FALSE
+)
+
+if (requireNamespace("DBI", quietly = TRUE) && requireNamespace("RSQLite", quietly = TRUE)) {
+  con <- DBI::dbConnect(RSQLite::SQLite(), ":memory:")
+  on.exit(DBI::dbDisconnect(con), add = TRUE)
+  DBI::dbWriteTable(con, "orders", rows)
+  sql <- "SELECT status, revenue FROM orders"
+
+  sentences <- list(
+    "point with two positions" = function(t) t + point + x(revenue) + y(status),
+    "bar * count"              = function(t) t + bar * count + x(status),
+    "bar with a mapped color"  = function(t) t + bar + x(status) + y(revenue) + color(status)
+  )
+  for (label in names(sentences)) {
+    sentence <- sentences[[label]]
+    from_table <- render_svg(sentence(data(rows, name = "orders")))
+    from_query <- render_svg(sentence(query(con, sql, name = "orders")))
+    if (!identical(from_table, from_query))
+      stop("FAIL: query() and data() disagree on ", label)
+    cat("PASS: query() draws ", label, " byte-identically to data()\n", sep = "")
+  }
+
+  # The query does not run when the sentence is written. An eager query would
+  # foreclose pushing the transform down, since the planner has to see the whole
+  # sentence before it knows what to ask the database for.
+  lazy <- query(con, "SELECT nonsense FROM nowhere", name = "orders")
+  if (!inherits(lazy$data_frames[["orders"]], "gog_query"))
+    stop("FAIL: query() ran its SQL when the sentence was built")
+  cat("PASS: query() holds the SQL rather than running it when the sentence is built\n")
+} else {
+  cat("SKIP: query() byte-identity needs DBI and RSQLite (both Suggests)\n")
+}
+
+# `query("SELECT ...")` is the mistake `data()` invites, that atom taking one
+# argument. All four bindings answer it with the fix rather than the host
+# language's own arity error.
+refusal <- tryCatch(query("SELECT 1"), error = function(e) conditionMessage(e))
+if (!grepl("connection first", refusal, fixed = TRUE))
+  stop("FAIL: query('SELECT ...') did not name the fix — got: ", refusal)
+cat("PASS: query() with only a query refused, naming the connection\n")
+
+refusal <- tryCatch(query(NULL, 123), error = function(e) conditionMessage(e))
+if (!grepl("SELECT as one string", refusal, fixed = TRUE))
+  stop("FAIL: query() given a non-string query did not say so — got: ", refusal)
+cat("PASS: query() given a query that is not text refused\n")
+
 cat("\nAll tests passed.\n")
 
 # --- * operator: bar * bin (histogram) ---
