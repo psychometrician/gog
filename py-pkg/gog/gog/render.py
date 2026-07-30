@@ -240,6 +240,88 @@ def _frame_columns(frame: Any, table: str) -> List[str]:
     )
 
 
+class Query:
+    """A table named by a SQL query instead of held in memory.
+
+    **Deliberately not executed when it is written.** A query that ran at the
+    moment the sentence was built would foreclose pushing the transform down to
+    the database, because the planner has to see the whole sentence before it can
+    know what to ask for. So this holds the connection and the text, and
+    `resolve()` runs exactly once, at render.
+
+    The connection is the caller's own object and gog never opens one: no
+    credentials, no driver dependency, no socket of its own. That is the same
+    duck-typing that lets `data()` take a pandas frame without pandas being a
+    dependency, one level out.
+    """
+
+    __slots__ = ("connection", "sql")
+
+    def __init__(self, connection: Any, sql: str) -> None:
+        self.connection = connection
+        self.sql = sql
+
+    def __repr__(self) -> str:
+        text = self.sql if len(self.sql) <= 40 else self.sql[:37] + "..."
+        return f"query({text!r})"
+
+    def resolve(self, table: str) -> Dict[str, List[Any]]:
+        """Run the query and return a dict of columns — a table `to_wire` eats."""
+        return _rows_from_connection(self.connection, self.sql, table)
+
+
+def _rows_from_connection(con: Any, sql: str, table: str) -> Dict[str, List[Any]]:
+    """Run `sql` on `con`, as a dict of columns.
+
+    Two protocols, tried in this order, and **the order is not arbitrary**:
+    DuckDB satisfies both, and only its PEP 249 side returns rows (its `.sql()`
+    hands back a relation, not a frame). A `SparkSession` has no `.cursor` at
+    all, so the two cases never overlap — checked rather than assumed.
+
+    1. **PEP 249**, Python's database API — `sqlite3`, DuckDB, `psycopg`,
+       `pyodbc`, `databricks-sql-connector`, Snowflake. The standard, so it goes
+       first.
+    2. **Spark** — a `SparkSession`, whose `.sql()` returns a DataFrame that
+       `.toPandas()` collects. This is the Databricks route, where the table is
+       a Unity Catalog table and the session is already in the notebook.
+    """
+    if hasattr(con, "cursor"):
+        cursor = con.cursor()
+        try:
+            cursor.execute(sql)
+            if cursor.description is None:
+                raise GogError(
+                    f"gog: the query for `{table}` returned no columns. `query()` "
+                    f"takes a SELECT — a statement that produces a table."
+                )
+            names = [str(d[0]) for d in cursor.description]
+            rows = cursor.fetchall()
+        finally:
+            close = getattr(cursor, "close", None)
+            if close is not None:
+                close()
+        return {name: [row[i] for row in rows] for i, name in enumerate(names)}
+
+    if hasattr(con, "sql"):
+        frame = con.sql(sql)
+        collect = getattr(frame, "toPandas", None)
+        if collect is None:
+            raise GogError(
+                f"gog: `query()` ran `{table}` on a Spark-shaped connection, but its "
+                f"result has no `toPandas()`, so the rows cannot be collected."
+            )
+        return collect()
+
+    raise GogError(
+        "gog: `query()` takes a database connection and a SELECT — "
+        "`query(con, 'SELECT ...')`. The connection must be either a PEP 249 one "
+        "(`sqlite3`, DuckDB, `psycopg`, `databricks-sql-connector` — anything with "
+        "`.cursor()`) or a Spark session (`.sql()`). "
+        f"Got {type(con).__name__}, which is neither. If the rows are already in "
+        "hand, that is a table: `data(df)`."
+    )
+
+
 def to_wire(frame: Any, table: str) -> Dict[str, Any]:
     """A table in the engine's column-oriented wire form."""
     floats: Dict[str, List[Optional[float]]] = {}
@@ -287,6 +369,13 @@ def to_wire(frame: Any, table: str) -> Dict[str, Any]:
 def render_svg(plot: Any) -> str:
     """Draw a plot and return the SVG as a string."""
     spec, frames = plot._wire()
+    # A `query()` table is resolved here and nowhere else — one place, at render,
+    # which is what leaves room for the planner to rewrite the sentence before
+    # the database is ever asked (the pushdown design).
+    frames = {
+        name: (frame.resolve(name) if isinstance(frame, Query) else frame)
+        for name, frame in frames.items()
+    }
     request = {
         "spec": spec,
         "data": {name: to_wire(frame, name) for name, frame in frames.items()},

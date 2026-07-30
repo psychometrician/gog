@@ -88,7 +88,7 @@ from .atoms import (
 from .columns import col
 from .errors import GogError
 from .render import ordered, render_svg
-from .spec import Page, Plot, data
+from .spec import Page, Plot, data, query
 
 # The seventh place a version is declared, and the one that hides: the other six
 # are manifests a release process reads, this one is *code a user reads*. It sat
@@ -102,6 +102,7 @@ __version__ = "0.0.1"
 __all__ = [
     # the table
     "data",
+    "query",
     "col",
     "ordered",
     # marks

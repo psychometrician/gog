@@ -30,7 +30,7 @@ from typing import Any, Dict, List, Optional, Tuple
 
 from .columns import Column
 from .errors import GogError
-from .render import render_svg, save, show, svg_block
+from .render import Query, render_svg, save, show, svg_block
 
 # ---------------------------------------------------------------------------
 # Atoms
@@ -253,7 +253,17 @@ def data(frame: Any, name: Optional[str] = None) -> "Plot":
         )
         name = "data"
 
-    spec: Dict[str, Any] = {
+    return Plot(_new_spec(name), {name: frame})
+
+
+def _new_spec(name: str) -> Dict[str, Any]:
+    """The empty sentence, given the name of the table it is about.
+
+    One skeleton, shared by every atom that can open a plot — `data()` and
+    `query()` today. Two copies of this dict is how a field gets added to one
+    data source and not the other.
+    """
+    return {
         "data": name,
         "layers": [],
         "coord": "flat",
@@ -269,7 +279,63 @@ def data(frame: Any, name: Optional[str] = None) -> "Plot":
         "z": None,
         "channels": {},  # plot-scoped channels — those written before any mark
     }
-    return Plot(spec, {name: frame})
+
+
+def query(connection: Any, sql: Optional[str] = None, name: Optional[str] = None) -> "Plot":
+    """Start a plot with a table that lives in a database.
+
+    `query()` stands exactly where `data()` stands, and **nothing after it
+    changes** — same operators, same channels, same bare column names, same
+    transforms:
+
+        data(orders)                              + bar + x(col.status)
+        query(con, "SELECT * FROM main.orders")   + bar + x(col.status)
+
+    The SQL is confined to this one argument and never enters the grammar, which
+    is the whole point: `x(col.status)` is still a column name resolved by the
+    same mask, not a fragment of another language.
+
+    The connection is the caller's own — gog opens none and depends on no
+    driver. Either a PEP 249 connection (`sqlite3`, DuckDB, `psycopg`,
+    `databricks-sql-connector`) or a Spark session, whose `.sql()` reaches a
+    Unity Catalog table.
+
+    The query is **not run here**. It runs once, at render.
+
+    The table is called `query` unless `name=` says otherwise, which is what a
+    second one in the same sentence needs — a layer resolves its columns against
+    the nearest table *by name*, so two tables sharing one name collide, exactly
+    as two unnamed `data()` tables do.
+    """
+    # `sql` defaults so that `query("SELECT ...")` — the mistake `data(df)`
+    # invites, since that atom takes one argument — reaches this refusal instead
+    # of Python's own "missing 1 required positional argument", which names the
+    # parameter and not the fix.
+    if sql is None:
+        if isinstance(connection, str):
+            raise GogError(
+                "gog: `query()` takes the connection first, then the SELECT — "
+                "`query(con, 'SELECT ...')`. A query on its own cannot say which "
+                "database it runs against, which is why the connection is written "
+                "out loud. If the rows are already in hand, that is `data(df)`."
+            )
+        raise GogError(
+            "gog: `query()` takes a connection and a SELECT — "
+            f"`query(con, 'SELECT ...')`. Got {type(connection).__name__} and no query."
+        )
+    if isinstance(connection, str):
+        raise GogError(
+            "gog: `query()` takes the connection first, then the SELECT — "
+            "`query(con, 'SELECT ...')`. A query on its own cannot say which "
+            "database it runs against."
+        )
+    if not isinstance(sql, str):
+        raise GogError(
+            "gog: `query()` takes a SELECT as text — "
+            f"`query(con, 'SELECT ...')`. Got {type(sql).__name__} for the query."
+        )
+
+    return Plot(_new_spec(name or "query"), {name or "query": Query(connection, sql)})
 
 
 # ---------------------------------------------------------------------------
