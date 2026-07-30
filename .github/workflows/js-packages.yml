@@ -175,16 +175,30 @@ jobs:
           # The Rosetta check above guards execution and cannot help with that:
           # the two are separate gates, and only the second one was accounted for.
           #
-          # `--cpu`/`--os` override the platform npm resolves against, which is
-          # narrower than `--force` — it says "install for x64 darwin" rather than
-          # "ignore your objections". Rosetta has already been confirmed, so the
-          # engine that lands here really can run.
-          INSTALL_PLATFORM=""
+          # `--force` is the only flag that does it, which is not what the
+          # documentation suggests. Measured on an arm64 machine against a package
+          # declaring exactly this constraint, npm 11.3:
+          #
+          #     npm install                      refused
+          #     npm install --cpu=x64            refused
+          #     npm install --cpu=x64 --os=darwin  refused
+          #     npm install --force              installed
+          #
+          # `--cpu`/`--os` govern which *optional dependency* npm resolves for a
+          # target platform; they do not relax validation of a package the command
+          # line asked for by name. So the narrower flag does not exist here, and
+          # `--force` is scoped to the one target that needs it.
+          #
+          # Nothing about the check is softened by it: the engine's architecture is
+          # still asserted from the packed file above, Rosetta is still required
+          # before the draw is attempted, and the draw still has to produce SVG
+          # from an engine found inside the platform package.
+          INSTALL_FLAGS=""
           if [ "${{ matrix.target }}" = "darwin-x64" ]; then
-            INSTALL_PLATFORM="--cpu=x64 --os=darwin"
+            INSTALL_FLAGS="--force"
           fi
           # shellcheck disable=SC2086
-          npm install --no-audit --no-fund $INSTALL_PLATFORM "$RUNNER_TEMP/$MAIN" "$PACKED"
+          npm install --no-audit --no-fund $INSTALL_FLAGS "$RUNNER_TEMP/$MAIN" "$PACKED"
 
           cat > draw.mjs <<'EOF'
           import process from "node:process";

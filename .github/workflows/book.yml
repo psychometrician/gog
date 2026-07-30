@@ -125,22 +125,38 @@ jobs:
       - name: Prove R can reach that interpreter, the way the book does
         shell: bash
         run: |
+          cat > "$RUNNER_TEMP/where.py" <<'EOF'
+          import sys, os
+          print("executable  ", sys.executable)
+          print("prefix      ", sys.prefix)
+          print("base_prefix ", sys.base_prefix)
+          print("sys.path    ", *sys.path, sep="\n              ")
+          for v in ("PYTHONHOME", "PYTHONPATH", "PYTHONNOUSERSITE", "VIRTUAL_ENV"):
+              print(f"{v:12}", os.environ.get(v, "(unset)"))
+          try:
+              import pandas
+              print("pandas      ", pandas.__version__, pandas.__file__)
+          except Exception as e:
+              print("pandas       FAILED:", type(e).__name__, e)
+          EOF
+
+          echo "################ from bash ################"
+          "$GOG_BOOK_PYTHON" "$RUNNER_TEMP/where.py"
+
+          echo
+          echo "################ from R (how the book asks) ################"
           cat > "$RUNNER_TEMP/check-python.R" <<'EOF'
           py <- Sys.getenv("GOG_BOOK_PYTHON")
-          out <- suppressWarnings(system2(
-            py, c("-c", shQuote("import pandas; print(pandas.__version__)")),
-            stdout = TRUE, stderr = TRUE))
-          status <- attr(out, "status")
-          if (is.null(status)) status <- 0
-          cat("interpreter:", py, "\nstatus:", status, "\noutput:\n")
-          cat(out, sep = "\n")
-          cat("\n")
+          out <- suppressWarnings(system2(py, shQuote(Sys.getenv("WHERE_PY")),
+                                          stdout = TRUE, stderr = TRUE))
+          cat(out, sep = "\n"); cat("\n")
+          status <- attr(out, "status"); if (is.null(status)) status <- 0
           if (status != 0) {
             stop("R cannot import pandas through this interpreter, so the book ",
                  "would fail at bindings/python.qmd for the same reason")
           }
           EOF
-          Rscript "$RUNNER_TEMP/check-python.R"
+          WHERE_PY="$RUNNER_TEMP/where.py" Rscript "$RUNNER_TEMP/check-python.R"
 
       - uses: quarto-dev/quarto-actions/setup@v2
 
