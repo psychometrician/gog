@@ -186,14 +186,18 @@ jobs:
           ---
 
           ```{r}
+          # `message()`, not `cat()`. knitr buffers a chunk's stdout and discards it
+          # when the chunk aborts, so the first version of this probe reproduced the
+          # failure and then threw away the interpreter's own account of it — the
+          # log showed only that the check had failed. stderr is unbuffered and
+          # survives.
           run <- function(label, exe, args, want) {
-            cat("\n##", label, "\n", exe, "\n")
+            message("\n## ", label, "\n   ", exe)
             out <- suppressWarnings(system2(exe, args, stdout = TRUE, stderr = TRUE))
             status <- attr(out, "status")
             if (is.null(status)) status <- 0
-            cat("status:", status, "\n")
-            cat(out, sep = "\n")
-            cat("\n")
+            message("   status: ", status)
+            for (line in out) message("   | ", line)
             if (status != 0 || !any(grepl(want, out, fixed = TRUE))) {
               stop(label, " does not work through quarto, so the render would fail ",
                    "in bindings/ for the same reason")
@@ -201,8 +205,9 @@ jobs:
           }
 
           for (v in c("GOG_BOOK_PYTHON", "GOG_BOOK_JULIA", "GOG_BOOK_NODE",
-                      "PYTHONHOME", "PYTHONPATH", "VIRTUAL_ENV", "LD_LIBRARY_PATH")) {
-            cat(sprintf("%-18s %s\n", v, Sys.getenv(v, unset = "(unset)")))
+                      "PYTHONHOME", "PYTHONPATH", "VIRTUAL_ENV", "LD_LIBRARY_PATH",
+                      "JULIA_DEPOT_PATH", "JULIA_LOAD_PATH", "JULIA_PROJECT")) {
+            message(sprintf("%-18s %s", v, Sys.getenv(v, unset = "(unset)")))
           }
 
           run("python + pandas", Sys.getenv("GOG_BOOK_PYTHON"),
