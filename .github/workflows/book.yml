@@ -143,10 +143,36 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: "20"
+      # Julia is reached through a wrapper that clears `LD_LIBRARY_PATH`, and that
+      # one line is the whole reason `bindings/julia.qmd` can render here.
+      #
+      # R prepends its own library directory to `LD_LIBRARY_PATH` at startup, so a
+      # Julia launched from an R chunk inherits
+      # `/opt/R/<ver>/lib/R/lib:/usr/local/lib:/usr/lib/x86_64-linux-gnu:...`.
+      # Julia ships its own `libstdc++` and `libgcc` and expects to find them by its
+      # own RPATH; with those directories ahead of it the loader hands it the
+      # system copies instead, and it dies of SIGSEGV. Julia's own documentation
+      # warns against setting `LD_LIBRARY_PATH` for exactly this reason.
+      #
+      # It presented as `bindings/julia.qmd` reporting that a sentence "documented
+      # as a refusal did not refuse", because a crash is not a refusal. The tell was
+      # that the *same* case, `@refuses x("gdp")` at `runtests.jl:141`, passes in
+      # `tests.yml` on this same runner — where R is not in the chain and nothing has
+      # touched `LD_LIBRARY_PATH`.
+      #
+      # `GOG_BOOK_JULIA` is the override `julia.R` already honors, so this needs no
+      # change to the book.
       - name: Pin the interpreters the binding chapters run
         shell: bash
         run: |
-          echo "GOG_BOOK_JULIA=$(command -v julia)" >> "$GITHUB_ENV"
+          JULIA="$(command -v julia)"
+          { echo '#!/bin/sh'
+            echo 'unset LD_LIBRARY_PATH'
+            echo "exec $JULIA \"\$@\""; } > "$RUNNER_TEMP/julia-clean"
+          chmod +x "$RUNNER_TEMP/julia-clean"
+
+          echo "GOG_BOOK_JULIA=$RUNNER_TEMP/julia-clean" >> "$GITHUB_ENV"
+          echo "GOG_BOOK_JULIA_RAW=$JULIA" >> "$GITHUB_ENV"
           echo "GOG_BOOK_NODE=$(command -v node)" >> "$GITHUB_ENV"
           julia --version
           node --version
@@ -196,7 +222,7 @@ jobs:
           diag <- Sys.getenv("PROBE_DIAG")
           say <- function(...) cat(..., "\n", sep = "", file = diag, append = TRUE)
 
-          run <- function(label, exe, args, want) {
+          run <- function(label, exe, args, want, fatal = TRUE) {
             say("\n## ", label, "\n   ", exe)
             out <- suppressWarnings(system2(exe, args, stdout = TRUE, stderr = TRUE))
             status <- attr(out, "status")
@@ -205,10 +231,11 @@ jobs:
             for (line in out) say("   | ", line)
             ok <- status == 0 && any(grepl(want, out, fixed = TRUE))
             say("   verdict: ", if (ok) "ok" else "FAILED")
-            if (!ok) {
+            if (!ok && fatal) {
               stop(label, " does not work through quarto, so the render would fail ",
                    "in bindings/ for the same reason")
             }
+            ok
           }
 
           for (v in c("GOG_BOOK_PYTHON", "GOG_BOOK_JULIA", "GOG_BOOK_NODE",
@@ -256,10 +283,23 @@ jobs:
             "    println(\"PROBE_OK refused\")",
             "end"
           ), script)
-          run("julia refuses a string channel", Sys.getenv("GOG_BOOK_JULIA"),
-              c(paste0("--project=", shQuote(jl_project)), "--startup-file=no",
-                shQuote(script)),
-              "PROBE_OK")
+          jl_args <- c(paste0("--project=", shQuote(jl_project)),
+                       "--startup-file=no", shQuote(script))
+
+          # The raw interpreter first, and it is allowed to fail. This is not
+          # ceremony: it records in the log *why* the wrapper exists, so nobody
+          # later removes a one-line shim that looks like superstition. Expect
+          # status 139 — SIGSEGV — from the inherited `LD_LIBRARY_PATH`.
+          raw_ok <- run("julia refuses a string channel (raw, LD_LIBRARY_PATH inherited)",
+                        Sys.getenv("GOG_BOOK_JULIA_RAW"), jl_args, "PROBE_OK",
+                        fatal = FALSE)
+          if (raw_ok) {
+            say("\n   NOTE: the raw interpreter now works too. If that holds, the",
+                "\n   LD_LIBRARY_PATH wrapper is no longer needed and can go.")
+          }
+
+          run("julia refuses a string channel (through the wrapper)",
+              Sys.getenv("GOG_BOOK_JULIA"), jl_args, "PROBE_OK")
           ```
           EOF
           cd "$PROBE"
