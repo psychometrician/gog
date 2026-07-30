@@ -95,7 +95,7 @@ three parity harnesses draw every sentence in the manual and compare against R.
 | **Python** | `gog` | **`pip install gog`** — [live on PyPI](https://pypi.org/project/gog/) |
 | **R** | `gog` | not on CRAN yet — build from source, below |
 | **Julia** | `GrammarOfGraphics` | not in the General registry yet |
-| **JavaScript** | `grammar-of-graphics` | not published yet |
+| **JavaScript** | `grammar-of-graphics` | **`npm install grammar-of-graphics`** — [live on npm](https://www.npmjs.com/package/grammar-of-graphics) |
 
 Each binding ships the engine inside it, so there is no second thing to install
 and nothing to put on your `PATH`.

@@ -39,9 +39,10 @@ the same vocabulary rather than add-ons with a syntax of their own.
 npm install grammar-of-graphics
 ```
 
-That is the shape of the answer rather than a command you can run today: the
-package is not published yet. Until it is, the book's
-[JavaScript chapter][js-chapter] shows how to work from a copy of the source.
+That is all of it. The engine for your platform arrives as an optional dependency,
+so there is nothing to put on your `PATH` and nothing to build. The book's
+[JavaScript chapter][js-chapter] also shows how to work from a copy of the source,
+which is what you want if you are changing the engine rather than using it.
 
 ## Your first plot
 
