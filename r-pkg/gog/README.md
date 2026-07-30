@@ -37,12 +37,19 @@ the same vocabulary rather than add-ons with a syntax of their own.
 ## Install
 
 ```r
-install.packages("gog")
+install.packages("gog", repos = c("https://psychometrician.r-universe.dev",
+                                  "https://cloud.r-project.org"))
 ```
 
-That is the shape of the answer rather than a command you can run today: `gog`
-is not on CRAN yet. Until it is, the book's [R chapter][r-chapter] shows how to
-work from a copy of the source.
+`gog` is not on CRAN yet, so it comes from [r-universe][r-universe] for now — which
+is why the `repos` line is there, and why the second entry is CRAN, so your other
+packages still resolve. r-universe builds binaries for macOS, Windows and Linux, and
+each one carries the engine, so nothing needs Rust installed.
+
+Building from a checkout instead is what you want if you are changing the engine
+rather than using it; the book's [R chapter][r-chapter] shows that route.
+
+[r-universe]: https://psychometrician.r-universe.dev/gog
 
 ## Your first plot
 

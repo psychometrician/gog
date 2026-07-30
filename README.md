@@ -93,7 +93,7 @@ three parity harnesses draw every sentence in the manual and compare against R.
 | Language | Package | Today |
 |---|---|---|
 | **Python** | `gog` | **`pip install gog`** — [live on PyPI](https://pypi.org/project/gog/) |
-| **R** | `gog` | not on CRAN yet — build from source, below |
+| **R** | `gog` | **`install.packages("gog", repos = "https://psychometrician.r-universe.dev")`** — [live on r-universe](https://psychometrician.r-universe.dev/gog); not on CRAN yet |
 | **Julia** | `GrammarOfGraphics` | not in the General registry yet |
 | **JavaScript** | `grammar-of-graphics` | **`npm install grammar-of-graphics`** — [live on npm](https://www.npmjs.com/package/grammar-of-graphics) |
 
