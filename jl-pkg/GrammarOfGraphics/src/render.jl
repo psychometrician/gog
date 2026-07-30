@@ -247,7 +247,10 @@ function render_svg(plot::Union{Plot,Page})
     spec, frames = wire(plot)
     data = Dict{String,Any}()
     for (name, table) in frames
-        data[name] = to_wire(table, name)
+        # A `query()` table is resolved here and nowhere else — one place, at
+        # render, which is what leaves room for the planner to rewrite the
+        # sentence before the database is ever asked (the pushdown design).
+        data[name] = to_wire(resolve_query(table, name), name)
     end
     payload = to_json(Dict{String,Any}("spec" => spec, "data" => data))
 

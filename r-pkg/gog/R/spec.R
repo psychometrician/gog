@@ -296,15 +296,125 @@ data <- function(df, name = NULL) {
     z        = NULL,
     channels = list()   # plot-scoped channels — those written before any mark
   )
+  new_gog_spec(spec, name, df)
+}
+
+# The empty sentence, given the name of the table it is about. One skeleton,
+# shared by every atom that can open a plot — `data()` and `query()`. Two copies
+# of this list is how a field gets added to one data source and not the other.
+new_spec <- function(name) {
+  list(
+    data     = name,
+    layers   = list(),
+    coord    = "flat",
+    title    = NULL,
+    x_axis   = list(label = NULL),
+    y_axis   = list(label = NULL),
+    z_axis   = list(label = NULL),
+    x        = NULL,
+    y        = NULL,
+    z        = NULL,
+    channels = list()
+  )
+}
+
+new_gog_spec <- function(spec, name, frame) {
   structure(
     list(
       spec          = spec,
-      data_frames   = stats::setNames(list(df), name),
+      data_frames   = stats::setNames(list(frame), name),
       current_layer = NULL,
       pending_data  = NULL
     ),
     class = "gog_spec"
   )
+}
+
+#' A table that lives in a database
+#'
+#' `query()` stands exactly where [data()] stands, and **nothing after it
+#' changes** — the same operators, channels, bare column names and transforms:
+#'
+#' ```r
+#' data(orders)                             + bar + x(status)
+#' query(con, "SELECT * FROM orders")       + bar + x(status)
+#' ```
+#'
+#' The SQL is confined to this one argument and never enters the grammar, which
+#' is the point: `x(status)` is still a bare column resolved by the same mask,
+#' not a fragment of another language.
+#'
+#' The connection is the caller's own — gog opens none. It is a **DBI**
+#' connection, R's database standard, so RSQLite, RPostgres, RMariaDB, odbc and
+#' bigrquery all reach this. DBI is Suggests rather than Imports: a user who
+#' never writes SQL should not install a database stack to draw a plot.
+#'
+#' The query is **not run here**. It runs once, at render.
+#'
+#' @param con A DBI connection.
+#' @param sql A single `SELECT`, as a string.
+#' @param name What to call the table. Defaults to `"query"`; a second query in
+#'   one sentence needs its own name, since a layer resolves its bare columns
+#'   against the nearest table *by name*.
+#' @return A `gog_spec`.
+#' @export
+query <- function(con, sql, name = NULL) {
+  if (missing(con)) {
+    stop("gog: `query()` needs a connection and a SELECT — ",
+         "`query(con, \"SELECT ...\")`.", call. = FALSE)
+  }
+  # Checked before the missing-`sql` branch so that `query("SELECT ...")` — the
+  # mistake `data()` invites, that atom taking one argument — is told the fix
+  # rather than "argument \"sql\" is missing, with no default".
+  if (is.character(con)) {
+    stop("gog: `query()` takes the connection first, then the SELECT — ",
+         "`query(con, \"SELECT ...\")`. A query on its own cannot say which ",
+         "database it runs against, which is why the connection is written out ",
+         "loud. If the rows are already in hand, that is `data(df)`.", call. = FALSE)
+  }
+  if (missing(sql)) {
+    stop("gog: `query()` needs the SELECT as well as the connection — ",
+         "`query(con, \"SELECT ...\")`.", call. = FALSE)
+  }
+  if (!is.character(sql) || length(sql) != 1L) {
+    stop("gog: `query()` takes a SELECT as one string — ",
+         "`query(con, \"SELECT ...\")`. Got ", class(sql)[1L],
+         " of length ", length(sql), ".", call. = FALSE)
+  }
+  if (is.null(name)) name <- "query"
+
+  new_gog_spec(new_spec(name), name, gog_query(con, sql))
+}
+
+# The unresolved table. Deliberately not executed when it is written: a query
+# that ran at that moment would foreclose pushing the transform down to the
+# database, because the planner has to see the whole sentence before it can know
+# what to ask for. `resolve_query()` runs it once, at render.
+gog_query <- function(con, sql) {
+  structure(list(con = con, sql = sql), class = "gog_query")
+}
+
+resolve_query <- function(q, table) {
+  if (!inherits(q, "gog_query")) return(q)
+  if (!requireNamespace("DBI", quietly = TRUE)) {
+    stop("gog: `query()` needs the DBI package, which is not installed — ",
+         "`install.packages(\"DBI\")`, plus the driver for your database ",
+         "(RSQLite, RPostgres, odbc). DBI is Suggests rather than a hard ",
+         "dependency, so drawing a plot from a data frame never asks for it.",
+         call. = FALSE)
+  }
+  rows <- tryCatch(
+    DBI::dbGetQuery(q$con, q$sql),
+    error = function(e) {
+      stop("gog: the query for `", table, "` failed: ", conditionMessage(e),
+           call. = FALSE)
+    }
+  )
+  if (!is.data.frame(rows)) {
+    stop("gog: the query for `", table, "` did not return a table. `query()` ",
+         "takes a SELECT — a statement that produces rows.", call. = FALSE)
+  }
+  rows
 }
 
 # ---------------------------------------------------------------------------

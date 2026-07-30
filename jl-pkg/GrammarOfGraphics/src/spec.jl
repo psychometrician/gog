@@ -126,7 +126,18 @@ function data(table; name::Union{Nothing,AbstractString} = nothing)
                        "`+ x(:gdp)`."))
     end
 
-    plot = Plot(
+    plot = new_plot()
+    resolved = name_for!(plot, table, name)
+    plot.spec["data"] = resolved
+    plot.frames[resolved] = table
+    plot
+end
+
+# The empty sentence. One skeleton, shared by every atom that can open a plot —
+# `data()` and `query()`. Two copies of this Dict is how a field gets added to
+# one data source and not the other.
+function new_plot()
+    Plot(
         Dict{String,Any}(
             "data" => nothing,
             "layers" => Any[],
@@ -143,12 +154,117 @@ function data(table; name::Union{Nothing,AbstractString} = nothing)
             "channels" => Dict{String,Any}(),
         ),
         Dict{String,Any}(), IdDict{Any,String}(), nothing, nothing, 0)
+end
 
-    resolved = name_for!(plot, table, name)
+"""
+A table named by a SQL query instead of held in memory.
+
+Deliberately **not** executed when it is written: a query that ran at that moment
+would foreclose pushing the transform down to the database, because the planner
+has to see the whole sentence first. `resolve_query` runs it once, at render.
+"""
+struct Query
+    connection::Any
+    sql::String
+end
+
+"""
+    query(connection, sql; name = nothing)
+
+Start a plot with a table that lives in a database.
+
+`query()` stands exactly where [`data`](@ref) stands, and **nothing after it
+changes** — the same operators, channels, symbols and transforms:
+
+```julia
+data(orders)                            + bar + x(:status)
+query(con, "SELECT * FROM orders")      + bar + x(:status)
+```
+
+The SQL is confined to this one argument and never enters the grammar: `x(:status)`
+is still a column symbol resolved by the same mask.
+
+The connection is the caller's own — gog opens none and **depends on no database
+package**. Any `DBInterface.jl` connection reaches this (SQLite.jl, LibPQ.jl,
+MySQL.jl, DuckDB.jl); `DBInterface` is looked up in the session at render rather
+than declared as a dependency, so this package stays as dependency-free as it has
+always been.
+"""
+function query(connection, sql = nothing; name::Union{Nothing,AbstractString} = nothing)
+    # `sql` defaults so that `query("SELECT ...")` — the mistake `data()` invites,
+    # that atom taking one argument — reaches this refusal rather than Julia's
+    # own `MethodError: no method matching query(::String)`, which names the
+    # dispatch and not the fix. The same default is in the other three bindings.
+    if sql === nothing
+        if connection isa AbstractString
+            throw(GogError(
+                "gog: `query()` takes the connection first, then the SELECT — " *
+                "`query(con, \"SELECT ...\")`. A query on its own cannot say which " *
+                "database it runs against, which is why the connection is written " *
+                "out loud. If the rows are already in hand, that is `data(df)`."))
+        end
+        throw(GogError(
+            "gog: `query()` takes a connection and a SELECT — " *
+            "`query(con, \"SELECT ...\")`. Got $(typeof(connection)) and no query."))
+    end
+    if connection isa AbstractString
+        throw(GogError(
+            "gog: `query()` takes the connection first, then the SELECT — " *
+            "`query(con, \"SELECT ...\")`. A query on its own cannot say which " *
+            "database it runs against, which is why the connection is written out " *
+            "loud. If the rows are already in hand, that is `data(df)`."))
+    end
+    if !(sql isa AbstractString)
+        throw(GogError(
+            "gog: `query()` takes a SELECT as text — `query(con, \"SELECT ...\")`. " *
+            "Got $(typeof(sql)) for the query."))
+    end
+
+    plot = new_plot()
+    resolved = name === nothing ? "query" : String(name)
     plot.spec["data"] = resolved
-    plot.frames[resolved] = table
+    plot.frames[resolved] = Query(connection, String(sql))
     plot
 end
+
+# Run the query, as a table of columns. `DBInterface` is resolved from the
+# session rather than imported: this package declares one dependency, `Dates`,
+# and a user who never writes SQL should not gain a database stack to draw a
+# plot. Rows come back as NamedTuples, which is enough to name the columns
+# without `Tables.jl` either.
+function resolve_query(q::Query, table::AbstractString)
+    dbi = nothing
+    for (pkg, mod) in Base.loaded_modules
+        if pkg.name == "DBInterface"
+            dbi = mod
+            break
+        end
+    end
+    dbi === nothing && throw(GogError(
+        "gog: `query()` needs DBInterface.jl, which is not loaded — " *
+        "`using DBInterface` (and your driver: SQLite, LibPQ, MySQL, DuckDB). " *
+        "It is looked up rather than depended on, so drawing a plot from a table " *
+        "in memory never asks for it."))
+
+    result = try
+        Base.invokelatest(getfield(dbi, :execute), q.connection, q.sql)
+    catch err
+        throw(GogError("gog: the query for `$table` failed: $(err)"))
+    end
+
+    rows = collect(result)
+    isempty(rows) && throw(GogError(
+        "gog: the query for `$table` returned no rows, so there is nothing to " *
+        "draw and no columns to name."))
+
+    cols = Dict{String,Any}()
+    for n in propertynames(first(rows))
+        cols[String(n)] = [getproperty(r, n) for r in rows]
+    end
+    cols
+end
+
+resolve_query(table, ::AbstractString) = table
 
 function name_for!(p::Plot, table, given::Union{Nothing,AbstractString})
     if given !== nothing

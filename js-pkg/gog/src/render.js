@@ -21,6 +21,7 @@ import path from "node:path";
 import process from "node:process";
 import { fileURLToPath } from "node:url";
 
+import { describe } from "./columns.js";
 import { GogError } from "./errors.js";
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
@@ -305,6 +306,84 @@ export function to_wire(table, name) {
 // Render to an SVG string
 // ---------------------------------------------------------------------------
 
+// A table named by a SQL query instead of held in memory. Deliberately not
+// executed when it is written: a query that ran at that moment would foreclose
+// pushing the transform down to the database, because the planner has to see
+// the whole sentence first. `resolveQuery` runs it once, at render.
+export class Query {
+  constructor(connection, sql) {
+    this.connection = connection;
+    this.sql = sql;
+  }
+}
+
+// Run the query, as an object of columns.
+//
+// JavaScript is the one binding with **no database standard to lean on** — R has
+// DBI, Python has PEP 249, Julia has DBInterface, and node has nothing. So this
+// duck-types on the two shapes that actually appear, and refuses the rest by
+// name rather than guessing.
+//
+// It also has a constraint the other three do not: `render_svg` is
+// **synchronous**, so a driver whose query returns a Promise cannot be awaited
+// here. `pg` and `mysql2` are async and are refused *with their own direction* —
+// await the rows yourself and pass them to `data()`, which is a table like any
+// other. That is a real limit, named out loud rather than left to fail as
+// `[object Promise]` reaching the wire.
+export function resolveQuery(query, table) {
+  const con = query.connection;
+  let rows;
+
+  if (con && typeof con.prepare === "function") {
+    // better-sqlite3, and node:sqlite (Node 22+) — both synchronous.
+    const statement = con.prepare(query.sql);
+    if (typeof statement.all !== "function") {
+      throw new GogError(
+        `gog: the connection for \`${table}\` prepared the query but the result ` +
+          "has no `.all()`, so the rows cannot be read."
+      );
+    }
+    rows = statement.all();
+  } else if (con && typeof con.all === "function") {
+    rows = con.all(query.sql);
+  } else if (con && typeof con.query === "function") {
+    throw new GogError(
+      `gog: the connection for \`${table}\` looks asynchronous (\`pg\`, ` +
+        "`mysql2`), and `render_svg()` is synchronous, so its rows cannot be " +
+        "awaited here. Await them yourself and hand them over as a table: " +
+        "`const { rows } = await con.query(sql)`, then `data(rows)`."
+    );
+  } else {
+    throw new GogError(
+      "gog: `query()` takes a database connection and a SELECT — " +
+        "`query(con, 'SELECT ...')`. The connection must be a synchronous one " +
+        "(`better-sqlite3`, `node:sqlite` — anything with `.prepare(sql).all()`). " +
+        `Got ${describe(con)}. If the rows are already in hand, that is ` +
+        "`data(rows)`."
+    );
+  }
+
+  if (rows instanceof Promise) {
+    throw new GogError(
+      `gog: the query for \`${table}\` returned a Promise, and \`render_svg()\` ` +
+        "is synchronous. Await the rows and pass them as a table: `data(rows)`."
+    );
+  }
+  if (!Array.isArray(rows) || rows.length === 0) {
+    throw new GogError(
+      `gog: the query for \`${table}\` returned no rows, so there is nothing to ` +
+        "draw and no columns to name."
+    );
+  }
+
+  // Rows arrive as objects, one per row; the wire wants columns.
+  const columns = {};
+  for (const key of Object.keys(rows[0])) {
+    columns[key] = rows.map((row) => row[key]);
+  }
+  return columns;
+}
+
 export function render_svg(plot) {
   if (!plot || typeof plot !== "object" || !plot.spec || !plot.frames) {
     throw new GogError(
@@ -318,7 +397,11 @@ export function render_svg(plot) {
 
   const data = {};
   for (const [name, table] of Object.entries(plot.frames)) {
-    data[name] = to_wire(table, name);
+    // A `query()` table is resolved here and nowhere else — one place, at
+    // render, which is what leaves room for the planner to rewrite the sentence
+    // before the database is ever asked (the pushdown design).
+    data[name] =
+      table instanceof Query ? to_wire(resolveQuery(table, name), name) : to_wire(table, name);
   }
   const payload = JSON.stringify({ spec: plot.spec, data });
 

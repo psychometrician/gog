@@ -47,7 +47,7 @@ include("atoms.jl")
 include("render.jl")
 
 export GogError, Plot, Page, Atom, Ordered, ordered
-export data, render_svg, save, svg_block, find_gog_cli, to_wire
+export data, query, render_svg, save, svg_block, find_gog_cli, to_wire
 
 # marks — the "consonants"
 export point, line, path, rule, zone, area, bar, step, interval, box, ribbon, text,

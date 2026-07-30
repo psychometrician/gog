@@ -220,7 +220,12 @@ render_svg <- function(gog) {
     gog$spec
   }
 
-  wire_data <- lapply(gog$data_frames, df_to_wire)
+  # A `query()` table is resolved here and nowhere else — one place, at render,
+  # which is what leaves room for the planner to rewrite the sentence before the
+  # database is ever asked (the pushdown design).
+  frames <- mapply(resolve_query, gog$data_frames, names(gog$data_frames),
+                   SIMPLIFY = FALSE)
+  wire_data <- lapply(frames, df_to_wire)
 
   request <- list(spec = wire_spec, data = wire_data)
 

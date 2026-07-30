@@ -13,6 +13,7 @@ can read, and write, any plot.
 
 | Kind | The words |
 |---|---|
+| **Tables** | `data` `query` |
 | **Marks** | `point` `line` `area` `bar` `step` `interval` `box` `ribbon` `text` `path` `rule` `zone` `surface` |
 | **Channels** | `x` `y` `z` `color` `size` `shape` `pattern` `opacity` `group` `label` `play` |
 | **Selections** | `click`⬜ `brush`⬜ `lasso`⬜ |
@@ -33,6 +34,18 @@ data(table) + mark + x(column) + y(column)
 ```
 
 No abbreviations, no acronyms, no silent letters.
+
+A table does not have to be in memory. `query()` stands exactly where `data()`
+stands, and everything after it is unchanged:
+
+```
+query(connection, "SELECT ...") + mark + x(column) + y(column)
+```
+
+The SQL sits inside that one word and goes no further. The columns after it are
+still bare names, because the database returned a table and a table is what the
+grammar has always begun with. Writing SQL is not a different way of drawing;
+it is a different way of naming the rows.
 
 The kernel above is the *designed* vocabulary. The five words marked ⬜ are not
 drawn yet, and they are not callable either, so your language will report a

@@ -18,6 +18,8 @@ Roxygen: list(markdown = TRUE)
 Imports:
     jsonlite
 Suggests:
+    DBI,
+    RSQLite,
     gapminder,
     IRdisplay,
     knitr,

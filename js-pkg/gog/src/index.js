@@ -30,7 +30,7 @@
 
 export { GogError } from "./errors.js";
 export { col, Column } from "./columns.js";
-export { Atom, Page, Plot, plot, layer, across, down, beside, below, facet, data } from "./spec.js";
+export { Atom, Page, Plot, plot, layer, across, down, beside, below, facet, data, query } from "./spec.js";
 export {
   find_gog_cli,
   ordered,

@@ -31,6 +31,7 @@
 
 import { Column, columnName, describe } from "./columns.js";
 import { GogError } from "./errors.js";
+import { Query } from "./render.js";
 
 // ---------------------------------------------------------------------------
 // Atoms
@@ -337,6 +338,69 @@ export function data(table, options = {}) {
   }
 
   return new Atom("data", { table, name: name ?? null });
+}
+
+// A table that lives in a database.
+//
+// `query()` stands exactly where `data()` stands, and **nothing after it
+// changes** — the same words, channels and transforms:
+//
+//     plot(data(orders),                          bar, count, x(col.status))
+//     plot(query(con, "SELECT * FROM orders"),    bar, count, x(col.status))
+//
+// The SQL is confined to this one argument and never enters the grammar:
+// `x(col.status)` is still a column resolved by the same mask.
+//
+// It returns the **same `data` atom** a table does, carrying a `Query` instead
+// of an object of arrays, so `plot()` and the page builder need no branch: a
+// query is a table whose rows have not been fetched yet. They are fetched once,
+// at render, which is what leaves room for the pushdown planner.
+//
+// JavaScript is the one binding with no database standard to lean on, so the
+// connection is duck-typed and, because `render_svg()` is synchronous, an async
+// driver is refused by name with its own direction (`render.js`).
+export function query(connection, sql, options = {}) {
+  // `sql` is checked for `undefined` first so that `query("SELECT ...")` — the
+  // mistake `data()` invites, that atom taking one argument — is told the fix
+  // rather than failing later with an undefined query. The same guard is in the
+  // other three bindings.
+  if (sql === undefined) {
+    if (typeof connection === "string") {
+      throw new GogError(
+        "gog: `query()` takes the connection first, then the SELECT — " +
+          "`query(con, 'SELECT ...')`. A query on its own cannot say which " +
+          "database it runs against, which is why the connection is written out " +
+          "loud. If the rows are already in hand, that is `data(rows)`."
+      );
+    }
+    throw new GogError(
+      "gog: `query()` takes a connection and a SELECT — " +
+        `\`query(con, 'SELECT ...')\`. Got ${describe(connection)} and no query.`
+    );
+  }
+  if (typeof connection === "string") {
+    throw new GogError(
+      "gog: `query()` takes the connection first, then the SELECT — " +
+        "`query(con, 'SELECT ...')`."
+    );
+  }
+  if (typeof sql !== "string") {
+    throw new GogError(
+      "gog: `query()` takes a SELECT as text — `query(con, 'SELECT ...')`. " +
+        `Got ${describe(sql)} for the query.`
+    );
+  }
+
+  const settings = typeof options === "string" ? { name: options } : options;
+  const name = settings && settings.name;
+  if (name !== undefined && typeof name !== "string") {
+    throw new GogError(
+      'gog: `query(con, sql, { name: … })` takes a string — ' +
+        '`query(con, sql, { name: "orders" })`.'
+    );
+  }
+
+  return new Atom("data", { table: new Query(connection, sql), name: name ?? "query" });
 }
 
 // ---------------------------------------------------------------------------
