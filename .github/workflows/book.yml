@@ -224,6 +224,30 @@ jobs:
           run("node", Sys.getenv("GOG_BOOK_NODE"),
               c("-e", shQuote("console.log('PROBE_OK', process.version)")),
               "PROBE_OK")
+
+          # A refusal, through the whole preamble `jl_run()` uses. `bindings/julia.qmd`
+          # renders three of these and the first one segfaulted on two different
+          # Julia installs, while the same case — `@refuses x("gdp")` at
+          # `runtests.jl:141` — passes in the Julia suite on this same runner. So the
+          # difference is in how the book invokes Julia, not in Julia or the binding,
+          # and reproducing it here turns a six-minute render into twenty seconds.
+          script <- file.path(tempdir(), "refusal.jl")
+          writeLines(c(
+            "using GrammarOfGraphics",
+            "using GrammarOfGraphics: bin, count, sum, min, max, range, size, step, stack",
+            "gm = (gdp = [1000.0, 8000.0], life = [52.0, 68.0])",
+            "try",
+            "    render_svg(data(gm) + point + x(\"gdp\") + y(:life))",
+            "    println(\"DREW\")",
+            "catch error",
+            "    error isa GogError || rethrow()",
+            "    println(\"PROBE_OK refused\")",
+            "end"
+          ), script)
+          run("julia refuses a string channel", Sys.getenv("GOG_BOOK_JULIA"),
+              c(paste0("--project=", shQuote(jl_project)), "--startup-file=no",
+                shQuote(script)),
+              "PROBE_OK")
           ```
           EOF
           cd "$PROBE" && GOG_PROJECT_ROOT="$GITHUB_WORKSPACE" quarto render probe.qmd --to html
