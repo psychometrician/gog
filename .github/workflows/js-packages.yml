@@ -82,9 +82,19 @@ jobs:
 
       - name: Build the engine
         shell: bash
-        env:
-          MACOSX_DEPLOYMENT_TARGET: ${{ matrix.macos_target }}
         run: |
+          # Exported here rather than in an `env:` block, and only when the matrix
+          # entry actually names one. An `env:` value read from an undefined matrix
+          # key is not absent, it is the **empty string**, and rustc rejects that
+          # for an Apple target: `failed to parse deployment target specified in
+          # MACOSX_DEPLOYMENT_TARGET: cannot parse integer from empty string`.
+          # Only `darwin-x64` names a target, so the one job this broke was
+          # `darwin-arm64` — Linux and Windows never read the variable at all,
+          # which is why the failure looked target-specific rather than structural.
+          if [ -n "${{ matrix.macos_target }}" ]; then
+            export MACOSX_DEPLOYMENT_TARGET="${{ matrix.macos_target }}"
+          fi
+
           if [ -n "${{ matrix.rust_target }}" ]; then
             cargo build --release -p gog-cli --target "${{ matrix.rust_target }}"
             echo "ENGINE=$PWD/target/${{ matrix.rust_target }}/release/gog-cli" >> "$GITHUB_ENV"
@@ -108,6 +118,12 @@ jobs:
           [ "${{ matrix.target }}" = "win32-x64" ] && ENGINE_PATH="$ENGINE.exe"
           node tools/platform-package.mjs "${{ matrix.target }}" "$ENGINE_PATH"
           cd "dist/grammar-of-graphics-${{ matrix.target }}"
+          # `npm pack` does not create `--pack-destination`; it opens the tarball
+          # inside it and fails with a bare `ENOENT ... open`. The generator writes
+          # under `js-pkg/gog/dist/`, so the collection directory at the workspace
+          # root — which `upload-artifact` reads as `dist/*.tgz` — has never been
+          # made by anything.
+          mkdir -p "$GITHUB_WORKSPACE/dist"
           npm pack --pack-destination "$GITHUB_WORKSPACE/dist"
           ls -l "$GITHUB_WORKSPACE/dist"
 
@@ -195,6 +211,19 @@ jobs:
         with:
           node-version: "22"
 
+      # The suite draws. Most of these tests send a plot to the engine and compare
+      # what comes back, so without a `gog-cli` 47 of the 75 fail with `gog: cannot
+      # find the gog-cli binary` — which is what this job did on its first ever run.
+      # The binding package is pure JavaScript and carries no engine itself, so one
+      # has to be built here; the platform jobs above each build their own.
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - name: Build an engine for the suite to draw with
+        shell: bash
+        run: |
+          cargo build --release -p gog-cli
+          echo "GOG_CLI_PATH=$PWD/target/release/gog-cli" >> "$GITHUB_ENV"
+
       # The glob, not `node --test test/`. Handed a directory this runner tries to
       # import the path as a module and dies on `Cannot find module …/test`, which
       # is how `npm test` here was broken without anyone noticing: the documented
@@ -204,6 +233,7 @@ jobs:
         shell: bash
         run: |
           node --test test/*.mjs
+          mkdir -p "$GITHUB_WORKSPACE/dist"
           npm pack --pack-destination "$GITHUB_WORKSPACE/dist"
 
       - uses: actions/upload-artifact@v4
