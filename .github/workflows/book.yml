@@ -1,0 +1,176 @@
+# Render the manual and publish it to https://psychometrician.github.io/gog-book/
+#
+# The site repository holds *only* the rendered HTML. The book's sources live here
+# beside the engine, and stay here: every plot is drawn by `gog-cli` at render
+# time, roughly 700 times per build, so one engine change invalidates every page
+# at once. Splitting them would turn that into a version-matching problem.
+#
+# This is `book/publish.sh` as a job, and every guard in that script is repeated
+# here for the same measured reason. Four of them are worth naming up front,
+# because each one is a way this can appear to succeed while shipping a broken
+# book:
+#
+#   * `cargo test` passing does not mean `target/release/gog-cli` was rebuilt.
+#     The test harness and the CLI are separate artifacts, and that gap once hid
+#     a stale binary for a whole session. The build is explicit and asserted.
+#   * `quarto render` exits 0 with broken links, and writes `WARN:` rather than
+#     `warning:`. The exit code proves nothing, so the log is graded — narrowly,
+#     see below.
+#   * the language-tab translator fails *soft*. `book/R/tabs.R` warns and returns
+#     `NULL`, so the book renders R-only and the whole job still exits 0. Three of
+#     the four bindings would vanish from the manual with nothing red anywhere.
+#     That warning is therefore matched by name and made fatal.
+#   * GitHub Pages runs Jekyll, which strips `site_libs/`. Without `.nojekyll`
+#     every stylesheet 404s and the site serves unstyled.
+#
+# Why the whole book, every time: Quarto tracks `.qmd` dependencies, not the
+# binary. A per-chapter render leaves the untouched chapters showing plots the
+# engine no longer draws.
+
+name: book
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "book/**"
+      - "gog-core/**"
+      - "gog-cli/**"
+      - "r-pkg/**"
+      - "py-pkg/**"
+      - ".github/workflows/book.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# One publish at a time, and the newest push wins. The site is a single orphan
+# commit force-pushed over whatever was there, so two concurrent runs would race
+# to be last rather than merge.
+concurrency:
+  group: book
+  cancel-in-progress: true
+
+jobs:
+  book:
+    name: render and publish
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+
+      - name: Build the engine that draws every plot
+        run: |
+          cargo build --release -p gog-cli
+          test -x target/release/gog-cli
+
+      - uses: r-lib/actions/setup-r@v2
+        with:
+          use-public-rspm: true
+
+      # `gapminder` is the book's data set, `jsonlite` is how the R binding
+      # reaches the engine, `knitr` renders the chunks, and `magrittr` is needed
+      # because `bindings/r.qmd` demonstrates `%>%` in a *live* chunk — the
+      # chapter's whole point is that the magrittr pipe loses the table's name,
+      # which cannot be shown without the package installed.
+      - uses: r-lib/actions/setup-r-dependencies@v2
+        with:
+          packages: any::gapminder, any::jsonlite, any::knitr, any::magrittr
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      # pandas and nothing else. `bindings/python.qmd` runs real pandas examples,
+      # and the language tabs shell out to a translator — but neither needs the
+      # `gog` package *installed*: `book/R/python.R` reaches the binding through
+      # `sys.path.insert(0, py-pkg/gog)`, and `book/R/tabs.R`'s driver imports
+      # `translate.py`, which uses only `ast`, `re` and `typing`. Installing the
+      # wheel here would invoke its build hook and demand an engine path for
+      # nothing.
+      - name: pandas, for the book's Python chapter
+        run: python3 -m pip install --upgrade pip pandas
+
+      - uses: quarto-dev/quarto-actions/setup@v2
+
+      - name: Render the whole book to HTML
+        working-directory: book
+        shell: bash
+        # `--to html` is what keeps the 816-page PDF off the free site: Quarto
+        # links a download only for a format it finds rendered, and print is the
+        # publisher's. `PIPESTATUS` because `tee` would otherwise mask the exit.
+        run: |
+          set -o pipefail
+          quarto render --to html 2>&1 | tee .render.log
+
+      - name: Grade the render log
+        working-directory: book
+        shell: bash
+        # The usual advice for reading a render by eye is the broad grep
+        # `-inE "warn|error|unable|cannot|fail|not found"`. That is right for a
+        # human and wrong as an automatic gate *on this book*, which is largely
+        # about refusals: it has 138 `error: true` chunks, so those words appear
+        # throughout ordinary healthy output.
+        #
+        # Quarto's own markers are what a gate can trust: `ERROR:` and `WARN:` at
+        # the start of a line, and a stack trace when it dies.
+        run: |
+          if grep -nE "(^|\[[0-9;]*m)(ERROR|WARN):|^Stack trace:" .render.log; then
+            echo "::error::the render log has complaints (above)"
+            exit 1
+          fi
+          if grep -n "the language-tab translator failed" .render.log; then
+            echo "::error::the translator failed - the book rendered R-only"
+            exit 1
+          fi
+          echo "log is clean"
+
+      - name: Check the rendered output
+        working-directory: book
+        shell: bash
+        run: |
+          test -f _book/index.html || { echo "::error::_book/index.html is missing"; exit 1; }
+
+          # The placeholder repo-url once shipped "Edit this page" buttons
+          # pointing at a repository that never existed.
+          if grep -rq "your-org" _book/; then
+            echo "::error::the placeholder repo-url 'your-org' is in the output"
+            exit 1
+          fi
+
+          # A PDF in _book/ means Quarto offers the whole book as a download.
+          if find _book -name '*.pdf' -print -quit | grep -q .; then
+            echo "::error::a PDF is in _book/ - it would appear as a download link"
+            exit 1
+          fi
+
+          grep -q "site_libs" _book/index.html \
+            || { echo "::error::index.html does not reference site_libs"; exit 1; }
+
+          # Required: Pages runs Jekyll, which strips underscore-prefixed paths.
+          touch _book/.nojekyll
+          cp LICENSE.md _book/LICENSE.md
+
+          echo "output looks right ($(du -sh _book | cut -f1))"
+
+      # Cross-repo, so the site keeps being served from `psychometrician/gog-book`
+      # and this repository keeps its own Pages slot free. A deploy key rather than
+      # a token: it grants write on exactly one repository and nothing else.
+      #
+      # `force_orphan` keeps the site at one commit with no parent. History of
+      # generated output answers no question a reader has, and it is what pins the
+      # repository at ~25 MB — every engine change rewrites every inlined SVG, so
+      # an accumulating history would add a near-complete copy of the site per
+      # publish.
+      - name: Publish to the site repository
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          deploy_key: ${{ secrets.BOOK_SITE_DEPLOY_KEY }}
+          external_repository: psychometrician/gog-book
+          publish_branch: main
+          publish_dir: book/_book
+          force_orphan: true
+          commit_message: "GOG: A Grammar of Graphics — ${{ github.sha }}"
