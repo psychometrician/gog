@@ -388,4 +388,9 @@ jobs:
           publish_branch: main
           publish_dir: book/_book
           force_orphan: true
-          commit_message: "GOG: A Grammar of Graphics — ${{ github.sha }}"
+          # No `${{ github.sha }}` here: the action appends `<owner>/<repo>@<sha>`
+          # of its own accord, and naming it as well put the same 40 characters in
+          # twice. The suffix is the provenance, and it is worth having now that the
+          # source repository is one a reader can open — which is exactly why
+          # `publish.sh` had to strip it while that repository was private.
+          commit_message: "GOG: A Grammar of Graphics — rendered from"
