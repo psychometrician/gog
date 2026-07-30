@@ -167,7 +167,24 @@ jobs:
           rm -rf "$WORK"; mkdir -p "$WORK"
           cd "$WORK"
           npm init -y > /dev/null
-          npm install --no-audit --no-fund "$RUNNER_TEMP/$MAIN" "$PACKED"
+
+          # The Intel package declares `os: darwin, cpu: x64`, which is the whole
+          # point of it — npm reads those and ships exactly one engine to a user.
+          # This runner is Apple Silicon, so npm refuses the install outright with
+          # `EBADPLATFORM`, and it does so on *metadata*, before anything runs.
+          # The Rosetta check above guards execution and cannot help with that:
+          # the two are separate gates, and only the second one was accounted for.
+          #
+          # `--cpu`/`--os` override the platform npm resolves against, which is
+          # narrower than `--force` — it says "install for x64 darwin" rather than
+          # "ignore your objections". Rosetta has already been confirmed, so the
+          # engine that lands here really can run.
+          INSTALL_PLATFORM=""
+          if [ "${{ matrix.target }}" = "darwin-x64" ]; then
+            INSTALL_PLATFORM="--cpu=x64 --os=darwin"
+          fi
+          # shellcheck disable=SC2086
+          npm install --no-audit --no-fund $INSTALL_PLATFORM "$RUNNER_TEMP/$MAIN" "$PACKED"
 
           cat > draw.mjs <<'EOF'
           import process from "node:process";
