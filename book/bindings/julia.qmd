@@ -149,22 +149,37 @@ a message should say `notes` rather than `data2` ([Bind once](../data.qmd)).
 
 ## Getting it
 
-The Julia package is named `GrammarOfGraphics`. Once it is in the General
-registry, installing it is one line:
+The Julia package is named `GrammarOfGraphics`. The name is longer than the one
+R and Python use, and the registry is the reason: Julia asks a package name for
+at least five letters and capitalized words, so a lowercase `gog` is not legal
+there.
 
 ```julia
 using Pkg
 Pkg.add("GrammarOfGraphics")
 ```
 
-That is the shape of the answer rather than a command you can run today. The
-package is not registered yet. Until it is, work from a checkout of the
-repository. Build the engine once, then add the package from the path where it
-sits:
+The package is
+[registered](https://github.com/JuliaRegistries/General/pull/162792). The General
+registry holds every new package for three days before accepting it, so that
+command starts working around 2026-08-02.
+
+There is a second thing to know, and it is the one real gap between this binding
+and the other three. A plot is drawn by the engine, which is a compiled Rust
+binary, and the Julia package does not carry one yet. The R, Python and
+JavaScript packages each ship an engine built for your computer. Here, `Pkg.add`
+gives you a package that loads correctly but cannot draw until an engine exists
+on your machine. Building it once is the fix:
 
 ```bash
 cargo build --release -p gog-cli
 ```
+
+The proper answer is an artifact, which is how Julia normally distributes a
+compiled binary, and it is owed rather than optional. Until it lands, the
+examples in this chapter assume you built the engine yourself.
+
+To work from a checkout instead, add the package from the path where it sits:
 
 ```julia
 using Pkg
@@ -175,8 +190,9 @@ using GrammarOfGraphics
 
 The engine is looked for in four places, in this order: the `GOG_CLI_PATH`
 environment variable, the copy inside the installed package, `gog-cli` on your
-`PATH`, and a local `target/release` build. The first three are how an installed
-copy works; the last is how this page was rendered.
+`PATH`, and a local `target/release` build. The second place is the empty one
+today, which is why the third and the fourth matter more in Julia than they do in
+the other three languages.
 
 `render_svg(plot)` returns the SVG as a string, and a plot shown in a notebook
 draws itself, because the binding answers the `image/svg+xml` MIME type.

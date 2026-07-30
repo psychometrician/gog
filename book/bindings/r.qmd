@@ -212,15 +212,33 @@ has to be able to find one. An installed copy **carries its own**. The package's
 all rather than leave you a package that cannot draw.
 
 ```r
-install.packages("gog")
+install.packages("gog", repos = c("https://psychometrician.r-universe.dev",
+                                  "https://cloud.r-project.org"))
 ```
 
-That is the shape of the answer rather than a command you can run today. The
-package is not on CRAN yet. `remotes::install_github()` will work before CRAN
-does, because a source tarball carries the engine's crates and `configure` builds
-them, but that route needs a public repository and there is not one yet.
+That command works today. `gog` is published on
+[r-universe](https://psychometrician.r-universe.dev/gog), which builds a binary
+for macOS, Windows and Linux, and every one of them has the engine inside it. So
+installing needs no Rust toolchain.
 
-Until then, work from a checkout. Build the engine once, then load the package
+The `repos` argument names two addresses because r-universe is not CRAN. The
+first address is where `gog` lives. The second is an ordinary CRAN mirror, and it
+is there so your other packages still install as usual. `gog` is not on CRAN yet;
+when it is, the plain `install.packages("gog")` will work and this line can lose
+its second half.
+
+There is another route, and it installs straight from the source repository:
+
+```r
+remotes::install_github("psychometrician/gog", subdir = "r-pkg/gog")
+```
+
+A tarball from GitHub carries the engine's Rust sources, and `configure` compiles
+them during the install. So this route does need a Rust toolchain, and the
+r-universe binaries do not. Take it when you want one particular branch or commit
+rather than the latest build.
+
+You can also work from a checkout. Build the engine once, then load the package
 from where it sits:
 
 ```bash

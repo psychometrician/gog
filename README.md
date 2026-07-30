@@ -90,15 +90,41 @@ three parity harnesses draw every sentence in the manual and compare against R.
 
 ## Install
 
-| Language | Package | Today |
-|---|---|---|
-| **Python** | `gog` | **`pip install gog`** — [live on PyPI](https://pypi.org/project/gog/) |
-| **R** | `gog` | **`install.packages("gog", repos = "https://psychometrician.r-universe.dev")`** — [live on r-universe](https://psychometrician.r-universe.dev/gog); not on CRAN yet |
-| **Julia** | `GrammarOfGraphics` | not in the General registry yet |
-| **JavaScript** | `grammar-of-graphics` | **`npm install grammar-of-graphics`** — [live on npm](https://www.npmjs.com/package/grammar-of-graphics) |
+```r
+# R
+install.packages("gog", repos = c("https://psychometrician.r-universe.dev",
+                                  "https://cloud.r-project.org"))
+```
+```bash
+# Python
+pip install gog
+```
+```julia
+# Julia
+using Pkg; Pkg.add("GrammarOfGraphics")
+```
+```bash
+# JavaScript
+npm install grammar-of-graphics
+```
 
-Each binding ships the engine inside it, so there is no second thing to install
-and nothing to put on your `PATH`.
+Three of the four are live now — on
+[r-universe](https://psychometrician.r-universe.dev/gog),
+[PyPI](https://pypi.org/project/gog/) and
+[npm](https://www.npmjs.com/package/grammar-of-graphics) — and each of the three
+**ships the engine inside the package**, built for your platform: nothing else to
+install, nothing to put on your `PATH`, no Rust toolchain. `gog` is not on CRAN
+yet, which is why the R line names r-universe first and a CRAN mirror second; the
+second entry is what keeps your other packages resolving.
+
+Julia is the fourth, and two things are still owed there. The registration is
+[submitted](https://github.com/JuliaRegistries/General/pull/162792) and sitting
+out the General registry's three-day hold on new packages, so that line starts
+working around **2026-08-02**. And it is the one binding that does not bundle the
+engine yet, so `Pkg.add` gives you a package that loads but cannot draw until you
+build `gog-cli` yourself. Until both land,
+`Pkg.develop(path = "jl-pkg/GrammarOfGraphics")` from a checkout is the route
+that works.
 
 ## The vocabulary
 

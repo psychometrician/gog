@@ -396,27 +396,72 @@ its own. Most code blocks are executed during render: the plots you see are
 drawn by the engine as the page builds. Examples that use roadmap features
 remain display-only until those features land.
 
-## What is released, and what is not
+## Installing GOG
 
 Every plot on this site was drawn by the engine while the page was being built.
-The engine works, and so do all four bindings. One of them you can now install
-with a single command.
+The engine works, all four bindings work, and each one installs with a single
+command. Copy the one for your language.
 
-Python is published. `pip install gog` brings it from
-[PyPI](https://pypi.org/project/gog/). Every platform has its own package, and
-each one carries the engine inside it. Installing needs no Rust
-[@klabnik2023rust] toolchain. The [Python](bindings/python.qmd) chapter has the
-details.
+**R**
 
-The other three are not on a registry yet. GOG is not on CRAN, npm, or the Julia
-General registry. Those bindings run from a copy of the source for now, and their
-chapters show how: [R](bindings/r.qmd), [Julia](bindings/julia.qmd) and
+```r
+install.packages("gog", repos = c("https://psychometrician.r-universe.dev",
+                                  "https://cloud.r-project.org"))
+```
+
+**Python**
+
+```bash
+pip install gog
+```
+
+**Julia**
+
+```julia
+using Pkg; Pkg.add("GrammarOfGraphics")
+```
+
+**JavaScript**
+
+```bash
+npm install grammar-of-graphics
+```
+
+The package has two names, and the registries are the reason rather than the
+grammar. In R and in Python it is `gog`, because a three-letter name is allowed
+in both. Julia asks a package name for at least five letters and capitalized
+words, and npm already had a package called `gog`. So those two spell the name
+out instead, each in its own style: `GrammarOfGraphics` in Julia, and
+`grammar-of-graphics` on npm, which does not allow capital letters. Where `gog`
+is free the package is `gog`, and where it is not the name is written in full.
+
+Three of these packages carry the engine inside them, already built for your
+computer. You do not need a Rust [@klabnik2023rust] toolchain, and nothing has to
+be added to your `PATH`. Two of the four commands come with a condition that is
+worth knowing before you type it.
+
+The R package is not on CRAN yet. It is published on
+[r-universe](https://psychometrician.r-universe.dev/gog) instead, which is why the
+`repos` argument names two addresses. The second address is an ordinary CRAN
+mirror, and it is there so your other packages still install as usual.
+
+The Julia package is the youngest of the four. Its registration is
+[submitted](https://github.com/JuliaRegistries/General/pull/162792), and the
+General registry holds every new package for three days before accepting it, so
+that command starts working around 2026-08-02. It is also the one binding that
+does not carry the engine yet, so the package will load before it can draw. The
+[Julia](bindings/julia.qmd) chapter says what to do until then.
+
+Each binding has its own chapter at the end of this book, and each of those
+chapters closes with the longer version of this section: [R](bindings/r.qmd),
+[Python](bindings/python.qmd), [Julia](bindings/julia.qmd) and
 [JavaScript](bindings/javascript.qmd).
 
-So this book is still ahead of its software, on purpose. The manual is what is
-being tested here. If a page shows a sentence, the engine drew it. If a page
-shows a refusal, the engine refused it. Publishing the manual first is how that
-stays true while the packaging is finished.
+Every one of these packages is at version 0.0.1. The grammar is settled and the
+engine draws this whole book, but the packaging is new, so the version number
+will move faster than the vocabulary does. One thing does not move with it. If a
+page shows a sentence, the engine drew it. If a page shows a refusal, the engine
+refused it.
 
 The prose in this book is licensed [CC BY-NC-SA
 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/). The code is licensed

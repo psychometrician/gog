@@ -205,8 +205,9 @@ pip install gog
 
 That command works today. `gog` is on [PyPI](https://pypi.org/project/gog/).
 Five wheels cover macOS, Linux and Windows, on both common processor families.
-Python is the first of the four bindings to be published. The other three still
-need a copy of the source.
+Python was the first of the four bindings to be published, and it is still the
+shortest install line of the four. The other three now have registry commands of
+their own, listed in the [preface](../index.qmd).
 
 To work from a checkout instead, build the engine once and import the package
 from where it sits:

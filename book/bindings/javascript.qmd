@@ -195,7 +195,24 @@ that had to be talked into the other eight.
 
 ## Getting it
 
-The binding is a thin layer over the same engine, and it depends on nothing:
+```bash
+npm install grammar-of-graphics
+```
+
+That command works today. The package is on
+[npm](https://www.npmjs.com/package/grammar-of-graphics), and the name is spelled
+out because npm already had a package called `gog`. The registry also forbids
+capital letters in a new name, so this is Julia's `GrammarOfGraphics` written the
+way npm writes names.
+
+The engine arrives with it. There are five more packages on npm, one per
+platform, each holding the engine compiled for that platform, and the main
+package lists all five as optional dependencies. Installing takes the one that
+matches your computer and skips the other four. So there is nothing to put on
+your `PATH`, nothing to build, and no Rust toolchain to install.
+
+The binding itself is a thin layer over that engine, and it depends on nothing
+else:
 
 ```js
 import { plot, data, point, x, y, col, render_svg } from "grammar-of-graphics";

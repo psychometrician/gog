@@ -39,9 +39,19 @@ the same vocabulary rather than add-ons with a syntax of their own.
 using Pkg; Pkg.add("GrammarOfGraphics")
 ```
 
-That is the shape of the answer rather than a command you can run today: the
-package is not in the General registry yet. Until it is, the book's
-[Julia chapter][jl-chapter] shows how to work from a copy of the source.
+The package is [registered][registration], and the General registry holds a new
+package for three days before accepting it, so that line starts working around
+2026-08-02.
+
+**This binding does not ship the engine yet, and the other three do.** A plot is
+drawn by a compiled Rust binary, so `Pkg.add` gives you a package that loads but
+cannot draw until one exists on your machine. Build it once with
+`cargo build --release -p gog-cli`; an artifact, the normal Julia way to
+distribute a binary, is owed and not yet built. The book's
+[Julia chapter][jl-chapter] has the details, and also shows how to work from a
+copy of the source.
+
+[registration]: https://github.com/JuliaRegistries/General/pull/162792
 
 ## Your first plot
 
