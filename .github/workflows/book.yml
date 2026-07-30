@@ -186,19 +186,26 @@ jobs:
           ---
 
           ```{r}
-          # `message()`, not `cat()`. knitr buffers a chunk's stdout and discards it
-          # when the chunk aborts, so the first version of this probe reproduced the
-          # failure and then threw away the interpreter's own account of it — the
-          # log showed only that the check had failed. stderr is unbuffered and
-          # survives.
+          # The diagnostics go to a **file**, which the surrounding shell step prints
+          # afterwards. Two earlier versions of this probe reproduced the crash and
+          # then lost the interpreter's own account of it: knitr buffers a chunk's
+          # stdout and discards it when the chunk aborts, and it captures stderr into
+          # the rendered document rather than the console — so neither `cat()` nor
+          # `message()` reaches the log when the render dies. A file cannot be
+          # swallowed by either mechanism.
+          diag <- Sys.getenv("PROBE_DIAG")
+          say <- function(...) cat(..., "\n", sep = "", file = diag, append = TRUE)
+
           run <- function(label, exe, args, want) {
-            message("\n## ", label, "\n   ", exe)
+            say("\n## ", label, "\n   ", exe)
             out <- suppressWarnings(system2(exe, args, stdout = TRUE, stderr = TRUE))
             status <- attr(out, "status")
             if (is.null(status)) status <- 0
-            message("   status: ", status)
-            for (line in out) message("   | ", line)
-            if (status != 0 || !any(grepl(want, out, fixed = TRUE))) {
+            say("   status: ", status)
+            for (line in out) say("   | ", line)
+            ok <- status == 0 && any(grepl(want, out, fixed = TRUE))
+            say("   verdict: ", if (ok) "ok" else "FAILED")
+            if (!ok) {
               stop(label, " does not work through quarto, so the render would fail ",
                    "in bindings/ for the same reason")
             }
@@ -207,7 +214,7 @@ jobs:
           for (v in c("GOG_BOOK_PYTHON", "GOG_BOOK_JULIA", "GOG_BOOK_NODE",
                       "PYTHONHOME", "PYTHONPATH", "VIRTUAL_ENV", "LD_LIBRARY_PATH",
                       "JULIA_DEPOT_PATH", "JULIA_LOAD_PATH", "JULIA_PROJECT")) {
-            message(sprintf("%-18s %s", v, Sys.getenv(v, unset = "(unset)")))
+            say(sprintf("%-18s %s", v, Sys.getenv(v, unset = "(unset)")))
           }
 
           run("python + pandas", Sys.getenv("GOG_BOOK_PYTHON"),
@@ -255,7 +262,14 @@ jobs:
               "PROBE_OK")
           ```
           EOF
-          cd "$PROBE" && GOG_PROJECT_ROOT="$GITHUB_WORKSPACE" quarto render probe.qmd --to html
+          cd "$PROBE"
+          RC=0
+          GOG_PROJECT_ROOT="$GITHUB_WORKSPACE" PROBE_DIAG="$PROBE/diag.txt" \
+            quarto render probe.qmd --to html || RC=$?
+          echo "──────── what each interpreter answered ────────"
+          cat "$PROBE/diag.txt" 2>/dev/null || echo "(the chunk wrote nothing)"
+          echo "───────────────────────────────────────────────"
+          exit "$RC"
 
       - name: Render the whole book to HTML
         working-directory: book
