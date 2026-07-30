@@ -119,6 +119,38 @@ jobs:
           "$RUNNER_TEMP/bookenv/bin/pip" install --quiet pandas
           echo "GOG_BOOK_PYTHON=$RUNNER_TEMP/bookenv/bin/python" >> "$GITHUB_ENV"
 
+      # Julia and Node, and the design this workflow came from said neither was
+      # needed. That reasoning counted chunk *languages* — the book has ~1,200
+      # `{r}` chunks and no `{julia}`, `{python}` or `{js}` chunks at all — and
+      # concluded the other runtimes were unnecessary. But `bindings/julia.qmd` and
+      # `bindings/javascript.qmd` do not *show* Julia and JavaScript, they *run*
+      # them: an `{r}` chunk calls `jl_run()` or its JavaScript counterpart, which
+      # shells out to `julia` or `node`, builds the specification with that
+      # language's binding and prints the SVG. Counting chunk languages is exactly
+      # the wrong way to find that out. Only the language *tabs* on other chapters
+      # are emitted by R in-process.
+      #
+      # The versions are pinned rather than left to the image. `julia.R` resolves
+      # `Sys.which("julia")`, the runner already carries a Julia of its own, and
+      # that one segfaulted after forty-five seconds of precompiling — so a chapter
+      # documented as a refusal "did not refuse", because a crash is not a refusal.
+      # `tests.yml` runs the Julia suite green on `version: "1"`, so the book gets
+      # the same one, and `GOG_BOOK_JULIA` names it by absolute path so PATH order
+      # cannot decide which Julia draws the book.
+      - uses: julia-actions/setup-julia@v2
+        with:
+          version: "1"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - name: Pin the interpreters the binding chapters run
+        shell: bash
+        run: |
+          echo "GOG_BOOK_JULIA=$(command -v julia)" >> "$GITHUB_ENV"
+          echo "GOG_BOOK_NODE=$(command -v node)" >> "$GITHUB_ENV"
+          julia --version
+          node --version
+
       - uses: quarto-dev/quarto-actions/setup@v2
 
       # This has to run **through quarto**, and the reason is a check that lied.
@@ -138,7 +170,12 @@ jobs:
       # `py_require_pandas()` discards stderr, so *any* failure to start the
       # interpreter reads as "this interpreter has no pandas". That is what made
       # the first two diagnoses wrong. This one prints what actually happened.
-      - name: Prove the book's interpreter works, through quarto
+      # All three interpreters, not just Python. The Julia segfault cost a full
+      # six-minute render to discover at chapter 48 and would have shown up here in
+      # twenty seconds. A probe that covers one of three runtimes is a probe that
+      # passes shortly before the render fails, which is the specific mistake this
+      # step exists to stop repeating.
+      - name: Prove the book's interpreters work, through quarto
         shell: bash
         run: |
           PROBE="$RUNNER_TEMP/probe"
@@ -149,30 +186,47 @@ jobs:
           ---
 
           ```{r}
-          py <- Sys.getenv("GOG_BOOK_PYTHON")
-          cat("GOG_BOOK_PYTHON:", py, "\n")
-          for (v in c("PYTHONHOME", "PYTHONPATH", "PYTHONNOUSERSITE",
-                      "VIRTUAL_ENV", "LD_LIBRARY_PATH")) {
+          run <- function(label, exe, args, want) {
+            cat("\n##", label, "\n", exe, "\n")
+            out <- suppressWarnings(system2(exe, args, stdout = TRUE, stderr = TRUE))
+            status <- attr(out, "status")
+            if (is.null(status)) status <- 0
+            cat("status:", status, "\n")
+            cat(out, sep = "\n")
+            cat("\n")
+            if (status != 0 || !any(grepl(want, out, fixed = TRUE))) {
+              stop(label, " does not work through quarto, so the render would fail ",
+                   "in bindings/ for the same reason")
+            }
+          }
+
+          for (v in c("GOG_BOOK_PYTHON", "GOG_BOOK_JULIA", "GOG_BOOK_NODE",
+                      "PYTHONHOME", "PYTHONPATH", "VIRTUAL_ENV", "LD_LIBRARY_PATH")) {
             cat(sprintf("%-18s %s\n", v, Sys.getenv(v, unset = "(unset)")))
           }
-          code <- paste("import sys, pandas",
-                        "print('prefix ', sys.prefix)",
-                        "print('pandas ', pandas.__version__, pandas.__file__)",
-                        sep = "; ")
-          out <- suppressWarnings(system2(py, c("-c", shQuote(code)),
-                                          stdout = TRUE, stderr = TRUE))
-          status <- attr(out, "status")
-          if (is.null(status)) status <- 0
-          cat("status:", status, "\n")
-          cat(out, sep = "\n")
-          cat("\n")
-          if (status != 0) {
-            stop("through quarto, this interpreter cannot import pandas, so the ",
-                 "render would fail at bindings/python.qmd for the same reason")
-          }
+
+          run("python + pandas", Sys.getenv("GOG_BOOK_PYTHON"),
+              c("-c", shQuote("import sys, pandas; print(sys.prefix); print('PROBE_OK', pandas.__version__)")),
+              "PROBE_OK")
+
+          # `--project` and `--startup-file=no` exactly as `jl_run()` invokes it, so
+          # a Julia that starts but cannot load the package is caught here too. The
+          # project path comes from the environment because this probe renders in a
+          # temporary directory, where walking up from `getwd()` finds nothing.
+          jl_project <- file.path(Sys.getenv("GOG_PROJECT_ROOT"), "jl-pkg",
+                                  "GrammarOfGraphics")
+          run("julia + GrammarOfGraphics", Sys.getenv("GOG_BOOK_JULIA"),
+              c(paste0("--project=", shQuote(jl_project)),
+                "--startup-file=no", "-e",
+                shQuote("using GrammarOfGraphics; println(\"PROBE_OK\")")),
+              "PROBE_OK")
+
+          run("node", Sys.getenv("GOG_BOOK_NODE"),
+              c("-e", shQuote("console.log('PROBE_OK', process.version)")),
+              "PROBE_OK")
           ```
           EOF
-          cd "$PROBE" && quarto render probe.qmd --to html
+          cd "$PROBE" && GOG_PROJECT_ROOT="$GITHUB_WORKSPACE" quarto render probe.qmd --to html
 
       - name: Render the whole book to HTML
         working-directory: book
