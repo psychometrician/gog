@@ -98,8 +98,49 @@ jobs:
       # `translate.py`, which uses only `ast`, `re` and `typing`. Installing the
       # wheel here would invoke its build hook and demand an engine path for
       # nothing.
+      #
+      # Pinning `GOG_BOOK_PYTHON` rather than letting `book/R/python.R` fall back
+      # to `Sys.which("python3")` removes a resolution question from CI entirely:
+      # the interpreter pip installed into is the interpreter the book uses, by
+      # name.
       - name: pandas, for the book's Python chapter
-        run: python3 -m pip install --upgrade pip pandas
+        shell: bash
+        run: |
+          python3 -m pip install --upgrade pip pandas
+          echo "GOG_BOOK_PYTHON=$(command -v python3)" >> "$GITHUB_ENV"
+
+      # "pip installed pandas" and "the book can use pandas" are two different
+      # claims, and the first one passing is what made the second one's failure
+      # confusing. The book never imports pandas itself — it shells out to the
+      # interpreter *from R*, which is a different environment: R rewrites
+      # `LD_LIBRARY_PATH` at startup, and the tool-cache interpreter is
+      # dynamically linked against its own `libpython`. So this asks the question
+      # the way the book asks it, and asks it here, where the answer costs two
+      # minutes instead of a rendered book's worth.
+      #
+      # It also repairs a blind spot in the check it is imitating.
+      # `py_require_pandas()` throws away stderr, so *any* failure to start the
+      # interpreter reads as "this interpreter has no pandas". This one prints
+      # what actually happened.
+      - name: Prove R can reach that interpreter, the way the book does
+        shell: bash
+        run: |
+          cat > "$RUNNER_TEMP/check-python.R" <<'EOF'
+          py <- Sys.getenv("GOG_BOOK_PYTHON")
+          out <- suppressWarnings(system2(
+            py, c("-c", shQuote("import pandas; print(pandas.__version__)")),
+            stdout = TRUE, stderr = TRUE))
+          status <- attr(out, "status")
+          if (is.null(status)) status <- 0
+          cat("interpreter:", py, "\nstatus:", status, "\noutput:\n")
+          cat(out, sep = "\n")
+          cat("\n")
+          if (status != 0) {
+            stop("R cannot import pandas through this interpreter, so the book ",
+                 "would fail at bindings/python.qmd for the same reason")
+          }
+          EOF
+          Rscript "$RUNNER_TEMP/check-python.R"
 
       - uses: quarto-dev/quarto-actions/setup@v2
 
