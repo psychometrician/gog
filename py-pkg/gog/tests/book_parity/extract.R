@@ -69,7 +69,8 @@ chunks_of <- function(path) {
 sentences <- list()
 tables <- list()
 skipped <- list()
-stats <- c(chunks = 0, expressions = 0, sentences = 0, chunk_errors = 0)
+stats <- c(chunks = 0, expressions = 0, sentences = 0, chunk_errors = 0,
+           queried = 0)
 
 # ---------------------------------------------------------------------------
 # A sentence carries its own tables, taken from the spec it built
@@ -158,10 +159,29 @@ for (chapter in chapters) {
       # binding refused before a spec existed, where the chapter's frames are
       # the honest fallback.
       used <- list()
+      queried <- FALSE
       if (inherits(value, "gog_spec") || inherits(value, "gog_page")) {
         for (name in names(value$data_frames)) {
+          # A `query()` sentence names its table with a live database connection,
+          # and a connection cannot be written into a JSON corpus — so the
+          # sentence is skipped rather than recorded half-formed. Nothing is lost
+          # by it: what a parity run would prove here is proven directly, and
+          # more strongly, by each binding's own suite, where the *same sentence*
+          # over a frame and over a query is asserted byte-identical. Replaying it
+          # here would re-test that at the cost of four database setups.
+          if (inherits(value$data_frames[[name]], "gog_query")) {
+            queried <- TRUE
+            break
+          }
           used[[name]] <- intern(value$data_frames[[name]])
         }
+      }
+      # Said out loud rather than dropped quietly: a harness that bounds its own
+      # coverage has to report what it left out, or a shrinking corpus reads as a
+      # passing one.
+      if (queried) {
+        stats["queried"] <- stats["queried"] + 1
+        next
       }
 
       stats["sentences"] <- stats["sentences"] + 1
@@ -209,9 +229,9 @@ writeLines(jsonlite::toJSON(tables, auto_unbox = TRUE),
 writeLines(jsonlite::toJSON(pool, auto_unbox = FALSE, digits = NA, na = "null"),
            file.path(out_dir, "pool.json"))
 
-cat(sprintf("chunks %d | expressions %d | sentences %d | tables %d (%d distinct) | non-sentence errors %d\n",
+cat(sprintf("chunks %d | expressions %d | sentences %d | tables %d (%d distinct) | non-sentence errors %d | query sentences skipped %d\n",
             stats["chunks"], stats["expressions"], stats["sentences"],
-            length(tables), length(pool), stats["chunk_errors"]))
+            length(tables), length(pool), stats["chunk_errors"], stats["queried"]))
 
 # Record what this corpus was recorded *against* — the engine that drew every
 # hash in it, and the live chunks of every chapter it read. `run.py` refuses to
