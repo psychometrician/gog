@@ -26,77 +26,140 @@ dependency to your project.
 
 ## Reading a table
 
-Here is the first sentence of the book, run from the published file, in each of
-the four languages.
+Every table on this page is read the same way, so what follows is one function
+per language. It fetches any of the thirty-five by name. Copy it once, and you
+can run every example in this book.
+
+The function also gives each column the right type. A CSV is text, so numbers
+arrive as text and have to be converted. Each version converts a column when
+every value in it is a number, and leaves the column alone otherwise. The `text`
+argument forces a column to stay text. Three columns in these tables need that,
+and the next section explains which and why.
 
 ::: {.panel-tabset}
 
 ## R
 
 ```r
-gapminder_2007 <- read.csv(
-  "https://psychometrician.github.io/gog-book/data/gapminder_2007.csv"
-)
+gog_table <- function(name, text = character()) {
+  url <- paste0("https://psychometrician.github.io/gog-book/data/", name, ".csv")
+  read.csv(url, colClasses = setNames(rep("character", length(text)), text))
+}
 
+gapminder_2007 <- gog_table("gapminder_2007")
 data(gapminder_2007) + point + x(gdp) + y(life)
 ```
+
+`read.csv()` chooses the column types itself, so almost all of this function is
+the address. `colClasses` is how you overrule it for one column.
 
 ## Python
 
 ```python
 import csv, urllib.request
 
-url = "https://psychometrician.github.io/gog-book/data/gapminder_2007.csv"
-with urllib.request.urlopen(url) as response:
-    rows = list(csv.DictReader(response.read().decode("utf-8").splitlines()))
+def gog_table(name, text=()):
+    url = f"https://psychometrician.github.io/gog-book/data/{name}.csv"
+    with urllib.request.urlopen(url) as response:
+        rows = list(csv.DictReader(response.read().decode("utf-8").splitlines()))
+    table = {}
+    for key in rows[0]:
+        values = [row[key] for row in rows]
+        try:
+            table[key] = values if key in text else [float(value) for value in values]
+        except ValueError:
+            table[key] = values
+    return table
 
-gapminder_2007 = {name: [row[name] for row in rows] for name in rows[0]}
-for name in ("gdp", "life", "population"):
-    gapminder_2007[name] = [float(value) for value in gapminder_2007[name]]
-
+gapminder_2007 = gog_table("gapminder_2007")
 data(gapminder_2007) + point + x(col.gdp) + y(col.life)
 ```
 
-With pandas, the whole read is one line:
-`gapminder_2007 = pd.read_csv(url)`.
+`csv.DictReader` reads every value as text, so the loop is where the types are
+decided. A column that will not convert is a text column, which is what the
+`except` branch means.
+
+With pandas the read is one line, `pd.read_csv(url)`, and the equivalent of
+`text` is `dtype={"session": str}`.
 
 ## Julia
 
 ```julia
 using Downloads, DelimitedFiles
 
-url = "https://psychometrician.github.io/gog-book/data/gapminder_2007.csv"
-raw, header = readdlm(Downloads.download(url), ',', String; header = true)
-gapminder_2007 = Dict(strip(name, '"') => raw[:, i] for (i, name) in enumerate(header))
-
-for name in ("gdp", "life", "population")
-    gapminder_2007[name] = parse.(Float64, gapminder_2007[name])
+function gog_table(name; text = String[])
+    url = "https://psychometrician.github.io/gog-book/data/$name.csv"
+    raw, header = readdlm(Downloads.download(url), ',', String; header = true)
+    table = Dict{String,Any}()
+    for (i, column) in enumerate(header)
+        key = strip(column, '"')
+        values = raw[:, i]
+        numbers = tryparse.(Float64, values)
+        table[key] = key in text || any(isnothing, numbers) ? values : numbers
+    end
+    table
 end
 
+gapminder_2007 = gog_table("gapminder_2007")
 data(gapminder_2007) + point + x(:gdp) + y(:life)
 ```
+
+`tryparse` returns `nothing` instead of failing, so one pass over a column
+answers both questions at once: what the numbers are, and whether they are all
+numbers.
 
 ## JavaScript
 
 ```javascript
-const url = "https://psychometrician.github.io/gog-book/data/gapminder_2007.csv";
-const text = await (await fetch(url)).text();
+// A comma can sit inside a quoted field, so a line cannot be split on commas.
+function parse_csv(text) {
+  const rows = [[]];
+  let field = "", quoted = false;
+  for (let i = 0; i < text.length; i++) {
+    const c = text[i];
+    if (quoted) {
+      if (c !== '"') field += c;
+      else if (text[i + 1] === '"') { field += '"'; i++; }
+      else quoted = false;
+    } else if (c === '"') quoted = true;
+    else if (c === ",") { rows.at(-1).push(field); field = ""; }
+    else if (c === "\n") { rows.at(-1).push(field); field = ""; rows.push([]); }
+    else if (c !== "\r") field += c;
+  }
+  rows.at(-1).push(field);
+  if (rows.at(-1).length === 1 && rows.at(-1)[0] === "") rows.pop();
+  return rows;
+}
 
-const [head, ...body] = text.trim().split("\n").map((line) =>
-  line.split(",").map((cell) => cell.replace(/^"|"$/g, "")));
-const gapminder_2007 = Object.fromEntries(
-  head.map((name, i) => [name, body.map((row) => row[i])]));
+async function gog_table(name, text = []) {
+  const url = `https://psychometrician.github.io/gog-book/data/${name}.csv`;
+  const [head, ...body] = parse_csv((await (await fetch(url)).text()).trim());
+  return Object.fromEntries(head.map((key, i) => {
+    const values = body.map((row) => row[i]);
+    if (text.includes(key)) return [key, values];
+    const numbers = values.map(Number);
+    return [key, numbers.some((n) => Number.isNaN(n)) ? values : numbers];
+  }));
+}
 
-for (const name of ["gdp", "life", "population"])
-  gapminder_2007[name] = gapminder_2007[name].map(Number);
-
+const gapminder_2007 = await gog_table("gapminder_2007");
 plot(data(gapminder_2007), point, x(col.gdp), y(col.life));
 ```
+
+JavaScript has no CSV reader in its standard library, which is why this tab is
+the long one. The fourteen lines are not decoration. One country in
+`gapminder_2007.csv` is `"Congo, Dem. Rep."`, and its name holds a comma, so
+splitting each line on commas gives that row seven fields where the header has
+six. R, Python and Julia all handle quoting for you.
 
 :::
 
 The plot is the same in all four, because the table is the same file and the
 engine is the same program.
+
+Reading a different table is the same call with a different name:
+`gog_table("winds")`, `gog_table("medals")`. The list of names is at the end of
+this page.
 
 ## Two things a CSV cannot say
 
@@ -133,16 +196,44 @@ the grammar and not a detail of file formats.
 reader will turn into numbers unless told otherwise. `census.csv` has an `age`
 column of `0`, `5`, `10`, which are the names of age bands rather than
 quantities. `sessions.csv` has a `session` column of `01`, `02`, `03`, and a
-number cannot keep a leading zero, so `01` comes back as `1`. Read those columns
-as text:
+number cannot keep a leading zero, so `01` comes back as `1`. That is the whole
+reason `gog_table()` takes a `text` argument:
+
+::: {.panel-tabset}
+
+## R
 
 ```r
-census <- read.csv("census.csv", colClasses = c(age = "character"))
+census <- gog_table("census", text = "age")
+sessions <- gog_table("sessions", text = "session")
 ```
 
-In Python's `csv` module every value is already text, so nothing is needed. With
-pandas, pass `dtype={"age": str}`. In Julia, read with `String`. In JavaScript,
-values arrive as strings and only become numbers where you convert them.
+## Python
+
+```python
+census = gog_table("census", text=("age",))
+sessions = gog_table("sessions", text=("session",))
+```
+
+## Julia
+
+```julia
+census = gog_table("census"; text = ["age"])
+sessions = gog_table("sessions"; text = ["session"])
+```
+
+## JavaScript
+
+```javascript
+const census = await gog_table("census", ["age"]);
+const sessions = await gog_table("sessions", ["session"]);
+```
+
+:::
+
+Without it, `age` becomes the numbers 0, 5 and 10, and an axis that should read
+as five labels is drawn as a scale from 0 to 10. The plot looks reasonable, which
+is what makes the mistake worth naming.
 
 ## The tables
 
