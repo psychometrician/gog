@@ -76,9 +76,16 @@ jobs:
       # because `bindings/r.qmd` demonstrates `%>%` in a *live* chunk — the
       # chapter's whole point is that the magrittr pipe loses the table's name,
       # which cannot be shown without the package installed.
+      #
+      # `rmarkdown` is the one no amount of reading the book will reveal. Quarto's
+      # knitr engine shells out to it to execute an `{r}` chunk, so nothing in
+      # `book/` ever writes `library(rmarkdown)` and a search for the book's
+      # dependencies does not find it. Its absence is not a missing plot either:
+      # the render dies on `index.qmd`, chapter 1 of 56, with `Broken pipe` and
+      # then explains itself. That is how this list was found to be short.
       - uses: r-lib/actions/setup-r-dependencies@v2
         with:
-          packages: any::gapminder, any::jsonlite, any::knitr, any::magrittr
+          packages: any::gapminder, any::jsonlite, any::knitr, any::magrittr, any::rmarkdown
 
       - uses: actions/setup-python@v5
         with:
