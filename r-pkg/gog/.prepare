@@ -61,9 +61,26 @@ cp "${WORKSPACE}/Cargo.lock"  "${DEST}/Cargo.lock"
 cp -R "${WORKSPACE}/gog-core" "${DEST}/gog-core"
 cp -R "${WORKSPACE}/gog-cli"  "${DEST}/gog-cli"
 
+# The browser engine's sources travel too, so a build that has a Rust toolchain
+# can produce it. Without this the r-universe route ships a package whose 3-D
+# plots cannot be turned: `configure` only ever *copies* a prebuilt module, a
+# release tarball has no `target/` to copy from, and this is the only way the
+# sources reach the build at all.
+#
+# `gog-wasm` sits outside the workspace and its manifest says why, so it is
+# copied as its own directory rather than as a member. Its `gog-core` path
+# dependency is `../gog-core`, which resolves to the copy staged above — the
+# same layout it has in the checkout, which is what makes this work unchanged.
+cp -R "${WORKSPACE}/gog-wasm" "${DEST}/gog-wasm"
+
+# The runtime that drives it. Source rather than a build artifact, and it lives
+# in the JavaScript package because that is where a browser module belongs; it is
+# staged beside the crate it partners so `configure` can find both in one place.
+cp "${WORKSPACE}/js-pkg/gog/src/interactive.js" "${DEST}/interactive.js"
+
 # A development checkout may have a warm `target/` inside a crate directory. It is
 # hundreds of megabytes and rebuilt anyway, so it must not travel.
-rm -rf "${DEST}/gog-core/target" "${DEST}/gog-cli/target"
+rm -rf "${DEST}/gog-core/target" "${DEST}/gog-cli/target" "${DEST}/gog-wasm/target"
 
 # `gog-core/Cargo.toml` declares three `[[example]]` targets. Cargo validates the
 # manifest for every workspace member even when building only `gog-cli`, so the

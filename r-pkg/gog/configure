@@ -209,6 +209,36 @@ elif [ -f "${WASM_SRC}" ] && [ -f "${JS_SRC}" ]; then
   cp "${WASM_SRC}" "${WWW}/gog.wasm"
   cp "${JS_SRC}" "${WWW}/interactive.js"
   echo "* gog: bundled the browser engine — 3-D plots will turn in an HTML page"
+elif [ -f "${STAGED}/gog-wasm/Cargo.toml" ] && [ -f "${STAGED}/interactive.js" ]; then
+  # A staged source build — the r-universe and CRAN-style route, where the
+  # sources travel and nothing is prebuilt. This is the only path that compiles
+  # the browser engine, and **every failure in it is survivable**: no cargo, no
+  # `wasm32-unknown-unknown` target, no network for `rustup target add`, a build
+  # that dies. Each one leaves the package installable and its 3-D plots still.
+  #
+  # Which is why none of this is allowed to `set -e` its way out. The engine that
+  # draws is required and already bundled by the time we get here; this one is an
+  # improvement on a plot that is otherwise perfectly correct.
+  echo "* gog: building the browser engine from the staged sources"
+  CARGO_BIN="$(command -v cargo || echo "${HOME}/.cargo/bin/cargo")"
+  if [ -x "${CARGO_BIN}" ]; then
+    RUSTUP_BIN="$(command -v rustup || echo "${HOME}/.cargo/bin/rustup")"
+    [ -x "${RUSTUP_BIN}" ] && "${RUSTUP_BIN}" target add wasm32-unknown-unknown >/dev/null 2>&1
+    if "${CARGO_BIN}" build --release --target wasm32-unknown-unknown \
+         --manifest-path "${STAGED}/gog-wasm/Cargo.toml" >/dev/null 2>&1; then
+      BUILT="${STAGED}/gog-wasm/target/wasm32-unknown-unknown/release/gog_wasm.wasm"
+      if [ -f "${BUILT}" ]; then
+        mkdir -p "${WWW}"
+        cp "${BUILT}" "${WWW}/gog.wasm"
+        cp "${STAGED}/interactive.js" "${WWW}/interactive.js"
+        echo "* gog: built the browser engine — 3-D plots will turn in an HTML page"
+      fi
+    fi
+  fi
+  if [ ! -f "${WWW}/gog.wasm" ]; then
+    echo "* gog: could not build the browser engine (no wasm32 target?);"
+    echo "       3-D plots will draw as still pictures. Everything else is unaffected."
+  fi
 else
   echo "* gog: no browser engine found; 3-D plots will draw as still pictures."
   echo "       To include it:  cargo build --release --target wasm32-unknown-unknown \\"
