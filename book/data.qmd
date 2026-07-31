@@ -233,9 +233,10 @@ The common summaries all have a SQL form:
 | A time series | `SELECT date_trunc('month', t) AS month, SUM(v) AS total ... GROUP BY 1` |
 | A scatter plot of a huge table | a sample: `TABLESAMPLE`, or `USING SAMPLE 10000` in DuckDB |
 
-Two marks cannot be helped this way. `smooth` and `density` read the individual
-rows, because a curve fitted through a summary is not the same curve. For those,
-take a sample and say so in the caption.
+Two marks are harder. `smooth` and `density` fit a curve through the individual
+rows, and a curve fitted through counts is not the same curve. A database *can*
+compute them, and some tools do, but GOG does not ask it to yet. For now, take a
+sample for those two and say so in the caption.
 
 None of this is permanent. A later version of GOG will write these summaries for
 you: you will say `bar * count + x(status)`, and the engine will send the
