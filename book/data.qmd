@@ -37,6 +37,64 @@ The same advice comes back if a bare frame appears mid-expression (write
 `+ data(forecast)`, not `+ forecast`) or if the sentence has no data at all
 (`point + x(gdp)` with nothing before it).
 
+## The table has to be tidy
+
+Every table in this book has the same shape. Each row is one observation, and
+each column is one variable. That shape has a name, **tidy data**
+[@wickham2014tidy], and GOG assumes it in every sentence you write.
+
+The reason is a rule you have already read. A channel takes a column, so
+anything you want to map has to *be* a column. Suppose you record sales for two
+regions, and you give each region a column of its own:
+
+```{r}
+#| error: true
+wide <- data.frame(year  = 2019:2023,
+                   north = c(120, 135, 128, 152, 168),
+                   south = c( 90, 101, 140, 133, 155))
+
+data(wide) + line + x(year) + y(sales) + color(region)
+```
+
+The message names two problems. There is no column called `sales`, and no column
+called `region`. Your two regions are column *names*, and a name is not a
+column. Your sales numbers sit in two columns instead of one. The sentence asks
+for columns the table does not have, so GOG draws nothing.
+
+The same numbers, one row per observation, draw the plot and earn the legend:
+
+```{r}
+long <- data.frame(year   = rep(2019:2023, times = 2),
+                   region = rep(c("north", "south"), each = 5),
+                   sales  = c(120, 135, 128, 152, 168,
+                               90, 101, 140, 133, 155))
+
+data(long) + line + x(year) + y(sales) + color(region)
+```
+
+GOG never reshapes a table, and no transform turns columns into rows. You do
+that work before you write the sentence, in the language you are already using.
+R has `tidyr::pivot_longer()`. Python has `pandas.melt()`. Julia has
+`DataFrames.stack()`. JavaScript has no standard table library, so you write a
+short loop instead.
+
+**GOG is stricter than ggplot2 here, but not about the shape.** ggplot2 does not
+reshape tables either, and it refuses the wide table above just as GOG does. The
+real difference is narrower. ggplot2 lets you calculate a value while you map
+it, so `aes(x = log(gdp))` works there. GOG does not allow that, because a
+channel takes a column name and nothing else. Some of those calculations are
+already part of the grammar. A log axis is one of them, written
+`x(gdp, scale = "log")`. For anything else, add the column to your table first.
+So tidy is not quite enough on its own. Every column your sentence names has to
+be in the table already.
+
+This book does not teach you how to tidy data, and it should not, because there
+is a better book for it. Read *R for Data Science* by Hadley Wickham, Mine
+Çetinkaya-Rundel and Garrett Grolemund [@wickham2023r4ds], which is free online
+at <https://r4ds.hadley.nz/>. Its chapter on data tidying is the one that
+matters here. If the shape of your data is not settled yet, read that chapter
+before you read this one.
+
 ## Plot-level vs. layer-level data
 
 `data()` at the start of the expression is the **plot-level default**:
@@ -136,6 +194,54 @@ all four. What differs is the connection you hand it, because each language has
 its own database convention. Your language's chapter says which:
 [R](bindings/r.qmd), [Python](bindings/python.qmd), [Julia](bindings/julia.qmd),
 [JavaScript](bindings/javascript.qmd).
+
+### How much data comes back
+
+`query()` brings **every row the query returns** to the computer running GOG. The
+database does the selecting. Your machine does the drawing. That is worth
+knowing before you point this at a large table.
+
+For most tables it does not matter. A few thousand rows arrive quickly, and you
+should write the simple query and think no further. Selecting the columns you
+need and letting GOG do the rest is the normal case, and the example above is
+exactly that.
+
+It starts to matter somewhere around a hundred thousand rows. Past that, moving
+the rows costs more than drawing them. A warehouse table can hold billions, and
+`SELECT * FROM that_table` would try to bring all of them to you.
+
+The way to avoid it is already familiar to anyone who works with a warehouse:
+**summarize in SQL, then plot the summary**. This works because a plot is nearly
+always a summary anyway. A bar chart of a billion orders shows a handful of bars,
+and a database can produce those bars far more cheaply than your laptop can.
+
+```{r}
+query(con, "SELECT continent, COUNT(*) AS countries
+            FROM countries GROUP BY continent") +
+  bar + x(continent) + y(countries)
+```
+
+Five rows crossed the connection, not a hundred and forty. The plot is the same
+one you would get by counting locally.
+
+The common summaries all have a SQL form:
+
+| The plot you want | What to ask the database for |
+|---|---|
+| Bars of counts | `SELECT key, COUNT(*) AS n ... GROUP BY key` |
+| A histogram | `SELECT FLOOR(v / 5000) * 5000 AS bucket, COUNT(*) AS n ... GROUP BY 1` |
+| A time series | `SELECT date_trunc('month', t) AS month, SUM(v) AS total ... GROUP BY 1` |
+| A scatter plot of a huge table | a sample: `TABLESAMPLE`, or `USING SAMPLE 10000` in DuckDB |
+
+Two marks cannot be helped this way. `smooth` and `density` read the individual
+rows, because a curve fitted through a summary is not the same curve. For those,
+take a sample and say so in the caption.
+
+None of this is permanent. A later version of GOG will write these summaries for
+you: you will say `bar * count + x(status)`, and the engine will send the
+`GROUP BY` and receive the five rows. The sentence you write will not change,
+which is the reason `query()` was built to hold its SQL rather than run it
+immediately. Until then, the summarizing is yours to write.
 
 ### One grammar, or one more syntax
 
