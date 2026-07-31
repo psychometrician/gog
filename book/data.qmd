@@ -133,7 +133,8 @@ name its own columns, and the axis does not change:
 
 ```{r}
 data(gapminder_2007) + point + x(gdp) + y(life) +
-  data(milestones) + text + x(at) + y(value) + label(note)
+  data(milestones) + text + x(at) + y(value) + label(note) +
+  style(size = 15, color = "black")
 ```
 
 There is still one x axis and one y axis, one scale each, one set of ticks. Only
