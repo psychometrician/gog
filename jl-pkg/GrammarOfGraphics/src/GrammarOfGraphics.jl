@@ -38,6 +38,8 @@ and each language has its own way of saying so.
 module GrammarOfGraphics
 
 using Dates
+using Base64: base64encode
+using Random: randstring
 
 include("errors.jl")
 include("json.jl")
