@@ -2763,3 +2763,31 @@ if (file.exists("r-pkg/gog/DESCRIPTION")) {
          "\n  One grammar, one number. Change them together or not at all.")
   cat("PASS: all seven declarations agree on version ", versions[[1]], "\n", sep = "")
 }
+
+# --- the inline browser engine must be one unbroken line ----------------------
+#
+# `data_uri()` writes a `data:` URI into a JavaScript string literal, and a
+# literal newline inside one is a syntax error that stops the whole emitted
+# module from parsing. `jsonlite::base64_enc()` wraps at 72 characters, so this
+# was broken for every `print(p)` in a console — the RStudio and Positron viewer
+# panes, and a browser tab — while the book, which points at a shared file
+# instead of inlining, worked throughout and hid it.
+local({
+  assets <- gog:::find_wasm_assets()
+  if (is.null(assets)) {
+    cat("SKIP: no browser engine built, so the inline URI cannot be checked\n")
+  } else {
+    uri <- gog:::data_uri(assets$js, "text/javascript")
+    stopifnot(!grepl("[\r\n]", uri))
+    stopifnot(startsWith(uri, "data:text/javascript;base64,"))
+
+    p <- data(data.frame(a = 1:3, b = c(2, 1, 3), c = c(3, 2, 1))) +
+      point + x(a) + y(b) + z(c)
+    block <- gog:::svg_block(gog:::render_svg(p), p)
+    script <- sub(".*<script type=\"module\">", "", block)
+    script <- sub("</script>.*", "", script)
+    # Three newlines of formatting; 291 meant the base64 was wrapped.
+    stopifnot(length(gregexpr("\n", script)[[1]]) < 10)
+    cat("PASS: the inlined browser engine is a single unbroken line\n")
+  }
+})

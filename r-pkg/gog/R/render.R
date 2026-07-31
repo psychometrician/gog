@@ -361,7 +361,19 @@ find_wasm_assets <- function() {
 # because it is the only form that survives a notebook being emailed.
 data_uri <- function(path, mime) {
   raw_bytes <- readBin(path, "raw", file.info(path)$size)
-  paste0("data:", mime, ";base64,", jsonlite::base64_enc(raw_bytes))
+  # `jsonlite::base64_enc()` wraps its output at 72 characters — 291 lines for
+  # the runtime alone. A `data:` URI is written into a JavaScript string
+  # literal, and a literal newline inside one is a **syntax error**, so the
+  # whole emitted module failed to parse and nothing ran: `Uncaught SyntaxError:
+  # Invalid or unexpected token`.
+  #
+  # It was invisible for as long as it was because the book never takes this
+  # path. There the URLs are short relative paths to a shared file, so the
+  # wrapping had nothing to wrap and every rendered chapter worked. Only a
+  # `print(p)` in a console — the RStudio and Positron viewer panes, and a
+  # browser tab — inlines the engine, and that is where it broke.
+  gsub("[\r\n]", "", paste0("data:", mime, ";base64,",
+                            jsonlite::base64_enc(raw_bytes)))
 }
 
 # An `import` needs a *module specifier*, which is a stricter thing than a URL a
@@ -608,12 +620,24 @@ render_and_display <- function(gog) {
     return(invisible(svg_str))
   }
 
+  # `svg_block()` rather than the bare SVG, so a plot in the cube can be turned
+  # here too. This page is what `print(p)` shows in the RStudio and Positron
+  # viewer panes and in a browser tab, and it used to embed the drawing on its
+  # own — which meant the one place an R user *looks at a plot interactively* was
+  # the one place that never offered it. The notebook branch above had been
+  # wired and this had not.
+  #
+  # It carries the engine inline, and here that is the only thing that can work:
+  # the page is a `file://` temp file with no directory of its own and no server
+  # behind it, so a relative URL has nothing to resolve against. That is exactly
+  # the case the `data:` default was written for, and it is why the option the
+  # book sets is an option rather than the default.
   html <- paste0(
     "<!DOCTYPE html>\n<html>\n",
     "<head><meta charset='utf-8'>",
     "<style>body{margin:0;background:#fff;display:flex;",
     "justify-content:center;padding:16px;}</style></head>\n",
-    "<body>\n", svg_str, "\n</body>\n</html>"
+    "<body>\n", svg_block(svg_str, gog), "\n</body>\n</html>"
   )
 
   tmp <- tempfile(fileext = ".html")

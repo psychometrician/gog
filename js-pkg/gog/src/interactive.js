@@ -224,7 +224,16 @@ export function attachDrag(engine, container, request, options = {}) {
     dragging = true;
     lastX = e.clientX;
     lastY = e.clientY;
-    container.setPointerCapture?.(e.pointerId);
+    // Capture keeps the drag alive when the pointer leaves the plot, and it is
+    // an improvement rather than a requirement — dragging works without it. It
+    // throws `NotFoundError` for a pointer id that is not active, which a real
+    // mouse never produces but a synthetic `PointerEvent` does, so a test
+    // driving the plot would otherwise raise an uncaught error mid-drag.
+    try {
+      container.setPointerCapture?.(e.pointerId);
+    } catch {
+      /* no active pointer to capture; the drag proceeds without it */
+    }
   };
   const onMove = (e) => {
     if (!dragging) return;
