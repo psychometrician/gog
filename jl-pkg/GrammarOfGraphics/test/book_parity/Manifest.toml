@@ -4,16 +4,20 @@ julia_version = "1.12.6"
 manifest_format = "2.0"
 project_hash = "0f6c794fc0a834b838669b00fab00368c3e5d202"
 
+[[deps.Base64]]
+uuid = "2a0f44e3-6c83-55bd-87e4-b1978d98bd5f"
+version = "1.11.0"
+
 [[deps.Dates]]
 deps = ["Printf"]
 uuid = "ade2ca70-3891-5945-98fb-dc099432e06a"
 version = "1.11.0"
 
 [[deps.GrammarOfGraphics]]
-deps = ["Dates"]
+deps = ["Base64", "Dates", "Random"]
 path = "../.."
 uuid = "c00c8485-9aac-4319-bba4-e242535f49e2"
-version = "0.1.0"
+version = "0.0.1"
 
 [[deps.JSON]]
 deps = ["Dates", "Logging", "Parsers", "PrecompileTools", "StructUtils", "UUIDs", "Unicode"]

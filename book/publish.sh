@@ -119,6 +119,28 @@ fi
 grep -q "site_libs" "$BOOK/_book/index.html" \
   || die "index.html does not reference site_libs — the render looks wrong"
 
+# The turnable cube, checked the same three ways `book.yml` checks it, because a
+# book published from a laptop and a book published by CI should have to clear
+# the same bar. Every one of these fails quietly: the reader loses the
+# interactivity and the page still looks finished.
+[[ -f "$BOOK/_book/gog.wasm" ]] \
+  || die "_book/gog.wasm is missing — 3-D plots would not turn.
+  Build it:  cargo build --release --target wasm32-unknown-unknown --manifest-path gog-wasm/Cargo.toml"
+[[ -f "$BOOK/_book/interactive.js" ]] \
+  || die "_book/interactive.js is missing — 3-D plots would not turn"
+
+# The chapters have to have *asked* for it. If the engine was absent when the
+# render ran, `R/copy-assets.R` says so and the book renders static — correct for
+# a checkout, wrong for a publish.
+grep -q 'mount("gog-' "$BOOK/_book/space.html" \
+  || die "space.html has no interactive plots — the engine was missing at render time"
+
+# And asked by URL. Unset, the bindings carry the engine inside every plot as
+# base64: right for a notebook, and about 1.1 MB per page here.
+if grep -q "data:application/wasm" "$BOOK/_book/space.html"; then
+  die "the engine is inlined per plot — R/setup.R should point at the shared copy"
+fi
+
 echo "output looks right ($(du -sh "$BOOK/_book" | cut -f1))"
 
 if [[ $DRY_RUN -eq 1 ]]; then

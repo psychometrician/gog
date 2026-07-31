@@ -102,9 +102,12 @@ local({
             "  cargo build --release --target wasm32-unknown-unknown ",
             "--manifest-path gog-wasm/Cargo.toml")
   } else {
-    file.copy(wasm, file.path(proj_root, "book", "gog.wasm"), overwrite = TRUE)
-    file.copy(js,   file.path(proj_root, "book", "interactive.js"), overwrite = TRUE)
-
+    # The files themselves are staged by `R/copy-assets.R`, which runs as the
+    # project's `pre-render` script. It has to happen before the render rather
+    # than here, because Quarto decides what `resources:` covers at the start and
+    # this runs once per chapter, long after. What is left for this file is the
+    # URL, which is per-chapter work and could not move earlier anyway.
+    #
     # Both URLs are relative to the *page*, and the book is not flat: a chapter
     # under `marks/` renders to `_book/marks/`, where a bare `gog.wasm` would
     # point at a file that is one directory up. Quarto runs each chunk in its

@@ -1,6 +1,14 @@
 project:
   type: book
 
+  # Stages the browser engine into `book/` before anything is rendered. It has to
+  # run here rather than in `R/setup.R`: Quarto decides what `resources:` means
+  # at the *start* of a render, and `setup.R` runs once per chapter, well after
+  # that decision. A copy made there arrives too late to be published, which
+  # looks correct on a machine that rendered before and fails on a clean one.
+  pre-render:
+    - R/copy-assets.R
+
   # The book's example tables, as CSV. Quarto copies these into `_book/`, and
   # `publish.sh` rsyncs all of `_book/` to the site, so each frame ends up at a
   # stable public URL under `psychometrician.github.io/gog-book/data/`. That URL

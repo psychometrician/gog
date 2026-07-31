@@ -202,10 +202,18 @@ jobs:
       # registry. Its `Manifest.toml` is committed for exactly this reason, and
       # records `GrammarOfGraphics` as a relative path, so the version under test
       # is the checkout rather than a release.
+      # `resolve` before `instantiate`, and the order is the whole point.
+      # `instantiate` installs what the manifest already says; it does not
+      # reconsider it. `GrammarOfGraphics` is a *path* dependency, so the day the
+      # package gains a dependency of its own the manifest still records the old
+      # list, `instantiate` happily installs it, and the harness then dies on
+      # `using GrammarOfGraphics` with a message about a package "not having" a
+      # dependency it plainly declares. That happened the day Base64 and Random
+      # arrived with the turnable cube: this step passed and the next one failed.
       - name: Resolve the parity harness's environment
         run: |
           julia --project=jl-pkg/GrammarOfGraphics/test/book_parity \
-                -e 'using Pkg; Pkg.instantiate()'
+                -e 'using Pkg; Pkg.resolve(); Pkg.instantiate()'
 
       - name: Julia draws every sentence
         run: |
