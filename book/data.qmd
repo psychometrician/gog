@@ -244,7 +244,7 @@ you: you will say `bar * count + x(status)`, and the engine will send the
 which is the reason `query()` was built to hold its SQL rather than run it
 immediately. Until then, the summarizing is yours to write.
 
-### One grammar, or one more syntax
+### Two directions, and which one suits you
 
 There is another way to give SQL users a grammar of graphics, and it is worth
 understanding, because it explains what `query` is for.
@@ -261,27 +261,40 @@ billion rows fetches only the bar heights. GOG will do this and does not yet.
 Read that section as describing GOG's present limit, not a difficulty in the
 idea.
 
-The two approaches point in opposite directions, and neither is wrong.
+ggsql has two real strengths, and they are worth naming clearly.
 
-|  | What you write | What you learn |
+The first is scale, described above: the database does the work, so the size of
+the table stops being your problem. The second is familiarity. Its clauses sit
+beside `SELECT`, `FROM` and `GROUP BY` and read the same way, so a person who
+writes SQL all day never leaves the language they are already thinking in. There
+is no host language to install and no context to switch.
+
+**If SQL is where you work, that is a strong combination, and ggsql is probably
+the better fit for you.** This book would be giving you bad advice if it
+pretended otherwise. GOG would ask you to pick up R, Python, Julia or
+JavaScript first, and for someone who has no reason to use one, that is a real
+cost and not a small one.
+
+The two projects point in different directions, and which one is cheaper depends
+on who you are:
+
+| You work | The lower cost is | Because |
 |---|---|---|
-| **A visual dialect of SQL** | Visual clauses inside the query | A new visual syntax, for SQL |
-| **`query` in GOG** | The same sentence you already write | Nothing new |
+| Only in SQL | **ggsql** | Nothing new to install, and the syntax is the one you already use |
+| Across several languages | **GOG** | One grammar covers all of them, and the database as well |
 
-A visual dialect of SQL serves someone who works only in SQL, and serves them
-well. Its cost appears when that person also works in Python, or reads a
-colleague's R. Then the visual syntax they learned for SQL does not carry over,
-and there is a second one to learn.
-
-GOG takes the other direction. The grammar stays in one place, and the data
+GOG's direction is the second one. The grammar stays in one place, and the data
 comes to it. The same sentence draws a table in memory, a table in SQLite, a
 table in Postgres, and a table in a Databricks warehouse. It draws the same
 sentence in R, Python, Julia and JavaScript. **One syntax, as many languages and
 settings as we can reach.**
 
-That is the whole ambition, and it is the same one behind the rest of this book.
-A grammar is worth learning because it is small enough to learn once. Learning
-it four times, once per tool, is the cost it exists to remove.
+That is the ambition behind the rest of this book. A grammar is worth learning
+because it is small enough to learn once. Someone who moves between a SQL
+console, a Python notebook and a colleague's R script would otherwise learn a
+different visual vocabulary in each, and that repetition is the cost this
+grammar exists to remove. For someone who stays in one of those places, the
+repetition never happens, and the argument does not apply to them.
 
 ```{r}
 #| include: false
