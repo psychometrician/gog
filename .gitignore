@@ -86,11 +86,17 @@ target/
 *.Rcheck/
 r-pkg/*.tar.gz
 
-# Both are produced during a build rather than written by hand: `configure`
-# copies the engine into inst/bin/, and `.prepare` stages the crate sources
-# into tools/rust/.
+# All three are produced during a build rather than written by hand: `configure`
+# copies the engine into inst/bin/ and the browser engine into inst/www/, and
+# `.prepare` stages the crate sources into tools/rust/.
 r-pkg/gog/inst/bin/
+r-pkg/gog/inst/www/
 r-pkg/gog/tools/rust/
+
+# The same, for the npm package: the release job compiles the browser engine and
+# stages it here before `npm pack`. `package.json` lists `www` under `files` so
+# the tarball carries it, and nothing here is written by hand.
+js-pkg/gog/www/
 
 # Jupyter
 .ipynb_checkpoints/

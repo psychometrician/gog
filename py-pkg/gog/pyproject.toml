@@ -86,4 +86,4 @@ path = "hatch_build.py"
 # distribution" instead of a download that builds and fails on advice it cannot
 # follow. Vendoring is most of the CRAN-route machinery and is a project of its
 # own, not a prerequisite for claiming the name.
-exclude = ["gog/_bin"]
+exclude = ["gog/_bin", "gog/_www"]

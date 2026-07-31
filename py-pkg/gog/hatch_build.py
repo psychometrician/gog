@@ -42,6 +42,30 @@ def _engine(root: str) -> str:
     )
 
 
+def _browser_engine(root: str):
+    """`(source, target)` for the WebAssembly engine and its runtime, or nothing.
+
+    Returns an empty list when either is missing, and that is not an error: the
+    wheel is complete without them and a 3-D plot simply stays still. Contrast
+    `_engine` above, which raises, because a wheel with no `gog-cli` cannot draw
+    at all.
+
+    `GOG_WASM_PATH` overrides the search the way `GOG_CLI_PATH` does, so a
+    release job that built the module somewhere else can say where.
+    """
+    wasm = os.environ.get("GOG_WASM_PATH", "") or os.path.join(
+        root, "..", "..", "gog-wasm", "target", "wasm32-unknown-unknown",
+        "release", "gog_wasm.wasm",
+    )
+    js = os.path.join(root, "..", "..", "js-pkg", "gog", "src", "interactive.js")
+    if os.path.isfile(wasm) and os.path.isfile(js):
+        return [
+            (os.path.abspath(wasm), "gog/_www/gog.wasm"),
+            (os.path.abspath(js), "gog/_www/interactive.js"),
+        ]
+    return []
+
+
 def _platform_tag() -> str:
     """The platform this wheel is for.
 
@@ -64,6 +88,24 @@ class CustomBuildHook(BuildHookInterface):
             return  # an sdist carries source, and a binary is not source
 
         build_data["force_include"][_engine(self.root)] = f"gog/_bin/{EXE}"
+
+        # The browser engine rides along when it has been built, and the wheel is
+        # complete without it. A 3-D plot in a notebook can be turned with the
+        # mouse, which needs the engine compiled to WebAssembly plus the module
+        # that drives it; absent them, the plot is the still picture it always
+        # was, which is also what a JavaScript-less viewer and a PDF get.
+        #
+        # Optional rather than required, unlike `_engine` above, because the two
+        # fail differently: without `gog-cli` nothing draws at all, while without
+        # this a plot draws and does not turn. Making it required would mean a
+        # `wasm32-unknown-unknown` target on every machine that builds a wheel,
+        # to gate a feature many users never reach.
+        #
+        # One file covers every platform. WebAssembly is portable, so this is the
+        # same bytes in all five wheels — no matrix, and nothing to pick wrong.
+        for source, target in _browser_engine(self.root):
+            build_data["force_include"][source] = target
+
         # Pure-Python wheels are tagged `py3-none-any` and installed anywhere,
         # which is exactly wrong for one holding a native executable.
         build_data["pure_python"] = False

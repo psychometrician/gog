@@ -88,6 +88,22 @@ jobs:
         env:
           MACOSX_DEPLOYMENT_TARGET: ${{ matrix.macos_target }}
 
+      # The browser engine, which every wheel carries identically. WebAssembly is
+      # portable, so unlike `gog-cli` above there is no cross build and no
+      # per-platform question — the same bytes go into all five wheels.
+      #
+      # `hatch_build.py` treats it as optional and a wheel is valid without it,
+      # so this step is what turns "optional" into "present in every release".
+      # Left out, the wheels would install and their 3-D plots would quietly draw
+      # as still pictures.
+      - name: Build the engine the browser runs
+        shell: bash
+        run: |
+          rustup target add wasm32-unknown-unknown
+          cargo build --release --target wasm32-unknown-unknown \
+            --manifest-path gog-wasm/Cargo.toml
+          test -f gog-wasm/target/wasm32-unknown-unknown/release/gog_wasm.wasm
+
       - name: Set up Python
         if: ${{ !matrix.container }}
         uses: actions/setup-python@v5
@@ -105,6 +121,22 @@ jobs:
           if [ -n "${{ matrix.container }}" ]; then PYTHON=/opt/python/cp312-cp312/bin/python; fi
           "$PYTHON" -m pip install --upgrade build
           GOG_WHEEL_PLAT="${{ matrix.tag }}" "$PYTHON" -m build --wheel --outdir dist py-pkg/gog
+
+          # Assert rather than assume. The build hook treats the browser engine
+          # as optional, which is right — a wheel is valid without it and a plot
+          # simply stays still. That also means its absence is not an error
+          # anywhere, so a release could ship five wheels whose 3-D plots quietly
+          # do not turn and nothing would say so. This is where that is caught.
+          "$PYTHON" - <<'PY'
+          import glob, sys, zipfile
+          wheel = sorted(glob.glob("dist/*.whl"))[-1]
+          names = zipfile.ZipFile(wheel).namelist()
+          for want in ("gog/_www/gog.wasm", "gog/_www/interactive.js"):
+              if want not in names:
+                  print(f"::error::{wheel} has no {want} - 3-D plots would not turn")
+                  sys.exit(1)
+          print("the wheel carries the browser engine")
+          PY
 
       # The check that matters, and the one the R package has never passed:
       # install what was just built somewhere with no checkout in sight, unset

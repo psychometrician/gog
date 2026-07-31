@@ -263,6 +263,10 @@ jobs:
       # The binding package is pure JavaScript and carries no engine itself, so one
       # has to be built here; the platform jobs above each build their own.
       - uses: dtolnay/rust-toolchain@stable
+        with:
+          # The suite draws with `gog-cli`, and the package ships the browser
+          # build beside it. Targets can only be added by the toolchain action.
+          targets: wasm32-unknown-unknown
       - uses: Swatinem/rust-cache@v2
       - name: Build an engine for the suite to draw with
         shell: bash
@@ -274,6 +278,25 @@ jobs:
       # import the path as a module and dies on `Cannot find module …/test`, which
       # is how `npm test` here was broken without anyone noticing: the documented
       # command has always been the glob, so nothing ran the other form.
+      # The browser engine goes in the *main* package rather than the five
+      # platform ones, and that is the whole difference between it and `gog-cli`.
+      # WebAssembly is portable, so one file serves every platform and there is
+      # no matrix to keep in step — the reason the engine needs five packages
+      # does not apply to it at all.
+      #
+      # `interactive.js` already ships: it is source, and `src/` is published.
+      # Only the compiled module has to be staged, into `www/`, which
+      # `package.json` lists under `files` and `findWasmAssets` looks in first.
+      - name: Stage the browser engine
+        shell: bash
+        run: |
+          cargo build --release --target wasm32-unknown-unknown \
+            --manifest-path gog-wasm/Cargo.toml
+          mkdir -p js-pkg/gog/www
+          cp gog-wasm/target/wasm32-unknown-unknown/release/gog_wasm.wasm \
+             js-pkg/gog/www/gog.wasm
+          test -f js-pkg/gog/www/gog.wasm
+
       - name: Test and pack
         working-directory: js-pkg/gog
         shell: bash
@@ -281,6 +304,12 @@ jobs:
           node --test test/*.mjs
           mkdir -p "$GITHUB_WORKSPACE/dist"
           npm pack --pack-destination "$GITHUB_WORKSPACE/dist"
+          # Assert rather than assume. `files` decides what npm includes, and a
+          # typo there is not an error anywhere — it is a published package that
+          # installs cleanly and whose 3-D plots quietly do not turn.
+          tar -tzf "$GITHUB_WORKSPACE"/dist/grammar-of-graphics-[0-9]*.tgz \
+            | grep -q "package/www/gog.wasm" \
+            || { echo "::error::the npm tarball has no www/gog.wasm"; exit 1; }
 
       - uses: actions/upload-artifact@v4
         with:

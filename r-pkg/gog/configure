@@ -176,3 +176,41 @@ mkdir -p "${DEST}"
 cp "${FOUND}" "${DEST}/${EXE}"
 chmod 0755 "${DEST}/${EXE}"
 echo "* gog: bundled the engine from ${FOUND}"
+
+# ---------------------------------------------------------------------------
+# The browser engine, which is a different kind of thing from the one above
+# ---------------------------------------------------------------------------
+#
+# A 3-D plot drawn into an HTML page can be turned with the mouse, and that needs
+# the engine compiled to WebAssembly plus the small module that drives it. Both
+# go to `inst/www/`, where `find_wasm_assets()` looks first.
+#
+# **Copied if present, never built, and absent is not an error.** Three reasons,
+# and the first is the one that decides it: building it needs the
+# `wasm32-unknown-unknown` target, which a user installing an R package has no
+# reason to have and no obligation to install. Second, a missing browser engine
+# costs a still picture rather than a broken one — `svg_block()` emits the static
+# SVG it always did, which is what a PDF and a JavaScript-less viewer get anyway.
+# Third, the engine that *draws* is required and this one is not, so failing here
+# would refuse an install over a feature the user may never reach for.
+#
+# One file serves every platform, unlike `gog-cli`. WebAssembly is portable, so
+# there is no per-platform matrix here and no question of which build to pick.
+WASM_SRC="${WORKSPACE}/gog-wasm/target/wasm32-unknown-unknown/release/gog_wasm.wasm"
+JS_SRC="${WORKSPACE}/js-pkg/gog/src/interactive.js"
+WWW="inst/www"
+
+if [ -f "${WWW}/gog.wasm" ] && [ -f "${WWW}/interactive.js" ] && [ ! -f "${WORKSPACE}/Cargo.toml" ]; then
+  # A release tarball CI already staged. Same test as the engine above: a
+  # checkout has a workspace beside it and a tarball does not.
+  echo "* gog: using the browser engine already in ${WWW}/"
+elif [ -f "${WASM_SRC}" ] && [ -f "${JS_SRC}" ]; then
+  mkdir -p "${WWW}"
+  cp "${WASM_SRC}" "${WWW}/gog.wasm"
+  cp "${JS_SRC}" "${WWW}/interactive.js"
+  echo "* gog: bundled the browser engine — 3-D plots will turn in an HTML page"
+else
+  echo "* gog: no browser engine found; 3-D plots will draw as still pictures."
+  echo "       To include it:  cargo build --release --target wasm32-unknown-unknown \\"
+  echo "                         --manifest-path gog-wasm/Cargo.toml"
+fi
