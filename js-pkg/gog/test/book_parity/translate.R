@@ -323,6 +323,29 @@ js_page_misused <- function(e) {
   any(vapply(as.list(e)[-1], js_page_misused, logical(1)))
 }
 
+# A parenthesized group used as an operand of `+`.
+#
+# R refuses this shape: parentheses do not group marks, so everything inside them
+# would be dropped. **JavaScript never had the shape to refuse.** Its sentence is
+# a flat argument list, `plot(a, b, c)`, so the parentheses have nothing to
+# translate into and simply vanish — leaving a different sentence, which is
+# legal, which then draws. That is not a disagreement between the bindings; it is
+# a sentence with no JavaScript form, the same category as an R pipe.
+#
+# Parentheses around whole *plots* are the opposite case and must keep
+# translating: `(…) | (…)` becomes `across(plot(…), plot(…))`, and composition is
+# exactly what parentheses are for. So the test is the operator they sit under,
+# `+` and not `|` or `/`, rather than the parentheses themselves.
+js_plus_group <- function(e) {
+  if (!is.call(e)) return(FALSE)
+  if (identical(deparse(e[[1]]), "+") && length(e) == 3) {
+    for (side in list(e[[2]], e[[3]])) {
+      if (is.call(side) && identical(deparse(side[[1]]), "(")) return(TRUE)
+    }
+  }
+  any(vapply(as.list(e)[-1], js_plus_group, logical(1)))
+}
+
 js_has_composition <- function(e) {
   if (!is.call(e)) return(FALSE)
   if (js_composition(e)) return(TRUE)
@@ -379,6 +402,9 @@ translate_js <- function(source) {
     if (js_page_misused(expr))
       return(list(js = NA_character_,
                   blocked = "an operator applied to a page — JavaScript has no `+` or `facet()` to apply"))
+    if (js_plus_group(expr))
+      return(list(js = NA_character_,
+                  blocked = "parentheses grouping marks — JavaScript's argument list has no parentheses to drop"))
     # A table the chunk defines for itself keeps its *name*, because the sentence
     # below is about to use it. Only the spec assignment (`p <- data(…) + …`) is
     # droppable, where the name is R's bookkeeping rather than content.
