@@ -246,55 +246,30 @@ immediately. Until then, the summarizing is yours to write.
 
 ### Two directions, and which one suits you
 
-There is another way to give SQL users a grammar of graphics, and it is worth
-understanding, because it explains what `query` is for.
+There is another way to give SQL users a grammar of graphics. Posit's **ggsql**
+[@posit2026ggsql] adds visual clauses to SQL itself: you write `VISUALIZE`,
+`DRAW` and `SCALE` inside the query, and the database returns a picture.
 
-That other way adds visual clauses to SQL itself. Posit's **ggsql**
-[@posit2026ggsql] does this, as an extension to the DuckDB database. You write
-`VISUALIZE`, `DRAW`, `SCALE` and `LABEL` inside the query, and the database
-returns a picture. It is a real implementation of Wilkinson's ideas and a good
-one.
+It has two strengths and both are real. Its clauses read like SQL, so someone who
+writes SQL all day never leaves the language they are thinking in, and no host
+language is installed at all. And it runs the whole pipeline in the database, one
+query per layer, so a bar chart of ten billion rows fetches only the bar heights.
+**On that second point ggsql is ahead of GOG**, which will do the same and does
+not yet. The limit described above is ours, not the idea's.
 
-It is also ahead of GOG on the question the previous section is about. ggsql
-runs the whole pipeline as SQL, one query per layer, so a bar chart of ten
-billion rows fetches only the bar heights. GOG will do this and does not yet.
-Read that section as describing GOG's present limit, not a difficulty in the
-idea.
+**If SQL is where you work, ggsql is probably the better fit.** GOG would first
+ask you to pick up R, Python, Julia or JavaScript, and that is a real cost for
+someone with no other reason to.
 
-ggsql has two real strengths, and they are worth naming clearly.
-
-The first is scale, described above: the database does the work, so the size of
-the table stops being your problem. The second is familiarity. Its clauses sit
-beside `SELECT`, `FROM` and `GROUP BY` and read the same way, so a person who
-writes SQL all day never leaves the language they are already thinking in. There
-is no host language to install and no context to switch.
-
-**If SQL is where you work, that is a strong combination, and ggsql is probably
-the better fit for you.** This book would be giving you bad advice if it
-pretended otherwise. GOG would ask you to pick up R, Python, Julia or
-JavaScript first, and for someone who has no reason to use one, that is a real
-cost and not a small one.
-
-The two projects point in different directions, and which one is cheaper depends
-on who you are:
-
-| You work | The lower cost is | Because |
-|---|---|---|
-| Only in SQL | **ggsql** | Nothing new to install, and the syntax is the one you already use |
-| Across several languages | **GOG** | One grammar covers all of them, and the database as well |
-
-GOG's direction is the second one. The grammar stays in one place, and the data
-comes to it. The same sentence draws a table in memory, a table in SQLite, a
-table in Postgres, and a table in a Databricks warehouse. It draws the same
-sentence in R, Python, Julia and JavaScript. **One syntax, as many languages and
+GOG points the other way. The grammar stays in one place and the data comes to
+it, so one sentence draws a table in memory, a table in Postgres, and a table in
+a warehouse, in any of four languages. **One syntax, as many languages and
 settings as we can reach.**
 
-That is the ambition behind the rest of this book. A grammar is worth learning
-because it is small enough to learn once. Someone who moves between a SQL
-console, a Python notebook and a colleague's R script would otherwise learn a
-different visual vocabulary in each, and that repetition is the cost this
-grammar exists to remove. For someone who stays in one of those places, the
-repetition never happens, and the argument does not apply to them.
+| You work | The lower cost is |
+|---|---|
+| Only in SQL | **ggsql** — nothing to install, and the syntax is the one you use |
+| Across several languages | **GOG** — one grammar covers all of them, and the database too |
 
 ```{r}
 #| include: false
