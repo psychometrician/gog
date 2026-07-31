@@ -290,3 +290,20 @@ block, and a stale kernel chapter is worse than a missing one.
 `book/check_vocabulary.R` (run by the R tests) catches prose that names an atom
 which does not exist, in both directions, and `book/check_refusals.R` evaluates
 every chunk the book presents as a refusal and fails if one renders instead.
+
+## After you push
+
+A push to `main` runs the tests, and republishes the manual if it touched the book,
+the engine, or the R or Python binding. It **cannot** publish a package to any
+index: PyPI and npm are reached only by a `py-v*` or `js-v*` tag, and Julia only by
+a comment addressed to its registration bot.
+
+The exception is R. r-universe polls this repository and rebuilds `r-pkg/gog` on
+every commit, publishing at whatever `DESCRIPTION` says — so a push does change
+what an R user installs, without changing the version number they see.
+
+Version numbers are never assigned by CI. One number is written down seven times,
+and the only automation is a check that all seven agree.
+[`.github/RELEASING.md`](.github/RELEASING.md) has the full account: which workflow
+each trigger starts, where the seven declarations live, what each registry does with
+a number, and which parts of a release cannot be taken back.
