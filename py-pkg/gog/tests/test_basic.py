@@ -1282,6 +1282,65 @@ refuses(
     lambda: render_svg(query(object(), _SQL) + bar * count + x(col.status)),
 )
 
+# The same guard against other engines. SQLite above is the one that always
+# runs, being standard library; these two are skipped when absent rather than
+# quietly not run. DuckDB needs no server. Postgres does, so it is reached only
+# when `GOG_TEST_POSTGRES` names one — a connection string like
+# `postgresql://user:pass@localhost/db`.
+#
+# What is being checked is not the database. It is that `to_wire` reads whatever
+# types that driver returns and still lands every column in the same wire bucket
+# SQLite did — which is where a new engine would actually break, since a driver
+# is free to hand back Decimal, memoryview, or its own date class.
+
+def _guard_over(label: str, connect, ddl: str) -> None:
+    """Assert query() and data() agree byte for byte on one more engine."""
+    try:
+        con = connect()
+    except Exception as exc:                       # driver missing, or no server
+        print(f"SKIP: {label} — {type(exc).__name__}: {str(exc)[:60]}")
+        return
+    try:
+        cur = con.cursor()
+        cur.execute("DROP TABLE IF EXISTS gog_orders")
+        cur.execute(ddl)
+        for status, revenue in _ROWS:
+            cur.execute(f"INSERT INTO gog_orders VALUES ('{status}', {revenue})")
+        if hasattr(con, "commit"):
+            con.commit()
+        sql = "SELECT status, revenue FROM gog_orders"
+        sentence = lambda t: t + bar * count + x(col.status)
+        a = render_svg(sentence(data(_FRAME, name="orders")))
+        b = render_svg(sentence(query(con, sql, name="orders")))
+        assert a == b, f"query() and data() disagree over {label}"
+        ok(f"query() over {label} draws byte-identically to data()")
+    finally:
+        con.close()
+
+
+def _duckdb():
+    import duckdb
+    return duckdb.connect()
+
+
+def _postgres():
+    import os
+    url = os.environ.get("GOG_TEST_POSTGRES")
+    if not url:
+        raise RuntimeError("set GOG_TEST_POSTGRES to a connection string to run this")
+    try:
+        import psycopg
+        return psycopg.connect(url)
+    except ImportError:
+        import psycopg2
+        return psycopg2.connect(url)
+
+
+_guard_over("DuckDB", _duckdb,
+            "CREATE TABLE gog_orders (status VARCHAR, revenue DOUBLE)")
+_guard_over("PostgreSQL", _postgres,
+            "CREATE TABLE gog_orders (status TEXT, revenue DOUBLE PRECISION)")
+
 _con.close()
 
 print(f"\nAll {passed} checks passed.")
