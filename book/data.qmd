@@ -249,10 +249,17 @@ immediately. Until then, the summarizing is yours to write.
 There is another way to give SQL users a grammar of graphics, and it is worth
 understanding, because it explains what `query` is for.
 
-That other way adds visual clauses to SQL itself. Posit's **ggsql** does this,
-as an extension to the DuckDB database. You write `VISUALIZE`, `DRAW`, `SCALE`
-and `LABEL` inside the query, and the database returns a picture. It is a real
-implementation of Wilkinson's ideas and a good one.
+That other way adds visual clauses to SQL itself. Posit's **ggsql**
+[@posit2026ggsql] does this, as an extension to the DuckDB database. You write
+`VISUALIZE`, `DRAW`, `SCALE` and `LABEL` inside the query, and the database
+returns a picture. It is a real implementation of Wilkinson's ideas and a good
+one.
+
+It is also ahead of GOG on the question the previous section is about. ggsql
+runs the whole pipeline as SQL, one query per layer, so a bar chart of ten
+billion rows fetches only the bar heights. GOG will do this and does not yet.
+Read that section as describing GOG's present limit, not a difficulty in the
+idea.
 
 The two approaches point in opposite directions, and neither is wrong.
 
