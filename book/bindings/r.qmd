@@ -204,6 +204,29 @@ rather than misbehaving. R is the quiet one of the four, which is why the eight
 names above refuse out loud. JavaScript has no collision at all, because nothing
 reaches your scope unless you import it by name.
 
+## Reading from a database
+
+`query()` takes a **DBI** connection. DBI is R's database standard, so the same
+call reaches SQLite, Postgres, MariaDB, BigQuery, and anything with an ODBC
+driver.
+
+```r
+con <- DBI::dbConnect(RSQLite::SQLite(), "sales.db")
+
+query(con, "SELECT status, revenue FROM orders") + bar + x(status) + y(revenue)
+```
+
+DBI and its drivers are **Suggests**, not hard dependencies. A reader who never
+writes SQL installs neither. If you do write SQL, install DBI and the one driver
+your database needs:
+
+```r
+install.packages(c("DBI", "RSQLite"))    # or RPostgres, RMariaDB, odbc, bigrquery
+```
+
+`gog` never opens a connection and never stores a password. You connect the way
+you already do, and hand the open connection over.
+
 ## Getting it
 
 A plot is drawn by the engine, which is a compiled Rust binary, so the R package

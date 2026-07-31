@@ -193,6 +193,44 @@ js_show(
 That is the sixth of the [nine laws](../design-laws.qmd) holding in a language
 that had to be talked into the other eight.
 
+## Reading from a database
+
+Node has no database standard, so `query()` accepts a connection by the shape of
+its methods rather than by its type. A connection that can prepare a statement
+and return all its rows works:
+
+```javascript
+import { DatabaseSync } from "node:sqlite";
+import { plot, query, bar, x, y, col, render_svg } from "grammar-of-graphics";
+
+const con = new DatabaseSync("sales.db");
+render_svg(plot(query(con, "SELECT status, revenue FROM orders"),
+  bar, x(col.status), y(col.revenue)));
+```
+
+`node:sqlite` ships with Node from version 22, so that example needs nothing
+installed. `better-sqlite3` has the same shape and works the same way.
+
+### Asynchronous drivers are refused, and this is the one real limit
+
+`render_svg()` is synchronous. It returns the SVG rather than a Promise, which
+is what lets a plot be written inline in an expression. A driver whose query
+returns a Promise cannot be awaited inside it.
+
+So `pg` and `mysql2` do not work with `query()`, and GOG says so rather than
+letting a Promise reach the engine. The direction it gives is the fix: fetch the
+rows yourself, then bind them as an ordinary table.
+
+```javascript
+const { rows } = await con.query("SELECT status, revenue FROM orders");
+render_svg(plot(data(rows), bar, x(col.status), y(col.revenue)));
+```
+
+That works with every driver, asynchronous ones included. `data()` takes the
+rows an async driver returns, and the sentence after it is unchanged. This is
+the only place in the four bindings where a language's own shape reaches into
+the grammar, and it costs one `await`.
+
 ## Getting it
 
 ```bash

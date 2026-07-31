@@ -74,6 +74,106 @@ data(actuals) + x(year) + y(sales) +
   point
 ```
 
+## A table in a database
+
+Not every table fits in memory. Most working data sits in a database, and a
+warehouse table can hold billions of rows. GOG reaches those tables with one
+word, **`query`**, and it stands exactly where `data` stands.
+
+Nothing else in the sentence changes:
+
+```
+data(orders)                          + bar + x(status)
+query(connection, "SELECT ...")       + bar + x(status)
+```
+
+The SQL sits inside that one word and goes no further. After it, the columns are
+still bare names. The marks, channels, transforms and operators are the ones you
+have already learned. You are not writing a second language for databases. You
+are naming the rows a different way.
+
+Here is a real database. The chunk builds a small one in memory, so it needs no
+server and no password:
+
+```{r}
+con <- DBI::dbConnect(RSQLite::SQLite(), ":memory:")
+DBI::dbWriteTable(con, "countries", gapminder_2007)
+```
+
+Now the sentence. The connection is the only new part:
+
+```{r}
+query(con, "SELECT gdp, life, continent FROM countries WHERE gdp > 5000") +
+  point + x(gdp) + y(life) + color(continent)
+```
+
+The plot is an ordinary scatter plot, because the grammar did an ordinary thing.
+The database chose which rows to send. GOG drew what arrived.
+
+That last point is worth stating plainly. A query and a table in memory produce
+**the same picture, byte for byte**, when they hold the same rows. Every binding
+tests exactly that. So `query` is never a different way of drawing; it is a
+different way of finding the rows to draw.
+
+### Three things to know
+
+**The connection is yours.** GOG never opens one, and it never stores a password.
+You connect with whatever your language already uses, and hand the open
+connection to `query`. That also means GOG adds no database driver to your
+install. A reader who never writes SQL never installs one.
+
+**The query runs when the plot is drawn, not when the sentence is written.**
+Writing `query(con, "...")` asks the database nothing. The sentence is a
+specification, exactly like every other sentence in this book, and the engine
+draws it later. This matters for a reason that is still being built: a
+specification the engine can read *before* the database runs is one where the
+engine can rewrite the question. Counting rows is a job a database does well, so
+a future version will let it count, and send back the summary instead of the
+rows.
+
+**Every language reaches a different set of databases.** The word is the same in
+all four. What differs is the connection you hand it, because each language has
+its own database convention. Your language's chapter says which:
+[R](bindings/r.qmd), [Python](bindings/python.qmd), [Julia](bindings/julia.qmd),
+[JavaScript](bindings/javascript.qmd).
+
+### One grammar, or one more syntax
+
+There is another way to give SQL users a grammar of graphics, and it is worth
+understanding, because it explains what `query` is for.
+
+That other way adds visual clauses to SQL itself. Posit's **ggsql** does this,
+as an extension to the DuckDB database. You write `VISUALIZE`, `DRAW`, `SCALE`
+and `LABEL` inside the query, and the database returns a picture. It is a real
+implementation of Wilkinson's ideas and a good one.
+
+The two approaches point in opposite directions, and neither is wrong.
+
+|  | What you write | What you learn |
+|---|---|---|
+| **A visual dialect of SQL** | Visual clauses inside the query | A new visual syntax, for SQL |
+| **`query` in GOG** | The same sentence you already write | Nothing new |
+
+A visual dialect of SQL serves someone who works only in SQL, and serves them
+well. Its cost appears when that person also works in Python, or reads a
+colleague's R. Then the visual syntax they learned for SQL does not carry over,
+and there is a second one to learn.
+
+GOG takes the other direction. The grammar stays in one place, and the data
+comes to it. The same sentence draws a table in memory, a table in SQLite, a
+table in Postgres, and a table in a Databricks warehouse. It draws the same
+sentence in R, Python, Julia and JavaScript. **One syntax, as many languages and
+settings as we can reach.**
+
+That is the whole ambition, and it is the same one behind the rest of this book.
+A grammar is worth learning because it is small enough to learn once. Learning
+it four times, once per tool, is the cost it exists to remove.
+
+```{r}
+#| include: false
+DBI::dbDisconnect(con)
+```
+
 ## Passing data in R
 
 Pass any R data frame or tibble directly, no setup required:

@@ -192,6 +192,37 @@ over at all, and every one of them is in [R](r.qmd), about R's pipes. Two
 rewrites account for nearly all the rest: the accessor, 471 times, and the
 parentheses, 326.
 
+## Reading from a database
+
+Python has a database standard, and `query()` speaks it. It also speaks Spark,
+because that is where a large share of Python's data actually lives.
+
+**The standard is DB-API, also called PEP 249.** Anything with a `.cursor()`
+method works: the built-in `sqlite3`, DuckDB, `psycopg`, `pyodbc`, Snowflake's
+connector, and the Databricks SQL connector.
+
+```python
+import sqlite3
+from gog import query, bar, x, y, col, render_svg
+
+con = sqlite3.connect("sales.db")
+query(con, "SELECT status, revenue FROM orders") + bar + x(col.status) + y(col.revenue)
+```
+
+**A Spark session works too.** Hand `query()` the session itself, and the table
+name is whatever your catalog calls it. This is the route to a Databricks table:
+
+```python
+query(spark, "SELECT status, revenue FROM main.sales.orders") + bar + x(col.status) + y(col.revenue)
+```
+
+In a Databricks notebook the session is already there, under the name `spark`.
+`gog` installs from PyPI with its engine included, so `%pip install gog` is the
+only setup step.
+
+Neither route adds a dependency to `gog`. You bring the connection; `gog` reads
+rows from it.
+
 ## Getting it running
 
 A plot is drawn by the engine, which is a compiled Rust binary, so the Python

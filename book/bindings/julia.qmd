@@ -147,6 +147,27 @@ R reads a table's name off the expression you wrote, and Julia cannot, so an
 unnamed table is given a unique one and `data(df, name = "notes")` is there when
 a message should say `notes` rather than `data2` ([Bind once](../data.qmd)).
 
+## Reading from a database
+
+`query()` takes a **DBInterface.jl** connection. That is Julia's database
+standard, and it covers SQLite.jl, LibPQ.jl, MySQL.jl and DuckDB.jl.
+
+```julia
+using DBInterface, SQLite, GrammarOfGraphics
+
+con = SQLite.DB("sales.db")
+query(con, "SELECT status, revenue FROM orders") + bar + x(:status) + y(:revenue)
+```
+
+One detail is specific to this binding. `GrammarOfGraphics` **does not depend on
+DBInterface**. The package declares one dependency, `Dates`, and adding a
+database stack for a feature many readers never use would be a poor trade. So
+the package looks DBInterface up in your session instead.
+
+The practical consequence is one line: you must write `using DBInterface`
+yourself. Without it, `query()` says so and names the fix rather than failing
+somewhere further in.
+
 ## Getting it
 
 The Julia package is named `GrammarOfGraphics`. The name is longer than the one
