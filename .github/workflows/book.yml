@@ -85,7 +85,13 @@ jobs:
       # then explains itself. That is how this list was found to be short.
       - uses: r-lib/actions/setup-r-dependencies@v2
         with:
-          packages: any::gapminder, any::jsonlite, any::knitr, any::magrittr, any::rmarkdown
+          # `DBI` and `RSQLite` are the two the book's own text does not reveal
+          # either, for the opposite reason `rmarkdown` does not: `data.qmd` builds
+          # a real in-memory database so `query()` can be taught against one rather
+          # than described, and a chunk that calls `DBI::dbConnect` needs both
+          # present even though no chapter ever writes `library(DBI)`. Without them
+          # the render dies at `data.qmd`, chapter 6, and takes the site with it.
+          packages: any::gapminder, any::jsonlite, any::knitr, any::magrittr, any::rmarkdown, any::DBI, any::RSQLite
 
       # pandas and nothing else. `bindings/python.qmd` runs real pandas examples,
       # and the language tabs shell out to a translator — but neither needs the

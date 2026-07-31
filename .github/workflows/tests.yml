@@ -99,7 +99,13 @@ jobs:
       - if: matrix.lang == 'js'
         uses: actions/setup-node@v4
         with:
-          node-version: "20"
+          # 22, not 20, because `node:sqlite` is what `query()`'s guard draws
+          # against and it is a built-in only from 22 — on 20 the import dies with
+          # `ERR_UNKNOWN_BUILTIN_MODULE` before a single test runs. Choosing a
+          # standard module over an npm driver is the whole reason JavaScript tests
+          # `query()` against a real database with no dependency, the way Python
+          # does with `sqlite3`; the floor is the price of that.
+          node-version: "22"
       - if: matrix.lang == 'js'
         run: node --test js-pkg/gog/test/*.mjs
 
@@ -129,7 +135,13 @@ jobs:
           python-version: "3.12"
       - uses: actions/setup-node@v4
         with:
-          node-version: "20"
+          # 22, not 20, because `node:sqlite` is what `query()`'s guard draws
+          # against and it is a built-in only from 22 — on 20 the import dies with
+          # `ERR_UNKNOWN_BUILTIN_MODULE` before a single test runs. Choosing a
+          # standard module over an npm driver is the whole reason JavaScript tests
+          # `query()` against a real database with no dependency, the way Python
+          # does with `sqlite3`; the floor is the price of that.
+          node-version: "22"
       - uses: julia-actions/setup-julia@v2
         with:
           version: "1"
