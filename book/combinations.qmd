@@ -6,11 +6,12 @@ source("R/setup.R")
 ```
 
 Every mark down the side, every attribute across the top: the whole of what the
-grammar lets you combine, on one page. Three crossings live here. The first is
+grammar lets you combine, on one page. Four crossings live here. The first is
 what a mark lets you *map* (the channels); the second is what a mark lets you
-*derive* (the transforms); the third is where it can be *drawn* (the coordinate
-spaces). Not only what a mark takes, but what it does not, and the
-surprising-but-legal pairings you would never think to try.
+*derive* (the transforms); the third is which two transforms can *stand together*
+on one mark; the fourth is where a mark can be *drawn* (the coordinate spaces).
+Not only what a mark takes, but what it does not, and the surprising-but-legal
+pairings you would never think to try.
 
 These grids are the orthogonality law made visible. [Law 1](design-laws.qmd) says
 every compatible atom combines with every other; a table is that promise
@@ -90,7 +91,8 @@ Reading the five glyphs:
   than a wrong picture. One glyph, three verdicts, and the refusal message tells
   you which you have. **Owed**: a mapped font `size` on `text`.
   **Blocked** on infrastructure: `z` on `rule` and on `zone`, whose 3-D forms are a
-  plane and a slab with no footprint to sort by, so they need real occlusion.
+  plane and a slab with no footprint to sort by, so they need an engine that can
+  tell what hides what.
   **Decided**: `z` on `line`, `step`, `area` and `ribbon`, which read a domain left
   to right where a cube has none, and which are pointed at `path` instead. Only
   the first of the three will ever fill in. The Mark × Space grid below is the
@@ -241,9 +243,143 @@ it points at `stack`. A `box` shows the split cleanly: it takes no statistic (it
 built in) yet still takes `dodge`, because setting grouped boxes side by side is a
 question about position, orthogonal to the summary each box already carries.
 
+## Transforms and transforms
+
+The third crossing is the only one where a mark does not appear. Two transforms can
+follow one mark — `bar * bin * mean` cuts the axis into bands, then averages inside
+each. Which pairs can do that is decided by the transforms alone, and by one rule.
+
+A transform has a **job**. There are four of them, and every transform in GOG does
+at least one:
+
+| job | the question it answers | the transforms that answer it |
+|:--|:--|:--|
+| **extent** | where are the cells? | `bin`, `density`, `smooth`, `partition`, and `bounds` on a `zone` |
+| **measure** | what is in them? | `count`, `sum`, `mean`, `median`, `max`, `min`, `range`, `confidence`, `bounds` |
+| **scale** | what scale is the answer read on? | `proportion`, and `stack(share = TRUE)` |
+| **position** | where do the marks sit? | `dodge`, `stack`, `jitter` |
+
+**Two transforms compose when they do different jobs, and contradict when they do
+the same one.** A cell holds one extent, one measurement, one scale and one
+arrangement. So a second transform doing a job the first already did leaves the
+engine no reading that keeps both, and it refuses rather than drawing one and
+discarding the other.
+
+One transform is the exception, and it is the exception that makes chaining useful.
+`bin` does two jobs: it cuts the axis, and it counts what lands in each band. The
+count is a by-product of the cut, so `bin` can give it up — and it gives it up to a
+transform you handed a *column*. That is why `bar * bin * mean` composes: `bin` supplies the
+cells and `mean` supplies their value. And it is why `bar * bin * count` does not,
+since a tally was never handed a column to reduce.
+
+```{r}
+#| echo: false
+#| results: asis
+# The chain grid, generated from the same predicate the engine refuses with, so it
+# cannot claim a pair the engine would reject. Adding a transform widens it.
+cc   <- rules$chain_cells
+look <- setNames(ifelse(cc$legal, "✅", "—"), paste(cc$a, cc$b))
+cols <- rules$transforms$name
+cat(paste0("| | ", paste0("`", cols, "`", collapse = " | "), " |"),
+    paste0("|:--|", paste(rep(":--:", length(cols)), collapse = "|"), "|"),
+    vapply(cols, function(a) {
+      gs <- vapply(cols, function(b) if (a == b) "·" else look[[paste(a, b)]], character(1))
+      paste0("| `", a, "` | ", paste(gs, collapse = " | "), " |")
+    }, character(1)),
+    sep = "\n")
+```
+
+The grid is symmetric, and that is the rule showing rather than being claimed.
+Whether two transforms contradict is a fact about their jobs. It has nothing to do
+with which one you typed first. So order is yours to choose: write them in the order
+they happen, and the sentence reads the way it runs.
+
+Read the block of `—` in the middle. Nine transforms measure, so no two of them
+combine, and that single square is the whole reason `bar * count * mean` is refused,
+and `bar * mean * sum`, and `interval * range * confidence`. `bin` is the row with a
+`✅` where the others have `—`, which is the exception above, drawn.
+
+Two collisions the grid cannot show, because both depend on something outside the
+pair. `stack(share = TRUE)` divides each pile by its own total, which is a *scale*,
+so it contradicts `proportion` — two divisions, and the second reads as shares of
+nothing. And `bounds` says where a `zone`'s sides are. On that one mark it does the *extent*
+job, so it contradicts `bin`. On every other mark it names the low and the high on
+the measure axis. The engine reads both cases correctly, and the grid above shows the
+reading that applies everywhere else.
+
+Chaining stops at four, and nobody chose the number. Four jobs, one transform each,
+so a fifth transform has to repeat a job — and repeating one is the contradiction
+this whole section is about.
+
+### The shapes a long chain can take
+
+Three and four transforms sound like a large space, and they are not. Once each job
+is filled at most once, and the marks are asked which transforms they take, **every
+chain of three or four has one of six shapes**. Two slots stand for a family rather
+than a transform: `<aggregation>` is any of `sum`, `mean`, `median`, `max`, `min`,
+and `<collision modifier>` is any of `dodge`, `stack`, `jitter`.
+
+```{r}
+#| echo: false
+#| results: asis
+# The shapes, derived rather than listed: every chain of three or four the pair grid
+# above allows on some mark, collapsed to the family each slot stands for. Nothing is
+# typed, so a new transform widens this by itself — and it cannot claim a chain the
+# engine refuses, because it reads the same cells the grid does.
+fam <- c(sum = "<aggregation>", mean = "<aggregation>", median = "<aggregation>",
+         max = "<aggregation>", min = "<aggregation>",
+         dodge = "<collision modifier>", stack = "<collision modifier>",
+         jitter = "<collision modifier>")
+jobof  <- setNames(rules$transforms$jobs, rules$transforms$name)
+rankof <- c(extent = 1, measure = 2, scale = 3, position = 4)
+slot   <- function(t) if (t %in% names(fam)) unname(fam[t]) else t
+# A transform's plain job — the first the engine lists, which is the one it does
+# whatever the mark and settings are. `bin` fills extent and measure and hands the
+# second over; `stack` rescales only when given `share = TRUE`. Taking the first is
+# what keeps `stack` a position transform here rather than a scale one.
+jobt   <- function(t) jobof[[t]][1]
+tlegal <- setNames(rules$transform_cells$state,
+                   paste(rules$transform_cells$transform, rules$transform_cells$mark))
+pairok <- setNames(rules$chain_cells$legal, paste(rules$chain_cells$a, rules$chain_cells$b))
+shapes <- list()
+for (m in rules$marks$name[rules$marks$drawable]) {
+  take <- Filter(function(t) tlegal[[paste(t, m)]] != "none", rules$transforms$name)
+  for (k in c(3, 4)) {
+    if (length(take) < k) next
+    combos <- combn(take, k, simplify = FALSE)
+    for (C in combos) {
+      if (!all(apply(combn(C, 2), 2, function(p) pairok[[paste(p[1], p[2])]]))) next
+      # `base::order` — `order()` is a gog channel, and the grammar masks it.
+      C <- C[base::order(vapply(C, function(t) rankof[[jobt(t)]], 1))]
+      key <- paste(unique(vapply(C, slot, "")), collapse = " * ")
+      if (is.null(shapes[[key]])) shapes[[key]] <- list(n = k, jobs = vapply(C, jobt, ""))
+    }
+  }
+}
+ord <- base::order(vapply(shapes, function(s) s$n, 1), names(shapes))
+cat("| how many | the shape | the jobs it fills |",
+    "|:--:|:--|:--|",
+    vapply(ord, function(i) sprintf("| %d | `%s` | %s |",
+      shapes[[i]]$n, names(shapes)[i],
+      paste(unique(shapes[[i]]$jobs), collapse = ", ")), ""),
+    sep = "\n")
+```
+
+Read the four-transform row first, because it is the whole ceiling in one line. It
+fills each job exactly once, and only one of its slots has any real choice in it.
+`bin` is the only extent transform that hands its measurement over. `proportion` is
+the only one that rescales. The family in the last slot is picked by the mark. So the
+aggregation is the only free decision, which is why four is reachable and not roomy.
+
+The shapes say what the *transforms* allow. A mark can still refuse one of them for a
+reason about its own geometry, and the grids earlier in this chapter are where that
+is decided. `point * proportion * stack` is the clearest case. A dot plot piles one
+whole dot per observation, and a share is less than one dot. So the chain is refused
+on `point` and drawn on `bar`.
+
 ## Marks and spaces
 
-The third crossing is not an attribute of the mark at all. It is the coordinate
+The fourth crossing is not an attribute of the mark at all. It is the coordinate
 space the whole plot sits in, and it asks a different question of every mark:
 once the plane is bent, or stood up into a cube, can this geometry still be
 drawn? A `polar()` bar is a wedge, a `polar()` line is a closed curve, and a `z`
@@ -291,7 +427,8 @@ which of three each is. `line`, `step`, `area` and `ribbon` read a *domain* left
 right, and a cube has no left to right, so they are **refused** — a decision, not a
 queue entry, with `path` as the direction. `rule` and `zone` are **blocked**: their
 3-D forms are a plane and a slab, neither of which has a footprint to sort by, so
-placing them among the data needs real occlusion. Until 2026-07-26 all six said
+placing them among the data needs an engine that can tell what hides what. Until
+2026-07-26 all six said
 "not drawn yet", which promised a renderer for four marks the design had already
 ruled out ([Space](space.qmd)).
 `polar` is the one column with no empty half at all: every mark that draws on the
@@ -337,7 +474,7 @@ the rows. `rule` reads the same way on the transform grid for a reason one axis 
 having handed a whole axis to the panel, so there is no measure to compute. And
 `surface` has a row of the transforms that **tile a floor** — `density`, which
 estimates a value at every node for the sheet to interpolate between, and `bin`,
-which cuts adjacent cells for it to lay a flat lid on, with the five reductions
+which cuts adjacent cells for it to lay a flat lid on, with the aggregation family
 riding `bin` to name the column each cell holds. `path` keeps the shorter row beside
 it, tracing the one field it derives where a surface raises it.
 

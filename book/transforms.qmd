@@ -471,14 +471,26 @@ on both.
 
 ## Chaining transforms
 
-Two transforms on one mark have to divide the work, and there are only three jobs to
+Two transforms on one mark have to divide the work, and there are only four jobs to
 divide. A transform can say **where the cells are**, it can say **what is in them**,
-and it can say **what scale the answer is read on**. `bounds` names the sides of a
-rectangle and measures nothing. `count` tallies into the cells your categories
-already own, and says nothing about where those cells are. `mean` and its four
-siblings reduce a column you name, and say nothing about where the cells are either.
-`proportion` does the third job and only the third: it divides by a total, which is
-why it can stand after almost anything.
+it can say **what scale the answer is read on**, and it can say **where the marks
+sit**. `bounds` names the sides of a rectangle. `count` tallies into the cells your
+categories already own, and says nothing about where those cells are. `mean` and its
+four siblings reduce a column you name, and say nothing about where the cells are
+either. `proportion` does the third job and only the third: it divides by a total,
+which is why it can stand after almost anything. `dodge`, `stack` and `jitter` do the
+fourth, moving marks that would otherwise land on top of one another.
+
+**Two transforms compose when they do different jobs, and contradict when they do the
+same one.** A cell holds one extent, one measurement, one scale and one arrangement.
+A second transform doing a job the first already did therefore leaves no reading that
+keeps both. The engine refuses, rather than drawing one and quietly throwing the other
+away. [Combinations](combinations.qmd) has the whole grid, generated from the same
+rule.
+
+Because each job is filled once, **the order you write them in does not change the
+picture**. Write them in the order they happen and the sentence reads the way it
+runs.
 
 `bin` is the one that does both, and it is the only one that can give half of it up.
 Cutting an axis is what makes it a `bin`; the tally it hands back is a by-product of
@@ -541,6 +553,51 @@ data(gm_all) + bar * bin * count + x(life)
 
 Each refusal names both ways out, and the first two also name the way *through*:
 `bin` is the transform that cuts without keeping the measurement.
+
+The same rule reaches the other three jobs, and it reads the same way each time. Two
+transforms that both produce a low and a high measure the cell twice. So `range` and
+`confidence` cannot stand together. A minimum and a maximum are not a 95% confidence
+interval, and one of the two would have to be discarded:
+
+```{r}
+#| error: true
+data(gm_all) + interval * range * confidence + x(continent) + y(life)
+```
+
+The same holds when one of the pair is a single value and the other is two of them:
+
+```{r}
+#| error: true
+data(gm_all) + line * sum * range + x(year) + y(population)
+```
+
+And two arrangements are the same contradiction on the fourth job. A bar cannot be
+set beside its neighbor and piled on top of it at once, because it sits in one place:
+
+```{r}
+#| error: true
+data(gm_all) + bar * count * dodge * stack + x(continent) + color(continent)
+```
+
+A transform can also turn out to be unnecessary rather than contradictory, and that
+is a different answer. `proportion` divides a tally by its total, so it already
+counts the rows — which leaves `count` beside it with nothing to add. The plot is
+still exactly the plot you asked for, so the engine draws it:
+
+```{r}
+data(gm_all) + bar * count * proportion + x(continent) +
+  title("Share of countries by continent")
+```
+
+It also prints a warning on your console. This page cannot show you that warning,
+because only refusals appear in a rendered book. It reads: *"`bar * count *
+proportion` draws the same plot as `bar * proportion` — a share is a share of a
+tally, so `proportion` already counts the rows and `count` adds nothing."*
+
+That is the line between the two answers. When keeping both transforms would mean
+throwing one away, the engine refuses. When both can stay and one of them simply
+changes nothing, it draws and says so. Neither answer is silence, which is the rule
+underneath both: a word you wrote is never read and then ignored.
 
 ---
 
