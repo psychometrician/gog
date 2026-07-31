@@ -129,8 +129,8 @@ data(medals_dup) + bar * sum + x(country) + y(gold) +
   order(gold, desc = TRUE) + title("Totals — bar * sum")
 ```
 
-`bar * sum` and `order()` compose freely:
-aggregate first with `sum`, then order the result with `order`.
+`bar * sum` and `order()` compose freely, because they do different jobs. `sum`
+totals the values; `order()` sorts the categories those totals land on.
 
 `bar` handles negative values correctly: the bar grows away from zero in
 whichever direction the value sits.

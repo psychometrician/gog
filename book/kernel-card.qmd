@@ -27,7 +27,15 @@ data(table) + mark + x(column) + y(column)
 **Reading order**, every sentence reads left to right as
 *data, mark, positions, refinements*. A channel written before any mark
 is shared by all layers; written after a mark, it belongs to that mark
-alone. The nearest `data()` wins.
+alone. Each later `data()` applies to the next mark.
+
+**Deriving**, `*` puts a transform on a mark, and the mark is always on
+the left. Two transforms are written in the order they happen:
+`bar * bin * mean` cuts the axis into bands, then averages inside each.
+
+**Grouping**, `*` binds tightest, then `+`, then `|`, so a sentence needs
+no parentheses: `data(t) + bar * bin + x(a) | facet(g)` derives the mark,
+builds the plot, then splits it.
 
 **When it refuses**, the message names the rule and the fix. **Illegal**
 means the grammar forbids it: rewrite. **Unsupported** means the engine

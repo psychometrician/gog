@@ -61,11 +61,9 @@ bottom. Add a `line` after `point` to draw the line on top of the points.
 
 ### The order of `+`: *data, mark, positions, refinements*
 
-`*` is rigid: the mark is always on the left, and no transform may stand there
-(`bin * bar` is a type error). `+` is
-the opposite. Inside a single layer the channels **commute**: write them in
-any order and the plot is the same. The two lines below draw the identical
-histogram; the only difference is that `color` moved ahead of `x`:
+Inside a single layer the channels **commute**: write them in any order and the
+plot is the same. The two lines below draw the identical histogram; the only
+difference is that `color` moved ahead of `x`:
 
 ```{r}
 #| layout-ncol: 2
@@ -101,43 +99,9 @@ subject of [Encoding scope](encoding-scope.qmd). The payoff of
 keeping one order everywhere is that once your eye learns it, every plot in the
 book, and every plot you write, parses the same way.
 
-#### Which parts of the order are yours to choose
-
-The order above is what this book prefers. It is not all the engine enforces,
-and the difference is worth knowing, because it tells you where to be careful.
-There are three kinds of ordering, and only one of them needs your attention.
-
-| Kind | What it means | Where |
-|---|---|---|
-| **Free** | Either way draws the same picture, to the byte. | The mark and its positions, in any arrangement. `x` against `y`. Refinements among themselves. |
-| **Refused** | The engine stops and names what to move. | A sentence that does not begin with `data()`. A `style()` written before any mark. |
-| **Meaningful** | No error, and a different picture. | A channel before the marks or after one of them, once a plot has two. |
-
-**Free** is most of it. Every one of these draws the identical plot, and the
-book writes the first only because a fixed order is easier to read:
-
-```{r}
-#| layout-ncol: 2
-data(gapminder_2007) + point + x(gdp) + y(life)
-data(gapminder_2007) + x(gdp) + point + y(life)
-```
-
-**Refused** is the engine telling you the sentence has no subject yet. A
-setting needs a mark to settle on, and in R a plot needs its table first,
-because `+` has to have a plot on its left before it can add anything:
-
-```{r}
-#| error: true
-data(gapminder_2007) + style(size = 3) + point + x(gdp) + y(life)
-```
-
-**Meaningful** is the only one to watch, because it is the only one that stays
-silent. With two marks in a sentence, a channel written before them belongs to
-the plot and reaches both, and a channel written after one belongs to that
-mark. Both are legal, neither warns, and they draw different pictures. That is
-the subject of [Encoding scope](encoding-scope.qmd), and it is the reason this
-book keeps one order: when every sentence is arranged the same way, the one
-that is arranged differently is saying so on purpose.
+Which parts of that order the engine actually enforces, and which are yours to
+arrange, is gathered for all four operators in [Which orders
+matter](#which-orders-matter) below.
 
 #### When a refinement sits far from what it belongs to
 
@@ -186,7 +150,10 @@ line * smooth # smoothed trend line
 line * density # kernel density curve
 ```
 
-The rule is fixed: **mark on the left, transform on the right.**
+Two rules govern `*`, and only two. **The mark goes on the left, and the
+transforms go on the right.** Then, **among the transforms themselves, the order
+you write them in does not matter**: any order draws the same plot. The rest of
+this section is why each rule holds.
 
 ### Why the order is fixed
 
@@ -207,24 +174,30 @@ The rigidity that does the work is the one above: the mark is on the left, alway
 and no transform may stand there. That is what makes `bar * bin` a compound mark
 rather than a function call, and it is why the atoms can be nouns.
 
-Among the transforms themselves, the engine appends each `*` in turn and applies them
-left to right. What that order can decide, though, turns out to be nothing, and the
-reason is worth reading because it is the grammar being tight rather than loose. Two
-transforms may only stand together when they answer *different* questions: where the
-cells are, what is in them, or what scale the answer is read on. A pair that answers
-the same question twice is refused rather than sequenced, so `bin` and `count` — both
-of them tallies with cells of their own — cannot both be in one layer:
+**Write the transforms in the order they happen**, and read them the same way.
+`bar * bin * mean` cuts the axis into bands, then averages inside each one. That is
+the order it runs in, and there is no other order it could run in.
+
+The reason is what `mean` needs. A statistic reduces a **group** to one number, and
+a continuous column has no groups: every value stands alone, so its mean is itself.
+`bin` is what makes the groups, by turning many distinct numbers into one band. So
+the cut comes first because otherwise the mean has nothing to average.
+
+That is also why the pairs that can stand together are the ones that do *different*
+jobs: saying where the cells are, what is in them, or what scale the answer is read
+on. A pair that answers the same question twice is refused rather than sequenced, so
+`bin` and `count` — both of them tallies with cells of their own — cannot both be in
+one layer:
 
 ```{r}
 #| error: true
 data(gapminder_2007) + bar * bin(12) * count + x(life)
 ```
 
-So the pairs that survive are exactly the ones whose halves cannot be swapped. A cell
-has to exist before anything can be measured in it, which makes the cut *prior* rather
-than merely earlier, and `bar * bin * mean` and `bar * mean * bin` draw the identical
-plot. Order is not carrying meaning here because the two transforms already carry it
-between them. See [Chaining transforms](transforms.qmd#chaining-transforms).
+The engine works the running order out from the transforms themselves rather than
+from where you typed them, so it cannot be got wrong. Write it the way you mean it
+and it will read the way it runs. [Chaining
+transforms](transforms.qmd#chaining-transforms) takes the pairs one at a time.
 
 ### Live examples
 
@@ -249,15 +222,6 @@ data(gapminder_2007) + line * density + x(life) + y(density) +
   x_label("Life expectancy (years)") + y_label("Density") +
   title("Kernel Density — Life Expectancy 2007")
 ```
-
-### Chaining transforms
-
-Each `*` appends one more transform to the layer, and they are applied left to right.
-Which pairs are legal, and what each one means, is [its own
-section](transforms.qmd#chaining-transforms). Two transforms have to divide
-the work between saying **where the cells are** and saying **what is in
-them**. A pair that answers the same half twice is refused rather than
-resolved by picking one.
 
 ---
 
@@ -299,6 +263,76 @@ second pair of words. See [Composition](composition.qmd).
 
 ---
 
+## Which orders matter
+
+This book writes every sentence the same way: data, mark, positions,
+refinements. That is a preference rather than a rule, and it is not all the
+engine enforces. The difference is worth knowing, because it tells you where to
+be careful. There are three kinds of ordering, and only one of them needs your
+attention.
+
+| Kind | What it means | Under `+` | Under `*` |
+|---|---|---|---|
+| **Free** | Either way draws the same picture, to the byte. | The mark and its positions, in any arrangement. `x` against `y`. Refinements among themselves. | Two transforms after one mark. Write them in the order they happen; the engine works that order out either way. |
+| **Refused** | The engine stops and names what to move. | A sentence that does not begin with `data()`. A `style()` written before any mark. | A transform on the left: `bin * bar`. |
+| **Meaningful** | No error, and a different picture. | A channel before the marks, or after one of them, once a plot has two. Two marks swapped: the second draws on top. | Nothing. No order under `*` changes the picture. |
+
+Read the last cell first. `*` is rigid about one thing only, which is that the
+mark stands on its left. Once the mark is there, no arrangement of what follows
+changes what you get.
+
+**Free** is most of it. Every one of these draws the identical plot, and the
+book writes the first only because a fixed order is easier to read:
+
+```{r}
+#| layout-ncol: 2
+data(gapminder_2007) + point + x(gdp) + y(life)
+data(gapminder_2007) + x(gdp) + point + y(life)
+```
+
+**Refused** is the engine telling you the sentence has no subject yet. A
+setting needs a mark to settle on, and in R a plot needs its table first,
+because `+` has to have a plot on its left before it can add anything:
+
+```{r}
+#| error: true
+data(gapminder_2007) + style(size = 3) + point + x(gdp) + y(life)
+```
+
+**Meaningful** is the only one to watch, because it is the only one that stays
+silent. With two marks in a sentence, a channel written before them belongs to
+the plot and reaches both, and a channel written after one belongs to that
+mark. Both are legal, neither warns, and they draw different pictures. That is
+the subject of [Encoding scope](encoding-scope.qmd), and it is the reason this
+book keeps one order: when every sentence is arranged the same way, the one
+that is arranged differently is saying so on purpose.
+
+The other silent one is the marks themselves. Two marks swapped draw in the
+order you wrote them, so the second sits on top of the first.
+
+### What groups first
+
+The three kinds above are about where you may put a word. Precedence is a
+different question: how the words you did write get grouped. It is what lets a
+sentence like this one carry no parentheses at all.
+
+```{r}
+data(gapminder_2007) + bar * bin + x(life) | facet(continent)
+```
+
+`*` binds tightest, then `+`, then `|`. So the transform joins its mark first,
+the atoms join the plot next, and the facet splits the finished plot last. `/`
+binds as tightly as `*`, which is why `a | b / c` reads as `a | (b / c)`
+([Composition](composition.qmd)).
+
+Those are R's own precedences, and Python's and Julia's, so one sentence groups
+the same way in three of the four languages. JavaScript can give no operator a
+meaning of its own, so it spells the four as words, which makes the grouping
+something you see instead of something you remember
+([JavaScript](bindings/javascript.qmd)).
+
+---
+
 ## Why `+`, and not a pipe
 
 Readers arriving from the tidyverse ask this, and it deserves a real answer,
@@ -329,7 +363,7 @@ to equal `y + x`, and ggplot2's `+` does not always oblige. That objection is
 answered a few sections up. Here the channels commute, and so does the mark
 among them: move `color` ahead of `x`, or write the positions before the mark,
 and the engine emits the same bytes. One thing does depend on order, two marks
-swapped, and there the order is the z-order you asked for: the second draws on
+swapped, and there the order is the drawing order you asked for: the second draws on
 top.
 
 The other half of that objection is grouping, whether `x + (y + z)` means what

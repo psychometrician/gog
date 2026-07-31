@@ -50,13 +50,12 @@ as quarters, midnight borrowing the day's name.
 ## What happened, and what do we expect?
 
 History in one table, expectation in another. Bind each layer to its own
-table; the nearest `data()` wins:
+table: each `data()` applies to the mark written directly after it.
 
 ```{r}
 data(actuals) + x(year) + y(sales) +
   line +
-  data(forecast) +
-  point
+  data(forecast) + point
 ```
 
 *"Given the actuals: x is year, y is sales, a line; then given the

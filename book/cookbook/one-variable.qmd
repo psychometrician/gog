@@ -104,7 +104,7 @@ data(gm_europe) + point * bin * stack + x(life) +
   x_label("Life expectancy (years)") + title("Thirty countries, thirty dots")
 ```
 
-*"Points, binned and piled: x is life."* The pile's height is a count, so
+*"Points derived by bin and stack: x is life."* The pile's height is a count, so
 the tallest column can be read off the axis or simply counted, and no
 observation has been averaged into anything. Compare the same thirty as
 bars, where a single bin edge moving would redraw the shape:

@@ -5,8 +5,8 @@
 source("../R/setup.R")
 ```
 
-How did one value change over time? `line` connects rows in the order they
-appear in the data, drawing a polyline through each `(x, y)` point.
+How did one value change over time? `line` connects the rows in **x order**,
+drawing a polyline through each `(x, y)` point.
 
 ## Basic usage
 
@@ -16,11 +16,26 @@ data(gapminder_asia) + line + x(year) + y(life)
 
 *"Given gapminder Asia: a line, x is year, y is life."*
 
-## Sorting
+## You do not have to sort first
 
-`line` draws segments in data order.
-If your data is not sorted by `x`, the line will zigzag.
-Sort your data frame by the x column before plotting.
+`line` sorts its own vertices by `x`, so the rows may arrive in any order. The
+frame below is deliberately shuffled, and the line still runs left to right:
+
+```{r}
+scrambled <- data.frame(year = c(1992, 1962, 2002, 1972, 1982),
+                        life  = c(  68,   52,   71,   58,   63))
+
+data(scrambled) + line + x(year) + y(life)
+```
+
+That is a property of the mark rather than a convenience. A line says *this value
+changed along this axis*, and an axis has one direction, so there is only one order
+the vertices could be joined in.
+
+[`path`](path.qmd) is the mark that does the opposite. It joins the rows in the
+order your table holds them, which is what draws a route or a loop. So choosing
+between the two is choosing whether the order of your rows carries meaning: with
+`line` it cannot, and with `path` it is the whole point.
 
 ## Multiple series
 

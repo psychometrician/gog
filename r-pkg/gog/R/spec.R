@@ -457,7 +457,7 @@ resolve_query <- function(q, table) {
     }
     stop("gog: a plot starts with `data()`, which names the table \u2014 ",
          "columns are bare names and the nearest named table wins, so the ",
-         "name is load-bearing. Write `data(", frame_name(substitute(lhs)),
+         "name matters. Write `data(", frame_name(substitute(lhs)),
          ") + ", tail, "`.", call. = FALSE)
   }
 

@@ -153,6 +153,27 @@ pieces compose. That is the standard GOG holds itself to, and the aim is to
 narrow what still stands between what a plot *means* and what its code lets
 you *say*.
 
+That debt is specific, and naming it is better than gesturing at it. The `+`
+that joins the parts of a sentence is ggplot2's, not Wilkinson's, whose `+`
+blends variables and is a different operation entirely. The split between
+*mapping* a column and *setting* a fixed value is ggplot2's. So is drawing
+several marks over one pair of axes. So is the idea that a plot is a
+specification you build and hand over, rather than a set of drawing commands.
+Wickham named that last one himself. "One of the most important features of the
+grammar is its declarative nature," he wrote, and ggplot2 uses `+` to keep it
+that way in R [@wickham2008thesis, p. 54]. This package inherits both the
+property and the operator that protects it. A
+reader who already writes ggplot2 will recognize the shape of almost every
+sentence in this book. That is on purpose. After years of ggplot2, its grammar
+is how I think about visualization, so it is the shape this one took.
+
+What changed is narrower, and it is why this package exists at all. There is no
+function for each chart type, so a histogram is derived instead of looked up.
+One engine answers four languages, so the sentence you learn in R is the
+sentence you write in Python. And the rules for combining the pieces hold
+everywhere, with no exceptions, which is what the rest of this preface is
+about.
+
 So GOG asks nothing new of the medium, only Sejong's old question, carried to
 its last clause: not *which charts should exist*, but *what is the smallest
 set of letters, and the most regular rule of composition, from which every
@@ -173,7 +194,7 @@ program, and the plot above was drawn from those words as this page built.
 There is no histogram function in this package and no argument that turns bars
 into one. `bar` is the mark, `bin` is the transform that cuts a continuous
 column into intervals and counts the rows falling into each, `x` is the
-channel, which is the visual property a column is bound to, and `*` is the
+channel, which is the visual property a column is mapped to, and `*` is the
 operator that puts a transform on a mark. It is the *derived by* in the
 sentence above. Read `*` as a spinning wheel rather than as a multiplication
 sign. Its spokes show one thing being turned into another, the way ㄱ shows

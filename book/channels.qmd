@@ -71,9 +71,10 @@ data(gapminder_2007) + point + x(gdp) + y(life) +
   color(continent)
 ```
 
-A **numeric** column asks *"how much?"* Values run along a sequential ramp,
-light to dark, and the legend is the ramp itself, labeled at its minimum,
-midpoint, and maximum:
+A **numeric** column asks *"how much?"* Its values run along a **ramp**. A ramp
+is a range of colors that a number is placed along, the way an axis is a range
+of positions. This one runs light to dark, and the legend is the ramp itself,
+labeled at its minimum, midpoint, and maximum:
 
 ```{r}
 data(gapminder_2007) + point + x(gdp) + y(life) +
@@ -301,9 +302,9 @@ data(gapminder_2007) + point + x(gdp) + y(life) +
 ## Palettes
 
 `palette()` chooses the colors the `color` channel hands out. There is no
-separate atom for gradients: the same word covers both, because whether a color
-vector means *one color per category* or *stops to interpolate between* follows
-from the column `color` is bound to.
+separate atom for ramps, which ggplot2 calls gradients. The same word covers
+both, because whether a color vector means *one color per category* or *stops to
+interpolate between* follows from the column `color` is bound to.
 
 There are three kinds of named palette, and they say three different things: a
 **categorical** palette gives each category its own color, a **sequential** ramp

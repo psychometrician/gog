@@ -846,7 +846,8 @@ is nearly always a typo rather than a misunderstanding:
 ```{r}
 #| error: true
 data(quarterly) + x(year) + y(sales) +
-  data(target_band) + zone * bounds(lower = lower) + line
+  data(target_band) + zone * bounds(lower = lower) +
+  line
 ```
 
 The domain pair belongs to a rectangle and to nothing else. A band spans the
@@ -872,7 +873,8 @@ into:
 ```{r}
 #| error: true
 data(quarterly) + x(year) + y(sales) +
-  data(target_band) + zone * bounds(lower, upper) * mean + line
+  data(target_band) + zone * bounds(lower, upper) * mean +
+  line
 ```
 
 To shade a band the data *computed* rather than one you chose, the mark that

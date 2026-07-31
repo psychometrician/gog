@@ -168,13 +168,29 @@ that measures, `NA` leaves an end to the data, and the whole of what it does is
 in [Scales](scales.qmd).
 
 A position binding takes one more, `tick_count`, which says how densely the axis
-should be labeled. It is written in the same place and for the same reason: how
-many ticks an axis gets is a property of the scale, so it belongs to the sentence
-that describes the scale rather than to `theme()`, which is the page. Unlike
-`limits` it reaches only `x`, `y` and `z`, because those are the three that draw an
-axis at all — a legend names both ends and the middle, and there is no count to
-choose. [Scales](scales.qmd) has the rest, including what it does and does not
-promise.
+should be labeled:
+
+```{r}
+#| layout-ncol: 2
+data(gapminder_2007) + point + x(gdp, tick_count = 3) + y(life) +
+  x_label("GDP per capita") + title("Three ticks")
+
+data(gapminder_2007) + point + x(gdp, tick_count = 12) + y(life) +
+  x_label("GDP per capita") + title("Twelve asked for, eleven drawn")
+```
+
+The left axis reads 0K, 20K, 40K. The right one steps by 5K, which gives eleven
+ticks rather than the twelve asked for. `tick_count` is a target rather than a
+promise. It chooses a step, and the step is then rounded to a number a person
+would pick. What you can rely on is the direction: ask for more and you get more,
+and every tick still lands on a round number.
+
+It is written in the same place as `scale` and `limits`, and for the same reason.
+How many ticks an axis gets is a property of the scale, so it belongs to the
+sentence that describes the scale rather than to `theme()`, which is the page.
+Unlike `limits` it reaches only `x`, `y` and `z`, because those are the three that
+draw an axis at all. A legend names both ends and the middle, so there is no count
+to choose. [Scales](scales.qmd) has the rest.
 
 ## Settings: values you *set* rather than *map*
 
@@ -213,9 +229,9 @@ The result is a `PlotSpec`, rendered to SVG. Raster formats come from
 converting that SVG. Three dimensions already draw: `space()` projects the cube
 into the same SVG, so there is one renderer rather than a second one for depth
 (see [Space](space.qmd)). What is still on the roadmap is turning that cube
-yourself. Drag-to-rotate, and the real occlusion that goes with it, need a live
-canvas rather than a fixed SVG. Today you name the angle instead, with
-`space(turn =, tilt =)`.
+yourself. Drag-to-rotate needs a live canvas rather than a fixed SVG, and so does
+letting a nearer surface hide whatever sits behind it. Today you name the angle
+instead, with `space(turn =, tilt =)`.
 
 ```{r}
 # One layer
@@ -232,10 +248,17 @@ data(actuals) + x(year) + y(sales) +
 Each mark opens a new layer.
 Layers are rendered in order: first mark drawn first (at the bottom).
 
+Order comes up more than once in this grammar, and it does not mean the same
+thing every time. [Which orders matter](operators.qmd#which-orders-matter)
+gathers all of it in one table: what you may rearrange freely, what the engine
+refuses, and the two arrangements that change the picture without saying so.
+
 ## The `*` operator: combining a mark with a transform
 
 `*` binds a mark to a transform, creating a derived mark type.
-The mark is always on the left; the transform is on the right.
+The mark is always on the left; the transform is on the right. Where two
+transforms follow one mark, write them in the order they happen:
+`bar * bin * mean` cuts the axis into bands, then averages inside each one.
 
 ```r
 bar * bin      # histogram

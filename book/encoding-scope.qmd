@@ -164,8 +164,7 @@ it sets the table for the mark that immediately follows it.
 ```{r}
 data(actuals) + x(year) + y(sales) +
   line +
-  data(forecast) +           # ← applies to point, not line
-  point
+  data(forecast) + point     # ← forecast applies to point, not to line
 ```
 
 Position matters here because `data()` is a boundary marker between layers.

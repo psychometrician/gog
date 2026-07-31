@@ -101,6 +101,14 @@ A table bound once, so columns are bare names. A mark, the visible form.
 Positions, where the marks stand. Then any number of optional refinements:
 channels like `color()`, and labels like `title()`.
 
+Two words describe this, and the book uses both. A column is **bound** to a
+channel, and the result is a **binding**: `x(gdp)`, a channel with its column
+in it. That is where a scale gets written. The same act is called **mapping**
+when the point is that a channel received a column rather than a fixed value.
+The difference shows on the page: a mapped column earns a legend, and a value
+you merely set earns none. A table is bound too, by `data()`, which is the
+Bind-Once law: name it once, and its columns stay bare names.
+
 Two more parts join with an operator of their own. A transform attaches to
 its mark with `*`, which is how the preface's `bar * bin` made a histogram.
 A facet splits the finished plot into panels with `|` or `/`. A scale is not

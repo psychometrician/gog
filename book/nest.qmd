@@ -32,7 +32,7 @@ data(gapminder_2007) + bar * sum * stack + y(population) + color(continent) +
   title("A column divided")
 ```
 
-*"Given gapminder 2007: bars derived by sum and stacked, y is population, color by continent."*
+*"Given gapminder 2007: bars derived by sum and stack, y is population, color by continent."*
 
 Now the same sentence in the circle. The column's height becomes the whole turn,
 and each segment's share of the height becomes its slice's share of the circle:

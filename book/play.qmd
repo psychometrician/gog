@@ -50,6 +50,47 @@ Print gets the first frame. This page in the PDF shows 1952 with its strip, and
 that is why the faceted version is here beside it: the grid is what a reader
 holding the printed book sees instead of the motion.
 
+## The column needs an order
+
+`play` and `facet` split the rows the same way, so you might expect the same
+columns to suit both. They do not. The test is not the column's type. It is
+whether the column has an order.
+
+A facet lays its panels out in space, and you read space in any order you like.
+Your eye goes to the panel it wants, then comes back. A sequence lays its pieces
+out in time, and time arrives in one order only. So a sequence claims something
+a grid never claims: this frame comes after that one.
+
+Bind a column with no order, and the plot shows movement the data does not have:
+
+```{r}
+data(gapminder_2007) + point + x(gdp, scale = "log") + y(life) +
+  color(continent) + play(continent)
+```
+
+Watch the strip: Asia, Europe, Africa, Americas, Oceania. That order is not
+alphabetical, and it is not geographic. It is the order the continents first
+appear in the table, because the rows are sorted by country and Afghanistan
+comes before Albania. The animation is showing you how a file was sorted. The
+points jump between frames, and none of the jumps mean anything.
+
+This is the same mistake as a rainbow ramp on a numeric column
+([Channels](channels.qmd)). The encoding carries an order the thing itself does
+not have, so a reader looks for a pattern that was never there. Written as
+`| facet(continent)`, the five groups sit side by side and claim nothing about
+sequence.
+
+Ordered does not mean numeric. A year is ordered, and so is a date. So is a text
+column whose levels you declared: months in calendar order, or a rating from low
+to high. GOG runs the frames in the order the levels declare, the same way it
+runs an axis ([Data](data.qmd)). A text column with no declared levels falls
+back to the order its values first appear, which is the trap above.
+
+How many values there are is a separate question, and a smaller one. Twelve
+frames and a hundred and forty frames are both worth animating, as long as each
+one means something beside the one before it. A long sequence costs time rather
+than sense, and [`speed`](#how-fast) is there for that.
+
 ## Nothing moves that the data did not move
 
 Every scale, the color map and every legend are fitted across the whole

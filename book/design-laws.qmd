@@ -363,6 +363,13 @@ anything the grammar allows, and that includes combinations that bury your
 point. Be like a good writer, and do not let decoration distract from the main
 idea.
 
+That advice is about the picture, and it applies to the sentence too. Two
+sentences can build the identical plot while one is much harder to follow. A
+second `data()` applies to a single mark, so a mark written after it returns to
+the plot's first table. A reader who has not learned that rule will read such a
+sentence wrong. Both spellings are legal, and always will be. So the fix is a
+habit rather than a rule, and [Data](data.qmd) gives it.
+
 ## Law 9: Universal Transcription
 
 > A specification describes the visual, never one renderer's drawing

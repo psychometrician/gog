@@ -23,10 +23,12 @@ This is the **Bind-Once Law**: name the table once, then use columns freely.
 `gapminder_2007` here is just a regular R data frame (or tibble) in your workspace:
 no registration step, no special wrapping required.
 
-`data()` is not ceremony, and skipping it refuses with direction. The call is
-what *names* the table. The name travels with the plot, later layers resolve
-their bare columns against the nearest one, and a bare frame has no name to
-bind:
+Writing `data()` is not just a formality. When you write
+`data(gapminder_2007)`, GOG keeps the name `gapminder_2007`, not only the
+numbers inside it. The name matters as soon as a plot has more than one table,
+because each layer looks up its bare column names in the nearest table by name.
+Leave `data()` out and the table arrives with no name, so the plot refuses and
+tells you what to write:
 
 ```{r}
 #| error: true
@@ -114,11 +116,61 @@ the layer that follows it:
 # line uses "actuals"; point uses "forecast"
 data(actuals) + x(year) + y(sales) +
   line +
-  data(forecast) +
-  point
+  data(forecast) + point
 ```
 
-The rule: **nearest `data()` wins.**
+The rule: **each `data()` applies to the mark written directly after it.** A
+mark with no `data()` in front of it reads the plot-level table.
+
+Two things follow from that rule, and both are easy to miss.
+
+A `data()` at the end of a sentence applies to nothing, because no mark comes
+after it. The plot is the same as it would be without that line:
+
+```{r}
+# `forecast` is never drawn, because no mark comes after it
+data(actuals) + x(year) + y(sales) +
+  line +
+  point +
+  data(forecast)
+```
+
+A `data()` also stops after that one mark. The mark after it reads the
+plot-level table again:
+
+```{r}
+# line reads actuals. point reads forecast. area reads actuals again.
+data(actuals) + x(year) + y(sales) +
+  line +
+  data(forecast) + point +
+  area
+```
+
+The two tables cover different years, which makes the change easy to see.
+`actuals` runs from 2019 to 2023, and `forecast` from 2024 to 2026. The area
+and the line both sit on the left. The points sit alone on the right.
+
+To draw two marks from the second table, write `data()` before each of them.
+
+That sentence is correct, and it still reads badly. `area` sits on the line
+below `data(forecast)`, so it looks like part of the forecast. Only the rule
+says otherwise.
+
+This is style, not grammar. Both spellings are legal, and both build the same
+plot. GOG will never refuse either one, because legal is not the same as clear
+([Law 8](design-laws.qmd)). Two sentences can mean the same thing and still be
+very different to read. That difference is yours to control.
+
+So group the marks by the table they read. **Keep each extra `data()` on the
+same line as the mark it applies to, and keep the marks that read the
+plot-level table together.** The plot above is better written with
+`line + area` on one line, and `data(forecast) + point` on the next. Every line
+is then one table and the marks that read it, and no mark sits under a table it
+does not read. The rest of this book follows that layout.
+
+The first `data()` in a sentence does apply to every mark below it, so a line
+of its own suits it. A later one never does. Giving a later one its own line
+makes it look like it reaches further than it does.
 
 ## When the second table names its columns differently
 

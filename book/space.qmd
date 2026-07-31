@@ -285,14 +285,17 @@ whole figure over.
 ## What the box does not draw yet
 
 The frame is honest about being a still photograph. The box is drawn *behind* the
-marks so the cloud always reads on top, which stands in for true occlusion without
-paying for it, and a point never disappears behind the far face of the box. Its
+marks so the cloud always reads on top, which is a cheap stand-in for working out
+what hides what, and a point never disappears behind the far face of the box. Its
 *labels* go on afterwards, over the marks, because a guide is an annotation about
 the scene rather than a member of it: no mark can take away the numbers that say
-what it measures. Real occlusion, and the drag-to-rotate that makes a 3-D plot
-legible in the first place, are the next step. They need a live canvas rather than
-a fixed SVG, and that is where the grammar stops and the renderer's real work
-begins.
+what it measures.
+
+Two things are still to come, and they are separate jobs rather than one.
+Drag-to-rotate, which is what makes a 3-D plot legible in the first place, needs
+a live canvas rather than a fixed SVG. Working out what hides what, piece by
+piece, needs more than a canvas, and that is where the grammar stops and the
+renderer's real work begins.
 
 Some things stay outside this cut, and the useful part is that they are **not all
 the same kind of thing**. A blank in the cube's column can mean three different
@@ -327,8 +330,9 @@ data(thermals) + rule + x(east) + z(altitude) + space()
 Marks in space are painted far-to-near and sorted by their footprint, and a
 plane's footprint is the whole floor. It could only be drawn wholly in front of or
 wholly behind the data, when cutting *through* the data is the entire job of a
-reference plane. A `zone` is the same problem one dimension wider. Both need real
-per-element occlusion, which is the next step rather than a refusal.
+reference plane. A `zone` is the same problem one dimension wider. Both need an
+engine that can tell, piece by piece, what hides what, which is the next step
+rather than a refusal.
 
 And one thing is simply not built: the `z` axis is linear for now, so a log depth
 is declined with direction rather than plotted on the wrong scale. In every case
