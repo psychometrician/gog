@@ -153,6 +153,52 @@ jobs:
         run: |
           PYTHON=python
           if [ -n "${{ matrix.container }}" ]; then PYTHON=/opt/python/cp312-cp312/bin/python; fi
+          # **A cross-compiled wheel cannot be pip-installed here, and that is
+          # pip working correctly.** The Intel wheel is tagged
+          # `macosx_10_12_x86_64` and this runner is Apple Silicon, so pip
+          # refuses it on the tag — `is not a supported wheel on this platform` —
+          # before any of the architecture checks below are reached.
+          #
+          # This step was written when that entry built on `macos-13`, a native
+          # Intel runner where the install worked. Moving it to a cross build off
+          # `macos-14` left the install as the first thing to run and the first
+          # thing to fail, and the job has not been exercised since: it runs on a
+          # release tag, and the last release predates the move. So the next
+          # `py-v*` tag would have failed here.
+          #
+          # Unpacking is what the JavaScript job already does for its own Intel
+          # package, and for the same reason: the question is what the artifact
+          # *contains*, which does not need it installed.
+          if [ -n "${{ matrix.rust_target }}" ]; then
+            WHEEL="$(ls dist/*.whl)"
+            rm -rf /tmp/unpacked && mkdir -p /tmp/unpacked
+            "$PYTHON" -c "import zipfile,sys; zipfile.ZipFile(sys.argv[1]).extractall('/tmp/unpacked')" "$WHEEL"
+
+            ENGINE=/tmp/unpacked/gog/_bin/gog-cli
+            test -f "$ENGINE" || { echo "::error::the wheel carries no engine at gog/_bin/gog-cli"; exit 1; }
+            file "$ENGINE"
+            file "$ENGINE" | grep -q "executable x86_64" \
+              || { echo "::error::cross-compiled wheel does not carry an x86_64 engine"; exit 1; }
+
+            # The browser engine is portable, so it is the same file in every
+            # wheel and this one can be checked here as well as anywhere.
+            test -f /tmp/unpacked/gog/_www/gog.wasm \
+              || { echo "::error::the wheel carries no browser engine"; exit 1; }
+
+            if ! arch -x86_64 /usr/bin/true 2>/dev/null; then
+              echo "::warning::Rosetta is absent, so this runner cannot execute the Intel engine — architecture verified, drawing not attempted"
+              exit 0
+            fi
+            echo "Rosetta answers; running the Intel engine under it"
+            chmod +x "$ENGINE"
+            echo '{"spec":{"data":"t","layers":[{"mark":"line","encodings":{"x":{"field":"a"},"y":{"field":"b"}},"transforms":[]}]},"data":{"t":{"floats":{"a":[1.0,2.0],"b":[3.0,4.0]}}}}' \
+              | arch -x86_64 "$ENGINE" > /tmp/out.svg
+            head -c 4 /tmp/out.svg | grep -q "<svg" \
+              || { echo "::error::the Intel engine did not return SVG"; exit 1; }
+            echo "drew $(wc -c < /tmp/out.svg) bytes with the shipped Intel engine"
+            exit 0
+          fi
+
           "$PYTHON" -m venv /tmp/check
           # Windows puts a venv's programs in `Scripts`, every other platform in
           # `bin`, and this job runs on both.
@@ -163,17 +209,6 @@ jobs:
           # The engine that actually shipped, wherever pip put it.
           ENGINE="$("$BIN"/python -c 'import gog, os, sys; print(os.path.join(os.path.dirname(gog.__file__), "_bin", "gog-cli.exe" if os.name == "nt" else "gog-cli"))')"
           test -f "$ENGINE" || { echo "::error::the wheel carries no engine at $ENGINE"; exit 1; }
-
-          if [ -n "${{ matrix.rust_target }}" ]; then
-            file "$ENGINE"
-            file "$ENGINE" | grep -q "executable x86_64" \
-              || { echo "::error::cross-compiled wheel does not carry an x86_64 engine"; exit 1; }
-            if ! arch -x86_64 /usr/bin/true 2>/dev/null; then
-              echo "::warning::Rosetta is absent, so this runner cannot execute the Intel engine — architecture verified, drawing not attempted"
-              exit 0
-            fi
-            echo "Rosetta answers; running the Intel engine under it"
-          fi
 
           cd /tmp
           unset GOG_CLI_PATH
