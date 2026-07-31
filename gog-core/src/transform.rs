@@ -485,12 +485,18 @@ fn apply_seq(
     // order — so this is the two readings agreeing rather than a new liberty. Left
     // alone, the reversed spelling aggregated the raw rows into their own groups and
     // then cut *that*, drawing 1704 overlapping bars at ten positions.
-    if transforms.contains(&Transform::Bin) && measures_a_column(transforms) {
-        let cut = bin_cut(df, key_field, bin_spec, layout);
-        return transforms.iter().filter(|t| **t != Transform::Bin).fold(cut, |acc, t| {
-            apply_one(&acc, t, key_field, out_field, bin_spec, density_spec, conf_spec, box_spec, bounds_spec, layout)
-        });
-    }
+    //
+    // **This used to be a second code path, and that is what made it wrong.** The cut
+    // ran in a `fold` of its own that filtered out `Bin` and nothing else, so the
+    // `proportion` guard below — the twin loop's, six lines away — never applied to a
+    // binned frame. `proportion` is `count` when it has nothing to rescale, so on the
+    // hoisted path it re-tallied the frame the cut had just built: `bar * bin *
+    // proportion * mean` threw the mean away and drew the histogram, and `bar * bin *
+    // mean * proportion` computed the mean, overwrote it with a tally of one row per
+    // cell, and drew every non-empty cell at 1/k — ten identical bars. Neither
+    // spelling was a reading of anything, which is why this is one loop now: a guard
+    // that holds on one path and not its twin is not a guard.
+    let cut_first = transforms.contains(&Transform::Bin) && measures_a_column(transforms);
 
     // `proportion` makes the tally only when nothing else measured. It is a
     // **normalizer** (spec §5): its job is the division `apply` runs over the
@@ -503,8 +509,14 @@ fn apply_seq(
     // cuts), and `bar * sum * proportion + y(<column>)` is each slot's summed
     // column as a share of the total.
     let measured = measures_beside_share(transforms);
-    let mut current = df.clone();
+    let mut current = if cut_first {
+        bin_cut(df, key_field, bin_spec, layout)
+    } else {
+        df.clone()
+    };
     for t in transforms {
+        // The cut already ran, above, wherever it was written.
+        if cut_first && *t == Transform::Bin { continue }
         if *t == Transform::Proportion && measured { continue }
         current = apply_one(&current, t, key_field, out_field, bin_spec, density_spec, conf_spec, box_spec, bounds_spec, layout);
     }
@@ -527,13 +539,195 @@ pub fn measures_beside_share(transforms: &[Transform]) -> bool {
 /// Was some transform in this sequence handed a column to measure?
 ///
 /// The question that decides who owns a composed measurement (spec §5). The five
-/// value statistics reduce a named column to one number and the three pair
-/// transforms reduce it to two; either way the *user* named it, which is what makes
-/// the measurement theirs and leaves `bin` with only its cut to contribute.
-/// `smooth` is deliberately absent: it fits a curve rather than measuring cells, and
-/// `legality::check_cut_composition` refuses it upstream.
+/// value statistics reduce a named column to one number and the pair transforms
+/// reduce it to two; either way the *user* named it, which is what makes the
+/// measurement theirs and leaves `bin` with only its cut to contribute. `smooth` is
+/// deliberately absent: it fits a curve rather than measuring cells, and the
+/// composition rule refuses it upstream.
+///
+/// **Read off [`jobs`] rather than assembled here**, which is how `bounds` joined on
+/// 2026-07-31. It had been missing, because the list was built from
+/// [`reduces_column`] and [`pairs_a_column`] and the second deliberately excludes
+/// `bounds` — for a good reason of its own (`bounds` names the pair instead of
+/// computing it, so a cell has nothing to reduce) that was never a reason to leave it
+/// out of *this* question. The cost was `line * bin * bounds`: the cut was not
+/// hoisted, so written order ran the tallying `bin` first, which rebuilt the frame
+/// and destroyed the two columns `bounds` was about to read, and the plot came out a
+/// histogram. Reversed, it came out something else. One list, one answer.
 pub fn measures_a_column(transforms: &[Transform]) -> bool {
-    reduces_column(transforms).is_some() || pairs_a_column(transforms)
+    transforms.iter().any(|t| jobs(t, JobContext::default()).reads_a_column)
+}
+
+// ---------------------------------------------------------------------------
+// Jobs — what a transform is *for*, and why two of a kind cannot compose
+// ---------------------------------------------------------------------------
+
+/// The four **jobs** a transform can do (spec §5).
+///
+/// Every transform in the kernel fills at least one of these, and two transforms
+/// filling the same one contradict: the frame holds one answer per cell, so the
+/// engine would have to discard one of them. That is the rule the whole family of
+/// composition refusals derives from, and it was written three times by hand — once
+/// per transform family — before it was written once.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Job {
+    /// **Where the cells are.** `bin` cuts an axis into bands; `bounds` names their
+    /// sides from columns you already have; `partition` carves a rectangle into a
+    /// hierarchy. Its default filler is the positions themselves — a categorical
+    /// axis owns one slot per category and needs no transform to say so.
+    Extent,
+    /// **What is in them.** The tally, the reduction, the fitted curve, the pair.
+    /// Its default filler is the tally, which is what lets `proportion` stand alone.
+    Measure,
+    /// **What scale the answer is read on.** `proportion` divides a measurement into
+    /// shares of the whole; `stack(share = TRUE)` divides it into shares of its pile.
+    Scale,
+    /// **Where the marks sit** once everything above is settled. `dodge` puts
+    /// colliding groups side by side, `stack` piles them, `jitter` scatters them
+    /// inside their slot.
+    Position,
+}
+
+/// What the mark and its settings contribute to reading a transform's job.
+///
+/// Two transforms answer differently depending on their surroundings, and both
+/// answers are facts about the frame rather than about the mark, so they arrive as
+/// plain bits rather than as a `Mark`. Keeping marks out of this module is the same
+/// discipline that makes [`apply`] take `key_field`/`out_field` instead of working
+/// out which axis is which.
+#[derive(Debug, Clone, Copy, Default)]
+pub struct JobContext {
+    /// Does the mark carry its measurement on `color` rather than on an axis?
+    ///
+    /// A `zone` has no measure axis, so its `bounds(start, end)` names the sides of a
+    /// rectangle — an extent. Every other mark reads `bounds(lower, upper)` as the
+    /// low/high pair on the measure axis — a measurement. `legality::has_no_measure_axis`
+    /// is the caller that answers this.
+    pub measures_by_color: bool,
+    /// Was `stack` given `share = TRUE`?
+    ///
+    /// A plain `stack` only piles, which is a position. A sharing one divides each
+    /// element by its own pile's total first, which is a scale — and that is why
+    /// `proportion` beside it is two divisions that cancel.
+    pub stack_shares: bool,
+}
+
+/// Which jobs one transform fills, and on what terms.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub struct Jobs {
+    /// Does it say where the cells are?
+    pub extent: bool,
+    /// Does it say what is in them?
+    pub measure: bool,
+    /// Was that measurement made from a column the **caller** named?
+    ///
+    /// The distinction [`Job::Measure`] turns on. `mean` was handed `life` and reduces
+    /// it; `count` was handed nothing and tallies rows. Only the first kind can take
+    /// the measure job over from `bin`, which is why `bar * bin * mean` composes and
+    /// `bar * bin * count` does not.
+    pub reads_a_column: bool,
+    /// Does it hand the measure job over when something else was handed a column?
+    ///
+    /// True of `bin` alone. A cut *has* to describe an extent and only *happens* to
+    /// tally, so the tally is the half it can give up; every other transform that
+    /// measures was written to measure and has nothing to give.
+    pub yields_measure: bool,
+    /// Does it say what scale the answer is read on?
+    pub scale: bool,
+    /// Does it say where the marks sit?
+    pub position: bool,
+}
+
+/// Which jobs this transform fills, given what the mark and settings contribute.
+///
+/// The single table the composition rule reads. Adding a transform without adding a
+/// row here is caught by `every_transform_has_a_job`, on the same reasoning as
+/// `legality::every_mark_channel_pair_has_a_rule`: a transform that arrives jobless
+/// composes silently with everything, which is exactly how `range`, `confidence`,
+/// `bounds` and the three collision modifiers spent the project's life outside every
+/// composition check.
+pub fn jobs(t: &Transform, ctx: JobContext) -> Jobs {
+    let measure = |reads_a_column| Jobs { measure: true, reads_a_column, ..Jobs::default() };
+    match t {
+        // Cuts the axis into cells, and tallies them only because it can. The tally
+        // is the half it yields — see [`bin_cut`], which is that yield in code.
+        Transform::Bin => Jobs {
+            extent: true, measure: true, yields_measure: true, ..Jobs::default()
+        },
+        // Fits a curve through the rows. The window it fits over is its own extent,
+        // and the fit is its own measurement, and it can give up neither: a curve
+        // sampled at somebody else's cells is not the curve.
+        Transform::Smooth | Transform::Density => Jobs {
+            extent: true, measure: true, ..Jobs::default()
+        },
+        // Carves one rectangle into a hierarchy of them, and measures each node.
+        Transform::Partition => Jobs { extent: true, measure: true, ..Jobs::default() },
+        // Tallies rows into whatever cells already exist. It was handed no column, so
+        // it cannot take the measure job over from a cut.
+        Transform::Count => measure(false),
+        Transform::Sum | Transform::Mean | Transform::Median
+            | Transform::Max | Transform::Min => measure(true),
+        // The pair transforms reduce a named column to two numbers rather than one.
+        // Two numbers are still one answer per cell, so two of them still collide.
+        Transform::Range | Transform::Confidence | Transform::Box => measure(true),
+        // The one entry that reads differently per mark: sides of a rectangle on a
+        // mark that measures by color, the low/high pair on the measure axis
+        // everywhere else.
+        Transform::Bounds => if ctx.measures_by_color {
+            Jobs { extent: true, measure: true, reads_a_column: true, ..Jobs::default() }
+        } else {
+            measure(true)
+        },
+        Transform::Proportion => Jobs { scale: true, ..Jobs::default() },
+        Transform::Stack => Jobs {
+            scale: ctx.stack_shares, position: true, ..Jobs::default()
+        },
+        Transform::Dodge | Transform::Jitter => Jobs { position: true, ..Jobs::default() },
+    }
+}
+
+/// The first pair in this sequence that fills the same job, if any.
+///
+/// **Two transforms that do one job contradict, and `bin` is the only one that can
+/// step aside.** The frame holds one extent, one measurement, one scale and one
+/// arrangement per cell, so a second filler is a request the engine can only answer
+/// by throwing one of the two away — the silent drop §12 forbids.
+///
+/// Measure is asked first because it is the job most pairs collide on and its
+/// messages are the ones that read best: `bin * smooth` is a collision on both extent
+/// and measure, and *"`smooth` already averages locally as it goes"* is what the
+/// reader needs, not *"two things cut the axis"*.
+///
+/// This finds the contradiction; `legality` says what to do about it. The split is
+/// deliberate — a transform's job is a fact about frames, which is this module's
+/// subject, while a refusal is a sentence addressed to a person, which is not.
+pub fn job_conflict(ts: &[Transform], ctx: JobContext) -> Option<(Transform, Transform, Job)> {
+    let of = |t: &Transform| jobs(t, ctx);
+
+    // Measure. `bin` steps aside only when somebody else was handed a column, which
+    // is why `bin * mean` composes, `bin * count` does not, and three measurements
+    // never do however the yield falls.
+    let measures: Vec<&Transform> = ts.iter().filter(|t| of(t).measure).collect();
+    if measures.len() > 1 {
+        let claimed = measures.iter().any(|t| of(t).reads_a_column);
+        let standing: Vec<&Transform> = measures.iter().copied()
+            .filter(|t| !(claimed && of(t).yields_measure))
+            .collect();
+        if standing.len() > 1 {
+            return Some((standing[0].clone(), standing[1].clone(), Job::Measure));
+        }
+    }
+
+    for (job, filled) in [
+        (Job::Extent,   ts.iter().filter(|t| of(t).extent).collect::<Vec<_>>()),
+        (Job::Scale,    ts.iter().filter(|t| of(t).scale).collect::<Vec<_>>()),
+        (Job::Position, ts.iter().filter(|t| of(t).position).collect::<Vec<_>>()),
+    ] {
+        if filled.len() > 1 {
+            return Some((filled[0].clone(), filled[1].clone(), job));
+        }
+    }
+    None
 }
 
 #[allow(clippy::too_many_arguments)]
@@ -2645,6 +2839,23 @@ pub fn pairs_a_column(transforms: &[Transform]) -> bool {
     transforms.iter().any(|t| matches!(t, Transform::Range | Transform::Confidence | Transform::Box))
 }
 
+/// Is this one transform a member of the **aggregation family**?
+///
+/// [`reduces_column`] answers *which* reduction to run, so it takes the first it
+/// finds and stops. This answers *how many were asked for*, which is a different
+/// question and the one `legality::check_cut_composition` needs: two reductions in
+/// one layer measure the cell twice, exactly as two synthesizers do.
+///
+/// Until 2026-07-30 nothing asked it, and `bar * sum * mean` drew the sum and
+/// discarded the mean without a word — the silent drop §12 forbids, sitting in the
+/// engine rather than in the book. The two lists are bound by
+/// `the_reduction_family_is_one_list`, so a sixth statistic cannot join `AggFn`
+/// below and skip the rule above.
+pub fn is_reduction(t: &Transform) -> bool {
+    matches!(t, Transform::Sum | Transform::Mean | Transform::Median
+                | Transform::Max | Transform::Min)
+}
+
 pub fn reduces_column(transforms: &[Transform]) -> Option<AggFn> {
     transforms.iter().find_map(|t| match t {
         Transform::Sum    => Some(AggFn::Sum),
@@ -3249,6 +3460,164 @@ pub fn partition(
 mod tests {
     use super::*;
 
+    /// **The aggregation family is one list, named in two places, and they must agree.**
+    ///
+    /// [`is_reduction`] gates the refusal in `legality::check_cut_composition`;
+    /// [`reduces_column`] picks the `AggFn` that actually runs. A statistic added to
+    /// the second and forgotten in the first would walk straight back into the silent
+    /// drop this pair was written to close on 2026-07-30, and nothing else would fail.
+    /// Every variant is named on purpose rather than two by hand — the same discipline
+    /// as `border_spans_*`, and for the same reason: a list that does not name the
+    /// whole family can be widened without the assertion moving.
+    #[test]
+    fn the_reduction_family_is_one_list() {
+        let every = [
+            Transform::Bin, Transform::Smooth, Transform::Count, Transform::Density,
+            Transform::Sum, Transform::Mean, Transform::Median, Transform::Max,
+            Transform::Min, Transform::Proportion, Transform::Range,
+            Transform::Confidence, Transform::Box, Transform::Bounds, Transform::Dodge,
+            Transform::Stack, Transform::Jitter, Transform::Partition,
+        ];
+        for t in &every {
+            assert_eq!(
+                is_reduction(t),
+                reduces_column(std::slice::from_ref(t)).is_some(),
+                "{t:?}: `is_reduction` and `reduces_column` disagree, so the refusal and \
+                 the arithmetic are reading different lists"
+            );
+        }
+        // And the family is the five it is supposed to be, so widening it is a
+        // deliberate edit here rather than a side effect somewhere else.
+        let family: Vec<_> = every.iter().filter(|t| is_reduction(t)).collect();
+        assert_eq!(family.len(), 5, "the aggregation family is sum/mean/median/max/min: {family:?}");
+    }
+
+    /// Every transform the kernel has, named here on purpose. `every_transform_has_a_job`
+    /// and the table below both walk it, so a nineteenth variant fails to compile
+    /// against this array before it can reach either rule.
+    const EVERY_TRANSFORM: [Transform; 18] = [
+        Transform::Bin, Transform::Smooth, Transform::Count, Transform::Density,
+        Transform::Sum, Transform::Mean, Transform::Median, Transform::Max,
+        Transform::Min, Transform::Proportion, Transform::Range, Transform::Confidence,
+        Transform::Box, Transform::Bounds, Transform::Dodge, Transform::Stack,
+        Transform::Jitter, Transform::Partition,
+    ];
+
+    /// **A transform with no job composes silently with everything, so there is no
+    /// such thing.**
+    ///
+    /// The totality rule, in the family of `legality::every_mark_channel_pair_has_a_rule`.
+    /// Six transforms — `range`, `confidence`, `bounds`, `dodge`, `stack`, `jitter` —
+    /// sat outside every composition check for the project's life, not because anyone
+    /// decided they should but because the checks named the families they knew and
+    /// nobody widened them. A jobless transform is that state, and this is what makes
+    /// it impossible to reach by accident.
+    #[test]
+    fn every_transform_has_a_job() {
+        for t in &EVERY_TRANSFORM {
+            for ctx in [
+                JobContext::default(),
+                JobContext { measures_by_color: true, stack_shares: true },
+            ] {
+                let j = jobs(t, ctx);
+                assert!(
+                    j.extent || j.measure || j.scale || j.position,
+                    "{t:?} fills no job, so nothing can tell what it collides with"
+                );
+                assert!(
+                    !j.reads_a_column || j.measure,
+                    "{t:?} claims to read a column without measuring one"
+                );
+                assert!(
+                    !j.yields_measure || j.measure,
+                    "{t:?} yields a measure job it does not fill"
+                );
+            }
+        }
+        // `bin` is the only transform that yields, and the rule is one sentence only
+        // because that stays true. A second yielder would need the rule rewritten,
+        // not the list widened.
+        let yielders: Vec<_> = EVERY_TRANSFORM.iter()
+            .filter(|t| jobs(t, JobContext::default()).yields_measure).collect();
+        assert_eq!(yielders, vec![&Transform::Bin], "only `bin`'s measurement is a by-product");
+    }
+
+    /// **The job table reproduces every composition the engine already judges.**
+    ///
+    /// The test that says this is one rule rather than a fourth hand-written list.
+    /// Each row below is a verdict the engine reached before jobs existed, by one of
+    /// three separate enumerated checks; `job_conflict` has to reach the same one from
+    /// the table alone. The rows marked *new* are the defects the enumeration missed —
+    /// each one a chain that draws today while ignoring something the caller wrote.
+    #[test]
+    fn the_job_table_reaches_the_verdicts_the_engine_already_reached() {
+        let flat = JobContext::default();
+        let zone = JobContext { measures_by_color: true, ..JobContext::default() };
+        let share = JobContext { stack_shares: true, ..JobContext::default() };
+        use Transform::*;
+        let cases: &[(&[Transform], JobContext, bool, &str)] = &[
+            // Already refused, and the rule has to keep refusing them.
+            (&[Bin, Count],        flat, false, "a cut and a tally each invent a measurement"),
+            (&[Bin, Density],      flat, false, "two things cut the axis"),
+            (&[Bin, Smooth],       flat, false, "a curve is not sampled at somebody else's cells"),
+            (&[Count, Mean],       flat, false, "a tally cannot hand its cells to a reduction"),
+            (&[Density, Mean],     flat, false, "same, one estimator over"),
+            (&[Mean, Sum],         flat, false, "two reductions of the named column"),
+            (&[Bounds, Bin],       zone, false, "a zone's sides said twice"),
+            (&[Bounds, Mean],      zone, false, "a bounded zone has no cells to reduce within"),
+            // The defects. Every one of these draws today, ignoring one of the two.
+            (&[Smooth, Mean],      flat, false, "new: `smooth` already averages as it goes"),
+            (&[Range, Confidence], flat, false, "new: two pairs, and the last one written wins"),
+            (&[Sum, Range],        flat, false, "new: a reduction and a pair of the same column"),
+            (&[Bounds, Mean],      flat, false, "new: mis-scoped until now, silent off a zone"),
+            (&[Dodge, Stack],      flat, false, "new: side by side and piled at once"),
+            (&[Proportion, Stack], share, false, "new: two divisions that cancel"),
+            (&[Partition, Bin],    zone, false, "new: a hierarchy and a cut"),
+            // Legal, and the rule must not take them away — every one is in the book.
+            (&[Bin, Mean],         flat, true, "the cut yields its tally to the reduction"),
+            (&[Bin, Range],        flat, true, "and to a pair just the same"),
+            (&[Bin, Bounds],       flat, true, "off a zone, `bounds` is the measurement"),
+            (&[Bin, Proportion],   flat, true, "the histogram read as shares"),
+            (&[Sum, Proportion],   flat, true, "each slot's sum as a share of the total"),
+            (&[Count, Proportion], flat, true, "redundant, but the plot is right — a warning, not a refusal"),
+            (&[Sum, Dodge],        flat, true, "measure then arrange"),
+            (&[Sum, Stack],        flat, true, "and the other arrangement"),
+            (&[Bin, Stack],        flat, true, "the dot plot"),
+            (&[Mean, Dodge],       flat, true, "the grouped bar chart"),
+            (&[Partition, Proportion], zone, true, "a treemap read as shares"),
+            (&[Bin, Mean, Dodge],  flat, true, "three jobs, three transforms"),
+            (&[Bin, Mean, Proportion, Dodge], flat, true, "all four, which is the ceiling"),
+        ];
+        for (ts, ctx, legal, why) in cases {
+            let got = job_conflict(ts, *ctx);
+            assert_eq!(
+                got.is_none(), *legal,
+                "{ts:?}: expected {}, got {got:?} — {why}",
+                if *legal { "legal" } else { "a conflict" }
+            );
+        }
+    }
+
+    /// **One filler per job caps a chain at four, and that is where the ceiling comes
+    /// from.**
+    ///
+    /// Not a number anyone chose. Four jobs means a fifth transform has to repeat one,
+    /// and repeating one is the contradiction above — so the limit derives instead of
+    /// being remembered, which is what keeps it out of the reference card.
+    #[test]
+    fn a_legal_chain_is_at_most_four_transforms_long() {
+        use Transform::*;
+        assert!(job_conflict(&[Bin, Mean, Proportion, Dodge], JobContext::default()).is_none());
+        for fifth in &EVERY_TRANSFORM {
+            let mut chain = vec![Bin, Mean, Proportion, Dodge];
+            chain.push(fifth.clone());
+            assert!(
+                job_conflict(&chain, JobContext::default()).is_some(),
+                "a fifth transform ({fifth:?}) has to repeat a job, so no legal chain is five long"
+            );
+        }
+    }
+
     // A unit test holds every row it is testing, so "derive the cut from the rows
     // you were given" is exactly what it means — the `None` case of [`BinCut`].
     // These three shadow the real entry points with that answer filled in, so the
@@ -3412,8 +3781,8 @@ mod tests {
 
     #[test]
     fn bin_counts_every_row_exactly_once() {
-        // The clamp that folds the maximum into the last bin is load-bearing:
-        // without it the max overflows the count vector. Summing the counts back
+        // The clamp that folds the maximum into the last bin is what makes this
+        // correct: without it the max overflows the count vector. Summing the counts back
         // to n is what proves no row was dropped or double-counted.
         let xs: Vec<f64> = (0..10).map(|i| i as f64).collect();
         let out = bin(&num("x", &xs), "x", "count", None, None);
@@ -3819,11 +4188,20 @@ mod tests {
 
     #[test]
     fn the_cut_runs_first_wherever_it_was_written() {
-        // `*` is non-commutative in general and stays so — 49 of the 169 legal
-        // two-transform compositions draw differently reversed. This pair cannot be
-        // one of them: the two answer *different* questions, so there is nothing for
-        // an order to decide. A cell has to exist before anything can be measured in
-        // it, which makes the cut prior rather than merely earlier.
+        // **`*` commutes among the transforms, and this pair was the first case of
+        // it rather than the exception it was written as.** The comment here used to
+        // say the opposite — "non-commutative in general and stays so, 49 of the 169
+        // legal two-transform compositions draw differently reversed" — and the
+        // measurement was right while the conclusion was not. Every one of those 49
+        // was a chain where reversing it changed which transform got silently
+        // discarded, so what the reversal exposed was the drop rather than a meaning.
+        // Once the contradictions are refused (`legality::check_chain_jobs`), a legal
+        // chain has at most one transform actually running in the sequence, and one
+        // transform has no order: across 253 legal chains on every mark, on both a
+        // categorical and a continuous domain, every permutation now renders
+        // identically. The two here answer *different* questions, so there is nothing
+        // for an order to decide. A cell has to exist before anything can be measured
+        // in it, which makes the cut prior rather than merely earlier.
         //
         // The two-dimensional reading already worked this way (`svg.rs` dispatches on
         // which transforms are present, never on their order), so this is the two

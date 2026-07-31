@@ -3817,6 +3817,285 @@ mod tests {
     use crate::render::text::estimate_text_width;
 
     // -----------------------------------------------------------------------
+    // Chains — every transform in a legal chain has to do something (spec §5, §12)
+    // -----------------------------------------------------------------------
+
+    /// A frame with **uneven groups**, which is the whole reason it is written by
+    /// hand rather than generated.
+    ///
+    /// Six categories of unequal size (1, 2, 3, 4, 5, 6 rows) against a continuous
+    /// column that repeats, so a chain has real groups to reduce within on either
+    /// axis. Even groups are a trap: with every group the same size, `sum` is `mean`
+    /// times a constant and the two draw the *same picture once `proportion` divides
+    /// them* — so an evenly-generated fixture reports the engine confusing `sum` with
+    /// `mean` when the engine is right and the fixture is degenerate. A single row
+    /// per group is the same trap one step further on, where all five reductions
+    /// agree. A sweep on 2026-07-30 reported 312 clean pairs for exactly this reason
+    /// and missed 40 real failures.
+    fn chain_frame() -> HashMap<String, DataFrame> {
+        let sizes = [1usize, 2, 3, 4, 5, 6];
+        let names = ["a", "b", "c", "d", "e", "f"];
+        let (mut cat, mut num, mut val, mut lo, mut hi) =
+            (Vec::new(), Vec::new(), Vec::new(), Vec::new(), Vec::new());
+        let mut k = 0_u64;
+        for (i, n) in sizes.iter().enumerate() {
+            for _ in 0..*n {
+                cat.push(names[i].to_string());
+                // Few distinct values, several rows each — a continuous key whose
+                // values are all distinct makes singleton groups, where every
+                // reduction agrees for real and the properties below cannot tell a
+                // working engine from a broken one. **Unevenly** spaced for the same
+                // kind of reason: evenly spaced, a cut lands one distinct value in
+                // each cell, and `bin` and `count` then group the rows identically
+                // and draw the same plot — an accident of the numbers that P2 reads
+                // as the engine failing to tell them apart.
+                num.push([0.0, 3.0, 11.0, 26.0, 42.0, 57.0][i]);
+                // Irregular within a group, and deliberately not an arithmetic
+                // progression: a progression has its mean *at* its median, so
+                // `mean` and `median` draw the same picture and P2 reports a defect
+                // that is the fixture's. Squaring is what breaks the symmetry.
+                let v = 2.0 + ((k * k * 13) % 29) as f64;
+                val.push(v);
+                lo.push(v - 1.5);
+                hi.push(v + 2.5);
+                k += 1;
+            }
+        }
+        let df = DataFrame::new()
+            .with_str("cat", cat)
+            .with_float("num", num)
+            .with_float("val", val)
+            .with_float("lo", lo)
+            .with_float("hi", hi);
+        HashMap::from([("d".to_string(), df)])
+    }
+
+    /// Render one chain on one mark, or `None` if the engine refuses it.
+    ///
+    /// `check` is asked first, exactly as `gog-cli` asks it, so the property below
+    /// tests only chains a caller could actually draw.
+    fn render_chain(mark: &Mark, ts: &[Transform], categorical_x: bool) -> Option<String> {
+        chain_run(mark, ts, categorical_x).map(|(svg, _)| svg)
+    }
+
+    /// The rendered plot and what the engine said about it, or `None` if refused.
+    /// `check` is asked first, exactly as `gog-cli` asks it, so the properties below
+    /// cover only chains a caller could actually draw.
+    fn chain_run(mark: &Mark, ts: &[Transform], categorical_x: bool)
+        -> Option<(String, Vec<crate::legality::Diagnostic>)>
+    {
+        let data = chain_frame();
+        let mut layer = Layer::new(mark.clone());
+        for t in ts {
+            layer = layer.transform(t.clone());
+        }
+        if ts.contains(&Transform::Bounds) {
+            layer = layer.bounds("lo", "hi");
+        }
+        let spec = PlotSpec::new()
+            .data("d")
+            .x(if categorical_x { "cat" } else { "num" })
+            .y("val")
+            .layer(layer);
+        let said = crate::legality::check(&spec, &data);
+        if said.iter().any(|d| d.kind == crate::legality::DiagnosticKind::Illegal) {
+            return None;
+        }
+        Some((SvgRenderer::default().render(&spec, &data), said))
+    }
+
+    /// Did the engine say, in as many words, that this transform is doing nothing?
+    ///
+    /// The one way a chain is allowed to fail P1. A transform can be redundant
+    /// rather than contradictory — `count` beside `proportion`, where a share is
+    /// already a share *of* a tally — and the plot drawn is then exactly the plot
+    /// asked for, with one atom that was not needed. Refusing that would forbid the
+    /// ugly-but-legal (Law 8); saying nothing would be the silent drop. So the rule
+    /// is not *every transform changes the picture* but **every transform changes
+    /// the picture, or the engine says why it does not**.
+    fn declared_a_noop(mark: &Mark, ts: &[Transform], categorical_x: bool, t: &Transform) -> bool {
+        let Some((_, said)) = chain_run(mark, ts, categorical_x) else { return false };
+        let name = format!("{t:?}").to_lowercase();
+        said.iter().any(|d|
+            d.kind == crate::legality::DiagnosticKind::Assumption
+                && d.message.contains(&format!("`{name}`"))
+                && d.message.contains("draws the same plot as")
+        )
+    }
+
+    /// A short stable digest, so a failure names the chain rather than printing two
+    /// entire SVG documents at each other.
+    fn digest(s: &str) -> u64 {
+        use std::hash::{Hash, Hasher};
+        let mut h = std::collections::hash_map::DefaultHasher::new();
+        s.hash(&mut h);
+        h.finish()
+    }
+
+    /// **P1 — no drop. Removing a transform from a legal chain has to change the
+    /// picture.**
+    ///
+    /// If it does not, that transform was accepted and ignored, which is the silent
+    /// drop §12 forbids arriving through a *composition* rather than through a
+    /// binding. It is the mechanical form of the rule, and it says nothing about
+    /// order — deliberately, because two spellings that each mean something are the
+    /// caller's business (Law 8) while a spelling that means less than it says is
+    /// not.
+    ///
+    /// This is what the enumerated composition checks could not see. On 2026-07-31,
+    /// of 582 two-transform chains that drew, only 271 had every transform doing
+    /// something: `bar * smooth * mean` drew `bar * smooth`, `interval * range *
+    /// confidence` drew `interval * confidence`, `line * sum * range` drew
+    /// `line * range`.
+    #[test]
+    fn no_legal_chain_ignores_a_transform_it_was_given() {
+        for (mark, ts, categorical_x, drawn) in every_legal_chain() {
+            for i in 0..ts.len() {
+                let mut shorter = ts.clone();
+                let dropped = shorter.remove(i);
+                let Some(without) = render_chain(&mark, &shorter, categorical_x) else { continue };
+                if digest(&drawn) != digest(&without) { continue }
+                assert!(
+                    declared_a_noop(&mark, &ts, categorical_x, &dropped),
+                    "`{} * {}` draws exactly `{} * {}` — `{dropped:?}` was accepted and \
+                     ignored, and nothing said so",
+                    mark_of(&mark), names(&ts), mark_of(&mark), names(&shorter)
+                );
+            }
+        }
+    }
+
+    /// **P2 — no confusion. Swapping one transform for a different one has to change
+    /// the picture.**
+    ///
+    /// P1's other half. A chain can honor *that* you named a transform without
+    /// honoring *which*, and that is the same defect one level down: `line * smooth *
+    /// range` and `line * smooth * confidence` rendered byte-identical, so a min–max
+    /// range and a 95% confidence interval drew the same plot. Nothing about the
+    /// chain's length changed, so P1 was blind to it.
+    #[test]
+    fn no_legal_chain_confuses_one_transform_with_another() {
+        for (mark, ts, categorical_x, drawn) in every_legal_chain() {
+            for i in 0..ts.len() {
+                for alt in crate::legality::USER_TRANSFORMS {
+                    if alt == ts[i] || ts.contains(&alt) { continue }
+                    let mut swapped = ts.clone();
+                    swapped[i] = alt.clone();
+                    let Some(other) = render_chain(&mark, &swapped, categorical_x) else { continue };
+                    assert_ne!(
+                        digest(&drawn), digest(&other),
+                        "`{} * {}` and `{} * {}` draw the same plot — the engine read \
+                         that a transform was named but not which one",
+                        mark_of(&mark), names(&ts), mark_of(&mark), names(&swapped)
+                    );
+                }
+            }
+        }
+    }
+
+    // The two names `legality` spells for a reader are private to it, and a failure
+    // message is not worth widening a module's surface for. `Debug` reads well enough
+    // here: `Bar`, `Bin * Mean`.
+    /// **P3 — the written order of a chain does not change the picture.**
+    ///
+    /// The book says so in four places, and until this test it said so on the
+    /// strength of a sweep somebody ran by hand. A claim the manual makes about the
+    /// engine that no check verifies is the blind spot this project keeps walking
+    /// into — prose naming a transform that does not exist, an `error: true` chunk
+    /// that stopped erroring. This is the same class, one level up: a sentence in
+    /// three chapters resting on nothing.
+    ///
+    /// **It is a consequence rather than a rule, which is why it is a test and not a
+    /// sort.** Nothing reorders a chain anywhere in the engine. Order stopped
+    /// mattering because the contradictions are refused, and what is left has at most
+    /// one transform actually running in the sequence — `bin` is hoisted, `proportion`
+    /// divides the recombined frame, `stack` accumulates across groups, and
+    /// `dodge`/`jitter` are render-stage. One transform has no order. If a later
+    /// change makes some legal chain order-dependent again, this fails, and the honest
+    /// answer may well be to change the book rather than the engine: two spellings
+    /// that each mean something are the caller's business (Law 8). What must not
+    /// happen is the two drifting apart in silence.
+    #[test]
+    fn the_written_order_of_a_chain_does_not_change_the_picture() {
+        for (mark, ts, categorical_x, drawn) in every_legal_chain() {
+            for spelling in permutations(&ts) {
+                if spelling == ts { continue }
+                let Some(other) = render_chain(&mark, &spelling, categorical_x) else {
+                    panic!("`{} * {}` draws but `{} * {}` is refused — the same chain, \
+                            written differently",
+                           mark_of(&mark), names(&ts), mark_of(&mark), names(&spelling));
+                };
+                assert_eq!(
+                    digest(&drawn), digest(&other),
+                    "`{} * {}` and `{} * {}` are the same chain and draw different \
+                     plots — the book says written order cannot do that",
+                    mark_of(&mark), names(&ts), mark_of(&mark), names(&spelling)
+                );
+            }
+        }
+    }
+
+    /// Every ordering of a chain. Chains are capped at four by the job rule, so this
+    /// is at most 24 and needs no crate.
+    fn permutations(ts: &[Transform]) -> Vec<Vec<Transform>> {
+        if ts.len() <= 1 { return vec![ts.to_vec()] }
+        let mut out = Vec::new();
+        for i in 0..ts.len() {
+            let mut rest = ts.to_vec();
+            let head = rest.remove(i);
+            for mut tail in permutations(&rest) {
+                tail.insert(0, head.clone());
+                out.push(tail);
+            }
+        }
+        out
+    }
+
+    fn mark_of(m: &Mark) -> String { format!("{m:?}") }
+    fn names(ts: &[Transform]) -> String {
+        ts.iter().map(|t| format!("{t:?}")).collect::<Vec<_>>().join(" * ")
+    }
+
+    /// Every chain of one, two or three transforms that any drawable mark accepts,
+    /// on both a categorical and a continuous domain, already rendered.
+    ///
+    /// Enumerated from the mark × transform grid and filtered by `check`, so the two
+    /// properties above cover exactly what a caller can write — and a transform added
+    /// later widens them without anybody editing a list. Three is the practical
+    /// ceiling here rather than the rule's four: the fourth is always a collision
+    /// modifier, whose contribution the two properties already see at length three.
+    fn every_legal_chain() -> Vec<(Mark, Vec<Transform>, bool, String)> {
+        use crate::legality::{ALL_MARKS, USER_TRANSFORMS, TransformLegality, mark_takes_transform};
+        let mut out = Vec::new();
+        for mark in ALL_MARKS {
+            let legal: Vec<Transform> = USER_TRANSFORMS.into_iter()
+                .filter(|t| mark_takes_transform(&mark, t) != TransformLegality::None)
+                .collect();
+            let mut chains: Vec<Vec<Transform>> = Vec::new();
+            for a in 0..legal.len() {
+                chains.push(vec![legal[a].clone()]);
+                for b in 0..legal.len() {
+                    if b == a { continue }
+                    chains.push(vec![legal[a].clone(), legal[b].clone()]);
+                    for c in (b + 1)..legal.len() {
+                        if c == a { continue }
+                        chains.push(vec![legal[a].clone(), legal[b].clone(), legal[c].clone()]);
+                    }
+                }
+            }
+            for ts in chains {
+                for categorical_x in [true, false] {
+                    if let Some(svg) = render_chain(&mark, &ts, categorical_x) {
+                        out.push((mark.clone(), ts.clone(), categorical_x, svg));
+                    }
+                }
+            }
+        }
+        assert!(out.len() > 200, "the enumeration found only {} legal chains", out.len());
+        out
+    }
+
+    // -----------------------------------------------------------------------
     // Per-layer positions — one axis, its own column (spec §8)
     // -----------------------------------------------------------------------
 

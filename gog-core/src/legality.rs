@@ -29,6 +29,7 @@ use crate::ir::{
     Channel, ChannelDef, CoordSpace, Figure, Layer, Mark, PaletteDef, PlotSpec, ScaleType,
     StyleSpec, Transform,
 };
+use crate::transform::Job;
 use std::collections::HashMap;
 
 // ---------------------------------------------------------------------------
@@ -1540,6 +1541,31 @@ pub struct SettingCell {
 pub struct TransformInfo {
     pub name: &'static str,
     pub class: &'static str,
+    /// Which of the four **jobs** this transform fills — the fact that decides what
+    /// it can be chained with (spec §5). Orthogonal to `class`, which says what kind
+    /// of answer it produces: `bin` and `count` are both statistics, and only one of
+    /// them says where the cells are.
+    ///
+    /// `bounds` is the one entry that reads differently per mark (sides of a
+    /// rectangle on a mark that measures by color, the low/high pair everywhere
+    /// else), so this lists every job it can fill and `chain_cells` below carries
+    /// the verdict that actually applies.
+    pub jobs: Vec<&'static str>,
+}
+
+/// One (transform, transform) cell of the Transform × Transform grid — **can these
+/// two stand together on one mark?**
+///
+/// Generated from the same predicate the engine refuses with, so the book's chain
+/// table cannot drift from what a caller actually gets. `job` names the job they
+/// collide on when they cannot; it is absent when they compose.
+#[derive(serde::Serialize)]
+pub struct ChainCell {
+    pub a: &'static str,
+    pub b: &'static str,
+    pub legal: bool,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub job: Option<&'static str>,
 }
 
 /// One (transform, mark) cell of the Mark × Transform grid. Three states, named
@@ -1576,10 +1602,70 @@ pub struct RulesMatrix {
     /// collision modifiers combine with which marks, from `mark_takes_transform`.
     pub transforms: Vec<TransformInfo>,
     pub transform_cells: Vec<TransformCell>,
+    /// The Transform × Transform grid (`combinations.qmd`): which pairs can stand on
+    /// one mark, from the same `job_conflict` the refusals read.
+    pub chain_cells: Vec<ChainCell>,
     /// The Mark × Space grid (`combinations.qmd`): which marks the engine draws in
     /// which coordinate space, from `mark_draws_in_space`.
     pub spaces: Vec<&'static str>,
     pub space_cells: Vec<SpaceCell>,
+}
+
+/// **Can `proportion` rescale what this transform measured?**
+///
+/// The second pairwise chain rule, and it is not a job collision — `proportion`
+/// fills *scale* and these fill *measure*, which are different jobs. What collides
+/// is narrower: a share is one number divided by a total, so the measurement has to
+/// **be** one number per cell. A pair transform leaves two, and `density`/`smooth`
+/// leave a curve sampled between the observations rather than a value in a cell.
+///
+/// `check_share_composition` owns the sentences, each with its own reason. This owns
+/// the *fact*, so `chain_cells` can publish it and the book's chain grid stops
+/// claiming pairs the engine refuses — which it did for a few hours on 2026-07-31,
+/// the same over-promise a generated grid is supposed to make impossible.
+/// `the_published_chain_grid_matches_what_the_engine_refuses` binds the two.
+fn normalizer_conflict(a: &Transform, b: &Transform) -> bool {
+    let pair = |t: &Transform| matches!(t,
+        Transform::Density | Transform::Smooth | Transform::Range
+            | Transform::Confidence | Transform::Box | Transform::Bounds);
+    (a == &Transform::Proportion && pair(b)) || (b == &Transform::Proportion && pair(a))
+}
+
+/// A job's name on the wire, in the words the book uses for it.
+fn job_wire(j: Job) -> &'static str {
+    match j {
+        Job::Extent => "extent",
+        Job::Measure => "measure",
+        Job::Scale => "scale",
+        Job::Position => "position",
+    }
+}
+
+/// Every job this transform can fill, for the wire.
+///
+/// **The plain reading comes first, and consumers may rely on that.** Two transforms
+/// fill a second job only in a particular setting — `bounds` says where a `zone`'s
+/// sides are, `stack` rescales when it is given `share = TRUE` — so the default
+/// context is asked first and the conditional job is appended. A reader asking "what
+/// does this transform *do*" wants element one; a reader asking "what can it collide
+/// with" wants the whole list. The book's chain-shape table takes element one, and
+/// would otherwise report `stack` as a scale transform and lose the position job
+/// entirely.
+fn transform_jobs_wire(t: &Transform) -> Vec<&'static str> {
+    let mut out = Vec::new();
+    for ctx in [
+        crate::transform::JobContext::default(),
+        crate::transform::JobContext { measures_by_color: true, stack_shares: true },
+    ] {
+        let j = crate::transform::jobs(t, ctx);
+        for (fills, name) in [
+            (j.extent, "extent"), (j.measure, "measure"),
+            (j.scale, "scale"), (j.position, "position"),
+        ] {
+            if fills && !out.contains(&name) { out.push(name) }
+        }
+    }
+    out
 }
 
 fn transform_state_wire(t: TransformLegality) -> &'static str {
@@ -1645,6 +1731,30 @@ pub fn rules_matrix() -> RulesMatrix {
             });
         }
     }
+    // Every ordered pair of transforms, judged by the predicate the refusals read.
+    // Ordered rather than unordered because the grid is read as a square and both
+    // halves have to be there; the verdict itself is symmetric, which the book can
+    // then show rather than claim.
+    let mut chain_cells = Vec::with_capacity(USER_TRANSFORMS.len().pow(2));
+    for a in &USER_TRANSFORMS {
+        for b in &USER_TRANSFORMS {
+            if a == b { continue }
+            let conflict = crate::transform::job_conflict(
+                &[a.clone(), b.clone()],
+                crate::transform::JobContext::default(),
+            );
+            // Two rules, not one: a job filled twice, or a normalizer with nothing
+            // it can divide. Both are refusals a caller meets, so both belong here.
+            let why = conflict.map(|(_, _, j)| job_wire(j))
+                .or_else(|| normalizer_conflict(a, b).then_some("share"));
+            chain_cells.push(ChainCell {
+                a: transform_name(a),
+                b: transform_name(b),
+                legal: why.is_none(),
+                job: why,
+            });
+        }
+    }
     let mut space_cells = Vec::with_capacity(ALL_SPACES.len() * ALL_MARKS.len());
     for s in ALL_SPACES {
         for m in &ALL_MARKS {
@@ -1666,9 +1776,14 @@ pub fn rules_matrix() -> RulesMatrix {
         setting_cells,
         transforms: USER_TRANSFORMS
             .iter()
-            .map(|t| TransformInfo { name: transform_name(t), class: transform_class(t) })
+            .map(|t| TransformInfo {
+                name: transform_name(t),
+                class: transform_class(t),
+                jobs: transform_jobs_wire(t),
+            })
             .collect(),
         transform_cells,
+        chain_cells,
         spaces: ALL_SPACES.iter().map(|s| space_name(*s)).collect(),
         space_cells,
     }
@@ -2447,26 +2562,12 @@ fn check_span_needs_range(out: &mut Vec<Diagnostic>, spec: &PlotSpec, df: Option
     // to answer it and one of them is the axis itself, which cannot be seen without
     // the data. So it is checked in `check_zone_extent`, in the df-gated block.
     if layer.mark == Mark::Zone {
-        // Named *and* cut says where the sides are twice, and the two would disagree
-        // the moment the mesh moved. Refused rather than silently letting one win.
-        // Type-free, so it stays here.
-        //
-        // `Flat` is the answer for every space rather than a stand-in for the one we
-        // could not reach: this arm is inside `mark == Zone`, and a zone measures by
-        // color wherever it stands, so it cuts both positions in any space.
-        let cut = reads_a_field(&layer.mark, &layer.transforms, SpaceKind::Flat);
-        if layer.transforms.contains(&Transform::Bounds) && cut {
-            let t = if layer.transforms.contains(&Transform::Bin) { "bin" } else { "density" };
-            out.push(Diagnostic {
-                kind: DiagnosticKind::Illegal,
-                message: format!(
-                    "gog: `zone * bounds * {t}` says where the sides are twice — `bounds` names \
-                     them from columns you have, `{t}` cuts them from the data. Keep whichever \
-                     you meant: `zone * bounds(...)` to shade a rectangle you chose, \
-                     `zone * {t}` to tile the panel with measured cells."
-                ),
-            });
-        }
+        // Named *and* cut says where the sides are twice — and that is the extent job
+        // filled twice, which `check_chain_jobs` refuses for every mark rather than
+        // for this one. The sentence it gives is this arm's, moved rather than
+        // rewritten. Kept as a comment because the *reason* this arm returns early is
+        // still the one below: a zone has four ways to answer "where are my sides?"
+        // and one of them is the axis itself, which cannot be seen without the data.
         return;
     }
     let example = match layer.mark {
@@ -2738,23 +2839,14 @@ fn check_pair_summary(out: &mut Vec<Diagnostic>, spec: &PlotSpec, df: &DataFrame
     let c = channel_name(&ch);
 
     // 0a. A **bounded** zone is one rectangle per row, its sides named by its own
-    //     four columns — not a mesh, so there are no cells to group into. A reduction
-    //     needs cells the *positions* make, which is the extent description `bounds`
-    //     replaces rather than supplies. Said in `bounds`' own terms, because the
-    //     reader who wrote it was shading a region they chose, not summarizing.
+    //     four columns — not a mesh, so there are no cells to group into. That
+    //     refusal moved to `check_chain_jobs` on 2026-07-31, sentence intact, because
+    //     sitting here it was **mis-scoped**: this whole function is gated on
+    //     `cuts_both_positions` above, so `interval * bounds(lo, hi) * mean` never
+    //     reached it and drew in silence — the identical mistake this file already
+    //     records at 0b, where the composition rule lived inside the two-dimensional
+    //     group-by and every one-key reading walked past it.
     if layer.transforms.contains(&Transform::Bounds) {
-        out.push(Diagnostic {
-            kind: DiagnosticKind::Illegal,
-            message: format!(
-                "gog: `{m} * bounds * {t}` says what this rectangle is twice — `bounds` names \
-                 its four sides from columns you hold, one rectangle per row, and `{t}` \
-                 summarizes a column within the cells your *positions* make. Keep whichever \
-                 you meant: `{m} * bounds(...)` to shade a region you chose, or \
-                 `{m} * {t} + x(<a>) + y(<b>) + {c}(<column>)` to summarize one within every \
-                 cell two categories cross. To shade a band the data computed, \
-                 `ribbon * range` is the mark that spans a statistic."
-            ),
-        });
         return;
     }
 
@@ -2842,16 +2934,46 @@ fn check_pair_summary(out: &mut Vec<Diagnostic>, spec: &PlotSpec, df: &DataFrame
     }
 }
 
-/// **Which transform owns the measurement when two are composed** (spec §5) — asked
-/// of every mark, in every dimension, because the answer is a fact about the
-/// transforms rather than about the geometry reading them.
+/// **Two transforms that do the same job contradict** (spec §5) — asked of every
+/// mark, in every dimension, because the answer is a fact about the transforms
+/// rather than about the geometry reading them.
+///
+/// There are four jobs, and the book names three of them before this check does:
+/// a transform says **where the cells are**, says **what is in them**, says **what
+/// scale the answer is read on**, or says **where the marks sit**. The frame holds
+/// one of each per cell. So a second transform doing a job the first already did is
+/// a request the engine can only answer by throwing one of the two away, and
+/// throwing one away in silence is the drop §12 forbids.
+///
+/// `transform::job_conflict` finds the pair; everything below is what to *say* about
+/// it. The split is the point: a transform's job is a fact about frames, which is
+/// that module's subject, while a refusal is a sentence addressed to a person.
+///
+/// **Why this is one rule and not four lists.** It was four lists. Three checks each
+/// enumerated the family it knew — the five reductions here, `[bin, count, density]`
+/// here, `bounds` against a cut over in the zone's own check — and every transform
+/// outside those families composed with everything, silently. `range * confidence`
+/// drew exactly `confidence`; `sum * range` drew exactly `range`; `smooth * mean`
+/// drew exactly `smooth`; `dodge * stack` drew groups both side by side *and* piled.
+/// A survey on 2026-07-31 found that of 582 two-transform chains that drew, only 271
+/// had every transform doing something. None of those were decisions. They were the
+/// cost of a rule written three times instead of once, and a fourth family was going
+/// to be forgotten in exactly the same way.
+///
+/// **The messages stay per-pair.** A generic sentence per job is the fallback, not
+/// the goal — a refusal that does not say what to do instead is a §12 failure one
+/// level down. Every message names what would have been discarded, which is what
+/// makes the refusal appealable: a reader who has a reading in mind can see the plot
+/// the engine declined to draw and say so.
 ///
 /// A transform can supply two different things, and §5's division of the nine value
 /// statistics into *the four that invent a measurement* and *the five that reduce a
 /// named one* hid the second question: which of them also says **where the cells
-/// are**. Only `bin` does. It **cuts**, and its tally is a by-product of the cut
-/// rather than the cut itself, so it can give the measurement up and still have
-/// something left to contribute. The other three cannot:
+/// are**. Only `bin` gives its measurement up. It **cuts**, and its tally is a
+/// by-product of the cut rather than the cut itself, so it can hand the measurement
+/// over and still have something left to contribute — and it hands it only to a
+/// transform that was handed a *column*, which is why `bar * bin * mean` composes and
+/// `bar * bin * count` does not. The others cannot:
 ///
 /// - `count` and `proportion` tally into cells the **positions** already own (the
 ///   fourth extent description — a category owns its slot), so taking their
@@ -2861,11 +2983,6 @@ fn check_pair_summary(out: &mut Vec<Diagnostic>, spec: &PlotSpec, df: &DataFrame
 ///   to reduce. It is the same property that makes `bandwidth` a length and `bin`'s
 ///   width a boundary.
 ///
-/// So the answer is: **the transform that was handed a column owns the
-/// measurement.** A value statistic (or a pair) names its column, which makes the
-/// measurement its own; the synthesizing transform keeps whatever *else* it supplies,
-/// which is an extent for `bin` and nothing for the other three.
-///
 /// **Why this is a check and not a renderer branch.** Until 2026-07-26 all four
 /// compositions ran, and in one dimension every one of them silently dropped the
 /// statistic: `bin` overwrote the named column with its own tally, the reduction then
@@ -2874,9 +2991,52 @@ fn check_pair_summary(out: &mut Vec<Diagnostic>, spec: &PlotSpec, df: &DataFrame
 /// `Life`. That is the silent drop §12 forbids, arriving through a *composition*
 /// rather than through a binding, and it was invisible to every test because the plot
 /// rendered and exited 0.
-fn check_cut_composition(out: &mut Vec<Diagnostic>, spec: &PlotSpec, layer: &Layer) {
+fn check_chain_jobs(out: &mut Vec<Diagnostic>, spec: &PlotSpec, layer: &Layer) {
+    use crate::transform::{JobContext, job_conflict};
     let ts = &layer.transforms;
     let m = mark_name(&layer.mark);
+
+    // **No early return for a transform the mark does not take**, even though that
+    // reads like the better message and two refusals for one mistake is usually
+    // worse than the right one. Deferring here assumed a refusal that does not
+    // always exist: `mark_takes_transform(interval, mean)` is `None`, but the only
+    // check that spoke up was the *minimum syllable* one — and `interval * bounds *
+    // mean` satisfies the syllable, so `mean` went through unrefused and unread. The
+    // grid says `none` and the engine drew it anyway. An extra sentence costs a
+    // reader one confused moment; a silent drop costs them a wrong plot they believe.
+    let ctx = JobContext {
+        measures_by_color: has_no_measure_axis(&layer.mark),
+        stack_shares: layer.stack.as_ref().is_some_and(|s| s.share.unwrap_or(false)),
+    };
+    let Some((a, b, job)) = job_conflict(ts, ctx) else {
+        // **A transform that changes nothing is still a transform nobody read.** Two
+        // that do different jobs compose, but one of them can still turn out to be a
+        // no-op — and saying so is the same duty as the refusals above, one step
+        // softer. It is a warning rather than a refusal because the plot drawn is
+        // exactly the plot asked for: nothing was discarded, one atom was simply not
+        // needed. Refusing it would forbid the ugly-but-legal (Law 8).
+        //
+        // The list is short on purpose and grows only as a case is understood well
+        // enough to say why in one sentence. A no-op nobody can explain is a refusal,
+        // not a warning — a plot that quietly means something other than it says is
+        // the more expensive mistake, and a refusal can be relaxed later while a
+        // drawing people have built on cannot be taken back.
+        if ts.contains(&Transform::Count) && ts.contains(&Transform::Proportion) {
+            out.push(Diagnostic {
+                kind: DiagnosticKind::Assumption,
+                message: format!(
+                    "gog: `{m} * count * proportion` draws the same plot as \
+                     `{m} * proportion` — a share is a share *of* a tally, so \
+                     `proportion` already counts the rows and `count` adds nothing. \
+                     Drop it, or keep `{m} * count` on its own to read the tallies \
+                     themselves rather than their shares."
+                ),
+            });
+        }
+        return;
+    };
+    let (an, bn) = (transform_name(&a), transform_name(&b));
+
     // Which binding names the column, so the way out is a sentence the reader can
     // type. A mark that reads over two positions measures with a channel the reader
     // has to bind (`color` on a zone, `z` in the cube); a one-key mark measures along
@@ -2886,114 +3046,182 @@ fn check_cut_composition(out: &mut Vec<Diagnostic>, spec: &PlotSpec, layer: &Lay
         .map(|ch| format!(" + {}(<column>)", channel_name(&ch)))
         .unwrap_or_default();
 
-    // Which of the synthesizing transforms is here, if any. `bin` is excluded: it is
-    // the one that supplies an extent, so composing it is the feature rather than the
-    // mistake. `proportion` is excluded because it no longer belongs to the class —
-    // it rescales a measurement instead of inventing one, so `bar * proportion * mean`
-    // is the mean read as a share rather than a cell measured twice.
-    let synth = [Transform::Count, Transform::Density]
-        .into_iter().find(|t| ts.contains(t));
-
-    // `smooth` is refused against the three that measure cells, `bin` included, and
-    // for its own reason rather than this one: it does not measure cells at all. It
-    // fits a curve of one column against another, and LOESS already averages locally
-    // along that curve — so cutting the domain into cells first buys it nothing it was
-    // not doing, and the sentence reads as two answers to one question. (In two
-    // dimensions §5 refuses it a different way, on a floor having no left to right;
-    // here there is a domain, and the redundancy is what rules.) `smooth * proportion`
-    // is refused too but not here: a normalizer asks no second question, so its reason
-    // is its own and `check_share_composition` gives it.
-    if ts.contains(&Transform::Smooth) {
-        if let Some(other) = [Transform::Bin, Transform::Count,
-                              Transform::Density].into_iter().find(|t| ts.contains(t)) {
-            let o = transform_name(&other);
-            out.push(Diagnostic {
-                kind: DiagnosticKind::Illegal,
-                message: format!(
-                    "gog: `{m} * {o} * smooth` asks one question twice — `smooth` fits a \
-                     curve through the rows and already averages locally as it goes, so \
-                     cutting them into cells first changes nothing it was not doing. Keep \
-                     whichever you meant: `{m} * smooth + x(<a>) + y(<b>)` for the fitted \
-                     curve, or `{m} * {o}` for the shape `{o}` measures. For a summary per \
-                     cell rather than a fitted curve, name the statistic: \
-                     `{m} * bin * mean + x(<a>) + y(<b>)`."
-                ),
-            });
-        }
-        return;
-    }
-
-    // **Two synthesizing transforms are the same contradiction with neither side
-    // handed a column**, so the tie cannot be broken the way the one below is: each
-    // invents its own measurement, and a cell holds one number.
-    //
-    // **`proportion` is not one of them, and stopped being one on 2026-07-26.** The
-    // list read `[Bin, Count, Proportion, Density]` for a day, which refused
-    // `bar * bin * proportion` — the relative-frequency histogram, a real chart —
-    // on the strength of a plot that had come out as twelve equal bars at 1/12.
-    // That plot was a *sequencing* defect and not evidence about the sentence: run in
-    // order, `bin` tallied and `proportion` then read the binned frame as its
-    // population, where every cell appears exactly once. `proportion` divides the
-    // measurement present rather than making one of its own, so it is refused here
-    // against nothing at all; `check_share_composition` below owns the transforms it
-    // genuinely cannot rescale.
-    let synths: Vec<&Transform> = [Transform::Bin, Transform::Count, Transform::Density]
-        .iter().filter(|t| ts.contains(t)).collect();
-    if synths.len() > 1 {
-        let (a, b) = (transform_name(synths[0]), transform_name(synths[1]));
-        out.push(Diagnostic {
-            kind: DiagnosticKind::Illegal,
-            message: format!(
-                "gog: `{m} * {a} * {b}` measures each cell twice — `{a}` and `{b}` each \
-                 invent their own measurement from the rows, and neither was handed a \
-                 column to give way to, so there is no reading that keeps both. Keep \
-                 whichever you meant: `{m} * {a}` or `{m} * {b}`. To cut an axis into \
-                 cells and measure something else inside them, the second transform has \
-                 to be one you hand a column: `{m} * bin * mean + x(<number>) + \
-                 y(<column>)`. To read either as shares of the whole rather than as \
-                 counts, `proportion` rescales whichever you keep: `{m} * {a} * proportion`."
-            ),
-        });
-        return;
-    }
-
-    // The composition proper: one of the three that supplies no extent, against a
-    // transform that was handed a column.
-    let Some(synth) = synth else { return };
-    if !crate::transform::measures_a_column(ts) {
-        return;
-    }
-    let Some(stat) = ts.iter().find(|t| crate::transform::measures_a_column(
-        std::slice::from_ref(*t))) else { return };
-    let (o, t) = (transform_name(&synth), transform_name(stat));
-
-    // Each of the three gets its own reason, because they are not refused for the
-    // same one — and a message that restates a rule from elsewhere instead of this
-    // one is the defect the 2026-07-26 refusal audit went looking for.
-    let why = if synth == Transform::Density {
-        format!(
-            "a `density` cell is a point where the estimate was sampled, not a bucket \
-             holding rows — the estimate exists *between* your observations — so there \
-             is nothing inside one for `{t}` to reduce"
-        )
-    } else {
-        format!(
-            "`{o}` supplies only a measurement: its cells are the slots the positions \
-             already own, so with `{t}` measuring them too the cell is measured twice \
-             and `{o}` has nothing left to contribute"
-        )
-    };
-    out.push(Diagnostic {
-        kind: DiagnosticKind::Illegal,
-        message: format!(
-            "gog: `{m} * {o} * {t}` measures each cell twice — {why}. Keep whichever you \
-             meant: `{m} * {o}` to measure what `{o}` computes, or `{m} * {t}{bind}` to \
-             reduce the column you name. To cut a continuous axis into cells and reduce a \
-             column inside each, `bin` is the transform that cuts without keeping the \
-             measurement: `{m} * bin * {t} + x(<number>)`."
-        ),
-    });
+    let message = chain_message(&layer.mark, m, job, (&a, an), (&b, bn), &bind);
+    out.push(Diagnostic { kind: DiagnosticKind::Illegal, message });
 }
+
+/// What to say about a pair of transforms that do the same job.
+///
+/// Ordered most specific first: the pairs that earned their own sentence keep it, and
+/// the per-job fallback catches the rest. The fallback is what makes this a rule — a
+/// transform added next year collides correctly on the day it arrives instead of
+/// composing silently until somebody notices, which is what happened to the six that
+/// were outside every check until 2026-07-31.
+fn chain_message(
+    mark: &Mark,
+    m: &str,
+    job: Job,
+    (ta, a): (&Transform, &str),
+    (tb, b): (&Transform, &str),
+    bind: &str,
+) -> String {
+    use crate::transform::is_reduction;
+    let has = |t: &Transform| ta == t || tb == t;
+    // The transform that is *not* the one a bespoke message names.
+    let other = |t: &Transform| if ta == t { b } else { a };
+
+    // `smooth` fits a curve of one column against another, and LOESS already averages
+    // locally along that curve — so cutting the domain into cells first buys it
+    // nothing it was not doing, and the sentence reads as two answers to one
+    // question. (In two dimensions §5 refuses it a different way, on a floor having
+    // no left to right; here there is a domain, and the redundancy is what rules.)
+    // `smooth * proportion` is refused too but not here: a normalizer asks no second
+    // question, so its reason is its own and `check_share_composition` gives it.
+    if has(&Transform::Smooth) {
+        let o = other(&Transform::Smooth);
+        let did = if is_reduction(if ta == &Transform::Smooth { tb } else { ta }) {
+            format!("reducing them with `{o}` as well")
+        } else {
+            "cutting them into cells first".to_string()
+        };
+        return format!(
+            "gog: `{m} * {a} * {b}` asks one question twice — `smooth` fits a \
+             curve through the rows and already averages locally as it goes, so \
+             {did} changes nothing it was not doing. Keep \
+             whichever you meant: `{m} * smooth + x(<a>) + y(<b>)` for the fitted \
+             curve, or `{m} * {o}` for the shape `{o}` measures. For a summary per \
+             cell rather than a fitted curve, name the statistic: \
+             `{m} * bin * mean + x(<a>) + y(<b>)`."
+        );
+    }
+
+    // A `zone` names its own sides. Named *and* cut says where they are twice, and
+    // the two would disagree the moment the mesh moved.
+    if job == Job::Extent && has(&Transform::Bounds) && has_no_measure_axis(mark) {
+        let t = other(&Transform::Bounds);
+        return format!(
+            "gog: `zone * {a} * {b}` says where the sides are twice — `bounds` names \
+             them from columns you have, `{t}` cuts them from the data. Keep whichever \
+             you meant: `zone * bounds(...)` to shade a rectangle you chose, \
+             `zone * {t}` to tile the panel with measured cells."
+        );
+    }
+
+    // A **bounded** zone is one rectangle per row, its sides named by its own four
+    // columns — not a mesh, so there are no cells to group into. A reduction needs
+    // cells the *positions* make, which is the extent description `bounds` replaces
+    // rather than supplies. Said in `bounds`' own terms, because the reader who wrote
+    // it was shading a region they chose, not summarizing.
+    //
+    // This sentence was mis-scoped rather than missing until 2026-07-31: it lived
+    // behind `cuts_both_positions` in `check_pair_summary`, so `interval * bounds *
+    // mean` never reached it and drew in silence. The identical mistake, and the
+    // identical fix, that this file already records for the composition rule at large.
+    if has(&Transform::Bounds) && (is_reduction(ta) || is_reduction(tb)) {
+        let t = other(&Transform::Bounds);
+        let c = measure_channel(mark, SpaceKind::Flat).map(|ch| channel_name(&ch)).unwrap_or("y");
+        return format!(
+            "gog: `{m} * {a} * {b}` says what this rectangle is twice — `bounds` names \
+             its sides from columns you hold, one rectangle per row, and `{t}` \
+             summarizes a column within the cells your *positions* make. Keep whichever \
+             you meant: `{m} * bounds(...)` to shade a region you chose, or \
+             `{m} * {t} + x(<a>) + y(<b>) + {c}(<column>)` to summarize one within every \
+             cell two categories cross. To shade a band the data computed, \
+             `ribbon * range` is the mark that spans a statistic."
+        );
+    }
+
+    match job {
+        // Two members of the aggregation family each reduce *the column you named*,
+        // and a cell still holds one number. Neither was handed a different column to
+        // give way to, so the tie `bin` breaks has nothing to break here.
+        Job::Measure if is_reduction(ta) && is_reduction(tb) => format!(
+            "gog: `{m} * {a} * {b}` measures each cell twice — `{a}` and `{b}` both \
+             reduce the column you named, and a cell holds one number, so there is no \
+             reading that keeps both. Keep whichever you meant: `{m} * {a}` or \
+             `{m} * {b}`. To show two summaries of one column, draw them as two \
+             layers: `{m} * {a} + {m} * {b}`."
+        ),
+        // Two transforms that each invent their own measurement from the rows, with
+        // neither side handed a column, so the tie cannot be broken the way the one
+        // below is.
+        Job::Measure if !reads_a_column(ta) && !reads_a_column(tb) => format!(
+            "gog: `{m} * {a} * {b}` measures each cell twice — `{a}` and `{b}` each \
+             invent their own measurement from the rows, and neither was handed a \
+             column to give way to, so there is no reading that keeps both. Keep \
+             whichever you meant: `{m} * {a}` or `{m} * {b}`. To cut an axis into \
+             cells and measure something else inside them, the second transform has \
+             to be one you hand a column: `{m} * bin * mean + x(<number>) + \
+             y(<column>)`. To read either as shares of the whole rather than as \
+             counts, `proportion` rescales whichever you keep: `{m} * {a} * proportion`."
+        ),
+        // One that supplies no extent, against one that was handed a column. Each
+        // synthesizer gets its own reason, because they are not refused for the same
+        // one — and a message that restates a rule from elsewhere instead of this one
+        // is the defect the 2026-07-26 refusal audit went looking for.
+        Job::Measure if !reads_a_column(ta) || !reads_a_column(tb) => {
+            let (o, t) = if reads_a_column(ta) { (b, a) } else { (a, b) };
+            let why = if has(&Transform::Density) {
+                format!(
+                    "a `density` cell is a point where the estimate was sampled, not a bucket \
+                     holding rows — the estimate exists *between* your observations — so there \
+                     is nothing inside one for `{t}` to reduce"
+                )
+            } else {
+                format!(
+                    "`{o}` supplies only a measurement: its cells are the slots the positions \
+                     already own, so with `{t}` measuring them too the cell is measured twice \
+                     and `{o}` has nothing left to contribute"
+                )
+            };
+            format!(
+                "gog: `{m} * {a} * {b}` measures each cell twice — {why}. Keep whichever you \
+                 meant: `{m} * {o}` to measure what `{o}` computes, or `{m} * {t}{bind}` to \
+                 reduce the column you name. To cut a continuous axis into cells and reduce a \
+                 column inside each, `bin` is the transform that cuts without keeping the \
+                 measurement: `{m} * bin * {t} + x(<number>)`."
+            )
+        }
+        // Both were handed a column. The pair transforms land here, and until
+        // 2026-07-31 nothing looked: `interval * range * confidence` drew exactly
+        // `interval * confidence`, and reversed, exactly `interval * range`.
+        Job::Measure => format!(
+            "gog: `{m} * {a} * {b}` measures each cell twice — `{a}` and `{b}` both \
+             reduce the column you named, and a cell holds one answer, so drawing \
+             both would mean drawing one of them and discarding the other. Keep \
+             whichever you meant: `{m} * {a}` or `{m} * {b}`. To show both, draw them \
+             as two layers: `{m} * {a} + {m} * {b}`."
+        ),
+        Job::Extent => format!(
+            "gog: `{m} * {a} * {b}` says where the cells are twice — `{a}` and `{b}` \
+             each carve the panel their own way, and the marks sit in one set of cells, \
+             so one of the two would be discarded. Keep whichever you meant: \
+             `{m} * {a}` or `{m} * {b}`. To measure something inside cells one of them \
+             cuts, name a statistic instead: `{m} * {a} * mean{bind}`."
+        ),
+        Job::Scale => format!(
+            "gog: `{m} * {a} * {b}` rescales the measurement twice — `{a}` and `{b}` \
+             each divide it into shares, and dividing twice does not read as shares of \
+             anything. Keep whichever you meant: `{a}` for shares of the whole plot, \
+             `{b}` for shares within each pile."
+        ),
+        Job::Position => format!(
+            "gog: `{m} * {a} * {b}` arranges the same marks twice — `{a}` and `{b}` \
+             each decide where colliding groups go, and a mark sits in one place, so \
+             one of the two would be discarded. Keep whichever you meant: `{m} * {a}` \
+             or `{m} * {b}`. To show both readings, draw them as two plots side by \
+             side rather than as one layer."
+        ),
+    }
+}
+
+/// Was this transform handed a column to measure, rather than inventing its own
+/// number from the rows? The distinction the measure job turns on — see
+/// [`crate::transform::Jobs::reads_a_column`].
+fn reads_a_column(t: &Transform) -> bool {
+    crate::transform::jobs(t, crate::transform::JobContext::default()).reads_a_column
+}
+
 
 /// What a **normalizer** cannot rescale (spec §5).
 ///
@@ -3817,6 +4045,26 @@ fn check_stack(out: &mut Vec<Diagnostic>, layer: &Layer) {
                      categorical one (dots per category)."
                     .to_string(),
             });
+        // **A share cannot be piled, because a dot is a whole observation.** The
+        // pile's height is `round(top - base)` dots, and every share is below one, so
+        // it rounds to none: `point * bin * proportion * stack` drew an **empty
+        // panel** with a fabricated 0..1 axis and exited 0. That is the same failure
+        // the book's binned-category chunk had — a plot with nothing in it standing
+        // where a refusal belonged — and it is not the job rule's to catch, because
+        // `proportion` (scale) and `stack` (position) really are different jobs. What
+        // collides is narrower: this mark's pile counts *units*, and a fraction of an
+        // observation is not one.
+        } else if layer.transforms.contains(&Transform::Proportion) {
+            out.push(Diagnostic {
+                kind: DiagnosticKind::Illegal,
+                message:
+                    "gog: `point * proportion * stack` has no dots to pile — a dot plot stacks \
+                     one dot per observation, and `proportion` turns the count into a fraction, \
+                     which is less than one whole dot. Keep whichever you meant: \
+                     `point * count * stack` to pile the observations themselves, or \
+                     `bar * count * proportion` to read the same shape as shares."
+                    .to_string(),
+            });
         }
         return;
     }
@@ -4264,12 +4512,11 @@ pub fn check(spec: &PlotSpec, data: &HashMap<String, DataFrame>) -> Vec<Diagnost
         // without one (spec §15) — `count`/`sum`, not `bin`/`density`/`smooth`.
         check_keyless_statistic(&mut out, spec, layer);
 
-        // Which transform owns the measurement when two are composed (spec §5).
-        // Mark-agnostic and dimension-agnostic, so it sits out here rather than in
-        // `check_pair_summary`, where the same refusal reached only the marks that
-        // read over two positions and left every one-key composition drawing a
-        // silent lie.
-        check_cut_composition(&mut out, spec, layer);
+        // Two transforms that do the same job contradict (spec §5). Mark-agnostic and
+        // dimension-agnostic, so it sits out here rather than in `check_pair_summary`,
+        // where the same refusal reached only the marks that read over two positions
+        // and left every one-key composition drawing a silent lie.
+        check_chain_jobs(&mut out, spec, layer);
         // What a normalizer cannot rescale (spec §5). Its own check because
         // `proportion` composes with far more than it refuses — the question is not
         // *which transform owns the measurement* but *is there one number per cell
@@ -5185,7 +5432,8 @@ fn z_refusal(mark: &Mark, field: &str) -> String {
              cube that is *two* axes, so a rule here is a **plane**. Marks in space are sorted \
              by their footprint, and a plane's footprint is the whole floor, so it could only \
              be drawn wholly in front of or wholly behind the data when its job is to cut \
-             through it. That needs the per-element occlusion M8a does not have. Draw it flat, \
+             through it. Drawing it would mean working out, piece by piece, what hides what, \
+             and the engine cannot do that yet. Draw it flat, \
              or mark the threshold on a floor axis with `bar`/`point` at `z({field})`."
         ),
         // **Blocked for the same reason, plus a vocabulary gap that has to be
@@ -5197,8 +5445,8 @@ fn z_refusal(mark: &Mark, field: &str) -> String {
             "gog: `zone` shades the region its `bounds` name and spans the axes they do not — \
              and `bounds` names two pairs, so in a cube a zone always spans one axis whole and \
              is a **slab**. Like a 3-D `rule` it has no footprint to sort by, so it cannot be \
-             placed among the data without the per-element occlusion M8a does not have. Draw \
-             it flat, or stand a solid on the floor with `bar + x(<a>) + y(<b>) + z({field})`."
+             placed among the data until the engine can tell, piece by piece, what hides what. \
+             Draw it flat, or stand a solid on the floor with `bar + x(<a>) + y(<b>) + z({field})`."
         ),
         // Anything else is an ordinary unbuilt cell, and says so.
         _ => format!(
@@ -7173,9 +7421,9 @@ fn check_style(
 ///
 /// A border is a **setting, never a channel** (spec §5): a 0.5–1px rim has too
 /// little area to decode a scale from, so it never earns a guide. It applies to a
-/// *filled* mark, and today only `bar` — whose rim is a real, load-bearing
-/// outline (the series-hue step of an overlaid histogram is exactly what a caller
-/// reaches for `border_color` to recolor). The other marks refuse it with
+/// *filled* mark, and today only `bar` — whose rim is a real outline that the
+/// reader uses (the series-hue step of an overlaid histogram is exactly what a
+/// caller reaches for `border_color` to recolor). The other marks refuse it with
 /// direction rather than draw nothing: a `line`/`step` *is* a stroke (its
 /// `style(color)`/`style(size)` are its outline), an `area`'s edge is a layer
 /// (`area + line`), and a `point` border is designed but not built yet.
@@ -10052,6 +10300,65 @@ mod tests {
         );
     }
 
+    /// **Two reductions in one layer are refused, on every mark and for every pair.**
+    ///
+    /// Filed 2026-07-30 as a silent drop and fixed the same day. `bar * sum * mean`
+    /// used to render byte-identical to `bar * sum`, and `bar * mean * sum`
+    /// byte-identical to `bar * mean`: `transform::reduces_column` is a `find_map`, so
+    /// whichever was written first won and the other vanished with no warning and no
+    /// refusal. That is the silent drop §12 forbids, and it also made false the rule
+    /// the book states in three places — that the order of transforms never matters.
+    ///
+    /// Every pair on every mark is named rather than a sample, because the defect was
+    /// uniform across all of them and a sample is what missed it the first time: the
+    /// sweep that reported "no counterexamples" had used a *continuous* `x`, where
+    /// nothing reduces per category and both orders therefore agreed. The fixture
+    /// here is categorical for that reason.
+    #[test]
+    fn two_reductions_in_one_layer_are_refused() {
+        let family = [Transform::Sum, Transform::Mean, Transform::Median,
+                      Transform::Max, Transform::Min];
+        let marks = [Mark::Bar, Mark::Point, Mark::Line, Mark::Area];
+        let cat = || PlotSpec::new().data("t").x("continent").y("life");
+
+        let mut pairs = 0;
+        for m in &marks {
+            for (i, a) in family.iter().enumerate() {
+                for b in family.iter().skip(i + 1) {
+                    for (first, second) in [(a, b), (b, a)] {
+                        let d = check(
+                            &cat().layer(Layer::new(m.clone())
+                                .transform(first.clone())
+                                .transform(second.clone())),
+                            &data(),
+                        );
+                        assert!(
+                            d.iter().any(|x| x.kind == DiagnosticKind::Illegal
+                                && x.message.contains("measures each cell twice")),
+                            "{m:?} * {first:?} * {second:?} must refuse, not silently keep one: {:?}",
+                            d.iter().map(|x| &x.message).collect::<Vec<_>>()
+                        );
+                        pairs += 1;
+                    }
+                }
+            }
+        }
+        assert_eq!(pairs, 80, "10 pairs, both orders, four marks");
+
+        // And one reduction on its own is untouched — the fix must not widen into the
+        // ordinary summary, which is most of what the aggregation family is for.
+        for m in &marks {
+            for t in &family {
+                let d = check(&cat().layer(Layer::new(m.clone()).transform(t.clone())), &data());
+                assert!(
+                    !d.iter().any(|x| x.message.contains("measures each cell twice")),
+                    "{m:?} * {t:?} alone must stay legal: {:?}",
+                    d.iter().map(|x| &x.message).collect::<Vec<_>>()
+                );
+            }
+        }
+    }
+
     #[test]
     fn dodge_needs_a_split_but_then_composes_cleanly() {
         let cat = || PlotSpec::new().data("t").x("continent").y("life");
@@ -10626,6 +10933,55 @@ mod tests {
             "area * confidence should point at ribbon: {:?}", msgs(&d));
     }
 
+    /// **The published chain grid says `—` for exactly the pairs the engine refuses.**
+    ///
+    /// The book generates its Transform × Transform grid from `chain_cells`, and a
+    /// generated grid is only trustworthy while what it is generated *from* is the
+    /// same thing the caller meets. It was not, for a few hours on 2026-07-31: the
+    /// cells came from `job_conflict` alone, so the grid marked `proportion * smooth`
+    /// legal while `check_share_composition` refused it — the same over-promise a
+    /// hand-written legend once put on the Mark × Space column, arriving through the
+    /// generator instead.
+    ///
+    /// Two rules reach a pair, so the grid has to read both. This walks every ordered
+    /// pair against `check` itself rather than against either predicate, which is what
+    /// makes it catch a *third* rule if one is ever added in a third place.
+    #[test]
+    fn the_published_chain_grid_matches_what_the_engine_refuses() {
+        let mtx = rules_matrix();
+        // A mark that takes as much as possible, so a pair is judged on the pair
+        // rather than on the mark: `bar` takes 12 of the 17, `line` the pair
+        // transforms `bar` does not. Between them they cover every transform that
+        // composes at all.
+        for (mark, x, y) in [(Mark::Bar, "cat", "life"), (Mark::Line, "gdp", "life")] {
+            for cell in &mtx.chain_cells {
+                let (Some(a), Some(b)) = (
+                    USER_TRANSFORMS.iter().find(|t| transform_name(t) == cell.a),
+                    USER_TRANSFORMS.iter().find(|t| transform_name(t) == cell.b),
+                ) else { continue };
+                // Only pairs this mark actually takes can say anything about the pair.
+                if mark_takes_transform(&mark, a) == TransformLegality::None
+                    || mark_takes_transform(&mark, b) == TransformLegality::None { continue }
+                let layer = Layer::new(mark.clone())
+                    .transform(a.clone()).transform(b.clone()).bounds("lo", "hi");
+                let d = check(&PlotSpec::new().data("t").x(x).y(y).layer(layer), &data());
+                let refused = d.iter().any(|x| x.kind == DiagnosticKind::Illegal);
+                if !cell.legal {
+                    assert!(refused,
+                        "the grid says `{} * {}` is refused, and the engine drew it",
+                        cell.a, cell.b);
+                }
+            }
+        }
+        // And the reasons the grid can give are the two rules that exist.
+        for cell in &mtx.chain_cells {
+            if let Some(j) = cell.job {
+                assert!(["extent", "measure", "scale", "position", "share"].contains(&j),
+                    "`{} * {}` reports an unknown reason `{j}`", cell.a, cell.b);
+            }
+        }
+    }
+
     #[test]
     fn transforms_matrix_covers_every_transform_and_mark() {
         // The `transforms` block of the dump the grid is generated from.
@@ -10724,7 +11080,13 @@ mod tests {
             assert_eq!(z_refusal_kind(&m), DiagnosticKind::Unsupported);
             let msg = z_refusal(&m, "h");
             assert!(msg.contains("footprint"), "{m:?} must name why it cannot be sorted: {msg}");
-            assert!(msg.contains("occlusion"), "{m:?} must name the blocker: {msg}");
+            // The blocker is named in plain words rather than as "occlusion", which is
+            // rendering jargon this audience does not have (book law 8), and it no longer
+            // cites a milestone id a reader cannot look up. Assert the meaning, not the term.
+            assert!(msg.contains("what hides what"), "{m:?} must name the blocker: {msg}");
+            assert!(!msg.contains("occlusion") && !msg.contains("M8a"),
+                "{m:?}: a refusal a user reads must not use rendering jargon or an internal \
+                 milestone id: {msg}");
         }
         // And the marks that draw take no message at all.
         for m in [Mark::Point, Mark::Bar, Mark::Path, Mark::Surface, Mark::Box, Mark::Interval] {
