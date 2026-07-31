@@ -202,18 +202,42 @@ jobs:
       # registry. Its `Manifest.toml` is committed for exactly this reason, and
       # records `GrammarOfGraphics` as a relative path, so the version under test
       # is the checkout rather than a release.
-      # `resolve` before `instantiate`, and the order is the whole point.
-      # `instantiate` installs what the manifest already says; it does not
-      # reconsider it. `GrammarOfGraphics` is a *path* dependency, so the day the
-      # package gains a dependency of its own the manifest still records the old
-      # list, `instantiate` happily installs it, and the harness then dies on
-      # `using GrammarOfGraphics` with a message about a package "not having" a
-      # dependency it plainly declares. That happened the day Base64 and Random
-      # arrived with the turnable cube: this step passed and the next one failed.
+      # `instantiate` only, and **not** `resolve`. Resolving needs a package
+      # registry, and this runner has none: a complete manifest pins every
+      # version and a path, so nothing has to be looked up. That is the whole
+      # reason the manifest is committed, and adding `Pkg.resolve()` here broke
+      # the job with `no registries have been installed` while trying to protect
+      # it.
+      #
+      # What it was trying to protect against is real, though. `instantiate`
+      # installs what the manifest says without reconsidering it, so when
+      # `GrammarOfGraphics` — a *path* dependency — gains a dependency of its
+      # own, a stale manifest still records the old list. This step then passes
+      # and the *next* one dies on `using GrammarOfGraphics`, complaining that a
+      # package does not have a dependency it plainly declares. That is what
+      # happened when Base64 and Random arrived with the turnable cube.
+      #
+      # So the manifest is checked against the package instead, by reading two
+      # TOML files. No registry, no network, and the message says what to do.
       - name: Resolve the parity harness's environment
         run: |
           julia --project=jl-pkg/GrammarOfGraphics/test/book_parity \
-                -e 'using Pkg; Pkg.resolve(); Pkg.instantiate()'
+                -e 'using Pkg; Pkg.instantiate()'
+          julia -e '
+            using TOML
+            pkg = TOML.parsefile("jl-pkg/GrammarOfGraphics/Project.toml")
+            man = TOML.parsefile("jl-pkg/GrammarOfGraphics/test/book_parity/Manifest.toml")
+            entry = man["deps"]["GrammarOfGraphics"][1]
+            pinned = sort(get(entry, "deps", String[]))
+            actual = sort(collect(keys(pkg["deps"])))
+            if pinned != actual
+                println("::error::the parity harness pins GrammarOfGraphics deps ",
+                        pinned, " but the package declares ", actual,
+                        " — run Pkg.resolve() in jl-pkg/GrammarOfGraphics/test/book_parity ",
+                        "and commit the Manifest.toml")
+                exit(1)
+            end
+            println("the harness manifest matches the package: ", actual)'
 
       - name: Julia draws every sentence
         run: |
