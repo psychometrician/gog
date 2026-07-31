@@ -1132,6 +1132,38 @@ ok("`theme(width=, height=)` is the image alone and the cell composed")
 
 refuses("a size no plot can be drawn at", lambda: theme(width=10))
 refuses("a page asked to facet", lambda: (scatter | scatter) | facet(col.speed))
+
+# --- parentheses group plots, never marks ------------------------------------
+# `+` with a Plot on its right keeps the table and returns, which is right for a
+# bare `data(df)` and silent loss for `(data(df) + point + area)`: the marks
+# inside stopped existing and the plot rendered as though they were never named.
+# That is the dropped binding §12 forbids, and a sub-expression that means one
+# thing alone and nothing in context breaks Law 6. The composition asserts above
+# are the other half — a refusal on `+` sits one method away from breaking them.
+
+note = {"speed": [10.0], "dist": [40.0]}
+try:
+    (data(cars, name="cars") + point + x(col.speed) + y(col.dist)
+     + (data(note, name="note") + point + area))
+    raise AssertionError("FAIL: a parenthesized group should be refused")
+except GogError as error:
+    for want in ("parentheses do not group marks", "repeat", "note", "`|` and `/`"):
+        assert want in str(error), f"the refusal should say {want!r}; got: {error}"
+ok("a parenthesized group refuses, naming the table and the sequence to write")
+
+refuses("a position inside parentheses",
+        lambda: (data(cars, name="cars") + point + x(col.speed) + y(col.dist)
+                 + (data(note, name="note") + x(col.speed))))
+refuses("a title inside parentheses",
+        lambda: (data(cars, name="cars") + point + x(col.speed) + y(col.dist)
+                 + (data(note, name="note") + title("hi"))))
+
+# A bare `data()` carries nothing, so it still joins mid-sentence.
+seq = (data(cars, name="cars") + point + x(col.speed) + y(col.dist)
+       + data(note, name="note") + point)
+assert len(seq.spec["layers"]) + (1 if seq.current_layer else 0) == 2, \
+    "a bare mid-sentence data() should still bind the next mark"
+ok("a bare mid-sentence `data()` still binds the next mark")
 refuses("an atom added to a page", lambda: (scatter | scatter) + title("Cars"))
 refuses(
     "plots asking for more page than there is",

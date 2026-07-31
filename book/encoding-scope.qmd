@@ -35,7 +35,9 @@ makes a mid-expression `data()` beat the plot's table.
 
 Every layer of a plot shares the same axes. That is what makes it one plot
 rather than two drawn on top of each other, and it is not negotiable: there is
-one x scale, one set of ticks, one label.
+one x scale, one set of ticks, one label. A table that does not belong on those
+axes does not belong in this plot. [Composition](composition.qmd) has the choice
+between layering, faceting, and a page of separate plots.
 
 Sharing an axis is not the same as sharing a *column name*, though, and those
 two were run together for a long time. Bind the positions once before the marks

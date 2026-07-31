@@ -501,6 +501,22 @@ class Builder {
     const atom = asAtom(item);
 
     if (!atom) {
+      // A whole plot handed in as an argument, which is how the grouping the
+      // other three bindings spell with parentheses would be written here. It
+      // cannot work and must not look as though it did: a nested plot carries
+      // marks, positions and a title that this list has nowhere to put, and
+      // dropping them would be the silent loss §12 forbids. The direction is the
+      // one every binding gives — repeat `data()` per mark. Checked before the
+      // bare-table branch below, which would otherwise claim a `Plot` is a table.
+      if (item instanceof Plot || item instanceof Page) {
+        throw new GogError(
+          "gog: a plot cannot be an argument to another plot, so everything inside " +
+            "it would be dropped. Write the atoms in sequence instead, and repeat " +
+            "`data()` before each mark that reads that table: " +
+            "`plot(data(a), line, data(b), point, data(b), area)`. " +
+            "To put two plots on a page, use `beside()` or `below()`."
+        );
+      }
       // A table handed over bare, which is the sentence the manual documents
       // being refused: `gapminder_2007 + point + …`. The direction is `data()`,
       // not "that is not an atom" — the reader has the right table and the wrong

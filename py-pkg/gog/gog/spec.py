@@ -378,6 +378,27 @@ class Plot:
         # A second table joins mid-sentence: `... + data(notes) + text + ...`
         if isinstance(other, Plot):
             new_name = next(iter(other.frames))
+
+            # This path keeps the table and returns, so anything else the right
+            # operand is carrying would go no further. That is fine for a bare
+            # `data(df)`, which carries nothing, and silent loss for a
+            # parenthesized group, whose marks, positions and titles simply stop
+            # existing. Refuse instead: a dropped binding is never acceptable
+            # (§12), and a sub-expression that means one thing alone and nothing
+            # at all in context breaks Compositional Invariance (Law 6).
+            if (
+                other.spec != _new_spec(new_name)
+                or other.current_layer is not None
+                or other.pending_data is not None
+            ):
+                raise GogError(
+                    f"gog: parentheses do not group marks, so everything inside these "
+                    f"would be dropped. Write the marks in sequence instead, and repeat "
+                    f"`data()` before each one that reads that table: "
+                    f"`+ data({new_name}) + point + data({new_name}) + area`. "
+                    f"Parentheses compose whole plots, with `|` and `/`."
+                )
+
             existing = plot.frames.get(new_name)
             if existing is not None and existing is not other.frames[new_name]:
                 raise GogError(

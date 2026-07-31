@@ -150,6 +150,11 @@ The two tables cover different years, which makes the change easy to see.
 `actuals` runs from 2019 to 2023, and `forecast` from 2024 to 2026. The area
 and the line both sit on the left. The points sit alone on the right.
 
+That rule fits what a second table is usually for. The first table builds the
+frame, and a later one annotates it: a threshold, a band, a note, a forecast. An
+annotation is one mark, so an extra `data()` that reaches one mark is a fit
+rather than a limit. Every second table in this book is one of those.
+
 To draw two marks from the second table, write `data()` before each of them.
 
 That sentence is correct, and it still reads badly. `area` sits on the line
@@ -199,6 +204,12 @@ hold. A table whose numbers mean something else does not belong on these axes,
 however its columns are spelled: put sales figures on an income axis and the
 plot is drawn correctly and reads as nonsense. Matching names are not the test.
 Matching meanings are.
+
+That test decides whether the second table belongs in this plot at all. A layer
+joins a frame the first table built, so it has to land on the axes that frame
+already has. When it does not, the two tables are measuring different things,
+and two plots on one page say that honestly where one plot cannot.
+[Composition](composition.qmd) is the operator for it.
 
 A layer that names no position of its own reads the axis, whoever set it. That is
 why the earlier plot worked with the positions written once at the front.

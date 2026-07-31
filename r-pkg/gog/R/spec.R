@@ -280,7 +280,19 @@ data <- function(df, name = NULL) {
       name <- "data"
     }
   }
-  spec <- list(
+  # `new_spec()` is the shared skeleton, and calling it here rather than writing
+  # the fields out again is what the warning beside it asks for: a second copy is
+  # how a field gets added to one data source and not the other. It is also what
+  # lets `+` tell an empty `data()` from a parenthesized group carrying content,
+  # by comparing against a pristine skeleton for the same table.
+  new_gog_spec(new_spec(name), name, df)
+}
+
+# The empty sentence, given the name of the table it is about. One skeleton,
+# shared by every atom that can open a plot — `data()` and `query()`. Two copies
+# of this list is how a field gets added to one data source and not the other.
+new_spec <- function(name) {
+  list(
     data     = name,
     layers   = list(),
     coord    = "flat",
@@ -295,26 +307,6 @@ data <- function(df, name = NULL) {
     y        = NULL,
     z        = NULL,
     channels = list()   # plot-scoped channels — those written before any mark
-  )
-  new_gog_spec(spec, name, df)
-}
-
-# The empty sentence, given the name of the table it is about. One skeleton,
-# shared by every atom that can open a plot — `data()` and `query()`. Two copies
-# of this list is how a field gets added to one data source and not the other.
-new_spec <- function(name) {
-  list(
-    data     = name,
-    layers   = list(),
-    coord    = "flat",
-    title    = NULL,
-    x_axis   = list(label = NULL),
-    y_axis   = list(label = NULL),
-    z_axis   = list(label = NULL),
-    x        = NULL,
-    y        = NULL,
-    z        = NULL,
-    channels = list()
   )
 }
 
@@ -471,6 +463,23 @@ resolve_query <- function(q, table) {
   # mid-expression data(): merge data frames, mark pending table for next mark
   if (inherits(rhs, "gog_spec")) {
     new_name        <- names(rhs$data_frames)[1]
+
+    # This path keeps the table and returns, so anything else the right-hand
+    # side is carrying would go no further. That is fine for a bare `data(df)`,
+    # which carries nothing, and silent loss for a parenthesized group, which
+    # carries marks, positions and titles that simply stop existing. Refuse
+    # instead: a dropped binding is never acceptable (§12), and a sub-expression
+    # that means one thing alone and nothing at all in context breaks
+    # Compositional Invariance (Law 6).
+    if (!identical(rhs$spec, new_spec(new_name)) ||
+        !is.null(rhs$current_layer) || !is.null(rhs$pending_data)) {
+      stop("gog: parentheses do not group marks, so everything inside these ",
+           "would be dropped. Write the marks in sequence instead, and repeat ",
+           "`data()` before each one that reads that table: ",
+           "`+ data(", new_name, ") + point + data(", new_name, ") + area`. ",
+           "Parentheses compose whole plots, with `|` and `/`.", call. = FALSE)
+    }
+
     # Two *different* tables under one name is Law 4 with its floor removed:
     # "nearest table wins" has nothing to choose between, the first one answers
     # every lookup, and the second one's columns come back reported as

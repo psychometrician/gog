@@ -1134,3 +1134,31 @@ end
     @test err isa GogError
     @test occursin("SELECT as text", sprint(showerror, err))
 end
+
+@testset "parentheses group plots, never marks" begin
+    # `+` with a Plot on its right keeps the table and returns, which is right for
+    # a bare `data(df)` and silent loss for `(data(df) + point + area)`: the marks
+    # inside stopped existing and the plot rendered as though they were never
+    # named. That is the dropped binding §12 forbids, and a sub-expression that
+    # means one thing alone and nothing in context breaks Law 6.
+    note = Dict("x" => [2.0], "y" => [5.0])
+    base() = data(df, name = "df") + x(:x) + y(:y) + line
+
+    @refuses base() + (data(note, name = "note") + point + area) "parentheses do not group marks"
+    @refuses base() + (data(note, name = "note") + point + area) "note"
+    @refuses base() + (data(note, name = "note") + point + area) "`|` and `/`"
+
+    # Not only marks: a position or a title inside the parentheses was dropped too.
+    @refuses base() + (data(note, name = "note") + x(:x)) "parentheses do not group marks"
+    @refuses base() + (data(note, name = "note") + title("hi")) "parentheses do not group marks"
+
+    # A bare `data()` carries nothing, so it still joins mid-sentence.
+    seq = base() + data(note, name = "note") + point
+    @test length(seq.spec["layers"]) + (seq.current_layer === nothing ? 0 : 1) == 2
+
+    # Composition is what this refusal must not break.
+    @test (data(df, name = "df") + point + x(:x) + y(:y)) |
+          (data(df, name = "df") + line + x(:x) + y(:y)) isa Page
+    @test (data(df, name = "df") + point + x(:x) + y(:y)) /
+          (data(df, name = "df") + line + x(:x) + y(:y)) isa Page
+end

@@ -182,15 +182,26 @@ tiebreaker. His graph algebra also has a `/`, and it means **nest** (`a/b`, "a
 within b"), not "below". GOG's facet operators claim his *crossing* and
 deliberately do not claim his nesting, so `/` here is free to mean the page.
 
-## Composition or faceting?
+## Layering, faceting, or composition?
 
-The two answer different questions, and the choice is not a matter of taste:
+The three answer different questions, and the choice is not a matter of taste:
 
+* **Layering** when the marks are *different tables on the same measurement*.
+  One coordinate space, one pair of axes, and the second table annotates the
+  first: a threshold, a band, a callout, a forecast. [Data](data.qmd) owns
+  multi-table plots.
 * **Faceting** when the panels are *the same measurement* on different subsets.
   One scale, one legend, and the comparison between panels is the point.
 * **Composition** when the plots are *different measurements* that belong on one
   page. Each keeps its own space, and what they have in common — if anything —
   is the variable they share.
+
+Layering is the one to check yourself on, because it is the only one the engine
+cannot check for you. A table whose numbers mean something else still draws when
+you layer it. The columns resolve, the marks land, and the picture is wrong.
+Sales figures on an income axis are a legal sentence. So if the second table
+does not measure what the axes measure, compose two plots instead of layering
+one onto the other.
 
 A marginal plot is composition because the histogram and the scatter measure
 different things: one counts countries, the other places them. They share

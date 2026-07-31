@@ -1218,6 +1218,51 @@ cat("PASS: the advice names the actual frame\n")
 cat("\nbare-data-frame guard tests passed.\n")
 
 # ---------------------------------------------------------------------------
+# Parentheses do not group marks
+#
+# `+` with a spec on its right keeps the table and returns, which is right for a
+# bare `data(df)` and silent loss for `(data(df) + point + area)` — the marks
+# inside simply stopped existing, and the plot rendered byte-identical to one
+# that never named them. That is the dropped binding §12 forbids, and a
+# sub-expression meaning one thing alone and nothing in context breaks Law 6.
+#
+# The other half of this test is the half that could regress: `|` and `/` take
+# parenthesized plots as operands and must keep working, since a refusal on `+`
+# is one S3 method away from breaking composition.
+# ---------------------------------------------------------------------------
+
+group_df   <- data.frame(x = c(1, 2, 3), y = c(4, 5, 6))
+group_note <- data.frame(x = c(2), y = c(5))
+
+msg <- refuses("(data(note) + point + area) on the right of `+`",
+               data(group_df) + x(x) + y(y) + line + (data(group_note) + point + area))
+for (want in c("parentheses do not group marks", "repeat", "group_note", "`|` and `/`"))
+  if (!grepl(want, msg, fixed = TRUE))
+    stop("FAIL: the refusal should say ", want, "; got: ", msg)
+cat("PASS: the refusal names the table and gives the sequence to write\n")
+
+# Not only marks: a position or a title inside the parentheses was dropped too.
+refuses("(data(note) + x(x)) on the right of `+`",
+        data(group_df) + x(x) + y(y) + line + (data(group_note) + x(x)))
+refuses("(data(note) + title()) on the right of `+`",
+        data(group_df) + x(x) + y(y) + line + (data(group_note) + title("hi")))
+
+# A bare `data()` carries nothing, so it still joins mid-sentence.
+p_seq <- data(group_df) + x(x) + y(y) + line + data(group_note) + point
+if (length(c(p_seq$spec$layers, list(p_seq$current_layer))) != 2L)
+  stop("FAIL: a bare mid-sentence data() should still bind the next mark")
+cat("PASS: a bare mid-sentence `data()` still binds the next mark\n")
+
+# Composition is the thing this refusal must not break.
+if (!inherits((data(group_df) + point + x(x) + y(y)) |
+              (data(group_df) + line + x(x) + y(y)), "gog_page"))
+  stop("FAIL: `|` composition broke")
+if (!inherits((data(group_df) + point + x(x) + y(y)) /
+              (data(group_df) + line + x(x) + y(y)), "gog_page"))
+  stop("FAIL: `/` composition broke")
+cat("PASS: `|` and `/` still compose parenthesized plots\n")
+
+# ---------------------------------------------------------------------------
 # NAMESPACE — every atom must actually be reachable from `library(gog)`
 #
 # Under pkgload::load_all() a missing export fails at load time; under the

@@ -1350,6 +1350,39 @@ test("unrelated plots compose without sharing anything", () => {
   assert.equal(svg.match(/<svg/g).length, 3);
 });
 
+// The other three bindings spell grouping with parentheses and had to be taught
+// to refuse it: `plot + (data(df) + point + area)` kept the table, returned, and
+// the marks inside stopped existing. JavaScript has no `+` to overload, so the
+// same mistake arrives as a plot handed to `plot()` as an argument. It must name
+// what happened rather than claim a `Plot` is a bare table, which is the branch
+// it used to fall into.
+test("a plot cannot be an argument to another plot", () => {
+  const note = { speed: [10], dist: [40] };
+  refuses(
+    () => plot(data(cars, { name: "cars" }), point, x(col.speed), y(col.dist),
+               plot(data(note, { name: "note" }), point)),
+    /cannot be an argument to another plot/
+  );
+  refuses(
+    () => plot(data(cars, { name: "cars" }), point, x(col.speed), y(col.dist),
+               plot(data(note, { name: "note" }), point)),
+    /beside\(\) *` *or *`? *below\(\)|beside\(\)/
+  );
+  // The bare-table message is a different mistake and must not have been taken over.
+  refuses(() => plot(data(cars, { name: "cars" }), point, note), /starts with `data\(\)`/);
+
+  // Repeating `data()` per mark is the direction the refusal gives, and it works.
+  const seq = plot(data(cars, { name: "cars" }), x(col.speed), y(col.dist), line,
+                   data(note, { name: "note" }), point,
+                   data(note, { name: "note" }), area);
+  // `plot()` seals every layer into `spec.layers`; nothing is left open.
+  assert.equal(seq.spec.layers.length, 3);
+  assert.deepEqual(
+    seq.spec.layers.map((l) => l.data ?? "<default>"),
+    ["<default>", "note", "note"]
+  );
+});
+
 test("theme({ width, height }) is the image alone and the cell composed", () => {
   const alone = render_svg(plot(data(cars, { name: "cars" }), point, x(col.speed), y(col.dist),
                                 theme({ width: 400, height: 300 })));

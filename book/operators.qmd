@@ -331,6 +331,34 @@ meaning of its own, so it spells the four as words, which makes the grouping
 something you see instead of something you remember
 ([JavaScript](bindings/javascript.qmd)).
 
+### What parentheses may group
+
+Parentheses change which operator runs first, and that is the whole of what they
+do. They group **plots**, which is why a composed page uses them: `/` binds
+tighter than `|`, so `a | b / c` reads as `a | (b / c)` unless you say otherwise
+([Composition](composition.qmd)).
+
+They do not group **marks**. A second `data()` applies to the mark written
+directly after it ([Data](data.qmd)), and putting parentheses around a run of
+marks does not widen that reach:
+
+```{r}
+#| error: true
+data(actuals) + x(year) + y(sales) +
+  line +
+  (data(forecast) + point + area)
+```
+
+GOG refuses that instead of drawing it. The refusal is worth having because the
+alternative is worse than an error: there is no way to keep the marks inside
+those parentheses, so the only other option is to drop them and draw a plot that
+is missing two layers without saying so. To put two marks on the second table,
+write `data()` before each of them.
+
+The same refusal covers a position or a title inside the parentheses, for the
+same reason. In JavaScript, where the operators are words, the shape of the
+mistake is a `plot()` handed to another `plot()`, and it is refused there too.
+
 ---
 
 ## Why `+`, and not a pipe

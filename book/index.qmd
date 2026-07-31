@@ -3,7 +3,21 @@
 # is. The fixed counterpart, the first-published date, is `book: date:` in
 # `_quarto.yml`. This one belongs here because it must reach the landing page
 # alone; see the comment beside its partner for what the other placements do.
-date-modified: today
+#
+# The date is computed in R rather than written as Quarto's `today` keyword,
+# because this book renders that keyword as the literal word "today" on the
+# page. `last-modified` and `now` print themselves the same way. A minimal book
+# with this exact `_quarto.yml` resolves all three correctly, so the cause is
+# something this book does that the minimal one does not; the R expression
+# sidesteps it rather than waiting on the answer.
+#
+# R formats the date as well as computing it, because `date-format` reaches
+# `date:` and not a value substituted into the front matter. Left as an ISO
+# string the two rows disagree: "July 28, 2026" above "2026-07-31". The `sub()`
+# drops the leading zero that `%d` puts on a single-digit day, which is the one
+# place the two would still differ — Quarto's long format writes "July 5, 2026",
+# and `%d` alone writes "July 05, 2026".
+date-modified: "`r sub(' 0', ' ', format(Sys.Date(), '%B %d, %Y'))`"
 ---
 
 # Preface {.unnumbered}
@@ -495,8 +509,9 @@ This book carries five names, and the division of labor behind them is worth
 stating plainly rather than leaving in a footnote.
 
 One of the five is not a name. I publish as **psychometrician**, and the wish
-is an old one. I have wanted a pen name since I learned statistics in 1992,
-which is when I met *Student*. Student was [William Sealy
+is an old one. I have wanted a pen name since 1992, when I took introductory
+statistics in the psychology department. That is where I met *Student*. Student
+was [William Sealy
 Gosset](https://en.wikipedia.org/wiki/William_Sealy_Gosset), an English chemist
 and statistician, and the t-distribution carries his pen name instead of his
 own. My own papers are few, and no academic journal would let me publish

@@ -8,7 +8,7 @@
   "book-data": "0edb3fec825b89b4ee4e11c91e9e6a9bb36dbd87ca28aab1cfd2e09c584eeb94",
   "channels": "1c6d859918dce4e6af260fd63db69a487ddbabf38270fda36b7042870c59908a",
   "chart-names": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-  "combinations": "fb4c28259d945067ce51472099b9371d030929b2e32c79c1d5c7aca9d841fb98",
+  "combinations": "ca420d2fac7f79a27e8ae55e0447f5515dd2c66eaa86994d6ef3c41650efe812",
   "composition": "3d83780031074f8fd19d726e1ebc948d44dfb07611bc4d9aa099d28aa7441742",
   "cookbook/groups": "541be8be2a9c0cb717772c803e27258f30332b701595d2604eaa341d6b1457fa",
   "cookbook/one-variable": "9ef7112ade84fa13aa133dbb62082957bd3b32a1f7ae786d24bafcad2b98c233",
@@ -57,6 +57,6 @@
   "transforms": "144a364d96f2e3111cc18ada35bf7ee21035b9e69e0a6892bb97a24ac692bd86",
   "writing": "32c4ea4e576cc1151bc84fbf5cc1c9c890d408d666266df384c4b5527f108bfa"
  },
- "engine": "b3af2b3a448e244712f9ffd958fda2adc33ca743ff8300aa3e846f47e7b35345",
+ "engine": "966454e51639331a70c7c4dd2df7e28dde6bf8f2d0a52fb98ce028c047f8b20f",
  "sentences": 711
 }
