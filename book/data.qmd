@@ -126,19 +126,26 @@ The plot above was the easy case: `actuals` and `forecast` both call their
 columns `year` and `sales`, so one pair of positions written at the front served
 both layers.
 
-A second table usually does not match. The `milestones` table records events, and
-its columns are `at`, `value` and `note`. None of those names appear in
-`actuals`. A layer may name its own columns, and the axis does not change:
+A second table usually does not match. The `milestones` table marks two points on
+the income axis, and its columns are `at`, `value` and `note`. None of those
+names appear in `gapminder_2007`, whose columns are `gdp` and `life`. A layer may
+name its own columns, and the axis does not change:
 
 ```{r}
-data(actuals) + line + x(year) + y(sales) +
+data(gapminder_2007) + point + x(gdp) + y(life) +
   data(milestones) + text + x(at) + y(value) + label(note)
 ```
 
 There is still one x axis and one y axis, one scale each, one set of ticks. Only
 the *names* differ, because the two tables were written by different people for
-different reasons. What is shared is the measurement, and that is what an axis
-is.
+different reasons.
+
+What is shared is the **measurement**, and that is what an axis is. `at` holds
+income and `value` holds years of life, the same two quantities `gdp` and `life`
+hold. A table whose numbers mean something else does not belong on these axes,
+however its columns are spelled: put sales figures on an income axis and the
+plot is drawn correctly and reads as nonsense. Matching names are not the test.
+Matching meanings are.
 
 A layer that names no position of its own reads the axis, whoever set it. That is
 why the earlier plot worked with the positions written once at the front.
