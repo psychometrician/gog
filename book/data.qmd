@@ -120,17 +120,28 @@ data(actuals) + x(year) + y(sales) +
 
 The rule: **nearest `data()` wins.**
 
-## Multi-table layered plots
+## When the second table names its columns differently
 
-Each layer can draw from a completely different data frame as long as `x` and `y`
-map to comparable columns:
+The plot above was the easy case: `actuals` and `forecast` both call their
+columns `year` and `sales`, so one pair of positions written at the front served
+both layers.
+
+A second table usually does not match. The `milestones` table records events, and
+its columns are `at`, `value` and `note`. None of those names appear in
+`actuals`. A layer may name its own columns, and the axis does not change:
 
 ```{r}
-data(actuals) + x(year) + y(sales) +
-  line +
-  data(forecast) +
-  point
+data(actuals) + line + x(year) + y(sales) +
+  data(milestones) + text + x(at) + y(value) + label(note)
 ```
+
+There is still one x axis and one y axis, one scale each, one set of ticks. Only
+the *names* differ, because the two tables were written by different people for
+different reasons. What is shared is the measurement, and that is what an axis
+is.
+
+A layer that names no position of its own reads the axis, whoever set it. That is
+why the earlier plot worked with the positions written once at the front.
 
 ## A table in a database
 
