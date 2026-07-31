@@ -12,6 +12,19 @@ project:
   # that only *reads* one does not make it a discovered dependency.
   resources:
     - data/
+    # The browser engine, and the module that drives it. A plot in the cube is
+    # turnable wherever the page can run these, and *one* copy serves every 3-D
+    # plot in the book because they are fetched by URL and cached. The
+    # alternative the bindings default to is carrying the engine inside each
+    # plot as base64, which is right for a notebook that must survive being
+    # emailed and wrong here — it would add about 1.1 MB to every page with a
+    # cube on it. `R/setup.R` points the bindings at these and copies them in.
+    #
+    # PDF is unaffected without needing to be excluded: the LaTeX path returns
+    # before the HTML wrapper is ever built, so a printed cube is the still
+    # image it always was.
+    - gog.wasm
+    - interactive.js
 
 book:
   title: "GOG: A Grammar of Graphics"

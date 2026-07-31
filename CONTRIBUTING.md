@@ -91,6 +91,7 @@ it — the layering is acyclic, and keeping it that way is the point.
 | `time.rs` | How a number becomes a date | — |
 | `data.rs` | The in-memory table (temporary; Arrow is planned) | `time` |
 | `ir.rs` | The grammar as typed structs; the JSON contract | — |
+| `wire.rs` | The request envelope around that contract — spec plus tables, and which rows a missing value costs | `data`, `ir`, `time` |
 | `transform.rs` | bin, smooth, count, density, the aggregations | `data` |
 | `scale.rs` | How a number becomes a position | `data`, `ir` |
 | `legality.rs` | Which bindings are legal, and what to say when they are not | `color`, `data`, `ir`, `scale`, `time` |
@@ -119,6 +120,26 @@ remembers to run. It used to be exactly that — the policy lived in
 and any future Rust/WASM/FFI binding) drew illegal plots in silence. Nothing
 depends on `plot.rs`; it depends on the two halves it joins. Add a binding by
 calling it, never by reaching past it — and the compiler agrees.
+
+**There are two bridges now, and `wire.rs` is why that is safe.** `gog-cli` reads
+the request from stdin; `gog-wasm` reads the identical JSON from a pointer into
+linear memory, because a web page has no subprocess to spawn and a 3-D plot only
+becomes turnable once the engine is *in* the page. Only the transport differs.
+Everything else — decoding, the missing-value policy, the legality gate, the
+renderer — is reached through `wire::decode` and `plot::render_figure`, so the
+two cannot disagree about which rows get plotted. That mattered enough to move
+the decoding down: a disagreement there would not crash, it would quietly draw a
+different dataset in the browser than on the command line, which is rule 4's
+lesson in a new place. A test renders the same spec both ways at four viewing
+angles and compares bytes.
+
+**`gog-wasm` is deliberately not a workspace member**, and its manifest says why
+at length: Cargo ignores a non-root package's `[profile]`, so membership would
+silently cost the size tuning that takes the module from ~1.6 MB to ~823 KB, and
+the R package's `.prepare` stages the workspace manifest beside `gog-core/` and
+`gog-cli/` only — a third member listed but not copied breaks the build that
+`remotes::install_github()` and r-universe run. It therefore needs its own test
+invocation; `cargo test` at the root does not reach it.
 
 **`svg.rs` is the orchestrator: the one place that knows the *order* things happen
 in** — resolve scope, transform, build axes, draw marks, draw guides. The per-mark

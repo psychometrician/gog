@@ -576,7 +576,7 @@ class Plot:
     def _repr_html_(self) -> str:
         # Jupyter asks for a mime bundle, and this is the method that puts a
         # plot in the cell rather than a repr line.
-        return svg_block(render_svg(self))
+        return svg_block(render_svg(self), self)
 
     def __repr__(self) -> str:
         spec, _ = self._wire()
@@ -650,7 +650,7 @@ class Page:
         show(self)
 
     def _repr_html_(self) -> str:
-        return svg_block(render_svg(self))
+        return svg_block(render_svg(self), self)
 
     def __repr__(self) -> str:
         return f"<gog page: {len(self.cells)} cells, {self.arrange}>"

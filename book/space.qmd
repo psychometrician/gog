@@ -72,6 +72,24 @@ and `tilt` lifts your eye above the floor, from a flat side-on view up to
 looking straight down. Both are in degrees. (Astronomy calls these two angles
 *azimuth* and *elevation*, and the plain words say the same thing.)
 
+## Turning the plot yourself
+
+Every plot in the cube can be turned with the mouse. Drag left or right to swing
+the scene around. Drag up or down to raise or lower your eye. A line under each
+plot reads out the two angles while you move it. So you can find an angle by
+hand, then write it into the sentence as `space(turn = , tilt = )`. A *reset*
+button returns the plot to the view it opened with.
+
+This changes nothing about the sentence. `space()` chooses where a plot opens,
+and the mouse takes you anywhere else from there. The data, the marks and the
+scales are the same at every angle. You are changing *how you look*, never
+*what is drawn*.
+
+Dragging needs a web page to run in. On paper, and in the PDF edition, each plot
+is the still image its sentence asks for. So the angle is still worth naming,
+even though a reader can move it. The printed figure shows the view you chose,
+and a reader who can drag starts from it.
+
 ## A route, not a cloud
 
 A scatter is a cloud: every dot stands alone and the table's order means nothing.
@@ -291,11 +309,13 @@ what hides what, and a point never disappears behind the far face of the box. It
 the scene rather than a member of it: no mark can take away the numbers that say
 what it measures.
 
-Two things are still to come, and they are separate jobs rather than one.
-Drag-to-rotate, which is what makes a 3-D plot legible in the first place, needs
-a live canvas rather than a fixed SVG. Working out what hides what, piece by
-piece, needs more than a canvas, and that is where the grammar stops and the
-renderer's real work begins.
+These were once described here as one job, and they are two. Turning the plot is
+built, and it is what makes a 3-D plot legible in the first place. Working out
+what hides what, piece by piece, is the harder one and is still to come: it needs
+more than turning does, and that is where the grammar stops and the renderer's
+real work begins. So the box stays behind the marks however far you turn the
+scene, and that is the same honest photograph at every angle rather than
+something dragging is about to fix.
 
 Some things stay outside this cut, and the useful part is that they are **not all
 the same kind of thing**. A blank in the cube's column can mean three different

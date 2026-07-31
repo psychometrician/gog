@@ -290,16 +290,136 @@ render_svg <- function(gog) {
 # inside whichever method wrote it first. The engine always draws an 800x600
 # canvas (Layout's defaults in render/svg.rs); the style attribute is what lets
 # that canvas shrink into a narrow column instead of overflowing it.
-svg_block <- function(svg_str) {
+svg_block <- function(svg_str, gog = NULL) {
   svg_str <- sub(
     'width="800" height="600"',
     'width="800" height="600" style="max-width:100%;height:auto;"',
     svg_str,
     fixed = TRUE
   )
-  paste0('\n<div class="gog-plot" style="text-align:center;">\n',
+
+  # A plot in the cube is turnable wherever the page can run the engine. The
+  # static SVG above is still what gets written, and it is what a reader sees in
+  # a PDF, in a viewer that strips JavaScript, and in the moment before the
+  # engine loads — the script below only upgrades a picture that is already
+  # there. When the assets are missing the plot simply stays still, which is the
+  # same way `play` degrades in print.
+  interactive <- if (!is.null(gog)) interactive_block(gog) else ""
+
+  paste0('\n<div class="gog-plot" style="text-align:center;"',
+         if (nzchar(interactive)) paste0(' id="', attr(interactive, "id"), '"') else "",
+         '>\n',
          svg_str,
-         '\n</div>\n')
+         '\n</div>\n',
+         interactive)
+}
+
+# The browser assets: the WebAssembly engine, and the module that drives it.
+#
+# Searched the way `find_gog_cli()` searches for the binary and for the same
+# reason — a package installed from source, a checkout with a `target/`, and a
+# book building in place are three different layouts, and the caller should not
+# have to know which one they are in. Returns `NULL` when the engine has not
+# been built, which is not an error: it means this plot stays static.
+find_wasm_assets <- function() {
+  # An installed copy carries its own, beside the binary whose wire format
+  # matches it — the same preference `find_gog_cli()` states for the engine.
+  installed <- c(system.file("www", "gog.wasm", package = "gog"),
+                 system.file("www", "interactive.js", package = "gog"))
+  if (all(nzchar(installed)) && all(file.exists(installed))) {
+    return(list(wasm = normalizePath(installed[1]), js = normalizePath(installed[2])))
+  }
+
+  # A checkout. Walked rather than counted, for the reason `walk_up_for_engine`
+  # gives: the distance to the root is not fixed. A book renders from `book/`,
+  # a test from the repository root, and `system.file()` answers somewhere else
+  # again — so any fixed number of `..`s is right in one case and wrong in the
+  # rest. That is the mistake this function made on its first attempt.
+  starts <- unique(c(getwd(), system.file(package = "gog")))
+  for (start in starts) {
+    if (!nzchar(start)) next
+    root <- normalizePath(start, winslash = "/", mustWork = FALSE)
+    for (i in seq_len(7L)) {
+      pair <- c(
+        file.path(root, "gog-wasm", "target", "wasm32-unknown-unknown", "release", "gog_wasm.wasm"),
+        file.path(root, "js-pkg", "gog", "src", "interactive.js")
+      )
+      if (all(file.exists(pair))) {
+        return(list(wasm = normalizePath(pair[1]), js = normalizePath(pair[2])))
+      }
+      parent <- dirname(root)
+      if (identical(parent, root)) break
+      root <- parent
+    }
+  }
+  NULL
+}
+
+# Turn a file into a `data:` URI. The engine is ~823 KB, so this is ~1.1 MB of
+# base64 — which is why `options(gog.wasm_url =)` exists for a book, where one
+# cached file beside the HTML serves every plot in it. Inline is the default
+# because it is the only form that survives a notebook being emailed.
+data_uri <- function(path, mime) {
+  raw_bytes <- readBin(path, "raw", file.info(path)$size)
+  paste0("data:", mime, ";base64,", jsonlite::base64_enc(raw_bytes))
+}
+
+# An `import` needs a *module specifier*, which is a stricter thing than a URL a
+# `fetch` would accept. A bare word like `"gog.js"` is reserved for import maps
+# and a browser refuses it outright — the script never runs, no asset is ever
+# requested, and the page shows the static plot with nothing in the console to
+# say why. That silence is what makes it worth normalizing here rather than
+# documenting: `options(gog.js_url = "gog.js")` is the natural thing to write and
+# it is the one spelling that fails.
+module_specifier <- function(url) {
+  if (grepl("^(data:|https?:|file:|/|\\./|\\.\\./)", url)) url else paste0("./", url)
+}
+
+interactive_block <- function(gog) {
+  spec <- if (inherits(gog, "gog_page")) gog$page else finalize_spec(gog)$spec
+  if (!spec_is_spatial(spec)) return("")
+
+  assets <- find_wasm_assets()
+  if (is.null(assets)) return("")
+
+  wasm_url <- getOption("gog.wasm_url", data_uri(assets$wasm, "application/wasm"))
+  js_url   <- module_specifier(getOption("gog.js_url", data_uri(assets$js, "text/javascript")))
+
+  frames <- mapply(resolve_query, gog$data_frames, names(gog$data_frames),
+                   SIMPLIFY = FALSE)
+  request <- jsonlite::toJSON(
+    list(spec = spec, data = lapply(frames, df_to_wire)),
+    auto_unbox = TRUE, null = "null", na = "null", force = TRUE, digits = NA
+  )
+
+  id <- paste0("gog-", paste(sample(c(letters, 0:9), 10, replace = TRUE), collapse = ""))
+  block <- paste0(
+    '<script type="module">\n',
+    'import { mount } from "', js_url, '";\n',
+    'mount("', id, '", ', request, ', { wasm: "', wasm_url, '" });\n',
+    '</script>\n'
+  )
+  attr(block, "id") <- id
+  block
+}
+
+# Does this spec draw in the cube? The twin of `isSpatial` in the browser module
+# and of `space_of` in the engine: a bound `z` projects a plot even when the
+# coordinate still reads "flat", so naming `space()` is sufficient and not
+# necessary.
+spec_is_spatial <- function(spec) {
+  if (is.list(spec$coord) && !is.null(spec$coord$space)) return(TRUE)
+  if (!is.null(spec$z)) return(TRUE)
+  layers <- if (is.null(spec$layers)) list() else spec$layers
+  for (layer in layers) {
+    if (!is.null(layer$encodings$z)) return(TRUE)
+  }
+  # A page: any cell in the cube makes the page carry the engine.
+  cells <- if (is.null(spec$plots)) list() else spec$plots
+  for (cell in cells) {
+    if (spec_is_spatial(cell)) return(TRUE)
+  }
+  FALSE
 }
 
 # A plot on a LaTeX page — the counterpart of `svg_block`, and the reason a PDF
@@ -387,7 +507,7 @@ knit_print.gog_spec <- function(x, ...) {
     return(knitr::asis_output(latex_block(svg_str, gog_fig_label())))
   }
 
-  knitr::asis_output(svg_block(svg_str))
+  knitr::asis_output(svg_block(svg_str, x))
 }
 
 # ---------------------------------------------------------------------------
@@ -411,7 +531,7 @@ knit_print.gog_spec <- function(x, ...) {
 #'
 #' @param obj The plot or page being displayed.
 #' @param ... Passed on by the display host; unused.
-repr_html.gog_spec <- function(obj, ...) svg_block(render_svg(obj))
+repr_html.gog_spec <- function(obj, ...) svg_block(render_svg(obj), obj)
 
 # A page draws through the very same methods — it is a figure like any other,
 # and every host (knitr, Jupyter, the viewer) asks the same question of it.
@@ -484,7 +604,7 @@ render_and_display <- function(gog) {
   # `for (p in plots) print(p)`. Without this branch both would write a temp
   # file and open a browser tab next to the notebook.
   if ("IRkernel" %in% loadedNamespaces()) {
-    IRdisplay::display_html(svg_block(svg_str))
+    IRdisplay::display_html(svg_block(svg_str, gog))
     return(invisible(svg_str))
   }
 

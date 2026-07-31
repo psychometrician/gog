@@ -35,6 +35,11 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
+        with:
+          # The engine is built twice: once for the bindings to spawn, once for a
+          # browser to run. The toolchain action is the only place a target can be
+          # added; a later `cargo build --target` cannot install one.
+          targets: wasm32-unknown-unknown
 
       - name: Test the engine
         run: cargo test --release
@@ -46,6 +51,24 @@ jobs:
         run: |
           cargo build --release -p gog-cli
           test -x target/release/gog-cli
+
+      # The browser build of the same engine. `cargo test --release` above does
+      # not reach it: `gog-wasm` is deliberately outside the workspace, for the
+      # two reasons its manifest records. So it is built and tested here by name,
+      # and the artifact is uploaded because the JavaScript job needs it to check
+      # that both bridges draw the same picture.
+      - name: Test and build the engine the browser runs
+        run: |
+          cargo test --release --manifest-path gog-wasm/Cargo.toml
+          cargo build --release --target wasm32-unknown-unknown \
+            --manifest-path gog-wasm/Cargo.toml
+          test -f gog-wasm/target/wasm32-unknown-unknown/release/gog_wasm.wasm
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: gog-wasm
+          path: gog-wasm/target/wasm32-unknown-unknown/release/gog_wasm.wasm
+          if-no-files-found: error
 
       - uses: actions/upload-artifact@v4
         with:
@@ -106,8 +129,18 @@ jobs:
           # `query()` against a real database with no dependency, the way Python
           # does with `sqlite3`; the floor is the price of that.
           node-version: "22"
+      # Without this the WebAssembly/CLI byte-parity test *skips*, loudly but
+      # harmlessly, and the one check that can catch the two bridges drifting
+      # would protect nothing in CI.
       - if: matrix.lang == 'js'
-        run: node --test js-pkg/gog/test/*.mjs
+        uses: actions/download-artifact@v4
+        with:
+          name: gog-wasm
+          path: gog-wasm/target/wasm32-unknown-unknown/release
+      - if: matrix.lang == 'js'
+        run: |
+          test -f gog-wasm/target/wasm32-unknown-unknown/release/gog_wasm.wasm
+          node --test js-pkg/gog/test/*.mjs
 
       - if: matrix.lang == 'julia'
         uses: julia-actions/setup-julia@v2

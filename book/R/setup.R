@@ -69,6 +69,60 @@ source(file.path(proj_root, "book", "R", "python.R"), local = TRUE)
 source(file.path(proj_root, "book", "R", "tabs.R"), local = TRUE)
 
 # ---------------------------------------------------------------------------
+# The turnable cube
+# ---------------------------------------------------------------------------
+
+# A plot in the cube carries a script that lets a reader drag it to a different
+# viewing angle. Nothing in any chapter asks for this — it is a property of the
+# medium rather than of the sentence, so every 3-D plot already written becomes
+# turnable and not one `.qmd` changes. The still SVG is what a reader sees in the
+# PDF, in a viewer that strips JavaScript, and before the engine loads; the
+# script only upgrades a picture that is already there.
+#
+# These two options are what stop it being expensive. Left unset, each binding
+# carries the engine *inside* every plot as a base64 `data:` URI — right for a
+# notebook, which has to survive being emailed, and wrong for a book, where it
+# would add about 1.1 MB to every page with a cube on it. Pointed at a file
+# instead, one 823 KB copy is fetched once and cached for the whole book, and a
+# plot's own block drops to about 4 KB.
+#
+# Copied here rather than committed: they are build output, and `book/` is a
+# public working tree. `_quarto.yml` lists both under `resources:` so Quarto
+# puts them in `_book/` beside the pages that fetch them.
+local({
+  wasm <- file.path(proj_root, "gog-wasm", "target", "wasm32-unknown-unknown",
+                    "release", "gog_wasm.wasm")
+  js   <- file.path(proj_root, "js-pkg", "gog", "src", "interactive.js")
+  if (!file.exists(wasm) || !file.exists(js)) {
+    # Not an error. The engine is built by a separate cargo invocation from the
+    # one that builds `gog-cli`, so a checkout that has not run it renders the
+    # whole book correctly with still cubes. Said out loud because a silently
+    # static book is exactly the thing that would go unnoticed.
+    message("gog: no WebAssembly engine built — 3-D plots will render static.\n",
+            "  cargo build --release --target wasm32-unknown-unknown ",
+            "--manifest-path gog-wasm/Cargo.toml")
+  } else {
+    file.copy(wasm, file.path(proj_root, "book", "gog.wasm"), overwrite = TRUE)
+    file.copy(js,   file.path(proj_root, "book", "interactive.js"), overwrite = TRUE)
+
+    # Both URLs are relative to the *page*, and the book is not flat: a chapter
+    # under `marks/` renders to `_book/marks/`, where a bare `gog.wasm` would
+    # point at a file that is one directory up. Quarto runs each chunk in its
+    # own chapter's directory — which is why a chapter under `marks/` sources
+    # `../R/setup.R` — so the depth is readable from the working directory, and
+    # the output tree mirrors the source tree exactly.
+    depth <- length(setdiff(
+      strsplit(sub(paste0("^", file.path(proj_root, "book")), "",
+                   normalizePath(getwd(), winslash = "/")), "/")[[1]],
+      ""
+    ))
+    up <- paste(rep("../", depth), collapse = "")
+    options(gog.wasm_url = paste0(up, "gog.wasm"),
+            gog.js_url   = paste0(up, "interactive.js"))
+  }
+})
+
+# ---------------------------------------------------------------------------
 # The per-mark options table
 #
 # Every mark chapter ends with "what you can set", and hand-typing that in a

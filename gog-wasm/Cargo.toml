@@ -1,0 +1,45 @@
+[package]
+name    = "gog-wasm"
+version = "0.0.1"
+edition = "2021"
+license = "Apache-2.0"
+description = "The browser bridge — the same JSON the CLI reads, over linear memory instead of stdin."
+
+# Deliberately NOT a member of the root workspace, for two reasons that both
+# bite silently.
+#
+# The size profile below is the first. Cargo ignores a non-root package's
+# `[profile]`, so as a member this crate would build at the workspace's settings
+# — about 1.6 MB instead of 811 KB — and the only ways to avoid that are to slow
+# `gog-cli` down by making the whole workspace optimize for size, or to add a
+# custom profile every future build command has to remember.
+#
+# The second is the R package's release path. `.prepare` stages the workspace
+# manifest next to `gog-core/` and `gog-cli/` alone, and Cargo validates every
+# member's manifest even when building one; a third member listed but not copied
+# fails the build that `remotes::install_github()` and r-universe both run.
+# An empty `[workspace]` table is what detaches this crate from the parent.
+[workspace]
+
+[lib]
+# A cdylib is what `--target wasm32-unknown-unknown` turns into a `.wasm`
+# module. The crate deliberately has no `wasm-bindgen`: the whole interface is
+# three C functions over a byte buffer, the JavaScript side of it is about
+# thirty lines, and the workspace's rule that it depends on nothing but serde
+# is worth more than the generated glue would save.
+crate-type = ["cdylib"]
+
+[dependencies]
+gog-core   = { path = "../gog-core" }
+serde_json = "1"
+
+# Size is the whole reason a browser build exists rather than a subprocess, and
+# these five lines are most of it: ~1.6 MB down to ~811 KB, ~291 KB gzipped.
+# `panic = "abort"` is safe here because a panic in the engine is a bug, not a
+# refusal — refusals come back as a status code with their diagnostics.
+[profile.release]
+opt-level     = "z"
+lto           = true
+codegen-units = 1
+panic         = "abort"
+strip         = true

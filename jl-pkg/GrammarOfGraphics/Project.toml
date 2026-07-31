@@ -3,16 +3,25 @@ uuid = "c00c8485-9aac-4319-bba4-e242535f49e2"
 authors = ["psychometrician"]
 version = "0.0.1"
 
-# Dates is the one dependency, and it is a standard library. Julia is the only
-# binding whose language draws R's own `Date` / `POSIXct` distinction, which is
-# the distinction the engine's temporal unit needs; JavaScript has one `Date` and
-# has to read the unit off the values.
+# Three dependencies, all of them standard libraries, so a user still installs
+# nothing extra. Dates is the oldest: Julia is the only binding whose language
+# draws R's own `Date` / `POSIXct` distinction, which is the distinction the
+# engine's temporal unit needs; JavaScript has one `Date` and has to read the
+# unit off the values.
+#
+# Base64 and Random arrived with the turnable cube. A 3-D plot in an HTML host
+# carries the WebAssembly engine, and a notebook has to carry it *inline* to
+# survive being emailed — which is a base64 `data:` URI. Random names the
+# container the script mounts into, since a page may hold several plots and each
+# needs an id of its own.
 #
 # Notably absent: a JSON package. The binding only ever *writes* JSON — the
 # engine answers with SVG, not with a document to parse — so `src/json.jl` is a
 # small writer rather than a dependency the package would owe compat bounds for.
 [deps]
 Dates = "ade2ca70-3891-5945-98fb-dc099432e06a"
+Base64 = "2a0f44e3-6c83-55bd-87e4-b1978d98bd5f"
+Random = "9a3f8284-a2c9-5f02-9a11-845980a1fd5c"
 
 [compat]
 julia = "1.6"

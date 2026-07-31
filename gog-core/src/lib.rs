@@ -7,3 +7,4 @@ pub mod render;
 pub mod scale;
 pub mod time;
 pub mod transform;
+pub mod wire;

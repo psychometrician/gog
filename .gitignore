@@ -8,9 +8,13 @@
 
 /*
 
-# The engine
+# The engine, and its two bridges. `gog-cli` carries a request in on stdin;
+# `gog-wasm` carries the identical JSON in over linear memory, which is what lets
+# a web page render without a subprocess to spawn. Both are thin: the decoding,
+# the legality gate and the renderer are `gog-core`'s.
 !/gog-core/
 !/gog-cli/
+!/gog-wasm/
 
 # The four bindings
 !/r-pkg/

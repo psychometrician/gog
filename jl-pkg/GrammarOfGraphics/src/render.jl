@@ -280,11 +280,104 @@ end
 # Showing the plot
 # ---------------------------------------------------------------------------
 
-"""The SVG wrapped for an HTML host, sized to fit its column."""
-svg_block(svg::AbstractString) = "<div class=\"gog-plot\" style=\"text-align:center;\">\n" *
-    replace(svg, "width=\"800\" height=\"600\"" =>
-                 "width=\"800\" height=\"600\" style=\"max-width:100%;height:auto;\"",
-            count = 1) * "\n</div>"
+"""Where the browser assets live, when a host wants them beside the page rather
+than carried inside it. A book sets these; a notebook leaves them empty and gets
+the bytes inline, which is the only form that survives being emailed."""
+const WASM_URL = Ref{String}(get(ENV, "GOG_WASM_URL", ""))
+const JS_URL = Ref{String}(get(ENV, "GOG_JS_URL", ""))
+
+"""The engine and its runtime, or `nothing` — in which case plots stay static.
+
+Searched the way `find_gog_cli` searches for the binary, and *walked up to*
+rather than counted, since the distance to the repository root differs between a
+script, a notebook and a test."""
+function find_wasm_assets()
+    bundled = (joinpath(@__DIR__, "..", "assets", "gog.wasm"),
+               joinpath(@__DIR__, "..", "assets", "interactive.js"))
+    all(isfile, bundled) && return (abspath(bundled[1]), abspath(bundled[2]))
+
+    for start in unique([pwd(), @__DIR__])
+        root = abspath(start)
+        for _ in 1:7
+            pair = (joinpath(root, "gog-wasm", "target", "wasm32-unknown-unknown",
+                             "release", "gog_wasm.wasm"),
+                    joinpath(root, "js-pkg", "gog", "src", "interactive.js"))
+            all(isfile, pair) && return (pair[1], pair[2])
+            parent = dirname(root)
+            parent == root && break
+            root = parent
+        end
+    end
+    nothing
+end
+
+"""A file as a `data:` URI."""
+function data_uri(path::AbstractString, mime::AbstractString)
+    "data:" * mime * ";base64," * base64encode(read(path))
+end
+
+"""An `import` needs a module specifier, which is stricter than a URL a `fetch`
+would take. A bare word like `"gog.js"` is reserved for import maps, so a browser
+refuses it outright: the script never runs, nothing is fetched, and the page
+shows the static plot with nothing in the console to say why. That silence is why
+this normalizes rather than documents."""
+module_specifier(url::AbstractString) =
+    occursin(r"^(data:|https?:|file:|/|\./|\.\./)", url) ? url : "./" * url
+
+"""Does this spec draw in the cube? The twin of `isSpatial` in the browser module
+and of `space_of` in the engine — a bound `z` projects a plot even when the
+coordinate still reads "flat", so naming `space()` is sufficient, not necessary."""
+function is_spatial(spec)
+    coord = get(spec, "coord", nothing)
+    coord isa AbstractDict && get(coord, "space", nothing) !== nothing && return true
+    get(spec, "z", nothing) !== nothing && return true
+    for layer in get(spec, "layers", [])
+        enc = get(layer, "encodings", Dict())
+        get(enc, "z", nothing) !== nothing && return true
+    end
+    any(is_spatial(cell) for cell in get(spec, "plots", []))
+end
+
+"""The script that upgrades a static cube into a turnable one, or `""`."""
+function interactive_block(plot::Union{Plot,Page}, id::AbstractString)
+    spec, frames = wire(plot)
+    is_spatial(spec) || return ""
+
+    assets = find_wasm_assets()
+    assets === nothing && return ""
+    wasm_path, js_path = assets
+
+    wasm_url = isempty(WASM_URL[]) ? data_uri(wasm_path, "application/wasm") : WASM_URL[]
+    js_url = module_specifier(isempty(JS_URL[]) ?
+        data_uri(js_path, "text/javascript") : JS_URL[])
+
+    data = Dict{String,Any}()
+    for (name, table) in frames
+        data[name] = to_wire(resolve_query(table, name), name)
+    end
+    request = to_json(Dict{String,Any}("spec" => spec, "data" => data))
+
+    "\n<script type=\"module\">\nimport { mount } from \"" * js_url * "\";\n" *
+    "mount(\"" * id * "\", " * request * ", { wasm: \"" * wasm_url * "\" });\n</script>\n"
+end
+
+"""The SVG wrapped for an HTML host, sized to fit its column.
+
+A plot in the cube also gets the script that makes it turnable. The static SVG is
+still what is written, and it is what a reader sees in a PDF, in a viewer that
+strips JavaScript, and before the engine loads — the script only upgrades a
+picture that is already there."""
+function svg_block(svg::AbstractString, plot = nothing)
+    sized = replace(svg, "width=\"800\" height=\"600\"" =>
+                         "width=\"800\" height=\"600\" style=\"max-width:100%;height:auto;\"",
+                    count = 1)
+    id = "gog-" * randstring(['a':'z'; '0':'9'], 10)
+    block = plot === nothing ? "" : interactive_block(plot, id)
+    isempty(block) &&
+        return "<div class=\"gog-plot\" style=\"text-align:center;\">\n" * sized * "\n</div>"
+    "<div class=\"gog-plot\" id=\"" * id * "\" style=\"text-align:center;\">\n" *
+        sized * "\n</div>\n" * block
+end
 
 """Draw the plot and write the SVG to `path`. Returns the path."""
 function save(plot::Union{Plot,Page}, path::AbstractString)
@@ -297,3 +390,13 @@ end
 # A plot in a notebook, drawn rather than described. `Plot` already has a `show`
 # for the terminal; this is the one an HTML host asks for.
 Base.show(io::IO, ::MIME"image/svg+xml", plot::Union{Plot,Page}) = print(io, render_svg(plot))
+
+# And the HTML form, which is what carries a *turnable* cube.
+#
+# `image/svg+xml` alone cannot: a bare SVG has nowhere to put the script that
+# drives the engine, so a Julia notebook could only ever show a still picture.
+# A host that prefers SVG still gets the method above and the same drawing —
+# this adds a richer form beside it rather than replacing anything, and for a
+# flat plot the two differ only by the wrapping `<div>`.
+Base.show(io::IO, ::MIME"text/html", plot::Union{Plot,Page}) =
+    print(io, svg_block(render_svg(plot), plot))

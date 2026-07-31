@@ -384,6 +384,26 @@ export function resolveQuery(query, table) {
   return columns;
 }
 
+// The tables, resolved and turned into the wire's column-oriented form. Shared
+// by `render_svg` and `htmlBlock` so the SVG on the page and the spec the
+// browser re-renders from can never describe different data.
+function wireData(plot) {
+  const data = {};
+  for (const [name, table] of Object.entries(plot.frames)) {
+    // A `query()` table is resolved here and nowhere else — one place, at
+    // render, which is what leaves room for the planner to rewrite the sentence
+    // before the database is ever asked (the pushdown design).
+    data[name] =
+      table instanceof Query ? to_wire(resolveQuery(table, name), name) : to_wire(table, name);
+  }
+  return data;
+}
+
+// The whole request, exactly as `gog-cli` reads it on stdin.
+function wireRequest(plot) {
+  return { spec: plot.spec, data: wireData(plot) };
+}
+
 export function render_svg(plot) {
   if (!plot || typeof plot !== "object" || !plot.spec || !plot.frames) {
     throw new GogError(
@@ -395,14 +415,7 @@ export function render_svg(plot) {
   // a `spec` and its `frames` exactly as a plot does, and the engine tells the
   // two shapes apart itself (`ir::Figure`).
 
-  const data = {};
-  for (const [name, table] of Object.entries(plot.frames)) {
-    // A `query()` table is resolved here and nowhere else — one place, at
-    // render, which is what leaves room for the planner to rewrite the sentence
-    // before the database is ever asked (the pushdown design).
-    data[name] =
-      table instanceof Query ? to_wire(resolveQuery(table, name), name) : to_wire(table, name);
-  }
+  const data = wireData(plot);
   const payload = JSON.stringify({ spec: plot.spec, data });
 
   const result = spawnSync(find_gog_cli(), {
@@ -451,6 +464,102 @@ export function save(plot, file) {
   return file;
 }
 
+// Where the browser assets live, when a host wants them beside the page rather
+// than carried inside it. A book sets these; a script leaves them empty and gets
+// the bytes inline, which is the form that works from a `file://` temp path.
+export const assetUrls = {
+  wasm: process.env.GOG_WASM_URL || null,
+  js: process.env.GOG_JS_URL || null,
+};
+
+// The engine and its runtime, or null — in which case plots stay static.
+// Walked up to rather than counted, since the distance to the repository root
+// differs between a script, a test and an installed package.
+function findWasmAssets() {
+  const bundled = [
+    path.join(HERE, "..", "www", "gog.wasm"),
+    path.join(HERE, "interactive.js"),
+  ];
+  if (bundled.every((p) => fs.existsSync(p))) return bundled;
+
+  for (const start of [process.cwd(), HERE]) {
+    let root = path.resolve(start);
+    for (let i = 0; i < 7; i++) {
+      const pair = [
+        path.join(root, "gog-wasm/target/wasm32-unknown-unknown/release/gog_wasm.wasm"),
+        path.join(root, "js-pkg/gog/src/interactive.js"),
+      ];
+      if (pair.every((p) => fs.existsSync(p))) return pair;
+      const parent = path.dirname(root);
+      if (parent === root) break;
+      root = parent;
+    }
+  }
+  return null;
+}
+
+const dataUri = (file, mime) =>
+  `data:${mime};base64,` + fs.readFileSync(file).toString("base64");
+
+// An `import` needs a module specifier, which is stricter than a URL a `fetch`
+// would take. A bare word like `"gog.js"` is reserved for import maps, so a
+// browser refuses it outright: the script never runs, nothing is fetched, and
+// the page shows the static plot with nothing in the console to say why.
+const moduleSpecifier = (url) =>
+  /^(data:|https?:|file:|\/|\.\/|\.\.\/)/.test(url) ? url : "./" + url;
+
+// Does this spec draw in the cube? The twin of `isSpatial` in the browser
+// module and of `space_of` in the engine — a bound `z` projects a plot even
+// when the coordinate still reads "flat".
+function specIsSpatial(spec) {
+  if (spec?.coord && typeof spec.coord === "object" && spec.coord.space) return true;
+  if (spec?.z != null) return true;
+  if ((spec?.layers ?? []).some((l) => (l?.encodings ?? {}).z != null)) return true;
+  return (spec?.cells ?? spec?.plots ?? []).some(specIsSpatial);
+}
+
+/**
+ * The SVG wrapped for an HTML host, plus — for a plot in the cube — the script
+ * that makes it turnable.
+ *
+ * The static SVG is still what is written, and it is what a reader sees with no
+ * JavaScript and before the engine loads. The script only upgrades a picture
+ * that is already there, so when the assets are missing the plot simply stays
+ * still.
+ */
+export function htmlBlock(plot) {
+  const svg = render_svg(plot).replace(
+    'width="800" height="600"',
+    'width="800" height="600" style="max-width:100%;height:auto;"'
+  );
+  const spec = plot.spec ?? plot;
+  const assets = specIsSpatial(spec) ? findWasmAssets() : null;
+  if (!assets) return `<div class="gog-plot" style="text-align:center;">\n${svg}\n</div>`;
+
+  const wasmUrl = assetUrls.wasm ?? dataUri(assets[0], "application/wasm");
+  const jsUrl = moduleSpecifier(assetUrls.js ?? dataUri(assets[1], "text/javascript"));
+  const id = "gog-" + Math.abs(hashOf(svg)).toString(36).padStart(10, "0").slice(0, 10);
+  const request = JSON.stringify(wireRequest(plot));
+
+  return (
+    `<div class="gog-plot" id="${id}" style="text-align:center;">\n${svg}\n</div>\n` +
+    `<script type="module">\nimport { mount } from "${jsUrl}";\n` +
+    `mount("${id}", ${request}, { wasm: "${wasmUrl}" });\n</script>\n`
+  );
+}
+
+// A stable id from the drawing itself. `Math.random` is avoided deliberately:
+// the same plot rendered twice should produce the same file, so a book build is
+// reproducible and a diff of two renders shows what actually changed.
+function hashOf(s) {
+  let h = 2166136261;
+  for (let i = 0; i < s.length; i++) {
+    h ^= s.charCodeAt(i);
+    h = Math.imul(h, 16777619);
+  }
+  return h | 0;
+}
+
 // Draw the plot and write it to a standalone HTML file, for a script that wants
 // to look at one. Returns the path.
 export function show(plot) {
@@ -463,7 +572,7 @@ export function show(plot) {
     "<!DOCTYPE html>\n<html>\n<head><meta charset='utf-8'>" +
       "<style>body{margin:0;background:#fff;display:flex;" +
       "justify-content:center;padding:16px;}</style></head>\n<body>\n" +
-      `${render_svg(plot)}\n</body>\n</html>`,
+      `${htmlBlock(plot)}\n</body>\n</html>`,
     "utf8"
   );
   return file;

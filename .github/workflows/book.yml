@@ -60,12 +60,36 @@ jobs:
       - uses: actions/checkout@v4
 
       - uses: dtolnay/rust-toolchain@stable
+        with:
+          # The published book carries a second build of the engine, for the
+          # browser. Declared here because the toolchain action installs targets
+          # and a later `cargo build --target` cannot.
+          targets: wasm32-unknown-unknown
       - uses: Swatinem/rust-cache@v2
 
       - name: Build the engine that draws every plot
         run: |
           cargo build --release -p gog-cli
           test -x target/release/gog-cli
+
+      # The engine again, compiled for the browser. This is what lets a reader
+      # drag a 3-D plot to a different viewing angle on the published site; the
+      # binary above only ever draws the still picture.
+      #
+      # A separate invocation because `gog-wasm` is deliberately outside the
+      # workspace — `cargo build --release` does not reach it, and that is not an
+      # oversight to be corrected here. Its manifest records the two reasons.
+      #
+      # **The `test -f` is the point of this step.** Without an engine the book
+      # still renders, correctly, with static cubes: `R/setup.R` reports the
+      # absence and carries on, which is right for a checkout and wrong for a
+      # release. A publish that quietly drops the interactivity would look
+      # exactly like a successful one, so the build fails here instead.
+      - name: Build the engine the browser runs
+        run: |
+          cargo build --release --target wasm32-unknown-unknown \
+            --manifest-path gog-wasm/Cargo.toml
+          test -f gog-wasm/target/wasm32-unknown-unknown/release/gog_wasm.wasm
 
       - uses: r-lib/actions/setup-r@v2
         with:
@@ -370,6 +394,33 @@ jobs:
 
           grep -q "site_libs" _book/index.html \
             || { echo "::error::index.html does not reference site_libs"; exit 1; }
+
+          # The turnable cube, checked in three places because it fails quietly
+          # in all three. A reader loses the interactivity and the page still
+          # looks finished, so nothing else in this job would notice.
+          #
+          # 1. Quarto copied the engine. `resources:` in `_quarto.yml` is what
+          #    puts these beside the pages that fetch them, and a *single-file*
+          #    render skips resources entirely — so this is the step that proves
+          #    the project render did not.
+          test -f _book/gog.wasm \
+            || { echo "::error::_book/gog.wasm is missing - 3-D plots will not turn"; exit 1; }
+          test -f _book/interactive.js \
+            || { echo "::error::_book/interactive.js is missing - 3-D plots will not turn"; exit 1; }
+
+          # 2. The chapters actually asked for it. If `R/setup.R` could not find
+          #    the engine it reports the absence and renders static cubes, which
+          #    is right for a checkout and wrong for a publish.
+          grep -q 'mount("gog-' _book/space.html \
+            || { echo "::error::space.html has no interactive plots - the engine was not found at render time"; exit 1; }
+
+          # 3. And asked by URL, not by carrying the engine inline. Left unset,
+          #    the bindings inline it as base64 — correct for a notebook, and
+          #    about 1.1 MB added to every page here.
+          if grep -q "data:application/wasm" _book/space.html; then
+            echo "::error::the engine is inlined per plot - set gog.wasm_url so one cached copy serves the book"
+            exit 1
+          fi
 
           # Required: Pages runs Jekyll, which strips underscore-prefixed paths.
           touch _book/.nojekyll

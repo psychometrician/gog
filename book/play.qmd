@@ -305,6 +305,13 @@ be filled: a camera that swung while the sequence played would be motion carryin
 no column, and a reader would then have to subtract it from the motion that does
 carry one. `play` moves the data past a fixed eye.
 
+You can still turn the plot yourself while it runs, and that is a different
+thing. The refusal above is about a camera that moves on its own, with no column
+behind it. A reader who drags knows which motion is theirs, and can stop it.
+This is worth more here than anywhere else in the book. Something is moving
+inside a solid shape. The only way to see what the near edge hides is to look
+around it.
+
 Panels and frames do not part company here, which is the point. They are one
 split asked twice, so crossing them costs nothing: the panels divide the page,
 the frames divide the clock, and each panel projects the cube its own rectangle

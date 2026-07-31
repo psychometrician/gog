@@ -69,3 +69,11 @@
 # render, and therefore exactly what the outcome rules above exist to keep out
 # of a commit whose subject is something else.
 /Rplots.pdf
+
+# The browser engine and its runtime, copied in by `R/setup.R` at render time so
+# Quarto can put them in `_book/` beside the pages that fetch them. Build output
+# of a cargo invocation, not source — the same outcome rule as everything above,
+# and named here because `book/` is otherwise an allowlisted public directory
+# where a stray 823 KB binary would simply be committed.
+/gog.wasm
+/interactive.js

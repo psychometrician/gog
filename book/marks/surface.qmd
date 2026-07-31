@@ -348,10 +348,13 @@ reveals it. Tilt the eye up and the hollow opens, because you are now reading th
 of itself. Tilt down instead and you get the opposite bargain: the profile is exact,
 the plan is gone, and the sheet reads as a skyline. Heights or plan, one at a time.
 
-That is the argument for a live canvas made rather than asserted. A plot you can
-drag is not a convenience here; it is the only way to have both readings of a shape
-at once, which is why the interactive orbit is the next real piece of this
-milestone and not a polish item.
+That is the argument for a plot you can turn, made rather than asserted. Reading
+both the plan and the profile is not a convenience here. It is the only way to
+see this hill whole, and no single still view offers it.
+
+So turn one of these four panels with the mouse. Lift your eye until the crater
+opens, and watch the heights flatten as it does. The four still views make the
+argument; dragging one of them is how you check it.
 
 Two honest edges in this tour, and neither is a surface's fault. **The tiling is the
 page's, not the grammar's:** those are four sentences that Quarto laid out two

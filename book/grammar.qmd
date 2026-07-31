@@ -228,10 +228,12 @@ See [Setting vs mapping](style.qmd) for the full rules.
 The result is a `PlotSpec`, rendered to SVG. Raster formats come from
 converting that SVG. Three dimensions already draw: `space()` projects the cube
 into the same SVG, so there is one renderer rather than a second one for depth
-(see [Space](space.qmd)). What is still on the roadmap is turning that cube
-yourself. Drag-to-rotate needs a live canvas rather than a fixed SVG, and so does
-letting a nearer surface hide whatever sits behind it. Today you name the angle
-instead, with `space(turn =, tilt =)`.
+(see [Space](space.qmd)). You can also turn that cube yourself: drag any 3-D plot
+in the web edition and it rotates, with a readout of the two angles and a way
+back to where it started. `space(turn =, tilt =)` names the angle a plot opens
+at, and the mouse takes you anywhere else. What is still on the roadmap is
+letting a nearer surface hide whatever sits behind it, which needs more than a
+page can give.
 
 ```{r}
 # One layer

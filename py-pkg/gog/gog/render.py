@@ -10,10 +10,12 @@
 
 import json
 import os
+import re
 import shutil
 import subprocess
 import sys
 import tempfile
+import uuid
 import webbrowser
 from datetime import date, datetime
 from typing import Any, Dict, List, Optional, Tuple
@@ -416,14 +418,132 @@ def render_svg(plot: Any) -> str:
 # ---------------------------------------------------------------------------
 
 
-def svg_block(svg: str) -> str:
-    """The SVG wrapped for an HTML host, sized to fit its column."""
+# Where the browser assets live: the WebAssembly engine, and the module that
+# drives it. Overridable the way the CLI path is, and for the same reason — a
+# book wants one cached file beside its HTML where a notebook wants the bytes
+# carried inside it.
+WASM_URL: Optional[str] = os.environ.get("GOG_WASM_URL") or None
+JS_URL: Optional[str] = os.environ.get("GOG_JS_URL") or None
+
+
+def _find_wasm_assets() -> Optional[Tuple[str, str]]:
+    """The engine and its runtime, or None — in which case plots stay static.
+
+    Searched the way `find_gog_cli` searches for the binary: an installed copy
+    carries its own, and a checkout is *walked up to* rather than counted, since
+    the distance to the root differs between a script, a notebook and a test.
+    """
+    here = os.path.dirname(os.path.abspath(__file__))
+    bundled = (os.path.join(here, "_www", "gog.wasm"),
+               os.path.join(here, "_www", "interactive.js"))
+    if all(os.path.exists(p) for p in bundled):
+        return bundled
+
+    for start in (os.getcwd(), here):
+        root = os.path.abspath(start)
+        for _ in range(7):
+            pair = (
+                os.path.join(root, "gog-wasm", "target", "wasm32-unknown-unknown",
+                             "release", "gog_wasm.wasm"),
+                os.path.join(root, "js-pkg", "gog", "src", "interactive.js"),
+            )
+            if all(os.path.exists(p) for p in pair):
+                return pair
+            parent = os.path.dirname(root)
+            if parent == root:
+                break
+            root = parent
+    return None
+
+
+def _data_uri(path: str, mime: str) -> str:
+    """A file as a `data:` URI — the only form that survives being emailed."""
+    import base64
+
+    with open(path, "rb") as handle:
+        return f"data:{mime};base64," + base64.b64encode(handle.read()).decode("ascii")
+
+
+def _module_specifier(url: str) -> str:
+    """An `import` needs a module specifier, which is stricter than a URL.
+
+    A bare word like `"gog.js"` is reserved for import maps, so a browser
+    refuses it outright: the script never runs, no asset is requested, and the
+    page shows the static plot with nothing in the console explaining why. That
+    silence is why this normalizes rather than documents — a bare filename is
+    the natural thing to configure and the one spelling that fails.
+    """
+    if re.match(r"^(data:|https?:|file:|/|\./|\.\./)", url):
+        return url
+    return "./" + url
+
+
+def _is_spatial(spec: Dict[str, Any]) -> bool:
+    """Does this spec draw in the cube?
+
+    The twin of `isSpatial` in the browser module and of `space_of` in the
+    engine. A bound `z` projects a plot even when the coordinate still reads
+    "flat", so naming `space()` is sufficient and not necessary.
+    """
+    coord = spec.get("coord")
+    if isinstance(coord, dict) and coord.get("space") is not None:
+        return True
+    if spec.get("z") is not None:
+        return True
+    for layer in spec.get("layers") or []:
+        if (layer.get("encodings") or {}).get("z") is not None:
+            return True
+    # A page: one cell in the cube makes the page carry the engine.
+    return any(_is_spatial(cell) for cell in (spec.get("plots") or []))
+
+
+def _interactive_block(plot: Any, container_id: str) -> str:
+    """The script that upgrades a static cube into a turnable one, or ""."""
+    try:
+        spec, data = plot._wire()
+    except Exception:
+        return ""
+    if not _is_spatial(spec):
+        return ""
+
+    assets = _find_wasm_assets()
+    if assets is None:
+        return ""
+    wasm_path, js_path = assets
+
+    wasm_url = WASM_URL or _data_uri(wasm_path, "application/wasm")
+    js_url = _module_specifier(JS_URL or _data_uri(js_path, "text/javascript"))
+
+    request = json.dumps({"spec": spec, "data": data})
+    return (
+        '\n<script type="module">\n'
+        f'import {{ mount }} from "{js_url}";\n'
+        f'mount("{container_id}", {request}, {{ wasm: "{wasm_url}" }});\n'
+        "</script>\n"
+    )
+
+
+def svg_block(svg: str, plot: Any = None) -> str:
+    """The SVG wrapped for an HTML host, sized to fit its column.
+
+    A plot in the cube also gets the script that makes it turnable. The static
+    SVG is still what is written, and it is what a reader sees in a PDF, in a
+    viewer that strips JavaScript, and before the engine loads — the script only
+    upgrades a picture that is already there.
+    """
     svg = svg.replace(
         'width="800" height="600"',
         'width="800" height="600" style="max-width:100%;height:auto;"',
         1,
     )
-    return f'<div class="gog-plot" style="text-align:center;">\n{svg}\n</div>'
+    container_id = "gog-" + uuid.uuid4().hex[:10]
+    block = _interactive_block(plot, container_id) if plot is not None else ""
+    if not block:
+        return f'<div class="gog-plot" style="text-align:center;">\n{svg}\n</div>'
+    return (
+        f'<div class="gog-plot" id="{container_id}" style="text-align:center;">\n'
+        f"{svg}\n</div>\n{block}"
+    )
 
 
 def save(plot: Any, path: str) -> str:
