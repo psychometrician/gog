@@ -602,9 +602,16 @@ class Builder {
         return;
 
       // Nest carries no view parameter, so it crosses as the bare string
-      // "nest" — `CoordSpace::Nest` is a unit variant, like globe and map.
+      // "nest" — `CoordSpace::Nest` is a unit variant, like globe.
       case "coord_nest":
         this.spec.coord = "nest";
+        return;
+
+      // A map carries what the flattening must preserve, the same way space and
+      // polar carry theirs: {"map":{"preserve":"area"}} matches
+      // `CoordSpace::Map(MapView)`, and a bare "map" is not a legal form.
+      case "coord_map":
+        this.spec.coord = { map: { preserve: atom.fields.preserve } };
         return;
 
       case "color":

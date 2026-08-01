@@ -425,9 +425,16 @@ function Base.:+(left::Plot, right::Atom)
             Dict{String,Any}("start" => right.fields[:start]))
 
     # Nest carries no view parameter, so it crosses as the bare string "nest" —
-    # `CoordSpace::Nest` is a unit variant, like globe and map.
+    # `CoordSpace::Nest` is a unit variant, like globe.
     elseif kind === :coord_nest
         plot.spec["coord"] = "nest"
+
+    # A map carries what the flattening must preserve, the same way space and
+    # polar carry theirs: {"map":{"preserve":"area"}} matches
+    # `CoordSpace::Map(MapView)`, and a bare "map" is not a legal form.
+    elseif kind === :coord_map
+        plot.spec["coord"] = Dict{String,Any}("map" =>
+            Dict{String,Any}("preserve" => right.fields[:preserve]))
 
     elseif kind in (:color, :group, :size, :shape, :opacity, :label, :pattern, :play)
         set_channel!(plot, String(kind), right)

@@ -83,6 +83,7 @@ export {
   space,
   polar,
   nest,
+  map,
   // channels — the "vowels"
   color,
   // exported only to be refused: the British spelling names its fix

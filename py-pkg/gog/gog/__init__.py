@@ -48,6 +48,7 @@ from .atoms import (
     jitter,
     label,
     line,
+    map,
     max,
     mean,
     median,
@@ -147,6 +148,7 @@ __all__ = [
     "space",
     "polar",
     "nest",
+    "map",
     # channels
     "color",
     # exported only to be refused: the British spelling names its fix

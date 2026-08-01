@@ -554,6 +554,40 @@ class _Nest(CallableAtom):
 
 nest = _Nest("coord_nest")
 
+
+class _Map(CallableAtom):
+    """`map` — the sphere flattened onto the page: x is longitude, y is latitude.
+
+    Both positions are spent on the place, so a mark that measures along an axis
+    has none left. Carry a quantity on a channel instead: ``size(col.x)`` gives
+    the proportional-symbol map and ``color(col.x)`` shades each place.
+
+    A sphere cannot be laid flat without giving something up, and area and angle
+    cannot both survive. ``preserve`` names which one does: ``"area"`` (the
+    default, Equal Earth) keeps every region's true size, which is what a map
+    read by area needs; ``"angle"`` (Mercator) keeps every small shape's true
+    form and pays for it in area.
+    """
+
+    __slots__ = ()
+
+    def __call__(self, preserve: str = "area") -> Atom:
+        # Validated at the line the caller wrote, rather than at the wire. The
+        # engine checks it too — a rule implemented in one binding is a rule the
+        # other three get wrong — but a reader is owed the error where they typed
+        # it.
+        if preserve not in ("area", "angle"):
+            raise ValueError(
+                'gog: `map(preserve=)` takes "area" or "angle". '
+                '"area" keeps every region\'s true size, which is what a map read '
+                'by area needs; "angle" keeps every small shape\'s true form and '
+                "pays for it in area. A sphere cannot do both."
+            )
+        return Atom("coord_map", preserve=preserve)
+
+
+map = _Map("coord_map", preserve="area")
+
 # ---------------------------------------------------------------------------
 # Channels — they map a column, and earn a legend to decode it
 # ---------------------------------------------------------------------------

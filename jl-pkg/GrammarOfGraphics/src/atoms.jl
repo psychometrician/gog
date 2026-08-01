@@ -484,6 +484,33 @@ const nest = Atom(:coord_nest, Dict{Symbol,Any}(),
         Atom(:coord_nest, Dict{Symbol,Any}())
     end)
 
+"""`map` — the sphere flattened onto the page: x is longitude, y is latitude.
+
+Both positions are spent on the place, so a mark that measures along an axis has
+none left. A quantity goes on a channel instead, which is what makes
+`size(:column)` the proportional-symbol map.
+
+A sphere cannot be laid flat without giving something up, and area and angle
+cannot both survive. `preserve` names which one does: `"area"` (the default,
+Equal Earth) keeps every region's true size, which is what a map read by area
+needs; `"angle"` (Mercator) keeps every small shape's true form and pays for it
+in area."""
+const map = Atom(:coord_map, Dict{Symbol,Any}(:preserve => "area"),
+    function (args...; preserve = nothing)
+        preserve = one_of(args, preserve, "map", "preserve")
+        preserve = preserve === nothing ? "area" : preserve
+        # Validated at the line the caller wrote, rather than at the wire. The
+        # engine checks it too — a rule implemented in one binding is a rule the
+        # other three get wrong — but a reader is owed the error where they typed
+        # it.
+        preserve isa AbstractString && preserve in ("area", "angle") || throw(GogError(
+            "gog: `map(preserve = )` takes \"area\" or \"angle\". \"area\" keeps every " *
+            "region's true size, which is what a map read by area needs; \"angle\" " *
+            "keeps every small shape's true form and pays for it in area. " *
+            "A sphere cannot do both."))
+        Atom(:coord_map, Dict{Symbol,Any}(:preserve => String(preserve)))
+    end)
+
 # ---------------------------------------------------------------------------
 # Channels — they map a column, and earn a legend to decode it
 # ---------------------------------------------------------------------------

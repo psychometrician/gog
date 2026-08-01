@@ -27,9 +27,9 @@ puts `|` in the *addition* tier where R puts it below. Left associativity makes
 every sentence in the manual parse identically anyway, and the one shape that
 would differ (`a | b + c`) appears in none of them and is refused by R regardless.
 
-**The second line of that example is Julia's one wrinkle.** Nine of the fifty-one-one
-kernel words are also Base words — `bin`, `count`, `sum`, `min`, `max`, `range`,
-`size`, `step`, `stack` — and Julia will not silently pick a winner between two
+**The second line of that example is Julia's one wrinkle.** Ten of the kernel
+words are also Base words — `bin`, `count`, `sum`, `min`, `max`, `range`,
+`size`, `step`, `stack`, `map` — and Julia will not silently pick a winner between two
 modules exporting one name. Importing them explicitly says which you meant, and
 `Base.sum` stays reachable. It is the third spelling of a problem R has against
 base R and Python has against its builtins; a grammar keeps its own vocabulary,
@@ -60,7 +60,7 @@ export point, line, path, rule, zone, area, bar, step, interval, box, ribbon, te
 export bin, smooth, count, density, sum, mean, median, max, min, proportion,
        range, confidence, bounds, partition, dodge, stack, jitter
 # positions and spaces
-export x, y, z, space, polar, nest
+export x, y, z, space, polar, nest, map
 # channels — the "vowels"
 export color, group, size, shape, opacity, label, pattern, play
 export brush
