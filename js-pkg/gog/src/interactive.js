@@ -269,7 +269,7 @@ export function hasBrush(spec) {
  * @returns {{destroy: () => void, reset: () => void, opened: object[]}}
  */
 export function attachBrush(engine, container, request, options = {}) {
-  const { onNotes, onSelect } = options;
+  const { onNotes, onSelect, view } = options;
   const req = JSON.parse(JSON.stringify(request));
   // What the sentence asked for, so `reset` returns there rather than to
   // nothing — the same rule `attachDrag` follows for the angle a plot opens at.
@@ -283,6 +283,9 @@ export function attachBrush(engine, container, request, options = {}) {
       first = false;
       if (onNotes && notes.length) onNotes(notes);
     }
+    // The element the `viewBox` was set on is gone; put it back before the
+    // browser paints, or every brush frame snaps the zoom out to fit.
+    view?.apply();
     if (onSelect) onSelect();
     return true;
   }
@@ -455,7 +458,21 @@ export function attachBrush(engine, container, request, options = {}) {
   let start = null;
   let queued = false;
 
+  let panning = null;
+
   const onDown = (e) => {
+    // This plot said `brush`, so the plain drag belongs to the selection and
+    // panning asks with a modifier. On a plot that said nothing there is a
+    // spare drag and `attachPan` takes it instead.
+    if (view && (e.shiftKey || e.altKey)) {
+      panning = { x: e.clientX, y: e.clientY };
+      try {
+        container.setPointerCapture?.(e.pointerId);
+      } catch {
+        /* no active pointer to capture */
+      }
+      return;
+    }
     const all = panels();
     held = all.findIndex((p) => holds(p, pointIn(p, e)));
     if (held < 0) return;
@@ -467,6 +484,11 @@ export function attachBrush(engine, container, request, options = {}) {
     }
   };
   const onMove = (e) => {
+    if (panning) {
+      view.panBy(e.clientX - panning.x, e.clientY - panning.y);
+      panning = { x: e.clientX, y: e.clientY };
+      return;
+    }
     if (held < 0 || !start) return;
     const panel = panels()[held];
     if (!panel) return;
@@ -488,6 +510,7 @@ export function attachBrush(engine, container, request, options = {}) {
   const onUp = () => {
     held = -1;
     start = null;
+    panning = null;
     hideBand();
   };
 
@@ -516,6 +539,131 @@ export function attachBrush(engine, container, request, options = {}) {
   };
 }
 
+
+
+/**
+ * Looking closer at the picture, without redrawing it.
+ *
+ * A viewport zoom is *literally* looking closer at the same picture, so scaling
+ * and translating the SVG's `viewBox` is not an approximation of one — it is
+ * one. That buys three things at once: no engine call, so it costs nothing and
+ * runs at any frame rate; it works on a cube and on a composed page with no
+ * cases; and it cannot accidentally become the other zoom.
+ *
+ * **It must not refit anything.** Narrowing a domain and re-running the
+ * statistics is `limits`, a different operation with a different answer — a
+ * reader looking closer does not expect a histogram to re-bin. A zoom that
+ * refitted would be `limits` wearing a magnifying glass, and the two would
+ * collapse into one confused feature.
+ *
+ * Two costs, both consequences of it being a *view* rather than a new plot, and
+ * both worth stating rather than discovering: the text scales with the picture,
+ * and the ticks stay the ones the engine chose for the whole domain rather than
+ * new ones for the part on screen. A reader who wants ticks re-chosen for a
+ * range is asking for `limits`.
+ *
+ * `apply` has to be called after every redraw, because replacing the element
+ * throws the `viewBox` away with it — the same lesson the selection band taught
+ * one level up.
+ */
+export function attachView(container, options = {}) {
+  const step = options.zoomStep ?? 1.4;
+  const maxScale = options.maxZoom ?? 12;
+  let base = null;
+  let scale = 1;
+  let cx = 0;
+  let cy = 0;
+
+  const svgEl = () => container.querySelector("svg");
+
+  const learn = () => {
+    if (base) return base;
+    const svg = svgEl();
+    const vb = svg?.getAttribute("viewBox");
+    if (!vb) return null;
+    const [x, y, w, h] = vb.trim().split(/\s+/).map(Number);
+    if (![x, y, w, h].every(Number.isFinite) || w <= 0 || h <= 0) return null;
+    base = { x, y, w, h };
+    cx = x + w / 2;
+    cy = y + h / 2;
+    return base;
+  };
+
+  const apply = () => {
+    const svg = svgEl();
+    if (!svg || !learn()) return;
+    const w = base.w / scale;
+    const h = base.h / scale;
+    // The window stays inside the picture, so there is no panning off into
+    // blank space and no way to lose the plot entirely.
+    cx = Math.min(Math.max(cx, base.x + w / 2), base.x + base.w - w / 2);
+    cy = Math.min(Math.max(cy, base.y + h / 2), base.y + base.h - h / 2);
+    svg.setAttribute("viewBox", `${cx - w / 2} ${cy - h / 2} ${w} ${h}`);
+  };
+
+  /** Pixels of pointer movement, in the units the `viewBox` is written in. */
+  const perPixel = () => {
+    const svg = svgEl();
+    const box = svg?.getBoundingClientRect();
+    if (!box || !box.width || !learn()) return 0;
+    return base.w / scale / box.width;
+  };
+
+  return {
+    apply,
+    zoomed: () => scale !== 1,
+    zoom(by) {
+      if (!learn()) return;
+      scale = Math.min(Math.max(scale * by, 1), maxScale);
+      apply();
+    },
+    panBy(dxPx, dyPx) {
+      const u = perPixel();
+      if (!u) return;
+      cx -= dxPx * u;
+      cy -= dyPx * u;
+      apply();
+    },
+    reset() {
+      if (!learn()) return;
+      scale = 1;
+      cx = base.x + base.w / 2;
+      cy = base.y + base.h / 2;
+      apply();
+    },
+  };
+}
+
+/**
+ * The three buttons, appended to whichever bar the plot already has.
+ *
+ * A button competes with no gesture, which is why the zoom always gets them
+ * while the *drag* has to be earned: the sentence decides what a drag means, so
+ * a plot that says `brush` has already given its drag away and pans with a
+ * modifier instead.
+ */
+function addZoomButtons(bar, view, onChange = () => {}) {
+  const style =
+    "font:inherit;color:#555;background:none;border:1px solid #ccc;" +
+    "border-radius:3px;padding:0 .5em;cursor:pointer;";
+  const make = (label, title, act) => {
+    const b = document.createElement("button");
+    b.type = "button";
+    b.textContent = label;
+    b.title = title;
+    b.style.cssText = style;
+    b.addEventListener("click", () => {
+      act();
+      onChange();
+    });
+    return b;
+  };
+  bar.append(
+    make("\u2212", "zoom out", () => view.zoom(1 / 1.4)),
+    make("+", "zoom in", () => view.zoom(1.4)),
+    make("\u21ba", "fit", () => view.reset()),
+  );
+}
 
 /**
  * Which rows a selection caught, and the values a reader would want to read.
@@ -589,7 +737,7 @@ export function selectedRows(req, limit = 12) {
  * sentence, because reporting a selection does not change what the picture
  * claims about the data.
  */
-function addSelectionBar(container, handle) {
+function addSelectionBar(container, handle, view) {
   const bar = document.createElement("div");
   bar.className = "gog-selection-controls";
   bar.style.cssText =
@@ -598,7 +746,7 @@ function addSelectionBar(container, handle) {
     "align-items:center;justify-content:center;flex-wrap:wrap;";
 
   const hint = document.createElement("span");
-  hint.textContent = "drag to select";
+  hint.textContent = "drag to select \u00b7 shift-drag to pan";
   hint.style.cssText = "color:#999;";
 
   const readout = document.createElement("span");
@@ -621,6 +769,7 @@ function addSelectionBar(container, handle) {
     "font:12px/1.5 ui-monospace,SFMono-Regular,Menlo,monospace;";
 
   bar.append(hint, readout, toggle, reset);
+  if (view) addZoomButtons(bar, view);
   container.after(bar);
   bar.after(table);
 
@@ -871,11 +1020,13 @@ export async function mount(target, request, options = {}) {
     // is the thing to drag, where `grab` says the scene is.
     if (!spatial) {
       let show = () => {};
+      const view = attachView(container, options);
       const handle = attachBrush(engine, container, request, {
         ...options,
+        view,
         onSelect: () => show(),
       });
-      if (options.controls !== false) show = addSelectionBar(container, handle);
+      if (options.controls !== false) show = addSelectionBar(container, handle, view);
       show();
       container.style.cursor = "crosshair";
       container.dataset.gogInteractive = "true";

@@ -20,6 +20,7 @@ import { fileURLToPath } from "node:url";
 
 import {
   attachDrag,
+  attachView,
   boundOn,
   selectedRows,
   hasBrush,
@@ -301,4 +302,68 @@ test("nothing selected is nothing caught, not everything caught", () => {
   const seen = selectedRows(resting);
   assert.equal(seen.kept, 0);
   assert.equal(seen.total, 0, "a resting brush has no selection to report at all");
+});
+
+// ---------------------------------------------------------------------------
+// Zoom — the view, and the promise that it is only a view
+// ---------------------------------------------------------------------------
+
+/** The smallest thing that behaves like the parts of the DOM `attachView` uses. */
+function fakePlot(viewBox = "0 0 800 600") {
+  const svg = {
+    attrs: { viewBox },
+    getAttribute: (k) => svg.attrs[k] ?? null,
+    setAttribute: (k, v) => { svg.attrs[k] = v; },
+    getBoundingClientRect: () => ({ width: 800, height: 600 }),
+  };
+  return { svg, querySelector: () => svg };
+}
+const box = (plot) => plot.svg.attrs.viewBox.split(" ").map(Number);
+
+test("zoom narrows the window and keeps it centred", () => {
+  const plot = fakePlot();
+  const view = attachView(plot);
+  view.apply();
+  assert.deepEqual(box(plot), [0, 0, 800, 600]);
+
+  view.zoom(2);
+  const [x, y, w, h] = box(plot);
+  assert.ok(Math.abs(w - 400) < 1e-9 && Math.abs(h - 300) < 1e-9, "half as wide");
+  assert.ok(Math.abs(x - 200) < 1e-9 && Math.abs(y - 150) < 1e-9, "about the middle");
+  assert.equal(view.zoomed(), true);
+});
+
+test("the window cannot leave the picture, however far you pan", () => {
+  const plot = fakePlot();
+  const view = attachView(plot);
+  view.zoom(2);
+  view.panBy(-10000, -10000);
+  const [x, y, w, h] = box(plot);
+  assert.ok(x + w <= 800 + 1e-9 && y + h <= 600 + 1e-9, `ran off the edge: ${box(plot)}`);
+  view.panBy(10000, 10000);
+  assert.ok(box(plot)[0] >= -1e-9 && box(plot)[1] >= -1e-9, "and not off the other one");
+});
+
+test("fit returns exactly to the picture, and zooming out cannot go past it", () => {
+  const plot = fakePlot();
+  const view = attachView(plot);
+  view.zoom(3);
+  view.panBy(50, 50);
+  view.reset();
+  assert.deepEqual(box(plot), [0, 0, 800, 600]);
+  assert.equal(view.zoomed(), false);
+  // Out is bounded at fit: there is no picture beyond the picture.
+  view.zoom(1 / 4);
+  assert.deepEqual(box(plot), [0, 0, 800, 600]);
+});
+
+test("a redraw throws the viewBox away, and apply puts it back", () => {
+  const plot = fakePlot();
+  const view = attachView(plot);
+  view.zoom(2);
+  const zoomed = plot.svg.attrs.viewBox;
+  // What `container.innerHTML = svg` does: a brand new element, at fit.
+  plot.svg.attrs.viewBox = "0 0 800 600";
+  view.apply();
+  assert.equal(plot.svg.attrs.viewBox, zoomed, "every brush frame would snap the zoom out");
 });
