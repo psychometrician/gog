@@ -261,8 +261,9 @@ data(gm_all) + point + x(gdp, scale = "log") + y(life) + z(population) +
 That one is worth reading slowly, because it is the sentence this kernel was
 designed around. The vocabulary was drawn up with four words held in reserve for
 things it could not yet draw: the third position, the animation, the per-layer
-table, and the selection. The sentence above spends three of them at once, and
-the only reserved word missing from it is `brush`.
+table, and the selection. The sentence above spends three of them at once. The
+fourth, `brush`, draws now too. [Selection](selection.qmd) closes by adding it to
+this very sentence, so all four are spent in one line.
 
 The cube is fitted once across the whole sequence, exactly as a flat plot's axes
 are, and it earns more here than it does on the page. A box that resized itself

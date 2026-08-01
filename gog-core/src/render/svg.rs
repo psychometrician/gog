@@ -2120,7 +2120,7 @@ impl SvgRenderer {
         // state and nothing for a gesture to invert. The dimming still works
         // there, because a predicate reads a column's values and never asks where
         // a row was drawn — only the *gesture* needs a plane.
-        if spec.brush.is_empty() || !plane {
+        if (spec.brush.is_empty() && spec.region.is_none()) || !plane {
             return;
         }
         // Named per axis rather than renamed after the fact. The log base below
@@ -2158,7 +2158,9 @@ impl SvgRenderer {
     /// One pass when nothing is selected, two when something is — unselected
     /// first, so the selection paints over what it was taken from.
     fn selection_passes(&self, spec: &PlotSpec) -> &'static [bool] {
-        if spec.brush.iter().any(|b| !b.is_resting()) {
+        let selected = spec.brush.iter().any(|b| !b.is_resting())
+            || spec.region.as_ref().is_some_and(|r| !r.is_resting());
+        if selected {
             &[true, false]
         } else {
             &[false]
@@ -4245,6 +4247,44 @@ mod tests {
         let dim = format!(r#"<g opacity="{:.3}">"#, crate::render::encode::SELECTION_DIM);
         let dimmed = svg.split(&dim).nth(1).unwrap().split("</g>").next().unwrap();
         assert_eq!(circles(dimmed), 4, "the four rows outside category `b` are pushed back");
+    }
+
+    /// **A free shape reaches the engine as a predicate, and draws like a bound.**
+    /// The two counts in this test are the whole argument for the gesture: the
+    /// traced triangle pushes back three of the six rows, and the rectangle that
+    /// contains that same triangle — which is all a written `brush` can say —
+    /// pushes back none of them.
+    #[test]
+    fn a_traced_region_pushes_back_the_rows_outside_the_shape() {
+        let dim = format!(r#"<g opacity="{:.3}">"#, crate::render::encode::SELECTION_DIM);
+        let drawn = |path: Vec<[f64; 2]>| {
+            let mut spec = brush_spec().brush(crate::ir::BrushDef::new("gx"));
+            spec.region = Some(crate::ir::RegionDef::new("gx", "gy", path));
+            SvgRenderer::default().render(&spec, &brush_data())
+        };
+
+        let triangle = drawn(vec![[0.5, 0.5], [6.5, 0.5], [0.5, 6.5]]);
+        assert_eq!(circles(&triangle), 6, "no row is dropped — a region highlights, like a bound");
+        let dimmed = triangle.split(&dim).nth(1).unwrap().split("</g>").next().unwrap();
+        assert_eq!(circles(dimmed), 3, "the three rows outside the shape are pushed back");
+
+        let rectangle = drawn(vec![[0.5, 0.5], [6.5, 0.5], [6.5, 6.5], [0.5, 6.5]]);
+        let none = rectangle.split(&dim).nth(1).unwrap().split("</g>").next().unwrap();
+        assert_eq!(circles(none), 0,
+            "and the rectangle around that triangle selects every row, so none is pushed back");
+    }
+
+    /// A region nobody has traced is the resting state, exactly as an unmoved
+    /// brush is: the plot draws as it always did, and the page shows that before
+    /// the first gesture and the PDF shows it forever.
+    #[test]
+    fn a_region_of_two_vertices_draws_exactly_the_resting_plot() {
+        let resting = SvgRenderer::default()
+            .render(&brush_spec().brush(crate::ir::BrushDef::new("gx")), &brush_data());
+        let mut spec = brush_spec().brush(crate::ir::BrushDef::new("gx"));
+        spec.region = Some(crate::ir::RegionDef::new("gx", "gy", vec![[0.5, 0.5], [6.5, 0.5]]));
+        let traced = SvgRenderer::default().render(&spec, &brush_data());
+        assert_eq!(traced, resting, "an unclosed outline must select nothing at all");
     }
 
     /// **A layer the selection cannot reach is drawn once, whole, at full

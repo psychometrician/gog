@@ -132,7 +132,7 @@ data(gapminder_2007) + bar * bin + x(continent)
 Each message names the rule and the way forward. Nothing rendered behind
 your back; nothing was dropped to make the picture come out. When you hit
 a refusal outside this list, read it the same way: it is the grammar
-telling you which law your sentence brushed against, and the fix is in
+telling you which law your sentence broke, and the fix is in
 the message.
 
 Every refusal closes with a second offer, to set `GOG_STRICT=0` and draw

@@ -5272,7 +5272,10 @@ pub fn layer_answers_selection(layer: &Layer) -> bool {
 pub fn brush_keeps(spec: &PlotSpec, df: &DataFrame) -> Option<Vec<bool>> {
     let active: Vec<&crate::ir::BrushDef> =
         spec.brush.iter().filter(|b| !b.is_resting()).collect();
-    if active.is_empty() {
+    // The free shape a reader traced, which is the same predicate with a
+    // different region: a bound tests one column's value, an outline tests two.
+    let region = spec.region.as_ref().filter(|r| !r.is_resting());
+    if active.is_empty() && region.is_none() {
         return None;
     }
     let mut keep = vec![true; df.len()];
@@ -5316,6 +5319,32 @@ pub fn brush_keeps(spec: &PlotSpec, df: &DataFrame) -> Option<Vec<bool>> {
             }
         }
     }
+    if let Some(r) = region {
+        if let (Some(xs), Some(ys)) = (df.float_col(&r.x), df.float_col(&r.y)) {
+            read_any = true;
+            // The outline arrives in the data's own units, exactly as `at` does,
+            // and lands in whatever space each column was rewritten into. Both
+            // axes are asked separately: one may be logarithmic and the other not.
+            let (bx, by) = (logged(&r.x), logged(&r.y));
+            let traced = crate::ir::RegionDef {
+                x: r.x.clone(),
+                y: r.y.clone(),
+                path: r
+                    .path
+                    .iter()
+                    .map(|[px, py]| {
+                        [bx.map_or(*px, |b| px.log(b)), by.map_or(*py, |b| py.log(b))]
+                    })
+                    .collect(),
+            };
+            for (i, k) in keep.iter_mut().enumerate() {
+                *k &= match (xs.get(i), ys.get(i)) {
+                    (Some(x), Some(y)) => traced.holds(*x, *y),
+                    _ => false,
+                };
+            }
+        }
+    }
     // A layer whose table does not carry the brushed column is untouched by the
     // selection rather than emptied by it — the same rule that lets a reference
     // layer stand still while a played layer moves.
@@ -5325,7 +5354,13 @@ pub fn brush_keeps(spec: &PlotSpec, df: &DataFrame) -> Option<Vec<bool>> {
 /// The plot-scoped rule, which is `size`'s rule word for word: apply the binding
 /// where it fits, say where it did not, and refuse only when it fits nowhere.
 fn check_brush(out: &mut Vec<Diagnostic>, spec: &PlotSpec, data: &HashMap<String, DataFrame>) {
-    if spec.brush.is_empty() {
+    // A traced outline reaches the same layers a bound does, and earns the same
+    // report about the ones it left whole, so it opens this check too. It carries
+    // no refusals of its own: a gesture cannot make the mistakes a written bound
+    // can — no reversed range, no range on a column of categories, no misspelled
+    // name — because the browser reads every part of it off the panel it was
+    // drawn on.
+    if spec.brush.is_empty() && spec.region.is_none() {
         return;
     }
 
@@ -8785,6 +8820,42 @@ mod tests {
             brushed(Some(ScaleType::Log)),
             Some(2),
             "a log axis must select the same two rows, not none of them"
+        );
+    }
+
+    /// The same trap, one shape up. A traced outline arrives in the data's own
+    /// units because that is the only space the browser can state it in, so it
+    /// lands in whatever space each column was rewritten into — and the two axes
+    /// are asked separately, because one may be logarithmic and the other not.
+    #[test]
+    fn a_traced_region_is_tested_in_the_space_its_columns_were_rewritten_into() {
+        let df = DataFrame::new()
+            .with_float("gdp", vec![100.0, 1000.0, 10000.0, 100000.0])
+            .with_float("life", vec![1.0, 2.0, 3.0, 4.0]);
+        let caught = |scale: Option<ScaleType>| {
+            let mut spec = base().layer(Layer::new(Mark::Point));
+            let mut def = ChannelDef::field("gdp");
+            def.scale = scale.clone();
+            spec.x = Some(def);
+            spec.y = Some(ChannelDef::field("life"));
+            // A box drawn round the two middle rows, written as four corners in
+            // the columns' own units — dollars and years, never logarithms.
+            spec.region = Some(crate::ir::RegionDef::new(
+                "gdp", "life",
+                vec![[500.0, 1.5], [50000.0, 1.5], [50000.0, 3.5], [500.0, 3.5]],
+            ));
+            let seen = if scale == Some(ScaleType::Log) {
+                crate::scale::log_column(&df, "gdp", 10.0)
+            } else {
+                df.clone()
+            };
+            brush_keeps(&spec, &seen).map(|k| k.iter().filter(|&&b| b).count())
+        };
+        assert_eq!(caught(None), Some(2), "the two middle rows are inside the outline");
+        assert_eq!(
+            caught(Some(ScaleType::Log)),
+            Some(2),
+            "a log axis must catch the same two rows, not none of them"
         );
     }
 

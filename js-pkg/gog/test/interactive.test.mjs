@@ -19,10 +19,14 @@ import test from "node:test";
 import { fileURLToPath } from "node:url";
 
 import {
+  attachBrush,
   attachDrag,
   attachView,
   boundOn,
+  holdsIn,
+  PAGE_ROWS,
   placeOn,
+  valueOn,
   selectedRows,
   hasBrush,
   isSpatial,
@@ -298,6 +302,61 @@ test("the readout shows the columns the sentence maps, and says what it left out
   assert.equal(capped.capped, true, "and the shortfall is reported, never silent");
 });
 
+// A selection has no upper size, so `show rows` shows a page of it. The rows a
+// page leaves out have to be reachable rather than merely counted — a reader who
+// selects forty countries in order to read them is not helped by being told
+// there are forty.
+const many = (n) => ({
+  spec: {
+    data: "t", x: { field: "v" }, y: { field: "w" },
+    layers: [{ mark: "point", encodings: {}, transforms: [] }],
+    brush: [{ field: "v", at: [-1, n + 1] }],
+  },
+  data: { t: { floats: { v: [...Array(n).keys()], w: [...Array(n).keys()] }, strings: {} } },
+});
+
+test("show rows pages through the whole selection, every row once", () => {
+  // Not a whole number of pages, so the last one is short — the case where an
+  // off-by-one drops a row or invents one.
+  const n = 25;
+  const req = many(n);
+  const seen = [];
+  let page = 0;
+  for (;;) {
+    const s = selectedRows(req, PAGE_ROWS, page * PAGE_ROWS);
+    assert.equal(s.kept, n, "the count is the whole selection on every page");
+    assert.equal(s.from, page * PAGE_ROWS + 1, "and the page says where it starts");
+    assert.equal(s.to, page * PAGE_ROWS + s.rows.length);
+    seen.push(...s.rows.map((r) => r[0]));
+    if (s.to >= s.kept) break;
+    page++;
+    assert.ok(page < 10, "paging must terminate");
+  }
+  assert.equal(page, 2, "twenty-five rows is three pages of ten, the last one short");
+  assert.deepEqual(seen, [...Array(n).keys()],
+    "every selected row appears exactly once, in order, across the pages");
+
+  // And a selection that *is* a whole number of pages stops on the last full
+  // one instead of offering an empty page after it.
+  const last = selectedRows(many(PAGE_ROWS * 2), PAGE_ROWS, PAGE_ROWS);
+  assert.equal(last.to, last.kept, "twenty rows is two pages of ten, and no third");
+});
+
+test("a page past the end of the selection is empty rather than wrong", () => {
+  const s = selectedRows(many(30), PAGE_ROWS, 999);
+  assert.equal(s.rows.length, 0);
+  assert.equal(s.from, 0, "no first row to name");
+  assert.equal(s.kept, 30, "and the count is still the whole selection");
+});
+
+test("a selection that fits on one page says so, and has no page to turn", () => {
+  const s = selectedRows(many(PAGE_ROWS), PAGE_ROWS, 0);
+  assert.equal(s.capped, false, "ten rows is not more than ten");
+  assert.equal(s.to, s.kept, "so the first page is the last page");
+  assert.equal(selectedRows(many(PAGE_ROWS + 1), PAGE_ROWS, 0).capped, true,
+    "and eleven is");
+});
+
 test("nothing selected is nothing caught, not everything caught", () => {
   const resting = { ...SEL_REQ, spec: { ...SEL_REQ.spec, brush: [{ field: "gdp" }] } };
   const seen = selectedRows(resting);
@@ -394,4 +453,295 @@ test("placeOn is boundOn run forwards, on every kind of axis", () => {
                  cats: ["Africa", "Americas", "Asia", "Europe"] };
   assert.equal(placeOn(cats, "Asia"), 62.5, "the middle of the third slot of four");
   assert.equal(placeOn(cats, "Nowhere"), null);
+});
+
+// ---------------------------------------------------------------------------
+// The traced shape — a selection that is not a rectangle
+// ---------------------------------------------------------------------------
+
+test("valueOn is placeOn run backwards, and says nothing about a category", () => {
+  const lin = { from: 0, to: 50000, lo: 0, hi: 100, log: null, cats: null };
+  assert.ok(Math.abs(valueOn(lin, placeOn(lin, 12345)) - 12345) < 1e-6);
+
+  // The trap a bound already fell into once: a log axis states its domain in
+  // log space, so a pixel read without undoing that is a logarithm.
+  const log = { from: 2, to: 5, lo: 0, hi: 300, log: 10, cats: null };
+  assert.ok(Math.abs(valueOn(log, placeOn(log, 1000)) - 1000) < 1e-6);
+
+  // A category has no half, so a free shape has nothing to say about one.
+  const cats = { from: 0, to: 1, lo: 0, hi: 100, log: null, cats: ["a", "b"] };
+  assert.equal(valueOn(cats, 25), null);
+});
+
+const LASSO_REQ = {
+  spec: {
+    data: "t",
+    x: { field: "gdp" }, y: { field: "life" },
+    layers: [{ mark: "point", encodings: {}, transforms: [] }],
+    brush: [{ field: "gdp" }],
+    // A trapezoid: its top edge slopes, so it holds two of the three rows its
+    // own bounding rectangle would hold.
+    region: { x: "gdp", y: "life", path: [[2500, 55], [5500, 55], [5500, 72], [2500, 78]] },
+  },
+  data: SEL_REQ.data,
+};
+
+test("a traced shape catches what no rectangle could, and both engines agree", async () => {
+  const engine = await loadEngine(fs.readFileSync(WASM));
+  const { svg } = renderSpec(engine, LASSO_REQ);
+  const dim = svg.split('<g opacity="0.150">')[1].split("</g>")[0];
+  const dimmed = (dim.match(/<circle/g) || []).length;
+  const drawn = (svg.match(/<circle/g) || []).length;
+
+  const seen = selectedRows(LASSO_REQ);
+  assert.equal(seen.total, drawn, "every row is still drawn — tracing does not filter either");
+  assert.equal(seen.kept, drawn - dimmed, `browser says ${seen.kept}, engine drew ${drawn - dimmed}`);
+  assert.equal(seen.kept, 2);
+
+  // The rectangle around that same shape catches a third row. That difference
+  // is the entire reason the gesture exists, so it is asserted rather than
+  // assumed.
+  const boxed = { ...LASSO_REQ, spec: { ...LASSO_REQ.spec,
+    region: { x: "gdp", y: "life", path: [[2500, 55], [5500, 55], [5500, 78], [2500, 78]] } } };
+  assert.equal(selectedRows(boxed).kept, 3, "a rectangle cannot exclude the third row");
+});
+
+test("an outline that encloses nothing selects nothing", () => {
+  const open = { ...LASSO_REQ, spec: { ...LASSO_REQ.spec,
+    region: { x: "gdp", y: "life", path: [[2500, 55], [5500, 55]] } } };
+  const seen = selectedRows(open);
+  assert.equal(seen.kept, 0, "two vertices enclose no area");
+  assert.equal(seen.total, 0, "and a plot with nothing selected reports nothing caught");
+});
+
+// ---------------------------------------------------------------------------
+// The gesture itself, driven through a stub DOM
+//
+// Every defect this feature has shipped was in the browser layer, and not one
+// was caught by a test: the engine suite, four binding suites and three parity
+// harnesses were green through all of them, because none of them can hold a
+// pointer. So this one does. The stub is deliberately thin — a panel element
+// that answers `getAttribute`, an identity screen transform so client
+// coordinates *are* user coordinates, and a synchronous animation frame — and
+// the engine underneath it is the real one.
+//
+// The assertion that makes it worth the stub is the last one: the browser plumbs
+// a path of screen positions into a region in the columns' own units, hands it
+// to the engine, and the engine dims exactly the rows the browser says it
+// caught. Nothing short of running the gesture can check that.
+// ---------------------------------------------------------------------------
+
+function stubDom() {
+  const made = [];
+  const el = () => {
+    const node = {
+      style: {}, children: [], isConnected: false, firstChild: null,
+      setAttribute() {}, removeAttribute() {},
+      appendChild(c) { node.children.push(c); node.firstChild ??= c; return c; },
+      remove() { node.isConnected = false; },
+    };
+    made.push(node);
+    return node;
+  };
+  const body = el();
+  body.appendChild = (c) => { c.isConnected = true; return c; };
+  globalThis.document = { body, createElement: el, createElementNS: el };
+  globalThis.requestAnimationFrame = (fn) => { fn(); return 0; };
+  return () => { delete globalThis.document; delete globalThis.requestAnimationFrame; };
+}
+
+/** The one `<g data-gog-panel .../>` the engine writes, as something to query. */
+function panelFrom(svg) {
+  const tag = svg.match(/<g data-gog-panel[^>]*\/>/);
+  if (!tag) return [];
+  const attrs = {};
+  for (const [, k, v] of tag[0].matchAll(/([\w-]+)="([^"]*)"/g)) attrs[k] = v;
+  const identity = { a: 1, b: 0, c: 0, d: 1, e: 0, f: 0, inverse: () => identity };
+  const point = () => ({
+    x: 0, y: 0,
+    matrixTransform(m) { return { x: this.x * m.a + m.e, y: this.y * m.d + m.f }; },
+  });
+  return [{
+    getAttribute: (n) => attrs[n] ?? null,
+    ownerSVGElement: { createSVGPoint: point },
+    getScreenCTM: () => identity,
+  }];
+}
+
+function stubContainer() {
+  const listeners = new Map();
+  let html = "";
+  let panels = [];
+  return {
+    style: {},
+    listeners,
+    set innerHTML(v) { html = v; panels = panelFrom(v); },
+    get innerHTML() { return html; },
+    set textContent(v) { html = v; panels = []; },
+    querySelector: (sel) => (sel === "svg" ? {} : null),
+    querySelectorAll: (sel) => (sel === "[data-gog-panel]" ? panels : []),
+    addEventListener(type, fn) { listeners.set(type, fn); },
+    removeEventListener(type) { listeners.delete(type); },
+    setPointerCapture() {},
+    send(type, x, y) { listeners.get(type)?.({ clientX: x, clientY: y, pointerId: 1 }); },
+  };
+}
+
+test("a traced drag becomes a region in data units, and the engine agrees", async () => {
+  const undo = stubDom();
+  try {
+    const engine = await loadEngine(fs.readFileSync(WASM));
+    const req = {
+      spec: {
+        data: "t",
+        x: { field: "gdp" }, y: { field: "life" },
+        layers: [{ mark: "point", encodings: {}, transforms: [] }],
+        brush: [{ field: "" }],
+      },
+      data: SEL_REQ.data,
+    };
+    const container = stubContainer();
+    const handle = attachBrush(engine, container, req);
+
+    // Where the engine put the axes, read the way the browser reads them.
+    const g = container.querySelectorAll("[data-gog-panel]")[0];
+    const span = (n) => g.getAttribute(`data-${n}`).split(" ").map(Number);
+    const [x0, y0, x1, y1] = g.getAttribute("data-gog-panel").split(" ").map(Number);
+    const [xf, xt] = span("x");
+    const [yf, yt] = span("y");
+    const ax = { from: xf, to: xt, lo: x0, hi: x1, log: null, cats: null };
+    const ay = { from: yf, to: yt, lo: y1, hi: y0, log: null, cats: null };
+
+    // A small triangle around the poorest, shortest-lived country alone.
+    const px = placeOn(ax, 1000);
+    const py = placeOn(ay, 50);
+    handle.setMode("lasso");
+    container.send("pointerdown", px - 9, py - 9);
+    for (const [dx, dy] of [[9, -9], [0, 12], [-9, 0], [-9, -3]]) {
+      container.send("pointermove", px + dx, py + dy);
+    }
+    container.send("pointerup", px, py);
+
+    const caught = handle.selection();
+    assert.equal(caught.kept, 1, "the one country inside the traced shape");
+    assert.equal(caught.total, 5, "and every row is still drawn");
+
+    // The engine's answer, read off the picture the gesture left behind.
+    const dim = container.innerHTML.split('<g opacity="0.150">')[1].split("</g>")[0];
+    assert.equal((dim.match(/<circle/g) || []).length, 4,
+      "the engine dimmed the four the browser did not catch");
+
+    // A click clears the shape, exactly as it clears a bound. It has to land
+    // *inside* the panel to mean anything, which is why this is the middle of it
+    // rather than a nudge from the traced corner.
+    container.send("pointerdown", (x0 + x1) / 2, (y0 + y1) / 2);
+    container.send("pointerup", (x0 + x1) / 2, (y0 + y1) / 2);
+    assert.equal(handle.selection().kept, 0, "nothing selected after a click");
+    assert.ok(!container.innerHTML.includes('<g opacity="0.150">'),
+      "and the picture goes back to one undimmed pass");
+    handle.destroy();
+  } finally {
+    undo();
+  }
+});
+
+test("a free shape is not offered where an axis carries categories", async () => {
+  const undo = stubDom();
+  try {
+    const engine = await loadEngine(fs.readFileSync(WASM));
+    const req = {
+      spec: {
+        data: "t",
+        x: { field: "place" }, y: { field: "life" },
+        layers: [{ mark: "point", encodings: {}, transforms: [] }],
+        brush: [{ field: "" }],
+      },
+      data: { t: { floats: { life: [50, 60, 70, 75, 80] },
+                   strings: { place: ["a", "b", "c", "d", "e"] } } },
+    };
+    const container = stubContainer();
+    const handle = attachBrush(engine, container, req);
+    const g = container.querySelectorAll("[data-gog-panel]")[0];
+    const [x0, y0, x1, y1] = g.getAttribute("data-gog-panel").split(" ").map(Number);
+
+    handle.setMode("lasso");
+    container.send("pointerdown", x0 + 5, y0 + 5);
+    container.send("pointermove", (x0 + x1) / 2, (y0 + y1) / 2);
+    container.send("pointerup", (x0 + x1) / 2, (y0 + y1) / 2);
+
+    // The drag stayed a rectangle and selected whole slots, which is what a
+    // category can answer. A shape would have had to cut one in half.
+    const caught = handle.selection();
+    assert.ok(caught.kept > 0 && caught.kept < caught.total,
+      `the drag still selected slots: ${caught.kept} of ${caught.total}`);
+    handle.destroy();
+  } finally {
+    undo();
+  }
+});
+
+// A categorical axis can be either one, and the gesture has to find its slots on
+// both. This is the case the earlier categorical bug never had an example for:
+// the manual put the column on `x`, so nothing in the book or the suite ever
+// dragged a *vertical* list of slots.
+//
+// Two claims, and the first is the one that could rot silently. The engine states
+// the category list **in the axis's own order**, which on `y` runs bottom to top
+// and is therefore the reverse of `x`'s. If that list and the labels it draws
+// ever disagreed, every vertical slot selection would be mirrored — the reader
+// would drag over one category and select the one opposite it — and no engine
+// test would notice, because both halves would still be internally consistent.
+test("a drag finds the slots when the categories are on the vertical axis", async () => {
+  const undo = stubDom();
+  try {
+    const engine = await loadEngine(fs.readFileSync(WASM));
+    const req = {
+      spec: {
+        data: "t",
+        x: { field: "life" }, y: { field: "place" },
+        layers: [{ mark: "point", encodings: {}, transforms: [] }],
+        brush: [{ field: "place" }],
+      },
+      data: { t: { floats: { life: [50, 60, 70, 75, 80] },
+                   strings: { place: ["a", "b", "c", "d", "e"] } } },
+    };
+    const container = stubContainer();
+    const handle = attachBrush(engine, container, req);
+    const g = container.querySelectorAll("[data-gog-panel]")[0];
+    const [x0, y0, , y1] = g.getAttribute("data-gog-panel").split(" ").map(Number);
+    const cats = g.getAttribute("data-y-cats").split("|");
+
+    // ① What the engine *says* against what the engine *draws*. The axis labels
+    // are the ones left of the panel; the legend's copies are inside it.
+    const drawn = [...container.innerHTML.matchAll(
+      /<text[^>]*\bx="([\d.]+)"[^>]*\by="([\d.]+)"[^>]*>([a-e])<\/text>/g)]
+      .map((m) => ({ x: +m[1], y: +m[2], name: m[3] }))
+      .filter((t) => t.x < x0)
+      .sort((p, q) => q.y - p.y)          // bottom of the panel first
+      .map((t) => t.name);
+    assert.deepEqual(cats, drawn,
+      `the list the browser reads (${cats}) must be the order the reader sees (${drawn})`);
+
+    // ② And the gesture, dragged across the bottom slot of five.
+    const slot = (y1 - y0) / cats.length;
+    container.send("pointerdown", (x0 + 40), y1 - 4);
+    container.send("pointermove", (x0 + 40), y1 - slot + 6);
+    container.send("pointerup", (x0 + 40), y1 - slot + 6);
+
+    const caught = handle.selection();
+    assert.equal(caught.kept, 1, `one slot of five: ${caught.kept}`);
+    assert.deepEqual(caught.rows.map((r) => r[caught.columns.indexOf("place")]), [cats[0]],
+      "and it is the slot drawn at the bottom, not the one opposite it");
+    handle.destroy();
+  } finally {
+    undo();
+  }
+});
+
+test("holdsIn counts a vertex on the ray once, not twice", () => {
+  const diamond = [[0, 1], [1, 2], [2, 1], [1, 0]];
+  assert.equal(holdsIn(diamond, 1, 1), true, "the middle is inside");
+  assert.equal(holdsIn(diamond, -1, 1), false, "and a point level with two vertices is not");
+  assert.equal(holdsIn(diamond, 3, 1), false);
+  assert.equal(holdsIn([[0, 0], [1, 1]], 0.5, 0.5), false, "two vertices enclose nothing");
 });

@@ -261,6 +261,45 @@ export function placeOn(axis, value) {
 }
 
 /**
+ * One pixel, in the column's own units. `placeOn` run backwards, and what a
+ * traced outline is made of: a lasso is a list of these, two per pointer sample.
+ *
+ * `null` on a column of **categories**, and that is the boundary rather than a
+ * gap. A category has no half, so a free shape has nothing to say about one —
+ * where either axis names categories the drag stays a rectangle and selects
+ * whole slots, which is what the reader wanted there anyway.
+ */
+export function valueOn(axis, px) {
+  if (!axis || axis.cats) return null;
+  const f = (px - axis.lo) / (axis.hi - axis.lo || 1);
+  const v = axis.from + f * (axis.to - axis.from);
+  return axis.log ? axis.log ** v : v;
+}
+
+/**
+ * Is this point inside the traced outline? Ray casting: count the edges a ray
+ * to the right crosses, and an odd count is inside.
+ *
+ * The engine runs exactly this, in `RegionDef::holds`, and two implementations
+ * of one rule is a drift surface — the same one `selectedRows` already accepts
+ * for a bound, and for the same reason. The browser has to answer "how many did
+ * I catch" without asking the engine, and a test pins both against one shape.
+ */
+export function holdsIn(path, x, y) {
+  if (!Array.isArray(path) || path.length < 3) return false;
+  if (!Number.isFinite(x) || !Number.isFinite(y)) return false;
+  let inside = false;
+  for (let i = 0; i < path.length; i++) {
+    const [ax, ay] = path[i];
+    const [bx, by] = path[(i + 1) % path.length];
+    if (ay > y !== by > y) {
+      if (x < ax + ((y - ay) / (by - ay)) * (bx - ax)) inside = !inside;
+    }
+  }
+  return inside;
+}
+
+/**
  * Every plot in a figure: the plot itself, or each cell of a page, all the way
  * down, since a page nests.
  *
@@ -308,6 +347,7 @@ export function hasBrush(spec) {
 export function attachBrush(engine, container, request, options = {}) {
   const { onNotes, onSelect, view } = options;
   let dragMode = "select";
+  let picked = "select";
   const mode = () => dragMode;
   const req = JSON.parse(JSON.stringify(request));
   // What the sentence asked for, so `reset` returns there rather than to
@@ -466,6 +506,107 @@ export function attachBrush(engine, container, request, options = {}) {
   };
 
   // ---------------------------------------------------------------------
+  // The traced outline
+  //
+  // A rectangle is what a *sentence* can say, so it is what `brush` says. Some
+  // groups are not rectangles, and a reader who can see one wants to draw around
+  // it. That act adds no word: the sentence still says `brush`, nothing new is
+  // typed, and the printed page still shows the bound the author named.
+  //
+  // The outline is collected in the columns' own units, never in pixels, which
+  // is what lets the engine test it at any size and on any axis. A drawn shape
+  // in screen coordinates would be a picture; a shape in data units is a fact
+  // about the rows.
+  // ---------------------------------------------------------------------
+  let outline = null;
+
+  // Two pixels apart is enough to draw a smooth-looking shape and keeps the path
+  // short enough to re-render inside a frame. A pointer emits far more samples
+  // than a polygon needs.
+  const TRACE_STEP = 2;
+
+  const traceable = (panel) =>
+    panel && panel.x && panel.y && !panel.x.cats && !panel.y.cats &&
+    panel.x.field && panel.y.field;
+
+  const showOutline = (panel, trace) => {
+    const owner = panel.el.ownerSVGElement;
+    const ctm = panel.el.getScreenCTM();
+    if (!owner || !ctm || trace.length < 2) return;
+    const seen = trace.map((p) => {
+      const q = owner.createSVGPoint();
+      q.x = p.x;
+      q.y = p.y;
+      return q.matrixTransform(ctm);
+    });
+    if (!outline) {
+      // An `<svg>` over the whole viewport, for the same reason the rectangle
+      // band is a fixed `div`: a redraw replaces the container's contents, so
+      // anything parented to it is destroyed sixty times a second.
+      outline = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+      outline.setAttribute("class", "gog-lasso");
+      outline.style.cssText =
+        "position:fixed;left:0;top:0;width:100vw;height:100vh;" +
+        "pointer-events:none;z-index:2147483647;";
+      const shape = document.createElementNS("http://www.w3.org/2000/svg", "polygon");
+      shape.setAttribute("fill", "rgba(51,51,51,0.08)");
+      shape.setAttribute("stroke", "#333");
+      shape.setAttribute("stroke-width", "1.5");
+      shape.setAttribute("stroke-dasharray", "3 3");
+      outline.appendChild(shape);
+    }
+    if (!outline.isConnected) document.body.appendChild(outline);
+    outline.firstChild.setAttribute(
+      "points", seen.map((p) => `${p.x},${p.y}`).join(" "));
+  };
+
+  const hideOutline = () => {
+    outline?.remove();
+    outline = null;
+  };
+
+  // The shape reaches every plot that declared a brush, which is the rule the
+  // bound already follows: one gesture, every plot on the page that is listening.
+  // A cell whose table does not carry these two columns is left alone by the
+  // engine rather than emptied, exactly as a bound on a column it never heard of
+  // leaves it alone.
+  const applyRegion = (panel, trace) => {
+    if (!traceable(panel)) return false;
+    const path = trace
+      .map((p) => [valueOn(panel.x, p.x), valueOn(panel.y, p.y)])
+      .filter(([px, py]) => px !== null && py !== null);
+    if (path.length < 3) return false;
+    for (const plot of eachPlot(req.spec)) {
+      if (!(plot.brush ?? []).length) continue;
+      // **Tracing replaces the bound on the axes it covers**, because it is the
+      // same drag doing the same job: in a rectangle the drag writes `at` on
+      // both axes, and here it writes a shape over the pair. Leaving both in
+      // force would quietly intersect them, and the reader would see fewer rows
+      // lit than the shape they drew holds. A bound on some *other* column is a
+      // constraint the sentence made and stays.
+      for (const entry of plot.brush) {
+        if (entry.field === panel.x.field || entry.field === panel.y.field) {
+          delete entry.at;
+          delete entry.levels;
+        }
+      }
+      plot.region = { x: panel.x.field, y: panel.y.field, path };
+    }
+    return true;
+  };
+
+  const clearRegion = () => {
+    let had = false;
+    for (const plot of eachPlot(req.spec)) {
+      if (plot.region) {
+        delete plot.region;
+        had = true;
+      }
+    }
+    return had;
+  };
+
+  // ---------------------------------------------------------------------
   // Reading the row under the pointer
   //
   // Reporting what a row is does not change what the picture claims about the
@@ -600,8 +741,18 @@ export function attachBrush(engine, container, request, options = {}) {
   let held = -1;
   let start = null;
   let queued = false;
+  let trace = null;
 
   let panning = null;
+
+  const schedule = () => {
+    if (queued) return;
+    queued = true;
+    requestAnimationFrame(() => {
+      queued = false;
+      draw();
+    });
+  };
 
   const onDown = (e) => {
     // This plot said `brush`, so the plain drag belongs to the selection and
@@ -621,6 +772,9 @@ export function attachBrush(engine, container, request, options = {}) {
     held = all.findIndex((p) => holds(p, pointIn(p, e)));
     if (held < 0) return;
     start = pointIn(all[held], e);
+    // A free shape is collected from the first sample. On a panel that measures
+    // categories there is nothing to trace, so the drag stays a rectangle.
+    trace = mode() === "lasso" && traceable(all[held]) ? [start] : null;
     try {
       container.setPointerCapture?.(e.pointerId);
     } catch {
@@ -650,22 +804,30 @@ export function attachBrush(engine, container, request, options = {}) {
     // rather than stopping, which is what lets a drag select up to an edge
     // without having to land exactly on it.
     if (!now) return;
+    if (trace) {
+      const last = trace[trace.length - 1];
+      if (Math.hypot(now.x - last.x, now.y - last.y) < TRACE_STEP) return;
+      trace.push(now);
+      showOutline(panel, trace);
+      if (!applyRegion(panel, trace)) return;
+      schedule();
+      return;
+    }
     showBand(panel, start, now);
     if (!apply(panel, start, now)) return;
-    if (!queued) {
-      queued = true;
-      requestAnimationFrame(() => {
-        queued = false;
-        draw();
-      });
-    }
+    schedule();
   };
   const onUp = () => {
+    // A click clears the shape, exactly as it clears a bound: too few samples to
+    // enclose anything is not a tiny selection, it is a reader asking for none.
+    if (trace && trace.length < 3 && clearRegion()) schedule();
     held = -1;
     start = null;
+    trace = null;
     if (panning) container.style.cursor = "grab";
     panning = null;
     hideBand();
+    hideOutline();
   };
   const onLeave = () => hideTip();
 
@@ -686,21 +848,30 @@ export function attachBrush(engine, container, request, options = {}) {
       hideTip();
     },
     opened,
-    /** What the reader has caught: a count, and the rows to read. */
-    selection: () => selectedRows(req),
+    /** What the reader has caught: a count, and one page of the rows to read. */
+    selection: (offset = 0) => selectedRows(req, PAGE_ROWS, offset),
     /** What a plain drag does now. Zooming in switches it, because a reader who
      *  has just magnified something almost always wants to move around in it. */
     mode,
+    /** The last mode that *selects*, so returning from a pan comes back to the
+     *  one the reader chose rather than always to the rectangle. */
+    picked: () => picked,
     setMode(next) {
-      dragMode = next === "pan" && view ? "pan" : "select";
+      if (next === "pan" && view) dragMode = "pan";
+      else dragMode = next === "lasso" ? "lasso" : "select";
+      if (dragMode !== "pan") picked = dragMode;
       // The pointer says what the drag will do before the reader tries it. An
       // open hand is the universal "you can move this"; a crosshair is the
-      // universal "you can draw a box here".
+      // universal "you can draw here", for a rectangle and for a free shape
+      // alike — which is why the toolbar shows which of the two is on.
       container.style.cursor = dragMode === "pan" ? "grab" : "crosshair";
     },
     reset() {
       // Back to what the sentence said, which for a bare brush is the
-      // declaration rather than whatever the last drag turned it into.
+      // declaration rather than whatever the last drag turned it into. A traced
+      // shape has no resting form to go back to — no sentence can state one — so
+      // it simply goes.
+      clearRegion();
       eachPlot(req.spec).forEach((p, i) => {
         if (opened[i]) p.brush = JSON.parse(JSON.stringify(opened[i]));
       });
@@ -833,7 +1004,7 @@ function addZoomButtons(bar, view, onChange = () => {}, handle = null) {
   // in it, and one who has zoomed all the way out has nothing left to move.
   const follow = () => {
     if (!handle) return;
-    handle.setMode(view.zoomed() ? "pan" : "select");
+    handle.setMode(view.zoomed() ? "pan" : (handle.picked?.() ?? "select"));
   };
   bar.append(
     make("\u2212", "zoom out", () => { view.zoom(1 / 1.4); follow(); }),
@@ -858,12 +1029,24 @@ function addZoomButtons(bar, view, onChange = () => {}, handle = null) {
  * Columns are the ones the sentence *maps*, not every column in the table. A
  * twelve-column CSV is unreadable as a readout, and the mapped ones are the
  * ones the reader is already looking at.
+ *
+ * **`offset` is a window into the selection, not a second selection.** A reader
+ * who catches forty rows wants all forty, and a table forty rows long would push
+ * the plot off the screen — so the rows arrive a page at a time and the caller
+ * turns pages. `kept` is always the whole count whatever the window shows, which
+ * is what keeps the readout above the table honest.
  */
-export function selectedRows(req, limit = 12) {
-  const result = { kept: 0, total: 0, columns: [], rows: [], capped: false };
+export const PAGE_ROWS = 10;
+
+export function selectedRows(req, limit = PAGE_ROWS, offset = 0) {
+  const result = { kept: 0, total: 0, columns: [], rows: [], capped: false,
+                   from: 0, to: 0 };
   for (const plot of eachPlot(req.spec)) {
     const bounds = (plot.brush ?? []).filter((b) => b.at || b.levels);
-    if (!bounds.length) continue;
+    // A traced outline is the other way a reader states the same predicate, and
+    // it counts the same way. Fewer than three vertices enclose nothing.
+    const region = plot.region?.path?.length >= 3 ? plot.region : null;
+    if (!bounds.length && !region) continue;
     const df = req.data?.[plot.data];
     if (!df) continue;
     const floats = df.floats ?? {};
@@ -882,6 +1065,10 @@ export function selectedRows(req, limit = 12) {
       for (const c of Object.values(layer.encodings ?? {})) add(c?.field);
     }
     for (const b of bounds) add(b.field);
+    if (region) {
+      add(region.x);
+      add(region.y);
+    }
     const columns = named.filter((f) => floats[f] || strings[f]);
 
     for (let i = 0; i < rows; i++) {
@@ -889,18 +1076,23 @@ export function selectedRows(req, limit = 12) {
         const v = value(b.field, i);
         if (b.at) return typeof v === "number" && Number.isFinite(v) && v >= b.at[0] && v <= b.at[1];
         return b.levels.includes(v);
-      });
+      }) && (!region || holdsIn(region.path, value(region.x, i), value(region.y, i)));
       result.total++;
       if (!inside) continue;
+      // Where this row sits in the whole selection, which is what the window is
+      // cut from. Counting every kept row rather than only the shown ones is
+      // what lets a page be asked for by number.
+      const place = result.kept;
       result.kept++;
-      if (result.rows.length < limit) {
+      if (place >= offset && place < offset + limit) {
         result.rows.push(columns.map((f) => value(f, i)));
-      } else {
-        result.capped = true;
       }
     }
     if (!result.columns.length) result.columns = columns;
   }
+  result.capped = result.kept > limit;
+  result.from = result.rows.length ? offset + 1 : 0;
+  result.to = offset + result.rows.length;
   return result;
 }
 
@@ -945,12 +1137,47 @@ function addSelectionBar(container, handle, view) {
   // A visible mode rather than a modifier nobody discovers. Plotly's modebar is
   // the proven shape here and the reason is not taste: a drag can only mean one
   // thing at a time, so the reader has to be able to see which, and change it.
-  const drag = document.createElement("button");
-  drag.type = "button";
-  drag.title = "what dragging does";
-  drag.style.cssText =
-    "font:inherit;color:#555;background:none;border:1px solid #ccc;" +
-    "border-radius:3px;padding:0 .5em;cursor:pointer;";
+  //
+  // The word `drag:` stays beside the icons. An icon alone is only recognizable
+  // to someone who has met it before, and the whole point of this bar is the
+  // reader who has not.
+  const label = document.createElement("span");
+  label.textContent = "drag:";
+  label.style.cssText = "color:#888;";
+
+  // A dashed rectangle, a dashed free loop, and the four-way arrow that means
+  // move — drawn rather than typed, because no font carries a lasso.
+  const icon = (body) =>
+    `<svg width="13" height="13" viewBox="0 0 16 16" aria-hidden="true" ` +
+    `style="display:block;fill:none;stroke:currentColor;stroke-width:1.3">${body}</svg>`;
+  const MODES = [
+    ["select", "select a rectangle",
+      icon(`<rect x="2.5" y="4" width="11" height="8" stroke-dasharray="3 2"/>`)],
+    ["lasso", "draw a free shape around what you want",
+      icon(`<path d="M8 3.2c3.6 0 5.3 1.9 5.3 3.6 0 2.2-2.6 3.8-5.6 3.8` +
+           `-2.6 0-4.9-1.2-4.9-3 0-2.3 2.4-4.4 5.2-4.4z" stroke-dasharray="3 2"/>` +
+           `<path d="M4.6 10.2 3.4 13.4"/>`)],
+  ];
+  if (view) {
+    MODES.push(["pan", "move the picture",
+      icon(`<path d="M8 2.2 8 13.8M2.2 8 13.8 8"/>` +
+           `<path d="M8 2.2 6.4 4M8 2.2 9.6 4M8 13.8 6.4 12M8 13.8 9.6 12` +
+           `M2.2 8 4 6.4M2.2 8 4 9.6M13.8 8 12 6.4M13.8 8 12 9.6"/>`)]);
+  }
+  const picks = MODES.map(([name, title, art]) => {
+    const b = document.createElement("button");
+    b.type = "button";
+    b.title = title;
+    b.innerHTML = art;
+    b.style.cssText =
+      "font:inherit;color:#555;background:none;border:1px solid #ccc;" +
+      "border-radius:3px;padding:.15em .3em;cursor:pointer;line-height:0;";
+    b.addEventListener("click", () => {
+      handle.setMode(name);
+      render();
+    });
+    return [name, b];
+  });
 
   const readout = document.createElement("span");
   readout.style.cssText = "font-variant-numeric:tabular-nums;";
@@ -972,15 +1199,62 @@ function addSelectionBar(container, handle, view) {
     "display:none;overflow-x:auto;margin:-8px auto 12px;max-width:100%;" +
     "font:12px/1.5 ui-monospace,SFMono-Regular,Menlo,monospace;";
 
-  bar.append(drag, readout, toggle, reset);
+  // A page at a time, with a way to the next one. The table used to stop at a
+  // dozen rows and say how many it had left out, which is honest but leaves the
+  // reader with a count they cannot open. Selecting a group in order to read it
+  // is the whole point of `show rows`, so the rest of the group has to be
+  // reachable.
+  //
+  // Ten to a page rather than a dozen: the reader is counting rows against a
+  // total, and tens are what a person adds up without stopping to think.
+  //
+  // Paging rather than a scrolling box, deliberately: a selection has no upper
+  // size, and a table with one row per selected datum would grow without bound
+  // in a page that also has to hold the plot.
+  const pager = document.createElement("div");
+  pager.style.cssText =
+    "display:none;margin:-8px 0 12px;gap:.5em;align-items:center;" +
+    "justify-content:center;color:#888;" +
+    "font:12px/1.6 ui-monospace,SFMono-Regular,Menlo,monospace;";
+  const step = (label, title) => {
+    const b = document.createElement("button");
+    b.type = "button";
+    b.textContent = label;
+    b.title = title;
+    b.style.cssText =
+      "font:inherit;color:#555;background:none;border:1px solid #ccc;" +
+      "border-radius:3px;padding:0 .45em;cursor:pointer;";
+    return b;
+  };
+  const back = step("‹", "the rows before these");
+  const forth = step("›", "the rows after these");
+  const place = document.createElement("span");
+  place.style.cssText = "font-variant-numeric:tabular-nums;";
+  pager.append(back, place, forth);
+
+  // The word and its icons are one control, so they sit together rather than
+  // spread across the bar's gap like three unrelated buttons.
+  const group = document.createElement("span");
+  group.style.cssText = "display:inline-flex;gap:.25em;align-items:center;";
+  group.append(label, ...picks.map(([, b]) => b));
+
+  bar.append(group, readout, toggle, reset);
   if (view) addZoomButtons(bar, view, () => render(), handle);
   placeBar(container, bar);
   bar.after(table);
+  table.after(pager);
 
   let open = false;
+  let page = 0;
   const render = () => {
-    const s = handle.selection();
-    drag.textContent = handle.mode() === "pan" ? "drag: pan" : "drag: select";
+    const s = handle.selection(page * PAGE_ROWS);
+    for (const [name, b] of picks) {
+      const on = handle.mode() === name;
+      b.style.borderColor = on ? "#666" : "#ccc";
+      b.style.background = on ? "#eee" : "none";
+      b.style.color = on ? "#222" : "#777";
+      b.setAttribute("aria-pressed", on ? "true" : "false");
+    }
     readout.textContent = `${s.kept} of ${s.total} selected`;
     // Nothing to show and nothing to reset when nothing is selected. The
     // buttons go quiet rather than disappearing, so the line does not jump.
@@ -990,34 +1264,47 @@ function addSelectionBar(container, handle, view) {
     toggle.textContent = open ? "hide rows" : "show rows";
     if (!open || idle) {
       table.style.display = "none";
+      pager.style.display = "none";
       return;
     }
     const cell = (v) =>
       `<td style="padding:.1em .6em;text-align:${typeof v === "number" ? "right" : "left"}">` +
       `${v === null || v === undefined ? "" : String(v)}</td>`;
-    // What was left out is said out loud rather than truncated in silence.
-    const note = s.capped
-      ? `<caption style="caption-side:bottom;color:#999;text-align:center">` +
-        `${s.rows.length} of ${s.kept} shown</caption>`
-      : "";
     table.innerHTML =
-      `<table style="margin:0 auto;border-collapse:collapse">${note}<thead><tr>` +
+      `<table style="margin:0 auto;border-collapse:collapse"><thead><tr>` +
       s.columns.map((c) => `<th style="padding:.1em .6em;text-align:left;` +
         `border-bottom:1px solid #ddd;color:#555">${c}</th>`).join("") +
       `</tr></thead><tbody>` +
       s.rows.map((r) => `<tr>${r.map(cell).join("")}</tr>`).join("") +
       `</tbody></table>`;
     table.style.display = "block";
+    // The line under the table says where you are in the selection rather than
+    // only what was left out, and the two arrows are how you leave. It appears
+    // only when there is more than one page, so a short selection reads exactly
+    // as it did before.
+    pager.style.display = s.capped ? "flex" : "none";
+    place.textContent = `${s.from}–${s.to} of ${s.kept}`;
+    back.disabled = page === 0;
+    forth.disabled = s.to >= s.kept;
   };
 
-  drag.addEventListener("click", () => {
-    handle.setMode(handle.mode() === "pan" ? "select" : "pan");
+  const turn = (by) => {
+    page = Math.max(0, page + by);
     render();
-  });
+  };
+  back.addEventListener("click", () => turn(-1));
+  forth.addEventListener("click", () => turn(1));
   toggle.addEventListener("click", () => { open = !open; render(); });
   reset.addEventListener("click", () => { handle.reset(); render(); });
   render();
-  return render;
+  // **The selection moving is not the same event as the reader turning a page.**
+  // This is what a redraw calls, so it goes back to the first page: a new
+  // selection has new rows, and page four of the last one means nothing. The
+  // arrows call `render` directly and keep their place.
+  return () => {
+    page = 0;
+    render();
+  };
 }
 
 /**

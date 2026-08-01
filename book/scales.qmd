@@ -470,6 +470,11 @@ for, so the plot draws, but GOG will not remove data without saying so. Ask for
 a domain no row can satisfy and it refuses instead, because the alternative is
 an empty panel with axes drawn over nothing.
 
+Keeping every country on the page and making one group of them stand out is a
+different operation, and it has a different word. `limits` runs before the
+statistics and removes rows. `brush` runs after the picture is composed and
+removes nothing. [Selection](selection.qmd) sets the two side by side.
+
 **Either end alone.** `NA` leaves that end to the data, which is how you pin a
 baseline without capping the top:
 

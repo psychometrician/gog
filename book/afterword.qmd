@@ -27,9 +27,11 @@ The kernel you learned is the *designed* vocabulary, and the engine tells
 you honestly which parts are not drawn yet rather than ignoring them. **Every
 mark in it now draws**, `surface` having been the last one waiting. What is left
 is not marks. On the roadmap, in rough order: the `map`
-space, and the selections (`click` and `brush`)
-that make plots answer back. (`play` now draws: a time-lapse is faceting read
-in time, and it has its own page.) (The collision modifiers are complete: `dodge`,
+space, and `click`, the selection that lets you ask a single
+point what it is. (`play` now draws: a time-lapse is faceting read
+in time, and it has its own page.) (`brush` draws too: it dims what you did not
+select and removes nothing, and [Selection](selection.qmd) is its page.)
+(The collision modifiers are complete: `dodge`,
 `stack`, and `jitter` all ship.) None of these will add a new kind of grammar:
 each is one more letter in a system whose assembly rules you already know.
 

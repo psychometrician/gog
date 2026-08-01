@@ -52,7 +52,9 @@ drawn yet, and it is not callable either, so your language will report a
 missing function rather than GOG explaining itself. What GOG never does is
 accept one of these names and quietly ignore it. Every **mark** draws today,
 `surface` being the last to arrive, and `play` draws too. Every **space** draws
-too, `map` being the last to arrive. What is left is `click`.
+too, `map` being the last to arrive. One of the two **selections** draws as
+well. `brush` dims the rows you did not pick, and removes none of them.
+[Selection](selection.qmd) is its chapter. What is left is `click`.
 See [Design laws](design-laws.qmd) for the difference between
 **illegal** (the grammar forbids it) and **unsupported** (the grammar allows it;
 the engine cannot draw it yet). Each table below marks what renders today.
@@ -65,6 +67,11 @@ other word here can be written down: `x(gdp, limits = c(0, 5e4))` states a range
 and a reader holding the printed book sees the plot that range asks for. A free
 shape can only be written as a long list of corners, which is not something a
 person writes in a sentence. A word GOG cannot print is a word GOG will not keep.
+
+The *act* stayed, and that distinction is what the ruling rests on. In the web
+edition you can draw a free shape around some points with the mouse, exactly as
+you can turn a cube with it. Neither one is a word, because neither changes what
+the plot claims about the data. [Selection](selection.qmd) has both.
 
 ## Marks: the "consonants"
 

@@ -1779,6 +1779,93 @@ impl BrushDef {
 }
 
 // ---------------------------------------------------------------------------
+// RegionDef — a free shape the reader traced, and the one value no human types
+//
+// A `BrushDef` is a bound on one column and a person can write it down. This is
+// the other half of the same selection, and it exists because a reader asked to
+// pick out a group that is not a rectangle.
+//
+// **There is no atom for it, and there never will be.** `lasso` was struck from
+// the kernel for one decisive reason: its region can only be stated as a vertex
+// list, so it has no honest printed form, and every other page of this project
+// says a specification is something you can write down. That argument is about a
+// *word*. It does not reach a *gesture*: nothing new is typed, nothing new is
+// printed, and a reader tracing an outline changes what they are looking at
+// rather than what the plot claims about the data — which is the test that put
+// rotate, pan and zoom on the medium's side already.
+//
+// So this field is written by the browser and by nothing else. Three properties
+// keep that honest, and the third is the one that keeps the door from widening:
+//
+// 1. It is stated in the **columns' own units**, never in pixels, so it survives
+//    a resize, a facet, a log axis and a second backend. Law 9 asks the IR to
+//    encode the visual rather than one backend's draw commands, and a polygon in
+//    data space is a visual fact. A list of screen positions would not be.
+// 2. It is **absent from every specification a person writes**, so a saved or
+//    printed plot carries the bound its sentence named and nothing more.
+// 3. It is skipped on the wire when there is none, so a plot that was never
+//    lassoed serializes to exactly the JSON it always did.
+//
+// Two boundaries fall out of the predicate rather than being chosen. A region
+// tests a row's two position **values**, exactly as a bound tests one, so the
+// containment question a polygon seems to raise — is a rectangle inside if its
+// center is, or any corner? — never arises: nothing here looks at drawn
+// geometry. And a **category has no half**, so a region is not offered where
+// either axis measures categories; there the drag stays a rectangle and selects
+// whole slots.
+// ---------------------------------------------------------------------------
+
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+pub struct RegionDef {
+    /// The column the horizontal position measures.
+    pub x: String,
+    /// The column the vertical position measures.
+    pub y: String,
+    /// The outline, as `[x, y]` pairs in those two columns' own units. The shape
+    /// closes on its first vertex; the last one need not repeat it.
+    #[serde(default)]
+    pub path: Vec<[f64; 2]>,
+}
+
+impl RegionDef {
+    pub fn new(x: impl Into<String>, y: impl Into<String>, path: Vec<[f64; 2]>) -> Self {
+        Self { x: x.into(), y: y.into(), path }
+    }
+
+    /// Fewer than three vertices bound no area at all, so nothing is selected —
+    /// the same resting state a brush with no `at` is in.
+    pub fn is_resting(&self) -> bool {
+        self.path.len() < 3 || self.x.is_empty() || self.y.is_empty()
+    }
+
+    /// Is this point inside the outline?
+    ///
+    /// Ray casting, counting the edges a ray to the right crosses: odd is
+    /// inside. Fifteen lines and no dependency, which is the whole reason a
+    /// polygon was affordable here once the two-pass draw existed.
+    pub fn holds(&self, x: f64, y: f64) -> bool {
+        if !x.is_finite() || !y.is_finite() {
+            return false;
+        }
+        let mut inside = false;
+        let n = self.path.len();
+        for i in 0..n {
+            let [ax, ay] = self.path[i];
+            let [bx, by] = self.path[(i + 1) % n];
+            // Does this edge span the ray's height? The half-open test is what
+            // stops a vertex exactly on the ray being counted twice.
+            if (ay > y) != (by > y) {
+                let cross = ax + (y - ay) / (by - ay) * (bx - ax);
+                if x < cross {
+                    inside = !inside;
+                }
+            }
+        }
+        inside
+    }
+}
+
+// ---------------------------------------------------------------------------
 // PlotSpec — the top-level plot specification
 // ---------------------------------------------------------------------------
 
@@ -1848,6 +1935,12 @@ pub struct PlotSpec {
     /// spec that names no brush serializes to exactly the JSON it always did.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub brush: Vec<BrushDef>,
+    /// The free shape a reader traced, if one has been. Written by a gesture and
+    /// by nothing else, so it is absent from every specification a person can
+    /// write down — which is what lets the engine test an outline without the
+    /// grammar gaining a word that could not be printed.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub region: Option<RegionDef>,
     /// Plot furniture — the page rather than the ink. Spec §7.
     #[serde(default)]
     pub theme: ThemeSpec,
@@ -1871,6 +1964,7 @@ impl PlotSpec {
             palette: PaletteDef::default(),
             facet: None,
             brush: Vec::new(),
+            region: None,
             theme: ThemeSpec::default(),
         }
     }
@@ -2281,6 +2375,63 @@ impl std::ops::Add<Layer> for PlotSpec {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    // -----------------------------------------------------------------------
+    // The traced region — the gesture's value, and the only one no human types
+    // -----------------------------------------------------------------------
+
+    /// A triangle, and the assertion that makes the whole feature worth having:
+    /// three of these six points are inside it and all six are inside its
+    /// **bounding rectangle**. A brush can only say the rectangle, so what a free
+    /// shape adds is exactly the difference between these two counts.
+    #[test]
+    fn a_traced_region_selects_what_no_rectangle_could() {
+        let rows = [(1.0, 2.0), (2.0, 4.0), (3.0, 1.0), (4.0, 5.0), (5.0, 3.0), (6.0, 6.0)];
+        let triangle = RegionDef::new(
+            "gx", "gy",
+            vec![[0.5, 0.5], [6.5, 0.5], [0.5, 6.5]],
+        );
+        let inside: Vec<bool> = rows.iter().map(|(x, y)| triangle.holds(*x, *y)).collect();
+        assert_eq!(inside, vec![true, true, true, false, false, false],
+            "the three rows under the diagonal, and only those");
+
+        let box_of_it = RegionDef::new(
+            "gx", "gy",
+            vec![[0.5, 0.5], [6.5, 0.5], [6.5, 6.5], [0.5, 6.5]],
+        );
+        assert!(rows.iter().all(|(x, y)| box_of_it.holds(*x, *y)),
+            "and every one of them is inside the rectangle the triangle fits in");
+    }
+
+    /// A vertex sitting exactly on the ray is counted once rather than twice,
+    /// which is the classic ray-casting mistake: count it at both of its edges
+    /// and a point outside the shape reads as inside.
+    #[test]
+    fn a_vertex_on_the_ray_does_not_count_twice() {
+        let diamond = RegionDef::new("x", "y", vec![[0.0, 1.0], [1.0, 2.0], [2.0, 1.0], [1.0, 0.0]]);
+        assert!(diamond.holds(1.0, 1.0), "the middle is inside");
+        assert!(!diamond.holds(-1.0, 1.0), "and a point level with two vertices is not");
+        assert!(!diamond.holds(3.0, 1.0), "on either side");
+    }
+
+    /// Fewer than three vertices bound no area, so nothing is selected — the same
+    /// resting state a brush with no `at` is in, and the state a page is in before
+    /// the reader has traced anything.
+    #[test]
+    fn a_region_of_fewer_than_three_vertices_is_resting() {
+        assert!(RegionDef::new("x", "y", vec![[0.0, 0.0], [1.0, 1.0]]).is_resting());
+        assert!(RegionDef::new("", "y", vec![[0.0, 0.0], [1.0, 0.0], [1.0, 1.0]]).is_resting());
+        assert!(!RegionDef::new("x", "y", vec![[0.0, 0.0], [1.0, 0.0], [1.0, 1.0]]).is_resting());
+    }
+
+    /// **A plot nobody has traced on serializes to exactly the JSON it always
+    /// did.** The gesture may add a field to the wire format; it may not add one
+    /// to a specification a person wrote.
+    #[test]
+    fn an_untraced_plot_carries_no_region_on_the_wire() {
+        let json = serde_json::to_string(&PlotSpec::new().x("gx").y("gy")).unwrap();
+        assert!(!json.contains("region"), "an untraced plot must not mention one: {json}");
+    }
 
     // -----------------------------------------------------------------------
     // Where a position comes from — one axis, its own column (spec §8)

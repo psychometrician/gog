@@ -125,6 +125,19 @@ is still a legal sentence and still dims the right countries — but there is
 nowhere to drag, because no axis is measuring continents. The sentence has said
 everything, and the mouse has nothing left to say.
 
+*Which* axis places it does not matter. Here is the same sentence with `x` and
+`y` exchanged:
+
+```{r}
+data(gapminder_2007) + point + x(life) + y(continent) + color(continent) +
+  theme(width = 620, height = 320) + brush(continent, at = c("Europe", "Oceania"))
+```
+
+The slots stack up the side now, and the same two continents are lit. Drag on it
+and the band lies across the panel instead of standing in it, whole slots at a
+time as before. The bound never mentions an axis. It names a column, so turning
+the plot moves the drag and leaves the sentence alone.
+
 ## Two views, one selection
 
 This is the use a brush was invented for, and everything above it has been the
@@ -320,9 +333,9 @@ Reading left to right, the line looks like this:
 
 | Control | What it does |
 |---|---|
-| `drag: select` / `drag: pan` | Says what dragging the plot will do, and switches it |
+| `drag:` and its icons | Says what dragging the plot will do, and switches it: a rectangle, a free shape, or moving the picture |
 | `17 of 142 selected` | How many rows the current bound catches |
-| `show rows` | Opens a table of those rows, and closes it again |
+| `show rows` | Opens a table of those rows, and closes it again. A long selection arrives ten at a time, with `‹` and `›` under the table |
 | `clear` | Puts the selection back to what the sentence asked for |
 | `−` `+` | Makes the picture smaller or larger |
 | `fit` | Returns to the whole picture |
@@ -339,12 +352,45 @@ Dragging in either direction gives the same bound, so you can start from any
 corner. A **single click clears** the selection, which is what a click on empty
 space does everywhere else.
 
+### Drawing around a group
+
+A rectangle is what a sentence can say. Some groups are not rectangles. A cloud
+of points often has a shape: an arm reaching out to one side, a curve, a clump
+away from the rest. A box drawn around such a group includes points you did not
+mean.
+
+The second icon beside `drag:` is the **free shape**. Choose it, then draw around
+the group with the pointer held down. The outline closes itself when you let go,
+and everything inside it is selected. The count and the row table read exactly as
+they do for a box, because a shape and a bound ask the same question: which rows
+do you mean.
+
+**Nothing about the sentence changes.** You do not type a shape, and the printed
+page still shows the bound the sentence named. Drawing one is a way of looking,
+like turning a cube, rather than a claim about the data.
+
+That is also why the grammar has no word for it. GOG reserved `lasso` for this
+once and then gave the word up. A shape can only be written down as a long list
+of corners, and a specification is something you can write down and print. The
+act survives; the word did not, and [the kernel](grammar.qmd) says why in one
+paragraph.
+
+Two limits are worth knowing. A free shape needs two axes that measure, so where
+one axis carries categories the drag stays a rectangle. A category has no half,
+and whole slots are what you wanted there anyway. And `clear` removes the shape
+instead of restoring it, because a shape has no resting form for a sentence to
+state.
+
 ### Reading what you caught
 
 The count is always there. `show rows` opens a table underneath, listing the
 columns the sentence maps rather than every column in the table, because twelve
-columns of a spreadsheet are not what you are looking at. A long selection says
-how many rows the table left out instead of quietly showing fewer.
+columns of a spreadsheet are not what you are looking at.
+
+A long selection arrives ten rows at a time. The line under the table says which
+rows you are reading, as `11–20 of 40`, and the two arrows beside it move you
+through the rest. Every row you selected is reachable, and none of them pushes
+the plot off the screen. A selection short enough to fit shows no arrows at all.
 
 That table answers the question people usually reach for a click to ask. Draw a
 bound tight around one point and it names that point.
