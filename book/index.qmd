@@ -745,4 +745,5 @@ So, thank you to the people at [Anthropic](https://www.anthropic.com/) who built
 Claude Code, and to the four models named on this book's cover. I do not know
 most of your names. I know two of them from YouTube:
 [Boris Cherny](https://x.com/bcherny) and [Cat Wu](https://x.com/_catwu). You
-built the thing that let a psychometrician write a graphics engine. Thank you.
+built the thing that let a psychometrician write a graphics engine in Rust. How
+cool is that? Thank you.
