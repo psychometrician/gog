@@ -137,6 +137,44 @@ fn mercator(lon: f64, lat: f64) -> (f64, f64) {
     (lam, y)
 }
 
+/// Replace a frame's two position columns with their projected values.
+///
+/// **This is where the map space happens, and it is the whole of it.** Doing it
+/// to the *data*, once, before anything is fitted, is what buys the rest for
+/// free: the extent is then the projected extent, so the panel is the shape of
+/// the map; the ticks, the marks, the brush rectangle and the legends all read
+/// projected numbers and none of them has to be told. Compare `polar`, which
+/// every mark has to ask where a coordinate lands, and `space`, which routes the
+/// marks through a projector and depth-sorts them.
+///
+/// The pair is projected together rather than a column at a time, and that is not
+/// an optimization: Equal Earth's `x` depends on latitude, so a longitude column
+/// has no projected value of its own. Any pseudocylindrical projection is coupled
+/// this way, which is why the two columns are read and written as one step.
+///
+/// A frame missing either column is returned unchanged. That is not a silent
+/// drop — a position that is not a number is refused in `legality` before the
+/// renderer is reached, because a category has no longitude.
+pub(crate) fn project_frame(
+    df: &crate::data::DataFrame,
+    geo: &Geo,
+    x_field: &str,
+    y_field: &str,
+) -> crate::data::DataFrame {
+    let (Some(lon), Some(lat)) = (df.float_col(x_field), df.float_col(y_field)) else {
+        return df.clone();
+    };
+    let n = lon.len().min(lat.len());
+    let mut xs = Vec::with_capacity(n);
+    let mut ys = Vec::with_capacity(n);
+    for i in 0..n {
+        let (x, y) = geo.project(lon[i], lat[i]);
+        xs.push(x);
+        ys.push(y);
+    }
+    df.clone().with_float(x_field, xs).with_float(y_field, ys)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

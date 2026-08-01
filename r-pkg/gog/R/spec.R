@@ -568,10 +568,15 @@ resolve_query <- function(q, table) {
     coord_polar = { lhs$spec$coord <- list(polar = list(start = rhs$start)) },
 
     # Nest carries no view parameter at all, so it crosses as the bare string
-    # `"nest"` — `CoordSpace::Nest` is a unit variant, like `globe` and `map`.
-    # There is no angle to send because there is nothing underneath to view from
-    # an angle: a packing is not a map of the plane.
+    # `"nest"` — `CoordSpace::Nest` is a unit variant, like `globe`. There is no
+    # angle to send because there is nothing underneath to view from an angle: a
+    # packing is not a map of the plane.
     coord_nest = { lhs$spec$coord <- "nest" },
+
+    # A map carries what the flattening must preserve, the same way `space` and
+    # `polar` carry theirs: `{"map":{"preserve":"area"}}` matches
+    # `CoordSpace::Map(MapView)`, and a bare `"map"` is not a legal form.
+    coord_map = { lhs$spec$coord <- list(map = list(preserve = rhs$preserve)) },
 
     color   = { lhs <- set_channel(lhs, "color",   rhs$field, rhs$scale, rhs$base, rhs$limits) },
     group   = { lhs <- set_channel(lhs, "group",   rhs$field) },

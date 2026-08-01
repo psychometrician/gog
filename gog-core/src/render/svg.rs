@@ -888,6 +888,46 @@ impl SvgRenderer {
             }
         }
 
+        // **The map space, in one place.** Longitude and latitude become positions
+        // on the flat page here, before anything is fitted — so the ranges below
+        // are the *projected* ranges, the panel comes out the shape of the map,
+        // and every reader downstream (the ticks, the marks, the brush rectangle,
+        // the legends) works on ordinary numbers and is never told a projection
+        // happened. That is why this space costs a dozen lines where `polar` costs
+        // a module every mark has to consult.
+        //
+        // It runs after the panels are cut and before the scales are fitted, which
+        // is the only correct place: cutting reads the facet's own column and does
+        // not care, while fitting has to see projected numbers or the map is drawn
+        // to the shape of the degree grid instead of its own.
+        // The degree extents are read *before* the projection and kept, because
+        // they are the only thing that cannot be recovered afterwards and the axes
+        // need them: a reader is owed ticks in degrees, not in projected units.
+        let map_degrees = if let CoordSpace::Map(view) = &spec.coord {
+            let span = |field: &str| {
+                let (mut lo, mut hi) = (f64::INFINITY, f64::NEG_INFINITY);
+                for df in panel_eff.iter().flat_map(|p| p.iter()) {
+                    for &v in df.float_col(field).into_iter().flatten() {
+                        if v.is_finite() {
+                            lo = lo.min(v);
+                            hi = hi.max(v);
+                        }
+                    }
+                }
+                (lo <= hi).then_some((lo, hi))
+            };
+            let degrees = span(x_field).zip(span(y_field));
+            let geo = crate::render::geo::Geo::new(view);
+            for frames in panel_eff.iter_mut() {
+                for df in frames.iter_mut() {
+                    *df = crate::render::geo::project_frame(df, &geo, x_field, y_field);
+                }
+            }
+            degrees.map(|d| (geo, d))
+        } else {
+            None
+        };
+
         // Ranges, categories and ticks are computed across every panel's frames.
         // The fixed, shared scale is what makes the panels comparable, which is
         // the reason to facet at all — free per-panel scales are a later,
@@ -1241,6 +1281,44 @@ impl SvgRenderer {
             x_ticks, xs, y_ticks, ys, z_ticks, zs, cat_x, cat_y, inner_edge,
         } = shared.clone();
 
+        // **A map's axes are labeled in degrees and placed by the projection.**
+        // Everything downstream of the projection reads projected numbers, which is
+        // exactly what makes the space cheap — and it is wrong for precisely one
+        // reader, the axis, which would otherwise announce that longitude runs from
+        // −2 to 2. So the ticks are chosen on the degree range and then projected,
+        // which is the only order that gives round numbers in round places.
+        //
+        // A meridian is a **curve** in any pseudocylindrical projection, so a
+        // longitude has no single `x`: it has one per latitude. The tick is placed
+        // where that meridian meets the edge the labels are written along — the
+        // bottom for longitude, the left for latitude — which is what a printed
+        // map does and is the only honest answer to a question with no single one.
+        //
+        // Labels are signed degrees rather than `30°N` / `90°W`, and that is a
+        // translation decision rather than a cartographic one: those suffixes are
+        // English initials, and this book is written to survive being translated.
+        // A degree sign is read everywhere; a `W` is not.
+        let (x_ticks, y_ticks) = match &map_degrees {
+            Some((geo, (lon, lat))) => {
+                let degrees = |(lo, hi): (f64, f64), n: usize, at: &dyn Fn(f64) -> f64| {
+                    let picked = crate::render::ticks::nice_ticks(lo, hi, n);
+                    let (values, labels) = picked
+                        .values
+                        .iter()
+                        .zip(picked.labels.iter())
+                        .filter(|(v, _)| **v >= lo && **v <= hi)
+                        .map(|(v, l)| (at(*v), format!("{l}°")))
+                        .unzip();
+                    crate::render::ticks::ticks_with_labels(values, labels)
+                };
+                (
+                    degrees(*lon, 7, &|v| geo.project(v, lat.0).0),
+                    degrees(*lat, 5, &|v| geo.project(lon.0, v).1),
+                )
+            }
+            None => (x_ticks, y_ticks),
+        };
+
         // --- free scales: one fit per panel, for the axes that asked ---------
         //
         // `free` is read off the binding, so *which* axis is freed is whichever
@@ -1449,6 +1527,27 @@ impl SvgRenderer {
                 )
             };
 
+        // **A map's shape is the projection's, not the panel's.** Every other space
+        // may stretch to fill the cell it is given, because stretching an ordinary
+        // scatter changes nothing about what it says. Stretching a map does: the
+        // whole claim of an equal-area projection is that ink is proportional to
+        // ground, and a panel 1.75 times too tall breaks that claim while still
+        // looking like a map. So the space takes the panel's proportions from its
+        // own projected extent, which makes a projected unit the same number of
+        // pixels across as it is tall.
+        //
+        // `theme(ratio = )` is overridden rather than refused, and the difference
+        // matters: a ratio is a statement about a panel, and here the panel is not
+        // the caller's to shape. The refusal is in `legality`, where a reader is
+        // told, rather than here, where they would only see the number ignored.
+        let map_ratio = match &spec.coord {
+            CoordSpace::Map(_) => {
+                let (w, h) = (xs.1 - xs.0, ys.1 - ys.0);
+                (w.is_finite() && h.is_finite() && h.abs() > 1e-12).then(|| (w / h).abs())
+            }
+            _ => None,
+        };
+
         let grid = PanelGrid::compute(
             self.width, self.height,
             (self.font_sm, self.font_md, self.font_lg),
@@ -1456,7 +1555,7 @@ impl SvgRenderer {
             spec.title.is_some(),
             legend_panel_w,
             col_values, row_values,
-            spec.theme.resolved().ratio,
+            map_ratio.or(spec.theme.resolved().ratio),
             spec.theme.resolved().tick_angle,
             play_def.is_some(),
             facet_wrap,
@@ -3997,6 +4096,99 @@ mod tests {
     /// exactly one `<circle>` per row it is handed.
     fn circles(svg: &str) -> usize {
         svg.matches("<circle").count()
+    }
+
+    // -----------------------------------------------------------------------
+    // Map — the sphere on the page (spec §15)
+    // -----------------------------------------------------------------------
+
+    /// Places spread over the whole globe, so the two properties below are
+    /// measured across the range where a projection actually differs from a
+    /// rescaling rather than in a corner where every projection agrees.
+    fn world() -> HashMap<String, DataFrame> {
+        let df = DataFrame::new()
+            .with_float("lon", vec![0.0, 90.0, -90.0, 180.0, -180.0, 0.0, 0.0])
+            .with_float("lat", vec![0.0, 0.0, 0.0, 0.0, 0.0, 60.0, -60.0]);
+        let mut m = HashMap::new();
+        m.insert("t".to_string(), df);
+        m
+    }
+
+    fn world_map(preserve: crate::ir::Preserve) -> PlotSpec {
+        PlotSpec::new()
+            .data("t")
+            .x("lon")
+            .y("lat")
+            .coord(CoordSpace::Map(crate::ir::MapView { preserve }))
+            .layer(Layer::new(Mark::Point))
+    }
+
+    /// Pull every `<circle>` center out, in the row order they were written.
+    fn centers(svg: &str) -> Vec<(f64, f64)> {
+        let mut out = Vec::new();
+        for chunk in svg.split("<circle ").skip(1) {
+            let grab = |key: &str| -> Option<f64> {
+                let at = chunk.find(key)? + key.len();
+                chunk[at..].split('"').next()?.parse().ok()
+            };
+            if let (Some(x), Some(y)) = (grab("cx=\""), grab("cy=\"")) {
+                out.push((x, y));
+            }
+        }
+        out
+    }
+
+    /// **The property that makes an equal-area map worth having.** A projected
+    /// unit must be the same number of pixels across as it is tall, or the panel
+    /// has stretched the map and the ink is no longer proportional to the ground —
+    /// which breaks the projection's whole claim while still looking like a map.
+    ///
+    /// Measured, not asserted: the equator's half-width and the 60° parallel's
+    /// height are compared against what `geo` says those distances are. Before the
+    /// space took the panel's proportions from its own extent, this came out 1.75
+    /// and every map was a fitted rectangle wearing a projection's name.
+    #[test]
+    fn a_map_is_drawn_at_the_projections_proportions_and_not_the_panels() {
+        for preserve in [crate::ir::Preserve::Area, crate::ir::Preserve::Angle] {
+            let svg = SvgRenderer::default().render(&world_map(preserve), &world());
+            let pts = centers(&svg);
+            assert_eq!(pts.len(), 7, "every place should be drawn once");
+            let geo = crate::render::geo::Geo::new(&crate::ir::MapView { preserve });
+
+            // Row 0 is (0, 0); row 3 is (180, 0); row 5 is (0, 60).
+            let px_east = (pts[3].0 - pts[0].0) / geo.project(180.0, 0.0).0;
+            let px_north = (pts[0].1 - pts[5].1) / geo.project(0.0, 60.0).1;
+            assert!(
+                (px_east / px_north - 1.0).abs() < 1e-3,
+                "{preserve:?}: {px_east:.3} px per unit across, {px_north:.3} down"
+            );
+        }
+    }
+
+    /// Longitude is linear along the equator in both projections, so twice the
+    /// longitude is twice the distance. A projection wired up to the wrong column,
+    /// or applied one column at a time, fails this immediately.
+    #[test]
+    fn twice_the_longitude_is_twice_the_distance_along_the_equator() {
+        let svg = SvgRenderer::default().render(&world_map(crate::ir::Preserve::Area), &world());
+        let pts = centers(&svg);
+        let (at90, at180) = (pts[1].0 - pts[0].0, pts[3].0 - pts[0].0);
+        assert!((at180 / at90 - 2.0).abs() < 1e-3, "90° gave {at90:.3}, 180° gave {at180:.3}");
+        // And west mirrors east about the prime meridian.
+        assert!(((pts[0].0 - pts[2].0) - at90).abs() < 0.05);
+    }
+
+    /// **The axes say degrees, because everything else downstream says projected
+    /// units.** The projection is applied to the data, which is what makes the
+    /// space cheap and is wrong for exactly one reader: an axis left alone would
+    /// announce that longitude runs from −2 to 2.
+    #[test]
+    fn a_maps_axes_are_labeled_in_degrees_rather_than_projected_units() {
+        let svg = SvgRenderer::default().render(&world_map(crate::ir::Preserve::Area), &world());
+        assert!(svg.contains("°</text>"), "no degree labels: {svg}");
+        for bare in [">-2</text>", ">2</text>", ">-1</text>", ">1</text>"] {
+            assert!(!svg.contains(bare), "a projected unit reached the axis: {bare}");
+        }
     }
 
     /// **A plot that names no brush carries none of the machinery.** Neither the

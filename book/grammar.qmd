@@ -19,7 +19,7 @@ can read, and write, any plot.
 | **Selections** | `click`⬜ `brush` |
 | **Transforms** | `bin` `smooth` `count` `density` `proportion` `sum` `mean` `median` `max` `min` `range` `confidence` `bounds` `partition`, and the three that resolve collisions, `dodge` `stack` `jitter` |
 | **Scales** | `linear` `log` `time` `category` `order` |
-| **Spaces** | `flat` `space` `polar` `nest` `map`⬜ |
+| **Spaces** | `flat` `space` `polar` `nest` `map` |
 | **Labels** | `title` `x_label` `y_label` `z_label` |
 | **Settings** | `style` `theme` `palette` |
 | **Facets** | `facet` |
@@ -47,12 +47,12 @@ still bare names, because the database returned a table and a table is what the
 grammar has always begun with. Writing SQL is not a different way of drawing;
 it is a different way of naming the rows.
 
-The kernel above is the *designed* vocabulary. The three words marked ⬜ are not
-drawn yet, and they are not callable either, so your language will report a
+The kernel above is the *designed* vocabulary. The one word marked ⬜ is not
+drawn yet, and it is not callable either, so your language will report a
 missing function rather than GOG explaining itself. What GOG never does is
 accept one of these names and quietly ignore it. Every **mark** draws today,
-`surface` being the last to arrive, and `play` draws too. What is left is the
-two selections and the `map` space.
+`surface` being the last to arrive, and `play` draws too. Every **space** draws
+too, `map` being the last to arrive. What is left is `click`.
 See [Design laws](design-laws.qmd) for the difference between
 **illegal** (the grammar forbids it) and **unsupported** (the grammar allows it;
 the engine cannot draw it yet). Each table below marks what renders today.

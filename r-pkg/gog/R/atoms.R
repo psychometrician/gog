@@ -1082,6 +1082,59 @@ nest <- function() {
   structure(list(type = "coord_nest"), class = "gog_atom")
 }
 
+#' Flatten the sphere onto the page.
+#'
+#' The cartographic coordinate space. `x` is **longitude** and `y` is
+#' **latitude**, both in degrees, and the projection decides where each place
+#' lands. Nothing else about the sentence changes: `point` is a place, `path` is a
+#' route through places in the table's order, `text` is a name at a place, and
+#' `rule` spans the axis it does not name, which on a map is a meridian or a
+#' parallel.
+#'
+#' Both positions are spent on the place, so a mark that measures along an axis
+#' has none left. Carry a quantity on a channel instead. `size(<column>)` gives
+#' the proportional-symbol map and `color(<column>)` shades each place, which is
+#' what cartography does once the two axes are gone.
+#'
+#' A sphere cannot be laid flat without giving something up, and area and angle
+#' cannot both survive. `preserve` names which one does:
+#'
+#' * `"area"` -- every region gets ink in proportion to its true size. The
+#'   default, because a map is usually read by area: a projection that inflates
+#'   Greenland says something false about the number inside it. Uses the Equal
+#'   Earth projection, which reaches both poles.
+#' * `"angle"` -- every small shape keeps its true form, and area is what pays.
+#'   Uses Mercator, so Greenland arrives the size of Africa while being fourteen
+#'   times smaller. Mercator sends the poles infinitely far away, so it stops at
+#'   85.05 degrees and says how many rows it could not reach.
+#'
+#' The panel is shaped by the projection rather than by the page, so
+#' `theme(ratio = )` is refused here: an equal-area map stretched to fit a box is
+#' no longer equal-area, though it still looks like a map.
+#'
+#' @param preserve What the flattening keeps: `"area"` or `"angle"`.
+#' @examples
+#' \dontrun{
+#' data(quakes_fiji) + point + x(east) + y(north) + size(magnitude) + map()
+#' data(borders) + path + x(lon) + y(lat) + group(country) + map()
+#' data(borders) + path + x(lon) + y(lat) + group(country) +
+#'   map(preserve = "angle")
+#' }
+#' @export
+map <- function(preserve = "area") {
+  # Validated at the line the caller wrote, rather than at the wire. The engine
+  # checks it too — a rule implemented in one binding is a rule the other three
+  # get wrong — but a reader is owed the error where they typed it.
+  if (!is.character(preserve) || length(preserve) != 1L ||
+      !preserve %in% c("area", "angle")) {
+    stop("gog: `map(preserve = )` takes \"area\" or \"angle\". ",
+         "\"area\" keeps every region's true size, which is what a map read by ",
+         "area needs; \"angle\" keeps every small shape's true form and pays for ",
+         "it in area. A sphere cannot do both.", call. = FALSE)
+  }
+  structure(list(type = "coord_map", preserve = preserve), class = "gog_atom")
+}
+
 # ---------------------------------------------------------------------------
 # Layer-scoped channel atoms — bind to the nearest preceding mark
 # ---------------------------------------------------------------------------

@@ -1461,9 +1461,36 @@ pub fn mark_draws_in_space(mark: &Mark, space: SpaceKind) -> bool {
         // placed by a position here: it is placed by the *region*, which is the
         // same thing that places the bar.
         SpaceKind::Nest => matches!(mark, Mark::Bar | Mark::Text),
-        // Designed vocabulary, no renderer: the empty columns are the honest edge
-        // of the engine, and they are in the grid so that edge is visible.
-        SpaceKind::Globe | SpaceKind::Map => false,
+        // **Both positions are spent on the place**, and that one fact decides the
+        // whole column. A map is a map of the plane, so unlike a packing it has a
+        // coordinate for everything — but longitude and latitude use up both axes,
+        // so a mark that needs an axis to *measure along* has none left.
+        //
+        // Three marks are placed by a position and measure nothing, so they draw
+        // exactly as they draw flat: `point` is a place, `path` is a route through
+        // places in the table's order, and `text` is a name at a place.
+        //
+        // `rule` draws for the reason it draws in `polar` — it spans the axis it
+        // does not name, and here that makes it a **meridian or a parallel**. The
+        // graticule is therefore the mark rather than furniture the space invents,
+        // which is the same sentence bending that turns a polar rule into a ring
+        // or a spoke.
+        //
+        // `zone` is the choropleth and is the next one owed: it is the region mark,
+        // and rectangularity was never its identity — `bounds` was. What it waits
+        // on is an extent supplied by a boundary, which is a fifth source for a
+        // zone's sides beside the four it has.
+        //
+        // The rest measure along an axis — `bar` a length, `interval` a span, `box`
+        // a summary, `area`/`ribbon`/`step`/`line` a domain read left to right,
+        // `surface` a sheet needing the cube — and that is a ruling rather than a
+        // queue. The measure moves to a refining channel instead: `point + size(v)`
+        // is the proportional-symbol map, which is what cartography does with a
+        // quantity once both positions are gone.
+        SpaceKind::Map => matches!(mark, Mark::Point | Mark::Path | Mark::Text | Mark::Rule),
+        // Designed vocabulary, no renderer: the empty column is the honest edge
+        // of the engine, and it is in the grid so that edge is visible.
+        SpaceKind::Globe => false,
     }
 }
 
@@ -4924,6 +4951,7 @@ pub fn check(spec: &PlotSpec, data: &HashMap<String, DataFrame>) -> Vec<Diagnost
     check_space(&mut out, spec);
     check_polar(&mut out, spec);
     check_order(&mut out, spec, data);
+    check_map(&mut out, spec, data);
     check_nest(&mut out, spec, data);
     check_theme(&mut out, spec);
 
@@ -6446,6 +6474,148 @@ fn check_order(out: &mut Vec<Diagnostic>, spec: &PlotSpec, data: &HashMap<String
 // outer partition — so a plot in this space has no coordinate at all, and every
 // refusal below is one consequence of that single fact (spec §15).
 // ---------------------------------------------------------------------------
+
+// ---------------------------------------------------------------------------
+// Map — the sphere on the page (spec §15)
+//
+// **Every refusal here was a silent drop the moment the space started drawing**,
+// and that is the lesson worth keeping rather than the list. While no mark stood
+// in `map`, `check_coord` refused the whole space and nothing else had to be
+// asked. Giving it four marks turned one gate into five questions, all of which
+// the engine answered by drawing something wrong and saying nothing: a `bar` came
+// out placed at a longitude with nothing to measure along, a bound `z` was
+// ignored, a category was silently unplottable, Mercator quietly relocated
+// anything past its cut, and `theme(ratio = )` fought the projection for the
+// panel's shape.
+//
+// A space owes its refusals on the day it draws, not afterwards.
+// ---------------------------------------------------------------------------
+
+fn check_map(out: &mut Vec<Diagnostic>, spec: &PlotSpec, data: &HashMap<String, DataFrame>) {
+    let CoordSpace::Map(view) = &spec.coord else { return };
+
+    // **A map and a cube are two spaces, and a plot is drawn in one** —
+    // `check_polar`'s ruling and `check_nest`'s, restated because the reason is
+    // the same and not a shared implementation. Longitude and latitude have
+    // already spent both positions; a third is not a deeper map, it is a
+    // different one.
+    if spec.axis_def(&Channel::Z).is_some() {
+        out.push(Diagnostic {
+            kind: DiagnosticKind::Unsupported,
+            message: "gog: a plot is drawn in one coordinate space, and `map()` with `z(...)` \
+                      asks for two — a map and a cube. Drop `z(...)` to keep the map, or drop \
+                      `map()` to keep the 3-D plot. To carry a third number on a map, put it \
+                      on a channel: `size(<column>)` or `color(<column>)`."
+                .to_string(),
+        });
+    }
+
+    // **Both positions are spent on the place**, so a mark that measures along an
+    // axis has none left. The direction is the one cartography already uses: the
+    // quantity moves to a refining channel, which is the proportional-symbol map.
+    for layer in &spec.layers {
+        let mark = &layer.mark;
+        if !is_drawable(mark) || mark_draws_in_space(mark, SpaceKind::Map) {
+            continue;
+        }
+        let m = mark_name(mark);
+        let drawn: Vec<String> = ALL_MARKS
+            .iter()
+            .filter(|m| mark_draws_in_space(m, SpaceKind::Map))
+            .map(|m| format!("`{}`", mark_name(m)))
+            .collect();
+        // `zone` is the one cell that is *owed* rather than ruled out, so it says
+        // so: a choropleth is this mark with its sides supplied by a boundary, and
+        // telling a reader "not yet" is a different sentence from "not ever".
+        let why = if *mark == Mark::Zone {
+            "`zone` is the region mark and a map is where the choropleth belongs, but a \
+             region here is bounded by a coastline rather than by a pair per axis, and that \
+             extent is not built yet"
+                .to_string()
+        } else {
+            format!(
+                "`{m}` measures along an axis, and a `map()` plot has none to spare — \
+                 longitude and latitude use both"
+            )
+        };
+        out.push(Diagnostic {
+            kind: DiagnosticKind::Unsupported,
+            message: format!(
+                "gog: {why}. Drop `map()` to draw `{m}` flat, or use {}. To carry a quantity \
+                 on a map, put it on a channel instead of an axis: \
+                 `point + size(<column>)` sizes each place by it, and `color(<column>)` \
+                 shades it.",
+                or_list(&drawn)
+            ),
+        });
+    }
+
+    // **The panel's shape belongs to the projection here.** Refused rather than
+    // silently overridden: the renderer takes the panel's proportions from the
+    // projected extent whatever this says, so accepting the setting would mean
+    // accepting a number and ignoring it, which is the one thing §12 forbids.
+    if spec.theme.ratio.is_some() {
+        out.push(Diagnostic {
+            kind: DiagnosticKind::Illegal,
+            message: "gog: `theme(ratio = )` shapes a panel, and a `map()` panel is shaped by \
+                      the projection — an equal-area map stretched to fit a box is no longer \
+                      equal-area, though it still looks like a map. Drop it. To change how much \
+                      of the page the plot takes, use `theme(width =, height =)`."
+                .to_string(),
+        });
+    }
+
+    // A place is two numbers. A category has no longitude, so this is a question
+    // about the column's *type*, which makes it legality rather than something a
+    // transform should discover — the ruling the binned-category bug settled.
+    for (channel, axis) in [(Channel::X, "x"), (Channel::Y, "y")] {
+        let Some(def) = spec.axis_def(&channel) else { continue };
+        let field = def.field.as_str();
+        let categorical = spec
+            .layers
+            .iter()
+            .filter_map(|l| l.data.as_ref().or(spec.data.as_ref()).and_then(|n| data.get(n)))
+            .any(|df| df.float_col(field).is_none() && df.str_col(field).is_some());
+        if categorical {
+            out.push(Diagnostic {
+                kind: DiagnosticKind::Illegal,
+                message: format!(
+                    "gog: `{axis}({field})` is a category, and a `map()` position is a place — \
+                     `x` is longitude and `y` is latitude, both in degrees. A category has \
+                     neither. Give the map the coordinates and put `{field}` on a channel that \
+                     decodes it: `color({field})`."
+                ),
+            });
+        }
+    }
+
+    // **Mercator has a latitude it cannot draw past, and a clamped row is a moved
+    // row.** Reported as an Assumption rather than applied in silence: a plot that
+    // quietly relocated a place would be the silent drop, and one that dropped the
+    // row would misreport how many places there are.
+    if let Some(limit) = crate::render::geo::Geo::new(view).limit() {
+        let Some(def) = spec.axis_def(&Channel::Y) else { return };
+        let field = def.field.as_str();
+        let beyond = spec
+            .layers
+            .iter()
+            .filter_map(|l| l.data.as_ref().or(spec.data.as_ref()).and_then(|n| data.get(n)))
+            .flat_map(|df| df.float_col(field).into_iter().flatten())
+            .filter(|v| v.is_finite() && v.abs() > limit)
+            .count();
+        if beyond > 0 {
+            out.push(Diagnostic {
+                kind: DiagnosticKind::Assumption,
+                message: format!(
+                    "gog: `map(preserve = \"angle\")` sends the poles infinitely far away, so it \
+                     stops at {limit:.2}° — {beyond} row(s) beyond that were drawn at the edge \
+                     rather than where they belong. Use `map(preserve = \"area\")`, which reaches \
+                     both poles, or leave those rows out on purpose."
+                ),
+            });
+        }
+    }
+}
 
 fn check_nest(out: &mut Vec<Diagnostic>, spec: &PlotSpec, data: &HashMap<String, DataFrame>) {
     if !matches!(spec.coord, CoordSpace::Nest) {
@@ -8396,20 +8566,126 @@ mod tests {
     /// function: **Unsupported**, because the grammar allows the sentence and the
     /// engine cannot draw it yet (§12) — and it says what to write instead, not
     /// only what went wrong.
+    /// **`globe` is the only space left in this state**, and that is the change
+    /// rather than an accident: `map` was refused here beside it until it gained
+    /// its first four marks, and this test is one of the two that flipped when it
+    /// did. Both were written to flip, so neither had to be found.
     #[test]
     fn an_undrawn_space_says_what_to_write_instead() {
-        let map = CoordSpace::Map(crate::ir::MapView::default());
-        for (coord, atom) in [(map, "map"), (CoordSpace::Globe, "globe")] {
-            let spec = base().layer(Layer::new(Mark::Point)).coord(coord);
-            let out = check(&spec, &data());
-            assert!(
-                out.iter().any(|d| d.kind == DiagnosticKind::Unsupported
-                    && d.message.contains(&format!("`{atom}()`"))
-                    && d.message.contains(&format!("Drop `{atom}()`"))),
-                "`{atom}()` was accepted and drawn flat: {:?}",
-                msgs(&out)
-            );
-        }
+        let spec = base().layer(Layer::new(Mark::Point)).coord(CoordSpace::Globe);
+        let out = check(&spec, &data());
+        assert!(
+            out.iter().any(|d| d.kind == DiagnosticKind::Unsupported
+                && d.message.contains("`globe()`")
+                && d.message.contains("Drop `globe()`")),
+            "`globe()` was accepted and drawn flat: {:?}",
+            msgs(&out)
+        );
+    }
+
+    fn map_base() -> PlotSpec {
+        PlotSpec::new()
+            .data("t")
+            .x("gdp")
+            .y("life")
+            .coord(CoordSpace::Map(crate::ir::MapView::default()))
+    }
+
+    /// **Every one of these was a silent drop the day `map` started drawing.** A
+    /// space owes its refusals on the day it draws, not afterwards: while nothing
+    /// stood in `map`, the space-level gate answered everything, and giving it four
+    /// marks turned one question into five that the engine answered by drawing
+    /// something wrong and saying nothing.
+    #[test]
+    fn a_map_refuses_what_it_cannot_place_and_says_what_to_write_instead() {
+        // A mark that measures along an axis, when both are spent on the place.
+        let bars = map_base().layer(Layer::new(Mark::Bar));
+        let out = check(&bars, &data());
+        assert!(
+            out.iter().any(|d| d.message.contains("`bar` measures along an axis")
+                && d.message.contains("size(<column>)")),
+            "a bar was placed on a map: {:?}", msgs(&out)
+        );
+
+        // A map and a cube are two spaces, and a plot is drawn in one.
+        let cube = map_base().z("value").layer(Layer::new(Mark::Point));
+        let out = check(&cube, &data());
+        assert!(
+            out.iter().any(|d| d.message.contains("asks for two — a map and a cube")),
+            "a bound z was ignored on a map: {:?}", msgs(&out)
+        );
+
+        // A category has no longitude.
+        let cats = PlotSpec::new()
+            .data("t")
+            .x("continent")
+            .y("life")
+            .coord(CoordSpace::Map(crate::ir::MapView::default()))
+            .layer(Layer::new(Mark::Point));
+        let out = check(&cats, &data());
+        assert!(
+            out.iter().any(|d| d.kind == DiagnosticKind::Illegal
+                && d.message.contains("is a category, and a `map()` position is a place")),
+            "a category was accepted as a place: {:?}", msgs(&out)
+        );
+
+        // The projection owns the panel's shape, so the setting is refused rather
+        // than accepted and then overridden.
+        let mut squashed = map_base().layer(Layer::new(Mark::Point));
+        squashed.theme.ratio = Some(1.0);
+        let out = check(&squashed, &data());
+        assert!(
+            out.iter().any(|d| d.kind == DiagnosticKind::Illegal
+                && d.message.contains("`theme(ratio = )` shapes a panel")),
+            "a ratio silently lost a fight with the projection: {:?}", msgs(&out)
+        );
+    }
+
+    /// A clamped row is a **moved** row, so Mercator's cut is reported. Neither
+    /// dropping it (which would misreport how many places there are) nor moving it
+    /// in silence is allowed.
+    #[test]
+    fn mercator_says_which_rows_it_could_not_reach() {
+        let df = DataFrame::new()
+            .with_float("lon", vec![0.0, 10.0])
+            .with_float("lat", vec![0.0, 89.0]);
+        let mut d = HashMap::new();
+        d.insert("t".to_string(), df);
+        let spec = PlotSpec::new()
+            .data("t")
+            .x("lon")
+            .y("lat")
+            .coord(CoordSpace::Map(crate::ir::MapView {
+                preserve: crate::ir::Preserve::Angle,
+            }))
+            .layer(Layer::new(Mark::Point));
+        let out = check(&spec, &d);
+        assert!(
+            out.iter().any(|x| x.kind == DiagnosticKind::Assumption
+                && x.message.contains("1 row(s) beyond that")),
+            "Mercator moved a place and said nothing: {:?}", msgs(&out)
+        );
+
+        // Equal Earth reaches both poles, so the same data earns no such report.
+        let ok = spec.clone().coord(CoordSpace::Map(crate::ir::MapView::default()));
+        let out = check(&ok, &d);
+        assert!(
+            !out.iter().any(|x| x.message.contains("row(s) beyond that")),
+            "equal earth reported a limit it does not have: {:?}", msgs(&out)
+        );
+    }
+
+    /// The other half of the same statement: a space that *has* marks must not be
+    /// refused by the space-level gate, or the refusal would outlive what it was
+    /// protecting and no plot in it could ever be drawn.
+    #[test]
+    fn a_space_with_marks_in_it_is_not_refused_by_the_space_gate() {
+        let spec = base()
+            .layer(Layer::new(Mark::Point))
+            .coord(CoordSpace::Map(crate::ir::MapView::default()));
+        let mut out = Vec::new();
+        check_coord(&mut out, &spec);
+        assert!(out.is_empty(), "`map()` is still refused wholesale: {:?}", msgs(&out));
     }
 
     // -----------------------------------------------------------------------
@@ -11611,8 +11887,29 @@ mod tests {
             );
         }
         for m in &ALL_MARKS {
-            assert!(!sc("globe", mark_name(m)) && !sc("map", mark_name(m)),
-                "{m:?}: globe/map have no renderer, so no cell may claim one");
+            assert!(!sc("globe", mark_name(m)),
+                "{m:?}: globe has no renderer, so no cell may claim one");
+        }
+        // **The map column, stated whole.** A map is a map of the plane, so it has
+        // a coordinate for everything — but longitude and latitude spend *both*
+        // axes, so a mark needing one to measure along has none left. What draws is
+        // what a position places and nothing else: a place, a route through places,
+        // a name at a place, and the rule that spans the axis it does not name,
+        // which is how the graticule is a mark rather than furniture.
+        //
+        // Restating the list here is the point rather than a duplication. This
+        // assertion is what makes the column change on purpose — it is the one that
+        // failed when `map` gained its first four marks, which is exactly the job a
+        // hand-written list should do when the generated grid moves under it.
+        //
+        // `zone` is the cell owed next: it is the region mark, and a choropleth is
+        // an extent supplied by a boundary rather than a new geometry.
+        for m in &ALL_MARKS {
+            let placed_by_a_position =
+                matches!(m, Mark::Point | Mark::Path | Mark::Text | Mark::Rule);
+            assert_eq!(sc("map", mark_name(m)), placed_by_a_position,
+                "{m:?}: a map draws what a position places, and nothing that \
+                 measures along an axis it does not have");
         }
     }
 
