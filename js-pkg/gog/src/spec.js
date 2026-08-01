@@ -618,6 +618,16 @@ class Builder {
         this.setChannel(atom.kind, atom);
         return;
 
+      // Plot-scoped, like `palette`: a predicate over rows is a fact about the
+      // data, so every layer reading that column answers to it.
+      case "brush": {
+        const entry = { field: atom.fields.field };
+        if (atom.fields.at !== undefined) entry.at = atom.fields.at;
+        if (atom.fields.levels !== undefined) entry.levels = atom.fields.levels;
+        (this.spec.brush ??= []).push(entry);
+        return;
+      }
+
       case "style":
         this.setStyle(atom.fields.props);
         return;

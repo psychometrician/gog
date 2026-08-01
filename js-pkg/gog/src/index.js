@@ -94,6 +94,8 @@ export {
   label,
   pattern,
   play,
+  // the selection — a bound on a column, which the reader may move
+  brush,
   // settings and plot-level atoms
   style,
   theme,

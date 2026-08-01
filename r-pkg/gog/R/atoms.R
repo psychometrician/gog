@@ -1237,6 +1237,63 @@ play <- function(field, speed = NULL) {
             class = "gog_atom")
 }
 
+# What `at = ` was given, and which of the two readings it is.
+#
+# One argument rather than two, because the *value* answers the question the way
+# a column answers it everywhere else in this grammar: numbers are a range,
+# names are a set of slots. `at = c("Asia")` beside `at = c(1200, 45000)` would
+# be two argument names for one idea, which is the silent letter Law 2 refuses.
+check_brush_at <- function(at) {
+  if (is.null(at)) return(NULL)
+  if (is.character(at) || is.factor(at)) {
+    at <- as.character(at)
+    if (length(at) < 1L || anyNA(at)) {
+      stop("gog: `at = ` on a column of categories is the names to select, ",
+           "e.g. `brush(continent, at = c(\"Asia\", \"Europe\"))`.", call. = FALSE)
+    }
+    return(list(levels = at))
+  }
+  if (!is.numeric(at) || length(at) != 2L || !all(is.finite(at))) {
+    stop("gog: `at = ` is where the selection opens: two numbers on a column ",
+         "that measures, e.g. `brush(gdp, at = c(1200, 45000))`, or the names ",
+         "to select on a column of categories.", call. = FALSE)
+  }
+  list(at = as.numeric(at))
+}
+
+#' Let the reader select rows, and push back the rest.
+#'
+#' \code{brush} puts a bound on one column's values.  Rows inside it keep the
+#' plot's colors; rows outside it are dimmed, so a selection is read against
+#' what it was taken from.  Where the page can run the engine, dragging moves the
+#' bound; on paper it stays where the sentence put it.
+#'
+#' \strong{A brush highlights.  It never removes rows.}  Removing rows before
+#' the statistics run is what \code{limits} does, on the binding, and it counts
+#' what it dropped.  The two are the same shape and different operations: change
+#' a domain and a histogram re-bins the survivors, brush it and the same bars
+#' stay, with the selected part standing out.
+#'
+#' One column per \code{brush}.  Write two for a rectangle:
+#' \code{brush(gdp, at = c(1200, 45000)) + brush(life, at = c(55, 78))}.
+#'
+#' A mark can be brushed when one row is one shape: \code{point}, \code{text},
+#' \code{rule} and \code{zone}.  A \code{line} draws one shape through many rows,
+#' so there is no single row to select, and GOG says so rather than guessing.
+#' A summarized layer is drawn whole, because a selection of twelve of a bar's
+#' forty rows has no honest picture.
+#' @param field  Column the bound is read on, as a bare name.
+#' @param at  Where the selection opens: two numbers on a column that measures,
+#'   or the names to select on a column of categories.  Left out, nothing is
+#'   selected and the plot draws exactly as it would with no `brush` at all.
+#' @return A `gog_atom` added to a plot with `+`.
+#' @export
+brush <- function(field, at = NULL) {
+  structure(c(list(type = "brush", field = deparse(substitute(field))),
+              check_brush_at(at)),
+            class = "gog_atom")
+}
+
 # ---------------------------------------------------------------------------
 # Constant settings — set, not mapped
 # ---------------------------------------------------------------------------

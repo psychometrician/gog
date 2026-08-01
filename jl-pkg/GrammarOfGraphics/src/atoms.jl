@@ -559,6 +559,41 @@ play(field; speed = nothing) =
     Atom(:play, Dict{Symbol,Any}(:field => column_name(field, "play"),
                                  :speed => check_speed(speed)))
 
+# What `at` was given, and which of the two readings it is. One keyword rather
+# than two, because the *value* answers the question the way a column answers it
+# everywhere else in this grammar: numbers are a range, names are a set of slots.
+function check_brush_at(at)
+    at === nothing && return Dict{Symbol,Any}()
+    seq = at isa AbstractString || at isa Symbol ? [at] : collect(at)
+    if !isempty(seq) && all(v -> v isa AbstractString || v isa Symbol, seq)
+        return Dict{Symbol,Any}(:levels => String[String(v) for v in seq])
+    end
+    if length(seq) != 2 || !all(v -> v isa Real && isfinite(v), seq)
+        throw(GogError("gog: `at` is where the selection opens: two numbers on a " *
+                       "column that measures, e.g. `brush(:gdp, at = (1200, 45000))`, " *
+                       "or the names to select on a column of categories."))
+    end
+    Dict{Symbol,Any}(:at => Float64[Float64(seq[1]), Float64(seq[2])])
+end
+
+"""Let the reader select rows, and push back the rest.
+
+`brush` puts a bound on one column's values. Rows inside it keep the plot's
+colors; rows outside it are dimmed, so a selection is read against what it was
+taken from. Where the page can run the engine, dragging moves the bound; on paper
+it stays where the sentence put it.
+
+**A brush highlights. It never removes rows.** Removing rows before the
+statistics run is what `limits` does, on the binding, and it counts what it
+dropped. Change a domain and a histogram re-bins the survivors; brush it and the
+same bars stay, with the selected part standing out.
+
+One column per `brush`. Write two for a rectangle:
+`brush(:gdp, at = (1200, 45000)) + brush(:life, at = (55, 78))`."""
+brush(field; at = nothing) =
+    Atom(:brush, merge(Dict{Symbol,Any}(:field => column_name(field, "brush")),
+                       check_brush_at(at)))
+
 # ---------------------------------------------------------------------------
 # Settings — they fix a value, map nothing, and earn no legend (spec §7)
 # ---------------------------------------------------------------------------

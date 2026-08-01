@@ -471,6 +471,15 @@ class Plot:
                       "play"):
             plot._set_channel(kind, other)
 
+        # Plot-scoped, like `palette`: a predicate over rows is a fact about the
+        # data, so every layer reading that column answers to it.
+        elif kind == "brush":
+            entry = {"field": other.fields["field"]}
+            for key in ("at", "levels"):
+                if other.fields.get(key) is not None:
+                    entry[key] = other.fields[key]
+            plot.spec.setdefault("brush", []).append(entry)
+
         elif kind == "style":
             plot._set_style(other.fields["props"])
 

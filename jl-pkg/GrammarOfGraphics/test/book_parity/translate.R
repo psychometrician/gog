@@ -25,7 +25,7 @@
 # `color` does, so the accessor must still be added or the sentence fails on the
 # *column* name and never reaches the refusal being compared.
 JL_COLUMN_ATOMS <- c("x", "y", "z", "color", "size", "shape", "opacity",
-                     "label", "pattern", "group", "facet", "order", "play",
+                     "label", "pattern", "group", "facet", "order", "play", "brush",
                      "colour")
 JL_ALL_COLUMN_ARGS <- c("bounds", "partition")
 JL_PAIR_KEYWORDS <- c("lower", "upper", "start", "end")

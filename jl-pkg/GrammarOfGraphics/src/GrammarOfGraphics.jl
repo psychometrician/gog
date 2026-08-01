@@ -63,6 +63,7 @@ export bin, smooth, count, density, sum, mean, median, max, min, proportion,
 export x, y, z, space, polar, nest
 # channels — the "vowels"
 export color, group, size, shape, opacity, label, pattern, play
+export brush
 # exported only to be refused: the British spelling names its fix
 export colour
 # settings and plot-level atoms

@@ -37,6 +37,7 @@ from typing import List, Optional, Tuple
 COLUMN_ATOMS = {
     "x", "y", "z", "color", "size", "shape", "opacity", "label", "pattern",
     "group", "facet", "order", "play",
+    "brush",
     # `colour` is exported only to be refused, but it takes its argument the
     # way `color` does, so the accessor must still be added or the sentence
     # fails on the *column* name and never reaches the refusal being compared.

@@ -667,6 +667,52 @@ def play(field: Column, speed: Optional[float] = None) -> Atom:
     return Atom("play", field=column_name(field, "play"), speed=_check_speed(speed))
 
 
+def _check_brush_at(at):
+    """What `at=` was given, and which of the two readings it is.
+
+    One argument rather than two, because the *value* answers the question the
+    way a column answers it everywhere else in this grammar: numbers are a
+    range, names are a set of slots.
+    """
+    if at is None:
+        return {}
+    if isinstance(at, str):
+        at = [at]
+    seq = list(at)
+    if seq and all(isinstance(v, str) for v in seq):
+        return {"levels": seq}
+    if len(seq) != 2 or not all(isinstance(v, (int, float)) and v == v for v in seq):
+        raise ValueError(
+            "gog: `at=` is where the selection opens: two numbers on a column that "
+            "measures, e.g. `brush(col.gdp, at=(1200, 45000))`, or the names to "
+            "select on a column of categories."
+        )
+    return {"at": [float(seq[0]), float(seq[1])]}
+
+
+def brush(field: Column, at=None) -> Atom:
+    """Let the reader select rows, and push back the rest.
+
+    `brush` puts a bound on one column's values. Rows inside it keep the plot's
+    colors; rows outside it are dimmed, so a selection is read against what it
+    was taken from. Where the page can run the engine, dragging moves the bound;
+    on paper it stays where the sentence put it.
+
+    **A brush highlights. It never removes rows.** Removing rows before the
+    statistics run is what `limits` does, on the binding, and it counts what it
+    dropped. Change a domain and a histogram re-bins the survivors; brush it and
+    the same bars stay, with the selected part standing out.
+
+    One column per `brush`. Write two for a rectangle:
+    `brush(col.gdp, at=(1200, 45000)) + brush(col.life, at=(55, 78))`.
+
+    A mark can be brushed when one row is one shape: `point`, `text`, `rule` and
+    `zone`. A `line` draws one shape through many rows, so there is no single row
+    to select, and GOG says so rather than guessing.
+    """
+    return Atom("brush", field=column_name(field, "brush"), **_check_brush_at(at))
+
+
 # ---------------------------------------------------------------------------
 # Settings — they fix a value, map nothing, and earn no legend (spec §7)
 # ---------------------------------------------------------------------------

@@ -582,6 +582,18 @@ resolve_query <- function(q, table) {
     pattern = { lhs <- set_channel(lhs, "pattern", rhs$field) },
     play    = { lhs <- set_channel(lhs, "play",    rhs$field, speed = rhs$speed) },
 
+    # Plot-scoped, like `palette`: a predicate over rows is a fact about the
+    # data, so every layer reading that column answers to it. `I()` keeps a
+    # one-name selection an array — `auto_unbox` would otherwise send `"Asia"`
+    # where the engine reads a list of names.
+    brush = {
+      entry <- list(field = rhs$field)
+      if (!is.null(rhs$at)) entry$at <- I(rhs$at)
+      if (!is.null(rhs$levels)) entry$levels <- I(rhs$levels)
+      prior <- if (is.null(lhs$spec$brush)) list() else lhs$spec$brush
+      lhs$spec$brush <- c(prior, list(entry))
+    },
+
     style   = { lhs <- set_style(lhs, rhs$props) },
 
     palette = { lhs$spec$palette <- rhs$value },

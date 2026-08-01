@@ -647,6 +647,35 @@ export const play = (...raw) => {
   return new Atom("play", { field: columnName(field, "play"), speed: checkSpeed(speed) });
 };
 
+// What `at` was given, and which of the two readings it is. One option rather
+// than two, because the *value* answers the question the way a column answers it
+// everywhere else in this grammar: numbers are a range, names are a set of slots.
+const checkBrushAt = (at) => {
+  if (at === undefined || at === null) return {};
+  const seq = typeof at === "string" ? [at] : Array.from(at ?? []);
+  if (seq.length > 0 && seq.every((v) => typeof v === "string")) return { levels: seq };
+  if (seq.length !== 2 || !seq.every((v) => typeof v === "number" && Number.isFinite(v))) {
+    throw new GogError(
+      "gog: `at` is where the selection opens: two numbers on a column that " +
+      "measures, e.g. `brush(col.gdp, { at: [1200, 45000] })`, or the names to " +
+      "select on a column of categories.",
+    );
+  }
+  return { at: [seq[0], seq[1]] };
+};
+
+// Let the reader select rows, and push back the rest.
+//
+// `brush` puts a bound on one column's values. Rows inside it keep the plot's
+// colors; rows outside it are dimmed, so a selection is read against what it was
+// taken from. **It highlights and never removes rows** — removing rows before the
+// statistics run is what `limits` does, on the binding, and it counts what it
+// dropped. One column per `brush`; write two for a rectangle.
+export const brush = (...raw) => {
+  const { field, at } = readArgs(raw, "brush", ["field", "at"]);
+  return new Atom("brush", { field: columnName(field, "brush"), ...checkBrushAt(at) });
+};
+
 // ---------------------------------------------------------------------------
 // Settings — they fix a value, map nothing, and earn no legend (spec §7)
 // ---------------------------------------------------------------------------

@@ -432,6 +432,15 @@ function Base.:+(left::Plot, right::Atom)
     elseif kind in (:color, :group, :size, :shape, :opacity, :label, :pattern, :play)
         set_channel!(plot, String(kind), right)
 
+    # Plot-scoped, like `palette`: a predicate over rows is a fact about the
+    # data, so every layer reading that column answers to it.
+    elseif kind === :brush
+        entry = Dict{String,Any}("field" => right.fields[:field])
+        for key in (:at, :levels)
+            haskey(right.fields, key) && (entry[String(key)] = right.fields[key])
+        end
+        push!(get!(plot.spec, "brush", Any[]), entry)
+
     elseif kind === :style
         set_style!(plot, right.fields[:props])
 
