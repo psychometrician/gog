@@ -1541,7 +1541,8 @@ impl SvgRenderer {
             // is and what its axes measure. Written only when a brush is declared,
             // so an ordinary plot's bytes are exactly what they were.
             self.write_brush_frame(&mut svg, spec, l, xs, ys, cat_x.as_ref(), cat_y.as_ref(),
-                                   x_field, y_field, !is_nest && !is_3d);
+                                   x_field, y_field, !is_nest && !is_3d,
+                                   x_log.then_some(x_base), y_log.then_some(y_base));
             // Which subset this panel shows at moment `fi`. Moments are the outer
             // stride, so at one frame this is exactly the index it always was.
             let eff_at = |fi: usize| &panel_eff[fi * npanels + panel.slot];
@@ -2014,7 +2015,8 @@ impl SvgRenderer {
     fn write_brush_frame(&self, svg: &mut String, spec: &PlotSpec, l: &Layout,
                          xs: (f64, f64), ys: (f64, f64),
                          cat_x: Option<&Vec<String>>, cat_y: Option<&Vec<String>>,
-                         x_field: &str, y_field: &str, plane: bool) {
+                         x_field: &str, y_field: &str, plane: bool,
+                         x_log: Option<f64>, y_log: Option<f64>) {
         // A packing has regions rather than coordinates, so there is no domain to
         // state and nothing for a gesture to invert. The dimming still works
         // there, because a predicate reads a column's values and never asks where
@@ -2031,13 +2033,22 @@ impl SvgRenderer {
         // axis reads is a *scope* question, and scope resolution is this engine's
         // job — a browser working it out from the spec would be a second copy of
         // `resolve_scopes` in another language.
+        // **A log axis states its domain in log space**, because that is the
+        // space positions are linear in — so a browser reading the two numbers
+        // and interpolating between them gets a logarithm, not a value. The base
+        // travels with the domain and says how to come back: `base^v`. Without
+        // it a drag on a log axis produces a bound in the wrong units entirely,
+        // and the engine then compares it against raw values.
+        let base = |b: Option<f64>| b.map(|b| format!(" data-log=\"{b}\"")).unwrap_or_default();
         writeln!(svg,
             concat!(r#"  <g data-gog-panel="{x0} {y0} {x1} {y1}" "#,
-                    r#"data-x-field="{xn}" data-x="{xf} {xt}"{xc} "#,
-                    r#"data-y-field="{yn}" data-y="{yf} {yt}"{yc}/>"#),
+                    r#"data-x-field="{xn}" data-x="{xf} {xt}"{xc}{xl} "#,
+                    r#"data-y-field="{yn}" data-y="{yf} {yt}"{yc}{yl}/>"#),
             x0 = l.x0, y0 = l.y0, x1 = l.x1, y1 = l.y1,
-            xn = crate::render::text::esc(x_field), xf = xs.0, xt = xs.1, xc = cats(cat_x),
-            yn = crate::render::text::esc(y_field), yf = ys.0, yt = ys.1, yc = cats(cat_y),
+            xn = crate::render::text::esc(x_field), xf = xs.0, xt = xs.1,
+            xc = cats(cat_x), xl = base(x_log).replace("data-log", "data-x-log"),
+            yn = crate::render::text::esc(y_field), yf = ys.0, yt = ys.1,
+            yc = cats(cat_y), yl = base(y_log).replace("data-log", "data-y-log"),
         ).unwrap();
     }
 

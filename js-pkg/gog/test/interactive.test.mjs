@@ -22,6 +22,7 @@ import {
   attachDrag,
   attachView,
   boundOn,
+  placeOn,
   selectedRows,
   hasBrush,
   isSpatial,
@@ -366,4 +367,31 @@ test("a redraw throws the viewBox away, and apply puts it back", () => {
   plot.svg.attrs.viewBox = "0 0 800 600";
   view.apply();
   assert.equal(plot.svg.attrs.viewBox, zoomed, "every brush frame would snap the zoom out");
+});
+
+test("a log axis states its domain in log space, and the browser comes back", () => {
+  // What the engine writes for gdp on log10 over roughly 70..141000.
+  const log = { field: "gdp", from: 1.85, to: 5.15, lo: 0, hi: 100, log: 10, cats: null };
+  const { at } = boundOn(log, 0, 100);
+  assert.ok(Math.abs(at[0] - 10 ** 1.85) < 1e-6, `got ${at[0]}`);
+  assert.ok(Math.abs(at[1] - 10 ** 5.15) < 1e-6, `got ${at[1]}`);
+  // Without undoing the base a full-width drag would have said 1.85 to 5.15,
+  // which the engine then compares against gdp in dollars.
+  assert.ok(at[1] > 100000, "a bound must be in the column's own units");
+});
+
+test("placeOn is boundOn run forwards, on every kind of axis", () => {
+  const lin = { from: 0, to: 50000, lo: 0, hi: 100, log: null, cats: null };
+  assert.equal(placeOn(lin, 25000), 50);
+  // Round trip: a value placed and then read back is the value.
+  const back = boundOn(lin, placeOn(lin, 12345), placeOn(lin, 12345)).at[0];
+  assert.ok(Math.abs(back - 12345) < 1e-6, `got ${back}`);
+
+  const log = { from: 2, to: 5, lo: 0, hi: 300, log: 10, cats: null };
+  assert.ok(Math.abs(placeOn(log, 1000) - 100) < 1e-9, "1000 is one decade of three along");
+
+  const cats = { from: 0, to: 1, lo: 0, hi: 100, log: null,
+                 cats: ["Africa", "Americas", "Asia", "Europe"] };
+  assert.equal(placeOn(cats, "Asia"), 62.5, "the middle of the third slot of four");
+  assert.equal(placeOn(cats, "Nowhere"), null);
 });

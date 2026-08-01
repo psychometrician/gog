@@ -219,8 +219,32 @@ export function boundOn(axis, a, b) {
     const last = Math.max(0, Math.min(n - 1, Math.floor(f1 * n)));
     return { levels: axis.cats.slice(first, last + 1) };
   }
-  return { at: [axis.from + f0 * (axis.to - axis.from),
-                axis.from + f1 * (axis.to - axis.from)] };
+  // A log axis states its domain in log space, because that is the space
+  // positions are linear in, so interpolating between its two numbers gives a
+  // logarithm rather than a value. Undoing that is the whole of what `log` is
+  // for, and without it a drag on a log axis produced a bound in units the
+  // engine does not compare against.
+  const value = (f) => {
+    const v = axis.from + f * (axis.to - axis.from);
+    return axis.log ? axis.log ** v : v;
+  };
+  return { at: [value(f0), value(f1)] };
+}
+
+/**
+ * Where a value sits on an axis, in the units the panel rectangle is written
+ * in. `boundOn` run forwards, and the only other arithmetic the browser needs.
+ */
+export function placeOn(axis, value) {
+  if (axis.cats) {
+    const i = axis.cats.indexOf(value);
+    if (i < 0) return null;
+    return axis.lo + ((i + 0.5) / axis.cats.length) * (axis.hi - axis.lo);
+  }
+  if (typeof value !== "number" || !Number.isFinite(value)) return null;
+  const v = axis.log ? Math.log(value) / Math.log(axis.log) : value;
+  const f = (v - axis.from) / (axis.to - axis.from || 1);
+  return axis.lo + f * (axis.hi - axis.lo);
 }
 
 /**
@@ -308,9 +332,11 @@ export function attachBrush(engine, container, request, options = {}) {
         if (!span) return null;
         const [from, to] = span.split(" ").map(Number);
         const cats = g.getAttribute(`data-${name}-cats`);
+        const log = g.getAttribute(`data-${name}-log`);
         return {
           field: g.getAttribute(`data-${name}-field`),
           from, to, lo, hi,
+          log: log === null ? null : Number(log),
           cats: cats === null ? null : cats.split("|"),
         };
       };
@@ -426,6 +452,86 @@ export function attachBrush(engine, container, request, options = {}) {
     band = null;
   };
 
+  // ---------------------------------------------------------------------
+  // Reading the row under the pointer
+  //
+  // Reporting what a row is does not change what the picture claims about the
+  // data, so this is the medium's and needs no atom — and it is **not** the
+  // blocked `click`, because reading a row is not selecting one by identity.
+  //
+  // The obvious way to do this is hit-testing the DOM, which would need every
+  // mark to carry its row number, which is exactly what this feature refused to
+  // add. It does not need to: the browser has the data and it has the panel's
+  // two domains, so it can place every row itself and keep the nearest. That is
+  // `placeOn`, which is `boundOn` run forwards. No engine change, nothing added
+  // to the SVG, and it works on a log axis and a category axis for free.
+  // ---------------------------------------------------------------------
+  let tip = null;
+
+  const nearest = (panel, at) => {
+    let best = null;
+    for (const plot of eachPlot(req.spec)) {
+      const df = req.data?.[plot.data];
+      if (!df || !panel.x || !panel.y) continue;
+      const floats = df.floats ?? {};
+      const strings = df.strings ?? {};
+      const get = (f, i) => (floats[f] ? floats[f][i] : strings[f]?.[i]);
+      const n = floats[panel.x.field]?.length ?? strings[panel.x.field]?.length ?? 0;
+      const named = [];
+      const add = (f) => { if (f && !named.includes(f) && (floats[f] || strings[f])) named.push(f); };
+      for (const c of [plot.x, plot.y]) add(c?.field);
+      for (const c of Object.values(plot.channels ?? {})) add(c?.field);
+      for (const layer of plot.layers ?? []) {
+        for (const c of Object.values(layer.encodings ?? {})) add(c?.field);
+      }
+      for (let i = 0; i < n; i++) {
+        const px = placeOn(panel.x, get(panel.x.field, i));
+        const py = placeOn(panel.y, get(panel.y.field, i));
+        if (px === null || py === null) continue;
+        const d = (px - at.x) ** 2 + (py - at.y) ** 2;
+        if (best === null || d < best.d) {
+          best = { d, px, py, row: named.map((f) => [f, get(f, i)]) };
+        }
+      }
+    }
+    // Within about a glyph's reach, or the reader is not pointing at anything.
+    return best && best.d <= 14 * 14 ? best : null;
+  };
+
+  const showTip = (panel, hit) => {
+    const owner = panel.el.ownerSVGElement;
+    const ctm = panel.el.getScreenCTM();
+    if (!owner || !ctm) return hideTip();
+    const p = owner.createSVGPoint();
+    p.x = hit.px;
+    p.y = hit.py;
+    const at = p.matrixTransform(ctm);
+    if (!tip) {
+      tip = document.createElement("div");
+      tip.className = "gog-tip";
+      tip.style.cssText =
+        "position:fixed;pointer-events:none;z-index:2147483647;" +
+        "font:12px/1.5 ui-monospace,SFMono-Regular,Menlo,monospace;" +
+        "background:rgba(255,255,255,0.96);border:1px solid #ccc;border-radius:3px;" +
+        "padding:.25em .5em;color:#333;box-shadow:0 1px 4px rgba(0,0,0,.12);white-space:nowrap;";
+      document.body.appendChild(tip);
+    }
+    if (!tip.isConnected) document.body.appendChild(tip);
+    tip.innerHTML = hit.row
+      .map(([f, v]) => `<div><span style="color:#888">${f}</span> ${v ?? ""}</div>`)
+      .join("");
+    // Kept inside the viewport, so a point near the right edge does not push a
+    // fixed element off the page and give the reader a scrollbar.
+    const w = tip.offsetWidth;
+    tip.style.left = `${Math.min(at.x + 12, window.innerWidth - w - 8)}px`;
+    tip.style.top = `${at.y + 12}px`;
+  };
+
+  const hideTip = () => {
+    tip?.remove();
+    tip = null;
+  };
+
   // Where a pixel falls on an axis, in the column's own units — or, on a column
   // of categories, which slots the drag covered. A category owns an equal share
   // of the panel, so the slot is the fraction times the count, floored.
@@ -509,6 +615,15 @@ export function attachBrush(engine, container, request, options = {}) {
     }
   };
   const onMove = (e) => {
+    if (held < 0 && !panning) {
+      // Not dragging: say what is under the pointer.
+      const all = panels();
+      const over = all.find((p) => holds(p, pointIn(p, e)));
+      const hit = over && mode() === "select" ? nearest(over, pointIn(over, e)) : null;
+      if (hit) showTip(over, hit);
+      else hideTip();
+      return;
+    }
     if (panning) {
       view.panBy(e.clientX - panning.x, e.clientY - panning.y);
       panning = { x: e.clientX, y: e.clientY };
@@ -539,11 +654,13 @@ export function attachBrush(engine, container, request, options = {}) {
     panning = null;
     hideBand();
   };
+  const onLeave = () => hideTip();
 
   container.addEventListener("pointerdown", onDown);
   container.addEventListener("pointermove", onMove);
   container.addEventListener("pointerup", onUp);
   container.addEventListener("pointercancel", onUp);
+  container.addEventListener("pointerleave", onLeave);
 
   return {
     destroy() {
@@ -551,7 +668,9 @@ export function attachBrush(engine, container, request, options = {}) {
       container.removeEventListener("pointermove", onMove);
       container.removeEventListener("pointerup", onUp);
       container.removeEventListener("pointercancel", onUp);
+      container.removeEventListener("pointerleave", onLeave);
       hideBand();
+      hideTip();
     },
     opened,
     /** What the reader has caught: a count, and the rows to read. */
