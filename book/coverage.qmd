@@ -206,7 +206,7 @@ them. These are scheduling, not argument.
 | `theme(legend.position =)` | it has its home in `theme()` and is waiting for a case that needs it |
 | `geom_smooth(se = TRUE)` | the smoother's band, its missing pair form, exactly as `confidence` is the mean's |
 | ggrepel | `text * repel`, designed, waiting on a layout stage |
-| `geom_sf()`, `geom_map()`, `coord_sf()`, `borders()` | the `map` space is named in the kernel and not drawn; a choropleth also needs a polygon geometry with holes in it |
+| `geom_sf()`, `geom_map()`, `coord_sf()`, `borders()` | the `map` space draws, so a mark at a place on a projected earth is an ordinary sentence ([Map](map.qmd)). What is still owed is the polygon geometry underneath a choropleth: a filled region whose boundary comes from the data, with holes in it |
 | plotly-style interaction: click a point, and read what it is | `click` is named in the kernel and not drawn, and it waits on a question rather than on work. GOG has no way to say *this row is the same row as that one*, which is also what an animation needs before it can slide a bubble from one year to the next. Both wait for that word together. |
 | `geom_dotplot()` | a cluster-aware mesh, a second cutpoint rule for binning |
 | `scale_x_binned()`, equal-count bins | the other cutpoint rule, the same parameter |

@@ -50,10 +50,10 @@ it is a different way of naming the rows.
 The kernel above is the *designed* vocabulary. The one word marked ⬜ is not
 drawn yet, and it is not callable either, so your language will report a
 missing function rather than GOG explaining itself. What GOG never does is
-accept one of these names and quietly ignore it. Every **mark** draws today,
-`surface` being the last to arrive, and `play` draws too. Every **space** draws
-too, `map` being the last to arrive. One of the two **selections** draws as
-well. `brush` dims the rows you did not pick, and removes none of them.
+accept one of these names and quietly ignore it. Every **mark** draws, and so
+does every **space** and every **channel**, `play` included. One of the two
+**selections** draws as well. `brush` dims the rows you did not pick, and
+removes none of them.
 [Selection](selection.qmd) is its chapter. What is left is `click`.
 See [Design laws](design-laws.qmd) for the difference between
 **illegal** (the grammar forbids it) and **unsupported** (the grammar allows it;

@@ -75,10 +75,11 @@ question, which is usually the better door in.
 | Waterfall / bridge chart | `zone * bounds(base, top, start = left, end = right) + x(step) + color(dir) + style(opacity = 1)`, worked example in [Zone](marks/zone.qmd). The running total is host arithmetic (`cumsum`), because `stack` accumulates *within* a position and a waterfall accumulates *across* positions; the subtotal bars that stand on the floor are rows whose `base` is 0, and `left`/`right` are the slot center ± a little, which is what puts air between the bars |
 | Funnel chart | `zone * bounds(lo, hi) + y(stage) + style(opacity = 1)`, worked example in [Zone](marks/zone.qmd), with `text + label(n) + x(mid)` for the numbers inside. The columns `lo` and `hi` hold `-n/2` and `n/2`, computed in the host, which is the same arithmetic the waterfall uses for its running total. A funnel is a bar chart whose blocks are centered on zero, and centering is two columns rather than a chart type. The measure lands on `x` because `y(stage)` is a category; nothing had to ask for it. The sloped connectors between stages are deliberately absent. Each one spans the gap between two categories, where the axis means nothing, so its size is read off no scale |
 
-## Asked for, not drawn yet
+## Asked for, and where each one stands
 
-Honesty table: these names have designed answers, and the engine refuses
-toward them with a direction rather than drawing something else.
+These names need more than one line to answer. Nearly all of them draw, and the
+entry gives the sentence. Where one does not, it says what is missing rather
+than drawing something else in its place.
 
 | The name | Where it stands |
 |---|---|
@@ -100,7 +101,7 @@ toward them with a direction rather than drawing something else.
 | Contour plot | ✅ drawn both ways: `path * density` traces the iso-lines, `zone * density(levels = )` fills the bands between them. A **crater** (a ring-shaped cluster with a hollow middle) is the one field the filled reading draws wrongly, since a band round a hollow is a shape with a hole and GOG has no mark for one — the traced form shows it correctly |
 | Donut chart | ✅ drawn: `zone * partition(<category>) + x(<measure>) + y(depth, limits = c(0, 2)) + polar()`, worked example in [Polar](polar.qmd). A donut is a [sunburst](polar.qmd) of a tree one level deep, and the hole is not a round thing at all — it is a stretch of the radial axis with nothing standing on it, which is what the stated `limits` leave empty. The plain **pie** (`bar * count * stack`) is the one reading that cannot say it, having spent its measurement on the angle and left its radius a constant with no domain to widen; that is a fact about the reading rather than a gap, so there is no `polar(hole = )` and no plan for one |
 | Radar / spider plot | ✅ drawn: `line * mean + x(category) + y(measure) + polar()`, filled with `area`; the path closes because a categorical angle wraps |
-| Choropleth / geographic map | needs the `map` space, named in the kernel, not yet drawn |
+| Choropleth / geographic map | half drawn, and the half that is missing is not the space. `map()` projects the earth and takes any mark that draws on a plane, so a quantity at a place is `point + size(<value>) + map()` ([Map](map.qmd)). The *shaded region* is what is owed: a choropleth needs a filled area whose boundary comes from the data, and none of the four ways `zone` finds its sides is a coastline |
 | Animated (time-lapse) chart | ✅ drawn: any sentence `+ play(year)` — faceting read in time |
 | Marginal / joint plot (scatter with histograms in its margins) | ✅ drawn: <code>top / (main &#124; right)</code> — three ordinary plots and the two composition operators. No chart type, no `ggMarginal()`: the marginals align and share their scale because both name the same column on the same axis, which is the one rule composition adds ([Composition](composition.qmd)). Any mark can be the marginal — a histogram, a box, a violin, a dot plot |
 | 3-D surface | ✅ drawn: `surface + x + y + z` over a grid table, or `surface * density + space()` to raise an estimated field. A **scatter** cannot be one, and is refused toward `point` rather than drawn as an empty sheet: a surface's faces span the gaps between its samples, so it needs samples on a grid |

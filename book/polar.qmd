@@ -381,9 +381,8 @@ is the question is to drop the last atom and read the bar.
 ## Every mark bends
 
 There is no mark that draws on the page and refuses the circle. The summary
-marks were the last to arrive, and they read here exactly as they read flat: a
-box is still a five-number summary, a whisker is still a reach, a band is still a
-spread. Only the geometry changed.
+marks read here exactly as they read flat: a box is still a five-number summary,
+a whisker is still a reach, a band is still a spread. Only the geometry changed.
 
 ```{r}
 data(winds) + box + x(direction) + y(speed) + polar()

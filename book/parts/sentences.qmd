@@ -4,14 +4,22 @@ Letters are not yet writing. The 1446 book, after explaining each letter
 class, devoted a chapter to assembly: how letters pack into syllable
 blocks, blocks into words, words into sentences.
 
-This part is GOG's assembly chapter. The `+` operator layers marks in one
-panel; the `*` operator derives a new statement from a mark and a
-transform; position in the sentence decides which layer a channel binds
-to; and the `|` and `/` operators multiply one plot into a disciplined
-grid of panels. Last come the two coordinate spaces. `space` turns a flat
-plot into a three-dimensional one by adding a single vowel, `z`; `polar`
-bends the same plane into a circle and asks nothing new of the sentence
-at all.
+This part is GOG's assembly chapter, and it moves through five groups.
+
+First the mechanics. The `+` operator layers marks in one panel, and the
+`*` operator derives a new statement from a mark and a transform. Position
+in the sentence then decides which layer a channel binds to. Second, the
+two partitions, which are one pair of operators doing two jobs: `|` and `/`
+split one plot into a disciplined grid of panels, and the same pair
+arranges separate plots on a page.
+
+Third come the four coordinate spaces. `space` stands a flat plot up by
+adding a single vowel, `z`. `polar` bends the same plane into a circle.
+`nest` packs a panel into regions, and `map` lays the plane on the earth.
+None of the four asks anything new of the sentence. Fourth is time, where
+`play` cuts the plot into frames and runs them in order. Last is the
+reader's own hand: `brush` picks rows out with the mouse, and the plot
+dims what you did not choose.
 
 The rule that holds this part together is Compositional Invariance: a
 composed expression means the same thing wherever it appears. What you

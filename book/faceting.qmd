@@ -241,22 +241,13 @@ spread rather than bins sized for Norway. There is no way to ask for a free scal
 over a shared cut, which would be a picture whose bars are the panel's and whose
 edges are the plot's.
 
-The second is the panel's **guides**. A scale says where the marks go and where the
-axis marks it, so freeing one has to move both, or the numbers stop describing the
-picture. Flat, that is hard to see: a flat frame is a rectangle, and a rectangle
-looks the same whatever the scale is. Bend the panel into a circle and the frame
-*is* the scale, because the rings are the ticks, drawn at whatever radii the
-panel's own domain puts them at:
-
-```{r}
-data(gm_eras) + bar * mean + x(continent) + y(gdp, free = TRUE) + polar() |
-  facet(era)
-```
-
-1957 rings at 5K and 10K, 2007 at 10K, 20K and 30K, and in each panel the sectors
-are measured against the rings drawn around them. That is the whole of what a
-freed guide means, and it is worth seeing once in the space that shows it, because
-everywhere else it is invisible by construction.
+The second is the panel's **guides**. A scale says where the marks go, and where
+the axis marks it. Freeing one has to move both, or the numbers stop describing
+the picture. Look again at the freed population plot above. Its gridlines sit at
+different heights in every panel, and each panel's labels sit beside its own.
+Shared, those same lines are drawn at one set of heights across all five. That is
+the whole of what a freed guide means: the lines a reader measures against belong
+to the scale that was freed.
 
 The third is that a free scale is a *panel's*, never a *frame's*. `play`
 ([Animation](play.qmd)) splits rows the same way a facet does, so asking for this

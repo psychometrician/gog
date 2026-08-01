@@ -672,11 +672,11 @@ now in [Positron](https://positron.posit.co/), which is newer and holds R and
 Python in one window. The two are not the same program under different names: RStudio is
 still here and still maintained, and Positron sits beside it.
 
-Quarto is the third, and it belongs here rather than in a colophon, because the
-first of the five rules above rests entirely on it. *Every plot is live* is a
-claim about honesty rather than convenience. Every code block on these pages ran
-while the page was being built. One that draws a plot really drew it, and one
-that shows a refusal was really refused. [Quarto](https://quarto.org/) is what
+[Quarto](https://quarto.org/) is the third, and it belongs here rather than in a
+colophon, because the first of the five rules above rests entirely on it. *Every
+plot is live* is a claim about honesty rather than convenience. Every code block
+on these pages ran while the page was being built. One that draws a plot really
+drew it, and one that shows a refusal was really refused. Quarto is what
 executes those blocks. Without it, every plot here would be a screenshot and
 every code block would be text that nobody had run. The book would drift out of
 step with the package it describes, and no one would notice.
@@ -715,6 +715,16 @@ the hard part. If I plan carefully, keep at it, and work through the problem
 with Claude, I can finish what I set out to build. So I began to want something
 else: my own packages, in the two languages I actually work in, R mainly and
 Python occasionally. This one came out of that.
+
+The application left me a skill as well. It is the one part of this project I
+did not ask Claude for. A web application is mostly interface, so I had to learn
+to design one. I drew every screen on paper before it was built. I did the
+user-experience work myself, and tested it over and over. This package asks for
+almost none of that skill. A plot is not an interface, and the engine has no
+screens. The exception is [selection](selection.qmd). The controls under a
+brushed plot are mine. So are their names, what a single click does, and which
+pointer means which mode. It is a very small piece of design next to that
+application. I hope you like it anyway.
 
 A grammar of graphics is a larger promise than a web application. It is an
 engine, and an engine has to be written, tested, and kept working. I am a

@@ -23,17 +23,17 @@ grammar this small stays honest by being argued with.
 
 ## What is still to come
 
-The kernel you learned is the *designed* vocabulary, and the engine tells
-you honestly which parts are not drawn yet rather than ignoring them. **Every
-mark in it now draws**, `surface` having been the last one waiting. What is left
-is not marks. On the roadmap, in rough order: the `map`
-space, and `click`, the selection that lets you ask a single
-point what it is. (`play` now draws: a time-lapse is faceting read
-in time, and it has its own page.) (`brush` draws too: it dims what you did not
-select and removes nothing, and [Selection](selection.qmd) is its page.)
-(The collision modifiers are complete: `dodge`,
-`stack`, and `jitter` all ship.) None of these will add a new kind of grammar:
-each is one more letter in a system whose assembly rules you already know.
+The kernel you learned is the *designed* vocabulary, and the engine tells you
+honestly which parts are not drawn yet rather than ignoring them. **One word is
+left.** `click` is the selection that lets you ask a single point what it is.
+Every mark draws, every space draws, and every channel draws. `click` will not
+add a new kind of grammar either: it is one more letter in a system whose
+assembly rules you already know.
+
+One *picture* is owed that is not a missing word. The **choropleth** shades each
+country by a value, and it waits on geometry rather than on vocabulary: `zone`
+knows four ways to find its sides, and none of them is a coastline.
+[Map](map.qmd) shows what the space draws today and says what is missing.
 
 A third selection, `lasso`, was on this list until August 2026. It left because
 GOG decided against it, not because it was hard. [The kernel](grammar.qmd) says

@@ -128,10 +128,13 @@ book:
         - marks/rule.qmd
         - marks/zone.qmd
         - marks/surface.qmd
+        # `scales` is a vowel rather than a refinement — it decides where a
+        # position lands — so it comes before the finals, which is the order
+        # `parts/letters.qmd` states
+        - scales.qmd
         - channels.qmd
         - style.qmd
         - transforms.qmd
-        - scales.qmd
 
     - part: parts/sentences.qmd          # composition: layer, derive, scope, facet, 3-D
       chapters:
@@ -142,9 +145,11 @@ book:
         - space.qmd
         - polar.qmd
         - nest.qmd
+        # the four coordinate spaces stay contiguous. `map` belongs beside its
+        # siblings, not after the two chapters that are not spaces at all
+        - map.qmd
         - play.qmd
         - selection.qmd
-        - map.qmd
 
     - part: parts/cookbook.qmd           # recipes by data shape and question
       chapters:

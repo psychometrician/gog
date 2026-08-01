@@ -145,17 +145,22 @@ types — there is no `histogram()` to look up.
 | **Tables** | `data` `query` |
 | **Marks** | `point` `line` `area` `bar` `step` `interval` `box` `ribbon` `text` `path` `rule` `zone` `surface` |
 | **Channels** | `x` `y` `z` `color` `size` `shape` `pattern` `opacity` `group` `label` `play` |
+| **Selections** | `click`⬜ `brush` |
 | **Transforms** | `bin` `smooth` `count` `density` `proportion` `sum` `mean` `median` `max` `min` `range` `confidence` `bounds` `partition`, plus `dodge` `stack` `jitter` |
 | **Scales** | `linear` `log` `time` `category` `order` |
-| **Spaces** | `flat` `space` `polar` `nest` |
+| **Spaces** | `flat` `space` `polar` `nest` `map` |
 | **Labels** | `title` `x_label` `y_label` `z_label` |
 | **Settings** | `style` `theme` `palette` |
 | **Composition** | `facet`, and the operators: layering `+`, derivation `*`, arranging `\|` and `/` |
 
-One further space, `map`, is designed but **not built**, and the engine refuses
-it by name rather than accepting it and ignoring it. That is the general rule.
-Nothing is accepted and silently dropped, so a plot that draws is a plot that
-means what you wrote.
+One word carries ⬜ because it is **not drawn yet**: `click`. It is not callable
+either, so your language reports a missing function rather than GOG explaining
+itself. Everything else above draws today: every mark, every channel, every
+transform and every space.
+
+What GOG never does is accept one of these names and quietly ignore it. Nothing
+is accepted and silently dropped, so a plot that draws is a plot that means what
+you wrote.
 
 ## Architecture
 

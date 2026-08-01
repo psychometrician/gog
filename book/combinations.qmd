@@ -15,9 +15,13 @@ pairings you would never think to try.
 
 These grids are the orthogonality law made visible. [Law 1](design-laws.qmd) says
 every compatible atom combines with every other; a table is that promise
-enumerated, one cell at a time. It is the direct analog of the 자모 (*jamo*)
-chart a Hangeul (한글) learner reads: consonants down the side, vowels across
-the top, the whole syllable space in the crossing.
+enumerated, one cell at a time. It is the direct analog of the *jamo* (자모)
+chart a Hangeul (한글) learner reads. The *jamo* are Hangeul's individual
+letters: its consonants and its vowels. A syllable block is what they assemble
+into. This book has used that pairing from the start: a mark is a consonant and
+a position is a vowel, and neither draws alone. The chart puts the consonants
+down the side and the vowels across the top. The whole syllable space appears in
+the crossing.
 
 Legal is not the same as useful. [Law 8](design-laws.qmd) guarantees only the
 first: where a cell says a combination renders, the engine draws it, but whether it

@@ -12,9 +12,11 @@ axis. The refining channels are the finals: `color`, `size`, `shape`,
 `pattern`, `opacity`. Optional, and each earns the legend that decodes it.
 `group` sits outside both classes: it splits a mark without encoding
 anything, so it earns no key, and is closer to the space between words.
-Around the letters sit the pieces that complete a layer: the transforms
-that derive new statements from a mark, the table you bind once, and the
-line between *mapping* a column and *setting* a constant.
+Around the letters sit three pieces that complete a layer. The table you
+bind once opens this part, because nothing can be drawn until a table is
+named. The transforms that derive new statements from a mark close it,
+together with the line between *mapping* a column and *setting* a
+constant.
 
 The mark chapters follow one template: what it draws, what it requires,
 what refines it, what derives from it, what you can set on it, and what it
