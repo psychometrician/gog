@@ -892,6 +892,26 @@ export function selectedRows(req, limit = 12) {
 }
 
 /**
+ * Put a control bar under its plot, and keep the two together.
+ *
+ * `container.after(bar)` looks right and is wrong inside a Quarto `layout-ncol`
+ * chunk: the layout is a flex row over the *children*, so a new sibling becomes
+ * another cell and the bar lands in a narrow column beside the plot rather than
+ * under it. Wrapping the pair in one element makes them one cell again, and the
+ * bar still survives the redraw, because `innerHTML` is replaced on the
+ * container and the bar is its sibling inside the wrapper rather than its child.
+ */
+function placeBar(container, bar) {
+  const parent = container.parentNode;
+  if (!parent) return;
+  const wrap = document.createElement("div");
+  wrap.className = "gog-plot-with-controls";
+  parent.insertBefore(wrap, container);
+  wrap.appendChild(container);
+  wrap.appendChild(bar);
+}
+
+/**
  * The bar under a brushed plot: how many rows were caught, the rows themselves
  * on demand, and a way back to nothing selected.
  *
@@ -941,7 +961,7 @@ function addSelectionBar(container, handle, view) {
 
   bar.append(drag, readout, toggle, reset);
   if (view) addZoomButtons(bar, view, () => render(), handle);
-  container.after(bar);
+  placeBar(container, bar);
   bar.after(table);
 
   let open = false;
@@ -1153,7 +1173,7 @@ function addControls(container, handle) {
   };
 
   bar.append(hint, readout, reset);
-  container.after(bar);
+  placeBar(container, bar);
   return show;
 }
 
