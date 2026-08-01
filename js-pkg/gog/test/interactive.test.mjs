@@ -20,6 +20,7 @@ import { fileURLToPath } from "node:url";
 
 import {
   attachDrag,
+  boundOn,
   hasBrush,
   isSpatial,
   loadEngine,
@@ -213,4 +214,35 @@ test("a refusal mid-gesture keeps the picture, so a click cannot kill the plot",
   // On the first draw there is no picture to keep, so the message is shown.
   redraw(engine, box, clicked);
   assert.match(box.textContent, /does not run upward/);
+});
+
+// A panel 100 units wide over gdp 0..50000, and 100 units tall over life 40..90.
+// The y axis arrives with its ends swapped, because it runs down the screen and
+// up the data — which is the whole reason these two cases are written out.
+const X_AXIS = { field: "gdp", from: 0, to: 50000, lo: 0, hi: 100, cats: null };
+const Y_AXIS = { field: "life", from: 40, to: 90, lo: 100, hi: 0, cats: null };
+
+test("a bound runs upward whichever way the pointer was dragged", () => {
+  // x: left to right, then right to left. The same range either way.
+  assert.deepEqual(boundOn(X_AXIS, 20, 60).at, [10000, 30000]);
+  assert.deepEqual(boundOn(X_AXIS, 60, 20).at, [10000, 30000]);
+
+  // y is the case that was broken. Pixel 20 is *near the top*, so it is the
+  // larger life value; sorting the pixels put it first and the range came out
+  // backwards, which the engine refuses and which made every vertical
+  // selection do nothing.
+  const down = boundOn(Y_AXIS, 20, 60).at;
+  const up = boundOn(Y_AXIS, 60, 20).at;
+  assert.deepEqual(down, up, "direction of travel must not change the bound");
+  assert.ok(down[0] < down[1], `a bound must run upward, got ${down}`);
+  assert.deepEqual(down, [60, 80]);
+});
+
+test("a bound on a column of categories covers the slots the drag crossed", () => {
+  const cats = { field: "continent", from: 0, to: 1, lo: 0, hi: 100,
+                 cats: ["Africa", "Americas", "Asia", "Europe", "Oceania"] };
+  assert.deepEqual(boundOn(cats, 5, 35).levels, ["Africa", "Americas"]);
+  assert.deepEqual(boundOn(cats, 35, 5).levels, ["Africa", "Americas"]);
+  // Past the last edge clamps rather than running off the end.
+  assert.deepEqual(boundOn(cats, 85, 200).levels, ["Oceania"]);
 });

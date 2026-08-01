@@ -192,6 +192,38 @@ export function redraw(engine, container, req, options = {}) {
 }
 
 /**
+ * Where two pixels fall on an axis, in the column's own units — or, on a column
+ * of categories, which slots they cover.
+ *
+ * Pure arithmetic over what the engine already stated, which is the whole point:
+ * no scale knowledge lives here, so a log axis and a calendar axis need no cases.
+ *
+ * **The two ends are sorted by fraction, never by pixel**, and that is the one
+ * subtlety. The y axis runs *down* the screen and *up* the data, so it arrives
+ * with its ends swapped (`lo` is the bottom edge). Sorting pixels first looked
+ * right and inverted every vertical selection: the smaller pixel is the larger
+ * value, so the range came out backwards and the engine refused it — correctly,
+ * since a range that does not run upward selects nothing. Dragging on y did
+ * nothing at all, and so did the rectangle, because one bad bound refuses the
+ * whole plot.
+ *
+ * Exported because it is the only part of the gesture that can be wrong in a way
+ * a test can see. Everything else needs a pointer and a DOM.
+ */
+export function boundOn(axis, a, b) {
+  const frac = (v) => (v - axis.lo) / (axis.hi - axis.lo || 1);
+  const [f0, f1] = [frac(a), frac(b)].sort((m, n) => m - n);
+  if (axis.cats) {
+    const n = axis.cats.length;
+    const first = Math.max(0, Math.min(n - 1, Math.floor(f0 * n)));
+    const last = Math.max(0, Math.min(n - 1, Math.floor(f1 * n)));
+    return { levels: axis.cats.slice(first, last + 1) };
+  }
+  return { at: [axis.from + f0 * (axis.to - axis.from),
+                axis.from + f1 * (axis.to - axis.from)] };
+}
+
+/**
  * Every plot in a figure: the plot itself, or each cell of a page, all the way
  * down, since a page nests.
  *
@@ -383,18 +415,7 @@ export function attachBrush(engine, container, request, options = {}) {
   // Shorter than this and the reader did not draw a range, they clicked.
   const MIN_DRAG = 3;
 
-  const bound = (axis, a, b) => {
-    const frac = (v) => (v - axis.lo) / (axis.hi - axis.lo || 1);
-    const [f0, f1] = [frac(Math.min(a, b)), frac(Math.max(a, b))];
-    if (axis.cats) {
-      const n = axis.cats.length;
-      const first = Math.max(0, Math.min(n - 1, Math.floor(f0 * n)));
-      const last = Math.max(0, Math.min(n - 1, Math.floor(f1 * n)));
-      return { levels: axis.cats.slice(first, last + 1) };
-    }
-    return { at: [axis.from + f0 * (axis.to - axis.from),
-                  axis.from + f1 * (axis.to - axis.from)] };
-  };
+  const bound = (axis, a, b) => boundOn(axis, a, b);
 
   // One drag reaches **every** plot on the page that named the dragged column.
   //
