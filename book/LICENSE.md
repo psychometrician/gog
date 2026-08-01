@@ -5,11 +5,12 @@ executable code.
 
 ## Prose — CC BY-NC-SA 4.0
 
-The text, the figures and the structure of this book are licensed under the
-[Creative Commons Attribution-NonCommercial-ShareAlike 4.0 International
-License](https://creativecommons.org/licenses/by-nc-sa/4.0/), whose
+The text, the structure of this book, and every figure it made itself are
+licensed under the [Creative Commons Attribution-NonCommercial-ShareAlike 4.0
+International License](https://creativecommons.org/licenses/by-nc-sa/4.0/), whose
 [legal code](https://creativecommons.org/licenses/by-nc-sa/4.0/legalcode) is the
-binding text.
+binding text. Two images are other people's work and carry their own terms; they
+are listed below.
 
 You may share and adapt the material for non-commercial purposes. You must give
 attribution, and you must license what you build from it under the same terms.
@@ -21,6 +22,20 @@ Every code sample in this book is licensed under the
 same license as the `gog` engine and its four bindings. The NonCommercial term
 above does not reach the examples: you may use them in your own work, paid or
 unpaid, without asking.
+
+## Two figures that are not ours
+
+Both sit in the preface, and neither is covered by the license above.
+
+The page from the *Hunminjeongeum* is in the public domain.
+
+The diagram of the mouth saying ㄱ is by Paranocean, from [Wikimedia
+Commons](https://commons.wikimedia.org/wiki/File:Pronounciation_%E3%84%B1.png),
+used unchanged under [CC BY-SA
+4.0](https://creativecommons.org/licenses/by-sa/4.0/). It keeps that license, and
+it has to: CC BY-SA forbids adding restrictions to the work, and NonCommercial is
+one. So the image travels under its own terms wherever this book goes, and anyone
+reusing it answers to those rather than to these.
 
 ## Why two
 

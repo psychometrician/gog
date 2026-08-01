@@ -22,10 +22,33 @@ wasm <- file.path(root, "gog-wasm", "target", "wasm32-unknown-unknown",
                   "release", "gog_wasm.wasm")
 js   <- file.path(root, "js-pkg", "gog", "src", "interactive.js")
 
+# Copy only when the destination is actually different. `overwrite = TRUE` alone
+# rewrites the file every time, which gives it a new modification time even when
+# not one byte changed. Both of these files are declared under `resources:`, and
+# `quarto preview` watches every resource for changes — so an unconditional copy
+# announces a change to the project on every single render, including renders
+# that changed nothing. Comparing the bytes first makes a no-op render a no-op.
+same <- function(from, to) {
+  file.exists(to) &&
+    file.size(from) == file.size(to) &&
+    identical(readBin(from, "raw", file.size(from)),
+              readBin(to,   "raw", file.size(to)))
+}
+
+stage <- function(from, to) {
+  if (same(from, to)) return(FALSE)
+  file.copy(from, to, overwrite = TRUE)
+  TRUE
+}
+
 if (file.exists(wasm) && file.exists(js)) {
-  file.copy(wasm, file.path(getwd(), "gog.wasm"), overwrite = TRUE)
-  file.copy(js,   file.path(getwd(), "interactive.js"), overwrite = TRUE)
-  cat("gog: browser engine staged for the render\n")
+  copied <- c(stage(wasm, file.path(getwd(), "gog.wasm")),
+              stage(js,   file.path(getwd(), "interactive.js")))
+  if (any(copied)) {
+    cat("gog: browser engine staged for the render\n")
+  } else {
+    cat("gog: browser engine already staged, nothing copied\n")
+  }
 } else {
   # Not an error. The engine is built by a separate cargo invocation from the one
   # that builds `gog-cli`, so a checkout that has not run it renders the whole

@@ -26,9 +26,8 @@ grammar this small stays honest by being argued with.
 The kernel you learned is the *designed* vocabulary, and the engine tells
 you honestly which parts are not drawn yet rather than ignoring them. **Every
 mark in it now draws**, `surface` having been the last one waiting. What is left
-is not marks. On the roadmap, in rough order: the `globe` and `map`
-spaces (`polar` now draws, and the marks it does not yet bend are named on
-its own page), and the selections (`click`, `brush`, `lasso`)
+is not marks. On the roadmap, in rough order: the `map`
+space, and the selections (`click`, `brush`, `lasso`)
 that make plots answer back. (`play` now draws: a time-lapse is faceting read
 in time, and it has its own page.) (The collision modifiers are complete: `dodge`,
 `stack`, and `jitter` all ship.) None of these will add a new kind of grammar:
@@ -57,12 +56,13 @@ data(gapminder) + point + x(:gdp) + y(:life) + color(:continent)
 plot(data(gapminder), point, x(col.gdp), y(col.life), color(col.continent))
 ```
 
-And one far goal, recorded here so you can hold the project to it: a build
-of the engine that runs inside the page, so that every example in this
-book becomes editable in place: change `color(continent)` to
+And one far goal, half of it now arrived. The engine runs inside the page:
+that is how a 3-D plot turns under your mouse in the web edition. What is
+left is the other half, recorded here so you can hold the project to it:
+every example in this book editable in place. Change `color(continent)` to
 `shape(continent)` and watch the plot redraw. The book you are reading is
-already the test suite for that future: everything in it is a live
-specification, waiting for a faster reader.
+already the test suite for that future, because everything in it is a live
+specification.
 
 ## Writing quickly is not writing well
 

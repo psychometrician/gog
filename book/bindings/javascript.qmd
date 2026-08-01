@@ -141,8 +141,8 @@ js_error("plot(data(gapminder_2007), point, x(col.gdp), y(col.life), style({ col
 
 A column whose name is not a JavaScript identifier takes the bracket form
 instead, `col["life exp"]`, which is also how you reach a name with a space or a
-dot in it. Names in other scripts need no such thing: `col.지역` is a perfectly
-ordinary identifier.
+dot in it. Names in other scripts need no such thing: `col.지역` (*jiyeok*,
+region) is a perfectly ordinary identifier.
 
 ## A named argument is one trailing object
 

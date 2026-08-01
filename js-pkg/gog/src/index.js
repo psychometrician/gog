@@ -41,6 +41,8 @@ export {
   to_wire,
 } from "./render.js";
 
+export { book_table } from "./tables.js";
+
 export {
   // marks — the "consonants"
   point,

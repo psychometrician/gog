@@ -2791,3 +2791,32 @@ local({
     cat("PASS: the inlined browser engine is a single unbroken line\n")
   }
 })
+
+# --- book_table(): the manual's tables, without a CSV reader to copy ----------
+# Binding plumbing rather than a word of the grammar, which is why
+# `book/check_vocabulary.R` excludes it from the kernel block beside
+# `render_svg`. The offline checks always run; the fetch is guarded, because a
+# test suite has to pass on a laptop with no network.
+local({
+  stopifnot(is.function(gog::book_table))
+  stopifnot(identical(gog:::book_data_url,
+                      "https://psychometrician.github.io/gog-book/data/"))
+
+  for (bad in list(42, c("a", "b"), NA_character_)) {
+    msg <- tryCatch(gog::book_table(bad), error = conditionMessage)
+    stopifnot(grepl("one table name", msg, fixed = TRUE))
+  }
+  cat("PASS: book_table() takes one name and refuses anything else\n")
+
+  fetched <- tryCatch(gog::book_table("gapminder_2007"), error = function(e) e)
+  if (inherits(fetched, "error")) {
+    cat("SKIP: book_table() live fetch -",
+        substr(conditionMessage(fetched), 1, 50), "\n")
+  } else {
+    stopifnot(is.data.frame(fetched), nrow(fetched) == 142)
+    stopifnot(is.numeric(fetched$gdp), is.character(fetched$continent))
+    p <- data(fetched, name = "gapminder_2007") + point + x(gdp) + y(life)
+    stopifnot(grepl("<svg", gog:::render_svg(p), fixed = TRUE))
+    cat("PASS: book_table('gapminder_2007') is 142 typed rows, and it draws\n")
+  }
+})

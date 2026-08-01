@@ -19,7 +19,7 @@ can read, and write, any plot.
 | **Selections** | `click`⬜ `brush`⬜ `lasso`⬜ |
 | **Transforms** | `bin` `smooth` `count` `density` `proportion` `sum` `mean` `median` `max` `min` `range` `confidence` `bounds` `partition`, and the three that resolve collisions, `dodge` `stack` `jitter` |
 | **Scales** | `linear` `log` `time` `category` `order` |
-| **Spaces** | `flat` `space` `polar` `nest` `globe`⬜ `map`⬜ |
+| **Spaces** | `flat` `space` `polar` `nest` `map`⬜ |
 | **Labels** | `title` `x_label` `y_label` `z_label` |
 | **Settings** | `style` `theme` `palette` |
 | **Facets** | `facet` |
@@ -47,12 +47,12 @@ still bare names, because the database returned a table and a table is what the
 grammar has always begun with. Writing SQL is not a different way of drawing;
 it is a different way of naming the rows.
 
-The kernel above is the *designed* vocabulary. The five words marked ⬜ are not
+The kernel above is the *designed* vocabulary. The four words marked ⬜ are not
 drawn yet, and they are not callable either, so your language will report a
 missing function rather than GOG explaining itself. What GOG never does is
 accept one of these names and quietly ignore it. Every **mark** draws today,
 `surface` being the last to arrive, and `play` draws too. What is left is the
-three selections and the `globe` and `map` spaces.
+three selections and the `map` space.
 See [Design laws](design-laws.qmd) for the difference between
 **illegal** (the grammar forbids it) and **unsupported** (the grammar allows it;
 the engine cannot draw it yet). Each table below marks what renders today.
@@ -104,9 +104,9 @@ names only the other two.
 `x`, `y` and `z` are the **vowels**: a mark without one of them is silent, so
 at least one is required, and each earns an axis to be read against.
 
-The five that earn a legend are the **final consonants**, the optional ㅁ that
-turns 가 into 감. None is ever required, and each changes what the plot says,
-which is exactly why each needs a key to decode it.
+The five that earn a legend are the **final consonants**, the optional ㅁ (*m*)
+that turns 가 (*ga*) into 감 (*gam*). None is ever required, and each changes
+what the plot says, which is exactly why each needs a key to decode it.
 
 `group` and `label` are neither. `group` splits without encoding: on a `line`
 it performs the very same split `color` does, one polyline per category, and

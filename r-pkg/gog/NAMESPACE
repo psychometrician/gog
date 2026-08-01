@@ -17,6 +17,7 @@
 export(area)
 export(bar)
 export(bin)
+export(book_table)
 export(bounds)
 export(box)
 export(color)

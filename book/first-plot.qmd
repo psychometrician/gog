@@ -41,6 +41,20 @@ also has a chapter of its own at the end, a difference list about a page long:
 [JavaScript](bindings/javascript.qmd).
 :::
 
+Everything in this book runs on your own computer, and it takes three steps:
+
+1. **Install.** The command for your language is in
+   [Installing GOG](index.qmd#installing-gog).
+2. **Load it.** `library(gog)` in R, `from gog import *` in Python,
+   `using GrammarOfGraphics` in Julia, and an `import` from
+   `grammar-of-graphics` in JavaScript.
+3. **Read a table.** `book_table("gapminder_2007")` fetches the one above.
+   It comes with the package, and [Reading a table](book-data.qmd#reading-a-table)
+   shows it in all four languages.
+
+Every example after this one works from those three steps, and the table each
+needs is named in the sentence itself.
+
 ## Add a word, ask a richer question
 
 Which continent is which? Say so, one more word in the sentence:

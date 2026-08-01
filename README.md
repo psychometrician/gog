@@ -12,8 +12,8 @@ data(gapminder_2007) + point + x(gdp) + y(life) + color(continent)
 
 Read it aloud: *"Given gapminder 2007 — points, x is gdp, y is life, color by
 continent."* That sentence is the entire program. You named a table, a mark, two
-positions and a channel; the engine chose the axes, the ticks, the margins, the
-palette, and drew the legend — because a mapped column earns one. That is the
+positions and a channel. The engine chose the axes, the ticks, the margins and
+the palette, and it drew the legend because a mapped column earns one. That is a
 rule, not a convenience.
 
 **📖 The manual is online, and every plot in it was drawn by this engine:
@@ -21,21 +21,23 @@ rule, not a convenience.
 
 ## Why another one
 
-Most plotting tools are logographies: a zoo of chart types, each memorized whole,
-each with its own arguments in its own order. The best of them are Englishes —
-real grammars, generative and expressive, whose composition rules accumulated
-exceptions until fluency became a specialist's skill.
+Most plotting tools ask you to memorize chart types. Each type is its own
+picture with its own arguments in its own order, so learning one teaches you
+little about the next. The best tools are real grammars instead, where small
+parts combine. But their rules for combining collect exceptions over the years,
+until using them well becomes a specialist's skill.
 
-gog takes its discipline from **Hangeul**, the Korean alphabet designed in 1443
-and learnable in a morning. Not because its letter set is small — English's is
-small too, and takes years — but because **its composition has no exceptions**.
-The power was never the atoms; it was the regularity with which they combine.
+gog takes its discipline from **Hangeul**, the Korean alphabet designed in 1443.
+A learner can pick it up in a morning. The reason is not that it has few
+letters, because English has few letters too and still takes years to write
+well. The reason is that **its letters combine without exceptions**. The power
+was never in the parts. It was in the regularity with which they join.
 
-So a histogram is nothing to memorize. It is `bar * bin` — derived, the way ㅋ is
-derived from ㄱ rather than invented fresh. Keep the statistic and change the
-shape, and the same counts draw a line, an area or a step. One law stands over
-the library: **a rule you learn on one mark holds on every mark, or the library
-has failed you.**
+So a histogram is nothing to memorize. It is `bar * bin`, derived rather than
+invented, the way ㅋ is derived from ㄱ. Keep the statistic and change the mark,
+and the same counts draw a line, an area or a step. One law stands over the
+whole library: **a rule you learn on one mark holds on every mark, or the
+library has failed you.**
 
 Every plot has the same shape:
 
@@ -62,10 +64,10 @@ of them: *the expert's convenience*.
   <img src="images/javascript.png" alt="JavaScript" height="76">
 </p>
 
-One grammar, four spellings. The first three are one sentence three times,
-differing only in how a column is named; JavaScript cannot overload `+ * | /`, so
-it spells those four operators as four words. (Each logo above names the language
-it stands for and belongs to its owner; the attribution is in
+One grammar, four spellings. The first three are one sentence written three
+times, and they differ only in how a column is named. JavaScript cannot overload
+`+ * | /`, so it spells those four operators as four words. (Each logo above
+names the language it stands for and belongs to its owner; the attribution is in
 [`images/NOTICE`](images/NOTICE).)
 
 ```r
@@ -108,21 +110,28 @@ using Pkg; Pkg.add("GrammarOfGraphics")
 npm install grammar-of-graphics
 ```
 
-Three of the four are live now — on
+Three of the four are live now, on
 [r-universe](https://psychometrician.r-universe.dev/gog),
 [PyPI](https://pypi.org/project/gog/) and
-[npm](https://www.npmjs.com/package/grammar-of-graphics) — and each of the three
-**ships the engine inside the package**, built for your platform: nothing else to
-install, nothing to put on your `PATH`, no Rust toolchain. `gog` is not on CRAN
-yet, which is why the R line names r-universe first and a CRAN mirror second; the
-second entry is what keeps your other packages resolving.
+[npm](https://www.npmjs.com/package/grammar-of-graphics). Each of the three
+**ships the engine inside the package**, built for your platform. There is
+nothing else to install, nothing to put on your `PATH`, and no Rust toolchain to
+set up.
+
+Each also carries a second copy of the engine, built for the browser. That is
+what lets a 3-D plot turn under the mouse on a web page. It is optional: a
+package without it still draws every plot, and the 3-D ones simply do not turn.
+
+`gog` is not on CRAN yet. That is why the R line names r-universe first and a
+CRAN mirror second, and the second entry is what keeps your other packages
+resolving.
 
 Julia is the fourth, and two things are still owed there. The registration is
-[submitted](https://github.com/JuliaRegistries/General/pull/162792) and sitting
-out the General registry's three-day hold on new packages, so that line starts
-working around **2026-08-02**. And it is the one binding that does not bundle the
-engine yet, so `Pkg.add` gives you a package that loads but cannot draw until you
-build `gog-cli` yourself. Until both land,
+[submitted](https://github.com/JuliaRegistries/General/pull/162792) and is
+waiting out the General registry's three-day hold on new packages, so that line
+starts working around **2026-08-02**. Julia is also the one binding that does
+not bundle the engine yet, so `Pkg.add` gives you a package that loads but
+cannot draw until you build `gog-cli` yourself. Until both land,
 `Pkg.develop(path = "jl-pkg/GrammarOfGraphics")` from a checkout is the route
 that works.
 
@@ -133,17 +142,20 @@ types — there is no `histogram()` to look up.
 
 | | |
 |---|---|
+| **Tables** | `data` `query` |
 | **Marks** | `point` `line` `area` `bar` `step` `interval` `box` `ribbon` `text` `path` `rule` `zone` `surface` |
 | **Channels** | `x` `y` `z` `color` `size` `shape` `pattern` `opacity` `group` `label` `play` |
 | **Transforms** | `bin` `smooth` `count` `density` `proportion` `sum` `mean` `median` `max` `min` `range` `confidence` `bounds` `partition`, plus `dodge` `stack` `jitter` |
+| **Scales** | `linear` `log` `time` `category` `order` |
 | **Spaces** | `flat` `space` `polar` `nest` |
+| **Labels** | `title` `x_label` `y_label` `z_label` |
 | **Settings** | `style` `theme` `palette` |
-| **Composition** | layering `+`, derivation `*`, faceting `\|` and `/` |
+| **Composition** | `facet`, and the operators: layering `+`, derivation `*`, arranging `\|` and `/` |
 
-Two further spaces, `globe` and `map`, are designed but **not built**, and the
-engine refuses them by name rather than accepting and ignoring them. That is the
-general rule: nothing is accepted and silently dropped, so a plot that draws is a
-plot that means what you wrote.
+One further space, `map`, is designed but **not built**, and the engine refuses
+it by name rather than accepting it and ignoring it. That is the general rule.
+Nothing is accepted and silently dropped, so a plot that draws is a plot that
+means what you wrote.
 
 ## Architecture
 
@@ -154,9 +166,9 @@ plot that means what you wrote.
   </picture>
 </p>
 
-One engine, at the narrow end. The four spellings above are what a person
-writes; Rust is what runs, downstream of all of them, and it holds no opinion the
-grammar did not give it.
+One engine, and all four languages narrow down to it. The four spellings above
+are what a person writes. Rust is what runs, below all of them, and it holds no
+opinion the grammar did not give it.
 
 ```
 r-pkg/gog                 ─┐
@@ -165,13 +177,13 @@ jl-pkg/GrammarOfGraphics   ├─build spec─▶ JSON ─stdin─▶ gog-cli �
 js-pkg/gog                ─┘                            (bridge)   (the engine)
 ```
 
-Each front end is a thin DSL that builds a specification. The engine does
-everything else. A rule implemented in a binding is a rule the other three will
+Each front end is a thin layer that builds a specification, and the engine does
+everything else. A rule written into one binding is a rule the other three will
 get wrong, so anything more than one binding needs lives in `gog-core`.
 
-The IR encodes the *visual*, never one backend's draw commands, so a second
-renderer changes nothing above it. The workspace depends on nothing but `serde`
-and `serde_json`.
+The specification describes the *visual*, never one renderer's draw commands, so
+a second renderer would change nothing above it. The workspace depends on
+nothing but `serde` and `serde_json`.
 
 ## Build from source
 
@@ -183,14 +195,14 @@ cargo test --release
 cargo run --release --example scatter    # also: bar, transforms
 ```
 
-The engine is language-agnostic — it reads a JSON specification on stdin and
+The engine is language-agnostic. It reads a JSON specification on stdin and
 writes SVG to stdout, so anything that can spawn a process can drive it:
 
 ```bash
 echo '{ … }' | ./target/release/gog-cli > plot.svg
 ```
 
-For R, install the package from this checkout; `configure` bundles the engine
+For R, install the package from this checkout. `configure` bundles the engine
 into it, building the crate from source if no binary is present:
 
 ```bash
@@ -201,16 +213,18 @@ R CMD INSTALL --no-docs r-pkg/gog
 
 `book/` is the manual, written in Quarto, and **every plot in it is live** —
 drawn by the engine as the page builds. Nothing is a screenshot; if a page shows
-it, the engine drew it. Refusals render live too, because the engine's *no* —
-always with a direction — is half of what it teaches.
+it, the engine drew it. A 3-D plot turns under your mouse, because the same
+engine is compiled for the browser and shipped with the page. Refusals are live
+too. The engine's *no* always comes with a direction, and that is half of what
+the manual teaches.
 
 ```bash
 cd book && quarto preview
 ```
 
-It opens with the whole grammar in one sitting, then takes each atom family in
-depth, then composition, then a cookbook organized by your data's shape and your
-question — never by chart name.
+It opens with the whole grammar in one sitting. Then it takes each family of
+atoms in depth, then composition, then a cookbook. The cookbook is organized by
+your data's shape and your question, never by chart name.
 
 ## Contributing
 
@@ -222,7 +236,7 @@ request.
 
 Code is **Apache License 2.0** — see [LICENSE](LICENSE), and [NOTICE](NOTICE) for
 the color schemes this project carries from elsewhere. Each binding keeps its own
-copy of both, because a wheel, an npm tarball and a Julia package are each built
-from a directory this one sits above.
+copy of both. A wheel, an npm tarball and a Julia package are each built from a
+directory below this one, so a copy has to sit there.
 
 The book's prose is **CC BY-NC-SA 4.0** — see [book/LICENSE.md](book/LICENSE.md).

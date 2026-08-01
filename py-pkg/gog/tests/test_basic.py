@@ -1373,6 +1373,41 @@ _guard_over("DuckDB", _duckdb,
 _guard_over("PostgreSQL", _postgres,
             "CREATE TABLE gog_orders (status TEXT, revenue DOUBLE PRECISION)")
 
+# --- book_table(): the manual's tables, without a CSV reader to copy ---------
+# Binding plumbing rather than a word of the grammar, which is why
+# `book/check_vocabulary.R` excludes it from the kernel block beside
+# `render_svg`. The offline checks always run; the fetch is guarded, because a
+# suite has to pass on a laptop with no network.
+from gog.tables import BOOK_DATA_URL, _columns  # noqa: E402
+
+assert BOOK_DATA_URL == "https://psychometrician.github.io/gog-book/data/"
+
+_rows = [{"n": "1", "s": "01", "w": "x"}, {"n": "2", "s": "02", "w": "y"}]
+_typed = _columns(_rows, text=("s",))
+assert _typed["n"] == [1.0, 2.0], _typed["n"]
+assert _typed["s"] == ["01", "02"], _typed["s"]
+assert _typed["w"] == ["x", "y"], _typed["w"]
+ok("book_table() types a column only when every value in it is a number")
+
+try:
+    book_table(42)
+except TypeError as _error:
+    assert "one table name" in str(_error), str(_error)
+    ok("book_table() takes one name and refuses anything else")
+else:
+    raise AssertionError("FAIL: book_table(42) was accepted")
+
+try:
+    _gm = book_table("gapminder_2007")
+except Exception as _error:
+    print(f"SKIP: book_table() live fetch - {type(_error).__name__}: {str(_error)[:50]}")
+else:
+    assert len(_gm["country"]) == 142, len(_gm["country"])
+    assert isinstance(_gm["gdp"][0], float), _gm["gdp"][0]
+    assert isinstance(_gm["continent"][0], str), _gm["continent"][0]
+    ok("book_table('gapminder_2007') is 142 typed rows")
+
+
 _con.close()
 
 print(f"\nAll {passed} checks passed.")

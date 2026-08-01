@@ -1629,3 +1629,33 @@ test("query() refuses what it cannot draw, and says what to do", () => {
     /must be a synchronous one/
   );
 });
+
+// --- book_table(): the manual's tables, without a CSV reader to copy --------
+//
+// Binding plumbing rather than a word of the grammar, which is why
+// `book/check_vocabulary.R` excludes it from the kernel block beside
+// `render_svg`. This binding is the reason the helper moved into the packages
+// at all: JavaScript has no CSV parser in its standard library, so a reader had
+// to paste thirty-three lines of quote handling before drawing anything.
+test("book_table: quoting, types, and a name it refuses", async () => {
+  const { parse_csv, columns, book_table, BOOK_DATA_URL } =
+    await import("../src/tables.js");
+
+  assert.equal(BOOK_DATA_URL, "https://psychometrician.github.io/gog-book/data/");
+
+  // The reason the parser exists: one country's name holds a comma, so a line
+  // split on commas gives that row more fields than the header has.
+  const rows = parse_csv('country,gdp\n"Congo, Dem. Rep.",277\nPeru,7409');
+  assert.deepEqual(rows[1], ["Congo, Dem. Rep.", "277"]);
+
+  const typed = columns(rows);
+  assert.deepEqual(typed.country, ["Congo, Dem. Rep.", "Peru"]);
+  assert.deepEqual(typed.gdp, [277, 7409]);
+
+  // A column of labels that look like numbers stays text when it is named.
+  const labelled = columns(parse_csv("session,n\n01,5\n02,7"), ["session"]);
+  assert.deepEqual(labelled.session, ["01", "02"]);
+  assert.deepEqual(labelled.n, [5, 7]);
+
+  await assert.rejects(() => book_table(42), /one table name/);
+});

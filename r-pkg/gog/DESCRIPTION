@@ -16,7 +16,8 @@ Depends:
     R (>= 4.3)
 Roxygen: list(markdown = TRUE)
 Imports:
-    jsonlite
+    jsonlite,
+    utils
 Suggests:
     DBI,
     RSQLite,

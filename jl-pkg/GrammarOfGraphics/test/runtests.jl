@@ -1162,3 +1162,32 @@ end
     @test (data(df, name = "df") + point + x(:x) + y(:y)) /
           (data(df, name = "df") + line + x(:x) + y(:y)) isa Page
 end
+
+# --- book_table(): the manual's tables, without a CSV reader to copy ---------
+#
+# Binding plumbing rather than a word of the grammar, which is why
+# `book/check_vocabulary.R` excludes it from the kernel block beside
+# `render_svg`. The offline checks always run; the fetch is guarded, because a
+# suite has to pass on a laptop with no network.
+@testset "book_table" begin
+    @test GrammarOfGraphics.BOOK_DATA_URL ==
+          "https://psychometrician.github.io/gog-book/data/"
+
+    raw = ["1" "01" "x"; "2" "02" "y"]
+    typed = GrammarOfGraphics._columns(raw, ["n", "s", "w"], ["s"])
+    @test typed["n"] == [1.0, 2.0]          # every value a number, so numbers
+    @test typed["s"] == ["01", "02"]        # named in `text`, so left alone
+    @test typed["w"] == ["x", "y"]          # not numbers, so text
+
+    fetched = try
+        book_table("gapminder_2007")
+    catch err
+        @info "SKIP: book_table() live fetch" err = typeof(err)
+        nothing
+    end
+    if fetched !== nothing
+        @test length(fetched["country"]) == 142
+        @test eltype(fetched["gdp"]) <: Real
+        @test eltype(fetched["continent"]) <: AbstractString
+    end
+end

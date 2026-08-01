@@ -161,7 +161,8 @@ In Hangeul, a syllable is always *initial consonant + vowel*, never the reverse.
 GOG's `*` works the same way: the mark is the subject; the transform is
 what is done to it.
 
-`bin * bar` is a type error, just as ㅏ + ㄱ is not a valid Hangeul syllable.
+`bin * bar` is a type error, just as ㅏ (*a*) + ㄱ (*g*) is not a valid Hangeul
+syllable.
 
 ```r
 bar * bin   # ✅  "a bar mark, derived by binning"

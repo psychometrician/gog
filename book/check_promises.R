@@ -44,7 +44,7 @@ check_promises <- function(book = "book") {
   problems <- character()
 
   yml <- readLines(file.path(book, "_quarto.yml"), warn = FALSE)
-  # List entries only. `_quarto.yml` names chapters in comments too ("globe, map
+  # List entries only. `_quarto.yml` names chapters in comments too ("map
   # — coming, alongside space.qmd and polar.qmd"), and matching anywhere on the
   # line put `space.qmd` and `composition.qmd` in the scan twice.
   # `- part: parts/morning.qmd  # the whole grammar, one sitting` — the part
@@ -67,16 +67,19 @@ check_promises <- function(book = "book") {
 
   # --- Rule 1: every plot is live -----------------------------------------
   #
-  # One image is allowed in the whole book, and it is named here rather than
-  # pattern-matched, so that adding a second one has to be a decision. A plot
-  # arriving as a screenshot is the failure this guards; the *Hunminjeongeum*
-  # is a photograph of a 1446 woodblock and no engine could draw it.
-  allowed_image <- "images/Hunmin_Jeongeum.svg"
+  # Two images are allowed in the whole book, and they are named here rather
+  # than pattern-matched, so that adding a third has to be a decision. A plot
+  # arriving as a screenshot is the failure this guards, and neither of these is
+  # a plot: the *Hunminjeongeum* is a photograph of a 1446 woodblock, and the
+  # mouth saying ㄱ is an anatomical diagram of the tongue. No engine draws
+  # either one. The preface's own wording is kept in step with this list.
+  allowed_images <- c("images/Hunmin_Jeongeum.svg", "images/Pronounciation.png")
   for (f in listed) {
     ln <- read_chapter(f)
     img <- grep("!\\[", ln)
     for (i in img) {
-      if (!grepl(allowed_image, ln[i], fixed = TRUE))
+      if (!any(vapply(allowed_images,
+                      function(a) grepl(a, ln[i], fixed = TRUE), logical(1))))
         problems <- c(problems, sprintf(
           "%s:%d static image, but every plot must be live: %s",
           f, i, substr(trimws(ln[i]), 1, 60)))

@@ -396,7 +396,7 @@ or it does not and says so:
 ```{r}
 #| echo: false
 #| results: asis
-spaces <- rules$spaces
+spaces <- setdiff(rules$spaces, "globe")
 scells <- rules$space_cells
 slook  <- setNames(ifelse(scells$drawn, "✅", "—"), paste(scells$space, scells$mark))
 header  <- paste0("| Mark | ", paste0("`", spaces, "`", collapse = " | "), " |")
@@ -459,10 +459,10 @@ the data), `rule` and `zone` span an axis that is not there, and `box`,
 is not placed by a position here either — it is placed by the region, which is
 the same thing that places the bar.
 
-`globe` and `map` are empty all the way down, and they are in the grid for that
-reason. They are named in the kernel and have no renderer behind them, so the
-column is the honest edge of the engine rather than a gap in the table. Two whole
-columns of `—` is what an unbuilt idea looks like when nothing is hidden.
+`map` is empty all the way down, and it is in the grid for that reason. It is
+named in the kernel and has no renderer behind it, so the column is the honest
+edge of the engine rather than a gap in the table. A whole column of `—` is what
+an unbuilt idea looks like when nothing is hidden.
 
 **Every mark in the kernel is now in all three crossings.** `surface` was the last
 one left out — a grammar-legal mark with no renderer, whose every cell would have

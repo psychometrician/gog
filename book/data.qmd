@@ -541,7 +541,11 @@ special <- data.frame(
 data(special) + bar + x(firm) + y(spend) + title("Q3 <spend> & forecast")
 ```
 
-Non-Latin scripts work the same way, including as bare column names:
+Non-Latin scripts work the same way, including as bare column names. The table
+below is Korean. 지역별 (*jiyeokbyeol*) means by region, 지역 (*jiyeok*) is region,
+and 값 (*gap*) is value. The three rows are the cities 서울 (*Seoul*), 부산
+(*Busan*) and 대구 (*Daegu*). The plot title 한국 지역별 값 (*Hanguk jiyeokbyeol
+gap*) reads *value by region, Korea*.
 
 ```{r}
 지역별 <- data.frame(

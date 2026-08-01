@@ -33,9 +33,17 @@ callable from [R](https://www.r-project.org/), [Python](https://www.python.org/)
 [JavaScript](https://developer.mozilla.org/en-US/docs/Web/JavaScript).
 Its discipline comes from Hangeul (한글), the Korean
 alphabet; its vocabulary from Wilkinson's *The Grammar of Graphics*; and its
-working shape from ggplot2. Behind all three is one promise: **a beginner
+working shape from [ggplot2](https://ggplot2.tidyverse.org/)
+[@wickham2026ggplot2pkg]. Behind all three is one promise: **a beginner
 should be able to read any plot specification aloud on day one and write it
 themselves on day two.**
+
+This preface is unusually long. It explains where the grammar comes from, and
+why it refuses what it refuses. You do not need any of it to draw a plot. If
+you would rather start now, take the install command for your language from
+[Installing GOG](#installing-gog). Then go straight to [Part I, A
+morning](parts/morning.qmd), which teaches the whole grammar in one sitting.
+Nothing in it depends on this page, and you can come back here later.
 
 ## *A* grammar, not *the* grammar
 
@@ -94,12 +102,15 @@ waiting to see it drawn.
 
 ## Where this began: 1443
 
-Nearly every writing system in use today grew by accretion. Traders bent a
-neighbor's letters around new sounds, scribes wore pictures down into
-strokes, and nobody wrote down why. Hangeul is the great exception. In the
-winter of 1443, King Sejong announced twenty-eight letters of
-deliberate design. The 1446 book that introduced them, the *Hunminjeongeum*
-("The Correct Sounds for the Instruction of the People"), opens by saying why
+Nearly every writing system in use today grew slowly, without a plan. Traders
+borrowed a neighbor's letters and reused them for the sounds of their own
+language. Scribes copied picture-signs so often, and so quickly, that the
+pictures turned into simple strokes. Nobody recorded why any of it happened.
+Hangeul is the great exception. In the winter of 1443,
+[King Sejong](https://en.wikipedia.org/wiki/Sejong_the_Great) announced
+twenty-eight letters of deliberate design. The 1446 book that introduced them,
+the *Hunminjeongeum* ("The Correct Sounds for the Instruction of the People"),
+opens by saying why
 [@hunminjeongeum1446]. The spoken language differed from written Chinese, so
 ordinary people "who have something they wish to say are, in the end, unable
 to express their feelings." Therefore, new
@@ -122,15 +133,29 @@ of the cock and the barking of dogs can all be written down.
 ## What made the letters learnable
 
 The letters earned those claims through design. The consonants draw the
-mouth making the sound; the vowels build from three shapes: a dot for
-heaven, a flat stroke for earth, an upright stroke for the human standing
-between them. Linguists eventually had to coin a new category, *featural*, for
-a script this systematic [@sampson1985]. In a featural script the shape of a
-letter shows a property of the sound it makes. But the property this package is
-actually built on is not the smallness of the letter set. English also has a
-small alphabet, and takes years, because its composition is riddled with
-exceptions ("ough" alone is five different sounds). Hangeul is learnable in
-a morning because its **composition has no exceptions**. An **atom** is a piece
+mouth making the sound. The vowels build from three shapes: ㆍ (*araea*, a vowel
+modern Korean no longer writes), a dot for heaven; ㅡ (*eu*), a flat stroke for
+earth; and ㅣ (*i*), an upright stroke for the human standing between them.
+Linguists eventually had to coin a new category, *featural*, for a script this
+systematic [@sampson1985]. In a featural script the shape of a
+letter shows a property of the sound it makes. Twenty-four of Sejong's
+twenty-eight letters are still in use today. That small number is the usual
+explanation for how quickly Hangeul is learned. English has a small alphabet
+too, and takes years, because its composition is riddled with exceptions. The
+same four letters, *ough*, are pronounced six different ways, and none of the
+six is a rare word:
+
+| word | *ough* is pronounced |
+|------|----------------------|
+| *though* | like *o* in *go* |
+| *through* | like *oo* in *too* |
+| *thought* | like *aw* in *law* |
+| *tough* | like *uff* in *stuff* |
+| *cough* | like *off* |
+| *bough* | like *ow* in *cow* |
+
+Hangeul is learnable in a morning
+because its **composition has no exceptions**. An **atom** is a piece
 that nothing divides further, here a single letter. The power is not the atoms.
 It is the regularity with which they combine.
 
@@ -167,7 +192,8 @@ pieces compose. That is the standard GOG holds itself to, and the aim is to
 narrow what still stands between what a plot *means* and what its code lets
 you *say*.
 
-That debt is specific, and naming it is better than gesturing at it. The `+`
+That debt is made of specific things, and naming them is better than a vague
+mention. The `+`
 that joins the parts of a sentence is ggplot2's, not Wilkinson's, whose `+`
 blends variables and is a different operation entirely. The split between
 *mapping* a column and *setting* a fixed value is ggplot2's. So is drawing
@@ -176,13 +202,17 @@ specification you build and hand over, rather than a set of drawing commands.
 Wickham named that last one himself. "One of the most important features of the
 grammar is its declarative nature," he wrote, and ggplot2 uses `+` to keep it
 that way in R [@wickham2008thesis, p. 54]. This package inherits both the
-property and the operator that protects it. A
+property and the operator that protects it. Wickham has since said publicly
+that ggplot2 should use the pipe instead [@wickham2018pipe]. GOG keeps `+`, and
+the [operators](operators.qmd#why-and-not-a-pipe) chapter says why. A
 reader who already writes ggplot2 will recognize the shape of almost every
 sentence in this book. That is on purpose. After years of ggplot2, its grammar
 is how I think about visualization, so it is the shape this one took.
 
-What changed is narrower, and it is why this package exists at all. There is no
-function for each chart type, so a histogram is derived instead of looked up.
+What changed is narrower, and it is why this package exists at all. ggplot2
+already derives a histogram, from its bar geom and its binning statistic
+[@wickham2016ggplot2, sec. 3.13]. What it adds is a shortcut name for that
+pair. GOG adds none, so the pairing itself is the only spelling.
 One engine answers four languages, so the sentence you learn in R is the
 sentence you write in Python. And the rules for combining the pieces hold
 everywhere, with no exceptions, which is what the rest of this preface is
@@ -195,9 +225,10 @@ chart can be derived?* Wilkinson's grammar answers what exists
 [@wilkinson2005]. ggplot2 found the shape that made such an answer usable, and
 most of how a sentence here is assembled is its idea. Hangeul disciplines how
 it composes. Marks are the consonants, silent until placed. Positions are the
-vowels that give them somewhere to stand. A histogram is nothing to memorize:
-it is `bar * bin`, derived, the way ㅋ (*k*) is derived from ㄱ (*g*) rather
-than invented fresh.
+vowels that give them somewhere to stand. A mark and its positions together are
+a syllable, and nothing smaller draws. A histogram is nothing to memorize:
+it is `bar * bin`, a bar mark derived by binning, the way ㅋ (*k*) is derived
+from ㄱ (*g*) rather than invented fresh.
 
 ```{r}
 data(gapminder_2007) + bar * bin + x(life)
@@ -212,7 +243,13 @@ channel, which is the visual property a column is mapped to, and `*` is the
 operator that puts a transform on a mark. It is the *derived by* in the
 sentence above. Read `*` as a spinning wheel rather than as a multiplication
 sign. Its spokes show one thing being turned into another, the way ㄱ shows
-the shape of the mouth that says it. Nothing there is memorized. The names are
+the shape of the mouth that says it.
+
+![The mouth saying ㄱ (*g*). The back of the tongue rises to block the throat, and the red line traces the shape the letter draws.[^gieok-img]](images/Pronounciation.png){fig-alt="A side view of the mouth, nose and throat. A red line runs along the raised back of the tongue and then turns downward, tracing the angular shape of the Korean letter ㄱ." width="300" fig-align="center"}
+
+[^gieok-img]: Diagram by [Paranocean](https://commons.wikimedia.org/wiki/File:Pronounciation_%E3%84%B1.png) on Wikimedia Commons, used unchanged under [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/). It keeps that license rather than this book's.
+
+Nothing there is memorized. The names are
 ordinary English words, and the rule that joins them never changes. Knowing
 those four parts is knowing this plot, and every other statistical chart in
 this book is the same four kinds of part in a different arrangement.
@@ -225,31 +262,32 @@ on one mark holds on every mark, or the package has failed you.
 That law is easy to read as *everything combines with everything*. Here is the
 other half of it, which is the half that does the work.
 
-Hangeul can write the crowing of a cock. Hangeul cannot write ㄱㄴ. A
+Hangeul can write the crowing of a cock. Hangeul cannot write ㄱㄴ (*g* then
+*n*). A
 syllable is not a pile of letters; it is a set of slots, an initial consonant,
 then a vowel, then an optional final consonant, and each class of letter belongs
 to one of them. Two consonants with no vowel between them fill nothing. ㄱ on
-its own is silent, and a lone vowel cannot stand either: to write the bare
-sound *a* you supply a carrier for the empty initial slot, and what you write
-is 아. The script that
+its own is silent, and ㅏ (*a*) cannot stand alone either: to write that bare
+sound you supply a carrier for the empty initial slot, and what you write
+is 아 (*a*). The script that
 boasts it can capture the barking of a dog refuses most of the arrangements
 you could make of its own letters.
 
-Those are not two facts. They are one. Take the slots away, let any letters
-stack in any order, and the script does not become more expressive; it becomes
-unreadable. A block would no longer tell you how to say it, and you would be
-back to memorizing shapes whole, which is where writing began. The refusals are
+Those are not two facts. They are one. If the slots were removed, and any
+letters could stack in any order, the script would not become more expressive.
+It would become unreadable. A block would no longer tell you how to say it, and
+you would return to memorizing whole shapes, which is where writing began. The refusals are
 what make the script readable at first sight. A reader meeting a word for the
 first time still knows which part is the consonant, because nothing else could
 have been in that slot.
 
 A plot is the same. GOG will not draw a `point` from an x alone. A mark with
-one position has not said where to put it. GOG will not map a column to `size`
-on a `bar` either. The bar's length already shows the quantity, so a size would
-have nothing left to show. Neither refusal is a missing feature. Both come from
-the rule that lets you read a specification you have never seen before. If
-every mark accepted every channel, knowing the mark would tell you nothing. A
-plot would go back to being something you memorize. The engine says no out
+one position has not said where to put it. GOG will not map a column to `shape`
+on a `bar` either. A bar is a rectangle, and there is no other shape for it to
+be. Neither refusal is a missing feature. Both exist for the same reason: they
+let you read a specification you have never seen before. If every mark accepted
+every channel, knowing the mark would tell you nothing. A plot would again be
+something you memorize. The engine says no out
 loud, and every no points to what you meant instead. That is why this book
 renders its refusals live, on the page, beside the plots that work.
 
@@ -284,8 +322,8 @@ morning introduced; it never replaces it.
 Five rules govern every page, and you can hold the book to them:
 
 - **Every plot is live.** Each is drawn by the engine as the page builds;
-  no plot in this book is a screenshot. The one static image is historical:
-  the *Hunminjeongeum* page shown earlier, which no engine could draw.
+  no plot in this book is a screenshot. Two static images sit in this preface,
+  the *Hunminjeongeum* page and the mouth saying ㄱ, and neither is a plot.
 - **Questions first.** Every teaching chapter opens with a question about
   data, and answers it before it names a feature.
 - **A small cast.** Five families of table carry three out of four plots in
@@ -304,9 +342,9 @@ viable package, so do not expect everything to work the first time. If you use
 it for an experiment or a paper, you are taking a risk. This warning is here so
 that the risk is one you chose, and not one you found out about later.
 
-Expect it to move quickly. New atoms and new features will arrive, and they will
-arrive often. A plot you write today may have a shorter way to say it next
-month. What I will try hard not to do is take anything away. A sentence that
+Expect it to move quickly. New features will arrive often. New atoms will not:
+the kernel is meant to stay small, and it grows one decision at a time. A plot
+you write today may have a shorter way to say it next month. What I will try hard not to do is take anything away. A sentence that
 draws today should still draw a year from now. If that ever has to break, I will
 say why rather than let it break quietly. I cannot promise it, though, and at
 version 0.0.1 nobody honestly could.
@@ -350,12 +388,14 @@ comparison gets one of
 two answers: this is a bug and thank you, or this is a choice and here is the
 reasoning behind it. Both are worth the message.
 
-Not everything reported will be built. I am this project's benevolent dictator
-for life. The phrase is a tongue-in-cheek open-source title for a founder who
-keeps the final say in a dispute. It was first used in 1995 for [Guido van
+Not everything reported will be built. I am this project's [benevolent dictator
+for life](https://en.wikipedia.org/wiki/Benevolent_dictator_for_life). The
+title is a joke, and each word in it means something. *Dictator*, because the
+founder decides instead of the project voting. *For life*, because there is no
+election to lose. *Benevolent*, because the decisions are expected to serve the
+users rather than the founder. It was first used in 1995 for [Guido van
 Rossum](https://en.wikipedia.org/wiki/Guido_van_Rossum), who created Python.
-Many people would say I am not qualified to hold
-it. I am holding it until this package is in the hands of a user community and
+Many people would say I am not qualified to hold it. I am holding it until this package is in the hands of a user community and
 of people better than me.
 
 ## The cast
@@ -385,7 +425,8 @@ need a shape none of them has, and each brings its own small frame, introduced
 on the page that first draws it rather than in this list. Wind observations
 for the circular axes in [polar](polar.qmd). A mountain's elevation grid for
 [surface](marks/surface.qmd). Two gliders' coiling flight paths for the third
-dimension. Thresholds and shaded spans for the marks that annotate. None of
+dimension in [space](space.qmd). Thresholds for [rule](marks/rule.qmd), and
+shaded spans for [zone](marks/zone.qmd). None of
 them arrives to add variety. A new column costs the reader attention, so the
 variety in this book stays in the questions.
 
@@ -415,16 +456,19 @@ words in use:
    chapters hold what belongs to the host language rather than to the grammar.
 
 Five appendices follow. The [kernel card](kernel-card.qmd) is the whole
-vocabulary on one page. The [mark-by-channel grid](combinations.qmd) shows
-what combines and what the engine refuses, generated from the engine's own
-rule table on every build so it cannot drift from the code. A
+vocabulary on one page. The [combination grids](combinations.qmd) cross marks
+with channels, with transforms and with spaces, and transforms with each other.
+Each shows what combines and what the engine refuses, generated from the
+engine's own rule table on every build so it cannot drift from the code. A
 [dictionary](chart-names.qmd) runs from chart names to sentences. A
-[phrasebook](phrasebook.qmd) serves readers arriving from ggplot2. And [what
-GOG does not do, and why](coverage.qmd) closes the book.
+[phrasebook](phrasebook.qmd) translates ggplot2 into GOG. And
+[coverage](coverage.qmd) closes the book, listing what GOG and ggplot2 each draw
+that the other does not.
 
 This book is written in R. [Python](bindings/python.qmd),
 [Julia](bindings/julia.qmd) and [JavaScript](bindings/javascript.qmd) speak
-the same sentences into the same engine. Those three chapters are the whole of
+the same sentences into the same engine. The four binding chapters,
+[R](bindings/r.qmd) included, are the whole of
 the difference: how each language captures a column name, and, for JavaScript
 alone, the four words it needs because it cannot give `+ * | /` a meaning of
 its own. Most code blocks are executed during render: the plots you see are
@@ -551,7 +595,7 @@ The design is mine. The founding question, the Hangeul discipline, the nine
 laws, and the ruling at every fork about what this grammar would and would not
 become: those are the parts I am answerable for. The hex sticker is mine as
 well. I designed it myself in [Canva](https://www.canva.com), with no sticker
-package and no model. I am not an artist, and what I wanted was not a beautiful
+package. I am not an artist, and what I wanted was not a beautiful
 sticker but an unmistakable one. The Rust
 engine was written entirely by the four Claude models on the cover, as were all
 four language bindings and the test suites. They also did the work nobody is

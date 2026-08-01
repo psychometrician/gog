@@ -15,7 +15,7 @@
 #      undocumented in the kernel tables for a session.
 #   3. Every word in the kernel block must ship, or be marked ⬜ (designed, not
 #      drawn). Checks 1 and 2 both treat the block as the authority, so neither
-#      could ever doubt it: `click`, `brush`, `lasso`, `globe` and `map` sat in
+#      could ever doubt it: `click`, `brush`, `lasso` and `map` sat in
 #      it with no code behind them in any language, under a paragraph promising
 #      GOG would tell you which words are undrawn.
 #
@@ -38,7 +38,7 @@ check_vocabulary <- function(book = "book", namespace = "r-pkg/gog/NAMESPACE") {
                                seq_along(block) > 2)[1])]
   block <- block[grepl("^\\|", block)]
 
-  # A word may carry the ⬜ marker — `globe`⬜ — meaning designed but not drawn.
+  # A word may carry the ⬜ marker — `map`⬜ — meaning designed but not drawn.
   # It sits *outside* the backticks on purpose, so the name reads the same to
   # the parser above whether or not it is marked, and check 3 below reads the
   # marker separately. The tables below in grammar.qmd use ✅ for "draws today",
@@ -158,7 +158,11 @@ check_vocabulary <- function(book = "book", namespace = "r-pkg/gog/NAMESPACE") {
   # the fix instead of leaving R to say "could not find function". A word that
   # exists to teach its own absence must not be documented as a channel — this
   # is the one export that is deliberately *not* in the kernel block.
-  exported <- setdiff(exported, c("render_svg", "colour"))
+  # `book_table` fetches one of the manual's example tables so a reader can run
+  # an example without first writing a CSV reader. Like `render_svg` it is
+  # binding plumbing rather than a word of the grammar, so it is not documented
+  # as an atom.
+  exported <- setdiff(exported, c("render_svg", "colour", "book_table"))
   undocumented <- setdiff(exported, all_names)
   if (length(undocumented))
     fail("FAIL: exported but absent from the kernel block in grammar.qmd — ",
@@ -170,14 +174,14 @@ check_vocabulary <- function(book = "book", namespace = "r-pkg/gog/NAMESPACE") {
   # an atom that ships without being documented; nothing caught a word that is
   # *documented without shipping*. `click`, `brush` and `lasso` sat in the
   # kernel block from the first draft with no code behind them in any of the
-  # four languages, and `globe` and `map` joined them — five names a reader
+  # four languages, and `map` joined them — four names a reader
   # could type and get "could not find function" for, while the paragraph under
   # the table promised GOG would say which words are undrawn. Nothing could
   # fail, because no check read the block in this direction.
   #
   # A word is allowed here only if it is exported, marked ⬜, or named below.
   # So the ⬜ list cannot go stale in either direction: adding a word without
-  # code fails until it is marked, and the day `globe` ships, its marker has to
+  # code fails until it is marked, and the day `map` ships, its marker has to
   # come off or check 2 is happy while the book still calls it undrawn.
   #
   # These are real, and are the reason the rule is not simply "exported":

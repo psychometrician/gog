@@ -224,8 +224,8 @@ the whole of it, because there is no `flip` atom to learn.
 The mark list looks like a set to memorize, one entry at a time. It is not, for
 the same reason the consonants of Hangeul (한글) are not fourteen shapes: the
 letters are *featural*, built so that most of them are another letter with a
-single feature changed. ㅋ is ㄱ with a stroke added, and once you know ㄱ you
-have most of ㅋ already.
+single feature changed. ㅋ (*k*) is ㄱ (*g*) with a stroke added, and once you
+know ㄱ you have most of ㅋ already.
 
 The marks are built the same way. Some pairs share their **entire channel row**,
 meaning everything they require, accept and refuse of your columns is identical,

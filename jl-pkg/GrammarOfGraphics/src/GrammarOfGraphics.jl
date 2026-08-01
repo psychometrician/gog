@@ -47,9 +47,11 @@ include("columns.jl")
 include("spec.jl")
 include("atoms.jl")
 include("render.jl")
+include("tables.jl")
 
 export GogError, Plot, Page, Atom, Ordered, ordered
 export data, query, render_svg, save, svg_block, find_gog_cli, to_wire
+export book_table
 
 # marks — the "consonants"
 export point, line, path, rule, zone, area, bar, step, interval, box, ribbon, text,

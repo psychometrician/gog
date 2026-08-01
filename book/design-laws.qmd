@@ -325,7 +325,7 @@ be held in a variable too, `piled <- bar * bin`, and spoken wherever you like.
 
 In Hangeul the smallest pronounceable unit is a consonant plus a vowel: ㄱ (*g*)
 alone is silent, and 가 (*ga*) is the minimum syllable. A bare vowel cannot stand
-alone either: ㅏ (*a*) must be written 아, on a silent carrier.
+alone either: ㅏ (*a*) must be written 아 (*a*), on a silent carrier.
 
 A mark is the silent consonant: `point` with no positions draws nothing,
 because there is nowhere to draw it. A position is the vowel that needs its

@@ -50,9 +50,9 @@ you add a mark or a channel, `rule_for` must gain an entry — the
 
 Source comments cite the project's design specification by section, like
 `(spec §15)` or `// the §12 drop`. That specification is not published. The
-comment text always carries the meaning on its own — the section number is
-provenance, not a link you are expected to follow, and nothing in this repository
-requires it to make a change correctly. The laws above are the part you need, and
+comment text always carries the meaning on its own. The section number is
+provenance rather than a link you are expected to follow, and nothing here needs
+it in order to make a change correctly. The laws above are the part you need, and
 they are here in full.
 
 ---
@@ -62,6 +62,7 @@ they are here in full.
 ```
 gog-core/                    the engine — all the logic lives here
 gog-cli/                     a thin bridge: stdin JSON → stdout SVG. Holds no logic.
+gog-wasm/                    the second bridge: the same JSON, read from linear memory
 r-pkg/gog/                   the R front end
 py-pkg/gog/                  the Python front end
 jl-pkg/GrammarOfGraphics/    the Julia front end
@@ -74,11 +75,11 @@ rule the other three will get wrong**, so anything more than one front end needs
 belongs in `gog-core`.
 
 **A feature is not done until all four bindings have it.** The vocabulary never
-differs between them, underscores included (Law 3); only the idiom does — R's bare
-names, Python's and JavaScript's `col.x`, Julia's `:x`, JavaScript's trailing
+differs between them, underscores included (Law 3). Only the idiom does: R's bare
+names, Python's and JavaScript's `col.x`, Julia's `:x`, and JavaScript's trailing
 options object. Three parity harnesses draw every sentence in the manual and
-compare against R, so a binding left behind shows up as a disagreement rather than
-as a quiet debt.
+compare against R. A binding left behind shows up there as a disagreement rather
+than as a quiet debt.
 
 ## The module map
 
@@ -108,47 +109,49 @@ it — the layering is acyclic, and keeping it that way is the point.
 | `render/polar.rs` | The plane bent into a circle — a normalized (angle, radius) → pixels, and the annular sector a bar becomes | `ir`, `render/mod` |
 | `render/nest.rs` | The `nest` coordinate space — the panel packed with nested regions, where a measure becomes an area | `render/mod` |
 | `render/svg.rs` | Orchestration, axes, and the chrome around the marks | all of the above |
-| `render/marks/*.rs` | One drawing routine per mark, plus the `dodge`/`jitter`/bar-thickness toolkit and `place`, the one "where does this datum go" for either coordinate space | `svg` (mutually), `encode`, `polar`, and the render helpers |
+| `render/marks/*.rs` | One drawing routine per mark, plus the `dodge`/`jitter`/bar-thickness toolkit and `place`, the one "where does this datum go" for either coordinate space. `violin.rs` is the exception: one routine that `ribbon` and `area` both call, because a violin is their geometry fed by a slot density rather than a mark of its own | `svg` (mutually), `encode`, `polar`, and the render helpers |
 | `render/page.rs` | Separate plots arranged onto one page, each keeping its own coordinate space — and the derivation that the same column on the same axis in two composed plots is *one* axis | `data`, `ir`, `legality`, `layout`, `svg` |
 | `plot.rs` | The one way into the engine — a spec in, an SVG or a refusal out | `data`, `ir`, `legality`, `render/svg` |
 
 **`plot.rs` is the top of the crate, and the only public door.** It runs
-`legality::check` and applies `GOG_STRICT` before calling the renderer, which is
+`legality::check` and applies `GOG_STRICT` before calling the renderer. That is
 why `SvgRenderer::render` is `pub(crate)`: the gate must not be a step a caller
-remembers to run. It used to be exactly that — the policy lived in
-`gog-cli/src/main.rs`, so every caller that was not the CLI (all four examples,
-and any future Rust/WASM/FFI binding) drew illegal plots in silence. Nothing
+remembers to run. It used to be exactly that. The policy lived in
+`gog-cli/src/main.rs`, so every caller that was not the CLI drew illegal plots in
+silence — all four examples, and any future Rust, WASM or FFI binding. Nothing
 depends on `plot.rs`; it depends on the two halves it joins. Add a binding by
-calling it, never by reaching past it — and the compiler agrees.
+calling it, never by reaching past it, and the compiler will hold you to that.
 
 **There are two bridges now, and `wire.rs` is why that is safe.** `gog-cli` reads
-the request from stdin; `gog-wasm` reads the identical JSON from a pointer into
-linear memory, because a web page has no subprocess to spawn and a 3-D plot only
+the request from stdin. `gog-wasm` reads the identical JSON from a pointer into
+linear memory, because a web page has no subprocess to spawn, and a 3-D plot only
 becomes turnable once the engine is *in* the page. Only the transport differs.
-Everything else — decoding, the missing-value policy, the legality gate, the
-renderer — is reached through `wire::decode` and `plot::render_figure`, so the
-two cannot disagree about which rows get plotted. That mattered enough to move
-the decoding down: a disagreement there would not crash, it would quietly draw a
-different dataset in the browser than on the command line, which is rule 4's
-lesson in a new place. A test renders the same spec both ways at four viewing
+Everything else is reached through `wire::decode` and `plot::render_figure`:
+decoding, the missing-value policy, the legality gate and the renderer. So the
+two bridges cannot disagree about which rows get plotted. That is why the
+decoding moved down. A disagreement there would not crash. It would quietly draw
+one dataset in the browser and a different one on the command line, which is rule
+4's lesson in a new place. A test renders the same spec both ways at four viewing
 angles and compares bytes.
 
 **`gog-wasm` is deliberately not a workspace member**, and its manifest says why
-at length: Cargo ignores a non-root package's `[profile]`, so membership would
-silently cost the size tuning that takes the module from ~1.6 MB to ~823 KB, and
-the R package's `.prepare` stages the workspace manifest beside `gog-core/` and
-`gog-cli/` only — a third member listed but not copied breaks the build that
-`remotes::install_github()` and r-universe run. It therefore needs its own test
-invocation; `cargo test` at the root does not reach it.
+at length, and there are two reasons. Cargo ignores a non-root package's
+`[profile]`, so membership would silently cost the size tuning that takes the
+module from ~1.6 MB to ~823 KB. And the R package's `.prepare` stages the
+workspace manifest beside `gog-core/` and `gog-cli/` only, so a third member
+listed but not copied breaks the build that `remotes::install_github()` and
+r-universe run. It therefore needs its own test invocation; `cargo test` at the
+root does not reach it.
 
 **`svg.rs` is the orchestrator: the one place that knows the *order* things happen
 in** — resolve scope, transform, build axes, draw marks, draw guides. The per-mark
 drawing routines used to live here too; they are now one file each under
 `render/marks/`, kept as `pub(crate)` methods on `SvgRenderer` and dispatched by
-the `match layer.mark` in `render`. That split is the table's one deliberate cycle
-— a mark file names `SvgRenderer` and reuses a few renderer-owned constants, while
-`svg.rs` calls the mark methods back — the unavoidable price of keeping one type's
-methods across files. The *shared visual-scale* vocabulary both the marks and the
+the `match layer.mark` in `render`. That split is the table's one deliberate
+cycle: a mark file names `SvgRenderer` and reuses a few renderer-owned constants,
+while `svg.rs` calls the mark methods back. That is the unavoidable price of
+keeping one type's methods across files.
+The *shared visual-scale* vocabulary both the marks and the
 legend need lives in neither: it is `render/encode.rs`, below both, which is what
 let `legend.rs` stop reaching up into `svg.rs`. An orchestrator is allowed to be
 long; what it is not allowed to be is *miscellaneous*.
@@ -216,9 +219,9 @@ legend, so it is `render/shape.rs`, not a `pub(crate)` poking out of `svg.rs`.
 
 This is the lesson a since-deleted `png.rs` taught the project. It duplicated
 eight concerns from `svg.rs` — `Layout`, `compute_layout`, `map_x`, `nice_ticks`,
-`PALETTE`, and more — purely because there was no shared module to hold them, and
-the two copies then drifted until `bar * bin` rendered untransformed data to PNG.
-A missing abstraction became a silent correctness bug. The file was deleted; the
+`PALETTE` and more — only because there was no shared module to hold them. The two
+copies then drifted, until `bar * bin` rendered untransformed data to PNG. A
+missing abstraction became a silent correctness bug. The file was deleted; the
 lesson is this rule.
 
 ### 5. Prefer `pub(crate)` to `pub`
@@ -228,10 +231,10 @@ lesson is this rule.
 without the picture. Everything else is an implementation detail and should say
 so, so that moving it later is not a breaking change.
 
-**`pub` is not only about churn — it is sometimes about correctness.**
-`SvgRenderer::render` was `pub` for no reason beyond having been written that way,
-and that one word was the whole of the Rust-path legality hole: it let a caller
-draw without passing the gate. When a function must not be called out of order,
+**`pub` is not only about churn. It is sometimes about correctness.**
+`SvgRenderer::render` was `pub` for no reason beyond having been written that way.
+That one word was the whole of the Rust-path legality hole, because it let a
+caller draw without passing the gate. When a function must not be called out of order,
 `pub(crate)` behind the function that orders it *is* the enforcement, and the
 compiler is what checks it.
 
@@ -302,8 +305,8 @@ and it is how a manual comes to document things the engine cannot do.
 
 **Then re-render the whole book, not only the chapter you edited.** Every plot
 comes from the `gog-cli` binary, so one engine change invalidates every plot at
-once — but Quarto tracks `.qmd` dependencies, not the binary, so a per-chapter
-render leaves the untouched chapters showing stale plots.
+once. But Quarto tracks `.qmd` dependencies rather than the binary. A per-chapter
+render therefore leaves the untouched chapters showing stale plots.
 
 Then check what your change made *wrong*. New features quietly invalidate existing
 pages — `book/grammar.qmd` states the whole vocabulary in two tables and a kernel
@@ -323,8 +326,10 @@ The exception is R. r-universe polls this repository and rebuilds `r-pkg/gog` on
 every commit, publishing at whatever `DESCRIPTION` says — so a push does change
 what an R user installs, without changing the version number they see.
 
-Version numbers are never assigned by CI. One number is written down seven times,
-and the only automation is a check that all seven agree.
+Version numbers are never assigned by CI. One number is written down by hand in
+several manifests, and the only automation is a check that they agree. That check
+covers seven declarations today; `gog-wasm/Cargo.toml` carries an eighth that it
+does not yet reach.
 [`.github/RELEASING.md`](.github/RELEASING.md) has the full account: which workflow
 each trigger starts, where the seven declarations live, what each registry does with
 a number, and which parts of a release cannot be taken back.
