@@ -5388,6 +5388,19 @@ fn check_brush(out: &mut Vec<Diagnostic>, spec: &PlotSpec, data: &HashMap<String
                 ),
             });
         }
+        // Said out loud for the same reason a plot-scoped `size` says which marks
+        // it skipped: a binding applied to some layers and not others is a
+        // decision the reader did not make and cannot see in the picture.
+        for m in &not_elements {
+            out.push(Diagnostic {
+                kind: DiagnosticKind::Assumption,
+                message: format!(
+                    "gog: the `{m}` layer is drawn whole, because it draws one shape through \
+                     many rows and there is no single row to select. The selection still reads \
+                     on the rest of the plot."
+                ),
+            });
+        }
         return;
     }
 

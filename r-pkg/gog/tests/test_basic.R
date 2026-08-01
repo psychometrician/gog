@@ -2133,6 +2133,55 @@ cat("PASS: a bar cannot measure a date\n")
 cat("\ntime tests passed.\n")
 
 # ---------------------------------------------------------------------------
+# brush — the selection
+#
+# Four claims, and the second is the one the whole feature rests on: a plot that
+# names no brush must be exactly the plot it was before selection existed.
+# ---------------------------------------------------------------------------
+
+brush_df <- data.frame(
+  v    = c(1, 2, 3, 4, 5, 6),
+  w    = c(2, 4, 1, 5, 3, 6),
+  kind = c("a", "a", "b", "b", "c", "c"),
+  stringsAsFactors = FALSE
+)
+dim_group <- '<g opacity="0.150">'
+circles <- function(svg) lengths(regmatches(svg, gregexpr("<circle", svg)))
+
+svg_brush <- render_svg(data(brush_df) + point + x(v) + y(w) + brush(v, at = c(2.5, 4.5)))
+if (!grepl(dim_group, svg_brush, fixed = TRUE))
+  stop("FAIL: brush() drew no dimmed group")
+# A brush highlights; it never removes rows. That is what separates it from
+# `limits`, and it is the claim a reader is most likely to test.
+if (circles(svg_brush) != 6)
+  stop("FAIL: brush() dropped rows — it must dim, not filter")
+cat("PASS: brush() dims the rows outside the bound and drops none\n")
+
+svg_plain <- render_svg(data(brush_df) + point + x(v) + y(w))
+if (grepl("data-gog-panel", svg_plain, fixed = TRUE) || grepl("<g opacity=", svg_plain))
+  stop("FAIL: a plot with no brush carries selection machinery")
+cat("PASS: a plot with no brush is untouched by selection\n")
+
+svg_cat <- render_svg(data(brush_df) + point + x(v) + y(w) + brush(kind, at = "b"))
+if (!grepl(dim_group, svg_cat, fixed = TRUE))
+  stop("FAIL: brush() on a column of categories selected no slots")
+cat("PASS: brush() on a category column selects slots\n")
+
+m <- tryCatch({
+  render_svg(data(brush_df) + line + x(v) + y(w) + brush(v, at = c(2, 4))); ""
+}, error = function(e) conditionMessage(e))
+if (!grepl("one shape through many rows", m) || !grepl("group\\(\\)", m))
+  stop("FAIL: a brushed line should refuse and name group(), got: ", m)
+cat("PASS: refused — a line has no single row to select\n")
+
+m <- tryCatch({ brush(v, at = c(1, 2, 3)); "" }, error = function(e) conditionMessage(e))
+if (!grepl("two numbers", m))
+  stop("FAIL: `at` with three numbers should refuse, got: ", m)
+cat("PASS: refused — `at` is two numbers or a set of names\n")
+
+cat("\nbrush tests passed.\n")
+
+# ---------------------------------------------------------------------------
 # The area mark
 # ---------------------------------------------------------------------------
 

@@ -682,7 +682,7 @@ def _check_brush_at(at):
     if seq and all(isinstance(v, str) for v in seq):
         return {"levels": seq}
     if len(seq) != 2 or not all(isinstance(v, (int, float)) and v == v for v in seq):
-        raise ValueError(
+        raise GogError(
             "gog: `at=` is where the selection opens: two numbers on a column that "
             "measures, e.g. `brush(col.gdp, at=(1200, 45000))`, or the names to "
             "select on a column of categories."

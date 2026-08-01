@@ -48,6 +48,7 @@ import {
   palette,
   path,
   play,
+  brush,
   plot,
   point,
   density,
@@ -1658,4 +1659,47 @@ test("book_table: quoting, types, and a name it refuses", async () => {
   assert.deepEqual(labelled.n, [5, 7]);
 
   await assert.rejects(() => book_table(42), /one table name/);
+});
+
+// ---------------------------------------------------------------------------
+// brush — the selection
+//
+// Four claims, and the second is the one the whole feature rests on: a plot that
+// names no brush must be exactly the plot it was before selection existed.
+// ---------------------------------------------------------------------------
+
+test("brush dims the rows outside the bound and drops none", () => {
+  const d = { v: [1, 2, 3, 4, 5, 6], w: [2, 4, 1, 5, 3, 6],
+              kind: ["a", "a", "b", "b", "c", "c"] };
+  const svg = render_svg(plot(data(d, { name: "bt" }), point,
+    x(col.v), y(col.w), brush(col.v, { at: [2.5, 4.5] })));
+  assert.ok(svg.includes('<g opacity="0.150">'), "no dimmed group");
+  // A brush highlights; it never removes rows. That is what separates it from
+  // `limits`, and it is the claim a reader is most likely to test.
+  assert.equal((svg.match(/<circle/g) || []).length, 6, "brush must dim, not filter");
+});
+
+test("a plot with no brush is untouched by selection", () => {
+  const d = { v: [1, 2, 3], w: [2, 4, 1] };
+  const svg = render_svg(plot(data(d, { name: "bt" }), point, x(col.v), y(col.w)));
+  assert.ok(!svg.includes("data-gog-panel"));
+  assert.ok(!svg.includes("<g opacity="));
+});
+
+test("brush on a category column selects slots", () => {
+  const d = { v: [1, 2, 3, 4], w: [2, 4, 1, 5], kind: ["a", "a", "b", "b"] };
+  const svg = render_svg(plot(data(d, { name: "bt" }), point,
+    x(col.v), y(col.w), brush(col.kind, { at: "b" })));
+  assert.ok(svg.includes('<g opacity="0.150">'));
+});
+
+test("a line has no single row to select, and the refusal names group()", () => {
+  const d = { v: [1, 2, 3], w: [2, 4, 1] };
+  assert.throws(() => render_svg(plot(data(d, { name: "bt" }), line,
+    x(col.v), y(col.w), brush(col.v, { at: [1, 2] }))),
+    /one shape through many rows[\s\S]*group\(\)/);
+});
+
+test("`at` is two numbers or a set of names", () => {
+  assert.throws(() => brush(col.v, { at: [1, 2, 3] }), /two numbers/);
 });

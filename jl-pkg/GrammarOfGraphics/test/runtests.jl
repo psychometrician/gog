@@ -1190,4 +1190,43 @@ end
         @test eltype(fetched["gdp"]) <: Real
         @test eltype(fetched["continent"]) <: AbstractString
     end
+    # -----------------------------------------------------------------------
+    # brush — the selection
+    #
+    # Four claims, and the second is the one the whole feature rests on: a plot
+    # that names no brush must be exactly the plot it was before selection
+    # existed.
+    # -----------------------------------------------------------------------
+end
+
+@testset "brush" begin
+    d = Dict("v" => [1.0, 2.0, 3.0, 4.0, 5.0, 6.0],
+             "w" => [2.0, 4.0, 1.0, 5.0, 3.0, 6.0],
+             "kind" => ["a", "a", "b", "b", "c", "c"])
+    svg = render_svg(data(d; name = "bt") + point + x(:v) + y(:w) +
+                     brush(:v, at = (2.5, 4.5)))
+    @test occursin("<g opacity=\"0.150\">", svg)
+    # A brush highlights; it never removes rows. That is what separates it
+    # from `limits`, and it is the claim a reader is most likely to test.
+    @test length(collect(eachmatch(r"<circle", svg))) == 6
+
+    plain = render_svg(data(d; name = "bt") + point + x(:v) + y(:w))
+    @test !occursin("data-gog-panel", plain)
+    @test !occursin("<g opacity=", plain)
+
+    cat = render_svg(data(d; name = "bt") + point + x(:v) + y(:w) +
+                     brush(:kind, at = "b"))
+    @test occursin("<g opacity=\"0.150\">", cat)
+
+    line_msg = try
+        render_svg(data(d; name = "bt") + line + x(:v) + y(:w) +
+                   brush(:v, at = (2.0, 4.0)))
+        ""
+    catch e
+        sprint(showerror, e)
+    end
+    @test occursin("one shape through many rows", line_msg)
+    @test occursin("group()", line_msg)
+
+    @test_throws GogError brush(:v, at = (1, 2, 3))
 end

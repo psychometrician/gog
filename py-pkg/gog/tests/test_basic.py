@@ -1408,6 +1408,49 @@ else:
     ok("book_table('gapminder_2007') is 142 typed rows")
 
 
+# ---------------------------------------------------------------------------
+# brush — the selection
+#
+# Four claims, and the second is the one the whole feature rests on: a plot that
+# names no brush must be exactly the plot it was before selection existed.
+# ---------------------------------------------------------------------------
+
+_brush_df = {"v": [1.0, 2.0, 3.0, 4.0, 5.0, 6.0],
+             "w": [2.0, 4.0, 1.0, 5.0, 3.0, 6.0],
+             "kind": ["a", "a", "b", "b", "c", "c"]}
+_DIM = '<g opacity="0.150">'
+
+_svg = render_svg(data(_brush_df, name="bt") + point + x(col.v) + y(col.w)
+                  + brush(col.v, at=(2.5, 4.5)))
+assert _DIM in _svg, "brush() drew no dimmed group"
+# A brush highlights; it never removes rows. That is what separates it from
+# `limits`, and it is the claim a reader is most likely to test.
+assert _svg.count("<circle") == 6, "brush() dropped rows — it must dim, not filter"
+ok("brush() dims the rows outside the bound and drops none")
+
+_plain = render_svg(data(_brush_df, name="bt") + point + x(col.v) + y(col.w))
+assert "data-gog-panel" not in _plain and "<g opacity=" not in _plain
+ok("a plot with no brush is untouched by selection")
+
+_cat = render_svg(data(_brush_df, name="bt") + point + x(col.v) + y(col.w)
+                  + brush(col.kind, at="b"))
+assert _DIM in _cat, "brush() on a column of categories selected no slots"
+ok("brush() on a category column selects slots")
+
+try:
+    render_svg(data(_brush_df, name="bt") + line + x(col.v) + y(col.w)
+               + brush(col.v, at=(2.0, 4.0)))
+    raise AssertionError("a brushed line should refuse")
+except Exception as _e:
+    _t = str(_e)
+    assert "one shape through many rows" in _t and "group()" in _t, _t
+ok("refused — a line has no single row to select")
+
+refuses("`at` is two numbers or a set of names",
+        lambda: brush(col.v, at=(1, 2, 3)))
+
+
+
 _con.close()
 
 print(f"\nAll {passed} checks passed.")
