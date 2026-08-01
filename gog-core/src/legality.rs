@@ -1347,7 +1347,7 @@ pub fn space_of(spec: &PlotSpec) -> SpaceKind {
         // with a `z`, so this only decides which name the report uses.
         CoordSpace::Nest => SpaceKind::Nest,
         CoordSpace::Globe => SpaceKind::Globe,
-        CoordSpace::Map => SpaceKind::Map,
+        CoordSpace::Map(_) => SpaceKind::Map,
         _ if bound_z || synthesized_z => SpaceKind::Space,
         _ => SpaceKind::Flat,
     }
@@ -8364,7 +8364,7 @@ mod tests {
             SpaceKind::Polar => s.coord(CoordSpace::Polar(crate::ir::PolarView::default())),
             SpaceKind::Nest => s.coord(CoordSpace::Nest),
             SpaceKind::Globe => s.coord(CoordSpace::Globe),
-            SpaceKind::Map => s.coord(CoordSpace::Map),
+            SpaceKind::Map => s.coord(CoordSpace::Map(crate::ir::MapView::default())),
         }
     }
 
@@ -8398,7 +8398,8 @@ mod tests {
     /// only what went wrong.
     #[test]
     fn an_undrawn_space_says_what_to_write_instead() {
-        for (coord, atom) in [(CoordSpace::Map, "map"), (CoordSpace::Globe, "globe")] {
+        let map = CoordSpace::Map(crate::ir::MapView::default());
+        for (coord, atom) in [(map, "map"), (CoordSpace::Globe, "globe")] {
             let spec = base().layer(Layer::new(Mark::Point)).coord(coord);
             let out = check(&spec, &data());
             assert!(

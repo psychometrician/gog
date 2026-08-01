@@ -226,7 +226,18 @@ pub enum CoordSpace {
     /// form for the same reason a bare `"space"` is not.
     Polar(PolarView),
     Globe,
-    Map,
+    /// The sphere flattened onto the page — cartography (spec §15). Carries what
+    /// the flattening is asked to preserve, the way `Space` carries its viewing
+    /// angle; `{"map":{"preserve":"area"}}` on the wire, and a bare `"map"` is not
+    /// a legal form for the same reason a bare `"space"` is not.
+    ///
+    /// **The cheapest of the four spaces**, and the reason is worth keeping: this
+    /// one is an ordinary coordinate transform. Longitude and latitude go in,
+    /// projected positions come out, and everything after that is the flat
+    /// renderer unchanged. `Polar` bends the normalized plane and `Space`
+    /// projects a cube, so both have to be understood by the code that draws;
+    /// no mark learns anything about this one (`render/geo.rs`).
+    Map(MapView),
     /// The panel packed with nested regions: every row's measure becomes an
     /// **area**, and the areas partition the panel (spec §15). Wilkinson's ch. 13
     /// §13.3.4, "Mapping Nested Space to Euclidean" — the same section family as
@@ -293,6 +304,45 @@ impl Default for PolarView {
     fn default() -> Self {
         Self { start: 0.0 }
     }
+}
+
+/// What a flattened sphere is asked to get right — the one view parameter of
+/// `map` (spec §15).
+///
+/// A sphere cannot be laid flat without giving something up, and Tissot's theorem
+/// says which: **area and angle cannot both survive**. So this names the choice a
+/// reader actually makes rather than the cartographer whose name the formula
+/// carries, which is also what lets the parameter exist at all. A family behind
+/// one knob is refused when its members are different things wearing one name
+/// (`smooth(method = "lm" | "loess")`, §18) and allowed when each member is one
+/// orthogonal meaning (`scale = "log"`, §10). "Preserves area" and "preserves
+/// angle" are the second kind.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
+#[serde(rename_all = "lowercase")]
+pub enum Preserve {
+    /// Equal-area — every region gets ink in proportion to its true size.
+    ///
+    /// The default, because a **choropleth is read by area**: a reader compares
+    /// how much ink a region has, so a projection that inflates Greenland tells
+    /// them something false about the number inside it.
+    #[default]
+    Area,
+    /// Conformal — every small shape keeps its true form, and area is what pays.
+    ///
+    /// Kept because Law 8 never forbids the ugly-but-legal. A choropleth drawn
+    /// this way is a bad plot and a legal sentence, so it earns an **Assumption**
+    /// rather than a refusal.
+    Angle,
+}
+
+/// The one view parameter of `map`, carried the way `space` carries its angles
+/// and `polar` its start (spec §15). `{"map":{"preserve":"area"}}` on the wire,
+/// and a bare `"map"` is **not** a legal form, for the same reason a bare
+/// `"space"` is not: the choice is part of the space.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
+pub struct MapView {
+    #[serde(default)]
+    pub preserve: Preserve,
 }
 
 // ---------------------------------------------------------------------------
