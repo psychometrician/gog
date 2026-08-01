@@ -231,10 +231,14 @@ through the top while others have arrived from below. Nothing pauses, and no
 frame is skipped. The same test simply gets a different answer in each one, which
 is what makes a brush a threshold you watch the world cross.
 
-Choosing a bound the data actually crosses is worth a moment, because the two
-ends of the sequence are where an animation misleads. Set it to 20,000 and up and
-almost every frame before 1980 is entirely dim: correct, and it reads as a broken
-plot rather than as an answer. Drag it yourself and you will see both.
+Choosing a bound the data actually crosses is worth a moment, and it is the one
+piece of judgment this atom asks of you. The two ends of a sequence are where an
+animation misleads. Count what a bound catches in each frame before you write it
+down: 3,000 to 20,000 dollars lights between 52 and 74 countries in every frame
+of this sequence, while 20,000 and up lights none at all in 1952 and 1957, one in
+1962, and four by 1972. The second is a true picture and it reads as a broken
+plot, because a reader cannot tell *nothing is selected here* from *this is not
+working*. Drag the bound upward and you will watch it happen.
 
 One column cannot do both jobs. Brushing the column the frames are cut on would
 select frames rather than rows inside one, and that is a scrub bar rather than a
@@ -255,7 +259,7 @@ ideas, and none of them was taught about the others. So they compose:
 
 ```{r}
 data(gm_all) + point + x(gdp, scale = "log") + y(life) + z(population) +
-  color(continent) + play(year) + brush(gdp, at = c(20000, 60000))
+  color(continent) + play(year) + brush(gdp, at = c(3000, 20000))
 ```
 
 A cube of 142 countries, twelve moments, and one bound tested inside every one
