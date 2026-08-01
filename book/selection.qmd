@@ -172,14 +172,20 @@ tested again inside every frame:
 
 ```{r}
 data(gm_all) + point + x(gdp, scale = "log") + y(life) + color(continent) +
-  play(year) + brush(gdp, at = c(20000, 60000))
+  theme(width = 620) + play(year) + brush(gdp, at = c(3000, 20000))
 ```
 
-Watch a country cross into the selection and light up. In 1952 almost nothing is
-selected, because almost nothing was that rich. By 2007 the bright group is
-large. Nothing pauses, and no frame is skipped: the same test simply gets a
-different answer in each one, which is what makes the brush a threshold you
-watch the world cross.
+Watch countries cross into the selection and light up. The bound holds still at
+3,000 to 20,000 dollars and the world moves through it: in 1952 the lit group is
+the middle-income countries of the day, and by 2007 many of them have left it
+through the top while others have arrived from below. Nothing pauses, and no
+frame is skipped. The same test simply gets a different answer in each one, which
+is what makes a brush a threshold you watch the world cross.
+
+Choosing a bound the data actually crosses is worth a moment, because the two
+ends of the sequence are where an animation misleads. Set it to 20,000 and up and
+almost every frame before 1980 is entirely dim: correct, and it reads as a broken
+plot rather than as an answer. Drag it yourself and you will see both.
 
 One column cannot do both jobs. Brushing the column the frames are cut on would
 select frames rather than rows inside one, and that is a scrub bar rather than a
@@ -192,6 +198,27 @@ data(gm_all) + point + x(gdp) + y(life) + play(year) + brush(year, at = c(1980, 
 
 A scrub bar belongs to the page a plot is shown on, not to the sentence that
 describes the plot. [Play](play.qmd) says why.
+
+## All three at once
+
+The [third position](space.qmd), the frames and the selection are three separate
+ideas, and none of them was taught about the others. So they compose:
+
+```{r}
+data(gm_all) + point + x(gdp, scale = "log") + y(life) + z(population) +
+  color(continent) + play(year) + brush(gdp, at = c(20000, 60000))
+```
+
+A cube of 142 countries, twelve moments, and one bound tested inside every one
+of them. Drag the plot to turn it and the selection turns with the cloud, because
+the bound picks rows and the angle picks a viewpoint, and neither asks the other
+anything.
+
+There is one difference here, and it is worth knowing rather than working out.
+In the cube the drag already belongs to the camera, so the sentence has to name
+the bound: `brush` on its own would declare a region with no way to draw one.
+That is the same rule as everywhere else in this chapter, arriving from the other
+side. A drag means one thing at a time, and in the cube it means turn.
 
 ## Moving the bound yourself
 
@@ -222,34 +249,62 @@ selection or change how you look at one. Neither changes what the plot claims
 about the data, so neither earns a word in the grammar. It is the same reason a
 plot in the cube has a line of controls and `space()` has no word for the mouse.
 
-**How many rows you caught**, and the rows themselves. The count is always
-there. `show rows` opens a table of them, listing the columns the sentence maps,
-because the twelve columns of a spreadsheet are not what a reader is looking at.
-A long selection says how many rows the table left out rather than quietly
-showing fewer.
+Reading left to right, the line looks like this:
 
-That table is worth more than it looks. Draw a bound tight around one point and
-it names that point. Selecting is how you ask *which one is that*, and the table
-is the answer.
+| Control | What it does |
+|---|---|
+| `drag: select` / `drag: pan` | Says what dragging the plot will do, and switches it |
+| `17 of 142 selected` | How many rows the current bound catches |
+| `show rows` | Opens a table of those rows, and closes it again |
+| `clear` | Puts the selection back to what the sentence asked for |
+| `−` `+` | Makes the picture smaller or larger |
+| `fit` | Returns to the whole picture |
 
-**What a point is, without selecting it.** Move the pointer over a mark and the
-values of that row appear beside it. Nothing is selected and nothing changes.
+### Selecting
 
-**Where the drag goes.** A drag can only mean one thing at a time, so the button
-on the left says which: `drag: select` draws a bound, `drag: pan` moves the
-picture. The pointer says the same thing, a crosshair against an open hand.
-Zooming in switches to panning, because a reader who has just looked closer
-usually wants to move around.
+Drag across the panel. A dotted box follows the pointer, and it shows **exactly
+what is bound**. On a plot with one brush the box spans the whole panel in the
+other direction, because that direction was not selected. On a plot with two, it
+is a rectangle. A box that narrowed an axis nobody bound would be claiming a
+range you did not choose.
 
-**Looking closer.** `+` and `−` magnify the picture and `fit` returns to the
-whole of it. This is a *view*, so it recomputes nothing: the bars are the same
-bars and the ticks are the same ticks, drawn larger. If you want the statistics
-re-run over a narrower range, that is [`limits`](scales.qmd), and it is the other
-operation this chapter opened with.
+Dragging in either direction gives the same bound, so you can start from any
+corner. A **single click clears** the selection, which is what a click on empty
+space does everywhere else.
 
-**Clearing.** `clear` returns the selection to what the sentence asked for, and
-so does a single click on the panel. Two buttons, two words: `clear` acts on the
-selection and `fit` acts on the view.
+### Reading what you caught
+
+The count is always there. `show rows` opens a table underneath, listing the
+columns the sentence maps rather than every column in the table, because twelve
+columns of a spreadsheet are not what you are looking at. A long selection says
+how many rows the table left out instead of quietly showing fewer.
+
+That table answers the question people usually reach for a click to ask. Draw a
+bound tight around one point and it names that point.
+
+For a quick look without selecting anything, **move the pointer over a mark** and
+that row's values appear beside it. Nothing is selected and nothing changes.
+
+### Looking closer
+
+`+` and `−` magnify the picture and `fit` returns to the whole of it. Zooming in
+switches the drag to panning, because a reader who has just looked closer usually
+wants to move around inside it; `fit` hands the drag back to selecting. You can
+switch by hand at any time with the button on the left, and the pointer tells you
+which mode you are in: a crosshair to draw a box, an open hand to move the
+picture.
+
+This is a *view*, so it **recomputes nothing**. The bars are the same bars and the
+ticks are the same ticks, drawn larger. Zoom far enough into a histogram and you
+will see the same bins, not finer ones. If you want the statistics re-run over a
+narrower range, that is [`limits`](scales.qmd), and it is the other operation this
+chapter opened with.
+
+### Two words, two things
+
+`clear` acts on the **selection** and `fit` acts on the **view**. They are next to
+each other and they undo different things, so they are named for what they act on
+rather than both being called reset.
 
 None of this exists on paper, and none of it is missing there. The PDF shows the
 bound the sentence named, which is why naming one is worth doing even where a
