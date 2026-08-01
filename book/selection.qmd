@@ -63,10 +63,11 @@ One range, one mark, two outcomes:
 ```{r}
 #| layout-ncol: 2
 data(gapminder_2007) + point + x(gdp, limits = c(20000, 60000)) + y(life) +
-  title("limits: 114 countries gone")
+  theme(width = 380, height = 300) + title("limits: 114 countries gone")
 
 data(gapminder_2007) + point + x(gdp) + y(life) +
-  brush(gdp, at = c(20000, 60000)) + title("brush: all 142 still here")
+  theme(width = 380, height = 300) + brush(gdp, at = c(20000, 60000)) +
+  title("brush: all 142 still here")
 ```
 
 The left plot is a different plot. Its axis runs from 20,000 to 60,000, only the
@@ -105,11 +106,20 @@ you meant, in the same way a column decides whether `color` hands out a ramp or
 a palette. Numbers are a range. Names are a set of slots:
 
 ```{r}
-data(gapminder_2007) + point + x(gdp) + y(life) + color(continent) +
+data(gapminder_2007) + point + x(continent) + y(life) + color(continent) +
   theme(width = 620) + brush(continent, at = c("Europe", "Oceania"))
 ```
 
-One word, two readings, decided by the column rather than by a second atom.
+One word, two readings, decided by the column rather than by a second atom. Drag
+across the slots and the selection follows them, whole slots at a time, because
+a category has no half.
+
+The column is on the `x` axis here and that is not decoration. **A drag can only
+reach a column the panel places.** Written over the scatter this chapter opened
+with, where `continent` is a color and nothing else, `brush(continent, at = ...)`
+is still a legal sentence and still dims the right countries — but there is
+nowhere to drag, because no axis is measuring continents. The sentence has said
+everything, and the mouse has nothing left to say.
 
 ## Two views, one selection
 

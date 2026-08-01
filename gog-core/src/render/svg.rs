@@ -2024,8 +2024,12 @@ impl SvgRenderer {
         if spec.brush.is_empty() || !plane {
             return;
         }
-        let cats = |c: Option<&Vec<String>>| {
-            c.map(|v| format!(" data-cats=\"{}\"", v.iter()
+        // Named per axis rather than renamed after the fact. The log base below
+        // is built with a `replace`, and the same trick applied here would have
+        // emitted `data-cats` twice — once per axis, colliding — which is what it
+        // did, so a drag on a categorical axis could never find its slots.
+        let cats = |axis: &str, c: Option<&Vec<String>>| {
+            c.map(|v| format!(" data-{axis}-cats=\"{}\"", v.iter()
                 .map(|s| crate::render::text::esc(s)).collect::<Vec<_>>().join("|")))
                 .unwrap_or_default()
         };
@@ -2046,9 +2050,9 @@ impl SvgRenderer {
                     r#"data-y-field="{yn}" data-y="{yf} {yt}"{yc}{yl}/>"#),
             x0 = l.x0, y0 = l.y0, x1 = l.x1, y1 = l.y1,
             xn = crate::render::text::esc(x_field), xf = xs.0, xt = xs.1,
-            xc = cats(cat_x), xl = base(x_log).replace("data-log", "data-x-log"),
+            xc = cats("x", cat_x), xl = base(x_log).replace("data-log", "data-x-log"),
             yn = crate::render::text::esc(y_field), yf = ys.0, yt = ys.1,
-            yc = cats(cat_y), yl = base(y_log).replace("data-log", "data-y-log"),
+            yc = cats("y", cat_y), yl = base(y_log).replace("data-log", "data-y-log"),
         ).unwrap();
     }
 
