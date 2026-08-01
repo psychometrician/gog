@@ -143,6 +143,7 @@ book:
         - polar.qmd
         - nest.qmd
         - play.qmd
+        - selection.qmd
         # map — coming, alongside space.qmd and polar.qmd
 
     - part: parts/cookbook.qmd           # recipes by data shape and question

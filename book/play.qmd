@@ -328,9 +328,17 @@ kernel's ideas in one sentence: the third position, the panels, the frames, and 
 scale shared across every one of them so the cubes stay comparable while they run.
 
 And the sheet moves too. `ripples` is a wave tank tapped in one corner, measured
-on a grid at twelve instants, in a shallow tank and a deep one. Depth sets how
-fast water carries a wave, so the same tapping makes crests 140 mm apart in the
-shallow tank and 220 mm apart in the deep one:
+on a grid at twelve instants, in a shallow tank and a deep one.
+
+```{r}
+#| echo: false
+peek(ripples)
+```
+
+One row is one grid node at one instant in one tank, so `instant` counts frames
+from 1 to 12 rather than measuring a time, and `height` is a signed height in
+millimeters. Depth sets how fast water carries a wave, so the same tapping makes
+crests 140 mm apart in the shallow tank and 220 mm apart in the deep one:
 
 ```{r}
 data(ripples) + surface + x(across) + y(along) + z(height) +
@@ -429,8 +437,9 @@ the earlier and better place for it.
 
 ## What is not here yet
 
-Two things people expect from an animation are deliberately absent, and both are
-absent for a reason rather than by oversight.
+Two things people expect from an animation are missing. Neither is an oversight,
+and the two are missing for different reasons. One waits on a word the grammar
+does not have. The other waits on nothing but the work.
 
 There is **no tweening**: frames cut, they do not glide. A bubble in 1957 and a
 bubble in 1962 are two complete pictures shown in turn, not one bubble eased
@@ -441,9 +450,23 @@ that a `point` does not take it, and the bubble everyone wants to see glide is a
 point. So the missing piece is a vocabulary decision rather than a drawing
 technique, which is why it is owed rather than half-built.
 
-There is **no transport** — no play button, no scrub bar. The sequence loops. A
-scrub bar is a `brush` over the frames, so that half is already spoken for by the
-selections (`click`, `brush`, `lasso`) still to come. Play and pause are not: they
-select nothing, and they change nothing about the space or the scales. They change
-the clock, which is a kind of input the kernel has not named, and naming it in
-passing to get a button is how a grammar acquires a word it cannot justify later.
+There is **no transport**: no play button, no pause, no scrub bar. The sequence
+loops.
+
+For a while this looked like the harder of the two. A scrub bar seems to pick out
+a stretch of frames, and picking things out is what the `brush` word is for. That
+reading turned out to be wrong, and seeing why takes one paragraph. It is worth
+the paragraph, because it decides where the buttons belong.
+
+Every frame is already in the file. The whole sequence is drawn once, and a clock
+decides which frame you see at each moment. So a scrub bar moves the clock. It
+chooses no rows, hides no rows, and changes nothing the sentence said. Play and
+pause do the same thing, one step smaller.
+
+That puts all three on the same side of a line this book has already drawn. You
+can turn a plot in the cube with the mouse ([Space](space.qmd)). Turning it
+changes how you look, never what is drawn, so no word was added to the grammar
+for it. The transport is the same kind of control, for time instead of angle. It
+belongs to the page a plot is shown on, not to the sentence that describes the
+plot. Nothing in the grammar has to grow to get these buttons. They are simply
+not built yet.

@@ -27,11 +27,16 @@ The kernel you learned is the *designed* vocabulary, and the engine tells
 you honestly which parts are not drawn yet rather than ignoring them. **Every
 mark in it now draws**, `surface` having been the last one waiting. What is left
 is not marks. On the roadmap, in rough order: the `map`
-space, and the selections (`click`, `brush`, `lasso`)
+space, and the selections (`click` and `brush`)
 that make plots answer back. (`play` now draws: a time-lapse is faceting read
 in time, and it has its own page.) (The collision modifiers are complete: `dodge`,
 `stack`, and `jitter` all ship.) None of these will add a new kind of grammar:
 each is one more letter in a system whose assembly rules you already know.
+
+A third selection, `lasso`, was on this list until August 2026. It left because
+GOG decided against it, not because it was hard. [The kernel](grammar.qmd) says
+why in one paragraph, and the reason is a rule the whole book follows: a
+specification is something you can write down and print.
 
 The same sentence you write in R is a small, engine-neutral description
 under the hood, and that is what the other front ends speak, same words,

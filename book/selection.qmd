@@ -1,0 +1,215 @@
+# Selection
+
+```{r}
+#| include: false
+source("R/setup.R")
+```
+
+Which of these points are the rich countries, and where do they sit? A scatter
+with 142 dots answers slowly. Add one word and the reader can draw a box around
+any group and see the rest step back:
+
+```{r}
+data(gapminder_2007) + point + x(gdp) + y(life) + color(continent) +
+  theme(width = 620) + brush
+```
+
+*"Given gapminder 2007: points, x is gdp, y is life, color by continent, and let the reader select."*
+
+On a page that can run the engine, drag across that plot. On paper it is the
+scatter itself, because nothing is selected until someone selects it.
+
+Bare `brush` means *the positions this plot binds*, so here it is a region over
+`gdp` and `life` together. It says the plot is explorable without deciding in
+advance what is worth exploring.
+
+Every country is still drawn while you drag. The ones inside your box keep their
+color and the rest are pushed back far enough to read as a background, so the
+group is read *against* what it was taken from. Remove the other rows and the
+plot no longer shows you that the rich countries are the top right corner of
+something.
+
+## Saying where the selection opens
+
+Name a column and the brush is a bound on that column alone, which is how you
+point at something rather than let a reader look for it:
+
+```{r}
+data(gapminder_2007) + point + x(gdp) + y(life) + color(continent) +
+  theme(width = 620) + brush(gdp, at = c(20000, 60000))
+```
+
+The thirty or so countries above 20,000 dollars are lit, and you can see at once
+that they sit almost entirely above 75 years. That is closer to an annotation
+than to a tool: the sentence has done the selecting, and a reader can still drag
+to move the bound.
+
+The two forms answer different questions, and the difference is who chooses.
+`brush` hands the choice to the reader. `brush(gdp, at = ...)` makes it in the
+sentence, and prints.
+
+## It highlights. It never removes rows.
+
+This is the one rule to learn, and it separates `brush` from an atom you already
+know. [`limits`](scales.qmd) also takes a range in a column's own units. It does
+something different with it.
+
+`limits` runs **before** the statistics. It removes rows, and the transform then
+sees the survivors as if they were the whole data. `brush` runs **after** the
+picture is composed. It removes nothing and recomputes nothing.
+
+One range, one mark, two outcomes:
+
+```{r}
+#| layout-ncol: 2
+data(gapminder_2007) + point + x(gdp, limits = c(20000, 60000)) + y(life) +
+  title("limits: 114 countries gone")
+
+data(gapminder_2007) + point + x(gdp) + y(life) +
+  brush(gdp, at = c(20000, 60000)) + title("brush: all 142 still here")
+```
+
+The left plot is a different plot. Its axis runs from 20,000 to 60,000, only the
+countries inside that range are drawn, and both axes were fitted to the ones
+that survived. Look at the y axis: it starts near 70, because no short-lived
+country is left to stretch it downward. GOG counts the countries it removed
+aloud rather than dropping them quietly.
+
+The right plot is the whole world, with a group of it standing out. The axes are
+the axes of all 142 countries, so the selection sits where it always sat.
+
+Which of the two you want is a real question and the grammar keeps both sayable.
+Ask *how does this subgroup look on its own* and you want `limits`. Ask *where
+does this subgroup sit inside the whole* and you want `brush`.
+
+## Two bounds make a rectangle
+
+One `brush` is one column. Write two, and a row has to satisfy both:
+
+```{r}
+data(gapminder_2007) + point + x(gdp) + y(life) + color(continent) +
+  theme(width = 620) + brush(gdp, at = c(20000, 60000)) + brush(life, at = c(78, 85))
+```
+
+The rich countries that also live longest. Two of the countries that survived
+the first bound do not survive this one, and you can see exactly which two,
+because they are still on the page.
+
+Writing it as two atoms rather than one with two arguments follows the rest of
+the grammar. A position is one column at a time, and so is a bound.
+
+## A column of categories selects slots
+
+`at` is where the selection opens. What you give it says which kind of column
+you meant, in the same way a column decides whether `color` hands out a ramp or
+a palette. Numbers are a range. Names are a set of slots:
+
+```{r}
+data(gapminder_2007) + point + x(gdp) + y(life) + color(continent) +
+  theme(width = 620) + brush(continent, at = c("Europe", "Oceania"))
+```
+
+One word, two readings, decided by the column rather than by a second atom.
+
+## What can be brushed
+
+A selection picks out rows, so a mark can be brushed when **one row is one
+shape**: `point`, `text`, `rule` and `zone`.
+
+A `line` is the other case. It draws one shape *through* many rows, so a row is
+a corner of the line rather than a thing of its own. Selecting half of a line
+would mean cutting it in two, and cutting a line in two already has a word:
+
+```{r}
+#| error: true
+data(gapminder_asia) + line + x(year) + y(life) + group(country) +
+  brush(life, at = c(60, 80))
+```
+
+The refusal names both ways forward. Split the line with `group()`, or brush a
+mark that draws one shape per row.
+
+A summarized layer refuses for a different reason. A bar of `bar * count` stands
+for forty countries at once, so "twelve of these are selected" has no honest
+picture: dimming the whole bar would be wrong, and dimming part of it would
+invent a mark nobody asked for. GOG says so instead of guessing:
+
+```{r}
+#| error: true
+data(gapminder_2007) + bar * count + x(continent) +
+  brush(gdp, at = c(20000, 60000))
+```
+
+Beside a layer that *can* answer, neither of these is a refusal. The plot draws,
+and GOG reports which layer it left whole:
+
+```{r}
+#| message: true
+data(gapminder_2007) + point + x(gdp) + y(life) +
+  line * smooth +
+  brush(gdp, at = c(20000, 60000))
+```
+
+The points answer the selection and the trend line does not, so the line is
+drawn once, at full strength, through all 142 countries. That is the right
+answer: a trend fitted to the selection alone would be a different statistic,
+and the sentence did not ask for one.
+
+A range that does not run upward selects nothing, so it is a mistake rather than
+an empty selection:
+
+```{r}
+#| error: true
+data(gapminder_2007) + point + x(gdp) + y(life) +
+  brush(gdp, at = c(60000, 20000))
+```
+
+## Selecting while the plot plays
+
+A frame is a subset of the rows, and a bound is a test on a column's values, so
+the two compose and neither needed anything added for the other. The bound is
+tested again inside every frame:
+
+```{r}
+data(gm_all) + point + x(gdp, scale = "log") + y(life) + color(continent) +
+  play(year) + brush(gdp, at = c(20000, 60000))
+```
+
+Watch a country cross into the selection and light up. In 1952 almost nothing is
+selected, because almost nothing was that rich. By 2007 the bright group is
+large. Nothing pauses, and no frame is skipped: the same test simply gets a
+different answer in each one, which is what makes the brush a threshold you
+watch the world cross.
+
+One column cannot do both jobs. Brushing the column the frames are cut on would
+select frames rather than rows inside one, and that is a scrub bar rather than a
+selection:
+
+```{r}
+#| error: true
+data(gm_all) + point + x(gdp) + y(life) + play(year) + brush(year, at = c(1980, 2007))
+```
+
+A scrub bar belongs to the page a plot is shown on, not to the sentence that
+describes the plot. [Play](play.qmd) says why.
+
+## Moving the bound yourself
+
+Every plot in this chapter after the first names where its selection *opens*. On a page that can
+run the engine, you can drag the panel to move the bound, and the plot redraws
+under your hand.
+
+This changes nothing about the sentence, and it is the same arrangement the cube
+uses. `space(turn =, tilt =)` chooses the angle a plot opens at and the mouse
+takes you anywhere else; `brush(gdp, at = )` chooses the bound a plot opens with
+and the mouse does the same. Drag to find a selection, then write it into the
+sentence.
+
+On paper, and in the PDF edition, each plot shows the bound its sentence asked
+for. That is why naming it is worth doing even though a reader can move it. The
+printed figure shows the selection you chose, and a reader who can drag starts
+from it.
+
+Written with no `at` at all, nothing is selected. The plot then draws exactly as
+it would with no `brush` in the sentence, which is the resting state a page shows
+before the first drag.
