@@ -213,3 +213,44 @@ from it.
 Written with no `at` at all, nothing is selected. The plot then draws exactly as
 it would with no `brush` in the sentence, which is the resting state a page shows
 before the first drag.
+
+## What the page adds, and what it does not
+
+A brushed plot on a web page carries a line of controls under it. None of them
+are in the sentence, and that is the rule rather than an omission. They report a
+selection or change how you look at one. Neither changes what the plot claims
+about the data, so neither earns a word in the grammar. It is the same reason a
+plot in the cube has a line of controls and `space()` has no word for the mouse.
+
+**How many rows you caught**, and the rows themselves. The count is always
+there. `show rows` opens a table of them, listing the columns the sentence maps,
+because the twelve columns of a spreadsheet are not what a reader is looking at.
+A long selection says how many rows the table left out rather than quietly
+showing fewer.
+
+That table is worth more than it looks. Draw a bound tight around one point and
+it names that point. Selecting is how you ask *which one is that*, and the table
+is the answer.
+
+**What a point is, without selecting it.** Move the pointer over a mark and the
+values of that row appear beside it. Nothing is selected and nothing changes.
+
+**Where the drag goes.** A drag can only mean one thing at a time, so the button
+on the left says which: `drag: select` draws a bound, `drag: pan` moves the
+picture. The pointer says the same thing, a crosshair against an open hand.
+Zooming in switches to panning, because a reader who has just looked closer
+usually wants to move around.
+
+**Looking closer.** `+` and `−` magnify the picture and `fit` returns to the
+whole of it. This is a *view*, so it recomputes nothing: the bars are the same
+bars and the ticks are the same ticks, drawn larger. If you want the statistics
+re-run over a narrower range, that is [`limits`](scales.qmd), and it is the other
+operation this chapter opened with.
+
+**Clearing.** `clear` returns the selection to what the sentence asked for, and
+so does a single click on the panel. Two buttons, two words: `clear` acts on the
+selection and `fit` acts on the view.
+
+None of this exists on paper, and none of it is missing there. The PDF shows the
+bound the sentence named, which is why naming one is worth doing even where a
+reader can move it.
