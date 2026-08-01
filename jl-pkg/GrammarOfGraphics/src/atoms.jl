@@ -590,10 +590,16 @@ same bars stay, with the selected part standing out.
 
 One column per `brush`. Write two for a rectangle:
 `brush(:gdp, at = (1200, 45000)) + brush(:life, at = (55, 78))`."""
-brush(field = nothing; at = nothing) =
-    Atom(:brush, merge(Dict{Symbol,Any}(
-             :field => field === nothing ? "" : column_name(field, "brush")),
-                       check_brush_at(at)))
+const brush = Atom(:brush, Dict{Symbol,Any}(:field => ""),
+    function (args...; at = nothing)
+        # Bare `brush` and `brush(:gdp)` are the same atom in two shapes, the
+        # pattern `bin` and `box` already use: `+ brush` has to add the atom
+        # rather than the function.
+        field = isempty(args) ? nothing : one_of(args, nothing, "brush", "field")
+        Atom(:brush, merge(Dict{Symbol,Any}(
+                 :field => field === nothing ? "" : column_name(field, "brush")),
+                           check_brush_at(at)))
+    end)
 
 # ---------------------------------------------------------------------------
 # Settings — they fix a value, map nothing, and earn no legend (spec §7)

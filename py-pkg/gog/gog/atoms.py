@@ -690,28 +690,38 @@ def _check_brush_at(at):
     return {"at": [float(seq[0]), float(seq[1])]}
 
 
-def brush(field: Optional[Column] = None, at=None) -> Atom:
-    """Let the reader select rows, and push back the rest.
+class _Brush(CallableAtom):
+    """`brush` — bare for a region over the plot's positions, called for a
+    bound on one named column. The same both-shapes pattern `bin` uses, and
+    for the same reason: `+ brush` must add the atom rather than the function."""
 
-    `brush` puts a bound on one column's values. Rows inside it keep the plot's
-    colors; rows outside it are dimmed, so a selection is read against what it
-    was taken from. Where the page can run the engine, dragging moves the bound;
-    on paper it stays where the sentence put it.
+    __slots__ = ()
 
-    **A brush highlights. It never removes rows.** Removing rows before the
-    statistics run is what `limits` does, on the binding, and it counts what it
-    dropped. Change a domain and a histogram re-bins the survivors; brush it and
-    the same bars stay, with the selected part standing out.
+    def __call__(self, field: Optional[Column] = None, at=None) -> Atom:
+        """Let the reader select rows, and push back the rest.
 
-    One column per `brush`. Write two for a rectangle:
-    `brush(col.gdp, at=(1200, 45000)) + brush(col.life, at=(55, 78))`.
+        `brush` puts a bound on one column's values. Rows inside it keep the plot's
+        colors; rows outside it are dimmed, so a selection is read against what it
+        was taken from. Where the page can run the engine, dragging moves the bound;
+        on paper it stays where the sentence put it.
 
-    A mark can be brushed when one row is one shape: `point`, `text`, `rule` and
-    `zone`. A `line` draws one shape through many rows, so there is no single row
-    to select, and GOG says so rather than guessing.
-    """
-    name = "" if field is None else column_name(field, "brush")
-    return Atom("brush", field=name, **_check_brush_at(at))
+        **A brush highlights. It never removes rows.** Removing rows before the
+        statistics run is what `limits` does, on the binding, and it counts what it
+        dropped. Change a domain and a histogram re-bins the survivors; brush it and
+        the same bars stay, with the selected part standing out.
+
+        One column per `brush`. Write two for a rectangle:
+        `brush(col.gdp, at=(1200, 45000)) + brush(col.life, at=(55, 78))`.
+
+        A mark can be brushed when one row is one shape: `point`, `text`, `rule` and
+        `zone`. A `line` draws one shape through many rows, so there is no single row
+        to select, and GOG says so rather than guessing.
+        """
+        name = "" if field is None else column_name(field, "brush")
+        return Atom("brush", field=name, **_check_brush_at(at))
+
+
+brush = _Brush("brush", field="")
 
 
 # ---------------------------------------------------------------------------

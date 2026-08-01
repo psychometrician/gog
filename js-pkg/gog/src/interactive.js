@@ -490,6 +490,7 @@ export function attachBrush(engine, container, request, options = {}) {
     // spare drag and `attachPan` takes it instead.
     if (view && (mode() === "pan" || e.shiftKey || e.altKey)) {
       panning = { x: e.clientX, y: e.clientY };
+      container.style.cursor = "grabbing";
       try {
         container.setPointerCapture?.(e.pointerId);
       } catch {
@@ -534,6 +535,7 @@ export function attachBrush(engine, container, request, options = {}) {
   const onUp = () => {
     held = -1;
     start = null;
+    if (panning) container.style.cursor = "grab";
     panning = null;
     hideBand();
   };
@@ -557,7 +559,13 @@ export function attachBrush(engine, container, request, options = {}) {
     /** What a plain drag does now. Zooming in switches it, because a reader who
      *  has just magnified something almost always wants to move around in it. */
     mode,
-    setMode(next) { dragMode = next === "pan" && view ? "pan" : "select"; },
+    setMode(next) {
+      dragMode = next === "pan" && view ? "pan" : "select";
+      // The pointer says what the drag will do before the reader tries it. An
+      // open hand is the universal "you can move this"; a crosshair is the
+      // universal "you can draw a box here".
+      container.style.cursor = dragMode === "pan" ? "grab" : "crosshair";
+    },
     reset() {
       // Back to what the sentence said, which for a bare brush is the
       // declaration rather than whatever the last drag turned it into.
