@@ -59,3 +59,29 @@ The underlying observations are old and public: Edgar Anderson's iris
 measurements published by R. A. Fisher in 1936, a 1967 topographic survey of
 Maungawhau in Auckland, and seismic events near Fiji. The GPL attaches to R's
 compilation of them, not to the facts.
+
+## Derived from Natural Earth — public domain
+
+One frame carries the world's coastlines and borders:
+
+| Frame | From | Reshaping |
+|---|---|---|
+| `world_borders` | Natural Earth `ne_110m_admin_0_countries` | polygons unrolled to one row per vertex, rings numbered into `piece`, simplified, Antarctica dropped |
+
+Natural Earth places its data in the **public domain** and asks for no
+permission and no attribution: *"All versions of Natural Earth raster and vector
+map data found on this website are in the public domain. You may use the maps in
+any manner, including modifying the content and design, electronic
+dissemination, and offset printing."* It is credited here because saying where a
+map came from is good practice, not because the terms require it.
+
+The reshaping is what makes it a table rather than a shapefile, and it is the
+same shape any boundary data has to arrive in: **one row per vertex**, with a
+column naming the ring each vertex belongs to. A country is not always one
+closed shape — islands are separate rings, and a country lying wholly inside
+another is a ring of its own — so `piece` counts rings, not countries.
+
+Simplified at roughly a third of a degree, which is invisible at the size the
+book draws and is what keeps the file small. Antarctica is dropped because at
+this resolution its coastline is a ragged strip cut off at the bottom of the
+data rather than a shape, and a reader would fairly read that as a bug.

@@ -1,0 +1,227 @@
+# Map
+
+```{r}
+#| include: false
+source("R/setup.R")
+```
+
+Where did it happen? Some data answers that with a place on the earth, and a
+place is two numbers: **longitude**, how far east or west, and **latitude**, how
+far north or south. Both are angles, measured in degrees.
+
+Two numbers is what every plot in this book has taken. So a map is not a new
+kind of picture. It is the same sentence you already write, drawn in a space
+that knows the two numbers are angles on a sphere.
+
+```{r}
+data(quakes_fiji) + point + x(east) + y(north) + map()
+```
+
+*"Given quakes Fiji: points, x is east, y is north, in the map space."*
+
+That is a thousand earthquakes recorded near Fiji. `x` is longitude and `y` is
+latitude, and `map()` is the whole of what makes it a map. The axes read in
+degrees, because that is what the columns hold.
+
+## The sphere has to be flattened, and something is lost
+
+The earth is round and the page is flat. No projection can flatten a sphere
+without distorting it, and the choice is not between a good projection and a bad
+one. It is between which mistake you prefer.
+
+Two properties matter most, and a projection can keep one of them, never both.
+`preserve` says which:
+
+```{r}
+#| layout-ncol: 2
+data(world_borders) + path + x(lon) + y(lat) + group(piece) +
+  map(preserve = "area") + title("preserve = \"area\"")
+
+data(world_borders) + path + x(lon) + y(lat) + group(piece) +
+  map(preserve = "angle") + title("preserve = \"angle\"")
+```
+
+Look at Greenland, at the top left of each map, and compare it with Africa. On
+the left, Greenland is small, which is correct: Africa is about fourteen times
+larger. On the right, Greenland has grown until it rivals Africa. The right-hand
+map has kept every small shape's true form and paid for it in size.
+
+`preserve = "area"` is the default, and the reason is what a reader does with a
+map. A map is usually read by comparing how much space something takes. A
+projection that inflates the far north tells the reader something false about
+every number placed there.
+
+## Drawing the outlines
+
+The world map above is a table like any other. It has one row for every point
+along a coastline or a border:
+
+```{r}
+knitr::kable(head(world_borders, 4))
+```
+
+`path` connects rows in the order the table gives them, which is exactly what
+tracing a coastline needs. `group(piece)` says where one outline ends and the
+next begins. A country is not always one closed shape: islands are separate
+rings, and a country lying wholly inside another is a ring of its own. So
+`piece` counts rings rather than countries.
+
+Without that split, `path` would join the last point of one country to the first
+point of the next, and draw a line across the ocean between them.
+
+## Two layers, and the second one is the data
+
+An outline on its own is a backdrop. The plot begins when something is drawn on
+top of it, and that is ordinary layering: the outline is one `data()` and one
+mark, the observations are another.
+
+```{r}
+data(world_borders) + path + x(lon) + y(lat) + group(piece) +
+  style(color = "#c9ccd6") +
+  data(quakes_fiji) + point + x(east) + y(north) +
+  style(color = "tomato", opacity = 0.35, size = 3) +
+  map() + title("A thousand earthquakes, and where Fiji is")
+```
+
+The earthquakes now sit somewhere a reader can find. Nothing in the sentence is
+new: two tables, two marks, and the second `data()` binds to the mark that
+follows it.
+
+## Both positions are used up, so a quantity goes on a channel
+
+Every other space leaves you an axis to measure along. A bar stands on one axis
+and measures up the other. A map has no axis to spare, because longitude and
+latitude have taken both.
+
+So a quantity moves to a **channel**. Size each place by it:
+
+```{r}
+data(world_borders) + path + x(lon) + y(lat) + group(piece) +
+  style(color = "#c9ccd6") +
+  data(quakes_fiji) + point + x(east) + y(north) + size(magnitude) +
+  style(color = "tomato", opacity = 0.4) +
+  map() + title("Sized by magnitude")
+```
+
+That plot has a name, the **proportional-symbol map**, and there is no atom that
+spells it. It is `point` with `size` bound, in this space.
+
+Color works the same way, and reads a category rather than a quantity:
+
+```{r}
+data(world_borders) + path + x(lon) + y(lat) + group(piece) +
+  color(continent) + map() +
+  title("Each continent in its own color")
+```
+
+## Meridians and parallels are a mark you already have
+
+A `rule` draws a line at one position and spans the axis it does not name. Flat,
+that is a reference line. Here, a rule at one longitude is a **meridian**, and a
+rule at one latitude is a **parallel**:
+
+```{r}
+lines_of <- data.frame(lat = 0)
+
+data(world_borders) + path + x(lon) + y(lat) + group(piece) +
+  style(color = "#c9ccd6") +
+  data(lines_of) + rule + y(lat) + style(color = "#d4674f") +
+  map() + title("The equator")
+```
+
+A `rule` takes its position from a column, like every other mark, so the line
+above comes from a one-row table. That is the same way a reference line is drawn
+on any other plot.
+
+Nothing was added to the grammar to draw that. The same sentence that puts a
+reference line on a scatter puts the equator on a map, because the space bends
+what the mark means without changing what the mark is.
+
+## Naming places
+
+`text` writes a string at a position, and a position here is a place:
+
+```{r}
+capitals <- data.frame(
+  lon  = c(-0.13, 139.69, -74.01, 151.21, 18.42),
+  lat  = c(51.51,  35.69,  40.71, -33.87, -33.92),
+  name = c("London", "Tokyo", "New York", "Sydney", "Cape Town"))
+
+data(world_borders) + path + x(lon) + y(lat) + group(piece) +
+  style(color = "#c9ccd6") +
+  data(capitals) + point + x(lon) + y(lat) +
+  style(color = "#3d5a80", size = 5) +
+  data(capitals) + text + x(lon) + y(lat) + label(name) +
+  style(nudge = "up", size = 11) +
+  map() + title("Five cities")
+```
+
+## What a map refuses
+
+A mark that measures along an axis has no axis here. GOG says so rather than
+drawing something that looks like a map and is not one:
+
+```{r}
+#| error: true
+data(quakes_fiji) + bar * count + x(east) + map()
+```
+
+The message names the four marks that do draw, and it names the way out: put the
+quantity on `size` or `color`, which is what the two plots above did.
+
+A position on a map is a place, so a category cannot be one:
+
+```{r}
+#| error: true
+data(gapminder_2007) + point + x(continent) + y(life) + map()
+```
+
+And the panel's shape belongs to the projection:
+
+```{r}
+#| error: true
+data(quakes_fiji) + point + x(east) + y(north) + map() + theme(ratio = 1)
+```
+
+An equal-area map stretched to fit a box is no longer equal-area, though it
+still looks like a map. That is the kind of error a reader cannot see, so the
+engine refuses it instead of accepting the number and ignoring it.
+
+## Where Mercator stops
+
+`preserve = "angle"` sends the poles infinitely far away, so it has to stop
+short of them. It stops at 85.05 degrees, and it says how many rows it could not
+reach rather than moving them in silence:
+
+```{r}
+far_north <- data.frame(
+  lon = c(0, 15, -45, 10),
+  lat = c(60, 78, 83, 89))
+
+data(far_north) + point + x(lon) + y(lat) + map(preserve = "angle")
+```
+
+Read the message above the plot. One row sits beyond the limit and was drawn at
+the edge instead of where it belongs. Nothing was dropped, because dropping it
+would misreport how many places there are. `preserve = "area"` reaches both
+poles and has no such limit.
+
+## What is not drawn yet
+
+The **choropleth** shades each country by a value: a map of life expectancy, or
+of income. It is the plot most people picture when they hear "map", and it is
+not drawn yet.
+
+What is missing is not the space. It is the geometry. A choropleth needs a
+filled region whose boundary comes from the data, and `zone`, which is the mark
+that shades a region, knows four ways to find its sides today. None of them is a
+coastline. GOG says exactly that:
+
+```{r}
+#| error: true
+data(world_borders) + zone + x(lon) + y(lat) + group(piece) +
+  color(continent) + map()
+```
+
+Until it lands, a quantity on a map goes on `size` or `color` at a point, which
+is what this chapter has been doing.

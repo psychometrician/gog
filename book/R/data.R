@@ -117,6 +117,14 @@ quakes_fiji$slab <- .gog_ordered(
   paste0(utils::head(.edges, -1), "-", .edges[-1], " km"))
 rm(.edges)
 
+# The world's coastlines and borders, one row per vertex. `piece` is the ring a
+# vertex belongs to and is what `group()` splits on: a country is not always one
+# closed shape, since islands are separate rings and a country wholly inside
+# another is a ring of its own. It is text rather than a number because `group`
+# takes a category, and a ring number is a name rather than a quantity.
+world_borders <- .gog_read(
+  "world_borders", chr = c("country", "continent", "piece"))
+
 six_weeks <- .gog_read("six_weeks")
 six_weeks$day     <- as.Date(six_weeks$day)
 six_weeks$weekday <- .gog_ordered(
@@ -132,5 +140,10 @@ stopifnot(
   !anyNA(quakes_fiji$slab),
   !anyNA(census$age),
   !anyNA(winds$direction),
-  !anyNA(six_weeks$day)
+  !anyNA(six_weeks$day),
+  length(unique(world_borders$country)) == 176,
+  # Every ring closes on the vertex it started from, or the outline is drawn
+  # with a gap in it and the map quietly looks broken.
+  all(vapply(split(world_borders, world_borders$piece), function(p)
+    p$lon[1] == p$lon[nrow(p)] && p$lat[1] == p$lat[nrow(p)], logical(1)))
 )
