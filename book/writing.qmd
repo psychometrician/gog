@@ -6,11 +6,17 @@ source("R/setup.R")
 ```
 
 How does a question about your data turn into a specification? Reading was
-recognition; writing is recall. This chapter builds three sentences from three
-questions, the way you will actually work: start with the smallest legal
-sentence, look, refine. Then it introduces the other half of writing: what
-happens when a sentence is wrong, and why GOG's refusals are the fastest
-teacher in the book.
+recognition; writing is recall. Psychologists use those two words for two
+kinds of remembering. Recognition starts from something in front of you, and
+asks only whether you have seen it before. That is what the last chapter did:
+it gave you finished sentences and asked what they say. Recall starts from
+nothing in front of you, and asks you to produce the thing itself. It is the
+harder of the two, and it is what writing a specification asks of you.
+
+This chapter builds three sentences from three questions, the way you will
+actually work: start with the smallest legal sentence, look, refine. Then it
+introduces the other half of writing: what happens when a sentence is wrong,
+and why GOG's refusals are the fastest teacher in the book.
 
 ## Which continents live longest?
 

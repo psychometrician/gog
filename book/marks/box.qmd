@@ -148,7 +148,7 @@ data(iris_flowers) + box * mean + x(species) + y(petal_length)
 This is the same principle that keeps the [channel vocabulary](../grammar.qmd)
 small, seen from the other side. Borrowing `ymin`/`ymax`/`lower`/`middle`/`upper`
 as channels would add *five* channels meaningful to a single mark; instead the
-summary is synthesized inside the mark, and the channel set never grows.
+summary is invented inside the mark, and the channel set never grows.
 
 ## Coloring the boxes
 

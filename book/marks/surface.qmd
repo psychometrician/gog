@@ -149,7 +149,7 @@ of two.
 
 `space()` is in that sentence and not in the volcano's, for a reason worth
 knowing. A bound `z` says *there are three columns here*, which nothing else can
-mean. A synthesized one says only *this layer invents a measure*. Since
+mean. An invented one says only *this layer has a measure of its own*. Since
 `density` invents one in the plane too, it needs the coordinate to say where the
 answer goes.
 

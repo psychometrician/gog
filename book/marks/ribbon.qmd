@@ -68,7 +68,7 @@ data(gapminder_asia) + ribbon + x(year) + y(life)
 This is the same design choice that keeps the [channel
 vocabulary](../grammar.qmd) small. The alternative, `ymin`/`ymax` aesthetics,
 would add two channels meaningful to a single mark. Instead the boundaries are
-**synthesized by a transform**, exactly as `bin` synthesizes a count, so the same
+**invented by a transform**, exactly as `bin` invents a count, so the same
 low/high-rows mechanism feeds the whisker, the box, and the band alike; see
 [Transforms](../transforms.qmd) for the `range` and `confidence` statistics.
 

@@ -82,7 +82,7 @@ data(gapminder_2007) + point + x(gdp, scale = "log") + y(life) +
 The legend becomes a labeled gradient strip: same channel, same rule,
 different column type. [Scales](../scales.qmd) owns the log story.
 
-## Into the page: the third position
+## The third position
 
 When three *measurements* deserve equal footing, the third one is a
 position, not a decoration. One more vowel and the plot stands up:

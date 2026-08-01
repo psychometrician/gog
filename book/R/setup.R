@@ -126,6 +126,38 @@ local({
 })
 
 # ---------------------------------------------------------------------------
+# What a table looks like, before the first plot that uses it
+#
+# A sentence names its columns (`x(gdp)`, `y(life)`), which is more than most
+# plotting code tells you — but it never shows what is *in* them. A reader who
+# has not seen the rows cannot tell whether `life` is a count or a proportion,
+# whether `year` repeats, or how many rows the picture is drawing.
+#
+# Three decisions are made here rather than at each of the sites that call it:
+#
+#   1. **The table is shown, not the call that prints it.** Every site is an
+#      `echo: false` chunk, so the page carries the rows and not R's `head()`.
+#      This book has four bindings and shows every sentence in all of them, so
+#      an R-only inspection call beside a four-language sentence would be the
+#      one place a Python reader is handed R. Showing a table how each language
+#      does it is a job that already has a page, in `book-data.qmd`.
+#   2. **The row count is stated.** Five rows of a 142-row table read as the
+#      whole table otherwise, and that misreads every plot drawn from it.
+#   3. **Short tables say so.** `medals` is five rows, so "first 5 of 5" would
+#      invite a reader to look for the rest.
+# ---------------------------------------------------------------------------
+
+peek <- function(x, n = 5) {
+  name  <- deparse(substitute(x))
+  total <- nrow(x)
+  shown <- min(n, total)
+  knitr::kable(utils::head(x, n), caption = sprintf(
+    if (shown >= total) "`%s`: all %d rows" else "`%s`: first %d of %d rows",
+    name, shown, total
+  ))
+}
+
+# ---------------------------------------------------------------------------
 # The per-mark options table
 #
 # Every mark chapter ends with "what you can set", and hand-typing that in a

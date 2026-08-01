@@ -13,6 +13,13 @@ works better if you get there first.
 
 ## Golds by country
 
+`medals` holds one row per country, with a count of each medal won:
+
+```{r}
+#| echo: false
+peek(medals)
+```
+
 ```{r}
 data(medals) + bar + x(country) + y(gold)
 ```
@@ -35,13 +42,21 @@ everything.
 
 ## One measurement's shape
 
+`iris_flowers` holds one row per flower: four measurements, and the species
+the flower belongs to.
+
+```{r}
+#| echo: false
+peek(iris_flowers)
+```
+
 ```{r}
 data(iris_flowers) + bar * bin + x(petal_length)
 ```
 
 *"Bars derived by bin: x is petal length."* The `*` derives: `bin` cuts
 the axis into intervals and counts rows into them, and `bar` draws the
-counts. You did not bind `y`; the count is synthesized, and the axis says
+counts. You did not bind `y`; `bin` invents the count, and the axis says
 so. Note the two humps; hold that thought for plot eight.
 
 ## The same question, smoothly
@@ -78,6 +93,14 @@ a column makes you say which one.
 
 ## Five countries across the decades
 
+`gapminder_asia` holds one row per country *and year*, so each country
+appears many times.
+
+```{r}
+#| echo: false
+peek(gapminder_asia)
+```
+
 ```{r}
 data(gapminder_asia) + line + x(year) + y(life) + color(country)
 ```
@@ -109,7 +132,7 @@ continent."* The `|` operator multiplies the plot across panels, one panel
 per category. All the panels share one pair of scales, so they can be
 compared.
 
-## Into the page
+## Three measurements on three axes
 
 ```{r}
 data(iris_flowers) + point +

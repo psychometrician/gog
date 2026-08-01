@@ -7,9 +7,16 @@ source("R/setup.R")
 
 Do countries that earn more live longer?
 
-That is a question about data (142 countries, each with a GDP per capita
-and a life expectancy), and in GOG you answer it by saying what the data
-means, not by drawing anything:
+That is a question about data: 142 countries, each with a GDP per capita and a
+life expectancy.
+
+```{r}
+#| echo: false
+peek(gapminder_2007)
+```
+
+In GOG you answer a question like that by saying what the data means, rather
+than by drawing anything:
 
 ```{r}
 data(gapminder_2007) + point + x(gdp) + y(life)

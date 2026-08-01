@@ -18,7 +18,7 @@ data(gapminder_2007) + bar * count + x(continent)
 ```
 
 *"Bars derived by count: x is continent."* No `y()` is bound because the
-count is synthesized, and the axis labels itself.
+count is invented, and the axis labels itself.
 
 **One atom away.** Long category names? Put the categories on `y` and the
 bars lie down, same sentence, positions swapped:
@@ -27,7 +27,7 @@ bars lie down, same sentence, positions swapped:
 data(gapminder_2007) + bar * count + y(continent)
 ```
 
-The count still measures along the synthesized axis, which is now x.
+The count still measures along the invented axis, which is now x.
 Owning chapters: [Bar](../marks/bar.qmd), [Transforms](../transforms.qmd).
 
 ## What share of the whole is each?

@@ -705,7 +705,10 @@ I did not know Supabase at all. The application got finished anyway.
 
 Then it failed, and the reason had nothing to do with the code. I could not
 market it. I did not know how to reach the people it was built for, and after a
-while I shut it down.
+while I shut it down. The application is gone. Two tutorial videos for it are
+still online, if you would like to see what it did:
+[tutorial one](https://www.youtube.com/watch?v=eGiOGaY215M) and
+[tutorial two](https://www.youtube.com/watch?v=u93GtjJQ-PQ).
 
 The lesson was not the one I went looking for. Building the thing was no longer
 the hard part. If I plan carefully, keep at it, and work through the problem

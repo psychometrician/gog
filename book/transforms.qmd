@@ -56,8 +56,8 @@ rest of the kernel's seventeen come later in this chapter: `bounds`, which
 reshapes rather than computes, `partition`, which cuts a panel into regions,
 and the three collision modifiers.
 
-**Synthesizing** transforms (`bin`, `count`, `density`) read a
-*single* variable and manufacture the measured axis from it. `proportion` joins them
+**Inventing** transforms (`bin`, `count`, `density`) read a
+*single* variable and make the measured axis from it. `proportion` joins them
 whenever it stands alone, having then no measurement to rescale but the tally it
 makes itself. You name only the
 variable whose shape you are asking about, and the transform invents the y column
@@ -106,7 +106,7 @@ data(gapminder_2007) + bar * bin + x(life) +
 *"Given gapminder 2007: bars derived by bin, x is life."*
 
 **Bin count** defaults to Sturges' rule [@sturges1926]: `k = ⌈log₂(n)⌉ + 1`. Notice there is no
-`y()` in the expression: `bin` synthesizes the count column internally, and the
+`y()` in the expression: `bin` invents the count column internally, and the
 y-axis is labeled "Count" automatically.
 
 ### Choosing the bin count
@@ -232,7 +232,7 @@ This is the categorical counterpart to `bin`:
 it: a histogram's touch (adjacent slices of one continuum), a bar chart's stand
 apart (distinct categories).
 
-`count`, `bin`, and `density` are the three **synthesizing** transforms, and
+`count`, `bin`, and `density` are the three **inventing** transforms, and
 `proportion` behaves as one when it stands alone, so `y()` is optional for all
 four and the y-axis labels itself automatically ("Count", "Proportion",
 "Density"). Bind `y(my_name)` only when you want a custom axis label.
@@ -356,8 +356,8 @@ data(gapminder_2007) + line * density + x(life) +
   title("Kernel Density — Life Expectancy 2007")
 ```
 
-As with the other synthesizing transforms, there is no `y()` to write: the
-density column is invented and the axis labeled for you.
+As with the other inventing transforms, there is no `y()` to write: the
+density column and its axis label are both made for you.
 
 ### Choosing the bandwidth
 
@@ -517,7 +517,7 @@ data(gm_all) + point * bin(20) * median + x(gdp, scale = "log") + y(life) +
 
 ### What cannot be chained, and why
 
-The other two synthesizing transforms cannot give their measurement up, because
+The other two inventing transforms cannot give their measurement up, because
 measuring is all they do. Take it away from `count` and nothing is left of it:
 
 ```{r}
@@ -771,7 +771,7 @@ reused elsewhere: the [`box`](marks/box.qmd) mark encodes its own five-number
 summary the same way (min and max as the pair of rows, the quartiles alongside),
 and the [`ribbon`](marks/ribbon.qmd) mark fills between the same pair as a
 continuous band. See [Interval](marks/interval.qmd) for the whisker, and for why
-its extents are synthesized here rather than bound to two extra channels the
+its extents are invented here rather than bound to two extra channels the
 kernel would never otherwise have.
 
 ---

@@ -82,7 +82,7 @@ data(iris_flowers) + interval + x(species) + y(petal_length)
 This is the design choice that keeps the [channel vocabulary](../grammar.qmd)
 small. The obvious alternative, `ymin`/`ymax` aesthetics, would add two channels
 meaningful to a single mark, and a box plot would need five. Instead the extents
-are **synthesized by a transform**, exactly as `bin` synthesizes a count: the
+are **invented by a transform**, exactly as `bin` invents a count: the
 channel set never grows, and the same
 low/high-rows mechanism feeds the [`box`](box.qmd) mark and the
 [`ribbon`](ribbon.qmd) band as well. When you have the extents *already*, a
