@@ -13,7 +13,7 @@ the manual's [design-laws chapter](https://psychometrician.github.io/gog-book/de
 
 Every design decision in gog answers to these, and a change that breaks one is
 rejected however useful it looks. Refer to them **by name**, not only by number.
-The one enemy behind all nine: *the expert's convenience*.
+The one enemy behind all nine: *the expert's shortcut*.
 
 | | Law | What it means |
 |---|---|---|

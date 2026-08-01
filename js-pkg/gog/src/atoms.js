@@ -10,7 +10,7 @@
 // `_` as the joiner, so `render_svg`, `x_label`, `y_label`, `z_label` and the
 // `border_color` / `border_size` setting keys are the *grammar's* words rather
 // than an R or Python accident. Re-spelling them camelCase to suit JavaScript's
-// habit is the expert's convenience, which is the one enemy behind all nine
+// habit is the expert's shortcut, which is the one enemy behind all nine
 // laws. Every exported name here is the name the other bindings use.
 //
 // Two spellings do differ, and both are JavaScript's doing:

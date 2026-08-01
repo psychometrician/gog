@@ -47,7 +47,7 @@ data(table) + mark + positions + refinements
 
 The design answers to [nine laws](CONTRIBUTING.md#the-nine-laws) — orthogonality,
 no exceptions, plain names, bind-once, and five more — with one enemy behind all
-of them: *the expert's convenience*.
+of them: *the expert's shortcut*.
 
 ## The same plot, in four languages
 

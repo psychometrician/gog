@@ -16,5 +16,5 @@ grammar is shaped the way it is, or want to predict what it will do in a
 case no chapter covers.
 
 The laws share one enemy, and it is worth naming before you read them:
-the expert's convenience, every shortcut that would save the fluent a
-keystroke by costing the beginner a rule.
+the expert's shortcut, the saved keystroke that costs the beginner a
+rule.

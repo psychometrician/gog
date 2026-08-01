@@ -133,6 +133,18 @@ a separate part at all: it is written on the position it belongs to, the way
 data(table) + mark * transform + positions + refinements | facet(column)
 ```
 
-The transform and the facet are optional; everything before them is the
-sentence you have already written twice. The next chapter lays out the whole
-vocabulary on one page, and it is shorter than you expect.
+The transform and the facet are optional, and so are the refinements. Delete
+every one of them and a legal plot remains. What cannot go is the table, the
+mark, and the positions that mark needs. That is the sentence you wrote at the
+top of this chapter.
+
+Written grammar works the same way, which is why this one is called a grammar at
+all. "Birds sing" is already a complete sentence in English. "The small birds
+sing loudly in the morning" says much more, and every word added to it can be
+taken out again. Remove the verb instead and there is no sentence left to
+refine. A plot is not a different kind of object. Some parts carry it and the
+rest refine it. That division is the same in every plot in this book, so you
+learn it one time.
+
+The next chapter lays out the whole vocabulary on one page, and it is shorter
+than you expect.

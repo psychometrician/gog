@@ -9,7 +9,7 @@ GOG is governed by nine laws.
 They are not preferences or style guides; they are hard constraints
 the package *never* violates.
 
-Every new feature, every convenience shortcut, every naming decision
+Every new feature, every shortcut, every naming decision
 is checked against these rules.
 If a proposed addition breaks one, it is rejected.
 
@@ -376,7 +376,14 @@ habit rather than a rule, and [Data](data.qmd) gives it.
 > commands.
 
 A specification is **declarative**: you say what you want to see, never how to
-draw it. What you write in R becomes a small, engine-neutral description (which
+draw it. The form is far older than software. "And God said, Let there be light:
+and there was light" [@kingjamesbible1769, Genesis 1:3] states an outcome and
+nothing else. There is no procedure in it, no order of steps, and no mention of
+how the light is made. Every declarative sentence leaves that part out, and
+something else has to supply it. In GOG the engine does, and every stroke on
+these pages answers a sentence that never mentioned strokes.
+
+What you write in R becomes a small, engine-neutral description (which
 marks, which columns on which channels, which transforms), and *that* is what
 renders.
 Today one renderer reads it, producing the SVGs on these pages; the same
@@ -479,7 +486,7 @@ yet"), never a silent nothing, so the gap is visible until it closes.
 
 ## Why these laws matter
 
-Each law fights the same enemy: **the expert's convenience.**
+Each law fights the same enemy: **the expert's shortcut.**
 
 Real users constantly request special cases:
 *"Can `bar` have a different color scale than `point`?"*

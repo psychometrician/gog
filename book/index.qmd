@@ -552,14 +552,13 @@ the engine, so the examples can be used in your own work.
 This book carries five names, and the division of labor behind them is worth
 stating plainly rather than leaving in a footnote.
 
-One of the five is not a name. I publish as **psychometrician**, and the wish
-is an old one. I have wanted a pen name since 1992, when I took introductory
-statistics in the psychology department. That is where I met *Student*. Student
-was [William Sealy
+One of the five is not a name. I publish as **psychometrician**. I learned what
+a pen name was in 1992, when I took introductory statistics in the psychology
+department. That is where I met *Student*. Student was [William Sealy
 Gosset](https://en.wikipedia.org/wiki/William_Sealy_Gosset), an English chemist
 and statistician, and the t-distribution carries his pen name instead of his
-own. My own papers are few, and no academic journal would let me publish
-under a pen name. This book is the first chance to use one.
+own. My own papers are few, and no academic journal would let me publish under a
+pen name. This book is the first chance to use one.
 
 The word does a second job. Most people do not know the job title, and anyone
 who uses this package now knows that a
@@ -698,10 +697,11 @@ miserable, without what this company gives away. Thank you.
 
 ## Thanks to Anthropic
 
-Soon after Claude came out, I built a web application. It was React on the
-front, Supabase for the database, and the Google APIs behind it. I did not know
-React well, and I did not know Supabase at all. The application got finished
-anyway.
+Soon after Claude came out, I built a web application. It was
+[React](https://react.dev/) on the front,
+[Supabase](https://supabase.com/) for the database, and the [Google
+APIs](https://developers.google.com/) behind it. I did not know React well, and
+I did not know Supabase at all. The application got finished anyway.
 
 Then it failed, and the reason had nothing to do with the code. I could not
 market it. I did not know how to reach the people it was built for, and after a
