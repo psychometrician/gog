@@ -1668,6 +1668,16 @@ pub struct FacetSpec {
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct BrushDef {
     /// The column the bound is read on.
+    ///
+    /// **Empty means the positions this plot binds**, which is bare `brush` —
+    /// the founding sentence's spelling, and the one that lets a reader select a
+    /// region without the author having decided in advance which columns they
+    /// were allowed to explore. It is a *declaration* rather than a bound: it
+    /// says both positions are selectable and nothing is selected yet, and the
+    /// reader's first drag replaces it with one bound per axis. So it never
+    /// carries `at` — there is no single axis for one to belong to, and naming a
+    /// column is how you say which axis you meant.
+    #[serde(default, skip_serializing_if = "String::is_empty")]
     pub field: String,
     /// Where the selection opens on a column that measures, in the column's own
     /// units. `None` means nothing is selected yet.
@@ -1684,6 +1694,17 @@ pub struct BrushDef {
 impl BrushDef {
     pub fn new(field: impl Into<String>) -> Self {
         Self { field: field.into(), at: None, levels: None }
+    }
+
+    /// Bare `brush`: the plot's bound positions, nothing selected yet.
+    pub fn positions() -> Self {
+        Self { field: String::new(), at: None, levels: None }
+    }
+
+    /// Is this the bare form — a region the reader may draw, rather than a
+    /// bound on one named column?
+    pub fn is_positions(&self) -> bool {
+        self.field.is_empty()
     }
 
     /// Where the selection opens, on a column that measures.

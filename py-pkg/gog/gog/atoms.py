@@ -690,7 +690,7 @@ def _check_brush_at(at):
     return {"at": [float(seq[0]), float(seq[1])]}
 
 
-def brush(field: Column, at=None) -> Atom:
+def brush(field: Optional[Column] = None, at=None) -> Atom:
     """Let the reader select rows, and push back the rest.
 
     `brush` puts a bound on one column's values. Rows inside it keep the plot's
@@ -710,7 +710,8 @@ def brush(field: Column, at=None) -> Atom:
     `zone`. A `line` draws one shape through many rows, so there is no single row
     to select, and GOG says so rather than guessing.
     """
-    return Atom("brush", field=column_name(field, "brush"), **_check_brush_at(at))
+    name = "" if field is None else column_name(field, "brush")
+    return Atom("brush", field=name, **_check_brush_at(at))
 
 
 # ---------------------------------------------------------------------------

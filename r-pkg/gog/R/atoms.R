@@ -1289,8 +1289,11 @@ check_brush_at <- function(at) {
 #' @return A `gog_atom` added to a plot with `+`.
 #' @export
 brush <- function(field, at = NULL) {
-  structure(c(list(type = "brush", field = deparse(substitute(field))),
-              check_brush_at(at)),
+  # Bare `brush` — `+` calls an uncalled atom with its defaults, the same way
+  # `bar * bin` calls `bin`. No column means the positions this plot binds, so
+  # the reader draws a region instead of moving a bound the author chose.
+  field <- if (missing(field)) "" else deparse(substitute(field))
+  structure(c(list(type = "brush", field = field), check_brush_at(at)),
             class = "gog_atom")
 }
 

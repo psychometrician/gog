@@ -671,10 +671,11 @@ const checkBrushAt = (at) => {
 // taken from. **It highlights and never removes rows** — removing rows before the
 // statistics run is what `limits` does, on the binding, and it counts what it
 // dropped. One column per `brush`; write two for a rectangle.
-export const brush = (...raw) => {
+export const brush = callableAtom(new Atom("brush", { field: "" }), (...raw) => {
   const { field, at } = readArgs(raw, "brush", ["field", "at"]);
-  return new Atom("brush", { field: columnName(field, "brush"), ...checkBrushAt(at) });
-};
+  const name = field === undefined || field === null ? "" : columnName(field, "brush");
+  return new Atom("brush", { field: name, ...checkBrushAt(at) });
+});
 
 // ---------------------------------------------------------------------------
 // Settings — they fix a value, map nothing, and earn no legend (spec §7)

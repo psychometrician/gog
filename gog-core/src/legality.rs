@@ -5282,6 +5282,34 @@ fn check_brush(out: &mut Vec<Diagnostic>, spec: &PlotSpec, data: &HashMap<String
     }
 
     for b in &spec.brush {
+        // Bare `brush` says *both positions are selectable*, so there is no
+        // single axis for a stated bound to belong to. Naming a column is how
+        // you say which axis you meant, and the refusal says exactly that.
+        if b.is_positions() {
+            if b.at.is_some() || b.levels.is_some() {
+                out.push(Diagnostic {
+                    kind: DiagnosticKind::Illegal,
+                    message: "gog: `brush` on its own lets the reader select a region, so it \
+                              cannot also say where the selection opens — there is no one axis \
+                              for a range to be on. Name the column: `brush(gdp, at = ...)`."
+                        .to_string(),
+                });
+            }
+            let placed = spec.x.is_some() || spec.y.is_some()
+                || spec.layers.iter().any(|l| {
+                    l.encodings.contains_key(&Channel::X) || l.encodings.contains_key(&Channel::Y)
+                });
+            if !placed {
+                out.push(Diagnostic {
+                    kind: DiagnosticKind::Illegal,
+                    message: "gog: `brush` on its own selects over the positions the plot binds, \
+                              and this plot binds none. Give it an `x()` or a `y()`, or brush a \
+                              column by name."
+                        .to_string(),
+                });
+            }
+            continue;
+        }
         if b.at.is_some() && b.levels.is_some() {
             out.push(Diagnostic {
                 kind: DiagnosticKind::Illegal,

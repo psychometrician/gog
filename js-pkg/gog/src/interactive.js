@@ -270,6 +270,8 @@ export function hasBrush(spec) {
  */
 export function attachBrush(engine, container, request, options = {}) {
   const { onNotes, onSelect, view } = options;
+  let dragMode = "select";
+  const mode = () => dragMode;
   const req = JSON.parse(JSON.stringify(request));
   // What the sentence asked for, so `reset` returns there rather than to
   // nothing — the same rule `attachDrag` follows for the angle a plot opens at.
@@ -359,9 +361,16 @@ export function attachBrush(engine, container, request, options = {}) {
 
   const boundAxes = (panel) => {
     const fields = new Set();
+    let bare = false;
     for (const plot of eachPlot(req.spec)) {
-      for (const entry of plot.brush ?? []) fields.add(entry.field);
+      for (const entry of plot.brush ?? []) {
+        if (entry.field) fields.add(entry.field);
+        else bare = true;
+      }
     }
+    // A bare brush has not chosen its axes yet, so both are in play and the
+    // band is a rectangle from the first pixel of the drag.
+    if (bare) return { x: panel.x, y: panel.y };
     return {
       x: panel.x && fields.has(panel.x.field) ? panel.x : null,
       y: panel.y && fields.has(panel.y.field) ? panel.y : null,
@@ -389,8 +398,12 @@ export function attachBrush(engine, container, request, options = {}) {
       p.y = y;
       return p.matrixTransform(ctm);
     };
-    const tl = corner(lo.x, lo.y);
-    const br = corner(hi.x, hi.y);
+    // Clamped to the panel, which is both the honest picture — a selection
+    // cannot reach data that is not there — and what stops a drag flung past
+    // the edge from putting a fixed element outside the viewport.
+    const clamp = (v, a, b) => Math.min(Math.max(v, a), b);
+    const tl = corner(clamp(lo.x, panel.x0, panel.x1), clamp(lo.y, panel.y0, panel.y1));
+    const br = corner(clamp(hi.x, panel.x0, panel.x1), clamp(hi.y, panel.y0, panel.y1));
     if (!band) {
       band = document.createElement("div");
       band.className = "gog-selection";
@@ -433,6 +446,17 @@ export function attachBrush(engine, container, request, options = {}) {
   const apply = (panel, start, now) => {
     let moved = false;
     for (const plot of eachPlot(req.spec)) {
+      // Bare `brush` is a *declaration* that both positions are selectable. The
+      // first drag is what turns it into bounds, one per axis the panel places,
+      // because only now is there an axis to attach each one to. After that it
+      // behaves exactly as if the sentence had named the two columns.
+      const bare = (plot.brush ?? []).findIndex((b) => !b.field);
+      if (bare >= 0) {
+        const named = [panel.x, panel.y]
+          .filter((a) => a && a.field)
+          .map((a) => ({ field: a.field }));
+        if (named.length) plot.brush.splice(bare, 1, ...named);
+      }
       for (const entry of plot.brush ?? []) {
         for (const [axis, a, b] of [[panel.x, start.x, now.x], [panel.y, start.y, now.y]]) {
           if (!axis || axis.field !== entry.field) continue;
@@ -464,7 +488,7 @@ export function attachBrush(engine, container, request, options = {}) {
     // This plot said `brush`, so the plain drag belongs to the selection and
     // panning asks with a modifier. On a plot that said nothing there is a
     // spare drag and `attachPan` takes it instead.
-    if (view && (e.shiftKey || e.altKey)) {
+    if (view && (mode() === "pan" || e.shiftKey || e.altKey)) {
       panning = { x: e.clientX, y: e.clientY };
       try {
         container.setPointerCapture?.(e.pointerId);
@@ -530,7 +554,13 @@ export function attachBrush(engine, container, request, options = {}) {
     opened,
     /** What the reader has caught: a count, and the rows to read. */
     selection: () => selectedRows(req),
+    /** What a plain drag does now. Zooming in switches it, because a reader who
+     *  has just magnified something almost always wants to move around in it. */
+    mode,
+    setMode(next) { dragMode = next === "pan" && view ? "pan" : "select"; },
     reset() {
+      // Back to what the sentence said, which for a bare brush is the
+      // declaration rather than whatever the last drag turned it into.
       eachPlot(req.spec).forEach((p, i) => {
         if (opened[i]) p.brush = JSON.parse(JSON.stringify(opened[i]));
       });
@@ -642,7 +672,7 @@ export function attachView(container, options = {}) {
  * a plot that says `brush` has already given its drag away and pans with a
  * modifier instead.
  */
-function addZoomButtons(bar, view, onChange = () => {}) {
+function addZoomButtons(bar, view, onChange = () => {}, handle = null) {
   const style =
     "font:inherit;color:#555;background:none;border:1px solid #ccc;" +
     "border-radius:3px;padding:0 .5em;cursor:pointer;";
@@ -658,10 +688,17 @@ function addZoomButtons(bar, view, onChange = () => {}) {
     });
     return b;
   };
+  // Zooming in hands the drag to panning and fitting hands it back, because a
+  // reader who has just magnified something almost always wants to move around
+  // in it, and one who has zoomed all the way out has nothing left to move.
+  const follow = () => {
+    if (!handle) return;
+    handle.setMode(view.zoomed() ? "pan" : "select");
+  };
   bar.append(
-    make("\u2212", "zoom out", () => view.zoom(1 / 1.4)),
-    make("+", "zoom in", () => view.zoom(1.4)),
-    make("\u21ba", "fit", () => view.reset()),
+    make("\u2212", "zoom out", () => { view.zoom(1 / 1.4); follow(); }),
+    make("+", "zoom in", () => { view.zoom(1.4); follow(); }),
+    make("\u21ba", "fit", () => { view.reset(); follow(); }),
   );
 }
 
@@ -745,9 +782,15 @@ function addSelectionBar(container, handle, view) {
     "text-align:center;margin:-4px 0 12px;display:flex;gap:.75em;" +
     "align-items:center;justify-content:center;flex-wrap:wrap;";
 
-  const hint = document.createElement("span");
-  hint.textContent = "drag to select \u00b7 shift-drag to pan";
-  hint.style.cssText = "color:#999;";
+  // A visible mode rather than a modifier nobody discovers. Plotly's modebar is
+  // the proven shape here and the reason is not taste: a drag can only mean one
+  // thing at a time, so the reader has to be able to see which, and change it.
+  const drag = document.createElement("button");
+  drag.type = "button";
+  drag.title = "what dragging does";
+  drag.style.cssText =
+    "font:inherit;color:#555;background:none;border:1px solid #ccc;" +
+    "border-radius:3px;padding:0 .5em;cursor:pointer;";
 
   const readout = document.createElement("span");
   readout.style.cssText = "font-variant-numeric:tabular-nums;";
@@ -768,14 +811,15 @@ function addSelectionBar(container, handle, view) {
     "display:none;overflow-x:auto;margin:-8px auto 12px;max-width:100%;" +
     "font:12px/1.5 ui-monospace,SFMono-Regular,Menlo,monospace;";
 
-  bar.append(hint, readout, toggle, reset);
-  if (view) addZoomButtons(bar, view);
+  bar.append(drag, readout, toggle, reset);
+  if (view) addZoomButtons(bar, view, () => render(), handle);
   container.after(bar);
   bar.after(table);
 
   let open = false;
   const render = () => {
     const s = handle.selection();
+    drag.textContent = handle.mode() === "pan" ? "drag: pan" : "drag: select";
     readout.textContent = `${s.kept} of ${s.total} selected`;
     // Nothing to show and nothing to reset when nothing is selected. The
     // buttons go quiet rather than disappearing, so the line does not jump.
@@ -805,6 +849,10 @@ function addSelectionBar(container, handle, view) {
     table.style.display = "block";
   };
 
+  drag.addEventListener("click", () => {
+    handle.setMode(handle.mode() === "pan" ? "select" : "pan");
+    render();
+  });
   toggle.addEventListener("click", () => { open = !open; render(); });
   reset.addEventListener("click", () => { handle.reset(); render(); });
   render();

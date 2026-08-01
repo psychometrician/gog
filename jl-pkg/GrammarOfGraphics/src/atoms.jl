@@ -590,8 +590,9 @@ same bars stay, with the selected part standing out.
 
 One column per `brush`. Write two for a rectangle:
 `brush(:gdp, at = (1200, 45000)) + brush(:life, at = (55, 78))`."""
-brush(field; at = nothing) =
-    Atom(:brush, merge(Dict{Symbol,Any}(:field => column_name(field, "brush")),
+brush(field = nothing; at = nothing) =
+    Atom(:brush, merge(Dict{Symbol,Any}(
+             :field => field === nothing ? "" : column_name(field, "brush")),
                        check_brush_at(at)))
 
 # ---------------------------------------------------------------------------
