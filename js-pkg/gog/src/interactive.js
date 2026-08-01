@@ -27,6 +27,19 @@ export const DEFAULT_TURN = 30;
 export const DEFAULT_TILT = 25;
 
 /**
+ * Which build of this module a page is running.
+ *
+ * Stamped onto every plot it mounts, as `data-gog-build`. A page loads this file
+ * by URL and browsers cache modules hard, so "is the reader seeing the fix?" has
+ * been unanswerable from outside the browser — three separate defects this week
+ * were reported against pages running an older copy, and each one cost a round
+ * of guessing before anyone could rule it out. One attribute settles it.
+ *
+ * Bump it whenever the interaction behaves differently, not on every edit.
+ */
+export const BUILD = "2026-08-01";
+
+/**
  * Engines already loaded, keyed by where they came from.
  *
  * A page can hold many plots and they must not each compile their own copy of
@@ -1226,6 +1239,7 @@ export async function mount(target, request, options = {}) {
       show();
       container.style.cursor = "crosshair";
       container.dataset.gogInteractive = "true";
+      container.dataset.gogBuild = BUILD;
       return handle;
     }
     // `show` is created before the handle exists but is only ever called from
@@ -1240,6 +1254,7 @@ export async function mount(target, request, options = {}) {
     show(handle.view());
     container.style.cursor = "grab";
     container.dataset.gogInteractive = "true";
+    container.dataset.gogBuild = BUILD;
     return handle;
   } catch (e) {
     // Never let a missing engine cost the reader the picture. The static SVG is

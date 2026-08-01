@@ -5249,8 +5249,28 @@ pub fn brush_keeps(spec: &PlotSpec, df: &DataFrame) -> Option<Vec<bool>> {
     }
     let mut keep = vec![true; df.len()];
     let mut read_any = false;
+    // **A bound has to be in the same space as the column it tests.** A log
+    // scale rewrites its column to logarithms before the renderer ever sees the
+    // frame, so a bound written in the data's own units — which is the only way
+    // a reader can write one, and what `at` means everywhere else — would be
+    // compared against numbers it shares no scale with, and would match nothing
+    // at all. Every plot in the manual that draws fully dimmed was log-scaled.
+    let logged = |field: &str| -> Option<f64> {
+        for ch in [Channel::X, Channel::Y, Channel::Z] {
+            if let Some(def) = spec.axis_def(&ch) {
+                if def.field == field && crate::scale::is_log(Some(def)) {
+                    return Some(crate::scale::log_base(Some(def)));
+                }
+            }
+        }
+        None
+    };
     for b in active {
         if let Some(at) = b.at {
+            let at = match logged(&b.field) {
+                Some(base) => [at[0].log(base), at[1].log(base)],
+                None => at,
+            };
             if let Some(col) = df.float_col(&b.field) {
                 read_any = true;
                 for (i, v) in col.iter().enumerate().take(keep.len()) {
@@ -8456,6 +8476,39 @@ mod tests {
         assert!(!out.iter().any(|d| d.is_fatal()), "the plot must still draw: {:?}", msgs(&out));
         assert!(out.iter().any(|d| d.kind == DiagnosticKind::Assumption
             && d.message.contains("drawn whole")), "{:?}", msgs(&out));
+    }
+
+    /// **A bound is written in the data's own units, whatever space the axis is
+    /// in.** A log scale rewrites its column to logarithms before the renderer
+    /// sees the frame, so a bound compared as written matches nothing at all —
+    /// every log-scaled plot in the manual drew fully dimmed, and it read as the
+    /// browser failing to select rather than as the engine testing the wrong
+    /// numbers.
+    #[test]
+    fn a_bound_is_tested_in_the_space_its_column_was_rewritten_into() {
+        let df = DataFrame::new()
+            .with_float("gdp", vec![100.0, 1000.0, 10000.0, 100000.0])
+            .with_float("life", vec![1.0, 2.0, 3.0, 4.0]);
+        let brushed = |scale: Option<ScaleType>| {
+            let mut spec = base().layer(Layer::new(Mark::Point));
+            let mut def = ChannelDef::field("gdp");
+            def.scale = scale;
+            spec.x = Some(def);
+            spec.brush = vec![crate::ir::BrushDef::new("gdp").at(500.0, 50000.0)];
+            // The renderer is handed a *logged* column when the axis is log.
+            let seen = if spec.x.as_ref().and_then(|d| d.scale.clone()) == Some(ScaleType::Log) {
+                crate::scale::log_column(&df, "gdp", 10.0)
+            } else {
+                df.clone()
+            };
+            brush_keeps(&spec, &seen).map(|k| k.iter().filter(|&&b| b).count())
+        };
+        assert_eq!(brushed(None), Some(2), "1000 and 10000 sit inside 500..50000");
+        assert_eq!(
+            brushed(Some(ScaleType::Log)),
+            Some(2),
+            "a log axis must select the same two rows, not none of them"
+        );
     }
 
     /// A range that does not run upward selects nothing, so it is a mistake
