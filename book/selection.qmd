@@ -61,23 +61,27 @@ picture is composed. It removes nothing and recomputes nothing.
 One range, one mark, two outcomes:
 
 ```{r}
-#| layout-ncol: 2
 data(gapminder_2007) + point + x(gdp, limits = c(20000, 60000)) + y(life) +
-  theme(width = 380, height = 300) + title("limits: 114 countries gone")
+  theme(width = 620, height = 300) + title("limits: 114 countries gone")
+```
 
+```{r}
 data(gapminder_2007) + point + x(gdp) + y(life) +
-  theme(width = 380, height = 300) + brush(gdp, at = c(20000, 60000)) +
+  theme(width = 620, height = 300) + brush(gdp, at = c(20000, 60000)) +
   title("brush: all 142 still here")
 ```
 
-The left plot is a different plot. Its axis runs from 20,000 to 60,000, only the
+The first plot is a different plot. Its axis runs from 20,000 to 60,000, only the
 countries inside that range are drawn, and both axes were fitted to the ones
-that survived. Look at the y axis: it starts near 70, because no short-lived
+that survived. Look at its y axis: it starts near 70, because no short-lived
 country is left to stretch it downward. GOG counts the countries it removed
 aloud rather than dropping them quietly.
 
-The right plot is the whole world, with a group of it standing out. The axes are
-the axes of all 142 countries, so the selection sits where it always sat.
+The second is the whole world, with a group of it standing out. Its axes are the
+axes of all 142 countries, so the selection sits where it always sat. Stacked
+rather than side by side on purpose: the two share nothing, and setting them
+next to each other invites a reader to compare positions that were fitted to
+different data.
 
 Which of the two you want is a real question and the grammar keeps both sayable.
 Ask *how does this subgroup look on its own* and you want `limits`. Ask *where
