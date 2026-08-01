@@ -1639,6 +1639,75 @@ pub struct FacetSpec {
 }
 
 // ---------------------------------------------------------------------------
+// BrushDef — a bound on one column's values, which the reader may move
+//
+// The selection is a **predicate over rows**, and this is how a sentence states
+// one: not as a region on the screen but as a bound on a *column*. Everything
+// else follows from that choice.
+//
+// It is hand-writable, so a brush has an honest printed form — `at` says where
+// the selection opens exactly as `SpaceView`'s two angles say where a cube
+// opens, and the mouse takes the reader anywhere else from there. It needs no
+// names and no cross-references: two composed plots respond to one bound because
+// they name the same column, which is Bind-Once's world already. And it survives
+// every context a sub-expression can appear in, because "gdp is bounded" is true
+// of the layer alone, layered, faceted, played and composed (Law 6).
+//
+// **A brush highlights; it never filters.** Filtering rows before the statistics
+// run is what `limits` does, so a brush that filtered would be `limits` with a
+// mouse on it — the double meaning §13 exists to catch. The two are the same
+// shape and different operations, and the pipeline position is what tells them
+// apart: `limit_cut` runs before the transform, a brush after the picture is
+// composed. Spec §15.
+//
+// Nothing selected is the resting state, and it is what a still page shows: with
+// neither `at` nor `levels` the plot draws exactly as it would with no brush at
+// all, byte for byte, the same way an unplayed plot carries no timing.
+// ---------------------------------------------------------------------------
+
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+pub struct BrushDef {
+    /// The column the bound is read on.
+    pub field: String,
+    /// Where the selection opens on a column that measures, in the column's own
+    /// units. `None` means nothing is selected yet.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub at: Option<[f64; 2]>,
+    /// Which slots are selected on a column of categories. The counterpart of
+    /// `at`, and never written beside it: which of the two applies is decided by
+    /// the *column's type*, exactly as the column decides whether `color` hands
+    /// out a palette or a ramp.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub levels: Option<Vec<String>>,
+}
+
+impl BrushDef {
+    pub fn new(field: impl Into<String>) -> Self {
+        Self { field: field.into(), at: None, levels: None }
+    }
+
+    /// Where the selection opens, on a column that measures.
+    pub fn at(mut self, lo: f64, hi: f64) -> Self {
+        self.at = Some([lo, hi]);
+        self
+    }
+
+    /// Which slots are selected, on a column of categories.
+    pub fn levels(mut self, levels: Vec<String>) -> Self {
+        self.levels = Some(levels);
+        self
+    }
+
+    /// Has the reader selected anything? A brush that has not is the resting
+    /// state, and the renderer skips its whole two-pass path for it — the
+    /// `nframes < 2` discipline, which is what keeps an unbrushed plot's bytes
+    /// exactly what they were before this type existed.
+    pub fn is_resting(&self) -> bool {
+        self.at.is_none() && self.levels.is_none()
+    }
+}
+
+// ---------------------------------------------------------------------------
 // PlotSpec — the top-level plot specification
 // ---------------------------------------------------------------------------
 
@@ -1700,6 +1769,14 @@ pub struct PlotSpec {
     /// Small multiples — panels split by the categories of a column.
     #[serde(default)]
     pub facet: Option<FacetSpec>,
+    /// The reader's selections — a bound per column, dimming the rows outside
+    /// it. Plot-scoped rather than per-layer, because a predicate over rows is
+    /// a fact about the data and every layer reading that column answers to it.
+    ///
+    /// Empty is the overwhelmingly common case and is skipped on the wire, so a
+    /// spec that names no brush serializes to exactly the JSON it always did.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub brush: Vec<BrushDef>,
     /// Plot furniture — the page rather than the ink. Spec §7.
     #[serde(default)]
     pub theme: ThemeSpec,
@@ -1722,6 +1799,7 @@ impl PlotSpec {
             order: None,
             palette: PaletteDef::default(),
             facet: None,
+            brush: Vec::new(),
             theme: ThemeSpec::default(),
         }
     }
@@ -1736,6 +1814,13 @@ impl PlotSpec {
     /// dropping a row for a missing value it does not read would be a silent lie
     /// about n. `order` is excluded — a missing sort key sorts to an end, it does
     /// not unplace the row — and so is `data`, which names a table, not a column.
+    ///
+    /// **`brush` is excluded too, and for a stronger reason than `order`'s.** A
+    /// brush places nothing, so a missing value in a brushed column leaves the
+    /// row exactly where it was and merely outside the selection. Counting it
+    /// here would drop rows the moment a reader brushed, which would make n
+    /// depend on the mouse — and would break the promise that a plot with
+    /// nothing selected draws exactly what it drew before the brush was written.
     pub fn mapped_fields(&self) -> std::collections::HashSet<String> {
         let mut fields = std::collections::HashSet::new();
         for def in [self.x.as_ref(), self.y.as_ref(), self.z.as_ref()].into_iter().flatten() {
@@ -1918,6 +2003,11 @@ impl PlotSpec {
 
     pub fn coord(mut self, coord: CoordSpace) -> Self {
         self.coord = coord;
+        self
+    }
+
+    pub fn brush(mut self, brush: BrushDef) -> Self {
+        self.brush.push(brush);
         self
     }
 

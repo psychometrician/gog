@@ -4920,6 +4920,7 @@ pub fn check(spec: &PlotSpec, data: &HashMap<String, DataFrame>) -> Vec<Diagnost
     // Ahead of the three gates below, because it answers the wider question: they
     // ask which marks stand in a space, and this asks whether the space draws.
     check_coord(&mut out, spec);
+    check_brush(&mut out, spec, data);
     check_space(&mut out, spec);
     check_polar(&mut out, spec);
     check_order(&mut out, spec, data);
@@ -5151,6 +5152,274 @@ fn check_coord(out: &mut Vec<Diagnostic>, spec: &PlotSpec) {
              stands there today. {direction}"
         ),
     });
+}
+
+// ---------------------------------------------------------------------------
+// Brush — the reader's bound on a column, and which layers can answer it
+//
+// A selection is a **predicate over rows**, so the question "may this mark be
+// brushed?" is really "is one row one *element* here, or is a row a vertex of
+// something larger?" A polyline's rows are vertices: brushing half of one would
+// have to split it, and splitting a polyline is what `group` already means.
+//
+// That question is answered in this file already, under another name. Five marks
+// say `Cannot` to `group` — `point`, `bar`, `text`, `rule`, `zone` — and the
+// comments beside those cells give the reason in words: *"points are not
+// connected"*, *"a per-row glyph, like a point, connects nothing"*, *"each row is
+// its own rectangle"*. So brushability **derives** rather than earning a second
+// table, and a mark added later gets a verdict without anyone remembering to
+// come back here (Law 1's completeness enforcement, for free).
+//
+// The `accepts`/`renders` split then does the rest of the work, exactly as it
+// does for a channel: the grammar says a `bar` may be brushed, and the engine
+// says not yet, because a bar's thickness is derived from the smallest gap in
+// the frame it is handed — draw the selected rows and the unselected rows as two
+// passes and the two would disagree about how wide a bar is, which is a lie
+// rather than a wobble, since a bar's width is what says whether the bins are
+// adjacent. Spec §15.
+// ---------------------------------------------------------------------------
+
+/// May a column be brushed on this mark? One row must be one element.
+///
+/// Derived from `group`'s rule rather than listed, because they are the same
+/// question asked from two directions: `group` splits an element that spans many
+/// rows, so a mark that refuses `group` is exactly a mark whose rows are already
+/// separate elements.
+pub fn mark_takes_selection(mark: &Mark) -> bool {
+    rule_for(mark, &Channel::Group).obligation == Obligation::Cannot
+}
+
+/// Does this transform leave one drawn row standing for one source row?
+///
+/// A predicate over source rows can only be honest where it does. After a `bin`
+/// or a `count` the drawn rectangle stands for forty rows at once, and "twelve of
+/// them are selected" has no honest picture — dimming the whole bar would be a
+/// lie and dimming part of it would be a second, invented mark. This is the datum
+/// provenance debt (§14) made visible instead of silently approximated.
+///
+/// The collision modifiers do not collapse: `dodge`, `stack` and `jitter` move
+/// rows without merging them.
+fn transform_collapses_rows(t: &Transform) -> bool {
+    !matches!(t, Transform::Dodge | Transform::Stack | Transform::Jitter)
+}
+
+/// Can the engine *draw* this layer brushed today? The `renders` half.
+///
+/// Two mechanical exclusions, and both are about geometry derived from a layer's
+/// neighbors rather than from the row itself. A two-pass draw hands each pass a
+/// different frame, so anything measured off the frame changes between the two.
+fn selection_draws(layer: &Layer) -> Option<&'static str> {
+    if layer.mark == Mark::Bar {
+        return Some(
+            "a bar's thickness is measured from the smallest gap between its \
+             neighbors, so the selected and unselected bars would be drawn at \
+             different widths",
+        );
+    }
+    if layer.transforms.contains(&Transform::Jitter) {
+        return Some(
+            "a jittered point's offset is seeded from its place in the table, so \
+             every point would jump when the selection changed",
+        );
+    }
+    None
+}
+
+/// Can this layer's rows answer a selection, *and* can the engine draw them
+/// answering it? The two halves this file reports separately — one is the
+/// grammar's `accepts`, the other the engine's `renders` — asked as the single
+/// question the renderer needs. Kept here rather than in the renderer so the
+/// picture cannot disagree with the diagnostic the reader was given.
+pub fn layer_answers_selection(layer: &Layer) -> bool {
+    !layer.transforms.iter().any(transform_collapses_rows) && selection_draws(layer).is_none()
+}
+
+/// Which rows a brush keeps — the predicate itself, shared by this check and the
+/// renderer so the count a reader is given cannot disagree with the picture.
+///
+/// `None` means nothing is selected, which is the resting state and the reason an
+/// unbrushed plot's bytes are untouched. A row whose value is missing is *outside*
+/// every selection and stays in the frame: a brush places nothing, so it can no
+/// more drop a row than it can move one.
+pub fn brush_keeps(spec: &PlotSpec, df: &DataFrame) -> Option<Vec<bool>> {
+    let active: Vec<&crate::ir::BrushDef> =
+        spec.brush.iter().filter(|b| !b.is_resting()).collect();
+    if active.is_empty() {
+        return None;
+    }
+    let mut keep = vec![true; df.len()];
+    let mut read_any = false;
+    for b in active {
+        if let Some(at) = b.at {
+            if let Some(col) = df.float_col(&b.field) {
+                read_any = true;
+                for (i, v) in col.iter().enumerate().take(keep.len()) {
+                    // A non-finite value is outside every bound rather than
+                    // inside one: it has no place on the axis to compare.
+                    keep[i] &= v.is_finite() && *v >= at[0] && *v <= at[1];
+                }
+            }
+        } else if let Some(levels) = &b.levels {
+            if let Some(col) = df.str_col(&b.field) {
+                read_any = true;
+                for (i, v) in col.iter().enumerate().take(keep.len()) {
+                    keep[i] &= levels.contains(v);
+                }
+            }
+        }
+    }
+    // A layer whose table does not carry the brushed column is untouched by the
+    // selection rather than emptied by it — the same rule that lets a reference
+    // layer stand still while a played layer moves.
+    read_any.then_some(keep)
+}
+
+/// The plot-scoped rule, which is `size`'s rule word for word: apply the binding
+/// where it fits, say where it did not, and refuse only when it fits nowhere.
+fn check_brush(out: &mut Vec<Diagnostic>, spec: &PlotSpec, data: &HashMap<String, DataFrame>) {
+    if spec.brush.is_empty() {
+        return;
+    }
+
+    for b in &spec.brush {
+        if b.at.is_some() && b.levels.is_some() {
+            out.push(Diagnostic {
+                kind: DiagnosticKind::Illegal,
+                message: format!(
+                    "gog: `brush({0})` was given both a range and a list of levels. A column \
+                     measures or it names categories, never both. Keep the one that matches \
+                     `{0}` and drop the other.",
+                    b.field
+                ),
+            });
+        }
+        if let Some([lo, hi]) = b.at {
+            if !(lo < hi) {
+                out.push(Diagnostic {
+                    kind: DiagnosticKind::Illegal,
+                    message: format!(
+                        "gog: `brush({}, at = c({lo}, {hi}))` selects nothing, because the \
+                         range does not run upward. Write the smaller number first.",
+                        b.field
+                    ),
+                });
+            }
+        }
+        // The scrub bar. It picks which moment is on show rather than which rows
+        // are selected within one, and every moment is already drawn — so it moves
+        // the clock, and the clock belongs to the page rather than to the sentence.
+        let played = spec
+            .layers
+            .iter()
+            .filter_map(|l| l.encodings.get(&Channel::Play))
+            .chain(spec.channels.get(&Channel::Play))
+            .any(|d| d.field == b.field);
+        if played {
+            out.push(Diagnostic {
+                kind: DiagnosticKind::Illegal,
+                message: format!(
+                    "gog: `{0}` is already the column `play()` cuts the frames on, so \
+                     `brush({0})` would select frames rather than rows inside one. That is a \
+                     scrub bar, which belongs to the viewer and not to the sentence. Brush a \
+                     column the frames are not cut on.",
+                    b.field
+                ),
+            });
+        }
+        // A column no bound table carries is the silent drop §12 forbids: the
+        // brush would be accepted and would select nothing, forever.
+        let known = spec.layers.iter().any(|l| {
+            l.data
+                .as_ref()
+                .or(spec.data.as_ref())
+                .and_then(|n| data.get(n))
+                .map(|df| df.float_col(&b.field).is_some() || df.str_col(&b.field).is_some())
+                .unwrap_or(true)
+        });
+        if !known {
+            out.push(Diagnostic {
+                kind: DiagnosticKind::Illegal,
+                message: format!(
+                    "gog: `brush({0})` names a column no table in this plot has. Check the \
+                     spelling, or brush a column the plot already reads.",
+                    b.field
+                ),
+            });
+        }
+    }
+
+    // Which layers can answer a selection at all, and which the engine can draw.
+    let mut answers = Vec::new();
+    let mut undrawn = Vec::new();
+    let mut collapsed = Vec::new();
+    let mut not_elements = Vec::new();
+    for layer in &spec.layers {
+        let m = mark_name(&layer.mark);
+        if !mark_takes_selection(&layer.mark) {
+            not_elements.push(m);
+        } else if let Some(t) = layer.transforms.iter().find(|t| transform_collapses_rows(t)) {
+            collapsed.push((m, format!("{t:?}").to_lowercase()));
+        } else if selection_draws(layer).is_some() {
+            undrawn.push((m, selection_draws(layer).unwrap()));
+        } else {
+            answers.push(m);
+        }
+    }
+
+    if !answers.is_empty() {
+        // Some layer answers, so the others are an Assumption rather than a
+        // refusal: the plot draws, and the engine says what it left alone.
+        for (m, why) in &undrawn {
+            out.push(Diagnostic {
+                kind: DiagnosticKind::Assumption,
+                message: format!(
+                    "gog: the `{m}` layer is drawn whole, because {why}. The selection still \
+                     reads on the rest of the plot."
+                ),
+            });
+        }
+        for (m, t) in &collapsed {
+            out.push(Diagnostic {
+                kind: DiagnosticKind::Assumption,
+                message: format!(
+                    "gog: the `{m} * {t}` layer is drawn whole, because `{t}` summarizes many \
+                     rows into one and a selection of some of them has no honest picture. The \
+                     selection still reads on the rest of the plot."
+                ),
+            });
+        }
+        return;
+    }
+
+    // Nothing in this plot can answer the brush, so it would be accepted and do
+    // nothing. Which refusal depends on why, because the two have different fixes.
+    if let Some((m, why)) = undrawn.first() {
+        out.push(Diagnostic {
+            kind: DiagnosticKind::Unsupported,
+            message: format!(
+                "gog: a `{m}` cannot be brushed yet, because {why}. Brush a `point` or a \
+                 `text` layer, or drop the brush."
+            ),
+        });
+    } else if let Some((m, t)) = collapsed.first() {
+        out.push(Diagnostic {
+            kind: DiagnosticKind::Unsupported,
+            message: format!(
+                "gog: `{m} * {t}` cannot be brushed, because `{t}` summarizes many rows into \
+                 one and the engine cannot say which of them you selected. Brush the layer \
+                 that draws the rows themselves, or drop the brush."
+            ),
+        });
+    } else if let Some(m) = not_elements.first() {
+        out.push(Diagnostic {
+            kind: DiagnosticKind::Illegal,
+            message: format!(
+                "gog: a `{m}` draws one shape through many rows, so there is no single row to \
+                 select. Use `group()` to split it, or brush a mark that draws one shape per \
+                 row: `point`, `text`, `rule` or `zone`."
+            ),
+        });
+    }
 }
 
 // ---------------------------------------------------------------------------
@@ -8079,6 +8348,85 @@ mod tests {
                 msgs(&out)
             );
         }
+    }
+
+    // -----------------------------------------------------------------------
+    // Brush — the selection's refusals (spec §15)
+    // -----------------------------------------------------------------------
+
+    /// **Brushability derives; it is not a second table.** The five marks that
+    /// refuse `group` are exactly the five whose rows are elements rather than
+    /// vertices, which is the same question a per-row predicate asks. Written as
+    /// a correspondence over all thirteen rather than a list, so a mark added
+    /// later gets its verdict without anyone remembering this file exists.
+    #[test]
+    fn a_mark_can_be_brushed_exactly_when_one_row_is_one_element() {
+        let brushable: Vec<&str> = ALL_MARKS.iter().filter(|m| mark_takes_selection(m))
+            .map(mark_name).collect();
+        assert_eq!(brushable, vec!["point", "bar", "text", "rule", "zone"],
+            "the brushable set must stay the `group`-refusing set");
+        for m in &ALL_MARKS {
+            assert_eq!(mark_takes_selection(m),
+                rule_for(m, &Channel::Group).obligation == Obligation::Cannot,
+                "`{}` disagrees with its own `group` rule", mark_name(m));
+        }
+    }
+
+    /// The scrub bar, refused where it is written. It selects frames rather than
+    /// rows inside one, every frame is already drawn, and so it moves the clock —
+    /// which belongs to the viewer and not to the sentence.
+    #[test]
+    fn brushing_the_played_column_is_the_scrub_bar_and_is_refused() {
+        let spec = base()
+            .layer(Layer::new(Mark::Point))
+            .channel(Channel::Play, "continent")
+            .brush(crate::ir::BrushDef::new("continent").levels(vec!["Asia".into()]));
+        let out = check(&spec, &data());
+        assert!(out.iter().any(|d| d.kind == DiagnosticKind::Illegal
+            && d.message.contains("scrub bar")
+            && d.message.contains("Brush a column")), "{:?}", msgs(&out));
+    }
+
+    /// A mark whose rows are vertices has no single row to select, and the
+    /// refusal names both ways out: split it, or brush a mark that draws one
+    /// shape per row.
+    #[test]
+    fn a_mark_whose_rows_are_vertices_cannot_be_brushed() {
+        let spec = base()
+            .layer(Layer::new(Mark::Line))
+            .brush(crate::ir::BrushDef::new("gdp").at(1.0, 2.0));
+        let out = check(&spec, &data());
+        assert!(out.iter().any(|d| d.kind == DiagnosticKind::Illegal
+            && d.message.contains("one shape through many rows")
+            && d.message.contains("`group()`")), "{:?}", msgs(&out));
+    }
+
+    /// A summarized layer beside one that draws its rows: the plot draws, and the
+    /// engine says which layer it left whole. An **Assumption**, not a refusal —
+    /// the binding still does something, so refusing it would forbid a legal
+    /// sentence (Law 8).
+    #[test]
+    fn a_summarized_layer_beside_a_brushable_one_is_reported_not_refused() {
+        let spec = base()
+            .layer(Layer::new(Mark::Point))
+            .layer(Layer::new(Mark::Bar).transform(Transform::Count))
+            .brush(crate::ir::BrushDef::new("gdp").at(1.0, 2.0));
+        let out = check(&spec, &data());
+        assert!(!out.iter().any(|d| d.is_fatal()), "the plot must still draw: {:?}", msgs(&out));
+        assert!(out.iter().any(|d| d.kind == DiagnosticKind::Assumption
+            && d.message.contains("drawn whole")), "{:?}", msgs(&out));
+    }
+
+    /// A range that does not run upward selects nothing, so it is a mistake
+    /// rather than an empty selection, and the message says which way to write it.
+    #[test]
+    fn a_range_that_does_not_run_upward_is_refused() {
+        let spec = base()
+            .layer(Layer::new(Mark::Point))
+            .brush(crate::ir::BrushDef::new("gdp").at(9.0, 1.0));
+        let out = check(&spec, &data());
+        assert!(out.iter().any(|d| d.kind == DiagnosticKind::Illegal
+            && d.message.contains("smaller number first")), "{:?}", msgs(&out));
     }
 
     // -----------------------------------------------------------------------

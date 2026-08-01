@@ -20,6 +20,24 @@ pub(crate) const OPACITY_DEFAULT: f64 = 0.82;
 const OPACITY_MIN: f64 = 0.15;
 const OPACITY_MAX: f64 = 0.95;
 
+/// How far the rows outside a selection are pushed back.
+///
+/// A constant rather than vocabulary, and the same class of decision as the
+/// default point radius: one sensible value exists, so §12 lets it stay silent.
+/// It sits here because this module already owns the question *what does a
+/// visual attribute mean* for `size` and `opacity`, and a third answer belongs
+/// beside the first two rather than in whichever mark first needed it.
+///
+/// Applied as **group** opacity over the unselected pass, never multiplied into
+/// each element. That keeps it composable with whatever opacity a mark already
+/// resolved, keeps overlapping marks from darkening each other, and is why no
+/// mark writer has to learn that selection exists at all.
+///
+/// 0.15 is low enough that the selection reads at a glance and high enough that
+/// the rest is still a visible cloud — the point of dimming rather than hiding
+/// is that a selection is read *against* what it was taken from.
+pub(crate) const SELECTION_DIM: f64 = 0.15;
+
 // ---------------------------------------------------------------------------
 // Size scale constants
 // ---------------------------------------------------------------------------

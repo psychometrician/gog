@@ -1537,6 +1537,10 @@ impl SvgRenderer {
                                                   &spec.theme.resolved(), inner_edge),
                 None => self.write_panel_background(&mut svg, l, &clip, &spec.theme.resolved()),
             }
+            // What a browser needs, and the only thing it needs: where this panel
+            // is and what its axes measure. Written only when a brush is declared,
+            // so an ordinary plot's bytes are exactly what they were.
+            self.write_brush_frame(&mut svg, spec, l, xs, ys, cat_x.as_ref(), cat_y.as_ref());
             // Which subset this panel shows at moment `fi`. Moments are the outer
             // stride, so at one frame this is exactly the index it always was.
             let eff_at = |fi: usize| &panel_eff[fi * npanels + panel.slot];
@@ -1576,7 +1580,11 @@ impl SvgRenderer {
                 for fi in 0..nframes {
                     let eff = eff_at(fi);
                     self.open_frame(&mut svg, fi, nframes);
-                    for (layer, df) in spec.layers.iter().zip(eff.iter()) {
+                    for &dim in self.selection_passes(spec) {
+                      self.open_pass(&mut svg, dim);
+                      for (layer, df) in spec.layers.iter().zip(eff.iter()) {
+                        let Some(df) = self.pass_rows(spec, layer, df, dim) else { continue };
+                        let df = &*df;
                         if df.is_empty() { continue }
                         match layer.mark {
                             Mark::Point => self.write_points(&mut svg, layer, df, l, xs, ys,
@@ -1611,6 +1619,8 @@ impl SvgRenderer {
                                 x_field, y_field, z_field, &color_map, &ramp, &clip, &scene),
                             _ => {}
                         }
+                      }
+                      self.close_pass(&mut svg, dim);
                     }
                     self.close_frame(&mut svg, fi, nframes, frame_seconds);
                 }
@@ -1661,7 +1671,13 @@ impl SvgRenderer {
             for fi in 0..nframes {
                 let eff = eff_at(fi);
                 self.open_frame(&mut svg, fi, nframes);
-                for (layer, df) in spec.layers.iter().zip(eff.iter()) {
+                // One pass unless the reader has selected something, in which case
+                // the unselected rows are drawn first and pushed back.
+                for &dim in self.selection_passes(spec) {
+                  self.open_pass(&mut svg, dim);
+                  for (layer, df) in spec.layers.iter().zip(eff.iter()) {
+                    let Some(df) = self.pass_rows(spec, layer, df, dim) else { continue };
+                    let df = &*df;
                     if df.is_empty() { continue }
                     // The **violin** (spec §5): `area` and `ribbon` both hand their slot
                     // reading of `density` to one routine, differing only in where the
@@ -1717,6 +1733,8 @@ impl SvgRenderer {
                         // silently, for as long as it sat in the enum.
                         Mark::Surface => {}
                     }
+                  }
+                  self.close_pass(&mut svg, dim);
                 }
                 self.close_frame(&mut svg, fi, nframes, frame_seconds);
             }
@@ -1954,6 +1972,112 @@ impl SvgRenderer {
     // `inline` on the first moment and `none` on the rest is what makes a printed
     // page show that moment with its strip, rather than every moment at once.
     // -----------------------------------------------------------------------
+
+    // -----------------------------------------------------------------------
+    // Selection — the marks drawn twice, once pushed back
+    //
+    // A brush is drawn as a **row partition**, which is the shape `play` and
+    // `facet` already use: the rows outside the selection are drawn first inside
+    // one dimmed group, then the rows inside it are drawn at full strength over
+    // the top. Nothing per-element changes, so no mark writer learns that
+    // selection exists, and the dim composes with whatever opacity each mark
+    // resolved for itself.
+    //
+    // Everything here is silent when nothing is selected, on `open_frame`'s
+    // discipline and for the same reason: a plot that names no brush, or names
+    // one the reader has not moved, must be byte-for-byte the plot it was before
+    // this code existed. That promise is what the book, the PDF and every parity
+    // hash rest on. Spec §15.
+    // -----------------------------------------------------------------------
+
+    /// Where this panel is, and what its axes measure — the one fact a browser
+    /// cannot work out for itself.
+    ///
+    /// A gesture arrives in pixels and a brush is written in data units, so
+    /// something has to invert the scale. Doing it in JavaScript would be a
+    /// second copy of `scale.rs` living in another language, which is the drift
+    /// that cost this project its second renderer. Doing it with a second entry
+    /// point into the engine would mean promoting `Layout` and `AxisFacts` out of
+    /// the one door `plot.rs` keeps, and composed pages discard both. So the
+    /// engine states the two numbers per axis and the browser does one affine
+    /// division it can check against the rectangle it measured.
+    ///
+    /// An empty `<g>` rather than a `<rect>`, deliberately: the renderer's own
+    /// tests fingerprint marks by counting rects with particular attributes, and
+    /// a rect here would be counted as one. It carries no ink, so it cannot.
+    ///
+    /// **Silent unless a brush is declared**, including a brush the reader has
+    /// not moved yet — the browser needs these before the first drag, and a plot
+    /// that never mentions a brush must not pay a byte for one.
+    fn write_brush_frame(&self, svg: &mut String, spec: &PlotSpec, l: &Layout,
+                         xs: (f64, f64), ys: (f64, f64),
+                         cat_x: Option<&Vec<String>>, cat_y: Option<&Vec<String>>) {
+        if spec.brush.is_empty() {
+            return;
+        }
+        let cats = |c: Option<&Vec<String>>| {
+            c.map(|v| format!(" data-cats=\"{}\"", v.iter()
+                .map(|s| crate::render::text::esc(s)).collect::<Vec<_>>().join("|")))
+                .unwrap_or_default()
+        };
+        writeln!(svg,
+            concat!(r#"  <g data-gog-panel="{x0} {y0} {x1} {y1}" "#,
+                    r#"data-x="{xf} {xt}"{xc} data-y="{yf} {yt}"{yc}/>"#),
+            x0 = l.x0, y0 = l.y0, x1 = l.x1, y1 = l.y1,
+            xf = xs.0, xt = xs.1, xc = cats(cat_x),
+            yf = ys.0, yt = ys.1, yc = cats(cat_y),
+        ).unwrap();
+    }
+
+    /// One pass when nothing is selected, two when something is — unselected
+    /// first, so the selection paints over what it was taken from.
+    fn selection_passes(&self, spec: &PlotSpec) -> &'static [bool] {
+        if spec.brush.iter().any(|b| !b.is_resting()) {
+            &[true, false]
+        } else {
+            &[false]
+        }
+    }
+
+    /// The rows this layer contributes to this pass.
+    ///
+    /// `None` means it contributes none. A layer the selection cannot reach — a
+    /// summarized one, a `bar`, a mark whose rows are vertices rather than
+    /// elements — is drawn **once, whole, at full strength** rather than dimmed
+    /// or drawn twice, which is what the Assumption in `legality::check_brush`
+    /// tells the reader is happening.
+    fn pass_rows<'a>(
+        &self,
+        spec: &PlotSpec,
+        layer: &Layer,
+        df: &'a DataFrame,
+        dim: bool,
+    ) -> Option<std::borrow::Cow<'a, DataFrame>> {
+        let Some(keep) = crate::legality::brush_keeps(spec, df) else {
+            // Nothing selected: one pass, the whole frame, the resting state.
+            return (!dim).then(|| std::borrow::Cow::Borrowed(df));
+        };
+        let reachable = crate::legality::mark_takes_selection(&layer.mark)
+            && crate::legality::layer_answers_selection(layer);
+        if !reachable {
+            return (!dim).then(|| std::borrow::Cow::Borrowed(df));
+        }
+        let side: Vec<bool> = if dim { keep.iter().map(|k| !k).collect() } else { keep };
+        Some(std::borrow::Cow::Owned(df.keep_rows(&side)))
+    }
+
+    /// Open the group that pushes the unselected rows back.
+    fn open_pass(&self, svg: &mut String, dim: bool) {
+        if dim {
+            writeln!(svg, r#"  <g opacity="{:.3}">"#, crate::render::encode::SELECTION_DIM).unwrap();
+        }
+    }
+
+    fn close_pass(&self, svg: &mut String, dim: bool) {
+        if dim {
+            writeln!(svg, "  </g>").unwrap();
+        }
+    }
 
     /// Open the group holding one moment's marks.
     ///
@@ -3815,6 +3939,111 @@ mod tests {
     use crate::ir::{Layer, ScaleType};
     use crate::render::palette::{PALETTE_GOG, RAMP_BLUE};
     use crate::render::text::estimate_text_width;
+
+    // -----------------------------------------------------------------------
+    // Brush — the selection, and the promise that it costs an unbrushed plot
+    // nothing (spec §15)
+    //
+    // The first two tests here are the whole safety argument for the feature and
+    // they were written before it existed. Everything in the book, the PDF and
+    // every recorded parity hash rests on one sentence: **a plot that does not
+    // name a brush draws exactly what it drew before selection was built.** The
+    // 692 tests around this one are the broad form of that promise; these are the
+    // sharp form, and they name the two artifacts a selection could leak.
+    // -----------------------------------------------------------------------
+
+    fn brush_data() -> HashMap<String, DataFrame> {
+        let mut d = HashMap::new();
+        d.insert("t".to_string(), DataFrame::new()
+            .with_float("gx", vec![1.0, 2.0, 3.0, 4.0, 5.0, 6.0])
+            .with_float("gy", vec![2.0, 4.0, 1.0, 5.0, 3.0, 6.0])
+            .with_str("cat", vec!["a", "a", "b", "b", "c", "c"]
+                .into_iter().map(String::from).collect()));
+        d
+    }
+
+    fn brush_spec() -> PlotSpec {
+        PlotSpec::new().data("t").x("gx").y("gy").layer(Layer::new(Mark::Point))
+    }
+
+    /// Counting glyphs is how these tests read a pass, because a `point` writes
+    /// exactly one `<circle>` per row it is handed.
+    fn circles(svg: &str) -> usize {
+        svg.matches("<circle").count()
+    }
+
+    /// **A plot that names no brush carries none of the machinery.** Neither the
+    /// dimmed group nor the panel metadata may appear, because either one would
+    /// change the bytes of every plot in the book at once.
+    #[test]
+    fn a_plot_that_names_no_brush_carries_no_selection_machinery() {
+        let svg = SvgRenderer::default().render(&brush_spec(), &brush_data());
+        assert!(!svg.contains("data-gog-panel"), "a plain plot must not carry panel metadata");
+        assert!(!svg.contains(r#"<g opacity="#), "a plain plot must not carry a dimmed group");
+        assert_eq!(circles(&svg), 6, "and it draws every row once");
+    }
+
+    /// **A brush the reader has not moved draws the same ink.** The resting state
+    /// is what print shows and what the page shows before the first drag, so it
+    /// has to be the plot itself — the panel metadata the browser needs is the
+    /// only difference, and it draws nothing.
+    #[test]
+    fn a_resting_brush_draws_exactly_the_same_ink() {
+        let plain = SvgRenderer::default().render(&brush_spec(), &brush_data());
+        let resting = SvgRenderer::default()
+            .render(&brush_spec().brush(crate::ir::BrushDef::new("gx")), &brush_data());
+        let ink: String = resting.lines()
+            .filter(|l| !l.contains("data-gog-panel"))
+            .collect::<Vec<_>>().join("\n");
+        assert_eq!(ink.trim(), plain.trim(),
+            "a resting brush must change nothing but the panel metadata");
+        assert!(resting.contains("data-gog-panel"),
+            "and the metadata must be there before the first drag, or nothing can invert a pixel");
+    }
+
+    /// **A selection pushes back what it was taken from**, rather than removing
+    /// it: a brush highlights and never filters, so every row is still drawn.
+    #[test]
+    fn a_brush_pushes_back_the_rows_outside_it() {
+        let spec = brush_spec().brush(crate::ir::BrushDef::new("gx").at(2.5, 4.5));
+        let svg = SvgRenderer::default().render(&spec, &brush_data());
+        assert_eq!(circles(&svg), 6, "no row is dropped — a brush is not `limits`");
+        let dim = format!(r#"<g opacity="{:.3}">"#, crate::render::encode::SELECTION_DIM);
+        assert_eq!(svg.matches(&dim).count(), 1, "one dimmed group: {svg}");
+        // Two of the six rows sit inside 2.5..4.5, so four are pushed back.
+        let dimmed = svg.split(&dim).nth(1).unwrap().split("</g>").next().unwrap();
+        assert_eq!(circles(dimmed), 4, "the four rows outside the bound are the dimmed ones");
+    }
+
+    /// Selecting on a column of categories is the same atom, and which of the two
+    /// readings applies is decided by the *column*, exactly as the column decides
+    /// whether `color` hands out a ramp or a palette.
+    #[test]
+    fn a_brush_on_a_category_column_selects_slots() {
+        let spec = brush_spec()
+            .brush(crate::ir::BrushDef::new("cat").levels(vec!["b".to_string()]));
+        let svg = SvgRenderer::default().render(&spec, &brush_data());
+        let dim = format!(r#"<g opacity="{:.3}">"#, crate::render::encode::SELECTION_DIM);
+        let dimmed = svg.split(&dim).nth(1).unwrap().split("</g>").next().unwrap();
+        assert_eq!(circles(dimmed), 4, "the four rows outside category `b` are pushed back");
+    }
+
+    /// **A layer the selection cannot reach is drawn once, whole, at full
+    /// strength** — never twice, and never dimmed. A summarized layer has no
+    /// honest answer to "which of these rows did you select", so it declines to
+    /// give one rather than approximating it, and `check_brush` says so.
+    #[test]
+    fn a_layer_the_selection_cannot_reach_is_drawn_once_and_whole() {
+        let spec = brush_spec()
+            .layer(Layer::new(Mark::Bar).transform(Transform::Count))
+            .brush(crate::ir::BrushDef::new("gx").at(2.5, 4.5));
+        let svg = SvgRenderer::default().render(&spec, &brush_data());
+        let bars = svg.lines().filter(|l| l.contains("<rect") && l.contains("fill-opacity")).count();
+        assert!(bars > 0, "the summarized layer still draws");
+        let dim = format!(r#"<g opacity="{:.3}">"#, crate::render::encode::SELECTION_DIM);
+        let dimmed = svg.split(&dim).nth(1).unwrap().split("</g>").next().unwrap();
+        assert!(!dimmed.contains("<rect"), "and it is not in the dimmed pass: {dimmed}");
+    }
 
     // -----------------------------------------------------------------------
     // Chains — every transform in a legal chain has to do something (spec §5, §12)
