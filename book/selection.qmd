@@ -111,6 +111,55 @@ data(gapminder_2007) + point + x(gdp) + y(life) + color(continent) +
 
 One word, two readings, decided by the column rather than by a second atom.
 
+## Two views, one selection
+
+This is the use a brush was invented for, and everything above it has been the
+setup. Selecting inside one plot tells you little you could not already see. The
+question worth asking is *where does this group sit in a different picture*, and
+that needs a second picture:
+
+```{r}
+(data(gapminder_2007) + point + x(gdp) + y(life) +
+   brush(gdp, at = c(20000, 60000)) + theme(height = 230)) /
+  (data(gapminder_2007) + point + x(gdp) + y(population, scale = "log") +
+     brush(gdp, at = c(20000, 60000)) + theme(height = 200))
+```
+
+Two plots, one page, and one bound lighting the same countries in both. Drag in
+either and the other follows. The rich countries live long, which the top plot
+says; they are also mostly small, which only the bottom one says, and neither
+plot could have told you both.
+
+**Nothing was added to the grammar to link them.** Look at what the two sentences
+share: the column `gdp`, named on `x` in each. A bound is a fact about a column's
+values rather than about a panel, so two plots that read that column are already
+answering the same question. There is no name to declare, no identifier to match
+up, and no third atom joining them.
+
+That falls out of [composition](composition.qmd)'s one rule, arriving somewhere
+new. Two composed plots naming the same column on the same axis share that axis,
+which is why these two are the same width and the `gdp` numbers are written once.
+The selection travels the same road for the same reason.
+
+## Which one is that?
+
+The other thing people want from a selection is a name. Layer `text` over the
+points and the brush decides which labels are legible:
+
+```{r}
+data(gapminder_2007) + point + x(gdp) + y(life) +
+  text + label(country) + style(size = 7) +
+  brush(gdp, at = c(30000, 60000)) + theme(width = 620)
+```
+
+A hundred and forty-two labels is unreadable, and that is the point: the ones
+you did not select step back with their points, and about twenty names are left
+standing. Drag the bound and a different twenty are readable.
+
+This works because `text` is one of the marks a brush reaches, on the same test
+as `point`: one row is one label. Nothing here is about selection *and* labels
+being designed together, because they were not.
+
 ## What can be brushed
 
 A selection picks out rows, so a mark can be brushed when **one row is one
