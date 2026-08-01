@@ -184,3 +184,33 @@ test("redraw is the one loop, and a refusal shows its message", async () => {
   assert.equal(bad.ok, false);
   assert.match(box.textContent, /one shape through many rows/);
 });
+
+test("a refusal mid-gesture keeps the picture, so a click cannot kill the plot", async () => {
+  const engine = await loadEngine(fs.readFileSync(WASM));
+  const box = { innerHTML: "", textContent: "", querySelector: () => null };
+  const good = {
+    spec: { data: "t", layers: [{ mark: "point", encodings: { x: { field: "a" }, y: { field: "b" } }, transforms: [] }] },
+    data: { t: { floats: { a: [1, 2], b: [2, 1] } } },
+  };
+  redraw(engine, box, good);
+  const drawn = box.innerHTML;
+  assert.ok(drawn.startsWith("<svg"));
+
+  // What a plain click used to send: a range that does not run upward. The
+  // engine refuses it, correctly — written down it would be a typo. Mid-drag
+  // the picture has to survive, or the panels the next event is measured
+  // against are gone and the plot is dead for the rest of the page.
+  const clicked = {
+    ...good,
+    spec: { ...good.spec, brush: [{ field: "a", at: [1.5, 1.5] }] },
+  };
+  const kept = redraw(engine, box, clicked, { keep: true });
+  assert.equal(kept.ok, false);
+  assert.match(kept.error, /does not run upward/);
+  assert.equal(box.innerHTML, drawn, "the last good picture must still be there");
+  assert.equal(box.textContent, "", "and the message must not have replaced it");
+
+  // On the first draw there is no picture to keep, so the message is shown.
+  redraw(engine, box, clicked);
+  assert.match(box.textContent, /does not run upward/);
+});

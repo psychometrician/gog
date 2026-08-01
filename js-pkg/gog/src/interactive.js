@@ -147,14 +147,22 @@ export function isSpatial(spec) {
  * @returns {{ok: boolean, notes: string[]}} `ok: false` means the engine refused
  *   and the container now holds the message; there is nothing to interact with.
  */
-export function redraw(engine, container, req) {
+export function redraw(engine, container, req, options = {}) {
+  const { keep = false } = options;
   const { svg, error, notes } = renderSpec(engine, req);
 
   if (error !== null) {
-    // A refusal is the engine's to explain. Show it rather than leaving an
-    // empty box, and stop — a refused plot has nothing to turn or select.
-    container.textContent = error;
-    return { ok: false, notes: [] };
+    // A refusal on the **first** draw is the engine's to explain: there is no
+    // picture yet, so showing the message beats leaving an empty box.
+    //
+    // Mid-gesture it is the opposite, and getting this wrong is what made the
+    // first build of the brush unusable. Replacing the SVG with a message
+    // destroys the panels the next pointer event would be measured against, so
+    // one refused frame killed the plot for the rest of the page — and a plain
+    // click refused, because a zero-width drag is a range that does not run
+    // upward. Keep the last good picture and hand the caller the message.
+    if (!keep) container.textContent = error;
+    return { ok: false, notes: [], error };
   }
 
   const outgoing = container.querySelector("svg");
@@ -180,7 +188,7 @@ export function redraw(engine, container, req) {
     }
   }
 
-  return { ok: true, notes };
+  return { ok: true, notes, error: null };
 }
 
 /**
@@ -237,7 +245,7 @@ export function attachBrush(engine, container, request, options = {}) {
 
   let first = true;
   function draw() {
-    const { ok, notes } = redraw(engine, container, req);
+    const { ok, notes } = redraw(engine, container, req, { keep: !first });
     if (!ok) return false;
     if (first) {
       first = false;
@@ -289,9 +297,86 @@ export function attachBrush(engine, container, request, options = {}) {
     at !== null && at.x >= panel.x0 && at.x <= panel.x1 &&
     at.y >= panel.y0 && at.y <= panel.y1;
 
+  // ---------------------------------------------------------------------
+  // The band under the pointer
+  //
+  // A selection is invisible while it is being drawn: the dimming only lands
+  // on the next frame, and on an axis the sentence did not bind, nothing lands
+  // at all. So the gesture draws itself.
+  //
+  // **It shows exactly what is bound, and nothing more.** One brush on `gdp` is
+  // a vertical band, because that is what was selected; a brush on each
+  // position is a rectangle. Drawing a rectangle for a one-column brush is the
+  // obvious thing every other tool does and it would be a lie — it would show
+  // a `life` range nobody asked for and nothing would be dimmed by it.
+  //
+  // A plain `<div>` over the container rather than anything inside the SVG,
+  // because every frame replaces the SVG and an element inside it would be
+  // destroyed sixty times a second.
+  // ---------------------------------------------------------------------
+  let band = null;
+
+  const boundAxes = (panel) => {
+    const fields = new Set();
+    for (const plot of eachPlot(req.spec)) {
+      for (const entry of plot.brush ?? []) fields.add(entry.field);
+    }
+    return {
+      x: panel.x && fields.has(panel.x.field) ? panel.x : null,
+      y: panel.y && fields.has(panel.y.field) ? panel.y : null,
+    };
+  };
+
+  const showBand = (panel, a, b) => {
+    const owner = panel.el.ownerSVGElement;
+    const ctm = panel.el.getScreenCTM();
+    if (!owner || !ctm) return;
+    const bound = boundAxes(panel);
+    // An unbound axis spans the panel, which is the honest picture: the
+    // selection does not narrow it.
+    const lo = {
+      x: bound.x ? Math.min(a.x, b.x) : panel.x0,
+      y: bound.y ? Math.min(a.y, b.y) : panel.y0,
+    };
+    const hi = {
+      x: bound.x ? Math.max(a.x, b.x) : panel.x1,
+      y: bound.y ? Math.max(a.y, b.y) : panel.y1,
+    };
+    const corner = (x, y) => {
+      const p = owner.createSVGPoint();
+      p.x = x;
+      p.y = y;
+      return p.matrixTransform(ctm);
+    };
+    const tl = corner(lo.x, lo.y);
+    const br = corner(hi.x, hi.y);
+    const box = container.getBoundingClientRect();
+    if (!band) {
+      band = document.createElement("div");
+      band.className = "gog-selection";
+      band.style.cssText =
+        "position:absolute;pointer-events:none;border:1px solid #444;" +
+        "background:rgba(68,68,68,0.10);z-index:1;";
+      if (!container.style.position) container.style.position = "relative";
+      container.appendChild(band);
+    }
+    band.style.left = `${tl.x - box.left}px`;
+    band.style.top = `${tl.y - box.top}px`;
+    band.style.width = `${Math.max(0, br.x - tl.x)}px`;
+    band.style.height = `${Math.max(0, br.y - tl.y)}px`;
+  };
+
+  const hideBand = () => {
+    band?.remove();
+    band = null;
+  };
+
   // Where a pixel falls on an axis, in the column's own units — or, on a column
   // of categories, which slots the drag covered. A category owns an equal share
   // of the panel, so the slot is the fraction times the count, floored.
+  // Shorter than this and the reader did not draw a range, they clicked.
+  const MIN_DRAG = 3;
+
   const bound = (axis, a, b) => {
     const frac = (v) => (v - axis.lo) / (axis.hi - axis.lo || 1);
     const [f0, f1] = [frac(Math.min(a, b)), frac(Math.max(a, b))];
@@ -322,7 +407,12 @@ export function attachBrush(engine, container, request, options = {}) {
           if (!axis || axis.field !== entry.field) continue;
           delete entry.at;
           delete entry.levels;
-          Object.assign(entry, bound(axis, a, b));
+          // A click clears the selection rather than selecting a point. Two
+          // reasons, and the second is the sharper one: nobody means "select
+          // exactly this value", and a zero-width range is refused by the
+          // engine — correctly, since written down it would be a typo. A
+          // gesture is not a typo, so the browser must not produce one.
+          if (Math.abs(a - b) >= MIN_DRAG) Object.assign(entry, bound(axis, a, b));
           moved = true;
         }
       }
@@ -356,7 +446,9 @@ export function attachBrush(engine, container, request, options = {}) {
     // A pointer dragged outside the panel keeps reading against that panel
     // rather than stopping, which is what lets a drag select up to an edge
     // without having to land exactly on it.
-    if (!now || !apply(panel, start, now)) return;
+    if (!now) return;
+    showBand(panel, start, now);
+    if (!apply(panel, start, now)) return;
     if (!queued) {
       queued = true;
       requestAnimationFrame(() => {
@@ -368,6 +460,7 @@ export function attachBrush(engine, container, request, options = {}) {
   const onUp = () => {
     held = -1;
     start = null;
+    hideBand();
   };
 
   container.addEventListener("pointerdown", onDown);
@@ -381,6 +474,7 @@ export function attachBrush(engine, container, request, options = {}) {
       container.removeEventListener("pointermove", onMove);
       container.removeEventListener("pointerup", onUp);
       container.removeEventListener("pointercancel", onUp);
+      hideBand();
     },
     opened,
     reset() {
