@@ -478,6 +478,11 @@ def _module_specifier(url: str) -> str:
     return "./" + url
 
 
+def _needs_engine(spec: Dict[str, Any]) -> bool:
+    """Two reasons to carry the engine, not one. A plot in the cube has an angle worth dragging; a plot that names a brush has a bound worth moving. A flat plot with neither stays a still image and pays nothing."""
+    return _is_spatial(spec) or bool(spec.get("brush"))
+
+
 def _is_spatial(spec: Dict[str, Any]) -> bool:
     """Does this spec draw in the cube?
 
@@ -494,7 +499,7 @@ def _is_spatial(spec: Dict[str, Any]) -> bool:
         if (layer.get("encodings") or {}).get("z") is not None:
             return True
     # A page: one cell in the cube makes the page carry the engine.
-    return any(_is_spatial(cell) for cell in (spec.get("plots") or []))
+    return any(_needs_engine(cell) for cell in (spec.get("plots") or []))
 
 
 def _interactive_block(plot: Any, container_id: str) -> str:
@@ -503,7 +508,7 @@ def _interactive_block(plot: Any, container_id: str) -> str:
         spec, data = plot._wire()
     except Exception:
         return ""
-    if not _is_spatial(spec):
+    if not _needs_engine(spec):
         return ""
 
     assets = _find_wasm_assets()

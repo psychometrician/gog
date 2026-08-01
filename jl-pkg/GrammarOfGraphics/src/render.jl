@@ -327,6 +327,9 @@ module_specifier(url::AbstractString) =
 """Does this spec draw in the cube? The twin of `isSpatial` in the browser module
 and of `space_of` in the engine — a bound `z` projects a plot even when the
 coordinate still reads "flat", so naming `space()` is sufficient, not necessary."""
+# Two reasons to carry the engine, not one. A plot in the cube has an angle worth dragging; a plot that names a brush has a bound worth moving. A flat plot with neither stays a still image and pays nothing.
+needs_engine(spec) = is_spatial(spec) || !isempty(get(spec, "brush", []))
+
 function is_spatial(spec)
     coord = get(spec, "coord", nothing)
     coord isa AbstractDict && get(coord, "space", nothing) !== nothing && return true
@@ -335,13 +338,13 @@ function is_spatial(spec)
         enc = get(layer, "encodings", Dict())
         get(enc, "z", nothing) !== nothing && return true
     end
-    any(is_spatial(cell) for cell in get(spec, "plots", []))
+    any(needs_engine(cell) for cell in get(spec, "plots", []))
 end
 
 """The script that upgrades a static cube into a turnable one, or `""`."""
 function interactive_block(plot::Union{Plot,Page}, id::AbstractString)
     spec, frames = wire(plot)
-    is_spatial(spec) || return ""
+    needs_engine(spec) || return ""
 
     assets = find_wasm_assets()
     assets === nothing && return ""

@@ -511,6 +511,11 @@ const moduleSpecifier = (url) =>
 // Does this spec draw in the cube? The twin of `isSpatial` in the browser
 // module and of `space_of` in the engine — a bound `z` projects a plot even
 // when the coordinate still reads "flat".
+// Two reasons to carry the engine, not one. A plot in the cube has an angle worth dragging; a plot that names a brush has a bound worth moving. A flat plot with neither stays a still image and pays nothing.
+function specNeedsEngine(spec) {
+  return specIsSpatial(spec) || (spec?.brush?.length ?? 0) > 0;
+}
+
 function specIsSpatial(spec) {
   if (spec?.coord && typeof spec.coord === "object" && spec.coord.space) return true;
   if (spec?.z != null) return true;
@@ -533,7 +538,7 @@ export function htmlBlock(plot) {
     'width="800" height="600" style="max-width:100%;height:auto;"'
   );
   const spec = plot.spec ?? plot;
-  const assets = specIsSpatial(spec) ? findWasmAssets() : null;
+  const assets = specNeedsEngine(spec) ? findWasmAssets() : null;
   if (!assets) return `<div class="gog-plot" style="text-align:center;">\n${svg}\n</div>`;
 
   const wasmUrl = assetUrls.wasm ?? dataUri(assets[0], "application/wasm");

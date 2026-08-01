@@ -389,7 +389,8 @@ module_specifier <- function(url) {
 
 interactive_block <- function(gog) {
   spec <- if (inherits(gog, "gog_page")) gog$page else finalize_spec(gog)$spec
-  if (!spec_is_spatial(spec)) return("")
+  # Two reasons to carry the engine, not one. A plot in the cube has an angle worth dragging; a plot that names a brush has a bound worth moving. A flat plot with neither stays a still image and pays nothing.
+  if (!spec_needs_engine(spec)) return("")
 
   assets <- find_wasm_assets()
   if (is.null(assets)) return("")
@@ -419,6 +420,11 @@ interactive_block <- function(gog) {
 # and of `space_of` in the engine: a bound `z` projects a plot even when the
 # coordinate still reads "flat", so naming `space()` is sufficient and not
 # necessary.
+# A brush is plot-scoped, so it sits beside `coord` rather than in a layer.
+spec_needs_engine <- function(spec) {
+  spec_is_spatial(spec) || length(spec$brush) > 0L
+}
+
 spec_is_spatial <- function(spec) {
   if (is.list(spec$coord) && !is.null(spec$coord$space)) return(TRUE)
   if (!is.null(spec$z)) return(TRUE)
@@ -429,7 +435,7 @@ spec_is_spatial <- function(spec) {
   # A page: any cell in the cube makes the page carry the engine.
   cells <- if (is.null(spec$plots)) list() else spec$plots
   for (cell in cells) {
-    if (spec_is_spatial(cell)) return(TRUE)
+    if (spec_needs_engine(cell)) return(TRUE)
   }
   FALSE
 }

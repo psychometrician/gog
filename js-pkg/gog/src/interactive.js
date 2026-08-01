@@ -147,6 +147,219 @@ export function isSpatial(spec) {
  * @returns {{destroy: () => void, view: () => ({turn, tilt}), reset: () => void,
  *   opened: {turn: number, tilt: number}}}
  */
+/**
+ * Render a request and swap the result into the container, keeping the clock.
+ *
+ * Every interaction in this file is the same loop — change one field of the
+ * spec, render, replace the picture — so this is where that loop lives. It was
+ * extracted from `attachDrag` when a second caller arrived, rather than copied
+ * into it, because the subtle part is not the swap: it is the two lines around
+ * it. A `play` plot runs on SMIL's timeline, a fresh element starts that
+ * timeline at zero, and without carrying the clock across the swap a drag would
+ * restart the animation on every mouse move. One copy of that, or the second
+ * caller silently loses it.
+ *
+ * @returns {{ok: boolean, notes: string[]}} `ok: false` means the engine refused
+ *   and the container now holds the message; there is nothing to interact with.
+ */
+export function redraw(engine, container, req) {
+  const { svg, error, notes } = renderSpec(engine, req);
+
+  if (error !== null) {
+    // A refusal is the engine's to explain. Show it rather than leaving an
+    // empty box, and stop — a refused plot has nothing to turn or select.
+    container.textContent = error;
+    return { ok: false, notes: [] };
+  }
+
+  const outgoing = container.querySelector("svg");
+  let clock = null;
+  if (outgoing && typeof outgoing.getCurrentTime === "function") {
+    try {
+      clock = outgoing.getCurrentTime();
+    } catch {
+      clock = null;
+    }
+  }
+
+  container.innerHTML = svg;
+
+  if (clock !== null) {
+    const incoming = container.querySelector("svg");
+    if (incoming && typeof incoming.setCurrentTime === "function") {
+      try {
+        incoming.setCurrentTime(clock);
+      } catch {
+        /* a static plot has no timeline; nothing to restore */
+      }
+    }
+  }
+
+  return { ok: true, notes };
+}
+
+/** Does this spec name a selection the reader can move? */
+export function hasBrush(spec) {
+  return Array.isArray(spec?.brush) && spec.brush.length > 0;
+}
+
+/**
+ * Drag a rectangle over a panel, and the rows outside it step back.
+ *
+ * The whole of the coordinate work is here, and it is deliberately arithmetic
+ * rather than knowledge. The engine writes each panel's rectangle and each
+ * axis's domain into the SVG — `data-gog-panel`, `data-x-field`, `data-x` — so
+ * this function never has to know what a log scale is, where a category's slot
+ * falls, or which column an axis ended up reading after scope resolution. It
+ * measures where the pointer landed inside a rectangle and reads the answer off
+ * a straight line. A browser that worked any of that out for itself would be a
+ * second copy of the scale code in another language, which is the drift that
+ * cost this project its second renderer.
+ *
+ * A drag writes `at` onto the brushes whose column an axis of the panel under
+ * the pointer measures, and leaves the rest alone. Brushing a column the plot
+ * does not place — a third variable, bound but never drawn — is a legal
+ * sentence the mouse simply cannot reach, and it stays where it was written.
+ *
+ * @returns {{destroy: () => void, reset: () => void, opened: object[]}}
+ */
+export function attachBrush(engine, container, request, options = {}) {
+  const { onNotes } = options;
+  const req = JSON.parse(JSON.stringify(request));
+  // What the sentence asked for, so `reset` returns there rather than to
+  // nothing — the same rule `attachDrag` follows for the angle a plot opens at.
+  const opened = JSON.parse(JSON.stringify(req.spec.brush ?? []));
+
+  let first = true;
+  function draw() {
+    const { ok, notes } = redraw(engine, container, req);
+    if (!ok) return false;
+    if (first) {
+      first = false;
+      if (onNotes && notes.length) onNotes(notes);
+    }
+    return true;
+  }
+  if (!draw()) return { destroy() {}, reset() {}, opened };
+
+  // The panel the pointer is over, with its two domains already parsed.
+  const panelAt = (event) => {
+    const svg = container.querySelector("svg");
+    if (!svg || typeof svg.getScreenCTM !== "function") return null;
+    const ctm = svg.getScreenCTM();
+    if (!ctm) return null;
+    const pt = svg.createSVGPoint();
+    pt.x = event.clientX;
+    pt.y = event.clientY;
+    const here = pt.matrixTransform(ctm.inverse());
+    for (const g of svg.querySelectorAll("[data-gog-panel]")) {
+      const [x0, y0, x1, y1] = g.getAttribute("data-gog-panel").split(" ").map(Number);
+      if (here.x < x0 || here.x > x1 || here.y < y0 || here.y > y1) continue;
+      const axis = (name, lo, hi) => {
+        const span = g.getAttribute(`data-${name}`);
+        if (!span) return null;
+        const [from, to] = span.split(" ").map(Number);
+        const cats = g.getAttribute(`data-${name}-cats`);
+        return {
+          field: g.getAttribute(`data-${name}-field`),
+          from, to, lo, hi,
+          cats: cats === null ? null : cats.split("|"),
+        };
+      };
+      // y runs down the page and up the axis, so its two ends are swapped
+      // against x's. That is the one asymmetry in this function.
+      return { at: here, x: axis("x", x0, x1), y: axis("y", y1, y0) };
+    }
+    return null;
+  };
+
+  // Where a pixel falls on an axis, in the column's own units — or, on a column
+  // of categories, which slots the drag covered. A category owns an equal share
+  // of the panel, so the slot is the fraction times the count, floored.
+  const bound = (axis, a, b) => {
+    const frac = (v) => (v - axis.lo) / (axis.hi - axis.lo || 1);
+    const [f0, f1] = [frac(Math.min(a, b)), frac(Math.max(a, b))];
+    if (axis.cats) {
+      const n = axis.cats.length;
+      const first = Math.max(0, Math.min(n - 1, Math.floor(f0 * n)));
+      const last = Math.max(0, Math.min(n - 1, Math.floor(f1 * n)));
+      return { levels: axis.cats.slice(first, last + 1) };
+    }
+    return { at: [axis.from + f0 * (axis.to - axis.from),
+                  axis.from + f1 * (axis.to - axis.from)] };
+  };
+
+  const apply = (panel, start, now) => {
+    let moved = false;
+    for (const entry of req.spec.brush ?? []) {
+      for (const [axis, a, b] of [[panel.x, start.x, now.x], [panel.y, start.y, now.y]]) {
+        if (!axis || axis.field !== entry.field) continue;
+        const next = bound(axis, a, b);
+        delete entry.at;
+        delete entry.levels;
+        Object.assign(entry, next);
+        moved = true;
+      }
+    }
+    return moved;
+  };
+
+  let panel = null;
+  let start = null;
+  let queued = false;
+
+  const onDown = (e) => {
+    panel = panelAt(e);
+    if (!panel) return;
+    start = panel.at;
+    try {
+      container.setPointerCapture?.(e.pointerId);
+    } catch {
+      /* no active pointer to capture; the drag proceeds without it */
+    }
+  };
+  const onMove = (e) => {
+    if (!panel || !start) return;
+    const now = panelAt(e);
+    // Outside every panel the drag keeps its last good reading rather than
+    // jumping: a pointer that strays into the margin has not chosen anything.
+    if (!now) return;
+    if (!apply(panel, start, now.at)) return;
+    if (!queued) {
+      queued = true;
+      requestAnimationFrame(() => {
+        queued = false;
+        draw();
+        // The element the panel was measured from is gone after a redraw.
+        panel = panelAt(e) ?? panel;
+      });
+    }
+  };
+  const onUp = () => {
+    panel = null;
+    start = null;
+  };
+
+  container.addEventListener("pointerdown", onDown);
+  container.addEventListener("pointermove", onMove);
+  container.addEventListener("pointerup", onUp);
+  container.addEventListener("pointercancel", onUp);
+
+  return {
+    destroy() {
+      container.removeEventListener("pointerdown", onDown);
+      container.removeEventListener("pointermove", onMove);
+      container.removeEventListener("pointerup", onUp);
+      container.removeEventListener("pointercancel", onUp);
+    },
+    opened,
+    reset() {
+      req.spec.brush = JSON.parse(JSON.stringify(opened));
+      draw();
+    },
+  };
+}
+
 export function attachDrag(engine, container, request, options = {}) {
   const { degreesPerPixel = 0.5, onNotes, onView } = options;
 
@@ -170,41 +383,8 @@ export function attachDrag(engine, container, request, options = {}) {
   let first = true;
   function draw() {
     req.spec.coord = { space: { turn, tilt } };
-    const { svg, error, notes } = renderSpec(engine, req);
-
-    if (error !== null) {
-      // A refusal is the engine's to explain. Show it rather than leaving an
-      // empty box, and stop — a refused plot has nothing to turn.
-      container.textContent = error;
-      return false;
-    }
-
-    // Read the SMIL clock off the outgoing element before it is destroyed. A
-    // `play` plot swaps frames on this timeline, and a fresh element starts at
-    // zero — so without this a drag restarts the animation every frame.
-    const outgoing = container.querySelector("svg");
-    let clock = null;
-    if (outgoing && typeof outgoing.getCurrentTime === "function") {
-      try {
-        clock = outgoing.getCurrentTime();
-      } catch {
-        clock = null;
-      }
-    }
-
-    container.innerHTML = svg;
-
-    if (clock !== null) {
-      const incoming = container.querySelector("svg");
-      if (incoming && typeof incoming.setCurrentTime === "function") {
-        try {
-          incoming.setCurrentTime(clock);
-        } catch {
-          /* a static plot has no timeline; nothing to restore */
-        }
-      }
-    }
-
+    const { ok, notes } = redraw(engine, container, req);
+    if (!ok) return false;
     if (first) {
       first = false;
       if (onNotes && notes.length) onNotes(notes);
@@ -358,12 +538,26 @@ export async function mount(target, request, options = {}) {
     typeof target === "string" ? document.getElementById(target) : target;
   if (!container) return null;
 
-  // Only a plot in the cube has an angle worth dragging. A flat plot keeps its
-  // static SVG and costs nothing — no engine is even loaded for it.
-  if (!isSpatial(request?.spec)) return null;
+  // Two reasons to load the engine, and a plot with neither keeps its static
+  // SVG and costs nothing — no engine is even fetched for it. A plot in the cube
+  // has an angle worth dragging; a plot that names a brush has a bound worth
+  // moving. A flat plot with no brush is still the overwhelmingly common case.
+  const spatial = isSpatial(request?.spec);
+  const brushed = hasBrush(request?.spec);
+  if (!spatial && !brushed) return null;
 
   try {
     const engine = await engineFor(options.wasm);
+
+    // A brush without a cube: the selection is the only thing to move, so there
+    // is no angle readout and no reset-the-view bar. `crosshair` says the panel
+    // is the thing to drag, where `grab` says the scene is.
+    if (!spatial) {
+      const handle = attachBrush(engine, container, request, options);
+      container.style.cursor = "crosshair";
+      container.dataset.gogInteractive = "true";
+      return handle;
+    }
     // `show` is created before the handle exists but is only ever called from
     // `onView`, which cannot fire until `attachDrag`'s first draw — so the
     // forward reference is safe and saves attaching the controls twice.

@@ -1540,7 +1540,8 @@ impl SvgRenderer {
             // What a browser needs, and the only thing it needs: where this panel
             // is and what its axes measure. Written only when a brush is declared,
             // so an ordinary plot's bytes are exactly what they were.
-            self.write_brush_frame(&mut svg, spec, l, xs, ys, cat_x.as_ref(), cat_y.as_ref());
+            self.write_brush_frame(&mut svg, spec, l, xs, ys, cat_x.as_ref(), cat_y.as_ref(),
+                                   x_field, y_field, !is_nest && !is_3d);
             // Which subset this panel shows at moment `fi`. Moments are the outer
             // stride, so at one frame this is exactly the index it always was.
             let eff_at = |fi: usize| &panel_eff[fi * npanels + panel.slot];
@@ -2009,10 +2010,16 @@ impl SvgRenderer {
     /// **Silent unless a brush is declared**, including a brush the reader has
     /// not moved yet — the browser needs these before the first drag, and a plot
     /// that never mentions a brush must not pay a byte for one.
+    #[allow(clippy::too_many_arguments)]
     fn write_brush_frame(&self, svg: &mut String, spec: &PlotSpec, l: &Layout,
                          xs: (f64, f64), ys: (f64, f64),
-                         cat_x: Option<&Vec<String>>, cat_y: Option<&Vec<String>>) {
-        if spec.brush.is_empty() {
+                         cat_x: Option<&Vec<String>>, cat_y: Option<&Vec<String>>,
+                         x_field: &str, y_field: &str, plane: bool) {
+        // A packing has regions rather than coordinates, so there is no domain to
+        // state and nothing for a gesture to invert. The dimming still works
+        // there, because a predicate reads a column's values and never asks where
+        // a row was drawn — only the *gesture* needs a plane.
+        if spec.brush.is_empty() || !plane {
             return;
         }
         let cats = |c: Option<&Vec<String>>| {
@@ -2020,12 +2027,17 @@ impl SvgRenderer {
                 .map(|s| crate::render::text::esc(s)).collect::<Vec<_>>().join("|")))
                 .unwrap_or_default()
         };
+        // The column each axis measures travels with its domain. Which column an
+        // axis reads is a *scope* question, and scope resolution is this engine's
+        // job — a browser working it out from the spec would be a second copy of
+        // `resolve_scopes` in another language.
         writeln!(svg,
             concat!(r#"  <g data-gog-panel="{x0} {y0} {x1} {y1}" "#,
-                    r#"data-x="{xf} {xt}"{xc} data-y="{yf} {yt}"{yc}/>"#),
+                    r#"data-x-field="{xn}" data-x="{xf} {xt}"{xc} "#,
+                    r#"data-y-field="{yn}" data-y="{yf} {yt}"{yc}/>"#),
             x0 = l.x0, y0 = l.y0, x1 = l.x1, y1 = l.y1,
-            xf = xs.0, xt = xs.1, xc = cats(cat_x),
-            yf = ys.0, yt = ys.1, yc = cats(cat_y),
+            xn = crate::render::text::esc(x_field), xf = xs.0, xt = xs.1, xc = cats(cat_x),
+            yn = crate::render::text::esc(y_field), yf = ys.0, yt = ys.1, yc = cats(cat_y),
         ).unwrap();
     }
 
