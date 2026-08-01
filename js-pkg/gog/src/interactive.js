@@ -310,9 +310,14 @@ export function attachBrush(engine, container, request, options = {}) {
   // obvious thing every other tool does and it would be a lie — it would show
   // a `life` range nobody asked for and nothing would be dimmed by it.
   //
-  // A plain `<div>` over the container rather than anything inside the SVG,
-  // because every frame replaces the SVG and an element inside it would be
-  // destroyed sixty times a second.
+  // It lives on `document.body`, positioned in viewport coordinates, and **not**
+  // inside the container. That is not a detail: a redraw does
+  // `container.innerHTML = svg`, so anything parented to the container is
+  // destroyed on every animation frame. The first build of this put the band in
+  // the container and it was invisible for exactly that reason — created, then
+  // wiped a few milliseconds later, sixty times a second. `addControls` already
+  // knew this and hangs its readout off `container.after`; this is the same
+  // lesson learned twice.
   // ---------------------------------------------------------------------
   let band = null;
 
@@ -350,18 +355,19 @@ export function attachBrush(engine, container, request, options = {}) {
     };
     const tl = corner(lo.x, lo.y);
     const br = corner(hi.x, hi.y);
-    const box = container.getBoundingClientRect();
     if (!band) {
       band = document.createElement("div");
       band.className = "gog-selection";
+      // `fixed` takes the viewport coordinates `getScreenCTM` already hands
+      // back, so there is no container offset to get wrong, and it survives the
+      // redraw that would have destroyed a child of the container.
       band.style.cssText =
-        "position:absolute;pointer-events:none;border:1px solid #444;" +
-        "background:rgba(68,68,68,0.10);z-index:1;";
-      if (!container.style.position) container.style.position = "relative";
-      container.appendChild(band);
+        "position:fixed;pointer-events:none;border:1.5px dotted #333;" +
+        "background:rgba(51,51,51,0.08);z-index:2147483647;";
     }
-    band.style.left = `${tl.x - box.left}px`;
-    band.style.top = `${tl.y - box.top}px`;
+    if (!band.isConnected) document.body.appendChild(band);
+    band.style.left = `${tl.x}px`;
+    band.style.top = `${tl.y}px`;
     band.style.width = `${Math.max(0, br.x - tl.x)}px`;
     band.style.height = `${Math.max(0, br.y - tl.y)}px`;
   };
