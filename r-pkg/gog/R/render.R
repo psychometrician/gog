@@ -432,8 +432,11 @@ spec_is_spatial <- function(spec) {
   for (layer in layers) {
     if (!is.null(layer$encodings$z)) return(TRUE)
   }
-  # A page: any cell in the cube makes the page carry the engine.
-  cells <- if (is.null(spec$plots)) list() else spec$plots
+  # A page: any cell in the cube, or any cell naming a brush, makes the page
+  # carry the engine. R spells the list `cells`; the other bindings spell it
+  # `plots`, so both are read rather than one being assumed.
+  cells <- if (is.null(spec$cells)) spec$plots else spec$cells
+  if (is.null(cells)) cells <- list()
   for (cell in cells) {
     if (spec_needs_engine(cell)) return(TRUE)
   }

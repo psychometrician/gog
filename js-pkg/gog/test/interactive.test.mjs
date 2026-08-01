@@ -18,7 +18,14 @@ import path from "node:path";
 import test from "node:test";
 import { fileURLToPath } from "node:url";
 
-import { attachDrag, isSpatial, loadEngine, renderSpec } from "../src/interactive.js";
+import {
+  attachDrag,
+  hasBrush,
+  isSpatial,
+  loadEngine,
+  redraw,
+  renderSpec,
+} from "../src/interactive.js";
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(HERE, "..", "..", "..");
@@ -136,4 +143,44 @@ test("isSpatial finds the cube whether or not space() was named", () => {
 
 test("attachDrag is exported and refuses politely without a DOM", () => {
   assert.equal(typeof attachDrag, "function");
+});
+
+// ---------------------------------------------------------------------------
+// brush — what a page needs, which turned out to be nothing in the engine
+//
+// Two composed plots naming the same column were already answering the same
+// predicate, because a bound is a fact about a column rather than about a panel.
+// All the page needed was for one gesture to reach every cell that named it.
+// ---------------------------------------------------------------------------
+
+test("hasBrush walks a page, not just a plot", () => {
+  assert.equal(hasBrush({ layers: [] }), false);
+  assert.equal(hasBrush({ layers: [], brush: [{ field: "gdp" }] }), true);
+  // A page keeps its cells under `cells` in R and `plots` elsewhere; both count.
+  assert.equal(hasBrush({ cells: [{ layers: [] }, { brush: [{ field: "gdp" }] }] }), true);
+  assert.equal(hasBrush({ plots: [{ layers: [] }, { brush: [{ field: "gdp" }] }] }), true);
+  assert.equal(hasBrush({ cells: [{ layers: [] }, { layers: [] }] }), false);
+  // A page of pages: the walk has to go all the way down.
+  assert.equal(hasBrush({ cells: [{ cells: [{ brush: [{ field: "gdp" }] }] }] }), true);
+});
+
+test("redraw is the one loop, and a refusal shows its message", async () => {
+  const engine = await loadEngine(fs.readFileSync(WASM));
+  const box = { innerHTML: "", textContent: "", querySelector: () => null };
+  const good = redraw(engine, box, {
+    spec: { data: "t", layers: [{ mark: "point", encodings: { x: { field: "a" }, y: { field: "b" } }, transforms: [] }] },
+    data: { t: { floats: { a: [1, 2], b: [2, 1] } } },
+  });
+  assert.equal(good.ok, true);
+  assert.ok(box.innerHTML.startsWith("<svg"));
+
+  // A brushed `line` is refused, and the container carries the reason rather
+  // than an empty box.
+  const bad = redraw(engine, box, {
+    spec: { data: "t", layers: [{ mark: "line", encodings: { x: { field: "a" }, y: { field: "b" } }, transforms: [] }],
+            brush: [{ field: "a", at: [1, 2] }] },
+    data: { t: { floats: { a: [1, 2], b: [2, 1] } } },
+  });
+  assert.equal(bad.ok, false);
+  assert.match(box.textContent, /one shape through many rows/);
 });

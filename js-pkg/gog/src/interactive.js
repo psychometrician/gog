@@ -133,21 +133,6 @@ export function isSpatial(spec) {
 }
 
 /**
- * Make a plot turnable: render it into `container` and drag to rotate.
- *
- * @param {object} engine from {@link loadEngine}
- * @param {HTMLElement} container the element to draw into
- * @param {object} request the `{spec, data}` wire object
- * @param {object} [options]
- * @param {number} [options.degreesPerPixel=0.5] drag sensitivity
- * @param {(notes: string[]) => void} [options.onNotes] receives the engine's
- *   non-fatal diagnostics from the first render
- * @param {(view: {turn: number, tilt: number}) => void} [options.onView] called
- *   after every redraw with the angle now being shown
- * @returns {{destroy: () => void, view: () => ({turn, tilt}), reset: () => void,
- *   opened: {turn: number, tilt: number}}}
- */
-/**
  * Render a request and swap the result into the container, keeping the clock.
  *
  * Every interaction in this file is the same loop — change one field of the
@@ -198,9 +183,29 @@ export function redraw(engine, container, req) {
   return { ok: true, notes };
 }
 
-/** Does this spec name a selection the reader can move? */
+/**
+ * Every plot in a figure: the plot itself, or each cell of a page, all the way
+ * down, since a page nests.
+ *
+ * A page is where the selection stops being one plot's business. Two composed
+ * plots that name the same column are already answering the same predicate —
+ * that needs nothing added, because a bound is a fact about a column and not
+ * about a panel. What needs saying is only that one *drag* reaches all of them.
+ */
+function eachPlot(spec, out = []) {
+  if (!spec || typeof spec !== "object") return out;
+  const cells = spec.cells ?? spec.plots;
+  if (Array.isArray(cells) && cells.length) {
+    for (const cell of cells) eachPlot(cell, out);
+  } else {
+    out.push(spec);
+  }
+  return out;
+}
+
+/** Does this figure name a selection the reader can move? */
 export function hasBrush(spec) {
-  return Array.isArray(spec?.brush) && spec.brush.length > 0;
+  return eachPlot(spec).some((p) => Array.isArray(p.brush) && p.brush.length > 0);
 }
 
 /**
@@ -228,7 +233,7 @@ export function attachBrush(engine, container, request, options = {}) {
   const req = JSON.parse(JSON.stringify(request));
   // What the sentence asked for, so `reset` returns there rather than to
   // nothing — the same rule `attachDrag` follows for the angle a plot opens at.
-  const opened = JSON.parse(JSON.stringify(req.spec.brush ?? []));
+  const opened = eachPlot(req.spec).map((p) => JSON.parse(JSON.stringify(p.brush ?? [])));
 
   let first = true;
   function draw() {
@@ -242,19 +247,16 @@ export function attachBrush(engine, container, request, options = {}) {
   }
   if (!draw()) return { destroy() {}, reset() {}, opened };
 
-  // The panel the pointer is over, with its two domains already parsed.
-  const panelAt = (event) => {
-    const svg = container.querySelector("svg");
-    if (!svg || typeof svg.getScreenCTM !== "function") return null;
-    const ctm = svg.getScreenCTM();
-    if (!ctm) return null;
-    const pt = svg.createSVGPoint();
-    pt.x = event.clientX;
-    pt.y = event.clientY;
-    const here = pt.matrixTransform(ctm.inverse());
-    for (const g of svg.querySelectorAll("[data-gog-panel]")) {
+  // Every panel on the page, in document order, with its two domains parsed.
+  //
+  // Each one is measured against **its own** transform rather than the outer
+  // `<svg>`'s. A composed page nests one `<svg>` per cell, so a cell's panel
+  // rectangle is written in that cell's user space; reading it against the outer
+  // element would put every panel but the first in the wrong place. Asking the
+  // element itself for its screen transform makes the nesting cost nothing.
+  const panels = () =>
+    Array.from(container.querySelectorAll("[data-gog-panel]")).map((g) => {
       const [x0, y0, x1, y1] = g.getAttribute("data-gog-panel").split(" ").map(Number);
-      if (here.x < x0 || here.x > x1 || here.y < y0 || here.y > y1) continue;
       const axis = (name, lo, hi) => {
         const span = g.getAttribute(`data-${name}`);
         if (!span) return null;
@@ -267,11 +269,25 @@ export function attachBrush(engine, container, request, options = {}) {
         };
       };
       // y runs down the page and up the axis, so its two ends are swapped
-      // against x's. That is the one asymmetry in this function.
-      return { at: here, x: axis("x", x0, x1), y: axis("y", y1, y0) };
-    }
-    return null;
+      // against x's. That is the one asymmetry here.
+      return { el: g, x0, y0, x1, y1, x: axis("x", x0, x1), y: axis("y", y1, y0) };
+    });
+
+  // Where the pointer is, in this panel's own user space.
+  const pointIn = (panel, event) => {
+    const owner = panel.el.ownerSVGElement;
+    if (!owner || typeof panel.el.getScreenCTM !== "function") return null;
+    const ctm = panel.el.getScreenCTM();
+    if (!ctm) return null;
+    const pt = owner.createSVGPoint();
+    pt.x = event.clientX;
+    pt.y = event.clientY;
+    return pt.matrixTransform(ctm.inverse());
   };
+
+  const holds = (panel, at) =>
+    at !== null && at.x >= panel.x0 && at.x <= panel.x1 &&
+    at.y >= panel.y0 && at.y <= panel.y1;
 
   // Where a pixel falls on an axis, in the column's own units — or, on a column
   // of categories, which slots the drag covered. A category owns an equal share
@@ -289,29 +305,43 @@ export function attachBrush(engine, container, request, options = {}) {
                   axis.from + f1 * (axis.to - axis.from)] };
   };
 
+  // One drag reaches **every** plot on the page that named the dragged column.
+  //
+  // This is the whole of linked brushing, and it needed no new grammar and no
+  // engine change: the two composed plots were already answering the same
+  // predicate, because a bound is a fact about a column rather than about a
+  // panel. All that was missing is that a gesture in one cell should write the
+  // bound the others are reading. A cell that names a different column is left
+  // alone, which is what makes a marginal histogram follow the scatter it shares
+  // an axis with and ignore the one it does not.
   const apply = (panel, start, now) => {
     let moved = false;
-    for (const entry of req.spec.brush ?? []) {
-      for (const [axis, a, b] of [[panel.x, start.x, now.x], [panel.y, start.y, now.y]]) {
-        if (!axis || axis.field !== entry.field) continue;
-        const next = bound(axis, a, b);
-        delete entry.at;
-        delete entry.levels;
-        Object.assign(entry, next);
-        moved = true;
+    for (const plot of eachPlot(req.spec)) {
+      for (const entry of plot.brush ?? []) {
+        for (const [axis, a, b] of [[panel.x, start.x, now.x], [panel.y, start.y, now.y]]) {
+          if (!axis || axis.field !== entry.field) continue;
+          delete entry.at;
+          delete entry.levels;
+          Object.assign(entry, bound(axis, a, b));
+          moved = true;
+        }
       }
     }
     return moved;
   };
 
-  let panel = null;
+  // The panel is held by **index** rather than by element, because every redraw
+  // destroys the element it was found on. Document order is stable across a
+  // redraw of the same spec, so the index survives what the node does not.
+  let held = -1;
   let start = null;
   let queued = false;
 
   const onDown = (e) => {
-    panel = panelAt(e);
-    if (!panel) return;
-    start = panel.at;
+    const all = panels();
+    held = all.findIndex((p) => holds(p, pointIn(p, e)));
+    if (held < 0) return;
+    start = pointIn(all[held], e);
     try {
       container.setPointerCapture?.(e.pointerId);
     } catch {
@@ -319,24 +349,24 @@ export function attachBrush(engine, container, request, options = {}) {
     }
   };
   const onMove = (e) => {
-    if (!panel || !start) return;
-    const now = panelAt(e);
-    // Outside every panel the drag keeps its last good reading rather than
-    // jumping: a pointer that strays into the margin has not chosen anything.
-    if (!now) return;
-    if (!apply(panel, start, now.at)) return;
+    if (held < 0 || !start) return;
+    const panel = panels()[held];
+    if (!panel) return;
+    const now = pointIn(panel, e);
+    // A pointer dragged outside the panel keeps reading against that panel
+    // rather than stopping, which is what lets a drag select up to an edge
+    // without having to land exactly on it.
+    if (!now || !apply(panel, start, now)) return;
     if (!queued) {
       queued = true;
       requestAnimationFrame(() => {
         queued = false;
         draw();
-        // The element the panel was measured from is gone after a redraw.
-        panel = panelAt(e) ?? panel;
       });
     }
   };
   const onUp = () => {
-    panel = null;
+    held = -1;
     start = null;
   };
 
@@ -354,12 +384,29 @@ export function attachBrush(engine, container, request, options = {}) {
     },
     opened,
     reset() {
-      req.spec.brush = JSON.parse(JSON.stringify(opened));
+      eachPlot(req.spec).forEach((p, i) => {
+        if (opened[i]) p.brush = JSON.parse(JSON.stringify(opened[i]));
+      });
       draw();
     },
   };
 }
 
+/**
+ * Make a plot turnable: render it into `container` and drag to rotate.
+ *
+ * @param {object} engine from {@link loadEngine}
+ * @param {HTMLElement} container the element to draw into
+ * @param {object} request the `{spec, data}` wire object
+ * @param {object} [options]
+ * @param {number} [options.degreesPerPixel=0.5] drag sensitivity
+ * @param {(notes: string[]) => void} [options.onNotes] receives the engine's
+ *   non-fatal diagnostics from the first render
+ * @param {(view: {turn: number, tilt: number}) => void} [options.onView] called
+ *   after every redraw with the angle now being shown
+ * @returns {{destroy: () => void, view: () => ({turn, tilt}), reset: () => void,
+ *   opened: {turn: number, tilt: number}}}
+ */
 export function attachDrag(engine, container, request, options = {}) {
   const { degreesPerPixel = 0.5, onNotes, onView } = options;
 

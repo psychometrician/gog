@@ -513,7 +513,9 @@ const moduleSpecifier = (url) =>
 // when the coordinate still reads "flat".
 // Two reasons to carry the engine, not one. A plot in the cube has an angle worth dragging; a plot that names a brush has a bound worth moving. A flat plot with neither stays a still image and pays nothing.
 function specNeedsEngine(spec) {
-  return specIsSpatial(spec) || (spec?.brush?.length ?? 0) > 0;
+  if ((spec?.brush?.length ?? 0) > 0) return true;
+  if ((spec?.cells ?? spec?.plots ?? []).some(specNeedsEngine)) return true;
+  return specIsSpatial(spec);
 }
 
 function specIsSpatial(spec) {
