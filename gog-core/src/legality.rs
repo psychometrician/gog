@@ -4917,6 +4917,9 @@ pub fn check(spec: &PlotSpec, data: &HashMap<String, DataFrame>) -> Vec<Diagnost
     check_facet(&mut out, spec, data);
 
     check_play(&mut out, spec, data);
+    // Ahead of the three gates below, because it answers the wider question: they
+    // ask which marks stand in a space, and this asks whether the space draws.
+    check_coord(&mut out, spec);
     check_space(&mut out, spec);
     check_polar(&mut out, spec);
     check_order(&mut out, spec, data);
@@ -5100,6 +5103,55 @@ const MIN_PLOT_SIZE: f64 = 40.0;
 /// out tiny text than to catch `theme(font_size = 1.5)` — the reading in which
 /// the number is a multiplier rather than a measurement.
 const MIN_FONT_SIZE: f64 = 4.0;
+
+// ---------------------------------------------------------------------------
+// Coord — a space the engine cannot draw in at all
+//
+// `check_space`, `check_polar` and `check_nest` each gate one *built* space, and
+// every one of them asks its question per layer: which marks stand in the cube,
+// which mark a packing has no position to give. None of them can answer the
+// question one level up — *is this space drawn at all?* — and for the two spaces
+// where the answer is no, nothing asked it.
+//
+// So `map` and `globe` were accepted and drawn flat, in complete silence.
+// `space_of` reported them correctly, `mark_draws_in_space` answered `false` for
+// all thirteen marks, and the renderer reads neither: it laid out ordinary axes
+// and drew the plot as though the atom had never been written. That is the
+// accept-and-drop §12 forbids, and it is a failure no test could have caught,
+// because the assertion that would have caught it was the missing function
+// itself. `mark_draws_in_space`'s doc comment has named `check_coord` as one of
+// its two readers since the day it was written; `check_coord` did not exist.
+//
+// The question is put to the rule table rather than to a list of two names, so
+// this stops firing for a space the moment one mark draws there and the
+// per-layer gates take over. That is what has to happen when a space lands one
+// mark at a time.
+// ---------------------------------------------------------------------------
+
+fn check_coord(out: &mut Vec<Diagnostic>, spec: &PlotSpec) {
+    let space = space_of(spec);
+    if ALL_MARKS.iter().any(|m| mark_draws_in_space(m, space)) {
+        return;
+    }
+    let s = space_name(space);
+    // The direction is per space, because what a reader should do next differs.
+    // Dropping the atom is the answer in both cases, but only one of them can say
+    // what the flat plot will then show — and saying it is the point: that flat
+    // plot is exactly what the engine drew here without being asked.
+    let direction = match space {
+        SpaceKind::Map => format!(
+            "Drop `{s}()` to draw the plot flat, with longitude across and latitude up."
+        ),
+        _ => format!("Drop `{s}()` to draw the plot flat."),
+    };
+    out.push(Diagnostic {
+        kind: DiagnosticKind::Unsupported,
+        message: format!(
+            "gog: `{s}()` names a coordinate space the engine cannot draw in — no mark \
+             stands there today. {direction}"
+        ),
+    });
+}
 
 // ---------------------------------------------------------------------------
 // Space — the 3-D coordinate
@@ -7963,6 +8015,70 @@ mod tests {
     /// The messages, for an assertion that fails readably.
     fn msgs(d: &[Diagnostic]) -> Vec<String> {
         d.iter().map(|x| x.message.clone()).collect()
+    }
+
+    // -----------------------------------------------------------------------
+    // Coord — a space with no marks in it at all (spec §15)
+    // -----------------------------------------------------------------------
+
+    /// One minimal, otherwise-clean sentence per space, so the assertion below is
+    /// about the space rather than about the plot being ill-formed. `Space` binds
+    /// a `z` because that, not the atom, is what makes a plot three-dimensional.
+    fn spec_in(space: SpaceKind) -> PlotSpec {
+        let s = base().layer(Layer::new(Mark::Point));
+        match space {
+            SpaceKind::Flat => s,
+            SpaceKind::Space => {
+                s.z("value").coord(CoordSpace::Space(crate::ir::SpaceView::default()))
+            }
+            SpaceKind::Polar => s.coord(CoordSpace::Polar(crate::ir::PolarView::default())),
+            SpaceKind::Nest => s.coord(CoordSpace::Nest),
+            SpaceKind::Globe => s.coord(CoordSpace::Globe),
+            SpaceKind::Map => s.coord(CoordSpace::Map),
+        }
+    }
+
+    /// The whole `Spaces:` line in one test, read off `mark_draws_in_space` rather
+    /// than typed out: a space no mark stands in must be refused, and a space some
+    /// mark stands in must not be refused *here*, its own gate owning that.
+    ///
+    /// `map` and `globe` were accepted and **drawn flat** for the project's life,
+    /// and no test could have caught it, because the assertion that would have and
+    /// the function that would have were the same absence. This one flips by itself
+    /// the day a space gains its first mark, which is how `map` will arrive.
+    #[test]
+    fn a_space_no_mark_stands_in_is_refused_rather_than_drawn_flat() {
+        for space in ALL_SPACES {
+            let mut out = Vec::new();
+            check_coord(&mut out, &spec_in(space));
+            let drawn = ALL_MARKS.iter().any(|m| mark_draws_in_space(m, space));
+            assert_eq!(
+                out.is_empty(),
+                drawn,
+                "`{}` disagrees with the Mark × Space grid: {:?}",
+                space_name(space),
+                msgs(&out)
+            );
+        }
+    }
+
+    /// The refusal a user meets, through the whole checker rather than the one
+    /// function: **Unsupported**, because the grammar allows the sentence and the
+    /// engine cannot draw it yet (§12) — and it says what to write instead, not
+    /// only what went wrong.
+    #[test]
+    fn an_undrawn_space_says_what_to_write_instead() {
+        for (coord, atom) in [(CoordSpace::Map, "map"), (CoordSpace::Globe, "globe")] {
+            let spec = base().layer(Layer::new(Mark::Point)).coord(coord);
+            let out = check(&spec, &data());
+            assert!(
+                out.iter().any(|d| d.kind == DiagnosticKind::Unsupported
+                    && d.message.contains(&format!("`{atom}()`"))
+                    && d.message.contains(&format!("Drop `{atom}()`"))),
+                "`{atom}()` was accepted and drawn flat: {:?}",
+                msgs(&out)
+            );
+        }
     }
 
     // -----------------------------------------------------------------------
