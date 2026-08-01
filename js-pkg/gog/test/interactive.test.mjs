@@ -21,6 +21,7 @@ import { fileURLToPath } from "node:url";
 import {
   attachDrag,
   boundOn,
+  selectedRows,
   hasBrush,
   isSpatial,
   loadEngine,
@@ -245,4 +246,59 @@ test("a bound on a column of categories covers the slots the drag crossed", () =
   assert.deepEqual(boundOn(cats, 35, 5).levels, ["Africa", "Americas"]);
   // Past the last edge clamps rather than running off the end.
   assert.deepEqual(boundOn(cats, 85, 200).levels, ["Oceania"]);
+});
+
+// ---------------------------------------------------------------------------
+// The readout, and the one drift surface in the whole feature
+//
+// `selectedRows` runs the same predicate the engine runs in `brush_keeps`, in a
+// second language. Two implementations of one rule is exactly what this project
+// deleted a renderer over, and it is allowed here only because a test can hold
+// them to each other: the count the browser reports must equal the marks the
+// engine actually drew at full strength.
+// ---------------------------------------------------------------------------
+
+const SEL_REQ = {
+  spec: {
+    data: "t",
+    x: { field: "gdp" }, y: { field: "life" },
+    layers: [{ mark: "point", encodings: {}, transforms: [] }],
+    brush: [{ field: "gdp", at: [2500, 5500] }],
+  },
+  data: { t: { floats: { gdp: [1000, 3000, 4000, 5000, 9000], life: [50, 60, 70, 75, 80] },
+               strings: { country: ["a", "b", "c", "d", "e"] } } },
+};
+
+test("the browser's count is the engine's count, or one of them is wrong", async () => {
+  const engine = await loadEngine(fs.readFileSync(WASM));
+  const { svg } = renderSpec(engine, SEL_REQ);
+  const dim = svg.split('<g opacity="0.150">')[1].split("</g>")[0];
+  const dimmed = (dim.match(/<circle/g) || []).length;
+  const drawn = (svg.match(/<circle/g) || []).length;
+
+  const seen = selectedRows(SEL_REQ);
+  assert.equal(seen.total, drawn, "every row is still drawn — a brush does not filter");
+  assert.equal(seen.kept, drawn - dimmed, `browser says ${seen.kept}, engine drew ${drawn - dimmed}`);
+  assert.equal(seen.kept, 3);
+});
+
+test("the readout shows the columns the sentence maps, and says what it left out", () => {
+  const seen = selectedRows(SEL_REQ);
+  // `country` is in the table but the sentence never names it, so it is not a
+  // column a reader is looking at.
+  assert.deepEqual(seen.columns, ["gdp", "life"]);
+  assert.deepEqual(seen.rows, [[3000, 60], [4000, 70], [5000, 75]]);
+  assert.equal(seen.capped, false);
+
+  const capped = selectedRows(SEL_REQ, 2);
+  assert.equal(capped.kept, 3, "the count is the whole selection");
+  assert.equal(capped.rows.length, 2, "even though only some rows are listed");
+  assert.equal(capped.capped, true, "and the shortfall is reported, never silent");
+});
+
+test("nothing selected is nothing caught, not everything caught", () => {
+  const resting = { ...SEL_REQ, spec: { ...SEL_REQ.spec, brush: [{ field: "gdp" }] } };
+  const seen = selectedRows(resting);
+  assert.equal(seen.kept, 0);
+  assert.equal(seen.total, 0, "a resting brush has no selection to report at all");
 });

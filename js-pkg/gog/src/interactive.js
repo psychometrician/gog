@@ -269,7 +269,7 @@ export function hasBrush(spec) {
  * @returns {{destroy: () => void, reset: () => void, opened: object[]}}
  */
 export function attachBrush(engine, container, request, options = {}) {
-  const { onNotes } = options;
+  const { onNotes, onSelect } = options;
   const req = JSON.parse(JSON.stringify(request));
   // What the sentence asked for, so `reset` returns there rather than to
   // nothing — the same rule `attachDrag` follows for the angle a plot opens at.
@@ -283,6 +283,7 @@ export function attachBrush(engine, container, request, options = {}) {
       first = false;
       if (onNotes && notes.length) onNotes(notes);
     }
+    if (onSelect) onSelect();
     return true;
   }
   if (!draw()) return { destroy() {}, reset() {}, opened };
@@ -504,6 +505,8 @@ export function attachBrush(engine, container, request, options = {}) {
       hideBand();
     },
     opened,
+    /** What the reader has caught: a count, and the rows to read. */
+    selection: () => selectedRows(req),
     reset() {
       eachPlot(req.spec).forEach((p, i) => {
         if (opened[i]) p.brush = JSON.parse(JSON.stringify(opened[i]));
@@ -511,6 +514,152 @@ export function attachBrush(engine, container, request, options = {}) {
       draw();
     },
   };
+}
+
+
+/**
+ * Which rows a selection caught, and the values a reader would want to read.
+ *
+ * The point of selecting is to **extract** — to isolate a group visually and
+ * then find out what is in it. Dimming does the first half; without this the
+ * second half is missing, and the reader can see a group they cannot name.
+ *
+ * The predicate here is deliberately the same four lines the engine runs in
+ * `legality::brush_keeps`, and two implementations of one rule is a drift
+ * surface. It is allowed exactly one way: the count this returns is checked
+ * against the marks the engine actually drew at full strength, by a test, so
+ * the two cannot disagree quietly.
+ *
+ * Columns are the ones the sentence *maps*, not every column in the table. A
+ * twelve-column CSV is unreadable as a readout, and the mapped ones are the
+ * ones the reader is already looking at.
+ */
+export function selectedRows(req, limit = 12) {
+  const result = { kept: 0, total: 0, columns: [], rows: [], capped: false };
+  for (const plot of eachPlot(req.spec)) {
+    const bounds = (plot.brush ?? []).filter((b) => b.at || b.levels);
+    if (!bounds.length) continue;
+    const df = req.data?.[plot.data];
+    if (!df) continue;
+    const floats = df.floats ?? {};
+    const strings = df.strings ?? {};
+    const value = (field, i) =>
+      floats[field] ? floats[field][i] : strings[field]?.[i];
+    const rows = Object.values(floats)[0]?.length ?? Object.values(strings)[0]?.length ?? 0;
+
+    // The columns the sentence names, in the order it names them, without
+    // repeating one bound twice.
+    const named = [];
+    const add = (f) => { if (f && !named.includes(f)) named.push(f); };
+    for (const c of [plot.x, plot.y, plot.z]) add(c?.field);
+    for (const c of Object.values(plot.channels ?? {})) add(c?.field);
+    for (const layer of plot.layers ?? []) {
+      for (const c of Object.values(layer.encodings ?? {})) add(c?.field);
+    }
+    for (const b of bounds) add(b.field);
+    const columns = named.filter((f) => floats[f] || strings[f]);
+
+    for (let i = 0; i < rows; i++) {
+      const inside = bounds.every((b) => {
+        const v = value(b.field, i);
+        if (b.at) return typeof v === "number" && Number.isFinite(v) && v >= b.at[0] && v <= b.at[1];
+        return b.levels.includes(v);
+      });
+      result.total++;
+      if (!inside) continue;
+      result.kept++;
+      if (result.rows.length < limit) {
+        result.rows.push(columns.map((f) => value(f, i)));
+      } else {
+        result.capped = true;
+      }
+    }
+    if (!result.columns.length) result.columns = columns;
+  }
+  return result;
+}
+
+/**
+ * The bar under a brushed plot: how many rows were caught, the rows themselves
+ * on demand, and a way back to nothing selected.
+ *
+ * The twin of `addControls`, and inserted the same way — `container.after`,
+ * outside the element a redraw replaces. A plot in the cube gets an angle and a
+ * reset; a brushed plot gets a count and a reset, and neither is in the
+ * sentence, because reporting a selection does not change what the picture
+ * claims about the data.
+ */
+function addSelectionBar(container, handle) {
+  const bar = document.createElement("div");
+  bar.className = "gog-selection-controls";
+  bar.style.cssText =
+    "font:12px/1.6 ui-monospace,SFMono-Regular,Menlo,monospace;color:#666;" +
+    "text-align:center;margin:-4px 0 12px;display:flex;gap:.75em;" +
+    "align-items:center;justify-content:center;flex-wrap:wrap;";
+
+  const hint = document.createElement("span");
+  hint.textContent = "drag to select";
+  hint.style.cssText = "color:#999;";
+
+  const readout = document.createElement("span");
+  readout.style.cssText = "font-variant-numeric:tabular-nums;";
+
+  const toggle = document.createElement("button");
+  toggle.type = "button";
+  toggle.style.cssText =
+    "font:inherit;color:#555;background:none;border:1px solid #ccc;" +
+    "border-radius:3px;padding:0 .5em;cursor:pointer;";
+
+  const reset = document.createElement("button");
+  reset.type = "button";
+  reset.textContent = "reset";
+  reset.style.cssText = toggle.style.cssText;
+
+  const table = document.createElement("div");
+  table.style.cssText =
+    "display:none;overflow-x:auto;margin:-8px auto 12px;max-width:100%;" +
+    "font:12px/1.5 ui-monospace,SFMono-Regular,Menlo,monospace;";
+
+  bar.append(hint, readout, toggle, reset);
+  container.after(bar);
+  bar.after(table);
+
+  let open = false;
+  const render = () => {
+    const s = handle.selection();
+    readout.textContent = `${s.kept} of ${s.total} selected`;
+    // Nothing to show and nothing to reset when nothing is selected. The
+    // buttons go quiet rather than disappearing, so the line does not jump.
+    const idle = s.kept === 0 || s.kept === s.total;
+    toggle.disabled = idle;
+    reset.disabled = idle;
+    toggle.textContent = open ? "hide rows" : "show rows";
+    if (!open || idle) {
+      table.style.display = "none";
+      return;
+    }
+    const cell = (v) =>
+      `<td style="padding:.1em .6em;text-align:${typeof v === "number" ? "right" : "left"}">` +
+      `${v === null || v === undefined ? "" : String(v)}</td>`;
+    // What was left out is said out loud rather than truncated in silence.
+    const note = s.capped
+      ? `<caption style="caption-side:bottom;color:#999;text-align:center">` +
+        `${s.rows.length} of ${s.kept} shown</caption>`
+      : "";
+    table.innerHTML =
+      `<table style="margin:0 auto;border-collapse:collapse">${note}<thead><tr>` +
+      s.columns.map((c) => `<th style="padding:.1em .6em;text-align:left;` +
+        `border-bottom:1px solid #ddd;color:#555">${c}</th>`).join("") +
+      `</tr></thead><tbody>` +
+      s.rows.map((r) => `<tr>${r.map(cell).join("")}</tr>`).join("") +
+      `</tbody></table>`;
+    table.style.display = "block";
+  };
+
+  toggle.addEventListener("click", () => { open = !open; render(); });
+  reset.addEventListener("click", () => { handle.reset(); render(); });
+  render();
+  return render;
 }
 
 /**
@@ -721,7 +870,13 @@ export async function mount(target, request, options = {}) {
     // is no angle readout and no reset-the-view bar. `crosshair` says the panel
     // is the thing to drag, where `grab` says the scene is.
     if (!spatial) {
-      const handle = attachBrush(engine, container, request, options);
+      let show = () => {};
+      const handle = attachBrush(engine, container, request, {
+        ...options,
+        onSelect: () => show(),
+      });
+      if (options.controls !== false) show = addSelectionBar(container, handle);
+      show();
       container.style.cursor = "crosshair";
       container.dataset.gogInteractive = "true";
       return handle;
