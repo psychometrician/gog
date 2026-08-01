@@ -825,7 +825,7 @@ function addZoomButtons(bar, view, onChange = () => {}, handle = null) {
   bar.append(
     make("\u2212", "zoom out", () => { view.zoom(1 / 1.4); follow(); }),
     make("+", "zoom in", () => { view.zoom(1.4); follow(); }),
-    make("\u21ba", "fit", () => { view.reset(); follow(); }),
+    make("fit", "zoom out to the whole plot", () => { view.reset(); follow(); }),
   );
 }
 
@@ -930,7 +930,8 @@ function addSelectionBar(container, handle, view) {
 
   const reset = document.createElement("button");
   reset.type = "button";
-  reset.textContent = "reset";
+  reset.title = "clear the selection";
+  reset.textContent = "clear";
   reset.style.cssText = toggle.style.cssText;
 
   const table = document.createElement("div");
