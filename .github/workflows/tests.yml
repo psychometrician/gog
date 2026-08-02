@@ -32,6 +32,22 @@ jobs:
   engine:
     name: engine
     runs-on: ubuntu-latest
+    # **A compiler warning fails this job, and until now nothing could.**
+    # `cargo build` and `cargo test` both exit 0 with warnings, so a warning had
+    # no way to stop anything here — the same blind spot as a Quarto render
+    # exiting 0 on a dead link. Worse, it is invisible where the work happens:
+    # a local build is incremental, so a warning is printed once and never again
+    # until that crate recompiles. The person who reliably sees one is therefore
+    # a *user*, because r-universe and a source install compile from scratch
+    # every time. An unused `mut` reached one that way.
+    #
+    # It belongs on the job and not in `Cargo.toml`. A `[lints]` table denying
+    # warnings would ship: one new lint in one new Rust release, and every
+    # source install breaks for everyone. Denied here it fails us instead, which
+    # is the right party. `RUSTFLAGS` is part of cargo's fingerprint, so this
+    # forces one full rebuild and thereafter no cached unit can slip past it.
+    env:
+      RUSTFLAGS: "-D warnings"
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable

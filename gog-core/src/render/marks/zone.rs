@@ -599,7 +599,7 @@ impl SvgRenderer {
             let mut d = String::new();
             let mut ring: Vec<(f64, f64)> = Vec::new();
             let mut open: Option<(f64, f64)> = None;
-            let mut flush = |ring: &mut Vec<(f64, f64)>, d: &mut String| {
+            let flush = |ring: &mut Vec<(f64, f64)>, d: &mut String| {
                 if ring.len() >= 3 {
                     for (k, (x, y)) in ring.iter().enumerate() {
                         let cmd = if k == 0 { 'M' } else { 'L' };
