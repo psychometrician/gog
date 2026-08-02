@@ -447,11 +447,17 @@ export function render_svg(plot) {
 // ---------------------------------------------------------------------------
 
 // The SVG wrapped for an HTML host, sized to fit its column.
+//
+// **Whatever size the canvas is.** This matched the literal 800x600 for as long
+// as that was the only canvas, so `size()` on a plot quietly opted it out of
+// fitting. Anchored inside the opening `<svg` tag, because `[^>]` cannot cross
+// the tag's own `>` — which keeps it off the background `<rect>` carrying the
+// same two numbers a few characters later.
+const FIT = [/(<svg[^>]*) width="(\d+)" height="(\d+)"/,
+             '$1 width="$2" height="$3" style="max-width:100%;height:auto;"'];
+
 export function svg_block(svg) {
-  const sized = svg.replace(
-    'width="800" height="600"',
-    'width="800" height="600" style="max-width:100%;height:auto;"'
-  );
+  const sized = svg.replace(...FIT);
   return `<div class="gog-plot" style="text-align:center;">\n${sized}\n</div>`;
 }
 
@@ -535,10 +541,7 @@ function specIsSpatial(spec) {
  * still.
  */
 export function htmlBlock(plot) {
-  const svg = render_svg(plot).replace(
-    'width="800" height="600"',
-    'width="800" height="600" style="max-width:100%;height:auto;"'
-  );
+  const svg = render_svg(plot).replace(...FIT);
   const spec = plot.spec ?? plot;
   // Two questions, not one. The *engine* has two reasons — an angle worth
   // dragging, a bound worth moving — and both redraw. The *module* has a third,
@@ -554,15 +557,24 @@ export function htmlBlock(plot) {
     ? `, { wasm: "${assetUrls.wasm ?? dataUri(assets[0], "application/wasm")}" }`
     : "";
   // A flat plot names the smaller module and sends no data.
+  //
+  // **The script goes inside the container**, which is a layout rule rather than
+  // a style choice. Quarto's `layout-ncol` divides a chunk's output into cells by
+  // counting top-level blocks, so a `<div>` with a sibling `<script>` is two
+  // cells and two plots become four — wrapping into two rows, each plot alone at
+  // full width beside an empty cell holding only its script. One element is one
+  // cell. Nothing else cares where it sits: the container is resolved by id, the
+  // SVG is still its first element, and a redraw can only remove a module script
+  // that has already run.
   if (!needsEngine) {
     const viewUrl = assetUrls.js
       ? assetUrls.js.replace("interactive.js", "view.js")
       : dataUri(path.join(path.dirname(assets[1]), "view.js"), "text/javascript");
     const vid = "gog-" + Math.abs(hashOf(svg)).toString(36).padStart(10, "0").slice(0, 10);
     return (
-      `<div class="gog-plot" id="${vid}" style="text-align:center;">\n${svg}\n</div>\n` +
+      `<div class="gog-plot" id="${vid}" style="text-align:center;">\n${svg}\n` +
       `<script type="module">\nimport { mountView } from "${moduleSpecifier(viewUrl)}";\n` +
-      `mountView("${vid}");\n</script>\n`
+      `mountView("${vid}");\n</script>\n</div>`
     );
   }
 
@@ -571,9 +583,9 @@ export function htmlBlock(plot) {
   const request = JSON.stringify(wireRequest(plot));
 
   return (
-    `<div class="gog-plot" id="${id}" style="text-align:center;">\n${svg}\n</div>\n` +
+    `<div class="gog-plot" id="${id}" style="text-align:center;">\n${svg}\n` +
     `<script type="module">\nimport { mount } from "${jsUrl}";\n` +
-    `mount("${id}", ${request}${options});\n</script>\n`
+    `mount("${id}", ${request}${options});\n</script>\n</div>`
   );
 }
 

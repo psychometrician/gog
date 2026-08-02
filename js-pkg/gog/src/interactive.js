@@ -200,14 +200,34 @@ export function redraw(engine, container, req, options = {}) {
 
   container.innerHTML = svg;
 
-  if (clock !== null) {
-    const incoming = container.querySelector("svg");
-    if (incoming && typeof incoming.setCurrentTime === "function") {
-      try {
-        incoming.setCurrentTime(clock);
-      } catch {
-        /* a static plot has no timeline; nothing to restore */
-      }
+  const incoming = container.querySelector("svg");
+
+  // **The engine draws a fixed canvas and knows nothing about the column it
+  // lands in**, so the picture has to be told to fit — the same thing every
+  // binding does to the *static* SVG before writing it into the page. This is
+  // that instruction applied to the redrawn one, and without it a redraw
+  // silently undoes it: the element the engine hands back carries no style, so
+  // it keeps its drawn width in a column narrower than that. A flat plot is
+  // never redrawn and shrinks; a cube beside it on the same page did not, which
+  // is how one page showed two behaviors. Measured at a 1000px window, the plot
+  // ran 272px past its column.
+  //
+  // It belongs here and not in three other places. A stylesheet would fix the
+  // book and miss a notebook and a saved page, which is exactly why the inline
+  // style exists. The engine cannot carry it either: fitting a column is one
+  // host's concern and would be meaningless in a `.svg` written to disk, so
+  // Law 9 keeps it out of the IR. That leaves the browser-side swap, which is
+  // where the style is lost and the only place that sees every host.
+  if (incoming) {
+    incoming.style.maxWidth = "100%";
+    incoming.style.height = "auto";
+  }
+
+  if (clock !== null && incoming && typeof incoming.setCurrentTime === "function") {
+    try {
+      incoming.setCurrentTime(clock);
+    } catch {
+      /* a static plot has no timeline; nothing to restore */
     }
   }
 

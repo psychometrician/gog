@@ -287,15 +287,22 @@ render_svg <- function(gog) {
 # ---------------------------------------------------------------------------
 
 # Two hosts embed the same HTML, so the wrapper lives here rather than staying
-# inside whichever method wrote it first. The engine always draws an 800x600
-# canvas (Layout's defaults in render/svg.rs); the style attribute is what lets
+# inside whichever method wrote it first. The engine draws a fixed canvas and
+# knows nothing about the column it lands in; the style attribute is what lets
 # that canvas shrink into a narrow column instead of overflowing it.
+#
+# **Whatever size the canvas is.** This matched the literal `width="800"
+# height="600"` for as long as 800x600 was the only canvas, so `size()` on a plot
+# quietly opted it out of fitting — 10 plots in the manual at 620 or 420 wide,
+# each spilling past its column once the window was narrow enough to matter. The
+# match is anchored inside the opening `<svg` tag because `[^>]` cannot cross the
+# tag's own `>`, which keeps it off the background `<rect>` that carries the same
+# two numbers a few characters later.
 svg_block <- function(svg_str, gog = NULL) {
   svg_str <- sub(
-    'width="800" height="600"',
-    'width="800" height="600" style="max-width:100%;height:auto;"',
-    svg_str,
-    fixed = TRUE
+    '(<svg[^>]*) width="([0-9]+)" height="([0-9]+)"',
+    '\\1 width="\\2" height="\\3" style="max-width:100%;height:auto;"',
+    svg_str
   )
 
   # A plot in the cube is turnable wherever the page can run the engine. The
@@ -306,12 +313,25 @@ svg_block <- function(svg_str, gog = NULL) {
   # same way `play` degrades in print.
   interactive <- if (!is.null(gog)) interactive_block(gog) else ""
 
+  # **The script goes *inside* the container, and that is a layout rule rather
+  # than a style choice.** Quarto's `layout-ncol` divides a chunk's output into
+  # cells by counting top-level blocks, so a plot written as a `<div>` followed
+  # by a sibling `<script>` is two cells, not one. Two plots in a
+  # `layout-ncol: 2` chunk then become four cells and wrap into two rows: each
+  # plot alone at full width, beside an empty cell holding only its script. The
+  # pair a chapter asked to show side by side ends up stacked, and nothing
+  # fails — the render exits 0 and the page looks deliberate.
+  #
+  # One element is one cell, so nesting the script fixes it everywhere at once.
+  # Nothing else cares where it sits: `mountView` resolves its container by id,
+  # the SVG is still the container's first element, and the engine path's
+  # `innerHTML` replacement can only remove a module script that has already run.
   paste0('\n<div class="gog-plot" style="text-align:center;"',
          if (nzchar(interactive)) paste0(' id="', attr(interactive, "id"), '"') else "",
          '>\n',
-         svg_str,
-         '\n</div>\n',
-         interactive)
+         svg_str, '\n',
+         interactive,
+         '</div>\n')
 }
 
 # The browser assets: the WebAssembly engine, and the module that drives it.

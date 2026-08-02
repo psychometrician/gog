@@ -561,11 +561,26 @@ def svg_block(svg: str, plot: Any = None) -> str:
     SVG is still what is written, and it is what a reader sees in a PDF, in a
     viewer that strips JavaScript, and before the engine loads — the script only
     upgrades a picture that is already there.
+
+    **The script goes inside the container**, which is a layout rule rather than
+    a style choice. Quarto's `layout-ncol` divides a chunk's output into cells by
+    counting top-level blocks, so a `<div>` with a sibling `<script>` is two
+    cells and two plots become four — wrapping into two rows, each plot alone at
+    full width beside an empty cell holding only its script. One element is one
+    cell. Nothing else cares where it sits: the container is resolved by id, the
+    SVG is still its first element, and a redraw can only remove a module script
+    that has already run.
     """
-    svg = svg.replace(
-        'width="800" height="600"',
-        'width="800" height="600" style="max-width:100%;height:auto;"',
-        1,
+    # **Whatever size the canvas is.** This matched the literal 800x600 for as
+    # long as that was the only canvas, so `size()` on a plot quietly opted it
+    # out of fitting. Anchored inside the opening `<svg` tag, because `[^>]`
+    # cannot cross the tag's own `>` — which keeps it off the background `<rect>`
+    # carrying the same two numbers a few characters later.
+    svg = re.sub(
+        r'(<svg[^>]*) width="(\d+)" height="(\d+)"',
+        r'\1 width="\2" height="\3" style="max-width:100%;height:auto;"',
+        svg,
+        count=1,
     )
     container_id = "gog-" + uuid.uuid4().hex[:10]
     block = _interactive_block(plot, container_id) if plot is not None else ""
@@ -573,7 +588,7 @@ def svg_block(svg: str, plot: Any = None) -> str:
         return f'<div class="gog-plot" style="text-align:center;">\n{svg}\n</div>'
     return (
         f'<div class="gog-plot" id="{container_id}" style="text-align:center;">\n'
-        f"{svg}\n</div>\n{block}"
+        f"{svg}\n{block}</div>"
     )
 
 

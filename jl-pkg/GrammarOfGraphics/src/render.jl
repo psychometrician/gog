@@ -386,17 +386,28 @@ end
 A plot in the cube also gets the script that makes it turnable. The static SVG is
 still what is written, and it is what a reader sees in a PDF, in a viewer that
 strips JavaScript, and before the engine loads — the script only upgrades a
-picture that is already there."""
+picture that is already there.
+
+**The script goes inside the container**, which is a layout rule rather than a
+style choice. Quarto's `layout-ncol` divides a chunk's output into cells by
+counting top-level blocks, so a `<div>` with a sibling `<script>` is two cells
+and two plots become four — wrapping into two rows, each plot alone at full width
+beside an empty cell holding only its script. One element is one cell."""
 function svg_block(svg::AbstractString, plot = nothing)
-    sized = replace(svg, "width=\"800\" height=\"600\"" =>
-                         "width=\"800\" height=\"600\" style=\"max-width:100%;height:auto;\"",
+    # **Whatever size the canvas is.** This matched the literal 800x600 for as
+    # long as that was the only canvas, so `size()` on a plot quietly opted it
+    # out of fitting. Anchored inside the opening `<svg` tag, because `[^>]`
+    # cannot cross the tag's own `>` — which keeps it off the background `<rect>`
+    # carrying the same two numbers a few characters later.
+    sized = replace(svg, r"(<svg[^>]*) width=\"(\d+)\" height=\"(\d+)\"" =>
+                         s"\1 width=\"\2\" height=\"\3\" style=\"max-width:100%;height:auto;\"",
                     count = 1)
     id = "gog-" * randstring(['a':'z'; '0':'9'], 10)
     block = plot === nothing ? "" : interactive_block(plot, id)
     isempty(block) &&
         return "<div class=\"gog-plot\" style=\"text-align:center;\">\n" * sized * "\n</div>"
     "<div class=\"gog-plot\" id=\"" * id * "\" style=\"text-align:center;\">\n" *
-        sized * "\n</div>\n" * block
+        sized * "\n" * block * "</div>"
 end
 
 """Draw the plot and write the SVG to `path`. Returns the path."""

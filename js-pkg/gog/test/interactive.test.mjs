@@ -193,6 +193,24 @@ test("redraw is the one loop, and a refusal shows its message", async () => {
   assert.match(box.textContent, /one shape through many rows/);
 });
 
+// The engine draws a fixed canvas and knows nothing about the column it lands
+// in, so a redraw has to re-tell the picture to fit — the bindings do it to the
+// *static* SVG on the way into the page, and the swap threw that away. Nothing
+// could see it: the render exits 0 and only a plot the engine touches is
+// affected, so a flat plot shrank and a cube beside it on the same page did not.
+test("a redraw tells the new picture to fit its column", async () => {
+  const engine = await loadEngine(fs.readFileSync(WASM));
+  const svg = { style: {} };
+  const box = { innerHTML: "", textContent: "", querySelector: () => svg };
+  const out = redraw(engine, box, {
+    spec: { data: "t", layers: [{ mark: "point", encodings: { x: { field: "a" }, y: { field: "b" } }, transforms: [] }] },
+    data: { t: { floats: { a: [1, 2], b: [2, 1] } } },
+  });
+  assert.equal(out.ok, true);
+  assert.equal(svg.style.maxWidth, "100%");
+  assert.equal(svg.style.height, "auto");
+});
+
 test("a refusal mid-gesture keeps the picture, so a click cannot kill the plot", async () => {
   const engine = await loadEngine(fs.readFileSync(WASM));
   const box = { innerHTML: "", textContent: "", querySelector: () => null };
@@ -375,6 +393,7 @@ function fakePlot(viewBox = "0 0 800 600") {
     getAttribute: (k) => svg.attrs[k] ?? null,
     setAttribute: (k, v) => { svg.attrs[k] = v; },
     getBoundingClientRect: () => ({ width: 800, height: 600 }),
+    style: {},
   };
   return { svg, querySelector: () => svg };
 }
@@ -578,7 +597,10 @@ function stubContainer() {
     set innerHTML(v) { html = v; panels = panelFrom(v); },
     get innerHTML() { return html; },
     set textContent(v) { html = v; panels = []; },
-    querySelector: (sel) => (sel === "svg" ? {} : null),
+    // `style` because every real element has one, and `redraw` tells the
+    // incoming picture to fit its column through it. A double without it lets
+    // production code look wrong when it is the double that is thin.
+    querySelector: (sel) => (sel === "svg" ? { style: {} } : null),
     querySelectorAll: (sel) => (sel === "[data-gog-panel]" ? panels : []),
     addEventListener(type, fn) { listeners.set(type, fn); },
     removeEventListener(type) { listeners.delete(type); },
