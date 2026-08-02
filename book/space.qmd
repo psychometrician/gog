@@ -80,10 +80,11 @@ plot reads out the two angles while you move it. So you can find an angle by
 hand, then write it into the sentence as `space(turn = , tilt = )`. A *reset*
 button returns the plot to the view it opened with.
 
-Beside it are the two magnifiers and the frame that sit under
-[every plot in this book](first-plot.qmd#the-four-boxes-under-the-plot). They
+Beside it are the two magnifiers, the frame and the camera that sit under
+[every plot in this book](first-plot.qmd#the-five-boxes-under-the-plot). They
 mean here what they mean everywhere: look closer, look wider, return to the whole
-picture, and change nothing about what the plot says.
+picture, and save what you are looking at. The camera saves the angle you turned
+the cube to, because that angle is already drawn into the picture.
 
 The cube differs from a flat plot in two ways, and both follow from the drag
 being spoken for. There is **no hand**, because dragging turns the scene rather

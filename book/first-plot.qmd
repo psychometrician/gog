@@ -32,9 +32,9 @@ rendering it is the engine's job, not yours.
 
 ::: {.content-visible when-format="html"}
 
-## The four boxes under the plot
+## The five boxes under the plot
 
-Look under the plot above. There are four small boxes, and **every plot in this
+Look under the plot above. There are five small boxes, and **every plot in this
 book has them**. They are worth two minutes now, because you will see them on
 every page.
 
@@ -43,14 +43,22 @@ a frame, and it returns you to the whole picture. The fourth shows a hand, and i
 is a label rather than a button: it tells you that dragging moves the picture,
 once you have looked closer at part of it.
 
+The fifth is a camera, and it saves the plot as a picture file. You get what you
+are looking at, so if you have magnified one corner, the file holds that corner.
+The file is 2400 pixels wide. That is large enough for a slide, and large enough
+for a figure in a journal article. Most browsers save it to your downloads folder
+without asking where to put it. The box shows a check mark for a moment, so that
+you know the file was written.
+
 A box is dimmed when it can do nothing. A plot showing the whole of itself cannot
 show more of itself, so its frame and its hand are gray until you look closer.
+The camera is never dimmed, because there is always a picture to save.
 
-**These change how you look, never what the plot says.** Magnifying is the same
-picture seen larger. The points, the axes and the numbers are the ones the engine
-already chose, so nothing is recalculated and nothing moves. If you want the plot
-itself to cover a narrower range, that is a different thing and it is written in
-the sentence, as [`limits`](scales.qmd).
+**The first four change how you look, never what the plot says.** Magnifying is
+the same picture seen larger. The points, the axes and the numbers are the ones
+the engine already chose, so nothing is recalculated and nothing moves. If you
+want the plot itself to cover a narrower range, that is a different thing and it
+is written in the sentence, as [`limits`](scales.qmd).
 
 That division runs through the whole book. Looking is yours and it needs no
 words; what the plot *claims* is the sentence's, and every part of it can be

@@ -86,6 +86,10 @@ export function attachView(container, options = {}) {
 
   return {
     apply,
+    /// The picture itself, for the one control that wants the element rather
+    /// than the window over it. Looking closer moves the window; saving copies
+    /// what the window currently frames, so it needs the SVG.
+    svg: svgEl,
     zoomed: () => scale !== 1,
     /// Whether a further step in each direction would change anything. The bar
     /// reads these to gray a button out rather than offer one that does nothing.
@@ -114,14 +118,20 @@ export function attachView(container, options = {}) {
 }
 
 /**
- * The three buttons, appended to whichever bar the plot already has.
+ * The controls every plot gets, appended to whichever bar it already has.
  *
  * A button competes with no gesture, which is why the zoom always gets them
  * while the *drag* has to be earned: the sentence decides what a drag means, so
  * a plot that says `brush` has already given its drag away and pans with a
  * modifier instead.
+ *
+ * It was `addZoomButtons` while the zoom was all it added. The name stopped
+ * being true when the grabbing hand arrived and stopped being close when the
+ * camera did, so it now says what it does: one call, and a bar has the whole
+ * set. That matters more than tidiness here — three bars call this, and a
+ * control added to one of them by hand is how two bars stop matching.
  */
-export function addZoomButtons(bar, view, onChange = () => {}, handle = null) {
+export function addViewControls(bar, view, onChange = () => {}, handle = null) {
   // Drawn rather than typed, for the reason the selection bar's three modes are:
   // no font carries them, and the same 13px stroke keeps one bar looking like one
   // bar. `currentColor` is what lets a disabled button gray its icon with it,
@@ -145,6 +155,17 @@ export function addZoomButtons(bar, view, onChange = () => {}, handle = null) {
       `<path d="M2 5.6V2h3.6M14 5.6V2h-3.6M2 10.4V14h3.6M14 10.4V14h-3.6"/>` +
       `<rect x="5.4" y="5.4" width="5.2" height="5.2"/>`
     ),
+    // A camera: a body, the raised strip over the lens, and the lens.
+    camera: icon(
+      `<path d="M1.4 5.6h2.5l1-1.9h4.2l1 1.9h2.5a1 1 0 0 1 1 1v6a1 1 0 0 1-1 1` +
+      `H1.4a1 1 0 0 1-1-1v-6a1 1 0 0 1 1-1z"/>` +
+      `<circle cx="8" cy="9.6" r="2.5"/>`
+    ),
+    // A tick, shown for a moment after the file is written. **A download that
+    // opens no dialog needs one**, because on default browser settings the file
+    // lands in the downloads folder with no visible event at all, and a reader
+    // cannot tell that from a button that did nothing.
+    saved: icon(`<path d="M3 8.4 6.4 12 13 4.6"/>`),
   };
   const style =
     "font:inherit;color:#555;background:none;border:1px solid #ccc;" +
@@ -176,6 +197,22 @@ export function addZoomButtons(bar, view, onChange = () => {}, handle = null) {
   const out = make(ART.out, "zoom out", () => { view.zoom(1 / 1.4); follow(); });
   const into = make(ART.in, "zoom in", () => { view.zoom(1.4); follow(); });
   const fit = make(ART.fit, "show the whole plot", () => { view.reset(); follow(); });
+
+  // **The camera saves what the reader is looking at, not what the plot was.**
+  // That falls out of how looking closer works rather than needing anything:
+  // zoom and pan move the SVG's own `viewBox`, and a cube's angle is already
+  // drawn into the element, so copying the element copies the current view.
+  //
+  // It never grays. The other three can each reach a state where a press would
+  // do nothing, and say so; there is always a picture to save.
+  let savedFor = null;
+  const camera = make(ART.camera, "save as PNG", () => {
+    savePng(view.svg?.(), () => {
+      camera.innerHTML = ART.saved;
+      clearTimeout(savedFor);
+      savedFor = setTimeout(() => { camera.innerHTML = ART.camera; }, 1400);
+    });
+  });
 
   // **A button that can do nothing says so.** Offering `fit` on a plot already
   // fitted, or `\u2212` at the whole picture, is a control that answers a press with
@@ -227,9 +264,102 @@ export function addZoomButtons(bar, view, onChange = () => {}, handle = null) {
     `c-1.4 0-2.2-.5-2.9-1.4L3.2 11c-.5-.7-.3-1.4.3-1.7.5-.3 1.1-.2 1.5.3l.9 1"/>`
   );
 
-  bar.append(out, into, fit, hand);
+  // The camera sits last, after the four that change how the picture is looked
+  // at. It is the only one that produces something outside the page, so it reads
+  // as a separate act rather than a fifth way to move the window.
+  bar.append(out, into, fit, hand, camera);
   refresh();
   return refresh;
+}
+
+/**
+ * Write what is on screen to a PNG file.
+ *
+ * **Conversion, never a renderer.** This is the standing rule for anything
+ * raster here, and the reason is a scar: a second writer that chose its own
+ * ticks and palettes drifted from the first until a binned bar chart drew raw,
+ * untransformed rows. Nothing below decides anything. It hands the browser the
+ * SVG the reader is already looking at and asks for a bitmap of it, so the file
+ * cannot disagree with the plot — it is the same picture in a different
+ * container. A `.svg` on disk stays the better artifact where one is accepted,
+ * because its text stays text at any size; this is for the reader who has a
+ * browser and not the code.
+ *
+ * `scale` is fixed rather than read from the device. A journal wants 300 DPI,
+ * and 3x of an 800x600 canvas is 2400x1800, which is 8 inches wide — clear of
+ * the 7.2-inch double-column figure that is the widest common specification.
+ * Multiplying by `devicePixelRatio` instead would hand two readers different
+ * files from the same button.
+ */
+export const PNG_SCALE = 3;
+
+/**
+ * How large the file comes out, given the canvas and the multiplier.
+ *
+ * Separated from the writing because it is the one *decision* here, and the one
+ * a later edit could change without noticing what it costs. A journal asks for
+ * 300 DPI, so the number that matters is inches: 3x of an 800x600 canvas is
+ * 2400x1800, which is 8 inches wide and clears the 7.2-inch double-column figure
+ * that is the widest common specification. Drop it to 2x and the same plot is
+ * 5.3 inches, which no longer covers a full-width figure.
+ *
+ * @returns {{width: number, height: number}|null} `null` when the element does
+ *   not say how big it is, which is the one case there is nothing to compute.
+ */
+export function pngSize(svg, scale = PNG_SCALE) {
+  if (!svg) return null;
+  const w = Number(svg.getAttribute("width")) || svg.getBoundingClientRect?.().width;
+  const h = Number(svg.getAttribute("height")) || svg.getBoundingClientRect?.().height;
+  if (!w || !h) return null;
+  return { width: Math.round(w * scale), height: Math.round(h * scale) };
+}
+
+export function savePng(svg, done = () => {}, options = {}) {
+  if (!svg || typeof document === "undefined") return;
+  const size = pngSize(svg, options.scale ?? PNG_SCALE);
+  if (!size) return;
+  const { width, height } = size;
+
+  // Cloned so the plot on the page is never touched, and given the *target*
+  // size. That second part is what makes the file sharp: a browser rasterizes
+  // an SVG image at its intrinsic size, so scaling an 800-wide one up on the
+  // canvas would enlarge a small bitmap instead of drawing a large picture. The
+  // `viewBox` is left exactly as it is, which is what carries the current zoom.
+  const clone = svg.cloneNode(true);
+  clone.setAttribute("width", String(width));
+  clone.setAttribute("height", String(height));
+  clone.setAttribute("xmlns", "http://www.w3.org/2000/svg");
+
+  const source = new XMLSerializer().serializeToString(clone);
+  const svgUrl = URL.createObjectURL(
+    new Blob([source], { type: "image/svg+xml;charset=utf-8" })
+  );
+  const image = new Image();
+  image.onload = () => {
+    const canvas = document.createElement("canvas");
+    canvas.width = width;
+    canvas.height = height;
+    const ctx = canvas.getContext("2d");
+    // Every plot draws its own background first, so this only matters for one
+    // that somehow does not: a PNG with no background is transparent, and
+    // transparent reads as black in most slide software.
+    ctx.fillStyle = "#ffffff";
+    ctx.fillRect(0, 0, width, height);
+    ctx.drawImage(image, 0, 0, width, height);
+    URL.revokeObjectURL(svgUrl);
+    canvas.toBlob((blob) => {
+      if (!blob) return;
+      const href = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = href;
+      link.download = options.fileName ?? "plot.png";
+      link.click();
+      URL.revokeObjectURL(href);
+      done();
+    }, "image/png");
+  };
+  image.onerror = () => URL.revokeObjectURL(svgUrl);
+  image.src = svgUrl;
 }
 
 /**
@@ -304,7 +434,7 @@ export function mountView(target, options = {}) {
 
   const view = attachView(container, options);
   const bar = controlBar("view");
-  const refresh = addZoomButtons(bar, view);
+  const refresh = addViewControls(bar, view);
   placeBar(container, bar);
 
   // Drag pans, and it needs no button to say so. The selection chapter's rule is

@@ -25,7 +25,7 @@
  *  would jump on the first movement. */
 import {
   attachView,
-  addZoomButtons,
+  addViewControls,
   controlBar,
   placeBar,
   mountView,
@@ -1117,7 +1117,7 @@ function addSelectionBar(container, handle, view) {
   group.append(label, ...picks.map(([, b]) => b));
 
   bar.append(group, readout, toggle, reset);
-  if (view) addZoomButtons(bar, view, () => render(), handle);
+  if (view) addViewControls(bar, view, () => render(), handle);
   placeBar(container, bar);
   bar.after(table);
   table.after(pager);
@@ -1357,7 +1357,7 @@ function addControls(container, handle, view = null) {
   // returns the zoom, `reset` returns the angle. Pressing either leaves the
   // other alone, so a reader who found an angle does not lose it by zooming
   // back out.
-  if (view) addZoomButtons(bar, view);
+  if (view) addViewControls(bar, view);
   bar.append(reset);
   placeBar(container, bar);
   return show;

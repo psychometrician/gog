@@ -34,6 +34,7 @@ import {
   redraw,
   renderSpec,
 } from "../src/interactive.js";
+import { pngSize } from "../src/view.js";
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(HERE, "..", "..", "..");
@@ -209,6 +210,25 @@ test("a redraw tells the new picture to fit its column", async () => {
   assert.equal(out.ok, true);
   assert.equal(svg.style.maxWidth, "100%");
   assert.equal(svg.style.height, "auto");
+});
+
+// The camera's one decision, pinned. Everything else it does is conversion —
+// the browser rasterizes the SVG already on screen, so the file cannot disagree
+// with the plot — but *how large* is a judgment, and it is a judgment about
+// journals: 300 DPI is the usual requirement, so 2400px is 8 inches and clears
+// the 7.2-inch double-column figure. At 2x the same plot is 5.3 inches and no
+// longer covers one. That is invisible in a screenshot and would be found by a
+// reader whose figure was rejected, so it is asserted here instead.
+test("a saved plot is large enough for a journal figure", () => {
+  const at = (w, h) => pngSize({ getAttribute: (k) => ({ width: w, height: h }[k]) });
+  assert.deepEqual(at("800", "600"), { width: 2400, height: 1800 });
+  assert.equal(at("800", "600").width / 300, 8); // inches at 300 DPI
+  assert.ok(at("800", "600").width / 300 >= 7.2); // a double-column figure fits
+  // A plot given its own size scales the same way rather than being left out.
+  assert.deepEqual(at("620", "300"), { width: 1860, height: 900 });
+  // Nothing to measure is not a crash.
+  assert.equal(pngSize(null), null);
+  assert.equal(pngSize({ getAttribute: () => null }), null);
 });
 
 test("a refusal mid-gesture keeps the picture, so a click cannot kill the plot", async () => {
