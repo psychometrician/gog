@@ -553,6 +553,19 @@ export function htmlBlock(plot) {
   const options = needsEngine
     ? `, { wasm: "${assetUrls.wasm ?? dataUri(assets[0], "application/wasm")}" }`
     : "";
+  // A flat plot names the smaller module and sends no data.
+  if (!needsEngine) {
+    const viewUrl = assetUrls.js
+      ? assetUrls.js.replace("interactive.js", "view.js")
+      : dataUri(path.join(path.dirname(assets[1]), "view.js"), "text/javascript");
+    const vid = "gog-" + Math.abs(hashOf(svg)).toString(36).padStart(10, "0").slice(0, 10);
+    return (
+      `<div class="gog-plot" id="${vid}" style="text-align:center;">\n${svg}\n</div>\n` +
+      `<script type="module">\nimport { mountView } from "${moduleSpecifier(viewUrl)}";\n` +
+      `mountView("${vid}");\n</script>\n`
+    );
+  }
+
   const jsUrl = moduleSpecifier(assetUrls.js ?? dataUri(assets[1], "text/javascript"));
   const id = "gog-" + Math.abs(hashOf(svg)).toString(36).padStart(10, "0").slice(0, 10);
   const request = JSON.stringify(wireRequest(plot));

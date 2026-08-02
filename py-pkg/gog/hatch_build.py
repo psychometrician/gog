@@ -57,13 +57,22 @@ def _browser_engine(root: str):
         root, "..", "..", "gog-wasm", "target", "wasm32-unknown-unknown",
         "release", "gog_wasm.wasm",
     )
-    js = os.path.join(root, "..", "..", "js-pkg", "gog", "src", "interactive.js")
+    src = os.path.join(root, "..", "..", "js-pkg", "gog", "src")
+    js = os.path.join(src, "interactive.js")
+    view = os.path.join(src, "view.js")
+    out = []
+    # **The view module ships on its own terms**, because it needs no engine: it
+    # carries zoom, pan and fit for every plot, and pairing it with the wasm would
+    # mean a wheel built without WebAssembly shipped plots that cannot be looked
+    # at closely.
+    if os.path.isfile(view):
+        out.append((os.path.abspath(view), "gog/_www/view.js"))
     if os.path.isfile(wasm) and os.path.isfile(js):
-        return [
+        out += [
             (os.path.abspath(wasm), "gog/_www/gog.wasm"),
             (os.path.abspath(js), "gog/_www/interactive.js"),
         ]
-    return []
+    return out
 
 
 def _platform_tag() -> str:

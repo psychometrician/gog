@@ -77,6 +77,9 @@ cp -R "${WORKSPACE}/gog-wasm" "${DEST}/gog-wasm"
 # in the JavaScript package because that is where a browser module belongs; it is
 # staged beside the crate it partners so `configure` can find both in one place.
 cp "${WORKSPACE}/js-pkg/gog/src/interactive.js" "${DEST}/interactive.js"
+# The view module travels beside it: every flat plot needs it and it needs no
+# engine, so a tarball without it ships plots that cannot be looked at closely.
+cp "${WORKSPACE}/js-pkg/gog/src/view.js" "${DEST}/view.js"
 
 # A development checkout may have a warm `target/` inside a crate directory. It is
 # hundreds of megabytes and rebuilt anyway, so it must not travel.

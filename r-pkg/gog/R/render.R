@@ -404,6 +404,29 @@ interactive_block <- function(gog) {
   assets <- find_wasm_assets()
   if (is.null(assets)) return("")
 
+  # **A flat plot names the smaller module and sends no data.** `mountView` takes
+  # a container and stops — looking closer needs neither the spec nor the table —
+  # so the block is one line beside an 8 KB module, where naming `interactive.js`
+  # inlined 88 KB and the whole table again. `view.js` sits beside its sibling, so
+  # the path and the URL are both derived rather than searched for a second time.
+  if (!needs_engine) {
+    view_url <- getOption("gog.js_url", NA_character_)
+    view_url <- if (is.na(view_url)) {
+      data_uri(file.path(dirname(assets$js), "view.js"), "text/javascript")
+    } else {
+      sub("interactive\\.js$", "view.js", view_url)
+    }
+    id <- paste0("gog-", paste(sample(c(letters, 0:9), 10, replace = TRUE), collapse = ""))
+    block <- paste0(
+      '<script type="module">\n',
+      'import { mountView } from "', module_specifier(view_url), '";\n',
+      'mountView("', id, '");\n',
+      '</script>\n'
+    )
+    attr(block, "id") <- id
+    return(block)
+  }
+
   js_url <- module_specifier(getOption("gog.js_url", data_uri(assets$js, "text/javascript")))
   # The engine is named only when something will ask for it. `mount` fetches it
   # lazily, so a flat plot that never reaches that branch never pays — but a data

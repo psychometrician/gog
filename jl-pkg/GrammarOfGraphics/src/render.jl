@@ -354,6 +354,15 @@ function interactive_block(plot::Union{Plot,Page}, id::AbstractString)
     assets === nothing && return ""
     wasm_path, js_path = assets
 
+    # A flat plot names the smaller module and sends no data.
+    if !engine
+        view_url = isempty(JS_URL[]) ?
+            data_uri(joinpath(dirname(js_path), "view.js"), "text/javascript") :
+            replace(JS_URL[], "interactive.js" => "view.js")
+        return "\n<script type=\"module\">\nimport { mountView } from \"" *
+               module_specifier(view_url) * "\";\nmountView(\"" * id * "\");\n</script>\n"
+    end
+
     js_url = module_specifier(isempty(JS_URL[]) ?
         data_uri(js_path, "text/javascript") : JS_URL[])
     # Named only when something will ask for it: a data URI is paid at page size

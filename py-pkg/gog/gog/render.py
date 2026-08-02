@@ -520,6 +520,23 @@ def _interactive_block(plot: Any, container_id: str) -> str:
         return ""
     wasm_path, js_path = assets
 
+    # A flat plot names the smaller module and sends no data: `mountView` takes a
+    # container and stops, so the block is one line beside an 8 KB module where
+    # naming `interactive.js` inlined 88 KB and the whole table again.
+    if not needs_engine:
+        view_url = (
+            JS_URL.replace("interactive.js", "view.js")
+            if JS_URL
+            else _data_uri(os.path.join(os.path.dirname(js_path), "view.js"),
+                           "text/javascript")
+        )
+        return (
+            '\n<script type="module">\n'
+            f'import {{ mountView }} from "{_module_specifier(view_url)}";\n'
+            f'mountView("{container_id}");\n'
+            "</script>\n"
+        )
+
     js_url = _module_specifier(JS_URL or _data_uri(js_path, "text/javascript"))
     # Named only when something will ask for it: a data URI is paid at page size
     # rather than at fetch time, so it must not be written in at all otherwise.

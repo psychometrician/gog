@@ -33,6 +33,9 @@ project:
     # image it always was.
     - gog.wasm
     - interactive.js
+    # The view module: zoom, pan and fit for every plot. Listed beside the
+    # other two and staged without them, because it asks the engine nothing.
+    - view.js
 
 book:
   title: "GOG: A Grammar of Graphics"

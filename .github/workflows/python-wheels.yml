@@ -131,7 +131,7 @@ jobs:
           import glob, sys, zipfile
           wheel = sorted(glob.glob("dist/*.whl"))[-1]
           names = zipfile.ZipFile(wheel).namelist()
-          for want in ("gog/_www/gog.wasm", "gog/_www/interactive.js"):
+          for want in ("gog/_www/gog.wasm", "gog/_www/interactive.js", "gog/_www/view.js"):
               if want not in names:
                   print(f"::error::{wheel} has no {want} - 3-D plots would not turn")
                   sys.exit(1)

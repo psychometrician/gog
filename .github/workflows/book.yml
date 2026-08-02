@@ -407,6 +407,10 @@ jobs:
             || { echo "::error::_book/gog.wasm is missing - 3-D plots will not turn"; exit 1; }
           test -f _book/interactive.js \
             || { echo "::error::_book/interactive.js is missing - 3-D plots will not turn"; exit 1; }
+          # Every plot needs this one, not only the cubes: it carries zoom, pan
+          # and fit, and it is staged without the engine because it needs none.
+          test -f _book/view.js \
+            || { echo "::error::_book/view.js is missing - no plot can be zoomed"; exit 1; }
 
           # 2. The chapters actually asked for it. If `R/setup.R` could not find
           #    the engine it reports the absence and renders static cubes, which

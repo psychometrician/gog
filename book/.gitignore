@@ -77,3 +77,4 @@
 # where a stray 823 KB binary would simply be committed.
 /gog.wasm
 /interactive.js
+/view.js

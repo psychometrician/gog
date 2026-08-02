@@ -199,6 +199,20 @@ echo "* gog: bundled the engine from ${FOUND}"
 WASM_SRC="${WORKSPACE}/gog-wasm/target/wasm32-unknown-unknown/release/gog_wasm.wasm"
 JS_SRC="${WORKSPACE}/js-pkg/gog/src/interactive.js"
 WWW="inst/www"
+VIEW_SRC="${WORKSPACE}/js-pkg/gog/src/view.js"
+STAGED_VIEW="${STAGED}/view.js"
+
+# **The view module is staged before any of this, and on its own terms.** It
+# carries zoom, pan and fit for *every* plot and it asks the engine nothing, so
+# gating it on a WebAssembly build would leave every flat plot without controls
+# to protect the few that draw a cube. Nothing below can fail in a way that
+# should cost a reader the ability to look closer.
+mkdir -p "${WWW}"
+if [ -f "${VIEW_SRC}" ]; then
+  cp "${VIEW_SRC}" "${WWW}/view.js"
+elif [ -f "${STAGED_VIEW}" ]; then
+  cp "${STAGED_VIEW}" "${WWW}/view.js"
+fi
 
 if [ -f "${WWW}/gog.wasm" ] && [ -f "${WWW}/interactive.js" ] && [ ! -f "${WORKSPACE}/Cargo.toml" ]; then
   # A release tarball CI already staged. Same test as the engine above: a

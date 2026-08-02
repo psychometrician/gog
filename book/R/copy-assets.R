@@ -21,6 +21,7 @@ root <- normalizePath(file.path(getwd(), ".."), mustWork = FALSE)
 wasm <- file.path(root, "gog-wasm", "target", "wasm32-unknown-unknown",
                   "release", "gog_wasm.wasm")
 js   <- file.path(root, "js-pkg", "gog", "src", "interactive.js")
+view <- file.path(root, "js-pkg", "gog", "src", "view.js")
 
 # Copy only when the destination is actually different. `overwrite = TRUE` alone
 # rewrites the file every time, which gives it a new modification time even when
@@ -41,19 +42,32 @@ stage <- function(from, to) {
   TRUE
 }
 
-if (file.exists(wasm) && file.exists(js)) {
-  copied <- c(stage(wasm, file.path(getwd(), "gog.wasm")),
-              stage(js,   file.path(getwd(), "interactive.js")))
-  if (any(copied)) {
+# **The two modules are staged apart from the engine, and that split is the
+# point.** `view.js` gives every plot its zoom, its pan and its fit, and it asks
+# the engine nothing — so gating it on a WebAssembly build that has not happened
+# would leave 587 plots without controls to protect nine that need a cube. This
+# used to be one `if` over all three, which meant a checkout with no engine staged
+# no JavaScript either.
+copied <- c(
+  if (file.exists(view)) stage(view, file.path(getwd(), "view.js")) else FALSE,
+  if (file.exists(js))   stage(js,   file.path(getwd(), "interactive.js")) else FALSE
+)
+if (!file.exists(view) || !file.exists(js)) {
+  cat("gog: browser modules missing from js-pkg/gog/src - plots will be still.\n")
+} else if (any(copied)) {
+  cat("gog: browser modules staged for the render\n")
+}
+
+if (file.exists(wasm)) {
+  if (stage(wasm, file.path(getwd(), "gog.wasm"))) {
     cat("gog: browser engine staged for the render\n")
-  } else {
-    cat("gog: browser engine already staged, nothing copied\n")
   }
 } else {
   # Not an error. The engine is built by a separate cargo invocation from the one
   # that builds `gog-cli`, so a checkout that has not run it renders the whole
   # book correctly with still cubes. Said out loud because a silently static book
-  # is exactly what would otherwise go unnoticed.
+  # is exactly what would otherwise go unnoticed. Zoom is unaffected: it never
+  # loads this.
   cat("gog: no WebAssembly engine built - 3-D plots will render static.\n",
       "  cargo build --release --target wasm32-unknown-unknown",
       " --manifest-path gog-wasm/Cargo.toml\n", sep = "")
