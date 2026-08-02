@@ -66,7 +66,7 @@ jl_preamble <- function() {
   paste0(
     "ENV[\"GOG_CLI_PATH\"] = ", jl_string(jl_cli), "\n",
     "using GrammarOfGraphics\n",
-    "using GrammarOfGraphics: bin, count, sum, min, max, range, size, step, stack\n",
+    "using GrammarOfGraphics: bin, count, sum, min, max, range, size, step, stack, map\n",
     "include(", jl_string(jl_data), ")\n"
   )
 }

@@ -6,7 +6,7 @@ One graphics engine written in Rust, spoken here in Julia. A plot is a
 
 ```julia
 using GrammarOfGraphics
-using GrammarOfGraphics: bin, count, sum, min, max, range, size, step, stack
+using GrammarOfGraphics: bin, count, sum, min, max, range, size, step, stack, map
 
 gm = (gdp = [1000.0, 2000.0, 3000.0], life = [60.0, 70.0, 80.0])
 render_svg(data(gm) + point + x(:gdp) + y(:life))

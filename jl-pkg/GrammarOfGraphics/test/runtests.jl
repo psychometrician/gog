@@ -14,7 +14,7 @@
 using Test
 using Dates
 using GrammarOfGraphics
-using GrammarOfGraphics: bin, count, sum, min, max, range, size, step, stack
+using GrammarOfGraphics: bin, count, sum, min, max, range, size, step, stack, map
 
 const df = Dict("x" => [1.0, 2.0, 3.0, 4.0, 5.0],
                 "y" => [2.5, 3.1, 1.8, 4.0, 3.5],

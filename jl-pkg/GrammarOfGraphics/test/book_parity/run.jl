@@ -22,7 +22,7 @@ using JSON
 using SHA
 using Dates
 using GrammarOfGraphics
-using GrammarOfGraphics: bin, count, sum, min, max, range, size, step, stack
+using GrammarOfGraphics: bin, count, sum, min, max, range, size, step, stack, map
 
 const HERE = @__DIR__
 const ROOT = abspath(joinpath(HERE, "..", "..", "..", ".."))
@@ -82,7 +82,7 @@ function evaluate(source::AbstractString, tables::Dict{String,Any})
     # The nine kernel words Base also exports. Without this the sentence would
     # die on an ambiguity that is Julia's, not the grammar's.
     Core.eval(sandbox, :(using GrammarOfGraphics: bin, count, sum, min, max,
-                                                  range, size, step, stack))
+                                                  range, size, step, stack, map))
     for (name, table) in tables
         Core.eval(sandbox, Expr(:(=), Symbol(name), table))
     end

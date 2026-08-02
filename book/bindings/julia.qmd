@@ -94,12 +94,12 @@ And so does a transform, with `*` binding tighter than `+`:
 jl_plot("data(gapminder_2007) + bar * mean + x(:continent) + y(:life)")
 ```
 
-## Nine words need naming twice
+## Ten words need naming twice
 
 This is Julia's one real wrinkle, and every Julia programmer has met it before.
-Nine of the fifty-one kernel words are also names in `Base` (`bin`, `count`, `sum`,
-`min`, `max`, `range`, `size`, `step`, `stack`), and Julia will not silently pick
-a winner between two modules that export the same name. Using one bare gives an
+Ten of the fifty-one kernel words are also names in `Base` (`bin`, `count`, `sum`,
+`min`, `max`, `range`, `size`, `step`, `stack`, `map`), and Julia will not silently
+pick a winner between two modules that export the same name. Using one bare gives an
 `UndefVarError` with a hint rather than the wrong function, which is the good
 outcome, but it does mean a second import line:
 
@@ -113,7 +113,7 @@ it is worth seeing in full:
 
 ```julia
 using GrammarOfGraphics
-using GrammarOfGraphics: bin, count, sum, min, max, range, size, step, stack
+using GrammarOfGraphics: bin, count, sum, min, max, range, size, step, stack, map
 ```
 
 `Base.sum` is still there, as the second line of output shows. This is the third
