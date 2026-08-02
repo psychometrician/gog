@@ -128,6 +128,16 @@ impl SvgRenderer {
         // scattered on a circle — where a level set really is a ring with a hole and
         // this fills its middle. Recorded in §5 rather than guarded against, because
         // the guard is the polygon-with-holes geometry the grammar has no mark for.
+        // **The choropleth**, and it is asked before the mesh questions because it
+        // answers them differently: a boundary is neither a cut nor a slot, it is
+        // an extent the data drew. `group` is what says which rows are one region,
+        // and `legality` has already refused this binding anywhere a boundary
+        // cannot be read — so reaching here means the sides really are a coastline.
+        if let Some(g) = layer.encodings.get(&Channel::Group).map(|d| d.field.clone()) {
+            self.write_zone_regions(
+                svg, layer, df, l, xs, ys, x_field, y_field, &g, color_map, ramp, clip, polar);
+            return;
+        }
         if let Some(rings) = cut.then(|| df.float_col(crate::transform::FIELD_RING)).flatten() {
             self.write_zone_bands(svg, layer, df, l, xs, ys, x_field, y_field, rings, ramp, clip, polar);
             return;
@@ -508,6 +518,141 @@ impl SvgRenderer {
             if points.contains("NaN") || points.contains("inf") { continue; }
             writeln!(svg,
                 r##"    <polygon points="{points}" fill="{fill}" fill-opacity="{opacity:.3}" {edge}/>"##
+            ).unwrap();
+        }
+
+        writeln!(svg, "  </g>").unwrap();
+    }
+
+    /// One filled region per `group`, its sides supplied by a **boundary** — the
+    /// choropleth.
+    ///
+    /// This is a zone's fifth source of sides, beside a category's slot, `bounds`,
+    /// `bin` and `density`, and it is the one that arrives as *many rows, one
+    /// shape*. Rectangularity was never this mark's identity; the extent
+    /// description was, and a coastline is an extent description a pair per axis
+    /// cannot write down.
+    ///
+    /// **Rings are split at closure, and holes cost no vocabulary.** A boundary
+    /// closes each ring on the vertex it started from, so a region's rows divide
+    /// into rings without a second grouping column to say where one ends. Every
+    /// ring of one region then goes into a single `<path>` under
+    /// `fill-rule="evenodd"`, which is what makes an interior ring a **hole**
+    /// rather than a patch painted over its container: Lesotho inside South
+    /// Africa comes out empty for South Africa's own fill to be absent from, and
+    /// Lesotho's own region fills it, whichever order the two are drawn in.
+    /// Draw-order-dependent overpainting is exactly what this avoids, and it is
+    /// why the rings are gathered rather than emitted one polygon at a time.
+    ///
+    /// `evenodd` is chosen *here*, in the renderer, and never encoded upstream:
+    /// the IR says which rings belong to one region, and which fill rule expresses
+    /// that is one backend's mechanism (Law 9), the same footing as `path`'s
+    /// arrowhead being an explicit polygon rather than an SVG `<marker>`.
+    #[allow(clippy::too_many_arguments)]
+    fn write_zone_regions(
+        &self, svg: &mut String, layer: &Layer, df: &DataFrame,
+        l: &Layout, xs: (f64, f64), ys: (f64, f64),
+        x_field: &str, y_field: &str,
+        group_field: &str,
+        color_map: &HashMap<String, String>,
+        ramp: &[String],
+        clip: &str,
+        polar: Option<&Polar>,
+    ) {
+        let (Some(vx), Some(vy)) = (df.float_col(x_field), df.float_col(y_field)) else { return };
+        let Some(groups) = df.str_col(group_field) else { return };
+        let n = vx.len().min(vy.len()).min(groups.len());
+        if n < 3 { return; }
+
+        let st = &layer.style;
+        let set_color = st.color.as_deref().map(esc);
+        // A region **is** the data here, the way a heatmap's cells are, so it is
+        // opaque: there is nothing behind it to see through, and washing the ramp
+        // out would only make the value harder to read.
+        let opacity = st.opacity.unwrap_or(1.0);
+        let edge = border_edge(st);
+
+        let color_field = layer.encodings.get(&Channel::Color).map(|d| d.field.as_str());
+        let color_vals = color_field.and_then(|f| df.str_col(f));
+        let color_nums = color_field.and_then(|f| df.float_col(f));
+        let color_scale = match color_nums {
+            Some(c) => scale::ChannelScale::of(c, layer.encodings.get(&Channel::Color)),
+            None => scale::ChannelScale::unbound(),
+        };
+        let stops: Vec<&str> = ramp.iter().map(String::as_str).collect();
+
+        writeln!(svg, r##"  <g clip-path="url(#{clip})">"##).unwrap();
+
+        // A region is a run of one group value. Runs rather than a grouping, for
+        // `write_zone_bands`' reason: a boundary lists a region's vertices
+        // consecutively, so a run can never straddle two regions.
+        let mut start = 0usize;
+        for i in 0..=n {
+            let ends = i == n || (i > start && groups[i] != groups[start]);
+            if !ends {
+                continue;
+            }
+            let (from, to) = (start, i);
+            start = i;
+
+            // Split this region's vertices into rings at closure, and place each.
+            let mut d = String::new();
+            let mut ring: Vec<(f64, f64)> = Vec::new();
+            let mut open: Option<(f64, f64)> = None;
+            let mut flush = |ring: &mut Vec<(f64, f64)>, d: &mut String| {
+                if ring.len() >= 3 {
+                    for (k, (x, y)) in ring.iter().enumerate() {
+                        let cmd = if k == 0 { 'M' } else { 'L' };
+                        write!(d, "{cmd}{x:.2},{y:.2} ").unwrap();
+                    }
+                    d.push_str("Z ");
+                }
+                ring.clear();
+            };
+            for r in from..to {
+                if !(vx[r].is_finite() && vy[r].is_finite()) {
+                    continue;
+                }
+                let here = (vx[r], vy[r]);
+                ring.push(super::place(l, polar, here.0, here.1, xs, ys));
+                match open {
+                    None => open = Some(here),
+                    // The closing vertex repeats the opening one, which is what
+                    // ends the ring. It is kept in the path so the fill closes on
+                    // the vertex the data gave rather than on one SVG inferred.
+                    Some(first) if ring.len() > 2 && here == first => {
+                        flush(&mut ring, &mut d);
+                        open = None;
+                    }
+                    Some(_) => {}
+                }
+            }
+            // A boundary whose last ring never closed. Drawn rather than dropped —
+            // `legality` has already reported it, and showing the shape a reader
+            // described is better than showing them nothing.
+            flush(&mut ring, &mut d);
+            if d.is_empty() || d.contains("NaN") || d.contains("inf") {
+                continue;
+            }
+
+            let fill = match (&set_color, &color_vals, &color_nums) {
+                (Some(c), _, _) => c.clone(),
+                (None, Some(cv), _) => {
+                    let key = cv.get(from).map(String::as_str).unwrap_or("");
+                    color_map
+                        .get(key)
+                        .cloned()
+                        .unwrap_or_else(|| PALETTE_GOG[0].to_string())
+                }
+                (None, None, Some(nums)) => {
+                    let f = color_scale.fraction(nums.get(from).copied().unwrap_or(f64::NAN));
+                    ramp_at(&stops, f)
+                }
+                _ => PALETTE_GOG[0].to_string(),
+            };
+            writeln!(svg,
+                r##"    <path d="{}" fill-rule="evenodd" fill="{fill}" fill-opacity="{opacity:.3}" {edge}/>"##,
+                d.trim_end()
             ).unwrap();
         }
 

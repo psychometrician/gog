@@ -4193,6 +4193,78 @@ mod tests {
         }
     }
 
+    /// Two regions. `big` is a square with a smaller square inside it as a second
+    /// ring — the Lesotho case — and `small` is that inner square as a region of
+    /// its own. Every ring repeats its first vertex last, which is what divides a
+    /// region's rows into rings.
+    fn enclave() -> HashMap<String, DataFrame> {
+        let ring = |x0: f64, y0: f64, x1: f64, y1: f64| {
+            vec![(x0, y0), (x1, y0), (x1, y1), (x0, y1), (x0, y0)]
+        };
+        let mut pts = ring(0.0, 0.0, 10.0, 10.0);
+        pts.extend(ring(4.0, 4.0, 6.0, 6.0));
+        let n_big = pts.len();
+        pts.extend(ring(4.0, 4.0, 6.0, 6.0));
+        let df = DataFrame::new()
+            .with_float("lon", pts.iter().map(|p| p.0).collect())
+            .with_float("lat", pts.iter().map(|p| p.1).collect())
+            .with_str(
+                "region",
+                (0..pts.len())
+                    .map(|i| if i < n_big { "big".to_string() } else { "small".to_string() })
+                    .collect(),
+            );
+        let mut m = HashMap::new();
+        m.insert("t".to_string(), df);
+        m
+    }
+
+    fn choropleth() -> PlotSpec {
+        PlotSpec::new()
+            .data("t")
+            .x("lon")
+            .y("lat")
+            .coord(CoordSpace::Map(crate::ir::MapView::default()))
+            .layer(
+                Layer::new(Mark::Zone)
+                    .encode(Channel::Group, "region")
+                    .encode(Channel::Color, "region"),
+            )
+    }
+
+    /// **A region is one path, however many rings it has**, and the rings are found
+    /// by closure rather than by a second grouping column. Two regions here, three
+    /// rings between them, so two paths and three subpaths.
+    #[test]
+    fn a_boundary_becomes_one_filled_path_per_region() {
+        let svg = SvgRenderer::default().render(&choropleth(), &enclave());
+        assert_eq!(svg.matches("<path d=\"M").count(), 2, "one path per region: {svg}");
+        // `M` starts a subpath and `Z` closes it: two rings in `big`, one in `small`.
+        let region_paths: Vec<&str> = svg.split("<path d=\"").skip(1).collect();
+        let subpaths: usize = region_paths.iter().map(|p| p.split('"').next().unwrap_or("").matches('M').count()).sum();
+        assert_eq!(subpaths, 3, "three rings across two regions");
+    }
+
+    /// **The hole is what even-odd buys**, and it is the case naive per-ring filling
+    /// gets wrong: the enclave would be painted over by whichever region drew last.
+    /// With both of `big`'s rings in one path under `evenodd`, the middle is empty
+    /// for `small` to fill with its own color, whatever the draw order.
+    #[test]
+    fn an_inner_ring_is_a_hole_rather_than_a_patch_painted_over() {
+        let svg = SvgRenderer::default().render(&choropleth(), &enclave());
+        assert!(svg.contains(r#"fill-rule="evenodd""#), "no even-odd rule: {svg}");
+        // The two regions carry different fills, so the enclave is readable as its
+        // own value rather than as a smudge on its container.
+        let fills: Vec<&str> = svg
+            .split("<path d=\"")
+            .skip(1)
+            .filter_map(|p| p.split("fill=\"").nth(1))
+            .filter_map(|p| p.split('"').next())
+            .collect();
+        assert_eq!(fills.len(), 2);
+        assert_ne!(fills[0], fills[1], "the enclave took its container's color");
+    }
+
     /// **A plot that names no brush carries none of the machinery.** Neither the
     /// dimmed group nor the panel metadata may appear, because either one would
     /// change the bytes of every plot in the book at once.

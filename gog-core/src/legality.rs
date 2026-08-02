@@ -547,7 +547,22 @@ pub fn rule_for(mark: &Mark, channel: &Channel) -> Rule {
             Size => CANNOT,      // the extent is the bounds; there is no size
             Shape => CANNOT,     // a rectangle has no glyph
             Pattern => rule(Can, Discrete, Some(Discrete)).settable(), // one hatch per zone
-            Group => CANNOT,     // each row is its own rectangle
+            // **The boundary-supplied extent, and the choropleth with it.** This
+            // read `CANNOT — each row is its own rectangle`, which was true of
+            // every source of sides this mark had: a category's slot, `bounds`,
+            // `bin` and `density` all describe one row's rectangle. A **boundary**
+            // is the fifth, and it is the first that arrives as *many rows, one
+            // shape*, so it needs a word for which rows are one region — which is
+            // what `group` has always meant, split into one series per category
+            // without encoding it. A `line` gets one polyline per category and a
+            // zone gets one filled region; the channel did not change.
+            //
+            // Only a boundary can use it, so `check_zone_group` refuses it wherever
+            // the sides come from one of the other four. That refusal is the reason
+            // this cell can be `Can` without Law 2 being bent: the rule table says
+            // the pair is legal, and the sentence that cannot read a boundary says
+            // so itself, rather than the table quietly meaning two things.
+            Group => rule(Can, Discrete, Some(Discrete)),
             Label => CANNOT,     // no label channel outside `text`
             Z => rule(Can, Either, None),
             Play => rule(Can, Either, Some(Either)), // a frame is a subset of rows
@@ -1487,7 +1502,11 @@ pub fn mark_draws_in_space(mark: &Mark, space: SpaceKind) -> bool {
         // queue. The measure moves to a refining channel instead: `point + size(v)`
         // is the proportional-symbol map, which is what cartography does with a
         // quantity once both positions are gone.
-        SpaceKind::Map => matches!(mark, Mark::Point | Mark::Path | Mark::Text | Mark::Rule),
+        // `zone` joined the four on 2026-08-01 and is the **choropleth**: the region
+        // mark, with its sides supplied by a boundary instead of by a pair per axis.
+        SpaceKind::Map => {
+            matches!(mark, Mark::Point | Mark::Path | Mark::Text | Mark::Rule | Mark::Zone)
+        }
         // Designed vocabulary, no renderer: the empty column is the honest edge
         // of the engine, and it is in the grid so that edge is visible.
         SpaceKind::Globe => false,
@@ -2779,6 +2798,14 @@ fn check_surface(
 ///   slot default was never a request to override.
 fn check_zone_extent(out: &mut Vec<Diagnostic>, spec: &PlotSpec, df: &DataFrame, layer: &Layer) {
     if layer.mark != Mark::Zone {
+        return;
+    }
+    // **A boundary is the fifth source of sides**, and this function asks about the
+    // other four. `group` names the rows that form one region, so a zone carrying
+    // it has an extent — just not one written as a pair per axis. Answered here
+    // rather than left to fall through, because the message below lists the four
+    // and would tell a reader with a coastline to go and find a rectangle.
+    if layer.encodings.contains_key(&Channel::Group) {
         return;
     }
     // A tallying transform means the cells were *meant* to be slots. If the axes are
@@ -4951,6 +4978,7 @@ pub fn check(spec: &PlotSpec, data: &HashMap<String, DataFrame>) -> Vec<Diagnost
     check_space(&mut out, spec);
     check_polar(&mut out, spec);
     check_order(&mut out, spec, data);
+    check_zone_group(&mut out, spec, data);
     check_map(&mut out, spec, data);
     check_nest(&mut out, spec, data);
     check_theme(&mut out, spec);
@@ -5213,7 +5241,24 @@ fn check_coord(out: &mut Vec<Diagnostic>, spec: &PlotSpec) {
 /// question asked from two directions: `group` splits an element that spans many
 /// rows, so a mark that refuses `group` is exactly a mark whose rows are already
 /// separate elements.
+///
+/// **`zone` is the one mark where the two questions come apart** (2026-08-01), and
+/// the derivation would have answered the wrong one. Every source of a zone's
+/// sides used to describe a single row's rectangle — a category's slot, `bounds`,
+/// `bin`, `density` — so refusing `group` was a faithful proxy. A **boundary** is
+/// the fifth, it arrives as many rows per shape, and it needs `group` to say which
+/// rows those are. Letting the derivation follow that would have quietly made the
+/// heatmap cell, the tile and the waterfall step unbrushable, none of which
+/// changed: they are still one row each.
+///
+/// So the answer is pinned here rather than derived, and the open case is named
+/// rather than left implicit: **brushing a choropleth** would select part of a
+/// region's outline, which is not something a reader can mean. It is unreachable
+/// by accident, a boundary being read only in `map()`, and it is not yet refused.
 pub fn mark_takes_selection(mark: &Mark) -> bool {
+    if *mark == Mark::Zone {
+        return true;
+    }
     rule_for(mark, &Channel::Group).obligation == Obligation::Cannot
 }
 
@@ -6526,6 +6571,98 @@ fn check_order(out: &mut Vec<Diagnostic>, spec: &PlotSpec, data: &HashMap<String
 // A space owes its refusals on the day it draws, not afterwards.
 // ---------------------------------------------------------------------------
 
+/// `group` on a `zone` says *these rows are one region*, which only a boundary
+/// can mean. Every other source of a zone's sides — a category's slot, `bounds`,
+/// `bin`, `density` — describes **one row's** rectangle, so there is nothing for a
+/// grouping to gather and accepting it would be accepting a word that changes
+/// nothing (§12).
+///
+/// This is what lets the rule table say `Can` for the pair without Law 2 being
+/// bent: the table states the pair is legal, and the sentence that cannot read a
+/// boundary refuses in its own words rather than the table quietly meaning two
+/// different things in two places.
+fn check_zone_group(out: &mut Vec<Diagnostic>, spec: &PlotSpec, data: &HashMap<String, DataFrame>) {
+    let in_map = matches!(spec.coord, CoordSpace::Map(_));
+    for layer in &spec.layers {
+        if layer.mark != Mark::Zone {
+            continue;
+        }
+        let group = layer.encodings.get(&Channel::Group).map(|d| d.field.as_str());
+        match (in_map, group) {
+            // A boundary with nothing to say which rows belong to which region.
+            // Refused rather than guessed at: one region per table would draw the
+            // whole world as a single shape, which looks like a plot and is not one.
+            (true, None) => out.push(Diagnostic {
+                kind: DiagnosticKind::Illegal,
+                message: "gog: a `zone` on a map is a region bounded by a coastline, and \
+                          nothing here says which rows are one region — a boundary arrives as \
+                          many rows per shape, unlike every other zone, whose sides are its \
+                          own row's. Add `group(<column>)` naming the region each vertex \
+                          belongs to."
+                    .to_string(),
+            }),
+            (false, Some(g)) => out.push(Diagnostic {
+                kind: DiagnosticKind::Illegal,
+                message: format!(
+                    "gog: `group({g})` gathers many rows into one region, and a `zone` here \
+                     takes its sides from its own row — a category's slot, `bounds`, `bin` or \
+                     `density`. Drop `group({g})`, or add `map()` if `{g}` names regions on a \
+                     boundary."
+                ),
+            }),
+            // **A ring that never closes.** A boundary closes each ring on the vertex
+            // it started from, and that closure is what divides a region's rows into
+            // rings — so an unclosed one silently merges two shapes into a shape that
+            // is neither. Reported rather than drawn quietly, and reported rather than
+            // dropped, since the region is still mostly right.
+            (true, Some(g)) => {
+                let Some(df) = layer.data.as_ref().or(spec.data.as_ref()).and_then(|n| data.get(n))
+                else { continue };
+                let (Some(xf), Some(yf)) = (spec.axis_def(&Channel::X), spec.axis_def(&Channel::Y))
+                else { continue };
+                let (Some(vx), Some(vy), Some(gs)) =
+                    (df.float_col(xf.field.as_str()), df.float_col(yf.field.as_str()), df.str_col(g))
+                else { continue };
+                let n = vx.len().min(vy.len()).min(gs.len());
+                let mut open = 0usize;
+                let (mut start, mut first) = (0usize, None::<(f64, f64)>);
+                for i in 0..=n {
+                    let ends = i == n || (i > start && gs[i] != gs[start]);
+                    if ends {
+                        if first.is_some() {
+                            open += 1;
+                        }
+                        start = i;
+                        first = None;
+                    }
+                    if i == n {
+                        break;
+                    }
+                    let here = (vx[i], vy[i]);
+                    match first {
+                        None => first = Some(here),
+                        Some(f) if here == f => first = None,
+                        Some(_) => {}
+                    }
+                }
+                if open > 0 {
+                    out.push(Diagnostic {
+                        kind: DiagnosticKind::Assumption,
+                        message: format!(
+                            "gog: {open} region(s) end with a ring that never returns to where \
+                             it started, so where one ring stops and the next begins had to be \
+                             guessed. A boundary repeats each ring's first point as its last. \
+                             Close the rings in `{g}`, or expect an island to be joined to the \
+                             mainland."
+                        ),
+                    });
+                }
+            }
+            (false, None) => {}
+        }
+    }
+}
+
 fn check_map(out: &mut Vec<Diagnostic>, spec: &PlotSpec, data: &HashMap<String, DataFrame>) {
     let CoordSpace::Map(view) = &spec.coord else { return };
 
@@ -6559,20 +6696,14 @@ fn check_map(out: &mut Vec<Diagnostic>, spec: &PlotSpec, data: &HashMap<String, 
             .filter(|m| mark_draws_in_space(m, SpaceKind::Map))
             .map(|m| format!("`{}`", mark_name(m)))
             .collect();
-        // `zone` is the one cell that is *owed* rather than ruled out, so it says
-        // so: a choropleth is this mark with its sides supplied by a boundary, and
-        // telling a reader "not yet" is a different sentence from "not ever".
-        let why = if *mark == Mark::Zone {
-            "`zone` is the region mark and a map is where the choropleth belongs, but a \
-             region here is bounded by a coastline rather than by a pair per axis, and that \
-             extent is not built yet"
-                .to_string()
-        } else {
-            format!(
-                "`{m}` measures along an axis, and a `map()` plot has none to spare — \
-                 longitude and latitude use both"
-            )
-        };
+        // `zone` used to be answered here separately, as *owed* rather than ruled
+        // out. It draws now — the choropleth, its sides supplied by a boundary — so
+        // the branch went with it and every mark left in this loop is refused for
+        // the one reason.
+        let why = format!(
+            "`{m}` measures along an axis, and a `map()` plot has none to spare — \
+             longitude and latitude use both"
+        );
         out.push(Diagnostic {
             kind: DiagnosticKind::Unsupported,
             message: format!(
@@ -8727,18 +8858,37 @@ mod tests {
     // Brush — the selection's refusals (spec §15)
     // -----------------------------------------------------------------------
 
-    /// **Brushability derives; it is not a second table.** The five marks that
-    /// refuse `group` are exactly the five whose rows are elements rather than
-    /// vertices, which is the same question a per-row predicate asks. Written as
-    /// a correspondence over all thirteen rather than a list, so a mark added
-    /// later gets its verdict without anyone remembering this file exists.
+    /// **Brushability derives; it is not a second table.** A mark can be brushed
+    /// when one row is one element rather than one vertex, which is the same
+    /// question a per-row predicate asks. Written as a correspondence over all
+    /// thirteen rather than a list, so a mark added later gets its verdict without
+    /// anyone remembering this file exists.
+    ///
+    /// **`zone` is the one place the correspondence and the property came apart**,
+    /// on 2026-08-01, and the property is the one that survived. Refusing `group`
+    /// was a faithful proxy for *one row is one element* while every source of a
+    /// zone's sides described a single row's rectangle — a category's slot,
+    /// `bounds`, `bin`, `density`. A **boundary** is the fifth, it arrives as many
+    /// rows per shape, and it needs `group` to say which rows those are. So the
+    /// proxy broke and the mark stayed brushable: a heatmap cell, a tile and a
+    /// waterfall step are each still one row.
+    ///
+    /// What that leaves open, and it belongs to the selection rather than to this
+    /// test: **brushing a choropleth** would select some of a region's vertices,
+    /// which is not a thing a reader can mean. It is not reachable by accident —
+    /// a boundary is only read in `map()` — but it is not refused either.
     #[test]
     fn a_mark_can_be_brushed_exactly_when_one_row_is_one_element() {
         let brushable: Vec<&str> = ALL_MARKS.iter().filter(|m| mark_takes_selection(m))
             .map(mark_name).collect();
         assert_eq!(brushable, vec!["point", "bar", "text", "rule", "zone"],
-            "the brushable set must stay the `group`-refusing set");
+            "the brushable set is the marks whose rows are elements");
         for m in &ALL_MARKS {
+            // `zone` is exempt for the reason above: it answers both questions, and
+            // which one applies is decided by where its sides came from.
+            if *m == Mark::Zone {
+                continue;
+            }
             assert_eq!(mark_takes_selection(m),
                 rule_for(m, &Channel::Group).obligation == Obligation::Cannot,
                 "`{}` disagrees with its own `group` rule", mark_name(m));
@@ -11973,14 +12123,19 @@ mod tests {
         // failed when `map` gained its first four marks, which is exactly the job a
         // hand-written list should do when the generated grid moves under it.
         //
-        // `zone` is the cell owed next: it is the region mark, and a choropleth is
-        // an extent supplied by a boundary rather than a new geometry.
+        // `zone` joined them on 2026-08-01 and is the **choropleth**. It is the one
+        // mark here that a position does not place: its sides come from a boundary,
+        // which is the fifth extent description this mark reads and the first that
+        // arrives as many rows per shape.
         for m in &ALL_MARKS {
-            let placed_by_a_position =
-                matches!(m, Mark::Point | Mark::Path | Mark::Text | Mark::Rule);
-            assert_eq!(sc("map", mark_name(m)), placed_by_a_position,
-                "{m:?}: a map draws what a position places, and nothing that \
-                 measures along an axis it does not have");
+            let draws = matches!(
+                m,
+                Mark::Point | Mark::Path | Mark::Text | Mark::Rule | Mark::Zone
+            );
+            assert_eq!(sc("map", mark_name(m)), draws,
+                "{m:?}: a map draws what a position places, plus the region a \
+                 boundary bounds — and nothing that measures along an axis it \
+                 does not have");
         }
     }
 
