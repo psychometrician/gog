@@ -51,6 +51,48 @@ DEST="inst/bin"
 WORKSPACE="../.."
 STAGED="tools/rust"
 
+# ---------------------------------------------------------------------------
+# WebAssembly is not a platform this package can install on
+# ---------------------------------------------------------------------------
+#
+# The package farm builds every package for WebAssembly as well as for the three
+# desktop platforms, and that build is the one place the whole design of this
+# bridge cannot reach. The R package draws by running `gog-cli` as a separate
+# process; R compiled to WebAssembly has no way to start one. So there is no
+# engine that could be bundled here, and no arrangement of the five sources
+# below that ends in a package able to draw a plot. Refusing is the same ruling
+# as the message at the bottom of this file: an install guaranteed not to draw
+# is the silent drop this project refuses everywhere else.
+#
+# Refusing *here*, rather than after the search, also stops a cross-compile that
+# cannot help. The farm's WebAssembly image replaces `cargo` with a shim that
+# adds `--target=wasm32-unknown-emscripten` to any `cargo build` arriving
+# without one, so step 5 below does compile the engine — and then writes
+# `gog-cli.js` and `gog-cli.wasm` where this script looks for `gog-cli`. Fifty
+# seconds of work, and nothing usable at the end of it.
+#
+# The cross-build announces itself the standard way, on the configure command
+# line. `CC` is the fallback, for a caller that sets only the environment.
+for _arg in "$@"; do
+  case "${_arg}" in
+    --host=*emscripten*) GOG_WASM_HOST=1 ;;
+  esac
+done
+case "${CC}" in
+  *emcc*) GOG_WASM_HOST=1 ;;
+esac
+
+if [ -n "${GOG_WASM_HOST}" ]; then
+  echo "gog: this package cannot be built for WebAssembly." >&2
+  echo "" >&2
+  echo "It draws by running the gog-cli engine as a separate process, and R" >&2
+  echo "compiled to WebAssembly cannot start one. There is no engine to bundle" >&2
+  echo "for this target, and an install without one could not draw a plot." >&2
+  echo "" >&2
+  echo "gog is available for Linux, macOS and Windows." >&2
+  exit 1
+fi
+
 # Build `gog-cli` from a workspace manifest and report the binary's path on
 # success, nothing on failure. Shared by steps 4 and 5 so the two cannot drift in
 # the flags they pass — `-j 2` in one and not the other would be a difference
@@ -95,7 +137,18 @@ build_engine() {
   # this script, which names every fix, rather than exiting on cargo's alone.
   ( cd "${_root}" && "${_cargo}" build --release -p gog-cli -j 2 ) >&2 || true
 
-  [ -f "${_root}/target/release/${EXE}" ] && echo "${_root}/target/release/${EXE}"
+  # **Report nothing, but report it successfully.** The caller reads this
+  # function through a command substitution — `FOUND="$(build_engine …)"` — and
+  # under `set -e` an assignment whose substitution exits non-zero ends the
+  # script right there. A bare `[ -f … ] && echo …` as the last command does
+  # exactly that whenever the build produced no binary, which made the
+  # diagnostic at the bottom of this file, the one naming every fix,
+  # unreachable in the single case it was written for. What a reader saw
+  # instead was `ERROR: configuration failed for package ‘gog’` and no reason.
+  if [ -f "${_root}/target/release/${EXE}" ]; then
+    echo "${_root}/target/release/${EXE}"
+  fi
+  return 0
 }
 
 # 1. A release tarball already carries it — and *already carries it* has to be
