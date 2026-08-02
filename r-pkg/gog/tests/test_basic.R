@@ -2803,10 +2803,12 @@ if (file.exists("LICENSE") && file.exists("NOTICE")) {
 # is this" then has more than one answer and a user has no way to tell which
 # answer is the one that matches their plot.
 #
-# The engine crates are in the list even though they are never published (§1.2
+# The three engine crates are in the list even though none is published (§1.2
 # keeps them internal). No binding asks the engine its version — there is no
-# handshake — so the number is informational, and an informational number that
-# disagrees with the four shipped ones is worse than no number at all.
+# handshake — so for two of them the number is informational, and an
+# informational number that disagrees with the four shipped ones is worse than
+# no number at all. `gog-wasm` is not even that: `.prepare` copies the crate
+# into the R source tarball, so its manifest reaches a user's disk.
 #
 # This is the license-drift guard above, one concern over, and for the same
 # reason: a rule nothing checks is a rule that has already been broken
@@ -2826,6 +2828,12 @@ if (file.exists("r-pkg/gog/DESCRIPTION")) {
     "jl-pkg/GrammarOfGraphics/Project.toml" = declared("jl-pkg/GrammarOfGraphics/Project.toml", quoted),
     "gog-core/Cargo.toml"                   = declared("gog-core/Cargo.toml", quoted),
     "gog-cli/Cargo.toml"                    = declared("gog-cli/Cargo.toml", quoted),
+    # The eighth, and the one this guard reached last, because `gog-wasm` sits
+    # outside the workspace and so was absent from every list that started by
+    # reading `Cargo.toml`. It is not informational: `.prepare` copies the whole
+    # crate into the R source tarball, so this string travels to a user's disk
+    # inside the package. An engine crate nobody publishes can still be read.
+    "gog-wasm/Cargo.toml"                   = declared("gog-wasm/Cargo.toml", quoted),
     # The seventh, and the one the first version of this guard missed, because
     # it enumerated *manifests* and this is *source*. `pyproject.toml` sets what
     # the wheel's metadata says; this sets what `gog.__version__` tells a user.
@@ -2838,7 +2846,7 @@ if (file.exists("r-pkg/gog/DESCRIPTION")) {
     stop("FAIL: the version declarations disagree about which gog this is —\n",
          paste0("  ", format(names(versions)), "  ", versions, collapse = "\n"),
          "\n  One grammar, one number. Change them together or not at all.")
-  cat("PASS: all seven declarations agree on version ", versions[[1]], "\n", sep = "")
+  cat("PASS: all eight declarations agree on version ", versions[[1]], "\n", sep = "")
 }
 
 # --- the emitted module must survive a content-security policy ----------------

@@ -16,13 +16,13 @@
 # the same reason, where a manual `twine upload` first claimed the name.
 #
 # And **provenance is not generated for a private repository**, even for a public
-# package. Trusted publishing still works; the attestation is simply absent. So
-# this workflow is worth nothing until the repository is public, which is why it
-# is written now and first used later.
+# package. Trusted publishing still works; the attestation is simply absent. This
+# workflow was written while the repository was private and could not have earned
+# one; the repository is public now, so a release from here is attested.
 #
 # The order is deliberate and each step can only fail forward:
 #
-#   version  → the tag, all seven version declarations and the five dependency
+#   version  → the tag, all eight version declarations and the five dependency
 #              pins agree, and npm does not already have this number. A published
 #              npm version is never reusable, so discovering a mismatch at upload
 #              time spends the number on a failed release.
@@ -44,7 +44,7 @@ permissions:
 
 jobs:
   version:
-    name: the tag and the twelve declarations agree
+    name: the tag and the thirteen declarations agree
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -73,10 +73,13 @@ jobs:
           }
           const want = tag.slice(prefix.length);
 
-          // The same seven the R suite compares and the Python release checks,
-          // for the same reason it grew a seventh: a release process reads a
+          // The same eight the R suite compares and the Python release checks,
+          // for the same reason the list grew twice: a release process reads a
           // manifest, and a user reads a version string. Those two disagreed
           // through five built wheels once, and no manifest check could see it.
+          // `gog-wasm` was the second omission, and a subtler one — it sits
+          // outside the workspace, so every list that began by reading
+          // `Cargo.toml` walked past it.
           const QUOTED = /^ *"?version"? *[=:] *"([^"]+)"/;
           const SOURCES = {
             "r-pkg/gog/DESCRIPTION": /^Version: *(.+?) *$/,
@@ -85,6 +88,7 @@ jobs:
             "jl-pkg/GrammarOfGraphics/Project.toml": QUOTED,
             "gog-core/Cargo.toml": QUOTED,
             "gog-cli/Cargo.toml": QUOTED,
+            "gog-wasm/Cargo.toml": QUOTED,
             "py-pkg/gog/gog/__init__.py": /^__version__ *= *"([^"]+)"/,
           };
 
@@ -100,7 +104,7 @@ jobs:
           if (wrong.length) {
             console.error(`the tag says ${want}; these do not:`);
             for (const [path, value] of wrong) console.error(`  ${value.padEnd(12)} ${path}`);
-            console.error("One grammar, one number. Move all seven together or not at all.");
+            console.error("One grammar, one number. Move all eight together or not at all.");
             process.exit(1);
           }
 
@@ -137,7 +141,7 @@ jobs:
             }
           }
 
-          console.log(`all seven declare ${want}, five pins match, and npm has none of the six at that version`);
+          console.log(`all eight declare ${want}, five pins match, and npm has none of the six at that version`);
           JS
 
   packages:
@@ -204,24 +208,81 @@ jobs:
           registry-url: https://registry.npmjs.org
 
       # Node 22 ships npm 10, and trusted publishing needs 11.5.1 or later.
+      # Pinned to the major rather than `@latest`, because `latest` on the day
+      # you tag is whatever npm shipped that morning, and a release is the worst
+      # moment to meet a new one. The floor is asserted rather than assumed: an
+      # npm too old to speak OIDC fails here, before a single package goes out,
+      # instead of at the first upload.
       - name: A version of npm that can publish without a token
-        run: npm install -g npm@latest && npm --version
+        run: |
+          set -euo pipefail
+          npm install -g npm@11
+          npm --version
+          node -e '
+            const need = [11, 5, 1];
+            const have = process.argv[1].split(".").map(Number);
+            const older = need.findIndex((n, i) => have[i] !== n);
+            if (older !== -1 && have[older] < need[older]) {
+              console.error(`npm ${process.argv[1]} is below the 11.5.1 trusted-publishing floor`);
+              process.exit(1);
+            }
+          ' "$(npm --version)"
+
+      # A rehearsal of all six, uploading nothing. It proves the artifacts
+      # arrived, every glob below resolves, and each tarball's manifest is
+      # publishable. It does **not** prove authentication: `--dry-run` returns
+      # before the OIDC exchange, so a missing trusted publisher still passes
+      # here and fails at the real upload. Read it for what it checks.
+      - name: Rehearse all six, uploading nothing
+        shell: bash
+        run: |
+          set -euo pipefail
+          for tarball in dist/*.tgz; do
+            echo "== $tarball"
+            npm publish "$tarball" --access public --dry-run
+          done
 
       # **The platform packages go first, and the main package last.** A missing
       # optional dependency does not fail an install — npm omits it and reports
       # success — so publishing the binding before the engines exist would give
       # anyone installing in that window a package that draws nothing, with no
       # error to explain it.
+      #
+      # **Each publish skips what the registry already holds**, and that is what
+      # makes a partial failure survivable. Six uploads are not one transaction:
+      # if the fourth fails, three numbers are already spent, and `npm publish`
+      # over an existing version exits non-zero — so without this check a re-run
+      # would die on the first package and never reach the ones still missing.
+      # The test is a condition rather than a bare command because `set -e`
+      # exempts the former and kills the script on the latter. This is the
+      # counterpart of `skip-existing` on the Python side.
       - name: The engines
         shell: bash
+        env:
+          TAG: ${{ github.ref_name }}
         run: |
           set -euo pipefail
+          want="${TAG#js-v}"
           for target in darwin-arm64 darwin-x64 linux-arm64 linux-x64 win32-x64; do
-            tarball="$(ls dist/grammar-of-graphics-$target-[0-9]*.tgz)"
+            name="grammar-of-graphics-$target"
+            if npm view "$name@$want" version > /dev/null 2>&1; then
+              echo "$name@$want is already on the registry — a re-run, not a failure"
+              continue
+            fi
+            tarball="$(ls "dist/$name"-[0-9]*.tgz)"
             echo "publishing $tarball"
             npm publish "$tarball" --access public
           done
 
       - name: The binding
         shell: bash
-        run: npm publish "$(ls dist/grammar-of-graphics-[0-9]*.tgz)" --access public
+        env:
+          TAG: ${{ github.ref_name }}
+        run: |
+          set -euo pipefail
+          want="${TAG#js-v}"
+          if npm view "grammar-of-graphics@$want" version > /dev/null 2>&1; then
+            echo "grammar-of-graphics@$want is already on the registry — a re-run, not a failure"
+            exit 0
+          fi
+          npm publish "$(ls dist/grammar-of-graphics-[0-9]*.tgz)" --access public

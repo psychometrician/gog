@@ -48,9 +48,9 @@ them so that a broken build is caught where it is cheap; only a tag sends anythi
 anywhere. They are the same jobs the release workflows call, unchanged, so what a
 release uploads is what a pull request already proved buildable.
 
-## The seven declarations
+## The eight declarations
 
-One number, written down seven times, in four spellings:
+One number, written down eight times, in four spellings:
 
 ```
 r-pkg/gog/DESCRIPTION                    Version: X.Y.Z
@@ -60,24 +60,35 @@ js-pkg/gog/package.json                  "version": "X.Y.Z"
 jl-pkg/GrammarOfGraphics/Project.toml    version = "X.Y.Z"
 gog-core/Cargo.toml                      version = "X.Y.Z"
 gog-cli/Cargo.toml                       version = "X.Y.Z"
+gog-wasm/Cargo.toml                      version = "X.Y.Z"
 ```
 
-The R suite compares all seven on every run and fails if they disagree, so a
+The R suite compares all eight on every run and fails if they disagree, so a
 mismatch is caught by `tests.yml` on the push that introduces it. Both release
 workflows repeat the same comparison against the tag before building anything.
 
-**The seventh is easy to forget and was.** `py-pkg/gog/gog/__init__.py` is what
-`gog.__version__` reports to a user; `pyproject.toml` is what the wheel's metadata
-says. Those two disagreed through five built wheels once, and no manifest check
-could see it, because every *manifest* agreed.
+**Two of the eight were missed once each, and for opposite reasons.**
+`py-pkg/gog/gog/__init__.py` is what `gog.__version__` reports to a user;
+`pyproject.toml` is what the wheel's metadata says. Those two disagreed through five
+built wheels once, and no manifest check could see it, because every *manifest*
+agreed. `gog-wasm/Cargo.toml` is a manifest, but it sits outside the Cargo
+workspace, so every list that began by reading `Cargo.toml` walked past it. Nothing
+publishes that crate, but `r-pkg/gog/.prepare` copies the whole of `gog-wasm/` into
+the R source tarball, so the string travels to a user's disk regardless.
 
-JavaScript checks **twelve**: the seven above, plus the five platform packages
+JavaScript checks **thirteen**: the eight above, plus the five platform packages
 pinned in `optionalDependencies`. A platform package pinned away from the main
 package's version is a dependency npm reports as *nothing* — it silently omits an
 optional dependency it cannot resolve — so a user gets an install that succeeds and
 a binding that cannot find its engine.
 
-Move all seven together or not at all.
+Three more files carry the number and are not checked, because a build rewrites
+them: `Cargo.lock`, `gog-wasm/Cargo.lock`, and the parity harness's
+`jl-pkg/GrammarOfGraphics/test/book_parity/Manifest.toml`. Nothing here builds with
+`--locked`, so a stale entry compiles anyway, but `.prepare` ships two of the three
+to R users. Regenerate them in the same commit as the bump; see *Cutting a release*.
+
+Move all eight together or not at all.
 
 ## The four registries
 
@@ -104,7 +115,7 @@ The R convention for this is the fourth component — `0.0.1.9000`, `.9001`, and
 for development builds, with three-component numbers reserved for real releases.
 r-universe is built around that convention. Adopting it here means deciding whether
 `DESCRIPTION` may drift from the other six (and relaxing the agreement test), or
-whether all seven move together and Cargo and npm manifests carry development
+whether all eight move together and Cargo and npm manifests carry development
 numbers nobody is installing. That is a decision, not a default; nothing in the
 current setup depends on it either way.
 
@@ -112,7 +123,7 @@ current setup depends on it either way.
 
 Tag `py-vX.Y.Z`. Five jobs, each able to fail only forward:
 
-1. **`version`** — the tag matches all seven declarations, and PyPI does not already
+1. **`version`** — the tag matches all eight declarations, and PyPI does not already
    have this number. Checked *before* anything is built, because discovering a
    mismatch at upload time spends the number on a failed release.
 2. **`wheels`** — five platforms, each wheel carrying its own engine, each installed
@@ -186,12 +197,34 @@ bare comment is read as an objection: it blocks the automatic merge and sends th
 registration to manual review, which turns a three-day wait into an indefinite one.
 
 Registrator registers a **tree hash**, not a tag, so a merged registration leaves no
-mark in this repository. `TagBot.yml` closes that: when the registry pull request
-merges, it writes the `vX.Y.Z` git tag and the GitHub release to match.
+mark in this repository. `TagBot.yml` is meant to close that: when the registry pull
+request merges, it writes the git tag and the GitHub release to match. Because
+`subdir` is set, the tag it writes carries the package name —
+`GrammarOfGraphics-vX.Y.Z`, not a bare `vX.Y.Z`.
 
-**That tag shape is deliberate.** `v0.0.1` matches neither `py-v*` nor `js-v*`, so a
-Julia release cannot set off a Python or npm publish. Keep it that way if the tag
-patterns are ever revised.
+**That tag shape is deliberate.** It matches neither `py-v*` nor `js-v*`, so a Julia
+release cannot set off a Python or npm publish. Keep it that way if the tag patterns
+are ever revised.
+
+**Expect the tag push to be rejected, and know why before it happens.**
+`GITHUB_TOKEN` acts as a GitHub App, and GitHub refuses any ref push from an App that
+would create or update a file under `.github/workflows/`. A registration points at
+the commit Registrator was run on, so as soon as a later commit edits any workflow
+file, pushing the tag for that older commit reads as a workflow change and is
+refused. There is no fix inside `permissions:` — `workflows` is a personal-token
+scope, not one of the keys a workflow can request. The three ways out are an SSH
+deploy key on TagBot's `ssh:` input, which is not an App and is not subject to the
+rule; a personal token with `workflow` scope; or a person pushing the tag:
+
+```bash
+git tag -a GrammarOfGraphics-vX.Y.Z <commit> -m 'GrammarOfGraphics-vX.Y.Z'
+git push origin GrammarOfGraphics-vX.Y.Z
+```
+
+Nothing about installing the package depends on the tag. Pkg resolves a version by
+tree hash, so `Pkg.add` works whether or not the tag exists; the tag is provenance
+and a release page. The way to avoid the rejection entirely is to register when the
+tree is final, with no workflow edit still to come.
 
 ## Before the first automated release
 
@@ -214,12 +247,37 @@ filename, so a rename silently invalidates every publisher registered against it
 ## Cutting a release
 
 1. Decide the number. It is never chosen for you.
-2. Move all seven declarations to it — and the five npm pins, if JavaScript is going
-   out.
+2. Move all eight declarations to it — and the five npm pins, if JavaScript is going
+   out. Then regenerate the three files that carry the number without being checked,
+   in the *same* commit, because the push is what r-universe builds from and there is
+   no later chance to correct the tarball it compiles:
+
+   ```bash
+   cargo build --release
+   cargo build --release --target wasm32-unknown-unknown --manifest-path gog-wasm/Cargo.toml
+   julia --project=jl-pkg/GrammarOfGraphics/test/book_parity -e 'using Pkg; Pkg.resolve()'
+   ```
+
 3. Run the full local suite (the pull-request checklist in `CONTRIBUTING.md`), which
    includes the agreement check.
-4. Commit and push. `tests.yml` and `book.yml` run; nothing is published to an index.
-5. Tag what you want to release, and only that:
+4. **Install the four packages somewhere real and look at a plot.** Build the
+   artifacts, install each into a clean environment, restart the session, and draw one
+   flat plot and one interactive one. This is the only step that sees a defect which
+   bypasses `gog-cli`, and such defects exist: two bindings once could not draw an
+   interactive plot at all while every check in this repository was green, because the
+   static picture is the engine's and was perfect the whole time.
+5. **Dispatch the two packaging workflows before tagging anything.** Neither
+   publishes; both are otherwise reached only by `workflow_call` from a release tag,
+   so a break in them would first show itself on a tag, which is the worst place to
+   meet one.
+
+   ```bash
+   gh workflow run python-wheels.yml --ref main
+   gh workflow run js-packages.yml   --ref main
+   ```
+
+6. Commit and push. `tests.yml` and `book.yml` run; nothing is published to an index.
+7. Tag what you want to release, and only that:
    - `git tag py-v0.0.2 && git push origin py-v0.0.2` → PyPI. TestPyPI runs first and
      is not gated; then approve the `pypi` environment.
    - `git tag js-v0.0.2 && git push origin js-v0.0.2` → npm. Approve the `npm`
@@ -228,13 +286,21 @@ filename, so a rename silently invalidates every publisher registered against it
    - comment `@JuliaRegistrator register subdir=jl-pkg/GrammarOfGraphics` on the
      release commit → Julia.
    - R needs nothing: r-universe rebuilds from `DESCRIPTION` on its own.
-6. **Verify each one by installing it.** A green workflow proves an upload happened,
+8. **Verify each one by installing it.** A green workflow proves an upload happened,
    not that the result works. The bar is the same one each binding was held to at
    `0.0.1`: install from the registry into a clean environment and draw from a
    directory with no `target/` above it and `GOG_CLI_PATH` unset.
 
+   The bar has a second half, and it fails silently. A package carries two engines:
+   the one that draws, and the WebAssembly build that lets a 3-D plot turn on a web
+   page. Only the first is required, so a package missing the second installs
+   cleanly, draws correctly, and its 3-D plots simply do not turn — nothing about
+   that looks like a failure. Assert it by hand as well as in CI: the rendered block
+   must contain `<script type="module"`. This applies to R, Python and JavaScript.
+   Julia ships neither engine, and its documentation says so.
+
 The four routes are independent — tagging Python does not release JavaScript, and
-none of them releases R — but the *numbers* are not. All seven declarations move
+none of them releases R — but the *numbers* are not. All eight declarations move
 together, so between bumping them and tagging the last binding, the manifests
 describe a release some indexes have not received yet. That window is expected;
 what must not happen is the numbers diverging to close it.
@@ -246,6 +312,13 @@ Deleting a release does not free the number, and the next attempt must use a new
 This is why both release workflows query the index in their *first* job, before a
 single artifact is built — a failure there costs a re-run, while a failure at upload
 costs a version.
+
+npm has one narrow exception, worth knowing but not worth planning around.
+`npm unpublish <package>@<version>` is permitted within **72 hours**, provided no
+other package depends on that version — which is exactly the situation after a
+partial publish, since the binding is what did not go out. A version cannot be
+republished for 24 hours afterward, so it trades three spent numbers for a day.
+Treat every number as spent; keep this as the door you did not know was there.
 
 r-universe is the exception in both directions: nothing is spent, and nothing is
 final. It rebuilds whatever `main` currently says.

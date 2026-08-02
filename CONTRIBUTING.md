@@ -328,8 +328,7 @@ what an R user installs, without changing the version number they see.
 
 Version numbers are never assigned by CI. One number is written down by hand in
 several manifests, and the only automation is a check that they agree. That check
-covers seven declarations today; `gog-wasm/Cargo.toml` carries an eighth that it
-does not yet reach.
+covers all eight declarations, `gog-wasm/Cargo.toml` included.
 [`.github/RELEASING.md`](.github/RELEASING.md) has the full account: which workflow
-each trigger starts, where the seven declarations live, what each registry does with
+each trigger starts, where the eight declarations live, what each registry does with
 a number, and which parts of a release cannot be taken back.
