@@ -25,15 +25,8 @@ can read, and write, any plot.
 | **Facets** | `facet` |
 | **Selections** | `brush` |
 
-Every word in the kernel draws.
-
-**The minimum sentence** is a table, a mark, and the positions that mark needs:
-
-```
-data(table) + mark + x(column) + y(column)
-```
-
-No abbreviations, no acronyms, no silent letters.
+Every word in it is a common English word: no abbreviations, no acronyms, no
+silent letters.
 
 Read the kernel as two groups: what a plot needs, and what refines or arranges
 it. **Five kinds build a plot.** A **table** supplies the rows and the columns. A
@@ -49,15 +42,23 @@ the plot looks without saying anything about the data, and a **label** names it.
 A **facet** cuts one plot into panels. A **selection** picks rows out of a plot
 that is already drawn.
 
-The five come first below, in the order just given, with a section each. Scales
-and settings follow them. The rest have chapters of their own:
-[Spaces](space.qmd), [Faceting](faceting.qmd) and [Selection](selection.qmd).
+So **the minimum sentence** is a table, a mark, and the positions that mark
+needs:
 
-GOG also never accepts a word and then quietly ignores it. A sentence it cannot
+```
+data(table) + mark + x(column) + y(column)
+```
+
+Two promises hold across the whole kernel. The engine draws every word in it.
+And GOG never accepts a word and then quietly ignores it: a sentence it cannot
 draw is refused, and the refusal names the rule. See
 [Design laws](design-laws.qmd) for the difference between **illegal** (the
 grammar forbids it) and **unsupported** (the grammar allows it; the engine
 cannot draw it yet).
+
+Each kind has a section below, in the order of the kernel above: the five that
+build a plot first, then the six that refine or arrange one. Each section gives
+the words and what they do, and names the chapter that teaches them in full.
 
 ## Tables: where the rows come from
 
@@ -79,7 +80,7 @@ The SQL stays inside `query()`. The columns after it are still bare names,
 because a database returns a table, and every sentence begins with a table. See
 [Data](data.qmd).
 
-## Marks: the "consonants"
+## Marks: the shape drawn for each row
 
 A mark is the geometric form drawn for each row of data.
 
@@ -99,10 +100,20 @@ A mark is the geometric form drawn for each row of data.
 | `zone` | A shaded region: bounded where its sides are known, spanning the panel where they are not. Five things know them — a **categorical position** (a category owns a slot: the tile plot), `bounds` (names them), `bin` (cuts them: the heatmap), `density` (cuts or traces them), and a **boundary** (the data draws them: the choropleth, in `map()`) |
 | `surface` | A sheet over a floor whose cells tile: one row per (x, y) crossing with a face between each block of four, or one row per cut cell with a flat plateau on each. The only mark that draws in the cube alone |
 
-## Channels: the "vowels" and the "final consonants"
+## Channels: a column made visible
 
-A channel maps a data column to a visual property of the mark. They do not all
-play the same part, and what tells them apart is what each one *earns*:
+A channel maps a data column to a visual property of the mark. Adding one word
+to the sentence adds one thing the reader can see:
+
+```{r}
+data(gapminder_2007) + point + x(gdp) + y(life) + color(continent)
+```
+
+*"Given gapminder 2007: points, x is gdp, y is life, color by continent."* You
+never asked for the legend. A mapped column earns one.
+
+Channels do not all play the same part, and what tells them apart is what each
+one *earns*:
 
 | Channel | What it does | Earns |
 |---------|-------------|-------|
@@ -113,15 +124,15 @@ play the same part, and what tells them apart is what each one *earns*:
 | `size` | Radius, on `point` | a legend |
 | `shape` | Glyph — circle, square, triangle — on `point` | a legend |
 | `pattern` | Texture: a fill's hatch, a stroke's dash. Every mark but `point`, `text` and `surface` | a legend |
-| `opacity` | Transparency, on `point` and `bar`. As a *setting* it reaches every mark | a legend |
+| `opacity` | Transparency, on `point` and `bar` | a legend |
 | `group` | Splits a mark into one series per category, without encoding it. On `line`, `area`, `step`, `interval`, `box`, `ribbon`, `path`, `zone` and `surface` | nothing |
 | `label` | The string a `text` mark draws, its content | nothing |
 | `play` | Cuts the plot into frames and plays them in sequence, from a numeric or categorical column | a strip |
 
-The **Earns** column sorts the channels into four kinds. A Korean syllable has
-three slots: an initial consonant, then a vowel, then an optional final
-consonant. The mark is the initial consonant, which is why this section's title
-names only the other two.
+The **Earns** column sorts the channels into four kinds, and a Korean syllable
+is the shape to hold them against. It has three slots: an initial consonant,
+then a vowel, then an optional final consonant. The mark is the initial
+consonant, so the channels are the other two.
 
 `x`, `y` and `z` are the **vowels**: a mark without one of them is silent, so
 at least one is required, and each earns an axis to be read against.
@@ -188,16 +199,8 @@ See [Transforms](transforms.qmd) for each one in detail, and
 
 ## The `+` operator: layering
 
-`+` composes atoms into a specification.
-The result is a `PlotSpec`, rendered to SVG. Raster formats come from
-converting that SVG. Three dimensions already draw: `space()` projects the cube
-into the same SVG, so there is one renderer rather than a second one for depth
-(see [Space](space.qmd)). You can also turn that cube yourself: drag any 3-D plot
-in the web edition and it rotates, with a readout of the two angles and a way
-back to where it started. `space(turn =, tilt =)` names the angle a plot opens
-at, and the mouse takes you anywhere else. What is still on the roadmap is
-letting a nearer surface hide whatever sits behind it, which needs more than a
-page can give.
+`+` joins one word to the next. Every sentence in this book is built with it,
+and the words can be read left to right in the order they were written.
 
 ```{r}
 # One layer
@@ -306,48 +309,27 @@ A scale is not a transform: it produces no new values, only different positions
 for the ones you have. Where the two meet, what a log scale means for
 `bar * bin` or `bar * sum`, is set out in [Scales](scales.qmd).
 
-The same binding takes `limits`, which says what range the channel runs over
-when the data is not the authority on that:
+The same binding takes two more words for the same reason. `limits` says what
+range the channel runs over when the data is not the authority on that, and
+`tick_count` says how densely an axis should be labeled. Both describe the
+scale, so both are written where the scale is written. [Scales](scales.qmd)
+has all three.
 
-```{r}
-data(tide) + line + x(hour, limits = c(0, 24)) + y(height) + polar()
-```
+## Spaces: the surface a plot is drawn on
 
-The gauge reads every three hours, so the readings run from hour 1 to hour 22.
-A circular axis joins its two ends. It cannot tell that the hours between 22 and
-1 belong to the day as well. Left to fit the data, it would close the circle at
-hour 22. The first and last readings would then land on the same spoke, though
-21 hours separate them. `limits = c(0, 24)` says the day is 24 hours long, so
-every reading sits where a clock would put it. The curve still does not close,
-because no reading was taken at midnight and stating a domain does not invent
-one. [Polar](polar.qmd) follows that through. `limits` works on every channel
-that measures, `NA` leaves an end to the data, and the whole of what it does is
-in [Scales](scales.qmd).
+A space decides what a position means. Every plot so far has been drawn on the
+plane, which is `flat` and needs no saying.
 
-A position binding takes one more, `tick_count`, which says how densely the axis
-should be labeled:
+| Space | Where the marks stand |
+|---|---|
+| `flat` | The plane: `x` across, `y` up. The default |
+| `space` | The cube: `x`, `y` and `z`, projected onto the page |
+| `polar` | The plane bent into a circle: one position becomes an angle, the other a radius |
+| `nest` | Rectangles inside rectangles, each sized by its share of the one holding it |
+| `map` | The earth flattened: longitude across, latitude up |
 
-```{r}
-#| layout-ncol: 2
-data(gapminder_2007) + point + x(gdp, tick_count = 3) + y(life) +
-  x_label("GDP per capita") + title("Three ticks")
-
-data(gapminder_2007) + point + x(gdp, tick_count = 12) + y(life) +
-  x_label("GDP per capita") + title("Twelve asked for, eleven drawn")
-```
-
-The left axis reads 0K, 20K, 40K. The right one steps by 5K, which gives eleven
-ticks rather than the twelve asked for. `tick_count` is a target rather than a
-promise. It chooses a step, and the step is then rounded to a number a person
-would pick. What you can rely on is the direction: ask for more and you get more,
-and every tick still lands on a round number.
-
-It is written in the same place as `scale` and `limits`, and for the same reason.
-How many ticks an axis gets is a property of the scale, so it belongs to the
-sentence that describes the scale rather than to `theme()`, which is the page.
-Unlike `limits` it reaches only `x`, `y` and `z`, because those are the three that
-draw an axis at all. A legend names both ends and the middle, so there is no count
-to choose. [Scales](scales.qmd) has the rest.
+One space holds the whole plot. See [Space](space.qmd), [Polar](polar.qmd),
+[Nest](nest.qmd) and [Map](map.qmd).
 
 ## Settings: values you *set* rather than *map*
 
@@ -365,6 +347,7 @@ and has nothing to decode, so it is not a channel. That is `style`:
 | `style(shape = )` | One glyph for every point |
 | `style(pattern = )` | The texture of a mark's paint: a stroke's dash (solid/dashed/dotted), a fill's hatch (hatch/crosshatch/grid/dots). Every mark but `point`, `text` and `surface` |
 | `palette( )` | Which colors the `color` channel hands out |
+| `theme( )` | The page around the plot: grid, background, fonts, size |
 
 ```{r}
 # map: color carries the continent, and a legend decodes it
@@ -378,3 +361,35 @@ data(gapminder_2007) + point + x(gdp) + y(life) +
 ```
 
 See [Setting vs mapping](style.qmd) for the full rules.
+
+## Labels: the words on the plot
+
+An axis carries the name of the column bound to it. A label replaces that name
+when the column name is not what a reader should see.
+
+| Label | What it names |
+|---|---|
+| `title` | The plot |
+| `x_label` `y_label` `z_label` | One axis each |
+
+`title()` is the one that adds words rather than replacing them, because a plot
+has no other way to say what it is about.
+
+## Facets: one panel per category
+
+| Facet | What it cuts |
+|---|---|
+| `facet` | Splits one plot into panels, one per category of the column it names |
+
+A facet is written on the right of `|` or `/`, which is why it appeared in the
+operator section above: `… | facet(continent)`. See [Faceting](faceting.qmd).
+
+## Selections: choosing rows in a drawn plot
+
+| Selection | What it does |
+|---|---|
+| `brush` | Dims the rows you did not pick, and removes none of them |
+
+A selection is the only kind that acts on a plot after it is drawn. What it does
+not change is the sentence, so the printed page still shows the bound that
+sentence named. See [Selection](selection.qmd).
