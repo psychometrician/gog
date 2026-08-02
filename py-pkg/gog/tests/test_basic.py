@@ -11,6 +11,7 @@ a user's first plot would.
 """
 
 import builtins
+import json
 import re
 import math
 import os
@@ -1452,5 +1453,36 @@ refuses("`at` is two numbers or a set of names",
 
 
 _con.close()
+
+# --- the interactive block must reach the browser intact ---------------------
+#
+# Two defects lived here and neither was reachable by comparing SVG, because both
+# bypass `gog-cli` entirely: the static picture is the CLI's and is perfect,
+# while the *browser* gets a separate payload that nothing checked.
+#
+# (1) The data was never converted. `_wire()` returns raw frames; `render_svg`
+#     passes them through `to_wire` and this block did not, so the engine read
+#     each column *name* where a type group belongs and refused every column.
+#     3-D, `brush` and `play` were broken for every Python user.
+# (2) The module was imported from a `data:` URL, which a content-security policy
+#     refuses — silently, since a blocked module import throws nothing.
+from gog import render as _R
+_t = {"gdp": [1000.0, 20000.0, 40000.0], "life": [50.0, 70.0, 80.0]}
+_p = (data(_t, "t") + point + x(col.gdp) + y(col.life)
+      + brush(col.gdp, at=[2000, 30000]))
+_block = _R.svg_block(render_svg(_p), _p)
+
+assert "data:text/javascript" not in _block
+assert "data:application/wasm" not in _block
+assert 'from "./view.js"' not in _block
+assert "function mountView" in _block
+assert "atob(" in _block
+ok("the interactive block names no URL a policy can refuse")
+
+_sent = json.loads(re.search(r'mount\("[^"]+", (\{.*?\}), \{ wasm:',
+                             _block, re.S).group(1))["data"]
+_spec, _frames = _p._wire()
+assert _sent == {n: _R.to_wire(f, n) for n, f in _frames.items()}
+ok("the browser gets the same wire tables the engine does")
 
 print(f"\nAll {passed} checks passed.")

@@ -507,6 +507,34 @@ function findWasmAssets() {
 const dataUri = (file, mime) =>
   `data:${mime};base64,` + fs.readFileSync(file).toString("base64");
 
+// The modules' own source, ready to sit inside `<script type="module">`.
+//
+// **A `data:` URL cannot be imported where a page has a content-security
+// policy**, and every host that shows a plot outside a plain browser sets one:
+// JupyterLab, VS Code notebooks, and the Positron and RStudio viewer panes.
+// `script-src` there does not list `data:`, so the import is refused *silently* —
+// a blocked module import throws nothing the page can catch. The static SVG
+// still drew and every control was missing.
+//
+// Inlining survives that policy: an inline module runs under
+// `script-src 'unsafe-inline'` and needs no URL of any scheme.
+const inlineModules = (files) =>
+  files
+    .map((f) => fs.readFileSync(f, "utf8"))
+    .join("\n")
+    // `interactive.js` takes its view helpers from the sibling file. Inlined,
+    // that specifier has nothing to resolve against, and both files are already
+    // in this one scope, so the two statements naming it go.
+    .replace(/(?:import|export)\s*\{[^}]*\}\s*from\s*"\.\/view\.js";?/g, "");
+
+// The engine as an expression evaluating to its bytes. `loadEngine` takes a URL
+// *or* a BufferSource, so this is the second of the two: no fetch, no scheme,
+// nothing the policy can refuse.
+const wasmExpression = (file) =>
+  assetUrls.wasm
+    ? `"${assetUrls.wasm}"`
+    : `Uint8Array.from(atob("${fs.readFileSync(file).toString("base64")}"), c => c.charCodeAt(0))`;
+
 // An `import` needs a module specifier, which is stricter than a URL a `fetch`
 // would take. A bare word like `"gog.js"` is reserved for import maps, so a
 // browser refuses it outright: the script never runs, nothing is fetched, and
@@ -551,11 +579,6 @@ export function htmlBlock(plot) {
   const assets = findWasmAssets();
   if (!assets) return `<div class="gog-plot" style="text-align:center;">\n${svg}\n</div>`;
 
-  // Named only when something will ask for it: a data URI is paid at page size
-  // rather than at fetch time.
-  const options = needsEngine
-    ? `, { wasm: "${assetUrls.wasm ?? dataUri(assets[0], "application/wasm")}" }`
-    : "";
   // A flat plot names the smaller module and sends no data.
   //
   // **The script goes inside the container**, which is a layout rule rather than
@@ -567,25 +590,31 @@ export function htmlBlock(plot) {
   // SVG is still its first element, and a redraw can only remove a module script
   // that has already run.
   if (!needsEngine) {
-    const viewUrl = assetUrls.js
-      ? assetUrls.js.replace("interactive.js", "view.js")
-      : dataUri(path.join(path.dirname(assets[1]), "view.js"), "text/javascript");
+    const viewPath = path.join(path.dirname(assets[1]), "view.js");
+    const head = assetUrls.js
+      ? `import { mountView } from "${moduleSpecifier(assetUrls.js.replace("interactive.js", "view.js"))}";\n`
+      : inlineModules([viewPath]) + "\n";
     const vid = "gog-" + Math.abs(hashOf(svg)).toString(36).padStart(10, "0").slice(0, 10);
     return (
       `<div class="gog-plot" id="${vid}" style="text-align:center;">\n${svg}\n` +
-      `<script type="module">\nimport { mountView } from "${moduleSpecifier(viewUrl)}";\n` +
+      `<script type="module">\n${head}` +
       `mountView("${vid}");\n</script>\n</div>`
     );
   }
 
-  const jsUrl = moduleSpecifier(assetUrls.js ?? dataUri(assets[1], "text/javascript"));
+  // The module arrives one of two ways, and the engine likewise. A book names
+  // files it serves; everything else carries them, because a notebook cell has
+  // no server behind it and a temp page in a viewer pane has no directory.
+  const head = assetUrls.js
+    ? `import { mount } from "${moduleSpecifier(assetUrls.js)}";\n`
+    : inlineModules([path.join(path.dirname(assets[1]), "view.js"), assets[1]]) + "\n";
   const id = "gog-" + Math.abs(hashOf(svg)).toString(36).padStart(10, "0").slice(0, 10);
   const request = JSON.stringify(wireRequest(plot));
 
   return (
     `<div class="gog-plot" id="${id}" style="text-align:center;">\n${svg}\n` +
-    `<script type="module">\nimport { mount } from "${jsUrl}";\n` +
-    `mount("${id}", ${request}${options});\n</script>\n</div>`
+    `<script type="module">\n${head}` +
+    `mount("${id}", ${request}, { wasm: ${wasmExpression(assets[0])} });\n</script>\n</div>`
   );
 }
 

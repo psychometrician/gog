@@ -1230,3 +1230,21 @@ end
 
     @test_throws GogError brush(:v, at = (1, 2, 3))
 end
+
+# The interactive block must reach the browser intact. Not reachable by comparing
+# SVG: that path is the CLI's and is perfect, while the browser gets a separate
+# payload nothing checked. A `data:` module import is refused by a
+# content-security policy, silently, because a blocked import throws nothing.
+@testset "interactive block is policy-safe" begin
+    t = Dict("gdp" => [1000.0, 20000.0, 40000.0], "life" => [50.0, 70.0, 80.0])
+    p = data(t; name = "t") + point + x(:gdp) + y(:life) +
+        brush(:gdp, at = [2000, 30000])
+    block = svg_block(render_svg(p), p)
+
+    @test !occursin("data:text/javascript", block)
+    @test !occursin("data:application/wasm", block)
+    @test !occursin("from \"./view.js\"", block)
+    @test occursin("function mountView", block)   # the module is here, inline
+    @test occursin("atob(", block)                # the engine travels as bytes
+end
+

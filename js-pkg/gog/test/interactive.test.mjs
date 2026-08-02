@@ -787,3 +787,24 @@ test("holdsIn counts a vertex on the ray once, not twice", () => {
   assert.equal(holdsIn(diamond, 3, 1), false);
   assert.equal(holdsIn([[0, 0], [1, 1]], 0.5, 0.5), false, "two vertices enclose nothing");
 });
+
+// The interactive block must reach the browser intact. Not reachable by
+// comparing SVG: that path is the CLI's and is perfect, while the browser gets a
+// separate payload nothing checked. A `data:` module import is refused by a
+// content-security policy — silently, because a blocked module import throws
+// nothing a page can catch, so the plot draws and every control is missing.
+test("the interactive block names no URL a policy can refuse", async () => {
+  const R = await import("../src/render.js");
+  const { plot, data, point, x, y, col, brush } = await import("../src/index.js");
+  const t = { gdp: [1000, 20000, 40000], life: [50, 70, 80] };
+  const p = plot(data(t, "t"), point, x(col.gdp), y(col.life),
+                 brush(col.gdp, { at: [2000, 30000] }));
+  const block = R.htmlBlock(p);
+
+  assert.ok(!block.includes("data:text/javascript"));
+  assert.ok(!block.includes("data:application/wasm"));
+  assert.ok(!block.includes('from "./view.js"'));
+  assert.ok(block.includes("function mountView"));  // the module is here, inline
+  assert.ok(block.includes("atob("));               // the engine travels as bytes
+});
+

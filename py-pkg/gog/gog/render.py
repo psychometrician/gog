@@ -539,9 +539,17 @@ def _is_spatial(spec: Dict[str, Any]) -> bool:
 def _interactive_block(plot: Any, container_id: str) -> str:
     """The script that upgrades a static cube into a turnable one, or ""."""
     try:
-        spec, data = plot._wire()
+        spec, frames = plot._wire()
     except Exception:
         return ""
+    # **`_wire()` hands back raw frames, not wire tables.** `render_svg` converts
+    # them with `to_wire` before the engine sees them and this did not, so the
+    # browser engine received a bare frame, read each column *name* where a type
+    # group belongs, and refused every column. Static drawing was unaffected,
+    # because that path goes through `render_svg`, which is why it survived: the
+    # SVG harness compares pictures the CLI drew and never reaches this block.
+    # It broke 3-D, `brush` and `play` for every Python user.
+    data = {name: to_wire(frame, name) for name, frame in frames.items()}
     # Two questions, not one. Carrying the *engine* has two reasons — an angle
     # worth dragging, a bound worth moving — and both redraw. Carrying the
     # *module* has a third, and it is every plot: looking closer. A zoom scales
