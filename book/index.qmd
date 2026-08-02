@@ -524,12 +524,9 @@ The R package is not on CRAN yet. It is published on
 `repos` argument names two addresses. The second address is an ordinary CRAN
 mirror, and it is there so your other packages still install as usual.
 
-The Julia package is the youngest of the four. Its registration is
-[submitted](https://github.com/JuliaRegistries/General/pull/162792), and the
-General registry holds every new package for three days before accepting it, so
-that command starts working around 2026-08-02. It is also the one binding that
-does not carry the engine yet, so the package will load before it can draw. The
-[Julia](bindings/julia.qmd) chapter says what to do until then.
+The Julia package is the one binding that does not carry the engine yet, so it
+will load before it can draw. The [Julia](bindings/julia.qmd) chapter says what
+to do until then.
 
 Each binding has its own chapter at the end of this book, and each of those
 chapters closes with the longer version of this section: [R](bindings/r.qmd),

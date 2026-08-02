@@ -39,9 +39,8 @@ the same vocabulary rather than add-ons with a syntax of their own.
 using Pkg; Pkg.add("GrammarOfGraphics")
 ```
 
-The package is [registered][registration], and the General registry holds a new
-package for three days before accepting it, so that line starts working around
-2026-08-02.
+The package is in the [General registry][registration], so that is the whole
+install.
 
 **This binding does not ship the engine yet, and the other three do.** A plot is
 drawn by a compiled Rust binary, so `Pkg.add` gives you a package that loads but
@@ -51,7 +50,7 @@ distribute a binary, is owed and not yet built. The book's
 [Julia chapter][jl-chapter] has the details, and also shows how to work from a
 copy of the source.
 
-[registration]: https://github.com/JuliaRegistries/General/pull/162792
+[registration]: https://github.com/JuliaRegistries/General/tree/master/G/GrammarOfGraphics
 
 ## Your first plot
 

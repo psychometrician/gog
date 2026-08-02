@@ -110,30 +110,29 @@ using Pkg; Pkg.add("GrammarOfGraphics")
 npm install grammar-of-graphics
 ```
 
-Three of the four are live now, on
+All four are live, on
 [r-universe](https://psychometrician.r-universe.dev/gog),
-[PyPI](https://pypi.org/project/gog/) and
-[npm](https://www.npmjs.com/package/grammar-of-graphics). Each of the three
-**ships the engine inside the package**, built for your platform. There is
-nothing else to install, nothing to put on your `PATH`, and no Rust toolchain to
-set up.
+[PyPI](https://pypi.org/project/gog/),
+[General](https://github.com/JuliaRegistries/General/tree/master/G/GrammarOfGraphics)
+and [npm](https://www.npmjs.com/package/grammar-of-graphics). Three of them
+**ship the engine inside the package**, built for your platform. For those three
+there is nothing else to install, nothing to put on your `PATH`, and no Rust
+toolchain to set up.
 
-Each also carries a second copy of the engine, built for the browser. That is
-what lets a 3-D plot turn under the mouse on a web page. It is optional: a
-package without it still draws every plot, and the 3-D ones simply do not turn.
+Each of those three also carries a second copy of the engine, built for the
+browser. That is what lets a 3-D plot turn under the mouse on a web page. It is
+optional: a package without it still draws every plot, and the 3-D ones simply
+do not turn.
 
 `gog` is not on CRAN yet. That is why the R line names r-universe first and a
 CRAN mirror second, and the second entry is what keeps your other packages
 resolving.
 
-Julia is the fourth, and two things are still owed there. The registration is
-[submitted](https://github.com/JuliaRegistries/General/pull/162792) and is
-waiting out the General registry's three-day hold on new packages, so that line
-starts working around **2026-08-02**. Julia is also the one binding that does
-not bundle the engine yet, so `Pkg.add` gives you a package that loads but
-cannot draw until you build `gog-cli` yourself. Until both land,
-`Pkg.develop(path = "jl-pkg/GrammarOfGraphics")` from a checkout is the route
-that works.
+Julia is the one binding that does not bundle the engine yet, so `Pkg.add` gives
+you a package that loads but cannot draw until a `gog-cli` exists on your
+machine. Build it once with `cargo build --release -p gog-cli`, or set
+`ENV["GOG_CLI_PATH"]` to a copy you already have. The package says both of those
+in the error it raises, so nobody has to guess.
 
 ## The vocabulary
 

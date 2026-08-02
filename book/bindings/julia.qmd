@@ -180,13 +180,8 @@ using Pkg
 Pkg.add("GrammarOfGraphics")
 ```
 
-The package is
-[registered](https://github.com/JuliaRegistries/General/pull/162792). The General
-registry holds every new package for three days before accepting it, so that
-command starts working around 2026-08-02.
-
-There is a second thing to know, and it is the one real gap between this binding
-and the other three. A plot is drawn by the engine, which is a compiled Rust
+There is one thing to know, and it is the one real gap between this binding and
+the other three. A plot is drawn by the engine, which is a compiled Rust
 binary, and the Julia package does not carry one yet. The R, Python and
 JavaScript packages each ship an engine built for your computer. Here, `Pkg.add`
 gives you a package that loads correctly but cannot draw until an engine exists

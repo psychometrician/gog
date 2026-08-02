@@ -44,6 +44,13 @@
 !/.gitattributes
 !/.gitignore
 
+# A scratch directory for local experiments, sitting beside `book/`. The `/*`
+# above already hides it, so this line adds no enforcement. It is here to say
+# the folder is deliberate rather than stray, and that it is never meant to
+# ship -- which is worth writing down precisely because the allowlist makes
+# every unnamed path look the same.
+/test/
+
 # Secrets
 .env
 .env.*
