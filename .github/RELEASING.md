@@ -250,7 +250,7 @@ filename, so a rename silently invalidates every publisher registered against it
 
 ```bash
 .github/release --check      # verify the tree, change nothing
-.github/release 0.0.3        # steps 2-6: bump, regenerate, test, dispatch
+.github/release <version>       # steps 2-6: bump, regenerate, test, dispatch
 .github/release --tag py     # → PyPI, then approve the `pypi` environment
 .github/release --tag js     # → npm, then approve the `npm` environment
 .github/release --julia      # → General, which auto-merges for an existing package

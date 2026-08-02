@@ -5,11 +5,14 @@
 # `RELEASING.md` beside this file is the explanation; this is the execution. The
 # two must agree, so if you change the sequence here, change it there.
 #
-#     .github/release 0.0.3        bump, regenerate, test, dispatch — then stop
-#     .github/release --check      verify the tree without changing it
-#     .github/release --tag py     push py-v<version> → PyPI, after approval
-#     .github/release --tag js     push js-v<version> → npm, after approval
-#     .github/release --julia      trigger the Julia registration
+#     .github/release --check       verify the tree without changing it
+#     .github/release <version>     bump, regenerate, test, dispatch — then stop
+#     .github/release --tag py      push py-v<version> → PyPI, after approval
+#     .github/release --tag js      push js-v<version> → npm, after approval
+#     .github/release --julia       trigger the Julia registration
+#
+# `<version>` is the number you are moving *to*. The tree's current one is
+# whatever `--check` prints; nothing here guesses at the next.
 #
 # **It never publishes anything on its own.** The bump command stops before the
 # tags, because the packaging workflows it dispatches are worth reading before
