@@ -279,7 +279,19 @@ render_svg <- function(gog) {
   # they appear in the console without corrupting the SVG on stdout.
   if (length(msgs) > 0L) message(paste(msgs, collapse = "\n"))
 
-  paste(result, collapse = "\n")
+  # `stdout = TRUE` hands back *lines*, with their separators removed, so
+  # rejoining them cannot reproduce a trailing newline. The engine writes the
+  # SVG with `print!` and adds nothing, which means that newline is part of the
+  # document rather than punctuation from the shell: Python, JavaScript and
+  # Julia all return it, and R alone returned a file one byte shorter than the
+  # other three drew. The law this package is held to is byte-identical output,
+  # so one byte is the whole of it.
+  #
+  # Restored rather than stripped everywhere else, because three bindings
+  # passing the engine's bytes through untouched is the behavior worth keeping,
+  # and R reconstructing them is the outlier.
+  svg <- paste(result, collapse = "\n")
+  if (nzchar(svg)) paste0(svg, "\n") else svg
 }
 
 # ---------------------------------------------------------------------------
