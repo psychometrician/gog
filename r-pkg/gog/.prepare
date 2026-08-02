@@ -53,6 +53,22 @@ fi
 
 echo "* gog/.prepare: staging the engine sources into ${DEST}/"
 
+# **Clear any engine a previous install left behind.** The header above says
+# `inst/bin/` is gitignored so it arrives empty, and on r-universe it does,
+# because that build starts from a fresh clone. On a developer's machine it does
+# not: `R CMD INSTALL` puts a binary there and nothing takes it away, so
+# `R CMD build` packages whatever the last install produced. That tarball then
+# carries an engine older than its own version number, and `configure` *prefers*
+# a prebuilt `inst/bin/` over every other source, so the stale one is installed
+# and never rebuilt.
+#
+# This is the stale-binary trap `configure` already fixed for `R CMD INSTALL`,
+# one artifact over: a source tarball built for testing shipped a 0.0.1 engine
+# under a 0.0.2 version, and no output comparison could see it, because the two
+# engines agreed on every sentence anyone drew. An assumption stated in a comment
+# is not enforcement; deleting is.
+rm -rf inst/bin inst/www
+
 rm -rf "${DEST}"
 mkdir -p "${DEST}"
 

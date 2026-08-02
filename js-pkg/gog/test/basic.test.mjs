@@ -13,10 +13,11 @@
 
 import assert from "node:assert/strict";
 import fs from "node:fs";
+import { spawnSync } from "node:child_process";
 import { DatabaseSync } from "node:sqlite";
 import test from "node:test";
 
-import { ENGINE_PLATFORMS, Query, platform_package } from "../src/render.js";
+import { ENGINE_PLATFORMS, Query, find_gog_cli, platform_package } from "../src/render.js";
 
 import {
   GogError,
@@ -1702,4 +1703,46 @@ test("a line has no single row to select, and the refusal names group()", () => 
 
 test("`at` is two numbers or a set of names", () => {
   assert.throws(() => brush(col.v, { at: [1, 2, 3] }), /two numbers/);
+});
+
+// The engine beside the package is the package's own.
+//
+// Thirteen declarations agreeing says nothing about the binary that draws. They
+// are separate artifacts and they went out of step exactly once it mattered: a
+// package carried an engine a whole release behind its own manifest, and
+// nothing in this repository could see it. Not the version guard, which reads
+// files; not the parity harness, which drew all 740 sentences of the manual
+// through both engines and found them identical, because two builds a patch
+// apart agree on every sentence that did not change between them. Bytes cannot
+// answer it either: an engine compiled inside an installed package hashes
+// differently from the same sources built in a checkout, because the build path
+// travels in the binary.
+//
+// `stdio` closes stdin, and that is not tidiness. An engine older than the flag
+// does not reject `--version`; it ignores the argument and blocks reading
+// stdin forever, since stdin is how a plot arrives. The obvious spelling of
+// this check hangs on exactly the engine it exists to catch.
+test("the engine reports the version the package declares", () => {
+  const engine = find_gog_cli();
+  const answer = spawnSync(engine, ["--version"], {
+    encoding: "utf8",
+    stdio: ["ignore", "pipe", "pipe"],
+    timeout: 30_000,
+  });
+  const reported = (answer.stdout ?? "").trim();
+
+  assert.match(
+    reported,
+    /^\d+\.\d+\.\d+/,
+    `the engine at ${engine} cannot say which version it is; it answered ` +
+      `${JSON.stringify(reported)}. An engine without \`--version\` predates ` +
+      `this check, so it is older than the package beside it. ` +
+      `Rebuild: cargo build --release -p gog-cli`
+  );
+  assert.equal(
+    reported,
+    manifest.version,
+    `the package says ${manifest.version} and its engine says ${reported}. ` +
+      `Engine: ${engine}. A plot drawn now is drawn by the wrong release.`
+  );
 });

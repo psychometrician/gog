@@ -2931,3 +2931,56 @@ local({
     cat("PASS: book_table('gapminder_2007') is 142 typed rows, and it draws\n")
   }
 })
+
+# --- the engine beside the package is the package's own -----------------------
+# A version number that agrees with itself in eight files still says nothing
+# about the binary that draws. Those are separate artifacts, and they went out
+# of step exactly once it mattered: a source tarball built for testing carried
+# an engine a whole release behind its own `DESCRIPTION`, and nothing here could
+# see it. Not the version guard, which reads files. Not `cargo test`, which
+# tests sources. Not the parity harness, which drew all 740 sentences of the
+# manual through both engines and found them identical, because two builds a
+# patch apart agree on every sentence that did not change between them.
+#
+# Comparing bytes cannot replace this either. An engine `configure` compiles
+# inside an installed package hashes differently from the same sources built in
+# a checkout, since the build path travels in the binary — so a hash tells a
+# fresh build from a stale one no better than it tells it from a wrong one.
+#
+# Asking the engine is the only question with an answer. Skipped when there is
+# no engine to ask, which is the development case this file is usually run in.
+local({
+  engine <- tryCatch(gog:::find_gog_cli(), error = function(e) NULL)
+  if (is.null(engine) || !nzchar(engine)) return(invisible(NULL))
+
+  # `stdin` must be the null device, and that is not tidiness. An engine older
+  # than this flag does not reject `--version` — it ignores the argument and
+  # blocks reading stdin, forever, because stdin is how a plot arrives. So the
+  # obvious way to write this check hangs on exactly the engine it exists to
+  # catch, which is worse than not checking at all. Closed stdin turns the hang
+  # into an immediate parse error, and the regex below reads that as the stale
+  # engine it is.
+  reported <- tryCatch(
+    system2(engine, "--version", stdout = TRUE, stderr = TRUE, stdin = nullfile()),
+    error = function(e) NA_character_
+  )
+  reported <- trimws(paste(reported, collapse = ""))
+
+  # An engine older than this flag answers by complaining about empty stdin.
+  # That is a stale engine too, and it is named rather than skipped.
+  if (!grepl("^[0-9]+\\.[0-9]+\\.[0-9]+", reported))
+    stop("FAIL: the engine at ", engine, " cannot say which version it is.\n",
+         "  It answered: ", reported, "\n",
+         "  An engine without `--version` predates this check, so it is older\n",
+         "  than the package it is sitting beside. Rebuild it:\n",
+         "    cargo build --release -p gog-cli")
+
+  declared <- as.character(utils::packageVersion("gog"))
+  if (reported != declared)
+    stop("FAIL: the package says ", declared, " and its engine says ", reported, ".\n",
+         "  Engine: ", engine, "\n",
+         "  A plot drawn now is drawn by the wrong release. Rebuild it:\n",
+         "    cargo build --release -p gog-cli")
+
+  cat("PASS: the engine reports ", reported, ", the same as the package\n", sep = "")
+})

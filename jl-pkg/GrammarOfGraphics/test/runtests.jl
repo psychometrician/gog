@@ -1254,3 +1254,40 @@ end
     end
 end
 
+
+# The engine beside the package is the package's own.
+#
+# Eight declarations agreeing says nothing about the binary that draws. They are
+# separate artifacts and they went out of step exactly once it mattered: a
+# package carried an engine a whole release behind its own manifest, and nothing
+# in this repository could see it. Not the version guard, which reads files; not
+# the parity harness, which drew all 740 sentences of the manual through both
+# engines and found them identical, because two builds a patch apart agree on
+# every sentence that did not change between them. Bytes cannot answer it
+# either: an engine compiled inside an installed package hashes differently from
+# the same sources built in a checkout, because the build path travels in the
+# binary.
+#
+# The version is read out of `Project.toml` with a regular expression rather
+# than with `TOML`, to keep the test environment free of a dependency the
+# package itself does not carry, and `pkgversion` needs Julia 1.9 while this
+# package supports 1.6.
+@testset "engine version" begin
+    declared = only(match(r"^version *= *\"([^\"]+)\""m,
+                          read(joinpath(@__DIR__, "..", "Project.toml"), String)).captures)
+
+    engine = find_gog_cli()
+
+    # `devnull` on stdin is not tidiness. An engine older than the flag does not
+    # reject `--version`; it ignores the argument and blocks reading stdin
+    # forever, since stdin is how a plot arrives. The obvious spelling of this
+    # check hangs on exactly the engine it exists to catch.
+    reported = strip(read(pipeline(`$engine --version`, stdin = devnull), String))
+
+    @test occursin(r"^\d+\.\d+\.\d+", reported)
+    if occursin(r"^\d+\.\d+\.\d+", reported)
+        @test reported == declared
+    else
+        @info "the engine cannot say which version it is; rebuild it" engine reported
+    end
+end

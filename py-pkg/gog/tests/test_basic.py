@@ -13,6 +13,7 @@ a user's first plot would.
 import builtins
 import json
 import re
+import subprocess
 import math
 import os
 import sys
@@ -1489,5 +1490,40 @@ else:
     _spec, _frames = _p._wire()
     assert _sent == {n: _R.to_wire(f, n) for n, f in _frames.items()}
     ok("the browser gets the same wire tables the engine does")
+
+# --- the engine beside the package is the package's own ----------------------
+# Eight files agreeing on a version number says nothing about the binary that
+# draws. They are separate artifacts and they went out of step exactly once it
+# mattered: a source tarball carried an engine a whole release behind its own
+# manifest, and nothing in this repository could see it. Not the version guard,
+# which reads files; not the parity harness, which drew all 740 sentences of the
+# manual through both engines and found them identical, because two builds a
+# patch apart agree on every sentence that did not change between them.
+#
+# Bytes cannot answer it either. An engine compiled inside an installed package
+# hashes differently from the same sources built in a checkout, because the
+# build path travels in the binary. Asking is the only question with an answer.
+#
+# `stdin` must be closed. An engine older than the flag does not reject
+# `--version`; it ignores the argument and blocks reading stdin forever, since
+# stdin is how a plot arrives. The obvious spelling of this check hangs on
+# exactly the engine it exists to catch.
+from gog import __version__ as _declared
+
+_engine = _R.find_gog_cli()
+_reported = subprocess.run(
+    [_engine, "--version"], capture_output=True, text=True,
+    stdin=subprocess.DEVNULL, timeout=30,
+).stdout.strip()
+assert re.match(r"^\d+\.\d+\.\d+", _reported), (
+    f"the engine at {_engine} cannot say which version it is; it answered "
+    f"{_reported!r}. An engine without `--version` predates this check, so it "
+    f"is older than the package beside it. Rebuild: cargo build --release -p gog-cli"
+)
+assert _reported == _declared, (
+    f"the package says {_declared} and its engine says {_reported}. "
+    f"Engine: {_engine}. A plot drawn now is drawn by the wrong release."
+)
+ok(f"the engine reports {_reported}, the same as the package")
 
 print(f"\nAll {passed} checks passed.")

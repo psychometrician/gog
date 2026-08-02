@@ -28,6 +28,26 @@ use std::io::Read;
 // ---------------------------------------------------------------------------
 
 fn main() {
+    // `gog-cli --version` prints the version this binary was built from, and
+    // exists so a package can be asked whether the engine beside it is its own.
+    //
+    // Nothing else can answer that. A binary's bytes do not identify it: a
+    // correct engine built freshly by `configure` inside an installed package
+    // hashes differently from the same sources built in a checkout, because the
+    // build path travels in the file. So a hash cannot tell a fresh build from
+    // a wrong one, and comparing drawn output cannot either — two engines a
+    // release apart agree on every sentence that did not change between them,
+    // which is nearly all of them. A source tarball once shipped an engine a
+    // whole version behind its own manifest and every check in this repository
+    // stayed green, including the harness that draws all 740 sentences in the
+    // manual through both.
+    //
+    // Read no stdin and exit 0, like `--rules` above it.
+    if std::env::args().skip(1).any(|a| a == "--version") {
+        println!("{}", env!("CARGO_PKG_VERSION"));
+        std::process::exit(0);
+    }
+
     // `gog-cli --rules` dumps the Mark × Channel legality matrix as JSON and
     // exits, reading no stdin. The book's Combinations appendix shells out to
     // this and renders the grid live, so the grid is generated from `rule_for`
