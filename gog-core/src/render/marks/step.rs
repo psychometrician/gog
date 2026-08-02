@@ -243,21 +243,27 @@ impl SvgRenderer {
 
         writeln!(svg, r##"  <g clip-path="url(#{clip})">"##).unwrap();
 
-        if let Some(gf) = group_field {
-            let gvals: Vec<&str> = match df.str_col(gf) {
-                Some(sv) => sv.iter().map(String::as_str).collect(),
-                None => { writeln!(svg, "  </g>").unwrap(); return; }
+        if group_field.is_some() {
+            // Every channel that splits, splits — see `marks::split_series`.
+            let Some(parts) = super::split_series(
+                df, n, color_field,
+                layer.encodings.get(&Channel::Group).map(|c| c.field.as_str()),
+                pattern_map.as_ref().map(|pm| pm.field()),
+            ) else {
+                writeln!(svg, "  </g>").unwrap();
+                return;
             };
-            let mut seen = std::collections::HashSet::new();
-            let mut groups: Vec<&str> = Vec::new();
-            for &g in &gvals { if seen.insert(g) { groups.push(g); } }
+            let mut series_of = vec![usize::MAX; n];
+            for (si, p) in parts.iter().enumerate() {
+                for &r in &p.rows { series_of[r] = si; }
+            }
 
-            for (gi, group) in groups.iter().enumerate() {
-                let ordered: Vec<usize> = (0..n).filter(|&i| gvals[i] == *group).collect();
+            for (gi, part) in parts.iter().enumerate() {
+                let ordered: Vec<usize> = part.rows.clone();
                 let stroke: &str = if let Some(c) = &set_color {
                     c
                 } else if color_field.is_some() {
-                    color_map.get(*group).map(String::as_str).unwrap_or(PALETTE_GOG[gi % PALETTE_GOG.len()])
+                    color_map.get(part.color_key.as_str()).map(String::as_str).unwrap_or(PALETTE_GOG[gi % PALETTE_GOG.len()])
                 } else {
                     PALETTE_GOG[0]
                 };

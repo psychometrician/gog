@@ -133,28 +133,28 @@ impl SvgRenderer {
             }
         };
 
-        if let Some(gf) = group_field {
-            let group_vals: Vec<&str> = if let Some(sv) = df.str_col(gf) {
-                sv.iter().map(String::as_str).collect()
-            } else {
+        if group_field.is_some() {
+            // Every channel that splits, splits — see `marks::split_series`. Binding
+            // `color` beside `group` used to discard the `group`, which drew one
+            // series where the sentence asked for one per combination.
+            let Some(parts) = super::split_series(
+                df, n, color_field,
+                layer.encodings.get(&Channel::Group).map(|c| c.field.as_str()),
+                pattern_map.as_ref().map(|pm| pm.field()),
+            ) else {
                 writeln!(svg, "  </g>").unwrap();
                 return;
             };
-            // Unique groups in first-seen order.
-            let mut seen = std::collections::HashSet::new();
-            let mut unique_groups: Vec<&str> = Vec::new();
-            for &g in &group_vals {
-                if seen.insert(g) { unique_groups.push(g); }
-            }
-            for (gi, group) in unique_groups.iter().enumerate() {
-                // Rows for this group, in original (pair) order.
-                let ordered: Vec<usize> = (0..n).filter(|&i| group_vals[i] == *group).collect();
-                // A set color wins; else the group's hue (`color`), else the
+            for (gi, part) in parts.iter().enumerate() {
+                // Rows for this series, in original (pair) order.
+                let ordered: Vec<usize> = part.rows.clone();
+                // A set color wins; else the series' hue (`color`), else the
                 // default — `group` separates series without inventing a color.
                 let stroke = if let Some(c) = &set_color {
                     c.clone()
                 } else if color_field.is_some() {
-                    color_map.get(*group).cloned().unwrap_or_else(|| PALETTE_GOG[gi % PALETTE_GOG.len()].to_string())
+                    color_map.get(part.color_key.as_str()).cloned()
+                        .unwrap_or_else(|| PALETTE_GOG[gi % PALETTE_GOG.len()].to_string())
                 } else {
                     PALETTE_GOG[0].to_string()
                 };

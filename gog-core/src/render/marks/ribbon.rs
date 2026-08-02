@@ -118,32 +118,34 @@ impl SvgRenderer {
 
         writeln!(svg, r##"  <g clip-path="url(#{clip})">"##).unwrap();
 
-        if let Some(gf) = group_field {
-            let Some(str_vals) = df.str_col(gf) else {
+        if group_field.is_some() {
+            // Every channel that splits, splits — see `marks::split_series`.
+            let Some(parts) = super::split_series(
+                df, n, color_field,
+                layer.encodings.get(&Channel::Group).map(|c| c.field.as_str()),
+                pattern_map.as_ref().map(|pm| pm.field()),
+            ) else {
                 writeln!(svg, "  </g>").unwrap();
                 return;
             };
-            let group_vals: Vec<&str> = str_vals.iter().map(String::as_str).collect();
-
-            let mut seen = std::collections::HashSet::new();
-            let mut unique_groups: Vec<&str> = Vec::new();
-            for &g in &group_vals {
-                if seen.insert(g) { unique_groups.push(g); }
+            let mut series_of = vec![usize::MAX; n];
+            for (si, p) in parts.iter().enumerate() {
+                for &r in &p.rows { series_of[r] = si; }
             }
 
             // Two or more bands share their x and overlap, so they draw translucent
             // to stay legible — a ribbon's stack-free answer to the overlap `area`
             // sends to `stack`. A lone colored band (each x its own hue) does not.
-            let overlaid = unique_groups.len() >= 2;
+            let overlaid = parts.len() >= 2;
             let fill_o = st.opacity.unwrap_or(if overlaid { OVERLAY_FILL } else { OPACITY_DEFAULT });
 
-            for (gi, group) in unique_groups.iter().enumerate() {
-                let rows: Vec<usize> = (0..n).filter(|&i| group_vals[i] == *group).collect();
+            for (gi, part) in parts.iter().enumerate() {
+                let rows: Vec<usize> = part.rows.clone();
                 let tri = band(&rows);
                 let fill: &str = if let Some(c) = &set_color {
                     c
                 } else if color_field.is_some() {
-                    color_map.get(*group).map(String::as_str)
+                    color_map.get(part.color_key.as_str()).map(String::as_str)
                         .unwrap_or(PALETTE_GOG[gi % PALETTE_GOG.len()])
                 } else {
                     PALETTE_GOG[0]

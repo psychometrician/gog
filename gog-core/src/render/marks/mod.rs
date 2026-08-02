@@ -2,6 +2,7 @@
 //! `SvgRenderer` in its own file, dispatched by `SvgRenderer::render`. The
 //! toolkit shared across marks (bar thickness, the `dodge` offset) lives here.
 use std::borrow::Cow;
+use std::collections::HashMap;
 use std::fmt::Write;
 use crate::data::DataFrame;
 use crate::ir::{Channel, Layer, Transform};
@@ -26,6 +27,85 @@ mod text;
 // marks whose geometry it is rather than inside either, since neither owns it.
 pub(crate) mod violin;
 mod zone;
+
+/// The rows of one drawn series, and the value that colors it.
+pub(crate) struct Series {
+    pub(crate) rows: Vec<usize>,
+    /// What the palette is keyed by: the `color` column's value in this series.
+    /// Empty when nothing encodes color, in which case the caller picks its own.
+    pub(crate) color_key: String,
+}
+
+/// Which rows form each series, when a mark is split into several.
+///
+/// **Every channel that splits, splits.** `color` splits and encodes what it
+/// split by; `group` splits and encodes nothing; `pattern` splits and encodes a
+/// texture. Bind two of them and both statements are true at once, so the mark is
+/// drawn once per *combination* — one polyline per ring, colored by continent.
+///
+/// This function exists because that was not what happened. Each of the five
+/// series marks picked a **single** field to split by, in the order
+/// `color`, then `group`, then `pattern`, so binding `color` beside `group`
+/// silently discarded the `group` — the accept-and-drop §12 forbids, and one that
+/// draws a plausible picture rather than an empty one. A world map grouped by
+/// coastline and colored by continent came out as seven scribbles, each one every
+/// ring of a continent joined end to end.
+///
+/// Written once here rather than five times for the reason [`place`] is one
+/// function: five marks resolving "which rows are one series" separately is five
+/// chances to disagree, and a Law-2 gap is exactly what a per-mark copy produces.
+///
+/// `None` means nothing splits and the caller draws every row as one series.
+pub(crate) fn split_series(
+    df: &DataFrame,
+    n: usize,
+    color_field: Option<&str>,
+    group_field: Option<&str>,
+    pattern_field: Option<&str>,
+) -> Option<Vec<Series>> {
+    // Deduplicated, because binding `color` and `group` to the *same* column is a
+    // legal thing to write and must not split twice by it.
+    let mut fields: Vec<&str> = Vec::new();
+    for f in [color_field, group_field, pattern_field].into_iter().flatten() {
+        if !fields.contains(&f) {
+            fields.push(f);
+        }
+    }
+    if fields.is_empty() {
+        return None;
+    }
+    // A field that is not text cannot split — the caller's own checks have already
+    // refused a continuous `group`, and a numeric `color` is a ramp rather than a
+    // partition, resolved before this is reached.
+    let cols: Vec<&Vec<String>> = fields.iter().filter_map(|f| df.str_col(f)).collect();
+    if cols.len() != fields.len() {
+        return None;
+    }
+    let color_at = color_field.and_then(|f| df.str_col(f));
+
+    // First appearance decides the order, which is the order every other split in
+    // this renderer uses. The separator is a byte no column value can contain, so
+    // two different tuples cannot collide into one key.
+    let mut seen: HashMap<String, usize> = HashMap::new();
+    let mut out: Vec<Series> = Vec::new();
+    for i in 0..n {
+        if cols.iter().any(|c| c.len() <= i) {
+            continue;
+        }
+        let key = cols.iter().map(|c| c[i].as_str()).collect::<Vec<_>>().join("\u{1}");
+        match seen.get(&key) {
+            Some(&at) => out[at].rows.push(i),
+            None => {
+                seen.insert(key, out.len());
+                out.push(Series {
+                    rows: vec![i],
+                    color_key: color_at.map(|c| c[i].clone()).unwrap_or_default(),
+                });
+            }
+        }
+    }
+    Some(out)
+}
 
 /// Where a data pair lands on the page, in whichever coordinate space the plot
 /// is drawn in.

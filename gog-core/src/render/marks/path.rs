@@ -159,25 +159,22 @@ impl SvgRenderer {
                 && (scene.is_none() || z_vals[i].is_finite())
         });
 
-        if let Some(gf) = group_field {
-            let group_vals: Vec<&str> = if let Some(sv) = df.str_col(gf) {
-                sv.iter().map(String::as_str).collect()
-            } else {
+        if group_field.is_some() {
+            let Some(parts) = super::split_series(
+                df, n, color_field,
+                layer.encodings.get(&Channel::Group).map(|c| c.field.as_str()),
+                pattern_map.as_ref().map(|pm| pm.field()),
+            ) else {
                 writeln!(svg, "  </g>").unwrap();
                 return;
             };
-            let mut seen = std::collections::HashSet::new();
-            let mut unique_groups: Vec<&str> = Vec::new();
-            for &g in &group_vals {
-                if seen.insert(g) { unique_groups.push(g); }
-            }
-            for (gi, group) in unique_groups.iter().enumerate() {
-                let mut idxs: Vec<usize> = (0..n).filter(|&i| group_vals[i] == *group).collect();
+            for (gi, part) in parts.iter().enumerate() {
+                let mut idxs = part.rows.clone();
                 keep(&mut idxs);
                 let stroke = if let Some(c) = &set_color {
                     c.clone()
                 } else if color_field.is_some() {
-                    color_map.get(*group).cloned()
+                    color_map.get(part.color_key.as_str()).cloned()
                         .unwrap_or_else(|| PALETTE_GOG[gi % PALETTE_GOG.len()].to_string())
                 } else {
                     PALETTE_GOG[0].to_string()

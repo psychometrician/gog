@@ -4193,6 +4193,60 @@ mod tests {
         }
     }
 
+    /// Six rows: three rings, two continents, with `west` holding two of the rings.
+    fn rings_by_continent() -> HashMap<String, DataFrame> {
+        let df = DataFrame::new()
+            .with_float("lon", vec![0.0, 1.0, 5.0, 6.0, 10.0, 11.0])
+            .with_float("lat", vec![0.0, 1.0, 0.0, 1.0, 0.0, 1.0])
+            .with_str("piece", ["a", "a", "b", "b", "c", "c"].map(String::from).to_vec())
+            .with_str(
+                "continent",
+                ["west", "west", "west", "west", "east", "east"].map(String::from).to_vec(),
+            );
+        let mut m = HashMap::new();
+        m.insert("t".to_string(), df);
+        m
+    }
+
+    /// **Every channel that splits, splits.** `color` splits and encodes; `group`
+    /// splits and encodes nothing; binding both means the mark is drawn once per
+    /// combination, which here is one stroke per ring.
+    ///
+    /// Each of the five series marks used to pick a *single* field to split by, in
+    /// the order `color`, `group`, `pattern` — so a `group` beside a `color` was
+    /// silently discarded. It drew a plausible picture rather than an empty one,
+    /// which is what kept it hidden: a world map grouped by coastline and colored
+    /// by continent came out as one scribble per continent, every ring joined end
+    /// to end.
+    #[test]
+    fn a_group_beside_a_color_splits_by_both_rather_than_being_dropped() {
+        for mark in [Mark::Path, Mark::Line, Mark::Step] {
+            let spec = PlotSpec::new()
+                .data("t")
+                .x("lon")
+                .y("lat")
+                .layer(
+                    Layer::new(mark.clone())
+                        .encode(Channel::Group, "piece")
+                        .encode(Channel::Color, "continent"),
+                );
+            let svg = SvgRenderer::default().render(&spec, &rings_by_continent());
+            let strokes = svg.matches("<polyline").count();
+            assert_eq!(strokes, 3, "{mark:?}: three rings, so three strokes:\n{svg}");
+            // And the colors still come from `continent`, not from `piece`: two of
+            // the three rings are `west`, so the three strokes carry two hues.
+            // Read off the polylines alone — the gridlines and the axes carry a
+            // `stroke` too, and counting those made this assertion meaningless.
+            let hues: std::collections::HashSet<&str> = svg
+                .split("<polyline")
+                .skip(1)
+                .filter_map(|s| s.split("stroke=\"").nth(1))
+                .filter_map(|s| s.split('"').next())
+                .collect();
+            assert_eq!(hues.len(), 2, "{mark:?}: colored by ring instead of continent");
+        }
+    }
+
     /// Two regions. `big` is a square with a smaller square inside it as a second
     /// ring — the Lesotho case — and `small` is that inner square as a region of
     /// its own. Every ring repeats its first vertex last, which is what divides a
