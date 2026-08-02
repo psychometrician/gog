@@ -13,7 +13,7 @@ name = "gog"
 # number spent should be the cheapest one that counts. The binding is at full
 # parity with R and could justify `0.1.0`; that is exactly why it is worth
 # keeping in reserve while the engine is pre-1.0 and the API can still move.
-version = "0.0.1"
+version = "0.0.2"
 description = "A Grammar of Graphics — one engine, spoken from Python"
 readme = "README.md"
 requires-python = ">=3.9"

@@ -1,6 +1,6 @@
 [package]
 name    = "gog-wasm"
-version = "0.0.1"
+version = "0.0.2"
 edition = "2021"
 license = "Apache-2.0"
 description = "The browser bridge — the same JSON the CLI reads, over linear memory instead of stdin."

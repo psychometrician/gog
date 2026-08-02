@@ -4,7 +4,7 @@ version = 4
 
 [[package]]
 name = "gog-cli"
-version = "0.0.1"
+version = "0.0.2"
 dependencies = [
  "gog-core",
  "serde",
@@ -13,7 +13,7 @@ dependencies = [
 
 [[package]]
 name = "gog-core"
-version = "0.0.1"
+version = "0.0.2"
 dependencies = [
  "serde",
  "serde_json",
