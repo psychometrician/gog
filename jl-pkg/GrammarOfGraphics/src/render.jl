@@ -344,15 +344,23 @@ end
 """The script that upgrades a static cube into a turnable one, or `""`."""
 function interactive_block(plot::Union{Plot,Page}, id::AbstractString)
     spec, frames = wire(plot)
-    needs_engine(spec) || return ""
+    # Two questions, not one. The *engine* has two reasons — an angle worth
+    # dragging, a bound worth moving — and both redraw. The *module* has a third,
+    # and it is every plot: looking closer. A zoom scales the viewBox and
+    # recomputes nothing, so it needs this file and not the WebAssembly beside it.
+    engine = needs_engine(spec)
 
     assets = find_wasm_assets()
     assets === nothing && return ""
     wasm_path, js_path = assets
 
-    wasm_url = isempty(WASM_URL[]) ? data_uri(wasm_path, "application/wasm") : WASM_URL[]
     js_url = module_specifier(isempty(JS_URL[]) ?
         data_uri(js_path, "text/javascript") : JS_URL[])
+    # Named only when something will ask for it: a data URI is paid at page size
+    # rather than at fetch time.
+    options = engine ?
+        ", { wasm: \"" * (isempty(WASM_URL[]) ? data_uri(wasm_path, "application/wasm") : WASM_URL[]) * "\" }" :
+        ""
 
     data = Dict{String,Any}()
     for (name, table) in frames
@@ -361,7 +369,7 @@ function interactive_block(plot::Union{Plot,Page}, id::AbstractString)
     request = to_json(Dict{String,Any}("spec" => spec, "data" => data))
 
     "\n<script type=\"module\">\nimport { mount } from \"" * js_url * "\";\n" *
-    "mount(\"" * id * "\", " * request * ", { wasm: \"" * wasm_url * "\" });\n</script>\n"
+    "mount(\"" * id * "\", " * request * options * ");\n</script>\n"
 end
 
 """The SVG wrapped for an HTML host, sized to fit its column.

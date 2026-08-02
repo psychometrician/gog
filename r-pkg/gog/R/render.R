@@ -389,14 +389,31 @@ module_specifier <- function(url) {
 
 interactive_block <- function(gog) {
   spec <- if (inherits(gog, "gog_page")) gog$page else finalize_spec(gog)$spec
-  # Two reasons to carry the engine, not one. A plot in the cube has an angle worth dragging; a plot that names a brush has a bound worth moving. A flat plot with neither stays a still image and pays nothing.
-  if (!spec_needs_engine(spec)) return("")
+
+  # **Two questions, not one, and they used to be the same question.** Carrying
+  # the *engine* has two reasons: a plot in the cube has an angle worth dragging,
+  # and a plot naming a brush has a bound worth moving. Both redraw.
+  #
+  # Carrying the *module* has a third, and it is every plot: looking closer.
+  # Zooming scales the SVG's viewBox and recomputes nothing, so it needs this
+  # file and not the WebAssembly beside it — 65 KB against 861 KB. Asking one
+  # question for both is what left a flat plot with no controls: `− + fit` were
+  # behind a gate that exists to avoid the engine, which zoom never loads.
+  needs_engine <- spec_needs_engine(spec)
 
   assets <- find_wasm_assets()
   if (is.null(assets)) return("")
 
-  wasm_url <- getOption("gog.wasm_url", data_uri(assets$wasm, "application/wasm"))
-  js_url   <- module_specifier(getOption("gog.js_url", data_uri(assets$js, "text/javascript")))
+  js_url <- module_specifier(getOption("gog.js_url", data_uri(assets$js, "text/javascript")))
+  # The engine is named only when something will ask for it. `mount` fetches it
+  # lazily, so a flat plot that never reaches that branch never pays — but a data
+  # URI is paid at *page* size rather than at fetch time, so it must not be
+  # written into the block at all.
+  wasm_arg <- if (needs_engine) {
+    paste0(', { wasm: "', getOption("gog.wasm_url", data_uri(assets$wasm, "application/wasm")), '" }')
+  } else {
+    ""
+  }
 
   frames <- mapply(resolve_query, gog$data_frames, names(gog$data_frames),
                    SIMPLIFY = FALSE)
@@ -409,7 +426,7 @@ interactive_block <- function(gog) {
   block <- paste0(
     '<script type="module">\n',
     'import { mount } from "', js_url, '";\n',
-    'mount("', id, '", ', request, ', { wasm: "', wasm_url, '" });\n',
+    'mount("', id, '", ', request, wasm_arg, ');\n',
     '</script>\n'
   )
   attr(block, "id") <- id

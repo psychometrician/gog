@@ -508,22 +508,31 @@ def _interactive_block(plot: Any, container_id: str) -> str:
         spec, data = plot._wire()
     except Exception:
         return ""
-    if not _needs_engine(spec):
-        return ""
+    # Two questions, not one. Carrying the *engine* has two reasons — an angle
+    # worth dragging, a bound worth moving — and both redraw. Carrying the
+    # *module* has a third, and it is every plot: looking closer. A zoom scales
+    # the SVG's viewBox and recomputes nothing, so it needs this file and not the
+    # WebAssembly beside it, 65 KB against 861 KB.
+    needs_engine = _needs_engine(spec)
 
     assets = _find_wasm_assets()
     if assets is None:
         return ""
     wasm_path, js_path = assets
 
-    wasm_url = WASM_URL or _data_uri(wasm_path, "application/wasm")
     js_url = _module_specifier(JS_URL or _data_uri(js_path, "text/javascript"))
+    # Named only when something will ask for it: a data URI is paid at page size
+    # rather than at fetch time, so it must not be written in at all otherwise.
+    options = ""
+    if needs_engine:
+        wasm_url = WASM_URL or _data_uri(wasm_path, "application/wasm")
+        options = f', {{ wasm: "{wasm_url}" }}'
 
     request = json.dumps({"spec": spec, "data": data})
     return (
         '\n<script type="module">\n'
         f'import {{ mount }} from "{js_url}";\n'
-        f'mount("{container_id}", {request}, {{ wasm: "{wasm_url}" }});\n'
+        f'mount("{container_id}", {request}{options});\n'
         "</script>\n"
     )
 

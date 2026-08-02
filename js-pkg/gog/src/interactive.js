@@ -953,6 +953,10 @@ export function attachView(container, options = {}) {
   return {
     apply,
     zoomed: () => scale !== 1,
+    /// Whether a further step in each direction would change anything. The bar
+    /// reads these to gray a button out rather than offer one that does nothing.
+    canZoomIn: () => scale < maxScale,
+    canZoomOut: () => scale > 1,
     zoom(by) {
       if (!learn()) return;
       scale = Math.min(Math.max(scale * by, 1), maxScale);
@@ -1003,14 +1007,34 @@ function addZoomButtons(bar, view, onChange = () => {}, handle = null) {
   // reader who has just magnified something almost always wants to move around
   // in it, and one who has zoomed all the way out has nothing left to move.
   const follow = () => {
-    if (!handle) return;
-    handle.setMode(view.zoomed() ? "pan" : (handle.picked?.() ?? "select"));
+    if (handle) handle.setMode(view.zoomed() ? "pan" : (handle.picked?.() ?? "select"));
+    refresh();
   };
-  bar.append(
-    make("\u2212", "zoom out", () => { view.zoom(1 / 1.4); follow(); }),
-    make("+", "zoom in", () => { view.zoom(1.4); follow(); }),
-    make("fit", "zoom out to the whole plot", () => { view.reset(); follow(); }),
-  );
+
+  const out = make("\u2212", "zoom out", () => { view.zoom(1 / 1.4); follow(); });
+  const into = make("+", "zoom in", () => { view.zoom(1.4); follow(); });
+  const fit = make("fit", "zoom out to the whole plot", () => { view.reset(); follow(); });
+
+  // **A button that can do nothing says so.** Offering `fit` on a plot already
+  // fitted, or `\u2212` at the whole picture, is a control that answers a press with
+  // silence \u2014 and a reader cannot tell that from one that is broken. Grayed is
+  // the same cue the cube's `reset` has carried since it was written, which is
+  // where the three numbers below come from rather than from taste.
+  function refresh() {
+    for (const [b, live] of [
+      [out, view.canZoomOut?.() ?? true],
+      [into, view.canZoomIn?.() ?? true],
+      [fit, view.zoomed()],
+    ]) {
+      b.disabled = !live;
+      b.style.opacity = live ? "1" : "0.4";
+      b.style.cursor = live ? "pointer" : "default";
+    }
+  }
+
+  bar.append(out, into, fit);
+  refresh();
+  return refresh;
 }
 
 /**
@@ -1106,6 +1130,29 @@ export function selectedRows(req, limit = PAGE_ROWS, offset = 0) {
  * bar still survives the redraw, because `innerHTML` is replaced on the
  * container and the bar is its sibling inside the wrapper rather than its child.
  */
+/**
+ * The bar under a plot that carries its controls.
+ *
+ * **One function because there is one bar.** The cube's angle readout, the
+ * selection's mode icons and the zoom buttons all sit in the same strip, and
+ * each of them wrote this style out by hand — three copies of one rule, and a
+ * fourth arriving with the zoom. A reader must not be able to tell which kind of
+ * bar they are looking at, and three hand-copied strings is exactly how two of
+ * them quietly stop matching.
+ *
+ * `kind` is only a hook for a stylesheet that wants to reach one and not the
+ * others. Nothing styles them differently today.
+ */
+function controlBar(kind) {
+  const bar = document.createElement("div");
+  bar.className = `gog-${kind}-controls`;
+  bar.style.cssText =
+    "font:12px/1.6 ui-monospace,SFMono-Regular,Menlo,monospace;color:#666;" +
+    "text-align:center;margin:-4px 0 12px;display:flex;gap:.75em;" +
+    "align-items:center;justify-content:center;flex-wrap:wrap;";
+  return bar;
+}
+
 function placeBar(container, bar) {
   const parent = container.parentNode;
   if (!parent) return;
@@ -1127,12 +1174,7 @@ function placeBar(container, bar) {
  * claims about the data.
  */
 function addSelectionBar(container, handle, view) {
-  const bar = document.createElement("div");
-  bar.className = "gog-selection-controls";
-  bar.style.cssText =
-    "font:12px/1.6 ui-monospace,SFMono-Regular,Menlo,monospace;color:#666;" +
-    "text-align:center;margin:-4px 0 12px;display:flex;gap:.75em;" +
-    "align-items:center;justify-content:center;flex-wrap:wrap;";
+  const bar = controlBar("selection");
 
   // A visible mode rather than a modifier nobody discovers. Plotly's modebar is
   // the proven shape here and the reason is not taste: a drag can only mean one
@@ -1435,13 +1477,8 @@ export function attachDrag(engine, container, request, options = {}) {
  * replaces the container's `innerHTML`, so controls placed within would be
  * destroyed by the first drag they caused.
  */
-function addControls(container, handle) {
-  const bar = document.createElement("div");
-  bar.className = "gog-view-controls";
-  bar.style.cssText =
-    "font:12px/1.6 ui-monospace,SFMono-Regular,Menlo,monospace;color:#666;" +
-    "text-align:center;margin:-4px 0 12px;display:flex;gap:.75em;" +
-    "align-items:center;justify-content:center;flex-wrap:wrap;";
+function addControls(container, handle, view = null) {
+  const bar = controlBar("view");
 
   const hint = document.createElement("span");
   hint.textContent = "drag to rotate";
@@ -1472,7 +1509,20 @@ function addControls(container, handle) {
     reset.style.cursor = moved ? "pointer" : "default";
   };
 
-  bar.append(hint, readout, reset);
+  bar.append(hint, readout);
+  // The zoom sits between the readout and `reset`, and it is given **no drag
+  // handle**. In the cube the drag is already spoken for: it turns the scene,
+  // which is the whole reason this bar exists. So the buttons zoom and the
+  // gesture keeps its one meaning, which is the rule the selection chapter
+  // states from the other side.
+  //
+  // Two buttons that both undo something sit side by side here, so each is
+  // named for *what it acts on* rather than both being called reset: `fit`
+  // returns the zoom, `reset` returns the angle. Pressing either leaves the
+  // other alone, so a reader who found an angle does not lose it by zooming
+  // back out.
+  if (view) addZoomButtons(bar, view);
+  bar.append(reset);
   placeBar(container, bar);
   return show;
 }
@@ -1500,13 +1550,93 @@ export async function mount(target, request, options = {}) {
     typeof target === "string" ? document.getElementById(target) : target;
   if (!container) return null;
 
-  // Two reasons to load the engine, and a plot with neither keeps its static
-  // SVG and costs nothing — no engine is even fetched for it. A plot in the cube
-  // has an angle worth dragging; a plot that names a brush has a bound worth
-  // moving. A flat plot with no brush is still the overwhelmingly common case.
+  // Two reasons to load the **engine**: a plot in the cube has an angle worth
+  // dragging, and a plot that names a brush has a bound worth moving. Both
+  // redraw, so both need the engine.
   const spatial = isSpatial(request?.spec);
   const brushed = hasBrush(request?.spec);
-  if (!spatial && !brushed) return null;
+
+  // **Zoom is not one of them, and it used to be stuck behind them.** Looking
+  // closer scales the `viewBox` and recomputes nothing, so it needs no engine at
+  // all — 65 KB of this module against 861 KB of WebAssembly. A flat plot was
+  // returning here with no controls because the question asked was *do you need
+  // the engine*, which is the right question for the drag and the wrong one for
+  // the buttons. Every plot can be looked at closely; only some can be turned.
+  //
+  // `fit` and not `reset`, and the cube's own chapter says why: there are two
+  // buttons there **because they undo different things** — `fit` returns the
+  // zoom, `reset` returns the angle. A flat plot has no angle, so a second
+  // button would undo nothing distinct.
+  if (!spatial && !brushed) {
+    if (options.controls === false) return null;
+    const view = attachView(container, options);
+    const bar = controlBar("view");
+    const refresh = addZoomButtons(bar, view);
+    placeBar(container, bar);
+
+    // **Drag pans, and it needs no button to say so.** The selection chapter's
+    // rule is that the sentence decides what a drag means; a flat plot that
+    // names no brush has said nothing, so there is only one thing left for a
+    // drag to be. Nothing competes, so nothing has to be chosen between.
+    //
+    // Only once zoomed, because a plot showing the whole picture has nowhere to
+    // move to — `attachView` clamps the window inside the picture, so a drag at
+    // full extent would be a gesture that answers with silence. The cursor is
+    // the cue: it becomes a hand exactly when the drag becomes useful.
+    let from = null;
+    const cursor = () => {
+      container.style.cursor = view.zoomed() ? (from ? "grabbing" : "grab") : "";
+    };
+    const onDown = (e) => {
+      if (!view.zoomed()) return;
+      from = { x: e.clientX, y: e.clientY };
+      container.setPointerCapture?.(e.pointerId);
+      cursor();
+      e.preventDefault();
+    };
+    const onMove = (e) => {
+      if (!from) return;
+      view.panBy(e.clientX - from.x, e.clientY - from.y);
+      from = { x: e.clientX, y: e.clientY };
+    };
+    const onUp = (e) => {
+      if (!from) return;
+      from = null;
+      container.releasePointerCapture?.(e.pointerId);
+      cursor();
+    };
+    container.addEventListener("pointerdown", onDown);
+    container.addEventListener("pointermove", onMove);
+    container.addEventListener("pointerup", onUp);
+    container.addEventListener("pointercancel", onUp);
+    // The buttons change whether a drag is worth anything, so they refresh the
+    // cursor too — otherwise a reader zooms in and the plot still says it cannot
+    // be moved until they happen to leave and re-enter it.
+    const tick = () => { refresh(); cursor(); };
+    bar.addEventListener("click", tick);
+    cursor();
+
+    container.dataset.gogInteractive = "true";
+    container.dataset.gogBuild = BUILD;
+    // The same shape the other two paths return, so a caller never has to ask
+    // which kind of plot it mounted.
+    return {
+      destroy() {
+        container.removeEventListener("pointerdown", onDown);
+        container.removeEventListener("pointermove", onMove);
+        container.removeEventListener("pointerup", onUp);
+        container.removeEventListener("pointercancel", onUp);
+        container.style.cursor = "";
+        view.destroy?.();
+        bar.remove();
+      },
+      reset() {
+        view.reset();
+        tick();
+      },
+      opened: [],
+    };
+  }
 
   try {
     const engine = await engineFor(options.wasm);
@@ -1533,11 +1663,19 @@ export async function mount(target, request, options = {}) {
     // `onView`, which cannot fire until `attachDrag`'s first draw — so the
     // forward reference is safe and saves attaching the controls twice.
     let show = () => {};
+    // A cube redraws by replacing the container's contents on every drag, which
+    // throws the `viewBox` away with the old element — so the zoom has to be
+    // re-applied after each draw or the first turn would snap it back to fit.
+    // `onView` fires after the draw, which is the one place that is true.
+    const view = attachView(container, options);
     const handle = attachDrag(engine, container, request, {
       ...options,
-      onView: (view) => show(view),
+      onView: (angles) => {
+        view.apply();
+        show(angles);
+      },
     });
-    if (options.controls !== false) show = addControls(container, handle);
+    if (options.controls !== false) show = addControls(container, handle, view);
     show(handle.view());
     container.style.cursor = "grab";
     container.dataset.gogInteractive = "true";

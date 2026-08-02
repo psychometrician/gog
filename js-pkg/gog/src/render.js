@@ -540,10 +540,19 @@ export function htmlBlock(plot) {
     'width="800" height="600" style="max-width:100%;height:auto;"'
   );
   const spec = plot.spec ?? plot;
-  const assets = specNeedsEngine(spec) ? findWasmAssets() : null;
+  // Two questions, not one. The *engine* has two reasons — an angle worth
+  // dragging, a bound worth moving — and both redraw. The *module* has a third,
+  // and it is every plot: looking closer. A zoom scales the viewBox and
+  // recomputes nothing, so it needs this file and not the WebAssembly beside it.
+  const needsEngine = specNeedsEngine(spec);
+  const assets = findWasmAssets();
   if (!assets) return `<div class="gog-plot" style="text-align:center;">\n${svg}\n</div>`;
 
-  const wasmUrl = assetUrls.wasm ?? dataUri(assets[0], "application/wasm");
+  // Named only when something will ask for it: a data URI is paid at page size
+  // rather than at fetch time.
+  const options = needsEngine
+    ? `, { wasm: "${assetUrls.wasm ?? dataUri(assets[0], "application/wasm")}" }`
+    : "";
   const jsUrl = moduleSpecifier(assetUrls.js ?? dataUri(assets[1], "text/javascript"));
   const id = "gog-" + Math.abs(hashOf(svg)).toString(36).padStart(10, "0").slice(0, 10);
   const request = JSON.stringify(wireRequest(plot));
@@ -551,7 +560,7 @@ export function htmlBlock(plot) {
   return (
     `<div class="gog-plot" id="${id}" style="text-align:center;">\n${svg}\n</div>\n` +
     `<script type="module">\nimport { mount } from "${jsUrl}";\n` +
-    `mount("${id}", ${request}, { wasm: "${wasmUrl}" });\n</script>\n`
+    `mount("${id}", ${request}${options});\n</script>\n`
   );
 }
 
