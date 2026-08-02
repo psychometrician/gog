@@ -311,6 +311,32 @@ function find_wasm_assets()
     nothing
 end
 
+"""The modules' own source, ready to sit inside `<script type="module">`.
+
+**A `data:` URL cannot be imported where a page has a content-security policy**,
+and every host that shows a plot outside a plain browser has one: JupyterLab,
+VS Code notebooks, and the Positron and RStudio viewer panes. `script-src` there
+does not list `data:`, so importing the module from one is refused, silently,
+because a blocked module import throws nothing the page can catch. The plot still
+drew, since the SVG is markup, and every control was missing. Inlining the source
+survives that policy: an inline module runs under `script-src 'unsafe-inline'`.
+"""
+function inline_modules(paths::Vector{String})
+    src = join([read(p, String) for p in paths], "\n")
+    # `interactive.js` takes its view helpers from the sibling file. Inlined,
+    # that specifier has nothing to resolve against, and both files are already
+    # in this one scope, so the two statements naming it go.
+    replace(src, r"(?:import|export)\s*\{[^}]*\}\s*from\s*\"\./view\.js\";?" => "")
+end
+
+"""The engine as a JavaScript expression evaluating to its bytes. `loadEngine()`
+takes a URL *or* a BufferSource, so this is the second of the two: no fetch, no
+scheme, nothing the policy can refuse."""
+function wasm_expression(path::AbstractString)
+    isempty(WASM_URL[]) || return "\"" * WASM_URL[] * "\""
+    "Uint8Array.from(atob(\"" * base64encode(read(path)) * "\"), c => c.charCodeAt(0))"
+end
+
 """A file as a `data:` URI."""
 function data_uri(path::AbstractString, mime::AbstractString)
     "data:" * mime * ";base64," * base64encode(read(path))
@@ -355,21 +381,23 @@ function interactive_block(plot::Union{Plot,Page}, id::AbstractString)
     wasm_path, js_path = assets
 
     # A flat plot names the smaller module and sends no data.
+    view_path = joinpath(dirname(js_path), "view.js")
+
     if !engine
-        view_url = isempty(JS_URL[]) ?
-            data_uri(joinpath(dirname(js_path), "view.js"), "text/javascript") :
-            replace(JS_URL[], "interactive.js" => "view.js")
-        return "\n<script type=\"module\">\nimport { mountView } from \"" *
-               module_specifier(view_url) * "\";\nmountView(\"" * id * "\");\n</script>\n"
+        head = isempty(JS_URL[]) ?
+            inline_modules([view_path]) * "\n" :
+            "import { mountView } from \"" *
+            module_specifier(replace(JS_URL[], "interactive.js" => "view.js")) * "\";\n"
+        return "\n<script type=\"module\">\n" * head *
+               "mountView(\"" * id * "\");\n</script>\n"
     end
 
-    js_url = module_specifier(isempty(JS_URL[]) ?
-        data_uri(js_path, "text/javascript") : JS_URL[])
-    # Named only when something will ask for it: a data URI is paid at page size
-    # rather than at fetch time.
-    options = engine ?
-        ", { wasm: \"" * (isempty(WASM_URL[]) ? data_uri(wasm_path, "application/wasm") : WASM_URL[]) * "\" }" :
-        ""
+    # The module arrives one of two ways, and the engine likewise. A book names
+    # files it serves; everything else carries them, because a notebook cell has
+    # no server behind it and a temp page in a viewer pane has no directory.
+    head = isempty(JS_URL[]) ?
+        inline_modules([view_path, js_path]) * "\n" :
+        "import { mount } from \"" * module_specifier(JS_URL[]) * "\";\n"
 
     data = Dict{String,Any}()
     for (name, table) in frames
@@ -377,8 +405,9 @@ function interactive_block(plot::Union{Plot,Page}, id::AbstractString)
     end
     request = to_json(Dict{String,Any}("spec" => spec, "data" => data))
 
-    "\n<script type=\"module\">\nimport { mount } from \"" * js_url * "\";\n" *
-    "mount(\"" * id * "\", " * request * options * ");\n</script>\n"
+    "\n<script type=\"module\">\n" * head *
+    "mount(\"" * id * "\", " * request *
+    ", { wasm: " * wasm_expression(wasm_path) * " });\n</script>\n"
 end
 
 """The SVG wrapped for an HTML host, sized to fit its column.

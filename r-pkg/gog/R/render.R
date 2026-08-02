@@ -407,6 +407,43 @@ module_specifier <- function(url) {
   if (grepl("^(data:|https?:|file:|/|\\./|\\.\\./)", url)) url else paste0("./", url)
 }
 
+# The module's own source, ready to sit inside `<script type="module">`.
+#
+# **A `data:` URL cannot be imported where a page has a content-security
+# policy**, and every host that shows a plot outside a plain browser has one:
+# RStudio's Viewer pane, Positron's, and Jupyter. `script-src` there does not
+# list `data:`, so `import { mount } from "data:text/javascript;base64,…"` is
+# refused — silently, because a blocked module import throws nothing a page can
+# catch. The plot still drew, since the SVG is markup, and every control was
+# missing: no zoom, no fit, no grab, no camera, no brush. Only the book worked,
+# because it sets `gog.js_url` to a real file and never takes this path.
+#
+# Inlining the source is what survives that policy: an inline module *runs*
+# under `script-src 'unsafe-inline'`, which is what those hosts allow, and it
+# needs no URL of any scheme. The engine travels the same way, as bytes decoded
+# in the page rather than a `data:` URI fetched from it.
+inline_modules <- function(paths) {
+  src <- paste(vapply(paths, function(p) paste(readLines(p, warn = FALSE),
+                                               collapse = "\n"), character(1)),
+               collapse = "\n")
+  # `interactive.js` takes its view helpers from the sibling file. Inlined, that
+  # specifier has nothing to resolve against, and both files are already in this
+  # one scope, so the two statements that name it go.
+  gsub("(import|export)\\s*\\{[^}]*\\}\\s*from\\s*\"\\./view\\.js\";?", "",
+       src, perl = TRUE)
+}
+
+# The engine as a JavaScript expression evaluating to its bytes. `loadEngine()`
+# takes a URL *or* a BufferSource, so this is the second of the two and needs no
+# fetch, no scheme, and nothing from the policy.
+wasm_expression <- function(path) {
+  url <- getOption("gog.wasm_url", NA_character_)
+  if (!is.na(url)) return(paste0('"', url, '"'))
+  raw_bytes <- readBin(path, "raw", file.info(path)$size)
+  b64 <- gsub("[\r\n]", "", jsonlite::base64_enc(raw_bytes))
+  paste0('Uint8Array.from(atob("', b64, '"), c => c.charCodeAt(0))')
+}
+
 interactive_block <- function(gog) {
   spec <- if (inherits(gog, "gog_page")) gog$page else finalize_spec(gog)$spec
 
@@ -429,17 +466,19 @@ interactive_block <- function(gog) {
   # so the block is one line beside an 8 KB module, where naming `interactive.js`
   # inlined 88 KB and the whole table again. `view.js` sits beside its sibling, so
   # the path and the URL are both derived rather than searched for a second time.
+  view_path <- file.path(dirname(assets$js), "view.js")
+  js_option <- getOption("gog.js_url", NA_character_)
+
   if (!needs_engine) {
-    view_url <- getOption("gog.js_url", NA_character_)
-    view_url <- if (is.na(view_url)) {
-      data_uri(file.path(dirname(assets$js), "view.js"), "text/javascript")
-    } else {
-      sub("interactive\\.js$", "view.js", view_url)
-    }
     id <- paste0("gog-", paste(sample(c(letters, 0:9), 10, replace = TRUE), collapse = ""))
+    head <- if (is.na(js_option)) {
+      paste0(inline_modules(view_path), "\n")
+    } else {
+      paste0('import { mountView } from "',
+             module_specifier(sub("interactive\\.js$", "view.js", js_option)), '";\n')
+    }
     block <- paste0(
-      '<script type="module">\n',
-      'import { mountView } from "', module_specifier(view_url), '";\n',
+      '<script type="module">\n', head,
       'mountView("', id, '");\n',
       '</script>\n'
     )
@@ -447,15 +486,13 @@ interactive_block <- function(gog) {
     return(block)
   }
 
-  js_url <- module_specifier(getOption("gog.js_url", data_uri(assets$js, "text/javascript")))
-  # The engine is named only when something will ask for it. `mount` fetches it
-  # lazily, so a flat plot that never reaches that branch never pays — but a data
-  # URI is paid at *page* size rather than at fetch time, so it must not be
-  # written into the block at all.
-  wasm_arg <- if (needs_engine) {
-    paste0(', { wasm: "', getOption("gog.wasm_url", data_uri(assets$wasm, "application/wasm")), '" }')
+  # The module arrives one of two ways, and the engine likewise. A book names
+  # files it serves; everything else carries them, because a temp page in a
+  # viewer pane has no directory behind it and a notebook cell has no server.
+  head <- if (is.na(js_option)) {
+    paste0(inline_modules(c(view_path, assets$js)), "\n")
   } else {
-    ""
+    paste0('import { mount } from "', module_specifier(js_option), '";\n')
   }
 
   frames <- mapply(resolve_query, gog$data_frames, names(gog$data_frames),
@@ -467,9 +504,9 @@ interactive_block <- function(gog) {
 
   id <- paste0("gog-", paste(sample(c(letters, 0:9), 10, replace = TRUE), collapse = ""))
   block <- paste0(
-    '<script type="module">\n',
-    'import { mount } from "', js_url, '";\n',
-    'mount("', id, '", ', request, wasm_arg, ');\n',
+    '<script type="module">\n', head,
+    'mount("', id, '", ', request,
+    ', { wasm: ', wasm_expression(assets$wasm), ' });\n',
     '</script>\n'
   )
   attr(block, "id") <- id

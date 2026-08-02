@@ -2841,31 +2841,57 @@ if (file.exists("r-pkg/gog/DESCRIPTION")) {
   cat("PASS: all seven declarations agree on version ", versions[[1]], "\n", sep = "")
 }
 
-# --- the inline browser engine must be one unbroken line ----------------------
+# --- the emitted module must survive a content-security policy ----------------
 #
-# `data_uri()` writes a `data:` URI into a JavaScript string literal, and a
-# literal newline inside one is a syntax error that stops the whole emitted
-# module from parsing. `jsonlite::base64_enc()` wraps at 72 characters, so this
-# was broken for every `print(p)` in a console — the RStudio and Positron viewer
-# panes, and a browser tab — while the book, which points at a shared file
-# instead of inlining, worked throughout and hid it.
+# Two failures live here, one behind the other, and both were invisible to every
+# other check because the book never takes this path: it points `gog.js_url` at
+# a served file, so it worked throughout while every console, viewer pane and
+# notebook was broken.
+#
+# ⑴ **A wrapped base64 payload is a syntax error.** `jsonlite::base64_enc()`
+#    wraps at 72 characters and a literal newline inside a JavaScript string
+#    literal stops the whole module parsing. Still checked below, because the
+#    engine is *still* base64 — it is now a string handed to `atob()` rather
+#    than a `data:` URI, and a newline would break that exactly as before.
+#
+# ⑵ **A `data:` URL cannot be imported under a content-security policy.**
+#    JupyterLab, VS Code notebooks and the Positron and RStudio viewer panes all
+#    set one, and none lists `data:` in `script-src`, so the import was refused
+#    silently: the plot drew, because the SVG is markup, and not one control
+#    appeared. Verified in headless Chrome under `script-src 'unsafe-inline'`,
+#    where the old page mounted nothing and the inlined one mounts all five
+#    buttons. So the rule is that the default path names no URL at all.
 local({
   assets <- gog:::find_wasm_assets()
   if (is.null(assets)) {
-    cat("SKIP: no browser engine built, so the inline URI cannot be checked\n")
+    cat("SKIP: no browser engine built, so the emitted module cannot be checked\n")
   } else {
-    uri <- gog:::data_uri(assets$js, "text/javascript")
-    stopifnot(!grepl("[\r\n]", uri))
-    stopifnot(startsWith(uri, "data:text/javascript;base64,"))
-
     p <- data(data.frame(a = 1:3, b = c(2, 1, 3), c = c(3, 2, 1))) +
       point + x(a) + y(b) + z(c)
     block <- gog:::svg_block(gog:::render_svg(p), p)
     script <- sub(".*<script type=\"module\">", "", block)
     script <- sub("</script>.*", "", script)
-    # Three newlines of formatting; 291 meant the base64 was wrapped.
-    stopifnot(length(gregexpr("\n", script)[[1]]) < 10)
-    cat("PASS: the inlined browser engine is a single unbroken line\n")
+
+    # No scheme a policy can refuse, and no import of any kind: the module is
+    # here, in the page, as source.
+    # The two schemes a policy refuses. Not a bare "data:" — `view.js` builds a
+    # `data:image/png` itself for the save button, and that is its own business.
+    stopifnot(!grepl("data:text/javascript", script, fixed = TRUE))
+    stopifnot(!grepl("data:application/wasm", script, fixed = TRUE))
+    stopifnot(!grepl("import\\s*\\{", script))
+    # The sibling specifier has to be gone, or the inlined module fails to
+    # resolve it and nothing runs.
+    stopifnot(!grepl("./view.js", script, fixed = TRUE))
+    # Both halves are present and callable.
+    stopifnot(grepl("function mountView", script, fixed = TRUE))
+    stopifnot(grepl("mount(\"gog-", script, fixed = TRUE))
+
+    # The engine still travels as base64, so ⑴ still applies: one unbroken run
+    # of base64 characters inside `atob("...")`.
+    b64 <- regmatches(script, regexpr('atob\\("[^"]*"\\)', script))
+    stopifnot(length(b64) == 1L)
+    stopifnot(!grepl("[\r\n]", b64))
+    cat("PASS: the emitted module names no URL and carries an unwrapped engine\n")
   }
 })
 

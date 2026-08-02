@@ -464,6 +464,40 @@ def _data_uri(path: str, mime: str) -> str:
         return f"data:{mime};base64," + base64.b64encode(handle.read()).decode("ascii")
 
 
+def _inline_modules(paths: List[str]) -> str:
+    """The modules' own source, ready to sit inside `<script type="module">`.
+
+    **A `data:` URL cannot be imported where a page has a content-security
+    policy**, and every host that shows a plot outside a plain browser has one:
+    JupyterLab, VS Code notebooks, and the Positron and RStudio viewer panes.
+    `script-src` there does not list `data:`, so importing the module from one is
+    refused, silently, because a blocked module import throws nothing the page
+    can catch. The plot still drew, since the SVG is markup, and every control
+    was missing. Inlining the source survives that policy: an inline module runs
+    under `script-src 'unsafe-inline'`, and needs no URL of any scheme.
+    """
+    src = "\n".join(open(p, encoding="utf-8").read() for p in paths)
+    # `interactive.js` takes its view helpers from the sibling file. Inlined,
+    # that specifier has nothing to resolve against, and both files are already
+    # in this one scope, so the two statements naming it go.
+    return re.sub(r'(?:import|export)\s*\{[^}]*\}\s*from\s*"\./view\.js";?', "", src)
+
+
+def _wasm_expression(path: str) -> str:
+    """The engine as a JavaScript expression evaluating to its bytes.
+
+    `loadEngine()` takes a URL *or* a BufferSource, so this is the second of the
+    two: no fetch, no scheme, nothing the policy can refuse.
+    """
+    import base64
+
+    if WASM_URL:
+        return f'"{WASM_URL}"'
+    with open(path, "rb") as handle:
+        b64 = base64.b64encode(handle.read()).decode("ascii")
+    return f'Uint8Array.from(atob("{b64}"), c => c.charCodeAt(0))'
+
+
 def _module_specifier(url: str) -> str:
     """An `import` needs a module specifier, which is stricter than a URL.
 
@@ -523,33 +557,37 @@ def _interactive_block(plot: Any, container_id: str) -> str:
     # A flat plot names the smaller module and sends no data: `mountView` takes a
     # container and stops, so the block is one line beside an 8 KB module where
     # naming `interactive.js` inlined 88 KB and the whole table again.
+    view_path = os.path.join(os.path.dirname(js_path), "view.js")
+
     if not needs_engine:
-        view_url = (
-            JS_URL.replace("interactive.js", "view.js")
+        head = (
+            f'import {{ mountView }} from '
+            f'"{_module_specifier(JS_URL.replace("interactive.js", "view.js"))}";\n'
             if JS_URL
-            else _data_uri(os.path.join(os.path.dirname(js_path), "view.js"),
-                           "text/javascript")
+            else _inline_modules([view_path]) + "\n"
         )
         return (
             '\n<script type="module">\n'
-            f'import {{ mountView }} from "{_module_specifier(view_url)}";\n'
+            f"{head}"
             f'mountView("{container_id}");\n'
             "</script>\n"
         )
 
-    js_url = _module_specifier(JS_URL or _data_uri(js_path, "text/javascript"))
-    # Named only when something will ask for it: a data URI is paid at page size
-    # rather than at fetch time, so it must not be written in at all otherwise.
-    options = ""
-    if needs_engine:
-        wasm_url = WASM_URL or _data_uri(wasm_path, "application/wasm")
-        options = f', {{ wasm: "{wasm_url}" }}'
+    # The module arrives one of two ways, and the engine likewise. A book names
+    # files it serves; everything else carries them, because a notebook cell has
+    # no server behind it and a temp page in a viewer pane has no directory.
+    head = (
+        f'import {{ mount }} from "{_module_specifier(JS_URL)}";\n'
+        if JS_URL
+        else _inline_modules([view_path, js_path]) + "\n"
+    )
 
     request = json.dumps({"spec": spec, "data": data})
     return (
         '\n<script type="module">\n'
-        f'import {{ mount }} from "{js_url}";\n'
-        f'mount("{container_id}", {request}{options});\n'
+        f"{head}"
+        f'mount("{container_id}", {request}, '
+        f"{{ wasm: {_wasm_expression(wasm_path)} }});\n"
         "</script>\n"
     )
 
