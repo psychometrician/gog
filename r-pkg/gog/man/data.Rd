@@ -18,7 +18,10 @@ names in the channels that follow, and the nearest table wins where a plot has
 more than one.
 }
 \details{
-Masks \code{base::data()}. Use \code{base::data()} to load built-in datasets.
+Masks \code{utils::data()}, R's dataset loader. Use \code{utils::data()} to
+load a built-in dataset; this one binds a table you already have. Both
+readings of \code{data(mtcars)} are well formed, so that one case cannot be
+told apart and is the reason the collision is documented rather than caught.
 }
 \section{Usage}{
 

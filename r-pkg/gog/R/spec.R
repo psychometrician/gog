@@ -306,7 +306,7 @@ new_spec <- function(name) {
     x        = NULL,
     y        = NULL,
     z        = NULL,
-    channels = list()   # plot-scoped channels — those written before any mark
+    channels = list()   # plot-scoped channels: those written before any mark
   )
 }
 
@@ -352,24 +352,24 @@ new_gog_spec <- function(spec, name, frame) {
 #' @export
 query <- function(con, sql, name = NULL) {
   if (missing(con)) {
-    stop("gog: `query()` needs a connection and a SELECT — ",
+    stop("gog: `query()` needs a connection and a SELECT: ",
          "`query(con, \"SELECT ...\")`.", call. = FALSE)
   }
   # Checked before the missing-`sql` branch so that `query("SELECT ...")` — the
   # mistake `data()` invites, that atom taking one argument — is told the fix
   # rather than "argument \"sql\" is missing, with no default".
   if (is.character(con)) {
-    stop("gog: `query()` takes the connection first, then the SELECT — ",
+    stop("gog: `query()` takes the connection first, then the SELECT: ",
          "`query(con, \"SELECT ...\")`. A query on its own cannot say which ",
          "database it runs against, which is why the connection is written out ",
          "loud. If the rows are already in hand, that is `data(df)`.", call. = FALSE)
   }
   if (missing(sql)) {
-    stop("gog: `query()` needs the SELECT as well as the connection — ",
+    stop("gog: `query()` needs the SELECT as well as the connection: ",
          "`query(con, \"SELECT ...\")`.", call. = FALSE)
   }
   if (!is.character(sql) || length(sql) != 1L) {
-    stop("gog: `query()` takes a SELECT as one string — ",
+    stop("gog: `query()` takes a SELECT as one string: ",
          "`query(con, \"SELECT ...\")`. Got ", class(sql)[1L],
          " of length ", length(sql), ".", call. = FALSE)
   }
@@ -389,7 +389,7 @@ gog_query <- function(con, sql) {
 resolve_query <- function(q, table) {
   if (!inherits(q, "gog_query")) return(q)
   if (!requireNamespace("DBI", quietly = TRUE)) {
-    stop("gog: `query()` needs the DBI package, which is not installed — ",
+    stop("gog: `query()` needs the DBI package, which is not installed: ",
          "`install.packages(\"DBI\")`, plus the driver for your database ",
          "(RSQLite, RPostgres, odbc). DBI is Suggests rather than a hard ",
          "dependency, so drawing a plot from a data frame never asks for it.",
@@ -404,7 +404,7 @@ resolve_query <- function(q, table) {
   )
   if (!is.data.frame(rows)) {
     stop("gog: the query for `", table, "` did not return a table. `query()` ",
-         "takes a SELECT — a statement that produces rows.", call. = FALSE)
+         "takes a SELECT, a statement that produces rows.", call. = FALSE)
   }
   rows
 }
@@ -928,9 +928,9 @@ set_position <- function(gog, ch, rhs) {
   cd <- channel_def(rhs$field, rhs$scale, rhs$base, rhs$limits, rhs$tick_count,
                     free = rhs$free)
   if (is.null(gog$current_layer)) {
-    gog$spec[[ch]] <- cd                    # written before any mark → the plot's
+    gog$spec[[ch]] <- cd                    # written before any mark -> the plot's
   } else {
-    gog$current_layer$encodings[[ch]] <- cd # written after a mark → that layer's
+    gog$current_layer$encodings[[ch]] <- cd # written after a mark -> that layer's
   }
   gog
 }
@@ -951,7 +951,7 @@ set_channel <- function(gog, ch, field, scale = NULL, base = NULL, limits = NULL
                         speed = NULL) {
   cd <- channel_def(field, scale, base, limits, speed = speed)
   if (is.null(gog$current_layer)) {
-    gog$spec$channels[[ch]] <- cd   # written before any mark → plot-scoped
+    gog$spec$channels[[ch]] <- cd   # written before any mark -> plot-scoped
   } else {
     gog$current_layer$encodings[[ch]] <- cd
   }
