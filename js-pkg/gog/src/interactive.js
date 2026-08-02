@@ -988,14 +988,42 @@ export function attachView(container, options = {}) {
  * modifier instead.
  */
 function addZoomButtons(bar, view, onChange = () => {}, handle = null) {
+  // Drawn rather than typed, for the reason the selection bar's three modes are:
+  // no font carries them, and the same 13px stroke keeps one bar looking like one
+  // bar. `currentColor` is what lets a disabled button gray its icon with it,
+  // rather than needing a second rule to keep the two in step.
+  const icon = (body) =>
+    `<svg width="13" height="13" viewBox="0 0 16 16" aria-hidden="true" ` +
+    `style="display:block;fill:none;stroke:currentColor;stroke-width:1.3">${body}</svg>`;
+  // A magnifier for the two that change the magnification, and a frame with its
+  // corners drawn in for the one that returns to the whole picture.
+  //
+  // **A word here is the one piece of English a translated book cannot reach.**
+  // The prose around a plot is translated and the grammar deliberately is not,
+  // but a button is neither: it is read by the same reader in the same sentence,
+  // and `fit` would stay English in all 27 languages. An icon has no language, so
+  // this is the same ruling the mode icons already made one bar over.
+  const GLASS = `<circle cx="7" cy="7" r="4.4"/><path d="M10.2 10.2 14 14"/>`;
+  const ART = {
+    out: icon(`${GLASS}<path d="M5 7h4"/>`),
+    in: icon(`${GLASS}<path d="M5 7h4M7 5v4"/>`),
+    fit: icon(
+      `<path d="M2 5.6V2h3.6M14 5.6V2h-3.6M2 10.4V14h3.6M14 10.4V14h-3.6"/>` +
+      `<rect x="5.4" y="5.4" width="5.2" height="5.2"/>`
+    ),
+  };
   const style =
     "font:inherit;color:#555;background:none;border:1px solid #ccc;" +
-    "border-radius:3px;padding:0 .5em;cursor:pointer;";
-  const make = (label, title, act) => {
+    "border-radius:3px;padding:.15em .3em;cursor:pointer;line-height:0;";
+  const make = (art, title, act) => {
     const b = document.createElement("button");
     b.type = "button";
-    b.textContent = label;
+    b.innerHTML = art;
+    // The title is what names the button for a reader who has not met the icon,
+    // and for a screen reader. `aria-label` rather than the text content, because
+    // the content is a decorative drawing.
     b.title = title;
+    b.setAttribute("aria-label", title);
     b.style.cssText = style;
     b.addEventListener("click", () => {
       act();
@@ -1011,9 +1039,9 @@ function addZoomButtons(bar, view, onChange = () => {}, handle = null) {
     refresh();
   };
 
-  const out = make("\u2212", "zoom out", () => { view.zoom(1 / 1.4); follow(); });
-  const into = make("+", "zoom in", () => { view.zoom(1.4); follow(); });
-  const fit = make("fit", "zoom out to the whole plot", () => { view.reset(); follow(); });
+  const out = make(ART.out, "zoom out", () => { view.zoom(1 / 1.4); follow(); });
+  const into = make(ART.in, "zoom in", () => { view.zoom(1.4); follow(); });
+  const fit = make(ART.fit, "show the whole plot", () => { view.reset(); follow(); });
 
   // **A button that can do nothing says so.** Offering `fit` on a plot already
   // fitted, or `\u2212` at the whole picture, is a control that answers a press with
