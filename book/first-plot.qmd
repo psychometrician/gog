@@ -30,6 +30,35 @@ point per row. There is no draw call to make, because a plot here is a
 *specification* (a sentence about the picture, not a claim about the data), and
 rendering it is the engine's job, not yours.
 
+::: {.content-visible when-format="html"}
+
+## The four boxes under the plot
+
+Look under the plot above. There are four small boxes, and **every plot in this
+book has them**. They are worth two minutes now, because you will see them on
+every page.
+
+The first two are magnifiers. One looks closer and one looks wider. The third is
+a frame, and it returns you to the whole picture. The fourth shows a hand, and it
+is a label rather than a button: it tells you that dragging moves the picture,
+once you have looked closer at part of it.
+
+A box is dimmed when it can do nothing. A plot showing the whole of itself cannot
+show more of itself, so its frame and its hand are gray until you look closer.
+
+**These change how you look, never what the plot says.** Magnifying is the same
+picture seen larger. The points, the axes and the numbers are the ones the engine
+already chose, so nothing is recalculated and nothing moves. If you want the plot
+itself to cover a narrower range, that is a different thing and it is written in
+the sentence, as [`limits`](scales.qmd).
+
+That division runs through the whole book. Looking is yours and it needs no
+words; what the plot *claims* is the sentence's, and every part of it can be
+written down and printed. A reader holding this book on paper sees exactly the
+plot the sentence describes, which is why the boxes are not in the printed
+edition and nothing is missing from it.
+:::
+
 ::: {.content-visible when-format="pdf"}
 That sentence has four spellings, and this edition prints all of them under every
 example: the R above, then Python, Julia and JavaScript. They are not translations

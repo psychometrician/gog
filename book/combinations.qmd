@@ -431,10 +431,8 @@ which of three each is. `line`, `step`, `area` and `ribbon` read a *domain* left
 right, and a cube has no left to right, so they are **refused** — a decision, not a
 queue entry, with `path` as the direction. `rule` and `zone` are **blocked**: their
 3-D forms are a plane and a slab, neither of which has a footprint to sort by, so
-placing them among the data needs an engine that can tell what hides what. Until
-2026-07-26 all six said
-"not drawn yet", which promised a renderer for four marks the design had already
-ruled out ([Space](space.qmd)).
+placing them among the data needs an engine that can tell what hides what
+([Space](space.qmd)).
 `polar` is the one column with no empty half at all: every mark that draws on the
 page draws in the circle. It reached that state last, and by losing an argument
 rather than by winning one — five marks were held out on the ground that their
@@ -468,11 +466,9 @@ named in the kernel and has no renderer behind it, so the column is the honest
 edge of the engine rather than a gap in the table. A whole column of `—` is what
 an unbuilt idea looks like when nothing is hidden.
 
-**Every mark in the kernel is now in all three crossings.** `surface` was the last
-one left out — a grammar-legal mark with no renderer, whose every cell would have
-read the not-yet-drawn glyph — and it joined them in 2026. `path` was in that
-sentence before it, and both arrivals are legible in the grids rather than merely
-recorded: a path has a full row on Mark × Channel and an entirely **empty** one on
+**Every mark in the kernel is in all three crossings**, and what a mark's rows
+say about it is worth reading across them.
+A path has a full row on Mark × Channel and an entirely **empty** one on
 Mark × Transform, because a path *is* its rows in order and every statistic replaces
 the rows. `rule` reads the same way on the transform grid for a reason one axis over,
 having handed a whole axis to the panel, so there is no measure to compute. And

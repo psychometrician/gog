@@ -23,6 +23,11 @@ That is a thousand earthquakes recorded near Fiji. `x` is longitude and `y` is
 latitude, and `map()` is the whole of what makes it a map. The axes read in
 degrees, because that is what the columns hold.
 
+In the web edition, `−`, `+` and *fit* under the plot look closer at a crowded
+part of it and return to the whole. A map wants that more than most plots,
+because places are crowded at every scale. Zooming is a **view**: it magnifies
+the picture and changes nothing the plot claims.
+
 ## The sphere has to be flattened, and something is lost
 
 The earth is round and the page is flat. No projection can flatten a sphere
@@ -206,22 +211,81 @@ the edge instead of where it belongs. Nothing was dropped, because dropping it
 would misreport how many places there are. `preserve = "area"` reaches both
 poles and has no such limit.
 
-## What is not drawn yet
+## Filling the regions: the choropleth
 
-The **choropleth** shades each country by a value: a map of life expectancy, or
-of income. It is the plot most people picture when they hear "map", and it is
-not drawn yet.
+Everything so far has drawn *outlines*. Filling each country by a value is the
+plot most people picture when they hear "map", and it has a name: the
+**choropleth**.
 
-What is missing is not the space. It is the geometry. A choropleth needs a
-filled region whose boundary comes from the data, and `zone`, which is the mark
-that shades a region, knows four ways to find its sides today. None of them is a
-coastline. GOG says exactly that:
+The mark is `zone`, which shades a region. Everywhere else in this book a zone
+finds its sides from its own row: a category's slot, `bounds`, `bin` or
+`density`. A coastline is a fifth way, and it is the first that arrives as
+**many rows for one shape**. So the sentence needs a word for which rows belong
+to which region, and `group` is that word already:
 
 ```{r}
-#| error: true
-data(world_borders) + zone + x(lon) + y(lat) + group(piece) +
-  color(continent) + map()
+data(world_borders) + zone + x(lon) + y(lat) + group(country) +
+  color(continent) + map() + title("Every country, filled by continent")
 ```
 
-Until it lands, a quantity on a map goes on `size` or `color` at a point, which
-is what this chapter has been doing.
+Compare that with the outline map earlier. Only two things changed: `path`
+became `zone`, and `group(piece)` became `group(country)`. A `path` traces one
+ring at a time, so it groups by ring. A `zone` fills a whole country, so it
+groups by country.
+
+## A value on the map
+
+`color` reads a number as readily as a category, and that is the choropleth
+proper. The value comes from a table you already know: `gapminder_2007`, the
+same 142 countries the scatter chapters draw.
+
+Joining two tables is the host language's job, not the grammar's. In R that is
+one line with `match()`:
+
+```{r}
+filled <- world_borders
+filled$life <- gapminder_2007$life[match(filled$country,
+                                         gapminder_2007$country)]
+filled <- filled[!is.na(filled$life), ]
+
+data(world_borders) + zone + x(lon) + y(lat) + group(country) +
+  style(color = "#e6e6ec") +
+  data(filled) + zone + x(lon) + y(lat) + group(country) + color(life) +
+  map() + title("Life expectancy at birth, 2007")
+```
+
+Two layers again, and the first one is doing real work. `gapminder_2007` covers
+120 of the 176 countries in the outline table, so the pale grey layer underneath
+is what the reader sees where there is no number. Without it those countries
+would simply be absent, and a reader could not tell "no data" from "no country".
+
+Read the map and the scatter together. The chapter on
+[first plots](first-plot.qmd) shows life expectancy against income as a cloud of
+points. Here is the same column, and the map answers a question the scatter
+cannot: *where*.
+
+## Rings, and the country inside another country
+
+A region is made of rings, and the rings are found by a rule rather than by a
+column: **a ring ends where it returns to the point it started from.** Boundary
+data is written that way, so nothing extra has to be said.
+
+That rule is what lets a country contain a hole. Lesotho lies entirely inside
+South Africa, and South Africa's boundary has a second ring around it:
+
+```{r}
+enclave <- world_borders[world_borders$country %in%
+                           c("South Africa", "Lesotho"), ]
+enclave$life <- gapminder_2007$life[match(enclave$country,
+                                          gapminder_2007$country)]
+
+data(enclave) + zone + x(lon) + y(lat) + group(country) + color(life) +
+  map() + title("Lesotho is not painted on top of South Africa")
+```
+
+Lesotho is a hole in South Africa, not a patch laid over it. The difference
+matters because the two countries have different values, and a patch would be
+correct only if it happened to be drawn second.
+
+If a ring in your data does not close, GOG cannot tell where one ring ends and
+the next begins. It says so rather than guessing quietly, and names what to fix.

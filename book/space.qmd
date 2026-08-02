@@ -80,6 +80,20 @@ plot reads out the two angles while you move it. So you can find an angle by
 hand, then write it into the sentence as `space(turn = , tilt = )`. A *reset*
 button returns the plot to the view it opened with.
 
+Beside it are the two magnifiers and the frame that sit under
+[every plot in this book](first-plot.qmd#the-four-boxes-under-the-plot). They
+mean here what they mean everywhere: look closer, look wider, return to the whole
+picture, and change nothing about what the plot says.
+
+The cube differs from a flat plot in two ways, and both follow from the drag
+being spoken for. There is **no hand**, because dragging turns the scene rather
+than moving the picture, so the zoom is on the buttons alone.
+
+And the cube is the one plot with *two* buttons that undo something. They are two
+because they undo different things: the frame returns the zoom, and *reset*
+returns the angle. So looking closer never costs you an angle you worked to
+find, and straightening the angle never costs you your zoom. A flat plot has no angle, so it carries *fit* alone.
+
 This changes nothing about the sentence. `space()` chooses where a plot opens,
 and the mouse takes you anywhere else from there. The data, the marks and the
 scales are the same at every angle. You are changing *how you look*, never
@@ -140,7 +154,8 @@ data(gm_all) + zone * bin(20) + x(gdp, scale = "log") + y(life)
 ```
 
 ```{r}
-data(gm_all) + bar * bin(20) + x(gdp, scale = "log") + y(life) + space()
+data(gm_all) + bar * bin(20) + x(gdp, scale = "log") + y(life) + space() +
+  style(color = "#2a9d8f")
 ```
 
 One word changed. The transform is the same `bin`, cutting the same two axes into
@@ -172,14 +187,14 @@ which transform you want depends on which kind of axis you have, and a floor can
 be one of each:
 
 ```{r}
-data(gm_eras) + bar * count + x(continent) + y(era) + space()
+data(gm_eras) + bar * count + x(continent) + y(era) + space() + style(color = "#2a9d8f")
 ```
 
 That one counts into slots on both axes — a table of counts, standing up. And a
 floor with one axis of each kind is a distribution per category, drawn as columns:
 
 ```{r}
-data(gm_all) + bar * bin(12) + x(life) + y(continent) + space()
+data(gm_all) + bar * bin(12) + x(life) + y(continent) + space() + style(color = "#2a9d8f")
 ```
 
 Look at the two floors side by side. The binned axis's columns **touch**, and the
@@ -204,7 +219,8 @@ point at a column: a mean, a sum, a median. Those read a floor too, and the
 sentence says which column out loud, on the axis the answer will stand along:
 
 ```{r}
-data(gm_eras) + bar * mean + x(continent) + y(era) + z(life) + space()
+data(gm_eras) + bar * mean + x(continent) + y(era) + z(life) + space() +
+  style(color = "#2a9d8f")
 ```
 
 Read that beside the flat `bar * mean + x(continent) + y(life)` and the rule is
@@ -247,7 +263,8 @@ together rather than one at a time. Give the pair a cube and each stands on a
 *cell* of the floor, measuring along `z`:
 
 ```{r}
-data(gm_eras) + interval * range + x(continent) + y(era) + z(life) + space()
+data(gm_eras) + interval * range + x(continent) + y(era) + z(life) + space() +
+  style(color = "#2a9d8f")
 ```
 
 Every cell's whisker spans that cell's own low and high. The caps are a **cross**
@@ -259,14 +276,15 @@ so the cap says what it says in both.
 Ask for the interval that carries a center and the pointrange comes with it:
 
 ```{r}
-data(gm_eras) + interval * confidence + x(continent) + y(era) + z(life) + space()
+data(gm_eras) + interval * confidence + x(continent) + y(era) + z(life) +
+  space() + style(color = "#2a9d8f")
 ```
 
 And the five-number summary stands the same way, its box a solid between the
 quartiles with the whiskers reaching past it:
 
 ```{r}
-data(gm_eras) + box + x(continent) + y(era) + z(life) + space()
+data(gm_eras) + box + x(continent) + y(era) + z(life) + space() + style(color = "#2a9d8f")
 ```
 
 Look at the median on each box. It is drawn only where the box's own sides face
@@ -417,10 +435,11 @@ The same summary at two tilts, and the second one is nearly a plan view:
 ```{r}
 #| layout-ncol: 2
 data(gm_eras) + bar * mean + x(continent) + y(era) + z(life) + space() +
+  style(color = "#2a9d8f") +
   z_label("Mean life expectancy") + title("The three-quarter view")
 
 data(gm_eras) + bar * mean + x(continent) + y(era) + z(life) +
-  space(tilt = 85) +
+  space(tilt = 85) + style(color = "#2a9d8f") +
   z_label("Mean life expectancy") + title("Tilted up, and thinned")
 ```
 

@@ -734,6 +734,27 @@ data, so there is nothing behind it to show through; a zone bounded on one axis 
 background, and the point of it is what you can see underneath. `style(opacity = )`
 overrides either.
 
+## Sides the data drew: the choropleth
+
+Every section above finds a zone's sides in the same place: **the row being
+drawn**. `bounds` names them, `bin` and `density` cut them, and a category owns a
+slot. There is a fifth source, and it is the only one that spans many rows.
+
+A boundary is a list of points around the edge of a region — a coastline, a
+border, the outline of a sales territory. It arrives as one row per point, so a
+single shape needs hundreds of rows, and the sentence needs a word for which rows
+belong together. That word is `group`:
+
+```r
+data(world_borders) + zone + x(lon) + y(lat) + group(country) +
+  color(life) + map()
+```
+
+That is the **choropleth**, and it lives in the [map](../map.qmd) space, where
+the two positions are longitude and latitude. The mark did not change and no
+atom was added: rectangularity was never this mark's identity, and the extent
+description always was.
+
 ## What you can set
 
 Everything a zone can be told to look like, generated from the engine's own rule
@@ -786,7 +807,7 @@ One setting you might expect is refused, and the refusal says something about th
 mark: `style(size = )`, because a zone's extent *is* its bounds and a size would
 be a second, contradictory answer to how big it is.
 
-A **border** is not refused, though it was until 2026-07-27, and the reversal
+A **border** is not refused, though it once was, and the reversal
 is worth stating because the first answer was reasonable. A zone began as a
 highlight behind a line, and a highlight that draws a frame competes with the
 data it sits under. The refusal pointed at two `rule`s instead. They really

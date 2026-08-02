@@ -70,7 +70,7 @@ than a measurement of the rows, so it belongs with the shared scale. One set of
 bins is cut from all three panels' rows at once, and each panel then counts
 only its own into them.
 
-The alternative is worth picturing, because GOG drew it until this was fixed. Cut
+The alternative is worth picturing. Cut
 per panel, Europe's narrow spread earns narrow bins and Africa's wide one earns
 wide bins, so bars of different widths stand against a single axis. A bar four
 years wide holding nine countries and a bar one year wide holding eight then

@@ -605,10 +605,10 @@ The text is a third case, and the honest comparison is a ghostwritten
 autobiography. The public figure whose name is on the cover usually did not
 type it. A professional writer interviews them, and what comes back is their
 thinking in another person's prose. These pages work the same way, with one
-difference. Not every idea in this book started with me. Claude often suggested
-something better than what I first brought, and my task was to accept it or
-reject it. Claude put all of it into English. The sentences are not mine; the
-decisions behind all of them are.
+difference. Not every idea in this book started with me. Claude Code often
+suggested something better than what I first brought, and my task was to accept
+it or reject it. Claude Code put all of it into English. The sentences are not
+mine; the decisions behind all of them are.
 
 Naming them as co-authors is meant literally. A line reading "with assistance
 from" would understate the work by an order of magnitude, and this is a book
@@ -705,20 +705,22 @@ I did not know Supabase at all. The application got finished anyway.
 
 Then it failed, and the reason had nothing to do with the code. I could not
 market it. I did not know how to reach the people it was built for, and after a
-while I shut it down. The application is gone. Two tutorial videos for it are
-still online, if you would like to see what it did:
+while I shut it down. The application is gone. Its tutorial videos are still
+online: eighty of them, in most major languages. Two are the English ones, if
+you would like to see what it did:
 [tutorial one](https://www.youtube.com/watch?v=eGiOGaY215M) and
-[tutorial two](https://www.youtube.com/watch?v=u93GtjJQ-PQ).
+[tutorial two](https://www.youtube.com/watch?v=u93GtjJQ-PQ). Claude Code did the
+translating for the rest, and with it I could do the same for this book.
 
 The lesson was not the one I went looking for. Building the thing was no longer
 the hard part. If I plan carefully, keep at it, and work through the problem
-with Claude, I can finish what I set out to build. So I began to want something
+with Claude Code, I can finish what I set out to build. So I began to want something
 else: my own packages, in the two languages I actually work in, R mainly and
 Python occasionally. This one came out of that.
 
 The application left me a skill as well. It is the one part of this project I
-did not ask Claude for. A web application is mostly interface, so I had to learn
-to design one. I drew every screen on paper before it was built. I did the
+did not ask Claude Code for. A web application is mostly interface, so I had to
+learn to design one. I drew every screen on paper before it was built. I did the
 user-experience work myself, and tested it over and over. This package asks for
 almost none of that skill. A plot is not an interface, and the engine has no
 screens. The exception is [selection](selection.qmd). The controls under a
@@ -736,7 +738,7 @@ One more item belongs on that list. English is not my first language. Every
 conversation behind this package was held in my own broken English, from the
 first design question to the last bug report. I chose the wrong words and put
 them in the wrong order. I left out the small words that hold an English
-sentence together. Claude understood what I meant nearly every time. Twenty
+sentence together. Claude Code understood what I meant nearly every time. Twenty
 years of thinking about this field reached the engine through sentences full of
 mistakes. None of that thinking was lost on the way. You can do better than I
 did.

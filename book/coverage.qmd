@@ -31,6 +31,7 @@ plane:
 
 ```{r}
 data(maunga_whau) + surface + x(east) + y(north) + z(elevation) +
+  color(elevation) + palette("plasma") +
   title("Maunga Whau, one row per crossing")
 ```
 
@@ -153,8 +154,9 @@ them live.
 | `qplot()`, and plotting bare vectors | A plot is a mapping from a table. Put the vectors in one. |
 | `geom_vline()`, `geom_hline()` as separate marks | Three marks for one idea. They are one `rule`, which takes a *column*, so a table of thresholds draws all of them at once, and which is also the rug via `style(reach = "edge")`. |
 | plotmath, `label_parsed()`, `label_bquote()` | A TeX engine is one backend's typesetting. Unicode does the real work: superscript powers on log ticks, Greek, sub- and superscripts in a label. |
-| `coord_cartesian(xlim = )` | One name here covers two different operations. *Narrowing the domain and running the statistics again* is `limits`, which already counts the rows it left out aloud. *Magnifying the finished picture* changes how you look and not what the plot claims, so it earns no word: it is a button under the plot in the web edition, beside the one that turns a cube. |
-| a free-shape selection, drawn around some points with the mouse | The kernel reserved the word `lasso` for this and gave it up in August 2026. Every other selection can be written down: `brush(gdp, at = c(1200, 45000))` names a range, and the printed page then shows the plot that range asks for. A free shape can only be written as a long list of corners, which nobody writes in a sentence. The *act* was not refused, only the word: in the web edition you draw the shape with the mouse and the sentence still says `brush`. |
+| `coord_cartesian(xlim = )` | One name here covers two different operations. *Narrowing the domain and running the statistics again* is `limits`, which already counts the rows it left out aloud. *Magnifying the finished picture* changes how you look and not what the plot claims, so it earns no word: it is a button under every plot in the web edition, `−`, `+` and *fit*. |
+| plotly-style interaction: click a point, and read what it is | The kernel reserved the word `click` for this and gave it up in August 2026, and the survey of what other tools do is what decided it. Plotly hands your application an *event*; Vega-Lite puts a predicate over named fields in the specification; D3 asks the author for a key function, and uses it for animation rather than for selection. GOG already holds all three. Reading a row belongs to the page, so hover does it. A predicate over a column is `brush`. A key is what an animation needs. |
+| a free-shape selection, drawn around some points with the mouse | The kernel reserved the word `lasso` for this and gave it up. Every other selection can be written down: `brush(gdp, at = c(1200, 45000))` names a range, and the printed page then shows the plot that range asks for. A free shape can only be written as a long list of corners, which nobody writes in a sentence. The *act* was not refused, only the word: in the web edition you draw the shape with the mouse and the sentence still says `brush`. |
 
 The refusal a ggplot2 reader is most likely to walk into is the first one, so
 here it is, live. Two series in different units, the second asking for its own
@@ -207,7 +209,6 @@ them. These are scheduling, not argument.
 | `geom_smooth(se = TRUE)` | the smoother's band, its missing pair form, exactly as `confidence` is the mean's |
 | ggrepel | `text * repel`, designed, waiting on a layout stage |
 | `geom_sf()`, `geom_map()`, `coord_sf()`, `borders()` | the `map` space draws, so a mark at a place on a projected earth is an ordinary sentence ([Map](map.qmd)). What is still owed is the polygon geometry underneath a choropleth: a filled region whose boundary comes from the data, with holes in it |
-| plotly-style interaction: click a point, and read what it is | `click` is named in the kernel and not drawn, and it waits on a question rather than on work. GOG has no way to say *this row is the same row as that one*, which is also what an animation needs before it can slide a bubble from one year to the next. Both wait for that word together. |
 | `geom_dotplot()` | a cluster-aware mesh, a second cutpoint rule for binning |
 | `scale_x_binned()`, equal-count bins | the other cutpoint rule, the same parameter |
 
@@ -229,8 +230,8 @@ direction, and they are now written down where a future session will find them.
 | `geom_curve()` | a curved connector between two points; `path` joins them straight |
 | `after_stat()`, `after_scale()`, `stage()`, and `geom_count()` with them | sending a transform's *output* to a channel rather than to a position. `point * count + size(count)` is refused, because the count a transform invented is not a column the sentence can name, so sizing a point by how many rows landed on it has no spelling. One question, and it is the widest one on this list. |
 | `geom_contour()` over a supplied `z` | iso-lines of a field you computed. `path * density` traces a field GOG estimated. |
-| `geom_text(angle = )`, and ggplot2's polar text generally | a rotated label. `text` places a name at a point in every space, upright, so a [sunburst](polar.qmd) cannot run its labels along their arcs and small wedges collide. Raised 2026-07-27 by the sunburst; general to `polar`, not owned by that plot. |
-| `theme(axis.text = element_blank())` and friends | saying a plot has **no readable axes** as a request. `theme(grid = )` removes gridlines and `tick_count = 0` is refused by design, so the silence has to be *earned from what an axis carries* rather than asked for: a pie is recognized from its bindings, a packing has no axes at all, and a partition's radial axis carries a ring index the transform invented and so draws no ticks, no rings and no name (2026-07-27, reported by a reader of the donut asking what `Depth` was). Three recognitions doing a general job, and the residue is the case where a reader wants a *real* quantity's axis silent — the measure round a sunburst, say, which today takes `x_label("")` and keeps its numbers. |
+| `geom_text(angle = )`, and ggplot2's polar text generally | a rotated label. `text` places a name at a point in every space, upright, so a [sunburst](polar.qmd) cannot run its labels along their arcs and small wedges collide. general to `polar`, not owned by that plot. |
+| `theme(axis.text = element_blank())` and friends | saying a plot has **no readable axes** as a request. `theme(grid = )` removes gridlines and `tick_count = 0` is refused by design, so the silence has to be *earned from what an axis carries* rather than asked for: a pie is recognized from its bindings, a packing has no axes at all, and a partition's radial axis carries a ring index the transform invented and so draws no ticks, no rings and no name. Three recognitions doing a general job, and the residue is the case where a reader wants a *real* quantity's axis silent — the measure round a sunburst, say, which today takes `x_label("")` and keeps its numbers. |
 
 The color one is worth seeing, because it is not a missing knob so much as a
 missing *kind* of statement. Three species, three colors:

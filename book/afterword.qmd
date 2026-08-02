@@ -23,22 +23,18 @@ grammar this small stays honest by being argued with.
 
 ## What is still to come
 
-The kernel you learned is the *designed* vocabulary, and the engine tells you
-honestly which parts are not drawn yet rather than ignoring them. **One word is
-left.** `click` is the selection that lets you ask a single point what it is.
-Every mark draws, every space draws, and every channel draws. `click` will not
-add a new kind of grammar either: it is one more letter in a system whose
-assembly rules you already know.
+The kernel you learned is the *designed* vocabulary, and for the first time since
+this book began there is nothing in it left to draw. **Every word draws.** Every
+mark, every space, every channel, and the one selection. The last word waiting
+was `click`, and it left in August 2026 without being built, because what it
+would have named turned out to be three things the grammar already had:
+[the kernel](grammar.qmd) says which three in a paragraph.
 
-One *picture* is owed that is not a missing word. The **choropleth** shades each
-country by a value, and it waits on geometry rather than on vocabulary: `zone`
-knows four ways to find its sides, and none of them is a coastline.
-[Map](map.qmd) shows what the space draws today and says what is missing.
-
-A third selection, `lasso`, was on this list until August 2026. It left because
-GOG decided against it, not because it was hard. [The kernel](grammar.qmd) says
-why in one paragraph, and the reason is a rule the whole book follows: a
-specification is something you can write down and print.
+One *picture* was owed after the last word, and it was owed geometry rather than
+vocabulary. The **choropleth** shades each country by a value, and `zone` knew
+four ways to find its sides, none of them a coastline. A boundary became the
+fifth in August 2026, and it cost no new word: `group` already said which rows
+belong together. [Map](map.qmd) draws it.
 
 The same sentence you write in R is a small, engine-neutral description
 under the hood, and that is what the other front ends speak, same words,
