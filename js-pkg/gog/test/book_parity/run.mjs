@@ -115,8 +115,11 @@ function outcomeOf(source, tables) {
     return { kind: "crash", text: `${error.name}: ${error.message}` };
   }
   try {
+    // Hashed exactly as rendered — see `extract.R`, which records R's side the
+    // same way. The trailing-whitespace strip that used to be here existed only
+    // because R returned one byte less than this does.
     const svg = gog.render_svg(plot);
-    const hash = crypto.createHash("sha256").update(svg.replace(/\s+$/, ""), "utf8").digest("hex");
+    const hash = crypto.createHash("sha256").update(svg, "utf8").digest("hex");
     return { kind: "drew", text: `SVG ${hash}` };
   } catch (error) {
     if (error instanceof GogError) return { kind: "refused", text: `REFUSED\n${error.message}` };

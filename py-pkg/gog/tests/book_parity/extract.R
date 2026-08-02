@@ -145,9 +145,19 @@ for (chapter in chapters) {
         # the hash is what the comparison actually uses, and it lets the check
         # run in an environment with no R in it. A refusal keeps its full text,
         # because there the *words* are the thing being compared.
+        # Hashed exactly as rendered. This used to strip trailing whitespace,
+        # and the three runners stripped theirs to match, because R returned a
+        # document one byte shorter than the other three drew: `system2` hands
+        # back lines with their separators removed, so rejoining them lost the
+        # newline the engine had written. R returns the engine's bytes now.
+        #
+        # The strip was applied to every side, which is why it never appeared as
+        # a disagreement — and a normalization symmetric enough to be invisible
+        # is one that hides the repair as well as the fault. It hid this for as
+        # long as it existed.
         outcome <- tryCatch(
           paste0("SVG ", digest::digest(
-            sub("[[:space:]]+$", "", suppressMessages(render_svg(value))),
+            suppressMessages(render_svg(value)),
             algo = "sha256", serialize = FALSE)),
           error = function(e) paste0("REFUSED\n", conditionMessage(e))
         )

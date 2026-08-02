@@ -166,8 +166,11 @@ def main():
             with warnings.catch_warnings():
                 warnings.simplefilter("ignore")
                 plot = eval(python_source, scope)
+                # Hashed exactly as rendered — see `extract.R`, which records
+                # R's side the same way. The `.rstrip()` that used to be here
+                # existed only because R returned one byte less than this does.
                 outcome = "SVG " + hashlib.sha256(
-                    render_svg(plot).rstrip().encode("utf-8")).hexdigest()
+                    render_svg(plot).encode("utf-8")).hexdigest()
         except GogError as error:
             outcome = "REFUSED\n" + str(error)
         except NameError as error:

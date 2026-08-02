@@ -105,8 +105,11 @@ function outcome_of(source::AbstractString, tables::Dict{String,Any})
         return (:crash, sprint(showerror, error))
     end
     try
+        # Hashed exactly as rendered — see `extract.R`, which records R's side
+        # the same way. The `rstrip` that used to be here existed only because R
+        # returned one byte less than this does.
         svg = render_svg(plot)
-        (:drew, "SVG " * bytes2hex(sha256(rstrip(svg))))
+        (:drew, "SVG " * bytes2hex(sha256(svg)))
     catch error
         error isa GogError && return (:refused, "REFUSED\n" * error.msg)
         (:crash, sprint(showerror, error))
