@@ -137,7 +137,7 @@ heatmap cell is this mark rather than a new one. The next section is that plot.
 Every zone so far has been a highlight: a rectangle behind a line, saying where
 to look. Nothing says it has to sit behind anything. Give a zone a pair on the
 measure axis and a categorical position, and each category's rectangle runs from
-one number to another with no plot underneath — which is what the two charts
+one number to another with no plot underneath, which is what the two charts
 finance draws most are made of.
 
 A **waterfall** is a running total, broken into the steps that made it. GOG has
@@ -177,7 +177,7 @@ Two parts of that sentence are worth pausing on, because both are this mark's
 defaults being overruled on purpose.
 
 `style(opacity = 1)` is there because a zone whose sides you **named** is
-drawn translucent — 20%, on the reasoning that a rectangle someone chose is
+drawn translucent at 20%, on the reasoning that a rectangle someone chose is
 nearly always a highlight and something is nearly always drawn over it. Here
 nothing is: the rectangle *is* the measurement. A cut zone (a
 [heatmap](#cells-cut-from-the-data-the-heatmap) cell) is already opaque for
@@ -185,7 +185,7 @@ the same reason, and this is how you say the named one is data too.
 
 The `left`/`right` pair buys the gap between bars. Left to itself a zone fills
 its slot whole, where a [bar](bar.qmd) takes four fifths and the fifth of air
-says the categories are separate — a zone's extent is normally *constitutive*,
+says the categories are separate: a zone's extent is normally *constitutive*,
 the region a category owns being the thing the mark names. A waterfall bar's
 width means nothing, so it wants the bar's manners rather than the zone's, and
 naming the sides is how to ask. The arithmetic works because a categorical axis
@@ -253,7 +253,7 @@ combination, which no scatter of overlapping dots can tell you.
 
 Three things in that sentence are worth slowing down on.
 
-**`bin` cut both axes, and nothing asked it to.** It is the same transform that
+`bin` cut both axes, and nothing asked it to. It is the same transform that
 makes a histogram, and how many axes it cuts is read off the mark rather than
 requested. A `bar` leaves one axis free to measure a height along, so `bar *
 bin` cuts the other one. A zone measures nothing by height, and needs an extent
@@ -265,7 +265,7 @@ The qualifier in that sentence is doing real work, and the mixed mesh below is
 where it pays: an axis that arrived already cut, because its values are
 categories, is left exactly as it is.
 
-**The count became the color, and nothing bound it.** Both positions were
+The count became the color, and nothing bound it. Both positions were
 spoken for, so the measurement went to the one channel left that can carry a
 number, and the legend named itself. This is the courtesy `bar * bin` already
 does for the y axis, one channel over: a transform that invents a column also
@@ -301,7 +301,7 @@ Look at the legend's middle label: 6.32, not 20.5, because the midpoint of a log
 ramp is the geometric mean, so the strip names the color it actually paints
 there.
 
-**The white gaps are not zeroes.** A cell with no country-years in it is left as
+The white gaps are not zeroes. A cell with no country-years in it is left as
 panel rather than painted the pale end of the ramp, because painting it would
 claim a measurement nobody made. The ragged edge you get instead *is* the shape
 of the data's support, which is information rather than an unfinished job.
@@ -367,7 +367,7 @@ rows and columns that carry on past where the data thins out; the hexagons do
 not, and what is left at the edge is the shape of the data rather than the shape
 of the mesh.
 
-### Why the mesh belongs to `bin` and not to the mark
+### Why the mesh belongs to `bin`
 
 Everywhere else in this book, a transform computes and the **mark** decides how
 the result is drawn: `bar * bin`, `line * bin` and `step * bin` are one histogram
@@ -393,7 +393,7 @@ because there the cells are intervals and an interval has no shape.
 data(gm_all) + bar * bin(tiling = "hex") + x(life)
 ```
 
-### One caveat, and it is honest rather than hidden
+### One caveat
 
 The hexagons are regular in the space the mesh is cut in, which normalizes both
 axes to the same number of steps. The panel then stretches that space by whatever
@@ -478,7 +478,7 @@ data(iris_flowers) + zone * density(levels = 8) +
 ```
 
 That is the **filled contour**, and it is the same parameter `path` takes. `levels`
-means one thing — cut the field into this many — and then each mark does what it
+means one thing (cut the field into this many) and then each mark does what it
 does: a path traces the boundaries, a zone fills between them. So the two are not
 two features but one sentence read by two marks, and a band's edge is the contour
 line to the pixel:
@@ -496,8 +496,8 @@ the field into level sets that `path` strokes and `zone` fills.
 The bands nest, and that is why plain filled shapes are enough to draw them. A
 denser region is always *inside* a less dense one, so GOG paints the outermost band
 first and lets each inner one cover it; nothing has to be cut out. The exception is
-a crater — a ring-shaped cluster with a hollow middle, points scattered around a
-circle — where the hollow really is a hole, and painting the band over it fills the
+a crater (a ring-shaped cluster with a hollow middle, points scattered around a
+circle) where the hollow really is a hole, and painting the band over it fills the
 hollow in. GOG has no mark for a shape with a hole, so that is the one density this
 reading draws wrongly, and the traced form shows it correctly.
 
@@ -507,7 +507,7 @@ Three ways to get sides so far, and every one of them put the sides in a column:
 `bounds` named them, `bin` cut them, `density(levels = )` traced them. There is a
 fourth, and it needs no column at all.
 
-A **categorical axis is already divided.** Six weeks on the x axis is six
+A categorical axis is already divided. Six weeks on the x axis is six
 slots. The slot "Week 3" owns is a place on the panel with a left edge and a
 right edge, both fixed by the axis when it laid the categories out. So a
 category bounds its own axis, and two categorical positions bound a zone
@@ -526,7 +526,7 @@ for the weekday, where Thursdays are consistently darkest and Fridays lightest. 
 extremes are the corners the two rhythms agree on: the darkest cell is Thursday of
 week six, the palest the Friday in week four.
 
-The rule underneath is one sentence: **a category owns a slot, a number is a point.**
+The rule underneath is one sentence: a category owns a slot, a number is a point.
 A point has no width, which is why two continuous positions still leave a zone with
 nothing to bound it, and why `bin` had to be asked to cut them into cells first.
 Nothing else changed, and nothing was added to the kernel: no mark, no transform, no
@@ -573,7 +573,7 @@ normalizes*, and GOG does not answer it by giving one word two meanings.
 
 It reads a cut mesh the same way, because `proportion` divides whatever measured the
 cells and does not care what did. Compose it with `bin` and the heatmap's counts come
-back as fractions of the whole — the [relative-frequency
+back as fractions of the whole, the [relative-frequency
 histogram](../transforms.qmd#normalizing-something-other-than-a-tally) with a second
 axis:
 
@@ -586,7 +586,7 @@ data(gm_all) + zone * bin(20) * proportion + x(gdp, scale = "log") + y(life) +
 
 The wind table holds more than which cells the observations fell in. Each row also
 carries a **speed**, and the question "how fast, on average, in each cell?" is not a
-tally at all — it is the other kind of statistic, the kind you point at a column:
+tally at all; it is the other kind of statistic, the kind you point at a column:
 
 ```{r}
 data(winds) + zone * mean + x(direction) + y(season) + color(speed) +
@@ -596,20 +596,20 @@ data(winds) + zone * mean + x(direction) + y(season) + color(speed) +
 Compare that with `zone * count` two plots up. The sentence is the same shape and one
 word longer, and the extra word is the whole difference: `count` was handed no column,
 so it counts rows and names its own answer; `mean` was handed one, so `color(speed)`
-says which. All five summaries read a mesh this way — `sum`, `mean`, `median`, `max`
-and `min` — and each writes its answer back into the column it reduced.
+says which. All five summaries read a mesh this way (`sum`, `mean`, `median`, `max`
+and `min`), and each writes its answer back into the column it reduced.
 
 This is where the sentence a page above has to be finished. "Both positions were
 spoken for, so there was nowhere else for the answer to go" is true, and color is
-where it went. What follows from that, and had been missed, is that **color is
-therefore the channel that names the column too** — because a summary reduces *in
+where it went. What follows from that, and had been missed, is that color is
+therefore the channel that names the column too, because a summary reduces *in
 place*. On a flat bar, `bar * mean + x(continent) + y(life)` names `life` with `y` and
 puts the mean back on `y`; the source and the destination are one binding. A zone
 measures by color, so `color` plays both parts.
 
 Which gives the rule in one sentence, and it is the same subtraction the heatmap's
-dimensions come from: **a summary groups by every position the mark does not measure
-with, and reduces the column named on the one it does.** A bar measures with `y`, so
+dimensions come from: a summary groups by every position the mark does not measure
+with, and reduces the column named on the one it does. A bar measures with `y`, so
 it groups by `x`. A zone measures with nothing positional, so it groups by both. In
 [the cube](../space.qmd) a bar measures with `z`, so it groups by the pair as well.
 
@@ -684,8 +684,8 @@ Africa's mass sits far left and Europe's far right, Asia and the Americas are wi
 where Africa and Europe are concentrated, and Oceania is two countries and says so.
 
 Two things about it are worth naming, because they are what make it a *mesh* and not
-five plots side by side. Every row is cut on **the same edges** — the layout is
-computed once from the whole column, never per category — so a column of cells is a
+five plots side by side. Every row is cut on **the same edges**, and the layout is
+computed once from the whole column, never per category, so a column of cells is a
 straight comparison and the boundaries line up all the way down. And an **empty cell
 stays empty**: Oceania's row simply starts where its data does, rather than being
 padded with the floor of the ramp, so the ragged left edge is the support of each
@@ -740,7 +740,7 @@ Every section above finds a zone's sides in the same place: **the row being
 drawn**. `bounds` names them, `bin` and `density` cut them, and a category owns a
 slot. There is a fifth source, and it is the only one that spans many rows.
 
-A boundary is a list of points around the edge of a region — a coastline, a
+A boundary is a list of points around the edge of a region: a coastline, a
 border, the outline of a sales territory. It arrives as one row per point, so a
 single shape needs hundreds of rows, and the sentence needs a word for which rows
 belong together. That word is `group`:
@@ -885,8 +885,8 @@ supply either or both. `bounds` names the sides and measures nothing. `count`
 tallies into the cells your categories already are, and says nothing about
 where those are. `density` estimates a field and samples it. `bin` cuts cells
 out of a continuous axis and supplies both, which is why it is also the one
-that can give half up. `proportion` answers neither question — it divides
-whatever measurement is there by its total — so it stands after any of them.
+that can give half up. `proportion` answers neither question: it divides
+whatever measurement is there by its total, so it stands after any of them.
 Two transforms answering the same half is the contradiction, so a `bounds`-ed
 rectangle (one per row, sides you named) has no mesh for a summary to group
 into:
@@ -936,7 +936,7 @@ it names the transform that does tally into cells you already have:
 data(six_weeks) + zone * bin + x(weekday) + y(week)
 ```
 
-One categorical axis is a different matter, and it draws — that is the mixed mesh
+One categorical axis is a different matter, and it draws. That is the mixed mesh
 above. `density` is where the two part company, and it is not an oversight. A field
 is estimated *between* the data points, so it needs somewhere to spread on both axes;
 a density per category would be normalized inside each slot on its own, which makes

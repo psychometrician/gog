@@ -90,7 +90,7 @@ data(gapminder_2007) + point * jitter + x(continent) + y(life) + style(opacity =
 when the category names are long. See [Point](../marks/point.qmd) and
 [`jitter`](../transforms.qmd).
 
-## The numbers are already the answer: just draw them
+## When the numbers are already the answer
 
 When the table already holds one value per category, no transform is
 involved; `bar` draws data as it arrives:

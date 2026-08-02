@@ -13,9 +13,9 @@ together", and GOG keeps them apart in the operators you have already learned.
 `|` and `/` place things side by side and one above the other, whatever those
 things are:
 
-* `plot | facet(continent)` — one plot, split by a column, panels side by side
-* `plot_a | plot_b` — two plots, arranged side by side
-* `plot_a / plot_b` — two plots, one above the other
+* `plot | facet(continent)`: one plot, split by a column, panels side by side
+* `plot_a | plot_b`: two plots, arranged side by side
+* `plot_a / plot_b`: two plots, one above the other
 
 A facet is *semantic*: one plot, one coordinate space, split by a variable and
 sharing everything. A page is *presentational*: each plot keeps its own space,
@@ -32,8 +32,8 @@ write on the right of the operator, and nothing else needs saying.
 *"Points, x is gdp, y is life, beside bars derived by count, x is continent."*
 
 Two entirely different measurements: a country's income against its life
-expectancy, and how many countries each continent holds. They share nothing —
-not a scale, not an axis, not a legend — because there is nothing to share. The
+expectancy, and how many countries each continent holds. They share nothing,
+not a scale, not an axis, not a legend, because there is nothing to share. The
 page divides evenly between them.
 
 `/` stacks the same two:
@@ -45,16 +45,16 @@ page divides evenly between them.
 
 Both operators take pages as well as plots, so a page nests: `(a | b) / c` is two
 plots in a row above one across the bottom. In R, and in Python and Julia,
-**`/` binds tighter than `|`** — so `a | b / c` reads as `a | (b / c)`.
+**`/` binds tighter than `|`**, so `a | b / c` reads as `a | (b / c)`.
 Parenthesize when the reading matters.
 
-## The one rule: a shared column is a shared axis
+## A shared column is a shared axis
 
 Two composed plots are unrelated until they name the same column on the same
 axis. When they do, that is not two axes that happen to look alike; it is one
 axis, and GOG treats it as one:
 
-> **The same column on the same axis in two composed plots is one axis** — one
+> The same column on the same axis in two composed plots is one axis: one
 > scale, one panel extent, drawn once.
 
 Here are two plots, both reading `gdp` on x:
@@ -193,7 +193,7 @@ The three answer different questions, and the choice is not a matter of taste:
 * **Faceting** when the panels are *the same measurement* on different subsets.
   One scale, one legend, and the comparison between panels is the point.
 * **Composition** when the plots are *different measurements* that belong on one
-  page. Each keeps its own space, and what they have in common — if anything —
+  page. Each keeps its own space, and what they have in common, if anything,
   is the variable they share.
 
 Layering is the one to check yourself on, because it is the only one the engine

@@ -49,7 +49,7 @@ separates out rather than stretching a whisker to reach.
 
 ## Distribution across many groups
 
-The comparison scales, and the outliers earn their keep. Here is life expectancy
+The comparison scales, and the outliers start to carry information. Here is life expectancy
 across the continents in 2007. Five distributions read at a glance, and two
 countries that sit apart from their neighbors:
 

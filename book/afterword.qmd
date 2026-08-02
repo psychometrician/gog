@@ -33,8 +33,8 @@ geometry: `zone` finds its sides five ways, and a **boundary** is one of them,
 drawn by the data itself. It cost no new word, because `group` already says which
 rows belong together. [Map](map.qmd) draws it.
 
-The same sentence you write in R is a small, engine-neutral description
-under the hood, and that is what the other front ends speak, same words,
+The same sentence you write in R becomes a small, engine-neutral description
+inside the package, and that is what the other front ends speak, same words,
 different capture idiom. All three speak it today, and each one's chapter is
 its difference list, a page long apiece:
 [Python](bindings/python.qmd), [Julia](bindings/julia.qmd),

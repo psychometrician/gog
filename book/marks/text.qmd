@@ -18,7 +18,7 @@ counts drawn as dots are five anonymous points:
 ```{r}
 data(medals) + point + x(gold) + y(silver) +
   x_label("Gold") + y_label("Silver") +
-  title("Five countries — but which is which?")
+  title("Five countries, but which is which?")
 ```
 
 *"Given the medals: points, x is gold, y is silver."*
@@ -114,7 +114,7 @@ data(medals) + text + x(gold) + y(silver) + label(country) +
 A per-row font size (a word cloud, where the biggest word is the most frequent)
 is a parked follow-up; for now `size` is a layer setting, not a mapped channel.
 
-## Why `label` is a channel, not part of the mark
+## Why `label` is a channel
 
 `text` **requires** a `label`: it is the mark's minimum syllable, the way `x` and
 `y` are. Ask for a text with nothing to say and the engine refuses with direction

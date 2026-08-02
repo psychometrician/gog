@@ -23,7 +23,7 @@ The rule is fixed; the atoms are infinite.
 
 ---
 
-## `+`: Compose
+## `+`: compose
 
 `+` is the general assembly operator.
 Every atom enters a specification via `+`:
@@ -51,7 +51,7 @@ Multiple marks in the same expression produce multiple layers, rendered in order
 data(gapminder_2007) + x(gdp) + y(life) +
   point + color(continent) +
   data(life_bands) + rule + style(color = "darkgrey", pattern = "dashed") +
-  title("GDP vs Life Expectancy — 2007")
+  title("GDP vs Life Expectancy, 2007")
 ```
 
 *"Given gapminder 2007: x is gdp, y is life, points colored by continent, and also rules from the life bands."*
@@ -103,7 +103,7 @@ Which parts of that order the engine actually enforces, and which are yours to
 arrange, is gathered for all four operators in [Which orders
 matter](#which-orders-matter) below.
 
-#### When a refinement sits far from what it belongs to
+#### A refinement far from what it refines
 
 The convention has one spot that catches people out. A grouped bar chart pairs
 `dodge` with `color`, yet they land at opposite ends of the sentence, with the
@@ -111,7 +111,7 @@ positions in between:
 
 ```{r}
 data(gm_eras) + bar * mean * dodge + x(continent) + y(life) + color(era) +
-  title("Mean life expectancy by continent — 1957 vs 2007")
+  title("Mean life expectancy by continent, 1957 vs 2007")
 ```
 
 `dodge` and `color(era)` are plainly related: `dodge` has nothing to set side
@@ -140,7 +140,7 @@ not they sit side by side on the page.
 
 ---
 
-## `*`: Derive
+## `*`: derive
 
 `*` modifies a mark **in place**, producing a compound form.
 
@@ -150,9 +150,9 @@ line * smooth # smoothed trend line
 line * density # kernel density curve
 ```
 
-Two rules govern `*`, and only two. **The mark goes on the left, and the
-transforms go on the right.** Then, **among the transforms themselves, the order
-you write them in does not matter**: any order draws the same plot. The rest of
+Two rules govern `*`, and only two. The mark goes on the left, and the
+transforms go on the right. Then, among the transforms themselves, the order
+you write them in does not matter: any order draws the same plot. The rest of
 this section is why each rule holds.
 
 ### Why the order is fixed
@@ -166,7 +166,7 @@ syllable.
 
 ```r
 bar * bin   # ✅  "a bar mark, derived by binning"
-bin * bar   # ❌  Error — a transform cannot derive a mark
+bin * bar   # ❌  Error: a transform cannot derive a mark
 ```
 
 ### What `*` is rigid about
@@ -187,7 +187,7 @@ the cut comes first because otherwise the mean has nothing to average.
 That is also why the pairs that can stand together are the ones that do *different*
 jobs: saying where the cells are, what is in them, or what scale the answer is read
 on. A pair that answers the same question twice is refused rather than sequenced, so
-`bin` and `count` — both of them tallies with cells of their own — cannot both be in
+`bin` and `count` (both of them tallies with cells of their own) cannot both be in
 one layer:
 
 ```{r}
@@ -206,7 +206,7 @@ transforms](transforms.qmd#chaining-transforms) takes the pairs one at a time.
 # Histogram: life expectancy across all countries in 2007
 data(gapminder_2007) + bar * bin + x(life) + y(count) +
   x_label("Life expectancy (years)") + y_label("Count") +
-  title("Distribution of Life Expectancy — 2007")
+  title("Distribution of Life Expectancy, 2007")
 ```
 
 ```{r}
@@ -221,12 +221,12 @@ data(gapminder_2007) + x(gdp) + y(life) +
 # Kernel density estimate
 data(gapminder_2007) + line * density + x(life) + y(density) +
   x_label("Life expectancy (years)") + y_label("Density") +
-  title("Kernel Density — Life Expectancy 2007")
+  title("Kernel Density: Life Expectancy 2007")
 ```
 
 ---
 
-## `|` and `/`: Facet, or compose
+## `|` and `/`: facet, or compose
 
 `|` puts things side by side and `/` puts one above the other. Which things is
 decided by what is written on the right: a `facet()` splits one plot into
@@ -251,7 +251,7 @@ written after it, read left to right. See [Faceting](faceting.qmd) for the
 grid, what the panels share, and why the facet column must be a category.
 
 With a plot on the right, the same two operators arrange separate plots on one
-page — each keeping its own coordinate space, sharing an axis only where the two
+page, each keeping its own coordinate space, sharing an axis only where the two
 name the same column on it:
 
 ```{r}
@@ -373,14 +373,14 @@ says, the grammar would have piped, and there would have been no need for
 ggplot2 at all. Three reasons are given for preferring the pipe. Two of them do
 not reach GOG, and the third is the one that settles the question the other way.
 
-**The first is about one language.** A pipe is a single idea that works
+The first is about one language. A pipe is a single idea that works
 everywhere in R, so a grammar spelling composition differently is one more thing
 to learn, and switching between the two spellings is a frequent source of errors
 (his own included). That is true, and it is an argument about R's ecosystem. GOG
 is one syntax spoken by four languages, and the arithmetic there comes out
 differently. `+` can be given a meaning in R, Python and Julia. The pipe cannot:
-Julia has `|>` in its base library and R has two of them, but **Python has no
-pipe operator, and no way to add one**, since it lets you give new meanings only
+Julia has `|>` in its base library and R has two of them, but Python has no
+pipe operator, and no way to add one, since it lets you give new meanings only
 to the operators it already has. Piping would have meant piping in two languages
 and spelling it some other way in the third, which is the fork this project
 exists to avoid. JavaScript decides nothing here, because it cannot overload any
@@ -408,7 +408,7 @@ point + x(gdp)
 
 No pile of atoms accumulates, so there is no grouping to get wrong.
 
-**The third reason is the one that decides it**, and it is less an argument
+The third reason is the one that decides it, and it is less an argument
 against the pipe than a bill the pipe would present. A pipe applies functions:
 `x |> f` means `f(x)`, so every atom would have to become a function taking a
 plot and returning one. Make `bar` a function, then ask what `bar * bin` could

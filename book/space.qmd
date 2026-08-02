@@ -169,7 +169,7 @@ written for the flat page. How many axes a transform cuts is read off the mark:
 `bar * bin` cuts one, because a bar spends an axis on the domain and keeps the
 other to measure along, and `zone * bin` cuts two, because a zone keeps none. A
 cube hands the bar a third axis, so it can spend two on the floor and still have
-one to measure along — and the same sentence that cuts one axis on the page cuts
+one to measure along, and the same sentence that cuts one axis on the page cuts
 two here. Read that way the 3-D histogram is not a feature; it is what the rule
 already said, once there were three axes for it to say it about.
 
@@ -179,7 +179,7 @@ than bound, so naming it would be naming an output.
 
 ## What the floor is made of
 
-A floor is cells, and cells come from the axes — which is the [zone](marks/zone.qmd)
+A floor is cells, and cells come from the axes, which is the [zone](marks/zone.qmd)
 chapter's question arriving one dimension up, with the same four answers. A
 continuous axis has to be **cut** into cells before anything can be counted in
 them; a categorical axis arrives already cut, because a category *is* a cell. So
@@ -190,7 +190,7 @@ be one of each:
 data(gm_eras) + bar * count + x(continent) + y(era) + space() + style(color = "#2a9d8f")
 ```
 
-That one counts into slots on both axes — a table of counts, standing up. And a
+That one counts into slots on both axes: a table of counts, standing up. And a
 floor with one axis of each kind is a distribution per category, drawn as columns:
 
 ```{r}
@@ -213,7 +213,7 @@ transform, exactly as it does on the plane:
 data(gm_eras) + bar * bin + x(continent) + y(era) + space()
 ```
 
-Both of those transforms *invent* what they measure — nobody hands `count` a
+Both of those transforms *invent* what they measure: nobody hands `count` a
 column to reduce, it tallies rows. The other kind of statistic is the kind you
 point at a column: a mean, a sum, a median. Those read a floor too, and the
 sentence says which column out loud, on the axis the answer will stand along:
@@ -224,14 +224,14 @@ data(gm_eras) + bar * mean + x(continent) + y(era) + z(life) + space() +
 ```
 
 Read that beside the flat `bar * mean + x(continent) + y(life)` and the rule is
-one sentence in both: **a summary groups by every position the mark does not
-measure with, and reduces the column named on the one it does.** Flat, a bar
+one sentence in both: a summary groups by every position the mark does not
+measure with, and reduces the column named on the one it does. Flat, a bar
 measures with `y`, so it groups by `x` and averages `y`. In the cube it measures
 with `z`, so it groups by the *pair* and averages `z`. Nothing about `mean`
 changed; the mark simply has one more position to subtract from.
 
-That is the same subtraction this chapter opened with — the positions the space
-offers, less the one the mark measures along — read a second time. The first
+That is the same subtraction this chapter opened with, read a second time: the
+positions the space offers, less the one the mark measures along. The first
 reading says how many axes `bin` cuts. This one says how many keys `mean` groups
 by. One rule, two questions, and the answer to both is read off the mark.
 
@@ -251,14 +251,14 @@ data(gm_eras) + bar * smooth + x(continent) + y(era) + z(life) + space()
 
 A smoother traces a curve of one column against another, and a curve needs a
 domain to run along. The cube's floor is a pair of positions with no left to
-right, which is exactly why `line` and `area` cannot stand here either — the
+right, which is exactly why `line` and `area` cannot stand here either: the
 same reason, arriving through a transform instead of through a mark.
 
-## The other two things that stand on a floor
+## Two more marks on the floor
 
 A bar is not the only mark that stands in a slot and measures along the other
 axis. A whisker spans, and a box summarizes, and those are the same question
-asked of the same pair of axes — which is why all three get the third dimension
+asked of the same pair of axes, which is why all three get the third dimension
 together rather than one at a time. Give the pair a cube and each stands on a
 *cell* of the floor, measuring along `z`:
 
@@ -289,7 +289,7 @@ data(gm_eras) + box + x(continent) + y(era) + z(life) + space() + style(color = 
 
 Look at the median on each box. It is drawn only where the box's own sides face
 you, because it is a plane *inside* an opaque solid and the far half of it is
-behind the box — the same back-face rule the solid's own six faces follow. A group
+behind the box, the same back-face rule the solid's own six faces follow. A group
 with a single observation is the exception, and it goes the other way: its
 quartiles coincide, so there is no solid at all, and what you see is the whole
 median quad seen face-on. Flat, that same group draws as a line, which is what a
@@ -357,7 +357,7 @@ that sort removed. Two marks that differ by one rule on the page turn out to
 differ by a whole dimension in the cube.
 
 Some are **blocked**, which is a different sentence. A `rule` marks a value on one
-axis and spans the ones it does not name — in a cube that is *two* axes, so a rule
+axis and spans the ones it does not name: in a cube that is *two* axes, so a rule
 here is a **plane**:
 
 ```{r}
@@ -403,9 +403,9 @@ data(thermals) + path + x(east) + y(north) + z(altitude) + color(glider) |
 The one thing worth explaining is the guides, because each cube draws its own
 tick numbers and its own three axis names, where a faceted flat plot writes
 each axis once along an edge of the page. That is a rule rather than an
-oversight. **A guide that lives on the panel's boundary is drawn once, because
+oversight. A guide that lives on the panel's boundary is drawn once, because
 the panels share that boundary. A guide that lives inside the panel is drawn
-in every panel, because there is no boundary to share it on.** The circle
+in every panel, because there is no boundary to share it on. The circle
 already works this way, a category ring per panel. A cube's three axes are
 edges of the cube, and the cube is inside the panel, so a shared column of
 numbers beside the page would have nothing to point at: `-200` lands at a

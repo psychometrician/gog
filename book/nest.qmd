@@ -148,7 +148,7 @@ Two layers, and the second is the ordinary `text` mark: `label` says which
 column supplies the string, exactly as it does on a scatter. What it does *not*
 say is where to put it, because in this space nothing does. A label goes to the
 center of the region its own row was packed into, which is the same region the
-bar drew — one packing, read by both marks, so a name cannot end up in a
+bar drew: one packing, read by both marks, so a name cannot end up in a
 rectangle that belongs to someone else.
 
 Notice what is missing from that sentence: there is no `x` on the text layer and
@@ -229,7 +229,7 @@ data(gapminder_2007) + bar * sum + y(population) + color(continent) +
 That refusal is not the packed space's. It is `order()`'s, and it was always
 true: the same sentence flat, a single divided column, had been accepting the
 word and dropping it in silence. Writing this chapter is what found it, which is
-the ordinary way a new space earns its keep — it asks an old atom a question
+the ordinary way a new space proves its value: it asks an old atom a question
 nobody had asked.
 
 ## Where the rectangles come from

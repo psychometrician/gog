@@ -32,7 +32,7 @@ data(gapminder_2007) + point + x(gdp) + y(life)
 
 *"Given gapminder 2007: points, x is gdp, y is life."*
 
-## A point is a dot: the dot is just its default
+## The dot is a default, not the mark
 
 Reach for `point` and you get a dot, and treating it as *the dot mark* will serve
 you well almost every time. But the dot is a **default**, not the mark's whole
@@ -156,7 +156,7 @@ Useful for dense scatterplots where overplotting hides structure.
 
 ```{r}
 data(gapminder_2007) + point + x(gdp) + y(life) + opacity(population) +
-  title("Opacity — population")
+  title("Opacity: population")
 ```
 
 See [Channels and legends](../channels.qmd) for the opacity range and why `line`
@@ -169,7 +169,7 @@ the same opacity for every point, which is a *setting* rather than a mapping.
 ```{r}
 data(gm_all) + point + x(gdp) + y(life) +
   style(opacity = 0.2, size = 3) +
-  title("Every point at one opacity — see Setting vs mapping")
+  title("Every point at one opacity: see Setting vs mapping")
 ```
 
 ## All channels at once

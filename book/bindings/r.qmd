@@ -133,7 +133,7 @@ the packages R attaches for you:
 | `utils` | `data` `stack` |
 | `base` | `jitter` `max` `mean` `min` `order` `range` `sum` |
 
-**Ten of the eighteen cannot hurt you, and the reason is a rule in R itself.**
+Ten of the eighteen cannot hurt you, and the reason is a rule in R itself.
 Every mark and every value transform is an *object*, not a function. When R
 evaluates a call, it looks for a function of that name and skips any binding that
 is not one. So base R still answers, even with GOG's `mean` sitting closer:
@@ -150,7 +150,7 @@ they resolve the name the same way:
 sapply(gapminder_2007["life"], mean)
 ```
 
-**The other eight are functions, and those do take over**: `box`, `data`,
+The other eight are functions, and those do take over: `box`, `data`,
 `density`, `jitter`, `order`, `palette`, `stack` and `title`. Qualify the one you
 want, and both remain available:
 

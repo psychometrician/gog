@@ -92,12 +92,12 @@ one from memory says where it went:
 js_error("plot(data(gapminder_2007), point, x(col.gdp), y(col.life), facet(col.continent))")
 ```
 
-## `beside()` and `below()` are `|` and `/` between two plots
+## Composing two plots: `beside()` and `below()`
 
 R's `|` means two things, told apart by what is on its right: `plot | facet(g)`
 splits one plot into panels, `plot_a | plot_b` arranges two plots on a page. With
 no operator to overload there is nothing to tell apart, so the second reading is
-its own word — `beside()`, and `below()` for `/`:
+its own word: `beside()`, and `below()` for `/`:
 
 ```{r}
 #| echo: false
@@ -158,7 +158,7 @@ js_plot("plot(data(gapminder_2007), point, x(col.gdp, { scale: 'log', base: 2 })
 `style()` is the case where every argument is named, so it is written as one
 object throughout the book: `style({ color: "tomato", size: 3 })`.
 
-## The table, and the one thing that is genuinely lost
+## The table, and what is lost
 
 A table is an object of columns, so a first plot needs nothing installed:
 
@@ -211,7 +211,7 @@ render_svg(plot(query(con, "SELECT status, revenue FROM orders"),
 `node:sqlite` ships with Node from version 22, so that example needs nothing
 installed. `better-sqlite3` has the same shape and works the same way.
 
-### Asynchronous drivers are refused, and this is the one real limit
+### Asynchronous drivers are refused
 
 `render_svg()` is synchronous. It returns the SVG rather than a Promise, which
 is what lets a plot be written inline in an expression. A driver whose query

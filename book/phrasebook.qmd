@@ -46,8 +46,8 @@ kernel and sorts the difference both ways.
 | `scale_color_viridis_c()` | `color(v) + palette("viridis")` |
 | `facet_grid(r ~ c)` | `\| facet(c) / facet(r)` |
 | `facet_wrap(~ g, ncol = 4)` | `\| facet(g, wrap = 4)`; `/` runs the same line down instead, so one number replaces `nrow` *and* `ncol` |
-| `facet_*(scales = "free_y")` | `y(v, free = TRUE)` — written on the axis it frees, so there is no `free_x`/`free_y`/`free` to choose between |
-| patchwork's <code>p1 &#124; p2</code>, `p1 / p2` | <code>plot_a &#124; plot_b</code>, `plot_a / plot_b` — the same two operators, told apart by the operand |
+| `facet_*(scales = "free_y")` | `y(v, free = TRUE)`, written on the axis it frees, so there is no `free_x`/`free_y`/`free` to choose between |
+| patchwork's <code>p1 &#124; p2</code>, `p1 / p2` | <code>plot_a &#124; plot_b</code>, `plot_a / plot_b`: the same two operators, told apart by the operand |
 | patchwork's `plot_spacer()`, `plot_layout(widths =)` | `theme(width =, height =)` on the plot that wants the room; the blank corner of a marginal plot is what a shared axis leaves over |
 | ggExtra's `ggMarginal()` | <code>top / (main &#124; right)</code>, three ordinary plots ([Composition](composition.qmd)) |
 | `coord_flip()` | swap the `x` and `y` bindings: orientation is read, not switched |

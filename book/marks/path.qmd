@@ -59,9 +59,9 @@ is wrong about every journey. That is not a bug in `line`; it is what a line
 time series read along a date axis the sort is a service.
 
 The two marks answer different questions, so a spec that names the wrong one gets
-a plausible picture rather than an error. The rule to hold on to: **if the reader
+a plausible picture rather than an error. The rule to hold on to: if the reader
 should follow the marks in a particular order, that order has to come from
-somewhere, and only `path` reads it off the table.**
+somewhere, and only `path` reads it off the table.
 
 ## Which end is now?
 
@@ -72,7 +72,7 @@ could be read from either end. So `path` takes a setting no other mark can:
 data(gapminder_asia) + path + x(gdp) + y(life) + color(country) +
   style(arrow = "end") +
   x_label("GDP per person") + y_label("Life expectancy") +
-  title("style(arrow = \"end\") — the head is 2007")
+  title("style(arrow = \"end\"): the head is 2007")
 ```
 
 Now each thread points at where it ended up. `arrow` takes `"end"`, `"start"`, or
@@ -114,7 +114,7 @@ everything else uses: `text` for the words, `path` for the arrow, `point` for a
 marker. What the table holds is data, so it is scaled like data, which is why the
 arrow's ends are written in gdp and years rather than in pixels.
 
-## A path takes one transform, and refuses the rest
+## One transform, and the rest refused
 
 Every other locus mark composes with any statistic. `path` composes with one, and
 the refusals say why:
@@ -126,7 +126,7 @@ render_svg(data(gapminder_asia) + path * mean + x(country) + y(life))
 
 A statistic replaces the rows. `mean` reduces each country to one number, and
 what is left to connect is one point per country, in whatever order the countries
-came out — which is a `line`, drawn the long way round. The order a path *is*
+came out, which is a `line`, drawn the long way round. The order a path *is*
 does not survive being summarized, and that one sentence empties almost the whole
 column of the [Combinations](../combinations.qmd) grid for this mark.
 
@@ -147,20 +147,20 @@ data(iris_flowers) + path * density +
 ```
 
 Nothing new was added to the grammar to draw that. The rule that made a
-[heatmap](zone.qmd) out of `zone * bin` is the same one at work here: **how many
-axes a transform cuts is read off the mark, never asked for.** A `bar` leaves an
+[heatmap](zone.qmd) out of `zone * bin` is the same one at work here: how many
+axes a transform cuts is read off the mark, never asked for. A `bar` leaves an
 axis free to measure the density along, so `bar * density` spreads it along one
 axis and draws a curve. A `path` is a route through two data columns and privileges
-neither, so it has no axis to spare — and `density` cuts both. There is no
+neither, so it has no axis to spare, and `density` cuts both. There is no
 `contour` atom for the same reason there is no `pie()`: the sentence already exists.
 
 Read the outermost ring, then the ones inside it. The outermost is a *single* line
-around both clusters, and one level in it splits into two separate rings — which is
+around both clusters, and one level in it splits into two separate rings, which is
 why a level is not enough to tell GOG where one stroke ends. Each ring is its own
 stroke, and the level only decides its color, so the two inner rings never get
 joined by a line drawn across the empty ground between them.
 
-The color is the level, and nothing had to bind it — the same courtesy `bar * bin`
+The color is the level, and nothing had to bind it, the same courtesy `bar * bin`
 does for `y`, one channel over. Say it out loud if you prefer, and change how many
 lines are traced:
 
@@ -211,7 +211,7 @@ data(petals) + path * density(levels = 4) +
   title("two species, estimated separately")
 ```
 
-A `zone` has no measure axis either, so it reads `density` in two dimensions too —
+A `zone` has no measure axis either, so it reads `density` in two dimensions too,
 and it *fills* what this mark strokes. Give both marks the same `levels` and you get
 the same curves twice, once as lines and once as the edges of filled bands, which is
 the plot usually meant by a *filled* density. It belongs to the mark that draws it:
@@ -313,7 +313,7 @@ The connected scatterplot is the headline, but the mark is more general than
 that. Anything whose reading order is the table's order is a path: a trajectory
 through any two measurements over time, a route through space, a cycle that
 returns to where it began, a hysteresis loop, an arrow. The test is always the
-same one question. **Does the order of the rows mean something?** If it does, the
+same one question. Does the order of the rows mean something? If it does, the
 mark is `path`; if the reader should read left to right, it is `line`.
 
 ## What you can set

@@ -44,7 +44,7 @@ mark reads correctly:
 
 ```{r}
 data(actuals) + area + x(year) + y(sales) +
-  y_label("Sales") + title("Sales — zero means zero")
+  y_label("Sales") + title("Sales: zero means zero")
 ```
 
 When the quantity you are drawing has no zero, `line` is the mark that says
@@ -73,7 +73,7 @@ series missing underneath:
 ```{r}
 #| message: true
 data(gapminder_asia) + area + x(year) + y(life) + color(country) +
-  title("Opaque regions — the last one drawn wins")
+  title("Opaque regions: the last one drawn wins")
 ```
 
 Compare the legend with the picture: every country is named in the key, and the
@@ -108,7 +108,7 @@ An area takes no outline of its own. The edge on top of a filled region is a
 data(actuals) + x(year) + y(sales) +
   area + style(color = "steelblue", opacity = 0.25) +
   line + style(color = "steelblue", size = 2.5) +
-  title("area + line — the fill and its edge, composed")
+  title("area + line: the fill and its edge, composed")
 ```
 
 There is deliberately no outline option on `area` to reach for instead. Two
@@ -149,7 +149,7 @@ bar or a line does. Binned, it is a filled histogram:
 ```{r}
 data(gapminder_2007) + area * bin + x(life) +
   x_label("Life expectancy (years)") +
-  title("area * bin — a filled histogram")
+  title("area * bin: a filled histogram")
 ```
 
 Smoothed into a density, it is the distribution as a shape:
@@ -162,7 +162,7 @@ data(gapminder_2007) + area * density + x(life) +
 
 Give that same sentence a category to stand in and a number to spread along,
 and the estimate is drawn *across each category's slot* instead of along the
-whole axis — one distribution per group, closed on the slot's center line. It
+whole axis: one distribution per group, closed on the slot's center line. It
 is the half violin, and the mirrored form is [`ribbon *
 density`](ribbon.qmd#the-violin-a-distribution-per-category), where the choice
 between the two readings of its width is also explained:
@@ -170,7 +170,7 @@ between the two readings of its width is also explained:
 ```{r}
 data(gapminder_2007) + area * density + x(continent) + y(life) +
   y_label("Life expectancy") +
-  title("area * density + x(continent) — the half violin")
+  title("area * density + x(continent): the half violin")
 ```
 
 The two sentences differ by one binding, and that difference is exactly what
@@ -183,7 +183,7 @@ And an aggregation summarizes before filling, exactly as it does for `bar`:
 ```{r}
 data(gapminder_asia) + area * mean + x(year) + y(life) +
   y_label("Mean life expectancy") +
-  title("area * mean — five countries averaged per year")
+  title("area * mean: five countries averaged per year")
 ```
 
 ## A category on the domain
@@ -195,7 +195,7 @@ baseline it always fills to:
 ```{r}
 data(gapminder_2007) + area * mean + x(continent) + y(life) +
   y_label("Mean life expectancy") +
-  title("area * mean + x(continent) — the filled profile")
+  title("area * mean + x(continent): the filled profile")
 ```
 
 Whether that is the right picture is your call, not the grammar's. The straight

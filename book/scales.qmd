@@ -36,7 +36,7 @@ log **scale**:
 data(gapminder_2007) + point + x(gdp, scale = "log") + y(life) +
   color(continent) +
   x_label("GDP per capita") +
-  title("Income and life expectancy — log scale")
+  title("Income and life expectancy: log scale")
 ```
 
 *"Given gapminder 2007: points, x is gdp on a log scale, y is life, color by continent."*
@@ -115,7 +115,7 @@ values and returns a geometric mean. GOG computes the summary in your data's
 units and scales the result, so the number the bar stands for is the number you
 would get from `sum()` or `mean()` yourself.
 
-### A smoother fits in the space it groups by
+### A smoother fits within its groups
 
 `smooth` groups by x, so a log x means the curve is fitted against log income,
 which is what makes a straight line out of a relationship that is otherwise all
@@ -186,12 +186,12 @@ octaves <- data.frame(
 )
 
 data(octaves) + point + x(freq, scale = "log") + y(level) +
-  x_label("Frequency (Hz)") + title("Base 10 — gridlines at 100, 1K")
+  x_label("Frequency (Hz)") + title("Base 10: gridlines at 100, 1K")
 ```
 
 ```{r}
 data(octaves) + point + x(freq, scale = "log", base = 2) + y(level) +
-  x_label("Frequency (Hz)") + title("Base 2 — gridlines on every octave")
+  x_label("Frequency (Hz)") + title("Base 2: gridlines on every octave")
 ```
 
 The points have not moved. The second chart puts a gridline on each doubling,
@@ -263,7 +263,7 @@ year. Months step by 1, 2, 3 or 6 so that January stays a gridline and
 minutes take the steps a clock face suggests.
 
 ```{r}
-# six_weeks is the cast's daily orders table — see the Preface
+# six_weeks is the cast's daily orders table, see the Preface
 data(six_weeks) + line + x(day) + y(orders) +
   title("Six weeks, ticked on Mondays")
 ```
@@ -380,7 +380,7 @@ data(gapminder_2007) + point + x(gdp) + y(life) + color(continent) +
   x_label("GDP per capita") + title("Points breathe off every edge")
 ```
 
-A **baseline does not breathe.** When a bar or an area measures from zero, that
+A baseline does not breathe. When a bar or an area measures from zero, that
 zero is a real coordinate, and a gap beneath it would draw the baseline where
 the baseline is not, so it sits flush. An `area` also has no glyph to clip, so
 on the axis it fills along it reaches the panel edges instead of leaving an
@@ -402,13 +402,13 @@ the same color:
 ```{r}
 data(gapminder_2007) + point + x(gdp, scale = "log") + y(life) +
   color(population) +
-  x_label("GDP per capita") + title("Linear color — nearly one flat color")
+  x_label("GDP per capita") + title("Linear color: nearly one flat color")
 ```
 
 ```{r}
 data(gapminder_2007) + point + x(gdp, scale = "log") + y(life) +
   color(population, scale = "log") +
-  x_label("GDP per capita") + title("Log color — the ramp is actually used")
+  x_label("GDP per capita") + title("Log color: the ramp is actually used")
 ```
 
 The same is true of `size`, where a linear scale leaves almost every point at
@@ -433,7 +433,7 @@ there is no distance between circle and square for a scale to run along.
 Everything above derives the range from the data, which is right by default and
 wrong whenever the data is not the whole story. A tide gauge reading every three
 hours never reaches midnight, and a periodic axis has no way to know the missing
-hours are still part of the day — nothing in a column of hours says the day
+hours are still part of the day, and nothing in a column of hours says the day
 wraps. `limits` says the domain out loud:
 
 ```{r}
@@ -445,23 +445,23 @@ Without that, one turn would cover 1 to 22 and the first and last readings would
 be drawn on the same spoke. With it, each sits where a clock would put it. The
 curve still does not close, and should not: the gauge took no reading at
 midnight, and a domain says what range the axis covers rather than inventing an
-observation to fill it. That gap is the data's, drawn at its true width —
+observation to fill it. That gap is the data's, drawn at its true width.
 [Polar](polar.qmd) sets out the three ways a circle does and does not close.
 
 `limits` is written on the binding, beside `scale` and `base`, for the same
 reason they are: a domain belongs to one channel, and an atom of its own would
-name that channel twice. A stated end is drawn exactly where you state it — the
+name that channel twice. A stated end is drawn exactly where you state it, and the
 breathing margin exists to keep a glyph off the frame, and an end you chose is
 not a data extreme that needs the room.
 
-**Stating a domain widens as readily as it narrows.** Nothing was dropped above:
+Stating a domain widens as readily as it narrows. Nothing was dropped above:
 the readings run 1 through 22 and all of them lie inside 0 through 24. Narrowing
 is the direction that removes rows, and it says so:
 
 ```{r}
 data(gapminder_2007) + point + x(gdp, limits = c(0, 30000)) + y(life) +
   color(continent) + x_label("GDP per capita") +
-  title("Under $30,000 — and the countries above it are counted aloud")
+  title("Under $30,000, and the countries above it are counted aloud")
 ```
 
 Rendering that prints a line to the console naming how many rows fell outside
@@ -483,8 +483,8 @@ data(gapminder_2007) + point * mean + x(continent) + y(life, limits = c(0, NA)) 
   title("y from zero, top still fitted to the data")
 ```
 
-**It is not only for axes.** A domain is a property of the scale, so it reaches
-every channel that measures — which is how you hold one color ramp still across
+It is not only for axes. A domain is a property of the scale, so it reaches
+every channel that measures, which is how you hold one color ramp still across
 plots that have different data in them:
 
 ```{r}
@@ -503,7 +503,7 @@ choosing what order they appear in is `order()`.
 data(gapminder_2007) + bar * mean + x(continent, limits = c(0, 3)) + y(life)
 ```
 
-## Which kind of axis you get is the column's type
+## The column's type picks the axis
 
 The scales in the table above are not all chosen the same way. You ask for
 `log`. You do not ask for `time` or `category`, because GOG reads those off the
@@ -586,17 +586,17 @@ jobs you might have meant:
 data(gapminder_2007) + bar * mean + x(continent, tick_count = 3) + y(life)
 ```
 
-And a **legend is not a short axis.** `limits` reaches every channel that
+And a legend is not a short axis. `limits` reaches every channel that
 measures, because every one of them has a domain; `tick_count` reaches only
 the three that draw an axis. A color bar names three rows, both ends and the
 middle, and those come from the scale's own shape rather than from a count you
 could choose. On a log ramp the middle row is the geometric mean, the label
 for the color actually painted halfway along the strip. So `color()`, `size()`
 and `opacity()` take no `tick_count` at all, the same way `shape()` takes no
-`scale` and no `limits` — the parameter is absent rather than refused, which
+`scale` and no `limits`: the parameter is absent rather than refused, which
 is the strongest form the refusal can take.
 
-### Crowding is answered differently in the plane and in the cube
+### Crowding in the plane and in the cube
 
 Worth knowing if you read the same plot both ways, because the two answers
 look inconsistent and are not. A flat axis draws *every* tick it chose,

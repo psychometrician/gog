@@ -6,7 +6,7 @@ source("../R/setup.R")
 ```
 
 How wide is the band the values fall in, across a span? `ribbon` draws a
-**filled band from a low boundary to a high one** across x: a confidence band,
+filled band from a low boundary to a high one across x: a confidence band,
 a spread band, the shaded region around a trend. It is [`area`](area.qmd) fed
 by [`interval`](interval.qmd)'s machinery: `area`'s single filled region, but
 closed on a *second data boundary* instead of a baseline at zero. Where an area
@@ -133,7 +133,7 @@ data(score_band) + x(score) + y(expected) +
 
 The dashed line is [`style(pattern = )`](../style.qmd): on a stroke the texture is a
 **dash**, so it rides the `line` here, not the band. The band can take the same
-setting too — there it is a **hatch** (a fill texture), not a dash.
+setting too: there it is a **hatch** (a fill texture), not a dash.
 
 ## Filled, or two dashed edges
 
@@ -197,7 +197,7 @@ boundaries, with no width left to choose. Its edge, if you want one, is a `line`
 layered along a boundary (`ribbon + line`, the composition the previous section
 already drew), never an outline option on the mark.
 
-## A category on the domain, and the mark that usually says it better
+## A category on the domain
 
 A ribbon takes a category on `x`, the same way an [`area`](area.qmd) does, and
 fills the spread across the categories in axis order:
@@ -205,7 +205,7 @@ fills the spread across the categories in axis order:
 ```{r}
 data(gapminder_2007) + ribbon * range + line * mean + x(continent) + y(life) +
   y_label("Life expectancy") +
-  title("ribbon * range + line * mean — spread and center, per continent")
+  title("ribbon * range + line * mean: spread and center, per continent")
 ```
 
 For most such data an [`interval`](interval.qmd) is the better sentence. It draws
@@ -217,7 +217,7 @@ one is honest about *your* data is a question about the data.
 ```{r}
 data(gapminder_2007) + interval * range + x(continent) + y(life) +
   y_label("Life expectancy") +
-  title("interval * range — the same numbers, claiming less")
+  title("interval * range: the same numbers, claiming less")
 ```
 
 ## The violin: a distribution per category
@@ -231,15 +231,15 @@ sentence with one word changed:
 ```{r}
 data(gapminder_2007) + ribbon * density + x(continent) + y(life) +
   y_label("Life expectancy") +
-  title("ribbon * density — one distribution per continent")
+  title("ribbon * density: one distribution per continent")
 ```
 
 Nothing new was added to the grammar to draw it. A ribbon is the mark that closes
 on a second data boundary, and a violin closes on its own reflection, which is
 one; `density` is the transform that estimates a distribution, and this is that
 estimate read per group. There is no `violin` word to learn, because a word for
-it would be four things at once — the mark, the statistic, the mirror, and the
-slot — and each of those is already said by something you know.
+it would be four things at once (the mark, the statistic, the mirror, and the
+slot), and each of those is already said by something you know.
 
 Read it against the [`box`](box.qmd) of the same two columns. A box gives you
 five numbers you can name; the violin gives you the shape those five numbers are
@@ -247,7 +247,7 @@ a summary of, and shows the two humps a median hides.
 
 ```{r}
 data(gapminder_2007) + box + x(continent) + y(life) +
-  y_label("Life expectancy") + title("box + x + y — the same distributions, summarized")
+  y_label("Life expectancy") + title("box + x + y: the same distributions, summarized")
 ```
 
 ### What the width means
@@ -266,7 +266,7 @@ spike can take the panel:
 ```{r}
 data(gapminder_2007) + ribbon * density(compare = "shape") + x(continent) + y(life) +
   y_label("Life expectancy") +
-  title('density(compare = "shape") — every violin the same area')
+  title('density(compare = "shape"): every violin the same area')
 ```
 
 Two countries now occupy as much ink as fifty-two, and because two nearby values
@@ -276,7 +276,7 @@ choice is a word you write rather than a default nobody stated.
 
 ### Sideways, and halved
 
-The category can go on either axis, and the violins turn to follow it — read off
+The category can go on either axis, and the violins turn to follow it. Read off
 the bindings, exactly as a [`bar`](bar.qmd)'s or a [`box`](box.qmd)'s orientation
 is. It is the form with room for long category names:
 
@@ -286,12 +286,12 @@ data(gapminder_2007) + ribbon * density + x(life) + y(continent) +
 ```
 
 And an [`area`](area.qmd) draws the same estimate closed on the slot's center
-line instead of on its own reflection — one side rather than two, since that is
+line instead of on its own reflection: one side rather than two, since that is
 the difference between the two marks everywhere else in the book:
 
 ```{r}
 data(gapminder_2007) + area * density + x(continent) + y(life) +
-  y_label("Life expectancy") + title("area * density — the half violin")
+  y_label("Life expectancy") + title("area * density: the half violin")
 ```
 
 Two choices, made independently: which mark closes the region, and which axis
@@ -301,7 +301,7 @@ on its own line above a shared measure axis, which is the **ridgeline plot**:
 
 ```{r}
 data(gapminder_2007) + area * density + x(life) + y(continent) +
-  x_label("Life expectancy") + title("area * density + x(life) — the ridgeline")
+  x_label("Life expectancy") + title("area * density + x(life): the ridgeline")
 ```
 
 Nothing was added for it either. It is the previous chunk's sentence with `x`
@@ -328,7 +328,7 @@ how far, **in slots**:
 
 ```{r}
 data(gapminder_2007) + area * density(reach = 2.5) + x(life) + y(continent) +
-  x_label("Life expectancy") + title("reach = 2.5 — each ridge two and a half slots tall")
+  x_label("Life expectancy") + title("reach = 2.5: each ridge two and a half slots tall")
 ```
 
 The number is measured from the line a category sits on to the shape's furthest
@@ -357,7 +357,7 @@ data(gapminder_2007) + x(life) + y(continent) +
 ```
 
 Both layers read the same `density(reach = 2.5)`, so the stroke cannot drift off
-the fill it belongs to — the reason an edge is a layer rather than a setting.
+the fill it belongs to, the reason an edge is a layer rather than a setting.
 Color each ridge by its own category and the plot is complete:
 
 ```{r}
@@ -368,9 +368,9 @@ data(gapminder_2007) + x(life) + y(continent) +
 ```
 
 The `color(continent)` is written *after* the area, so it belongs to that layer
-alone — a plot-scoped one would reach the `line` too, and a layer cannot both map
+alone: a plot-scoped one would reach the `line` too, and a layer cannot both map
 color and set it. [Scope is position](../encoding-scope.qmd), and this is the
-sentence where it earns its keep.
+sentence where it matters.
 
 `step * density` traces the same estimate as a staircase, for the same reason
 `step * bin` is the outline histogram: [No Exceptions](../design-laws.qmd) means

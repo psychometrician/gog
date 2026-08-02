@@ -123,7 +123,7 @@ the American spelling is simply the only one there has ever been.
 > The nearest `data()` wins.
 
 ```{r}
-# Correct — table named once, columns bare
+# Correct: table named once, columns bare
 data(gapminder_2007) + point + x(gdp) + y(life)
 ```
 
@@ -213,19 +213,19 @@ exist. So GOG says which it is.
 
 ```{r}
 #| error: true
-# Illegal — size encodes magnitude, and a category has none
+# Illegal: size encodes magnitude, and a category has none
 data(gapminder_2007) + point + x(gdp) + y(life) + size(continent)
 ```
 
 ```{r}
 #| error: true
-# Illegal — a bar has no size feature at all; its extent is y
+# Illegal: a bar has no size feature at all; its extent is y
 data(medals) + bar + x(country) + y(gold) + size(gold)
 ```
 
 ```{r}
 #| error: true
-# Illegal — `z` stands a `point`, `path` or `bar` up into the cube (see Space),
+# Illegal: `z` stands a `point`, `path` or `bar` up into the cube (see Space),
 # but a `line` is read along its x axis, and a cube has no left to right
 data(medals) + line + x(country) + y(gold) + z(silver)
 ```
@@ -240,7 +240,7 @@ Unsupported looks different, and here is one:
 
 ```{r}
 #| error: true
-# Unsupported — `z` is valid grammar for `text`; this engine has not built it
+# Unsupported: `z` is valid grammar for `text`; this engine has not built it
 data(medals) + text + x(country) + y(gold) + z(silver) + label(country)
 ```
 
@@ -348,7 +348,7 @@ grammatically sound; whether it *says* anything is your judgment, not the
 engine's:
 
 ```{r}
-# Legal, and nearly invisible — the engine's job is to obey, not to veto
+# Legal, and nearly invisible: the engine's job is to obey, not to veto
 data(gapminder_2007) + point + x(gdp) + y(life) +
   style(opacity = 0.05)
 ```
@@ -420,7 +420,7 @@ The fourth is motion. A `play` animation is written into the same file as the
 plot, using SVG's own timing elements. A time-lapse is one picture that moves,
 with no video file and no JavaScript beside it.
 
-### One renderer, because two of them drew different plots
+### Why there is one renderer
 
 There used to be two, and deleting the second one is the strongest evidence for
 this law that the project has.
@@ -460,8 +460,8 @@ the law above.
 
 A **setting** (`style(…)`) is an atom like any other, so the first two laws govern
 it as well: a setting is available on **every mark whose geometry can carry it**,
-behaves the same across them, and is **absent exactly where composition already
-expresses the feature more capably.** The first clause is No Exceptions: no
+behaves the same across them, and is absent exactly where composition already
+expresses the feature more capably. The first clause is No Exceptions: no
 mark-specific gap you have to memorize; the second is Orthogonality's *non-redundant*
 half: don't add a knob for what marks already do by combining.
 
@@ -471,9 +471,9 @@ one of them: their perimeter is a shape you cannot trace by composition, so a
 setting is the only way to draw it. And why `style(pattern =)`, the paint's
 **texture**, is realized once per geometry: on the path strokes (`line`, `step`,
 `path`, `interval`, `rule`) as a **dash**, and on the four fills (`bar`, `box`, `area`, `ribbon`)
-as a **hatch** — one aesthetic, one form per geometry, the way `color` is a stroke
-on a line and a fill on a bar. A curve fill (`area`, `ribbon`) takes the hatch — a
-region can be textured — but no *border*: its edge is a data curve, which already
+as a **hatch**: one aesthetic, one form per geometry, the way `color` is a stroke
+on a line and a fill on a bar. A curve fill (`area`, `ribbon`) takes the hatch (a
+region can be textured) but no *border*: its edge is a data curve, which already
 *is* a `line` (`area + line`, `line * bounds`), more capable than any rim. The
 classes, not the individual marks, decide.
 

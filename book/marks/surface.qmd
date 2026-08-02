@@ -62,7 +62,7 @@ data(gapminder_2007) + surface + x(gdp) + y(life) + z(population)
 ```
 
 That refusal names the two sentences that *do* draw, and the second of them is the
-interesting one — read on.
+interesting one. Read on.
 
 Because a face needs all four of its corners, a gap in the grid is an **opening**
 in the sheet rather than a face drawn across it. Drop the crossings around the
@@ -81,11 +81,11 @@ The note above the plot is GOG counting the crossings it did not find: 1322 of
 1364, so 42 are open. It is advice rather than a refusal, because a grid with gaps
 is a legitimate thing to have and a torn sheet is a true picture of one. What would
 not be legitimate is quietly spanning a gap, which asserts a height nobody
-measured. The note is also the thing that tells you when the gaps were an accident
-— a lattice recovered from coordinates that were rounded rather than repeated has
+measured. The note is also the thing that tells you when the gaps were an accident:
+a lattice recovered from coordinates that were rounded rather than repeated has
 holes everywhere, and looks exactly like a mesh with a designed opening.
 
-## The floor is continuous, and a bar's is not
+## A continuous floor
 
 Both position columns have to be numbers. A face spans the gap between two
 samples and so asserts every height *inside* that gap, and between one category
@@ -130,7 +130,7 @@ data(iris_flowers) + surface * density +
 
 Look at what the third one shows that the other two cannot: *how much* higher the
 tight cluster is than the broad one. Cells and contours both spend their
-information on *where* the field is, and a height spends it on *how much* — the
+information on *where* the field is, and a height spends it on *how much*, the
 two setosa-versus-the-rest blobs are equally visible in the first two plots and
 wildly unequal in the third. Which of the three you want is a question about your
 question, not about which is better.
@@ -248,7 +248,7 @@ data(maunga_whau) + surface +
 ```
 
 It costs nothing to draw, because every face was already stroked in its own
-shade — the hairline that closes the pale seam antialiasing leaves between two
+shade, the hairline that closes the pale seam antialiasing leaves between two
 abutting polygons. `border_color` just replaces that color. Set
 `border_size = 0` for a seamless sheet.
 
@@ -273,7 +273,7 @@ reader cannot see.
 
 `color` maps on a surface, and a **measured** column ramps it face by face.
 [`palette()`](../style.qmd) chooses which ramp, and `"viridis"` is the one a
-topographic sheet wants — it climbs in lightness the whole way, so the height
+topographic sheet wants: it climbs in lightness the whole way, so the height
 reads off the hue even where a face is turned away from you:
 
 ```{r}
@@ -293,7 +293,7 @@ its place. It also marks a real boundary. An [`area`](area.qmd) refuses a measur
 color, because a region has one interior and coloring an interior by a measure is
 a gradient fill, which is a different and much larger job. A mesh has *faces*, and
 a face is already small enough to hold one value. So the rule was never "regions
-refuse it, strokes take it" — it is whether a mark has parts small enough to each
+refuse it, strokes take it"; it is whether a mark has parts small enough to each
 hold one value, and a stroke has segments where a surface has faces.
 
 The slope shading is still underneath the ramp, and the two compose rather than
@@ -340,11 +340,11 @@ data(maunga_whau) + surface + x(east) + y(north) + z(elevation) +
   z_label("Elevation (m)") + title("Tilted down: the skyline")
 ```
 
-Read them as a set and the trade is plain. **The crater is not visible at all in
-the first two**, and it is the most interesting thing about this hill: the summit
+Read them as a set and the trade is plain. The crater is not visible at all in
+the first two, and it is the most interesting thing about this hill: the summit
 stands in front of the hollow behind it, so no amount of turning at a low eye level
 reveals it. Tilt the eye up and the hollow opens, because you are now reading the
-*plan* — and by the same move the heights flatten, until the sheet is a colored map
+*plan*, and by the same move the heights flatten, until the sheet is a colored map
 of itself. Tilt down instead and you get the opposite bargain: the profile is exact,
 the plan is gone, and the sheet reads as a skyline. Heights or plan, one at a time.
 
@@ -395,7 +395,7 @@ cat("| Setting | Value |\n|---|---|\n")
 mark_options("surface")
 ```
 
-A surface is a fill, so it takes a fill's settings — with two absences worth
+A surface is a fill, so it takes a fill's settings, with two absences worth
 noting, both of which the refusals below explain: no `size`, and no `pattern`.
 
 ## What it refuses
@@ -411,7 +411,7 @@ data(maunga_whau) + surface + x(east) + y(north)
 
 `density(levels = )` cuts a field into level *sets*, and a level set is a region in
 the plane. A surface has already spent the third axis on the measurement, so a
-band drawn on it could only be a color — which is [`zone`](zone.qmd)'s reading of
+band drawn on it could only be a color, which is [`zone`](zone.qmd)'s reading of
 that same request:
 
 ```{r}
@@ -431,7 +431,7 @@ field: it is a length in one column's own units, and a field spreads over two
 columns measuring different quantities, so one number cannot be a width in both.
 Use `density(adjust = )`, which is dimensionless and scales both.
 
-There is no `size` on a surface — its extent *is* its lattice, so a size would be
+There is no `size` on a surface: its extent *is* its lattice, so a size would be
 a second, contradictory answer to how big it is, which is
 [`area`](area.qmd)'s refusal for `area`'s reason. And `pattern` is refused, which
 is the one place a fill does not take a texture:

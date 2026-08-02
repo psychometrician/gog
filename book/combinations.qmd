@@ -57,7 +57,7 @@ cells <- rules$cells
 #   ●  a required position (Must)
 #   ✅ a column maps here and the engine draws it today
 #   ○  not mappable per row, but style() can set it once for the layer
-#   ◌  legal grammar the renderer refuses today — owed, blocked, or decided
+#   ◌  legal grammar the renderer refuses today: owed, blocked, or decided
 #      against; the refusal message says which, and the legend below splits them
 #   —  the mark has no such feature at all
 glyph <- function(ob, renders, settable) {
@@ -65,7 +65,7 @@ glyph <- function(ob, renders, settable) {
   else if (!is.na(renders)) "✅"  # ✅
   else if (ob == "can")     "◌"  # ◌  grammar-legal, not drawn yet
   else if (settable)        "○"  # ○  set-only
-  else                      "—"  # —
+  else                      "—"  # no such feature
 }
 lookup <- setNames(
   mapply(glyph, cells$obligation, cells$renders, cells$settable),
@@ -109,22 +109,22 @@ Three things the crossing shows at a glance that prose keeps losing:
 
 - **`group` splits a `line`, not a `bar`.** Run down the `group` column: ✅ on the
   path and distribution marks (`line`, `step`, `area`, `interval`, `box`,
-  `ribbon`), — on `point`, `bar`, and `text`. A bar is split into groups by
+  `ribbon`), `—` on `point`, `bar`, and `text`. A bar is split into groups by
   `color`, then piled or set side by side with `stack` / `dodge`; a bare `group`
   has no line to divide.
-- **`label` rides `text` alone.** Its column is ● on `text` and — everywhere else.
+- **`label` rides `text` alone.** Its column is ● on `text` and `—` everywhere else.
   A labeled scatter is the superposition `point + text`, never a `label` hung on
   the point.
-- **A category on `x` reaches every mark; on `y` it does not.** Read the two
+- **A category on `x` reaches every mark.** On `y` it does not. Read the two
   position rows against each other and the grid divides the marks in two. The
-  glyph marks — `point`, `text` — and the marks whose slot width does the
-  measuring — `bar`, `interval`, `box` — take either type on *both* positions,
+  glyph marks (`point`, `text`) and the marks whose slot width does the
+  measuring (`bar`, `interval`, `box`) take either type on *both* positions,
   which is why a strip plot, a horizontal bar and a categorical box all fall out
   of one rule. So do `path`, which sorts nothing and therefore has no domain,
   `rule`, which measures nothing on either axis, and `zone`, which measures
-  nothing by length at all — that last is what makes a heatmap cell a `zone`
-  rather than a second kind of bar. The path and region marks —
-  `line`, `step`, `area`, `ribbon` — take either type on `x` alone: their `x` is
+  nothing by length at all. That last is what makes a heatmap cell a `zone`
+  rather than a second kind of bar. The path and region marks
+  (`line`, `step`, `area`, `ribbon`) take either type on `x` alone: their `x` is
   the domain the path is read along and their `y` is the quantity it traces, and
   those are not the same kind of axis. A glyph's two axes are.
 - **Two rows have no ● at all.** Every other mark must be told where to put
@@ -133,10 +133,10 @@ Three things the crossing shows at a glance that prose keeps losing:
   both". Those obligations are stated once in the engine instead, and a pair of
   ✅s with no ● is what a mark the panel finishes looks like from here
   ([Rule](marks/rule.qmd), [Zone](marks/zone.qmd)).
-- **`zone`'s `color` is the only either-typed color on a fill.** Every other
+- **`zone`'s `color` takes either type.** It is the only fill color that does. Every other
   region takes a category; a zone takes a number too, and reads the ramp. A
   hairline has no area to decode a scale from, which is why `rule` and `line`
-  refuse it — a rectangle has nothing but area.
+  refuse it: a rectangle has nothing but area.
 
 ## Marks and transforms
 
@@ -176,7 +176,7 @@ tf_block <- function(cls) {
 }
 ```
 
-### Statistics — a value per group
+### Statistics: a value per group
 
 The summarizing transforms each reduce the data to one value at each x: a bin's
 count, a group's `mean`, a smoothed height. Any mark that draws a value at each x
@@ -190,14 +190,14 @@ fills it, `line * bin` is the frequency polygon, `step * bin` the staircase.
 tf_block("statistic")
 ```
 
-The five drawing marks — `point`, `line`, `area`, `bar`, `step` — take the lot;
+The five drawing marks (`point`, `line`, `area`, `bar`, `step`) take the lot;
 the other four take none, and each for a reason the next two grids make good. A
 span mark (`interval`, `ribbon`) needs a *pair*, not a single value. A `box` takes
 no statistic because it carries its own: the five-number summary is injected by the
 mark, not composed, so it never appears as a column here. And a `text` draws its
 `label`, which no statistic produces.
 
-### Ranges and bands — a low and a high
+### Ranges and bands
 
 Three transforms produce a *pair* of values, a low boundary and a high one, per
 group. `range` and `confidence` compute the pair from your data; `bounds` reshapes
@@ -219,7 +219,7 @@ second way to use the mark. Everywhere else the pair has nowhere to go: on a
 `point` or a `bar` it is refused toward the whisker, on an `area` toward the
 `ribbon` that is its filled twin.
 
-### Collision modifiers — an offset, not a statistic
+### Collision modifiers: an offset, not a statistic
 
 When marks collide at one position, three offsets pull them apart, and which one a
 mark takes is decided by its geometry and by the *axis* the collision is on.
@@ -250,7 +250,7 @@ question about position, orthogonal to the summary each box already carries.
 ## Transforms and transforms
 
 The third crossing is the only one where a mark does not appear. Two transforms can
-follow one mark — `bar * bin * mean` cuts the axis into bands, then averages inside
+follow one mark: `bar * bin * mean` cuts the axis into bands, then averages inside
 each. Which pairs can do that is decided by the transforms alone, and by one rule.
 
 A transform has a **job**. There are four of them, and every transform in GOG does
@@ -263,15 +263,15 @@ at least one:
 | **scale** | what scale is the answer read on? | `proportion`, and `stack(share = TRUE)` |
 | **position** | where do the marks sit? | `dodge`, `stack`, `jitter` |
 
-**Two transforms compose when they do different jobs, and contradict when they do
-the same one.** A cell holds one extent, one measurement, one scale and one
+Two transforms compose when they do different jobs, and contradict when they do
+the same one. A cell holds one extent, one measurement, one scale and one
 arrangement. So a second transform doing a job the first already did leaves the
 engine no reading that keeps both, and it refuses rather than drawing one and
 discarding the other.
 
 One transform is the exception, and it is the exception that makes chaining useful.
 `bin` does two jobs: it cuts the axis, and it counts what lands in each band. The
-count is a by-product of the cut, so `bin` can give it up — and it gives it up to a
+count is a by-product of the cut, so `bin` can give it up, and it gives it up to a
 transform you handed a *column*. That is why `bar * bin * mean` composes: `bin` supplies the
 cells and `mean` supplies their value. And it is why `bar * bin * count` does not,
 since a tally was never handed a column to reduce.
@@ -305,21 +305,21 @@ and `bar * mean * sum`, and `interval * range * confidence`. `bin` is the row wi
 
 Two collisions the grid cannot show, because both depend on something outside the
 pair. `stack(share = TRUE)` divides each pile by its own total, which is a *scale*,
-so it contradicts `proportion` — two divisions, and the second reads as shares of
+so it contradicts `proportion`: two divisions, and the second reads as shares of
 nothing. And `bounds` says where a `zone`'s sides are. On that one mark it does the *extent*
 job, so it contradicts `bin`. On every other mark it names the low and the high on
 the measure axis. The engine reads both cases correctly, and the grid above shows the
 reading that applies everywhere else.
 
 Chaining stops at four, and nobody chose the number. Four jobs, one transform each,
-so a fifth transform has to repeat a job — and repeating one is the contradiction
+so a fifth transform has to repeat a job, and repeating one is the contradiction
 this whole section is about.
 
 ### The shapes a long chain can take
 
 Three and four transforms sound like a large space, and they are not. Once each job
-is filled at most once, and the marks are asked which transforms they take, **every
-chain of three or four has one of six shapes**. Two slots stand for a family rather
+is filled at most once, and the marks are asked which transforms they take, every
+chain of three or four has one of six shapes. Two slots stand for a family rather
 than a transform: `<aggregation>` is any of `sum`, `mean`, `median`, `max`, `min`,
 and `<collision modifier>` is any of `dodge`, `stack`, `jitter`.
 
@@ -328,7 +328,7 @@ and `<collision modifier>` is any of `dodge`, `stack`, `jitter`.
 #| results: asis
 # The shapes, derived rather than listed: every chain of three or four the pair grid
 # above allows on some mark, collapsed to the family each slot stands for. Nothing is
-# typed, so a new transform widens this by itself — and it cannot claim a chain the
+# typed, so a new transform widens this by itself, and it cannot claim a chain the
 # engine refuses, because it reads the same cells the grid does.
 fam <- c(sum = "<aggregation>", mean = "<aggregation>", median = "<aggregation>",
          max = "<aggregation>", min = "<aggregation>",
@@ -337,7 +337,7 @@ fam <- c(sum = "<aggregation>", mean = "<aggregation>", median = "<aggregation>"
 jobof  <- setNames(rules$transforms$jobs, rules$transforms$name)
 rankof <- c(extent = 1, measure = 2, scale = 3, position = 4)
 slot   <- function(t) if (t %in% names(fam)) unname(fam[t]) else t
-# A transform's plain job — the first the engine lists, which is the one it does
+# A transform's plain job, the first the engine lists, which is the one it does
 # whatever the mark and settings are. `bin` fills extent and measure and hands the
 # second over; `stack` rescales only when given `share = TRUE`. Taking the first is
 # what keeps `stack` a position transform here rather than a scale one.
@@ -353,7 +353,7 @@ for (m in rules$marks$name[rules$marks$drawable]) {
     combos <- combn(take, k, simplify = FALSE)
     for (C in combos) {
       if (!all(apply(combn(C, 2), 2, function(p) pairok[[paste(p[1], p[2])]]))) next
-      # `base::order` — `order()` is a gog channel, and the grammar masks it.
+      # `base::order`, because `order()` is a gog channel and the grammar masks it.
       C <- C[base::order(vapply(C, function(t) rankof[[jobt(t)]], 1))]
       key <- paste(unique(vapply(C, slot, "")), collapse = " * ")
       if (is.null(shapes[[key]])) shapes[[key]] <- list(n = k, jobs = vapply(C, jobt, ""))
@@ -412,8 +412,8 @@ rows <- vapply(marks, function(m) {
 cat(header, divider, rows, sep = "\n")
 ```
 
-`flat` is full but for one cell, and that cell is worth stopping on: **`surface`
-does not draw in the plane.** Every other mark was built there and some have since
+`flat` is full but for one cell, and that cell is worth stopping on: `surface`
+does not draw in the plane. Every other mark was built there and some have since
 learned to stand up, while a surface is a sheet through three positions and there
 is no such thing without the third, so its minimum syllable includes the cube. It
 is the only mark whose row reads the other way round from every other
@@ -422,20 +422,20 @@ is the only mark whose row reads the other way round from every other
 `space` holds six marks, and which six is a reading rather than a list of what got
 built: a `point` is a place, a `path` is an order, a `surface` is a sheet, and
 `bar`, `interval` and `box` are the three marks that stand in a slot and measure
-along the other axis — a length, a span and a summary, which the grammar has
+along the other axis: a length, a span and a summary, which the grammar has
 treated as one family since orientation was decided. Each means in a cube exactly
 what it meant on the page.
 
 The blanks in that column are **not one kind of thing**, and the engine now says
 which of three each is. `line`, `step`, `area` and `ribbon` read a *domain* left to
-right, and a cube has no left to right, so they are **refused** — a decision, not a
+right, and a cube has no left to right, so they are **refused**, a decision, not a
 queue entry, with `path` as the direction. `rule` and `zone` are **blocked**: their
 3-D forms are a plane and a slab, neither of which has a footprint to sort by, so
 placing them among the data needs an engine that can tell what hides what
 ([Space](space.qmd)).
 `polar` is the one column with no empty half at all: every mark that draws on the
 page draws in the circle. It reached that state last, and by losing an argument
-rather than by winning one — five marks were held out on the ground that their
+rather than by winning one: five marks were held out on the ground that their
 straight edges would have to become arcs, and three of them turned out never to
 have needed an arc, a band's boundaries being the same chords a `line` draws. The
 single blank is `surface`, and it is not a polar refusal but the same one its flat
@@ -458,7 +458,7 @@ somewhere to sit, `line`, `step`, `path`, `area` and `ribbon` need an order alon
 an axis (and two touching regions here are explicitly *not* near each other in
 the data), `rule` and `zone` span an axis that is not there, and `box`,
 `interval` and `surface` measure along one. `text` is not among them because it
-is not placed by a position here either — it is placed by the region, which is
+is not placed by a position here either; it is placed by the region, which is
 the same thing that places the bar.
 
 `map` is empty all the way down, and it is in the grid for that reason. It is
@@ -466,13 +466,13 @@ named in the kernel and has no renderer behind it, so the column is the honest
 edge of the engine rather than a gap in the table. A whole column of `—` is what
 an unbuilt idea looks like when nothing is hidden.
 
-**Every mark in the kernel is in all three crossings**, and what a mark's rows
+Every mark in the kernel is in all three crossings, and what a mark's rows
 say about it is worth reading across them.
 A path has a full row on Mark × Channel and an entirely **empty** one on
 Mark × Transform, because a path *is* its rows in order and every statistic replaces
 the rows. `rule` reads the same way on the transform grid for a reason one axis over,
 having handed a whole axis to the panel, so there is no measure to compute. And
-`surface` has a row of the transforms that **tile a floor** — `density`, which
+`surface` has a row of the transforms that **tile a floor**: `density`, which
 estimates a value at every node for the sheet to interpolate between, and `bin`,
 which cuts adjacent cells for it to lay a flat lid on, with the aggregation family
 riding `bin` to name the column each cell holds. `path` keeps the shorter row beside

@@ -2337,6 +2337,34 @@ if (file.exists("book/check_tabs.R")) {
 }
 
 # ---------------------------------------------------------------------------
+# One voice across 56 chapters
+# ---------------------------------------------------------------------------
+
+# The ninth guard, and the widest. The eight above each check one fact about the
+# book; this one checks how the book *sounds*, in the part of that question a
+# machine can answer: a bolded sentence, an em dash, an over-long heading, Title
+# Case, a callout, an idiom.
+#
+# It exists because voice drifts *by chapter* and nobody notices. A writer holds
+# one file for an afternoon and is perfectly consistent inside it, so the split
+# only shows when two chapters are read side by side, which no reader and no
+# reviewer ever does across 1100 pages. `design-laws.qmd` ran 16-0 on `GOG`
+# while `marks/zone.qmd` ran 1-7. Title Case sat in five headings of
+# `transforms.qmd` and nowhere else. Em dashes were swept out of the teaching
+# chapters and left in the reference ones.
+#
+# What it deliberately does not check is sentence length, which is a judgment and
+# belongs to `book/readability.py` as a report. Gating that number would get it
+# satisfied by cutting sentences in half rather than rewriting them.
+if (file.exists("book/check_prose.R")) {
+  source("book/check_prose.R")
+  check_prose()
+  cat("\nprose-style tests passed.\n")
+} else {
+  cat("SKIP: book/ not found — run from the repo root to check the prose\n")
+}
+
+# ---------------------------------------------------------------------------
 # `proportion` is a normalizer, and `stack(share = )` fills a pile (spec §5)
 # ---------------------------------------------------------------------------
 

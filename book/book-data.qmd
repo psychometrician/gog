@@ -92,7 +92,7 @@ kinds of information are therefore lost in the file and have to be restored when
 you read it. Both matter to the plot, so this book states them rather than
 hiding them.
 
-**The order of a category.** A column such as `direction` holds the eight points
+The order of a category. A column such as `direction` holds the eight points
 of the compass. Their order is N, NE, E, SE, S, SW, W, NW, which is the order a
 compass runs in. A CSV cannot record that, so every language sorts them
 alphabetically instead: E, N, NE, NW, S, SE, SW, W. The plot still draws, and it
@@ -116,7 +116,7 @@ Python and JavaScript use `ordered()`, and Julia uses `ordered()` too. The
 [Data](data.qmd) chapter covers this in full, because declared order is part of
 the grammar and not a detail of file formats.
 
-**Labels that look like numbers.** Three columns in these tables hold text that a
+Labels that look like numbers. Three columns in these tables hold text that a
 reader will turn into numbers unless told otherwise. `census.csv` has an `age`
 column of `0`, `5`, `10`, which are the names of age bands rather than
 quantities. `sessions.csv` has a `session` column of `01`, `02`, `03`, and a

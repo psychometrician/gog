@@ -80,7 +80,7 @@ R has `tidyr::pivot_longer()`. Python has `pandas.melt()`. Julia has
 `DataFrames.stack()`. JavaScript has no standard table library, so you write a
 short loop instead.
 
-**GOG is stricter than ggplot2 here, but not about the shape.** ggplot2 does not
+GOG is stricter than ggplot2 here, but not about the shape. ggplot2 does not
 reshape tables either, and it refuses the wide table above just as GOG does. The
 real difference is narrower. ggplot2 lets you calculate a value while you map
 it, so `aes(x = log(gdp))` works there. GOG does not allow that, because a
@@ -119,7 +119,7 @@ data(actuals) + x(year) + y(sales) +
   data(forecast) + point
 ```
 
-The rule: **each `data()` applies to the mark written directly after it.** A
+The rule: each `data()` applies to the mark written directly after it. A
 mark with no `data()` in front of it reads the plot-level table.
 
 Two things follow from that rule, and both are easy to miss.
@@ -166,9 +166,9 @@ plot. GOG will never refuse either one, because legal is not the same as clear
 ([Law 8](design-laws.qmd)). Two sentences can mean the same thing and still be
 very different to read. That difference is yours to control.
 
-So group the marks by the table they read. **Keep each extra `data()` on the
+So group the marks by the table they read. Keep each extra `data()` on the
 same line as the mark it applies to, and keep the marks that read the
-plot-level table together.** The plot above is better written with
+plot-level table together. The plot above is better written with
 `line + area` on one line, and `data(forecast) + point` on the next. Every line
 is then one table and the marks that read it, and no mark sits under a table it
 does not read. The rest of this book follows that layout.
@@ -257,12 +257,12 @@ different way of finding the rows to draw.
 
 ### Three things to know
 
-**The connection is yours.** GOG never opens one, and it never stores a password.
+The connection is yours. GOG never opens one, and it never stores a password.
 You connect with whatever your language already uses, and hand the open
 connection to `query`. That also means GOG adds no database driver to your
 install. A reader who never writes SQL never installs one.
 
-**The query runs when the plot is drawn, not when the sentence is written.**
+The query runs when the plot is drawn, not when the sentence is written.
 Writing `query(con, "...")` asks the database nothing. The sentence is a
 specification, exactly like every other sentence in this book, and the engine
 draws it later. That is worth more than tidiness. A specification the engine
@@ -270,7 +270,7 @@ can read *before* the database runs is one where the engine could rewrite the
 question, and ask for a summary instead of the rows. Counting is a job a database
 does well, and the design leaves that door open.
 
-**Every language reaches a different set of databases.** The word is the same in
+Every language reaches a different set of databases. The word is the same in
 all four. What differs is the connection you hand it, because each language has
 its own database convention. Your language's chapter says which:
 [R](bindings/r.qmd), [Python](bindings/python.qmd), [Julia](bindings/julia.qmd),
@@ -335,22 +335,22 @@ It has two strengths and both are real. Its clauses read like SQL, so someone wh
 writes SQL all day never leaves the language they are thinking in, and no host
 language is installed at all. And it runs the whole pipeline in the database, one
 query per layer, so a bar chart of ten billion rows fetches only the bar heights.
-**On that second point ggsql is ahead of GOG**, which does not do this today.
+On that second point ggsql is ahead of GOG, which does not do this today.
 The limit described above is ours, not the idea's.
 
-**If SQL is where you work, ggsql is probably the better fit.** GOG would first
+If SQL is where you work, ggsql is probably the better fit. GOG would first
 ask you to pick up R, Python, Julia or JavaScript, and that is a real cost for
 someone with no other reason to.
 
 GOG points the other way. The grammar stays in one place and the data comes to
 it, so one sentence draws a loaded table, a table in Postgres, and a table in
-a warehouse, in any of four languages. **One syntax, as many languages and
-settings as we can reach.**
+a warehouse, in any of four languages. One syntax, as many languages and
+settings as we can reach.
 
 | You work | The lower cost is |
 |---|---|
-| Only in SQL | **ggsql** — nothing to install, and the syntax is the one you use |
-| Across several languages | **GOG** — one grammar covers all of them, and the database too |
+| Only in SQL | **ggsql**: nothing to install, and the syntax is the one you use |
+| Across several languages | **GOG**: one grammar covers all of them, and the database too |
 
 ```{r}
 #| include: false
@@ -374,7 +374,7 @@ because R skips a name that is not a function when it resolves a call. Eight
 names do take over, `data` among them, and the [R](bindings/r.qmd) chapter lists
 all eight with the qualified form of each.
 
-Under the hood the table currently crosses to the engine as an in-memory
+Today the table crosses to the engine as an in-memory
 `DataFrame`; Apache Arrow (zero-copy, no serialization penalty even for
 millions of rows) is on the roadmap to replace it.
 
@@ -390,7 +390,7 @@ severity <- data.frame(
 )
 
 data(severity) + bar + x(level) + y(count) +
-  title("Text column — the order the rows came in")
+  title("Text column: the order the rows came in")
 ```
 
 That is rarely what you want here. Make it a **factor** and say what order you
@@ -400,7 +400,7 @@ mean:
 severity$level <- factor(severity$level, levels = c("Low", "Medium", "High"))
 
 data(severity) + bar + x(level) + y(count) +
-  title("Factor — the order you declared")
+  title("Factor: the order you declared")
 ```
 
 The `levels =` travels with the column, so **every part of the chart agrees**:
@@ -424,7 +424,7 @@ tickets <- data.frame(
 )
 
 data(tickets) + bar * count + x(level) +
-  title("bar * count — the levels still order the axis")
+  title("bar * count: the levels still order the axis")
 ```
 
 R has two kinds of factor: `factor(x, ordered = TRUE)`, meaning Low really is
@@ -482,7 +482,7 @@ not require pandas.
 
 Two rules worth knowing:
 
-- **Levels say what order, the data says what is there.** A level with no rows
+- **Levels say what order.** The data says what is there. A level with no rows
   draws no bar and gets no slot on the axis: an empty labeled gap is harder to
   read than a shorter axis. A value in the data that is *not* in the levels is
   never dropped; it goes on the end.

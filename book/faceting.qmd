@@ -272,7 +272,7 @@ key decodes the whole plot. And with no facet there are no panels:
 render_svg(data(gapminder_2007) + point + x(gdp) + y(life, free = TRUE))
 ```
 
-## A layer without the facet column lands in every panel
+## A layer without the facet column
 
 A layer whose table does not have the facet column is drawn in full in every
 panel. That is how a shared reference belongs behind small multiples:

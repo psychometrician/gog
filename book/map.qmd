@@ -28,7 +28,7 @@ part of it and return to the whole. A map wants that more than most plots,
 because places are crowded at every scale. Zooming is a **view**: it magnifies
 the picture and changes nothing the plot claims.
 
-## The sphere has to be flattened, and something is lost
+## Flattening the sphere loses something
 
 The earth is round and the page is flat. No projection can flatten a sphere
 without distorting it, and the choice is not between a good projection and a bad
@@ -74,7 +74,7 @@ rings, and a country lying wholly inside another is a ring of its own. So
 Without that split, `path` would join the last point of one country to the first
 point of the next, and draw a line across the ocean between them.
 
-## Two layers, and the second one is the data
+## The second layer is the data
 
 An outline on its own is a backdrop. The plot begins when something is drawn on
 top of it, and that is ordinary layering: the outline is one `data()` and one
@@ -92,7 +92,7 @@ The earthquakes now sit somewhere a reader can find. Nothing in the sentence is
 new: two tables, two marks, and the second `data()` binds to the mark that
 follows it.
 
-## Both positions are used up, so a quantity goes on a channel
+## A quantity goes on a channel
 
 Every other space leaves you an axis to measure along. A bar stands on one axis
 and measures up the other. A map has no axis to spare, because longitude and
@@ -119,7 +119,7 @@ data(world_borders) + path + x(lon) + y(lat) + group(piece) +
   title("Each continent in its own color")
 ```
 
-## Meridians and parallels are a mark you already have
+## Meridians and parallels
 
 A `rule` draws a line at one position and spans the axis it does not name. Flat,
 that is a reference line. Here, a rule at one longitude is a **meridian**, and a
@@ -267,7 +267,7 @@ cannot: *where*.
 ## Rings, and the country inside another country
 
 A region is made of rings, and the rings are found by a rule rather than by a
-column: **a ring ends where it returns to the point it started from.** Boundary
+column: a ring ends where it returns to the point it started from. Boundary
 data is written that way, so nothing extra has to be said.
 
 That rule is what lets a country contain a hole. Lesotho lies entirely inside

@@ -68,18 +68,18 @@ usually with more knobs on it.
 
 Not a picture ggplot2 lacks, but one this grammar draws without being taught it.
 `geom_violin()` is a mark of its own there, with `stat_ydensity()` beside it; here
-it is [`ribbon * density`](marks/ribbon.qmd#the-violin-a-distribution-per-category)
-— the mark that closes on a second boundary, given the transform that estimates a
+it is [`ribbon * density`](marks/ribbon.qmd#the-violin-a-distribution-per-category),
+the mark that closes on a second boundary, given the transform that estimates a
 distribution, over a category:
 
 ```{r}
 data(gapminder_2007) + ribbon * density + x(continent) + y(life) +
-  y_label("Life expectancy") + title("ribbon * density — no new word required")
+  y_label("Life expectancy") + title("ribbon * density: no new word required")
 ```
 
 The half violin comes with it, for nothing, because `area` and `ribbon` already
 differ by where a region closes: `area * density + x(continent) + y(life)`. That
-is what the orthogonality is *for* — not that the plot is possible, but that the
+is what the orthogonality is *for*: not that the plot is possible, but that the
 vocabulary did not grow to make it so.
 
 The donut is the same story arriving from a *parameter* rather than a geom.
@@ -231,7 +231,7 @@ direction, and they are now written down where a future session will find them.
 | `after_stat()`, `after_scale()`, `stage()`, and `geom_count()` with them | sending a transform's *output* to a channel rather than to a position. `point * count + size(count)` is refused, because the count a transform invented is not a column the sentence can name, so sizing a point by how many rows landed on it has no spelling. One question, and it is the widest one on this list. |
 | `geom_contour()` over a supplied `z` | iso-lines of a field you computed. `path * density` traces a field GOG estimated. |
 | `geom_text(angle = )`, and ggplot2's polar text generally | a rotated label. `text` places a name at a point in every space, upright, so a [sunburst](polar.qmd) cannot run its labels along their arcs and small wedges collide. general to `polar`, not owned by that plot. |
-| `theme(axis.text = element_blank())` and friends | saying a plot has **no readable axes** as a request. `theme(grid = )` removes gridlines and `tick_count = 0` is refused by design, so the silence has to be *earned from what an axis carries* rather than asked for: a pie is recognized from its bindings, a packing has no axes at all, and a partition's radial axis carries a ring index the transform invented and so draws no ticks, no rings and no name. Three recognitions doing a general job, and the residue is the case where a reader wants a *real* quantity's axis silent — the measure round a sunburst, say, which today takes `x_label("")` and keeps its numbers. |
+| `theme(axis.text = element_blank())` and friends | saying a plot has **no readable axes** as a request. `theme(grid = )` removes gridlines and `tick_count = 0` is refused by design, so the silence has to be *earned from what an axis carries* rather than asked for: a pie is recognized from its bindings, a packing has no axes at all, and a partition's radial axis carries a ring index the transform invented and so draws no ticks, no rings and no name. Three recognitions doing a general job, and the residue is the case where a reader wants a *real* quantity's axis silent: the measure round a sunburst, say, which today takes `x_label("")` and keeps its numbers. |
 
 The color one is worth seeing, because it is not a missing knob so much as a
 missing *kind* of statement. Three species, three colors:

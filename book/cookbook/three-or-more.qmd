@@ -68,7 +68,7 @@ meaning by being combined. Four variables is a sensible ceiling in
 practice; beyond it, consider [panels](groups.qmd) instead of more
 channels.
 
-## What if the third variable is a number, not a group?
+## What if the third variable is a number?
 
 `color` accepts either kind of column. A numeric column gets a
 sequential ramp instead of a palette, and a skewed one reads better on a
@@ -105,7 +105,7 @@ data(iris_flowers) + point +
 
 [Space](../space.qmd) owns the third dimension.
 
-## What if the rows are a route through space?
+## What if the rows form a route?
 
 The scatter above is a cloud: each flower is its own dot and the table's
 order means nothing. Sometimes the order is the whole story. Two gliders
@@ -155,7 +155,7 @@ by an axis you cannot see. So a rising route is `path`; `line` says so:
 data(thermals) + line + x(east) + y(north) + z(altitude) + color(glider)
 ```
 
-## What if the shape only exists in three dimensions?
+## What if the shape needs three dimensions?
 
 `quakes_fiji` is a thousand earthquakes recorded near Fiji, each with a place on
 the globe and a depth below it. The reason it is here is that no pair of its
@@ -180,7 +180,7 @@ data(quakes_fiji) + point + x(east) + y(north) + z(elevation) +
 ```
 
 The cluster walks down and west as the sequence runs, which is the tilt of that
-sheet read one slice at a time. **The frames are not time here.** `play` advances
+sheet read one slice at a time. The frames are not time here. `play` advances
 through the levels of an ordered column, and whether that column measures years
 or kilometers is the column's business, not the channel's. Depth happens to be
 the one variable a cross-section is usually cut on, so this is the ordinary

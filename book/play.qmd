@@ -111,7 +111,7 @@ are holding on to. Every continent keeps its color in every frame, including
 frames where it happens to have no rows.
 
 What is *not* shared is the statistics. A transform sees each frame's rows as if
-they were the whole data, exactly as it sees a facet panel's — the No Exceptions
+they were the whole data, exactly as it sees a facet panel's: the No Exceptions
 law applied to frames:
 
 ```{r}
@@ -149,7 +149,7 @@ data(gm_all) + bar * bin + x(life) + play(year)
 ```
 
 The distribution walks right across half a century, and it does so against bars
-of one width — which is the only way the walk is legible.
+of one width, which is the only way the walk is legible.
 
 ## A layer that does not play stands still
 
@@ -221,13 +221,13 @@ data(gapminder_asia) + line + x(year) + y(life) + color(country) +
 A `line` needs at least two positions to read between. If each frame is one year,
 there is no domain left in it, and what you get is axes and a legend around an
 empty panel. That refusal is here because the first draft of this chapter
-contained exactly that sentence, and it rendered — silently, exit 0, a frame
+contained exactly that sentence, and it rendered, silently, exit 0, a frame
 strip counting up over nothing. A reader spotted it.
 
 The same is true of the same column split across the page rather than the clock,
 `| facet(year)`, and for the same reason; the engine refuses both, because
 [panels and frames are one partition asked twice](faceting.qmd). Marks that place
-each row on its own — `point`, `bar`, `box` — have no domain to lose, so they
+each row on its own (`point`, `bar`, `box`) have no domain to lose, so they
 sweep through happily:
 
 ```{r}
@@ -430,8 +430,8 @@ data(gm_all) + point + x(gdp) + y(life) + play(year, speed = 0)
 grammar spends time: a color is drawn all at once, so there is no duration for
 a multiplier to scale. That one is not shown here as a GOG refusal, and the
 reason is worth saying. No binding gives any other channel a `speed` argument at
-all, so `color(continent, speed = 2)` fails in R — or in Python, or Julia, or
-JavaScript — before a specification is ever built. The engine still checks it,
+all, so `color(continent, speed = 2)` fails in R (or in Python, or Julia, or
+JavaScript) before a specification is ever built. The engine still checks it,
 because a specification can also be written by hand, but you will never see that
 message from a sentence: the language you are writing in refuses first, which is
 the earlier and better place for it.
@@ -444,8 +444,8 @@ does not have. The other waits on nothing but the work.
 
 There is **no tweening**: frames cut, they do not glide. A bubble in 1957 and a
 bubble in 1962 are two complete pictures shown in turn, not one bubble eased
-between two positions. What easing needs first is a **key** — something that says
-Afghanistan in one frame is the same country as Afghanistan in the next — and the
+between two positions. What easing needs first is a **key**, something that says
+Afghanistan in one frame is the same country as Afghanistan in the next, and the
 grammar has no word for that yet. `group` looks like the word until you notice
 that a `point` does not take it, and the bubble everyone wants to see glide is a
 point. So the missing piece is a vocabulary decision rather than a drawing

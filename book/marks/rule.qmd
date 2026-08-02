@@ -44,7 +44,7 @@ another coordinate space; a column is data, and data goes everywhere data goes.
 ## Which axis it lands on
 
 Nothing in that sentence said "horizontal". The rule worked it out, and here is
-the whole of how: **`life_bands` has a `life` column and no `gdp` column**, and
+the whole of how: `life_bands` has a `life` column and no `gdp` column, and
 the plot's `y` is `life`. One axis answers, the other does not, so the rule sits
 on the one that does and spans the one that does not.
 
@@ -61,7 +61,7 @@ data(gapminder_2007) + point + x(gdp) + y(life) +
 not change, the sentence did not change, and there is no `flip` anywhere: the
 data said which axis it was about.
 
-## A rug is the same mark, reaching less far
+## A rug is the same mark
 
 A rug tick has no second position either: it sits at one value and reaches a
 little way in from the edge. That is not a different geometry, only a different
@@ -75,8 +75,8 @@ data(gapminder_2007) + point + x(gdp) + y(life) + style(opacity = 0.45) +
 ```
 
 Look along the bottom. Each tick is one country, drawn at its own income, and the
-row of them answers a question the cloud above cannot: **how many countries are
-there at each income, including the ones hidden underneath each other?** Points
+row of them answers a question the cloud above cannot: how many countries are
+there at each income, including the ones hidden underneath each other? Points
 overlap, and a hundred countries crowded below $5,000 look much like forty. The
 ticks do not overlap in the same way, because they only have to agree on one
 coordinate instead of two, so the crowding at the left is visible as crowding.
@@ -92,7 +92,7 @@ set: a tick's length comes from the panel, the way a label's `nudge` comes from
 the font size. A number there would be a pixel count that meant something
 different in every facet and at every plot size.
 
-### And on the other axis, by the same rule as everything else
+### The other axis
 
 A rug is not tied to the horizontal. Which axis it lands on is decided the way it
 was for the threshold lines: by the column its own table holds. Hand it `life`
@@ -134,7 +134,7 @@ data(gapminder_2007) + point + x(gdp) + y(life) + style(color = "lightgrey") +
 A rule is paint on a hairline, so `color` takes categories rather than a
 continuous ramp, the same answer `line` and `path` give.
 
-## Thickening a rule, and what that does not buy you
+## Thickening a rule
 
 `style(size = )` will make a rule as fat as you like, and a fat translucent one
 reads as a highlighted band:
@@ -147,7 +147,7 @@ data(gapminder_2007) + point + x(gdp) + y(life) + style(opacity = 0.55) +
 ```
 
 That is a perfectly good way to draw attention to a value, and it is worth being
-clear about what it is: **a stroke width is pixels, not data.** The band above
+clear about what it is: a stroke width is pixels, not data. The band above
 covers about four years of life expectancy, but only because of where this
 plot's vertical axis happens to sit. Facet it, resize it, or change the data's range
 and the same `size = 26` will cover a different number of years while looking

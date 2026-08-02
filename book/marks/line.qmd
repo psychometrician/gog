@@ -72,7 +72,7 @@ layer can be styled independently:
 data(gapminder_asia) + x(year) + y(life) +
   line + group(country) + style(color = "steelblue") +
   point + style(color = "firebrick", size = 3) +
-  title("Blue line, red points — styled per layer")
+  title("Blue line, red points: styled per layer")
 ```
 
 Channels scope the same way. Written after a mark, one binds to that mark alone,
@@ -100,7 +100,7 @@ is the profile plot:
 ```{r}
 data(gapminder_2007) + line * mean + point * mean + x(continent) + y(life) +
   y_label("Mean life expectancy") +
-  title("line * mean + x(continent) — one value per category, joined")
+  title("line * mean + x(continent): one value per category, joined")
 ```
 
 The transform is doing real work there. Without one, a `line` would connect every
@@ -124,13 +124,13 @@ the radar, and it needs no new atom:
 
 ```{r}
 data(gapminder_2007) + line * mean + x(continent) + y(life) + polar() +
-  title("line * mean + polar() — the radar")
+  title("line * mean + polar(): the radar")
 ```
 
 Look at the segment from Oceania back to Asia. On the flat profile the path has
 two ends, because a straight axis has two ends; in the circle the categories fill
 the turn between them and the last is next to the first, so the path closes.
-Nothing was added to say so — a categorical angular axis wraps, and the mark reads
+Nothing was added to say so: a categorical angular axis wraps, and the mark reads
 that off the space it is drawn in. Full treatment in
 [Polar](../polar.qmd).
 

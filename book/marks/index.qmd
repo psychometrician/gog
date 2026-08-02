@@ -34,7 +34,7 @@ GOG infers variable type automatically from your data:
 ```{r}
 # How is life expectancy distributed? → histogram
 data(gapminder_2007) + bar * bin + x(life) +
-  x_label("Life expectancy (years)") + title("Distribution — bar * bin")
+  x_label("Life expectancy (years)") + title("Distribution: bar * bin")
 ```
 
 *"Given gapminder 2007: bars derived by bin, x is life."*
@@ -42,7 +42,7 @@ data(gapminder_2007) + bar * bin + x(life) +
 ```{r}
 # Smooth shape of the distribution → density curve
 data(gapminder_2007) + line * density + x(life) +
-  x_label("Life expectancy (years)") + title("Density — line * density")
+  x_label("Life expectancy (years)") + title("Density: line * density")
 ```
 
 ### Categorical variable
@@ -50,13 +50,13 @@ data(gapminder_2007) + line * density + x(life) +
 ```{r}
 # How many countries per continent? → frequency bar
 data(gapminder_2007) + bar * count + x(continent) +
-  title("Frequency — bar * count")
+  title("Frequency: bar * count")
 ```
 
 ```{r}
 # What share of countries per continent? → proportion bar
 data(gapminder_2007) + bar * proportion + x(continent) +
-  title("Relative frequency — bar * proportion")
+  title("Relative frequency: bar * proportion")
 ```
 
 ---
@@ -71,7 +71,7 @@ Both variables are numeric. The natural questions are about **relationships**,
 ```{r}
 # Is there a relationship? → scatter
 data(gapminder_2007) + point + x(gdp) + y(life) + x_label("GDP per capita") +
-  y_label("Life expectancy") + title("Relationship — point")
+  y_label("Life expectancy") + title("Relationship: point")
 ```
 
 ```{r}
@@ -80,13 +80,13 @@ data(gapminder_2007) + x(gdp) + y(life) +
   point + color(continent) +
   line * smooth +
   x_label("GDP per capita") + y_label("Life expectancy") +
-  title("Trend — point + line * smooth")
+  title("Trend: point + line * smooth")
 ```
 
 ```{r}
 # How much, not just where → filled area
 data(actuals) + area + x(year) + y(sales) + y_label("Sales") +
-  title("Quantity — area")
+  title("Quantity: area")
 ```
 
 `line` and `area` draw the same boundary and mean different things by it. A
@@ -109,11 +109,11 @@ the axes and time in the joining.
 data(gapminder_asia) + path + x(gdp) + y(life) + color(country) +
   style(arrow = "end") +
   x_label("GDP per person") + y_label("Life expectancy") +
-  title("Route — path (the head is 2007)")
+  title("Route: path (the head is 2007)")
 ```
 
 Layered *over* any of these, [`rule`](rule.qmd) marks a value on one axis and
-spans the other — a threshold line, or, reaching only a little way in from the
+spans the other: a threshold line, or, reaching only a little way in from the
 edge, a rug showing where the observations actually sit. Layered *under* them,
 [`zone`](zone.qmd) shades a rectangle the same way: bounded where you give it a
 pair of columns, spanning the panel where you do not. Let `bin` cut the pairs
@@ -126,7 +126,7 @@ data(gapminder_2007) + point + x(gdp) + y(life) + style(opacity = 0.45) +
   data(gdp_rug) + rule + style(reach = "edge") +
   data(life_bands) + rule + color(band) +
   x_label("GDP per person") + y_label("Life expectancy") +
-  title("Threshold and rug — rule")
+  title("Threshold and rug: rule")
 ```
 
 ### Categorical × Continuous
@@ -137,14 +137,14 @@ One axis groups, the other measures. The natural question is
 ```{r}
 # Mean value per group → bar
 data(gapminder_2007) + bar * mean + x(continent) + y(life) +
-  y_label("Mean life expectancy") + title("Group summary — bar * mean")
+  y_label("Mean life expectancy") + title("Group summary: bar * mean")
 ```
 
 ```{r}
 # All individual points per group → strip plot
 data(gapminder_2007) + point + x(continent) + y(life) +
   y_label("Life expectancy") +
-  title("Strip plot — point (one dot per country)")
+  title("Strip plot: point (one dot per country)")
 ```
 
 For the *shape* of each group rather than every point, [`box`](box.qmd) draws
@@ -164,7 +164,7 @@ group instead of standing a bar on each:
 data(gapminder_2007) + x(continent) + y(life) +
   line * mean + point * mean +
   y_label("Mean life expectancy") +
-  title("Profile — line * mean")
+  title("Profile: line * mean")
 ```
 
 Bars compare, profiles trace. A profile is the weaker claim of the two, since

@@ -60,7 +60,7 @@ A column whose name is not a Julia identifier is written `Symbol("life exp")`.
 Names in other scripts need no such thing: `:지역` (*jiyeok*, region) is an
 ordinary symbol, because Julia identifiers are Unicode.
 
-## The operators are R's, and the precedence was checked
+## The operators, and their precedence
 
 Julia's precedence table is not R's. R puts `|` below `+`; Julia puts it in the
 *addition* tier, alongside `+`. That could have broken every faceted sentence in
@@ -97,8 +97,8 @@ jl_plot("data(gapminder_2007) + bar * mean + x(:continent) + y(:life)")
 ## Nine words need naming twice
 
 This is Julia's one real wrinkle, and every Julia programmer has met it before.
-Nine of the fifty-one kernel words are also names in `Base` — `bin`, `count`, `sum`,
-`min`, `max`, `range`, `size`, `step`, `stack` — and Julia will not silently pick
+Nine of the fifty-one kernel words are also names in `Base` (`bin`, `count`, `sum`,
+`min`, `max`, `range`, `size`, `step`, `stack`), and Julia will not silently pick
 a winner between two modules that export the same name. Using one bare gives an
 `UndefVarError` with a hint rather than the wrong function, which is the good
 outcome, but it does mean a second import line:

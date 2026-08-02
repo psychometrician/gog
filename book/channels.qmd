@@ -166,7 +166,7 @@ data(gapminder_2007) + point + x(gdp) + y(life) +
 ## `pattern`
 
 `pattern(field)` is `shape`'s twin one geometry class over: it maps a categorical
-column to a **texture** rather than a glyph, realized by the mark's geometry — a
+column to a **texture** rather than a glyph, realized by the mark's geometry: a
 **hatch** on the fills (`bar`, `box`, `area`, `ribbon`), a **dash** on the strokes
 (`line`, `step`, `interval`). Textures read without hue, so a plot mapped by
 `pattern` stays legible in grayscale or with color-blindness. The first category is
@@ -177,7 +177,7 @@ data(iris_flowers) + bar * mean + x(species) + y(petal_length) +
   pattern(species) + y_label("Mean petal length (cm)")
 ```
 
-The point of the channel is **redundant encoding** — the same column on `color`
+The point of the channel is **redundant encoding**: the same column on `color`
 *and* `pattern`, so series are told apart by hue *and* texture at once (the
 accessibility best practice). GOG draws these as **one merged legend**, not two:
 
@@ -191,7 +191,7 @@ data(sales) + bar * sum * dodge + x(quarter) + y(revenue) + color(channel) +
   pattern(channel) + title("Grouped bars, told apart by hue and hatch")
 ```
 
-On a stroke the same channel dashes each series instead — the color-free line
+On a stroke the same channel dashes each series instead: the color-free line
 chart:
 
 ```{r}
@@ -204,8 +204,8 @@ data(trend) + line + x(month) + y(sales) + color(team) + pattern(team) +
   title("Two series, by hue and dash")
 ```
 
-The texture palette is deliberately small — five hatches on a fill, three dashes on
-a stroke — so `pattern` suits a handful of categories, not dozens; past the palette
+The texture palette is deliberately small (five hatches on a fill, three dashes on
+a stroke), so `pattern` suits a handful of categories, not dozens; past the palette
 size the textures repeat. To fix one texture for a whole layer rather than map a
 column, that is the [`style(pattern = )`](style.qmd) setting.
 
@@ -218,7 +218,7 @@ overlap and you want the crowded regions to read as denser.
 
 ```{r}
 data(gapminder_2007) + point + x(gdp) + y(life) + opacity(population) +
-  title("Opacity — larger populations drawn more solidly")
+  title("Opacity: larger populations drawn more solidly")
 ```
 
 Mapped values run from 0.15 to 0.95 rather than 0 to 1: a fully transparent mark
@@ -294,7 +294,7 @@ Channels compose freely.  Every combination that makes visual sense is valid:
 # Color + size + shape on the same plot
 data(gapminder_2007) + point + x(gdp) + y(life) +
   color(continent) + size(population) + shape(continent) +
-  title("GDP vs Life Expectancy — 2007")
+  title("GDP vs Life Expectancy, 2007")
 ```
 
 ---
@@ -399,7 +399,7 @@ draws every sentence in four languages.
 
 Three things are worth reading off that page.
 
-**`gray` runs the other way.** Its crater is dark at the summit while the other
+`gray` runs the other way. Its crater is dark at the summit while the other
 five are bright there. That is not a mistake in either: GOG's own ramps (`gray`
 and the default `blue`) run light to dark, because for a single hue more ink
 reads as more, which is also how the figure survives a photocopier. The
@@ -409,7 +409,7 @@ magma. The legend is what settles it in any given plot, and it is the reason a
 mapped channel always gets one: read the top label and you know which end is
 which.
 
-**The four imported ramps end on a near-white.** `magma`'s last stop holds
+The four imported ramps end on a near-white. `magma`'s last stop holds
 barely any contrast against the panel, so the very top of the scale nearly
 disappears, which you can see in the pale flat summits above. That is the price
 of perceptual uniformity rather than an oversight, and it is why `blue` is the

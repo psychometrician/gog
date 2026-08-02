@@ -29,13 +29,13 @@ Every word in it is a common English word: no abbreviations, no acronyms, no
 silent letters.
 
 Read the kernel as two groups: what a plot needs, and what refines or arranges
-it. **Five kinds build a plot.** A **table** supplies the rows and the columns. A
+it. Five kinds build a plot. A **table** supplies the rows and the columns. A
 **mark** is the shape drawn for each row. A **channel** maps a column to
 something you can see, such as a position or a color. A **transform** derives new
 values from the columns you named. An **operator** joins the words into one
 sentence.
 
-**The other six refine a plot or arrange it, and none of them is required.** A
+The other six refine a plot or arrange it, and none of them is required. A
 **scale** decides how a number becomes a position. A **space** is the surface the
 plot is drawn on: a flat page, a cube, a circle, a map. A **setting** changes how
 the plot looks without saying anything about the data, and a **label** names it.
@@ -97,7 +97,7 @@ A mark is the geometric form drawn for each row of data.
 | `text` | A string at each position: its content comes from the `label` channel |
 | `path` | Rows connected in **the table's order**: a route that may double back; takes `style(arrow = )` |
 | `rule` | A line at one position, spanning the other axis: reference lines, and rugs via `style(reach = "edge")` |
-| `zone` | A shaded region: bounded where its sides are known, spanning the panel where they are not. Five things know them — a **categorical position** (a category owns a slot: the tile plot), `bounds` (names them), `bin` (cuts them: the heatmap), `density` (cuts or traces them), and a **boundary** (the data draws them: the choropleth, in `map()`) |
+| `zone` | A shaded region: bounded where its sides are known, spanning the panel where they are not. Five things know them: a **categorical position** (a category owns a slot: the tile plot), `bounds` (names them), `bin` (cuts them: the heatmap), `density` (cuts or traces them), and a **boundary** (the data draws them: the choropleth, in `map()`) |
 | `surface` | A sheet over a floor whose cells tile: one row per (x, y) crossing with a face between each block of four, or one row per cut cell with a flat plateau on each. The only mark that draws in the cube alone |
 
 ## Channels: a column made visible
@@ -122,7 +122,7 @@ one *earns*:
 | `z` | Depth, the third position: it makes a plot 3-D. Drawn by `point`, `bar`, `interval`, `box`, `path` and `surface` | an axis |
 | `color` | Fill or stroke color, from a categorical or continuous column | a legend |
 | `size` | Radius, on `point` | a legend |
-| `shape` | Glyph — circle, square, triangle — on `point` | a legend |
+| `shape` | Glyph (circle, square, triangle) on `point` | a legend |
 | `pattern` | Texture: a fill's hatch, a stroke's dash. Every mark but `point`, `text` and `surface` | a legend |
 | `opacity` | Transparency, on `point` and `bar` | a legend |
 | `group` | Splits a mark into one series per category, without encoding it. On `line`, `area`, `step`, `interval`, `box`, `ribbon`, `path`, `zone` and `surface` | nothing |
@@ -210,7 +210,7 @@ data(gapminder_2007) + point + x(gdp) + y(life)
 *"Given gapminder 2007: points, x is gdp, y is life."* One mark, one layer.
 
 ```{r}
-# Two layers — bars behind, points on top
+# Two layers: bars behind, points on top
 data(actuals) + x(year) + y(sales) +
   bar + style(color = "lightsteelblue") +
   point + style(color = "steelblue", size = 6)
@@ -224,7 +224,7 @@ thing every time. [Which orders matter](operators.qmd#which-orders-matter)
 gathers all of it in one place: what you may rearrange freely, what the engine
 refuses, and the two arrangements that change the picture without saying so.
 
-## The `*` operator: combining a mark with a transform
+## The `*` operator: combining
 
 `*` binds a mark to a transform, creating a derived mark type.
 The mark is always on the left; the transform is on the right. Where two
@@ -234,7 +234,7 @@ transforms follow one mark, write them in the order they happen:
 ```r
 bar * bin      # histogram
 line * smooth  # smoothed trend line
-zone * bin     # heatmap — the same `bin`, cutting both axes
+zone * bin     # heatmap: the same `bin`, cutting both axes
 ```
 
 The last line is the pattern worth noticing: one transform means one thing, and
@@ -247,7 +247,7 @@ cuts the other one only, since a category arrived already cut.
 The summaries divide by the same arithmetic, read the other way round. `zone *
 mean + x(a) + y(b) + color(v)` averages `v` within every cell two categories
 cross, because a summary groups by every position the mark does *not* measure
-with and reduces the column named on the one it does — which on a bar is `y`,
+with and reduces the column named on the one it does, which on a bar is `y`,
 on a zone is `color`, and in [`space()`](space.qmd) is `z`.
 
 See [Operators](operators.qmd) for the full rules,
@@ -255,8 +255,8 @@ and [Transforms](transforms.qmd) for each transform in detail.
 
 ## The `|` and `/` operators: faceting, or composing
 
-`|` puts things side by side and `/` puts one above the other. What things —
-panels or whole plots — is decided by what you write on the right.
+`|` puts things side by side and `/` puts one above the other. Whether those are
+panels or whole plots is decided by what you write on the right.
 
 With `facet()` on the right they split *one* plot into panels, one per category
 of the column it names:
@@ -280,7 +280,7 @@ its own coordinate space:
 ```
 
 Composed plots share nothing until they name the same column on the same axis,
-and then they share that axis outright — one scale, one extent, drawn once. That
+and then they share that axis outright: one scale, one extent, drawn once. That
 single rule is what makes a marginal plot two operators rather than a chart type.
 See [Composition](composition.qmd).
 
@@ -303,7 +303,7 @@ data(gapminder_2007) + point + x(gdp, scale = "log") + y(life) +
 | `log` | Equal steps for equal ratios, on `x`, `y`, `color`, `size` and `opacity`, with any `base` |
 | `time` | Positions dates and times, chosen from the column type: `Date` and `POSIXct` |
 | `category` | One slot per distinct value, chosen from the column type: text and factor columns |
-| `order` | Which way a categorical axis runs, or [declare it on the column](data.qmd) — a factor in R, `ordered()` in the other three |
+| `order` | Which way a categorical axis runs, or [declare it on the column](data.qmd): a factor in R, `ordered()` in the other three |
 
 A scale is not a transform: it produces no new values, only different positions
 for the ones you have. Where the two meet, what a log scale means for

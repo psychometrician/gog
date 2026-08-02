@@ -17,7 +17,7 @@ them all tomato*. No column is consulted, no scale is built, and no legend
 appears, because there is nothing to decode.
 
 ```{r}
-# MAP — color answers "which continent?"
+# MAP: color answers "which continent?"
 data(gapminder_2007) + point + x(gdp) + y(life) + color(continent) +
   title("Mapped: a legend decodes the color")
 ```
@@ -25,7 +25,7 @@ data(gapminder_2007) + point + x(gdp) + y(life) + color(continent) +
 *"Given gapminder 2007: points, x is gdp, y is life, color by continent."*
 
 ```{r}
-# SET — color answers nothing; note the missing legend
+# SET: color answers nothing; note the missing legend
 data(gapminder_2007) + point + x(gdp) + y(life) +
   style(color = "tomato") +
   title("Set: no legend, because there is nothing to look up")
@@ -37,8 +37,8 @@ Every channel in GOG maps a data column to a visual feature. A constant maps
 nothing, so it fails the definition: the same reason rotating a 3-D plot is a
 property of the coordinate space rather than a channel.
 
-There is a practical test that agrees: **a map earns a guide; a set earns
-none.** If the picture needs a legend to be read, it was a mapping.
+There is a practical test that agrees: a map earns a guide; a set earns
+none. If the picture needs a legend to be read, it was a mapping.
 
 ## What you can set
 
@@ -72,7 +72,7 @@ rows <- vapply(setts, function(s) {
 cat(header, divider, rows, sep = "\n")
 ```
 
-(✅ set today · — the mark's geometry cannot carry it. Generated live from the
+(✅ set today · `—` the mark's geometry cannot carry it. Generated live from the
 engine, like the [Combinations](combinations.qmd) grid, so it cannot drift from
 what `style()` accepts.)
 
@@ -102,7 +102,7 @@ data(gapminder_asia) + line * mean + x(year) + y(life) +
   title("A dashed trend line")
 ```
 
-On a fill the same setting hatches the region — a print-ready look that survives
+On a fill the same setting hatches the region, a print-ready look that survives
 a black-and-white photocopy:
 
 ```{r}
@@ -114,7 +114,7 @@ data(gapminder_2007) + bar * mean + x(continent) + y(life) +
 
 The texture is one per layer: `style()` gives every bar in the layer the *same*
 hatch, so it cannot hand each series in a color split its own. Doing that is a
-*mapping* — a category to a texture — which is the
+*mapping* (a category to a texture), which is the
 [`pattern()` channel](channels.qmd#pattern), the texture twin of `shape()`.
 
 `border_color` and `border_size` (an outline distinct from the fill, `0` = no
@@ -166,7 +166,7 @@ data(gapminder_asia) + path + x(gdp) + y(life) + color(country) +
   title("Each thread points at 2007")
 ```
 
-It takes `"end"`, `"start"`, or `"both"` — a value rather than a `TRUE`/`FALSE`,
+It takes `"end"`, `"start"`, or `"both"`: a value rather than a `TRUE`/`FALSE`,
 because a double-headed arrow is an ordinary want and a flag would have needed a
 second setting to express it.
 
@@ -252,7 +252,7 @@ is a statement about the *rendering*, not about the data:
 ```{r}
 data(gm_all) + point + x(gdp) + y(life) +
   style(opacity = 0.2, size = 3) +
-  title("1704 points — transparency reveals the density")
+  title("1704 points: transparency reveals the density")
 ```
 
 **A reference layer.** When one layer carries the message, the others should get

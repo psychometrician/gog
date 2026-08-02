@@ -15,7 +15,7 @@
 # `date:` and not a value substituted into the front matter. Left as an ISO
 # string the two rows disagree: "July 28, 2026" above "2026-07-31". The `sub()`
 # drops the leading zero that `%d` puts on a single-digit day, which is the one
-# place the two would still differ — Quarto's long format writes "July 5, 2026",
+# place the two would still differ: Quarto's long format writes "July 5, 2026",
 # and `%d` alone writes "July 05, 2026".
 date-modified: "`r sub(' 0', ' ', format(Sys.Date(), '%B %d, %Y'))`"
 ---
@@ -34,9 +34,9 @@ callable from [R](https://www.r-project.org/), [Python](https://www.python.org/)
 Its discipline comes from Hangeul (한글), the Korean
 alphabet; its vocabulary from Wilkinson's *The Grammar of Graphics*; and its
 working shape from [ggplot2](https://ggplot2.tidyverse.org/)
-[@wickham2026ggplot2pkg]. Behind all three is one promise: **a beginner
+[@wickham2026ggplot2pkg]. Behind all three is one promise: a beginner
 should be able to read any plot specification aloud on day one and write it
-themselves on day two.**
+themselves on day two.
 
 This preface is unusually long. It explains where the grammar comes from, and
 why it refuses what it refuses. You do not need any of it to draw a plot. If
@@ -312,10 +312,10 @@ is legal here, because well-formedness and usefulness are different judgments
 belonging to different people. The engine guarantees the first, always. The
 second is yours, and it is what most of this book is about.
 
-## The promise, and the rules this book plays by
+## The promise, and the book's rules
 
-This book inherits the 1446 promise, restated for graphics: **read the whole
-grammar in a morning; write it fluently within ten days.** Part I is built
+This book inherits the 1446 promise, restated for graphics: read the whole
+grammar in a morning; write it fluently within ten days. Part I is built
 to be finished in one sitting. The rest of the book deepens what the
 morning introduced; it never replaces it.
 

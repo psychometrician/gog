@@ -163,7 +163,7 @@ data(day_cycle) + line + x(hour) + y(trips) + polar()
 The curve closes at the top because the reading at 24 is the reading at 0, and
 the two sit on the same spoke. Most periodic data is not so obliging. A tide
 gauge reads every three hours and reaches neither midnight, so the axis it gets
-spans 1 to 22 — and the failure that causes is not subtle:
+spans 1 to 22, and the failure that causes is not subtle:
 
 ```{r}
 data(tide) + line + x(hour) + y(height) + polar()
@@ -181,11 +181,11 @@ of hours says the day wraps. So say it:
 data(tide) + line + x(hour, limits = c(0, 24)) + y(height) + polar()
 ```
 
-Now each reading sits where a clock would put it — hour 1 a sixteenth of a turn
-past midnight, hour 22 a sixteenth short of it — and the two are 45 degrees
+Now each reading sits where a clock would put it: hour 1 a sixteenth of a turn
+past midnight, hour 22 a sixteenth short of it, and the two are 45 degrees
 apart, which is the three hours they really are.
 
-**The curve still does not close, and that is the honest answer.** The gauge took
+The curve still does not close, and that is the honest answer. The gauge took
 no reading at midnight, and `limits` states a domain; it does not invent an
 observation. The gap you can see between hour 22 and hour 1 *is* the three-hour
 gap in the data, drawn at the size it is. Contrast the trips above, which close
@@ -194,7 +194,7 @@ and closes for a third reason, below: there every slot is filled, so the last
 category is adjacent to the first by construction rather than by luck.
 
 `limits` states the domain the axis runs over rather than deriving it from the
-data, which is the general fix and not a polar one — the same words hold a color
+data, which is the general fix and not a polar one: the same words hold a color
 ramp still across facets. [Scales](scales.qmd) has the rest of it. Note what it
 did *not* do here either: no reading was dropped, because 1 through 22 all lie
 inside 0 through 24. Stating a domain widens as readily as it narrows.
@@ -221,14 +221,14 @@ data(gapminder_2007) + line * mean + x(continent) + y(life) + polar() +
   title("line * mean + x(continent) + polar()")
 ```
 
-That is a radar plot, and there is no `radar` atom in this grammar — the same
+That is a radar plot, and there is no `radar` atom in this grammar: the same
 sentence flat is the profile from the [Line](marks/line.qmd) chapter, with a
 straight axis and therefore two ends. Bending the space is what joins them.
 Filled, it is the shape people usually mean by the name:
 
 ```{r}
 data(gapminder_2007) + area * mean + x(continent) + y(life) + polar() +
-  title("area * mean — the filled radar")
+  title("area * mean: the filled radar")
 ```
 
 Split it and each group is its own outline, the split reading exactly as it does
@@ -519,14 +519,14 @@ That is worth a sentence, because it is not a setting. A hole is a stretch of th
 radial axis with nothing standing on it: the innermost ring starts at 1, and
 saying the axis runs from 0 leaves the first unit of radius empty. Widen the
 stretch and the hole widens with it, since `limits` states a domain and the rings
-keep the places they always had — `c(-1, 4)` gives up two fifths of the radius
+keep the places they always had: `c(-1, 4)` gives up two fifths of the radius
 rather than a quarter.
 
 ## The donut: one level is still a tree
 
 A hierarchy one level deep is a hierarchy, and everything above holds for it. One
 level is one ring, that ring is at depth 1, and an axis running from 0 to 2 leaves
-the first of its two units empty — which is a **donut**:
+the first of its two units empty, which is a **donut**:
 
 ```{r}
 data(spending) + zone * partition(group) + x(amount) +

@@ -80,7 +80,7 @@ and `density(bandwidth = 1)` fixes the kernel width in years.
 ## Where does the distribution step?
 
 The third rendering of `bin`: an unfilled staircase silhouette, tracing
-bin tops without any fill. It earns its keep when several distributions
+bin tops without any fill. It is most useful when several distributions
 share an axis, see [Many groups](groups.qmd), but reads cleanly alone
 too:
 

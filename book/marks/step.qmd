@@ -29,7 +29,7 @@ anything:
 
 ```{r}
 data(iris_flowers) + step * bin + x(petal_length) + color(species) +
-  x_label("Petal length (cm)") + title("Petal length by species — step outline")
+  x_label("Petal length (cm)") + title("Petal length by species: step outline")
 ```
 
 *"Given the iris flowers: a step outline derived by bin, x is petal length, color by species."*
@@ -59,7 +59,7 @@ v <- sort(gapminder_2007$life)
 ecdf_df <- data.frame(life = v, share = seq_along(v) / length(v))
 data(ecdf_df) + step + x(life) + y(share) +
   x_label("Life expectancy (years)") + y_label("Cumulative share of countries") +
-  title("Empirical CDF of life expectancy — 2007")
+  title("Empirical CDF of life expectancy, 2007")
 ```
 
 Drawn with `line`, this same data would slant between points and imply
@@ -96,7 +96,7 @@ inventory <- data.frame(
 )
 data(inventory) + step + x(week) + y(units) + color(site) +
   x_label("Week") + y_label("Units in stock") +
-  title("Inventory by site — each holds until it moves")
+  title("Inventory by site: each holds until it moves")
 ```
 
 ## A category on the domain
@@ -109,7 +109,7 @@ the staircase holds each category's value across its own slot:
 ```{r}
 data(gapminder_2007) + step * mean + x(continent) + y(life) +
   y_label("Mean life expectancy") +
-  title("step * mean + x(continent) — held across each slot")
+  title("step * mean + x(continent): held across each slot")
 ```
 
 That reading is arguably the more honest of the two. A `line` slopes between two

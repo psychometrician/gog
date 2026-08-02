@@ -6,7 +6,7 @@ source("../R/setup.R")
 ```
 
 How far does each group reach, from its lowest value to its highest? `interval`
-draws a **span from a low value to a high one** at each position: a whisker,
+draws a span from a low value to a high one at each position: a whisker,
 capped at both ends. It is the mark behind error bars and min–max ranges. Where
 `bar` measures *from a baseline* up to a value, an `interval` **floats between
 two extents**: it has no baseline, and it needs both a low and a high before it

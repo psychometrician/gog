@@ -48,7 +48,7 @@ The two forms answer different questions, and the difference is who chooses.
 `brush` hands the choice to the reader. `brush(gdp, at = ...)` makes it in the
 sentence, and prints.
 
-## It highlights. It never removes rows.
+## Highlighting, never removing rows
 
 This is the one rule to learn, and it separates `brush` from an atom you already
 know. [`limits`](scales.qmd) also takes a range in a column's own units. It does
@@ -118,10 +118,10 @@ One word, two readings, decided by the column rather than by a second atom. Drag
 across the slots and the selection follows them, whole slots at a time, because
 a category has no half.
 
-The column is on the `x` axis here and that is not decoration. **A drag can only
-reach a column the panel places.** Written over the scatter this chapter opened
+The column is on the `x` axis here and that is not decoration. A drag can only
+reach a column the panel places. Written over the scatter this chapter opened
 with, where `continent` is a color and nothing else, `brush(continent, at = ...)`
-is still a legal sentence and still dims the right countries — but there is
+is still a legal sentence and still dims the right countries, but there is
 nowhere to drag, because no axis is measuring continents. The sentence has said
 everything, and the mouse has nothing left to say.
 
@@ -157,7 +157,7 @@ either and the other follows. The rich countries live long, which the top plot
 says; they are also mostly small, which only the bottom one says, and neither
 plot could have told you both.
 
-**Nothing was added to the grammar to link them.** Look at what the two sentences
+Nothing was added to the grammar to link them. Look at what the two sentences
 share: the column `gdp`, named on `x` in each. A bound is a fact about a column's
 values rather than about a panel, so two plots that read that column are already
 answering the same question. There is no name to declare, no identifier to match
@@ -321,7 +321,7 @@ Written with no `at` at all, nothing is selected. The plot then draws exactly as
 it would with no `brush` in the sentence, which is the resting state a page shows
 before the first drag.
 
-## What the page adds, and what it does not
+## What the page adds
 
 A brushed plot on a web page carries a line of controls under it. None of them
 are in the sentence, and that is the rule rather than an omission. They report a
@@ -365,7 +365,7 @@ and everything inside it is selected. The count and the row table read exactly a
 they do for a box, because a shape and a bound ask the same question: which rows
 do you mean.
 
-**Nothing about the sentence changes.** You do not type a shape, and the printed
+Nothing about the sentence changes. You do not type a shape, and the printed
 page still shows the bound the sentence named. Drawing one is a way of looking,
 like turning a cube, rather than a claim about the data.
 
