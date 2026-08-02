@@ -1,0 +1,263 @@
+#!/usr/bin/env bash
+# release — do every mechanical part of cutting a release, and stop at the parts
+# that are decisions.
+#
+# `RELEASING.md` beside this file is the explanation; this is the execution. The
+# two must agree, so if you change the sequence here, change it there.
+#
+#     .github/release 0.0.3        bump, regenerate, test, dispatch — then stop
+#     .github/release --check      verify the tree without changing it
+#     .github/release --tag py     push py-v<version> → PyPI, after approval
+#     .github/release --tag js     push js-v<version> → npm, after approval
+#     .github/release --julia      trigger the Julia registration
+#
+# **It never publishes anything on its own.** The bump command stops before the
+# tags, because the packaging workflows it dispatches are worth reading before
+# a number is spent. The tag commands push one ref each and then wait for you to
+# approve an environment in the browser, which is where the irreversible step
+# actually lives.
+#
+# What it deliberately cannot do: register the PyPI and npm trusted publishers.
+# Both registries require a human in a browser for that, by design, because it
+# is the step that authorizes a machine to publish as you.
+
+set -euo pipefail
+
+# rustup and juliaup edit the *interactive* shell's profile only, so a script
+# has to put them on PATH itself or the regeneration step silently finds no
+# cargo and the suites find no julia.
+export PATH="$HOME/.cargo/bin:$HOME/.juliaup/bin:$PATH"
+
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+cd "$ROOT"
+
+bold=$'\033[1m'; dim=$'\033[2m'; red=$'\033[31m'; green=$'\033[32m'; off=$'\033[0m'
+step() { printf '%s▸ %s%s\n' "$bold" "$1" "$off"; }
+ok()   { printf '  %s✓%s %s\n' "$green" "$off" "$1"; }
+note() { printf '  %s%s%s\n' "$dim" "$1" "$off"; }
+die()  { printf '%s✗ %s%s\n' "$red" "$1" "$off" >&2; exit 1; }
+
+# The eight files that declare a version, and the five npm pins inside the
+# ninth. `gog-wasm/Cargo.toml` is in the list because `.prepare` copies the crate
+# into the R source tarball, so its number reaches a user's disk.
+declared_version() { sed -n 's/^Version: *\(.*\) *$/\1/p' r-pkg/gog/DESCRIPTION | head -1; }
+
+# --------------------------------------------------------------------------
+# checks
+
+check_clean_enough() {
+  # Someone else may be working in this tree. Refuse only if the files this
+  # script is about to rewrite already carry changes, rather than demanding a
+  # spotless tree that never exists here.
+  local dirty
+  dirty="$(git diff --name-only -- \
+    r-pkg/gog/DESCRIPTION py-pkg/gog/pyproject.toml py-pkg/gog/gog/__init__.py \
+    js-pkg/gog/package.json jl-pkg/GrammarOfGraphics/Project.toml \
+    gog-core/Cargo.toml gog-cli/Cargo.toml gog-wasm/Cargo.toml)"
+  [ -z "$dirty" ] || die "these already have uncommitted changes, and this would overwrite them:
+$dirty"
+}
+
+check_ci_green() {
+  command -v gh >/dev/null || { note "gh not found — skipping the CI check"; return 0; }
+  local sha status
+  sha="$(git rev-parse HEAD)"
+  status="$(gh run list --commit "$sha" --limit 20 \
+    --json name,conclusion,status --jq \
+    '[.[] | select(.name == "tests")] | if length == 0 then "none"
+       elif any(.status != "completed") then "running"
+       elif all(.conclusion == "success") then "green" else "red" end' 2>/dev/null || echo unknown)"
+  case "$status" in
+    green)   ok "CI is green at $(git rev-parse --short HEAD)" ;;
+    none)    note "no tests run for $(git rev-parse --short HEAD) yet — push first, or accept the risk" ;;
+    running) note "CI is still running at $(git rev-parse --short HEAD)" ;;
+    red)     die "CI is red at $(git rev-parse --short HEAD). Fix that before releasing." ;;
+    *)       note "could not read CI status" ;;
+  esac
+}
+
+check_versions_agree() {
+  local want="$1" bad=0 got
+  for spec in \
+    "r-pkg/gog/DESCRIPTION:^Version: *\(.*\) *$" \
+    "py-pkg/gog/pyproject.toml:^version = \"\(.*\)\"$" \
+    "py-pkg/gog/gog/__init__.py:^__version__ = \"\(.*\)\"$" \
+    "js-pkg/gog/package.json:^  \"version\": \"\(.*\)\",$" \
+    "jl-pkg/GrammarOfGraphics/Project.toml:^version = \"\(.*\)\"$" \
+    "gog-core/Cargo.toml:^version = \"\(.*\)\"$" \
+    "gog-cli/Cargo.toml:^version = \"\(.*\)\"$" \
+    "gog-wasm/Cargo.toml:^version = \"\(.*\)\"$"
+  do
+    local file="${spec%%:*}" pat="${spec#*:}"
+    got="$(sed -n "s/$pat/\1/p" "$file" | head -1)"
+    [ "$got" = "$want" ] || { printf '    %-42s %s\n' "$file" "${got:-(none)}"; bad=1; }
+  done
+  local pins
+  pins="$(grep -c "\"grammar-of-graphics-[a-z0-9-]*\": \"$want\"" js-pkg/gog/package.json || true)"
+  [ "$pins" = "5" ] || { printf '    %-42s %s of 5 pinned at %s\n' "js-pkg/gog/package.json" "$pins" "$want"; bad=1; }
+  [ "$bad" = "0" ] || die "the thirteen declarations do not all read $want (above)"
+  ok "all thirteen declarations read $want"
+}
+
+# --------------------------------------------------------------------------
+# the work
+
+bump() {
+  local want="$1" now
+  now="$(declared_version)"
+  [ "$want" != "$now" ] || die "the tree already reads $want"
+  printf '%s' "$want" | grep -Eq '^[0-9]+\.[0-9]+\.[0-9]+$' || die "expected X.Y.Z, got $want"
+
+  step "Moving thirteen declarations from $now to $want"
+  perl -i -pe "s/^Version: \Q$now\E\$/Version: $want/"                        r-pkg/gog/DESCRIPTION
+  perl -i -pe "s/^version = \"\Q$now\E\"\$/version = \"$want\"/"              py-pkg/gog/pyproject.toml jl-pkg/GrammarOfGraphics/Project.toml gog-core/Cargo.toml gog-cli/Cargo.toml gog-wasm/Cargo.toml
+  perl -i -pe "s/^__version__ = \"\Q$now\E\"\$/__version__ = \"$want\"/"      py-pkg/gog/gog/__init__.py
+  perl -i -pe "s/^(  \"version\": )\"\Q$now\E\",\$/\$1\"$want\",/"            js-pkg/gog/package.json
+  perl -i -pe "s/^(    \"grammar-of-graphics-[a-z0-9-]+\": )\"\Q$now\E\"(,?)\$/\$1\"$want\"\$2/" js-pkg/gog/package.json
+  check_versions_agree "$want"
+}
+
+regenerate() {
+  # Three tracked files carry the number without being checked, because a build
+  # owns them. They go in the same commit as the bump: the push is what
+  # r-universe builds from, and `.prepare` ships two of the three to R users, so
+  # there is no later chance to correct the tarball it compiles.
+  step "Regenerating the three files a build owns"
+  cargo build --release >/dev/null 2>&1                      || die "cargo build failed"
+  cargo build --release --target wasm32-unknown-unknown \
+       --manifest-path gog-wasm/Cargo.toml >/dev/null 2>&1   || die "wasm build failed"
+  julia --project=jl-pkg/GrammarOfGraphics/test/book_parity \
+        -e 'using Pkg; Pkg.resolve()' >/dev/null 2>&1        || die "Pkg.resolve failed"
+
+  # Prove they actually moved. A build that quietly did nothing leaves the old
+  # number in place, and these three are exactly the files no guard reads.
+  local want missing=""
+  want="$(declared_version)"
+  for f in Cargo.lock gog-wasm/Cargo.lock jl-pkg/GrammarOfGraphics/test/book_parity/Manifest.toml; do
+    grep -q "\"$want\"" "$f" || missing="$missing $f"
+  done
+  [ -z "$missing" ] || die "these still do not carry $want, so the rebuild did not take:$missing"
+  ok "Cargo.lock, gog-wasm/Cargo.lock, book_parity/Manifest.toml all read $want"
+}
+
+suites() {
+  step "The four binding suites"
+  Rscript r-pkg/gog/tests/test_basic.R    >/dev/null 2>&1 || die "the R suite failed"
+  ok "R"
+  python3 py-pkg/gog/tests/test_basic.py  >/dev/null 2>&1 || die "the Python suite failed"
+  ok "Python"
+  node --test js-pkg/gog/test/*.mjs       >/dev/null 2>&1 || die "the JavaScript suite failed"
+  ok "JavaScript"
+  julia --project=jl-pkg/GrammarOfGraphics \
+        jl-pkg/GrammarOfGraphics/test/runtests.jl >/dev/null 2>&1 || die "the Julia suite failed"
+  ok "Julia"
+}
+
+parity() {
+  # Re-record first: the corpus is R's side, and a stale recording means every
+  # other binding is measured against a book that no longer exists.
+  step "Three parity harnesses, against a fresh recording"
+  Rscript py-pkg/gog/tests/book_parity/extract.R >/dev/null 2>&1 || die "extract.R failed"
+  local out
+  for runner in \
+    "python3 py-pkg/gog/tests/book_parity/run.py" \
+    "node js-pkg/gog/test/book_parity/run.mjs" \
+    "julia --project=jl-pkg/GrammarOfGraphics/test/book_parity jl-pkg/GrammarOfGraphics/test/book_parity/run.jl"
+  do
+    out="$($runner 2>&1)" || die "a parity run failed: ${runner%% *}"
+    grep -q "to look at" <<<"$out" && { grep -A3 "to look at" <<<"$out"; die "${runner%% *} reports disagreements"; }
+    ok "$(awk '{print $1}' <<<"$runner") — $(grep -m1 'identical plot' <<<"$out" | tr -s ' ')"
+  done
+}
+
+dispatch() {
+  # Neither publishes. Both are otherwise reached only by `workflow_call` from a
+  # release tag, so a break in them would first show itself on a tag, which is
+  # the worst place to meet one.
+  step "Dispatching the two packaging workflows (neither publishes)"
+  command -v gh >/dev/null || { note "gh not found — dispatch these by hand"; return 0; }
+  gh workflow run python-wheels.yml --ref main >/dev/null 2>&1 && ok "python-wheels.yml" || note "could not dispatch python-wheels.yml"
+  gh workflow run js-packages.yml   --ref main >/dev/null 2>&1 && ok "js-packages.yml"   || note "could not dispatch js-packages.yml"
+}
+
+# --------------------------------------------------------------------------
+# tags, which are the irreversible half
+
+push_tag() {
+  local which="$1" version tag
+  version="$(declared_version)"
+  case "$which" in
+    py) tag="py-v$version" ;;
+    js) tag="js-v$version" ;;
+    *)  die "expected 'py' or 'js', got '$which'" ;;
+  esac
+  check_versions_agree "$version"
+  git rev-parse -q --verify "refs/tags/$tag" >/dev/null && die "$tag already exists locally"
+  [ -z "$(git ls-remote --tags origin "$tag")" ] || die "$tag already exists on the remote"
+
+  step "About to push $tag, which starts a real publish"
+  note "the version job checks all thirteen declarations and asks the registry"
+  note "whether $version is taken, before building anything — a mismatch is free"
+  printf '  type the tag to confirm: '
+  read -r typed
+  [ "$typed" = "$tag" ] || die "not confirmed"
+
+  git tag "$tag"
+  git push origin "$tag"
+  ok "pushed $tag"
+  case "$which" in
+    py) note "TestPyPI runs first and is not gated. Read it, then approve the 'pypi' environment." ;;
+    js) note "Read the dry-run preflight, then approve the 'npm' environment." ;;
+  esac
+}
+
+trigger_julia() {
+  local version sha
+  version="$(declared_version)"
+  sha="$(git rev-parse HEAD)"
+  check_versions_agree "$version"
+  step "Registering GrammarOfGraphics $version from $(git rev-parse --short HEAD)"
+  note "an existing package auto-merges with no three-day hold"
+  command -v gh >/dev/null || die "gh is needed to post the comment"
+  gh api "repos/psychometrician/gog/commits/$sha/comments" \
+     -f body='@JuliaRegistrator register subdir=jl-pkg/GrammarOfGraphics' >/dev/null \
+     && ok "commented on $sha" \
+     || die "could not comment; post it by hand on the release commit"
+  note "NEVER comment on the registration PR without the literal [noblock] —"
+  note "a bare comment reads as an objection and sends it to manual review."
+  note "TagBot writes GrammarOfGraphics-v$version once the registry PR merges."
+}
+
+# --------------------------------------------------------------------------
+
+case "${1:-}" in
+  --check)
+    check_ci_green
+    check_versions_agree "$(declared_version)"
+    ok "tree reads $(declared_version)"
+    ;;
+  --tag)   push_tag "${2:-}" ;;
+  --julia) trigger_julia ;;
+  "" | -h | --help)
+    sed -n '2,25p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'
+    ;;
+  *)
+    want="$1"
+    check_clean_enough
+    check_ci_green
+    bump "$want"
+    regenerate
+    suites
+    parity
+    dispatch
+    printf '\n%sReady at %s. Nothing is published yet.%s\n\n' "$bold" "$want" "$off"
+    note "review the diff, commit it, and push — R releases itself from DESCRIPTION"
+    note "read both packaging runs before spending a number:"
+    note "  gh run list --workflow=python-wheels.yml --limit 1"
+    note "  gh run list --workflow=js-packages.yml   --limit 1"
+    printf '\n  then, in order:\n'
+    printf '    .github/release --tag py     %s→ PyPI, approve the pypi environment%s\n' "$dim" "$off"
+    printf '    .github/release --tag js     %s→ npm, approve the npm environment%s\n' "$dim" "$off"
+    printf '    .github/release --julia      %s→ General, auto-merges%s\n\n' "$dim" "$off"
+    ;;
+esac

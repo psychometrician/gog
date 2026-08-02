@@ -246,6 +246,22 @@ filename, so a rename silently invalidates every publisher registered against it
 
 ## Cutting a release
 
+`.github/release` does every mechanical step below and refuses to do the rest:
+
+```bash
+.github/release --check      # verify the tree, change nothing
+.github/release 0.0.3        # steps 2-6: bump, regenerate, test, dispatch
+.github/release --tag py     # → PyPI, then approve the `pypi` environment
+.github/release --tag js     # → npm, then approve the `npm` environment
+.github/release --julia      # → General, which auto-merges for an existing package
+```
+
+It stops before the tags on purpose, because the packaging runs it dispatches are
+worth reading before a number is spent, and it asks you to type the tag back
+before pushing one. It cannot register the trusted publishers; nothing can, from
+a terminal. The steps below are what it does, and what to do if you would rather
+do them by hand.
+
 1. Decide the number. It is never chosen for you.
 2. Move all eight declarations to it — and the five npm pins, if JavaScript is going
    out. Then regenerate the three files that carry the number without being checked,

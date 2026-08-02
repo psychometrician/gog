@@ -16,13 +16,25 @@
 # nor `js-v*` — the two tag patterns that trigger a publish — so a Julia tag
 # cannot set off a Python or npm release.
 #
-# One failure mode is worth knowing before it happens. `GITHUB_TOKEN` acts as a
-# GitHub App, and GitHub refuses any ref push from an App that would change a
-# file under `.github/workflows/`. A registered version points at the commit
-# Registrator was run on, so once a later commit edits a workflow file, pushing
-# the tag for that older commit reads as a workflow change and is rejected. The
-# tag then has to be pushed by a person, or by TagBot over an SSH deploy key,
-# which is not an App and is not subject to the rule.
+# **`ssh:` is why this works at all, and it is not optional here.** With only
+# `token:`, TagBot pushes as `GITHUB_TOKEN`, which acts as a GitHub App — and
+# GitHub refuses any ref push from an App that would create or update a file
+# under `.github/workflows/`. A registration points at the commit Registrator
+# was run on, so the moment a later commit edits any workflow file, pushing the
+# tag for that older commit reads as a workflow change and is rejected. That is
+# not a rare corner: this file is itself a workflow, so editing it guarantees
+# the failure for the next registration. Every attempt at `GrammarOfGraphics-v0.0.1`
+# was rejected exactly this way, which is why the repository had no tags at all.
+#
+# There is no fix inside `permissions:` — `workflows` is a personal-token scope,
+# not one of the fourteen keys a workflow can request. A deploy key is not an App
+# and is not subject to the rule, so `DOCUMENTER_KEY` holds one with write access
+# and TagBot pushes over SSH instead. The name is TagBot's own convention rather
+# than anything to do with Documenter.
+#
+# Nothing about installing the package depends on the tag either way: Pkg
+# resolves a version by tree hash, so `Pkg.add` works whether or not it exists.
+# The tag is provenance, and a release page.
 
 name: TagBot
 
@@ -59,4 +71,5 @@ jobs:
       - uses: JuliaRegistries/TagBot@v1
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
+          ssh: ${{ secrets.DOCUMENTER_KEY }}
           subdir: jl-pkg/GrammarOfGraphics
