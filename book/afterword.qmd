@@ -23,18 +23,15 @@ grammar this small stays honest by being argued with.
 
 ## What is still to come
 
-The kernel you learned is the *designed* vocabulary, and for the first time since
-this book began there is nothing in it left to draw. **Every word draws.** Every
-mark, every space, every channel, and the one selection. The last word waiting
-was `click`, and it left in August 2026 without being built, because what it
-would have named turned out to be three things the grammar already had:
-[the kernel](grammar.qmd) says which three in a paragraph.
+The kernel you learned is the *designed* vocabulary, and nothing in it is waiting
+to be drawn. **Every word draws.** Every mark, every space, every channel, and
+the one selection.
 
-One *picture* was owed after the last word, and it was owed geometry rather than
-vocabulary. The **choropleth** shades each country by a value, and `zone` knew
-four ways to find its sides, none of them a coastline. A boundary became the
-fifth in August 2026, and it cost no new word: `group` already said which rows
-belong together. [Map](map.qmd) draws it.
+What arrives next is a picture rather than a word, and the **choropleth** is the
+pattern to expect. It shades each country by a value, and what it needed was
+geometry: `zone` finds its sides five ways, and a **boundary** is one of them,
+drawn by the data itself. It cost no new word, because `group` already says which
+rows belong together. [Map](map.qmd) draws it.
 
 The same sentence you write in R is a small, engine-neutral description
 under the hood, and that is what the other front ends speak, same words,

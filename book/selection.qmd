@@ -372,8 +372,7 @@ like turning a cube, rather than a claim about the data.
 That is also why the grammar has no word for it. GOG reserved `lasso` for this
 once and then gave the word up. A shape can only be written down as a long list
 of corners, and a specification is something you can write down and print. The
-act survives; the word did not, and [the kernel](grammar.qmd) says why in one
-paragraph.
+act survives; the word does not.
 
 Two limits are worth knowing. A free shape needs two axes that measure, so where
 one axis carries categories the drag stays a rectangle. A category has no half,

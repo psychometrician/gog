@@ -347,14 +347,14 @@ data(six_weeks) + point + x(day) + y(orders) + color(day) +
   title("Recent days, darker")
 ```
 
-## The scales, and what works today
+## The scales
 
-| Scale | What it does | Today |
-|---|---|---|
-| `linear` | Equal steps for equal differences | ✅ the default |
-| `log` | Equal steps for equal ratios | ✅ on `x`, `y`, `color`, `size`, `opacity`; any `base` |
-| `time` | Positions dates and times | ✅ chosen from the column type: `Date` and `POSIXct` columns, on every channel that measures |
-| `category` | One slot per distinct value | ✅ chosen from the column type: text and factor columns |
+| Scale | What it does |
+|---|---|
+| `linear` | Equal steps for equal differences. The default |
+| `log` | Equal steps for equal ratios, on `x`, `y`, `color`, `size` and `opacity`, with any `base` |
+| `time` | Positions dates and times, chosen from the column type: `Date` and `POSIXct` columns, on every channel that measures |
+| `category` | One slot per distinct value, chosen from the column type: text and factor columns |
 
 ## The axis fits your data
 

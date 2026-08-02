@@ -216,7 +216,7 @@ why the earlier plot worked with the positions written once at the front.
 
 ## A table in a database
 
-Not every table fits in memory. Most working data sits in a database, and a
+Not every table fits on one computer. Most working data sits in a database, and a
 warehouse table can hold billions of rows. GOG reaches those tables with one
 word, **`query`**, and it stands exactly where `data` stands.
 
@@ -250,7 +250,7 @@ query(con, "SELECT gdp, life, continent FROM countries WHERE gdp > 5000") +
 The plot is an ordinary scatter plot, because the grammar did an ordinary thing.
 The database chose which rows to send. GOG drew what arrived.
 
-That last point is worth stating plainly. A query and a table in memory produce
+That last point is worth stating plainly. A query and a loaded table produce
 **the same picture, byte for byte**, when they hold the same rows. Every binding
 tests exactly that. So `query` is never a different way of drawing; it is a
 different way of finding the rows to draw.
@@ -343,7 +343,7 @@ ask you to pick up R, Python, Julia or JavaScript, and that is a real cost for
 someone with no other reason to.
 
 GOG points the other way. The grammar stays in one place and the data comes to
-it, so one sentence draws a table in memory, a table in Postgres, and a table in
+it, so one sentence draws a loaded table, a table in Postgres, and a table in
 a warehouse, in any of four languages. **One syntax, as many languages and
 settings as we can reach.**
 

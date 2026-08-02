@@ -32,39 +32,20 @@ rendering it is the engine's job, not yours.
 
 ::: {.content-visible when-format="html"}
 
-## The five boxes under the plot
+## The boxes under every plot
 
-Look under the plot above. There are five small boxes, and **every plot in this
-book has them**. They are worth two minutes now, because you will see them on
-every page.
+Look under the plot above. A row of small boxes sits there, and **every plot in
+this book has them**. The magnifiers look closer and wider. The frame returns
+you to the whole picture. The hand is a label rather than a button: it says that
+dragging moves the picture, once you have looked closer. The camera saves what
+you are looking at as a picture file, large enough for a slide or a journal
+figure. A box is dimmed when it can do nothing.
 
-The first two are magnifiers. One looks closer and one looks wider. The third is
-a frame, and it returns you to the whole picture. The fourth shows a hand, and it
-is a label rather than a button: it tells you that dragging moves the picture,
-once you have looked closer at part of it.
-
-The fifth is a camera, and it saves the plot as a picture file. You get what you
-are looking at, so if you have magnified one corner, the file holds that corner.
-The file is 2400 pixels wide. That is large enough for a slide, and large enough
-for a figure in a journal article. Most browsers save it to your downloads folder
-without asking where to put it. The box shows a check mark for a moment, so that
-you know the file was written.
-
-A box is dimmed when it can do nothing. A plot showing the whole of itself cannot
-show more of itself, so its frame and its hand are gray until you look closer.
-The camera is never dimmed, because there is always a picture to save.
-
-**The first four change how you look, never what the plot says.** Magnifying is
-the same picture seen larger. The points, the axes and the numbers are the ones
-the engine already chose, so nothing is recalculated and nothing moves. If you
-want the plot itself to cover a narrower range, that is a different thing and it
-is written in the sentence, as [`limits`](scales.qmd).
-
-That division runs through the whole book. Looking is yours and it needs no
-words; what the plot *claims* is the sentence's, and every part of it can be
-written down and printed. A reader holding this book on paper sees exactly the
-plot the sentence describes, which is why the boxes are not in the printed
-edition and nothing is missing from it.
+**Not one of these boxes has a word in the grammar, and that is deliberate.** A
+word earns its place by changing what the plot claims about the data. Looking
+closer changes nothing: the points, the axes and the numbers stay the ones the
+engine chose. To make the plot itself cover a narrower range, write it in the
+sentence as [`limits`](scales.qmd).
 :::
 
 ::: {.content-visible when-format="pdf"}
@@ -84,6 +65,8 @@ also has a chapter of its own at the end, a difference list about a page long:
 [R](bindings/r.qmd), [Python](bindings/python.qmd), [Julia](bindings/julia.qmd),
 [JavaScript](bindings/javascript.qmd).
 :::
+
+## Three steps to run any example
 
 Everything in this book runs on your own computer, and it takes three steps:
 
@@ -160,9 +143,9 @@ Positions, where the marks stand. Then any number of optional refinements:
 channels like `color()`, and labels like `title()`.
 
 Two words describe this, and the book uses both. A column is **bound** to a
-channel, and the result is a **binding**: `x(gdp)`, a channel with its column
-in it. That is where a scale gets written. The same act is called **mapping**
-when the point is that a channel received a column rather than a fixed value.
+channel, and the binding is where a scale gets written. The same act is called
+**mapping** when the point is that a channel received a column rather than a
+fixed value.
 The difference shows on the page: a mapped column earns a legend, and a value
 you merely set earns none. A table is bound too, by `data()`, which is the
 Bind-Once law: name it once, and its columns stay bare names.
