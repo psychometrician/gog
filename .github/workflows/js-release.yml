@@ -233,11 +233,20 @@ jobs:
       # publishable. It does **not** prove authentication: `--dry-run` returns
       # before the OIDC exchange, so a missing trusted publisher still passes
       # here and fails at the real upload. Read it for what it checks.
+      #
+      # **Every path below starts with `./`, and it is not decoration.** A bare
+      # relative path is not a file path to npm — `dist/x.tgz` parses as the git
+      # shorthand `user/repo`, and npm goes looking for
+      # `ssh://git@github.com/dist/x.tgz.git`, which fails with an SSH
+      # permission error naming a repository nobody wrote. All three publish
+      # steps were written without it and none had ever run, because 0.0.1 went
+      # out by hand. This rehearsal is what found it, on the first upload it
+      # was ever asked to attempt.
       - name: Rehearse all six, uploading nothing
         shell: bash
         run: |
           set -euo pipefail
-          for tarball in dist/*.tgz; do
+          for tarball in ./dist/*.tgz; do
             echo "== $tarball"
             npm publish "$tarball" --access public --dry-run
           done
@@ -269,7 +278,7 @@ jobs:
               echo "$name@$want is already on the registry — a re-run, not a failure"
               continue
             fi
-            tarball="$(ls "dist/$name"-[0-9]*.tgz)"
+            tarball="$(ls "./dist/$name"-[0-9]*.tgz)"
             echo "publishing $tarball"
             npm publish "$tarball" --access public
           done
@@ -285,4 +294,4 @@ jobs:
             echo "grammar-of-graphics@$want is already on the registry — a re-run, not a failure"
             exit 0
           fi
-          npm publish "$(ls dist/grammar-of-graphics-[0-9]*.tgz)" --access public
+          npm publish "$(ls ./dist/grammar-of-graphics-[0-9]*.tgz)" --access public
