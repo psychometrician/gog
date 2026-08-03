@@ -116,11 +116,17 @@ using GrammarOfGraphics
 using GrammarOfGraphics: bin, count, sum, min, max, range, size, step, stack, map
 ```
 
-`Base.sum` is still there, as the second line of output shows. This is the third
-language to hit the same wall from a different side: R's `range`, `sum` and `min`
-belong to base R, Python's `bin`, `sum` and `max` are builtins, and Julia's are
-`Base`. A grammar keeps its own vocabulary; what changes is how each language
-asks you to say which one you meant.
+`Base.sum` is still there, as the second line of output shows.
+
+The ten are listed as equals, and one is not. `map` is the one most likely to
+reach code you already wrote. `Base.map` is everyday Julia. `Base.step` and
+`Base.stack` are not. A script that called `map` before loading this package
+will stop working, and the error will name a line that did not change.
+
+This is the third language to hit the same wall from a different side: R's
+`range`, `sum` and `min` belong to base R, Python's `bin`, `sum` and `max` are
+builtins, and Julia's are `Base`. A grammar keeps its own vocabulary; what
+changes is how each language asks you to say which one you meant.
 
 ## The table
 
