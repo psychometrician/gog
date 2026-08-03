@@ -4,15 +4,17 @@ build-backend = "hatchling.build"
 
 [project]
 name = "gog"
-# `0.0.1`, not `0.1.0`, and not the `0.0.0.dev0` this held until the PyPI claim
-# was scheduled. Two reasons, both about what a first upload commits you to.
+# The series starts at `0.0.1` rather than `0.1.0`, and the reasoning still
+# governs every number after it. A released version can never be reused on PyPI,
+# even after deletion, so the number spent should be the cheapest one that
+# counts. The binding is at full parity with R and could justify `0.1.0`; that
+# is exactly why it is worth keeping in reserve while the engine is pre-1.0 and
+# the API can still move.
+#
+# The first upload also had to be a real release rather than a placeholder:
 # PEP 541 protects a name for a *reachable, active owner with a real release*,
-# and a `.devN` is a pre-release `pip install gog` skips unless the user passes
-# `--pre` — so it holds the name weakly. And a released version can never be
-# reused on PyPI even after deletion, so the first
-# number spent should be the cheapest one that counts. The binding is at full
-# parity with R and could justify `0.1.0`; that is exactly why it is worth
-# keeping in reserve while the engine is pre-1.0 and the API can still move.
+# and a `.devN` is a pre-release that `pip install gog` skips unless the user
+# passes `--pre`, so it would have held the name weakly.
 version = "0.0.2"
 description = "A Grammar of Graphics — one engine, spoken from Python"
 readme = "README.md"
@@ -42,10 +44,10 @@ dependencies = []
 # `Source` was held back while `github.com/psychometrician/gog` was an empty
 # repository. Linking one advertises it, and PEP 541 protects a name on evidence
 # of a reachable, active owner — an empty repository is evidence the other way.
-# It is here now because the seeded repository is what the next wheel will point
-# at, and because nothing in this file reaches an index until a wheel is built:
-# `0.0.1` is already published and its metadata is frozen, so this lands for a
-# user at `0.0.2`.
+# The repository is public and the link reached a user at `0.0.2`, which is also
+# the rule for anything added here later: a published version's metadata is
+# frozen, so a change to this block appears on the next release and never on the
+# one already on the index.
 [project.urls]
 Homepage = "https://psychometrician.github.io/gog-book/"
 Documentation = "https://psychometrician.github.io/gog-book/"
