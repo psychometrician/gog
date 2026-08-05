@@ -5,14 +5,18 @@ description: >-
   bar and a binning statistic, and the histogram is what happens when you put
   them together. Then you change one word and get four other plots.
 author: "psychometrician"
-date: "2026-08-04"
+date: "2026-08-11"
+# Held back until this post's turn. With `draft-mode: gone` in `_quarto.yml`,
+# nothing about it reaches `_site`: not the listing, not the feeds, not its own
+# address. Delete this line to publish, and set the date to the day it ships.
+draft: true
 # The first four are shown, in the project's canonical order. `rstats` and
 # `julialang` are hidden by the stylesheet and exist only to put this post
 # into the two narrow feeds R-bloggers and JuliaBloggers subscribe to.
 categories: [R, Python, Julia, JavaScript, rstats, julialang]
 image: card.png
 image-alt: >-
-  A histogram of life expectancy, drawn by the GOG engine from the
+  A histogram of life expectancy, drawn by the gog engine from the
   specification bar times bin.
 ---
 
@@ -28,14 +32,21 @@ teaches you almost nothing about the next.
 
 That list is not a vocabulary. It is a phrase book.
 
-Here is a different arrangement. This is a histogram of life expectancy across
-142 countries:
+Here is a different arrangement. The table is 142 countries, one row each, with a
+life expectancy and an income:
+
+```{r}
+#| echo: false
+peek(gapminder_2007)
+```
+
+And this is a histogram of that life expectancy:
 
 ```{r}
 data(gapminder_2007) + bar * bin + x(life)
 ```
 
-Read the specification out loud: *given gapminder 2007, bars derived by binning,
+Read it aloud: *given gapminder 2007, bars derived by binning,
 x is life*. There is no `histogram` function in this library. There is a mark
 called `bar`, a statistic called `bin`, and an operator `*` that derives one
 from the other.
@@ -65,7 +76,7 @@ mark says what to draw and a statistic says what to draw it from, so any mark
 that can show a number already knows how to show a count.
 
 This is the whole idea, and it has a name in this project. The first of its nine
-design laws is orthogonality: every compatible atom combines with every other. A
+design laws is orthogonality: every compatible part combines with every other. A
 rule you learn on one mark is true for every mark, or the library has failed
 you.
 
@@ -264,7 +275,7 @@ bindings agree with each other. They cannot prove that all four are right. A box
 whose whiskers reached the wrong value would pass every one of those tests, four
 times over, and the book would print it as though it were correct.
 
-So draw a dataset you know well in GOG and in something you already believe, put
+So draw a dataset you know well in gog and in something you already believe, put
 the two side by side, and tell us where they differ.
 
 ### Report what breaks

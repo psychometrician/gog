@@ -600,6 +600,34 @@ div.sourceCode pre.sourceCode {
   letter-spacing: -0.024em;
 }
 
+/* Who wrote it and when, directly under the tags rather than below the summary.
+ * Quarto emits three blocks in a fixed order (title with its tags, then the
+ * description, then the author and date), and the template is not configurable
+ * here, so the order is set in the layout instead of in the markup.
+ *
+ * `order` on a flex column does it without a template override. The default of
+ * 3 catches the description, whose wrapper Quarto leaves unclassed, so the rule
+ * does not depend on a selector for an element that has no name. Anything
+ * Quarto adds to this header later also lands after the byline, which is the
+ * safe end to be wrong at.
+ *
+ * The margins that spaced these blocks apart still apply: flex items do not
+ * collapse their margins against each other, so the gaps grow slightly rather
+ * than disappearing, and `margin-top` on the meta block is zeroed to match. */
+#title-block-header.quarto-title-block {
+  display: flex;
+  flex-direction: column;
+}
+
+#title-block-header.quarto-title-block > * { order: 3; }
+#title-block-header.quarto-title-block > .quarto-title { order: 1; }
+#title-block-header.quarto-title-block > .quarto-title-meta { order: 2; }
+
+#title-block-header .quarto-title-meta {
+  margin-top: 0;
+  margin-bottom: 1.35rem;
+}
+
 main.content h2 {
   margin-top: 2.6rem;
   padding-top: 0.55rem;

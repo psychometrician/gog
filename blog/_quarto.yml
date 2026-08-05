@@ -26,6 +26,13 @@ website:
   title: "psychometrician"
   description: "One engine. Every language."
 
+  # What happens to a post carrying `draft: true`. `gone` keeps it out of `_site`
+  # altogether; the alternative, `unlinked`, still writes the page at its own
+  # address, so anyone holding the link reads a post that was deliberately held
+  # back. Posts here are written well ahead of the day they ship, so the page has
+  # to be absent rather than merely unlisted.
+  draft-mode: gone
+
   # Both of these are requirements rather than decoration. Quarto writes no feed
   # at all when either is missing: it warns once and exits 0, which is the exact
   # shape of failure the workflow's output check exists to catch.
@@ -39,7 +46,7 @@ website:
   # card, never the card itself.
   image: images/og.png
   image-alt: >-
-    GOG, a grammar of graphics. One engine, spoken from R, Python, Julia and
+    gog, a grammar of graphics. One engine, spoken from R, Python, Julia and
     JavaScript.
 
   open-graph:
@@ -96,11 +103,11 @@ website:
       # the same weight as the two beside them.
       - icon: twitter-x
         href: https://x.com/gogdeveloper
-        aria-label: "GOG on X"
+        aria-label: "gog on X"
         target: _blank
       - icon: bluesky
         href: https://bsky.app/profile/gogdeveloper.bsky.social
-        aria-label: "GOG on Bluesky"
+        aria-label: "gog on Bluesky"
         target: _blank
       # The profile, not the repository. The navbar's "Source" already points at
       # the repository; this row is for following the person who writes here.
