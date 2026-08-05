@@ -47,7 +47,7 @@ export const DEFAULT_TILT = 25;
  */
 export { attachView, mountView } from "./view.js";
 
-export const BUILD = "2026-08-01";
+export const BUILD = "2026-08-05";
 
 /**
  * Engines already loaded, keyed by where they came from.
@@ -274,22 +274,29 @@ export function redraw(engine, container, req, options = {}) {
 export function boundOn(axis, a, b) {
   const frac = (v) => (v - axis.lo) / (axis.hi - axis.lo || 1);
   const [f0, f1] = [frac(a), frac(b)].sort((m, n) => m - n);
+  // A fraction of the panel, read back as the number the axis says it spans.
+  // Both readings below start here, because both kinds of axis are drawn from
+  // the same two numbers: a category sits at a whole one of them, a measurement
+  // anywhere between them.
+  const value = (f) => axis.from + f * (axis.to - axis.from);
   if (axis.cats) {
     const n = axis.cats.length;
-    const first = Math.max(0, Math.min(n - 1, Math.floor(f0 * n)));
-    const last = Math.max(0, Math.min(n - 1, Math.floor(f1 * n)));
-    return { levels: axis.cats.slice(first, last + 1) };
+    // The slot under a pixel is that number rounded. It is **not** the fraction
+    // times the count, which is what this did until it met an axis wider than
+    // its own slots: `density(reach = )` past half a slot widens the domain to
+    // make room for shapes that lean out of it, and every category then sits
+    // somewhere the count does not predict. On an unwidened axis the two agree
+    // exactly, which is why the old reading survived so long.
+    const slot = (f) => Math.max(0, Math.min(n - 1, Math.round(value(f))));
+    return { levels: axis.cats.slice(slot(f0), slot(f1) + 1) };
   }
   // A log axis states its domain in log space, because that is the space
   // positions are linear in, so interpolating between its two numbers gives a
   // logarithm rather than a value. Undoing that is the whole of what `log` is
   // for, and without it a drag on a log axis produced a bound in units the
   // engine does not compare against.
-  const value = (f) => {
-    const v = axis.from + f * (axis.to - axis.from);
-    return axis.log ? axis.log ** v : v;
-  };
-  return { at: [value(f0), value(f1)] };
+  const undo = (f) => (axis.log ? axis.log ** value(f) : value(f));
+  return { at: [undo(f0), undo(f1)] };
 }
 
 /**
@@ -300,7 +307,11 @@ export function placeOn(axis, value) {
   if (axis.cats) {
     const i = axis.cats.indexOf(value);
     if (i < 0) return null;
-    return axis.lo + ((i + 0.5) / axis.cats.length) * (axis.hi - axis.lo);
+    // A category is a whole number on its own axis, so this is the measured
+    // line below with the category's place standing in for a measurement.
+    // Reading the domain the panel states, rather than counting the categories,
+    // is what keeps an axis widened by `density(reach = )` honest.
+    return axis.lo + ((i - axis.from) / (axis.to - axis.from || 1)) * (axis.hi - axis.lo);
   }
   if (typeof value !== "number" || !Number.isFinite(value)) return null;
   const v = axis.log ? Math.log(value) / Math.log(axis.log) : value;

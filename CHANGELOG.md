@@ -4,6 +4,19 @@ All four packages share one version number and are released together: `gog` on
 CRAN-style repositories and PyPI, `GrammarOfGraphics` on Julia's General, and
 `grammar-of-graphics` on npm. A version means the same grammar in every one.
 
+## Unreleased
+
+### Fixed
+
+- A drag across a violin or a ridgeline selected the wrong categories. Where
+  `density(reach = )` reaches past half a slot the shapes lean out of their
+  slots, so the axis widens to leave room for them, and the browser was reading
+  that axis as though it were still exactly as wide as the categories standing
+  on it. The pointer landed a slot or more from where it looked, and the reader
+  dragged over one category and selected another. Plots whose axis was never
+  widened were never affected, because there the two readings give the same
+  answer.
+
 ## 0.0.3 (2026-08-04)
 
 ### Added

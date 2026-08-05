@@ -353,8 +353,14 @@ test("a bound runs upward whichever way the pointer was dragged", () => {
   assert.deepEqual(down, [60, 80]);
 });
 
+// A categorical domain runs from half a slot below the first category to half a
+// slot above the last, so five categories span -0.5 to 4.5. Writing anything
+// else here is writing an axis the engine cannot produce, and these fixtures
+// said `0 1` for years: the arithmetic under test ignored both numbers, so the
+// filler was never wrong until it was the only thing that could have caught the
+// axis being read against the wrong domain.
 test("a bound on a column of categories covers the slots the drag crossed", () => {
-  const cats = { field: "continent", from: 0, to: 1, lo: 0, hi: 100,
+  const cats = { field: "continent", from: -0.5, to: 4.5, lo: 0, hi: 100,
                  cats: ["Africa", "Americas", "Asia", "Europe", "Oceania"] };
   assert.deepEqual(boundOn(cats, 5, 35).levels, ["Africa", "Americas"]);
   assert.deepEqual(boundOn(cats, 35, 5).levels, ["Africa", "Americas"]);
@@ -558,7 +564,7 @@ test("placeOn is boundOn run forwards, on every kind of axis", () => {
   const log = { from: 2, to: 5, lo: 0, hi: 300, log: 10, cats: null };
   assert.ok(Math.abs(placeOn(log, 1000) - 100) < 1e-9, "1000 is one decade of three along");
 
-  const cats = { from: 0, to: 1, lo: 0, hi: 100, log: null,
+  const cats = { from: -0.5, to: 3.5, lo: 0, hi: 100, log: null,
                  cats: ["Africa", "Americas", "Asia", "Europe"] };
   assert.equal(placeOn(cats, "Asia"), 62.5, "the middle of the third slot of four");
   assert.equal(placeOn(cats, "Nowhere"), null);
@@ -578,7 +584,7 @@ test("valueOn is placeOn run backwards, and says nothing about a category", () =
   assert.ok(Math.abs(valueOn(log, placeOn(log, 1000)) - 1000) < 1e-6);
 
   // A category has no half, so a free shape has nothing to say about one.
-  const cats = { from: 0, to: 1, lo: 0, hi: 100, log: null, cats: ["a", "b"] };
+  const cats = { from: -0.5, to: 1.5, lo: 0, hi: 100, log: null, cats: ["a", "b"] };
   assert.equal(valueOn(cats, 25), null);
 });
 
@@ -844,6 +850,77 @@ test("a drag finds the slots when the categories are on the vertical axis", asyn
     assert.equal(caught.kept, 1, `one slot of five: ${caught.kept}`);
     assert.deepEqual(caught.rows.map((r) => r[caught.columns.indexOf("place")]), [cats[0]],
       "and it is the slot drawn at the bottom, not the one opposite it");
+    handle.destroy();
+  } finally {
+    undo();
+  }
+});
+
+// A category sits where its axis says, not where counting the categories
+// guesses. The two are the same number until an axis is wider than its own
+// slots, and `density(reach = )` past half a slot makes one: the domain widens
+// to leave room for shapes that lean out of their slots, and the engine states
+// the wider one. Both halves of the browser's axis arithmetic read the count
+// instead, so every category was placed short and every drag came back with the
+// wrong slot — the reader dragged over one category and selected another.
+//
+// Both are checked here because both were wrong, and the second is the one a
+// reader meets. Neither had an example anywhere: every categorical plot in the
+// book leaves its axis exactly as wide as its slots, where the two readings
+// agree exactly.
+test("a widened categorical axis is read where the engine drew it", async () => {
+  const undo = stubDom();
+  try {
+    const engine = await loadEngine(fs.readFileSync(WASM));
+    const req = {
+      spec: {
+        data: "t",
+        x: { field: "place" }, y: { field: "v" },
+        layers: [
+          { mark: "area", encodings: {}, transforms: ["density"], density: { reach: 3.0 } },
+          { mark: "point", encodings: {}, transforms: [] },
+        ],
+        brush: [{ field: "place" }],
+      },
+      data: { t: { floats: { v: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12] },
+                   strings: { place: ["a", "a", "a", "a", "b", "b", "b", "b",
+                                      "c", "c", "c", "c"] } } },
+    };
+    const container = stubContainer();
+    const handle = attachBrush(engine, container, req);
+    const g = container.querySelectorAll("[data-gog-panel]")[0];
+    const [x0, , x1] = g.getAttribute("data-gog-panel").split(" ").map(Number);
+    const [from, to] = g.getAttribute("data-x").split(" ").map(Number);
+    const cats = g.getAttribute("data-x-cats").split("|");
+
+    // The axis states more room than it has slots. That is the whole case, and
+    // without it this test passes against either reading.
+    assert.ok(to - from > cats.length,
+      `the reach widened the axis: ${from} to ${to}, for ${cats.length} slots`);
+
+    // ① Where the browser puts each category against where the engine drew it.
+    const ax = { from, to, lo: x0, hi: x1, log: null, cats };
+    const drawn = [...new Set([...container.innerHTML.matchAll(/<circle cx="([\d.]+)"/g)]
+      .map((m) => +m[1]))].sort((p, q) => p - q);
+    assert.equal(drawn.length, cats.length, "one column of points per category");
+    cats.forEach((name, i) => {
+      assert.ok(Math.abs(placeOn(ax, name) - drawn[i]) < 1,
+        `${name} is placed at ${placeOn(ax, name)} and drawn at ${drawn[i]}`);
+    });
+
+    // ② And the drag, over the middle slot. Counting the categories put this
+    // pointer most of the way along an axis that reaches half again as far, so
+    // it used to come back with the first category rather than the second.
+    const at = (v) => x0 + ((v - from) / (to - from)) * (x1 - x0);
+    container.send("pointerdown", at(0.7), 300);
+    container.send("pointermove", at(1.3), 300);
+    container.send("pointerup", at(1.3), 300);
+
+    const caught = handle.selection();
+    assert.deepEqual(
+      [...new Set(caught.rows.map((r) => r[caught.columns.indexOf("place")]))],
+      [cats[1]],
+      "the drag caught the slot it was drawn over");
     handle.destroy();
   } finally {
     undo();
