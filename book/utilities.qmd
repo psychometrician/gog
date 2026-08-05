@@ -52,6 +52,74 @@ that any browser opens and any drawing program edits.
 
 The call is spelled the same way in all four languages.
 
+### What the file carries
+
+An SVG file is text, so anyone who opens it can read it. Check that before you
+publish, if your table holds something private. The file carries the drawing and
+nothing else.
+
+A plot draws the columns you map. Columns you never map are absent from the file,
+and so are their names:
+
+```{r}
+private <- data.frame(
+  patient = c("A. Kim", "B. Lee", "C. Park", "D. Choi"),
+  email   = c("ak@ex.com", "bl@ex.com", "cp@ex.com", "dc@ex.com"),
+  weight  = c(61.2, 74.8, 55.4, 68.0)
+)
+
+picture <- render_svg(data(private) + bar * bin + x(weight))
+sapply(c("A. Kim", "email", "ex.com", "61.2"), grepl, x = picture, fixed = TRUE)
+```
+
+Every search returns `FALSE`. The sentence maps one column, so the drawing used
+one column. Even the weights are gone, because `bin` counts rows into intervals
+and the bars show the counts.
+
+The missing weights come from the transform rather than from a general rule. A
+mark that summarizes draws no individual row. A mark that does not summarize
+draws one glyph per row, and each position is computed from one value:
+
+```{r}
+picture <- render_svg(data(private) + point + x(weight) + y(patient))
+lengths(gregexpr("<circle", picture))
+```
+
+Four rows, four circles, and the four names printed along the axis. Every
+plotting tool works this way, and it is what you asked for. A scatter plot draws
+each value you gave it.
+
+So the rule is not that the file is safe. It is narrower and more useful. What
+you map is what you publish. A column you never map cannot be recovered from the
+file, and a private column that stays out of the sentence stays private.
+
+### Plots that carry the table
+
+One case works differently, and you should know it before you publish.
+
+A plot that binds [`brush()`](selection.qmd) or draws in the [cube](space.qmd) is
+drawn twice. Once here, and once again in the reader's browser, because they can
+move a selection or turn the view. The second drawing needs the numbers, so the
+file carries the table as well as the picture.
+
+It carries the whole table, including columns the sentence never maps. The table
+that `show rows` opens lists only the mapped columns, and the file itself carries
+every column.
+
+A static plot never does this, even when its sentence names a brush.
+`render_svg()` gives you the picture and stops.
+
+One line of code prevents it. Bind the columns you plot and drop the rest:
+
+```{r}
+shown <- private[, c("patient", "weight")]
+data(shown) + point + x(weight) + y(patient) + brush(weight)
+```
+
+That sentence names a brush, so this page carries a table. The table it carries
+is `shown`, which has two columns. Bind `private` instead and `email` would be in
+this page too.
+
 ### What "byte for byte" means
 
 This book says in several places that the four languages draw the same picture

@@ -421,3 +421,14 @@ rather than both being called reset.
 None of this exists on paper, and none of it is missing there. The PDF shows the
 bound the sentence named, which is why naming one is worth doing even where a
 reader can move it.
+
+### Your data on the page
+
+The browser answers a brush, so the table has to be in the page. It is the whole
+table, including columns the sentence never maps. The table that `show rows`
+opens lists only the mapped columns, and the page carries every column.
+
+This matters when a table has a column you would not publish. Bind the columns
+you plot and drop the rest, as you would check any file before sharing it.
+[What the file carries](utilities.qmd#what-the-file-carries) states the rule for
+both kinds of plot, with the one line that applies it.
