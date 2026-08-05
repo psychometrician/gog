@@ -891,6 +891,38 @@ not another mark to remember.
 
 ---
 
+## `deviation`: the spread of the data
+
+`confidence` says how precisely a mean is known. `deviation` says how spread the
+values behind it are, which is a different question with the same picture. It
+emits the same low, high and center, so it also draws a pointrange:
+
+```{r}
+data(iris_flowers) + interval * deviation + x(species) + y(petal_length) +
+  x_label("Species") + y_label("Petal length (cm)") +
+  title("Mean petal length, with one standard deviation")
+```
+
+The multiplier is a parameter, like `confidence`'s level: `deviation` alone
+reaches one standard deviation on each side of the mean, and `deviation(2)`
+reaches two, so that band is four standard deviations wide. The standard
+deviation is the sample one, dividing by n − 1, so a group of one has no spread
+to show and collapses to a point exactly as `confidence` does.
+
+Neither transform makes the other redundant, and neither does `range`. On the
+iris flowers the confidence band is under a third as long as the deviation band:
+fifty measurements locate a mean precisely, and they still scatter as widely as
+they scatter. Adding rows narrows the first band and does not change the second.
+[Interval](marks/interval.qmd#the-spread-of-the-data) draws the two side by side
+and says which sentence each one supports.
+
+`range(0.25, 0.75)` answers a third version of the question. It is rank-based, so
+it reports where the middle half of the values actually lie, while `deviation` is
+moment-based and reports a distance from the mean. On a skewed group they
+disagree, and the disagreement is informative rather than a defect.
+
+---
+
 ## `bounds`: a *pre-computed* low/high pair
 
 `range` and `confidence` **compute** the pair from raw values. `bounds` is their

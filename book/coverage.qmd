@@ -185,13 +185,14 @@ Python, Julia or JavaScript, where you already have better tools for them.
 | `stat_function()`, `geom_function()` | evaluate the function onto a grid, then `line` |
 | `stat_unique()` | de-duplicate the table |
 | `cut_interval()`, `cut_number()`, `cut_width()` | cut the column, or use `bin` |
-| `mean_cl_boot()`, `mean_sdl()`, `median_hilow()` | compute the pair, then `ribbon * bounds(lower, upper)` |
+| `mean_cl_boot()` | bootstrap the pair, then `ribbon * bounds(lower, upper)`. Its two neighbors are no longer here: `mean_sdl()` is `deviation` and `median_hilow()` is `range(0.025, 0.975)` with `point * median` |
 | `fortify()`, `autoplot()`, `map_data()` | reach the model or the shapefile in the host, hand over a table |
 | a correlation matrix | `cor()` where the data lives, reshape it long, then `zone + x(var1) + y(var2) + color(r)` |
 
 The boundary is not as clean as that table makes it look, and pretending
 otherwise would be dishonest. gog *does* compute: `bin` cuts, `density`
-estimates, `smooth` fits a local regression, `confidence` builds an interval. The
+estimates, `smooth` fits a local regression, `confidence` builds an interval, and
+`deviation` and `quantile` moved two rows off this table when they shipped. The
 working line is that a histogram has no bars until something bins, so the
 computation is the picture, whereas a quantile regression is a separate answer
 that happens to be drawn as a line. Where exactly that line falls is one of the
