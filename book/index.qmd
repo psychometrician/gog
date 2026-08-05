@@ -552,6 +552,11 @@ The prose in this book is licensed [CC BY-NC-SA
 [Apache 2.0](https://www.apache.org/licenses/LICENSE-2.0), the same license as
 the engine, so the examples can be used in your own work.
 
+This book is archived on Zenodo and can be cited by its DOI,
+[10.5281/zenodo.21807652](https://doi.org/10.5281/zenodo.21807652). That address
+always resolves to the newest deposited edition. The archived copy stays
+available even if this site does not.
+
 ## Who wrote this
 
 This book carries five names, and the division of labor behind them is worth
