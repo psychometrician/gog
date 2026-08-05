@@ -2,6 +2,8 @@
 
 <img src="book/images/gog_hex.png" alt="The gog hex sticker: a peach hexagon holding a face built from the package's four operators, a plus and an asterisk as its two eyes, a slash and a vertical bar as its nose, and the package name as its mouth." align="right" width="170">
 
+**Be agog. Use gog.**
+
 One graphics engine, written in Rust, spoken from four languages. Plots are
 **specifications, not drawing code**: you say what you want to see, and the engine
 decides every stroke.

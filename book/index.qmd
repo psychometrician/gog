@@ -27,6 +27,16 @@ date-modified: "`r sub(' 0', ' ', format(Sys.Date(), '%B %d, %Y'))`"
 source("R/setup.R")
 ```
 
+:::: {.content-visible when-format="html"}
+::: {.gog-slogan}
+Be agog. Use gog.
+:::
+::::
+
+```{=latex}
+\begin{center}\itshape Be agog. Use gog.\end{center}
+```
+
 gog is a single graphics engine written in [Rust](https://www.rust-lang.org/),
 callable from [R](https://www.r-project.org/), [Python](https://www.python.org/),
 [Julia](https://julialang.org/), and
