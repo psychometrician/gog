@@ -16,7 +16,7 @@ harder of the two, and it is what writing a specification asks of you.
 This chapter builds three sentences from three questions, the way you will
 actually work: start with the smallest legal sentence, look, refine. Then it
 introduces the other half of writing: what happens when a sentence is wrong,
-and why GOG's refusals are the fastest teacher in the book.
+and why gog's refusals are the fastest teacher in the book.
 
 ## Which continents live longest?
 
@@ -86,7 +86,7 @@ and still one sentence with no new grammar in it.
 
 ## When the engine says no
 
-You will write wrong sentences. Everyone does. GOG's design promise is
+You will write wrong sentences. Everyone does. gog's design promise is
 that a wrong sentence is refused *with a direction*, never absorbed into a
 silently wrong picture. Meet the refusals you are most likely to see this
 week.

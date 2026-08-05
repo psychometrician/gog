@@ -6,10 +6,10 @@ source("R/setup.R")
 ```
 
 Should this color come from your data, or from you? There are two ways to make
-something red, and GOG keeps them apart on purpose.
+something red, and gog keeps them apart on purpose.
 
 **Mapping** hands a visual property over to the data. `color(continent)` says
-*let the continent decide the color*, so GOG builds a scale, assigns a color
+*let the continent decide the color*, so gog builds a scale, assigns a color
 per continent, and draws a legend to decode it.
 
 **Setting** fixes the property yourself. `style(color = "tomato")` says *make
@@ -33,7 +33,7 @@ data(gapminder_2007) + point + x(gdp) + y(life) +
 
 ## Why a constant is not a channel
 
-Every channel in GOG maps a data column to a visual feature. A constant maps
+Every channel in gog maps a data column to a visual feature. A constant maps
 nothing, so it fails the definition: the same reason rotating a 3-D plot is a
 property of the coordinate space rather than a channel.
 
@@ -201,7 +201,7 @@ data(gapminder_2007) + point + x(gdp) + y(life) + color("red")
 ```
 
 `color()` names a **column**, so `color("red")` asks for a column called `red`.
-Setting a value and mapping a column are different requests, and GOG makes you
+Setting a value and mapping a column are different requests, and gog makes you
 say which one you mean.
 
 ### Several at once
@@ -221,7 +221,7 @@ data(medals) + bar + x(country) + y(gold) +
   title("A CSS color name")
 ```
 
-A name GOG does not recognize is refused, with the nearest real one offered,
+A name gog does not recognize is refused, with the nearest real one offered,
 rather than being passed to the renderer and painted black:
 
 ```{r}
@@ -231,7 +231,7 @@ data(medals) + bar + x(country) + y(gold) + style(color = "stelblue")
 
 The mistake an R user predictably makes is that R color names are not CSS
 color names. R's `colors()` includes numbered shades (`gray80`, `gray50`,
-`steelblue3`) that CSS does not have. GOG uses CSS colors because that is
+`steelblue3`) that CSS does not have. gog uses CSS colors because that is
 what SVG accepts and what the other three bindings use too, so the
 vocabulary is the same in every language:
 
@@ -290,7 +290,7 @@ where they diverge.
 ## You cannot map and set the same property
 
 Doing both would mean one of the two instructions is silently discarded, which
-GOG never does:
+gog never does:
 
 ```{r}
 #| error: true
@@ -462,7 +462,7 @@ data(gapminder_2007) + point + x(gdp, scale = "log") + y(life) +
   color(continent) + theme(background = "white", frame = "full", strip = "white")
 ```
 
-That is the rule every preset in GOG follows: it can name nothing you could not
+That is the rule every preset in gog follows: it can name nothing you could not
 have set yourself. A preset that reached further would be a second vocabulary
 hiding inside the first.
 
@@ -516,14 +516,14 @@ A dark strip with light type is a common look, and it takes one property:
   facet(continent)
 ```
 
-You did not name a text color, and the type came out white. GOG reads the band
+You did not name a text color, and the type came out white. gog reads the band
 you asked for and picks whichever of its two default inks contrasts more against
 it. A pale band keeps the dark ink, so nothing above this point changed.
 
 This is a derivation, not a convenience. Without it, `theme(strip = "black")`
 would paint the near-black default label onto a near-black band, and every panel
 would lose its name while the plot still looked finished. A guide that is
-silently empty is the failure GOG will not release, so the second half of the
+silently empty is the failure gog will not release, so the second half of the
 instruction is supplied rather than required.
 
 When the ink is a real choice rather than a legibility question, name it. A navy
@@ -535,7 +535,7 @@ band with gold type is legible, and nothing should argue with it:
   facet(continent)
 ```
 
-That is the shape of every derivation in GOG: it decides what you did not say,
+That is the shape of every derivation in gog: it decides what you did not say,
 and it steps aside the moment you say it. The engine guarantees the plot is
 well-formed and leaves taste to you, which is [Law 8](design-laws.qmd).
 

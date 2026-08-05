@@ -15,7 +15,7 @@ works, and gives you exactly the plot you would have written by hand.
 gapminder_2007 |> data() + point + x(gdp) + y(life)
 ```
 
-That is not a second way of saying it, and GOG does not implement it. By the
+That is not a second way of saying it, and gog does not implement it. By the
 time the engine sees anything, the two forms are the *same expression*. You can
 watch R rewrite one into the other, because `quote()` shows what the parser
 built rather than what you typed:
@@ -63,7 +63,7 @@ gapminder_2007 %>% data() + point + x(gdp) + y(life)
 ```
 
 The plot is right, and for a single table it stays right. What is gone is the
-name, so GOG says so and tells you how to put it back. Either use the native
+name, so gog says so and tells you how to put it back. Either use the native
 pipe, or name the table yourself:
 
 ```{r}
@@ -73,7 +73,7 @@ gapminder_2007 %>% data(name = "gapminder_2007") + point + x(gdp) + y(life)
 Only the placeholder draws that warning, and it is worth being clear about what
 does *not*. Filtering on the way in is the pipe's most useful shape, and it stays
 silent: the expression you piped is not a plain name, but it is still yours and
-still distinct, so GOG keeps it as the table's name rather than lecturing you
+still distinct, so gog keeps it as the table's name rather than lecturing you
 about it.
 
 ```{r}
@@ -111,7 +111,7 @@ reached exactly that state, both tables having arrived as `.`.
 
 The pipe feeds `data()`. It does not replace `+`, and there is no piped form
 of the rest of the sentence: marks, channels, and transforms compose with `+`
-and `*` as they do everywhere else in this book. GOG has no pipe of its own
+and `*` as they do everywhere else in this book. gog has no pipe of its own
 and will not grow one, because that would be a second spelling for something
 the language already spells.
 
@@ -136,10 +136,10 @@ the packages R attaches for you:
 Ten of the eighteen cannot hurt you, and the reason is a rule in R itself.
 Every mark and every value transform is an *object*, not a function. When R
 evaluates a call, it looks for a function of that name and skips any binding that
-is not one. So base R still answers, even with GOG's `mean` sitting closer:
+is not one. So base R still answers, even with gog's `mean` sitting closer:
 
 ```{r}
-is.function(mean)   # GOG's `mean` is an object, so a call cannot reach it
+is.function(mean)   # gog's `mean` is an object, so a call cannot reach it
 mean(1:10)          # and base R's function answers anyway
 ```
 
@@ -166,9 +166,9 @@ want, and both remain available:
 | `box()` | the box-and-whisker mark | `graphics::box()` |
 
 `order` is the one that used to hurt. Sorting a data frame beside a plot is
-ordinary work. GOG's `order` returns an atom, not the row positions that `[`
+ordinary work. gog's `order` returns an atom, not the row positions that `[`
 expects. So the failure used to arrive far from the line that caused it, and it
-named neither `order` nor GOG. It now says which function you reached, and how to
+named neither `order` nor gog. It now says which function you reached, and how to
 reach the other one:
 
 ```{r}

@@ -33,7 +33,7 @@ same engine every other chapter uses.
 
 ## The comma is `+`
 
-A GOG sentence is a list of words, and in JavaScript it is a list of arguments.
+A gog sentence is a list of words, and in JavaScript it is a list of arguments.
 `plot()` is what gives the comma its meaning:
 
 ```{r}
@@ -217,7 +217,7 @@ installed. `better-sqlite3` has the same shape and works the same way.
 is what lets a plot be written inline in an expression. A driver whose query
 returns a Promise cannot be awaited inside it.
 
-So `pg` and `mysql2` do not work with `query()`, and GOG says so rather than
+So `pg` and `mysql2` do not work with `query()`, and gog says so rather than
 letting a Promise reach the engine. The direction it gives is the fix: fetch the
 rows yourself, then bind them as an ordinary table.
 

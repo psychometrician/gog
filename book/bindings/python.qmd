@@ -64,7 +64,7 @@ sentence spanning several lines is wrapped in parentheses:
 py_plot("(data(gapminder_2007) + point + x(col.gdp, scale='log') + y(col.life)\n + color(col.continent) + size(col.population)\n + title('Wealth and life expectancy, 2007'))")
 ```
 
-That is Python's rule about lines rather than anything of GOG's, and together
+That is Python's rule about lines rather than anything of gog's, and together
 with the accessor it accounts for almost every difference you will type.
 
 ## The table
@@ -97,7 +97,7 @@ there the categories fall back to the order the rows came in, which
 ## Computation is pandas' job, not the grammar's
 
 A channel takes a column name and never an expression. There is no
-`x(log(gdp))`, and GOG grows no small language for deriving values, because
+`x(log(gdp))`, and gog grows no small language for deriving values, because
 Python already is one: compute the column, then bind it by name.
 
 ```{r}
@@ -149,7 +149,7 @@ to be told, which is the convention each language already has.
 ## Five names Python already uses
 
 `bin`, `sum`, `min`, `max` and `range` are transforms here and builtins there,
-so `from gog import *` puts GOG's over Python's for the rest of the file. The R
+so `from gog import *` puts gog's over Python's for the rest of the file. The R
 package does the same thing to `base::range` and `base::sum`: a grammar keeps
 its own vocabulary. Calling one says so rather than failing obscurely:
 

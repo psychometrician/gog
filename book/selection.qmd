@@ -74,7 +74,7 @@ data(gapminder_2007) + point + x(gdp) + y(life) +
 The first plot is a different plot. Its axis runs from 20,000 to 60,000, only the
 countries inside that range are drawn, and both axes were fitted to the ones
 that survived. Look at its y axis: it starts near 70, because no short-lived
-country is left to stretch it downward. GOG counts the countries it removed
+country is left to stretch it downward. gog counts the countries it removed
 aloud rather than dropping them quietly.
 
 The second is the whole world, with a group of it standing out. Its axes are the
@@ -208,7 +208,7 @@ mark that draws one shape per row.
 A summarized layer refuses for a different reason. A bar of `bar * count` stands
 for forty countries at once, so "twelve of these are selected" has no honest
 picture: dimming the whole bar would be wrong, and dimming part of it would
-invent a mark nobody asked for. GOG says so instead of guessing:
+invent a mark nobody asked for. gog says so instead of guessing:
 
 ```{r}
 #| error: true
@@ -217,7 +217,7 @@ data(gapminder_2007) + bar * count + x(continent) +
 ```
 
 Beside a layer that *can* answer, neither of these is a refusal. The plot draws,
-and GOG reports which layer it left whole:
+and gog reports which layer it left whole:
 
 ```{r}
 #| message: true
@@ -369,7 +369,7 @@ Nothing about the sentence changes. You do not type a shape, and the printed
 page still shows the bound the sentence named. Drawing one is a way of looking,
 like turning a cube, rather than a claim about the data.
 
-That is also why the grammar has no word for it. GOG reserved `lasso` for this
+That is also why the grammar has no word for it. gog reserved `lasso` for this
 once and then gave the word up. A shape can only be written down as a long list
 of corners, and a specification is something you can write down and print. The
 act survives; the word does not.

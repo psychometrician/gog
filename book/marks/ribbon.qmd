@@ -101,7 +101,7 @@ band's meaning, the observed spread (`range`) or the uncertainty of the mean
 `range` and `confidence` compute the band *from raw values in the plot*. But most
 confidence bands are not computed at the plot at all: a model's standard error, a
 psychometric standard error of measurement, a bootstrap interval are all worked out
-**upstream**, and you arrive with the bounds already in two columns. GOG draws what
+**upstream**, and you arrive with the bounds already in two columns. gog draws what
 you computed; it does not re-fit the model. So the ribbon reads those columns
 directly, through `bounds(lower, upper)`:
 
@@ -115,7 +115,7 @@ data(score_band) + ribbon * bounds(lower, upper) + x(score) +
 columns you hand it into the same low/high pair `range` produces, so the band draws
 with no new machinery and no `y()` (the two columns *are* the extents). It is the
 common case the summary transforms cannot serve: a band whose bounds came from
-somewhere GOG will never be.
+somewhere gog will never be.
 
 Its natural companion is the curve the band surrounds. Here the scoring model's
 **expected true score** runs through the middle, drawn as a dashed

@@ -67,7 +67,7 @@ data(gapminder_asia) + area + x(year) + y(life) + color(country) +
 ```
 
 Regions are filled, so unlike polylines they hide one another. Write that plot
-without an opacity and GOG says so rather than letting you read a chart with a
+without an opacity and gog says so rather than letting you read a chart with a
 series missing underneath:
 
 ```{r}
@@ -79,7 +79,7 @@ data(gapminder_asia) + area + x(year) + y(life) + color(country) +
 Compare the legend with the picture: every country is named in the key, and the
 ones with the lowest values are painted over by the ones drawn after them. The note
 above the plot is advice rather than a refusal: the plot still renders,
-because the grammar has no objection to it, and GOG guides taste without
+because the grammar has no objection to it, and gog guides taste without
 blocking it. Stacking the regions instead of overlaying them is the real answer,
 and it ships as `area * stack`, an area's collision modifier. Its sibling `dodge`
 subdivides a *width*, which an area has none of; an area is offset by

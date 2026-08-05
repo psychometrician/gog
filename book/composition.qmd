@@ -9,7 +9,7 @@ How do you put two different plots on one page? Faceting splits one plot into
 panels. Composition does the opposite: it takes plots that were never one plot
 and arranges them on a page. Wilkinson keeps the two apart in the same words,
 noting that "some tabled graphics are really two or more graphics glued
-together", and GOG keeps them apart in the operators you have already learned.
+together", and gog keeps them apart in the operators you have already learned.
 `|` and `/` place things side by side and one above the other, whatever those
 things are:
 
@@ -52,7 +52,7 @@ Parenthesize when the reading matters.
 
 Two composed plots are unrelated until they name the same column on the same
 axis. When they do, that is not two axes that happen to look alike; it is one
-axis, and GOG treats it as one:
+axis, and gog treats it as one:
 
 > The same column on the same axis in two composed plots is one axis: one
 > scale, one panel extent, drawn once.
@@ -95,7 +95,7 @@ nothing in the grammar makes them agree. The next pair may split by different
 columns, or cut one column on two scales, and a single key over that is wrong for
 one of them. It is wrong quietly, because it still looks like a key.
 
-GOG will not merge a key it cannot promise, so it merges none. Identical keys
+gog will not merge a key it cannot promise, so it merges none. Identical keys
 side by side are the honest picture of two plots that happen to agree.
 
 When you want one key over several panels, use [faceting](faceting.qmd) instead.
@@ -228,7 +228,7 @@ what `plot | facet(continent)` says.
 
 The **composition** reading is the one you will recognize if you use patchwork
 [@pedersen2019patchwork], which pairs `p1 | p2` for side by side with `p1 / p2`
-for one above the other. GOG spells composition the same way on purpose: a reader
+for one above the other. gog spells composition the same way on purpose: a reader
 who knows that package already knows this page, and a third spelling of an
 established idea would cost everyone something and buy nobody anything.
 
@@ -241,7 +241,7 @@ two words `beside()` and `below()`: the names were already there.
 
 One divergence is worth naming, since Wilkinson is this project's usual
 tiebreaker. His graph algebra also has a `/`, and it means **nest** (`a/b`, "a
-within b"), not "below". GOG's facet operators claim his *crossing* and
+within b"), not "below". gog's facet operators claim his *crossing* and
 deliberately do not claim his nesting, so `/` here is free to mean the page.
 
 ## Layering, faceting, or composition?

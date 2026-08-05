@@ -17,14 +17,14 @@ data(gapminder_2007) + point + x(gdp) + y(life)
 
 *"Given gapminder 2007: points, x is gdp, y is life."*
 
-GOG looks up `gdp` and `life` inside the `gapminder_2007` data frame automatically.
+gog looks up `gdp` and `life` inside the `gapminder_2007` data frame automatically.
 This is the **Bind-Once Law**: name the table once, then use columns freely.
 
 `gapminder_2007` here is just a regular R data frame (or tibble) in your workspace:
 no registration step, no special wrapping required.
 
 Writing `data()` is not just a formality. When you write
-`data(gapminder_2007)`, GOG keeps the name `gapminder_2007`, not only the
+`data(gapminder_2007)`, gog keeps the name `gapminder_2007`, not only the
 numbers inside it. The name matters as soon as a plot has more than one table,
 because each layer looks up its bare column names in the nearest table by name.
 Leave `data()` out and the table arrives with no name, so the plot refuses and
@@ -43,7 +43,7 @@ The same advice comes back if a bare frame appears mid-expression (write
 
 Every table in this book has the same shape. Each row is one observation, and
 each column is one variable. That shape has a name, **tidy data**
-[@wickham2014tidy], and GOG assumes it in every sentence you write.
+[@wickham2014tidy], and gog assumes it in every sentence you write.
 
 The reason is a rule you have already read. A channel takes a column, so
 anything you want to map has to *be* a column. Suppose you record sales for two
@@ -61,7 +61,7 @@ data(wide) + line + x(year) + y(sales) + color(region)
 The message names two problems. There is no column called `sales`, and no column
 called `region`. Your two regions are column *names*, and a name is not a
 column. Your sales numbers sit in two columns instead of one. The sentence asks
-for columns the table does not have, so GOG draws nothing.
+for columns the table does not have, so gog draws nothing.
 
 The same numbers, one row per observation, draw the plot and earn the legend:
 
@@ -74,16 +74,16 @@ long <- data.frame(year   = rep(2019:2023, times = 2),
 data(long) + line + x(year) + y(sales) + color(region)
 ```
 
-GOG never reshapes a table, and no transform turns columns into rows. You do
+gog never reshapes a table, and no transform turns columns into rows. You do
 that work before you write the sentence, in the language you are already using.
 R has `tidyr::pivot_longer()`. Python has `pandas.melt()`. Julia has
 `DataFrames.stack()`. JavaScript has no standard table library, so you write a
 short loop instead.
 
-GOG is stricter than ggplot2 here, but not about the shape. ggplot2 does not
-reshape tables either, and it refuses the wide table above just as GOG does. The
+gog is stricter than ggplot2 here, but not about the shape. ggplot2 does not
+reshape tables either, and it refuses the wide table above just as gog does. The
 real difference is narrower. ggplot2 lets you calculate a value while you map
-it, so `aes(x = log(gdp))` works there. GOG does not allow that, because a
+it, so `aes(x = log(gdp))` works there. gog does not allow that, because a
 channel takes a column name and nothing else. Some of those calculations are
 already part of the grammar. A log axis is one of them, written
 `x(gdp, scale = "log")`. For anything else, add the column to your table first.
@@ -162,7 +162,7 @@ below `data(forecast)`, so it looks like part of the forecast. Only the rule
 says otherwise.
 
 This is style, not grammar. Both spellings are legal, and both build the same
-plot. GOG will never refuse either one, because legal is not the same as clear
+plot. gog will never refuse either one, because legal is not the same as clear
 ([Law 8](design-laws.qmd)). Two sentences can mean the same thing and still be
 very different to read. That difference is yours to control.
 
@@ -217,7 +217,7 @@ why the earlier plot worked with the positions written once at the front.
 ## A table in a database
 
 Not every table fits on one computer. Most working data sits in a database, and a
-warehouse table can hold billions of rows. GOG reaches those tables with one
+warehouse table can hold billions of rows. gog reaches those tables with one
 word, **`query`**, and it stands exactly where `data` stands.
 
 Nothing else in the sentence changes:
@@ -248,7 +248,7 @@ query(con, "SELECT gdp, life, continent FROM countries WHERE gdp > 5000") +
 ```
 
 The plot is an ordinary scatter plot, because the grammar did an ordinary thing.
-The database chose which rows to send. GOG drew what arrived.
+The database chose which rows to send. gog drew what arrived.
 
 That last point is worth stating plainly. A query and a loaded table produce
 **the same picture, byte for byte**, when they hold the same rows. Every binding
@@ -257,9 +257,9 @@ different way of finding the rows to draw.
 
 ### Three things to know
 
-The connection is yours. GOG never opens one, and it never stores a password.
+The connection is yours. gog never opens one, and it never stores a password.
 You connect with whatever your language already uses, and hand the open
-connection to `query`. That also means GOG adds no database driver to your
+connection to `query`. That also means gog adds no database driver to your
 install. A reader who never writes SQL never installs one.
 
 The query runs when the plot is drawn, not when the sentence is written.
@@ -278,13 +278,13 @@ its own database convention. Your language's chapter says which:
 
 ### How much data comes back
 
-`query()` brings **every row the query returns** to the computer running GOG. The
+`query()` brings **every row the query returns** to the computer running gog. The
 database does the selecting. Your machine does the drawing. That is worth
 knowing before you point this at a large table.
 
 For most tables it does not matter. A few thousand rows arrive quickly, and you
 should write the simple query and think no further. Selecting the columns you
-need and letting GOG do the rest is the normal case, and the example above is
+need and letting gog do the rest is the normal case, and the example above is
 exactly that.
 
 It starts to matter somewhere around a hundred thousand rows. Past that, moving
@@ -316,13 +316,13 @@ The common summaries all have a SQL form:
 
 Two marks are harder. `smooth` and `density` fit a curve through the individual
 rows, and a curve fitted through counts is not the same curve. A database *can*
-compute them, and some tools do, but GOG does not ask it to yet. For now, take a
+compute them, and some tools do, but gog does not ask it to yet. For now, take a
 sample for those two and say so in the caption.
 
 Writing the summary is your job today. The design is built so that it might not
 always be: `query()` holds its SQL instead of running it, which is what would let
 the engine send the `GROUP BY` itself and receive only the summary. The sentence
-you write would not change. That is the direction GOG is built for, rather than a
+you write would not change. That is the direction gog is built for, rather than a
 promise with a date on it, and the summarizing is yours until it arrives.
 
 ### Two directions, and which one suits you
@@ -335,14 +335,14 @@ It has two strengths and both are real. Its clauses read like SQL, so someone wh
 writes SQL all day never leaves the language they are thinking in, and no host
 language is installed at all. And it runs the whole pipeline in the database, one
 query per layer, so a bar chart of ten billion rows fetches only the bar heights.
-On that second point ggsql is ahead of GOG, which does not do this today.
+On that second point ggsql is ahead of gog, which does not do this today.
 The limit described above is ours, not the idea's.
 
-If SQL is where you work, ggsql is probably the better fit. GOG would first
+If SQL is where you work, ggsql is probably the better fit. gog would first
 ask you to pick up R, Python, Julia or JavaScript, and that is a real cost for
 someone with no other reason to.
 
-GOG points the other way. The grammar stays in one place and the data comes to
+gog points the other way. The grammar stays in one place and the data comes to
 it, so one sentence draws a loaded table, a table in Postgres, and a table in
 a warehouse, in any of four languages. One syntax, as many languages and
 settings as we can reach.
@@ -350,7 +350,7 @@ settings as we can reach.
 | You work | The lower cost is |
 |---|---|
 | Only in SQL | **ggsql**: nothing to install, and the syntax is the one you use |
-| Across several languages | **GOG**: one grammar covers all of them, and the database too |
+| Across several languages | **gog**: one grammar covers all of them, and the database too |
 
 ```{r}
 #| include: false
@@ -380,7 +380,7 @@ millions of rows) is planned to replace it.
 
 ## Factors decide the order of categories
 
-A plain text column has no order of its own, so GOG draws its categories in the
+A plain text column has no order of its own, so gog draws its categories in the
 order the rows happen to arrive:
 
 ```{r}
@@ -411,7 +411,7 @@ data(severity) + point + x(count) + y(count) + color(level) +
   title("The legend follows the same order")
 ```
 
-The order holds even when GOG does the counting for you. These tickets arrive
+The order holds even when gog does the counting for you. These tickets arrive
 `High` first, but `bar * count` still reads Low, Medium, High. A summary carries
 the declared order onto its axis, it does not fall back to first-appearance:
 
@@ -428,14 +428,14 @@ data(tickets) + bar * count + x(level) +
 ```
 
 R has two kinds of factor: `factor(x, ordered = TRUE)`, meaning Low really is
-*less than* High, and a plain factor that merely lists its levels. GOG honors
+*less than* High, and a plain factor that merely lists its levels. gog honors
 the order in both cases, because most people reach for a plain factor purely to
 fix the display order and mean nothing mathematical by it.
 
 ### The same declaration in the other three languages
 
 `factor()` is R's word for this. Python, Julia and JavaScript have no factor
-type, so GOG supplies the declaration itself, under one name: `ordered()`. It
+type, so gog supplies the declaration itself, under one name: `ordered()`. It
 takes the column's values and the order its categories go in. Declare it where
 you build the table, and everything after that reads the same in all four
 languages.
@@ -477,7 +477,7 @@ const severity = {
 ```
 
 Python reads a pandas `Categorical` as well, and takes its categories as the
-levels. `ordered()` is what a plain dictionary of lists uses, because GOG does
+levels. `ordered()` is what a plain dictionary of lists uses, because gog does
 not require pandas.
 
 Two rules worth knowing:
@@ -506,7 +506,7 @@ relevel it in the host, where the levels are.
 
 Real data has gaps: `penguins` is missing two flipper measurements, and most
 survey data far more. A row with no value where the plot needs one cannot be
-placed, so GOG drops it and **says how many**, rather than quietly changing the
+placed, so gog drops it and **says how many**, rather than quietly changing the
 count under you:
 
 ```{r}

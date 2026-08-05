@@ -18,14 +18,14 @@ channel(field)
 
 No exceptions.  `x` and `y` are channels too: the same rule applies everywhere.
 
-The word for this is not settled outside GOG, so you may know it as something
+The word for this is not settled outside gog, so you may know it as something
 else. Bertin set the vocabulary down first, in *Sémiologie graphique*
 [@bertin1967], separating the plane's two dimensions from six **retinal
 variables** (size, value, texture, color, orientation, shape) on the grounds
 that the eye does not read them the same way. Wilkinson and ggplot2 both say
 **aesthetic**, which is why you write `aes()` there and nothing like it here.
 The visualization literature settled instead on **channel**, paired with the
-mark it modifies [@munzner2014], and that is the word GOG takes. A channel is
+mark it modifies [@munzner2014], and that is the word gog takes. A channel is
 something a signal travels down, which is what this is, and Plain Names asks
 for the everyday word that says the job. **Encoding**
 is the same idea named as an act rather than a thing, and both uses survive here:
@@ -58,7 +58,7 @@ so there is nothing for a key to decode.
 `color(field)` maps a column to color, and a legend appears automatically.
 It takes *either* kind of column, and the kind decides what color means.
 
-It is spelled `color`, and only `color`. GOG writes American English throughout
+It is spelled `color`, and only `color`. gog writes American English throughout
 and accepts no second spelling, so there is no `colour` here as there is in
 ggplot2; writing one earns a refusal that names the fix (see
 [Law 3](design-laws.qmd)).
@@ -95,7 +95,7 @@ perceives as *more*: one hue running light→dark is readable at a glance,
 survives grayscale printing and color blindness, and does not compete with
 the categorical palette when both appear in one figure. A rainbow encodes
 magnitude as *hue*, which has no intrinsic order, so the reader has to consult
-the legend for every point. GOG's default is a single blue built on the same
+the legend for every point. gog's default is a single blue built on the same
 hue as the first categorical color, so the two scales read as one system.
 See [Ramps](#ramps) below for the multi-hue alternatives, the diverging ramps,
 and custom stops.
@@ -179,7 +179,7 @@ data(iris_flowers) + bar * mean + x(species) + y(petal_length) +
 
 The point of the channel is **redundant encoding**: the same column on `color`
 *and* `pattern`, so series are told apart by hue *and* texture at once (the
-accessibility best practice). GOG draws these as **one merged legend**, not two:
+accessibility best practice). gog draws these as **one merged legend**, not two:
 
 ```{r}
 sales <- data.frame(
@@ -312,7 +312,7 @@ runs from little to much, and a **diverging** ramp measures distance from a
 center in either direction. Which kinds a name may meet is decided by the
 column, so the sections below are in that order.
 
-GOG uses a 20-color default palette so you won't run out of colors for
+gog uses a 20-color default palette so you won't run out of colors for
 typical datasets. When categories exceed the palette size, additional
 colors are generated automatically via the HSL color wheel, guaranteed
 unique for any number of categories.
@@ -400,7 +400,7 @@ draws every sentence in four languages.
 Three things are worth reading off that page.
 
 `gray` runs the other way. Its crater is dark at the summit while the other
-five are bright there. That is not a mistake in either: GOG's own ramps (`gray`
+five are bright there. That is not a mistake in either: gog's own ramps (`gray`
 and the default `blue`) run light to dark, because for a single hue more ink
 reads as more, which is also how the figure survives a photocopier. The
 viridis family runs dark to light, because that is what those ramps are, and
@@ -528,7 +528,7 @@ data(gapminder_2007) + point + x(gdp) + y(life) +
   palette(c("firebrick", "steelblue", "seagreen", "rebeccapurple", "darkorange"))
 ```
 
-A color GOG cannot recognize is refused with the nearest match offered, rather
+A color gog cannot recognize is refused with the nearest match offered, rather
 than handed to the renderer to be painted black:
 
 ```{r}

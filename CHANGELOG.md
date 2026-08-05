@@ -32,6 +32,12 @@ CRAN-style repositories and PyPI, `GrammarOfGraphics` on Julia's General, and
 
 ### Changed
 
+- **The name is written `gog` everywhere, in one case.** The documentation used
+  to write `GOG` for the grammar and `gog` for the package you install, which
+  asked a reader to carry two spellings of one name. It is now lowercase in every
+  place a reader meets it, the way ggplot2 and pandas are written, and the way
+  the hex sticker has always read. Nothing about the grammar changed, and
+  `GOG_STRICT` and the other environment variables keep their capitals.
 - **Dragging a cube turns the cube, not the camera.** Drag right and the side
   facing you moves right; drag down and it tips down to show you the top. Both
   directions are reversed from before, and both now match what other 3-D viewers

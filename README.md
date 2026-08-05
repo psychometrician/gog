@@ -153,11 +153,11 @@ types — there is no `histogram()` to look up.
 | **Composition** | `facet`, and the operators: layering `+`, derivation `*`, arranging `\|` and `/` |
 
 One word carries ⬜ because it is **not drawn yet**: `click`. It is not callable
-either, so your language reports a missing function rather than GOG explaining
+either, so your language reports a missing function rather than gog explaining
 itself. Everything else above draws today: every mark, every channel, every
 transform and every space.
 
-What GOG never does is accept one of these names and quietly ignore it. Nothing
+What gog never does is accept one of these names and quietly ignore it. Nothing
 is accepted and silently dropped, so a plot that draws is a plot that means what
 you wrote.
 

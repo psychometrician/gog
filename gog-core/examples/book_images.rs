@@ -1,4 +1,4 @@
-/// Generates all static SVG images used in the GOG book.
+/// Generates all static SVG images used in the gog book.
 /// Run with: cargo run --example book_images
 /// Output: book/images/*.svg
 use std::collections::HashMap;

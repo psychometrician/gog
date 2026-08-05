@@ -4,7 +4,7 @@ After stating its system in brief, the 1446 book slowed down and walked the
 letters one class at a time (the initial consonants, the vowels, the final
 consonants), each class explained by the same method.
 
-This part does the same for GOG's letters. The marks are the consonants:
+This part does the same for gog's letters. The marks are the consonants:
 visible forms that are silent until a position gives them somewhere to
 stand. The positions are the vowels: `x`, `y`, and `z`, plus the scales
 that decide how a number, a category, or a date becomes a place on an

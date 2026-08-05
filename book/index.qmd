@@ -27,7 +27,7 @@ date-modified: "`r sub(' 0', ' ', format(Sys.Date(), '%B %d, %Y'))`"
 source("R/setup.R")
 ```
 
-GOG is a single graphics engine written in [Rust](https://www.rust-lang.org/),
+gog is a single graphics engine written in [Rust](https://www.rust-lang.org/),
 callable from [R](https://www.r-project.org/), [Python](https://www.python.org/),
 [Julia](https://julialang.org/), and
 [JavaScript](https://developer.mozilla.org/en-US/docs/Web/JavaScript).
@@ -41,7 +41,7 @@ themselves on day two.
 This preface is unusually long. It explains where the grammar comes from, and
 why it refuses what it refuses. You do not need any of it to draw a plot. If
 you would rather start now, take the install command for your language from
-[Installing GOG](#installing-gog). Then go straight to [Part I, A
+[Installing gog](#installing-gog). Then go straight to [Part I, A
 morning](parts/morning.qmd), which teaches the whole grammar in one sitting.
 Nothing in it depends on this page, and you can come back here later.
 
@@ -55,19 +55,19 @@ boundary. Nothing says where that list ends, so there is nothing to measure it
 against. No rival can even claim to cover more. Wilkinson wrote his limits
 down, and that is why *the* is a claim he earned.
 
-This book takes the indefinite article on purpose. GOG is not a restatement of
+This book takes the indefinite article on purpose. gog is not a restatement of
 Wilkinson's system, and it is not a subset of it either. His grammar rests on an
 algebra of variable sets, in which `*` crosses, `/` nests and `+` blends, and the
-four operators you will meet in this book mean none of those things. What GOG
+four operators you will meet in this book mean none of those things. What gog
 took from him is the inventory rather than the algebra: most of the names in its
 vocabulary come from his chapters on statistics, geometry, coordinates and
-aesthetics, which is a real debt and a large one. What GOG is instead is a
+aesthetics, which is a real debt and a large one. What gog is instead is a
 deliberately small **kernel** of marks, channels, transforms and operators, grown
 one decision at a time and answerable to [nine laws](design-laws.qmd) of its own.
 The kernel is that whole vocabulary: every name the grammar has, and nothing
 outside it. What those four kinds of name mean is spelled out later in this
 preface. When a design question is genuinely open, he is still the tiebreaker, and the
-package carries his book's name. But the cover says *a*, not *the*. GOG is one
+package carries his book's name. But the cover says *a*, not *the*. gog is one
 of the grammars that could be built, and it claims nothing more.
 
 The small article also does something the definite one cannot. *A Grammar of
@@ -78,19 +78,19 @@ never place a stroke yourself. You declare what you want to see, and then there
 is a gap (brief, but real, and felt every time) before the engine shows you
 what you said.
 
-Everyone who writes a plot in GOG stands in that gap. Reading this book, you see
+Everyone who writes a plot in gog stands in that gap. Reading this book, you see
 the far side of it. Every plot on these pages was drawn by the engine while the
 page was being built, not pasted in as a screenshot. That waiting is over by the
 time the page reaches you: the plot is already sitting under the code. Run one of
 these code blocks on your own computer, and the gap is yours. An analyst
 stands in it while exploring data, after swapping one channel and before the
-picture changes. The people who write GOG stand in it too, for whole sessions,
+picture changes. The people who write gog stand in it too, for whole sessions,
 waiting to see what a new mark or transform will draw. The package is `gog`;
 the state of working with it is *agog*.
 
 The hexagon at the top of this page says that without a sentence. What sits
 inside it is a face. Its eyes are `+` and `*`. Its nose is `/` and `|`, and
-its mouth is the package name. Those four symbols are every operator GOG has.
+its mouth is the package name. Those four symbols are every operator gog has.
 
 The two pairs sit where they do for a reason. `+` and `*` build a single plot,
 and read as *"…and also…"* and *"…derived by…"*. `/` and `|` arrange finished
@@ -186,9 +186,9 @@ underneath the zoo, and ggplot2 carried it into the daily work of hundreds of
 thousands [@wickham2008thesis; @wickham2016ggplot2]. The two of them did for
 graphics what Sejong did for writing. They traded a stack of memorized charts
 for a real, generative language, and a better one than anything built before
-it. GOG stands on that achievement, written in its debt, and adds a single
+it. gog stands on that achievement, written in its debt, and adds a single
 ambition of its own, the one Hangeul is famous for: no exceptions in how the
-pieces compose. That is the standard GOG holds itself to, and the aim is to
+pieces compose. That is the standard gog holds itself to, and the aim is to
 narrow what still stands between what a plot *means* and what its code lets
 you *say*.
 
@@ -203,7 +203,7 @@ Wickham named that last one himself. "One of the most important features of the
 grammar is its declarative nature," he wrote, and ggplot2 uses `+` to keep it
 that way in R [@wickham2008thesis, p. 54]. This package inherits both the
 property and the operator that protects it. Wickham has since said publicly
-that ggplot2 should use the pipe instead [@wickham2018pipe]. GOG keeps `+`, and
+that ggplot2 should use the pipe instead [@wickham2018pipe]. gog keeps `+`, and
 the [operators](operators.qmd#why-and-not-a-pipe) chapter says why. A
 reader who already writes ggplot2 will recognize the shape of almost every
 sentence in this book. That is on purpose. After years of ggplot2, its grammar
@@ -212,13 +212,13 @@ is how I think about visualization, so it is the shape this one took.
 What changed is narrower, and it is why this package exists at all. ggplot2
 already derives a histogram, from its bar geom and its binning statistic
 [@wickham2016ggplot2, sec. 3.13]. What it adds is a shortcut name for that
-pair. GOG adds none, so the pairing itself is the only spelling.
+pair. gog adds none, so the pairing itself is the only spelling.
 One engine answers four languages, so the sentence you learn in R is the
 sentence you write in Python. And the rules for combining the pieces hold
 everywhere, with no exceptions, which is what the rest of this preface is
 about.
 
-So GOG asks nothing new of the medium, only Sejong's old question, carried to
+So gog asks nothing new of the medium, only Sejong's old question, carried to
 its last clause: not *which charts should exist*, but *what is the smallest
 set of letters, and the most regular rule of composition, from which every
 chart can be derived?* Wilkinson's grammar answers what exists
@@ -281,8 +281,8 @@ what make the script readable at first sight. A reader meeting a word for the
 first time still knows which part is the consonant, because nothing else could
 have been in that slot.
 
-A plot is the same. GOG will not draw a `point` from an x alone. A mark with
-one position has not said where to put it. GOG will not map a column to `shape`
+A plot is the same. gog will not draw a `point` from an x alone. A mark with
+one position has not said where to put it. gog will not map a column to `shape`
 on a `bar` either. A bar is a rectangle, and there is no other shape for it to
 be. Neither refusal is a missing feature. Both exist for the same reason: they
 let you read a specification you have never seen before. If every mark accepted
@@ -300,7 +300,7 @@ were left as gaps, because the sounds behind them are not the ones most
 speakers need. The letters were not built to be perfect. They were built to be
 a means of writing sound.
 
-GOG is built the same way. It does not promise that every visualization is
+gog is built the same way. It does not promise that every visualization is
 possible. Reaching some of them would mean stepping outside the grammar's own
 rules and adding an exception, and no chart is worth that.
 
@@ -368,7 +368,7 @@ Please report the bugs and issues you hit. A package this young improves mainly
 by being used, and that is what I am hoping for.
 
 One kind of report is worth more than the others, and it is the one I cannot
-write myself. Take a dataset you know well and draw it in GOG. Then draw the
+write myself. Take a dataset you know well and draw it in gog. Then draw the
 same thing in a tool you already trust. Any tool at all:
 [ggplot2](https://ggplot2.tidyverse.org/) or
 [matplotlib](https://matplotlib.org/),
@@ -383,13 +383,13 @@ everybody.
 Here is why that comparison is worth so much. This package tests itself
 thoroughly, but in one direction only. Every sentence in this book is drawn in
 all four languages, and the four files have to match to the byte. Every refusal
-on these pages is run again on every build. All of that proves GOG agrees with
+on these pages is run again on every build. All of that proves gog agrees with
 itself. None of it proves the picture is right. A box whose whiskers reached the
 wrong value would pass every test this project has, four times over, in four
 languages, and this book would print it on the page as though it were correct.
 
 A difference is not automatically a defect, and it is fair to know that before
-you spend the time. Some differences are decisions. A GOG box spans the lower
+you spend the time. Some differences are decisions. A gog box spans the lower
 and upper quartiles, as most software does, while Tukey's original spans the
 hinges, and the [box](marks/box.qmd) chapter says so and says why. So a
 comparison gets one of
@@ -460,7 +460,7 @@ words in use:
 6. **The bindings**, one short chapter apiece for [R](bindings/r.qmd),
    [Python](bindings/python.qmd), [Julia](bindings/julia.qmd) and
    [JavaScript](bindings/javascript.qmd). A binding is the package that lets
-   one language write GOG sentences and send them to the engine. These
+   one language write gog sentences and send them to the engine. These
    chapters hold what belongs to the host language rather than to the grammar.
 
 Five appendices follow. The [kernel card](kernel-card.qmd) is the whole
@@ -469,8 +469,8 @@ with channels, with transforms and with spaces, and transforms with each other.
 Each shows what combines and what the engine refuses, generated from the
 engine's own rule table on every build so it cannot drift from the code. A
 [dictionary](chart-names.qmd) runs from chart names to sentences. A
-[phrasebook](phrasebook.qmd) translates ggplot2 into GOG. And
-[coverage](coverage.qmd) closes the book, listing what GOG and ggplot2 each draw
+[phrasebook](phrasebook.qmd) translates ggplot2 into gog. And
+[coverage](coverage.qmd) closes the book, listing what gog and ggplot2 each draw
 that the other does not.
 
 This book is written in R. [Python](bindings/python.qmd),
@@ -483,7 +483,7 @@ its own. Most code blocks are executed during render: the plots you see are
 drawn by the engine as the page builds. Examples that use roadmap features
 remain display-only until those features land.
 
-## Installing GOG
+## Installing gog
 
 Every plot on this site was drawn by the engine while the page was being built.
 The engine works, all four bindings work, and each one installs with a single

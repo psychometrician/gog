@@ -15,7 +15,7 @@ life expectancy.
 peek(gapminder_2007)
 ```
 
-In GOG you answer a question like that by saying what the data means, rather
+In gog you answer a question like that by saying what the data means, rather
 than by drawing anything:
 
 ```{r}
@@ -71,7 +71,7 @@ also has a chapter of its own at the end, a difference list about a page long:
 Everything in this book runs on your own computer, and it takes three steps:
 
 1. **Install.** The command for your language is in
-   [Installing GOG](index.qmd#installing-gog).
+   [Installing gog](index.qmd#installing-gog).
 2. **Load it.** `library(gog)` in R, `from gog import *` in Python,
    `using GrammarOfGraphics` in Julia, and an `import` from
    `grammar-of-graphics` in JavaScript.
@@ -107,7 +107,7 @@ data(gapminder_2007) + point + x(gdp)
 ```
 
 This is worth meeting on your first page, because it is half of what makes
-GOG learnable. A **binding** is a channel with a column in it, like `x(gdp)`.
+gog learnable. A **binding** is a channel with a column in it, like `x(gdp)`.
 The engine never accepts one and silently drops it,
 and every *no* comes with a direction. The errors are teachers here; the
 [writing practice](writing.qmd) chapter collects the ones you will meet

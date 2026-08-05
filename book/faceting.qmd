@@ -25,7 +25,7 @@ bar, a lineage [Composition](composition.qmd) finishes telling. Tufte's **small
 multiples** [@tufte1990] names the result rather than the operation, which is the
 division this book keeps: small multiples for the picture, `facet` for the thing
 you write. And **facet** is Wilkinson's own word [@wilkinson2005], from the Latin
-*facies*, a face: one side of a many-sided thing, a cut diamond's. GOG takes his
+*facies*, a face: one side of a many-sided thing, a cut diamond's. gog takes his
 because his is the widest of the four. A trellis, to him, is one arrangement a
 facet can take, next to the scatterplot matrix and the row plot, and a grammar
 needs the term that covers all three. The word every one of these systems shares
@@ -199,7 +199,7 @@ left to right at about the same angle. Reading them side by side, nothing says
 that one of those climbs is measured in billions and another in tens of millions,
 and a reader who glances at the shapes without reading the axes will take away
 something false. The first plot cannot mislead that way and the second can, which
-is why GOG will not do this unless you ask.
+is why gog will not do this unless you ask.
 
 Which axis is freed is decided by where you write it. That is the same trick
 `wrap` plays with `|` and `/`: the sentence already names the axis, so `free`

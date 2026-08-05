@@ -191,7 +191,7 @@ git add -A
 # to the terminal below instead of published.
 git -c user.name="$(git -C "$REPO_ROOT" config user.name)" \
     -c user.email="$(git -C "$REPO_ROOT" config user.email)" \
-    commit -q -m "GOG: A Grammar of Graphics — $(date -u '+%Y-%m-%d')"
+    commit -q -m "gog: A Grammar of Graphics — $(date -u '+%Y-%m-%d')"
 git remote add origin "$REMOTE"
 git push -q --force origin main
 

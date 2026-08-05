@@ -57,7 +57,7 @@ the pie and the packing in turn.
 One word did change, and it is worth the sentence: the flat and polar forms carry
 `stack` and the packed form does not. `stack` decides what happens when two marks
 land in the same place, which presupposes that they can. A packing gives every
-piece a region of its own, so there is no collision left to resolve, and GOG
+piece a region of its own, so there is no collision left to resolve, and gog
 refuses `stack` here rather than accepting a word with nothing to do.
 
 ## Why area, when a column already worked
@@ -120,7 +120,7 @@ changing the metric properties of the tree" [@wilkinson2005]. Two regions that t
 each other in the data, and moving one to the other side of the panel would not
 change a single share the plot reports.
 
-So there is nothing to tick and nothing to label, and GOG refuses to pretend
+So there is nothing to tick and nothing to label, and gog refuses to pretend
 otherwise:
 
 ```{r}
@@ -204,7 +204,7 @@ data(gapminder_2007) + bar * sum + y(population, scale = "log") +
 ## The order is yours
 
 Published treemaps usually sort by size, largest first, because the packing
-algorithm produces squarer rectangles that way. GOG does not do it for you: the
+algorithm produces squarer rectangles that way. gog does not do it for you: the
 regions follow the order the categorical axis already has, so the sort is
 something you say rather than something the layout decides behind you.
 

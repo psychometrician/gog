@@ -631,7 +631,7 @@ render_svg(data(mixed) + x(amount) + zone * partition(group, item) + polar())
 Housing has a number of its own *and* a child with a number, and those two
 readings draw different pictures: either its arc is the child's total, or its own
 50 sits beside the 980 and widens it. Plotly answers it with a setting called
-`branchvalues`. GOG does not choose for you, because the arithmetic belongs to
+`branchvalues`. gog does not choose for you, because the arithmetic belongs to
 the accounts rather than to the grammar. Put every number on a leaf and let the
 parents be the sums, which is what a partition computes.
 

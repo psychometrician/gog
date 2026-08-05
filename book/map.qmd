@@ -166,7 +166,7 @@ data(world_borders) + path + x(lon) + y(lat) + group(piece) +
 
 ## What a map refuses
 
-A mark that measures along an axis has no axis here. GOG says so rather than
+A mark that measures along an axis has no axis here. gog says so rather than
 drawing something that looks like a map and is not one:
 
 ```{r}
@@ -290,5 +290,5 @@ Lesotho is a hole in South Africa, not a patch laid over it. The difference
 matters because the two countries have different values, and a patch would be
 correct only if it happened to be drawn second.
 
-If a ring in your data does not close, GOG cannot tell where one ring ends and
+If a ring in your data does not close, gog cannot tell where one ring ends and
 the next begins. It says so rather than guessing quietly, and names what to fix.

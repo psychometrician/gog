@@ -253,7 +253,7 @@ The third crossing is the only one where a mark does not appear. Two transforms 
 follow one mark: `bar * bin * mean` cuts the axis into bands, then averages inside
 each. Which pairs can do that is decided by the transforms alone, and by one rule.
 
-A transform has a **job**. There are four of them, and every transform in GOG does
+A transform has a **job**. There are four of them, and every transform in gog does
 at least one:
 
 | job | the question it answers | the transforms that answer it |

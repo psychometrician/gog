@@ -12,7 +12,7 @@ things fall out of it: a reference line at a threshold, and a rug of ticks
 showing where the observations actually sit.
 
 Those are often four separate marks: a vertical reference line, a horizontal one,
-a line from a slope and an intercept, and a rug. GOG has one, because a vertical
+a line from a slope and an intercept, and a rug. gog has one, because a vertical
 and a horizontal reference line differ only in **which axis
 carries the position**, and the grammar already reads that off the bindings,
 the same way it decides whether a bar stands up or lies down.

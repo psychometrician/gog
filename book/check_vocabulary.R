@@ -17,7 +17,7 @@
 #      drawn). Checks 1 and 2 both treat the block as the authority, so neither
 #      could ever doubt it: `click`, `brush`, `lasso` and `map` sat in
 #      it with no code behind them in any language, under a paragraph promising
-#      GOG would tell you which words are undrawn.
+#      gog would tell you which words are undrawn.
 #
 # Run from the repo root; sourced by r-pkg/gog/tests/test_basic.R.
 
@@ -180,7 +180,7 @@ check_vocabulary <- function(book = "book", namespace = "r-pkg/gog/NAMESPACE") {
   # kernel block from the first draft with no code behind them in any of the
   # four languages, and `map` joined them — four names a reader
   # could type and get "could not find function" for, while the paragraph under
-  # the table promised GOG would say which words are undrawn. Nothing could
+  # the table promised gog would say which words are undrawn. Nothing could
   # fail, because no check read the block in this direction.
   #
   # A word is allowed here only if it is exported, marked ⬜, or named below.

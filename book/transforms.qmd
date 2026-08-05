@@ -12,7 +12,7 @@ preprocessing it statistically before any pixel is drawn.
 The family has other names. ggplot2 says **stat**, and the chapter Wilkinson
 devotes to it says **statistics** [@wilkinson2005]; SQL says **aggregate**, dplyr says
 **summarize**, a spreadsheet says **pivot**. Each of those covers about half of
-what GOG groups here. `mean`, `count` and `density` really are statistics, and
+what gog groups here. `mean`, `count` and `density` really are statistics, and
 they replace rows with a summary. But `bin` cuts an axis into cells, `bounds`
 reshapes two columns you already have and computes nothing at all, and `stack`,
 `dodge` and `jitter` are about collisions between marks rather than about the
@@ -821,9 +821,9 @@ It differs from every transform above in two ways that both follow from *reshapi
 not computing*. Its arguments are **column names**, not a number: it has to be told
 which columns hold the bounds. And it needs **no `y()`**: those two columns *are* the
 extents, so (like `count`, which invents its own y) the mark takes its low and
-high from `bounds` and the y-axis fits them. This is GOG's line held exactly: the
+high from `bounds` and the y-axis fits them. This is gog's line held exactly: the
 statistics it *does* compute (`bin`, `smooth`, `density`, `range`, `confidence`) are
-a deliberate few; everything else you compute yourself and GOG draws, and `bounds`
+a deliberate few; everything else you compute yourself and gog draws, and `bounds`
 is the door for a band you already have.
 
 It is legal on the five marks that can draw a low/high pair, each a different
@@ -914,7 +914,7 @@ data(commutes) + x(people) +
 The labels sit at the middle of each column because that is where the center of a
 column is, and `style(nudge = )` is what moves them if you want them along the
 top. That is an honest limit rather than a choice: a mosaic's column names belong
-on an axis, and GOG's category axis gives every slot the same width, which is the
+on an axis, and gog's category axis gives every slot the same width, which is the
 one thing a mosaic's columns are not. Until that axis learns to take its positions
 from the data, the names arrive as a layer.
 
@@ -992,7 +992,7 @@ Which marks `dodge` serves is decided by what a mark *is*. It subdivides a
 for `bar`, `box` and `interval`. A `point` has no width to subdivide (its
 overlap answer is `jitter`, below); a `line` or `area` is offset by
 *accumulating* rather than subdividing (that is `stack`, next). Ask for
-`dodge` on one of those and GOG refuses, naming the offset that fits. That is
+`dodge` on one of those and gog refuses, naming the offset that fits. That is
 the discipline the rest of the kernel follows: an atom combines with the marks
 it was defined for, and the refusal points at the right tool rather than
 drawing something wrong.
@@ -1028,7 +1028,7 @@ resolves the overlap, the bars draw **solid**, and the axis grows to the tallest
 ### Stacked areas: the case `stack` was built for
 
 A split `area` is where overlap hurts most: filled regions bury one another and no
-opacity really fixes it (the [area chapter](marks/area.qmd) shows the warning GOG
+opacity really fixes it (the [area chapter](marks/area.qmd) shows the warning gog
 raises). `stack` is the answer. Each region sits on the cumulative height of the
 ones below, so they abut into one band instead of hiding each other, the classic
 "parts of a whole, over time":
@@ -1082,7 +1082,7 @@ to stretch across it, spends it on *how many dots there are* (the dot plot, just
 below). A `box` or `interval` is set beside its neighbors rather than piled (that
 is `dodge`); an unfilled `line` has nothing to fill and stack (use `area`); a
 `ribbon` already spans a low to a high, so it measures no height from a baseline.
-Ask for `stack` on one of those and GOG refuses, naming the offset that fits. For
+Ask for `stack` on one of those and gog refuses, naming the offset that fits. For
 `bar` and `area` it also needs a `color` (or `group`) split to pile: `bar * stack`
 alone is refused toward adding the color, never accepted as a silent no-op.
 
@@ -1139,7 +1139,7 @@ either of the other two, and that result is the reason this option exists.
 Notice also that these two plots have no numbers on the measure axis. Once a pile
 has moved off zero, no value on that axis means anything. A band drawn from 12 to
 20 says "this group is 8 here", and the 12 and the 20 only record where the pile
-was hung. So GOG draws no ticks and no axis name, for the same reason it leaves an
+was hung. So gog draws no ticks and no axis name, for the same reason it leaves an
 empty heatmap cell unpainted. The *scale* is unchanged, so thicknesses stay
 comparable everywhere in the plot, and thickness is what a streamgraph asks you to
 read.
@@ -1193,7 +1193,7 @@ A pile whose members disagree has no correct drawing. Suppose one group is 5 and
 another is -3 at the same position. The negative band would begin where the first
 band ended, at 5, and reach back down to 2. That region already belongs to the first
 group. A reader would see a solid block of length 3 where the number is negative. So
-GOG refuses:
+gog refuses:
 
 ```{r}
 #| error: true
@@ -1264,7 +1264,7 @@ setting: the gap between two rungs is one count unit on the y axis, so a
 taller pile subdivides the panel more finely. A pile of ten dots in a tall
 panel is airy. `style(size = )` will fatten the dots, but making them *touch*
 means fixing the panel's height to the tallest pile. That is the aspect-ratio
-control GOG does not have yet, the same one [polar](polar.qmd)'s circles and
+control gog does not have yet, the same one [polar](polar.qmd)'s circles and
 the hexagonal [mesh](marks/zone.qmd) want. The count axis is real either way,
 which is the trade taken deliberately: the alternative is to draw the dots
 touching and leave the axis with no meaning.
@@ -1280,14 +1280,14 @@ data(gm_all) + point * bin * stack + x(life) +
   x_label("Life expectancy (years)") + title("Every year, every country: 1704 dots")
 ```
 
-GOG draws it, and says what happened. The piles have become solid sticks: at 314
+gog draws it, and says what happened. The piles have become solid sticks: at 314
 rungs the gap between two of them is under a pixel, so the dots overlap and nothing
 can be counted, which was this plot's entire claim. What you are looking at is a
 histogram drawn dot by dot, and an expensive one, since it ships 1704 circles where
 `bar * bin` ships fourteen rectangles.
 
 The warning is not a row limit, and that matters. It compares one rung's gap
-against one dot's diameter, both of which GOG knows once the panel is laid
+against one dot's diameter, both of which gog knows once the panel is laid
 out. So it fires exactly when the picture degrades and stays quiet when it
 does not. Shrink the dots with `style(size = )` and the same table goes
 silent; widen the piles and a smaller one speaks up. A number like "more than
@@ -1372,7 +1372,7 @@ magnitude, so nudging a point along it changes nothing you could misread. The
 vertical axis is a *measurement*, and moving a point off its measured value would be
 a lie about the data, so `jitter` never touches it. (Spreading in both directions
 is the other way to do this. It moves a point off its measured value, which is
-why GOG spreads along one axis only.) On a horizontal strip, the category on `y`,
+why gog spreads along one axis only.) On a horizontal strip, the category on `y`,
 the spread is vertical instead; `jitter` always spreads the categorical axis and
 leaves the measured one exact.
 
@@ -1400,13 +1400,13 @@ take a parameter while `dodge` does not. The jitter amount is a *legibility
 choice* with no single right value, whereas `dodge`'s width is *determined* by
 the group count. A
 free parameter earns a knob; a settled one does not. (`jitter(0)` is legal and draws
-the plain strip plot, un-spread: GOG never forbids the harmless.)
+the plain strip plot, un-spread: gog never forbids the harmless.)
 
 Two things set `jitter` apart from its siblings. It needs **no `color` split**:
 `dodge` and `stack` separate groups, but `jitter` separates a mark's own coincident
 points, so a plain `point * jitter` with nothing but `x` and `y` is the whole
 expression. And it needs a **categorical position axis** to spread within: ask for
-`jitter` when both `x` and `y` are continuous and GOG refuses, because there is no
+`jitter` when both `x` and `y` are continuous and gog refuses, because there is no
 band to spread across and no axis it could move without misplacing a value. The
 right tool for overplotting on two continuous axes is `style(opacity = )`, which
 reveals density without moving any point.
@@ -1415,7 +1415,7 @@ Which marks `jitter` serves is decided by what a mark *is*: the rule that
 divides the whole trio. `jitter` spreads a scatter of individual points, so it is
 defined for `point` alone. A `bar`, `box` or `interval` has a width, and its groups
 are set apart by `dodge`; a `line` or `area` is one connected shape, not a cloud of
-points. Ask for `jitter` on any of those and GOG refuses, naming the offset that
+points. Ask for `jitter` on any of those and gog refuses, naming the offset that
 fits.
 
 The three offsets divide the marks by geometry **and by axis**: **`dodge`**

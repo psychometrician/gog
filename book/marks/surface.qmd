@@ -38,7 +38,7 @@ want a different one.
 
 Handed two bare position columns, a surface reads its rows as **nodes**, and the
 sheet is the faces between them. You never declare which nodes are neighbors.
-GOG recovers that from your two position columns: the distinct `east` values
+gog recovers that from your two position columns: the distinct `east` values
 become the mesh's columns and the distinct `north` values its rows. A face is
 drawn wherever all four corners of a cell are present.
 
@@ -77,7 +77,7 @@ data(peak) + surface + x(east) + y(north) + z(elevation) +
   z_label("Elevation (m)") + title("A hole is a hole")
 ```
 
-The note above the plot is GOG counting the crossings it did not find: 1322 of
+The note above the plot is gog counting the crossings it did not find: 1322 of
 1364, so 42 are open. It is advice rather than a refusal, because a grid with gaps
 is a legitimate thing to have and a torn sheet is a true picture of one. What would
 not be legitimate is quietly spanning a gap, which asserts a height nobody
@@ -110,7 +110,7 @@ read one dimension up.
 ## The third geometry of one field
 
 A surface takes two transforms, and `density` is the one that makes it the third
-way GOG draws a field. The same estimate over the same two columns, three times:
+way gog draws a field. The same estimate over the same two columns, three times:
 
 ```{r}
 data(iris_flowers) + zone * density +

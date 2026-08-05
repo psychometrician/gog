@@ -66,7 +66,7 @@ only want to see it across orders of magnitude.
 ## Where a scale sits in the pipeline
 
 Once a transform is in the plot, "the scale is only about display" stops being
-quite true, because a transform has to decide *which space* to work in. GOG
+quite true, because a transform has to decide *which space* to work in. gog
 follows one rule, and it has no per-transform exceptions:
 
 > A scale applies *before* the transform on the axis it groups by, and
@@ -105,13 +105,13 @@ data(receipts) + bar * sum + x(store) + y(sales, scale = "log") +
   title("A sum is still a sum")
 ```
 
-If the scale had been applied first, GOG would have added the *logarithms*,
+If the scale had been applied first, gog would have added the *logarithms*,
 giving the log of a product, which is not a quantity anyone asked for. Summing
 first and displaying second keeps `sum` meaning what its name says.
 
 The order is worth knowing if you arrive from ggplot2, where it runs the other
 way: under `scale_y_log10()`, a `stat_summary(fun = mean)` averages the logged
-values and returns a geometric mean. GOG computes the summary in your data's
+values and returns a geometric mean. gog computes the summary in your data's
 units and scales the result, so the number the bar stands for is the number you
 would get from `sum()` or `mean()` yourself.
 
@@ -132,7 +132,7 @@ data(gapminder_2007) + point + x(gdp, scale = "log") + y(life) +
 ## What a log scale refuses
 
 A logarithm is undefined at zero and below, so those rows have no position on
-the axis. GOG says so rather than dropping them quietly:
+the axis. gog says so rather than dropping them quietly:
 
 ```{r}
 #| error: true
@@ -170,7 +170,7 @@ objection that rules out ggplot2's `scale_x_log10` / `scale_x_sqrt` family.
 ### The base is almost entirely cosmetic
 
 This is the surprising part, and it is worth knowing before you use it.
-log_b(x) differs from log₁₀(x) by a constant factor, and GOG normalizes every
+log_b(x) differs from log₁₀(x) by a constant factor, and gog normalizes every
 axis by its own range, so the factor cancels and **every base draws the same
 picture**. It even survives the transforms: bins of equal width in log₂ space
 are equal width in log₁₀ space, so `bar * bin` cuts at the same values whichever
@@ -214,7 +214,7 @@ data(decay) + point + x(amount, scale = "log", base = exp(1)) + y(hours) +
 ```
 
 Notice the labels: **e, e², e³**, not 2.718, 7.389, 20.09. That follows from one
-rule GOG applies to every base:
+rule gog applies to every base:
 
 > Label the quantity when it reads cleanly; otherwise label the power.
 
@@ -227,7 +227,7 @@ want `log()` applied to the column, and an axis honestly labeled in log units,
 as at the top of this chapter. A scale keeps the reader's units; a logged
 column changes them.
 
-A base only means something as the base *of* a logarithm, so GOG refuses one
+A base only means something as the base *of* a logarithm, so gog refuses one
 that has no log scale to belong to:
 
 ```{r}
@@ -238,7 +238,7 @@ data(octaves) + point + x(freq, base = 2) + y(level)
 ## Time: a date reads as a calendar
 
 The time scale is the one scale you never write. A `Date` or `POSIXct` column
-*is* temporal, the type already says so, and GOG reads the calendar from the
+*is* temporal, the type already says so, and gog reads the calendar from the
 type, the same way a text column already gets a categorical axis:
 
 ```{r}
@@ -466,7 +466,7 @@ data(gapminder_2007) + point + x(gdp, limits = c(0, 30000)) + y(life) +
 
 Rendering that prints a line to the console naming how many rows fell outside
 and what the domain was. That is deliberate: removing them is what you asked
-for, so the plot draws, but GOG will not remove data without saying so. Ask for
+for, so the plot draws, but gog will not remove data without saying so. Ask for
 a domain no row can satisfy and it refuses instead, because the alternative is
 an empty panel with axes drawn over nothing.
 
@@ -506,7 +506,7 @@ data(gapminder_2007) + bar * mean + x(continent, limits = c(0, 3)) + y(life)
 ## The column's type picks the axis
 
 The scales in the table above are not all chosen the same way. You ask for
-`log`. You do not ask for `time` or `category`, because GOG reads those off the
+`log`. You do not ask for `time` or `category`, because gog reads those off the
 column: a `Date` column gets a calendar axis, and a text column gets one slot
 per distinct value.
 
@@ -520,7 +520,7 @@ data(gapminder_2007) + bar * mean + x(continent, scale = "category") + y(life) +
 ```
 
 What you cannot do is use a scale to contradict the column. Ask for a
-categorical axis on a number and GOG refuses:
+categorical axis on a number and gog refuses:
 
 ```{r}
 #| error: true
@@ -535,7 +535,7 @@ numbers by asking for `linear`. Every one of those refusals tells you to change
 the column, because the column is where the answer lives.
 
 There are two things you might mean by "draw this number as categories", and
-GOG has a word for each. For one slot per distinct value, make the column text:
+gog has a word for each. For one slot per distinct value, make the column text:
 a factor in R, `ordered()` in the other three bindings, both shown in
 [Data](data.qmd). For ranges, use `bin`, which cuts the numbers into intervals
 and is covered in [Transforms](transforms.qmd).

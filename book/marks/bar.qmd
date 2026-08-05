@@ -18,7 +18,7 @@ it. The form he apologized for outlasted the ones he was proud of.
 
 Two names for it are still in circulation, and they disagree. Much of the
 business world, Excel included, calls this a **column chart** when the bars stand
-up and saves **bar chart** for when they lie down. GOG has one `bar`, and which
+up and saves **bar chart** for when they lie down. gog has one `bar`, and which
 way it runs is read off the sentence rather than chosen: the categorical axis
 decides, which is what [Horizontal bars](#horizontal-bars) is about. Two names
 for one mark would be a silent letter, and refusing those is what the No
@@ -180,7 +180,7 @@ data(medals) + bar + x(gold) + y(country) +
   title("Categories on y: the bars lie down")
 ```
 
-GOG reads the orientation off the bindings: the axis carrying a number is the
+gog reads the orientation off the bindings: the axis carrying a number is the
 one the bars measure along; the other is the one they sit on. Nothing else
 changes: `order`, transforms, color and `style()` all behave identically.
 
@@ -203,7 +203,7 @@ data(long) + bar + x(headcount) + y(department) +
 first. Descending puts the largest bar leftmost on a vertical chart and
 topmost on a horizontal one.
 
-Orientation is only ambiguous if neither axis is categorical. There GOG keeps
+Orientation is only ambiguous if neither axis is categorical. There gog keeps
 the long-standing default and draws vertically; `x(year) + y(sales)` is a
 column chart, as it always was. To lay that out horizontally, name the measure
 on `x`.

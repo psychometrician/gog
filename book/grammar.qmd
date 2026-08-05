@@ -5,7 +5,7 @@
 source("R/setup.R")
 ```
 
-What do you have to say about your data before a plot can be drawn? GOG's whole
+What do you have to say about your data before a plot can be drawn? gog's whole
 vocabulary is a short list of ordinary English words. Learn them once and you
 can read, and write, any plot.
 
@@ -50,7 +50,7 @@ data(table) + mark + x(column) + y(column)
 ```
 
 Two promises hold across the whole kernel. The engine draws every word in it.
-And GOG never accepts a word and then quietly ignores it: a sentence it cannot
+And gog never accepts a word and then quietly ignores it: a sentence it cannot
 draw is refused, and the refusal names the rule. See
 [Design laws](design-laws.qmd) for the difference between **illegal** (the
 grammar forbids it) and **unsupported** (the grammar allows it; the engine
@@ -153,7 +153,7 @@ them in order, so what it earns is a **strip** naming the frame on screen. See
 [Play](play.qmd).
 
 Not every channel applies to every mark: a `line` is drawn with a single
-stroke, so it takes no per-row `size` or `opacity`. GOG states the rule rather
+stroke, so it takes no per-row `size` or `opacity`. gog states the rule rather
 than guessing; see [Design laws](design-laws.qmd), and
 [Combinations](combinations.qmd) for the whole mark-by-channel grid on one page.
 

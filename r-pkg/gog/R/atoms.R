@@ -1332,7 +1332,7 @@ check_brush_at <- function(at) {
 #'
 #' A mark can be brushed when one row is one shape: \code{point}, \code{text},
 #' \code{rule} and \code{zone}.  A \code{line} draws one shape through many rows,
-#' so there is no single row to select, and GOG says so rather than guessing.
+#' so there is no single row to select, and gog says so rather than guessing.
 #' A summarized layer is drawn whole, because a selection of twelve of a bar's
 #' forty rows has no honest picture.
 #' @param field  Column the bound is read on, as a bare name.

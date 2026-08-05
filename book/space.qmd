@@ -312,7 +312,7 @@ data(thermals) + path + x(east) + y(north) + z(altitude) + color(glider) +
 ```
 
 Ask for a `z_label()` on a plot with no `z` and the label has no axis to land on,
-so GOG says so and draws the plot anyway. It is guidance rather than a refusal:
+so gog says so and draws the plot anyway. It is guidance rather than a refusal:
 nothing about the plot is wrong, and one inert label is not worth refusing a
 whole figure over.
 

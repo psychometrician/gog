@@ -23,7 +23,7 @@ quarter century earlier, without the fence that makes this version worth
 drawing: the 1.5×IQR rule is Tukey's, and so is the decision it encodes.
 
 One difference is worth knowing if you arrived from his book. Tukey's box spans
-**hinges**, the medians of the sorted batch's two halves; GOG spans the lower and
+**hinges**, the medians of the sorted batch's two halves; gog spans the lower and
 upper **quartiles**, as most software does. They agree on most samples and can
 differ by a little on small ones, so a box drawn here is not always the box *EDA*
 would have drawn.
@@ -69,7 +69,7 @@ being nudged open.
 ## Boxes on their side
 
 Swap the two positions and the same sentence draws the same plot, turned. There
-is no `flip` atom, for the reason there is none on [`bar`](bar.qmd): GOG reads
+is no `flip` atom, for the reason there is none on [`bar`](bar.qmd): gog reads
 which axis measures off the bindings, and a second way to say one thing is a
 second thing to learn.
 

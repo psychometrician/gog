@@ -139,7 +139,7 @@ way to say what you meant.
 ### A plot-scoped channel skips marks without the feature
 
 `size` written for the whole plot means the points; a line has no size to give.
-GOG applies it where it fits and says where it did not; this is an
+gog applies it where it fits and says where it did not; this is an
 **assumption**, not a refusal, so the plot still renders:
 
 ```{r}

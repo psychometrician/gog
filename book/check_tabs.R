@@ -4,7 +4,7 @@
 # `book/R/tabs.R` already separates the two ways a tab can be absent. A
 # translator that **declines** a sentence reports a reason and is passed over
 # quietly: the R chapter's pipes have no Python spelling, and a table computed
-# in R is R arithmetic rather than a GOG sentence. A translator that **misses**
+# in R is R arithmetic rather than a gog sentence. A translator that **misses**
 # one reports nothing, and that is a defect — the tab silently does not appear,
 # and a reader of that language sees a page the others get.
 #

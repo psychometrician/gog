@@ -1,11 +1,11 @@
 # book/R/setup.R
 # Sourced at the top of every chapter (include: false).
-# - Loads the GOG R package from source
+# - Loads the gog R package from source
 # - Discovers the gog-cli binary
 # - Sources the shared example data frames from data.R
 
 # ---------------------------------------------------------------------------
-# Locate project root and load the GOG package
+# Locate project root and load the gog package
 # ---------------------------------------------------------------------------
 
 # Quarto sets getwd() to the directory of the .qmd file being rendered, so the
@@ -18,7 +18,7 @@ find_proj_root <- function() {
     p <- normalizePath(file.path(up, "gog-cli"), mustWork = FALSE)
     if (dir.exists(p)) return(normalizePath(up))
   }
-  stop("Cannot locate GOG project root from working directory: ", getwd())
+  stop("Cannot locate gog project root from working directory: ", getwd())
 }
 
 proj_root <- find_proj_root()

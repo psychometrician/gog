@@ -108,7 +108,7 @@ A funnel is a bar chart whose blocks are centered on zero. Centering is arithmet
 on two columns. It is not a chart type.
 
 The plot works because of how the pair is named. `lower` and `upper` describe the
-*measure* axis. They do not mean the bottom and the top of a screen. GOG never asks
+*measure* axis. They do not mean the bottom and the top of a screen. gog never asks
 which way the screen runs; it asks what each axis carries. Here `y` carries a
 category, so `y` holds slots, and the measurement can only go on `x`. This is the
 rule [`bar`](bar.qmd) already follows: one categorical position, one measured
@@ -140,7 +140,7 @@ measure axis and a categorical position, and each category's rectangle runs from
 one number to another with no plot underneath, which is what the two charts
 finance draws most are made of.
 
-A **waterfall** is a running total, broken into the steps that made it. GOG has
+A **waterfall** is a running total, broken into the steps that made it. gog has
 no transform for that and the omission is deliberate: `stack` accumulates
 *within* a position, one pile per slot, and a waterfall accumulates *across*
 positions. So the running total is arithmetic, and arithmetic belongs where the
@@ -194,7 +194,7 @@ puts category *k* at *k*, so the slot it owns is exactly `[k−½, k+½]` and
 which reads as one connected shape rather than six steps.
 
 A **candlestick** is the same idea with the rectangle floating. Each session has
-four numbers, and GOG needs no new channels for them, because the pair a
+four numbers, and gog needs no new channels for them, because the pair a
 [ribbon](ribbon.qmd) and an [interval](interval.qmd) already read is the same
 pair a rectangle's sides are. Low to high is a whisker; open to close is a
 rectangle; that is two layers over one table:
@@ -402,7 +402,7 @@ closely at the plot above and you can see it.
 
 This is what the original `hexbin` package exposes as its `shape` argument. The
 real fix is for the panel to be told it wants equal proportions, which is the
-same thing a `polar` plot needs for its circles to be round, and GOG does not
+same thing a `polar` plot needs for its circles to be round, and gog does not
 have it yet. Until then, a roughly square panel gives
 roughly regular hexagons.
 
@@ -494,11 +494,11 @@ Which makes three readings of one transform, and the mark decides every time:
 the field into level sets that `path` strokes and `zone` fills.
 
 The bands nest, and that is why plain filled shapes are enough to draw them. A
-denser region is always *inside* a less dense one, so GOG paints the outermost band
+denser region is always *inside* a less dense one, so gog paints the outermost band
 first and lets each inner one cover it; nothing has to be cut out. The exception is
 a crater (a ring-shaped cluster with a hollow middle, points scattered around a
 circle) where the hollow really is a hole, and painting the band over it fills the
-hollow in. GOG has no mark for a shape with a hole, so that is the one density this
+hollow in. gog has no mark for a shape with a hole, so that is the one density this
 reading draws wrongly, and the traced form shows it correctly.
 
 ## Cells the axes already made: the tile plot
@@ -569,7 +569,7 @@ data(winds) + zone * proportion + x(direction) + y(season) +
 
 That share is of *every* row counted, not of a row or a column of the grid. A
 confusion matrix normalized per true class asks a different question, *which margin
-normalizes*, and GOG does not answer it by giving one word two meanings.
+normalizes*, and gog does not answer it by giving one word two meanings.
 
 It reads a cut mesh the same way, because `proportion` divides whatever measured the
 cells and does not care what did. Compose it with `bin` and the heatmap's counts come
@@ -978,7 +978,7 @@ for a column that binning has replaced:
 data(gm_all) + zone * bin + x(gdp) + y(life) + color(continent)
 ```
 
-A mesh GOG does not cut is refused with the list of the ones it does, rather
+A mesh gog does not cut is refused with the list of the ones it does, rather
 than quietly falling back to rectangles:
 
 ```{r}

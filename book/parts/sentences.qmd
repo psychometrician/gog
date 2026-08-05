@@ -4,7 +4,7 @@ Letters are not yet writing. The 1446 book, after explaining each letter
 class, devoted a chapter to assembly: how letters pack into syllable
 blocks, blocks into words, words into sentences.
 
-This part is GOG's assembly chapter, and it moves through five groups.
+This part is gog's assembly chapter, and it moves through five groups.
 
 First the mechanics. The `+` operator layers marks in one panel, and the
 `*` operator derives a new statement from a mark and a transform. Position

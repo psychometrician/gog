@@ -1,7 +1,7 @@
 # The ggplot2 phrasebook
 
 ggplot2 proved that a grammar of graphics could be a working tool and not only
-a theory. Most readers of this book arrive from it. GOG makes its own choices
+a theory. Most readers of this book arrive from it. gog makes its own choices
 inside that same idea, and this appendix is the translation between them: what
 to reach for, and what will feel different.
 
@@ -11,7 +11,7 @@ kernel and sorts the difference both ways.
 
 ## Side by side
 
-| | ggplot2 | GOG |
+| | ggplot2 | gog |
 |---|---|---|
 | Languages | R | R, Python, Julia and JavaScript, one engine under all of them |
 | Naming | `geom_point`, `aes`, `alpha` | `point`, channels by plain name, `opacity` |
@@ -23,7 +23,7 @@ kernel and sorts the difference both ways.
 
 ## Translations
 
-| You write in ggplot2 | You write in GOG |
+| You write in ggplot2 | You write in gog |
 |---|---|
 | `ggplot(df, aes(x = a, y = b))` | `data(df) + x(a) + y(b) + …` |
 | `geom_point()` | `point` |
@@ -59,14 +59,14 @@ kernel and sorts the difference both ways.
 ## What to expect to feel different
 
 - **`+` is still `+`, and on purpose.** ggplot2's author has said he would
-  use the pipe today, so the obvious question is why GOG kept the operator he
+  use the pipe today, so the obvious question is why gog kept the operator he
   regrets. Short version: Python has no pipe to keep the four languages
   spelling one syntax, and a pipe makes every atom a function, which would
   leave `bar * bin` meaning nothing. [Operators](operators.qmd) has the long
   version, including what commutes here that did not there.
 - **Nothing is computed unless you name it.** `bar` draws your numbers as
   they arrive; if you want counting, you write `count`. Where a geom counts
-  for you, GOG waits to be asked.
+  for you, gog waits to be asked.
 - **There is one spelling.** No geom/stat pairs, no "specify either one."
   If you can say a plot two ways here, one of them is a bug. Report it.
 - **The scale rides the binding.** You name a channel once, and its scale
@@ -74,7 +74,7 @@ kernel and sorts the difference both ways.
 - **Setting is not mapping.** A constant maps no column, earns no legend,
   and lives in `style()`. The quoted-string ambiguity (`color("red")`)
   does not exist here: it is refused, with the fix named.
-- **Refusals give direction.** A sentence GOG cannot draw is refused, and
+- **Refusals give direction.** A sentence gog cannot draw is refused, and
   the message names the sentence it would accept. If you are used to a
   warning and a plot, expect a stop instead. The errors are part of the
   manual: this book renders them on purpose.

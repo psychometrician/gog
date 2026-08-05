@@ -749,7 +749,7 @@ class _Brush(CallableAtom):
 
         A mark can be brushed when one row is one shape: `point`, `text`, `rule` and
         `zone`. A `line` draws one shape through many rows, so there is no single row
-        to select, and GOG says so rather than guessing.
+        to select, and gog says so rather than guessing.
         """
         name = "" if field is None else column_name(field, "brush")
         return Atom("brush", field=name, **_check_brush_at(at))

@@ -102,7 +102,7 @@ data(gapminder_2007) + point + x(life) + y(continent) +
   title("The same distributions, lying down")
 ```
 
-This is the orientation freedom `bar` already has, and GOG reads it the same
+This is the orientation freedom `bar` already has, and gog reads it the same
 way: whichever axis carries the category decides which way the plot faces;
 there is no `flip` atom to set. Reach for the horizontal form when the category
 names are long enough to collide across the bottom, or when there are enough of
@@ -111,7 +111,7 @@ them that rows stacked down the page scan more easily than columns across it.
 ## Color
 
 Bind `color` to a categorical column to color points by group.
-GOG assigns a distinct color from a 10-color palette automatically.
+gog assigns a distinct color from a 10-color palette automatically.
 
 ```{r}
 data(gapminder_2007) + point + x(gdp) + y(life) +

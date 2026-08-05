@@ -18,7 +18,7 @@ and the statistic is a separate word: a histogram is `bar * bin`, a trend line
 is `line * smooth`. A geom tends to name a chart. A mark names a shape, and
 there are thirteen of them.
 
-GOG infers variable type automatically from your data:
+gog infers variable type automatically from your data:
 
 - **Continuous**, any numeric column (`gdp`, `temperature`, `score`)
 - **Categorical**, any string column (`continent`, `country`, `species`)

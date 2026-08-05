@@ -2339,7 +2339,7 @@ if (file.exists("book/check_titles.R")) {
 }
 
 # ---------------------------------------------------------------------------
-# One thing, one spelling: GOG in prose, `gog` in code font
+# One thing, one spelling: gog in prose, `gog` in code font
 # ---------------------------------------------------------------------------
 
 # The fifth prose guard, and the one whose failure is pure drift rather than a
@@ -2390,7 +2390,7 @@ if (file.exists("book/check_tabs.R")) {
 # It exists because voice drifts *by chapter* and nobody notices. A writer holds
 # one file for an afternoon and is perfectly consistent inside it, so the split
 # only shows when two chapters are read side by side, which no reader and no
-# reviewer ever does across 1100 pages. `design-laws.qmd` ran 16-0 on `GOG`
+# reviewer ever does across 1100 pages. `design-laws.qmd` ran 16-0 on `gog`
 # while `marks/zone.qmd` ran 1-7. Title Case sat in five headings of
 # `transforms.qmd` and nowhere else. Em dashes were swept out of the teaching
 # chapters and left in the reference ones.

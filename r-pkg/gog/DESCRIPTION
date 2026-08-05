@@ -3,7 +3,7 @@ Title: Grammar of Graphics
 Version: 0.0.3
 Authors@R:
     person("psychometrician", role = c("aut", "cre"), email = "psychometrician@gmail.com")
-Description: R interface to the GOG (Grammar of Graphics) engine.
+Description: R interface to the gog (Grammar of Graphics) engine.
     Provides a composable DSL using the + operator to build plots from
     marks, encodings, and data. Plots render via the gog-cli Rust binary.
 License: Apache License (== 2.0)

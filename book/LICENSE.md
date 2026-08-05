@@ -1,6 +1,6 @@
 # License
 
-**GOG: A Grammar of Graphics** carries two licenses, because the book is mostly
+**gog: A Grammar of Graphics** carries two licenses, because the book is mostly
 executable code.
 
 ## Prose — CC BY-NC-SA 4.0

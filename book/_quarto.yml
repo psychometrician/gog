@@ -38,7 +38,7 @@ project:
     - view.js
 
 book:
-  title: "GOG: A Grammar of Graphics"
+  title: "gog: A Grammar of Graphics"
   subtitle: "One engine. Every language."
 
   # The hex sticker, designed by the author in Canva. It is the cover, not a
@@ -49,7 +49,7 @@ book:
   # the column edge.
   cover-image: images/gog_hex.png
   cover-image-alt: >-
-    The GOG hex sticker. A peach hexagon with a black border, holding a face
+    The gog hex sticker. A peach hexagon with a black border, holding a face
     built from the package's four operators: a plus and an asterisk as its two
     eyes, a slash and a vertical bar as its nose, and the package name as its
     mouth.

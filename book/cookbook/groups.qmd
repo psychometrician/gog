@@ -130,13 +130,13 @@ you ask for rather than something that happens, so two bars sharing one slot sit
 back to back instead of piling up.
 
 `order(age, desc = TRUE)` is the atom from the section above, doing exactly what
-it did there. GOG puts the first category first in *reading* order, which on a
+it did there. gog puts the first category first in *reading* order, which on a
 horizontal chart is the top, and a pyramid wants its youngest band on the floor.
 
 Now look at the left half of that axis. It reads -40K, not 40,000.
 
 This chart is often drawn with the tick text replaced by its absolute value,
-which hides the minus sign the bars were placed with. GOG keeps the coordinates
+which hides the minus sign the bars were placed with. gog keeps the coordinates
 it drew, and this is the clearest case for why. Relabeled, the axis carries two
 different ticks both reading 40,000, and only a reader who knows the convention can
 tell them apart. That reader did not need the help; the one who did has been

@@ -1,6 +1,6 @@
 # The book's example data — provenance and terms
 
-These CSVs are the tables every chapter of *GOG: A Grammar of Graphics* draws
+These CSVs are the tables every chapter of *gog: A Grammar of Graphics* draws
 from. They are published so that a reader can run the manual's examples in R,
 Python, Julia or JavaScript, rather than only read them.
 

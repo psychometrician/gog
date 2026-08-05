@@ -7,7 +7,7 @@ what it means regardless of which language built the sentence.
 This part is the remainder. Some things belong to the language you are
 typing in rather than to the grammar, and they cannot be stated once for
 everybody: how a table gets into `data()`, how a plot displays in a
-notebook, and how GOG's `+` sits beside the operators the language already
+notebook, and how gog's `+` sits beside the operators the language already
 has. Those are real questions, and answering them in the grammar chapters
 would mean answering them wrongly for two readers out of three.
 

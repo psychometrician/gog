@@ -19,7 +19,7 @@ standard deviation, a standard error, and a confidence interval, and on the same
 data they differ by large factors. Nothing in the drawing says which one it is, so
 a reader without the caption is guessing at a number's meaning.
 
-GOG makes the sentence say it instead. `interval * range` spans the observed
+gog makes the sentence say it instead. `interval * range` spans the observed
 extremes, `interval * confidence(0.95)` computes the interval and names its
 level, and `interval * bounds(low, high)` takes two columns you worked out
 yourself. The mark is the same whisker in all three; what differs is the

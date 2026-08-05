@@ -7,10 +7,10 @@ chapter was lost, and the world had the letters but not the reasons; only
 in 1940 did a surviving copy resurface. The letters worked the whole time.
 But a system whose reasons are lost cannot be extended, only used.
 
-This part is GOG's reasons, shipped with the artifact on purpose. The nine
+This part is gog's reasons, shipped with the artifact on purpose. The nine
 laws the package never breaks, each with the temptation it exists to
 refuse. Why the engine says no when it does, and why every refusal comes
-with a direction. None of it is required to *use* GOG: Parts I through IV
+with a direction. None of it is required to *use* gog: Parts I through IV
 never lean on it. It is here for the moment you want to know why the
 grammar is shaped the way it is, or want to predict what it will do in a
 case no chapter covers.

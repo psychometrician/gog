@@ -1,44 +1,42 @@
 # book/check_naming.R
-# One thing, one spelling: `GOG` in prose, `` `gog` `` in code font.
+# One thing, one spelling: `gog`, lowercase, everywhere.
 #
-# The grammar, the project and the system are **GOG**, an acronym of *Grammar Of
-# Graphics*. That is not decoration: the preface spends three paragraphs on the
-# fact that *A Grammar of Graphics* abbreviates to *agog*, and a lowercase "gog"
-# in prose quietly costs the book the joke it was building. The **package** is
-# `` `gog` `` in backticks, because that is the literal name a reader types
-# (`library(gog)`), and so is the `"gog"` palette value.
+# The name is the name, in one case, the way `ggplot2`, `pandas`, `npm` and
+# `matplotlib` are. Nobody writes GGPLOT2, and the hex sticker has said `gog`
+# from the start, so prose that shouted GOG was arguing with the logo.
 #
-# This is the American-English rule one level over: two spellings of one word
-# that a reader has to learn to recognize where one would do, which is the
-# silent letter Law 2 exists to refuse.
+# This reverses the earlier rule, which wrote **GOG** for the grammar and
+# `` `gog` `` for the package. The argument for it was Vega-Lite, which
+# capitalizes because it is a published specification that independent tools
+# consume. gog is not that: all four packages are first-party and the JSON
+# between them is internal, so the two-level naming protected a distinction only
+# the project could see, while every reader had to carry two spellings of one
+# name. Lowercase also puts *gog* inside *agog* on the page, which is the pun the
+# capitals were supposed to be protecting.
 #
-# It is checked rather than merely written down because it had already drifted
-# once, and drifted in the way conventions actually drift: not by anyone
-# deciding, but *by chapter*. On 2026-07-28 the book stood at 109 uppercase
-# against 51 lowercase, with `design-laws.qmd` at 16-0 and `marks/zone.qmd` at
-# 1-7 — one writing session's habit each, no distinction intended anywhere. A
-# sweep fixed the 51. Nothing in the toolchain could have told you it happened,
-# and nothing would tell you when it happened again, which is the whole reason
-# the four checks beside this one exist.
+# Sentence-initial lowercase is allowed, as it is for ggplot2 and npm. One rule
+# with no exceptions is worth an occasional odd-looking first word.
 #
 # Two directions, because the mistake runs both ways:
 #
-#   1. a bare lowercase `gog` in prose  -> should be GOG
-#   2. `GOG` used as a code identifier  -> should be gog (`library(GOG)` does
+#   1. `GOG` anywhere in prose         -> should be gog
+#   2. `GOG` used as a code identifier -> should be gog (`library(GOG)` does
 #      not exist; the installed package is lowercase)
 #
-# Paths and binaries are neither: `gog-cli`, `gog-core`, `book/gog.css` and
-# `r-pkg/gog` are filenames, and the adjacency rules below leave them alone.
+# `GOG_STRICT`, `GOG_CLI_PATH` and the other environment variables keep their
+# capitals: they are identifiers rather than the name, and the word-boundary in
+# the pattern below leaves them alone. Paths and binaries are neither the name
+# nor an identifier: `gog-cli`, `gog-core`, `book/gog.css` and `r-pkg/gog` are
+# filenames, and the adjacency rules leave those alone too.
 
 check_naming <- function(book_dir = "book") {
   qmds <- list.files(book_dir, pattern = "[.]qmd$", recursive = TRUE, full.names = TRUE)
   qmds <- qmds[!grepl("/_book/", qmds, fixed = TRUE)]
 
-  # Bare lowercase `gog` in prose. The lookaround excludes a backtick on either
-  # side (inline code, already stripped, but belt and braces), a word character
-  # (gogh, agog), and the three path characters `/`, `.` and `-`, which is what
-  # keeps `gog-cli`, `gog.css` and `r-pkg/gog` out of it.
-  prose_pat <- "(?<![`\\w/.\\-])gog(?![\\w`/.\\-])"
+  # `GOG` in prose. The `\\b` on the right is what protects `GOG_STRICT` and the
+  # other environment variables: `_` is a word character, so the boundary fails
+  # inside them. The left lookbehind keeps a hypothetical `X-GOG` header out.
+  prose_pat <- "(?<![\\w/.\\-])GOG\\b(?![_/.\\-])"
 
   # `GOG` where a package name belongs. Checked **only inside code** — a chunk
   # body, or the inside of an inline span — never against prose. The first
@@ -94,9 +92,9 @@ check_naming <- function(book_dir = "book") {
 
   if (length(bad_prose) || length(bad_code)) {
     if (length(bad_prose)) {
-      cat("FAIL: bare lowercase 'gog' in prose; the system is GOG\n")
+      cat("FAIL: 'GOG' in prose; the name is lowercase everywhere\n")
       cat(paste(bad_prose, collapse = "\n"), "\n")
-      cat("  Write GOG for the grammar, `gog` in backticks for the package.\n")
+      cat("  Write gog, the way ggplot2 and pandas are written.\n")
     }
     if (length(bad_code)) {
       cat("FAIL: 'GOG' used as a package name; the package is lowercase\n")
@@ -106,6 +104,6 @@ check_naming <- function(book_dir = "book") {
     stop("check_naming: ", length(bad_prose) + length(bad_code), " naming inconsistency(ies)")
   }
 
-  cat("PASS: GOG/gog spelled consistently (", length(qmds), "chapters )\n")
+  cat("PASS: gog spelled consistently (", length(qmds), "chapters )\n")
   invisible(TRUE)
 }

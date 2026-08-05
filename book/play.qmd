@@ -82,7 +82,7 @@ sequence.
 
 Ordered does not mean numeric. A year is ordered, and so is a date. So is a text
 column whose levels you declared: months in calendar order, or a rating from low
-to high. GOG runs the frames in the order the levels declare, the same way it
+to high. gog runs the frames in the order the levels declare, the same way it
 runs an axis ([Data](data.qmd)). A text column with no declared levels falls
 back to the order its values first appear, which is the trap above.
 
@@ -202,7 +202,7 @@ data(gm_all) + point + x(gdp, scale = "log") + y(life) + color(continent) +
 
 The same twelve frames this chapter opened with, three times as fast; `speed =
 0.5` would run them at half pace. Long sequences are the reason it exists, and
-GOG says so before you ask: past about thirty frames it reports how many seconds
+gog says so before you ask: past about thirty frames it reports how many seconds
 the loop will take, because the length of a loop is a default you did not choose
 and cannot see.
 
@@ -468,7 +468,7 @@ that cannot read the original.
 ### Why a GIF and not a video
 
 A video file would be smaller and sharper than a GIF, and a few places accept
-video and nothing else. GOG writes no video, and the reason is about what a
+video and nothing else. gog writes no video, and the reason is about what a
 package can carry rather than about what a plot is.
 
 Making a video needs a video encoder. The common one is more than ten times the
@@ -505,7 +505,7 @@ data(gm_all) + point + x(gdp) + y(life) + play(year, speed = 0)
 
 `speed` belongs to `play` and to nothing else, because nothing else in the
 grammar spends time: a color is drawn all at once, so there is no duration for
-a multiplier to scale. That one is not shown here as a GOG refusal, and the
+a multiplier to scale. That one is not shown here as a gog refusal, and the
 reason is worth saying. No binding gives any other channel a `speed` argument at
 all, so `color(continent, speed = 2)` fails in R (or in Python, or Julia, or
 JavaScript) before a specification is ever built. The engine still checks it,

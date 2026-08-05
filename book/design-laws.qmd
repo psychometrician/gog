@@ -5,7 +5,7 @@
 source("R/setup.R")
 ```
 
-GOG is governed by nine laws.
+gog is governed by nine laws.
 They are not preferences or style guides; they are hard constraints
 the package *never* violates.
 
@@ -85,7 +85,7 @@ by Law 2's measure, and every channel would have had to carry one.
 
 ### One spelling of English, and it is American
 
-GOG writes American English everywhere: `color`, `center`, `gray`, and every
+gog writes American English everywhere: `color`, `center`, `gray`, and every
 word of the kernel. There is no British alternative. ggplot2 takes both
 spellings, so `scale_colour_manual()` and `scale_color_manual()` are one
 function there; here there is one spelling and no second one to learn.
@@ -128,7 +128,7 @@ data(gapminder_2007) + point + x(gdp) + y(life)
 ```
 
 Quoting a column name is a habit carried in from other plotting libraries rather
-than a typo, so GOG says which fix it wants:
+than a typo, so gog says which fix it wants:
 
 ```{r}
 #| error: true
@@ -145,24 +145,24 @@ It also enables autocomplete and early, friendly errors at spec-build time.
 > Short is better than long, unless short is ambiguous.
 > Then say it out loud.
 
-Implicit behavior saves typing and then charges interest in ambiguity. GOG
+Implicit behavior saves typing and then charges interest in ambiguity. gog
 takes the trade the other way: when brevity would leave a reader guessing what
 the engine decided, the engine makes you say it.
 
 This law is also what the error messages are for. A refusal must tell you
-**what GOG assumed** or **what GOG cannot do**, never merely that something
+**what gog assumed** or **what gog cannot do**, never merely that something
 went wrong.
 
 ### Setting is not mapping
 
 The tempting short spelling for a constant color is `color("red")`, reusing
-the channel and letting the quotes decide the meaning. GOG does not, because
+the channel and letting the quotes decide the meaning. gog does not, because
 quoting a column name is a habit rather than a mistake, and `color("continent")`
 would then be genuinely ambiguous: a column, or a color named "continent"?
 Deciding by *"is it a column in this data?"* would make the same expression mean
 different things against different tables.
 
-So GOG says it out loud. Mapping is a channel; setting is
+So gog says it out loud. Mapping is a channel; setting is
 [`style()`](style.qmd):
 
 ```{r}
@@ -176,7 +176,7 @@ because one stroke has one opacity, can perfectly well *set* it.
 
 ggplot2 draws the same line in a different place. There the boundary is a
 bracket: `color = "red"` inside `aes()` maps, and the same words outside it
-set. GOG moves that boundary from a bracket to a word, so the atom you write
+set. gog moves that boundary from a bracket to a word, so the atom you write
 says which one you meant. The bracket has one failure that a word cannot have.
 Writing `aes(color = "red")` is legal, so it maps every row to a category with
 a single level. You get a legend with one key labeled "red", and points drawn
@@ -201,7 +201,7 @@ up misled.
 
 ### Illegal is not the same as unsupported
 
-GOG separates two refusals, because they ask different things of you:
+gog separates two refusals, because they ask different things of you:
 
 | Refusal | Meaning | What to do |
 |---|---|---|
@@ -209,7 +209,7 @@ GOG separates two refusals, because they ask different things of you:
 | **Unsupported** | The grammar allows it; this engine cannot draw it yet. | Use another atom, or wait for the feature. |
 
 Calling a valid combination "illegal" would teach you a rule that does not
-exist. So GOG says which it is.
+exist. So gog says which it is.
 
 ```{r}
 #| error: true
@@ -244,7 +244,7 @@ Unsupported looks different, and here is one:
 data(medals) + text + x(country) + y(gold) + z(silver) + label(country)
 ```
 
-In every case GOG **refuses to render**. It does not quietly drop the channel
+In every case gog **refuses to render**. It does not quietly drop the channel
 and hand you a plot that looks finished. A silently ignored binding is the
 software equivalent of a silent letter: you learn a rule that isn't real.
 
@@ -296,7 +296,7 @@ The Korean syllable 하 (*ha*) is pronounced identically in 하늘 (*haneul*, sk
 하루 (*haru*, a day), and 하지만 (*hajiman*, but). Its reusability comes from
 stability, not from meaning.
 English composition betrays you instead: "ough" is a different sound in
-*though*, *through*, *cough*, *rough*, and *bough*. A GOG expression must be
+*though*, *through*, *cough*, *rough*, and *bough*. A gog expression must be
 하, never "ough": layering, faceting, or animating a plot may add to it, but
 may not change what the existing part meant.
 
@@ -330,7 +330,7 @@ alone either: ㅏ (*a*) must be written 아 (*a*), on a silent carrier.
 A mark is the silent consonant: `point` with no positions draws nothing,
 because there is nowhere to draw it. A position is the vowel that needs its
 carrier: `x(gdp)` without a mark answers no question. *What* sits at that x?
-GOG refuses the incomplete syllable, and the refusal names the missing half:
+gog refuses the incomplete syllable, and the refusal names the missing half:
 
 ```{r}
 #| error: true
@@ -357,7 +357,7 @@ That draws in silence. No legal combination is ever refused for being ugly: one
 that looks pointless today may be a real chart tomorrow, so refusing it now on
 taste grounds forecloses something you cannot see yet.
 
-The engine will not judge, so here is the advice instead. GOG exists so that
+The engine will not judge, so here is the advice instead. gog exists so that
 you can say a visualization in clean, minimal syntax. It will let you combine
 anything the grammar allows, and that includes combinations that bury your
 point. Be like a good writer, and do not let decoration distract from the main
@@ -380,7 +380,7 @@ draw it. The form is far older than software. "And God said, Let there be light:
 and there was light" [@kingjamesbible1769, Genesis 1:3] states an outcome and
 nothing else. There is no procedure in it, no order of steps, and no mention of
 how the light is made. Every declarative sentence leaves that part out, and
-something else has to supply it. In GOG the engine does, and every stroke on
+something else has to supply it. In gog the engine does, and every stroke on
 these pages answers a sentence that never mentioned strokes.
 
 What you write in R becomes a small, engine-neutral description (which
@@ -487,7 +487,7 @@ classes, not the individual marks, decide.
 
 The failure this prevents is the quiet surprise: learning a setting on one mark and
 finding it missing on its sibling for no reason you can see. When a class is still
-being filled in, GOG says so: an **unsupported** message ("designed but not drawn
+being filled in, gog says so: an **unsupported** message ("designed but not drawn
 yet"), never a silent nothing, so the gap is visible until it closes.
 
 ---

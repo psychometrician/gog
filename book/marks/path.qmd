@@ -137,7 +137,7 @@ vertices **in the order they were traced**, which is the one thing a path is for
 
 ## The contour: `path * density`
 
-Bind both positions and compose `density`, and GOG estimates how thick the cloud
+Bind both positions and compose `density`, and gog estimates how thick the cloud
 is everywhere on the plane, then traces the lines of equal thickness:
 
 ```{r}
@@ -156,7 +156,7 @@ neither, so it has no axis to spare, and `density` cuts both. There is no
 
 Read the outermost ring, then the ones inside it. The outermost is a *single* line
 around both clusters, and one level in it splits into two separate rings, which is
-why a level is not enough to tell GOG where one stroke ends. Each ring is its own
+why a level is not enough to tell gog where one stroke ends. Each ring is its own
 stroke, and the level only decides its color, so the two inner rings never get
 joined by a line drawn across the empty ground between them.
 

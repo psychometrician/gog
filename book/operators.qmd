@@ -5,7 +5,7 @@
 source("R/setup.R")
 ```
 
-How do you put two things in one picture? GOG has exactly **four operators**.
+How do you put two things in one picture? gog has exactly **four operators**.
 They are the assembly rules, not atoms themselves, but the rules that say how
 atoms combine.
 
@@ -164,7 +164,7 @@ this section is why each rule holds.
 ### Why the order is fixed
 
 In Hangeul, a syllable is always *initial consonant + vowel*, never the reverse.
-GOG's `*` works the same way: the mark is the subject; the transform is
+gog's `*` works the same way: the mark is the subject; the transform is
 what is done to it.
 
 `bin * bar` is a type error, just as ㅏ (*a*) + ㄱ (*g*) is not a valid Hangeul
@@ -359,7 +359,7 @@ data(actuals) + x(year) + y(sales) +
   (data(forecast) + point + area)
 ```
 
-GOG refuses that instead of drawing it. The refusal is worth having because the
+gog refuses that instead of drawing it. The refusal is worth having because the
 alternative is worse than an error: there is no way to keep the marks inside
 those parentheses, so the only other option is to drop them and draw a plot that
 is missing two layers without saying so. To put two marks on the second table,
@@ -380,12 +380,12 @@ ggplot2's predecessor, was written as function composition; the pipe did not
 exist yet; `+` was what he reached for instead. Had `%>%` been available, he
 says, the grammar would have piped, and there would have been no need for
 ggplot2 at all. Three reasons are given for preferring the pipe. Two of them do
-not reach GOG, and the third is the one that settles the question the other way.
+not reach gog, and the third is the one that settles the question the other way.
 
 The first is about one language. A pipe is a single idea that works
 everywhere in R, so a grammar spelling composition differently is one more thing
 to learn, and switching between the two spellings is a frequent source of errors
-(his own included). That is true, and it is an argument about R's ecosystem. GOG
+(his own included). That is true, and it is an argument about R's ecosystem. gog
 is one syntax spoken by four languages, and the arithmetic there comes out
 differently. `+` can be given a meaning in R, Python and Julia. The pipe cannot:
 Julia has `|>` in its base library and R has two of them, but Python has no
@@ -429,7 +429,7 @@ plot.
 That is the same decision this book opens with, arriving a second time. ㄱ is a
 letter, not an instruction. You put it in a slot next to other letters, and the
 block is assembled from its pieces rather than performed in sequence. Hangeul's
-atoms are nouns, which is exactly why they compose, and GOG's are nouns for the
+atoms are nouns, which is exactly why they compose, and gog's are nouns for the
 same reason. A grammar built on the pipe is a grammar of verbs: it can layer,
 because layering really is a sequence of additions, but it cannot derive.
 Wickham's own pre-ggplot2 experiment was function composition, and it had no `*`

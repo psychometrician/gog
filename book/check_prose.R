@@ -4,7 +4,7 @@
 # Every convention in this book has drifted at least once, and always the same
 # way: not by anyone deciding, but *by chapter*. A writer holds one file in their
 # head for an afternoon and spells things consistently inside it. `design-laws.qmd`
-# ran 16-0 on `GOG` while `marks/zone.qmd` ran 1-7. Title Case sits in five
+# ran 16-0 on `gog` while `marks/zone.qmd` ran 1-7. Title Case sits in five
 # headings, all in the first half of `transforms.qmd`. Em dashes were swept out of
 # the teaching chapters in one pass and left in the reference chapters, so
 # `index.qmd` had 1 and `combinations.qmd` had 40. Nobody reading either file
@@ -125,14 +125,17 @@ check_prose <- function(dirs = c("book", "blog")) {
   # Title Case is found by capitalization, so the proper nouns have to be named or
   # every one of them is a false positive. Keep this list short and concrete: it
   # is cheaper to add a name here than to weaken the rule into uselessness.
-  proper <- c("R", "Python", "Julia", "JavaScript", "GOG", "LOESS", "SVG", "PDF",
+  # `gog` is deliberately absent. This list whitelists *capitalized* words, and
+  # the package name is lowercase everywhere now, so an entry for it could never
+  # match the `^[A-Z]` test below.
+  proper <- c("R", "Python", "Julia", "JavaScript", "LOESS", "SVG", "PDF",
               "GIF", "HTML", "CSS", "SQL", "CSV", "JSON", "Quarto", "Quarto's", "Posit",
               "Arrow", "Anthropic", "Wilkinson", "Playfair", "Herschel", "Bertin",
               "Tufte", "Sejong", "Hangeul", "Hunminjeongeum", "Mercator",
               "Korean", "English", "American", "Law", "Part", "Jupyter",
               "RStudio", "Windows", "macOS", "Linux", "CRAN", "PyPI", "ISO",
               "Cartesian", "Continuous", "Categorical", "Nine", "Laws",
-              "R's", "Wilkinson's", "Hangeul's", "GOG's", "Sejong's")
+              "R's", "Wilkinson's", "Hangeul's", "gog's", "Sejong's")
 
   MAX_HEADING <- 8
   MAX_BOLD <- 8
