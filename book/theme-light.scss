@@ -56,6 +56,19 @@ $font-family-monospace:  ui-monospace, "SF Mono", Menlo, Consolas,
 $font-size-base:   1.0625rem;
 $line-height-base: 1.7;
 
+// Code does not grow with the prose, and the book is why. Bootstrap sizes a
+// `pre` at `0.875em` of whatever it sits in, so raising the base above carries
+// code up with it and a long sentence stops fitting: measured across two
+// chapters, the number of blocks with hidden text on the right went from one to
+// three, and the worst hid 51 pixels. A page can scroll a table. It must not
+// hide the end of a sentence the reader is asked to say aloud.
+//
+// The book's column is the narrow one, because a chapter has a sidebar on the
+// left and a table of contents on the right, and a post has neither. `0.824em`
+// of the base above is 14 pixels, which is where code sat before this file
+// reached the book. Pinned in the dark theme to the same value.
+$code-font-size: 0.824em;
+
 $headings-font-weight: 700;
 $headings-color:       $ink;
 

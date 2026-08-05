@@ -522,43 +522,18 @@ div.quarto-post .thumbnail img {
   border: 1px solid var(--bs-border-color, #e2dbd1);
 }
 
+
 /* ---------------------------------------------------------------------------
- * Code blocks: one color, and a card
+ * The panel a code block sits on
  *
- * A gog specification is a sentence. Coloring its words by what a parser thinks
- * they are works against reading it as one, because `data`, `point` and `x` are
- * the same kind of thing to a reader and three different colors to a
- * highlighter. So every token takes the body's own ink.
- *
- * Done by overriding rather than by `highlight-style: none`, which also removes
- * the wrapper that draws the panel and the copy button attached to it.
- *
- * The selectors are two classes deep on purpose. Quarto paints a token with
- * `code span.kw`, so a single-class rule loses the cascade whichever stylesheet
- * loads last. Matching once, here, avoids `!important` on a dozen token names.
+ * How a specification is *colored* is `gog.css`'s, because the book and this
+ * site should print one the same way. What is left here is how the block
+ * *looks*, which is this site's own: a card with an edge, on a warm ground.
  * ------------------------------------------------------------------------- */
 
-body.quarto-light div.sourceCode code span,
-body.quarto-light pre code span {
-  color: #1d1a16;
-}
-
-body.quarto-dark div.sourceCode code span,
-body.quarto-dark pre code span {
-  color: #eee8df;
-}
-
-/* A comment is still worth telling apart from the code around it, and italic
- * does that without reaching for a second color. */
-body.quarto-light div.sourceCode code span.co,
-body.quarto-dark div.sourceCode code span.co {
-  font-style: italic;
-  opacity: 0.72;
-}
-
-/* The card. Without a border the panel and the page are close enough in both
- * themes that a block has no edges, which is what makes several blocks in a row
- * read as one. */
+/* Without a border the panel and the page are close enough in both themes that
+ * a block has no edges, which is what makes several blocks in a row read as
+ * one. */
 div.sourceCode,
 .cell > .sourceCode,
 pre:not(.sourceCode) {
@@ -651,30 +626,10 @@ main.content .cell > .cell-output-display svg {
   height: auto;
 }
 
-/* ---------------------------------------------------------------------------
- * Dark mode for the book's stylesheet
- *
- * `gog.css` paints a refusal on `#fceeee` and a warning on `#fef4ea`, both
- * near-white, because the book has only ever had a light theme. On a dark page
- * they are two glaring panels. The tinting stays, at dark-page weight, and the
- * left border keeps carrying the meaning, since that is what tells a refusal
- * from a warning without relying on color alone.
- * ------------------------------------------------------------------------- */
-
-.quarto-dark .cell-output-error > pre {
-  background-color: #2c1c1c;
-  border-left-color: #e15759;
-}
-
-.quarto-dark .cell-output-stderr > pre {
-  background-color: #2c2418;
-  border-left-color: #f28e2b;
-}
-
-.quarto-dark .cell-output-error > pre > code,
-.quarto-dark .cell-output-stderr > pre > code {
-  color: #ece6dd;
-}
+/* The dark tinting for a refusal and an assumption moved into `gog.css`, which
+ * both sites load. It was written here because the book had one theme and could
+ * not use it; the book has two now, and a rule about how a diagnostic looks
+ * belongs with the rest of them rather than in one site's file. */
 
 /* ---------------------------------------------------------------------------
  * Footer

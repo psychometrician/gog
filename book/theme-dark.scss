@@ -56,6 +56,11 @@ $font-family-monospace:  ui-monospace, "SF Mono", Menlo, Consolas,
 $font-size-base:   1.0625rem;
 $line-height-base: 1.7;
 
+// Pinned to the light theme's value, and the reason is written there: code that
+// grows with the prose hides the end of a long sentence in the book's narrower
+// column. A theme switch must not change what fits on a line.
+$code-font-size: 0.824em;
+
 $headings-font-weight: 700;
 $headings-color:       #fdfaf6;
 
@@ -73,3 +78,17 @@ $code-color:         #e6e0d7;
 $code-bg:            #272219;
 $pre-bg:             $ink-panel;
 $table-border-color: $ink-line;
+
+// The search field. Left alone it comes out `#ece6dd`, which is this theme's
+// *text* color: a cream pill sitting in the dark sidebar, brighter than
+// anything else on the page including the writing. Bootstrap derives an input's
+// fill from the greys rather than from `$body-bg`, so the one place a reader
+// types has to be told what ground it is on.
+//
+// The site never showed this. Its search is a magnifier in the navbar that
+// opens a panel on demand, so there is no field on the page until it is asked
+// for. A book puts one in the sidebar of all 55 chapters.
+$input-bg:                $ink-panel;
+$input-color:             $paper;
+$input-border-color:      $ink-line;
+$input-placeholder-color: $paper-soft;

@@ -1,4 +1,15 @@
-/* gog.css — the book's only stylesheet, and it exists for one reason.
+/* gog.css — the book's hand-written stylesheet, and it began for one reason.
+ *
+ * The blog loads it too, staged in by that project's pre-render, so a plot and
+ * its refusals look the same in both places. Anything written here reaches both
+ * sites; anything true of only one belongs in `blog.css`.
+ *
+ * Two things live here now. The first is below: how a `gog:` diagnostic is set,
+ * which is what the file was written for. The second is at the end: what color a
+ * specification's words are printed in, which arrived later and is the same
+ * question one format down. `grammar.qmd` states that rule for the reader,
+ * `gog-syntax.html` decides which words it applies to, and `gog-syntax.lua` says
+ * the same thing in LaTeX for the printed edition.
  *
  * A `gog:` diagnostic is a paragraph written on a single line. That is the right
  * shape for the engine to emit: a message goes to stderr, to an R condition, to a
@@ -102,4 +113,190 @@
   width: 190px;
   max-width: 45%;
   margin: 1.75rem auto 2.25rem;
+}
+
+/* The slogan under the sticker ---------------------------------------------
+ *
+ * The same line that closes every post on the site and every message about the
+ * package. It is set as part of the badge rather than as prose, so it is
+ * styled here instead of being bolded in the text.
+ *
+ * A reader meets it before it means anything: *agog* is explained two sections
+ * down the page. That order is the intended one. The pun asks a question the
+ * preface then answers.
+ *
+ * `fit-content` is what puts the rule under the words instead of under the
+ * whole column. The line is aligned left rather than centered, because the
+ * sticker floats right and a centered line would be centered in whatever
+ * width the float left over, which moves with the window. Left of the float
+ * it reads as a tagline under the heading, which is the arrangement the site
+ * uses.
+ * ------------------------------------------------------------------------- */
+.gog-slogan {
+  width: fit-content;
+  margin: -0.95rem 0 2.4rem;
+  font-weight: 700;
+  font-size: 1.05rem;
+  letter-spacing: 0.01em;
+  border-bottom: 3px solid #ffdba4;
+  padding-bottom: 1px;
+}
+
+.gog-slogan > p {
+  margin-bottom: 0;
+}
+
+/* ---------------------------------------------------------------------------
+ * The dark theme
+ *
+ * Everything above paints on white, because that is the ground both sites had
+ * when it was written. `theme:` now declares a light and a dark, and Quarto
+ * puts `quarto-dark` on the body when the reader picks the second, so this is
+ * the same design said again on a dark ground.
+ *
+ * The plots are deliberately not in it. Every SVG the engine writes opens with
+ * an opaque white canvas, so a plot stays a light figure on a dark page rather
+ * than turning into something the reader has never seen. That is the arrangement
+ * a printed figure has always had, and it keeps one picture in both themes: the
+ * plot under the code is the file a reader would get from the same sentence.
+ *
+ * The two tints are the light ones at dark-page weight, and the left rules keep
+ * their engine colors, since the rule is what tells a refusal from an assumption
+ * without relying on the fill.
+ * ------------------------------------------------------------------------- */
+
+.quarto-dark .cell-output-error > pre {
+  background-color: #2c1c1c;
+  border-left-color: #e15759;
+}
+
+.quarto-dark .cell-output-stderr > pre {
+  background-color: #2c2418;
+  border-left-color: #f28e2b;
+}
+
+.quarto-dark .cell-output-error > pre > code,
+.quarto-dark .cell-output-stderr > pre > code {
+  color: #ece6dd;
+}
+
+/* The peach reads as a highlighter on white and as a glare on black. This is
+ * the same color with the light taken out of it, and it is the shade the site
+ * already uses for the slogan in its own dark theme. */
+.quarto-dark .gog-slogan {
+  border-bottom-color: #e9c48a;
+}
+
+/* ---------------------------------------------------------------------------
+ * Every specification in one ink, and the accents that go on top
+ *
+ * A gog specification is a sentence. Coloring its words by what a parser thinks
+ * they are works against reading it as one, because `data`, `point` and `x` are
+ * the same kind of thing to a reader and three different colors to a
+ * highlighter. So every token takes the body's own ink.
+ *
+ * This is the base, and it is what a block that is not a gog specification
+ * keeps: an install line, a shell command, the R that loads a table. The
+ * accents below go on top of it, and only on a specification.
+ *
+ * Done by overriding rather than by `highlight-style: none`, which also removes
+ * the wrapper that draws the panel and the copy button attached to it.
+ *
+ * The selectors are two classes deep on purpose. Quarto paints a token with
+ * `code span.kw`, so a single-class rule loses the cascade whichever stylesheet
+ * loads last. Matching once, here, avoids `!important` on a dozen token names.
+ * ------------------------------------------------------------------------- */
+
+body.quarto-light div.sourceCode code span,
+body.quarto-light pre code span {
+  color: #1d1a16;
+}
+
+body.quarto-dark div.sourceCode code span,
+body.quarto-dark pre code span {
+  color: #eee8df;
+}
+
+/* ---------------------------------------------------------------------------
+ * A gog sentence, colored by what each word is
+ *
+ * The paragraph above says a parser sorts a sentence into the wrong bins, and
+ * that is still true. What changed is that gog has bins of its own: a closed
+ * list of sixty-two ordinary words in eleven kinds, which `gog-syntax.html`
+ * paints as a table, a mark, a channel or a transform. That reading is the same
+ * in all four languages, so the tabs of one sentence come out looking like one
+ * sentence, which no per-language highlighter could manage. R marks `data` as a
+ * function and Python marks nothing at all, and neither of them can see `point`.
+ *
+ * The palette is the kernel chapter's own paragraph rather than a designer's
+ * choice, which is what makes it worth a reader's attention: five kinds build a
+ * plot, and the other six refine or arrange one and are never required.
+ *
+ * So four hues for the four builders that are words, weight for the fifth
+ * (an operator is punctuation and already reads as itself), and one quiet ink
+ * for all six that refine. Your own tables, columns and values keep the body's
+ * ink, which is the first thing the coloring says: these words are gog's, those
+ * are yours.
+ *
+ * The four hues sit at the same lightness as each other, within a tenth of a
+ * stop in both themes, so no kind shouts louder than the rest and the sentence
+ * still reads as one line rather than four fragments. Every one clears 4.5:1
+ * against the panel it sits on, and the refining ink clears it too while staying
+ * far enough from the body's ink that a refining word still reads as gog's.
+ * ------------------------------------------------------------------------- */
+
+body.quarto-light {
+  --gog-table:     #1a6b54;
+  --gog-mark:      #b04a10;
+  --gog-channel:   #2b5fa8;
+  --gog-transform: #7a3f9c;
+  --gog-refine:    #6e655c;
+  --gog-operator:  #1d1a16;
+}
+
+body.quarto-dark {
+  --gog-table:     #5fc9a8;
+  --gog-mark:      #f0a15f;
+  --gog-channel:   #84b4ee;
+  --gog-transform: #cc9df0;
+  --gog-refine:    #9d9082;
+  --gog-operator:  #eee8df;
+}
+
+.gog-table     { --gog-ink: var(--gog-table); }
+.gog-mark      { --gog-ink: var(--gog-mark); }
+.gog-channel   { --gog-ink: var(--gog-channel); }
+.gog-transform { --gog-ink: var(--gog-transform); }
+.gog-refine    { --gog-ink: var(--gog-refine); }
+
+/* JavaScript's six words for the operators it cannot overload. They take the
+ * body's ink and a little weight rather than a color of their own: the other
+ * three languages write `+ * | /` there, which is punctuation and already reads
+ * as itself, so a fifth hue would make this tab the loud one instead of the
+ * matching one. The weight is what stops `plot(` reading as a function the
+ * author wrote. */
+.gog-operator {
+  --gog-ink: var(--gog-operator);
+  font-weight: 600;
+}
+
+/* One rule reads the property, and it carries the specificity.
+ *
+ * The monochrome rule above is `body.quarto-light div.sourceCode code span`,
+ * which is two classes and four elements. A plain `.gog-mark` is one class and
+ * loses the cascade however late this file loads, so the accent landed on
+ * nothing and every sentence stayed grey. The attribute selector counts as a
+ * class, which puts this at three and four, and it matches all five names
+ * without listing them twice per theme. */
+body.quarto-light div.sourceCode code span[class^="gog-"],
+body.quarto-dark div.sourceCode code span[class^="gog-"] {
+  color: var(--gog-ink);
+}
+
+/* A comment is still worth telling apart from the code around it, and italic
+ * does that without reaching for a second color. */
+body.quarto-light div.sourceCode code span.co,
+body.quarto-dark div.sourceCode code span.co {
+  font-style: italic;
+  opacity: 0.72;
 }

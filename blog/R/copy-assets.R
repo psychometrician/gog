@@ -21,6 +21,27 @@ if (stage("../book/gog.css", file.path(getwd(), "gog.css"))) {
   cat("gog: the book's stylesheet staged for the render\n")
 }
 
+# The highlighter, which is the stylesheet's other half: `gog.css` says what a
+# table, a mark, a channel and a transform are colored, and this decides which
+# words those are. One file for the same reason there is one stylesheet, and it
+# travels the same direction.
+if (stage("../book/gog-syntax.html", file.path(getwd(), "gog-syntax.html"))) {
+  cat("gog: the highlighter staged for the render\n")
+}
+
+# The palette, for the same reason and by the same route. Both sites declare a
+# light theme and a dark one, and they are one project, so the colors are
+# written once and read twice. `theme:` is resolved inside the project that
+# declares it exactly as `css:` is, so these are copied in rather than named
+# across the boundary.
+themes <- c("theme-light.scss", "theme-dark.scss")
+if (any(vapply(themes,
+               function(f) stage(file.path("..", "book", f),
+                                 file.path(getwd(), f)),
+               logical(1)))) {
+  cat("gog: the shared palette staged for the render\n")
+}
+
 # The architecture diagram, which the README shows as well. It is a project
 # asset rather than a blog asset, so it lives in the repository's `images/` and
 # is copied here for the render. One file, two readers: a second copy kept by

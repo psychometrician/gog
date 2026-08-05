@@ -17,6 +17,10 @@
 # `include-after-body`: it colors the language tags, opens outbound links in a
 # new tab, and keeps the two syndication categories out of the archive table.
 # Without it the site still builds and quietly loses all three.
+#
+# `gog-syntax.html` is the other one and is deliberately *not* here. It is the
+# book's file, staged in by the pre-render like the stylesheet and the palette,
+# so it is named with the rest of the staged output below.
 !/tags.html
 
 *_files/
@@ -32,6 +36,13 @@
 /interactive.js
 /view.js
 /gog.css
+/gog-syntax.html
+
+# The palette, which moved to `book/` so that one file serves both sites. It is
+# staged back here by the same script, so what sits in this directory during a
+# render is a copy and not the source.
+/theme-light.scss
+/theme-dark.scss
 
 # Staged from the repository's `images/`, where the README reads it too.
 /images/pipeline.svg
