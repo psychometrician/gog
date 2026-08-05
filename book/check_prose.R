@@ -97,16 +97,15 @@ check_prose <- function(dirs = c("book", "blog")) {
     # can be matched exactly. Written into the `deviation` comparison and caught
     # by review. The literal form is "less than a third as long".
     "times shorter", "times smaller", "times lower", "times fewer",
-    "times less"
-    # **The `tell apart` family is deliberately not here yet**, and the reason is
-    # a decision rather than an oversight. It is the same shape as the entries
-    # above, a stock phrase for *distinguishes*, and adding it fails six
-    # sentences across five chapters (`channels.qmd` three times, `coverage.qmd`,
-    # `operators.qmd`, `phrasebook.qmd`), all of them the passive "told apart".
-    # That is an editing sweep with its own argument to have, not a line to slip
-    # into a build. Two instances were rewritten when this list was extended,
-    # in `bindings/javascript.qmd` and one blog post, so the active voice is
-    # already gone; what is left is the passive, and it is settled usage here.
+    "times less",
+    # The `tell apart` family, in every inflection. A stock phrase for
+    # *distinguishes*, and the sweep it demanded is done: eight instances across
+    # six files, four of them in `channels.qmd`. The replacements are all plain
+    # verbs a translator can carry — *separates*, *is distinct from*, *stay
+    # distinct*, *the operand decides which*. Matching is `fixed = TRUE`, so each
+    # form has to be written out; there is no stem to catch them all.
+    "tells apart", "tell apart", "told apart", "telling apart",
+    "tells them apart", "tell them apart"
   )
 
   # `index.qmd` quotes an imagined fluent expert saying "the difficulty earns its

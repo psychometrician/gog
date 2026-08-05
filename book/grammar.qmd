@@ -145,7 +145,7 @@ data(gapminder_2007) + point + x(gdp) + y(life) + color(continent)
 *"Given gapminder 2007: points, x is gdp, y is life, color by continent."* You
 never asked for the legend. A mapped column earns one.
 
-Channels do not all play the same part, and what tells them apart is what each
+Channels do not all play the same part, and what separates them is what each
 one *earns*:
 
 | Channel | What it does | Earns |

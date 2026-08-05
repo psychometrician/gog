@@ -178,7 +178,7 @@ data(iris_flowers) + bar * mean + x(species) + y(petal_length) +
 ```
 
 The point of the channel is **redundant encoding**: the same column on `color`
-*and* `pattern`, so series are told apart by hue *and* texture at once (the
+*and* `pattern`, so a reader separates the series by hue *and* by texture at once (the
 accessibility best practice). gog draws these as **one merged legend**, not two:
 
 ```{r}
@@ -188,7 +188,7 @@ sales <- data.frame(
   revenue = c(4, 3, 5, 6, 4, 8)
 )
 data(sales) + bar * sum * dodge + x(quarter) + y(revenue) + color(channel) +
-  pattern(channel) + title("Grouped bars, told apart by hue and hatch")
+  pattern(channel) + title("Grouped bars, separated by hue and hatch")
 ```
 
 On a stroke the same channel dashes each series instead: the color-free line
@@ -353,7 +353,7 @@ data(gapminder_2007) + bar * count + x(continent) + color(continent) +
 
 Nothing is wrong with the first one, and on a scatter of the same data it is
 the better choice. The difference is what the ink is doing: a point asks to be
-found, a bar is already found and only has to be told apart from its
+found, a bar is already found and only has to be distinct from its
 neighbors.
 
 ### Ramps {#ramps}
@@ -364,7 +364,7 @@ way, from little to much, and lightness is what carries the ordering.
 | Name | What it is | Use it when |
 |------|-----------|-------------|
 | `"blue"` | the default: one hue, light→dark | almost always |
-| `"viridis"` | perceptually uniform, multi-hue | dense data where fine levels must be told apart |
+| `"viridis"` | perceptually uniform, multi-hue | dense data where fine levels must stay distinct |
 | `"magma"` | viridis's family: black through purple to cream | a dark, high-contrast field |
 | `"inferno"` | the same family, hotter | as above, warmer |
 | `"plasma"` | the same family, blue through magenta to yellow | as above, cooler at the low end |

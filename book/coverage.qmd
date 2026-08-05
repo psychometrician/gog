@@ -47,7 +47,7 @@ more vowel in the same sentence, and [Space](space.qmd) is the chapter.
 ### Texture, mapped from a column
 
 `pattern` maps a categorical column to a hatch on fills and a dash on strokes.
-Put it on the same column as `color` and the series are told apart twice over,
+Put it on the same column as `color` and the series are marked twice over,
 in one merged key:
 
 ```{r}

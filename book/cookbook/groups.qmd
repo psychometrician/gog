@@ -138,8 +138,8 @@ Now look at the left half of that axis. It reads -40K, not 40,000.
 This chart is often drawn with the tick text replaced by its absolute value,
 which hides the minus sign the bars were placed with. gog keeps the coordinates
 it drew, and this is the clearest case for why. Relabeled, the axis carries two
-different ticks both reading 40,000, and only a reader who knows the convention can
-tell them apart. That reader did not need the help; the one who did has been
+different ticks both reading 40,000, and only a reader who knows the convention
+can see which is which. That reader did not need the help; the one who did has been
 handed a plot that contradicts its own coordinates. Choosing your own tick text
 is a capability nothing here has ruled on in either direction, and
 [Coverage](../coverage.qmd) keeps it on the open list. This is the argument on

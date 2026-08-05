@@ -797,7 +797,7 @@ zone is the point of the plot rather than its background, as the red band does
 here.
 
 The hatch is worth using when a plot has to survive being printed in gray,
-or when two overlapping zones need telling apart by more than hue. Give it more
+or when two overlapping zones need more than hue to separate them. Give it more
 opacity than a flat fill wants, as the blue band does: a hatch is line-work with
 gaps between the lines, so fading it to 0.2 leaves very little to see. It takes
 the *fill* textures, not a stroke's dashes; `style(pattern = "dashed")` on a zone

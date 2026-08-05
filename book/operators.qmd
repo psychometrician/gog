@@ -265,8 +265,8 @@ name the same column on it:
   (data(gapminder_2007) + bar * count + x(continent))
 ```
 
-One pair of operators, two meanings, told apart by the operand rather than by a
-second pair of words. See [Composition](composition.qmd).
+One pair of operators, two meanings, and the operand decides which, rather than
+a second pair of words. See [Composition](composition.qmd).
 
 ---
 
