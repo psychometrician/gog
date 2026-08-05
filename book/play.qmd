@@ -86,10 +86,86 @@ to high. gog runs the frames in the order the levels declare, the same way it
 runs an axis ([Data](data.qmd)). A text column with no declared levels falls
 back to the order its values first appear, which is the trap above.
 
-How many values there are is a separate question, and a smaller one. Twelve
+How many values there are is a separate question, and the next section takes it
+up. Twelve
 frames and a hundred and forty frames are both worth animating, as long as each
 one means something beside the one before it. A long sequence costs time rather
 than sense, and [`speed`](#how-fast) is there for that.
+
+## Too many panels for one page
+
+A sequence can hold more pieces than a facet can, and this section is about that
+difference. It splits the rows the way a facet does, and nothing limits how many
+pieces it shows, because it shows them one at a time.
+
+Whether a column has an order decides whether it can be played. How many values
+it has decides something else: whether a facet of it is still readable. A facet
+has to fit every piece on one page. A sequence does not.
+
+Having an order is not on its own a reason to play a column. A short sequence
+earns its motion only when its frames hold the same things in different states.
+Then a reader can follow one of them across the frames. The four frames above are
+that case: the same countries at four dates, and the cloud climbs. Four frames
+holding four different sets of things are not that case. Nothing moves between
+them. The reader waits, and then has to remember what a facet would have shown at
+once. This is worth saying plainly, because animation is the choice most people
+want to make.
+
+The other end is where the panels stop. They share one page, so every panel added
+makes every panel smaller. `wrap` folds a long line into a rectangle, which makes
+each panel wider and shorter ([Faceting](faceting.qmd)). The rectangle is still
+one page.
+
+Here are the two gliders from [the cube](space.qmd), cut into one panel per
+second instead:
+
+```{r}
+thermal_moments <- thermals
+thermal_moments$moment <- factor(thermal_moments$second)
+data(thermal_moments) + point + x(east) + y(north) + color(glider) |
+  facet(moment, wrap = 13)
+```
+
+170 panels, already folded into a rectangle. The shapes are still there: two dots
+in every cell, one for each glider. Their positions are not. The tick labels have
+printed over one another. A dot cannot be read against them, and its position is
+all this plot measures. A reader can see that something moves, and cannot see
+where.
+
+The same rows along the clock instead:
+
+```{r}
+#| message: true
+data(thermals) + point + x(east) + y(north) + color(glider) +
+  play(second, speed = 3)
+```
+
+One panel at full size, one pair of axes, and the two gliders circling through
+all 170 frames.
+
+gog drew both of those sentences. It refuses neither, and it never will. A plot
+is refused for not being well formed, never for being a poor idea ([Design
+laws](design-laws.qmd)). Which of the two says more about gliders is your
+judgment, not the engine's. What the engine does instead is name the one cost it
+can measure. The note above counts the frames and reports how long one loop
+takes. It offers two answers: [`speed`](#how-fast), or a column with fewer values.
+
+That judgment is worth making before anyone else sees the plot. A facet that was
+the wrong choice costs a reader one glance. A sequence asks an audience to watch,
+and holds them for as long as the loop runs. If it then says nothing, that time
+was spent for nothing, and an audience can usually tell.
+
+The choice is easiest to see with a large number. Imagine a year of hourly
+temperatures for New York, drawn as one curve for each day. As a facet that is
+365 panels, and no fold leaves a curve large enough to read. As a sequence it is
+365 frames, and a reader watches a year of weather pass. Below about ten pieces
+the panels usually read better, and [Faceting](faceting.qmd) shows ten of them
+wrapped and readable. Above that the page cannot hold them, and the sequence is
+what is left.
+
+Holding more does not make a sequence the better picture. What it gives up is
+what a facet does best: two pieces side by side, where a reader compares them
+instead of remembering them.
 
 ## Nothing moves that the data did not move
 
