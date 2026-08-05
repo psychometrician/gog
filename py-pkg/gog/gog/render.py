@@ -368,8 +368,14 @@ def to_wire(frame: Any, table: str) -> Dict[str, Any]:
 # ---------------------------------------------------------------------------
 
 
-def render_svg(plot: Any) -> str:
-    """Draw a plot and return the SVG as a string."""
+def _payload(plot: Any) -> str:
+    """The engine's input for a plot or a page, as JSON.
+
+    Split out of `render_svg` when `save_gif` became a second caller. Two
+    functions serializing the same object is two chances to disagree about a
+    number's precision or about what a missing value crosses as, and that
+    disagreement would surface as a GIF that does not match the plot beside it.
+    """
     spec, frames = plot._wire()
     # A `query()` table is resolved here and nowhere else — one place, at render,
     # which is what leaves room for the planner to rewrite the sentence before
@@ -388,7 +394,12 @@ def render_svg(plot: Any) -> str:
     # error naming a byte offset. Every missing value has already become `null`
     # in `to_wire`, so this can only fire on a bug here — and failing loudly
     # beats handing the engine something it must guess at.
-    payload = json.dumps(request, allow_nan=False)
+    return json.dumps(request, allow_nan=False)
+
+
+def render_svg(plot: Any) -> str:
+    """Draw a plot and return the SVG as a string."""
+    payload = _payload(plot)
 
     result = subprocess.run(
         [find_gog_cli()],
@@ -533,7 +544,14 @@ def _is_spatial(spec: Dict[str, Any]) -> bool:
         if (layer.get("encodings") or {}).get("z") is not None:
             return True
     # A page: one cell in the cube makes the page carry the engine.
-    return any(_needs_engine(cell) for cell in (spec.get("plots") or []))
+    #
+    # **Both spellings are read**, and this binding emits the first of them: a
+    # `Page` writes its list as `cells`, so looking only for `plots` answered
+    # False for every composed cube and shipped no engine at all. The page drew
+    # perfectly and would not turn, which is the failure that hides — a picture
+    # with a gesture missing looks like a picture.
+    cells = spec.get("cells") or spec.get("plots") or []
+    return any(_needs_engine(cell) for cell in cells)
 
 
 def _interactive_block(plot: Any, container_id: str) -> str:
@@ -600,6 +618,30 @@ def _interactive_block(plot: Any, container_id: str) -> str:
     )
 
 
+def refusal_block(message: str) -> str:
+    """A refusal, shown in a cell as the sentence the engine wrote.
+
+    The engine takes trouble over these: every one names what it would not do
+    and what to write instead. A display hook that lets the exception through
+    buries that sentence under frames from this file and from the frontend's
+    internals, and not one of those lines is anywhere the author can act. So the
+    hook shows the message and the cell stays readable.
+
+    Only the *display* path does this. `render_svg()` and `save()` still raise,
+    so a script still stops, an `error: true` chunk still errors, and every
+    check that reads an exit code is unaffected.
+    """
+    escaped = (
+        message.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
+    )
+    return (
+        '<pre style="white-space:pre-wrap;word-break:break-word;'
+        "border-left:3px solid #c2410c;padding:0.6em 0.9em;margin:0;"
+        'font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:0.9em">'
+        f"{escaped}</pre>"
+    )
+
+
 def svg_block(svg: str, plot: Any = None) -> str:
     """The SVG wrapped for an HTML host, sized to fit its column.
 
@@ -643,6 +685,56 @@ def save(plot: Any, path: str) -> str:
     svg = render_svg(plot)
     with open(path, "w", encoding="utf-8") as handle:
         handle.write(svg)
+    return path
+
+
+def save_gif(plot: Any, path: str, scale: float = 1.0) -> str:
+    """Write a played plot to an animated GIF. Returns the path.
+
+    A plot that binds `play()` moves in a browser, because the SVG carries its
+    own timing. Most other places do not read that: a message to a friend, a
+    slide, a post. This writes the same sequence as a GIF, which they do read.
+
+    The frames come out of the one renderer, so the file cannot disagree with
+    the plot. Every scale, the color map and each legend are fitted across the
+    whole sequence at once, and the moments are cut from that single drawing
+    rather than drawn again one at a time.
+
+    Nothing needs to be installed. The engine converts and encodes on its own.
+
+    `scale` multiplies the plot's canvas, which is 800 by 600 unless its theme
+    says otherwise — small for a post, so `scale=2` doubles it.
+    """
+    if not isinstance(path, str) or not path:
+        raise GogError('gog: `save_gif()` needs one path — save_gif(p, "wave.gif").')
+    # The name says what the file is, so a path that says otherwise is refused
+    # rather than quietly corrected. Writing GIF bytes into `wave.png` is the
+    # kind of small lie that is discovered much later, by someone else.
+    if not path.lower().endswith(".gif"):
+        stem = path.rsplit(".", 1)[0] or path
+        raise GogError(
+            "gog: `save_gif()` writes a GIF, so the path ends in `.gif` — "
+            f'save_gif(p, "{stem}.gif").'
+        )
+    if not isinstance(scale, (int, float)) or isinstance(scale, bool) or scale <= 0:
+        raise GogError(
+            "gog: `save_gif(scale=)` needs one positive number, e.g. "
+            'save_gif(p, "wave.gif", scale=2).'
+        )
+
+    result = subprocess.run(
+        [find_gog_cli(), "--gif", os.path.expanduser(path), "--scale", str(scale)],
+        input=_payload(plot),
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+    )
+
+    messages = result.stderr.strip()
+    if result.returncode != 0:
+        raise GogError(messages or f"gog-cli exited with status {result.returncode}")
+    if messages:
+        print(messages, file=sys.stderr)
     return path
 
 

@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630">
+  <rect width="1200" height="630" fill="#ffdba4"/>
+  <text x="64" y="108" font-family="Helvetica,Arial,sans-serif" font-size="58"
+        font-weight="700" fill="#16130f" letter-spacing="-1">One engine, four languages</text>
+  <text x="64" y="164" font-family="Helvetica,Arial,sans-serif" font-size="34"
+        font-weight="700" fill="#8a3d0b">one picture</text>
+  <rect x="40" y="196" width="1120" height="268" rx="18" fill="#ffffff" opacity="0.72"/>
+    <rect x="64" y="223" width="150" height="38" rx="19" fill="#b6b8bc"/>
+  <text x="139" y="250" text-anchor="middle" font-family="Helvetica,Arial,sans-serif" font-size="20" font-weight="700" fill="#16130f">R</text>
+  <text x="238" y="250" font-family="Menlo,Consolas,monospace" font-size="23" fill="#2b2622">data(gm) + point + x(gdp) + y(life)</text>
+  <rect x="64" y="285" width="150" height="38" rx="19" fill="#3771a2"/>
+  <text x="139" y="312" text-anchor="middle" font-family="Helvetica,Arial,sans-serif" font-size="20" font-weight="700" fill="#ffffff">Python</text>
+  <text x="238" y="312" font-family="Menlo,Consolas,monospace" font-size="23" fill="#2b2622">data(gm) + point + x(col.gdp) + y(col.life)</text>
+  <rect x="64" y="347" width="150" height="38" rx="19" fill="#ca3c32"/>
+  <text x="139" y="374" text-anchor="middle" font-family="Helvetica,Arial,sans-serif" font-size="20" font-weight="700" fill="#ffffff">Julia</text>
+  <text x="238" y="374" font-family="Menlo,Consolas,monospace" font-size="23" fill="#2b2622">data(gm) + point + x(:gdp) + y(:life)</text>
+  <rect x="64" y="409" width="150" height="38" rx="19" fill="#f0db4f"/>
+  <text x="139" y="436" text-anchor="middle" font-family="Helvetica,Arial,sans-serif" font-size="20" font-weight="700" fill="#323330">JavaScript</text>
+  <text x="238" y="436" font-family="Menlo,Consolas,monospace" font-size="23" fill="#2b2622">plot(data(gm), point, x(col.gdp), y(col.life))</text>
+  <line x1="64" y1="512" x2="1136" y2="512" stroke="#16130f" stroke-width="2" opacity="0.25"/>
+  <text x="64" y="558" font-family="Helvetica,Arial,sans-serif" font-size="25" fill="#56504a">Every plot in the manual, redrawn in all four, compared on every push.</text>
+</svg>

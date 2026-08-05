@@ -169,7 +169,7 @@ objection that rules out ggplot2's `scale_x_log10` / `scale_x_sqrt` family.
 
 ### The base is almost entirely cosmetic
 
-This is the surprising part, and it is worth knowing before you reach for it.
+This is the surprising part, and it is worth knowing before you use it.
 log_b(x) differs from log₁₀(x) by a constant factor, and GOG normalizes every
 axis by its own range, so the factor cancels and **every base draws the same
 picture**. It even survives the transforms: bins of equal width in log₂ space
@@ -551,12 +551,10 @@ belongs to the sentence that describes the scale rather than to `theme()`,
 which is the page.
 
 ```{r}
-#| layout-ncol: 2
-data(gapminder_2007) + point + x(gdp, tick_count = 3) + y(life) +
-  x_label("GDP per capita") + title("Three ticks: the shape, not the numbers")
-
-data(gapminder_2007) + point + x(gdp, tick_count = 12) + y(life) +
-  x_label("GDP per capita") + title("Twelve: for reading values off")
+(data(gapminder_2007) + point + x(gdp, tick_count = 3) + y(life) +
+   x_label("GDP per capita") + title("Three ticks: the shape, not the numbers")) |
+  (data(gapminder_2007) + point + x(gdp, tick_count = 12) + y(life) +
+     x_label("GDP per capita") + title("Twelve: for reading values off"))
 ```
 
 It is a **target rather than a promise**, and the difference is worth

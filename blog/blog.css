@@ -1,0 +1,905 @@
+/* The blog's own styling, loaded after `gog.css`.
+ *
+ * `gog.css` is the book's, staged in by the pre-render, and it is not edited
+ * here: it styles a plot and its refusals, and those should look the same in
+ * both places. What this file adds is everything the book has no need for, plus
+ * the dark-mode half of what the book assumes is always light.
+ *
+ * Theme variables live in `theme-light.scss` and `theme-dark.scss`. This file
+ * holds only what Bootstrap has no variable for.
+ */
+
+/* ---------------------------------------------------------------------------
+ * Language tags
+ *
+ * Each language wears its own logo's color, sampled from the PNGs in the
+ * repository's `images/` rather than recalled: JavaScript `#f0db4f` is the
+ * logo's yellow field, Julia `#ca3c32` the red dot, Python `#3771a2` the blue.
+ *
+ * R is the one that is not its logo's dominant color. That is `#1f65b7`, a blue
+ * close enough to Python's to be unreadable beside it, so R takes the grey of
+ * its logo's ring instead. Rust takes black, which its logo is, and which was
+ * only available once Julia went red.
+ *
+ * The `lang-*` class is added by `tags.js`, because a listing tag carries the
+ * name in `data-category` and a post-header tag carries it only as text.
+ * ------------------------------------------------------------------------- */
+
+/* Each language sets two custom properties and nothing else. The properties are
+ * then read by the long selectors below.
+ *
+ * The indirection is not decoration. Quarto paints a listing tag with
+ * `div.quarto-post .listing-categories .listing-category { color: #6c757d }`,
+ * a three-class selector, so a plain `.lang-python { color: #fff }` loses the
+ * cascade no matter which stylesheet loads last: the background applied and the
+ * text stayed grey, which on blue and on red is the washed-out tag this fixes.
+ * Matching that specificity once, here, beats adding `!important` to five rules
+ * and then to the next five. */
+.lang-r          { --tag-bg: #b6b8bc; --tag-fg: #16130f; }
+.lang-python     { --tag-bg: #3771a2; --tag-fg: #ffffff; }
+.lang-julia      { --tag-bg: #ca3c32; --tag-fg: #ffffff; }
+.lang-javascript { --tag-bg: #f0db4f; --tag-fg: #323330; }
+.lang-rust       { --tag-bg: #2b2b2b; --tag-fg: #ffffff; }
+
+/* Two categories exist only to steer the feeds and are never shown. What a post
+ * displays and what it syndicates are different questions: "One engine, four
+ * languages" is genuinely about all four and its tag row should say so, but it
+ * is an architecture piece and does not belong in R-bloggers. Tagging it for
+ * display alone would have sent it there, and tagging it for the feed alone
+ * left a post whose title said four and whose tags said two.
+ *
+ * So `rstats` and `julialang` are what `index.qmd` filters its two narrow feeds
+ * on, and they are hidden here. Hidden rather than absent, because Quarto has
+ * no separate field for this. `display: none` inside a flex row also collapses
+ * the `gap` that would otherwise sit around them, so the visible tags stay
+ * evenly spaced. The rule reaches the sidebar's category list as well, which is
+ * where an unhidden one would otherwise appear as "rstats (1)". */
+.lang-rstats,
+.lang-julialang {
+  display: none;
+}
+
+/* On a dark page the black tag sinks into the background and the grey goes
+ * muddy, so those two lift and the red brightens a little. Yellow and blue are
+ * legible on both and do not move. */
+body.quarto-dark .lang-rust  { --tag-bg: #4a443c; --tag-fg: #f3ede4; }
+body.quarto-dark .lang-r     { --tag-bg: #6f7378; --tag-fg: #f7f7f8; }
+body.quarto-dark .lang-julia { --tag-bg: #d9483e; }
+
+div.quarto-post .listing-categories .listing-category,
+.quarto-grid-item .listing-categories .listing-category,
+.quarto-title .quarto-categories .quarto-category,
+.quarto-title-meta .quarto-category,
+.quarto-category,
+.listing-category {
+  background-color: var(--tag-bg, transparent);
+  color: var(--tag-fg, inherit);
+  border: none;
+  border-radius: 999px;
+  /* Quarto's own size is `.65em`, which on a card is around 10px and is most of
+   * why these were hard to read even where the contrast was fine. */
+  font-size: 0.76rem;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  padding: 0.2rem 0.7rem;
+  /* `R` is one character wide, and a pill that tight beside `JAVASCRIPT` reads
+   * as a mistake rather than as a short name. */
+  min-width: 2.9rem;
+  text-align: center;
+  /* Quarto sets `opacity: .6` on every tag. That is the other half of the
+   * washout, and it is what made white-on-blue look grey even once the color
+   * landed. */
+  opacity: 1;
+  /* Zeroed so the container's `gap` is the only thing setting the spacing. */
+  margin-right: 0;
+  margin-bottom: 0;
+  transition: transform 0.12s ease, filter 0.12s ease;
+}
+
+div.quarto-post .listing-categories .listing-category:hover,
+.quarto-title .quarto-categories .quarto-category:hover,
+.listing-category:hover {
+  transform: translateY(-1px);
+  filter: brightness(1.07);
+}
+
+/* ---------------------------------------------------------------------------
+ * The navbar
+ * ------------------------------------------------------------------------- */
+
+/* The background is set here rather than by `$navbar-bg` in the theme files.
+ * That variable compiles to a `--navbar-bg` custom property which, in this
+ * Quarto version, nothing consumes: the value lands in the stylesheet and no
+ * rule reads it, so the navbar keeps the framework's default grey. Checked by
+ * grepping the compiled CSS for a reader of the property and finding none.
+ * `body.quarto-light` and `body.quarto-dark` are what the theme toggle
+ * switches, so keying off them is also what makes the navbar follow it. */
+body.quarto-light .navbar {
+  background-color: #ffdba4;
+  border-bottom: 1px solid rgba(22, 19, 15, 0.14);
+  box-shadow: 0 1px 14px rgba(22, 19, 15, 0.05);
+}
+
+body.quarto-light .navbar .navbar-brand,
+body.quarto-light .navbar .nav-link,
+body.quarto-light .navbar .quarto-color-scheme-toggle {
+  color: #16130f;
+}
+
+/* Lighter than the page rather than a shade off it. At `#201c16` against a
+ * `#17140f` body the two read as one surface and the bar stopped looking like a
+ * bar. The step up plus a warmer hairline is what separates them; going darker
+ * than the body was the other option and it loses the peach brand text. */
+body.quarto-dark .navbar {
+  background-color: #2e2820;
+  border-bottom: 1px solid #463d2e;
+  box-shadow: 0 1px 16px rgba(0, 0, 0, 0.45);
+}
+
+body.quarto-dark .navbar .navbar-brand,
+body.quarto-dark .navbar .quarto-color-scheme-toggle {
+  color: #ffdba4;
+}
+
+body.quarto-dark .navbar .nav-link {
+  color: rgba(236, 230, 221, 0.82);
+}
+
+body.quarto-dark .navbar .nav-link:hover,
+body.quarto-dark .navbar .nav-link.active {
+  color: #ffdba4;
+}
+
+.navbar {
+  font-weight: 500;
+}
+
+/* The navbar's contents, the footer's contents and the writing all sit in the
+ * same column.
+ *
+ * Left alone, the navbar's `container-fluid` runs the full width of the glass
+ * and the footer does the same, so on a wide monitor the brand, the search icon
+ * and the licences were all out at the edges while the writing sat in a column
+ * between them. The bands still span the window; only what is inside them is
+ * held in.
+ *
+ * 1135px and no side padding, so that the container's own edge *is* the writing's
+ * edge. Quarto lays the page out with a CSS grid rather than a centred
+ * max-width, so this pair was measured rather than chosen: at a 1585px page the
+ * writing starts at 225, and (1585 - 1135) / 2 is 225. It holds at other widths
+ * because both are centred in the same box. The framework's `1em` of padding is
+ * removed for the same reason, since it was pushing the search icon ten pixels
+ * to the right of everything under it. */
+/* `footer.footer .nav-footer` rather than `.nav-footer`: the framework sets the
+ * side padding with `footer.footer .nav-footer, #quarto-header>nav`, which is
+ * (0,2,1) and beat a bare class. */
+.navbar > .navbar-container,
+footer.footer .nav-footer {
+  max-width: 1135px;
+  margin-left: auto;
+  margin-right: auto;
+  width: 100%;
+  padding-left: 0;
+  padding-right: 0;
+}
+
+/* Narrow screens get their gutter back, since there is no column to line up
+ * with once the grid collapses. */
+@media (max-width: 991.98px) {
+  .navbar > .navbar-container,
+  footer.footer .nav-footer {
+    padding-left: 1rem;
+    padding-right: 1rem;
+  }
+}
+
+/* A sun in light mode and a moon in dark, before the toggle rather than instead
+ * of it. Quarto ships the control as an empty `<i class="bi">` inside the link,
+ * so the glyph goes on the link's own `::before` and the switch it already
+ * draws is left alone. Bootstrap Icons is loaded by the theme, so this costs no
+ * request: `\f5a1` is `sun-fill`, `\f495` is `moon-stars-fill`. */
+.quarto-color-scheme-toggle::before {
+  font-family: "bootstrap-icons", sans-serif;
+  content: "\f5a1";
+  font-size: 0.98rem;
+  margin-right: 0.4rem;
+  /* No `vertical-align` here. The link is a flex container, so the two glyphs
+   * are centered against each other by `align-items` and a baseline nudge only
+   * fights it. `line-height: 1` matters though: the sun is a font glyph and
+   * carries a line box, while the switch beside it is a background image with
+   * no ascender or descender, so an inherited 1.7 line height sits the two on
+   * different centers. That is the misalignment. */
+  line-height: 1;
+}
+
+/* The switch is drawn by `background-image` on the `::before` of this `<i>`, and
+ * the `<i>` itself is the flex item. Centering the link's children lines up the
+ * `<i>` box, not the picture inside it, so the `<i>` has to center its own
+ * content as well. */
+.quarto-color-scheme-toggle .bi {
+  display: inline-flex;
+  align-items: center;
+  line-height: 1;
+}
+
+body.quarto-dark .quarto-color-scheme-toggle::before {
+  content: "\f495";
+}
+
+.quarto-color-scheme-toggle {
+  display: inline-flex;
+  align-items: center;
+}
+
+/* Search moves to the far left, ahead of the name.
+ *
+ * Quarto lays the navbar out with flex `order` and gives search `order: 4` plus
+ * `margin-left: auto`, which pins it to the right edge. The brand is `order: 2`,
+ * so anything below that sits ahead of it. The auto margin has to go as well, or
+ * it keeps pushing itself to the end whatever its order says. */
+.navbar #quarto-search {
+  order: 1;
+  margin-left: 0;
+  margin-right: 0.85rem;
+}
+
+/* Bigger, because these three are the only controls in the bar and they were
+ * sized for decoration rather than for hitting. The sun and moon come from the
+ * icon font, the switch beside them is a background image, and the search glyph
+ * is an inline SVG, so each needs its own property. */
+.quarto-color-scheme-toggle::before {
+  font-size: 1.22rem;
+  margin-right: 0.45rem;
+}
+
+.quarto-color-scheme-toggle .bi::before {
+  height: 1.3rem;
+  width: 1.3rem;
+  background-size: 1.3rem 1.3rem;
+}
+
+.navbar #quarto-search svg.aa-SubmitIcon,
+.navbar #quarto-search svg {
+  width: 21px;
+  height: 21px;
+}
+
+/* Quarto dims every navigation tool to 70%. On the peach bar that is fine, but
+ * on the dark one it takes an already low-contrast icon and removes what was
+ * left, so the search and the toggle are held at full strength there. */
+body.quarto-dark .quarto-navigation-tool {
+  opacity: 1;
+}
+
+/* The search glyph is `fill="currentColor"`, so setting the color is enough
+ * once `$gray-300` is no longer a hairline. Stated for both themes anyway, so
+ * the icon does not silently depend on what a grey variable happens to be. */
+body.quarto-light #quarto-search .aa-DetachedSearchButtonIcon,
+body.quarto-light #quarto-search svg {
+  color: #16130f;
+}
+
+body.quarto-dark #quarto-search .aa-DetachedSearchButtonIcon,
+body.quarto-dark #quarto-search svg {
+  color: #ece6dd;
+}
+
+body.quarto-dark #quarto-search .aa-DetachedSearchButton:hover .aa-DetachedSearchButtonIcon,
+body.quarto-dark .quarto-color-scheme-toggle:hover {
+  color: #ffdba4;
+}
+
+/* The toggle is an `<a>`, so the navbar's growing-underline rule and Bootstrap's
+ * link underline both land on it. It is a control rather than a link. */
+.quarto-color-scheme-toggle,
+.quarto-color-scheme-toggle:hover {
+  text-decoration: none;
+}
+
+.quarto-color-scheme-toggle::after {
+  display: none;
+}
+
+.navbar-brand {
+  font-weight: 700;
+  letter-spacing: -0.015em;
+}
+
+/* An underline that grows from nothing, rather than a background block. The
+ * peach band is already the emphasis; a second one on hover competes with it. */
+.navbar .nav-link {
+  position: relative;
+}
+
+.navbar .nav-link::after {
+  content: "";
+  position: absolute;
+  left: 0.5rem;
+  right: 0.5rem;
+  bottom: 0.34rem;
+  height: 2px;
+  background: currentColor;
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform 0.18s ease;
+}
+
+.navbar .nav-link:hover::after,
+.navbar .nav-link.active::after {
+  transform: scaleX(1);
+}
+
+/* ---------------------------------------------------------------------------
+ * The landing page
+ * ------------------------------------------------------------------------- */
+
+.site-hero {
+  display: flex;
+  align-items: center;
+  gap: 2.4rem;
+  flex-wrap: wrap;
+  margin: 0.5rem 0 3rem;
+  padding-bottom: 2.2rem;
+  border-bottom: 1px solid var(--bs-border-color, #e2dbd1);
+}
+
+.site-hero img {
+  width: 152px;
+  height: auto;
+  flex: 0 0 auto;
+  filter: drop-shadow(0 6px 20px rgba(22, 19, 15, 0.16));
+}
+
+.site-hero-text {
+  flex: 1 1 320px;
+  min-width: 0;
+}
+
+.site-hero-text h1 {
+  font-size: clamp(1.9rem, 4.2vw, 2.7rem);
+  line-height: 1.18;
+  letter-spacing: -0.022em;
+  margin: 0 0 0.7rem;
+}
+
+.site-hero-text p {
+  font-size: 1.11rem;
+  color: var(--bs-secondary-color, #56504a);
+  margin: 0 0 0.55rem;
+  max-width: 46ch;
+}
+
+.quarto-dark .site-hero-text p { color: #b3a89a; }
+.quarto-dark .site-hero img {
+  filter: drop-shadow(0 6px 22px rgba(0, 0, 0, 0.5));
+}
+
+/* The tagline, which is also the sign-off on every post and every social
+ * message. It is set apart because repetition is what makes it work. */
+.site-slogan {
+  display: inline-block;
+  margin-top: 0.5rem;
+  font-weight: 700;
+  font-size: 1.03rem;
+  letter-spacing: 0.01em;
+  border-bottom: 3px solid #ffdba4;
+  padding-bottom: 1px;
+}
+
+.quarto-dark .site-slogan { border-bottom-color: #e9c48a; }
+
+/* ---------------------------------------------------------------------------
+ * The listing
+ * ------------------------------------------------------------------------- */
+
+.quarto-listing {
+  margin-top: 1.2rem;
+}
+
+div.quarto-post {
+  border: 1px solid var(--bs-border-color, #e2dbd1);
+  border-radius: 16px;
+  padding: 1.35rem 1.5rem;
+  margin-bottom: 1.15rem;
+  background: var(--bs-body-bg, #fff);
+  transition: transform 0.16s ease, box-shadow 0.16s ease,
+              border-color 0.16s ease;
+}
+
+div.quarto-post:hover {
+  transform: translateY(-2px);
+  border-color: #f2bf74;
+  box-shadow: 0 10px 30px rgba(22, 19, 15, 0.09);
+}
+
+/* The whole card opens the post, not only the words in it.
+ *
+ * Quarto already links the title, the thumbnail and the description separately,
+ * so three of the four things a reader might aim at work. The fourth is the card
+ * itself: the padding, the gap beside the date, the empty space under a short
+ * blurb. A card that lifts on hover looks clickable everywhere, so a click that
+ * lands on the padding and does nothing reads as the page being broken.
+ *
+ * The title's link is stretched over the card rather than the card being given a
+ * click handler. It stays one real link, so the destination shows in the status
+ * bar, middle-click and open-in-new-tab still work, and a screen reader still
+ * hears a link with the title as its text. */
+div.quarto-post {
+  position: relative;
+}
+
+div.quarto-post .listing-title a::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+}
+
+/* The tags are filter buttons rather than links to the post, so they sit above
+ * the stretched area and keep their own click. Without this the card would
+ * swallow them and clicking `PYTHON` would open the post instead of filtering. */
+div.quarto-post .listing-categories {
+  position: relative;
+  z-index: 2;
+}
+
+/* The last card kept losing its bottom edge. Quarto's own listing draws a bottom
+ * border as a *separator between* posts, so something in its stack clears it on
+ * the final one, which is right for a list of rules and wrong for a row of
+ * cards. It is not in any stylesheet this page loads, so rather than keep
+ * hunting it, the border is asserted for every card including the last. */
+/* The winning rule is Quarto's
+ * `.list.quarto-listing-default div:last-of-type { border-bottom: none }`,
+ * at specificity (0,3,1). A plain `div.quarto-post:last-of-type` is (0,2,1) and
+ * loses, which is why the last card kept coming out open at the bottom. This
+ * selector is (0,4,1) and matches on purpose rather than reaching for
+ * `!important`. */
+.list.quarto-listing-default div.quarto-post,
+.list.quarto-listing-default div.quarto-post:last-of-type,
+.list.quarto-listing-default div.quarto-post:last-child {
+  border-bottom-width: 1px;
+  border-bottom-style: solid;
+}
+
+body.quarto-light .list.quarto-listing-default div.quarto-post,
+body.quarto-light .list.quarto-listing-default div.quarto-post:last-of-type {
+  border-bottom-color: #e2dbd1;
+}
+
+body.quarto-dark .list.quarto-listing-default div.quarto-post,
+body.quarto-dark .list.quarto-listing-default div.quarto-post:last-of-type {
+  border-bottom-color: #352f26;
+}
+
+.quarto-dark div.quarto-post {
+  background: #201c16;
+  border-color: #352f26;
+}
+
+.quarto-dark div.quarto-post:hover {
+  border-color: #6d5c3f;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.45);
+}
+
+div.quarto-post .listing-title {
+  font-size: 1.42rem;
+  line-height: 1.25;
+  letter-spacing: -0.015em;
+  margin-bottom: 0.95rem;
+}
+
+/* `gap` rather than a margin on each tag, so the same value spaces them along a
+ * row and between rows. A post with five languages wraps onto a second line,
+ * and margin-right alone leaves those two lines touching. */
+div.quarto-post .listing-categories,
+.quarto-title .quarto-categories {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+  /* Set here rather than left to the title's `margin-bottom`. Adjacent
+   * margins collapse, and Quarto has its own rule on the title, so the space
+   * between a heading and the tags under it is more reliable as the tags'
+   * own top margin. */
+  margin-top: 0.6rem;
+  margin-bottom: 1.15rem;
+}
+
+div.quarto-post .listing-title a { text-decoration: none; }
+div.quarto-post .listing-title a:hover { text-decoration: underline; }
+
+div.quarto-post .listing-description {
+  font-size: 1rem;
+  opacity: 0.86;
+}
+
+div.quarto-post .metadata {
+  font-variant-numeric: tabular-nums;
+  opacity: 0.75;
+}
+
+div.quarto-post .thumbnail img {
+  border-radius: 12px;
+  border: 1px solid var(--bs-border-color, #e2dbd1);
+}
+
+/* ---------------------------------------------------------------------------
+ * Code blocks: one color, and a card
+ *
+ * A gog specification is a sentence. Coloring its words by what a parser thinks
+ * they are works against reading it as one, because `data`, `point` and `x` are
+ * the same kind of thing to a reader and three different colors to a
+ * highlighter. So every token takes the body's own ink.
+ *
+ * Done by overriding rather than by `highlight-style: none`, which also removes
+ * the wrapper that draws the panel and the copy button attached to it.
+ *
+ * The selectors are two classes deep on purpose. Quarto paints a token with
+ * `code span.kw`, so a single-class rule loses the cascade whichever stylesheet
+ * loads last. Matching once, here, avoids `!important` on a dozen token names.
+ * ------------------------------------------------------------------------- */
+
+body.quarto-light div.sourceCode code span,
+body.quarto-light pre code span {
+  color: #1d1a16;
+}
+
+body.quarto-dark div.sourceCode code span,
+body.quarto-dark pre code span {
+  color: #eee8df;
+}
+
+/* A comment is still worth telling apart from the code around it, and italic
+ * does that without reaching for a second color. */
+body.quarto-light div.sourceCode code span.co,
+body.quarto-dark div.sourceCode code span.co {
+  font-style: italic;
+  opacity: 0.72;
+}
+
+/* The card. Without a border the panel and the page are close enough in both
+ * themes that a block has no edges, which is what makes several blocks in a row
+ * read as one. */
+div.sourceCode,
+.cell > .sourceCode,
+pre:not(.sourceCode) {
+  border-radius: 10px;
+  border: 1px solid var(--bs-border-color, #e2dbd1);
+  margin-top: 0.9rem;
+  margin-bottom: 0.9rem;
+}
+
+body.quarto-light div.sourceCode,
+body.quarto-light pre:not(.sourceCode) {
+  background-color: #f7f4f0;
+  border-color: #e4ddd3;
+}
+
+body.quarto-dark div.sourceCode,
+body.quarto-dark pre:not(.sourceCode) {
+  background-color: #221d17;
+  border-color: #3d362b;
+}
+
+/* The panel is drawn by the wrapper, so the `pre` inside it carries only the
+ * padding. Two backgrounds would show as a lighter rectangle inset in a darker
+ * one wherever the two colors disagreed. */
+div.sourceCode pre.sourceCode {
+  background-color: transparent;
+  border: none;
+  margin: 0;
+  padding: 0.85rem 1rem;
+}
+
+/* ---------------------------------------------------------------------------
+ * Posts
+ * ------------------------------------------------------------------------- */
+
+#title-block-header .quarto-title h1.title {
+  font-size: clamp(1.95rem, 4.4vw, 2.85rem);
+  line-height: 1.16;
+  letter-spacing: -0.024em;
+}
+
+main.content h2 {
+  margin-top: 2.6rem;
+  padding-top: 0.55rem;
+  border-top: 1px solid var(--bs-border-color, #e2dbd1);
+  letter-spacing: -0.015em;
+}
+
+main.content h3 {
+  margin-top: 1.9rem;
+  letter-spacing: -0.01em;
+}
+
+/* A plot is the widest thing on the page and it should be allowed to breathe.
+ * `gog.css` decides how one looks; this decides how much room it gets. */
+main.content .cell {
+  margin: 1.7rem 0;
+}
+
+main.content .cell > .cell-output-display svg {
+  max-width: 100%;
+  height: auto;
+}
+
+/* ---------------------------------------------------------------------------
+ * Dark mode for the book's stylesheet
+ *
+ * `gog.css` paints a refusal on `#fceeee` and a warning on `#fef4ea`, both
+ * near-white, because the book has only ever had a light theme. On a dark page
+ * they are two glaring panels. The tinting stays, at dark-page weight, and the
+ * left border keeps carrying the meaning, since that is what tells a refusal
+ * from a warning without relying on color alone.
+ * ------------------------------------------------------------------------- */
+
+.quarto-dark .cell-output-error > pre {
+  background-color: #2c1c1c;
+  border-left-color: #e15759;
+}
+
+.quarto-dark .cell-output-stderr > pre {
+  background-color: #2c2418;
+  border-left-color: #f28e2b;
+}
+
+.quarto-dark .cell-output-error > pre > code,
+.quarto-dark .cell-output-stderr > pre > code {
+  color: #ece6dd;
+}
+
+/* ---------------------------------------------------------------------------
+ * Footer
+ * ------------------------------------------------------------------------- */
+
+
+
+/* Each licence is one unit. Left to itself the line broke wherever it ran out of
+ * room, which put "Apache 2.0." alone on a second line looking like a mistake.
+ * As inline blocks the two sentences can only break *between* each other, so a
+ * narrow footer gets two whole lines instead of one and a fragment. */
+.nav-footer .licence {
+  display: inline-block;
+  margin-right: 0.5rem;
+}
+
+/* The licence text gets the room it needs and the icons take only their own
+ * width, rather than the two regions splitting the bar evenly. Their own side
+ * padding comes off too: the row is already held to the writing's column, and a
+ * second inset inside it put the licences sixteen pixels right of everything
+ * above them. */
+.nav-footer-left {
+  flex: 1 1 auto;
+  min-width: 0;
+  text-align: left;
+  padding-left: 0;
+}
+
+.nav-footer-right {
+  flex: 0 0 auto;
+  padding-right: 0;
+}
+
+/* The follow row. Bigger than the licence text beside it, because these are the
+ * only things in the footer anyone clicks.
+ *
+ * Hover changes the *color* rather than only the opacity. Raising opacity moves
+ * a muted grey toward a slightly less muted grey, which on a busy page is not
+ * enough to read as a response. Going to near-black on a light page and to
+ * near-white on a dark one is unmistakable in both, and it is the same distance
+ * travelled either way. */
+.nav-footer .nav-item .nav-link {
+  font-size: 1.18rem;
+  padding: 0.2rem 0.42rem;
+  opacity: 1;
+  transition: color 0.14s ease, transform 0.14s ease;
+}
+
+body.quarto-light .nav-footer .nav-item .nav-link {
+  color: #8b8279;
+}
+
+body.quarto-light .nav-footer .nav-item .nav-link:hover,
+body.quarto-light .nav-footer .nav-item .nav-link:focus-visible {
+  color: #100e0b;
+  transform: translateY(-2px);
+}
+
+body.quarto-dark .nav-footer .nav-item .nav-link {
+  color: #8d8478;
+}
+
+body.quarto-dark .nav-footer .nav-item .nav-link:hover,
+body.quarto-dark .nav-footer .nav-item .nav-link:focus-visible {
+  color: #fffaf2;
+  transform: translateY(-2px);
+}
+
+.nav-footer {
+  border-top: 1px solid var(--bs-border-color, #e2dbd1);
+  font-size: 0.92rem;
+  opacity: 0.85;
+}
+
+.quarto-dark .nav-footer { border-top-color: #352f26; }
+
+/* A wide table scrolls inside its own box rather than being clipped.
+ *
+ * The first attempt targeted a wrapper, and Quarto writes none: the table is a
+ * bare `<table class="caption-top table">` with a paragraph either side, so the
+ * rule matched nothing and the operator table lost its first two column headings
+ * on a phone. Making the table itself a block is the well-worn fix; the rows and
+ * cells keep their own display values, so it still lays out as a table and only
+ * the outer box changes.
+ *
+ * Confined to narrow screens, because on a desktop the table fits and a block
+ * box would stop it filling the column. */
+@media (max-width: 767.98px) {
+  main.content table {
+    display: block;
+    width: 100%;
+    overflow-x: auto;
+    white-space: nowrap;
+  }
+
+  main.content table td,
+  main.content table th {
+    white-space: normal;
+    min-width: 5.5rem;
+  }
+}
+
+/* ---------------------------------------------------------------------------
+ * Phones
+ * ------------------------------------------------------------------------- */
+
+/* Below the collapse point, the bar is laid out deliberately rather than left to
+ * the framework, and the open menu is the case that decides the rules.
+ *
+ * The first attempt set `flex-wrap: nowrap` to stop the theme toggle dropping to
+ * a second line. That fixed the closed bar and broke the open one: the expanded
+ * menu is a flex child too, so with nowrap it could not take a row of its own
+ * and squeezed in beside everything else, crushing the name to "psy...".
+ *
+ * So the row wraps, and the menu is given a full-width basis so that when it is
+ * the only thing that wraps. The four controls above it are ordered by hand:
+ * hamburger, name, search, theme. That is the order a reader expects, and it
+ * puts the two things they actually press at the two ends.
+ */
+@media (max-width: 991.98px) {
+  /* One line, and the open menu hangs below it rather than sitting in it.
+   *
+   * Measured at 375px: the four controls want 355px in a 324px row, so with
+   * `wrap` the theme toggle always fell to a second line. With `nowrap` they
+   * shrink and fit. That alone breaks the open menu, which is a flex child too
+   * and would be squeezed in beside them, so the menu is lifted out of the row
+   * and positioned under the bar. It carries the bar's own background, because
+   * an absolutely positioned child no longer inherits the row's. */
+  .navbar > .navbar-container {
+    flex-wrap: nowrap;
+    position: relative;
+  }
+
+  /* Measured at 375px: the four controls came to 357px in a 324px row, so the
+   * theme toggle wrapped. The 33px comes off the widest three, which is why the
+   * name shrinks a little and both icons lose their padding. */
+  .navbar .navbar-toggler {
+    order: 1;
+    margin-left: 0;
+    margin-right: 0.35rem;
+    padding: 0.1rem 0.25rem;
+    border: none;
+  }
+
+  .navbar .navbar-brand-container {
+    order: 2;
+    margin: 0 auto 0 0;
+    min-width: 0;
+    flex: 0 1 auto;
+  }
+
+  /* No ellipsis. With the controls tightened the name fits at 375px, and a
+   * truncated site name is worse than a slightly smaller one. */
+  .navbar .navbar-brand {
+    font-size: 0.98rem;
+    overflow: visible;
+    text-overflow: clip;
+  }
+
+  /* The auto margin goes on the name, not on search.
+   *
+   * `margin-left: auto` here ate all 80px of free space on the line and left
+   * none for the theme toggle, which then wrapped. Putting the same auto margin
+   * on the *brand's* right pushes search and the toggle to the far edge as a
+   * pair, and the two of them are measured together rather than separated by a
+   * gap that grows until one of them falls off. */
+  .navbar #quarto-search {
+    order: 3;
+    margin-left: 0;
+    margin-right: 0.35rem;
+  }
+
+  /* The theme toggle is not a direct child of the row. Quarto wraps it in
+   * `.quarto-navbar-tools`, and that wrapper is the flex item, so ordering the
+   * toggle itself did nothing and the wrapper kept wrapping to a second line. */
+  .navbar .quarto-navbar-tools {
+    order: 4;
+    flex: 0 0 auto;
+    width: auto;
+    margin-left: 0;
+    display: flex;
+    align-items: center;
+  }
+
+  .navbar .quarto-color-scheme-toggle {
+    margin-left: 0;
+  }
+
+  .navbar .quarto-color-scheme-toggle::before {
+    margin-right: 0.3rem;
+  }
+
+  .navbar .navbar-collapse {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    z-index: 1030;
+    padding: 0.35rem 0 0.7rem;
+  }
+
+  body.quarto-light .navbar .navbar-collapse {
+    background-color: #ffdba4;
+    border-bottom: 1px solid rgba(22, 19, 15, 0.14);
+    box-shadow: 0 10px 22px rgba(22, 19, 15, 0.13);
+  }
+
+  body.quarto-dark .navbar .navbar-collapse {
+    background-color: #2e2820;
+    border-bottom: 1px solid #463d2e;
+    box-shadow: 0 10px 22px rgba(0, 0, 0, 0.5);
+  }
+
+  /* The open menu lines up under the hamburger rather than under the container
+   * edge. The toggler carries `0.25rem` of its own padding, so the links take
+   * the same, and the row of icons then sits directly below the one that opened
+   * it instead of half a character to its left. */
+  .navbar .navbar-collapse .nav-link {
+    padding-left: 0.25rem;
+    padding-top: 0.5rem;
+    padding-bottom: 0.5rem;
+  }
+
+  .navbar .navbar-collapse {
+    padding-top: 0.35rem;
+    padding-bottom: 0.5rem;
+  }
+}
+
+/* On a phone the two regions stack and centre: icons first, because they are
+ * what someone reaching the end of a post is looking for, and the licences
+ * underneath as the small print they are. */
+@media (max-width: 575px) {
+  .nav-footer {
+    flex-direction: column;
+    align-items: center;
+    row-gap: 0.15rem;
+  }
+
+  .nav-footer-right { order: 1; }
+  .nav-footer-left  { order: 2; text-align: center; }
+
+  .nav-footer .licence {
+    display: block;
+    margin-right: 0;
+  }
+
+  .site-hero { gap: 1.5rem; }
+  .site-hero img { width: 104px; }
+
+  /* A plot is the widest thing on a phone. Letting it scroll inside its own box
+   * is better than shrinking it until the axis labels stop being readable. */
+  main.content .cell > .cell-output-display {
+    overflow-x: auto;
+  }
+}

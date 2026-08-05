@@ -1,0 +1,204 @@
+# Renders the blog and publishes it to the site repository.
+#
+# A near-copy of `book.yml`, and the parts it drops are the interesting half.
+# The book executes real Python, Julia and JavaScript in its binding chapters,
+# so it installs four toolchains. A blog post does not: the four language tabs
+# under every specification are produced by *R* files (`book/R/tabs.R` sources a
+# `translate.R` from each binding, and all four of those are R), so a post gets
+# all four spellings from R alone. If a post ever runs a real pandas chunk, add
+# the venv step back from `book.yml` and nothing else.
+#
+# What it keeps is both engine builds. A post draws its plots with the engine
+# compiled from this checkout rather than from a registry, which is what lets one
+# show a feature before the feature ships.
+
+name: blog
+
+# DISARMED UNTIL THE SITE REPOSITORY EXISTS.
+#
+# Only `workflow_dispatch` is live, so this never runs by itself. The push
+# trigger below is written out and commented, because the alternative is
+# remembering what its path list was.
+#
+# Two reasons for the state, and the second is the one that bites. The site
+# repository and its deploy key do not exist yet, so a run could only fail at
+# the last step. And the path list includes `r-pkg/**`, which a release touches,
+# so an armed workflow would put a red mark on a release commit that had nothing
+# to do with the blog.
+#
+# To arm it: create `psychometrician/psychometrician.github.io`, enable Pages on
+# `main` at the root, put the deploy key in `BLOG_SITE_DEPLOY_KEY`, then
+# uncomment the `push:` block.
+on:
+  workflow_dispatch:
+
+# push:
+#   branches: [main]
+#   paths:
+#     - "blog/**"
+#     # The shared setup. `blog/R/copy-assets.R` sources the book's copy, and
+#     # every post sources `book/R/setup.R`, so a change to either re-renders
+#     # the blog as well as the book. That coupling runs one way only: nothing
+#     # under `blog/` appears in `book.yml`'s filters.
+#     - "book/R/**"
+#     - "book/gog.css"
+#     - "book/data/**"
+#     - "gog-core/**"
+#     - "gog-cli/**"
+#     - "gog-wasm/**"
+#     # `interactive.js` and `view.js` are staged from here.
+#     - "js-pkg/gog/src/**"
+#     - "r-pkg/**"
+#     - ".github/workflows/blog.yml"
+
+permissions:
+  contents: read
+
+# One publish at a time, and the newest push wins. The site is a single orphan
+# commit force-pushed over whatever was there, so two concurrent runs would race
+# to be last rather than merge.
+concurrency:
+  group: blog
+  cancel-in-progress: true
+
+jobs:
+  blog:
+    name: render and publish
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          # Declared here because the toolchain action installs targets and a
+          # later `cargo build --target` cannot.
+          targets: wasm32-unknown-unknown
+      - uses: Swatinem/rust-cache@v2
+
+      - name: Build the engine that draws every plot
+        run: |
+          cargo build --release -p gog-cli
+          test -x target/release/gog-cli
+
+      # A separate invocation because `gog-wasm` is deliberately outside the
+      # workspace, so `cargo build --release` does not reach it.
+      #
+      # The `test -f` is what this step is for. Without an engine the blog still
+      # renders, correctly, with static cubes: `R/setup.R` reports the absence
+      # and carries on, which is right for a checkout and wrong for a publish. A
+      # site that quietly dropped the interactivity would look exactly like a
+      # successful one.
+      - name: Build the engine the browser runs
+        run: |
+          cargo build --release --target wasm32-unknown-unknown \
+            --manifest-path gog-wasm/Cargo.toml
+          test -f gog-wasm/target/wasm32-unknown-unknown/release/gog_wasm.wasm
+
+      - uses: r-lib/actions/setup-r@v2
+        with:
+          use-public-rspm: true
+
+      # Shorter than the book's list, and deliberately so. `jsonlite` is how the
+      # R binding reaches the engine and `knitr` renders the chunks. `rmarkdown`
+      # is the one no reading of the sources reveals: Quarto's knitr engine
+      # shells out to it to execute an `{r}` chunk, so nothing here ever writes
+      # `library(rmarkdown)` and its absence kills the render on the first page
+      # with `Broken pipe`.
+      #
+      # `gapminder` is here because a post may reach for it directly rather than
+      # through `book/data/*.csv`. `DBI` and `RSQLite` are not: no post builds a
+      # database yet. Add them the day one does, or the render dies on that post
+      # and takes the site with it.
+      - uses: r-lib/actions/setup-r-dependencies@v2
+        with:
+          packages: any::gapminder, any::jsonlite, any::knitr, any::rmarkdown
+
+      - uses: quarto-dev/quarto-actions/setup@v2
+
+      - name: Render the blog
+        working-directory: blog
+        shell: bash
+        # `PIPESTATUS` via `pipefail`, because `tee` would otherwise mask the
+        # exit code and a failed render would publish the previous output.
+        run: |
+          set -o pipefail
+          quarto render 2>&1 | tee .render.log
+
+      - name: Grade the render log
+        working-directory: blog
+        shell: bash
+        # Quarto's own markers rather than the broad grep a human would use.
+        # A post about refusals will contain the words "error" and "cannot" in
+        # ordinary healthy output, exactly as the book's chapters do.
+        run: |
+          if grep -nE "(^|\[[0-9;]*m)(ERROR|WARN):|^Stack trace:" .render.log; then
+            echo "::error::the render log has complaints (above)"
+            exit 1
+          fi
+          if grep -n "the language-tab translator failed" .render.log; then
+            echo "::error::the translator failed - the blog rendered R-only"
+            exit 1
+          fi
+          echo "log is clean"
+
+      - name: Check the rendered output
+        working-directory: blog
+        shell: bash
+        run: |
+          test -f _site/index.html || { echo "::error::_site/index.html is missing"; exit 1; }
+
+          # The three feeds, and this is the check that earns the step. Quarto
+          # writes none of them when `site-url` or the site title is missing: it
+          # warns once and exits 0. The two category feeds have no autodiscovery
+          # link tag either, so nothing else in the world would notice they had
+          # stopped being written, least of all the aggregators subscribed to
+          # them.
+          for f in index.xml index-rstats.xml index-julialang.xml; do
+            test -f "_site/$f" || { echo "::error::_site/$f is missing"; exit 1; }
+          done
+          # R-bloggers republishes the whole article, not a summary, so a feed
+          # that silently degraded to metadata is a failure worth catching here.
+          grep -q "<description>" _site/index-rstats.xml \
+            || { echo "::error::index-rstats.xml carries no item body"; exit 1; }
+
+          # The card. It is named in a `<meta content=>`, which Quarto's resource
+          # discovery does not scan, so `resources:` is the only thing carrying
+          # it and a typo there costs every shared link its preview image.
+          test -f _site/images/og.png \
+            || { echo "::error::_site/images/og.png is missing - links render with no card"; exit 1; }
+          grep -q 'og:image' _site/index.html \
+            || { echo "::error::index.html has no open-graph tags"; exit 1; }
+
+          # The browser assets, checked three ways because each fails quietly.
+          test -f _site/gog.wasm && test -f _site/interactive.js && test -f _site/view.js \
+            || { echo "::error::the browser assets are missing from _site/"; exit 1; }
+          grep -rq 'mountView(' _site/posts/ \
+            || { echo "::error::no post has plot controls - the assets were not found at render time"; exit 1; }
+          if grep -rq "data:application/wasm" _site/; then
+            echo "::error::the engine is inlined per plot - gog.wasm_url was not set"
+            exit 1
+          fi
+
+          touch _site/.nojekyll
+
+          echo "output looks right ($(du -sh _site | cut -f1))"
+
+      # Cross-repo, to `psychometrician/psychometrician.github.io`, which serves
+      # the handle's root. The book keeps its own repository and its own path at
+      # `/gog-book/`; GitHub Pages routes a project repository to its own
+      # subpath, so the two do not collide.
+      #
+      # A deploy key rather than a token: it grants write on exactly one
+      # repository and nothing else. `force_orphan` keeps the site at one commit
+      # with no parent, because history of generated output answers no question
+      # a reader has, and every engine change rewrites every inlined SVG.
+      - name: Publish to the site repository
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          deploy_key: ${{ secrets.BLOG_SITE_DEPLOY_KEY }}
+          external_repository: psychometrician/psychometrician.github.io
+          publish_branch: main
+          publish_dir: blog/_site
+          force_orphan: true
+          commit_message: "psychometrician — rendered from"

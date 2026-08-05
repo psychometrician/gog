@@ -36,6 +36,7 @@ export {
   ordered,
   render_svg,
   save,
+  save_gif,
   show,
   svg_block,
   to_wire,

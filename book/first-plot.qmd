@@ -42,7 +42,7 @@ you are looking at as a picture file, large enough for a slide or a journal
 figure. A box is dimmed when it can do nothing.
 
 Not one of these boxes has a word in the grammar, and that is deliberate. A
-word earns its place by changing what the plot claims about the data. Looking
+word belongs in the grammar only if it changes what the plot claims about the data. Looking
 closer changes nothing: the points, the axes and the numbers stay the ones the
 engine chose. To make the plot itself cover a narrower range, write it in the
 sentence as [`limits`](scales.qmd).

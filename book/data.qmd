@@ -376,7 +376,7 @@ all eight with the qualified form of each.
 
 Today the table crosses to the engine as an in-memory
 `DataFrame`; Apache Arrow (zero-copy, no serialization penalty even for
-millions of rows) is on the roadmap to replace it.
+millions of rows) is planned to replace it.
 
 ## Factors decide the order of categories
 

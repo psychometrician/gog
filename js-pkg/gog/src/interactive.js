@@ -144,8 +144,8 @@ export function renderSpec(engine, request) {
   return { svg: null, error: `gog: unknown engine status ${status}`, notes: [] };
 }
 
-/** Does this spec draw in the cube? Only a 3-D plot has an angle to drag. */
-export function isSpatial(spec) {
+/** Does this **plot** draw in the cube? The leaf question, asked per cell. */
+function plotIsSpatial(spec) {
   if (spec?.coord && typeof spec.coord === "object" && spec.coord.space) return true;
   // A `z` binding puts a plot in the cube without naming `space()`, so the
   // coordinate can still read "flat" on a plot that projects. `space_of` makes
@@ -153,6 +153,24 @@ export function isSpatial(spec) {
   // why the check is not simply `coord.space`.
   const layers = spec?.layers ?? [];
   return layers.some((l) => l?.encodings && "z" in l.encodings) || spec?.z != null;
+}
+
+/**
+ * Does this figure draw in the cube? Only an angle can be dragged.
+ *
+ * **Asked of every plot in the figure, because a page has no coordinate of its
+ * own.** A composition keeps each cell's space on the cell, so looking only at
+ * the top level said "flat" for a page of cubes: the drag was never attached,
+ * and a reader who composed two turnable plots got a pair that would not turn.
+ * Silently, since the picture is correct and only the gesture is missing.
+ *
+ * [`hasBrush`] three definitions down had recursed all along, which is what made
+ * this hard to see: the same file answered the same shape of question two ways.
+ * The engine's own `spec_is_spatial` recursed too, so a page still loaded the
+ * WebAssembly it then had no use for.
+ */
+export function isSpatial(spec) {
+  return eachPlot(spec).some(plotIsSpatial);
 }
 
 /**
@@ -696,6 +714,16 @@ export function attachBrush(engine, container, request, options = {}) {
       tip.style.cssText =
         "position:fixed;pointer-events:none;z-index:2147483647;" +
         "font:12px/1.5 ui-monospace,SFMono-Regular,Menlo,monospace;" +
+        // **These colors are fixed on purpose, and they are the exception.**
+        // Every control on the page inherits its color now, so it stays legible
+        // whether the host is a light page or a dark one. A tooltip does not,
+        // because it is not on the page: it floats over the plot, and a plot is
+        // drawn light whatever the host looks like. It also carries its own
+        // opaque background, so it is a small light card in both cases rather
+        // than text that has to survive an unknown backdrop.
+        //
+        // The brush band above is fixed for the same reason. It is drawn over
+        // the plot, never over the page.
         "background:rgba(255,255,255,0.96);border:1px solid #ccc;border-radius:3px;" +
         "padding:.25em .5em;color:#333;box-shadow:0 1px 4px rgba(0,0,0,.12);white-space:nowrap;";
       document.body.appendChild(tip);
@@ -1021,7 +1049,7 @@ function addSelectionBar(container, handle, view) {
   // reader who has not.
   const label = document.createElement("span");
   label.textContent = "drag:";
-  label.style.cssText = "color:#888;";
+  label.style.cssText = "color:inherit;opacity:.68;";
 
   // A dashed rectangle, a dashed free loop, and the four-way arrow that means
   // move — drawn rather than typed, because no font carries a lasso.
@@ -1048,7 +1076,7 @@ function addSelectionBar(container, handle, view) {
     b.title = title;
     b.innerHTML = art;
     b.style.cssText =
-      "font:inherit;color:#555;background:none;border:1px solid #ccc;" +
+      "font:inherit;color:inherit;background:none;border:1px solid currentColor;border-color:color-mix(in srgb, currentColor 34%, transparent);" +
       "border-radius:3px;padding:.15em .3em;cursor:pointer;line-height:0;";
     b.addEventListener("click", () => {
       handle.setMode(name);
@@ -1063,7 +1091,7 @@ function addSelectionBar(container, handle, view) {
   const toggle = document.createElement("button");
   toggle.type = "button";
   toggle.style.cssText =
-    "font:inherit;color:#555;background:none;border:1px solid #ccc;" +
+    "font:inherit;color:inherit;background:none;border:1px solid currentColor;border-color:color-mix(in srgb, currentColor 34%, transparent);" +
     "border-radius:3px;padding:0 .5em;cursor:pointer;";
 
   const reset = document.createElement("button");
@@ -1092,7 +1120,7 @@ function addSelectionBar(container, handle, view) {
   const pager = document.createElement("div");
   pager.style.cssText =
     "display:none;margin:-8px 0 12px;gap:.5em;align-items:center;" +
-    "justify-content:center;color:#888;" +
+    "justify-content:center;color:inherit;" +
     "font:12px/1.6 ui-monospace,SFMono-Regular,Menlo,monospace;";
   const step = (label, title) => {
     const b = document.createElement("button");
@@ -1100,7 +1128,7 @@ function addSelectionBar(container, handle, view) {
     b.textContent = label;
     b.title = title;
     b.style.cssText =
-      "font:inherit;color:#555;background:none;border:1px solid #ccc;" +
+      "font:inherit;color:inherit;background:none;border:1px solid currentColor;border-color:color-mix(in srgb, currentColor 34%, transparent);" +
       "border-radius:3px;padding:0 .45em;cursor:pointer;";
     return b;
   };
@@ -1116,8 +1144,14 @@ function addSelectionBar(container, handle, view) {
   group.style.cssText = "display:inline-flex;gap:.25em;align-items:center;";
   group.append(label, ...picks.map(([, b]) => b));
 
-  bar.append(group, readout, toggle, reset);
-  if (view) addViewControls(bar, view, () => render(), handle);
+  // The same grouping the cube's bar uses: `toggle`, `reset` and the view buttons
+  // are controls and stay on one line together, so a narrow panel breaks after the
+  // readout rather than through the middle of the button strip.
+  const controls = document.createElement("span");
+  controls.style.cssText = "display:inline-flex;gap:.75em;align-items:center;";
+  controls.append(toggle, reset);
+  if (view) addViewControls(controls, view, () => render(), handle);
+  bar.append(group, readout, controls);
   placeBar(container, bar);
   bar.after(table);
   table.after(pager);
@@ -1151,7 +1185,7 @@ function addSelectionBar(container, handle, view) {
     table.innerHTML =
       `<table style="margin:0 auto;border-collapse:collapse"><thead><tr>` +
       s.columns.map((c) => `<th style="padding:.1em .6em;text-align:left;` +
-        `border-bottom:1px solid #ddd;color:#555">${c}</th>`).join("") +
+        `border-bottom:1px solid color-mix(in srgb, currentColor 22%, transparent);color:inherit">${c}</th>`).join("") +
       `</tr></thead><tbody>` +
       s.rows.map((r) => `<tr>${r.map(cell).join("")}</tr>`).join("") +
       `</tbody></table>`;
@@ -1207,33 +1241,61 @@ export function attachDrag(engine, container, request, options = {}) {
   // same object may be rendered again, statically, somewhere else on the page.
   const req = JSON.parse(JSON.stringify(request));
 
-  const existing =
-    req.spec?.coord && typeof req.spec.coord === "object" ? req.spec.coord.space : null;
-  let turn = existing?.turn ?? DEFAULT_TURN;
-  let tilt = existing?.tilt ?? DEFAULT_TILT;
+  // **Every plot in the figure that has an angle**, each remembering the one its
+  // own sentence asked for. A page keeps its spaces on its cells, so this is a
+  // list of one for an ordinary plot and a list of cells for a composition.
+  //
+  // The angle a plot opened at is the angle the *sentence* asked for, not the
+  // engine's default. `reset` returns there rather than to 30/25 because the
+  // prose around a plot is describing the picture the author chose: a chapter
+  // that turns a volcano through four views is making an argument about those
+  // four, and a reset that landed somewhere else would quietly contradict the
+  // paragraph beside it.
+  const scenes = eachPlot(req.spec).filter(plotIsSpatial).map((plot) => {
+    const s = plot.coord && typeof plot.coord === "object" ? plot.coord.space : null;
+    return { plot, turn: s?.turn ?? DEFAULT_TURN, tilt: s?.tilt ?? DEFAULT_TILT };
+  });
 
-  // The angle the plot opened at — which is the angle the *sentence* asked for,
-  // not the engine's default. `reset` returns here rather than to 30/25 because
-  // the prose around a plot is describing the picture the author chose: a
-  // chapter that turns a volcano through four views is making an argument about
-  // those four, and a reset that landed somewhere else would quietly contradict
-  // the paragraph beside it.
-  const opened = { turn, tilt };
+  // **The gesture carries a change, not an angle**, and that is what lets one
+  // drag serve a whole composition without overriding anything a cell said. Each
+  // panel turns from wherever its own sentence put it, so whatever the panels
+  // differed by they still differ by: a four-angle tour is still a four-angle
+  // tour after it has been turned. Setting one absolute angle across the page
+  // would collapse those four onto one, which is the enclosing expression
+  // silently reinterpreting the inner ones that Law 6 forbids.
+  const opened = scenes.length
+    ? { turn: scenes[0].turn, tilt: scenes[0].tilt }
+    : { turn: DEFAULT_TURN, tilt: DEFAULT_TILT };
+  let dTurn = 0;
+  let dTilt = 0;
+
+  // Tilt stops just short of overhead, and the limit is **shared**: the range is
+  // the one every panel can reach. Clamping each panel on its own would let the
+  // steepest hit the stop while the others kept going, and they would drift
+  // apart — the one thing carrying a delta exists to prevent.
+  const tiltFloor = scenes.length ? Math.max(...scenes.map((s) => -89 - s.tilt)) : -89;
+  const tiltCeil = scenes.length ? Math.min(...scenes.map((s) => 89 - s.tilt)) : 89;
+
+  // What the readout says: the first scene's angle, which is *the* angle for an
+  // ordinary plot and a true one for a panel of a page.
+  const angle = () => ({ turn: (opened.turn + dTurn) % 360, tilt: opened.tilt + dTilt });
 
   let first = true;
   function draw() {
-    req.spec.coord = { space: { turn, tilt } };
+    for (const s of scenes) {
+      s.plot.coord = { space: { turn: (s.turn + dTurn) % 360, tilt: s.tilt + dTilt } };
+    }
     const { ok, notes } = redraw(engine, container, req);
     if (!ok) return false;
     if (first) {
       first = false;
       if (onNotes && notes.length) onNotes(notes);
     }
-    if (onView) onView({ turn, tilt });
+    if (onView) onView(angle());
     return true;
   }
 
-  if (!draw()) return { destroy() {}, view: () => ({ turn, tilt }) };
+  if (!draw()) return { destroy() {}, view: angle };
 
   let dragging = false;
   let lastX = 0;
@@ -1257,11 +1319,22 @@ export function attachDrag(engine, container, request, options = {}) {
   };
   const onMove = (e) => {
     if (!dragging) return;
-    turn = (turn + (e.clientX - lastX) * degreesPerPixel) % 360;
-    // Tilt stops just short of overhead. At exactly 90 the floor collapses to a
-    // line and the picture has no depth to read, so the clamp is a guard rail
-    // rather than a limitation.
-    tilt = Math.max(-89, Math.min(89, tilt - (e.clientY - lastY) * degreesPerPixel));
+    // **The cube follows the pointer; the camera is what moves to achieve it.**
+    // Drag right and the face turned toward you goes right; drag down and it
+    // tips down, opening the top of the cube. Both signs are negative against
+    // the angles because `turn` and `tilt` place the *camera*, and a camera
+    // walks the opposite way from the thing it looks at: step to your right and
+    // the near face swings left. Driving the camera with the pointer instead is
+    // a defensible reading of the same gesture and it is the rarer one — three.js,
+    // plotly, Blender and matplotlib all pin the object to the pointer, and a
+    // reader arrives here with that convention already in their hand.
+    dTurn -= (e.clientX - lastX) * degreesPerPixel;
+    // At exactly 90 the floor collapses to a line and the picture has no depth
+    // to read, so the stop is a guard rail rather than a limitation.
+    dTilt = Math.max(
+      tiltFloor,
+      Math.min(tiltCeil, dTilt + (e.clientY - lastY) * degreesPerPixel),
+    );
     lastX = e.clientX;
     lastY = e.clientY;
     // Coalesce to one redraw per frame. A pointer can fire far more often than
@@ -1290,11 +1363,13 @@ export function attachDrag(engine, container, request, options = {}) {
       container.removeEventListener("pointerup", onUp);
       container.removeEventListener("pointercancel", onUp);
     },
-    view: () => ({ turn, tilt }),
+    view: angle,
     opened,
+    // Every panel back to the angle its own sentence named, which is what
+    // clearing the change does — there is no per-panel state to restore.
     reset() {
-      turn = opened.turn;
-      tilt = opened.tilt;
+      dTurn = 0;
+      dTilt = 0;
       draw();
     },
   };
@@ -1317,8 +1392,13 @@ function addControls(container, handle, view = null) {
   const bar = controlBar("view");
 
   const hint = document.createElement("span");
-  hint.textContent = "drag to rotate";
-  hint.style.cssText = "color:#999;";
+  // `turn` rather than `rotate`, for the two reasons the kernel's names follow:
+  // it is the plainer English word, and it is the one the readout beside it and
+  // `space(turn = )` already use, so the hint teaches the parameter instead of a
+  // synonym for it. Shorter also matters here, because this bar has to fit beside
+  // six controls in a panel that may be half the page wide.
+  hint.textContent = "drag to turn";
+  hint.style.cssText = "color:inherit;opacity:.62;";
 
   const readout = document.createElement("span");
   // `tabular-nums` so the numbers do not shuffle the line's width as they
@@ -1330,7 +1410,7 @@ function addControls(container, handle, view = null) {
   reset.type = "button";
   reset.textContent = "reset";
   reset.style.cssText =
-    "font:inherit;color:#555;background:#f4f4f6;border:1px solid #d8d8de;" +
+    "font:inherit;color:inherit;background:color-mix(in srgb, currentColor 9%, transparent);border:1px solid currentColor;border-color:color-mix(in srgb, currentColor 30%, transparent);" +
     "border-radius:4px;padding:0 .5em;cursor:pointer;";
   reset.addEventListener("click", () => handle.reset());
 
@@ -1357,8 +1437,19 @@ function addControls(container, handle, view = null) {
   // returns the zoom, `reset` returns the angle. Pressing either leaves the
   // other alone, so a reader who found an angle does not lose it by zooming
   // back out.
-  if (view) addViewControls(bar, view);
-  bar.append(reset);
+  // **The buttons are one unit, so the bar may only break beside them.** The bar
+  // wraps, which it must — a panel can be half the page wide in a two-across
+  // layout, and nothing may overflow. What it must not do is break *between*
+  // buttons, which left the camera and `reset` stranded on a second line while
+  // four icons sat on the first. Grouping them is the selection bar's own answer
+  // to the same problem, one bar over: a set of controls that acts together is
+  // one child of the bar, not five. The readout keeps its own place, so what
+  // yields at a narrow width is the words rather than the controls.
+  const controls = document.createElement("span");
+  controls.style.cssText = "display:inline-flex;gap:.75em;align-items:center;";
+  if (view) addViewControls(controls, view);
+  controls.append(reset);
+  bar.append(controls);
   placeBar(container, bar);
   return show;
 }

@@ -86,7 +86,7 @@ Nothing else in the chapter changes with the orientation either: `color`,
 `dodge`, the `whiskers` knob and `style()` all behave identically whichever axis
 holds the categories.
 
-Reach for it when the category names are long. A vertical axis gives each label
+Use it when the category names are long. A vertical axis gives each label
 a whole line, where an upright chart has to fit it into a slot one box wide:
 
 ```{r}
@@ -208,7 +208,7 @@ interquartile range and draws the points beyond as dots. Both still draw as a
 box, which is why it is a parameter and not a transform: it changes the rule the
 summary follows, not the geometry it becomes.
 
-`border_color` and `border_size` are worth reaching for on a box specifically,
+`border_color` and `border_size` are worth using on a box specifically,
 because a box is line-work *and* fill. The setting takes the outline, the
 whiskers and the median together, so a pale fill with a dark edge reads at
 small sizes where a solid fill does not.

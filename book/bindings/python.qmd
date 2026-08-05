@@ -170,7 +170,7 @@ as R's, so a derived layer and a crossed facet group exactly as they do in
 
 ```{r}
 #| echo: false
-py_plot("(data(gapminder_2007) + bar * mean + x(col.continent) + y(col.life)\n + order(col.life, desc=True) + palette('okabe')\n + title('Mean life expectancy, highest first'))")
+py_plot("(data(gapminder_2007) + bar * mean + x(col.continent) + y(col.life)\n + order(col.life, desc=True)\n + title('Mean life expectancy, highest first'))")
 ```
 
 The vocabulary does not change either: every mark, transform, channel, setting

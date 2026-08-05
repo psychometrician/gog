@@ -13,6 +13,7 @@
 
 import assert from "node:assert/strict";
 import fs from "node:fs";
+import os from "node:os";
 import { spawnSync } from "node:child_process";
 import { DatabaseSync } from "node:sqlite";
 import test from "node:test";
@@ -57,8 +58,10 @@ import {
   nest,
   proportion,
   render_svg,
+  save,
   ribbon,
   rule,
+  save_gif,
   shape,
   range,
   smooth,
@@ -368,6 +371,52 @@ test("a name can be given, and two different tables cannot share one", () => {
   );
 });
 
+test("a page of two anonymous tables draws what naming them would draw", () => {
+  const other = { x: [3, 4], y: [5, 6] };
+  // Neither plot can read a name, so the binding invents `data` for both. That
+  // is its own name and means nothing to the author, so the second gives way
+  // rather than colliding — the same rule a plot of two tables already follows.
+  const bare = beside(
+    plot(data(df), point, x(col.x), y(col.y)),
+    plot(data(other), point, x(col.x), y(col.y))
+  );
+  const named = beside(
+    plot(data(df, { name: "one" }), point, x(col.x), y(col.y)),
+    plot(data(other, { name: "two" }), point, x(col.x), y(col.y))
+  );
+  assert.equal(Object.keys(bare.frames).length, 2);
+  // The picture is the test: a rename that pointed both cells at one table
+  // would draw too, and only this catches that.
+  assert.equal(render_svg(bare), render_svg(named));
+
+  // A name the author wrote still cannot be moved.
+  refuses(
+    () => beside(
+      plot(data(df, { name: "s" }), point, x(col.x), y(col.y)),
+      plot(data(other, { name: "s" }), point, x(col.x), y(col.y))
+    ),
+    /two different tables on one page are both called/
+  );
+});
+
+test("a refused save() leaves an existing file alone", () => {
+  // Julia's `save()` opened the destination before it knew the render had
+  // succeeded, and opening for writing truncates, so a refused plot emptied
+  // whatever was there. `writeFileSync` evaluates the render first and so
+  // cannot, and this holds it to that: the ordering is easy to reverse.
+  const dir = fs.mkdtempSync(`${os.tmpdir()}/gog-save-`);
+  const file = `${dir}/plot.svg`;
+  const good = plot(data(df), point, x(col.x), y(col.y));
+  const bad = plot(data(df), point, x(col.x), y(col.y), palette("okabe"));
+
+  save(good, file);
+  const before = fs.readFileSync(file, "utf8");
+  assert.ok(before.length > 0);
+
+  assert.throws(() => save(bad, file), GogError);
+  assert.equal(fs.readFileSync(file, "utf8"), before);
+});
+
 test("a plot starts with its table", () => {
   refuses(() => plot(point, x(col.x)), /starts with its table/);
   refuses(() => plot(), /nothing to draw/);
@@ -417,6 +466,39 @@ test("play cuts one frame per value, names each, and speeds up through the optio
   refuses(() => play(col.year, { speed: 0 }), /above zero/);
 });
 
+// The same sequence written where SVG animation is not read. Checked as a file,
+// because everything this adds happens after the SVG above: the header proves it
+// is a GIF, the trailer proves it was finished rather than left half-written, and
+// NETSCAPE2.0 is what makes it loop instead of freezing on the last moment.
+test("save_gif writes a played plot where SVG motion is not read", () => {
+  const played = {
+    x: [1, 2, 3, 10, 20, 30],
+    y: [1, 2, 3, 10, 20, 30],
+    year: [1957, 1957, 1957, 1962, 1962, 1962],
+  };
+  const moving = plot(data(played), point, x(col.x), y(col.y), play(col.year));
+  const folder = fs.mkdtempSync(`${os.tmpdir()}/gog-gif-`);
+  try {
+    const written = save_gif(moving, `${folder}/wave.gif`);
+    const raw = fs.readFileSync(written);
+    assert.equal(raw.subarray(0, 6).toString("latin1"), "GIF89a");
+    assert.equal(raw[raw.length - 1], 0x3b, "the GIF should end with its trailer");
+    assert.ok(raw.includes(Buffer.from("NETSCAPE2.0")), "the GIF should loop");
+
+    // A plot with no moments cannot become a sequence, and the refusal says what
+    // to write instead rather than leaving a file nobody asked for.
+    refuses(
+      () => save_gif(plot(data(played), point, x(col.x), y(col.y)), `${folder}/still.gif`),
+      /does not play[\s\S]*play\(year\)/,
+    );
+    // The name says what the file is, so a path that says otherwise is refused
+    // rather than quietly corrected.
+    refuses(() => save_gif(moving, `${folder}/wave.png`), /ends in `\.gif`/);
+  } finally {
+    fs.rmSync(folder, { recursive: true, force: true });
+  }
+});
+
 test("every mark the kernel has draws", () => {
   const sentences = [
     plot(data(bars), bar, x(col.category), y(col.value)),
@@ -427,7 +509,9 @@ test("every mark the kernel has draws", () => {
     plot(data(df), box("range"), x(col.group), y(col.y)),
     plot(data(df), layer(bar, count), x(col.group)),
     plot(data(df), point, x(col.x), y(col.y), title("A title"), x_label("An axis")),
-    plot(data(df), point, x(col.x), y(col.y), palette("okabe")),
+    // `color` bound because a palette with nothing to color is now its own
+    // refusal, and this list is asking whether a palette *draws*.
+    plot(data(df), point, x(col.x), y(col.y), color(col.group), palette("okabe")),
     plot(data(bars), bar, x(col.category), y(col.value), polar()),
     plot(data(df), point, x(col.x), y(col.y), z(col.y), space()),
   ];
@@ -1398,6 +1482,20 @@ test("theme({ width, height }) is the image alone and the cell composed", () => 
   );
 });
 
+// And a *page* states its own size, which is the one sentence no cell can write.
+// Composed side by side, two plots divide the page's width and each keep the
+// whole of its height, so only the page can say how much height that is. A
+// `theme()` among the figures is how JavaScript spells `(a | b) + theme(...)`.
+test("a page states its own size, and takes the canvas when it does not", () => {
+  const sized = render_svg(beside(scatter(), scatter(), theme({ height: 310 })));
+  assert.match(sized, /width="800" height="310"/);
+  assert.match(render_svg(beside(scatter(), scatter())), /width="800" height="600"/);
+  // The size is the only theme property whose subject is the figure. Every
+  // other one describes a panel, and a page has none.
+  refuses(() => beside(scatter(), scatter(), theme({ grid: "none" })), /describes a panel/);
+  refuses(() => beside(scatter(), scatter(), theme("minimal")), /describes a panel/);
+});
+
 // There is no `+` to refuse here and no `facet()` to mis-join — JavaScript spells
 // both with words, so the only way to misuse a page is to hand `beside()`/`below()`
 // something that is not a plot, or only one of them.
@@ -1405,6 +1503,9 @@ test("a page is arranged, and says what it arranges", () => {
   refuses(() => beside(scatter()), /two or more plots/);
   refuses(() => beside(scatter(), point), /arranges plots/);
   refuses(() => below(scatter(), across(col.speed)), /arranges plots/);
+  // A theme is set aside before the plots are counted, so the arity a reader is
+  // asked for is the one they wrote.
+  refuses(() => beside(scatter(), theme({ height: 310 })), /two or more plots/);
 });
 
 // --- partition: a hierarchy in columns, one ring per level -------------------

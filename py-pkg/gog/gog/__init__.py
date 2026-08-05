@@ -89,7 +89,7 @@ from .atoms import (
 )
 from .columns import col
 from .errors import GogError
-from .render import ordered, render_svg
+from .render import ordered, render_svg, save_gif
 from .spec import Page, Plot, data, query
 from .tables import book_table
 
@@ -100,7 +100,7 @@ from .tables import book_table
 # upgrade in a venv reported the old number back. `test_basic.R`'s drift guard
 # now covers this file too; it did not at first, because the guard enumerated
 # manifests and this is source.
-__version__ = "0.0.2"
+__version__ = "0.0.3"
 
 __all__ = [
     # the table
@@ -172,6 +172,7 @@ __all__ = [
     "z_label",
     # rendering
     "render_svg",
+    "save_gif",
     "Page",
     "Plot",
     # the book's example tables

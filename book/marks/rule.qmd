@@ -203,7 +203,7 @@ get either one: spanning the axis a rule does not name is what it always did,
 and in a circle the radial axis runs from the center outward while the angular
 axis runs all the way round.
 
-That is the test a mark has to pass here before it earns a shortcut. The pie
+That is the test a mark has to pass here before it is given a shortcut. The pie
 earned one the same way: stated once, read off the bindings, and meaning the
 same thing in every coordinate space. A rule that needed a special case in polar
 would not have been one rule; it would have been three marks wearing one name.

@@ -2262,6 +2262,26 @@ pub enum Arrange {
 pub struct PageSpec {
     pub arrange: Arrange,
     pub cells: Vec<Figure>,
+    /// How much room the page asks for — [`ThemeSpec::width`] and
+    /// [`ThemeSpec::height`], and nothing else.
+    ///
+    /// **A figure states its own size, and a page is a figure.** Alone, a plot's
+    /// `theme(width =, height =)` is the image's; composed, it is its cell's. The
+    /// page itself was the one figure that could not say, so a composed page was
+    /// always the canvas — two plots side by side each got a cell as tall as a
+    /// whole plot, and a cube fitted into that cell filled a third of it and left
+    /// the rest gray. Reading the size here rather than deriving it from the cells
+    /// is what keeps the statement in the place it is about: the figure is 310px
+    /// tall is one sentence, not the same number written into every cell.
+    ///
+    /// **Size only, deliberately.** Every other theme property describes a
+    /// *panel* — its grid, its frame, its background, the angle of its ticks —
+    /// and a page has no panel, so those refuse with direction rather than
+    /// quietly meaning something. Size is the one property whose subject is the
+    /// figure, which is why it is the one a page can state; a theme that cascades
+    /// its appearance to every cell is a second feature and is not this one.
+    #[serde(default)]
+    pub theme: ThemeSpec,
 }
 
 /// What the engine is asked to draw: one plot, or a page of them.
@@ -2294,14 +2314,20 @@ impl Figure {
     /// How much room this figure asks for along one direction, in pixels, or
     /// `None` if it asks for nothing and will take an even share.
     ///
-    /// `theme(width =, height =)` is where a plot asks. A *page* asks for what
-    /// its cells add up to when they run the way the question is asked, and for
-    /// the widest of them when they run across it — and only when every cell has
-    /// asked, since one cell wanting to fill makes the whole page want to.
+    /// `theme(width =, height =)` is where a figure asks, and both kinds of
+    /// figure have one. A page that states its size asks for that; one that does
+    /// not asks for what its cells add up to when they run the way the question
+    /// is asked, and for the widest of them when they run across it — and only
+    /// when every cell has asked, since one cell wanting to fill makes the whole
+    /// page want to.
+    ///
+    /// **The page's own statement wins over the derivation** (Law 5). The two can
+    /// disagree, and when they do the one a reader wrote is the one that meant
+    /// something; deriving over it would make the stated size a suggestion.
     ///
     /// It lives here rather than in the renderer because the check needs the same
-    /// arithmetic — a page whose cells ask for more than the canvas has is
-    /// refused, and refused with the number it asked for.
+    /// arithmetic — a page whose cells ask for more than the page has is refused,
+    /// and refused with the number it asked for.
     pub fn ask(&self, horizontal: bool) -> Option<f64> {
         match self {
             Figure::Plot(spec) => {
@@ -2309,6 +2335,10 @@ impl Figure {
                 if horizontal { theme.width } else { theme.height }
             }
             Figure::Page(page) => {
+                let stated = if horizontal { page.theme.width } else { page.theme.height };
+                if stated.is_some() {
+                    return stated;
+                }
                 let asks: Vec<Option<f64>> =
                     page.cells.iter().map(|c| c.ask(horizontal)).collect();
                 if asks.iter().any(Option::is_none) {

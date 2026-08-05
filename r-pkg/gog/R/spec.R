@@ -278,6 +278,7 @@ data <- function(df, name = NULL) {
               "which keeps the name: `df |> data()` reads as `data(df)`.",
               call. = FALSE)
       name <- "data"
+      return(new_gog_spec(new_spec(name), name, df, anonymous = name))
     }
   }
   # `new_spec()` is the shared skeleton, and calling it here rather than writing
@@ -310,16 +311,52 @@ new_spec <- function(name) {
   )
 }
 
-new_gog_spec <- function(spec, name, frame) {
+new_gog_spec <- function(spec, name, frame, anonymous = character()) {
   structure(
     list(
       spec          = spec,
       data_frames   = stats::setNames(list(frame), name),
       current_layer = NULL,
-      pending_data  = NULL
+      pending_data  = NULL,
+      # Which of these names the binding invented rather than read. Only a name
+      # the *author* wrote can clash: a generated one means nothing to them, so
+      # it can be renamed to make room. R reads a name from the expression
+      # itself, so the only one it ever invents is the magrittr placeholder's.
+      anonymous     = anonymous
     ),
     class = "gog_spec"
   )
+}
+
+# The names a figure invented, for figures built before the field existed.
+invented <- function(figure) {
+  found <- figure$anonymous
+  if (is.null(found)) character() else found
+}
+
+# The next generated table name nothing is using: `data`, `data2`, ...
+free_name <- function(taken) {
+  if (!("data" %in% taken)) return("data")
+  n <- 2L
+  while (paste0("data", n) %in% taken) n <- n + 1L
+  paste0("data", n)
+}
+
+# Rewrite every reference to a table, through nested pages. A name reaches the
+# wire in exactly two places — the plot's own table, and a layer that reads a
+# different one — so this is the whole rewrite.
+rename_table <- function(cells, old, new) {
+  lapply(cells, function(cell) {
+    if (identical(cell$data, old)) cell$data <- new
+    if (length(cell$layers)) {
+      cell$layers <- lapply(cell$layers, function(layer) {
+        if (identical(layer$data, old)) layer$data <- new
+        layer
+      })
+    }
+    if (!is.null(cell$cells)) cell$cells <- rename_table(cell$cells, old, new)
+    cell
+  })
 }
 
 #' A table that lives in a database
@@ -488,12 +525,22 @@ resolve_query <- function(q, table) {
     # genuine clash refuses.
     if (new_name %in% names(lhs$data_frames) &&
         !identical(lhs$data_frames[[new_name]], rhs$data_frames[[1]])) {
-      stop("gog: two different tables are both called `", new_name,
-           "` \u2014 a layer resolves its bare columns against the nearest table ",
-           "by name, so one of these can never be reached. Give them ",
-           "distinct names: `data(name = \"...\")`.", call. = FALSE)
+      if (!(new_name %in% invented(rhs))) {
+        stop("gog: two different tables are both called `", new_name,
+             "` \u2014 a layer resolves its bare columns against the nearest table ",
+             "by name, so one of these can never be reached. Give them ",
+             "distinct names: `data(name = \"...\")`.", call. = FALSE)
+      }
+      # The binding invented this name, so it can move. Nothing refers to it yet
+      # — a bare `data()` carries no layers — so a free one is the whole rename.
+      fresh <- free_name(names(lhs$data_frames))
+      lhs$data_frames[[fresh]] <- rhs$data_frames[[1]]
+      lhs$anonymous <- c(invented(lhs), fresh)
+      lhs$pending_data <- fresh
+      return(lhs)
     }
     lhs$data_frames <- c(lhs$data_frames, rhs$data_frames)
+    lhs$anonymous <- unique(c(invented(lhs), invented(rhs)))
     lhs$pending_data <- new_name
     return(lhs)
   }
@@ -648,15 +695,47 @@ resolve_query <- function(q, table) {
 #' @export
 `+.gog_atom` <- `+.gog_spec`
 
+# The theme properties that describe a *panel*, and so cannot be said about a
+# page. The engine holds the same list in `check_page_theme`; this copy is what
+# puts the refusal on the line that wrote it.
+PANEL_THEME <- c("preset", "grid", "ratio", "tick_angle", "font_size",
+                 "background", "strip", "strip_text", "frame")
+
 #' @export
 `+.gog_page` <- function(lhs, rhs) {
-  # A page is plots arranged; an atom belongs to one of them. Adding a title to
-  # the page as a whole is real and not built — designed, not implemented — and
-  # saying so beats R's "non-numeric argument to binary operator".
+  # A page is plots arranged, and an atom belongs to one of them — with the one
+  # exception whose subject is the figure rather than a panel. `theme(width =,
+  # height =)` says how big this page is, which is the same sentence a plot
+  # writes about itself, and there is nowhere else to write it: two plots side
+  # by side divide the page's width and each keep the whole of its height, so
+  # only the page can say how much height that is.
+  if (inherits(rhs, "gog_atom") && identical(rhs$type, "theme")) {
+    named <- PANEL_THEME[vapply(PANEL_THEME, function(k) !is.null(rhs[[k]]), logical(1))]
+    if (length(named)) {
+      written <- if ("preset" %in% named) {
+        paste0("theme(\"", rhs$preset, "\")")
+      } else {
+        paste0("theme(", named[1], " = )")
+      }
+      stop("gog: `", written, "` describes a panel, and a page is plots arranged ",
+           "rather than a panel of its own. On a page, `theme()` states how big the ",
+           "figure is — `theme(width = )` and `theme(height = )` — and nothing ",
+           "else. Write this into the plot it describes, before composing: ",
+           "`(plot + ", written, ") | other_plot`.", call. = FALSE)
+    }
+    if (is.null(lhs$page$theme)) lhs$page$theme <- list()
+    for (key in c("width", "height")) {
+      if (!is.null(rhs[[key]])) lhs$page$theme[[key]] <- rhs[[key]]
+    }
+    return(lhs)
+  }
+  # Everything else belongs one level down. Adding a title to the page as a
+  # whole is real and not built — designed, not implemented — and saying so
+  # beats R's "non-numeric argument to binary operator".
   what <- if (inherits(rhs, "gog_atom")) paste0("`", rhs$type, "()`") else "that"
   stop("gog: ", what, " belongs to a plot, and the left side is a page of them. ",
        "Write it into the plot it describes, before composing: ",
-       "`(plot + theme(...)) | other_plot`.", call. = FALSE)
+       "`(plot + title(\"...\")) | other_plot`.", call. = FALSE)
 }
 
 # From R 4.3, when the two operands of a binary operator carry *different* S3
@@ -726,35 +805,70 @@ figure_wire <- function(x) {
 # row of three rather than a row of (a row of two, and one) — the reading the
 # eye gives it. A page running the other way stays a cell of its own, which is
 # what makes `top / (main | right)` two rows, the second holding two plots.
+#
+# A page that has stated its own size does not flatten either, whichever way it
+# runs: flattening keeps the cells and drops the node, and the node is where the
+# size was written. `(a | b) + theme(height = 300) | c` means the pair is 300
+# tall, and folding it into a row of three would silently lose that.
 figure_cells <- function(x, arrange) {
-  if (inherits(x, "gog_page") && identical(x$page$arrange, arrange)) {
+  if (inherits(x, "gog_page") && identical(x$page$arrange, arrange) &&
+      is.null(x$page$theme)) {
     return(x$page$cells)
   }
   list(figure_wire(x))
 }
 
 # Two figures' tables, under Law 4's rule: one name, one table.
-merge_frames <- function(lhs, rhs) {
+# A name the author wrote is theirs and cannot be moved, so two different tables
+# under one of those is still refused. A generated name is the binding's own and
+# means nothing to them, so it gives way instead — which is what keeps a page of
+# two anonymous tables legal, the way a plot of two already is.
+merge_frames <- function(lhs, rhs, lhs_cells = NULL, rhs_cells = NULL) {
   frames <- lhs$data_frames
+  anonymous <- invented(lhs)
+  incoming <- invented(rhs)
   for (name in names(rhs$data_frames)) {
     if (name %in% names(frames) &&
         !identical(frames[[name]], rhs$data_frames[[name]])) {
+      taken <- union(names(frames), names(rhs$data_frames))
+      if (name %in% incoming) {
+        fresh <- free_name(taken)
+        rhs_cells <- rename_table(rhs_cells, name, fresh)
+        frames[[fresh]] <- rhs$data_frames[[name]]
+        anonymous <- c(anonymous, fresh)
+        next
+      }
+      if (name %in% anonymous) {
+        # The author wrote the incoming one; the binding invented the one already
+        # here, so that is the one that moves.
+        fresh <- free_name(taken)
+        lhs_cells <- rename_table(lhs_cells, name, fresh)
+        frames[[fresh]] <- frames[[name]]
+        anonymous <- c(setdiff(anonymous, name), fresh)
+        frames[[name]] <- rhs$data_frames[[name]]
+        next
+      }
       stop("gog: two different tables on one page are both called `", name,
            "` \u2014 a layer resolves its bare columns against the nearest table by ",
            "name, so one of these can never be reached. Give them distinct ",
            "names: `data(name = \"...\")`.", call. = FALSE)
     }
     frames[[name]] <- rhs$data_frames[[name]]
+    if (name %in% incoming) anonymous <- c(anonymous, name)
   }
-  frames
+  list(frames = frames, anonymous = unique(anonymous),
+       lhs_cells = lhs_cells, rhs_cells = rhs_cells)
 }
 
 page_compose <- function(lhs, rhs, arrange, op) {
+  merged <- merge_frames(lhs, rhs,
+                         figure_cells(lhs, arrange), figure_cells(rhs, arrange))
   structure(
     list(
       page = list(arrange = arrange,
-                  cells   = c(figure_cells(lhs, arrange), figure_cells(rhs, arrange))),
-      data_frames = merge_frames(lhs, rhs)
+                  cells   = c(merged$lhs_cells, merged$rhs_cells)),
+      data_frames = merged$frames,
+      anonymous   = merged$anonymous
     ),
     class = "gog_page"
   )

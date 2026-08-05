@@ -50,7 +50,7 @@ include("render.jl")
 include("tables.jl")
 
 export GogError, Plot, Page, Atom, Ordered, ordered
-export data, query, render_svg, save, svg_block, find_gog_cli, to_wire
+export data, query, render_svg, save, save_gif, svg_block, find_gog_cli, to_wire
 export book_table
 
 # marks — the "consonants"

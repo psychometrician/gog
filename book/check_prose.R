@@ -28,9 +28,20 @@
 #
 # Run from the repo root; sourced by r-pkg/gog/tests/test_basic.R.
 
-check_prose <- function(book_dir = "book") {
-  qmds <- list.files(book_dir, pattern = "[.]qmd$", recursive = TRUE, full.names = TRUE)
-  qmds <- qmds[!grepl("/_book/", qmds, fixed = TRUE)]
+# Two directories, not one. The blog is held to the book's rules because it is
+# the same voice reaching the same readers, and a post that reads differently
+# from the manual it links to is the thing this guard exists to prevent. A
+# directory that is absent yields no files and no complaint, so a checkout with
+# only the book still passes.
+check_prose <- function(dirs = c("book", "blog")) {
+  qmds <- unlist(lapply(dirs, function(d)
+    list.files(d, pattern = "[.]qmd$", recursive = TRUE, full.names = TRUE)))
+
+  # One rule for every build directory rather than a list of them: `_book/`,
+  # `_site/` and `_freeze/` are all output, and a `_`-prefixed post is one the
+  # author has deliberately withheld from the listing. This is the same test
+  # `readability.py` already applies.
+  qmds <- qmds[!grepl("/_", qmds, fixed = TRUE)]
 
   # Idiom. The list is a probe rather than a boundary: a phrase meaning something
   # other than the sum of its words is an idiom whether or not it is named here.
@@ -46,7 +57,32 @@ check_prose <- function(book_dir = "book") {
     "silver bullet", "best of both worlds", "from scratch", "bells and whistles",
     "apples to apples", "cuts both ways", "no free lunch",
     "elephant in the room", "tip of the iceberg", "second nature",
-    "load-bearing", "the expert's convenience"
+    "load-bearing", "the expert's convenience",
+    # Added after each one was written into a blog post and read past by the
+    # author, the reviewer and this guard. Every phrase here means something
+    # other than the sum of its words, so a translator has to guess: "held" for
+    # delayed, "part company" for differ, "falls behind" for is out of date.
+    # The `earn` family, in every form. `earns its keep` and `earn their keep`
+    # were on this list from the start and **a gerund walked straight past
+    # them**: "This is the distinction earning its keep" is in `style.qmd` and
+    # passed every build. Matching is `fixed = TRUE`, so each inflection has to
+    # be written out; there is no stem to catch them all.
+    "earning its keep", "earning their keep", "earn its keep",
+    "earns its place", "earn its place", "earning its place",
+    "earns a place", "earn a place", "earns a shortcut", "earn a shortcut",
+    "worth reaching for", "reach for it", "reach for this", "reach for that",
+    "ships with", "ship with", "refuses to ship",
+    "consolation prize", "needing an apology", "needs an apology",
+    "catches people out", "caught out", "takes doing", "getting away with",
+    "check yourself on", "trip-up", "on the roadmap", "the exception that proves",
+    "shrug at", "part company", "parts company", "falls behind",
+    "fall behind", "held back", "the good news", "the bad news",
+    "earned its keep", "on the fly", "down the line", "across the board",
+    "go a long way", "goes a long way", "comes down to", "a far cry",
+    "by and large", "hit the ground", "off the shelf", "battle-tested",
+    "no small feat", "can of worms", "sharp edges", "rough edges",
+    "win-win", "game-changer", "game-changing", "move the needle",
+    "first-class citizen", "nuts and bolts", "in the box"
   )
 
   # `index.qmd` quotes an imagined fluent expert saying "the difficulty earns its
@@ -90,7 +126,7 @@ check_prose <- function(book_dir = "book") {
   # every one of them is a false positive. Keep this list short and concrete: it
   # is cheaper to add a name here than to weaken the rule into uselessness.
   proper <- c("R", "Python", "Julia", "JavaScript", "GOG", "LOESS", "SVG", "PDF",
-              "HTML", "CSS", "SQL", "CSV", "JSON", "Quarto", "Quarto's", "Posit",
+              "GIF", "HTML", "CSS", "SQL", "CSV", "JSON", "Quarto", "Quarto's", "Posit",
               "Arrow", "Anthropic", "Wilkinson", "Playfair", "Herschel", "Bertin",
               "Tufte", "Sejong", "Hangeul", "Hunminjeongeum", "Mercator",
               "Korean", "English", "American", "Law", "Part", "Jupyter",
@@ -279,6 +315,6 @@ check_prose <- function(book_dir = "book") {
     stop("check_prose: ", total, " prose inconsistency(ies)")
   }
 
-  cat("PASS: prose is consistent (", length(qmds), "chapters )\n")
+  cat("PASS: prose is consistent (", length(qmds), "files )\n")
   invisible(TRUE)
 }

@@ -23,6 +23,39 @@
 use gog_core::wire::{self, RenderRequest};
 use std::io::Read;
 
+mod gif;
+
+// ---------------------------------------------------------------------------
+// Arguments
+// ---------------------------------------------------------------------------
+
+/// The value after `name`, for the two flags that take one.
+///
+/// Deliberately not a parser: this binary has three flags, and a dependency that
+/// can describe a hundred is a dependency the engine's users would carry.
+fn flag_value(name: &str) -> Option<String> {
+    let args: Vec<String> = std::env::args().skip(1).collect();
+    args.iter().position(|a| a == name).and_then(|i| args.get(i + 1).cloned())
+}
+
+/// How long one moment holds, in seconds — the same number the SMIL `begin`
+/// attributes are spaced by, read from the same place.
+///
+/// One source, so a GIF and the SVG it came from run at the same pace. Reading
+/// it off the spec rather than passing it out of the renderer keeps
+/// `render_frames` returning frames and nothing else.
+fn frame_seconds(figure: &gog_core::ir::Figure) -> f64 {
+    figure
+        .plots()
+        .iter()
+        .find_map(|p| {
+            p.layers
+                .iter()
+                .find_map(|l| l.encodings.get(&gog_core::ir::Channel::Play))
+        })
+        .map_or(gog_core::ir::FRAME_SECONDS, |d| d.frame_seconds())
+}
+
 // ---------------------------------------------------------------------------
 // Main
 // ---------------------------------------------------------------------------
@@ -100,6 +133,47 @@ fn main() {
     // renderer without passing the gate and drew illegal plots in silence. All
     // this binary decides now is where the words go: diagnostics to stderr, SVG
     // to stdout, 2 on a refusal.
+    // `--gif <path>` writes a file that moves where SVG animation is not read: a
+    // message, a slide, a post. The frames come out of the one renderer and are
+    // only converted here, so what moves is the plot rather than a second
+    // drawing of it. Everything else about this branch is the SVG path's:
+    // diagnostics to stderr, 2 on a refusal.
+    if let Some(path) = flag_value("--gif") {
+        let scale = flag_value("--scale")
+            .and_then(|s| s.parse::<f32>().ok())
+            .filter(|s| s.is_finite() && *s > 0.0)
+            .unwrap_or(1.0);
+        match gog_core::plot::render_frames(&spec, &data) {
+            Ok(frames) => {
+                // Hundredths of a second is the resolution GIF has, and a moment
+                // that rounds to nothing would run the sequence as fast as the
+                // reader's browser felt like. One hundredth is the floor.
+                let delay = ((frame_seconds(&spec) * 100.0).round() as u16).max(1);
+                match gif::write(&frames, &path, scale, delay) {
+                    Ok((w, h)) => {
+                        eprintln!(
+                            "gog: wrote {} moments at {w}x{h} to {path}",
+                            frames.len()
+                        );
+                        println!("{path}");
+                    }
+                    Err(e) => {
+                        eprintln!("gog: {e}");
+                        std::process::exit(1);
+                    }
+                }
+            }
+            Err(diagnostics) => {
+                for d in &diagnostics {
+                    eprintln!("{}", d.message);
+                }
+                eprintln!("{}", gog_core::plot::REFUSED);
+                std::process::exit(2);
+            }
+        }
+        return;
+    }
+
     match gog_core::plot::render_figure(&spec, &data) {
         Ok(drawing) => {
             for d in &drawing.diagnostics {

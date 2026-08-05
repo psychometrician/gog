@@ -61,15 +61,21 @@ bottom. Add a `line` after `point` to draw the line on top of the points.
 
 ### The order of `+`: *data, mark, positions, refinements*
 
-Inside a single layer the channels **commute**: write them in any order and the
-plot is the same. The two lines below draw the identical histogram; the only
-difference is that `color` moved ahead of `x`:
+Inside a single layer the channels **commute**, and the mark commutes among them:
+write the three in any order and the plot is the same. Three things can be
+arranged six ways, so here are all six.
 
 ```{r}
-#| layout-ncol: 2
-data(iris_flowers) + bar * bin + x(petal_length) + color(species)
-data(iris_flowers) + bar * bin + color(species) + x(petal_length)
+((data(iris_flowers) + bar * bin + x(petal_length) + color(species)) |
+   (data(iris_flowers) + bar * bin + color(species) + x(petal_length))) /
+((data(iris_flowers) + x(petal_length) + bar * bin + color(species)) |
+   (data(iris_flowers) + x(petal_length) + color(species) + bar * bin)) /
+((data(iris_flowers) + color(species) + bar * bin + x(petal_length)) |
+   (data(iris_flowers) + color(species) + x(petal_length) + bar * bin))
 ```
+
+Six sentences, one histogram, six times over. Not six plots that look alike:
+the engine emits the same bytes for every one of them.
 
 So if the order does not change the picture, why does every plot in this book
 follow the same one: *data, mark, positions, refinements*? Because a fixed
@@ -105,7 +111,7 @@ matter](#which-orders-matter) below.
 
 #### A refinement far from what it refines
 
-The convention has one spot that catches people out. A grouped bar chart pairs
+One part of the convention is easy to misread. A grouped bar chart pairs
 `dodge` with `color`, yet they land at opposite ends of the sentence, with the
 positions in between:
 
@@ -286,10 +292,13 @@ changes what you get.
 book writes the first only because a fixed order is easier to read:
 
 ```{r}
-#| layout-ncol: 2
-data(gapminder_2007) + point + x(gdp) + y(life)
-data(gapminder_2007) + x(gdp) + point + y(life)
+(data(gapminder_2007) + point + x(gdp) + y(life)) |
+  (data(gapminder_2007) + x(gdp) + point + y(life))
 ```
+
+Both name `life` on `y`, so the two panels share one axis and it is drawn once.
+That is composition doing what the section above said it does, and it is why the
+right panel carries no numbers of its own.
 
 **Refused** is the engine telling you the sentence has no subject yet. A
 setting needs a mark to settle on, and in R a plot needs its table first,

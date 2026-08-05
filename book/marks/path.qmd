@@ -290,7 +290,7 @@ straight line would run from where Alpha stopped to where Bravo began. Color
 answers what the route was carrying; `group` answers which route it is. Two
 questions, two atoms.
 
-A dash survives the segmentation too, which takes doing, because each segment is
+A dash survives the segmentation too, which is harder than it sounds, because each segment is
 drawn as its own piece and a dash normally restarts at the start of a piece:
 
 ```{r}

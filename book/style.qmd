@@ -118,9 +118,9 @@ hatch, so it cannot hand each series in a color split its own. Doing that is a
 [`pattern()` channel](channels.qmd#pattern), the texture twin of `shape()`.
 
 `border_color` and `border_size` (an outline distinct from the fill, `0` = no
-border) belong to the three **closed-glyph fills** (`bar`, `box`, and `point`)
-where the perimeter is a shape composition cannot trace, so a setting is the only
-way to draw it. `color` fills the shape; `border_color` outlines it; the two are
+border) belong to the five **closed-glyph fills** (`bar`, `box`, `point`, `zone`
+and `surface`) where the perimeter is a shape composition cannot trace, so a
+setting is the only way to draw it. `color` fills the shape; `border_color` outlines it; the two are
 independent, so a box can be pale inside and dark-edged:
 
 ```{r}
@@ -229,7 +229,7 @@ rather than being passed to the renderer and painted black:
 data(medals) + bar + x(country) + y(gold) + style(color = "stelblue")
 ```
 
-The predictable trip-up for an R user is that R color names are not CSS
+The mistake an R user predictably makes is that R color names are not CSS
 color names. R's `colors()` includes numbered shades (`gray80`, `gray50`,
 `steelblue3`) that CSS does not have. GOG uses CSS colors because that is
 what SVG accepts and what the other three bindings use too, so the
@@ -283,7 +283,7 @@ data(gapminder_asia) + line + x(year) + y(life) + group(country) +
   title("Set on a line: one width, one opacity")
 ```
 
-This is the distinction earning its keep. "Can a column be mapped here?" and
+This is where the distinction does its work. "Can a column be mapped here?" and
 "does this mark have this property?" are different questions, and `line` is
 where they diverge.
 
@@ -324,6 +324,22 @@ colors the categories receive:
 data(gapminder_2007) + point + x(gdp) + y(life) + color(continent) +
   palette(c("tomato", "steelblue", "seagreen", "goldenrod", "orchid"))
 ```
+
+A palette needs a mapping to hand its colors to. With nothing on `color` it has
+no work to do, so it is refused rather than accepted and then ignored:
+
+```{r}
+#| error: true
+data(gapminder_2007) + point + x(gdp) + y(life) + palette("okabe")
+```
+
+The message names two ways forward, because there are two things a reader may
+have meant. To give each category its own color, bind the column with
+`color(continent)`. To paint every mark one color, that is a setting rather than
+a palette, and `style(color = "steelblue")` is where it belongs.
+
+A mapping need not be written to be there. A `zone * density` measures by color
+with nothing bound ([Zone](marks/zone.qmd)), so a palette is at home on one.
 
 One color, though, is not a palette. `palette()` takes either a **palette
 name** (`"gog"`, `"okabe"`) or a **vector of colors**; a single color name
@@ -507,7 +523,7 @@ it. A pale band keeps the dark ink, so nothing above this point changed.
 This is a derivation, not a convenience. Without it, `theme(strip = "black")`
 would paint the near-black default label onto a near-black band, and every panel
 would lose its name while the plot still looked finished. A guide that is
-silently empty is the failure GOG refuses to ship, so the second half of the
+silently empty is the failure GOG will not release, so the second half of the
 instruction is supplied rather than required.
 
 When the ink is a real choice rather than a legibility question, name it. A navy

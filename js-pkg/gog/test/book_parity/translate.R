@@ -385,6 +385,16 @@ translate_js <- function(source) {
   if (grepl("\\|>", source) || grepl("%>%", source))
     return(list(js = NA_character_, blocked = "R pipe — a host-language idiom"))
 
+  # `save_gif()` names a file, and naming a file is host bookkeeping rather than
+  # grammar: R writes `file.path(tempdir(), …)` and JavaScript spells the same
+  # thing its own way. The two the book documents also bind their plot on the
+  # line above, so what the extractor records is one line short of standing
+  # alone. Declining costs no coverage — a parity run compares the picture a
+  # sentence draws, and this call writes a file instead of returning one.
+  if (grepl("\\bsave_gif[[:space:]]*\\(", source))
+    return(list(js = NA_character_,
+                blocked = "save_gif names a file — host bookkeeping, not a sentence"))
+
   # R's own extractor on a table, as in `df[order(df$pop), ]`, which the R
   # chapter's masked-names section documents. That is host arithmetic rather than
   # a sentence, so JavaScript has nothing to spell it with. Matched as syntax (a

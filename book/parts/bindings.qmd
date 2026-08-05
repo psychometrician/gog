@@ -26,5 +26,5 @@ it spells them as words. It is last for that reason rather than by seniority.
 
 The four chapters are also the claim being tested. Every sentence in this book
 was translated and run through every binding, and they draw the same plots to
-the byte, refuse the same sentences in the same words, and part company only
+the byte, refuse the same sentences in the same words, and differ only
 where a chapter is about the host language itself.

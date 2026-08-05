@@ -180,6 +180,7 @@ book:
 
   appendices:
     - kernel-card.qmd
+    - utilities.qmd
     - combinations.qmd
     - chart-names.qmd
     - phrasebook.qmd

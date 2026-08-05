@@ -25,7 +25,7 @@ in all four languages. Nothing else needs installing.
 
 ## Reading a table
 
-`book_table()` fetches any of the thirty-five by name. It ships with the
+`book_table()` fetches any of the thirty-five by name. It is included with the
 package, so there is nothing to copy:
 
 ::: {.panel-tabset}
@@ -174,7 +174,7 @@ knitr::kable(info, row.names = FALSE)
 
 The tables are not all equally serious. The gapminder cuts are real figures from
 the Gapminder Foundation, released into the public domain. `iris_flowers`,
-`maunga_whau` and `quakes_fiji` are reshaped from tables that ship with R, and
+`maunga_whau` and `quakes_fiji` are reshaped from tables included with R, and
 carry R's own license. Everything else is written for this book to make a
 particular point, and `census` in particular is two plausible city profiles
 rather than any real census. The terms for each are in

@@ -38,18 +38,21 @@ Two properties matter most, and a projection can keep one of them, never both.
 `preserve` says which:
 
 ```{r}
-#| layout-ncol: 2
-data(world_borders) + path + x(lon) + y(lat) + group(piece) +
-  map(preserve = "area") + title("preserve = \"area\"")
-
-data(world_borders) + path + x(lon) + y(lat) + group(piece) +
-  map(preserve = "angle") + title("preserve = \"angle\"")
+(data(world_borders) + path + x(lon) + y(lat) + group(piece) +
+   map(preserve = "area") + title("preserve = \"area\"")) /
+  (data(world_borders) + path + x(lon) + y(lat) + group(piece) +
+     map(preserve = "angle") + title("preserve = \"angle\""))
 ```
 
-Look at Greenland, at the top left of each map, and compare it with Africa. On
-the left, Greenland is small, which is correct: Africa is about fourteen times
-larger. On the right, Greenland has grown until it rivals Africa. The right-hand
+Look at Greenland, at the top left of each map, and compare it with Africa. In
+the first, Greenland is small, which is correct: Africa is about fourteen times
+larger. In the second, Greenland has grown until it rivals Africa. The second
 map has kept every small shape's true form and paid for it in size.
+
+The two are the same width and not the same height, and that is the projection
+speaking rather than the page. Both cover every degree of longitude, so `/`
+gives them one `lon` axis and one width. Keeping every small shape's form is
+what stretches the second one north and south.
 
 `preserve = "area"` is the default, and the reason is what a reader does with a
 map. A map is usually read by comparing how much space something takes. A
@@ -255,7 +258,7 @@ data(world_borders) + zone + x(lon) + y(lat) + group(country) +
 ```
 
 Two layers again, and the first one is doing real work. `gapminder_2007` covers
-120 of the 176 countries in the outline table, so the pale grey layer underneath
+120 of the 176 countries in the outline table, so the pale gray layer underneath
 is what the reader sees where there is no number. Without it those countries
 would simply be absent, and a reader could not tell "no data" from "no country".
 

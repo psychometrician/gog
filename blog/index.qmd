@@ -1,0 +1,61 @@
+---
+pagetitle: "psychometrician"
+listing:
+  contents: posts
+  sort: "date desc"
+  type: default
+  categories: true
+  fields: [image, date, title, reading-time, description, categories]
+  # Nothing changes until there are more than ten posts, and then numbered pages
+  # appear instead of a front page that scrolls for five thousand pixels. Set
+  # now rather than later, because the default is to show every post forever and
+  # it degrades quietly: no warning, just a page that keeps getting longer.
+  page-size: 10
+  feed:
+    # `full` is already the default in Quarto 1.8, and it is written out anyway.
+    # An unrecognized value here does not fail: it falls through to a feed of
+    # metadata only, which looks like a feed and carries no article. R-bloggers
+    # and JuliaBloggers both want the whole text.
+    type: full
+    items: 10
+    language: en-us
+    # One extra feed per name, written to `index-<name>.xml` beside the main
+    # one. The match against a post's own `categories:` is exact and case
+    # sensitive, and only the filename is lowered, never slugified, so a name
+    # with a space in it produces a filename with a space in it. Single words.
+    #
+    # Two names and not four, because only two of the four communities pull.
+    # R-bloggers and JuliaBloggers each take a feed address once and republish
+    # from it forever. Python and JavaScript have no equivalent: PyCoder's
+    # Weekly wants a form filled in per post and JavaScript Weekly wants an
+    # email, so a `python.xml` would have no subscriber.
+    #
+    # These two are worth writing even while every post carries every language
+    # and all three feeds come out identical. The address given to an aggregator
+    # is given once and is awkward to change, so the question is not which feed
+    # is right today but which is still right after the first post that is not
+    # about all four. `index.xml` would carry that one to R-bloggers; this does
+    # not. A category here means the post belongs in that community's feed, not
+    # that the language is mentioned in it.
+    categories: [rstats, julialang]
+page-layout: full
+---
+
+::: {.site-hero}
+![](images/gog_hex.png){.site-hero-img fig-alt="The GOG hex sticker: a peach hexagon holding a face built from the four operators."}
+
+::: {.site-hero-text}
+# We build tools for looking at data.
+
+**GOG** is a grammar of graphics: one engine written in Rust, spoken from R,
+Python, Julia and JavaScript. Describe a plot in any of the four and you get the
+same picture, not a similar one.
+
+The posts below are short pieces, each introducing one part of GOG. To see
+everything it can do, we recommend
+[the book](https://psychometrician.github.io/gog-book/): 654 plots, and not one
+of them is a screenshot.
+
+[Be agog. Use gog.]{.site-slogan}
+:::
+:::

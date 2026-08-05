@@ -154,6 +154,76 @@ test("attachDrag is exported and refuses politely without a DOM", () => {
   assert.equal(typeof attachDrag, "function");
 });
 
+test("a composed page of cubes is spatial, and its cells keep their own angles", async () => {
+  // A page has no coordinate of its own — each cell keeps its space — so asking
+  // the top level said "flat" for a page of cubes and the drag was never
+  // attached. `hasBrush` had recursed all along, which is what made one file
+  // answer the same shape of question two ways.
+  const page = {
+    arrange: "beside",
+    cells: [cube(60, 40).spec, cube(30, 10).spec],
+  };
+  assert.equal(isSpatial(page), true, "a page of cubes has an angle to drag");
+  assert.equal(isSpatial({ arrange: "beside", cells: [] }), false, "an empty page has none");
+
+  // A page holding one cube and one flat plot is still draggable: the cube turns
+  // and the flat cell has no angle to turn.
+  const flat = cube().spec;
+  flat.coord = "flat";
+  delete flat.layers[0].encodings.z;
+  assert.equal(isSpatial({ arrange: "beside", cells: [flat, cube().spec] }), true);
+  assert.equal(isSpatial({ arrange: "beside", cells: [flat, flat] }), false);
+
+  const undo = stubDom();
+  try {
+    const engine = await loadEngine(fs.readFileSync(WASM));
+    const container = stubContainer();
+    const req = { spec: page, data: cube().data };
+    const handle = attachDrag(engine, container, req, { degreesPerPixel: 1 });
+
+    // The drag works on a copy, so the caller's spec is never rotated under it.
+    assert.deepEqual(req.spec.cells.map((c) => c.coord.space),
+                     [{ turn: 60, tilt: 40 }, { turn: 30, tilt: 10 }],
+                     "the sentence the caller wrote is left alone");
+    assert.deepEqual(handle.view(), { turn: 60, tilt: 40 },
+                     "the readout opens on the first cell's own angle");
+
+    // **The drag carries a change, not an angle**, and this is the assertion that
+    // says so: after one gesture the page draws *exactly* as one whose cells
+    // were written at 40/70 and 10/40. Comparing the picture rather than
+    // reading state back is what proves it reached **every** cell — one absolute
+    // angle across the page would have collapsed both onto one pair, and a
+    // per-cell readout could not tell the difference.
+    // The signs are the second claim, and they are the half nothing watched: the
+    // gesture moves the **object**, so dragging right (+20) carries the near face
+    // right, which walks the camera the other way and drops `turn`; dragging down
+    // (+30) tips that face down and opens the top, which lifts the camera and
+    // raises `tilt`. Both are inverted from the angles they set. The old drag
+    // moved x alone, so the tilt sign was never pinned at all and the turn sign
+    // was pinned backwards.
+    container.send("pointerdown", 100, 100);
+    container.send("pointermove", 120, 130);
+    container.send("pointerup", 120, 130);
+    assert.deepEqual(handle.view(), { turn: 40, tilt: 70 },
+                     "the cube follows the pointer, both ways at once");
+
+    const turned = renderSpec(engine, {
+      spec: { arrange: "beside", cells: [cube(40, 70).spec, cube(10, 40).spec] },
+      data: cube().data,
+    });
+    assert.equal(container.innerHTML, turned.svg,
+                 "each cell turned by the same delta, from its own angle");
+
+    handle.reset();
+    assert.deepEqual(handle.view(), { turn: 60, tilt: 40 });
+    const home = renderSpec(engine, { spec: page, data: cube().data });
+    assert.equal(container.innerHTML, home.svg,
+                 "reset returns every cell to the angle its own sentence named");
+  } finally {
+    undo();
+  }
+});
+
 // ---------------------------------------------------------------------------
 // brush — what a page needs, which turned out to be nothing in the engine
 //

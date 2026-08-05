@@ -208,7 +208,7 @@ render_svg(plot(query(con, "SELECT status, revenue FROM orders"),
   bar, x(col.status), y(col.revenue)));
 ```
 
-`node:sqlite` ships with Node from version 22, so that example needs nothing
+`node:sqlite` is included with Node from version 22, so that example needs nothing
 installed. `better-sqlite3` has the same shape and works the same way.
 
 ### Asynchronous drivers are refused

@@ -26,8 +26,8 @@
 use crate::color::{css_rgb, is_valid_color, nearest_color, numbered_shade};
 use crate::data::DataFrame;
 use crate::ir::{
-    Channel, ChannelDef, CoordSpace, Figure, Layer, Mark, PaletteDef, PlotSpec, ScaleType,
-    StyleSpec, Transform,
+    Channel, ChannelDef, CoordSpace, Figure, Layer, Mark, PageSpec, PaletteDef, PlotSpec,
+    ScaleType, StyleSpec, ThemeSpec, Transform,
 };
 use crate::transform::Job;
 use std::collections::HashMap;
@@ -2163,9 +2163,50 @@ pub fn measure_field<'a>(spec: &'a PlotSpec, layer: &'a Layer) -> Option<&'a str
 /// second then drew a heatmap of cell means beside a key that spanned the raw
 /// column's range — self-consistent fills under a legend that decoded them wrongly,
 /// which is §12's silent wrongness rather than a cosmetic slip.
+/// **Asked of the column, not of the channel.** Stating it as *does this mark measure
+/// by color* is true for a `zone` and false for a `surface`, which measures up along
+/// `z` — so `zone * density + color(density)` drew and `surface * density +
+/// color(density)` was refused as a misspelled column, one transform behaving two
+/// ways depending on the mark it fed. That is the per-mark special case Law 2 forbids
+/// and the silent letter Law 6 forbids, and the same wrong question was answering for
+/// the legend: past the refusal the sheet ramped correctly with no key beside it,
+/// because the domain was looked for in the raw table where the estimate does not
+/// exist. One predicate, so both are right together.
 pub fn color_is_the_measurement(spec: &PlotSpec, layer: &Layer) -> bool {
-    reads_two_dimensions(&layer.mark, &layer.transforms, space_of(spec))
-        && measure_channel(&layer.mark, space_of(spec)) == Some(Channel::Color)
+    if !reads_two_dimensions(&layer.mark, &layer.transforms, space_of(spec)) {
+        return false;
+    }
+    // The mark measures by color, so whatever `color` names here is that measurement
+    // — the flat readings, where `check_field` has already refused every other field.
+    if measure_channel(&layer.mark, space_of(spec)) == Some(Channel::Color) {
+        return true;
+    }
+    // Or the mark measures up along `z` and the reader named that same measurement on
+    // `color` as well — the height said twice, which is a `surface`'s to accept
+    // because a face is small enough to hold one value (§15). Named, so a reader who
+    // binds some *other* column keeps the ordinary check.
+    binding_of(spec, layer, &Channel::Color).map(|d| d.field.as_str())
+        == measurement_column(spec, layer)
+}
+
+/// The column this layer's own measurement rides in, whatever channel carries it.
+///
+/// [`field_measure`] answers this for the flat readings, where a mark with no measure
+/// axis measures by color and the *geometry* decides the name — rings by the level
+/// they were cut at, cells by what was tallied or estimated in each. In the cube the
+/// same measurement stands up along `z` instead, under the name the transform
+/// synthesized, which is the column `svg.rs` fits the third axis to. Both are the
+/// layer's own measurement; only the channel carrying it differs.
+///
+/// `None` for the five that **reduce a column the reader named**: they rewrite it in
+/// place, so the measurement is in the user's own column and needs no exemption
+/// anywhere.
+pub fn measurement_column(spec: &PlotSpec, layer: &Layer) -> Option<&'static str> {
+    field_measure(layer).or_else(|| {
+        reads_two_dimensions(&layer.mark, &layer.transforms, space_of(spec))
+            .then(|| crate::transform::cell_measure(&layer.transforms))
+            .flatten()
+    })
 }
 
 /// Does this layer read a **field** — a continuous plane, cut or estimated?
@@ -4474,9 +4515,19 @@ pub fn check_figure(figure: &Figure, data: &HashMap<String, DataFrame>) -> Vec<D
 /// it, deliberately: a nested page has less room than that, so this can only
 /// ever miss an over-full page, never refuse one that fits. A refusal that fires
 /// on a legal sentence is a much worse failure than a squeeze that draws.
+///
+/// A page that states its own size is measured against *that*, and hands it down
+/// to the pages nested inside it. Otherwise the refusal would quote the canvas at
+/// someone who had already said the figure was smaller, and name a number that
+/// appears nowhere in what they wrote.
 fn check_page_fits(out: &mut Vec<Diagnostic>, figure: &Figure, canvas: (f64, f64)) {
     let Figure::Page(page) = figure else { return };
+    check_page_theme(out, page);
 
+    let canvas = (
+        page.theme.width.unwrap_or(canvas.0),
+        page.theme.height.unwrap_or(canvas.1),
+    );
     let horizontal = page.arrange == crate::ir::Arrange::Beside;
     let (limit, dimension, word) = if horizontal {
         (canvas.0, "width", "beside")
@@ -4497,6 +4548,88 @@ fn check_page_fits(out: &mut Vec<Diagnostic>, figure: &Figure, canvas: (f64, f64
     }
     for cell in &page.cells {
         check_page_fits(out, cell, canvas);
+    }
+}
+
+/// What a page's `theme()` may say: how big the figure is, and nothing else.
+///
+/// Every other theme property describes a **panel** — the grid drawn on it, the
+/// frame around it, its background, the band above it, the angle its tick labels
+/// are read at, the type they are set in. A page has no panel; it is plots
+/// arranged, each with a panel of its own. So a property landing here has no
+/// subject to describe, and taking it in silence would be the accept-and-drop
+/// §12 forbids. The direction is the same for every one of them, because the
+/// place it does mean something is one level down.
+///
+/// Size is the exception because size is the one theme property whose subject is
+/// the *figure*: a plot states how much room it wants, a page states how much
+/// room it wants, and composed, the first is a cell of the second. A `theme()`
+/// that cascaded its appearance to every cell is a real thing to want and a
+/// second feature; one atom whose properties scattered to two different scopes
+/// is the double meaning §13 exists to catch.
+fn check_page_theme(out: &mut Vec<Diagnostic>, page: &PageSpec) {
+    let t = &page.theme;
+    let panel_properties: [(&str, bool); 9] = [
+        ("preset", t.preset.is_some()),
+        ("grid", t.grid.is_some()),
+        ("ratio", t.ratio.is_some()),
+        ("tick_angle", t.tick_angle.is_some()),
+        ("font_size", t.font_size.is_some()),
+        ("background", t.background.is_some()),
+        ("strip", t.strip.is_some()),
+        ("strip_text", t.strip_text.is_some()),
+        ("frame", t.frame.is_some()),
+    ];
+    for (name, stated) in panel_properties {
+        if !stated {
+            continue;
+        }
+        // Quoted back the way it was written, so the refusal names the reader's
+        // own sentence: a preset is the first argument and has no name.
+        let written = match (name, t.preset.as_deref()) {
+            ("preset", Some(preset)) => format!("theme(\"{preset}\")"),
+            _ => format!("theme({name} = )"),
+        };
+        out.push(Diagnostic {
+            kind: DiagnosticKind::Unsupported,
+            message: format!(
+                "gog: `{written}` describes a panel, and a page is plots arranged rather \
+                 than a panel of its own. On a page, `theme()` states how big the figure \
+                 is — `theme(width = )` and `theme(height = )` — and nothing else. Write \
+                 this into the plot it describes, before composing: \
+                 `(plot + {written}) | other_plot`."
+            ),
+        });
+    }
+
+    check_theme_size(
+        out,
+        t,
+        "the page",
+        "It is the whole figure's size, which the plots composed onto it then divide \
+         between them.",
+    );
+}
+
+/// `theme(width =, height =)` is a size wherever it is written, so one function
+/// checks it for a plot and for a page.
+///
+/// Both are checked by one closure over the two names for the reason the pair is
+/// checked by one function over the two figures: a rule stated twice is a rule
+/// that drifts, and the floor is the part that would drift first.
+fn check_theme_size(out: &mut Vec<Diagnostic>, theme: &ThemeSpec, asker: &str, then: &str) {
+    for (name, value) in [("width", theme.width), ("height", theme.height)] {
+        if let Some(v) = value {
+            if !(v.is_finite() && v >= MIN_PLOT_SIZE) {
+                out.push(Diagnostic {
+                    kind: DiagnosticKind::Illegal,
+                    message: format!(
+                        "gog: `theme({name} = {v})` is not a size — it is how many pixels \
+                         {asker} asks for, so it must be at least {MIN_PLOT_SIZE}. {then}"
+                    ),
+                });
+            }
+        }
     }
 }
 
@@ -4727,6 +4860,42 @@ pub fn check(spec: &PlotSpec, data: &HashMap<String, DataFrame>) -> Vec<Diagnost
             // output column too. `check_field` has already refused every *other*
             // field here, so reaching this line means the name is the synthesized one.
             if *channel == Channel::Color && measures_cells(&layer.mark, &layer.transforms) {
+                continue;
+            }
+
+            // The same exemption a second time, for a reading that measures with `z`
+            // and is asked to ramp by that measurement too: `surface * density +
+            // color(density)` names the estimate the sheet is already raised by. It
+            // is an output column exactly as a `zone`'s is, so refusing it as a
+            // misspelling was `density` behaving differently under one mark than
+            // under another, and the message sent the reader after a typo that was
+            // not there. The redundancy is the volcano's, which the manual argues
+            // for: a ramp says the heights out loud where slope shading leaves them
+            // to be inferred. Taste is the reader's (Law 8), and grammar does not
+            // refuse a legal sentence for being emphatic.
+            //
+            // **Named rather than blanket**, so `color(<anything else>)` keeps the
+            // ordinary missing-column check — the exemption is for this layer's own
+            // measurement, not for every color binding on a mark that has one.
+            if *channel == Channel::Color && measurement_column(spec, layer) == Some(*field) {
+                // Only where the mark's color can actually carry a number. A 3-D
+                // `bar` measures with `z` too and takes a **categorical** color only
+                // (a column is a region, `area`'s ruling), so exempting it here would
+                // hand the renderer a binding it drops in silence — §12's silent
+                // letter, and the one failure the manual promises never happens. It
+                // gets the refusal it always deserved instead of a spelling hint.
+                if r.renders.is_some_and(|v| v.accepts(VarType::Continuous)) {
+                    continue;
+                }
+                out.push(Diagnostic {
+                    kind: DiagnosticKind::Illegal,
+                    message: format!(
+                        "gog: `{c}({field})` names the {field} this {m} measures, but \
+                         `{c}` on `{m}` needs a categorical (text) column. That \
+                         measurement is already the height here, so drop \
+                         `{c}({field})` and read it off the {field} axis."
+                    ),
+                });
                 continue;
             }
 
@@ -5132,23 +5301,15 @@ fn check_theme(out: &mut Vec<Diagnostic>, spec: &PlotSpec) {
         }
     }
 
-    // A size has to be a size. Both are checked by one closure because they are
-    // one property asked twice, and a rule stated twice is a rule that drifts.
-    for (name, value) in [("width", spec.theme.width), ("height", spec.theme.height)] {
-        if let Some(v) = value {
-            if !(v.is_finite() && v >= MIN_PLOT_SIZE) {
-                out.push(Diagnostic {
-                    kind: DiagnosticKind::Illegal,
-                    message: format!(
-                        "gog: `theme({name} = {v})` is not a size — it is how many pixels \
-                         the plot asks for, so it must be at least {MIN_PLOT_SIZE}. On its \
-                         own it sizes the image; composed onto a page it sizes the cell, \
-                         which is how a marginal plot says it is thin."
-                    ),
-                });
-            }
-        }
-    }
+    // A size has to be a size, and a page's size is checked by the same function
+    // for the same reason the two dimensions share one loop.
+    check_theme_size(
+        out,
+        &spec.theme,
+        "the plot",
+        "On its own it sizes the image; composed onto a page it sizes the cell, which is \
+         how a marginal plot says it is thin.",
+    );
 }
 
 /// The smallest plot worth drawing, in pixels. Below this there is no room for a
@@ -8514,6 +8675,62 @@ fn tick(names: &[&str]) -> Vec<String> {
 /// read as a palette *name*, failed to match one, and fell through to the
 /// default — the plot rendered in the wrong colors with nothing said.
 fn check_palette(out: &mut Vec<Diagnostic>, spec: &PlotSpec, data: &HashMap<String, DataFrame>) {
+    let before = out.len();
+    check_palette_value(out, spec, data);
+    // **Validity first, usage second.** A misspelled palette is a mistake about the
+    // palette; having nothing to color is a mistake about the sentence around it.
+    // Reporting the second while the first is true would send a reader to bind a
+    // column when what they typed was `stelblue`.
+    if out.len() == before {
+        check_palette_is_used(out, spec);
+    }
+}
+
+/// **A palette with nothing to color does nothing, and saying nothing about it is
+/// the silent drop §12 forbids.** `palette("viridis")` on a plot that maps no
+/// `color` rendered byte for byte identically to the same sentence without it,
+/// which is exactly what the manual's Design Laws chapter promises never happens:
+/// *"It does not quietly drop the channel and hand you a plot that looks
+/// finished."* The engine was contradicting the book in writing.
+///
+/// **Inert for every other channel**, measured rather than assumed: rendering with
+/// and without a palette gives identical bytes for `pattern`, `shape` and `size`,
+/// and differs only for `color`. So no reading of the sentence makes it mean
+/// something, and refusing costs nobody a plot they wanted.
+///
+/// **A color need not be written to be mapped**, which is the half that makes this
+/// more than a one-line check. A `zone * density` puts its estimate on `color` with
+/// no `color()` in the sentence at all, and twelve chunks of the manual are written
+/// that way — `field_measure` is what knows, and asking only for a binding would
+/// have refused every heatmap in the book.
+fn check_palette_is_used(out: &mut Vec<Diagnostic>, spec: &PlotSpec) {
+    if matches!(spec.palette, PaletteDef::Auto) {
+        return;
+    }
+    // Both scopes are asked. A plot-scoped `color` reaches only the layers that
+    // accept it, so a spec can carry the binding while no layer does — and that
+    // case is the *binding's* to report, not the palette's.
+    let mapped = spec.channels.contains_key(&Channel::Color)
+        || spec.layers.iter().any(|l| {
+            l.encodings.contains_key(&Channel::Color) || field_measure(l).is_some()
+        });
+    if !mapped {
+        out.push(Diagnostic {
+            kind: DiagnosticKind::Illegal,
+            message:
+                "gog: `palette()` chooses the colors a `color` mapping hands out, and \
+                 nothing here maps `color`, so it would have no effect. Bind a column \
+                 with `color(<column>)` to use it — or, to paint every mark one color, \
+                 that is a setting rather than a palette: `style(color = \"…\")`."
+                    .to_string(),
+        });
+    }
+}
+
+fn check_palette_value(
+    out: &mut Vec<Diagnostic>, spec: &PlotSpec, data: &HashMap<String, DataFrame>,
+) {
+
     const CATEGORICAL: &[&str] = CATEGORICAL_PALETTES;
     // Both ramp kinds want a number; they differ in what they do with it, which
     // is the reader's choice and not something to refuse over.
@@ -9536,6 +9753,80 @@ mod tests {
     }
 
     #[test]
+    fn a_layer_may_name_its_own_measurement_on_color_whichever_channel_carries_it() {
+        // **One transform, one behavior, on every mark that can draw it** (Law 2).
+        // `density` publishes its estimate under the name `density`, and a reader may
+        // say that name out loud on `color`. That worked on a `zone`, which measures
+        // *by* color, and was refused on a `surface`, which measures up along `z` — so
+        // the exemption was keyed on the mark's measure channel rather than on the
+        // column, and the same sentence was legal under one mark and a misspelling
+        // under another. The refusal also sent the reader after a typo that was not
+        // there, which is the one thing §12 says a message must never do.
+        let scatter = HashMap::from([(
+            "t".to_string(),
+            DataFrame::new()
+                .with_float("x", vec![0.11, 0.42, 0.77, 0.93, 0.28])
+                .with_float("y", vec![0.51, 0.13, 0.88, 0.34, 0.67]),
+        )]);
+        let sheet = |color: &str| {
+            PlotSpec::new().data("t").x("x").y("y")
+                .coord(CoordSpace::Space(crate::ir::SpaceView::default()))
+                .layer(
+                    Layer::new(Mark::Surface)
+                        .transform(Transform::Density)
+                        .encode(Channel::Color, color),
+                )
+        };
+        let d = check(&sheet("density"), &scatter);
+        assert!(d.is_empty(), "the sheet may be ramped by its own estimate: {:?}", msgs(&d));
+
+        // **Named, not blanket.** The exemption is for this layer's measurement alone,
+        // so a misspelling of it — and any other absent column — still lands where it
+        // did. Without this the check would wave every color binding through on any
+        // mark that measures something, which is a wider hole than the one it closes.
+        for wrong in ["denstiy", "nosuchcolumn"] {
+            let d = check(&sheet(wrong), &scatter);
+            assert_eq!(kinds(&d), vec![DiagnosticKind::Illegal], "{wrong}: {:?}", msgs(&d));
+            assert!(d[0].message.contains("not in the data"), "{wrong}: {}", d[0].message);
+        }
+
+        // And the flat readings are untouched — the half that always worked, pinned so
+        // widening the question cannot narrow it.
+        let flat = PlotSpec::new().data("t").x("x").y("y").layer(
+            Layer::new(Mark::Zone).transform(Transform::Density).encode(Channel::Color, "density"),
+        );
+        assert!(check(&flat, &scatter).is_empty(), "{:?}", msgs(&check(&flat, &scatter)));
+    }
+
+    #[test]
+    fn a_mark_whose_color_cannot_hold_a_number_says_so_rather_than_blaming_the_spelling() {
+        // The other side of the exemption, and the reason it is gated rather than
+        // general. A 3-D `bar` measures with `z` exactly as a surface does, and takes a
+        // **categorical** color only — a column is a region, which is `area`'s ruling.
+        // So `color(count)` there must stay refused: waving it through would hand the
+        // renderer a binding it drops in silence, and a silently ignored binding is the
+        // silent letter this grammar is built against. What it must not do is call a
+        // correctly spelled word a typo.
+        let df = HashMap::from([(
+            "t".to_string(),
+            DataFrame::new()
+                .with_float("x", vec![0.1, 0.4, 0.7, 0.9])
+                .with_float("y", vec![0.5, 0.1, 0.8, 0.3]),
+        )]);
+        let spec = PlotSpec::new().data("t").x("x").y("y")
+            .coord(CoordSpace::Space(crate::ir::SpaceView::default()))
+            .layer(
+                Layer::new(Mark::Bar)
+                    .transform(Transform::Bin)
+                    .encode(Channel::Color, "count"),
+            );
+        let d = check(&spec, &df);
+        assert_eq!(kinds(&d), vec![DiagnosticKind::Illegal], "{:?}", msgs(&d));
+        assert!(!d[0].message.contains("spelling"), "the word is spelled right: {}", d[0].message);
+        assert!(d[0].message.contains("categorical"), "say what color needs: {}", d[0].message);
+    }
+
+    #[test]
     fn a_grid_with_a_gap_draws_and_counts_the_crossings_it_is_missing() {
         // Legitimate and reported: a response surface can be missing a cell, so
         // refusing it would be taste enforced as legality (Law 8) — but a mesh silently
@@ -10250,6 +10541,31 @@ mod tests {
     }
 
     #[test]
+    fn a_palette_with_nothing_to_color_is_refused_rather_than_dropped() {
+        // It rendered byte for byte identically to the same sentence without it,
+        // which is the silent drop §12 forbids and which the manual's Design Laws
+        // chapter promises never happens in as many words. Inert for every other
+        // channel too, measured rather than assumed, so there is no reading under
+        // which the sentence means something.
+        let mut spec = base().layer(Layer::new(Mark::Point));
+        spec.palette = PaletteDef::Named("okabe".into());
+        let d = check(&spec, &data());
+        assert_eq!(kinds(&d), vec![DiagnosticKind::Illegal], "{:?}", msgs(&d));
+        assert!(d[0].message.contains("color(<column>)"), "name the fix: {}", d[0].message);
+        assert!(d[0].message.contains("style(color"), "and the setting: {}", d[0].message);
+
+        // A bound `color` is all it takes, from either scope — a plot-scoped one
+        // reaches the layer, so the palette has something to hand out.
+        let mut spec = base().layer(Layer::new(Mark::Point).encode(Channel::Color, "continent"));
+        spec.palette = PaletteDef::Named("okabe".into());
+        assert!(check(&spec, &data()).is_empty(), "{:?}", msgs(&check(&spec, &data())));
+
+        // And the default palette says nothing, since every plot carries one.
+        let plain = base().layer(Layer::new(Mark::Point));
+        assert!(check(&plain, &data()).is_empty(), "{:?}", msgs(&check(&plain, &data())));
+    }
+
+    #[test]
     fn a_palette_must_match_the_kind_of_column_it_colors() {
         // A palette is chosen for a column. Asking for the wrong kind is a
         // mistake worth naming, not something to silently resolve either way.
@@ -10700,12 +11016,17 @@ mod tests {
 
     #[test]
     fn the_named_palettes_and_css_color_lists_still_pass() {
+        // The layers bind `color` because this test is about the palette's *name*
+        // being valid, and a palette with nothing to color is now its own refusal
+        // (`a_palette_with_nothing_to_color_is_refused_rather_than_dropped`). Without
+        // the binding this would pass or fail for the wrong reason.
+        let colored = || base().layer(Layer::new(Mark::Point).encode(Channel::Color, "continent"));
         for name in ["gog", "okabe"] {
-            let mut spec = base().layer(Layer::new(Mark::Point));
+            let mut spec = colored();
             spec.palette = PaletteDef::Named(name.into());
             assert!(check(&spec, &data()).is_empty(), "{name} should be a palette");
         }
-        let mut spec = base().layer(Layer::new(Mark::Point));
+        let mut spec = colored();
         spec.palette = PaletteDef::Custom(vec!["red".into(), "#4e79a7".into()]);
         assert!(check(&spec, &data()).is_empty());
     }

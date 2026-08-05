@@ -1,0 +1,37 @@
+/.quarto/
+/_site/
+/site_libs/
+/_freeze/
+**/*.quarto_ipynb
+
+# Rendered HTML never belongs in git. `quarto render` writes the site into
+# `_site/`, ignored above, so nothing sitting beside a `.qmd` is a source file.
+# The book's copy of this rule records what it is guarding against: thirty
+# chapters were once committed as byte-identical duplicates of the ignored
+# output, and because a full render deletes them, every later render produced
+# thirty spurious deletions and invited someone to copy them back.
+*.html
+
+# The one hand-written HTML in this directory, un-ignored explicitly rather than
+# by loosening the rule above, which is what `book/.gitignore` asks for. It is
+# `include-after-body`: it colors the language tags, opens outbound links in a
+# new tab, and keeps the two syndication categories out of the archive table.
+# Without it the site still builds and quietly loses all three.
+!/tags.html
+
+*_files/
+*.knit.md
+/Rplots.pdf
+
+# Staged by `R/copy-assets.R` before each render so Quarto can publish them
+# beside the pages that fetch them. The first three are build output of a cargo
+# invocation, the fourth is a copy of the book's stylesheet. Named here as well
+# as in the root allowlist, because `blog/` is a public directory where a stray
+# 823 KB binary would otherwise simply be committed.
+/gog.wasm
+/interactive.js
+/view.js
+/gog.css
+
+# Staged from the repository's `images/`, where the README reads it too.
+/images/pipeline.svg

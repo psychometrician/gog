@@ -313,7 +313,7 @@ This is worth more here than anywhere else in the book. Something is moving
 inside a solid shape. The only way to see what the near edge hides is to look
 around it.
 
-Panels and frames do not part company here, which is the point. They are one
+Panels and frames do not come apart here, which is the point. They are one
 split asked twice, so crossing them costs nothing: the panels divide the page,
 the frames divide the clock, and each panel projects the cube its own rectangle
 has room for.
@@ -408,6 +408,83 @@ widens a little from 58% to 61%, Europe falls from 17% to 9%, and Africa grows b
 half again, from 10% to 15%. Two sentences, one atom apart, answering two
 different questions about the same column. Choosing between them is the reader's
 job and the grammar's business is to keep both sayable.
+
+## Taking the sequence with you
+
+Every plot on this page moves because the SVG carries its own timing. A browser
+reads that timing. Most other places do not. A message to a friend, a slide in a
+talk, a post on a social site: each of them shows the first frame and stops.
+
+`save_gif()` writes the same sequence as a file those places do play:
+
+```{r}
+wave <- file.path(tempdir(), "wave.gif")
+save_gif(data(ripples) + surface + x(across) + y(along) + z(height) +
+           color(height) + palette("plasma") + play(instant, speed = 4) |
+           facet(tank),
+         wave, scale = 2)
+cat(basename(wave), round(file.size(wave) / 1024), "KB\n")
+```
+
+Nothing has to be installed first. The engine converts and encodes the file
+itself, so the same line works on every machine that can draw the plot at all.
+
+`scale` multiplies the canvas. A plot is 800 by 600 pixels unless its theme says
+otherwise, which is small for a post, so `scale = 2` doubles both numbers. The
+pace carries over without being restated: this sequence was written `speed = 4`,
+and each frame holds for a fifth of a second in the file as it does on the page.
+
+The file cannot disagree with the plot beside it, and the reason is worth one
+paragraph, because it is the same reason the last section gives for having one
+renderer. The frames are not drawn again one at a time. The plot is drawn once,
+with every scale, the color map and each legend fitted across the whole sequence,
+and each frame is that single drawing with one moment left showing. So there is
+no second set of decisions that could come out different.
+
+Two sentences are refused. A plot with no `play()` has no moments to write, and
+saying so is more useful than writing a file of one frame:
+
+```{r}
+#| error: true
+still <- data(gapminder_2007) + point + x(gdp) + y(life)
+save_gif(still, file.path(tempdir(), "still.gif"))
+```
+
+And the path has to end in `.gif`, because the name of a file is a claim about
+what is inside it:
+
+```{r}
+#| error: true
+moving <- data(gm_all) + point + x(gdp) + y(life) + play(year)
+save_gif(moving, file.path(tempdir(), "wave.png"))
+```
+
+One thing changes on the way out, and it is worth knowing before you send the
+file rather than after. A GIF is pixels. The text stops being text, so it no
+longer sharpens when a reader zooms in, and the colors are fitted to a palette of
+256. The SVG remains the plot itself. The GIF is a copy of it made for somewhere
+that cannot read the original.
+
+### Why a GIF and not a video
+
+A video file would be smaller and sharper than a GIF, and a few places accept
+video and nothing else. GOG writes no video, and the reason is about what a
+package can carry rather than about what a plot is.
+
+Making a video needs a video encoder. The common one is more than ten times the
+size of this whole engine, once for every platform a package supports, and its
+license does not allow it to travel inside a package licensed the way this one
+is. The other route is to require the reader to install it separately. That
+sounds harmless until you count who cannot. A reader who installs a prebuilt
+package rather than building from source gets whatever the package carries, so a
+tool that cannot fit inside it never reaches them at all. The feature would work
+for some readers and refuse for others, which is a worse answer than not having
+it.
+
+A GIF asks for nothing. The engine writes it on every machine that can draw the
+plot, in every one of the four languages. When the file looks soft, raise
+`scale`. When you genuinely need a video, converting a GIF into one is a solved
+problem, and there are free converters online that do it in a step.
 
 ## What it refuses
 

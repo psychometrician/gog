@@ -167,8 +167,26 @@ export function addViewControls(bar, view, onChange = () => {}, handle = null) {
     // cannot tell that from a button that did nothing.
     saved: icon(`<path d="M3 8.4 6.4 12 13 4.6"/>`),
   };
+  // **The bar takes its color from the page, and must.** A plot is drawn into
+  // whatever is hosting it, and the host decides whether that is a light page or
+  // a dark one: a browser with a theme switch, JupyterLab, VS Code, Positron,
+  // RStudio. None of them tell us which, and a plot cannot ask.
+  //
+  // These were `#555` on a `#ccc` border, which is legible on white and close to
+  // invisible on anything dark, so every reader in a dark editor had five
+  // buttons they could not see. `inherit` is the fix rather than a media query:
+  // `prefers-color-scheme` reports the *operating system's* preference, and a
+  // dark JupyterLab theme on a light desktop is exactly the case it gets wrong.
+  // Inheriting follows the text beside it, so the icons are legible wherever the
+  // surrounding words are, which is the only guarantee worth having here.
+  //
+  // The border is `currentColor` thinned down. `color-mix` is stated second so a
+  // renderer that does not know it keeps the solid border rather than none, and
+  // opacity is deliberately left alone: it is what marks a button disabled.
   const style =
-    "font:inherit;color:#555;background:none;border:1px solid #ccc;" +
+    "font:inherit;color:inherit;background:none;" +
+    "border:1px solid currentColor;" +
+    "border-color:color-mix(in srgb, currentColor 34%, transparent);" +
     "border-radius:3px;padding:.15em .3em;cursor:pointer;line-height:0;";
   const make = (art, title, act) => {
     const b = document.createElement("button");
@@ -389,7 +407,12 @@ export function controlBar(kind) {
   const bar = document.createElement("div");
   bar.className = `gog-${kind}-controls`;
   bar.style.cssText =
-    "font:12px/1.6 ui-monospace,SFMono-Regular,Menlo,monospace;color:#666;" +
+    // Inherited for the reason the buttons are: this bar is what they inherit
+    // *from*, since `bar.append(out, into, fit, …)` puts them inside it. No
+    // `opacity` here for the same reason. Dimming the bar to quiet the readout
+    // would dim the five buttons with it, which is the thing being fixed, and
+    // it would compound with the 0.4 that marks a button disabled.
+    "font:12px/1.6 ui-monospace,SFMono-Regular,Menlo,monospace;color:inherit;" +
     // A **positive** top margin, and the reason is a bug rather than taste. It
     // was `-4px`, pulling the bar up into the whitespace an unzoomed plot leaves
     // under its axis labels. Zoom in and that whitespace is gone — the panel

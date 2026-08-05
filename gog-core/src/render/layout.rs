@@ -210,13 +210,27 @@ impl PanelGrid {
         // of the last one. Left unchanged rather than tightened: the y tick
         // labels already set `pad_left`, and a label leaning past the panel's
         // left edge is the one case this could make worse, not better.
-        let last_x_tick_half = match tick_angle {
-            Some(deg) if deg != 0.0 => 8.0,
-            _ => x_ticks
-                .labels
-                .last()
-                .map(|l| estimate_text_width(l, font_sm) / 2.0)
-                .unwrap_or(20.0),
+        //
+        // **An axis with no tick labels has no last one to hang past the panel**,
+        // which is `tick_band`'s rule above on the other margin it governs, and
+        // it reaches the same four plots: the cube, the circle and the packing
+        // all draw their guides inside the panel, and so does a plot whose axis a
+        // page-mate is drawing. The fallback here was 20px — half of a label that
+        // is never written — and it dates from before any of those four existed.
+        // On a full canvas it is a rounding error. In a *composed* cell it is not:
+        // beside a key, a cube's panel had 234px of a 390px cell, and 20 of the
+        // 131 it gave up were being held for nothing.
+        let last_x_tick_half = if x_ticks.labels.is_empty() {
+            0.0
+        } else {
+            match tick_angle {
+                Some(deg) if deg != 0.0 => 8.0,
+                _ => x_ticks
+                    .labels
+                    .last()
+                    .map(|l| estimate_text_width(l, font_sm) / 2.0)
+                    .unwrap_or(0.0),
+            }
         };
         let pad_right = last_x_tick_half + 12.0 + legend_extra_width;
 
@@ -466,6 +480,41 @@ mod tests {
             cell_axis,
             fit,
         )
+    }
+
+    /// An axis with no tick labels reserves nothing on **either** margin.
+    ///
+    /// `tick_band` has zeroed the bottom for this case since the cube was built,
+    /// and its comment names all four plots in it — the cube, the circle, the
+    /// packing, and a plot whose axis a page-mate draws. The *right* margin kept
+    /// a 20px fallback for half of a last label that none of the four writes, so
+    /// "the cube takes the whole panel" was false by 20px the whole time.
+    ///
+    /// Pinned on both margins together, because one rule stated in two places is
+    /// how the second one came to be missed.
+    #[test]
+    fn an_axis_with_no_tick_labels_reserves_neither_margin() {
+        let empty = TickSpec { values: Vec::new(), labels: Vec::new(), step: 1.0 };
+        let ticked = nice_ticks(0.0, 10.0, 5);
+        let bare = |xt: &TickSpec, yt: &TickSpec, xl: &str, yl: &str| {
+            PanelGrid::compute(800.0, 600.0, (12.0, 14.0, 18.0), xt, yt, xl, yl,
+                               false, 0.0, vec![], vec![], None, None, false, None,
+                               (false, false), (0.0, 0.0), Fit::free())
+        };
+        let cube = bare(&empty, &empty, "", "");
+        let flat = bare(&ticked, &ticked, "X", "Y");
+
+        // The bottom: already right, and asserted here so the pair cannot drift.
+        assert!(cube.panels[0].rect.y1 > flat.panels[0].rect.y1,
+                "no x tick labels means no band reserved under the panel");
+        // The right: the defect. A cube's panel must reach further right than a
+        // ticked plot's, not stop 20px short of the same place.
+        assert!(cube.panels[0].rect.x1 > flat.panels[0].rect.x1,
+                "no x tick labels means no half-label reserved beside the panel");
+        // And exactly: nothing but the general 12px margin is held back.
+        assert!((800.0 - cube.panels[0].rect.x1 - 12.0).abs() < 1e-9,
+                "a cube gives up the margin and nothing else, got {}",
+                800.0 - cube.panels[0].rect.x1);
     }
 
     /// The composed plot's whole promise, at the layout level: the page says

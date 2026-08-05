@@ -74,6 +74,35 @@ the bottom row of panels.
 That last part is why the histogram sits flush against the scatter rather than a
 tick label's height above it. An axis a plot does not draw costs it no margin.
 
+### One axis, but not one key
+
+Compose two plots that both map `color` and you get two legends, one for each:
+
+```{r}
+(data(gapminder_2007) + point + x(gdp) + y(life) + color(continent)) |
+  (data(gapminder_2007) + point + x(population) + y(life) + color(continent))
+```
+
+Look at what that figure does twice and once. Both plots read `life` on `y`, so
+that axis is shared and written a single time, on the left. Both color by
+`continent` as well, and there you get **two** keys, saying exactly the same
+thing.
+
+The asymmetry is deliberate. An axis merges on a test that is exact: the same
+column on the same channel means one scale is provably right for both plots. A
+key has no such test. These two agree, but two composed plots are two plots, and
+nothing in the grammar makes them agree. The next pair may split by different
+columns, or cut one column on two scales, and a single key over that is wrong for
+one of them. It is wrong quietly, because it still looks like a key.
+
+GOG will not merge a key it cannot promise, so it merges none. Identical keys
+side by side are the honest picture of two plots that happen to agree.
+
+When you want one key over several panels, use [faceting](faceting.qmd) instead.
+A facet is *one* plot split by a column, so its panels share their colors by
+construction. It draws a single legend. The choice between `|` and `facet()` is
+the choice between two plots and one.
+
 ## The marginal plot
 
 Put a second marginal on the right and the picture is the marginal plot, which
@@ -131,10 +160,43 @@ render_svg(
 )
 ```
 
+## And how big is the page itself?
+
+Two plots set side by side divide the page's width, and each keeps the whole of
+its height. So a height written into one of them says nothing at all: the cell is
+already as tall as the page. The page is the figure that has that height, and the
+page is what states it:
+
+```{r}
+((data(gapminder_2007) + point + x(gdp) + y(life)) |
+   (data(gapminder_2007) + bar * count + x(continent))) + theme(height = 260)
+```
+
+The same two words, one scope up. A plot states how much room it wants, and so
+does a page. Composed, the first is a cell of the second. A page that says
+nothing is 800 by 600, which is what a plot drawn alone takes.
+
+This matters most where a mark cannot be stretched to fill its panel. A
+[cube](space.qmd) is fitted with one scale on both axes, so it is never sheared.
+A tall, narrow cell therefore leaves it small, with empty bands above and below.
+The figure is the wrong shape, and the page is where that is said.
+
+Size is the only thing a page can say. Every other property `theme()` sets
+describes a panel: its gridlines, its frame, its background, the angle its tick
+labels are read at. A page has no panel, so those refuse, and name the plot they
+belong to:
+
+```{r}
+#| error: true
+render_svg(((data(gapminder_2007) + point + x(gdp) + y(life)) |
+              (data(gapminder_2007) + bar * count + x(continent))) + theme(grid = "none"))
+```
+
 ## What a page is not
 
 A page is plots arranged, so anything belonging to *one* plot is written into
-that plot before it is composed. An atom added to a page refuses and says so:
+that plot before it is composed. Apart from the size above, an atom added to a
+page refuses and says so:
 
 ```{r}
 #| error: true
@@ -196,7 +258,7 @@ The three answer different questions, and the choice is not a matter of taste:
   page. Each keeps its own space, and what they have in common, if anything,
   is the variable they share.
 
-Layering is the one to check yourself on, because it is the only one the engine
+Layering is the one you have to verify, because it is the only one the engine
 cannot check for you. A table whose numbers mean something else still draws when
 you layer it. The columns resolve, the marks land, and the picture is wrong.
 Sales figures on an income axis are a legal sentence. So if the second table

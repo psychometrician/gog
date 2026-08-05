@@ -124,12 +124,56 @@ pub struct SvgRenderer {
     /// [`Fit::free`] for a plot drawn on its own, which is every plot that is
     /// not composed. `render::page` is the only thing that sets it.
     pub(crate) fit: Fit,
+    /// Which moment to leave showing, for a caller assembling the frames itself
+    /// — `None` writes the sequence, which is every plot the book draws.
+    ///
+    /// **It selects among moments the renderer was already going to write, and
+    /// changes nothing about how any of them is drawn.** That is what makes a
+    /// GIF unable to disagree with the plot it came from: every scale, the color
+    /// map and each legend are fitted across the whole sequence one pass above
+    /// here, so a still is the animation with one moment left inline. A second
+    /// writer choosing its own ticks is the failure this avoids by construction.
+    pub(crate) still: Option<usize>,
 }
 
 /// The canvas a plot gets when it asks for nothing: `theme(width =, height =)`
 /// is what asks. Named because two callers need to agree on it — the renderer's
 /// own default and the page that divides a canvas into cells.
 pub const CANVAS: (f64, f64) = (800.0, 600.0);
+
+/// The moments a played plot has, in order, given the tables its layers bind.
+///
+/// Split out of [`SvgRenderer::draw`] so that a caller assembling stills counts
+/// the frames the same way the renderer cuts them. Two counts that could differ
+/// is the whole failure mode here: one short, and the last moment is silently
+/// missing from the file.
+pub(crate) fn play_levels_of(
+    spec: &PlotSpec,
+    source_frames: &[&DataFrame],
+) -> Vec<crate::data::FrameLevel> {
+    spec.layers
+        .iter()
+        .find_map(|l| l.encodings.get(&Channel::Play))
+        .map(|d| crate::data::frames_across(source_frames, &d.field))
+        .unwrap_or_default()
+}
+
+/// [`play_levels_of`] for a caller holding only the spec and its tables — the
+/// door `plot::render_frames` comes in by. Resolves scope first, because `play`
+/// is a channel and a layer that binds it after the mark binds it alone (§8).
+pub(crate) fn play_levels(
+    spec: &PlotSpec,
+    data: &HashMap<String, DataFrame>,
+) -> Vec<crate::data::FrameLevel> {
+    let resolved = crate::legality::resolve_scopes(spec);
+    let ctx = RenderContext::new(&resolved, data);
+    let source_frames: Vec<&DataFrame> = resolved
+        .layers
+        .iter()
+        .filter_map(|layer| ctx.resolve_data(&layer.data))
+        .collect();
+    play_levels_of(&resolved, &source_frames)
+}
 
 /// The base of the plot's type scale, in pixels — the tick labels' size when
 /// nobody asks, and what `theme(font_size = )` replaces.
@@ -170,6 +214,7 @@ impl Default for SvgRenderer {
             font_md,
             font_lg,
             fit: Fit::free(),
+            still: None,
         }
     }
 }
@@ -417,9 +462,7 @@ impl SvgRenderer {
         // special case for animation — it is the same nearest-wins rule `data()`
         // has, and it arrives here already applied by `resolve_scopes`.
         let play_def = spec.layers.iter().find_map(|l| l.encodings.get(&Channel::Play));
-        let play_levels: Vec<crate::data::FrameLevel> = play_def
-            .map(|d| crate::data::frames_across(&source_frames, &d.field))
-            .unwrap_or_default();
+        let play_levels = play_levels_of(spec, &source_frames);
         // One frame is not an animation: a column with a single distinct value
         // draws once, and the SMIL below is skipped rather than written for a
         // sequence that never advances.
@@ -1901,12 +1944,17 @@ impl SvgRenderer {
             x1: grid.panels.last().map(|p| p.rect.x1).unwrap_or(grid.outer.x1),
             y1: grid.panels.last().map(|p| p.rect.y1).unwrap_or(grid.outer.y1),
         };
+        // A map fits its scales on **projected** frames while `lon` and `lat` stay
+        // degrees, so a page must not share this axis through a stated domain —
+        // see `AxisFacts::projected` for why neither unit works.
+        let projected = map_degrees.is_some();
         let facts = |field: &str, range: (f64, f64), cats: Option<&Vec<String>>, log: bool,
                      base: f64| AxisFacts {
             field: field.to_string(),
             range,
             cats: cats.cloned(),
             log_base: log.then_some(base),
+            projected,
         };
         let mut seen = std::collections::HashSet::new();
         remarks.retain(|d| seen.insert(d.message.clone()));
@@ -2216,7 +2264,11 @@ impl SvgRenderer {
         if nframes < 2 {
             return;
         }
-        let shown = if fi == 0 { "inline" } else { "none" };
+        // The moment shown before any timing runs: the first, or the one a still
+        // was asked for. One expression for both, because they are one idea —
+        // which moment is on screen at the start — and a `still` that took a
+        // second branch here could drift from what the sequence opens with.
+        let shown = if fi == self.still.unwrap_or(0) { "inline" } else { "none" };
         writeln!(svg, r#"  <g display="{shown}">"#).unwrap();
     }
 
@@ -2229,6 +2281,13 @@ impl SvgRenderer {
     /// exactly the state [`open_frame`](Self::open_frame) set.
     fn close_frame(&self, svg: &mut String, fi: usize, nframes: usize, frame_seconds: f64) {
         if nframes < 2 {
+            return;
+        }
+        // A still carries no timing at all. The caller holding the frames is the
+        // clock now, and an `<animate>` left behind would switch the picture off
+        // a fifth of a second after it was rasterized.
+        if self.still.is_some() {
+            writeln!(svg, "  </g>").unwrap();
             return;
         }
         writeln!(svg,
@@ -2610,9 +2669,25 @@ impl SvgRenderer {
         if let Some(title) = &spec.title {
             let y_label_offset = if !y_label.is_empty() { label_h + 6.0 } else { 0.0 };
             let ty = l.y0 - y_label_offset - estimate_cap_height(self.font_lg) * 0.3 - 8.0;
+            // **Centered on the panel, then held inside the canvas.** The panel is
+            // the thing the title names, so it centers there and not over the
+            // legend beside it — but a legend pushes that center left, and a title
+            // wider than what is left of the canvas then starts at a negative x and
+            // is cut off by the edge. On a page that edge is the *cell's*, which is
+            // where it showed: at full width a title has room to spare, and in a
+            // quarter-page cell "Turned: the same sheet from the west" lost its
+            // first letter. Nudging beats clipping, and it only ever moves a title
+            // that would otherwise be unreadable.
+            const EDGE: f64 = 4.0; // breathing room, so a nudged title is not flush
+            let half = estimate_text_width(title, self.font_lg) / 2.0;
+            let lo = half + EDGE;
+            // `max(lo)` so a title wider than the whole canvas still centers rather
+            // than inverting the range: it overflows both sides evenly, which reads
+            // as too long instead of as misplaced.
+            let cx = plot_cx.clamp(lo, (self.width - half - EDGE).max(lo));
             writeln!(svg,
                 r##"  <text x="{cx:.2}" y="{ty:.2}" font-family="system-ui,sans-serif" font-size="{fs}" font-weight="600" fill="#0f0f19" text-anchor="middle">{title}</text>"##,
-                cx = plot_cx, fs = self.font_lg, title = esc(title)
+                fs = self.font_lg, title = esc(title)
             ).unwrap();
         }
 
@@ -9639,6 +9714,79 @@ mod tests {
         svg.matches(r#"<animate attributeName="display""#).count()
     }
 
+    /// **The claim a written-out file rests on**, and the reason stills are cut
+    /// by selection rather than by a second pass over the data: two moments of
+    /// one plot differ in *which group shows* and in nothing else at all.
+    ///
+    /// Erase the display attributes and the two frames are the same bytes. That
+    /// is a stronger statement than "the axes match" — it covers every tick, the
+    /// color map, both legends, the strip, and the layout arithmetic in one
+    /// assertion, and it fails the moment any of them is decided per frame. The
+    /// fixture is lopsided on purpose (everything in 1962 sits past everything in
+    /// 1957), so a per-frame fit would move an axis rather than being invisible.
+    #[test]
+    fn two_stills_of_one_plot_differ_only_in_which_moment_shows() {
+        let (spec, data) = played_points();
+        let figure = crate::ir::Figure::Plot(Box::new(spec));
+        let frames = crate::plot::render_frames_with(
+            &figure, &data, crate::plot::Strictness::Strict,
+        )
+        .expect("a played plot has frames");
+        assert_eq!(frames.len(), 2, "one still per moment");
+
+        let blind = |s: &str| {
+            s.replace(r#"display="inline""#, "").replace(r#"display="none""#, "")
+        };
+        assert_eq!(blind(&frames[0]), blind(&frames[1]),
+            "the moments disagree about something other than which one is shown");
+        assert_ne!(frames[0], frames[1], "and they must differ about that");
+    }
+
+    /// A still is a picture, so it carries no clock. Left in, the `<animate>`
+    /// would switch the moment off a fraction of a second after it was drawn —
+    /// which a browser shows and a rasterizer ignores, so it would survive every
+    /// check that reads the file as an image.
+    #[test]
+    fn a_still_carries_no_timing_and_shows_exactly_its_own_moment() {
+        let (spec, data) = played_points();
+        // A played plot cuts moments in more than one place — the marks, and the
+        // strip that names them — so "one group showing" is the wrong count. What
+        // must hold is that a still shows exactly what the sequence shows before
+        // its clock starts, which is this number whatever the plot is made of.
+        let animated = SvgRenderer::default().render(&spec, &data);
+        let opening = animated.matches(r#"<g display="inline">"#).count();
+        assert!(opening > 0, "the fixture must play at all");
+
+        let figure = crate::ir::Figure::Plot(Box::new(spec));
+        let frames = crate::plot::render_frames_with(
+            &figure, &data, crate::plot::Strictness::Strict,
+        )
+        .unwrap();
+        for (i, svg) in frames.iter().enumerate() {
+            assert_eq!(frame_count(svg), 0, "still {i} still carries timing");
+            assert_eq!(svg.matches(r#"<g display="inline">"#).count(), opening,
+                "still {i} shows a different set of groups than the sequence opens with");
+        }
+    }
+
+    /// A plot that does not play cannot be a sequence, and §12 says the refusal
+    /// names what to do instead rather than writing a one-frame file nobody asked
+    /// for. Guarded because the direction is the useful half of the message.
+    #[test]
+    fn a_plot_that_does_not_play_refuses_to_yield_frames() {
+        let (_, data) = played_points();
+        let still = PlotSpec::new().data("t").x("x").y("y").layer(Layer::new(Mark::Point));
+        let figure = crate::ir::Figure::Plot(Box::new(still));
+        let err = crate::plot::render_frames_with(
+            &figure, &data, crate::plot::Strictness::Strict,
+        )
+        .expect_err("an unplayed plot has no moments");
+        let last = err.last().expect("a diagnostic");
+        assert!(last.message.contains("does not play"), "{}", last.message);
+        assert!(last.message.contains("play(year)"),
+            "the refusal must say what to write instead: {}", last.message);
+    }
+
     /// The invariant the whole feature is built around: an unplayed plot is what
     /// it always was. Not "close enough" — a corpus of 481 recorded hashes says
     /// so per sentence, and this is the unit-level statement of the same thing.
@@ -11258,6 +11406,146 @@ mod tests {
             svg.contains("linearGradient") || svg.contains(RAMP_BLUE[RAMP_BLUE.len() - 1]),
             "the ramp's own colors, and its key"
         );
+    }
+
+    #[test]
+    fn a_long_title_is_held_inside_the_canvas_rather_than_clipped() {
+        // A title centers on the **panel**, which is the thing it names, and a
+        // legend pushes that center left. At full width there is room to spare, so
+        // nothing showed for the life of the project; in a page cell the panel's
+        // center sits far enough left that a long title starts at a negative x and
+        // the cell's edge eats its first letters. Pinned at a narrow width for that
+        // reason — a test at 800px would pass either way.
+        let data = HashMap::from([("t".to_string(), grid_frame(4, 4))]);
+        let title = "Turned: the same sheet from the west";
+        let spec = PlotSpec::new().data("t").x("x").y("y").title(title)
+            .layer(Layer::new(Mark::Point).encode(Channel::Color, "h"));
+        let svg = SvgRenderer::for_theme(&spec.theme.resolved(), 390.0, 300.0)
+            .render(&spec, &data);
+
+        let cx: f64 = svg.lines()
+            .find(|l| l.contains(title) && l.contains(r#"text-anchor="middle""#))
+            .and_then(|l| l.split(r#"x=""#).nth(1))
+            .and_then(|s| s.split('"').next())
+            .and_then(|s| s.parse().ok())
+            .unwrap_or_else(|| panic!("no centered title in:\n{svg:.0}"));
+        let half = crate::render::text::estimate_text_width(title, 16.0) / 2.0;
+        assert!(cx - half >= 0.0,
+                "title starts at {:.1}, outside the canvas", cx - half);
+        assert!(cx + half <= 390.0,
+                "title ends at {:.1}, past the canvas", cx + half);
+    }
+
+    #[test]
+    fn a_mesh_face_takes_its_color_from_its_center_not_from_one_of_its_corners() {
+        // **Pinned on a coarse mesh on purpose, because that is the only place it
+        // shows.** A face named by its low corner is wrong by half a cell everywhere,
+        // and on a fine lattice neighbors barely differ, so the volcano at 31x44 drew
+        // this defect perfectly for the life of the project. Four faces is where it is
+        // impossible to miss, and a test that used a realistic grid would pass either
+        // way — the density of the mesh, not the correctness of the code, decided
+        // whether anyone could see it.
+        //
+        // The field is a symmetric bowl on a 3x3 lattice, so the four faces are
+        // congruent and every one of them sits at the same mean height. Anything that
+        // paints them differently is asserting a difference the data does not have.
+        let (mut xs, mut ys, mut vs) = (vec![], vec![], vec![]);
+        for &a in &[-2.0_f64, 0.0, 2.0] {
+            for &b in &[-2.0_f64, 0.0, 2.0] {
+                xs.push(a);
+                ys.push(b);
+                vs.push(0.019 + 0.0025 * (a * a + b * b));
+            }
+        }
+        let frame = DataFrame::new()
+            .with_float("x", xs).with_float("y", ys).with_float("v", vs.clone());
+        let data = HashMap::from([("t".to_string(), frame)]);
+        let spec = PlotSpec::new().data("t").x("x").y("y").z("v").layer(
+            Layer::new(Mark::Surface).encode(Channel::Color, "v"),
+        );
+        let fills: Vec<String> = surface_faces(&SvgRenderer::default().render(&spec, &data))
+            .into_iter().map(|(f, _)| f).collect();
+        assert_eq!(fills.len(), 4, "a 3x3 lattice is 2x2 faces");
+        let distinct: std::collections::HashSet<&String> = fills.iter().collect();
+        assert_eq!(
+            distinct.len(), 1,
+            "four congruent faces of a symmetric bowl must share one color, got {fills:?}"
+        );
+
+        // And **every node reaches exactly the faces it belongs to**. Under the old
+        // reading a face took `corners[0]`, so the last row and column of the lattice
+        // colored nothing at all: five of these nine values were discarded.
+        //
+        // Probed by lighting one node at a time, which is exact rather than
+        // suggestive. With a single node at 1 and the rest at 0, a face's mean is 0.25
+        // if it touches that node and 0 otherwise, so counting the faces at the top
+        // color counts the faces the node reached. A 3x3 lattice gives 1 face to each
+        // of its four corners, 2 to each edge midpoint and 4 to the center, which is
+        // the `[1, 2, 1]` product below. Asserting merely "the picture changed" would
+        // have passed for the center node under the *old* code too.
+        let xs9: Vec<f64> = (0..9).map(|i| [-2.0, 0.0, 2.0][i / 3]).collect();
+        let ys9: Vec<f64> = (0..9).map(|i| [-2.0, 0.0, 2.0][i % 3]).collect();
+        for k in 0..9 {
+            let mut w = vec![0.0; 9];
+            w[k] = 1.0;
+            let frame = DataFrame::new()
+                .with_float("x", xs9.clone()).with_float("y", ys9.clone())
+                .with_float("v", vs.clone()).with_float("w", w);
+            let d = HashMap::from([("t".to_string(), frame)]);
+            let s = PlotSpec::new().data("t").x("x").y("y").z("v").layer(
+                Layer::new(Mark::Surface).encode(Channel::Color, "w"),
+            );
+            let f: Vec<String> = surface_faces(&SvgRenderer::default().render(&s, &d))
+                .into_iter().map(|(a, _)| a).collect();
+            let expect = [1, 2, 1][k / 3] * [1, 2, 1][k % 3];
+            // Compared as a **partition** rather than by picking the lit color, because
+            // "which hex is the lit one" is not answerable by string order: the ramp
+            // runs light to dark, so the face holding the larger value is the *darker*
+            // string and `max()` returns the unlit one. The sizes of the color groups
+            // carry the whole claim and need no such assumption.
+            let mut sizes: Vec<usize> = {
+                let mut c: std::collections::HashMap<&str, usize> = Default::default();
+                for x in &f { *c.entry(x.as_str()).or_default() += 1; }
+                c.into_values().collect()
+            };
+            sizes.sort_unstable();
+            let mut want = if expect == 4 { vec![4] } else { vec![expect, 4 - expect] };
+            want.sort_unstable();
+            assert_eq!(
+                sizes, want,
+                "node {k} belongs to {expect} of the 4 faces; colors came out {f:?}"
+            );
+        }
+    }
+
+    #[test]
+    fn a_sheet_ramped_by_its_own_estimate_gets_a_key_that_decodes_it() {
+        // The half of this that no legality check could see. Past the refusal the sheet
+        // already ramped correctly and drew **no key at all**, because the legend looked
+        // for the color column in the raw table and a `density` exists only downstream
+        // of the transform that made it. A ramp nobody can decode is worse than a flat
+        // sheet: it shows a variation and names no numbers for it.
+        let scatter = DataFrame::new()
+            .with_float("x", vec![0.11, 0.42, 0.77, 0.93, 0.28, 0.55])
+            .with_float("y", vec![0.51, 0.13, 0.88, 0.34, 0.67, 0.22]);
+        let data = HashMap::from([("t".to_string(), scatter)]);
+        let spec = PlotSpec::new().data("t").x("x").y("y")
+            .coord(CoordSpace::Space(crate::ir::SpaceView::default()))
+            .layer(
+                Layer::new(Mark::Surface)
+                    .transform(Transform::Density)
+                    .encode(Channel::Color, "density"),
+            );
+        let svg = SvgRenderer::default().render(&spec, &data);
+
+        let fills: std::collections::HashSet<String> =
+            surface_faces(&svg).into_iter().map(|(f, _)| f).collect();
+        assert!(fills.len() > 1, "the estimate must ramp across the faces: {fills:?}");
+        assert!(svg.contains("linearGradient"), "a measured color is keyed by a strip");
+        // The key is titled for the column it decodes, and that title is the axis's
+        // too — the height said twice is the whole point of the sentence, so the two
+        // readings must agree about what they are showing.
+        assert!(svg.matches("Density").count() >= 2, "axis and key both name it: {svg:.0}");
     }
 
     #[test]

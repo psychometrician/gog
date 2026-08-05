@@ -269,9 +269,21 @@ fn share(
             });
         }
     } else {
+        // **A projected axis is not shared through a domain**, because `limits` does
+        // two jobs at once — it selects rows in the column's own units and sets the
+        // scale in the scale's — and a map is the one space where those differ.
+        // Degrees select correctly and scale wrongly; projected numbers scale
+        // correctly and exclude every row, which drew two empty maps and said
+        // nothing, since a page writes this domain after `check_limit_rows` has run.
+        //
+        // Declining costs a reader nothing they would notice. A map's extent comes
+        // from its projection rather than from a domain, so two maps over the same
+        // columns already agree, and the extent and one-axis rules below still line
+        // the cells up on the page. `AxisFacts::projected` carries the fact.
+        let projected = facts.iter().any(|f| f.projected);
         let lo = facts.iter().map(|f| f.range.0).fold(f64::INFINITY, f64::min);
         let hi = facts.iter().map(|f| f.range.1).fold(f64::NEG_INFINITY, f64::max);
-        if lo.is_finite() && hi.is_finite() && hi > lo {
+        if !projected && lo.is_finite() && hi.is_finite() && hi > lo {
             for &i in group {
                 // The range is in the units the *scale* works in; a stated
                 // domain arrives in the data's own (spec §10), so a log axis
@@ -410,8 +422,10 @@ mod tests {
                 Figure::Page(PageSpec {
                     arrange: Arrange::Beside,
                     cells: vec![scatter().into(), right().into()],
+                    theme: ThemeSpec::default(),
                 }),
             ],
+            theme: ThemeSpec::default(),
         }
     }
 
@@ -436,10 +450,41 @@ mod tests {
                 "and the width of its row is spent exactly");
     }
 
+    /// A **page** nested as a cell asks with its own `theme()`, the way a plot
+    /// does, and the two readings of the same statement agree: it is the figure's
+    /// size at the top level and its cell's size one level in.
+    ///
+    /// The stated size beats the derivation from the cells, which is the case
+    /// worth pinning because both answers exist here — the inner page's plots ask
+    /// for nothing, so deriving would have returned `None` and split evenly.
+    #[test]
+    fn a_nested_page_asks_with_its_own_theme() {
+        let inner = PageSpec {
+            arrange: Arrange::Beside,
+            cells: vec![scatter().into(), scatter().into()],
+            theme: ThemeSpec { height: Some(180.0), ..ThemeSpec::default() },
+        };
+        let outer = PageSpec {
+            arrange: Arrange::Below,
+            cells: vec![Figure::Page(inner), scatter().into()],
+            theme: ThemeSpec::default(),
+        };
+        let rects = placed(&outer);
+        assert_eq!(rects.len(), 3, "two cells in the inner page, one below it");
+        assert!((rects[0].h() - 180.0).abs() < 1e-9, "the nested page asked for 180px");
+        assert!((rects[1].h() - 180.0).abs() < 1e-9, "and both of its cells got it");
+        assert!((rects[2].h() - (600.0 - 180.0 - CELL_GAP)).abs() < 1e-9,
+                "the plot below takes what is left, less the gap");
+    }
+
     /// Cells that ask for nothing divide the page evenly — the ordinary page.
     #[test]
     fn cells_that_ask_for_nothing_split_evenly() {
-        let page = PageSpec { arrange: Arrange::Beside, cells: vec![scatter().into(), scatter().into()] };
+        let page = PageSpec {
+            arrange: Arrange::Beside,
+            cells: vec![scatter().into(), scatter().into()],
+            theme: ThemeSpec::default(),
+        };
         let rects = placed(&page);
         assert!((rects[0].w() - rects[1].w()).abs() < 1e-9);
         assert!((rects[0].w() + rects[1].w() + CELL_GAP - 800.0).abs() < 1e-9);
@@ -504,6 +549,65 @@ mod tests {
         assert!(limits(&specs[0]).is_some());
     }
 
+    /// Two maps composed draw two maps, and neither is handed a domain.
+    ///
+    /// **The one axis whose scale is not in its column's units**, and the page used
+    /// to share it anyway: `limits` selects rows in degrees and scales in projected
+    /// units, so writing the projected range excluded every row of a `lon` running
+    /// -180 to 180 and drew two empty panels. Silently, because a page writes that
+    /// domain after `check_limit_rows` — the check whose whole job is refusing it.
+    ///
+    /// Pinned on the **marks** rather than on the absence of `limits`, because the
+    /// failure a reader met was an empty picture and a count is what sees it. The
+    /// domain is asserted too, since that is the mechanism and a later change could
+    /// empty the panels a different way.
+    #[test]
+    fn two_composed_maps_each_draw_and_neither_is_given_a_domain() {
+        let world = DataFrame::new()
+            .with_float("lon", vec![-160.0, -80.0, 0.0, 80.0, 160.0, -160.0])
+            .with_float("lat", vec![-70.0, -20.0, 0.0, 20.0, 70.0, -70.0]);
+        let data = HashMap::from([("w".to_string(), world)]);
+        let map_of = |preserve: crate::ir::Preserve| {
+            PlotSpec::new().data("w").x("lon").y("lat")
+                .coord(crate::ir::CoordSpace::Map(crate::ir::MapView { preserve }))
+                .layer(Layer::new(Mark::Path))
+        };
+        let page = PageSpec {
+            arrange: Arrange::Beside,
+            cells: vec![
+                map_of(crate::ir::Preserve::Area).into(),
+                map_of(crate::ir::Preserve::Angle).into(),
+            ],
+            theme: ThemeSpec::default(),
+        };
+        let (svg, _) = render(&page, &data, 800.0, 400.0);
+        let drawn = svg.matches("<polyline").count() + svg.matches("<path d=").count();
+        assert!(drawn >= 2, "each cell draws its own map, got {drawn} marks");
+
+        // And the mechanism: a projected axis is never handed a stated domain.
+        let root = Figure::Page(page);
+        let mut cells = Vec::new();
+        place(&root, Layout { x0: 0.0, y0: 0.0, x1: 800.0, y1: 400.0 }, &mut cells);
+        let measured: Vec<Drawn> = cells.iter()
+            .map(|c| SvgRenderer::for_theme(&c.spec.theme.resolved(), c.rect.w(), c.rect.h())
+                .draw(c.spec, &data))
+            .collect();
+        assert!(measured[0].x.projected, "a map's x is not in its column's units");
+        let mut fits = vec![Fit::free(); cells.len()];
+        let mut specs: Vec<PlotSpec> = cells.iter().map(|c| c.spec.clone()).collect();
+        let mut diags = Vec::new();
+        for channel in [Channel::X, Channel::Y] {
+            for group in groups(&measured, &channel) {
+                share(&group, &cells, &measured, &channel, &mut fits, &mut specs, &mut diags);
+            }
+        }
+        for s in &specs {
+            assert!(s.x.as_ref().and_then(|d| d.limits).is_none(),
+                    "a projected axis must not be shared through `limits`");
+            assert!(s.y.as_ref().and_then(|d| d.limits).is_none());
+        }
+    }
+
     /// Two plots side by side on the same column: the same variable, so one
     /// scale — but two places, so neither gives up its axis. The intersection
     /// of their extents is empty and the rule notices rather than fitting both
@@ -513,6 +617,7 @@ mod tests {
         let page = PageSpec {
             arrange: Arrange::Beside,
             cells: vec![scatter().into(), scatter().into()],
+            theme: ThemeSpec::default(),
         };
         let root = Figure::Page(page);
         let mut cells = Vec::new();
@@ -539,7 +644,11 @@ mod tests {
     #[test]
     fn unrelated_plots_are_only_arranged() {
         let other = PlotSpec::new().data("cars").x("dist").y("speed").layer(Layer::new(Mark::Point));
-        let page = PageSpec { arrange: Arrange::Beside, cells: vec![scatter().into(), other.into()] };
+        let page = PageSpec {
+            arrange: Arrange::Beside,
+            cells: vec![scatter().into(), other.into()],
+            theme: ThemeSpec::default(),
+        };
         let root = Figure::Page(page);
         let mut cells = Vec::new();
         place(&root, Layout { x0: 0.0, y0: 0.0, x1: 800.0, y1: 600.0 }, &mut cells);

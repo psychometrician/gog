@@ -1,0 +1,76 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1040 330" width="1040" height="330"
+     role="img" aria-labelledby="pipeline-title pipeline-desc">
+  <title id="pipeline-title">How a plot is drawn</title>
+  <desc id="pipeline-desc">Four language bindings, R, Python, Julia and JavaScript, each build the
+  same specification. It travels as JSON to gog-cli, the bridge, then to gog-core, the engine,
+  which draws the SVG.</desc>
+
+  <rect width="1040" height="330" rx="18" fill="#ffdba4"/>
+
+  <!-- the four bindings, each in its own language's color -->
+  <g font-family="Menlo,Consolas,monospace" font-size="17" font-weight="600">
+    <rect x="30"  y="34"  width="232" height="46" rx="23" fill="#b6b8bc"/>
+    <text x="146" y="63"  text-anchor="middle" fill="#16130f">r-pkg/gog</text>
+
+    <rect x="30"  y="94"  width="232" height="46" rx="23" fill="#3771a2"/>
+    <text x="146" y="123" text-anchor="middle" fill="#ffffff">py-pkg/gog</text>
+
+    <rect x="30"  y="154" width="232" height="46" rx="23" fill="#ca3c32"/>
+    <text x="146" y="181" text-anchor="middle" fill="#ffffff" font-size="15">jl-pkg/GrammarOfGraphics</text>
+
+    <rect x="30"  y="214" width="232" height="46" rx="23" fill="#f0db4f"/>
+    <text x="146" y="243" text-anchor="middle" fill="#323330">js-pkg/gog</text>
+  </g>
+
+  <!-- each binding builds the same specification, so the four lines converge -->
+  <g fill="none" stroke="#16130f" stroke-width="2.4" opacity="0.55">
+    <path d="M262 57  H300 Q316 57  316 73  V139"/>
+    <path d="M262 117 H300 Q316 117 316 133 V139"/>
+    <path d="M262 177 H300 Q316 177 316 161 V155"/>
+    <path d="M262 237 H300 Q316 237 316 221 V155"/>
+  </g>
+
+  <text x="288" y="284" text-anchor="middle" font-family="Helvetica,Arial,sans-serif"
+        font-size="14" font-style="italic" fill="#56504a">build the same
+    <tspan x="288" dy="17">specification</tspan>
+  </text>
+
+  <defs>
+    <marker id="tip" viewBox="0 0 10 10" refX="9" refY="5"
+            markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0 0 L10 5 L0 10 z" fill="#16130f"/>
+    </marker>
+  </defs>
+
+  <g stroke="#16130f" stroke-width="2.6" marker-end="url(#tip)">
+    <line x1="316" y1="147" x2="368" y2="147"/>
+    <line x1="500" y1="147" x2="556" y2="147"/>
+    <line x1="700" y1="147" x2="756" y2="147"/>
+    <line x1="900" y1="147" x2="956" y2="147"/>
+  </g>
+
+  <!-- JSON, then the two Rust crates, then the picture -->
+  <g font-family="Menlo,Consolas,monospace" font-size="19" font-weight="700">
+    <rect x="378" y="120" width="116" height="54" rx="12" fill="#ffffff" opacity="0.92"/>
+    <text x="436" y="154" text-anchor="middle" fill="#16130f">JSON</text>
+
+    <rect x="562" y="112" width="132" height="70" rx="12" fill="#2b2b2b"/>
+    <text x="628" y="142" text-anchor="middle" fill="#ffffff" font-size="18">gog-cli</text>
+    <text x="628" y="165" text-anchor="middle" fill="#cbc0b1" font-size="13"
+          font-family="Helvetica,Arial,sans-serif" font-weight="400">the bridge</text>
+
+    <rect x="762" y="112" width="132" height="70" rx="12" fill="#2b2b2b"/>
+    <text x="828" y="142" text-anchor="middle" fill="#ffffff" font-size="18">gog-core</text>
+    <text x="828" y="165" text-anchor="middle" fill="#cbc0b1" font-size="13"
+          font-family="Helvetica,Arial,sans-serif" font-weight="400">the engine</text>
+
+    <rect x="962" y="120" width="62" height="54" rx="12" fill="#ffffff" opacity="0.92"/>
+    <text x="993" y="154" text-anchor="middle" fill="#16130f" font-size="17">SVG</text>
+  </g>
+
+  <text x="436" y="200" text-anchor="middle" font-family="Helvetica,Arial,sans-serif"
+        font-size="14" font-style="italic" fill="#56504a">sent on standard input</text>
+
+  <text x="993" y="200" text-anchor="middle" font-family="Helvetica,Arial,sans-serif"
+        font-size="14" font-style="italic" fill="#56504a">the picture</text>
+</svg>

@@ -1,0 +1,284 @@
+---
+title: "A histogram is two words"
+description: >-
+  Most plotting libraries give you a histogram function. This one gives you a
+  bar and a binning statistic, and the histogram is what happens when you put
+  them together. Then you change one word and get four other plots.
+author: "psychometrician"
+date: "2026-08-04"
+# The first four are shown, in the project's canonical order. `rstats` and
+# `julialang` are hidden by the stylesheet and exist only to put this post
+# into the two narrow feeds R-bloggers and JuliaBloggers subscribe to.
+categories: [R, Python, Julia, JavaScript, rstats, julialang]
+image: card.png
+image-alt: >-
+  A histogram of life expectancy, drawn by the GOG engine from the
+  specification bar times bin.
+---
+
+```{r}
+#| include: false
+source("../../../book/R/setup.R")
+```
+
+Count how many plotting functions you know by name. Histogram, bar chart, box
+plot, violin, density curve, area chart, step chart. Each one is a separate
+thing to look up. Each has its own arguments in its own order. Learning one
+teaches you almost nothing about the next.
+
+That list is not a vocabulary. It is a phrase book.
+
+Here is a different arrangement. This is a histogram of life expectancy across
+142 countries:
+
+```{r}
+data(gapminder_2007) + bar * bin + x(life)
+```
+
+Read the specification out loud: *given gapminder 2007, bars derived by binning,
+x is life*. There is no `histogram` function in this library. There is a mark
+called `bar`, a statistic called `bin`, and an operator `*` that derives one
+from the other.
+
+## Why that matters
+
+Because now change one word.
+
+The statistic stays. `bin` still divides life expectancy into intervals and
+counts what lands in each. Only the shape drawn from those counts changes:
+
+```{r}
+data(gapminder_2007) + area * bin + x(life)
+```
+
+```{r}
+data(gapminder_2007) + step * bin + x(life)
+```
+
+```{r}
+data(gapminder_2007) + point * bin + x(life)
+```
+
+Nothing was added to the library to make those work. There is no
+`area_histogram`, no `step_histogram`, no documentation page for any of them. A
+mark says what to draw and a statistic says what to draw it from, so any mark
+that can show a number already knows how to show a count.
+
+This is the whole idea, and it has a name in this project. The first of its nine
+design laws is orthogonality: every compatible atom combines with every other. A
+rule you learn on one mark is true for every mark, or the library has failed
+you.
+
+## The same trick, one level up
+
+Swap the statistic instead of the mark.
+
+`density` estimates a distribution rather than counting one. Put it under
+`ribbon`, which fills the space between two edges, and ask for one per
+continent:
+
+```{r}
+data(gapminder_2007) + ribbon * density + x(continent) + y(life)
+```
+
+That is a violin plot. It has no name in this grammar. Nobody added a violin;
+the violin is what `ribbon * density` looks like.
+
+Now use `area`, which fills from one edge down to the bottom:
+
+```{r}
+data(gapminder_2007) + area * density + x(continent) + y(life)
+```
+
+A half violin, which in some libraries is a separate package. Here it is the
+same sentence with a different mark, and no new word was needed.
+
+## Changing a scale is changing a word
+
+Here is income against life expectancy, one dot per country:
+
+```{r}
+data(gapminder_2007) + point + x(gdp) + y(life) + color(continent)
+```
+
+That picture is hard to read, and the reason is the data rather than the plot.
+Most countries earn very little and a few earn very much more, so nearly every
+dot is pressed against the left edge.
+
+The usual fix is a log scale. Here it is:
+
+```{r}
+data(gapminder_2007) + point + x(gdp, scale = "log") + y(life) + color(continent)
+```
+
+Look at what changed in the sentence. Not the mark, not the columns, not a
+separate line added afterwards to adjust the axis. The scale is written on the
+binding it belongs to, inside `x()`, because a scale is a fact about how one
+column is read.
+
+That placement is the point. The column and the way it is read cannot drift
+apart, because they are written in the same pair of brackets. There is no second
+statement further down that might name the wrong column, and nothing to remember
+to change when you swap `gdp` for something else.
+
+## It does not stop at histograms
+
+Everything above uses five marks and two statistics. The vocabulary is small,
+and so far it has only drawn ordinary plots. Here is what the same small vocabulary
+does when you keep going.
+
+Split one plot into many with `|`, which arranges rather than derives:
+
+```{r}
+data(gapminder_2007) + point + x(gdp) + y(life) | facet(continent)
+```
+
+Bend the plane into a circle with `polar()`, and a bar chart of wind directions
+becomes a wind rose:
+
+```{r}
+data(winds) + bar * count + x(direction) + polar()
+```
+
+Use `nest()` to show the same shares as areas rather than as lengths, and a bar
+chart becomes a treemap:
+
+```{r}
+data(gapminder_2007) + bar * sum + y(population) + color(continent) + nest()
+```
+
+Add a third position and the plot stands up off the page. Drag this one:
+
+```{r}
+data(gapminder_2007) + point + x(gdp) + y(life) + z(population) + color(continent)
+```
+
+Look at what those four sentences have in common. Each is the same shape as the
+histogram at the top: a table, a mark, some positions, and at most one more
+word. There is no new syntax in any of them, and no separate library for
+circles or for three dimensions. `polar()` and `nest()` are words in
+the same sentence, and `z` is one more position beside `x` and `y`.
+
+That is what the small vocabulary is for. The words that get you a histogram
+on your first day are the words that get you a wind rose and a rotating cube,
+and there is no second thing to learn on the way.
+
+## Every plot arrives with controls
+
+Look underneath any plot on this page. There is a row of small boxes.
+
+Two of them are magnifiers, and they look closer and wider. The frame gives you
+back the whole picture. The camera saves what you are looking at as an image
+file, large enough for a slide or a figure in a paper. The hand is not a button
+at all, only a label telling you that you can drag the plot to move it. A box is
+dimmed when there is nothing for it to do.
+
+Every plot here has that row, including the plain histogram at the top of this
+page. You did not ask for it. There is no word in the grammar that turns it on,
+and that is deliberate: a word belongs in the grammar only if it changes what
+the plot says about your data, and none of these change anything.
+
+The plot in the cube has more, because it can do more. Drag it and it turns, and
+a second button puts the angle back where it started. That is separate from the
+button that puts the zoom back, so looking closer never costs you an angle you
+spent time finding.
+
+This is worth saying plainly. In most plotting libraries a finished plot is a
+still image. Zooming into it, moving it, or saving a clean copy at a larger size
+means reaching for a second library and writing more code. Here it is already
+there, on a five line histogram, and you never wrote a line for it.
+
+## Where the idea comes from
+
+The discipline is borrowed from Hangeul, the Korean alphabet designed in 1443. A
+learner can pick it up in a morning, and the reason is not that it has few
+letters. English has few letters and still takes years to write well.
+
+The reason is that its letters combine without exceptions. ㅋ is ㄱ with a stroke
+added, and the stroke means the same thing everywhere it appears. You do not
+memorize ㅋ. You derive it.
+
+So `bar * bin` is not something to memorize either. The power was never in the
+parts. It was in the regularity with which they join.
+
+## What this costs you
+
+The plots above show what works. This section says what does not.
+
+This package is version 0.0.3 and the number means what it says. It is young. If
+you use it for an experiment or a paper, you are taking a risk that you would not
+take with a mature library. There are things ggplot2 draws that it cannot, and
+[the book](https://psychometrician.github.io/gog-book/coverage.html) keeps a
+dated list of exactly what those are, in both directions, so you do not have to
+discover them yourself.
+
+What it does have is a rule that a plot which draws is a plot that means what you
+wrote. Ask for something the grammar cannot mean and you get a refusal that names
+the fix. Nothing is accepted and then quietly dropped.
+
+## What you can do
+
+Four things, from the quickest to the one that takes real work.
+
+### Read one chapter
+
+The [book](https://psychometrician.github.io/gog-book/) is live: every plot in
+it is drawn by the engine as the page builds, and none of them is a screenshot.
+Start with [the grammar](https://psychometrician.github.io/gog-book/grammar.html),
+which puts the entire vocabulary on one screen, or with
+[transforms](https://psychometrician.github.io/gog-book/transforms.html), which
+is where `bin` and `density` live.
+
+### Install it and draw your own data
+
+Three of the four bindings ship the engine inside the package, so there is
+nothing else to set up.
+
+```r
+# R
+install.packages("gog", repos = c("https://psychometrician.r-universe.dev",
+                                  "https://cloud.r-project.org"))
+```
+
+```bash
+# Python
+pip install gog
+```
+
+```julia
+# Julia
+using Pkg; Pkg.add("GrammarOfGraphics")
+```
+
+```bash
+# JavaScript
+npm install grammar-of-graphics
+```
+
+### Check it against a tool you trust
+
+This is the most useful thing anyone can do for this project right now, and here
+is the reason. Three test harnesses draw every plot in the book from
+Python, Julia and JavaScript and compare each against R. They prove the four
+bindings agree with each other. They cannot prove that all four are right. A box
+whose whiskers reached the wrong value would pass every one of those tests, four
+times over, and the book would print it as though it were correct.
+
+So draw a dataset you know well in GOG and in something you already believe, put
+the two side by side, and tell us where they differ.
+
+### Report what breaks
+
+[Issues are open](https://github.com/psychometrician/gog/issues). A refusal that
+gave you no direction is a bug. So is a plot that drew when it should have
+refused, which is the worse of the two and the harder to notice.
+
+And if any of this is useful, pass it on to someone who spends their day looking
+up chart functions.
+
+One last thing about the name. *A Grammar of Graphics* shortens to **agog**,
+which is English for eager, impatient to see what comes next. That is not luck.
+It is also what using this feels like. You say what you want to see, and there
+is a short wait before the engine shows you whether you said it right.
+
+Be agog. Use gog.

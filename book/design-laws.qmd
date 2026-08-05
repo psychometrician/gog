@@ -454,6 +454,14 @@ answer rather than a missing feature. It keeps every decision about what a plot
 looks like in the one place that is allowed to make them, which is the whole of
 the law above.
 
+The engine does that conversion itself in one case, and the case is worth seeing
+because it shows where the line falls. A plot that binds `play()` moves in a
+browser and nowhere else, so [`save_gif()`](play.qmd#taking-the-sequence-with-you)
+writes the same sequence as a picture that a slide or a message will play. That
+is still conversion in the sense this section means. The frames come out of the
+one renderer, and the GIF writer only turns them into pixels. It chooses no tick,
+no color and no layout, so there is nothing for it to drift from.
+
 ---
 
 ## The settable rule: settings obey Laws 1–2 too
@@ -466,9 +474,9 @@ mark-specific gap you have to memorize; the second is Orthogonality's *non-redun
 half: don't add a knob for what marks already do by combining.
 
 That is why `style(border_color =, border_size =)`, an outline distinct from the
-fill, is available on **all three closed-glyph fills** (`bar`, `box`, `point`), not
-one of them: their perimeter is a shape you cannot trace by composition, so a
-setting is the only way to draw it. And why `style(pattern =)`, the paint's
+fill, is available on **all five closed-glyph fills** (`bar`, `box`, `point`,
+`zone`, `surface`), not one of them: their perimeter is a shape you cannot trace
+by composition, so a setting is the only way to draw it. And why `style(pattern =)`, the paint's
 **texture**, is realized once per geometry: on the path strokes (`line`, `step`,
 `path`, `interval`, `rule`) as a **dash**, and on the four fills (`bar`, `box`, `area`, `ribbon`)
 as a **hatch**: one aesthetic, one form per geometry, the way `color` is a stroke

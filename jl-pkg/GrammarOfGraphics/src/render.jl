@@ -243,7 +243,14 @@ Draw a plot and return the SVG as a string.
 # its tables exactly as a plot does, and the engine tells the two shapes apart
 # itself (`ir::Figure`). `Union` rather than two methods, because there is
 # genuinely one implementation.
-function render_svg(plot::Union{Plot,Page})
+"""The engine's input for a plot or a page, as JSON — the one place either is
+turned into what `gog-cli` reads.
+
+Split out of `render_svg` when `save_gif` became a second caller. Two functions
+serializing the same object is two chances to disagree about a number's
+precision or about what a missing value crosses as, and that disagreement would
+surface as a GIF that does not match the plot beside it."""
+function wire_payload(plot::Union{Plot,Page})
     spec, frames = wire(plot)
     data = Dict{String,Any}()
     for (name, table) in frames
@@ -252,7 +259,11 @@ function render_svg(plot::Union{Plot,Page})
         # sentence before the database is ever asked (the pushdown design).
         data[name] = to_wire(resolve_query(table, name), name)
     end
-    payload = to_json(Dict{String,Any}("spec" => spec, "data" => data))
+    to_json(Dict{String,Any}("spec" => spec, "data" => data))
+end
+
+function render_svg(plot::Union{Plot,Page})
+    payload = wire_payload(plot)
 
     out = IOBuffer()
     errors = IOBuffer()
@@ -364,7 +375,13 @@ function is_spatial(spec)
         enc = get(layer, "encodings", Dict())
         get(enc, "z", nothing) !== nothing && return true
     end
-    any(needs_engine(cell) for cell in get(spec, "plots", []))
+    # **Both spellings are read**, and this binding emits the first: a `Page`
+    # writes its list as `cells`, so looking only for `plots` answered false for
+    # every composed cube and shipped no engine. The page drew perfectly and
+    # would not turn, which is the failure that hides.
+    cells = get(spec, "cells", nothing)
+    cells === nothing && (cells = get(spec, "plots", []))
+    any(needs_engine(cell) for cell in cells)
 end
 
 """The script that upgrades a static cube into a turnable one, or `""`."""
@@ -441,15 +458,104 @@ end
 
 """Draw the plot and write the SVG to `path`. Returns the path."""
 function save(plot::Union{Plot,Page}, path::AbstractString)
+    # Draw first, write second. `open(path, "w")` truncates the moment it is
+    # called, so rendering *inside* it meant a refused plot emptied the file
+    # before the engine had said a word — and if that path held a good plot, it
+    # was gone. A refusal must cost nothing that was already on disk.
+    svg = render_svg(plot)
     open(path, "w") do handle
-        write(handle, render_svg(plot))
+        write(handle, svg)
     end
     path
 end
 
+"""    save_gif(plot, path; scale = 1)
+
+Write a played plot to an animated GIF. Returns the path.
+
+A plot that binds `play()` moves in a browser, because the SVG carries its own
+timing. Most other places do not read that: a message to a friend, a slide, a
+post. This writes the same sequence as a GIF, which they do read.
+
+The frames come out of the one renderer, so the file cannot disagree with the
+plot. Every scale, the color map and each legend are fitted across the whole
+sequence at once, and the moments are cut from that single drawing rather than
+drawn again one at a time. Nothing needs to be installed.
+
+`scale` multiplies the plot's canvas, which is 800 by 600 unless its theme says
+otherwise — small for a post, so `scale = 2` doubles it.
+"""
+function save_gif(plot::Union{Plot,Page}, path::AbstractString; scale::Real = 1)
+    isempty(path) &&
+        throw(GogError("gog: `save_gif()` needs one path — `save_gif(p, \"wave.gif\")`."))
+    # The name says what the file is, so a path that says otherwise is refused
+    # rather than quietly corrected. Writing GIF bytes into `wave.png` is the
+    # kind of small lie that is discovered much later, by someone else.
+    if !endswith(lowercase(path), ".gif")
+        stem = first(splitext(path))
+        throw(GogError("gog: `save_gif()` writes a GIF, so the path ends in " *
+                       "`.gif` — `save_gif(p, \"$(stem).gif\")`."))
+    end
+    (isfinite(scale) && scale > 0) ||
+        throw(GogError("gog: `save_gif(scale = )` needs one positive number, " *
+                       "e.g. `save_gif(p, \"wave.gif\", scale = 2)`."))
+
+    payload = wire_payload(plot)
+    errors = IOBuffer()
+    cmd = Cmd([find_gog_cli(), "--gif", expanduser(path), "--scale", string(scale)])
+    process = run(pipeline(cmd; stdin = IOBuffer(payload),
+                           stdout = devnull, stderr = errors), wait = false)
+    wait(process)
+
+    messages = strip(String(take!(errors)))
+    if process.exitcode != 0
+        throw(GogError(isempty(messages) ?
+            "gog-cli exited with status $(process.exitcode)" : messages))
+    end
+    isempty(messages) || println(stderr, messages)
+    path
+end
+
+"""A refusal, shown in a cell as the sentence the engine wrote.
+
+The engine takes trouble over these: every one names what it would not do and
+what to write instead. A display hook that lets the exception through buries
+that sentence under twenty-odd frames of `limitstringmime`, `display_dict` and
+`eventloop`, and not one of those lines is anywhere the author can act.
+
+Only the *display* path does this. `render_svg()`, `save()` and `save_gif()`
+still throw, so a script still stops on a refusal.
+"""
+function refusal_block(message::AbstractString)
+    escaped = replace(message, "&" => "&amp;", "<" => "&lt;", ">" => "&gt;")
+    string("<pre style=\"white-space:pre-wrap;word-break:break-word;",
+           "border-left:3px solid #c2410c;padding:0.6em 0.9em;margin:0;",
+           "font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:0.9em\">",
+           escaped, "</pre>")
+end
+
 # A plot in a notebook, drawn rather than described. `Plot` already has a `show`
 # for the terminal; this is the one an HTML host asks for.
-Base.show(io::IO, ::MIME"image/svg+xml", plot::Union{Plot,Page}) = print(io, render_svg(plot))
+#
+# A refusal is caught here rather than thrown at the frontend. The SVG form gets
+# the message as a picture, because a host that asked for an image and is handed
+# markup renders neither — an SVG saying why there is no plot is the honest
+# answer to the question that was asked.
+function Base.show(io::IO, ::MIME"image/svg+xml", plot::Union{Plot,Page})
+    try
+        print(io, render_svg(plot))
+    catch error
+        error isa GogError || rethrow()
+        text = replace(sprint(showerror, error),
+                       "&" => "&amp;", "<" => "&lt;", ">" => "&gt;")
+        print(io, "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"760\" height=\"96\">",
+              "<foreignObject x=\"0\" y=\"0\" width=\"760\" height=\"96\">",
+              "<div xmlns=\"http://www.w3.org/1999/xhtml\" style=\"white-space:pre-wrap;",
+              "border-left:3px solid #c2410c;padding:0.6em 0.9em;",
+              "font-family:ui-monospace,Menlo,monospace;font-size:0.85em\">",
+              text, "</div></foreignObject></svg>")
+    end
+end
 
 # And the HTML form, which is what carries a *turnable* cube.
 #
@@ -458,5 +564,11 @@ Base.show(io::IO, ::MIME"image/svg+xml", plot::Union{Plot,Page}) = print(io, ren
 # A host that prefers SVG still gets the method above and the same drawing —
 # this adds a richer form beside it rather than replacing anything, and for a
 # flat plot the two differ only by the wrapping `<div>`.
-Base.show(io::IO, ::MIME"text/html", plot::Union{Plot,Page}) =
-    print(io, svg_block(render_svg(plot), plot))
+function Base.show(io::IO, ::MIME"text/html", plot::Union{Plot,Page})
+    try
+        print(io, svg_block(render_svg(plot), plot))
+    catch error
+        error isa GogError || rethrow()
+        print(io, refusal_block(sprint(showerror, error)))
+    end
+end

@@ -26,11 +26,11 @@
 import copy
 import sys
 import warnings
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Set, Tuple
 
 from .columns import Column
 from .errors import GogError
-from .render import Query, render_svg, save, show, svg_block
+from .render import Query, refusal_block, render_svg, save, show, svg_block
 
 # ---------------------------------------------------------------------------
 # Atoms
@@ -244,14 +244,19 @@ def data(frame: Any, name: Optional[str] = None) -> "Plot":
         # The ambiguous case §12 reserves the Assumption for: only the caller
         # knows what this table should be called, so the default is announced
         # with the direction rather than taken in silence.
+        #
+        # The name is only ever used to *distinguish* one table from another, so
+        # a second anonymous table is given `data2` rather than refused — the
+        # counting happens where two of them meet, since a plot built on its own
+        # has nothing to count against.
         warnings.warn(
             "gog: this table was built in the call rather than passed as a "
-            "variable, so it has no name to take, and it is called `data`. A layer "
-            "resolves its columns against the nearest table *by name*, so two "
-            "tables named this way collide. Name it: `data(df, name='...')`.",
+            "variable, so it has no name to take, and it is called `data`. Name "
+            "it with `data(df, name='...')` if a message about it should say "
+            "something you recognize.",
             stacklevel=2,
         )
-        name = "data"
+        return Plot(_new_spec("data"), {"data": frame}, anonymous={"data"})
 
     return Plot(_new_spec(name), {name: frame})
 
@@ -346,7 +351,7 @@ def query(connection: Any, sql: Optional[str] = None, name: Optional[str] = None
 class Plot:
     """A plot specification under construction. Build it with `+`."""
 
-    __slots__ = ("spec", "frames", "current_layer", "pending_data")
+    __slots__ = ("spec", "frames", "current_layer", "pending_data", "anonymous")
 
     def __init__(
         self,
@@ -354,11 +359,16 @@ class Plot:
         frames: Dict[str, Any],
         current_layer: Optional[Dict[str, Any]] = None,
         pending_data: Optional[str] = None,
+        anonymous: Optional[Set[str]] = None,
     ) -> None:
         self.spec = spec
         self.frames = frames
         self.current_layer = current_layer
         self.pending_data = pending_data
+        # Which of these names the binding invented rather than read from the
+        # caller. Only a name the *author* wrote can clash: a generated one
+        # means nothing to them, so it can be renamed to make room.
+        self.anonymous = set(anonymous) if anonymous else set()
 
     # -- copying: `+` never edits the plot on its left ----------------------
 
@@ -368,6 +378,7 @@ class Plot:
             dict(self.frames),  # the tables themselves are shared, not copied
             copy.deepcopy(self.current_layer),
             self.pending_data,
+            self.anonymous,
         )
 
     # -- `+` ----------------------------------------------------------------
@@ -401,13 +412,23 @@ class Plot:
 
             existing = plot.frames.get(new_name)
             if existing is not None and existing is not other.frames[new_name]:
-                raise GogError(
-                    f"gog: two different tables are both called `{new_name}` — a layer "
-                    f"resolves its columns against the nearest table by name, so one of "
-                    f"these can never be reached. Give them distinct names: "
-                    f"`data(df, name='...')`."
-                )
+                if new_name not in other.anonymous:
+                    raise GogError(
+                        f"gog: two different tables are both called `{new_name}` — a layer "
+                        f"resolves its columns against the nearest table by name, so one of "
+                        f"these can never be reached. Give them distinct names: "
+                        f"`data(df, name='...')`."
+                    )
+                # The binding invented this name, so it can move. Nothing refers
+                # to it yet — a bare `data()` carries no layers — so giving it a
+                # free one is the whole rename.
+                fresh = _free_name(plot.frames)
+                plot.frames[fresh] = other.frames[new_name]
+                plot.anonymous.add(fresh)
+                plot.pending_data = fresh
+                return plot
             plot.frames.update(other.frames)
+            plot.anonymous |= other.anonymous
             plot.pending_data = new_name
             return plot
 
@@ -612,7 +633,15 @@ class Plot:
     def _repr_html_(self) -> str:
         # Jupyter asks for a mime bundle, and this is the method that puts a
         # plot in the cell rather than a repr line.
-        return svg_block(render_svg(self), self)
+        #
+        # A refusal is the author's mistake, not a fault in the program, so it
+        # is shown as the sentence the engine wrote rather than raised into the
+        # frontend, which presents it as a traceback through this file and
+        # IPython's internals. `render_svg()` and `save()` still raise.
+        try:
+            return svg_block(render_svg(self), self)
+        except GogError as refusal:
+            return refusal_block(str(refusal))
 
     def __repr__(self) -> str:
         spec, _ = self._wire()
@@ -640,16 +669,29 @@ class Plot:
 # ---------------------------------------------------------------------------
 
 
+# The theme properties that describe a *panel*, and so cannot be said about a
+# page. The engine holds the same list in `check_page_theme`; this copy is what
+# puts the refusal on the line that wrote it.
+PANEL_THEME = ("preset", "grid", "ratio", "tick_angle", "font_size",
+               "background", "strip", "strip_text", "frame")
+
+
 class Page:
     """Plots arranged on one page. Build it with `|` and `/`."""
 
-    __slots__ = ("arrange", "cells", "frames")
+    __slots__ = ("arrange", "cells", "frames", "theme", "anonymous")
 
     def __init__(self, arrange: str, cells: List[Dict[str, Any]],
-                 frames: Dict[str, Any]) -> None:
+                 frames: Dict[str, Any],
+                 theme: Optional[Dict[str, Any]] = None,
+                 anonymous: Optional[Set[str]] = None) -> None:
         self.arrange = arrange
         self.cells = cells
         self.frames = frames
+        self.theme = dict(theme) if theme else {}
+        # Which names the binding invented — carried onward so a page composed
+        # into a larger one can still give way to an author's name.
+        self.anonymous = set(anonymous) if anonymous else set()
 
     def __or__(self, other: Any) -> "Page":
         return _facet_join(self, other, "col", "|")
@@ -658,18 +700,49 @@ class Page:
         return _facet_join(self, other, "row", "/")
 
     def __add__(self, other: Any) -> "Page":
-        # A page is plots arranged; an atom belongs to one of them. A title for
-        # the page as a whole is real and not built — designed, not implemented.
+        # A page is plots arranged, and an atom belongs to one of them — with the
+        # one exception whose subject is the figure rather than a panel.
+        # `theme(width=, height=)` says how big this page is, which is the same
+        # sentence a plot writes about itself, and there is nowhere else to write
+        # it: two plots side by side divide the page's width and each keep the
+        # whole of its height, so only the page can say how much height that is.
+        if isinstance(other, Atom) and other.kind == "theme":
+            named = [k for k in PANEL_THEME if other.fields.get(k) is not None]
+            if named:
+                written = (f'theme("{other.fields["preset"]}")'
+                           if "preset" in named else f"theme({named[0]}=)")
+                raise GogError(
+                    f"gog: `{written}` describes a panel, and a page is plots arranged "
+                    f"rather than a panel of its own. On a page, `theme()` states how "
+                    f"big the figure is — `theme(width=)` and `theme(height=)` — and "
+                    f"nothing else. Write this into the plot it describes, before "
+                    f"composing: `(plot + {written}) | other_plot`."
+                )
+            theme = dict(self.theme)
+            for key in ("width", "height"):
+                if other.fields.get(key) is not None:
+                    theme[key] = other.fields[key]
+            return Page(self.arrange, copy.deepcopy(self.cells), self.frames, theme,
+                        self.anonymous)
+
+        # Everything else belongs one level down. A title for the page as a whole
+        # is real and not built — designed, not implemented.
         what = f"`{other.kind}()`" if isinstance(other, Atom) else "that"
         raise GogError(
             f"gog: {what} belongs to a plot, and the left side is a page of them. "
             f"Write it into the plot it describes, before composing: "
-            f"`(plot + theme(...)) | other_plot`."
+            f"`(plot + title('...')) | other_plot`."
         )
 
     def _wire(self) -> Tuple[Dict[str, Any], Dict[str, Any]]:
         """The sealed page and its tables — the same pair a plot hands over."""
-        return {"arrange": self.arrange, "cells": copy.deepcopy(self.cells)}, self.frames
+        wire: Dict[str, Any] = {
+            "arrange": self.arrange,
+            "cells": copy.deepcopy(self.cells),
+        }
+        if self.theme:
+            wire["theme"] = dict(self.theme)
+        return wire, self.frames
 
     # -- display: a page draws through exactly what a plot draws through -----
 
@@ -686,7 +759,12 @@ class Page:
         show(self)
 
     def _repr_html_(self) -> str:
-        return svg_block(render_svg(self), self)
+        # A page is a figure like any other, and a refusal reaches a cell the
+        # same way — shown, not raised. See `Plot._repr_html_`.
+        try:
+            return svg_block(render_svg(self), self)
+        except GogError as refusal:
+            return refusal_block(str(refusal))
 
     def __repr__(self) -> str:
         return f"<gog page: {len(self.cells)} cells, {self.arrange}>"
@@ -699,19 +777,77 @@ def _figure_cells(figure: Any, arrange: str) -> List[Dict[str, Any]]:
     row of three rather than a row of (a row of two, and one) — the reading the
     eye gives it. A page running the other way stays a cell of its own, which is
     what makes `top / (main | right)` two rows, the second holding two plots.
+
+    A page that has stated its own size does not flatten either, whichever way it
+    runs: flattening keeps the cells and drops the node, and the node is where the
+    size was written.
     """
-    if isinstance(figure, Page) and figure.arrange == arrange:
+    if isinstance(figure, Page) and figure.arrange == arrange and not figure.theme:
         return list(figure.cells)
     wire, _ = figure._wire()
     return [wire]
 
 
-def _merge_frames(left: Any, right: Any) -> Dict[str, Any]:
-    """Two figures' tables, under Law 4's rule: one name, one table."""
+def _free_name(taken: Any) -> str:
+    """The next generated table name that nothing is using: `data`, `data2`, …"""
+    if "data" not in taken:
+        return "data"
+    n = 2
+    while f"data{n}" in taken:
+        n += 1
+    return f"data{n}"
+
+
+def _rename_table(cells: List[Dict[str, Any]], old: str, new: str) -> None:
+    """Rewrite every reference to a table, through nested pages.
+
+    A name reaches the wire in exactly two places — the plot's own table and a
+    layer that reads a different one — so this is the whole rewrite.
+    """
+    for cell in cells:
+        if cell.get("data") == old:
+            cell["data"] = new
+        for layer in cell.get("layers", []) or []:
+            if layer.get("data") == old:
+                layer["data"] = new
+        if cell.get("cells"):
+            _rename_table(cell["cells"], old, new)
+
+
+def _merge_frames(
+    left: Any, right: Any,
+    left_cells: List[Dict[str, Any]], right_cells: List[Dict[str, Any]],
+) -> Tuple[Dict[str, Any], Set[str]]:
+    """Two figures' tables, under Law 4's rule: one name, one table.
+
+    A name the author wrote is theirs and cannot be moved, so two different
+    tables under one of those is still refused. A generated name is the
+    binding's own and means nothing to them, so it is renamed to make room
+    instead — which is what keeps a page of two anonymous tables legal, the way
+    a plot of two already is.
+    """
     frames = dict(left.frames)
+    anonymous = set(left.anonymous)
     for name, frame in right.frames.items():
         existing = frames.get(name)
         if existing is not None and existing is not frame:
+            taken = set(frames) | set(right.frames)
+            if name in right.anonymous:
+                fresh = _free_name(taken)
+                _rename_table(right_cells, name, fresh)
+                frames[fresh] = frame
+                anonymous.add(fresh)
+                continue
+            if name in anonymous:
+                # The author wrote the incoming one; the binding invented the one
+                # already here, so that is the one that moves.
+                fresh = _free_name(taken)
+                _rename_table(left_cells, name, fresh)
+                frames[fresh] = frames.pop(name)
+                anonymous.discard(name)
+                anonymous.add(fresh)
+                frames[name] = frame
+                continue
             raise GogError(
                 f"gog: two different tables on one page are both called `{name}` — a "
                 f"layer resolves its columns against the nearest table by name, so one "
@@ -719,15 +855,16 @@ def _merge_frames(left: Any, right: Any) -> Dict[str, Any]:
                 f"`data(df, name='...')`."
             )
         frames[name] = frame
-    return frames
+        if name in right.anonymous:
+            anonymous.add(name)
+    return frames, anonymous
 
 
 def _compose(left: Any, right: Any, arrange: str) -> Page:
-    return Page(
-        arrange,
-        _figure_cells(left, arrange) + _figure_cells(right, arrange),
-        _merge_frames(left, right),
-    )
+    left_cells = _figure_cells(left, arrange)
+    right_cells = _figure_cells(right, arrange)
+    frames, anonymous = _merge_frames(left, right, left_cells, right_cells)
+    return Page(arrange, left_cells + right_cells, frames, anonymous=anonymous)
 
 
 def _channel_def(atom: Atom) -> Dict[str, Any]:

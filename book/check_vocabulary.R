@@ -162,7 +162,11 @@ check_vocabulary <- function(book = "book", namespace = "r-pkg/gog/NAMESPACE") {
   # an example without first writing a CSV reader. Like `render_svg` it is
   # binding plumbing rather than a word of the grammar, so it is not documented
   # as an atom.
-  exported <- setdiff(exported, c("render_svg", "colour", "book_table"))
+  # `save_gif` writes a played plot where SVG animation is not read. It is the
+  # same kind of name as the two above, and the pattern is worth stating once:
+  # a bare common word belongs to the grammar, and the plumbing around it takes
+  # two words joined by `_`. That is why none of these four is a channel.
+  exported <- setdiff(exported, c("render_svg", "colour", "book_table", "save_gif"))
   undocumented <- setdiff(exported, all_names)
   if (length(undocumented))
     fail("FAIL: exported but absent from the kernel block in grammar.qmd — ",

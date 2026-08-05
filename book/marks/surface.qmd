@@ -17,7 +17,7 @@ that both are fills, and it stops there.
 
 ## A sheet through the samples
 
-Here is Maunga Whau, the volcano in Auckland that ships with R, on a 20 m grid.
+Here is Maunga Whau, the volcano in Auckland that is included with R, on a 20 m grid.
 Ross Ihaka digitized the elevations from a topographic map, and they reach this
 page through R's `datasets` package [@rcore2026]:
 
@@ -190,8 +190,12 @@ one gets a plateau of its own:
 
 ```{r}
 data(cells) + surface * bin(3) * mean + x(a) + y(b) + z(v) +
-  title("Nine values, nine plateaus")
+  color(v) + palette("plasma") + title("Nine values, nine plateaus")
 ```
+
+Nine plateaus, and three colors. This bowl is symmetric, so the four corner cells
+share one height and the four edge cells share another. The ramp is what makes
+that symmetry visible, where the sheet above left it to be read off the axis.
 
 `bin` cuts the two floor axes into cells, and `mean` reduces the column named on
 `z` inside each one. That is the sentence a 3-D bar already used. The transforms
@@ -208,16 +212,25 @@ missing cell.
 A riser spans the *difference* between two neighbors, and that is what separates
 this from standing a [3-D bar](bar.qmd) on every cell. A bar's wall runs the whole
 way from the baseline, so a floor of them walls itself off as soon as you turn it,
-while risers are only as tall as the local step. Turn both and watch which survives:
+while risers are only as tall as the local step. Turn both and watch which survives.
+Both are set to one color, so the only thing that differs between them is the shape:
 
 ```{r}
-#| layout-ncol: 2
-data(cells) + bar * bin(3) * mean + x(a) + y(b) + z(v) +
-  space(turn = 60) + title("Columns, turned")
-
-data(cells) + surface * bin(3) * mean + x(a) + y(b) + z(v) +
-  space(turn = 60) + title("Plateaus, turned")
+((data(cells) + bar * bin(3) * mean + x(a) + y(b) + z(v) +
+    space(turn = 60) + style(color = "#76b7b2") + title("Columns, turned")) |
+   (data(cells) + surface * bin(3) * mean + x(a) + y(b) + z(v) +
+      space(turn = 60) + style(color = "#76b7b2") + title("Plateaus, turned"))) +
+  theme(height = 430)
 ```
+
+`|` composes them ([Composition](../composition.qmd)), so the two are one figure
+and one drag. Turn either and both turn together, which is what makes this a fair
+comparison rather than two pictures you have to line up by eye.
+
+The height belongs to the figure, and two cubes side by side are why it is
+stated. They divide the page's width and each keep the whole of its height. A
+cube is fitted with one scale on both axes, so it never stretches to fill a tall
+cell. The room it cannot use would sit empty above it and below it.
 
 Empty cells need no special rule and get none. `bin` leaves them out, because a
 count of zero and no data at all are different things, and a plateau claims only
@@ -296,12 +309,69 @@ a face is already small enough to hold one value. So the rule was never "regions
 refuse it, strokes take it"; it is whether a mark has parts small enough to each
 hold one value, and a stroke has segments where a surface has faces.
 
+A face has four corners and one color. What it reads is the field at its center,
+which is the mean of those four, so the ramp describes the mesh you have and not
+only the field you sampled from. Sample the same bowl twice and watch the shape
+arrive:
+
+```{r}
+bowl <- function(n) {
+  g <- expand.grid(a = seq(-2, 2, length.out = n), b = seq(-2, 2, length.out = n))
+  g$v <- 0.019 + 0.0025 * (g$a^2 + g$b^2)
+  g
+}
+coarse <- bowl(3)
+fine   <- bowl(7)
+
+((data(coarse, name = "coarse") + surface + x(a) + y(b) + z(v) +
+    color(v) + palette("plasma") + title("Sampled 3 by 3: four faces")) |
+   (data(fine, name = "fine") + surface + x(a) + y(b) + z(v) +
+      color(v) + palette("plasma") + title("Sampled 7 by 7: thirty-six faces"))) +
+  theme(height = 320)
+```
+
+Two tables on one page, so each is named. A layer finds its columns in the
+nearest table by that name, and two tables answering to the same one would leave
+the second unreachable ([Data](../data.qmd)).
+
+The left sheet is one flat color, and that is honest rather than broken. Each of
+its four faces spans one corner at every height this bowl has, so all four average
+to the same number. The mesh is too coarse to hold the shape, and the ramp says so
+instead of inventing a gradient across it. The right sheet has the same field under
+it and enough faces to resolve it, so the bowl appears.
+
+This is the reading that makes the key trustworthy. A color is the height at one
+named place on the sheet, so two faces of one color really are at one height, and a
+sheet of one color really is flat on average.
+
 The slope shading is still underneath the ramp, and the two compose rather than
 fight: a face takes its color from the ramp and is then darkened by how steep it
 is. Viridis survives that because only the *low* ground reaches its dark end, and
 on a terrain the low ground is also the flattest. The two darkenings therefore do
 not pile up, and the darkest face on this sheet is lighter than a fully-shaded
 viridis floor would have been.
+
+An **estimated** height ramps the same way, and you name it the same way. A
+`density` publishes its estimate under the name `density`, so that is the word
+`color` takes, exactly as it does on a [`zone`](zone.qmd) or a
+[`path`](path.qmd):
+
+```{r}
+data(iris_flowers) + surface * density +
+  x(petal_length) + y(sepal_length) + space() + color(density) +
+  palette("viridis") + title("The estimate, as a height and as a ramp")
+```
+
+Nothing there is a special case. The transform makes a column, the column has a
+name, and a name can be bound. Whether the height came from your table or from an
+estimate changes who wrote the number, and it does not change what you may say
+about it.
+
+Whether you *want* the second reading is a separate question, and the plain sheet
+earlier in this chapter is the one that makes the argument about height. Use the
+ramp when the low ground matters: slope shading darkens a steep face and leaves a
+level one alone, so a broad, shallow mound and the flat floor around it are the
+same color, and the ramp is what separates them.
 
 A **categorical** color splits the mark instead, one sheet per group, and the
 depth sort runs over every face of every series at once so two sheets thread
@@ -322,22 +392,18 @@ angle's choice. So it is worth turning the same sheet rather than trusting one v
 of it. Each of these changes exactly *one* of `turn`/`tilt` from the first:
 
 ```{r}
-#| layout-ncol: 2
-data(maunga_whau) + surface + x(east) + y(north) + z(elevation) +
-  color(elevation) + palette("viridis") + space(turn = 30, tilt = 25) +
-  z_label("Elevation (m)") + title("The reference three-quarter view")
-
-data(maunga_whau) + surface + x(east) + y(north) + z(elevation) +
-  color(elevation) + palette("viridis") + space(turn = 140, tilt = 25) +
-  z_label("Elevation (m)") + title("Turned: the same sheet from the west")
-
-data(maunga_whau) + surface + x(east) + y(north) + z(elevation) +
-  color(elevation) + palette("viridis") + space(turn = 30, tilt = 70) +
-  z_label("Elevation (m)") + title("Tilted up: the crater appears")
-
-data(maunga_whau) + surface + x(east) + y(north) + z(elevation) +
-  color(elevation) + palette("viridis") + space(turn = 30, tilt = 5) +
-  z_label("Elevation (m)") + title("Tilted down: the skyline")
+((data(maunga_whau) + surface + x(east) + y(north) + z(elevation) +
+    color(elevation) + palette("viridis") + space(turn = 30, tilt = 25) +
+    z_label("Elevation (m)") + title("The reference three-quarter view")) |
+ (data(maunga_whau) + surface + x(east) + y(north) + z(elevation) +
+    color(elevation) + palette("viridis") + space(turn = 140, tilt = 25) +
+    z_label("Elevation (m)") + title("Turned: the same sheet from the west"))) /
+((data(maunga_whau) + surface + x(east) + y(north) + z(elevation) +
+    color(elevation) + palette("viridis") + space(turn = 30, tilt = 70) +
+    z_label("Elevation (m)") + title("Tilted up: the crater appears")) |
+ (data(maunga_whau) + surface + x(east) + y(north) + z(elevation) +
+    color(elevation) + palette("viridis") + space(turn = 30, tilt = 5) +
+    z_label("Elevation (m)") + title("Tilted down: the skyline")))
 ```
 
 Read them as a set and the trade is plain. The crater is not visible at all in
@@ -352,18 +418,24 @@ That is the argument for a plot you can turn, made rather than asserted. Reading
 both the plan and the profile is not a convenience here. It is the only way to
 see this hill whole, and no single still view offers it.
 
-So turn one of these four panels with the mouse. Lift your eye until the crater
-opens, and watch the heights flatten as it does. The four still views make the
-argument; dragging one of them is how you check it.
+So drag the tour with the mouse. Lift your eye until the crater opens, and watch
+the heights flatten as it does. The four still views make the argument; dragging
+them is how you check it.
 
-Two honest edges in this tour, and neither is a surface's fault. **The tiling is the
-page's, not the grammar's:** those are four sentences that Quarto laid out two
-across, not one faceted plot. `|` and `/` are faceting, faceting names a
-**column** ([Faceting](../faceting.qmd)), and a viewing angle is not a column: it
-is a property of the coordinate space, the way a `polar()` start angle is. A small
-multiple of cubes *is* built, and these four panels still are not one
-([Space](../space.qmd) shows the real thing), because a facet over view angles
-would need a column to name and there is none. And notice the vertical axis in
+All four turn together, because `|` and `/` composed them into one figure and a
+composition has one drag. Each panel keeps the angle its own sentence asked for
+and the drag adds the same change to every one, so the four stay the four: they
+turn as a set, and *reset* returns each to where it began. To turn one alone,
+write it alone.
+
+That is composition rather than faceting, and the two share the same pair of
+operators. A facet names a **column** ([Faceting](../faceting.qmd)), and a viewing
+angle is not a column: it is a property of the coordinate space, the way a
+`polar()` start angle is. So a small multiple of cubes *is* built, and these four
+panels are still not one ([Space](../space.qmd) shows the real thing), because a
+facet over view angles would need a column to name and there is none.
+
+One honest edge in this tour, and it is not a surface's fault. Notice the vertical axis in
 the tilted-up panel. Its numbers sit tight against each other, because that axis
 is projecting at about a third of its length and they are still all being drawn.
 They do clear each other, and tilting further would make the frame leave some out

@@ -17,6 +17,7 @@ import subprocess
 import math
 import os
 import sys
+import tempfile
 import warnings
 from datetime import date
 
@@ -210,6 +211,38 @@ svg = render_svg(data(play_df) + point + x(col.x) + y(col.y) + play(col.year, sp
 assert svg.count('<animate attributeName="display"') == 4
 assert 'dur="0.800s"' in svg
 ok("`speed=2` runs the same frames twice as fast")
+
+# The same sequence written where SVG animation is not read. Checked as a file,
+# because everything this adds happens after the SVG above: the header proves it
+# is a GIF, the trailer proves it was finished rather than left half-written, and
+# NETSCAPE2.0 is what makes it loop instead of freezing on the last moment.
+with tempfile.TemporaryDirectory() as folder:
+    played = data(play_df) + point + x(col.x) + y(col.y) + play(col.year)
+    written = save_gif(played, os.path.join(folder, "wave.gif"))
+    raw = open(written, "rb").read()
+    assert raw[:6] == b"GIF89a", "save_gif() should write a GIF"
+    assert raw[-1:] == b"\x3b", "the GIF should end with its trailer"
+    assert b"NETSCAPE2.0" in raw, "the GIF should loop"
+    ok("`save_gif()` writes a looping GIF of a played plot")
+
+    # A plot with no moments cannot become a sequence, and the refusal says what
+    # to write instead rather than leaving a one-frame file nobody asked for.
+    try:
+        save_gif(data(play_df) + point + x(col.x) + y(col.y),
+                 os.path.join(folder, "still.gif"))
+        raise AssertionError("save_gif() on an unplayed plot should refuse")
+    except GogError as e:
+        assert "does not play" in str(e) and "play(year)" in str(e), str(e)
+    ok("`save_gif()` refuses a plot with no moments, with direction")
+
+    # The name says what the file is, so a path that says otherwise is refused
+    # rather than quietly corrected.
+    try:
+        save_gif(played, os.path.join(folder, "wave.png"))
+        raise AssertionError("save_gif() should refuse a path that is not a .gif")
+    except GogError as e:
+        assert "ends in `.gif`" in str(e), str(e)
+    ok("`save_gif()` refuses to write GIF bytes into another name")
 
 # A second table naming its own positions — the per-layer position rule.
 notes = {"at": [2.0], "val": [4.0], "what": ["peak"]}
@@ -1132,8 +1165,22 @@ alone = render_svg(data(cars, name="cars") + point + x(col.speed) + y(col.dist)
 assert 'width="400" height="300"' in alone, "`theme(width=, height=)` should size the image"
 ok("`theme(width=, height=)` is the image alone and the cell composed")
 
+# And a *page* states its own size, which is the one sentence no cell can write.
+# Composed side by side, two plots divide the page's width and each keep the
+# whole of its height, so only the page can say how much height that is.
+sized_page = render_svg((scatter | scatter) + theme(height=310))
+assert 'width="800" height="310"' in sized_page, "a page is drawn at the size it states"
+assert 'width="800" height="600"' in render_svg(scatter | scatter), \
+    "a page that states nothing still takes the canvas"
+ok("a page states its own size, and takes the canvas when it does not")
+
 refuses("a size no plot can be drawn at", lambda: theme(width=10))
 refuses("a page asked to facet", lambda: (scatter | scatter) | facet(col.speed))
+refuses("an atom added to a page", lambda: (scatter | scatter) + title("Cars"))
+# The size is the only theme property whose subject is the figure. Every other
+# one describes a panel, and a page has none.
+refuses("a panel property said about a page", lambda: (scatter | scatter) + theme(grid="none"))
+refuses("a preset said about a page", lambda: (scatter | scatter) + theme("minimal"))
 
 # --- parentheses group plots, never marks ------------------------------------
 # `+` with a Plot on its right keeps the table and returns, which is right for a
@@ -1455,6 +1502,25 @@ refuses("`at` is two numbers or a set of names",
 
 _con.close()
 
+# --- a composed page of cubes carries the engine ------------------------------
+#
+# A `Page` writes its list as `cells`, and this check read only `plots`, so it
+# answered False for every composition of 3-D plots and shipped no engine. The
+# page drew perfectly and would not turn, which is the failure that hides: a
+# picture with a gesture missing still looks like a picture. Julia had the same
+# gap; R read both spellings and JavaScript reads both, which is what made two
+# bindings look right while two were not.
+from gog import render as _R
+_c = {"a": [1.0, 2.0], "b": [1.0, 2.0], "c": [1.0, 2.0]}
+_cube = lambda n: data(_c, n) + point + x(col.a) + y(col.b) + z(col.c) + space()
+_page = _cube("t") | _cube("u")
+assert _R._needs_engine({"arrange": _page.arrange, "cells": _page.cells}), \
+    "a page holding a cube has an angle to drag"
+assert _R._needs_engine(_page.cells[0]), "and so does the cube on its own"
+assert not _R._needs_engine({"arrange": "beside", "cells": [{"layers": []}]}), \
+    "a page of flat plots still pays nothing"
+ok("a composed page of cubes carries the engine")
+
 # --- the interactive block must reach the browser intact ---------------------
 #
 # Two defects lived here and neither was reachable by comparing SVG, because both
@@ -1525,5 +1591,76 @@ assert _reported == _declared, (
     f"Engine: {_engine}. A plot drawn now is drawn by the wrong release."
 )
 ok(f"the engine reports {_reported}, the same as the package")
+
+# --- a page of tables the binding had to name itself --------------------------
+# Neither plot can read a name off the caller, so the binding invents `data` for
+# both. That name is its own and means nothing to the author, so the second one
+# gives way rather than colliding — the same rule a plot of two tables already
+# follows. A name the author *wrote* still cannot be moved.
+_left = {"x": [1.0, 2.0], "y": [3.0, 4.0]}
+_right = {"x": [3.0, 4.0], "y": [5.0, 6.0]}
+with warnings.catch_warnings():
+    warnings.simplefilter("ignore")
+    _bare = ((data(dict(_left)) + point + x(col.x) + y(col.y))
+             | (data(dict(_right)) + point + x(col.x) + y(col.y)))
+_named = ((data(_left, name="one") + point + x(col.x) + y(col.y))
+          | (data(_right, name="two") + point + x(col.x) + y(col.y)))
+assert len(_bare.frames) == 2, _bare.frames
+# The picture is the test: a rename that pointed both cells at one table would
+# draw too, and only this catches that.
+assert render_svg(_bare) == render_svg(_named)
+ok("a page of two anonymous tables draws what naming them would draw")
+
+refuses("two different tables on one page under a name the author wrote",
+        lambda: (data(_left, name="s") + point + x(col.x) + y(col.y))
+        | (data(_right, name="s") + point + x(col.x) + y(col.y)))
+
+# --- a refusal must cost nothing that was already on disk ---------------------
+# Julia's `save()` opened the destination before it knew the render had
+# succeeded, and opening for writing truncates, so a refused plot emptied
+# whatever was there. Python's `plot.save()` renders before it opens and so
+# cannot, and this holds it to that: the ordering is easy to reverse while
+# tidying, and nothing else would notice.
+_savedir = tempfile.mkdtemp()
+_savepath = os.path.join(_savedir, "plot.svg")
+_good = data(_left, name="one") + point + x(col.x) + y(col.y)
+_bad = data(_left, name="one") + point + x(col.x) + y(col.y) + palette("okabe")
+_good.save(_savepath)
+with open(_savepath, encoding="utf-8") as _h:
+    _before = _h.read()
+assert _before, "save() wrote nothing"
+try:
+    _bad.save(_savepath)
+    raise AssertionError("FAIL: a plot that maps no color should have been refused")
+except GogError:
+    pass
+with open(_savepath, encoding="utf-8") as _h:
+    assert _h.read() == _before, "a refused save() destroyed the file already there"
+ok("a refused save() leaves an existing file alone")
+
+# --- a refusal in a notebook cell reads as the message, not as a crash --------
+# Raised into a display host, a refusal arrives as frames through this package
+# and IPython's internals, none of which is anywhere the author can act. The
+# display hook shows the message instead; `render_svg` still raises, so every
+# check that reads an exit code is unaffected.
+_frame = {"gdp": [1.0, 2.0], "life": [3.0, 4.0]}
+_refused = data(_frame, name="f") + point + x(col.gdp) + y(col.life) + palette("okabe")
+_drawn = data(_frame, name="f") + point + x(col.gdp) + y(col.life)
+
+_shown = _refused._repr_html_()
+assert "palette()" in _shown, "the refusal message did not reach the cell"
+assert "<div" not in _shown, "a refusal displayed as a plot"
+# The message contains `color(<column>)`, so an unescaped `<` would be eaten as
+# a tag and the reader would lose the half of the sentence naming the fix.
+assert "&lt;column&gt;" in _shown, "the message reached the cell unescaped"
+ok("a refused plot shows its message in a cell")
+
+assert _drawn._repr_html_().lstrip().startswith("<div"), "a good plot stopped drawing"
+try:
+    render_svg(_refused)
+    raise AssertionError("FAIL: render_svg() stopped raising on a refusal")
+except GogError:
+    pass
+ok("drawing still draws and render_svg() still raises")
 
 print(f"\nAll {passed} checks passed.")

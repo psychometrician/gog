@@ -242,7 +242,7 @@ data(gm_eras) + line * mean + x(continent) + y(life) + color(era) + polar() +
 The radar collects a criticism the rose does not escape either: a category's
 distance from the center is a radius, so its area grows as the square, and the
 enclosed shape invites you to compare regions that no number in the table
-corresponds to. Reach for it when the categories really are a closed set with no
+corresponds to. Use it when the categories really are a closed set with no
 first or last member, which is the case a straight axis misreports by having to
 pick an order. When the question is which continent is highest, the flat bar
 chart of the same sentence answers it precisely, and is two atoms away.

@@ -282,7 +282,7 @@ close to one another too, often a single cell apart, which is where the
 structure visible in [Combinations](../combinations.qmd) comes from.
 
 This is a fact about *learning* the set, never a license to grow it. A mark that
-is another mark with one feature changed earns its place only when that feature
+is another mark with one feature changed belongs only when that feature
 is a geometry nothing else can express. `step` qualifies, because "hold the
 value until it changes" is not something a channel, a transform or a setting can
 say. A thick line does not, because `style(size = )` already says it.

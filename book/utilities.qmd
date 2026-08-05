@@ -1,0 +1,126 @@
+# Functions around the grammar
+
+```{r}
+#| include: false
+source("R/setup.R")
+```
+
+Every word in the kernel belongs to a sentence. `point` is a mark, `x` is a
+channel, `bin` is a transform, and none of them means anything on its own. They
+are words, and a word needs a sentence.
+
+The functions in this appendix are not words. They take a plot you have already
+written and do something with it, or they hand you a table to write one about.
+None of them can appear inside a specification, and none of them is part of the
+grammar.
+
+You can tell the two apart by looking at the name. A word of the grammar is one
+ordinary English word: `bar`, `color`, `smooth`, `play`. A function around the
+grammar is two words joined by an underscore: `render_svg`, `save_gif`,
+`book_table`. That rule is why `x`, `y` and `z` are the kernel's only short
+names, and it is also why these three are not listed in
+[The kernel card](kernel-card.qmd).
+
+| | What it gives you |
+|---|---|
+| `render_svg(plot)` | The plot as text, in one string |
+| `save_gif(plot, path)` | A played plot as a file that moves |
+| `book_table(name)` | One of this book's example tables |
+
+The list is short today and it will grow. Anything added to it follows the same
+rule: two plain words, an underscore between them, and no place in a sentence.
+
+## `render_svg()`
+
+A plot is a description until something draws it. `render_svg()` draws it and
+gives you the result as ordinary text:
+
+```{r}
+picture <- render_svg(data(gapminder_2007) + point + x(gdp) + y(life))
+cat(substr(picture, 1, 51), "\n")
+cat(nchar(picture), "characters\n")
+```
+
+The first line is where that text begins, and the second says how long the whole
+of it is. So a plot you have been looking at as a picture is also this: a run of
+characters that starts `<svg`, states a width, and goes on to name every point,
+every tick and every label in turn.
+
+That text is the whole plot. It is what every notebook, every web page and this
+book itself receives. Writing it to a file with a `.svg` name gives you a picture
+that any browser opens and any drawing program edits.
+
+The call is spelled the same way in all four languages.
+
+### What "byte for byte" means
+
+This book says in several places that the four languages draw the same picture
+byte for byte. `render_svg()` is the function that claim is about, and the idea
+behind it is simpler than the phrase sounds.
+
+A plot looks like a picture on your screen. Underneath, it is the text you just
+saw. Two plots are the same when that text is the same, character for character.
+Not similar. Not close enough to pass a glance. The same.
+
+That is how the four languages are held together. Every sentence in this book is
+written in R, in Python, in Julia and in JavaScript. Each one is turned into its
+text, and the four are compared character by character. One character out of
+place counts as a disagreement and has to be explained.
+
+The reason for such a strict test is that a loose one would miss things. Nobody
+looks at four pictures and decides whether they match. A person cannot see a bar
+that is half a pixel too wide, or a color that is one shade off. This check can,
+and it never gets tired.
+
+## `save_gif()`
+
+A plot that binds `play()` moves in a browser, because the SVG carries its own
+timing. A message, a slide and a post do not read that timing.
+[`save_gif()`](play.qmd#taking-the-sequence-with-you) writes the same sequence as
+a file that they do play:
+
+```{r}
+ring <- file.path(tempdir(), "ring.gif")
+save_gif(data(gm_all) + bar * mean + x(continent) + y(life) + polar() +
+           play(year),
+         ring, scale = 2)
+cat(basename(ring), round(file.size(ring) / 1024), "KB\n")
+```
+
+Nothing has to be installed. `scale` multiplies the canvas, which is 800 by 600
+pixels unless the plot's theme says otherwise.
+
+Three of the four languages take `scale` as a named argument. JavaScript has no
+named arguments, so it takes the same setting in the options object it uses
+everywhere else:
+
+| | |
+|---|---|
+| R | `save_gif(p, "ring.gif", scale = 2)` |
+| Python | `save_gif(p, "ring.gif", scale=2)` |
+| Julia | `save_gif(p, "ring.gif", scale = 2)` |
+| JavaScript | `save_gif(p, "ring.gif", { scale: 2 })` |
+
+A plot with no `play()` is refused rather than written as a file of one frame.
+The [Play](play.qmd) chapter has that refusal, and the reason there is no video
+version.
+
+## `book_table()`
+
+Every table this book plots is available to you by name, so you can run any
+example here without writing a data reader first:
+
+```r
+gapminder_2007 <- book_table("gapminder_2007")
+data(gapminder_2007) + point + x(gdp) + y(life)
+```
+
+That block does not run on this page, and the reason is worth one line. The call
+reads the table over the network, and a page that fetched on every build would
+make the book depend on a working connection to describe itself.
+
+[The book's data](book-data.qmd) is the chapter for this one. It lists all
+thirty-five names and shows the call in each of the four languages.
+
+`book_table()` exists for reading this book rather than for your own work. When
+the data is yours, bind it with `data()` and skip this entirely.

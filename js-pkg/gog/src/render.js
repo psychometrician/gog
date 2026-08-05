@@ -404,6 +404,17 @@ function wireRequest(plot) {
   return { spec: plot.spec, data: wireData(plot) };
 }
 
+// The engine's input for a plot or a page, as JSON — the one place either is
+// turned into what `gog-cli` reads.
+//
+// Split out of `render_svg` when `save_gif` became a second caller. Two
+// functions serializing the same object is two chances to disagree about a
+// number's precision or about what a missing value crosses as, and that
+// disagreement would surface as a GIF that does not match the plot beside it.
+function wirePayload(plot) {
+  return JSON.stringify({ spec: plot.spec, data: wireData(plot) });
+}
+
 export function render_svg(plot) {
   if (!plot || typeof plot !== "object" || !plot.spec || !plot.frames) {
     throw new GogError(
@@ -415,8 +426,7 @@ export function render_svg(plot) {
   // a `spec` and its `frames` exactly as a plot does, and the engine tells the
   // two shapes apart itself (`ir::Figure`).
 
-  const data = wireData(plot);
-  const payload = JSON.stringify({ spec: plot.spec, data });
+  const payload = wirePayload(plot);
 
   const result = spawnSync(find_gog_cli(), {
     input: payload,
@@ -467,6 +477,63 @@ export function save(plot, file) {
     throw new GogError('gog: `save()` needs a path — `save(plot, "plot.svg")`.');
   }
   fs.writeFileSync(file, render_svg(plot), "utf8");
+  return file;
+}
+
+// Write a played plot to an animated GIF. Returns the path.
+//
+// A plot that binds `play()` moves in a browser, because the SVG carries its own
+// timing. Most other places do not read that: a message to a friend, a slide, a
+// post. This writes the same sequence as a GIF, which they do read.
+//
+// The frames come out of the one renderer, so the file cannot disagree with the
+// plot. Every scale, the color map and each legend are fitted across the whole
+// sequence at once, and the moments are cut from that single drawing rather than
+// drawn again one at a time. Nothing needs to be installed.
+//
+// `scale` multiplies the plot's canvas, which is 800 by 600 unless its theme
+// says otherwise — small for a post, so `scale: 2` doubles it.
+export function save_gif(plot, file, options = {}) {
+  if (!plot || typeof plot !== "object" || !plot.spec || !plot.frames) {
+    throw new GogError(
+      'gog: `save_gif()` writes a plot — `save_gif(plot(...), "wave.gif")`.'
+    );
+  }
+  if (typeof file !== "string" || !file) {
+    throw new GogError('gog: `save_gif()` needs one path — `save_gif(p, "wave.gif").');
+  }
+  // The name says what the file is, so a path that says otherwise is refused
+  // rather than quietly corrected. Writing GIF bytes into `wave.png` is the kind
+  // of small lie that is discovered much later, by someone else.
+  if (!file.toLowerCase().endsWith(".gif")) {
+    const stem = file.replace(/\.[^.]*$/, "") || file;
+    throw new GogError(
+      "gog: `save_gif()` writes a GIF, so the path ends in `.gif` — " +
+        `save_gif(p, "${stem}.gif").`
+    );
+  }
+  const scale = options.scale ?? 1;
+  if (typeof scale !== "number" || !Number.isFinite(scale) || scale <= 0) {
+    throw new GogError(
+      "gog: `save_gif({ scale })` needs one positive number, e.g. " +
+        'save_gif(p, "wave.gif", { scale: 2 }).'
+    );
+  }
+
+  const result = spawnSync(
+    find_gog_cli(),
+    ["--gif", file, "--scale", String(scale)],
+    { input: wirePayload(plot), encoding: "utf8", maxBuffer: 256 * 1024 * 1024 }
+  );
+
+  if (result.error) {
+    throw new GogError(`gog: could not run the engine — ${result.error.message}`);
+  }
+  const messages = (result.stderr || "").trim();
+  if (result.status !== 0) {
+    throw new GogError(messages || `gog-cli exited with status ${result.status}`);
+  }
+  if (messages) process.stderr.write(`${messages}\n`);
   return file;
 }
 

@@ -75,6 +75,10 @@ mutable struct Plot
     current_layer::Union{Nothing,Dict{String,Any}}
     pending_data::Union{Nothing,String}
     anonymous::Int
+    # Which of these names the binding invented rather than being handed. Only a
+    # name the *author* wrote can clash: a generated one means nothing to them,
+    # so it can be renamed to make room.
+    generated::Set{String}
 end
 
 function Base.show(io::IO, p::Plot)
@@ -86,7 +90,7 @@ end
 function copy_plot(p::Plot)
     Plot(deepcopy(p.spec), copy(p.frames), copy(p.names),
          p.current_layer === nothing ? nothing : deepcopy(p.current_layer),
-         p.pending_data, p.anonymous)
+         p.pending_data, p.anonymous, copy(p.generated))
 end
 
 """The sealed spec and its tables, ready for the bridge."""
@@ -153,7 +157,7 @@ function new_plot()
             "x" => nothing, "y" => nothing, "z" => nothing,
             "channels" => Dict{String,Any}(),
         ),
-        Dict{String,Any}(), IdDict{Any,String}(), nothing, nothing, 0)
+        Dict{String,Any}(), IdDict{Any,String}(), nothing, nothing, 0, Set{String}())
 end
 
 """
@@ -299,6 +303,7 @@ function name_for!(p::Plot, table, given::Union{Nothing,AbstractString})
     p.anonymous += 1
     generated = p.anonymous == 1 ? "data" : "data$(p.anonymous)"
     p.names[table] = generated
+    push!(p.generated, generated)
     generated
 end
 
@@ -586,6 +591,7 @@ mutable struct Page
     spec::Dict{String,Any}
     frames::Dict{String,Any}
     names::IdDict{Any,String}
+    generated::Set{String}
 end
 
 function Base.show(io::IO, p::Page)
@@ -601,16 +607,68 @@ wire(p::Page) = (deepcopy(p.spec), p.frames)
 # row of three rather than a row of a row — the reading the eye gives it. A page
 # running the other way stays a cell of its own, which is what makes
 # `top / (main | right)` two rows, the second holding two plots.
+#
+# A page that has stated its own size does not flatten either: flattening keeps
+# the cells and drops the node, and the node is where the size was written.
 figure_cells(p::Page, arrange::AbstractString) =
-    p.spec["arrange"] == arrange ? copy(p.spec["cells"]) : Any[wire(p)[1]]
+    p.spec["arrange"] == arrange && !haskey(p.spec, "theme") ?
+        copy(p.spec["cells"]) : Any[wire(p)[1]]
 figure_cells(p::Plot, ::AbstractString) = Any[wire(p)[1]]
 
+# The next generated table name nothing is using: `data`, `data2`, …
+function free_name(taken)
+    "data" in taken || return "data"
+    n = 2
+    while "data$n" in taken
+        n += 1
+    end
+    "data$n"
+end
+
+# Rewrite every reference to a table, through nested pages. A name reaches the
+# wire in exactly two places — the plot's own table, and a layer that reads a
+# different one — so this is the whole rewrite.
+function rename_table!(cells, old::AbstractString, new::AbstractString)
+    for cell in cells
+        get(cell, "data", nothing) == old && (cell["data"] = new)
+        for layer in get(cell, "layers", Any[])
+            get(layer, "data", nothing) == old && (layer["data"] = new)
+        end
+        haskey(cell, "cells") && rename_table!(cell["cells"], old, new)
+    end
+    cells
+end
+
 # Two figures' tables, under Law 4's rule: one name, one table.
-function merge_frames(left, right)
+#
+# A name the author wrote is theirs and cannot be moved, so two different tables
+# under one of those is still refused. A generated name is the binding's own and
+# means nothing to them, so it gives way instead — which is what keeps a page of
+# two anonymous tables legal, the way a plot of two already is.
+function merge_frames!(left, right, left_cells, right_cells)
     frames = copy(left.frames)
     names = copy(left.names)
+    generated = copy(left.generated)
     for (name, table) in right.frames
         if haskey(frames, name) && frames[name] !== table
+            taken = union(keys(frames), keys(right.frames))
+            if name in right.generated
+                fresh = free_name(taken)
+                rename_table!(right_cells, name, fresh)
+                frames[fresh] = table
+                push!(generated, fresh)
+                continue
+            elseif name in generated
+                # The author wrote the incoming one; the binding invented the one
+                # already here, so that is the one that moves.
+                fresh = free_name(taken)
+                rename_table!(left_cells, name, fresh)
+                frames[fresh] = frames[name]
+                delete!(generated, name)
+                push!(generated, fresh)
+                frames[name] = table
+                continue
+            end
             throw(GogError(
                 "gog: two different tables on one page are both called `$name` — a " *
                 "layer resolves its columns against the nearest table by name, so one " *
@@ -618,17 +676,19 @@ function merge_frames(left, right)
                 "`data(df, name = \"...\")`."))
         end
         frames[name] = table
+        name in right.generated && push!(generated, name)
     end
     merge!(names, right.names)
-    (frames, names)
+    (frames, names, generated)
 end
 
 function compose(left, right, arrange::AbstractString)
-    frames, names = merge_frames(left, right)
+    left_cells = figure_cells(left, arrange)
+    right_cells = figure_cells(right, arrange)
+    frames, names, generated = merge_frames!(left, right, left_cells, right_cells)
     Page(Dict{String,Any}("arrange" => arrange,
-                          "cells" => vcat(figure_cells(left, arrange),
-                                          figure_cells(right, arrange))),
-         frames, names)
+                          "cells" => vcat(left_cells, right_cells)),
+         frames, names, generated)
 end
 
 # ---------------------------------------------------------------------------
@@ -654,12 +714,45 @@ page_facet_refusal(operator::AbstractString) = throw(GogError(
     "column. Facet the plots before composing them: " *
     "`(plot $operator facet(:g)) $operator other_plot`."))
 
-# An atom belongs to a plot, not to the page. A title for the page as a whole is
-# real and not built — designed, and deliberately not implemented yet.
-Base.:+(left::Page, right::Atom) = throw(GogError(
-    "gog: `$(atom_name(right))()` belongs to a plot, and the left side is a page of " *
-    "them. Write it into the plot it describes, before composing: " *
-    "`(plot + theme(...)) | other_plot`."))
+# The theme properties that describe a *panel*, and so cannot be said about a
+# page. The engine holds the same list in `check_page_theme`; this copy is what
+# puts the refusal on the line that wrote it.
+const PANEL_THEME = (:preset, :grid, :ratio, :tick_angle, :font_size,
+                     :background, :strip, :strip_text, :frame)
+
+# An atom belongs to a plot, not to the page — with the one exception whose
+# subject is the figure rather than a panel. `theme(height = 310)` says how big
+# this page is, which is the same sentence a plot writes about itself, and there
+# is nowhere else to write it: two plots side by side divide the page's width and
+# each keep the whole of its height, so only the page can say how much height
+# that is. A title for the page as a whole is real and not built — designed, and
+# deliberately not implemented yet.
+function Base.:+(left::Page, right::Atom)
+    right.kind === :theme || throw(GogError(
+        "gog: `$(atom_name(right))()` belongs to a plot, and the left side is a page of " *
+        "them. Write it into the plot it describes, before composing: " *
+        "`(plot + title(\"...\")) | other_plot`."))
+
+    named = filter(k -> right.fields[k] !== nothing, collect(PANEL_THEME))
+    if !isempty(named)
+        written = :preset in named ? "theme(\"$(right.fields[:preset])\")" :
+                                     "theme($(first(named)) = )"
+        throw(GogError(
+            "gog: `$written` describes a panel, and a page is plots arranged rather " *
+            "than a panel of its own. On a page, `theme()` states how big the figure " *
+            "is — `theme(width = )` and `theme(height = )` — and nothing else. Write " *
+            "this into the plot it describes, before composing: " *
+            "`(plot + $written) | other_plot`."))
+    end
+
+    page = Page(deepcopy(left.spec), left.frames, left.names, copy(left.generated))
+    theme = get!(page.spec, "theme", Dict{String,Any}())
+    for key in (:width, :height)
+        value = right.fields[key]
+        value === nothing || (theme[String(key)] = value)
+    end
+    page
+end
 
 function facet_join(left, right, slot::AbstractString, operator::AbstractString)
     other = slot == "col" ? "row" : "col"

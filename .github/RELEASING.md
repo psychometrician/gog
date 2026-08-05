@@ -196,6 +196,31 @@ the hold.
 bare comment is read as an objection: it blocks the automatic merge and sends the
 registration to manual review, which turns a three-day wait into an indefinite one.
 
+**Every `0.0.x` release is a breaking change, and AutoMerge will refuse it without
+release notes.** This is not a formality and not specific to this package: SemVer
+provides no compatible range below `0.1.0`, so `0.0.1` and `0.0.2` are mutually
+incompatible and `^0.0.2` resolves to exactly `0.0.2`. AutoMerge asks for notes
+that mention "breaking" or "changelog", even if only to say there are none. Supply
+them by re-triggering Registrator with the notes appended; it updates the same pull
+request, and the version number does not change:
+
+```
+@JuliaRegistrator register subdir=jl-pkg/GrammarOfGraphics
+
+Release notes:
+
+## Breaking changes
+
+- …
+```
+
+Nothing is spent by a refusal — a version enters the registry only when the pull
+request merges. Julia is the only one of the four registries that asks what
+changed, and on 0.0.2 that question was worth answering: `map` had been added to
+the exports, `Base` exports it too, and Julia refuses to choose between them. Code
+that called a bare `map` before the upgrade stopped working. PyPI and npm accepted
+the same release without asking.
+
 Registrator registers a **tree hash**, not a tag, so a merged registration leaves no
 mark in this repository. `TagBot.yml` is meant to close that: when the registry pull
 request merges, it writes the git tag and the GitHub release to match. Because
@@ -320,6 +345,70 @@ none of them releases R — but the *numbers* are not. All eight declarations mo
 together, so between bumping them and tagging the last binding, the manifests
 describe a release some indexes have not received yet. That window is expected;
 what must not happen is the numbers diverging to close it.
+
+## Published is not the same as visible
+
+A green publish does not mean a user can install it yet, and the four registries
+disagree about how long the gap is. Check the layer a user's tool actually reads,
+not the one with a web page.
+
+| | what lags | what to check instead |
+|---|---|---|
+| **PyPI** | the JSON API caches for a minute or two | `pypi.org/simple/gog/` with the JSON simple header — that is what pip reads |
+| **npm** | a packument can trail its own publish | the tarball URL directly, or `npm view <pkg>@<version>` |
+| **Julia** | **three layers, in order** | see below |
+| **r-universe** | it is a build, not an upload | poll `…/api/packages/gog` for `Version` and `RemoteSha` |
+
+Julia is the one that surprises. `Pkg.add` does not read the registry on GitHub. It
+reads a periodic snapshot served by `pkg.julialang.org`, and JuliaHub is a third
+view downstream of that. So a merged registration is visible in this order:
+
+```
+JuliaRegistries/General on GitHub   →   pkg.julialang.org   →   juliahub.com
+        (the merge)                      (what Pkg.add reads)    (the web page)
+```
+
+**A clean `Pkg.add` returning the previous version is normal for a while after the
+merge, and is not a failed registration.** To install the new version before the
+snapshot catches up, bypass the server so Pkg clones General directly:
+
+```bash
+JULIA_PKG_SERVER="" julia -e 'using Pkg; Pkg.add("GrammarOfGraphics")'
+```
+
+That is a testing route, not advice for users. Everyone else should simply wait,
+and it is worth knowing so nobody re-triggers a registration that already worked.
+
+## Choosing the next number
+
+Two decisions are open, and both are about how expensive a small fix is to ship.
+Neither has been made; this section exists so they are not re-derived under
+pressure during a release.
+
+**Whether to leave `0.0.x`.** While the series stays here, *every* release is a
+breaking change, so every Julia registration needs release notes and no user can
+express "compatible with the version I have". Moving to `0.1.0` makes a patch a
+patch: `0.1.1` is a normal fix, `^0.1.0` picks it up, and release notes are needed
+only when something actually breaks. The reason to hold is real — `0.1.0` is a
+signal about API stability, and the API can still move — but the cost is that
+routine fixes carry a full breaking-change ceremony.
+
+**Whether `DESCRIPTION` may carry a development version.** r-universe rebuilds at
+exactly the version in `DESCRIPTION` and replaces the previous build at the same
+number, so R users get new code without a bump — and *cannot ask for it*, because
+`update.packages()` compares numbers and `0.0.2` is not newer than `0.0.2`. Two
+people can both hold "0.0.2" and have different code, with no way to tell. The R
+convention that fixes this is the fourth component (`0.0.2.9000`, `.9001`), which
+r-universe is built around. Adopting it means deciding whether `DESCRIPTION` may
+drift from the other seven declarations, which the agreement test currently
+forbids, or whether Cargo and npm manifests should carry development numbers
+nobody installs.
+
+**What needs no version at all:** the book. `book.yml` republishes it on every
+push, so documentation, prose and example fixes reach readers immediately. That
+covers a large share of what would otherwise feel like a patch release — and it
+is why the preface tells readers the book can describe something their installed
+copy does not have yet.
 
 ## What cannot be taken back
 

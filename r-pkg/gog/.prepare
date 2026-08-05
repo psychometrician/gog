@@ -69,6 +69,12 @@ echo "* gog/.prepare: staging the engine sources into ${DEST}/"
 # is not enforcement; deleting is.
 rm -rf inst/bin inst/www
 
+# `news(package = "gog")` reads `NEWS.md` beside `DESCRIPTION` and nowhere else,
+# so the root file has to travel into the package for an R user to have it at
+# all. It is staged rather than copied by hand and never committed here, for the
+# same reason the crates are: two copies of a history is how they disagree.
+cp "${WORKSPACE}/NEWS.md" NEWS.md
+
 rm -rf "${DEST}"
 mkdir -p "${DEST}"
 

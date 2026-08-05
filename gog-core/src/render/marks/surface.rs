@@ -51,8 +51,15 @@ struct Face {
     pts: [project::Screen; 4],
     depth: f64,
     /// The table row whose `color` the face takes — for a lid its own cell, for a
-    /// mesh quad the corner at the lattice crossing `(i, j)` that names it.
+    /// mesh quad the corner at the lattice crossing `(i, j)` that names it. Still the
+    /// whole answer for a **categorical** color, which cannot be averaged: a face
+    /// belongs to one series or another, never to the mean of two.
     row: usize,
+    /// What a **measured** color reads instead, when the face's own value is not
+    /// simply its row's. `None` for a lid and a riser, each of which owns exactly one
+    /// cell's number; `Some(mean of the four corners)` for a mesh quad, which owns
+    /// none of its corners and spans all of them.
+    measure: Option<f64>,
     dim: f64,
 }
 
@@ -92,7 +99,11 @@ fn paint_faces(svg: &mut String, faces: &mut [Face], clip: &str, p: &Paint) {
             // **The ramp lands per face**, which is what a mesh can do and a region
             // cannot: an `area` has one interior and would need a gradient fill, a face
             // is already small enough to hold one value (spec §15).
-            let frac = p.scale.fraction(vals.get(f.row).copied().unwrap_or(f64::NAN));
+            //
+            // *Which* one value is `measure`'s question, and the answer is the face's
+            // own center rather than a corner it happens to be named after.
+            let v = f.measure.unwrap_or_else(|| vals.get(f.row).copied().unwrap_or(f64::NAN));
+            let frac = p.scale.fraction(v);
             ramped = ramp_at(&p.ramp.iter().map(String::as_str).collect::<Vec<_>>(), frac);
             &ramped
         } else {
@@ -236,6 +247,11 @@ impl SvgRenderer {
                     pts,
                     depth: foot((x0 + x1) / 2.0, (y0 + y1) / 2.0),
                     row: i,
+                    // A lid *is* its cell, so the row's own number is exact and there
+                    // is nothing to average — the cut floor never had the mesh's
+                    // problem, because a cut cell owns a value where a quad only spans
+                    // four of them.
+                    measure: None,
                     // A lid is level by construction, so it takes the color undimmed —
                     // `SLOPE_DIM * (1 - 1)`, the plateau end of the same continuum a
                     // sloped face samples further along.
@@ -298,6 +314,11 @@ impl SvgRenderer {
                                 pts,
                                 depth: foot(cx, cy),
                                 row: owner,
+                                // The taller neighbor's own value, deliberately, for
+                                // the reason just above: a riser is the step's face and
+                                // belongs to the plateau it descends from. Averaging
+                                // the two would paint it a height neither cell has.
+                                measure: None,
                                 // Vertical, so the far end of the same continuum the
                                 // lid sits at zero of — a bar's side-face shade.
                                 dim: SLOPE_DIM,
@@ -354,10 +375,39 @@ impl SvgRenderer {
             // A degenerate face (zero area) has no normal; read it as level rather
             // than dividing by zero. It draws as a line and shows nothing either way.
             let level = if len > 0.0 { (cross.2 / len).abs() } else { 1.0 };
+            // **The measured color is read at the face's center, which is the mean of
+            // its four corners** — the same argument the normal above makes, one
+            // attribute over: picking one pair of edges would report the tilt of one
+            // corner, and picking `corners[0]` reported the *value* at one corner.
+            //
+            // It is the field's own value there rather than a summary of convenience:
+            // the face interpolates bilinearly between its corners, and a bilinear
+            // patch at its center is exactly their mean. So the ramp and the height
+            // agree at every face's center, which is the whole of what "the height,
+            // said twice" claims — and under `corners[0]` that claim was off by half a
+            // cell everywhere.
+            //
+            // The old reading also *discarded data*: a face is named by its low corner,
+            // so on an `nx` by `ny` lattice the last row and the last column colored
+            // nothing at all. Five of nine values on a 3x3 grid, and a symmetric field
+            // came out asymmetric — four congruent faces painted three colors, which is
+            // a difference the data did not have. Invisible on a fine mesh, where
+            // neighbors barely differ, which is why it survived the volcano.
+            let measure = color_vals.map(|vals| {
+                let (mut sum, mut k) = (0.0, 0.0);
+                for &r in corners.iter() {
+                    if let Some(v) = vals.get(r).copied().filter(|v| v.is_finite()) {
+                        sum += v;
+                        k += 1.0;
+                    }
+                }
+                if k > 0.0 { sum / k } else { f64::NAN }
+            });
             faces.push(Face {
                 pts,
                 depth: pts.iter().map(|p| p.depth).sum::<f64>() / 4.0,
                 row: corners[0],
+                measure,
                 // Level face → the color itself, vertical → `SLOPE_DIM`. The
                 // continuum a bar's three fixed shades are three samples of.
                 dim: SLOPE_DIM * (1.0 - level),

@@ -63,7 +63,7 @@ makes itself. You name only the
 variable whose shape you are asking about, and the transform invents the y column
 and labels it ("Count", "Proportion", "Density"). `bar * bin + x(life)` and
 `line * density + x(life)` are the same grammatical shape: one name in, a new
-axis out. Leaving `y()` off is not a shortcut you are getting away with:
+axis out. Leaving `y()` off is not a shortcut the engine tolerates:
 there is exactly one sensible y here (the count, the density), so the omission
 cannot be misread and the engine fills it in silently.
 
@@ -432,7 +432,7 @@ spread *along* an axis, so the axis they read has to carry a number. A category
 is one slot rather than a stretch of line, so there is nothing to cut into
 intervals, nothing for a curve to spread over, and nothing to fit through.
 
-The exception that proves it is the violin above, and it is worth being precise
+The violin above looks like an exception, and it is worth being precise
 about why it is not one. There the category is not the axis being estimated
 along: `y(life)` is, and the category only says *which rows* each estimate is
 made from. Take the number away and there is nothing left to spread over, so the
@@ -1311,7 +1311,7 @@ shorter piles in each.
 What none of them can beat is the arithmetic. Counting needs at least one
 dot-diameter of axis per row, so the tallest honest pile is about the panel's
 height divided by a dot: a few hundred with dots you can see, a few dozen if
-you mean to count them. Past that a summary is not a consolation prize but the
+you mean to count them. Past that a summary is not second best but the
 better answer, and the reason is the one that makes the dot plot worth having
 in the first place. A bin width or a bandwidth is a guess about structure when
 there are thirty rows. It is a reliable description when there are ten

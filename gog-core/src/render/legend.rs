@@ -97,12 +97,23 @@ pub(crate) struct LegendBox {
 }
 
 impl LegendBox {
+    /// **The title is measured against the row, not added to it.** It is drawn at
+    /// `lx + LEGEND_PADDING`, flush with the swatch column rather than beside it,
+    /// so folding its width in with the labels charged it for a swatch and a gap
+    /// it never sits behind. Every legend in the book was wider than its contents
+    /// by that much, and a title longer than its labels — which is the ordinary
+    /// case, since a column name is longer than a number — paid the whole of it.
+    ///
+    /// Invisible at full size, where the key is a sixth of the plot either way. A
+    /// **composed** cell is where it shows: the box does not shrink with the panel
+    /// beside it, so on a page of four cubes the key was taking three fifths of
+    /// its panel's width.
     pub(crate) fn width(&self, font_sm: f64, font_md: f64) -> f64 {
-        let max_label_w = self.rows.iter()
-            .map(|r| estimate_text_width(&r.label, font_sm))
-            .fold(0.0_f64, f64::max)
-            .max(estimate_text_width(&self.title, font_md));
-        LEGEND_PADDING + LEGEND_SWATCH_W + LEGEND_SWATCH_GAP + max_label_w + LEGEND_PADDING
+        let widest_row = self.rows.iter()
+            .map(|r| LEGEND_SWATCH_W + LEGEND_SWATCH_GAP + estimate_text_width(&r.label, font_sm))
+            .fold(0.0_f64, f64::max);
+        let title = estimate_text_width(&self.title, font_md);
+        LEGEND_PADDING + widest_row.max(title) + LEGEND_PADDING
     }
 
     pub(crate) fn height(&self, font_md: f64) -> f64 {

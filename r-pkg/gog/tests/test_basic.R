@@ -1162,6 +1162,48 @@ if (grepl("<animate", svg_still, fixed = TRUE))
   stop("FAIL: a plot with no play() must carry no timing")
 cat("PASS: a plot that does not play is untouched\n")
 
+# The same sequence written where SVG animation is not read.
+#
+# Checked as a *file* rather than as a return value, because everything this
+# feature adds happens after the SVG the other tests read: the header proves it
+# is a GIF, the trailer proves it was finished rather than left half-written,
+# and NETSCAPE2.0 is the extension that makes it loop instead of playing once
+# and freezing on the last moment.
+gif_path <- tempfile(fileext = ".gif")
+save_gif(data(play_df) + point + x(x) + y(y) + play(year), gif_path)
+if (!file.exists(gif_path)) stop("FAIL: save_gif() wrote no file")
+gif_bytes <- readBin(gif_path, "raw", file.info(gif_path)$size)
+if (!identical(rawToChar(gif_bytes[1:6]), "GIF89a"))
+  stop("FAIL: save_gif() should write a GIF")
+if (gif_bytes[length(gif_bytes)] != as.raw(0x3b))
+  stop("FAIL: the GIF should end with its trailer")
+# `grepRaw`, not `rawToChar`: a GIF's palette is full of zero bytes and R will
+# not make a string out of one.
+if (length(grepRaw("NETSCAPE2.0", gif_bytes, fixed = TRUE)) == 0L)
+  stop("FAIL: the GIF should loop")
+unlink(gif_path)
+cat("PASS: `save_gif()` writes a looping GIF of a played plot\n")
+
+# A plot that does not play has no moments, and §12 wants the refusal to say
+# what to write instead rather than leaving a one-frame file nobody asked for.
+err_still <- tryCatch(
+  { save_gif(data(play_df) + point + x(x) + y(y), tempfile(fileext = ".gif")); NULL },
+  error = function(e) conditionMessage(e))
+if (is.null(err_still) || !grepl("does not play", err_still))
+  stop("FAIL: save_gif() on an unplayed plot should refuse")
+if (!grepl("play(year)", err_still, fixed = TRUE))
+  stop("FAIL: the refusal should name what to write instead")
+cat("PASS: `save_gif()` refuses a plot with no moments, with direction\n")
+
+# The name says what the file is, so a path that says otherwise is refused
+# rather than quietly corrected.
+err_ext <- tryCatch(
+  { save_gif(data(play_df) + point + x(x) + y(y) + play(year), tempfile(fileext = ".png")); NULL },
+  error = function(e) conditionMessage(e))
+if (is.null(err_ext) || !grepl("ends in `.gif`", err_ext, fixed = TRUE))
+  stop("FAIL: save_gif() should refuse a path that is not a .gif")
+cat("PASS: `save_gif()` refuses to write GIF bytes into another name\n")
+
 # speed divides the loop rather than dropping frames.
 svg_fast <- render_svg(data(play_df) + point + x(x) + y(y) + play(year, speed = 2))
 if (frame_count(svg_fast) != 4) stop("FAIL: speed must not change how many frames there are")
@@ -2613,9 +2655,25 @@ if (!grepl('width="400" height="300"', alone, fixed = TRUE))
   stop("FAIL: `theme(width =, height =)` should size the image")
 cat("PASS: `theme(width =, height =)` is the image alone and the cell composed\n")
 
+# And a *page* states its own size, which is the one sentence no cell can write.
+# Composed side by side, two plots divide the page's width and each keep the
+# whole of its height, so only the page can say how much height that is. Until
+# it could, every composed figure was the 800x600 canvas whatever was on it —
+# which is what left two thirds of a composed cube's panel empty.
+sized_page <- render_svg((scatter | scatter) + theme(height = 310))
+if (!grepl('width="800" height="310"', sized_page, fixed = TRUE))
+  stop("FAIL: a page should be drawn at the size it states")
+if (!grepl('width="800" height="600"', render_svg(scatter | scatter), fixed = TRUE))
+  stop("FAIL: a page that states nothing should still take the canvas")
+cat("PASS: a page states its own size, and takes the canvas when it does not\n")
+
 refuses("a size no plot can be drawn at", theme(width = 10))
 refuses("a page asked to facet", (scatter | scatter) | facet(speed))
 refuses("an atom added to a page", (scatter | scatter) + title("Cars"))
+# The size is the only theme property whose subject is the figure. Every other
+# one describes a panel, and a page has none.
+refuses("a panel property said about a page", (scatter | scatter) + theme(grid = "none"))
+refuses("a preset said about a page", (scatter | scatter) + theme("minimal"))
 refuses("plots asking for more page than there is",
         render_svg((data(cars_df) + point + x(speed) + y(dist) + theme(height = 500)) /
                    (data(cars_df) + point + x(speed) + y(dist) + theme(height = 500))))
@@ -2849,6 +2907,24 @@ if (file.exists("r-pkg/gog/DESCRIPTION")) {
   cat("PASS: all eight declarations agree on version ", versions[[1]], "\n", sep = "")
 }
 
+# --- a composed page of cubes carries the engine ------------------------------
+#
+# A page keeps its coordinate on its cells, so a check that reads only the top
+# level answers "flat" for a composition of 3-D plots and ships no engine: the
+# page draws perfectly and will not turn. R reads both spellings of the cell
+# list and was already right; Python and Julia read only `plots` while emitting
+# `cells`, and both were wrong. This is the guard that keeps R from joining them.
+cells_grid <- expand.grid(a = c(-2, 0, 2), b = c(-2, 0, 2))
+cells_grid$v <- cells_grid$a + cells_grid$b
+one_cube <- function() {
+  data(cells_grid) + surface * bin(3) * mean + x(a) + y(b) + z(v) + space()
+}
+stopifnot(gog:::spec_needs_engine((one_cube() | one_cube())$page))
+stopifnot(gog:::spec_needs_engine(gog:::finalize_spec(one_cube())$spec))
+stopifnot(!gog:::spec_needs_engine(
+  gog:::finalize_spec(data(cells_grid) + point + x(a) + y(b))$spec))
+cat("PASS: a composed page of cubes carries the engine\n")
+
 # --- the emitted module must survive a content-security policy ----------------
 #
 # Two failures live here, one behind the other, and both were invisible to every
@@ -2983,4 +3059,98 @@ local({
          "    cargo build --release -p gog-cli")
 
   cat("PASS: the engine reports ", reported, ", the same as the package\n", sep = "")
+})
+
+# ---------------------------------------------------------------------------
+# a page of tables the binding had to name itself
+# ---------------------------------------------------------------------------
+# R reads a name off the expression, so the only one it ever invents is the
+# magrittr placeholder's `.` — and two tables piped that way onto one page used
+# to collide. A generated name is the binding's own and means nothing to the
+# author, so the second gives way instead. A name the author wrote cannot move.
+local({
+  left  <- data.frame(x = c(1, 2), y = c(3, 4))
+  right <- data.frame(x = c(3, 4), y = c(5, 6))
+
+  # `.` is what magrittr's pipe hands `data()`, and binding it here reaches the
+  # same path without making the test suite depend on magrittr to do it.
+  piped <- suppressWarnings({
+    . <- left
+    first <- data(.) + point + x(x) + y(y)
+    . <- right
+    first | (data(.) + point + x(x) + y(y))
+  })
+  named <- (data(left,  name = "one") + point + x(x) + y(y)) |
+           (data(right, name = "two") + point + x(x) + y(y))
+
+  if (length(piped$data_frames) != 2L)
+    stop("FAIL: a page of two placeholder-named tables kept only one of them")
+  # The picture is the test: a rename that pointed both cells at one table would
+  # draw too, and only this catches that.
+  if (!identical(render_svg(piped), render_svg(named)))
+    stop("FAIL: a page of tables the binding named draws something else")
+  cat("PASS: a page of two tables the binding named draws what naming them would\n")
+
+  refuses("two different tables on one page under a name the author wrote",
+          (data(left,  name = "s") + point + x(x) + y(y)) |
+          (data(right, name = "s") + point + x(x) + y(y)))
+})
+
+# ---------------------------------------------------------------------------
+# a refusal must cost nothing that was already on disk
+# ---------------------------------------------------------------------------
+# Julia's `save()` opened its destination before it knew the render had
+# succeeded, and opening for writing truncates, so a refused plot emptied
+# whatever was there. R has no `save()` — `render_svg()` hands back a string and
+# the caller writes it — so R's one file-writing entry point is `save_gif()`,
+# which gives the path to the engine. This holds that path to the same rule.
+local({
+  gm <- book_table("gapminder_2007")
+  target <- file.path(tempdir(), "refusal-probe.gif")
+  good <- data(gm) + point + x(gdp) + y(life) + color(continent) + play(continent)
+  save_gif(good, target)
+  before <- file.size(target)
+  if (is.na(before) || before == 0)
+    stop("FAIL: save_gif() wrote nothing to start from")
+
+  # Passes both checks the binding makes — it binds `play()` and the path ends
+  # `.gif` — so the refusal comes from the engine, with the file already named.
+  refused <- data(gm) + point + x(gdp) + y(life) + play(continent) + palette("okabe")
+  msg <- tryCatch({ save_gif(refused, target); NA_character_ },
+                  error = function(e) conditionMessage(e))
+  if (is.na(msg)) stop("FAIL: a plot that maps no color should have been refused")
+  if (!file.exists(target) || file.size(target) != before)
+    stop("FAIL: a refused save_gif() damaged the file already there")
+  cat("PASS: a refused save_gif() leaves an existing file alone\n")
+})
+
+# ---------------------------------------------------------------------------
+# a refusal in a notebook cell reads as the message, not as a crash
+# ---------------------------------------------------------------------------
+# A refusal is the author's mistake, not a fault in the program. Raised into a
+# display host it arrives as thirty lines of `repr::mime2repr` internals with the
+# one useful line buried in them. The display hook shows it instead; everything
+# that reads an exit code still stops, which is what keeps the book's `error:
+# true` chunks erroring.
+local({
+  frame <- data.frame(gdp = c(1, 2), life = c(3, 4))
+  refused <- data(frame) + point + x(gdp) + y(life) + palette("okabe")
+  drawn <- data(frame) + point + x(gdp) + y(life)
+
+  shown <- repr::repr_html(refused)
+  if (!grepl("palette()", shown, fixed = TRUE))
+    stop("FAIL: the refusal message did not reach the cell")
+  if (grepl("mime2repr|<div", shown))
+    stop("FAIL: a refusal displayed as a traceback or as a plot")
+  # The message contains `color(<column>)`, so an unescaped `<` would be eaten
+  # as a tag and the reader would lose the half of the sentence naming the fix.
+  if (!grepl("&lt;column&gt;", shown, fixed = TRUE))
+    stop("FAIL: the message reached the cell unescaped")
+  cat("PASS: a refused plot shows its message in a cell\n")
+
+  if (!startsWith(trimws(repr::repr_html(drawn)), "<div"))
+    stop("FAIL: a good plot stopped drawing")
+  if (!inherits(tryCatch(render_svg(refused), error = function(e) e), "error"))
+    stop("FAIL: render_svg() stopped raising on a refusal")
+  cat("PASS: drawing still draws and render_svg() still stops\n")
 })

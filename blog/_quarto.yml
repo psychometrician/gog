@@ -1,0 +1,156 @@
+project:
+  type: website
+  output-dir: _site
+
+  # Stages the browser engine and the book's stylesheet into `blog/` before
+  # anything renders. It runs here rather than from a post, for the reason the
+  # book's copy of this script records: Quarto decides what `resources:` means
+  # at the *start* of a render, and a chunk inside a page runs long after that.
+  pre-render:
+    - R/copy-assets.R
+
+  resources:
+    # The browser engine and the two modules that drive it. Declared rather than
+    # left to Quarto's resource discovery, because a plot names them from inside
+    # a `<script type="module">` string literal instead of an `src` attribute,
+    # and discovery reads attributes. Undeclared they are simply absent from
+    # `_site/`, with no error, and every plot loses its controls.
+    - gog.wasm
+    - interactive.js
+    - view.js
+    # The card image, missed by discovery for the same reason: it is named in a
+    # `<meta content=>`. A link posted anywhere then renders without a picture.
+    - images/
+
+website:
+  title: "psychometrician"
+  description: "One engine. Every language."
+
+  # Both of these are requirements rather than decoration. Quarto writes no feed
+  # at all when either is missing: it warns once and exits 0, which is the exact
+  # shape of failure the workflow's output check exists to catch.
+  site-url: https://psychometrician.github.io/
+
+  favicon: images/gog_hex.png
+
+  # The default card for any post that does not set its own `image:`. 1200x630,
+  # because that is the ratio Open Graph and Twitter expect. The hex sticker is
+  # 1002x1150 and portrait, so it is the favicon here and the source art for the
+  # card, never the card itself.
+  image: images/og.png
+  image-alt: >-
+    GOG, a grammar of graphics. One engine, spoken from R, Python, Julia and
+    JavaScript.
+
+  open-graph:
+    locale: en_US
+    site-name: psychometrician
+
+  # Upgrades X from a small square thumbnail to a banner. Hacker News renders no
+  # card at all and shows the title and domain, so none of this reaches it.
+  twitter-card:
+    card-style: summary_large_image
+
+  navbar:
+    title: "psychometrician"
+    left:
+      # All four carry a mark from Bootstrap Icons, which the theme already
+      # loads, so the row costs no extra request. They are picked to be
+      # distinguishable at a glance rather than to be clever: a stack of cards
+      # for the list of posts, a book for the book, a cat for the source, and
+      # the RSS mark, which is the one icon on this bar that people genuinely
+      # recognize faster than its word.
+      - href: index.qmd
+        text: Posts
+        icon: list-ul
+      # Both leave this site, because both genuinely are other sites: the manual
+      # is published from its own repository and the source is on GitHub. They
+      # open in a new tab so that leaving does not mean losing the post you were
+      # reading. `link-external-newwindow` below does the same for links in the
+      # body of a post, but it does not reach the navbar.
+      - href: https://psychometrician.github.io/gog-book/
+        text: The book
+        icon: book
+        target: _blank
+      - href: https://github.com/psychometrician/gog
+        text: Source
+        icon: github
+        target: _blank
+      - href: archive.qmd
+        text: Archive
+        icon: clock-history
+      - href: feeds.qmd
+        text: RSS
+        icon: rss
+
+  # The footer is on every page, so it is where a reader who has finished
+  # reading looks for somewhere to go next. Licence on the left, follow links on
+  # the right. The icons come from Bootstrap Icons, already loaded by the theme.
+  page-footer:
+    left: |
+      [Prose licensed [CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/).]{.licence}
+      [Code samples licensed [Apache 2.0](https://www.apache.org/licenses/LICENSE-2.0).]{.licence}
+    right:
+      # Both marks are Bootstrap Icon glyphs drawn in `currentColor`, so they
+      # follow the theme with no second copy and no swap rule, and they sit at
+      # the same weight as the two beside them.
+      - icon: twitter-x
+        href: https://x.com/gogdeveloper
+        aria-label: "GOG on X"
+        target: _blank
+      - icon: bluesky
+        href: https://bsky.app/profile/gogdeveloper.bsky.social
+        aria-label: "GOG on Bluesky"
+        target: _blank
+      # The profile, not the repository. The navbar's "Source" already points at
+      # the repository; this row is for following the person who writes here.
+      - icon: github
+        href: https://github.com/psychometrician
+        aria-label: "psychometrician on GitHub"
+        target: _blank
+      - icon: rss
+        href: index.xml
+        aria-label: "Subscribe by RSS"
+
+format:
+  html:
+    # Two themes and a toggle in the navbar. Declaring both is what makes Quarto
+    # write the switch and put `quarto-light` / `quarto-dark` on the body, which
+    # is what `blog.css` keys its dark rules off.
+    theme:
+      light: [cosmo, theme-light.scss]
+      dark: [darkly, theme-dark.scss]
+    # `gog.css` first, then the blog's, so the blog can override it. The book's
+    # file is staged by the pre-render and styles a plot and its refusals; it is
+    # not edited here, because a plot should look the same in both places.
+    css:
+      - gog.css
+      - blog.css
+    # Adds the `lang-*` class the tag colors key off. A listing tag carries its
+    # name in `data-category` and a post-header tag carries it only as text, so
+    # one script covers what two attribute selectors could not.
+    include-after-body: tags.html
+    # Highlighting stays on, and `blog.css` then paints every token one color.
+    #
+    # `highlight-style: none` looks like the direct way to get monochrome code
+    # and takes two other things with it. Quarto stops emitting the `sourceCode`
+    # wrapper, which is what draws the panel a block sits on, and `code-copy`
+    # below silently produces no copy button, because the button is attached to
+    # that wrapper. The blocks end up as bare text floating in the page.
+    #
+    # Leaving it on and overriding the colors keeps the panel, keeps the button,
+    # and keeps the light and dark pair switching with the theme.
+    toc: true
+    code-copy: true
+    code-overflow: wrap
+    # `link-external-newwindow` is deliberately absent. It is set-and-forget in
+    # most Quarto sites and it produced no `target` on any link here, checked by
+    # grepping the rendered output. It could not have covered the important case
+    # regardless: the book sits on the same host as this blog, so a rule that
+    # compares hostnames keeps it in the same tab. `tags.html` does the job, and
+    # asks "does this leave the blog" instead.
+
+execute:
+  echo: true
+  warning: false
+  message: false

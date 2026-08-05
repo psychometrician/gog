@@ -476,7 +476,7 @@ true of a scale that pins a midpoint and then stretches each side to reach the
 data's own ends. And `limits` [removes rows outside it](scales.qmd), so the
 domain has to be wide enough to hold the data: `c(-50, 50)` here would drop
 the opening balance and say so. The cost is the other side of the same coin,
-and it is worth knowing before you reach for this. A signed column that is
+and it is worth knowing before you use this. A signed column that is
 lopsided, -2 to 100 say, spends almost none of its blue arm, because a
 symmetric domain is mostly empty on the short side.
 
@@ -560,4 +560,4 @@ data(gapminder_2007) + point + x(gdp) + y(life) +
 Legends are always placed to the right of the plot area.
 The plot area shrinks automatically to make room, no manual margin setting.
 Legend suppression (`show_legend = FALSE`) and manual legend position
-(`legend_position`) are on the roadmap.
+(`legend_position`) are not built yet.

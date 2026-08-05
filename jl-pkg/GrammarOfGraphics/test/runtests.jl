@@ -256,6 +256,49 @@ end
     @refuses play(:year, speed = 0) "above zero"
 end
 
+# The same sequence written where SVG animation is not read. Checked as a file,
+# because everything this adds happens after the SVG above: the header proves it
+# is a GIF, the trailer proves it was finished rather than left half-written, and
+# NETSCAPE2.0 is what makes it loop instead of freezing on the last moment.
+@testset "save_gif writes a played plot where SVG motion is not read" begin
+    played = Dict("x" => [1, 2, 3, 10, 20, 30],
+                  "y" => [1, 2, 3, 10, 20, 30],
+                  "year" => [1957, 1957, 1957, 1962, 1962, 1962])
+    moving = data(played) + point + x(:x) + y(:y) + play(:year)
+
+    mktempdir() do folder
+        path = save_gif(moving, joinpath(folder, "wave.gif"))
+        raw = read(path)
+        @test raw[1:6] == Vector{UInt8}("GIF89a")
+        @test raw[end] == 0x3b
+        @test occursin("NETSCAPE2.0", String(copy(raw[1:200])))
+
+        # A plot with no moments cannot become a sequence, and the refusal says
+        # what to write instead rather than leaving a file nobody asked for.
+        still = data(played) + point + x(:x) + y(:y)
+        err = try
+            save_gif(still, joinpath(folder, "still.gif"))
+            nothing
+        catch e
+            sprint(showerror, e)
+        end
+        @test err !== nothing
+        @test occursin("does not play", err)
+        @test occursin("play(year)", err)
+
+        # The name says what the file is, so a path that says otherwise is
+        # refused rather than quietly corrected.
+        wrong = try
+            save_gif(moving, joinpath(folder, "wave.png"))
+            nothing
+        catch e
+            sprint(showerror, e)
+        end
+        @test wrong !== nothing
+        @test occursin("ends in `.gif`", wrong)
+    end
+end
+
 @testset "every mark the kernel has draws" begin
     sentences = [
         data(bars) + bar + x(:category) + y(:value),
@@ -266,7 +309,9 @@ end
         data(df) + box("range") + x(:group) + y(:y),
         data(df) + bar * count + x(:group),
         data(df) + point + x(:x) + y(:y) + title("A title") + x_label("An axis"),
-        data(df) + point + x(:x) + y(:y) + palette("okabe"),
+        # `color` bound because a palette with nothing to color is now its own
+        # refusal, and this list is asking whether a palette *draws*.
+        data(df) + point + x(:x) + y(:y) + color(:group) + palette("okabe"),
         data(bars) + bar + x(:category) + y(:value) + polar(),
         data(df) + point + x(:x) + y(:y) + z(:y) + space(),
         data(df) + zone * bin + x(:x) + y(:y),
@@ -994,9 +1039,20 @@ end
                        theme(width = 400, height = 300))
     @test occursin("width=\"400\" height=\"300\"", alone)
 
+    # And a *page* states its own size, which is the one sentence no cell can
+    # write. Composed side by side, two plots divide the page's width and each
+    # keep the whole of its height, so only the page can say how much that is.
+    sized_page = render_svg((scatter() | scatter()) + theme(height = 310))
+    @test occursin("width=\"800\" height=\"310\"", sized_page)
+    @test occursin("width=\"800\" height=\"600\"", render_svg(scatter() | scatter()))
+
     @refuses theme(width = 10) "at least 40"
     @refuses (scatter() | scatter()) | facet(:speed) "faceted a page"
     @refuses (scatter() | scatter()) + title("Cars") "belongs to a plot"
+    # The size is the only theme property whose subject is the figure. Every
+    # other one describes a panel, and a page has none.
+    @refuses (scatter() | scatter()) + theme(grid = "none") "describes a panel"
+    @refuses (scatter() | scatter()) + theme("minimal") "describes a panel"
     @refuses render_svg(
         (data(cars, name = "cars") + point + x(:speed) + y(:dist) + theme(height = 500)) /
         (data(cars, name = "cars") + point + x(:speed) + y(:dist) + theme(height = 500))
@@ -1231,6 +1287,20 @@ end
     @test_throws GogError brush(:v, at = (1, 2, 3))
 end
 
+# A composed page of cubes carries the engine. A `Page` writes its list as
+# `cells`, and this check read only `plots`, so it answered false for every
+# composition of 3-D plots and shipped no engine: the page drew perfectly and
+# would not turn. Python had the same gap; R and JavaScript read both spellings,
+# which is what made two bindings look right while two were not.
+@testset "a composed page of cubes carries the engine" begin
+    t = (a = [1.0, 2.0], b = [1.0, 2.0], c = [1.0, 2.0])
+    cube() = data(t) + point + x(:a) + y(:b) + z(:c) + space()
+    spec, _ = GrammarOfGraphics.wire(cube() | cube())
+    @test GrammarOfGraphics.needs_engine(spec)
+    @test GrammarOfGraphics.needs_engine(spec["cells"][1])
+    @test !GrammarOfGraphics.needs_engine(Dict("cells" => [Dict("layers" => [])]))
+end
+
 # The interactive block must reach the browser intact. Not reachable by comparing
 # SVG: that path is the CLI's and is perfect, while the browser gets a separate
 # payload nothing checked. A `data:` module import is refused by a
@@ -1290,4 +1360,68 @@ end
     else
         @info "the engine cannot say which version it is; rebuild it" engine reported
     end
+end
+
+@testset "a page of tables the binding had to name itself" begin
+    # Julia cannot read the name a table was bound to, so the binding invents
+    # `data` for every one. That name is its own and means nothing to the
+    # author, so on a page the second gives way rather than colliding — the same
+    # rule a plot of two tables already follows.
+    left = Dict{String,Any}("x" => [1.0, 2.0], "y" => [3.0, 4.0])
+    right = Dict{String,Any}("x" => [3.0, 4.0], "y" => [5.0, 6.0])
+
+    bare = (data(left) + point + x(:x) + y(:y)) | (data(right) + point + x(:x) + y(:y))
+    named = (data(left, name = "one") + point + x(:x) + y(:y)) |
+            (data(right, name = "two") + point + x(:x) + y(:y))
+    @test length(bare.frames) == 2
+    # The picture is the test: a rename that pointed both cells at one table
+    # would draw too, and only this catches that.
+    @test render_svg(bare) == render_svg(named)
+
+    # A name the author wrote still cannot be moved.
+    @test_throws GogError (data(left, name = "s") + point + x(:x) + y(:y)) |
+                          (data(right, name = "s") + point + x(:x) + y(:y))
+end
+
+@testset "a refused plot leaves an existing file alone" begin
+    # `save()` used to open the destination before it knew the render had
+    # succeeded, and opening for writing truncates — so a refusal emptied
+    # whatever was already there. A refusal must cost nothing on disk.
+    gm = Dict{String,Any}("gdp" => [1.0, 2.0, 3.0], "life" => [4.0, 5.0, 6.0])
+    good = data(gm) + point + x(:gdp) + y(:life)
+    bad = data(gm) + point + x(:gdp) + y(:life) + palette("okabe")   # nothing maps color
+
+    path = joinpath(mktempdir(), "plot.svg")
+    save(good, path)
+    before = read(path, String)
+    @test !isempty(before)
+
+    @test_throws GogError save(bad, path)
+    @test read(path, String) == before
+end
+
+@testset "a refusal in a notebook cell reads as the message, not as a crash" begin
+    # Thrown at the frontend, a refusal arrives as twenty-odd frames of
+    # `limitstringmime` and `eventloop`, with the one useful line buried. The
+    # display hooks show it instead; `render_svg` still throws, so a script and
+    # every check that reads an exit code are unaffected.
+    frame = Dict{String,Any}("gdp" => [1.0, 2.0], "life" => [3.0, 4.0])
+    refused = data(frame) + point + x(:gdp) + y(:life) + palette("okabe")
+    drawn = data(frame) + point + x(:gdp) + y(:life)
+
+    html = repr("text/html", refused)
+    @test occursin("palette()", html)
+    @test !occursin("<div", html)
+    # The message contains `color(<column>)`, so an unescaped `<` would be eaten
+    # as a tag and the reader would lose the half naming the fix.
+    @test occursin("&lt;column&gt;", html)
+
+    # The SVG form answers the question it was asked: a host wanting a picture
+    # is handed one, carrying the message.
+    svg = repr("image/svg+xml", refused)
+    @test startswith(svg, "<svg")
+    @test occursin("palette()", svg)
+
+    @test startswith(repr("text/html", drawn), "<div")
+    @test_throws GogError render_svg(refused)
 end

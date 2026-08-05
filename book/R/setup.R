@@ -8,10 +8,13 @@
 # Locate project root and load the GOG package
 # ---------------------------------------------------------------------------
 
-# Quarto sets getwd() to the directory of the .qmd file being rendered.
-# The project root is one or two levels up depending on chapter depth.
+# Quarto sets getwd() to the directory of the .qmd file being rendered, so the
+# project root is however many levels up that page happens to sit. Five, not the
+# book's own two, because this file is sourced from more than the book now: a
+# blog post at `blog/posts/<slug>/` is four levels down, and `R/data.R` beside
+# this one already walks four for the same reason.
 find_proj_root <- function() {
-  for (up in c(".", "..", "../..")) {
+  for (up in c(".", "..", "../..", "../../..", "../../../..")) {
     p <- normalizePath(file.path(up, "gog-cli"), mustWork = FALSE)
     if (dir.exists(p)) return(normalizePath(up))
   }
@@ -108,17 +111,27 @@ local({
     # this runs once per chapter, long after. What is left for this file is the
     # URL, which is per-chapter work and could not move earlier anyway.
     #
-    # Both URLs are relative to the *page*, and the book is not flat: a chapter
-    # under `marks/` renders to `_book/marks/`, where a bare `gog.wasm` would
-    # point at a file that is one directory up. Quarto runs each chunk in its
-    # own chapter's directory — which is why a chapter under `marks/` sources
+    # Both URLs are relative to the *page*, and neither project is flat: a
+    # chapter under `marks/` renders to `_book/marks/`, where a bare `gog.wasm`
+    # would point at a file one directory up. Quarto runs each chunk in its own
+    # page's directory — which is why a chapter under `marks/` sources
     # `../R/setup.R` — so the depth is readable from the working directory, and
     # the output tree mirrors the source tree exactly.
-    depth <- length(setdiff(
-      strsplit(sub(paste0("^", file.path(proj_root, "book")), "",
-                   normalizePath(getwd(), winslash = "/")), "/")[[1]],
-      ""
-    ))
+    #
+    # Measured against the *nearest `_quarto.yml`*, which is the page's own
+    # project. It named the book's directory outright until the blog arrived,
+    # and that was right only while the book was the sole project here: from a
+    # blog page the pattern matched nothing, the subject stayed an absolute
+    # path, and the depth came out as its directory count — eight on a typical
+    # checkout, for a page two levels down. Two smaller faults went with it. A
+    # filesystem path was being spliced in as a *regex*, so any character
+    # special to one would have misbehaved; and `setdiff` drops duplicates as
+    # well as empties, so a page at `marks/marks/` would have counted as one.
+    here  <- normalizePath(getwd(), winslash = "/")
+    qroot <- here
+    while (!file.exists(file.path(qroot, "_quarto.yml")) &&
+           !identical(dirname(qroot), qroot)) qroot <- dirname(qroot)
+    depth <- sum(nzchar(strsplit(substring(here, nchar(qroot) + 1L), "/")[[1]]))
     up <- paste(rep("../", depth), collapse = "")
     options(gog.wasm_url = paste0(up, "gog.wasm"),
             gog.js_url   = paste0(up, "interactive.js"))

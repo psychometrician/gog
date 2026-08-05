@@ -174,12 +174,10 @@ One engine, and all four languages narrow down to it. The four spellings above
 are what a person writes. Rust is what runs, below all of them, and it holds no
 opinion the grammar did not give it.
 
-```
-r-pkg/gog                 ─┐
-py-pkg/gog                 │
-jl-pkg/GrammarOfGraphics   ├─build spec─▶ JSON ─stdin─▶ gog-cli ─▶ gog-core ─▶ SVG
-js-pkg/gog                ─┘                            (bridge)   (the engine)
-```
+<p align="center">
+  <img src="images/pipeline.svg" width="100%"
+       alt="Four language bindings, one each for R, Python, Julia and JavaScript, all build the same specification. It travels as JSON on standard input to gog-cli, the bridge, and then to gog-core, the engine, which draws the SVG.">
+</p>
 
 Each front end is a thin layer that builds a specification, and the engine does
 everything else. A rule written into one binding is a rule the other three will

@@ -36,6 +36,12 @@ import sys
 from glob import glob
 
 BOOK = os.path.dirname(os.path.abspath(__file__))
+ROOT = os.path.dirname(BOOK)
+# The blog is measured beside the book, for the reason `check_prose.R` gives:
+# same voice, same readers, and a post that reads differently from the manual it
+# links to is what both guards exist to catch. A missing directory contributes
+# no files, so a checkout with only the book reports exactly as it always did.
+DIRS = [BOOK, os.path.join(ROOT, "blog")]
 TARGET = 18.0  # spec §20 book law 8: 15-18 words, one idea per sentence
 LONG = 30      # a sentence a reader has to hold open while parsing it
 VERY_LONG = 45 # a sentence to rewrite rather than trim
@@ -69,10 +75,13 @@ def sentences(text):
 
 
 def chapters():
-    for path in sorted(glob(os.path.join(BOOK, "**", "*.qmd"), recursive=True)):
-        if os.sep + "_" in path:
-            continue
-        yield path
+    seen = set()
+    for d in DIRS:
+        for path in sorted(glob(os.path.join(d, "**", "*.qmd"), recursive=True)):
+            if os.sep + "_" in path or path in seen:
+                continue
+            seen.add(path)
+            yield path
 
 
 def measure(path):
@@ -81,7 +90,7 @@ def measure(path):
         return None
     lens = [len(s.split()) for s in ss]
     return {
-        "file": os.path.relpath(path, BOOK),
+        "file": os.path.relpath(path, ROOT),
         "sentences": ss,
         "n": len(ss),
         "words": sum(lens),
@@ -100,18 +109,18 @@ def main():
             sys.exit(f"no chapter matching {want!r}")
 
     rows.sort(key=lambda r: -r["mean"])
-    print(f"{'chapter':32}{'sent':>6}{'words':>7}{'avg':>7}{'>%dw' % LONG:>7}")
+    print(f"{'file':40}{'sent':>6}{'words':>7}{'avg':>7}{'>%dw' % LONG:>7}")
     print("-" * 59)
     for r in rows:
         flag = "  <-- over target" if r["mean"] > TARGET else ""
-        print(f"{r['file']:32}{r['n']:6d}{r['words']:7d}"
+        print(f"{r['file']:40}{r['n']:6d}{r['words']:7d}"
               f"{r['mean']:7.1f}{r['long']:6.0f}%{flag}")
 
     n = sum(r["n"] for r in rows)
     w = sum(r["words"] for r in rows)
     very = sum(len(r["very"]) for r in rows)
     print("-" * 59)
-    print(f"{'TOTAL':32}{n:6d}{w:7d}{w / n:7.1f}")
+    print(f"{'TOTAL':40}{n:6d}{w:7d}{w / n:7.1f}")
     print(f"\nTarget is {TARGET:.0f} words per sentence (spec §20, book law 8). "
           f"{very} sentences of {VERY_LONG}+ words.")
 

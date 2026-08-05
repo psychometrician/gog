@@ -64,7 +64,7 @@ cleanly than they did from the default three-quarter view, and a different angle
 again would bury them. Rotating the plot changes *how you look*, never *what is
 drawn*, which is exactly why it belongs to the coordinate space and not to the
 grammar of the plot itself. Omit `space()` and you get the default view that
-shows all three axes at once; reach for it when the default hides what you came
+shows all three axes at once; use it when the default hides what you came
 to see.
 
 `turn` swings the scene around its upright axis (which side you look at it from),
@@ -74,11 +74,12 @@ looking straight down. Both are in degrees. (Astronomy calls these two angles
 
 ## Turning the plot yourself
 
-Every plot in the cube can be turned with the mouse. Drag left or right to swing
-the scene around. Drag up or down to raise or lower your eye. A line under each
-plot reads out the two angles while you move it. So you can find an angle by
-hand, then write it into the sentence as `space(turn = , tilt = )`. A *reset*
-button returns the plot to the view it opened with.
+Every plot in the cube can be turned with the mouse. The cube follows your
+pointer. Drag right and the side facing you moves right; drag down and it tips
+down to show you the top. A line under each plot reads out the two angles while
+you move it. So you can find an angle by hand, then write it into the sentence
+as `space(turn = , tilt = )`. A *reset* button returns the plot to the view it
+opened with.
 
 Beside it sit the same boxes that carry
 [every plot in this book](first-plot.qmd#the-boxes-under-every-plot). They mean here
@@ -433,14 +434,13 @@ the eye up and the measure axis foreshortens, until its numbers have nowhere to 
 The same summary at two tilts, and the second one is nearly a plan view:
 
 ```{r}
-#| layout-ncol: 2
-data(gm_eras) + bar * mean + x(continent) + y(era) + z(life) + space() +
-  style(color = "#2a9d8f") +
-  z_label("Mean life expectancy") + title("The three-quarter view")
-
-data(gm_eras) + bar * mean + x(continent) + y(era) + z(life) +
-  space(tilt = 85) + style(color = "#2a9d8f") +
-  z_label("Mean life expectancy") + title("Tilted up, and thinned")
+((data(gm_eras) + bar * mean + x(continent) + y(era) + z(life) + space() +
+    style(color = "#2a9d8f") +
+    z_label("Mean life expectancy") + title("The three-quarter view")) |
+   (data(gm_eras) + bar * mean + x(continent) + y(era) + z(life) +
+      space(tilt = 85) + style(color = "#2a9d8f") +
+      z_label("Mean life expectancy") + title("Tilted up, and thinned"))) +
+  theme(height = 430)
 ```
 
 The right-hand frame draws fewer numbers up its measure axis, and that is the whole

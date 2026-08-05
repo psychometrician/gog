@@ -106,6 +106,30 @@ pub(crate) struct AxisFacts {
     /// data's own units (spec §10), so a shared range has to be converted back
     /// out of decades before it can be handed to the other plot.
     pub(crate) log_base: Option<f64>,
+    /// Does this axis measure in units that are **not the column's own**?
+    ///
+    /// True for exactly one space today: a `map` reprojects its frames before the
+    /// scales are fitted, so `range` is in projected units while `lon` and `lat`
+    /// are still degrees.
+    ///
+    /// It exists because a page shares a scale by writing `limits`, and `limits`
+    /// does **two jobs at once**: it selects rows, in the column's own units, and
+    /// it sets the scale, in the scale's. On every other axis those are the same
+    /// units and the double duty is invisible. On a map they diverge, and neither
+    /// choice is right — degrees select correctly and scale wrongly, projected
+    /// numbers scale correctly and exclude every row. So a page reads this and
+    /// declines to share the scale at all, rather than picking a side.
+    ///
+    /// [`log_base`](Self::log_base) looks like the same problem and is not: decades
+    /// convert back by `base.powf`, so one range serves both jobs. A projection
+    /// mixes the two axes together, so no per-axis formula recovers degrees from it.
+    ///
+    /// Before this, composing two maps wrote each cell a domain of projected
+    /// numbers against a degree column, excluding every row and drawing two empty
+    /// panels. Silently, because a page injects that domain *after*
+    /// `check_limit_rows` — the check that refuses this exact mistake, in those
+    /// words, when a reader makes it by hand.
+    pub(crate) projected: bool,
 }
 
 impl Layout {

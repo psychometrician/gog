@@ -1,6 +1,6 @@
 [package]
 name = "gog-cli"
-version = "0.0.2"
+version = "0.0.3"
 edition = "2021"
 license = "Apache-2.0"
 description = "Command-line renderer: reads a JSON render-request from stdin, writes SVG to stdout."
@@ -9,3 +9,9 @@ description = "Command-line renderer: reads a JSON render-request from stdin, wr
 gog-core = { path = "../gog-core" }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
+# The raster half of `--gif`, and deliberately here rather than in `gog-core`:
+# a font stack and a rasterizer are a large dependency, and the engine every
+# binding's correctness rests on stays at serde. `resvg` reads the SVG this
+# binary already produced, so neither crate decides anything about the plot.
+resvg = "0.48"
+gif = "0.14"

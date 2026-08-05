@@ -1,0 +1,107 @@
+<script>
+// Two small jobs on every page, both of which CSS and the theme cannot do.
+(function () {
+  function slug(s) {
+    return s.trim().toLowerCase().replace(/[^a-z0-9]+/g, "-");
+  }
+
+  // --- 1. Give every category tag a class naming its language ---------------
+  //
+  // So the stylesheet can paint it in that language's own color. This is here
+  // because the two places Quarto writes a tag do not agree. In a listing each
+  // tag carries `data-category`, holding the name base64-encoded. In a post's
+  // own header the tag is a bare `<div class="quarto-category">` with the name
+  // as text and nothing else, and CSS cannot select on text content.
+  //
+  // `data-category` is read first because the sidebar writes its count into the
+  // same element ("rstats (1)"), so reading the text there would produce
+  // `lang-rstats-1` and the rule meant for that category would match nothing.
+  //
+  // The class comes from the name rather than a fixed list, so a new language
+  // needs only a color in `blog.css`. A category with no color falls through to
+  // the default styling, which is right for a category that is not a language.
+  function nameOf(el) {
+    var d = el.getAttribute("data-category");
+    if (d) {
+      try {
+        return slug(atob(d));
+      } catch (e) {
+        /* not base64 after all; fall through to the text */
+      }
+    }
+    return slug(el.textContent || "");
+  }
+
+  function paintTags() {
+    var tags = document.querySelectorAll(
+      ".quarto-category, .listing-category, .category"
+    );
+    for (var i = 0; i < tags.length; i++) {
+      var name = nameOf(tags[i]);
+      if (name) tags[i].classList.add("lang-" + name);
+    }
+  }
+
+  // --- 2. Open anything that leaves this site in a new tab ------------------
+  //
+  // Quarto has `link-external-newwindow`, and it is set, and it does nothing
+  // here: no link on a rendered page comes back with a `target`, not even one
+  // to another domain. Checked by grepping the output rather than assumed.
+  //
+  // It would not have been enough anyway. **The book is the most important link
+  // on this site and it is not external by hostname**: it lives at
+  // `psychometrician.github.io/gog-book/`, the same host as the blog, so any
+  // rule that compares hosts keeps it in the same tab. Losing your place in a
+  // post to open the book is exactly the case worth avoiding, since half the
+  // links here point at it.
+  //
+  // So the test is "does this leave the blog", not "is this another domain".
+  function externalize() {
+    var here = window.location.host;
+    var links = document.querySelectorAll('a[href^="http"]');
+    for (var i = 0; i < links.length; i++) {
+      var a = links[i];
+      var leaves = a.host !== here || a.pathname.indexOf("/gog-book/") === 0;
+      if (!leaves || a.hasAttribute("target")) continue;
+      a.setAttribute("target", "_blank");
+      // `noopener` denies the new page a handle back to this one, and
+      // `noreferrer` is the usual companion. Both are cheap and expected.
+      a.setAttribute("rel", (a.getAttribute("rel") || "").split(/\s+/)
+        .concat(["noopener", "noreferrer"])
+        .filter(function (v, j, all) { return v && all.indexOf(v) === j; })
+        .join(" "));
+    }
+  }
+
+  // --- 3. Keep the syndication categories out of the archive table ----------
+  //
+  // `rstats` and `julialang` exist only to steer the two narrow feeds and are
+  // hidden everywhere they appear as a tag. The archive's table writes the same
+  // list as plain text in a cell, where a stylesheet cannot reach them, so they
+  // showed up as two stray words after the four real languages.
+  var HIDDEN = ["rstats", "julialang"];
+
+  function cleanTable() {
+    var cells = document.querySelectorAll(".quarto-listing-table td");
+    for (var i = 0; i < cells.length; i++) {
+      var txt = cells[i].textContent || "";
+      if (txt.indexOf("rstats") < 0 && txt.indexOf("julialang") < 0) continue;
+      var kept = txt.split(",").map(function (t) { return t.trim(); })
+        .filter(function (t) { return t && HIDDEN.indexOf(t) < 0; });
+      if (kept.length) cells[i].textContent = kept.join(", ");
+    }
+  }
+
+  function run() {
+    paintTags();
+    externalize();
+    cleanTable();
+  }
+
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", run);
+  } else {
+    run();
+  }
+})();
+</script>

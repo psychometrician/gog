@@ -204,12 +204,15 @@ df_to_wire <- function(df) {
 # Render to SVG string
 # ---------------------------------------------------------------------------
 
-#' Render a gog_spec to an SVG string.
-#'
-#' @param gog  A \code{gog_spec} object built with \code{data() + ...}.
-#' @return A character string containing the SVG.
-#' @export
-render_svg <- function(gog) {
+# The engine's input for a plot or a page, as JSON — the one place either is
+# turned into what `gog-cli` reads.
+#
+# Split out of `render_svg()` when `save_gif()` became a second caller. Two
+# functions serializing the same object is two chances to disagree about a
+# number's precision or about what a missing value crosses as, and that
+# disagreement would surface as a GIF that does not match the plot beside it in
+# the book — the one difference no amount of comparing SVG could catch.
+wire_json <- function(gog) {
   # A page and a plot are one wire format (`ir::Figure`): the engine tells them
   # apart by their own required fields, so this is the only line that has to
   # know which it was handed.
@@ -242,7 +245,7 @@ render_svg <- function(gog) {
   # engine's `f64` parse. The engine reads `null` as missing and drops the row
   # from the columns the plot maps, reporting how many; representation is the
   # binding's job, the drop policy is the engine's.
-  json_str <- jsonlite::toJSON(
+  jsonlite::toJSON(
     request,
     auto_unbox = TRUE,
     null       = "null",
@@ -250,6 +253,15 @@ render_svg <- function(gog) {
     force      = TRUE,
     digits     = NA
   )
+}
+
+#' Render a gog_spec to an SVG string.
+#'
+#' @param gog  A \code{gog_spec} object built with \code{data() + ...}.
+#' @return A character string containing the SVG.
+#' @export
+render_svg <- function(gog) {
+  json_str <- wire_json(gog)
 
   cli_path <- find_gog_cli()
 
@@ -292,6 +304,77 @@ render_svg <- function(gog) {
   # and R reconstructing them is the outlier.
   svg <- paste(result, collapse = "\n")
   if (nzchar(svg)) paste0(svg, "\n") else svg
+}
+
+# ---------------------------------------------------------------------------
+# Write a played plot as a file that moves
+# ---------------------------------------------------------------------------
+
+#' Write a played plot to an animated GIF.
+#'
+#' A plot that binds \code{play()} moves in a browser, because the SVG carries
+#' its own timing. Most other places do not read that: a message to a friend, a
+#' slide, a post. This writes the same sequence as a GIF, which they do read.
+#'
+#' The frames come out of the one renderer, so the file cannot disagree with the
+#' plot. Every scale, the color map and each legend are fitted across the whole
+#' sequence at once, and the moments are cut from that single drawing rather
+#' than drawn again one at a time.
+#'
+#' Nothing needs to be installed. The engine converts and encodes on its own.
+#'
+#' @param gog   A played \code{gog_spec} — one that binds \code{play()}.
+#' @param path  Where to write, ending in \code{.gif}.
+#' @param scale Multiplier on the plot's canvas. A plot is 800 by 600 unless its
+#'   theme says otherwise, which is small for a post; \code{scale = 2} doubles it.
+#' @return The path, invisibly.
+#' @export
+save_gif <- function(gog, path, scale = 1) {
+  if (!is.character(path) || length(path) != 1L || is.na(path) || !nzchar(path)) {
+    stop("gog: `save_gif()` needs one path — `save_gif(p, \"wave.gif\")`.",
+         call. = FALSE)
+  }
+  # The name says what the file is, so a path that says otherwise is refused
+  # rather than quietly corrected. Writing GIF bytes into `wave.png` is the kind
+  # of small lie that is discovered much later, by someone else.
+  if (!grepl("\\.gif$", path, ignore.case = TRUE)) {
+    stop("gog: `save_gif()` writes a GIF, so the path ends in `.gif` — ",
+         "`save_gif(p, \"", tools::file_path_sans_ext(basename(path)), ".gif\")`.",
+         call. = FALSE)
+  }
+  if (!is.numeric(scale) || length(scale) != 1L || is.na(scale) || scale <= 0) {
+    stop("gog: `save_gif(scale = )` needs one positive number, e.g. ",
+         "`save_gif(p, \"wave.gif\", scale = 2)`.", call. = FALSE)
+  }
+
+  json_str <- wire_json(gog)
+  cli_path <- find_gog_cli()
+
+  stderr_file <- tempfile()
+  on.exit(unlink(stderr_file), add = TRUE)
+
+  # `path.expand` because the engine is another process and will not read `~`
+  # the way R does; `shQuote` because `system2` builds a command line, and a
+  # plot saved to a folder with a space in its name is not an exotic case.
+  result <- suppressWarnings(system2(
+    cli_path,
+    args   = c("--gif", shQuote(path.expand(path)), "--scale", format(scale)),
+    stdout = TRUE, stderr = stderr_file, input = json_str
+  ))
+
+  msgs <- if (file.exists(stderr_file)) {
+    readLines(stderr_file, warn = FALSE)
+  } else {
+    character()
+  }
+
+  status <- attr(result, "status")
+  if (!is.null(status) && status != 0L) {
+    stop(paste(msgs, collapse = "\n"), call. = FALSE)
+  }
+  if (length(msgs) > 0L) message(paste(msgs, collapse = "\n"))
+
+  invisible(path)
 }
 
 # ---------------------------------------------------------------------------
@@ -657,11 +740,46 @@ knit_print.gog_spec <- function(x, ...) {
 # one displayed while text/html is in the bundle, so it only has to say what the
 # plot is.
 
+# A refusal, shown in a cell as the sentence the engine wrote.
+#
+# The engine takes trouble over these: every one names what it would not do and
+# what to write instead. A display hook that lets the condition through buries
+# that sentence under thirty lines of `repr::mime2repr` internals, and not one of
+# those lines is anywhere the author can act.
+#
+# Only the *display* path does this. `render_svg()` and `save_gif()` still stop,
+# and so does `knit_print()` — the book documents its refusals with `error: true`
+# chunks, and a chunk that stopped erroring would be a refusal the manual claims
+# and the engine no longer makes.
+refusal_block <- function(message) {
+  escaped <- gsub("&", "&amp;", message, fixed = TRUE)
+  escaped <- gsub("<", "&lt;", escaped, fixed = TRUE)
+  escaped <- gsub(">", "&gt;", escaped, fixed = TRUE)
+  paste0('<pre style="white-space:pre-wrap;word-break:break-word;',
+         "border-left:3px solid #c2410c;padding:0.6em 0.9em;margin:0;",
+         'font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:0.9em">',
+         escaped, "</pre>")
+}
+
+# Draw for a display host, or show why not. A refusal carries the `gog: ` prefix
+# the whole package writes its diagnostics with; anything else is a fault in this
+# code or in R, and those must keep raising or a real bug becomes a grey box.
+display_or_refusal <- function(obj) {
+  tryCatch(
+    svg_block(render_svg(obj), obj),
+    error = function(e) {
+      message_text <- conditionMessage(e)
+      if (!startsWith(message_text, "gog: ")) stop(e)
+      refusal_block(message_text)
+    }
+  )
+}
+
 #' repr method: the plot as inline SVG in a Jupyter cell.
 #'
 #' @param obj The plot or page being displayed.
 #' @param ... Passed on by the display host; unused.
-repr_html.gog_spec <- function(obj, ...) svg_block(render_svg(obj), obj)
+repr_html.gog_spec <- function(obj, ...) display_or_refusal(obj)
 
 # A page draws through the very same methods — it is a figure like any other,
 # and every host (knitr, Jupyter, the viewer) asks the same question of it.

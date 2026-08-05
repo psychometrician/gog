@@ -337,7 +337,7 @@ data(gm_all) + zone * bin(20, tiling = "hex") + x(gdp, scale = "log") + y(life) 
 ```
 
 Two things changed there, and only one of them is the mesh. `palette("viridis")`
-swaps the sequential ramp, and it earns its place on a count: viridis is built so
+swaps the sequential ramp, and it is the right choice for a count: viridis is built so
 that equal steps in the number are equal steps in perceived brightness, which the
 default blue ramp does not promise. On a plot whose entire message is *how many*,
 that is the difference between reading the ridge and guessing at it. The palette
@@ -796,7 +796,7 @@ anything: a highlight that hides the data is not a highlight. Raise it when the
 zone is the point of the plot rather than its background, as the red band does
 here.
 
-The hatch is worth reaching for when a plot has to survive being printed in gray,
+The hatch is worth using when a plot has to survive being printed in gray,
 or when two overlapping zones need telling apart by more than hue. Give it more
 opacity than a flat fill wants, as the blue band does: a hatch is line-work with
 gaps between the lines, so fading it to 0.2 leaves very little to see. It takes
@@ -937,7 +937,7 @@ data(six_weeks) + zone * bin + x(weekday) + y(week)
 ```
 
 One categorical axis is a different matter, and it draws. That is the mixed mesh
-above. `density` is where the two part company, and it is not an oversight. A field
+above. `density` is where the two differ, and it is not an oversight. A field
 is estimated *between* the data points, so it needs somewhere to spread on both axes;
 a density per category would be normalized inside each slot on its own, which makes
 its cells incomparable across slots while the color ramp claims otherwise. It is the
@@ -951,7 +951,7 @@ says what to reach for instead:
 data(gm_all) + zone * density + x(life) + y(continent)
 ```
 
-A tiling parts company for a reason of its own, one dimension along. `hex`
+A tiling differs for a reason of its own, one dimension along. `hex`
 interleaves two lattices, weighing a step up against a step across, so it needs a
 *distance* on both axes; a category's slots are an order and no more. A mixed mesh
 has two axes and still no plane, and its cells are rectangles by construction:

@@ -29,7 +29,7 @@ use std::collections::HashMap;
 
 use crate::data::DataFrame;
 use crate::ir::{Figure, PlotSpec};
-use crate::legality::{self, Diagnostic};
+use crate::legality::{self, Diagnostic, DiagnosticKind};
 use crate::render::page;
 use crate::render::svg::{SvgRenderer, CANVAS};
 
@@ -150,14 +150,100 @@ pub fn render_figure_with(
             diagnostics.extend(drawn.remarks);
             drawn.svg
         }
+        // The same two lines as the plot arm, and that is the point: a figure
+        // states its own size and takes the canvas when it does not, whether it
+        // is one plot or a page of them. This arm read `CANVAS` unconditionally
+        // until a page had a theme to read, which made the composed figure the
+        // one thing in the grammar whose size nobody could state.
         Figure::Page(spec) => {
-            let (svg, remarks) = page::render(spec, data, CANVAS.0, CANVAS.1);
+            let theme = spec.theme.resolved();
+            let (svg, remarks) = page::render(
+                spec,
+                data,
+                theme.width.unwrap_or(CANVAS.0),
+                theme.height.unwrap_or(CANVAS.1),
+            );
             diagnostics.extend(remarks);
             svg
         }
     };
 
     Ok(Drawing { svg, diagnostics })
+}
+
+/// One still SVG per moment of a played plot, in order — what a caller needs to
+/// assemble a file that moves where SVG animation is not read.
+///
+/// **Conversion, never a second renderer.** Each still comes out of the same
+/// [`SvgRenderer::draw`] that draws the plot, asked to leave a different moment
+/// showing; nothing here decides a tick, a color or a layout. The `png.rs`
+/// history is why that distinction is written down rather than assumed — a
+/// second writer with its own opinions drifted until it drew untransformed rows
+/// under a transform's name, and a frame that only selects has no opinion to
+/// drift from. Every scale, the color map and each legend are fitted across the
+/// whole sequence one level below this, so the stills agree by construction.
+///
+/// `Err` for a plot with no `play`, which is not an animation and cannot become
+/// one, and for a composed page — the moments of two plots are two clocks, and
+/// nothing yet says whose is the file's.
+pub fn render_frames(
+    figure: &Figure,
+    data: &HashMap<String, DataFrame>,
+) -> Result<Vec<String>, Vec<Diagnostic>> {
+    render_frames_with(figure, data, Strictness::from_env())
+}
+
+pub fn render_frames_with(
+    figure: &Figure,
+    data: &HashMap<String, DataFrame>,
+    strictness: Strictness,
+) -> Result<Vec<String>, Vec<Diagnostic>> {
+    let mut diagnostics = legality::check_figure(figure, data);
+    if strictness == Strictness::Strict && diagnostics.iter().any(Diagnostic::is_fatal) {
+        return Err(diagnostics);
+    }
+
+    let Figure::Plot(spec) = figure else {
+        diagnostics.push(Diagnostic {
+            kind: DiagnosticKind::Unsupported,
+            message: "gog: a composed page has no single sequence to write. Two \
+                      plots on one page keep two clocks, and nothing says which \
+                      one the file runs on. Save the played plot on its own."
+                .to_string(),
+        });
+        return Err(diagnostics);
+    };
+
+    let levels = crate::render::svg::play_levels(spec, data);
+    if levels.len() < 2 {
+        diagnostics.push(Diagnostic {
+            kind: DiagnosticKind::Unsupported,
+            message: "gog: this plot does not play, so it has no moments to \
+                      write. Bind a column with an order to `play` — \
+                      `play(year)` — or save the still picture it already is."
+                .to_string(),
+        });
+        return Err(diagnostics);
+    }
+
+    let theme = spec.theme.resolved();
+    let mut frames = Vec::with_capacity(levels.len());
+    for moment in 0..levels.len() {
+        let mut renderer = SvgRenderer::for_theme(
+            &theme,
+            theme.width.unwrap_or(CANVAS.0),
+            theme.height.unwrap_or(CANVAS.1),
+        );
+        renderer.still = Some(moment);
+        // The remarks are the same sentence every moment — one render's worth is
+        // what a reader needs, and twelve copies of it is noise.
+        let drawn = renderer.draw(spec, data);
+        if moment == 0 {
+            diagnostics.extend(drawn.remarks);
+        }
+        frames.push(drawn.svg);
+    }
+    Ok(frames)
 }
 
 #[cfg(test)]
@@ -264,6 +350,84 @@ mod tests {
         }
         let spec = base().layer(Layer::new(Mark::Point).encode(Channel::Size, "continent"));
         assert!(render(&spec, &data()).is_err());
+    }
+
+    // ---- a page states its own size ---------------------------------------
+    //
+    // The tests below are at *this* level and not in `render::page`, because the
+    // defect they pin was here: `render::page` has always drawn at whatever size
+    // it was handed, and this module handed it the canvas whatever the figure
+    // said. A test one layer down would have passed throughout.
+
+    fn beside(cells: Vec<Figure>, theme: crate::ir::ThemeSpec) -> Figure {
+        Figure::Page(crate::ir::PageSpec { arrange: crate::ir::Arrange::Beside, cells, theme })
+    }
+
+    fn two_plots() -> Vec<Figure> {
+        vec![
+            base().layer(Layer::new(Mark::Point)).into(),
+            base().layer(Layer::new(Mark::Point)).into(),
+        ]
+    }
+
+    /// A composed figure is drawn at the size it asks for.
+    ///
+    /// Two plots side by side split the *width* and each keep the whole height,
+    /// so a page that cannot say how tall it is gives every cell a plot's worth
+    /// of height however little is in it. That is what left two thirds of a
+    /// composed cube's panel empty: the cube fits its panel with one uniform
+    /// scale, the width bound it, and nothing could ask for a shorter figure.
+    #[test]
+    fn a_page_is_drawn_at_the_size_it_states() {
+        let theme = crate::ir::ThemeSpec { height: Some(310.0), ..Default::default() };
+        let drawn = render_figure(&beside(two_plots(), theme), &data()).expect("should render");
+        assert!(
+            drawn.svg.contains(r#"width="800" height="310""#),
+            "the page asked to be 310px tall and was drawn {}",
+            &drawn.svg[..drawn.svg.find('>').unwrap_or(120)]
+        );
+        assert!(drawn.svg.contains(r#"viewBox="0 0 800 310""#), "and the viewBox agrees");
+    }
+
+    /// And a page that asks for nothing is still the canvas, which is every
+    /// composed figure written before this could be stated.
+    #[test]
+    fn a_page_that_states_no_size_takes_the_canvas() {
+        let drawn = render_figure(&beside(two_plots(), Default::default()), &data())
+            .expect("should render");
+        assert!(drawn.svg.contains(r#"width="800" height="600""#));
+    }
+
+    /// A page takes the two theme properties whose subject is the figure, and
+    /// refuses the ones whose subject is a panel — with the sentence that says
+    /// where to write them instead. Silence here would be the accept-and-drop
+    /// §12 forbids, and it is what a page did with every atom until now.
+    #[test]
+    fn a_panel_property_on_a_page_is_refused_with_direction() {
+        let theme = crate::ir::ThemeSpec {
+            grid: Some("none".to_string()),
+            height: Some(310.0),
+            ..Default::default()
+        };
+        let figure = beside(two_plots(), theme);
+        let refused = render_figure(&figure, &data())
+            .err()
+            .expect("a page must say it cannot use `grid`, not drop it");
+        let said = refused
+            .iter()
+            .find(|d| d.message.contains("theme(grid = )"))
+            .expect("and the refusal must name the property it refuses");
+        assert_eq!(said.kind, DiagnosticKind::Unsupported);
+        assert!(
+            said.message.contains("before composing"),
+            "a refusal names what to do next: {}",
+            said.message
+        );
+        // And the size it *can* state is untouched by the refusal of the one it
+        // cannot: under `GOG_STRICT=0` the same figure draws, 310px tall.
+        let drawn = render_figure_with(&figure, &data(), Strictness::Permissive)
+            .expect("GOG_STRICT=0 draws anyway");
+        assert!(drawn.svg.contains(r#"height="310""#));
     }
 
     // -- the palette vocabulary, checked across the two layers that hold it ---

@@ -272,6 +272,15 @@ def translate(source: str) -> Tuple[Optional[str], List[str], Optional[str]]:
     if "|>" in body or "%>%" in body:
         return None, fired, "R pipe — a host-language idiom with no Python spelling"
 
+    # `save_gif()` names a file, and naming a file is host bookkeeping rather
+    # than grammar: R writes `file.path(tempdir(), …)` and Python spells the same
+    # thing its own way. The two the book documents also bind their plot on the
+    # line above, so what the extractor records is one line short of standing on
+    # its own. Declining costs no coverage — a parity run compares the picture a
+    # sentence draws, and this call writes a file instead of returning one.
+    if re.search(r"\bsave_gif\s*\(", body):
+        return None, fired, "save_gif names a file — host bookkeeping, not a sentence"
+
     # R's own extractor on a table, as in `df[order(df$pop), ]`. The R chapter's
     # masked-names section says what happens when `order` is gog's rather than
     # base R's, which is host arithmetic and not a sentence: there is nothing

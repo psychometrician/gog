@@ -1,0 +1,27 @@
+---
+title: "RSS"
+---
+
+Three feeds. Each carries the whole text of a post, not a summary.
+
+| Feed | Address |
+|---|---|
+| Everything | `https://psychometrician.github.io/index.xml` |
+| R posts only | `https://psychometrician.github.io/index-rstats.xml` |
+| Julia posts only | `https://psychometrician.github.io/index-julialang.xml` |
+
+Subscribe to the first one if you want everything. The other two are for
+[R-bloggers](https://www.r-bloggers.com/) and
+[JuliaBloggers](https://www.juliabloggers.com/), which republish one language
+each, so a feed of everything would send them posts their readers did not ask
+for.
+
+There is no Python or JavaScript feed, and the reason is about how those
+communities work rather than about the languages. R and Julia have sites that
+subscribe to a feed and republish from it. Python and JavaScript do not: their
+newsletters take one submission at a time, by form or by mail, so a feed there
+would have nobody at the other end.
+
+Only the first address is announced in the page header, which is what a reader's
+feed reader finds on its own. The other two are here because nothing else on the
+site links them.

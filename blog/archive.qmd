@@ -1,0 +1,31 @@
+---
+title: "Archive"
+listing:
+  contents: posts
+  sort: "date desc"
+  # A table rather than cards. The front page is for reading; this page is for
+  # finding, so every post is one line and the whole history fits on one screen
+  # for a long time.
+  type: table
+  fields: [date, title, categories, reading-time]
+  field-display-names:
+    date: "Published"
+    title: "Post"
+    categories: "Languages"
+    reading-time: "Length"
+  # The two controls that make this an archive rather than a list. `sort-ui`
+  # lets a reader order by date or by title, and `filter-ui` searches every
+  # field, so typing a year narrows to that year and typing `polar` finds the
+  # post about circles. That covers what a year and month tree would have done,
+  # without a heading for every empty month.
+  sort-ui: [date, title]
+  filter-ui: [date, title, categories]
+  # No paging here. Finding something means seeing everything at once.
+  page-size: 200
+  # One feed for the site is enough; this page would only duplicate it.
+  feed: false
+page-layout: full
+---
+
+Every post, newest first. Sort by either column, or use the filter to narrow the
+list. A year works, and so does a language or a word from a title.

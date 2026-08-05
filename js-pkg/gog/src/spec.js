@@ -242,9 +242,13 @@ export function facet(field) {
 // because every host — `render_svg`, `save`, `show` — asks a figure for those
 // two and nothing else.
 export class Page {
-  constructor(spec, frames) {
+  constructor(spec, frames, anonymous = new Set()) {
     this.spec = spec;
     this.frames = frames;
+    // Which of these names the binding invented rather than being handed. Only
+    // a name the *author* wrote can clash: a generated one means nothing to
+    // them, so it can be renamed to make room.
+    this.anonymous = anonymous;
   }
 
   toString() {
@@ -256,19 +260,87 @@ export class Page {
   }
 }
 
-function compose(arrange, figures, word) {
-  if (figures.length < 2) {
+// The theme properties that describe a *panel*, and so cannot be said about a
+// page. The engine holds the same list in `check_page_theme`; this copy is what
+// puts the refusal on the line that wrote it.
+const PANEL_THEME = ["preset", "grid", "ratio", "tick_angle", "font_size",
+                     "background", "strip", "strip_text", "frame"];
+
+// A `theme()` among the figures is the page's own, and the only atom a page
+// takes. Its subject is the figure rather than a panel: `theme({ height: 310 })`
+// says how big this page is, which is the same sentence a plot writes about
+// itself, and there is nowhere else to write it — plots set beside each other
+// divide the page's width and each keep the whole of its height, so only the
+// page can say how much height that is.
+//
+// Written in the argument list because that is how JavaScript spells `+`
+// (spec §8): `beside(a, b, theme({ height: 310 }))` is R's
+// `(a | b) + theme(height = 310)`, word for word.
+function pageTheme(atom, word) {
+  const named = PANEL_THEME.filter(
+    (k) => atom.fields[k] !== null && atom.fields[k] !== undefined
+  );
+  if (named.length) {
+    const written = named.includes("preset")
+      ? `theme("${atom.fields.preset}")`
+      : `theme({ ${named[0]}: … })`;
     throw new GogError(
-      `gog: \`${word}()\` arranges two or more plots on one page — ` +
-        `\`${word}(plot(…), plot(…))\`.`
+      `gog: \`${written}\` describes a panel, and a page is plots arranged rather ` +
+        `than a panel of its own. On a page, \`theme()\` states how big the figure ` +
+        `is — \`width\` and \`height\` — and nothing else. Write this into the plot ` +
+        `it describes, before composing: \`${word}(plot(data(df), ${written}, …), …)\`.`
     );
   }
+  const theme = {};
+  for (const key of ["width", "height"]) {
+    if (atom.fields[key] !== null && atom.fields[key] !== undefined) {
+      theme[key] = atom.fields[key];
+    }
+  }
+  return theme;
+}
 
-  const cells = [];
+// The next generated table name nothing is using: `data`, `data2`, …
+function nextFreeName(taken) {
+  if (!taken.has("data")) return "data";
+  let n = 2;
+  while (taken.has(`data${n}`)) n += 1;
+  return `data${n}`;
+}
+
+// Rewrite every reference to a table, through nested pages. A name reaches the
+// wire in exactly two places — the plot's own table, and a layer that reads a
+// different one — so this is the whole rewrite. It copies rather than edits:
+// the cells belong to the plots the caller still holds.
+function renameTable(cells, oldName, newName) {
+  return cells.map((cell) => {
+    const next = { ...cell };
+    if (next.data === oldName) next.data = newName;
+    if (Array.isArray(next.layers)) {
+      next.layers = next.layers.map((layer) =>
+        layer && layer.data === oldName ? { ...layer, data: newName } : layer
+      );
+    }
+    if (Array.isArray(next.cells)) next.cells = renameTable(next.cells, oldName, newName);
+    return next;
+  });
+}
+
+function compose(arrange, figures, word) {
+  // One group of cells per figure, flattened at the end. Keeping them apart is
+  // what lets a rename reach exactly the cells that refer to the table.
+  const groups = [];
   const frames = {};
+  const anonymous = new Set();
+  let theme = null;
   for (const figure of figures) {
+    const atom = asAtom(figure);
+    if (atom && atom.kind === "theme") {
+      theme = { ...(theme ?? {}), ...pageTheme(atom, word) };
+      continue;
+    }
     if (!(figure instanceof Plot) && !(figure instanceof Page)) {
-      const hint = asAtom(figure)
+      const hint = atom
         ? `an atom joins a plot rather than a page: \`plot(data(df), ${describe(figure)}, …)\``
         : `got ${describe(figure)}`;
       throw new GogError(`gog: \`${word}()\` arranges plots — ${hint}.`);
@@ -277,13 +349,40 @@ function compose(arrange, figures, word) {
     // `beside(a, b, c)` is one row of three rather than a row of a row. A page
     // running the other way stays a cell of its own, which is what makes
     // `below(top, beside(main, right))` two rows, the second holding two plots.
-    if (figure instanceof Page && figure.spec.arrange === arrange) {
-      cells.push(...figure.spec.cells);
-    } else {
-      cells.push(figure.spec);
-    }
+    //
+    // A page that has stated its own size does not flatten either: flattening
+    // keeps the cells and drops the node, and the node is where the size was
+    // written.
+    const mine =
+      figure instanceof Page && figure.spec.arrange === arrange && !figure.spec.theme
+        ? [...figure.spec.cells]
+        : [figure.spec];
+    groups.push(mine);
+    const here = groups.length - 1;
+
     for (const [name, table] of Object.entries(figure.frames)) {
       if (frames[name] !== undefined && frames[name] !== table) {
+        const taken = new Set([...Object.keys(frames), ...Object.keys(figure.frames)]);
+        // A name the author wrote is theirs and cannot be moved. A generated one
+        // is the binding's own and means nothing to them, so it gives way — which
+        // is what keeps a page of two anonymous tables legal, the way a plot of
+        // two already is.
+        if (figure.anonymous.has(name)) {
+          const fresh = nextFreeName(taken);
+          groups[here] = renameTable(groups[here], name, fresh);
+          frames[fresh] = table;
+          anonymous.add(fresh);
+          continue;
+        }
+        if (anonymous.has(name)) {
+          const fresh = nextFreeName(taken);
+          for (let k = 0; k < here; k += 1) groups[k] = renameTable(groups[k], name, fresh);
+          frames[fresh] = frames[name];
+          anonymous.delete(name);
+          anonymous.add(fresh);
+          frames[name] = table;
+          continue;
+        }
         throw new GogError(
           `gog: two different tables on one page are both called \`${name}\` — a layer ` +
             `resolves its columns against the nearest table by name, so one of these ` +
@@ -292,9 +391,22 @@ function compose(arrange, figures, word) {
         );
       }
       frames[name] = table;
+      if (figure.anonymous.has(name)) anonymous.add(name);
     }
   }
-  return new Page({ arrange, cells }, frames);
+  const cells = groups.flat();
+
+  // Counted after the theme has been set aside, so the arity a reader is asked
+  // for is the one they wrote: `beside(a, theme(…))` is one plot, not two.
+  if (cells.length < 2) {
+    throw new GogError(
+      `gog: \`${word}()\` arranges two or more plots on one page — ` +
+        `\`${word}(plot(…), plot(…))\`.`
+    );
+  }
+  const spec = { arrange, cells };
+  if (theme && Object.keys(theme).length) spec.theme = theme;
+  return new Page(spec, frames, anonymous);
 }
 
 export function beside(...figures) {
@@ -408,9 +520,10 @@ export function query(connection, sql, options = {}) {
 // ---------------------------------------------------------------------------
 
 export class Plot {
-  constructor(spec, frames) {
+  constructor(spec, frames, anonymous = new Set()) {
     this.spec = spec;
     this.frames = frames;
+    this.anonymous = anonymous;
   }
 
   toString() {
@@ -462,6 +575,7 @@ class Builder {
     this.currentLayer = null;
     this.pendingData = null;
     this.anonymous = 0;
+    this.generated = new Set(); // the names this builder invented
   }
 
   // The table's name is the one thing JavaScript does worse than the other three
@@ -494,6 +608,7 @@ class Builder {
     this.anonymous += 1;
     const generated = this.anonymous === 1 ? "data" : `data${this.anonymous}`;
     this.names.set(table, generated);
+    this.generated.add(generated);
     return generated;
   }
 
@@ -733,7 +848,7 @@ class Builder {
       this.spec.layers.push(this.currentLayer);
       this.currentLayer = null;
     }
-    return new Plot(this.spec, this.frames);
+    return new Plot(this.spec, this.frames, this.generated);
   }
 }
 
