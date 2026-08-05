@@ -168,6 +168,27 @@ new. Two composed plots naming the same column on the same axis share that axis,
 which is why these two are the same width and the `gdp` numbers are written once.
 The selection travels the same road for the same reason.
 
+## One bound reaches every panel
+
+[Faceting](faceting.qmd) is the other way to get more than one panel, and a brush
+treats it the same way. The bound is a fact about a column, and every panel reads
+that column, so every panel answers:
+
+```{r}
+data(gapminder_2007) + point + x(gdp) + y(life) +
+  brush(gdp, at = c(20000, 60000)) | facet(continent)
+```
+
+Five panels, one bound, and the rich countries lit in each. Europe has many and
+Africa has none, which is the comparison the split was made for. Again nothing
+was added: `facet` divides the rows and `brush` lights some of them, and neither
+atom knows about the other.
+
+The panels differ in one way worth knowing. A bound is shared, because it names a
+column. Pointing is not, because it names a place: in the web edition, the values
+that appear under the pointer come from the panel you are pointing at, and never
+from a row another panel drew.
+
 ## Which one is that?
 
 The other thing people want from a selection is a name. Layer `text` over the
@@ -325,11 +346,27 @@ before the first drag.
 
 A brushed plot on a web page carries a line of controls under it. None of them
 are in the sentence, and that is the rule rather than an omission. They report a
-selection or change how you look at one. Neither changes what the plot claims
-about the data, so neither earns a word in the grammar. It is the same reason a
-plot in the cube has a line of controls and `space()` has no word for the mouse.
+selection, or they change how you look at one. Not one of them changes what the
+plot claims about the data, so not one of them earns a word in the grammar. It is
+the same reason a plot in the cube has a line of controls and `space()` has no
+word for the mouse.
 
-Reading left to right, the line looks like this:
+They come in two lines, and the first is [the one every plot
+carries](first-plot.qmd#the-boxes-under-every-plot):
+
+| Control | What it does |
+|---|---|
+| `−` `+` | Makes the picture smaller or larger |
+| the frame | Returns to the whole picture |
+| the hand | Says that dragging moves the picture, once you have looked closer |
+| the camera | Saves what you are looking at as a picture file |
+
+It sits first, directly under the picture, on a plain plot and a brushed one
+alike. That is worth a line of its own: a reader who has learned where the
+magnifier is finds it in the same place under every plot in this book, rather
+than somewhere that shifts with whatever else the plot needed.
+
+The second line is what a brush adds:
 
 | Control | What it does |
 |---|---|
@@ -337,8 +374,7 @@ Reading left to right, the line looks like this:
 | `17 of 142 selected` | How many rows the current bound catches |
 | `show rows` | Opens a table of those rows, and closes it again. A long selection arrives ten at a time, with `‹` and `›` under the table |
 | `clear` | Puts the selection back to what the sentence asked for |
-| `−` `+` | Makes the picture smaller or larger |
-| `fit` | Returns to the whole picture |
+| `unstamp` | Takes the stamps off. Absent until you have made one |
 
 ### Selecting
 
@@ -349,8 +385,9 @@ is a rectangle. A box that narrowed an axis nobody bound would be claiming a
 range you did not choose.
 
 Dragging in either direction gives the same bound, so you can start from any
-corner. A **single click clears** the selection, which is what a click on empty
-space does everywhere else.
+corner. A click on **empty space clears** the selection, which is what a click on
+empty space does everywhere else. A click that lands on a mark does something
+else, and the section below is about that.
 
 ### Drawing around a group
 
@@ -391,11 +428,60 @@ rows you are reading, as `11–20 of 40`, and the two arrows beside it move you
 through the rest. Every row you selected is reachable, and none of them pushes
 the plot off the screen. A selection short enough to fit shows no arrows at all.
 
-That table answers the question people usually reach for a click to ask. Draw a
-bound tight around one point and it names that point.
+The table names every row you caught, in one place, away from the picture. Draw a
+bound tight around one point and it names that point alone.
 
 For a quick look without selecting anything, **move the pointer over a mark** and
 that row's values appear beside it. Nothing is selected and nothing changes.
+
+### Stamping a point
+
+The pointer names one row at a time and forgets it as soon as you move. That is
+right for a quick look and wrong for a comparison. Three points stand out on a
+scatter, and reading them one after another means holding the first two in your
+head while you look at the third.
+
+Click a mark and its values stay. That is a **stamp**: a dot on the point, a
+short line, and a small card saying what the pointer said. Click as many as you
+want to compare. The card sits on the picture beside the point it belongs to,
+which is the difference between a stamp and the row table. One names rows, the
+other labels the plot.
+
+Click a card to take that one off. `unstamp` takes them all off at once. `clear`
+leaves them alone, because a stamp is not a selection: clear a bound to read your
+stamped rows against the whole data and they are all still there. Each of the
+three controls undoes one thing, which the section below sets out.
+
+Nothing about the sentence changes. You do not type a stamp, and the printed page
+carries none. Stamping is a way of reading the plot, like turning a cube.
+
+A stamp is for deciding which points are worth naming. A plot with a name on
+every point is unreadable, and a plot with a name on the four that matter is the
+one you wanted. Stamping lets you try the four before you commit to them. To
+put those names in the picture itself, where the page and the PDF will both carry
+them, write them down: that is [`text`](marks/text.qmd), and it is a layer like
+any other.
+
+The stamp is for looking. `text` is for saying.
+
+### Where pointing cannot answer
+
+The page works out where each row was drawn, from the row's own value and the two
+numbers the panel states. That is exact wherever a mark stands at its value, and
+some plots put a mark somewhere else on purpose.
+
+`jitter` sets each point beside its value so a crowd can be seen through.
+`dodge` moves marks aside to clear their neighbors, and `stack` sets each on top
+of the one below. A summary such as `bin` or `mean` draws one shape for many
+rows, so there is no single row under the pointer to name. A polar plot bends
+both axes around a circle, and a map turns two columns into places on the page
+before it draws anything.
+
+On any of those the pointer stays quiet rather than naming a row that is not
+there, and a line under the plot says which of them it was. Nothing is stamped
+either, for the same reason. This is the honest half of a feature that works by
+arithmetic rather than by asking the picture, and it is worth knowing before you
+wonder why a plot has gone silent.
 
 ### Looking closer
 
@@ -412,11 +498,13 @@ will see the same bins, not finer ones. If you want the statistics re-run over a
 narrower range, that is [`limits`](scales.qmd), and it is the other operation this
 chapter opened with.
 
-### Two words, two things
+### Three words, three things
 
-`clear` acts on the **selection** and `fit` acts on the **view**. They are next to
-each other and they undo different things, so they are named for what they act on
-rather than both being called reset.
+`clear` acts on the **selection**, `unstamp` acts on the **stamps**, and the
+frame acts on the **view**. Three controls that undo three different things, so
+each is named for what it acts on rather than all three being called reset. The
+frame sits a line above the other two, with the buttons that changed the view it
+returns.
 
 None of this exists on paper, and none of it is missing there. The PDF shows the
 bound the sentence named, which is why naming one is worth doing even where a

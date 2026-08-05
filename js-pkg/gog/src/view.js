@@ -447,14 +447,19 @@ export function controlBar(kind) {
   return bar;
 }
 
-export function placeBar(container, bar) {
+export function placeBar(container, ...bars) {
   const parent = container.parentNode;
   if (!parent) return;
   const wrap = document.createElement("div");
   wrap.className = "gog-plot-with-controls";
   parent.insertBefore(wrap, container);
   wrap.appendChild(container);
-  wrap.appendChild(bar);
+  // In the order given, and the order is a decision. The five view buttons go
+  // first, because they are the only ones on **every** plot: a flat plot has
+  // nothing else, so putting them first is what keeps them in the same place
+  // under every picture in the book rather than sliding along as the controls
+  // beside them change width. What a plot adds for its own sake comes second.
+  for (const bar of bars) wrap.appendChild(bar);
 }
 
 /**

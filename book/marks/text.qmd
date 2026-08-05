@@ -53,6 +53,13 @@ There is no "labeled point" mark to learn: a labeled scatter is just
 `point + text`, superposition (the `+` [operator](../operators.qmd)) doing the
 work.
 
+Five names fit here. Fifty would not, and choosing which few to keep is the real
+work of a labeled scatter. In the web edition you can try them first: clicking a
+point [stamps its values](../selection.qmd#stamping-a-point) onto the plot, so
+you can see how a handful of labels read before you write any of them down. The
+stamps are for looking and are gone on the next page load; `text` is how you say
+it, and the printed page carries that.
+
 ### Nudging the label off its point
 
 `style(nudge = )` shifts a text label a little off its `(x, y)`, one of `"up"`,

@@ -1428,15 +1428,24 @@ function addSelectionBar(container, handle, view) {
   group.style.cssText = "display:inline-flex;gap:.25em;align-items:center;";
   group.append(label, ...picks.map(([, b]) => b));
 
-  // The same grouping the cube's bar uses: `toggle`, `reset` and the view buttons
-  // are controls and stay on one line together, so a narrow panel breaks after the
-  // readout rather than through the middle of the button strip.
+  // **Two rows, and which control goes in which is the point.** The five view
+  // buttons are the only ones a reader meets under *every* plot in the book, so
+  // they get a line of their own, first, directly under the picture. On a plain
+  // plot that line is the whole bar; on this one it is the same line in the same
+  // place with more beneath it. In one row they slid left and right as the
+  // selection controls beside them changed width, so the button a reader wanted
+  // was never twice in the same spot.
+  const viewRow = controlBar("view");
+  if (view) addViewControls(viewRow, view, () => render(), handle);
+
+  // What this plot adds for its own sake. `toggle`, `reset` and `unstamp` stay
+  // one child of the row rather than three, so a narrow panel breaks after the
+  // readout instead of through the middle of the button strip.
   const controls = document.createElement("span");
   controls.style.cssText = "display:inline-flex;gap:.75em;align-items:center;";
   controls.append(toggle, reset, unstamp);
-  if (view) addViewControls(controls, view, () => render(), handle);
   bar.append(group, readout, controls);
-  placeBar(container, bar);
+  placeBar(container, viewRow, bar);
   // Under the bar rather than in it. It is a sentence and the bar is a line of
   // labels, so putting it inline would push the buttons about the moment it
   // appeared, on a plot the reader had only pointed at.
@@ -1723,6 +1732,14 @@ function addControls(container, handle, view = null) {
     reset.style.cursor = moved ? "pointer" : "default";
   };
 
+  // The five view buttons take the first row here for the same reason they do
+  // under a brushed plot: they are the row every plot has, so they keep one
+  // place under every picture. What is left below is what a cube adds, and it
+  // reads as a sentence about the angle: what the angle is, and a way back to
+  // the one the plot opened at.
+  const viewRow = controlBar("view");
+  if (view) addViewControls(viewRow, view);
+
   bar.append(hint, readout);
   // The zoom sits between the readout and `reset`, and it is given **no drag
   // handle**. In the cube the drag is already spoken for: it turns the scene,
@@ -1730,25 +1747,21 @@ function addControls(container, handle, view = null) {
   // gesture keeps its one meaning, which is the rule the selection chapter
   // states from the other side.
   //
-  // Two buttons that both undo something sit side by side here, so each is
-  // named for *what it acts on* rather than both being called reset: `fit`
-  // returns the zoom, `reset` returns the angle. Pressing either leaves the
-  // other alone, so a reader who found an angle does not lose it by zooming
-  // back out.
-  // **The buttons are one unit, so the bar may only break beside them.** The bar
-  // wraps, which it must — a panel can be half the page wide in a two-across
-  // layout, and nothing may overflow. What it must not do is break *between*
-  // buttons, which left the camera and `reset` stranded on a second line while
-  // four icons sat on the first. Grouping them is the selection bar's own answer
-  // to the same problem, one bar over: a set of controls that acts together is
-  // one child of the bar, not five. The readout keeps its own place, so what
-  // yields at a narrow width is the words rather than the controls.
-  const controls = document.createElement("span");
-  controls.style.cssText = "display:inline-flex;gap:.75em;align-items:center;";
-  if (view) addViewControls(controls, view);
-  controls.append(reset);
-  bar.append(controls);
-  placeBar(container, bar);
+  // Two buttons undo something here, and each is named for *what it acts on*
+  // rather than both being called reset: `fit` returns the zoom, `reset` returns
+  // the angle. They are now a row apart, which says the same thing more plainly
+  // than sitting them side by side did. `fit` belongs with the buttons that
+  // changed the zoom, and `reset` belongs beside the readout stating the angle
+  // it undoes. Pressing either still leaves the other alone, so a reader who
+  // found an angle does not lose it by zooming back out.
+  //
+  // **The bar wraps, and must** — a panel can be half the page wide in a
+  // two-across layout, and nothing may overflow. What it must not do is break
+  // *between* buttons, which once left the camera stranded on a line of its own
+  // while four icons sat above it. A set of controls that acts together is one
+  // child of its row, not five.
+  bar.append(reset);
+  placeBar(container, viewRow, bar);
   return show;
 }
 

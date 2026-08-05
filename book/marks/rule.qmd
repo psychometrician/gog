@@ -160,7 +160,7 @@ edges. That is [`ribbon`](ribbon.qmd) fed a pre-computed pair, with a two-row
 table putting the left and right edges where you want them:
 
 ```{r}
-healthy <- data.frame(gdp = range(gapminder_2007$gdp), lo = 65.0, hi = 75.0)
+healthy <- data.frame(gdp = base::range(gapminder_2007$gdp), lo = 65.0, hi = 75.0)
 
 data(healthy) + ribbon * bounds(lo, hi) + style(color = "seagreen", opacity = 0.18) +
   data(gapminder_2007) + point + x(gdp) + y(life) +
