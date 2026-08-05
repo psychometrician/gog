@@ -5468,6 +5468,56 @@ pub fn layer_answers_selection(layer: &Layer) -> bool {
     !layer.transforms.iter().any(transform_collapses_rows) && selection_draws(layer).is_none()
 }
 
+/// Does this layer draw each row at the value the row holds?
+///
+/// The page's readout never asks the picture what lies under the pointer. It
+/// re-derives every row's position from the row's own value and the two numbers
+/// the panel states, then keeps the nearest. That is exact where a mark stands
+/// at its value, and wrong everywhere else, so this is **not** the question
+/// [`layer_answers_selection`] asks and the two must not be shared.
+///
+/// They part on both counts, which is the whole reason for a second predicate.
+/// A selection keeps `dodge`, `stack` and `jitter`, because those move a row
+/// without merging it and a predicate over rows stays honest; a position is
+/// precisely what they move, so all three are out here. And a selection refuses
+/// `bar` over how two passes measure a width, which says nothing about where a
+/// bar stands.
+pub fn layer_places_rows(layer: &Layer) -> bool {
+    mark_takes_selection(&layer.mark) && layer.transforms.is_empty() && layer.bounds.is_none()
+}
+
+/// Why a reader's pointer cannot be answered on this plot, as one word.
+///
+/// `None` means it can. The question is asked of the **plot** rather than of a
+/// layer, because one honest layer is enough: a jittered cloud under a `text`
+/// layer still has the text standing at each row's value, and a pointer landing
+/// there has found something real. So this reports a reason only when no layer
+/// places its rows at all, and the first layer's reason speaks for the rest.
+///
+/// The engine ships the word and not the sentence. It is the only side that
+/// knows a mark was moved away from its value; the page is the only side that
+/// knows when a reader is asking.
+pub fn why_not_placed(spec: &PlotSpec) -> Option<&'static str> {
+    if spec.layers.iter().any(layer_places_rows) {
+        return None;
+    }
+    spec.layers.first().map(|l| {
+        if l.transforms.contains(&Transform::Jitter) {
+            "jitter"
+        } else if l.transforms.contains(&Transform::Dodge) {
+            "dodge"
+        } else if l.transforms.contains(&Transform::Stack) {
+            "stack"
+        } else if !l.transforms.is_empty() {
+            "summary"
+        } else if l.bounds.is_some() {
+            "bounds"
+        } else {
+            "mark"
+        }
+    })
+}
+
 /// Which rows a brush keeps — the predicate itself, shared by this check and the
 /// renderer so the count a reader is given cannot disagree with the picture.
 ///
@@ -8893,6 +8943,48 @@ mod tests {
 
     fn kinds(d: &[Diagnostic]) -> Vec<DiagnosticKind> {
         d.iter().map(|x| x.kind).collect()
+    }
+
+    // -----------------------------------------------------------------------
+    // Can a value be turned back into the place it was drawn?
+    // -----------------------------------------------------------------------
+
+    /// The page re-derives positions rather than asking the picture, so it needs
+    /// to be told when a mark does not stand at its own value. Every one of these
+    /// moves a row somewhere the value alone does not predict.
+    #[test]
+    fn a_moved_mark_is_reported_as_moved() {
+        for (t, why) in [
+            (Transform::Jitter, "jitter"),
+            (Transform::Dodge, "dodge"),
+            (Transform::Stack, "stack"),
+            (Transform::Mean, "summary"),
+            (Transform::Bin, "summary"),
+        ] {
+            let spec = base().layer(Layer::new(Mark::Point).transform(t.clone()));
+            assert_eq!(why_not_placed(&spec), Some(why), "{t:?}");
+        }
+    }
+
+    /// A mark that draws one shape through many rows has no single row under a
+    /// pointer, whatever the transforms say.
+    #[test]
+    fn a_mark_spanning_rows_is_reported_too() {
+        let spec = base().layer(Layer::new(Mark::Line));
+        assert_eq!(why_not_placed(&spec), Some("mark"));
+    }
+
+    /// An untouched mark places its rows, and so does a plot where *one* layer
+    /// does. A jittered cloud under a `text` layer still has the text standing at
+    /// each row's value, and a pointer landing there has found something real, so
+    /// refusing the whole plot would take away an answer that was correct.
+    #[test]
+    fn one_honest_layer_is_enough() {
+        assert_eq!(why_not_placed(&base().layer(Layer::new(Mark::Point))), None);
+        let mixed = base()
+            .layer(Layer::new(Mark::Point).transform(Transform::Jitter))
+            .layer(Layer::new(Mark::Text));
+        assert_eq!(why_not_placed(&mixed), None);
     }
 
     /// The messages, for an assertion that fails readably.

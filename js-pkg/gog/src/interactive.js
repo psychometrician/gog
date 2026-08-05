@@ -452,9 +452,31 @@ export function attachBrush(engine, container, request, options = {}) {
           cats: cats === null ? null : cats.split("|"),
         };
       };
+      // Which slice of the table this panel drew, and which moment of it. Both
+      // are absent on a plot that has neither, and the readout treats absence as
+      // "no filter" rather than guessing.
+      const slice = (side) => {
+        const field = g.getAttribute(`data-facet-${side}-field`);
+        const level = g.getAttribute(`data-facet-${side}`);
+        return field === null || level === null ? null : { field, level };
+      };
+      const playField = g.getAttribute("data-play-field");
+      const play = playField === null ? null : {
+        field: playField,
+        levels: (g.getAttribute("data-play-levels") ?? "").split("|"),
+        seconds: Number(g.getAttribute("data-play-seconds")),
+      };
       // y runs down the page and up the axis, so its two ends are swapped
       // against x's. That is the one asymmetry here.
-      return { el: g, x0, y0, x1, y1, x: axis("x", x0, x1), y: axis("y", y1, y0) };
+      return {
+        el: g, x0, y0, x1, y1, x: axis("x", x0, x1), y: axis("y", y1, y0),
+        facets: [slice("col"), slice("row")].filter(Boolean),
+        play,
+        // A panel that does not say reads as one that cannot, which is what an
+        // old engine under a new module looks like. Going quiet is the state a
+        // reader had before any of this, and it is the safe way to be wrong.
+        place: g.getAttribute("data-gog-place"),
+      };
     });
 
   // Where the pointer is, in this panel's own user space.
@@ -678,10 +700,44 @@ export function attachBrush(engine, container, request, options = {}) {
   // two domains, so it can place every row itself and keep the nearest. That is
   // `placeOn`, which is `boundOn` run forwards. No engine change, nothing added
   // to the SVG, and it works on a log axis and a category axis for free.
+  //
+  // **What the arithmetic assumes, and who checks it.** Re-deriving a position
+  // is exact only where the mark stands at the row's own value. `jitter` moves
+  // it, `dodge` and `stack` move it, a summary draws one shape for many rows, a
+  // disc bends both axes, and a map projects its columns before anything is
+  // fitted. The engine says which of those happened, on the panel, because it is
+  // the only side that knows — see `data-gog-place`. Reading a value back
+  // against a picture that moved it is not a near miss: the reader gets a
+  // plausible row at a plausible position and no way to tell.
+  //
+  // Two more filters answer the same question about *which* rows this panel
+  // drew. A faceted plot is one plot over one table, and a played plot holds
+  // every moment in the document at once, so without them the table on the page
+  // is larger than the picture in front of the reader.
   // ---------------------------------------------------------------------
   let tip = null;
+  // Why the last refused panel a reader pointed at could not answer, or `null`
+  // while nobody has asked. The bar reads it.
+  let unplaced = null;
+
+  // The moment showing now. Every frame is in the document and the clock chooses
+  // between them: frame `i` is displayed over `[i*s, i*s + s)` and the sequence
+  // repeats, so the index is the elapsed time divided by one frame's length.
+  // Read off the same `<svg>` a redraw reads and writes, so there is one
+  // timeline even on a page of nested cells.
+  const moment = (panel) => {
+    if (!panel.play || !(panel.play.seconds > 0)) return null;
+    const svg = container.querySelector("svg");
+    const t = typeof svg?.getCurrentTime === "function" ? svg.getCurrentTime() : 0;
+    const n = panel.play.levels.length;
+    return panel.play.levels[((Math.floor(t / panel.play.seconds) % n) + n) % n];
+  };
 
   const nearest = (panel, at) => {
+    // The engine could not promise a position, so there is no honest answer to
+    // give. The bar says why the first time a reader asks.
+    if (panel.place !== "row") return null;
+    const now = moment(panel);
     let best = null;
     for (const plot of eachPlot(req.spec)) {
       const df = req.data?.[plot.data];
@@ -697,7 +753,21 @@ export function attachBrush(engine, container, request, options = {}) {
       for (const layer of plot.layers ?? []) {
         for (const c of Object.values(layer.encodings ?? {})) add(c?.field);
       }
+      // Every column a position or a channel reads. The engine drops a row with
+      // a gap in any of them before it draws, so the browser has to drop it too
+      // or it names a row that is not on the page. The facet columns join the
+      // list because they decide which panel a row is in.
+      const mapped = [...named, plot.z?.field, ...panel.facets.map((f) => f.field)]
+        .filter((f) => f && (floats[f] || strings[f]));
+      // Is this row one of the ones this panel drew? Compared as strings,
+      // because a level arrives off an attribute and a moment key is written
+      // the way the column prints it.
+      const drew = (i) =>
+        panel.facets.every((f) => String(get(f.field, i)) === f.level) &&
+        (now === null || String(get(panel.play.field, i)) === now) &&
+        mapped.every((f) => get(f, i) !== null && get(f, i) !== undefined);
       for (let i = 0; i < n; i++) {
+        if (!drew(i)) continue;
         const px = placeOn(panel.x, get(panel.x.field, i));
         const py = placeOn(panel.y, get(panel.y.field, i));
         if (px === null || py === null) continue;
@@ -855,6 +925,13 @@ export function attachBrush(engine, container, request, options = {}) {
       // Not dragging: say what is under the pointer.
       const all = panels();
       const over = all.find((p) => holds(p, pointIn(p, e)));
+      // A panel that cannot place a row says so, once, and only after someone
+      // has pointed at it. Printing the reason under every such plot would put
+      // an apology on pages nobody was asking a question about.
+      if (over && over.place !== "row" && unplaced !== over.place) {
+        unplaced = over.place;
+        onSelect?.();
+      }
       const hit = over && mode() === "select" ? nearest(over, pointIn(over, e)) : null;
       if (hit) showTip(over, hit);
       else hideTip();
@@ -919,6 +996,9 @@ export function attachBrush(engine, container, request, options = {}) {
     opened,
     /** What the reader has caught: a count, and one page of the rows to read. */
     selection: (offset = 0) => selectedRows(req, PAGE_ROWS, offset),
+    /** Why pointing at this plot cannot name a row, once someone has tried it.
+     *  `null` until then, and on every plot that can answer. */
+    unplaced: () => unplaced,
     /** What a plain drag does now. Zooming in switches it, because a reader who
      *  has just magnified something almost always wants to move around in it. */
     mode,
@@ -1099,6 +1179,28 @@ function addSelectionBar(container, handle, view) {
   const readout = document.createElement("span");
   readout.style.cssText = "font-variant-numeric:tabular-nums;";
 
+  // Why pointing at this plot names nothing, in the reader's words rather than
+  // the engine's. The engine ships one word, because it is the only side that
+  // knows a mark was moved off its value; the sentence is written here, beside
+  // "clear" and "show rows", because this is where the page speaks.
+  //
+  // Every one of these says the same thing twice over: what the plot did to the
+  // position, and therefore why a pointer cannot answer. A reader who knows the
+  // first can predict the rest, which is the point of saying it rather than
+  // going quiet.
+  const WHY = {
+    jitter: "`jitter` draws each point beside its value, not on it, so pointing at one cannot say which row it is.",
+    dodge: "`dodge` sets each mark beside its value to clear its neighbors, so pointing at one cannot say which row it is.",
+    stack: "`stack` sets each mark on top of the one below, so where a mark sits is not where its value is.",
+    summary: "each mark here stands for many rows at once, so there is no one row under the pointer to name.",
+    bounds: "these shapes are placed by the bounds you gave them rather than by a row's value.",
+    mark: "this mark draws one shape through many rows, so no single row is under the pointer.",
+    polar: "a polar plot bends both axes around a circle, and the page reads a value back along straight ones.",
+    map: "a map turns longitude and latitude into places on the page before drawing, so the two do not line up.",
+  };
+  const note = document.createElement("span");
+  note.style.cssText = "opacity:.72;";
+
   const toggle = document.createElement("button");
   toggle.type = "button";
   toggle.style.cssText =
@@ -1164,7 +1266,11 @@ function addSelectionBar(container, handle, view) {
   if (view) addViewControls(controls, view, () => render(), handle);
   bar.append(group, readout, controls);
   placeBar(container, bar);
-  bar.after(table);
+  // Under the bar rather than in it. It is a sentence and the bar is a line of
+  // labels, so putting it inline would push the buttons about the moment it
+  // appeared, on a plot the reader had only pointed at.
+  bar.after(note);
+  note.after(table);
   table.after(pager);
 
   let open = false;
@@ -1179,6 +1285,9 @@ function addSelectionBar(container, handle, view) {
       b.setAttribute("aria-pressed", on ? "true" : "false");
     }
     readout.textContent = `${s.kept} of ${s.total} selected`;
+    const why = handle.unplaced?.();
+    note.textContent = why ? `Pointing reads no row here: ${WHY[why] ?? ""}` : "";
+    note.style.display = why ? "block" : "none";
     // Nothing to show and nothing to reset when nothing is selected. The
     // buttons go quiet rather than disappearing, so the line does not jump.
     const idle = s.kept === 0 || s.kept === s.total;

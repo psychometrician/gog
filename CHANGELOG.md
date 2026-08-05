@@ -8,6 +8,21 @@ CRAN-style repositories and PyPI, `GrammarOfGraphics` on Julia's General, and
 
 ### Fixed
 
+- Pointing at a mark named the wrong row on several kinds of plot. The readout
+  works out where each row was drawn instead of asking the picture, which is
+  exact only where a mark stands at its own value. On a faceted plot it searched
+  the whole table against whichever panel the pointer was over, and because the
+  panels share their scales the row it found from a different panel landed
+  exactly where an answer belongs. On a plot that plays it searched every moment,
+  including the ones not on the screen. It also had no way to know that `jitter`,
+  `dodge` and `stack` set a mark beside its value, that a polar plot bends both
+  axes, or that a map turns its two columns into places on the page before
+  drawing. Panels now say which rows they drew and which moment is showing, so a
+  reader gets a row from the panel they are pointing at and the moment in front
+  of them. Where the position cannot be worked back out the readout says nothing
+  and the line under the plot says why, which is the honest answer where naming
+  a row would be a guess.
+
 - A drag across a violin or a ridgeline selected the wrong categories. Where
   `density(reach = )` reaches past half a slot the shapes lean out of their
   slots, so the axis widens to leave room for them, and the browser was reading

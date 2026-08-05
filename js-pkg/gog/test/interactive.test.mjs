@@ -647,41 +647,73 @@ test("an outline that encloses nothing selects nothing", () => {
 // ---------------------------------------------------------------------------
 
 function stubDom() {
-  const made = [];
   const el = () => {
     const node = {
       style: {}, children: [], isConnected: false, firstChild: null,
+      // The tooltip measures itself to stay inside the window. Zero is a
+      // truthful width for an element nothing laid out, and it keeps the
+      // arithmetic that reads it from producing `NaN`.
+      offsetWidth: 0, offsetHeight: 0,
       setAttribute() {}, removeAttribute() {},
       appendChild(c) { node.children.push(c); node.firstChild ??= c; return c; },
-      remove() { node.isConnected = false; },
+      remove() {
+        node.isConnected = false;
+        const kin = node.parent?.children;
+        if (kin) kin.splice(kin.indexOf(node), 1);
+      },
     };
-    made.push(node);
     return node;
   };
   const body = el();
-  body.appendChild = (c) => { c.isConnected = true; return c; };
+  // Recorded rather than discarded. This used to drop the child on the floor,
+  // which was fine while nothing on `document.body` outlived a gesture and is
+  // not fine now: the readout is parented here, so "what is on the page?" has to
+  // be a question the stub can answer.
+  body.appendChild = (c) => { c.isConnected = true; c.parent = body; body.children.push(c); return c; };
   globalThis.document = { body, createElement: el, createElementNS: el };
   globalThis.requestAnimationFrame = (fn) => { fn(); return 0; };
-  return () => { delete globalThis.document; delete globalThis.requestAnimationFrame; };
+  globalThis.window = {
+    innerWidth: 1200, innerHeight: 800,
+    addEventListener() {}, removeEventListener() {},
+  };
+  return () => {
+    delete globalThis.document;
+    delete globalThis.requestAnimationFrame;
+    delete globalThis.window;
+  };
 }
 
-/** The one `<g data-gog-panel .../>` the engine writes, as something to query. */
+/** Whatever is parented to `document.body` and still attached. */
+const onPage = (cls) =>
+  globalThis.document.body.children.filter((n) => n.isConnected && n.className === cls);
+
+/** Every `<g data-gog-panel .../>` the engine wrote, as something to query.
+ *
+ *  All of them, not the first: a faceted plot writes one per panel, and reading
+ *  only the first is how a test of faceted behavior would quietly become a test
+ *  of one panel's. */
 function panelFrom(svg) {
-  const tag = svg.match(/<g data-gog-panel[^>]*\/>/);
-  if (!tag) return [];
-  const attrs = {};
-  for (const [, k, v] of tag[0].matchAll(/([\w-]+)="([^"]*)"/g)) attrs[k] = v;
   const identity = { a: 1, b: 0, c: 0, d: 1, e: 0, f: 0, inverse: () => identity };
   const point = () => ({
     x: 0, y: 0,
     matrixTransform(m) { return { x: this.x * m.a + m.e, y: this.y * m.d + m.f }; },
   });
-  return [{
-    getAttribute: (n) => attrs[n] ?? null,
-    ownerSVGElement: { createSVGPoint: point },
-    getScreenCTM: () => identity,
-  }];
+  // One clock for the whole picture, which is what the document has. A test sets
+  // it to choose a moment, the way a reader's browser advances it.
+  const owner = { createSVGPoint: point, getCurrentTime: () => CLOCK.t };
+  return [...svg.matchAll(/<g data-gog-panel[^>]*\/>/g)].map((tag) => {
+    const attrs = {};
+    for (const [, k, v] of tag[0].matchAll(/([\w-]+)="([^"]*)"/g)) attrs[k] = v;
+    return {
+      getAttribute: (n) => attrs[n] ?? null,
+      ownerSVGElement: owner,
+      getScreenCTM: () => identity,
+    };
+  });
 }
+
+/** Where the animation has got to, in seconds. */
+const CLOCK = { t: 0 };
 
 function stubContainer() {
   const listeners = new Map();
@@ -696,7 +728,8 @@ function stubContainer() {
     // `style` because every real element has one, and `redraw` tells the
     // incoming picture to fit its column through it. A double without it lets
     // production code look wrong when it is the double that is thin.
-    querySelector: (sel) => (sel === "svg" ? { style: {} } : null),
+    querySelector: (sel) =>
+      (sel === "svg" ? { style: {}, getCurrentTime: () => CLOCK.t } : null),
     querySelectorAll: (sel) => (sel === "[data-gog-panel]" ? panels : []),
     addEventListener(type, fn) { listeners.set(type, fn); },
     removeEventListener(type) { listeners.delete(type); },
@@ -921,6 +954,183 @@ test("a widened categorical axis is read where the engine drew it", async () => 
       [...new Set(caught.rows.map((r) => r[caught.columns.indexOf("place")]))],
       [cats[1]],
       "the drag caught the slot it was drawn over");
+    handle.destroy();
+  } finally {
+    undo();
+  }
+});
+
+// ---------------------------------------------------------------------------
+// Pointing at a row
+//
+// The readout never asks the picture what lies under the pointer. It re-derives
+// every row's position from the row's value and the two numbers the panel
+// states, and keeps the nearest. Nothing exercised that until now, which is why
+// it could be wrong on a faceted plot and on an animated one for as long as it
+// existed: it walked the whole table against whichever panel the pointer was
+// over, and every moment of a played plot including the hidden ones.
+//
+// Wrong here does not look wrong. The reader is handed a plausible row at a
+// plausible position, and with shared scales the two panels' coordinates line up
+// exactly, so the answer from the wrong panel lands where an answer belongs.
+// ---------------------------------------------------------------------------
+
+/** A plot, mounted, with its first panel and an axis pair to place values on. */
+async function hoverFixture(spec, data) {
+  const engine = await loadEngine(fs.readFileSync(WASM));
+  const container = stubContainer();
+  const handle = attachBrush(engine, container, { spec, data });
+  const on = (g) => {
+    const [x0, y0, x1, y1] = g.getAttribute("data-gog-panel").split(" ").map(Number);
+    const num = (n) => g.getAttribute(`data-${n}`).split(" ").map(Number);
+    const [xf, xt] = num("x");
+    const [yf, yt] = num("y");
+    return {
+      x0, y0, x1, y1,
+      x: { from: xf, to: xt, lo: x0, hi: x1, log: null, cats: null },
+      y: { from: yf, to: yt, lo: y1, hi: y0, log: null, cats: null },
+      place: g.getAttribute("data-gog-place"),
+    };
+  };
+  return { handle, container, panels: container.querySelectorAll("[data-gog-panel]").map(on) };
+}
+
+const POINTS = {
+  spec: {
+    data: "t",
+    x: { field: "g" }, y: { field: "v" },
+    layers: [{ mark: "point", encodings: {}, transforms: [] }],
+    brush: [{ field: "g" }],
+  },
+  data: { t: { floats: { g: [10, 50, 90], v: [10, 50, 90] } } },
+};
+
+test("pointing at a mark names the row under it", async () => {
+  const undo = stubDom();
+  try {
+    const { handle, container, panels } = await hoverFixture(POINTS.spec, POINTS.data);
+    const p = panels[0];
+    container.send("pointermove", placeOn(p.x, 50), placeOn(p.y, 50));
+
+    const [tip] = onPage("gog-tip");
+    assert.ok(tip, "a readout appeared");
+    assert.match(tip.innerHTML, /\b50\b/, "and it names the row that is there");
+    assert.ok(!/\b90\b/.test(tip.innerHTML), "and not one of its neighbors");
+    handle.destroy();
+  } finally {
+    undo();
+  }
+});
+
+test("pointing at nothing says nothing", async () => {
+  const undo = stubDom();
+  try {
+    const { handle, container, panels } = await hoverFixture(POINTS.spec, POINTS.data);
+    const p = panels[0];
+    // Between two marks, well past the glyph's reach from either.
+    container.send("pointermove", placeOn(p.x, 30), placeOn(p.y, 70));
+    assert.equal(onPage("gog-tip").length, 0);
+    handle.destroy();
+  } finally {
+    undo();
+  }
+});
+
+// The one that could not be caught any other way. Both panels share their scales,
+// so the position where the second panel's row was drawn is a real position
+// inside the first panel, and the first panel drew nothing there.
+test("a faceted panel answers with its own rows and no others", async () => {
+  const undo = stubDom();
+  try {
+    const { handle, container, panels } = await hoverFixture(
+      { data: "t",
+        x: { field: "g" }, y: { field: "v" },
+        layers: [{ mark: "point", encodings: {}, transforms: [] }],
+        brush: [{ field: "g" }],
+        facet: { col: "c" } },
+      { t: { floats: { g: [10, 90], v: [10, 90] },
+             strings: { c: ["left", "right"] } } });
+    assert.equal(panels.length, 2, "one panel per level");
+    const left = panels[0];
+
+    // Where the *right* panel's row sits, pointed at inside the *left* one.
+    container.send("pointermove", placeOn(left.x, 90), placeOn(left.y, 90));
+    assert.equal(onPage("gog-tip").length, 0,
+      "the row drawn in the other panel is not under this pointer");
+
+    // And the panel still answers for what it did draw, so the silence above is
+    // the filter working rather than the readout being broken.
+    container.send("pointermove", placeOn(left.x, 10), placeOn(left.y, 10));
+    assert.equal(onPage("gog-tip").length, 1, "its own row is still named");
+    handle.destroy();
+  } finally {
+    undo();
+  }
+});
+
+// Every moment is in the document at once and the clock chooses which one is
+// displayed, so the table on the page is always larger than the picture in front
+// of the reader. This shape ships in the manual.
+test("a played plot answers only for the moment showing", async () => {
+  const undo = stubDom();
+  try {
+    const { handle, container, panels } = await hoverFixture(
+      { data: "t",
+        x: { field: "g" }, y: { field: "v" },
+        layers: [{ mark: "point", encodings: { play: { field: "yr" } }, transforms: [] }],
+        brush: [{ field: "g" }] },
+      { t: { floats: { g: [10, 90], v: [10, 90], yr: [1952, 1957] } } });
+    const p = panels[0];
+    const early = [placeOn(p.x, 10), placeOn(p.y, 10)];
+    const late = [placeOn(p.x, 90), placeOn(p.y, 90)];
+
+    CLOCK.t = 0;
+    container.send("pointermove", ...early);
+    assert.equal(onPage("gog-tip").length, 1, "the first moment's row, while it shows");
+    container.send("pointermove", ...late);
+    assert.equal(onPage("gog-tip").length, 0, "and not the row from a moment yet to come");
+
+    // Halfway through the second frame. One frame is 0.8s by default.
+    CLOCK.t = 1.2;
+    container.send("pointermove", ...late);
+    assert.equal(onPage("gog-tip").length, 1, "the second moment's row, once it shows");
+    container.send("pointermove", ...early);
+    assert.equal(onPage("gog-tip").length, 0, "and not the one it replaced");
+    handle.destroy();
+    CLOCK.t = 0;
+  } finally {
+    CLOCK.t = 0;
+    undo();
+  }
+});
+
+// A disc bends both axes and the readout reads a value back along straight ones,
+// so there is no answer to give. Going quiet is the honest half; the bar says why
+// once the reader has asked, which is the other half.
+test("a plot that cannot place a row says nothing, and says why", async () => {
+  const undo = stubDom();
+  try {
+    const { handle, container, panels } = await hoverFixture(
+      { ...POINTS.spec, coord: { polar: {} } }, POINTS.data);
+    const p = panels[0];
+    assert.equal(p.place, "polar", "the engine stated what it did to the position");
+
+    container.send("pointermove", placeOn(p.x, 50), placeOn(p.y, 50));
+    assert.equal(onPage("gog-tip").length, 0, "no readout on a panel that cannot place");
+    assert.equal(handle.unplaced(), "polar", "and the bar has a reason to give");
+    handle.destroy();
+  } finally {
+    undo();
+  }
+});
+
+test("nobody has asked, so there is nothing to explain", async () => {
+  const undo = stubDom();
+  try {
+    const { handle } = await hoverFixture(
+      { ...POINTS.spec, coord: { polar: {} } }, POINTS.data);
+    assert.equal(handle.unplaced(), null,
+      "the reason waits for a reader rather than sitting under every such plot");
     handle.destroy();
   } finally {
     undo();

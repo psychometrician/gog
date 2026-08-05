@@ -108,6 +108,28 @@ enum Slice<'a> {
     Float(&'a str, f64),
 }
 
+/// What a panel tells a browser about the rows it drew, beyond its two domains.
+///
+/// All three answer one question: *given a row in the table, did this panel draw
+/// it, and where?* The page needs that because its readout re-derives positions
+/// instead of asking the picture what lies under the pointer, which is what lets
+/// a mark carry no row number and an unbrushed plot stay byte-identical.
+///
+/// One struct rather than four more arguments, and it travels beside the domains
+/// rather than being worked out in JavaScript for the reason the domains are:
+/// the second copy of a rule is the one that drifts.
+#[derive(Clone, Copy, Default)]
+struct PanelFacts<'a> {
+    /// The facet column this panel holds, as (column, level).
+    facet_col: Option<(&'a str, &'a str)>,
+    facet_row: Option<(&'a str, &'a str)>,
+    /// The played column, its moments in order, and how long each one shows.
+    play: Option<(&'a str, &'a [crate::data::FrameLevel], f64)>,
+    /// `None` when a value can be turned back into a position; otherwise the one
+    /// word for what stops it.
+    place: Option<&'static str>,
+}
+
 // ---------------------------------------------------------------------------
 // Renderer
 // ---------------------------------------------------------------------------
@@ -311,6 +333,26 @@ impl SvgRenderer {
         // `bar * bin + x(a) + y(b) + space()` projects with no `z()` binding, the
         // way a flat histogram raises a count axis with no `y()` (spec §5/§15).
         let is_3d = crate::legality::space_of(spec) == crate::legality::SpaceKind::Space;
+
+        // Whether a browser can work back from a value to the place this plot
+        // drew it, and if not, the one word for why.
+        //
+        // The page's readout re-derives every row's position rather than asking
+        // the picture what lies under the pointer, which is what lets it work
+        // without a row number on every mark. The arithmetic is exact wherever a
+        // mark stands at its own value, so the engine has to say where it does
+        // not — it is the only side that knows it moved something. Two spaces
+        // move everything by construction: a disc bends both axes, and a map
+        // projects its two columns before anything is fitted, so the domains
+        // below are in projected units while the reader's table is in degrees.
+        // Everything else is a question about the layers.
+        let place = if is_polar {
+            Some("polar")
+        } else if matches!(spec.coord, CoordSpace::Map(_)) {
+            Some("map")
+        } else {
+            crate::legality::why_not_placed(spec)
+        };
 
         // Which axis bends is read off the bindings, not asked for. Two bound
         // positions is the two-argument polar: `x` the angle, `y` the radius (the
@@ -1597,7 +1639,10 @@ impl SvgRenderer {
             grid_xt, grid_yt, grid_xl, grid_yl,
             spec.title.is_some(),
             legend_panel_w,
-            col_values, row_values,
+            // Cloned because `panel_levels` borrows both, and each panel now
+            // states its own level when it writes itself out, which is after
+            // this. One short list of level names per facet, copied once.
+            col_values.clone(), row_values.clone(),
             map_ratio.or(spec.theme.resolved().ratio),
             spec.theme.resolved().tick_angle,
             play_def.is_some(),
@@ -1682,9 +1727,22 @@ impl SvgRenderer {
             // What a browser needs, and the only thing it needs: where this panel
             // is and what its axes measure. Written only when a brush is declared,
             // so an ordinary plot's bytes are exactly what they were.
+            // The levels this panel was filtered by, read from the same list the
+            // filters were built from a few hundred lines up, so the two cannot
+            // come apart. `zip` rather than two `if let`s, because a facet has a
+            // column exactly when it has a level.
+            let (cv, rv) = panel_levels.get(panel.slot).copied().unwrap_or((None, None));
+            let facts = PanelFacts {
+                facet_col: col_field.as_deref().zip(cv),
+                facet_row: row_field.as_deref().zip(rv),
+                play: (nframes >= 2).then(|| play_def
+                    .map(|d| (d.field.as_str(), play_levels.as_slice(), frame_seconds)))
+                    .flatten(),
+                place,
+            };
             self.write_brush_frame(&mut svg, spec, l, xs, ys, cat_x.as_ref(), cat_y.as_ref(),
                                    x_field, y_field, !is_nest && !is_3d,
-                                   x_log.then_some(x_base), y_log.then_some(y_base));
+                                   x_log.then_some(x_base), y_log.then_some(y_base), &facts);
             // Which subset this panel shows at moment `fi`. Moments are the outer
             // stride, so at one frame this is exactly the index it always was.
             let eff_at = |fi: usize| &panel_eff[fi * npanels + panel.slot];
@@ -2163,7 +2221,8 @@ impl SvgRenderer {
                          xs: (f64, f64), ys: (f64, f64),
                          cat_x: Option<&Vec<String>>, cat_y: Option<&Vec<String>>,
                          x_field: &str, y_field: &str, plane: bool,
-                         x_log: Option<f64>, y_log: Option<f64>) {
+                         x_log: Option<f64>, y_log: Option<f64>,
+                         facts: &PanelFacts<'_>) {
         // A packing has regions rather than coordinates, so there is no domain to
         // state and nothing for a gesture to invert. The dimming still works
         // there, because a predicate reads a column's values and never asks where
@@ -2191,15 +2250,57 @@ impl SvgRenderer {
         // it a drag on a log axis produces a bound in the wrong units entirely,
         // and the engine then compares it against raw values.
         let base = |b: Option<f64>| b.map(|b| format!(" data-log=\"{b}\"")).unwrap_or_default();
+        // Which slice of the table this panel holds. A faceted plot is one plot
+        // over one table, so a browser walking the rows cannot tell which panel
+        // a row belongs in: it answers a pointer in the Europe panel with an
+        // African row, drawn at a position where Europe put nothing. With shared
+        // scales the two coincide exactly, so the wrong answer looks like the
+        // right one. These are the same two filters this panel's own frame was
+        // built with, which is what keeps the attribute and the rows agreeing.
+        let slice = |side: &str, pair: Option<(&str, &str)>| {
+            pair.map(|(f, v)| format!(
+                " data-facet-{side}-field=\"{}\" data-facet-{side}=\"{}\"",
+                crate::render::text::esc(f), crate::render::text::esc(v)))
+                .unwrap_or_default()
+        };
+        // Which moment is showing. Every moment of a played plot is in the
+        // document at once and the clock chooses which one displays, so a
+        // browser reading the table sees all of them and would answer with a row
+        // from a frame nobody is looking at. These three say which frame that
+        // is, given the time. The **keys** rather than the labels, because the
+        // browser compares them against the column and a year is `1957` there
+        // and "1957" on the strip.
+        let play = facts.play.map(|(field, levels, seconds)| {
+            let keys = levels.iter().map(|lv| match &lv.key {
+                crate::data::FrameKey::Str(s) => crate::render::text::esc(s),
+                crate::data::FrameKey::Float(v) => format!("{v}"),
+            }).collect::<Vec<_>>().join("|");
+            // The same precision the animation's own `begin` and `dur` are
+            // written at, or the frame the browser computes drifts from the
+            // frame the reader sees wherever `speed` makes this repeat.
+            format!(concat!(r#" data-play-field="{f}" data-play-levels="{k}""#,
+                            r#" data-play-seconds="{s:.3}""#),
+                    f = crate::render::text::esc(field), k = keys, s = seconds)
+        }).unwrap_or_default();
+        // `row` is the promise that a value can be turned back into the place it
+        // was drawn. Anything else names what broke it, so the page can say so
+        // in a sentence rather than going quiet for no stated reason. A panel
+        // carrying no such attribute at all — an old engine beside a new module
+        // — reads as refused, which is the state a reader had before any of this
+        // was built, and the safe way to be wrong.
+        let place = format!(" data-gog-place=\"{}\"", facts.place.unwrap_or("row"));
         writeln!(svg,
             concat!(r#"  <g data-gog-panel="{x0} {y0} {x1} {y1}" "#,
                     r#"data-x-field="{xn}" data-x="{xf} {xt}"{xc}{xl} "#,
-                    r#"data-y-field="{yn}" data-y="{yf} {yt}"{yc}{yl}/>"#),
+                    r#"data-y-field="{yn}" data-y="{yf} {yt}"{yc}{yl}"#,
+                    r#"{fc}{fr}{pp}{pl}/>"#),
             x0 = l.x0, y0 = l.y0, x1 = l.x1, y1 = l.y1,
             xn = crate::render::text::esc(x_field), xf = xs.0, xt = xs.1,
             xc = cats("x", cat_x), xl = base(x_log).replace("data-log", "data-x-log"),
             yn = crate::render::text::esc(y_field), yf = ys.0, yt = ys.1,
             yc = cats("y", cat_y), yl = base(y_log).replace("data-log", "data-y-log"),
+            fc = slice("col", facts.facet_col), fr = slice("row", facts.facet_row),
+            pp = play, pl = place,
         ).unwrap();
     }
 
