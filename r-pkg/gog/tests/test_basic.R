@@ -3132,7 +3132,13 @@ local({
 # one useful line buried in them. The display hook shows it instead; everything
 # that reads an exit code still stops, which is what keeps the book's `error:
 # true` chunks erroring.
-local({
+#
+# `repr` is a Suggests, so this is guarded the way the `query()` checks are. The
+# guard is not the whole fix, though: a skip is indistinguishable from a pass in
+# a log, so `repr` is installed in CI as well. A check that exists and never runs
+# is the shape this very defect had — the display path was wrong for a whole
+# release while every suite was green.
+if (requireNamespace("repr", quietly = TRUE)) local({
   frame <- data.frame(gdp = c(1, 2), life = c(3, 4))
   refused <- data(frame) + point + x(gdp) + y(life) + palette("okabe")
   drawn <- data(frame) + point + x(gdp) + y(life)
@@ -3153,4 +3159,4 @@ local({
   if (!inherits(tryCatch(render_svg(refused), error = function(e) e), "error"))
     stop("FAIL: render_svg() stopped raising on a refusal")
   cat("PASS: drawing still draws and render_svg() still stops\n")
-})
+}) else cat("SKIP: the refusal-in-a-cell check needs repr (a Suggests)\n")

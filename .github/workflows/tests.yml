@@ -121,7 +121,7 @@ jobs:
       - if: matrix.lang == 'r'
         uses: r-lib/actions/setup-r-dependencies@v2
         with:
-          packages: pkgload, jsonlite, knitr, gapminder
+          packages: pkgload, jsonlite, knitr, gapminder, repr
       - if: matrix.lang == 'r'
         run: Rscript r-pkg/gog/tests/test_basic.R
 
@@ -178,7 +178,7 @@ jobs:
           use-public-rspm: true
       - uses: r-lib/actions/setup-r-dependencies@v2
         with:
-          packages: pkgload, jsonlite, knitr, gapminder
+          packages: pkgload, jsonlite, knitr, gapminder, repr
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
