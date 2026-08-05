@@ -2407,6 +2407,33 @@ if (file.exists("book/check_prose.R")) {
 }
 
 # ---------------------------------------------------------------------------
+# The printed edition escapes LaTeX exactly as pandoc does
+# ---------------------------------------------------------------------------
+
+# The tenth guard, and the only one that renders anything.
+#
+# `gog-syntax.lua` colors a specification by kind in the PDF, which it does by
+# throwing pandoc's tokens away and writing the `Highlighting` block itself. That
+# means it escapes LaTeX's special characters by hand, and hand-written escaping
+# is the kind of thing that is either exactly right or quietly wrong in one
+# character that nobody meets until a column name has an underscore in it.
+#
+# It cannot be checked by reading. Inside `Highlighting` the environment is a
+# `Verbatim` with `commandchars=\\\{\}`, so strictly three characters are
+# special; pandoc escapes twelve and leaves `$` alone. A rule derived from what
+# *should* be special is wrong in both directions.
+#
+# So this renders the same twelve probes twice, once through pandoc and once
+# through the filter, strips every token wrapper off both, and compares what is
+# left. Whatever the rule turns out to be, the two agree or the test fails.
+if (file.exists("book/check_latex_escaping.R")) {
+  source("book/check_latex_escaping.R")
+  check_latex_escaping()
+} else {
+  cat("SKIP: book/ not found — run from the repo root to check the escaping\n")
+}
+
+# ---------------------------------------------------------------------------
 # `proportion` is a normalizer, and `stack(share = )` fills a pile (spec §5)
 # ---------------------------------------------------------------------------
 

@@ -73,7 +73,15 @@ check_promises <- function(book = "book") {
   # a plot: the *Hunminjeongeum* is a photograph of a 1446 woodblock, and the
   # mouth saying ㄱ is an anatomical diagram of the tongue. No engine draws
   # either one. The preface's own wording is kept in step with this list.
-  allowed_images <- c("images/Hunmin_Jeongeum.svg", "images/Pronounciation.png")
+  #
+  # The *Hunminjeongeum* is named by its `_paper` copy, which is still two
+  # images and not three: the facsimile carries no background and its strokes
+  # take SVG's default black, so on a dark page it was invisible, and the copy
+  # is the same picture with a white ground and a margin added. Renaming it is
+  # what this rule caught, which is the rule working: an exact filename is how
+  # a third image is made to be a decision rather than a slip.
+  allowed_images <- c("images/Hunmin_Jeongeum_paper.svg",
+                      "images/Pronounciation.png")
   for (f in listed) {
     ln <- read_chapter(f)
     img <- grep("!\\[", ln)

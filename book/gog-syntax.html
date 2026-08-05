@@ -1,0 +1,248 @@
+<script>
+// Coloring a gog sentence, which nothing ships a rule for.
+//
+// A code block on this site is R, Python, Julia or JavaScript, and Pandoc has a
+// highlighter for each. None of them helps, and the reason is worth stating,
+// because it decides everything below.
+//
+// Take one sentence and read what the four highlighters make of it:
+//
+//                    data      point     x
+//     R              function  nothing   function
+//     Python         nothing   nothing   nothing
+//     Julia          function  nothing   function
+//     JavaScript     function  nothing   function
+//
+// `point` is a bare name to every one of them, so no stylesheet can reach it,
+// and Python's tab would sit flat while the other three lit up. The same
+// sentence would look like four different things, on a site whose whole claim
+// is that it is one. That is why every token was painted a single color here
+// until now.
+//
+// The way out is to stop asking the host language. gog's vocabulary is a closed
+// list of sixty-two ordinary words in eleven kinds, declared in the book's
+// kernel table, so it can be painted as what it is: a table, a mark, a channel,
+// a transform. That reading is the same in all four languages, which is the
+// point of the tabs.
+//
+// This runs in the browser rather than at render time, and that is deliberate.
+// Pandoc has already tokenized the block, and adding to its work keeps the panel,
+// the copy button and the line anchors that Quarto builds around it. Nothing here
+// adds or removes a character, so the copy button still copies what you see. With
+// scripting off the page falls back to the single ink it used before.
+(function () {
+  "use strict";
+
+  // The kernel, one line per kind, exactly as the book's kernel table declares
+  // it. Written out rather than fetched: a highlighter that waits on a second
+  // request paints the page twice, and a reader watches it happen.
+  //
+  // A copy of a list is a copy that stops matching, so this one is compared
+  // against the book on every render by `R/check-kernel.R`, which stops the
+  // render rather than letting the two drift.
+  var KERNEL = {
+    table:     "data query",
+    mark:      "point line area bar step interval box ribbon text path rule zone surface",
+    channel:   "x y z color size shape pattern opacity group label play",
+    transform: "bin smooth count density proportion sum mean median max min " +
+               "range confidence bounds partition dodge stack jitter",
+    scale:     "linear log time category order",
+    space:     "flat space polar nest map",
+    setting:   "style theme palette",
+    label:     "title x_label y_label z_label",
+    facet:     "facet",
+    selection: "brush",
+
+    // The kernel table writes the operators as the symbols they are, `+ * | /`,
+    // and JavaScript cannot overload any of them, so it spells them as six
+    // words instead. They belong here because leaving them out is what would
+    // show: an uncolored `plot(` among colored words reads as a function the
+    // reader wrote, on the one tab that can least afford to look different.
+    //
+    // Python's and JavaScript's `col`, and Julia's `:`, are deliberately not
+    // here. Choosing `layer` over `beside` changes the plot, so it is grammar;
+    // `col.` is a fixed prefix in front of a column name, so it is idiom, and
+    // it reads as idiom next to R's bare name. Color the grammar, leave the
+    // idiom.
+    operator:  "plot layer across down beside below"
+  };
+
+  // The palette is the book's own paragraph, not a designer's choice. The
+  // kernel chapter sorts these eleven kinds into two groups and gives the reason
+  // for each: *five kinds build a plot*, and *the other six refine a plot or
+  // arrange it, and none of them is required*. The inks follow that exactly.
+  //
+  // Four of the five builders are words, so each takes a hue of its own. The
+  // fifth, the operator, is punctuation in three of the four languages and is
+  // already visible as itself, so it takes weight rather than a hue; a fifth
+  // color there would make JavaScript the loudest tab rather than the matching
+  // one.
+  //
+  // The six that refine or arrange share one quieter ink, because none of them
+  // is required and together they are one idea. They were folded into the
+  // channel's ink at first, which read well and said something false: `facet()`
+  // and `style()` are not channels, and a rule written down is a rule that has
+  // to survive being read.
+  var INK = {
+    table: "table", mark: "mark", channel: "channel", transform: "transform",
+    scale: "refine", space: "refine", setting: "refine",
+    label: "refine", facet: "refine", selection: "refine",
+    operator: "operator"
+  };
+
+  var kindOf = {};
+  var words = [];
+  Object.keys(KERNEL).forEach(function (kind) {
+    KERNEL[kind].split(" ").forEach(function (word) {
+      if (!word || kindOf[word]) return;
+      kindOf[word] = INK[kind];
+      words.push(word);
+    });
+  });
+  // Longest first, so `x_label` is found before the `x` inside it. The boundary
+  // test below would reject that `x` anyway; the ordering means it is never
+  // offered.
+  words.sort(function (a, b) { return b.length - a.length; });
+  var WORD = new RegExp(words.join("|"), "g");
+
+  // Which blocks are searched at all.
+  //
+  // Every word in the kernel is a common English word, which is the grammar's
+  // best property and this file's only real hazard: `title`, `count`, `mean`,
+  // `text` and `group` appear in almost any code. A post comparing gog with
+  // another library would otherwise have half of that library's call painted as
+  // though it were gog.
+  //
+  // So a block has to name a table before anything in it is read. Every gog
+  // sentence begins with one, and no other library's code says `data(`.
+  var LANGUAGES = /\b(?:r|python|julia|js|javascript)\b/;
+  var A_SENTENCE = /\b(?:data|query)\s*\(/;
+
+  // Text Pandoc has already claimed, and which is therefore not gog's to read.
+  // A string or a comment may hold any word at all. `at` is here for JavaScript,
+  // where `col.gdp` arrives with `gdp` as an attribute, so a column named
+  // `count` is covered by it.
+  //
+  // `bu` is deliberately absent, and it is the one that would have been missed:
+  // Python marks `bin` as a builtin, because `bin()` is one. Sealing builtins
+  // would have left the Python tab short of exactly the word the histogram post
+  // is about.
+  var SEALED = /^(?:st|ss|vs|ch|co|cv|do|an|al|at|im|pp|er|wa)$/;
+
+  // A word counts only when it stands alone. `col.count` and `:count` name a
+  // column called count, `counted` is somebody's variable, and `x_label` is not
+  // an `x`.
+  var GLUED_BEFORE = /[A-Za-z0-9_.$:@]/;
+  var GLUED_AFTER = /[A-Za-z0-9_]/;
+  var ARGUMENT_NAME = /^\s*[:=]/;
+
+  function sealed(node, root) {
+    for (var el = node.parentNode; el && el !== root; el = el.parentNode) {
+      if (el.nodeType === 1 && SEALED.test(el.className || "")) return true;
+    }
+    return false;
+  }
+
+  // The block is read as one string rather than node by node, because Pandoc
+  // splits a line across spans wherever it found a token, and a boundary test
+  // that cannot see past the end of its own node would read `col.` and `count`
+  // as unrelated. Offsets map each match back to the node it came from; a match
+  // straddling two nodes is left alone, since a name Pandoc split in half is not
+  // a name.
+  function paint(code) {
+    var nodes = [];
+    var walker = document.createTreeWalker(code, NodeFilter.SHOW_TEXT, null);
+    var node;
+    while ((node = walker.nextNode())) nodes.push(node);
+
+    var text = "";
+    var starts = [];
+    var i;
+    for (i = 0; i < nodes.length; i++) {
+      starts.push(text.length);
+      text += nodes[i].nodeValue;
+    }
+    if (!A_SENTENCE.test(text)) return;
+
+    var hits = [];
+    for (i = 0; i < nodes.length; i++) hits.push(null);
+
+    var match;
+    WORD.lastIndex = 0;
+    while ((match = WORD.exec(text))) {
+      var from = match.index;
+      var to = from + match[0].length;
+      if (from > 0 && GLUED_BEFORE.test(text.charAt(from - 1))) continue;
+      if (to < text.length && GLUED_AFTER.test(text.charAt(to))) continue;
+      // A word used as an argument name is not an atom, and five channel words
+      // are argument names somewhere: `style(color = )`, `style(opacity = )`,
+      // `style(size = )`, `style(shape = )`, `style(pattern = )`. The kernel
+      // chapter writes them that way on purpose, because setting and mapping
+      // are the same visual property named two ways. They are still two
+      // different words in a sentence, and only one of them is a channel.
+      //
+      // `:` covers JavaScript, where the same setting arrives in a trailing
+      // options object as `{ color: "tomato" }`. It cannot catch a Julia column
+      // by mistake: there the colon leads, `x(:gdp)`, and is already handled.
+      if (ARGUMENT_NAME.test(text.slice(to, to + 8))) continue;
+
+      var at = -1;
+      for (i = nodes.length - 1; i >= 0; i--) {
+        if (starts[i] <= from) { at = i; break; }
+      }
+      if (at < 0 || to > starts[at] + nodes[at].nodeValue.length) continue;
+      if (sealed(nodes[at], code)) continue;
+
+      if (!hits[at]) hits[at] = [];
+      hits[at].push({
+        from: from - starts[at],
+        to: to - starts[at],
+        ink: kindOf[match[0]]
+      });
+    }
+
+    for (i = 0; i < nodes.length; i++) {
+      if (hits[i]) wrap(nodes[i], hits[i]);
+    }
+  }
+
+  function wrap(node, hits) {
+    var source = node.nodeValue;
+    var out = document.createDocumentFragment();
+    var at = 0;
+    hits.forEach(function (hit) {
+      if (hit.from > at) {
+        out.appendChild(document.createTextNode(source.slice(at, hit.from)));
+      }
+      var span = document.createElement("span");
+      span.className = "gog-" + hit.ink;
+      span.textContent = source.slice(hit.from, hit.to);
+      out.appendChild(span);
+      at = hit.to;
+    });
+    if (at < source.length) {
+      out.appendChild(document.createTextNode(source.slice(at)));
+    }
+    node.parentNode.replaceChild(out, node);
+  }
+
+  function run() {
+    // `div.sourceCode` is what keeps a refusal out, and that is worth knowing
+    // before anyone widens this selector to `pre code`. A refusal renders as
+    // `cell-output-error`, outside the wrapper, and its message names atoms:
+    // "gog: bin needs a continuous column". Painting those would color the
+    // engine's own prose as though it were a specification, and the tinted
+    // panel already carries what a refusal means.
+    var blocks = document.querySelectorAll("div.sourceCode pre code");
+    for (var i = 0; i < blocks.length; i++) {
+      if (LANGUAGES.test(blocks[i].className || "")) paint(blocks[i]);
+    }
+  }
+
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", run);
+  } else {
+    run();
+  }
+})();
+</script>

@@ -127,9 +127,9 @@ to express their feelings." Therefore, new
 letters, few and simple, "wishing only that everyone may learn them with
 ease and use them daily, with convenience."
 
-![King Sejong's preface to the *Hunminjeongeum*, written out in the new Korean letters themselves, the very words quoted above. It names the need before it teaches a single letter.[^hunmin-img]](images/Hunmin_Jeongeum.svg){fig-alt="King Sejong's preface to the Hunminjeongeum, set in the Korean alphabet, the founding text of Hangeul" width="320" fig-align="center"}
+![King Sejong's preface to the *Hunminjeongeum*, written out in the new Korean letters themselves, the very words quoted above. It names the need before it teaches a single letter.[^hunmin-img]](images/Hunmin_Jeongeum_paper.svg){fig-alt="King Sejong's preface to the Hunminjeongeum, set in the Korean alphabet, the founding text of Hangeul" width="320" fig-align="center"}
 
-[^hunmin-img]: Image from [Wikimedia Commons](https://commons.wikimedia.org/wiki/File:Hunmin_Jeongeum.svg); public domain.
+[^hunmin-img]: Image from [Wikimedia Commons](https://commons.wikimedia.org/wiki/File:Hunmin_Jeongeum.svg); public domain. The copy shown here adds a white ground and a margin, so that the letters read the same in either theme.
 
 Read plainly, that royal preface is a requirements document. It names the
 users: not the royal court, but the ordinary people the old system excluded.

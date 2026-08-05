@@ -193,43 +193,7 @@ footer.footer .nav-footer {
   }
 }
 
-/* A sun in light mode and a moon in dark, before the toggle rather than instead
- * of it. Quarto ships the control as an empty `<i class="bi">` inside the link,
- * so the glyph goes on the link's own `::before` and the switch it already
- * draws is left alone. Bootstrap Icons is loaded by the theme, so this costs no
- * request: `\f5a1` is `sun-fill`, `\f495` is `moon-stars-fill`. */
-.quarto-color-scheme-toggle::before {
-  font-family: "bootstrap-icons", sans-serif;
-  content: "\f5a1";
-  font-size: 0.98rem;
-  margin-right: 0.4rem;
-  /* No `vertical-align` here. The link is a flex container, so the two glyphs
-   * are centered against each other by `align-items` and a baseline nudge only
-   * fights it. `line-height: 1` matters though: the sun is a font glyph and
-   * carries a line box, while the switch beside it is a background image with
-   * no ascender or descender, so an inherited 1.7 line height sits the two on
-   * different centers. That is the misalignment. */
-  line-height: 1;
-}
 
-/* The switch is drawn by `background-image` on the `::before` of this `<i>`, and
- * the `<i>` itself is the flex item. Centering the link's children lines up the
- * `<i>` box, not the picture inside it, so the `<i>` has to center its own
- * content as well. */
-.quarto-color-scheme-toggle .bi {
-  display: inline-flex;
-  align-items: center;
-  line-height: 1;
-}
-
-body.quarto-dark .quarto-color-scheme-toggle::before {
-  content: "\f495";
-}
-
-.quarto-color-scheme-toggle {
-  display: inline-flex;
-  align-items: center;
-}
 
 /* Search moves to the far left, ahead of the name.
  *
@@ -243,20 +207,7 @@ body.quarto-dark .quarto-color-scheme-toggle::before {
   margin-right: 0.85rem;
 }
 
-/* Bigger, because these three are the only controls in the bar and they were
- * sized for decoration rather than for hitting. The sun and moon come from the
- * icon font, the switch beside them is a background image, and the search glyph
- * is an inline SVG, so each needs its own property. */
-.quarto-color-scheme-toggle::before {
-  font-size: 1.22rem;
-  margin-right: 0.45rem;
-}
 
-.quarto-color-scheme-toggle .bi::before {
-  height: 1.3rem;
-  width: 1.3rem;
-  background-size: 1.3rem 1.3rem;
-}
 
 .navbar #quarto-search svg.aa-SubmitIcon,
 .navbar #quarto-search svg {
@@ -289,16 +240,7 @@ body.quarto-dark .quarto-color-scheme-toggle:hover {
   color: #ffdba4;
 }
 
-/* The toggle is an `<a>`, so the navbar's growing-underline rule and Bootstrap's
- * link underline both land on it. It is a control rather than a link. */
-.quarto-color-scheme-toggle,
-.quarto-color-scheme-toggle:hover {
-  text-decoration: none;
-}
 
-.quarto-color-scheme-toggle::after {
-  display: none;
-}
 
 .navbar-brand {
   font-weight: 700;
@@ -637,74 +579,9 @@ main.content .cell > .cell-output-display svg {
 
 
 
-/* Each licence is one unit. Left to itself the line broke wherever it ran out of
- * room, which put "Apache 2.0." alone on a second line looking like a mistake.
- * As inline blocks the two sentences can only break *between* each other, so a
- * narrow footer gets two whole lines instead of one and a fragment. */
-.nav-footer .licence {
-  display: inline-block;
-  margin-right: 0.5rem;
-}
-
-/* The licence text gets the room it needs and the icons take only their own
- * width, rather than the two regions splitting the bar evenly. Their own side
- * padding comes off too: the row is already held to the writing's column, and a
- * second inset inside it put the licences sixteen pixels right of everything
- * above them. */
-.nav-footer-left {
-  flex: 1 1 auto;
-  min-width: 0;
-  text-align: left;
-  padding-left: 0;
-}
-
-.nav-footer-right {
-  flex: 0 0 auto;
-  padding-right: 0;
-}
-
-/* The follow row. Bigger than the licence text beside it, because these are the
- * only things in the footer anyone clicks.
- *
- * Hover changes the *color* rather than only the opacity. Raising opacity moves
- * a muted grey toward a slightly less muted grey, which on a busy page is not
- * enough to read as a response. Going to near-black on a light page and to
- * near-white on a dark one is unmistakable in both, and it is the same distance
- * travelled either way. */
-.nav-footer .nav-item .nav-link {
-  font-size: 1.18rem;
-  padding: 0.2rem 0.42rem;
-  opacity: 1;
-  transition: color 0.14s ease, transform 0.14s ease;
-}
-
-body.quarto-light .nav-footer .nav-item .nav-link {
-  color: #8b8279;
-}
-
-body.quarto-light .nav-footer .nav-item .nav-link:hover,
-body.quarto-light .nav-footer .nav-item .nav-link:focus-visible {
-  color: #100e0b;
-  transform: translateY(-2px);
-}
-
-body.quarto-dark .nav-footer .nav-item .nav-link {
-  color: #8d8478;
-}
-
-body.quarto-dark .nav-footer .nav-item .nav-link:hover,
-body.quarto-dark .nav-footer .nav-item .nav-link:focus-visible {
-  color: #fffaf2;
-  transform: translateY(-2px);
-}
-
-.nav-footer {
-  border-top: 1px solid var(--bs-border-color, #e2dbd1);
-  font-size: 0.92rem;
-  opacity: 0.85;
-}
-
-.quarto-dark .nav-footer { border-top-color: #352f26; }
+/* The footer is `gog.css`'s: one design, two sites. What stays here is the
+ * blog's own geometry above, which lines the bar up with this site's
+ * writing column and has no counterpart in the book's sidebar layout. */
 
 /* A wide table scrolls inside its own box rather than being clipped.
  *
@@ -859,23 +736,9 @@ body.quarto-dark .nav-footer .nav-item .nav-link:focus-visible {
   }
 }
 
-/* On a phone the two regions stack and centre: icons first, because they are
- * what someone reaching the end of a post is looking for, and the licences
- * underneath as the small print they are. */
+  /* The site hero and the plots keep this breakpoint; the footer's half of
+   * it moved to `gog.css`, because the footer is one design in both places. */
 @media (max-width: 575px) {
-  .nav-footer {
-    flex-direction: column;
-    align-items: center;
-    row-gap: 0.15rem;
-  }
-
-  .nav-footer-right { order: 1; }
-  .nav-footer-left  { order: 2; text-align: center; }
-
-  .nav-footer .licence {
-    display: block;
-    margin-right: 0;
-  }
 
   .site-hero { gap: 1.5rem; }
   .site-hero img { width: 104px; }

@@ -8,6 +8,12 @@ project:
   # looks correct on a machine that rendered before and fails on a clean one.
   pre-render:
     - R/copy-assets.R
+    # Compares the vocabulary the highlighter paints, and the vocabulary the PDF
+    # filter paints, against the kernel this book declares in `grammar.qmd`. A
+    # new mark that reached the chapter and not the highlighter would render as
+    # though it were a column name, and nothing else would fail: the page is
+    # correct, the plot draws, the build exits 0. So the render stops instead.
+    - R/check-kernel.R
 
   # The book's example tables, as CSV. Quarto copies these into `_book/`, and
   # `publish.sh` rsyncs all of `_book/` to the site, so each frame ends up at a
@@ -86,9 +92,55 @@ book:
   # Two licenses, because the book is mostly executable code. The prose is
   # NonCommercial so a print edition stays worth publishing; the code samples
   # are Apache 2.0 so they can be used in real work.
-  page-footer: |
-    Prose licensed [CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/).
-    Code samples licensed [Apache 2.0](https://www.apache.org/licenses/LICENSE-2.0).
+  # The site's footer, said again here, because the book and the blog are one
+  # project and a reader should not be able to tell which one they are standing
+  # in. `gog.css` holds how it looks; this is what is in it.
+  #
+  # Licences on the left, as the small print they are. The row of links on the
+  # right, because that is what a reader who has reached the end of a chapter is
+  # looking for.
+  page-footer:
+    left: |
+      [Prose licensed [CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/).]{.licence}
+      [Code samples licensed [Apache 2.0](https://www.apache.org/licenses/LICENSE-2.0).]{.licence}
+    right:
+      # The same three the site follows with, in the same order, drawn from
+      # Bootstrap Icons in `currentColor` so they take the theme with no second
+      # copy and no swap rule.
+      - icon: twitter-x
+        href: https://x.com/gogdeveloper
+        aria-label: "gog on X"
+        target: _blank
+      - icon: bluesky
+        href: https://bsky.app/profile/gogdeveloper.bsky.social
+        aria-label: "gog on Bluesky"
+        target: _blank
+      # The profile rather than the repository, matching the site. A reader who
+      # wants the source has "Report an issue" in the margin of every page.
+      - icon: github
+        href: https://github.com/psychometrician
+        aria-label: "psychometrician on GitHub"
+        target: _blank
+      # The site, and the one place the book's footer differs from it. The site
+      # ends its row with RSS, subscribing you to itself; this book has no feed,
+      # and an RSS mark here would promise one. It would also be the fifth mark
+      # in a row of four destinations, where a reader has to work out that one of
+      # them does something else. So the row ends at the site, and a reader who
+      # wants the feed finds it there.
+      #
+      # Until now the link ran one way: the site's navbar has pointed at this
+      # book since it was built, and the book gave a reader no route back.
+      #
+      # `journal-text` rather than the `list-ul` the site uses for its own posts
+      # page. That mark is site navigation, naming an index; this one names the
+      # site from outside it, and among X, Bluesky and GitHub a bulleted list
+      # reads as a control rather than as a destination. It is also deliberately
+      # not `book`, which is what the site uses for *this*, so the two marks
+      # cannot be mistaken for each other by a reader who sees both.
+      - icon: journal-text
+        href: https://psychometrician.github.io/
+        aria-label: "psychometrician, the blog"
+        target: _blank
 
   # A toggle in the top right that folds away the chapter sidebar and the table
   # of contents, leaving the prose and the plots the whole width. It is off
@@ -213,7 +265,17 @@ language:
 
 format:
   html:
-    theme: cosmo
+    # Two themes and a toggle. Declaring both is what makes Quarto write the
+    # switch and put `quarto-light` / `quarto-dark` on the body, which is what
+    # `gog.css` keys its dark rules off.
+    #
+    # The two files are the book's and the blog stages them, the same direction
+    # `gog.css` already travels. One palette, one home: the book and the site
+    # are one project, and a second copy of a color is how they would drift into
+    # looking like two.
+    theme:
+      light: [cosmo, theme-light.scss]
+      dark: [darkly, theme-dark.scss]
     # One rule, and it is about the diagnostics. `gog:` messages are written as
     # *paragraphs on one line* — the engine has no idea how wide a page is, and
     # baking a column count into a message would be the wrong layer deciding.
@@ -221,6 +283,12 @@ format:
     # refusal ran off the edge and a reader saw the half that fitted.
     # `code-overflow: wrap` does not reach these: it styles *source* blocks only.
     css: gog.css
+    # Colors a gog specification by kind, which nothing ships a rule for. It runs
+    # in the browser rather than at render time so that it adds to Pandoc's
+    # tokens instead of replacing them, which is what keeps the panel, the copy
+    # button and the line anchors Quarto builds around a block. The PDF cannot
+    # run it, so `filters:` below does the same job in LaTeX.
+    include-after-body: gog-syntax.html
     code-copy: true
     toc: true
     toc-depth: 3
@@ -245,6 +313,13 @@ format:
     documentclass: scrreprt
     number-sections: true
     pdf-engine: lualatex
+    # The PDF's half of the color rule. The HTML edition colors a specification
+    # in the browser, which keeps Quarto's panel and copy button intact; a PDF
+    # has neither, so the filter rewrites the block outright. It reads the
+    # vocabulary out of `grammar.qmd`, so the printed colors derive from the
+    # chapter that declares the kernel rather than from a second copy of it.
+    filters:
+      - gog-syntax.lua
     include-in-header:
       text: |
         % Long lines wrap instead of running off the page. Both environments are
@@ -273,6 +348,65 @@ format:
         \setmainfont{Latin Modern Roman}[RawFeature={fallback=goghangeul}]
         \setsansfont{Latin Modern Sans}[RawFeature={fallback=goghangeul}]
         \setmonofont{Latin Modern Mono}[RawFeature={fallback=goghangeul}]
+        % The colors a specification is printed in, matching the web edition's
+        % light theme exactly so that the two editions of one book agree.
+        % `gog-syntax.lua` emits these commands; `gog.css` says the same thing in
+        % the other format, and `grammar.qmd` states the rule for the reader.
+        \definecolor{goginktable}{HTML}{1A6B54}
+        \definecolor{goginkmark}{HTML}{B04A10}
+        \definecolor{goginkchannel}{HTML}{2B5FA8}
+        \definecolor{goginktransform}{HTML}{7A3F9C}
+        \definecolor{goginkrefine}{HTML}{6E655C}
+        \definecolor{goginkbody}{HTML}{1D1A16}
+        \newcommand{\gogTable}[1]{\textcolor{goginktable}{#1}}
+        \newcommand{\gogMark}[1]{\textcolor{goginkmark}{#1}}
+        \newcommand{\gogChannel}[1]{\textcolor{goginkchannel}{#1}}
+        \newcommand{\gogTransform}[1]{\textcolor{goginktransform}{#1}}
+        \newcommand{\gogRefine}[1]{\textcolor{goginkrefine}{#1}}
+        % The operator takes weight rather than a color. In three of the four
+        % languages it is punctuation and already reads as itself, so a sixth ink
+        % would make JavaScript the loud one instead of the matching one.
+        \newcommand{\gogOperator}[1]{\textcolor{goginkbody}{\textbf{#1}}}
+        % Every other token takes the body's ink, which is the base the accents
+        % go on top of. Pandoc paints by host language, and the four disagree
+        % about the same specification: R calls `data` a function, Python marks
+        % nothing at all, and neither can see `point`. Left alone, one book would
+        % print one specification four different ways.
+        %
+        % Renewed rather than switched off. `highlight-style: none` also removes
+        % the `Shaded` environment these blocks sit in.
+        \newcommand{\gogPlainTok}[1]{\textcolor{goginkbody}{#1}}
+        \renewcommand{\AlertTok}[1]{\gogPlainTok{#1}}
+        \renewcommand{\AnnotationTok}[1]{\gogPlainTok{#1}}
+        \renewcommand{\AttributeTok}[1]{\gogPlainTok{#1}}
+        \renewcommand{\BaseNTok}[1]{\gogPlainTok{#1}}
+        \renewcommand{\BuiltInTok}[1]{\gogPlainTok{#1}}
+        \renewcommand{\CharTok}[1]{\gogPlainTok{#1}}
+        \renewcommand{\CommentTok}[1]{\textcolor{goginkrefine}{\textit{#1}}}
+        \renewcommand{\CommentVarTok}[1]{\textcolor{goginkrefine}{\textit{#1}}}
+        \renewcommand{\ConstantTok}[1]{\gogPlainTok{#1}}
+        \renewcommand{\ControlFlowTok}[1]{\textcolor{goginkbody}{\textbf{#1}}}
+        \renewcommand{\DataTypeTok}[1]{\gogPlainTok{#1}}
+        \renewcommand{\DecValTok}[1]{\gogPlainTok{#1}}
+        \renewcommand{\DocumentationTok}[1]{\textcolor{goginkrefine}{\textit{#1}}}
+        \renewcommand{\ErrorTok}[1]{\gogPlainTok{#1}}
+        \renewcommand{\ExtensionTok}[1]{\gogPlainTok{#1}}
+        \renewcommand{\FloatTok}[1]{\gogPlainTok{#1}}
+        \renewcommand{\FunctionTok}[1]{\gogPlainTok{#1}}
+        \renewcommand{\ImportTok}[1]{\gogPlainTok{#1}}
+        \renewcommand{\InformationTok}[1]{\gogPlainTok{#1}}
+        \renewcommand{\KeywordTok}[1]{\textcolor{goginkbody}{\textbf{#1}}}
+        \renewcommand{\NormalTok}[1]{\gogPlainTok{#1}}
+        \renewcommand{\OperatorTok}[1]{\gogPlainTok{#1}}
+        \renewcommand{\OtherTok}[1]{\gogPlainTok{#1}}
+        \renewcommand{\PreprocessorTok}[1]{\gogPlainTok{#1}}
+        \renewcommand{\RegionMarkerTok}[1]{\gogPlainTok{#1}}
+        \renewcommand{\SpecialCharTok}[1]{\gogPlainTok{#1}}
+        \renewcommand{\SpecialStringTok}[1]{\gogPlainTok{#1}}
+        \renewcommand{\StringTok}[1]{\gogPlainTok{#1}}
+        \renewcommand{\VariableTok}[1]{\gogPlainTok{#1}}
+        \renewcommand{\VerbatimStringTok}[1]{\gogPlainTok{#1}}
+        \renewcommand{\WarningTok}[1]{\textcolor{goginkrefine}{\textit{#1}}}
 
 execute:
   echo: true

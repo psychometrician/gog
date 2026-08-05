@@ -22,6 +22,16 @@
 # (`!partials/foo.html`) rather than loosening this.
 *.html
 
+# The one hand-written HTML here, un-ignored by name as the rule above asks. It
+# is `include-after-body`, and it colors a gog specification by kind: a table, a
+# mark, a channel, a transform, and one quiet ink for the six that refine. The
+# blog stages a copy, the direction `gog.css` and the palette already travel.
+#
+# It fails quietly if it is missing. The book still builds, exits 0, and simply
+# prints every specification in one ink, which looks like a decision rather than
+# a loss. That is why it is named here rather than trusted to be noticed.
+!/gog-syntax.html
+
 # The PDF build's figure files. `knit_print.gog_spec` writes each plot's SVG and
 # its converted PDF into knitr's own `fig.path`, which for a book chapter is
 # `<chapter>_files/figure-pdf/` — beside the `.qmd`, not inside `_book/`. They are
@@ -57,6 +67,15 @@
 # successful render removes it, so it only shows up after one is interrupted —
 # the same way the LaTeX intermediates above do, and it wants the same rule.
 *.knit.md
+
+# The PDF render's own intermediate, and the same rule again. Quarto writes a
+# `.rmarkdown` beside each chapter on the way to LaTeX and deletes it when the
+# render succeeds, so like the two above it is only ever seen after one is
+# interrupted. It was seen: `marks/step.rmarkdown` sat in `git status` during a
+# full build and was gone a minute later. A render takes long enough that
+# reading `git status` in the middle of one is an ordinary thing to do, which is
+# how the other outcome rules here were earned.
+*.rmarkdown
 
 # `publish.sh` tees the render log here so it can be graded afterwards. Quarto
 # exits 0 with broken links, so the log is the only evidence a render went well.

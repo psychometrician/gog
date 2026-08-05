@@ -180,6 +180,29 @@
   color: #ece6dd;
 }
 
+/* King Sejong's preface has no rule here, and that is deliberate.
+ *
+ * The Wikimedia facsimile is ink and nothing else: its strokes carry no `fill`,
+ * so they take SVG's default black, and there is no background behind them. On
+ * a white page that is the whole point. On a dark one the glyphs are black on
+ * near-black and the figure disappears.
+ *
+ * The fix is in the picture rather than in this file. `images/` carries a
+ * derived copy, `Hunmin_Jeongeum_paper.svg`, which is the original with a white
+ * ground and a margin added, and the preface names that one. Three reasons it
+ * belongs there and not here. A stylesheet reaches the web edition only, and the
+ * same figure is printed in the PDF. It stays vector either way, where a raster
+ * copy would soften 816 pages' worth of resolution at exactly one figure. And a
+ * ground is a property of the artwork: this is a facsimile of ink on paper, so
+ * it is given paper, rather than being inverted into white strokes that no
+ * woodblock ever pulled.
+ *
+ * What that leaves for CSS is nothing, which is the right amount. The other two
+ * images already answer the question themselves: `pipeline.svg` opens with a
+ * peach rect over the whole canvas, and `Pronounciation.png` is a photograph on
+ * black. A future figure that is ink with no ground wants the same treatment the
+ * preface got, in `images/`. */
+
 /* The peach reads as a highlighter on white and as a glare on black. This is
  * the same color with the light taken out of it, and it is the shade the site
  * already uses for the slogan in its own dark theme. */
@@ -299,4 +322,242 @@ body.quarto-light div.sourceCode code span.co,
 body.quarto-dark div.sourceCode code span.co {
   font-style: italic;
   opacity: 0.72;
+}
+
+/* ---------------------------------------------------------------------------
+ * The footer
+ *
+ * One footer, two sites, and it lives here for the reason the palette does: the
+ * book and the blog are one project, and a second copy of a design is how they
+ * would drift into looking like two.
+ *
+ * Licences on the left, because they are the small print. The row of links on
+ * the right, because that is what a reader who has reached the end is looking
+ * for. Both regions are Quarto's; what follows is their sizing, their color and
+ * how they stack on a phone.
+ *
+ * What is *not* here is the blog's own alignment, which holds the bar to that
+ * site's writing column. The book lays out with a sidebar and a table of
+ * contents, so it has no such column to line up with, and the rule belongs to
+ * the site that has one.
+ * ------------------------------------------------------------------------- */
+
+/* Each licence is one unit. Left to itself the line broke wherever it ran out of
+ * room, which put "Apache 2.0." alone on a second line looking like a mistake.
+ * As inline blocks the two sentences can only break *between* each other, so a
+ * narrow footer gets two whole lines instead of one and a fragment. */
+.nav-footer .licence {
+  display: inline-block;
+  margin-right: 0.5rem;
+}
+
+/* The licence text gets the room it needs and the icons take only their own
+ * width, rather than the two regions splitting the bar evenly. Their own side
+ * padding comes off too: the row is already held to the writing's column, and a
+ * second inset inside it put the licences sixteen pixels right of everything
+ * above them. */
+.nav-footer-left {
+  flex: 1 1 auto;
+  min-width: 0;
+  text-align: left;
+  padding-left: 0;
+}
+
+.nav-footer-right {
+  flex: 0 0 auto;
+  padding-right: 0;
+}
+
+/* The follow row. Bigger than the licence text beside it, because these are the
+ * only things in the footer anyone clicks.
+ *
+ * Hover changes the *color* rather than only the opacity. Raising opacity moves
+ * a muted grey toward a slightly less muted grey, which on a busy page is not
+ * enough to read as a response. Going to near-black on a light page and to
+ * near-white on a dark one is unmistakable in both, and it is the same distance
+ * travelled either way. */
+.nav-footer .nav-item .nav-link {
+  font-size: 1.18rem;
+  padding: 0.2rem 0.42rem;
+  opacity: 1;
+  transition: color 0.14s ease, transform 0.14s ease;
+}
+
+body.quarto-light .nav-footer .nav-item .nav-link {
+  color: #8b8279;
+}
+
+body.quarto-light .nav-footer .nav-item .nav-link:hover,
+body.quarto-light .nav-footer .nav-item .nav-link:focus-visible {
+  color: #100e0b;
+  transform: translateY(-2px);
+}
+
+body.quarto-dark .nav-footer .nav-item .nav-link {
+  color: #8d8478;
+}
+
+body.quarto-dark .nav-footer .nav-item .nav-link:hover,
+body.quarto-dark .nav-footer .nav-item .nav-link:focus-visible {
+  color: #fffaf2;
+  transform: translateY(-2px);
+}
+
+.nav-footer {
+  border-top: 1px solid var(--bs-border-color, #e2dbd1);
+  font-size: 0.92rem;
+  opacity: 0.85;
+}
+
+.quarto-dark .nav-footer { border-top-color: #352f26; }
+
+/* On a phone the two regions stack and centre: icons first, because they are
+ * what someone reaching the end of a page is looking for, and the licences
+ * underneath as the small print they are. */
+@media (max-width: 575px) {
+  .nav-footer {
+    flex-direction: column;
+    align-items: center;
+    row-gap: 0.15rem;
+  }
+
+  .nav-footer-right { order: 1; }
+  .nav-footer-left  { order: 2; text-align: center; }
+
+  .nav-footer .licence {
+    display: block;
+    margin-right: 0;
+  }
+}
+
+/* ---------------------------------------------------------------------------
+ * The theme toggle
+ *
+ * Quarto ships the control as a switch and nothing else, which says that
+ * something can be flipped without saying what. A sun and a moon say which way
+ * you are going, and they cost no request: Bootstrap Icons is already loaded,
+ * so the glyph is a `::before` on the link and the switch it draws is left
+ * alone.
+ *
+ * Here rather than in `blog.css` for the reason the footer and the palette are:
+ * the book and the site are one project. What stays on the site's side is the
+ * *color* of this control against a peach bar, which the book has no equivalent
+ * of.
+ * ------------------------------------------------------------------------- */
+
+/* A sun in light mode and a moon in dark, before the toggle rather than instead
+ * of it. Quarto ships the control as an empty `<i class="bi">` inside the link,
+ * so the glyph goes on the link's own `::before` and the switch it already
+ * draws is left alone. Bootstrap Icons is loaded by the theme, so this costs no
+ * request: `\f5a1` is `sun-fill`, `\f495` is `moon-stars-fill`. */
+.quarto-color-scheme-toggle::before {
+  font-family: "bootstrap-icons", sans-serif;
+  content: "\f5a1";
+  font-size: 0.98rem;
+  margin-right: 0.4rem;
+  /* No `vertical-align` here. The link is a flex container, so the two glyphs
+   * are centered against each other by `align-items` and a baseline nudge only
+   * fights it. `line-height: 1` matters though: the sun is a font glyph and
+   * carries a line box, while the switch beside it is a background image with
+   * no ascender or descender, so an inherited 1.7 line height sits the two on
+   * different centers. That is the misalignment. */
+  line-height: 1;
+}
+
+/* The switch is drawn by `background-image` on the `::before` of this `<i>`, and
+ * the `<i>` itself is the flex item. Centering the link's children lines up the
+ * `<i>` box, not the picture inside it, so the `<i>` has to center its own
+ * content as well. */
+.quarto-color-scheme-toggle .bi {
+  display: inline-flex;
+  align-items: center;
+  line-height: 1;
+}
+
+body.quarto-dark .quarto-color-scheme-toggle::before {
+  content: "\f495";
+}
+
+.quarto-color-scheme-toggle {
+  display: inline-flex;
+  align-items: center;
+}
+
+/* Bigger, because these three are the only controls in the bar and they were
+ * sized for decoration rather than for hitting. The sun and moon come from the
+ * icon font, the switch beside them is a background image, and the search glyph
+ * is an inline SVG, so each needs its own property. */
+.quarto-color-scheme-toggle::before {
+  font-size: 1.22rem;
+  margin-right: 0.45rem;
+}
+
+.quarto-color-scheme-toggle .bi::before {
+  height: 1.3rem;
+  width: 1.3rem;
+  background-size: 1.3rem 1.3rem;
+}
+
+/* The toggle is an `<a>`, so the navbar's growing-underline rule and Bootstrap's
+ * link underline both land on it. It is a control rather than a link. */
+.quarto-color-scheme-toggle,
+.quarto-color-scheme-toggle:hover {
+  text-decoration: none;
+}
+
+.quarto-color-scheme-toggle::after {
+  display: none;
+}
+
+/* ---------------------------------------------------------------------------
+ * The book's control row
+ *
+ * Four things sit in the sidebar header: the sun or moon, the switch it labels,
+ * the source link, and the reader-mode toggle. Quarto emits them in the order
+ * source, switch, reader, and leaves them at three different sizes.
+ *
+ * The theme control goes first because it is the one a reader uses while
+ * reading, and because that is where the site keeps it. `order: -1` rather than
+ * numbering all three: the source link has no class of its own to select, so
+ * moving the two that do is enough and nothing depends on a selector for a bare
+ * link.
+ * ------------------------------------------------------------------------- */
+
+.sidebar-tools-main {
+  /* Quarto already makes this `inline-flex`; what it does not do is center the
+   * items against each other, and they are three different kinds of drawing. The
+   * sun is a font glyph with a line box, the switch and the reader mark are
+   * background images with no ascender, and the source mark is a font glyph
+   * again. Left to the baseline they sit on three different centers. */
+  align-items: center;
+}
+
+.sidebar-tools-main .quarto-color-scheme-toggle { order: -1; }
+.sidebar-tools-main .quarto-reader-toggle { order: 1; }
+
+/* One size for the row. Quarto sets the tools to `.875rem` and draws the switch
+ * and the reader mark as 1rem images, so the source mark came out smaller than
+ * the two beside it. These are the only controls on the page, so they are sized
+ * to be hit rather than to be decorative, and all four match. */
+.sidebar-navigation .sidebar-tools-main .quarto-navigation-tool {
+  font-size: 1.12rem;
+  /* Quarto dims every tool to 70%. That is a hairline on a dark ground, and
+   * these are the controls, not ornament. */
+  opacity: 0.85;
+}
+
+.sidebar-tools-main .quarto-color-scheme-toggle::before {
+  font-size: 1.12rem;
+  margin-right: 0.34rem;
+}
+
+.sidebar-tools-main .quarto-color-scheme-toggle .bi::before,
+.sidebar-tools-main .quarto-reader-toggle .bi::before {
+  height: 1.12rem;
+  width: 1.12rem;
+  background-size: 1.12rem 1.12rem;
+}
+
+.sidebar-navigation .sidebar-tools-main .quarto-navigation-tool:hover {
+  opacity: 1;
 }

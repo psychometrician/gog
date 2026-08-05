@@ -60,6 +60,39 @@ Each kind has a section below, in the order of the kernel above: the five that
 build a plot first, then the six that refine or arrange one. Each section gives
 the words and what they do, and names the chapter that teaches them in full.
 
+## The colors
+
+Every specification in this book is colored by kind, and the coloring is the two
+groups above rather than decoration.
+
+Four of the five kinds that build a plot are words, and each takes a color of its
+own. The fifth is the operator, which is punctuation in most of these languages,
+so it takes weight instead of a color. The six kinds that refine or arrange a
+plot share one quieter color, because none of them is required.
+
+Your own names keep the color of the text around them. That is the first thing
+the coloring tells you: which words belong to gog, and which are yours.
+
+```{r}
+data(gapminder_2007) + bar * bin + x(life) + style(color = "tomato")
+```
+
+*"Given gapminder 2007: bars derived by bin, x is life, colored tomato."*
+
+`data` names the table, `bar` is the mark, `bin` is the transform, and `x` is the
+channel. Those four build the plot. `style` refines it, so it takes the quiet
+color, and `gapminder_2007`, `life` and `"tomato"` are yours.
+
+Inside `style`, the word `color` stays the color of the text. It names a property
+here rather than a column, so it is not the `color` channel: a word you write as
+an argument name is never an atom.
+
+One color says the same thing in every language. A highlighter cannot do this,
+because each language sorts these words by its own rules and the four disagree:
+R calls `data` a function, Python marks it as nothing at all, and none of the
+four can see that `point` is a mark. The four spellings of one specification
+would be printed four different ways.
+
 ## Tables: where the rows come from
 
 Every sentence begins with a table, and there are two ways to name one.

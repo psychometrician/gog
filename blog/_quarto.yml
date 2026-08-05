@@ -8,6 +8,16 @@ project:
   # at the *start* of a render, and a chunk inside a page runs long after that.
   pre-render:
     - R/copy-assets.R
+    # Compares the vocabulary the highlighter paints against the vocabulary the
+    # book declares, and stops the render if they have drifted apart. The
+    # highlighter holds its own copy of the kernel so that it can paint the page
+    # on the first pass rather than after a second request, and a copy of a list
+    # is a copy that stops matching.
+    #
+    # The book's file, run from here rather than copied, exactly as the staging
+    # script above is. It runs second because it reads the highlighter that
+    # script stages.
+    - ../book/R/check-kernel.R
 
   resources:
     # The browser engine and the two modules that drive it. Declared rather than
@@ -133,10 +143,17 @@ format:
     css:
       - gog.css
       - blog.css
-    # Adds the `lang-*` class the tag colors key off. A listing tag carries its
-    # name in `data-category` and a post-header tag carries it only as text, so
-    # one script covers what two attribute selectors could not.
-    include-after-body: tags.html
+    # `tags.html` adds the `lang-*` class the tag colors key off. A listing tag
+    # carries its name in `data-category` and a post-header tag carries it only
+    # as text, so one script covers what two attribute selectors could not.
+    #
+    # `gog-syntax.html` colors a gog sentence, which nothing ships a rule for.
+    # It runs in the browser rather than at render time so that it adds to
+    # Pandoc's tokens instead of replacing them, which is what keeps the panel,
+    # the copy button and the line anchors Quarto builds around a block.
+    include-after-body:
+      - tags.html
+      - gog-syntax.html
     # Highlighting stays on, and `blog.css` then paints every token one color.
     #
     # `highlight-style: none` looks like the direct way to get monochrome code
