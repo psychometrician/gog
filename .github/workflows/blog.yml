@@ -14,21 +14,23 @@
 
 name: blog
 
-# DISARMED UNTIL THE SITE REPOSITORY EXISTS.
+# PUBLISHED BY HAND, ON PURPOSE. Only `workflow_dispatch` is live.
 #
-# Only `workflow_dispatch` is live, so this never runs by itself. The push
-# trigger below is written out and commented, because the alternative is
-# remembering what its path list was.
+# The site repository, its Pages configuration and its deploy key are all in
+# place, so this is a standing choice rather than unfinished setup. Posts go up
+# two or three times a month, and firing on every push under `blog/` would
+# mostly republish a site that had not changed. The push trigger below is kept,
+# commented, so that arming it later is one edit rather than a reconstruction.
 #
-# Two reasons for the state, and the second is the one that bites. The site
-# repository and its deploy key do not exist yet, so a run could only fail at
-# the last step. And the path list includes `r-pkg/**`, which a release touches,
-# so an armed workflow would put a red mark on a release commit that had nothing
-# to do with the blog.
+# One thing to know before arming it: the path list includes `r-pkg/**`, which a
+# package release touches, so an armed workflow would put a blog run on a
+# release commit that had nothing to do with the blog.
 #
-# To arm it: create `psychometrician/psychometrician.github.io`, enable Pages on
-# `main` at the root, put the deploy key in `BLOG_SITE_DEPLOY_KEY`, then
-# uncomment the `push:` block.
+# To publish:  gh workflow run blog.yml --ref main
+#
+# It renders the *pushed* commit rather than anyone's working tree, so push the
+# post first. A post carrying `draft: true` is absent from the render entirely,
+# so an unfinished one is safe to commit and safe to publish around.
 on:
   workflow_dispatch:
 
