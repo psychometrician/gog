@@ -162,7 +162,39 @@ export const median = bareAtom("transform", { transform: "median" });
 export const max = bareAtom("transform", { transform: "max" });
 export const min = bareAtom("transform", { transform: "min" });
 export const proportion = bareAtom("transform", { transform: "proportion" });
-export const range = bareAtom("transform", { transform: "range" });
+// `range` — the band per group, the whole group unless told otherwise. Two
+// positional ends, because a band has two and neither is the more common to set.
+export const range = callableAtom(
+  new Atom("transform", { transform: "range" }),
+  (...raw) => {
+    const { low, high } = readArgs(raw, "range", ["low", "high"]);
+    for (const [name, value] of [
+      ["low", low],
+      ["high", high],
+    ]) {
+      if (value === undefined) continue;
+      if (typeof value !== "number" || !Number.isFinite(value)) {
+        throw new GogError(
+          "gog: `range()` takes the band's two ends, each one number between 0 " +
+            "and 1, e.g. `range(0.25, 0.75)`."
+        );
+      }
+      if (value < 0 || value > 1) {
+        throw new GogError(
+          `gog: \`range({ ${name}: ${value} })\` is not a probability — the ` +
+            "band's ends are quantiles, so each is between 0 and 1. " +
+            "`range(0.25, 0.75)` is the middle half, `range(0.1, 0.9)` the middle " +
+            "80 percent, and bare `range` the whole group."
+        );
+      }
+    }
+    return new Atom("transform", {
+      transform: "range",
+      low: low ?? null,
+      high: high ?? null,
+    });
+  }
+);
 export const dodge = bareAtom("transform", { transform: "dodge" });
 
 // `stack` — the measure-axis pile. `stack({ share: true })` fills every pile to

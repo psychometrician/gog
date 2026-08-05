@@ -133,10 +133,11 @@ the packages R attaches for you:
 | `utils` | `data` `stack` |
 | `base` | `jitter` `max` `mean` `min` `order` `range` `sum` |
 
-Ten of the eighteen cannot hurt you, and the reason is a rule in R itself.
-Every mark and every value transform is an *object*, not a function. When R
-evaluates a call, it looks for a function of that name and skips any binding that
-is not one. So base R still answers, even with gog's `mean` sitting closer:
+Nine of the eighteen cannot hurt you, and the reason is a rule in R itself.
+A mark is an *object* rather than a function, and so is a transform that takes no
+parameter. When R evaluates a call, it looks for a function of that name and
+skips any binding that is not one. So base R still answers, even with gog's
+`mean` sitting closer:
 
 ```{r}
 is.function(mean)   # gog's `mean` is an object, so a call cannot reach it
@@ -150,9 +151,9 @@ they resolve the name the same way:
 sapply(gapminder_2007["life"], mean)
 ```
 
-The other eight are functions, and those do take over: `box`, `data`,
-`density`, `jitter`, `order`, `palette`, `stack` and `title`. Qualify the one you
-want, and both remain available:
+The other nine are functions, and those do take over: `box`, `data`,
+`density`, `jitter`, `order`, `palette`, `range`, `stack` and `title`. Qualify the
+one you want, and both remain available:
 
 | you write | you get | for base R's, write |
 |---|---|---|
@@ -160,10 +161,21 @@ want, and both remain available:
 | `data(gapminder_2007)` | the plot's table | `utils::data(diamonds)` |
 | `density(2)` | the smoothing transform | `stats::density(x)` |
 | `jitter(0.5)` | the offset transform | `base::jitter(x)` |
+| `range(0.25, 0.75)` | the band transform | `base::range(df$gdp)` |
 | `stack(share = TRUE)` | the piling transform | `utils::stack(df)` |
 | `palette("soft")` | the plot's colors | `grDevices::palette()` |
 | `title("Life expectancy")` | the plot's title | `graphics::title(main = "…")` |
 | `box()` | the box-and-whisker mark | `graphics::box()` |
+
+`range` is a function because it takes a band, and R finds a function first. That
+is what writing `range(0.25, 0.75)` costs you. The refusal reads the argument it
+was given: a vector where a probability belongs means you wanted base R's, and
+the message says so.
+
+```{r}
+#| error: true
+range(c(3, 1, 4, 1, 5))
+```
 
 `order` is the one that used to hurt. Sorting a data frame beside a plot is
 ordinary work. gog's `order` returns an atom, not the row positions that `[`
@@ -185,7 +197,7 @@ head(ranked[c("country", "population")], 3)
 
 This book does that in three chapters, for exactly this reason.
 
-Two of the eight refuse nothing, because nothing tells the two intentions apart.
+Two of the nine refuse nothing, because nothing separates the two intentions.
 `data(mtcars)` is well formed in both readings. It returns a plot's table and no
 complaint, so write `utils::data()` when you mean to load a dataset.
 `title("...")` is the same case: a string is what both want.
@@ -200,8 +212,8 @@ All four languages meet this wall, and each one hits it differently. Julia will
 not choose between two modules that export one name. It raises, and you import
 the one you meant. Python has no rule about skipping non-functions, so
 `from gog import *` really does replace five builtins. Calling one of them raises
-rather than misbehaving. R is the quiet one of the four, which is why the eight
-names above refuse out loud. JavaScript has no collision at all, because nothing
+rather than misbehaving. R is the quiet one of the four, which is why the seven
+names that can see the mistake refuse out loud. JavaScript has no collision at all, because nothing
 reaches your scope unless you import it by name.
 
 ## Reading from a database

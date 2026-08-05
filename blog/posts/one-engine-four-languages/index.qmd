@@ -177,9 +177,9 @@ plots on one page, and these are the two you have already seen:
 
 *"Points, x is gdp, y is life, beside bars derived by bin, x is life."*
 
-Same symbol as the panels above, and a different picture. R tells the two apart
-by reading what comes after the `|`. A word cannot do that, so this one gets a
-word of its own:
+Same symbol as the panels above, and a different picture. R decides between the
+two by reading what comes after the `|`. A word cannot do that, so this one gets
+a word of its own:
 
 ```js
 beside(plot(data(gapminder_2007), point, x(col.gdp), y(col.life)),

@@ -14,7 +14,7 @@
 use std::collections::HashMap;
 
 use crate::data::DataFrame;
-use crate::ir::{BinSpec, BoundsSpec, BoxSpec, ConfidenceSpec, DensitySpec, StackSpec, Transform};
+use crate::ir::{BinSpec, BoundsSpec, BoxSpec, ConfidenceSpec, DensitySpec, RangeSpec, StackSpec, Transform};
 
 /// Apply a sequence of transforms to `df`.
 ///
@@ -36,6 +36,7 @@ pub fn apply(
     bin_spec: Option<&BinSpec>,
     cut: Option<&BinLayout>,
     density_spec: Option<&DensitySpec>,
+    range_spec: Option<&RangeSpec>,
     conf_spec: Option<&ConfidenceSpec>,
     box_spec: Option<&BoxSpec>,
     bounds_spec: Option<&BoundsSpec>,
@@ -49,9 +50,9 @@ pub fn apply(
     // one group — the whole frame — which is the same code, degenerate.
     let result = match group_field {
         Some(g) if df.str_col(g).is_some_and(|c| !c.is_empty()) => {
-            apply_grouped(df, transforms, key_field, out_field, bin_spec, cut, density_spec, conf_spec, box_spec, bounds_spec, g)
+            apply_grouped(df, transforms, key_field, out_field, bin_spec, cut, density_spec, range_spec, conf_spec, box_spec, bounds_spec, g)
         }
-        _ => apply_seq(df, transforms, key_field, out_field, bin_spec, density_spec, conf_spec, box_spec, bounds_spec, cut),
+        _ => apply_seq(df, transforms, key_field, out_field, bin_spec, density_spec, range_spec, conf_spec, box_spec, bounds_spec, cut),
     };
 
     // **`proportion` normalizes here, always** — the one pass that makes it a
@@ -412,6 +413,7 @@ fn apply_grouped(
     bin_spec: Option<&BinSpec>,
     cut: Option<&BinLayout>,
     density_spec: Option<&DensitySpec>,
+    range_spec: Option<&RangeSpec>,
     conf_spec: Option<&ConfidenceSpec>,
     box_spec: Option<&BoxSpec>,
     bounds_spec: Option<&BoundsSpec>,
@@ -442,7 +444,7 @@ fn apply_grouped(
     let parts: Vec<DataFrame> = groups.iter().filter_map(|gv| {
         let sub = df.filter_str_eq(group_field, gv);
         if sub.is_empty() { return None; }
-        let res = apply_seq(&sub, transforms, key_field, out_field, bin_spec, density_spec, conf_spec, box_spec, bounds_spec, shared.as_ref());
+        let res = apply_seq(&sub, transforms, key_field, out_field, bin_spec, density_spec, range_spec, conf_spec, box_spec, bounds_spec, shared.as_ref());
         let n = res.len();
         if n == 0 { return None; }
         let tag = vec![gv.clone(); n];
@@ -463,6 +465,7 @@ fn apply_seq(
     out_field: &str,
     bin_spec: Option<&BinSpec>,
     density_spec: Option<&DensitySpec>,
+    range_spec: Option<&RangeSpec>,
     conf_spec: Option<&ConfidenceSpec>,
     box_spec: Option<&BoxSpec>,
     bounds_spec: Option<&BoundsSpec>,
@@ -518,7 +521,7 @@ fn apply_seq(
         // The cut already ran, above, wherever it was written.
         if cut_first && *t == Transform::Bin { continue }
         if *t == Transform::Proportion && measured { continue }
-        current = apply_one(&current, t, key_field, out_field, bin_spec, density_spec, conf_spec, box_spec, bounds_spec, layout);
+        current = apply_one(&current, t, key_field, out_field, bin_spec, density_spec, range_spec, conf_spec, box_spec, bounds_spec, layout);
     }
     current
 }
@@ -731,7 +734,7 @@ pub fn job_conflict(ts: &[Transform], ctx: JobContext) -> Option<(Transform, Tra
 }
 
 #[allow(clippy::too_many_arguments)]
-fn apply_one(df: &DataFrame, t: &Transform, key_field: &str, out_field: &str, bin_spec: Option<&BinSpec>, density_spec: Option<&DensitySpec>, conf_spec: Option<&ConfidenceSpec>, box_spec: Option<&BoxSpec>, bounds_spec: Option<&BoundsSpec>, layout: Option<&BinLayout>) -> DataFrame {
+fn apply_one(df: &DataFrame, t: &Transform, key_field: &str, out_field: &str, bin_spec: Option<&BinSpec>, density_spec: Option<&DensitySpec>, range_spec: Option<&RangeSpec>, conf_spec: Option<&ConfidenceSpec>, box_spec: Option<&BoxSpec>, bounds_spec: Option<&BoundsSpec>, layout: Option<&BinLayout>) -> DataFrame {
     match t {
         Transform::Bin     => bin(df, key_field, out_field, bin_spec, layout),
         Transform::Count   => count(df, key_field, out_field),
@@ -743,7 +746,7 @@ fn apply_one(df: &DataFrame, t: &Transform, key_field: &str, out_field: &str, bi
         Transform::Max        => aggregate(df, key_field, out_field, AggFn::Max),
         Transform::Min        => aggregate(df, key_field, out_field, AggFn::Min),
         Transform::Proportion => proportion(df, key_field, out_field),
-        Transform::Range      => range(df, key_field, out_field),
+        Transform::Range      => range(df, key_field, out_field, range_spec),
         Transform::Confidence => confidence(df, key_field, out_field, conf_spec),
         Transform::Box        => box_summary(df, key_field, out_field, box_spec),
         Transform::Bounds     => bounds(df, key_field, out_field, bounds_spec),
@@ -1575,6 +1578,7 @@ pub fn bin2d_agg(
 pub fn pairs2d(
     df: &DataFrame, x_field: &str, y_field: &str, val_field: &str,
     kind: &Transform, conf: Option<&ConfidenceSpec>, bx: Option<&BoxSpec>,
+    rng: Option<&RangeSpec>,
 ) -> DataFrame {
     // Both axes categorical and the value column numeric — all three already refused
     // otherwise by `check_pair_summary`, so saying anything here would double a
@@ -1619,9 +1623,11 @@ pub fn pairs2d(
                     lower.push(f64::NAN); middle.push(f64::NAN); upper.push(f64::NAN);
                 }
             }
-            // `range`, and the default for anything else that pairs.
+            // `range`, and the default for anything else that pairs. The band is
+            // `range_pair`'s, the same function the one-key reading calls, so a
+            // cell and a slot cannot report different quartiles.
             _ => {
-                let (lo, hi) = extents_of(cell);
+                let (lo, hi) = range_pair(cell, rng);
                 push(lo);
                 push(hi);
             }
@@ -2418,9 +2424,10 @@ fn smooth(df: &DataFrame, x_field: &str, y_field: &str) -> DataFrame {
 // range — per-group (min, max), the first transform to synthesize a *pair*
 // ---------------------------------------------------------------------------
 
-/// Group rows by `x_field` and reduce `y_field` to its minimum and maximum
-/// within each group, emitting **two rows per group** — the low, then the high —
-/// both in the `y_field` column.
+/// Group rows by `x_field` and reduce `y_field` to a **quantile band** within
+/// each group, emitting **two rows per group** — the low, then the high — both in
+/// the `y_field` column. Unparameterized the band is the whole group, so bare
+/// `range` is the minimum and the maximum it always was.
 ///
 /// That two-row encoding is deliberate: it lets an interval's extents ride the
 /// ordinary single-column machinery. The axis domain reads both low and high
@@ -2429,10 +2436,10 @@ fn smooth(df: &DataFrame, x_field: &str, y_field: &str) -> DataFrame {
 /// aggregation family — string x keeps first-appearance order, numeric x sorts
 /// ascending — so `interval * range` reads like `bar * mean`, one range where
 /// the other has a point.
-fn range(df: &DataFrame, x_field: &str, y_field: &str) -> DataFrame {
+fn range(df: &DataFrame, x_field: &str, y_field: &str, spec: Option<&RangeSpec>) -> DataFrame {
     let Some(ys) = df.float_col(y_field) else { return df.clone() };
 
-    let extents = extents_of;
+    let extents = |v: &[f64]| range_pair(v, spec);
 
     // String x: one (low, high) pair per group, groups in first-seen order.
     if let Some(xs) = df.str_col(x_field) {
@@ -2621,6 +2628,30 @@ fn extents_of(vals: &[f64]) -> (f64, f64) {
         vals.iter().cloned().fold(f64::INFINITY, f64::min),
         vals.iter().cloned().fold(f64::NEG_INFINITY, f64::max),
     )
+}
+
+/// The low/high pair `range` reduces one group to — **the one place the band is
+/// decided**, called by both readings so a slot and a cell cannot disagree
+/// (Law 2: how many keys a mark has is never a fact about what `range` means).
+///
+/// Unparameterized it is the extremes, and it takes the cheap path to say so:
+/// a type-7 quantile at p = 0 and p = 1 *is* the minimum and the maximum, so the
+/// two agree by arithmetic, and the fold is the same answer without a sort. The
+/// test `bare_range_is_the_extremes_by_both_paths` holds the two together, which
+/// is what makes this an optimization rather than a second opinion.
+///
+/// Anything else sorts and interpolates with [`quantile_sorted`], the function
+/// `box` already uses, so `interval * range(0.25, 0.75)` and a box's body report
+/// the same quartile from the same code.
+fn range_pair(vals: &[f64], spec: Option<&RangeSpec>) -> (f64, f64) {
+    let (lo_p, hi_p) = RangeSpec::probabilities(spec);
+    if lo_p == 0.0 && hi_p == 1.0 {
+        return extents_of(vals);
+    }
+    let mut s: Vec<f64> = vals.iter().cloned().filter(|v| v.is_finite()).collect();
+    s.sort_by(|a, b| a.partial_cmp(b).unwrap_or(std::cmp::Ordering::Equal));
+    if s.is_empty() { return (f64::NAN, f64::NAN); }
+    (quantile_sorted(&s, lo_p), quantile_sorted(&s, hi_p))
 }
 
 fn confidence(df: &DataFrame, x_field: &str, y_field: &str, spec: Option<&ConfidenceSpec>) -> DataFrame {
@@ -3633,7 +3664,7 @@ mod tests {
         group_field: Option<&str>,
     ) -> DataFrame {
         super::apply(df, transforms, key_field, out_field, bin_spec, None,
-                     density_spec, conf_spec, box_spec, bounds_spec, stack_spec, group_field)
+                     density_spec, None, conf_spec, box_spec, bounds_spec, stack_spec, group_field)
     }
     fn bin2d(df: &DataFrame, x_field: &str, y_field: &str, spec: Option<&BinSpec>) -> DataFrame {
         super::bin2d(df, x_field, y_field, spec, BinCut::default())
@@ -5159,7 +5190,7 @@ mod tests {
         let df = DataFrame::new()
             .with_str("g", ["a", "a", "a", "b", "b"].iter().map(|s| s.to_string()).collect())
             .with_float("v", vec![3.0, 1.0, 2.0, 9.0, 5.0]);
-        let out = range(&df, "g", "v");
+        let out = range(&df, "g", "v", None);
         assert_eq!(out.str_col("g").unwrap(), &["a", "a", "b", "b"]);
         assert_eq!(out.float_col("v").unwrap(), &[1.0, 3.0, 5.0, 9.0]);
     }
@@ -5169,9 +5200,83 @@ mod tests {
         let df = DataFrame::new()
             .with_float("x", vec![2.0, 2.0, 1.0, 1.0])
             .with_float("v", vec![8.0, 4.0, 30.0, 10.0]);
-        let out = range(&df, "x", "v");
+        let out = range(&df, "x", "v", None);
         assert_eq!(out.float_col("x").unwrap(), &[1.0, 1.0, 2.0, 2.0]);
         assert_eq!(out.float_col("v").unwrap(), &[10.0, 30.0, 4.0, 8.0]);
+    }
+
+    #[test]
+    fn bare_range_is_the_extremes_by_both_paths() {
+        // `range_pair` shortcuts the default pair to a fold, on the claim that a
+        // type-7 quantile at p = 0 and p = 1 *is* the minimum and the maximum.
+        // If that ever stops holding, the shortcut becomes a second opinion and
+        // bare `range` quietly disagrees with `range(0, 1)` — the two-copies
+        // failure the second renderer died of, one function down. This is what
+        // holds them together, and it is why the parameter could be added
+        // without touching what bare `range` draws.
+        for vals in [
+            vec![3.0, 1.0, 2.0],
+            vec![9.0, 5.0],
+            vec![42.0],
+            vec![1.0, 1.0, 1.0],
+            (1..=10).map(|i| i as f64).collect::<Vec<_>>(),
+        ] {
+            let mut s = vals.clone();
+            s.sort_by(|a, b| a.partial_cmp(b).unwrap_or(std::cmp::Ordering::Equal));
+            assert_eq!(
+                range_pair(&vals, None),
+                (quantile_sorted(&s, 0.0), quantile_sorted(&s, 1.0)),
+                "bare range disagreed with range(0, 1) on {vals:?}"
+            );
+        }
+    }
+
+    #[test]
+    fn range_takes_a_quantile_band() {
+        // 1..=10 by type 7: Q1 = 3.25 and Q3 = 7.75 — the numbers R's
+        // `quantile()` gives, so a reader can reproduce the band by hand.
+        let df = DataFrame::new()
+            .with_str("g", vec!["a".to_string(); 10])
+            .with_float("v", (1..=10).map(|i| i as f64).collect());
+        let spec = RangeSpec { low: Some(0.25), high: Some(0.75) };
+        let out = range(&df, "g", "v", Some(&spec));
+        assert_eq!(out.float_col("v").unwrap(), &[3.25, 7.75]);
+    }
+
+    #[test]
+    fn the_band_and_the_box_body_agree() {
+        // `interval * range(0.25, 0.75)` *is* the box's body, so the two must
+        // report the same quartiles. They share `quantile_sorted`; this says so
+        // out loud, because sharing it is a choice a later edit could undo.
+        let vals: Vec<f64> = vec![2.0, 7.0, 1.0, 9.0, 4.0, 6.0, 3.0];
+        let st = box_stat(&vals, true);
+        let spec = RangeSpec { low: Some(0.25), high: Some(0.75) };
+        assert_eq!(range_pair(&vals, Some(&spec)), (st.q1, st.q3));
+    }
+
+    #[test]
+    fn one_sided_range_defaults_the_other_end() {
+        // An unset side is that side's extreme, which is what makes bare `range`
+        // the degenerate case of the parameterized one rather than a rule beside
+        // it. Type 7 at p = 0.9 over 1..=10 is 9.1.
+        let vals: Vec<f64> = (1..=10).map(|i| i as f64).collect();
+        let (lo, hi) = range_pair(&vals, Some(&RangeSpec { low: None, high: Some(0.9) }));
+        assert_eq!(lo, 1.0);
+        assert!((hi - 9.1).abs() < 1e-12, "expected 9.1, got {hi}");
+    }
+
+    #[test]
+    fn a_cell_takes_the_same_band_as_a_slot() {
+        // Law 2: how many keys a mark has is a fact about the mark, never about
+        // what `range` means. Both readings call `range_pair`, so the cube's
+        // whisker and the panel's report one band.
+        let df = DataFrame::new()
+            .with_str("a", vec!["p".to_string(); 10])
+            .with_str("b", vec!["q".to_string(); 10])
+            .with_float("v", (1..=10).map(|i| i as f64).collect());
+        let spec = RangeSpec { low: Some(0.25), high: Some(0.75) };
+        let out = pairs2d(&df, "a", "b", "v", &Transform::Range, None, None, Some(&spec));
+        assert_eq!(out.float_col("v").unwrap(), &[3.25, 7.75]);
     }
 
     #[test]

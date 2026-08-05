@@ -150,8 +150,8 @@ to be told, which is the convention each language already has.
 
 `bin`, `sum`, `min`, `max` and `range` are transforms here and builtins there,
 so `from gog import *` puts gog's over Python's for the rest of the file. The R
-package does the same thing to `base::range` and `base::sum`: a grammar keeps
-its own vocabulary. Calling one says so rather than failing obscurely:
+package takes the same names from base R: a grammar keeps its own vocabulary.
+Calling one says so rather than failing obscurely:
 
 ```{r}
 #| echo: false

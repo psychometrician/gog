@@ -121,7 +121,6 @@ const median     = transform_atom("median")
 const max        = transform_atom("max")
 const min        = transform_atom("min")
 const proportion = transform_atom("proportion")
-const range      = transform_atom("range")
 const dodge      = transform_atom("dodge")
 
 """`bin` — equal-width buckets. How many dimensions it cuts is the mark's answer."""
@@ -184,6 +183,59 @@ const confidence = Atom(:transform, Dict{Symbol,Any}(:transform => "confidence")
         Atom(:transform, Dict{Symbol,Any}(
             :transform => "confidence",
             :level => level === nothing ? nothing : Float64(level)))
+    end)
+
+"""`range` — the band per group, the whole group unless told otherwise.
+
+The only atom with *two* positional arguments, because a band has two ends and
+neither is the more common one to set. `range(0.25, 0.75)` is the middle half;
+bare `range` is the minimum to the maximum, which is what `range` has always
+drawn.
+"""
+const range = Atom(:transform, Dict{Symbol,Any}(:transform => "range"),
+    function (args...; low = nothing, high = nothing)
+        if length(args) > 2
+            throw(GogError(
+                "gog: `range()` takes two positional arguments, the band's two " *
+                "ends: `range(0.25, 0.75)`."))
+        end
+        if length(args) >= 1
+            low === nothing || throw(GogError("gog: `range()` was given `low` twice."))
+            low = args[1]
+        end
+        if length(args) == 2
+            high === nothing || throw(GogError("gog: `range()` was given `high` twice."))
+            high = args[2]
+        end
+        # Two different mistakes reach here and they want different directions,
+        # so the message splits on the shape Julia's own builtin is called with.
+        # `range(1, 10)` is whole numbers out of 0..1, which is nobody's
+        # quantile, so that reading is named. A float out of 0..1 is a mistyped
+        # band end and gets told about quantiles instead.
+        for (name, value) in (("low", low), ("high", high))
+            value === nothing && continue
+            builtin_shaped = !(value isa Real) || value isa Bool ||
+                             !isfinite(value) ||
+                             (value isa Integer && !(0 <= value <= 1))
+            if builtin_shaped
+                throw(GogError(
+                    "gog: `range()` takes the band's two ends, each one number " *
+                    "between 0 and 1, e.g. `range(0.25, 0.75)`. For a sequence of " *
+                    "numbers, gog shadows that name: use `Base.range` for Julia's, " *
+                    "and `Base.extrema` for a collection's smallest and largest."))
+            end
+            if !(0 <= value <= 1)
+                throw(GogError(
+                    "gog: `range($name = $value)` is not a probability — the " *
+                    "band's ends are quantiles, so each is between 0 and 1. " *
+                    "`range(0.25, 0.75)` is the middle half, `range(0.1, 0.9)` the " *
+                    "middle 80 percent, and bare `range` the whole group."))
+            end
+        end
+        Atom(:transform, Dict{Symbol,Any}(
+            :transform => "range",
+            :low => low === nothing ? nothing : Float64(low),
+            :high => high === nothing ? nothing : Float64(high)))
     end)
 
 """`jitter` — the categorical-axis spread, a multiple of the default."""

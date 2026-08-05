@@ -1541,7 +1541,7 @@ svg <- render_svg(data(sdf) + bar * bin + x(gdp, scale = "log"))
 # no longer carries stroke-width="0.5" since its bins draw contiguous).
 bar_lines <- grep("fill-opacity", grep("<rect", strsplit(svg, "\n")[[1]], value = TRUE), value = TRUE)
 w <- as.numeric(sub('.*<rect x="[-0-9.]+" y="[-0-9.]+" width="([0-9.]+)".*', "\\1", bar_lines))
-if (length(w) < 2 || diff(range(w)) > 0.5)
+if (length(w) < 2 || diff(base::range(w)) > 0.5)
   stop("FAIL: log-space bins should be equal width, got ", paste(w, collapse = " "))
 cat("PASS: bins are cut in log space, so the bars are even\n")
 
@@ -1566,6 +1566,31 @@ e <- tryCatch(data(uni) + bar * bin(20, width = 5) + x(v),
 if (!grepl("not both", e))
   stop("FAIL: bin() with both bins and width should refuse: ", e)
 cat("PASS: bin() takes a count or a width, bare stays Sturges, both refused\n")
+
+# range() takes the band's two ends as quantile probabilities. 1..10 by type 7
+# gives Q1 = 3.25 and Q3 = 7.75, which are the numbers `quantile()` returns, so
+# the axis has to reach them and no further.
+band_df <- data.frame(g = rep("a", 10), v = as.numeric(1:10))
+band_svg <- render_svg(data(band_df) + interval * range(0.25, 0.75) + x(g) + y(v))
+bare_svg <- render_svg(data(band_df) + interval * range + x(g) + y(v))
+if (identical(band_svg, bare_svg))
+  stop("FAIL: range(0.25, 0.75) drew what bare `range` draws")
+if (!grepl(">4</text>", band_svg) || grepl(">10</text>", band_svg))
+  stop("FAIL: the interquartile band should span 3.25..7.75, not the extremes")
+# Bare `range` is the whole group, which is what it has always drawn.
+if (!grepl(">10</text>", bare_svg))
+  stop("FAIL: bare `range` should still reach the maximum")
+for (bad in list(list(1.5, NULL), list(NULL, 2), list("a", NULL))) {
+  e <- tryCatch(do.call(range, Filter(Negate(is.null), bad)),
+                error = function(e) conditionMessage(e))
+  if (!grepl("between 0 and 1", e))
+    stop("FAIL: range() should refuse a non-probability: ", e)
+}
+e <- tryCatch(render_svg(data(band_df) + interval * range(0.75, 0.25) + x(g) + y(v)),
+              error = function(e) conditionMessage(e))
+if (!grepl("Swap them", e))
+  stop("FAIL: a downward band should refuse and say to swap: ", e)
+cat("PASS: range() takes a quantile band, bare stays the extremes\n")
 
 # Scale after the transform on the axis it writes: the groups total 100 and 10,
 # not log10(10 * 90).

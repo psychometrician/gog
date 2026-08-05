@@ -94,9 +94,9 @@ js_error("plot(data(gapminder_2007), point, x(col.gdp), y(col.life), facet(col.c
 
 ## Composing two plots: `beside()` and `below()`
 
-R's `|` means two things, told apart by what is on its right: `plot | facet(g)`
+R's `|` means two things, and what is on its right decides which: `plot | facet(g)`
 splits one plot into panels, `plot_a | plot_b` arranges two plots on a page. With
-no operator to overload there is nothing to tell apart, so the second reading is
+no operator to overload there is nothing to read, so the second reading is
 its own word: `beside()`, and `below()` for `/`:
 
 ```{r}

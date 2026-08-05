@@ -45,6 +45,18 @@ carry_density_params <- function(layer, tr) {
   layer
 }
 
+# A range transform carries its two band ends onto the layer -- the engine reads
+# them from `layer$range`.  Only a non-NULL end attaches, so a bare
+# `interval * range` sends nothing and the engine reads the extremes, which is
+# what keeps the plain sentence's wire format byte-for-byte what it always was.
+carry_range_params <- function(layer, tr) {
+  if (identical(tr$transform, "range") &&
+      (!is.null(tr$low) || !is.null(tr$high))) {
+    layer$range <- Filter(Negate(is.null), list(low = tr$low, high = tr$high))
+  }
+  layer
+}
+
 # A confidence transform carries its level onto the layer — the engine reads it
 # from `layer$confidence`. Only a non-NULL level attaches, so a bare
 # `interval * confidence` stays on the default 0.95.
@@ -148,6 +160,7 @@ carry_partition_params <- function(layer, tr) {
     )
     layer <- carry_bin_params(layer, e2)
     layer <- carry_density_params(layer, e2)
+    layer <- carry_range_params(layer, e2)
     layer <- carry_confidence_params(layer, e2)
     layer <- carry_jitter_params(layer, e2)
     layer <- carry_stack_params(layer, e2)
@@ -161,6 +174,7 @@ carry_partition_params <- function(layer, tr) {
     e1$transforms <- c(e1$transforms, list(e2$transform))
     e1 <- carry_bin_params(e1, e2)
     e1 <- carry_density_params(e1, e2)
+    e1 <- carry_range_params(e1, e2)
     e1 <- carry_confidence_params(e1, e2)
     e1 <- carry_jitter_params(e1, e2)
     e1 <- carry_stack_params(e1, e2)
@@ -588,11 +602,12 @@ resolve_query <- function(q, table) {
         transforms = rhs$transforms,
         data       = lhs$pending_data
       )
-      # Carry bin/density/confidence/jitter/stack parameters if the layer atom has
-      # them; a NULL assignment simply adds nothing, so a plain layer stays
-      # untouched.
+      # Carry bin/density/range/confidence/jitter/stack parameters if the layer
+      # atom has them; a NULL assignment simply adds nothing, so a plain layer
+      # stays untouched.
       lhs$current_layer$bin <- rhs$bin
       lhs$current_layer$density <- rhs$density
+      lhs$current_layer$range <- rhs$range
       lhs$current_layer$confidence <- rhs$confidence
       lhs$current_layer$jitter <- rhs$jitter
       lhs$current_layer$stack <- rhs$stack

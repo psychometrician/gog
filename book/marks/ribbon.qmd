@@ -53,6 +53,35 @@ to one point for the line, `range` to a low/high pair for the band. This is the
 archetypal ribbon plot, a trend with the uncertainty or spread drawn around it,
 and it is two marks the grammar already has, added with `+`.
 
+## A fan chart of nested bands
+
+A min–max band shows what every country did. With 142 countries, only the two
+extreme countries set its edges. Naming two quantiles instead gives a band that
+contains most of the countries. `gm_all` is the whole gapminder table, every
+country in every year, so layer two bands of different widths over it and you
+have a **fan chart**:
+
+```{r}
+data(gm_all) + x(year) + y(life) +
+  ribbon * range(0.1, 0.9) + style(color = "steelblue", opacity = 0.2) +
+  ribbon * range(0.25, 0.75) + style(color = "steelblue", opacity = 0.35) +
+  line * median + style(color = "steelblue", size = 2) +
+  y_label("Life expectancy") +
+  title("Life expectancy across 142 countries, 1952 to 2007")
+```
+
+The pale band holds the middle 80% of countries. The darker one holds the
+middle half, and the line is the median. The plot then says something the min–max
+version cannot. The median rose from 45 years to 72, and the 90th percentile from
+67 to 80, so the distance between them fell from 22 years to 8.
+
+The bottom of the plot moves the other way. Both lower edges fall between 1992
+and 2002, the 10th percentile and the 25th, while the median rises throughout.
+A min–max band cannot show this, because its lower edge is one country.
+
+Each band is one more layer, so a third pair adds a third. The bands must be
+drawn widest first, because a later layer is painted over an earlier one.
+
 ## Why a ribbon needs a transform
 
 A low *and* a high are two numbers, and a plain `y()` supplies one. So (like

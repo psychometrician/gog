@@ -167,16 +167,18 @@ class CallableAtom(Atom):
 def _carry(layer: Atom, transform: Atom) -> None:
     """Move a transform's parameters onto the layer, where the engine reads them.
 
-    `bin`'s count, `density`'s bandwidth, `confidence`'s level, `jitter`'s
+    `bin`'s count, `density`'s bandwidth, `range`'s two band ends,
+    `confidence`'s level, `jitter`'s
     amount, `stack`'s share flag and baseline, and `bounds`' column names ride the *layer*
     on the wire
     (`layer.bin`, `layer.density`, …), not the transform list — the transform
     list is names only. Absent parameters attach nothing, so a bare
-    `bar * bin` stays on Sturges' rule.
+    `bar * bin` stays on Sturges' rule and a bare `interval * range` on the
+    extremes.
     """
     name = transform.fields["transform"]
-    if name not in ("bin", "density", "confidence", "jitter", "stack", "bounds",
-                    "partition"):
+    if name not in ("bin", "density", "range", "confidence", "jitter", "stack",
+                    "bounds", "partition"):
         return
     params = {
         key: value
@@ -466,8 +468,8 @@ class Plot:
                 "transforms": list(other.fields["transforms"]),
                 "data": plot.pending_data,
             }
-            for param in ("bin", "density", "confidence", "jitter", "stack", "bounds",
-                          "partition", "box"):
+            for param in ("bin", "density", "range", "confidence", "jitter", "stack",
+                          "bounds", "partition", "box"):
                 if other.fields.get(param) is not None:
                     layer[param] = copy.deepcopy(other.fields[param])
             plot._open_layer(layer)

@@ -82,7 +82,23 @@ check_prose <- function(dirs = c("book", "blog")) {
     "by and large", "hit the ground", "off the shelf", "battle-tested",
     "no small feat", "can of worms", "sharp edges", "rough edges",
     "win-win", "game-changer", "game-changing", "move the needle",
-    "first-class citizen", "nuts and bolts", "in the box"
+    "first-class citizen", "nuts and bolts", "in the box",
+    # Written into the `range` band sections and caught by review rather than by
+    # this list. Each is a stock phrase standing in for a plain verb, which is
+    # the shape the entries above already cover: "tells a different story" for
+    # differs, "fell back" for declined, "wins the lookup" for is found first,
+    # "tells apart" for distinguishes.
+    "tells a different story", "tell a different story", "fell back",
+    "falls back", "wins the lookup", "leaves the other alone"
+    # **The `tell apart` family is deliberately not here yet**, and the reason is
+    # a decision rather than an oversight. It is the same shape as the entries
+    # above, a stock phrase for *distinguishes*, and adding it fails six
+    # sentences across five chapters (`channels.qmd` three times, `coverage.qmd`,
+    # `operators.qmd`, `phrasebook.qmd`), all of them the passive "told apart".
+    # That is an editing sweep with its own argument to have, not a line to slip
+    # into a build. Two instances were rewritten when this list was extended,
+    # in `bindings/javascript.qmd` and one blog post, so the active voice is
+    # already gone; what is left is the passive, and it is settled usage here.
   )
 
   # `index.qmd` quotes an imagined fluent expert saying "the difficulty earns its

@@ -85,7 +85,6 @@ median = Atom("transform", transform="median")
 max = Atom("transform", transform="max")
 min = Atom("transform", transform="min")
 proportion = Atom("transform", transform="proportion")
-range = Atom("transform", transform="range")
 dodge = Atom("transform", transform="dodge")
 
 
@@ -216,6 +215,51 @@ class _Confidence(CallableAtom):
 
 
 confidence = _Confidence("transform", transform="confidence")
+
+
+class _Range(CallableAtom):
+    """`range` — the band per group, the whole group unless told otherwise."""
+
+    __slots__ = ()
+
+    def __call__(
+        self, low: Optional[float] = None, high: Optional[float] = None
+    ) -> Atom:
+        # Two different mistakes reach here and they want different directions,
+        # so the message splits on the shape Python's own builtin is called
+        # with. `range(10)` is a whole number out of 0..1, which is nobody's
+        # quantile, so that reading is named. A float out of 0..1 is a mistyped
+        # band end and gets told about quantiles instead. Both refuse either
+        # way; only the direction is chosen.
+        for name, value in (("low", low), ("high", high)):
+            if value is None:
+                continue
+            builtin_shaped = isinstance(value, bool) or not isinstance(
+                value, (int, float)
+            ) or (isinstance(value, int) and not 0 <= value <= 1)
+            if builtin_shaped:
+                raise GogError(
+                    "gog: `range()` takes the band's two ends, each one number "
+                    "between 0 and 1, e.g. `range(0.25, 0.75)`. For a sequence of "
+                    "integers, gog shadows that name: use `builtins.range` for "
+                    "Python's."
+                )
+            if not 0 <= value <= 1:
+                raise GogError(
+                    f"gog: `range({name}={value})` is not a probability — the "
+                    "band's ends are quantiles, so each is between 0 and 1. "
+                    "`range(0.25, 0.75)` is the middle half, `range(0.1, 0.9)` the "
+                    "middle 80 percent, and bare `range` the whole group."
+                )
+        return Atom(
+            "transform",
+            transform="range",
+            low=None if low is None else float(low),
+            high=None if high is None else float(high),
+        )
+
+
+range = _Range("transform", transform="range")
 
 
 class _Jitter(CallableAtom):

@@ -40,7 +40,7 @@ The result is a derived mark type, not a new atom to memorize.
 | `median` | the middle `y` within each `x` |
 | `max` | the largest `y` within each `x` |
 | `min` | the smallest `y` within each `x` |
-| `range` | the lowest and highest `y` per group, as a pair |
+| `range` | a band of `y` per group, as a pair; the whole group, or two quantiles you name |
 | `confidence` | the mean's confidence interval per group: low, high and center |
 
 The middle five (`sum`, `mean`, `median`, `max`, `min`) form the **aggregation
@@ -773,6 +773,41 @@ and the [`ribbon`](marks/ribbon.qmd) mark fills between the same pair as a
 continuous band. See [Interval](marks/interval.qmd) for the whisker, and for why
 its extents are invented here rather than bound to two extra channels the
 kernel would never otherwise have.
+
+### A band between two quantiles
+
+The minimum and the maximum each come from a single row, so one unusual row moves
+the whole span. To show the middle of a group instead of its extremes, give
+`range` two **quantiles**:
+
+```{r}
+data(iris_flowers) + interval * range(0.25, 0.75) + x(species) + y(petal_length) +
+  x_label("Species") + y_label("Petal length (cm)") +
+  title("Middle half of petal length per species")
+```
+
+The two numbers are quantile probabilities, so `range(0.25, 0.75)` spans the
+first quartile to the third. That span is the **interquartile range**, and it is
+the same one a `box` draws as its body, computed by the same rule. Any other pair
+works the same way: `range(0.1, 0.9)` keeps the middle 80%, and
+`range(0.05, 0.95)` the middle 90%.
+
+Bare `range` is `range(0, 1)`, because the quantile at 0 is the minimum and the
+quantile at 1 is the maximum. So `interval * range` is unchanged, and the two
+arguments only make its default visible. Naming one end leaves the other at its
+extreme, so `range(high = 0.9)` runs from the smallest value to the 90th
+percentile.
+
+Both ends are probabilities. A number below 0 or above 1 is refused, not
+corrected:
+
+```{r}
+#| error: true
+data(iris_flowers) + interval * range(0.25, 75) + x(species) + y(petal_length)
+```
+
+For a low and a high you computed yourself, in the data's own units, use
+[`bounds`](#bounds-a-pre-computed-lowhigh-pair) instead.
 
 ---
 

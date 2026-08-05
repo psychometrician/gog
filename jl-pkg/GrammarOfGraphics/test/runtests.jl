@@ -1425,3 +1425,26 @@ end
     @test startswith(repr("text/html", drawn), "<div")
     @test_throws GogError render_svg(refused)
 end
+
+# ---------------------------------------------------------------------------
+# range() — the band's two ends, as quantile probabilities
+# ---------------------------------------------------------------------------
+
+@testset "range takes a quantile band" begin
+    frame = (g = fill("a", 10), v = Float64.(1:10))
+    band = render_svg(data(frame) + interval * range(0.25, 0.75) + x(:g) + y(:v))
+    whole = render_svg(data(frame) + interval * range + x(:g) + y(:v))
+    @test band != whole
+    # 1..10 by type 7: Q1 = 3.25 and Q3 = 7.75, the numbers `quantile` returns.
+    @test occursin(">4</text>", band)
+    @test !occursin(">10</text>", band)
+    # Bare `range` is the whole group, which is what it has always drawn.
+    @test occursin(">10</text>", whole)
+
+    @test_throws GogError range(0.5, 1.5)
+    @test_throws GogError range(-0.1)
+    @test_throws GogError range("a")
+    @test_throws GogError range(0.25, 0.75, 0.9)
+    @test_throws GogError render_svg(
+        data(frame) + interval * range(0.75, 0.25) + x(:g) + y(:v))
+end

@@ -362,9 +362,16 @@ pub enum Transform {
     Max,
     Min,
     Proportion,
-    /// Per-group minimum and maximum, emitted as a *low, high* pair — the first
+    /// Per-group **quantile band**, emitted as a *low, high* pair — the first
     /// transform to synthesize two output columns instead of one. Read by the
     /// `interval` mark (`interval * range`). A reading transform: it needs `y()`.
+    ///
+    /// The two ends are quantile probabilities carried on the layer as
+    /// [`RangeSpec`], defaulting to 0 and 1, which are the minimum and the
+    /// maximum. So bare `range` is the extremes as it always was, and
+    /// `range(0.25, 0.75)` is the interquartile band — the same numbers `box`
+    /// draws, from the same type-7 quantile, handed out as a pair a sentence can
+    /// compose instead of welded into one mark.
     Range,
     /// Per-group confidence interval of the mean — a *(low, high)* pair plus a
     /// `center` (the mean), so `interval * confidence` draws a whisker with a
@@ -731,6 +738,44 @@ pub struct StackSpec {
     /// `stack(share = true, baseline = "center")` is every composition centered.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub baseline: Option<String>,
+}
+
+/// Parameters for the `range` transform, carried on the layer like
+/// [`BinSpec`]/[`DensitySpec`]. The two knobs are **quantile probabilities** in
+/// 0..1, and `None` on either means the extreme on that side.
+///
+/// **The default pair is the extremes, and that is not a special case.** A type-7
+/// quantile at p = 0 is the minimum and at p = 1 is the maximum, so bare `range`
+/// computes exactly what it always did — the parameter renames a default rather
+/// than changing a result. That is what lets one code path serve both readings
+/// (`transform::range_pair`), which matters more here than anywhere: `box`
+/// already computes quartiles, and two copies of "what is a quartile" would drift
+/// the way the two renderers did.
+///
+/// Both are positional and dimensionless, following `density`'s rule that the
+/// dimensionless knob goes positional. There is deliberately **no second knob in
+/// the data's own units**: bounds you computed yourself are [`BoundsSpec`]'s job,
+/// and a transform that accepted both would be two atoms wearing one name.
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+pub struct RangeSpec {
+    /// Lower quantile probability in 0..1 — `range(0.25, 0.75)`. `None` → 0.0.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub low: Option<f64>,
+    /// Upper quantile probability in 0..1. `None` → 1.0.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub high: Option<f64>,
+}
+
+impl RangeSpec {
+    /// The pair of probabilities this spec asks for, defaults filled in. The one
+    /// place `None` becomes 0.0 and 1.0, so the transform and the legality check
+    /// cannot disagree about what an unset side means.
+    pub fn probabilities(spec: Option<&RangeSpec>) -> (f64, f64) {
+        (
+            spec.and_then(|s| s.low).unwrap_or(0.0),
+            spec.and_then(|s| s.high).unwrap_or(1.0),
+        )
+    }
 }
 
 /// Parameters for the `confidence` transform, carried on the layer like
@@ -1185,6 +1230,10 @@ pub struct Layer {
     /// means Silverman's rule chooses the bandwidth. Absent from the wire when unset.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub density: Option<DensitySpec>,
+    /// Parameters for the `range` transform, when the layer carries one. `None`
+    /// means the extremes, which is `range(0, 1)`. Absent from the wire when unset.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub range: Option<RangeSpec>,
     /// Parameters for the `confidence` transform, when the layer carries one.
     /// `None` means the default 0.95 level. Absent from the wire when unset.
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -1230,6 +1279,7 @@ impl Layer {
             transforms: Vec::new(),
             bin: None,
             density: None,
+            range: None,
             confidence: None,
             r#box: None,
             jitter: None,
@@ -1307,6 +1357,15 @@ impl Layer {
     /// Set an explicit bin width for a `bin` transform (`bar * bin(width = 5)`).
     pub fn bin_width(mut self, w: f64) -> Self {
         self.bin.get_or_insert_with(BinSpec::default).width = Some(w);
+        self
+    }
+
+    /// Set the two ends of a `range` transform's band, as quantile probabilities
+    /// (`interval * range(0.25, 0.75)`). Unset ends are the extremes.
+    pub fn band(mut self, low: f64, high: f64) -> Self {
+        let s = self.range.get_or_insert_with(RangeSpec::default);
+        s.low = Some(low);
+        s.high = Some(high);
         self
     }
 

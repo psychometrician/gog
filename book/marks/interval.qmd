@@ -44,6 +44,55 @@ Read it exactly like `bar * mean`: one range where the other draws a single
 summarized value. You name the one variable whose spread you are asking about;
 the transform invents the two extents and the mark spans them.
 
+## The middle half of each group
+
+A minimum and a maximum each come from a single row, so one unusual flower can
+set the whole whisker. To show the middle of a group instead of its extremes,
+give `range` two **quantiles**:
+
+```{r}
+data(iris_flowers) + interval * range(0.25, 0.75) + x(species) + y(petal_length) +
+  x_label("Species") + y_label("Petal length (cm)") +
+  title("Middle half of petal length per species")
+```
+
+This spans the first quartile to the third, which is the **interquartile range**.
+`range(0.1, 0.9)` keeps the middle 80%, and any other pair works the same
+way. Bare `range` is `range(0, 1)`, so the plain sentence above it is unchanged.
+[Transforms](../transforms.qmd#a-band-between-two-quantiles) gives the full
+account of the two arguments.
+
+## Three layers instead of one mark
+
+A [`box`](box.qmd) draws five numbers in one mark, and you take all five or none.
+Draw the band and the full range as two layers, and the median as a third. Style,
+drop, or replace any of them:
+
+```{r}
+data(iris_flowers) +
+  interval * range + style(color = "lightgray") +
+  interval * range(0.25, 0.75) + style(color = "steelblue", size = 8) +
+  point * median + style(color = "white", size = 3) +
+  x(species) + y(petal_length) +
+  x_label("Species") + y_label("Petal length (cm)") +
+  title("Petal length per species, drawn in three layers")
+```
+
+The gray whisker is the full range, the thick blue band is the middle half, and
+the white dot is the median. The three layers name the three statistics. A box
+plot draws the same three and names none of them.
+
+This is not a `box` redrawn, and the difference is at the ends. A `box` stops its
+whiskers at Tukey's fences and draws the points beyond as outliers, so setosa
+gains four dots that are not here, while these whiskers run to the true minimum
+and maximum. What the layers give you instead is a plot you can change. Widen the
+band to `range(0.1, 0.9)` and the picture changes meaning without changing marks.
+Drop the gray layer and the y axis fits the band rather than the extremes. Add a
+third layer with another pair, and you have the [fan
+chart](ribbon.qmd#a-fan-chart-of-nested-bands) at categories rather than along a
+line. A `box` is still the shorter sentence when you want the five numbers and
+the outlier rule together.
+
 ## A confidence interval, with a center
 
 `range` shows the full spread. For the **uncertainty of the mean**, an error bar,

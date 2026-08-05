@@ -846,7 +846,8 @@ impl SvgRenderer {
                                     t, Transform::Range | Transform::Confidence | Transform::Box))
                                     .cloned().unwrap_or(Transform::Range);
                                 crate::transform::pairs2d(sub, x_field, y_field, field, &kind,
-                                    layer.confidence.as_ref(), layer.r#box.as_ref())
+                                    layer.confidence.as_ref(), layer.r#box.as_ref(),
+                                    layer.range.as_ref())
                             }
                         });
                         // The normalizer's second reading: divide whatever measured
@@ -905,7 +906,7 @@ impl SvgRenderer {
                         let group_field = layer.encodings.get(&Channel::Color)
                             .or_else(|| layer.encodings.get(&Channel::Group))
                             .map(|e| e.field.as_str());
-                        let done = crate::transform::apply(&input, &layer.transforms, key, out, layer.bin.as_ref(), cut.axis(on_x), layer.density.as_ref(), layer.confidence.as_ref(), layer.r#box.as_ref(), layer.bounds.as_ref(), layer.stack.as_ref(), group_field);
+                        let done = crate::transform::apply(&input, &layer.transforms, key, out, layer.bin.as_ref(), cut.axis(on_x), layer.density.as_ref(), layer.range.as_ref(), layer.confidence.as_ref(), layer.r#box.as_ref(), layer.bounds.as_ref(), layer.stack.as_ref(), group_field);
                         // The dot plot: a stacking `point` spends its span on glyphs
                         // rather than on length, so the tally becomes one row per
                         // observation (`transform::pile`, spec §5). Decided here for
@@ -11298,7 +11299,7 @@ mod tests {
             let spec = PlotSpec::new().data("t").x("v").layer(layer);
             let eff = vec![vec![crate::transform::pile(
                 &crate::transform::apply(
-                    &data["t"], &spec.layers[0].transforms, "v", "", None, None, None, None, None, None, None, None),
+                    &data["t"], &spec.layers[0].transforms, "v", "", None, None, None, None, None, None, None, None, None),
                 "")]];
             let warn = pile_overlap_warning(&spec, &eff, "", (0.0, n as f64), 400.0,
                                             SvgRenderer::default().point_radius);

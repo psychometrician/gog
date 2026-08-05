@@ -515,13 +515,51 @@ min     <- structure(list(type = "transform", transform = "min"),     class = "g
 #' @export
 proportion <- structure(list(type = "transform", transform = "proportion"), class = "gog_atom")
 
-# `range` reduces y to its minimum and maximum within each x group — the two
-# extents an `interval` spans.  Like `sum`/`mean`/`min`/`max` it masks the base
-# function of the same name; use `base::range()` for that.  A reading transform:
-# it needs `y()`.
-#' @rdname transforms
+# `range` reduces y to a band within each x group -- the two extents an `interval`
+# spans.  It carries the band's two ends, so like `bin`/`density`/`confidence` it
+# is a *function*: called bare (`interval * range`) the band is the whole group,
+# its minimum to its maximum, which is what `range` has always drawn.
+# `range(0.25, 0.75)` is the interquartile band instead.
+#
+# Like `sum`/`mean`/`min`/`max` it masks the base function of the same name; use
+# `base::range()` for that.  A reading transform: it needs `y()`.
+#' Quantile band per group, for the span marks.
+#'
+#' @param low,high The band's two ends, as quantile probabilities between 0 and
+#'   1.  Positional: `range(0.25, 0.75)` is the middle half.  An unset end is
+#'   that side's extreme, so bare `range` is the whole group and
+#'   `range(high = 0.9)` runs from the minimum to the 90th percentile.
 #' @export
-range   <- structure(list(type = "transform", transform = "range"),   class = "gog_atom")
+range <- function(low = NULL, high = NULL) {
+  # A number apiece, and nothing else.  Two different mistakes reach here and
+  # they want different directions, so the message splits.  A scalar out of
+  # 0..1 is a mistyped quantile.  Anything else -- a vector, a string -- is
+  # almost always `base::range(x)` landing on gog's name, and telling *that*
+  # caller about quantiles would answer a question they did not ask.
+  for (nm in c("low", "high")) {
+    v <- get(nm)
+    if (is.null(v)) next
+    quantile_shaped <- is.numeric(v) && length(v) == 1L && !is.na(v)
+    if (!quantile_shaped) {
+      stop("gog: `range()` takes the band's two ends, each one number between 0 ",
+           "and 1, e.g. `range(0.25, 0.75)`. It was given ",
+           if (is.numeric(v)) paste(length(v), "numbers") else "something that is not a number",
+           ". For the smallest and largest of a vector, gog masks that name: use ",
+           "`base::range()`.", call. = FALSE)
+    }
+    if (v < 0 || v > 1) {
+      stop("gog: `range(", nm, " = ", v, ")` is not a probability -- the band's ",
+           "ends are quantiles, so each is between 0 and 1. `range(0.25, 0.75)` ",
+           "is the middle half, `range(0.1, 0.9)` the middle 80 percent, and bare ",
+           "`range` the whole group.", call. = FALSE)
+    }
+    assign(nm, as.numeric(v))
+  }
+  structure(
+    list(type = "transform", transform = "range", low = low, high = high),
+    class = "gog_atom"
+  )
+}
 
 # `confidence` carries a level, so like `bin`/`density` it is a *function*.
 # Called bare (`interval * confidence`) it uses 0.95; `confidence(0.99)` widens

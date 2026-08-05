@@ -1847,3 +1847,29 @@ test("the engine reports the version the package declares", () => {
       `Engine: ${engine}. A plot drawn now is drawn by the wrong release.`
   );
 });
+
+// ---------------------------------------------------------------------------
+// range() — the band's two ends, as quantile probabilities
+// ---------------------------------------------------------------------------
+
+test("range() takes a quantile band, bare stays the extremes", () => {
+  const table = {
+    g: Array(10).fill("a"),
+    v: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
+  };
+  const sentence = (transform) =>
+    plot(data(table), layer(interval, transform), x(col.g), y(col.v));
+  const band = render_svg(sentence(range(0.25, 0.75)));
+  const whole = render_svg(sentence(range));
+  assert.notEqual(band, whole, "range(0.25, 0.75) drew what bare `range` draws");
+  // 1..10 by type 7: Q1 = 3.25 and Q3 = 7.75, the numbers R's `quantile()` gives.
+  assert.ok(band.includes(">4</text>"), "the band should reach 3.25..7.75");
+  assert.ok(!band.includes(">10</text>"), "the band should not reach the maximum");
+  // Bare `range` is the whole group, which is what it has always drawn.
+  assert.ok(whole.includes(">10</text>"), "bare `range` should reach the maximum");
+
+  assert.throws(() => range(0.5, 1.5), GogError);
+  assert.throws(() => range(-0.1), GogError);
+  assert.throws(() => range("a"), GogError);
+  assert.throws(() => render_svg(sentence(range(0.75, 0.25))), GogError);
+});

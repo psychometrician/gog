@@ -27,7 +27,7 @@ use crate::color::{css_rgb, is_valid_color, nearest_color, numbered_shade};
 use crate::data::DataFrame;
 use crate::ir::{
     Channel, ChannelDef, CoordSpace, Figure, Layer, Mark, PageSpec, PaletteDef, PlotSpec,
-    ScaleType, StyleSpec, ThemeSpec, Transform,
+    RangeSpec, ScaleType, StyleSpec, ThemeSpec, Transform,
 };
 use crate::transform::Job;
 use std::collections::HashMap;
@@ -4287,7 +4287,8 @@ fn check_stack_signs(out: &mut Vec<Diagnostic>, spec: &PlotSpec, df: &DataFrame,
         df,
         &layer.transforms.iter().filter(|t| **t != Transform::Stack).cloned().collect::<Vec<_>>(),
         key_field, out_field,
-        layer.bin.as_ref(), None, layer.density.as_ref(), layer.confidence.as_ref(),
+        layer.bin.as_ref(), None, layer.density.as_ref(), layer.range.as_ref(),
+        layer.confidence.as_ref(),
         layer.r#box.as_ref(), layer.bounds.as_ref(), None, group_field,
     );
     let Some(vals) = piled.float_col(out_field) else { return };
@@ -4737,6 +4738,9 @@ pub fn check(spec: &PlotSpec, data: &HashMap<String, DataFrame>) -> Vec<Diagnost
         // `levels` needs a plane to cut and `bandwidth` needs a single axis, so each
         // is refused in the reading it cannot mean.
         check_density_params(&mut out, spec, df, layer, space_of(spec));
+        // `range`'s two ends are probabilities, and one that is not a probability
+        // describes no band at all.
+        check_range_params(&mut out, layer);
 
         // The trio's third offset, `jitter`, is checked in the df-gated block
         // below (`check_jitter`) — unlike these two it must read the axis types.
@@ -6420,6 +6424,57 @@ fn check_field(out: &mut Vec<Diagnostic>, spec: &PlotSpec, layer: &Layer) {
 /// on either axis, so the refusal points there rather than inventing a second knob.
 /// Not a gap: a per-axis bandwidth is a *pair*, and a pair is a different parameter
 /// from a scalar, to be decided if a plot ever wants it.
+/// `range(low, high)` takes two **quantile probabilities**, so both ends have to
+/// be in 0..1 and the low end has to be below the high one.
+///
+/// **This is legality rather than arithmetic, and the placement is the point.**
+/// `quantile_sorted` clamps, so a probability of 1.5 would quietly become 1.0 and
+/// draw a band nobody asked for — the silent drop §12 forbids, wearing a number
+/// instead of a channel. Answered here it is fatal and says what to write; left
+/// in the transform it could only warn after the fact.
+///
+/// The equal case is refused with the two directions that actually differ: a
+/// reader who wanted one number wanted a reduction, and a reader who wanted a
+/// band mistyped one of the ends.
+fn check_range_params(out: &mut Vec<Diagnostic>, layer: &Layer) {
+    let Some(spec) = layer.range.as_ref() else { return };
+    let (lo, hi) = RangeSpec::probabilities(Some(spec));
+
+    for (name, p) in [("low", lo), ("high", hi)] {
+        if !p.is_finite() || !(0.0..=1.0).contains(&p) {
+            out.push(Diagnostic {
+                kind: DiagnosticKind::Illegal,
+                message: format!(
+                    "gog: `range({name} = {p})` is not a probability — the two ends of the \
+                     band are quantiles, so each is between 0 and 1. `range(0.25, 0.75)` is \
+                     the middle half, `range(0.1, 0.9)` the middle 80 percent, and bare \
+                     `range` the whole group. For bounds you computed yourself, in the \
+                     data's own units, use `bounds(<lower>, <upper>)`."
+                ),
+            });
+        }
+    }
+
+    if lo.is_finite() && hi.is_finite() && (0.0..=1.0).contains(&lo) && (0.0..=1.0).contains(&hi)
+        && lo >= hi
+    {
+        let same = lo == hi;
+        out.push(Diagnostic {
+            kind: DiagnosticKind::Illegal,
+            message: format!(
+                "gog: `range({lo}, {hi})` has no band to draw — the low end must be below \
+                 the high one.{}",
+                if same {
+                    " Two ends at the same quantile is one number rather than a span: write \
+                     `median` for the middle, or `quantile(<p>)` for another point."
+                } else {
+                    " Swap them: `range(<low>, <high>)` reads low end first."
+                },
+            ),
+        });
+    }
+}
+
 fn check_density_params(out: &mut Vec<Diagnostic>, plot: &PlotSpec, df: Option<&DataFrame>,
                         layer: &Layer, space: SpaceKind) {
     let Some(spec) = layer.density.as_ref() else { return };
@@ -7398,12 +7453,34 @@ fn check_play(out: &mut Vec<Diagnostic>, spec: &PlotSpec, data: &HashMap<String,
     // the chosen default is said out loud so it can be confirmed.
     if n > FRAMES_WORTH_MENTIONING {
         let secs = n as f64 * def.frame_seconds();
+
+        // The pace that brings this loop back under the length that would not
+        // have been worth mentioning at all, which is `FRAMES_WORTH_MENTIONING`
+        // frames at the default one. `FRAME_SECONDS` is on both sides and
+        // cancels, so the answer is the frame count over that threshold, and
+        // the number the message offers is the number that fixes it.
+        //
+        // It is offered only when it is faster than the speed already written.
+        // This used to be the constant 4, which meant a sentence that had
+        // already been sped up was told to slow down: `play(second, speed = 6)`
+        // printed "Run it faster with `play(second, speed = 4)`" underneath a
+        // plot whose author had taken the advice once. A direction that points
+        // backwards is worse than no direction, and §12 asks for a direction.
+        let enough = (n as f64 / FRAMES_WORTH_MENTIONING as f64).ceil();
+        let direction = if enough > def.speed.unwrap_or(1.0) {
+            format!(
+                " Run it faster with `play({field}, speed = {enough:.0})`, or bind a \
+                 coarser column."
+            )
+        } else {
+            " Bind a coarser column to cut fewer frames.".to_string()
+        };
+
         out.push(Diagnostic {
             kind: DiagnosticKind::Assumption,
             message: format!(
                 "gog: `play({field})` cuts {n} frames, so the animation loops every \
-                 {secs:.0} seconds. Run it faster with `play({field}, speed = 4)`, or \
-                 bind a coarser column."
+                 {secs:.0} seconds.{direction}"
             ),
         });
     }
@@ -9328,6 +9405,51 @@ mod tests {
         let out = check(&spec, &data());
         assert!(out.iter().any(|d| d.kind == DiagnosticKind::Illegal
             && d.message.contains("smaller number first")), "{:?}", msgs(&out));
+    }
+
+    // -----------------------------------------------------------------------
+    // range's band — the two ends are probabilities (spec §5)
+    // -----------------------------------------------------------------------
+
+    #[test]
+    fn a_quantile_band_is_accepted() {
+        // The sentence the other three are measured against, so a refusal below
+        // is about the numbers rather than about the band being unsayable.
+        let spec = base().layer(
+            Layer::new(Mark::Interval).transform(Transform::Range).band(0.25, 0.75));
+        let out = check(&spec, &data());
+        assert!(out.is_empty(), "the interquartile band was refused: {:?}", msgs(&out));
+    }
+
+    #[test]
+    fn a_band_end_outside_zero_to_one_is_refused() {
+        // `quantile_sorted` clamps, so 1.5 would silently become the maximum and
+        // draw a band nobody asked for. Refused here instead, where it is fatal.
+        let spec = base().layer(
+            Layer::new(Mark::Interval).transform(Transform::Range).band(0.5, 1.5));
+        let out = check(&spec, &data());
+        assert!(out.iter().any(|d| d.kind == DiagnosticKind::Illegal
+            && d.message.contains("not a probability")), "{:?}", msgs(&out));
+    }
+
+    #[test]
+    fn a_band_that_runs_downward_is_refused_and_says_to_swap() {
+        let spec = base().layer(
+            Layer::new(Mark::Interval).transform(Transform::Range).band(0.75, 0.25));
+        let out = check(&spec, &data());
+        assert!(out.iter().any(|d| d.kind == DiagnosticKind::Illegal
+            && d.message.contains("Swap them")), "{:?}", msgs(&out));
+    }
+
+    #[test]
+    fn a_band_with_both_ends_equal_is_pointed_at_a_reduction() {
+        // One quantile twice is a number, not a span, and the direction has to
+        // name the atom that draws a number rather than repeat the arithmetic.
+        let spec = base().layer(
+            Layer::new(Mark::Interval).transform(Transform::Range).band(0.5, 0.5));
+        let out = check(&spec, &data());
+        assert!(out.iter().any(|d| d.kind == DiagnosticKind::Illegal
+            && d.message.contains("`median`")), "{:?}", msgs(&out));
     }
 
     // -----------------------------------------------------------------------
@@ -11352,6 +11474,52 @@ mod tests {
         assert_eq!(kinds(&d), [DiagnosticKind::Assumption], "it draws, and it remarks");
         assert!(d[0].message.contains("40 frames"), "{}", d[0].message);
         assert!(d[0].message.contains("speed"), "and gives the direction: {}", d[0].message);
+    }
+
+    /// And the pace it names has to be faster than the one already written.
+    ///
+    /// It was the constant 4 for the life of the diagnostic, so a sequence
+    /// already running at 6 was told to "run it faster with `speed = 4`" — the
+    /// message asking for half the pace it was reading, under a plot whose
+    /// author had taken its advice once. Found while writing the play chapter,
+    /// where the sentence on the page sets `speed = 3` and the note under it
+    /// named a number that had nothing to do with it.
+    #[test]
+    fn the_pace_it_suggests_is_never_slower_than_the_one_already_written() {
+        let years: Vec<f64> = (0..170).map(|i| i as f64).collect();
+        let n = years.len();
+        let df = DataFrame::new()
+            .with_float("gdp", vec![1.0; n])
+            .with_float("life", vec![2.0; n])
+            .with_float("year", years);
+        let mut m = HashMap::new();
+        m.insert("t".to_string(), df);
+
+        let at = |speed: f64| {
+            let spec = base().layer(
+                Layer::new(Mark::Point)
+                    .encode_def(Channel::Play, ChannelDef::field("year").with_speed(speed)),
+            );
+            check(&spec, &m)
+                .into_iter()
+                .find(|x| x.kind == DiagnosticKind::Assumption)
+                .expect("a long sequence still remarks")
+                .message
+        };
+
+        // Slower than it needs to be, so it says how much faster: 170 frames
+        // over the 30 that pass without remark is six.
+        let slow = at(3.0);
+        assert!(slow.contains("speed = 6"), "{slow}");
+
+        // At that pace or past it, no pace is offered, because the only one
+        // that would help is the one already written. What is left is the other
+        // way out, and §12 requires that something be left.
+        for already_fast in [6.0, 8.0] {
+            let msg = at(already_fast);
+            assert!(!msg.contains("speed ="), "no backwards direction: {msg}");
+            assert!(msg.contains("coarser column"), "still says what to do: {msg}");
+        }
     }
 
     /// A short one says nothing: §12's rule is that an unambiguous default is

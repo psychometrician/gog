@@ -1663,4 +1663,31 @@ except GogError:
     pass
 ok("drawing still draws and render_svg() still raises")
 
+# ---------------------------------------------------------------------------
+# range() — the band's two ends, as quantile probabilities
+# ---------------------------------------------------------------------------
+
+_band_table = {"g": ["a"] * 10, "v": [float(i) for i in builtins.range(1, 11)]}
+_band = render_svg(
+    data(_band_table, name="b") + interval * range(0.25, 0.75) + x(col.g) + y(col.v)
+)
+_whole = render_svg(data(_band_table, name="b") + interval * range + x(col.g) + y(col.v))
+assert _band != _whole, "range(0.25, 0.75) drew what bare `range` draws"
+# 1..10 by type 7: Q1 = 3.25 and Q3 = 7.75, the numbers `quantile()` returns.
+assert ">4</text>" in _band and ">10</text>" not in _band, (
+    "the interquartile band should span 3.25..7.75, not the extremes"
+)
+assert ">10</text>" in _whole, "bare `range` should still reach the maximum"
+ok("range() takes a quantile band, bare stays the extremes")
+
+refuses("a band end above 1", lambda: range(0.5, 1.5))
+refuses("a band end below 0", lambda: range(-0.1))
+refuses("a band end that is not a number", lambda: range("a"))
+refuses(
+    "a band that runs downward",
+    lambda: render_svg(
+        data(_band_table, name="b") + interval * range(0.75, 0.25) + x(col.g) + y(col.v)
+    ),
+)
+
 print(f"\nAll {passed} checks passed.")

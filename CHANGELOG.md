@@ -8,6 +8,15 @@ CRAN-style repositories and PyPI, `GrammarOfGraphics` on Julia's General, and
 
 ### Added
 
+- **`range` takes the band's two ends.** `interval * range(0.25, 0.75)` draws the
+  interquartile band instead of the full spread, and any other pair works the
+  same way: `ribbon * range(0.1, 0.9)` is the middle 80 percent, and two of those
+  layered at different widths is a fan chart. The two numbers are quantile
+  probabilities, so an unset end is that side's extreme and bare `range` is
+  unchanged, being the minimum to the maximum it always drew. The quartiles are
+  the ones `box` already computes, from the same rule, so a band and a box body
+  agree. An end outside 0 to 1 is refused, and so is a band that runs downward.
+
 - **Clicking a mark stamps its values onto the plot.** The row that appears
   while the pointer is over a mark stays there once you click it, so several
   rows can be read at once and compared against each other, which hovering
@@ -18,7 +27,35 @@ CRAN-style repositories and PyPI, `GrammarOfGraphics` on Julia's General, and
   stamps: this is a way of reading a plot, like turning a cube. What it is for
   is finding the points worth naming, and naming them is `text`.
 
+### Changed
+
+- **In R, `range` now masks `base::range`.** A transform that takes a parameter
+  has to be a function, and R resolves a call by looking for a function, so
+  `range(x)` reaches gog's where it used to fall through to base R's. Write
+  `base::range(x)` for the smallest and largest of a vector. gog's `range` says
+  so when it is handed something that is not a probability. This affects R only:
+  the Python, Julia and JavaScript atoms were already callable.
+
+- **The controls under a plot are two lines, and the first is the same one
+  everywhere.** Zoom, fit, the hand and the camera are the only controls every
+  plot carries, so they now have a line of their own directly under the picture,
+  with whatever the plot adds for itself beneath them. In one line they slid
+  along as the controls beside them changed width, so the button you wanted was
+  never twice in the same place. A plain plot looks as it did. On a plot in the
+  cube this also separates the two words that undo something: the frame returns
+  the view, beside the buttons that changed it, and `reset` returns the angle,
+  beside the readout stating it.
+
 ### Fixed
+
+- A long `play` sequence asked you to slow it down. The note that reports how
+  long the loop will run always offered the same pace, whatever pace the
+  sentence already set, so `play(second, speed = 6)` was answered with "run it
+  faster with `speed = 4`". It now works out the pace that would bring the loop
+  under the length it would not have remarked on at all, and offers that. Where
+  the sentence is already at or past that pace it offers no number, and says to
+  bind a column with fewer values instead, which is the only thing left that
+  would help.
 
 - Pointing at a mark named the wrong row on several kinds of plot. The readout
   works out where each row was drawn instead of asking the picture, which is
