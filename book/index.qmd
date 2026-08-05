@@ -523,9 +523,9 @@ out instead, each in its own style: `GrammarOfGraphics` in Julia, and
 is free the package is `gog`, and where it is not the name is written in full.
 
 Three of these packages carry the engine inside them, already built for your
-computer. You do not need a Rust [@klabnik2023rust] toolchain, and nothing has to
-be added to your `PATH`. Two of the four commands come with a condition that is
-worth knowing before you type it.
+computer. For those three you do not need a Rust [@klabnik2023rust] toolchain,
+and nothing has to be added to your `PATH`. Two of the four commands come with a
+condition that is worth knowing before you type it.
 
 The R package is not on CRAN yet. It is published on
 [r-universe](https://psychometrician.r-universe.dev/gog) instead, which is why the
@@ -533,8 +533,8 @@ The R package is not on CRAN yet. It is published on
 mirror, and it is there so your other packages still install as usual.
 
 The Julia package is the one binding that does not carry the engine yet, so it
-will load before it can draw. The [Julia](bindings/julia.qmd) chapter says what
-to do until then.
+will load before it can draw. One more command installs an engine, and the
+[Julia](bindings/julia.qmd) chapter gives it.
 
 Each binding has its own chapter at the end of this book, and each of those
 chapters closes with the longer version of this section: [R](bindings/r.qmd),

@@ -23,14 +23,15 @@ image-alt: >-
 source("../../../book/R/setup.R")
 ```
 
-You work in R and in Python, and you need to draw a plot. Which package do you
-learn?
+You need to draw a plot, and one day you will need the same plot in another
+language. Which package do you learn?
 
 In R the answer is usually [ggplot2](https://ggplot2.tidyverse.org/). In Python
 it is [matplotlib](https://matplotlib.org/), or
-[seaborn](https://seaborn.pydata.org/) sitting on top of it.[^plotnine] Both are
-good, and they have almost nothing in common. Knowing one teaches you very little about the other. So you learn two
-vocabularies, and you use them to draw the same scatter twice.
+[seaborn](https://seaborn.pydata.org/) built on it.[^plotnine] Both are good,
+and they have almost nothing in common. Knowing one teaches you very little
+about the other. So you learn two vocabularies, and you use them to draw the
+same scatter twice.
 
 [^plotnine]: There is a third answer, and it is the closest thing to what this
     post is about. [plotnine](https://plotnine.org) brings ggplot2's grammar to
@@ -41,23 +42,23 @@ vocabularies, and you use them to draw the same scatter twice.
     through [grid](https://stat.ethz.ch/R-manual/R-devel/library/grid/html/grid-package.html)
     and plotnine through matplotlib, so the pictures come out alike
     rather than identical, and a pair of them still needs matching by hand before
-    they share a page. It also reaches two of the four languages here.
+    they share a page. Between them, ggplot2 and plotnine reach two of the four
+    languages here.
 
 Now suppose you only had to learn one. The same syntax in R, in Python and in
-Julia, with not a word changed between them. JavaScript needs one small change,
-and a section below works through it.
+Julia, and not one word changes between them. JavaScript is spelled a little
+differently, and a section below works through it.
 
-gog tries the opposite arrangement. Instead of one plotting library per language,
-there is one graphics engine with four small packages sitting on top of it, one
-per language. Describe a plot in any of them and you get the same picture: not a
+gog is a grammar of graphics, and it takes the opposite arrangement. Instead of
+one plotting library per language, there is one graphics engine with four small
+packages built on it, one per language. Describe a plot in any of them and you get the same picture: not a
 similar one, not one that needs its theme adjusted to match, but the identical
 file.[^plotly]
 
 [^plotly]: [Plotly](https://plotly.com/graphing-libraries/) is the closest thing
     that already exists, and it reaches these same four languages. Underneath
     them is one renderer, [plotly.js](https://plotly.com/javascript/), fed a
-    figure written as JSON, which is the arrangement this post is about. What is
-    not shared is the sentence you write. The same request is
+    figure written as JSON. What is not shared is the sentence you write. The same request is
     `plot_ly(df, x = ~gdp, y = ~life)` in R, with the formula notation that
     language needs; `px.scatter(df, x="gdp", y="life")` in Python;
     `plot(scatter(x=df.gdp, y=df.life))` in Julia; and
@@ -82,8 +83,8 @@ first five rows:
 peek(gapminder_2007)
 ```
 
-In gog you answer a question like that by saying what the data means, rather
-than by drawing anything:
+In gog you answer a question like that by naming a table, a shape, and which
+column goes where:
 
 ```{r}
 data(gapminder_2007) + point + x(gdp) + y(life) + color(continent)
@@ -112,8 +113,8 @@ data(gapminder_2007) + point + x(:gdp) + y(:life) + color(:continent)
 ```
 
 The first three are one sentence three times. They differ only in how a column
-is named: a bare word in R, `col.gdp` in Python, `:gdp` in Julia. That is the
-host language's business and not the grammar's.
+is named: a bare word in R, `col.gdp` in Python, `:gdp` in Julia. That is a
+difference between the three languages, not a difference in the grammar.
 
 JavaScript is the one exception, and the reason is the language itself:
 
@@ -122,7 +123,7 @@ JavaScript is the one exception, and the reason is the language itself:
 plot(data(gapminder_2007), point, x(col.gdp), y(col.life), color(col.continent))
 ```
 
-Read it against the R above. Every `+` has become a comma, and the whole sentence
+Compare it with the R above. Every `+` has become a comma, and the whole sentence
 now sits inside `plot()`. This sentence uses only `+`, so nothing else changed.
 
 It reads that way because a package in JavaScript cannot give `+` a new meaning.
@@ -149,8 +150,8 @@ plot(data(gapminder_2007), layer(bar, bin), x(col.life))
 ```
 
 `|` with `facet()` after it cuts one plot into a panel per group. This is the
-scatter from the top of the page split five ways, and every panel shares one pair
-of axes, so the continents can be compared:
+scatter from the top of the page split into five panels, and they all share one
+pair of axes, so the continents can be compared:
 
 ```{r}
 data(gapminder_2007) + point + x(gdp) + y(life) | facet(continent)
@@ -189,7 +190,7 @@ Count the `plot()` calls in the last two blocks. One call with `across()` inside
 it is a single plot drawn several times over. Two calls inside `beside()` are two
 plots that share nothing but the page.
 
-`/` is the fourth symbol, and it does what `|` does turned a quarter: panels
+`/` is the fourth symbol, and it does the same two jobs downward: panels
 stacked rather than side by side, and one plot above another rather than beside
 it. So the whole of what JavaScript spells out is six words:
 
@@ -217,13 +218,11 @@ picture. Your language turns that into a short block of text and hands it over.
 Something else reads the text and draws the picture.
 
 That block of text has a name. It is the plot's **specification**, and building
-one is the whole job of each of the four packages. They are specification
-builders.
+one is the whole job of each of the four packages.
 
-![](../../images/pipeline.svg){fig-alt="Four packages, one for R, Python, Julia and
-JavaScript, each build the same specification. It travels as JSON on standard
-input to gog-cli, the bridge, then to gog-core, the engine, which draws the
-SVG."}
+![](../../images/pipeline.svg){fig-alt="Four packages, one for R, Python, Julia
+and JavaScript, each build the same specification. It travels to one engine,
+which draws the picture."}
 
 Read the diagram from left to right. The four boxes on the left are the four
 packages you can install. Each lets you write in its own language, and all four
@@ -235,11 +234,11 @@ So the four packages cannot disagree about what a plot looks like. None of them
 chooses the axes, the colors, or where a single dot goes. Those decisions are
 made once, in one place, by code that all four share. That is a stronger promise
 than four libraries carefully kept the same, because there is nothing left inside
-them to drift.
+them that could drift.
 
-## What that buys you
+## What you get
 
-Three things, and the third is the one people do not expect.
+Three things follow from that.
 
 - **The figures match.** The plot in the paper and the plot on the dashboard are
   the same picture, so nobody spends an afternoon matching palettes before a
@@ -256,7 +255,7 @@ Three things, and the third is the one people do not expect.
 
 Not by hoping. gog's book has 59 chapters, and every plot in it is drawn by the
 engine as the page builds rather than saved as a picture. So the book is also a
-list of every plot the grammar can make.
+working list of the plots the grammar can make.
 
 Every time the code changes, that list is pulled out of the book and drawn again
 from Python, from JavaScript and from Julia. Each result is compared against the
@@ -268,39 +267,35 @@ of them are plots: 159 ask for something the grammar refuses, and the check
 compares the refusal messages word for word. If one of the four stops matching,
 the check names the exact plot that came out different.
 
-A check can only find what it looks at, and the last release showed us where ours
-was not looking. R's file came out one character shorter than the other three,
-and the check had been calling all four identical, because every side trimmed
-blank space off the end before comparing. The only part of the file that differed
-was the one part nobody was reading. Those trims are gone, and the comparison now
-runs from the first character to the last.
-
 ## Every plot arrives with controls
 
-Look under any plot on this page. There is a row of five small boxes: zoom out,
-zoom in, fit the whole picture, a label saying the plot can be dragged, and a
-camera that saves what you are looking at as an image file.
+Look under any of the flat plots on this page. There is a row of five small
+boxes. Two are magnifiers, and they look closer and wider. The frame gives you
+back the whole picture. The hand means you can drag the plot to move it. The
+camera saves what you are looking at as a PNG file. A box is dimmed when there
+is nothing for it to do.
 
 You did not ask for any of that, and there is no word in the grammar that turns
 it on. In most libraries a finished plot is a still image, so zooming into it or
-saving a larger copy means reaching for a second package. Here it is already
+saving a larger copy means installing a second package. Here it is already
 there, on every plot, and you never wrote a line for it.
 
-Add a third position and the plot stands up off the page. Drag this one:
+Add a third position and the plot becomes a cube you can turn. Drag this one:
 
 ```{r}
 data(gapminder_2007) + point + x(gdp) + y(life) + z(population) + color(continent)
 ```
 
-A cloud in three dimensions hides something at every angle, so a plot you can
-turn is a plot you can read more than one way. It is the same sentence as the
+A cloud of points in three dimensions always hides some points behind others.
+Turning it shows you what one angle was hiding. It is the same sentence as the
 scatter at the top of this page with one more position in it.
 
 ## What this is not
 
 It is version 0.0.3, and that number is accurate. The project is young, there
-are things mature libraries draw that it cannot, and the book keeps a dated list
-of exactly what those are.
+are things mature libraries draw that it cannot, and the book keeps a
+[dated list](https://psychometrician.github.io/gog-book/coverage.html) of
+exactly what those are.
 
 ## What you can do
 
@@ -309,12 +304,12 @@ of exactly what those are.
 It is [live](https://psychometrician.github.io/gog-book/): 654 plots, every one
 drawn by the engine as the page builds, not a single screenshot. The
 [JavaScript chapter](https://psychometrician.github.io/gog-book/bindings/javascript.html)
-covers the operator problem above in full.
+covers the missing operators above in full.
 
 ### Install it
 
-Three of the four packages carry the engine inside them, built for your
-platform, so there is no toolchain to set up.
+R, Python and JavaScript carry the engine inside the package, built for your
+platform, so there is nothing else to set up.
 
 ```r
 # R
@@ -336,6 +331,60 @@ using Pkg; Pkg.add("GrammarOfGraphics")
 # JavaScript
 npm install grammar-of-graphics
 ```
+
+Julia is the one that does not carry the engine yet. One command builds and
+installs it, and Julia finds it on your path:
+
+```bash
+cargo install --git https://github.com/psychometrician/gog gog-cli
+```
+
+That command needs Rust, which [rustup](https://rustup.rs) installs in one step.
+If you started Julia from an editor or a notebook, that session may not see your
+path, so set `ENV["GOG_CLI_PATH"]` to the binary instead. Julia is the only one
+of the four that asks for any of this, and it will not ask for long.
+
+### Draw the plots on this page
+
+Every plot above reads one table, and `book_table()` fetches it by name. It
+comes with the package, so there is no file to download and no reader to write.
+Here is the scatter from the top of the page, in each language:
+
+::: {.panel-tabset}
+
+## R
+
+```r
+gapminder_2007 <- book_table("gapminder_2007")
+data(gapminder_2007) + point + x(gdp) + y(life) + color(continent)
+```
+
+## Python
+
+```python
+gapminder_2007 = book_table("gapminder_2007")
+data(gapminder_2007) + point + x(col.gdp) + y(col.life) + color(col.continent)
+```
+
+## Julia
+
+```julia
+gapminder_2007 = book_table("gapminder_2007")
+data(gapminder_2007) + point + x(:gdp) + y(:life) + color(:continent)
+```
+
+## JavaScript
+
+```javascript
+const gapminder_2007 = await book_table("gapminder_2007");
+plot(data(gapminder_2007), point, x(col.gdp), y(col.life), color(col.continent));
+```
+
+:::
+
+The other plots on this page are that sentence with a word or two changed. The
+book's [data chapter](https://psychometrician.github.io/gog-book/book-data.html)
+lists the thirty-five tables `book_table()` can fetch.
 
 ### Try to make two of them disagree
 

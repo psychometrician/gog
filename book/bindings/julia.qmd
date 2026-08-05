@@ -181,25 +181,32 @@ R and Python use, and the registry is the reason: Julia asks a package name for
 at least five letters and capitalized words, so a lowercase `gog` is not legal
 there.
 
+Installing takes two commands here, and the engine comes first. A plot is drawn
+by the engine, which is a compiled Rust binary. The R, Python and JavaScript
+packages each ship one built for your computer, and the Julia package does not
+carry one yet, so this is the binding that asks you to install it:
+
+```bash
+cargo install --git https://github.com/psychometrician/gog gog-cli
+```
+
+That command needs Rust, which [rustup](https://rustup.rs) installs in one step.
+It puts `gog-cli` on your `PATH`, which is where the package looks. If you
+started Julia from an editor or a notebook, that session may not see your
+`PATH`, so set `ENV["GOG_CLI_PATH"]` to the binary instead. Then the package:
+
 ```julia
 using Pkg
 Pkg.add("GrammarOfGraphics")
 ```
 
-There is one thing to know, and it is the one real gap between this binding and
-the other three. A plot is drawn by the engine, which is a compiled Rust
-binary, and the Julia package does not carry one yet. The R, Python and
-JavaScript packages each ship an engine built for your computer. Here, `Pkg.add`
-gives you a package that loads correctly but cannot draw until an engine exists
-on your machine. Building it once is the fix:
-
-```bash
-cargo build --release -p gog-cli
-```
+The order is advice rather than a rule. The package loads without an engine and
+looks for one only when it draws, so the other order works as well. Installing
+the engine first means you never meet the error.
 
 The proper answer is an artifact, which is how Julia normally distributes a
 compiled binary, and it is owed rather than optional. Until it lands, the
-examples in this chapter assume you built the engine yourself.
+examples in this chapter assume you installed the engine yourself.
 
 To work from a checkout instead, add the package from the path where it sits:
 
