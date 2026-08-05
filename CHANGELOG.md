@@ -6,6 +6,18 @@ CRAN-style repositories and PyPI, `GrammarOfGraphics` on Julia's General, and
 
 ## Unreleased
 
+### Added
+
+- **Clicking a mark stamps its values onto the plot.** The row that appears
+  while the pointer is over a mark stays there once you click it, so several
+  rows can be read at once and compared against each other, which hovering
+  cannot do because it forgets the last one. Click the card to take it off, or
+  `unstamp` to take them all off together; `clear` leaves them alone, because a
+  stamp is not a selection. A click on empty space still clears the selection,
+  as before. Nothing about the sentence changes and the printed page carries no
+  stamps: this is a way of reading a plot, like turning a cube. What it is for
+  is finding the points worth naming, and naming them is `text`.
+
 ### Fixed
 
 - Pointing at a mark named the wrong row on several kinds of plot. The readout

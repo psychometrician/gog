@@ -654,7 +654,10 @@ function stubDom() {
       // truthful width for an element nothing laid out, and it keeps the
       // arithmetic that reads it from producing `NaN`.
       offsetWidth: 0, offsetHeight: 0,
+      listeners: new Map(),
       setAttribute() {}, removeAttribute() {},
+      addEventListener(type, fn) { node.listeners.set(type, fn); },
+      removeEventListener(type) { node.listeners.delete(type); },
       appendChild(c) { node.children.push(c); node.firstChild ??= c; return c; },
       remove() {
         node.isConnected = false;
@@ -693,7 +696,15 @@ const onPage = (cls) =>
  *  only the first is how a test of faceted behavior would quietly become a test
  *  of one panel's. */
 function panelFrom(svg) {
-  const identity = { a: 1, b: 0, c: 0, d: 1, e: 0, f: 0, inverse: () => identity };
+  // The panel's place on the screen. Identity by default, so client coordinates
+  // *are* user coordinates and a pointer test reads as arithmetic. A test that
+  // cares whether something re-reads the transform rather than merely staying
+  // put moves `SHIFT` and asks again.
+  const ctm = () => {
+    const m = { a: 1, b: 0, c: 0, d: 1, e: SHIFT.x, f: SHIFT.y };
+    m.inverse = () => ({ a: 1, b: 0, c: 0, d: 1, e: -SHIFT.x, f: -SHIFT.y, inverse: () => m });
+    return m;
+  };
   const point = () => ({
     x: 0, y: 0,
     matrixTransform(m) { return { x: this.x * m.a + m.e, y: this.y * m.d + m.f }; },
@@ -707,13 +718,15 @@ function panelFrom(svg) {
     return {
       getAttribute: (n) => attrs[n] ?? null,
       ownerSVGElement: owner,
-      getScreenCTM: () => identity,
+      getScreenCTM: ctm,
     };
   });
 }
 
 /** Where the animation has got to, in seconds. */
 const CLOCK = { t: 0 };
+/** Where the panel sits on the screen, for testing that something re-reads it. */
+const SHIFT = { x: 0, y: 0 };
 
 function stubContainer() {
   const listeners = new Map();
@@ -1135,6 +1148,163 @@ test("nobody has asked, so there is nothing to explain", async () => {
   } finally {
     undo();
   }
+});
+
+// ---------------------------------------------------------------------------
+// Stamping a row
+//
+// A stamp is the readout, kept. The gesture that asks for one is a click, which
+// already meant *clear the selection*, so the two are told apart by what the
+// click landed on: a mark stamps, empty space clears. Both readings are here,
+// because the risk is not that stamping fails but that it eats the clear.
+// ---------------------------------------------------------------------------
+
+const cardOf = (stamp) => stamp.children.find((c) => c.className === "gog-stamp-card");
+
+test("clicking a mark leaves it named on the picture", async () => {
+  const undo = stubDom();
+  try {
+    const { handle, container, panels } = await hoverFixture(POINTS.spec, POINTS.data);
+    const p = panels[0];
+    const [px, py] = [placeOn(p.x, 50), placeOn(p.y, 50)];
+    container.send("pointerdown", px, py);
+    container.send("pointerup", px, py);
+
+    assert.equal(handle.stamps(), 1);
+    const [pinned] = onPage("gog-stamp");
+    assert.ok(pinned, "a stamp is on the page");
+    assert.match(cardOf(pinned).innerHTML, /\b50\b/, "and it names the row clicked");
+    handle.destroy();
+  } finally {
+    undo();
+  }
+});
+
+test("clicking empty space still clears, and stamps nothing", async () => {
+  const undo = stubDom();
+  try {
+    const { handle, container, panels } = await hoverFixture(POINTS.spec, POINTS.data);
+    const p = panels[0];
+    // Select two of the three, so there is something for a click to clear.
+    container.send("pointerdown", placeOn(p.x, 10), placeOn(p.y, 10));
+    container.send("pointermove", placeOn(p.x, 60), placeOn(p.y, 60));
+    container.send("pointerup", placeOn(p.x, 60), placeOn(p.y, 60));
+    assert.equal(handle.selection().kept, 2, "two are caught");
+    assert.equal(handle.stamps(), 0, "and a drag is not a click");
+
+    // Now a click on a part of the panel with no mark near it.
+    const [ex, ey] = [placeOn(p.x, 30), placeOn(p.y, 70)];
+    container.send("pointerdown", ex, ey);
+    container.send("pointerup", ex, ey);
+    assert.equal(handle.selection().kept, 0, "the click cleared the selection");
+    assert.equal(handle.stamps(), 0, "and left nothing behind");
+    handle.destroy();
+  } finally {
+    undo();
+  }
+});
+
+// The assertion the anchoring rests on. A redraw replaces the whole picture, so
+// the panel the stamp was measured against is gone; moving the screen transform
+// underneath proves the stamp went back and read the new one, rather than
+// passing because nothing moved.
+test("a redraw keeps the stamp and takes it with the picture", async () => {
+  const undo = stubDom();
+  try {
+    const { handle, container, panels } = await hoverFixture(POINTS.spec, POINTS.data);
+    const p = panels[0];
+    container.send("pointerdown", placeOn(p.x, 50), placeOn(p.y, 50));
+    container.send("pointerup", placeOn(p.x, 50), placeOn(p.y, 50));
+    const [before] = onPage("gog-stamp");
+    const wasAt = parseFloat(before.style.left);
+
+    // The panel has moved on the screen, so the pointer's own numbers move with
+    // it: a reader dragging the same part of the picture is now dragging 100
+    // pixels further right. Any drag will do here; the point is that it redraws.
+    SHIFT.x = 100;
+    const cx = (v) => placeOn(p.x, v) + SHIFT.x;
+    const cy = (v) => placeOn(p.y, v) + SHIFT.y;
+    container.send("pointerdown", cx(10), cy(10));
+    container.send("pointermove", cx(60), cy(60));
+    container.send("pointerup", cx(60), cy(60));
+
+    const after = onPage("gog-stamp");
+    assert.equal(after.length, 1, "still one stamp, and the drag added none");
+    assert.equal(after[0], before, "the same card, not a fresh one");
+    assert.equal(parseFloat(after[0].style.left) - wasAt, 100,
+      "and it moved exactly as far as the panel did");
+    handle.destroy();
+  } finally {
+    SHIFT.x = 0;
+    undo();
+  }
+});
+
+test("clicking a stamp takes it off", async () => {
+  const undo = stubDom();
+  try {
+    const { handle, container, panels } = await hoverFixture(POINTS.spec, POINTS.data);
+    const p = panels[0];
+    container.send("pointerdown", placeOn(p.x, 50), placeOn(p.y, 50));
+    container.send("pointerup", placeOn(p.x, 50), placeOn(p.y, 50));
+    const [pinned] = onPage("gog-stamp");
+
+    cardOf(pinned).listeners.get("click")();
+    assert.equal(handle.stamps(), 0);
+    assert.equal(onPage("gog-stamp").length, 0, "and it left the page with it");
+    handle.destroy();
+  } finally {
+    undo();
+  }
+});
+
+test("a plot that cannot place a row cannot be stamped either", async () => {
+  const undo = stubDom();
+  try {
+    const { handle, container, panels } = await hoverFixture(
+      { ...POINTS.spec, coord: { polar: {} } }, POINTS.data);
+    const p = panels[0];
+    const [px, py] = [placeOn(p.x, 50), placeOn(p.y, 50)];
+    container.send("pointerdown", px, py);
+    container.send("pointerup", px, py);
+    assert.equal(handle.stamps(), 0,
+      "the same gate that refuses the readout refuses the stamp");
+    handle.destroy();
+  } finally {
+    undo();
+  }
+});
+
+test("destroy takes the stamps with it", async () => {
+  const undo = stubDom();
+  try {
+    const { handle, container, panels } = await hoverFixture(POINTS.spec, POINTS.data);
+    const p = panels[0];
+    container.send("pointerdown", placeOn(p.x, 50), placeOn(p.y, 50));
+    container.send("pointerup", placeOn(p.x, 50), placeOn(p.y, 50));
+    assert.equal(onPage("gog-stamp").length, 1);
+    handle.destroy();
+    assert.equal(onPage("gog-stamp").length, 0,
+      "nothing of this plot is left on the page");
+  } finally {
+    undo();
+  }
+});
+
+test("the view says when it has moved, so anything anchored to it can follow", () => {
+  const plot = fakePlot();
+  const view = attachView(plot);
+  let moves = 0;
+  const stop = view.onApply(() => { moves += 1; });
+
+  view.zoom(2);
+  view.panBy(10, 10);
+  view.reset();
+  assert.equal(moves, 3, "zoom, pan and fit each say so");
+
+  stop();
+  view.zoom(2);
+  assert.equal(moves, 3, "and it stops when it is told to");
 });
 
 test("holdsIn counts a vertex on the ray once, not twice", () => {

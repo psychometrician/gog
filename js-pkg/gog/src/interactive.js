@@ -424,9 +424,17 @@ export function attachBrush(engine, container, request, options = {}) {
     // The element the `viewBox` was set on is gone; put it back before the
     // browser paints, or every brush frame snaps the zoom out to fit.
     view?.apply();
+    // A stamp is anchored to a panel element the redraw above destroyed, so it
+    // has to find the new one. Only when there is no view to do it for us:
+    // `apply` notifies its watchers, and re-anchoring twice a frame during a
+    // drag is work nobody sees.
+    if (!view) anchor();
     if (onSelect) onSelect();
     return true;
   }
+  // Assigned once the stamps and the panel reader below exist. `draw` runs one
+  // frame before that, and nothing is anchored yet on the first frame.
+  let anchor = () => {};
   if (!draw()) return { destroy() {}, reset() {}, opened };
 
   // Every panel on the page, in document order, with its two domains parsed.
@@ -810,9 +818,7 @@ export function attachBrush(engine, container, request, options = {}) {
       document.body.appendChild(tip);
     }
     if (!tip.isConnected) document.body.appendChild(tip);
-    tip.innerHTML = hit.row
-      .map(([f, v]) => `<div><span style="color:#888">${f}</span> ${v ?? ""}</div>`)
-      .join("");
+    tip.innerHTML = rowHtml(hit.row);
     // Kept inside the viewport, so a point near the right edge does not push a
     // fixed element off the page and give the reader a scrollbar.
     const w = tip.offsetWidth;
@@ -825,9 +831,123 @@ export function attachBrush(engine, container, request, options = {}) {
     tip = null;
   };
 
-  // Where a pixel falls on an axis, in the column's own units — or, on a column
-  // of categories, which slots the drag covered. A category owns an equal share
-  // of the panel, so the slot is the fraction times the count, floored.
+  // ---------------------------------------------------------------------
+  // Stamping a row
+  //
+  // A stamp is the readout above, kept. Hovering answers *what is this* and
+  // forgets; a reader comparing four points has to hold three of them in their
+  // head, and a reader deciding which points are worth a `text` layer has no way
+  // to try one out. So a click leaves the answer on the picture and a click on
+  // the card takes it off again.
+  //
+  // Still the medium's, by the same test as the readout it keeps: what the plot
+  // claims about the data does not change, and the printed page shows the
+  // sentence's own plot with no stamps on it. What a stamp *is* for is finding
+  // the labels worth writing down, and writing them down is `text`.
+  //
+  // **A stamp holds a row and a place, never an element.** Every redraw replaces
+  // the whole picture, so a card parented into it would be destroyed sixty times
+  // a second during a drag. These live on `document.body` like the tooltip, and
+  // are re-projected whenever the picture moves under them.
+  // ---------------------------------------------------------------------
+  const pins = [];
+
+  const rowHtml = (row) => row
+    .map(([f, v]) => `<div><span style="color:#888">${f}</span> ${v ?? ""}</div>`)
+    .join("");
+
+  const CARD =
+    "font:12px/1.5 ui-monospace,SFMono-Regular,Menlo,monospace;" +
+    // Fixed colors, for the reason the tooltip's are fixed: this is over the
+    // plot, and a plot is drawn light whatever the page around it looks like.
+    "background:rgba(255,255,255,0.92);border:1px solid #bbb;border-radius:3px;" +
+    "padding:.2em .45em;color:#333;box-shadow:0 1px 4px rgba(0,0,0,.12);white-space:nowrap;";
+
+  const placePins = () => {
+    const all = panels();
+    for (const pin of pins) {
+      const panel = all[pin.panel];
+      const owner = panel?.el?.ownerSVGElement;
+      const ctm = panel?.el?.getScreenCTM?.();
+      if (!owner || !ctm) {
+        pin.el.style.display = "none";
+        continue;
+      }
+      const p = owner.createSVGPoint();
+      p.x = pin.px;
+      p.y = pin.py;
+      const at = p.matrixTransform(ctm);
+      // Zooming in can carry a stamped point outside the window. A card left
+      // floating over an unrelated part of the picture is worse than one that
+      // waits for its point to come back.
+      const box = view?.svg()?.getBoundingClientRect?.();
+      const gone = box && (at.x < box.left || at.x > box.right ||
+                           at.y < box.top || at.y > box.bottom);
+      pin.el.style.display = gone ? "none" : "block";
+      pin.el.style.left = `${at.x}px`;
+      pin.el.style.top = `${at.y}px`;
+    }
+  };
+
+  const drop = (pin) => {
+    const i = pins.indexOf(pin);
+    if (i < 0) return;
+    pins.splice(i, 1);
+    pin.el.remove();
+    onSelect?.();
+  };
+
+  const stamp = (index, hit) => {
+    // One element anchored at the point, with everything else placed against it
+    // in fixed CSS. That way re-anchoring writes one pair of numbers per stamp,
+    // however many pieces the reader sees.
+    const el = document.createElement("div");
+    el.className = "gog-stamp";
+    el.style.cssText =
+      "position:fixed;width:0;height:0;z-index:2147483646;pointer-events:none;";
+    const dot = document.createElement("span");
+    dot.style.cssText =
+      "position:absolute;left:-3.5px;top:-3.5px;width:7px;height:7px;box-sizing:border-box;" +
+      "border-radius:50%;background:#333;border:1.5px solid #fff;";
+    // The card stands off the point rather than on it, joined by a line. A card
+    // centered on a four-pixel dot hides the dot and its neighbors, which is the
+    // crowd the reader stamped it to read.
+    const leader = document.createElement("span");
+    leader.style.cssText =
+      "position:absolute;left:0;top:-18px;width:1px;height:18px;background:#999;";
+    const card = document.createElement("div");
+    card.className = "gog-stamp-card";
+    card.title = "click to remove this stamp";
+    card.style.cssText =
+      `position:absolute;bottom:18px;left:0;transform:translateX(-50%);${CARD}` +
+      "pointer-events:auto;cursor:pointer;";
+    card.innerHTML = rowHtml(hit.row);
+    el.appendChild(dot);
+    el.appendChild(leader);
+    el.appendChild(card);
+    const pin = { panel: index, px: hit.px, py: hit.py, row: hit.row, el };
+    card.addEventListener("click", () => drop(pin));
+    document.body.appendChild(el);
+    pins.push(pin);
+    placePins();
+    onSelect?.();
+  };
+
+  const clearStamps = () => {
+    while (pins.length) pins.pop().el.remove();
+    onSelect?.();
+  };
+
+  anchor = placePins;
+  // Everything that can move a stamp away from its point. The view covers zoom,
+  // pan, fit and the re-application after every redraw, because all four end in
+  // one `apply`. The other two are the page itself moving under a fixed element:
+  // scrolling is caught on the way down so a plot inside a scrolling panel is
+  // caught too, not only the document.
+  const unwatch = view?.onApply(placePins);
+  window.addEventListener("scroll", placePins, true);
+  window.addEventListener("resize", placePins);
+
   // Shorter than this and the reader did not draw a range, they clicked.
   const MIN_DRAG = 3;
 
@@ -881,6 +1001,11 @@ export function attachBrush(engine, container, request, options = {}) {
   let start = null;
   let queued = false;
   let trace = null;
+  // Whether this gesture has ever been a drag. Kept rather than measured at the
+  // end, because a pointer that wanders out and comes back would read as a click
+  // if only its two ends were compared, and dropping a stamp on a reader who
+  // drew a selection is the one mistake this must not make.
+  let moved = false;
 
   let panning = null;
 
@@ -911,6 +1036,7 @@ export function attachBrush(engine, container, request, options = {}) {
     held = all.findIndex((p) => holds(p, pointIn(p, e)));
     if (held < 0) return;
     start = pointIn(all[held], e);
+    moved = false;
     // A free shape is collected from the first sample. On a panel that measures
     // categories there is nothing to trace, so the drag stays a rectangle.
     trace = mode() === "lasso" && traceable(all[held]) ? [start] : null;
@@ -950,6 +1076,7 @@ export function attachBrush(engine, container, request, options = {}) {
     // rather than stopping, which is what lets a drag select up to an edge
     // without having to land exactly on it.
     if (!now) return;
+    if (Math.hypot(now.x - start.x, now.y - start.y) >= MIN_DRAG) moved = true;
     if (trace) {
       const last = trace[trace.length - 1];
       if (Math.hypot(now.x - last.x, now.y - last.y) < TRACE_STEP) return;
@@ -963,13 +1090,34 @@ export function attachBrush(engine, container, request, options = {}) {
     if (!apply(panel, start, now)) return;
     schedule();
   };
-  const onUp = () => {
+  const onUp = (e) => {
+    // A click means one of two things, and which one is decided by what it
+    // landed on. **On a mark it stamps**, because the reader pointed at a row
+    // and asked for it to stay. **On empty space it clears**, which is what a
+    // click has always done here and what a click on empty space does
+    // everywhere else. The same reach the readout uses tells them apart, so a
+    // reader who can see a tooltip can stamp exactly what it names.
+    const panel = held >= 0 ? panels()[held] : null;
+    const at = panel && e ? pointIn(panel, e) : null;
+    if (panel && at && start && !moved &&
+        Math.hypot(at.x - start.x, at.y - start.y) < MIN_DRAG) {
+      const hit = mode() === "select" ? nearest(panel, at) : null;
+      if (hit) {
+        stamp(held, hit);
+      } else if (apply(panel, start, start)) {
+        // Nothing under it, so it is the clearing click. `apply` writes the
+        // empty bound; without this a click that never moved reached nothing at
+        // all, since every other path into `apply` is a `pointermove`.
+        schedule();
+      }
+    }
     // A click clears the shape, exactly as it clears a bound: too few samples to
     // enclose anything is not a tiny selection, it is a reader asking for none.
     if (trace && trace.length < 3 && clearRegion()) schedule();
     held = -1;
     start = null;
     trace = null;
+    moved = false;
     if (panning) container.style.cursor = "grab";
     panning = null;
     hideBand();
@@ -990,8 +1138,13 @@ export function attachBrush(engine, container, request, options = {}) {
       container.removeEventListener("pointerup", onUp);
       container.removeEventListener("pointercancel", onUp);
       container.removeEventListener("pointerleave", onLeave);
+      window.removeEventListener("scroll", placePins, true);
+      window.removeEventListener("resize", placePins);
+      unwatch?.();
       hideBand();
+      hideOutline();
       hideTip();
+      clearStamps();
     },
     opened,
     /** What the reader has caught: a count, and one page of the rows to read. */
@@ -999,6 +1152,9 @@ export function attachBrush(engine, container, request, options = {}) {
     /** Why pointing at this plot cannot name a row, once someone has tried it.
      *  `null` until then, and on every plot that can answer. */
     unplaced: () => unplaced,
+    /** How many rows the reader has left on the picture. */
+    stamps: () => pins.length,
+    clearStamps,
     /** What a plain drag does now. Zooming in switches it, because a reader who
      *  has just magnified something almost always wants to move around in it. */
     mode,
@@ -1213,6 +1369,21 @@ function addSelectionBar(container, handle, view) {
   reset.textContent = "clear";
   reset.style.cssText = toggle.style.cssText;
 
+  // Stamps are undone by their own control, not by `clear`. The two act on
+  // different things, which is the rule the pair beside them already follows:
+  // `clear` acts on the selection and `fit` on the view, and each is named for
+  // what it acts on. A reader who clears a bound to read their stamped rows
+  // against the whole data would lose them to any other arrangement.
+  const unstamp = document.createElement("button");
+  unstamp.type = "button";
+  unstamp.title = "take the stamps off the plot";
+  unstamp.textContent = "unstamp";
+  unstamp.style.cssText = toggle.style.cssText;
+  unstamp.addEventListener("click", () => {
+    handle.clearStamps?.();
+    render();
+  });
+
   const table = document.createElement("div");
   table.style.cssText =
     "display:none;overflow-x:auto;margin:-8px auto 12px;max-width:100%;" +
@@ -1262,7 +1433,7 @@ function addSelectionBar(container, handle, view) {
   // readout rather than through the middle of the button strip.
   const controls = document.createElement("span");
   controls.style.cssText = "display:inline-flex;gap:.75em;align-items:center;";
-  controls.append(toggle, reset);
+  controls.append(toggle, reset, unstamp);
   if (view) addViewControls(controls, view, () => render(), handle);
   bar.append(group, readout, controls);
   placeBar(container, bar);
@@ -1293,6 +1464,13 @@ function addSelectionBar(container, handle, view) {
     const idle = s.kept === 0 || s.kept === s.total;
     toggle.disabled = idle;
     reset.disabled = idle;
+    // Absent rather than dimmed while there is nothing stamped. `clear` and the
+    // view buttons go quiet in place because a reader who has selected once will
+    // select again, and a jumping line is worse than a dead button; a plot that
+    // has never been stamped should not carry a word for it at all.
+    const stamped = handle.stamps?.() ?? 0;
+    unstamp.style.display = stamped ? "" : "none";
+    unstamp.textContent = stamped === 1 ? "unstamp" : `unstamp ${stamped}`;
     toggle.textContent = open ? "hide rows" : "show rows";
     if (!open || idle) {
       table.style.display = "none";

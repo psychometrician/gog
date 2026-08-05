@@ -64,6 +64,11 @@ export function attachView(container, options = {}) {
     return base;
   };
 
+  // Anything that has to move when the window does. Zoom, pan, fit and the
+  // re-application after a redraw all end here, so one list covers every way the
+  // picture can shift under something anchored to it.
+  const watchers = new Set();
+
   const apply = () => {
     const svg = svgEl();
     if (!svg || !learn()) return;
@@ -74,6 +79,15 @@ export function attachView(container, options = {}) {
     cx = Math.min(Math.max(cx, base.x + w / 2), base.x + base.w - w / 2);
     cy = Math.min(Math.max(cy, base.y + h / 2), base.y + base.h - h / 2);
     svg.setAttribute("viewBox", `${cx - w / 2} ${cy - h / 2} ${w} ${h}`);
+    // Each in its own try, because a watcher that throws must not cost the
+    // reader the zoom it was watching.
+    for (const fn of watchers) {
+      try {
+        fn();
+      } catch {
+        /* a watcher's problem is not the view's */
+      }
+    }
   };
 
   /** Pixels of pointer movement, in the units the `viewBox` is written in. */
@@ -86,6 +100,14 @@ export function attachView(container, options = {}) {
 
   return {
     apply,
+    /// Run this whenever the window moves, and hand back a way to stop. What
+    /// wants it is anything positioned against the picture rather than against
+    /// the page: it is written in the picture's own units and has to be
+    /// re-projected every time those units land somewhere new on the screen.
+    onApply(fn) {
+      watchers.add(fn);
+      return () => watchers.delete(fn);
+    },
     /// The picture itself, for the one control that wants the element rather
     /// than the window over it. Looking closer moves the window; saving copies
     /// what the window currently frames, so it needs the SVG.
