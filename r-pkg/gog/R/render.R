@@ -331,14 +331,14 @@ render_svg <- function(gog) {
 #' @export
 save_gif <- function(gog, path, scale = 1) {
   if (!is.character(path) || length(path) != 1L || is.na(path) || !nzchar(path)) {
-    stop("gog: `save_gif()` needs one path — `save_gif(p, \"wave.gif\")`.",
+    stop("gog: `save_gif()` needs one path \u2014 `save_gif(p, \"wave.gif\")`.",
          call. = FALSE)
   }
   # The name says what the file is, so a path that says otherwise is refused
   # rather than quietly corrected. Writing GIF bytes into `wave.png` is the kind
   # of small lie that is discovered much later, by someone else.
   if (!grepl("\\.gif$", path, ignore.case = TRUE)) {
-    stop("gog: `save_gif()` writes a GIF, so the path ends in `.gif` — ",
+    stop("gog: `save_gif()` writes a GIF, so the path ends in `.gif` \u2014 ",
          "`save_gif(p, \"", tools::file_path_sans_ext(basename(path)), ".gif\")`.",
          call. = FALSE)
   }

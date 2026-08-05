@@ -719,7 +719,7 @@ PANEL_THEME <- c("preset", "grid", "ratio", "tick_angle", "font_size",
       }
       stop("gog: `", written, "` describes a panel, and a page is plots arranged ",
            "rather than a panel of its own. On a page, `theme()` states how big the ",
-           "figure is — `theme(width = )` and `theme(height = )` — and nothing ",
+           "figure is \u2014 `theme(width = )` and `theme(height = )` \u2014 and nothing ",
            "else. Write this into the plot it describes, before composing: ",
            "`(plot + ", written, ") | other_plot`.", call. = FALSE)
     }
