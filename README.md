@@ -19,6 +19,9 @@ rule, not a convenience.
 **📖 The manual is online, and every plot in it was drawn by this engine:
 <https://psychometrician.github.io/gog-book/>**
 
+It is also archived and citable:
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.21807652.svg)](https://doi.org/10.5281/zenodo.21807652)
+
 ## Why another one
 
 Most plotting tools ask you to memorize chart types. Each type is its own
