@@ -1690,4 +1690,30 @@ refuses(
     ),
 )
 
+# ---------------------------------------------------------------------------
+# deviation and quantile — the family's two newest members
+# ---------------------------------------------------------------------------
+
+_spread = {"g": ["a"] * 8, "v": [2.0, 4.0, 4.0, 4.0, 5.0, 5.0, 7.0, 9.0]}
+_one_sd = render_svg(data(_spread, name="s") + interval * deviation + x(col.g) + y(col.v))
+_two_sd = render_svg(data(_spread, name="s") + interval * deviation(2) + x(col.g) + y(col.v))
+assert _one_sd != _two_sd, "deviation(2) drew what bare `deviation` draws"
+assert _one_sd != render_svg(
+    data(_spread, name="s") + interval * confidence + x(col.g) + y(col.v)
+), "a spread band drew the mean's confidence interval"
+refuses("a deviation of zero", lambda: deviation(0))
+ok("deviation() bands the spread, and is not confidence()")
+
+_q90 = render_svg(data(_spread, name="s") + bar * quantile(0.9) + x(col.g) + y(col.v))
+assert _q90 != render_svg(
+    data(_spread, name="s") + bar * median + x(col.g) + y(col.v)
+), "quantile(0.9) drew the median"
+refuses(
+    "a bare quantile",
+    lambda: render_svg(data(_spread, name="s") + bar * quantile + x(col.g) + y(col.v)),
+)
+refuses("a quantile above 1", lambda: quantile(1.5))
+refuses("a quantile below 0", lambda: quantile(-0.1))
+ok("quantile() needs its probability")
+
 print(f"\nAll {passed} checks passed.")

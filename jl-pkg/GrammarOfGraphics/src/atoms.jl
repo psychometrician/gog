@@ -238,6 +238,50 @@ const range = Atom(:transform, Dict{Symbol,Any}(:transform => "range"),
             :high => high === nothing ? nothing : Float64(high)))
     end)
 
+"""`deviation` — the spread band per group, one standard deviation unless told.
+
+`confidence`'s twin: the same low/high pair with a center, and a different
+question. `confidence` says how well the mean is pinned down; `deviation` says
+how spread the data is.
+"""
+const deviation = Atom(:transform, Dict{Symbol,Any}(:transform => "deviation"),
+    function (args...; multiplier = nothing)
+        multiplier = one_of(args, multiplier, "deviation", "multiplier")
+        if multiplier !== nothing && (!(multiplier isa Real) || multiplier isa Bool ||
+                                      !isfinite(multiplier) || multiplier <= 0)
+            throw(GogError(
+                "gog: `deviation(multiplier = )` needs one positive number \u2014 it " *
+                "counts standard deviations out from the mean. `deviation` is one, " *
+                "`deviation(2)` is two."))
+        end
+        Atom(:transform, Dict{Symbol,Any}(
+            :transform => "deviation",
+            :multiplier => multiplier === nothing ? nothing : Float64(multiplier)))
+    end)
+
+"""`quantile` — the value at one probability. No default; 0.5 is `median`."""
+const quantile = Atom(:transform, Dict{Symbol,Any}(:transform => "quantile"),
+    function (args...; p = nothing)
+        p = one_of(args, p, "quantile", "p")
+        if p !== nothing
+            if !(p isa Real) || p isa Bool || !isfinite(p)
+                throw(GogError(
+                    "gog: `quantile()` takes one number between 0 and 1, the " *
+                    "probability it reduces to, e.g. `quantile(0.9)`. For the " *
+                    "quantiles of a collection, gog shadows that name: use " *
+                    "`Statistics.quantile` for Julia's."))
+            end
+            if !(0 <= p <= 1)
+                throw(GogError(
+                    "gog: `quantile($p)` is not a probability \u2014 a quantile is " *
+                    "between 0 and 1. `quantile(0.9)` is the 90th percentile, " *
+                    "`quantile(0.5)` the middle."))
+            end
+        end
+        Atom(:transform, Dict{Symbol,Any}(
+            :transform => "quantile", :p => p === nothing ? nothing : Float64(p)))
+    end)
+
 """`jitter` — the categorical-axis spread, a multiple of the default."""
 const jitter = Atom(:transform, Dict{Symbol,Any}(:transform => "jitter"),
     function (args...; amount = nothing)

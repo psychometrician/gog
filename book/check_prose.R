@@ -89,7 +89,15 @@ check_prose <- function(dirs = c("book", "blog")) {
     # differs, "fell back" for declined, "wins the lookup" for is found first,
     # "tells apart" for distinguishes.
     "tells a different story", "tell a different story", "fell back",
-    "falls back", "wins the lookup", "leaves the other alone"
+    "falls back", "wins the lookup", "leaves the other alone",
+    # **"N times shorter"**, and its family. Not an idiom but a fixed shape, and
+    # the one construction from this round worth making mechanical: it is always
+    # ambiguous (does "three times shorter" mean a third, or three times as
+    # long?), translators split on it, and unlike the figurative senses above it
+    # can be matched exactly. Written into the `deviation` comparison and caught
+    # by review. The literal form is "less than a third as long".
+    "times shorter", "times smaller", "times lower", "times fewer",
+    "times less"
     # **The `tell apart` family is deliberately not here yet**, and the reason is
     # a decision rather than an oversight. It is the same shape as the entries
     # above, a stock phrase for *distinguishes*, and adding it fails six

@@ -515,6 +515,36 @@ min     <- structure(list(type = "transform", transform = "min"),     class = "g
 #' @export
 proportion <- structure(list(type = "transform", transform = "proportion"), class = "gog_atom")
 
+# `quantile` is the aggregation family's seventh member, and the only one whose
+# parameter is required rather than defaulted: the sensible default would be the
+# middle, and that already has a plain name.  It masks `stats::quantile`, and the
+# refusal splits by what it was given for the reason `range`'s does -- a vector
+# where a probability belongs is that other function being reached.
+#' The p-th quantile of `y` per group.
+#'
+#' @param p The quantile probability, one number between 0 and 1.  Positional:
+#'   `quantile(0.9)` is the 90th percentile.  There is no default; at 0, 0.5 and
+#'   1 the plot draws and says that `min`, `median` and `max` are the plain names
+#'   for the same numbers.
+#' @export
+quantile <- function(p = NULL) {
+  if (!is.null(p)) {
+    if (!is.numeric(p) || length(p) != 1L || is.na(p)) {
+      stop("gog: `quantile()` takes one number between 0 and 1, the probability ",
+           "it reduces to, e.g. `quantile(0.9)`. For the quantiles of a vector, ",
+           "gog masks that name: use `stats::quantile()`.", call. = FALSE)
+    }
+    if (p < 0 || p > 1) {
+      stop("gog: `quantile(", p, ")` is not a probability -- a quantile is ",
+           "between 0 and 1. `quantile(0.9)` is the 90th percentile, ",
+           "`quantile(0.5)` the middle.", call. = FALSE)
+    }
+    p <- as.numeric(p)
+  }
+  structure(list(type = "transform", transform = "quantile", p = p),
+            class = "gog_atom")
+}
+
 # `range` reduces y to a band within each x group -- the two extents an `interval`
 # spans.  It carries the band's two ends, so like `bin`/`density`/`confidence` it
 # is a *function*: called bare (`interval * range`) the band is the whole group,
@@ -565,6 +595,31 @@ range <- function(low = NULL, high = NULL) {
 # Called bare (`interval * confidence`) it uses 0.95; `confidence(0.99)` widens
 # it.  Computes the mean's confidence interval (mean +/- t * se) per group, with
 # the mean as the center.  A reading transform: it needs `y()`.
+# `deviation` is `confidence`'s twin: the same low/high pair with a center, and a
+# different question.  `confidence` says how well the mean is pinned down;
+# `deviation` says how spread the data is.  Drawing them as the same whisker is
+# the error the `interval` chapter exists to name, so both are written out.
+#' Spread band per group, mean +/- k standard deviations.
+#'
+#' @param multiplier How many standard deviations reach each side of the mean;
+#'   default 1.  Positional: `deviation(2)`.
+#' @export
+deviation <- function(multiplier = NULL) {
+  if (!is.null(multiplier)) {
+    if (!is.numeric(multiplier) || length(multiplier) != 1L || is.na(multiplier) ||
+        multiplier <= 0) {
+      stop("gog: `deviation(multiplier = )` needs one positive number -- it counts ",
+           "standard deviations out from the mean. `deviation` is one, ",
+           "`deviation(2)` is two.", call. = FALSE)
+    }
+    multiplier <- as.numeric(multiplier)
+  }
+  structure(
+    list(type = "transform", transform = "deviation", multiplier = multiplier),
+    class = "gog_atom"
+  )
+}
+
 #' Confidence interval of the mean per group, for the `interval` mark.
 #'
 #' @param level Confidence level, one number strictly between 0 and 1; default

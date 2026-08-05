@@ -316,7 +316,7 @@ end
 # and `bounds`' column names ride the *layer* on the wire (`layer.bin`, …), not
 # the transform list — the transform list is names only. Absent parameters attach
 # nothing, so a bare `bar * bin` stays on Sturges' rule.
-const CARRIED = Set([:bin, :density, :range, :confidence, :jitter, :stack, :bounds, :partition])
+const CARRIED = Set([:bin, :density, :range, :confidence, :deviation, :quantile, :jitter, :stack, :bounds, :partition])
 
 function carry!(layer::Atom, transform::Atom)
     name = transform.fields[:transform]
@@ -412,7 +412,7 @@ function Base.:+(left::Plot, right::Atom)
             "encodings" => deepcopy(right.fields[:encodings]),
             "transforms" => copy(right.fields[:transforms]),
             "data" => plot.pending_data)
-        for param in (:bin, :density, :range, :confidence, :jitter, :stack, :bounds, :partition, :box)
+        for param in (:bin, :density, :range, :confidence, :deviation, :quantile, :jitter, :stack, :bounds, :partition, :box)
             haskey(right.fields, param) &&
                 (layer[String(param)] = deepcopy(right.fields[param]))
         end

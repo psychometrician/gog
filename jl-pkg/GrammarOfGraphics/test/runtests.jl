@@ -1448,3 +1448,25 @@ end
     @test_throws GogError render_svg(
         data(frame) + interval * range(0.75, 0.25) + x(:g) + y(:v))
 end
+
+# ---------------------------------------------------------------------------
+# deviation and quantile — the family's two newest members
+# ---------------------------------------------------------------------------
+
+@testset "deviation bands the spread, quantile needs its probability" begin
+    frame = (g = fill("a", 8), v = Float64[2, 4, 4, 4, 5, 5, 7, 9])
+    one_sd = render_svg(data(frame) + interval * deviation + x(:g) + y(:v))
+    two_sd = render_svg(data(frame) + interval * deviation(2) + x(:g) + y(:v))
+    @test one_sd != two_sd
+    # A spread band and the mean's interval are different questions and must
+    # draw differently, which is the whole reason both atoms exist.
+    @test one_sd != render_svg(data(frame) + interval * confidence + x(:g) + y(:v))
+    @test_throws GogError deviation(0)
+
+    q90 = render_svg(data(frame) + bar * quantile(0.9) + x(:g) + y(:v))
+    @test q90 != render_svg(data(frame) + bar * median + x(:g) + y(:v))
+    # No default, because the sensible one is already `median`.
+    @test_throws GogError render_svg(data(frame) + bar * quantile + x(:g) + y(:v))
+    @test_throws GogError quantile(1.5)
+    @test_throws GogError quantile(-0.1)
+end

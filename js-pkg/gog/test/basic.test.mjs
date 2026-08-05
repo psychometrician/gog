@@ -37,6 +37,9 @@ import {
   confidence,
   count,
   data,
+  median,
+  quantile,
+  deviation,
   beside,
   below,
   down,
@@ -1872,4 +1875,26 @@ test("range() takes a quantile band, bare stays the extremes", () => {
   assert.throws(() => range(-0.1), GogError);
   assert.throws(() => range("a"), GogError);
   assert.throws(() => render_svg(sentence(range(0.75, 0.25))), GogError);
+});
+
+// ---------------------------------------------------------------------------
+// deviation and quantile — the family's two newest members
+// ---------------------------------------------------------------------------
+
+test("deviation bands the spread, quantile needs its probability", () => {
+  const table = { g: Array(8).fill("a"), v: [2, 4, 4, 4, 5, 5, 7, 9] };
+  const say = (mark, transform) =>
+    plot(data(table), layer(mark, transform), x(col.g), y(col.v));
+  const oneSd = render_svg(say(interval, deviation));
+  assert.notEqual(render_svg(say(interval, deviation(2))), oneSd);
+  // A spread band and the mean's interval are different questions, which is the
+  // whole reason both atoms exist.
+  assert.notEqual(render_svg(say(interval, confidence)), oneSd);
+  assert.throws(() => deviation(0), GogError);
+
+  assert.notEqual(render_svg(say(bar, quantile(0.9))), render_svg(say(bar, median)));
+  // No default, because the sensible one is already `median`.
+  assert.throws(() => render_svg(say(bar, quantile)), GogError);
+  assert.throws(() => quantile(1.5), GogError);
+  assert.throws(() => quantile(-0.1), GogError);
 });

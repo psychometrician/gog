@@ -1592,6 +1592,44 @@ if (!grepl("Swap them", e))
   stop("FAIL: a downward band should refuse and say to swap: ", e)
 cat("PASS: range() takes a quantile band, bare stays the extremes\n")
 
+# deviation() is the mean's spread band, and confidence()'s twin: the same
+# low/high pair with a center, a different question. The multiplier scales it.
+spread_df <- data.frame(g = rep("a", 8), v = c(2, 4, 4, 4, 5, 5, 7, 9))
+one_sd <- render_svg(data(spread_df) + interval * deviation + x(g) + y(v))
+two_sd <- render_svg(data(spread_df) + interval * deviation(2) + x(g) + y(v))
+if (identical(one_sd, two_sd))
+  stop("FAIL: deviation(2) drew what bare `deviation` draws")
+if (identical(one_sd, render_svg(data(spread_df) + interval * confidence + x(g) + y(v))))
+  stop("FAIL: a spread band drew the mean's confidence interval")
+e <- tryCatch(deviation(0), error = function(e) conditionMessage(e))
+if (!grepl("positive number", e)) stop("FAIL: deviation(0) should refuse: ", e)
+cat("PASS: deviation() bands the spread, and is not confidence()\n")
+
+# quantile() has no default, because the sensible one is already `median`. At
+# the three points where it duplicates a plain name it draws and says so.
+q90 <- render_svg(data(spread_df) + bar * quantile(0.9) + x(g) + y(v))
+if (identical(q90, render_svg(data(spread_df) + bar * median + x(g) + y(v))))
+  stop("FAIL: quantile(0.9) drew the median")
+e <- tryCatch(render_svg(data(spread_df) + bar * quantile + x(g) + y(v)),
+              error = function(e) conditionMessage(e))
+if (!grepl("`median`", e)) stop("FAIL: a bare quantile should refuse toward median: ", e)
+for (bad in list(1.5, -0.1, "a")) {
+  e <- tryCatch(quantile(bad), error = function(e) conditionMessage(e))
+  if (!grepl("between 0 and 1", e)) stop("FAIL: quantile() should refuse ", bad, ": ", e)
+}
+# An Assumption is not fatal, so it arrives as a message and needs no
+# `GOG_STRICT`. The message is only honest if the numbers agree, so check the
+# plot too: `quantile(0.5)` has to draw exactly what `median` draws.
+said <- character(0)
+q50 <- withCallingHandlers(
+  render_svg(data(spread_df) + bar * quantile(0.5) + x(g) + y(v)),
+  message = function(m) { said <<- c(said, conditionMessage(m)); invokeRestart("muffleMessage") })
+if (!any(grepl("is the median", said)))
+  stop("FAIL: quantile(0.5) should say `median` is the plain name")
+if (!identical(q50, render_svg(data(spread_df) + bar * median + x(g) + y(v))))
+  stop("FAIL: quantile(0.5) does not draw what median draws, so the message is wrong")
+cat("PASS: quantile() needs its probability, and names the plain atom at three points\n")
+
 # Scale after the transform on the axis it writes: the groups total 100 and 10,
 # not log10(10 * 90).
 agg <- data.frame(store = c("n", "n", "s", "s"), sales = c(10.0, 90.0, 1.0, 9.0))

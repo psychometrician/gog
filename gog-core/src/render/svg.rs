@@ -776,7 +776,7 @@ impl SvgRenderer {
                         let which = match geom {
                             Some(FieldGeometry::Rings) => Cut::Rings,
                             _ if ts.contains(&Transform::Bin) => {
-                                match crate::transform::reduces_column(ts)
+                                match crate::transform::reduces_column(ts, layer.quantile.as_ref())
                                     .zip(crate::legality::measure_field(spec, layer))
                                 {
                                     Some((agg, field)) => Cut::CutReduce(field, agg),
@@ -799,7 +799,7 @@ impl SvgRenderer {
                                     None => Cut::Tally(ts.contains(&Transform::Proportion)),
                                 }
                             }
-                            _ => match crate::transform::reduces_column(ts)
+                            _ => match crate::transform::reduces_column(ts, layer.quantile.as_ref())
                                 .zip(crate::legality::measure_field(spec, layer))
                             {
                                 Some((agg, field)) => Cut::Reduce(field, agg),
@@ -847,7 +847,7 @@ impl SvgRenderer {
                                     .cloned().unwrap_or(Transform::Range);
                                 crate::transform::pairs2d(sub, x_field, y_field, field, &kind,
                                     layer.confidence.as_ref(), layer.r#box.as_ref(),
-                                    layer.range.as_ref())
+                                    layer.range.as_ref(), layer.deviation.as_ref())
                             }
                         });
                         // The normalizer's second reading: divide whatever measured
@@ -906,7 +906,7 @@ impl SvgRenderer {
                         let group_field = layer.encodings.get(&Channel::Color)
                             .or_else(|| layer.encodings.get(&Channel::Group))
                             .map(|e| e.field.as_str());
-                        let done = crate::transform::apply(&input, &layer.transforms, key, out, layer.bin.as_ref(), cut.axis(on_x), layer.density.as_ref(), layer.range.as_ref(), layer.confidence.as_ref(), layer.r#box.as_ref(), layer.bounds.as_ref(), layer.stack.as_ref(), group_field);
+                        let done = crate::transform::apply(&input, &layer.transforms, key, out, layer.bin.as_ref(), cut.axis(on_x), layer.density.as_ref(), layer.range.as_ref(), layer.confidence.as_ref(), layer.deviation.as_ref(), layer.quantile.as_ref(), layer.r#box.as_ref(), layer.bounds.as_ref(), layer.stack.as_ref(), group_field);
                         // The dot plot: a stacking `point` spends its span on glyphs
                         // rather than on length, so the tally becomes one row per
                         // observation (`transform::pile`, spec §5). Decided here for
@@ -4682,6 +4682,14 @@ mod tests {
         }
         if ts.contains(&Transform::Bounds) {
             layer = layer.bounds("lo", "hi");
+        }
+        // `quantile` names no default, because the only defensible one is 0.5 and
+        // that is `median`, so a legal sentence always carries a probability. It
+        // is 0.9 here rather than 0.5 for that same reason: at 0.5 this chain
+        // *is* the `median` chain, and P2 would be asking two spellings of one
+        // statistic to draw differently.
+        if ts.contains(&Transform::Quantile) {
+            layer = layer.at_quantile(0.9);
         }
         let spec = PlotSpec::new()
             .data("d")
@@ -11299,7 +11307,7 @@ mod tests {
             let spec = PlotSpec::new().data("t").x("v").layer(layer);
             let eff = vec![vec![crate::transform::pile(
                 &crate::transform::apply(
-                    &data["t"], &spec.layers[0].transforms, "v", "", None, None, None, None, None, None, None, None, None),
+                    &data["t"], &spec.layers[0].transforms, "v", "", None, None, None, None, None, None, None, None, None, None, None),
                 "")]];
             let warn = pile_overlap_warning(&spec, &eff, "", (0.0, n as f64), 400.0,
                                             SvgRenderer::default().point_radius);

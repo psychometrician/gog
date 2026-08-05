@@ -768,9 +768,11 @@ fn transform_name(t: &Transform) -> &'static str {
         Transform::Median => "median",
         Transform::Max => "max",
         Transform::Min => "min",
+        Transform::Quantile => "quantile",
         Transform::Proportion => "proportion",
         Transform::Range => "range",
         Transform::Confidence => "confidence",
+        Transform::Deviation => "deviation",
         Transform::Box => "box",
         Transform::Bounds => "bounds",
         Transform::Dodge => "dodge",
@@ -981,7 +983,7 @@ fn is_value_statistic(t: &Transform) -> bool {
         t,
         Transform::Bin | Transform::Smooth | Transform::Count | Transform::Density
             | Transform::Proportion | Transform::Sum | Transform::Mean | Transform::Median
-            | Transform::Max | Transform::Min
+            | Transform::Max | Transform::Min | Transform::Quantile
     )
 }
 
@@ -991,7 +993,8 @@ fn is_value_statistic(t: &Transform) -> bool {
 /// pre-computed one. (`Transform::Box` also emits a pair, but is injected by the
 /// `box` mark, never composed, so it is not one of these.)
 fn is_pair_transform(t: &Transform) -> bool {
-    matches!(t, Transform::Range | Transform::Confidence | Transform::Bounds)
+    matches!(t, Transform::Range | Transform::Confidence | Transform::Deviation
+                | Transform::Bounds)
 }
 
 /// A collision modifier (Wilkinson §8): an *offset*, not a statistic. The three
@@ -1195,7 +1198,7 @@ pub fn mark_takes_transform(mark: &Mark, transform: &Transform) -> TransformLega
         return match transform {
             Transform::Bounds | Transform::Bin | Transform::Density
             | Transform::Count | Transform::Proportion => Required,
-            t if crate::transform::reduces_column(std::slice::from_ref(t)).is_some() => Combines,
+            t if crate::transform::has_reduction(std::slice::from_ref(t)) => Combines,
             _ => None,
         };
     }
@@ -1268,13 +1271,15 @@ pub fn mark_takes_transform(mark: &Mark, transform: &Transform) -> TransformLega
 }
 
 /// Every transform a user composes with `*`, in the grid's teaching order —
-/// the ten value statistics, then the three pair transforms, then the three
+/// the eleven value statistics, then the four pair transforms, then the three
 /// collision modifiers. `Transform::Box` is excluded: the `box` mark injects it,
 /// it is never typed, so it is not a column of the Mark × Transform grid.
-pub const USER_TRANSFORMS: [Transform; 17] = [
+pub const USER_TRANSFORMS: [Transform; 19] = [
     Transform::Bin, Transform::Smooth, Transform::Count, Transform::Density, Transform::Proportion,
     Transform::Sum, Transform::Mean, Transform::Median, Transform::Max, Transform::Min,
-    Transform::Range, Transform::Confidence, Transform::Bounds, Transform::Partition,
+    Transform::Quantile,
+    Transform::Range, Transform::Confidence, Transform::Deviation, Transform::Bounds,
+    Transform::Partition,
     Transform::Dodge, Transform::Stack, Transform::Jitter,
 ];
 
@@ -2087,7 +2092,7 @@ pub fn measures_cells(mark: &Mark, transforms: &[Transform]) -> bool {
 pub fn reads_two_dimensions(mark: &Mark, transforms: &[Transform], space: SpaceKind) -> bool {
     cuts_both_positions(mark, space)
         && (crate::transform::measures_cells(transforms)
-            || crate::transform::reduces_column(transforms).is_some()
+            || crate::transform::has_reduction(transforms)
             // **A pair is a reduction too** — it reduces to two numbers instead of
             // one, which is a fact about the statistic and not about how many axes
             // it is read over. Left out until 2026-07-26, when `interval` and `box`
@@ -2664,7 +2669,7 @@ fn check_span_needs_range(out: &mut Vec<Diagnostic>, spec: &PlotSpec, df: Option
     };
     // `range`/`confidence` compute the extents; `bounds` supplies pre-computed ones.
     // Any of the three satisfies the mark's minimum syllable.
-    if layer.transforms.iter().any(|t| matches!(t, Transform::Range | Transform::Confidence | Transform::Bounds)) {
+    if layer.transforms.iter().any(is_pair_transform) {
         return;
     }
     // And so does the **violin** — a fourth way to answer the same question, which is
@@ -2859,7 +2864,7 @@ fn check_zone_extent(out: &mut Vec<Diagnostic>, spec: &PlotSpec, df: &DataFrame,
     if layer.transforms.iter().any(|t| matches!(t, Transform::Count | Transform::Proportion)) {
         return;
     }
-    if crate::transform::reduces_column(&layer.transforms).is_some() {
+    if crate::transform::has_reduction(&layer.transforms) {
         return;
     }
     let slotted = |ch: &Channel| {
@@ -2924,7 +2929,7 @@ fn check_pair_summary(out: &mut Vec<Diagnostic>, spec: &PlotSpec, df: &DataFrame
         return;
     }
     let Some(t) = layer.transforms.iter().find(|t| {
-        crate::transform::reduces_column(std::slice::from_ref(*t)).is_some()
+        crate::transform::has_reduction(std::slice::from_ref(*t))
     }) else { return };
     let (m, t) = (mark_name(&layer.mark), transform_name(t));
     // Which channel this mark measures with, so the message names the binding the
@@ -3378,9 +3383,8 @@ fn check_share_composition(out: &mut Vec<Diagnostic>, layer: &Layer) {
     //    separately would move them by different factors and stop the pair being one
     //    span. (`bounds` reshapes two columns you already have, and lands here for the
     //    same reason it lands anywhere: what it supplies is a pair.)
-    if let Some(p) = [Transform::Range, Transform::Confidence, Transform::Box,
-                      Transform::Bounds].into_iter().find(|t| ts.contains(t)) {
-        let p = transform_name(&p);
+    if let Some(p) = ts.iter().find(|t| is_pair_transform(t) || **t == Transform::Box) {
+        let p = transform_name(p);
         out.push(Diagnostic {
             kind: DiagnosticKind::Illegal,
             message: format!(
@@ -3698,7 +3702,7 @@ fn check_pair_transform_marks(out: &mut Vec<Diagnostic>, layer: &Layer) {
     for t in &layer.transforms {
         // `bounds` on these marks is `check_bounds`'s; only `range`/`confidence`
         // reach a locus mark unrefused, which is the gap this closes.
-        if !matches!(t, Transform::Range | Transform::Confidence) {
+        if !matches!(t, Transform::Range | Transform::Confidence | Transform::Deviation) {
             continue;
         }
         let fix = match layer.mark {
@@ -4288,7 +4292,7 @@ fn check_stack_signs(out: &mut Vec<Diagnostic>, spec: &PlotSpec, df: &DataFrame,
         &layer.transforms.iter().filter(|t| **t != Transform::Stack).cloned().collect::<Vec<_>>(),
         key_field, out_field,
         layer.bin.as_ref(), None, layer.density.as_ref(), layer.range.as_ref(),
-        layer.confidence.as_ref(),
+        layer.confidence.as_ref(), layer.deviation.as_ref(), layer.quantile.as_ref(),
         layer.r#box.as_ref(), layer.bounds.as_ref(), None, group_field,
     );
     let Some(vals) = piled.float_col(out_field) else { return };
@@ -4741,6 +4745,10 @@ pub fn check(spec: &PlotSpec, data: &HashMap<String, DataFrame>) -> Vec<Diagnost
         // `range`'s two ends are probabilities, and one that is not a probability
         // describes no band at all.
         check_range_params(&mut out, layer);
+        // `deviation`'s multiplier is a count of standard deviations, and
+        // `quantile`'s probability is required rather than defaulted.
+        check_deviation_params(&mut out, layer);
+        check_quantile_params(&mut out, layer);
 
         // The trio's third offset, `jitter`, is checked in the df-gated block
         // below (`check_jitter`) — unlike these two it must read the axis types.
@@ -6323,7 +6331,7 @@ fn check_field(out: &mut Vec<Diagnostic>, spec: &PlotSpec, layer: &Layer) {
     // nothing to read, when in fact it is the binding their `mean` needs and the
     // `count` beside it is the part to drop. One mistake, one refusal — the same
     // deference `check_zone_extent` already makes to the same check.
-    if crate::transform::reduces_column(&layer.transforms).is_some() {
+    if crate::transform::has_reduction(&layer.transforms) {
         return;
     }
     let m = mark_name(&layer.mark);
@@ -6470,6 +6478,78 @@ fn check_range_params(out: &mut Vec<Diagnostic>, layer: &Layer) {
                 } else {
                     " Swap them: `range(<low>, <high>)` reads low end first."
                 },
+            ),
+        });
+    }
+}
+
+/// `deviation(k)` is how many standard deviations reach each side of the mean, so
+/// the multiplier is a positive number. Zero is refused rather than drawn as a
+/// flat line, because a band of width zero is a *point* and the sentence that
+/// draws one is `point * mean`.
+fn check_deviation_params(out: &mut Vec<Diagnostic>, layer: &Layer) {
+    let Some(spec) = layer.deviation.as_ref() else { return };
+    let Some(k) = spec.multiplier else { return };
+    if !k.is_finite() || k <= 0.0 {
+        out.push(Diagnostic {
+            kind: DiagnosticKind::Illegal,
+            message: format!(
+                "gog: `deviation({k})` is not a width — the multiplier counts standard \
+                 deviations out from the mean, so it is a positive number. \
+                 `deviation` is one, `deviation(2)` is two. For the mean alone, with no \
+                 band, that is `point * mean`."
+            ),
+        });
+    }
+}
+
+/// `quantile(p)` needs its probability, and it is the one transform whose
+/// parameter is **required rather than defaulted** (§5): the only defensible
+/// default is 0.5, and that is `median`.
+///
+/// This also carries the redundancy warning the family decision turns on. At
+/// p = 0, 0.5 and 1 the answer is exactly `min`, `median` and `max`, so the plot
+/// **draws** and an Assumption names the plain atom. Refusing there was the
+/// stricter Law 1 reading and was rejected because a generated sweep over deciles
+/// would die at 0.5; saying nothing was rejected because two spellings for one
+/// result is what Law 1 exists to notice. §12's standing rule: a contradiction
+/// refuses, a proven redundancy warns.
+fn check_quantile_params(out: &mut Vec<Diagnostic>, layer: &Layer) {
+    if !layer.transforms.contains(&Transform::Quantile) { return }
+    let p = layer.quantile.as_ref().and_then(|s| s.p);
+
+    let Some(p) = p else {
+        out.push(Diagnostic {
+            kind: DiagnosticKind::Illegal,
+            message: "gog: `quantile` needs the probability it reduces to, e.g. \
+                      `quantile(0.9)` for the 90th percentile. There is no default, \
+                      because the only sensible one is the middle and that already has \
+                      a plain name: `median`."
+                .to_string(),
+        });
+        return;
+    };
+
+    if !p.is_finite() || !(0.0..=1.0).contains(&p) {
+        out.push(Diagnostic {
+            kind: DiagnosticKind::Illegal,
+            message: format!(
+                "gog: `quantile({p})` is not a probability — a quantile is between 0 and \
+                 1. `quantile(0.9)` is the 90th percentile, `quantile(0.5)` the middle."
+            ),
+        });
+        return;
+    }
+
+    // The three points where this atom and a plain name meet. Drawn, and said.
+    let plain = if p == 0.0 { Some("min") } else if p == 0.5 { Some("median") }
+                else if p == 1.0 { Some("max") } else { None };
+    if let Some(plain) = plain {
+        out.push(Diagnostic {
+            kind: DiagnosticKind::Assumption,
+            message: format!(
+                "gog: `quantile({p})` is the {plain} — write `{plain}` for the plain name. \
+                 Drawn as asked."
             ),
         });
     }
@@ -9453,6 +9533,78 @@ mod tests {
     }
 
     // -----------------------------------------------------------------------
+    // deviation and quantile — the family's two newest members (spec §5)
+    // -----------------------------------------------------------------------
+
+    #[test]
+    fn a_spread_band_is_accepted() {
+        let spec = base().layer(
+            Layer::new(Mark::Interval).transform(Transform::Deviation).spread(2.0));
+        let out = check(&spec, &data());
+        assert!(out.is_empty(), "a spread band was refused: {:?}", msgs(&out));
+    }
+
+    #[test]
+    fn a_deviation_of_zero_is_refused_toward_the_mean() {
+        // A band of width zero is a point, and the sentence that draws a point
+        // at the mean is `point * mean`. Refused rather than drawn flat.
+        let spec = base().layer(
+            Layer::new(Mark::Interval).transform(Transform::Deviation).spread(0.0));
+        let out = check(&spec, &data());
+        assert!(out.iter().any(|d| d.kind == DiagnosticKind::Illegal
+            && d.message.contains("`point * mean`")), "{:?}", msgs(&out));
+    }
+
+    #[test]
+    fn a_bare_quantile_is_refused_and_names_median() {
+        // The one transform whose parameter is required rather than defaulted:
+        // the only sensible default is the middle, and that is already `median`.
+        let spec = base().layer(Layer::new(Mark::Bar).transform(Transform::Quantile));
+        let out = check(&spec, &data());
+        assert!(out.iter().any(|d| d.kind == DiagnosticKind::Illegal
+            && d.message.contains("`median`")), "{:?}", msgs(&out));
+    }
+
+    #[test]
+    fn a_quantile_outside_zero_to_one_is_refused() {
+        let spec = base().layer(
+            Layer::new(Mark::Bar).transform(Transform::Quantile).at_quantile(90.0));
+        let out = check(&spec, &data());
+        assert!(out.iter().any(|d| d.kind == DiagnosticKind::Illegal
+            && d.message.contains("not a probability")), "{:?}", msgs(&out));
+    }
+
+    #[test]
+    fn a_quantile_away_from_the_plain_points_says_nothing() {
+        let spec = base().layer(
+            Layer::new(Mark::Bar).transform(Transform::Quantile).at_quantile(0.9));
+        let out = check(&spec, &data());
+        assert!(out.is_empty(), "the 90th percentile earned a remark: {:?}", msgs(&out));
+    }
+
+    /// The ruling this atom turns on: at the three points where `quantile`
+    /// duplicates a plain name it **warns and draws**. Not Illegal, because a
+    /// generated sweep over deciles would die at 0.5; not silent, because two
+    /// spellings for one result is what Law 1 exists to notice.
+    #[test]
+    fn a_quantile_that_duplicates_a_plain_name_warns_and_still_draws() {
+        for (p, plain) in [(0.0, "min"), (0.5, "median"), (1.0, "max")] {
+            let spec = base().layer(
+                Layer::new(Mark::Bar).transform(Transform::Quantile).at_quantile(p));
+            let out = check(&spec, &data());
+            assert!(
+                out.iter().any(|d| d.kind == DiagnosticKind::Assumption
+                    && d.message.contains(plain)),
+                "quantile({p}) did not name `{plain}`: {:?}", msgs(&out)
+            );
+            assert!(
+                !out.iter().any(|d| d.kind == DiagnosticKind::Illegal),
+                "quantile({p}) refused instead of drawing: {:?}", msgs(&out)
+            );
+        }
+    }
+
+    // -----------------------------------------------------------------------
     // Nest — the packed space's own refusals (spec §15)
     // -----------------------------------------------------------------------
 
@@ -12328,7 +12480,7 @@ mod tests {
             "a bare ribbon should be refused toward a range transform: {:?}", msgs(&d));
 
         // With `range` or `confidence` it is the whole legal expression.
-        for t in [Transform::Range, Transform::Confidence] {
+        for t in [Transform::Range, Transform::Confidence, Transform::Deviation] {
             let d = check(&base().layer(Layer::new(Mark::Ribbon).transform(t.clone())), &data());
             assert!(d.is_empty(), "ribbon * {t:?} + x + y should be legal: {:?}", msgs(&d));
         }
@@ -12781,7 +12933,7 @@ mod tests {
     /// one-key branch and drew one per *row* rather than one per cell.
     #[test]
     fn a_pair_transform_is_a_two_dimensional_reading_in_the_cube() {
-        for t in [Transform::Range, Transform::Confidence, Transform::Box] {
+        for t in [Transform::Range, Transform::Confidence, Transform::Deviation, Transform::Box] {
             assert!(crate::transform::pairs_a_column(&[t.clone()]), "{t:?} pairs a column");
             assert!(reads_two_dimensions(&Mark::Interval, &[t.clone()], SpaceKind::Space),
                 "{t:?} on a whisker in the cube must group by the floor");
@@ -13364,7 +13516,7 @@ mod tests {
             (Transform::Range,      "share of a span"),
             (Transform::Confidence, "share of a span"),
         ] {
-            let mark = if matches!(t, Transform::Range | Transform::Confidence) {
+            let mark = if matches!(t, Transform::Range | Transform::Confidence | Transform::Deviation) {
                 Mark::Interval
             } else {
                 Mark::Line
@@ -13792,7 +13944,7 @@ mod tests {
                                         | Transform::Count | Transform::Proportion
                                         | Transform::Partition) {
                 TransformLegality::Required
-            } else if crate::transform::reduces_column(std::slice::from_ref(&t)).is_some() {
+            } else if crate::transform::has_reduction(std::slice::from_ref(&t)) {
                 TransformLegality::Combines
             } else {
                 TransformLegality::None

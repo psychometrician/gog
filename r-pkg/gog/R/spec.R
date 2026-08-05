@@ -57,6 +57,25 @@ carry_range_params <- function(layer, tr) {
   layer
 }
 
+# A deviation transform carries its multiplier onto the layer, and a quantile its
+# probability.  Both follow `carry_range_params`: only a non-NULL value attaches,
+# so a bare `interval * deviation` sends nothing and the engine reads one standard
+# deviation.  `quantile` has no default, but the same rule still holds -- what a
+# bare `quantile` sends is nothing, and the engine refuses it by name.
+carry_deviation_params <- function(layer, tr) {
+  if (identical(tr$transform, "deviation") && !is.null(tr$multiplier)) {
+    layer$deviation <- list(multiplier = tr$multiplier)
+  }
+  layer
+}
+
+carry_quantile_params <- function(layer, tr) {
+  if (identical(tr$transform, "quantile") && !is.null(tr$p)) {
+    layer$quantile <- list(p = tr$p)
+  }
+  layer
+}
+
 # A confidence transform carries its level onto the layer — the engine reads it
 # from `layer$confidence`. Only a non-NULL level attaches, so a bare
 # `interval * confidence` stays on the default 0.95.
@@ -162,6 +181,8 @@ carry_partition_params <- function(layer, tr) {
     layer <- carry_density_params(layer, e2)
     layer <- carry_range_params(layer, e2)
     layer <- carry_confidence_params(layer, e2)
+    layer <- carry_deviation_params(layer, e2)
+    layer <- carry_quantile_params(layer, e2)
     layer <- carry_jitter_params(layer, e2)
     layer <- carry_stack_params(layer, e2)
     layer <- carry_bounds_params(layer, e2)
@@ -176,6 +197,8 @@ carry_partition_params <- function(layer, tr) {
     e1 <- carry_density_params(e1, e2)
     e1 <- carry_range_params(e1, e2)
     e1 <- carry_confidence_params(e1, e2)
+    e1 <- carry_deviation_params(e1, e2)
+    e1 <- carry_quantile_params(e1, e2)
     e1 <- carry_jitter_params(e1, e2)
     e1 <- carry_stack_params(e1, e2)
     e1 <- carry_bounds_params(e1, e2)
@@ -609,6 +632,8 @@ resolve_query <- function(q, table) {
       lhs$current_layer$density <- rhs$density
       lhs$current_layer$range <- rhs$range
       lhs$current_layer$confidence <- rhs$confidence
+      lhs$current_layer$deviation <- rhs$deviation
+      lhs$current_layer$quantile <- rhs$quantile
       lhs$current_layer$jitter <- rhs$jitter
       lhs$current_layer$stack <- rhs$stack
       lhs$current_layer$bounds <- rhs$bounds

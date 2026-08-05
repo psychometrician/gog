@@ -40,19 +40,21 @@ The result is a derived mark type, not a new atom to memorize.
 | `median` | the middle `y` within each `x` |
 | `max` | the largest `y` within each `x` |
 | `min` | the smallest `y` within each `x` |
+| `quantile` | the `y` at one probability within each `x`, `quantile(0.9)` |
 | `range` | a band of `y` per group, as a pair; the whole group, or two quantiles you name |
 | `confidence` | the mean's confidence interval per group: low, high and center |
+| `deviation` | the spread of `y` per group: the mean plus and minus a standard deviation |
 
-The middle five (`sum`, `mean`, `median`, `max`, `min`) form the **aggregation
-family**. All share the same pattern: group by x, reduce y to one value. `range`
-groups the same way but reduces to *two* values, a low and a high, the extents
-an [`interval`](marks/interval.qmd) spans.
+The middle six (`sum`, `mean`, `median`, `max`, `min`, `quantile`) form the
+**aggregation family**. All share the same pattern: group by x, reduce y to one
+value. `range`, `confidence` and `deviation` group the same way but write a low
+and a high, the extents an [`interval`](marks/interval.qmd) spans.
 
 ## One variable, or two?
 
-Twelve of the transforms fall into two families by how many columns they
+Fourteen of the transforms fall into two families by how many columns they
 *read*, and that number is exactly what decides whether you write `y()`. The
-rest of the kernel's seventeen come later in this chapter: `bounds`, which
+rest of the kernel's nineteen come later in this chapter: `bounds`, which
 reshapes rather than computes, `partition`, which cuts a panel into regions,
 and the three collision modifiers.
 
@@ -68,14 +70,14 @@ there is exactly one sensible y here (the count, the density), so the omission
 cannot be misread and the engine fills it in silently.
 
 **Reading** transforms (`smooth`, `sum`, `mean`, `median`, `max`, `min`,
-`range`, `confidence`) read *two* columns and reshape the second against the
-first. They fit or aggregate an existing `y`, so a `y()` must be in scope:
+`quantile`, `range`, `confidence`, `deviation`) read *two* columns and reshape
+the second against the first. They fit or aggregate an existing `y`, so a `y()` must be in scope:
 `bar * mean + x(country) + y(gold)` has no way to guess which column to average.
 Leave `y()` off and the engine invents nothing: only you know which column was
-meant, so it stops and names what is missing (`add y(<column>)`). `range` and
-`confidence` are the two that read a `y` like the others but *write more than
-one*: `range` a low and a high, `confidence` a low, high and center, the
-extents an [`interval`](marks/interval.qmd) spans.
+meant, so it stops and names what is missing (`add y(<column>)`). `range`,
+`confidence` and `deviation` are the three that read a `y` like the others but
+*write more than one*: `range` a low and a high, the other two a low, high and
+center, the extents an [`interval`](marks/interval.qmd) spans.
 
 So `y()`'s presence is not a quirk to memorize per transform; it reads straight
 off the family. This is [Explicit Over Implicit](design-laws.qmd) in miniature:
@@ -626,14 +628,14 @@ summary rather than a count.
 
 ---
 
-## Aggregation family: `sum`, `mean`, `median`, `max`, `min`
+## Aggregation family: `sum`, `mean`, `median`, `max`, `min`, `quantile`
 
 When a dataset has multiple rows for the same x value (e.g., medals from
 different years, all labeled "USA"), `bar` alone draws one bar per row:
 the last row silently wins.
 
 The aggregation family groups rows by x and reduces y to a single value
-per group. All five follow exactly the same grammar:
+per group. All six follow exactly the same grammar:
 
 ```
 bar * sum     + x(country) + y(gold)
@@ -641,6 +643,7 @@ bar * mean    + x(country) + y(gold)
 bar * median  + x(country) + y(gold)
 bar * max     + x(country) + y(gold)
 bar * min     + x(country) + y(gold)
+bar * quantile(0.9) + x(country) + y(gold)
 ```
 
 **`sum`**, total y per group, the most common aggregation for counts and amounts:
@@ -687,7 +690,7 @@ data(medals_dup) + bar * min + x(country) + y(gold) +
   y_label("Min gold") + title("Min per country: bar * min")
 ```
 
-All five aggregations work with both string and numeric x columns. For string
+All six aggregations work with both string and numeric x columns. For string
 x, groups preserve first-appearance order (before any `order`); for numeric x,
 groups are sorted ascending.
 
@@ -699,10 +702,10 @@ groups are sorted ascending.
 | `max`     | largest y value            |
 | `min`     | smallest y value           |
 
-### The same five, grouping by a pair
+### The same six, grouping by a pair
 
 `count` follows a bar onto a zone and tallies two axes instead of one, and these
-five follow it, for the same reason and by the same rule. A bar has a length to
+six follow it, for the same reason and by the same rule. A bar has a length to
 spend, so it groups by one position and measures along the other; a
 [zone](marks/zone.qmd) measures nothing by length, so both its positions are free
 to be keys and the answer goes to `color`:
@@ -748,6 +751,57 @@ already made and divides it.
 *what to do* to y, not a data type or a chart name. The `*` operator makes
 this explicit: `bar * sum` reads as "a bar that sums". Every aggregation is
 a plain English word; none are abbreviations (Law 3: Plain Names).
+
+---
+
+## `quantile`: one point in the distribution
+
+`sum`, `mean`, `median`, `max` and `min` each answer a fixed question.
+`quantile` takes the question as its argument: `quantile(0.9)` is the value nine
+tenths of the group falls below, which is the **90th percentile**.
+
+Many reported numbers have exactly that form. A service level is the 95th
+percentile of response time. A growth chart is a set of percentiles by age. A pay
+band is usually quoted at the 10th, 50th and 90th percentiles. Here are three of
+them across every country, year by year:
+
+```{r}
+data(gm_all) + x(year) + y(life) +
+  line * quantile(0.9) + style(color = "steelblue") +
+  line * median + style(color = "gray") +
+  line * quantile(0.1) + style(color = "tomato") +
+  y_label("Life expectancy") +
+  title("The 90th percentile, the median, and the 10th")
+```
+
+The three lines are three sentences over one table, and they say different things
+about the same 142 countries. The middle rose steadily. The top rose more slowly,
+because it was already high. The bottom rose and then declined for a decade,
+which neither of the others shows.
+
+`quantile` has no default. Every transform whose parameter is a number works
+bare, and this one is refused:
+
+```{r}
+#| error: true
+data(gm_all) + line * quantile + x(year) + y(life)
+```
+
+The only sensible default is the middle, and the middle already has a plain
+name. That is also why three particular values draw a remark rather than a
+refusal:
+
+```{r}
+#| message: true
+data(gm_all) + line * quantile(0.5) + x(year) + y(life) +
+  y_label("Life expectancy") + title("The median, written as a quantile")
+```
+
+The plot draws, and gog says that `median` is the plain name for it.
+`quantile(0)` and `quantile(1)` say the same about `min` and `max`. They are not
+refused, because a program stepping through the deciles would stop at 0.5 for no
+reason. They are not silent either, because
+[Orthogonality](design-laws.qmd) says no atom is redundant.
 
 ---
 

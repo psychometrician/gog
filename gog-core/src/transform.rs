@@ -14,7 +14,8 @@
 use std::collections::HashMap;
 
 use crate::data::DataFrame;
-use crate::ir::{BinSpec, BoundsSpec, BoxSpec, ConfidenceSpec, DensitySpec, RangeSpec, StackSpec, Transform};
+use crate::ir::{BinSpec, BoundsSpec, BoxSpec, ConfidenceSpec, DensitySpec, DeviationSpec,
+                QuantileSpec, RangeSpec, StackSpec, Transform};
 
 /// Apply a sequence of transforms to `df`.
 ///
@@ -38,6 +39,8 @@ pub fn apply(
     density_spec: Option<&DensitySpec>,
     range_spec: Option<&RangeSpec>,
     conf_spec: Option<&ConfidenceSpec>,
+    dev_spec: Option<&DeviationSpec>,
+    q_spec: Option<&QuantileSpec>,
     box_spec: Option<&BoxSpec>,
     bounds_spec: Option<&BoundsSpec>,
     stack_spec: Option<&StackSpec>,
@@ -50,9 +53,9 @@ pub fn apply(
     // one group — the whole frame — which is the same code, degenerate.
     let result = match group_field {
         Some(g) if df.str_col(g).is_some_and(|c| !c.is_empty()) => {
-            apply_grouped(df, transforms, key_field, out_field, bin_spec, cut, density_spec, range_spec, conf_spec, box_spec, bounds_spec, g)
+            apply_grouped(df, transforms, key_field, out_field, bin_spec, cut, density_spec, range_spec, conf_spec, dev_spec, q_spec, box_spec, bounds_spec, g)
         }
-        _ => apply_seq(df, transforms, key_field, out_field, bin_spec, density_spec, range_spec, conf_spec, box_spec, bounds_spec, cut),
+        _ => apply_seq(df, transforms, key_field, out_field, bin_spec, density_spec, range_spec, conf_spec, dev_spec, q_spec, box_spec, bounds_spec, cut),
     };
 
     // **`proportion` normalizes here, always** — the one pass that makes it a
@@ -415,6 +418,8 @@ fn apply_grouped(
     density_spec: Option<&DensitySpec>,
     range_spec: Option<&RangeSpec>,
     conf_spec: Option<&ConfidenceSpec>,
+    dev_spec: Option<&DeviationSpec>,
+    q_spec: Option<&QuantileSpec>,
     box_spec: Option<&BoxSpec>,
     bounds_spec: Option<&BoundsSpec>,
     group_field: &str,
@@ -444,7 +449,7 @@ fn apply_grouped(
     let parts: Vec<DataFrame> = groups.iter().filter_map(|gv| {
         let sub = df.filter_str_eq(group_field, gv);
         if sub.is_empty() { return None; }
-        let res = apply_seq(&sub, transforms, key_field, out_field, bin_spec, density_spec, range_spec, conf_spec, box_spec, bounds_spec, shared.as_ref());
+        let res = apply_seq(&sub, transforms, key_field, out_field, bin_spec, density_spec, range_spec, conf_spec, dev_spec, q_spec, box_spec, bounds_spec, shared.as_ref());
         let n = res.len();
         if n == 0 { return None; }
         let tag = vec![gv.clone(); n];
@@ -467,6 +472,8 @@ fn apply_seq(
     density_spec: Option<&DensitySpec>,
     range_spec: Option<&RangeSpec>,
     conf_spec: Option<&ConfidenceSpec>,
+    dev_spec: Option<&DeviationSpec>,
+    q_spec: Option<&QuantileSpec>,
     box_spec: Option<&BoxSpec>,
     bounds_spec: Option<&BoundsSpec>,
     layout: Option<&BinLayout>,
@@ -521,7 +528,7 @@ fn apply_seq(
         // The cut already ran, above, wherever it was written.
         if cut_first && *t == Transform::Bin { continue }
         if *t == Transform::Proportion && measured { continue }
-        current = apply_one(&current, t, key_field, out_field, bin_spec, density_spec, range_spec, conf_spec, box_spec, bounds_spec, layout);
+        current = apply_one(&current, t, key_field, out_field, bin_spec, density_spec, range_spec, conf_spec, dev_spec, q_spec, box_spec, bounds_spec, layout);
     }
     current
 }
@@ -536,7 +543,7 @@ fn apply_seq(
 /// engine never reaches.
 pub fn measures_beside_share(transforms: &[Transform]) -> bool {
     transforms.iter().any(|t| matches!(t, Transform::Bin | Transform::Count))
-        || reduces_column(transforms).is_some()
+        || has_reduction(transforms)
 }
 
 /// Was some transform in this sequence handed a column to measure?
@@ -669,10 +676,11 @@ pub fn jobs(t: &Transform, ctx: JobContext) -> Jobs {
         // it cannot take the measure job over from a cut.
         Transform::Count => measure(false),
         Transform::Sum | Transform::Mean | Transform::Median
-            | Transform::Max | Transform::Min => measure(true),
+            | Transform::Max | Transform::Min | Transform::Quantile => measure(true),
         // The pair transforms reduce a named column to two numbers rather than one.
         // Two numbers are still one answer per cell, so two of them still collide.
-        Transform::Range | Transform::Confidence | Transform::Box => measure(true),
+        Transform::Range | Transform::Confidence | Transform::Deviation
+            | Transform::Box => measure(true),
         // The one entry that reads differently per mark: sides of a rectangle on a
         // mark that measures by color, the low/high pair on the measure axis
         // everywhere else.
@@ -734,7 +742,7 @@ pub fn job_conflict(ts: &[Transform], ctx: JobContext) -> Option<(Transform, Tra
 }
 
 #[allow(clippy::too_many_arguments)]
-fn apply_one(df: &DataFrame, t: &Transform, key_field: &str, out_field: &str, bin_spec: Option<&BinSpec>, density_spec: Option<&DensitySpec>, range_spec: Option<&RangeSpec>, conf_spec: Option<&ConfidenceSpec>, box_spec: Option<&BoxSpec>, bounds_spec: Option<&BoundsSpec>, layout: Option<&BinLayout>) -> DataFrame {
+fn apply_one(df: &DataFrame, t: &Transform, key_field: &str, out_field: &str, bin_spec: Option<&BinSpec>, density_spec: Option<&DensitySpec>, range_spec: Option<&RangeSpec>, conf_spec: Option<&ConfidenceSpec>, dev_spec: Option<&DeviationSpec>, q_spec: Option<&QuantileSpec>, box_spec: Option<&BoxSpec>, bounds_spec: Option<&BoundsSpec>, layout: Option<&BinLayout>) -> DataFrame {
     match t {
         Transform::Bin     => bin(df, key_field, out_field, bin_spec, layout),
         Transform::Count   => count(df, key_field, out_field),
@@ -745,9 +753,12 @@ fn apply_one(df: &DataFrame, t: &Transform, key_field: &str, out_field: &str, bi
         Transform::Median     => aggregate(df, key_field, out_field, AggFn::Median),
         Transform::Max        => aggregate(df, key_field, out_field, AggFn::Max),
         Transform::Min        => aggregate(df, key_field, out_field, AggFn::Min),
+        Transform::Quantile   => aggregate(df, key_field, out_field,
+                                           AggFn::Quantile(quantile_p(q_spec))),
         Transform::Proportion => proportion(df, key_field, out_field),
         Transform::Range      => range(df, key_field, out_field, range_spec),
         Transform::Confidence => confidence(df, key_field, out_field, conf_spec),
+        Transform::Deviation  => deviation(df, key_field, out_field, dev_spec),
         Transform::Box        => box_summary(df, key_field, out_field, box_spec),
         Transform::Bounds     => bounds(df, key_field, out_field, bounds_spec),
         // `dodge` is a collision modifier, not a statistic: it repositions the
@@ -1578,7 +1589,7 @@ pub fn bin2d_agg(
 pub fn pairs2d(
     df: &DataFrame, x_field: &str, y_field: &str, val_field: &str,
     kind: &Transform, conf: Option<&ConfidenceSpec>, bx: Option<&BoxSpec>,
-    rng: Option<&RangeSpec>,
+    rng: Option<&RangeSpec>, dev: Option<&DeviationSpec>,
 ) -> DataFrame {
     // Both axes categorical and the value column numeric — all three already refused
     // otherwise by `check_pair_summary`, so saying anything here would double a
@@ -1611,6 +1622,13 @@ pub fn pairs2d(
         match kind {
             Transform::Confidence => {
                 let (lo, hi, c) = ci_of(cell, level);
+                push(lo); ctr.push(c);
+                push(hi); ctr.push(c);
+            }
+            // The same triple from the same function the one-key reading calls,
+            // so a cube's spread band and a panel's report one number (Law 2).
+            Transform::Deviation => {
+                let (lo, hi, c) = sd_band_of(cell, dev.and_then(|s| s.multiplier).unwrap_or(1.0));
                 push(lo); ctr.push(c);
                 push(hi); ctr.push(c);
             }
@@ -2654,11 +2672,61 @@ fn range_pair(vals: &[f64], spec: Option<&RangeSpec>) -> (f64, f64) {
     (quantile_sorted(&s, lo_p), quantile_sorted(&s, hi_p))
 }
 
+/// One group's spread band, mean ± k·sd, as the same *(low, high, center)*
+/// triple [`ci_of`] returns — which is what lets `deviation` reuse every line
+/// below rather than growing a second copy of the grouping.
+///
+/// The sample standard deviation, dividing by n−1, so it matches what a reader
+/// gets from `sd(x)` and from the `var` inside `ci_of`. A group of one has no
+/// spread to draw and collapses to its own value, exactly as `confidence` does
+/// there, because the alternative is a band of width NaN that silently removes
+/// the group from the axis domain.
+/// The probability a `quantile` layer asks for. The one place `None` becomes a
+/// number, so the transform and `reduces_column` cannot disagree about what an
+/// unnamed probability means — and both are downstream of the refusal that stops
+/// an unnamed one from getting here at all.
+fn quantile_p(spec: Option<&QuantileSpec>) -> f64 {
+    spec.and_then(|s| s.p).unwrap_or(0.5)
+}
+
+fn sd_band_of(vals: &[f64], multiplier: f64) -> (f64, f64, f64) {
+    let n = vals.len();
+    let mean = vals.iter().sum::<f64>() / n as f64;
+    if n < 2 { return (mean, mean, mean); }
+    let var = vals.iter().map(|&v| (v - mean).powi(2)).sum::<f64>() / (n as f64 - 1.0);
+    let m = multiplier * var.sqrt();
+    (mean - m, mean + m, mean)
+}
+
+/// `deviation` — the spread band per group. [`confidence`]'s twin, and the two
+/// are one function apart on purpose: they emit the identical shape and differ
+/// only in what the band *means*, which is the distinction `interval`'s chapter
+/// exists to make visible.
+fn deviation(df: &DataFrame, x_field: &str, y_field: &str, spec: Option<&DeviationSpec>) -> DataFrame {
+    let k = spec.and_then(|s| s.multiplier).unwrap_or(1.0);
+    centered_pairs(df, x_field, y_field, &move |vals: &[f64]| sd_band_of(vals, k))
+}
+
 fn confidence(df: &DataFrame, x_field: &str, y_field: &str, spec: Option<&ConfidenceSpec>) -> DataFrame {
     let level = spec.and_then(|s| s.level).unwrap_or(0.95);
+    centered_pairs(df, x_field, y_field, &move |vals: &[f64]| ci_of(vals, level))
+}
+
+/// The emitting half of every *centered* pair transform: group by `x_field`,
+/// reduce each group to a (low, high, center) triple, and write the pair as two
+/// rows in `y_field` with the center repeated beside them.
+///
+/// Split out when `deviation` arrived, because the alternative was a second copy
+/// of this grouping. Two copies of a grouping rule is how `confidence` and
+/// `deviation` would come to disagree about which rows form a group, which is
+/// the drift §14 records for the second renderer in a smaller place.
+fn centered_pairs(
+    df: &DataFrame, x_field: &str, y_field: &str,
+    reduce: &dyn Fn(&[f64]) -> (f64, f64, f64),
+) -> DataFrame {
     let Some(ys) = df.float_col(y_field) else { return df.clone() };
 
-    let ci = |vals: &[f64]| -> (f64, f64, f64) { ci_of(vals, level) };
+    let ci = reduce;
 
     // String x: one (low, high) pair + center per group, groups first-seen.
     if let Some(xs) = df.str_col(x_field) {
@@ -2829,8 +2897,12 @@ fn box_summary(df: &DataFrame, x_field: &str, y_field: &str, spec: Option<&BoxSp
 /// [`aggregate`] groups by a single key (the plane), [`agg2d`] by a *pair* (a cell).
 /// The reduction itself is the same function in both, which is the point — one key
 /// or two is a fact about the mark, never about what `mean` means (Law 2).
-#[derive(Clone, Copy, PartialEq, Eq, Debug)]
-pub enum AggFn { Sum, Mean, Median, Max, Min }
+/// `Eq` is deliberately absent: `Quantile` carries the probability, and a float
+/// has no total equality. Nothing compares an `AggFn`, so the derive was only
+/// ever a convenience — where `Transform` keeps its `Eq` by pushing parameters
+/// onto the layer, this enum is internal and can hold its one knob directly.
+#[derive(Clone, Copy, PartialEq, Debug)]
+pub enum AggFn { Sum, Mean, Median, Max, Min, Quantile(f64) }
 
 impl AggFn {
     /// Reduce one group's values to one number. Takes `&mut` because the median
@@ -2845,6 +2917,13 @@ impl AggFn {
                 vals.sort_by(|a, b| a.partial_cmp(b).unwrap_or(std::cmp::Ordering::Equal));
                 let n = vals.len();
                 if n % 2 == 1 { vals[n / 2] } else { (vals[n / 2 - 1] + vals[n / 2]) / 2.0 }
+            }
+            // Type 7, the same `quantile_sorted` the box and the band call, so
+            // `bar * quantile(0.5)` and `bar * median` report the same middle
+            // and the Assumption that names one for the other stays true.
+            AggFn::Quantile(p) => {
+                vals.sort_by(|a, b| a.partial_cmp(b).unwrap_or(std::cmp::Ordering::Equal));
+                quantile_sorted(vals, p)
             }
         }
     }
@@ -2867,7 +2946,8 @@ impl AggFn {
 /// **not** one of them: it names two columns that already hold the pair rather than
 /// computing one from a group, so there is nothing for a cell to reduce.
 pub fn pairs_a_column(transforms: &[Transform]) -> bool {
-    transforms.iter().any(|t| matches!(t, Transform::Range | Transform::Confidence | Transform::Box))
+    transforms.iter().any(|t| matches!(t, Transform::Range | Transform::Confidence
+                                          | Transform::Deviation | Transform::Box))
 }
 
 /// Is this one transform a member of the **aggregation family**?
@@ -2884,16 +2964,34 @@ pub fn pairs_a_column(transforms: &[Transform]) -> bool {
 /// below and skip the rule above.
 pub fn is_reduction(t: &Transform) -> bool {
     matches!(t, Transform::Sum | Transform::Mean | Transform::Median
-                | Transform::Max | Transform::Min)
+                | Transform::Max | Transform::Min | Transform::Quantile)
 }
 
-pub fn reduces_column(transforms: &[Transform]) -> Option<AggFn> {
+/// **Is** there a reduction in this sequence — the classification question.
+///
+/// Split from [`reduces_column`] when `quantile` arrived, because the two
+/// questions stopped having one answer. Knowing *that* a layer reduces needs no
+/// parameter; knowing *which* reduction to run needs the probability when the
+/// answer is a quantile. Every caller that only wanted the first question now
+/// asks it directly, so no site can obtain an `AggFn` without the knob that
+/// completes it.
+pub fn has_reduction(transforms: &[Transform]) -> bool {
+    transforms.iter().any(is_reduction)
+}
+
+/// **Which** reduction, ready to run. `q` supplies `quantile`'s probability and
+/// is ignored by the other five; a `quantile` layer that names no probability is
+/// refused by `legality::check_quantile_params` before this is reached, and the
+/// 0.5 fallback here exists only so a `GOG_STRICT=0` draw has a defined answer
+/// rather than a NaN that would quietly empty the axis.
+pub fn reduces_column(transforms: &[Transform], q: Option<&QuantileSpec>) -> Option<AggFn> {
     transforms.iter().find_map(|t| match t {
-        Transform::Sum    => Some(AggFn::Sum),
-        Transform::Mean   => Some(AggFn::Mean),
-        Transform::Median => Some(AggFn::Median),
-        Transform::Max    => Some(AggFn::Max),
-        Transform::Min    => Some(AggFn::Min),
+        Transform::Sum      => Some(AggFn::Sum),
+        Transform::Mean     => Some(AggFn::Mean),
+        Transform::Median   => Some(AggFn::Median),
+        Transform::Max      => Some(AggFn::Max),
+        Transform::Min      => Some(AggFn::Min),
+        Transform::Quantile => Some(AggFn::Quantile(q.and_then(|s| s.p).unwrap_or(0.5))),
         _ => None,
     })
 }
@@ -3512,7 +3610,7 @@ mod tests {
         for t in &every {
             assert_eq!(
                 is_reduction(t),
-                reduces_column(std::slice::from_ref(t)).is_some(),
+                has_reduction(std::slice::from_ref(t)),
                 "{t:?}: `is_reduction` and `reduces_column` disagree, so the refusal and \
                  the arithmetic are reading different lists"
             );
@@ -3664,7 +3762,8 @@ mod tests {
         group_field: Option<&str>,
     ) -> DataFrame {
         super::apply(df, transforms, key_field, out_field, bin_spec, None,
-                     density_spec, None, conf_spec, box_spec, bounds_spec, stack_spec, group_field)
+                     density_spec, None, conf_spec, None, None, box_spec, bounds_spec,
+                     stack_spec, group_field)
     }
     fn bin2d(df: &DataFrame, x_field: &str, y_field: &str, spec: Option<&BinSpec>) -> DataFrame {
         super::bin2d(df, x_field, y_field, spec, BinCut::default())
@@ -5266,6 +5365,80 @@ mod tests {
     }
 
     #[test]
+    fn deviation_is_the_mean_plus_and_minus_k_standard_deviations() {
+        // 2,4,4,4,5,5,7,9: mean 5, sample sd 2.138... (n−1). The band is
+        // mean ± k·sd, and the center is the mean whatever k is.
+        let vals = vec![2.0, 4.0, 4.0, 4.0, 5.0, 5.0, 7.0, 9.0];
+        let sd = (vals.iter().map(|v| (v - 5.0f64).powi(2)).sum::<f64>() / 7.0).sqrt();
+        let (lo, hi, c) = sd_band_of(&vals, 1.0);
+        assert!((c - 5.0).abs() < 1e-12);
+        assert!((lo - (5.0 - sd)).abs() < 1e-12);
+        assert!((hi - (5.0 + sd)).abs() < 1e-12);
+        // The multiplier scales the half-width and moves nothing else.
+        let (lo2, hi2, c2) = sd_band_of(&vals, 2.0);
+        assert!((c2 - c).abs() < 1e-12);
+        assert!((hi2 - c) - 2.0 * (hi - c) < 1e-12);
+        assert!((c - lo2) - 2.0 * (c - lo) < 1e-12);
+    }
+
+    #[test]
+    fn a_group_of_one_has_no_spread_and_collapses_to_a_point() {
+        // The sample sd of one value is undefined, and a band of width NaN would
+        // quietly drop the group out of the axis domain. `confidence` collapses
+        // there for the same reason, so `deviation` matches it.
+        let (lo, hi, c) = sd_band_of(&[7.0], 1.0);
+        assert_eq!((lo, hi, c), (7.0, 7.0, 7.0));
+    }
+
+    #[test]
+    fn quantile_at_the_three_plain_points_is_those_plain_atoms() {
+        // The Assumption at p = 0, 0.5 and 1 tells a reader to write `min`,
+        // `median` and `max` instead. That direction is only honest if the
+        // numbers actually agree, and they have to agree on an even-length group
+        // too, where the median interpolates. This is what makes the message true.
+        for vals in [
+            vec![3.0, 1.0, 4.0, 1.0, 5.0],           // odd
+            vec![3.0, 1.0, 4.0, 1.0, 5.0, 9.0],      // even, so the median averages
+        ] {
+            let mut a = vals.clone();
+            let mut b = vals.clone();
+            assert_eq!(AggFn::Quantile(0.0).reduce(&mut a), AggFn::Min.reduce(&mut b));
+            let (mut a, mut b) = (vals.clone(), vals.clone());
+            assert_eq!(AggFn::Quantile(0.5).reduce(&mut a), AggFn::Median.reduce(&mut b));
+            let (mut a, mut b) = (vals.clone(), vals.clone());
+            assert_eq!(AggFn::Quantile(1.0).reduce(&mut a), AggFn::Max.reduce(&mut b));
+        }
+    }
+
+    #[test]
+    fn quantile_reduces_a_group_by_type_seven() {
+        // 1..=10 at p = 0.9 is 9.1, the number R's `quantile()` returns, and the
+        // same `quantile_sorted` the box and the band call.
+        let df = DataFrame::new()
+            .with_str("g", vec!["a".to_string(); 10])
+            .with_float("v", (1..=10).map(|i| i as f64).collect());
+        let spec = QuantileSpec { p: Some(0.9) };
+        let out = aggregate(&df, "g", "v", AggFn::Quantile(quantile_p(Some(&spec))));
+        let got = out.float_col("v").unwrap()[0];
+        assert!((got - 9.1).abs() < 1e-12, "expected 9.1, got {got}");
+    }
+
+    #[test]
+    fn a_cell_takes_the_same_spread_band_as_a_slot() {
+        // Law 2 again, for the second pair transform: one key or two is a fact
+        // about the mark, never about what `deviation` means.
+        let vals: Vec<f64> = vec![2.0, 4.0, 4.0, 4.0, 5.0, 5.0, 7.0, 9.0];
+        let df = DataFrame::new()
+            .with_str("a", vec!["p".to_string(); 8])
+            .with_str("b", vec!["q".to_string(); 8])
+            .with_float("v", vals.clone());
+        let spec = DeviationSpec { multiplier: Some(2.0) };
+        let out = pairs2d(&df, "a", "b", "v", &Transform::Deviation, None, None, None, Some(&spec));
+        let (lo, hi, _) = sd_band_of(&vals, 2.0);
+        assert_eq!(out.float_col("v").unwrap(), &[lo, hi]);
+    }
+
+    #[test]
     fn a_cell_takes_the_same_band_as_a_slot() {
         // Law 2: how many keys a mark has is a fact about the mark, never about
         // what `range` means. Both readings call `range_pair`, so the cube's
@@ -5275,7 +5448,7 @@ mod tests {
             .with_str("b", vec!["q".to_string(); 10])
             .with_float("v", (1..=10).map(|i| i as f64).collect());
         let spec = RangeSpec { low: Some(0.25), high: Some(0.75) };
-        let out = pairs2d(&df, "a", "b", "v", &Transform::Range, None, None, Some(&spec));
+        let out = pairs2d(&df, "a", "b", "v", &Transform::Range, None, None, Some(&spec), None);
         assert_eq!(out.float_col("v").unwrap(), &[3.25, 7.75]);
     }
 

@@ -177,8 +177,8 @@ def _carry(layer: Atom, transform: Atom) -> None:
     extremes.
     """
     name = transform.fields["transform"]
-    if name not in ("bin", "density", "range", "confidence", "jitter", "stack",
-                    "bounds", "partition"):
+    if name not in ("bin", "density", "range", "confidence", "deviation",
+                    "quantile", "jitter", "stack", "bounds", "partition"):
         return
     params = {
         key: value
@@ -468,8 +468,8 @@ class Plot:
                 "transforms": list(other.fields["transforms"]),
                 "data": plot.pending_data,
             }
-            for param in ("bin", "density", "range", "confidence", "jitter", "stack",
-                          "bounds", "partition", "box"):
+            for param in ("bin", "density", "range", "confidence", "deviation",
+                          "quantile", "jitter", "stack", "bounds", "partition", "box"):
                 if other.fields.get(param) is not None:
                     layer[param] = copy.deepcopy(other.fields[param])
             plot._open_layer(layer)

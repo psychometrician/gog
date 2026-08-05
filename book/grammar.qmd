@@ -16,7 +16,7 @@ can read, and write, any plot.
 | **Tables** | `data` `query` |
 | **Marks** | `point` `line` `area` `bar` `step` `interval` `box` `ribbon` `text` `path` `rule` `zone` `surface` |
 | **Channels** | `x` `y` `z` `color` `size` `shape` `pattern` `opacity` `group` `label` `play` |
-| **Transforms** | `bin` `smooth` `count` `density` `proportion` `sum` `mean` `median` `max` `min` `range` `confidence` `bounds` `partition`, and the three that resolve collisions, `dodge` `stack` `jitter` |
+| **Transforms** | `bin` `smooth` `count` `density` `proportion` `sum` `mean` `median` `max` `min` `quantile` `range` `confidence` `deviation` `bounds` `partition`, and the three that resolve collisions, `dodge` `stack` `jitter` |
 | **Operators** | `+` layers, `*` derives, `|` and `/` arrange |
 | **Scales** | `linear` `log` `time` `category` `order` |
 | **Spaces** | `flat` `space` `polar` `nest` `map` |
@@ -206,13 +206,15 @@ Ten of them replace values with a computed statistic.
 | `density` | A smooth curve of where the rows lie |
 | `smooth` | A trend line fitted through the points |
 | `sum` `mean` `median` `max` `min` | Reduce a column to one value per group |
+| `quantile` | Reduce a column to the value at one probability, `quantile(0.9)` |
 
-Three produce a low and a high together, which is what a span needs:
+Four produce a low and a high together, which is what a span needs:
 
 | Transform | What it computes |
 |---|---|
-| `range` | A low/high pair computed from the data |
-| `confidence` | The interval around the mean |
+| `range` | A band between two quantiles, the whole group unless you name them |
+| `confidence` | The interval around the mean, which is how well the mean is pinned down |
+| `deviation` | A band of standard deviations around the mean, which is how spread the data is |
 | `bounds` | A low/high pair the table already holds, in two named columns |
 
 Three do not compute anything. They move marks that would otherwise land on top

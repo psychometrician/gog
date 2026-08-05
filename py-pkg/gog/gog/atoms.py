@@ -217,6 +217,56 @@ class _Confidence(CallableAtom):
 confidence = _Confidence("transform", transform="confidence")
 
 
+class _Deviation(CallableAtom):
+    """`deviation` — the spread band per group, one standard deviation unless told."""
+
+    __slots__ = ()
+
+    def __call__(self, multiplier: Optional[float] = None) -> Atom:
+        if multiplier is not None and (
+            isinstance(multiplier, bool)
+            or not isinstance(multiplier, (int, float))
+            or multiplier <= 0
+        ):
+            raise GogError(
+                "gog: `deviation(multiplier=)` needs one positive number — it counts "
+                "standard deviations out from the mean. `deviation` is one, "
+                "`deviation(2)` is two."
+            )
+        return Atom(
+            "transform",
+            transform="deviation",
+            multiplier=None if multiplier is None else float(multiplier),
+        )
+
+
+deviation = _Deviation("transform", transform="deviation")
+
+
+class _Quantile(CallableAtom):
+    """`quantile` — the value at one probability. No default; 0.5 is `median`."""
+
+    __slots__ = ()
+
+    def __call__(self, p: Optional[float] = None) -> Atom:
+        if p is not None:
+            if isinstance(p, bool) or not isinstance(p, (int, float)):
+                raise GogError(
+                    "gog: `quantile()` takes one number between 0 and 1, the "
+                    "probability it reduces to, e.g. `quantile(0.9)`."
+                )
+            if not 0 <= p <= 1:
+                raise GogError(
+                    f"gog: `quantile({p})` is not a probability — a quantile is "
+                    "between 0 and 1. `quantile(0.9)` is the 90th percentile, "
+                    "`quantile(0.5)` the middle."
+                )
+        return Atom("transform", transform="quantile", p=None if p is None else float(p))
+
+
+quantile = _Quantile("transform", transform="quantile")
+
+
 class _Range(CallableAtom):
     """`range` — the band per group, the whole group unless told otherwise."""
 

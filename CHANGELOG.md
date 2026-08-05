@@ -8,6 +8,22 @@ CRAN-style repositories and PyPI, `GrammarOfGraphics` on Julia's General, and
 
 ### Added
 
+- **`deviation` draws the spread of the data, as `confidence` draws the
+  uncertainty of the mean.** `interval * deviation` is the mean plus and minus
+  one standard deviation, and `deviation(2)` two. It carries a center, so it
+  draws a pointrange the way `confidence` does. The two are drawn as the same
+  whisker everywhere else, and on the same fifty rows they differ by a factor of
+  three and a half, which is why both are written out rather than left to a
+  caption.
+
+- **`quantile(p)` reduces a group to the value at one probability.**
+  `line * quantile(0.9)` is the 90th percentile per group, which is the shape of
+  a service level, a growth chart and a pay band. There is no default: the only
+  sensible one is the middle, and the middle already has a plain name. At 0, 0.5
+  and 1 the plot draws and says that `min`, `median` and `max` are the plain
+  names for the same numbers, so a program sweeping over deciles does not break
+  at the middle.
+
 - **`range` takes the band's two ends.** `interval * range(0.25, 0.75)` draws the
   interquartile band instead of the full spread, and any other pair works the
   same way: `ribbon * range(0.1, 0.9)` is the middle 80 percent, and two of those

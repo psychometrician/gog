@@ -108,12 +108,60 @@ data(iris_flowers) + interval * confidence(0.95) + x(species) + y(petal_length) 
 
 The level is a parameter (`confidence(0.99)` is wider) and it uses the
 t-distribution, so a small sample's interval is honestly wider than a fixed 1.96
-would draw. Whether a center *exists* is the statistic's call, not a toggle:
-`confidence` has a mean and `range` does not, so choosing the statistic chooses
-the geometry, a bare error bar or a pointrange, with no second mark to learn. A
-setting can *hide* an existing center ([below](#hiding-the-center-dot)), but none
-can conjure one onto `range`. See [Transforms](../transforms.qmd) for the whole
-range family.
+would draw.
+
+## The spread of the data
+
+The opening of this chapter named a standard deviation, a standard error and a
+confidence interval. `confidence` draws the third. The first is `deviation`:
+
+```{r}
+data(iris_flowers) + interval * deviation + x(species) + y(petal_length) +
+  x_label("Species") + y_label("Petal length (cm)") +
+  title("Mean petal length, with one standard deviation")
+```
+
+`deviation(2)` reaches two standard deviations on each side of the mean, so that
+band is four standard deviations wide. The default is one each side. Like
+`confidence` it carries a center, so it draws a pointrange rather than a bare
+whisker.
+
+The standard error has no transform of its own, and that is deliberate: it is
+`confidence`'s ingredient rather than a band anyone draws. What a reader wants
+from it is the interval, and `confidence` gives that with its level named.
+
+`deviation` and `confidence` look alike and answer different questions, so here
+they are over the same fifty flowers per species, sharing one y scale:
+
+```{r}
+(data(iris_flowers) + interval * deviation + x(species) + y(petal_length) +
+   y_label("Petal length (cm)") + title("Spread of the data")) |
+  (data(iris_flowers) + interval * confidence + x(species) + y(petal_length) +
+     y_label("") + title("Uncertainty of the mean"))
+```
+
+The bands on the right are less than a third as long, on identical data, and the
+factor is the same in all three species. The two numbers do not contradict each
+other. `deviation` describes how far the flowers are from their average, and
+measuring more of them does not shrink it. `confidence` describes how precisely
+the average itself is known. More flowers shrink it: four times as many halves
+it. Fifty flowers per species is what sets the factor here.
+
+So choose by the sentence you would write under the plot. *"A versicolor petal is
+usually within half a centimeter of its species average"* describes the left
+panel. *"The average versicolor petal is 4.26 cm, give or take 0.13"* describes
+the right one. Reporting one and meaning the other is the mistake the name
+*error bar* allows, and the reason gog asks you to name the statistic.
+
+Which band is wider is not fixed, either. `confidence` narrows as the group gets
+larger. On fifty flowers it is under a third of the spread; on three flowers it
+is the wider of the two.
+
+Whether a center exists is decided by the statistic, not by a setting.
+`confidence` and `deviation` have a mean and `range` does not, so the statistic
+chooses the geometry: a bare error bar or a pointrange. A setting can *hide* an
+existing center ([below](#hiding-the-center-dot)), but no setting adds one to
+`range`. See [Transforms](../transforms.qmd) for the whole range family.
 
 ## Why `interval` needs a transform
 

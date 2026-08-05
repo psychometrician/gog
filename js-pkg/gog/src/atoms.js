@@ -162,6 +162,52 @@ export const median = bareAtom("transform", { transform: "median" });
 export const max = bareAtom("transform", { transform: "max" });
 export const min = bareAtom("transform", { transform: "min" });
 export const proportion = bareAtom("transform", { transform: "proportion" });
+// `deviation` — the spread band per group, one standard deviation unless told.
+// `confidence`'s twin: the same pair with a center, and a different question.
+export const deviation = callableAtom(
+  new Atom("transform", { transform: "deviation" }),
+  (...raw) => {
+    const { multiplier } = readArgs(raw, "deviation", ["multiplier"]);
+    if (
+      multiplier !== undefined &&
+      (typeof multiplier !== "number" || !Number.isFinite(multiplier) || multiplier <= 0)
+    ) {
+      throw new GogError(
+        "gog: `deviation({ multiplier: … })` needs one positive number — it counts " +
+          "standard deviations out from the mean. `deviation` is one, " +
+          "`deviation(2)` is two."
+      );
+    }
+    return new Atom("transform", {
+      transform: "deviation",
+      multiplier: multiplier ?? null,
+    });
+  }
+);
+
+// `quantile` — the value at one probability. No default: 0.5 is `median`.
+export const quantile = callableAtom(
+  new Atom("transform", { transform: "quantile" }),
+  (...raw) => {
+    const { p } = readArgs(raw, "quantile", ["p"]);
+    if (p !== undefined) {
+      if (typeof p !== "number" || !Number.isFinite(p)) {
+        throw new GogError(
+          "gog: `quantile()` takes one number between 0 and 1, the probability it " +
+            "reduces to, e.g. `quantile(0.9)`."
+        );
+      }
+      if (p < 0 || p > 1) {
+        throw new GogError(
+          `gog: \`quantile(${p})\` is not a probability — a quantile is between 0 ` +
+            "and 1. `quantile(0.9)` is the 90th percentile, `quantile(0.5)` the middle."
+        );
+      }
+    }
+    return new Atom("transform", { transform: "quantile", p: p ?? null });
+  }
+);
+
 // `range` — the band per group, the whole group unless told otherwise. Two
 // positional ends, because a band has two and neither is the more common to set.
 export const range = callableAtom(

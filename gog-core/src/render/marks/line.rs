@@ -62,7 +62,8 @@ impl SvgRenderer {
         // splits them into a low locus and a high locus rather than connecting them
         // in one zigzag.
         let is_pair = layer.transforms.iter().any(|t| matches!(
-            t, Transform::Range | Transform::Confidence | Transform::Bounds));
+            t, Transform::Range | Transform::Confidence | Transform::Deviation
+               | Transform::Bounds));
 
         // Warn when a line has many ungrouped rows and no synthesizing transform —
         // connecting all points in x order is rarely the user's intention. A
@@ -74,13 +75,19 @@ impl SvgRenderer {
         // `ribbon * range + line * mean` band-and-trend plot would otherwise hit.
         // A pair transform draws two clean boundaries, not a zigzag, so it is exempt
         // too.
-        let has_clean_transform = is_pair || layer.transforms.iter().any(|t| matches!(
-            t,
-            Transform::Smooth | Transform::Density
-                | Transform::Mean | Transform::Median | Transform::Sum
-                | Transform::Max | Transform::Min
-                | Transform::Count | Transform::Proportion
-        ));
+        //
+        // **The family is asked for by name, not listed here.** This was a written
+        // -out list of five until `quantile` joined them and fell outside it, so
+        // `line * quantile(0.9)` warned about a zigzag it cannot draw while
+        // `line * mean` on the same rows said nothing — one member of a class
+        // behaving unlike its siblings, which is the Law 2 gap a hand-kept list
+        // always eventually opens. `is_reduction` is the one definition, so the
+        // next member joins without anyone remembering to come here.
+        let has_clean_transform = is_pair || layer.transforms.iter().any(|t| {
+            crate::transform::is_reduction(t)
+                || matches!(t, Transform::Smooth | Transform::Density
+                               | Transform::Count | Transform::Proportion)
+        });
         if group_field.is_none() && !has_clean_transform && n > 5 {
             eprintln!(
                 "gog: `line` has {n} rows and no group or color channel — all points \

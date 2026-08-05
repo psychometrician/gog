@@ -356,6 +356,22 @@ pub enum Transform {
     Smooth,
     Count,
     Density,
+    /// The **p-th quantile** of `y` per group — the seventh member of the
+    /// aggregation family, and the one addition to it that *derives* rather than
+    /// enumerates: one knob with one orthogonal meaning, where `variance` and
+    /// `skewness` would each have been another name (§5).
+    ///
+    /// `p` is **required**, carried on the layer as [`QuantileSpec`]. The only
+    /// defensible default would be 0.5, and that is `median`.
+    ///
+    /// **It overlaps three atoms, and the overlap warns rather than refuses.**
+    /// `quantile(0.5)` is `median`, `quantile(0)` is `min`, `quantile(1)` is
+    /// `max`. At those three points the plot draws and an Assumption names the
+    /// plain atom, which is §12's standing rule: a contradiction refuses, a
+    /// proven redundancy warns. Refusing would break a generated sweep over
+    /// deciles at 0.5, and silence would leave two spellings for one result with
+    /// nothing in the grammar noticing.
+    Quantile,
     Sum,
     Mean,
     Median,
@@ -378,6 +394,22 @@ pub enum Transform {
     /// center dot (a pointrange). Uses the t-interval, mean ± t·se; the level
     /// (0.95 default) rides on the layer as [`ConfidenceSpec`]. Reading: needs `y()`.
     Confidence,
+    /// Per-group **spread band**, mean ± k·sd, emitted as a *(low, high)* pair
+    /// plus a `center` (the mean) — [`Transform::Confidence`]'s shape exactly, so
+    /// the span marks need no new reading. The multiplier (1 by default) rides on
+    /// the layer as [`DeviationSpec`]. Reading: needs `y()`.
+    ///
+    /// **It is not redundant against either neighbor, and the two reasons
+    /// differ.** Against `confidence`: one describes the spread of the data, the
+    /// other makes an inference about the mean, and drawing them as the same
+    /// whisker is the error `interval`'s chapter exists to name. Against
+    /// `range(0.25, 0.75)`: a quantile band is rank-based and this is
+    /// moment-based, so on skewed data they disagree, which is the whole reason
+    /// to have both (Law 1's non-redundant clause, §5).
+    ///
+    /// Its sample standard deviation is the n−1 one, so a group of one has no
+    /// spread to draw and collapses to a point, as `confidence` does.
+    Deviation,
     /// The five-number summary per group — minimum, lower quartile, median, upper
     /// quartile, maximum — read by the [`Mark::Box`] mark. Like `range` it emits
     /// the two *extents* (min, max) as a low/high pair of rows in the y column, so
@@ -787,6 +819,34 @@ pub struct ConfidenceSpec {
     /// Confidence level in (0, 1) — `confidence(0.99)`. `None` → 0.95.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub level: Option<f64>,
+}
+
+/// Parameters for the `deviation` transform, carried on the layer like
+/// [`ConfidenceSpec`]. `multiplier` scales the standard deviation; `None` means 1.
+/// `interval * deviation(2)` is the ±2 sd band.
+///
+/// Positional and dimensionless, following `density`'s rule that the
+/// dimensionless knob goes positional. There is no absolute-units alternative
+/// here for the same reason `range` has none: a band in the data's own units is
+/// [`BoundsSpec`]'s job.
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+pub struct DeviationSpec {
+    /// How many standard deviations each side — `deviation(2)`. `None` → 1.0.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub multiplier: Option<f64>,
+}
+
+/// Parameters for the `quantile` transform, carried on the layer like
+/// [`ConfidenceSpec`]. Unlike every other transform spec, **the field is not
+/// optional in meaning**: `quantile` without a `p` is refused rather than
+/// defaulted, because the only defensible default is 0.5 and that is `median`.
+/// `None` therefore records a caller who named nothing, which
+/// `legality::check_quantile_params` turns into a refusal with direction.
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+pub struct QuantileSpec {
+    /// The quantile probability in 0..1 — `quantile(0.9)`. `None` is refused.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub p: Option<f64>,
 }
 
 /// Parameters for the `box` mark, carried on the layer like [`ConfidenceSpec`].
@@ -1238,6 +1298,15 @@ pub struct Layer {
     /// `None` means the default 0.95 level. Absent from the wire when unset.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub confidence: Option<ConfidenceSpec>,
+    /// Parameters for the `deviation` transform, when the layer carries one.
+    /// `None` means one standard deviation. Absent from the wire when unset.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub deviation: Option<DeviationSpec>,
+    /// Parameters for the `quantile` transform. Unlike the others this is not a
+    /// default but a requirement: absent, the layer named no probability and is
+    /// refused. Absent from the wire when unset.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub quantile: Option<QuantileSpec>,
     /// Parameters for the `box` mark's summary. `None` means the default (Tukey)
     /// whisker rule. Absent from the wire when unset. Rides on the `Layer` like the
     /// transform specs above, even though `box` carries its summary intrinsically —
@@ -1281,6 +1350,8 @@ impl Layer {
             density: None,
             range: None,
             confidence: None,
+            deviation: None,
+            quantile: None,
             r#box: None,
             jitter: None,
             partition: None,
@@ -1366,6 +1437,18 @@ impl Layer {
         let s = self.range.get_or_insert_with(RangeSpec::default);
         s.low = Some(low);
         s.high = Some(high);
+        self
+    }
+
+    /// Set the multiplier on a `deviation` transform (`interval * deviation(2)`).
+    pub fn spread(mut self, multiplier: f64) -> Self {
+        self.deviation.get_or_insert_with(DeviationSpec::default).multiplier = Some(multiplier);
+        self
+    }
+
+    /// Set the probability a `quantile` transform reduces to (`bar * quantile(0.9)`).
+    pub fn at_quantile(mut self, p: f64) -> Self {
+        self.quantile.get_or_insert_with(QuantileSpec::default).p = Some(p);
         self
     }
 
