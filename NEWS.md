@@ -1,3 +1,30 @@
+# gog 0.0.4 (2026-08-05)
+
+Clicking a mark keeps its row on the plot. Hovering reads one row and forgets it
+as soon as you move, so two rows could never be compared. A click leaves a card
+that stays, and dragging the card moves it clear of the crowd it names while a
+line stretches back to the point. On a plot that plays, a card waits for its own
+moment and comes back each time the loop returns to it. The camera saves the
+cards where you put them.
+
+Labels that overlap move apart. `text * repel` is the fourth collision modifier,
+beside `dodge`, `stack` and `jitter`, and the first whose collision is made of
+ink rather than of position: two words overlap where their points never did.
+Every label ends up outside its own dot, and one that moved far keeps a thin line
+back. The placement uses no random numbers, so one specification always draws the
+same picture.
+
+Three more statistics have plain names. `deviation` is the spread of the data, as
+`confidence` is the uncertainty of the mean. `quantile(p)` reduces a group to the
+value at one probability, so `line * quantile(0.9)` is a service level or a
+growth chart. And `range(0.25, 0.75)` names a band by its two ends, so an
+interval is the middle half and two ribbons at different widths are a fan chart.
+
+One thing to know before you upgrade. In R, `range` now masks `base::range`,
+because a transform that takes a parameter has to be a function. Write
+`base::range(x)` for the smallest and largest of a vector. Python, Julia and
+JavaScript are unaffected.
+
 # gog 0.0.3 (2026-08-04)
 
 A plot that moves can leave the browser. `save_gif(plot, "wave.gif")` writes a

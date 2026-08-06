@@ -1,6 +1,6 @@
 Package: gog
 Title: Grammar of Graphics
-Version: 0.0.3
+Version: 0.0.4
 Authors@R:
     person("psychometrician", role = c("aut", "cre"), email = "psychometrician@gmail.com")
 Description: R interface to the gog (Grammar of Graphics) engine.

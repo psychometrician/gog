@@ -347,7 +347,7 @@ Five rules govern every page, and you can hold the book to them:
   engine's *no*, always with a direction, is half of what it teaches.
 
 One thing to be clear about before you start: this package is young. The
-version number is 0.0.3 and it means what it says. What exists is a minimum
+version number is 0.0.4 and it means what it says. What exists is a minimum
 viable package, so do not expect everything to work the first time. If you use
 it for an experiment or a paper, you are taking a risk. This warning is here so
 that the risk is one you chose, and not one you found out about later.
@@ -357,7 +357,7 @@ the kernel is meant to stay small, and it grows one decision at a time. A plot
 you write today may have a shorter way to say it next month. What I will try hard not to do is take anything away. A sentence that
 draws today should still draw a year from now. If that ever has to break, I will
 say why rather than let it break quietly. I cannot promise it, though, and at
-version 0.0.3 nobody honestly could.
+version 0.0.4 nobody honestly could.
 
 This book moves with the package. Because every plot here is live, a change to
 the engine reaches these pages on the next render. The text is rewritten
@@ -549,7 +549,7 @@ chapters closes with the longer version of this section: [R](bindings/r.qmd),
 [Python](bindings/python.qmd), [Julia](bindings/julia.qmd) and
 [JavaScript](bindings/javascript.qmd).
 
-Every one of these packages is at version 0.0.3. The grammar is settled and the
+Every one of these packages is at version 0.0.4. The grammar is settled and the
 engine draws this whole book, but the packaging is new, so the version number
 will move faster than the vocabulary does. One thing does not move with it. If a
 page shows a sentence, the engine drew it. If a page shows a refusal, the engine
@@ -668,7 +668,7 @@ this package was never part of that job. It was built late at night, on
 weekends, and on vacation days. That time belonged to my wife and daughter, and
 I spent it talking to the four Claude models on the cover instead. I am not
 going to dress that up as devotion to the craft. To my wife and daughter: sorry.
-I would like to end by saying it is finished. It is not. The version is 0.0.3,
+I would like to end by saying it is finished. It is not. The version is 0.0.4,
 and what comes next will cost the same nights, weekends and vacation days.
 
 ## Thanks to Posit

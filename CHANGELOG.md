@@ -4,7 +4,7 @@ All four packages share one version number and are released together: `gog` on
 CRAN-style repositories and PyPI, `GrammarOfGraphics` on Julia's General, and
 `grammar-of-graphics` on npm. A version means the same grammar in every one.
 
-## Unreleased
+## 0.0.4 (2026-08-05)
 
 ### Added
 
@@ -97,6 +97,11 @@ CRAN-style repositories and PyPI, `GrammarOfGraphics` on Julia's General, and
   is left alone.
 
 ### Fixed
+
+- In R, the `box(whiskers = )` refusal printed two hyphens where every other
+  message in the package, and the same message in the other three bindings,
+  printed a dash. R is the one binding that cannot carry the character directly,
+  so it has to be written as an escape, and this message was not.
 
 - A table value containing `<` broke the box that reported it. The values under
   the pointer, and the card a click leaves behind, were built by pasting each
