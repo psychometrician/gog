@@ -89,3 +89,13 @@ uses this grammar (reader, analyst, engine-builder) lives in the moment
 between declaring what they want to see and finding out whether the engine
 agrees. The package is `gog`. The state of working with it is *agog*. We
 hope the book kept you there.
+
+:::: {.content-visible when-format="html"}
+::: {.gog-slogan .gog-slogan-close}
+Be agog. Use gog.
+:::
+::::
+
+```{=latex}
+\begin{center}\itshape Be agog. Use gog.\end{center}
+```

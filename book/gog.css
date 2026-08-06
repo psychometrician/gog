@@ -146,6 +146,15 @@
   margin-bottom: 0;
 }
 
+/* The same line closing the afterword, which is what makes the two a bookend.
+ * How it is set does not change; only the space above it does. The opening copy
+ * is pulled up tight under the title, and this one follows a paragraph, so it
+ * gets as much room above as the underline leaves below. It has to be written
+ * after `.gog-slogan`, since equal specificity is settled by source order. */
+.gog-slogan-close {
+  margin-top: 2.4rem;
+}
+
 /* ---------------------------------------------------------------------------
  * The dark theme
  *
