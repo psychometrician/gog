@@ -79,6 +79,7 @@ export {
   dodge,
   stack,
   jitter,
+  repel,
   // positions and spaces
   x,
   y,

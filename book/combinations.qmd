@@ -221,14 +221,16 @@ second way to use the mark. Everywhere else the pair has nowhere to go: on a
 
 ### Collision modifiers: an offset, not a statistic
 
-When marks collide at one position, three offsets pull them apart, and which one a
+When marks collide at one position, four offsets pull them apart, and which one a
 mark takes is decided by its geometry and by the *axis* the collision is on.
 `dodge` subdivides a *width*, so it serves the marks that have one (`bar`, `box`,
 `interval`). `stack` accumulates along the *measure* axis, so it serves the marks
 that can spend a span: `bar` and `area` fill it with length, and a `point`, having
 no length to stretch, spends it on how many dots there are, which is the dot plot.
 `jitter` spreads a mark with *no* width along a *categorical* axis, which is
-`point` alone.
+`point` alone. `repel` divides on a different question: not what geometry a mark
+has, but what it is made of. A label is as wide as the word it draws, so two labels
+overlap where their points do not, and `text` is the only mark made of words.
 
 ```{r}
 #| echo: false
@@ -237,7 +239,7 @@ tf_block("collision")
 ```
 
 No mark is left without one, and exactly one takes two: `point`, which is the only
-mark that can meet two of the three preconditions, on different axes. `stack`
+mark that can meet two of the four preconditions, on different axes. `stack`
 answers its overlap along the measure axis (a pile of dots, which can be counted);
 `jitter` answers the same mark's overlap along a categorical one (a nudge, because a
 category has no magnitude to spend). Everywhere else the division is exclusive,
@@ -321,7 +323,8 @@ Three and four transforms sound like a large space, and they are not. Once each 
 is filled at most once, and the marks are asked which transforms they take, every
 chain of three or four has one of six shapes. Two slots stand for a family rather
 than a transform: `<aggregation>` is any of `sum`, `mean`, `median`, `max`, `min`,
-`quantile`, and `<collision modifier>` is any of `dodge`, `stack`, `jitter`.
+`quantile`, and `<collision modifier>` is any of `dodge`, `stack`, `jitter`,
+`repel`.
 
 ```{r}
 #| echo: false
@@ -333,7 +336,7 @@ than a transform: `<aggregation>` is any of `sum`, `mean`, `median`, `max`, `min
 fam <- c(sum = "<aggregation>", mean = "<aggregation>", median = "<aggregation>",
          max = "<aggregation>", min = "<aggregation>",
          dodge = "<collision modifier>", stack = "<collision modifier>",
-         jitter = "<collision modifier>")
+         jitter = "<collision modifier>", repel = "<collision modifier>")
 jobof  <- setNames(rules$transforms$jobs, rules$transforms$name)
 rankof <- c(extent = 1, measure = 2, scale = 3, position = 4)
 slot   <- function(t) if (t %in% names(fam)) unname(fam[t]) else t

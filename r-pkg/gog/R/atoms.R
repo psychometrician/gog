@@ -880,6 +880,38 @@ jitter <- function(amount = NULL) {
   )
 }
 
+# `repel` is the fourth collision modifier, and the one whose collision is made of
+# ink.  The other three answer "two marks landed on one position"; a label is as
+# wide as the word it draws, so two labels overlap at positions their points never
+# shared.  Legal on `text` alone — the only mark whose glyph is a word — and
+# refused with direction elsewhere (`point` -> `jitter`, the width marks ->
+# `dodge`).
+#
+# It is the data-derived counterpart to `style(nudge = )`: a nudge shifts every
+# label the same way, which clears a label off its own dot and does nothing for a
+# crowd overlapping itself.  The two compose, the nudge naming the side a label
+# prefers.  Bare, like `dodge` and for the same reason: a label moves as far as the
+# overlap requires and no further, so there is no free spread to put a knob on.
+# It masks nothing in base R.
+#' Move overlapping labels apart until they can be read.
+#'
+#' `text * repel` reads where the labels and the points actually sit and pushes
+#' each label a different way until they stop overlapping, drawing a thin leader
+#' line back to the point when a label has moved clear of it. Where there is no
+#' arrangement that fits, every label is still drawn and the plot reports how many
+#' are still crowded.
+#'
+#' @return A `gog_atom` joined to a mark with `*`.
+#' @seealso [style()]'s `nudge`, the constant offset this is the data-derived
+#'   counterpart to; [jitter()], the same idea for a scatter's points.
+#' @examples
+#' # Every country named, with the names moved off one another.
+#' p <- data(gapminder_2007) + point + text * repel +
+#'   x(gdp) + y(life) + label(country)
+#'
+#' @export
+repel <- structure(list(type = "transform", transform = "repel"), class = "gog_atom")
+
 # ---------------------------------------------------------------------------
 # Coordinate atoms — always plot-scoped (shared by all marks)
 # ---------------------------------------------------------------------------

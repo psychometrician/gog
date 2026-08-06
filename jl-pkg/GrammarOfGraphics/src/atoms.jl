@@ -122,6 +122,10 @@ const max        = transform_atom("max")
 const min        = transform_atom("min")
 const proportion = transform_atom("proportion")
 const dodge      = transform_atom("dodge")
+# The fourth collision modifier: `text * repel` moves labels that overlap each
+# other, where the other three move marks that share a position. Bare like `dodge`,
+# because a label moves as far as the overlap requires and no further.
+const repel      = transform_atom("repel")
 
 """`bin` — equal-width buckets. How many dimensions it cuts is the mark's answer."""
 const bin = Atom(:transform, Dict{Symbol,Any}(:transform => "bin"),

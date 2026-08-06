@@ -70,6 +70,7 @@ import {
   smooth,
   space,
   stack,
+  repel,
   step,
   style,
   theme,
@@ -133,6 +134,41 @@ test("layer() nests, so `*` binding tighter than `+` is visible", () => {
   assert.deepEqual(p.spec.layers[0].transforms, ["bin"]);
   assert.equal(p.spec.layers[0].encodings.color.field, "group");
   assert.deepEqual(p.spec.channels, {});
+});
+
+test("`text * repel` separates a label crowd and keeps every label", () => {
+  // The fourth offset, and the one that moves ink (spec §5). `dodge`, `stack`
+  // and `jitter` resolve marks that share a *position*; a label is as wide as
+  // the word it draws, so two labels overlap where their points never did.
+  const crowd = {
+    px: [5, 5, 5, 5, 5, 5],
+    py: [5, 5, 5, 5, 5, 5],
+    who: ["Alpha", "Bravo", "Charlie", "Delta", "Echo", "Foxtrot"],
+  };
+  const labelAt = (svg) =>
+    [...svg.matchAll(/<text x="([0-9.-]+)" y="([0-9.-]+)" fill="[^"]*" fill-opacity=/g)]
+      .map((m) => [Number(m[1]), Number(m[2])]);
+
+  const plain = labelAt(render_svg(plot(data(crowd), text, x(col.px), y(col.py), label(col.who))));
+  assert.equal(new Set(plain.map(String)).size, 1, "six coincident rows, one place");
+
+  const spec = plot(data(crowd), layer(text, repel), x(col.px), y(col.py), label(col.who));
+  const svg = render_svg(spec);
+  const moved = labelAt(svg);
+  assert.equal(moved.length, 6, "repel must draw every label, never leave one out");
+  for (let i = 0; i < 6; i += 1) {
+    for (let j = i + 1; j < 6; j += 1) {
+      const apart = Math.max(Math.abs(moved[i][0] - moved[j][0]), Math.abs(moved[i][1] - moved[j][1]));
+      assert.ok(apart > 7, `repel left labels ${i} and ${j} on top of each other`);
+    }
+  }
+  // One specification is one picture, however the placement anneals.
+  assert.equal(svg, render_svg(spec), "repel must render identically every run");
+  // A label pushed clear of its dot keeps a line back to it.
+  assert.match(svg, /stroke-width="0.7"/, "a travelled label should keep its leader");
+  // It is `text`-only, and each refusal names the offset that fits.
+  refuses(() => render_svg(plot(data(crowd), layer(point, repel), x(col.px), y(col.py))), /jitter/);
+  refuses(() => render_svg(plot(data(crowd), layer(bar, repel), x(col.who), y(col.py))), /dodge/);
 });
 
 test("across() and down() are `|` and `/`", () => {

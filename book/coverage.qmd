@@ -124,6 +124,7 @@ out to be.
 | A sentence the package dislikes | a warning, and a plot with those rows removed (`Removed 12 rows containing missing values`) | no plot, and a message naming the sentence it would accept |
 | What combines with what | documented per geom | one rule table, every pair decided, dumped from the engine into [Combinations](combinations.qmd) |
 | Picking out a subset with the mouse | outside the package: the plot is a still image, and the answer is plotly or shiny | `brush` is a word in the sentence, so the printed page shows the selection too. It dims what you did not pick and removes no rows. [Selection](selection.qmd) is the chapter |
+| Moving overlapping labels apart | ggrepel, a separate package, with a geom of its own to swap in | `text * repel`, a collision modifier beside `dodge`, `stack` and `jitter`, so it composes with the `text` mark that was already there. It draws a thin line back to the point when a label has moved far, and where no arrangement fits it still draws every label and reports how many still overlap |
 | Spellings per plot | often two (`geom_bar`/`geom_col`, `geom_histogram`/`stat_bin`) | one |
 | Saying "log" | `scale_x_log10()`, a scale function per transformation | `x(gdp, scale = "log")`, written on the binding |
 | Non-positive values on a log axis | dropped, with a warning | refused, with the fix named |
@@ -208,7 +209,6 @@ them. These are scheduling, not argument.
 | `labs(subtitle =, caption =)` | more of the label family, and cheap |
 | `theme(legend.position =)` | it has its home in `theme()` and is waiting for a case that needs it |
 | `geom_smooth(se = TRUE)` | the smoother's band, its missing pair form, exactly as `confidence` is the mean's |
-| ggrepel | `text * repel`, designed, waiting on a layout stage |
 | `geom_sf()`, `geom_map()`, `coord_sf()`, `borders()` | the `map` space draws, so a mark at a place on a projected earth is an ordinary sentence ([Map](map.qmd)). What is still owed is the polygon geometry underneath a choropleth: a filled region whose boundary comes from the data, with holes in it |
 | `geom_dotplot()` | a cluster-aware mesh, a second cutpoint rule for binning |
 | `scale_x_binned()`, equal-count bins | the other cutpoint rule, the same parameter |

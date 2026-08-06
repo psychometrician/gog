@@ -497,6 +497,46 @@ pub enum Transform {
     /// parameterized while `count`/`sum`/`dodge` are not: a free parameter earns a
     /// knob; a determined value does not.
     Jitter,
+    /// A **collision modifier**, the fourth offset (spec §5) — the one for the mark
+    /// whose glyph is a *word*: `text`. The other three resolve marks that landed on
+    /// one position; this one resolves marks that landed on one another's **ink**. A
+    /// label is as wide as its string, so two labels collide at positions their
+    /// points do not, and no amount of moving the points fixes it.
+    ///
+    /// It is the **data-derived counterpart to the constant `style(nudge = )`**
+    /// (§7). A nudge shifts every label the same way, so it clears a label off *its
+    /// own* dot and leaves a crowded cloud overlapping itself unchanged; `repel`
+    /// reads where the labels and the points actually sit and pushes each label a
+    /// *different* way until they stop overlapping. The two compose: the nudge says
+    /// which side a label prefers, and `repel` resolves what is left over.
+    ///
+    /// Like `dodge` and `jitter` it synthesizes **no rows** (`transform::apply`
+    /// treats it as identity) and does its work in the renderer — but one stage
+    /// later than they do, because ink is what it measures. It needs each label's
+    /// pixel box, so it runs where the glyphs are written and the text metrics
+    /// exist (`render::marks::text`).
+    ///
+    /// Three rules the offset keeps, each one a law already on the books:
+    ///
+    /// - **Deterministic** — `jitter`'s rule. Two labels at the identical position
+    ///   have no direction to part along, and the one chosen is hashed from the row
+    ///   and its data, never drawn from a clock or a global RNG. One spec is one
+    ///   picture, however many times it is drawn.
+    /// - **Nothing is dropped** (§12). Past some density there is no overlap-free
+    ///   placement. Every label still draws — the panel is clamped against, so none
+    ///   is pushed out of the picture — and the layer *reports* how many are still
+    ///   touching. A reader who cannot see the count is told the count.
+    /// - **A leader line.** A label pushed clear of its point needs a thin connector
+    ///   back to it, or the pairing is lost. The modifier draws it; a second mark is
+    ///   not required to say which word belongs to which dot.
+    ///
+    /// It takes **no parameter**, and the reason is the one that gave `jitter` a knob.
+    /// A jitter's spread is a free legibility choice with no correct value, so it
+    /// earns one; a label moves exactly as far as the overlap requires and no
+    /// further, which is `dodge`'s *determined* width rather than a free band. The
+    /// air left between two labels is derived from the font size, the way the nudge's
+    /// distance is.
+    Repel,
     /// A whole apportioned among **nested parts** — one ring per level of a
     /// hierarchy, each arc as wide as its share. `zone * partition(a, b, c)` flat
     /// is the **icicle**; the same sentence `+ polar()` is the **sunburst**, and

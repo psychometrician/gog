@@ -15,8 +15,8 @@ devotes to it says **statistics** [@wilkinson2005]; SQL says **aggregate**, dply
 what gog groups here. `mean`, `count` and `density` really are statistics, and
 they replace rows with a summary. But `bin` cuts an axis into cells, `bounds`
 reshapes two columns you already have and computes nothing at all, and `stack`,
-`dodge` and `jitter` are about collisions between marks rather than about the
-values behind them. Calling all of that a statistic would misname most of it, so
+`dodge`, `jitter` and `repel` are about collisions between marks rather than
+about the values behind them. Calling all of that a statistic would misname most of it, so
 the word here is the widest one that stays true: a transform is anything that
 changes what reaches the mark.
 
@@ -54,9 +54,9 @@ and a high, the extents an [`interval`](marks/interval.qmd) spans.
 
 Fourteen of the transforms fall into two families by how many columns they
 *read*, and that number is exactly what decides whether you write `y()`. The
-rest of the kernel's nineteen come later in this chapter: `bounds`, which
+rest of the kernel's twenty come later in this chapter: `bounds`, which
 reshapes rather than computes, `partition`, which cuts a panel into regions,
-and the three collision modifiers.
+and the four collision modifiers.
 
 **Inventing** transforms (`bin`, `count`, `density`) read a
 *single* variable and make the measured axis from it. `proportion` joins them
@@ -480,8 +480,9 @@ sit**. `bounds` names the sides of a rectangle. `count` tallies into the cells y
 categories already own, and says nothing about where those cells are. `mean` and its
 four siblings reduce a column you name, and say nothing about where the cells are
 either. `proportion` does the third job and only the third: it divides by a total,
-which is why it can stand after almost anything. `dodge`, `stack` and `jitter` do the
-fourth, moving marks that would otherwise land on top of one another.
+which is why it can stand after almost anything. `dodge`, `stack`, `jitter` and
+`repel` do the fourth, moving marks that would otherwise land on top of one
+another.
 
 Two transforms compose when they do different jobs, and contradict when they do the
 same one. A cell holds one extent, one measurement, one scale and one arrangement.
@@ -1464,9 +1465,9 @@ no axis here.
 
 ## `jitter`: spread sideways, along the category
 
-`dodge` and `stack` resolve the overlap of *grouped* marks. The third and last
-collision modifier resolves a different overlap: not groups colliding, but a
-mark's *own* points landing on top of each other. A [strip
+`dodge` and `stack` resolve the overlap of *grouped* marks. The third collision
+modifier resolves a different overlap: not groups colliding, but a mark's *own*
+points landing on top of each other. A [strip
 plot](marks/point.qmd), every country as a dot above its continent, stacks its
 points into a single vertical line, and heavy overlap hides how many there are:
 
@@ -1539,10 +1540,69 @@ are set apart by `dodge`; a `line` or `area` is one connected shape, not a cloud
 points. Ask for `jitter` on any of those and gog refuses, naming the offset that
 fits.
 
-The three offsets divide the marks by geometry **and by axis**: **`dodge`**
+Three of the four offsets divide the marks by geometry **and by axis**: **`dodge`**
 subdivides a width, **`stack`** accumulates along the *measure* axis, **`jitter`**
 spreads along the *categorical* one. Every mark has an honest answer to overlap, and
 `point` has two, because it is the one mark that can collide on either axis: piled
 into a countable stack of dots along a measure, nudged apart within a slot along a
 category. The offset follows the axis, which is why neither reading needs a third
 name.
+
+## `repel`: move the labels off each other
+
+The fourth offset answers a collision the first three cannot see. They all resolve
+marks that landed on one *position*, which is a fact about the data. A label is as
+wide as the word it draws, so two labels overlap at positions their points never
+shared, and no offset computed from a position can find them. Thirty European
+countries, each named:
+
+```{r}
+data(gm_europe) + point + style(color = "#9e9e9e") +
+  text + x(gdp) + y(life) + label(country) +
+  x_label("GDP per capita") + y_label("Life expectancy") +
+  title("The names run into each other")
+```
+
+`text * repel` measures the ink each label will take, and moves the labels until
+no two words overlap:
+
+```{r}
+data(gm_europe) + point + style(color = "#9e9e9e") +
+  text * repel + x(gdp) + y(life) + label(country) +
+  x_label("GDP per capita") + y_label("Life expectancy") +
+  title("text * repel: the same names, moved apart")
+```
+
+Every label ends up outside its own dot, and one that moved far keeps a thin line
+back to its point. Two rules decide the rest. A word is wider than it is tall, so
+moving up or down is the smaller move, and a group of labels ends up in a column.
+And where a label is pushed by another label above it and by its own dot below, the
+labels win, because a word over a dot can still be read and two words over each
+other cannot.
+
+Like `jitter`, the placement is **deterministic**: it depends only on the labels
+and the rows, never on a random-number generator, so one specification always draws
+the same picture. Like `jitter`, it needs **no `color` split**, since what it
+separates is the layer's own labels.
+
+`repel` takes no parameter, and `jitter` takes one, for the same reason. A jitter's
+spread has no single right value, so the writer chooses it. A label moves exactly
+as far as the overlap requires and no further. That distance is computed, the way
+`dodge` computes a width, so there is nothing to set. The gap left between two
+labels is set by the font size, as the nudge's distance is.
+
+Above some number of labels, no arrangement fits at all. `repel` draws every one of
+them anyway and reports how many still overlap. A plot missing the names it could
+not fit would read as a plot with fewer rows, and nobody looking at it would know.
+
+`repel` is `text`-only. Each of the other three serves the marks whose geometry
+fits it, and a label is the only glyph made of a word. Ask for it on a `point` and
+gog refuses, naming `jitter`; on a `bar` it names `dodge`. Its counterpart among
+the settings is `style(nudge = )`, a *fixed* shift in a direction you name,
+described in [Text](marks/text.qmd#nudging-the-label-off-its-point). The two
+compose: the nudge says which side a label prefers, and `repel` resolves the
+overlaps that remain.
+
+The four offsets are one family, and two questions divide it. Three of them ask
+*what geometry does this mark have*, and answer with a width, a measure or a band.
+The fourth asks *what is this mark made of*, and only one mark is made of words.

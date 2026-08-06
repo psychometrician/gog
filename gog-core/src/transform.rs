@@ -693,7 +693,12 @@ pub fn jobs(t: &Transform, ctx: JobContext) -> Jobs {
         Transform::Stack => Jobs {
             scale: ctx.stack_shares, position: true, ..Jobs::default()
         },
-        Transform::Dodge | Transform::Jitter => Jobs { position: true, ..Jobs::default() },
+        // `repel` says where the marks sit for the same reason the other two offsets
+        // do — it is the last word on where a label lands. It fills the job in page
+        // units rather than data units, which changes when the answer is computed
+        // and not what job it answers.
+        Transform::Dodge | Transform::Jitter | Transform::Repel =>
+            Jobs { position: true, ..Jobs::default() },
     }
 }
 
@@ -783,8 +788,14 @@ fn apply_one(df: &DataFrame, t: &Transform, key_field: &str, out_field: &str, bi
         // `jitter` is `dodge`'s render-stage kin: it spreads overlapping points
         // within their categorical slot, an offset bounded to that slot so it never
         // moves the scale domain. Like `dodge` it synthesizes no rows here; the
-        // `Jitter` helper in `render/svg.rs` computes each point's offset (spec §5).
+        // `Jitter` helper in `render/marks/point.rs` computes each point's offset
+        // (spec §5).
         Transform::Jitter     => df.clone(),
+        // `repel` is the same shape one stage later. It moves labels off one
+        // another, and what overlaps is *ink* rather than a position, so the offset
+        // cannot be known until the glyphs have a size — `render/marks/text.rs`
+        // computes it. No rows here either (spec §5).
+        Transform::Repel      => df.clone(),
     }
 }
 
@@ -2962,6 +2973,25 @@ pub fn pairs_a_column(transforms: &[Transform]) -> bool {
 /// engine rather than in the book. The two lists are bound by
 /// `the_reduction_family_is_one_list`, so a sixth statistic cannot join `AggFn`
 /// below and skip the rule above.
+/// A statistic that reduces the data to **one value per x-group** (or per bin),
+/// which any *locus* mark can then draw. "One `bin`, three marks" (spec §5)
+/// generalized: `point`/`line`/`area`/`bar`/`step` all draw a value at each x.
+///
+/// Lives here rather than in `legality` because it answers a question about a
+/// *transform*, and two modules need it: the Mark × Transform grid asks which
+/// pairs are legal, and `line` asks whether connecting its rows in x order was
+/// intended. `line` kept its own copy of this list until 2026-08-05 and had
+/// fallen two members behind — `quantile` never joined it, and `bin` never had,
+/// so the frequency polygon warned about a zigzag it cannot draw.
+pub fn is_value_statistic(t: &Transform) -> bool {
+    matches!(
+        t,
+        Transform::Bin | Transform::Smooth | Transform::Count | Transform::Density
+            | Transform::Proportion | Transform::Sum | Transform::Mean | Transform::Median
+            | Transform::Max | Transform::Min | Transform::Quantile
+    )
+}
+
 pub fn is_reduction(t: &Transform) -> bool {
     matches!(t, Transform::Sum | Transform::Mean | Transform::Median
                 | Transform::Max | Transform::Min | Transform::Quantile)
@@ -5362,6 +5392,28 @@ mod tests {
         let (lo, hi) = range_pair(&vals, Some(&RangeSpec { low: None, high: Some(0.9) }));
         assert_eq!(lo, 1.0);
         assert!((hi - 9.1).abs() < 1e-12, "expected 9.1, got {hi}");
+    }
+
+    /// **The two classes have to nest, and this is what says so.**
+    ///
+    /// `line` asks `is_value_statistic` whether connecting its rows in x order
+    /// was intended, and every reduction leaves one value per x, so a reduction
+    /// that is not a value statistic is a member of a class behaving unlike its
+    /// siblings. That is exactly what happened: `quantile` joined the
+    /// aggregation family, `line` kept a written-out copy of the list, and
+    /// `line * quantile(0.9)` warned about a zigzag it cannot draw. The copy is
+    /// gone; this keeps the two definitions from drifting apart again.
+    #[test]
+    fn every_reduction_is_also_a_value_statistic() {
+        for t in crate::legality::USER_TRANSFORMS {
+            if is_reduction(&t) {
+                assert!(
+                    is_value_statistic(&t),
+                    "{t:?} reduces a column but is not a value statistic, so `line` \
+                     will warn about a zigzag it cannot draw"
+                );
+            }
+        }
     }
 
     #[test]

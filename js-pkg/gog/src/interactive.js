@@ -1346,6 +1346,7 @@ function addSelectionBar(container, handle, view) {
   // going quiet.
   const WHY = {
     jitter: "`jitter` draws each point beside its value, not on it, so pointing at one cannot say which row it is.",
+    repel: "`repel` moves each label until it is clear of the others, so a label no longer sits where its row does.",
     dodge: "`dodge` sets each mark beside its value to clear its neighbors, so pointing at one cannot say which row it is.",
     stack: "`stack` sets each mark on top of the one below, so where a mark sits is not where its value is.",
     summary: "each mark here stands for many rows at once, so there is no one row under the pointer to name.",

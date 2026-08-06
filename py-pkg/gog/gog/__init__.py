@@ -67,6 +67,7 @@ from .atoms import (
     proportion,
     quantile,
     range,
+    repel,
     ribbon,
     rule,
     shape,
@@ -145,6 +146,7 @@ __all__ = [
     "dodge",
     "stack",
     "jitter",
+    "repel",
     # positions and spaces
     "x",
     "y",

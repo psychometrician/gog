@@ -186,6 +186,37 @@ end
     @refuses render_svg(data(t) + point + x(:gdp, scale = "category") + y(:life)) "factor(gdp)"
 end
 
+@testset "`text * repel` separates a label crowd and keeps every label" begin
+    # The fourth offset, and the one that moves ink (spec §5). `dodge`, `stack`
+    # and `jitter` resolve marks that share a *position*; a label is as wide as
+    # the word it draws, so two labels overlap where their points never did.
+    crowd = Dict("px" => fill(5.0, 6), "py" => fill(5.0, 6),
+                 "who" => ["Alpha", "Bravo", "Charlie", "Delta", "Echo", "Foxtrot"])
+    label_at(svg) = [(parse(Float64, m[1]), parse(Float64, m[2])) for m in
+        eachmatch(r"<text x=\"([0-9.-]+)\" y=\"([0-9.-]+)\" fill=\"[^\"]*\" fill-opacity=", svg)]
+
+    plain = label_at(render_svg(data(crowd) + text + x(:px) + y(:py) + label(:who)))
+    @test length(unique(plain)) == 1
+
+    spec = data(crowd) + text * repel + x(:px) + y(:py) + label(:who)
+    svg = render_svg(spec)
+    moved = label_at(svg)
+    # Nothing is dropped, however impossible the packing (spec §12).
+    @test length(moved) == 6
+    # `Base.max`, because this file imports the grammar's `max` at the top — the
+    # collision the R and Julia chapters both document, met by its own test suite.
+    for i in 1:6, j in (i + 1):6
+        @test Base.max(abs(moved[i][1] - moved[j][1]), abs(moved[i][2] - moved[j][2])) > 7
+    end
+    # One specification is one picture, however the placement anneals.
+    @test svg == render_svg(spec)
+    # A label pushed clear of its dot keeps a line back to it.
+    @test occursin("stroke-width=\"0.7\"", svg)
+    # It is `text`-only, and each refusal names the offset that fits.
+    @refuses render_svg(data(crowd) + point * repel + x(:px) + y(:py)) "jitter"
+    @refuses render_svg(data(crowd) + bar * repel + x(:who) + y(:py)) "dodge"
+end
+
 @testset "bounds names columns everywhere, and `end` needs Julia's escape" begin
     atom = bounds(:lo, :hi)
     @test atom.fields[:lower] == "lo"

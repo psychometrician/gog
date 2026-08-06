@@ -79,8 +79,64 @@ exact: those two compute *data-derived* offsets (a seeded spread, a per-group
 slot) to separate a mark's own overlapping elements, whereas a nudge is one
 **fixed** displacement that derives nothing from the data. It is `text`-only:
 nudging a `point` or `bar` would move the data itself, so the engine refuses it
-there with direction. (When many labels collide with *each other*, a different
-overlap, a data-derived `repel` is the answer; that one is not built yet.)
+there with direction.
+
+### Moving the labels off each other: `repel`
+
+A nudge shifts every label the same way, so it moves each label off its own dot
+and does nothing else. When the labels collide with *each other*, one fixed shift
+moves them all together and the words still overlap. Thirty European countries are
+enough to show it:
+
+```{r}
+#| echo: false
+peek(gm_europe)
+```
+
+```{r}
+data(gm_europe) + point + style(color = "#9e9e9e") +
+  text + x(gdp) + y(life) + label(country) +
+  x_label("GDP per capita") + y_label("Life expectancy") +
+  title("Thirty countries, named")
+```
+
+`repel` solves that, and it is a *collision modifier* rather than a setting. It
+measures where the labels and the dots actually are, then moves each label until no
+two words overlap:
+
+```{r}
+data(gm_europe) + point + style(color = "#9e9e9e") +
+  text * repel + x(gdp) + y(life) + label(country) +
+  x_label("GDP per capita") + y_label("Life expectancy") +
+  title("The same thirty, moved apart")
+```
+
+Three things in that picture are the modifier's own work. Every label sits just
+outside its dot, so no word covers the data it names. A label that moved far keeps
+a thin line back to its point, so you can still see which point it names. And where
+the labels are densest they line up into a column. A word is wider than it is tall,
+so moving up or down is the smaller move.
+
+The placement is **deterministic**. It depends only on the labels and the rows,
+never on a random-number generator or the system time, so the same specification
+draws the same picture every time.
+
+Where no arrangement fits, `repel` still draws every label and reports how many
+still overlap. No label is removed without a message. A plot missing the names it
+could not fit would read as a plot with fewer countries, so gog reports the count
+instead. A larger plot, a smaller `style(size = )`, or fewer rows will separate the
+labels.
+
+The setting and the transform compose, and each keeps its own job.
+`style(nudge = )` says which side a label prefers, and `repel` resolves the
+overlaps that remain:
+
+```{r}
+data(gm_europe) + point + style(color = "#9e9e9e") +
+  text * repel + x(gdp) + y(life) + label(country) + style(nudge = "right") +
+  x_label("GDP per capita") + y_label("Life expectancy") +
+  title("Nudged right first, then moved apart")
+```
 
 ## Numeric labels: the value on each mark
 
@@ -189,8 +245,8 @@ There is no distance to give it. The offset is derived from the font size, about
 one line, so a label clears its point at every plot size and in every facet;
 a pixel count would mean something different in each. `nudge` shifts every label
 the same way, which is why it is a setting and not a collision modifier: it
-derives nothing from the data, so it cannot help when many labels collide with
-*each other*.
+derives nothing from the data. When many labels collide with *each other*, the
+modifier that reads the data is [`repel`](#moving-the-labels-off-each-other-repel).
 
 A mapped `size` on `text` is valid grammar the engine does not draw yet, so
 `size(population)` is refused as unsupported rather than ignored. Set it instead,

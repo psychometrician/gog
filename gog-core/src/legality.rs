@@ -778,6 +778,7 @@ fn transform_name(t: &Transform) -> &'static str {
         Transform::Dodge => "dodge",
         Transform::Stack => "stack",
         Transform::Jitter => "jitter",
+        Transform::Repel => "repel",
         Transform::Partition => "partition",
     }
 }
@@ -975,17 +976,12 @@ pub enum TransformLegality {
     Required,
 }
 
-/// A statistic that reduces the data to **one value per x-group** (or per bin),
-/// which any *locus* mark can then draw. "One `bin`, three marks" (spec §5)
-/// generalized: `point`/`line`/`area`/`bar`/`step` all draw a value at each x.
-fn is_value_statistic(t: &Transform) -> bool {
-    matches!(
-        t,
-        Transform::Bin | Transform::Smooth | Transform::Count | Transform::Density
-            | Transform::Proportion | Transform::Sum | Transform::Mean | Transform::Median
-            | Transform::Max | Transform::Min | Transform::Quantile
-    )
-}
+// `is_value_statistic` moved down to `transform.rs` on 2026-08-05, beside
+// `is_reduction`. Which transforms leave one value per x is a fact about a
+// transform rather than about legality, and the render modules need the same
+// answer: `line` was carrying its own copy of the list and had fallen two
+// members behind it.
+use crate::transform::is_value_statistic;
 
 /// A transform that yields a **low/high pair**, which the *span* marks draw:
 /// `interval` whiskers it, `ribbon` fills it, `line`/`step` trace its two
@@ -997,14 +993,19 @@ fn is_pair_transform(t: &Transform) -> bool {
                 | Transform::Bounds)
 }
 
-/// A collision modifier (Wilkinson §8): an *offset*, not a statistic. The three
-/// divide by geometry **and by axis** — `dodge` subdivides a width, `stack`
-/// accumulates along a *measure* axis, `jitter` spreads along a *categorical* one
-/// — so a mark takes each offset whose precondition it can meet. `point` meets two
-/// of them, on different axes, which is why the dot plot is `stack` and the strip
-/// plot is `jitter` (spec §5).
+/// A collision modifier (Wilkinson §8): an *offset*, not a statistic. They divide
+/// by geometry **and by axis** — `dodge` subdivides a width, `stack` accumulates
+/// along a *measure* axis, `jitter` spreads along a *categorical* one — so a mark
+/// takes each offset whose precondition it can meet. `point` meets two of them, on
+/// different axes, which is why the dot plot is `stack` and the strip plot is
+/// `jitter` (spec §5).
+///
+/// `repel` is the fourth, and it divides on a different question. The first three
+/// resolve marks that share a *position*; a label's ink is wider than its position,
+/// so two labels collide where their points do not — which is why the mark whose
+/// glyph is a word gets an offset of its own rather than a reading of `jitter`.
 fn is_collision_modifier(t: &Transform) -> bool {
-    matches!(t, Transform::Dodge | Transform::Stack | Transform::Jitter)
+    matches!(t, Transform::Dodge | Transform::Stack | Transform::Jitter | Transform::Repel)
 }
 
 /// Which class the book groups this transform under — so the grid can lay the
@@ -1022,7 +1023,7 @@ fn transform_class(t: &Transform) -> &'static str {
 
 /// Does this mark take this transform at all? The **one** answer the Mark ×
 /// Transform grid and the `check_*` refusals both read (see the block comment
-/// above). Read the classes off `is_value_statistic` / `is_pair_transform` /
+/// above). Read the classes off `transform::is_value_statistic` / `is_pair_transform` /
 /// `is_collision_modifier`, then match the mark's geometry against the class.
 pub fn mark_takes_transform(mark: &Mark, transform: &Transform) -> TransformLegality {
     use TransformLegality::*;
@@ -1265,22 +1266,29 @@ pub fn mark_takes_transform(mark: &Mark, transform: &Transform) -> TransformLega
             Mark::Point => Combines,
             _ => None,
         },
+        Transform::Repel => match mark {
+            // Ink to move. Every other mark's glyph is as wide as the geometry it
+            // was given, so its overlap is the one the first three offsets answer;
+            // a label is as wide as the word it draws, and only `text` draws one.
+            Mark::Text => Combines,
+            _ => None,
+        },
         // Unreachable: `Box` and the statistics are handled above.
         _ => None,
     }
 }
 
 /// Every transform a user composes with `*`, in the grid's teaching order —
-/// the eleven value statistics, then the four pair transforms, then the three
+/// the eleven value statistics, then the four pair transforms, then the four
 /// collision modifiers. `Transform::Box` is excluded: the `box` mark injects it,
 /// it is never typed, so it is not a column of the Mark × Transform grid.
-pub const USER_TRANSFORMS: [Transform; 19] = [
+pub const USER_TRANSFORMS: [Transform; 20] = [
     Transform::Bin, Transform::Smooth, Transform::Count, Transform::Density, Transform::Proportion,
     Transform::Sum, Transform::Mean, Transform::Median, Transform::Max, Transform::Min,
     Transform::Quantile,
     Transform::Range, Transform::Confidence, Transform::Deviation, Transform::Bounds,
     Transform::Partition,
-    Transform::Dodge, Transform::Stack, Transform::Jitter,
+    Transform::Dodge, Transform::Stack, Transform::Jitter, Transform::Repel,
 ];
 
 // ---------------------------------------------------------------------------
@@ -3700,9 +3708,13 @@ fn check_pair_transform_marks(out: &mut Vec<Diagnostic>, layer: &Layer) {
         return;
     }
     for t in &layer.transforms {
-        // `bounds` on these marks is `check_bounds`'s; only `range`/`confidence`
-        // reach a locus mark unrefused, which is the gap this closes.
-        if !matches!(t, Transform::Range | Transform::Confidence | Transform::Deviation) {
+        // The **computed** pair transforms: the class, less the one that
+        // reshapes. `bounds` on these marks is `check_bounds`'s, so only a pair
+        // this layer computed reaches a locus mark unrefused, which is the gap
+        // this closes. Written as the class rather than as its members so a
+        // fourth computed pair joins without an edit here — `deviation` had to
+        // be added by hand, and that is the shape this file keeps paying for.
+        if !is_pair_transform(t) || *t == Transform::Bounds {
             continue;
         }
         let fix = match layer.mark {
@@ -4066,6 +4078,7 @@ fn check_dodge(out: &mut Vec<Diagnostic>, layer: &Layer) {
             Mark::Point => "A point has no width to subdivide — to spread overlapping points, `jitter` is the tool",
             Mark::Line | Mark::Area => "A connected path is offset by *accumulating* (`stack`), not by subdividing a width",
             Mark::Ribbon => "A filled band has no width to subdivide — overlapping bands are told apart by transparency (`style(opacity = )`)",
+            Mark::Text => "A label's width is its word, not a slot to divide — to move labels off one another, `repel` is the tool",
             _ => "dodge subdivides a mark's width across groups, which this mark does not have",
         };
         out.push(Diagnostic {
@@ -4119,6 +4132,7 @@ fn check_stack(out: &mut Vec<Diagnostic>, layer: &Layer) {
             Mark::Line | Mark::Step => "An unfilled path has nothing to fill and pile — use `area`, which stacks as filled bands",
             Mark::Box | Mark::Interval => "A box or whisker is set beside its neighbors by subdividing the slot — that is `dodge`, not `stack`",
             Mark::Ribbon => "A ribbon already spans a low to a high, so it measures no height from a baseline to pile — overlapping bands are told apart by transparency (`style(opacity = )`)",
+            Mark::Text => "A label has no measured height to accumulate — to move labels off one another, `repel` is the tool",
             _ => "stack piles a mark's measured height across groups, which this mark does not have",
         };
         out.push(Diagnostic {
@@ -4385,6 +4399,9 @@ fn check_jitter(out: &mut Vec<Diagnostic>, spec: &PlotSpec, df: &DataFrame, laye
                 "Those marks have a width; to set their `color` groups apart, `dodge` sets them side by side",
             Mark::Line | Mark::Area | Mark::Step | Mark::Ribbon =>
                 "A connected path or filled region is one shape, not a cloud of separate points to spread",
+            Mark::Text =>
+                "A label is spread by the width of its own word, so a slot-sized nudge is the wrong \
+                 measure — `repel` moves labels by what actually overlaps, their ink",
             _ => "jitter spreads a scatter of individual points, which this mark does not draw",
         };
         out.push(Diagnostic {
@@ -4409,6 +4426,55 @@ fn check_jitter(out: &mut Vec<Diagnostic>, spec: &PlotSpec, df: &DataFrame, laye
                  nudging a measured value would misplace it. For overplotting on two continuous \
                  axes, `style(opacity = )` reveals density without moving any point off its value."
                     .to_string(),
+        });
+    }
+}
+
+/// `repel` is the fourth collision modifier (spec §5), and the only one whose
+/// collision is made of **ink**. The other three answer *two marks landed on one
+/// position*; a label is as wide as the word it draws, so two labels overlap at
+/// positions their points never shared, and no offset computed from a position can
+/// see it.
+///
+/// One thing makes it well-formed, which is why this check is shorter than its
+/// three siblings: **a word to move.** `text` is the only mark whose glyph is data
+/// rather than geometry, so it is the only mark with ink of its own to collide, and
+/// every other mark is refused toward the offset its geometry does want. There is
+/// no second condition of `check_jitter`'s kind — jitter must find a categorical
+/// band to spread inside, and repel needs nothing from the axes at all, since the
+/// page is where the overlap happens and every plot has one.
+///
+/// A single-row layer is **not** refused, and that is the deliberate difference
+/// from `check_dodge`, which turns down a layer with no split. A dodge with no
+/// groups can never do anything, whatever the table holds; a repel with one label
+/// today moves four of them the moment the table has four rows, so refusing it
+/// would be refusing a sentence for the shape of this week's data (Law 4).
+fn check_repel(out: &mut Vec<Diagnostic>, layer: &Layer) {
+    if !layer.transforms.contains(&Transform::Repel) {
+        return;
+    }
+    if mark_takes_transform(&layer.mark, &Transform::Repel) == TransformLegality::None {
+        let name = mark_name(&layer.mark);
+        let fix = match layer.mark {
+            Mark::Point =>
+                "A dot is as wide as its `size` and no wider, so what overlaps is its position — \
+                 `jitter` spreads points sharing a category, and `style(opacity = )` shows density \
+                 where both axes are continuous",
+            Mark::Bar | Mark::Box | Mark::Interval =>
+                "Those marks have a width, and the groups crowding one slot are set beside each \
+                 other by subdividing it — that is `dodge`",
+            Mark::Line | Mark::Step | Mark::Area | Mark::Ribbon =>
+                "A path or a filled band is one shape rather than many small ones, so it has no \
+                 crowd to thin — `stack` lays filled bands end to end, and transparency \
+                 (`style(opacity = )`) tells overlapping ones apart",
+            _ => "repel moves labels off one another, and this mark draws no label",
+        };
+        out.push(Diagnostic {
+            kind: DiagnosticKind::Illegal,
+            message: format!(
+                "gog: `repel` moves overlapping *labels* apart, so it belongs to `text` — the one \
+                 mark whose glyph is a word — and `{name}` draws no words. {fix}."
+            ),
         });
     }
 }
@@ -4694,6 +4760,11 @@ pub fn check(spec: &PlotSpec, data: &HashMap<String, DataFrame>) -> Vec<Diagnost
         // with an origin to spend. Structural, so it sits with `check_stack` rather
         // than in the df-gated block below.
         check_baseline(&mut out, spec, layer);
+
+        // `repel` is the fourth offset, and the one that needs no table: what it
+        // moves is ink, and which mark has ink is a fact about the sentence. So it
+        // sits here rather than beside `check_jitter` below (spec §5).
+        check_repel(&mut out, layer);
 
         // The pair transforms (`range`/`confidence`) draw a span, so a locus mark
         // (`point`/`bar`/`area`) that draws one value per x is refused toward the
@@ -5443,10 +5514,10 @@ pub fn mark_takes_selection(mark: &Mark) -> bool {
 /// lie and dimming part of it would be a second, invented mark. This is the datum
 /// provenance debt (§14) made visible instead of silently approximated.
 ///
-/// The collision modifiers do not collapse: `dodge`, `stack` and `jitter` move
-/// rows without merging them.
+/// The collision modifiers do not collapse: `dodge`, `stack`, `jitter` and
+/// `repel` move rows without merging them.
 fn transform_collapses_rows(t: &Transform) -> bool {
-    !matches!(t, Transform::Dodge | Transform::Stack | Transform::Jitter)
+    !is_collision_modifier(t)
 }
 
 /// Can the engine *draw* this layer brushed today? The `renders` half.
@@ -5466,6 +5537,12 @@ fn selection_draws(layer: &Layer) -> Option<&'static str> {
         return Some(
             "a jittered point's offset is seeded from its place in the table, so \
              every point would jump when the selection changed",
+        );
+    }
+    if layer.transforms.contains(&Transform::Repel) {
+        return Some(
+            "a repelled label is placed by what the other labels in the frame are \
+             doing, so every label would move when the selection changed",
         );
     }
     None
@@ -5516,6 +5593,8 @@ pub fn why_not_placed(spec: &PlotSpec) -> Option<&'static str> {
     spec.layers.first().map(|l| {
         if l.transforms.contains(&Transform::Jitter) {
             "jitter"
+        } else if l.transforms.contains(&Transform::Repel) {
+            "repel"
         } else if l.transforms.contains(&Transform::Dodge) {
             "dodge"
         } else if l.transforms.contains(&Transform::Stack) {
@@ -7198,6 +7277,29 @@ fn check_nest(out: &mut Vec<Diagnostic>, spec: &PlotSpec, data: &HashMap<String,
                      are the same without it. For pieces laid end to end instead, `{n}` is at \
                      home flat and in `polar()`."
                 ),
+            });
+        }
+
+        // **And repel has nothing to move apart.** The fourth offset is refused
+        // here for a reason of its own, which is why it is not a fifth name in the
+        // list above. Its collision is *ink* rather than a place, and a packing
+        // resolves that one too: a name draws only when it fits inside the region it
+        // names, regions do not overlap, so neither can two names. What is left is
+        // the failure repel cannot help with — a region too small for its word — and
+        // moving that name out of its own rectangle would break the only thing
+        // saying which region it belongs to. It is reported instead (§12).
+        if layer.transforms.contains(&Transform::Repel) {
+            out.push(Diagnostic {
+                kind: DiagnosticKind::Illegal,
+                message: "gog: `repel` moves labels that overlap one another, and in a `nest()` \
+                          plot none can — a name is drawn only where it fits inside its own \
+                          region, and the regions do not overlap. The names that are missing are \
+                          the ones too wide for the region they name, which repel cannot fix by \
+                          moving them: a name outside its own rectangle no longer says which \
+                          region it belongs to. The plot already reports how many were left out. \
+                          A larger plot (`theme(width =, height =)`), a smaller `style(size = )` \
+                          or fewer categories fits more of them in."
+                    .to_string(),
             });
         }
 
@@ -12394,6 +12496,45 @@ mod tests {
             .layer(Layer::new(Mark::Point).transform(Transform::Jitter)), &data());
         assert!(d.iter().any(|x| x.kind == DiagnosticKind::Illegal && x.message.contains("opacity")),
             "point * jitter on two continuous axes should be refused toward opacity: {:?}", msgs(&d));
+    }
+
+    #[test]
+    fn repel_is_text_only_and_refuses_the_rest_toward_the_offset_that_fits() {
+        // The fourth offset's mark is `text` alone, because ink is what it moves and
+        // a label is the only glyph made of ink. Every other mark is refused toward
+        // the offset its own geometry wants, which is the same shape as the other
+        // three refusals and the reason the four read as one family (spec §5).
+        let msgs = |d: &[Diagnostic]| d.iter().map(|x| x.message.clone()).collect::<Vec<_>>();
+        let rep = |m: Mark, extra: &[Transform]| {
+            let mut layer = Layer::new(m);
+            for t in extra { layer = layer.transform(t.clone()); }
+            PlotSpec::new().data("t").x("continent").y("life").layer(layer.transform(Transform::Repel))
+        };
+
+        // The one that is legal: a label crowd on a scatter.
+        let d = check(&PlotSpec::new().data("t").x("gdp").y("life")
+            .layer(Layer::new(Mark::Text).encode(Channel::Label, "continent")
+                .transform(Transform::Repel)), &data());
+        assert!(d.is_empty(), "text * repel should be legal: {:?}", msgs(&d));
+
+        // A dot's overlap is its position, so the refusal names jitter.
+        let d = check(&rep(Mark::Point, &[]), &data());
+        assert!(d.iter().any(|x| x.kind == DiagnosticKind::Illegal && x.message.contains("jitter")),
+            "point * repel should be refused toward jitter: {:?}", msgs(&d));
+
+        // A width-bearing mark subdivides its slot — the refusal names dodge.
+        for m in [Mark::Bar, Mark::Box, Mark::Interval] {
+            let d = check(&rep(m.clone(), &[Transform::Range]), &data());
+            assert!(d.iter().any(|x| x.kind == DiagnosticKind::Illegal && x.message.contains("dodge")),
+                "{m:?} * repel should be refused toward dodge: {:?}", msgs(&d));
+        }
+
+        // A path or a filled band is one shape rather than a crowd of small ones.
+        for m in [Mark::Line, Mark::Step, Mark::Area] {
+            let d = check(&rep(m.clone(), &[]), &data());
+            assert!(d.iter().any(|x| x.kind == DiagnosticKind::Illegal && x.message.contains("one shape")),
+                "{m:?} * repel should be refused as one shape: {:?}", msgs(&d));
+        }
     }
 
     /// The path/region family's position rule, asserted across all four marks at

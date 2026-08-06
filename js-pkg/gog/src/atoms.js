@@ -385,6 +385,13 @@ export const jitter = callableAtom(
   }
 );
 
+// `repel` — the fourth collision modifier, and the one whose collision is ink.
+// The other three move marks that share a position; a label is as wide as the word
+// it draws, so two labels overlap where their points do not. `text` only, and bare
+// like `dodge`: a label moves as far as the overlap requires and no further, so
+// there is no free spread for a knob to scale.
+export const repel = bareAtom("transform", { transform: "repel" });
+
 // Pre-computed bounds: `lower`/`upper` bound the measure axis, `start`/`end` the
 // domain. Every argument names a column, which is why this atom reads worst of
 // the fifty in a string spelling and reads like the rest with the accessor —

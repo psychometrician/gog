@@ -123,8 +123,8 @@ check_vocabulary <- function(book = "book", namespace = "r-pkg/gog/NAMESPACE") {
          paste(invisible, collapse = "\n  "))
 
   # A sentence may legitimately name something that does not exist, as long as
-  # it says so: "there is no `flip` atom", "a `repel` transform is on the
-  # roadmap". Naming one *without* that signal is the defect.
+  # it says so: "there is no `flip` atom", "a `lasso` selection is not planned".
+  # Naming one *without* that signal is the defect.
   disclaims <- "\\bno\\b|\\bnot\\b|roadmap|coming|planned|would be|instead of|does not|cannot|never"
 
   claim <- "`([a-z_][a-z_0-9]*)`[ ]+(mark|channel|transform|atom|setting|scale|space|selection)s?\\b"

@@ -6639,6 +6639,112 @@ mod tests {
         assert!(moved >= 6, "most points should visibly move under a full jitter (moved {moved}/8)");
     }
 
+    /// Five labels on one spot, and the panel they have to be arranged inside.
+    fn crowded_labels(n: usize) -> HashMap<String, DataFrame> {
+        let names: Vec<String> = (0..n).map(|i| format!("name {i}")).collect();
+        HashMap::from([(
+            "t".to_string(),
+            DataFrame::new()
+                .with_float("x", vec![5.0; n])
+                .with_float("y", vec![5.0; n])
+                .with_str("n", names),
+        )])
+    }
+
+    /// The mark's own labels, as (x, y) — the tick labels and the title carry no
+    /// `fill-opacity`, which is what tells the two apart.
+    fn label_positions(svg: &str) -> Vec<(f64, f64)> {
+        svg.lines()
+            .filter(|l| l.contains("<text") && l.contains("fill-opacity"))
+            .filter_map(|l| {
+                let x = l.split(r#"x=""#).nth(1)?.split('"').next()?.parse().ok()?;
+                let y = l.split(r#"y=""#).nth(1)?.split('"').next()?.parse().ok()?;
+                Some((x, y))
+            })
+            .collect()
+    }
+
+    fn repel_spec(repel: bool) -> PlotSpec {
+        let mut layer = Layer::new(Mark::Text).encode(Channel::Label, "n");
+        if repel {
+            layer = layer.transform(Transform::Repel);
+        }
+        PlotSpec::new().data("t").x("x").y("y").layer(layer)
+    }
+
+    #[test]
+    fn repel_separates_labels_that_would_otherwise_sit_on_one_another() {
+        // The distinctive claim (spec §5): what `repel` resolves is *ink*. Five
+        // labels at one identical position are one illegible smudge without it, and
+        // five readable words with it — so the test is not "did they move" but "do
+        // any two still occupy the same line".
+        let data = crowded_labels(5);
+        let plain = label_positions(&SvgRenderer::default().render(&repel_spec(false), &data));
+        let moved = label_positions(&SvgRenderer::default().render(&repel_spec(true), &data));
+        assert_eq!(plain.len(), 5);
+        assert_eq!(moved.len(), 5);
+
+        // Un-repelled, all five are the same glyph in the same place.
+        assert!(plain.iter().all(|&p| p == plain[0]), "five coincident rows should draw five coincident labels");
+
+        // Repelled, no two share a line: every pair is at least a cap height apart.
+        // The rows are identical, so this is also the tie-break working — there is
+        // nothing in the data to part them by.
+        for i in 0..5 {
+            for j in (i + 1)..5 {
+                let apart = (moved[i].0 - moved[j].0).abs().max((moved[i].1 - moved[j].1).abs());
+                assert!(apart > 7.0, "labels {i} and {j} are still on top of each other: {:?} {:?}", moved[i], moved[j]);
+            }
+        }
+    }
+
+    #[test]
+    fn repel_is_deterministic() {
+        // One specification, one picture. The placement anneals, and an annealing
+        // that reached for a clock or a global RNG would redraw the book differently
+        // every build. The shake is hashed from the row and the pass instead (§5).
+        let data = crowded_labels(12);
+        let a = SvgRenderer::default().render(&repel_spec(true), &data);
+        let b = SvgRenderer::default().render(&repel_spec(true), &data);
+        assert_eq!(a, b, "repel must render identically every run");
+    }
+
+    #[test]
+    fn repel_draws_every_label_even_when_no_arrangement_fits() {
+        // §12, the rule the design fixed before anything was built: past some
+        // density there is no overlap-free placement, and the answer is never to
+        // drop the labels that did not fit. Forty long names on one point cannot be
+        // separated — all forty still draw, all forty stay inside the panel where
+        // the clip cannot eat them, and the layer says how many are still crowded.
+        let data = crowded_labels(40);
+        let drawn = SvgRenderer::default().draw(&repel_spec(true), &data);
+        let placed = label_positions(&drawn.svg);
+        assert_eq!(placed.len(), 40, "every label draws, however crowded");
+
+        let p = &drawn.panel;
+        for (i, &(x, y)) in placed.iter().enumerate() {
+            assert!(x >= p.x0 - 0.5 && x <= p.x1 + 0.5, "label {i} was pushed off the panel in x: {x}");
+            assert!(y >= p.y0 - 0.5 && y <= p.y1 + 0.5, "label {i} was pushed off the panel in y: {y}");
+        }
+        assert!(
+            drawn.remarks.iter().any(|d| d.message.contains("still overlap")),
+            "an impossible packing has to say so: {:?}", drawn.remarks
+        );
+    }
+
+    #[test]
+    fn a_repelled_label_that_travels_gets_a_line_back_to_its_point() {
+        // A word pushed clear of its dot has lost the one thing that said which dot
+        // it belonged to, so the modifier draws the connector itself rather than
+        // asking for a second mark (spec §5). A label that only took its resting
+        // step off the dot gets none — a line from every label is a panel of lines.
+        let far = SvgRenderer::default().render(&repel_spec(true), &crowded_labels(6));
+        let near = SvgRenderer::default().render(&repel_spec(true), &crowded_labels(1));
+        let leaders = |svg: &str| svg.matches(r#"stroke-width="0.7""#).count();
+        assert!(leaders(&far) >= 4, "labels driven far from their point need leaders: {}", leaders(&far));
+        assert_eq!(leaders(&near), 0, "a label at rest beside its own dot needs no leader");
+    }
+
     /// Every `&` in well-formed XML must begin a character reference.
     fn unescaped_ampersands(svg: &str) -> Vec<String> {
         const ENTITIES: [&str; 6] = ["amp;", "lt;", "gt;", "quot;", "apos;", "#"];

@@ -48,6 +48,24 @@ impl<'a> RenderContext<'a> {
     }
 }
 
+/// A deterministic `u64 → [0, 1)` hash (SplitMix64's finalizer). Pure and
+/// dependency-free — the seeded-from-data rule the whole engine follows for
+/// anything that must look arbitrary yet render identically every run.
+///
+/// It lives here rather than in a mark because two marks need it and neither owns
+/// it: `jitter` spreads a strip plot's points from it, and `repel` parts two labels
+/// that landed on the exact same pixel, where there is no direction in the data to
+/// part along. Both are the same rule — one spec is one picture, so anything that
+/// must *look* arbitrary is a function of the row rather than of the clock.
+pub(crate) fn hash01(mut z: u64) -> f64 {
+    z = z.wrapping_add(0x9E3779B97F4A7C15);
+    z = (z ^ (z >> 30)).wrapping_mul(0xBF58476D1CE4E5B9);
+    z = (z ^ (z >> 27)).wrapping_mul(0x94D049BB133111EB);
+    z ^= z >> 31;
+    // Top 53 bits → the same resolution an f64 mantissa carries.
+    (z >> 11) as f64 / ((1u64 << 53) as f64)
+}
+
 // ---------------------------------------------------------------------------
 // Layout
 // ---------------------------------------------------------------------------

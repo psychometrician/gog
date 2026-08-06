@@ -8,6 +8,17 @@ CRAN-style repositories and PyPI, `GrammarOfGraphics` on Julia's General, and
 
 ### Added
 
+- **`repel` moves labels off one another when they overlap.** `text * repel` is
+  the fourth collision modifier, beside `dodge`, `stack` and `jitter`, and the
+  first whose collision is made of ink rather than of position: a label is as wide
+  as the word it draws, so two labels overlap where their points never did. Every
+  label ends up outside its own dot, and one that moved far keeps a thin line back
+  to its point. The placement depends only on the labels and the rows, never on a
+  random-number generator, so one specification always draws the same picture.
+  Above some number of labels no arrangement fits at all; every label is still
+  drawn, and the plot reports how many still overlap. It takes no parameter, and
+  it composes with `style(nudge = )`, which names the side a label prefers.
+
 - **`deviation` draws the spread of the data, as `confidence` draws the
   uncertainty of the mean.** `interval * deviation` is the mean plus and minus
   one standard deviation, and `deviation(2)` two. It carries a center, so it

@@ -1060,6 +1060,48 @@ render_svg(data(share, name="share") + bar * proportion + x(col.dir) + y(col.wha
 ok("a composed `proportion` still checks the column it rescales")
 
 
+# --- `repel`: the fourth offset, and the one that moves ink (spec §5) --------
+#
+# What the other three cannot see. `dodge`, `stack` and `jitter` resolve marks
+# that share a *position*; a label is as wide as the word it draws, so two labels
+# overlap where their points never did.
+crowd = {"px": [5.0] * 6, "py": [5.0] * 6,
+         "who": ["Alpha", "Bravo", "Charlie", "Delta", "Echo", "Foxtrot"]}
+
+
+def label_at(svg):
+    """The mark's own labels, which are the `<text>` that carry an opacity."""
+    return re.findall(r'<text x="([0-9.-]+)" y="([0-9.-]+)" fill="[^"]*" fill-opacity=', svg)
+
+
+plain = label_at(render_svg(data(crowd, name="crowd") + text + x(col.px) + y(col.py) +
+                            label(col.who)))
+spec = (data(crowd, name="crowd") + text * repel + x(col.px) + y(col.py) + label(col.who))
+moved_svg = render_svg(spec)
+moved = [(float(a), float(b)) for a, b in label_at(moved_svg)]
+assert len(set(plain)) == 1, "six coincident rows should draw six labels in one place"
+for i in builtins.range(6):
+    for j in builtins.range(i + 1, 6):
+        apart = builtins.max(abs(moved[i][0] - moved[j][0]), abs(moved[i][1] - moved[j][1]))
+        assert apart > 7, f"repel left labels {i} and {j} on top of each other"
+# Nothing is dropped, however impossible the packing (spec §12).
+assert len(moved) == 6, "repel must draw every label, never leave one out"
+# One specification is one picture: the placement anneals, and an annealing that
+# reached for a clock would redraw the book differently on every build.
+assert moved_svg == render_svg(spec), "repel must render identically every run"
+# A label pushed clear of its dot keeps a line back to it.
+assert 'stroke-width="0.7"' in moved_svg, "a travelled label should keep its leader"
+# It is `text`-only, and each refusal names the offset that fits.
+refuses("point * repel", lambda: render_svg(
+    data(crowd, name="crowd") + point * repel + x(col.px) + y(col.py)))
+refuses("bar * repel", lambda: render_svg(
+    data(crowd, name="crowd") + bar * repel + x(col.who) + y(col.py)))
+# `style(nudge=)` is the constant counterpart, and the two compose.
+render_svg(data(crowd, name="crowd") + text * repel + x(col.px) + y(col.py) +
+           label(col.who) + style(nudge="right"))
+ok("`text * repel` separates a label crowd, keeps every label, and composes")
+
+
 # --- the violin: the slot reading of `density` (spec §5) ---------------------
 #
 # Not a new mark, and the test says so by drawing it with the two that already

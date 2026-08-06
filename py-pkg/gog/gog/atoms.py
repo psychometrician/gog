@@ -86,6 +86,11 @@ max = Atom("transform", transform="max")
 min = Atom("transform", transform="min")
 proportion = Atom("transform", transform="proportion")
 dodge = Atom("transform", transform="dodge")
+# The fourth collision modifier, and the one whose collision is ink: `text * repel`
+# moves labels that overlap each other, where `dodge`/`stack`/`jitter` move marks
+# that share a position. Bare like `dodge`, and for the same reason — a label moves
+# as far as the overlap requires and no further, so there is no free spread to knob.
+repel = Atom("transform", transform="repel")
 
 
 def _whole_number(value: Any, atom: str, argument: str, example: str) -> int:

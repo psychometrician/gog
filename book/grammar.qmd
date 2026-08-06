@@ -16,7 +16,7 @@ can read, and write, any plot.
 | **Tables** | `data` `query` |
 | **Marks** | `point` `line` `area` `bar` `step` `interval` `box` `ribbon` `text` `path` `rule` `zone` `surface` |
 | **Channels** | `x` `y` `z` `color` `size` `shape` `pattern` `opacity` `group` `label` `play` |
-| **Transforms** | `bin` `smooth` `count` `density` `proportion` `sum` `mean` `median` `max` `min` `quantile` `range` `confidence` `deviation` `bounds` `partition`, and the three that resolve collisions, `dodge` `stack` `jitter` |
+| **Transforms** | `bin` `smooth` `count` `density` `proportion` `sum` `mean` `median` `max` `min` `quantile` `range` `confidence` `deviation` `bounds` `partition`, and the four that resolve collisions, `dodge` `stack` `jitter` `repel` |
 | **Operators** | `+` layers, `*` derives, `|` and `/` arrange |
 | **Scales** | `linear` `log` `time` `category` `order` |
 | **Spaces** | `flat` `space` `polar` `nest` `map` |
@@ -26,7 +26,10 @@ can read, and write, any plot.
 | **Selections** | `brush` |
 
 Every word in it is a common English word: no abbreviations, no acronyms, no
-silent letters.
+silent letters. A common word is often taken already. Several of these name
+something in R, Python or Julia before gog is loaded, and
+[the last section of this chapter](#names-the-host-language-already-uses) says
+what happens then.
 
 Read the kernel as two groups: what a plot needs, and what refines or arranges
 it. Five kinds build a plot. A **table** supplies the rows and the columns. A
@@ -217,7 +220,7 @@ Four produce a low and a high together, which is what a span needs:
 | `deviation` | A band of standard deviations around the mean, which is how spread the data is |
 | `bounds` | A low/high pair the table already holds, in two named columns |
 
-Three do not compute anything. They move marks that would otherwise land on top
+Four do not compute anything. They move marks that would otherwise land on top
 of each other:
 
 | Transform | What it does |
@@ -225,6 +228,7 @@ of each other:
 | `dodge` | Puts them side by side |
 | `stack` | Piles them on top of one another |
 | `jitter` | Spreads them sideways along a category |
+| `repel` | Moves labels off one another when they overlap |
 
 And `partition` divides a whole among nested parts, which is what a treemap and a
 mosaic are built from.
@@ -428,3 +432,52 @@ operator section above: `… | facet(continent)`. See [Faceting](faceting.qmd).
 A selection is the only kind that acts on a plot after it is drawn. What it does
 not change is the sentence, so the printed page still shows the bound that
 sentence named. See [Selection](selection.qmd).
+
+## Names the host language already uses
+
+Every word in the kernel is an ordinary English word, and ordinary words are
+already taken. `mean` names a statistic in every language that has one. `data`,
+`order`, `range`, `text` and `box` all name something in R before gog arrives.
+That is a consequence of choosing plain names rather than a sign that something
+has gone wrong, and in ordinary code almost nothing changes.
+
+Which name a bare word reaches is the host language's decision, and gog does not
+override it. Each language decides differently, so the answer is different in
+each one:
+
+| Language | What the language does | To reach the other one |
+|---|---|---|
+| R | Nine of the nineteen are objects, and a call steps over them. Ten are functions, and those do intercept the call | `base::order(x)`, `stats::density(x)` |
+| Python | A star-import rebinds five builtins, because Python has no rule that protects them | `from builtins import sum` |
+| Julia | Two modules exporting one name is an error, never a silent choice | `Base.sum([1, 2, 3])` |
+| JavaScript | Nothing happens, because no name reaches your scope unless you import it | nothing to do |
+
+R's is the case worth understanding, because it looks the worst and costs the
+least. A mark takes no argument, and neither does a statistic like `mean` or
+`max`, so those words are plain objects rather than functions. When R evaluates
+a call it looks for a *function* of that name, and steps over any binding that
+is not one. Base R therefore still answers `mean(c(1, 2, 3))`, and
+`sapply(df, mean)` works for the same reason. The message R prints when the
+package loads names every collision and cannot show you this distinction, which
+is why it reads as worse than it is.
+
+The words that take an argument are functions, and a function does intercept the
+call. `range(0.25, 0.75)` names a band, so base R's `range()` needs its prefix.
+Seven of the ten report the mistake instead of misbehaving. Handed a vector
+where a probability belongs, `range()` says which function you reached and names
+the other one. Three cannot: `box()`, `data(mtcars)` and `title("...")` are well
+formed under both readings, and a refusal needs a mistake it can see.
+
+We considered ending the collision and decided the price was too high.
+Prefixing the vocabulary, `gog_mean` and `gog_range`, would remove the reason
+for the vocabulary: a reader who has to learn a prefix learns every word twice,
+and none of the words is English any more. Renaming `order` to `sort_by` would
+cost a word every reader already knows. So the words stay, and the cost is a
+qualified name in the few places that need one.
+
+Each binding chapter carries the full list for its language, the rule above in
+code you can run, and the spellings that still fail. R's are five, and every one
+of them hands a word to another function that hands it on again, as
+`aggregate(v ~ g, df, mean)` does. See [R](bindings/r.qmd),
+[Python](bindings/python.qmd), [Julia](bindings/julia.qmd) and
+[JavaScript](bindings/javascript.qmd).

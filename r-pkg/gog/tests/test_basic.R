@@ -2637,6 +2637,52 @@ refuses("a misspelled column under a composed proportion",
 invisible(render_svg(data(share_df) + bar * proportion + x(dir) + y(whatever)))
 cat("PASS: a composed `proportion` still checks the column it rescales\n")
 
+# --- `repel`: the fourth offset, and the one that moves ink (spec §5) --------
+#
+# What the other three cannot see. `dodge`, `stack` and `jitter` resolve marks
+# that share a *position*; a label is as wide as the word it draws, so two labels
+# overlap where their points never did.
+crowd <- data.frame(px = rep(5, 6), py = rep(5, 6),
+                    who = c("Alpha", "Bravo", "Charlie", "Delta", "Echo", "Foxtrot"))
+# The mark's own labels, not the tick labels: those carry no `fill-opacity`.
+label_at <- function(s) {
+  glyphs <- grep("fill-opacity", grep("<text", strsplit(s, "\n")[[1]], value = TRUE),
+                 value = TRUE)
+  # Anchored at the tag, because `fill-opacity=` ends in a `y=` that a loose
+  # pattern reads as the coordinate and every label then agrees it is at 1.000.
+  data.frame(x = as.numeric(sub('^\\s*<text x="([0-9.-]+)".*', "\\1", glyphs)),
+             y = as.numeric(sub('^\\s*<text x="[0-9.-]+" y="([0-9.-]+)".*', "\\1", glyphs)))
+}
+plainsvg <- render_svg(data(crowd) + text + x(px) + y(py) + label(who))
+repelsvg <- render_svg(data(crowd) + text * repel + x(px) + y(py) + label(who))
+plain_at <- label_at(plainsvg)
+moved_at <- label_at(repelsvg)
+if (nrow(unique(plain_at)) != 1L)
+  stop("FAIL: six coincident rows should draw six labels in one place without repel")
+# Repelled, no two of them are on the same line of the page any more.
+for (i in 1:5) for (j in (i + 1):6) {
+  if (max(abs(moved_at$x[i] - moved_at$x[j]), abs(moved_at$y[i] - moved_at$y[j])) <= 7)
+    stop("FAIL: `text * repel` left two labels on top of each other")
+}
+# Nothing is dropped, however impossible the packing (spec §12): every label is
+# still on the page, and the layer says how many are still crowded.
+if (nrow(moved_at) != 6L)
+  stop("FAIL: `repel` must draw every label, never leave one out")
+# One specification is one picture: the placement anneals, and an annealing that
+# reached for a clock would redraw the book differently on every build.
+if (!identical(repelsvg, render_svg(data(crowd) + text * repel + x(px) + y(py) + label(who))))
+  stop("FAIL: `repel` must render identically every run")
+# A label pushed clear of its dot keeps a line back to it.
+if (!grepl('stroke-width="0.7"', repelsvg, fixed = TRUE))
+  stop("FAIL: a label driven far from its point should keep a leader line")
+# It is `text`-only, and each refusal names the offset that fits.
+refuses("point * repel", render_svg(data(crowd) + point * repel + x(px) + y(py)))
+refuses("bar * repel", render_svg(data(crowd) + bar * repel + x(who) + y(py)))
+# `style(nudge = )` is the constant counterpart, and the two compose.
+invisible(render_svg(data(crowd) + text * repel + x(px) + y(py) + label(who) +
+                       style(nudge = "right")))
+cat("PASS: `text * repel` separates a label crowd, keeps every label, and composes\n")
+
 # --- the violin: the slot reading of `density` (spec §5) ---------------------
 #
 # Not a new mark, and the test says so by drawing it with the two that already

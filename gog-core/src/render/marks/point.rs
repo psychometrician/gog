@@ -10,7 +10,7 @@ use crate::render::shape::{shape_at_index, shape_by_name, write_shape, ShapeKind
 use crate::render::encode::{opacity_at, radius_at, OPACITY_DEFAULT};
 use crate::render::svg::{unit_norm, SvgRenderer};
 use crate::render::text::esc;
-use crate::render::Layout;
+use crate::render::{hash01, Layout};
 use crate::scale;
 use super::bar_thickness_svg;
 
@@ -282,16 +282,4 @@ impl Jitter {
             ^ salt;
         (hash01(seed) - 0.5) * band
     }
-}
-
-/// A deterministic `u64 → [0, 1)` hash (SplitMix64's finalizer). Pure and
-/// dependency-free — the seeded-from-data rule the whole engine follows for
-/// anything that must look arbitrary yet render identically every run.
-fn hash01(mut z: u64) -> f64 {
-    z = z.wrapping_add(0x9E3779B97F4A7C15);
-    z = (z ^ (z >> 30)).wrapping_mul(0xBF58476D1CE4E5B9);
-    z = (z ^ (z >> 27)).wrapping_mul(0x94D049BB133111EB);
-    z ^= z >> 31;
-    // Top 53 bits → the same resolution an f64 mantissa carries.
-    (z >> 11) as f64 / ((1u64 << 53) as f64)
 }
