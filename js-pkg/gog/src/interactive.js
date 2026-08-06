@@ -993,9 +993,42 @@ export function attachBrush(engine, container, request, options = {}) {
       const box = view?.svg()?.getBoundingClientRect?.();
       const gone = box && (at.x < box.left || at.x > box.right ||
                            at.y < box.top || at.y > box.bottom);
-      pin.el.style.display = gone ? "none" : "block";
+      // **A stamp belongs to the frame it was made in**, and waits out the rest
+      // for the same reason. A row on a played plot is one country in one year,
+      // so the row a stamp names is simply not on the screen in the other
+      // frames; the dot would sit where that row used to be, several hundred
+      // pixels from anything, claiming to point at it. Each turn of the loop
+      // brings the stamp back on its own point.
+      //
+      // Following the row instead was the other way to answer this, and it is
+      // not available: 1972's Korea and 2007's Korea are two rows, and pairing
+      // them needs a notion of identity the grammar does not have.
+      const elsewhere = pin.moment !== null && pin.moment !== moment(panel);
+      pin.el.style.display = gone || elsewhere ? "none" : "block";
       pin.el.style.left = `${at.x}px`;
       pin.el.style.top = `${at.y}px`;
+    }
+  };
+
+  // Nothing above ever runs while a plot plays. `play` swaps its frames with
+  // SMIL, inside the `<svg>` and without a redraw, so every path that re-places
+  // a stamp — the view, a drag, a scroll — stays quiet through the whole
+  // sequence. A stamp that belongs to a frame therefore needs someone watching
+  // the clock, and this is the only thing on the page that does.
+  //
+  // It runs for exactly as long as there is such a stamp, which on most plots is
+  // never. An animation frame rather than a timer, because a background tab
+  // stops being sent them, and a plot nobody is looking at should cost nothing.
+  let ticking = 0;
+  const tick = () => {
+    ticking = 0;
+    if (!pins.some((pin) => pin.moment !== null)) return;
+    placePins();
+    ticking = requestAnimationFrame(tick);
+  };
+  const watchFrames = () => {
+    if (!ticking && pins.some((pin) => pin.moment !== null)) {
+      ticking = requestAnimationFrame(tick);
     }
   };
 
@@ -1073,6 +1106,9 @@ export function attachBrush(engine, container, request, options = {}) {
     el.appendChild(card);
     const pin = {
       panel: index, px: hit.px, py: hit.py, row: hit.row,
+      // Which frame this row belongs to, or `null` on a plot that does not
+      // play. Read once, here, because it is a fact about the row.
+      moment: moment(panels()[index]),
       el, card, wire, line, head, dx: 0, dy: -LEADER,
     };
     shut.addEventListener("click", () => drop(pin));
@@ -1133,6 +1169,7 @@ export function attachBrush(engine, container, request, options = {}) {
     // browser's answer rather than ours.
     placeCard(pin);
     placePins();
+    watchFrames();
     onSelect?.();
   };
 
@@ -1341,6 +1378,10 @@ export function attachBrush(engine, container, request, options = {}) {
       window.removeEventListener("scroll", placePins, true);
       window.removeEventListener("resize", placePins);
       unwatch?.();
+      // The clock watcher stops itself once the last stamp goes, but a plot
+      // destroyed mid-sequence would leave one frame already asked for.
+      if (ticking) cancelAnimationFrame?.(ticking);
+      ticking = 0;
       hideBand();
       hideOutline();
       hideTip();

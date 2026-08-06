@@ -680,7 +680,33 @@ function stubDom() {
   // be a question the stub can answer.
   body.appendChild = (c) => { c.isConnected = true; c.parent = body; body.children.push(c); return c; };
   globalThis.document = { body, createElement: el, createElementNS: el };
-  globalThis.requestAnimationFrame = (fn) => { fn(); return 0; };
+  // Synchronous, so a scheduled redraw has happened by the time a test looks —
+  // but **never re-entrant**, which is the part that matters now that something
+  // on the page asks for a frame from inside one. A real browser runs the next
+  // callback on the next frame; a double that runs it on the stack turns the
+  // clock watcher into infinite recursion. A frame asked for from inside a
+  // frame is queued instead, and `frames()` below is how a test steps it.
+  let inFrame = false;
+  const queued = [];
+  globalThis.requestAnimationFrame = (fn) => {
+    if (inFrame) return queued.push(fn);
+    inFrame = true;
+    try { fn(); } finally { inFrame = false; }
+    return queued.length;
+  };
+  globalThis.cancelAnimationFrame = () => { queued.length = 0; };
+  /** Run up to `n` queued frames, and say how many there were to run. The count
+   *  is what lets a test assert that something *stopped* asking for them. */
+  globalThis.__frames = (n = 1) => {
+    let ran = 0;
+    for (let i = 0; i < n && queued.length; i++) {
+      const fn = queued.shift();
+      inFrame = true;
+      try { fn(); } finally { inFrame = false; }
+      ran++;
+    }
+    return ran;
+  };
   globalThis.window = {
     innerWidth: 1200, innerHeight: 800,
     addEventListener() {}, removeEventListener() {},
@@ -688,6 +714,8 @@ function stubDom() {
   return () => {
     delete globalThis.document;
     delete globalThis.requestAnimationFrame;
+    delete globalThis.cancelAnimationFrame;
+    delete globalThis.__frames;
     delete globalThis.window;
   };
 }
@@ -1399,6 +1427,95 @@ test("unstamp still takes every card off, wherever they were carried", async () 
     assert.equal(onPage("gog-stamp").length, 0, "and the page is clear of them");
     handle.destroy();
   } finally {
+    undo();
+  }
+});
+
+// A row on a played plot is one country in one year, so a stamp made in 1972
+// names something that is simply not on the screen in 1987. Left showing, its
+// dot sits several hundred pixels from the row it names and claims to point at
+// it. The rule is the one a stamp already follows when zoom carries its point
+// off the panel: wait, and come back when there is something to point at.
+const PLAYED = {
+  spec: { data: "t",
+    x: { field: "g" }, y: { field: "v" },
+    layers: [{ mark: "point", encodings: { play: { field: "yr" } }, transforms: [] }],
+    brush: [{ field: "g" }] },
+  data: { t: { floats: { g: [10, 90], v: [10, 90], yr: [1952, 1957] } } },
+};
+
+test("a stamp shows in its own frame and waits out the others", async () => {
+  const undo = stubDom();
+  try {
+    const { handle, container, panels } = await hoverFixture(PLAYED.spec, PLAYED.data);
+    const p = panels[0];
+
+    CLOCK.t = 0;
+    container.send("pointerdown", placeOn(p.x, 10), placeOn(p.y, 10));
+    container.send("pointerup", placeOn(p.x, 10), placeOn(p.y, 10));
+    assert.equal(handle.stamps(), 1, "the row showing now can be stamped");
+    const [stamp] = onPage("gog-stamp");
+    assert.notEqual(stamp.style.display, "none", "and it is on the picture");
+
+    // Halfway through the second frame. One frame is 0.8s by default.
+    CLOCK.t = 1.2;
+    globalThis.__frames(1);
+    assert.equal(stamp.style.display, "none",
+      "the frame moved on, so the stamp has nothing to point at");
+    assert.equal(handle.stamps(), 1, "it waits rather than being taken off");
+
+    // Round the loop, back to where it was stamped.
+    CLOCK.t = 1.6;
+    globalThis.__frames(1);
+    assert.notEqual(stamp.style.display, "none",
+      "and it comes back on its own point when its frame does");
+    handle.destroy();
+  } finally {
+    CLOCK.t = 0;
+    undo();
+  }
+});
+
+test("a stamp on a plot that does not play is shown whatever the clock says", async () => {
+  const undo = stubDom();
+  try {
+    const { handle, stamp } = await stampFixture();
+    CLOCK.t = 5;
+    globalThis.__frames(3);
+    assert.notEqual(stamp.style.display, "none",
+      "no frames to belong to, so no frame to wait for");
+    assert.equal(handle.stamps(), 1);
+    handle.destroy();
+  } finally {
+    CLOCK.t = 0;
+    undo();
+  }
+});
+
+test("the clock is watched only while a stamp belongs to a frame", async () => {
+  const undo = stubDom();
+  try {
+    const { handle, container, panels } = await hoverFixture(PLAYED.spec, PLAYED.data);
+    const p = panels[0];
+    assert.equal(globalThis.__frames(5), 0,
+      "nothing stamped, so nothing is watching the clock");
+
+    container.send("pointerdown", placeOn(p.x, 10), placeOn(p.y, 10));
+    container.send("pointerup", placeOn(p.x, 10), placeOn(p.y, 10));
+    // Each frame the watcher takes asks for the next, so draining one always
+    // leaves another waiting for as long as the stamp is there.
+    for (let i = 0; i < 4; i++) {
+      assert.equal(globalThis.__frames(1), 1, `frame ${i} was asked for`);
+    }
+
+    handle.clearStamps();
+    // One frame was already asked for before the stamp went; it runs, finds
+    // nothing to watch, and does not ask again.
+    assert.equal(globalThis.__frames(5), 1, "the frame already in flight runs");
+    assert.equal(globalThis.__frames(5), 0, "and the watcher has stopped");
+    handle.destroy();
+  } finally {
+    CLOCK.t = 0;
     undo();
   }
 });

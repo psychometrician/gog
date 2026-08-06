@@ -51,13 +51,16 @@ CRAN-style repositories and PyPI, `GrammarOfGraphics` on Julia's General, and
   put it: the line stretches after it, and a long line grows an arrow head at
   the end that means the row, so cards can be moved clear of the crowd they
   name. A card keeps its place beside its point through zoom, pan and every
-  redraw. Three things take a stamp off, the `×` on a card, a click on a card
-  that did not move, and `unstamp` for all of them at once. `clear` leaves them
-  alone, because a stamp is not a selection. A click on empty space still
-  clears the selection, as before. Nothing about the sentence changes and the
-  printed page carries no stamps: this is a way of reading a plot, like turning
-  a cube. What it is for is finding the points worth naming, and naming them is
-  `text`.
+  redraw. On a plot that plays, a stamp belongs to the frame it was made in: a
+  row there is one country in one year, so the stamp waits while the other
+  frames run and comes back on its point each time the loop returns, and the
+  card names the year it holds. Three things take a stamp off, the `×` on a
+  card, a click on a card that did not move, and `unstamp` for all of them at
+  once. `clear` leaves them alone, because a stamp is not a selection. A click
+  on empty space still clears the selection, as before. Nothing about the
+  sentence changes and the printed page carries no stamps: this is a way of
+  reading a plot, like turning a cube. What it is for is finding the points
+  worth naming, and naming them is `text`.
 
 ### Changed
 

@@ -458,6 +458,12 @@ far enough that the point leaves the panel and the whole stamp waits out of sigh
 It has nothing left to point at, and a card floating over an unrelated corner
 would say it did. Bring the point back and the card is where you left it.
 
+A played plot works the same way, for the same reason. A row there is one country
+in one year, so a stamp made in 1972 names something the 1987 frame does not draw.
+It waits while the other frames run, and comes back on its point when the loop
+returns. The card names the year it holds. Stamp the same country in three frames
+and each card appears in its own.
+
 There are three ways to take a stamp off. The `×` in the corner of a card removes
 that card. Clicking the card itself does the same, as long as you did not move it.
 If the pointer traveled, you moved the card. If it did not, the card comes off.
