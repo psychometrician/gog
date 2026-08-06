@@ -292,7 +292,7 @@ scatter at the top of this page with one more position in it.
 
 ## What this is not
 
-It is version 0.0.3, and that number is accurate. The project is young, there
+It is version 0.0.4, and that number is accurate. The project is young, there
 are things mature libraries draw that it cannot, and the book keeps a
 [dated list](https://psychometrician.github.io/gog-book/coverage.html) of
 exactly what those are.

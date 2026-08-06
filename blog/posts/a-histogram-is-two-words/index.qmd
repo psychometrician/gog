@@ -216,7 +216,7 @@ parts. It was in the regularity with which they join.
 
 The plots above show what works. This section says what does not.
 
-This package is version 0.0.3 and the number means what it says. It is young. If
+This package is version 0.0.4 and the number means what it says. It is young. If
 you use it for an experiment or a paper, you are taking a risk that you would not
 take with a mature library. There are things ggplot2 draws that it cannot, and
 [the book](https://psychometrician.github.io/gog-book/coverage.html) keeps a
