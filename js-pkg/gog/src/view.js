@@ -68,6 +68,9 @@ export function attachView(container, options = {}) {
   // re-application after a redraw all end here, so one list covers every way the
   // picture can shift under something anchored to it.
   const watchers = new Set();
+  // What draws itself into the copy the camera writes. Empty on every plot that
+  // has nothing outside the picture, which is most of them.
+  const pens = new Set();
 
   const apply = () => {
     const svg = svgEl();
@@ -112,6 +115,25 @@ export function attachView(container, options = {}) {
     /// than the window over it. Looking closer moves the window; saving copies
     /// what the window currently frames, so it needs the SVG.
     svg: svgEl,
+    /// Add something to the copy the camera is about to write, without this
+    /// file learning what it is.
+    ///
+    /// **Everything a reader can see is not always inside the `<svg>`.** A stamp
+    /// is an HTML card on `document.body`, put there so a redraw cannot destroy
+    /// it, and the camera used to write a picture without the annotations the
+    /// reader had just arranged on it. It cannot be moved into the element
+    /// without giving that up, so instead whoever owns it draws it into the copy.
+    ///
+    /// This file stays ignorant on purpose. It loads for every plot, including
+    /// the ones with no engine and no selection, and a zoom control that knew
+    /// what a stamp was would be the wrong shape.
+    onSave(fn) {
+      pens.add(fn);
+      return () => pens.delete(fn);
+    },
+    decorate(clone) {
+      for (const pen of pens) pen(clone);
+    },
     zoomed: () => scale !== 1,
     /// Whether a further step in each direction would change anything. The bar
     /// reads these to gray a button out rather than offer one that does nothing.
@@ -251,7 +273,7 @@ export function addViewControls(bar, view, onChange = () => {}, handle = null) {
       camera.innerHTML = ART.saved;
       clearTimeout(savedFor);
       savedFor = setTimeout(() => { camera.innerHTML = ART.camera; }, 1400);
-    });
+    }, { decorate: view.decorate });
   });
 
   // **A button that can do nothing says so.** Offering `fit` on a plot already
@@ -369,6 +391,12 @@ export function savePng(svg, done = () => {}, options = {}) {
   clone.setAttribute("width", String(width));
   clone.setAttribute("height", String(height));
   clone.setAttribute("xmlns", "http://www.w3.org/2000/svg");
+  // Anything the reader can see that is not inside the element. It goes on the
+  // copy and never on the plot, so nothing here can disturb the picture the
+  // reader is still looking at. Written in the *live* element's coordinates,
+  // which the copy shares: only `width` and `height` changed above, and the
+  // `viewBox` is what fixes the units.
+  options.decorate?.(clone);
 
   const source = new XMLSerializer().serializeToString(clone);
   const svgUrl = URL.createObjectURL(

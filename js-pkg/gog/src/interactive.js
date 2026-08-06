@@ -870,8 +870,16 @@ export function attachBrush(engine, container, request, options = {}) {
   // ---------------------------------------------------------------------
   const pins = [];
 
+  // **Escaped, because a value comes out of the reader's own table.** A column
+  // holding `a < b`, or a country name with an ampersand in it, was being pasted
+  // into markup, so the contents of a cell decided what the card was made of.
+  // Nothing malicious is needed for that to go wrong, only a `<`.
+  const escapeText = (s) =>
+    String(s ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+
   const rowHtml = (row) => row
-    .map(([f, v]) => `<div><span style="color:#888">${f}</span> ${v ?? ""}</div>`)
+    .map(([f, v]) => `<div><span style="color:#888">${escapeText(f)}</span> ` +
+                     `${escapeText(v)}</div>`)
     .join("");
 
   const CARD =
@@ -1009,6 +1017,127 @@ export function attachBrush(engine, container, request, options = {}) {
       pin.el.style.top = `${at.y}px`;
     }
   };
+
+  // ---------------------------------------------------------------------
+  // Writing the stamps into the picture the camera saves
+  //
+  // A reader who arranges four cards and presses the camera should get those
+  // four cards. They are HTML on `document.body`, so the copy the camera
+  // serializes has never held them, and that gap is sharper now that a card can
+  // be *placed*: an arrangement reads as annotation, and an annotation that
+  // vanishes when you save is worse than none.
+  //
+  // **Nothing here predicts a layout, it reads one.** The stamps are on the page
+  // at the moment the button is pressed, so the browser has already decided
+  // where every word sits, and `getBoundingClientRect` will say. Run those
+  // screen boxes back through the inverse of the picture's own matrix and they
+  // are user coordinates. The alternative, measuring monospace text in
+  // JavaScript and hoping the raster agrees, is the version of this that comes
+  // out slightly wrong.
+  //
+  // Two things do not survive. `box-shadow` has no cheap equal here and is
+  // dropped, which the border covers. And a very long value can sit a pixel past
+  // its border if the raster's font metrics differ from the page's, which shows
+  // as slack rather than as clipping, because nothing is clipped.
+  // ---------------------------------------------------------------------
+  const svgTag = (name, attrs, inner = "") => {
+    const doc = document.createElementNS(SVGNS, name);
+    for (const [k, v] of Object.entries(attrs)) doc.setAttribute(k, String(v));
+    if (inner) doc.innerHTML = inner;
+    return doc;
+  };
+
+  const drawPins = (clone) => {
+    if (!pins.length) return;
+    const live = view?.svg?.();
+    const ctm = live?.getScreenCTM?.();
+    if (!live || !ctm || typeof ctm.inverse !== "function") return;
+    const inv = ctm.inverse();
+    const toUser = (x, y) => {
+      const p = live.createSVGPoint();
+      p.x = x;
+      p.y = y;
+      return p.matrixTransform(inv);
+    };
+    // One screen pixel, in the picture's units. Every size below is quoted in
+    // screen pixels because that is what the reader chose, so each is divided
+    // through by this.
+    const px = 1 / (ctm.a || 1);
+    const group = svgTag("g", { class: "gog-stamp-ink" });
+
+    for (const pin of pins) {
+      // Hidden is hidden. A stamp waiting out a frame it does not belong to, or
+      // one a zoom has carried off the panel, is not on the picture and must not
+      // be in the file either.
+      if (pin.el.style.display === "none") continue;
+      const ax = parseFloat(pin.el.style.left);
+      const ay = parseFloat(pin.el.style.top);
+      if (!Number.isFinite(ax) || !Number.isFinite(ay)) continue;
+      const at = (x, y) => toUser(ax + x, ay + y);
+
+      // The leader, in the coordinates `placeCard` already worked out.
+      if (pin.line.getAttribute("visibility") !== "hidden") {
+        const a = at(Number(pin.line.getAttribute("x1")), Number(pin.line.getAttribute("y1")));
+        const b = at(Number(pin.line.getAttribute("x2")), Number(pin.line.getAttribute("y2")));
+        group.appendChild(svgTag("line", {
+          x1: a.x, y1: a.y, x2: b.x, y2: b.y, stroke: "#999", "stroke-width": px,
+        }));
+      }
+      if (pin.head.getAttribute("visibility") === "visible") {
+        const points = (pin.head.getAttribute("points") ?? "").split(" ")
+          .map((pair) => pair.split(",").map(Number))
+          .map(([x, y]) => at(x, y))
+          .map((u) => `${u.x},${u.y}`)
+          .join(" ");
+        group.appendChild(svgTag("polygon", { points, fill: "#999" }));
+      }
+
+      const box = pin.card.getBoundingClientRect();
+      const tl = toUser(box.left, box.top);
+      const br = toUser(box.right, box.bottom);
+      group.appendChild(svgTag("rect", {
+        x: tl.x, y: tl.y, width: br.x - tl.x, height: br.y - tl.y, rx: 3 * px,
+        fill: "rgba(255,255,255,0.92)", stroke: "#bbb", "stroke-width": px,
+      }));
+
+      // One line of text per row, placed on the row the browser laid out.
+      // `central` puts the em box on the middle of that line, which is what
+      // `line-height` did on the page, and it needs no font metrics.
+      const rows = pin.card.children[0]?.children ?? [];
+      pin.row.forEach(([field, value], i) => {
+        const r = rows[i]?.getBoundingClientRect?.();
+        if (!r) return;
+        const p = toUser(r.left, (r.top + r.bottom) / 2);
+        group.appendChild(svgTag("text", {
+          x: p.x, y: p.y, "dominant-baseline": "central", "xml:space": "preserve",
+          "font-family": "ui-monospace, SFMono-Regular, Menlo, monospace",
+          "font-size": 12 * px, fill: "#333",
+        }, `<tspan fill="#888">${escapeText(field)}</tspan>` +
+           `<tspan> ${escapeText(value)}</tspan>`));
+      });
+
+      const shut = pin.card.children[1]?.getBoundingClientRect?.();
+      if (shut) {
+        const p = toUser(shut.left, (shut.top + shut.bottom) / 2);
+        group.appendChild(svgTag("text", {
+          x: p.x, y: p.y, "dominant-baseline": "central",
+          "font-family": "ui-monospace, SFMono-Regular, Menlo, monospace",
+          "font-size": 13 * px, fill: "#aaa",
+        }, "×"));
+      }
+
+      // The dot last, so it sits over the line that runs up to it.
+      const a = at(0, 0);
+      group.appendChild(svgTag("circle", {
+        cx: a.x, cy: a.y, r: 2.75 * px, fill: "#333",
+        stroke: "#fff", "stroke-width": 1.5 * px,
+      }));
+    }
+
+    if (group.children.length) clone.appendChild(group);
+  };
+
+  const unpen = view?.onSave?.(drawPins);
 
   // Nothing above ever runs while a plot plays. `play` swaps its frames with
   // SMIL, inside the `<svg>` and without a redraw, so every path that re-places
@@ -1378,6 +1507,7 @@ export function attachBrush(engine, container, request, options = {}) {
       window.removeEventListener("scroll", placePins, true);
       window.removeEventListener("resize", placePins);
       unwatch?.();
+      unpen?.();
       // The clock watcher stops itself once the last stamp goes, but a plot
       // destroyed mid-sequence would leave one frame already asked for.
       if (ticking) cancelAnimationFrame?.(ticking);

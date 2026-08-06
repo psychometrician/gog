@@ -647,8 +647,15 @@ test("an outline that encloses nothing selects nothing", () => {
 // ---------------------------------------------------------------------------
 
 function stubDom() {
-  const el = () => {
+  const el = (tag = "") => {
     const node = {
+      // What kind of element it is, which is how a test tells a `rect` from a
+      // `text` in the copy the camera writes.
+      tag,
+      // Nothing here lays anything out, so a box is whatever a test says it is.
+      // Zero until then, which is what an unlaid-out element measures.
+      rect: { left: 0, top: 0, right: 0, bottom: 0, width: 0, height: 0 },
+      getBoundingClientRect() { return node.rect; },
       style: {}, children: [], isConnected: false, firstChild: null,
       // The tooltip measures itself to stay inside the window. Zero is a
       // truthful width for an element nothing laid out, and it keeps the
@@ -679,7 +686,11 @@ function stubDom() {
   // not fine now: the readout is parented here, so "what is on the page?" has to
   // be a question the stub can answer.
   body.appendChild = (c) => { c.isConnected = true; c.parent = body; body.children.push(c); return c; };
-  globalThis.document = { body, createElement: el, createElementNS: el };
+  globalThis.document = {
+    body,
+    createElement: (tag) => el(tag),
+    createElementNS: (_ns, tag) => el(tag),
+  };
   // Synchronous, so a scheduled redraw has happened by the time a test looks —
   // but **never re-entrant**, which is the part that matters now that something
   // on the page asks for a frame from inside one. A real browser runs the next
@@ -1023,10 +1034,35 @@ test("a widened categorical axis is read where the engine drew it", async () => 
 // ---------------------------------------------------------------------------
 
 /** A plot, mounted, with its first panel and an axis pair to place values on. */
-async function hoverFixture(spec, data) {
+/** Enough of a view for the camera path: a picture to copy, an identity matrix
+ *  so screen coordinates *are* user coordinates, and a place to hang a pen. */
+function stubView() {
+  const pens = new Set();
+  const m = { a: 1, b: 0, c: 0, d: 1, e: 0, f: 0 };
+  m.inverse = () => ({ a: 1, b: 0, c: 0, d: 1, e: 0, f: 0, inverse: () => m });
+  const svg = {
+    createSVGPoint: () => ({
+      x: 0, y: 0,
+      matrixTransform(t) { return { x: this.x * t.a + t.e, y: this.y * t.d + t.f }; },
+    }),
+    getScreenCTM: () => m,
+    getBoundingClientRect: () => (
+      { left: 0, top: 0, right: 900, bottom: 700, width: 900, height: 700 }),
+  };
+  return {
+    apply() {},
+    onApply() { return () => {}; },
+    svg: () => svg,
+    zoomed: () => false,
+    onSave(fn) { pens.add(fn); return () => pens.delete(fn); },
+    decorate(clone) { for (const pen of pens) pen(clone); },
+  };
+}
+
+async function hoverFixture(spec, data, options = {}) {
   const engine = await loadEngine(fs.readFileSync(WASM));
   const container = stubContainer();
-  const handle = attachBrush(engine, container, { spec, data });
+  const handle = attachBrush(engine, container, { spec, data }, options);
   const on = (g) => {
     const [x0, y0, x1, y1] = g.getAttribute("data-gog-panel").split(" ").map(Number);
     const num = (n) => g.getAttribute(`data-${n}`).split(" ").map(Number);
@@ -1426,6 +1462,169 @@ test("unstamp still takes every card off, wherever they were carried", async () 
     assert.equal(handle.stamps(), 0);
     assert.equal(onPage("gog-stamp").length, 0, "and the page is clear of them");
     handle.destroy();
+  } finally {
+    undo();
+  }
+});
+
+// ---------------------------------------------------------------------------
+// What the camera writes
+//
+// A reader who arranges cards and presses the camera should get the cards. They
+// are HTML on `document.body`, so the copy the camera serializes has never held
+// them; something has to draw them into it. The rule with teeth is the one about
+// what is *left out*: a stamp waiting out a frame it does not belong to is not on
+// the picture, and a saved picture that showed it would be a wrong picture.
+// ---------------------------------------------------------------------------
+
+/** Give a card the boxes a browser would have measured for it.
+ *
+ *  The stub parses no markup, so the row elements the card builds from a string
+ *  do not exist here and are supplied. Their boxes are the browser's job either
+ *  way: nothing lays anything out in this file, and the code under test reads
+ *  measurements rather than making them. */
+const layOut = (card, rows, left = 200, top = 100, w = 120) => {
+  const box = (l, t, right, b) =>
+    ({ left: l, top: t, right, bottom: b, width: right - l, height: b - t });
+  card.rect = box(left, top, left + w, top + 6 + rows * 18);
+  const body = card.children[0];
+  while (body.children.length < rows) {
+    body.appendChild(globalThis.document.createElement("div"));
+  }
+  body.children.forEach((row, i) => {
+    row.rect = box(left + 5, top + 3 + i * 18, left + w - 16, top + 21 + i * 18);
+  });
+  card.children[1].rect = box(left + w - 14, top + 3, left + w - 5, top + 16);
+};
+
+const inkOf = (clone) => clone.children.find((c) => c.getAttribute("class") === "gog-stamp-ink");
+const kinds = (ink, tag) => (ink?.children ?? []).filter((c) => c.tag === tag);
+
+test("the camera's copy carries a stamp, and the picture keeps none of it", async () => {
+  const undo = stubDom();
+  try {
+    const view = stubView();
+    const { handle, container, panels } = await hoverFixture(
+      POINTS.spec, POINTS.data, { view });
+    const p = panels[0];
+    container.send("pointerdown", placeOn(p.x, 50), placeOn(p.y, 50));
+    container.send("pointerup", placeOn(p.x, 50), placeOn(p.y, 50));
+    const [stamp] = onPage("gog-stamp");
+    const card = cardOf(stamp);
+    layOut(card, 2);
+
+    const clone = globalThis.document.createElement("svg");
+    view.decorate(clone);
+    const ink = inkOf(clone);
+    assert.ok(ink, "the copy gained the stamps");
+    assert.equal(kinds(ink, "rect").length, 1, "one card");
+    assert.equal(kinds(ink, "circle").length, 1, "one dot on its row");
+    // Two mapped columns on this plot, plus the cross.
+    assert.equal(kinds(ink, "text").length, 3, "a line per row, and the cross");
+
+    // Drawn on the copy alone. The picture the reader is looking at never gains
+    // the group, and a second save gets its own copy of it rather than moving
+    // the first one, which is the same property said twice.
+    assert.ok(!container.innerHTML.includes("gog-stamp-ink"),
+      "nothing was written into the picture the reader is looking at");
+    const again = globalThis.document.createElement("svg");
+    view.decorate(again);
+    assert.equal(kinds(inkOf(again), "rect").length, 1, "and saving twice works twice");
+    handle.destroy();
+  } finally {
+    undo();
+  }
+});
+
+test("a stamp waiting out its frame is left out of the saved picture", async () => {
+  const undo = stubDom();
+  try {
+    const view = stubView();
+    const { handle, container, panels } = await hoverFixture(
+      PLAYED.spec, PLAYED.data, { view });
+    const p = panels[0];
+
+    CLOCK.t = 0;
+    container.send("pointerdown", placeOn(p.x, 10), placeOn(p.y, 10));
+    container.send("pointerup", placeOn(p.x, 10), placeOn(p.y, 10));
+    layOut(cardOf(onPage("gog-stamp")[0]), 2);
+
+    const showing = globalThis.document.createElement("svg");
+    view.decorate(showing);
+    assert.equal(kinds(inkOf(showing), "rect").length, 1,
+      "saved while its frame shows, the card is in the file");
+
+    CLOCK.t = 1.2;
+    globalThis.__frames(1);
+    const hidden = globalThis.document.createElement("svg");
+    view.decorate(hidden);
+    assert.equal(inkOf(hidden), undefined,
+      "saved in another frame, nothing of it is");
+    handle.destroy();
+  } finally {
+    CLOCK.t = 0;
+    undo();
+  }
+});
+
+// A value comes out of the reader's own table, and a table is allowed to hold a
+// `<`. Pasted into markup it stopped being a value and started being structure.
+test("a value that looks like markup is shown, not obeyed", async () => {
+  const undo = stubDom();
+  try {
+    const { handle, container, panels } = await hoverFixture(
+      { data: "t", x: { field: "g" }, y: { field: "v" },
+        layers: [{ mark: "point",
+                   encodings: { color: { field: "name" } }, transforms: [] }],
+        brush: [{ field: "g" }] },
+      { t: { floats: { g: [10, 90], v: [10, 90] },
+             strings: { name: ["a <b> & c", "plain"] } } });
+    const p = panels[0];
+    container.send("pointermove", placeOn(p.x, 10), placeOn(p.y, 10));
+    const [tip] = onPage("gog-tip");
+    assert.ok(!/<b>/.test(tip.innerHTML), "the readout does not carry the tag through");
+    assert.match(tip.innerHTML, /&lt;b&gt; &amp; c/, "it shows the characters instead");
+
+    container.send("pointerdown", placeOn(p.x, 10), placeOn(p.y, 10));
+    container.send("pointerup", placeOn(p.x, 10), placeOn(p.y, 10));
+    const rows = rowsOf(cardOf(onPage("gog-stamp")[0]));
+    assert.ok(!/<b>/.test(rows), "and neither does the card it leaves behind");
+    assert.match(rows, /&lt;b&gt; &amp; c/);
+    handle.destroy();
+  } finally {
+    undo();
+  }
+});
+
+test("nothing stamped puts nothing in the copy", async () => {
+  const undo = stubDom();
+  try {
+    const view = stubView();
+    const { handle } = await hoverFixture(POINTS.spec, POINTS.data, { view });
+    const clone = globalThis.document.createElement("svg");
+    view.decorate(clone);
+    assert.equal(clone.children.length, 0, "a plain save is exactly what it was");
+    handle.destroy();
+  } finally {
+    undo();
+  }
+});
+
+test("destroy takes the pen off, so a later save draws nothing", async () => {
+  const undo = stubDom();
+  try {
+    const view = stubView();
+    const { handle, container, panels } = await hoverFixture(
+      POINTS.spec, POINTS.data, { view });
+    const p = panels[0];
+    container.send("pointerdown", placeOn(p.x, 50), placeOn(p.y, 50));
+    container.send("pointerup", placeOn(p.x, 50), placeOn(p.y, 50));
+    layOut(cardOf(onPage("gog-stamp")[0]), 2);
+    handle.destroy();
+
+    const clone = globalThis.document.createElement("svg");
+    view.decorate(clone);
+    assert.equal(clone.children.length, 0, "a destroyed plot draws into nobody's copy");
   } finally {
     undo();
   }

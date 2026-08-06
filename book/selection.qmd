@@ -473,9 +473,14 @@ If the pointer traveled, you moved the card. If it did not, the card comes off.
 read your stamped rows against the whole data and they are all still there. Each
 of the three controls undoes one thing, which the section below sets out.
 
+The camera saves them. Arrange the cards, press the camera, and the picture file
+carries the plot with your annotations on it, where they sit and pointing where
+they point. That is the camera's rule rather than a rule about stamps: it saves
+what you are looking at, the same way it saves how far you have zoomed in and the
+angle a cube is turned to.
+
 Nothing about the sentence changes. You do not type a stamp, and the printed page
-carries none. The camera saves the plot without them, for the same reason.
-Stamping is a way of reading the plot, like turning a cube.
+carries none. Stamping is a way of reading the plot, like turning a cube.
 
 A stamp is for deciding which points are worth naming. A plot with a name on
 every point is unreadable, and a plot with a name on the four that matter is the
@@ -492,6 +497,12 @@ then write the labels down and let
 [`repel`](marks/text.qmd#moving-the-labels-off-each-other-repel) place them.
 
 The stamp is for looking. `text` is for saying.
+
+Both reach a slide, and they are not the same thing when they get there. A saved
+picture is one session at one angle, and it is finished: nobody can rerun it. A
+sentence with `text` in it draws again for anyone who has the data, in the PDF and
+on the page and in all four languages. Stamp and save when you want this plot.
+Write the labels down when you want the plot.
 
 ### Where pointing cannot answer
 

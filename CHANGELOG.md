@@ -57,10 +57,13 @@ CRAN-style repositories and PyPI, `GrammarOfGraphics` on Julia's General, and
   card names the year it holds. Three things take a stamp off, the `×` on a
   card, a click on a card that did not move, and `unstamp` for all of them at
   once. `clear` leaves them alone, because a stamp is not a selection. A click
-  on empty space still clears the selection, as before. Nothing about the
-  sentence changes and the printed page carries no stamps: this is a way of
-  reading a plot, like turning a cube. What it is for is finding the points
-  worth naming, and naming them is `text`.
+  on empty space still clears the selection, as before. The camera saves the
+  cards where you put them, which is the camera's own rule rather than a new
+  one: it writes what you are looking at, the way it already writes how far you
+  have zoomed and the angle a cube is turned to. Nothing about the sentence
+  changes and the printed page carries no stamps: this is a way of reading a
+  plot, like turning a cube. What it is for is finding the points worth naming,
+  and naming them is `text`.
 
 ### Changed
 
@@ -82,6 +85,12 @@ CRAN-style repositories and PyPI, `GrammarOfGraphics` on Julia's General, and
   beside the readout stating it.
 
 ### Fixed
+
+- A table value containing `<` broke the box that reported it. The values under
+  the pointer, and the card a click leaves behind, were built by pasting each
+  cell into markup, so a column holding something as ordinary as `a < b` or a
+  name with an ampersand in it stopped being read as a value. The characters are
+  shown as themselves now.
 
 - A frequency polygon was told it might be a tangle. `line * bin` draws one point
   per bin, so connecting them in order is the whole plot, and it was answered
