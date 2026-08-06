@@ -655,7 +655,13 @@ function stubDom() {
       // arithmetic that reads it from producing `NaN`.
       offsetWidth: 0, offsetHeight: 0,
       listeners: new Map(),
-      setAttribute() {}, removeAttribute() {},
+      // Kept rather than dropped, for the reason the body's children are kept:
+      // the leader tying a stamp to its point is an `<svg>` whose whole state is
+      // in its attributes, so "where does the line run?" has to be answerable.
+      attrs: {},
+      setAttribute(k, v) { node.attrs[k] = String(v); },
+      getAttribute(k) { return node.attrs[k] ?? null; },
+      removeAttribute(k) { delete node.attrs[k]; },
       addEventListener(type, fn) { node.listeners.set(type, fn); },
       removeEventListener(type) { node.listeners.delete(type); },
       appendChild(c) { node.children.push(c); node.firstChild ??= c; return c; },
@@ -1160,6 +1166,44 @@ test("nobody has asked, so there is nothing to explain", async () => {
 // ---------------------------------------------------------------------------
 
 const cardOf = (stamp) => stamp.children.find((c) => c.className === "gog-stamp-card");
+/** The rows a card names. They sit beside its close control rather than being
+ *  the whole of the card, which is why this is not `card.innerHTML`. */
+const rowsOf = (card) => card.children[0]?.innerHTML ?? "";
+const shutOf = (card) => card.children.find((c) => c.className === "gog-stamp-close");
+const byClass = (node, cls) =>
+  node.children.find((c) => c.getAttribute?.("class") === cls);
+const leaderOf = (stamp) => {
+  const wire = byClass(stamp, "gog-stamp-leader");
+  return { line: byClass(wire, "gog-stamp-line"), head: byClass(wire, "gog-stamp-head") };
+};
+
+/** A pointer event aimed at one element. The container has `send`; a card takes
+ *  its own events, because it is on `document.body` and not in the plot. */
+const fire = (node, type, x, y, target) =>
+  node.listeners.get(type)?.({
+    clientX: x, clientY: y, pointerId: 1, target: target ?? node,
+    preventDefault() {},
+  });
+
+/** Carry a card by `(dx, dy)` and put it down. */
+const carry = (card, dx, dy) => {
+  fire(card, "pointerdown", 0, 0);
+  fire(card, "pointermove", dx, dy);
+  fire(card, "pointerup", dx, dy);
+};
+
+/** Where a card sits relative to its point, as the two numbers it is placed by. */
+const offsetOf = (card) => [parseFloat(card.style.left), parseFloat(card.style.top)];
+
+/** Stamp the row at (50, 50) and hand back everything a test needs to poke it. */
+async function stampFixture() {
+  const fixture = await hoverFixture(POINTS.spec, POINTS.data);
+  const p = fixture.panels[0];
+  fixture.container.send("pointerdown", placeOn(p.x, 50), placeOn(p.y, 50));
+  fixture.container.send("pointerup", placeOn(p.x, 50), placeOn(p.y, 50));
+  const [stamp] = onPage("gog-stamp");
+  return { ...fixture, p, stamp, card: cardOf(stamp) };
+}
 
 test("clicking a mark leaves it named on the picture", async () => {
   const undo = stubDom();
@@ -1173,7 +1217,7 @@ test("clicking a mark leaves it named on the picture", async () => {
     assert.equal(handle.stamps(), 1);
     const [pinned] = onPage("gog-stamp");
     assert.ok(pinned, "a stamp is on the page");
-    assert.match(cardOf(pinned).innerHTML, /\b50\b/, "and it names the row clicked");
+    assert.match(rowsOf(cardOf(pinned)), /\b50\b/, "and it names the row clicked");
     handle.destroy();
   } finally {
     undo();
@@ -1243,15 +1287,193 @@ test("a redraw keeps the stamp and takes it with the picture", async () => {
 test("clicking a stamp takes it off", async () => {
   const undo = stubDom();
   try {
-    const { handle, container, panels } = await hoverFixture(POINTS.spec, POINTS.data);
-    const p = panels[0];
-    container.send("pointerdown", placeOn(p.x, 50), placeOn(p.y, 50));
-    container.send("pointerup", placeOn(p.x, 50), placeOn(p.y, 50));
-    const [pinned] = onPage("gog-stamp");
-
-    cardOf(pinned).listeners.get("click")();
+    const { handle, card } = await stampFixture();
+    // Pressed and released without going anywhere, which is the whole of the
+    // gesture now that the card's own face is also a handle.
+    fire(card, "pointerdown", 40, 40);
+    fire(card, "pointerup", 40, 40);
     assert.equal(handle.stamps(), 0);
     assert.equal(onPage("gog-stamp").length, 0, "and it left the page with it");
+    handle.destroy();
+  } finally {
+    undo();
+  }
+});
+
+// ---------------------------------------------------------------------------
+// Carrying a card, and the three ways to undo one stamp
+//
+// A card is over the data it was made to read, which is the complaint that
+// earned this: four stamps on a crowded scatter hide the crowd. So the card
+// moves, and the risk that creates is the one gesture eating the other. A reader
+// who nudges a card by two pixels must still find it there, and a reader who
+// carries one across the panel must not have it vanish when they let go.
+// ---------------------------------------------------------------------------
+
+test("a card is carried where it is put, and is not taken off by the carrying", async () => {
+  const undo = stubDom();
+  try {
+    const { handle, card } = await stampFixture();
+    const [x0, y0] = offsetOf(card);
+    carry(card, 90, 60);
+
+    assert.equal(handle.stamps(), 1, "still stamped: a carry is not a click");
+    assert.deepEqual(offsetOf(card), [x0 + 90, y0 + 60],
+      "and it went exactly as far as the pointer did");
+    handle.destroy();
+  } finally {
+    undo();
+  }
+});
+
+test("a nudge under the threshold is a click, and takes the stamp off", async () => {
+  const undo = stubDom();
+  try {
+    const { handle, card } = await stampFixture();
+    const before = offsetOf(card);
+    // Two pixels: a hand that did not mean to move. The panel calls this a click
+    // and so does the card, because one threshold decides both.
+    fire(card, "pointerdown", 0, 0);
+    fire(card, "pointermove", 1, 1);
+    assert.deepEqual(offsetOf(card), before, "it has not moved yet");
+    fire(card, "pointerup", 1, 1);
+    assert.equal(handle.stamps(), 0, "and the release reads as a click");
+    handle.destroy();
+  } finally {
+    undo();
+  }
+});
+
+test("a pointer that wanders out and comes back is still a carry", async () => {
+  const undo = stubDom();
+  try {
+    const { handle, card } = await stampFixture();
+    fire(card, "pointerdown", 0, 0);
+    fire(card, "pointermove", 80, 80);
+    // Back to where it started. Measured end to end this is a click, which is
+    // why `moved` latches on the way instead.
+    fire(card, "pointermove", 0, 0);
+    fire(card, "pointerup", 0, 0);
+    assert.equal(handle.stamps(), 1, "the stamp survived a round trip");
+    handle.destroy();
+  } finally {
+    undo();
+  }
+});
+
+test("the cross takes one stamp off, and leaves the others", async () => {
+  const undo = stubDom();
+  try {
+    const { handle, container, p, card } = await stampFixture();
+    container.send("pointerdown", placeOn(p.x, 10), placeOn(p.y, 10));
+    container.send("pointerup", placeOn(p.x, 10), placeOn(p.y, 10));
+    assert.equal(handle.stamps(), 2, "two rows named");
+
+    const shut = shutOf(card);
+    const before = offsetOf(card);
+    // A press on the cross is not a press on the card, or a reader aiming at the
+    // one thing that unambiguously removes a stamp would start dragging it.
+    fire(card, "pointerdown", 0, 0, shut);
+    fire(card, "pointermove", 50, 50);
+    assert.deepEqual(offsetOf(card), before, "the cross is a control, not a handle");
+
+    shut.listeners.get("click")();
+    assert.equal(handle.stamps(), 1, "the one whose cross was clicked, and no other");
+    handle.destroy();
+  } finally {
+    undo();
+  }
+});
+
+test("unstamp still takes every card off, wherever they were carried", async () => {
+  const undo = stubDom();
+  try {
+    const { handle, container, p, card } = await stampFixture();
+    carry(card, 120, -80);
+    container.send("pointerdown", placeOn(p.x, 10), placeOn(p.y, 10));
+    container.send("pointerup", placeOn(p.x, 10), placeOn(p.y, 10));
+    assert.equal(handle.stamps(), 2);
+
+    handle.clearStamps();
+    assert.equal(handle.stamps(), 0);
+    assert.equal(onPage("gog-stamp").length, 0, "and the page is clear of them");
+    handle.destroy();
+  } finally {
+    undo();
+  }
+});
+
+test("a redraw moves the point and leaves the card where the reader put it", async () => {
+  const undo = stubDom();
+  try {
+    const { handle, container, p, stamp, card } = await stampFixture();
+    carry(card, 140, -60);
+    const placed = offsetOf(card);
+    const wasAt = parseFloat(stamp.style.left);
+
+    SHIFT.x = 100;
+    const cx = (v) => placeOn(p.x, v) + SHIFT.x;
+    const cy = (v) => placeOn(p.y, v) + SHIFT.y;
+    container.send("pointerdown", cx(10), cy(10));
+    container.send("pointermove", cx(60), cy(60));
+    container.send("pointerup", cx(60), cy(60));
+
+    assert.equal(parseFloat(stamp.style.left) - wasAt, 100,
+      "the anchor followed the picture");
+    assert.deepEqual(offsetOf(card), placed,
+      "and the card kept its offset, so it rode along rather than snapping back");
+    handle.destroy();
+  } finally {
+    SHIFT.x = 0;
+    undo();
+  }
+});
+
+// The line is the part a reader watches while they carry a card, so it has to
+// end on the card's border rather than under its text, and it has to keep
+// pointing at the row. The head is what says which end is the data, and it earns
+// its place only once the line is long enough to be ambiguous without it.
+test("the line reaches the card's edge, points at the row, and grows a head when long", async () => {
+  const undo = stubDom();
+  try {
+    const { handle, stamp, card } = await stampFixture();
+    // The one thing the stub cannot answer for itself. A real browser measures
+    // the card; here the test says how big it is, so the geometry has something
+    // to meet.
+    const [w, h] = [120, 40];
+    card.offsetWidth = w;
+    card.offsetHeight = h;
+    const { line, head } = leaderOf(stamp);
+
+    // Barely off its point, which is where a card starts.
+    carry(card, 0, -4);
+    assert.equal(head.getAttribute("visibility"), "hidden",
+      "no head while the line is too short to be read either way");
+
+    carry(card, 160, -102);
+    const [dx, dy] = offsetOf(card);
+    const [x1, y1] = [Number(line.getAttribute("x1")), Number(line.getAttribute("y1"))];
+    const [x2, y2] = [Number(line.getAttribute("x2")), Number(line.getAttribute("y2"))];
+
+    // On the border: one of the two faces is exactly half a card from the center.
+    const [cx, cy] = [dx, dy - h / 2];
+    const onFace = Math.abs(Math.abs(x2 - cx) - w / 2) < 0.01 ||
+                   Math.abs(Math.abs(y2 - cy) - h / 2) < 0.01;
+    assert.ok(onFace, `the far end sits on the card's border, not inside it (${x2}, ${y2})`);
+    assert.ok(Math.abs(x2 - cx) <= w / 2 + 0.01 && Math.abs(y2 - cy) <= h / 2 + 0.01,
+      "and not beyond it either");
+
+    // Aimed at the row: the point, the near end and the far end are one line.
+    assert.ok(Math.abs(x1 * y2 - x2 * y1) < 0.01,
+      "the point, the near end and the far end are collinear");
+    assert.ok(Math.hypot(x1, y1) >= 5, "the near end clears the dot");
+    assert.ok(Math.hypot(x1, y1) < Math.hypot(x2, y2), "and runs toward the card");
+
+    assert.equal(head.getAttribute("visibility"), "visible",
+      "carried this far, the line says which end is the data");
+    const [ax, ay] = head.getAttribute("points").split(" ")[0].split(",").map(Number);
+    assert.ok(Math.hypot(ax, ay) < Math.hypot(x1, y1),
+      "and the head's apex is the end nearest the row");
     handle.destroy();
   } finally {
     undo();

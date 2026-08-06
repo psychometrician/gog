@@ -47,12 +47,17 @@ CRAN-style repositories and PyPI, `GrammarOfGraphics` on Julia's General, and
 - **Clicking a mark stamps its values onto the plot.** The row that appears
   while the pointer is over a mark stays there once you click it, so several
   rows can be read at once and compared against each other, which hovering
-  cannot do because it forgets the last one. Click the card to take it off, or
-  `unstamp` to take them all off together; `clear` leaves them alone, because a
-  stamp is not a selection. A click on empty space still clears the selection,
-  as before. Nothing about the sentence changes and the printed page carries no
-  stamps: this is a way of reading a plot, like turning a cube. What it is for
-  is finding the points worth naming, and naming them is `text`.
+  cannot do because it forgets the last one. Drag a card and it goes where you
+  put it: the line stretches after it, and a long line grows an arrow head at
+  the end that means the row, so cards can be moved clear of the crowd they
+  name. A card keeps its place beside its point through zoom, pan and every
+  redraw. Three things take a stamp off, the `×` on a card, a click on a card
+  that did not move, and `unstamp` for all of them at once. `clear` leaves them
+  alone, because a stamp is not a selection. A click on empty space still
+  clears the selection, as before. Nothing about the sentence changes and the
+  printed page carries no stamps: this is a way of reading a plot, like turning
+  a cube. What it is for is finding the points worth naming, and naming them is
+  `text`.
 
 ### Changed
 

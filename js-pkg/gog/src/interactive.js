@@ -831,6 +831,13 @@ export function attachBrush(engine, container, request, options = {}) {
     tip = null;
   };
 
+  // Shorter than this and the reader did not draw a range, they clicked. The
+  // same number decides the same question for a stamp: shorter than this and
+  // they did not carry the card anywhere, they clicked it. One threshold rather
+  // than two, so a hand that is steady enough for one gesture is steady enough
+  // for the other.
+  const MIN_DRAG = 3;
+
   // ---------------------------------------------------------------------
   // Stamping a row
   //
@@ -849,6 +856,17 @@ export function attachBrush(engine, container, request, options = {}) {
   // the whole picture, so a card parented into it would be destroyed sixty times
   // a second during a drag. These live on `document.body` like the tooltip, and
   // are re-projected whenever the picture moves under them.
+  //
+  // **The card is the reader's to place.** Four stamps on a crowded scatter put
+  // four cards over the data they were made to read, and the reader is the only
+  // one who knows which corner is empty. So a card can be carried anywhere and
+  // the line to its point stretches after it, growing a head once it is long
+  // enough that a reader could lose track of which end it means.
+  //
+  // That offset is held in **screen pixels, never in the data's units**. A card
+  // is a fixed-size piece of furniture, so it should sit the same distance from
+  // its point at every magnification; measured in the data it would be flung off
+  // the panel by the first zoom.
   // ---------------------------------------------------------------------
   const pins = [];
 
@@ -862,6 +880,98 @@ export function attachBrush(engine, container, request, options = {}) {
     // plot, and a plot is drawn light whatever the page around it looks like.
     "background:rgba(255,255,255,0.92);border:1px solid #bbb;border-radius:3px;" +
     "padding:.2em .45em;color:#333;box-shadow:0 1px 4px rgba(0,0,0,.12);white-space:nowrap;";
+
+  const SVGNS = "http://www.w3.org/2000/svg";
+  // Where a card sits before anyone moves it: this far above its point, which is
+  // near enough to belong to it and clear enough to leave it visible.
+  const LEADER = 18;
+  // How long the line has to be before it grows a head. At rest the card all but
+  // touches its dot, and an arrowhead there is a second mark doing the dot's job.
+  // Carried across the panel, the line has to say which end it means.
+  const ARROW = 24;
+  // Clear of the dot, so the line neither hides it nor starts inside it.
+  const CLEAR = 5;
+  const HEAD = 8;
+
+  // The card, and the line that ties it to its point.
+  //
+  // Called when a stamp is made and on every frame of a card drag, and never by
+  // `placePins`: the offset is measured from the anchor, and the anchor is the
+  // thing that moves when the picture does. So zoom, pan, redraw, scroll and
+  // resize all carry a placed card with them for free.
+  const placeCard = (pin) => {
+    pin.card.style.left = `${pin.dx}px`;
+    pin.card.style.top = `${pin.dy}px`;
+    const w = pin.card.offsetWidth;
+    const h = pin.card.offsetHeight;
+    // Hidden, so the browser has no size to give and there is nothing to draw
+    // between. It will be laid out again when its point comes back.
+    if (!w && !h) return;
+    // A card is placed by the midpoint of its bottom edge, so its center is half
+    // a card higher. The line stops where it meets the border rather than running
+    // in under the text: `s` is how far along the way to the point that border
+    // is, taken on whichever side the line leaves by.
+    const cx = pin.dx;
+    const cy = pin.dy - h / 2;
+    const s = Math.min(
+      1,
+      Math.abs(cx) > 0.01 ? w / 2 / Math.abs(cx) : Infinity,
+      Math.abs(cy) > 0.01 ? h / 2 / Math.abs(cy) : Infinity
+    );
+    const ex = cx * (1 - s);
+    const ey = cy * (1 - s);
+    const far = Math.hypot(ex, ey);
+    // Dropped on its own point: there is no gap left to draw a line across, and
+    // a one-pixel arrow reads as dirt on the screen.
+    if (far < 2) {
+      pin.wire.setAttribute("width", "0");
+      pin.wire.setAttribute("height", "0");
+      pin.line.setAttribute("visibility", "hidden");
+      pin.head.setAttribute("visibility", "hidden");
+      return;
+    }
+    const ux = ex / far;
+    const uy = ey / far;
+    const near = Math.min(CLEAR, far);
+    const arrow = far > ARROW;
+    const bx = ux * Math.min(near + HEAD, far);
+    const by = uy * Math.min(near + HEAD, far);
+    const [x1, y1] = arrow ? [bx, by] : [ux * near, uy * near];
+    pin.line.setAttribute("x1", x1);
+    pin.line.setAttribute("y1", y1);
+    pin.line.setAttribute("x2", ex);
+    pin.line.setAttribute("y2", ey);
+    pin.line.setAttribute("visibility", "visible");
+    // Apex at the near end, base two half-widths across the line's own
+    // perpendicular, which is `(-uy, ux)`.
+    const corners = [
+      [ux * near, uy * near],
+      [bx - uy * 3.5, by + ux * 3.5],
+      [bx + uy * 3.5, by - ux * 3.5],
+    ];
+    pin.head.setAttribute("points", corners.map(([x, y]) => `${x},${y}`).join(" "));
+    pin.head.setAttribute("visibility", arrow ? "visible" : "hidden");
+    // **The `<svg>` is sized to what it draws, and never left at nothing.**
+    // Anchoring it at the point and letting `overflow` carry the rest is what
+    // this did first, and it laid the line out in exactly the right place and
+    // then did not paint it: a zero-sized outermost `<svg>` clips its contents
+    // in Chrome whatever `overflow` says, so `getBoundingClientRect` reported a
+    // line that was not on the screen. A `viewBox` matching the box keeps the
+    // coordinates above measured from the point, which is what makes them
+    // readable.
+    const xs = [x1, ex, ...(arrow ? corners.map((c) => c[0]) : [])];
+    const ys = [y1, ey, ...(arrow ? corners.map((c) => c[1]) : [])];
+    const pad = 2;
+    const minX = Math.min(...xs) - pad;
+    const minY = Math.min(...ys) - pad;
+    const boxW = Math.max(...xs) - minX + pad;
+    const boxH = Math.max(...ys) - minY + pad;
+    pin.wire.style.left = `${minX}px`;
+    pin.wire.style.top = `${minY}px`;
+    pin.wire.setAttribute("width", boxW);
+    pin.wire.setAttribute("height", boxH);
+    pin.wire.setAttribute("viewBox", `${minX} ${minY} ${boxW} ${boxH}`);
+  };
 
   const placePins = () => {
     const all = panels();
@@ -900,35 +1010,128 @@ export function attachBrush(engine, container, request, options = {}) {
   const stamp = (index, hit) => {
     // One element anchored at the point, with everything else placed against it
     // in fixed CSS. That way re-anchoring writes one pair of numbers per stamp,
-    // however many pieces the reader sees.
+    // however many pieces the reader sees, and carrying a card away writes
+    // another pair without the anchor being told.
     const el = document.createElement("div");
     el.className = "gog-stamp";
     el.style.cssText =
       "position:fixed;width:0;height:0;z-index:2147483646;pointer-events:none;";
+    // The line is drawn rather than laid out. A card the reader has carried
+    // across the panel needs a line at an angle, and CSS gives a box an angle
+    // only by rotating it, which is two transforms and a second one for the
+    // head. `placeCard` sizes and places this to fit whatever it holds; it
+    // starts at nothing because there is nothing in it yet.
+    const wire = document.createElementNS(SVGNS, "svg");
+    wire.setAttribute("class", "gog-stamp-leader");
+    wire.setAttribute("width", "0");
+    wire.setAttribute("height", "0");
+    wire.style.cssText = "position:absolute;left:0;top:0;pointer-events:none;";
+    const line = document.createElementNS(SVGNS, "line");
+    line.setAttribute("class", "gog-stamp-line");
+    line.setAttribute("stroke", "#999");
+    line.setAttribute("stroke-width", "1");
+    const head = document.createElementNS(SVGNS, "polygon");
+    head.setAttribute("class", "gog-stamp-head");
+    head.setAttribute("fill", "#999");
+    wire.appendChild(line);
+    wire.appendChild(head);
+    // The dot stays whatever the line does. It is what says *this row*, and the
+    // head only says which way to look.
     const dot = document.createElement("span");
     dot.style.cssText =
       "position:absolute;left:-3.5px;top:-3.5px;width:7px;height:7px;box-sizing:border-box;" +
       "border-radius:50%;background:#333;border:1.5px solid #fff;";
-    // The card stands off the point rather than on it, joined by a line. A card
-    // centered on a four-pixel dot hides the dot and its neighbors, which is the
-    // crowd the reader stamped it to read.
-    const leader = document.createElement("span");
-    leader.style.cssText =
-      "position:absolute;left:0;top:-18px;width:1px;height:18px;background:#999;";
+    // The card stands off the point rather than on it, joined by that line. A
+    // card centered on a four-pixel dot hides the dot and its neighbors, which is
+    // the crowd the reader stamped it to read.
     const card = document.createElement("div");
     card.className = "gog-stamp-card";
-    card.title = "click to remove this stamp";
+    card.title = "drag to move this stamp, click to take it off";
     card.style.cssText =
-      `position:absolute;bottom:18px;left:0;transform:translateX(-50%);${CARD}` +
-      "pointer-events:auto;cursor:pointer;";
-    card.innerHTML = rowHtml(hit.row);
+      `position:absolute;left:0;top:0;transform:translate(-50%,-100%);${CARD}` +
+      "pointer-events:auto;cursor:grab;display:flex;align-items:flex-start;gap:.45em;" +
+      // A drag over text selects it, and a drag on a touch screen scrolls the
+      // page. Both would happen instead of the card moving.
+      "user-select:none;-webkit-user-select:none;touch-action:none;";
+    const body = document.createElement("div");
+    body.innerHTML = rowHtml(hit.row);
+    // Three ways to undo one thing, for three different reads of the plot. The
+    // cross is the one that needs no explaining and cannot be mistaken for
+    // anything else, which matters now that the card's own face is a handle.
+    const shut = document.createElement("span");
+    shut.className = "gog-stamp-close";
+    shut.title = "take this stamp off";
+    shut.textContent = "×";
+    shut.style.cssText =
+      "flex:none;cursor:pointer;color:#aaa;font-size:13px;line-height:1.15;";
+    shut.addEventListener("pointerenter", () => { shut.style.color = "#333"; });
+    shut.addEventListener("pointerleave", () => { shut.style.color = "#aaa"; });
+    card.appendChild(body);
+    card.appendChild(shut);
+    el.appendChild(wire);
     el.appendChild(dot);
-    el.appendChild(leader);
     el.appendChild(card);
-    const pin = { panel: index, px: hit.px, py: hit.py, row: hit.row, el };
-    card.addEventListener("click", () => drop(pin));
+    const pin = {
+      panel: index, px: hit.px, py: hit.py, row: hit.row,
+      el, card, wire, line, head, dx: 0, dy: -LEADER,
+    };
+    shut.addEventListener("click", () => drop(pin));
+
+    // Carrying the card, and the click that is not a carry.
+    //
+    // `moved` latches on the way rather than being measured at the end, for the
+    // reason the panel's does: a pointer that wanders out and comes back would
+    // read as a click if only its two ends were compared, and taking a stamp off
+    // a reader who was placing it is the mistake this must not make.
+    //
+    // Nothing here can reach the panel underneath. Stamps hang off
+    // `document.body` rather than off the plot, so a drag on a card is never
+    // also a drag on the picture, and no guard is needed to keep the two apart.
+    let grab = null;
+    card.addEventListener("pointerdown", (e) => {
+      if (e.target === shut) return;
+      e.preventDefault();
+      grab = { x: e.clientX, y: e.clientY, dx: pin.dx, dy: pin.dy, moved: false };
+      card.style.cursor = "grabbing";
+      try {
+        card.setPointerCapture?.(e.pointerId);
+      } catch {
+        /* no active pointer to capture; the drag proceeds without it */
+      }
+    });
+    card.addEventListener("pointermove", (e) => {
+      if (!grab) return;
+      const mx = e.clientX - grab.x;
+      const my = e.clientY - grab.y;
+      if (Math.hypot(mx, my) >= MIN_DRAG) grab.moved = true;
+      if (!grab.moved) return;
+      pin.dx = grab.dx + mx;
+      pin.dy = grab.dy + my;
+      placeCard(pin);
+    });
+    const release = (e) => {
+      if (!grab) return;
+      const carried = grab.moved;
+      grab = null;
+      card.style.cursor = "grab";
+      try {
+        card.releasePointerCapture?.(e.pointerId);
+      } catch {
+        /* the capture is already gone */
+      }
+      // No `click` listener on the card, deliberately: the browser fires one
+      // after every `pointerup`, including the one that ends a drag, so a card
+      // that listened for both would vanish the moment it was put down.
+      if (!carried) drop(pin);
+    };
+    card.addEventListener("pointerup", release);
+    card.addEventListener("pointercancel", release);
+
     document.body.appendChild(el);
     pins.push(pin);
+    // Measured only once it is in the document, since the card's size is the
+    // browser's answer rather than ours.
+    placeCard(pin);
     placePins();
     onSelect?.();
   };
@@ -947,9 +1150,6 @@ export function attachBrush(engine, container, request, options = {}) {
   const unwatch = view?.onApply(placePins);
   window.addEventListener("scroll", placePins, true);
   window.addEventListener("resize", placePins);
-
-  // Shorter than this and the reader did not draw a range, they clicked.
-  const MIN_DRAG = 3;
 
   const bound = (axis, a, b) => boundOn(axis, a, b);
 

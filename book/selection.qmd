@@ -447,13 +447,29 @@ want to compare. The card sits on the picture beside the point it belongs to,
 which is the difference between a stamp and the row table. One names rows, the
 other labels the plot.
 
-Click a card to take that one off. `unstamp` takes them all off at once. `clear`
-leaves them alone, because a stamp is not a selection: clear a bound to read your
-stamped rows against the whole data and they are all still there. Each of the
-three controls undoes one thing, which the section below sets out.
+A card takes up room. On a crowded scatter it covers the very points you stamped
+it to read. So drag a card and it goes where you put it. The line stretches to
+follow, and a long line grows an arrow head at the end that means the row. Move
+four cards out to the edges and the picture underneath stays whole.
+
+Where you put a card is where it stays. Zoom in, pan across, or drag a new bound:
+the card holds its place beside its point while the picture moves under it. Zoom
+far enough that the point leaves the panel and the whole stamp waits out of sight.
+It has nothing left to point at, and a card floating over an unrelated corner
+would say it did. Bring the point back and the card is where you left it.
+
+There are three ways to take a stamp off. The `×` in the corner of a card removes
+that card. Clicking the card itself does the same, as long as you did not move it.
+If the pointer traveled, you moved the card. If it did not, the card comes off.
+`unstamp` removes every card at once.
+
+`clear` leaves them alone, because a stamp is not a selection: clear a bound to
+read your stamped rows against the whole data and they are all still there. Each
+of the three controls undoes one thing, which the section below sets out.
 
 Nothing about the sentence changes. You do not type a stamp, and the printed page
-carries none. Stamping is a way of reading the plot, like turning a cube.
+carries none. The camera saves the plot without them, for the same reason.
+Stamping is a way of reading the plot, like turning a cube.
 
 A stamp is for deciding which points are worth naming. A plot with a name on
 every point is unreadable, and a plot with a name on the four that matter is the
@@ -461,6 +477,13 @@ one you wanted. Stamping lets you try the four before you commit to them. To
 put those names in the picture itself, where the page and the PDF will both carry
 them, write them down: that is [`text`](marks/text.qmd), and it is a layer like
 any other.
+
+Arranging the cards by hand has a written form too. `text * repel` does the same
+job inside the sentence. Every label ends up outside its own dot, and one that
+moved far keeps a thin line back to the point it names. That is the stamp's line
+again, written down rather than dragged. Stamp to decide what is worth naming,
+then write the labels down and let
+[`repel`](marks/text.qmd#moving-the-labels-off-each-other-repel) place them.
 
 The stamp is for looking. `text` is for saying.
 
@@ -505,6 +528,10 @@ frame acts on the **view**. Three controls that undo three different things, so
 each is named for what it acts on rather than all three being called reset. The
 frame sits a line above the other two, with the buttons that changed the view it
 returns.
+
+The `×` on a card is a fourth undo, and it is not in this line. It belongs to the
+card rather than to the plot. A control under the picture acts on all of
+something. A control on a card acts on that card.
 
 None of this exists on paper, and none of it is missing there. The PDF shows the
 bound the sentence named, which is why naming one is worth doing even where a
