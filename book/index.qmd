@@ -490,8 +490,7 @@ the same sentences into the same engine. The four binding chapters,
 the difference: how each language captures a column name, and, for JavaScript
 alone, the four words it needs because it cannot give `+ * | /` a meaning of
 its own. Most code blocks are executed during render: the plots you see are
-drawn by the engine as the page builds. Examples that use roadmap features
-remain display-only until those features land.
+drawn by the engine as the page builds.
 
 ## Installing gog
 
@@ -529,8 +528,7 @@ grammar. In R and in Python it is `gog`, because a three-letter name is allowed
 in both. Julia asks a package name for at least five letters and capitalized
 words, and npm already had a package called `gog`. So those two spell the name
 out instead, each in its own style: `GrammarOfGraphics` in Julia, and
-`grammar-of-graphics` on npm, which does not allow capital letters. Where `gog`
-is free the package is `gog`, and where it is not the name is written in full.
+`grammar-of-graphics` on npm, which does not allow capital letters.
 
 Three of these packages carry the engine inside them, already built for your
 computer. For those three you do not need a Rust [@klabnik2023rust] toolchain,
