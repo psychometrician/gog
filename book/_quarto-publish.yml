@@ -1,0 +1,47 @@
+# The publish profile: what the book is given when it is built for the site, and
+# at no other time. Quarto merges this over `_quarto.yml` when `QUARTO_PROFILE`
+# is `publish`, which the book workflow and `publish.sh` both set. A local
+# `quarto render` or `quarto preview` never sees it.
+#
+# One thing is in here, and it is here because of what it costs to have locally.
+
+book:
+  page-footer:
+    # The reader count, and the count *is* the image. These pages are static
+    # files on GitHub Pages, so nothing there can count a visit; hits.sh counts
+    # requests for this badge instead, one per page view, since it serves the
+    # image `no-store` and no browser caches it.
+    #
+    # Which is exactly why it cannot sit in `_quarto.yml`. Any browser opening
+    # any page fetches it, `localhost` included, so every chapter previewed
+    # while writing would count as a reader. Three clicks put the book from 5 to
+    # 8 on the day it was added, and this book has 59 chapters that are rendered
+    # over and over. The number would have been mostly its own author.
+    #
+    # The address inside it is a label, not a place. Nothing at hits.sh ever
+    # fetches the site, and a name that could not resolve counts just as
+    # happily, which is what lets the book and the site keep separate numbers
+    # while sharing one domain. This one names the book's subdirectory; the
+    # site's names the domain alone.
+    #
+    # The count side is the project's peach, and the badge picks its own ink
+    # from it: white on the dark label, near-black on the peach. That is what
+    # lets one fixed image sit on both themes, which CSS could not do for it,
+    # since a stylesheet cannot reach inside an `img`.
+    #
+    # The label is a warm dark grey rather than the site's own ink, and it has
+    # to be. `#16130f` is within a shade of the dark theme's page ground, so on
+    # that theme the left half of the badge disappeared into the page and left
+    # the word floating beside a peach chip. `#3a332a` stays in the same warm
+    # family and reads as a pill on white and on the dark ground both.
+    #
+    # Swapping `.svg` for `/` is the public stats page, and that is where it
+    # links.
+    #
+    # The alt text is written as `fig-alt` rather than between the brackets. An
+    # image alone in a paragraph, carrying bracketed alt text, is a *figure* to
+    # pandoc, so the words land under the badge as a caption and the `alt`
+    # attribute is spent on them. Empty brackets keep it an inline image, and
+    # `fig-alt` puts the sentence where a screen reader reads it.
+    center: |
+      [![](https://hits.sh/psychometrician.github.io/gog-book.svg?style=flat-square&label=readers&color=ffdba4&labelColor=3a332a){fig-alt="Page views of this book, counted by hits.sh"}](https://hits.sh/psychometrician.github.io/gog-book/)

@@ -98,11 +98,18 @@ book:
   #
   # Licences on the left, as the small print they are. The row of links on the
   # right, because that is what a reader who has reached the end of a chapter is
-  # looking for.
+  # looking for. The reader count between them, where it is legible and asks for
+  # nothing.
   page-footer:
     left: |
       [Prose licensed [CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/).]{.licence}
       [Code samples licensed [Apache 2.0](https://www.apache.org/licenses/LICENSE-2.0).]{.licence}
+    # The footer's center holds a reader count on the published site, and only
+    # there. It is a hits.sh badge, and the badge is fetched by every browser
+    # that opens a page, `localhost` among them, so left in this file it would
+    # count each chapter previewed while writing as a reader. It lives in
+    # `_quarto-publish.yml` instead, which the site's build merges over this one
+    # and a local render never loads. That file says the rest.
     right:
       # The same three the site follows with, in the same order, drawn from
       # Bootstrap Icons in `currentColor` so they take the theme with no second

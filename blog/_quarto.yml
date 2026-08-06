@@ -107,6 +107,10 @@ website:
     left: |
       [Prose licensed [CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/).]{.licence}
       [Code samples licensed [Apache 2.0](https://www.apache.org/licenses/LICENSE-2.0).]{.licence}
+    # The footer's center holds a reader count on the published site, and only
+    # there: the hits.sh badge is fetched by any browser opening any page, so
+    # left here it would count every local render as a reader. It lives in
+    # `_quarto-publish.yml`, which the workflow merges over this file.
     right:
       # Both marks are Bootstrap Icon glyphs drawn in `currentColor`, so they
       # follow the theme with no second copy and no swap rule, and they sit at

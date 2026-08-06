@@ -1,0 +1,29 @@
+# The publish profile: what the site is given when the workflow builds it, and
+# at no other time. Quarto merges this over `_quarto.yml` when `QUARTO_PROFILE`
+# is `publish`, which `blog.yml` sets. A local render or preview never sees it.
+#
+# The book has the twin of this file, for the same one reason.
+
+website:
+  page-footer:
+    # The reader count, and the count is the image itself. A static page cannot
+    # count its own visits, so hits.sh counts requests for the badge, one per
+    # view, since it is served `no-store`.
+    #
+    # It is in the profile rather than in `_quarto.yml` because any browser that
+    # opens any page fetches it, `localhost` included. Left in the base config,
+    # every local render and every click while writing a post would arrive as a
+    # reader, and the number would mean nothing.
+    #
+    # The address in it is only a label: nothing at hits.sh fetches the site, so
+    # naming the domain here and the book's subdirectory there keeps two numbers
+    # apart on one domain. Swapping `.svg` for `/` is the public stats page.
+    #
+    # The label is a warm dark grey rather than the site's ink, which is within
+    # a shade of the dark theme's page ground and left half the badge invisible
+    # there. The alt text goes in `fig-alt` with the brackets left empty:
+    # bracketed alt text on an image alone in a paragraph makes it a figure,
+    # which prints the words under the badge as a caption and leaves the image
+    # with no `alt` at all.
+    center: |
+      [![](https://hits.sh/psychometrician.github.io.svg?style=flat-square&label=readers&color=ffdba4&labelColor=3a332a){fig-alt="Page views of this site, counted by hits.sh"}](https://hits.sh/psychometrician.github.io/)

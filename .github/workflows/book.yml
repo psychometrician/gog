@@ -347,6 +347,13 @@ jobs:
         # `--to html` is what keeps the 816-page PDF off the free site: Quarto
         # links a download only for a format it finds rendered, and print is the
         # publisher's. `PIPESTATUS` because `tee` would otherwise mask the exit.
+        #
+        # The profile merges `_quarto-publish.yml` over the config, and the
+        # footer's reader count is the whole of what that adds. It is kept out
+        # of the base config because the badge is fetched by every browser that
+        # opens a page, so a local preview would count itself as a reader.
+        env:
+          QUARTO_PROFILE: publish
         run: |
           set -o pipefail
           quarto render --to html 2>&1 | tee .render.log

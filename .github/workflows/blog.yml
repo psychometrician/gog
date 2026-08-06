@@ -123,6 +123,11 @@ jobs:
         shell: bash
         # `PIPESTATUS` via `pipefail`, because `tee` would otherwise mask the
         # exit code and a failed render would publish the previous output.
+        #
+        # The profile adds one thing, the footer's reader count, which is kept
+        # out of the base config so that local renders do not count themselves.
+        env:
+          QUARTO_PROFILE: publish
         run: |
           set -o pipefail
           quarto render 2>&1 | tee .render.log

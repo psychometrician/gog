@@ -75,9 +75,14 @@ say "Rendering the whole book to HTML"
 # `--to html` is also what keeps the 816-page PDF off the public site. Quarto
 # links a download only for a format it finds rendered, and the free edition is
 # HTML while print is the publisher's.
+#
+# `QUARTO_PROFILE=publish` merges `_quarto-publish.yml` over the config, which is
+# where the footer's reader count lives. It has to be set on every route that
+# builds the real site, this one and the workflow both, or a laptop publish
+# quietly ships a book with no counter on it.
 cd "$BOOK"
 set +e
-quarto render --to html 2>&1 | tee "$LOG"
+QUARTO_PROFILE=publish quarto render --to html 2>&1 | tee "$LOG"
 RENDER_STATUS=${PIPESTATUS[0]}
 set -e
 [[ $RENDER_STATUS -eq 0 ]] || die "quarto render exited $RENDER_STATUS"
