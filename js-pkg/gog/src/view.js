@@ -162,6 +162,198 @@ export function attachView(container, options = {}) {
 }
 
 /**
+ * The one style a control in a bar wears.
+ *
+ * **The bar takes its color from the page, and must.** A plot is drawn into
+ * whatever is hosting it, and the host decides whether that is a light page or a
+ * dark one: a browser with a theme switch, JupyterLab, VS Code, Positron,
+ * RStudio. None of them tell us which, and a plot cannot ask.
+ *
+ * These were `#555` on a `#ccc` border, which is legible on white and close to
+ * invisible on anything dark, so every reader in a dark editor had five buttons
+ * they could not see. `inherit` is the fix rather than a media query:
+ * `prefers-color-scheme` reports the *operating system's* preference, and a dark
+ * JupyterLab theme on a light desktop is exactly the case it gets wrong.
+ * Inheriting follows the text beside it, so the icons are legible wherever the
+ * surrounding words are, which is the only guarantee worth having here.
+ *
+ * The border is `currentColor` thinned down. `color-mix` is stated second so a
+ * renderer that does not know it keeps the solid border rather than none, and
+ * opacity is deliberately left alone: it is what marks a button disabled.
+ *
+ * **One constant because there is one control.** The view buttons, the drag
+ * modes and the table's pager each wrote this string out by hand, which is the
+ * defect `controlBar` was written to fix one level up, arriving again in the
+ * buttons *inside* the bar. Three hand-copied strings is how two of them quietly
+ * stop matching. A use that needs different padding states it after this and
+ * lets the later rule win, rather than copying the whole thing to change one
+ * number.
+ */
+export const BUTTON_STYLE =
+  "font:inherit;color:inherit;background:none;" +
+  "border:1px solid currentColor;" +
+  "border-color:color-mix(in srgb, currentColor 34%, transparent);" +
+  "border-radius:3px;padding:.15em .3em;cursor:pointer;line-height:0;";
+
+/** How long the pointer rests before a control says what it is. Long enough
+ *  that crossing the bar to reach the camera does not trail four labels behind
+ *  it, short enough that a reader who stopped to ask gets an answer. */
+const DWELL = 300;
+
+/**
+ * Black or white, whichever can be read on `fill`.
+ *
+ * Relative luminance by WCAG, then the larger of the two contrast ratios rather
+ * than a threshold, so a page whose text is mid-gray gets the better of the pair
+ * instead of whichever side of a line it happened to fall.
+ */
+function readableOn(fill) {
+  const rgb = /(\d+(?:\.\d+)?)[,\s]+(\d+(?:\.\d+)?)[,\s]+(\d+(?:\.\d+)?)/.exec(fill || "");
+  if (!rgb) return null;
+  const chan = (v) => {
+    const c = Number(v) / 255;
+    return c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4;
+  };
+  const l = 0.2126 * chan(rgb[1]) + 0.7152 * chan(rgb[2]) + 0.0722 * chan(rgb[3]);
+  // Against black the ratio is (l + .05) / .05; against white it is 1.05 / (l + .05).
+  return (l + 0.05) / 0.05 >= 1.05 / (l + 0.05) ? "#000" : "#fff";
+}
+
+/**
+ * Give a control with no word on it a label the pointer can ask for.
+ *
+ * **An icon is only recognizable to a reader who has met it before**, and this
+ * bar is mostly icons: two magnifiers, a frame, a camera, three drag modes, two
+ * page arrows and a cross. The browser's own `title` says the same words, and
+ * says them after about a second in a box the page does not control, which is
+ * long enough that a reader who paused to ask has usually moved on. So the
+ * answer is drawn here instead, and `title` is not set beside it — two tooltips
+ * for one control is what leaving both would give.
+ *
+ * A button carrying a word gets none of this. `clear` and `show rows` have
+ * already said what they are, and a bubble repeating them is noise.
+ *
+ * **The label inverts the bar rather than picking a color.** The controls
+ * inherit theirs from the page for the reason above, and a filled bubble cannot
+ * inherit both halves of that. So it fills with the page's own text color and
+ * writes on it in whichever of black or white the eye can read there: both are
+ * then correct by construction, in a dark editor on a light desktop as much as
+ * anywhere else. Where there is nothing to read the color from, the `Canvas`
+ * pair stands, which the browser guarantees is legible against itself.
+ *
+ * That is the opposite of what the row readout does, and both are right. This
+ * label sits over the *page*, so it follows the page. The readout floats over
+ * the *plot*, and a plot is drawn light whatever the host looks like.
+ *
+ * `mouseenter` rather than `pointerenter`, deliberately. A touch screen has no
+ * hover, and a tap that raised a label would leave it standing over the plot
+ * with nothing to take it down; a tap presses the control, which is the answer
+ * to what it does. Keyboard focus raises it too, since a reader arriving by tab
+ * has the same question and no pointer to ask it with.
+ *
+ * @param {Element} el the control to label
+ * @param {string} text what it does, in the reader's words
+ */
+export function hoverLabel(el, text) {
+  // What a screen reader announces, whether or not a pointer ever rests here.
+  // An attribute rather than a child, so rewriting the control's drawing — which
+  // the camera does, swapping it for a tick — cannot take the label with it.
+  el.setAttribute("aria-label", text);
+
+  let waiting = null;
+  const hide = () => {
+    clearTimeout(waiting);
+    waiting = null;
+    if (showing === el) drop();
+  };
+  const show = () => {
+    if (waiting || showing === el) return;
+    waiting = setTimeout(() => {
+      waiting = null;
+      raise(el, text);
+    }, DWELL);
+  };
+
+  el.addEventListener("mouseenter", show);
+  el.addEventListener("mouseleave", hide);
+  // A press has answered the question. Leaving the label up would put it over
+  // whatever the press just changed.
+  el.addEventListener("mousedown", hide);
+  el.addEventListener("focus", show);
+  el.addEventListener("blur", hide);
+  return hide;
+}
+
+/**
+ * One label for the whole page, and which control has it raised.
+ *
+ * Only one can show at a time, so a single element that moves is fewer nodes
+ * than eleven that wait, and there is nothing per-control to clean up when a
+ * plot is destroyed.
+ */
+let bubble = null;
+let showing = null;
+
+/** Take the label down, whoever raised it. */
+function drop() {
+  bubble?.remove();
+  showing = null;
+}
+
+/**
+ * Put the label on `el`, in the window rather than in the page.
+ *
+ * **Fixed to the viewport and parented to the body, for the reason the row
+ * readout already is.** Positioned inside the control it describes, it counted
+ * toward the scrolling area of whatever ancestor was clipping: a Quarto output
+ * cell sets `overflow-x`, and CSS computes `overflow-y` to `auto` along with it,
+ * so a label under the *lowest* row of buttons was both cut off at the cell's
+ * edge and gave the reader a scrollbar that moved the plot. Nothing fixed to the
+ * viewport is in any ancestor's flow or overflow, so neither can happen.
+ */
+function raise(el, text) {
+  if (!bubble) {
+    bubble = document.createElement("span");
+    bubble.className = "gog-hint";
+    bubble.style.cssText =
+      "position:fixed;pointer-events:none;z-index:2147483647;" +
+      "padding:.32em .5em;border-radius:4px;white-space:nowrap;" +
+      "font:11px/1.4 ui-monospace,SFMono-Regular,Menlo,monospace;" +
+      "background:CanvasText;color:Canvas;box-shadow:0 1px 4px rgba(0,0,0,.28);";
+  }
+  bubble.textContent = text;
+  const seen = globalThis.getComputedStyle?.(el)?.color;
+  const ink = readableOn(seen);
+  if (ink) {
+    bubble.style.background = seen;
+    bubble.style.color = ink;
+  }
+  // Unconditionally, rather than only when it is detached. Appending a node the
+  // document already holds moves it, so this costs nothing and does not depend
+  // on the element's memory of a page it may no longer be on.
+  document.body.appendChild(bubble);
+  showing = el;
+
+  // Measured after it is on the page and filled, because a label is as wide as
+  // the words in it and there is no other way to know.
+  const box = el.getBoundingClientRect();
+  const w = bubble.offsetWidth;
+  const h = bubble.offsetHeight;
+  // Under the control by preference: these bars sit below their plot, so a label
+  // opening upward would cover the picture the reader is holding the pointer
+  // still to look at. Above it where the window has no room, which is where the
+  // lowest row of the lowest plot on a page ends up.
+  const under = box.bottom + 6;
+  bubble.style.top =
+    under + h <= window.innerHeight ? `${under}px` : `${box.top - 6 - h}px`;
+  // Centered on the control, then kept inside the window. A long label on a
+  // button near either edge would otherwise push a fixed element off the page
+  // and give the reader the scrollbar this placement exists to prevent.
+  const mid = box.left + box.width / 2 - w / 2;
+  bubble.style.left = `${Math.max(6, Math.min(mid, window.innerWidth - w - 6))}px`;
+}
+
+/**
  * The controls every plot gets, appended to whichever bar it already has.
  *
  * A button competes with no gesture, which is why the zoom always gets them
@@ -211,37 +403,14 @@ export function addViewControls(bar, view, onChange = () => {}, handle = null) {
     // cannot tell that from a button that did nothing.
     saved: icon(`<path d="M3 8.4 6.4 12 13 4.6"/>`),
   };
-  // **The bar takes its color from the page, and must.** A plot is drawn into
-  // whatever is hosting it, and the host decides whether that is a light page or
-  // a dark one: a browser with a theme switch, JupyterLab, VS Code, Positron,
-  // RStudio. None of them tell us which, and a plot cannot ask.
-  //
-  // These were `#555` on a `#ccc` border, which is legible on white and close to
-  // invisible on anything dark, so every reader in a dark editor had five
-  // buttons they could not see. `inherit` is the fix rather than a media query:
-  // `prefers-color-scheme` reports the *operating system's* preference, and a
-  // dark JupyterLab theme on a light desktop is exactly the case it gets wrong.
-  // Inheriting follows the text beside it, so the icons are legible wherever the
-  // surrounding words are, which is the only guarantee worth having here.
-  //
-  // The border is `currentColor` thinned down. `color-mix` is stated second so a
-  // renderer that does not know it keeps the solid border rather than none, and
-  // opacity is deliberately left alone: it is what marks a button disabled.
-  const style =
-    "font:inherit;color:inherit;background:none;" +
-    "border:1px solid currentColor;" +
-    "border-color:color-mix(in srgb, currentColor 34%, transparent);" +
-    "border-radius:3px;padding:.15em .3em;cursor:pointer;line-height:0;";
-  const make = (art, title, act) => {
+  const make = (art, says, act) => {
     const b = document.createElement("button");
     b.type = "button";
     b.innerHTML = art;
-    // The title is what names the button for a reader who has not met the icon,
-    // and for a screen reader. `aria-label` rather than the text content, because
-    // the content is a decorative drawing.
-    b.title = title;
-    b.setAttribute("aria-label", title);
-    b.style.cssText = style;
+    b.style.cssText = BUTTON_STYLE;
+    // What names the button for a reader who has not met the icon, and for a
+    // screen reader. Its own content is a decorative drawing and says nothing.
+    hoverLabel(b, says);
     b.addEventListener("click", () => {
       act();
       onChange();
@@ -308,14 +477,12 @@ export function addViewControls(bar, view, onChange = () => {}, handle = null) {
   // window is clamped inside the picture — so it lights up at exactly the moment
   // dragging starts to do something.
   const hand = document.createElement("span");
-  hand.title = "drag to move the picture";
-  hand.setAttribute("aria-label", "drag to move the picture");
   // The same box as the three buttons, so the bar reads as one row of four
   // rather than three controls and a loose drawing. `cursor:default` is the one
   // difference kept on purpose: it wears the outline but does not claim to be
   // pressable, because there is nothing for a press to do that the drag does not
   // already do.
-  hand.style.cssText = style.replace("cursor:pointer", "cursor:default");
+  hand.style.cssText = BUTTON_STYLE.replace("cursor:pointer", "cursor:default");
   hand.innerHTML = icon(
     // A hand with its fingers curled to grip: a palm, three fingers folded over
     // and a thumb closing from the side.
@@ -325,6 +492,11 @@ export function addViewControls(bar, view, onChange = () => {}, handle = null) {
     `<path d="M11.1 7.9v-.8a1 1 0 0 1 2 0v3.3c0 2-1.5 3.4-3.5 3.4h-1` +
     `c-1.4 0-2.2-.5-2.9-1.4L3.2 11c-.5-.7-.3-1.4.3-1.7.5-.3 1.1-.2 1.5.3l.9 1"/>`
   );
+  // After the drawing, never before: this appends a child and `innerHTML` above
+  // would take it away again. The hand says the least of anything in the bar and
+  // needs the label most, since the other four answer a press and this one
+  // answers nothing at all until a reader knows it is describing a gesture.
+  hoverLabel(hand, "drag to move the picture");
 
   // The camera sits last, after the four that change how the picture is looked
   // at. It is the only one that produces something outside the page, so it reads

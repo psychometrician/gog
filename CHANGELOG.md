@@ -84,6 +84,18 @@ CRAN-style repositories and PyPI, `GrammarOfGraphics` on Julia's General, and
   the view, beside the buttons that changed it, and `reset` returns the angle,
   beside the readout stating it.
 
+- **A control with no word on it now says what it does when you rest the pointer
+  on it.** Eleven of them are drawings rather than words: the two magnifiers, the
+  frame, the hand, the camera, the three drag modes, the two page arrows under a
+  table of selected rows, and the cross on a stamp card. A drawing is only
+  recognizable to someone who has met it before, and the browser's own tooltip
+  answered about a second later in a box the page cannot style. Each control now
+  raises its own small label instead, filled with the color the bar already
+  inherits from the page and written in whichever of black or white can be read
+  on it, so it is legible in a dark editor as well as on a white page. Keyboard
+  focus raises it too. A button carrying a word, such as `clear` or `show rows`,
+  is left alone.
+
 ### Fixed
 
 - A table value containing `<` broke the box that reported it. The values under

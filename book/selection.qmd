@@ -376,6 +376,9 @@ The second line is what a brush adds:
 | `clear` | Puts the selection back to what the sentence asked for |
 | `unstamp` | Takes the stamps off. Absent until you have made one |
 
+Every control in both lines that is only a drawing names itself when the pointer
+rests on it. The ones with a word on them have already said it.
+
 ### Selecting
 
 Drag across the panel. A dotted box follows the pointer, and it shows **exactly

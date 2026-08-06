@@ -34,7 +34,7 @@ import {
   redraw,
   renderSpec,
 } from "../src/interactive.js";
-import { pngSize } from "../src/view.js";
+import { addViewControls, controlBar, pngSize } from "../src/view.js";
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(HERE, "..", "..", "..");
@@ -648,10 +648,15 @@ test("an outline that encloses nothing selects nothing", () => {
 
 function stubDom() {
   const el = (tag = "") => {
+    let html = "";
     const node = {
       // What kind of element it is, which is how a test tells a `rect` from a
       // `text` in the copy the camera writes.
       tag,
+      // The same fact under the name the DOM gives it. The view bar reads it to
+      // tell a button it can disable from a hint it cannot, so a stub without it
+      // takes the wrong branch quietly rather than failing.
+      tagName: tag.toUpperCase(),
       // Nothing here lays anything out, so a box is whatever a test says it is.
       // Zero until then, which is what an unlaid-out element measures.
       rect: { left: 0, top: 0, right: 0, bottom: 0, width: 0, height: 0 },
@@ -672,6 +677,15 @@ function stubDom() {
       addEventListener(type, fn) { node.listeners.set(type, fn); },
       removeEventListener(type) { node.listeners.delete(type); },
       appendChild(c) { node.children.push(c); node.firstChild ??= c; return c; },
+      // Every bar fills itself with one call rather than five, so a stub that
+      // only knows `appendChild` cannot build one at all.
+      append(...kids) { for (const c of kids) node.appendChild(c); },
+      // **Writing it takes the children with it**, which is what the DOM does and
+      // what a plain property quietly did not. A control holds its hover label as
+      // a child, so a stub that kept children through an `innerHTML` write could
+      // not see the camera swap its drawing for a tick and take its label away.
+      set innerHTML(v) { html = v; node.children.length = 0; node.firstChild = null; },
+      get innerHTML() { return html; },
       remove() {
         node.isConnected = false;
         const kin = node.parent?.children;
@@ -685,7 +699,17 @@ function stubDom() {
   // which was fine while nothing on `document.body` outlived a gesture and is
   // not fine now: the readout is parented here, so "what is on the page?" has to
   // be a question the stub can answer.
-  body.appendChild = (c) => { c.isConnected = true; c.parent = body; body.children.push(c); return c; };
+  body.appendChild = (c) => {
+    // **A node the page already holds is moved, not copied.** The DOM has no
+    // other behavior here, and a stub that pushed a second time reported two of
+    // something there was one of.
+    const at = body.children.indexOf(c);
+    if (at >= 0) body.children.splice(at, 1);
+    c.isConnected = true;
+    c.parent = body;
+    body.children.push(c);
+    return c;
+  };
   globalThis.document = {
     body,
     createElement: (tag) => el(tag),
@@ -1851,6 +1875,170 @@ test("holdsIn counts a vertex on the ray once, not twice", () => {
   assert.equal(holdsIn(diamond, -1, 1), false, "and a point level with two vertices is not");
   assert.equal(holdsIn(diamond, 3, 1), false);
   assert.equal(holdsIn([[0, 0], [1, 1]], 0.5, 0.5), false, "two vertices enclose nothing");
+});
+
+// ---------------------------------------------------------------------------
+// A control with no word on it
+//
+// Eleven of the controls under a plot are drawings: two magnifiers, a frame, a
+// hand, a camera, three drag modes, two page arrows and the cross on a stamp. A
+// drawing is only recognizable to a reader who has met it before, so each one
+// carries a label the pointer can ask for. All eleven are built through one
+// helper; these drive the five that every plot has, which is where a break in
+// the helper would show first.
+//
+// The browser's own `title` is deliberately not set beside it. Both would show,
+// a second apart, in two different boxes.
+// ---------------------------------------------------------------------------
+
+/** A view that answers the bar's questions and moves nothing. */
+const stillView = () => ({
+  zoom() {}, reset() {},
+  zoomed: () => false,
+  canZoomIn: () => true,
+  canZoomOut: () => false,
+  svg: () => null,
+});
+
+/** Long enough that a label which waits for the pointer to settle has shown. */
+const settle = () => new Promise((go) => setTimeout(go, 380));
+
+const raised = () => onPage("gog-hint")[0];
+
+test("every control that is only a drawing says what it is", () => {
+  const undo = stubDom();
+  try {
+    const bar = controlBar("view");
+    addViewControls(bar, stillView());
+    assert.deepEqual(
+      bar.children.map((c) => c.attrs["aria-label"]),
+      ["zoom out", "zoom in", "show the whole plot",
+       "drag to move the picture", "save as PNG"],
+      "all five name themselves, in the order the bar puts them",
+    );
+    for (const c of bar.children) {
+      assert.equal(c.title, undefined,
+        "and none asks the browser for a second tooltip saying the same thing");
+    }
+    assert.equal(onPage("gog-hint").length, 0, "and nothing is on the page until it is asked for");
+  } finally {
+    undo();
+  }
+});
+
+test("a label is fixed to the window, not parented to the control", async () => {
+  const undo = stubDom();
+  try {
+    const bar = controlBar("view");
+    addViewControls(bar, stillView());
+    const [zoomOut] = bar.children;
+
+    // A control at the bottom right of the window, which is where the second row
+    // of the last plot on a page ends up.
+    zoomOut.rect =
+      { left: 1180, top: 760, right: 1210, bottom: 790, width: 30, height: 30 };
+    zoomOut.listeners.get("mouseenter")();
+    await settle();
+
+    assert.equal(zoomOut.children.length, 0,
+      "inside the control it would count toward the scroll height of any ancestor " +
+      "that clips, which is how a label under the lowest row gave the page a scrollbar");
+    const label = raised();
+    assert.ok(label, "it is on the body instead");
+    assert.match(label.style.cssText, /position:fixed/, "and fixed to the window");
+    assert.equal(label.textContent, "zoom out");
+
+    // Nothing was laid out, so the stub measures zero. Say what it is, and ask
+    // again: a label 40 tall has no room under a control ending 10px from the
+    // foot of an 800px window, and a 200-wide one centered on x=1195 runs off
+    // the right of a 1200-wide one.
+    label.offsetHeight = 40;
+    label.offsetWidth = 200;
+    zoomOut.listeners.get("mouseleave")();
+    zoomOut.listeners.get("mouseenter")();
+    await settle();
+    assert.equal(label.style.top, "714px", "so it opens upward instead of off the bottom");
+    assert.equal(label.style.left, "994px", "and stops at the window's edge");
+  } finally {
+    undo();
+  }
+});
+
+test("a label waits for the pointer to rest, and a press takes it down", async () => {
+  const undo = stubDom();
+  try {
+    const bar = controlBar("view");
+    addViewControls(bar, stillView());
+    const [zoomOut] = bar.children;
+
+    zoomOut.listeners.get("mouseenter")();
+    assert.equal(onPage("gog-hint").length, 0,
+      "a pointer crossing the bar to reach the camera trails no labels behind it");
+    await settle();
+    assert.equal(onPage("gog-hint").length, 1, "and one that stopped gets an answer");
+
+    zoomOut.listeners.get("mousedown")();
+    assert.equal(onPage("gog-hint").length, 0,
+      "a press has answered the question, so the label would only cover what it changed");
+
+    zoomOut.listeners.get("mouseenter")();
+    zoomOut.listeners.get("mouseleave")();
+    await settle();
+    assert.equal(onPage("gog-hint").length, 0, "and leaving cancels one that was on its way");
+  } finally {
+    undo();
+  }
+});
+
+test("a label fills with the page's color and writes in what can be read on it", async () => {
+  const undo = stubDom();
+  try {
+    const bar = controlBar("view");
+    addViewControls(bar, stillView());
+    const [, zoomIn] = bar.children;
+
+    // A light page: its text is near black, so the label is near black too and
+    // has to write in white.
+    globalThis.getComputedStyle = () => ({ color: "rgb(24, 24, 24)" });
+    zoomIn.listeners.get("mouseenter")();
+    await settle();
+    assert.equal(raised().style.background, "rgb(24, 24, 24)", "the bar's own color fills it");
+    assert.equal(raised().style.color, "#fff", "and white is what can be read there");
+    zoomIn.listeners.get("mouseleave")();
+
+    // A dark editor, where the same rule arrives at the opposite answer. This is
+    // the case a media query gets wrong: the desktop can be light while the host
+    // is dark, and only the inherited color knows.
+    globalThis.getComputedStyle = () => ({ color: "rgb(232, 232, 232)" });
+    zoomIn.listeners.get("mouseenter")();
+    await settle();
+    assert.equal(raised().style.background, "rgb(232, 232, 232)");
+    assert.equal(raised().style.color, "#000", "black, on the same test read the other way");
+  } finally {
+    delete globalThis.getComputedStyle;
+    undo();
+  }
+});
+
+test("swapping a drawing does not take the label with it", async () => {
+  const undo = stubDom();
+  try {
+    const bar = controlBar("view");
+    addViewControls(bar, stillView());
+    const camera = bar.children[4];
+
+    // The camera is the one control whose drawing is replaced while the page is
+    // open: it shows a tick for a moment after it writes a file. The label is an
+    // attribute and an element in the window, so neither is inside the markup
+    // that replaces.
+    camera.innerHTML = "<svg>a tick</svg>";
+    assert.equal(camera.attrs["aria-label"], "save as PNG", "the name outlives the swap");
+    camera.listeners.get("mouseenter")();
+    await settle();
+    assert.equal(raised()?.textContent, "save as PNG", "and so does the label it raises");
+  } finally {
+    undo();
+  }
 });
 
 // The interactive block must reach the browser intact. Not reachable by

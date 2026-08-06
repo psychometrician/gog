@@ -26,7 +26,9 @@
 import {
   attachView,
   addViewControls,
+  BUTTON_STYLE,
   controlBar,
+  hoverLabel,
   placeBar,
   mountView,
 } from "./view.js";
@@ -1222,10 +1224,12 @@ export function attachBrush(engine, container, request, options = {}) {
     // anything else, which matters now that the card's own face is a handle.
     const shut = document.createElement("span");
     shut.className = "gog-stamp-close";
-    shut.title = "take this stamp off";
     shut.textContent = "×";
     shut.style.cssText =
       "flex:none;cursor:pointer;color:#aaa;font-size:13px;line-height:1.15;";
+    // The one label-less control that is not in a bar. It says the smaller of
+    // the two things a card can do, and the card's face says the other.
+    hoverLabel(shut, "take this stamp off");
     shut.addEventListener("pointerenter", () => { shut.style.color = "#333"; });
     shut.addEventListener("pointerleave", () => { shut.style.color = "#aaa"; });
     card.appendChild(body);
@@ -1674,28 +1678,28 @@ function addSelectionBar(container, handle, view) {
   const icon = (body) =>
     `<svg width="13" height="13" viewBox="0 0 16 16" aria-hidden="true" ` +
     `style="display:block;fill:none;stroke:currentColor;stroke-width:1.3">${body}</svg>`;
+  // Each says what a *drag* will do, because that is the word the row opens
+  // with and the question a reader is holding while they read three icons.
   const MODES = [
-    ["select", "select a rectangle",
+    ["select", "drag a rectangle to select rows",
       icon(`<rect x="2.5" y="4" width="11" height="8" stroke-dasharray="3 2"/>`)],
-    ["lasso", "draw a free shape around what you want",
+    ["lasso", "draw a free shape around the rows you want",
       icon(`<path d="M8 3.2c3.6 0 5.3 1.9 5.3 3.6 0 2.2-2.6 3.8-5.6 3.8` +
            `-2.6 0-4.9-1.2-4.9-3 0-2.3 2.4-4.4 5.2-4.4z" stroke-dasharray="3 2"/>` +
            `<path d="M4.6 10.2 3.4 13.4"/>`)],
   ];
   if (view) {
-    MODES.push(["pan", "move the picture",
+    MODES.push(["pan", "drag to move the picture",
       icon(`<path d="M8 2.2 8 13.8M2.2 8 13.8 8"/>` +
            `<path d="M8 2.2 6.4 4M8 2.2 9.6 4M8 13.8 6.4 12M8 13.8 9.6 12` +
            `M2.2 8 4 6.4M2.2 8 4 9.6M13.8 8 12 6.4M13.8 8 12 9.6"/>`)]);
   }
-  const picks = MODES.map(([name, title, art]) => {
+  const picks = MODES.map(([name, says, art]) => {
     const b = document.createElement("button");
     b.type = "button";
-    b.title = title;
     b.innerHTML = art;
-    b.style.cssText =
-      "font:inherit;color:inherit;background:none;border:1px solid currentColor;border-color:color-mix(in srgb, currentColor 34%, transparent);" +
-      "border-radius:3px;padding:.15em .3em;cursor:pointer;line-height:0;";
+    b.style.cssText = BUTTON_STYLE;
+    hoverLabel(b, says);
     b.addEventListener("click", () => {
       handle.setMode(name);
       render();
@@ -1778,14 +1782,17 @@ function addSelectionBar(container, handle, view) {
     "display:none;margin:-8px 0 12px;gap:.5em;align-items:center;" +
     "justify-content:center;color:inherit;" +
     "font:12px/1.6 ui-monospace,SFMono-Regular,Menlo,monospace;";
-  const step = (label, title) => {
+  // An arrow head is a glyph rather than a word, so it earns a label on the same
+  // test the icons do: a reader can see which way it points without being told
+  // what it moves. The padding and the line box are the only two things a text
+  // control needs differently from an icon, so they are stated after the shared
+  // rule rather than in place of it.
+  const step = (glyph, says) => {
     const b = document.createElement("button");
     b.type = "button";
-    b.textContent = label;
-    b.title = title;
-    b.style.cssText =
-      "font:inherit;color:inherit;background:none;border:1px solid currentColor;border-color:color-mix(in srgb, currentColor 34%, transparent);" +
-      "border-radius:3px;padding:0 .45em;cursor:pointer;";
+    b.textContent = glyph;
+    b.style.cssText = BUTTON_STYLE + "padding:0 .45em;line-height:1.6;";
+    hoverLabel(b, says);
     return b;
   };
   const back = step("‹", "the rows before these");
