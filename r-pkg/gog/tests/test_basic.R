@@ -972,6 +972,18 @@ if (length(unique(round(vb$w, 2))) != 1 || length(unique(round(hb$h, 2))) != 1)
   stop("FAIL: every box should share one slot thickness, whichever axis holds it")
 cat("PASS: a category on y lays the box plot down\n")
 
+# The whisker rule is one of two words, and the refusal naming them went
+# untested in all four suites until 0.0.4 -- which is how this message shipped
+# for several releases with R writing `--` where the other three wrote a dash.
+# The bed compares the refusals it has a sentence for, and nobody had written
+# this one, so a message nothing triggers was a message nothing checked.
+# `refuses()` forces its argument inside the guard, so a refusal raised while
+# the atom is built is caught the same as one raised while the plot draws.
+refuses("box(whiskers = 'middle')", box(whiskers = "middle"))
+if (!grepl("is either", tryCatch(box(whiskers = "middle"),
+                                 error = function(e) conditionMessage(e))))
+  stop("FAIL: box()'s whisker refusal should name the two words it takes")
+
 # `bounds` invents the measured axis, so a forest plot binds no x() at all — and
 # must not be warned at about it.
 coefs <- data.frame(term = c("Age", "Education", "Experience"),
@@ -3041,6 +3053,45 @@ if (file.exists("r-pkg/gog/DESCRIPTION")) {
          paste0("  ", format(names(versions)), "  ", versions, collapse = "\n"),
          "\n  One grammar, one number. Change them together or not at all.")
   cat("PASS: all eight declarations agree on version ", versions[[1]], "\n", sep = "")
+}
+
+# --- one diagnostic, four bindings, the same punctuation ----------------------
+# R is the only binding that cannot write an em dash into a message directly:
+# `R CMD check` reports a non-ASCII byte in an R source file, so the character
+# has to be escaped as `\u2014`.  That makes R the one binding whose author
+# reaches for ASCII `--` instead, and three messages had it: `box(whiskers = )`,
+# shipping that way since before 0.0.4, and `quantile()`/`range()`/`deviation()`,
+# written that way as they were added.  Python, Julia and JavaScript all wrote
+# the dash, so R disagreed with the other three *and* with its own eleven other
+# diagnostics.
+#
+# The test bed compares the four messages byte for byte and is what found it,
+# but only for refusals it happens to have a sentence for -- `box`'s had gone
+# unnoticed for exactly that reason.  This reads the source instead, so a message
+# is covered whether or not anyone has written a sentence that triggers it.
+#
+# Comments are not checked and must not be: `R CMD check` parses the file and
+# drops them, which is why this one may say `--` freely.  Only string constants
+# are read, via the parser rather than a regular expression, so the two cannot be
+# confused.
+if (file.exists("r-pkg/gog/DESCRIPTION")) {
+  hits <- character(0)
+  for (f in list.files("r-pkg/gog/R", pattern = "[.]R$", full.names = TRUE)) {
+    strings <- utils::getParseData(parse(f, keep.source = TRUE))
+    strings <- strings[strings$token == "STR_CONST", ]
+    if (!nrow(strings)) next
+    bad <- grepl(" -- ", strings$text, fixed = TRUE)
+    if (any(bad))
+      hits <- c(hits, paste0("  ", basename(f), ":", strings$line1[bad], "  ",
+                             substr(strings$text[bad], 1, 64)))
+  }
+  if (length(hits))
+    stop("FAIL: an R message writes `--` where the other three bindings write ",
+         "an em dash —\n", paste(hits, collapse = "\n"),
+         "\n  Write \\u2014 instead. A literal em dash is a non-ASCII byte and ",
+         "`R CMD check` warns on it;\n  `--` prints two hyphens and disagrees ",
+         "with Python, Julia and JavaScript.")
+  cat("PASS: no R diagnostic writes `--` where the other three write a dash\n")
 }
 
 # --- a composed page of cubes carries the engine ------------------------------

@@ -165,6 +165,11 @@ end
     @test space(45, 20).fields[:tilt] == 20.0
     @test polar(90).fields[:start] == 90.0
     @test box("range").fields[:box]["whiskers"] == "range"
+    # The whisker rule is one of two words, and the refusal naming them went
+    # untested in all four suites until 0.0.4 -- which is how R's copy of this
+    # message shipped for several releases writing `--` where the other three
+    # wrote a dash. A message nothing triggers is a message nothing checks.
+    @refuses box("middle") "is either"
     @refuses bin(bins = 10, width = 5) "either `bins` or `width`"
     @refuses x(:x, scale = "logarithmic") "is not a scale"
     @refuses x(:x, scale = "log", base = 0.5) "greater than 1"

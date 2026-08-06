@@ -209,7 +209,7 @@ interval <- structure(list(type = "mark", mark = "interval"), class = "gog_atom"
 box <- function(whiskers = NULL) {
   if (!is.null(whiskers) && (!is.character(whiskers) || length(whiskers) != 1 ||
                              !whiskers %in% c("tukey", "range"))) {
-    stop("gog: `box(whiskers = )` is either \"tukey\" (the default -- whiskers to ",
+    stop("gog: `box(whiskers = )` is either \"tukey\" (the default \u2014 whiskers to ",
          "1.5*IQR, points beyond drawn as outliers) or \"range\" (whiskers to the ",
          "true min and max, no outliers).", call. = FALSE)
   }
@@ -535,7 +535,7 @@ quantile <- function(p = NULL) {
            "gog masks that name: use `stats::quantile()`.", call. = FALSE)
     }
     if (p < 0 || p > 1) {
-      stop("gog: `quantile(", p, ")` is not a probability -- a quantile is ",
+      stop("gog: `quantile(", p, ")` is not a probability \u2014 a quantile is ",
            "between 0 and 1. `quantile(0.9)` is the 90th percentile, ",
            "`quantile(0.5)` the middle.", call. = FALSE)
     }
@@ -578,7 +578,7 @@ range <- function(low = NULL, high = NULL) {
            "`base::range()`.", call. = FALSE)
     }
     if (v < 0 || v > 1) {
-      stop("gog: `range(", nm, " = ", v, ")` is not a probability -- the band's ",
+      stop("gog: `range(", nm, " = ", v, ")` is not a probability \u2014 the band's ",
            "ends are quantiles, so each is between 0 and 1. `range(0.25, 0.75)` ",
            "is the middle half, `range(0.1, 0.9)` the middle 80 percent, and bare ",
            "`range` the whole group.", call. = FALSE)
@@ -608,7 +608,7 @@ deviation <- function(multiplier = NULL) {
   if (!is.null(multiplier)) {
     if (!is.numeric(multiplier) || length(multiplier) != 1L || is.na(multiplier) ||
         multiplier <= 0) {
-      stop("gog: `deviation(multiplier = )` needs one positive number -- it counts ",
+      stop("gog: `deviation(multiplier = )` needs one positive number \u2014 it counts ",
            "standard deviations out from the mean. `deviation` is one, ",
            "`deviation(2)` is two.", call. = FALSE)
     }
@@ -905,9 +905,12 @@ jitter <- function(amount = NULL) {
 #' @seealso [style()]'s `nudge`, the constant offset this is the data-derived
 #'   counterpart to; [jitter()], the same idea for a scatter's points.
 #' @examples
+#' \dontrun{
 #' # Every country named, with the names moved off one another.
+#' gapminder_2007 <- book_table("gapminder_2007")
 #' p <- data(gapminder_2007) + point + text * repel +
 #'   x(gdp) + y(life) + label(country)
+#' }
 #'
 #' @export
 repel <- structure(list(type = "transform", transform = "repel"), class = "gog_atom")

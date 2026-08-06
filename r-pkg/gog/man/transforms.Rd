@@ -10,7 +10,6 @@
 \alias{max}
 \alias{min}
 \alias{proportion}
-\alias{range}
 \title{Transforms -- statistics computed before the mark is drawn}
 \format{
 Each is a \code{gog_atom} object, used bare rather than called.
@@ -31,8 +30,6 @@ max
 min
 
 proportion
-
-range
 }
 \description{
 A \strong{transform} replaces the rows with a summary of them, and the mark then

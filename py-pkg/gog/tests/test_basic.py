@@ -1746,6 +1746,18 @@ assert _one_sd != render_svg(
 refuses("a deviation of zero", lambda: deviation(0))
 ok("deviation() bands the spread, and is not confidence()")
 
+# The whisker rule is one of two words, and the refusal naming them went
+# untested in all four suites until 0.0.4 -- which is how this message shipped
+# for several releases with R writing `--` where the other three wrote a dash.
+# The bed compares the refusals it has a sentence for, and nobody had written
+# this one, so a message nothing triggers was a message nothing checked.
+refuses("a whisker rule that is neither word", lambda: box("middle"))
+try:
+    box("middle")
+except Exception as _e:
+    assert "is either" in str(_e), str(_e)
+ok("box() names the two whisker rules it takes")
+
 _q90 = render_svg(data(_spread, name="s") + bar * quantile(0.9) + x(col.g) + y(col.v))
 assert _q90 != render_svg(
     data(_spread, name="s") + bar * median + x(col.g) + y(col.v)

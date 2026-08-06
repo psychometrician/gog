@@ -337,6 +337,11 @@ test("positional stays positional, named joins one object", () => {
   assert.equal(space(45, 20).fields.tilt, 20);
   assert.equal(polar(90).fields.start, 90);
   assert.equal(box("range").fields.box.whiskers, "range");
+  // The whisker rule is one of two words. The refusal naming them was untested
+  // in all four suites until 0.0.4, which is how R's copy of this message
+  // shipped for several releases writing `--` where the other three wrote a
+  // dash. A message nothing triggers is a message nothing checks.
+  assert.throws(() => box("middle"), /is either/);
 });
 
 test("an unknown key is refused, not ignored", () => {
