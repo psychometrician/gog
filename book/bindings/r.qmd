@@ -119,21 +119,21 @@ This section is about R specifically. Julia's `|>` is a function-application
 operator with different behavior, and Python has no pipe at all, so their
 chapters will answer the same question their own way.
 
-## Eighteen names base R already uses
+## Nineteen names base R already uses
 
 `library(gog)` prints a long list of masked names, and the list is alarming out
-of proportion to the problem. Eighteen of the package's exports are also names in
+of proportion to the problem. Nineteen of the package's exports are also names in
 the packages R attaches for you:
 
 | from | names |
 |---|---|
-| `stats` | `density` `line` `median` `smooth` `step` |
+| `stats` | `density` `line` `median` `quantile` `smooth` `step` |
 | `graphics` | `box` `text` `title` |
 | `grDevices` | `palette` |
 | `utils` | `data` `stack` |
 | `base` | `jitter` `max` `mean` `min` `order` `range` `sum` |
 
-Nine of the eighteen cannot hurt you, and the reason is a rule in R itself.
+Nine of the nineteen cannot hurt you, and the reason is a rule in R itself.
 A mark is an *object* rather than a function, and so is a transform that takes no
 parameter. When R evaluates a call, it looks for a function of that name and
 skips any binding that is not one. So base R still answers, even with gog's
@@ -151,9 +151,9 @@ they resolve the name the same way:
 sapply(gapminder_2007["life"], mean)
 ```
 
-The other nine are functions, and those do take over: `box`, `data`,
-`density`, `jitter`, `order`, `palette`, `range`, `stack` and `title`. Qualify the
-one you want, and both remain available:
+The other ten are functions, and those do take over: `box`, `data`,
+`density`, `jitter`, `order`, `palette`, `quantile`, `range`, `stack` and
+`title`. Qualify the one you want, and both remain available:
 
 | you write | you get | for base R's, write |
 |---|---|---|
@@ -161,6 +161,7 @@ one you want, and both remain available:
 | `data(gapminder_2007)` | the plot's table | `utils::data(diamonds)` |
 | `density(2)` | the smoothing transform | `stats::density(x)` |
 | `jitter(0.5)` | the offset transform | `base::jitter(x)` |
+| `quantile(0.9)` | the 90th percentile transform | `stats::quantile(df$gdp)` |
 | `range(0.25, 0.75)` | the band transform | `base::range(df$gdp)` |
 | `stack(share = TRUE)` | the piling transform | `utils::stack(df)` |
 | `palette("soft")` | the plot's colors | `grDevices::palette()` |
@@ -197,24 +198,51 @@ head(ranked[c("country", "population")], 3)
 
 This book does that in three chapters, for exactly this reason.
 
-Two of the nine refuse nothing, because nothing separates the two intentions.
+Three of the ten refuse nothing, because nothing separates the two intentions.
 `data(mtcars)` is well formed in both readings. It returns a plot's table and no
 complaint, so write `utils::data()` when you mean to load a dataset.
-`title("...")` is the same case: a string is what both want.
+`title("...")` is the same case: a string is what both want. So is `box()`,
+which takes no argument in either language. The other seven all report the
+mistake, because in each of them the argument you passed is one gog would
+refuse.
 
 The names stay as they are. A grammar keeps its own vocabulary, which is Law 3 and
 a decided question (spec §18). Renaming `order` to `sort_by` would trade a word
 every reader knows for one only this package uses. Where another *package* owns a
 name you want, attach `gog` after it so its names win, or qualify it as
-`gog::interval`.
+`gog::interval`. All four languages meet this wall from a different side, and
+[the grammar chapter](../grammar.qmd#names-the-host-language-already-uses)
+compares them.
 
-All four languages meet this wall, and each one hits it differently. Julia will
-not choose between two modules that export one name. It raises, and you import
-the one you meant. Python has no rule about skipping non-functions, so
-`from gog import *` really does replace five builtins. Calling one of them raises
-rather than misbehaving. R is the quiet one of the four, which is why the seven
-names that can see the mistake refuse out loud. JavaScript has no collision at all, because nothing
-reaches your scope unless you import it by name.
+## Five idioms that still need a prefix
+
+The nine objects above are safe in ordinary code, and safe inside `sapply()`,
+`lapply()`, `tapply()`, `mapply()`, `Map()`, `Reduce()` and `apply()`. Each of
+those asks R for a function of the name it was handed, which finds base R's.
+
+Five spellings still fail, for two different reasons. The first is a name that
+travels through two layers before anyone looks it up:
+
+```{r}
+#| error: true
+aggregate(life ~ continent, gapminder_2007, mean)
+```
+
+By the time the lookup happens, the name being searched for is `FUN` and not
+`mean`, so the message names neither `mean` nor gog. `by()` and
+`ave(..., FUN = mean)` fail the same way. Writing `base::mean` fixes all three.
+The data frame form of `aggregate()` looks the name up one layer earlier, so
+`aggregate(gapminder_2007["life"], gapminder_2007["continent"], mean)` works
+unchanged.
+
+The second reason is a name used as a value rather than called. `do.call(sum,
+list(x))` wants a function and receives an object, so write
+`do.call("sum", list(x))` or `do.call(base::sum, list(x))`. And `f <- mean`
+copies the object, so `f(x)` reports that `f` is not a function.
+
+That is the whole cost, and it is worth stating as one rule. If you hand one of
+those nine words to another function *by name*, and that function hands it on
+again, write `base::` in front of it.
 
 ## Reading from a database
 

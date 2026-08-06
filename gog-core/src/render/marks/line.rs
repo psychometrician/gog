@@ -76,18 +76,20 @@ impl SvgRenderer {
         // A pair transform draws two clean boundaries, not a zigzag, so it is exempt
         // too.
         //
-        // **The family is asked for by name, not listed here.** This was a written
-        // -out list of five until `quantile` joined them and fell outside it, so
-        // `line * quantile(0.9)` warned about a zigzag it cannot draw while
-        // `line * mean` on the same rows said nothing — one member of a class
-        // behaving unlike its siblings, which is the Law 2 gap a hand-kept list
-        // always eventually opens. `is_reduction` is the one definition, so the
-        // next member joins without anyone remembering to come here.
-        let has_clean_transform = is_pair || layer.transforms.iter().any(|t| {
-            crate::transform::is_reduction(t)
-                || matches!(t, Transform::Smooth | Transform::Density
-                               | Transform::Count | Transform::Proportion)
-        });
+        // **The class is asked for by name, not listed here.** This was a
+        // written-out list, and it had fallen two members behind the class it was
+        // copying. `quantile` joined the aggregation family and never joined the
+        // list, so `line * quantile(0.9)` warned about a zigzag it cannot draw
+        // while `line * mean` on the same rows said nothing. `bin` had never been
+        // on it at all, so the **frequency polygon** — `line * bin`, a plot this
+        // book documents — carried the same false warning for the project's life.
+        //
+        // Both are the one question this predicate exists to ask: *does anything
+        // here leave one value per x?* That is `is_value_statistic`, which the
+        // Mark × Transform grid already asked, so the two now agree by
+        // construction and the next member joins without anyone coming here.
+        let has_clean_transform = is_pair
+            || layer.transforms.iter().any(crate::transform::is_value_statistic);
         if group_field.is_none() && !has_clean_transform && n > 5 {
             eprintln!(
                 "gog: `line` has {n} rows and no group or color channel — all points \

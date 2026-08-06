@@ -75,6 +75,16 @@ CRAN-style repositories and PyPI, `GrammarOfGraphics` on Julia's General, and
 
 ### Fixed
 
+- A frequency polygon was told it might be a tangle. `line * bin` draws one point
+  per bin, so connecting them in order is the whole plot, and it was answered
+  with the warning meant for a line drawn through raw ungrouped rows. The same
+  went for `line * quantile(0.9)` as soon as that transform existed, while
+  `line * mean` on the same rows said nothing. A `line` now asks whether anything
+  in the sentence leaves one value per x, rather than checking a list of the
+  transforms that do, so every summary is treated alike and a new one needs no
+  amendment. The warning is unchanged where it was right: a line through many
+  rows with nothing grouping them still says so.
+
 - A long `play` sequence asked you to slow it down. The note that reports how
   long the loop will run always offered the same pace, whatever pace the
   sentence already set, so `play(second, speed = 6)` was answered with "run it
