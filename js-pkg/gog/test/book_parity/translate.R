@@ -403,6 +403,15 @@ translate_js <- function(source) {
   if (grepl("[A-Za-z0-9._)\"][[:space:]]*\\[", source))
     return(list(js = NA_character_, blocked = "R subsetting — a host-language idiom"))
 
+  # An R **formula**, as in `aggregate(life ~ continent, df, mean)`. `~` is R
+  # syntax with no counterpart in the other three languages: it captures an
+  # unevaluated expression, which is the same host-language category as the pipe
+  # and the extractor above. The R chapter uses one to show `mean` reaching base
+  # R rather than gog. Matched on a bare `~` after the comments come off, since
+  # nothing else in the grammar writes one.
+  if (grepl("~", gsub("#[^\n]*", "", source)))
+    return(list(js = NA_character_, blocked = "R formula — a host-language idiom"))
+
   parsed <- tryCatch(parse(text = source), error = function(e) NULL)
   if (is.null(parsed) || !length(parsed))
     return(list(js = NA_character_, blocked = "did not parse as R"))

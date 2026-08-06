@@ -290,6 +290,15 @@ def translate(source: str) -> Tuple[Optional[str], List[str], Optional[str]]:
     if re.search(r"[A-Za-z0-9._)\"]\s*\[", body):
         return None, fired, "R subsetting — a host-language idiom with no Python spelling"
 
+    # An R **formula**, as in `aggregate(life ~ continent, df, mean)`. `~` is R
+    # syntax with no counterpart in the other three languages: it captures an
+    # unevaluated expression, which is the same host-language category as the
+    # pipe and the extractor above. The R chapter uses one to show `mean`
+    # reaching base R rather than gog. The comments are already off `body`, and
+    # nothing in the grammar writes a `~`.
+    if "~" in body:
+        return None, fired, "R formula — a host-language idiom with no Python spelling"
+
     # A chunk that sets its own small table up before saying its sentence keeps
     # the table's *name*, because the sentence below is about to use it. Only
     # the spec assignment (`p <- data(…) + …`) is droppable: there the name is
