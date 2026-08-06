@@ -57,8 +57,8 @@ you wanted [`line`](../marks/line.qmd), not `area`.
 ## What is the typical value per group?
 
 A category and a measurement, summarized. The aggregation family
-(`mean`, `median`, `sum`, `max`, `min`) all read a bound `y` and collapse
-each group to one number:
+(`mean`, `median`, `sum`, `max`, `min`, `quantile`) all read a bound `y` and
+collapse each group to one number:
 
 ```{r}
 data(gapminder_2007) + bar * mean + x(continent) + y(life)

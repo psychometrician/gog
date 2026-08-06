@@ -259,7 +259,7 @@ at least one:
 | job | the question it answers | the transforms that answer it |
 |:--|:--|:--|
 | **extent** | where are the cells? | `bin`, `density`, `smooth`, `partition`, and `bounds` on a `zone` |
-| **measure** | what is in them? | `count`, `sum`, `mean`, `median`, `max`, `min`, `range`, `confidence`, `bounds` |
+| **measure** | what is in them? | `count`, `sum`, `mean`, `median`, `max`, `min`, `quantile`, `range`, `confidence`, `deviation`, `bounds` |
 | **scale** | what scale is the answer read on? | `proportion`, and `stack(share = TRUE)` |
 | **position** | where do the marks sit? | `dodge`, `stack`, `jitter` |
 
@@ -321,7 +321,7 @@ Three and four transforms sound like a large space, and they are not. Once each 
 is filled at most once, and the marks are asked which transforms they take, every
 chain of three or four has one of six shapes. Two slots stand for a family rather
 than a transform: `<aggregation>` is any of `sum`, `mean`, `median`, `max`, `min`,
-and `<collision modifier>` is any of `dodge`, `stack`, `jitter`.
+`quantile`, and `<collision modifier>` is any of `dodge`, `stack`, `jitter`.
 
 ```{r}
 #| echo: false

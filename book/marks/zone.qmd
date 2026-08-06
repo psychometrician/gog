@@ -596,8 +596,9 @@ data(winds) + zone * mean + x(direction) + y(season) + color(speed) +
 Compare that with `zone * count` two plots up. The sentence is the same shape and one
 word longer, and the extra word is the whole difference: `count` was handed no column,
 so it counts rows and names its own answer; `mean` was handed one, so `color(speed)`
-says which. All five summaries read a mesh this way (`sum`, `mean`, `median`, `max`
-and `min`), and each writes its answer back into the column it reduced.
+says which. All six summaries read a mesh this way (`sum`, `mean`, `median`,
+`max`, `min` and `quantile`), and each writes its answer back into the column it
+reduced.
 
 This is where the sentence a page above has to be finished. "Both positions were
 spoken for, so there was nowhere else for the answer to go" is true, and color is

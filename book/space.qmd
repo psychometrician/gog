@@ -236,11 +236,11 @@ positions the space offers, less the one the mark measures along. The first
 reading says how many axes `bin` cuts. This one says how many keys `mean` groups
 by. One rule, two questions, and the answer to both is read off the mark.
 
-The five summaries divide from the four measuring transforms on what they are
+The six summaries divide from the four measuring transforms on what they are
 handed, not on what they can reach: `count` and `bin` invent a measurement, so
 they need no column and color or height carries the answer; `mean`, `sum`,
-`median`, `max` and `min` reduce a column you name, so the sentence has to name
-it. Leave `z()` off and the engine says so rather than guessing.
+`median`, `max`, `min` and `quantile` reduce a column you name, so the sentence
+has to name it. Leave `z()` off and the engine says so rather than guessing.
 
 One statistic really does stay on the plane, and it is the one that *fits*
 rather than reduces:
