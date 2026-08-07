@@ -26,6 +26,7 @@
 import {
   attachView,
   addViewControls,
+  addTransport,
   BUTTON_STYLE,
   controlBar,
   hoverLabel,
@@ -208,13 +209,28 @@ export function redraw(engine, container, req, options = {}) {
     return { ok: false, notes: [], error };
   }
 
+  // **A redraw must carry the clock's state as well as its reading**, and the
+  // two are separate facts. Found by a reader: stop a played plot on one frame,
+  // then draw a selection on it. The frame came across correctly and then ran on,
+  // because a freshly inserted SVG starts its own timeline, and the transport's
+  // button was left claiming the plot was stopped while it played. Carrying the
+  // time and not the pause is what made that look like two bugs.
   const outgoing = container.querySelector("svg");
   let clock = null;
+  let stopped = false;
   if (outgoing && typeof outgoing.getCurrentTime === "function") {
     try {
       clock = outgoing.getCurrentTime();
     } catch {
       clock = null;
+    }
+    // Asked separately, so a browser that refuses one still answers the other. A
+    // shared `try` would have thrown the reading away to learn nothing about the
+    // state, which is the worse of the two failures.
+    try {
+      stopped = outgoing.animationsPaused?.() ?? false;
+    } catch {
+      stopped = false;
     }
   }
 
@@ -245,6 +261,9 @@ export function redraw(engine, container, req, options = {}) {
 
   if (clock !== null && incoming && typeof incoming.setCurrentTime === "function") {
     try {
+      // Stop it before seeking, so the moment being restored cannot be stepped
+      // past by the timeline that started when the element was inserted.
+      if (stopped) incoming.pauseAnimations?.();
       incoming.setCurrentTime(clock);
     } catch {
       /* a static plot has no timeline; nothing to restore */
@@ -1816,6 +1835,11 @@ function addSelectionBar(container, handle, view) {
   // was never twice in the same spot.
   const viewRow = controlBar("view");
   if (view) addViewControls(viewRow, view, () => render(), handle);
+  // A plot that is played *and* brushed gets its transport on this same row. It
+  // joins the five rather than the selection controls below, because it is the
+  // medium's control like they are, and because the selection row changes width
+  // as the readout counts and `unstamp` comes and goes.
+  const transport = addTransport(viewRow, container, view);
 
   // What this plot adds for its own sake. `toggle`, `reset` and `unstamp` stay
   // one child of the row rather than three, so a narrow panel breaks after the
@@ -1835,6 +1859,11 @@ function addSelectionBar(container, handle, view) {
   let open = false;
   let page = 0;
   const render = () => {
+    // This function brings the whole control line up to date, so the transport's
+    // button belongs in it. A selection redraws the picture, which replaces the
+    // element the clock lives in, and a button still drawn from the old one would
+    // tell the reader the plot was stopped while it ran.
+    transport?.refresh();
     const s = handle.selection(page * PAGE_ROWS);
     for (const [name, b] of picks) {
       const on = handle.mode() === name;
@@ -1955,12 +1984,20 @@ export function attachDrag(engine, container, request, options = {}) {
   let dTurn = 0;
   let dTilt = 0;
 
-  // Tilt stops just short of overhead, and the limit is **shared**: the range is
-  // the one every panel can reach. Clamping each panel on its own would let the
-  // steepest hit the stop while the others kept going, and they would drift
-  // apart — the one thing carrying a delta exists to prevent.
-  const tiltFloor = scenes.length ? Math.max(...scenes.map((s) => -89 - s.tilt)) : -89;
-  const tiltCeil = scenes.length ? Math.min(...scenes.map((s) => 89 - s.tilt)) : 89;
+  // Tilt stops at straight down and straight up, which is exactly where a written
+  // `space(tilt = 90)` stops: a drag reaches every angle a sentence can name and
+  // no angle it cannot. It stopped one degree short until a reader dragged to the
+  // end and found 89 under a chapter that said 90 — a stop the grammar could not
+  // explain, because nothing in the grammar knows about it. The stop itself
+  // stays: past 90 the eye goes over the top, the scene turns over, and the axis
+  // names pile onto one corner.
+  //
+  // The limit is **shared**: the range is the one every panel can reach. Clamping
+  // each panel on its own would let the steepest hit the stop while the others
+  // kept going, and they would drift apart — the one thing carrying a delta
+  // exists to prevent.
+  const tiltFloor = scenes.length ? Math.max(...scenes.map((s) => -90 - s.tilt)) : -90;
+  const tiltCeil = scenes.length ? Math.min(...scenes.map((s) => 90 - s.tilt)) : 90;
 
   // What the readout says: the first scene's angle, which is *the* angle for an
   // ordinary plot and a true one for a panel of a page.
@@ -2111,13 +2148,18 @@ function addControls(container, handle, view = null) {
     reset.style.cursor = moved ? "pointer" : "default";
   };
 
-  // The five view buttons take the first row here for the same reason they do
+  // The four view buttons take the first row here for the same reason they do
   // under a brushed plot: they are the row every plot has, so they keep one
   // place under every picture. What is left below is what a cube adds, and it
   // reads as a sentence about the angle: what the angle is, and a way back to
   // the one the plot opened at.
   const viewRow = controlBar("view");
   if (view) addViewControls(viewRow, view);
+  // A cube that also plays. The drag is the camera's here, so the transport is
+  // the only way to hold a frame still, which makes it worth more in the cube
+  // than anywhere else: a reader who wants to turn one moment has to stop the
+  // clock first.
+  addTransport(viewRow, container, view);
 
   bar.append(hint, readout);
   // The zoom sits between the readout and `reset`, and it is given **no drag

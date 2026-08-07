@@ -170,7 +170,7 @@ export function attachView(container, options = {}) {
  * RStudio. None of them tell us which, and a plot cannot ask.
  *
  * These were `#555` on a `#ccc` border, which is legible on white and close to
- * invisible on anything dark, so every reader in a dark editor had five buttons
+ * invisible on anything dark, so every reader in a dark editor had buttons
  * they could not see. `inherit` is the fix rather than a media query:
  * `prefers-color-scheme` reports the *operating system's* preference, and a dark
  * JupyterLab theme on a light desktop is exactly the case it gets wrong.
@@ -361,11 +361,11 @@ function raise(el, text) {
  * a plot that says `brush` has already given its drag away and pans with a
  * modifier instead.
  *
- * It was `addZoomButtons` while the zoom was all it added. The name stopped
- * being true when the grabbing hand arrived and stopped being close when the
- * camera did, so it now says what it does: one call, and a bar has the whole
- * set. That matters more than tidiness here — three bars call this, and a
- * control added to one of them by hand is how two bars stop matching.
+ * It was `addZoomButtons` while the zoom was all it added, and the name stopped
+ * being close when the camera arrived, so it now says what it does: one call,
+ * and a bar has the whole set. That matters more than tidiness here — three bars
+ * call this, and a control added to one of them by hand is how two bars stop
+ * matching.
  */
 export function addViewControls(bar, view, onChange = () => {}, handle = null) {
   // Drawn rather than typed, for the reason the selection bar's three modes are:
@@ -455,55 +455,187 @@ export function addViewControls(bar, view, onChange = () => {}, handle = null) {
       [out, view.canZoomOut?.() ?? true],
       [into, view.canZoomIn?.() ?? true],
       [fit, view.zoomed()],
-      [hand, view.zoomed()],
     ]) {
-      // A hint has nothing to disable; only a button does.
-      if (b.tagName === "BUTTON") b.disabled = !live;
+      b.disabled = !live;
       b.style.opacity = live ? "1" : "0.4";
-      b.style.cursor = live && b.tagName === "BUTTON" ? "pointer" : "default";
+      b.style.cursor = live ? "pointer" : "default";
     }
   }
 
-  // **The hand is a hint, not a button**, and that is the whole of why it is
-  // built differently from the three beside it. A drag on a flat plot already
-  // moves the picture and nothing competes for the gesture, so a button would
-  // have nothing to switch *to* — pressing it could only do what dragging
-  // already does. What a reader is missing is not a control but the knowledge
-  // that the gesture exists, and that is what a hint is for. The cube's bar says
-  // "drag to rotate" in words for the same reason; this says it without a
-  // language, which is the ruling the icons made.
+  // **There is no hand here, and the pointer is why.** A drawing of a hand once
+  // sat between `fit` and the camera, as a hint rather than a button: it said
+  // that dragging moves the picture, once a reader had looked closer. It was
+  // removed because the cursor says the same thing better. `mountView` sets
+  // `grab` on the container the moment zooming makes panning possible, so the
+  // message arrives under the pointer, at the moment the reader is about to
+  // drag, instead of in a bar they are not looking at.
   //
-  // It dims with the buttons because panning is impossible at full extent — the
-  // window is clamped inside the picture — so it lights up at exactly the moment
-  // dragging starts to do something.
-  const hand = document.createElement("span");
-  // The same box as the three buttons, so the bar reads as one row of four
-  // rather than three controls and a loose drawing. `cursor:default` is the one
-  // difference kept on purpose: it wears the outline but does not claim to be
-  // pressable, because there is nothing for a press to do that the drag does not
-  // already do.
-  hand.style.cssText = BUTTON_STYLE.replace("cursor:pointer", "cursor:default");
-  hand.innerHTML = icon(
-    // A hand with its fingers curled to grip: a palm, three fingers folded over
-    // and a thumb closing from the side.
-    `<path d="M5.1 8.3V5.9a1 1 0 0 1 2 0v1.6"/>` +
-    `<path d="M7.1 7.2V5.2a1 1 0 0 1 2 0v2"/>` +
-    `<path d="M9.1 7.4V6a1 1 0 0 1 2 0v1.9"/>` +
-    `<path d="M11.1 7.9v-.8a1 1 0 0 1 2 0v3.3c0 2-1.5 3.4-3.5 3.4h-1` +
-    `c-1.4 0-2.2-.5-2.9-1.4L3.2 11c-.5-.7-.3-1.4.3-1.7.5-.3 1.1-.2 1.5.3l.9 1"/>`
-  );
-  // After the drawing, never before: this appends a child and `innerHTML` above
-  // would take it away again. The hand says the least of anything in the bar and
-  // needs the label most, since the other four answer a press and this one
-  // answers nothing at all until a reader knows it is describing a gesture.
-  hoverLabel(hand, "drag to move the picture");
+  // Three arguments finished it. It was the one item in this row that was not a
+  // button, which cost the book a sentence explaining the exception. A brushed
+  // plot already carries a pan mode in its `drag:` switcher, so a brushed and
+  // zoomed plot showed the hint and the button for one gesture. And what it told
+  // a reader is what everyone tries on a magnified picture unprompted.
+  //
+  // What went with it is touch, honestly: there is no `grab` cursor on a touch
+  // screen and no pinch handling in this file, so a reader there presses `+` and
+  // then drags with no cue at all. That was judged the weaker loss, because a
+  // dimmed drawing whose label cannot be raised without a hover was never much
+  // of a cue on the device that had no cursor.
 
-  // The camera sits last, after the four that change how the picture is looked
+  // The camera sits last, after the three that change how the picture is looked
   // at. It is the only one that produces something outside the page, so it reads
-  // as a separate act rather than a fifth way to move the window.
-  bar.append(out, into, fit, hand, camera);
+  // as a separate act rather than a fourth way to move the window.
+  bar.append(out, into, fit, camera);
   refresh();
   return refresh;
+}
+
+/**
+ * Give a played plot the three buttons that work its clock.
+ *
+ * **This is the medium's control, not the grammar's**, and that is a ruling
+ * rather than a shortcut. Every frame of a sequence is already in the file, and
+ * a clock decides which one you see; stepping and pausing move that clock. They
+ * choose no rows, hide no rows, and change nothing the sentence said, which puts
+ * them on the same side of the line as turning a cube. So no atom grows a word
+ * for them and no binding changes: the transport is *found* in the drawing, by
+ * the markup below, wherever a played plot is mounted.
+ *
+ * **Three buttons rather than a slider**, and the reason is the one that gave
+ * the five their own place. A slider needs two ends, and a column with no stated
+ * order has none — the frames of `play(continent)` run in whatever order the
+ * rows happened to arrive, so a labeled scale from one continent to another
+ * would draw an order the data does not have, with far more authority than a
+ * loop claims. A stepper claims nothing. Making it a slider on ordered columns
+ * and a stepper on unordered ones was the other way, and it fails a rule this
+ * bar already keeps: a control that changes shape with the column is a control
+ * the reader has to identify twice.
+ *
+ * **Nothing displays the moment.** `write_play_strip` already draws a band
+ * naming the frame on show, for every played plot, as `play`'s earned guide. A
+ * readout here would be the second copy of it.
+ *
+ * @param {Element} bar the view row, which the buttons join
+ * @param {Element} container the element holding the drawn plot
+ * @param {object|null} view the window over it, for the camera's sake
+ * @returns {{refresh: () => void}|null} `null` when the plot has no clock
+ */
+export function addTransport(bar, container, view = null) {
+  // Re-read on every press rather than captured once. The engine redraws a plot
+  // that is *also* brushed or turned, which replaces this element, and a
+  // captured reference would leave the buttons driving a picture nobody is
+  // looking at.
+  const clock = () => container.querySelector("svg");
+  const svg = clock();
+  if (!svg || typeof svg.pauseAnimations !== "function") return null;
+
+  // **The frame count is read off `keyTimes`, never counted.** Each frame group
+  // carries one `<animate>`, and a played plot has more than one group per
+  // frame: the marks are one and the strip naming the moment is another. So
+  // counting elements overcounts by however many guides the plot happens to
+  // draw. `keyTimes="0;1/nframes"` states the number outright, and `dur` is
+  // `nframes` frames long, which gives the length of one.
+  const first = svg.querySelector('animate[attributeName="display"]');
+  if (!first) return null;
+  const share = Number.parseFloat((first.getAttribute("keyTimes") || "").split(";")[1]);
+  const span = Number.parseFloat(first.getAttribute("dur"));
+  if (!(share > 0) || !(span > 0)) return null;
+  const frames = Math.round(1 / share);
+  if (frames < 2) return null;
+  const seconds = span / frames;
+
+  // Which frame is on screen. The clock runs past `dur` and wraps, so the
+  // remainder is the position within one pass, and the floor of it is the frame.
+  const at = () => {
+    const svgNow = clock();
+    if (!svgNow) return 0;
+    const t = svgNow.getCurrentTime() % span;
+    return Math.min(frames - 1, Math.max(0, Math.floor(t / seconds)));
+  };
+  // Land in the *middle* of a frame's window rather than on its leading edge,
+  // which is a boundary two frames can both claim to a rounding error.
+  const show = (i) => clock()?.setCurrentTime(((((i % frames) + frames) % frames) + 0.5) * seconds);
+
+  const solid = (body) =>
+    `<svg width="13" height="13" viewBox="0 0 16 16" aria-hidden="true" ` +
+    `style="display:block;fill:currentColor;stroke:none">${body}</svg>`;
+  const BAR = (x) => `<rect x="${x}" y="3.1" width="1.7" height="9.8" rx=".4"/>`;
+  const ART = {
+    back: solid(`${BAR(2.6)}<path d="M14 3.1v9.8L7.1 8z"/>`),
+    forward: solid(`<path d="M2 3.1v9.8L8.9 8z"/>${BAR(11.7)}`),
+    play: solid(`<path d="M3.9 2.5v11L13.4 8z"/>`),
+    pause: solid(`${BAR(4.6)}${BAR(9.7)}`),
+  };
+
+  const make = (art, says, act) => {
+    const b = document.createElement("button");
+    b.type = "button";
+    b.innerHTML = art;
+    b.style.cssText = BUTTON_STYLE;
+    hoverLabel(b, says);
+    b.addEventListener("click", act);
+    return b;
+  };
+
+  // **Stepping pauses**, which is the convention rather than a derivation: every
+  // frame-stepper works this way, because a clock left running carries the
+  // reader off the frame they just asked for inside a fifth of a second.
+  //
+  // **And the ends wrap.** The sequence is written `repeatCount="indefinite"`,
+  // so the last frame is *already* followed by the first every time it runs
+  // round. A stepper that stopped at the ends would contradict the animation it
+  // controls. For a column with no stated order the argument is shorter: the
+  // frames are a cycle, so there is no before-the-first to protect.
+  const step = (by) => {
+    clock()?.pauseAnimations();
+    show(at() + by);
+    refresh();
+  };
+
+  const back = make(ART.back, "step back", () => step(-1));
+  const toggle = make(ART.pause, "pause", () => {
+    const svgNow = clock();
+    if (!svgNow) return;
+    if (svgNow.animationsPaused()) svgNow.unpauseAnimations();
+    else svgNow.pauseAnimations();
+    refresh();
+  });
+  const forward = make(ART.forward, "step forward", () => step(1));
+
+  function refresh() {
+    const paused = clock()?.animationsPaused() ?? false;
+    toggle.innerHTML = paused ? ART.play : ART.pause;
+    hoverLabel(toggle, paused ? "play" : "pause");
+  }
+
+  // **The camera has to be told which moment it is photographing.** It copies
+  // the element and serializes it, and no timeline survives that: the copy
+  // carries the `display` written on each group before any clock ran, so every
+  // saved picture would be the first frame however far the reader had stepped.
+  // Rather than a rule about animation, this is the camera's own rule holding —
+  // it saves what you are looking at — so the copy is frozen on the frame on
+  // show, and its clock is taken out so nothing can move it afterwards.
+  view?.onSave?.((clone) => {
+    const now = at();
+    for (const a of [...clone.querySelectorAll('animate[attributeName="display"]')]) {
+      const group = a.parentNode;
+      const begin = Number.parseFloat(a.getAttribute("begin"));
+      const which = Number.isFinite(begin) ? Math.round(begin / seconds) : -1;
+      group?.setAttribute?.("display", which === now ? "inline" : "none");
+      a.remove();
+    }
+  });
+
+  // One child of the row rather than three, so the gap that separates the two
+  // groups belongs to the group and a narrow plot breaks between them instead of
+  // through the middle of the stepper.
+  const group = document.createElement("span");
+  group.style.cssText =
+    "display:inline-flex;gap:.75em;align-items:center;margin-left:1.25em;";
+  group.append(back, toggle, forward);
+  bar.append(group);
+  refresh();
+  return { refresh };
 }
 
 /**
@@ -632,7 +764,7 @@ export function controlBar(kind) {
     // Inherited for the reason the buttons are: this bar is what they inherit
     // *from*, since `bar.append(out, into, fit, …)` puts them inside it. No
     // `opacity` here for the same reason. Dimming the bar to quiet the readout
-    // would dim the five buttons with it, which is the thing being fixed, and
+    // would dim the four buttons with it, which is the thing being fixed, and
     // it would compound with the 0.4 that marks a button disabled.
     "font:12px/1.6 ui-monospace,SFMono-Regular,Menlo,monospace;color:inherit;" +
     // A **positive** top margin, and the reason is a bug rather than taste. It
@@ -654,7 +786,7 @@ export function placeBar(container, ...bars) {
   wrap.className = "gog-plot-with-controls";
   parent.insertBefore(wrap, container);
   wrap.appendChild(container);
-  // In the order given, and the order is a decision. The five view buttons go
+  // In the order given, and the order is a decision. The four view buttons go
   // first, because they are the only ones on **every** plot: a flat plot has
   // nothing else, so putting them first is what keeps them in the same place
   // under every picture in the book rather than sliding along as the controls
@@ -685,6 +817,10 @@ export function mountView(target, options = {}) {
   const view = attachView(container, options);
   const bar = controlBar("view");
   const refresh = addViewControls(bar, view);
+  // A played plot needs no engine — the frames are in the file and a clock walks
+  // them — so this is where most sequences get their transport, beside the five
+  // rather than under them. It returns null and costs nothing on a still plot.
+  addTransport(bar, container, view);
   placeBar(container, bar);
 
   // Drag pans, and it needs no button to say so. The selection chapter's rule is

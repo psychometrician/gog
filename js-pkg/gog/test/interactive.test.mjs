@@ -81,11 +81,15 @@ test("the WebAssembly engine draws exactly what the CLI draws", { skip: !have },
   const engine = await loadEngine(fs.readFileSync(WASM));
   // Several angles, because a projector that agreed at one angle and not another
   // would be the subtlest possible version of this bug.
+  // The two 90s are the ends of the drag, so a disagreement there would show up
+  // only at the moment a reader reaches the stop.
   for (const [turn, tilt] of [
     [45, 25],
     [0, 0],
     [137, -40],
     [359, 89],
+    [0, 90],
+    [137, -90],
   ]) {
     const req = cube(turn, tilt);
     const { svg, error } = renderSpec(engine, req);
@@ -219,6 +223,38 @@ test("a composed page of cubes is spatial, and its cells keep their own angles",
     const home = renderSpec(engine, { spec: page, data: cube().data });
     assert.equal(container.innerHTML, home.svg,
                  "reset returns every cell to the angle its own sentence named");
+  } finally {
+    undo();
+  }
+});
+
+test("a drag stops where a sentence stops, at straight down and straight up",
+     { skip: !have }, async () => {
+  // The stop is what a reader meets at the end of the gesture, and the number
+  // they read there is the one the manual tells them to write. It sat at 89 for
+  // a while, so the chapter said 90 and the plot said 89, and neither was wrong
+  // about itself. Whatever the limit is, both ends of the drag and the written
+  // value have to agree on it, which is what this pins.
+  const undo = stubDom();
+  try {
+    const engine = await loadEngine(fs.readFileSync(WASM));
+    const container = stubContainer();
+    const handle = attachDrag(engine, container, cube(30, 25), { degreesPerPixel: 1 });
+
+    // 300 pixels down from tilt 25 asks for 325, far past any stop.
+    container.send("pointerdown", 100, 100);
+    container.send("pointermove", 100, 400);
+    container.send("pointerup", 100, 400);
+    assert.equal(handle.view().tilt, 90, "dragging down reaches straight down");
+
+    handle.reset();
+    container.send("pointerdown", 100, 400);
+    container.send("pointermove", 100, 100);
+    container.send("pointerup", 100, 100);
+    assert.equal(handle.view().tilt, -90, "and dragging up reaches straight up");
+
+    // The end stop draws, rather than being a place the picture gives out.
+    assert.ok(container.innerHTML.includes("<svg"), "the stop is a plot, not a blank");
   } finally {
     undo();
   }
@@ -1912,9 +1948,8 @@ test("every control that is only a drawing says what it is", () => {
     addViewControls(bar, stillView());
     assert.deepEqual(
       bar.children.map((c) => c.attrs["aria-label"]),
-      ["zoom out", "zoom in", "show the whole plot",
-       "drag to move the picture", "save as PNG"],
-      "all five name themselves, in the order the bar puts them",
+      ["zoom out", "zoom in", "show the whole plot", "save as PNG"],
+      "all four name themselves, in the order the bar puts them",
     );
     for (const c of bar.children) {
       assert.equal(c.title, undefined,
@@ -2025,7 +2060,7 @@ test("swapping a drawing does not take the label with it", async () => {
   try {
     const bar = controlBar("view");
     addViewControls(bar, stillView());
-    const camera = bar.children[4];
+    const camera = bar.children[3];
 
     // The camera is the one control whose drawing is replaced while the page is
     // open: it shows a tick for a moment after it writes a file. The label is an
