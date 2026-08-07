@@ -39,10 +39,20 @@ listing:
     # that the language is mentioned in it.
     categories: [rstats, julialang]
 page-layout: full
+# The card for this page, named here even though `_quarto.yml` sets the same
+# file as the site default. Without it Quarto prefers the first image on the
+# page over that default, and the first image here is the hex sticker, which is
+# portrait. Bluesky letterboxes a portrait card and X drops to a small square
+# thumbnail instead of a banner. So the front page, the one address most people
+# paste, was the one page whose card came out wrong.
+image: images/og.png
+image-alt: >-
+  gog, a grammar of graphics. One engine, spoken from R, Python, Julia and
+  JavaScript.
 ---
 
 ::: {.site-hero}
-![](images/gog_hex.png){.site-hero-img fig-alt="The gog hex sticker: a peach hexagon holding a face built from the four operators."}
+![](images/gog-hex.png){.site-hero-img fig-alt="The gog hex sticker: a peach hexagon holding a face built from the four operators."}
 
 ::: {.site-hero-text}
 # We build tools for looking at data.

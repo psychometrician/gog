@@ -1,6 +1,6 @@
 # gog — a grammar of graphics
 
-<img src="book/images/gog_hex.png" alt="The gog hex sticker: a peach hexagon holding a face built from the package's four operators, a plus and an asterisk as its two eyes, a slash and a vertical bar as its nose, and the package name as its mouth." align="right" width="170">
+<img src="book/images/gog-hex.png" alt="The gog hex sticker: a peach hexagon holding a face built from the package's four operators, a plus and an asterisk as its two eyes, a slash and a vertical bar as its nose, and the package name as its mouth." align="right" width="170">
 
 **Be agog. Use gog.**
 

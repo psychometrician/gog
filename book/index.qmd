@@ -37,6 +37,12 @@ Be agog. Use gog.
 \begin{center}\itshape Be agog. Use gog.\end{center}
 ```
 
+::: {.content-visible when-format="html"}
+::: {.gog-doi}
+[![](https://zenodo.org/badge/DOI/10.5281/zenodo.21807652.svg){fig-alt="Digital Object Identifier 10.5281/zenodo.21807652"}](https://doi.org/10.5281/zenodo.21807652)
+:::
+:::
+
 gog is a single graphics engine written in [Rust](https://www.rust-lang.org/),
 callable from [R](https://www.r-project.org/), [Python](https://www.python.org/),
 [Julia](https://julialang.org/), and

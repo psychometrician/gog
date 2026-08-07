@@ -3,7 +3,7 @@
   <rect width="1200" height="630" fill="#ffdba4"/>
 
   <!-- The hex sticker, left, with room to breathe -->
-  <image xlink:href="gog_hex.png" x="72" y="95" width="383" height="440"/>
+  <image xlink:href="gog-hex.png" x="72" y="95" width="383" height="440"/>
 
   <!-- Wordmark -->
   <text x="530" y="212" font-family="Helvetica,Arial,sans-serif" font-size="112"

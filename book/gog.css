@@ -105,14 +105,37 @@
  * page's opening heading, with `img-fluid`, which only caps it at the column
  * width. The file is 1002px wide, so left alone it fills the text column and
  * the preface starts below the fold. A badge is meant to be taken in at a
- * glance, so it is sized like one and centered. The percentage cap is what
- * keeps it from crowding a narrow phone screen.
+ * glance, so it is sized like one. The percentage cap is what keeps it from
+ * crowding a narrow phone screen. The file is drawn at more than five times
+ * the width it is shown at, which is what keeps it sharp on a retina screen.
+ *
+ * The four margins are written out rather than shortened to `auto`, because
+ * Quarto's own rule floats this image right and sets a left margin to hold the
+ * prose off it. A shorthand with `auto` in it replaces that value, and `auto`
+ * is zero on a float, so the paragraph ran flush against the sticker's edge.
  * ------------------------------------------------------------------------- */
 .quarto-cover-image {
   display: block;
   width: 190px;
   max-width: 45%;
-  margin: 1.75rem auto 2.25rem;
+  margin: 6rem 0 2.25rem 2rem;
+}
+
+/* Quarto floats the cover right, and a float is placed where it appears in the
+ * source, which is directly under the heading. So the sticker started level
+ * with the slogan while the prose beside it started two blocks lower, and the
+ * two read as though the sticker had drifted upward. The top margin above is
+ * the height of the slogan and the badge together, which drops the sticker's
+ * top edge onto the first line of the opening paragraph.
+ *
+ * It is reset on a narrow screen, where the layout is no longer two columns.
+ * The float still applies, but the text wrapping beside a 45%-wide sticker is
+ * three or four words per line, so holding the sticker down would open a band
+ * of white above it rather than align it with anything. */
+@media (max-width: 767.98px) {
+  .quarto-cover-image {
+    margin-top: 1.75rem;
+  }
 }
 
 /* The slogan under the sticker ---------------------------------------------
@@ -153,6 +176,27 @@
  * after `.gog-slogan`, since equal specificity is settled by source order. */
 .gog-slogan-close {
   margin-top: 2.4rem;
+}
+
+/* The DOI badge, directly under the slogan --------------------------------
+ *
+ * The book is deposited on Zenodo, and the badge is the one-glance version of
+ * what the *Installing gog* section says in a sentence. It sits at the top
+ * because a reader deciding whether to cite this wants that answer before the
+ * preface, not after it.
+ *
+ * It is placed left, under the slogan, so the two read as one block against
+ * the sticker floating opposite. The negative top margin closes the gap the
+ * slogan's own bottom margin opens, which is sized for body text rather than
+ * for a 20px badge. HTML only: the printed edition carries the DOI in the
+ * same section's prose, and a badge is a link, which a page cannot be.
+ * ------------------------------------------------------------------------- */
+.gog-doi {
+  margin: -1.9rem 0 2.4rem;
+}
+
+.gog-doi > p {
+  margin-bottom: 0;
 }
 
 /* ---------------------------------------------------------------------------

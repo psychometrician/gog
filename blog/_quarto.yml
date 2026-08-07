@@ -48,12 +48,12 @@ website:
   # shape of failure the workflow's output check exists to catch.
   site-url: https://psychometrician.github.io/
 
-  favicon: images/gog_hex.png
+  favicon: images/gog-hex.png
 
   # The default card for any post that does not set its own `image:`. 1200x630,
   # because that is the ratio Open Graph and Twitter expect. The hex sticker is
-  # 1002x1150 and portrait, so it is the favicon here and the source art for the
-  # card, never the card itself.
+  # portrait, so it is the favicon here and the source art for the card, never
+  # the card itself.
   image: images/og.png
   image-alt: >-
     gog, a grammar of graphics. One engine, spoken from R, Python, Julia and

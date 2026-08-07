@@ -47,13 +47,20 @@ book:
   title: "gog: A Grammar of Graphics"
   subtitle: "One engine. Every language."
 
-  # The hex sticker, designed by the author in Canva. It is the cover, not a
-  # placeholder for one, and no sticker package or model made it. Quarto puts it
-  # straight after the landing page's first heading, and the preface's *agog*
-  # section explains what the four symbols in it are; `gog.css` gives it a
-  # size, since the file is 1002px wide and `img-fluid` alone would run it to
-  # the column edge.
-  cover-image: images/gog_hex.png
+  # The hex sticker, designed by the author. It is the cover, not a placeholder
+  # for one, and no sticker package or model made it. Quarto puts it straight
+  # after the landing page's first heading, and the preface's *agog* section
+  # explains what the four symbols in it are; `gog.css` gives it a size, since
+  # the file declares a width of its own and `img-fluid` alone would let that
+  # run to the column edge.
+  #
+  # Raster rather than vector, and the reason is the one part of the sticker
+  # that is not drawn geometry. The name across the bottom is set in Avenir
+  # Next, which ships on macOS and essentially nowhere else, so a vector copy
+  # asks each reader's browser for a font most of them do not have and draws
+  # the `g` in whatever it finds instead. Rendering it once settles the
+  # letterform for everybody, which is what a wordmark is for.
+  cover-image: images/gog-hex.png
   cover-image-alt: >-
     The gog hex sticker. A peach hexagon with a black border, holding a face
     built from the package's four operators: a plus and an asterisk as its two
