@@ -4,6 +4,45 @@ All four packages share one version number and are released together: `gog` on
 CRAN-style repositories and PyPI, `GrammarOfGraphics` on Julia's General, and
 `grammar-of-graphics` on npm. A version means the same grammar in every one.
 
+## Unreleased
+
+### Added
+
+- **A played plot carries a transport: step back, stop or start, step forward.**
+  The three buttons sit on the same line as the zoom and the camera, and they move
+  the clock rather than the plot. Stepping stops the clock, because a running one
+  would carry you off the frame you asked for. The ends join up, so going back
+  from the first frame reaches the last, which is what the sequence already does
+  when it loops. Stop the clock and the camera saves the frame you stopped on.
+  Nothing in the grammar grew a word for any of it: the sentence is unchanged, and
+  a printed sequence is the first frame as before.
+
+- **`play` on a column with no stated order says so.** A sequence claims that one
+  frame comes after another, and a text column with no declared levels runs in
+  whatever order its values happen to appear, which is a fact about how the file
+  was sorted. gog now names the order it had to invent and offers the two ways to
+  state one. The plot still draws: a column whose levels *are* declared is silent,
+  ordered or not, so a category with a real order is unaffected.
+
+### Changed
+
+- **The hand is gone from the row of controls under every plot**, leaving four:
+  zoom out, zoom in, fit, and the camera. It was a label rather than a button, and
+  the pointer already says the same thing better, becoming a hand over a plot that
+  can be moved. Dragging a magnified plot still moves it, exactly as before.
+
+- **Turning a cube with the mouse now reaches straight down and straight up.**
+  The drag stopped one degree short of both, at a tilt of 89, while
+  `space(tilt = 90)` was accepted when written, so the gesture could not reach an
+  angle the sentence could name. The drag now stops at 90 in both directions.
+
+### Fixed
+
+- **A selection no longer restarts a stopped sequence.** Drawing a selection
+  redraws the picture, and the redraw carried the clock's reading across but not
+  the fact that it had been stopped, so a played plot started running again with
+  its button still saying it was paused.
+
 ## 0.0.4 (2026-08-05)
 
 ### Added
