@@ -7627,7 +7627,55 @@ fn check_play(out: &mut Vec<Diagnostic>, spec: &PlotSpec, data: &HashMap<String,
         return; // a missing table is already reported by the binding loop
     }
 
-    let n = crate::data::frames_across(&source, field).len();
+    let levels = crate::data::frames_across(&source, field);
+    let n = levels.len();
+
+    // **A sequence claims an order, so say when nobody stated one.**
+    //
+    // Not a refusal, and the reason is not Law 8 alone. The book *teaches* with
+    // this plot: it draws `play(continent)` live so a reader can watch the points
+    // jump and read why the jumps mean nothing. Refused, the chapter could only
+    // assert that failure instead of showing it, and the demonstration is what
+    // makes the point land.
+    //
+    // The test is not the column's type, which is the trap here. An **ordered**
+    // category is a perfectly good thing to play — `factor(size, levels = c("Low",
+    // "Medium", "High"))` is a sequence anyone would want — so refusing text would
+    // refuse the case that works. What matters is whether *anyone stated* an
+    // order: `levels` on the wire means the author chose one, and its absence
+    // means `categories_across` fell back to the order values happen to appear
+    // in, which is a fact about how the file was sorted rather than about the
+    // world. So this fires on a bare text column and stays silent on a factor,
+    // ordered or not, exactly as `categories_across` reads the two.
+    let text = source.iter().any(|df| df.str_col(field).is_some());
+    let stated = source.iter().any(|df| df.levels(field).is_some());
+    if text && !stated {
+        // Enough of the running order to recognize it, not all of it. The point
+        // is that the reader sees *whose* order it is, which the first few names
+        // carry as well as fifty would.
+        //
+        // **Never "and 1 more".** Cutting the list to hide a single name costs a
+        // word to save a word, and it read badly where it mattered most: five
+        // continents printed four and "and 1 more" directly above a paragraph
+        // that named all five. So the tail has to be worth summarizing before it
+        // is summarized.
+        const SHOWN: usize = 4;
+        let listed = if n > SHOWN + 1 {
+            let names: Vec<&str> = levels.iter().take(SHOWN).map(|l| l.label.as_str()).collect();
+            format!("{}, and {} more", names.join(", "), n - SHOWN)
+        } else {
+            levels.iter().map(|l| l.label.as_str()).collect::<Vec<_>>().join(", ")
+        };
+        out.push(Diagnostic {
+            kind: DiagnosticKind::Assumption,
+            message: format!(
+                "gog: `play({field})` has no stated order, so each frame is a snapshot of one \
+                 `{field}` and the frames run in the order the rows arrive: {listed}. A sequence \
+                 claims that one frame comes after another. Set the column's factor levels where \
+                 the data lives, or use `facet({field})`, which claims no order."
+            ),
+        });
+    }
 
     // Not a refusal. A hundred frames is a legal plot and Law 8 does not forbid
     // the ugly-but-legal — but the loop length is a default the caller did not
@@ -11690,12 +11738,17 @@ mod tests {
         assert!(check(&spec, &data()).is_empty());
     }
 
+    /// **Legal, not silent**, and the difference is the whole of what this test
+    /// now says. `continent` here carries no stated levels, so the sequence runs
+    /// in the order the rows arrive and §12 says so as an Assumption. The plot
+    /// still draws, which is what "legal" means and what this asserts.
     #[test]
     fn play_by_a_category_column_is_legal_too() {
         let spec = base()
             .layer(Layer::new(Mark::Point))
             .channel(Channel::Play, "continent");
-        assert!(check(&spec, &data()).is_empty());
+        let d = check(&spec, &data());
+        assert!(!d.iter().any(|x| x.is_fatal()), "must still draw: {:?}", msgs(&d));
     }
 
     /// One column names the panels or names the moments, never both — drawn, it
@@ -11709,6 +11762,58 @@ mod tests {
         let d = check(&spec, &data());
         assert!(d.iter().any(|x| x.kind == DiagnosticKind::Illegal
             && x.message.contains("name the frames")), "{d:?}");
+    }
+
+    /// A sequence claims an order, so a column that states none is told so.
+    ///
+    /// **Warned rather than refused, and the book is the reason.** `play.qmd`
+    /// draws this very plot live, so a reader can watch the points jump between
+    /// frames and read why the jumps mean nothing. A refusal would leave the
+    /// chapter asserting that failure instead of showing it.
+    #[test]
+    fn a_played_column_with_no_stated_order_says_so() {
+        let spec = base()
+            .layer(Layer::new(Mark::Point))
+            .channel(Channel::Play, "continent");
+        let d = check(&spec, &data());
+        assert!(d.iter().any(|x| x.kind == DiagnosticKind::Assumption
+            && x.message.contains("no stated order")), "{:?}", msgs(&d));
+        // §12: an Assumption renders. A refusal here would take the book's own
+        // teaching plot off the page.
+        assert!(!d.iter().any(|x| x.is_fatal()), "must still draw: {:?}", msgs(&d));
+    }
+
+    /// **The test is a stated order, not a column type**, which is the trap this
+    /// pins. An ordered category is exactly what a sequence wants, so a factor
+    /// must stay silent where a bare text column does not.
+    #[test]
+    fn a_played_factor_says_nothing_because_its_order_was_chosen() {
+        let df = DataFrame::new()
+            .with_float("gdp", vec![1.0, 2.0, 3.0])
+            .with_float("life", vec![4.0, 5.0, 6.0])
+            .with_levels(
+                "continent",
+                vec!["Asia".into(), "Europe".into(), "Africa".into()],
+                vec!["Africa".into(), "Asia".into(), "Europe".into()],
+            );
+        let mut d2 = HashMap::new();
+        d2.insert("t".to_string(), df);
+        let spec = base()
+            .layer(Layer::new(Mark::Point))
+            .channel(Channel::Play, "continent");
+        let d = check(&spec, &d2);
+        assert!(!d.iter().any(|x| x.message.contains("no stated order")),
+            "a stated order must not be second-guessed: {:?}", msgs(&d));
+    }
+
+    /// And a number needs no levels: its order is in the values.
+    #[test]
+    fn a_played_number_says_nothing_about_order() {
+        let spec = base()
+            .layer(Layer::new(Mark::Point))
+            .channel(Channel::Play, "gdp");
+        let d = check(&spec, &data());
+        assert!(!d.iter().any(|x| x.message.contains("no stated order")), "{:?}", msgs(&d));
     }
 
     /// A long sequence is legal — Law 8 does not forbid the ugly — but the loop
@@ -11874,7 +11979,8 @@ mod tests {
         let spec = base()
             .layer(Layer::new(Mark::Line))
             .channel(Channel::Play, "continent");
-        assert!(check(&spec, &data()).is_empty());
+        let d = check(&spec, &data());
+        assert!(!d.iter().any(|x| x.is_fatal()), "must still draw: {:?}", msgs(&d));
     }
 
     /// `play` measures nothing, so it runs along no scale — the same answer
