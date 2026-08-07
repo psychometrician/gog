@@ -245,6 +245,12 @@ check_prose <- function(dirs = c("book", "blog")) {
           # A word opening a second sentence is capitalized by grammar, not by
           # Title Case, so it is neutralized before the count.
           h2 <- gsub("([.!?])\\s+[A-Z]", "\\1 x", strip_code(h))
+          # `3-D` is the book's own spelling, written 30 times in the prose.
+          # Stripping the punctuation below leaves a bare `D`, which reads as a
+          # capitalized word and fails every heading that names the term. The
+          # term is neutralized rather than adding `D` to the proper-noun list,
+          # which would excuse a real capital anywhere in a heading.
+          h2 <- gsub("[0-9]-D\\b", "", h2)
           words <- strsplit(trimws(gsub("[^A-Za-z' ]", " ", h2)), "\\s+")[[1]]
           words <- words[nzchar(words)]
           if (length(words) > 1L) {
