@@ -338,8 +338,9 @@ morning introduced; it never replaces it.
 Five rules govern every page, and you can hold the book to them:
 
 - **Every plot is live.** Each is drawn by the engine as the page builds;
-  no plot in this book is a screenshot. Two static images sit in this preface,
-  the *Hunminjeongeum* page and the mouth saying ㄱ, and neither is a plot.
+  no plot in this book is a screenshot. Three static images sit in this
+  preface, the *Hunminjeongeum* page, the mouth saying ㄱ and the DOI badge
+  above, and none of them is a plot.
 - **Questions first.** Every teaching chapter opens with a question about
   data, and answers it before it names a feature.
 - **A small cast.** Five families of table carry three out of four plots in

@@ -67,21 +67,31 @@ check_promises <- function(book = "book") {
 
   # --- Rule 1: every plot is live -----------------------------------------
   #
-  # Two images are allowed in the whole book, and they are named here rather
-  # than pattern-matched, so that adding a third has to be a decision. A plot
-  # arriving as a screenshot is the failure this guards, and neither of these is
-  # a plot: the *Hunminjeongeum* is a photograph of a 1446 woodblock, and the
-  # mouth saying ㄱ is an anatomical diagram of the tongue. No engine draws
-  # either one. The preface's own wording is kept in step with this list.
+  # Three images are allowed in the whole book, and they are named here rather
+  # than pattern-matched, so that adding a fourth has to be a decision. A plot
+  # arriving as a screenshot is the failure this guards, and none of the three
+  # is a plot: the *Hunminjeongeum* is a photograph of a 1446 woodblock, the
+  # mouth saying ㄱ is an anatomical diagram of the tongue, and the third is the
+  # preface's DOI badge. No engine draws any of them. The preface's own wording
+  # is kept in step with this list.
   #
-  # The *Hunminjeongeum* is named by its `_paper` copy, which is still two
-  # images and not three: the facsimile carries no background and its strokes
-  # take SVG's default black, so on a dark page it was invisible, and the copy
-  # is the same picture with a white ground and a margin added. Renaming it is
-  # what this rule caught, which is the rule working: an exact filename is how
-  # a third image is made to be a decision rather than a slip.
+  # The *Hunminjeongeum* is named by its `_paper` copy, and that is one entry
+  # rather than two: the facsimile carries no background and its strokes take
+  # SVG's default black, so on a dark page it was invisible, and the copy is the
+  # same picture with a white ground and a margin added. Renaming it is what
+  # this rule caught, which is the rule working: an exact filename is how a new
+  # image is made to be a decision rather than a slip.
+  #
+  # The badge arrived the same way and was caught the same way, one release
+  # later. It is pinned to Zenodo's badge path and not to the DOI inside it: a
+  # new deposit moves the number while the picture stays the picture, so pinning
+  # the number would fire on a fact about the deposit rather than about the
+  # book. That costs the rule nothing, because it is still a literal string
+  # rather than a pattern, and no screenshot of a plot can live under
+  # `zenodo.org/badge/DOI/`.
   allowed_images <- c("images/Hunmin_Jeongeum_paper.svg",
-                      "images/Pronounciation.png")
+                      "images/Pronounciation.png",
+                      "https://zenodo.org/badge/DOI/")
   for (f in listed) {
     ln <- read_chapter(f)
     img <- grep("!\\[", ln)
