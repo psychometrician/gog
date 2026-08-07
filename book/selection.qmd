@@ -279,14 +279,39 @@ through the top while others have arrived from below. Nothing pauses, and no
 frame is skipped. The same test simply gets a different answer in each one, which
 is what makes a brush a threshold you watch the world cross.
 
-Choosing a bound the data actually crosses is worth a moment, and it is the one
-piece of judgment this atom asks of you. The two ends of a sequence are where an
-animation misleads. Count what a bound catches in each frame before you write it
-down: 3,000 to 20,000 dollars lights between 52 and 74 countries in every frame
-of this sequence, while 20,000 and up lights none at all in 1952 and 1957, one in
-1962, and four by 1972. The second is a true picture and it reads as a broken
-plot, because a reader cannot tell *nothing is selected here* from *this is not
-working*. Drag the bound upward and you will watch it happen.
+### What the count includes
+
+Stop the clock, draw a small box, and the number under the plot looks far too
+large. The number is right, and the reason is one sentence: a bound is a test on
+a column's values, so it holds or fails for every row in the table. It does not
+stop at the frame you can see. The count and `show rows` report the whole
+selection, across every frame. The picture shows you one frame of it.
+
+The plot above makes that concrete. `gm_all` is 1,704 rows, which is 142
+countries in each of twelve years, and one frame draws 142 of them. Stop on 1982,
+draw a box around four countries in the low corner, and the readout says 48. The
+four you can see are 1982's members of a set that runs through the whole
+sequence. Those same countries sit inside the box in other years too, and each of
+those years contributes its own rows to the 48.
+
+`show rows` is where you check it. The table lists the `year` of every row it
+found, beside the columns the sentence maps, so you can see which frame each row
+belongs to and pick out the four from the one you are looking at.
+
+A faceted plot never raises this question. There every selected row is on the
+page at once, so a count of the whole selection is a count of what you see. A
+sequence puts eleven twelfths of it out of sight, in time rather than off the
+edge of the page. The rule is the same one; only the picture differs.
+
+### Choosing a bound the data crosses
+
+The two ends of a sequence are where an animation misleads. Count what a bound
+catches in each frame before you write it down. From 3,000 to 20,000 dollars
+lights between 52 and 74 countries in every frame here. From 20,000 up lights
+none at all in 1952 and 1957, one in 1962, and four by 1972. The second is a true
+picture and it reads as a broken plot, because a reader cannot tell *nothing is
+selected here* from *this is not working*. Drag the bound upward and you will
+watch it happen.
 
 One column cannot do both jobs. Brushing the column the frames are cut on would
 select frames rather than rows inside one, and that is a scrub bar rather than a
@@ -297,8 +322,9 @@ selection:
 data(gm_all) + point + x(gdp) + y(life) + play(year) + brush(year, at = c(1980, 2007))
 ```
 
-A scrub bar belongs to the page a plot is shown on, not to the sentence that
-describes the plot. [Play](play.qmd) says why.
+Moving the clock belongs to the page a plot is shown on, not to the sentence that
+describes the plot. That is what the buttons under a played plot do, and
+[Play](play.qmd#what-the-page-adds) says why they have no word here.
 
 ## All three at once
 
@@ -358,20 +384,23 @@ carries](first-plot.qmd#the-boxes-under-every-plot):
 |---|---|
 | `−` `+` | Makes the picture smaller or larger |
 | the frame | Returns to the whole picture |
-| the hand | Says that dragging moves the picture, once you have looked closer |
 | the camera | Saves what you are looking at as a picture file |
 
 It sits first, directly under the picture, on a plain plot and a brushed one
-alike. That is worth a line of its own: a reader who has learned where the
+alike. That matters more than it looks: a reader who has learned where the
 magnifier is finds it in the same place under every plot in this book, rather
 than somewhere that shifts with whatever else the plot needed.
+
+A plot that also plays carries three more buttons at the end of that same line,
+which stop the clock and step it. [Play](play.qmd#what-the-page-adds) sets them
+out.
 
 The second line is what a brush adds:
 
 | Control | What it does |
 |---|---|
 | `drag:` and its icons | Says what dragging the plot will do, and switches it: a rectangle, a free shape, or moving the picture |
-| `17 of 142 selected` | How many rows the current bound catches |
+| `17 of 142 selected` | How many rows the current bound catches. On a played plot this counts every frame, not the one on show |
 | `show rows` | Opens a table of those rows, and closes it again. A long selection arrives ten at a time, with `‹` and `›` under the table |
 | `clear` | Puts the selection back to what the sentence asked for |
 | `unstamp` | Takes the stamps off. Absent until you have made one |

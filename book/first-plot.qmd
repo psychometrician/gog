@@ -36,10 +36,12 @@ rendering it is the engine's job, not yours.
 
 Look under the plot above. A row of small boxes sits there, and **every plot in
 this book has them**. The magnifiers look closer and wider. The frame returns
-you to the whole picture. The hand is a label rather than a button: it says that
-dragging moves the picture, once you have looked closer. The camera saves what
-you are looking at as a picture file, large enough for a slide or a journal
-figure. A box is dimmed when it can do nothing.
+you to the whole picture. The camera saves what you are looking at as a picture
+file, large enough for a slide or a journal figure. A box is dimmed when it can
+do nothing.
+
+Once you have looked closer, dragging the plot moves it. No box says so, because
+the pointer does: it becomes a hand over a plot you can move.
 
 Rest the pointer on any box and it names itself. A drawing means nothing to a
 reader who has not met it before. So each box says in words what it does.

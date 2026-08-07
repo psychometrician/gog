@@ -29,7 +29,7 @@ other is the whole difference:
 
 ```{r}
 gm_four <- gm_all[gm_all$year %in% c(1952, 1972, 1992, 2007), ]
-gm_four$period <- as.character(gm_four$year)
+gm_four$period <- factor(gm_four$year)
 data(gm_four) + point + x(gdp, scale = "log") + y(life) + color(continent) |
   facet(period)
 ```
@@ -64,6 +64,7 @@ a grid never claims: this frame comes after that one.
 Bind a column with no order, and the plot shows movement the data does not have:
 
 ```{r}
+#| message: true
 data(gapminder_2007) + point + x(gdp, scale = "log") + y(life) +
   color(continent) + play(continent)
 ```
@@ -73,6 +74,12 @@ alphabetical, and it is not geographic. It is the order the continents first
 appear in the table, because the rows are sorted by country and Afghanistan
 comes before Albania. The animation is showing you how a file was sorted. The
 points jump between frames, and none of the jumps mean anything.
+
+gog says so above the plot, and it draws it anyway. Nothing about the sentence
+is malformed, so the sequence is yours to keep if you meant it; what the message
+gives you is the running order it had to invent, and the two ways to state one.
+Give the column its levels and the frames follow them. Bind `facet(continent)`
+instead and the panels claim no order at all.
 
 This is the same mistake as a rainbow ramp on a numeric column
 ([Channels](channels.qmd)). The encoding carries an order the thing itself does
@@ -589,11 +596,48 @@ because a specification can also be written by hand, but you will never see that
 message from a sentence: the language you are writing in refuses first, which is
 the earlier and better place for it.
 
-## What is not here yet
+## What the page adds
 
-Two things people expect from an animation are missing. Neither is an oversight,
-and the two are missing for different reasons. One waits on a word the grammar
-does not have. The other waits on nothing but the work.
+A played plot on a web page carries three more buttons. They sit on the same line
+as [the four every plot
+has](first-plot.qmd#the-boxes-under-every-plot), a little to the right of them,
+and they work the clock:
+
+| Control | What it does |
+|---|---|
+| the left arrow | Goes back one frame, and stops the clock |
+| the pause | Stops the clock. It becomes a play arrow, which starts it again |
+| the right arrow | Goes forward one frame, and stops the clock |
+
+Stepping stops the clock, and it has to. A clock left running would carry you off
+the frame you just asked for, in less than a second. So the arrows stop it, and
+the middle button is how you start it again.
+
+The ends join up. Go back from the first frame and you arrive at the last.
+The sequence already runs that way: it loops, so the last frame is followed by
+the first every time round. Buttons that stopped at the ends would disagree with
+the animation they control.
+
+Nothing displays the frame you are on, because the strip above the panel already
+names it. That strip is the sequence's guide, drawn on every played plot, the way
+an axis is drawn for `x`.
+
+None of the three is in the sentence, and that is the rule rather than an
+omission. Every frame is already in the file: the whole sequence is drawn once,
+and a clock decides which frame you see at each moment. Stepping moves that
+clock. It chooses no rows, hides no rows, and changes nothing the sentence said.
+So it stands where turning a cube stands ([Space](space.qmd)), which changes how
+you look and never what is drawn. Neither one earns a word in the grammar.
+
+Stop the clock and the camera photographs the frame you stopped on. That is the
+camera's own rule holding rather than a rule about animation: it saves what you
+are looking at, the same way it saves how far you have zoomed in.
+
+On paper, and in the PDF edition, a played plot is the first frame with its
+strip. The buttons are the page's, so a printed sequence has none, and none is
+missing there.
+
+## What is not here yet
 
 There is **no tweening**: frames cut, they do not glide. A bubble in 1957 and a
 bubble in 1962 are two complete pictures shown in turn, not one bubble eased
@@ -603,24 +647,3 @@ grammar has no word for that yet. `group` looks like the word until you notice
 that a `point` does not take it, and the bubble everyone wants to see glide is a
 point. So the missing piece is a vocabulary decision rather than a drawing
 technique, which is why it is owed rather than half-built.
-
-There is **no transport**: no play button, no pause, no scrub bar. The sequence
-loops.
-
-For a while this looked like the harder of the two. A scrub bar seems to pick out
-a stretch of frames, and picking things out is what the `brush` word is for. That
-reading turned out to be wrong, and seeing why takes one paragraph. It is worth
-the paragraph, because it decides where the buttons belong.
-
-Every frame is already in the file. The whole sequence is drawn once, and a clock
-decides which frame you see at each moment. So a scrub bar moves the clock. It
-chooses no rows, hides no rows, and changes nothing the sentence said. Play and
-pause do the same thing, one step smaller.
-
-That puts all three on the same side of a line this book has already drawn. You
-can turn a plot in the cube with the mouse ([Space](space.qmd)). Turning it
-changes how you look, never what is drawn, so no word was added to the grammar
-for it. The transport is the same kind of control, for time instead of angle. It
-belongs to the page a plot is shown on, not to the sentence that describes the
-plot. Nothing in the grammar has to grow to get these buttons. They are simply
-not built yet.
