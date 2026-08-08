@@ -115,21 +115,80 @@ div.quarto-post .listing-categories .listing-category:hover,
  * `body.quarto-light` and `body.quarto-dark` are what the theme toggle
  * switches, so keying off them is also what makes the navbar follow it. */
 body.quarto-light .navbar {
-  background-color: #ffdba4;
+  background-color: #241f19;
   border-bottom: 1px solid rgba(22, 19, 15, 0.14);
-  box-shadow: 0 1px 14px rgba(22, 19, 15, 0.05);
+  box-shadow: 0 1px 14px rgba(22, 19, 15, 0.12);
 }
 
+/* Near-white and not the teal accent. These are furniture rather than links:
+ * the search icon and the theme toggle are how a reader operates the page, so
+ * they have to be the most legible things on the bar, and a colored icon on a
+ * near-black ground is always dimmer than a white one. Teal earns its place in
+ * the writing, where it marks something to click. */
 body.quarto-light .navbar .navbar-brand,
-body.quarto-light .navbar .nav-link,
-body.quarto-light .navbar .quarto-color-scheme-toggle {
-  color: #16130f;
+body.quarto-light .navbar .nav-link {
+  color: #f3ede4;
 }
 
-/* Lighter than the page rather than a shade off it. At `#201c16` against a
- * `#17140f` body the two read as one surface and the bar stopped looking like a
- * bar. The step up plus a warmer hairline is what separates them; going darker
- * than the body was the other option and it loses the peach brand text. */
+/* The two navbar tools need their own rule, and the selector has to name
+ * `.quarto-navbar-tools` because Quarto's does:
+ *
+ *   .navbar .quarto-navbar-tools .quarto-navigation-tool { color: … }
+ *
+ * A shorter selector here loses on specificity and the icon keeps Quarto's
+ * color, which is how the magnifier stayed invisible while the sun beside it
+ * came out near-white.
+ *
+ * What Quarto puts there is a dark brown, `#4f4433`, computed at compile time
+ * to contrast against `$navbar-bg`, which the theme file still calls peach.
+ * The bar above is painted near-black in CSS rather than by that variable, so
+ * the tools are colored for a bar that no longer exists: readable on peach,
+ * almost invisible on ink. Setting `$navbar-bg` in `theme-light.scss` is the
+ * root fix; this is what makes it right today. `fill` is named beside `color`
+ * because the artwork is inline SVG and does not always inherit. */
+body.quarto-light .navbar .quarto-navbar-tools .quarto-navigation-tool,
+body.quarto-light .navbar .quarto-color-scheme-toggle,
+body.quarto-light .navbar .aa-DetachedSearchButton .aa-DetachedSearchButtonIcon {
+  color: #f3ede4;
+  opacity: 1;
+}
+
+/* The magnifier needs its own rule, and it has to repeat Quarto's selector
+ * almost word for word. Coloring the button that holds the icon is not enough:
+ * the `svg` inside is painted separately by
+ *
+ *   .navbar #quarto-search.type-overlay .aa-Autocomplete svg.aa-SubmitIcon
+ *
+ * which is one id and four classes. A shorter selector here ties on the id and
+ * then loses on class count, which is why the wrapper turned near-white while
+ * the glyph a reader actually sees stayed the old brown. The artwork is
+ * `fill="currentColor"`, so setting the color is enough once the rule wins.
+ *
+ * The two `.aa-Form` selectors are the same icon inside the opened search
+ * panel, and the loading spinner beside it. */
+body.quarto-light .navbar #quarto-search.type-overlay .aa-Autocomplete svg.aa-SubmitIcon,
+body.quarto-light .navbar #quarto-search.type-overlay .aa-Autocomplete .aa-Form .aa-Label svg,
+body.quarto-light .navbar #quarto-search.type-overlay .aa-Autocomplete .aa-Form .aa-LoadingIndicator svg {
+  color: #f3ede4;
+  opacity: 1;
+}
+
+body.quarto-light .navbar .aa-DetachedSearchButton:hover .aa-DetachedSearchButtonIcon,
+body.quarto-light .navbar .aa-DetachedSearchButton:hover svg.aa-SubmitIcon {
+  color: #ffffff;
+}
+
+body.quarto-light .navbar .nav-link:hover,
+body.quarto-light .navbar .nav-link.active,
+body.quarto-light .navbar .quarto-navbar-tools .quarto-navigation-tool:hover,
+body.quarto-light .navbar .quarto-color-scheme-toggle:hover,
+body.quarto-light .navbar .aa-DetachedSearchButton:hover .aa-DetachedSearchButtonIcon {
+  color: #ffffff;
+}
+
+/* The dark bar is the same near-black, one step up from the `#17140f` body so
+ * that it still reads as a bar rather than as one surface with the page. Going
+ * darker than the body was the other option and it loses that separation. */
 body.quarto-dark .navbar {
   background-color: #2e2820;
   border-bottom: 1px solid #463d2e;
@@ -137,8 +196,10 @@ body.quarto-dark .navbar {
 }
 
 body.quarto-dark .navbar .navbar-brand,
-body.quarto-dark .navbar .quarto-color-scheme-toggle {
-  color: #ffdba4;
+body.quarto-dark .navbar .quarto-color-scheme-toggle,
+body.quarto-dark .navbar .quarto-navigation-tool,
+body.quarto-dark #quarto-search .aa-DetachedSearchButtonIcon {
+  color: #f3ede4;
 }
 
 body.quarto-dark .navbar .nav-link {
@@ -147,7 +208,37 @@ body.quarto-dark .navbar .nav-link {
 
 body.quarto-dark .navbar .nav-link:hover,
 body.quarto-dark .navbar .nav-link.active {
-  color: #ffdba4;
+  color: #ffffff;
+}
+
+/* The highlighted row in a navbar menu.
+ *
+ * Bootstrap ships a blue for this, which belongs to no part of this palette and
+ * was the one stock color left on the bar. Light mode was worse than wrong: the
+ * default resolves to a warm off-white against a near-white panel, so nothing
+ * marked which row the pointer or the keyboard was on.
+ *
+ * A solid fill rather than a tint, because this is a two-row menu where the
+ * package names differ by one letter. A wash asks a reader to compare two pale
+ * backgrounds; a fill answers before they look. The dark value is lifted rather
+ * than reused, so it keeps the same separation from a dark panel that the light
+ * one has from a white one.
+ *
+ * `:focus` is named beside `:hover` on purpose. It is how the menu reads to
+ * someone arriving by keyboard, and it is the half that is easy to leave out
+ * because a pointer never shows it. */
+body.quarto-light .navbar .dropdown-menu .dropdown-item:hover,
+body.quarto-light .navbar .dropdown-menu .dropdown-item:focus,
+body.quarto-light .navbar .dropdown-menu .dropdown-item.active {
+  background-color: #0f6b60;
+  color: #ffffff;
+}
+
+body.quarto-dark .navbar .dropdown-menu .dropdown-item:hover,
+body.quarto-dark .navbar .dropdown-menu .dropdown-item:focus,
+body.quarto-dark .navbar .dropdown-menu .dropdown-item.active {
+  background-color: #15756a;
+  color: #ffffff;
 }
 
 .navbar {
@@ -237,7 +328,7 @@ body.quarto-dark #quarto-search svg {
 
 body.quarto-dark #quarto-search .aa-DetachedSearchButton:hover .aa-DetachedSearchButtonIcon,
 body.quarto-dark .quarto-color-scheme-toggle:hover {
-  color: #ffdba4;
+  color: #ffffff;
 }
 
 
@@ -739,9 +830,9 @@ main.content .cell > .cell-output-display svg {
   }
 
   body.quarto-light .navbar .navbar-collapse {
-    background-color: #ffdba4;
+    background-color: #241f19;
     border-bottom: 1px solid rgba(22, 19, 15, 0.14);
-    box-shadow: 0 10px 22px rgba(22, 19, 15, 0.13);
+    box-shadow: 0 10px 22px rgba(22, 19, 15, 0.22);
   }
 
   body.quarto-dark .navbar .navbar-collapse {

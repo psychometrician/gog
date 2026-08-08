@@ -4,8 +4,11 @@
 // peach accent looks like two designs; these greys carry a little of the same
 // orange, so the accent belongs to the page instead of sitting on top of it.
 
-$peach:        #ffdba4;
+$peach:        #ffdba4;   // gog's, and now only gog's
 $peach-muted:  #e9c48a;
+$god-blue:     #b9cfe2;   // god's, and now only god's
+$teal:         #6fc9bd;   // the accent, lifted so it carries on a dark ground
+$teal-bright:  #9adfd4;
 $ink-bg:       #17140f;
 $ink-panel:    #201c16;
 $ink-line:     #352f26;
@@ -15,8 +18,13 @@ $paper-soft:   #b3a89a;
 $body-bg:      $ink-bg;
 $body-color:   $paper;
 
-$link-color:       $peach;
-$link-hover-color: #fff0d6;
+// Where the old palette did most of its work, and where it was least visible as
+// a decision: `$link-color: $peach` meant every link on every dark page was gog's
+// sticker colour, which on a site with two packages quietly made one of them the
+// site. The accent belongs to neither now, so peach and slate blue are left to
+// mean which package, and nothing else.
+$link-color:       $teal;
+$link-hover-color: $teal-bright;
 
 $gray-100: $ink-panel;
 $gray-200: #262119;
@@ -34,10 +42,10 @@ $gray-800: $paper;
 // is the brightest thing on a dark page, which puts the emphasis on navigation
 // instead of on the writing. The peach stays, as the text and the underline.
 $navbar-bg:                 $ink-panel;
-$navbar-dark-color:         rgba(236, 230, 221, 0.72);
-$navbar-dark-hover-color:   $peach;
-$navbar-dark-active-color:  $peach;
-$navbar-dark-brand-color:   $peach;
+$navbar-dark-color:         rgba(236, 230, 221, 0.78);
+$navbar-dark-hover-color:   #ffffff;
+$navbar-dark-active-color:  #ffffff;
+$navbar-dark-brand-color:   #f3ede4;
 
 // Pinned, and pinned identically in both themes. Cosmo ships
 // `$navbar-padding-y: 0.5rem` and darkly ships `1rem`, so the bar changed
