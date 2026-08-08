@@ -285,11 +285,30 @@ body.quarto-dark .quarto-color-scheme-toggle:hover {
   border-bottom: 1px solid var(--bs-border-color, #e2dbd1);
 }
 
-.site-hero img {
+/* The two stickers, stacked in one column at the left of the hero. Small:
+ * these are a mark on the page and not the picture on it, so the column is a
+ * fraction of the width of the single 152px sticker that stood here when there
+ * was one package. `flex-wrap` on the parent puts the text below on a phone,
+ * so there is no breakpoint to write. */
+/* The `width` and `height` attributes on the SVG itself are the floor, and are
+ * not redundant with this rule. An SVG carrying a `viewBox` and no intrinsic
+ * size expands to fill its container, so a stale or missing stylesheet does not
+ * make these stickers slightly wrong, it makes them fill the page above the
+ * heading. The attributes cap that; this rule is what actually sets the size. */
+.site-hero-hexes {
   width: 152px;
   height: auto;
   flex: 0 0 auto;
-  filter: drop-shadow(0 6px 20px rgba(22, 19, 15, 0.16));
+}
+
+/* The shadow sits on each sticker rather than on the SVG, so it follows the
+ * hexagons instead of the box that contains them. */
+.site-hero-hexes image {
+  filter: drop-shadow(0 4px 14px rgba(22, 19, 15, 0.16));
+}
+
+.quarto-dark .site-hero-hexes image {
+  filter: drop-shadow(0 4px 16px rgba(0, 0, 0, 0.5));
 }
 
 .site-hero-text {
@@ -329,6 +348,17 @@ body.quarto-dark .quarto-color-scheme-toggle:hover {
 }
 
 .quarto-dark .site-slogan { border-bottom-color: #e9c48a; }
+
+/* Each package underlines its own tagline in its own color, sampled from its
+ * sticker rather than chosen: `#ffdba4` above is the peach gog's hexagon is
+ * filled with, and `#b9cfe2` here is god's slate blue from its own. That is
+ * what ties a line of copy to the hexagon sitting beside it.
+ *
+ * These must stay below the two rules above. All four selectors carry the same
+ * specificity, so order is the only thing deciding them, and moving this block
+ * up leaves god's tagline underlined in gog's peach. */
+.site-slogan-god { border-bottom-color: #b9cfe2; }
+.quarto-dark .site-slogan-god { border-bottom-color: #9cbcd8; }
 
 /* ---------------------------------------------------------------------------
  * The listing

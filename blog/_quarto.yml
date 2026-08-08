@@ -71,28 +71,54 @@ website:
   navbar:
     title: "psychometrician"
     left:
-      # All four carry a mark from Bootstrap Icons, which the theme already
-      # loads, so the row costs no extra request. They are picked to be
-      # distinguishable at a glance rather than to be clever: a stack of cards
-      # for the list of posts, a book for the book, a cat for the source, and
-      # the RSS mark, which is the one icon on this bar that people genuinely
-      # recognize faster than its word.
+      # Each carries a mark from Bootstrap Icons, which the theme already loads,
+      # so the row costs no extra request. They are picked to be distinguishable
+      # at a glance rather than to be clever: a stack of cards for the list of
+      # posts, a book for the books, a cat for the source, and the RSS mark,
+      # which is the one icon on this bar that people genuinely recognize faster
+      # than its word.
       - href: index.qmd
         text: Posts
         icon: list-ul
-      # Both leave this site, because both genuinely are other sites: the manual
-      # is published from its own repository and the source is on GitHub. They
-      # open in a new tab so that leaving does not mean losing the post you were
-      # reading. `link-external-newwindow` below does the same for links in the
-      # body of a post, but it does not reach the navbar.
-      - href: https://psychometrician.github.io/gog-book/
-        text: The book
+      # Two packages, so the bar names kinds and the menu names projects. The
+      # other way round was tried on paper and rejected: `gog` and `god` differ
+      # by one letter, and side by side in a bar that is a misread rather than a
+      # choice. A menu row gives each one space and room to say what it is,
+      # which the old singular "The book" never did even with one package.
+      #
+      # Everything under both menus leaves this site, because both genuinely are
+      # other sites: each manual is published from its own repository and the
+      # source is on GitHub. They open in a new tab so that leaving does not
+      # mean losing the post you were reading. `link-external-newwindow` below
+      # does the same for links in the body of a post, but it does not reach the
+      # navbar, so every item says `target` for itself.
+      # god before gog, here and everywhere else on the site: god's sticker sits
+      # above gog's in the hero and its paragraph comes first.
+      #
+      # The order follows the work rather than the packages. Data is manipulated
+      # first and plotted last, so a reader meets the two in the order they
+      # would reach for them, and the heading on the front page says the same
+      # thing in words. That is also why it should not be flipped back to put
+      # the older and better known package first: age is a fact about us, and
+      # the workflow is a fact about the reader.
+      - text: Books
         icon: book
-        target: _blank
-      - href: https://github.com/psychometrician/gog
-        text: Source
+        menu:
+          - href: https://psychometrician.github.io/god-book/
+            text: "god, a grammar of data"
+            target: _blank
+          - href: https://psychometrician.github.io/gog-book/
+            text: "gog, a grammar of graphics"
+            target: _blank
+      - text: Source
         icon: github
-        target: _blank
+        menu:
+          - href: https://github.com/psychometrician/god
+            text: "god, a grammar of data"
+            target: _blank
+          - href: https://github.com/psychometrician/gog
+            text: "gog, a grammar of graphics"
+            target: _blank
       - href: archive.qmd
         text: Archive
         icon: clock-history
