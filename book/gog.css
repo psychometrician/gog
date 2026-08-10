@@ -389,11 +389,38 @@ body.quarto-dark div.sourceCode code span.co {
  * for. Both regions are Quarto's; what follows is their sizing, their color and
  * how they stack on a phone.
  *
- * What is *not* here is the blog's own alignment, which holds the bar to that
- * site's writing column. The book lays out with a sidebar and a table of
- * contents, so it has no such column to line up with, and the rule belongs to
- * the site that has one.
+ * The width rule is here too, and it used to not be. The reasoning then was
+ * that the book, laying out with a sidebar and a table of contents, has no
+ * single writing column to line up with — true, and it missed the actual
+ * defect: with nothing holding it, the footer's contents ran to the edges of
+ * however wide the monitor was, licences at one horizon and icons at the
+ * other. A footer is not allowed to expand with the glass. So the contents
+ * are held to the same measure the blog holds its own to, centered; the band
+ * behind them still spans the window.
  * ------------------------------------------------------------------------- */
+
+/* `footer.footer .nav-footer` rather than `.nav-footer`: the framework sets
+ * the side padding with `footer.footer .nav-footer, #quarto-header>nav`,
+ * which is (0,2,1) and beats a bare class. The blog pairs its navbar with the
+ * same numbers in `blog.css`; the navbar is that site's alone, so only the
+ * footer half lives here. */
+footer.footer .nav-footer {
+  max-width: 1135px;
+  margin-left: auto;
+  margin-right: auto;
+  width: 100%;
+  padding-left: 0;
+  padding-right: 0;
+}
+
+/* Narrow screens get their gutter back, since there is nothing to line up
+ * with once the layout collapses to one column. */
+@media (max-width: 991.98px) {
+  footer.footer .nav-footer {
+    padding-left: 1rem;
+    padding-right: 1rem;
+  }
+}
 
 /* Each licence is one unit. Left to itself the line broke wherever it ran out of
  * room, which put "Apache 2.0." alone on a second line looking like a mistake.

@@ -261,11 +261,12 @@ body.quarto-dark .navbar .dropdown-menu .dropdown-item.active {
  * because both are centred in the same box. The framework's `1em` of padding is
  * removed for the same reason, since it was pushing the search icon ten pixels
  * to the right of everything under it. */
-/* `footer.footer .nav-footer` rather than `.nav-footer`: the framework sets the
- * side padding with `footer.footer .nav-footer, #quarto-header>nav`, which is
- * (0,2,1) and beat a bare class. */
-.navbar > .navbar-container,
-footer.footer .nav-footer {
+/* The footer's half of this rule moved to `gog.css`, because the footer is
+ * one design in both places and a footer is not allowed to expand with the
+ * glass on either site. The navbar stays here: it is this site's alone, and
+ * it lines up with the same 1135px measure the staged rule holds the footer
+ * to. */
+.navbar > .navbar-container {
   max-width: 1135px;
   margin-left: auto;
   margin-right: auto;
@@ -275,10 +276,9 @@ footer.footer .nav-footer {
 }
 
 /* Narrow screens get their gutter back, since there is no column to line up
- * with once the grid collapses. */
+ * with once the grid collapses. The footer's half of this, too, is staged. */
 @media (max-width: 991.98px) {
-  .navbar > .navbar-container,
-  footer.footer .nav-footer {
+  .navbar > .navbar-container {
     padding-left: 1rem;
     padding-right: 1rem;
   }
