@@ -90,10 +90,10 @@ never quietly ignores part of what you asked for.
 a value, as in `style(color="tomato")`. Writing `x("gdp")` is refused, with the
 correct spelling named. Use `col["life exp"]` for a name with a space in it.
 
-**`from gog import *` replaces five builtins** — `bin`, `sum`, `min`, `max` and
-`range` are statistics here. If you need the originals in the same file, use
-`import gog` and write `gog.point`, or take one back with
-`from builtins import sum`.
+**`from gog import *` replaces six builtins** — `bin`, `sum`, `min`, `max` and
+`range` are statistics here, and `map` is a coordinate space. If you need the
+originals in the same file, use `import gog` and write `gog.point`, or take one
+back with `from builtins import sum`.
 
 ## Examples
 

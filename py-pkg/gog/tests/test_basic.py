@@ -1480,13 +1480,21 @@ assert _typed["s"] == ["01", "02"], _typed["s"]
 assert _typed["w"] == ["x", "y"], _typed["w"]
 ok("book_table() types a column only when every value in it is a number")
 
-try:
-    book_table(42)
-except TypeError as _error:
-    assert "one table name" in str(_error), str(_error)
-    ok("book_table() takes one name and refuses anything else")
-else:
-    raise AssertionError("FAIL: book_table(42) was accepted")
+# `GogError`, not `TypeError`: every refusal in this package is one class, so
+# `except GogError` around a session catches the lot — `errors.py` records why.
+refuses("`book_table()` with something that is not a name", lambda: book_table(42))
+
+# `map(preserve=)` was the one refusal in the package raised as a `ValueError`,
+# which `except GogError` missed; now it is the same class as the other hundred.
+refuses("`map(preserve=)` beyond its two words", lambda: map(preserve="upside"))
+
+# The viewing angles are numbers and a label is one string — checked at the
+# line the caller wrote, in every binding. `float("left")` used to raise a
+# bare `ValueError` here.
+refuses("a string viewing angle", lambda: space(turn="left"))
+refuses("a string polar start", lambda: polar(start="top"))
+refuses("`x_label()` with a number", lambda: x_label(42))
+refuses("`title()` with a number", lambda: title(42))
 
 try:
     _gm = book_table("gapminder_2007")

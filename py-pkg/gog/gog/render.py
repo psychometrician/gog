@@ -467,14 +467,6 @@ def _find_wasm_assets() -> Optional[Tuple[str, str]]:
     return None
 
 
-def _data_uri(path: str, mime: str) -> str:
-    """A file as a `data:` URI — the only form that survives being emailed."""
-    import base64
-
-    with open(path, "rb") as handle:
-        return f"data:{mime};base64," + base64.b64encode(handle.read()).decode("ascii")
-
-
 def _inline_modules(paths: List[str]) -> str:
     """The modules' own source, ready to sit inside `<script type="module">`.
 
@@ -706,7 +698,7 @@ def save_gif(plot: Any, path: str, scale: float = 1.0) -> str:
     says otherwise — small for a post, so `scale=2` doubles it.
     """
     if not isinstance(path, str) or not path:
-        raise GogError('gog: `save_gif()` needs one path — save_gif(p, "wave.gif").')
+        raise GogError('gog: `save_gif()` needs one path — `save_gif(p, "wave.gif")`.')
     # The name says what the file is, so a path that says otherwise is refused
     # rather than quietly corrected. Writing GIF bytes into `wave.png` is the
     # kind of small lie that is discovered much later, by someone else.
@@ -714,12 +706,12 @@ def save_gif(plot: Any, path: str, scale: float = 1.0) -> str:
         stem = path.rsplit(".", 1)[0] or path
         raise GogError(
             "gog: `save_gif()` writes a GIF, so the path ends in `.gif` — "
-            f'save_gif(p, "{stem}.gif").'
+            f'`save_gif(p, "{stem}.gif")`.'
         )
     if not isinstance(scale, (int, float)) or isinstance(scale, bool) or scale <= 0:
         raise GogError(
             "gog: `save_gif(scale=)` needs one positive number, e.g. "
-            'save_gif(p, "wave.gif", scale=2).'
+            '`save_gif(p, "wave.gif", scale=2)`.'
         )
 
     result = subprocess.run(

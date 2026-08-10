@@ -20,9 +20,10 @@ plain string is a *value* (`style(color="tomato")`, `title("...")`), so the
 accessor is what keeps "which column?" and "which value?" apart — see
 `gog/columns.py` for why the four characters earn their place.
 
-**`from gog import *` shadows five builtins** — `bin`, `sum`, `min`, `max` and
-`range` are transforms here. That is the same ruling the R package makes when
-it masks `base::range` and `base::sum`: a DSL keeps its own vocabulary, and the
+**`from gog import *` shadows six builtins** — `bin`, `sum`, `min`, `max` and
+`range` are transforms here, and `map` is the projected coordinate space. That
+is the same ruling the R package makes when it masks `base::range` and
+`base::sum`: a DSL keeps its own vocabulary, and the
 alternative is a grammar that reads `gog.bar * gog.bin + gog.x(...)`. Where a
 module needs both, import the package instead (`import gog`) and spell the
 sentence with the prefix, or re-import the builtin you need

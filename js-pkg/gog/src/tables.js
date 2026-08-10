@@ -14,6 +14,8 @@
 // The tables are not shipped with the package. They are fetched from the book's
 // own site, so one copy serves all four languages.
 
+import { GogError } from "./errors.js";
+
 export const BOOK_DATA_URL = "https://psychometrician.github.io/gog-book/data/";
 
 /**
@@ -71,7 +73,7 @@ export function columns(rows, text = []) {
  */
 export async function book_table(name, text = []) {
   if (typeof name !== "string") {
-    throw new TypeError(
+    throw new GogError(
       'gog: book_table() takes one table name, as in book_table("gapminder_2007"). ' +
       "The names are listed in the book's data chapter.",
     );

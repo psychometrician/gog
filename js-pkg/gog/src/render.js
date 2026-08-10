@@ -500,7 +500,7 @@ export function save_gif(plot, file, options = {}) {
     );
   }
   if (typeof file !== "string" || !file) {
-    throw new GogError('gog: `save_gif()` needs one path — `save_gif(p, "wave.gif").');
+    throw new GogError('gog: `save_gif()` needs one path — `save_gif(p, "wave.gif")`.');
   }
   // The name says what the file is, so a path that says otherwise is refused
   // rather than quietly corrected. Writing GIF bytes into `wave.png` is the kind
@@ -509,14 +509,14 @@ export function save_gif(plot, file, options = {}) {
     const stem = file.replace(/\.[^.]*$/, "") || file;
     throw new GogError(
       "gog: `save_gif()` writes a GIF, so the path ends in `.gif` — " +
-        `save_gif(p, "${stem}.gif").`
+        `\`save_gif(p, "${stem}.gif")\`.`
     );
   }
   const scale = options.scale ?? 1;
   if (typeof scale !== "number" || !Number.isFinite(scale) || scale <= 0) {
     throw new GogError(
       "gog: `save_gif({ scale })` needs one positive number, e.g. " +
-        'save_gif(p, "wave.gif", { scale: 2 }).'
+        '`save_gif(p, "wave.gif", { scale: 2 })`.'
     );
   }
 
@@ -570,9 +570,6 @@ function findWasmAssets() {
   }
   return null;
 }
-
-const dataUri = (file, mime) =>
-  `data:${mime};base64,` + fs.readFileSync(file).toString("base64");
 
 // The modules' own source, ready to sit inside `<script type="module">`.
 //

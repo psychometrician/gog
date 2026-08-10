@@ -758,10 +758,22 @@ cat("\ntheme tests passed.\n")
 # style() — constants are set, not mapped
 # ---------------------------------------------------------------------------
 
-refuses <- function(label, expr) {
+refuses <- function(label, expr, fragment) {
   msg <- tryCatch({ force(expr); NA_character_ },
                   error = function(e) conditionMessage(e))
   if (is.na(msg)) stop("FAIL: ", label, " should have been refused")
+  # Any error used to pass here, so a refusal test could not tell a gog
+  # refusal from base R's "object not found" — the vacuous pass that let
+  # `box(whiskers = )` ship broken in every released version. A refusal is
+  # gog's, and it is *this* refusal: the fragment is mandatory, as Julia's
+  # `@refuses` has required from the start.
+  if (!grepl("gog:", msg, fixed = TRUE))
+    stop("FAIL: ", label, " errored, but not with a gog refusal: ", msg)
+  if (missing(fragment))
+    stop("FAIL: ", label, " — refuses() requires the message fragment it expects")
+  if (!grepl(fragment, msg, fixed = TRUE))
+    stop("FAIL: ", label, " refused with the wrong words.\n  wanted: ",
+         fragment, "\n  got: ", msg)
   cat("PASS: refused —", label, "\n")
   invisible(msg)
 }
@@ -778,7 +790,8 @@ cat("PASS: a map earns a legend, a set does not\n")
 
 # `line` refuses opacity as a channel but accepts it as a setting — the case
 # the whole set/map split exists for.
-refuses("opacity(y) on line", render_svg(data(df) + x(x) + y(y) + line + opacity(y)))
+refuses("opacity(y) on line", render_svg(data(df) + x(x) + y(y) + line + opacity(y)),
+        "no opacity feature")
 svg14 <- render_svg(data(df) + x(x) + y(y) + line + style(opacity = 0.4, size = 6))
 if (!grepl('stroke-width="6"', svg14)) stop("FAIL: style(size) missing on line")
 if (!grepl('stroke-opacity="0.400"', svg14)) stop("FAIL: style(opacity) missing on line")
@@ -786,25 +799,31 @@ cat("PASS: line takes size/opacity as settings\n")
 
 # Refusals, each with a directional message.
 m <- refuses("style(shape) on bar",
-             render_svg(data(bar_df) + x(category) + y(value) + bar + style(shape = "square")))
+             render_svg(data(bar_df) + x(category) + y(value) + bar + style(shape = "square")),
+        "no shape to set")
 if (!grepl("no shape to set", m)) stop("FAIL: unhelpful message: ", m)
 
 m <- refuses("mapping and setting color together",
-             render_svg(data(df) + x(x) + y(y) + point + color(group) + style(color = "red")))
+             render_svg(data(df) + x(x) + y(y) + point + color(group) + style(color = "red")),
+        "cannot do both")
 if (!grepl("cannot do both", m)) stop("FAIL: unhelpful message: ", m)
 
 m <- refuses("a misspelt color",
-             render_svg(data(df) + x(x) + y(y) + point + style(color = "stelblue")))
+             render_svg(data(df) + x(x) + y(y) + point + style(color = "stelblue")),
+        "steelblue")
 if (!grepl("steelblue", m)) stop("FAIL: no suggestion offered: ", m)
 
 m <- refuses("an R color name",
-             render_svg(data(df) + x(x) + y(y) + point + style(color = "gray80")))
+             render_svg(data(df) + x(x) + y(y) + point + style(color = "gray80")),
+        "R color name")
 if (!grepl("R color name", m)) stop("FAIL: vocabulary not explained: ", m)
 
-m <- refuses("style() before any mark", data(df) + x(x) + style(color = "red"))
+m <- refuses("style() before any mark", data(df) + x(x) + style(color = "red"),
+        "no mark to style")
 if (!grepl("no mark to style", m)) stop("FAIL: unhelpful message: ", m)
 
-m <- refuses("style() with nothing set", style())
+m <- refuses("style() with nothing set", style(),
+        "sets nothing")
 if (!grepl("sets nothing", m)) stop("FAIL: unhelpful message: ", m)
 
 # One spelling of English, and the refusal has to say which. A reader arriving
@@ -813,20 +832,53 @@ if (!grepl("sets nothing", m)) stop("FAIL: unhelpful message: ", m)
 for (pair in list(c("colour", "color"), c("border_colour", "border_color"),
                   c("centre", "center"))) {
   m <- refuses(paste0("the British spelling of `", pair[[2]], "`"),
-               do.call(style, setNames(list("red"), pair[[1]])))
+               do.call(style, setNames(list("red"), pair[[1]])),
+               paste0("gog spells it `", pair[[2]], "`"))
   if (!grepl(paste0("gog spells it `", pair[[2]], "`"), m, fixed = TRUE))
     stop("FAIL: the American spelling is not named: ", m)
   if (!grepl("ggplot2", m)) stop("FAIL: does not say ggplot2 differs: ", m)
 }
-m <- refuses("an unknown setting that is not a British spelling", style(nonsense = 1))
+m <- refuses("an unknown setting that is not a British spelling", style(nonsense = 1),
+        "gog sets:")
 if (!grepl("gog sets:", m)) stop("FAIL: a plain typo should get the list: ", m)
-m <- refuses("the British spelling of the color channel", colour(group))
+m <- refuses("the British spelling of the color channel", colour(group),
+        "gog spells it `color(<column>)`")
 if (!grepl("gog spells it `color(<column>)`", m, fixed = TRUE))
   stop("FAIL: `colour()` must name `color()`: ", m)
 
+# --- a channel takes a column, never a value (the capture-side check) --------
+# `color("red")` used to travel to the engine as a column named `"red"`,
+# quotes included, and the missing-column error blamed the reader for what the
+# binding lost. The other three bindings have refused this from the start.
+m <- refuses("a value where a channel wants a column", color("red"),
+        "binds a *value*")
+if (!grepl('style(color = "red")', m, fixed = TRUE))
+  stop("FAIL: a settable channel's refusal should offer style(): ", m)
+refuses("a number where a channel wants a column", x(3), "binds a *value*")
+refuses("a value on a channel with no setting to offer", group("g"),
+        "binds a *value*")
+# A bare name still captures, whatever the workspace holds under it (Law 4).
+invisible(render_svg(data(df) + x(x) + y(y) + point + color(group)))
+cat("PASS: a bare name is a column, a literal is refused\n")
+
+# The viewing angles are numbers, checked where they were typed — the same
+# check Julia and JavaScript run, in the same words.
+refuses("a string viewing angle", space(turn = "left"), "number of degrees")
+refuses("a missing polar start", polar(start = NA), "number of degrees")
+
+# A label is one string, as the other three bindings already refuse.
+refuses("a numeric axis label", x_label(42), "needs a string")
+refuses("a numeric title", title(42), "needs a string")
+
+# book_table() refuses a non-name with gog's sentence, as the other three do,
+# and touches no network to say it.
+refuses("book_table() with something that is not a name", book_table(3),
+        "one table name")
+
 # palette(): a single color name was silently ignored before.
 m <- refuses("palette() given one color name",
-             render_svg(data(df) + x(x) + y(y) + point + color(group) + palette("red")))
+             render_svg(data(df) + x(x) + y(y) + point + color(group) + palette("red")),
+        "style(color")
 if (!grepl("style\\(color", m)) stop("FAIL: does not point at style(): ", m)
 
 svg15 <- render_svg(data(df) + x(x) + y(y) + point + color(group) +
@@ -896,7 +948,8 @@ cat("PASS: a channel only one mark accepts can be scoped to it\n")
 
 # A plot-scoped channel no mark accepts is refused, not silently dropped.
 m <- refuses("plot-scoped size with only a line",
-             render_svg(data(scope_df) + x(t) + y(v) + size(wgt) + line + group(who)))
+             render_svg(data(scope_df) + x(t) + y(v) + size(wgt) + line + group(who)),
+        "no mark here has a size feature")
 if (!grepl("no mark here has a size feature", m)) stop("FAIL: unhelpful message: ", m)
 
 cat("\nchannel scope tests passed.\n")
@@ -948,15 +1001,18 @@ cat("PASS: `bar * count + y(g)` counts along x\n")
 # Both axes categorical leaves nothing to measure. True of every slot mark, and
 # each refusal names that mark's own verb.
 m <- refuses("bar with two categorical axes",
-             render_svg(data(cts) + bar + x(g) + y(g)))
+             render_svg(data(cts) + bar + x(g) + y(g)),
+        "nothing for it to measure")
 if (!grepl("nothing for it to measure", m)) stop("FAIL: unhelpful message: ", m)
 
 m <- refuses("box with two categorical axes",
-             render_svg(data(cts) + box + x(g) + y(g)))
+             render_svg(data(cts) + box + x(g) + y(g)),
+        "nothing for it to summarize")
 if (!grepl("nothing for it to summarize", m)) stop("FAIL: unhelpful message: ", m)
 
 m <- refuses("interval with two categorical axes",
-             render_svg(data(cts) + interval * range + x(g) + y(g)))
+             render_svg(data(cts) + interval * range + x(g) + y(g)),
+        "nothing for it to span")
 if (!grepl("nothing for it to span", m)) stop("FAIL: unhelpful message: ", m)
 
 # The horizontal box plot and error bar: `box`/`interval` read their orientation
@@ -979,7 +1035,8 @@ cat("PASS: a category on y lays the box plot down\n")
 # this one, so a message nothing triggers was a message nothing checked.
 # `refuses()` forces its argument inside the guard, so a refusal raised while
 # the atom is built is caught the same as one raised while the plot draws.
-refuses("box(whiskers = 'middle')", box(whiskers = "middle"))
+refuses("box(whiskers = 'middle')", box(whiskers = "middle"),
+        "is either")
 if (!grepl("is either", tryCatch(box(whiskers = "middle"),
                                  error = function(e) conditionMessage(e))))
   stop("FAIL: box()'s whisker refusal should name the two words it takes")
@@ -1289,7 +1346,8 @@ group_df   <- data.frame(x = c(1, 2, 3), y = c(4, 5, 6))
 group_note <- data.frame(x = c(2), y = c(5))
 
 msg <- refuses("(data(note) + point + area) on the right of `+`",
-               data(group_df) + x(x) + y(y) + line + (data(group_note) + point + area))
+               data(group_df) + x(x) + y(y) + line + (data(group_note) + point + area),
+        "parentheses do not group marks")
 for (want in c("parentheses do not group marks", "repeat", "group_note", "`|` and `/`"))
   if (!grepl(want, msg, fixed = TRUE))
     stop("FAIL: the refusal should say ", want, "; got: ", msg)
@@ -1297,9 +1355,11 @@ cat("PASS: the refusal names the table and gives the sequence to write\n")
 
 # Not only marks: a position or a title inside the parentheses was dropped too.
 refuses("(data(note) + x(x)) on the right of `+`",
-        data(group_df) + x(x) + y(y) + line + (data(group_note) + x(x)))
+        data(group_df) + x(x) + y(y) + line + (data(group_note) + x(x)),
+        "parentheses do not group marks")
 refuses("(data(note) + title()) on the right of `+`",
-        data(group_df) + x(x) + y(y) + line + (data(group_note) + title("hi")))
+        data(group_df) + x(x) + y(y) + line + (data(group_note) + title("hi")),
+        "parentheses do not group marks")
 
 # A bare `data()` carries nothing, so it still joins mid-sentence.
 p_seq <- data(group_df) + x(x) + y(y) + line + data(group_note) + point
@@ -1492,10 +1552,12 @@ cat("PASS: a continuous color earns a min/mid/max legend\n")
 
 # Palette kind must match the column kind, in both directions.
 m <- refuses("categorical palette on a numeric color column",
-             render_svg(data(cdf) + point + x(a) + y(b) + color(v) + palette("okabe")))
+             render_svg(data(cdf) + point + x(a) + y(b) + color(v) + palette("okabe")),
+        "one color per category")
 if (!grepl("one color per category", m)) stop("FAIL: unhelpful message: ", m)
 m <- refuses("sequential ramp on a text color column",
-             render_svg(data(cdf) + point + x(a) + y(b) + color(g) + palette("viridis")))
+             render_svg(data(cdf) + point + x(a) + y(b) + color(g) + palette("viridis")),
+        "sequential ramp")
 if (!grepl("sequential ramp", m)) stop("FAIL: unhelpful message: ", m)
 
 # Unset palette must suit either kind.
@@ -1651,10 +1713,12 @@ cat("PASS: a sum is taken before the scale, so it stays a sum\n")
 
 m <- refuses("log over zero and negative values",
              render_svg(data(data.frame(v = c(1.0, 0.0, -4.0), u = c(1.0, 2.0, 3.0))) +
-                          point + x(v, scale = "log") + y(u)))
+                          point + x(v, scale = "log") + y(u)),
+        "2 of 3")
 if (!grepl("2 of 3", m)) stop("FAIL: message should count the rows: ", m)
 m <- refuses("log of a text column",
-             render_svg(data(sdf) + point + x(place, scale = "log") + y(life)))
+             render_svg(data(sdf) + point + x(place, scale = "log") + y(life)),
+        "is text")
 if (!grepl("is text", m)) stop("FAIL: unhelpful message: ", m)
 
 # A misspelt scale is caught in R, at the line that wrote it.
@@ -1693,7 +1757,8 @@ if (all(lab %in% c("0", "1", "2", "3", "")))
 cat("PASS: values below 1e-4 survive serialization\n")
 
 m <- refuses("a base with no log scale",
-             render_svg(data(oct) + point + x(freq, base = 2) + y(level)))
+             render_svg(data(oct) + point + x(freq, base = 2) + y(level)),
+        "no scale to be the base of")
 if (!grepl("no scale to be the base of", m)) stop("FAIL: unhelpful message: ", m)
 e <- tryCatch({ x(freq, scale = "log", base = 1); NULL },
               error = function(e) conditionMessage(e))
@@ -1771,7 +1836,8 @@ cat("PASS: excluded rows are counted aloud and the plot still draws\n")
 
 # A domain that keeps no row is the empty panel, and that is fatal.
 refuses("a domain that keeps no row",
-        render_svg(data(hrs) + point + x(hour, limits = c(100, 200)) + y(n)))
+        render_svg(data(hrs) + point + x(hour, limits = c(100, 200)) + y(n)),
+        "leaves no rows at all")
 
 # `limits` reaches every channel that measures, not only the axes (Law 1).
 fills <- function(svg) unique(regmatches(svg, gregexpr('fill="#[0-9a-f]{6}"', svg))[[1]])
@@ -1783,7 +1849,8 @@ cat("PASS: limits reach the color ramp, not just the axes\n")
 # A category has no range to lie inside; the refusal points at `order`.
 m <- refuses("limits on a categorical axis",
              render_svg(data(data.frame(g = c("a", "b"), v = c(1, 2))) +
-                        bar + x(g, limits = c(0, 5)) + y(v)))
+                        bar + x(g, limits = c(0, 5)) + y(v)),
+        "order(g)")
 if (!grepl("order\\(g\\)", m)) stop("FAIL: the refusal should name `order`, got ", m)
 
 # Caught in the binding, at the line that wrote it.
@@ -1857,13 +1924,15 @@ cat("PASS: a malformed tick count is refused at the binding\n")
 # A category axis has one tick per level, so the count is the data's.
 m <- refuses("tick_count on a categorical axis",
              render_svg(data(data.frame(g = c("a", "b"), v = c(1, 2))) +
-                        bar + x(g, tick_count = 5) + y(v)))
+                        bar + x(g, tick_count = 5) + y(v)),
+        "order(g)")
 if (!grepl("order\\(g\\)", m)) stop("FAIL: the refusal should name `order`, got ", m)
 
 # One axis, one count — a layer stating its own is the plot-scoped-scale rule.
 m <- refuses("a layer stating its own tick count",
              render_svg(data(grid5) + x(a, tick_count = 4) + y(b) +
-                        point + x(a, tick_count = 9)))
+                        point + x(a, tick_count = 9)),
+        "its own tick count")
 if (!grepl("its own tick count", m))
   stop("FAIL: the refusal should name the parameter, got ", m)
 cat("PASS: a tick count is the plot's, like every other scale property\n")
@@ -1957,7 +2026,8 @@ cat("PASS: a radar band is drawn with chords, not arcs\n")
 # A hexagonal mesh has no polar reading — `bin(tiling = )`'s third refusal.
 pts <- data.frame(a = rep(1:6, 6), b = rep(1:6, each = 6))
 m <- refuses("a hex mesh in polar",
-             render_svg(data(pts) + zone * bin(tiling = "hex") + x(a) + y(b) + polar()))
+             render_svg(data(pts) + zone * bin(tiling = "hex") + x(a) + y(b) + polar()),
+        "rect")
 if (!grepl("rect", m)) stop("FAIL: the refusal should name the tiling that bends, got ", m)
 if (arcs(render_svg(data(pts) + zone * bin(tiling = "rect") + x(a) + y(b) + polar())) == 0)
   stop("FAIL: a rectangular mesh should bend into sectors")
@@ -2021,14 +2091,18 @@ cat("PASS: a bound position packs a second level inside each region\n")
 
 # The space's own refusals, each naming what to do instead.
 m <- refuses("a collision modifier in a packed panel",
-             render_svg(data(sales) + bar * sum * stack + y(revenue) + color(region) + nest()))
+             render_svg(data(sales) + bar * sum * stack + y(revenue) + color(region) + nest()),
+        "own region")
 if (!grepl("own region", m)) stop("FAIL: the refusal should say why a packing has no collisions, got ", m)
 refuses("naming an axis a packed panel does not have",
-        render_svg(data(sales) + bar * sum + y(revenue) + color(region) + nest() + x_label("Revenue")))
+        render_svg(data(sales) + bar * sum + y(revenue) + color(region) + nest() + x_label("Revenue")),
+        "a `nest()` plot has none")
 refuses("a point in a packed panel",
-        render_svg(data(sales) + point + x(revenue) + y(revenue) + nest()))
+        render_svg(data(sales) + point + x(revenue) + y(revenue) + nest()),
+        "packing has none to give it")
 refuses("a log scale on a packed measure",
-        render_svg(data(sales) + bar * sum + y(revenue, scale = "log") + color(region) + nest()))
+        render_svg(data(sales) + bar * sum + y(revenue, scale = "log") + color(region) + nest()),
+        "share of the total")
 
 # A label at the center of its own region — what makes a packing readable once
 # the split is too wide for a legend to decode (2026-07-27). The label layer
@@ -2055,7 +2129,8 @@ cat("PASS: a packed label sits inside its own region\n")
 
 refuses("a nudge in a packed panel, where a label covers no point",
         render_svg(data(sales) + bar + y(revenue) + color(region) +
-                     text + label(product) + style(nudge = "up") + nest()))
+                     text + label(product) + style(nudge = "up") + nest()),
+        "covers no point")
 
 cat("\nnest tests passed.\n")
 
@@ -2094,7 +2169,8 @@ cat("PASS: a pair transform in the cube groups by the floor\n")
 
 # The four decided refusals say so, and do not promise a renderer.
 m <- refuses("a line in the cube",
-             render_svg(data(plots) + line + x(yield) + y(yield) + z(yield) + space()))
+             render_svg(data(plots) + line + x(yield) + y(yield) + z(yield) + space()),
+        "no left to right")
 if (!grepl("no left to right", m)) stop("FAIL: the refusal should give the ruling, got ", m)
 if (grepl("not drawn yet|does not draw it yet", m))
   stop("FAIL: a decided refusal must not promise a renderer, got ", m)
@@ -2103,7 +2179,8 @@ cat("PASS: a 3-D line is refused with its ruling, not with a promise\n")
 
 # The two blocked on occlusion say *that*, which is a different sentence.
 m <- refuses("a rule in the cube",
-             render_svg(data(plots) + rule + x(yield) + z(yield) + space()))
+             render_svg(data(plots) + rule + x(yield) + z(yield) + space()),
+        "footprint")
 if (!grepl("footprint", m)) stop("FAIL: the refusal should name the blocker, got ", m)
 cat("PASS: a 3-D rule is refused as a plane with no footprint\n")
 
@@ -2313,7 +2390,8 @@ if (length(gregexpr("<polygon", svg_area2)[[1]]) != 2)
 cat("PASS: a category splits an area into one region each\n")
 
 # One region has one fill: opacity is a setting, never a channel.
-refuses("opacity(y) on area", render_svg(data(df) + area + x(x) + y(y) + opacity(y)))
+refuses("opacity(y) on area", render_svg(data(df) + area + x(x) + y(y) + opacity(y)),
+        "no opacity feature")
 svg_area3 <- render_svg(data(df) + area + x(x) + y(y) + style(opacity = 0.3))
 if (!grepl('fill-opacity="0.300"', svg_area3))
   stop("FAIL: style(opacity) did not reach the area")
@@ -2321,7 +2399,8 @@ cat("PASS: area takes opacity as a setting\n")
 
 # And where area parts company with line: a stroke's width is free, an area's
 # extent is pinned by its perimeter, so there is no size to set.
-refuses("style(size) on area", render_svg(data(df) + area + x(x) + y(y) + style(size = 4)))
+refuses("style(size) on area", render_svg(data(df) + area + x(x) + y(y) + style(size = 4)),
+        "no size to set")
 
 # Marks the grammar has but this engine cannot draw (`text`, `path`, `surface`)
 # are refused by the engine with direction, never rendered as an empty panel —
@@ -2582,7 +2661,8 @@ if (length(unique(round(tops, 3))) == 1)
 # not a second reading of `proportion`: there is no column for `proportion` to sum.
 invisible(render_svg(data(share_df) + bar * sum * stack(share = TRUE) +
                        x(dir) + y(v) + color(season)))
-refuses("stack(share = ) with a number", stack(share = 1))
+refuses("stack(share = ) with a number", stack(share = 1),
+        "TRUE or FALSE")
 cat("PASS: `stack(share = TRUE)` fills every pile to 1, on any measurement\n")
 
 # 5. A pile has one direction. `stack` spans [foot, foot + value], so a member of
@@ -2594,7 +2674,8 @@ signs <- function(v) data.frame(q = rep(c("Q1", "Q2", "Q3"), 2), amount = v,
                                 kind = rep(c("sales", "returns"), each = 3))
 msg <- refuses("a pile whose members disagree in sign",
                render_svg(data(signs(c(5, 5, 5, 2, -3, 2))) + bar * stack +
-                            x(q) + y(amount) + color(kind)))
+                            x(q) + y(amount) + color(kind)),
+        "dodge")
 for (want in c("Q2", "sales", "returns", "dodge"))
   if (!grepl(want, msg, fixed = TRUE))
     stop("FAIL: the sign refusal never mentions ", want, " — got: ", msg)
@@ -2630,12 +2711,15 @@ if (!length(ticks(strm))) stop("FAIL: the domain axis lost its numbers too")
 # Displacing moves the pile; it never changes a thickness. Same shape count.
 poly <- function(s) length(regmatches(s, gregexpr("<polygon", s))[[1]])
 if (poly(plain) != poly(strm)) stop("FAIL: a displaced pile drew a different number of bands")
-refuses("stack(baseline = ) with a number", stack(baseline = 1))
+refuses("stack(baseline = ) with a number", stack(baseline = 1),
+        "wiggle")
 refuses("a baseline that is not one of the three",
-        render_svg(data(flows) + area * stack(baseline = "sym") + x(t) + y(v) + color(g)))
+        render_svg(data(flows) + area * stack(baseline = "sym") + x(t) + y(v) + color(g)),
+        "is not a baseline")
 refuses("a displaced pile in polar",
         render_svg(data(flows) + area * stack(baseline = "center") + x(t) + y(v) +
-                     color(g) + polar()))
+                     color(g) + polar()),
+        "no origin to spare")
 cat("PASS: `stack(baseline = )` hangs the pile, and a displaced axis draws no numbers\n")
 
 # A *composed* `proportion` synthesizes nothing, so its `y` names an input column
@@ -2644,7 +2728,8 @@ cat("PASS: `stack(baseline = )` hangs the pile, and a displaced axis draws no nu
 # book's own data — drew an empty panel on fabricated 0..1 axes, because
 # `proportion` was still on the list of transforms that invent their own y.
 refuses("a misspelled column under a composed proportion",
-        render_svg(data(share_df) + bar * sum * proportion + x(dir) + y(nosuchcolumn)))
+        render_svg(data(share_df) + bar * sum * proportion + x(dir) + y(nosuchcolumn)),
+        "Check the spelling")
 # …while a bare `proportion` still names the column it writes.
 invisible(render_svg(data(share_df) + bar * proportion + x(dir) + y(whatever)))
 cat("PASS: a composed `proportion` still checks the column it rescales\n")
@@ -2688,8 +2773,10 @@ if (!identical(repelsvg, render_svg(data(crowd) + text * repel + x(px) + y(py) +
 if (!grepl('stroke-width="0.7"', repelsvg, fixed = TRUE))
   stop("FAIL: a label driven far from its point should keep a leader line")
 # It is `text`-only, and each refusal names the offset that fits.
-refuses("point * repel", render_svg(data(crowd) + point * repel + x(px) + y(py)))
-refuses("bar * repel", render_svg(data(crowd) + bar * repel + x(who) + y(py)))
+refuses("point * repel", render_svg(data(crowd) + point * repel + x(px) + y(py)),
+        "moves overlapping *labels* apart")
+refuses("bar * repel", render_svg(data(crowd) + bar * repel + x(who) + y(py)),
+        "that is `dodge`")
 # `style(nudge = )` is the constant counterpart, and the two compose.
 invisible(render_svg(data(crowd) + text * repel + x(px) + y(py) + label(who) +
                        style(nudge = "right")))
@@ -2722,12 +2809,15 @@ viol_shape <- render_svg(data(viol_df) + ribbon * density(compare = "shape") +
 if (identical(viol_count, viol_shape))
   stop("FAIL: `density(compare = )` had no effect on the plot")
 refuses("compare on a density curve", 
-        render_svg(data(viol_df) + line * density(compare = "count") + x(v)))
+        render_svg(data(viol_df) + line * density(compare = "count") + x(v)),
+        "has no slots")
 refuses("an unknown compare",
-        render_svg(data(viol_df) + ribbon * density(compare = "area") + x(grp) + y(v)))
+        render_svg(data(viol_df) + ribbon * density(compare = "area") + x(grp) + y(v)),
+        "not a reading this engine has")
 # The curve is still not a band: a `ribbon` needs two boundaries, and one
 # estimate along a continuous axis gives it one.
-refuses("a ribbon density curve", render_svg(data(viol_df) + ribbon * density + x(v)))
+refuses("a ribbon density curve", render_svg(data(viol_df) + ribbon * density + x(v)),
+        "needs two boundaries")
 cat("PASS: `density(compare = )` reads only in the violin, and by name\n")
 
 # The ridgeline: the half violin laid down, with overlap and a traced edge.
@@ -2743,8 +2833,10 @@ wide   <- render_svg(data(viol_df) + area * density(reach = 2.5) + x(v) + y(grp)
 narrow <- render_svg(data(viol_df) + area * density + x(v) + y(grp))
 if (identical(wide, narrow)) stop("FAIL: `density(reach = )` had no effect")
 refuses("reach on a density curve",
-        render_svg(data(viol_df) + line * density(reach = 2) + x(v)))
-refuses("a negative reach", density(reach = -1))
+        render_svg(data(viol_df) + line * density(reach = 2) + x(v)),
+        "measured in **slots**")
+refuses("a negative reach", density(reach = -1),
+        "one positive number of slots")
 # A split violin stands in separate slots, so the split-area overlap warning is
 # false there; it fired on every colored ridgeline until it was scoped.
 warned <- withCallingHandlers(
@@ -2815,16 +2907,22 @@ if (!grepl('width="800" height="600"', render_svg(scatter | scatter), fixed = TR
   stop("FAIL: a page that states nothing should still take the canvas")
 cat("PASS: a page states its own size, and takes the canvas when it does not\n")
 
-refuses("a size no plot can be drawn at", theme(width = 10))
-refuses("a page asked to facet", (scatter | scatter) | facet(speed))
-refuses("an atom added to a page", (scatter | scatter) + title("Cars"))
+refuses("a size no plot can be drawn at", theme(width = 10),
+        "at least 40")
+refuses("a page asked to facet", (scatter | scatter) | facet(speed),
+        "Facet the plots before composing")
+refuses("an atom added to a page", (scatter | scatter) + title("Cars"),
+        "belongs to a plot")
 # The size is the only theme property whose subject is the figure. Every other
 # one describes a panel, and a page has none.
-refuses("a panel property said about a page", (scatter | scatter) + theme(grid = "none"))
-refuses("a preset said about a page", (scatter | scatter) + theme("minimal"))
+refuses("a panel property said about a page", (scatter | scatter) + theme(grid = "none"),
+        "describes a panel")
+refuses("a preset said about a page", (scatter | scatter) + theme("minimal"),
+        "describes a panel")
 refuses("plots asking for more page than there is",
         render_svg((data(cars_df) + point + x(speed) + y(dist) + theme(height = 500)) /
-                   (data(cars_df) + point + x(speed) + y(dist) + theme(height = 500))))
+                   (data(cars_df) + point + x(speed) + y(dist) + theme(height = 500))),
+        "leave room")
 
 # --- partition: a hierarchy in columns, one ring per level -------------------
 # The end-of-feature check for this atom is that all four bindings draw the same
@@ -2863,16 +2961,20 @@ cat("PASS: a partition feeds a rectangle and a label from one computation
 # The engine's refusals need the render — `refuses()` only forces the expression,
 # and building a sentence is not asking for it to be drawn.
 refuses("a mark with no region reading",
-        render_svg(data(budget) + bar * partition(group, item) + x(amount)))
-refuses("partition with no levels named", partition())
+        render_svg(data(budget) + bar * partition(group, item) + x(amount)),
+        "no reading for a region")
+refuses("partition with no levels named", partition(),
+        "outermost first")
 refuses("a numeric level",
-        render_svg(data(budget) + zone * partition(group, amount) + x(amount)))
+        render_svg(data(budget) + zone * partition(group, amount) + x(amount)),
+        "holds numbers")
 # The one genuine ambiguity: `A` has a number of its own *and* children with
 # numbers, so its arc could be either. Needs a table of its own — `budget` above
 # is well formed, and a ragged rim is deliberately not this.
 mixed <- data.frame(group = c("A", "A"), item = c(NA, "p"), amount = c(5, 5))
 refuses("an interior node with a value of its own",
-        render_svg(data(mixed) + zone * partition(group, item) + x(amount)))
+        render_svg(data(mixed) + zone * partition(group, item) + x(amount)),
+        "on a **leaf**")
 
 # --- partition(cross = TRUE): the mosaic -------------------------------------
 # One parameter apart from the icicle, and what it buys is the whole plot: the
@@ -2912,7 +3014,8 @@ cat("PASS: a shallower crossed partition labels the columns
 ")
 
 refuses("cross given something that is not TRUE or FALSE",
-        partition(decade, theme, cross = "yes"))
+        partition(decade, theme, cross = "yes"),
+        "TRUE or FALSE")
 
 # --- a zone takes a border (the closed-glyph fills, spec §4) -----------------
 # The settable rule spans a setting across its geometry class, and `zone` joined
@@ -3280,7 +3383,8 @@ local({
 
   refuses("two different tables on one page under a name the author wrote",
           (data(left,  name = "s") + point + x(x) + y(y)) |
-          (data(right, name = "s") + point + x(x) + y(y)))
+          (data(right, name = "s") + point + x(x) + y(y)),
+        "distinct names")
 })
 
 # ---------------------------------------------------------------------------

@@ -49,10 +49,6 @@ export class Column {
   }
 }
 
-export function isColumn(value) {
-  return value instanceof Column;
-}
-
 // `col` — the bare-name capture layer. `col.gdp`, or `col["life exp"]`.
 //
 // The target is a function so the proxy can intercept a call and refuse it with

@@ -564,6 +564,13 @@ test("every mark the kernel has draws", () => {
   }
 });
 
+test("a viewing angle is a number and a label is a string, refused where typed", () => {
+  refuses(() => space("left"), /number of degrees/);
+  refuses(() => polar("top"), /number of degrees/);
+  refuses(() => x_label(42), /needs a string/);
+  refuses(() => title(42), /needs a string/);
+});
+
 test("a missing value is dropped and reported, never dropped in silence", () => {
   assert.match(render_svg(plot(data(gaps), point, x(col.a), y(col.b))), /^<svg /);
 });
@@ -1804,7 +1811,13 @@ test("book_table: quoting, types, and a name it refuses", async () => {
   assert.deepEqual(labelled.session, ["01", "02"]);
   assert.deepEqual(labelled.n, [5, 7]);
 
-  await assert.rejects(() => book_table(42), /one table name/);
+  // `GogError`, not `TypeError`: one class for every refusal in the package,
+  // so `catch (e) { if (e instanceof GogError) … }` catches the lot.
+  await assert.rejects(() => book_table(42), (error) => {
+    assert.ok(error instanceof GogError, `not a GogError: ${error}`);
+    assert.match(error.message, /one table name/);
+    return true;
+  });
 });
 
 // ---------------------------------------------------------------------------

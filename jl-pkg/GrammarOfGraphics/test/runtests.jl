@@ -154,6 +154,12 @@ end
     @refuses colour(:species) "gog spells it `color(:name)`"
     # A name Julia cannot write as a bare symbol still has a spelling.
     @test x(Symbol("life exp")).fields[:field] == "life exp"
+    # The viewing angles are numbers and a label is one string — checked at
+    # the line the caller wrote, in every binding.
+    @refuses space(turn = "left") "number of degrees"
+    @refuses polar(start = "top") "number of degrees"
+    @refuses x_label(42) "needs a string"
+    @refuses title(42) "needs a string"
 end
 
 @testset "arguments are R's, because Julia has real keywords" begin
@@ -1270,6 +1276,10 @@ end
     @test typed["n"] == [1.0, 2.0]          # every value a number, so numbers
     @test typed["s"] == ["01", "02"]        # named in `text`, so left alone
     @test typed["w"] == ["x", "y"]          # not numbers, so text
+
+    # A non-string name is gog's sentence, not a bare `MethodError` — the same
+    # words the other three bindings use, and no network is touched to say them.
+    @refuses book_table(3) "one table name"
 
     fetched = try
         book_table("gapminder_2007")

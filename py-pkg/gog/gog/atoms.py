@@ -613,13 +613,34 @@ def z(field: Column, scale: Optional[str] = None, base: Optional[float] = None,
     return _position("coord_z", "z", field, scale, base, limits, tick_count, free)
 
 
+def _degrees(value, atom: str, name: str) -> float:
+    """A viewing angle: one finite number of degrees, refused with direction.
+
+    `float("left")` raised a bare `ValueError` here once, which `except
+    GogError` missed — the one class every other refusal in the package
+    arrives as. Julia and JavaScript run the same check in the same words.
+    """
+    if (
+        isinstance(value, bool)
+        or not isinstance(value, (int, float))
+        or value != value
+        or value in (float("inf"), float("-inf"))
+    ):
+        raise GogError(f"gog: `{atom}({name}=)` needs a single number of degrees.")
+    return float(value)
+
+
 class _Space(CallableAtom):
     """`space` — the angle a 3-D plot is viewed from."""
 
     __slots__ = ()
 
     def __call__(self, turn: float = 30, tilt: float = 25) -> Atom:
-        return Atom("coord_space", turn=float(turn), tilt=float(tilt))
+        return Atom(
+            "coord_space",
+            turn=_degrees(turn, "space", "turn"),
+            tilt=_degrees(tilt, "space", "tilt"),
+        )
 
 
 space = _Space("coord_space", turn=30.0, tilt=25.0)
@@ -631,7 +652,7 @@ class _Polar(CallableAtom):
     __slots__ = ()
 
     def __call__(self, start: float = 0) -> Atom:
-        return Atom("coord_polar", start=float(start))
+        return Atom("coord_polar", start=_degrees(start, "polar", "start"))
 
 
 polar = _Polar("coord_polar", start=0.0)
@@ -675,8 +696,12 @@ class _Map(CallableAtom):
         # engine checks it too — a rule implemented in one binding is a rule the
         # other three get wrong — but a reader is owed the error where they typed
         # it.
+        # `GogError`, as every refusal in this package is: `errors.py` records
+        # why — `except ValueError` around a plot would swallow this one and
+        # keep the other hundred, and a refusal a user cannot catch uniformly
+        # is a refusal they stop catching.
         if preserve not in ("area", "angle"):
-            raise ValueError(
+            raise GogError(
                 'gog: `map(preserve=)` takes "area" or "angle". '
                 '"area" keeps every region\'s true size, which is what a map read '
                 'by area needs; "angle" keeps every small shape\'s true form and '

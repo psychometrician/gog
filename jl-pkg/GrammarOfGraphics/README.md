@@ -108,6 +108,10 @@ choropleth is drawn in, so import the ones you use:
 using GrammarOfGraphics: bin, count, sum, min, max, range, size, step, stack, map
 ```
 
+`mean`, `median` and `quantile` collide the same way with the `Statistics`
+standard library in a session that uses both; the same explicit import settles
+which one a bare name means.
+
 ## Examples
 
 The manual is a book, and every plot in it is drawn by the engine while the page

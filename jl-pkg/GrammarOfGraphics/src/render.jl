@@ -40,12 +40,14 @@ end
 """
     find_gog_cli()
 
-Locate the engine: an override, the shipped one, PATH, then a local build.
+Locate the engine: an override, a bundled copy, PATH, then a local build.
 
-The same four sources in the same order as R's, Python's and JavaScript's, for
-the same reason at step two — the binary that shipped with a package is the one
-whose wire format matches it, so an unrelated `gog-cli` earlier on `PATH` must not
-silently answer for it.
+The same order the other bindings use (R's chain adds a fifth source — it can
+build the engine from staged sources at install time), and step two keeps their
+reason: the binary that shipped with a package is the one whose wire format
+matches it, so an unrelated `gog-cli` earlier on `PATH` must not silently
+answer for it. Today no registered version of this package bundles an engine,
+so step two finds one only when a future artifact provides it.
 """
 function find_gog_cli()
     override = get(ENV, "GOG_CLI_PATH", "")
@@ -74,12 +76,15 @@ function find_gog_cli()
         isfile(candidate) && return candidate
     end
 
+    # The truth for *this* binding, not R's: no registered version of the Julia
+    # package ships an engine yet, so a fresh `Pkg.add` install has none and
+    # this is the expected first stop, not a sign the install went wrong.
     throw(GogError(
         "gog: cannot find the `gog-cli` binary — the engine that draws the plot.\n" *
-        "An installed copy of gog carries its own; this one does not, so either\n" *
-        "it was installed without one or this is a development checkout.\n" *
-        "  Build it:  cargo build --release -p gog-cli\n" *
-        "  Or point at one:  ENV[\"GOG_CLI_PATH\"] = \"/path/to/gog-cli\""))
+        "This binding does not ship the engine yet, so an installed copy has\n" *
+        "none until you provide one.\n" *
+        "  Build it once:  cargo build --release -p gog-cli  (in a gog checkout)\n" *
+        "  Then point at it:  ENV[\"GOG_CLI_PATH\"] = \"/path/to/gog-cli\""))
 end
 
 # ---------------------------------------------------------------------------
@@ -294,8 +299,8 @@ end
 """Where the browser assets live, when a host wants them beside the page rather
 than carried inside it. A book sets these; a notebook leaves them empty and gets
 the bytes inline, which is the only form that survives being emailed."""
-const WASM_URL = Ref{String}(get(ENV, "GOG_WASM_URL", ""))
-const JS_URL = Ref{String}(get(ENV, "GOG_JS_URL", ""))
+const WASM_URL = Ref{String}("")
+const JS_URL = Ref{String}("")
 
 """The engine and its runtime, or `nothing` — in which case plots stay static.
 
@@ -346,11 +351,6 @@ scheme, nothing the policy can refuse."""
 function wasm_expression(path::AbstractString)
     isempty(WASM_URL[]) || return "\"" * WASM_URL[] * "\""
     "Uint8Array.from(atob(\"" * base64encode(read(path)) * "\"), c => c.charCodeAt(0))"
-end
-
-"""A file as a `data:` URI."""
-function data_uri(path::AbstractString, mime::AbstractString)
-    "data:" * mime * ";base64," * base64encode(read(path))
 end
 
 """An `import` needs a module specifier, which is stricter than a URL a `fetch`

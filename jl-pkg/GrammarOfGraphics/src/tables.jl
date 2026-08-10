@@ -56,6 +56,20 @@ data(gapminder_2007) + point + x(:gdp) + y(:life)
 """
 function book_table(name::AbstractString; text = String[])
     path = Downloads.download(BOOK_DATA_URL * name * ".csv")
-    raw, header = readdlm(path, ',', String; header = true)
-    _columns(raw, header, text)
+    # The download is a temporary file and this function is its only holder, so
+    # it is removed on the way out — a session that fetches many tables must
+    # not leave one file per call in the temp directory.
+    try
+        raw, header = readdlm(path, ',', String; header = true)
+        _columns(raw, header, text)
+    finally
+        rm(path; force = true)
+    end
 end
+
+# Anything that is not a string falls through the typed method above and lands
+# here, so the refusal is gog's sentence rather than a bare `MethodError` — the
+# same words Python, JavaScript and R use.
+book_table(name; text = String[]) = throw(GogError(
+    "gog: book_table() takes one table name, as in book_table(\"gapminder_2007\"). " *
+    "The names are listed in the book's data chapter."))

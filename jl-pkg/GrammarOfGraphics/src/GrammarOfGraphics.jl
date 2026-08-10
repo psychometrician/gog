@@ -49,6 +49,17 @@ include("atoms.jl")
 include("render.jl")
 include("tables.jl")
 
+# The environment is read at load time, never at the top level of a file: a
+# top-level `get(ENV, …)` runs during *precompilation*, and the value the
+# precompiling session saw is serialized into the cache — so a user setting
+# `ENV["GOG_JS_URL"]` in their own script would be silently ignored until the
+# package happened to recompile. `__init__` runs in the session that is
+# actually using the package, which is the one whose environment counts.
+function __init__()
+    WASM_URL[] = get(ENV, "GOG_WASM_URL", "")
+    JS_URL[] = get(ENV, "GOG_JS_URL", "")
+end
+
 export GogError, Plot, Page, Atom, Ordered, ordered
 export data, query, render_svg, save, save_gif, svg_block, find_gog_cli, to_wire
 export book_table

@@ -12,6 +12,8 @@ copy serves all four languages and nothing goes stale inside a wheel.
 import csv
 import urllib.request
 
+from .errors import GogError
+
 BOOK_DATA_URL = "https://psychometrician.github.io/gog-book/data/"
 
 __all__ = ["book_table"]
@@ -51,7 +53,7 @@ def book_table(name, text=()):
         A dict of column name to list of values, ready for ``data()``.
     """
     if not isinstance(name, str):
-        raise TypeError(
+        raise GogError(
             "gog: book_table() takes one table name, as in "
             'book_table("gapminder_2007"). The names are listed in the '
             "book's data chapter."

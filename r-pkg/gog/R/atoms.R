@@ -6,13 +6,13 @@
 # ---------------------------------------------------------------------------
 # Masked base-R names — one helper, used by every atom that can prove the mistake
 # ---------------------------------------------------------------------------
-# Eighteen of this package's exports are also names in the attached base
-# packages, and they divide in two. Ten are *objects* (`mean`, `sum`, `line`,
+# Nineteen of this package's exports are also names in the attached base
+# packages, and they divide in two. Nine are *objects* (`mean`, `sum`, `line`,
 # `text` and the rest of the mark and transform constants), and R skips a
 # non-function binding when it resolves a call, so `mean(x)` still reaches
-# `base::mean` and those ten cannot break anything. Eight are *functions* and do
-# take over: `box`, `data`, `density`, `jitter`, `order`, `palette`, `stack`,
-# `title`.
+# `base::mean` and those nine cannot break anything. Ten are *functions* and do
+# take over: `box`, `data`, `density`, `jitter`, `order`, `palette`,
+# `quantile`, `range`, `stack`, `title`.
 #
 # For those eight the collision costs one thing only — not knowing which
 # function answered. So where the argument shape proves the caller meant the
@@ -25,6 +25,64 @@ masked_hint <- function(value, qualified) {
   } else {
     ""
   }
+}
+
+# ---------------------------------------------------------------------------
+# A channel takes a column, never a value — the capture-side check
+# ---------------------------------------------------------------------------
+# `color("red")` deparses to the five characters `"red"`, quotes included, and
+# used to travel to the engine as a column of that name — whose missing-column
+# refusal then blamed the reader for what the binding lost. The other three
+# bindings refuse a value where a channel wants a column; R's bare names simply
+# move the check from an accessor to the capture. Only a *literal* is caught: a
+# bare name is a column whatever the workspace holds under it, which is Law 4's
+# whole point, and a call (`x(a + b)`) still deparses as written.
+column_name <- function(sub, atom, settable = FALSE) {
+  if (is.character(sub) && length(sub) == 1L && !is.na(sub)) {
+    shown <- deparse(sub)
+    direction <- if (grepl("^[A-Za-z.][A-Za-z0-9._]*$", sub)) {
+      paste0("`", atom, "(", sub, ")` maps the column called `", sub, "`")
+    } else {
+      paste0("a column's bare name maps it, as in `", atom, "(gdp)`")
+    }
+    setting <- if (settable) {
+      paste0("\n  To fix one value for the whole layer instead \u2014 no ",
+             "legend, nothing to decode \u2014 that is a setting: `style(",
+             atom, " = ", shown, ")`.")
+    } else {
+      ""
+    }
+    stop("gog: `", atom, "(", shown, ")` binds a *value*, and a channel takes ",
+         "a *column*: ", direction, ".", setting, call. = FALSE)
+  }
+  if (is.numeric(sub) || is.logical(sub)) {
+    stop("gog: `", atom, "(", deparse(sub), ")` binds a *value*, and a channel ",
+         "takes a *column* \u2014 the bare name of one of the table's columns, ",
+         "as in `", atom, "(gdp)`.", call. = FALSE)
+  }
+  deparse(sub)
+}
+
+# A viewing angle is one finite number of degrees — checked at the line the
+# caller wrote, as Julia and JavaScript check it, so `space(turn = "left")` is
+# refused here rather than shipped to the wire as a string. The engine checks
+# too; a rule implemented in one binding is a rule the other three get wrong.
+degrees <- function(value, atom, name) {
+  if (!is.numeric(value) || length(value) != 1L || !is.finite(value)) {
+    stop("gog: `", atom, "(", name, " = )` needs a single number of degrees.",
+         call. = FALSE)
+  }
+  as.numeric(value)
+}
+
+# A label is one string — the check the other three bindings already run, so
+# `x_label(42)` is refused where it was typed rather than drawn as text.
+text_value <- function(value, atom) {
+  if (!is.character(value) || length(value) != 1L || is.na(value)) {
+    stop("gog: `", atom, "()` needs a string, e.g. `", atom,
+         "(\"Life expectancy\")`.", call. = FALSE)
+  }
+  value
 }
 
 # ---------------------------------------------------------------------------
@@ -1083,7 +1141,7 @@ check_speed <- function(speed) {
 #' @export
 x <- function(field, scale = NULL, base = NULL, limits = NULL, tick_count = NULL,
               free = FALSE) {
-  structure(list(type = "coord_x", field = deparse(substitute(field)),
+  structure(list(type = "coord_x", field = column_name(substitute(field), "x"),
                  scale = check_scale(scale), base = check_base(base),
                  limits = check_limits(limits),
                  tick_count = check_tick_count(tick_count),
@@ -1103,7 +1161,7 @@ x <- function(field, scale = NULL, base = NULL, limits = NULL, tick_count = NULL
 #' @export
 y <- function(field, scale = NULL, base = NULL, limits = NULL, tick_count = NULL,
               free = FALSE) {
-  structure(list(type = "coord_y", field = deparse(substitute(field)),
+  structure(list(type = "coord_y", field = column_name(substitute(field), "y"),
                  scale = check_scale(scale), base = check_base(base),
                  limits = check_limits(limits),
                  tick_count = check_tick_count(tick_count),
@@ -1123,7 +1181,7 @@ y <- function(field, scale = NULL, base = NULL, limits = NULL, tick_count = NULL
 #' @export
 z <- function(field, scale = NULL, base = NULL, limits = NULL, tick_count = NULL,
               free = FALSE) {
-  structure(list(type = "coord_z", field = deparse(substitute(field)),
+  structure(list(type = "coord_z", field = column_name(substitute(field), "z"),
                  scale = check_scale(scale), base = check_base(base),
                  limits = check_limits(limits),
                  tick_count = check_tick_count(tick_count),
@@ -1151,7 +1209,8 @@ z <- function(field, scale = NULL, base = NULL, limits = NULL, tick_count = NULL
 #' @export
 space <- function(turn = 30, tilt = 25) {
   structure(list(type = "coord_space",
-                 turn = turn, tilt = tilt),
+                 turn = degrees(turn, "space", "turn"),
+                 tilt = degrees(tilt, "space", "tilt")),
             class = "gog_atom")
 }
 
@@ -1176,7 +1235,7 @@ space <- function(turn = 30, tilt = 25) {
 #' }
 #' @export
 polar <- function(start = 0) {
-  structure(list(type = "coord_polar", start = start),
+  structure(list(type = "coord_polar", start = degrees(start, "polar", "start")),
             class = "gog_atom")
 }
 
@@ -1276,7 +1335,7 @@ map <- function(preserve = "area") {
 #' @inheritParams x
 #' @export
 color <- function(field, scale = NULL, base = NULL, limits = NULL) {
-  structure(list(type = "color", field = deparse(substitute(field)),
+  structure(list(type = "color", field = column_name(substitute(field), "color", settable = TRUE),
                  scale = check_scale(scale), base = check_base(base),
                  limits = check_limits(limits)),
             class = "gog_atom")
@@ -1307,7 +1366,7 @@ colour <- function(...) {
 #' @return A `gog_atom` added to a plot with `+`.
 #' @export
 group <- function(field) {
-  structure(list(type = "group", field = deparse(substitute(field))),
+  structure(list(type = "group", field = column_name(substitute(field), "group")),
             class = "gog_atom")
 }
 
@@ -1318,7 +1377,7 @@ group <- function(field) {
 #'   either end leaves that end fitted to the data.
 #' @export
 size <- function(field, scale = NULL, base = NULL, limits = NULL) {
-  structure(list(type = "size", field = deparse(substitute(field)),
+  structure(list(type = "size", field = column_name(substitute(field), "size", settable = TRUE),
                  scale = check_scale(scale), base = check_base(base),
                  limits = check_limits(limits)),
             class = "gog_atom")
@@ -1332,7 +1391,7 @@ size <- function(field, scale = NULL, base = NULL, limits = NULL) {
 #' @return A `gog_atom` added to a plot with `+`.
 #' @export
 shape <- function(field) {
-  structure(list(type = "shape", field = deparse(substitute(field))),
+  structure(list(type = "shape", field = column_name(substitute(field), "shape", settable = TRUE)),
             class = "gog_atom")
 }
 
@@ -1352,7 +1411,7 @@ shape <- function(field) {
 #' @return A `gog_atom` added to a plot with `+`.
 #' @export
 pattern <- function(field) {
-  structure(list(type = "pattern", field = deparse(substitute(field))),
+  structure(list(type = "pattern", field = column_name(substitute(field), "pattern", settable = TRUE)),
             class = "gog_atom")
 }
 
@@ -1365,7 +1424,7 @@ pattern <- function(field) {
 #'   a promise: the chosen values are rounded to readable numbers.
 #' @export
 opacity <- function(field, scale = NULL, base = NULL, limits = NULL, tick_count = NULL) {
-  structure(list(type = "opacity", field = deparse(substitute(field)),
+  structure(list(type = "opacity", field = column_name(substitute(field), "opacity", settable = TRUE),
                  scale = check_scale(scale), base = check_base(base),
                  limits = check_limits(limits)),
             class = "gog_atom")
@@ -1383,7 +1442,7 @@ opacity <- function(field, scale = NULL, base = NULL, limits = NULL, tick_count 
 #' @return A `gog_atom` added to a plot with `+`.
 #' @export
 label <- function(field) {
-  structure(list(type = "label", field = deparse(substitute(field))),
+  structure(list(type = "label", field = column_name(substitute(field), "label")),
             class = "gog_atom")
 }
 
@@ -1413,7 +1472,7 @@ label <- function(field) {
 #' @return A `gog_atom` added to a plot with `+`.
 #' @export
 play <- function(field, speed = NULL) {
-  structure(list(type = "play", field = deparse(substitute(field)),
+  structure(list(type = "play", field = column_name(substitute(field), "play"),
                  speed = check_speed(speed)),
             class = "gog_atom")
 }
@@ -1706,7 +1765,7 @@ order <- function(field, desc = FALSE) {
   }
   structure(
     list(type        = "order",
-         order_field = deparse(substitute(field)),
+         order_field = column_name(substitute(field), "order"),
          descending  = isTRUE(desc)),
     class = "gog_atom"
   )
@@ -1752,7 +1811,7 @@ facet <- function(field, wrap = NULL) {
     stop("gog: `facet(wrap = )` takes the number of panels to draw before the ",
          "line of them turns \u2014 one whole number, e.g. `wrap = 4`.", call. = FALSE)
   }
-  structure(list(type = "facet", field = deparse(substitute(field)),
+  structure(list(type = "facet", field = column_name(substitute(field), "facet"),
                  wrap = if (is.null(wrap)) NULL else as.integer(wrap)),
             class = "gog_atom")
 }
@@ -1922,21 +1981,24 @@ title <- function(text) {
          "`graphics::title(main = )`, the function this atom's name masks.",
          call. = FALSE)
   }
-  structure(list(type = "title", value = text), class = "gog_atom")
+  structure(list(type = "title", value = text_value(text, "title")),
+            class = "gog_atom")
 }
 
 #' Override the x-axis label.
 #' @param text  The label, as a character string.
 #' @export
 x_label <- function(text) {
-  structure(list(type = "x_label", value = text), class = "gog_atom")
+  structure(list(type = "x_label", value = text_value(text, "x_label")),
+            class = "gog_atom")
 }
 
 #' Override the y-axis label.
 #' @param text  The label, as a character string.
 #' @export
 y_label <- function(text) {
-  structure(list(type = "y_label", value = text), class = "gog_atom")
+  structure(list(type = "y_label", value = text_value(text, "y_label")),
+            class = "gog_atom")
 }
 
 #' Override the z-axis label.
@@ -1948,5 +2010,6 @@ y_label <- function(text) {
 #' @param text  The label, as a character string.
 #' @export
 z_label <- function(text) {
-  structure(list(type = "z_label", value = text), class = "gog_atom")
+  structure(list(type = "z_label", value = text_value(text, "z_label")),
+            class = "gog_atom")
 }

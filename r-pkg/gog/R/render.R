@@ -470,27 +470,6 @@ find_wasm_assets <- function() {
   NULL
 }
 
-# Turn a file into a `data:` URI. The engine is ~823 KB, so this is ~1.1 MB of
-# base64 — which is why `options(gog.wasm_url =)` exists for a book, where one
-# cached file beside the HTML serves every plot in it. Inline is the default
-# because it is the only form that survives a notebook being emailed.
-data_uri <- function(path, mime) {
-  raw_bytes <- readBin(path, "raw", file.info(path)$size)
-  # `jsonlite::base64_enc()` wraps its output at 72 characters — 291 lines for
-  # the runtime alone. A `data:` URI is written into a JavaScript string
-  # literal, and a literal newline inside one is a **syntax error**, so the
-  # whole emitted module failed to parse and nothing ran: `Uncaught SyntaxError:
-  # Invalid or unexpected token`.
-  #
-  # It was invisible for as long as it was because the book never takes this
-  # path. There the URLs are short relative paths to a shared file, so the
-  # wrapping had nothing to wrap and every rendered chapter worked. Only a
-  # `print(p)` in a console — the RStudio and Positron viewer panes, and a
-  # browser tab — inlines the engine, and that is where it broke.
-  gsub("[\r\n]", "", paste0("data:", mime, ";base64,",
-                            jsonlite::base64_enc(raw_bytes)))
-}
-
 # An `import` needs a *module specifier*, which is a stricter thing than a URL a
 # `fetch` would accept. A bare word like `"gog.js"` is reserved for import maps
 # and a browser refuses it outright — the script never runs, no asset is ever
@@ -530,11 +509,19 @@ inline_modules <- function(paths) {
 
 # The engine as a JavaScript expression evaluating to its bytes. `loadEngine()`
 # takes a URL *or* a BufferSource, so this is the second of the two and needs no
-# fetch, no scheme, and nothing from the policy.
+# fetch, no scheme, and nothing from the policy. It is ~1.1 MB of base64 —
+# which is why `options(gog.wasm_url =)` exists for a book, where one cached
+# file beside the HTML serves every plot in it. Inline is the default because
+# it is the only form that survives a notebook being emailed.
 wasm_expression <- function(path) {
   url <- getOption("gog.wasm_url", NA_character_)
   if (!is.na(url)) return(paste0('"', url, '"'))
   raw_bytes <- readBin(path, "raw", file.info(path)$size)
+  # The `gsub` is not cosmetic. `jsonlite::base64_enc()` wraps its output at 72
+  # characters, this string sits inside a JavaScript literal, and a literal
+  # newline inside one is a syntax error that kills the whole emitted module.
+  # The book never sees it (its URLs are short relative paths); only a
+  # `print(p)` in a console inlines the engine, and that is where it broke.
   b64 <- gsub("[\r\n]", "", jsonlite::base64_enc(raw_bytes))
   paste0('Uint8Array.from(atob("', b64, '"), c => c.charCodeAt(0))')
 }
