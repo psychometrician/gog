@@ -1,0 +1,17 @@
+/*-- scss:defaults --*/
+
+// The site's accent, layered over the staged book theme. The staged file is
+// the gog book's and carries gog's colors; this one is the site's own layer,
+// listed after it in `_quarto.yml`, so the shared file carries structure and
+// each surface keeps its own color.
+//
+// Why the site does not borrow either package's accent: it fronts two packages
+// whose stickers are near-complementary pastels at almost the same lightness,
+// gog's peach at 36 degrees and god's `#b9cfe2` at 208, and a site painted in
+// one of them frames the other as a guest. So the accent is a teal belonging
+// to neither, and peach and slate blue are left to mean one thing only: which
+// package you are looking at — on the taglines, the stickers and each post's
+// card, where they carry information rather than decoration.
+
+$link-color:        #0f6b60;
+$link-hover-color:  #0a544b;

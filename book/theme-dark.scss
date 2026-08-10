@@ -4,11 +4,8 @@
 // peach accent looks like two designs; these greys carry a little of the same
 // orange, so the accent belongs to the page instead of sitting on top of it.
 
-$peach:        #ffdba4;   // gog's, and now only gog's
+$peach:        #ffdba4;   // gog's, from the sticker
 $peach-muted:  #e9c48a;
-$god-blue:     #b9cfe2;   // god's, and now only god's
-$teal:         #6fc9bd;   // the accent, lifted so it carries on a dark ground
-$teal-bright:  #9adfd4;
 $ink-bg:       #17140f;
 $ink-panel:    #201c16;
 $ink-line:     #352f26;
@@ -18,13 +15,12 @@ $paper-soft:   #b3a89a;
 $body-bg:      $ink-bg;
 $body-color:   $paper;
 
-// Where the old palette did most of its work, and where it was least visible as
-// a decision: `$link-color: $peach` meant every link on every dark page was gog's
-// sticker colour, which on a site with two packages quietly made one of them the
-// site. The accent belongs to neither now, so peach and slate blue are left to
-// mean which package, and nothing else.
-$link-color:       $teal;
-$link-hover-color: $teal-bright;
+// gog's accent, carried straight: the sticker's peach reads as a link color on
+// this warm dark ground without lifting. This file is the gog book's theme and
+// the structural base the site stages; the site fronts two packages and uses
+// neither one's accent, overriding these two in `blog/accent-dark.scss`.
+$link-color:       $peach;
+$link-hover-color: #fff0d6;
 
 $gray-100: $ink-panel;
 $gray-200: #262119;

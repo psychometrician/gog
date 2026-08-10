@@ -164,9 +164,17 @@ format:
     # Two themes and a toggle in the navbar. Declaring both is what makes Quarto
     # write the switch and put `quarto-light` / `quarto-dark` on the body, which
     # is what `blog.css` keys its dark rules off.
+    #
+    # The staged theme is the gog book's file and carries gog's accent; the
+    # accent files are the site's own layer over it, so the structure stays one
+    # copy and the site links in its neutral teal. A package's color is never
+    # copied onto the site or onto the other package. The accent files sit
+    # BEFORE the staged theme because Quarto merges scss defaults in reverse:
+    # among these files, the one listed first wins a variable both set —
+    # measured, not assumed, since the other order shipped gog's amber here.
     theme:
-      light: [cosmo, theme-light.scss]
-      dark: [darkly, theme-dark.scss]
+      light: [cosmo, accent-light.scss, theme-light.scss]
+      dark: [darkly, accent-dark.scss, theme-dark.scss]
     # `gog.css` first, then the blog's, so the blog can override it. The book's
     # file is staged by the pre-render and styles a plot and its refusals; it is
     # not edited here, because a plot should look the same in both places.

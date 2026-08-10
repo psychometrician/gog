@@ -3,23 +3,17 @@
 // The light theme. Bootstrap variables only, so Quarto compiles them into the
 // framework rather than fighting it afterwards with `!important`.
 //
-// The palette used to be the gog sticker's, peach and shades of it, because for
-// a while gog was the only package here. It cannot be that any more. The site
-// hosts two packages whose stickers are near-complementary pastels at almost the
-// same lightness, gog's peach at 36 degrees and god's `#b9cfe2` at 208, and a
-// site painted in one of them frames the other as a guest.
-//
-// So the chrome is a warm near-black, which takes neither side, and the accent
-// is a teal belonging to neither package. That leaves peach and slate blue free
-// to mean one thing only: which package you are looking at. They still appear,
-// on the taglines, the stickers and each post's card, and there they carry
-// information rather than decoration.
+// This file is two things at once, and the split is deliberate. It is the gog
+// book's theme, so every accent in it is gog's — the sticker's peach and the
+// amber derived from it. And it is the structural base the site stages for its
+// own render: the grays, the hairlines, the chrome, the code sizing. The site
+// fronts two packages, so it does not use either package's accent; it layers
+// its own neutral one over this file in `blog/accent-light.scss`, listed after
+// the staged copy. One copy of the structure, and each surface keeps its own
+// color — a package's accent is never copied onto the other, or onto the site.
 
-$peach:        #ffdba4;   // gog's, and now only gog's
-$god-blue:     #b9cfe2;   // god's, and now only god's
-$ink-bar:      #241f19;   // the chrome: warm, near-black, neutral between the two
-$teal:         #0f6b60;   // the accent, a third colour the site owns itself
-$teal-deep:    #0a544b;
+$peach:        #ffdba4;   // gog's, from the sticker
+$ink-bar:      #241f19;   // the chrome: warm, near-black, shared structure
 $peach-deep:   #f2bf74;
 $peach-wash:   #fff6e9;
 $ink:          #16130f;
@@ -28,8 +22,11 @@ $ink-soft:     #56504a;
 $body-bg:      #ffffff;
 $body-color:   $ink;
 
-$link-color:        $teal;
-$link-hover-color:  $teal-deep;
+// gog's link amber, derived from the peach: dark enough to read as text on
+// white, warm enough to be the sticker's family. The site overrides these two
+// in its own accent layer; nothing else does.
+$link-color:        #a35a12;
+$link-hover-color:  #7d4109;
 
 // Warm greys rather than Bootstrap's blue-greys. The default `#f8f9fa` beside a
 // peach navbar reads as two unrelated designs.
@@ -51,9 +48,10 @@ $hairline: #e2dbd1;
 $gray-600: $ink-soft;
 $gray-800: #2b2622;
 
-// The navbar was the complaint that started this: Bootstrap's default is a flat
-// grey band, and a grey band is what every framework-default site has. Peach is
-// the one color this project already owns.
+// The navbar is the site's chrome, and only the site draws one — this book has
+// a sidebar, so these variables are inert here and travel as structure. The bar
+// is a warm near-black rather than either package's color, because a chrome in
+// one package's accent frames the other as a guest.
 $navbar-bg:               $ink-bar;
 $navbar-light-color:      rgba(243, 237, 228, 0.78);
 $navbar-light-hover-color: #ffffff;
