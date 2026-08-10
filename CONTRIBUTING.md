@@ -33,10 +33,13 @@ broken by accident:
 **A setting spans its geometry class.** A `style()` setting is available on every
 mark whose geometry can carry it, and absent where composition does the job
 better. `border_*` is on every closed-glyph fill (`bar`, `box`, `point`,
-`surface`, `zone`); `pattern` is on every path stroke (`line`, `step`,
-`interval`). `area` and `ribbon` take neither, because an edge is `area + line`. A
-per-mark gap inside a class is the Law 1 violation this catches, and there are
-tests that name every mark rather than two hand-written lists.
+`surface`, `zone`); `pattern` is a texture realized per geometry class — a dash
+on every path stroke (`line`, `step`, `interval`, `path`, `rule`), a hatch on
+every fill (`bar`, `box`, `area`, `ribbon`, `zone`). The glyphs have no region
+to texture, and `surface` refuses the hatch because a screen-space tile would
+read as a different density on every foreshortened face. A per-mark gap inside
+a class is the Law 1 violation this catches, and there are tests that name
+every mark rather than two hand-written lists.
 
 **Errors must give direction.** There are three diagnostic kinds — **Illegal**,
 **Unsupported**, **Assumption**. Fatal ones exit 2 and render nothing;
@@ -101,7 +104,7 @@ it — the layering is acyclic, and keeping it that way is the point.
 | `render/encode.rs` | Channel fraction → a visual attribute (opacity, radius) — shared by the marks and the legend | — |
 | `render/pattern.rs` | The `pattern` texture aesthetic realized for SVG — a stroke's dash, a fill's hatch tile | — |
 | `render/ticks.rs` | Tick selection — linear, logarithmic, calendar | `time` |
-| `render/palette.rs` | Which colors a scale hands out — palettes and ramps | `color`, `ir`, `text` |
+| `render/palette.rs` | Which colors a scale hands out — palettes and ramps | `color`, `data`, `ir`, `legality`, `text` |
 | `render/mod.rs` | `Layout` and `RenderContext`, shared by the render modules | `data`, `ir` |
 | `render/layout.rs` | Where every rectangle on the canvas comes from — margins, panels, strips | `render/mod`, `text`, `ticks` |
 | `render/legend.rs` | The key that lets a reader decode a channel | `data`, `ir`, `palette`, `shape`, `text`, `ticks`, `time`, `encode` |
@@ -327,8 +330,9 @@ every commit, publishing at whatever `DESCRIPTION` says — so a push does chang
 what an R user installs, without changing the version number they see.
 
 Version numbers are never assigned by CI. One number is written down by hand in
-several manifests, and the only automation is a check that they agree. That check
-covers all eight declarations, `gog-wasm/Cargo.toml` included.
+several manifests, and the only automation is checks that they agree: the R
+suite covers the eight file declarations, `gog-wasm/Cargo.toml` included, and
+the JavaScript suite the five npm platform pins beside them — thirteen in all.
 [`.github/RELEASING.md`](.github/RELEASING.md) has the full account: which workflow
 each trigger starts, where the eight declarations live, what each registry does with
 a number, and which parts of a release cannot be taken back.

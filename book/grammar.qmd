@@ -199,7 +199,7 @@ A transform derives new values from the columns you named, and attaches to a mar
 with `*`. The mark stays what it is: `bar * bin` is still a bar, drawn over
 counted bands.
 
-Ten of them replace values with a computed statistic.
+Eleven of them replace values with a computed statistic.
 
 | Transform | What it computes |
 |---|---|

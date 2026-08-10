@@ -48,9 +48,10 @@ them so that a broken build is caught where it is cheap; only a tag sends anythi
 anywhere. They are the same jobs the release workflows call, unchanged, so what a
 release uploads is what a pull request already proved buildable.
 
-## The eight declarations
+## The thirteen declarations
 
-One number, written down eight times, in four spellings:
+One number, written down thirteen times: eight files in four spellings, plus
+five platform-package pins inside one of them.
 
 ```
 r-pkg/gog/DESCRIPTION                    Version: X.Y.Z
@@ -63,9 +64,14 @@ gog-cli/Cargo.toml                       version = "X.Y.Z"
 gog-wasm/Cargo.toml                      version = "X.Y.Z"
 ```
 
-The R suite compares all eight on every run and fails if they disagree, so a
-mismatch is caught by `tests.yml` on the push that introduces it. Both release
-workflows repeat the same comparison against the tag before building anything.
+The five pins are `js-pkg/gog/package.json`'s `optionalDependencies` — one per
+platform engine package — and they carry the same number, so JavaScript alone
+holds six of the thirteen. `.github/release` moves and checks all thirteen.
+
+The R suite compares the eight files on every run and the JavaScript suite the
+five pins, so a mismatch is caught by `tests.yml` on the push that introduces
+it. Both release workflows repeat the comparison against the tag before
+building anything.
 
 **Two of the eight were missed once each, and for opposite reasons.**
 `py-pkg/gog/gog/__init__.py` is what `gog.__version__` reports to a user;
@@ -123,7 +129,7 @@ current setup depends on it either way.
 
 Tag `py-vX.Y.Z`. Five jobs, each able to fail only forward:
 
-1. **`version`** — the tag matches all eight declarations, and PyPI does not already
+1. **`version`** — the tag matches the eight file declarations, and PyPI does not already
    have this number. Checked *before* anything is built, because discovering a
    mismatch at upload time spends the number on a failed release.
 2. **`wheels`** — five platforms, each wheel carrying its own engine, each installed
@@ -288,8 +294,8 @@ a terminal. The steps below are what it does, and what to do if you would rather
 do them by hand.
 
 1. Decide the number. It is never chosen for you.
-2. Move all eight declarations to it — and the five npm pins, if JavaScript is going
-   out. Then regenerate the three files that carry the number without being checked,
+2. Move all thirteen declarations to it — the eight files, and the five npm pins
+   beside JavaScript's. Then regenerate the three files that carry the number without being checked,
    in the *same* commit, because the push is what r-universe builds from and there is
    no later chance to correct the tarball it compiles:
 
@@ -341,8 +347,8 @@ do them by hand.
    Julia ships neither engine, and its documentation says so.
 
 The four routes are independent — tagging Python does not release JavaScript, and
-none of them releases R — but the *numbers* are not. All eight declarations move
-together, so between bumping them and tagging the last binding, the manifests
+none of them releases R — but the *numbers* are not. All thirteen declarations
+move together, so between bumping them and tagging the last binding, the manifests
 describe a release some indexes have not received yet. That window is expected;
 what must not happen is the numbers diverging to close it.
 

@@ -213,7 +213,7 @@ column, that is the [`style(pattern = )`](style.qmd) setting.
 
 ## `opacity`
 
-`opacity(field)` maps a continuous column to transparency.  Useful when marks
+`opacity(field)` maps a continuous column to transparency. Useful when marks
 overlap and you want the crowded regions to read as denser.
 
 ```{r}
@@ -222,7 +222,7 @@ data(gapminder_2007) + point + x(gdp) + y(life) + opacity(population) +
 ```
 
 Mapped values run from 0.15 to 0.95 rather than 0 to 1: a fully transparent mark
-is invisible, which is never what a reader wants.  Marks with no `opacity`
+is invisible, which is never what a reader wants. Marks with no `opacity`
 binding are drawn at 0.82, unless [`style(opacity = )`](style.qmd) sets one.
 
 Like `size`, `opacity` produces a legend showing the minimum, midpoint, and
@@ -273,7 +273,7 @@ See [Setting vs mapping](style.qmd).
 ## `group`
 
 `group(field)` connects line segments within the same group without
-adding a color distinction.  Use it when you want a single color for
+adding a color distinction. Use it when you want a single color for
 all lines but still need them separated by category.
 
 ```{r}
@@ -288,7 +288,7 @@ it implies grouping automatically.
 
 ## Multiple channels
 
-Channels compose freely.  Every combination that makes visual sense is valid:
+Channels compose freely. Every combination that makes visual sense is valid:
 
 ```{r}
 # Color + size + shape on the same plot

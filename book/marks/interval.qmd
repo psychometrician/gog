@@ -324,8 +324,8 @@ data(iris_flowers) + interval * confidence(0.95) + x(species) + y(petal_length) 
 
 The five-number summary lives in its own mark, [`box`](box.qmd), and the same
 low/high pair drawn as a continuous fill is the [`ribbon`](ribbon.qmd) band. See
-[Transforms](../transforms.qmd) for where `range` and `confidence` sit among the
-others.
+[Transforms](../transforms.qmd) for where `range`, `confidence` and `deviation`
+sit among the others.
 
 ## What you can set
 

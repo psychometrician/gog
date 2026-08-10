@@ -279,11 +279,11 @@ reading. Turn it off again with `Sys.unsetenv("GOG_STRICT")` once you have seen
 the plot you wanted.
 
 You get the plot with the refused part left out, so `bar + size(gold)` draws the
-bars and no size. What the switch cannot do is invent data: `x("gdp")` quoted the
-column name, so it names nothing, and you get an empty panel.
+bars and no size.
 
-Two refusals it never reaches: a British spelling, and a sentence that does not
-begin with `data()`. Your package catches both before the engine is asked.
+Three refusals it never reaches: a quoted column name, a British spelling, and a
+sentence that does not begin with `data()`. Your package catches all three
+before the engine is asked, so there is no half-drawn plot to offer.
 
 ---
 

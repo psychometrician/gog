@@ -150,7 +150,7 @@ types — there is no `histogram()` to look up.
 | **Marks** | `point` `line` `area` `bar` `step` `interval` `box` `ribbon` `text` `path` `rule` `zone` `surface` |
 | **Channels** | `x` `y` `z` `color` `size` `shape` `pattern` `opacity` `group` `label` `play` |
 | **Selections** | `brush` |
-| **Transforms** | `bin` `smooth` `count` `density` `proportion` `sum` `mean` `median` `max` `min` `range` `confidence` `bounds` `partition`, plus `dodge` `stack` `jitter` |
+| **Transforms** | `bin` `smooth` `count` `density` `proportion` `sum` `mean` `median` `max` `min` `quantile` `range` `confidence` `deviation` `bounds` `partition`, plus `dodge` `stack` `jitter` `repel` |
 | **Scales** | `linear` `log` `time` `category` `order` |
 | **Spaces** | `flat` `space` `polar` `nest` `map` |
 | **Labels** | `title` `x_label` `y_label` `z_label` |
@@ -240,8 +240,10 @@ request.
 ## License
 
 Code is **Apache License 2.0** — see [LICENSE](LICENSE), and [NOTICE](NOTICE) for
-the color schemes this project carries from elsewhere. Each binding keeps its own
-copy of both. A wheel, an npm tarball and a Julia package are each built from a
-directory below this one, so a copy has to sit there.
+the color schemes this project carries from elsewhere. The Python, JavaScript and
+Julia packages keep their own copies of both: a wheel, an npm tarball and a Julia
+package are each built from a directory below this one, so a copy has to sit
+there. The R package carries only the `NOTICE`, because R ships the Apache text
+itself and its checks ask packages to point at that copy rather than bundle one.
 
 The book's prose is **CC BY-NC-SA 4.0** — see [book/LICENSE.md](book/LICENSE.md).

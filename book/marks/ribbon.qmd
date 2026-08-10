@@ -99,11 +99,12 @@ vocabulary](../grammar.qmd) small. The alternative, `ymin`/`ymax` aesthetics,
 would add two channels meaningful to a single mark. Instead the boundaries are
 **invented by a transform**, exactly as `bin` invents a count, so the same
 low/high-rows mechanism feeds the whisker, the box, and the band alike; see
-[Transforms](../transforms.qmd) for the `range` and `confidence` statistics.
+[Transforms](../transforms.qmd) for the `range`, `confidence` and `deviation`
+statistics.
 
 Read the requirement as *where are my two boundaries?* rather than as a list of
-three transforms. There is a fourth answer, and it looks nothing like the other
-three: `density` over a category gives a ribbon its boundaries by
+four transforms. There is a fifth answer, and it looks nothing like the other
+four: `density` over a category gives a ribbon its boundaries by
 **reflection**. That is [the violin](#the-violin-a-distribution-per-category),
 at the end of this chapter.
 
@@ -127,7 +128,8 @@ band's meaning, the observed spread (`range`) or the uncertainty of the mean
 
 ## A pre-computed band
 
-`range` and `confidence` compute the band *from raw values in the plot*. But most
+`range`, `confidence` and `deviation` compute the band *from raw values in the
+plot*. But most
 confidence bands are not computed at the plot at all: a model's standard error, a
 psychometric standard error of measurement, a bootstrap interval are all worked out
 **upstream**, and you arrive with the bounds already in two columns. gog draws what
@@ -445,5 +447,5 @@ render_svg(data(gapminder_2007) + ribbon * range + x(life) + y(continent))
 as a whisker at each x, [`box`](box.qmd) as a five-number summary, and `ribbon` as
 a filled band across x. One `range`, three marks: [No
 Exceptions](../design-laws.qmd) made visible. See
-[Transforms](../transforms.qmd) for the `range` and `confidence` statistics all
-three share.
+[Transforms](../transforms.qmd) for the `range`, `confidence` and `deviation`
+statistics all three share.

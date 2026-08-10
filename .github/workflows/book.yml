@@ -36,6 +36,12 @@ on:
       - "book/**"
       - "gog-core/**"
       - "gog-cli/**"
+      # The browser half of the engine. The job builds gog-wasm and stages
+      # interactive.js/view.js from js-pkg, and asserts all three reached
+      # _book/ — so a push touching only these must republish too, or the
+      # site serves an old browser engine against a moved gog-cli.
+      - "gog-wasm/**"
+      - "js-pkg/gog/src/**"
       - "r-pkg/**"
       - "py-pkg/**"
       - ".github/workflows/book.yml"

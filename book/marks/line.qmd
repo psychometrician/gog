@@ -156,9 +156,9 @@ data(gapminder_2007) + x(gdp) + y(life) +
 ## Two boundaries from a pair
 
 Most transforms give a `line` one value per x. A **pair** transform
-([`range`](../transforms.qmd), `confidence`, or `bounds`) gives it two (a low and a
-high), and a `line` then draws **both boundaries** as separate curves rather than
-connecting them in a zigzag. It is the *unfilled* counterpart to a
+([`range`](../transforms.qmd), `confidence`, `deviation`, or `bounds`) gives it
+two (a low and a high), and a `line` then draws **both boundaries** as separate
+curves rather than connecting them in a zigzag. It is the *unfilled* counterpart to a
 [`ribbon`](ribbon.qmd) filling the same pair. Here the min–max envelope of five
 countries, as two lines:
 

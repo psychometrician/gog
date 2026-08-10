@@ -43,6 +43,61 @@ CRAN-style repositories and PyPI, `GrammarOfGraphics` on Julia's General, and
   the fact that it had been stopped, so a played plot started running again with
   its button still saying it was paused.
 
+- **Writing a GIF now says what the engine said.** `save_gif()` and `--gif`
+  built every diagnostic and then dropped the list, so an Assumption — or, under
+  `GOG_STRICT=0`, a refusal being drawn anyway — wrote the file in silence. The
+  same words now reach you there as on every other path.
+
+- **The browser hears every warning the command line prints.** Rows a log axis
+  cannot place, a custom palette with the wrong number of colors, and a
+  many-row `line` with no `group` all warned on stderr, which a browser does
+  not have, so a notebook user was never told. The warnings now travel with the
+  drawing. A clean render also clears the previous render's note, a refusal
+  still reports the rows a missing value cost, and a request that is not UTF-8
+  is a report rather than undefined behavior.
+
+- **One missing value no longer poisons a group's statistic.** A single NaN in
+  `bar * mean + x(category)` turned that category's whole bar into nothing,
+  while the same transform without an `x` quietly dropped the value. Every
+  keying now drops non-finite values the same way, and a group with nothing
+  finite draws nothing.
+
+- **A NaN coordinate no longer aborts a surface under `GOG_STRICT=0`.** A zero
+  on a log axis, asked to draw anyway, reached the mesh as NaN and crashed the
+  render instead of refusing or drawing; the row is now skipped like any other
+  row with no place.
+
+- **A value outside its scale is held at the scale's ends.** A transform output
+  past a stated `limits` could ask for an opacity above one or a negative point
+  radius; both are now clamped, and a NaN gets the least ink rather than an
+  attribute nothing renders.
+
+- **R refuses a value where a channel wants a column, as the other three
+  bindings always have.** `color("red")` used to reach the engine as a column
+  named `"red"`, quotes included, so the error blamed a column the reader never
+  meant. The refusal now names both fixes: the bare name to map, `style()` to
+  set. The viewing angles (`space()`, `polar()`) must be numbers and a label
+  (`title()`, `x_label()` and siblings) one string, each refused in R at the
+  line that wrote it.
+
+- **Every refusal in Python and JavaScript is one class.** `map(preserve=)`
+  raised a bare `ValueError` and `book_table()` a `TypeError`, so
+  `except GogError` missed them. Julia's `book_table()` answered a non-name
+  with a bare `MethodError` and now speaks gog's sentence — and it deletes its
+  downloaded file when it is done reading it.
+
+- **Julia reads the two browser-asset addresses at load time.**
+  `ENV["GOG_WASM_URL"]` and `ENV["GOG_JS_URL"]` were read while the package
+  precompiled, so setting them in your own script did nothing until the package
+  happened to rebuild. Its missing-engine message also now says the plain
+  truth: no installed copy of this binding carries an engine yet.
+
+- **The README's kernel table names all of 0.0.4's atoms** — `quantile`,
+  `deviation` and `repel` were missing directly above the sentence claiming
+  every word draws — and Python's warning about `from gog import *` now counts
+  six shadowed builtins: `map` was absent from the sentence written to warn
+  about exactly that.
+
 ## 0.0.4 (2026-08-05)
 
 ### Added
