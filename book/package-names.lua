@@ -83,30 +83,59 @@ local function split(s)
   return out
 end
 
+-- The walker, applied to the body blocks of real chapters and to nothing
+-- else. A title is a name on a cover, not a thing to type, and the book's
+-- title reaches the page along two separate roads; each needed its own
+-- refusal, and each was measured rather than assumed.
+--
+-- Road one is the metadata. Pandoc runs element functions over meta values as
+-- well as the body, so `title: "gog: A Grammar of Graphics"` came out with its
+-- first word in code font in the landing heading and the browser tab. A
+-- `Meta` handler refusing its children did not stop that walk; walking
+-- `doc.blocks` explicitly, and never entering meta, did.
+--
+-- Road two is Quarto itself, and it was found by tagging the treatment with
+-- the document it ran in: Quarto injects the navigation — the sidebar with
+-- the book title in it — into the *chapter's own body* as ordinary AST,
+-- before user filters run. So the body walk treated the sidebar title in the
+-- same pass that treats the prose, while the landing heading stayed plain,
+-- because the title block is built from metadata by the template instead.
+-- Every injected chrome container carries an identifier in Quarto's own
+-- namespace (`quarto-sidebar`, `quarto-header`, …), which no prose Div ever
+-- does, so the walker refuses that namespace wholesale below.
+local walker = {
+  -- Top-down, because two things have to be refused *before* their children
+  -- are reached. Bottom-up would rewrite the text first and hand back an
+  -- element that had already lost.
+  traverse = "topdown",
+
+  -- The slogan is the one place the name is not a package. "Be agog. Use gog."
+  -- is a line of copy under the title, and setting half of it in code font
+  -- would break the rhyme the whole name rests on. Its printed twin is raw
+  -- LaTeX, which no filter walks, so only the HTML div needs saying here.
+  -- The `quarto-` identifiers are the injected chrome — road two above.
+  Div = function(el)
+    if el.classes:includes("gog-slogan") then return el, false end
+    if el.identifier:match("^quarto%-") then return el, false end
+  end,
+
+  -- Already code. A chunk's source and its output never reach a `Str` filter
+  -- at all, so this is only for inline spans a writer marked by hand.
+  Code = function(el) return el, false end,
+
+  Str = function(el)
+    local out = split(el.text)
+    if out == nil then return nil end
+    -- `false` stops the walk from re-entering what was just built.
+    return out, false
+  end,
+}
+
 return {
   {
-    -- Top-down, because two things have to be refused *before* their children
-    -- are reached. Bottom-up would rewrite the text first and hand back an
-    -- element that had already lost.
-    traverse = "topdown",
-
-    -- The slogan is the one place the name is not a package. "Be agog. Use gog."
-    -- is a line of copy under the title, and setting half of it in code font
-    -- would break the rhyme the whole name rests on. Its printed twin is raw
-    -- LaTeX, which no filter walks, so only the HTML div needs saying here.
-    Div = function(el)
-      if el.classes:includes("gog-slogan") then return el, false end
-    end,
-
-    -- Already code. A chunk's source and its output never reach a `Str` filter
-    -- at all, so this is only for inline spans a writer marked by hand.
-    Code = function(el) return el, false end,
-
-    Str = function(el)
-      local out = split(el.text)
-      if out == nil then return nil end
-      -- `false` stops the walk from re-entering what was just built.
-      return out, false
+    Pandoc = function(doc)
+      doc.blocks = doc.blocks:walk(walker)
+      return doc
     end,
   },
 }
