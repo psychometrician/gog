@@ -1910,7 +1910,7 @@ const GRID: usize = 64;
 /// number is*, not which transform is present. Reading it the other way is what let
 /// `zone * bin * mean` route to the counting branch and paint a tally under a legend
 /// titled for a column nobody had reduced. The other three cannot be composed at all
-/// (`legality::check_cut_composition`), so they need no such reading.
+/// (`legality::check_chain_jobs`), so they need no such reading.
 pub fn cell_measure(transforms: &[Transform]) -> Option<&'static str> {
     if transforms.contains(&Transform::Bin) && measures_a_column(transforms) {
         None
@@ -2918,7 +2918,17 @@ pub enum AggFn { Sum, Mean, Median, Max, Min, Quantile(f64) }
 impl AggFn {
     /// Reduce one group's values to one number. Takes `&mut` because the median
     /// sorts in place; the caller owns a scratch vector per group either way.
+    ///
+    /// Non-finite values are dropped **here**, in the one place every keying
+    /// passes through: filtered only on the keyless path, one NaN poisoned a
+    /// keyed group's whole bar while the same transform without an `x` quietly
+    /// skipped it — the two-ways behavior Law 2 forbids. A group with nothing
+    /// finite reduces to NaN, which no mark draws.
     fn reduce(self, vals: &mut Vec<f64>) -> f64 {
+        vals.retain(|v| v.is_finite());
+        if vals.is_empty() {
+            return f64::NAN;
+        }
         match self {
             AggFn::Sum    => vals.iter().sum(),
             AggFn::Mean   => vals.iter().sum::<f64>() / vals.len() as f64,
@@ -2961,18 +2971,6 @@ pub fn pairs_a_column(transforms: &[Transform]) -> bool {
                                           | Transform::Deviation | Transform::Box))
 }
 
-/// Is this one transform a member of the **aggregation family**?
-///
-/// [`reduces_column`] answers *which* reduction to run, so it takes the first it
-/// finds and stops. This answers *how many were asked for*, which is a different
-/// question and the one `legality::check_cut_composition` needs: two reductions in
-/// one layer measure the cell twice, exactly as two synthesizers do.
-///
-/// Until 2026-07-30 nothing asked it, and `bar * sum * mean` drew the sum and
-/// discarded the mean without a word — the silent drop §12 forbids, sitting in the
-/// engine rather than in the book. The two lists are bound by
-/// `the_reduction_family_is_one_list`, so a sixth statistic cannot join `AggFn`
-/// below and skip the rule above.
 /// A statistic that reduces the data to **one value per x-group** (or per bin),
 /// which any *locus* mark can then draw. "One `bin`, three marks" (spec §5)
 /// generalized: `point`/`line`/`area`/`bar`/`step` all draw a value at each x.
@@ -2992,6 +2990,18 @@ pub fn is_value_statistic(t: &Transform) -> bool {
     )
 }
 
+/// Is this one transform a member of the **aggregation family**?
+///
+/// [`reduces_column`] answers *which* reduction to run, so it takes the first it
+/// finds and stops. This answers *how many were asked for*, which is a different
+/// question and the one `legality::check_chain_jobs` needs: two reductions in
+/// one layer measure the cell twice, exactly as two synthesizers do.
+///
+/// Until 2026-07-30 nothing asked it, and `bar * sum * mean` drew the sum and
+/// discarded the mean without a word — the silent drop §12 forbids, sitting in the
+/// engine rather than in the book. The two lists are bound by
+/// `the_reduction_family_is_one_list`, so a sixth statistic cannot join `AggFn`
+/// below and skip the rule above.
 pub fn is_reduction(t: &Transform) -> bool {
     matches!(t, Transform::Sum | Transform::Mean | Transform::Median
                 | Transform::Max | Transform::Min | Transform::Quantile)
@@ -3104,8 +3114,8 @@ fn aggregate(df: &DataFrame, x_field: &str, y_field: &str, agg_fn: AggFn) -> Dat
 /// is a length in *one* column's units, and a field has two columns carrying
 /// different quantities, so one number cannot mean both — the lesson `hex` learned
 /// when its circumradius came out as a half-width/half-height pair. So
-/// `legality::check_bandwidth` refuses it there and points at `adjust`, which is
-/// dimensionless and means the same thing on either axis.
+/// `legality::check_density_params` refuses it there and points at `adjust`, which
+/// is dimensionless and means the same thing on either axis.
 fn bandwidth(vals: &[f64], dims: u32, spec: Option<&DensitySpec>) -> f64 {
     let n = vals.len();
     if n == 0 { return 1.0; }
@@ -3621,7 +3631,7 @@ mod tests {
 
     /// **The aggregation family is one list, named in two places, and they must agree.**
     ///
-    /// [`is_reduction`] gates the refusal in `legality::check_cut_composition`;
+    /// [`is_reduction`] gates the refusal in `legality::check_chain_jobs`;
     /// [`reduces_column`] picks the `AggFn` that actually runs. A statistic added to
     /// the second and forgotten in the first would walk straight back into the silent
     /// drop this pair was written to close on 2026-07-30, and nothing else would fail.
@@ -4917,6 +4927,29 @@ mod tests {
         let df = cat_y(&["a", "b", "a", "b"], &[3.0, -1.0, -5.0, 9.0]);
         assert_eq!(col(&aggregate(&df, "g", "y", AggFn::Max), "y"), &vec![3.0, 9.0]);
         assert_eq!(col(&aggregate(&df, "g", "y", AggFn::Min), "y"), &vec![-5.0, -1.0]);
+    }
+
+    /// One NaN in a keyed group must not poison the group's number: the keyless
+    /// reading filters non-finite values, and Law 2 says the keyed readings do
+    /// exactly the same. A group with nothing finite reduces to NaN, which no
+    /// mark draws.
+    #[test]
+    fn a_non_finite_value_is_dropped_from_a_keyed_group_as_the_keyless_reading_drops_it() {
+        let df = cat_y(
+            &["a", "a", "b", "b"],
+            &[2.0, f64::NAN, f64::NAN, f64::NAN],
+        );
+        let m = aggregate(&df, "g", "y", AggFn::Mean);
+        assert_eq!(m.str_col("g").unwrap(), &vec!["a".to_string(), "b".to_string()]);
+        let got = col(&m, "y");
+        assert_eq!(got[0], 2.0, "the finite value alone is the group's mean");
+        assert!(got[1].is_nan(), "a group with nothing finite reduces to NaN");
+        // The numeric-x keying goes through the same reduction.
+        let df = DataFrame::new()
+            .with_float("x", vec![1.0, 1.0, 2.0])
+            .with_float("y", vec![4.0, f64::INFINITY, 6.0]);
+        let m = aggregate(&df, "x", "y", AggFn::Sum);
+        assert_eq!(col(&m, "y"), &vec![4.0, 6.0]);
     }
 
     // -- smooth ------------------------------------------------------------

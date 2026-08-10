@@ -1028,8 +1028,19 @@ impl SvgRenderer {
         // that — one subset is one subset, whether it is a panel or a moment.
         let all_eff: Vec<&DataFrame> = panel_eff.iter().flat_map(|p| p.iter()).collect();
 
-        warn_unplaceable(&all_eff, x_field, x_log, "x");
-        warn_unplaceable(&all_eff, y_field, y_log, "y");
+        // What drawing finds that the check could not — see [`Drawn::remarks`].
+        // Declared this early because the first finding is here: rows a log axis
+        // cannot place. Accumulated across every panel, then deduped by message
+        // before `Drawn` carries it out: a facet draws the same layer once per
+        // panel, so a remark that reads the same in two panels is one fact said
+        // twice. Two panels that genuinely differ keep both sentences, which is
+        // the honest reading — the panels are different pictures. Nothing in
+        // this function may `eprintln!` instead: stderr does not exist in the
+        // browser, and a warning only the CLI can hear is half a warning.
+        let mut remarks: Vec<Diagnostic> = Vec::new();
+
+        warn_unplaceable(&mut remarks, &all_eff, x_field, x_log, "x");
+        warn_unplaceable(&mut remarks, &all_eff, y_field, y_log, "y");
 
         // A "plain bar" is a bar layer that has NOT gone through bin (so its
         // positions are discrete and each deserves its own tick label).
@@ -1565,7 +1576,7 @@ impl SvgRenderer {
             eff_global = eff_for(&[], None);
             &eff_global
         };
-        let color_map = build_color_map(spec, color_frames);
+        let color_map = build_color_map(spec, color_frames, &mut remarks);
         let ramp = resolve_ramp(&spec.palette);
 
         let legends = collect_legends(&ctx, &color_map, color_frames);
@@ -1659,17 +1670,13 @@ impl SvgRenderer {
         if let Some(w) = grid.panels.first().map(|p| p.rect.h()).and_then(|h|
             pile_overlap_warning(spec, &panel_eff, y_field, ys, h, self.point_radius))
         {
-            eprintln!("{w}");
+            remarks.push(Diagnostic {
+                kind: crate::legality::DiagnosticKind::Assumption,
+                message: w,
+            });
         }
 
         let mut svg = String::with_capacity(64 * 1024);
-        // What drawing finds that the check could not — see [`Drawn::remarks`].
-        // Accumulated across every panel, then deduped by message below: a facet
-        // draws the same layer once per panel, so a remark that reads the same in
-        // two panels is one fact said twice. Two panels that genuinely differ keep
-        // both sentences, which is the honest reading — the panels are different
-        // pictures.
-        let mut remarks: Vec<Diagnostic> = Vec::new();
         self.write_header(&mut svg);
         self.write_canvas(&mut svg);
 
@@ -1907,7 +1914,7 @@ impl SvgRenderer {
                     }
                     match layer.mark {
                         Mark::Point => self.write_points(&mut svg, layer, df, l, xs, ys, x_field, y_field, cat_x.as_deref(), cat_y.as_deref(), &color_map, &ramp, &clip, zs, z_field, None, pol_ref),
-                        Mark::Line  => self.write_line(&mut svg, layer, df, l, xs, ys, x_field, y_field, cat_x.as_deref(), &color_map, &ramp, &clip, pol_ref),
+                        Mark::Line  => self.write_line(&mut svg, layer, df, l, xs, ys, x_field, y_field, cat_x.as_deref(), &color_map, &ramp, &clip, pol_ref, &mut remarks),
                         Mark::Area  => self.write_area(&mut svg, layer, df, l, xs, ys, x_field, y_field, cat_x.as_deref(), area_base, &color_map, &clip, pol_ref),
                         Mark::Bar   => self.write_bars(&mut svg, layer, df, l, xs, ys, x_field, y_field, cat_x.as_deref(), cat_y.as_deref(), horizontal, ext_base, &color_map, &clip, pol_ref, nst.as_ref()),
                         Mark::Step  => self.write_step(&mut svg, layer, df, l, xs, ys, x_field, y_field, cat_x.as_deref(), area_base, &color_map, &ramp, &clip, pol_ref),
@@ -3912,8 +3919,10 @@ fn detect_time(ctx: &RenderContext<'_>, field: &str) -> Option<crate::time::Time
 /// the two cases the check cannot see: `GOG_STRICT=0`, where the caller has
 /// asked for best effort, and a transform whose *output* goes non-positive —
 /// `bar * sum` over a column that nets out at zero. Dropping a row without
-/// saying so is the one outcome the working agreement forbids.
-fn warn_unplaceable(eff: &[&DataFrame], field: &str, is_log: bool, axis: &str) {
+/// saying so is the one outcome the working agreement forbids — which is why
+/// this lands in `remarks` rather than on stderr: a browser has no stderr, and
+/// a dropped-rows report only the CLI can hear is the silent drop one hop out.
+fn warn_unplaceable(out: &mut Vec<Diagnostic>, eff: &[&DataFrame], field: &str, is_log: bool, axis: &str) {
     if !is_log || field.is_empty() { return }
     let (mut bad, mut total) = (0usize, 0usize);
     for df in eff {
@@ -3922,11 +3931,14 @@ fn warn_unplaceable(eff: &[&DataFrame], field: &str, is_log: bool, axis: &str) {
         bad += vals.iter().filter(|v| !v.is_finite()).count();
     }
     if bad == 0 { return }
-    eprintln!(
-        "gog: {bad} of {total} rows have no place on the log `{axis}` axis — a \
-         logarithm is undefined at zero and below, so they are not drawn. Filter \
-         those rows, or drop `scale = \"log\"` from `{axis}({field})`."
-    );
+    out.push(Diagnostic {
+        kind: crate::legality::DiagnosticKind::Assumption,
+        message: format!(
+            "gog: {bad} of {total} rows have no place on the log `{axis}` axis — a \
+             logarithm is undefined at zero and below, so they are not drawn. Filter \
+             those rows, or drop `scale = \"log\"` from `{axis}({field})`."
+        ),
+    });
 }
 
 /// Say when a dot plot's piles have grown too tall to be dots any more (spec §12,
@@ -5951,6 +5963,68 @@ mod tests {
                 "the plot drew, so this is a remark and not a refusal");
         assert!(said[0].contains("3 of 4 labels"),
                 "the remark must count what it left out: {said:?}");
+    }
+
+    /// The dropped-rows report rides in `remarks`, not on stderr: a browser has
+    /// no stderr, and this render goes through `draw` — the same door
+    /// `gog-wasm` uses — so what this asserts is what a browser user is told.
+    #[test]
+    fn dropped_log_rows_are_a_remark_rather_than_stderr() {
+        let data: HashMap<String, DataFrame> = HashMap::from([(
+            "t".to_string(),
+            DataFrame::new()
+                .with_float("x", vec![0.0, 10.0, 100.0])
+                .with_float("y", vec![1.0, 2.0, 3.0]),
+        )]);
+        let spec = PlotSpec::new().data("t").x_log_base("x", 10.0).y("y")
+            .layer(Layer::new(Mark::Point));
+        let drawn = SvgRenderer::default().draw(&spec, &data);
+        assert!(
+            drawn.remarks.iter().any(|d| d.message.contains("no place on the log")),
+            "the dropped-rows report must ride in remarks: {:?}",
+            drawn.remarks.iter().map(|d| &d.message).collect::<Vec<_>>()
+        );
+    }
+
+    /// The custom-palette count mismatch is a remark for the same reason.
+    #[test]
+    fn a_custom_palette_count_mismatch_is_a_remark_rather_than_stderr() {
+        let data: HashMap<String, DataFrame> = HashMap::from([(
+            "t".to_string(),
+            DataFrame::new()
+                .with_float("x", vec![1.0, 2.0, 3.0])
+                .with_float("y", vec![1.0, 2.0, 3.0])
+                .with_str("g", vec!["a".into(), "b".into(), "c".into()]),
+        )]);
+        let mut spec = PlotSpec::new().data("t").x("x").y("y")
+            .layer(Layer::new(Mark::Point).encode(Channel::Color, "g"));
+        spec.palette = crate::ir::PaletteDef::Custom(vec!["white".into(), "navy".into()]);
+        let drawn = SvgRenderer::default().draw(&spec, &data);
+        assert!(
+            drawn.remarks.iter().any(|d| d.message.contains("generated automatically")),
+            "the palette mismatch must ride in remarks: {:?}",
+            drawn.remarks.iter().map(|d| &d.message).collect::<Vec<_>>()
+        );
+    }
+
+    /// And the many-rows-one-line warning, which was the last mark-side
+    /// `eprintln!` left.
+    #[test]
+    fn an_ungrouped_many_row_line_is_a_remark_rather_than_stderr() {
+        let data: HashMap<String, DataFrame> = HashMap::from([(
+            "t".to_string(),
+            DataFrame::new()
+                .with_float("x", vec![1.0, 2.0, 3.0, 4.0, 5.0, 6.0])
+                .with_float("y", vec![2.0, 1.0, 3.0, 2.0, 4.0, 3.0]),
+        )]);
+        let spec = PlotSpec::new().data("t").x("x").y("y")
+            .layer(Layer::new(Mark::Line));
+        let drawn = SvgRenderer::default().draw(&spec, &data);
+        assert!(
+            drawn.remarks.iter().any(|d| d.message.contains("connected in x order")),
+            "the multi-series hint must ride in remarks: {:?}",
+            drawn.remarks.iter().map(|d| &d.message).collect::<Vec<_>>()
+        );
     }
 
     /// Nothing left out, nothing said. The remark is a report of a real absence,
@@ -9947,7 +10021,8 @@ mod tests {
         let frames = crate::plot::render_frames_with(
             &figure, &data, crate::plot::Strictness::Strict,
         )
-        .expect("a played plot has frames");
+        .expect("a played plot has frames")
+        .frames;
         assert_eq!(frames.len(), 2, "one still per moment");
 
         let blind = |s: &str| {
@@ -9977,12 +10052,36 @@ mod tests {
         let frames = crate::plot::render_frames_with(
             &figure, &data, crate::plot::Strictness::Strict,
         )
-        .unwrap();
+        .unwrap()
+        .frames;
         for (i, svg) in frames.iter().enumerate() {
             assert_eq!(frame_count(svg), 0, "still {i} still carries timing");
             assert_eq!(svg.matches(r#"<g display="inline">"#).count(), opening,
                 "still {i} shows a different set of groups than the sequence opens with");
         }
+    }
+
+    /// The sequence path reports what the check said. `render_frames` returned
+    /// bare frames once, and every non-fatal diagnostic — this Assumption
+    /// included — was built and then dropped, so `--gif` wrote the file and
+    /// said nothing. The silent drop §12 forbids, on the one output a reader
+    /// cannot re-run with the words on.
+    #[test]
+    fn writing_out_the_frames_keeps_the_diagnostics() {
+        let (mut spec, data) = played_points();
+        spec.layers[0].transforms.push(crate::ir::Transform::Quantile);
+        spec.layers[0].quantile = Some(crate::ir::QuantileSpec { p: Some(0.5) });
+        let figure = crate::ir::Figure::Plot(Box::new(spec));
+        let drawn = crate::plot::render_frames_with(
+            &figure, &data, crate::plot::Strictness::Strict,
+        )
+        .expect("quantile(0.5) is an Assumption, not a refusal");
+        assert!(!drawn.frames.is_empty());
+        assert!(
+            drawn.diagnostics.iter().any(|d| d.message.contains("median")),
+            "the Assumption must ride along with the frames: {:?}",
+            drawn.diagnostics.iter().map(|d| &d.message).collect::<Vec<_>>()
+        );
     }
 
     /// A plot that does not play cannot be a sequence, and §12 says the refusal

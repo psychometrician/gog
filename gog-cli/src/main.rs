@@ -144,16 +144,22 @@ fn main() {
             .filter(|s| s.is_finite() && *s > 0.0)
             .unwrap_or(1.0);
         match gog_core::plot::render_frames(&spec, &data) {
-            Ok(frames) => {
+            Ok(drawn) => {
+                // The diagnostics go to stderr exactly as on the SVG path: an
+                // Assumption made while drawing a GIF is still an Assumption,
+                // and this branch used to write the file and say nothing.
+                for d in &drawn.diagnostics {
+                    eprintln!("{}", d.message);
+                }
                 // Hundredths of a second is the resolution GIF has, and a moment
                 // that rounds to nothing would run the sequence as fast as the
                 // reader's browser felt like. One hundredth is the floor.
                 let delay = ((frame_seconds(&spec) * 100.0).round() as u16).max(1);
-                match gif::write(&frames, &path, scale, delay) {
+                match gif::write(&drawn.frames, &path, scale, delay) {
                     Ok((w, h)) => {
                         eprintln!(
                             "gog: wrote {} moments at {w}x{h} to {path}",
-                            frames.len()
+                            drawn.frames.len()
                         );
                         println!("{path}");
                     }

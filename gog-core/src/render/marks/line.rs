@@ -3,6 +3,7 @@ use std::collections::HashMap;
 use std::fmt::Write;
 use crate::data::DataFrame;
 use crate::ir::{Channel, Layer, Transform};
+use crate::legality::{Diagnostic, DiagnosticKind};
 use crate::render::palette::PALETTE_GOG;
 use crate::render::pattern::{pattern_dasharray, PatternMap};
 use crate::render::polar::Polar;
@@ -33,6 +34,9 @@ impl SvgRenderer {
         // page — Wilkinson's polar time series (§9.1.6.4). The vertices move; the
         // grouping, the colors and the dash do not.
         polar: Option<&Polar>,
+        // The multi-series warning below lands here rather than on stderr, so
+        // the browser hears it too — a browser has no stderr.
+        remarks: &mut Vec<Diagnostic>,
     ) {
         let Some(x_vals) = super::positions(df, x_field, cat_x) else { return };
         // y is the measure and stays numeric — `rule_for` keeps it continuous,
@@ -91,12 +95,15 @@ impl SvgRenderer {
         let has_clean_transform = is_pair
             || layer.transforms.iter().any(crate::transform::is_value_statistic);
         if group_field.is_none() && !has_clean_transform && n > 5 {
-            eprintln!(
-                "gog: `line` has {n} rows and no group or color channel — all points \
-                 will be connected in x order. If you have multiple series, add \
-                 `color(<field>)` or `group(<field>)` to draw one line per category \
-                 (e.g. `+ color(country)`)."
-            );
+            remarks.push(Diagnostic {
+                kind: DiagnosticKind::Assumption,
+                message: format!(
+                    "gog: `line` has {n} rows and no group or color channel — all points \
+                     will be connected in x order. If you have multiple series, add \
+                     `color(<field>)` or `group(<field>)` to draw one line per category \
+                     (e.g. `+ color(country)`)."
+                ),
+            });
         }
 
         // A polyline is one stroke, which is exactly why `size` and `opacity`

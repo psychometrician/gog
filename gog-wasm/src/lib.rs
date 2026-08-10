@@ -47,7 +47,9 @@ pub const STATUS_REFUSED: i32 = 2;
 ///
 /// # Safety
 /// The returned pointer is valid for `n` bytes and must be released by
-/// [`dealloc`], or consumed by [`gog_render`].
+/// [`dealloc`] with `cap = n`, or consumed by [`gog_render`] with `len = n` —
+/// the same `n` either way, because that is the size the allocation was made
+/// with and the size it must be freed with.
 #[no_mangle]
 pub extern "C" fn alloc(n: usize) -> *mut u8 {
     let mut v: Vec<u8> = Vec::with_capacity(n);
@@ -82,7 +84,8 @@ pub unsafe extern "C" fn dealloc(ptr: *mut u8, cap: usize) {
 /// the rule this obeys.
 ///
 /// # Safety
-/// `ptr` must point at `len` readable bytes from [`alloc`]; it is **consumed**.
+/// `ptr` must come from [`alloc`], `len` must be the `n` that call was given,
+/// and all `len` bytes must be initialized; the buffer is **consumed**.
 /// `out_len` and `out_status` must be writable. The returned buffer belongs to
 /// the caller and must be released with [`dealloc`].
 #[no_mangle]
@@ -92,9 +95,17 @@ pub unsafe extern "C" fn gog_render(
     out_len: *mut usize,
     out_status: *mut i32,
 ) -> *mut u8 {
-    let input = String::from_raw_parts(ptr, len, len);
-
-    let (text, status) = render_to_string(&input);
+    // Read the bytes as bytes and *check* they are UTF-8 rather than assert it:
+    // `String::from_raw_parts` requires valid UTF-8, so a host that wrote
+    // arbitrary bytes would be undefined behavior where the CLI gets a clean
+    // read error. A bad request is a report, never a trap.
+    let bytes = std::slice::from_raw_parts(ptr, len);
+    let (text, status) = match std::str::from_utf8(bytes) {
+        Ok(input) => render_to_string(input),
+        Err(e) => (format!("gog: request is not UTF-8: {e}"), STATUS_BAD_JSON),
+    };
+    // The request is consumed: free it with the layout `alloc` created it with.
+    drop(Vec::from_raw_parts(ptr, 0, len));
 
     let mut bytes = text.into_bytes();
     bytes.shrink_to_fit();
@@ -148,15 +159,19 @@ fn render_to_string(input: &str) -> (String, i32) {
                 .into_iter()
                 .chain(drawing.diagnostics.iter().map(|d| d.message.clone()))
                 .collect();
-            if !notes.is_empty() {
-                NOTES.with(|n| *n.borrow_mut() = notes.join("\n"));
-            }
+            // Assign unconditionally: a clean render must *clear* the previous
+            // render's notes, or a host that polls `gog_notes` per frame reads
+            // an old warning attributed to a frame that had nothing to say.
+            NOTES.with(|n| *n.borrow_mut() = notes.join("\n"));
             (drawing.svg, STATUS_OK)
         }
+        // The decode remarks ride ahead of the refusal, exactly as `gog-cli`
+        // prints them before it exits 2 — a "dropped N rows" report must not
+        // vanish because the plot was then refused.
         Err(diagnostics) => (
-            diagnostics
-                .iter()
-                .map(|d| d.message.clone())
+            remarks
+                .into_iter()
+                .chain(diagnostics.iter().map(|d| d.message.clone()))
                 .collect::<Vec<_>>()
                 .join("\n"),
             STATUS_REFUSED,
@@ -210,5 +225,60 @@ mod tests {
         let (text, status) = render_to_string("{not json");
         assert_eq!(status, STATUS_BAD_JSON);
         assert!(text.contains("parse error"), "{text}");
+    }
+
+    /// A clean render must *clear* the previous render's notes. The guard that
+    /// skipped the write on an empty list left render A's warning waiting for a
+    /// host that polls `gog_notes` after render B.
+    #[test]
+    fn a_clean_render_clears_the_previous_renders_notes() {
+        let noteful = CUBE.replace("[1.0,2.0,3.0]", "[1.0,null,3.0]");
+        let (_, status) = render_to_string(&noteful);
+        assert_eq!(status, STATUS_OK);
+        assert!(
+            NOTES.with(|n| !n.borrow().is_empty()),
+            "the dropped row must leave a note"
+        );
+        let (_, status) = render_to_string(CUBE);
+        assert_eq!(status, STATUS_OK);
+        assert!(
+            NOTES.with(|n| n.borrow().is_empty()),
+            "a clean render must clear the previous notes"
+        );
+    }
+
+    /// The decode remarks survive a refusal, as they do on the CLI: a reader
+    /// told "no" must still be told which rows the missing values cost.
+    #[test]
+    fn a_refusal_still_reports_the_rows_the_decode_dropped() {
+        let bad = CUBE
+            .replace("\"mark\":\"point\"", "\"mark\":\"line\"")
+            .replace("[1.0,2.0,3.0]", "[1.0,null,3.0]");
+        let (text, status) = render_to_string(&bad);
+        assert_eq!(status, STATUS_REFUSED);
+        assert!(
+            text.contains("row"),
+            "the decode remark must ride ahead of the refusal: {text}"
+        );
+    }
+
+    /// Arbitrary bytes are a report, never undefined behavior: the entry point
+    /// checks UTF-8 instead of asserting it.
+    #[test]
+    fn a_non_utf8_request_is_reported_rather_than_undefined() {
+        let bytes = [0xff_u8, 0xfe, 0x00, 0x41];
+        let p = alloc(bytes.len());
+        let (mut out_len, mut status) = (0usize, 0i32);
+        let text = unsafe {
+            std::ptr::copy_nonoverlapping(bytes.as_ptr(), p, bytes.len());
+            let rp = gog_render(p, bytes.len(), &mut out_len, &mut status);
+            let s = std::str::from_utf8(std::slice::from_raw_parts(rp, out_len))
+                .unwrap()
+                .to_string();
+            dealloc(rp, out_len);
+            s
+        };
+        assert_eq!(status, STATUS_BAD_JSON);
+        assert!(text.contains("UTF-8"), "{text}");
     }
 }

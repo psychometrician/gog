@@ -985,9 +985,9 @@ use crate::transform::is_value_statistic;
 
 /// A transform that yields a **low/high pair**, which the *span* marks draw:
 /// `interval` whiskers it, `ribbon` fills it, `line`/`step` trace its two
-/// boundaries. `range`/`confidence` compute the pair from `y`; `bounds` reshapes a
-/// pre-computed one. (`Transform::Box` also emits a pair, but is injected by the
-/// `box` mark, never composed, so it is not one of these.)
+/// boundaries. `range`/`confidence`/`deviation` compute the pair from `y`;
+/// `bounds` reshapes a pre-computed one. (`Transform::Box` also emits a pair,
+/// but is injected by the `box` mark, never composed, so it is not one of these.)
 fn is_pair_transform(t: &Transform) -> bool {
     matches!(t, Transform::Range | Transform::Confidence | Transform::Deviation
                 | Transform::Bounds)
@@ -1279,9 +1279,10 @@ pub fn mark_takes_transform(mark: &Mark, transform: &Transform) -> TransformLega
 }
 
 /// Every transform a user composes with `*`, in the grid's teaching order —
-/// the eleven value statistics, then the four pair transforms, then the four
-/// collision modifiers. `Transform::Box` is excluded: the `box` mark injects it,
-/// it is never typed, so it is not a column of the Mark × Transform grid.
+/// the eleven value statistics, the four pair transforms, `partition`, then the
+/// four collision modifiers: twenty. `Transform::Box` is excluded: the `box`
+/// mark injects it, it is never typed, so it is not a column of the
+/// Mark × Transform grid.
 pub const USER_TRANSFORMS: [Transform; 20] = [
     Transform::Bin, Transform::Smooth, Transform::Count, Transform::Density, Transform::Proportion,
     Transform::Sum, Transform::Mean, Transform::Median, Transform::Max, Transform::Min,
@@ -2959,7 +2960,7 @@ fn check_pair_summary(out: &mut Vec<Diagnostic>, spec: &PlotSpec, df: &DataFrame
     }
 
     // 0b. Two transforms cannot both be the cell's measurement — unless one of them
-    //    is only describing an **extent**, which is `check_cut_composition`'s
+    //    is only describing an **extent**, which is `check_chain_jobs`'s
     //    question and is asked of every mark in every dimension rather than here.
     //    This check ran that refusal until 2026-07-26, which is why the same mistake
     //    was fatal on a `zone` and silent on a `bar`: the refusal lived inside the

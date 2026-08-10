@@ -13,6 +13,7 @@ use std::collections::HashMap;
 use crate::color::css_rgb;
 use crate::data::DataFrame;
 use crate::ir::{Channel, PaletteDef, PlotSpec};
+use crate::legality::{Diagnostic, DiagnosticKind};
 use crate::render::text::esc;
 
 // ---------------------------------------------------------------------------
@@ -358,7 +359,15 @@ pub(crate) fn resolve_palette(pal: &PaletteDef) -> Vec<String> {
 /// Colors are assigned in first-appearance order across all effective DataFrames.
 /// If categories exceed the palette size, additional colors are generated via
 /// the HSL wheel — so we never repeat a color.
-pub(crate) fn build_color_map(spec: &PlotSpec, eff: &[DataFrame]) -> HashMap<String, String> {
+///
+/// A count mismatch on a custom palette is reported through `remarks`, never
+/// `eprintln!`: the browser engine has no stderr, so a warning printed there
+/// reaches the CLI's users and nobody else.
+pub(crate) fn build_color_map(
+    spec: &PlotSpec,
+    eff: &[DataFrame],
+    remarks: &mut Vec<Diagnostic>,
+) -> HashMap<String, String> {
     let base = resolve_palette(&spec.palette);
     let is_custom = matches!(&spec.palette, PaletteDef::Custom(_));
 
@@ -384,23 +393,29 @@ pub(crate) fn build_color_map(spec: &PlotSpec, eff: &[DataFrame]) -> HashMap<Str
     // to handle any count via overflow, so no warning needed there.
     if is_custom {
         if n_categories > n_colors {
-            eprintln!(
-                "gog: custom palette has {n_colors} color{} but color() has {n_categories} unique \
-                 value{} — {} additional color{} generated automatically via HSL wheel. \
-                 Provide {n_categories} colors to palette() to suppress this warning.",
-                if n_colors == 1 { "" } else { "s" },
-                if n_categories == 1 { "" } else { "s" },
-                n_categories - n_colors,
-                if n_categories - n_colors == 1 { " was" } else { "s were" },
-            );
+            remarks.push(Diagnostic {
+                kind: DiagnosticKind::Assumption,
+                message: format!(
+                    "gog: custom palette has {n_colors} color{} but color() has {n_categories} unique \
+                     value{} — {} additional color{} generated automatically via HSL wheel. \
+                     Provide {n_categories} colors to palette() to suppress this warning.",
+                    if n_colors == 1 { "" } else { "s" },
+                    if n_categories == 1 { "" } else { "s" },
+                    n_categories - n_colors,
+                    if n_categories - n_colors == 1 { " was" } else { "s were" },
+                ),
+            });
         } else if n_colors > n_categories && n_categories > 0 {
-            eprintln!(
-                "gog: custom palette has {n_colors} colors but color() only has {n_categories} \
-                 unique value{} — {} color{} unused.",
-                if n_categories == 1 { "" } else { "s" },
-                n_colors - n_categories,
-                if n_colors - n_categories == 1 { " is" } else { "s are" },
-            );
+            remarks.push(Diagnostic {
+                kind: DiagnosticKind::Assumption,
+                message: format!(
+                    "gog: custom palette has {n_colors} colors but color() only has {n_categories} \
+                     unique value{} — {} color{} unused.",
+                    if n_categories == 1 { "" } else { "s" },
+                    n_colors - n_categories,
+                    if n_colors - n_categories == 1 { " is" } else { "s are" },
+                ),
+            });
         }
     }
 

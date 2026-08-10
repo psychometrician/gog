@@ -189,15 +189,30 @@ pub fn render_figure_with(
 pub fn render_frames(
     figure: &Figure,
     data: &HashMap<String, DataFrame>,
-) -> Result<Vec<String>, Vec<Diagnostic>> {
+) -> Result<Frames, Vec<Diagnostic>> {
     render_frames_with(figure, data, Strictness::from_env())
+}
+
+/// A played plot written out as its stills, and everything the engine wants to
+/// say about it — [`Drawing`]'s shape for the sequence path. The diagnostics
+/// ride along on success for `Drawing`'s reason: an Assumption renders and
+/// still has to be reported, and this used to return the frames alone, which
+/// dropped every non-fatal diagnostic exactly where a reader cannot re-run the
+/// plot to hear them.
+#[derive(Debug)]
+pub struct Frames {
+    pub frames: Vec<String>,
+    /// Every diagnostic the check produced, plus the first frame's render
+    /// remarks. One frame's worth: the remarks are the same sentence every
+    /// moment, and twelve copies of it is noise.
+    pub diagnostics: Vec<Diagnostic>,
 }
 
 pub fn render_frames_with(
     figure: &Figure,
     data: &HashMap<String, DataFrame>,
     strictness: Strictness,
-) -> Result<Vec<String>, Vec<Diagnostic>> {
+) -> Result<Frames, Vec<Diagnostic>> {
     let mut diagnostics = legality::check_figure(figure, data);
     if strictness == Strictness::Strict && diagnostics.iter().any(Diagnostic::is_fatal) {
         return Err(diagnostics);
@@ -243,7 +258,7 @@ pub fn render_frames_with(
         }
         frames.push(drawn.svg);
     }
-    Ok(frames)
+    Ok(Frames { frames, diagnostics })
 }
 
 #[cfg(test)]

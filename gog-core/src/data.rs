@@ -456,11 +456,18 @@ impl Lattice {
         }
         let mut node = vec![None; xs.len() * ys.len()];
         for r in 0..n {
+            // NaN is skipped *before* the search, not by it: inside the
+            // comparator a NaN would panic on the `unwrap`, never reach the
+            // `else` arm the way ±infinity does — and a NaN coordinate is
+            // reachable, through `GOG_STRICT=0` on a log axis.
+            if !xs_col[r].is_finite() || !ys_col[r].is_finite() {
+                continue; // a non-finite coordinate — no crossing to sit at
+            }
             let (Ok(i), Ok(j)) = (
                 xs.binary_search_by(|p| p.partial_cmp(&xs_col[r]).unwrap()),
                 ys.binary_search_by(|p| p.partial_cmp(&ys_col[r]).unwrap()),
             ) else {
-                continue; // a non-finite coordinate — no crossing to sit at
+                continue; // finite values are all on the axes; kept for safety
             };
             node[j * xs.len() + i] = Some(r);
         }
@@ -535,6 +542,20 @@ mod tests {
         assert_eq!(l.faces().len(), 2, "a 3x2 grid has two quads");
         // Each face names its four table rows counter-clockwise from (i,j).
         assert_eq!(l.faces()[0], [5, 3, 2, 1]);
+    }
+
+    /// A NaN coordinate is a row with no crossing, never a panic. Reachable:
+    /// `GOG_STRICT=0` on a log axis writes NaN into the column a `surface`
+    /// then reads, and a panic here aborts the CLI and traps the wasm module.
+    #[test]
+    fn a_nan_coordinate_is_skipped_rather_than_a_panic() {
+        let xs = [0.0, 1.0, f64::NAN, 0.0, 1.0, f64::NEG_INFINITY];
+        let ys = [0.0, 0.0, 0.0, 1.0, 1.0, 1.0];
+        let l = Lattice::of(&xs, &ys).unwrap();
+        assert_eq!(l.xs, [0.0, 1.0]);
+        assert_eq!(l.ys, [0.0, 1.0]);
+        // Four finite crossings sit; the NaN row and the -inf row sit nowhere.
+        assert_eq!(l.fill(), (4, 4));
     }
 
     /// A scatter is the case the fatal check exists for: *n* points in general

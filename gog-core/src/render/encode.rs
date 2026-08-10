@@ -51,10 +51,43 @@ pub(crate) const SIZE_MAX_R: f64 = 12.0;
 /// on its channel is `ChannelScale`'s question, and asking it here too is how
 /// `size` and `opacity` would come to disagree about what a log scale means.
 pub(crate) fn opacity_at(f: f64) -> f64 {
-    OPACITY_MIN + f * (OPACITY_MAX - OPACITY_MIN)
+    OPACITY_MIN + held(f) * (OPACITY_MAX - OPACITY_MIN)
 }
 
 /// Turn a channel fraction into a point radius.
 pub(crate) fn radius_at(f: f64) -> f64 {
-    SIZE_MIN_R + f * (SIZE_MAX_R - SIZE_MIN_R)
+    SIZE_MIN_R + held(f) * (SIZE_MAX_R - SIZE_MIN_R)
+}
+
+/// Hold a fraction inside `0..=1`, and give a value with no place the least ink.
+///
+/// A fraction can arrive outside the unit interval: `limit_cut` deliberately
+/// keeps the rows on the axis a transform *writes*, so a transform output past a
+/// stated `limits` reaches here. Unclamped, that becomes an opacity above 1 or a
+/// negative radius, and a NaN becomes `r="NaN"` — SVG nothing renders. Clamping
+/// is this module's job because it is the one place `size` and `opacity` agree
+/// what a fraction means.
+fn held(f: f64) -> f64 {
+    if f.is_nan() { 0.0 } else { f.clamp(0.0, 1.0) }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn a_fraction_outside_the_unit_interval_is_held_at_the_ends() {
+        assert_eq!(opacity_at(-0.5), opacity_at(0.0));
+        assert_eq!(opacity_at(1.5), opacity_at(1.0));
+        assert_eq!(radius_at(-0.5), radius_at(0.0));
+        assert_eq!(radius_at(1.5), radius_at(1.0));
+        assert_eq!(radius_at(f64::INFINITY), radius_at(1.0));
+    }
+
+    #[test]
+    fn a_nan_fraction_gets_the_least_ink_rather_than_a_nan_attribute() {
+        assert_eq!(opacity_at(f64::NAN), opacity_at(0.0));
+        assert_eq!(radius_at(f64::NAN), radius_at(0.0));
+        assert!(radius_at(f64::NAN).is_finite());
+    }
 }
