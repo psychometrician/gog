@@ -48,11 +48,11 @@ callable from [R](https://www.r-project.org/), [Python](https://www.python.org/)
 [Julia](https://julialang.org/), and
 [JavaScript](https://developer.mozilla.org/en-US/docs/Web/JavaScript).
 Its discipline comes from Hangeul (한글), the Korean
-alphabet; its vocabulary from Wilkinson's *The Grammar of Graphics*; and its
-working shape from [ggplot2](https://ggplot2.tidyverse.org/)
-[@wickham2026ggplot2pkg]. Behind all three is one promise: a beginner
-should be able to read any plot specification aloud on day one and write it
-themselves on day two.
+alphabet; its vocabulary from Wilkinson's *The Grammar of Graphics*
+[@wilkinson2005]; and its working shape from
+[ggplot2](https://ggplot2.tidyverse.org/) [@wickham2026ggplot2pkg]. Behind all
+three is one promise: a beginner should be able to read any plot specification
+aloud on day one and write it themselves on day two.
 
 This preface is unusually long. It explains where the grammar comes from, and
 why it refuses what it refuses. You do not need any of it to draw a plot. If
@@ -78,21 +78,22 @@ four operators you will meet in this book mean none of those things. What gog
 took from him is the inventory rather than the algebra: most of the names in its
 vocabulary come from his chapters on statistics, geometry, coordinates and
 aesthetics, which is a real debt and a large one. What gog is instead is a
-deliberately small **kernel** of marks, channels, transforms and operators, grown
-one decision at a time and answerable to [nine laws](design-laws.qmd) of its own.
-The kernel is that whole vocabulary: every name the grammar has, and nothing
-outside it. What those four kinds of name mean is spelled out later in this
-preface. When a design question is genuinely open, he is still the tiebreaker, and the
-package carries his book's name. But the cover says *a*, not *the*. gog is one
+deliberately small **kernel** of tables, marks, channels, transforms and
+operators, with a few more kinds that refine a plot. It grew one decision at a
+time, and it answers to [nine laws](design-laws.qmd) of its own. The kernel is
+that whole vocabulary: every name the grammar has, and nothing outside it. The
+five kinds that build a plot are spelled out later in this preface, and the rest
+wait for [the kernel chapter](grammar.qmd). When a design question is genuinely
+open, he is still the tiebreaker, and the package carries his book's name. But the cover says *a*, not *the*. gog is one
 of the grammars that could be built, and it claims nothing more.
 
 The small article also does something the definite one cannot. *A Grammar of
-Graphics* abbreviates to **agog**, English for eager, expectant, impatient to
-see what comes next. The acronym is not merely lucky; it names the mental
-state this grammar runs on. A plot is a specification, not drawing code: you
-never place a stroke yourself. You declare what you want to see, and then there
-is a gap (brief, but real, and felt every time) before the engine shows you
-what you said.
+Graphics* abbreviates to [**agog**](https://en.wiktionary.org/wiki/agog),
+English for eager, expectant, impatient to see what comes next. The acronym is
+not merely lucky; it names the mental state this grammar runs on. A plot is a
+specification, not drawing code: you never place a stroke yourself. You declare
+what you want to see, and then there is a gap (brief, but real, and felt every
+time) before the engine shows you what you said.
 
 Everyone who writes a plot in gog stands in that gap. Reading this book, you see
 the far side of it. Every plot on these pages was drawn by the engine while the
@@ -205,8 +206,8 @@ for a real, generative language, and a better one than anything built before
 it. gog stands on that achievement, written in its debt, and adds a single
 ambition of its own, the one Hangeul is famous for: no exceptions in how the
 pieces compose. That is the standard gog holds itself to, and the aim is to
-narrow what still stands between what a plot *means* and what its code lets
-you *say*.
+shorten the distance between the plot you have in mind and the words that
+draw it.
 
 That debt is made of specific things, and naming them is better than a vague
 mention. The `+`
@@ -218,19 +219,21 @@ specification you build and hand over, rather than a set of drawing commands.
 Wickham named that last one himself. "One of the most important features of the
 grammar is its declarative nature," he wrote, and ggplot2 uses `+` to keep it
 that way in R [@wickham2008thesis, p. 54]. This package inherits both the
-property and the operator that protects it. Wickham has since said publicly
-that ggplot2 should use the pipe instead [@wickham2018pipe]. gog keeps `+`, and
-the [operators](operators.qmd#why-and-not-a-pipe) chapter says why. A
-reader who already writes ggplot2 will recognize the shape of almost every
+property and the operator that protects it. Wickham has since said publicly that
+the pipe would have been the better interface. In the same answer he says
+ggplot2 cannot switch to it, and that a new package just to make the change
+would not be worth it [@wickham2018pipe]. gog keeps `+`, and the
+[operators](operators.qmd#why-and-not-a-pipe) chapter says why. A reader who
+already writes ggplot2 will recognize the shape of almost every
 sentence in this book. That is on purpose. After years of ggplot2, its grammar
 is how I think about visualization, so it is the shape this one took.
 
 What changed is narrower, and it is why this package exists at all. ggplot2
 already derives a histogram, from its bar geom and its binning statistic
 [@wickham2016ggplot2, sec. 3.13]. What it adds is a shortcut name for that
-pair. gog adds none, so the pairing itself is the only spelling.
-One engine answers four languages, so the sentence you learn in R is the
-sentence you write in Python. And the rules for combining the pieces hold
+pair. gog adds no such name, so writing the pair is the only way to draw a
+histogram. One engine answers four languages, so the sentence you learn in R is
+the sentence you write in Python. And the rules for combining the pieces hold
 everywhere, with no exceptions, which is what the rest of this preface is
 about.
 
@@ -253,13 +256,15 @@ data(gapminder_2007) + bar * bin + x(life)
 *"Given gapminder 2007: bars derived by bin, x is life."* That is the whole
 program, and the plot above was drawn from those words as this page built.
 There is no histogram function in this package and no argument that turns bars
-into one. `bar` is the mark, `bin` is the transform that cuts a continuous
-column into intervals and counts the rows falling into each, `x` is the
-channel, which is the visual property a column is mapped to, and `*` is the
-operator that puts a transform on a mark. It is the *derived by* in the
-sentence above. Read `*` as a spinning wheel rather than as a multiplication
-sign. Its spokes show one thing being turned into another, the way ㄱ shows
-the shape of the mouth that says it.
+into one. `data(gapminder_2007)` names the table, which supplies the rows and
+the columns. `bar` is the mark, the shape drawn for each row. `bin` is the
+transform, which derives new values from the columns you named: here it cuts a
+continuous column into intervals and counts the rows falling into each. `x` is
+the channel, the visual property a column is mapped to. And `*` is the operator
+that puts a transform on a mark. It is the *derived by* in the sentence above.
+Read `*` as a spinning wheel rather than as a multiplication sign. Its spokes
+show one thing being turned into another, the way ㄱ shows the shape of the
+mouth that says it.
 
 ![The mouth saying ㄱ (*g*). The back of the tongue rises to block the throat, and the red line traces the shape the letter draws.[^gieok-img]](images/Pronounciation.png){fig-alt="A side view of the mouth, nose and throat. A red line runs along the raised back of the tongue and then turns downward, tracing the angular shape of the Korean letter ㄱ." width="300" fig-align="center"}
 
@@ -267,8 +272,8 @@ the shape of the mouth that says it.
 
 Nothing there is memorized. The names are
 ordinary English words, and the rule that joins them never changes. Knowing
-those four parts is knowing this plot, and every other statistical chart in
-this book is the same four kinds of part in a different arrangement.
+those five parts is knowing this plot, and every other statistical chart in
+this book is the same five kinds of part in a different arrangement.
 
 And one law stands over the whole package: **no exceptions.** A rule you learn
 on one mark holds on every mark, or the package has failed you.
@@ -733,8 +738,8 @@ market it. I did not know how to reach the people it was built for, and after a
 while I shut it down. The application is gone. Its tutorial videos are still
 online: eighty of them, in most major languages. Two are the English ones, if
 you would like to see what it did:
-[tutorial one](https://www.youtube.com/watch?v=eGiOGaY215M) and
-[tutorial two](https://www.youtube.com/watch?v=u93GtjJQ-PQ). Claude Code did the
+[tutorial one](https://www.youtube.com/watch?v=eGiOGaY215M){target="_blank"} and
+[tutorial two](https://www.youtube.com/watch?v=u93GtjJQ-PQ){target="_blank"}. Claude Code did the
 translating for the rest, and with it I could do the same for this book.
 
 The lesson was not the one I went looking for. Building the thing was no longer

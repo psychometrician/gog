@@ -297,6 +297,13 @@ format:
     # refusal ran off the edge and a reader saw the half that fitted.
     # `code-overflow: wrap` does not reach these: it styles *source* blocks only.
     css: gog.css
+    # Sets every package name in code font, in prose, from a list of names rather
+    # than from 350 pairs of backticks a writer would have to remember. Listed
+    # under both formats on purpose: a format's `filters:` replaces the value
+    # above it rather than adding to it, so the PDF names it again beside the
+    # syntax filter instead of inheriting it.
+    filters:
+      - package-names.lua
     # Colors a gog specification by kind, which nothing ships a rule for. It runs
     # in the browser rather than at render time so that it adds to Pandoc's
     # tokens instead of replacing them, which is what keeps the panel, the copy
@@ -334,6 +341,7 @@ format:
     # chapter that declares the kernel rather than from a second copy of it.
     filters:
       - gog-syntax.lua
+      - package-names.lua
     include-in-header:
       text: |
         % Long lines wrap instead of running off the page. Both environments are

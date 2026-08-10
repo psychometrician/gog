@@ -374,13 +374,18 @@ mistake is a `plot()` handed to another `plot()`, and it is refused there too.
 ## Why `+`, and not a pipe
 
 Readers arriving from the tidyverse ask this, and it deserves a real answer,
-because ggplot2's own author has said publicly that he would spell it
-differently today [@wickham2018pipe]. The regret is on the record: ggplot,
-ggplot2's predecessor, was written as function composition; the pipe did not
-exist yet; `+` was what he reached for instead. Had `%>%` been available, he
-says, the grammar would have piped, and there would have been no need for
-ggplot2 at all. Three reasons are given for preferring the pipe. Two of them do
-not reach gog, and the third is the one that settles the question the other way.
+because ggplot2's own author has said publicly that the pipe would have been the
+better interface [@wickham2018pipe]. The history is on the record. ggplot,
+ggplot2's predecessor, was written as function composition, and it could have
+piped had the pipe existed; `+` is what ggplot2 reached for instead.
+
+He also answers the question a reader asks next. ggplot2 cannot change now: its
+functions take the mapping and the data first, where a pipe needs the plot. And
+he judges that a new package built only to make the switch would not be worth
+what it would cost. So for ggplot2 the matter is settled by history rather than
+by taste, and a grammar starting fresh has to answer it on its own. Three
+reasons are given for preferring the pipe. Two of them do not reach gog, and the
+third is the one that settles the question the other way.
 
 The first is about one language. A pipe is a single idea that works
 everywhere in R, so a grammar spelling composition differently is one more thing
