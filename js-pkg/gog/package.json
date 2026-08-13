@@ -1,7 +1,7 @@
 {
   "name": "grammar-of-graphics",
   "version": "0.0.5",
-  "description": "A Grammar of Graphics as a specification language \u2014 one Rust engine, spoken in JavaScript",
+  "description": "A grammar of graphics for JavaScript: describe a plot, and one Rust engine draws it",
   "keywords": [
     "grammar-of-graphics",
     "visualization",

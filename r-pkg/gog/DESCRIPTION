@@ -3,9 +3,12 @@ Title: Grammar of Graphics
 Version: 0.0.5
 Authors@R:
     person("psychometrician", role = c("aut", "cre"), email = "psychometrician@gmail.com")
-Description: R interface to the gog (Grammar of Graphics) engine.
-    Provides a composable DSL using the + operator to build plots from
-    marks, encodings, and data. Plots render via the gog-cli Rust binary.
+Description: Draw a plot by describing it. You name a table, a mark to
+    draw, and which column goes to which part of the picture, and one
+    engine turns that description into an SVG. The same description is
+    written the same way in R, 'Python', 'Julia' and 'JavaScript', and is
+    drawn by a single engine written in 'Rust' that ships inside the
+    package, so nothing has to be installed or added to the path.
 License: Apache License (== 2.0)
 URL: https://github.com/psychometrician/gog,
     https://psychometrician.github.io/gog-book/

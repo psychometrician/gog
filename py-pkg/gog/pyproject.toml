@@ -16,7 +16,7 @@ name = "gog"
 # and a `.devN` is a pre-release that `pip install gog` skips unless the user
 # passes `--pre`, so it would have held the name weakly.
 version = "0.0.5"
-description = "A Grammar of Graphics — one engine, spoken from Python"
+description = "A grammar of graphics for Python: describe a plot, and one Rust engine draws it"
 readme = "README.md"
 requires-python = ">=3.9"
 # An SPDX expression says *which* license this is; the files beside it say what
