@@ -167,8 +167,9 @@ it, and a value you merely set earns none. A table is bound too, by `data()`,
 which is the Bind-Once law: name it once, and its columns stay bare names.
 
 Two more parts join with an operator of their own. A transform attaches to
-its mark with `*`, which is how the preface's `bar * bin` made a histogram.
-A facet splits the finished plot into panels with `|` or `/`. A scale is not
+its mark with [`*`](operators.qmd#derive), which is how the preface's
+`bar * bin` made a histogram. A [facet](faceting.qmd) splits the finished plot
+into panels with `|` or `/`. A scale is not
 a separate part at all: it is written on the position it belongs to, the way
 `x(gdp, scale = "log")` was written above. So the shape in full is:
 
