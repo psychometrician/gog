@@ -133,6 +133,15 @@ do not turn.
 CRAN mirror second, and the second entry is what keeps your other packages
 resolving.
 
+**What changed between versions** is in two places, and they answer different
+questions.
+[`NEWS.md`](https://github.com/psychometrician/gog/blob/main/NEWS.md) is the
+short version, a few paragraphs per release, and it is what
+`news(package = "gog")` prints in R.
+[`CHANGELOG.md`](https://github.com/psychometrician/gog/blob/main/CHANGELOG.md)
+is the complete one: every change a user could notice, including the small fixes
+that never make the headlines.
+
 Julia is the one binding that does not bundle the engine yet, so `Pkg.add` gives
 you a package that loads but cannot draw until a `gog-cli` exists on your
 machine. Build it once with `cargo build --release -p gog-cli`, or set

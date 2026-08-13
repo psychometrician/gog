@@ -53,6 +53,11 @@ Homepage = "https://psychometrician.github.io/gog-book/"
 Documentation = "https://psychometrician.github.io/gog-book/"
 Source = "https://github.com/psychometrician/gog"
 Issues = "https://github.com/psychometrician/gog/issues"
+# PyPI renders a `Changelog` URL as its own link in the sidebar, which is the
+# only path a reader has from the project page to what changed. Without it the
+# page offers the book, the source and the issue tracker, and no way to answer
+# "what is new in this version" short of reading commits.
+Changelog = "https://github.com/psychometrician/gog/blob/main/CHANGELOG.md"
 
 [project.optional-dependencies]
 test = ["pytest"]
