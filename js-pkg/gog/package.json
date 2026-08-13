@@ -1,6 +1,6 @@
 {
   "name": "grammar-of-graphics",
-  "version": "0.0.4",
+  "version": "0.0.5",
   "description": "A Grammar of Graphics as a specification language \u2014 one Rust engine, spoken in JavaScript",
   "keywords": [
     "grammar-of-graphics",
@@ -40,10 +40,10 @@
     "test": "node --test test/*.mjs"
   },
   "optionalDependencies": {
-    "grammar-of-graphics-darwin-arm64": "0.0.4",
-    "grammar-of-graphics-darwin-x64": "0.0.4",
-    "grammar-of-graphics-linux-arm64": "0.0.4",
-    "grammar-of-graphics-linux-x64": "0.0.4",
-    "grammar-of-graphics-win32-x64": "0.0.4"
+    "grammar-of-graphics-darwin-arm64": "0.0.5",
+    "grammar-of-graphics-darwin-x64": "0.0.5",
+    "grammar-of-graphics-linux-arm64": "0.0.5",
+    "grammar-of-graphics-linux-x64": "0.0.5",
+    "grammar-of-graphics-win32-x64": "0.0.5"
   }
 }

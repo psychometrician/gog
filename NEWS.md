@@ -1,3 +1,38 @@
+# gog 0.0.5 (2026-08-12)
+
+A plot that plays can be stopped and stepped. Three buttons sit on the same line
+as the zoom and the camera, and they move the clock rather than the plot: step
+back, stop or start, step forward. Stepping stops the clock, because a running
+one would carry you off the frame you asked for. The ends join up, so stepping
+back from the first frame reaches the last, which is what the sequence already
+does when it loops. Stop the clock and the camera saves the frame you stopped
+on. The grammar grew no word for any of it, so a sentence is unchanged and a
+printed sequence is still its first frame.
+
+The warnings were always written; now you can read them. gog reports what it had
+to assume on the way to a picture, and those reports went to standard error,
+which a notebook and a browser do not have. Rows a log axis could not place, a
+custom palette with the wrong number of colors, and a many-row line with no
+`group` all warned into nothing for anyone not working at a command line. The
+same words now travel with the drawing. `save_gif()` had the same hole from the
+other side, building every diagnostic and then dropping the list, so a written
+file was silent about what it assumed.
+
+One missing value no longer erases a bar. A single non-finite value in
+`bar * mean + x(category)` turned that whole category into nothing, while the
+same transform without an `x` quietly dropped it instead, so the same data gave
+two different answers depending on how it was grouped. Every keying now drops
+non-finite values the same way, and a group with nothing finite draws nothing
+rather than something wrong. A value pushed outside its scale by a transform is
+held at the scale's ends now, instead of asking for a negative radius or an
+opacity above one.
+
+One thing to know before you upgrade. `book_table()` is now `gog_table()`, and
+there is no alias. Change the call and nothing else: the arguments, the table
+names and everything it returns are the same. The old name did not say which
+package it came from, which mattered once `god` arrived with a helper of its
+own doing the same job for its own book.
+
 # gog 0.0.4 (2026-08-05)
 
 Clicking a mark keeps its row on the plot. Hovering reads one row and forgets it
