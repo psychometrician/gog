@@ -158,7 +158,7 @@ check_vocabulary <- function(book = "book", namespace = "r-pkg/gog/NAMESPACE") {
   # the fix instead of leaving R to say "could not find function". A word that
   # exists to teach its own absence must not be documented as a channel — this
   # is the one export that is deliberately *not* in the kernel block.
-  # `book_table` fetches one of the manual's example tables so a reader can run
+  # `gog_table` fetches one of the manual's example tables so a reader can run
   # an example without first writing a CSV reader. Like `render_svg` it is
   # binding plumbing rather than a word of the grammar, so it is not documented
   # as an atom.
@@ -166,7 +166,7 @@ check_vocabulary <- function(book = "book", namespace = "r-pkg/gog/NAMESPACE") {
   # same kind of name as the two above, and the pattern is worth stating once:
   # a bare common word belongs to the grammar, and the plumbing around it takes
   # two words joined by `_`. That is why none of these four is a channel.
-  exported <- setdiff(exported, c("render_svg", "colour", "book_table", "save_gif"))
+  exported <- setdiff(exported, c("render_svg", "colour", "gog_table", "save_gif"))
   undocumented <- setdiff(exported, all_names)
   if (length(undocumented))
     fail("FAIL: exported but absent from the kernel block in grammar.qmd — ",

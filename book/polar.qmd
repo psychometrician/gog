@@ -58,7 +58,7 @@ is the space the plot is drawn in, and north-west is beside north because on the
 compass it is beside north. The prevailing westerly is now a shape rather than a
 tall bar you have to look up in the labels.
 
-This is the point of a coordinate space, and it is why a pie chart, a rose and a
+This is what a coordinate space is for, and it is why a pie chart, a rose and a
 radar plot are not chart types in this grammar. They are marks you already know,
 read in a circle.
 

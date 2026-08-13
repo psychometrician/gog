@@ -5,7 +5,7 @@
 source("R/setup.R")
 ```
 
-Do countries that earn more live longer?
+Do people in richer countries live longer?
 
 That is a question about data: 142 countries, each with a GDP per capita and a
 life expectancy.
@@ -15,8 +15,8 @@ life expectancy.
 peek(gapminder_2007)
 ```
 
-In gog you answer a question like that by saying what the data means, rather
-than by drawing anything:
+In gog you answer a question like that by writing what the picture should
+show, rather than by drawing anything:
 
 ```{r}
 data(gapminder_2007) + point + x(gdp) + y(life)
@@ -26,46 +26,54 @@ Read it aloud: *"Given gapminder 2007: points, x is gdp, y is life."*
 
 That sentence is the entire program. You named a table, a mark, and two
 positions; the engine chose the axes, the ticks, the margins, and drew one
-point per row. There is no draw call to make, because a plot here is a
-*specification* (a sentence about the picture, not a claim about the data), and
-rendering it is the engine's job, not yours.
+point per row. You never call a drawing function, because a plot here is a
+*specification*: a sentence about the picture, not a claim about the data.
+Rendering it is the engine's job, not yours.
+
+None of those four words is yours to define. They arrive with the package, so
+loading gog is what makes `point` and `x` available. A word is written bare
+when it has nothing to take, which is why `point` has no parentheses.
+Parentheses appear when there is something to put in them, like the column in
+`x(gdp)`.
 
 ::: {.content-visible when-format="html"}
 
 ## The boxes under every plot
 
-Look under the plot above. A row of small boxes sits there, and **every plot in
-this book has them**. The magnifiers look closer and wider. The frame returns
+Look under the plot above. A row of small boxes sits there, and every plot in
+this book has them. The two magnifiers zoom in and out. The frame returns
 you to the whole picture. The camera saves what you are looking at as a picture
 file, large enough for a slide or a journal figure. A box is dimmed when it can
 do nothing.
 
-Once you have looked closer, dragging the plot moves it. No box says so, because
-the pointer does: it becomes a hand over a plot you can move.
+Once you have zoomed in, dragging the plot moves it. There is no box for it;
+the pointer shows it instead, becoming a hand over a plot you can move.
 
-Rest the pointer on any box and it names itself. A drawing means nothing to a
-reader who has not met it before. So each box says in words what it does.
+Move the pointer over any box and a small label appears, saying what that box
+does. A symbol means nothing to a reader who has not seen it before. That is
+why the words are there.
 
 Not one of these boxes has a word in the grammar, and that is deliberate. A
-word belongs in the grammar only if it changes what the plot claims about the data. Looking
-closer changes nothing: the points, the axes and the numbers stay the ones the
-engine chose. To make the plot itself cover a narrower range, write it in the
-sentence as [`limits`](scales.qmd).
+word belongs in the grammar only if it changes what the plot claims about the
+data. Zooming in changes nothing: the points, the axes and the numbers stay
+the ones the engine chose. To make the plot itself cover a narrower range,
+write [`limits`](scales.qmd) in the sentence.
 :::
 
 ::: {.content-visible when-format="pdf"}
 That sentence has four spellings, and this edition prints all of them under every
 example: the R above, then Python, Julia and JavaScript. They are not translations
-of each other. Each is its own binding writing the same specification, which one
-engine then draws, so the plot below is rendered once and would be
-byte-identical from any of the four. Read whichever is yours and ignore the rest;
+of each other. Each is its own language writing the same specification, which
+one engine then draws, so the plot below is rendered once, and any of the four
+would produce the same file. Read whichever is yours and ignore the rest;
 nothing else in this book is language-specific.
 
 They are in that order because the first three are very nearly one sentence. The
-operators are the same and only the way a column is named moves: a bare `gdp` in R,
-`col.gdp` in Python, `:gdp` in Julia. JavaScript is the one that reads differently,
-because it cannot give `+ * | /` new meanings and spells them as words instead, so
-it comes last, after the pattern the other three share is established. Each binding
+operators are the same and only the way a column is named changes: a bare
+`gdp` in R, `col.gdp` in Python, `:gdp` in Julia. JavaScript is the one that
+reads differently, because it cannot give `+ * | /` new meanings and spells
+them as words instead. It comes last, so the pattern the other three share is
+seen first. Each language
 also has a chapter of its own at the end, a difference list about a page long:
 [R](bindings/r.qmd), [Python](bindings/python.qmd), [Julia](bindings/julia.qmd),
 [JavaScript](bindings/javascript.qmd).
@@ -80,9 +88,10 @@ Everything in this book runs on your own computer, and it takes three steps:
 2. **Load it.** `library(gog)` in R, `from gog import *` in Python,
    `using GrammarOfGraphics` in Julia, and an `import` from
    `grammar-of-graphics` in JavaScript.
-3. **Read a table.** `book_table("gapminder_2007")` fetches the one above.
-   It comes with the package, and [Reading a table](book-data.qmd#reading-a-table)
-   shows it in all four languages.
+3. **Read a table.** `gog_table("gapminder_2007")` fetches the one above;
+   assign it that name, and `data()` takes it. It comes with the package, and
+   [Reading a table](book-data.qmd#reading-a-table) shows the line in all
+   four languages.
 
 Every example after this one works from those three steps, and the table each
 needs is named in the sentence itself.
@@ -96,32 +105,34 @@ data(gapminder_2007) + point + x(gdp) + y(life) + color(continent)
 ```
 
 *"…and color by continent."* The `color()` channel maps a column to a
-visual property, and because a mapping poses a question (*which continent
-is this dot?*), the engine draws the legend that answers it. You never
-asked for a legend. A mapped column earns one; that is the rule.
+visual property. A mapping raises a question (*which continent is this
+dot?*), so the engine draws the legend that answers it. You never
+asked for a legend. A mapped column earns one when there is something to
+decode.
 
 ## An incomplete sentence is refused
 
 What happens if you forget a position? An incomplete sentence is refused the
-way a half-syllable is unpronounceable, and the refusal tells you what is
-missing:
+way a syllable missing its vowel cannot be pronounced, and the refusal tells
+you what is missing:
 
 ```{r}
 #| error: true
 data(gapminder_2007) + point + x(gdp)
 ```
 
-This is worth meeting on your first page, because it is half of what makes
-gog learnable. A **binding** is a channel with a column in it, like `x(gdp)`.
-The engine never accepts one and silently drops it,
-and every *no* comes with a direction. The errors are teachers here; the
+You meet this on your first page because refusals are half of what makes gog
+learnable; the small vocabulary in the next chapter is the other half. A
+**binding** is a channel with a column in it, like `x(gdp)`.
+The engine never accepts a binding only to silently drop it,
+and every *no* comes with a direction. The errors here do the teaching; the
 [writing practice](writing.qmd) chapter collects the ones you will meet
 first.
 
 ## Refine, don't rebuild
 
-The income axis is crowded on the left: most of the world earns far less
-than the richest countries. A logarithmic view is a property of *how x is
+The `gdp` axis is crowded on the left: most countries have far lower incomes
+than the richest few. A logarithmic view is a property of *how x is
 read*, so it is written on the binding, and nothing else changes:
 
 ```{r}
@@ -131,8 +142,8 @@ data(gapminder_2007) + point + x(gdp, scale = "log") + y(life) +
 ```
 
 *"Given gapminder 2007: points, x is gdp on a log scale, y is life, color
-by continent, titled."* Four refinements in, the sentence still reads left
-to right, and the first three words you learned are still doing the work.
+by continent, titled."* Three refinements later, the sentence still reads
+left to right, and the four words you learned first are unchanged.
 
 ## The shape of every sentence
 
@@ -149,11 +160,11 @@ channels like `color()`, and labels like `title()`.
 
 Two words describe this, and the book uses both. A column is **bound** to a
 channel, and the binding is where a scale gets written. The same act is called
-**mapping** when the point is that a channel received a column rather than a
-fixed value.
-The difference shows on the page: a mapped column earns a legend, and a value
-you merely set earns none. A table is bound too, by `data()`, which is the
-Bind-Once law: name it once, and its columns stay bare names.
+**mapping** to emphasize that a channel received a column rather than a fixed
+value.
+The difference shows on the page: a mapped column earns a **guide** to decode
+it, and a value you merely set earns none. A table is bound too, by `data()`,
+which is the Bind-Once law: name it once, and its columns stay bare names.
 
 Two more parts join with an operator of their own. A transform attaches to
 its mark with `*`, which is how the preface's `bar * bin` made a histogram.
@@ -174,9 +185,8 @@ Written grammar works the same way, which is why this one is called a grammar at
 all. "Birds sing" is already a complete sentence in English. "The small birds
 sing loudly in the morning" says much more, and every word added to it can be
 taken out again. Remove the verb instead and there is no sentence left to
-refine. A plot is not a different kind of object. Some parts carry it and the
-rest refine it. That division is the same in every plot in this book, so you
-learn it one time.
+refine. A plot is not a different kind of object. Some of its parts are
+required, and the rest refine it. That division is the same in every plot in
+this book, so you learn it one time.
 
-The next chapter lays out the whole vocabulary on one page, and it is shorter
-than you expect.
+The next chapter states the kernel on one page, and the page is short.

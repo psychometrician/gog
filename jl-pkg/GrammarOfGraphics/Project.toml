@@ -15,7 +15,7 @@ version = "0.0.4"
 # container the script mounts into, since a page may hold several plots and each
 # needs an id of its own.
 #
-# Downloads and DelimitedFiles are the newest, and they serve `book_table()`,
+# Downloads and DelimitedFiles are the newest, and they serve `gog_table()`,
 # which fetches one of the manual's example tables so a reader can run an example
 # without writing a CSV reader first. Both are standard libraries, so the helper
 # that makes the book runnable costs a user nothing.

@@ -341,7 +341,7 @@ nothing in the grammar ties *where a region closes* to *which axis holds the
 category*. All four combinations are sentences, and the one the world gave a
 name to is simply one of them.
 
-Read the four together and the point of
+Read the four together and the value of
 [orthogonality](../design-laws.qmd) is easier to see here than anywhere else in
 this chapter. A word for the violin and a word for the ridgeline would be two
 names for one idea, and the other two combinations would have no word at all.

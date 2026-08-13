@@ -61,7 +61,7 @@ data(gapminder_2007) + box + x(continent) + y(life) +
 
 The low dot under Asia is Afghanistan; the one under the Americas is Haiti, each
 far enough below its continent's box to be flagged rather than swept into a
-whisker. That is the whole point of the Tukey construction: the whiskers describe
+whisker. That is what the Tukey construction is for: the whiskers describe
 the bulk, and the dots say *these are unusual*. A zero-height box, a group whose
 middle 50% share almost one value, collapses to a flat line honestly, rather than
 being nudged open.

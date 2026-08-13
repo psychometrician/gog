@@ -396,7 +396,7 @@ This is worth more here than anywhere else in the book. Something is moving
 inside a solid shape. The only way to see what the near edge hides is to look
 around it.
 
-Panels and frames do not come apart here, which is the point. They are one
+Panels and frames do not come apart here, and that is deliberate. They are one
 split asked twice, so crossing them costs nothing: the panels divide the page,
 the frames divide the clock, and each panel projects the cube its own rectangle
 has room for.

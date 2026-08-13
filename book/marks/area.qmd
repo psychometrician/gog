@@ -31,7 +31,7 @@ has no glyph to clip against the frame, so its position axis sits flush to the
 data rather than leaving the breathing margin a scatter gets; the reason is in
 [Scales](../scales.qmd#the-axis-fits-your-data).
 
-## The baseline is the whole point
+## The baseline has to be zero
 
 A `line` says *where*; an `area` says *how much*. The fill is the quantity, so
 it has to start from zero: an area drawn from an arbitrary floor would put a

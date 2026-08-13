@@ -6,11 +6,11 @@ page of explanation. The scholars who wrote its postface made a claim about
 that brevity: *the wise can learn these letters before the morning is over.*
 
 This part makes the same claim. It is short on purpose, and it is meant to
-be read in one sitting: a first plot, then the whole vocabulary on one page,
-then practice (first reading plots other people wrote, then writing your
-own, including your first refusals from the engine and what they teach).
+be read in one sitting: a first plot, then the kernel on one page, then
+practice. The practice has two halves: first reading sentences other people
+wrote, then writing your own and meeting the engine's first refusals.
 
 Nothing in this part is exhaustive. Every idea you meet here has a full
-chapter later in the book. The goal of the morning is different: when it is
-over, no gog sentence anywhere (in this book, in a colleague's script)
-should look foreign to you.
+chapter later in the book. The goal of the morning is different. When it is
+over, you should be able to read any gog sentence, in this book or in a
+colleague's script.

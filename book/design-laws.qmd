@@ -171,7 +171,7 @@ data(gapminder_2007) + point + x(gdp) + y(life) +
 ```
 
 This also gives the two operations the different rules they deserve. A mapping
-earns a legend and a set does not, and `line`, which cannot *map* `opacity`
+earns a guide and a setting does not, and `line`, which cannot *map* `opacity`
 because one stroke has one opacity, can perfectly well *set* it.
 
 ggplot2 draws the same line in a different place. There the boundary is a

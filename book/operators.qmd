@@ -128,7 +128,7 @@ on `box * dodge` and `interval * range * dodge`, neither of which involves
 color. `color` rides `+`: it binds a column to a channel. `color * dodge` is
 not a thing: `*` wants a mark on its left. Welding the two together would cost
 `dodge` its independence from *which* channel does the splitting, and that
-independence is the whole point of a modifier.
+independence is what makes it a modifier.
 
 And the order is not a compromise; it is exactly right, once you see what
 `dodge` does. `dodge` subdivides the **x** slot: each continent's space is cut

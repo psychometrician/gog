@@ -43,6 +43,12 @@ data(gapminder_2007) + point + x(gdp, scale = "log") + y(life) +
 
 The axis reads 100, 1K, 10K, 100K. Those are dollars, the units you supplied.
 
+The word *log* appears nowhere on the plot, and that is deliberate. The units
+did not change, so the axis name does not claim they did. The ticks are the
+only sign, and they carry it by their spacing: whole powers of ten, evenly
+placed. Write `x_label("GDP per capita (log scale)")` when a reader needs it
+in words. The axis name is yours, and gog never writes the scale into it.
+
 Now the same picture drawn by logging the column yourself:
 
 ```{r}

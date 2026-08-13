@@ -114,7 +114,7 @@ grammar refuses. One table per axis is how you say which you meant.
 
 Read the left edge and the picture changes character. The ticks crowd above 70,
 go noticeably sparse through the sixties, then spread out again from 60 all the
-way down to 40. That thin band in the middle is the point: of the 142 countries,
+way down to 40. That thin band in the middle is what to notice: of the 142 countries,
 83 sit above 70 and 43 below 60, with only 16 in the decade between. It is a
 distribution with two groups and a gap, not one spread, and neither the scatter
 nor the bottom rug shows it.

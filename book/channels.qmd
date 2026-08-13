@@ -443,7 +443,7 @@ anomaly all are. Two ship:
 | Name | What it is | Use it when |
 |------|-----------|-------------|
 | `"blue_red"` | blue → neutral → red | the usual choice |
-| `"brown_teal"` | brown → neutral → teal | the sign of the value is the whole point, and readers may be colorblind |
+| `"brown_teal"` | brown → neutral → teal | the sign of the value is what matters, and readers may be colorblind |
 
 The name reads low to high, so `blue_red` paints the smallest values blue and
 the largest red. Both turn through the same gray, and that gray is the color of

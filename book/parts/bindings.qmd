@@ -13,8 +13,8 @@ would mean answering them wrongly for two readers out of three.
 
 All four bindings run today, so all four have a chapter here
 [@rcore2026; @vanrossum2009python; @bezanson2017julia; @ecma2025javascript].
-None of them required the grammar chapters to be rewritten: that is the point of
-keeping this part separate.
+None of them required the grammar chapters to be rewritten: that is the reason
+for keeping this part separate.
 
 They are ordered R, Python, Julia, JavaScript, and the order says something. The
 first three write the same sentence three times: the operators are identical, and

@@ -35,7 +35,7 @@ the vertices could be joined in.
 [`path`](path.qmd) is the mark that does the opposite. It joins the rows in the
 order your table holds them, which is what draws a route or a loop. So choosing
 between the two is choosing whether the order of your rows carries meaning: with
-`line` it cannot, and with `path` it is the whole point.
+`line` it cannot, and with `path` it carries everything.
 
 ## Multiple series
 

@@ -6,14 +6,15 @@ source("R/setup.R")
 ```
 
 Can you tell what a plot shows before you see it? You have the vocabulary; now
-read with it. Ten plots follow, each a little more composed than the last. For
-each one: read the code aloud before looking at the picture, then check the
-picture against what you said. The reading is given under each plot, but it
-works better if you get there first.
+read with it. Ten plots follow, ending in a cube. For each one: read the
+specification aloud before looking at the picture, then check the picture
+against what you said. The English sentence is given under each plot. Try to
+say it yourself first.
 
-## Golds by country
+## Gold medals by country
 
-`medals` holds one row per country, with a count of each medal won:
+`medals` holds one row per country, with its counts of gold, silver and
+bronze:
 
 ```{r}
 #| echo: false
@@ -25,7 +26,7 @@ data(medals) + bar + x(country) + y(gold)
 ```
 
 *"Given the medals: bars, x is country, y is gold."* A bar measures an
-amount from zero, so the categories sit on x and the number rides on y. No
+amount from zero, so the categories sit on x and the number on y. No
 transform anywhere: `bar` draws the numbers exactly as they arrive in the
 table.
 
@@ -35,10 +36,10 @@ table.
 data(medals) + bar + x(gold) + y(country)
 ```
 
-*"Bars, x is gold, y is country."* Swap which axis carries the category and
-the bars lie down. There is no "horizontal bar" atom and no flip switch:
-orientation is read off the bindings, because the sentence already says
-everything.
+*"Given the medals: bars, x is gold, y is country."* Swap which axis carries
+the category and the bars lie down. There is no "horizontal bar" atom, and no argument that
+flips one: orientation is read off the bindings, because the sentence
+already says which axis holds the category.
 
 ## One measurement's shape
 
@@ -54,10 +55,10 @@ peek(iris_flowers)
 data(iris_flowers) + bar * bin + x(petal_length)
 ```
 
-*"Bars derived by bin: x is petal length."* The `*` derives: `bin` cuts
-the axis into intervals and counts rows into them, and `bar` draws the
-counts. You did not bind `y`; `bin` invents the count, and the axis says
-so. Note the two humps; hold that thought for plot eight.
+*"Given iris flowers: bars derived by bin, x is petal length."* The `*`
+derives: `bin` cuts the axis into intervals and counts rows into them, and
+`bar` draws the counts. You did not bind `y`; `bin` invents the count, and
+the axis says so. Note the two peaks. Plot eight explains them.
 
 ## The same question, smoothly
 
@@ -65,20 +66,22 @@ so. Note the two humps; hold that thought for plot eight.
 data(gapminder_2007) + line * density + x(life)
 ```
 
-*"A line derived by density: x is life."* Same question as the histogram
-(*how is this measurement distributed?*), different derivation. Swap one
-atom, get the smooth estimate instead of the binned one.
+*"Given gapminder 2007: a line derived by density, x is life."* Same question
+as the histogram (*how is this measurement distributed?*), different
+derivation. Swapping one atom gives the smooth estimate instead of the binned
+one.
 
-## Every country, one dot per continent
+## One dot per country, grouped by continent
 
 ```{r}
 data(gapminder_2007) + point + x(continent) + y(life)
 ```
 
-*"Points, x is continent, y is life."* A categorical x gives each category a
-slot and stacks the points above it. That is the rule that placed bars on
-country slots in plot one, working here on a different mark. A plot shaped
-like this one has a name: the **strip plot**.
+*"Given gapminder 2007: points, x is continent, y is life."* A categorical x
+gives each category a slot, and the points for that category sit in a strip
+above it. That is the rule that placed bars on country slots in plot one,
+working here on a different mark. A plot shaped like this one has a name: the
+**strip plot**.
 
 ## The typical value per continent
 
@@ -86,7 +89,8 @@ like this one has a name: the **strip plot**.
 data(gapminder_2007) + bar * mean + x(continent) + y(life)
 ```
 
-*"Bars derived by mean: x is continent, y is life."* The strip plot above
+*"Given gapminder 2007: bars derived by mean, x is continent, y is life."*
+The strip plot above
 showed every country; `* mean` collapses each continent to its average.
 Here `y(life)` names the column the mean *reads*: a transform that reads
 a column makes you say which one.
@@ -107,7 +111,8 @@ data(gapminder_asia) + line + x(year) + y(life) + color(country)
 
 *"Given gapminder Asia: lines, x is year, y is life, color by country."*
 On a `line`, a categorical `color` first *splits* the rows into one line
-per category, then colors them. One channel, two duties, stated once.
+per category, then colors them. One channel does two things, and you write it
+once.
 
 ## Three species on one axis
 
@@ -115,11 +120,12 @@ per category, then colors them. One channel, two duties, stated once.
 data(iris_flowers) + bar * bin + x(petal_length) + color(species)
 ```
 
-*"Bars derived by bin: x is petal length, color by species."* The two humps
-from plot three come apart. There is now one histogram per species. All three
-share the same bin edges and are drawn in place. Translucent fills sit under
-solid outlines, so nothing hides behind anything. The channel that split the
-lines in plot seven splits the bins here: same word, same rule.
+*"Given iris flowers: bars derived by bin, x is petal length, color by
+species."* The two peaks from plot three now sit in separate histograms, one
+per species. All three use the same bin edges, and each is drawn where its own
+values fall. Each fill is translucent under a solid outline, so every
+histogram stays visible. The channel that split the lines in plot seven splits
+the rows here: same word, same rule.
 
 ## One panel per continent
 
@@ -127,10 +133,10 @@ lines in plot seven splits the bins here: same word, same rule.
 data(gapminder_2007) + point + x(gdp, scale = "log") + y(life) | facet(continent)
 ```
 
-*"Points, x is gdp on a log scale, y is life, split into panel columns by
-continent."* The `|` operator multiplies the plot across panels, one panel
-per category. All the panels share one pair of scales, so they can be
-compared.
+*"Given gapminder 2007: points, x is gdp on a log scale, y is life, split into
+panel columns by continent."* The `|` operator splits the plot into panel
+columns, one panel per category. All the panels share one pair of scales, so
+they can be compared.
 
 ## Three measurements on three axes
 
@@ -140,14 +146,14 @@ data(iris_flowers) + point +
   color(species)
 ```
 
-*"Points: x is sepal length, y is sepal width, z is petal length, color
-by species."* The third dimension is not a different package, and not a
+*"Given iris flowers: points, x is sepal length, y is sepal width, z is petal
+length, color by species."* The third dimension is not a different package, and not a
 different mark. It is one more position channel, and the sentence grew by one
 word.
 
 ## What you just did
 
-Ten plots, and roughly a dozen distinct words. Every one read left to right
+Ten plots, and twelve distinct words. Every one read left to right
 as *data, mark, positions, refinements*. Nothing you learned for one plot had
 to be unlearned for the next. The same `color` split bars, lines and points.
 The same `*` derived counts, means and densities. Now you write.

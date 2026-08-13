@@ -53,7 +53,7 @@ data(gapminder_2007) + point + x(gdp, scale = "log") + y(life) +
 
 ## All of it at once
 
-Channels compose: that is the whole point of them being orthogonal.
+Channels compose: that is what being orthogonal gives you.
 Wealth, health, population, and continent in one sentence:
 
 ```{r}

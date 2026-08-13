@@ -870,9 +870,9 @@ refuses("a missing polar start", polar(start = NA), "number of degrees")
 refuses("a numeric axis label", x_label(42), "needs a string")
 refuses("a numeric title", title(42), "needs a string")
 
-# book_table() refuses a non-name with gog's sentence, as the other three do,
+# gog_table() refuses a non-name with gog's sentence, as the other three do,
 # and touches no network to say it.
-refuses("book_table() with something that is not a name", book_table(3),
+refuses("gog_table() with something that is not a name", gog_table(3),
         "one table name")
 
 # palette(): a single color name was silently ignored before.
@@ -3269,33 +3269,45 @@ local({
   }
 })
 
-# --- book_table(): the manual's tables, without a CSV reader to copy ----------
+# --- gog_table(): the manual's tables, without a CSV reader to copy -----------
 # Binding plumbing rather than a word of the grammar, which is why
 # `book/check_vocabulary.R` excludes it from the kernel block beside
 # `render_svg`. The offline checks always run; the fetch is guarded, because a
 # test suite has to pass on a laptop with no network.
 local({
-  stopifnot(is.function(gog::book_table))
+  stopifnot(is.function(gog::gog_table))
   stopifnot(identical(gog:::book_data_url,
                       "https://psychometrician.github.io/gog-book/data/"))
 
   for (bad in list(42, c("a", "b"), NA_character_)) {
-    msg <- tryCatch(gog::book_table(bad), error = conditionMessage)
+    msg <- tryCatch(gog::gog_table(bad), error = conditionMessage)
     stopifnot(grepl("one table name", msg, fixed = TRUE))
   }
-  cat("PASS: book_table() takes one name and refuses anything else\n")
+  cat("PASS: gog_table() takes one name and refuses anything else\n")
 
-  fetched <- tryCatch(gog::book_table("gapminder_2007"), error = function(e) e)
+  fetched <- tryCatch(gog::gog_table("gapminder_2007"), error = function(e) e)
   if (inherits(fetched, "error")) {
-    cat("SKIP: book_table() live fetch -",
+    cat("SKIP: gog_table() live fetch -",
         substr(conditionMessage(fetched), 1, 50), "\n")
   } else {
     stopifnot(is.data.frame(fetched), nrow(fetched) == 142)
     stopifnot(is.numeric(fetched$gdp), is.character(fetched$continent))
     p <- data(fetched, name = "gapminder_2007") + point + x(gdp) + y(life)
     stopifnot(grepl("<svg", gog:::render_svg(p), fixed = TRUE))
-    cat("PASS: book_table('gapminder_2007') is 142 typed rows, and it draws\n")
+    cat("PASS: gog_table('gapminder_2007') is 142 typed rows, and it draws\n")
   }
+})
+
+# The old name is gone rather than deprecated, and this is the assertion that
+# keeps it gone. A rename leaves the old spelling reachable in more ways than
+# one: a stray `export()` in the hand-maintained NAMESPACE, or a function that
+# was never actually deleted. Either would put two spellings of one function
+# back in the vocabulary, quietly, and no other check in this suite looks for a
+# name that should not exist.
+local({
+  stopifnot(!exists("book_table", envir = asNamespace("gog"), inherits = FALSE))
+  stopifnot(!("book_table" %in% getNamespaceExports("gog")))
+  cat("PASS: book_table() is gone, not deprecated\n")
 })
 
 # --- the engine beside the package is the package's own -----------------------
@@ -3396,7 +3408,7 @@ local({
 # the caller writes it — so R's one file-writing entry point is `save_gif()`,
 # which gives the path to the engine. This holds that path to the same rule.
 local({
-  gm <- book_table("gapminder_2007")
+  gm <- gog_table("gapminder_2007")
   target <- file.path(tempdir(), "refusal-probe.gif")
   good <- data(gm) + point + x(gdp) + y(life) + color(continent) + play(continent)
   save_gif(good, target)

@@ -680,7 +680,7 @@ data(gm_all) + zone * bin(20) + x(life) + y(continent) +
 
 That is a distribution shown as shade rather than as height, which is what makes five
 of them fit in the space one histogram would take. Read a row and it is a histogram
-lying on its side. Read the plot and the shape of each continent's spread is the point:
+lying on its side. Read the plot and the shape of each continent's spread is what stands out:
 Africa's mass sits far left and Europe's far right, Asia and the Americas are wide
 where Africa and Europe are concentrated, and Oceania is two countries and says so.
 
@@ -732,7 +732,7 @@ the contract behaving exactly as stated, and not the plot you wanted.
 One difference worth seeing rather than being told: the column highlight is
 translucent and the calendar heatmap is not. A zone that tiles the panel *is* the
 data, so there is nothing behind it to show through; a zone bounded on one axis is
-background, and the point of it is what you can see underneath. `style(opacity = )`
+background, and the reason for it is what you can see underneath. `style(opacity = )`
 overrides either.
 
 ## Sides the data drew: the choropleth
@@ -794,7 +794,7 @@ data(quarterly) + x(year) + y(sales) +
 
 The default opacity is what makes the first band readable without your saying
 anything: a highlight that hides the data is not a highlight. Raise it when the
-zone is the point of the plot rather than its background, as the red band does
+zone is the subject of the plot rather than its background, as the red band does
 here.
 
 The hatch is worth using when a plot has to survive being printed in gray,

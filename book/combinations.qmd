@@ -114,7 +114,7 @@ Three things the crossing shows at a glance that prose keeps losing:
   has no line to divide.
 - **`label` rides `text` alone.** Its column is ● on `text` and `—` everywhere else.
   A labeled scatter is the superposition `point + text`, never a `label` hung on
-  the point.
+  the `point`.
 - **A category on `x` reaches every mark.** On `y` it does not. Read the two
   position rows against each other and the grid divides the marks in two. The
   glyph marks (`point`, `text`) and the marks whose slot width does the

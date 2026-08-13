@@ -253,7 +253,7 @@ The three answer different questions, and the choice is not a matter of taste:
   first: a threshold, a band, a callout, a forecast. [Data](data.qmd) owns
   multi-table plots.
 * **Faceting** when the panels are *the same measurement* on different subsets.
-  One scale, one legend, and the comparison between panels is the point.
+  One scale, one legend, and the comparison between panels is what you gain.
 * **Composition** when the plots are *different measurements* that belong on one
   page. Each keeps its own space, and what they have in common, if anything,
   is the variable they share.

@@ -224,7 +224,7 @@ direction, and they are now written down where a future session will find them.
 | `scale_*_manual(values = c(setosa = "red"))` | binding a color to a level *by name*, shown below |
 | `scale_y_reverse()` | a reversed continuous axis. `order(desc = TRUE)` reverses a categorical one. |
 | `scale_x_sqrt()`, `coord_trans()` | a power scale. The `log10`-style *naming* is refused; the capability never was. |
-| `guides(color = "none")`, `show.legend = FALSE` | turning a key off. Every mapped channel earns one, always. |
+| `guides(color = "none")`, `show.legend = FALSE` | turning a key off. A channel that earns a key always draws one. |
 | `linewidth` as an aesthetic | a column mapped to stroke width. `size` can be set on a stroke for the whole layer, not mapped per row. |
 | `labs(alt = )`, `get_alt_text()` | alt text on the rendered plot |
 | `geom_label()` | text in a box, as against bare `text` |

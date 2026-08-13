@@ -10,44 +10,45 @@ recognition; writing is recall. Psychologists use those two words for two
 kinds of remembering. Recognition starts from something in front of you, and
 asks only whether you have seen it before. That is what the last chapter did:
 it gave you finished sentences and asked what they say. Recall starts from
-nothing in front of you, and asks you to produce the thing itself. It is the
+nothing in front of you: you produce the answer yourself. It is the
 harder of the two, and it is what writing a specification asks of you.
 
 This chapter builds three sentences from three questions, the way you will
-actually work: start with the smallest legal sentence, look, refine. Then it
-introduces the other half of writing: what happens when a sentence is wrong,
-and why gog's refusals are the fastest teacher in the book.
+actually work: start with the minimum sentence, look, refine. Then it shows
+the other half of writing: what happens when a sentence is wrong, and how
+quickly a refusal teaches the rule.
 
 ## Which continents live longest?
 
-Start by looking at everything, the smallest sentence that shows the data:
+Start with the minimum sentence, the smallest one that shows the data:
 
 ```{r}
 data(gapminder_2007) + point + x(continent) + y(life)
 ```
 
-*"Points, x is continent, y is life."* Informative, but the question asked
-for a comparison of *typical* values, not a cloud. Derive the summary,
-swap the mark's derivation, keep everything else:
+*"Given gapminder 2007: points, x is continent, y is life."* Informative, but
+the question asked for a comparison of *typical* values, and this shows every
+country. Swap the mark and give it a derivation; everything else stays:
 
 ```{r}
 data(gapminder_2007) + bar * mean + x(continent) + y(life)
 ```
 
-Comparison wants order. `order()` sorts a categorical axis by a value,
-something no bare column can say:
+A comparison reads best in order. `order()` sorts a categorical axis by a
+value, something the column's own declared order cannot do:
 
 ```{r}
 data(gapminder_2007) + bar * mean + x(continent) + y(life) +
   order(life, desc = TRUE)
 ```
 
-Three steps, and each step *added* a word or swapped one: no rewriting,
-no second syntax. That is what compositionality buys you in practice.
+Three steps, and no step rewrote the sentence: words were added or swapped,
+never restructured. That is what composition gives you: each step keeps every
+word you already wrote.
 
 ## How do petal lengths differ by species?
 
-The one-variable question first, then the split:
+The one-variable question first, then the same question split by species:
 
 ```{r}
 data(iris_flowers) + bar * bin + x(petal_length)
@@ -57,21 +58,21 @@ data(iris_flowers) + bar * bin + x(petal_length)
 data(iris_flowers) + bar * bin + x(petal_length) + color(species)
 ```
 
-And if the overlap bothers you, the outline form is one mark away; the
-staircase silhouette holds each bin's height as an unfilled stroke, so the
-three species never paint over each other:
+And if the overlap bothers you, one mark changes it: `step` draws each bin's
+height as an unfilled line, so the three species never cover each other:
 
 ```{r}
 data(iris_flowers) + step * bin + x(petal_length) + color(species)
 ```
 
 The transform never changed. `bin` cut the same intervals all three times;
-only the geometry drawing them moved. A derivation you learn once works
-under every mark that can carry it.
+only the mark drawing them changed. A derivation you learn once works with
+every mark that can take it.
 
 ## Where is the world's wealth, and its health?
 
-The full sentence from the first chapter, written in one breath this time:
+The sentence from the first chapter, with `size` added, written all at once
+this time:
 
 ```{r}
 data(gapminder_2007) + point +
@@ -81,15 +82,15 @@ data(gapminder_2007) + point +
 ```
 
 *"Given gapminder 2007: points, x is gdp on a log scale, y is life, color
-by continent, size by population, titled."* Six atoms past the minimum,
-and still one sentence with no new grammar in it.
+by continent, size by population, titled."* Three atoms past the minimum
+sentence, and still no new grammar in it.
 
 ## When the engine says no
 
 You will write wrong sentences. Everyone does. gog's design promise is
-that a wrong sentence is refused *with a direction*, never absorbed into a
-silently wrong picture. Meet the refusals you are most likely to see this
-week.
+that a wrong sentence is refused *with a direction*, never drawn with the
+wrong part quietly left out. Here are the refusals you are most likely to see
+first.
 
 Forgetting to bind the table. The sentence must start with the data:
 
@@ -98,8 +99,8 @@ Forgetting to bind the table. The sentence must start with the data:
 gapminder_2007 + point + x(gdp) + y(life)
 ```
 
-Quoting a column name, a habit from other packages. The refusal says
-which fix it wants:
+Quoting a column name, a habit from other packages. The refusal names the
+fix:
 
 ```{r}
 #| error: true
@@ -114,7 +115,8 @@ encodes magnitude, and a category has none:
 data(gapminder_2007) + point + x(gdp) + y(life) + size(continent)
 ```
 
-Asking a transform to read a column you never named:
+Forgetting the column a summary reads. The refusal names the missing `y`
+first, because the bar cannot stand without it:
 
 ```{r}
 #| error: true
@@ -129,17 +131,17 @@ at the atom that does count categories:
 data(gapminder_2007) + bar * bin + x(continent)
 ```
 
-Each message names the rule and the way forward. Nothing rendered behind
-your back; nothing was dropped to make the picture come out. When you hit
-a refusal outside this list, read it the same way: it is the grammar
-telling you which law your sentence broke, and the fix is in
-the message.
+Each message names the rule and the fix. Nothing was drawn without telling
+you, and no binding was dropped to complete the plot. Read any refusal outside
+this list the same way: it names the law the sentence broke, and it names the
+fix.
 
-Every refusal closes with a second offer, to set `GOG_STRICT=0` and draw
-the plot anyway. That is an environment variable, and what it does to each
-kind of refusal (along with the one line that sets it in R, Python, Julia
-and JavaScript) is [Drawing it anyway](design-laws.qmd#drawing-it-anyway).
-For now, take the first offer: at this stage the refusals are the lesson.
+The last three refusals close with a second offer: set `GOG_STRICT=0` and draw
+the plot anyway. The first two never reach the engine, so there is nothing to
+draw. `GOG_STRICT` is an environment variable, and [Drawing it
+anyway](design-laws.qmd#drawing-it-anyway) shows what it does to each kind of
+refusal, with the one line that sets it in each language. For now, make the
+fix the message asks for: at this stage the refusals are the lesson.
 
 ## The morning checkpoint
 
@@ -151,7 +153,7 @@ If you started this part in one sitting, check yourself against its promise:
 - Predict whether a sentence will render or refuse, and roughly what the
   refusal will say.
 
-If that mostly works, the morning did its job. Part II gives every letter
-its full chapter; or jump straight to [the cookbook](cookbook/one-variable.qmd)
-and start answering your own questions, following the links back whenever
-a recipe uses a word you want more of.
+If that mostly works, the morning worked. Part II gives every letter its full
+chapter. Or go straight to [the cookbook](cookbook/one-variable.qmd) and
+answer your own questions, following a link back whenever a recipe uses a word
+you want explained.

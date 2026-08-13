@@ -396,9 +396,9 @@ cat("| Setting | Value |\n|---|---|\n")
 mark_options("bar")
 ```
 
-A bar has no `size`, and the absence is the point: its extent is already pinned
-by its position and its value, so a width setting would be a second, conflicting
-answer to how big it is. What it does have, being a closed fill, is a rim.
+A bar has no `size`, and that is deliberate. Its position and its value already
+fix how large it is, so a width setting would be a second, conflicting answer.
+What it does have, being a closed fill, is a rim.
 
 ```{r}
 data(medals) + bar * sum + x(country) + y(gold) +

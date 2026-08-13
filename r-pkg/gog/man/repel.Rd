@@ -19,7 +19,7 @@ are still crowded.
 \examples{
 \dontrun{
 # Every country named, with the names moved off one another.
-gapminder_2007 <- book_table("gapminder_2007")
+gapminder_2007 <- gog_table("gapminder_2007")
 p <- data(gapminder_2007) + point + text * repel +
   x(gdp) + y(life) + label(country)
 }

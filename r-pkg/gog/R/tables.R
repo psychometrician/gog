@@ -15,6 +15,20 @@
 #
 # The tables are not shipped. They are fetched from the book's own site, so one
 # copy serves all four languages and nothing goes stale inside a tarball.
+#
+# The name carries the package's, and that is the whole of why it is no longer
+# `book_table()`. This package and `god` are built to be loaded together, so
+# `gog_table()` and `god_table()` stand side by side at a prompt and read as one
+# idea in two spellings. They still differ by the one letter that separates the
+# two projects everywhere else, so neither masks the other; what changed is that
+# the difference is now a visible parallel rather than one name picked from an
+# unrelated word.
+#
+# The old name is gone rather than deprecated. An alias would have been the
+# careful move on a package with a readership, and this one does not have one
+# yet: the window where a rename costs nobody anything is open now and closes
+# for good. Two spellings of one function is a debt Law 3 would have carried
+# until someone finally removed it, so it was not taken on.
 
 book_data_url <- "https://psychometrician.github.io/gog-book/data/"
 
@@ -31,17 +45,17 @@ book_data_url <- "https://psychometrician.github.io/gog-book/data/"
 #' @return A data frame.
 #' @examples
 #' \dontrun{
-#' gapminder_2007 <- book_table("gapminder_2007")
+#' gapminder_2007 <- gog_table("gapminder_2007")
 #' data(gapminder_2007) + point + x(gdp) + y(life)
 #'
 #' # `session` holds labels that look like numbers, so it stays text.
-#' sessions <- book_table("sessions", text = "session")
+#' sessions <- gog_table("sessions", text = "session")
 #' }
 #' @export
-book_table <- function(name, text = character()) {
+gog_table <- function(name, text = character()) {
   if (!is.character(name) || length(name) != 1L || is.na(name)) {
-    stop("gog: `book_table()` takes one table name, as in ",
-         "`book_table(\"gapminder_2007\")`. The names are listed in the ",
+    stop("gog: `gog_table()` takes one table name, as in ",
+         "`gog_table(\"gapminder_2007\")`. The names are listed in the ",
          "book's data chapter.", call. = FALSE)
   }
   classes <- rep("character", length(text))

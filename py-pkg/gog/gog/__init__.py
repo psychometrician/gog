@@ -95,7 +95,7 @@ from .columns import col
 from .errors import GogError
 from .render import ordered, render_svg, save_gif
 from .spec import Page, Plot, data, query
-from .tables import book_table
+from .tables import gog_table
 
 # The seventh place a version is declared, and the one that hides: the other six
 # are manifests a release process reads, this one is *code a user reads*. It sat
@@ -183,6 +183,6 @@ __all__ = [
     "Page",
     "Plot",
     # the book's example tables
-    "book_table",
+    "gog_table",
     "GogError",
 ]

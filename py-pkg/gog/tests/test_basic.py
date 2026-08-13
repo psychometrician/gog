@@ -1464,7 +1464,7 @@ _guard_over("DuckDB", _duckdb,
 _guard_over("PostgreSQL", _postgres,
             "CREATE TABLE gog_orders (status TEXT, revenue DOUBLE PRECISION)")
 
-# --- book_table(): the manual's tables, without a CSV reader to copy ---------
+# --- gog_table(): the manual's tables, without a CSV reader to copy ----------
 # Binding plumbing rather than a word of the grammar, which is why
 # `book/check_vocabulary.R` excludes it from the kernel block beside
 # `render_svg`. The offline checks always run; the fetch is guarded, because a
@@ -1478,11 +1478,22 @@ _typed = _columns(_rows, text=("s",))
 assert _typed["n"] == [1.0, 2.0], _typed["n"]
 assert _typed["s"] == ["01", "02"], _typed["s"]
 assert _typed["w"] == ["x", "y"], _typed["w"]
-ok("book_table() types a column only when every value in it is a number")
+ok("gog_table() types a column only when every value in it is a number")
 
 # `GogError`, not `TypeError`: every refusal in this package is one class, so
 # `except GogError` around a session catches the lot — `errors.py` records why.
-refuses("`book_table()` with something that is not a name", lambda: book_table(42))
+refuses("`gog_table()` with something that is not a name", lambda: gog_table(42))
+
+# The old name is gone rather than deprecated, and this is the assertion that
+# keeps it gone. `from gog import *` is how the book writes every example, so a
+# name left behind in `__all__` or in the module would be back in the
+# vocabulary quietly, as two spellings of one function.
+import gog as _gog  # noqa: E402
+
+assert "book_table" not in _gog.__all__, _gog.__all__
+assert not hasattr(_gog, "book_table"), "book_table survived on the package"
+assert not hasattr(_gog.tables, "book_table"), "book_table survived in tables.py"
+ok("book_table() is gone, not deprecated")
 
 # `map(preserve=)` was the one refusal in the package raised as a `ValueError`,
 # which `except GogError` missed; now it is the same class as the other hundred.
@@ -1497,14 +1508,14 @@ refuses("`x_label()` with a number", lambda: x_label(42))
 refuses("`title()` with a number", lambda: title(42))
 
 try:
-    _gm = book_table("gapminder_2007")
+    _gm = gog_table("gapminder_2007")
 except Exception as _error:
-    print(f"SKIP: book_table() live fetch - {type(_error).__name__}: {str(_error)[:50]}")
+    print(f"SKIP: gog_table() live fetch - {type(_error).__name__}: {str(_error)[:50]}")
 else:
     assert len(_gm["country"]) == 142, len(_gm["country"])
     assert isinstance(_gm["gdp"][0], float), _gm["gdp"][0]
     assert isinstance(_gm["continent"][0], str), _gm["continent"][0]
-    ok("book_table('gapminder_2007') is 142 typed rows")
+    ok("gog_table('gapminder_2007') is 142 typed rows")
 
 
 # ---------------------------------------------------------------------------

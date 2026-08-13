@@ -1261,13 +1261,13 @@ end
           (data(df, name = "df") + line + x(:x) + y(:y)) isa Page
 end
 
-# --- book_table(): the manual's tables, without a CSV reader to copy ---------
+# --- gog_table(): the manual's tables, without a CSV reader to copy ----------
 #
 # Binding plumbing rather than a word of the grammar, which is why
 # `book/check_vocabulary.R` excludes it from the kernel block beside
 # `render_svg`. The offline checks always run; the fetch is guarded, because a
 # suite has to pass on a laptop with no network.
-@testset "book_table" begin
+@testset "gog_table" begin
     @test GrammarOfGraphics.BOOK_DATA_URL ==
           "https://psychometrician.github.io/gog-book/data/"
 
@@ -1279,12 +1279,19 @@ end
 
     # A non-string name is gog's sentence, not a bare `MethodError` — the same
     # words the other three bindings use, and no network is touched to say them.
-    @refuses book_table(3) "one table name"
+    @refuses gog_table(3) "one table name"
+
+    # The old name is gone rather than deprecated, and this is the assertion
+    # that keeps it gone. Both doors have to stay shut: the method could survive
+    # in the module and the `export` line could still name it, and either would
+    # put two spellings of one function back in the vocabulary quietly.
+    @test !isdefined(GrammarOfGraphics, :book_table)
+    @test !(:book_table in names(GrammarOfGraphics))
 
     fetched = try
-        book_table("gapminder_2007")
+        gog_table("gapminder_2007")
     catch err
-        @info "SKIP: book_table() live fetch" err = typeof(err)
+        @info "SKIP: gog_table() live fetch" err = typeof(err)
         nothing
     end
     if fetched !== nothing

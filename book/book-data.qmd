@@ -20,12 +20,12 @@ https://psychometrician.github.io/gog-book/data/<name>.csv
 `winds.csv` holds the wind observations behind the polar chapter. The full list
 is at the end of this page.
 
-Reading one takes a single call, `book_table()`, which comes with the package
+Reading one takes a single call, `gog_table()`, which comes with the package
 in all four languages. Nothing else needs installing.
 
 ## Reading a table
 
-`book_table()` fetches any of the thirty-five by name. It is included with the
+`gog_table()` fetches any of the thirty-five by name. It is included with the
 package, so there is nothing to copy:
 
 ::: {.panel-tabset}
@@ -33,28 +33,28 @@ package, so there is nothing to copy:
 ## R
 
 ```r
-gapminder_2007 <- book_table("gapminder_2007")
+gapminder_2007 <- gog_table("gapminder_2007")
 data(gapminder_2007) + point + x(gdp) + y(life)
 ```
 
 ## Python
 
 ```python
-gapminder_2007 = book_table("gapminder_2007")
+gapminder_2007 = gog_table("gapminder_2007")
 data(gapminder_2007) + point + x(col.gdp) + y(col.life)
 ```
 
 ## Julia
 
 ```julia
-gapminder_2007 = book_table("gapminder_2007")
+gapminder_2007 = gog_table("gapminder_2007")
 data(gapminder_2007) + point + x(:gdp) + y(:life)
 ```
 
 ## JavaScript
 
 ```javascript
-const gapminder_2007 = await book_table("gapminder_2007");
+const gapminder_2007 = await gog_table("gapminder_2007");
 plot(data(gapminder_2007), point, x(col.gdp), y(col.life));
 ```
 
@@ -82,7 +82,7 @@ The plot is the same in all four, because the table is the same file and the
 engine is the same program.
 
 Reading a different table is the same call with a different name:
-`book_table("winds")`, `book_table("medals")`. The list of names is at the end of
+`gog_table("winds")`, `gog_table("medals")`. The list of names is at the end of
 this page.
 
 ## Two things a CSV cannot say
@@ -121,36 +121,36 @@ reader will turn into numbers unless told otherwise. `census.csv` has an `age`
 column of `0`, `5`, `10`, which are the names of age bands rather than
 quantities. `sessions.csv` has a `session` column of `01`, `02`, `03`, and a
 number cannot keep a leading zero, so `01` comes back as `1`. That is the whole
-reason `book_table()` takes a `text` argument:
+reason `gog_table()` takes a `text` argument:
 
 ::: {.panel-tabset}
 
 ## R
 
 ```r
-census <- book_table("census", text = "age")
-sessions <- book_table("sessions", text = "session")
+census <- gog_table("census", text = "age")
+sessions <- gog_table("sessions", text = "session")
 ```
 
 ## Python
 
 ```python
-census = book_table("census", text=("age",))
-sessions = book_table("sessions", text=("session",))
+census = gog_table("census", text=("age",))
+sessions = gog_table("sessions", text=("session",))
 ```
 
 ## Julia
 
 ```julia
-census = book_table("census"; text = ["age"])
-sessions = book_table("sessions"; text = ["session"])
+census = gog_table("census"; text = ["age"])
+sessions = gog_table("sessions"; text = ["session"])
 ```
 
 ## JavaScript
 
 ```javascript
-const census = await book_table("census", ["age"]);
-const sessions = await book_table("sessions", ["session"]);
+const census = await gog_table("census", ["age"]);
+const sessions = await gog_table("sessions", ["session"]);
 ```
 
 :::

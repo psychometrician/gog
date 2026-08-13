@@ -1784,15 +1784,15 @@ test("query() refuses what it cannot draw, and says what to do", () => {
   );
 });
 
-// --- book_table(): the manual's tables, without a CSV reader to copy --------
+// --- gog_table(): the manual's tables, without a CSV reader to copy ---------
 //
 // Binding plumbing rather than a word of the grammar, which is why
 // `book/check_vocabulary.R` excludes it from the kernel block beside
 // `render_svg`. This binding is the reason the helper moved into the packages
 // at all: JavaScript has no CSV parser in its standard library, so a reader had
 // to paste thirty-three lines of quote handling before drawing anything.
-test("book_table: quoting, types, and a name it refuses", async () => {
-  const { parse_csv, columns, book_table, BOOK_DATA_URL } =
+test("gog_table: quoting, types, and a name it refuses", async () => {
+  const { parse_csv, columns, gog_table, BOOK_DATA_URL } =
     await import("../src/tables.js");
 
   assert.equal(BOOK_DATA_URL, "https://psychometrician.github.io/gog-book/data/");
@@ -1813,11 +1813,24 @@ test("book_table: quoting, types, and a name it refuses", async () => {
 
   // `GogError`, not `TypeError`: one class for every refusal in the package,
   // so `catch (e) { if (e instanceof GogError) … }` catches the lot.
-  await assert.rejects(() => book_table(42), (error) => {
+  await assert.rejects(() => gog_table(42), (error) => {
     assert.ok(error instanceof GogError, `not a GogError: ${error}`);
     assert.match(error.message, /one table name/);
     return true;
   });
+});
+
+// The old name is gone rather than deprecated, and this is the assertion that
+// keeps it gone. Both doors have to stay shut: the module could keep exporting
+// it and `index.js` could re-export it, and either would put two spellings of
+// one function back in the vocabulary quietly.
+test("book_table: gone, not deprecated", async () => {
+  const tables = await import("../src/tables.js");
+  const index = await import("../src/index.js");
+
+  assert.equal(tables.book_table, undefined, "book_table survived in tables.js");
+  assert.equal(index.book_table, undefined, "book_table survived in index.js");
+  assert.equal(typeof index.gog_table, "function");
 });
 
 // ---------------------------------------------------------------------------

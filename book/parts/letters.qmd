@@ -21,6 +21,6 @@ constant.
 The mark chapters follow one template: what it draws, what it requires,
 what refines it, what derives from it, what you can set on it, and what it
 refuses. The last two are always the last two, under those names. That
-sameness is the point: it is the No Exceptions law applied to a book's
+sameness is deliberate: it is the No Exceptions law applied to a book's
 structure, and it means learning the second mark is faster than the first,
 and the fifth is nearly free.

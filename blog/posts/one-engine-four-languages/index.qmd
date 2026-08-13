@@ -346,7 +346,7 @@ of the four that asks for any of this, and it will not ask for long.
 
 ### Draw the plots on this page
 
-Every plot above reads one table, and `book_table()` fetches it by name. It
+Every plot above reads one table, and `gog_table()` fetches it by name. It
 comes with the package, so there is no file to download and no reader to write.
 Here is the scatter from the top of the page, in each language:
 
@@ -355,28 +355,28 @@ Here is the scatter from the top of the page, in each language:
 ## R
 
 ```r
-gapminder_2007 <- book_table("gapminder_2007")
+gapminder_2007 <- gog_table("gapminder_2007")
 data(gapminder_2007) + point + x(gdp) + y(life) + color(continent)
 ```
 
 ## Python
 
 ```python
-gapminder_2007 = book_table("gapminder_2007")
+gapminder_2007 = gog_table("gapminder_2007")
 data(gapminder_2007) + point + x(col.gdp) + y(col.life) + color(col.continent)
 ```
 
 ## Julia
 
 ```julia
-gapminder_2007 = book_table("gapminder_2007")
+gapminder_2007 = gog_table("gapminder_2007")
 data(gapminder_2007) + point + x(:gdp) + y(:life) + color(:continent)
 ```
 
 ## JavaScript
 
 ```javascript
-const gapminder_2007 = await book_table("gapminder_2007");
+const gapminder_2007 = await gog_table("gapminder_2007");
 plot(data(gapminder_2007), point, x(col.gdp), y(col.life), color(col.continent));
 ```
 
@@ -384,7 +384,7 @@ plot(data(gapminder_2007), point, x(col.gdp), y(col.life), color(col.continent))
 
 The other plots on this page are that sentence with a word or two changed. The
 book's [data chapter](https://psychometrician.github.io/gog-book/book-data.html)
-lists the thirty-five tables `book_table()` can fetch.
+lists the thirty-five tables `gog_table()` can fetch.
 
 ### Try to make two of them disagree
 

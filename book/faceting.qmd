@@ -43,8 +43,8 @@ data(gapminder_2007) + point + x(gdp) + y(life) | facet(continent)
 *"Given gapminder 2007: points, x is gdp, y is life, split into panel columns by continent."*
 
 Reading across, the panels share both axes, so a shift *between* continents
-reads as plainly as a pattern within one. That shared frame is the point of
-faceting: the alternative (one plot per continent, each with its own scale)
+reads as plainly as a pattern within one. That shared frame is what faceting
+is for: the alternative (one plot per continent, each with its own scale)
 looks similar and quietly stops the comparison working.
 
 ## `/`: panels stacked

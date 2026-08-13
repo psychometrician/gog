@@ -26,6 +26,18 @@ CRAN-style repositories and PyPI, `GrammarOfGraphics` on Julia's General, and
 
 ### Changed
 
+- **`book_table()` is now `gog_table()`, and the old name is gone.** Change the
+  call and nothing else: the arguments, the table names and everything it returns
+  are the same. The name now says which package it comes from, which the old one
+  did not. It was named after an artifact while every other helper is named after
+  what it does, so a reader with `god` loaded saw `book_table` and `god_table`
+  side by side with no way to tell they were the same helper doing the same job
+  for sibling books. The one-letter distinction that separates the two projects
+  everywhere else now separates these two names as well, and neither masks the
+  other. There is no alias, deliberately: two spellings of one function is a debt
+  that only ever gets paid by removing one of them, and removing it costs less
+  today than it ever will again.
+
 - **The hand is gone from the row of controls under every plot**, leaving four:
   zoom out, zoom in, fit, and the camera. It was a label rather than a button, and
   the pointer already says the same thing better, becoming a hand over a plot that

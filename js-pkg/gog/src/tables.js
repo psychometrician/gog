@@ -13,6 +13,18 @@
 //
 // The tables are not shipped with the package. They are fetched from the book's
 // own site, so one copy serves all four languages.
+//
+// The name carries the package's, and that is the whole of why it is no longer
+// `book_table()`. This package and `god` are built to be loaded together, so
+// `gog_table()` and `god_table()` stand side by side at a prompt and read as one
+// idea in two spellings. They still differ by the one letter that separates the
+// two projects everywhere else, so neither masks the other.
+//
+// The old name is gone rather than deprecated. An alias would have been the
+// careful move on a package with a readership, and this one does not have one
+// yet: the window where a rename costs nobody anything is open now and closes
+// for good. Two spellings of one function is a debt Law 3 would have carried
+// until someone finally removed it, so it was not taken on.
 
 import { GogError } from "./errors.js";
 
@@ -68,13 +80,13 @@ export function columns(rows, text = []) {
  * stay text, because a CSV records what a value is and never what kind of thing
  * it is, so a column of 01, 02, 03 comes back as the numbers 1, 2, 3 otherwise.
  *
- *     const gapminder_2007 = await book_table("gapminder_2007");
+ *     const gapminder_2007 = await gog_table("gapminder_2007");
  *     plot(data(gapminder_2007), point, x(col.gdp), y(col.life));
  */
-export async function book_table(name, text = []) {
+export async function gog_table(name, text = []) {
   if (typeof name !== "string") {
     throw new GogError(
-      'gog: book_table() takes one table name, as in book_table("gapminder_2007"). ' +
+      'gog: gog_table() takes one table name, as in gog_table("gapminder_2007"). ' +
       "The names are listed in the book's data chapter.",
     );
   }

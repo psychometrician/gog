@@ -200,7 +200,8 @@ data(gapminder_2007) + point + x(gdp) + y(life) +
   brush(gdp, at = c(30000, 60000)) + theme(width = 620)
 ```
 
-A hundred and forty-two labels is unreadable, and that is the point: the ones
+A hundred and forty-two labels is unreadable, and that is what selection
+answers: the ones
 you did not select step back with their points, and about twenty names are left
 standing. Drag the bound and a different twenty are readable.
 
@@ -473,9 +474,9 @@ right for a quick look and wrong for a comparison. Three points stand out on a
 scatter, and reading them one after another means holding the first two in your
 head while you look at the third.
 
-Click a mark and its values stay. That is a **stamp**: a dot on the point, a
+Click a mark and its values stay. That is a **stamp**: a dot on the mark, a
 short line, and a small card saying what the pointer said. Click as many as you
-want to compare. The card sits on the picture beside the point it belongs to,
+want to compare. The card sits on the picture beside the mark it belongs to,
 which is the difference between a stamp and the row table. One names rows, the
 other labels the plot.
 
