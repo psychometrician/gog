@@ -147,9 +147,12 @@ export function renderSpec(engine, request) {
   return { svg: null, error: `gog: unknown engine status ${status}`, notes: [] };
 }
 
-/** Does this **plot** draw in the cube? The leaf question, asked per cell. */
+/** Does this **plot** carry a turnable view — the cube's, or the globe's?
+ * The leaf question, asked per cell. The two spaces share their view words
+ * (`turn`, `tilt`) and their gesture: a drag pins the thing drawn to the
+ * pointer, whichever of the two it is. */
 function plotIsSpatial(spec) {
-  if (spec?.coord && typeof spec.coord === "object" && spec.coord.space) return true;
+  if (spec?.coord && typeof spec.coord === "object" && (spec.coord.space || spec.coord.globe)) return true;
   // A `z` binding puts a plot in the cube without naming `space()`, so the
   // coordinate can still read "flat" on a plot that projects. `space_of` makes
   // the same judgment in the engine; this is its browser-side twin, and it is
@@ -1967,8 +1970,17 @@ export function attachDrag(engine, container, request, options = {}) {
   // four, and a reset that landed somewhere else would quietly contradict the
   // paragraph beside it.
   const scenes = eachPlot(req.spec).filter(plotIsSpatial).map((plot) => {
-    const s = plot.coord && typeof plot.coord === "object" ? plot.coord.space : null;
-    return { plot, turn: s?.turn ?? DEFAULT_TURN, tilt: s?.tilt ?? DEFAULT_TILT };
+    // Which view this plot carries: the globe's, or the cube's. Each cell
+    // keeps its own kind, so a page holding one of each turns both with one
+    // drag and rewrites each under its own word.
+    const kind =
+      plot.coord && typeof plot.coord === "object" && plot.coord.globe ? "globe" : "space";
+    const s = plot.coord && typeof plot.coord === "object" ? plot.coord[kind] : null;
+    // The globe's default view faces (0, 0), the sphere's own origin; the
+    // cube's is the three-quarter view. Each falls back to its own.
+    const turn0 = kind === "globe" ? 0 : DEFAULT_TURN;
+    const tilt0 = kind === "globe" ? 0 : DEFAULT_TILT;
+    return { plot, kind, turn: s?.turn ?? turn0, tilt: s?.tilt ?? tilt0 };
   });
 
   // **The gesture carries a change, not an angle**, and that is what lets one
@@ -2006,7 +2018,7 @@ export function attachDrag(engine, container, request, options = {}) {
   let first = true;
   function draw() {
     for (const s of scenes) {
-      s.plot.coord = { space: { turn: (s.turn + dTurn) % 360, tilt: s.tilt + dTilt } };
+      s.plot.coord = { [s.kind]: { turn: (s.turn + dTurn) % 360, tilt: s.tilt + dTilt } };
     }
     const { ok, notes } = redraw(engine, container, req);
     if (!ok) return false;
