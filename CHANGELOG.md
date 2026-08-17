@@ -6,6 +6,23 @@ CRAN-style repositories and PyPI, `GrammarOfGraphics` on Julia's General, and
 
 ## Unreleased
 
+### Added
+
+- **`globe()` is a coordinate space: the earth itself, viewed.** `x` is
+  longitude and `y` is latitude, exactly as on `map()`, and the same five marks
+  stand on the sphere's facing half — a `point` at a place, a `path` bending
+  along great circles, a `text` naming a place, a `rule` holding a whole
+  meridian or parallel, and a `zone` with `group()` filling each region of a
+  boundary, where a country the horizon cuts is closed again along the edge of
+  the disk. `globe(turn =, tilt = )` names the place the view faces, a bearing
+  that wraps and a latitude that stops at the poles. Rows on the far half are
+  hidden behind the sphere and the plot says how many, never dropping them in
+  silence. The graticule is the panel grid, so `theme(grid = )` reaches it, and
+  a globe draws no axes at all. In the web edition, dragging turns the globe
+  the way it turns the cube. A binned field on the sphere is designed and not
+  drawn yet: its correct tiling is hexagonal, and that equal-area grid is not
+  built, so `zone` without a boundary refuses with the reason named.
+
 ### Changed
 
 - **A written `space(tilt = )` outside -90 to 90 is now refused.** `tilt` is how
