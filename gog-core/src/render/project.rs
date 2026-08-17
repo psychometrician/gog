@@ -46,7 +46,20 @@ impl Scene {
         // `az`/`el` are the turn and tilt angles in radians — the standard
         // azimuth/elevation names of the projection math, one layer below the
         // plain `turn`/`tilt` the API speaks.
-        let az = view.turn.to_radians();
+        // **`turn` is brought into one turn before the trig, so equal views are
+        // equal bit for bit.** A bearing is periodic, so -360 and 0 and 720 name the
+        // same view and the grammar accepts all three. Their radians are not equal
+        // in floating point though: `sin(0)` is exactly 0 while `sin(-2π)` is
+        // 2.4e-16, and that difference is invisible in the projected marks (which
+        // round to the same pixels) while being enough to flip a discrete choice
+        // made downstream on the same numbers. Normalizing here rather than at each
+        // reader is what makes one view one answer.
+        //
+        // `tilt` is deliberately not normalized: it is an elevation and
+        // `legality::check_space` refuses it outside -90 to 90, so there is nothing
+        // out of range left to fold in, and folding it would turn a refused angle
+        // into a silently different picture.
+        let az = view.turn.rem_euclid(360.0).to_radians();
         let el = view.tilt.to_radians();
         let mut s = Scene {
             sin_az: az.sin(),
@@ -140,6 +153,41 @@ mod tests {
 
     fn scene(az: f64, el: f64) -> Scene {
         Scene::new(SpaceView { turn: az, tilt: el }, 0.0, 0.0, 100.0, 100.0, 0.0)
+    }
+
+    /// Equal bearings project bit-identically, not merely to the same pixels.
+    ///
+    /// A bearing is periodic, so every lap names one view and the grammar accepts
+    /// all of them. Their radians are not equal in floating point though — `sin(0)`
+    /// is exactly 0 while `sin(-2π)` is 2.4e-16 — and rounding hid that from every
+    /// picture while leaving it able to flip a discrete choice made downstream on
+    /// the same numbers. It did flip one: two of a cube's eighteen tick labels went
+    /// missing at `turn = -360`.
+    ///
+    /// **This test exists because the end-to-end one cannot see it.** The renderer
+    /// also guards that downstream choice with a margin now, and either fix alone
+    /// makes the picture come out right, so a test on the picture stays green if the
+    /// fold here is deleted. This asserts the fold itself.
+    #[test]
+    fn equal_bearings_are_equal_before_the_trig_not_after_the_rounding() {
+        // Read through `device`, which is the projection's own output, before any
+        // panel fit or pixel rounding can bring two near numbers together.
+        let probe = |turn: f64| {
+            let s = scene(turn, 25.0);
+            [s.device(0.0, 0.0, 0.0), s.device(1.0, 0.0, 0.5), s.device(0.3, 0.7, 1.0)]
+        };
+        for (canonical, laps) in [(0.0, [-720.0, -360.0, 360.0, 720.0]),
+                                  (30.0, [-690.0, -330.0, 390.0, 750.0]),
+                                  (137.0, [-223.0, 497.0, 857.0, -583.0])] {
+            let want = probe(canonical);
+            for turn in laps {
+                assert_eq!(probe(turn), want,
+                    "turn {turn} does not project as turn {canonical}");
+            }
+        }
+        // And a lap count large enough that the radians lose real precision still
+        // lands on its own view rather than near it.
+        assert_eq!(probe(5000.0), probe(5000.0_f64.rem_euclid(360.0)));
     }
 
     #[test]

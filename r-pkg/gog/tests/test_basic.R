@@ -866,6 +866,77 @@ cat("PASS: a bare name is a column, a literal is refused\n")
 refuses("a string viewing angle", space(turn = "left"), "number of degrees")
 refuses("a missing polar start", polar(start = NA), "number of degrees")
 
+# An elevation has ends and a bearing does not, and the pair is the test.
+#
+# The drag has clamped tilt to plus or minus 90 since 2026-08-06, pinned by a test
+# that drags past the stop, so a reader turning the cube with the mouse could not
+# reach a turned-over view. A reader *writing* one could: `space(tilt = -400)`
+# drew 3081 bytes of upside-down nonsense without a word. `turn` is the other
+# half and must stay silent, because a bearing genuinely wraps — refusing both
+# alike would teach a cap the grammar does not have.
+local({
+  cube <- function(...) data(df3) + point + x(x) + y(y) + z(z) + space(...)
+  df3 <- data.frame(x = c(1, 2, 3), y = c(2, 1, 3), z = c(3, 2, 1))
+  for (t in c(95, 180, -400)) {
+    m <- refuses(paste0("space(tilt = ", t, ")"), render_svg(cube(tilt = t)), "-90 to 90")
+    if (!grepl("space(turn = )", m, fixed = TRUE))
+      stop("FAIL: the tilt refusal must offer the bearing, or it reads as a cap on both")
+  }
+  # The ends are in range, which is where the drag already stops.
+  for (t in c(90, -90, 0, 25))
+    if (!grepl("<svg", render_svg(cube(tilt = t)), fixed = TRUE))
+      stop("FAIL: tilt ", t, " is inside the range and must draw")
+  # A bearing wraps, and equal bearings draw the same bytes rather than merely a
+  # similar picture. `turn = -360` used to lose two of eighteen tick labels: every
+  # mark in place, nothing on stderr, and a plot missing part of its own scale.
+  canonical <- render_svg(cube(turn = 30))
+  for (t in c(390, 750, -330, -690))
+    if (!identical(render_svg(cube(turn = t)), canonical))
+      stop("FAIL: space(turn = ", t, ") is the same view as 30 and must draw the same bytes")
+  cat("PASS: tilt has ends, turn wraps, and equal bearings draw alike\n")
+})
+
+# A fit needs rows, and it needs them in the cell the fit runs in.
+#
+# The minimum was never missing from the engine: below three rows the transform
+# returns the frame unchanged, exactly as it does for a categorical axis. But that
+# case is refused first, so returning the input is only ever the GOG_STRICT=0
+# fallback, while this one had no gate — so the raw rows reached the page *as* the
+# fitted curve. The split is the half that hid: six rows pass any whole-frame count
+# while all three of their groups fail, and the picture drew three two-point
+# polylines beside hundred-point ones with nothing to say which was a fit.
+local({
+  thin <- function(n) data.frame(x = seq_len(n), y = seq_len(n))
+  for (n in c(1, 2)) {
+    m <- refuses(paste0("smooth on ", n, " row(s)"),
+                 render_svg(data(thin(n)) + line * smooth + x(x) + y(y)), "at least 3")
+    if (!grepl(paste0("has ", n, "."), m, fixed = TRUE))
+      stop("FAIL: the smooth refusal should name the count it found: ", m)
+    if (grepl("Drop the split", m, fixed = TRUE))
+      stop("FAIL: unsplit, there is no split to drop: ", m)
+  }
+  if (!grepl("<svg", render_svg(data(thin(3)) + line * smooth + x(x) + y(y)), fixed = TRUE))
+    stop("FAIL: three rows is a fit and must draw")
+
+  split <- data.frame(g = rep(c("a", "b", "c"), each = 2),
+                      x = c(1, 2, 1, 2, 1, 2), y = c(1, 2, 2, 1, 1, 3))
+  m <- refuses("smooth split into groups of two",
+               render_svg(data(split) + line * smooth + x(x) + y(y) + group(g)), "at least 3")
+  if (!grepl("`g`", m, fixed = TRUE) || !grepl("Drop the split", m, fixed = TRUE))
+    stop("FAIL: a thin split must be named, with the split as a fix: ", m)
+
+  # Faceting splits before the statistic, so a panel is a cell too.
+  refuses("smooth split into panels of two",
+          render_svg(data(split) + line * smooth + x(x) + y(y) | facet(g)), "at least 3")
+
+  wide <- data.frame(g = rep(c("a", "b", "c"), each = 10), x = rep(1:10, 3),
+                     y = c(1:10, (1:10)^1.5, sqrt(1:10)))
+  if (!grepl("<svg", render_svg(data(wide) + line * smooth + x(x) + y(y) + group(g)),
+             fixed = TRUE))
+    stop("FAIL: ten rows a group is a fit and must draw")
+  cat("PASS: smooth needs three rows in every cell it fits\n")
+})
+
 # A label is one string, as the other three bindings already refuse.
 refuses("a numeric axis label", x_label(42), "needs a string")
 refuses("a numeric title", title(42), "needs a string")

@@ -162,6 +162,62 @@ end
     @refuses title(42) "needs a string"
 end
 
+# An elevation has ends and a bearing does not, and the pair is the test. The drag
+# has clamped tilt to plus or minus 90 since 2026-08-06, so a reader turning the
+# cube could not reach a turned-over view while a reader *writing* one could:
+# `space(tilt = -400)` drew upside-down nonsense without a word. `turn` must stay
+# silent, because a bearing genuinely wraps -- refusing both alike would teach a
+# cap the grammar does not have.
+@testset "tilt has ends, turn wraps, and equal bearings draw alike" begin
+    cube = Dict("x" => [1.0, 2.0, 3.0], "y" => [2.0, 1.0, 3.0], "z" => [3.0, 2.0, 1.0])
+    turned(; kw...) = data(cube) + point + x(:x) + y(:y) + z(:z) + space(; kw...)
+
+    for tilt in (95, 180, -400)
+        @refuses render_svg(turned(tilt = tilt)) "-90 to 90"
+        # The refusal must offer the bearing, or it reads as a cap on both angles.
+        @refuses render_svg(turned(tilt = tilt)) "space(turn = )"
+    end
+    for tilt in (90, -90, 0, 25)
+        @test startswith(render_svg(turned(tilt = tilt)), "<svg")
+    end
+    # Equal bearings draw the same bytes, not merely a similar picture.
+    # `turn = -360` used to lose two of eighteen tick labels, every mark in place.
+    canonical = render_svg(turned(turn = 30))
+    for turn in (390, 750, -330, -690)
+        @test render_svg(turned(turn = turn)) == canonical
+    end
+end
+
+# A fit needs rows, and it needs them in the cell the fit runs in. The engine had
+# the minimum already -- below three rows the transform returns the frame unchanged
+# -- but no gate, so the raw rows reached the page *as* the fitted curve. The split
+# is the half that hid: six rows pass any whole-frame count while all three of
+# their groups fail.
+@testset "smooth needs three rows in every cell it fits" begin
+    # Folded rather than splatted: `+ rest...` with nothing to add reaches `+` with
+    # an empty tuple, which the binding refuses on its own terms and rightly so.
+    function fit(d, rest...)
+        p = data(d) + line * smooth + x(:x) + y(:y)
+        for atom in rest
+            p = p + atom
+        end
+        render_svg(p)
+    end
+
+    for (n, rows) in ((1, [1.0]), (2, [1.0, 2.0]))
+        @refuses fit(Dict("x" => rows, "y" => rows)) "at least 3"
+        @refuses fit(Dict("x" => rows, "y" => rows)) "has $n."
+    end
+    @test startswith(fit(Dict("x" => [1.0, 2.0, 3.0], "y" => [1.0, 2.0, 3.0])), "<svg")
+
+    split = Dict("g" => ["a", "a", "b", "b", "c", "c"],
+                 "x" => [1.0, 2.0, 1.0, 2.0, 1.0, 2.0],
+                 "y" => [1.0, 2.0, 2.0, 1.0, 1.0, 3.0])
+    @refuses fit(split, group(:g)) "at least 3"
+    @refuses fit(split, group(:g)) "Drop the split"
+    @refuses fit(split, group(:g)) "`g`"
+end
+
 @testset "arguments are R's, because Julia has real keywords" begin
     @test x(:x, scale = "log").fields[:scale] == "log"
     @test x(:x, scale = "log", base = 2).fields[:base] == 2.0

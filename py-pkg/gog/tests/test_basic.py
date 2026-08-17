@@ -1546,6 +1546,68 @@ refuses("a string polar start", lambda: polar(start="top"))
 refuses("`x_label()` with a number", lambda: x_label(42))
 refuses("`title()` with a number", lambda: title(42))
 
+# An elevation has ends and a bearing does not, and the pair is the test. The drag
+# has clamped tilt to plus or minus 90 since 2026-08-06, so a reader turning the
+# cube could not reach a turned-over view while a reader *writing* one could:
+# `space(tilt=-400)` drew upside-down nonsense without a word. `turn` must stay
+# silent, because a bearing genuinely wraps — refusing both alike would teach a cap
+# the grammar does not have.
+_cube = {"x": [1.0, 2.0, 3.0], "y": [2.0, 1.0, 3.0], "z": [3.0, 2.0, 1.0]}
+
+
+def _turned(**kw):
+    return (data(_cube, name="cube") + point + x(col.x) + y(col.y) + z(col.z)
+            + space(**kw))
+
+
+for _t in (95, 180, -400):
+    try:
+        render_svg(_turned(tilt=_t))
+        raise AssertionError(f"FAIL: space(tilt={_t}) should be refused")
+    except GogError as _e:
+        assert "-90 to 90" in str(_e), str(_e)
+        # The refusal must offer the bearing, or it reads as a cap on both angles.
+        assert "space(turn = )" in str(_e), str(_e)
+for _t in (90, -90, 0, 25):
+    assert "<svg" in render_svg(_turned(tilt=_t)), f"tilt {_t} is in range"
+# Equal bearings draw the same bytes, not merely a similar picture. `turn=-360`
+# used to lose two of eighteen tick labels: every mark in place, nothing on stderr.
+_canonical = render_svg(_turned(turn=30))
+for _t in (390, 750, -330, -690):
+    assert render_svg(_turned(turn=_t)) == _canonical, f"turn {_t} is turn 30"
+ok("tilt has ends, turn wraps, and equal bearings draw alike")
+
+# A fit needs rows, and it needs them in the cell the fit runs in. The engine had
+# the minimum already — below three rows the transform returns the frame unchanged
+# — but no gate, so the raw rows reached the page *as* the fitted curve. The split
+# is the half that hid: six rows pass any whole-frame count while all three of
+# their groups fail.
+for _n, _rows in ((1, [1.0]), (2, [1.0, 2.0])):
+    # Written out rather than built with `range`, which is gog's transform here —
+    # the shadowing this package warns about on import, and its refusal names the
+    # fix (`builtins.range`) rather than letting a list comprehension fail oddly.
+    _thin = {"x": list(_rows), "y": list(_rows)}
+    try:
+        render_svg(data(_thin, name="thin") + line * smooth + x(col.x) + y(col.y))
+        raise AssertionError(f"FAIL: smooth on {_n} row(s) should be refused")
+    except GogError as _e:
+        assert "at least 3" in str(_e), str(_e)
+        assert f"has {_n}." in str(_e), str(_e)
+        assert "Drop the split" not in str(_e), str(_e)
+_three = {"x": [1.0, 2.0, 3.0], "y": [1.0, 2.0, 3.0]}
+assert "<svg" in render_svg(data(_three, name="three") + line * smooth + x(col.x) + y(col.y))
+
+_split = {"g": ["a", "a", "b", "b", "c", "c"],
+          "x": [1.0, 2.0, 1.0, 2.0, 1.0, 2.0], "y": [1.0, 2.0, 2.0, 1.0, 1.0, 3.0]}
+try:
+    render_svg(data(_split, name="split") + line * smooth + x(col.x) + y(col.y)
+               + group(col.g))
+    raise AssertionError("FAIL: groups of two should be refused")
+except GogError as _e:
+    assert "at least 3" in str(_e) and "`g`" in str(_e), str(_e)
+    assert "Drop the split" in str(_e), str(_e)
+ok("smooth needs three rows in every cell it fits")
+
 try:
     _gm = gog_table("gapminder_2007")
 except Exception as _error:

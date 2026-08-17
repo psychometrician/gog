@@ -400,8 +400,6 @@ impl SvgRenderer {
             _ => bound_z,
         };
 
-        warn_missing_bindings(spec, x_field, y_field);
-
         // A **partition**'s radial axis falls back to the ring it synthesized, the
         // same rule the 3-D reading just applied to `z`: the axis, the scale and
         // the mark read one column because they all read this.
@@ -902,10 +900,11 @@ impl SvgRenderer {
                         // transform runs within each group and tags every output
                         // row with it, so a histogram split by species is three
                         // histograms and the renderer can color them. `color`
-                        // wins over `group`, the same precedence `write_line` uses.
-                        let group_field = layer.encodings.get(&Channel::Color)
-                            .or_else(|| layer.encodings.get(&Channel::Group))
-                            .map(|e| e.field.as_str());
+                        // wins over `group`, the same precedence `write_line` uses
+                        // — and the precedence is `legality`'s to state, because a
+                        // check that counts rows per group has to count the groups
+                        // this draw actually makes.
+                        let group_field = crate::legality::group_field_of(layer);
                         let done = crate::transform::apply(&input, &layer.transforms, key, out, layer.bin.as_ref(), cut.axis(on_x), layer.density.as_ref(), layer.range.as_ref(), layer.confidence.as_ref(), layer.deviation.as_ref(), layer.quantile.as_ref(), layer.r#box.as_ref(), layer.bounds.as_ref(), layer.stack.as_ref(), group_field);
                         // The dot plot: a stacking `point` spends its span on glyphs
                         // rather than on length, so the tally becomes one row per
@@ -3202,7 +3201,26 @@ impl FrameEdge {
                     let cand = edge((fx, fy));
                     let (bx, kx) = (best.mid(scene).x - cx, cand.mid(scene).x - cx);
                     let further = kx.abs() > bx.abs() + EPS;
-                    let tied_and_lefter = (kx.abs() - bx.abs()).abs() <= EPS && kx < bx;
+                    // **Both halves need the margin, and only the first had it.**
+                    // `kx < bx` was exact, so once the magnitudes tied *within* EPS
+                    // the direction was decided by whatever noise separated them —
+                    // the very thing EPS is here to swallow, applied to half the
+                    // comparison. The case that exposed it was `space(turn = -360)`,
+                    // the same view as `turn = 0`: bit-identical marks and frame
+                    // lines, `sin_az` of 2.4e-16 rather than exactly 0, this choice
+                    // flipped, and on the other edge two tick labels collided and
+                    // were dropped after their nudges. Eighteen labels became
+                    // sixteen, with every mark in place and nothing on stderr.
+                    //
+                    // `Scene::new` also folds `turn` into one lap now, which removes
+                    // that *particular* noise at its source. The two fixes are not
+                    // one fix twice: normalizing makes equal views equal, and this
+                    // margin makes the choice steady whatever the numbers are — a
+                    // genuinely different angle can land two struts a hair apart and
+                    // would flip here for the same reason. Either alone hides the
+                    // symptom, so each is pinned by its own test.
+                    let tied = (kx.abs() - bx.abs()).abs() <= EPS;
+                    let tied_and_lefter = tied && kx < bx - EPS;
                     if further || tied_and_lefter {
                         best = cand;
                     }
@@ -4116,77 +4134,25 @@ fn alias_column(df: DataFrame, from: &str, to: &str) -> DataFrame {
     df
 }
 
-/// Emit warnings to stderr for bindings that are missing and whose absence is
-/// *ambiguous* — i.e. where there is no sensible default because the transform
-/// needs to read a specific column from the data.
-///
-/// Synthesizing transforms (bin, count, proportion, density) are excluded:
-/// they invent their own y column, so omitting y() is fine.
-fn warn_missing_bindings(spec: &PlotSpec, x_field: &str, y_field: &str) {
-    for layer in &spec.layers {
-        // Whether a missing `x` is well formed here — **`legality`'s answer, not a
-        // second copy of it**, which is the correction this line is. It used to ask
-        // only about the bar with no position axis, so Law 7's other two
-        // relaxations came out as advice against plots the check had already
-        // blessed: a `partition`, and (2026-07-27) a `text` in `nest`, which was
-        // told it was "rendering empty chart" while drawing its labels perfectly.
-        // The statistic still needs its `y` when it reads one, so only the x-side
-        // warnings below are silenced.
-        let keyless = crate::legality::x_needs_no_binding(spec, layer);
-
-        // Transforms that *read* y from data — omitting y() is ambiguous.
-        for t in &layer.transforms {
-            let name = match t {
-                Transform::Sum    => Some("sum"),
-                Transform::Mean   => Some("mean"),
-                Transform::Median => Some("median"),
-                Transform::Max    => Some("max"),
-                Transform::Min    => Some("min"),
-                Transform::Smooth => Some("smooth"),
-                _ => None,
-            };
-            if let Some(name) = name {
-                if y_field.is_empty() {
-                    eprintln!(
-                        "gog: `{name}` reads y from data but y() is not set. \
-                         Add y(<column>) to specify which column to {name} \
-                         (e.g. `+ y(sales)`). Rendering empty chart."
-                    );
-                }
-                if x_field.is_empty() && !keyless {
-                    eprintln!(
-                        "gog: `{name}` groups by x but x() is not set. \
-                         Add x(<column>) to specify the grouping column \
-                         (e.g. `+ x(country)`). Rendering empty chart."
-                    );
-                }
-            }
-        }
-
-        // Marks with no synthesizing transform need x() to render anything. The
-        // list is `legality`'s, not a second copy: this one omitted `bounds` and so
-        // told `interval * bounds(lo, hi) + y(term)` — a perfectly good forest plot,
-        // already blessed by the legality check — that it was rendering an empty
-        // chart. A warning that contradicts the check is the same drift the master
-        // grids are generated to avoid, one function down.
-        //
-        // A `zone` is exempt outright, and this is the third time that list has been
-        // short by exactly one case. Spanning the axis it is not bounded on is the
-        // mark's whole point, so `zone + y(quarter)` — a row highlight, bounded by
-        // the slot the category owns — has no `x` on purpose. The readings that
-        // *do* need both axes (`bin`, `density`, `count`, `proportion`) are refused
-        // fatally by `check_field` long before this runs, so there is nothing left
-        // here for the warning to catch and one good plot for it to libel.
-        let has_synth = crate::legality::synthesizes_measure(&layer.mark, &layer.transforms)
-            || layer.mark == Mark::Zone;
-        if !has_synth && x_field.is_empty() && !keyless {
-            eprintln!(
-                "gog: x() is not set. Add x(<column>) to bind the x-axis \
-                 (e.g. `+ x(year)`). Rendering empty chart."
-            );
-        }
-    }
-}
+// **The missing-binding warnings were deleted 2026-08-17, and the deletion is the
+// fourth narrowing of the same function.** It printed three messages -- a reading
+// transform with no `y`, one with no `x`, and a mark with no `x` -- each ending
+// "Rendering empty chart".
+//
+// Every case it named is refused by `legality::check` first, measured across all
+// twelve marks on both axes, so the warning was never the only voice and never the
+// deciding one. Its sentence was false in both switch positions besides: under
+// `GOG_STRICT=1` nothing is rendered at all, and under `GOG_STRICT=0` a chart *is*
+// rendered, so "Rendering empty chart" described neither.
+//
+// The history is the argument. The comments removed with it recorded three earlier
+// narrowings, each after this function libeled a plot the gate had already blessed:
+// a `partition`, a `text` in `nest` drawing its labels perfectly, and
+// `interval * bounds(lo, hi) + y(term)` -- a good forest plot told it was empty.
+// Each fix taught it one more of `legality`'s exceptions. A second copy of a
+// judgment that belongs to the gate has to be taught every exception the gate
+// knows, forever, and it is wrong in the window before it is. So it is gone rather
+// than corrected a fourth time: one question, one answer, in `legality.rs`.
 
 fn bar_x_ticks_eff(
     bar_frames: &[&DataFrame],
@@ -6300,6 +6266,39 @@ mod tests {
         // occlusion that M8a was right about.
         let wireframe = svg.find("#d8d8de").expect("no cube frame");
         assert!(wireframe < first_face, "the glass box is no longer behind the marks");
+    }
+
+    /// One view is one picture, however the bearing was spelled.
+    ///
+    /// A bearing is periodic and the grammar accepts every lap, so `turn = -360` is
+    /// the same view as `turn = 0` and has to draw the same bytes. It did not. The
+    /// marks and the frame lines matched, because they round to the same pixels, and
+    /// two of eighteen tick labels went missing: `sin(-2π)` is 2.4e-16 rather than
+    /// exactly 0, which flipped `FrameEdge::choose` on a comparison that guarded its
+    /// magnitude with an epsilon and its direction with nothing, and on the other
+    /// edge two labels collided and were dropped after their nudges.
+    ///
+    /// Nothing could have caught it upstream. Every mark was in place, the picture
+    /// was plausible, and stderr was empty. So the assertion is equality of the
+    /// whole output across spellings, which is the only form that would have failed.
+    #[test]
+    fn one_view_draws_one_picture_however_the_bearing_is_spelled() {
+        let draw = |turn| SvgRenderer::default()
+            .render(&sheet_spec(SpaceView { turn, tilt: 25.0 }), &sheet());
+
+        for (canonical, laps) in [(0.0, [-720.0, -360.0, 360.0, 720.0]),
+                                  (30.0, [-690.0, -330.0, 390.0, 750.0])] {
+            let want = draw(canonical);
+            // The count is asserted as well as the bytes, because it names the
+            // symptom a reader would have seen and the bytes only say "different".
+            let labels = |s: &str| s.matches("<text").count();
+            for turn in laps {
+                let got = draw(turn);
+                assert_eq!(labels(&got), labels(&want),
+                    "turn {turn} lost labels against {canonical}");
+                assert_eq!(got, want, "turn {turn} is not turn {canonical}");
+            }
+        }
     }
 
     #[test]

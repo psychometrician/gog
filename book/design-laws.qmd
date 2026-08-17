@@ -358,6 +358,14 @@ That draws in silence. No legal combination is ever refused for being ugly: one
 that looks pointless today may be a real chart tomorrow, so refusing it now on
 taste grounds forecloses something you cannot see yet.
 
+The law has a second half, and the two viewing angles of a cube show both at
+once. `space(turn = 390)` is a full circle plus 30 degrees, so it is the same view
+as `space(turn = 30)`, and gog draws it without comment. `space(tilt = 95)` is
+refused. The difference is not that one is uglier. A bearing wraps, so 390 names a
+view you can stand in. An elevation runs out at 90, where you are looking straight
+down, so 95 names no view at all. Taste is guided softly and never blocked;
+well-formedness is enforced hard. [Space](space.qmd) draws both.
+
 The engine will not judge, so here is the advice instead. gog exists so that
 you can say a visualization in clean, minimal syntax. It will let you combine
 anything the grammar allows, and that includes combinations that bury your

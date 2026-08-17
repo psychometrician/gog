@@ -6,7 +6,42 @@ CRAN-style repositories and PyPI, `GrammarOfGraphics` on Julia's General, and
 
 ## Unreleased
 
+### Changed
+
+- **A written `space(tilt = )` outside -90 to 90 is now refused.** `tilt` is how
+  high your eye is, and height runs out: at 90 you look straight down and at -90
+  straight up, so past either end the scene hangs upside down with all three axis
+  names piled into one corner. Dragging already stopped at both ends, and writing
+  now does too. `space(turn = )` is unaffected and stays silent at any value,
+  because a bearing genuinely wraps: 390 is 30, and refusing both angles alike
+  would teach a cap the grammar does not have.
+
+- **`smooth` now refuses a group with fewer than three rows.** Two points are a
+  straight line and one is a point, so there is no curve to fit. Below three rows
+  the curve could not be computed and the rows themselves were drawn instead,
+  which put a two-point segment beside a hundred-point curve with nothing to say
+  that one was a fit and the other the data. The count is per group and per panel,
+  not per table, since a statistic runs inside each group and faceting splits
+  before it — so a table of 284 rows split into 142 pairs is refused, and the
+  message names the split to give up.
+
 ### Fixed
+
+- **Turning a cube past a full circle no longer loses axis labels.**
+  `space(turn = -360)` is the same view as `space(turn = 0)` and drew the
+  same marks and the same box, but two of eighteen tick numbers went missing: an
+  axis silently lost part of its own scale, with every mark in place and nothing
+  reported. Equal bearings now draw the same picture to the byte, however many
+  laps the number carries.
+
+### Removed
+
+- **Three warnings about a missing `x()` or `y()` are gone.** Each said
+  "Rendering empty chart", and each named a plot that was already refused with
+  direction, so the message was never the only voice and never the deciding one.
+  It also described neither outcome: nothing is rendered when the plot is refused,
+  and a chart *is* rendered under `GOG_STRICT=0`. The refusals themselves are
+  unchanged.
 
 - **`gog_table()` refuses a table name the book does not have.** It says which
   name it could not find, and when one table is within two letters it names that

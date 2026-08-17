@@ -3526,6 +3526,130 @@ fn check_bounds(out: &mut Vec<Diagnostic>, df: &DataFrame, layer: &Layer) {
 /// Which axis is read is *relational*, the way `slot_orient` is: a vertical `bar * bin`
 /// cuts `x`, a horizontal one cuts `y`. `smooth` reads **both** — it fits `y` against
 /// `x` — so both must be numeric. Data-aware, so it sits in the df-gated block.
+/// The column a statistic runs *within*, or `None` for the whole frame.
+///
+/// `color` wins over `group`, which is the precedence `write_line` uses and the one
+/// `transform::apply` is handed. Stated once because it was stated three times: the
+/// renderer's copy, `check_stack`'s copy, and this file's row-count check would have
+/// been the third — and a rule about which channel splits a statistic has to be the
+/// same rule in the check and in the draw, or a refusal describes a partition the
+/// renderer does not use.
+pub(crate) fn group_field_of(layer: &Layer) -> Option<&str> {
+    layer
+        .encodings
+        .get(&Channel::Color)
+        .or_else(|| layer.encodings.get(&Channel::Group))
+        .map(|e| e.field.as_str())
+}
+
+/// `smooth` needs enough rows to fit a curve, and it needs them in every cell.
+///
+/// **This is the third road to the same failure §12 has now recorded twice.** The
+/// minimum was never missing: `transform::smooth` returns the frame unchanged below
+/// three rows, exactly as it does for a categorical axis. But *that* case is refused
+/// upstream, so returning the input is only ever the `GOG_STRICT=0` fallback, while
+/// this one had no gate at all — so the raw rows reached the page as the fitted
+/// curve. A two-row group drew a two-vertex polyline and a ten-row group drew a
+/// hundred-vertex one, side by side in the same picture, and nothing said which was
+/// a fit. It is the worse half of the pair the transform's own comment names: the
+/// scatter drawn as the curve *looks finished*.
+///
+/// **Counted per cell, because that is what the transform sees.** A statistic runs
+/// inside each group, and faceting splits before any of it, so six rows can pass a
+/// whole-frame count while all three of its panels fail. Both splits are read the
+/// way the renderer reads them.
+fn check_smooth_rows(
+    out: &mut Vec<Diagnostic>,
+    spec: &PlotSpec,
+    df: &DataFrame,
+    layer: &Layer,
+) {
+    if !layer.transforms.contains(&Transform::Smooth) {
+        return;
+    }
+    // A categorical axis is `check_distribution_axis`'s refusal, and it has just
+    // run. Counting rows for a fit that was already declined would be a second
+    // refusal for one mistake, which §12 forbids as plainly as silence.
+    let axis_type = |c: &Channel| {
+        spec.position_for(layer, c)
+            .and_then(|e| actual_type(df, &e.field))
+    };
+    if [Channel::X, Channel::Y]
+        .iter()
+        .any(|c| axis_type(c) == Some(VarType::Discrete))
+    {
+        return;
+    }
+
+    // The partition, in the renderer's own terms: the two facet columns and the
+    // splitting channel. A key that names no column contributes nothing, so an
+    // unfaceted, ungrouped plot is one cell — the whole frame — which is the same
+    // code, degenerate, exactly as `transform::apply` treats it.
+    let keys: Vec<&str> = spec
+        .facet
+        .as_ref()
+        .into_iter()
+        .flat_map(|f| [f.col.as_deref(), f.row.as_deref()])
+        .flatten()
+        .chain(group_field_of(layer))
+        .filter(|k| df.str_col(k).is_some())
+        .collect();
+
+    let rows = df.len();
+    let mut counts: HashMap<Vec<String>, usize> = HashMap::new();
+    for r in 0..rows {
+        let cell: Vec<String> = keys
+            .iter()
+            .map(|k| {
+                df.str_col(k)
+                    .and_then(|c| c.get(r).cloned())
+                    .unwrap_or_default()
+            })
+            .collect();
+        *counts.entry(cell).or_insert(0) += 1;
+    }
+
+    // The same threshold the transform uses, so the refusal and the `GOG_STRICT=0`
+    // fallback agree about which fits exist. Two points are a line and one is a
+    // point; three is where a *local* regression has a neighborhood to weight.
+    const MIN_ROWS: usize = 3;
+    let smallest = counts.values().copied().min().unwrap_or(rows);
+    if smallest >= MIN_ROWS {
+        return;
+    }
+
+    // Two sentences rather than one clause, so the count never has to agree with a
+    // verb: *needs at least 3* and *has 2* are both true of any number. And name the
+    // split that is too thin, because the fix depends on it — a reader with both a
+    // facet and a color would otherwise have to guess which one to give up.
+    let (found, fix) = if keys.is_empty() {
+        (
+            format!("This data has {smallest}."),
+            "Plot what you have with `point` and no transform, which draws the rows \
+             as rows rather than as a curve through them."
+                .to_string(),
+        )
+    } else {
+        (
+            format!(
+                "Split by {}, the smallest group has {smallest}.",
+                or_list(&keys.iter().map(|k| format!("`{k}`")).collect::<Vec<_>>())
+            ),
+            "Drop the split so the fit reads the rows together, or plot what you have \
+             with `point` and no transform, which draws the rows as rows rather than \
+             as a curve through them."
+                .to_string(),
+        )
+    };
+    out.push(Diagnostic {
+        kind: DiagnosticKind::Illegal,
+        message: format!(
+            "gog: `smooth` fits a curve through the rows and needs at least \
+             {MIN_ROWS} of them. {found} {fix}"
+        ),
+    });
+}
+
 fn check_distribution_axis(
     out: &mut Vec<Diagnostic>,
     spec: &PlotSpec,
@@ -4288,9 +4412,7 @@ fn check_stack_signs(out: &mut Vec<Diagnostic>, spec: &PlotSpec, df: &DataFrame,
     if mark_takes_transform(&layer.mark, &Transform::Stack) == TransformLegality::None {
         return;
     }
-    let group_field = layer.encodings.get(&Channel::Color)
-        .or_else(|| layer.encodings.get(&Channel::Group))
-        .map(|e| e.field.as_str());
+    let group_field = group_field_of(layer);
     let Some(gf_name) = group_field else { return }; // refused by `check_stack` 2b
 
     // Which axis the pile stands on, read off the bindings exactly as the renderer
@@ -4846,6 +4968,9 @@ pub fn check(spec: &PlotSpec, data: &HashMap<String, DataFrame>) -> Vec<Diagnost
             // they read must carry a number. Answered here rather than in
             // `transform.rs`, which could only warn and then draw anyway (§12).
             check_distribution_axis(&mut out, spec, df, layer);
+            // And having a number to read is not the same as having enough of it.
+            // Same reason it lives here: a transform can only warn.
+            check_smooth_rows(&mut out, spec, df, layer);
             // Which axis a `rule` sits on — Law 7's second relaxation, and a
             // data-aware question for the same reason `check_bounds` is: it is
             // answered by which of the plot's position columns this layer's own
@@ -5162,8 +5287,10 @@ pub fn check(spec: &PlotSpec, data: &HashMap<String, DataFrame>) -> Vec<Diagnost
                 continue;
             }
             // Law 7's three relaxations of a missing `x`, stated once in
-            // `x_needs_no_binding` because the warning in `render/svg.rs` reads the
-            // same question and had been answering it from its own shorter list.
+            // `x_needs_no_binding`. It was extracted because a warning in the
+            // renderer asked the same question from its own shorter list and so
+            // libeled plots this check had blessed; that warning is gone now, and
+            // the extraction is what makes the question answerable in one place.
             // The third of them is `nest`'s, added 2026-07-27 with `text`: `bar`
             // reads `Can` on `x` in every space and so never asked, while `text`
             // reads `Must` because flat a glyph has to be put *somewhere*. In a
@@ -5924,6 +6051,45 @@ fn check_space(out: &mut Vec<Diagnostic>, spec: &PlotSpec) {
     // which the 3-D histogram fails (it binds no `z`; `bin` synthesizes the count
     // onto it), so a correctly projected plot was told it had been drawn flat.
     let projects = space_of(spec) == SpaceKind::Space;
+
+    // **`tilt` is an elevation, and elevation has ends.** `turn` is a compass
+    // bearing, so 5000° genuinely *is* 320° and wraps silently under §12's omission
+    // rule — the intent is unambiguous, so there is nothing to ask about. Elevation
+    // is not periodic in any useful sense: past 90 the eye crosses over the top,
+    // the scene hangs upside down, and the three axis names pile onto one corner.
+    // There is no sensible value out there to wrap *to*, so this refuses.
+    //
+    // ±90 was already the range in two places and reachable from neither a
+    // sentence nor a check: `interactive.js` clamps the drag to it, pinned by a
+    // test that drags past the stop. So a reader dragging was protected and a
+    // reader *writing* was not, and `space(tilt = -400)` drew 3081 bytes of
+    // nonsense without a word. Law 8: well-formedness is enforced hard.
+    if let CoordSpace::Space(view) = &spec.coord {
+        let t = view.tilt;
+        if !t.is_finite() || t.abs() > 90.0 {
+            // A number that is not a number has no nearest view, so the suggestion
+            // is the default rather than a clamp — `NaN.clamp(-90, 90)` is `NaN`,
+            // and a refusal that recommends `space(tilt = NaN)` is no direction.
+            let nearest = if t.is_finite() {
+                t.clamp(-90.0, 90.0)
+            } else {
+                // Read off the IR's own default rather than repeated here, so the
+                // suggestion cannot drift from the view a bare `space()` gives.
+                crate::ir::SpaceView::default().tilt
+            };
+            out.push(Diagnostic {
+                kind: DiagnosticKind::Illegal,
+                message: format!(
+                    "gog: `space(tilt = {t})` is outside -90 to 90, which is where an \
+                     elevation lives. At 90 the camera looks straight down at the floor \
+                     and at -90 straight up from underneath; past either the scene turns \
+                     over. Use `space(tilt = {nearest})` for the nearest view, or \
+                     `space(turn = )` to swing around the plot instead — a bearing wraps \
+                     and an elevation does not."
+                ),
+            });
+        }
+    }
 
     // A viewing angle without a third dimension: legal, but it projects nothing.
     if matches!(spec.coord, CoordSpace::Space(_)) && !projects {
@@ -11577,6 +11743,121 @@ mod tests {
     fn facet_by_a_category_column_is_legal() {
         let spec = base().layer(Layer::new(Mark::Point)).facet_col("continent");
         assert!(check(&spec, &data()).is_empty());
+    }
+
+    /// `tilt` has ends and `turn` does not, and the pair is the point of the test.
+    ///
+    /// A bearing is periodic, so 5000 is 320 and there is nothing to ask about; an
+    /// elevation is not, so past 90 the scene hangs upside down and there is no
+    /// value out there to wrap to. Refusing both alike would teach a rule the
+    /// grammar does not have, so both halves are asserted together — the range that
+    /// refuses, and the range that must stay silent.
+    #[test]
+    fn a_tilt_past_the_poles_is_illegal_and_a_turn_past_one_lap_is_not() {
+        let cube = |view: crate::ir::SpaceView| {
+            base().z("value").coord(CoordSpace::Space(view)).layer(Layer::new(Mark::Point))
+        };
+        let view = |turn, tilt| crate::ir::SpaceView { turn, tilt };
+
+        // The ends are *in* range, which is where the drag clamp already stops.
+        for tilt in [0.0, 25.0, 90.0, -90.0] {
+            let d = check(&cube(view(30.0, tilt)), &data());
+            assert!(d.is_empty(), "tilt {tilt} should be legal: {:?}", msgs(&d));
+        }
+
+        // And past them it is refused, with the nearest view named.
+        for (tilt, nearest) in [(95.0, "90"), (180.0, "90"), (-400.0, "-90")] {
+            let d = check(&cube(view(30.0, tilt)), &data());
+            assert_eq!(kinds(&d), [DiagnosticKind::Illegal], "tilt {tilt}");
+            assert!(d[0].message.contains(&format!("space(tilt = {nearest})")),
+                    "tilt {tilt} should point at {nearest}: {}", d[0].message);
+            // The direction has to distinguish the two angles, or a reader reads it
+            // as "angles are capped" and stops writing `turn` past 360 as well.
+            assert!(d[0].message.contains("space(turn = )"),
+                    "tilt {tilt} should offer the bearing: {}", d[0].message);
+        }
+
+        // A number that is not a number cannot be clamped to a nearest view, so the
+        // suggestion is the default. `NaN.clamp()` is `NaN`, and a refusal reading
+        // `space(tilt = NaN)` is not direction.
+        let d = check(&cube(view(30.0, f64::NAN)), &data());
+        assert_eq!(kinds(&d), [DiagnosticKind::Illegal]);
+        // It still echoes what was written, which is how a reader recognizes their
+        // own mistake — so `NaN` is expected *before* the fix and forbidden inside
+        // it. Asserting on the whole message cannot tell those apart, so this reads
+        // the suggestion clause alone.
+        let fix = d[0].message.split("Use ").nth(1).unwrap_or("");
+        assert!(!fix.contains("NaN"), "no NaN in the fix: {fix}");
+        assert!(fix.starts_with(&format!("`space(tilt = {})`",
+                                        crate::ir::SpaceView::default().tilt)),
+                "should offer the default: {fix}");
+
+        // The other half: a bearing wraps, so no lap count is ever refused.
+        for turn in [0.0, 360.0, -360.0, 720.0, -720.0, 5000.0, -5000.0] {
+            let d = check(&cube(view(turn, 25.0)), &data());
+            assert!(d.is_empty(), "turn {turn} should be legal: {:?}", msgs(&d));
+        }
+    }
+
+    /// A fit needs rows, and it needs them in the cell the fit actually runs in.
+    ///
+    /// The whole-frame count is the easy half. The one that mattered is the split:
+    /// six rows pass any frame-level minimum while all three of their groups fail,
+    /// and before this the picture drew three two-vertex polylines that looked like
+    /// fitted curves beside hundred-vertex ones that were.
+    #[test]
+    fn smooth_needs_three_rows_in_every_cell_it_fits() {
+        let frame = |n: usize| {
+            let mut m = HashMap::new();
+            let xs: Vec<f64> = (0..n).map(|i| i as f64).collect();
+            m.insert("t".to_string(), DataFrame::new()
+                .with_float("gdp", xs.clone())
+                .with_float("life", xs));
+            m
+        };
+        let fit = || base().layer(Layer::new(Mark::Line).transform(Transform::Smooth));
+
+        for n in [1, 2] {
+            let d = check(&fit(), &frame(n));
+            assert_eq!(kinds(&d), [DiagnosticKind::Illegal], "{n} rows");
+            assert!(d[0].message.contains("at least 3"), "{}", d[0].message);
+            assert!(d[0].message.contains(&format!("has {n}.")),
+                    "should name the count it found: {}", d[0].message);
+            // Unsplit, there is no split to drop, so it must not advise dropping one.
+            assert!(!d[0].message.contains("Drop the split"), "{}", d[0].message);
+        }
+        assert!(check(&fit(), &frame(3)).is_empty(), "3 rows is a fit");
+
+        // Split thin: enough rows in the frame, never enough in a group.
+        let mut split = HashMap::new();
+        split.insert("t".to_string(), DataFrame::new()
+            .with_float("gdp", vec![1.0, 2.0, 1.0, 2.0, 1.0, 2.0])
+            .with_float("life", vec![1.0, 2.0, 2.0, 1.0, 1.0, 3.0])
+            .with_str("g", ["a", "a", "b", "b", "c", "c"].iter().map(|s| s.to_string()).collect()));
+        let grouped = base().layer(
+            Layer::new(Mark::Line).transform(Transform::Smooth).encode(Channel::Group, "g"));
+        let d = check(&grouped, &split);
+        assert_eq!(kinds(&d), [DiagnosticKind::Illegal], "{:?}", msgs(&d));
+        assert!(d[0].message.contains("`g`"), "should name the split: {}", d[0].message);
+        assert!(d[0].message.contains("Drop the split"), "{}", d[0].message);
+
+        // Faceting splits before any of it, so a panel is a cell too.
+        let faceted = base()
+            .facet_col("g")
+            .layer(Layer::new(Mark::Line).transform(Transform::Smooth));
+        let d = check(&faceted, &split);
+        assert!(d.iter().any(|x| x.message.contains("at least 3")),
+                "a thin panel is a thin cell: {:?}", msgs(&d));
+
+        // A categorical axis is the *other* check's refusal, and asking twice for one
+        // mistake is what §12 forbids as plainly as saying nothing.
+        let mut worded = HashMap::new();
+        worded.insert("t".to_string(), DataFrame::new()
+            .with_str("gdp", ["a", "b"].iter().map(|s| s.to_string()).collect())
+            .with_float("life", vec![1.0, 2.0]));
+        let d = check(&fit(), &worded);
+        assert_eq!(d.iter().filter(|x| x.message.contains("at least 3")).count(), 0,
+                   "one mistake, one refusal: {:?}", msgs(&d));
     }
 
     #[test]

@@ -371,6 +371,31 @@ harder job. It needs more than turning does, and it is where the grammar stops a
 renderer's real work begins. So the box stays behind the marks however far you
 turn the scene.
 
+A tilt past the poles is refused, and a turn past a full circle is not. The two
+angles read differently, which is the whole reason:
+
+```{r}
+#| error: true
+data(thermals) + point + x(east) + y(north) + z(altitude) + space(tilt = 95)
+```
+
+`tilt` is how high your eye is, and height runs out. At 90 you are directly
+above the cube and at -90 directly underneath, so there is nothing past either
+end to look from. Ask for it and the scene hangs upside down, with all three axis
+names piled into one corner. Dragging already stopped at both ends, and now
+writing does too.
+
+`turn` is which side you stand on, and you can keep walking. A full circle
+brings you back, so 390 is the same view as 30 and gog draws it without
+comment:
+
+```{r}
+data(thermals) + point + x(east) + y(north) + z(altitude) + space(turn = 390)
+```
+
+The same picture as `space(turn = 30)`, to the byte. Two angles, two rules, and
+the difference is in what they measure rather than in a preference.
+
 Three different sentences hide behind a blank in the cube's column, and the
 engine says which one you have.
 

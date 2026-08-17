@@ -213,7 +213,9 @@ data(gapminder_2007) + x(gdp) + y(life) +
 
 **Span** defaults to 0.75: 75 % of the data is used for each local regression.
 A larger span gives a smoother curve; a smaller span follows the data more
-closely. `smooth` requires both `x` and `y` to be numeric columns, and it
+closely. `smooth` requires both `x` and `y` to be numeric columns, and at least
+three rows in each group it fits; both refusals are at the end of this chapter,
+under [what these three refuse](#what-bin-density-and-smooth-refuse). It
 preserves the field names, so no extra `y()` binding is needed.
 
 ---
@@ -468,6 +470,42 @@ The [horizontal histogram](marks/bar.qmd) is `bar * bin + y(life)`: it cuts `y`,
 because `y` is the axis it was handed and `x` is the one it invents. `smooth` is
 the strict one of the three, since it fits `y` against `x` and so needs a number
 on both.
+
+### A fit needs rows to fit through
+
+Having numbers is not the same as having enough of them. `smooth` fits a curve,
+and two points are a straight line while one is a point, so it asks for at least
+three:
+
+```{r}
+#| error: true
+two_readings <- subset(gm_all, country == "France" & year >= 2002)
+data(two_readings) + line * smooth + x(year) + y(life)
+```
+
+The count that matters is the count *inside each group*, not in the table. A
+statistic runs within every group you split by, and faceting splits the rows
+before any of that. So a table with plenty of rows can still be asked for a fit
+through two:
+
+```{r}
+#| error: true
+recent <- subset(gm_all, year >= 2002)
+data(recent) + line * smooth + x(year) + y(life) + group(country) |
+  facet(continent)
+```
+
+There are 284 rows there and the refusal still stands, because each country in
+each panel is its own fit and each has two readings. The message names both
+splits, so you know which one to give up. Drop `group(country)` and each panel
+fits one curve through a continent's rows, which is plenty.
+
+This matters more than a thin plot usually would, because of what the picture
+would otherwise show. Below three rows the curve cannot be computed, so what
+would be drawn is the rows themselves, joined up. A two-point group would draw a
+straight segment beside a hundred-point curve, with nothing to say that one is a
+fit and the other is the data. A plot that looks finished and is not is worse
+than one that refuses.
 
 ---
 

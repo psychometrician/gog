@@ -60,6 +60,7 @@ import {
   polar,
   nest,
   proportion,
+  group,
   render_svg,
   save,
   ribbon,
@@ -594,6 +595,58 @@ test("a viewing angle is a number and a label is a string, refused where typed",
   refuses(() => polar("top"), /number of degrees/);
   refuses(() => x_label(42), /needs a string/);
   refuses(() => title(42), /needs a string/);
+});
+
+// An elevation has ends and a bearing does not, and the pair is the test. The drag
+// has clamped tilt to ±90 since 2026-08-06, so a reader turning the cube could not
+// reach a turned-over view while a reader *writing* one could: `space(45, -400)`
+// drew upside-down nonsense without a word. `turn` must stay silent, because a
+// bearing genuinely wraps — refusing both alike teaches a cap that does not exist.
+test("tilt has ends, turn wraps, and equal bearings draw alike", () => {
+  const cube = { x: [1, 2, 3], y: [2, 1, 3], z: [3, 2, 1] };
+  const turned = (opts) =>
+    plot(data(cube), point, x(col.x), y(col.y), z(col.z), space(opts));
+
+  for (const tilt of [95, 180, -400]) {
+    refuses(() => render_svg(turned({ tilt })), /-90 to 90/);
+    // The refusal must offer the bearing, or it reads as a cap on both angles.
+    refuses(() => render_svg(turned({ tilt })), /space\(turn = \)/);
+  }
+  for (const tilt of [90, -90, 0, 25]) {
+    assert.match(render_svg(turned({ tilt })), /^<svg /, `tilt ${tilt} is in range`);
+  }
+  // Equal bearings draw the same bytes, not merely a similar picture. `turn: -360`
+  // used to lose two of eighteen tick labels, with every mark in place.
+  const canonical = render_svg(turned({ turn: 30 }));
+  for (const turn of [390, 750, -330, -690]) {
+    assert.equal(render_svg(turned({ turn })), canonical, `turn ${turn} is turn 30`);
+  }
+});
+
+// A fit needs rows, and it needs them in the cell the fit runs in. The engine had
+// the minimum already — below three rows the transform returns the frame unchanged
+// — but no gate, so the raw rows reached the page *as* the fitted curve. The split
+// is the half that hid: six rows pass any whole-frame count while all three of
+// their groups fail, so the picture drew three two-point polylines beside
+// hundred-point ones with nothing to say which was a fit.
+test("smooth needs three rows in every cell it fits", () => {
+  // `layer(line, smooth)` is JavaScript's `line * smooth`: the mark and its
+  // transform are one block, and this binding spells the operator as a word.
+  const fit = (d, ...rest) =>
+    render_svg(plot(data(d), layer(line, smooth), x(col.x), y(col.y), ...rest));
+
+  for (const n of [1, 2]) {
+    const rows = [1, 2].slice(0, n);
+    refuses(() => fit({ x: rows, y: rows }), /at least 3/);
+    refuses(() => fit({ x: rows, y: rows }), new RegExp(`has ${n}\\.`));
+  }
+  assert.match(fit({ x: [1, 2, 3], y: [1, 2, 3] }), /^<svg /, "three rows is a fit");
+
+  const split = { g: ["a", "a", "b", "b", "c", "c"],
+                  x: [1, 2, 1, 2, 1, 2], y: [1, 2, 2, 1, 1, 3] };
+  refuses(() => fit(split, group(col.g)), /at least 3/);
+  refuses(() => fit(split, group(col.g)), /Drop the split/);
+  refuses(() => fit(split, group(col.g)), /`g`/);
 });
 
 test("a missing value is dropped and reported, never dropped in silence", () => {
