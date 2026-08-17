@@ -463,8 +463,9 @@ of four plots in this book; meet them once, here:
   group. R's own classic table [@rcore2026], reshaped to long form, and the
   book's table of movement: every flow diagram reads it.
 - **`trade_partners`**, 22 trade relations between 15 economies:
-  `exporter`, `importer`, and `billions`, rounded. The book's one table of
-  relations, and every network diagram reads it.
+  `exporter`, `importer`, and `billions`, the value of the goods traded, in
+  billions of dollars, rounded. The book's one table of relations, and every
+  network diagram reads it.
 
 Those seven families answer most of the questions asked here. A handful of marks
 need a shape none of them has, and each brings its own small frame, introduced

@@ -1126,8 +1126,9 @@ pub const EDGE_X: &str = "edge_x";
 pub const EDGE_Y: &str = "edge_y";
 /// See [`EDGE_X`].
 pub const EDGE_Z: &str = "edge_z";
-/// A node's neighbor count, published so `size(degree)` and `color(degree)`
-/// can name it — the one attribute an edge table implies about its nodes.
+/// A node's relation count — how many rows name it, parallel relations each
+/// counted — published so `size(degree)` and `color(degree)` can name it: the
+/// one fact an edge table implies about its nodes.
 pub const NODE_DEGREE: &str = "degree";
 
 /// The extent description a 2-D `bin` synthesizes, in the form a mark reads

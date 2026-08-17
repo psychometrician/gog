@@ -515,7 +515,7 @@ export function flow(...stages) {
  * placement inside `network()`: `layer(edge, layout(col.a, col.b))` draws the
  * connections, `layer(point, layout(...))` the nodes, and `layer(text,
  * layout(...))` with `label(col.name)` names them; `size(col.degree)` reads
- * the neighbor count. Nothing binds to `x`, `y` or `z` — the third dimension,
+ * each node's relation count. Nothing binds to `x`, `y` or `z` — the third dimension,
  * when you want it, is the space's: `network({ turn: 30, tilt: 25 })`.
  */
 export function layout(from, to) {

@@ -5,16 +5,16 @@
 source("../R/setup.R")
 ```
 
-What draws a relation? Every other stroke in the kernel connects positions
-the data placed: a `line` runs through its domain, a `path` follows the
-table's order, an `interval` spans between two values. An `edge` connects two
-*named things*, and one row of the table is one such connection.
+What draws a relation? `edge` does: one stroke per row of the table, between
+the two things that row relates. Every other stroke joins positions bound
+from columns. A `line` runs along its domain, a `path` follows the table's
+order, an `interval` spans two values. An `edge` is different, because the
+ends of an edge are names, not numbers, so no axis can measure them.
 
-That difference decides everything about the mark. Its two endpoints are not
+That difference is what makes this mark unusual. Its two endpoints are not
 bound to channels; they come from a [`layout`](../network.qmd), which reads
 the two endpoint columns and computes a position for every name. So the
-mark's smallest sentence carries three words, the mark, its layout, and the
-space the result is read in:
+smallest sentence needs three parts: the mark, its layout, and the space:
 
 ```{r}
 data(trade_partners) + edge * layout(exporter, importer) + network()
@@ -22,27 +22,26 @@ data(trade_partners) + edge * layout(exporter, importer) + network()
 
 *"Given trade partners: edges derived by layout from exporter to importer, in the network."*
 
-An `edge` does not draw outside `network()`, the way `surface` does not draw
-outside the cube. A stroke whose ends mean nothing on data axes has nowhere
-to stand in a panel that promises its axes mean something.
+An `edge` draws only inside `network()`. Outside it, every axis promises a
+measurement, and an edge's ends have none to offer, so the sentence is
+refused rather than drawn.
 
 ## What varies by edge
 
-An edge is one row, so its paint can follow any column of the table. `color`
-maps a category per edge, and `opacity` maps a number, which is the reading a
-weighted network wants:
+An edge is one row, so its color and its opacity can follow any column of
+the table. `color` maps a category, and `opacity` maps a number such as
+`billions`:
 
 ```{r}
 data(trade_partners) +
   edge * layout(exporter, importer) + opacity(billions) +
   point * layout(exporter, importer) +
   network() +
-  title("Each relation, faded by its value")
+  title("Heavier trade, darker stroke")
 ```
 
-`opacity` maps on this stroke and sets on `line`, and the difference is the
-mark's own: a `line` is one stroke with one opacity, while an edge layer is
-many strokes, each its own row with its own value.
+On `line`, `opacity` is only a setting, because a line is one stroke with one
+value. An edge layer is many strokes, and each row carries its own.
 
 ## What you can set
 
@@ -53,8 +52,9 @@ cat("| Setting | Value |\n|---|---|\n")
 mark_options("edge")
 ```
 
-`style(size = )` sets the stroke width for the layer, `style(color = )` its
-one color when nothing maps, and `style(pattern = )` dashes it.
+`style(size = )` sets the stroke width for the layer, `style(color = )` sets
+one color when nothing maps, `style(opacity = )` sets one opacity the same
+way, and `style(pattern = )` dashes the strokes.
 
 ## What it refuses
 
@@ -66,7 +66,7 @@ to it would say nothing the layout has not already said:
 data(trade_partners) + edge + x(billions) + y(exporter) + network()
 ```
 
-And its layout draws only in its space:
+And a `layout` is read only in its space:
 
 ```{r}
 #| error: true

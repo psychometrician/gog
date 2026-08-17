@@ -420,7 +420,7 @@ edge between its two values. The nodes derive: their names from the columns'
 union, their `degree` from counting. Three marks read the one placement inside
 `network()`: `edge * layout(:a, :b)` draws the connections, `point *
 layout(...)` the nodes, and `text * layout(...) + label(:name)` names them;
-`size(:degree)` reads the neighbor count. Nothing binds to `x`, `y` or `z` —
+`size(:degree)` reads each node's relation count. Nothing binds to `x`, `y` or `z` —
 the third dimension, when you want it, is the space's:
 `network(turn = 30, tilt = 25)`.
 """

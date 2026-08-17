@@ -491,7 +491,8 @@ def layout(from_, to):
     columns' union, their `degree` from counting. Three marks read the one
     placement inside `network()`: `edge * layout(col.a, col.b)` draws the
     connections, `point * layout(...)` the nodes, and `text * layout(...) +
-    label(col.name)` names them; `size(col.degree)` reads the neighbor count.
+    label(col.name)` names them; `size(col.degree)` reads each node's relation
+    count.
 
     The first parameter is spelled `from_` because `from` is Python's word,
     the same escape the language itself uses; the column it names is ordinary.

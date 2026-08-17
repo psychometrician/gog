@@ -4488,9 +4488,9 @@ fn check_layout(
                     message: format!(
                         "gog: `{}({})` under `layout` must name something a node \
                          has, and a node has two things: its `name`, and its \
-                         `degree` — the neighbor count the layout counted. A column \
-                         of the edge table belongs to the edges; map it on the \
-                         `edge` layer.",
+                         `degree`, the count of its relations. A column of the \
+                         edge table belongs to the edges; map it on the `edge` \
+                         layer.",
                         channel_name(ch), def.field,
                     ),
                 });
