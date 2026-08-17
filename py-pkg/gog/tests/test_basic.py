@@ -242,6 +242,11 @@ with tempfile.TemporaryDirectory() as folder:
         raise AssertionError("save_gif() should refuse a path that is not a .gif")
     except GogError as e:
         assert "ends in `.gif`" in str(e), str(e)
+        # The correction keeps the directory that was asked for. R dropped it
+        # here and the other three did not, so a reader was told to write into
+        # the working directory while looking for the file somewhere else. The
+        # refusal is worth nothing if the path it hands back is a different path.
+        assert os.path.join(folder, "wave.gif") in str(e), str(e)
     ok("`save_gif()` refuses to write GIF bytes into another name")
 
 # A second table naming its own positions — the per-layer position rule.

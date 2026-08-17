@@ -18,6 +18,11 @@ CRAN-style repositories and PyPI, `GrammarOfGraphics` on Julia's General, and
   now refuse the same way the rest of the grammar refuses, and a site that cannot
   be reached is told apart from a name that does not exist.
 
+- **R's `save_gif()` suggests a path in the directory you asked for.** Given
+  `out/sub/wave.png` it answered `save_gif(p, "wave.gif")`, dropping everything
+  but the file's name, so following the advice wrote the file into the working
+  directory. Python, Julia and JavaScript already kept the directory.
+
 ## 0.0.5 (2026-08-12)
 
 ### Added

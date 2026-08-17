@@ -338,6 +338,11 @@ end
         end
         @test wrong !== nothing
         @test occursin("ends in `.gif`", wrong)
+        # The correction keeps the directory that was asked for. R dropped it
+        # here and the other three did not, so a reader was told to write into
+        # the working directory while looking for the file somewhere else. The
+        # refusal is worth nothing if the path it hands back is a different path.
+        @test occursin(joinpath(folder, "wave.gif"), wrong)
     end
 end
 

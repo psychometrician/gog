@@ -337,9 +337,17 @@ save_gif <- function(gog, path, scale = 1) {
   # The name says what the file is, so a path that says otherwise is refused
   # rather than quietly corrected. Writing GIF bytes into `wave.png` is the kind
   # of small lie that is discovered much later, by someone else.
+  #
+  # The whole path is echoed back, not just the file's name. `basename()` used to
+  # be applied here, so a reader who asked for `out/sub/wave.png` was told to
+  # write `save_gif(p, "wave.gif")`. That advice puts the file in the working
+  # directory while they go looking for it where they meant to put it. The other
+  # three bindings always kept the directory; this one was alone in dropping it,
+  # and the refusal was in none of the suite's recorded messages, so no
+  # comparison across the four could see the difference.
   if (!grepl("\\.gif$", path, ignore.case = TRUE)) {
     stop("gog: `save_gif()` writes a GIF, so the path ends in `.gif` \u2014 ",
-         "`save_gif(p, \"", tools::file_path_sans_ext(basename(path)), ".gif\")`.",
+         "`save_gif(p, \"", tools::file_path_sans_ext(path), ".gif\")`.",
          call. = FALSE)
   }
   if (!is.numeric(scale) || length(scale) != 1L || is.na(scale) || scale <= 0) {

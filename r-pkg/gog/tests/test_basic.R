@@ -1273,6 +1273,25 @@ if (is.null(err_ext) || !grepl("ends in `.gif`", err_ext, fixed = TRUE))
   stop("FAIL: save_gif() should refuse a path that is not a .gif")
 cat("PASS: `save_gif()` refuses to write GIF bytes into another name\n")
 
+# The correction keeps the directory the caller asked for. R applied
+# `basename()` here and the other three bindings did not, so a reader who asked
+# for `out/sub/wave.png` was told to write `save_gif(p, "wave.gif")` — which
+# puts the file in the working directory while they look for it somewhere else.
+# The refusal is worth nothing if the path it hands back is a different path.
+#
+# Nothing across the four bindings could see this. The parity harness draws
+# every sentence in the manual in all four, but it excludes this one by name,
+# because `save_gif` writes a file and a temporary directory is not the same
+# string in four languages. So the one comparison that would have caught a
+# wording difference never ran on the one refusal that had one, and a per-suite
+# test is the only instrument left.
+err_dir <- tryCatch(
+  { save_gif(data(play_df) + point + x(x) + y(y) + play(year), "out/sub/wave.png"); NULL },
+  error = function(e) conditionMessage(e))
+if (is.null(err_dir) || !grepl('"out/sub/wave.gif"', err_dir, fixed = TRUE))
+  stop("FAIL: save_gif() dropped the directory from its suggested path: ", err_dir)
+cat("PASS: `save_gif()` suggests a path in the directory that was asked for\n")
+
 # speed divides the loop rather than dropping frames.
 svg_fast <- render_svg(data(play_df) + point + x(x) + y(y) + play(year, speed = 2))
 if (frame_count(svg_fast) != 4) stop("FAIL: speed must not change how many frames there are")

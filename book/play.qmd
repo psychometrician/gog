@@ -539,7 +539,7 @@ what is inside it:
 ```{r}
 #| error: true
 moving <- data(gm_all) + point + x(gdp) + y(life) + play(year)
-save_gif(moving, file.path(tempdir(), "wave.png"))
+save_gif(moving, "wave.png")
 ```
 
 One thing changes on the way out, and it is worth knowing before you send the

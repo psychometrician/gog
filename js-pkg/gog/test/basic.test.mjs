@@ -538,6 +538,15 @@ test("save_gif writes a played plot where SVG motion is not read", () => {
     // The name says what the file is, so a path that says otherwise is refused
     // rather than quietly corrected.
     refuses(() => save_gif(moving, `${folder}/wave.png`), /ends in `\.gif`/);
+
+    // The correction keeps the directory that was asked for. R dropped it here
+    // and the other three did not, so a reader was told to write into the
+    // working directory while looking for the file somewhere else. The refusal
+    // is worth nothing if the path it hands back is a different path.
+    assert.throws(() => save_gif(moving, `${folder}/wave.png`), (error) => {
+      assert.ok(error.message.includes(`${folder}/wave.gif`), error.message);
+      return true;
+    });
   } finally {
     fs.rmSync(folder, { recursive: true, force: true });
   }
