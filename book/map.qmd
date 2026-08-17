@@ -292,3 +292,6 @@ correct only if it happened to be drawn second.
 
 If a ring in your data does not close, gog cannot tell where one ring ends and
 the next begins. It says so rather than guessing quietly, and names what to fix.
+
+Every sentence in this chapter also draws with the sphere kept round: that is
+[Globe](globe.qmd), the same marks at the same places, viewed.

@@ -214,9 +214,12 @@ book:
         - space.qmd
         - polar.qmd
         - nest.qmd
-        # the four coordinate spaces stay contiguous. `map` belongs beside its
-        # siblings, not after the two chapters that are not spaces at all
+        # the five coordinate spaces stay contiguous. `map` and `globe` belong
+        # beside their siblings, not after the two chapters that are not spaces
+        # at all — and `globe` follows `map` because it reads with both halves
+        # in hand: the map's data and the cube's view.
         - map.qmd
+        - globe.qmd
         - play.qmd
         - selection.qmd
 

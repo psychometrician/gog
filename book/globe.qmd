@@ -1,0 +1,226 @@
+# Globe
+
+```{r}
+#| include: false
+source("R/setup.R")
+```
+
+What does the data look like on the earth itself? The map chapter flattened
+the sphere to fit a page. This chapter keeps it round, and turns it toward
+you.
+
+The sentence is the map chapter's first one, with the space swapped:
+
+```{r}
+(data(quakes_fiji) + point + x(east) + y(north) + map() +
+   title("map()")) |
+  (data(quakes_fiji) + point + x(east) + y(north) +
+     globe(turn = 178, tilt = -18) + title("globe(turn = 178, tilt = -18)"))
+```
+
+*"Given quakes Fiji: points, x is east, y is north, on the globe."*
+
+`x` is longitude and `y` is latitude, exactly as on the map. What changed is
+what a position means on the page. Each point now stands at its place on the
+sphere, and the sphere is drawn as the disk you would see looking at it.
+
+## The view
+
+A globe shows one half of the earth, so which half matters. `turn` and `tilt`
+name the place the view faces, in the words `space()` already uses: `turn` is
+the longitude at the center of the disk, and `tilt` is the latitude. The plot
+above faces Fiji. Leave them out and the view faces zero and zero, where the
+equator crosses the prime meridian.
+
+`turn` is a bearing, so any number is a view: 190 and -170 face the same
+place. `tilt` is a latitude, and it stops at the poles.
+
+In the web edition the written angle is only where the globe starts. Drag it
+and it turns, the way the cube in [Space](space.qmd) turns, and the far half
+of the earth comes around; *reset* returns to the view the sentence asked
+for. On paper a plot keeps its one view, which is why this chapter also
+writes second views out.
+
+Half the earth faces away, and data on that half is hidden behind the sphere.
+gog counts what a view hides rather than dropping it in silence:
+
+```{r}
+data(world_borders) + path + x(lon) + y(lat) + group(piece) +
+  style(color = "#c9ccd6") +
+  data(quakes_fiji) + point + x(east) + y(north) +
+  style(color = "tomato", opacity = 0.35, size = 3) +
+  globe(turn = 178, tilt = -18) + title("The map chapter's layers, kept round")
+```
+
+Read the message above the plot. The coastline table covers the whole earth,
+so most of its rows face away from any one view, while every earthquake faces
+this one. Turning the globe brings the hidden rows around:
+
+```{r}
+data(world_borders) + path + x(lon) + y(lat) + group(piece) +
+  style(color = "#c9ccd6") +
+  globe(turn = 20, tilt = 5) + title("The other side")
+```
+
+## The graticule
+
+The gray lines on the sphere are the **graticule**: a meridian every thirty
+degrees of longitude, and a parallel every thirty degrees of latitude. They
+are this space's gridlines, the same lines every panel draws, bent onto the
+sphere the way polar bends them into rings and spokes. There are no axes
+beside the disk, because a sphere has no edge to write one on; the graticule
+is the reference instead. `theme(grid = )` reaches it like any other grid:
+
+```{r}
+data(quakes_fiji) + point + x(east) + y(north) +
+  globe(turn = 178, tilt = -18) + theme(grid = "none") +
+  title("No graticule")
+```
+
+## A route bends with the sphere
+
+On the map, `path` joins places with straight strokes. On the globe a straight
+route does not exist. The shortest way between two places bends with the
+surface, along a great circle, and a `path` here follows it:
+
+```{r}
+flight <- data.frame(lon = c(139.69, -118.24), lat = c(35.69, 34.05))
+
+data(world_borders) + path + x(lon) + y(lat) + group(piece) +
+  style(color = "#c9ccd6") +
+  data(flight) + path + x(lon) + y(lat) +
+  style(color = "#3d5a80", arrow = "end") +
+  globe(turn = 178, tilt = -18) + title("Tokyo to Los Angeles")
+```
+
+Two rows describe that route, and the curve between them is the sphere's own.
+The arc leans toward the pole because the shortest way across an ocean does.
+
+## Meridians and parallels
+
+A `rule` holds one position and spans the axis it does not name. On the map
+that drew the equator as a straight line. Here the same sentence draws it all
+the way round:
+
+```{r}
+lines_of <- data.frame(lat = 0)
+
+data(world_borders) + path + x(lon) + y(lat) + group(piece) +
+  style(color = "#c9ccd6") +
+  data(lines_of) + rule + y(lat) + style(color = "#d4674f") +
+  globe(turn = 20, tilt = 30) + title("The equator, held whole")
+```
+
+A rule on `y` is a parallel, a circle of constant latitude. A rule on `x` is a
+meridian, and it runs pole to pole.
+
+## The choropleth, kept round
+
+The map chapter filled each country by a value. The same sentence fills the
+countries on the sphere:
+
+```{r}
+data(world_borders) + zone + x(lon) + y(lat) + group(country) +
+  color(continent) + globe(turn = 20, tilt = 5) +
+  title("Every country, filled by continent")
+```
+
+Look at the countries the edge of the disk cuts through. A shape the horizon
+cuts is closed again along it, so a half-visible country is still a filled
+region rather than a shape left open.
+
+## A measure stands on the radius
+
+The flattened map has no axis to spare. The sphere has exactly one: the
+radius, pointing away from every place. A `bar` here stands at its place and
+measures outward along it, a spike from the surface, and `z` names its
+measure:
+
+```{r}
+centers <- do.call(rbind, lapply(split(world_borders[, c("lon", "lat")],
+                                       world_borders$country), colMeans))
+spikes <- data.frame(country = rownames(centers), centers)
+matched <- match(spikes$country, gapminder_2007$country)
+spikes$people <- gapminder_2007$population[matched]
+spikes$continent <- gapminder_2007$continent[matched]
+spikes <- spikes[!is.na(spikes$people), ]
+spikes$reach <- sqrt(spikes$people)
+
+data(world_borders) + path + x(lon) + y(lat) + group(piece) +
+  style(color = "#c9ccd6") +
+  data(spikes) + bar + x(lon) + y(lat) + z(reach) + color(continent) +
+  globe(turn = 20, tilt = 12) +
+  title("World population, standing on its places")
+```
+
+Finding a country's center and joining the population are the host language's
+job, as the join was on the map. So is shaping the measure: the square root
+keeps China from dwarfing every other spike, and it is one line in R where a
+scale knob would be a second way of writing it.
+
+Look at the rim. A spike is clipped by the sphere itself, so one standing just
+behind the horizon still peeks over the limb when it is tall enough, and the
+tallest spikes read in profile at the edge of the disk. A spike facing you
+foreshortens toward a point, which is why a plot like this is read by turning
+it.
+
+## The depth goes to the cube
+
+Each earthquake here carries a third number: `elevation`, its depth below the
+surface. That is not a length to raise from the surface but a third place
+coordinate, and on the globe `z` belongs to the spike alone. So gog refuses
+the sentence below rather than guessing at it, and the red message is the
+point of this chunk: it prints live as the page builds, and it names both
+ways out.
+
+```{r}
+#| error: true
+data(quakes_fiji) + point + x(east) + y(north) + z(elevation) +
+  globe(turn = 178, tilt = -18)
+```
+
+For a place with a depth, the cube is the space with a third position, and
+the same table draws there, `space()` naming its view with the words `globe()`
+uses:
+
+```{r}
+data(quakes_fiji) + point + x(east) + y(north) + z(elevation) +
+  color(slab) + space(turn = 130, tilt = 25) +
+  title("The same earthquakes, read by depth")
+```
+
+Drag this one too: the globe turns the earth, and the cube turns the cloud,
+one gesture for both. The epicenters this chapter has drawn are the view from
+above of the slab this plot shows sinking.
+
+## What a globe refuses
+
+Both positions are spent on the place, exactly as on the map, so a mark that
+reads a domain along an axis has none to read:
+
+```{r}
+#| error: true
+data(quakes_fiji) + line + x(east) + y(north) + globe()
+```
+
+The quantity moves to a channel instead, `size()` or `color()`, or it stands
+on the radius as a spike, as the section above drew.
+
+A latitude past a pole is not a place, so a view cannot face one:
+
+```{r}
+#| error: true
+data(quakes_fiji) + point + x(east) + y(north) + globe(tilt = 100)
+```
+
+And a globe draws no axes at all, so naming one is refused rather than
+accepted and dropped:
+
+```{r}
+#| error: true
+data(quakes_fiji) + point + x(east) + y(north) + globe() + x_label("Longitude")
+```
+
+The map and the globe are one meaning with two pictures of it. The map trades
+the sphere for a page a reader sees whole. The globe keeps the sphere and
+trades away the far half. Moving between them costs one word.

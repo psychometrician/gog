@@ -399,12 +399,12 @@ or it does not and says so:
 - **✅ drawn**: the mark renders in this space.
 - **— not drawn**: legal to write and refused with direction, never half-drawn.
   As on the channel grid, one glyph covers owed, blocked and decided alike; which
-  one a blank is, is the subject of the three paragraphs under the table.
+  one a blank is, is the subject of the paragraphs under the table.
 
 ```{r}
 #| echo: false
 #| results: asis
-spaces <- setdiff(rules$spaces, "globe")
+spaces <- rules$spaces
 scells <- rules$space_cells
 slook  <- setNames(ifelse(scells$drawn, "✅", "—"), paste(scells$space, scells$mark))
 header  <- paste0("| Mark | ", paste0("`", spaces, "`", collapse = " | "), " |")
@@ -447,7 +447,7 @@ cell carries: a sheet needs the cube ([Polar](polar.qmd)).
 
 `nest` is the opposite shape of column: two cells filled and eleven blank, and
 the blanks are not a queue. This space asks a different question from the other
-four. Everywhere else a mark bends because its geometry survives a map of the
+five. Everywhere else a mark bends because its geometry survives a map of the
 plane; a packing is not a map of the plane at all, so what it can draw is
 whatever it can hand *a rectangle* to. `bar` can take one, because a bar is a
 measure and this space is the third thing a measure can become, after a length
@@ -465,10 +465,25 @@ the data), `rule` and `zone` span an axis that is not there, and `box`,
 is not placed by a position here either; it is placed by the region, which is
 the same thing that places the bar.
 
-`map` is empty all the way down, and it is in the grid for that reason. It is
-named in the kernel and has no renderer behind it, so the column is the honest
-edge of the engine rather than a gap in the table. A whole column of `—` is what
-an unbuilt idea looks like when nothing is hidden.
+`map` fills five cells, and the shape of its column comes from one fact:
+longitude and latitude spend both positions on the place. The marks that draw
+are the ones that place something. A `point` is a place, a `path` is a route, a
+`text` is a name at a place, a `rule` at one position spans the other and
+becomes a meridian or a parallel, and a `zone` takes its sides from a boundary,
+which is the choropleth ([Map](map.qmd)). The eight blanks share one reason:
+they measure along an axis, and a map has no axis to spare. The quantity moves
+to `size` or `color` instead, which is what cartography does with a measure once
+both positions are gone.
+
+`globe` fills six cells: `map`'s five, and one the flattening cannot have. The
+sphere and its flattening answer one question, where does a place go, so the
+marks that place something stand on both, and what changes is what the reader
+sees: the far half of the earth is hidden behind the sphere, a route bends
+along a great circle, and a rule becomes the whole meridian or parallel it
+holds. The sixth cell is `bar`, because the sphere alone has a direction to
+spare: the radius, pointing away from every place, where a bar stands as a
+spike with `z` naming its measure ([Globe](globe.qmd)). The seven blanks read a
+domain along an axis, and a sphere has none to read.
 
 Every mark in the kernel is in all three crossings, and what a mark's rows
 say about it is worth reading across them.

@@ -19,7 +19,7 @@ can read, and write, any plot.
 | **Transforms** | `bin` `smooth` `count` `density` `proportion` `sum` `mean` `median` `max` `min` `quantile` `range` `confidence` `deviation` `bounds` `partition`, and the four collision modifiers, `dodge` `stack` `jitter` `repel` |
 | **Operators** | `+` layers, `*` derives, `|` and `/` arrange |
 | **Scales** | `linear` `log` `time` `category` `order` |
-| **Spaces** | `flat` `space` `polar` `nest` `map` |
+| **Spaces** | `flat` `space` `polar` `nest` `globe` `map` |
 | **Settings** | `style` `theme` `palette` |
 | **Labels** | `title` `x_label` `y_label` `z_label` |
 | **Facets** | `facet` |
@@ -368,10 +368,11 @@ plane. That space is `flat`, and you never have to write it.
 | `space` | The cube: `x`, `y` and `z`, projected onto the page |
 | `polar` | The plane bent into a circle: one position becomes an angle, the other a radius |
 | `nest` | Rectangles inside rectangles, each sized by its share of the one holding it |
+| `globe` | The earth itself, viewed: marks stand on the half of the sphere that faces you |
 | `map` | The earth flattened: longitude across, latitude up |
 
 One space holds the whole plot. See [Space](space.qmd), [Polar](polar.qmd),
-[Nest](nest.qmd) and [Map](map.qmd).
+[Nest](nest.qmd), [Map](map.qmd) and [Globe](globe.qmd).
 
 ## Settings: values you *set* rather than *map*
 

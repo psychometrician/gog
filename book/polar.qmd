@@ -8,7 +8,7 @@ source("R/setup.R")
 Which way does the wind blow most often? Some questions do not fit a flat page.
 Every plot so far has been drawn on one: an `x` running across, a `y` running
 up. That is one coordinate
-space, and the kernel names five. It is also the wrong shape for a whole class
+space, and the kernel names six. It is also the wrong shape for a whole class
 of variables. Compass direction, the hour of the day, the month of the year,
 the phase of anything that repeats: for all of them the last value is the
 neighbor of the first, and a straight axis has nowhere to say so.
