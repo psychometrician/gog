@@ -176,6 +176,22 @@ end
     # message shipped for several releases writing `--` where the other three
     # wrote a dash. A message nothing triggers is a message nothing checks.
     @refuses box("middle") "is either"
+    # `GOG_STRICT=0` does not reach a refusal raised while the atom is built, and
+    # the manual says so, so the claim is pinned rather than left to reasoning.
+    # The switch trades a refusal for a picture; there is no picture on offer when
+    # the atom was never built, and downgrading could only invent a value gog was
+    # not given. What would break this is moving such a check into the engine,
+    # where the switch does reach it, which is the refactor the ruling declines.
+    let before = get(ENV, "GOG_STRICT", nothing)
+        ENV["GOG_STRICT"] = "0"
+        try
+            @refuses box("middle") "gog:"
+            @refuses deviation(-1) "gog:"
+        finally
+            before === nothing ? delete!(ENV, "GOG_STRICT") :
+                                 (ENV["GOG_STRICT"] = before)
+        end
+    end
     @refuses bin(bins = 10, width = 5) "either `bins` or `width`"
     @refuses x(:x, scale = "logarithmic") "is not a scale"
     @refuses x(:x, scale = "log", base = 0.5) "greater than 1"

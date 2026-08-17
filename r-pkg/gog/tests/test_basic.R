@@ -1041,6 +1041,30 @@ if (!grepl("is either", tryCatch(box(whiskers = "middle"),
                                  error = function(e) conditionMessage(e))))
   stop("FAIL: box()'s whisker refusal should name the two words it takes")
 
+# `GOG_STRICT=0` does not reach a refusal raised while the atom is built, and the
+# manual says so, so the claim is pinned here rather than left to reasoning. The
+# switch trades a refusal for a picture; there is no picture on offer when the
+# atom was never built, and downgrading could only invent a value gog was not
+# given. What would break this is moving such a check into the engine, where the
+# switch does reach it — which is exactly the refactor the ruling declines.
+local({
+  before <- Sys.getenv("GOG_STRICT", unset = NA_character_)
+  Sys.setenv(GOG_STRICT = "0")
+  on.exit(if (is.na(before)) Sys.unsetenv("GOG_STRICT")
+          else Sys.setenv(GOG_STRICT = before), add = TRUE)
+  for (probe in list(quote(box(whiskers = "middle")), quote(deviation(-1)),
+                     quote(color("red")))) {
+    msg <- tryCatch({ eval(probe); NA_character_ },
+                    error = function(e) conditionMessage(e))
+    if (is.na(msg))
+      stop("FAIL: GOG_STRICT=0 reached a construction-time refusal: ",
+           deparse(probe))
+    if (!grepl("gog:", msg, fixed = TRUE))
+      stop("FAIL: ", deparse(probe), " errored without gog's sentence: ", msg)
+  }
+  cat("PASS: GOG_STRICT=0 does not reach a refusal raised as the atom is built\n")
+})
+
 # `bounds` invents the measured axis, so a forest plot binds no x() at all — and
 # must not be warned at about it.
 coefs <- data.frame(term = c("Age", "Education", "Experience"),

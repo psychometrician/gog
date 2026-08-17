@@ -342,6 +342,22 @@ test("positional stays positional, named joins one object", () => {
   // shipped for several releases writing `--` where the other three wrote a
   // dash. A message nothing triggers is a message nothing checks.
   assert.throws(() => box("middle"), /is either/);
+
+  // `GOG_STRICT=0` does not reach a refusal raised while the atom is built, and
+  // the manual says so, so the claim is pinned rather than left to reasoning. The
+  // switch trades a refusal for a picture; there is no picture on offer when the
+  // atom was never built, and downgrading could only invent a value gog was not
+  // given. What would break this is moving such a check into the engine, where
+  // the switch does reach it — which is exactly the refactor the ruling declines.
+  const before = process.env.GOG_STRICT;
+  process.env.GOG_STRICT = "0";
+  try {
+    assert.throws(() => box("middle"), /gog:/);
+    assert.throws(() => deviation(-1), /gog:/);
+  } finally {
+    if (before === undefined) delete process.env.GOG_STRICT;
+    else process.env.GOG_STRICT = before;
+  }
 });
 
 test("an unknown key is refused, not ignored", () => {

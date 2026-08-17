@@ -281,9 +281,10 @@ the plot you wanted.
 You get the plot with the refused part left out, so `bar + size(gold)` draws the
 bars and no size.
 
-Three refusals it never reaches: a quoted column name, a British spelling, and a
-sentence that does not begin with `data()`. Your package catches all three
-before the engine is asked, so there is no half-drawn plot to offer.
+The switch cannot reach a refusal your package makes before the engine is asked,
+because there is no half-drawn plot to offer. Your package catches a quoted
+column name, a British spelling, a sentence that does not begin with `data()`,
+and a malformed atom such as `box(whiskers = "middle")`.
 
 ---
 

@@ -1829,6 +1829,31 @@ except Exception as _e:
     assert "is either" in str(_e), str(_e)
 ok("box() names the two whisker rules it takes")
 
+# `GOG_STRICT=0` does not reach a refusal raised while the atom is built, and the
+# manual says so, so the claim is pinned here rather than left to reasoning. The
+# switch trades a refusal for a picture; there is no picture on offer when the
+# atom was never built, and downgrading could only invent a value gog was not
+# given. What would break this is moving such a check into the engine, where the
+# switch does reach it — which is exactly the refactor the ruling declines.
+_before_strict = os.environ.get("GOG_STRICT")
+os.environ["GOG_STRICT"] = "0"
+try:
+    for _probe, _what in ((lambda: box("middle"), 'box("middle")'),
+                          (lambda: deviation(-1), "deviation(-1)"),
+                          (lambda: color("red"), 'color("red")')):
+        try:
+            _probe()
+        except GogError as _refusal:
+            assert "gog:" in str(_refusal), str(_refusal)
+        else:
+            raise AssertionError(f"FAIL: GOG_STRICT=0 reached {_what}")
+finally:
+    if _before_strict is None:
+        del os.environ["GOG_STRICT"]
+    else:
+        os.environ["GOG_STRICT"] = _before_strict
+ok("GOG_STRICT=0 does not reach a refusal raised as the atom is built")
+
 _q90 = render_svg(data(_spread, name="s") + bar * quantile(0.9) + x(col.g) + y(col.v))
 assert _q90 != render_svg(
     data(_spread, name="s") + bar * median + x(col.g) + y(col.v)
