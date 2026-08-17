@@ -1,0 +1,321 @@
+//! The `globe` coordinate space — the sphere itself, viewed.
+//!
+//! Wilkinson separates this space from `map` on meaning: *"This is not a
+//! cartographic map. It is a statistical distribution measured in geographic
+//! coordinates"* (§9.2.4.3). `map` flattens the sphere onto the page; this space
+//! keeps it round and chooses which half faces the reader. `x` is longitude and
+//! `y` latitude, both in degrees, and a mark stands at its place on the surface.
+//!
+//! **The projection is the cube's, verbatim.** The screen basis `project::Scene`
+//! uses for `space` — right = (−sin az, cos az, 0), up = (−cos az·sin el,
+//! −sin az·sin el, cos el) — applied to the lon/lat unit vector
+//! p = (cos φ cos λ, cos φ sin λ, sin φ) *is* the textbook orthographic
+//! projection centered on (turn, tilt): p·right = cos φ·sin(λ−turn) and
+//! p·up = cos(tilt)·sin φ − sin(tilt)·cos φ·cos(λ−turn). A test below pins the
+//! two term for term, so the formulas here cannot drift from the cube's.
+//!
+//! What the sphere adds to the cube's math is small and closed-form:
+//! - **The cull is one inequality.** A surface point is visible iff its dot with
+//!   the view vector is not negative — the front hemisphere — so the far side
+//!   never enters the painter's sort. No occlusion engine is involved; the
+//!   caller counts what a view hides and says so, never dropping it in silence.
+//! - **The fit is `polar`'s.** An orthographic view of a sphere is a disk
+//!   whatever the angles, so the panel fit is a circle bounded by the shorter
+//!   side — the same rule that keeps a polar plot a circle in a wide panel and
+//!   the cube square in `Scene::new`.
+//! - **The graticule is the panel grid** (the user's ruling): every space draws
+//!   gridlines, `polar` bends them into rings and spokes, and this space bends
+//!   them into meridians and parallels. An *emphasized* meridian or parallel is
+//!   a `rule` mark, not furniture.
+
+use crate::ir::GlobeView;
+use crate::render::project::Screen;
+use crate::render::Layout;
+
+/// Degrees to radians.
+const RAD: f64 = std::f64::consts::PI / 180.0;
+
+/// The graticule's step, in degrees — meridians every 30°, parallels every 30°
+/// between ±60. Thirty rather than d3's ten because the disk is panel-sized, not
+/// page-sized: at book width a 10° grid is ink, a 30° one is a reference.
+const GRATICULE_STEP: f64 = 30.0;
+/// How finely a graticule line is sampled before projection, in degrees. Two
+/// degrees renders as a smooth curve at panel size (measured: a 79° great-circle
+/// arc at this step is 41 vertices and reads as a clean curve).
+const GRATICULE_SAMPLE: f64 = 2.0;
+/// Parallels run from −60 to 60: the next 30° step is the pole itself, a point.
+const PARALLEL_REACH: f64 = 60.0;
+
+/// One panel's globe: the viewing angles plus the affine fit that centers the
+/// disk in the panel rectangle. Built once per panel and shared — the frame,
+/// every mark and the graticule read it, so a point, the label beside it and
+/// the meridian under it cannot disagree about where a place is.
+pub(crate) struct Globe {
+    sin_az: f64,
+    cos_az: f64,
+    sin_el: f64,
+    cos_el: f64,
+    /// The disk's center, in SVG pixels.
+    pub(crate) cx: f64,
+    pub(crate) cy: f64,
+    /// The disk's radius — the limb — in pixels.
+    pub(crate) r: f64,
+}
+
+impl Globe {
+    /// Build the globe for a panel rectangle. `inset` is the fraction of the
+    /// shorter side kept clear around the limb, the way `Scene::new` keeps room
+    /// around the cube.
+    pub(crate) fn new(l: &Layout, view: GlobeView, inset: f64) -> Self {
+        // `turn` is a bearing and folds into one lap before the trig, for
+        // `Scene::new`'s recorded reason: `sin(0)` is exactly 0 while `sin(-2π)`
+        // is 2.4e-16, and equal views must be equal bit for bit. `tilt` is an
+        // elevation, refused outside ±90 by `legality::check_globe`, so there is
+        // nothing left to fold — folding it would turn a refused angle into a
+        // silently different picture.
+        let az = view.turn.rem_euclid(360.0).to_radians();
+        let el = view.tilt.to_radians();
+        let half = (l.w().min(l.h()) / 2.0) * (1.0 - 2.0 * inset);
+        Globe {
+            sin_az: az.sin(),
+            cos_az: az.cos(),
+            sin_el: el.sin(),
+            cos_el: el.cos(),
+            cx: (l.x0 + l.x1) / 2.0,
+            cy: (l.y0 + l.y1) / 2.0,
+            r: half.max(1.0),
+        }
+    }
+
+    /// A place's device coordinates: `u` right, `v` up, both in [−1, 1] on the
+    /// unit disk, and `w` the dot with the view vector — positive on the facing
+    /// hemisphere, negative on the far one, zero exactly on the limb.
+    fn device(&self, lon: f64, lat: f64) -> (f64, f64, f64) {
+        let (lam, phi) = (lon * RAD, lat * RAD);
+        let (px, py, pz) = (phi.cos() * lam.cos(), phi.cos() * lam.sin(), phi.sin());
+        let u = -px * self.sin_az + py * self.cos_az;
+        let v = -px * self.cos_az * self.sin_el - py * self.sin_az * self.sin_el
+            + pz * self.cos_el;
+        let w = px * self.cos_az * self.cos_el + py * self.sin_az * self.cos_el
+            + pz * self.sin_el;
+        (u, v, w)
+    }
+
+    /// Where a place lands on the page, or `None` when this view cannot see it.
+    ///
+    /// `None` is the far hemisphere — and a coordinate that is not a number,
+    /// which has no place on the sphere at all. The caller counts what it could
+    /// not draw and says so; per-row silence is the drop §12 forbids.
+    pub(crate) fn place(&self, lon: f64, lat: f64) -> Option<Screen> {
+        let (u, v, w) = self.device(lon, lat);
+        if !(w >= 0.0) {
+            return None;
+        }
+        Some(Screen {
+            x: self.cx + self.r * u,
+            y: self.cy - self.r * v,
+            depth: -w,
+        })
+    }
+
+    /// Does this view see the place? The same test `place` makes, exposed so a
+    /// caller can count a layer's hidden rows without building screen points.
+    pub(crate) fn front(&self, lon: f64, lat: f64) -> bool {
+        self.device(lon, lat).2 >= 0.0
+    }
+
+    /// The graticule's meridians: one pixel polyline per visible run of each
+    /// 30° line of longitude, pole to pole.
+    pub(crate) fn meridians(&self) -> Vec<Vec<(f64, f64)>> {
+        let mut out = Vec::new();
+        let mut lon = -180.0;
+        while lon < 180.0 - GRATICULE_STEP / 2.0 {
+            let lats = sample(-90.0, 90.0);
+            out.extend(self.visible_runs(lats.into_iter().map(|lat| (lon, lat))));
+            lon += GRATICULE_STEP;
+        }
+        out
+    }
+
+    /// The graticule's parallels: one pixel polyline per visible run of each 30°
+    /// line of latitude between ±60 — the next step is the pole, a point.
+    pub(crate) fn parallels(&self) -> Vec<Vec<(f64, f64)>> {
+        let mut out = Vec::new();
+        let mut lat = -PARALLEL_REACH;
+        while lat <= PARALLEL_REACH + 1e-9 {
+            let lons = sample(-180.0, 180.0);
+            out.extend(self.visible_runs(lons.into_iter().map(|lon| (lon, lat))));
+            lat += GRATICULE_STEP;
+        }
+        out
+    }
+
+    /// Project a sampled line and split it where it leaves the facing
+    /// hemisphere, so no stroke bridges across the limb. A great or small circle
+    /// crosses the horizon at most twice, so each line yields at most two runs —
+    /// and a parallel's two runs abut at ±180°, which is one place.
+    fn visible_runs(&self, pts: impl Iterator<Item = (f64, f64)>) -> Vec<Vec<(f64, f64)>> {
+        let mut runs: Vec<Vec<(f64, f64)>> = Vec::new();
+        let mut open = false;
+        for (lon, lat) in pts {
+            match self.place(lon, lat) {
+                Some(s) => {
+                    if !open {
+                        runs.push(Vec::new());
+                        open = true;
+                    }
+                    runs.last_mut().unwrap().push((s.x, s.y));
+                }
+                None => open = false,
+            }
+        }
+        runs.retain(|r| r.len() >= 2);
+        runs
+    }
+}
+
+/// Inclusive samples from `lo` to `hi` at the graticule's sampling step.
+fn sample(lo: f64, hi: f64) -> Vec<f64> {
+    let n = ((hi - lo) / GRATICULE_SAMPLE).round() as usize;
+    (0..=n).map(|i| lo + i as f64 * GRATICULE_SAMPLE).collect()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::ir::{GlobeView, SpaceView};
+    use crate::render::project::Scene;
+    use crate::render::Layout;
+
+    fn panel() -> Layout {
+        Layout { x0: 100.0, y0: 50.0, x1: 500.0, y1: 450.0 }
+    }
+
+    fn fiji() -> Globe {
+        Globe::new(&panel(), GlobeView { turn: 178.0, tilt: -18.0 }, 0.04)
+    }
+
+    /// **The projection is the cube's, term for term.** Three landmarks go
+    /// through `Scene` as sphere points in the unit cube and through `Globe` as
+    /// degrees; the two triangles must agree as one uniform scale with no
+    /// rotation. This is the identity the whole design leans on — if it breaks,
+    /// the two spaces have stopped sharing a camera and one of them is lying.
+    #[test]
+    fn the_screen_basis_is_the_cubes() {
+        let view = SpaceView { turn: 178.0, tilt: -18.0 };
+        let l = panel();
+        let scene = Scene::new(view, l.x0, l.y0, l.x1, l.y1, 0.04);
+        let g = fiji();
+
+        // Fiji (the view center), Tokyo, the south pole — all facing this view.
+        let marks = [(178.0, -18.0), (139.69, 35.69), (0.0, -90.0)];
+        let sphere = |lon: f64, lat: f64| {
+            let (lam, phi) = (lon * RAD, lat * RAD);
+            (
+                0.5 + 0.5 * phi.cos() * lam.cos(),
+                0.5 + 0.5 * phi.cos() * lam.sin(),
+                0.5 + 0.5 * phi.sin(),
+            )
+        };
+        let cube: Vec<Screen> = marks
+            .iter()
+            .map(|&(lon, lat)| {
+                let (x, y, z) = sphere(lon, lat);
+                scene.to_screen(x, y, z)
+            })
+            .collect();
+        let disk: Vec<Screen> =
+            marks.iter().map(|&(lon, lat)| g.place(lon, lat).expect("front")).collect();
+
+        let side = |p: &[Screen], i: usize, j: usize| (p[j].x - p[i].x, p[j].y - p[i].y);
+        for (i, j) in [(0, 1), (0, 2)] {
+            let (ax, ay) = side(&cube, i, j);
+            let (bx, by) = side(&disk, i, j);
+            let ratio = (ax * ax + ay * ay).sqrt() / (bx * bx + by * by).sqrt();
+            // The cube fits a whole unit cube where the disk fits the sphere, so
+            // the scale differs; the *shape* may not. Cross product zero means no
+            // rotation and no reflection between the two.
+            let cross = ax * by - ay * bx;
+            let dot = ax * bx + ay * by;
+            assert!(ratio.is_finite() && ratio > 0.0);
+            assert!(
+                cross.abs() / dot.abs() < 1e-9,
+                "the two projections disagree by a rotation: cross/dot = {}",
+                cross / dot
+            );
+            assert!(dot > 0.0, "the two projections point opposite ways");
+        }
+        // One uniform scale, not two: both sides must shrink by the same factor.
+        let r = |i: usize, j: usize| {
+            let (ax, ay) = side(&cube, i, j);
+            let (bx, by) = side(&disk, i, j);
+            (ax * ax + ay * ay).sqrt() / (bx * bx + by * by).sqrt()
+        };
+        assert!(
+            (r(0, 1) / r(0, 2) - 1.0).abs() < 1e-9,
+            "the scale is not uniform: {} vs {}",
+            r(0, 1),
+            r(0, 2)
+        );
+    }
+
+    /// The view faces (turn, tilt): that place lands at the disk's center, its
+    /// antipode is culled, and a coordinate that is not a number is culled too
+    /// rather than emitted as `NaN` pixels.
+    #[test]
+    fn the_faced_place_is_the_center_and_its_antipode_is_hidden() {
+        let g = fiji();
+        let s = g.place(178.0, -18.0).expect("the faced place is visible");
+        assert!((s.x - g.cx).abs() < 1e-9 && (s.y - g.cy).abs() < 1e-9);
+        assert!(g.place(-2.0, 18.0).is_none(), "the antipode drew");
+        assert!(g.place(f64::NAN, 0.0).is_none(), "NaN drew");
+        assert!(!g.front(f64::NAN, 0.0));
+    }
+
+    /// A place a quarter turn from the view center sits exactly on the limb —
+    /// distance `r` from the disk's center. The limb is the frame, so a mark
+    /// past it would stand outside its own panel's world.
+    #[test]
+    fn a_quarter_turn_away_is_the_limb() {
+        let g = Globe::new(&panel(), GlobeView { turn: 0.0, tilt: 0.0 }, 0.04);
+        for (lon, lat) in [(90.0, 0.0), (-90.0, 0.0), (0.0, 90.0), (0.0, -90.0)] {
+            let s = g.place(lon, lat).expect("the limb is visible");
+            let d = ((s.x - g.cx).powi(2) + (s.y - g.cy).powi(2)).sqrt();
+            assert!((d - g.r).abs() < 1e-6, "({lon},{lat}) sits {d} from center, r = {}", g.r);
+        }
+    }
+
+    /// Equal bearings are equal bit for bit — `turn = -360`, `0` and `720` name
+    /// one view (`Scene::new`'s rule, inherited with its reason).
+    #[test]
+    fn equal_bearings_are_equal_views() {
+        let l = panel();
+        let a = Globe::new(&l, GlobeView { turn: 0.0, tilt: 10.0 }, 0.04);
+        for turn in [-360.0, 360.0, 720.0] {
+            let b = Globe::new(&l, GlobeView { turn, tilt: 10.0 }, 0.04);
+            let (sa, sb) = (a.place(30.0, 40.0).unwrap(), b.place(30.0, 40.0).unwrap());
+            assert_eq!(sa.x.to_bits(), sb.x.to_bits());
+            assert_eq!(sa.y.to_bits(), sb.y.to_bits());
+        }
+    }
+
+    /// The graticule stays inside the limb and splits rather than bridging it:
+    /// every vertex of every run is within the disk, and no line yields more
+    /// than two visible runs (a circle crosses the horizon at most twice).
+    #[test]
+    fn the_graticule_is_clipped_to_the_disk_and_never_bridges_the_limb() {
+        let g = fiji();
+        let all: Vec<Vec<(f64, f64)>> =
+            g.meridians().into_iter().chain(g.parallels()).collect();
+        assert!(!all.is_empty(), "no graticule drew at all");
+        for run in &all {
+            for &(x, y) in run {
+                let d = ((x - g.cx).powi(2) + (y - g.cy).powi(2)).sqrt();
+                assert!(d <= g.r + 1e-6, "a graticule vertex sits {d} out, past the limb {}", g.r);
+            }
+        }
+        // Twelve meridians and five parallels; at most two runs each.
+        assert!(g.meridians().len() <= 24, "{} meridian runs", g.meridians().len());
+        assert!(g.parallels().len() <= 10, "{} parallel runs", g.parallels().len());
+    }
+}

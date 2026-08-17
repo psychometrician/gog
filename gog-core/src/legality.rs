@@ -1375,7 +1375,9 @@ pub fn space_of(spec: &PlotSpec) -> SpaceKind {
         // The same precedence, for the same reason: `check_nest` refuses `nest()`
         // with a `z`, so this only decides which name the report uses.
         CoordSpace::Nest => SpaceKind::Nest,
-        CoordSpace::Globe => SpaceKind::Globe,
+        // The same precedence again: `check_globe` refuses `globe()` with a `z`,
+        // so this only decides which name the report uses.
+        CoordSpace::Globe(_) => SpaceKind::Globe,
         CoordSpace::Map(_) => SpaceKind::Map,
         _ if bound_z || synthesized_z => SpaceKind::Space,
         _ => SpaceKind::Flat,
@@ -1521,9 +1523,15 @@ pub fn mark_draws_in_space(mark: &Mark, space: SpaceKind) -> bool {
         SpaceKind::Map => {
             matches!(mark, Mark::Point | Mark::Path | Mark::Text | Mark::Rule | Mark::Zone)
         }
-        // Designed vocabulary, no renderer: the empty column is the honest edge
-        // of the engine, and it is in the grid so that edge is visible.
-        SpaceKind::Globe => false,
+        // **Both positions are spent on the place, on the sphere itself** — the
+        // map's fact one space over, so this column is `map`'s being built out
+        // mark by mark. `point` is a place and `text` a name at one, drawn on
+        // the facing hemisphere with the hidden count reported. `path` (a route
+        // along great circles), `rule` (a meridian or parallel) and `zone` (the
+        // spherical patch) are designed and owed — the spec's staged order —
+        // and the marks that measure along an axis refuse for `map`'s one
+        // reason: there is no axis here to measure along.
+        SpaceKind::Globe => matches!(mark, Mark::Point | Mark::Text),
     }
 }
 
@@ -5359,6 +5367,7 @@ pub fn check(spec: &PlotSpec, data: &HashMap<String, DataFrame>) -> Vec<Diagnost
     check_polar(&mut out, spec);
     check_order(&mut out, spec, data);
     check_zone_group(&mut out, spec, data);
+    check_globe(&mut out, spec, data);
     check_map(&mut out, spec, data);
     check_nest(&mut out, spec, data);
     check_theme(&mut out, spec);
@@ -7251,6 +7260,181 @@ fn check_zone_group(out: &mut Vec<Diagnostic>, spec: &PlotSpec, data: &HashMap<S
                 }
             }
             (false, None) => {}
+        }
+    }
+}
+
+// ---------------------------------------------------------------------------
+// Globe — the sphere viewed, and the refusals it owes on the day it draws
+//
+// `map`'s fact decides this space too: longitude and latitude spend both
+// positions on the place, so the column is `map`'s. What differs is that the
+// column is being built out mark by mark, so a blank is one of two different
+// sentences — a mark `map` draws is *owed* here (designed, not drawn yet),
+// while a mark that measures along an axis is *ruled out* for `map`'s one
+// reason. The split is derived from the rule table rather than typed, so it
+// shrinks by itself as the owed marks land and cannot go stale in between.
+// ---------------------------------------------------------------------------
+
+fn check_globe(out: &mut Vec<Diagnostic>, spec: &PlotSpec, data: &HashMap<String, DataFrame>) {
+    let CoordSpace::Globe(view) = &spec.coord else { return };
+
+    // **A sphere and a cube are two spaces, and a plot is drawn in one** —
+    // `check_polar`'s ruling, `check_map`'s and `check_nest`'s, restated because
+    // the reason is the same and not a shared implementation. Wilkinson's own
+    // spherical coordinate function takes two arguments, the radius constant:
+    // both positions are spent on the place.
+    if spec.axis_def(&Channel::Z).is_some() {
+        out.push(Diagnostic {
+            kind: DiagnosticKind::Unsupported,
+            message: "gog: a plot is drawn in one coordinate space, and `globe()` with `z(...)` \
+                      asks for two — a sphere and a cube. Drop `z(...)` to keep the globe, or \
+                      drop `globe()` to keep the 3-D plot. To carry a third number on a globe, \
+                      put it on a channel: `size(<column>)` or `color(<column>)`."
+                .to_string(),
+        });
+    }
+
+    // **`tilt` is a latitude, and latitude has ends** — `check_space`'s
+    // elevation ruling, one space over, with the same asymmetry: `turn` is a
+    // bearing and wraps at any value, so only `tilt` refuses.
+    let t = view.tilt;
+    if !t.is_finite() || t.abs() > 90.0 {
+        let nearest = if t.is_finite() {
+            t.clamp(-90.0, 90.0)
+        } else {
+            crate::ir::GlobeView::default().tilt
+        };
+        out.push(Diagnostic {
+            kind: DiagnosticKind::Illegal,
+            message: format!(
+                "gog: `globe(tilt = {t})` is outside -90 to 90, which is where a latitude \
+                 lives. At 90 the view faces straight down on the north pole and at -90 on \
+                 the south; there is no place past either. Use `globe(tilt = {nearest})` for \
+                 the nearest view, or `globe(turn = )` to swing around the earth instead — a \
+                 bearing wraps and a latitude does not."
+            ),
+        });
+    }
+
+    // The marks, split by the rule table: owed (map draws it, this space not
+    // yet) against ruled out (it measures along an axis neither space has).
+    for layer in &spec.layers {
+        let mark = &layer.mark;
+        if !is_drawable(mark) || mark_draws_in_space(mark, SpaceKind::Globe) {
+            continue;
+        }
+        let m = mark_name(mark);
+        let drawn: Vec<String> = ALL_MARKS
+            .iter()
+            .filter(|m| mark_draws_in_space(m, SpaceKind::Globe))
+            .map(|m| format!("`{}`", mark_name(m)))
+            .collect();
+        let message = if mark_draws_in_space(mark, SpaceKind::Map) {
+            // Designed and owed: the spec's staged build order, said honestly
+            // rather than worn as a ruling.
+            format!(
+                "gog: `{m}` is designed for `globe()` and this engine does not draw it there \
+                 yet. Use {}, drop `globe()` to draw `{m}` flat, or use `map()`, which draws \
+                 it on the flattened sphere today.",
+                or_list(&drawn)
+            )
+        } else {
+            format!(
+                "gog: `{m}` measures along an axis, and a `globe()` plot has none to spare — \
+                 longitude and latitude use both. Drop `globe()` to draw `{m}` flat, or use \
+                 {}. To carry a quantity on the globe, put it on a channel instead of an \
+                 axis: `point + size(<column>)` sizes each place by it, and \
+                 `color(<column>)` shades it.",
+                or_list(&drawn)
+            )
+        };
+        out.push(Diagnostic { kind: DiagnosticKind::Unsupported, message });
+    }
+
+    // A place is two numbers — the column-type question is legality's, the
+    // ruling the binned-category bug settled, and `check_map`'s own check one
+    // space over.
+    for (channel, axis) in [(Channel::X, "x"), (Channel::Y, "y")] {
+        let Some(def) = spec.axis_def(&channel) else { continue };
+        let field = def.field.as_str();
+        let categorical = spec
+            .layers
+            .iter()
+            .filter_map(|l| l.data.as_ref().or(spec.data.as_ref()).and_then(|n| data.get(n)))
+            .any(|df| df.float_col(field).is_none() && df.str_col(field).is_some());
+        if categorical {
+            out.push(Diagnostic {
+                kind: DiagnosticKind::Illegal,
+                message: format!(
+                    "gog: `{axis}({field})` is a category, and a `globe()` position is a \
+                     place — `x` is longitude and `y` is latitude, both in degrees. A \
+                     category has neither. Give the globe the coordinates and put `{field}` \
+                     on a channel that decodes it: `color({field})`."
+                ),
+            });
+        }
+    }
+
+    // **A globe draws no axes, so nothing may shape or name one.** Accepting an
+    // axis parameter here and ignoring it would be the silent drop §12 forbids —
+    // degrees are already placed on the sphere, and what is *seen* is chosen by
+    // the view, not by a domain.
+    for (channel, axis) in [(Channel::X, "x"), (Channel::Y, "y")] {
+        let Some(def) = spec.axis_def(&channel) else { continue };
+        let param = if def.limits.is_some() {
+            Some("limits")
+        } else if def.scale.is_some() {
+            Some("scale")
+        } else if def.tick_count.is_some() {
+            Some("tick_count")
+        } else if def.free {
+            Some("free")
+        } else {
+            None
+        };
+        if let Some(param) = param {
+            out.push(Diagnostic {
+                kind: DiagnosticKind::Illegal,
+                message: format!(
+                    "gog: `{axis}(<column>, {param} = )` shapes an axis, and a `globe()` plot \
+                     draws none — a position here is a place on the sphere, already in \
+                     degrees. Drop `{param}`; the view chooses what is seen: `globe(turn =, \
+                     tilt = )` faces a place, and looking closer is a zoom, which is a view."
+                ),
+            });
+        }
+    }
+    if spec.x_axis.label.is_some() || spec.y_axis.label.is_some() {
+        out.push(Diagnostic {
+            kind: DiagnosticKind::Illegal,
+            message: "gog: `x_label()`/`y_label()` name an axis, and a `globe()` plot draws \
+                      none — a sphere has no edge to write one on, and the graticule is the \
+                      reference instead. Drop it; `title()` still names the plot."
+                .to_string(),
+        });
+    }
+
+    // A latitude beyond ±90 is not a place on the sphere, so those rows cannot
+    // be drawn — said with a count rather than skipped in silence.
+    if let Some(def) = spec.axis_def(&Channel::Y) {
+        let field = def.field.as_str();
+        let beyond = spec
+            .layers
+            .iter()
+            .filter_map(|l| l.data.as_ref().or(spec.data.as_ref()).and_then(|n| data.get(n)))
+            .flat_map(|df| df.float_col(field).into_iter().flatten())
+            .filter(|v| v.is_finite() && v.abs() > 90.0)
+            .count();
+        if beyond > 0 {
+            out.push(Diagnostic {
+                kind: DiagnosticKind::Assumption,
+                message: format!(
+                    "gog: {beyond} row(s) have latitudes beyond ±90, which is not a place on \
+                     the sphere, so they are left undrawn. Latitude runs -90 to 90; check the \
+                     column, or swap `x` and `y` if longitude is bound to `y`."
+                ),
+            });
         }
     }
 }
@@ -9482,7 +9666,7 @@ mod tests {
             }
             SpaceKind::Polar => s.coord(CoordSpace::Polar(crate::ir::PolarView::default())),
             SpaceKind::Nest => s.coord(CoordSpace::Nest),
-            SpaceKind::Globe => s.coord(CoordSpace::Globe),
+            SpaceKind::Globe => s.coord(CoordSpace::Globe(crate::ir::GlobeView::default())),
             SpaceKind::Map => s.coord(CoordSpace::Map(crate::ir::MapView::default())),
         }
     }
@@ -9511,23 +9695,51 @@ mod tests {
         }
     }
 
-    /// The refusal a user meets, through the whole checker rather than the one
-    /// function: **Unsupported**, because the grammar allows the sentence and the
-    /// engine cannot draw it yet (§12) — and it says what to write instead, not
-    /// only what went wrong.
-    /// **`globe` is the only space left in this state**, and that is the change
-    /// rather than an accident: `map` was refused here beside it until it gained
-    /// its first four marks, and this test is one of the two that flipped when it
-    /// did. Both were written to flip, so neither had to be found.
+    /// **No space is left undrawn** — `globe` was the last, refused here until
+    /// 2026-08-17, and this is the second of the two tests written to flip the
+    /// day a space gained its first mark (`map` flipped the first). A `point` on
+    /// the globe now passes the whole checker in silence, which is exactly what
+    /// the space-level gate stepping aside means; `check_coord` stays in the
+    /// file as the gate for whatever space comes next.
     #[test]
-    fn an_undrawn_space_says_what_to_write_instead() {
-        let spec = base().layer(Layer::new(Mark::Point)).coord(CoordSpace::Globe);
+    fn every_space_now_draws_and_the_gate_is_silent() {
+        let spec = base()
+            .layer(Layer::new(Mark::Point))
+            .coord(CoordSpace::Globe(crate::ir::GlobeView::default()));
         let out = check(&spec, &data());
         assert!(
+            out.is_empty(),
+            "a `point` on the globe should draw without a word: {:?}",
+            msgs(&out)
+        );
+    }
+
+    /// The refusal a user meets in this space now comes from `check_globe`, and
+    /// it splits two ways the rule table decides: a mark `map` draws is **owed**
+    /// (designed, not drawn yet), and a mark that measures along an axis is
+    /// **ruled out** for `map`'s one reason. Both say what to write instead.
+    #[test]
+    fn a_globe_blank_says_whether_it_is_owed_or_ruled_out() {
+        let owed = base()
+            .layer(Layer::new(Mark::Path))
+            .coord(CoordSpace::Globe(crate::ir::GlobeView::default()));
+        let out = check(&owed, &data());
+        assert!(
             out.iter().any(|d| d.kind == DiagnosticKind::Unsupported
-                && d.message.contains("`globe()`")
-                && d.message.contains("Drop `globe()`")),
-            "`globe()` was accepted and drawn flat: {:?}",
+                && d.message.contains("designed for `globe()`")),
+            "`path` on the globe should be owed, not ruled out: {:?}",
+            msgs(&out)
+        );
+
+        let ruled = base()
+            .layer(Layer::new(Mark::Bar))
+            .coord(CoordSpace::Globe(crate::ir::GlobeView::default()));
+        let out = check(&ruled, &data());
+        assert!(
+            out.iter().any(|d| d.kind == DiagnosticKind::Unsupported
+                && d.message.contains("measures along an axis")
+                && d.message.contains("size(<column>)")),
+            "`bar` on the globe should be ruled out with direction: {:?}",
             msgs(&out)
         );
     }
@@ -13369,9 +13581,14 @@ mod tests {
                 "{m:?}: the plane and the circle must agree about which marks draw"
             );
         }
+        // **The globe column, stated whole and by name.** The sphere spends both
+        // positions on the place, so its column is `map`'s being built out mark
+        // by mark: `point` and `text` stand on it today, and the grid may claim
+        // exactly those — a cell drifting either way is this assertion failing.
         for m in &ALL_MARKS {
-            assert!(!sc("globe", mark_name(m)),
-                "{m:?}: globe has no renderer, so no cell may claim one");
+            let drawn = matches!(m, Mark::Point | Mark::Text);
+            assert_eq!(sc("globe", mark_name(m)), drawn,
+                "{m:?}: the globe column and the renderer disagree");
         }
         // **The map column, stated whole.** A map is a map of the plane, so it has
         // a coordinate for everything — but longitude and latitude spend *both*

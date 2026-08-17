@@ -44,6 +44,11 @@ impl SvgRenderer {
         // partition. Consulted once above the row loop, as `bar`'s is and for the
         // same reason: a packing is a property of all the rows together.
         nest: Option<&Nest>,
+        // Globe: the name sits at its place on the sphere's facing hemisphere,
+        // `point`'s own reading one mark over. A row the view cannot see is
+        // skipped here and counted by the caller; the far half of the earth is
+        // what a globe is, not a drop.
+        globe: Option<&crate::render::globe::Globe>,
         // Where a label that could not be drawn is reported. A packing of many
         // shares has more regions than legible ones, so leaving the unfitted ones
         // out in silence would let a reader take the labeled cells for all of them
@@ -114,7 +119,14 @@ impl SvgRenderer {
             if !(x_vals[i].is_finite() && y_vals[i].is_finite()) {
                 continue;
             }
-            let (bx, by) = super::place(l, polar, x_vals[i], y_vals[i], xs, ys);
+            let (bx, by) = match globe {
+                Some(g) => match g.place(x_vals[i], y_vals[i]) {
+                    Some(s) => (s.x, s.y),
+                    // The far hemisphere — counted and reported by the caller.
+                    None => continue,
+                },
+                None => super::place(l, polar, x_vals[i], y_vals[i], xs, ys),
+            };
             rows.push((i, bx, by));
         }
 

@@ -1,5 +1,6 @@
 pub(crate) mod encode;
 pub(crate) mod geo;
+pub(crate) mod globe;
 pub mod layout;
 pub(crate) mod page;
 pub(crate) mod pattern;

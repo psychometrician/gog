@@ -37,6 +37,14 @@ impl SvgRenderer {
         // two spaces are exclusive — `check_polar` refuses `polar()` with a `z` —
         // so at most one of `scene`/`polar` is ever `Some`.
         polar: Option<&Polar>,
+        // Globe: a glyph at its place on the sphere's facing hemisphere. `x` is
+        // longitude and `y` latitude, read raw — the sphere places degrees, not
+        // fitted fractions — and a row this view cannot see keeps its slot with
+        // no coordinate, so the finite-skip below drops what the caller has
+        // already counted and reported. Exclusive with both `scene` and `polar`
+        // (`check_globe` refuses the pairs), so at most one of the three is
+        // ever `Some`.
+        globe: Option<&crate::render::globe::Globe>,
     ) {
         // A point places against either axis the same way, so both positions go
         // through the one resolution (`super::positions`): a numeric column as it
@@ -153,7 +161,14 @@ impl SvgRenderer {
             (0.0, 0.0)
         };
 
-        let coords: Vec<(f64, f64, f64)> = (0..n).map(|i| match scene {
+        let coords: Vec<(f64, f64, f64)> = (0..n).map(|i| {
+            if let Some(g) = globe {
+                return match g.place(x_vals[i], y_vals[i]) {
+                    Some(s) => (s.x, s.y, s.depth),
+                    None => (f64::NAN, f64::NAN, 0.0),
+                };
+            }
+            match scene {
             None => {
                 let jx = jitter.offset(i, x_vals[i], y_vals[i], 0, jx_band);
                 let jy = jitter.offset(i, x_vals[i], y_vals[i], 0x5DEECE66D, jy_band);
@@ -177,9 +192,11 @@ impl SvgRenderer {
                 );
                 (p.x, p.y, p.depth)
             }
-        }).collect();
+        }}).collect();
         let mut order: Vec<usize> = (0..n).collect();
-        if scene.is_some() {
+        // Depth-sorted wherever there is a depth: the cube's, or the sphere's
+        // facing hemisphere, where a nearer place paints over a farther one.
+        if scene.is_some() || globe.is_some() {
             order.sort_by(|&a, &b| {
                 coords[b].2.partial_cmp(&coords[a].2).unwrap_or(std::cmp::Ordering::Equal)
             });

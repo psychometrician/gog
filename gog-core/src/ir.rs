@@ -225,7 +225,15 @@ pub enum CoordSpace {
     /// `{"polar":{"start":0}}` on the wire, and a bare `"polar"` is not a legal
     /// form for the same reason a bare `"space"` is not.
     Polar(PolarView),
-    Globe,
+    /// The sphere itself, viewed — a statistical distribution measured in
+    /// geographic coordinates, where `Map` is that sphere flattened (spec §15).
+    /// `x` is longitude and `y` is latitude, both in degrees, and the marks
+    /// stand on the sphere's surface; the far hemisphere is culled and counted,
+    /// never silently dropped. Carries the point the view faces, in `space`'s
+    /// own words; `{"globe":{"turn":0,"tilt":0}}` on the wire, and a bare
+    /// `"globe"` is not a legal form for the same reason a bare `"space"` is
+    /// not: the view is part of the space.
+    Globe(GlobeView),
     /// The sphere flattened onto the page — cartography (spec §15). Carries what
     /// the flattening is asked to preserve, the way `Space` carries its viewing
     /// angle; `{"map":{"preserve":"area"}}` on the wire, and a bare `"map"` is not
@@ -248,8 +256,9 @@ pub enum CoordSpace {
     /// could turn the same picture through — because there is a picture underneath
     /// to view from somewhere. A packing has no underneath. There is no camera and
     /// no origin, and the two directions are not axes, so `Nest` is a unit variant
-    /// and the wire form is the bare string `"nest"`, exactly as `Globe` and `Map`
-    /// are. If a knob ever arrives it will be about the *packing* (which
+    /// and the wire form is the bare string `"nest"` — the only such form left,
+    /// now that `Globe` carries its view the way `Space`, `Polar` and `Map` carry
+    /// theirs. If a knob ever arrives it will be about the *packing* (which
     /// rectangle-fitting rule), never about where the reader stands.
     Nest,
 }
@@ -303,6 +312,31 @@ pub struct PolarView {
 impl Default for PolarView {
     fn default() -> Self {
         Self { start: 0.0 }
+    }
+}
+
+/// The point on the earth a globe faces — the view parameter of `globe`, in
+/// `space`'s own two words (spec §15, Law 3). `turn` is the longitude faced and
+/// `tilt` the latitude, so `globe(turn = 178, tilt = -18)` puts Fiji at the
+/// center of the disk. A bearing wraps and an elevation does not, exactly as on
+/// the cube: `turn` folds into one lap in the renderer, `tilt` is refused
+/// outside -90 to 90 (`legality::check_globe`).
+///
+/// The default faces (0, 0) — the equator on the prime meridian — because the
+/// sphere's own origin is the one view that favors nothing; `globe(turn =,
+/// tilt =)` overrides it, and in the browser a drag rewrites the same two
+/// numbers per frame, as the cube's drag does.
+#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
+pub struct GlobeView {
+    #[serde(default)]
+    pub turn: f64,
+    #[serde(default)]
+    pub tilt: f64,
+}
+
+impl Default for GlobeView {
+    fn default() -> Self {
+        Self { turn: 0.0, tilt: 0.0 }
     }
 }
 

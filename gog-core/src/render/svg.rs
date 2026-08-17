@@ -318,6 +318,16 @@ impl SvgRenderer {
             _ => None,
         };
         let is_polar = polar_view.is_some();
+        // The sphere itself, viewed (spec §15): `x` is longitude, `y` latitude,
+        // and a mark stands at its place on the facing hemisphere. Asked for
+        // outright like `polar` — it re-reads the two positions the plot already
+        // has — and carrying a view like the cube. `check_globe` refuses
+        // `globe()` with a `z`, so it cannot collide with the 3-D gate.
+        let globe_view = match &spec.coord {
+            CoordSpace::Globe(v) => Some(*v),
+            _ => None,
+        };
+        let is_globe = globe_view.is_some();
         // The third space that changes where a value lands, and the one that does
         // not land it anywhere: `nest()` turns each row's measure into an area and
         // partitions the panel (spec §15). Everything the other spaces reserve room
@@ -348,6 +358,8 @@ impl SvgRenderer {
         // Everything else is a question about the layers.
         let place = if is_polar {
             Some("polar")
+        } else if is_globe {
+            Some("globe")
         } else if matches!(spec.coord, CoordSpace::Map(_)) {
             Some("map")
         } else {
@@ -1607,6 +1619,14 @@ impl SvgRenderer {
                 // since they would promise that the direction under them measures
                 // that column.
                 (&no_ticks, &no_ticks, "", "")
+            } else if is_globe {
+                // A globe draws no axes at all — the first space with none. The
+                // sphere has no edge to write one on, so no margin is reserved
+                // and no axis names are kept: `check_globe` refuses
+                // `x_label()`/`y_label()` rather than letting one be set and
+                // dropped (`nest`'s own rule), and the graticule is the panel
+                // grid's reading here, drawn inside the disk.
+                (&no_ticks, &no_ticks, "", "")
             } else if is_polar {
                 (&no_ticks, &no_ticks, x_label.as_str(), y_label.as_str())
             } else {
@@ -1726,10 +1746,18 @@ impl SvgRenderer {
             let pol = polar_view.map(|v| Polar::new(
                 l, v, POLAR_RIM_GAP + estimate_cap_height(self.font_sm) + 4.0,
                 measure_on_angle, angle_slots));
-            match &pol {
-                Some(p) => self.write_polar_frame(&mut svg, p, x_ticks, xs, y_ticks, ys, &clip,
-                                                  &spec.theme.resolved(), inner_edge),
-                None => self.write_panel_background(&mut svg, l, &clip, &spec.theme.resolved()),
+            // The globe's panel is the disk, built once per panel like `Polar`
+            // and `Scene` so the frame, the graticule and every mark read one
+            // fit. Its frame routine owns the background, the clip and the
+            // gridlines, the way polar's does.
+            let glb = globe_view.map(|v| crate::render::globe::Globe::new(l, v, GLOBE_INSET));
+            match (&glb, &pol) {
+                (Some(g), _) => self.write_globe_frame(&mut svg, g, &clip,
+                                                       &spec.theme.resolved()),
+                (None, Some(p)) => self.write_polar_frame(&mut svg, p, x_ticks, xs, y_ticks, ys,
+                                                          &clip, &spec.theme.resolved(), inner_edge),
+                (None, None) => self.write_panel_background(&mut svg, l, &clip,
+                                                            &spec.theme.resolved()),
             }
             // What a browser needs, and the only thing it needs: where this panel
             // is and what its axes measure. Written only when a brush is declared,
@@ -1748,11 +1776,77 @@ impl SvgRenderer {
                 place,
             };
             self.write_brush_frame(&mut svg, spec, l, xs, ys, cat_x.as_ref(), cat_y.as_ref(),
-                                   x_field, y_field, !is_nest && !is_3d,
+                                   x_field, y_field, !is_nest && !is_3d && !is_globe,
                                    x_log.then_some(x_base), y_log.then_some(y_base), &facts);
             // Which subset this panel shows at moment `fi`. Moments are the outer
             // stride, so at one frame this is exactly the index it always was.
             let eff_at = |fi: usize| &panel_eff[fi * npanels + panel.slot];
+
+            // The globe branch: marks routed through the sphere's projection and
+            // culled to the facing hemisphere, inside the disk the frame routine
+            // drew above. Like the cube it sits inside the panel loop, so a
+            // faceted globe is N spheres sharing one view with no layout work.
+            // Which marks arrive is `mark_draws_in_space(_, Globe)` and nothing
+            // else; a checked spec never brings another, and under a downgraded
+            // refusal the refused layer is left out rather than half-drawn.
+            if let Some(g) = &glb {
+                // **What a view hides is counted and said** (§12). The far
+                // hemisphere is culled by construction — that is what a globe
+                // is — so the report is an Assumption naming the count, not a
+                // warning per row: a reader must know whether the half they
+                // face is the whole of the data.
+                for (li, layer) in spec.layers.iter().enumerate() {
+                    if !crate::legality::mark_draws_in_space(&layer.mark,
+                        crate::legality::SpaceKind::Globe) { continue }
+                    let (mut hidden, mut total) = (0usize, 0usize);
+                    for fi in 0..nframes {
+                        let Some(df) = eff_at(fi).get(li) else { continue };
+                        let (Some(lons), Some(lats)) =
+                            (df.float_col(x_field), df.float_col(y_field)) else { continue };
+                        for i in 0..lons.len().min(lats.len()) {
+                            if !(lons[i].is_finite() && lats[i].is_finite()) { continue }
+                            total += 1;
+                            if !g.front(lons[i], lats[i]) { hidden += 1 }
+                        }
+                    }
+                    if hidden > 0 {
+                        let v = globe_view.unwrap_or_default();
+                        remarks.push(Diagnostic {
+                            kind: crate::legality::DiagnosticKind::Assumption,
+                            message: format!(
+                                "gog: {hidden} of {total} row(s) face away from \
+                                 `globe(turn = {}, tilt = {})` and are hidden behind the \
+                                 sphere. Turn to face them, or facet two views.",
+                                v.turn, v.tilt
+                            ),
+                        });
+                    }
+                }
+                for fi in 0..nframes {
+                    let eff = eff_at(fi);
+                    self.open_frame(&mut svg, fi, nframes);
+                    for &dim in self.selection_passes(spec) {
+                        self.open_pass(&mut svg, dim);
+                        for (layer, df) in spec.layers.iter().zip(eff.iter()) {
+                            let Some(df) = self.pass_rows(spec, layer, df, dim) else { continue };
+                            let df = &*df;
+                            if df.is_empty() { continue }
+                            match layer.mark {
+                                Mark::Point => self.write_points(&mut svg, layer, df, l, xs, ys,
+                                    x_field, y_field, cat_x.as_deref(), cat_y.as_deref(),
+                                    &color_map, &ramp, &clip, zs, z_field, None, None, Some(g)),
+                                Mark::Text => self.write_text(&mut svg, layer, df, l, xs, ys,
+                                    x_field, y_field, cat_x.as_deref(), cat_y.as_deref(),
+                                    &color_map, &clip, None, None, Some(g), &mut remarks),
+                                _ => {}
+                            }
+                        }
+                        self.close_pass(&mut svg, dim);
+                    }
+                    self.close_frame(&mut svg, fi, nframes, frame_seconds);
+                }
+                continue;
+            }
 
             // The 3-D branch: a projected cube frame instead of 2-D axes and
             // gridlines, and marks routed through the projector and depth-sorted.
@@ -1798,7 +1892,7 @@ impl SvgRenderer {
                         match layer.mark {
                             Mark::Point => self.write_points(&mut svg, layer, df, l, xs, ys,
                                 x_field, y_field, cat_x.as_deref(), cat_y.as_deref(),
-                                &color_map, &ramp, &clip, zs, z_field, Some(&scene), None),
+                                &color_map, &ramp, &clip, zs, z_field, Some(&scene), None, None),
                             Mark::Path => self.write_path(&mut svg, layer, df, l, xs, ys,
                                 x_field, y_field, cat_x.as_deref(), cat_y.as_deref(),
                                 &color_map, &ramp, &clip, zs, z_field, Some(&scene), None),
@@ -1912,7 +2006,7 @@ impl SvgRenderer {
                         continue;
                     }
                     match layer.mark {
-                        Mark::Point => self.write_points(&mut svg, layer, df, l, xs, ys, x_field, y_field, cat_x.as_deref(), cat_y.as_deref(), &color_map, &ramp, &clip, zs, z_field, None, pol_ref),
+                        Mark::Point => self.write_points(&mut svg, layer, df, l, xs, ys, x_field, y_field, cat_x.as_deref(), cat_y.as_deref(), &color_map, &ramp, &clip, zs, z_field, None, pol_ref, None),
                         Mark::Line  => self.write_line(&mut svg, layer, df, l, xs, ys, x_field, y_field, cat_x.as_deref(), &color_map, &ramp, &clip, pol_ref, &mut remarks),
                         Mark::Area  => self.write_area(&mut svg, layer, df, l, xs, ys, x_field, y_field, cat_x.as_deref(), area_base, &color_map, &clip, pol_ref),
                         Mark::Bar   => self.write_bars(&mut svg, layer, df, l, xs, ys, x_field, y_field, cat_x.as_deref(), cat_y.as_deref(), horizontal, ext_base, &color_map, &clip, pol_ref, nst.as_ref()),
@@ -1920,7 +2014,7 @@ impl SvgRenderer {
                         Mark::Interval => self.write_interval(&mut svg, layer, df, l, xs, ys, x_field, y_field, cat_x.as_deref(), cat_y.as_deref(), horizontal, &color_map, &clip, pol_ref),
                         Mark::Box => self.write_box(&mut svg, layer, df, l, xs, ys, x_field, y_field, cat_x.as_deref(), cat_y.as_deref(), horizontal, &color_map, &clip, pol_ref),
                         Mark::Ribbon => self.write_ribbon(&mut svg, layer, df, l, xs, ys, x_field, y_field, cat_x.as_deref(), &color_map, &clip, pol_ref),
-                        Mark::Text => self.write_text(&mut svg, layer, df, l, xs, ys, x_field, y_field, cat_x.as_deref(), cat_y.as_deref(), &color_map, &clip, pol_ref, nst.as_ref(), &mut remarks),
+                        Mark::Text => self.write_text(&mut svg, layer, df, l, xs, ys, x_field, y_field, cat_x.as_deref(), cat_y.as_deref(), &color_map, &clip, pol_ref, nst.as_ref(), None, &mut remarks),
                         Mark::Path => self.write_path(&mut svg, layer, df, l, xs, ys, x_field, y_field, cat_x.as_deref(), cat_y.as_deref(), &color_map, &ramp, &clip, zs, z_field, None, pol_ref),
                         // The one mark handed the whole spec rather than the two
                         // resolved field names: which axis places it is read off
@@ -1977,7 +2071,7 @@ impl SvgRenderer {
                               &spec.theme.resolved());
         // In 3-D the axis names sit on the cube's edges, so the outer margin
         // carries only the title — the 2-D x/y labels would float against no axis.
-        let (outer_xl, outer_yl) = if is_3d || is_nest { ("", "") } else { (x_label.as_str(), y_label.as_str()) };
+        let (outer_xl, outer_yl) = if is_3d || is_nest || is_globe { ("", "") } else { (x_label.as_str(), y_label.as_str()) };
         // A name belongs to the axis, so it goes wherever the ticks went: on the
         // one plot of the page that draws the shared axis, and nowhere else.
         let (outer_xl, outer_yl) = (
@@ -2011,8 +2105,10 @@ impl SvgRenderer {
         };
         // A map fits its scales on **projected** frames while `lon` and `lat` stay
         // degrees, so a page must not share this axis through a stated domain —
-        // see `AxisFacts::projected` for why neither unit works.
-        let projected = map_degrees.is_some();
+        // see `AxisFacts::projected` for why neither unit works. A globe is the
+        // stronger case of the same fact: its positions never touch the fitted
+        // scales at all, so no stated domain could reach them.
+        let projected = map_degrees.is_some() || is_globe;
         let facts = |field: &str, range: (f64, f64), cats: Option<&Vec<String>>, log: bool,
                      base: f64| AxisFacts {
             field: field.to_string(),
@@ -2618,6 +2714,58 @@ impl SvgRenderer {
         }
     }
 
+    /// The globe's panel: the disk, its graticule, and the limb.
+    ///
+    /// The disk is the panel background bent onto the sphere — `write_polar_frame`'s
+    /// circular panel, one space over — and **the graticule is the panel grid**
+    /// (the user's ruling): every space draws gridlines, `polar` bends them into
+    /// rings and spokes, and this space bends them into meridians and parallels.
+    /// `theme(grid = )` names the sets by *axis*, polar's own rule: `x`'s
+    /// gridlines are the meridians here (lines of constant longitude, where `x`
+    /// is bound) and `y`'s the parallels. An *emphasized* meridian or parallel
+    /// is a `rule` mark, not this furniture. The limb is the axis line — one
+    /// closed curve, like polar's rim, so `frame = "full"` and `"axes"` draw the
+    /// same picture and only `"none"` differs.
+    fn write_globe_frame(
+        &self, svg: &mut String, g: &crate::render::globe::Globe,
+        clip: &str, theme: &ThemeSpec,
+    ) {
+        writeln!(svg,
+            r##"  <circle cx="{cx:.2}" cy="{cy:.2}" r="{r:.2}" fill="{bg}"/>"##,
+            cx = g.cx, cy = g.cy, r = g.r, bg = theme.background_or(PANEL_BG)
+        ).unwrap();
+        // A hair wider than the disk, polar's own margin: the clip is a safety
+        // net, not an edge to shave a glyph standing on the limb.
+        writeln!(svg,
+            r#"  <clipPath id="{clip}"><circle cx="{cx:.2}" cy="{cy:.2}" r="{r:.2}"/></clipPath>"#,
+            cx = g.cx, cy = g.cy, r = g.r + 8.0
+        ).unwrap();
+
+        writeln!(svg, r##"  <g stroke="#d2d2da" stroke-width="1" fill="none">"##).unwrap();
+        let mut lines: Vec<Vec<(f64, f64)>> = Vec::new();
+        if theme.grid_x() {
+            lines.extend(g.meridians());
+        }
+        if theme.grid_y() {
+            lines.extend(g.parallels());
+        }
+        for run in lines {
+            let pts: String = run.iter()
+                .map(|(x, y)| format!("{x:.2},{y:.2}"))
+                .collect::<Vec<_>>()
+                .join(" ");
+            writeln!(svg, r#"    <polyline points="{pts}"/>"#).unwrap();
+        }
+        writeln!(svg, "  </g>").unwrap();
+
+        if theme.frame_drawn() {
+            writeln!(svg,
+                r##"  <circle cx="{cx:.2}" cy="{cy:.2}" r="{r:.2}" fill="none" stroke="{c}" stroke-width="1.5"/>"##,
+                cx = g.cx, cy = g.cy, r = g.r, c = crate::ir::THEME_FRAME_COLOR
+            ).unwrap();
+        }
+    }
+
     /// The polar tick labels: the angular names ringed outside the circle, the
     /// radial numbers running out along the spoke the circle starts on. Drawn
     /// after the marks, like the flat tick labels, so they stay readable over
@@ -3110,6 +3258,12 @@ impl SvgRenderer {
 /// Fraction of a panel rectangle left clear around the projected cube, so the
 /// frame's tick labels and axis names have room to sit outside the box.
 const FRAME_INSET: f64 = 0.14;
+
+/// The fraction of the panel's shorter side kept clear around the globe's limb.
+/// Far smaller than the cube's inset because nothing is written out there — a
+/// globe has no tick labels — and the margin only keeps the limb off the panel
+/// edge.
+const GLOBE_INSET: f64 = 0.04;
 
 /// Which axis of the 3-D frame a tick run belongs to.
 #[derive(Clone, Copy, PartialEq, Eq)]
