@@ -91,6 +91,10 @@ thermal_marks <- .gog_read("thermal_marks")
 census <- .gog_read("census", chr = "age")
 census$age <- .gog_ordered(census$age, as.character(seq(0, 85, by = 5)))
 
+titanic <- .gog_read("titanic")
+titanic$class    <- .gog_ordered(titanic$class, c("1st", "2nd", "3rd", "Crew"))
+titanic$survived <- .gog_ordered(titanic$survived, c("Yes", "No"))
+
 winds <- .gog_read("winds")
 winds$direction <- .gog_ordered(winds$direction,
                                 c("N", "NE", "E", "SE", "S", "SW", "W", "NW"))

@@ -28,30 +28,7 @@ use crate::render::Layout;
 /// convention the split bar and ribbon already use.
 const ZONE_OPACITY: f64 = 0.20;
 
-/// `style(border_color =, border_size =)` as an SVG stroke — the frame round each
-/// region this mark fills.
-///
-/// The mark joined the **closed-glyph fills** on 2026-07-27 (spec §4, the settable
-/// rule), reversing a ruling the treemap entry had recorded as settled. What forced
-/// it was the mosaic: `partition` is `zone`-only, so unlike the packing there was no
-/// `bar` to fall back on, and a mosaic whose cells have no edges is one blob
-/// wherever two neighbors share a color.
-///
-/// One function so all four writers — rectangle, sector, hexagon and the filled
-/// contour's band — cannot disagree about what a border is (Law 2). Either half
-/// works alone, on `bar`'s precedent: a color with no width takes a hairline, a
-/// width with no color takes the panel background, which is the white gutter a
-/// mosaic is read by. `border_size = 0` is how a caller says *no* edge.
-fn border_edge(st: &crate::ir::StyleSpec) -> String {
-    match (st.border_color.as_deref(), st.border_size) {
-        (None, None) | (_, Some(0.0)) => r#"stroke="none""#.to_string(),
-        (c, w) => format!(
-            r#"stroke="{}" stroke-width="{:.2}""#,
-            c.map(esc).unwrap_or_else(|| crate::render::svg::PANEL_BG.to_string()),
-            w.unwrap_or(1.0),
-        ),
-    }
-}
+use super::border_edge;
 
 impl SvgRenderer {
     // -----------------------------------------------------------------------

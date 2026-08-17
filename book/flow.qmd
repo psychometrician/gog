@@ -1,0 +1,149 @@
+# Flow
+
+```{r}
+#| include: false
+source("R/setup.R")
+```
+
+Where did each part end up? Some tables record movement: each row says that
+some amount started in one place and finished in another. A flow diagram draws
+that movement. The stages stand side by side, and bands carry each amount from
+stage to stage. The wider the band, the larger the amount it carries.
+
+The `flow` transform lays out the whole picture from one table. This chapter
+builds the diagram one layer at a time, using the passengers and crew of the
+Titanic. `titanic` holds one row per group of people, with the class they
+traveled in, their sex, their age band, whether they survived, and how many
+they were:
+
+```{r}
+#| echo: false
+peek(titanic)
+```
+
+## One row is one path
+
+Name the stages in the atom, in reading order, and bind the count to `y`:
+
+```{r}
+data(titanic) + ribbon * flow(class, survived) + y(n) +
+  title("Who survived, by class")
+```
+
+*"Given titanic: ribbons derived by flow through class and survived, y is n."*
+
+Each band is one path through the stages. The band that leaves `1st` and
+arrives at `Yes` carries every first-class passenger who survived, and its
+thickness is that count at both ends. Rows that share a path are added
+together, so the two `1st` rows for men and women who survived become one
+band. Columns the atom does not name, `sex` and `age` here, are set aside the
+same way.
+
+The stages stand on the horizontal axis, named by their columns. There is
+nothing for `x()` to say: the atom's argument order is the order the stages
+are drawn in. The vertical axis is the count, and it keeps its ticks. The
+bands at each stage stack from zero with no gaps, so a height read off the
+axis is a true cumulative count.
+
+## More stages, more of the story
+
+Add a stage by adding a column. The paths now run three stages long, and each
+band still carries one path's count from end to end:
+
+```{r}
+data(titanic) + ribbon * flow(class, sex, survived) + y(n) +
+  title("Class, then sex, then survival")
+```
+
+The picture answers a question the two-stage version could not. Follow any
+band with your eye and you follow one group of people the whole way: which
+class they traveled in, whether they were men or women, and how it ended.
+
+## Color follows a stage
+
+A band runs through every stage, so any stage can color it. Write `color()`
+after the band layer and name the stage to read:
+
+```{r}
+data(titanic) + ribbon * flow(class, sex, survived) + y(n) + color(class) +
+  title("The same paths, colored by class")
+```
+
+Coloring by `class` keeps each band the color of where it began, so the
+mixing at `sex` and at `survived` becomes visible. Coloring by `survived`
+would instead paint the whole picture by how it ends. Only a stage can color
+a band, because a band is a whole path, and only a stage holds a value every
+path carries.
+
+## The slots and their names
+
+Two more layers finish the diagram. A `zone` layer draws each stage's slots,
+the stacked blocks the bands leave and arrive at. A `text` layer names them.
+The three layers read one layout, so they always agree about where everything
+sits:
+
+```{r}
+data(titanic) + y(n) +
+  ribbon * flow(class, sex, survived) + color(class) +
+  zone * flow(class, sex, survived) + style(color = "gray") +
+  text * flow(class, sex, survived) + label(name) +
+  title("The full diagram: bands, slots, names")
+```
+
+The slots take their paint from `style()`, gray here so the bands keep the
+color story to themselves. The names come from `label(name)`: the layout
+publishes each slot's name under `name`, the same word a labeled treemap
+reads.
+
+The count on `y` is optional. Bind nothing and every row weighs 1, so the
+diagram tallies rows instead of summing a column. That is the same default
+`partition` uses, and the same one `count` is built on.
+
+## What flow refuses
+
+A flow needs at least two stages, because one column has no between:
+
+```{r}
+#| error: true
+data(titanic) + y(n) + ribbon * flow(class)
+```
+
+The stage axis is drawn from the atom's own columns, so a bound `x` has
+nothing left to say:
+
+```{r}
+#| error: true
+data(titanic) + x(n) + ribbon * flow(class, survived)
+```
+
+Three marks read the layout, and the refusal names them for any other mark:
+
+```{r}
+#| error: true
+data(titanic) + y(n) + bar * flow(class, survived)
+```
+
+And a band's color must name a stage. A column outside the stages holds no
+value a whole path shares:
+
+```{r}
+#| error: true
+data(titanic) + y(n) + ribbon * flow(class, survived) + color(n)
+```
+
+## Where its edge is
+
+Bending a flow into `polar()` is valid grammar. The bands bent around a rim
+are the chord diagram. This engine does not draw it yet, and says so:
+
+```{r}
+#| error: true
+data(titanic) + y(n) + ribbon * flow(class, survived) + polar()
+```
+
+The input has an edge too. A flow reads stage columns from one table, one row
+per path. Some tools accept a different shape, a list of nodes and a list of
+links between them, and that shape can also describe flows that merge, skip a
+stage, or cycle back. gog does not read it. The stage-column shape is the one
+where the guarantees hold by construction: every path passes through every
+stage, so the totals agree at each one, and a cycle cannot be written at all.

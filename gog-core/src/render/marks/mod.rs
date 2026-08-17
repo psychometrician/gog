@@ -26,7 +26,36 @@ mod text;
 // (spec §5). It sits here because it *is* a drawing routine, and beside the two
 // marks whose geometry it is rather than inside either, since neither owns it.
 pub(crate) mod violin;
+mod flow;
 mod zone;
+
+/// `style(border_color =, border_size =)` as an SVG stroke — the frame round each
+/// region a fill mark paints.
+///
+/// `zone` joined the **closed-glyph fills** on 2026-07-27 (spec §4, the settable
+/// rule), reversing a ruling the treemap entry had recorded as settled. What forced
+/// it was the mosaic: `partition` is `zone`-only, so unlike the packing there was no
+/// `bar` to fall back on, and a mosaic whose cells have no edges is one blob
+/// wherever two neighbors share a color.
+///
+/// One function so every writer — rectangle, sector, hexagon, the filled
+/// contour's band, and the flow's slots — cannot disagree about what a border is
+/// (Law 2). It moved down here from `zone.rs` when the flow family became its
+/// second reader, on the rule that a helper two modules need moves down rather
+/// than being poked out of one of them. Either half works alone, on `bar`'s
+/// precedent: a color with no width takes a hairline, a width with no color takes
+/// the panel background, which is the white gutter a mosaic is read by.
+/// `border_size = 0` is how a caller says *no* edge.
+pub(crate) fn border_edge(st: &crate::ir::StyleSpec) -> String {
+    match (st.border_color.as_deref(), st.border_size) {
+        (None, None) | (_, Some(0.0)) => r#"stroke="none""#.to_string(),
+        (c, w) => format!(
+            r#"stroke="{}" stroke-width="{:.2}""#,
+            c.map(crate::render::text::esc).unwrap_or_else(|| crate::render::svg::PANEL_BG.to_string()),
+            w.unwrap_or(1.0),
+        ),
+    }
+}
 
 /// The rows of one drawn series, and the value that colors it.
 pub(crate) struct Series {

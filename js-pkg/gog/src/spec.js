@@ -106,7 +106,7 @@ function clone(value) {
 // the transform list — the transform list is names only. Absent parameters
 // attach nothing, so a bare `layer(bar, bin)` stays on Sturges' rule.
 const CARRIED = new Set(["bin", "density", "range", "confidence", "deviation", "quantile", "jitter", "stack", "bounds",
-  "partition"]);
+  "partition", "flow"]);
 
 function carry(layer, transform) {
   const name = transform.fields.transform;
@@ -693,7 +693,7 @@ class Builder {
           data: this.pendingData,
         };
         for (const param of ["bin", "density", "range", "confidence", "deviation", "quantile", "jitter", "stack", "bounds",
-          "partition", "box"]) {
+          "partition", "flow", "box"]) {
           if (atom.fields[param] !== undefined) layer[param] = clone(atom.fields[param]);
         }
         this.openLayer(layer);

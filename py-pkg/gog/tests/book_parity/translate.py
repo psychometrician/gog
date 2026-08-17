@@ -43,7 +43,7 @@ COLUMN_ATOMS = {
     # fails on the *column* name and never reaches the refusal being compared.
     "colour",
 }
-ALL_COLUMN_ARGS = {"bounds", "partition"}
+ALL_COLUMN_ARGS = {"bounds", "partition", "flow"}
 
 # The exception to the exception: a *knob* on an atom whose other arguments are
 # all columns. `partition(city, mode, cross = TRUE)` names two columns and sets
@@ -70,8 +70,16 @@ def _is_bare_name(text: str) -> bool:
 
 
 def _accessor(name: str) -> str:
-    """`col.gdp`, or `col["a.b"]` when Python cannot spell the name as an attribute."""
-    return f"col.{name}" if name.isidentifier() else f'col["{name}"]'
+    """`col.gdp`, or `col["a.b"]` when Python cannot spell the name as an attribute.
+
+    A keyword is an identifier by `str.isidentifier()`'s measure and still not an
+    attribute — `col.class` is a syntax error — so the keyword check rides
+    beside it. Found by the flow chapter, whose Titanic table has a `class`
+    column, which is the escape hatch's whole reason to exist.
+    """
+    import keyword
+    ok = name.isidentifier() and not keyword.iskeyword(name)
+    return f"col.{name}" if ok else f'col["{name}"]'
 
 
 def _spans(text: str):

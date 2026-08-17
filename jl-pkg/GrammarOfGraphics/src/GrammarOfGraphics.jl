@@ -69,7 +69,7 @@ export point, line, path, rule, zone, area, bar, step, interval, box, ribbon, te
        surface
 # transforms
 export bin, smooth, count, density, sum, mean, median, max, min, proportion,
-       range, confidence, deviation, quantile, bounds, partition, dodge, stack, jitter,
+       range, confidence, deviation, quantile, bounds, partition, flow, dodge, stack, jitter,
        repel
 # positions and spaces
 export x, y, z, space, polar, nest, globe, map

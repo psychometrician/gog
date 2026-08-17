@@ -1303,6 +1303,50 @@ refuses(
                        + bar * partition(col.group, col.item) + x(col.amount)),
 )
 refuses("partition with no levels named", lambda: partition())
+
+# --- flow: a magnitude laid through its stages -------------------------------
+# Three marks read one layout: `ribbon` the bands, `zone` the slots, `text` the
+# names. The band is the renderer's first cubic curve, and two renders of one
+# sentence are one picture.
+voyage = {
+    "klass": ["First", "First", "Third", "Third"],
+    "survived": ["yes", "no", "yes", "no"],
+    "n": [203.0, 122.0, 178.0, 528.0],
+}
+
+
+def alluvial():
+    return render_svg(
+        data(voyage, name="voyage") + y(col.n)
+        + ribbon * flow(col.klass, col.survived) + color(col.klass)
+        + zone * flow(col.klass, col.survived)
+        + text * flow(col.klass, col.survived) + label(col.name)
+    )
+
+
+first = alluvial()
+assert " C " in first, "a flow's band is a cubic curve"
+assert "<rect" in first, "a flow's slots are rectangles"
+assert ">First<" in first, "`label(col.name)` names each slot"
+assert first == alluvial(), "one flow sentence is one picture, every run"
+ok("`ribbon * flow` bands, `zone * flow` slots, `text * flow` names")
+
+refuses("flow with one stage", lambda: flow(col.klass))
+refuses(
+    "a mark with no flow reading",
+    lambda: render_svg(data(voyage, name="voyage") + y(col.n)
+                       + bar * flow(col.klass, col.survived)),
+)
+refuses(
+    "x bound under flow",
+    lambda: render_svg(data(voyage, name="voyage") + x(col.n)
+                       + ribbon * flow(col.klass, col.survived)),
+)
+refuses(
+    "a band colored by a column that is not a stage",
+    lambda: render_svg(data(voyage, name="voyage") + y(col.n)
+                       + ribbon * flow(col.klass, col.survived) + color(col.n)),
+)
 mixed = {"group": ["A", "A"], "item": [None, "p"], "amount": [5.0, 5.0]}
 refuses(
     "an interior node with a value of its own",

@@ -135,6 +135,10 @@ carry_partition_params <- function(layer, tr) {
     # what keeps the corpus from re-recording every sunburst.
     if (isTRUE(tr$cross)) layer$partition$cross <- TRUE
   }
+  # A flow carries its stage columns the same way, for the same reason.
+  if (identical(tr$transform, "flow")) {
+    layer$flow <- list(stages = I(as.character(tr$stages)))
+  }
   layer
 }
 
@@ -638,6 +642,7 @@ resolve_query <- function(q, table) {
       lhs$current_layer$stack <- rhs$stack
       lhs$current_layer$bounds <- rhs$bounds
       lhs$current_layer$partition <- rhs$partition
+      lhs$current_layer$flow <- rhs$flow
       lhs$pending_data <- NULL
     },
 

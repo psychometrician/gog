@@ -1111,6 +1111,30 @@ chapter](polar.qmd) meets each of them where they are easiest to see.
 
 ---
 
+## `flow`: a magnitude through its stages
+
+`flow` is `partition`'s neighbor. Both read categorical columns named in the
+atom, both lay out the whole picture themselves, and both feed more than one
+mark from one computation. Where `partition` divides a whole among nested
+parts, `flow` carries a magnitude through a sequence of stages. One row of the
+table is one path through every stage the atom names.
+
+```{r}
+data(titanic) + y(n) +
+  ribbon * flow(class, survived) + color(class) +
+  zone * flow(class, survived) +
+  style(color = "gray") +
+  title("Who survived, by class")
+```
+
+The `ribbon` layer draws the bands, one per path, as thick as the path's total
+at both ends. The `zone` layer draws each stage's slots, stacked with no
+padding, so the measure axis keeps its ticks and reads true counts. A `text`
+layer names the slots. The [Flow](flow.qmd) chapter builds the full diagram and
+gives the rules; this section only places the atom in the family.
+
+---
+
 ## `dodge`: side by side instead of on top
 
 Every transform above is a *statistic*: it reads columns and writes new ones.

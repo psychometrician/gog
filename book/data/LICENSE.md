@@ -47,12 +47,13 @@ Three frames are reshaped from tables that ship with R itself:
 | `iris_flowers` | `datasets::iris` | columns renamed to bare words |
 | `maunga_whau` | `datasets::volcano` | matrix unrolled to long form, every second row and column |
 | `quakes_fiji` | `datasets::quakes` | depth negated to an elevation, and cut into 90 km bands |
+| `titanic` | `datasets::Titanic` | the four-way table unrolled to long form, columns renamed to bare words |
 
 **These are GPL, and that is why nothing here is shipped inside a package.** R's
 `datasets` is licensed GPL-2 | GPL-3, which is copyleft and cannot be absorbed
 into an Apache-2.0 wheel or tarball. Hosting them beside the book is ordinary
 distribution, which the GPL permits when its terms travel with the files — this
-note is that. A reader who uses these three frames is using GPL data and should
+note is that. A reader who uses these four frames is using GPL data and should
 treat it accordingly.
 
 The underlying observations are old and public: Edgar Anderson's iris

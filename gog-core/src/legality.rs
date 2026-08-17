@@ -780,6 +780,7 @@ fn transform_name(t: &Transform) -> &'static str {
         Transform::Jitter => "jitter",
         Transform::Repel => "repel",
         Transform::Partition => "partition",
+        Transform::Flow => "flow",
     }
 }
 
@@ -1193,6 +1194,20 @@ pub fn mark_takes_transform(mark: &Mark, transform: &Transform) -> TransformLega
         };
     }
 
+    // `flow` is a layout with three readers, `partition`'s admission argument one
+    // reader wider: `ribbon` takes the band between a path's two end intervals,
+    // `zone` takes the node slots, and `text` names them. Every other mark is
+    // refused toward those three — a flow hands back intervals at stages, and a
+    // length from a baseline, a sorted stroke, or a glyph at a point has no
+    // reading for a pair of them.
+    if *transform == Transform::Flow {
+        return match mark {
+            Mark::Zone | Mark::Ribbon => Required,
+            Mark::Text => Combines,
+            _ => None,
+        };
+    }
+
     // The pair transforms `range`/`confidence` compute a band across a domain,
     // which is legal grammar and the wrong mark; `check_zone` says so.
     if *mark == Mark::Zone {
@@ -1283,12 +1298,12 @@ pub fn mark_takes_transform(mark: &Mark, transform: &Transform) -> TransformLega
 /// four collision modifiers: twenty. `Transform::Box` is excluded: the `box`
 /// mark injects it, it is never typed, so it is not a column of the
 /// Mark × Transform grid.
-pub const USER_TRANSFORMS: [Transform; 20] = [
+pub const USER_TRANSFORMS: [Transform; 21] = [
     Transform::Bin, Transform::Smooth, Transform::Count, Transform::Density, Transform::Proportion,
     Transform::Sum, Transform::Mean, Transform::Median, Transform::Max, Transform::Min,
     Transform::Quantile,
     Transform::Range, Transform::Confidence, Transform::Deviation, Transform::Bounds,
-    Transform::Partition,
+    Transform::Partition, Transform::Flow,
     Transform::Dodge, Transform::Stack, Transform::Jitter, Transform::Repel,
 ];
 
@@ -2010,6 +2025,9 @@ pub fn synthesizes_measure(mark: &Mark, transforms: &[Transform]) -> bool {
             // binding is well-formed with nothing in the input to check it against,
             // and Law 7's requirement stands down.
             Transform::Partition => true,
+            // A flow writes the stacked interval to the measure axis the same
+            // way: bound, `y` names the weight; unbound, every path weighs 1.
+            Transform::Flow => true,
             _ => false,
         }
     })
@@ -2281,7 +2299,9 @@ pub fn reads_a_field(mark: &Mark, transforms: &[Transform], space: SpaceKind) ->
 /// beside a generated one always loses, and this one already lost once when
 /// `zone` learned to `bin`.
 pub fn publishes_cells(mark: &Mark, transforms: &[Transform], space: SpaceKind) -> bool {
-    reads_a_field(mark, transforms, space) || transforms.contains(&Transform::Partition)
+    reads_a_field(mark, transforms, space)
+        || transforms.contains(&Transform::Partition)
+        || transforms.contains(&Transform::Flow)
 }
 
 /// Which geometry a two-dimensional reading draws the field as.
@@ -2701,6 +2721,11 @@ fn check_span_needs_range(out: &mut Vec<Diagnostic>, spec: &PlotSpec, df: Option
     if layer.transforms.iter().any(is_pair_transform) {
         return;
     }
+    // A **flow** answers the same question a fifth way: the band's two boundaries
+    // are the path's intervals at two adjacent stages, both laid by the layout.
+    if layer.transforms.contains(&Transform::Flow) {
+        return;
+    }
     // And so does the **violin** — a fourth way to answer the same question, which is
     // why the requirement is stated as *where are the boundaries* rather than as a
     // list of three transforms. `density` in its slot reading produces them by
@@ -2903,6 +2928,7 @@ fn check_zone_extent(out: &mut Vec<Diagnostic>, spec: &PlotSpec, df: &DataFrame,
     };
     if layer.transforms.contains(&Transform::Bounds)
         || layer.transforms.contains(&Transform::Partition)
+        || layer.transforms.contains(&Transform::Flow)
         || reads_a_field(&layer.mark, &layer.transforms, space_of(spec))
         || slotted(&Channel::X)
         || slotted(&Channel::Y)
@@ -4080,6 +4106,216 @@ fn check_partition(
     }
 }
 
+/// Every way a flow can be malformed, `check_partition`'s shape one family over.
+/// The first branches are facts about the sentence and refuse without a table;
+/// the column checks run when the frame is there to ask.
+fn check_flow(
+    out: &mut Vec<Diagnostic>, spec: &PlotSpec, df: Option<&DataFrame>, layer: &Layer,
+) {
+    if !layer.transforms.contains(&Transform::Flow) {
+        return;
+    }
+
+    // 1. A mark with no reading for a pair of stage intervals. Refused toward the
+    //    three that have one, with the sentence spelled out.
+    if mark_takes_transform(&layer.mark, &Transform::Flow) == TransformLegality::None {
+        out.push(Diagnostic {
+            kind: DiagnosticKind::Illegal,
+            message: format!(
+                "gog: `flow` lays a path's magnitude through its stages — an interval \
+                 at each stage, and a band between adjacent ones — and `{}` has no \
+                 reading for that. Three marks do: `ribbon * flow(<a>, <b>)` draws the \
+                 bands, `zone * flow(<a>, <b>)` draws each stage's slots, and `text * \
+                 flow(<a>, <b>) + label(name)` names them. Bind `y(<amount>)` to weigh \
+                 the paths, or bind nothing and each row counts 1.",
+                mark_name(&layer.mark),
+            ),
+        });
+        return;
+    }
+
+    // 2. The atom with too little named. One column has no between, so a flow
+    //    needs at least two stages — its own message, because the caller wrote a
+    //    word and the complaint is about the sentence rather than the table.
+    let stages: &[String] = match layer.flow.as_ref() {
+        Some(f) if f.stages.len() >= 2 => &f.stages,
+        _ => {
+            out.push(Diagnostic {
+                kind: DiagnosticKind::Illegal,
+                message: "gog: `flow` needs at least two stage columns, in reading \
+                          order — `flow(class, sex, survived)` runs each row from its \
+                          `class` to its `survived`. One row of the table is one path \
+                          through every named stage, and one column has no between."
+                    .to_string(),
+            });
+            return;
+        }
+    };
+
+    // 3. The space. A flow reads its stages along one axis and its magnitude up
+    //    the other, which only the flat plane offers today. Polar is the one
+    //    future: the same geometry bent round a rim is the chord diagram, so that
+    //    cell refuses as unbuilt rather than as wrong.
+    match space_of(spec) {
+        SpaceKind::Flat => {}
+        SpaceKind::Polar => {
+            out.push(Diagnostic {
+                kind: DiagnosticKind::Unsupported,
+                message: "gog: `flow` in `polar()` is valid grammar — the bands bent \
+                          round a rim are the chord diagram — but this engine does not \
+                          draw it yet. Draw the flow flat, or wait for the feature."
+                    .to_string(),
+            });
+            return;
+        }
+        other => {
+            out.push(Diagnostic {
+                kind: DiagnosticKind::Illegal,
+                message: format!(
+                    "gog: `flow` reads its stages left to right and its magnitude up, \
+                     and `{}` has no such pair of axes to give it. Draw the flow flat.",
+                    space_name(other),
+                ),
+            });
+            return;
+        }
+    }
+
+    // 4. A bound `x` under a transform that draws its own domain. Refused rather
+    //    than reconciled: two answers to where the stages sit is Law 5's
+    //    ambiguity, and the atom's argument order is already the spelling.
+    if spec.position_for(layer, &Channel::X).is_some() {
+        out.push(Diagnostic {
+            kind: DiagnosticKind::Illegal,
+            message: "gog: under `flow` the stage axis is drawn from the atom's own \
+                      columns, so `x(...)` has nothing left to say. Remove it — to \
+                      reorder the stages, reorder `flow(...)`'s arguments."
+                .to_string(),
+        });
+    }
+
+    // 5. Mapped aesthetics. A band is a whole path, so any *stage* names
+    //    something every band holds; a node aggregates paths whose other
+    //    categories differ, so nothing names a node but its own name.
+    for (ch, def) in &layer.encodings {
+        match ch {
+            Channel::Y | Channel::X => {}
+            Channel::Label if layer.mark == Mark::Text => {
+                if def.field != crate::transform::NODE_NAME {
+                    out.push(Diagnostic {
+                        kind: DiagnosticKind::Illegal,
+                        message: format!(
+                            "gog: under `flow` a `text` names the slots, and the flow \
+                             publishes each slot's name under `name` — write \
+                             `label(name)`, not `label({})`.",
+                            def.field,
+                        ),
+                    });
+                }
+            }
+            Channel::Color | Channel::Pattern if layer.mark == Mark::Ribbon => {
+                if !stages.iter().any(|s| *s == def.field) {
+                    out.push(Diagnostic {
+                        kind: DiagnosticKind::Illegal,
+                        message: format!(
+                            "gog: `{}({})` under `flow` must name one of the atom's \
+                             stages — a band is a path through them, and only a stage \
+                             holds a value every band carries. Name one of {}, or set \
+                             the paint for the whole layer with `style()`.",
+                            channel_name(ch), def.field,
+                            stages.iter().map(|s| format!("`{s}`"))
+                                .collect::<Vec<_>>().join(", "),
+                        ),
+                    });
+                }
+            }
+            other => {
+                out.push(Diagnostic {
+                    kind: DiagnosticKind::Illegal,
+                    message: format!(
+                        "gog: `{}()` does not combine with `{}` under `flow`. A band \
+                         takes `color(<stage>)` on the `ribbon` layer; a slot takes \
+                         its paint from `style()`; and `y(<amount>)` weighs the paths.",
+                        channel_name(other), mark_name(&layer.mark),
+                    ),
+                });
+            }
+        }
+    }
+
+    let Some(df) = df else { return };
+
+    // 6. A stage that is not there, or is not a category — a number cannot name
+    //    a slot, for `partition`'s reason: no two rows share a measurement the
+    //    way they share a word.
+    for s in stages {
+        match actual_type(df, s) {
+            None => {
+                out.push(Diagnostic {
+                    kind: DiagnosticKind::Illegal,
+                    message: format!(
+                        "gog: `flow({s})` names a column this table does not have. \
+                         Each stage is a categorical column, and one row is one path \
+                         through all of them."
+                    ),
+                });
+                return;
+            }
+            Some(VarType::Continuous) => {
+                out.push(Diagnostic {
+                    kind: DiagnosticKind::Illegal,
+                    message: format!(
+                        "gog: `flow({s})` names a numeric column, and a stage is a \
+                         set of named slots — no two rows share a measurement the way \
+                         they share a word. Cut it into bands first, or name a \
+                         categorical column."
+                    ),
+                });
+                return;
+            }
+            _ => {}
+        }
+    }
+
+    // 7. The weight is the bound `y`, so it has to be a number.
+    if let Some(y) = spec.position_for(layer, &Channel::Y) {
+        if actual_type(df, &y.field) == Some(VarType::Discrete) {
+            out.push(Diagnostic {
+                kind: DiagnosticKind::Illegal,
+                message: format!(
+                    "gog: `y({0})` is what each path is weighed by, and `{0}` holds \
+                     categories rather than numbers. Name the column that carries the \
+                     amount — `y(<amount>)` — or bind nothing at all, in which case \
+                     every path weighs 1 and the flow tallies them.",
+                    y.field,
+                ),
+            });
+            return;
+        }
+    }
+
+    // 8. A row missing a stage value cannot be a path and is left out — said
+    //    once, with the count, so the drop is never silent (§12).
+    if let Some(cols) = stages.iter()
+        .map(|s| df.str_col(s)).collect::<Option<Vec<_>>>()
+    {
+        let dropped = (0..df.len())
+            .filter(|&r| cols.iter().any(|c| c[r].is_empty()))
+            .count();
+        if dropped > 0 {
+            out.push(Diagnostic {
+                kind: DiagnosticKind::Assumption,
+                message: format!(
+                    "gog: {dropped} of {} rows are missing a value on at least one \
+                     stage and were left out — a path has to pass through every \
+                     stage `flow(...)` names.",
+                    df.len(),
+                ),
+            });
+        }
+    }
+}
+
 fn check_marks_that_take_no_transform(out: &mut Vec<Diagnostic>, layer: &Layer) {
     if !matches!(
         layer.mark,
@@ -4944,6 +5180,10 @@ pub fn check(spec: &PlotSpec, data: &HashMap<String, DataFrame>) -> Vec<Diagnost
         // branches — the wrong mark, and no levels named — are facts about the
         // sentence and must refuse even when the table is missing.
         check_partition(&mut out, spec, df, layer);
+        // The flow family's own malformations, `check_partition`'s shape one
+        // family over — the wrong mark, too few stages, the wrong space, a bound
+        // `x`, an aesthetic no reading holds, and the counted dropped rows.
+        check_flow(&mut out, spec, df, layer);
 
         // Which mesh, and whether this mark has a plane to tile at all. Takes the
         // frame because the third answer is data-aware: a mixed mesh has two axes and
@@ -5136,7 +5376,8 @@ pub fn check(spec: &PlotSpec, data: &HashMap<String, DataFrame>) -> Vec<Diagnost
             // publishes (`depth`, and the levels carried down) are real inputs or are
             // checked on their own axes, so only this one needs saying.
             if *channel == Channel::Label
-                && layer.transforms.contains(&Transform::Partition)
+                && (layer.transforms.contains(&Transform::Partition)
+                    || layer.transforms.contains(&Transform::Flow))
                 && *field == crate::transform::NODE_NAME
             {
                 continue;
@@ -5326,6 +5567,12 @@ pub fn check(spec: &PlotSpec, data: &HashMap<String, DataFrame>) -> Vec<Diagnost
             // something when you do (`x(amount)` weighs the arcs, `y(depth,
             // limits = c(0, 4))` is the hole).
             if channel == Channel::Y && layer.transforms.contains(&Transform::Partition) {
+                continue;
+            }
+            // A flow's `y` is the weight, and the tally is its default — the
+            // same optionality `partition` has, for the same reason: the
+            // transform supplies both positions and a binding refines one.
+            if channel == Channel::Y && layer.transforms.contains(&Transform::Flow) {
                 continue;
             }
             let c = channel_name(&channel);
@@ -6248,6 +6495,7 @@ pub fn bar_divides_one_slot(layer: &Layer) -> bool {
 pub fn x_needs_no_binding(spec: &PlotSpec, layer: &Layer) -> bool {
     bar_divides_one_slot(layer)
         || layer.transforms.contains(&Transform::Partition)
+        || layer.transforms.contains(&Transform::Flow)
         || space_of(spec) == SpaceKind::Nest
 }
 
@@ -14823,7 +15071,7 @@ mod tests {
     }
 
     #[test]
-    fn a_zone_takes_the_six_transforms_that_give_it_a_cell() {
+    fn a_zone_takes_the_seven_transforms_that_give_it_a_cell() {
         // The mark's Mark × Transform row, pinned from both sides, and the line it
         // draws is *what each transform supplies*. `bounds` names the sides;
         // `bin`/`density` cut them and measure inside; `count`/`proportion` measure
@@ -14844,10 +15092,15 @@ mod tests {
         // six that does both. What it adds to the row is not a new kind of cell but
         // a new *source* of the rectangular one — cut from a tree instead of from a
         // mesh or handed over column by column.
+        //
+        // **`flow` is the seventh** (2026-08-17), `partition`'s pattern one family
+        // over: it lays each stage's slots itself — sides on the slotted axis,
+        // stacked intervals on the measured one — so like the others any one of
+        // the seven satisfies the mark on its own.
         for t in USER_TRANSFORMS {
             let expect = if matches!(t, Transform::Bounds | Transform::Bin | Transform::Density
                                         | Transform::Count | Transform::Proportion
-                                        | Transform::Partition) {
+                                        | Transform::Partition | Transform::Flow) {
                 TransformLegality::Required
             } else if crate::transform::has_reduction(std::slice::from_ref(&t)) {
                 TransformLegality::Combines
@@ -14857,6 +15110,67 @@ mod tests {
             assert_eq!(mark_takes_transform(&Mark::Zone, &t), expect,
                 "`zone * {}` is wrong in the grid", transform_name(&t));
         }
+        // The flow family's refusals, each with its direction (spec §15, the flow
+        // entry). The grid row itself is pinned in the loop above; these pin the
+        // sentence-level rules a reader will actually hit.
+        {
+            // A mark with no reading is sent to the three that have one.
+            let d = check(&PlotSpec::new().data("t")
+                .layer(Layer::new(Mark::Bar).flow(&["continent", "region"])), &data());
+            assert!(d.iter().any(|x| x.kind == DiagnosticKind::Illegal
+                && x.message.contains("ribbon * flow") && x.message.contains("zone * flow")
+                && x.message.contains("label(name)")),
+                "a bar under flow is directed to the three readers: {:?}", msgs(&d));
+
+            // One column has no between.
+            let d = check(&PlotSpec::new().data("t")
+                .layer(Layer::new(Mark::Ribbon).flow(&["continent"])), &data());
+            assert!(d.iter().any(|x| x.kind == DiagnosticKind::Illegal
+                && x.message.contains("at least two stage columns")),
+                "one stage is refused: {:?}", msgs(&d));
+
+            // A bound `x` has nothing left to say under a transform that draws
+            // its own domain.
+            let d = check(&PlotSpec::new().data("t").x("gdp")
+                .layer(Layer::new(Mark::Ribbon).flow(&["continent", "region"])), &data());
+            assert!(d.iter().any(|x| x.kind == DiagnosticKind::Illegal
+                && x.message.contains("reorder `flow(...)`'s arguments")),
+                "x under flow is refused with the reordering direction: {:?}", msgs(&d));
+
+            // A band's color must name a stage; anything else names nothing every
+            // band holds.
+            let mut l = Layer::new(Mark::Ribbon).flow(&["continent", "region"]);
+            l.encodings.insert(Channel::Color, ChannelDef::field("gdp"));
+            let d = check(&PlotSpec::new().data("t").layer(l), &data());
+            assert!(d.iter().any(|x| x.kind == DiagnosticKind::Illegal
+                && x.message.contains("must name one of the atom's stages")),
+                "a non-stage color on the bands is refused: {:?}", msgs(&d));
+
+            // The slots take their paint from `style()`, never from a mapping.
+            let mut l = Layer::new(Mark::Zone).flow(&["continent", "region"]);
+            l.encodings.insert(Channel::Color, ChannelDef::field("continent"));
+            let d = check(&PlotSpec::new().data("t").layer(l), &data());
+            assert!(d.iter().any(|x| x.kind == DiagnosticKind::Illegal
+                && x.message.contains("does not combine")),
+                "a mapped color on the slots is refused: {:?}", msgs(&d));
+
+            // Polar is the chord diagram and refuses as unbuilt, not as wrong.
+            let d = check(&PlotSpec::new().data("t")
+                .coord(CoordSpace::Polar(crate::ir::PolarView::default()))
+                .layer(Layer::new(Mark::Ribbon).flow(&["continent", "region"])), &data());
+            assert!(d.iter().any(|x| x.kind == DiagnosticKind::Unsupported
+                && x.message.contains("chord")),
+                "flow in polar is unsupported toward the chord: {:?}", msgs(&d));
+
+            // And the well-formed sentence passes with nothing bound at all:
+            // the transform supplies both positions (Law 7 stands down).
+            let d = check(&PlotSpec::new().data("t")
+                .layer(Layer::new(Mark::Ribbon).flow(&["continent", "region"])), &data());
+            assert!(d.iter().all(|x| x.kind != DiagnosticKind::Illegal
+                && x.kind != DiagnosticKind::Unsupported),
+                "a bare ribbon * flow is a complete syllable: {:?}", msgs(&d));
+        }
+
         // A zone on two *continuous* positions with no transform has nothing to
         // bound it, and the refusal offers every route out of that.
         let d = check(&PlotSpec::new().data("t").x("gdp").y("life")

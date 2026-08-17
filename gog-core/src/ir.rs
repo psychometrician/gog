@@ -608,6 +608,28 @@ pub enum Transform {
     /// `branchvalues="total"` and `"remainder"` — so it is refused with direction
     /// rather than guessed, which is Law 5 and the ruling `bin(30, width = 5)` set.
     Partition,
+    /// `flow` — the flow diagram's layout: stacked node slots per stage and a
+    /// band per path between adjacent stages. `ribbon * flow(class, sex,
+    /// survived)` draws the bands, `zone * flow(...)` the node slots, and
+    /// `text * flow(...) + label(name)` names each slot, all three reading one
+    /// computation (spec §15, the flow entry).
+    ///
+    /// **The input is stage columns**, `partition`'s own shape: one row is one
+    /// unit-group traversing every named stage, weighted by the bound `y` and
+    /// tallied when nothing is bound there. That shape is a scope decision with
+    /// three consequences: conservation holds by construction (every row passes
+    /// through every stage), a cycle is unwritable (stages are ordered columns),
+    /// and the source→target edge list stays where §19.1 put it — a future
+    /// parameter on this atom if the network family's reopening admits it,
+    /// never a second word.
+    ///
+    /// **The band is the row.** §18 refuses the funnel's sloped connectors
+    /// because they assert a transition the data does not contain; a flow row
+    /// *states* its transition, the band's thickness is the stated magnitude at
+    /// both ends, and each end's interval sits on the measure axis by
+    /// cumulative stacking. Same-looking ink, opposite verdicts, and the test
+    /// between them is whether a row of the table states the flow.
+    Flow,
 }
 
 /// Parameters for the `bin` transform, carried on the layer.
@@ -801,6 +823,25 @@ pub struct PartitionSpec {
     /// and a string would invite a third the way §18's `tri` refusal warns about.
     #[serde(default, skip_serializing_if = "std::ops::Not::not")]
     pub cross: bool,
+}
+
+/// The stage columns for the `flow` transform (`flow(class, sex, survived)`),
+/// carried on the layer beside [`PartitionSpec`] and shaped like it: **columns
+/// rather than knobs**, naming what the layout reads rather than tuning how it
+/// runs. Present iff the layer carries [`Transform::Flow`].
+///
+/// There is deliberately no ordering, padding, or crossing-minimization field.
+/// Slot order is the category order the axis already owns (`order()` composes),
+/// the stacks are contiguous so the measure axis stays honest, and a quality
+/// knob waits for a measured defect — §18's `tri` refusal is the standing
+/// warning against finishing someone else's list.
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+pub struct FlowSpec {
+    /// The stages, in reading order: `flow(class, sex, survived)` puts `class`
+    /// on the first slot and `survived` on the last. Each is a categorical
+    /// column, and one row of the table is one path through all of them.
+    #[serde(default)]
+    pub stages: Vec<String>,
 }
 
 /// Parameters for the `stack` collision modifier, carried on the layer like
@@ -1397,6 +1438,11 @@ pub struct Layer {
     /// named no levels rather than as a default. Absent from the wire when unset.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub partition: Option<PartitionSpec>,
+    /// The stage columns for the `flow` transform (`flow(class, sex,
+    /// survived)`). Present iff the layer carries [`Transform::Flow`], the same
+    /// contract `partition` keeps one field up. Absent from the wire when unset.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub flow: Option<FlowSpec>,
     /// Parameters for the `stack` collision modifier, when the layer carries one.
     /// `None` means the piles read in the measurement's own units. Absent from the
     /// wire when unset.
@@ -1429,11 +1475,23 @@ impl Layer {
             r#box: None,
             jitter: None,
             partition: None,
+            flow: None,
             stack: None,
             bounds: None,
             data: None,
             style: StyleSpec::default(),
         }
+    }
+
+    /// Attach a `flow` transform naming the stage columns in reading order
+    /// (`ribbon * flow(class, sex, survived)`). Pairs the transform with its
+    /// spec exactly as [`Layer::partition`] does, and for the same reason.
+    pub fn flow(mut self, stages: &[&str]) -> Self {
+        self.transforms.push(Transform::Flow);
+        self.flow = Some(FlowSpec {
+            stages: stages.iter().map(|s| s.to_string()).collect(),
+        });
+        self
     }
 
     /// Attach a `bounds` transform naming its two pre-computed columns

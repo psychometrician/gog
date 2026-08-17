@@ -672,6 +672,16 @@ pub fn jobs(t: &Transform, ctx: JobContext) -> Jobs {
         },
         // Carves one rectangle into a hierarchy of them, and measures each node.
         Transform::Partition => Jobs { extent: true, measure: true, ..Jobs::default() },
+        // Lays out the whole diagram — slots, stacks, and the bands between them —
+        // so it holds every job at once and composes with nothing. Deliberately
+        // wider than `partition`'s claim: `flow * proportion` may one day divide
+        // the measure axis into shares the way `partition * proportion` does, but
+        // until that is built the refusal is honest and a relaxation is cheap,
+        // where a composition that silently does nothing is §12's forbidden drop.
+        Transform::Flow => Jobs {
+            extent: true, measure: true, scale: true, position: true,
+            ..Jobs::default()
+        },
         // Tallies rows into whatever cells already exist. It was handed no column, so
         // it cannot take the measure job over from a cut.
         Transform::Count => measure(false),
@@ -778,6 +788,7 @@ fn apply_one(df: &DataFrame, t: &Transform, key_field: &str, out_field: &str, bi
         // slipped past `mark_takes_transform`. Identity rather than a panic, on
         // §12's rule that the engine never invents a plot nobody asked for.
         Transform::Partition  => df.clone(),
+        Transform::Flow       => df.clone(),
         Transform::Dodge      => df.clone(),
         // `stack` is also a collision modifier, but its offset accumulates *across*
         // groups — group b sits on group a's height — so it cannot run inside a
@@ -1075,6 +1086,20 @@ pub const CELL_DX: &str = "cell_dx";
 /// The six vertices follow from them, so the parity of the staggered row never
 /// has to be recorded: it is already in the center.
 pub const CELL_DY: &str = "cell_dy";
+/// The stage a flow row stands at (a node's own stage; a band's **left** stage),
+/// holding the stage *column's name* as its value with the declared order of the
+/// `flow(...)` atom as its levels. The domain axis reads this when nothing is
+/// bound to `x`, exactly as an unbound radial axis under a `partition` reads
+/// [`NODE_DEPTH`] — the axis, the scale and the mark all read one column.
+pub const FLOW_STAGE: &str = "stage";
+/// A flow band's interval at its **right** end on the measure axis, the pair
+/// companion of [`CELL_LOWER`]/[`CELL_UPPER`] (which carry the left end). Two
+/// added columns beside the rectangular four, on [`CELL_DX`]'s precedent: a band
+/// has six numbers where a cell has four, and the quartet's contract holds
+/// untouched.
+pub const BAND_LOWER: &str = "band_lower";
+/// See [`BAND_LOWER`].
+pub const BAND_UPPER: &str = "band_upper";
 
 /// The extent description a 2-D `bin` synthesizes, in the form a mark reads
 /// extents in. Here rather than at either end so the transform that *writes*
@@ -3615,6 +3640,221 @@ pub fn partition(
     out
 }
 
+/// The flow diagram's shared layout — one computation, projected per reading
+/// mark exactly as `partition` feeds a rectangle and a name (spec §15, the flow
+/// entry). One input row is one path through every stage; rows sharing a path
+/// are aggregated, and a row missing a stage value is dropped (`check_flow`
+/// counts what that costs, so the drop is never silent).
+///
+/// Everything here is deterministic by construction: slot order per stage is
+/// the declared level order, first appearance otherwise; paths at a stage sort
+/// node-first and then by their full path, so a node's paths are contiguous and
+/// two layers reading one table land on identical numbers. The stacks are
+/// **contiguous** — no padding row is invented between nodes — so the measure
+/// axis reads true cumulative magnitude and keeps its ticks, which is half of
+/// what parts this mark's ink from the funnel connector §18 refuses.
+struct FlowLayout {
+    /// The stage columns, in the atom's order.
+    stages: Vec<String>,
+    /// Distinct paths, each with its per-stage category ranks, values, weight,
+    /// and per-stage running offset (the path's interval at stage `k` is
+    /// `offset[k] .. offset[k] + weight`).
+    paths: Vec<FlowPath>,
+    /// Per stage: category names in slot order.
+    cats: Vec<Vec<String>>,
+}
+
+struct FlowPath {
+    values: Vec<String>,
+    ranks: Vec<usize>,
+    weight: f64,
+    offsets: Vec<f64>,
+}
+
+fn flow_layout(df: &DataFrame, stages: &[String], measure: Option<&str>) -> Option<FlowLayout> {
+    let n = df.len();
+    if stages.len() < 2 || n == 0 {
+        return None;
+    }
+    let cols: Vec<&Vec<String>> = stages.iter()
+        .map(|s| df.str_col(s))
+        .collect::<Option<Vec<_>>>()?;
+    let weight = |r: usize| -> f64 {
+        match measure.and_then(|m| df.float_col(m)) {
+            Some(v) => v.get(r).copied().filter(|x| x.is_finite() && *x >= 0.0).unwrap_or(0.0),
+            None => 1.0,
+        }
+    };
+
+    // Slot order per stage: the declared levels where the column has them,
+    // first appearance otherwise — `categories_across`'s own rule, restated here
+    // because the layout needs the rank as a number before any axis exists.
+    let cats: Vec<Vec<String>> = stages.iter().enumerate()
+        .map(|(k, s)| match df.levels(s) {
+            Some(lv) => lv.iter()
+                .filter(|c| cols[k].iter().any(|v| v == *c))
+                .cloned().collect(),
+            None => {
+                let mut seen = Vec::new();
+                for v in cols[k] {
+                    if !v.is_empty() && !seen.contains(v) {
+                        seen.push(v.clone());
+                    }
+                }
+                seen
+            }
+        })
+        .collect();
+
+    // Aggregate rows into paths. A path is the full tuple of stage values; rows
+    // sharing one add their weights, which is what quietly marginalizes any
+    // column the atom did not name.
+    let mut paths: Vec<FlowPath> = Vec::new();
+    for r in 0..n {
+        let values: Vec<String> = cols.iter().map(|c| c[r].clone()).collect();
+        if values.iter().any(|v| v.is_empty()) {
+            continue;
+        }
+        let Some(ranks) = values.iter().enumerate()
+            .map(|(k, v)| cats[k].iter().position(|c| c == v))
+            .collect::<Option<Vec<usize>>>()
+        else {
+            continue;
+        };
+        let w = weight(r);
+        match paths.iter_mut().find(|p| p.values == values) {
+            Some(p) => p.weight += w,
+            None => paths.push(FlowPath { values, ranks, weight: w, offsets: Vec::new() }),
+        }
+    }
+    paths.retain(|p| p.weight > 0.0);
+    if paths.is_empty() {
+        return None;
+    }
+
+    // Stack each stage: paths sort node-first (so a node's interval is one
+    // contiguous run) and then by their whole path, one total order for the
+    // tie so the bands leave a node in the order they will arrive at the next.
+    for k in 0..stages.len() {
+        let mut order: Vec<usize> = (0..paths.len()).collect();
+        order.sort_by(|&a, &b| {
+            (paths[a].ranks[k], &paths[a].ranks).cmp(&(paths[b].ranks[k], &paths[b].ranks))
+        });
+        // Each path is visited exactly once per stage, so `offsets[k]` lands on
+        // the right index by construction.
+        let mut at = 0.0;
+        for &i in &order {
+            paths[i].offsets.push(at);
+            at += paths[i].weight;
+        }
+    }
+
+    Some(FlowLayout { stages: stages.to_vec(), paths, cats })
+}
+
+/// The node projection: one row per (stage, category), read by `zone` (the
+/// slot) and `text` (the name at its center, `label(name)` as under
+/// `partition`). Publishes the measure pair only — the domain axis is the
+/// slotted one, which is the mixed mesh's shape: "the cut axis's two edges,
+/// nothing for the slotted one."
+pub fn flow_nodes(
+    df: &DataFrame, stages: &[String], measure: Option<&str>, measure_out: &str,
+) -> DataFrame {
+    let Some(fl) = flow_layout(df, stages, measure) else {
+        return DataFrame::new();
+    };
+    let mut stage_col = Vec::new();
+    let mut name = Vec::new();
+    let mut lower = Vec::new();
+    let mut upper = Vec::new();
+    let mut center = Vec::new();
+    for (k, stage) in fl.stages.iter().enumerate() {
+        for cat in &fl.cats[k] {
+            let mut lo = f64::INFINITY;
+            let mut hi = f64::NEG_INFINITY;
+            for p in fl.paths.iter().filter(|p| &p.values[k] == cat) {
+                lo = lo.min(p.offsets[k]);
+                hi = hi.max(p.offsets[k] + p.weight);
+            }
+            if lo >= hi {
+                continue;
+            }
+            stage_col.push(stage.clone());
+            name.push(cat.clone());
+            lower.push(lo);
+            upper.push(hi);
+            center.push((lo + hi) / 2.0);
+        }
+    }
+    let out = DataFrame::new()
+        .with_levels(FLOW_STAGE, stage_col, fl.stages.clone())
+        .with_str(NODE_NAME, name)
+        .with_float(CELL_LOWER, lower)
+        .with_float(CELL_UPPER, upper);
+    match measure_out.is_empty() || measure_out == FLOW_STAGE {
+        true => out,
+        false => out.with_float(measure_out, center),
+    }
+}
+
+/// The band projection: one row per (path, adjacent-stage gap), read by
+/// `ribbon`. [`CELL_LOWER`]/[`CELL_UPPER`] carry the left end's interval and
+/// [`BAND_LOWER`]/[`BAND_UPPER`] the right end's; [`FLOW_STAGE`] names the left
+/// stage. Every stage column rides along with its declared levels, so
+/// `color(<any stage>)` colors a band by the category its path holds there —
+/// well defined precisely because a band is a whole path's slice, never a
+/// merged aggregate.
+pub fn flow_bands(
+    df: &DataFrame, stages: &[String], measure: Option<&str>, measure_out: &str,
+) -> DataFrame {
+    let Some(fl) = flow_layout(df, stages, measure) else {
+        return DataFrame::new();
+    };
+    let last = fl.stages.len() - 1;
+    let mut stage_col = Vec::new();
+    let mut l0 = Vec::new();
+    let mut u0 = Vec::new();
+    let mut l1 = Vec::new();
+    let mut u1 = Vec::new();
+    let mut center = Vec::new();
+    let mut carried: Vec<Vec<String>> = vec![Vec::new(); fl.stages.len()];
+    for k in 0..last {
+        let mut order: Vec<usize> = (0..fl.paths.len()).collect();
+        order.sort_by(|&a, &b| {
+            (fl.paths[a].ranks[k], &fl.paths[a].ranks)
+                .cmp(&(fl.paths[b].ranks[k], &fl.paths[b].ranks))
+        });
+        for &i in &order {
+            let p = &fl.paths[i];
+            stage_col.push(fl.stages[k].clone());
+            l0.push(p.offsets[k]);
+            u0.push(p.offsets[k] + p.weight);
+            l1.push(p.offsets[k + 1]);
+            u1.push(p.offsets[k + 1] + p.weight);
+            center.push(p.offsets[k] + p.weight / 2.0);
+            for (s, col) in carried.iter_mut().enumerate() {
+                col.push(p.values[s].clone());
+            }
+        }
+    }
+    let mut out = DataFrame::new()
+        .with_levels(FLOW_STAGE, stage_col, fl.stages.clone())
+        .with_float(CELL_LOWER, l0)
+        .with_float(CELL_UPPER, u0)
+        .with_float(BAND_LOWER, l1)
+        .with_float(BAND_UPPER, u1);
+    if !measure_out.is_empty() && measure_out != FLOW_STAGE {
+        out = out.with_float(measure_out, center);
+    }
+    for (s, col) in carried.into_iter().enumerate() {
+        out = match df.levels(&fl.stages[s]) {
+            Some(lv) => out.with_levels(fl.stages[s].clone(), col, lv.to_vec()),
+            None => out.with_str(fl.stages[s].clone(), col),
+        };
+    }
+    out
+}
+
 // ---------------------------------------------------------------------------
 // Tests
 //
@@ -3628,6 +3868,96 @@ pub fn partition(
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    fn flow_frame() -> DataFrame {
+        DataFrame::new()
+            .with_levels("a", vec!["p".into(), "p".into(), "q".into(), "q".into(), "p".into()],
+                         vec!["p".into(), "q".into()])
+            .with_str("b", vec!["u".into(), "v".into(), "u".into(), "v".into(), "u".into()])
+            .with_float("n", vec![2.0, 3.0, 4.0, 1.0, 5.0])
+    }
+
+    /// **A flow conserves its total at every stage.** Each stage's node intervals
+    /// tile `0 .. total` exactly — contiguous stacks, no invented padding — which
+    /// is what keeps the measure axis honest, and the alluvial identity (a middle
+    /// node's inflow equals its outflow) holds by construction.
+    #[test]
+    fn a_flow_conserves_its_total_at_every_stage() {
+        let stages = vec!["a".to_string(), "b".to_string()];
+        let nodes = flow_frame();
+        let out = flow_nodes(&nodes, &stages, Some("n"), "count");
+        let stage = out.str_col(FLOW_STAGE).unwrap();
+        let lo = out.float_col(CELL_LOWER).unwrap();
+        let hi = out.float_col(CELL_UPPER).unwrap();
+        for s in ["a", "b"] {
+            let mut spans: Vec<(f64, f64)> = (0..stage.len())
+                .filter(|&r| stage[r] == s)
+                .map(|r| (lo[r], hi[r]))
+                .collect();
+            spans.sort_by(|x, y| x.0.partial_cmp(&y.0).unwrap());
+            assert_eq!(spans.first().unwrap().0, 0.0, "stage `{s}` starts at zero");
+            assert_eq!(spans.last().unwrap().1, 15.0, "stage `{s}` ends at the total");
+            for w in spans.windows(2) {
+                assert_eq!(w[0].1, w[1].0, "stage `{s}` stacks contiguously");
+            }
+        }
+    }
+
+    /// **Rows sharing a path are one band.** The two `p → u` rows (weights 2 and
+    /// 5) aggregate to one band of 7, which quietly marginalizes any column the
+    /// atom did not name; and each band's two ends carry the same thickness,
+    /// which is the property that parts this ink from the funnel connector's.
+    #[test]
+    fn a_flow_aggregates_paths_and_keeps_thickness_at_both_ends() {
+        let stages = vec!["a".to_string(), "b".to_string()];
+        let out = flow_bands(&flow_frame(), &stages, Some("n"), "count");
+        let l0 = out.float_col(CELL_LOWER).unwrap();
+        let u0 = out.float_col(CELL_UPPER).unwrap();
+        let l1 = out.float_col(BAND_LOWER).unwrap();
+        let u1 = out.float_col(BAND_UPPER).unwrap();
+        assert_eq!(l0.len(), 4, "four distinct paths, not five rows");
+        let mut widths: Vec<f64> = (0..l0.len()).map(|r| u0[r] - l0[r]).collect();
+        widths.sort_by(|x, y| x.partial_cmp(y).unwrap());
+        assert_eq!(widths, vec![1.0, 3.0, 4.0, 7.0]);
+        for r in 0..l0.len() {
+            assert_eq!(u0[r] - l0[r], u1[r] - l1[r], "band {r} is as thick at both ends");
+        }
+    }
+
+    /// **The stage column carries the atom's order as its levels**, so the axis
+    /// draws the stages in reading order; a band's carried columns keep their
+    /// declared levels; and two runs over one table emit identical frames —
+    /// the determinism two layers reading one computation stand on.
+    #[test]
+    fn a_flow_is_ordered_by_the_atom_and_deterministic() {
+        let stages = vec!["a".to_string(), "b".to_string()];
+        let nodes = flow_nodes(&flow_frame(), &stages, Some("n"), "count");
+        assert_eq!(nodes.levels(FLOW_STAGE).unwrap(), &["a".to_string(), "b".to_string()]);
+        let bands = flow_bands(&flow_frame(), &stages, Some("n"), "count");
+        assert_eq!(bands.levels("a").unwrap(), &["p".to_string(), "q".to_string()],
+            "a carried stage keeps its declared levels");
+        let again = flow_bands(&flow_frame(), &stages, Some("n"), "count");
+        for col in [CELL_LOWER, CELL_UPPER, BAND_LOWER, BAND_UPPER] {
+            assert_eq!(bands.float_col(col), again.float_col(col),
+                "one table, one layout, every run (`{col}`)");
+        }
+        assert_eq!(bands.str_col("a"), again.str_col("a"));
+    }
+
+    /// **A row missing a stage value is not a path** and is left out here; the
+    /// count a reader is owed for that comes from `check_flow`, which is the
+    /// legality layer's half of the same rule (§12: never a silent drop).
+    #[test]
+    fn a_flow_drops_incomplete_rows_and_tallies_when_unweighted() {
+        let stages = vec!["a".to_string(), "b".to_string()];
+        let df = DataFrame::new()
+            .with_str("a", vec!["p".into(), "p".into(), "".into()])
+            .with_str("b", vec!["u".into(), "u".into(), "u".into()]);
+        let out = flow_bands(&df, &stages, None, "count");
+        let u0 = out.float_col(CELL_UPPER).unwrap();
+        assert_eq!(u0.len(), 1, "one path survives");
+        assert_eq!(u0[0], 2.0, "the tally weighs each surviving row 1");
+    }
 
     /// **The aggregation family is one list, named in two places, and they must agree.**
     ///

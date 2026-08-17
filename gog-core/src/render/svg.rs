@@ -382,7 +382,8 @@ impl SvgRenderer {
         // came out at radius 0: eight zero-radius arcs stacked on the center, a
         // blank circle from a sentence the book tells readers to write.
         let supplies_positions = spec.layers.iter()
-            .any(|l| l.transforms.contains(&Transform::Partition));
+            .any(|l| l.transforms.contains(&Transform::Partition)
+                || l.transforms.contains(&Transform::Flow));
         // Nested only, for the radial fallback below: crossed, the second axis is
         // apportioning the measure one level down rather than stepping a ring, so
         // its synthesized column is a share and not a depth.
@@ -427,6 +428,23 @@ impl SvgRenderer {
         // names it was handed are one name.
         let y_field = match (y_field, rings_the_depth) {
             ("", true) => crate::transform::NODE_DEPTH,
+            _ => y_field,
+        };
+
+        // A **flow**'s two axes fall back the same way, and for the same reason:
+        // the transform places its own marks, so a sentence with nothing bound is
+        // well-formed and the axes have to find the synthesized columns. The
+        // domain axis reads the stage column the layout published — categorical,
+        // its levels the atom's argument order — and an unbound measure axis
+        // reads the tally's name, exactly as a 3-D reading's synthesized `z` does.
+        let stages_the_domain = spec.layers.iter()
+            .any(|l| l.transforms.contains(&Transform::Flow));
+        let x_field = match (x_field, stages_the_domain) {
+            ("", true) => crate::transform::FLOW_STAGE,
+            _ => x_field,
+        };
+        let y_field = match (y_field, stages_the_domain) {
+            ("", true) => crate::transform::CELL_COUNT,
             _ => y_field,
         };
 
@@ -704,6 +722,26 @@ impl SvgRenderer {
                             .map(|e| e.field.as_str());
                         return crate::transform::partition(
                             &base, &levels, measure, x_field, y_field, cross);
+                    }
+                    // A **flow** takes the same door, for the same reason: its
+                    // stages are columns named in the atom, and the bound `y` is
+                    // its weight rather than a place. One layout, projected per
+                    // reading mark — the band rows for `ribbon`, the node rows
+                    // for `zone` and `text` — which is how `bin`'s output feeds
+                    // a heatmap's cells and their labels without either writer
+                    // learning the other's shape.
+                    if layer.transforms.contains(&crate::ir::Transform::Flow) {
+                        let stages: Vec<String> = layer.flow.as_ref()
+                            .map(|f| f.stages.clone()).unwrap_or_default();
+                        let measure = layer.encodings.get(&Channel::Y)
+                            .or(spec.y.as_ref())
+                            .map(|e| e.field.as_str());
+                        return match layer.mark {
+                            Mark::Ribbon => crate::transform::flow_bands(
+                                &base, &stages, measure, y_field),
+                            _ => crate::transform::flow_nodes(
+                                &base, &stages, measure, y_field),
+                        };
                     }
                     // A `zone` carries `bounds`, but its `bounds` *names four
                     // columns* rather than reshaping rows into low/high pairs at a
@@ -2070,6 +2108,11 @@ impl SvgRenderer {
                         Mark::Step  => self.write_step(&mut svg, layer, df, l, xs, ys, x_field, y_field, cat_x.as_deref(), area_base, &color_map, &ramp, &clip, pol_ref),
                         Mark::Interval => self.write_interval(&mut svg, layer, df, l, xs, ys, x_field, y_field, cat_x.as_deref(), cat_y.as_deref(), horizontal, &color_map, &clip, pol_ref),
                         Mark::Box => self.write_box(&mut svg, layer, df, l, xs, ys, x_field, y_field, cat_x.as_deref(), cat_y.as_deref(), horizontal, &color_map, &clip, pol_ref),
+                        // The flow's band reading arrives here on the ribbon, the
+                        // violin's dispatch shape one transform over: the mark is
+                        // the reader's name, the writer is the reading's.
+                        Mark::Ribbon if layer.transforms.contains(&Transform::Flow) =>
+                            self.write_flow_bands(&mut svg, layer, df, l, xs, ys, cat_x.as_deref(), &color_map, &clip),
                         Mark::Ribbon => self.write_ribbon(&mut svg, layer, df, l, xs, ys, x_field, y_field, cat_x.as_deref(), &color_map, &clip, pol_ref),
                         Mark::Text => self.write_text(&mut svg, layer, df, l, xs, ys, x_field, y_field, cat_x.as_deref(), cat_y.as_deref(), &color_map, &clip, pol_ref, nst.as_ref(), None, &mut remarks),
                         Mark::Path => self.write_path(&mut svg, layer, df, l, xs, ys, x_field, y_field, cat_x.as_deref(), cat_y.as_deref(), &color_map, &ramp, &clip, zs, z_field, None, pol_ref, None),
@@ -2082,6 +2125,9 @@ impl SvgRenderer {
                         // untransformed — a zone's `bounds` names four columns rather
                         // than reshaping rows into pairs (see the effective-frame
                         // branch above), so it reads them straight off the table.
+                        // The flow's slot reading, the band's twin above.
+                        Mark::Zone if layer.transforms.contains(&Transform::Flow) =>
+                            self.write_flow_nodes(&mut svg, layer, df, l, xs, ys, cat_x.as_deref(), &clip),
                         Mark::Zone => self.write_zone(&mut svg, layer, df, l, xs, ys, x_field, y_field, cat_x.as_deref(), cat_y.as_deref(), &color_map, &ramp, &clip, pol_ref, None),
                         // A surface draws in the cube and nowhere else, so it is handled
                         // in the 3-D branch above and a *flat* one never arrives — it is
@@ -4434,6 +4480,58 @@ mod tests {
     use crate::ir::{Layer, ScaleType};
     use crate::render::palette::{PALETTE_GOG, RAMP_BLUE};
     use crate::render::text::estimate_text_width;
+
+    // -----------------------------------------------------------------------
+    // Flow — the three readers of one layout (spec §15, the flow entry)
+    // -----------------------------------------------------------------------
+
+    fn flow_table() -> HashMap<String, DataFrame> {
+        let df = DataFrame::new()
+            .with_levels("class",
+                vec!["First".into(), "First".into(), "Third".into(), "Third".into()],
+                vec!["First".into(), "Third".into()])
+            .with_str("survived",
+                vec!["yes".into(), "no".into(), "yes".into(), "no".into()])
+            .with_float("n", vec![203.0, 122.0, 178.0, 528.0]);
+        HashMap::from([("t".to_string(), df)])
+    }
+
+    fn flow_spec() -> PlotSpec {
+        PlotSpec::new().data("t").y("n")
+            .layer(Layer::new(Mark::Ribbon).flow(&["class", "survived"]))
+            .layer(Layer::new(Mark::Zone).flow(&["class", "survived"]))
+    }
+
+    /// **The band is the renderer's first curve.** Every other path in the crate
+    /// is a polyline or a polygon, so the cubic command is asserted by name —
+    /// and beside it the slots, the honest measure axis (real ticks on real
+    /// cumulative magnitude), and the stage names on the domain axis.
+    #[test]
+    fn a_flow_draws_curved_bands_thin_slots_and_honest_axes() {
+        let svg = SvgRenderer::default().render(&flow_spec(), &flow_table());
+        assert!(svg.contains(" C "), "a band is a cubic curve");
+        assert!(svg.contains("<rect"), "the slots are rectangles");
+        assert!(svg.contains(">class<") && svg.contains(">survived<"),
+            "the stage axis names its stages");
+        assert!(svg.contains(">1K<") || svg.contains(">500<") || svg.contains(">600<"),
+            "the measure axis keeps real ticks — contiguous stacks, no padding");
+        // Two renders of one sentence are one picture: the determinism two
+        // layers reading one computation stand on, asserted at the very end of
+        // the pipeline rather than only in the transform.
+        assert_eq!(svg, SvgRenderer::default().render(&flow_spec(), &flow_table()));
+    }
+
+    /// A band's paint follows a stage's category: `color(class)` on the band
+    /// layer splits the bands by their path's class and earns the legend.
+    #[test]
+    fn a_flow_band_is_colored_by_a_stage_and_earns_a_key() {
+        let mut spec = flow_spec();
+        spec.layers[0].encodings.insert(Channel::Color, crate::ir::ChannelDef::field("class"));
+        let svg = SvgRenderer::default().render(&spec, &flow_table());
+        assert!(svg.contains(PALETTE_GOG[0]) && svg.contains(PALETTE_GOG[1]),
+            "two classes, two hues");
+        assert!(svg.contains(">Class<"), "the mapping earns its key");
+    }
 
     // -----------------------------------------------------------------------
     // Brush — the selection, and the promise that it costs an unbrushed plot

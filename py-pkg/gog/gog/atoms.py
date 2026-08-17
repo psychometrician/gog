@@ -447,6 +447,37 @@ def partition(*levels: Column, cross: bool = False) -> Atom:
     )
 
 
+def flow(*stages: Column) -> Atom:
+    """Lay a magnitude through its stages — the flow diagram.
+
+    The stages arrive as **columns**, in reading order: one row of the table is
+    one path through all of them, and `flow(col.klass, col.sex, col.survived)`
+    runs each row from its first stage to its last. Rows sharing a path add
+    together, which quietly sets aside any column the atom did not name.
+
+    Three marks read the one layout. `ribbon * flow(...)` draws the bands,
+    `zone * flow(...)` the stacked slots, and `text * flow(...) +
+    label(col.name)` names each slot where it sits. What each path is weighed
+    by rides on `y`; bind nothing and every path weighs 1. On the band layer,
+    `color(<stage>)` colors every band by the category its path holds there;
+    the slots take their paint from `style()`.
+
+    The stage axis is drawn from the atom's own columns, so there is nothing
+    for `x()` to say — to reorder the stages, reorder the arguments.
+    """
+    if len(stages) < 2:
+        raise GogError(
+            "gog: `flow()` needs at least two stage columns, in reading order — "
+            "`flow(col.klass, col.sex, col.survived)` runs each row from its "
+            "first stage to its last. One column has no between."
+        )
+    return Atom(
+        "transform",
+        transform="flow",
+        stages=[column_name(stage, "flow") for stage in stages],
+    )
+
+
 # ---------------------------------------------------------------------------
 # Positions and coordinate spaces — always the plot's, unless a layer says so
 # ---------------------------------------------------------------------------

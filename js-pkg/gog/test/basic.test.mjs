@@ -29,6 +29,7 @@ import {
   bin,
   bounds,
   partition,
+  flow,
   label,
   box,
   col,
@@ -1670,6 +1671,36 @@ test("a partition refuses what it cannot mean", () => {
   const mixed = { group: ["A", "A"], item: [null, "p"], amount: [5, 5] };
   refuses(() => render_svg(plot(data(mixed, { name: "mixed" }),
     layer(zone, partition(col.group, col.item)), x(col.amount))), /value of its own/);
+});
+
+// --- flow: a magnitude laid through its stages -------------------------------
+// Three marks read one layout: `ribbon` the bands, `zone` the slots, `text` the
+// names. The band is the renderer's first cubic curve, and two renders of one
+// sentence are one picture.
+test("`flow` lays bands, slots and names from one layout", () => {
+  const voyage = {
+    klass: ["First", "First", "Third", "Third"],
+    survived: ["yes", "no", "yes", "no"],
+    n: [203, 122, 178, 528],
+  };
+  const alluvial = () => render_svg(plot(data(voyage, { name: "voyage" }), y(col.n),
+    layer(ribbon, flow(col.klass, col.survived)), color(col.klass),
+    layer(zone, flow(col.klass, col.survived)),
+    layer(text, flow(col.klass, col.survived)), label(col.name)));
+  const first = alluvial();
+  assert.match(first, / C /, "a flow's band is a cubic curve");
+  assert.match(first, /<rect/, "a flow's slots are rectangles");
+  assert.match(first, />First</, "`label(col.name)` names each slot");
+  assert.strictEqual(first, alluvial(), "one flow sentence is one picture, every run");
+
+  refuses(() => flow(col.klass), /at least two stage columns/);
+  refuses(() => render_svg(plot(data(voyage, { name: "voyage" }), y(col.n),
+    layer(bar, flow(col.klass, col.survived)))), /no reading for that/);
+  refuses(() => render_svg(plot(data(voyage, { name: "voyage" }), x(col.n),
+    layer(ribbon, flow(col.klass, col.survived)))), /reorder `flow\(\.\.\.\)`'s arguments/);
+  refuses(() => render_svg(plot(data(voyage, { name: "voyage" }), y(col.n),
+    layer(ribbon, flow(col.klass, col.survived)), color(col.n))),
+    /must name one of the atom's stages/);
 });
 
 // One parameter apart from the icicle, and it buys the whole plot: the levels

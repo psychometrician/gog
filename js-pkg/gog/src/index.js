@@ -76,6 +76,7 @@ export {
   confidence,
   bounds,
   partition,
+  flow,
   dodge,
   stack,
   jitter,

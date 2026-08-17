@@ -211,6 +211,7 @@ book:
         - encoding-scope.qmd
         - faceting.qmd
         - composition.qmd
+        - flow.qmd
         - space.qmd
         - polar.qmd
         - nest.qmd

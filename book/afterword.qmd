@@ -29,7 +29,7 @@ the one selection.
 
 What arrives next is a picture rather than a word, and the **choropleth** is the
 pattern to expect. It shades each country by a value, and what it needed was
-geometry: `zone` finds its sides five ways, and a **boundary** is one of them,
+geometry: `zone` finds its sides six ways, and a **boundary** is one of them,
 drawn by the data itself. It cost no new word, because `group` already says which
 rows belong together. [Map](map.qmd) draws it.
 

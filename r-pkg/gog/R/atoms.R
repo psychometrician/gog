@@ -790,6 +790,43 @@ partition <- function(..., cross = FALSE) {
   )
 }
 
+#' Lay a magnitude through its stages — the flow diagram.
+#'
+#' The stages arrive as **columns**, in reading order: one row of the table is
+#' one path through all of them, and `flow(class, sex, survived)` runs each row
+#' from its `class` to its `survived`.  Rows sharing a path add together, which
+#' quietly sets aside any column the atom did not name.
+#'
+#' Three marks read the one layout.  `ribbon * flow(...)` draws the **bands**, a
+#' path's magnitude carried between adjacent stages; `zone * flow(...)` draws
+#' each stage's **slots**, stacked with no padding so the measure axis stays
+#' honest; `text * flow(...) + label(name)` names each slot where it sits.
+#' Layer any two or all three.
+#'
+#' What each path is weighed by rides on `y`: `+ y(count)` weighs that column,
+#' and binding nothing at all makes every path weigh 1.  On the band layer,
+#' `color(<stage>)` colors every band by the category its path holds at that
+#' stage; the slots take their paint from `style()`.
+#'
+#' The stage axis is drawn from the atom's own columns, so there is nothing for
+#' `x()` to say — to reorder the stages, reorder the arguments.
+#'
+#' @param ... The stage columns, bare names, in reading order.  At least two:
+#'   one column has no between.
+#' @export
+flow <- function(...) {
+  stages <- vapply(as.list(substitute(list(...)))[-1L], deparse, character(1))
+  if (length(stages) < 2L) {
+    stop("gog: `flow()` needs at least two stage columns, in reading order — ",
+         "`flow(class, sex, survived)` runs each row from its `class` to its ",
+         "`survived`. One column has no between.", call. = FALSE)
+  }
+  structure(
+    list(type = "transform", transform = "flow", stages = stages),
+    class = "gog_atom"
+  )
+}
+
 # `dodge` is the first *collision modifier* (not a statistic): where a `color`
 # split would stack several marks at one shared position, it sets them side by
 # side within that position's slot.  Legal on the width-bearing marks it can

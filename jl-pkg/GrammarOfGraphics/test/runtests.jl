@@ -1210,6 +1210,34 @@ end
                         zone * partition(:group, :item) + x(:amount)) "value of its own"
 end
 
+@testset "flow — a magnitude laid through its stages" begin
+    # Three marks read one layout: `ribbon` the bands, `zone` the slots, `text`
+    # the names. The band is the renderer's first cubic curve, and two renders
+    # of one sentence are one picture.
+    voyage = Dict(
+        :class => ["First", "First", "Third", "Third"],
+        :survived => ["yes", "no", "yes", "no"],
+        :n => [203.0, 122.0, 178.0, 528.0],
+    )
+    alluvial() = render_svg(data(voyage, name = "voyage") + y(:n) +
+                            ribbon * flow(:class, :survived) + color(:class) +
+                            zone * flow(:class, :survived) +
+                            text * flow(:class, :survived) + label(:name))
+    first_run = alluvial()
+    @test occursin(" C ", first_run)
+    @test occursin("<rect", first_run)
+    @test occursin(">First<", first_run)
+    @test first_run == alluvial()
+
+    @refuses flow(:class) "at least two stage columns"
+    @refuses render_svg(data(voyage, name = "voyage") + y(:n) +
+                        bar * flow(:class, :survived)) "no reading for that"
+    @refuses render_svg(data(voyage, name = "voyage") + x(:n) +
+                        ribbon * flow(:class, :survived)) "reorder `flow(...)`'s arguments"
+    @refuses render_svg(data(voyage, name = "voyage") + y(:n) +
+                        ribbon * flow(:class, :survived) + color(:n)) "must name one of the atom's stages"
+end
+
 @testset "partition(cross = true) is the mosaic" begin
     # One parameter apart from the icicle, and it buys the whole plot: the levels
     # turn across each other instead of running down one axis. The engine pins the

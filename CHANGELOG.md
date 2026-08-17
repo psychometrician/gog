@@ -8,6 +8,22 @@ CRAN-style repositories and PyPI, `GrammarOfGraphics` on Julia's General, and
 
 ### Added
 
+- **`flow` lays a magnitude through its stages: the flow diagram.** The stages
+  are categorical columns named in the atom, in reading order, and one row of
+  the table is one path through all of them — `ribbon * flow(class, sex,
+  survived) + y(n)` draws the Titanic's people as bands, each as thick as its
+  path's count at both ends. Three marks read the one layout: `ribbon` the
+  bands, `zone` each stage's stacked slots, and `text * flow(...) +
+  label(name)` their names, so the layers always agree about where everything
+  sits. `color(<stage>)` on the band layer colors every band by the category
+  its path holds at that stage; a column outside the stages is refused, since
+  only a stage holds a value a whole path carries. Bind nothing to `y` and
+  every row weighs 1, the same tally `partition` falls back on. The stacks are
+  contiguous, so the measure axis keeps its ticks and reads true cumulative
+  magnitude, and rows missing a stage value are counted out loud rather than
+  dropped in silence. Bending a flow into `polar()` — the chord diagram — is
+  valid grammar the engine does not draw yet, and says so.
+
 - **`globe()` is a coordinate space: the earth itself, viewed.** `x` is
   longitude and `y` is latitude, exactly as on `map()`, and the same five marks
   stand on the sphere's facing half — a `point` at a place, a `path` bending

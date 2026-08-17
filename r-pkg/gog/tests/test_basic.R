@@ -3131,6 +3131,48 @@ refuses("cross given something that is not TRUE or FALSE",
         partition(decade, theme, cross = "yes"),
         "TRUE or FALSE")
 
+# --- flow: a magnitude laid through its stages -------------------------------
+# Three marks read one layout: `ribbon` the bands, `zone` the slots, `text` the
+# names. The band is the renderer's first cubic curve, the slots stack with no
+# padding so the measure axis keeps real ticks, and two renders of one sentence
+# are one picture.
+voyage <- data.frame(
+  class    = factor(c("First", "First", "Third", "Third"),
+                    levels = c("First", "Third")),
+  survived = c("yes", "no", "yes", "no"),
+  n        = c(203, 122, 178, 528)
+)
+alluvial <- render_svg(data(voyage) + y(n) +
+                         ribbon * flow(class, survived) + color(class) +
+                         zone * flow(class, survived) +
+                         text * flow(class, survived) + label(name))
+if (!grepl(" C ", alluvial, fixed = TRUE))
+  stop("FAIL: a flow's band is a cubic curve")
+if (!grepl("<rect", alluvial, fixed = TRUE))
+  stop("FAIL: a flow's slots are rectangles")
+if (!grepl(">First<", alluvial, fixed = TRUE))
+  stop("FAIL: `text * flow + label(name)` names each slot")
+if (!identical(alluvial,
+               render_svg(data(voyage) + y(n) +
+                            ribbon * flow(class, survived) + color(class) +
+                            zone * flow(class, survived) +
+                            text * flow(class, survived) + label(name))))
+  stop("FAIL: one flow sentence must be one picture, every run")
+cat("PASS: `ribbon * flow` bands, `zone * flow` slots, `text * flow` names
+")
+
+refuses("flow with one stage", flow(class), "at least two stage columns")
+refuses("a mark with no flow reading",
+        render_svg(data(voyage) + y(n) + bar * flow(class, survived)),
+        "no reading for that")
+refuses("x bound under flow",
+        render_svg(data(voyage) + x(n) + ribbon * flow(class, survived)),
+        "reorder `flow(...)`'s arguments")
+refuses("a band colored by a column that is not a stage",
+        render_svg(data(voyage) + y(n) +
+                     ribbon * flow(class, survived) + color(n)),
+        "must name one of the atom's stages")
+
 # --- a zone takes a border (the closed-glyph fills, spec §4) -----------------
 # The settable rule spans a setting across its geometry class, and `zone` joined
 # the fills on 2026-07-27 because a mosaic without cell edges is one blob
