@@ -1248,7 +1248,7 @@ end
     web() = render_svg(data(trade, name = "trade") +
                        edge * layout(:exporter, :importer) + opacity(:tons) +
                        point * layout(:exporter, :importer) + gsize(:degree) +
-                       text * layout(:exporter, :importer) + label(:name) +
+                       text * layout(:exporter, :importer) * repel + label(:name) +
                        network())
     first_run = web()
     @test occursin("<line", first_run)

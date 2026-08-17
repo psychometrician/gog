@@ -55,13 +55,15 @@ each layer, computed once each, and always landing on the same positions,
 because the computation is exact. A `point` layer draws the nodes, and a
 `text` layer names them. The layout publishes two columns about each node:
 its `name`, and its `degree`, the count of its relations. `size(degree)`
-draws the nodes with the most relations largest:
+draws the nodes with the most relations largest. The `text` layer also
+composes `repel`, the same modifier every labeled scatter uses, so a name
+rests beside its dot instead of striking through it:
 
 ```{r}
 data(trade_partners) +
   edge * layout(exporter, importer) +
   point * layout(exporter, importer) + size(degree) +
-  text * layout(exporter, importer) + label(name) +
+  text * layout(exporter, importer) * repel + label(name) +
   network() +
   title("Who trades with whom")
 ```
@@ -80,7 +82,7 @@ heavier relations stand out:
 data(trade_partners) +
   edge * layout(exporter, importer) + opacity(billions) +
   point * layout(exporter, importer) + size(degree) +
-  text * layout(exporter, importer) + label(name) +
+  text * layout(exporter, importer) * repel + label(name) +
   network() +
   title("Heavier trade, darker stroke")
 ```

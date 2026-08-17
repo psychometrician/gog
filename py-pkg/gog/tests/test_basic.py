@@ -1361,7 +1361,7 @@ def web():
         data(trade, name="trade")
         + edge * layout(col.exporter, col.importer) + opacity(col.tons)
         + point * layout(col.exporter, col.importer) + size(col.degree)
-        + text * layout(col.exporter, col.importer) + label(col.name)
+        + text * layout(col.exporter, col.importer) * repel + label(col.name)
         + network()
     )
 

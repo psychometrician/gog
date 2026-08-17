@@ -1718,7 +1718,7 @@ test("`edge`, `point` and `text` read one layout in `network()`", () => {
   const web = () => render_svg(plot(data(trade, { name: "trade" }),
     layer(edge, layout(col.exporter, col.importer)), opacity(col.tons),
     layer(point, layout(col.exporter, col.importer)), size(col.degree),
-    layer(text, layout(col.exporter, col.importer)), label(col.name),
+    layer(text, layout(col.exporter, col.importer), repel), label(col.name),
     network()));
   const first = web();
   assert.match(first, /<line/, "a network draws its edges as strokes");

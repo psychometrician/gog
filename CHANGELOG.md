@@ -70,6 +70,14 @@ CRAN-style repositories and PyPI, `GrammarOfGraphics` on Julia's General, and
 
 ### Changed
 
+- **`repel` now composes with every transform, `layout` and `flow` included.**
+  It was classified as a position modifier and so collided with any transform
+  that places its own marks, but repel moves *ink*, at draw time, after every
+  computation has run — it decides where a word rests, never where a mark
+  sits. `text * layout(from, to) * repel + label(name)` is the network whose
+  names step off their dots, and the same composition now works wherever
+  `text` reads a computed placement.
+
 - **The boundary refusal on `zone` names both geographic spaces.** Writing
   `zone + group(<column>)` outside them is refused as before, and the
   direction now says to add `map()` or `globe()` if the column names regions

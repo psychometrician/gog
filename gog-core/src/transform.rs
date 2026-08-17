@@ -714,8 +714,20 @@ pub fn jobs(t: &Transform, ctx: JobContext) -> Jobs {
         // do — it is the last word on where a label lands. It fills the job in page
         // units rather than data units, which changes when the answer is computed
         // and not what job it answers.
-        Transform::Dodge | Transform::Jitter | Transform::Repel =>
+        Transform::Dodge | Transform::Jitter =>
             Jobs { position: true, ..Jobs::default() },
+        // `repel` is **deliberately jobless**, and the distinction from the
+        // accidental joblessness the comment above warns about is that this one
+        // is argued: repel moves *ink*, at draw time, after every job in this
+        // enum has already run — it does not decide where a mark sits, only
+        // where its word rests once everything else has. So it contradicts
+        // nothing, and in particular it composes with the whole-picture layouts
+        // (`text * layout(from, to) * repel` is how a network's names come off
+        // their dots), which claim every positional job precisely to refuse the
+        // modifiers that *do* move marks. This was the relaxation the layout's
+        // claim-everything entry said would be cheap when argued; a label
+        // striking through its own node was the argument.
+        Transform::Repel => Jobs::default(),
     }
 }
 

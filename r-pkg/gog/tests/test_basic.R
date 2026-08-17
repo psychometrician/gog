@@ -3185,7 +3185,7 @@ trade <- data.frame(
 web <- render_svg(data(trade) +
                     edge * layout(exporter, importer) + opacity(tons) +
                     point * layout(exporter, importer) + size(degree) +
-                    text * layout(exporter, importer) + label(name) +
+                    text * layout(exporter, importer) * repel + label(name) +
                     network())
 if (!grepl("<line", web, fixed = TRUE))
   stop("FAIL: a network draws its edges as strokes")
@@ -3196,7 +3196,7 @@ if (grepl("tick", web, fixed = TRUE))
 if (!identical(web, render_svg(data(trade) +
                                  edge * layout(exporter, importer) + opacity(tons) +
                                  point * layout(exporter, importer) + size(degree) +
-                                 text * layout(exporter, importer) + label(name) +
+                                 text * layout(exporter, importer) * repel + label(name) +
                                  network())))
   stop("FAIL: one network sentence must be one picture, every run")
 cube <- render_svg(data(trade) + edge * layout(exporter, importer) +

@@ -4679,6 +4679,33 @@ mod tests {
         assert!(!cube.contains(">Layout"), "no axis names on the network's box");
     }
 
+    /// **`repel` composes with `layout`**, because ink placement holds no job:
+    /// the names come off their dots, which is the argued relaxation the
+    /// layout's claim-everything entry priced in. Asserted at the pixels — the
+    /// repelled render differs from the centered one — and for determinism,
+    /// since a moved label must move to the same place every run.
+    #[test]
+    fn a_networks_names_repel_off_their_dots() {
+        let with_repel = |repel: bool| {
+            let mut text = Layer::new(Mark::Text).layout("a", "b");
+            if repel {
+                text.transforms.push(Transform::Repel);
+            }
+            text.encodings.insert(Channel::Label, crate::ir::ChannelDef::field("name"));
+            PlotSpec::new().data("t")
+                .layer(Layer::new(Mark::Edge).layout("a", "b"))
+                .layer(Layer::new(Mark::Point).layout("a", "b"))
+                .layer(text)
+                .coord(CoordSpace::Network(crate::ir::NetworkView::default()))
+        };
+        let centered = SvgRenderer::default().render(&with_repel(false), &net_table());
+        let repelled = SvgRenderer::default().render(&with_repel(true), &net_table());
+        assert_ne!(centered, repelled, "repel must move the names");
+        assert_eq!(repelled,
+            SvgRenderer::default().render(&with_repel(true), &net_table()),
+            "a repelled name moves to the same place every run");
+    }
+
     /// A band's paint follows a stage's category: `color(class)` on the band
     /// layer splits the bands by their path's class and earns the legend.
     #[test]
