@@ -4,6 +4,20 @@ All four packages share one version number and are released together: `gog` on
 CRAN-style repositories and PyPI, `GrammarOfGraphics` on Julia's General, and
 `grammar-of-graphics` on npm. A version means the same grammar in every one.
 
+## Unreleased
+
+### Fixed
+
+- **`gog_table()` refuses a table name the book does not have.** It says which
+  name it could not find, and when one table is within two letters it names that
+  table. JavaScript was the worst of the four: a name that does not exist gets a
+  404 page from the site, and that page was parsed as a table, so the caller
+  received 88 rows in a column named `<!DOCTYPE html>`. The other three stopped,
+  but each with its host language's words for a failed request, which
+  `except GogError` and `catch (e instanceof GogError)` do not catch. All four
+  now refuse the same way the rest of the grammar refuses, and a site that cannot
+  be reached is told apart from a name that does not exist.
+
 ## 0.0.5 (2026-08-12)
 
 ### Added

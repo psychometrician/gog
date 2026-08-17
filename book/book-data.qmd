@@ -85,6 +85,28 @@ Reading a different table is the same call with a different name:
 `gog_table("winds")`, `gog_table("medals")`. The list of names is at the end of
 this page.
 
+## When the name is wrong
+
+A table name is easy to mistype, and `gapminder2007` is not `gapminder_2007`.
+gog stops instead of giving you something else. It says which name it could not
+find. When one table is a near miss, it names that table:
+
+```
+gog: there is no table called "gapminder2007". Did you mean "gapminder_2007"?
+```
+
+The suggestion is offered only when the two names differ by at most two letters.
+When nothing is that close, the refusal points at this page instead. A wrong
+suggestion would cost you a second attempt, which is worse than no suggestion.
+
+A site that cannot be reached is a different problem, so it gets different
+words. That refusal names the connection rather than the table. The distinction
+matters. Being told a table does not exist is misleading when the network is
+simply down. It sends you to correct a name that was already right.
+
+All four languages print the same sentences. Each one refuses the way the rest
+of the grammar refuses, so whatever catches a refused plot catches these too.
+
 ## Two things a CSV cannot say
 
 A CSV is text. It records what a value is, never what kind of thing it is. Two

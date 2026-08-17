@@ -1469,7 +1469,9 @@ _guard_over("PostgreSQL", _postgres,
 # `book/check_vocabulary.R` excludes it from the kernel block beside
 # `render_svg`. The offline checks always run; the fetch is guarded, because a
 # suite has to pass on a laptop with no network.
-from gog.tables import BOOK_DATA_URL, _columns  # noqa: E402
+from gog.tables import (  # noqa: E402
+    BOOK_DATA_CHAPTER, BOOK_DATA_URL, _columns, _nearest_table, _unknown_table,
+)
 
 assert BOOK_DATA_URL == "https://psychometrician.github.io/gog-book/data/"
 
@@ -1483,6 +1485,38 @@ ok("gog_table() types a column only when every value in it is a number")
 # `GogError`, not `TypeError`: every refusal in this package is one class, so
 # `except GogError` around a session catches the lot — `errors.py` records why.
 refuses("`gog_table()` with something that is not a name", lambda: gog_table(42))
+
+# The near-miss rule, tested where it is deterministic. The list is written here
+# rather than fetched, so this says what the rule does and not what the site
+# currently holds — and it runs on a laptop with no network.
+#
+# The rule is the engine's `nearest_color`: within two edits, and fewer edits
+# than the candidate has letters. The last two probes are the ones that matter,
+# because a suggestion rule is judged by what it declines to say. `penguins` is
+# nothing like any of these, and `gm` is short enough that a loose rule would
+# match half the list.
+_known = ["gapminder_2007", "gapminder_asia", "gm_all", "winds", "medals"]
+assert _nearest_table("gapminder2007", _known) == "gapminder_2007"
+assert _nearest_table("Gapminder_2007", _known) == "gapminder_2007"
+assert _nearest_table("gapmidner_2007", _known) == "gapminder_2007"
+assert _nearest_table("wind", _known) == "winds"
+assert _nearest_table("penguins", _known) is None
+assert _nearest_table("gm", _known) is None
+# No list to read from is the offline case, and it must not be an error.
+assert _nearest_table("gapminder2007", []) is None
+ok("nearest_table() suggests a near miss and declines a far one")
+
+# The two sentences, in full. All four bindings print these words exactly, so a
+# change here is a change every reader of the manual sees four times.
+assert _unknown_table("gapminder2007", _known) == (
+    'gog: there is no table called "gapminder2007". '
+    'Did you mean "gapminder_2007"?'
+), _unknown_table("gapminder2007", _known)
+assert _unknown_table("penguins", _known) == (
+    'gog: there is no table called "penguins". The table names are listed in '
+    f"the book's data chapter: {BOOK_DATA_CHAPTER}"
+), _unknown_table("penguins", _known)
+ok("gog_table() names the table it could not find")
 
 # The old name is gone rather than deprecated, and this is the assertion that
 # keeps it gone. `from gog import *` is how the book writes every example, so a
@@ -1516,6 +1550,19 @@ else:
     assert isinstance(_gm["gdp"][0], float), _gm["gdp"][0]
     assert isinstance(_gm["continent"][0], str), _gm["continent"][0]
     ok("gog_table('gapminder_2007') is 142 typed rows")
+
+    # A name the site does not have. Guarded with the fetch above, because it
+    # takes the same network — and it is the assertion the whole refusal exists
+    # for: before it, Python raised `HTTPError`, which names neither the table
+    # nor the fix and which `except GogError` does not catch. Only reached when
+    # the network is up, so the rule itself is checked offline above.
+    try:
+        gog_table("gapminder2007")
+    except GogError as _refusal:
+        assert "gapminder2007" in str(_refusal), _refusal
+        ok(f"gog_table() refused an unknown name — {_refusal}")
+    else:
+        raise AssertionError("FAIL: gog_table('gapminder2007') returned a table")
 
 
 # ---------------------------------------------------------------------------

@@ -72,3 +72,29 @@ if (file.exists(wasm)) {
       "  cargo build --release --target wasm32-unknown-unknown",
       " --manifest-path gog-wasm/Cargo.toml\n", sep = "")
 }
+
+# The list of table names, published beside the tables themselves.
+#
+# `gog_table()` in all four packages reads this when a name is not found, so it
+# can say *did you mean* instead of only *no*. A misspelt name is the commonest
+# mistake that helper has, and the four packages cannot answer it from anything
+# they carry: a list shipped inside a wheel or a tarball is fixed at the version
+# it shipped with, so the day a table is added, an installed copy would deny a
+# table that exists. A confident, wrong refusal is worse than a vague one.
+#
+# Generated here rather than written by hand for the same reason. It is the
+# directory read back to itself, so it cannot fall behind the directory. It is
+# gitignored: a committed copy would be one more thing to remember, which is
+# what this is replacing.
+#
+# Byte-compared like the three above, and for the sharper reason: this sits
+# *inside* `data/`, which is declared under `resources:`, so rewriting it on
+# every render is what makes `quarto preview` unable to follow a link.
+tables <- sort(sub("[.]csv$", "", list.files(file.path(getwd(), "data"),
+                                             pattern = "[.]csv$")))
+manifest <- file.path(getwd(), "data", "tables.txt")
+if (!file.exists(manifest) ||
+      !identical(readLines(manifest, warn = FALSE), tables)) {
+  writeLines(tables, manifest)
+  cat("gog: ", length(tables), " table names listed for gog_table()\n", sep = "")
+}

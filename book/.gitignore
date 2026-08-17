@@ -97,3 +97,12 @@
 /gog.wasm
 /interactive.js
 /view.js
+
+# The list of table names, written beside the tables by the same pre-render
+# script and published with them. It is `data/` read back to itself, so it is
+# build output under the rule above rather than a source file, and generating it
+# is the whole point: a committed copy could fall behind the directory it
+# describes, and `gog_table()` in four languages reads it to answer *did you
+# mean*. A refusal that denies a table which exists is worse than one that only
+# points at the chapter.
+/data/tables.txt

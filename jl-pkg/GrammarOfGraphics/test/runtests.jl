@@ -1281,6 +1281,42 @@ end
     # words the other three bindings use, and no network is touched to say them.
     @refuses gog_table(3) "one table name"
 
+    # The near-miss rule, tested where it is deterministic. The list is written
+    # here rather than fetched, so this says what the rule does and not what the
+    # site currently holds — and it runs on a laptop with no network.
+    #
+    # The rule is the engine's `nearest_color`: within two edits, and fewer edits
+    # than the candidate has letters. The last two probes are the ones that
+    # matter, because a suggestion rule is judged by what it declines to say.
+    # `penguins` is nothing like any of these, and `gm` is short enough that a
+    # loose rule would match half the list.
+    known = ["gapminder_2007", "gapminder_asia", "gm_all", "winds", "medals"]
+    @test GrammarOfGraphics._nearest_table("gapminder2007", known) == "gapminder_2007"
+    @test GrammarOfGraphics._nearest_table("Gapminder_2007", known) == "gapminder_2007"
+    @test GrammarOfGraphics._nearest_table("gapmidner_2007", known) == "gapminder_2007"
+    @test GrammarOfGraphics._nearest_table("wind", known) == "winds"
+    @test GrammarOfGraphics._nearest_table("penguins", known) === nothing
+    @test GrammarOfGraphics._nearest_table("gm", known) === nothing
+    # No list to read from is the offline case, and it must not be an error.
+    @test GrammarOfGraphics._nearest_table("gapminder2007", String[]) === nothing
+
+    # `Base.min` is spelled out inside `_edit_distance` because this package
+    # exports `min` as a transform, and the bare name inside the module is the
+    # atom. It resolved to the wrong function rather than failing to compile, so
+    # the distance is checked against a value and not only against a suggestion.
+    @test GrammarOfGraphics._edit_distance("kitten", "sitting") == 3
+    @test GrammarOfGraphics._edit_distance("winds", "winds") == 0
+
+    # The two sentences, in full. All four bindings print these words exactly, so
+    # a change here is a change every reader of the manual sees four times.
+    @test GrammarOfGraphics._unknown_table("gapminder2007", known) ==
+          "gog: there is no table called \"gapminder2007\". " *
+          "Did you mean \"gapminder_2007\"?"
+    @test GrammarOfGraphics._unknown_table("penguins", known) ==
+          "gog: there is no table called \"penguins\". The table names are " *
+          "listed in the book's data chapter: " *
+          "https://psychometrician.github.io/gog-book/book-data.html"
+
     # The old name is gone rather than deprecated, and this is the assertion
     # that keeps it gone. Both doors have to stay shut: the method could survive
     # in the module and the `export` line could still name it, and either would
@@ -1298,6 +1334,14 @@ end
         @test length(fetched["country"]) == 142
         @test eltype(fetched["gdp"]) <: Real
         @test eltype(fetched["continent"]) <: AbstractString
+
+        # A name the site does not have. Guarded with the fetch above, because
+        # it takes the same network — and it is the assertion the whole refusal
+        # exists for: before it, Julia threw `RequestError`, which names neither
+        # the table nor the fix and which a `catch err; err isa GogError` does
+        # not catch. Only reached when the network is up, so the rule itself is
+        # checked offline above.
+        @refuses gog_table("gapminder2007") "gapminder2007"
     end
     # -----------------------------------------------------------------------
     # brush — the selection

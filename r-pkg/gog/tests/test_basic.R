@@ -3285,6 +3285,38 @@ local({
   }
   cat("PASS: gog_table() takes one name and refuses anything else\n")
 
+  # The near-miss rule, tested where it is deterministic. The list is written
+  # here rather than fetched, so this says what the rule does and not what the
+  # site currently holds — and it runs on a laptop with no network.
+  #
+  # The rule is the engine's `nearest_color`: within two edits, and fewer edits
+  # than the candidate has letters. The last two probes are the ones that matter,
+  # because a suggestion rule is judged by what it declines to say. `penguins` is
+  # nothing like any of these, and `gm` is short enough that a loose rule would
+  # match half the list.
+  known <- c("gapminder_2007", "gapminder_asia", "gm_all", "winds", "medals")
+  stopifnot(identical(gog:::nearest_table("gapminder2007", known), "gapminder_2007"))
+  stopifnot(identical(gog:::nearest_table("Gapminder_2007", known), "gapminder_2007"))
+  stopifnot(identical(gog:::nearest_table("gapmidner_2007", known), "gapminder_2007"))
+  stopifnot(identical(gog:::nearest_table("wind", known), "winds"))
+  stopifnot(is.null(gog:::nearest_table("penguins", known)))
+  stopifnot(is.null(gog:::nearest_table("gm", known)))
+  # No list to read from is the offline case, and it must not be an error.
+  stopifnot(is.null(gog:::nearest_table("gapminder2007", character())))
+  cat("PASS: nearest_table() suggests a near miss and declines a far one\n")
+
+  # The two sentences, in full. All four bindings print these words exactly, so
+  # a change here is a change every reader of the manual sees four times.
+  stopifnot(identical(
+    gog:::unknown_table("gapminder2007", known),
+    "gog: there is no table called \"gapminder2007\". Did you mean \"gapminder_2007\"?"))
+  stopifnot(identical(
+    gog:::unknown_table("penguins", known),
+    paste0("gog: there is no table called \"penguins\". The table names are ",
+           "listed in the book's data chapter: ",
+           "https://psychometrician.github.io/gog-book/book-data.html")))
+  cat("PASS: gog_table() names the table it could not find\n")
+
   fetched <- tryCatch(gog::gog_table("gapminder_2007"), error = function(e) e)
   if (inherits(fetched, "error")) {
     cat("SKIP: gog_table() live fetch -",
@@ -3295,6 +3327,14 @@ local({
     p <- data(fetched, name = "gapminder_2007") + point + x(gdp) + y(life)
     stopifnot(grepl("<svg", gog:::render_svg(p), fixed = TRUE))
     cat("PASS: gog_table('gapminder_2007') is 142 typed rows, and it draws\n")
+
+    # A name the site does not have. Guarded with the fetch above, because it
+    # takes the same network — and it is the assertion the whole refusal exists
+    # for: before it, R answered `cannot open the connection`, which names
+    # neither the table nor the fix. Only reached when the network is up, so the
+    # rule itself is checked offline above.
+    refuses("gog_table() with a name the site does not have",
+            gog::gog_table("gapminder2007"), "gapminder2007")
   }
 })
 

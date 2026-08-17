@@ -1820,6 +1820,94 @@ test("gog_table: quoting, types, and a name it refuses", async () => {
   });
 });
 
+// The near-miss rule, tested where it is deterministic. The list is written here
+// rather than fetched, so this says what the rule does and not what the site
+// currently holds — and it runs on a laptop with no network.
+test("gog_table: a near miss is suggested, a far one is not", async () => {
+  const { nearest_table, unknown_table, BOOK_DATA_CHAPTER } =
+    await import("../src/tables.js");
+
+  // The rule is the engine's `nearest_color`: within two edits, and fewer edits
+  // than the candidate has letters. The last two probes are the ones that
+  // matter, because a suggestion rule is judged by what it declines to say.
+  // `penguins` is nothing like any of these, and `gm` is short enough that a
+  // loose rule would match half the list.
+  const known = ["gapminder_2007", "gapminder_asia", "gm_all", "winds", "medals"];
+  assert.equal(nearest_table("gapminder2007", known), "gapminder_2007");
+  assert.equal(nearest_table("Gapminder_2007", known), "gapminder_2007");
+  assert.equal(nearest_table("gapmidner_2007", known), "gapminder_2007");
+  assert.equal(nearest_table("wind", known), "winds");
+  assert.equal(nearest_table("penguins", known), null);
+  assert.equal(nearest_table("gm", known), null);
+  // No list to read from is the offline case, and it must not be an error.
+  assert.equal(nearest_table("gapminder2007", []), null);
+
+  // The two sentences, in full. All four bindings print these words exactly, so
+  // a change here is a change every reader of the manual sees four times.
+  assert.equal(
+    unknown_table("gapminder2007", known),
+    'gog: there is no table called "gapminder2007". Did you mean "gapminder_2007"?',
+  );
+  assert.equal(
+    unknown_table("penguins", known),
+    'gog: there is no table called "penguins". The table names are listed in ' +
+      `the book's data chapter: ${BOOK_DATA_CHAPTER}`,
+  );
+});
+
+// The defect this binding had alone, and the reason the status is read rather
+// than the body. `fetch` does not throw on a 404: it resolves, with the site's
+// 404 page as the body, and the CSV reader above parsed that page into an
+// eighty-eight row table whose one column was named `<!DOCTYPE html>`. Nothing
+// in the suite could see it, because every check ran on a name that exists.
+//
+// Served locally rather than fetched, so this runs with no network and asserts
+// the mechanism instead of the site's current behavior.
+test("gog_table: a 404 page is refused, never parsed as a table", async () => {
+  const { gog_table, BOOK_DATA_URL } = await import("../src/tables.js");
+  const real = globalThis.fetch;
+  // The site as it behaves: the list of names is served, and a name it does not
+  // have gets the 404 page. This is the whole chain in one test — status read,
+  // list fetched, near miss found, refusal worded.
+  globalThis.fetch = async (url) =>
+    String(url).endsWith("tables.txt")
+      ? new Response("gapminder_2007\nwinds\nmedals\n", { status: 200 })
+      : new Response("<!DOCTYPE html>\n<html>\n  <head>\n", {
+        status: 404, headers: { "content-type": "text/html" },
+      });
+  try {
+    await assert.rejects(() => gog_table("gapminder2007"), (error) => {
+      assert.ok(error instanceof GogError, `not a GogError: ${error}`);
+      assert.equal(error.message,
+        'gog: there is no table called "gapminder2007". ' +
+        'Did you mean "gapminder_2007"?');
+      return true;
+    });
+
+    // And with no list to read, the chapter is the answer rather than a guess.
+    globalThis.fetch = async () =>
+      new Response("<!DOCTYPE html>", { status: 404 });
+    await assert.rejects(() => gog_table("gapminder2007"), (error) => {
+      assert.match(error.message, /there is no table called "gapminder2007"/);
+      assert.doesNotMatch(error.message, /DOCTYPE/);
+      assert.match(error.message, /data chapter/);
+      return true;
+    });
+
+    // A table name that is fine, refused because the site itself is down. The
+    // two cases ask opposite things of the reader, so they must not share words.
+    globalThis.fetch = async () => { throw new TypeError("fetch failed"); };
+    await assert.rejects(() => gog_table("gapminder_2007"), (error) => {
+      assert.ok(error instanceof GogError, `not a GogError: ${error}`);
+      assert.match(error.message, /could not reach/);
+      assert.ok(error.message.includes(BOOK_DATA_URL), error.message);
+      return true;
+    });
+  } finally {
+    globalThis.fetch = real;
+  }
+});
+
 // The old name is gone rather than deprecated, and this is the assertion that
 // keeps it gone. Both doors have to stay shut: the module could keep exporting
 // it and `index.js` could re-export it, and either would put two spellings of
