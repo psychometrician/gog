@@ -1838,6 +1838,12 @@ impl SvgRenderer {
                                 Mark::Text => self.write_text(&mut svg, layer, df, l, xs, ys,
                                     x_field, y_field, cat_x.as_deref(), cat_y.as_deref(),
                                     &color_map, &clip, None, None, Some(g), &mut remarks),
+                                Mark::Path => self.write_path(&mut svg, layer, df, l, xs, ys,
+                                    x_field, y_field, cat_x.as_deref(), cat_y.as_deref(),
+                                    &color_map, &ramp, &clip, zs, z_field, None, None, Some(g)),
+                                Mark::Rule => self.write_rule(&mut svg, layer, df, l, xs, ys,
+                                    spec, cat_x.as_deref(), cat_y.as_deref(), &color_map,
+                                    &clip, None, Some(g)),
                                 _ => {}
                             }
                         }
@@ -1895,7 +1901,7 @@ impl SvgRenderer {
                                 &color_map, &ramp, &clip, zs, z_field, Some(&scene), None, None),
                             Mark::Path => self.write_path(&mut svg, layer, df, l, xs, ys,
                                 x_field, y_field, cat_x.as_deref(), cat_y.as_deref(),
-                                &color_map, &ramp, &clip, zs, z_field, Some(&scene), None),
+                                &color_map, &ramp, &clip, zs, z_field, Some(&scene), None, None),
                             // The column standing on the cube's floor — the 3-D
                             // histogram, and the first *slot* mark in space. It takes no
                             // `Layout`: a flat bar's thickness is pixels on the panel,
@@ -2015,12 +2021,12 @@ impl SvgRenderer {
                         Mark::Box => self.write_box(&mut svg, layer, df, l, xs, ys, x_field, y_field, cat_x.as_deref(), cat_y.as_deref(), horizontal, &color_map, &clip, pol_ref),
                         Mark::Ribbon => self.write_ribbon(&mut svg, layer, df, l, xs, ys, x_field, y_field, cat_x.as_deref(), &color_map, &clip, pol_ref),
                         Mark::Text => self.write_text(&mut svg, layer, df, l, xs, ys, x_field, y_field, cat_x.as_deref(), cat_y.as_deref(), &color_map, &clip, pol_ref, nst.as_ref(), None, &mut remarks),
-                        Mark::Path => self.write_path(&mut svg, layer, df, l, xs, ys, x_field, y_field, cat_x.as_deref(), cat_y.as_deref(), &color_map, &ramp, &clip, zs, z_field, None, pol_ref),
+                        Mark::Path => self.write_path(&mut svg, layer, df, l, xs, ys, x_field, y_field, cat_x.as_deref(), cat_y.as_deref(), &color_map, &ramp, &clip, zs, z_field, None, pol_ref, None),
                         // The one mark handed the whole spec rather than the two
                         // resolved field names: which axis places it is read off
                         // *both* positions against this layer's own table
                         // (`legality::rule_axis`), so a pair of `&str` cannot say it.
-                        Mark::Rule => self.write_rule(&mut svg, layer, df, l, xs, ys, spec, cat_x.as_deref(), cat_y.as_deref(), &color_map, &clip, pol_ref),
+                        Mark::Rule => self.write_rule(&mut svg, layer, df, l, xs, ys, spec, cat_x.as_deref(), cat_y.as_deref(), &color_map, &clip, pol_ref, None),
                         // Drawn like any other mark, but its frame reached here
                         // untransformed — a zone's `bounds` names four columns rather
                         // than reshaping rows into pairs (see the effective-frame

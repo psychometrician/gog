@@ -99,6 +99,12 @@ impl SvgRenderer {
         // are exclusive (`check_polar` refuses `polar()` with a `z`), so at most
         // one of `scene`/`polar` is ever `Some`.
         polar: Option<&Polar>,
+        // Globe: the route runs along **great circles** — a joined segment is
+        // what its endpoints assert lies between them, and on a sphere that is
+        // the geodesic (Wilkinson §13.1.7) — resampled, culled to the facing
+        // hemisphere, and cut where it crosses the limb. Exclusive with both
+        // other spaces (`check_globe`), so at most one of the three is `Some`.
+        globe: Option<&crate::render::globe::Globe>,
     ) {
         let Some(x_vals) = super::positions(df, x_field, cat_x) else { return };
         let Some(y_vals) = super::positions(df, y_field, cat_y) else { return };
@@ -295,6 +301,109 @@ impl SvgRenderer {
             pieces.sort_by(|a, b| b.0.partial_cmp(&a.0).unwrap_or(std::cmp::Ordering::Equal));
             for (_, piece) in &pieces {
                 svg.push_str(piece);
+            }
+            writeln!(svg, "  </g>").unwrap();
+            return;
+        }
+
+        // The globe branch. Each pair of consecutive rows becomes a geodesic,
+        // resampled on the sphere and culled to the facing hemisphere, so a
+        // route bends the way the surface does and stops at the limb instead of
+        // shortcutting across the page. The dash phase keeps accumulating over
+        // what is drawn, so the route's texture continues where it re-emerges.
+        if let Some(g) = globe {
+            for (idxs, stroke, dash) in &series {
+                if idxs.len() < 2 { continue; }
+                // Every sample, tagged with the pair it belongs to so a ramped
+                // route colors each piece by the rows it joins.
+                let mut tagged: Vec<(f64, f64, usize)> =
+                    vec![(x_vals[idxs[0]], y_vals[idxs[0]], 0)];
+                for k in 0..idxs.len() - 1 {
+                    let a = (x_vals[idxs[k]], y_vals[idxs[k]]);
+                    let b = (x_vals[idxs[k + 1]], y_vals[idxs[k + 1]]);
+                    for s in crate::render::globe::geodesic(a, b) {
+                        tagged.push((s.0, s.1, k));
+                    }
+                }
+                // Cull and split at the limb: a chain ends where the sphere
+                // hides the route. (A geodesic between two visible places stays
+                // visible — a hemisphere is geodesically convex — so a cut only
+                // happens where a route genuinely goes behind.)
+                let mut chains: Vec<Vec<(f64, f64, usize)>> = Vec::new();
+                let mut open = false;
+                for &(lon, lat, k) in &tagged {
+                    match g.place(lon, lat) {
+                        Some(s) => {
+                            if !open {
+                                chains.push(Vec::new());
+                                open = true;
+                            }
+                            chains.last_mut().unwrap().push((s.x, s.y, k));
+                        }
+                        None => open = false,
+                    }
+                }
+                let mut run = 0.0_f64;
+                for chain in &chains {
+                    if chain.len() < 2 { continue; }
+                    if let Some(rc) = &ramp_color {
+                        for w in chain.windows(2) {
+                            let k = w[1].2.min(idxs.len() - 2);
+                            let c = rc.segment(idxs[k], idxs[k + 1]);
+                            svg.push_str(&super::segment_svg(
+                                (w[0].0, w[0].1), (w[1].0, w[1].1), &c,
+                                stroke_w, stroke_o, dash, run));
+                            run += super::seg_len((w[0].0, w[0].1), (w[1].0, w[1].1));
+                        }
+                    } else {
+                        let points: String = chain.iter()
+                            .map(|(px, py, _)| format!("{px:.2},{py:.2}"))
+                            .collect::<Vec<_>>()
+                            .join(" ");
+                        writeln!(svg,
+                            r##"    <polyline points="{points}" fill="none" stroke="{stroke}" stroke-width="{stroke_w}" stroke-opacity="{stroke_o:.3}"{dash} stroke-linejoin="round" stroke-linecap="round"/>"##
+                        ).unwrap();
+                        for w in chain.windows(2) {
+                            run += super::seg_len((w[0].0, w[0].1), (w[1].0, w[1].1));
+                        }
+                    }
+                }
+                // A head is drawn only when the end it caps is visible: an
+                // arrow pointing at a place behind the sphere would name a
+                // direction the reader cannot check.
+                let head_at = |chain_pts: &[(f64, f64, usize)], row: usize| {
+                    let m = chain_pts.len();
+                    (m >= 2).then(|| {
+                        let (from, tip) = (chain_pts[m - 2], chain_pts[m - 1]);
+                        (from, tip, row)
+                    })
+                };
+                let mut heads: Vec<((f64, f64, usize), (f64, f64, usize), usize)> = Vec::new();
+                let last_visible = g.front(x_vals[idxs[idxs.len() - 1]], y_vals[idxs[idxs.len() - 1]]);
+                let first_visible = g.front(x_vals[idxs[0]], y_vals[idxs[0]]);
+                if matches!(arrow, Some("end") | Some("both")) && last_visible {
+                    if let Some(h) = chains.last().and_then(|c| head_at(c, idxs.len() - 1)) {
+                        heads.push(h);
+                    }
+                }
+                if matches!(arrow, Some("start") | Some("both")) && first_visible {
+                    if let Some(c) = chains.first() {
+                        if c.len() >= 2 {
+                            heads.push((c[1], c[0], 0));
+                        }
+                    }
+                }
+                for (from, tip, tip_row) in heads {
+                    if let Some(tri) = head_points((from.0, from.1), (tip.0, tip.1), stroke_w) {
+                        let c = match &ramp_color {
+                            Some(rc) => rc.segment(idxs[tip_row], idxs[tip_row]),
+                            None => stroke.clone(),
+                        };
+                        writeln!(svg,
+                            r##"    <polygon points="{tri}" fill="{c}" fill-opacity="{stroke_o:.3}" stroke="none"/>"##
+                        ).unwrap();
+                    }
+                }
             }
             writeln!(svg, "  </g>").unwrap();
             return;

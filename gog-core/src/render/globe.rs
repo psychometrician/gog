@@ -124,14 +124,29 @@ impl Globe {
         self.device(lon, lat).2 >= 0.0
     }
 
+    /// One held longitude, whole: the meridian at `lon`, pole to pole, as pixel
+    /// polylines split at the limb. This is what a `rule` on `x` draws — a rule
+    /// *holds* one coordinate and spans the axis it does not name, and holding a
+    /// longitude across every latitude is a great semicircle. Polar's spoke, one
+    /// space over, from the same sentence.
+    pub(crate) fn held_meridian(&self, lon: f64) -> Vec<Vec<(f64, f64)>> {
+        self.visible_runs(sample(-90.0, 90.0).into_iter().map(move |lat| (lon, lat)))
+    }
+
+    /// One held latitude, whole: the parallel at `lat`, all the way round, as
+    /// pixel polylines split at the limb — a small circle, polar's ring. What a
+    /// `rule` on `y` draws.
+    pub(crate) fn held_parallel(&self, lat: f64) -> Vec<Vec<(f64, f64)>> {
+        self.visible_runs(sample(-180.0, 180.0).into_iter().map(move |lon| (lon, lat)))
+    }
+
     /// The graticule's meridians: one pixel polyline per visible run of each
     /// 30° line of longitude, pole to pole.
     pub(crate) fn meridians(&self) -> Vec<Vec<(f64, f64)>> {
         let mut out = Vec::new();
         let mut lon = -180.0;
         while lon < 180.0 - GRATICULE_STEP / 2.0 {
-            let lats = sample(-90.0, 90.0);
-            out.extend(self.visible_runs(lats.into_iter().map(|lat| (lon, lat))));
+            out.extend(self.held_meridian(lon));
             lon += GRATICULE_STEP;
         }
         out
@@ -143,8 +158,7 @@ impl Globe {
         let mut out = Vec::new();
         let mut lat = -PARALLEL_REACH;
         while lat <= PARALLEL_REACH + 1e-9 {
-            let lons = sample(-180.0, 180.0);
-            out.extend(self.visible_runs(lons.into_iter().map(|lon| (lon, lat))));
+            out.extend(self.held_parallel(lat));
             lat += GRATICULE_STEP;
         }
         out
@@ -178,6 +192,59 @@ impl Globe {
 fn sample(lo: f64, hi: f64) -> Vec<f64> {
     let n = ((hi - lo) / GRATICULE_SAMPLE).round() as usize;
     (0..=n).map(|i| lo + i as f64 * GRATICULE_SAMPLE).collect()
+}
+
+/// The geodesic from `a` to `b` (each `(lon, lat)` in degrees), sampled at
+/// roughly the graticule's step: the intermediate places, then `b` itself —
+/// `a` is left out so a route's pairs chain without repeating their joints.
+///
+/// **A joined segment on a sphere follows a great circle** — the geodesic is
+/// what two endpoints assert lies between them (Wilkinson §13.1.7), the
+/// hold-versus-join principle `polar` recorded, answered here by citation. The
+/// interpolation is spherical, by unit vectors, which is also what makes the
+/// two longitude conventions (−180..180 and 0..360) meet without any wrap
+/// arithmetic: the vectors never know which convention named them.
+///
+/// Antipodal endpoints have no unique geodesic. The route goes deterministically
+/// through the north pole (or, from a pole, through the equator's origin) —
+/// shortest-arc-among-equals, the recorded residue, and the same answer every
+/// render gives so the picture cannot flicker between equals.
+pub(crate) fn geodesic(a: (f64, f64), b: (f64, f64)) -> Vec<(f64, f64)> {
+    let unit = |(lon, lat): (f64, f64)| {
+        let (lam, phi) = (lon * RAD, lat * RAD);
+        [phi.cos() * lam.cos(), phi.cos() * lam.sin(), phi.sin()]
+    };
+    let (ua, ub) = (unit(a), unit(b));
+    let dot = (ua[0] * ub[0] + ua[1] * ub[1] + ua[2] * ub[2]).clamp(-1.0, 1.0);
+    let omega = dot.acos();
+    if !omega.is_finite() {
+        return vec![b];
+    }
+    if omega < GRATICULE_SAMPLE * RAD {
+        // Closer than one sample: the chord and the arc are the same pixels.
+        return vec![b];
+    }
+    if (std::f64::consts::PI - omega) < 1e-9 {
+        // Antipodes: route through a fixed waypoint, in two halves.
+        let via = if a.1.abs() > 89.9 { (0.0, 0.0) } else { (0.0, 90.0) };
+        let mut out = geodesic(a, via);
+        out.extend(geodesic(via, b));
+        return out;
+    }
+    let n = (omega / (GRATICULE_SAMPLE * RAD)).ceil() as usize;
+    let sin_o = omega.sin();
+    (1..=n)
+        .map(|i| {
+            let t = i as f64 / n as f64;
+            let (fa, fb) = (((1.0 - t) * omega).sin() / sin_o, (t * omega).sin() / sin_o);
+            let v = [
+                fa * ua[0] + fb * ub[0],
+                fa * ua[1] + fb * ub[1],
+                fa * ua[2] + fb * ub[2],
+            ];
+            (v[1].atan2(v[0]) / RAD, (v[2].clamp(-1.0, 1.0)).asin() / RAD)
+        })
+        .collect()
 }
 
 #[cfg(test)]

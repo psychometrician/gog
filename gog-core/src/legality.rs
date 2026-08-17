@@ -1525,13 +1525,18 @@ pub fn mark_draws_in_space(mark: &Mark, space: SpaceKind) -> bool {
         }
         // **Both positions are spent on the place, on the sphere itself** — the
         // map's fact one space over, so this column is `map`'s being built out
-        // mark by mark. `point` is a place and `text` a name at one, drawn on
-        // the facing hemisphere with the hidden count reported. `path` (a route
-        // along great circles), `rule` (a meridian or parallel) and `zone` (the
-        // spherical patch) are designed and owed — the spec's staged order —
-        // and the marks that measure along an axis refuse for `map`'s one
-        // reason: there is no axis here to measure along.
-        SpaceKind::Globe => matches!(mark, Mark::Point | Mark::Text),
+        // mark by mark. `point` is a place, `text` a name at one, `path` a
+        // route along great circles (a joined segment is what its endpoints
+        // assert lies between them, and on a sphere that is the geodesic), and
+        // `rule` holds one coordinate whole — a meridian or a parallel, polar's
+        // spoke and ring one space over. All drawn on the facing hemisphere
+        // with the hidden count reported. `zone` (the spherical patch) is
+        // designed and owed — the spec's staged order — and the marks that
+        // measure along an axis refuse for `map`'s one reason: there is no
+        // axis here to measure along.
+        SpaceKind::Globe => {
+            matches!(mark, Mark::Point | Mark::Text | Mark::Path | Mark::Rule)
+        }
     }
 }
 
@@ -7415,6 +7420,23 @@ fn check_globe(out: &mut Vec<Diagnostic>, spec: &PlotSpec, data: &HashMap<String
         });
     }
 
+    // The rug stands its ticks on an axis edge, and a globe has no axes — a
+    // rule's reading here is the whole meridian or parallel. Refused rather
+    // than drawn whole in silence, since the sentence asked for something
+    // shorter than what it would get.
+    for layer in &spec.layers {
+        if layer.mark == Mark::Rule && layer.style.reach.as_deref() == Some("edge") {
+            out.push(Diagnostic {
+                kind: DiagnosticKind::Illegal,
+                message: "gog: `style(reach = \"edge\")` stands a rule's ticks on an axis \
+                          edge, and a `globe()` plot has no axes — a rule here is the whole \
+                          meridian or parallel it holds. Drop `reach` to draw it whole, or \
+                          drop `globe()` for the flat rug."
+                    .to_string(),
+            });
+        }
+    }
+
     // A latitude beyond ±90 is not a place on the sphere, so those rows cannot
     // be drawn — said with a count rather than skipped in silence.
     if let Some(def) = spec.axis_def(&Channel::Y) {
@@ -9721,13 +9743,13 @@ mod tests {
     #[test]
     fn a_globe_blank_says_whether_it_is_owed_or_ruled_out() {
         let owed = base()
-            .layer(Layer::new(Mark::Path))
+            .layer(Layer::new(Mark::Zone))
             .coord(CoordSpace::Globe(crate::ir::GlobeView::default()));
         let out = check(&owed, &data());
         assert!(
             out.iter().any(|d| d.kind == DiagnosticKind::Unsupported
                 && d.message.contains("designed for `globe()`")),
-            "`path` on the globe should be owed, not ruled out: {:?}",
+            "`zone` on the globe should be owed, not ruled out: {:?}",
             msgs(&out)
         );
 
@@ -13583,10 +13605,11 @@ mod tests {
         }
         // **The globe column, stated whole and by name.** The sphere spends both
         // positions on the place, so its column is `map`'s being built out mark
-        // by mark: `point` and `text` stand on it today, and the grid may claim
-        // exactly those — a cell drifting either way is this assertion failing.
+        // by mark: `point`, `text`, `path` and `rule` stand on it today, and the
+        // grid may claim exactly those — a cell drifting either way is this
+        // assertion failing.
         for m in &ALL_MARKS {
-            let drawn = matches!(m, Mark::Point | Mark::Text);
+            let drawn = matches!(m, Mark::Point | Mark::Text | Mark::Path | Mark::Rule);
             assert_eq!(sc("globe", mark_name(m)), drawn,
                 "{m:?}: the globe column and the renderer disagree");
         }

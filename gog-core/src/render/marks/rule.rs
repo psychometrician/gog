@@ -59,6 +59,13 @@ impl SvgRenderer {
         color_map: &HashMap<String, String>,
         clip: &str,
         polar: Option<&Polar>,
+        // Globe: the sentence unchanged again. A rule *holds* one coordinate and
+        // spans the axis it does not name, whole — and holding a longitude
+        // across every latitude is a **meridian** (a great semicircle, pole to
+        // pole), holding a latitude across every longitude a **parallel** (a
+        // small circle all the way round). Polar's spoke and ring, one space
+        // over, cut at the limb like everything on the sphere.
+        globe: Option<&crate::render::globe::Globe>,
     ) {
         // `rule_axis` is the single statement of Law 7's second relaxation, and
         // the renderer asks it rather than re-deriving it — the same discipline
@@ -117,6 +124,25 @@ impl SvgRenderer {
             let stroke_attrs = format!(
                 r##"fill="none" stroke="{stroke}" stroke-width="{stroke_w}" stroke-opacity="{stroke_o:.3}"{dash} stroke-linecap="round""##
             );
+
+            if let Some(g) = globe {
+                // A held latitude past a pole is not a place, so there is no
+                // parallel to draw; `check_globe` has already counted and said
+                // it, and the meridian reading wraps like any bearing.
+                if !on_x && v.abs() > 90.0 {
+                    continue;
+                }
+                let runs = if on_x { g.held_meridian(v) } else { g.held_parallel(v) };
+                for run in runs {
+                    let points: String = run.iter()
+                        .map(|(px, py)| format!("{px:.2},{py:.2}"))
+                        .collect::<Vec<_>>()
+                        .join(" ");
+                    writeln!(svg, r##"    <polyline points="{points}" {stroke_attrs}/>"##)
+                        .unwrap();
+                }
+                continue;
+            }
 
             let u = unit_norm(v, scale);
             match polar {
