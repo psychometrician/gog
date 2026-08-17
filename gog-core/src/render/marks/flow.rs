@@ -20,7 +20,7 @@ use crate::render::palette::PALETTE_GOG;
 use crate::render::svg::SvgRenderer;
 use crate::render::text::esc;
 use crate::render::Layout;
-use crate::transform::{BAND_LOWER, BAND_UPPER, CELL_LOWER, CELL_UPPER, FLOW_STAGE};
+use crate::transform::{CELL_LOWER, CELL_UPPER, FLOW_PATH, FLOW_STAGE};
 
 /// Half a slot's thickness, in category units — a stage sits at integer `k` and
 /// its slots run `k ± this`. One constant, no knob: the width carries no data,
@@ -72,8 +72,11 @@ impl SvgRenderer {
         writeln!(svg, "  </g>").unwrap();
     }
 
-    /// The bands — one cubic-sided shape per (path, adjacent-stage gap), running
-    /// from the path's interval at the left stage to its interval at the right.
+    /// The bands — one cubic-sided shape per adjacent pair of a path's rows,
+    /// running from the path's interval at one stage to its interval at the
+    /// next. The pairing is `interval`'s two-rows reading with a key: rows
+    /// arrive path-major in stage order, and consecutive rows sharing
+    /// [`FLOW_PATH`] are one band's two ends.
     #[allow(clippy::too_many_arguments)]
     pub(crate) fn write_flow_bands(
         &self,
@@ -87,10 +90,9 @@ impl SvgRenderer {
         color_map: &std::collections::HashMap<String, String>,
         clip: &str,
     ) {
-        let (Some(stage), Some(l0), Some(u0), Some(l1), Some(u1)) = (
-            df.str_col(FLOW_STAGE),
+        let (Some(path), Some(stage), Some(lo), Some(hi)) = (
+            df.str_col(FLOW_PATH), df.str_col(FLOW_STAGE),
             df.float_col(CELL_LOWER), df.float_col(CELL_UPPER),
-            df.float_col(BAND_LOWER), df.float_col(BAND_UPPER),
         ) else {
             return;
         };
@@ -100,18 +102,23 @@ impl SvgRenderer {
         let hue_col = layer.encodings.get(&Channel::Color)
             .and_then(|def| df.str_col(&def.field));
         writeln!(svg, r#"  <g clip-path="url(#{clip})">"#).unwrap();
-        for r in 0..stage.len() {
-            let Some(k) = cats.iter().position(|c| *c == stage[r]) else { continue };
-            if k + 1 >= cats.len() {
+        for r in 0..path.len().saturating_sub(1) {
+            if path[r + 1] != path[r] {
                 continue;
             }
-            let x0 = l.map_x(k as f64 + SLOT_HALF, xs.0, xs.1);
-            let x1 = l.map_x((k + 1) as f64 - SLOT_HALF, xs.0, xs.1);
+            let (Some(k0), Some(k1)) = (
+                cats.iter().position(|c| *c == stage[r]),
+                cats.iter().position(|c| *c == stage[r + 1]),
+            ) else {
+                continue;
+            };
+            let x0 = l.map_x(k0 as f64 + SLOT_HALF, xs.0, xs.1);
+            let x1 = l.map_x(k1 as f64 - SLOT_HALF, xs.0, xs.1);
             let mx = (x0 + x1) / 2.0;
-            let a_hi = l.map_y(u0[r], ys.0, ys.1);
-            let a_lo = l.map_y(l0[r], ys.0, ys.1);
-            let b_hi = l.map_y(u1[r], ys.0, ys.1);
-            let b_lo = l.map_y(l1[r], ys.0, ys.1);
+            let a_hi = l.map_y(hi[r], ys.0, ys.1);
+            let a_lo = l.map_y(lo[r], ys.0, ys.1);
+            let b_hi = l.map_y(hi[r + 1], ys.0, ys.1);
+            let b_lo = l.map_y(lo[r + 1], ys.0, ys.1);
             let fill = hue_col
                 .and_then(|c| c.get(r))
                 .and_then(|v| color_map.get(v))

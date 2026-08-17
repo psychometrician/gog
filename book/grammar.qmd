@@ -231,9 +231,10 @@ marks that would otherwise land on top of each other:
 | `jitter` | Spreads them sideways along a category |
 | `repel` | Moves labels off one another when they overlap |
 
-And two transforms lay out a whole picture. `partition` divides a whole among
-nested parts, which is what a treemap and a mosaic are built from. `flow` lays
-a magnitude through its stages, which is what a flow diagram is built from.
+And two transforms compute a whole picture. `partition` divides a whole among
+nested parts, which is what a treemap and a mosaic are built from. `flow`
+carries a magnitude through its stages, which is what a flow diagram is built
+from.
 
 See [Transforms](transforms.qmd) for each one in detail, and
 [Combinations](combinations.qmd) for which marks take which.

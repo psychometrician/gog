@@ -4521,6 +4521,23 @@ mod tests {
         assert_eq!(svg, SvgRenderer::default().render(&flow_spec(), &flow_table()));
     }
 
+    /// **A bands-only flow still draws, and its axis carries every stage.** The
+    /// first build starved both: band rows named only *left* stages, so a
+    /// seen-levels axis lost the final stage and a two-stage `ribbon * flow`
+    /// with no other layer drew an empty panel — found by a reader of the
+    /// chapter's first plot, not by any check. The band frame now carries one
+    /// row per (path, stage), so the axis is complete from the bands' own
+    /// rows, whichever layers the sentence has.
+    #[test]
+    fn a_bands_only_flow_draws_and_names_every_stage() {
+        let spec = PlotSpec::new().data("t").y("n")
+            .layer(Layer::new(Mark::Ribbon).flow(&["class", "survived"]));
+        let svg = SvgRenderer::default().render(&spec, &flow_table());
+        assert!(svg.contains(" C "), "two stages and one layer still draw bands");
+        assert!(svg.contains(">class<") && svg.contains(">survived<"),
+            "the final stage's name is on the axis without a zone layer to carry it");
+    }
+
     /// A band's paint follows a stage's category: `color(class)` on the band
     /// layer splits the bands by their path's class and earns the legend.
     #[test]
