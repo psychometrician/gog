@@ -36,6 +36,12 @@ CRAN-style repositories and PyPI, `GrammarOfGraphics` on Julia's General, and
 
 ### Changed
 
+- **The boundary refusal on `zone` names both geographic spaces.** Writing
+  `zone + group(<column>)` outside them is refused as before, and the
+  direction now says to add `map()` or `globe()` if the column names regions
+  on a boundary — it named only `map()` while `map` was the one space that
+  could read one.
+
 - **A written `space(tilt = )` outside -90 to 90 is now refused.** `tilt` is how
   high your eye is, and height runs out: at 90 you look straight down and at -90
   straight up, so past either end the scene hangs upside down with all three axis
