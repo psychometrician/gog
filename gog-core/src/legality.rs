@@ -4600,6 +4600,22 @@ fn check_network(out: &mut Vec<Diagnostic>, spec: &PlotSpec) {
         }
     }
 
+    // Names in the cube wait. The 3-D pass draws the layout's other two
+    // readers and has no text writer, so without this gate a `text` layer in
+    // the cube form would be accepted and silently skipped — the one thing no
+    // feature may do (§12). Refused as unbuilt, with the flat form named.
+    if matches!(&spec.coord, CoordSpace::Network(v) if v.cube())
+        && spec.layers.iter().any(|l| l.mark == Mark::Text)
+    {
+        out.push(Diagnostic {
+            kind: DiagnosticKind::Unsupported,
+            message: "gog: names in the network's cube are valid grammar this \
+                      engine does not draw yet. Drop the `text` layer, or drop \
+                      the viewing angle and label the flat form."
+                .to_string(),
+        });
+    }
+
     // The axes are not there to be named — `nest`'s rule, for `nest`'s reason.
     for (label, atom) in [
         (&spec.x_axis.label, "x_label"),
@@ -15590,6 +15606,17 @@ mod tests {
             assert!(d.iter().all(|x| x.kind != DiagnosticKind::Illegal
                 && x.kind != DiagnosticKind::Unsupported),
                 "the network's minimum syllable is complete: {:?}", msgs(&d));
+
+            // Names in the cube wait, and say so — the 3-D pass has no text
+            // writer, and accepted-and-skipped is the drop §12 forbids.
+            let d = check(&PlotSpec::new().data("t")
+                .coord(CoordSpace::Network(crate::ir::NetworkView {
+                    turn: Some(30.0), tilt: Some(25.0) }))
+                .layer(Layer::new(Mark::Edge).layout("continent", "region"))
+                .layer(Layer::new(Mark::Text).layout("continent", "region")), &data());
+            assert!(d.iter().any(|x| x.kind == DiagnosticKind::Unsupported
+                && x.message.contains("label the flat form")),
+                "text in the network's cube refuses as unbuilt: {:?}", msgs(&d));
         }
 
         // A zone on two *continuous* positions with no transform has nothing to

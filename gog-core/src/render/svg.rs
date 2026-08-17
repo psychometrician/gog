@@ -1981,7 +1981,7 @@ impl SvgRenderer {
                                     &color_map, &ramp, &clip, zs, z_field, None, None, Some(g)),
                                 Mark::Text => self.write_text(&mut svg, layer, df, l, xs, ys,
                                     x_field, y_field, cat_x.as_deref(), cat_y.as_deref(),
-                                    &color_map, &clip, None, None, Some(g), &mut remarks),
+                                    &color_map, &clip, None, None, Some(g), None, &mut remarks),
                                 Mark::Path => self.write_path(&mut svg, layer, df, l, xs, ys,
                                     x_field, y_field, cat_x.as_deref(), cat_y.as_deref(),
                                     &color_map, &ramp, &clip, zs, z_field, None, None, Some(g)),
@@ -2189,7 +2189,32 @@ impl SvgRenderer {
                         Mark::Ribbon if layer.transforms.contains(&Transform::Flow) =>
                             self.write_flow_bands(&mut svg, layer, df, l, xs, ys, cat_x.as_deref(), &color_map, &clip),
                         Mark::Ribbon => self.write_ribbon(&mut svg, layer, df, l, xs, ys, x_field, y_field, cat_x.as_deref(), &color_map, &clip, pol_ref),
-                        Mark::Text => self.write_text(&mut svg, layer, df, l, xs, ys, x_field, y_field, cat_x.as_deref(), cat_y.as_deref(), &color_map, &clip, pol_ref, nst.as_ref(), None, &mut remarks),
+                        Mark::Text => {
+                            // A network's dots are sized by `degree`, and a
+                            // repelled name must clear the dot it actually
+                            // has. The text layer's own frame carries the same
+                            // `degree` the sibling `point` sized by — the
+                            // layout's determinism is what lines the rows up —
+                            // so the radii are recomputed here rather than
+                            // plumbed across layers.
+                            let anchor_radii: Option<Vec<f64>> =
+                                if layer.transforms.contains(&Transform::Layout)
+                                    && layer.transforms.contains(&Transform::Repel) {
+                                    spec.layers.iter()
+                                        .find(|p| p.mark == Mark::Point
+                                            && p.transforms.contains(&Transform::Layout))
+                                        .and_then(|p| p.encodings.get(&Channel::Size).cloned())
+                                        .and_then(|def| df.float_col(&def.field).map(|c| {
+                                            let sc = scale::ChannelScale::of(c, Some(&def));
+                                            c.iter()
+                                                .map(|&v| crate::render::encode::radius_at(sc.fraction(v)))
+                                                .collect()
+                                        }))
+                                } else {
+                                    None
+                                };
+                            self.write_text(&mut svg, layer, df, l, xs, ys, x_field, y_field, cat_x.as_deref(), cat_y.as_deref(), &color_map, &clip, pol_ref, nst.as_ref(), None, anchor_radii.as_deref(), &mut remarks)
+                        }
                         // The stroke between two layout-supplied endpoints —
                         // only ever reached inside `network()`, where the
                         // legality gate has already admitted it.
@@ -4704,6 +4729,65 @@ mod tests {
         assert_eq!(repelled,
             SvgRenderer::default().render(&with_repel(true), &net_table()),
             "a repelled name moves to the same place every run");
+    }
+
+    /// **A repelled name clears the dot it actually has.** With `size(degree)`
+    /// on the sibling `point`, the hub's dot is much larger than the default,
+    /// and the label's resting step must measure off that radius — found by a
+    /// reader whose hub names struck through their dots while every small
+    /// node's name rested clear. Asserted geometrically: no label center sits
+    /// inside its own node's circle.
+    #[test]
+    fn a_repelled_name_clears_its_sized_dot() {
+        let hub = DataFrame::new()
+            .with_str("a", vec!["Hub".into(); 6])
+            .with_str("b", vec!["p".into(), "q".into(), "r".into(),
+                                "s".into(), "t".into(), "u".into()]);
+        let data = HashMap::from([("t".to_string(), hub)]);
+        let mut point = Layer::new(Mark::Point).layout("a", "b");
+        point.encodings.insert(Channel::Size, crate::ir::ChannelDef::field("degree"));
+        let mut text = Layer::new(Mark::Text).layout("a", "b");
+        text.transforms.push(Transform::Repel);
+        text.encodings.insert(Channel::Label, crate::ir::ChannelDef::field("name"));
+        let spec = PlotSpec::new().data("t")
+            .layer(Layer::new(Mark::Edge).layout("a", "b"))
+            .layer(point).layer(text)
+            .coord(CoordSpace::Network(crate::ir::NetworkView::default()));
+        let svg = SvgRenderer::default().render(&spec, &data);
+        let circles: Vec<(f64, f64, f64)> = svg.match_indices("<circle cx=\"")
+            .map(|(at, _)| {
+                let rest = &svg[at..];
+                let grab = |key: &str| -> f64 {
+                    let s = rest.find(key).unwrap() + key.len();
+                    rest[s..].split('"').next().unwrap().parse().unwrap()
+                };
+                (grab("cx=\""), grab("cy=\""), grab("r=\""))
+            })
+            .collect();
+        let texts: Vec<(f64, f64)> = svg.match_indices("<text x=\"")
+            .map(|(at, _)| {
+                let rest = &svg[at..];
+                let grab = |key: &str| -> f64 {
+                    let s = rest.find(key).unwrap() + key.len();
+                    rest[s..].split('"').next().unwrap().parse().unwrap()
+                };
+                (grab("x=\""), grab("y=\""))
+            })
+            .collect();
+        assert!(!circles.is_empty() && !texts.is_empty());
+        for &(tx, ty) in &texts {
+            let &(cx, cy, r) = circles.iter()
+                .min_by(|p, q| {
+                    let dp = (p.0 - tx).powi(2) + (p.1 - ty).powi(2);
+                    let dq = (q.0 - tx).powi(2) + (q.1 - ty).powi(2);
+                    dp.partial_cmp(&dq).unwrap()
+                })
+                .unwrap();
+            let dist = ((cx - tx).powi(2) + (cy - ty).powi(2)).sqrt();
+            assert!(dist > r,
+                "a name's center at ({tx}, {ty}) sits inside its dot at \
+                 ({cx}, {cy}) of radius {r}");
+        }
     }
 
     /// A band's paint follows a stage's category: `color(class)` on the band

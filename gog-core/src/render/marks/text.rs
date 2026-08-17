@@ -49,6 +49,10 @@ impl SvgRenderer {
         // skipped here and counted by the caller; the far half of the earth is
         // what a globe is, not a drop.
         globe: Option<&crate::render::globe::Globe>,
+        // Per-anchor dot radii, when the caller knows the dots are not the
+        // default — a network's nodes sized by `degree`. `None` keeps the
+        // default point radius for every anchor, which is every other plot.
+        anchor_radii: Option<&[f64]>,
         // Where a label that could not be drawn is reported. A packing of many
         // shares has more regions than legible ones, so leaving the unfitted ones
         // out in silence would let a reader take the labeled cells for all of them
@@ -134,7 +138,14 @@ impl SvgRenderer {
         // label's is its *ink*, so this is the one offset that cannot be computed
         // before the glyphs have a size — and this is where they get one.
         let repelled = layer.transforms.contains(&Transform::Repel).then(|| {
-            place_repelled(&rows, labels, fs, st.nudge.as_deref(), l, self.point_radius + 1.0, remarks)
+            // One clearance per anchor: the sized dot's own radius where the
+            // caller supplied one, the default everywhere else.
+            let dots: Vec<f64> = rows.iter()
+                .map(|&(i, _, _)| anchor_radii
+                    .and_then(|r| r.get(i).copied())
+                    .unwrap_or(self.point_radius) + 1.0)
+                .collect();
+            place_repelled(&rows, labels, fs, st.nudge.as_deref(), l, &dots, remarks)
         });
 
         let fill_for = |i: usize| -> String {
@@ -438,12 +449,17 @@ fn place_repelled(
     fs: f64,
     nudge: Option<&str>,
     l: &Layout,
-    dot: f64,
+    // One clearance per entry of `rows`, in the same order: a dot sized by a
+    // channel is cleared at the radius it actually has, not the default —
+    // found by a network whose hub labels struck through their `size(degree)`
+    // dots while every small node's name rested clear.
+    dots: &[f64],
     remarks: &mut Vec<Diagnostic>,
 ) -> Vec<LabelBox> {
     let mut bs: Vec<LabelBox> = rows
         .iter()
-        .map(|&(i, ax, ay)| {
+        .enumerate()
+        .map(|(bi, &(i, ax, ay))| {
             let w = estimate_text_width(&labels[i], fs);
             let hh = (estimate_cap_height(fs) + fs * REPEL_PAD_Y) / 2.0;
             // The nudge, restated as an offset of the label's *center*. The glyph
@@ -464,7 +480,7 @@ fn place_repelled(
                 Some("down") => (0.0, fs),
                 Some("left") => (-(fs * 0.6 + w / 2.0), 0.0),
                 Some("right") => (fs * 0.6 + w / 2.0, 0.0),
-                _ => (0.0, -(dot + hh)),
+                _ => (0.0, -(dots[bi] + hh)),
             };
             LabelBox {
                 hw: (w + fs * REPEL_PAD_X) / 2.0,
@@ -553,8 +569,8 @@ fn place_repelled(
             for k in 0..n {
                 let (ax, ay) = (bs[k].ax, bs[k].ay);
                 let (dx, dy) = (bs[i].cx - ax, bs[i].cy - ay);
-                let ox = (bs[i].hw + dot) - dx.abs();
-                let oy = (bs[i].hh + dot) - dy.abs();
+                let ox = (bs[i].hw + dots[k]) - dx.abs();
+                let oy = (bs[i].hh + dots[k]) - dy.abs();
                 if ox <= 0.0 || oy <= 0.0 {
                     continue;
                 }
