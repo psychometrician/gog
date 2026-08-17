@@ -1530,12 +1530,14 @@ pub fn mark_draws_in_space(mark: &Mark, space: SpaceKind) -> bool {
         // assert lies between them, and on a sphere that is the geodesic), and
         // `rule` holds one coordinate whole — a meridian or a parallel, polar's
         // spoke and ring one space over. All drawn on the facing hemisphere
-        // with the hidden count reported. `zone` (the spherical patch) is
-        // designed and owed — the spec's staged order — and the marks that
-        // measure along an axis refuse for `map`'s one reason: there is no
-        // axis here to measure along.
+        // with the hidden count reported. `zone` is the spherical patch — the
+        // boundary-supplied choropleth, its rings clipped at the limb and
+        // re-closed along it (`check_globe` holds the mesh forms back until an
+        // equal-area spherical grid exists). The column is now `map`'s exactly,
+        // and the marks that measure along an axis refuse for `map`'s one
+        // reason: there is no axis here to measure along.
         SpaceKind::Globe => {
-            matches!(mark, Mark::Point | Mark::Text | Mark::Path | Mark::Rule)
+            matches!(mark, Mark::Point | Mark::Text | Mark::Path | Mark::Rule | Mark::Zone)
         }
     }
 }
@@ -7188,7 +7190,10 @@ fn check_order(out: &mut Vec<Diagnostic>, spec: &PlotSpec, data: &HashMap<String
 /// boundary refuses in its own words rather than the table quietly meaning two
 /// different things in two places.
 fn check_zone_group(out: &mut Vec<Diagnostic>, spec: &PlotSpec, data: &HashMap<String, DataFrame>) {
-    let in_map = matches!(spec.coord, CoordSpace::Map(_));
+    // The two geographic spaces read a boundary the same way: `group` names the
+    // region each vertex belongs to, on the flattened sphere and on the sphere
+    // itself alike.
+    let in_map = matches!(spec.coord, CoordSpace::Map(_) | CoordSpace::Globe(_));
     for layer in &spec.layers {
         if layer.mark != Mark::Zone {
             continue;
@@ -7198,7 +7203,9 @@ fn check_zone_group(out: &mut Vec<Diagnostic>, spec: &PlotSpec, data: &HashMap<S
             // A boundary with nothing to say which rows belong to which region.
             // Refused rather than guessed at: one region per table would draw the
             // whole world as a single shape, which looks like a plot and is not one.
-            (true, None) => out.push(Diagnostic {
+            // In `globe` this arm never reports: `check_globe` owns that refusal,
+            // with the tiling reason named, and two voices for one gap is noise.
+            (true, None) if matches!(spec.coord, CoordSpace::Map(_)) => out.push(Diagnostic {
                 kind: DiagnosticKind::Illegal,
                 message: "gog: a `zone` on a map is a region bounded by a coastline, and \
                           nothing here says which rows are one region — a boundary arrives as \
@@ -7207,13 +7214,14 @@ fn check_zone_group(out: &mut Vec<Diagnostic>, spec: &PlotSpec, data: &HashMap<S
                           belongs to."
                     .to_string(),
             }),
+            (true, None) => {}
             (false, Some(g)) => out.push(Diagnostic {
                 kind: DiagnosticKind::Illegal,
                 message: format!(
                     "gog: `group({g})` gathers many rows into one region, and a `zone` here \
                      takes its sides from its own row — a category's slot, `bounds`, `bin` or \
-                     `density`. Drop `group({g})`, or add `map()` if `{g}` names regions on a \
-                     boundary."
+                     `density`. Drop `group({g})`, or add `map()` or `globe()` if `{g}` names \
+                     regions on a boundary."
                 ),
             }),
             // **A ring that never closes.** A boundary closes each ring on the vertex
@@ -7418,6 +7426,32 @@ fn check_globe(out: &mut Vec<Diagnostic>, spec: &PlotSpec, data: &HashMap<String
                       reference instead. Drop it; `title()` still names the plot."
                 .to_string(),
         });
+    }
+
+    // **`zone` on the sphere takes its sides from a boundary, and only from
+    // one.** The mesh and `bounds` forms are held back: the binned distribution
+    // on a sphere is this space's recommended eventual build, and its correct
+    // tiling is hexagonal (rectangular bins do not cover equal area on a
+    // sphere) — an equal-area spherical grid the engine does not have yet.
+    // Refused rather than drawn as flat rectangles pretending to be patches.
+    for layer in &spec.layers {
+        if layer.mark == Mark::Zone
+            && (layer.encodings.get(&Channel::Group).is_none()
+                || !layer.transforms.is_empty()
+                || layer.bounds.is_some())
+        {
+            out.push(Diagnostic {
+                kind: DiagnosticKind::Unsupported,
+                message: "gog: `zone` on the globe takes its sides from a boundary — \
+                          `zone + x(<lon>) + y(<lat>) + group(<region>)` fills each region \
+                          on the sphere. A binned or aggregated field here is designed and \
+                          not drawn yet: its correct tiling is hexagonal, because \
+                          rectangular bins do not cover equal area on a sphere, and that \
+                          equal-area grid is not built. Give the zone a boundary, or drop \
+                          `globe()`."
+                    .to_string(),
+            });
+        }
     }
 
     // The rug stands its ticks on an axis edge, and a globe has no axes — a
@@ -9742,14 +9776,17 @@ mod tests {
     /// **ruled out** for `map`'s one reason. Both say what to write instead.
     #[test]
     fn a_globe_blank_says_whether_it_is_owed_or_ruled_out() {
+        // `zone` draws only its boundary form here: a mesh has no equal-area
+        // spherical grid to stand on yet, so a zone without a boundary is owed
+        // with the tiling reason named.
         let owed = base()
             .layer(Layer::new(Mark::Zone))
             .coord(CoordSpace::Globe(crate::ir::GlobeView::default()));
         let out = check(&owed, &data());
         assert!(
             out.iter().any(|d| d.kind == DiagnosticKind::Unsupported
-                && d.message.contains("designed for `globe()`")),
-            "`zone` on the globe should be owed, not ruled out: {:?}",
+                && d.message.contains("sides from a boundary")),
+            "`zone` without a boundary should be owed, with direction: {:?}",
             msgs(&out)
         );
 
@@ -13603,15 +13640,18 @@ mod tests {
                 "{m:?}: the plane and the circle must agree about which marks draw"
             );
         }
-        // **The globe column, stated whole and by name.** The sphere spends both
-        // positions on the place, so its column is `map`'s being built out mark
-        // by mark: `point`, `text`, `path` and `rule` stand on it today, and the
-        // grid may claim exactly those — a cell drifting either way is this
-        // assertion failing.
+        // **The globe column, stated whole and by name — and it is `map`'s.**
+        // The sphere spends both positions on the place, so the marks that
+        // place something stand on it and the grid may claim exactly those; a
+        // cell drifting either way is this assertion failing. That the two
+        // columns match is itself the claim: a globe is a map of the sphere.
         for m in &ALL_MARKS {
-            let drawn = matches!(m, Mark::Point | Mark::Text | Mark::Path | Mark::Rule);
+            let drawn = matches!(m,
+                Mark::Point | Mark::Text | Mark::Path | Mark::Rule | Mark::Zone);
             assert_eq!(sc("globe", mark_name(m)), drawn,
                 "{m:?}: the globe column and the renderer disagree");
+            assert_eq!(sc("globe", mark_name(m)), sc("map", mark_name(m)),
+                "{m:?}: the sphere and its flattening must agree about which marks place");
         }
         // **The map column, stated whole.** A map is a map of the plane, so it has
         // a coordinate for everything — but longitude and latitude spend *both*

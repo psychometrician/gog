@@ -164,6 +164,269 @@ impl Globe {
         out
     }
 
+    /// The place on the limb at angle `theta` (measured counterclockwise from
+    /// screen-right in device coordinates), as pixels.
+    fn limb_px(&self, theta: f64) -> (f64, f64) {
+        (self.cx + self.r * theta.cos(), self.cy - self.r * theta.sin())
+    }
+
+    /// The same limb point as a longitude and latitude, for asking whether a
+    /// stretch of the horizon lies inside a region. The horizon's 3-D point is
+    /// `cos θ · right + sin θ · up`, read back through the view's basis.
+    fn limb_lonlat(&self, theta: f64) -> (f64, f64) {
+        let right = [-self.sin_az, self.cos_az, 0.0];
+        let up = [
+            -self.cos_az * self.sin_el,
+            -self.sin_az * self.sin_el,
+            self.cos_el,
+        ];
+        let (c, s) = (theta.cos(), theta.sin());
+        let p = [
+            c * right[0] + s * up[0],
+            c * right[1] + s * up[1],
+            c * right[2] + s * up[2],
+        ];
+        (p[1].atan2(p[0]) / RAD, p[2].clamp(-1.0, 1.0).asin() / RAD)
+    }
+
+    /// The point the view faces, as a longitude and latitude.
+    fn center_lonlat(&self) -> (f64, f64) {
+        let p = [
+            self.cos_az * self.cos_el,
+            self.sin_az * self.cos_el,
+            self.sin_el,
+        ];
+        (p[1].atan2(p[0]) / RAD, p[2].clamp(-1.0, 1.0).asin() / RAD)
+    }
+
+    /// The whole disk as one closed subpath — what an invisible ring that
+    /// surrounds the view contributes, for even-odd to carve the others from.
+    pub(crate) fn disk_subpath(&self) -> String {
+        let mut d = String::new();
+        for i in 0..=180 {
+            let (x, y) = self.limb_px(i as f64 * 2.0 * RAD);
+            let cmd = if i == 0 { 'M' } else { 'L' };
+            d.push_str(&format!("{cmd}{x:.2},{y:.2} "));
+        }
+        d.push_str("Z ");
+        d
+    }
+
+    /// **A zone's ring against the facing hemisphere** — the one genuinely new
+    /// piece of geometry this space asked for. A ring cut by the horizon must be
+    /// **re-closed along the limb arc** to stay fillable, or a half-visible
+    /// country is an open stroke rather than a region.
+    ///
+    /// Returns the closed pixel loops this ring contributes, plus whether it
+    /// surrounds the view entirely (an invisible ring whose interior holds the
+    /// view center — its visible extent is the whole disk). Everything is
+    /// decided **even-odd**, matching the flat choropleth's fill rule, so no
+    /// winding convention is ever consulted: whether a stretch of horizon lies
+    /// inside the region is asked of the ring itself, point by point.
+    ///
+    /// The walk: resample every edge along its geodesic, cull to the facing
+    /// hemisphere collecting visible chains with their exact horizon crossings,
+    /// then link chain ends along the limb through the horizon stretches the
+    /// region covers. Each ring crosses the horizon an even number of times, and
+    /// the covered stretches alternate with the uncovered around the circle, so
+    /// one containment test anchors them all.
+    pub(crate) fn clip_ring(&self, ring: &[(f64, f64)]) -> (Vec<Vec<(f64, f64)>>, bool) {
+        if ring.len() < 3 {
+            return (Vec::new(), false);
+        }
+        // The cyclic vertex list: the closing duplicate off, each edge resampled
+        // so the boundary bends with the sphere.
+        let closed = ring.first() == ring.last();
+        let m = if closed { ring.len() - 1 } else { ring.len() };
+        if m < 3 {
+            return (Vec::new(), false);
+        }
+        let mut cycle: Vec<(f64, f64)> = vec![ring[0]];
+        for k in 0..m {
+            cycle.extend(geodesic(ring[k], ring[(k + 1) % m]));
+        }
+        // The last geodesic lands back on the first vertex; drop the duplicate.
+        cycle.pop();
+        let n = cycle.len();
+        if n < 3 {
+            return (Vec::new(), false);
+        }
+        let w: Vec<f64> = cycle.iter().map(|&(lon, lat)| self.device(lon, lat).2).collect();
+        let front = |i: usize| w[i] >= 0.0;
+
+        if (0..n).all(front) {
+            let lp: Vec<(f64, f64)> = cycle
+                .iter()
+                .filter_map(|&(lon, lat)| self.place(lon, lat).map(|s| (s.x, s.y)))
+                .collect();
+            return (vec![lp], false);
+        }
+        if !(0..n).any(front) {
+            return (Vec::new(), ring_contains(&cycle, self.center_lonlat()));
+        }
+
+        // Mixed: walk the cycle from a hidden-to-visible transition so no chain
+        // wraps the seam. A crossing is found by interpolating the two samples'
+        // unit vectors to where the view dot is zero — at the sampling step that
+        // is exact to well under a pixel.
+        let start = (0..n)
+            .find(|&i| !front((i + n - 1) % n) && front(i))
+            .unwrap_or(0);
+        let unit = |(lon, lat): (f64, f64)| {
+            let (lam, phi) = (lon * RAD, lat * RAD);
+            [phi.cos() * lam.cos(), phi.cos() * lam.sin(), phi.sin()]
+        };
+        // The crossing between samples i (one side) and j (the other), as a limb
+        // angle theta and its pixels.
+        let crossing = |i: usize, j: usize| -> (f64, (f64, f64)) {
+            let (a, b) = (unit(cycle[i]), unit(cycle[j]));
+            let (wa, wb) = (w[i], w[j]);
+            let t = if (wa - wb).abs() > 1e-12 { wa / (wa - wb) } else { 0.5 };
+            let v = [
+                a[0] + t * (b[0] - a[0]),
+                a[1] + t * (b[1] - a[1]),
+                a[2] + t * (b[2] - a[2]),
+            ];
+            let len = (v[0] * v[0] + v[1] * v[1] + v[2] * v[2]).sqrt().max(1e-12);
+            let p = [v[0] / len, v[1] / len, v[2] / len];
+            let u = -p[0] * self.sin_az + p[1] * self.cos_az;
+            let vv = -p[0] * self.cos_az * self.sin_el - p[1] * self.sin_az * self.sin_el
+                + p[2] * self.cos_el;
+            let theta = vv.atan2(u).rem_euclid(std::f64::consts::TAU);
+            (theta, (self.cx + self.r * u, self.cy - self.r * vv))
+        };
+
+        // Chains of visible pixels, each opening and closing on an exact
+        // horizon crossing.
+        struct Chain {
+            pts: Vec<(f64, f64)>,
+            entry: f64,
+            exit: f64,
+        }
+        let mut chains: Vec<Chain> = Vec::new();
+        let mut cur: Option<Chain> = None;
+        for step in 0..n {
+            let i = (start + step) % n;
+            let prev = (i + n - 1) % n;
+            if front(i) {
+                if cur.is_none() {
+                    let (theta, px) = crossing(prev, i);
+                    cur = Some(Chain { pts: vec![px], entry: theta, exit: 0.0 });
+                }
+                if let (Some(c), Some(s)) = (cur.as_mut(), self.place(cycle[i].0, cycle[i].1)) {
+                    c.pts.push((s.x, s.y));
+                }
+            } else if let Some(mut c) = cur.take() {
+                let (theta, px) = crossing(prev, i);
+                c.pts.push(px);
+                c.exit = theta;
+                chains.push(c);
+            }
+        }
+        if let Some(mut c) = cur.take() {
+            // The walk started on a visible run's first sample, so the cycle
+            // ends visible only by returning to that run; close it at the
+            // start's own entry crossing.
+            let prev = (start + n - 1) % n;
+            let (theta, px) = crossing(prev, start);
+            c.pts.push(px);
+            c.exit = theta;
+            chains.push(c);
+        }
+        if chains.is_empty() {
+            return (Vec::new(), false);
+        }
+
+        // Every crossing on the horizon circle, sorted by angle. The stretches
+        // between consecutive crossings alternate between inside the region and
+        // outside; one even-odd test anchors the alternation.
+        #[derive(Clone, Copy)]
+        struct Cross {
+            theta: f64,
+            chain: usize,
+            is_exit: bool,
+        }
+        let mut crossings: Vec<Cross> = Vec::new();
+        for (ci, c) in chains.iter().enumerate() {
+            crossings.push(Cross { theta: c.entry, chain: ci, is_exit: false });
+            crossings.push(Cross { theta: c.exit, chain: ci, is_exit: true });
+        }
+        crossings.sort_by(|a, b| a.theta.partial_cmp(&b.theta).unwrap_or(std::cmp::Ordering::Equal));
+        let k = crossings.len();
+        // Arc `i` runs from crossing `i` to the next; the last wraps. Widths
+        // come from the sorted order and must sum to one turn, which is what
+        // keeps a *degenerate* pair honest: a region closed through a pole edge
+        // reaches the horizon twice at one angle, and that pair is a zero-width
+        // arc and a full-turn one — never two ambiguous zeros.
+        let mut width = vec![0.0_f64; k];
+        for i in 0..k - 1 {
+            width[i] = crossings[i + 1].theta - crossings[i].theta;
+        }
+        width[k - 1] = (std::f64::consts::TAU - width[..k - 1].iter().sum::<f64>()).max(0.0);
+        // The covered and uncovered stretches alternate around the circle, so
+        // one containment test anchors them all — taken at the *widest* arc's
+        // midpoint, the farthest any test point can sit from a boundary; a
+        // degenerate arc's midpoint sits exactly on one.
+        let widest = (0..k)
+            .max_by(|&a, &b| width[a].partial_cmp(&width[b]).unwrap_or(std::cmp::Ordering::Equal))
+            .unwrap_or(0);
+        let mid = crossings[widest].theta + width[widest] / 2.0;
+        let widest_inside = ring_contains(&cycle, self.limb_lonlat(mid));
+        let arc_inside =
+            |i: usize| if (i + k - widest) % 2 == 0 { widest_inside } else { !widest_inside };
+
+        // Link the chains through the covered stretches into closed loops.
+        let mut used = vec![false; chains.len()];
+        let mut loops: Vec<Vec<(f64, f64)>> = Vec::new();
+        let pos_of = |chain: usize, is_exit: bool| {
+            crossings.iter().position(|c| c.chain == chain && c.is_exit == is_exit)
+        };
+        for first in 0..chains.len() {
+            if used[first] {
+                continue;
+            }
+            let mut lp: Vec<(f64, f64)> = Vec::new();
+            let mut at = first;
+            for _ in 0..=chains.len() {
+                used[at] = true;
+                lp.extend(chains[at].pts.iter().copied());
+                let Some(xi) = pos_of(at, true) else { break };
+                // The covered stretch adjacent to this exit: exactly one of the
+                // two arcs around it is inside, by alternation.
+                let (arc, fwd) = if arc_inside(xi) {
+                    (xi, true)
+                } else {
+                    ((xi + k - 1) % k, false)
+                };
+                // Walk the limb from the exit to the stretch's other end,
+                // sampling the arc so it stays an arc on the page.
+                let from = crossings[xi].theta;
+                let span = width[arc];
+                let steps = (span / (GRATICULE_SAMPLE * RAD)).ceil().max(1.0) as usize;
+                for si in 1..=steps {
+                    let t = from + if fwd { 1.0 } else { -1.0 } * span * si as f64 / steps as f64;
+                    lp.push(self.limb_px(t));
+                }
+                let next = if fwd { (xi + 1) % k } else { (xi + k - 1) % k };
+                let nc = crossings[next];
+                if nc.is_exit {
+                    // Numerically tangled crossings; close what we have rather
+                    // than looping forever. The shape degrades by one limb arc,
+                    // never by a bridge across the page.
+                    break;
+                }
+                if nc.chain == first {
+                    break;
+                }
+                at = nc.chain;
+            }
+            if lp.len() >= 3 {
+                loops.push(lp);
+            }
+        }
+        (loops, false)
+    }
+
     /// Project a sampled line and split it where it leaves the facing
     /// hemisphere, so no stroke bridges across the limb. A great or small circle
     /// crosses the horizon at most twice, so each line yields at most two runs —
@@ -186,6 +449,41 @@ impl Globe {
         runs.retain(|r| r.len() >= 2);
         runs
     }
+}
+
+/// Even-odd containment in longitude/latitude — the flat choropleth's own fill
+/// rule, asked of the ring directly, which is what keeps the whole spherical
+/// clip free of any winding convention. The test point's longitude is first
+/// shifted by whole turns into the ring's own frame, so the two longitude
+/// conventions meet here the way they meet everywhere else. A ring itself must
+/// not straddle a frame seam, which is the convention boundary data ships
+/// with: a ring crossing the antimeridian arrives already cut.
+fn ring_contains(ring: &[(f64, f64)], pt: (f64, f64)) -> bool {
+    if ring.len() < 3 {
+        return false;
+    }
+    let mean: f64 = ring.iter().map(|p| p.0).sum::<f64>() / ring.len() as f64;
+    let mut x = pt.0;
+    while x < mean - 180.0 {
+        x += 360.0;
+    }
+    while x > mean + 180.0 {
+        x -= 360.0;
+    }
+    let y = pt.1;
+    let mut inside = false;
+    let n = ring.len();
+    for i in 0..n {
+        let (x1, y1) = ring[i];
+        let (x2, y2) = ring[(i + 1) % n];
+        if (y1 > y) != (y2 > y) {
+            let t = (y - y1) / (y2 - y1);
+            if x < x1 + t * (x2 - x1) {
+                inside = !inside;
+            }
+        }
+    }
+    inside
 }
 
 /// Inclusive samples from `lo` to `hi` at the graticule's sampling step.
@@ -364,6 +662,141 @@ mod tests {
             assert_eq!(sa.x.to_bits(), sb.x.to_bits());
             assert_eq!(sa.y.to_bits(), sb.y.to_bits());
         }
+    }
+
+    /// A geodesic lands on its endpoint, stays on the sphere, and steps at
+    /// roughly the sampling grain; endpoints closer than a step return just the
+    /// far one, so a dense boundary is not inflated.
+    #[test]
+    fn a_geodesic_ends_where_it_was_asked_to() {
+        let pts = geodesic((139.69, 35.69), (-118.24, 34.05));
+        let last = *pts.last().unwrap();
+        assert!((last.0 - -118.24).abs() < 1e-9 && (last.1 - 34.05).abs() < 1e-9);
+        // 79.3° of sphere at a ~2° step.
+        assert!((35..=45).contains(&pts.len()), "{} samples", pts.len());
+        assert_eq!(geodesic((10.0, 10.0), (10.0, 10.5)), vec![(10.0, 10.5)]);
+    }
+
+    /// Antipodes have no unique geodesic; the detour is fixed and the same
+    /// every time, so the picture cannot flicker between equals.
+    #[test]
+    fn antipodes_take_the_recorded_detour() {
+        let a = geodesic((0.0, 0.0), (180.0, 0.0));
+        let b = geodesic((0.0, 0.0), (180.0, 0.0));
+        assert_eq!(a, b);
+        // Through the north pole: some sample sits above 89°.
+        assert!(a.iter().any(|p| p.1 > 89.0), "the detour did not go over the pole");
+        // From a pole, the antipode is the other pole; the detour goes through
+        // the equator's origin instead and still terminates.
+        let c = geodesic((0.0, -90.0), (0.0, 90.0));
+        assert!(c.iter().any(|p| p.1.abs() < 1.0));
+    }
+
+    /// **The pole-encircling ring — the named test.** A cap over the south pole
+    /// (a synthetic Antarctica: shipped `world_borders` carries none), checked
+    /// at the three views that decide the clip: facing it, it is one whole
+    /// loop; facing away, it contributes nothing — the view center is not in
+    /// it, decided even-odd with no winding convention consulted; and side-on
+    /// it is cut at the horizon and re-closed along the limb, with the filled
+    /// side the south.
+    #[test]
+    fn a_pole_cap_fills_its_own_side_of_the_limb_and_never_the_other() {
+        // The cap, NE-style: the coast at −70, closed through the pole edge.
+        let mut cap: Vec<(f64, f64)> = (-180..=180).step_by(5)
+            .map(|lon| (lon as f64, -70.0)).collect();
+        cap.push((180.0, -90.0));
+        cap.push((-180.0, -90.0));
+        cap.push(cap[0]);
+
+        let l = panel();
+        // Facing it: one loop, nothing else.
+        let south = Globe::new(&l, GlobeView { turn: 0.0, tilt: -90.0 }, 0.04);
+        let (loops, disk) = south.clip_ring(&cap);
+        assert_eq!(loops.len(), 1, "facing the cap it is one whole loop");
+        assert!(!disk);
+
+        // Facing away: nothing at all.
+        let north = Globe::new(&l, GlobeView { turn: 0.0, tilt: 90.0 }, 0.04);
+        let (loops, disk) = north.clip_ring(&cap);
+        assert!(loops.is_empty() && !disk, "the far side drew");
+
+        // Side-on: cut and re-closed. The filled side must be the south — a
+        // point over the cap lands inside a loop, one over the equator does not.
+        let side = Globe::new(&l, GlobeView { turn: 0.0, tilt: 0.0 }, 0.04);
+        let (loops, disk) = side.clip_ring(&cap);
+        assert!(!disk);
+        assert!(!loops.is_empty(), "the side view lost the cap");
+        let px_inside = |lp: &[(f64, f64)], p: (f64, f64)| {
+            let mut inside = false;
+            for i in 0..lp.len() {
+                let (x1, y1) = lp[i];
+                let (x2, y2) = lp[(i + 1) % lp.len()];
+                if (y1 > p.1) != (y2 > p.1)
+                    && p.0 < x1 + (p.1 - y1) / (y2 - y1) * (x2 - x1)
+                {
+                    inside = !inside;
+                }
+            }
+            inside
+        };
+        let at = |lon: f64, lat: f64| {
+            let s = side.place(lon, lat).unwrap();
+            (s.x, s.y)
+        };
+        assert!(
+            loops.iter().any(|lp| px_inside(lp, at(0.0, -80.0))),
+            "a place over the cap fell outside every loop"
+        );
+        assert!(
+            !loops.iter().any(|lp| px_inside(lp, at(0.0, 0.0))),
+            "the equator was painted into the cap"
+        );
+        // Every loop vertex stays on the disk.
+        for lp in &loops {
+            for &(x, y) in lp {
+                let d = ((x - side.cx).powi(2) + (y - side.cy).powi(2)).sqrt();
+                assert!(d <= side.r + 1e-6, "a loop vertex sits {d} out, past {}", side.r);
+            }
+        }
+    }
+
+    /// A region that surrounds the view fills what the view sees. Cut boundary
+    /// data closes such a region through a pole edge, so its ring reaches the
+    /// front as a zero-width sliver down one meridian; the clip then traces the
+    /// slit disk, and even-odd fills it whole. (A ring with **no** front vertex
+    /// cannot surround a view in cut data — the pole edge it would need is the
+    /// front vertex — so the full-disk marker is a safety net, not the path.)
+    #[test]
+    fn a_region_that_surrounds_the_view_fills_what_it_sees() {
+        // Everything except the north cap: the boundary at +70, closed through
+        // the SOUTH pole edge, NE-style.
+        let mut wide: Vec<(f64, f64)> = (-180..=180).step_by(5)
+            .map(|lon| (lon as f64, 70.0)).collect();
+        wide.push((180.0, -90.0));
+        wide.push((-180.0, -90.0));
+        wide.push(wide[0]);
+
+        let l = panel();
+        let south = Globe::new(&l, GlobeView { turn: 0.0, tilt: -90.0 }, 0.04);
+        let (loops, _) = south.clip_ring(&wide);
+        assert!(!loops.is_empty(), "the surrounding region vanished");
+        // The view center must sit inside an odd number of loops: the region
+        // covers everything this view sees.
+        let inside = |lp: &[(f64, f64)], p: (f64, f64)| {
+            let mut hit = false;
+            for i in 0..lp.len() {
+                let (x1, y1) = lp[i];
+                let (x2, y2) = lp[(i + 1) % lp.len()];
+                if (y1 > p.1) != (y2 > p.1)
+                    && p.0 < x1 + (p.1 - y1) / (y2 - y1) * (x2 - x1)
+                {
+                    hit = !hit;
+                }
+            }
+            hit
+        };
+        let crossings = loops.iter().filter(|lp| inside(lp, (south.cx, south.cy))).count();
+        assert!(crossings % 2 == 1, "the view center fell outside the surrounding region");
     }
 
     /// The graticule stays inside the limb and splits rather than bridging it:

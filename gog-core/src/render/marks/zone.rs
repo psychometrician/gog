@@ -80,6 +80,10 @@ impl SvgRenderer {
         // whole turn is an annulus — handled where the arc is written, because an
         // `A` across a full turn has coincident ends and draws nothing.
         polar: Option<&Polar>,
+        // Globe: only the boundary form reaches the sphere — `check_globe`
+        // refuses the mesh and `bounds` forms until the equal-area spherical
+        // grid exists — so this rides straight to `write_zone_regions`.
+        globe: Option<&crate::render::globe::Globe>,
     ) {
         // **Two questions, not one** — the distinction the tile plot forced, and the
         // one this file used to conflate under a single `binned` flag.
@@ -135,7 +139,8 @@ impl SvgRenderer {
         // cannot be read — so reaching here means the sides really are a coastline.
         if let Some(g) = layer.encodings.get(&Channel::Group).map(|d| d.field.clone()) {
             self.write_zone_regions(
-                svg, layer, df, l, xs, ys, x_field, y_field, &g, color_map, ramp, clip, polar);
+                svg, layer, df, l, xs, ys, x_field, y_field, &g, color_map, ramp, clip, polar,
+                globe);
             return;
         }
         if let Some(rings) = cut.then(|| df.float_col(crate::transform::FIELD_RING)).flatten() {
@@ -558,6 +563,12 @@ impl SvgRenderer {
         ramp: &[String],
         clip: &str,
         polar: Option<&Polar>,
+        // Globe: each ring is clipped against the facing hemisphere and
+        // re-closed along the limb, so a half-visible country stays a fillable
+        // region — the one genuinely new piece of geometry the sphere asked
+        // for (`Globe::clip_ring`). Everything else — the runs, the closure
+        // rule, one even-odd `<path>` per region — is this function unchanged.
+        globe: Option<&crate::render::globe::Globe>,
     ) {
         let (Some(vx), Some(vy)) = (df.float_col(x_field), df.float_col(y_field)) else { return };
         let Some(groups) = df.str_col(group_field) else { return };
@@ -596,16 +607,37 @@ impl SvgRenderer {
             start = i;
 
             // Split this region's vertices into rings at closure, and place each.
+            // Rings are gathered **raw** and placed per space: flat and polar
+            // place vertex by vertex, the globe clips each whole ring against
+            // the facing hemisphere first, because a cut ring must be re-closed
+            // along the limb before it is a shape at all.
             let mut d = String::new();
+            let mut want_disk = false;
             let mut ring: Vec<(f64, f64)> = Vec::new();
             let mut open: Option<(f64, f64)> = None;
-            let flush = |ring: &mut Vec<(f64, f64)>, d: &mut String| {
+            let mut flush = |ring: &mut Vec<(f64, f64)>, d: &mut String, want_disk: &mut bool| {
                 if ring.len() >= 3 {
-                    for (k, (x, y)) in ring.iter().enumerate() {
-                        let cmd = if k == 0 { 'M' } else { 'L' };
-                        write!(d, "{cmd}{x:.2},{y:.2} ").unwrap();
+                    match globe {
+                        Some(g) => {
+                            let (loops, disk) = g.clip_ring(ring);
+                            *want_disk |= disk;
+                            for lp in loops {
+                                for (k, (x, y)) in lp.iter().enumerate() {
+                                    let cmd = if k == 0 { 'M' } else { 'L' };
+                                    write!(d, "{cmd}{x:.2},{y:.2} ").unwrap();
+                                }
+                                d.push_str("Z ");
+                            }
+                        }
+                        None => {
+                            for (k, &(rx, ry)) in ring.iter().enumerate() {
+                                let (x, y) = super::place(l, polar, rx, ry, xs, ys);
+                                let cmd = if k == 0 { 'M' } else { 'L' };
+                                write!(d, "{cmd}{x:.2},{y:.2} ").unwrap();
+                            }
+                            d.push_str("Z ");
+                        }
                     }
-                    d.push_str("Z ");
                 }
                 ring.clear();
             };
@@ -614,14 +646,14 @@ impl SvgRenderer {
                     continue;
                 }
                 let here = (vx[r], vy[r]);
-                ring.push(super::place(l, polar, here.0, here.1, xs, ys));
+                ring.push(here);
                 match open {
                     None => open = Some(here),
                     // The closing vertex repeats the opening one, which is what
                     // ends the ring. It is kept in the path so the fill closes on
                     // the vertex the data gave rather than on one SVG inferred.
                     Some(first) if ring.len() > 2 && here == first => {
-                        flush(&mut ring, &mut d);
+                        flush(&mut ring, &mut d, &mut want_disk);
                         open = None;
                     }
                     Some(_) => {}
@@ -630,7 +662,15 @@ impl SvgRenderer {
             // A boundary whose last ring never closed. Drawn rather than dropped —
             // `legality` has already reported it, and showing the shape a reader
             // described is better than showing them nothing.
-            flush(&mut ring, &mut d);
+            flush(&mut ring, &mut d, &mut want_disk);
+            if want_disk {
+                // A ring that surrounds this view whole: its visible extent is
+                // the entire disk, and even-odd carves the region's other rings
+                // out of it.
+                if let Some(g) = globe {
+                    d.push_str(&g.disk_subpath());
+                }
+            }
             if d.is_empty() || d.contains("NaN") || d.contains("inf") {
                 continue;
             }

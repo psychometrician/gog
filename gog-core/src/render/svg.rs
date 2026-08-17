@@ -1844,6 +1844,9 @@ impl SvgRenderer {
                                 Mark::Rule => self.write_rule(&mut svg, layer, df, l, xs, ys,
                                     spec, cat_x.as_deref(), cat_y.as_deref(), &color_map,
                                     &clip, None, Some(g)),
+                                Mark::Zone => self.write_zone(&mut svg, layer, df, l, xs, ys,
+                                    x_field, y_field, cat_x.as_deref(), cat_y.as_deref(),
+                                    &color_map, &ramp, &clip, None, Some(g)),
                                 _ => {}
                             }
                         }
@@ -2031,7 +2034,7 @@ impl SvgRenderer {
                         // untransformed — a zone's `bounds` names four columns rather
                         // than reshaping rows into pairs (see the effective-frame
                         // branch above), so it reads them straight off the table.
-                        Mark::Zone => self.write_zone(&mut svg, layer, df, l, xs, ys, x_field, y_field, cat_x.as_deref(), cat_y.as_deref(), &color_map, &ramp, &clip, pol_ref),
+                        Mark::Zone => self.write_zone(&mut svg, layer, df, l, xs, ys, x_field, y_field, cat_x.as_deref(), cat_y.as_deref(), &color_map, &ramp, &clip, pol_ref, None),
                         // A surface draws in the cube and nowhere else, so it is handled
                         // in the 3-D branch above and a *flat* one never arrives — it is
                         // the one mark `mark_draws_in_space` refuses in `flat`, and
