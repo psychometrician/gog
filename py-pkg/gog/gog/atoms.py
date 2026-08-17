@@ -51,6 +51,11 @@ text = Atom("mark", mark="text")
 # geometry of one field: `zone * density` paints it as cells, `path * density`
 # traces its contours, `surface * density` raises it with the estimate as height.
 surface = Atom("mark", mark="surface")
+# The stroke whose two endpoints the layout supplies — one row is one edge of a
+# graph. Nothing binds to its positions; its minimum syllable is
+# `edge * layout(col.a, col.b)` inside `network()`, and like `surface` it does
+# not draw flat.
+edge = Atom("mark", mark="edge")
 
 
 class _Box(CallableAtom):
@@ -478,6 +483,28 @@ def flow(*stages: Column) -> Atom:
     )
 
 
+def layout(from_, to):
+    """Place a graph — node positions computed from an edge table.
+
+    The two columns name each row's endpoints, and one row of the table is one
+    edge between its two values. The nodes derive: their names from the
+    columns' union, their `degree` from counting. Three marks read the one
+    placement inside `network()`: `edge * layout(col.a, col.b)` draws the
+    connections, `point * layout(...)` the nodes, and `text * layout(...) +
+    label(col.name)` names them; `size(col.degree)` reads the neighbor count.
+
+    The first parameter is spelled `from_` because `from` is Python's word,
+    the same escape the language itself uses; the column it names is ordinary.
+    Nothing binds to `x`, `y` or `z` — the third dimension, when you want it,
+    is the space's: `network(turn=30, tilt=25)`.
+    """
+    return Atom(
+        "transform",
+        transform="layout",
+        **{"from": column_name(from_, "layout"), "to": column_name(to, "layout")},
+    )
+
+
 # ---------------------------------------------------------------------------
 # Positions and coordinate spaces — always the plot's, unless a layer says so
 # ---------------------------------------------------------------------------
@@ -729,6 +756,29 @@ class _Globe(CallableAtom):
 
 
 globe = _Globe("coord_globe", turn=0.0, tilt=0.0)
+
+
+class _Network(CallableAtom):
+    """`network` — the graph-theoretic space, where a `layout` is drawn.
+
+    A layout's positions are the graph's, not the data's, so this space draws
+    no axes, no ticks and no grid. Stating a viewing angle states the third
+    dimension: bare `network()` draws the graph flat, `network(turn=30,
+    tilt=25)` computes the placement in a cube and draws it from that angle.
+    """
+
+    __slots__ = ()
+
+    def __call__(self, turn: float | None = None, tilt: float | None = None) -> Atom:
+        fields = {}
+        if turn is not None:
+            fields["turn"] = _degrees(turn, "network", "turn")
+        if tilt is not None:
+            fields["tilt"] = _degrees(tilt, "network", "tilt")
+        return Atom("coord_network", **fields)
+
+
+network = _Network("coord_network")
 
 
 class _Map(CallableAtom):

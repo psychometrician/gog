@@ -106,7 +106,7 @@ function clone(value) {
 // the transform list — the transform list is names only. Absent parameters
 // attach nothing, so a bare `layer(bar, bin)` stays on Sturges' rule.
 const CARRIED = new Set(["bin", "density", "range", "confidence", "deviation", "quantile", "jitter", "stack", "bounds",
-  "partition", "flow"]);
+  "partition", "flow", "layout"]);
 
 function carry(layer, transform) {
   const name = transform.fields.transform;
@@ -693,7 +693,7 @@ class Builder {
           data: this.pendingData,
         };
         for (const param of ["bin", "density", "range", "confidence", "deviation", "quantile", "jitter", "stack", "bounds",
-          "partition", "flow", "box"]) {
+          "partition", "flow", "layout", "box"]) {
           if (atom.fields[param] !== undefined) layer[param] = clone(atom.fields[param]);
         }
         this.openLayer(layer);
@@ -725,6 +725,13 @@ class Builder {
       // A globe carries the place its view faces, in space's own two words:
       // {"globe":{"turn":0,"tilt":0}} matches `CoordSpace::Globe(GlobeView)`,
       // and a bare "globe" is not a legal form.
+      case "coord_network": {
+        const view = {};
+        if (atom.fields.turn !== undefined) view.turn = atom.fields.turn;
+        if (atom.fields.tilt !== undefined) view.tilt = atom.fields.tilt;
+        this.spec.coord = { network: view };
+        return;
+      }
       case "coord_globe":
         this.spec.coord = {
           globe: { turn: atom.fields.turn, tilt: atom.fields.tilt },

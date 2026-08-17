@@ -91,6 +91,12 @@ const text     = mark_atom("text")
 # traces its contours, `surface * density` raises it with the estimate as height.
 const surface  = mark_atom("surface")
 
+# The stroke whose two endpoints the layout supplies — one row is one edge of a
+# graph. Nothing binds to its positions; its minimum syllable is
+# `edge * layout(:a, :b)` inside `network()`, and like `surface` it does not
+# draw flat.
+const edge = mark_atom("edge")
+
 """`box` — the box-and-whisker mark, with its one knob."""
 const box = Atom(:mark, Dict{Symbol,Any}(:mark => "box"),
     function (args...; whiskers = nothing)
@@ -405,6 +411,27 @@ function flow(stages...)
 end
 
 """
+    layout(from, to)
+
+Place a graph — node positions computed from an edge table.
+
+The two columns name each row's endpoints, and one row of the table is one
+edge between its two values. The nodes derive: their names from the columns'
+union, their `degree` from counting. Three marks read the one placement inside
+`network()`: `edge * layout(:a, :b)` draws the connections, `point *
+layout(...)` the nodes, and `text * layout(...) + label(:name)` names them;
+`size(:degree)` reads the neighbor count. Nothing binds to `x`, `y` or `z` —
+the third dimension, when you want it, is the space's:
+`network(turn = 30, tilt = 25)`.
+"""
+function layout(from, to)
+    Atom(:transform, Dict{Symbol,Any}(
+        :transform => "layout",
+        :from => column_name(from, "layout"),
+        :to => column_name(to, "layout")))
+end
+
+"""
     bounds(lower, upper; start, var"end")
 
 Pre-computed bounds: `lower`/`upper` bound the measure axis, `start`/`end` the
@@ -632,6 +659,23 @@ const globe = Atom(:coord_globe, Dict{Symbol,Any}(:turn => 0.0, :tilt => 0.0),
         Atom(:coord_globe, Dict{Symbol,Any}(
             :turn => turn === nothing ? 0.0 : degrees(turn, "globe", "turn"),
             :tilt => tilt === nothing ? 0.0 : degrees(tilt, "globe", "tilt")))
+    end)
+
+"""`network` — the graph-theoretic space, where a `layout` is drawn.
+
+A layout's positions are the graph's, not the data's, so this space draws no
+axes, no ticks and no grid. Stating a viewing angle states the third
+dimension: bare `network()` draws the graph flat, `network(turn = 30, tilt =
+25)` computes the placement in a cube and draws it from that angle."""
+const network = Atom(:coord_network, Dict{Symbol,Any}(),
+    function (args...; turn = nothing, tilt = nothing)
+        length(args) >= 1 && turn === nothing && (turn = args[1])
+        length(args) >= 2 && tilt === nothing && (tilt = args[2])
+        length(args) > 2 && throw(GogError("gog: `network()` takes `turn` and `tilt`."))
+        fields = Dict{Symbol,Any}()
+        turn === nothing || (fields[:turn] = degrees(turn, "network", "turn"))
+        tilt === nothing || (fields[:tilt] = degrees(tilt, "network", "tilt"))
+        Atom(:coord_network, fields)
     end)
 
 """`map` — the sphere flattened onto the page: x is longitude, y is latitude.

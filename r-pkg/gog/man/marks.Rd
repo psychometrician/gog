@@ -14,6 +14,7 @@
 \alias{ribbon}
 \alias{text}
 \alias{surface}
+\alias{edge}
 \title{Marks -- the shapes a plot draws}
 \format{
 Each is a \code{gog_atom} object, used bare rather than called.
@@ -42,6 +43,8 @@ ribbon
 text
 
 surface
+
+edge
 }
 \description{
 A \strong{mark} is the shape a layer draws, and every plot needs exactly one. A mark

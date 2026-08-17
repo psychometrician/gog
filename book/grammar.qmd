@@ -14,12 +14,12 @@ can read, and write, any plot.
 | Kind | The words |
 |---|---|
 | **Tables** | `data` `query` |
-| **Marks** | `point` `line` `area` `bar` `step` `interval` `box` `ribbon` `text` `path` `rule` `zone` `surface` |
+| **Marks** | `point` `line` `area` `bar` `step` `interval` `box` `ribbon` `text` `path` `rule` `zone` `surface` `edge` |
 | **Channels** | `x` `y` `z` `color` `size` `shape` `pattern` `opacity` `group` `label` `play` |
-| **Transforms** | `bin` `smooth` `count` `density` `proportion` `sum` `mean` `median` `max` `min` `quantile` `range` `confidence` `deviation` `bounds` `partition` `flow`, and the four collision modifiers, `dodge` `stack` `jitter` `repel` |
+| **Transforms** | `bin` `smooth` `count` `density` `proportion` `sum` `mean` `median` `max` `min` `quantile` `range` `confidence` `deviation` `bounds` `partition` `flow` `layout`, and the four collision modifiers, `dodge` `stack` `jitter` `repel` |
 | **Operators** | `+` layers, `*` derives, `|` and `/` arrange |
 | **Scales** | `linear` `log` `time` `category` `order` |
-| **Spaces** | `flat` `space` `polar` `nest` `globe` `map` |
+| **Spaces** | `flat` `space` `polar` `nest` `globe` `map` `network` |
 | **Settings** | `style` `theme` `palette` |
 | **Labels** | `title` `x_label` `y_label` `z_label` |
 | **Facets** | `facet` |
@@ -40,7 +40,7 @@ sentence.
 
 The other six refine a plot or arrange it, and none of them is required. A
 **scale** decides how a number becomes a position. A **space** is the surface the
-plot is drawn on: a flat page, a cube, a circle, a map. A **setting** changes how
+plot is drawn on: a flat page, a cube, a circle, a map, a network. A **setting** changes how
 the plot looks without saying anything about the data, and a **label** names it.
 A **facet** cuts one plot into panels. A **selection** picks rows out of a plot
 that is already drawn.
@@ -136,6 +136,7 @@ A mark is the geometric form drawn for each row of data.
 | `rule` | A line at one position, spanning the other axis: reference lines, and rugs via `style(reach = "edge")` |
 | `zone` | A shaded region: bounded where its sides are known, spanning the whole panel where they are not. Five things can fix the sides: a **categorical position** (each category gets its own slot: the tile plot), `bounds` (names them), `bin` (cuts them: the heatmap), `density` (cuts or traces them), and a **boundary** (the data draws them: the choropleth, in `map()`) |
 | `surface` | A sheet above the x-y plane: one row per (x, y) crossing, with a face between each block of four, or one row per cut cell, drawn flat at its own height. The only mark that can be drawn in the cube by itself |
+| `edge` | A stroke between two named things: one row per relation of a graph. Its endpoints come from `layout`, and it draws in `network()` |
 
 ## Channels: a column made visible
 
@@ -231,10 +232,11 @@ marks that would otherwise land on top of each other:
 | `jitter` | Spreads them sideways along a category |
 | `repel` | Moves labels off one another when they overlap |
 
-And two transforms compute a whole picture. `partition` divides a whole among
-nested parts, which is what a treemap and a mosaic are built from. `flow`
-carries a magnitude through its stages, which is what a flow diagram is built
-from.
+And three transforms compute a whole picture. `partition` divides a whole
+among nested parts, which is what a treemap and a mosaic are built from.
+`flow` carries a magnitude through its stages, which is what a flow diagram
+is built from. `layout` places a graph from an edge table, which is what a
+network diagram is built from.
 
 See [Transforms](transforms.qmd) for each one in detail, and
 [Combinations](combinations.qmd) for which marks take which.
@@ -372,9 +374,11 @@ plane. That space is `flat`, and you never have to write it.
 | `nest` | Rectangles inside rectangles, each sized by its share of the one holding it |
 | `globe` | The earth itself, viewed: marks stand on the half of the sphere that faces you |
 | `map` | The earth flattened: longitude across, latitude up |
+| `network` | The graph-theoretic space: positions come from `layout`, so it draws no axes at all; state an angle and it is a cube |
 
 One space holds the whole plot. See [Space](space.qmd), [Polar](polar.qmd),
-[Nest](nest.qmd), [Map](map.qmd) and [Globe](globe.qmd).
+[Nest](nest.qmd), [Map](map.qmd), [Globe](globe.qmd) and
+[Network](network.qmd).
 
 ## Settings: values you *set* rather than *map*
 

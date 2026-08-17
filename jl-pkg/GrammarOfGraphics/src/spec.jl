@@ -316,7 +316,7 @@ end
 # and `bounds`' column names ride the *layer* on the wire (`layer.bin`, …), not
 # the transform list — the transform list is names only. Absent parameters attach
 # nothing, so a bare `bar * bin` stays on Sturges' rule.
-const CARRIED = Set([:bin, :density, :range, :confidence, :deviation, :quantile, :jitter, :stack, :bounds, :partition, :flow])
+const CARRIED = Set([:bin, :density, :range, :confidence, :deviation, :quantile, :jitter, :stack, :bounds, :partition, :flow, :layout])
 
 function carry!(layer::Atom, transform::Atom)
     name = transform.fields[:transform]
@@ -412,7 +412,7 @@ function Base.:+(left::Plot, right::Atom)
             "encodings" => deepcopy(right.fields[:encodings]),
             "transforms" => copy(right.fields[:transforms]),
             "data" => plot.pending_data)
-        for param in (:bin, :density, :range, :confidence, :deviation, :quantile, :jitter, :stack, :bounds, :partition, :flow, :box)
+        for param in (:bin, :density, :range, :confidence, :deviation, :quantile, :jitter, :stack, :bounds, :partition, :flow, :layout, :box)
             haskey(right.fields, param) &&
                 (layer[String(param)] = deepcopy(right.fields[param]))
         end
@@ -437,6 +437,12 @@ function Base.:+(left::Plot, right::Atom)
     # A globe carries the place its view faces, in space's own two words:
     # {"globe":{"turn":0,"tilt":0}} matches `CoordSpace::Globe(GlobeView)`, and
     # a bare "globe" is not a legal form.
+    elseif kind === :coord_network
+        view = Dict{String,Any}()
+        haskey(right.fields, :turn) && (view["turn"] = right.fields[:turn])
+        haskey(right.fields, :tilt) && (view["tilt"] = right.fields[:tilt])
+        plot.spec["coord"] = Dict{String,Any}("network" => view)
+
     elseif kind === :coord_globe
         plot.spec["coord"] = Dict{String,Any}("globe" => Dict{String,Any}(
             "turn" => right.fields[:turn], "tilt" => right.fields[:tilt]))

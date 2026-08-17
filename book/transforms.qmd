@@ -1135,6 +1135,18 @@ gives the rules; this section only places the atom in the family.
 
 ---
 
+## `layout`: a graph placed from an edge table
+
+`layout` is the third of the picture-computing transforms, and the first whose
+output draws in a space of its own. `layout(from, to)` reads the two endpoint
+columns of an edge table and computes a position for every distinct name, in
+the engine, the same way in every language. Three marks read the placement
+inside `network()`: `edge` the connections, `point` the nodes, `text` their
+names. Its positions mean nothing as quantities, so its space draws no axes,
+and the [Network](network.qmd) chapter is where the family lives.
+
+---
+
 ## `dodge`: side by side instead of on top
 
 Every transform above is a *statistic*: it reads columns and writes new ones.

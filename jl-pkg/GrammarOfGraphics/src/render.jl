@@ -373,6 +373,10 @@ function is_spatial(spec)
     coord isa AbstractDict &&
         (get(coord, "space", nothing) !== nothing ||
          get(coord, "globe", nothing) !== nothing) && return true
+    # A network with a *stated* angle is the cube form and turns; bare
+    # `network()` is flat and has nothing to drag.
+    net = coord isa AbstractDict ? get(coord, "network", nothing) : nothing
+    net isa AbstractDict && (haskey(net, "turn") || haskey(net, "tilt")) && return true
     get(spec, "z", nothing) !== nothing && return true
     for layer in get(spec, "layers", [])
         enc = get(layer, "encodings", Dict())

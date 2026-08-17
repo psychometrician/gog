@@ -619,6 +619,12 @@ function specNeedsEngine(spec) {
 function specIsSpatial(spec) {
   // The cube's view, or the globe's: both carry an angle worth dragging.
   if (spec?.coord && typeof spec.coord === "object" && (spec.coord.space || spec.coord.globe)) return true;
+  // A network with a *stated* angle is the cube form and turns; bare
+  // `network()` is flat and has nothing to drag.
+  {
+    const net = spec?.coord && typeof spec.coord === "object" ? spec.coord.network : null;
+    if (net && (net.turn !== undefined || net.tilt !== undefined)) return true;
+  }
   if (spec?.z != null) return true;
   if ((spec?.layers ?? []).some((l) => (l?.encodings ?? {}).z != null)) return true;
   return (spec?.cells ?? spec?.plots ?? []).some(specIsSpatial);

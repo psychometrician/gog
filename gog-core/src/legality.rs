@@ -609,6 +609,38 @@ pub fn rule_for(mark: &Mark, channel: &Channel) -> Rule {
             Pattern => CANNOT,
             Play => rule(Can, Either, Some(Either)), // a frame is a subset of rows
         },
+
+        // The stroke whose two endpoints the layout supplies (spec §15, the
+        // network entry) — after `surface`, the second mark whose flat cell is
+        // empty. Its positions are not channels at all: the endpoints ride
+        // `layout`-synthesized columns, which is the `ymin`/`ymax` ruling
+        // holding for a second endpoint exactly as it held for a second
+        // extent. So all three positions are `Cannot` — under `layout` a
+        // binding has nothing left to say, and the cube arrives from the
+        // *space's* stated view, never from a `z`.
+        //
+        // Its aesthetics are a stroke's, `rule`'s row with two turns of its
+        // own. `opacity` **maps**, continuously — the one stroke where it
+        // does, because an edge's weight is the quantity a network reader
+        // fades by, and each row is its own stroke with its own value where a
+        // `line` is one stroke with one. `size` stays set-only: mapping a
+        // column to stroke width is the recorded open linewidth question for
+        // the whole stroke family, and one mark must not decide it alone.
+        Mark::Edge => match channel {
+            X => CANNOT,
+            Y => CANNOT,
+            Z => CANNOT,
+            Color => rule(Can, Discrete, Some(Discrete)).settable(),
+            Opacity => rule(Can, Continuous, Some(Continuous)).settable(),
+            Size => SET_ONLY,    // stroke width; the linewidth question, whole
+            Shape => CANNOT,     // a stroke has no glyph
+            // The settable dash arrives with the stroke class (the settable
+            // rule); a *mapped* dash is grammar this engine has not drawn yet.
+            Pattern => rule(Can, Discrete, None).settable(),
+            Group => CANNOT,     // one row is one edge already
+            Label => CANNOT,     // names belong to `text * layout + label(name)`
+            Play => rule(Can, Either, Some(Either)), // a frame is a subset of rows
+        },
     }
 }
 
@@ -690,7 +722,7 @@ fn is_drawable(mark: &Mark) -> bool {
     match mark {
         Mark::Point | Mark::Line | Mark::Area | Mark::Bar | Mark::Step
         | Mark::Interval | Mark::Box | Mark::Ribbon | Mark::Text | Mark::Path
-        | Mark::Rule | Mark::Zone | Mark::Surface => true,
+        | Mark::Rule | Mark::Zone | Mark::Surface | Mark::Edge => true,
     }
 }
 
@@ -712,7 +744,7 @@ fn check_mark(out: &mut Vec<Diagnostic>, mark: &Mark) -> bool {
         // Everything the renderer draws — which is all of it.
         Mark::Point | Mark::Line | Mark::Area | Mark::Bar | Mark::Step | Mark::Interval
         | Mark::Box | Mark::Ribbon | Mark::Text | Mark::Path | Mark::Rule
-        | Mark::Zone | Mark::Surface => None,
+        | Mark::Zone | Mark::Surface | Mark::Edge => None,
     };
     let Some(direction) = direction else { return false };
     out.push(Diagnostic {
@@ -754,6 +786,7 @@ fn mark_name(mark: &Mark) -> &'static str {
         Mark::Rule => "rule",
         Mark::Zone => "zone",
         Mark::Surface => "surface",
+        Mark::Edge => "edge",
     }
 }
 
@@ -781,6 +814,7 @@ fn transform_name(t: &Transform) -> &'static str {
         Transform::Repel => "repel",
         Transform::Partition => "partition",
         Transform::Flow => "flow",
+        Transform::Layout => "layout",
     }
 }
 
@@ -815,10 +849,11 @@ fn channel_name(channel: &Channel) -> &'static str {
 /// `every_mark_channel_pair_has_a_rule`, so none of the three can disagree about
 /// the atom set. `mark_name` is the total, compiler-checked match that forces a
 /// *new* mark to be handled everywhere it must be.
-pub const ALL_MARKS: [Mark; 13] = [
+pub const ALL_MARKS: [Mark; 14] = [
     Mark::Point, Mark::Line, Mark::Area, Mark::Bar, Mark::Step, Mark::Interval,
     Mark::Box, Mark::Ribbon, Mark::Text, Mark::Path, Mark::Rule, Mark::Zone,
     Mark::Surface,
+ Mark::Edge,
 ];
 
 /// Every channel, in the kernel's teaching order.
@@ -1208,6 +1243,24 @@ pub fn mark_takes_transform(mark: &Mark, transform: &Transform) -> TransformLega
         };
     }
 
+    // `layout` has three readers on `partition`'s argument: `edge` takes the
+    // endpoint pairs, `point` the nodes, `text` their names. Every other mark
+    // is refused toward those three.
+    if *transform == Transform::Layout {
+        return match mark {
+            Mark::Edge => Required,
+            Mark::Point | Mark::Text => Combines,
+            _ => None,
+        };
+    }
+
+    // An `edge` takes `layout` and nothing else: its whole geometry is the two
+    // endpoints the layout supplies, so a statistic has nothing to feed it and
+    // a collision modifier has no coordinate to move it in.
+    if *mark == Mark::Edge {
+        return None;
+    }
+
     // The pair transforms `range`/`confidence` compute a band across a domain,
     // which is legal grammar and the wrong mark; `check_zone` says so.
     if *mark == Mark::Zone {
@@ -1298,12 +1351,12 @@ pub fn mark_takes_transform(mark: &Mark, transform: &Transform) -> TransformLega
 /// four collision modifiers: twenty. `Transform::Box` is excluded: the `box`
 /// mark injects it, it is never typed, so it is not a column of the
 /// Mark × Transform grid.
-pub const USER_TRANSFORMS: [Transform; 21] = [
+pub const USER_TRANSFORMS: [Transform; 22] = [
     Transform::Bin, Transform::Smooth, Transform::Count, Transform::Density, Transform::Proportion,
     Transform::Sum, Transform::Mean, Transform::Median, Transform::Max, Transform::Min,
     Transform::Quantile,
     Transform::Range, Transform::Confidence, Transform::Deviation, Transform::Bounds,
-    Transform::Partition, Transform::Flow,
+    Transform::Partition, Transform::Flow, Transform::Layout,
     Transform::Dodge, Transform::Stack, Transform::Jitter, Transform::Repel,
 ];
 
@@ -1335,11 +1388,12 @@ pub enum SpaceKind {
     Nest,
     Globe,
     Map,
+    Network,
 }
 
-pub const ALL_SPACES: [SpaceKind; 6] = [
+pub const ALL_SPACES: [SpaceKind; 7] = [
     SpaceKind::Flat, SpaceKind::Space, SpaceKind::Polar, SpaceKind::Nest,
-    SpaceKind::Globe, SpaceKind::Map,
+    SpaceKind::Globe, SpaceKind::Map, SpaceKind::Network,
 ];
 
 pub fn space_name(s: SpaceKind) -> &'static str {
@@ -1350,6 +1404,7 @@ pub fn space_name(s: SpaceKind) -> &'static str {
         SpaceKind::Nest => "nest",
         SpaceKind::Globe => "globe",
         SpaceKind::Map => "map",
+        SpaceKind::Network => "network",
     }
 }
 
@@ -1394,6 +1449,11 @@ pub fn space_of(spec: &PlotSpec) -> SpaceKind {
         // so this only decides which name the report uses.
         CoordSpace::Globe(_) => SpaceKind::Globe,
         CoordSpace::Map(_) => SpaceKind::Map,
+        // The same precedence a fourth time: `check_network` refuses a bound
+        // `z` inside `network()`, so this only decides which name the report
+        // uses. Flat and cube forms are one SpaceKind — which form is asked
+        // for is the view's business, not legality's.
+        CoordSpace::Network(_) => SpaceKind::Network,
         _ if bound_z || synthesized_z => SpaceKind::Space,
         _ => SpaceKind::Flat,
     }
@@ -1419,7 +1479,11 @@ pub fn mark_draws_in_space(mark: &Mark, space: SpaceKind) -> bool {
         // once by `check_surface` with both routes into the cube named — rather than
         // as a bare "needs `z()`", which would be true and would not tell a reader
         // asking for a flat sheet that `zone` is where the field lives in the plane.
-        SpaceKind::Flat => *mark != Mark::Surface,
+        // …and the second such mark is `edge` (2026-08-17): a stroke whose
+        // endpoints mean nothing on data axes has nowhere to stand outside the
+        // space that abolishes them, so its flat cell is empty for `surface`'s
+        // kind of reason — the minimum syllable includes the space.
+        SpaceKind::Flat => !matches!(mark, Mark::Surface | Mark::Edge),
         // `rule_for(_, Z).renders` already says which marks stand in the cube, so
         // this reads it rather than restating a count that would go stale the next
         // time one is added — as a comment here did, four times over.
@@ -1472,7 +1536,7 @@ pub fn mark_draws_in_space(mark: &Mark, space: SpaceKind) -> bool {
         // the rule sits on the radius and a **spoke** when it sits on the angle.
         // Neither is a special case — both fall out of the one sentence, which is
         // the bar §4 sets for a Law 7 relaxation.
-        SpaceKind::Polar => *mark != Mark::Surface,
+        SpaceKind::Polar => !matches!(mark, Mark::Surface | Mark::Edge),
         // **A packing has regions, not positions**, so the question this column
         // asks is not the one the other four ask. Everywhere else a mark bends
         // because its geometry survives a map of the plane; here there is no map
@@ -1559,6 +1623,14 @@ pub fn mark_draws_in_space(mark: &Mark, space: SpaceKind) -> bool {
             matches!(mark,
                 Mark::Point | Mark::Text | Mark::Path | Mark::Rule | Mark::Zone | Mark::Bar)
         }
+        // **Positions come from the layout, not the data**, so the question
+        // this column asks is `nest`'s: a mark draws only if the layout hands
+        // it something it already knows how to draw. `edge` takes the endpoint
+        // pairs, `point` the nodes, `text` their names — one computation,
+        // three readers (spec §15, the network entry). Everything else is one
+        // blank with one reason: it reads a domain, a measure, or an extent
+        // along an axis, and this space has no axes to read along.
+        SpaceKind::Network => matches!(mark, Mark::Edge | Mark::Point | Mark::Text),
     }
 }
 
@@ -4316,6 +4388,250 @@ fn check_flow(
     }
 }
 
+/// Every way a layout can be malformed — `check_flow`'s shape one family over,
+/// which is `check_partition`'s two families over. The first branches are facts
+/// about the sentence; the column checks run when the frame is there to ask.
+fn check_layout(
+    out: &mut Vec<Diagnostic>, spec: &PlotSpec, df: Option<&DataFrame>, layer: &Layer,
+) {
+    if !layer.transforms.contains(&Transform::Layout) {
+        return;
+    }
+
+    // 1. A mark with no reading for a placed graph. Refused toward the three
+    //    that have one, with the sentence spelled out.
+    if mark_takes_transform(&layer.mark, &Transform::Layout) == TransformLegality::None {
+        out.push(Diagnostic {
+            kind: DiagnosticKind::Illegal,
+            message: format!(
+                "gog: `layout` places a graph — a position per node, computed from \
+                 an edge table — and `{}` has no reading for that. Three marks do: \
+                 `edge * layout(<from>, <to>)` draws the connections, `point * \
+                 layout(...)` the nodes, and `text * layout(...) + label(name)` \
+                 names them, all inside `network()`.",
+                mark_name(&layer.mark),
+            ),
+        });
+        return;
+    }
+
+    // 2. The atom with too little named.
+    let Some(lay) = layer.layout.as_ref()
+        .filter(|sp| !sp.from.is_empty() && !sp.to.is_empty())
+    else {
+        out.push(Diagnostic {
+            kind: DiagnosticKind::Illegal,
+            message: "gog: `layout` takes the two endpoint columns, in order — \
+                      `layout(from, to)`. One row of the table is one edge, and \
+                      those columns name the two nodes it connects."
+                .to_string(),
+        });
+        return;
+    };
+
+    // 3. The space. A layout's positions mean nothing on data axes, so they
+    //    draw only in the space that abolishes them.
+    if space_of(spec) != SpaceKind::Network {
+        out.push(Diagnostic {
+            kind: DiagnosticKind::Illegal,
+            message: "gog: a `layout`'s positions are the graph's, not the data's — \
+                      an axis under them would number something no reader can mean. \
+                      Draw it in the network: `+ network()` flat, or `+ network(turn \
+                      = 30, tilt = 25)` for the cube."
+                .to_string(),
+        });
+        return;
+    }
+
+    // 4. A bound position under a transform that places its own nodes.
+    for ch in [Channel::X, Channel::Y, Channel::Z] {
+        if spec.position_for(layer, &ch).is_some() {
+            out.push(Diagnostic {
+                kind: DiagnosticKind::Illegal,
+                message: format!(
+                    "gog: under `layout` the nodes place themselves, so `{0}(...)` \
+                     has nothing left to say. Remove it — the third dimension, when \
+                     you want it, is the space's: `network(turn = 30, tilt = 25)`.",
+                    channel_name(&ch),
+                ),
+            });
+        }
+    }
+
+    // 5. A played layout would re-place every node per frame: the motion would
+    //    be the layout's, not the data's, so the cell waits rather than lies.
+    if layer.encodings.contains_key(&Channel::Play) {
+        out.push(Diagnostic {
+            kind: DiagnosticKind::Unsupported,
+            message: "gog: `play` under `layout` is valid grammar this engine does \
+                      not draw yet — each frame would lay the graph out afresh, and \
+                      nodes would move by the layout's choice rather than the \
+                      data's. Draw the frames as separate plots beside each other \
+                      with `|`, or wait for the feature."
+                .to_string(),
+        });
+    }
+
+    // 6. On the node readers, a mapped aesthetic must name what a node has: the
+    //    two columns the layout publishes. An edge is 1:1 with its input row,
+    //    so its columns are checked like anyone's.
+    if matches!(layer.mark, Mark::Point | Mark::Text) {
+        for (ch, def) in &layer.encodings {
+            if matches!(ch, Channel::Label | Channel::Play) {
+                continue;
+            }
+            if def.field != crate::transform::NODE_NAME
+                && def.field != crate::transform::NODE_DEGREE
+            {
+                out.push(Diagnostic {
+                    kind: DiagnosticKind::Illegal,
+                    message: format!(
+                        "gog: `{}({})` under `layout` must name something a node \
+                         has, and a node has two things: its `name`, and its \
+                         `degree` — the neighbor count the layout counted. A column \
+                         of the edge table belongs to the edges; map it on the \
+                         `edge` layer.",
+                        channel_name(ch), def.field,
+                    ),
+                });
+            }
+        }
+    }
+
+    let Some(df) = df else { return };
+
+    // 7. An endpoint column that is not there, or is not a category.
+    for col in [lay.from.as_str(), lay.to.as_str()] {
+        match actual_type(df, col) {
+            None => {
+                out.push(Diagnostic {
+                    kind: DiagnosticKind::Illegal,
+                    message: format!(
+                        "gog: `layout({col})` names a column this table does not \
+                         have. Each endpoint is a categorical column, and one row \
+                         is one edge between its two values."
+                    ),
+                });
+                return;
+            }
+            Some(VarType::Continuous) => {
+                out.push(Diagnostic {
+                    kind: DiagnosticKind::Illegal,
+                    message: format!(
+                        "gog: `layout({col})` names a numeric column, and a node is \
+                         a *name* the rows share — no two rows share a measurement \
+                         the way they share a word."
+                    ),
+                });
+                return;
+            }
+            _ => {}
+        }
+    }
+
+    // 8. A row from a node to itself is not an edge, and a fact about one node
+    //    belongs on the node — refused with the count, not dropped in silence.
+    if let (Some(a), Some(b)) = (df.str_col(&lay.from), df.str_col(&lay.to)) {
+        let loops = (0..df.len())
+            .filter(|&r| !a[r].is_empty() && a[r] == b[r])
+            .count();
+        if loops > 0 {
+            out.push(Diagnostic {
+                kind: DiagnosticKind::Illegal,
+                message: format!(
+                    "gog: {loops} row(s) connect a node to itself, and a stroke \
+                     from a point to the same point has no extent. A fact about \
+                     one node belongs on the node — remove the row, or carry the \
+                     fact as a node's own column."
+                ),
+            });
+            return;
+        }
+        let missing = (0..df.len())
+            .filter(|&r| a[r].is_empty() || b[r].is_empty())
+            .count();
+        if missing > 0 {
+            out.push(Diagnostic {
+                kind: DiagnosticKind::Assumption,
+                message: format!(
+                    "gog: {missing} of {} row(s) are missing an endpoint and were \
+                     left out — an edge needs both of its nodes named.",
+                    df.len(),
+                ),
+            });
+        }
+    }
+}
+
+/// The network space's own gate, `check_nest`'s shape one space over: what may
+/// stand in it, and what it has none of to name.
+fn check_network(out: &mut Vec<Diagnostic>, spec: &PlotSpec) {
+    if !matches!(spec.coord, CoordSpace::Network(_)) {
+        return;
+    }
+
+    // A space no layout feeds is a room with nothing in it — the syllable is
+    // the mark, its layout, and the space together.
+    if !spec.layers.iter().any(|l| l.transforms.contains(&Transform::Layout)) {
+        out.push(Diagnostic {
+            kind: DiagnosticKind::Illegal,
+            message: "gog: `network()` draws what a `layout` places, and nothing \
+                      here carries one. Compose the syllable: `edge * layout(from, \
+                      to) + network()`, with `point * layout(...)` for the nodes \
+                      and `text * layout(...) + label(name)` for their names."
+                .to_string(),
+        });
+        return;
+    }
+
+    // The marks that stand here are the layout's three readers; everything else
+    // reads a domain, a measure, or an extent along axes this space does not have.
+    for layer in &spec.layers {
+        if !mark_draws_in_space(&layer.mark, SpaceKind::Network) {
+            out.push(Diagnostic {
+                kind: DiagnosticKind::Illegal,
+                message: format!(
+                    "gog: `{}` does not stand in `network()` — it reads an axis, \
+                     and this space has none. The layout's readers are `edge`, \
+                     `point` and `text`.",
+                    mark_name(&layer.mark),
+                ),
+            });
+        }
+    }
+
+    // The axes are not there to be named — `nest`'s rule, for `nest`'s reason.
+    for (label, atom) in [
+        (&spec.x_axis.label, "x_label"),
+        (&spec.y_axis.label, "y_label"),
+        (&spec.z_axis.label, "z_label"),
+    ] {
+        if label.is_some() {
+            out.push(Diagnostic {
+                kind: DiagnosticKind::Illegal,
+                message: format!(
+                    "gog: `{atom}()` names an axis, and a network has none — its \
+                     positions are the layout's, and a name under them would be \
+                     read as a promise that the direction measures something. \
+                     Remove it; `title()` still names the plot."
+                ),
+            });
+        }
+    }
+
+    // A brush names a range of data, and a network's positions are not data.
+    if !spec.brush.is_empty() {
+        out.push(Diagnostic {
+            kind: DiagnosticKind::Illegal,
+            message: "gog: `brush()` selects by a range of the data's own axes, and \
+                      a network's positions are the layout's — a rectangle over \
+                      them names nothing a reader can mean. Select by a column \
+                      instead, upstream, and color what you selected."
+                .to_string(),
+        });
+    }
+}
+
 fn check_marks_that_take_no_transform(out: &mut Vec<Diagnostic>, layer: &Layer) {
     if !matches!(
         layer.mark,
@@ -5184,6 +5500,8 @@ pub fn check(spec: &PlotSpec, data: &HashMap<String, DataFrame>) -> Vec<Diagnost
         // family over — the wrong mark, too few stages, the wrong space, a bound
         // `x`, an aesthetic no reading holds, and the counted dropped rows.
         check_flow(&mut out, spec, df, layer);
+        // The network family's malformations, the same shape a third time.
+        check_layout(&mut out, spec, df, layer);
 
         // Which mesh, and whether this mark has a plane to tile at all. Takes the
         // frame because the third answer is data-aware: a mixed mesh has two axes and
@@ -5377,8 +5695,21 @@ pub fn check(spec: &PlotSpec, data: &HashMap<String, DataFrame>) -> Vec<Diagnost
             // checked on their own axes, so only this one needs saying.
             if *channel == Channel::Label
                 && (layer.transforms.contains(&Transform::Partition)
-                    || layer.transforms.contains(&Transform::Flow))
+                    || layer.transforms.contains(&Transform::Flow)
+                    || layer.transforms.contains(&Transform::Layout))
                 && *field == crate::transform::NODE_NAME
+            {
+                continue;
+            }
+
+            // The same exemption for the two columns a layout publishes about
+            // its nodes: `size(degree)` and `color(degree)` name the neighbor
+            // count the layout counted, and `color(name)` names the node — all
+            // outputs, `color(count)`'s counterpart on the node readers.
+            if layer.transforms.contains(&Transform::Layout)
+                && matches!(layer.mark, Mark::Point | Mark::Text)
+                && (*field == crate::transform::NODE_NAME
+                    || *field == crate::transform::NODE_DEGREE)
             {
                 continue;
             }
@@ -5575,6 +5906,11 @@ pub fn check(spec: &PlotSpec, data: &HashMap<String, DataFrame>) -> Vec<Diagnost
             if channel == Channel::Y && layer.transforms.contains(&Transform::Flow) {
                 continue;
             }
+            // In the network every position is the layout's, so `y` stands
+            // down for the same reason `x` does one arm up.
+            if channel == Channel::Y && space_of(spec) == SpaceKind::Network {
+                continue;
+            }
             let c = channel_name(&channel);
             out.push(Diagnostic {
                 kind: DiagnosticKind::Illegal,
@@ -5629,6 +5965,7 @@ pub fn check(spec: &PlotSpec, data: &HashMap<String, DataFrame>) -> Vec<Diagnost
     check_globe(&mut out, spec, data);
     check_map(&mut out, spec, data);
     check_nest(&mut out, spec, data);
+    check_network(&mut out, spec);
     check_theme(&mut out, spec);
 
     out
@@ -5899,6 +6236,15 @@ pub fn mark_takes_selection(mark: &Mark) -> bool {
     if *mark == Mark::Zone {
         return true;
     }
+    // An `edge` is one row, one element, and still not brushable — the proxy's
+    // second exception, from the other side. A brush names a range of *data*,
+    // and an edge's positions are the layout's: coordinates that can be
+    // reflected without changing what the graph says, so a rectangle over them
+    // is not a thing a reader can mean. The choropleth's vertex problem, as
+    // the whole mark.
+    if *mark == Mark::Edge {
+        return false;
+    }
     rule_for(mark, &Channel::Group).obligation == Obligation::Cannot
 }
 
@@ -5983,6 +6329,11 @@ pub fn layer_places_rows(layer: &Layer) -> bool {
 /// knows a mark was moved away from its value; the page is the only side that
 /// knows when a reader is asking.
 pub fn why_not_placed(spec: &PlotSpec) -> Option<&'static str> {
+    // A network's rows are placed — by the layout — but at coordinates a
+    // reader cannot mean, so the readout's word comes first and is its own.
+    if matches!(spec.coord, CoordSpace::Network(_)) {
+        return Some("network");
+    }
     if spec.layers.iter().any(layer_places_rows) {
         return None;
     }
@@ -6497,6 +6848,7 @@ pub fn x_needs_no_binding(spec: &PlotSpec, layer: &Layer) -> bool {
         || layer.transforms.contains(&Transform::Partition)
         || layer.transforms.contains(&Transform::Flow)
         || space_of(spec) == SpaceKind::Nest
+        || space_of(spec) == SpaceKind::Network
 }
 
 // ---------------------------------------------------------------------------
@@ -9529,7 +9881,8 @@ pub(crate) enum Texture {
 
 pub(crate) fn texture_of(mark: &Mark) -> Option<Texture> {
     match mark {
-        Mark::Line | Mark::Step | Mark::Interval | Mark::Path | Mark::Rule => Some(Texture::Dash),
+        Mark::Line | Mark::Step | Mark::Interval | Mark::Path | Mark::Rule
+        | Mark::Edge => Some(Texture::Dash),
         Mark::Bar | Mark::Box | Mark::Area | Mark::Ribbon | Mark::Zone => Some(Texture::Hatch),
         // A glyph (`point`) or a string (`text`) is too small / not a region to
         // texture. A `surface` is a region and still refuses, on the one ground that
@@ -9683,7 +10036,7 @@ fn check_border(out: &mut Vec<Diagnostic>, mark: &Mark, style: &StyleSpec) {
     }
     // The marks with no border of their own — each refused toward the right fix.
     match mark {
-        Mark::Line | Mark::Step | Mark::Interval | Mark::Rule => out.push(Diagnostic {
+        Mark::Line | Mark::Step | Mark::Interval | Mark::Rule | Mark::Edge => out.push(Diagnostic {
             kind: DiagnosticKind::Illegal,
             message: format!(
                 "gog: {} `{m}` is drawn with a stroke, not a filled shape — it has no separate \
@@ -10041,6 +10394,11 @@ mod tests {
             SpaceKind::Nest => s.coord(CoordSpace::Nest),
             SpaceKind::Globe => s.coord(CoordSpace::Globe(crate::ir::GlobeView::default())),
             SpaceKind::Map => s.coord(CoordSpace::Map(crate::ir::MapView::default())),
+            // The network's minimum syllable is the edge, its layout, and the
+            // space — a bare point has no place here, which its own gate says.
+            SpaceKind::Network => base()
+                .layer(Layer::new(Mark::Edge).layout("continent", "region"))
+                .coord(CoordSpace::Network(crate::ir::NetworkView::default())),
         }
     }
 
@@ -10281,8 +10639,10 @@ mod tests {
             "the brushable set is the marks whose rows are elements");
         for m in &ALL_MARKS {
             // `zone` is exempt for the reason above: it answers both questions, and
-            // which one applies is decided by where its sides came from.
-            if *m == Mark::Zone {
+            // which one applies is decided by where its sides came from. `edge`
+            // is exempt from the other side: one row, one element, and still no
+            // data range for a brush to name — its positions are the layout's.
+            if matches!(m, Mark::Zone | Mark::Edge) {
                 continue;
             }
             assert_eq!(mark_takes_selection(m),
@@ -15169,6 +15529,67 @@ mod tests {
             assert!(d.iter().all(|x| x.kind != DiagnosticKind::Illegal
                 && x.kind != DiagnosticKind::Unsupported),
                 "a bare ribbon * flow is a complete syllable: {:?}", msgs(&d));
+        }
+
+        // The network family's refusals, each with its direction (spec §15, the
+        // network entry). The grid rows are pinned by the generated matrices;
+        // these pin the sentence-level rules a reader will actually hit.
+        {
+            let net = || CoordSpace::Network(crate::ir::NetworkView::default());
+
+            // A mark with no reading is sent to the three that have one.
+            let d = check(&PlotSpec::new().data("t").coord(net())
+                .layer(Layer::new(Mark::Bar).layout("continent", "region")), &data());
+            assert!(d.iter().any(|x| x.kind == DiagnosticKind::Illegal
+                && x.message.contains("edge * layout") && x.message.contains("label(name)")),
+                "a bar under layout is directed to the three readers: {:?}", msgs(&d));
+
+            // A layout outside the network is refused toward it.
+            let d = check(&PlotSpec::new().data("t")
+                .layer(Layer::new(Mark::Edge).layout("continent", "region")), &data());
+            assert!(d.iter().any(|x| x.kind == DiagnosticKind::Illegal
+                && x.message.contains("+ network()")),
+                "a layout outside the space is sent to network(): {:?}", msgs(&d));
+
+            // A bound position has nothing left to say; the cube is the space's.
+            let d = check(&PlotSpec::new().data("t").coord(net()).x("gdp")
+                .layer(Layer::new(Mark::Edge).layout("continent", "region")), &data());
+            assert!(d.iter().any(|x| x.kind == DiagnosticKind::Illegal
+                && x.message.contains("network(turn = 30, tilt = 25)")),
+                "a bound x under layout is refused toward the view: {:?}", msgs(&d));
+
+            // The space with no layout in it spells the syllable.
+            let d = check(&PlotSpec::new().data("t").coord(net())
+                .layer(Layer::new(Mark::Point)), &data());
+            assert!(d.iter().any(|x| x.kind == DiagnosticKind::Illegal
+                && x.message.contains("edge * layout(from, to) + network()")),
+                "an empty network names the syllable: {:?}", msgs(&d));
+
+            // A node aesthetic must name what a node has.
+            let mut l = Layer::new(Mark::Point).layout("continent", "region");
+            l.encodings.insert(Channel::Color, ChannelDef::field("gdp"));
+            let d = check(&PlotSpec::new().data("t").coord(net()).layer(l), &data());
+            assert!(d.iter().any(|x| x.kind == DiagnosticKind::Illegal
+                && x.message.contains("`name`") && x.message.contains("`degree`")),
+                "a node maps only what a node has: {:?}", msgs(&d));
+
+            // A self-loop is refused with its count and its direction.
+            let looped = HashMap::from([("t".to_string(), DataFrame::new()
+                .with_str("continent", vec!["Asia".into(), "Asia".into()])
+                .with_str("region", vec!["Asia".into(), "North".into()]))]);
+            let d = check(&PlotSpec::new().data("t").coord(net())
+                .layer(Layer::new(Mark::Edge).layout("continent", "region")), &looped);
+            assert!(d.iter().any(|x| x.kind == DiagnosticKind::Illegal
+                && x.message.contains("connect a node to itself")),
+                "a self-loop is refused: {:?}", msgs(&d));
+
+            // And the well-formed syllable passes with nothing bound at all.
+            let d = check(&PlotSpec::new().data("t").coord(net())
+                .layer(Layer::new(Mark::Edge).layout("continent", "region"))
+                .layer(Layer::new(Mark::Point).layout("continent", "region")), &data());
+            assert!(d.iter().all(|x| x.kind != DiagnosticKind::Illegal
+                && x.kind != DiagnosticKind::Unsupported),
+                "the network's minimum syllable is complete: {:?}", msgs(&d));
         }
 
         // A zone on two *continuous* positions with no transform has nothing to

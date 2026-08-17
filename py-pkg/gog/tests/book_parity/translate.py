@@ -43,7 +43,7 @@ COLUMN_ATOMS = {
     # fails on the *column* name and never reaches the refusal being compared.
     "colour",
 }
-ALL_COLUMN_ARGS = {"bounds", "partition", "flow"}
+ALL_COLUMN_ARGS = {"bounds", "partition", "flow", "layout"}
 
 # The exception to the exception: a *knob* on an atom whose other arguments are
 # all columns. `partition(city, mode, cross = TRUE)` names two columns and sets

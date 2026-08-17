@@ -354,7 +354,7 @@ Five rules govern every page, and you can hold the book to them:
   the web edition the cover and the DOI badge) and none of them is a plot.
 - **Questions first.** Every teaching chapter opens with a question about
   data, and answers it before it names a feature.
-- **A small cast.** Five families of table carry three out of four plots in
+- **A small cast.** Seven families of table carry three out of four plots in
   this book. A chapter that needs a frame of its own introduces it where it is
   drawn. New columns cost the reader attention, so the variety stays in the
   questions.
@@ -438,7 +438,7 @@ of people better than me.
 
 ## The cast
 
-The third rule promised a small cast. Five families of table carry three out
+The third rule promised a small cast. Seven families of table carry three out
 of four plots in this book; meet them once, here:
 
 - **`gapminder_2007`**, 142 countries in 2007: `gdp` (per capita),
@@ -458,8 +458,15 @@ of four plots in this book; meet them once, here:
   table, expectation in another. The two-table pair.
 - **`six_weeks`**, 42 consecutive days of `orders`, with `day` a real
   `Date`, for calendar axes.
+- **`titanic`**, the passengers and crew of the Titanic as 32 groups:
+  `class`, `sex`, `age`, `survived`, and `n`, how many people were in the
+  group. R's own classic table [@rcore2026], reshaped to long form, and the
+  book's table of movement: every flow diagram reads it.
+- **`trade_partners`**, 22 trade relations between 15 economies:
+  `exporter`, `importer`, and `billions`, rounded. The book's one table of
+  relations, and every network diagram reads it.
 
-Those five families answer most of the questions asked here. A handful of marks
+Those seven families answer most of the questions asked here. A handful of marks
 need a shape none of them has, and each brings its own small frame, introduced
 on the page that first draws it rather than in this list. Wind observations
 for the circular axes in [polar](polar.qmd). A mountain's elevation grid for

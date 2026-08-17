@@ -3173,6 +3173,53 @@ refuses("a band colored by a column that is not a stage",
                      ribbon * flow(class, survived) + color(n)),
         "must name one of the atom's stages")
 
+# --- network: a graph placed by its layout ----------------------------------
+# Three marks read one placement inside network(): edge the connections, point
+# the nodes, text their names. The space draws no axes, a stated angle is the
+# cube, and one table is one picture, every run.
+trade <- data.frame(
+  exporter = c("Korea", "Korea", "Japan", "China"),
+  importer = c("Japan", "China", "China", "India"),
+  tons     = c(3, 4, 3, 2)
+)
+web <- render_svg(data(trade) +
+                    edge * layout(exporter, importer) + opacity(tons) +
+                    point * layout(exporter, importer) + size(degree) +
+                    text * layout(exporter, importer) + label(name) +
+                    network())
+if (!grepl("<line", web, fixed = TRUE))
+  stop("FAIL: a network draws its edges as strokes")
+if (!grepl(">Korea<", web, fixed = TRUE))
+  stop("FAIL: `text * layout + label(name)` names each node")
+if (grepl("tick", web, fixed = TRUE))
+  stop("FAIL: the graph-theoretic space draws no ticks")
+if (!identical(web, render_svg(data(trade) +
+                                 edge * layout(exporter, importer) + opacity(tons) +
+                                 point * layout(exporter, importer) + size(degree) +
+                                 text * layout(exporter, importer) + label(name) +
+                                 network())))
+  stop("FAIL: one network sentence must be one picture, every run")
+cube <- render_svg(data(trade) + edge * layout(exporter, importer) +
+                     point * layout(exporter, importer) +
+                     network(turn = 40, tilt = 20))
+if (identical(web, cube))
+  stop("FAIL: a stated angle must change the picture")
+cat("PASS: `edge`, `point` and `text` read one layout in `network()`\n")
+
+refuses("a layout outside the network",
+        render_svg(data(trade) + edge * layout(exporter, importer)),
+        "network()")
+refuses("a mark with no layout reading",
+        render_svg(data(trade) + bar * layout(exporter, importer) + network()),
+        "no reading for that")
+refuses("a bound position under layout",
+        render_svg(data(trade) + x(tons) +
+                     edge * layout(exporter, importer) + network()),
+        "nothing left to say")
+refuses("a network with no layout in it",
+        render_svg(data(trade) + point + network()),
+        "edge * layout(from, to) + network()")
+
 # --- a zone takes a border (the closed-glyph fills, spec §4) -----------------
 # The settable rule spans a setting across its geometry class, and `zone` joined
 # the fills on 2026-07-27 because a mosaic without cell edges is one blob

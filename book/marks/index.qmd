@@ -200,6 +200,11 @@ range`](ribbon.qmd) bands the spread.
 | Categorical | Continuous | `area * mean` | The same, filled? |
 | Categorical | Continuous | `line * mean` + `polar()` | The same, as a radar? |
 
+One mark answers a question no column of positions can carry: what is
+connected to what? [`edge`](edge.qmd) draws one relation per row, its two
+endpoints placed by `layout` inside `network()`, and the
+[Network](../network.qmd) chapter builds the whole diagram.
+
 Three variables put a third position in the sentence rather than a new mark family:
 
 | x | y | z | Mark | Question |

@@ -1,0 +1,77 @@
+# edge
+
+```{r}
+#| include: false
+source("../R/setup.R")
+```
+
+What draws a relation? Every other stroke in the kernel connects positions
+the data placed: a `line` runs through its domain, a `path` follows the
+table's order, an `interval` spans between two values. An `edge` connects two
+*named things*, and one row of the table is one such connection.
+
+That difference decides everything about the mark. Its two endpoints are not
+bound to channels; they come from a [`layout`](../network.qmd), which reads
+the two endpoint columns and computes a position for every name. So the
+mark's smallest sentence carries three words, the mark, its layout, and the
+space the result is read in:
+
+```{r}
+data(trade_partners) + edge * layout(exporter, importer) + network()
+```
+
+*"Given trade partners: edges derived by layout from exporter to importer, in the network."*
+
+An `edge` does not draw outside `network()`, the way `surface` does not draw
+outside the cube. A stroke whose ends mean nothing on data axes has nowhere
+to stand in a panel that promises its axes mean something.
+
+## What varies by edge
+
+An edge is one row, so its paint can follow any column of the table. `color`
+maps a category per edge, and `opacity` maps a number, which is the reading a
+weighted network wants:
+
+```{r}
+data(trade_partners) +
+  edge * layout(exporter, importer) + opacity(billions) +
+  point * layout(exporter, importer) +
+  network() +
+  title("Each relation, faded by its value")
+```
+
+`opacity` maps on this stroke and sets on `line`, and the difference is the
+mark's own: a `line` is one stroke with one opacity, while an edge layer is
+many strokes, each its own row with its own value.
+
+## What you can set
+
+```{r}
+#| echo: false
+#| results: asis
+cat("| Setting | Value |\n|---|---|\n")
+mark_options("edge")
+```
+
+`style(size = )` sets the stroke width for the layer, `style(color = )` its
+one color when nothing maps, and `style(pattern = )` dashes it.
+
+## What it refuses
+
+An `edge` without its `layout` has no endpoints to draw, and a position bound
+to it would say nothing the layout has not already said:
+
+```{r}
+#| error: true
+data(trade_partners) + edge + x(billions) + y(exporter) + network()
+```
+
+And its layout draws only in its space:
+
+```{r}
+#| error: true
+data(trade_partners) + edge * layout(exporter, importer)
+```
+
+The [Network](../network.qmd) chapter has the whole family: the nodes, the
+names, the cube, and the rest of the refusals.

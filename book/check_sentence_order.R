@@ -39,7 +39,7 @@ check_sentence_order <- function(book = "book") {
   fail <- function(...) stop(..., call. = FALSE)
 
   MARKS <- c("point", "line", "bar", "area", "step", "interval", "box",
-             "ribbon", "text", "path", "rule", "zone", "surface")
+             "ribbon", "text", "path", "rule", "zone", "surface", "edge")
   POSITIONS <- c("x", "y", "z")
 
   # The plots that must be out of order, and why. Both are in `operators.qmd`,

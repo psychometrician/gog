@@ -1238,6 +1238,35 @@ end
                         ribbon * flow(:class, :survived) + color(:n)) "must name one of the atom's stages"
 end
 
+@testset "network — a graph placed by its layout" begin
+    trade = Dict(
+        :exporter => ["Korea", "Korea", "Japan", "China"],
+        :importer => ["Japan", "China", "China", "India"],
+        :tons => [3.0, 4.0, 3.0, 2.0],
+    )
+    gsize = GrammarOfGraphics.size
+    web() = render_svg(data(trade, name = "trade") +
+                       edge * layout(:exporter, :importer) + opacity(:tons) +
+                       point * layout(:exporter, :importer) + gsize(:degree) +
+                       text * layout(:exporter, :importer) + label(:name) +
+                       network())
+    first_run = web()
+    @test occursin("<line", first_run)
+    @test occursin(">Korea<", first_run)
+    @test !occursin("tick", first_run)
+    @test first_run == web()
+    cube = render_svg(data(trade, name = "trade") +
+                      edge * layout(:exporter, :importer) +
+                      point * layout(:exporter, :importer) +
+                      network(turn = 40, tilt = 20))
+    @test first_run != cube
+
+    @refuses render_svg(data(trade, name = "trade") +
+                        edge * layout(:exporter, :importer)) "network()"
+    @refuses render_svg(data(trade, name = "trade") +
+                        point + network()) "edge * layout(from, to)"
+end
+
 @testset "partition(cross = true) is the mosaic" begin
     # One parameter apart from the icicle, and it buys the whole plot: the levels
     # turn across each other instead of running down one axis. The engine pins the

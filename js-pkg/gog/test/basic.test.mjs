@@ -30,6 +30,7 @@ import {
   bounds,
   partition,
   flow,
+  layout,
   label,
   box,
   col,
@@ -60,6 +61,10 @@ import {
   density,
   polar,
   nest,
+  network,
+  edge,
+  opacity,
+  size,
   globe,
   proportion,
   group,
@@ -1701,6 +1706,36 @@ test("`flow` lays bands, slots and names from one layout", () => {
   refuses(() => render_svg(plot(data(voyage, { name: "voyage" }), y(col.n),
     layer(ribbon, flow(col.klass, col.survived)), color(col.n))),
     /must name one of the atom's stages/);
+});
+
+// --- network: a graph placed by its layout ----------------------------------
+test("`edge`, `point` and `text` read one layout in `network()`", () => {
+  const trade = {
+    exporter: ["Korea", "Korea", "Japan", "China"],
+    importer: ["Japan", "China", "China", "India"],
+    tons: [3, 4, 3, 2],
+  };
+  const web = () => render_svg(plot(data(trade, { name: "trade" }),
+    layer(edge, layout(col.exporter, col.importer)), opacity(col.tons),
+    layer(point, layout(col.exporter, col.importer)), size(col.degree),
+    layer(text, layout(col.exporter, col.importer)), label(col.name),
+    network()));
+  const first = web();
+  assert.match(first, /<line/, "a network draws its edges as strokes");
+  assert.match(first, />Korea</, "`label(col.name)` names each node");
+  assert.doesNotMatch(first, /tick/, "the graph-theoretic space draws no ticks");
+  assert.strictEqual(first, web(), "one network sentence is one picture, every run");
+  const cube = render_svg(plot(data(trade, { name: "trade" }),
+    layer(edge, layout(col.exporter, col.importer)),
+    layer(point, layout(col.exporter, col.importer)),
+    network({ turn: 40, tilt: 20 })));
+  assert.notStrictEqual(first, cube, "a stated angle changes the picture");
+
+  refuses(() => render_svg(plot(data(trade, { name: "trade" }),
+    layer(edge, layout(col.exporter, col.importer)))), /network\(\)/);
+  refuses(() => render_svg(plot(data(trade, { name: "trade" }),
+    layer(point), network())), /edge \* layout\(from, to\)/);
+  refuses(() => layout(col.exporter), /two endpoint columns/);
 });
 
 // One parameter apart from the icicle, and it buys the whole plot: the levels

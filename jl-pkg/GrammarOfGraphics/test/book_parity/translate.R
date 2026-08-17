@@ -27,7 +27,7 @@
 JL_COLUMN_ATOMS <- c("x", "y", "z", "color", "size", "shape", "opacity",
                      "label", "pattern", "group", "facet", "order", "play", "brush",
                      "colour")
-JL_ALL_COLUMN_ARGS <- c("bounds", "partition", "flow")
+JL_ALL_COLUMN_ARGS <- c("bounds", "partition", "flow", "layout")
 JL_PAIR_KEYWORDS <- c("lower", "upper", "start", "end")
 
 jl_gaps <- new.env(parent = emptyenv())

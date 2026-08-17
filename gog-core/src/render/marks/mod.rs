@@ -26,6 +26,7 @@ mod text;
 // (spec §5). It sits here because it *is* a drawing routine, and beside the two
 // marks whose geometry it is rather than inside either, since neither owns it.
 pub(crate) mod violin;
+mod edge;
 mod flow;
 mod zone;
 

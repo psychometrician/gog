@@ -134,6 +134,11 @@ export const text = bareAtom("mark", { mark: "text" });
 // third geometry of one field: a `zone` paints it as cells, a `path` traces its
 // contours, a `surface` raises it with the estimate as height.
 export const surface = bareAtom("mark", { mark: "surface" });
+// The stroke whose two endpoints the layout supplies — one row is one edge of
+// a graph. Nothing binds to its positions; its minimum syllable is
+// `layer(edge, layout(col.a, col.b))` inside `network()`, and like `surface`
+// it does not draw flat.
+export const edge = bareAtom("mark", { mark: "edge" });
 
 // `box` — the box-and-whisker mark, with its one knob.
 export const box = callableAtom(new Atom("mark", { mark: "box" }), (...raw) => {
@@ -501,6 +506,33 @@ export function flow(...stages) {
   });
 }
 
+/**
+ * Place a graph — node positions computed from an edge table.
+ *
+ * The two columns name each row's endpoints, and one row of the table is one
+ * edge between its two values. The nodes derive: their names from the
+ * columns' union, their `degree` from counting. Three marks read the one
+ * placement inside `network()`: `layer(edge, layout(col.a, col.b))` draws the
+ * connections, `layer(point, layout(...))` the nodes, and `layer(text,
+ * layout(...))` with `label(col.name)` names them; `size(col.degree)` reads
+ * the neighbor count. Nothing binds to `x`, `y` or `z` — the third dimension,
+ * when you want it, is the space's: `network({ turn: 30, tilt: 25 })`.
+ */
+export function layout(from, to) {
+  if (from === undefined || to === undefined) {
+    throw new GogError(
+      "gog: `layout()` takes the two endpoint columns, in order — " +
+        "`layout(col.from, col.to)`. One row of the table is one edge, and " +
+        "those columns name the two nodes it connects."
+    );
+  }
+  return new Atom("transform", {
+    transform: "layout",
+    from: columnName(from, "layout"),
+    to: columnName(to, "layout"),
+  });
+}
+
 // ---------------------------------------------------------------------------
 // Positions and coordinate spaces — always the plot's, unless a layer says so
 // ---------------------------------------------------------------------------
@@ -718,6 +750,32 @@ export const globe = callableAtom(
 // Equal Earth) keeps every region's true size, which is what a map read by area
 // needs; "angle" (Mercator) keeps every small shape's true form and pays for it
 // in area.
+/**
+ * `network` — the graph-theoretic space, where a `layout` is drawn.
+ *
+ * A layout's positions are the graph's, not the data's, so this space draws no
+ * axes, no ticks and no grid. Stating a viewing angle states the third
+ * dimension: bare `network()` draws the graph flat, `network({ turn: 30,
+ * tilt: 25 })` computes the placement in a cube and draws it from that angle.
+ */
+export const network = callableAtom(
+  new Atom("coord_network", {}),
+  (...raw) => {
+    const { turn, tilt } = readArgs(raw, "network", ["turn", "tilt"]);
+    const fields = {};
+    for (const [name, value] of [["turn", turn], ["tilt", tilt]]) {
+      if (value === undefined) continue;
+      if (typeof value !== "number" || Number.isNaN(value)) {
+        throw new GogError(
+          `gog: \`network({ ${name}: … })\` needs a single number of degrees, e.g. \`network(30, 25)\`.`
+        );
+      }
+      fields[name] = value;
+    }
+    return new Atom("coord_network", fields);
+  }
+);
+
 export const map = callableAtom(new Atom("coord_map", { preserve: "area" }), (...raw) => {
   const { preserve = "area" } = readArgs(raw, "map", ["preserve"]);
   // Validated at the line the caller wrote, rather than at the wire. The engine

@@ -8,6 +8,24 @@ CRAN-style repositories and PyPI, `GrammarOfGraphics` on Julia's General, and
 
 ### Added
 
+- **`network()` is a coordinate space, `layout` places a graph in it, and
+  `edge` is the fourteenth mark: the network diagram.** `layout(from, to)`
+  reads the two endpoint columns of an edge table — one row is one relation —
+  and the engine computes a position for every distinct name, the same way in
+  every language, so one sentence is one picture to the byte. Three marks read
+  the placement: `edge * layout(from, to)` draws the connections, `point *
+  layout(...)` the nodes, `text * layout(...) + label(name)` their names, and
+  the layout publishes each node's `name` and `degree` so `size(degree)` reads
+  its busyness. The space draws no axes, no ticks and no grid, because a
+  layout's positions mean nothing as quantities; for the same reason a bound
+  position, a brush, or an axis label is refused with its reason rather than
+  drawn. Stating a viewing angle states the cube — `network(turn = 35, tilt =
+  20)` computes the same layout in three dimensions and draws the glass box
+  without numbers, and in the web edition it turns with a drag. A row from a
+  node to itself is refused with its count; a row missing an endpoint is left
+  out and counted. Edges map `color` by any of their columns and `opacity`
+  continuously, the stroke that fades by weight.
+
 - **`flow` lays a magnitude through its stages: the flow diagram.** The stages
   are categorical columns named in the atom, in reading order, and one row of
   the table is one path through all of them — `ribbon * flow(class, sex,

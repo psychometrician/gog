@@ -327,6 +327,21 @@ text  <- structure(list(type = "mark", mark = "text"),  class = "gog_atom")
 #' @export
 surface <- structure(list(type = "mark", mark = "surface"), class = "gog_atom")
 
+# The stroke whose two endpoints the layout supplies -- one row is one edge of a
+# graph.  It parts from every other stroke on where its ends come from: a `path`
+# chains consecutive rows, an `interval` spans one axis from one slot, and this
+# mark reads two computed points per row.  No positions bind to it; its minimum
+# syllable is `edge * layout(from, to)` inside `network()`, and like `surface`
+# it does not draw flat -- a stroke whose ends mean nothing on data axes has
+# nowhere to stand outside the space that abolishes them.
+#
+# `color` maps per row over any column the edge table carries, `opacity` maps a
+# number -- fading by weight is how a dense network stays legible -- and
+# `style(size = )` sets the stroke width for the layer.
+#' @rdname marks
+#' @export
+edge <- structure(list(type = "mark", mark = "edge"), class = "gog_atom")
+
 # ---------------------------------------------------------------------------
 # Transform atoms — statistical and spatial derivations
 # Used with the * operator:  bar * bin,  line * smooth, etc.
@@ -823,6 +838,40 @@ flow <- function(...) {
   }
   structure(
     list(type = "transform", transform = "flow", stages = stages),
+    class = "gog_atom"
+  )
+}
+
+#' Place a graph -- node positions computed from an edge table.
+#'
+#' The two columns name each row's endpoints, and one row of the table is one
+#' edge between its two values.  The nodes derive: their names from the columns'
+#' union, their `degree` from counting.  The engine computes every position, the
+#' same way in every binding, so one table is one picture wherever it is drawn.
+#'
+#' Three marks read the one placement, inside [network()].  `edge * layout(from,
+#' to)` draws the connections, `point * layout(...)` the nodes, and `text *
+#' layout(...) + label(name)` names them.  On the node layers, `size(degree)`
+#' and `color(degree)` read the neighbor count the layout counted.
+#'
+#' The positions mean nothing as quantities -- the picture can be mirrored
+#' without changing what the graph says -- so nothing binds to `x`, `y` or `z`,
+#' and the third dimension, when you want it, is the space's:
+#' `network(turn = 30, tilt = 25)`.
+#'
+#' @param from The column naming each edge's first endpoint, bare.
+#' @param to   The column naming each edge's second endpoint, bare.
+#' @export
+layout <- function(from, to) {
+  ends <- vapply(as.list(substitute(list(from, to)))[-1L], deparse, character(1))
+  if (length(ends) != 2L || missing(from) || missing(to)) {
+    stop("gog: `layout()` takes the two endpoint columns, in order — ",
+         "`layout(from, to)`. One row of the table is one edge, and those ",
+         "columns name the two nodes it connects.", call. = FALSE)
+  }
+  structure(
+    list(type = "transform", transform = "layout",
+         from = ends[[1L]], to = ends[[2L]]),
     class = "gog_atom"
   )
 }
@@ -1344,6 +1393,29 @@ globe <- function(turn = 0, tilt = 0) {
   structure(list(type = "coord_globe",
                  turn = degrees(turn, "globe", "turn"),
                  tilt = degrees(tilt, "globe", "tilt")),
+            class = "gog_atom")
+}
+
+#' The graph-theoretic space -- where a [layout()]'s placement is drawn.
+#'
+#' A layout's positions are the graph's, not the data's, so this space draws no
+#' axes, no ticks and no grid: there is nothing there for them to number.  It is
+#' the one space a `layout` draws in, and a `layout` is the one thing that
+#' stands in it.
+#'
+#' Stating a viewing angle states the third dimension.  Bare `network()` draws
+#' the graph flat; `network(turn = 30, tilt = 25)` computes the placement in a
+#' cube and draws it from that angle, with each unstated angle taking the
+#' standard view.  In the web edition the cube turns with a drag, the way the
+#' cube in `space()` turns.
+#'
+#' @param turn Degrees around the upright axis, stated only for the cube.
+#' @param tilt Degrees of elevation, stated only for the cube.
+#' @export
+network <- function(turn = NULL, tilt = NULL) {
+  if (!is.null(turn)) turn <- degrees(turn, "network", "turn")
+  if (!is.null(tilt)) tilt <- degrees(tilt, "network", "tilt")
+  structure(list(type = "coord_network", turn = turn, tilt = tilt),
             class = "gog_atom")
 }
 

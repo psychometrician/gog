@@ -263,9 +263,10 @@ order differs, which is what a report of small multiples usually wants.
 ## If your plot is not here
 
 The sweep was of ggplot2's reference index, so a plot that lives in one of its
-extensions may be missing from both columns. Two families are absent from gog
-with nothing written down about them at all: networks (nodes and edges, ggraph's
-territory) and any shape with a hole in it, which is the same geometry a
+extensions may be missing from both columns. Networks were the largest such
+family, and they are drawn now: [Network](network.qmd) is the node-link
+diagram, and [Flow](flow.qmd) is the alluvial. One family is still absent with
+nothing built for it: any shape with a hole in it, which is the same geometry a
 choropleth and a ring-shaped filled contour both need.
 
 For a plot you can name, [Chart names](chart-names.qmd) is the dictionary and

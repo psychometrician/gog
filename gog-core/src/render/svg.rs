@@ -337,6 +337,16 @@ impl SvgRenderer {
         // cube's edges". `check_nest` refuses `nest()` with a `z`, so it cannot
         // collide with the 3-D gate.
         let is_nest = matches!(spec.coord, CoordSpace::Nest);
+        // The graph-theoretic space, `nest`'s twin: no axes, no ticks, no
+        // grid, because a layout's positions mean nothing as quantities. Which
+        // *form* it takes rides on whether a view was stated — bare
+        // `network()` draws flat, a stated angle draws the cube (the ruling
+        // `CoordSpace::Network` records).
+        let is_network = matches!(spec.coord, CoordSpace::Network(_));
+        let network_cube: Option<crate::ir::SpaceView> = match &spec.coord {
+            CoordSpace::Network(v) if v.cube() => Some(v.view()),
+            _ => None,
+        };
         // Asked of `space_of`, the one source the legality checks read, rather than
         // re-derived here. It agrees with the sentence above and adds the case that
         // sentence predates: a **synthesized** `z` is a third dimension too, so
@@ -394,6 +404,9 @@ impl SvgRenderer {
         let measure_on_angle = is_polar && x_field.is_empty() && !supplies_positions;
         let view = match &spec.coord {
             CoordSpace::Space(v) => *v,
+            // A network with a stated angle is a cube seen from it, each
+            // unstated angle taking `space()`'s own default.
+            CoordSpace::Network(v) if v.cube() => v.view(),
             _ => SpaceView::default(),
         };
         // A 3-D reading binds no `z`: `bin`/`count` invent the measurement and
@@ -410,6 +423,8 @@ impl SvgRenderer {
         });
         let z_field = match (bound_z, is_3d) {
             ("", true) => synth_z.unwrap_or(""),
+            ("", false) if matches!(&spec.coord, CoordSpace::Network(v) if v.cube()) =>
+                crate::transform::LAYOUT_Z,
             _ => bound_z,
         };
 
@@ -445,6 +460,21 @@ impl SvgRenderer {
         };
         let y_field = match (y_field, stages_the_domain) {
             ("", true) => crate::transform::CELL_COUNT,
+            _ => y_field,
+        };
+
+        // A **layout** places its own nodes, so nothing is bound and all three
+        // axes fall back to the columns it published — the same rule a fourth
+        // and fifth time. `z` only in the cube form, where the layout filled
+        // the third coordinate.
+        let layout_the_positions = spec.layers.iter()
+            .any(|l| l.transforms.contains(&Transform::Layout));
+        let x_field = match (x_field, layout_the_positions) {
+            ("", true) => crate::transform::LAYOUT_X,
+            _ => x_field,
+        };
+        let y_field = match (y_field, layout_the_positions) {
+            ("", true) => crate::transform::LAYOUT_Y,
             _ => y_field,
         };
 
@@ -741,6 +771,29 @@ impl SvgRenderer {
                                 &base, &stages, measure, y_field),
                             _ => crate::transform::flow_nodes(
                                 &base, &stages, measure, y_field),
+                        };
+                    }
+                    // A **layout** takes the same door a third time: its two
+                    // endpoint columns are named in the atom, nothing is
+                    // bound, and one deterministic computation is projected
+                    // per reading mark — endpoint pairs for `edge`, the node
+                    // list for `point` and `text`. Determinism *is* the
+                    // cross-layer agreement: three layers over one table land
+                    // on identical positions, the guarantee two-layer
+                    // partition sentences already stand on.
+                    if layer.transforms.contains(&crate::ir::Transform::Layout) {
+                        let (from, to) = layer.layout.as_ref()
+                            .map(|sp| (sp.from.clone(), sp.to.clone()))
+                            .unwrap_or_default();
+                        let dims = match &spec.coord {
+                            crate::ir::CoordSpace::Network(v) if v.cube() => 3,
+                            _ => 2,
+                        };
+                        return match layer.mark {
+                            Mark::Edge => crate::transform::layout_edges(
+                                &base, &from, &to, dims),
+                            _ => crate::transform::layout_nodes(
+                                &base, &from, &to, dims),
                         };
                     }
                     // A `zone` carries `bounds`, but its `bounds` *names four
@@ -1337,6 +1390,13 @@ impl SvgRenderer {
             crate::transform::CELL_Y, crate::transform::CELL_DY, y_ticks, ys,
             stated_domain(scale::domain_of(spec.axis_def(&Channel::Y)), y_log, y_base));
 
+        // A **network** is fitted to the unit square by statement, not from its
+        // columns: the layout normalizes to [0, 1], the margin keeps a glyph at
+        // the rim off the panel edge, and fitting from columns would repeat the
+        // flow family's starvation defect one family later — an edge-only plot
+        // carries its second endpoints in columns no fit reads.
+        let (xs, ys) = if is_network { ((-0.06, 1.06), (-0.06, 1.06)) } else { (xs, ys) };
+
         // **Where the spokes start.** An angular gridline marks an angle, and at the
         // center every angle is the same point — so a spoke drawn across a hole is
         // not a gridline but a starburst, and it is the ink a reader of a donut asks
@@ -1407,7 +1467,11 @@ impl SvgRenderer {
         // scale is fitted across panels like every other so two faceted globes
         // stay comparable. The spike's own baseline is the surface — the writer
         // reads the fitted top and measures from zero.
-        let (z_ticks, zs) = if is_3d || (is_globe && !z_field.is_empty()) {
+        let (z_ticks, zs) = if network_cube.is_some() {
+            // The cube form: the layout filled [0, 1], stated for `x`/`y`'s
+            // reason, with no ticks to select.
+            (TickSpec { values: Vec::new(), labels: Vec::new(), step: 1.0 }, (-0.06, 1.06))
+        } else if is_3d || (is_globe && !z_field.is_empty()) {
             // No `sides`: a `zone` is refused in the cube (`mark_draws_in_space`),
             // so nothing places itself on `z` other than through the column.
             build_axis(&eff, &[], &[], z_field, None, false, false, false,
@@ -1650,9 +1714,9 @@ impl SvgRenderer {
         // the angle and the radius measure, and there is nowhere in the circle to
         // put them.
         let (grid_xt, grid_yt, grid_xl, grid_yl): (&TickSpec, &TickSpec, &str, &str) =
-            if is_3d {
+            if is_3d || network_cube.is_some() {
                 (&no_ticks, &no_ticks, "", "")
-            } else if is_nest {
+            } else if is_nest || is_network {
                 // A packing has no axes at all — not axes drawn elsewhere, as in
                 // 3-D and polar, but none. So it reserves no margin for either, and
                 // it keeps no axis names: `check_nest` refuses `x_label()`/
@@ -1825,7 +1889,7 @@ impl SvgRenderer {
                 place,
             };
             self.write_brush_frame(&mut svg, spec, l, xs, ys, cat_x.as_ref(), cat_y.as_ref(),
-                                   x_field, y_field, !is_nest && !is_3d && !is_globe,
+                                   x_field, y_field, !is_nest && !is_3d && !is_globe && !is_network,
                                    x_log.then_some(x_base), y_log.then_some(y_base), &facts);
             // Which subset this panel shows at moment `fi`. Moments are the outer
             // stride, so at one frame this is exactly the index it always was.
@@ -1966,7 +2030,7 @@ impl SvgRenderer {
             // are edges of the cube, and the cube is inside the panel. The layout
             // agrees — 3-D is handed empty tick lists above, so no outer margin is
             // reserved for numbers that never go there.
-            if is_3d {
+            if is_3d || network_cube.is_some() {
                 let scene = project::Scene::new(view, l.x0, l.y0, l.x1, l.y1, FRAME_INSET);
                 self.write_space_box(&mut svg, &scene);
                 // One group per moment, wrapping the marks and nothing else. The
@@ -1991,6 +2055,11 @@ impl SvgRenderer {
                             Mark::Path => self.write_path(&mut svg, layer, df, l, xs, ys,
                                 x_field, y_field, cat_x.as_deref(), cat_y.as_deref(),
                                 &color_map, &ramp, &clip, zs, z_field, Some(&scene), None, None),
+                            // The layout's endpoint pairs in the cube — only
+                            // ever reached inside a `network()` with a stated
+                            // view, depth-sorted per stroke inside the writer.
+                            Mark::Edge => self.write_edge_3d(&mut svg, layer, df, xs, ys, zs,
+                                &color_map, &clip, &scene),
                             // The column standing on the cube's floor — the 3-D
                             // histogram, and the first *slot* mark in space. It takes no
                             // `Layout`: a flat bar's thickness is pixels on the panel,
@@ -2028,12 +2097,18 @@ impl SvgRenderer {
                 // measurement's name away. This is what a solid mesh made
                 // impossible to keep ignoring — it covers the whole floor, so
                 // every number along both domain edges went under it.
+                // A network's cube keeps the glass box for depth and skips the
+                // labels: its coordinates are the layout's, and a number on a
+                // meaningless axis is the reading the treemap entry warns
+                // against.
+                if network_cube.is_none() {
                 self.write_space_labels(&mut svg, &scene, l, &spec.theme.resolved(), view,
                     [scale::tick_count_of(spec.axis_def(&Channel::X)),
                      scale::tick_count_of(spec.axis_def(&Channel::Y)),
                      scale::tick_count_of(spec.axis_def(&Channel::Z))],
                     &x_ticks, xs, &x_label, &y_ticks, ys, &y_label, &z_ticks, zs, &z_label,
                     &mut remarks);
+                }
                 continue;
             }
 
@@ -2045,7 +2120,7 @@ impl SvgRenderer {
             // A gridline is a reading aid for an axis, so a packed panel has none
             // to draw — and the cells cover the panel anyway, so drawing them would
             // be ink under paint that reappears wherever a region is translucent.
-            if pol.is_none() && !is_nest {
+            if pol.is_none() && !is_nest && !is_network {
                 let theme = spec.theme.resolved();
                 self.write_grid(&mut svg, l, &x_ticks, xs, &y_ticks, ys,
                                 (has_plain_bar && !horizontal) || !theme.grid_x(),
@@ -2115,6 +2190,10 @@ impl SvgRenderer {
                             self.write_flow_bands(&mut svg, layer, df, l, xs, ys, cat_x.as_deref(), &color_map, &clip),
                         Mark::Ribbon => self.write_ribbon(&mut svg, layer, df, l, xs, ys, x_field, y_field, cat_x.as_deref(), &color_map, &clip, pol_ref),
                         Mark::Text => self.write_text(&mut svg, layer, df, l, xs, ys, x_field, y_field, cat_x.as_deref(), cat_y.as_deref(), &color_map, &clip, pol_ref, nst.as_ref(), None, &mut remarks),
+                        // The stroke between two layout-supplied endpoints —
+                        // only ever reached inside `network()`, where the
+                        // legality gate has already admitted it.
+                        Mark::Edge => self.write_edge(&mut svg, layer, df, l, xs, ys, &color_map, &clip, None),
                         Mark::Path => self.write_path(&mut svg, layer, df, l, xs, ys, x_field, y_field, cat_x.as_deref(), cat_y.as_deref(), &color_map, &ramp, &clip, zs, z_field, None, pol_ref, None),
                         // The one mark handed the whole spec rather than the two
                         // resolved field names: which axis places it is read off
@@ -2153,7 +2232,7 @@ impl SvgRenderer {
                 // Nothing at all in a packed panel. An axis line is the edge of a
                 // measurement and a tick is a place on one; this space has neither,
                 // and the cells' own edges are what the reader has instead.
-                None if is_nest => {}
+                None if is_nest || is_network => {}
                 None => {
                     self.write_axes(&mut svg, l, &spec.theme.resolved());
                     // A shared axis is one axis, so it is ticked once — by the
@@ -2174,7 +2253,7 @@ impl SvgRenderer {
                               &spec.theme.resolved());
         // In 3-D the axis names sit on the cube's edges, so the outer margin
         // carries only the title — the 2-D x/y labels would float against no axis.
-        let (outer_xl, outer_yl) = if is_3d || is_nest || is_globe { ("", "") } else { (x_label.as_str(), y_label.as_str()) };
+        let (outer_xl, outer_yl) = if is_3d || is_nest || is_globe || is_network { ("", "") } else { (x_label.as_str(), y_label.as_str()) };
         // A name belongs to the axis, so it goes wherever the ticks went: on the
         // one plot of the page that draws the shared axis, and nowhere else.
         let (outer_xl, outer_yl) = (
@@ -4536,6 +4615,68 @@ mod tests {
         assert!(svg.contains(" C "), "two stages and one layer still draw bands");
         assert!(svg.contains(">class<") && svg.contains(">survived<"),
             "the final stage's name is on the axis without a zone layer to carry it");
+    }
+
+    // -----------------------------------------------------------------------
+    // Network — the layout's three readers (spec §15, the network entry)
+    // -----------------------------------------------------------------------
+
+    fn net_table() -> HashMap<String, DataFrame> {
+        let df = DataFrame::new()
+            .with_str("a", vec!["p".into(), "p".into(), "q".into(), "r".into()])
+            .with_str("b", vec!["q".into(), "r".into(), "r".into(), "s".into()])
+            .with_float("w", vec![1.0, 2.0, 3.0, 4.0]);
+        HashMap::from([("t".to_string(), df)])
+    }
+
+    fn net_spec(coord: crate::ir::NetworkView) -> PlotSpec {
+        PlotSpec::new().data("t")
+            .layer(Layer::new(Mark::Edge).layout("a", "b"))
+            .layer(Layer::new(Mark::Point).layout("a", "b"))
+            .coord(CoordSpace::Network(coord))
+    }
+
+    /// **The flat network: strokes, glyphs, and none of an axis's furniture.**
+    /// Asserted for the *edge-only* sentence too — the flow family's lesson,
+    /// that a projection must be tested alone and not beside the sibling that
+    /// hides its gap. Two renders are one picture, at the very end of the
+    /// pipeline.
+    #[test]
+    fn a_network_draws_axisless_and_each_projection_stands_alone() {
+        let svg = SvgRenderer::default().render(
+            &net_spec(crate::ir::NetworkView::default()), &net_table());
+        assert!(svg.contains("<line"), "edges are strokes");
+        assert!(svg.contains("<circle"), "nodes are glyphs");
+        assert!(!svg.contains("tick"), "no ticks in the graph-theoretic space");
+        let edge_only = SvgRenderer::default().render(
+            &PlotSpec::new().data("t")
+                .layer(Layer::new(Mark::Edge).layout("a", "b"))
+                .coord(CoordSpace::Network(crate::ir::NetworkView::default())),
+            &net_table());
+        assert!(edge_only.contains("<line"), "the edge projection stands alone");
+        let nodes_only = SvgRenderer::default().render(
+            &PlotSpec::new().data("t")
+                .layer(Layer::new(Mark::Point).layout("a", "b"))
+                .coord(CoordSpace::Network(crate::ir::NetworkView::default())),
+            &net_table());
+        assert!(nodes_only.contains("<circle"), "the node projection stands alone");
+        assert_eq!(svg, SvgRenderer::default().render(
+            &net_spec(crate::ir::NetworkView::default()), &net_table()));
+    }
+
+    /// **Stating a viewing angle states the cube** — the ruling
+    /// `CoordSpace::Network` records, checked at the pixels: the cube form
+    /// draws the glass box and differs from the flat form, and its box carries
+    /// no axis labels, a network's numbers meaning nothing.
+    #[test]
+    fn a_network_with_a_stated_view_is_the_cube_without_labels() {
+        let flat = SvgRenderer::default().render(
+            &net_spec(crate::ir::NetworkView::default()), &net_table());
+        let cube = SvgRenderer::default().render(
+            &net_spec(crate::ir::NetworkView { turn: Some(30.0), tilt: Some(25.0) }),
+            &net_table());
+        assert_ne!(flat, cube, "the stated angle changes the picture");
+        assert!(!cube.contains(">Layout"), "no axis names on the network's box");
     }
 
     /// A band's paint follows a stage's category: `color(class)` on the band

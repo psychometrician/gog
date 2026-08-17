@@ -178,7 +178,7 @@ def _carry(layer: Atom, transform: Atom) -> None:
     """
     name = transform.fields["transform"]
     if name not in ("bin", "density", "range", "confidence", "deviation",
-                    "quantile", "jitter", "stack", "bounds", "partition", "flow"):
+                    "quantile", "jitter", "stack", "bounds", "partition", "flow", "layout"):
         return
     params = {
         key: value
@@ -469,7 +469,7 @@ class Plot:
                 "data": plot.pending_data,
             }
             for param in ("bin", "density", "range", "confidence", "deviation",
-                          "quantile", "jitter", "stack", "bounds", "partition", "flow", "box"):
+                          "quantile", "jitter", "stack", "bounds", "partition", "flow", "layout", "box"):
                 if other.fields.get(param) is not None:
                     layer[param] = copy.deepcopy(other.fields[param])
             plot._open_layer(layer)
@@ -493,6 +493,14 @@ class Plot:
         # A globe carries the place its view faces, in space's own two words:
         # {"globe": {"turn": 0, "tilt": 0}} matches `CoordSpace::Globe(GlobeView)`,
         # and a bare "globe" is not a legal form.
+        elif kind == "coord_network":
+            view = {
+                key: other.fields[key]
+                for key in ("turn", "tilt")
+                if other.fields.get(key) is not None
+            }
+            plot.spec["coord"] = {"network": view}
+
         elif kind == "coord_globe":
             plot.spec["coord"] = {
                 "globe": {"turn": other.fields["turn"], "tilt": other.fields["tilt"]}

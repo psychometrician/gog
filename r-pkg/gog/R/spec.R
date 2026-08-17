@@ -139,6 +139,10 @@ carry_partition_params <- function(layer, tr) {
   if (identical(tr$transform, "flow")) {
     layer$flow <- list(stages = I(as.character(tr$stages)))
   }
+  # And a layout its two endpoints.
+  if (identical(tr$transform, "layout")) {
+    layer$layout <- list(from = tr$from, to = tr$to)
+  }
   layer
 }
 
@@ -643,6 +647,7 @@ resolve_query <- function(q, table) {
       lhs$current_layer$bounds <- rhs$bounds
       lhs$current_layer$partition <- rhs$partition
       lhs$current_layer$flow <- rhs$flow
+      lhs$current_layer$layout <- rhs$layout
       lhs$pending_data <- NULL
     },
 
@@ -669,6 +674,16 @@ resolve_query <- function(q, table) {
     # `{"globe":{"turn":0,"tilt":0}}` matches `CoordSpace::Globe(GlobeView)`,
     # and a bare `"globe"` is not a legal form.
     coord_globe = { lhs$spec$coord <- list(globe = list(turn = rhs$turn, tilt = rhs$tilt)) },
+
+    # A network sends its angles only when they were stated: bare `network()` is
+    # the flat form and crosses as `{"network":{}}`, a stated angle is the cube.
+    # The named-empty structure is what makes jsonlite write `{}` rather than `[]`.
+    coord_network = {
+      nv <- structure(list(), names = character(0))
+      if (!is.null(rhs$turn)) nv$turn <- rhs$turn
+      if (!is.null(rhs$tilt)) nv$tilt <- rhs$tilt
+      lhs$spec$coord <- list(network = nv)
+    },
 
     # A map carries what the flattening must preserve, the same way `space` and
     # `polar` carry theirs: `{"map":{"preserve":"area"}}` matches

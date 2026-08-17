@@ -197,6 +197,7 @@ book:
         - marks/rule.qmd
         - marks/zone.qmd
         - marks/surface.qmd
+        - marks/edge.qmd
         # `scales` is a vowel rather than a refinement — it decides where a
         # position lands — so it comes before the finals, which is the order
         # `parts/letters.qmd` states
@@ -221,6 +222,7 @@ book:
         # in hand: the map's data and the cube's view.
         - map.qmd
         - globe.qmd
+        - network.qmd
         - play.qmd
         - selection.qmd
 

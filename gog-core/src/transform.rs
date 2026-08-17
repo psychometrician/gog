@@ -682,6 +682,13 @@ pub fn jobs(t: &Transform, ctx: JobContext) -> Jobs {
             extent: true, measure: true, scale: true, position: true,
             ..Jobs::default()
         },
+        // The graph layout holds every job for `flow`'s reason: it places its
+        // own marks, measures nothing a caller could rename, and composes with
+        // no other computation until a relaxation is argued for.
+        Transform::Layout => Jobs {
+            extent: true, measure: true, scale: true, position: true,
+            ..Jobs::default()
+        },
         // Tallies rows into whatever cells already exist. It was handed no column, so
         // it cannot take the measure job over from a cut.
         Transform::Count => measure(false),
@@ -789,6 +796,7 @@ fn apply_one(df: &DataFrame, t: &Transform, key_field: &str, out_field: &str, bi
         // §12's rule that the engine never invents a plot nobody asked for.
         Transform::Partition  => df.clone(),
         Transform::Flow       => df.clone(),
+        Transform::Layout     => df.clone(),
         Transform::Dodge      => df.clone(),
         // `stack` is also a collision modifier, but its offset accumulates *across*
         // groups — group b sits on group a's height — so it cannot run inside a
@@ -1101,6 +1109,26 @@ pub const FLOW_STAGE: &str = "stage";
 /// place. Per-stage rows put every stage in the data itself, which is what a
 /// seen-levels axis reads.
 pub const FLOW_PATH: &str = "path";
+/// A `layout`'s computed positions, published under names of their own — the
+/// axis fallbacks read these when nothing is bound, the [`NODE_DEPTH`] pattern
+/// a third time. In the unit square flat, the unit cube when the network
+/// states a view.
+pub const LAYOUT_X: &str = "layout_x";
+/// See [`LAYOUT_X`].
+pub const LAYOUT_Y: &str = "layout_y";
+/// See [`LAYOUT_X`].
+pub const LAYOUT_Z: &str = "layout_z";
+/// An edge row's second endpoint, beside [`LAYOUT_X`]'s first — synthesized
+/// columns, never channels, which is the `ymin`/`ymax` ruling holding for a
+/// second endpoint exactly as it held for a second extent.
+pub const EDGE_X: &str = "edge_x";
+/// See [`EDGE_X`].
+pub const EDGE_Y: &str = "edge_y";
+/// See [`EDGE_X`].
+pub const EDGE_Z: &str = "edge_z";
+/// A node's neighbor count, published so `size(degree)` and `color(degree)`
+/// can name it — the one attribute an edge table implies about its nodes.
+pub const NODE_DEGREE: &str = "degree";
 
 /// The extent description a 2-D `bin` synthesizes, in the form a mark reads
 /// extents in. Here rather than at either end so the transform that *writes*
@@ -3855,6 +3883,191 @@ pub fn flow_bands(
     out
 }
 
+/// The graph layout's shared computation — one deterministic placement,
+/// projected per reading mark exactly as `flow`'s is (spec §15, the network
+/// entry). Nodes derive from the endpoint union of an edge table; positions
+/// come from a hash-seeded start refined by a budgeted spring relaxation.
+///
+/// **Every arithmetic step is `+ − × ÷ √` or the [`crate::render::hash01`]
+/// hash.** No transcendental is called, because the browser engine is a second
+/// compiled artifact and an iterative layout amplifies a last-bit `libm`
+/// difference into visible drift between the CLI's picture and the first
+/// interactive frame. The budget is `repel`'s
+/// (`clamp(40_000_000 / n², 24, 240)` — it can only cost quality, never
+/// honesty), and the tie-broken start is seeded from each node's own name, so
+/// one table is one picture, every run, on every target.
+struct GraphLayout {
+    /// Node names, first-appearance order across (from, to).
+    nodes: Vec<String>,
+    /// Neighbor count per node, parallel to `nodes`.
+    degree: Vec<f64>,
+    /// Positions per node, `dims` values each, normalized to the unit range.
+    pos: Vec<Vec<f64>>,
+    /// Edge endpoint indices per surviving input row, with the row's index in
+    /// the input frame so carried columns can be read back.
+    edges: Vec<(usize, usize, usize)>,
+}
+
+fn graph_layout(df: &DataFrame, from: &str, to: &str, dims: usize) -> Option<GraphLayout> {
+    let n_rows = df.len();
+    let (a, b) = (df.str_col(from)?, df.str_col(to)?);
+    let mut nodes: Vec<String> = Vec::new();
+    let mut index = |name: &str, nodes: &mut Vec<String>| -> Option<usize> {
+        if name.is_empty() {
+            return None;
+        }
+        match nodes.iter().position(|x| x == name) {
+            Some(i) => Some(i),
+            None => {
+                nodes.push(name.to_string());
+                Some(nodes.len() - 1)
+            }
+        }
+    };
+    let mut edges: Vec<(usize, usize, usize)> = Vec::new();
+    for r in 0..n_rows {
+        let (Some(i), Some(j)) = (index(&a[r], &mut nodes), index(&b[r], &mut nodes)) else {
+            continue;
+        };
+        if i != j {
+            edges.push((i, j, r));
+        }
+    }
+    let n = nodes.len();
+    if n < 2 || edges.is_empty() {
+        return None;
+    }
+    let mut degree = vec![0.0; n];
+    for &(i, j, _) in &edges {
+        degree[i] += 1.0;
+        degree[j] += 1.0;
+    }
+
+    // The seeded start: each coordinate from the node's own name, `jitter`'s
+    // seeded-from-data rule. A name-derived seed rather than an index-derived
+    // one, so reordering the table's rows cannot move a node.
+    let seed_of = |name: &str| -> u64 {
+        let mut s: u64 = 0;
+        for byte in name.bytes() {
+            s = s.wrapping_mul(31).wrapping_add(byte as u64);
+        }
+        s
+    };
+    let mut pos: Vec<Vec<f64>> = nodes.iter()
+        .map(|name| {
+            let s = seed_of(name);
+            (0..dims)
+                .map(|d| crate::render::hash01(s.wrapping_add(1_000_003 * d as u64)))
+                .collect()
+        })
+        .collect();
+
+    // Fruchterman-Reingold springs under repel's budget. `k` is the ideal
+    // spring length in the unit volume; the step cap `t` cools by ×0.97, which
+    // keeps every operation inside the bit-deterministic subset.
+    let k = (1.0 / n as f64).sqrt();
+    let iters = (40_000_000_usize / (n * n)).clamp(24, 240);
+    let mut t = 0.10;
+    for _ in 0..iters {
+        let mut disp = vec![vec![0.0; dims]; n];
+        for i in 0..n {
+            for j in (i + 1)..n {
+                let d: Vec<f64> = (0..dims).map(|c| pos[i][c] - pos[j][c]).collect();
+                let dist2: f64 = d.iter().map(|v| v * v).sum::<f64>() + 1e-9;
+                let push = k * k / dist2;
+                for c in 0..dims {
+                    disp[i][c] += d[c] * push;
+                    disp[j][c] -= d[c] * push;
+                }
+            }
+        }
+        for &(i, j, _) in &edges {
+            let d: Vec<f64> = (0..dims).map(|c| pos[i][c] - pos[j][c]).collect();
+            let dist = (d.iter().map(|v| v * v).sum::<f64>() + 1e-9).sqrt();
+            let pull = dist / k;
+            for c in 0..dims {
+                disp[i][c] -= d[c] * pull;
+                disp[j][c] += d[c] * pull;
+            }
+        }
+        for i in 0..n {
+            let dist = (disp[i].iter().map(|v| v * v).sum::<f64>() + 1e-9).sqrt();
+            let step = if dist < t { dist } else { t };
+            for c in 0..dims {
+                pos[i][c] += disp[i][c] / dist * step;
+            }
+        }
+        t *= 0.97;
+    }
+
+    // Normalize each dimension to the unit range; a degenerate spread centers.
+    for c in 0..dims {
+        let lo = pos.iter().map(|p| p[c]).fold(f64::INFINITY, f64::min);
+        let hi = pos.iter().map(|p| p[c]).fold(f64::NEG_INFINITY, f64::max);
+        for p in pos.iter_mut() {
+            p[c] = if hi > lo { (p[c] - lo) / (hi - lo) } else { 0.5 };
+        }
+    }
+
+    Some(GraphLayout { nodes, degree, pos, edges })
+}
+
+/// The node projection: one row per node — its `name`, its `degree`, and its
+/// position under [`LAYOUT_X`]/[`LAYOUT_Y`] (and [`LAYOUT_Z`] in the cube).
+/// Read by `point` and by `text + label(name)` through the ordinary writers,
+/// which is the leak test the design set: no writer learns a network reading.
+pub fn layout_nodes(df: &DataFrame, from: &str, to: &str, dims: usize) -> DataFrame {
+    let Some(g) = graph_layout(df, from, to, dims) else {
+        return DataFrame::new();
+    };
+    let mut out = DataFrame::new()
+        .with_str(NODE_NAME, g.nodes.clone())
+        .with_float(NODE_DEGREE, g.degree.clone())
+        .with_float(LAYOUT_X, g.pos.iter().map(|p| p[0]).collect())
+        .with_float(LAYOUT_Y, g.pos.iter().map(|p| p[1]).collect());
+    if dims > 2 {
+        out = out.with_float(LAYOUT_Z, g.pos.iter().map(|p| p[2]).collect());
+    }
+    out
+}
+
+/// The edge projection: one row per surviving input row, both endpoints as
+/// synthesized columns, every input column carried through — an edge is 1:1
+/// with its row, so `color(<any edge column>)` needs no rule of its own.
+pub fn layout_edges(df: &DataFrame, from: &str, to: &str, dims: usize) -> DataFrame {
+    let Some(g) = graph_layout(df, from, to, dims) else {
+        return DataFrame::new();
+    };
+    let rows: Vec<usize> = g.edges.iter().map(|&(_, _, r)| r).collect();
+    let mut out = DataFrame::new()
+        .with_float(LAYOUT_X, g.edges.iter().map(|&(i, _, _)| g.pos[i][0]).collect())
+        .with_float(LAYOUT_Y, g.edges.iter().map(|&(i, _, _)| g.pos[i][1]).collect())
+        .with_float(EDGE_X, g.edges.iter().map(|&(_, j, _)| g.pos[j][0]).collect())
+        .with_float(EDGE_Y, g.edges.iter().map(|&(_, j, _)| g.pos[j][1]).collect());
+    if dims > 2 {
+        out = out
+            .with_float(LAYOUT_Z, g.edges.iter().map(|&(i, _, _)| g.pos[i][2]).collect())
+            .with_float(EDGE_Z, g.edges.iter().map(|&(_, j, _)| g.pos[j][2]).collect());
+    }
+    // Sorted, not iterated: the column map has no order, and while nothing
+    // downstream reads columns positionally, the determinism rule is cheaper
+    // to keep total than to argue per consumer.
+    let mut names: Vec<String> = df.column_names().map(String::from).collect();
+    names.sort();
+    for name in names {
+        if let Some(vals) = df.str_col(&name) {
+            let col: Vec<String> = rows.iter().map(|&r| vals[r].clone()).collect();
+            out = match df.levels(&name) {
+                Some(lv) => out.with_levels(name.clone(), col, lv.to_vec()),
+                None => out.with_str(name.clone(), col),
+            };
+        } else if let Some(vals) = df.float_col(&name) {
+            out = out.with_float(name.clone(), rows.iter().map(|&r| vals[r]).collect());
+        }
+    }
+    out
+}
+
 // ---------------------------------------------------------------------------
 // Tests
 //
@@ -3964,6 +4177,63 @@ mod tests {
         let hi = out.float_col(CELL_UPPER).unwrap();
         assert_eq!(hi.len(), 2, "one path survives, one row per stage");
         assert_eq!(hi[0], 2.0, "the tally weighs each surviving row 1");
+    }
+
+    fn edge_frame() -> DataFrame {
+        DataFrame::new()
+            .with_str("a", vec!["p".into(), "p".into(), "q".into(), "r".into()])
+            .with_str("b", vec!["q".into(), "r".into(), "r".into(), "s".into()])
+    }
+
+    /// **One table is one placement, every run, in either dimension.** The
+    /// layout is seeded from node names and budgeted, so two computations agree
+    /// to the bit — the guarantee three layers reading one table stand on — and
+    /// every position lands in the unit range the space states.
+    #[test]
+    fn a_layout_is_deterministic_and_lands_in_the_unit_range() {
+        for dims in [2usize, 3] {
+            let one = layout_nodes(&edge_frame(), "a", "b", dims);
+            let two = layout_nodes(&edge_frame(), "a", "b", dims);
+            for col in [LAYOUT_X, LAYOUT_Y] {
+                assert_eq!(one.float_col(col), two.float_col(col),
+                    "one table, one placement ({dims}-D, `{col}`)");
+                for v in one.float_col(col).unwrap() {
+                    assert!((0.0..=1.0).contains(v), "{col} in the unit range");
+                }
+            }
+            assert_eq!(one.float_col(LAYOUT_Z).is_some(), dims == 3,
+                "the third coordinate exists exactly in the cube");
+        }
+    }
+
+    /// **Nodes derive from the endpoint union**, in first-appearance order, with
+    /// the degree the edges imply — the two columns `point` and `text` read.
+    #[test]
+    fn a_layout_derives_its_nodes_and_their_degrees()  {
+        let nodes = layout_nodes(&edge_frame(), "a", "b", 2);
+        assert_eq!(nodes.str_col(NODE_NAME).unwrap(),
+            &["p".to_string(), "q".into(), "r".into(), "s".into()]);
+        assert_eq!(nodes.float_col(NODE_DEGREE).unwrap(), &[2.0, 2.0, 3.0, 1.0]);
+    }
+
+    /// **An edge row is 1:1 with its input row**, both endpoints synthesized and
+    /// every input column carried — which is what lets `color`/`opacity` map any
+    /// edge column with no rule of their own. The two projections agree on every
+    /// shared node position, asserted across frames rather than assumed.
+    #[test]
+    fn a_layout_edge_row_carries_its_columns_and_agrees_with_the_nodes() {
+        let df = edge_frame().with_float("w", vec![1.0, 2.0, 3.0, 4.0]);
+        let nodes = layout_nodes(&df, "a", "b", 2);
+        let edges = layout_edges(&df, "a", "b", 2);
+        assert_eq!(edges.float_col("w").unwrap(), &[1.0, 2.0, 3.0, 4.0]);
+        let names = nodes.str_col(NODE_NAME).unwrap();
+        let nx = nodes.float_col(LAYOUT_X).unwrap();
+        let from = edges.str_col("a").unwrap();
+        let ex = edges.float_col(LAYOUT_X).unwrap();
+        for r in 0..from.len() {
+            let i = names.iter().position(|n| n == &from[r]).unwrap();
+            assert_eq!(ex[r], nx[i], "edge {r} starts where its node stands");
+        }
     }
 
     /// **The aggregation family is one list, named in two places, and they must agree.**

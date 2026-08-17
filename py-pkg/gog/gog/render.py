@@ -533,6 +533,11 @@ def _is_spatial(spec: Dict[str, Any]) -> bool:
         coord.get("space") is not None or coord.get("globe") is not None
     ):
         return True
+    # A network with a *stated* angle is the cube form and turns; bare
+    # `network()` is flat and has nothing to drag.
+    net = coord.get("network") if isinstance(coord, dict) else None
+    if isinstance(net, dict) and ("turn" in net or "tilt" in net):
+        return True
     if spec.get("z") is not None:
         return True
     for layer in spec.get("layers") or []:

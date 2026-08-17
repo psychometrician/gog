@@ -66,13 +66,13 @@ export gog_table
 
 # marks — the "consonants"
 export point, line, path, rule, zone, area, bar, step, interval, box, ribbon, text,
-       surface
+       surface, edge
 # transforms
 export bin, smooth, count, density, sum, mean, median, max, min, proportion,
-       range, confidence, deviation, quantile, bounds, partition, flow, dodge, stack, jitter,
+       range, confidence, deviation, quantile, bounds, partition, flow, layout, dodge, stack, jitter,
        repel
 # positions and spaces
-export x, y, z, space, polar, nest, globe, map
+export x, y, z, space, polar, nest, globe, map, network
 # channels — the "vowels"
 export color, group, size, shape, opacity, label, pattern, play
 export brush

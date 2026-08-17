@@ -1347,6 +1347,46 @@ refuses(
     lambda: render_svg(data(voyage, name="voyage") + y(col.n)
                        + ribbon * flow(col.klass, col.survived) + color(col.n)),
 )
+
+# --- network: a graph placed by its layout ----------------------------------
+trade = {
+    "exporter": ["Korea", "Korea", "Japan", "China"],
+    "importer": ["Japan", "China", "China", "India"],
+    "tons": [3.0, 4.0, 3.0, 2.0],
+}
+
+
+def web():
+    return render_svg(
+        data(trade, name="trade")
+        + edge * layout(col.exporter, col.importer) + opacity(col.tons)
+        + point * layout(col.exporter, col.importer) + size(col.degree)
+        + text * layout(col.exporter, col.importer) + label(col.name)
+        + network()
+    )
+
+
+first = web()
+assert "<line" in first, "a network draws its edges as strokes"
+assert ">Korea<" in first, "`label(col.name)` names each node"
+assert "tick" not in first, "the graph-theoretic space draws no ticks"
+assert first == web(), "one network sentence is one picture, every run"
+cube = render_svg(data(trade, name="trade")
+                  + edge * layout(col.exporter, col.importer)
+                  + point * layout(col.exporter, col.importer)
+                  + network(turn=40, tilt=20))
+assert first != cube, "a stated angle changes the picture"
+ok("`edge`, `point` and `text` read one layout in `network()`")
+
+refuses(
+    "a layout outside the network",
+    lambda: render_svg(data(trade, name="trade")
+                       + edge * layout(col.exporter, col.importer)),
+)
+refuses(
+    "a network with no layout in it",
+    lambda: render_svg(data(trade, name="trade") + point + network()),
+)
 mixed = {"group": ["A", "A"], "item": [None, "p"], "amount": [5.0, 5.0]}
 refuses(
     "an interior node with a value of its own",

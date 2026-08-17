@@ -641,9 +641,9 @@ measurement belongs. A branch may stop early but may not have a hole in the
 middle, since nothing below a stop can be reached. And a mark with no reading for
 a region is sent to the two that have one.
 
-What is still outside the grammar is the shape of the input. A hierarchy
-written as **columns**, two or three deep, is what this atom reads and what
-faceting already understood. A tree of arbitrary depth arriving as a parent
-column and a child column is the shape a *network* has. Networks are declined
-here deliberately rather than by omission, so that a famous chart does not
-decide that question by walking in through the side.
+One shape of input stays outside this atom on purpose. A hierarchy written as
+**columns**, two or three deep, is what `partition` reads and what faceting
+already understood. A tree of arbitrary depth arriving as a parent column and
+a child column is the shape a *network* has, and [Network](network.qmd) is
+where that shape is read: `layout(parent, child)` places it, in a space with
+its own rules. Each family answers the question it is built for.

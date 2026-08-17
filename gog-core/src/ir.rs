@@ -155,6 +155,18 @@ pub enum Mark {
     /// `bin` feeds this mark rather than needing one of its own.
     Zone,
     Surface,
+    /// The stroke whose two endpoints the layout supplies — one row is one edge
+    /// of a graph (Wilkinson ch. 8's `edge`, his networks superclass). It parts
+    /// from every existing stroke on where its ends come from: a `path` chains
+    /// *consecutive* rows, an `interval` stands in one slot and spans one axis,
+    /// a `line` is functional on `x`, and this mark reads two computed points
+    /// per row. No new channels ride it — the ruling that kept `ymin`/`ymax`
+    /// out of the kernel holds: the endpoints are `layout`-synthesized columns,
+    /// never bindings. Its minimum syllable is `edge * layout(from, to)` inside
+    /// `network()`, and like `surface` its flat cell is empty: a stroke whose
+    /// ends mean nothing on data axes has nowhere to stand outside the space
+    /// that abolishes them (spec §15, the network entry).
+    Edge,
 }
 
 // ---------------------------------------------------------------------------
@@ -261,6 +273,22 @@ pub enum CoordSpace {
     /// theirs. If a knob ever arrives it will be about the *packing* (which
     /// rectangle-fitting rule), never about where the reader stands.
     Nest,
+    /// The graph-theoretic space (Wilkinson ch. 13): positions come from a
+    /// `layout`, not from the data, and mean nothing as quantities — they can
+    /// be reflected without changing what the graph says, and distance between
+    /// unlinked nodes reads as nothing. So this is `Nest`'s twin, the second
+    /// space that is not a map of the plane: no axes, no ticks, nothing to
+    /// draw them for (spec §15, the network entry).
+    ///
+    /// **Stating a viewing angle states the third dimension** (ruled
+    /// 2026-08-17): bare `network()` is flat, `network(turn = 30, tilt = 25)`
+    /// is the cube, and `network() + space()` is two coordinate spaces in one
+    /// plot and refuses toward the view parameters — the pie's
+    /// read-off-the-sentence pattern, with `globe`'s `turn`/`tilt` as the
+    /// parameter precedent. `{"network":{}}` on the wire when flat, the angles
+    /// present when cube; a bare `"network"` string is not a legal form, for
+    /// the reason a bare `"space"` is not.
+    Network(NetworkView),
 }
 
 impl Default for CoordSpace {
@@ -337,6 +365,34 @@ pub struct GlobeView {
 impl Default for GlobeView {
     fn default() -> Self {
         Self { turn: 0.0, tilt: 0.0 }
+    }
+}
+
+/// Whether a network is flat or a cube, read off whether a view was stated —
+/// the ruling `CoordSpace::Network` records. `Option` rather than a default
+/// angle, because the absence *is* the flat form: a 2-D network has no turn for
+/// a number to describe.
+#[derive(Debug, Clone, Copy, Default, PartialEq, Serialize, Deserialize)]
+pub struct NetworkView {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub turn: Option<f64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub tilt: Option<f64>,
+}
+
+impl NetworkView {
+    /// Stating either angle states the cube.
+    pub fn cube(&self) -> bool {
+        self.turn.is_some() || self.tilt.is_some()
+    }
+
+    /// The stated view, each unstated angle taking `space()`'s own default so
+    /// `network(turn = 60)` is a cube seen from 60 at the standard elevation.
+    pub fn view(&self) -> SpaceView {
+        SpaceView {
+            turn: self.turn.unwrap_or_else(default_turn),
+            tilt: self.tilt.unwrap_or_else(default_tilt),
+        }
     }
 }
 
@@ -630,6 +686,24 @@ pub enum Transform {
     /// cumulative stacking. Same-looking ink, opposite verdicts, and the test
     /// between them is whether a row of the table states the flow.
     Flow,
+    /// `layout` — the graph layout: node positions computed from an edge table,
+    /// in the engine. `edge * layout(from, to)` draws the edges, `point *
+    /// layout(...)` the nodes, `text * layout(...) + label(name)` their names,
+    /// all inside `network()` (spec §15, the network entry — the deliberate
+    /// reopening of the `link` family §19.1 declined).
+    ///
+    /// **The input is one edge table**: two categorical columns name each
+    /// row's endpoints, and the nodes derive — identity from the endpoint
+    /// union, `degree` by counting. **The computation is engine-side and
+    /// deterministic by construction**, because the parity bar is byte-identical
+    /// SVG across four bindings: a hash-seeded start, a budgeted spring
+    /// relaxation on `repel`'s budget shape, and arithmetic restricted to
+    /// `+ − × ÷ √` so the CLI and the browser engine agree to the bit.
+    ///
+    /// The positions land in the unit square — the unit cube when the space
+    /// states a viewing angle — and mean nothing as quantities, which is why
+    /// this transform requires the one space that draws no axes for them.
+    Layout,
 }
 
 /// Parameters for the `bin` transform, carried on the layer.
@@ -842,6 +916,24 @@ pub struct FlowSpec {
     /// column, and one row of the table is one path through all of them.
     #[serde(default)]
     pub stages: Vec<String>,
+}
+
+/// The two endpoint columns for the `layout` transform (`layout(from, to)`),
+/// carried on the layer beside [`FlowSpec`] and shaped like it: columns rather
+/// than knobs. Present iff the layer carries [`Transform::Layout`].
+///
+/// There is deliberately no algorithm, iteration, or seed field. One
+/// deterministic layout until a measured defect earns a second — §18's `tri`
+/// refusal is the standing warning — and a seed would be a second picture for
+/// one sentence, which the parity bar forbids outright.
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+pub struct LayoutSpec {
+    /// The column naming each edge's first endpoint.
+    #[serde(default)]
+    pub from: String,
+    /// The column naming each edge's second endpoint.
+    #[serde(default)]
+    pub to: String,
 }
 
 /// Parameters for the `stack` collision modifier, carried on the layer like
@@ -1443,6 +1535,11 @@ pub struct Layer {
     /// contract `partition` keeps one field up. Absent from the wire when unset.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub flow: Option<FlowSpec>,
+    /// The endpoint columns for the `layout` transform (`layout(from, to)`).
+    /// Present iff the layer carries [`Transform::Layout`], the same contract
+    /// `partition` and `flow` keep one field up. Absent from the wire when unset.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub layout: Option<LayoutSpec>,
     /// Parameters for the `stack` collision modifier, when the layer carries one.
     /// `None` means the piles read in the measurement's own units. Absent from the
     /// wire when unset.
@@ -1476,6 +1573,7 @@ impl Layer {
             jitter: None,
             partition: None,
             flow: None,
+            layout: None,
             stack: None,
             bounds: None,
             data: None,
@@ -1490,6 +1588,18 @@ impl Layer {
         self.transforms.push(Transform::Flow);
         self.flow = Some(FlowSpec {
             stages: stages.iter().map(|s| s.to_string()).collect(),
+        });
+        self
+    }
+
+    /// Attach a `layout` transform naming the two endpoint columns
+    /// (`edge * layout(from, to)`). Pairs the transform with its spec exactly
+    /// as [`Layer::flow`] does, and for the same reason.
+    pub fn layout(mut self, from: &str, to: &str) -> Self {
+        self.transforms.push(Transform::Layout);
+        self.layout = Some(LayoutSpec {
+            from: from.to_string(),
+            to: to.to_string(),
         });
         self
     }

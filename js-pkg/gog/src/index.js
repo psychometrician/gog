@@ -51,6 +51,7 @@ export {
   path,
   rule,
   zone,
+  edge,
   area,
   bar,
   step,
@@ -77,6 +78,7 @@ export {
   bounds,
   partition,
   flow,
+  layout,
   dodge,
   stack,
   jitter,
@@ -88,6 +90,7 @@ export {
   space,
   polar,
   nest,
+  network,
   globe,
   map,
   // channels — the "vowels"
