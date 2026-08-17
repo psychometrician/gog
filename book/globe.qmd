@@ -96,6 +96,53 @@ data(world_borders) + path + x(lon) + y(lat) + group(piece) +
 Two rows describe that route, and the curve between them is the sphere's own.
 The arc leans toward the pole because the shortest way across an ocean does.
 
+## Many routes are a network
+
+One table can hold every route at once. Give each route a name, give each of
+its two rows a place, and `group()` splits the table into one arc per route,
+exactly as it split the coastline into pieces. A `point` layer marks the
+cities and a `text` layer names them. The picture this draws is a route
+network, and it needs no new word, because every position in it is a place
+the data already knows:
+
+```{r}
+cities <- data.frame(
+  city = c("Seoul", "Tokyo", "Singapore", "Delhi", "Cairo",
+           "London", "Anchorage", "Sydney"),
+  lon  = c(126.98, 139.69, 103.82, 77.21, 31.24, -0.13, -149.90, 151.21),
+  lat  = c(37.57, 35.68, 1.35, 28.61, 30.04, 51.51, 61.22, -33.87)
+)
+legs <- data.frame(
+  route = rep(c("Seoul-Tokyo", "Seoul-Singapore", "Seoul-Delhi",
+                "Delhi-Cairo", "Cairo-London", "Tokyo-Anchorage",
+                "Singapore-Sydney"), each = 2),
+  city  = c("Seoul", "Tokyo", "Seoul", "Singapore", "Seoul", "Delhi",
+            "Delhi", "Cairo", "Cairo", "London", "Tokyo", "Anchorage",
+            "Singapore", "Sydney")
+)
+routes <- merge(legs, cities, by = "city", sort = FALSE)
+
+data(world_borders) + path + x(lon) + y(lat) + group(piece) +
+  style(color = "#c9ccd6") +
+  data(routes) + path + x(lon) + y(lat) + group(route) +
+  style(color = "#3d5a80", opacity = 0.6) +
+  data(cities) + point + x(lon) + y(lat) +
+  data(cities) + text + x(lon) + y(lat) + label(city) + style(nudge = "up") +
+  globe(turn = 95, tilt = 30) + title("Routes between cities")
+```
+
+Looking up each city's longitude and latitude is the host language's job,
+the same join the spike section below does for country centers. What the
+sentence adds is only the layers: routes, cities, names, each reading its
+own table.
+
+Every arc bends with the surface, and the count above the plot is the same
+honesty as before: the far side's coastlines are hidden, every city faces
+this view, and dragging the globe in the web edition brings the rest around.
+This is worth a moment, because a network between places asks nothing new of
+the grammar. The places carry the positions, `group()` carries the
+connections, and the sphere carries the shortest ways between them.
+
 ## Meridians and parallels
 
 A `rule` holds one position and spans the axis it does not name. On the map
