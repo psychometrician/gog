@@ -87,6 +87,7 @@ export {
   space,
   polar,
   nest,
+  globe,
   map,
   // channels — the "vowels"
   color,

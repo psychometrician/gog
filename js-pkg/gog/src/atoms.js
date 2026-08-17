@@ -651,6 +651,30 @@ export const nest = callableAtom(new Atom("coord_nest", {}), (...raw) => {
   return new Atom("coord_nest", {});
 });
 
+// `globe` — the sphere itself, viewed: x is longitude, y is latitude.
+//
+// The marks that draw on a `map` draw here, standing at their places on the
+// sphere's surface: a point is a place, a path bends along great circles, a
+// rule is a meridian or a parallel, and a zone with `group` fills each region
+// of a boundary. `turn` and `tilt` name the place the view faces — a bearing
+// that wraps and a latitude that stops at the poles — and rows on the far half
+// are hidden behind the sphere, with the count said out loud. The graticule is
+// the panel grid.
+export const globe = callableAtom(
+  new Atom("coord_globe", { turn: 0, tilt: 0 }),
+  (...raw) => {
+    const { turn = 0, tilt = 0 } = readArgs(raw, "globe", ["turn", "tilt"]);
+    for (const [name, value] of [["turn", turn], ["tilt", tilt]]) {
+      if (typeof value !== "number" || !Number.isFinite(value)) {
+        throw new GogError(
+          `gog: \`globe({ ${name}: … })\` needs a single number of degrees, e.g. \`globe(178, -18)\`.`
+        );
+      }
+    }
+    return new Atom("coord_globe", { turn, tilt });
+  }
+);
+
 // `map` — the sphere flattened onto the page: x is longitude, y is latitude.
 //
 // Both positions are spent on the place, so a mark that measures along an axis

@@ -717,9 +717,18 @@ class Builder {
         return;
 
       // Nest carries no view parameter, so it crosses as the bare string
-      // "nest" — `CoordSpace::Nest` is a unit variant, like globe.
+      // "nest" — the one unit variant left in `CoordSpace`.
       case "coord_nest":
         this.spec.coord = "nest";
+        return;
+
+      // A globe carries the place its view faces, in space's own two words:
+      // {"globe":{"turn":0,"tilt":0}} matches `CoordSpace::Globe(GlobeView)`,
+      // and a bare "globe" is not a legal form.
+      case "coord_globe":
+        this.spec.coord = {
+          globe: { turn: atom.fields.turn, tilt: atom.fields.tilt },
+        };
         return;
 
       // A map carries what the flattening must preserve, the same way space and

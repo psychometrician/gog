@@ -430,9 +430,16 @@ function Base.:+(left::Plot, right::Atom)
             Dict{String,Any}("start" => right.fields[:start]))
 
     # Nest carries no view parameter, so it crosses as the bare string "nest" —
-    # `CoordSpace::Nest` is a unit variant, like globe.
+    # the one unit variant left in `CoordSpace`.
     elseif kind === :coord_nest
         plot.spec["coord"] = "nest"
+
+    # A globe carries the place its view faces, in space's own two words:
+    # {"globe":{"turn":0,"tilt":0}} matches `CoordSpace::Globe(GlobeView)`, and
+    # a bare "globe" is not a legal form.
+    elseif kind === :coord_globe
+        plot.spec["coord"] = Dict{String,Any}("globe" => Dict{String,Any}(
+            "turn" => right.fields[:turn], "tilt" => right.fields[:tilt]))
 
     # A map carries what the flattening must preserve, the same way space and
     # polar carry theirs: {"map":{"preserve":"area"}} matches

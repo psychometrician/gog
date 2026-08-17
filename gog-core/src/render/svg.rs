@@ -1816,7 +1816,8 @@ impl SvgRenderer {
                             message: format!(
                                 "gog: {hidden} of {total} row(s) face away from \
                                  `globe(turn = {}, tilt = {})` and are hidden behind the \
-                                 sphere. Turn to face them, or facet two views.",
+                                 sphere. Turn to face them, or put a second view beside \
+                                 this one with `|`.",
                                 v.turn, v.tilt
                             ),
                         });

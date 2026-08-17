@@ -675,6 +675,31 @@ class _Nest(CallableAtom):
 nest = _Nest("coord_nest")
 
 
+class _Globe(CallableAtom):
+    """`globe` — the sphere itself, viewed: x is longitude, y is latitude.
+
+    The marks that draw on a `map` draw here, standing at their places on the
+    sphere's surface: a point is a place, a path bends along great circles, a
+    rule is a meridian or a parallel, and a zone with `group` fills each region
+    of a boundary. `turn` and `tilt` name the place the view faces — a bearing
+    that wraps and a latitude that stops at the poles — and rows on the far
+    half are hidden behind the sphere, with the count said out loud. The
+    graticule is the panel grid.
+    """
+
+    __slots__ = ()
+
+    def __call__(self, turn: float = 0, tilt: float = 0) -> Atom:
+        return Atom(
+            "coord_globe",
+            turn=_degrees(turn, "globe", "turn"),
+            tilt=_degrees(tilt, "globe", "tilt"),
+        )
+
+
+globe = _Globe("coord_globe", turn=0.0, tilt=0.0)
+
+
 class _Map(CallableAtom):
     """`map` — the sphere flattened onto the page: x is longitude, y is latitude.
 

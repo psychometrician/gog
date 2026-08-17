@@ -45,6 +45,7 @@ from .atoms import (
     deviation,
     dodge,
     facet,
+    globe,
     group,
     interval,
     jitter,
@@ -155,6 +156,7 @@ __all__ = [
     "space",
     "polar",
     "nest",
+    "globe",
     "map",
     # channels
     "color",

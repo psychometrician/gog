@@ -1929,3 +1929,26 @@ refuses("a quantile below 0", lambda: quantile(-0.1))
 ok("quantile() needs its probability")
 
 print(f"\nAll {passed} checks passed.")
+
+# ---------------------------------------------------------------------------
+# The globe: the sphere itself, viewed. The same marks as a map stand on the
+# facing hemisphere; the far half is hidden behind the sphere.
+# ---------------------------------------------------------------------------
+_places = {"lon": [178.44, 139.69, -0.13], "lat": [-18.14, 35.69, 51.51]}
+_gsvg = render_svg(
+    data(_places) + point + x(col.lon) + y(col.lat) + globe(turn=178, tilt=-18)
+)
+assert "<circle" in _gsvg, "the globe drew no disk"
+assert "<polyline" in _gsvg, "the globe drew no graticule"
+assert "<text" not in _gsvg, "a globe grew an axis label"
+ok("the globe draws its disk and graticule, and no axes")
+refuses(
+    "a bar on the globe",
+    lambda: render_svg(data(_places) + bar + x(col.lon) + y(col.lat) + globe()),
+)
+refuses(
+    "a tilt past the pole",
+    lambda: render_svg(
+        data(_places) + point + x(col.lon) + y(col.lat) + globe(tilt=100)
+    ),
+)

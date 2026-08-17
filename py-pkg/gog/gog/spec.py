@@ -486,9 +486,17 @@ class Plot:
             plot.spec["coord"] = {"polar": {"start": other.fields["start"]}}
 
         # Nest carries no view parameter, so it crosses as the bare string
-        # "nest" — `CoordSpace::Nest` is a unit variant, like globe.
+        # "nest" — the one unit variant left in `CoordSpace`.
         elif kind == "coord_nest":
             plot.spec["coord"] = "nest"
+
+        # A globe carries the place its view faces, in space's own two words:
+        # {"globe": {"turn": 0, "tilt": 0}} matches `CoordSpace::Globe(GlobeView)`,
+        # and a bare "globe" is not a legal form.
+        elif kind == "coord_globe":
+            plot.spec["coord"] = {
+                "globe": {"turn": other.fields["turn"], "tilt": other.fields["tilt"]}
+            }
 
         # A map carries what the flattening must preserve, the same way space and
         # polar carry theirs: {"map": {"preserve": "area"}} matches

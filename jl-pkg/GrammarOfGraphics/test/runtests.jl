@@ -1644,3 +1644,14 @@ end
     @test_throws GogError quantile(1.5)
     @test_throws GogError quantile(-0.1)
 end
+
+@testset "the globe: the sphere itself, viewed" begin
+    places = (lon = [178.44, 139.69, -0.13], lat = [-18.14, 35.69, 51.51])
+    svg = render_svg(data(places) + point + x(:lon) + y(:lat) +
+                     globe(turn = 178, tilt = -18))
+    @test occursin("<circle", svg)      # the disk, and the limb that frames it
+    @test occursin("<polyline", svg)    # the graticule is the panel grid
+    @test !occursin("<text", svg)       # a globe draws no axes
+    @refuses render_svg(data(places) + bar + x(:lon) + y(:lat) + globe()) "measures along an axis"
+    @refuses render_svg(data(places) + point + x(:lon) + y(:lat) + globe(tilt = 100)) "outside -90 to 90"
+end

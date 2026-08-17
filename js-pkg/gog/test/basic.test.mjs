@@ -59,6 +59,7 @@ import {
   density,
   polar,
   nest,
+  globe,
   proportion,
   group,
   render_svg,
@@ -2130,4 +2131,24 @@ test("deviation bands the spread, quantile needs its probability", () => {
   assert.throws(() => render_svg(say(bar, quantile)), GogError);
   assert.throws(() => quantile(1.5), GogError);
   assert.throws(() => quantile(-0.1), GogError);
+});
+
+test("the globe draws its disk and graticule, and refuses with direction", () => {
+  // The same marks as a map stand on the facing hemisphere; the far half is
+  // hidden behind the sphere, and a globe draws no axes at all.
+  const places = { lon: [178.44, 139.69, -0.13], lat: [-18.14, 35.69, 51.51] };
+  const svg = render_svg(
+    plot(data(places), point, x(col.lon), y(col.lat), globe({ turn: 178, tilt: -18 }))
+  );
+  assert.ok(svg.includes("<circle"), "the globe drew no disk");
+  assert.ok(svg.includes("<polyline"), "the globe drew no graticule");
+  assert.ok(!svg.includes("<text"), "a globe grew an axis label");
+  refuses(
+    () => render_svg(plot(data(places), bar, x(col.lon), y(col.lat), globe())),
+    /measures along an axis/
+  );
+  refuses(
+    () => render_svg(plot(data(places), point, x(col.lon), y(col.lat), globe({ tilt: 100 }))),
+    /outside -90 to 90/
+  );
 });

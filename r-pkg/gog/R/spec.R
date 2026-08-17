@@ -655,10 +655,15 @@ resolve_query <- function(q, table) {
     coord_polar = { lhs$spec$coord <- list(polar = list(start = rhs$start)) },
 
     # Nest carries no view parameter at all, so it crosses as the bare string
-    # `"nest"` — `CoordSpace::Nest` is a unit variant, like `globe`. There is no
+    # `"nest"` — the one unit variant left in `CoordSpace`. There is no
     # angle to send because there is nothing underneath to view from an angle: a
     # packing is not a map of the plane.
     coord_nest = { lhs$spec$coord <- "nest" },
+
+    # A globe carries the place its view faces, in `space`'s own two words:
+    # `{"globe":{"turn":0,"tilt":0}}` matches `CoordSpace::Globe(GlobeView)`,
+    # and a bare `"globe"` is not a legal form.
+    coord_globe = { lhs$spec$coord <- list(globe = list(turn = rhs$turn, tilt = rhs$tilt)) },
 
     # A map carries what the flattening must preserve, the same way `space` and
     # `polar` carry theirs: `{"map":{"preserve":"area"}}` matches

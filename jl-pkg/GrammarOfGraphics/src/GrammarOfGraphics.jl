@@ -72,7 +72,7 @@ export bin, smooth, count, density, sum, mean, median, max, min, proportion,
        range, confidence, deviation, quantile, bounds, partition, dodge, stack, jitter,
        repel
 # positions and spaces
-export x, y, z, space, polar, nest, map
+export x, y, z, space, polar, nest, globe, map
 # channels — the "vowels"
 export color, group, size, shape, opacity, label, pattern, play
 export brush

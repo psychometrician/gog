@@ -3617,3 +3617,37 @@ if (requireNamespace("repr", quietly = TRUE)) local({
     stop("FAIL: render_svg() stopped raising on a refusal")
   cat("PASS: drawing still draws and render_svg() still stops\n")
 }) else cat("SKIP: the refusal-in-a-cell check needs repr (a Suggests)\n")
+
+# ---------------------------------------------------------------------------
+# The globe: the sphere itself, viewed. The same marks as a map stand on the
+# facing hemisphere; the far half is hidden and counted, never dropped.
+# ---------------------------------------------------------------------------
+local({
+  places <- data.frame(lon = c(178.44, 139.69, -0.13),
+                       lat = c(-18.14, 35.69, 51.51))
+  # Engine remarks reach R as messages (`render.R` re-emits stderr with
+  # `message()`), so that is the condition the report rides on.
+  hidden <- NULL
+  svg <- withCallingHandlers(
+    render_svg(data(places) + point + x(lon) + y(lat) +
+                 globe(turn = 178, tilt = -18)),
+    message = function(m) {
+      if (grepl("face away", conditionMessage(m))) hidden <<- TRUE
+      invokeRestart("muffleMessage")
+    })
+  # The limb is the frame and the graticule the panel grid; a globe draws no
+  # axes, so a page with no title and no legend carries no text at all.
+  if (!grepl("<circle", svg, fixed = TRUE)) stop("FAIL: the globe drew no disk")
+  if (!grepl("<polyline", svg, fixed = TRUE)) stop("FAIL: the globe drew no graticule")
+  if (grepl("<text", svg, fixed = TRUE)) stop("FAIL: a globe grew an axis label")
+  # London faces away from the Fiji view, and the plot must say so.
+  if (is.null(hidden)) stop("FAIL: a hidden row went unreported")
+  cat("PASS: the globe draws its disk and graticule, and says what the view hides\n")
+
+  refuses("a bar on the globe",
+          render_svg(data(places) + bar + x(lon) + y(lat) + globe()),
+          "measures along an axis")
+  refuses("a tilt past the pole",
+          render_svg(data(places) + point + x(lon) + y(lat) + globe(tilt = 100)),
+          "outside -90 to 90")
+})

@@ -584,6 +584,25 @@ const nest = Atom(:coord_nest, Dict{Symbol,Any}(),
         Atom(:coord_nest, Dict{Symbol,Any}())
     end)
 
+"""`globe` — the sphere itself, viewed: x is longitude, y is latitude.
+
+The marks that draw on a `map` draw here, standing at their places on the
+sphere's surface: a point is a place, a path bends along great circles, a rule
+is a meridian or a parallel, and a zone with `group` fills each region of a
+boundary. `turn` and `tilt` name the place the view faces — a bearing that
+wraps and a latitude that stops at the poles — and rows on the far half are
+hidden behind the sphere, with the count said out loud. The graticule is the
+panel grid."""
+const globe = Atom(:coord_globe, Dict{Symbol,Any}(:turn => 0.0, :tilt => 0.0),
+    function (args...; turn = nothing, tilt = nothing)
+        length(args) >= 1 && turn === nothing && (turn = args[1])
+        length(args) >= 2 && tilt === nothing && (tilt = args[2])
+        length(args) > 2 && throw(GogError("gog: `globe()` takes `turn` and `tilt`."))
+        Atom(:coord_globe, Dict{Symbol,Any}(
+            :turn => turn === nothing ? 0.0 : degrees(turn, "globe", "turn"),
+            :tilt => tilt === nothing ? 0.0 : degrees(tilt, "globe", "tilt")))
+    end)
+
 """`map` — the sphere flattened onto the page: x is longitude, y is latitude.
 
 Both positions are spent on the place, so a mark that measures along an axis has

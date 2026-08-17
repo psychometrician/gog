@@ -1269,6 +1269,47 @@ nest <- function() {
   structure(list(type = "coord_nest"), class = "gog_atom")
 }
 
+#' View the sphere itself.
+#'
+#' The globe coordinate space. `x` is **longitude** and `y` is **latitude**,
+#' both in degrees, and each mark stands at its place on the sphere's surface.
+#' The marks that draw on a [map()] draw here: `point` is a place, `path` is a
+#' route bending along great circles, `text` is a name at a place, `rule` holds
+#' one coordinate whole (a meridian pole to pole, or a parallel all the way
+#' round), and `zone` with `group()` fills each region of a boundary. The
+#' graticule is the panel grid, turned off like any other with
+#' `theme(grid = "none")`.
+#'
+#' A globe shows one half of the earth. `turn` and `tilt` name the place the
+#' view faces, in the words `space()` already uses: `globe(turn = 178,
+#' tilt = -18)` puts Fiji at the center of the disk. A bearing wraps, so any
+#' `turn` is a view; `tilt` is a latitude and stops at the poles. Rows on the
+#' far half are hidden behind the sphere, and gog says how many rather than
+#' dropping them in silence. In the web edition, dragging the globe turns it.
+#'
+#' Both positions are spent on the place, so a mark that measures along an axis
+#' has none left; carry a quantity on `size()` or `color()` instead, as on a
+#' map. A binned field on the sphere is designed and not drawn yet: its correct
+#' tiling is hexagonal, because rectangular bins do not cover equal area on a
+#' sphere, and that equal-area grid is not built.
+#'
+#' @param turn Degrees of longitude the view faces. Default 0.
+#' @param tilt Degrees of latitude the view faces, -90 to 90. Default 0.
+#' @examples
+#' \dontrun{
+#' data(quakes_fiji) + point + x(east) + y(north) + size(magnitude) +
+#'   globe(turn = 178, tilt = -18)
+#' data(borders) + zone + x(lon) + y(lat) + group(country) +
+#'   color(continent) + globe(turn = 20, tilt = 5)
+#' }
+#' @export
+globe <- function(turn = 0, tilt = 0) {
+  structure(list(type = "coord_globe",
+                 turn = degrees(turn, "globe", "turn"),
+                 tilt = degrees(tilt, "globe", "tilt")),
+            class = "gog_atom")
+}
+
 #' Flatten the sphere onto the page.
 #'
 #' The cartographic coordinate space. `x` is **longitude** and `y` is
