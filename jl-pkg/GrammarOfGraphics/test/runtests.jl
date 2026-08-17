@@ -1657,6 +1657,11 @@ end
     gspec, _ = GrammarOfGraphics.wire(data(places) + point + x(:lon) + y(:lat) +
                                       globe(turn = 178, tilt = -18))
     @test GrammarOfGraphics.needs_engine(gspec)
-    @refuses render_svg(data(places) + bar + x(:lon) + y(:lat) + globe()) "measures along an axis"
+    @refuses render_svg(data(places) + bar + x(:lon) + y(:lat) + globe()) "measures along the radius"
     @refuses render_svg(data(places) + point + x(:lon) + y(:lat) + globe(tilt = 100)) "outside -90 to 90"
+    # With its measure named, the bar is the spike.
+    spiky = (lon = places.lon, lat = places.lat, v = [3.0, 9.0, 5.0])
+    spike_svg = render_svg(data(spiky) + bar + x(:lon) + y(:lat) + z(:v) +
+                           globe(turn = 178, tilt = -18))
+    @test occursin("<line ", spike_svg)
 end

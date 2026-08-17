@@ -1533,11 +1533,16 @@ pub fn mark_draws_in_space(mark: &Mark, space: SpaceKind) -> bool {
         // with the hidden count reported. `zone` is the spherical patch — the
         // boundary-supplied choropleth, its rings clipped at the limb and
         // re-closed along it (`check_globe` holds the mesh forms back until an
-        // equal-area spherical grid exists). The column is now `map`'s exactly,
-        // and the marks that measure along an axis refuse for `map`'s one
-        // reason: there is no axis here to measure along.
+        // equal-area spherical grid exists). And `bar` is the **spike**: the
+        // sphere, unlike its flattening, has one direction to spare — the
+        // radius — so a bar stands at its place and measures outward along it,
+        // the cube's own `z` reading transplanted (`check_globe` requires the
+        // `z` that names its measure). The remaining measure marks refuse for
+        // `map`'s one reason, which still holds for them: a *domain* read left
+        // to right has no left to right here.
         SpaceKind::Globe => {
-            matches!(mark, Mark::Point | Mark::Text | Mark::Path | Mark::Rule | Mark::Zone)
+            matches!(mark,
+                Mark::Point | Mark::Text | Mark::Path | Mark::Rule | Mark::Zone | Mark::Bar)
         }
     }
 }
@@ -7292,20 +7297,82 @@ fn check_zone_group(out: &mut Vec<Diagnostic>, spec: &PlotSpec, data: &HashMap<S
 fn check_globe(out: &mut Vec<Diagnostic>, spec: &PlotSpec, data: &HashMap<String, DataFrame>) {
     let CoordSpace::Globe(view) = &spec.coord else { return };
 
-    // **A sphere and a cube are two spaces, and a plot is drawn in one** —
-    // `check_polar`'s ruling, `check_map`'s and `check_nest`'s, restated because
-    // the reason is the same and not a shared implementation. Wilkinson's own
-    // spherical coordinate function takes two arguments, the radius constant:
-    // both positions are spent on the place.
-    if spec.axis_def(&Channel::Z).is_some() {
+    // **`z` here is the radius, and `bar` is what reads it** — a spike standing
+    // at its place, measuring outward from the surface: the cube's own `z`
+    // reading transplanted onto the one direction the sphere has that its
+    // flattening does not. (Wilkinson's §9.3.1, one sentence past the constant
+    // radius the earlier ruling cited: spherical coordinates with a varying
+    // radius are for "bundles of vectors at a common origin".) Bound with no
+    // bar to read it, `z` would be accepted and ignored — the drop §12
+    // forbids — so that is refused with both readers named.
+    let has_bar = spec.layers.iter().any(|l| l.mark == Mark::Bar);
+    if spec.axis_def(&Channel::Z).is_some() && !has_bar {
         out.push(Diagnostic {
             kind: DiagnosticKind::Unsupported,
-            message: "gog: a plot is drawn in one coordinate space, and `globe()` with `z(...)` \
-                      asks for two — a sphere and a cube. Drop `z(...)` to keep the globe, or \
-                      drop `globe()` to keep the 3-D plot. To carry a third number on a globe, \
-                      put it on a channel: `size(<column>)` or `color(<column>)`."
+            message: "gog: `z(...)` on a globe is the radius, and only a `bar` reads it — a \
+                      spike standing at its place, measuring outward from the surface. Add a \
+                      `bar` layer to raise spikes, drop `z(...)` to keep the surface marks, \
+                      or drop `globe()` for the cube, where every position mark reads `z`."
                 .to_string(),
         });
+    }
+
+    // A `bar` here is the spike, and a spike needs its measure named. With a
+    // transform instead of a column it is the binned field on a sphere, which
+    // waits on the hexagonal tiling; with nothing at all it has nothing to
+    // stand up.
+    for layer in &spec.layers {
+        if layer.mark != Mark::Bar {
+            continue;
+        }
+        if !layer.transforms.is_empty() {
+            out.push(Diagnostic {
+                kind: DiagnosticKind::Unsupported,
+                message: "gog: a `bar` with a transform on the globe is the binned field on \
+                          a sphere, and its correct tiling is hexagonal — rectangular bins \
+                          do not cover equal area there — which is not built. Compute the \
+                          measure in the host and bind it: `bar + x(<lon>) + y(<lat>) + \
+                          z(<column>)` raises a spike per row."
+                    .to_string(),
+            });
+        } else if spec.axis_def(&Channel::Z).is_none() {
+            out.push(Diagnostic {
+                kind: DiagnosticKind::Unsupported,
+                message: "gog: a `bar` on the globe stands at its place and measures along \
+                          the radius — the one axis the sphere has to spare — and nothing \
+                          names its measure. Bind `z(<column>)` to raise a spike per row, or \
+                          carry the quantity on `point + size(<column>)`."
+                    .to_string(),
+            });
+        }
+    }
+
+    // A spike measures straight from the surface to its value against the
+    // fitted top, so there is no axis on `z` to shape either. Shaping is the
+    // host's line of code away, and the direction says so.
+    if let Some(def) = spec.axis_def(&Channel::Z) {
+        let param = if def.limits.is_some() {
+            Some("limits")
+        } else if def.scale.is_some() {
+            Some("scale")
+        } else if def.tick_count.is_some() {
+            Some("tick_count")
+        } else if def.free {
+            Some("free")
+        } else {
+            None
+        };
+        if let Some(param) = param {
+            out.push(Diagnostic {
+                kind: DiagnosticKind::Illegal,
+                message: format!(
+                    "gog: `z(<column>, {param} = )` shapes an axis, and a `globe()` plot \
+                     draws none — a spike measures straight from the surface to its value \
+                     against the fitted top. Compute the shaping in the host and bind the \
+                     result: a square root or a logarithm of the column is one line there."
+                ),
+            });
+        }
     }
 
     // **`tilt` is a latitude, and latitude has ends** — `check_space`'s
@@ -7418,12 +7485,14 @@ fn check_globe(out: &mut Vec<Diagnostic>, spec: &PlotSpec, data: &HashMap<String
             });
         }
     }
-    if spec.x_axis.label.is_some() || spec.y_axis.label.is_some() {
+    if spec.x_axis.label.is_some() || spec.y_axis.label.is_some()
+        || spec.z_axis.label.is_some()
+    {
         out.push(Diagnostic {
             kind: DiagnosticKind::Illegal,
-            message: "gog: `x_label()`/`y_label()` name an axis, and a `globe()` plot draws \
-                      none — a sphere has no edge to write one on, and the graticule is the \
-                      reference instead. Drop it; `title()` still names the plot."
+            message: "gog: an axis label names an axis, and a `globe()` plot draws none — a \
+                      sphere has no edge to write one on, and the graticule is the reference \
+                      instead. Drop it; `title()` still names the plot."
                 .to_string(),
         });
     }
@@ -9791,14 +9860,39 @@ mod tests {
         );
 
         let ruled = base()
-            .layer(Layer::new(Mark::Bar))
+            .layer(Layer::new(Mark::Line))
             .coord(CoordSpace::Globe(crate::ir::GlobeView::default()));
         let out = check(&ruled, &data());
         assert!(
             out.iter().any(|d| d.kind == DiagnosticKind::Unsupported
                 && d.message.contains("measures along an axis")
                 && d.message.contains("size(<column>)")),
-            "`bar` on the globe should be ruled out with direction: {:?}",
+            "`line` on the globe should be ruled out with direction: {:?}",
+            msgs(&out)
+        );
+
+        // `bar` is neither: it stands here, and what it needs is its measure.
+        // Without `z` the spike has nothing to stand up; with it, the whole
+        // checker passes in silence.
+        let bare = base()
+            .layer(Layer::new(Mark::Bar))
+            .coord(CoordSpace::Globe(crate::ir::GlobeView::default()));
+        let out = check(&bare, &data());
+        assert!(
+            out.iter().any(|d| d.kind == DiagnosticKind::Unsupported
+                && d.message.contains("measures along the radius")
+                && d.message.contains("z(<column>)")),
+            "`bar` without `z` should ask for its measure: {:?}",
+            msgs(&out)
+        );
+        let spike = base()
+            .layer(Layer::new(Mark::Bar))
+            .z("value")
+            .coord(CoordSpace::Globe(crate::ir::GlobeView::default()));
+        let out = check(&spike, &data());
+        assert!(
+            out.is_empty(),
+            "a spike — `bar` with `z` on the globe — should draw without a word: {:?}",
             msgs(&out)
         );
     }
@@ -13640,18 +13734,20 @@ mod tests {
                 "{m:?}: the plane and the circle must agree about which marks draw"
             );
         }
-        // **The globe column, stated whole and by name — and it is `map`'s.**
-        // The sphere spends both positions on the place, so the marks that
-        // place something stand on it and the grid may claim exactly those; a
-        // cell drifting either way is this assertion failing. That the two
-        // columns match is itself the claim: a globe is a map of the sphere.
+        // **The globe column, stated whole and by name: `map`'s five and one
+        // more.** The sphere spends both positions on the place, so the marks
+        // that place something stand on both — and the sphere alone has a
+        // direction to spare, the radius, so `bar` stands here and not on the
+        // flattening. Exactly that one cell may separate the two columns; any
+        // other drift is this assertion failing.
         for m in &ALL_MARKS {
             let drawn = matches!(m,
-                Mark::Point | Mark::Text | Mark::Path | Mark::Rule | Mark::Zone);
+                Mark::Point | Mark::Text | Mark::Path | Mark::Rule | Mark::Zone | Mark::Bar);
             assert_eq!(sc("globe", mark_name(m)), drawn,
                 "{m:?}: the globe column and the renderer disagree");
-            assert_eq!(sc("globe", mark_name(m)), sc("map", mark_name(m)),
-                "{m:?}: the sphere and its flattening must agree about which marks place");
+            let expect_match = *m != Mark::Bar;
+            assert_eq!(sc("globe", mark_name(m)) == sc("map", mark_name(m)), expect_match,
+                "{m:?}: the sphere and its flattening may differ only where the radius is");
         }
         // **The map column, stated whole.** A map is a map of the plane, so it has
         // a coordinate for everything — but longitude and latitude spend *both*

@@ -2352,6 +2352,17 @@ impl PlotSpec {
                 return Some(def);
             }
         }
+        // On the globe, `z` is the radius and only a `bar` reads it — the
+        // spike's measure. A coastline layer beside the spikes is whole
+        // without that column, so the plot's `z` does not reach it: handing it
+        // over would send the missing-column check after a column the layer's
+        // table rightly does not carry.
+        if *channel == Channel::Z
+            && matches!(self.coord, CoordSpace::Globe(_))
+            && layer.mark != Mark::Bar
+        {
+            return None;
+        }
         self.axis_def(channel)
     }
 

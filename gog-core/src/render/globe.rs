@@ -46,6 +46,13 @@ const GRATICULE_SAMPLE: f64 = 2.0;
 /// Parallels run from −60 to 60: the next 30° step is the pole itself, a point.
 const PARALLEL_REACH: f64 = 60.0;
 
+/// The spike ceiling: how far the largest value stands off the surface, in
+/// sphere radii. The fitted top of the measure reaches exactly this; the disk
+/// shrinks by the same headroom so the tallest spike stays on the panel.
+/// Two fifths reads as drama without the spikes dwarfing the earth they stand
+/// on — the proportion the WebGL population globes settled on by eye.
+pub(crate) const SPIKE_MAX: f64 = 0.4;
+
 /// One panel's globe: the viewing angles plus the affine fit that centers the
 /// disk in the panel rectangle. Built once per panel and shared — the frame,
 /// every mark and the graticule read it, so a point, the label beside it and
@@ -60,13 +67,18 @@ pub(crate) struct Globe {
     pub(crate) cy: f64,
     /// The disk's radius — the limb — in pixels.
     pub(crate) r: f64,
+    /// How far past the limb a spike may reach, in sphere radii. Zero for a
+    /// plot with no `bar`; the spike ceiling otherwise, so the sphere shrinks
+    /// to leave its spikes room instead of having them shaved by the clip.
+    pub(crate) headroom: f64,
 }
 
 impl Globe {
     /// Build the globe for a panel rectangle. `inset` is the fraction of the
     /// shorter side kept clear around the limb, the way `Scene::new` keeps room
-    /// around the cube.
-    pub(crate) fn new(l: &Layout, view: GlobeView, inset: f64) -> Self {
+    /// around the cube; `headroom` is the spike ceiling in sphere radii, and it
+    /// scales the disk down so the tallest spike still lands inside the panel.
+    pub(crate) fn new(l: &Layout, view: GlobeView, inset: f64, headroom: f64) -> Self {
         // `turn` is a bearing and folds into one lap before the trig, for
         // `Scene::new`'s recorded reason: `sin(0)` is exactly 0 while `sin(-2π)`
         // is 2.4e-16, and equal views must be equal bit for bit. `tilt` is an
@@ -75,7 +87,8 @@ impl Globe {
         // silently different picture.
         let az = view.turn.rem_euclid(360.0).to_radians();
         let el = view.tilt.to_radians();
-        let half = (l.w().min(l.h()) / 2.0) * (1.0 - 2.0 * inset);
+        let headroom = headroom.max(0.0);
+        let half = (l.w().min(l.h()) / 2.0) * (1.0 - 2.0 * inset) / (1.0 + headroom);
         Globe {
             sin_az: az.sin(),
             cos_az: az.cos(),
@@ -84,6 +97,7 @@ impl Globe {
             cx: (l.x0 + l.x1) / 2.0,
             cy: (l.y0 + l.y1) / 2.0,
             r: half.max(1.0),
+            headroom,
         }
     }
 
@@ -122,6 +136,51 @@ impl Globe {
     /// caller can count a layer's hidden rows without building screen points.
     pub(crate) fn front(&self, lon: f64, lat: f64) -> bool {
         self.device(lon, lat).2 >= 0.0
+    }
+
+    /// A **spike**: the visible stretch of the radial segment standing at a
+    /// place, from the surface out to `1 + h` sphere radii. What a `bar` draws
+    /// here — the place spends both positions, and the radius is the one
+    /// direction the sphere has that its flattening does not, so the measure
+    /// stands along it, exactly as `z` stands a bar up in the cube.
+    ///
+    /// The clip is the sphere's own, in closed form. A spike on the facing
+    /// hemisphere is visible whole. One standing just *behind* the horizon can
+    /// still peek over the limb: a point at `ρ·p` clears the silhouette when
+    /// its lateral distance `ρ·sqrt(1 − w²)` reaches 1, so the visible stretch
+    /// starts at `ρ = 1 / sqrt(1 − w²)` and exists only when the spike is tall
+    /// enough to get there. Returns the on-page segment (from, tip) and the
+    /// base's depth — spikes sort by their **footprint**, the cube's own rule —
+    /// or `None` when the sphere hides the whole of it.
+    pub(crate) fn spike(
+        &self,
+        lon: f64,
+        lat: f64,
+        h: f64,
+    ) -> Option<((f64, f64), (f64, f64), f64)> {
+        if !(h >= 0.0) {
+            return None;
+        }
+        let (u, v, w) = self.device(lon, lat);
+        if !w.is_finite() {
+            return None;
+        }
+        let at = |rho: f64| (self.cx + self.r * rho * u, self.cy - self.r * rho * v);
+        let from_rho = if w >= 0.0 {
+            1.0
+        } else {
+            let lateral = (1.0 - w * w).sqrt();
+            if lateral <= 1e-9 {
+                // Straight behind the sphere's center: nothing clears the limb.
+                return None;
+            }
+            let rho_min = 1.0 / lateral;
+            if 1.0 + h < rho_min {
+                return None;
+            }
+            rho_min
+        };
+        Some((at(from_rho), at(1.0 + h), -w))
     }
 
     /// One held longitude, whole: the meridian at `lon`, pole to pole, as pixel
@@ -557,7 +616,7 @@ mod tests {
     }
 
     fn fiji() -> Globe {
-        Globe::new(&panel(), GlobeView { turn: 178.0, tilt: -18.0 }, 0.04)
+        Globe::new(&panel(), GlobeView { turn: 178.0, tilt: -18.0 }, 0.04, 0.0)
     }
 
     /// **The projection is the cube's, term for term.** Three landmarks go
@@ -642,7 +701,7 @@ mod tests {
     /// past it would stand outside its own panel's world.
     #[test]
     fn a_quarter_turn_away_is_the_limb() {
-        let g = Globe::new(&panel(), GlobeView { turn: 0.0, tilt: 0.0 }, 0.04);
+        let g = Globe::new(&panel(), GlobeView { turn: 0.0, tilt: 0.0 }, 0.04, 0.0);
         for (lon, lat) in [(90.0, 0.0), (-90.0, 0.0), (0.0, 90.0), (0.0, -90.0)] {
             let s = g.place(lon, lat).expect("the limb is visible");
             let d = ((s.x - g.cx).powi(2) + (s.y - g.cy).powi(2)).sqrt();
@@ -655,9 +714,9 @@ mod tests {
     #[test]
     fn equal_bearings_are_equal_views() {
         let l = panel();
-        let a = Globe::new(&l, GlobeView { turn: 0.0, tilt: 10.0 }, 0.04);
+        let a = Globe::new(&l, GlobeView { turn: 0.0, tilt: 10.0 }, 0.04, 0.0);
         for turn in [-360.0, 360.0, 720.0] {
-            let b = Globe::new(&l, GlobeView { turn, tilt: 10.0 }, 0.04);
+            let b = Globe::new(&l, GlobeView { turn, tilt: 10.0 }, 0.04, 0.0);
             let (sa, sb) = (a.place(30.0, 40.0).unwrap(), b.place(30.0, 40.0).unwrap());
             assert_eq!(sa.x.to_bits(), sb.x.to_bits());
             assert_eq!(sa.y.to_bits(), sb.y.to_bits());
@@ -710,19 +769,19 @@ mod tests {
 
         let l = panel();
         // Facing it: one loop, nothing else.
-        let south = Globe::new(&l, GlobeView { turn: 0.0, tilt: -90.0 }, 0.04);
+        let south = Globe::new(&l, GlobeView { turn: 0.0, tilt: -90.0 }, 0.04, 0.0);
         let (loops, disk) = south.clip_ring(&cap);
         assert_eq!(loops.len(), 1, "facing the cap it is one whole loop");
         assert!(!disk);
 
         // Facing away: nothing at all.
-        let north = Globe::new(&l, GlobeView { turn: 0.0, tilt: 90.0 }, 0.04);
+        let north = Globe::new(&l, GlobeView { turn: 0.0, tilt: 90.0 }, 0.04, 0.0);
         let (loops, disk) = north.clip_ring(&cap);
         assert!(loops.is_empty() && !disk, "the far side drew");
 
         // Side-on: cut and re-closed. The filled side must be the south — a
         // point over the cap lands inside a loop, one over the equator does not.
-        let side = Globe::new(&l, GlobeView { turn: 0.0, tilt: 0.0 }, 0.04);
+        let side = Globe::new(&l, GlobeView { turn: 0.0, tilt: 0.0 }, 0.04, 0.0);
         let (loops, disk) = side.clip_ring(&cap);
         assert!(!disk);
         assert!(!loops.is_empty(), "the side view lost the cap");
@@ -777,7 +836,7 @@ mod tests {
         wide.push(wide[0]);
 
         let l = panel();
-        let south = Globe::new(&l, GlobeView { turn: 0.0, tilt: -90.0 }, 0.04);
+        let south = Globe::new(&l, GlobeView { turn: 0.0, tilt: -90.0 }, 0.04, 0.0);
         let (loops, _) = south.clip_ring(&wide);
         assert!(!loops.is_empty(), "the surrounding region vanished");
         // The view center must sit inside an odd number of loops: the region
@@ -797,6 +856,38 @@ mod tests {
         };
         let crossings = loops.iter().filter(|lp| inside(lp, (south.cx, south.cy))).count();
         assert!(crossings % 2 == 1, "the view center fell outside the surrounding region");
+    }
+
+    /// **The spike, at the three places that decide it.** Facing the view it
+    /// stands whole from the surface; just behind the horizon it peeks over the
+    /// limb exactly when it is tall enough to clear the silhouette, entering at
+    /// the limb itself; straight behind the sphere nothing clears. And a spike
+    /// leaves the disk radially: its tip sits `(1 + h)` times the limb's
+    /// distance from center, which is what lets the sphere shrink by the same
+    /// headroom and keep every tip on the panel.
+    #[test]
+    fn a_spike_stands_faces_and_peeks_by_the_spheres_own_clip() {
+        let g = Globe::new(&panel(), GlobeView { turn: 0.0, tilt: 0.0 }, 0.04, 0.5);
+        // Facing: base on the surface, tip radially out at 1 + h.
+        let (from, tip, depth) = g.spike(30.0, 20.0, 0.4).expect("a facing spike draws");
+        let d = |p: (f64, f64)| ((p.0 - g.cx).powi(2) + (p.1 - g.cy).powi(2)).sqrt();
+        let base = g.place(30.0, 20.0).unwrap();
+        assert!((from.0 - base.x).abs() < 1e-9 && (from.1 - base.y).abs() < 1e-9);
+        assert!((d(tip) - 1.4 * d(from)).abs() < 1e-6, "the tip is not radial");
+        assert!(depth <= 0.0, "a facing base is on the viewer's side");
+
+        // Behind the horizon at 130° from center, the silhouette is cleared at
+        // 1.305 radii: a short spike stays hidden, a tall one peeks, entering
+        // exactly at the limb.
+        assert!(g.spike(130.0, 0.0, 0.1).is_none(), "a short back spike drew");
+        let (from, tip, _) = g.spike(130.0, 0.0, 0.4).expect("a tall back spike peeks");
+        assert!((d(from) - g.r).abs() < 1e-6, "the peek does not enter at the limb");
+        assert!(d(tip) > g.r, "the peek does not clear the limb");
+
+        // Straight behind: no height clears the silhouette's center.
+        assert!(g.spike(180.0, 0.0, 10.0).is_none());
+        // A negative height is not a spike; the caller counts and reports it.
+        assert!(g.spike(30.0, 20.0, -0.1).is_none());
     }
 
     /// The graticule stays inside the limb and splits rather than bridging it:

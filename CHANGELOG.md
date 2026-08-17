@@ -23,6 +23,17 @@ CRAN-style repositories and PyPI, `GrammarOfGraphics` on Julia's General, and
   drawn yet: its correct tiling is hexagonal, and that equal-area grid is not
   built, so `zone` without a boundary refuses with the reason named.
 
+- **A `bar` on the globe is a spike: the measure standing on the radius.** The
+  flattened map has no axis to spare, and the sphere has exactly one — the
+  radius, pointing away from every place — so `bar + x(<lon>) + y(<lat>) +
+  z(<column>) + globe()` stands a spike at each place, measuring outward from
+  the surface against the fitted top. The sphere itself is the clip: a spike
+  just behind the horizon still peeks over the limb when it is tall enough. A
+  value below zero has nowhere to point and is counted out loud, a `bar`
+  without `z` is asked for its measure, and `z` with no `bar` to read it is
+  refused rather than ignored. Shaping the measure is the host's line of code:
+  `z` takes no `scale` here, and the refusal says why and what to write.
+
 ### Changed
 
 - **A written `space(tilt = )` outside -90 to 90 is now refused.** `tilt` is how

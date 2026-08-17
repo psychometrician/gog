@@ -615,7 +615,7 @@ impl SvgRenderer {
             let mut want_disk = false;
             let mut ring: Vec<(f64, f64)> = Vec::new();
             let mut open: Option<(f64, f64)> = None;
-            let mut flush = |ring: &mut Vec<(f64, f64)>, d: &mut String, want_disk: &mut bool| {
+            let flush = |ring: &mut Vec<(f64, f64)>, d: &mut String, want_disk: &mut bool| {
                 if ring.len() >= 3 {
                     match globe {
                         Some(g) => {

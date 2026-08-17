@@ -1365,7 +1365,11 @@ impl SvgRenderer {
         // a hard `None` while `z_axis.tick_count` existed in the IR, so the third
         // axis would have ignored the field even once a binding could write it.
         // Two absences wearing one name, and only the first was recorded.
-        let (z_ticks, zs) = if is_3d {
+        // The globe fits `z` too: a spike measures along the radius, and its
+        // scale is fitted across panels like every other so two faceted globes
+        // stay comparable. The spike's own baseline is the surface — the writer
+        // reads the fitted top and measures from zero.
+        let (z_ticks, zs) = if is_3d || (is_globe && !z_field.is_empty()) {
             // No `sides`: a `zone` is refused in the cube (`mark_draws_in_space`),
             // so nothing places itself on `z` other than through the column.
             build_axis(&eff, &[], &[], z_field, None, false, false, false,
@@ -1750,7 +1754,14 @@ impl SvgRenderer {
             // and `Scene` so the frame, the graticule and every mark read one
             // fit. Its frame routine owns the background, the clip and the
             // gridlines, the way polar's does.
-            let glb = globe_view.map(|v| crate::render::globe::Globe::new(l, v, GLOBE_INSET));
+            // Spikes need headroom: a `bar` measures out along the radius, so
+            // the sphere shrinks by the spike ceiling and every tip stays on
+            // the panel instead of being shaved by the clip.
+            let spiked = !z_field.is_empty()
+                && spec.layers.iter().any(|ly| ly.mark == Mark::Bar);
+            let glb = globe_view.map(|v| crate::render::globe::Globe::new(
+                l, v, GLOBE_INSET,
+                if spiked { crate::render::globe::SPIKE_MAX } else { 0.0 }));
             match (&glb, &pol) {
                 (Some(g), _) => self.write_globe_frame(&mut svg, g, &clip,
                                                        &spec.theme.resolved()),
@@ -1798,19 +1809,38 @@ impl SvgRenderer {
                 for (li, layer) in spec.layers.iter().enumerate() {
                     if !crate::legality::mark_draws_in_space(&layer.mark,
                         crate::legality::SpaceKind::Globe) { continue }
-                    let (mut hidden, mut total) = (0usize, 0usize);
+                    // A spike's own visibility is the sphere's clip, not the
+                    // hemisphere test: one standing just behind the horizon
+                    // still peeks over the limb, so only a spike the sphere
+                    // hides whole counts as hidden. A value below the surface
+                    // has nowhere to point and is counted separately.
+                    let spike_layer = layer.mark == Mark::Bar;
+                    let top = zs.1.max(zs.0);
+                    let (mut hidden, mut total, mut sunk) = (0usize, 0usize, 0usize);
                     for fi in 0..nframes {
                         let Some(df) = eff_at(fi).get(li) else { continue };
                         let (Some(lons), Some(lats)) =
                             (df.float_col(x_field), df.float_col(y_field)) else { continue };
+                        let vals = if spike_layer { df.float_col(z_field) } else { None };
                         for i in 0..lons.len().min(lats.len()) {
                             if !(lons[i].is_finite() && lats[i].is_finite()) { continue }
-                            total += 1;
-                            if !g.front(lons[i], lats[i]) { hidden += 1 }
+                            if spike_layer {
+                                let v = vals.and_then(|c| c.get(i)).copied()
+                                    .unwrap_or(f64::NAN);
+                                if v < 0.0 { sunk += 1; continue }
+                                total += 1;
+                                let h = if v.is_finite() && top > 0.0 {
+                                    crate::render::globe::SPIKE_MAX * (v / top).min(1.0)
+                                } else { 0.0 };
+                                if g.spike(lons[i], lats[i], h).is_none() { hidden += 1 }
+                            } else {
+                                total += 1;
+                                if !g.front(lons[i], lats[i]) { hidden += 1 }
+                            }
                         }
                     }
+                    let v = globe_view.unwrap_or_default();
                     if hidden > 0 {
-                        let v = globe_view.unwrap_or_default();
                         remarks.push(Diagnostic {
                             kind: crate::legality::DiagnosticKind::Assumption,
                             message: format!(
@@ -1819,6 +1849,17 @@ impl SvgRenderer {
                                  sphere. Turn to face them, or put a second view beside \
                                  this one with `|`.",
                                 v.turn, v.tilt
+                            ),
+                        });
+                    }
+                    if sunk > 0 {
+                        remarks.push(Diagnostic {
+                            kind: crate::legality::DiagnosticKind::Assumption,
+                            message: format!(
+                                "gog: {sunk} row(s) measure below zero, and a spike cannot \
+                                 point into the earth — they are left undrawn. A bar here \
+                                 stands on the surface and measures outward; shift the \
+                                 column in the host if the sign is a convention."
                             ),
                         });
                     }
@@ -1848,6 +1889,12 @@ impl SvgRenderer {
                                 Mark::Zone => self.write_zone(&mut svg, layer, df, l, xs, ys,
                                     x_field, y_field, cat_x.as_deref(), cat_y.as_deref(),
                                     &color_map, &ramp, &clip, None, Some(g)),
+                                // The spike: the measure standing on the radius,
+                                // the one direction the sphere has that its
+                                // flattening does not.
+                                Mark::Bar => self.write_bars_globe(&mut svg, layer, df,
+                                    x_field, y_field, z_field, zs, &color_map, &ramp,
+                                    &clip, g),
                                 _ => {}
                             }
                         }
@@ -2744,11 +2791,12 @@ impl SvgRenderer {
             r##"  <circle cx="{cx:.2}" cy="{cy:.2}" r="{r:.2}" fill="{bg}"/>"##,
             cx = g.cx, cy = g.cy, r = g.r, bg = theme.background_or(PANEL_BG)
         ).unwrap();
-        // A hair wider than the disk, polar's own margin: the clip is a safety
-        // net, not an edge to shave a glyph standing on the limb.
+        // A hair wider than the disk — or than the spike ceiling, when the plot
+        // has one — polar's own margin: the clip is a safety net, not an edge
+        // to shave a glyph on the limb or a spike standing past it.
         writeln!(svg,
             r#"  <clipPath id="{clip}"><circle cx="{cx:.2}" cy="{cy:.2}" r="{r:.2}"/></clipPath>"#,
-            cx = g.cx, cy = g.cy, r = g.r + 8.0
+            cx = g.cx, cy = g.cy, r = g.r * (1.0 + g.headroom) + 8.0
         ).unwrap();
 
         writeln!(svg, r##"  <g stroke="#d2d2da" stroke-width="1" fill="none">"##).unwrap();

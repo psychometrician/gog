@@ -433,4 +433,88 @@ impl SvgRenderer {
         }
         writeln!(svg, "  </g>").unwrap();
     }
+
+    /// A `bar` on the globe: a **spike** standing at its place, measuring from
+    /// the surface out along the radius — the one direction the sphere has
+    /// that its flattening does not, and the cube's own `z` reading
+    /// transplanted. `z` names the measure; the baseline is the surface, so a
+    /// spike's length is its value against the fitted top, and a value below
+    /// the surface is not drawn (the caller counts and says so). The sphere
+    /// itself is the clip: a spike just behind the horizon still peeks over
+    /// the limb when it is tall enough (`Globe::spike`), which is what keeps
+    /// the rim honest at a turned view. Painted far to near by the base —
+    /// spikes sort by their footprint, the cube's rule.
+    #[allow(clippy::too_many_arguments)]
+    pub(crate) fn write_bars_globe(
+        &self, svg: &mut String, layer: &Layer, df: &DataFrame,
+        x_field: &str, y_field: &str, z_field: &str, zs: (f64, f64),
+        color_map: &HashMap<String, String>,
+        ramp: &[String],
+        clip: &str,
+        globe: &crate::render::globe::Globe,
+    ) {
+        let (Some(lons), Some(lats), Some(vals)) = (
+            df.float_col(x_field),
+            df.float_col(y_field),
+            df.float_col(z_field),
+        ) else {
+            return;
+        };
+        let n = lons.len().min(lats.len()).min(vals.len());
+        // The fitted top of the measure; the baseline is the surface, so the
+        // fraction is the value against the top rather than against the range's
+        // own floor — a spike twice another's value is twice as long.
+        let top = zs.1.max(zs.0);
+        if !(top > 0.0) {
+            return;
+        }
+
+        let st = &layer.style;
+        let stroke_w = st.size.unwrap_or(2.5);
+        let stroke_o = st.opacity.unwrap_or(0.9);
+        let set_color = st.color.as_deref().map(esc);
+        let color_labels = layer.encodings.get(&Channel::Color).and_then(|c| df.str_col(&c.field));
+        let color_vals = layer.encodings.get(&Channel::Color).and_then(|c| df.float_col(&c.field));
+        let color_scale = match color_vals {
+            Some(c) => scale::ChannelScale::of(c, layer.encodings.get(&Channel::Color)),
+            None => scale::ChannelScale::unbound(),
+        };
+        let stops: Vec<&str> = ramp.iter().map(String::as_str).collect();
+
+        // Every visible spike, far foot first.
+        let mut pieces: Vec<(f64, usize, (f64, f64), (f64, f64))> = Vec::new();
+        for i in 0..n {
+            let v = vals[i];
+            if !(lons[i].is_finite() && lats[i].is_finite() && v.is_finite()) || v < 0.0 {
+                continue;
+            }
+            let h = crate::render::globe::SPIKE_MAX * (v / top).min(1.0);
+            if let Some((from, tip, depth)) = globe.spike(lons[i], lats[i], h) {
+                pieces.push((depth, i, from, tip));
+            }
+        }
+        pieces.sort_by(|a, b| b.0.partial_cmp(&a.0).unwrap_or(std::cmp::Ordering::Equal));
+
+        writeln!(svg, r##"  <g clip-path="url(#{clip})">"##).unwrap();
+        for (_, i, from, tip) in pieces {
+            let ramped: String;
+            let color: &str = if let Some(labels) = color_labels {
+                let lbl = labels.get(i).map(String::as_str).unwrap_or("");
+                color_map.get(lbl).map(String::as_str).unwrap_or_else(|| PALETTE_GOG[0])
+            } else if let Some(cv) = color_vals {
+                let f = color_scale.fraction(cv.get(i).copied().unwrap_or(f64::NAN));
+                ramped = crate::render::palette::ramp_at(&stops, f);
+                &ramped
+            } else if let Some(c) = &set_color {
+                c
+            } else {
+                PALETTE_GOG[0]
+            };
+            writeln!(svg,
+                r##"    <line x1="{:.2}" y1="{:.2}" x2="{:.2}" y2="{:.2}" stroke="{color}" stroke-width="{stroke_w}" stroke-opacity="{stroke_o:.3}" stroke-linecap="round"/>"##,
+                from.0, from.1, tip.0, tip.1
+            ).unwrap();
+        }
+        writeln!(svg, "  </g>").unwrap();
+    }
 }

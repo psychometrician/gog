@@ -2153,10 +2153,16 @@ test("the globe draws its disk and graticule, and refuses with direction", () =>
   assert.ok(block.includes("wasm"), "a globe page must carry the engine to turn");
   refuses(
     () => render_svg(plot(data(places), bar, x(col.lon), y(col.lat), globe())),
-    /measures along an axis/
+    /measures along the radius/
   );
   refuses(
     () => render_svg(plot(data(places), point, x(col.lon), y(col.lat), globe({ tilt: 100 }))),
     /outside -90 to 90/
   );
+  // With its measure named, the bar is the spike.
+  const spiky = { ...places, v: [3, 9, 5] };
+  const spikeSvg = render_svg(
+    plot(data(spiky), bar, x(col.lon), y(col.lat), z(col.v), globe({ turn: 178, tilt: -18 }))
+  );
+  assert.ok(spikeSvg.includes("<line "), "a spike drew no stroke");
 });

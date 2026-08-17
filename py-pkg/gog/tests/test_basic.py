@@ -1952,7 +1952,7 @@ assert "<polyline" in _gsvg, "the globe drew no graticule"
 assert "<text" not in _gsvg, "a globe grew an axis label"
 ok("the globe draws its disk and graticule, and no axes")
 refuses(
-    "a bar on the globe",
+    "a bar on the globe with no measure",
     lambda: render_svg(data(_places) + bar + x(col.lon) + y(col.lat) + globe()),
 )
 refuses(
@@ -1961,3 +1961,11 @@ refuses(
         data(_places) + point + x(col.lon) + y(col.lat) + globe(tilt=100)
     ),
 )
+# With its measure named, the bar is the spike.
+_spiky = dict(_places, v=[3.0, 9.0, 5.0])
+_spike_svg = render_svg(
+    data(_spiky) + bar + x(col.lon) + y(col.lat) + z(col.v)
+    + globe(turn=178, tilt=-18)
+)
+assert "<line " in _spike_svg, "a spike drew no stroke"
+ok("a bar with z is a spike on the globe")

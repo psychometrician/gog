@@ -3652,10 +3652,19 @@ local({
   if (is.null(hidden)) stop("FAIL: a hidden row went unreported")
   cat("PASS: the globe draws its disk and graticule, and says what the view hides\n")
 
-  refuses("a bar on the globe",
+  refuses("a bar on the globe with no measure",
           render_svg(data(places) + bar + x(lon) + y(lat) + globe()),
-          "measures along an axis")
+          "measures along the radius")
   refuses("a tilt past the pole",
           render_svg(data(places) + point + x(lon) + y(lat) + globe(tilt = 100)),
           "outside -90 to 90")
+
+  # And with its measure named, the bar is the spike: standing at its place,
+  # measuring outward from the surface, clipped by the sphere itself.
+  places$v <- c(3, 9, 5)
+  spiked <- render_svg(data(places) + bar + x(lon) + y(lat) + z(v) +
+                         globe(turn = 178, tilt = -18))
+  if (!grepl("<line ", spiked, fixed = TRUE))
+    stop("FAIL: a spike drew no stroke")
+  cat("PASS: a bar with z is a spike on the globe\n")
 })
