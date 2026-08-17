@@ -617,7 +617,8 @@ function specNeedsEngine(spec) {
 }
 
 function specIsSpatial(spec) {
-  if (spec?.coord && typeof spec.coord === "object" && spec.coord.space) return true;
+  // The cube's view, or the globe's: both carry an angle worth dragging.
+  if (spec?.coord && typeof spec.coord === "object" && (spec.coord.space || spec.coord.globe)) return true;
   if (spec?.z != null) return true;
   if ((spec?.layers ?? []).some((l) => (l?.encodings ?? {}).z != null)) return true;
   return (spec?.cells ?? spec?.plots ?? []).some(specIsSpatial);

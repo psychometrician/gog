@@ -3329,6 +3329,14 @@ stopifnot(!gog:::spec_needs_engine(
   gog:::finalize_spec(data(cells_grid) + point + x(a) + y(b))$spec))
 cat("PASS: a composed page of cubes carries the engine\n")
 
+# The globe carries the engine for the cube's own reason: an angle worth
+# dragging. Its gate missed this on the day the space shipped — every globe
+# page drew perfectly, with zoom buttons and no drag, and half the earth was a
+# picture instead of a place to turn to. Found by the user, reading the book.
+stopifnot(gog:::spec_needs_engine(
+  gog:::finalize_spec(data(cells_grid) + point + x(a) + y(b) + globe())$spec))
+cat("PASS: a globe carries the engine\n")
+
 # --- the emitted module must survive a content-security policy ----------------
 #
 # Two failures live here, one behind the other, and both were invisible to every

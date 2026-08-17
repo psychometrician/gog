@@ -1652,6 +1652,11 @@ end
     @test occursin("<circle", svg)      # the disk, and the limb that frames it
     @test occursin("<polyline", svg)    # the graticule is the panel grid
     @test !occursin("<text", svg)       # a globe draws no axes
+    # The globe carries the engine for the cube's own reason: an angle worth
+    # dragging. Its gate missed this on the day the space shipped.
+    gspec, _ = GrammarOfGraphics.wire(data(places) + point + x(:lon) + y(:lat) +
+                                      globe(turn = 178, tilt = -18))
+    @test GrammarOfGraphics.needs_engine(gspec)
     @refuses render_svg(data(places) + bar + x(:lon) + y(:lat) + globe()) "measures along an axis"
     @refuses render_svg(data(places) + point + x(:lon) + y(:lat) + globe(tilt = 100)) "outside -90 to 90"
 end

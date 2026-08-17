@@ -368,8 +368,11 @@ coordinate still reads "flat", so naming `space()` is sufficient, not necessary.
 needs_engine(spec) = is_spatial(spec) || !isempty(get(spec, "brush", []))
 
 function is_spatial(spec)
+    # The cube's view, or the globe's: both carry an angle worth dragging.
     coord = get(spec, "coord", nothing)
-    coord isa AbstractDict && get(coord, "space", nothing) !== nothing && return true
+    coord isa AbstractDict &&
+        (get(coord, "space", nothing) !== nothing ||
+         get(coord, "globe", nothing) !== nothing) && return true
     get(spec, "z", nothing) !== nothing && return true
     for layer in get(spec, "layers", [])
         enc = get(layer, "encodings", Dict())

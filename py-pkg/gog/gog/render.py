@@ -528,7 +528,10 @@ def _is_spatial(spec: Dict[str, Any]) -> bool:
     "flat", so naming `space()` is sufficient and not necessary.
     """
     coord = spec.get("coord")
-    if isinstance(coord, dict) and coord.get("space") is not None:
+    # The cube's view, or the globe's: both carry an angle worth dragging.
+    if isinstance(coord, dict) and (
+        coord.get("space") is not None or coord.get("globe") is not None
+    ):
         return True
     if spec.get("z") is not None:
         return True

@@ -1696,6 +1696,15 @@ assert not _R._needs_engine({"arrange": "beside", "cells": [{"layers": []}]}), \
     "a page of flat plots still pays nothing"
 ok("a composed page of cubes carries the engine")
 
+# The globe carries the engine for the cube's own reason: an angle worth
+# dragging. Its gate missed this on the day the space shipped.
+_globe_page = (data(_c, "t") + point + x(col.a) + y(col.b) + globe()) | (
+    data(_c, "u") + point + x(col.a) + y(col.b) + globe()
+)
+assert _R._needs_engine(_globe_page.cells[0]), \
+    "a globe has an angle to drag, exactly as the cube does"
+ok("a globe carries the engine")
+
 # --- the interactive block must reach the browser intact ---------------------
 #
 # Two defects lived here and neither was reachable by comparing SVG, because both

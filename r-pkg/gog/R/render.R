@@ -613,7 +613,11 @@ spec_needs_engine <- function(spec) {
 }
 
 spec_is_spatial <- function(spec) {
-  if (is.list(spec$coord) && !is.null(spec$coord$space)) return(TRUE)
+  # An angle worth dragging lives in two spaces: the cube's view, and the
+  # globe's. Missing the second shipped globe pages with zoom buttons and no
+  # drag, so half the earth was a picture rather than a place to turn to.
+  if (is.list(spec$coord) &&
+      (!is.null(spec$coord$space) || !is.null(spec$coord$globe))) return(TRUE)
   if (!is.null(spec$z)) return(TRUE)
   layers <- if (is.null(spec$layers)) list() else spec$layers
   for (layer in layers) {

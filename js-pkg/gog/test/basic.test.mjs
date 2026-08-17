@@ -85,6 +85,7 @@ import {
   zone,
   surface,
 } from "../src/index.js";
+import { htmlBlock } from "../src/render.js";
 
 const df = {
   x: [1, 2, 3, 4, 5],
@@ -2143,6 +2144,13 @@ test("the globe draws its disk and graticule, and refuses with direction", () =>
   assert.ok(svg.includes("<circle"), "the globe drew no disk");
   assert.ok(svg.includes("<polyline"), "the globe drew no graticule");
   assert.ok(!svg.includes("<text"), "a globe grew an axis label");
+  // The globe carries the engine for the cube's own reason: an angle worth
+  // dragging. Its gate missed this on the day the space shipped, so every
+  // globe page drew perfectly with zoom buttons and no drag.
+  const block = htmlBlock(
+    plot(data(places), point, x(col.lon), y(col.lat), globe({ turn: 178, tilt: -18 }))
+  );
+  assert.ok(block.includes("wasm"), "a globe page must carry the engine to turn");
   refuses(
     () => render_svg(plot(data(places), bar, x(col.lon), y(col.lat), globe())),
     /measures along an axis/
