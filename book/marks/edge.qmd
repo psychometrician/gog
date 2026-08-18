@@ -13,8 +13,16 @@ ends of an edge are names, not numbers, so no axis can measure them.
 
 That difference is what makes this mark unusual. Its two endpoints are not
 bound to channels; they come from a [`layout`](../network.qmd), which reads
-the two endpoint columns and computes a position for every name. So the
-smallest sentence needs three parts: the mark, its layout, and the space:
+the two endpoint columns and computes a position for every name.
+`trade_partners` holds one row per trade relation: who exports, who imports,
+and the value of the goods, in billions of dollars, rounded:
+
+```{r}
+#| echo: false
+peek(trade_partners)
+```
+
+The smallest sentence needs three parts: the mark, its layout, and the space:
 
 ```{r}
 data(trade_partners) + edge * layout(exporter, importer) + network()
