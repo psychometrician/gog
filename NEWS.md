@@ -1,3 +1,50 @@
+# gog 0.1.0 (2026-08-18)
+
+The version leaves 0.0.x because the vocabulary grew rather than the count of
+things that work. Four families arrived at once, and one of them added the
+fourteenth mark, which is the largest change this grammar makes.
+
+A table of relations is now a picture. `edge * layout(from, to) + network()`
+reads the two endpoint columns of an edge table, computes a position for every
+name in the engine, and draws one stroke per row. Three marks read the one
+layout, so the connections, the nodes and their names always agree about where
+everything sits, and the layout hands each node its `degree` so `size(degree)`
+draws the busiest largest. Nothing in the table says where a node belongs;
+saying it is what the layout is for. State a viewing angle and the same layout
+is computed in a cube you can turn.
+
+The earth is round again. `globe()` takes the longitude and latitude a map
+takes and stands them on a sphere, where a route bends along a great circle, a
+rule holds a whole meridian, and a country the horizon cuts is closed along the
+edge of the disk. Half the earth faces away from any view, so the plot says how
+many rows it hid rather than letting you take what you see for everything. A
+bar here stands on the radius, the one axis a sphere has to spare.
+
+A magnitude can be followed through its stages. `ribbon * flow(class, sex,
+survived) + y(n)` draws each path as a band as thick as its count at both ends,
+which is the picture the world calls a Sankey diagram. One table, one row per
+path, and the totals match at every stage because the shape of the input makes
+them.
+
+Things that are alike can be put beside each other. `path * cluster(amount,
+over = nutrient)` joins the two closest leaves, then the next two, and draws
+the tree; `zone * cluster(over = nutrient)` keeps the tiles and takes the
+tree's order. Compose them and a clustered heatmap is three plots and two
+operators rather than a figure type of its own.
+
+Labels now rest where there is room. `text * repel` pulled every name back
+toward a starting place above its dot, so a crowd of them stacked into a column
+whatever the picture underneath looked like. Each label now settles on
+whichever side of its point has space. The finding, the measurements against
+ggrepel, and the shape of the fix came from a reader, and it is the first
+outside contribution to this grammar.
+
+JavaScript can hand a page a plot the reader can turn. `html_block()` returns
+the picture wrapped for a web page, with the controls under it and the browser
+engine that turns a cube or a globe. The other three languages answer that
+question through their notebook's own display hook and never needed a name for
+it.
+
 # gog 0.0.5 (2026-08-12)
 
 A plot that plays can be stopped and stepped. Three buttons sit on the same line

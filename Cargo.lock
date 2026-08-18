@@ -168,7 +168,7 @@ dependencies = [
 
 [[package]]
 name = "gog-cli"
-version = "0.0.5"
+version = "0.1.0"
 dependencies = [
  "gif",
  "gog-core",
@@ -179,7 +179,7 @@ dependencies = [
 
 [[package]]
 name = "gog-core"
-version = "0.0.5"
+version = "0.1.0"
 dependencies = [
  "serde",
  "serde_json",

@@ -1,6 +1,6 @@
 Package: gog
 Title: Grammar of Graphics
-Version: 0.0.5
+Version: 0.1.0
 Authors@R:
     person("psychometrician", role = c("aut", "cre"), email = "psychometrician@gmail.com")
 Description: Draw a plot by describing it. You name a table, a mark to

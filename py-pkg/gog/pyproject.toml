@@ -15,7 +15,7 @@ name = "gog"
 # PEP 541 protects a name for a *reachable, active owner with a real release*,
 # and a `.devN` is a pre-release that `pip install gog` skips unless the user
 # passes `--pre`, so it would have held the name weakly.
-version = "0.0.5"
+version = "0.1.0"
 description = "A grammar of graphics for Python: describe a plot, and one Rust engine draws it"
 readme = "README.md"
 requires-python = ">=3.9"

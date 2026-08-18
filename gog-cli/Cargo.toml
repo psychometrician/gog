@@ -1,6 +1,6 @@
 [package]
 name = "gog-cli"
-version = "0.0.5"
+version = "0.1.0"
 edition = "2021"
 license = "Apache-2.0"
 description = "Command-line renderer: reads a JSON render-request from stdin, writes SVG to stdout."
