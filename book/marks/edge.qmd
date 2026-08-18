@@ -43,6 +43,17 @@ data(trade_partners) +
 On `line`, `opacity` is only a setting, because a line is one stroke with one
 value. An edge layer is many strokes, and each row carries its own.
 
+The same is true of `color`. Each stroke takes the color of its exporter, so
+Germany's five strokes share one color:
+
+```{r}
+data(trade_partners) +
+  edge * layout(exporter, importer) + color(exporter) +
+  point * layout(exporter, importer) +
+  network() +
+  title("Each stroke, colored by its exporter")
+```
+
 ## What you can set
 
 ```{r}

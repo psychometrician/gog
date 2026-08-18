@@ -113,6 +113,17 @@ In the web edition the cube turns with a drag, the way the cube in
 [Space](space.qmd) turns, and *reset* returns to the angle the sentence asked
 for. On paper it keeps the view it was given.
 
+Naming a node in the cube is valid grammar. This engine does not draw those
+names yet:
+
+```{r}
+#| error: true
+data(trade_partners) +
+  edge * layout(exporter, importer) +
+  text * layout(exporter, importer) * repel + label(name) +
+  network(turn = 35, tilt = 20)
+```
+
 ## What the network refuses
 
 A `layout` outside its space would put meaningless numbers under real axes:

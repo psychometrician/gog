@@ -45,6 +45,7 @@ Half the earth faces away, and data on that half is hidden behind the sphere.
 gog counts what a view hides rather than dropping it in silence:
 
 ```{r}
+#| message: true
 data(world_borders) + path + x(lon) + y(lat) + group(piece) +
   style(color = "#c9ccd6") +
   data(quakes_fiji) + point + x(east) + y(north) +
@@ -106,6 +107,7 @@ network, and it needs no new word, because every position in it is a place
 the data already knows:
 
 ```{r}
+#| message: true
 cities <- data.frame(
   city = c("Seoul", "Tokyo", "Singapore", "Delhi", "Cairo",
            "London", "Anchorage", "Sydney"),
