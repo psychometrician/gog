@@ -31,6 +31,7 @@ import {
   partition,
   flow,
   layout,
+  cluster,
   label,
   box,
   col,
@@ -1745,6 +1746,43 @@ test("`edge`, `point` and `text` read one layout in `network()`", () => {
   refuses(() => render_svg(plot(data(trade, { name: "trade" }),
     layer(point), network())), /edge \* layout\(from, to\)/);
   refuses(() => layout(col.exporter), /two endpoint columns/);
+});
+
+// --- cluster: the tree of merges, and the seriated tile plot -----------------
+test("`cluster` draws the tree, lies down, and reorders the tiles", () => {
+  const pantry = {
+    food: ["rice", "rice", "lentils", "lentils",
+           "chicken", "chicken", "oats", "oats"],
+    nutrient: ["protein", "iron", "protein", "iron",
+               "protein", "iron", "protein", "iron"],
+    amount: [2.7, 0.8, 9.0, 3.3, 25.0, 2.6, 3.4, 1.8],
+  };
+  const dendro = () => render_svg(plot(data(pantry, { name: "pantry" }),
+    layer(path, cluster(col.amount, { over: col.nutrient })), x(col.food)));
+  const first = dendro();
+  assert.match(first, />Distance</, "the unbound axis names itself Distance");
+  assert.strictEqual(first.split("<polyline").length - 1, 3,
+    "three merges are three elbow strokes");
+  assert.strictEqual(first, dendro(), "one cluster sentence is one picture");
+  const sideways = render_svg(plot(data(pantry, { name: "pantry" }),
+    layer(path, cluster(col.amount, { over: col.nutrient })), y(col.food)));
+  assert.match(sideways, />Distance</, "the sideways tree titles its axis");
+  const plain = render_svg(plot(data(pantry, { name: "pantry" }),
+    layer(zone), x(col.food), y(col.nutrient), color(col.amount)));
+  const sorted = render_svg(plot(data(pantry, { name: "pantry" }),
+    layer(zone, cluster({ over: col.nutrient })),
+    x(col.food), y(col.nutrient), color(col.amount)));
+  assert.notStrictEqual(plain, sorted, "the reorder reading must reorder");
+
+  refuses(() => render_svg(plot(data(pantry, { name: "pantry" }),
+    layer(bar, cluster(col.amount, { over: col.nutrient })), x(col.food))),
+    /path \* cluster/);
+  refuses(() => render_svg(plot(data(pantry, { name: "pantry" }),
+    layer(path, cluster({ over: col.nutrient })), x(col.food))),
+    /value column/);
+  refuses(() => render_svg(plot(data(pantry, { name: "pantry" }),
+    layer(path, cluster(col.amount, { over: col.nutrient })),
+    x(col.food), y(col.amount))), /names itself/);
 });
 
 // One parameter apart from the icicle, and it buys the whole plot: the levels

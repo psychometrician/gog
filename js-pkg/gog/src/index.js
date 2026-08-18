@@ -79,6 +79,7 @@ export {
   partition,
   flow,
   layout,
+  cluster,
   dodge,
   stack,
   jitter,

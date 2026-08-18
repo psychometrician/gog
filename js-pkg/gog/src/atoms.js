@@ -533,6 +533,34 @@ export function layout(from, to) {
   });
 }
 
+// Join the closest leaves, one pair at a time — the cluster tree. The leaves are
+// the levels of the bound categorical position, each described by its `value`
+// at every level of `over`; the engine joins the closest profiles until one
+// tree holds them all, and the unbound position carries the merge distance.
+// `path(cluster(col.amount, { over: col.nutrient }), x(col.food))` draws the
+// tree; `zone(cluster({ over: col.nutrient }), ...)` reorders a tile plot's
+// slots to the tree's leaf order, the values already being on `color`. The
+// statistic is fixed: Euclidean distance on the values as given, joined at
+// average distance.
+export function cluster(value, opts = {}) {
+  // The tile reading omits the value, so the one argument may be the options
+  // object itself — the trailing-options idiom reading from either slot. A
+  // column proxy is a `Column`; a plain object here is the options.
+  if (value !== undefined && value !== null && typeof value === "object"
+      && !(value instanceof Column)) {
+    opts = value;
+    value = undefined;
+  }
+  const fields = { transform: "cluster" };
+  if (value !== undefined && value !== null) {
+    fields.value = columnName(value, "cluster");
+  }
+  if (opts.over !== undefined && opts.over !== null) {
+    fields.over = columnName(opts.over, "cluster");
+  }
+  return new Atom("transform", fields);
+}
+
 // ---------------------------------------------------------------------------
 // Positions and coordinate spaces — always the plot's, unless a layer says so
 // ---------------------------------------------------------------------------

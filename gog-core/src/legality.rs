@@ -815,6 +815,7 @@ fn transform_name(t: &Transform) -> &'static str {
         Transform::Partition => "partition",
         Transform::Flow => "flow",
         Transform::Layout => "layout",
+        Transform::Cluster => "cluster",
     }
 }
 
@@ -1088,9 +1089,18 @@ pub fn mark_takes_transform(mark: &Mark, transform: &Transform) -> TransformLega
     // precisely what a path draws and what a `line` would destroy by sorting. So the
     // ruling above was right about the transforms that existed when it was written,
     // and this is the case its reason does not reach: the contour plot.
-    // `path_takes_only_the_field_transform` pins both halves.
+    //
+    // *Why `cluster` is the second, by the same measure.* A merge tree's elbows
+    // are not one summary per key either — they are vertices in traversal order,
+    // four per merge, each merge its own run, exactly the shape the contour
+    // established. A `line` would sort the risers into rubble; the mark that
+    // strokes rows in the order given is the only mark that can draw a tree.
+    // `path_takes_only_the_field_transform` pins all three halves.
     if *mark == Mark::Path {
-        return if *transform == Transform::Density { Combines } else { None };
+        return match transform {
+            Transform::Density | Transform::Cluster => Combines,
+            _ => None,
+        };
     }
 
     // `surface` needs a floor whose cells **tile without gaps**, and two transforms
@@ -1263,10 +1273,18 @@ pub fn mark_takes_transform(mark: &Mark, transform: &Transform) -> TransformLega
 
     // The pair transforms `range`/`confidence` compute a band across a domain,
     // which is legal grammar and the wrong mark; `check_zone` says so.
+    //
+    // **`cluster` combines, and it is the first transform here that supplies
+    // neither an extent nor a measurement.** A tile plot's cells come from its
+    // two categorical axes and its measurement from `color`, both already
+    // supplied; what a cluster adds is the *order* of the leaf axis's slots —
+    // the seriated heatmap, the tree's other reading. `Combines` rather than
+    // `Required` because the mark renders perfectly well without one.
     if *mark == Mark::Zone {
         return match transform {
             Transform::Bounds | Transform::Bin | Transform::Density
             | Transform::Count | Transform::Proportion => Required,
+            Transform::Cluster => Combines,
             t if crate::transform::has_reduction(std::slice::from_ref(t)) => Combines,
             _ => None,
         };
@@ -1351,12 +1369,12 @@ pub fn mark_takes_transform(mark: &Mark, transform: &Transform) -> TransformLega
 /// four collision modifiers: twenty. `Transform::Box` is excluded: the `box`
 /// mark injects it, it is never typed, so it is not a column of the
 /// Mark × Transform grid.
-pub const USER_TRANSFORMS: [Transform; 22] = [
+pub const USER_TRANSFORMS: [Transform; 23] = [
     Transform::Bin, Transform::Smooth, Transform::Count, Transform::Density, Transform::Proportion,
     Transform::Sum, Transform::Mean, Transform::Median, Transform::Max, Transform::Min,
     Transform::Quantile,
     Transform::Range, Transform::Confidence, Transform::Deviation, Transform::Bounds,
-    Transform::Partition, Transform::Flow, Transform::Layout,
+    Transform::Partition, Transform::Flow, Transform::Layout, Transform::Cluster,
     Transform::Dodge, Transform::Stack, Transform::Jitter, Transform::Repel,
 ];
 
@@ -2100,6 +2118,11 @@ pub fn synthesizes_measure(mark: &Mark, transforms: &[Transform]) -> bool {
             // A flow writes the stacked interval to the measure axis the same
             // way: bound, `y` names the weight; unbound, every path weighs 1.
             Transform::Flow => true,
+            // A cluster tree writes the merge distance to the position its
+            // leaves do not hold — always synthesized, never bindable, so the
+            // axis names itself. On `zone` the measurement is `color`'s and
+            // the cluster supplies only the order, so no axis is invented.
+            Transform::Cluster => matches!(mark, Mark::Path),
             _ => false,
         }
     })
@@ -2639,6 +2662,16 @@ pub fn plot_orient(spec: &PlotSpec, data: &HashMap<String, DataFrame>) -> Orient
     // written for, reached from the other side.
     if space_of(spec) == SpaceKind::Nest {
         return Orient::Vertical;
+    }
+    // A cluster tree's orientation is its leaf axis's: leaves on `y` lay the
+    // tree on its side, and the distance axis — the measured one — is `x`,
+    // exactly as a lying-down histogram's count is.
+    for layer in &spec.layers {
+        if layer.mark == Mark::Path && layer.transforms.contains(&Transform::Cluster) {
+            let sideways = spec.position_for(layer, &Channel::Y).is_some()
+                && spec.position_for(layer, &Channel::X).is_none();
+            return if sideways { Orient::Horizontal } else { Orient::Vertical };
+        }
     }
     for layer in &spec.layers {
         if !is_slot_mark(&layer.mark) {
@@ -4648,6 +4681,443 @@ fn check_network(out: &mut Vec<Diagnostic>, spec: &PlotSpec) {
     }
 }
 
+/// The cluster family's malformations, `check_layout`'s shape one statistic
+/// over: the wrong mark, the atom with too little named, a bound position the
+/// tree invents, the aesthetics no reading holds, and the data facts — a
+/// profile with a hole in it, a cell said twice, a leaf axis that is not
+/// categories. Sentence facts refuse before data facts, so a wrong sentence is
+/// refused even when the table is missing.
+fn check_cluster(
+    out: &mut Vec<Diagnostic>, spec: &PlotSpec, df: Option<&DataFrame>, layer: &Layer,
+) {
+    if !layer.transforms.contains(&Transform::Cluster) {
+        return;
+    }
+
+    // 1. A mark with no reading for a merge tree. Two have one, and the
+    //    refusal names both sentences.
+    if mark_takes_transform(&layer.mark, &Transform::Cluster) == TransformLegality::None {
+        out.push(Diagnostic {
+            kind: DiagnosticKind::Illegal,
+            message: format!(
+                "gog: `cluster` joins the closest leaves under one elbow, and `{}` \
+                 has no reading for that. Two marks do: `path * cluster(<value>, \
+                 over = <profile>) + x(<leaves>)` draws the tree, and `zone * \
+                 cluster(over = <profile>)` reorders a tile plot's slots to the \
+                 tree's leaf order.",
+                mark_name(&layer.mark),
+            ),
+        });
+        return;
+    }
+
+    let on_zone = layer.mark == Mark::Zone;
+    let cl = layer.cluster.clone().unwrap_or_default();
+    let x_def = spec.position_for(layer, &Channel::X);
+    let y_def = spec.position_for(layer, &Channel::Y);
+
+    // 2. The tree's positions: one axis for the leaves, and the other is the
+    //    tree's own — it carries the merge distance, invented and self-named,
+    //    so binding it says nothing the transform can honor.
+    if !on_zone {
+        match (&x_def, &y_def) {
+            (Some(_), Some(_)) => {
+                out.push(Diagnostic {
+                    kind: DiagnosticKind::Illegal,
+                    message: "gog: under `cluster` one position holds the leaves and \
+                              the other carries the merge distance, which the tree \
+                              invents — the axis names itself `Distance`. Bind the \
+                              leaf axis alone: `x(<leaves>)` grows the tree up, \
+                              `y(<leaves>)` grows it sideways."
+                        .to_string(),
+                });
+                return;
+            }
+            (None, None) => {
+                out.push(Diagnostic {
+                    kind: DiagnosticKind::Illegal,
+                    message: "gog: a cluster tree's leaves are the levels of a bound \
+                              categorical position, and nothing here binds one. Add \
+                              `x(<leaves>)`, or `y(<leaves>)` for the sideways tree."
+                        .to_string(),
+                });
+                return;
+            }
+            _ => {}
+        }
+        // The value column is the tree's one required name: distance is
+        // measured on it, and nothing else in the sentence says which column
+        // that is.
+        if cl.value.as_deref().unwrap_or("").is_empty() {
+            out.push(Diagnostic {
+                kind: DiagnosticKind::Illegal,
+                message: "gog: `cluster` measures distance on a value column, and \
+                          nothing names one. Name it first: `cluster(<value>)`, or \
+                          `cluster(<value>, over = <profile>)` when each leaf has a \
+                          row per profile entry."
+                    .to_string(),
+            });
+            return;
+        }
+    }
+
+    let leaf_field: String = if on_zone {
+        // On a tile plot both positions are bound; the profile axis is named
+        // and the other categorical position holds the leaves.
+        let over = cl.over.as_deref().unwrap_or("");
+        let (xf, yf) = (
+            x_def.as_ref().map(|d| d.field.clone()).unwrap_or_default(),
+            y_def.as_ref().map(|d| d.field.clone()).unwrap_or_default(),
+        );
+        if over.is_empty() {
+            out.push(Diagnostic {
+                kind: DiagnosticKind::Illegal,
+                message: "gog: on a tile plot both axes hold categories, so \
+                          `cluster` cannot tell which one profiles the other. Name \
+                          the profile axis: `cluster(over = <profile>)` — the other \
+                          axis's slots take the tree's leaf order."
+                    .to_string(),
+            });
+            return;
+        }
+        if over != xf && over != yf {
+            out.push(Diagnostic {
+                kind: DiagnosticKind::Illegal,
+                message: format!(
+                    "gog: `cluster(over = {over})` names a column neither axis \
+                     holds. On a tile plot the profile axis is one of the two \
+                     positions — name `{xf}` or `{yf}`."
+                ),
+            });
+            return;
+        }
+        if over == xf { yf } else { xf }
+    } else {
+        x_def.as_ref().or(y_def.as_ref()).map(|d| d.field.clone()).unwrap_or_default()
+    };
+
+    // 3. The profile axis must not be the leaf axis: a level cannot profile
+    //    itself.
+    if cl.over.as_deref() == Some(leaf_field.as_str()) && !on_zone {
+        out.push(Diagnostic {
+            kind: DiagnosticKind::Illegal,
+            message: format!(
+                "gog: `cluster(over = {leaf_field})` names the leaf axis itself, \
+                 and a level cannot be its own profile. Name the column that \
+                 indexes each profile's entries."
+            ),
+        });
+        return;
+    }
+
+    // 4. On a zone, the value is `color`'s column; a second name must be the
+    //    same one, and no name at all needs `color` bound.
+    let color_field = layer.encodings.get(&Channel::Color).map(|d| d.field.clone());
+    if on_zone {
+        match (&cl.value, &color_field) {
+            (Some(v), Some(c)) if v != c => {
+                out.push(Diagnostic {
+                    kind: DiagnosticKind::Illegal,
+                    message: format!(
+                        "gog: `cluster({v}, ...)` and `color({c})` name different \
+                         columns, and a tile plot measures by `color` — the \
+                         profiles are its values. Say the same column, or drop the \
+                         first name and let `color` supply it."
+                    ),
+                });
+                return;
+            }
+            (None, None) => {
+                out.push(Diagnostic {
+                    kind: DiagnosticKind::Illegal,
+                    message: "gog: a clustered tile plot reads its profile values \
+                              from `color`, and nothing binds one. Add \
+                              `color(<value>)`."
+                        .to_string(),
+                });
+                return;
+            }
+            _ => {}
+        }
+    }
+
+    // 5. The aesthetics the tree reading cannot hold: its strokes are computed
+    //    from every row, so there is no column left to split or measure them
+    //    by. `style(color = )` paints the whole tree; coloring subtrees needs
+    //    a cut height the grammar has not designed.
+    if !on_zone {
+        for ch in [Channel::Color, Channel::Group, Channel::Pattern, Channel::Size,
+                   Channel::Opacity, Channel::Shape, Channel::Label] {
+            if layer.encodings.contains_key(&ch) {
+                out.push(Diagnostic {
+                    kind: DiagnosticKind::Illegal,
+                    message: format!(
+                        "gog: `{}(...)` under `cluster` has nothing to read — the \
+                         tree's strokes are computed from every row, so no column \
+                         is left to split them by. `style(color = )` paints the \
+                         tree; coloring its branches by a cut is not designed.",
+                        channel_name(&ch),
+                    ),
+                });
+                return;
+            }
+        }
+        if layer.encodings.contains_key(&Channel::Z) {
+            out.push(Diagnostic {
+                kind: DiagnosticKind::Illegal,
+                message: "gog: the cluster tree is drawn in the plane — a merge \
+                          has no depth for `z` to carry. Drop `z()`."
+                    .to_string(),
+            });
+            return;
+        }
+        if space_of(spec) == SpaceKind::Polar {
+            out.push(Diagnostic {
+                kind: DiagnosticKind::Unsupported,
+                message: "gog: a circular cluster tree is valid grammar this \
+                          engine does not draw yet — the treads would bend into \
+                          arcs, and a path's segments draw straight. Drop \
+                          `polar()`, or wait for the feature."
+                    .to_string(),
+            });
+            return;
+        }
+    }
+
+    // 6. A played or faceted cluster would re-derive the leaf order per frame
+    //    or per panel, and an axis that re-sorts itself mid-read is not an
+    //    axis. Both wait rather than lie.
+    if layer.encodings.contains_key(&Channel::Play) {
+        out.push(Diagnostic {
+            kind: DiagnosticKind::Unsupported,
+            message: "gog: `play` under `cluster` is valid grammar this engine \
+                      does not draw yet — each frame would re-cluster and re-sort \
+                      the leaf axis mid-animation. Filter to one moment where \
+                      your data lives, or wait."
+                .to_string(),
+        });
+        return;
+    }
+    if spec.facet.is_some() {
+        out.push(Diagnostic {
+            kind: DiagnosticKind::Unsupported,
+            message: "gog: `facet` under `cluster` is valid grammar this engine \
+                      does not draw yet — each panel would derive its own leaf \
+                      order for one shared axis. Compose separate plots with `|` \
+                      and `/` instead; each keeps its own axis."
+                .to_string(),
+        });
+        return;
+    }
+
+    // 7. `order()` and `cluster` on one axis are two orders for one axis.
+    //    Sorting the *profile* axis by its own declared order stays legal —
+    //    that axis is not the tree's.
+    if let Some(o) = &spec.order {
+        let sorts_only_the_profile_axis =
+            on_zone && cl.over.as_deref() == Some(o.field.as_str());
+        if !sorts_only_the_profile_axis {
+            out.push(Diagnostic {
+                kind: DiagnosticKind::Illegal,
+                message: format!(
+                    "gog: `order({})` and `cluster` both order the `{leaf_field}` \
+                     axis — one sorts by a column, the other derives the order \
+                     from the tree, and an axis holds one order. Drop one.",
+                    o.field,
+                ),
+            });
+            return;
+        }
+    }
+
+    // The data facts. Everything below needs the table.
+    let Some(df) = df else { return };
+
+    // 8. The named columns must be there and be the right kind of thing.
+    let value_field = if on_zone {
+        cl.value.clone().or(color_field).unwrap_or_default()
+    } else {
+        cl.value.clone().unwrap_or_default()
+    };
+    match actual_type(df, &value_field) {
+        None => {
+            out.push(Diagnostic {
+                kind: DiagnosticKind::Illegal,
+                message: format!(
+                    "gog: `cluster` measures distance on `{value_field}`, which \
+                     this table does not have."
+                ),
+            });
+            return;
+        }
+        Some(VarType::Discrete) => {
+            out.push(Diagnostic {
+                kind: DiagnosticKind::Illegal,
+                message: format!(
+                    "gog: `cluster` measures distance on `{value_field}`, and \
+                     distance is measured on numbers — that column holds \
+                     categories. Name a numeric column."
+                ),
+            });
+            return;
+        }
+        _ => {}
+    }
+    if let Some(over) = cl.over.as_deref() {
+        match actual_type(df, over) {
+            None => {
+                out.push(Diagnostic {
+                    kind: DiagnosticKind::Illegal,
+                    message: format!(
+                        "gog: `cluster(over = {over})` names a column this table \
+                         does not have."
+                    ),
+                });
+                return;
+            }
+            Some(VarType::Continuous) => {
+                out.push(Diagnostic {
+                    kind: DiagnosticKind::Illegal,
+                    message: format!(
+                        "gog: `cluster(over = {over})` names a numeric column, and \
+                         a profile's entries are indexed by names — every leaf \
+                         holds one value per level of it. Make it text where your \
+                         data lives, or bin it there first."
+                    ),
+                });
+                return;
+            }
+            _ => {}
+        }
+    }
+
+    // 9. The leaves are categories. A continuous axis has no levels to join,
+    //    and gog will not cut it uninvited.
+    match actual_type(df, &leaf_field) {
+        Some(VarType::Continuous) => {
+            out.push(Diagnostic {
+                kind: DiagnosticKind::Illegal,
+                message: format!(
+                    "gog: a cluster tree's leaves are the levels of `{leaf_field}`, \
+                     and that column is numeric — a measurement has no levels to \
+                     join. Make it text where your data lives, or bin it there."
+                ),
+            });
+            return;
+        }
+        None => {
+            out.push(Diagnostic {
+                kind: DiagnosticKind::Illegal,
+                message: format!(
+                    "gog: the leaf axis names `{leaf_field}`, which this table \
+                     does not have."
+                ),
+            });
+            return;
+        }
+        _ => {}
+    }
+
+    let leaves = crate::data::categories_across(&[df], &leaf_field);
+    // 10. One leaf joins nothing.
+    if leaves.len() < 2 {
+        out.push(Diagnostic {
+            kind: DiagnosticKind::Illegal,
+            message: format!(
+                "gog: `{leaf_field}` holds {} level(s), and a tree needs at least \
+                 two leaves to join.",
+                leaves.len(),
+            ),
+        });
+        return;
+    }
+
+    // 11. The profiles must be complete and said once: a missing cell has no
+    //     distance and a duplicated one has two, and inventing either is a
+    //     measurement nobody made. Both name the first offender.
+    let keys = df.str_col(&leaf_field);
+    let vals = df.float_col(&value_field);
+    let (Some(keys), Some(vals)) = (keys, vals) else { return };
+    let coords: Vec<String> = match cl.over.as_deref() {
+        Some(o) => crate::data::categories_across(&[df], o),
+        None => vec![String::new()],
+    };
+    let coord_col = cl.over.as_deref().and_then(|o| df.str_col(o));
+    let mut counts = vec![vec![0usize; coords.len()]; leaves.len()];
+    for r in 0..df.len().min(keys.len()).min(vals.len()) {
+        let Some(li) = leaves.iter().position(|l| *l == keys[r]) else { continue };
+        let ci = match coord_col {
+            Some(cs) => match coords.iter().position(|c| *c == cs[r]) {
+                Some(ci) => ci,
+                None => continue,
+            },
+            None => 0,
+        };
+        if vals[r].is_finite() {
+            counts[li][ci] += 1;
+        }
+    }
+    for (li, per_leaf) in counts.iter().enumerate() {
+        for (ci, &n) in per_leaf.iter().enumerate() {
+            if n == 0 {
+                let place = match cl.over.as_deref() {
+                    Some(o) => format!("no value at `{o}` = {}", coords[ci]),
+                    None => "no value".to_string(),
+                };
+                out.push(Diagnostic {
+                    kind: DiagnosticKind::Illegal,
+                    message: format!(
+                        "gog: `cluster` compares complete profiles, and \
+                         `{leaf_field}` = {} has {place} — every leaf needs one \
+                         value at every level. Fill or drop where your data lives.",
+                        leaves[li],
+                    ),
+                });
+                return;
+            }
+            if n > 1 {
+                let place = match cl.over.as_deref() {
+                    Some(o) => format!(" at `{o}` = {}", coords[ci]),
+                    None => String::new(),
+                };
+                out.push(Diagnostic {
+                    kind: DiagnosticKind::Illegal,
+                    message: format!(
+                        "gog: `{leaf_field}` = {}{place} holds {n} rows, and a \
+                         profile's entry is one value — the mean, the sum and the \
+                         median are all defensible, so gog will not choose. \
+                         Aggregate to one row per pair where your data lives.",
+                        leaves[li],
+                    ),
+                });
+                return;
+            }
+        }
+    }
+    // 12. With several rows per leaf and no profile axis named, the vectors
+    //     have no alignment — refused above as a duplicate of the one implicit
+    //     coordinate, so the direction here rides that message. (A bare
+    //     `cluster(<value>)` is the one-row-per-leaf case.)
+}
+
+/// Does this spec compute a leaf order for `field` on `channel` — is it an
+/// *authority* for that axis's category order when plots compose? True when a
+/// layer clusters and `field` is its leaf axis on that channel. The page reads
+/// this to give a shared categorical axis the order a clustered panel derived
+/// (§9's composition rule).
+pub fn cluster_orders(spec: &PlotSpec, channel: &Channel, field: &str) -> bool {
+    let spec = resolve_scopes(spec);
+    spec.layers.iter().any(|l| {
+        if !l.transforms.contains(&Transform::Cluster) {
+            return false;
+        }
+        let over = l.cluster.as_ref().and_then(|c| c.over.clone()).unwrap_or_default();
+        spec.position_for(l, channel)
+            .map(|d| d.field == field && d.field != over)
+            .unwrap_or(false)
+    })
+}
+
 fn check_marks_that_take_no_transform(out: &mut Vec<Diagnostic>, layer: &Layer) {
     if !matches!(
         layer.mark,
@@ -5288,7 +5758,71 @@ pub fn check_figure(figure: &Figure, data: &HashMap<String, DataFrame>) -> Vec<D
         out.extend(check(spec, data));
     }
     check_page_fits(&mut out, figure, crate::render::svg::CANVAS);
+    check_page_orders(&mut out, figure, data);
     out
+}
+
+/// Two composed panels each deriving an order for one shared categorical axis,
+/// and disagreeing — one axis cannot hold two orders, and quietly seating one
+/// panel's slots in the other's sequence would misplace every mark of the
+/// loser. Same inputs agree by determinism, so this fires only on a genuine
+/// contradiction. Checked here, where a refusal can still refuse; the page
+/// itself, reached only under `GOG_STRICT=0`, falls back to own slots.
+fn check_page_orders(
+    out: &mut Vec<Diagnostic>, figure: &Figure, data: &HashMap<String, DataFrame>,
+) {
+    if !figure.is_page() {
+        return;
+    }
+    // (channel, column) → the distinct leaf orders derived for it.
+    let mut derived: Vec<(Channel, String, Vec<Vec<String>>)> = Vec::new();
+    for spec in figure.plots() {
+        let resolved = resolve_scopes(spec);
+        for layer in &resolved.layers {
+            if !layer.transforms.contains(&Transform::Cluster) {
+                continue;
+            }
+            let cl = layer.cluster.clone().unwrap_or_default();
+            let over = cl.over.clone();
+            let Some(df) = layer.data.as_ref().or(resolved.data.as_ref())
+                .and_then(|n| data.get(n)) else { continue };
+            for ch in [Channel::X, Channel::Y] {
+                let Some(def) = resolved.position_for(layer, &ch) else { continue };
+                let leaf = def.field.clone();
+                if over.as_deref() == Some(leaf.as_str()) {
+                    continue;
+                }
+                let value = cl.value.clone()
+                    .or_else(|| layer.encodings.get(&Channel::Color)
+                        .map(|d| d.field.clone()))
+                    .unwrap_or_default();
+                let Some(order) = crate::transform::cluster_order(
+                    df, &leaf, &value, over.as_deref()) else { continue };
+                match derived.iter_mut().find(|(c, f, _)| *c == ch && *f == leaf) {
+                    Some((_, _, orders)) => {
+                        if !orders.contains(&order) {
+                            orders.push(order);
+                        }
+                    }
+                    None => derived.push((ch, leaf, vec![order])),
+                }
+            }
+        }
+    }
+    for (ch, field, orders) in derived {
+        if orders.len() > 1 {
+            out.push(Diagnostic {
+                kind: DiagnosticKind::Illegal,
+                message: format!(
+                    "gog: two composed panels each derive an order for `{field}` on \
+                     {ax} and they disagree — one axis cannot hold two orders. \
+                     Cluster it in one panel, or give both the same value and \
+                     profile columns.",
+                    ax = channel_name(&ch),
+                ),
+            });
+        }
+    }
 }
 
 /// A page whose cells ask for more room than the page has.
@@ -5518,6 +6052,10 @@ pub fn check(spec: &PlotSpec, data: &HashMap<String, DataFrame>) -> Vec<Diagnost
         check_flow(&mut out, spec, df, layer);
         // The network family's malformations, the same shape a third time.
         check_layout(&mut out, spec, df, layer);
+        // The cluster family's malformations, the same shape a fourth time —
+        // the wrong mark, the atom with too little named, a bound position the
+        // tree invents, and the profile with a hole in it.
+        check_cluster(&mut out, spec, df, layer);
 
         // Which mesh, and whether this mark has a plane to tile at all. Takes the
         // frame because the third answer is data-aware: a mixed mesh has two axes and
@@ -6863,6 +7401,11 @@ pub fn x_needs_no_binding(spec: &PlotSpec, layer: &Layer) -> bool {
     bar_divides_one_slot(layer)
         || layer.transforms.contains(&Transform::Partition)
         || layer.transforms.contains(&Transform::Flow)
+        // A sideways cluster tree: leaves on `y`, and `x` carries the merge
+        // distance the transform synthesizes — bound by nobody, named by
+        // itself, the same standing a lying-down histogram's count has.
+        || (layer.transforms.contains(&Transform::Cluster)
+            && spec.position_for(layer, &Channel::Y).is_some())
         || space_of(spec) == SpaceKind::Nest
         || space_of(spec) == SpaceKind::Network
 }
@@ -9065,6 +9608,18 @@ fn reads_a_scale(channel: &Channel) -> bool {
 /// answers to one question, and this file records what that costs.
 pub fn synth_axis(spec: &PlotSpec, layer: &Layer, df: Option<&DataFrame>) -> Channel {
     match (&layer.mark, df) {
+        // A cluster tree writes the merge distance to the position its leaf
+        // axis does not hold — read off the bindings, the `slot_orient` rule:
+        // leaves on `x` grow the tree up `y`, leaves on `y` grow it along `x`.
+        (Mark::Path, _) if layer.transforms.contains(&Transform::Cluster) => {
+            if spec.position_for(layer, &Channel::Y).is_some()
+                && spec.position_for(layer, &Channel::X).is_none()
+            {
+                Channel::X
+            } else {
+                Channel::Y
+            }
+        }
         (m, _) if cuts_both_positions(m, space_of(spec)) && !has_no_measure_axis(m) => Channel::Z,
         (m, Some(df)) if is_slot_mark(m) => {
             let xt = spec.position_for(layer, &Channel::X).and_then(|c| actual_type(df, &c.field));
@@ -11588,12 +12143,13 @@ mod tests {
 
     #[test]
     fn path_takes_only_the_field_transform_and_the_refusal_names_line() {
-        // `density` is the **one** column of the grid a path takes, and every other
-        // is `None` — pinned across the whole row rather than a sample, so a later
-        // transform cannot quietly join one. The reason differs by class even where
-        // the answer does not, which is why the row is worth stating in full.
+        // `density` and `cluster` are the **two** columns of the grid a path takes,
+        // and every other is `None` — pinned across the whole row rather than a
+        // sample, so a later transform cannot quietly join one. Both exceptions
+        // clear the row's own bar: their output is vertices in traversal order,
+        // not one summary per key — the contour's rings, the tree's elbows.
         for t in USER_TRANSFORMS {
-            let expect = if t == Transform::Density {
+            let expect = if t == Transform::Density || t == Transform::Cluster {
                 TransformLegality::Combines
             } else {
                 TransformLegality::None
@@ -11616,6 +12172,225 @@ mod tests {
         let ok = base().layer(Layer::new(Mark::Path).transform(Transform::Density));
         assert!(!check(&ok, &data()).iter().any(|x| x.is_fatal()),
             "path * density is the contour: {:?}", msgs(&check(&ok, &data())));
+    }
+
+    // -----------------------------------------------------------------------
+    // Cluster — the tree of merges and the seriated tile plot (spec §5)
+    // -----------------------------------------------------------------------
+
+    /// A complete 3-leaf × 2-coordinate table, plus the numeric column a wrong
+    /// sentence needs. Complete on purpose: every data-fact refusal below edits
+    /// exactly one thing away from this.
+    fn cluster_table() -> HashMap<String, DataFrame> {
+        let df = DataFrame::new()
+            .with_str("food", vec!["rice".into(), "rice".into(),
+                                   "oats".into(), "oats".into(),
+                                   "beans".into(), "beans".into()])
+            .with_str("nutrient", vec!["iron".into(), "protein".into(),
+                                       "iron".into(), "protein".into(),
+                                       "iron".into(), "protein".into()])
+            .with_float("amount", vec![0.8, 2.7, 1.8, 3.4, 2.1, 8.5])
+            .with_float("price", vec![1.0, 1.0, 2.0, 2.0, 3.0, 3.0]);
+        HashMap::from([("t".to_string(), df)])
+    }
+
+    fn tree_spec() -> PlotSpec {
+        PlotSpec::new().data("t").x("food")
+            .layer(Layer::new(Mark::Path).cluster(Some("amount"), Some("nutrient")))
+    }
+
+    fn tile_spec() -> PlotSpec {
+        PlotSpec::new().data("t").x("food").y("nutrient")
+            .layer(Layer::new(Mark::Zone).cluster(None, Some("nutrient"))
+                .encode(Channel::Color, "amount"))
+    }
+
+    /// The two readings draw and every sentence-fact malformation refuses with
+    /// its direction — the wrong mark toward the two sentences that exist, the
+    /// bound distance axis, the missing leaf axis, the unnamed value, the
+    /// profile axis naming the leaves, and the aesthetics no reading holds.
+    #[test]
+    fn a_cluster_refuses_its_sentence_malformations_with_direction() {
+        // Both readings are legal as written.
+        assert!(!check(&tree_spec(), &cluster_table()).iter().any(|d| d.is_fatal()),
+            "the tree draws: {:?}", msgs(&check(&tree_spec(), &cluster_table())));
+        assert!(!check(&tile_spec(), &cluster_table()).iter().any(|d| d.is_fatal()),
+            "the seriated tile plot draws: {:?}", msgs(&check(&tile_spec(), &cluster_table())));
+
+        // A mark with no reading, sent to the two that have one.
+        let d = check(&PlotSpec::new().data("t").x("food")
+            .layer(Layer::new(Mark::Bar).cluster(Some("amount"), Some("nutrient"))),
+            &cluster_table());
+        assert!(d.iter().any(|x| x.kind == DiagnosticKind::Illegal
+            && x.message.contains("path * cluster") && x.message.contains("zone * cluster")),
+            "bar under cluster is directed to the two readers: {:?}", msgs(&d));
+
+        // Both positions bound: the distance axis is the tree's own.
+        let d = check(&PlotSpec::new().data("t").x("food").y("amount")
+            .layer(Layer::new(Mark::Path).cluster(Some("amount"), Some("nutrient"))),
+            &cluster_table());
+        assert!(d.iter().any(|x| x.kind == DiagnosticKind::Illegal
+            && x.message.contains("Distance")),
+            "a bound distance axis is refused: {:?}", msgs(&d));
+
+        // No position bound: the leaves have no axis.
+        let d = check(&PlotSpec::new().data("t")
+            .layer(Layer::new(Mark::Path).cluster(Some("amount"), Some("nutrient"))),
+            &cluster_table());
+        assert!(d.iter().any(|x| x.kind == DiagnosticKind::Illegal
+            && x.message.contains("leaves")),
+            "no leaf axis is refused: {:?}", msgs(&d));
+
+        // Nothing names the value.
+        let d = check(&PlotSpec::new().data("t").x("food")
+            .layer(Layer::new(Mark::Path).cluster(None, Some("nutrient"))),
+            &cluster_table());
+        assert!(d.iter().any(|x| x.kind == DiagnosticKind::Illegal
+            && x.message.contains("value column")),
+            "an unnamed value is refused: {:?}", msgs(&d));
+
+        // The profile axis is the leaf axis.
+        let d = check(&PlotSpec::new().data("t").x("food")
+            .layer(Layer::new(Mark::Path).cluster(Some("amount"), Some("food"))),
+            &cluster_table());
+        assert!(d.iter().any(|x| x.kind == DiagnosticKind::Illegal
+            && x.message.contains("its own profile")),
+            "over = the leaf axis is refused: {:?}", msgs(&d));
+
+        // The aesthetics the tree cannot split by, and the plane it stays in.
+        let aesthetic_cases: [(fn(Layer) -> Layer, &str); 3] = [
+            (|l| l.encode(Channel::Color, "nutrient"), "no column is left"),
+            (|l| l.encode(Channel::Group, "nutrient"), "no column is left"),
+            (|l| l.encode(Channel::Z, "price"), "no depth"),
+        ];
+        for (build, needle) in aesthetic_cases {
+            let d = check(&PlotSpec::new().data("t").x("food")
+                .layer(build(Layer::new(Mark::Path)
+                    .cluster(Some("amount"), Some("nutrient")))),
+                &cluster_table());
+            assert!(d.iter().any(|x| x.kind == DiagnosticKind::Illegal
+                && x.message.contains(needle)),
+                "expected `{needle}`: {:?}", msgs(&d));
+        }
+
+        // The waits: polar, play, facet — valid grammar, not drawn yet.
+        let polar = PlotSpec::new().data("t").x("food")
+            .coord(CoordSpace::Polar(crate::ir::PolarView::default()))
+            .layer(Layer::new(Mark::Path).cluster(Some("amount"), Some("nutrient")));
+        assert!(check(&polar, &cluster_table()).iter()
+            .any(|x| x.kind == DiagnosticKind::Unsupported),
+            "a circular tree waits: {:?}", msgs(&check(&polar, &cluster_table())));
+        let mut faceted = tree_spec();
+        faceted.facet = Some(crate::ir::FacetSpec {
+            col: Some("nutrient".into()), ..Default::default()
+        });
+        assert!(check(&faceted, &cluster_table()).iter()
+            .any(|x| x.kind == DiagnosticKind::Unsupported),
+            "a faceted cluster waits: {:?}", msgs(&check(&faceted, &cluster_table())));
+
+        // `order()` beside `cluster` is two orders for one axis; sorting the
+        // profile axis of the tile plot by itself is not.
+        let ordered = tree_spec().order("food");
+        assert!(check(&ordered, &cluster_table()).iter().any(|x|
+            x.kind == DiagnosticKind::Illegal && x.message.contains("one order")),
+            "order + cluster refuses: {:?}", msgs(&check(&ordered, &cluster_table())));
+        let profile_sorted = tile_spec().order_desc("nutrient");
+        assert!(!check(&profile_sorted, &cluster_table()).iter().any(|d| d.is_fatal()),
+            "ordering the profile axis stays legal: {:?}",
+            msgs(&check(&profile_sorted, &cluster_table())));
+    }
+
+    /// The tile reading's own names: the profile axis must be named and be one
+    /// of the two positions, and a second value name must agree with `color`.
+    #[test]
+    fn a_clustered_tile_plot_names_its_profile_axis_and_agrees_with_color() {
+        let d = check(&PlotSpec::new().data("t").x("food").y("nutrient")
+            .layer(Layer::new(Mark::Zone).cluster(None, None)
+                .encode(Channel::Color, "amount")),
+            &cluster_table());
+        assert!(d.iter().any(|x| x.kind == DiagnosticKind::Illegal
+            && x.message.contains("which one profiles")),
+            "an unnamed profile axis is refused: {:?}", msgs(&d));
+
+        let d = check(&PlotSpec::new().data("t").x("food").y("nutrient")
+            .layer(Layer::new(Mark::Zone).cluster(None, Some("region"))
+                .encode(Channel::Color, "amount")),
+            &cluster_table());
+        assert!(d.iter().any(|x| x.kind == DiagnosticKind::Illegal
+            && x.message.contains("neither axis")),
+            "a profile axis off the plot is refused: {:?}", msgs(&d));
+
+        let d = check(&PlotSpec::new().data("t").x("food").y("nutrient")
+            .layer(Layer::new(Mark::Zone).cluster(Some("price"), Some("nutrient"))
+                .encode(Channel::Color, "amount")),
+            &cluster_table());
+        assert!(d.iter().any(|x| x.kind == DiagnosticKind::Illegal
+            && x.message.contains("different columns")),
+            "a value disagreeing with color is refused: {:?}", msgs(&d));
+
+        let d = check(&PlotSpec::new().data("t").x("food").y("nutrient")
+            .layer(Layer::new(Mark::Zone).cluster(None, Some("nutrient"))),
+            &cluster_table());
+        assert!(d.iter().any(|x| x.is_fatal()),
+            "no value and no color is refused: {:?}", msgs(&d));
+    }
+
+    /// The data facts: a column that is not there or not the right kind, a
+    /// numeric leaf axis, one leaf, a profile with a hole, a cell said twice —
+    /// each named, each with a direction that keeps the work in the data.
+    #[test]
+    fn a_cluster_refuses_its_data_malformations_by_name() {
+        let refused = |spec: &PlotSpec, table: &HashMap<String, DataFrame>, needle: &str| {
+            let d = check(spec, table);
+            assert!(d.iter().any(|x| x.kind == DiagnosticKind::Illegal
+                && x.message.contains(needle)),
+                "expected `{needle}`: {:?}", msgs(&d));
+        };
+
+        // Unknown and mistyped columns.
+        refused(&PlotSpec::new().data("t").x("food")
+            .layer(Layer::new(Mark::Path).cluster(Some("mass"), Some("nutrient"))),
+            &cluster_table(), "does not have");
+        refused(&PlotSpec::new().data("t").x("food")
+            .layer(Layer::new(Mark::Path).cluster(Some("nutrient"), None)),
+            &cluster_table(), "holds categories");
+        refused(&PlotSpec::new().data("t").x("food")
+            .layer(Layer::new(Mark::Path).cluster(Some("amount"), Some("price"))),
+            &cluster_table(), "indexed by names");
+
+        // A numeric leaf axis has no levels to join.
+        refused(&PlotSpec::new().data("t").x("price")
+            .layer(Layer::new(Mark::Path).cluster(Some("amount"), Some("nutrient"))),
+            &cluster_table(), "no levels to join");
+
+        // One leaf joins nothing.
+        let one = HashMap::from([("t".to_string(), DataFrame::new()
+            .with_str("food", vec!["rice".into(), "rice".into()])
+            .with_str("nutrient", vec!["iron".into(), "protein".into()])
+            .with_float("amount", vec![0.8, 2.7]))]);
+        refused(&tree_spec(), &one, "at least two leaves");
+
+        // A hole in a profile, named by its pair.
+        let holed = HashMap::from([("t".to_string(), DataFrame::new()
+            .with_str("food", vec!["rice".into(), "rice".into(), "oats".into()])
+            .with_str("nutrient", vec!["iron".into(), "protein".into(), "iron".into()])
+            .with_float("amount", vec![0.8, 2.7, 1.8]))]);
+        refused(&tree_spec(), &holed, "no value at `nutrient` = protein");
+
+        // A cell said twice, named by its pair.
+        let doubled = HashMap::from([("t".to_string(), DataFrame::new()
+            .with_str("food", vec!["rice".into(), "rice".into(), "rice".into(),
+                                   "oats".into(), "oats".into()])
+            .with_str("nutrient", vec!["iron".into(), "iron".into(), "protein".into(),
+                                       "iron".into(), "protein".into()])
+            .with_float("amount", vec![0.8, 0.9, 2.7, 1.8, 3.4]))]);
+        refused(&tree_spec(), &doubled, "holds 2 rows");
+
+        // Several rows per leaf with no profile axis named: the one implicit
+        // coordinate is duplicated, so the duplicate refusal carries it.
+        let unaligned = PlotSpec::new().data("t").x("food")
+            .layer(Layer::new(Mark::Path).cluster(Some("amount"), None));
+        refused(&unaligned, &cluster_table(), "one value");
     }
 
     #[test]
@@ -15473,11 +16248,19 @@ mod tests {
         // over: it lays each stage's slots itself — sides on the slotted axis,
         // stacked intervals on the measured one — so like the others any one of
         // the seven satisfies the mark on its own.
+        //
+        // **`cluster` `Combines` and supplies neither** (2026-08-17): a tile
+        // plot's cells come from its categorical axes and its measurement from
+        // `color`, and what the cluster adds is the *order* of the leaf axis's
+        // slots — the seriated heatmap. First of a third kind on this row, so
+        // it is pinned beside the reductions rather than folded into a group.
         for t in USER_TRANSFORMS {
             let expect = if matches!(t, Transform::Bounds | Transform::Bin | Transform::Density
                                         | Transform::Count | Transform::Proportion
                                         | Transform::Partition | Transform::Flow) {
                 TransformLegality::Required
+            } else if t == Transform::Cluster {
+                TransformLegality::Combines
             } else if crate::transform::has_reduction(std::slice::from_ref(&t)) {
                 TransformLegality::Combines
             } else {

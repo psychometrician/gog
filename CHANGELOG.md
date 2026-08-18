@@ -68,6 +68,25 @@ CRAN-style repositories and PyPI, `GrammarOfGraphics` on Julia's General, and
   refused rather than ignored. Shaping the measure is the host's line of code:
   `z` takes no `scale` here, and the refusal says why and what to write.
 
+- **`cluster` joins the closest leaves one pair at a time: the cluster tree, and
+  the clustered heatmap.** The leaves are the levels of the bound categorical
+  position, each described by its value at every level of a profile column —
+  `path * cluster(amount, over = nutrient) + x(food)` draws the tree, with
+  the merge distance on the unbound axis, which names itself; `y(food)` lays
+  the same tree on its side. The statistic is fixed and stated: Euclidean
+  distance on the values as given, branches joined at their average distance,
+  leaves ordered so the closest neighbors sit adjacent. `zone * cluster(over
+  = nutrient)` is the second reading: the tile plot unchanged, its slots
+  reordered to the tree's leaf order. Composed with `|` and `/`, a clustered
+  panel decides the order of any categorical axis it shares, so trees above
+  and beside a plain tile plot are the whole clustered heatmap — three plots
+  and two operators, no new figure type. A profile with a missing or doubled
+  cell is refused with the pair named, `order()` against the tree's own axis
+  is refused as two orders for one axis, and two composed panels deriving
+  different orders refuse rather than letting one win in silence. Coloring
+  subtrees, the circular tree, and clustering both axes in one sentence are
+  valid grammar the engine does not draw yet, and each says so.
+
 ### Changed
 
 - **A repelled label now rests on whichever side of its point has room.**

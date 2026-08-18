@@ -704,6 +704,28 @@ pub enum Transform {
     /// states a viewing angle — and mean nothing as quantities, which is why
     /// this transform requires the one space that draws no axes for them.
     Layout,
+    /// `cluster` — hierarchical clustering of a categorical axis's levels.
+    /// `path * cluster(amount, over = nutrient) + x(food)` draws the cluster
+    /// tree: each leaf is a level of the bound position, each elbow joins the
+    /// two closest profiles, and the unbound position carries the merge
+    /// distance, synthesized and self-named the way a tally's axis is.
+    /// `zone * cluster(over = nutrient)` is the other reading: the tile plot
+    /// unchanged, with the leaf axis reordered to the tree's leaf order.
+    ///
+    /// **The input is columns** — a leaf axis, a value column, a profile
+    /// column — and the tree is *computed* from them, which is what makes this
+    /// a statistic in `bin`'s sense. A tree that arrives already built, as a
+    /// parent/child edge list, is the network family's shape (`layout`), not
+    /// this atom's.
+    ///
+    /// **The statistic is fixed**: Euclidean distance on each leaf's value
+    /// vector as given, joined under average linkage, leaves oriented by the
+    /// Gruvaeus-Wainer rule with every tie broken by original level index. No
+    /// `linkage =` knob — the linkages produce different trees from one table,
+    /// so a second one is a second statistic, the `smooth(method = )` ruling
+    /// (§18). Average linkage joins at mean distances, so merge heights never
+    /// decrease and no elbow draws below its children.
+    Cluster,
 }
 
 /// Parameters for the `bin` transform, carried on the layer.
@@ -934,6 +956,31 @@ pub struct LayoutSpec {
     /// The column naming each edge's second endpoint.
     #[serde(default)]
     pub to: String,
+}
+
+/// The two input columns for the `cluster` transform (`cluster(value, over =
+/// profile)`), carried on the layer beside [`LayoutSpec`] and shaped like it:
+/// columns rather than knobs. Present iff the layer carries
+/// [`Transform::Cluster`], so an empty spec means the caller named nothing
+/// rather than "use a default".
+///
+/// There is deliberately no `linkage =`, no distance function, and no
+/// standardization switch. One statistic (Euclidean distance, average
+/// linkage, Gruvaeus-Wainer leaf order) until a second is argued for on its
+/// own terms — the `smooth(method = )` ruling (§18). Rescale where the data
+/// lives if the columns' units should not weigh in.
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+pub struct ClusterSpec {
+    /// The numeric column distances are measured on. Optional because `zone`
+    /// measures by `color` and may leave it to that binding; on the tree
+    /// reading it is required and its absence is refused.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub value: Option<String>,
+    /// The profile axis: the categorical column indexing each leaf's vector
+    /// of values. Optional because a table with one row per leaf clusters on
+    /// the single value alone.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub over: Option<String>,
 }
 
 /// Parameters for the `stack` collision modifier, carried on the layer like
@@ -1540,6 +1587,12 @@ pub struct Layer {
     /// `partition` and `flow` keep one field up. Absent from the wire when unset.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub layout: Option<LayoutSpec>,
+    /// The input columns for the `cluster` transform (`cluster(value, over =
+    /// profile)`). Present iff the layer carries [`Transform::Cluster`], the
+    /// same contract the three transforms above keep. Absent from the wire
+    /// when unset.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub cluster: Option<ClusterSpec>,
     /// Parameters for the `stack` collision modifier, when the layer carries one.
     /// `None` means the piles read in the measurement's own units. Absent from the
     /// wire when unset.
@@ -1574,6 +1627,7 @@ impl Layer {
             partition: None,
             flow: None,
             layout: None,
+            cluster: None,
             stack: None,
             bounds: None,
             data: None,
@@ -1600,6 +1654,19 @@ impl Layer {
         self.layout = Some(LayoutSpec {
             from: from.to_string(),
             to: to.to_string(),
+        });
+        self
+    }
+
+    /// Attach a `cluster` transform naming the value column and, when the
+    /// profiles have more than one entry, the profile column
+    /// (`path * cluster(amount, over = nutrient)`). Pairs the transform with
+    /// its spec exactly as [`Layer::layout`] does, and for the same reason.
+    pub fn cluster(mut self, value: Option<&str>, over: Option<&str>) -> Self {
+        self.transforms.push(Transform::Cluster);
+        self.cluster = Some(ClusterSpec {
+            value: value.map(str::to_string),
+            over: over.map(str::to_string),
         });
         self
     }

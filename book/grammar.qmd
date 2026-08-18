@@ -16,7 +16,7 @@ can read, and write, any plot.
 | **Tables** | `data` `query` |
 | **Marks** | `point` `line` `area` `bar` `step` `interval` `box` `ribbon` `text` `path` `rule` `zone` `surface` `edge` |
 | **Channels** | `x` `y` `z` `color` `size` `shape` `pattern` `opacity` `group` `label` `play` |
-| **Transforms** | `bin` `smooth` `count` `density` `proportion` `sum` `mean` `median` `max` `min` `quantile` `range` `confidence` `deviation` `bounds` `partition` `flow` `layout`, and the four collision modifiers, `dodge` `stack` `jitter` `repel` |
+| **Transforms** | `bin` `smooth` `count` `density` `proportion` `sum` `mean` `median` `max` `min` `quantile` `range` `confidence` `deviation` `bounds` `partition` `flow` `layout` `cluster`, and the four collision modifiers, `dodge` `stack` `jitter` `repel` |
 | **Operators** | `+` layers, `*` derives, `|` and `/` arrange |
 | **Scales** | `linear` `log` `time` `category` `order` |
 | **Spaces** | `flat` `space` `polar` `nest` `globe` `map` `network` |
@@ -232,11 +232,13 @@ marks that would otherwise land on top of each other:
 | `jitter` | Spreads them sideways along a category |
 | `repel` | Moves labels off one another when they overlap |
 
-And three transforms compute a whole picture. `partition` divides a whole
+And four transforms compute an entire picture. `partition` divides a whole
 among nested parts, which is what a treemap and a mosaic are built from.
 `flow` carries a magnitude through its stages, which is what a flow diagram
 is built from. `layout` places a graph from an edge table, which is what a
-network diagram is built from.
+network diagram is built from. `cluster` joins the closest categories of an
+axis one pair at a time, which is what a cluster tree is built from. It also
+puts a tile plot's slots in a useful order.
 
 See [Transforms](transforms.qmd) for each one in detail, and
 [Combinations](combinations.qmd) for which marks take which.

@@ -3225,6 +3225,55 @@ refuses("a network with no layout in it",
         render_svg(data(trade) + point + network()),
         "edge * layout(from, to) + network()")
 
+# --- cluster: the tree of merges, and the seriated tile plot -----------------
+# One statistic, two readings: `path * cluster` draws the elbows with the merge
+# distance on the unbound axis, `zone * cluster` reorders a tile plot's slots
+# to the tree's leaf order. Composed, a clustered panel decides the order of
+# any axis it shares — the marginal figure.
+pantry <- data.frame(
+  food     = rep(c("rice", "lentils", "chicken", "oats"), each = 2),
+  nutrient = rep(c("protein", "iron"), 4),
+  amount   = c(2.7, 0.8, 9.0, 3.3, 25.0, 2.6, 3.4, 1.8)
+)
+tree <- render_svg(data(pantry) + path * cluster(amount, over = nutrient) + x(food))
+if (!grepl(">Distance<", tree, fixed = TRUE))
+  stop("FAIL: the unbound axis names itself Distance")
+if (length(gregexpr("<polyline", tree, fixed = TRUE)[[1]]) != 3L)
+  stop("FAIL: three merges are three elbow strokes")
+if (!identical(tree, render_svg(data(pantry) +
+                                  path * cluster(amount, over = nutrient) + x(food))))
+  stop("FAIL: one cluster sentence must be one picture, every run")
+sideways <- render_svg(data(pantry) + path * cluster(amount, over = nutrient) + y(food))
+if (!grepl(">Distance<", sideways, fixed = TRUE))
+  stop("FAIL: the sideways tree titles its distance axis too")
+plain  <- render_svg(data(pantry) + zone + x(food) + y(nutrient) + color(amount))
+sorted <- render_svg(data(pantry) + zone * cluster(over = nutrient) +
+                       x(food) + y(nutrient) + color(amount))
+if (identical(plain, sorted))
+  stop("FAIL: the reorder reading must visibly reorder")
+marginal <- render_svg(
+  (data(pantry) + path * cluster(amount, over = nutrient) + x(food) +
+     theme(height = 150)) /
+    (data(pantry) + zone + x(food) + y(nutrient) + color(amount)))
+if (!grepl(">Distance<", marginal, fixed = TRUE))
+  stop("FAIL: the marginal figure carries the tree above the tiles")
+cat("PASS: `cluster` draws the tree, reorders the tiles, and composes\n")
+
+refuses("a mark with no cluster reading",
+        render_svg(data(pantry) + bar * cluster(amount, over = nutrient) + x(food)),
+        "path * cluster")
+refuses("a cluster with nothing to measure distance on",
+        render_svg(data(pantry) + path * cluster(over = nutrient) + x(food)),
+        "cluster(<value>")
+refuses("a bound distance axis",
+        render_svg(data(pantry) + path * cluster(amount, over = nutrient) +
+                     x(food) + y(amount)),
+        "the axis names itself")
+refuses("order() against the tree's own order",
+        render_svg(data(pantry) + path * cluster(amount, over = nutrient) +
+                     x(food) + order(food)),
+        "one order")
+
 # --- a zone takes a border (the closed-glyph fills, spec §4) -----------------
 # The settable rule spans a setting across its geometry class, and `zone` joined
 # the fills on 2026-07-27 because a mosaic without cell edges is one blob

@@ -84,6 +84,7 @@ commutes      <- .gog_read("commutes")
 tide          <- .gog_read("tide")
 day_cycle     <- .gog_read("day_cycle")
 maunga_whau   <- .gog_read("maunga_whau")
+nutrients     <- .gog_read("nutrients")
 thermals      <- .gog_read("thermals")
 thermal_marks <- .gog_read("thermal_marks")
 

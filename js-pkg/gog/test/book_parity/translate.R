@@ -36,7 +36,7 @@
 JS_COLUMN_ATOMS <- c("x", "y", "z", "color", "size", "shape", "opacity",
                      "label", "pattern", "group", "facet", "order", "play", "brush",
                      "colour")
-JS_ALL_COLUMN_ARGS <- c("bounds", "partition", "flow", "layout")
+JS_ALL_COLUMN_ARGS <- c("bounds", "partition", "flow", "layout", "cluster")
 JS_PAIR_KEYWORDS <- c("lower", "upper", "start", "end")
 
 js_gaps <- new.env(parent = emptyenv())

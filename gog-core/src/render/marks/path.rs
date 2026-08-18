@@ -106,8 +106,33 @@ impl SvgRenderer {
         // other spaces (`check_globe`), so at most one of the three is `Some`.
         globe: Option<&crate::render::globe::Globe>,
     ) {
-        let Some(x_vals) = super::positions(df, x_field, cat_x) else { return };
-        let Some(y_vals) = super::positions(df, y_field, cat_y) else { return };
+        // A cluster's elbow vertices sit at *slot* positions the transform
+        // computed — leaf k at k, a merge midway between its children — which
+        // are fractions no category lookup can produce. So on a frame that
+        // publishes them, the leaf axis reads the published coordinate; the
+        // column itself stays categorical and the axis keeps its labels.
+        let cluster_at = df.float_col(crate::transform::CLUSTER_AT).is_some();
+        let x_key = if cluster_at
+            && df.float_col(x_field).is_none() && df.str_col(x_field).is_some()
+            { crate::transform::CLUSTER_AT } else { x_field };
+        let y_key = if cluster_at
+            && df.float_col(y_field).is_none() && df.str_col(y_field).is_some()
+            { crate::transform::CLUSTER_AT } else { y_field };
+        let Some(x_vals) = super::positions(df, x_key, cat_x) else { return };
+        let Some(y_vals) = super::positions(df, y_key, cat_y) else { return };
+        // The published coordinate counts slots in the leaf column's level
+        // order, and a categorical **y** axis draws its slots reversed (first
+        // category at the top). Reversal is affine, so reflecting the
+        // coordinate lands every vertex — leaves and midpoints alike — on the
+        // slot its leaf label already occupies.
+        let y_vals: std::borrow::Cow<'_, [f64]> =
+            if y_key == crate::transform::CLUSTER_AT {
+                let n = cat_y.map(<[String]>::len).unwrap_or(0) as f64;
+                std::borrow::Cow::Owned(
+                    y_vals.iter().map(|v| (n - 1.0) - v).collect())
+            } else {
+                y_vals
+            };
         // `z` is continuous-only on a path (`rule_for`), so unlike x and y it has
         // no category branch to resolve.
         let z_vals: &[f64] = match scene {
@@ -210,7 +235,12 @@ impl SvgRenderer {
         // ring's vertices consecutively and in traversal order. That keeps it right
         // underneath a `color`/`group` split too: each group's rows are already
         // contiguous, so splitting runs inside a series never reaches across one.
-        let series = match df.float_col(crate::transform::FIELD_RING) {
+        // A cluster's **merges** break the stroke the same way, under their own
+        // column: a contour ring and a merge are different facts, but each is
+        // the thing that ends a run.
+        let run_col = df.float_col(crate::transform::FIELD_RING)
+            .or_else(|| df.float_col(crate::transform::CLUSTER_MERGE));
+        let series = match run_col {
             None => series,
             Some(ring) => series.into_iter().flat_map(|(idxs, stroke, dash)| {
                 let mut out: Vec<(Vec<usize>, String, &'static str)> = Vec::new();

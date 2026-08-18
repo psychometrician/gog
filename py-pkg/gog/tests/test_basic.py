@@ -1393,6 +1393,55 @@ refuses(
     "a network with no layout in it",
     lambda: render_svg(data(trade, name="trade") + point + network()),
 )
+
+# --- cluster: the tree of merges, and the seriated tile plot -----------------
+pantry = {
+    "food": ["rice", "rice", "lentils", "lentils",
+             "chicken", "chicken", "oats", "oats"],
+    "nutrient": ["protein", "iron"] * 4,
+    "amount": [2.7, 0.8, 9.0, 3.3, 25.0, 2.6, 3.4, 1.8],
+}
+
+
+def dendro():
+    return render_svg(data(pantry, name="pantry")
+                      + path * cluster(col.amount, over=col.nutrient)
+                      + x(col.food))
+
+
+first = dendro()
+assert ">Distance<" in first, "the unbound axis names itself Distance"
+assert first.count("<polyline") == 3, "three merges are three elbow strokes"
+assert first == dendro(), "one cluster sentence is one picture, every run"
+sideways = render_svg(data(pantry, name="pantry")
+                      + path * cluster(col.amount, over=col.nutrient)
+                      + y(col.food))
+assert ">Distance<" in sideways, "the sideways tree titles its distance axis"
+plain = render_svg(data(pantry, name="pantry") + zone
+                   + x(col.food) + y(col.nutrient) + color(col.amount))
+sorted_tiles = render_svg(data(pantry, name="pantry")
+                          + zone * cluster(over=col.nutrient)
+                          + x(col.food) + y(col.nutrient) + color(col.amount))
+assert plain != sorted_tiles, "the reorder reading must visibly reorder"
+ok("`cluster` draws the tree, lies down, and reorders the tiles")
+
+refuses(
+    "a mark with no cluster reading",
+    lambda: render_svg(data(pantry, name="pantry")
+                       + bar * cluster(col.amount, over=col.nutrient)
+                       + x(col.food)),
+)
+refuses(
+    "a cluster with nothing to measure distance on",
+    lambda: render_svg(data(pantry, name="pantry")
+                       + path * cluster(over=col.nutrient) + x(col.food)),
+)
+refuses(
+    "a bound distance axis",
+    lambda: render_svg(data(pantry, name="pantry")
+                       + path * cluster(col.amount, over=col.nutrient)
+                       + x(col.food) + y(col.amount)),
+)
 mixed = {"group": ["A", "A"], "item": [None, "p"], "amount": [5.0, 5.0]}
 refuses(
     "an interior node with a value of its own",

@@ -506,6 +506,34 @@ def layout(from_, to):
     )
 
 
+def cluster(value=None, *, over=None):
+    """Join the closest leaves, one pair at a time — the cluster tree.
+
+    The leaves are the levels of the bound categorical position, each
+    described by a profile: its `value` at every level of `over`. The engine
+    measures the distance between every pair of profiles and joins the closest
+    two until one tree holds them all; the unbound position carries the merge
+    distance and names itself.
+
+    Two marks read the one tree. `path * cluster(col.amount, over=col.nutrient)
+    + x(col.food)` draws it — `y(col.food)` lays it on its side — and `zone *
+    cluster(over=col.nutrient)` reorders a tile plot's slots to the tree's
+    leaf order, the values already being on `color`, which is why `value` is
+    omitted there. Composed with `|` and `/`, a clustered panel decides the
+    order of any axis it shares.
+
+    The statistic is fixed: Euclidean distances on the values as given, joined
+    at average distance. Rescale the value column where the data lives if its
+    units should not weigh in.
+    """
+    fields = {}
+    if value is not None:
+        fields["value"] = column_name(value, "cluster")
+    if over is not None:
+        fields["over"] = column_name(over, "cluster")
+    return Atom("transform", transform="cluster", **fields)
+
+
 # ---------------------------------------------------------------------------
 # Positions and coordinate spaces — always the plot's, unless a layer says so
 # ---------------------------------------------------------------------------

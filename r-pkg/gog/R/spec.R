@@ -143,6 +143,18 @@ carry_partition_params <- function(layer, tr) {
   if (identical(tr$transform, "layout")) {
     layer$layout <- list(from = tr$from, to = tr$to)
   }
+  # And a cluster its value and profile columns — either may be absent, and an
+  # absent half simply does not reach the wire, `bounds`'s own convention. Both
+  # absent still sends an *object*, `setNames` keeping jsonlite from turning an
+  # empty list into an array the engine cannot read — the refusal for a bare
+  # `cluster` is the engine's to give, with its direction.
+  if (identical(tr$transform, "cluster")) {
+    layer$cluster <- Filter(Negate(is.null),
+                            list(value = tr$value, over = tr$over))
+    if (!length(layer$cluster)) {
+      layer$cluster <- stats::setNames(list(), character(0))
+    }
+  }
   layer
 }
 
@@ -648,6 +660,7 @@ resolve_query <- function(q, table) {
       lhs$current_layer$partition <- rhs$partition
       lhs$current_layer$flow <- rhs$flow
       lhs$current_layer$layout <- rhs$layout
+      lhs$current_layer$cluster <- rhs$cluster
       lhs$pending_data <- NULL
     },
 

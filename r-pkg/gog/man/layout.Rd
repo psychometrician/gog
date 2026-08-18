@@ -14,12 +14,12 @@ layout(from, to)
 \description{
 The two columns name each row's endpoints, and one row of the table is one
 edge between its two values.  The nodes derive: their names from the columns'
-union, their \code{degree} from counting.  The engine computes every position, the
+union, their \code{degree} by counting the rows that name them.  The engine computes every position, the
 same way in every binding, so one table is one picture wherever it is drawn.
 }
 \details{
 Three marks read the one placement, inside \code{\link[=network]{network()}}.  \code{edge * layout(from, to)} draws the connections, \code{point * layout(...)} the nodes, and \code{text * layout(...) + label(name)} names them.  On the node layers, \code{size(degree)}
-and \code{color(degree)} read the neighbor count the layout counted.
+and \code{color(degree)} read that count.
 
 The positions mean nothing as quantities -- the picture can be mirrored
 without changing what the graph says -- so nothing binds to \code{x}, \code{y} or \code{z},

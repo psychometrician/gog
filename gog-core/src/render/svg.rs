@@ -478,6 +478,23 @@ impl SvgRenderer {
             _ => y_field,
         };
 
+        // A **cluster** tree's distance axis falls back the same way once
+        // more: the leaf axis is the bound position, the other carries the
+        // merge distance the transform synthesized, and the axis, the scale
+        // and the mark all read one column. Whichever position is unbound is
+        // the tree's — up over `x(leaves)`, sideways over `y(leaves)`.
+        let clusters_a_tree = spec.layers.iter()
+            .any(|l| l.mark == Mark::Path
+                && l.transforms.contains(&Transform::Cluster));
+        let x_field = match (x_field, clusters_a_tree) {
+            ("", true) => crate::transform::CLUSTER_DISTANCE,
+            _ => x_field,
+        };
+        let y_field = match (y_field, clusters_a_tree) {
+            ("", true) => crate::transform::CLUSTER_DISTANCE,
+            _ => y_field,
+        };
+
         // **A synthesized ring index earns no guide.** The radial axis of a
         // sunburst carries the level a node sits at, which the transform invented
         // and no reader looks a value up on: the numbers land inside the hole, the
@@ -794,6 +811,55 @@ impl SvgRenderer {
                                 &base, &from, &to, dims),
                             _ => crate::transform::layout_nodes(
                                 &base, &from, &to, dims),
+                        };
+                    }
+                    // A **cluster** takes the same door a fourth time: its value
+                    // and profile columns are named in the atom, the leaf axis is
+                    // the bound categorical position, and one deterministic tree
+                    // is projected per reading mark — the elbow vertices for
+                    // `path`, the same rows in the tree's leaf order for `zone`.
+                    // The order travels as the leaf column's declared levels,
+                    // which is the one channel every categorical axis already
+                    // reads; nothing downstream learns a cluster reading.
+                    if layer.transforms.contains(&crate::ir::Transform::Cluster) {
+                        let cl = layer.cluster.clone().unwrap_or_default();
+                        let over = cl.over.clone();
+                        // The leaf axis is read off the *bindings*, not off the
+                        // working field names — by the time this runs, the
+                        // unbound position already carries the synthesized
+                        // distance column's name, and mistaking that for a leaf
+                        // column clusters nothing.
+                        let x_bound = layer.encodings.get(&Channel::X)
+                            .or(spec.x.as_ref()).is_some();
+                        let leaf = match layer.mark {
+                            Mark::Zone => {
+                                let o = over.as_deref().unwrap_or("");
+                                if x_field == o { y_field } else { x_field }
+                            }
+                            _ => if x_bound { x_field } else { y_field },
+                        };
+                        let value = cl.value.clone()
+                            .or_else(|| (layer.mark == Mark::Zone)
+                                .then(|| layer.encodings.get(&Channel::Color)
+                                    .or_else(|| spec.channels.get(&Channel::Color))
+                                    .map(|d| d.field.clone()))
+                                .flatten())
+                            .unwrap_or_default();
+                        return match layer.mark {
+                            Mark::Zone => {
+                                match crate::transform::cluster_order(
+                                    &base, leaf, &value, over.as_deref()) {
+                                    Some(order) => {
+                                        let vals = base.str_col(leaf)
+                                            .cloned().unwrap_or_default();
+                                        base.clone().with_levels(
+                                            leaf.to_string(), vals, order)
+                                    }
+                                    None => base.clone(),
+                                }
+                            }
+                            _ => crate::transform::cluster_tree(
+                                &base, leaf, &value, over.as_deref()),
                         };
                     }
                     // A `zone` carries `bounds`, but its `bounds` *names four
@@ -1230,6 +1296,26 @@ impl SvgRenderer {
             let eff: Vec<&DataFrame> = panels.iter().flat_map(|p| p.iter()).collect();
             let cat_x = detect_categories(&eff, spec, x_field, false);
             let cat_y = detect_categories(&eff, spec, y_field, true);
+            // A composed page may have decided this axis's category order — a
+            // clustered panel derived one, and a shared categorical axis takes
+            // it (§9). The page's list arrives in axis order, is used only to
+            // *re-order* what this plot already has, and never changes
+            // membership: levels decide order, never membership, here too.
+            let impose = |own: Option<Vec<String>>, page: &Option<Vec<String>>| {
+                match (own, page) {
+                    (Some(own), Some(page)) => {
+                        let mut merged: Vec<String> = page.iter()
+                            .filter(|c| own.contains(c)).cloned().collect();
+                        let tail: Vec<String> = own.iter()
+                            .filter(|c| !merged.contains(c)).cloned().collect();
+                        merged.extend(tail);
+                        Some(merged)
+                    }
+                    (own, _) => own,
+                }
+            };
+            let cat_x = impose(cat_x, &self.fit.cats_x);
+            let cat_y = impose(cat_y, &self.fit.cats_y);
 
         // The frames bar positions are read from: bar layers only, every panel
         // being fitted over.
@@ -1786,7 +1872,7 @@ impl SvgRenderer {
             facet_wrap,
             (free_x, free_y),
             cell_axis,
-            self.fit,
+            self.fit.clone(),
         );
 
         // A dot plot whose piles have outgrown their dots is still drawn, and said
@@ -4442,6 +4528,9 @@ fn synth_y_label(spec: &PlotSpec) -> Option<String> {
                         true  => "Share of column".into(),
                         false => "Depth".into(),
                     }),
+                // The merge distance a cluster tree synthesizes — a quantity
+                // in the value column's own units, named for what it is.
+                Transform::Cluster    => return Some("Distance".into()),
                 _ => {}
             }
         }
@@ -4640,6 +4729,148 @@ mod tests {
         assert!(svg.contains(" C "), "two stages and one layer still draw bands");
         assert!(svg.contains(">class<") && svg.contains(">survived<"),
             "the final stage's name is on the axis without a zone layer to carry it");
+    }
+
+    // -----------------------------------------------------------------------
+    // Cluster — the tree of merges and the seriated tile plot (spec §5)
+    // -----------------------------------------------------------------------
+
+    fn cluster_table() -> HashMap<String, DataFrame> {
+        // The paper table from `transform::tests`: joins ab at 1, then c, then
+        // d, display order b a c d — the Gruvaeus-Wainer flip included.
+        let mut leaf = Vec::new();
+        let mut coord = Vec::new();
+        let mut val = Vec::new();
+        for (name, p, q) in [("a", 0.0, 0.0), ("b", 0.0, 1.0),
+                             ("c", 4.0, 0.0), ("d", 10.0, 10.0)] {
+            leaf.push(name.to_string()); coord.push("p".to_string()); val.push(p);
+            leaf.push(name.to_string()); coord.push("q".to_string()); val.push(q);
+        }
+        HashMap::from([("t".to_string(), DataFrame::new()
+            .with_str("leaf", leaf).with_str("g", coord).with_float("v", val))])
+    }
+
+    /// **The tree: one disconnected elbow per merge, leaves in the computed
+    /// order, and a distance axis that names itself.** The elbows are runs of
+    /// one stroke, so three merges are three polylines; the leaf ticks appear
+    /// in Gruvaeus-Wainer order, which differs from input order on purpose.
+    #[test]
+    fn a_cluster_tree_draws_elbows_in_leaf_order_with_a_distance_axis() {
+        let spec = PlotSpec::new().data("t").x("leaf")
+            .layer(Layer::new(Mark::Path).cluster(Some("v"), Some("g")));
+        let svg = SvgRenderer::default().render(&spec, &cluster_table());
+        assert_eq!(svg.matches("<polyline").count(), 3,
+            "three merges, three strokes");
+        assert!(svg.contains(">Distance<"), "the unbound axis names itself");
+        let at = |s: &str| svg.find(s).unwrap_or_else(|| panic!("{s} missing"));
+        assert!(at(">b<") < at(">a<") && at(">a<") < at(">c<") && at(">c<") < at(">d<"),
+            "the leaf ticks run b a c d");
+        assert_eq!(svg, SvgRenderer::default().render(&spec, &cluster_table()),
+            "one sentence is one picture");
+    }
+
+    /// **The sideways tree is the same tree**: leaves on `y`, the distance
+    /// axis grown along `x` and titled there, and the elbows reflected onto
+    /// the slots their labels occupy — the y axis draws its categories
+    /// reversed, and the published coordinate must land with them.
+    #[test]
+    fn a_sideways_cluster_tree_lies_down_whole() {
+        let spec = PlotSpec::new().data("t").y("leaf")
+            .layer(Layer::new(Mark::Path).cluster(Some("v"), Some("g")));
+        let svg = SvgRenderer::default().render(&spec, &cluster_table());
+        assert_eq!(svg.matches("<polyline").count(), 3);
+        assert!(svg.contains(">Distance<"), "the distance axis titles x");
+        // The first merge joins a and b at height 1, and its elbow must sit on
+        // *their* two rows. The display order is b a c d, and a categorical y
+        // axis draws its first slots at the top — so every vertex of the first
+        // stroke lies in the panel's upper half. The un-reflected defect drew
+        // it mirrored onto c's and d's rows at the bottom.
+        let first = svg.split("<polyline").nth(1).expect("a first stroke");
+        let points = first.split("points=\"").nth(1)
+            .and_then(|s| s.split('"').next()).expect("its vertices");
+        let ys: Vec<f64> = points.split_whitespace()
+            .filter_map(|p| p.split(',').nth(1))
+            .filter_map(|y| y.parse::<f64>().ok())
+            .collect();
+        assert_eq!(ys.len(), 4, "an elbow is four vertices: {points}");
+        assert!(ys.iter().all(|&y| y < 300.0),
+            "the a-b elbow stands on its own two rows, not their mirror: {ys:?}");
+        assert_eq!(svg, SvgRenderer::default().render(&spec, &cluster_table()));
+    }
+
+    /// **The seriated tile plot re-orders its slots and nothing else.** The
+    /// same sentence without `cluster` draws a b c d; with it, the leaf axis
+    /// reads b a c d — the transform must visibly do something (P1's burden,
+    /// carried here because a spec-less chain never reaches the sweep).
+    #[test]
+    fn a_clustered_tile_plot_takes_the_trees_leaf_order() {
+        let plain = PlotSpec::new().data("t").x("leaf").y("g")
+            .layer(Layer::new(Mark::Zone).encode(Channel::Color, "v"));
+        let clustered = PlotSpec::new().data("t").x("leaf").y("g")
+            .layer(Layer::new(Mark::Zone).cluster(None, Some("g"))
+                .encode(Channel::Color, "v"));
+        let before = SvgRenderer::default().render(&plain, &cluster_table());
+        let after = SvgRenderer::default().render(&clustered, &cluster_table());
+        assert_ne!(before, after, "the reorder must be visible");
+        let at = |s: &str, hay: &str| hay.find(s).unwrap();
+        assert!(at(">a<", &before) < at(">b<", &before), "input order first");
+        assert!(at(">b<", &after) < at(">a<", &after), "leaf order after");
+    }
+
+    /// **A composed page hands a clustered panel's order to the axis it
+    /// shares** — the marginal figure's one new rule (§9). The plain tile
+    /// plot below the tree draws its slots in the tree's order, with no
+    /// cluster of its own.
+    #[test]
+    fn a_shared_axis_takes_a_clustered_panels_order() {
+        let top = PlotSpec::new().data("t").x("leaf")
+            .layer(Layer::new(Mark::Path).cluster(Some("v"), Some("g")));
+        let main = PlotSpec::new().data("t").x("leaf").y("g")
+            .layer(Layer::new(Mark::Zone).encode(Channel::Color, "v"));
+        let fig = crate::ir::Figure::Page(crate::ir::PageSpec {
+            arrange: crate::ir::Arrange::Below,
+            cells: vec![
+                crate::ir::Figure::Plot(Box::new(top)),
+                crate::ir::Figure::Plot(Box::new(main)),
+            ],
+            theme: Default::default(),
+        });
+        let drawing = crate::plot::render_figure(&fig, &cluster_table())
+            .expect("the marginal figure draws");
+        let svg = drawing.svg;
+        let at = |s: &str| svg.find(s).unwrap_or_else(|| panic!("{s} missing"));
+        assert!(at(">b<") < at(">a<") && at(">a<") < at(">c<"),
+            "the shared axis reads the tree's order, drawn once");
+        assert_eq!(svg.matches(">b<").count(), 1,
+            "one shared axis, its labels written once");
+    }
+
+    /// **Two panels each deriving an order for one shared axis refuse** — one
+    /// axis cannot hold two orders, and quietly picking one would misplace
+    /// every slot of the loser.
+    #[test]
+    fn two_disagreeing_cluster_orders_on_one_shared_axis_refuse() {
+        let mut table = cluster_table();
+        // A second value column whose tree pairs a with c first, so the two
+        // panels' leaf orders cannot agree.
+        let df = table.remove("t").unwrap()
+            .with_float("w", vec![0.0, 0.0, 9.0, 9.0, 0.5, 0.0, 9.0, 8.0]);
+        table.insert("t".to_string(), df);
+        let panel = |value: &str| PlotSpec::new().data("t").x("leaf")
+            .layer(Layer::new(Mark::Path).cluster(Some(value), Some("g")));
+        let fig = crate::ir::Figure::Page(crate::ir::PageSpec {
+            arrange: crate::ir::Arrange::Below,
+            cells: vec![
+                crate::ir::Figure::Plot(Box::new(panel("v"))),
+                crate::ir::Figure::Plot(Box::new(panel("w"))),
+            ],
+            theme: Default::default(),
+        });
+        let Err(err) = crate::plot::render_figure(&fig, &table) else {
+            panic!("two orders for one axis must refuse");
+        };
+        assert!(err.iter().any(|d| d.message.contains("disagree")),
+            "{:?}", err.iter().map(|d| &d.message).collect::<Vec<_>>());
     }
 
     // -----------------------------------------------------------------------

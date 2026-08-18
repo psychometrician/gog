@@ -689,6 +689,15 @@ pub fn jobs(t: &Transform, ctx: JobContext) -> Jobs {
             extent: true, measure: true, scale: true, position: true,
             ..Jobs::default()
         },
+        // The cluster tree holds every job the same way: its vertices are the
+        // whole geometry, its distance axis is its own measurement, and a
+        // composition (`cluster * mean`, say) waits for its own argument — the
+        // refusal is honest today and a relaxation is cheap, where a chain
+        // that silently ignored one half is §12's forbidden drop.
+        Transform::Cluster => Jobs {
+            extent: true, measure: true, scale: true, position: true,
+            ..Jobs::default()
+        },
         // Tallies rows into whatever cells already exist. It was handed no column, so
         // it cannot take the measure job over from a cut.
         Transform::Count => measure(false),
@@ -809,6 +818,7 @@ fn apply_one(df: &DataFrame, t: &Transform, key_field: &str, out_field: &str, bi
         Transform::Partition  => df.clone(),
         Transform::Flow       => df.clone(),
         Transform::Layout     => df.clone(),
+        Transform::Cluster    => df.clone(),
         Transform::Dodge      => df.clone(),
         // `stack` is also a collision modifier, but its offset accumulates *across*
         // groups — group b sits on group a's height — so it cannot run inside a
@@ -1142,6 +1152,21 @@ pub const EDGE_Z: &str = "edge_z";
 /// counted — published so `size(degree)` and `color(degree)` can name it: the
 /// one fact an edge table implies about its nodes.
 pub const NODE_DEGREE: &str = "degree";
+/// A `cluster` vertex's position along the leaf axis, in **slot units** — leaf
+/// k at k.0, the same place the category lookup puts it, and a merge node at
+/// the midpoint of its two children. Fractions no category lookup can produce,
+/// which is why the elbow vertices publish their own coordinate while the leaf
+/// column beside them stays categorical and keeps the axis its labels.
+pub const CLUSTER_AT: &str = "cluster_at";
+/// Which merge a `cluster` vertex belongs to — [`FIELD_RING`]'s job under its
+/// own name, because a contour ring and a merge are different facts. The
+/// vertices of one merge are consecutive and a change of merge ends the
+/// stroke, so the tree draws as elbows rather than as one wandering route.
+pub const CLUSTER_MERGE: &str = "cluster_merge";
+/// The merge distance a `cluster` synthesizes onto the unbound position — the
+/// [`NODE_DEPTH`] pattern again: the axis, the scale and the mark all read one
+/// column, and the axis names itself.
+pub const CLUSTER_DISTANCE: &str = "distance";
 
 /// The extent description a 2-D `bin` synthesizes, in the form a mark reads
 /// extents in. Here rather than at either end so the transform that *writes*
@@ -4082,6 +4107,259 @@ pub fn layout_edges(df: &DataFrame, from: &str, to: &str, dims: usize) -> DataFr
 }
 
 // ---------------------------------------------------------------------------
+// Cluster — the tree of merges (spec §5, the cluster entry)
+//
+// One computation, two projections, `flow`'s own shape: `cluster_tree` emits
+// the elbow vertices a `path` strokes, `cluster_order` the leaf order a
+// `zone`'s axis takes. Both call [`cluster_fit`], so they cannot disagree.
+//
+// **Everything here is `Vec`-indexed and comparison-total on purpose.** The
+// parity bar is byte-identical SVG from four bindings, so no map is iterated,
+// no clock or randomness is consulted, and every choice among equals falls
+// back to original leaf index — a total order floats cannot tie out of.
+// ---------------------------------------------------------------------------
+
+/// One node of the fitted tree: a leaf, or a merge of two earlier nodes.
+struct ClusterNode {
+    /// Ordered leaf indices under this node, low slot first once oriented.
+    members: Vec<usize>,
+    /// The height this node joined at; 0 for a leaf.
+    height: f64,
+    /// The two children, as node indices — empty for a leaf.
+    children: Option<(usize, usize)>,
+}
+
+/// The fitted tree: input leaves, their pairwise distances joined under
+/// average linkage, leaves oriented by the Gruvaeus-Wainer rule.
+struct ClusterFitted {
+    /// Leaf names, input order (declared levels, else first appearance).
+    names: Vec<String>,
+    /// Every node — leaves 0..n, then one merge per step, in merge order.
+    nodes: Vec<ClusterNode>,
+    /// Leaf indices in display order — the root's oriented members.
+    order: Vec<usize>,
+}
+
+/// Each leaf's profile: its value at every level of `over`, coordinates in
+/// `over`'s own category order. With no `over`, one coordinate per leaf.
+///
+/// A missing or non-finite cell reads as 0 and a duplicated cell as its mean —
+/// **reachable only under `GOG_STRICT=0`**, because `check_cluster` refuses
+/// both with the pair named; here the drawing was asked for anyway, so the
+/// degrade is deterministic rather than refused twice.
+fn cluster_profiles(
+    df: &DataFrame, leaf_field: &str, value: &str, over: Option<&str>,
+) -> Option<(Vec<String>, Vec<Vec<f64>>)> {
+    let leaves = crate::data::categories_across(&[df], leaf_field);
+    if leaves.len() < 2 {
+        return None;
+    }
+    let keys = df.str_col(leaf_field)?;
+    let vals = df.float_col(value)?;
+    let coords: Vec<String> = match over {
+        Some(o) => crate::data::categories_across(&[df], o),
+        None => vec![String::new()],
+    };
+    let coord_col = over.and_then(|o| df.str_col(o));
+    let mut sums = vec![vec![0.0_f64; coords.len()]; leaves.len()];
+    let mut counts = vec![vec![0.0_f64; coords.len()]; leaves.len()];
+    for r in 0..df.len().min(keys.len()).min(vals.len()) {
+        if !vals[r].is_finite() {
+            continue;
+        }
+        let Some(li) = leaves.iter().position(|l| *l == keys[r]) else { continue };
+        let ci = match coord_col {
+            Some(cs) => match coords.iter().position(|c| *c == cs[r]) {
+                Some(ci) => ci,
+                None => continue,
+            },
+            None => 0,
+        };
+        sums[li][ci] += vals[r];
+        counts[li][ci] += 1.0;
+    }
+    let profiles = sums.iter().zip(&counts)
+        .map(|(s, c)| s.iter().zip(c).map(|(v, n)| if *n > 0.0 { v / n } else { 0.0 }).collect())
+        .collect();
+    Some((leaves, profiles))
+}
+
+/// Average-linkage agglomeration with Gruvaeus-Wainer orientation.
+///
+/// Every step is chosen by `(distance, smaller minimum leaf index, larger)`,
+/// a total order, so tied distances cannot reach an unordered choice. Average
+/// linkage joins at the mean of all cross-pair distances, which never
+/// decreases as clusters grow, so merge heights are monotone and no elbow
+/// draws below its children.
+fn cluster_fit(
+    df: &DataFrame, leaf_field: &str, value: &str, over: Option<&str>,
+) -> Option<ClusterFitted> {
+    let (names, profiles) = cluster_profiles(df, leaf_field, value, over)?;
+    let n = names.len();
+
+    // The input distances, kept whole: linkage reads them pairwise, and the
+    // orientation reads them again at the junctions.
+    let d0 = |i: usize, j: usize| -> f64 {
+        profiles[i].iter().zip(&profiles[j])
+            .map(|(a, b)| (a - b) * (a - b))
+            .sum::<f64>()
+            .sqrt()
+    };
+
+    let mut nodes: Vec<ClusterNode> = (0..n)
+        .map(|i| ClusterNode { members: vec![i], height: 0.0, children: None })
+        .collect();
+    let mut active: Vec<usize> = (0..n).collect();
+
+    while active.len() > 1 {
+        // The closest pair, by average linkage, index-broken.
+        let mut best: Option<(f64, usize, usize, usize, usize)> = None;
+        for ai in 0..active.len() {
+            for bi in (ai + 1)..active.len() {
+                let (a, b) = (active[ai], active[bi]);
+                let (ma, mb) = (&nodes[a].members, &nodes[b].members);
+                let mut sum = 0.0;
+                for &i in ma {
+                    for &j in mb {
+                        sum += d0(i, j);
+                    }
+                }
+                let dist = sum / (ma.len() * mb.len()) as f64;
+                let (lo, hi) = {
+                    let (pa, pb) = (ma[0].min(*ma.iter().min().unwrap()),
+                                    mb[0].min(*mb.iter().min().unwrap()));
+                    (pa.min(pb), pa.max(pb))
+                };
+                let key = (dist, lo, hi);
+                let better = match &best {
+                    None => true,
+                    Some((bd, bl, bh, ..)) => {
+                        key.0 < *bd || (key.0 == *bd && (key.1, key.2) < (*bl, *bh))
+                    }
+                };
+                if better {
+                    best = Some((dist, lo, hi, a, b));
+                }
+            }
+        }
+        let (dist, _, _, a, b) = best?;
+
+        // Low slot to the cluster holding the smaller original index, then the
+        // Gruvaeus-Wainer choice: of the four flips, the one whose junction —
+        // last leaf of the left part against first leaf of the right — is
+        // closest in the input distances. Ties keep the enumeration order:
+        // unflipped first, left flip before right.
+        let (left, right) = {
+            let min_of = |k: usize| *nodes[k].members.iter().min().unwrap();
+            if min_of(a) <= min_of(b) { (a, b) } else { (b, a) }
+        };
+        let (lm, rm) = (nodes[left].members.clone(), nodes[right].members.clone());
+        let rev = |v: &[usize]| v.iter().rev().copied().collect::<Vec<_>>();
+        let arrangements = [
+            (lm.clone(), rm.clone()),
+            (lm.clone(), rev(&rm)),
+            (rev(&lm), rm.clone()),
+            (rev(&lm), rev(&rm)),
+        ];
+        let mut members = Vec::new();
+        let mut best_junction = f64::INFINITY;
+        for (l, r) in arrangements {
+            let junction = d0(*l.last().unwrap(), r[0]);
+            if junction < best_junction {
+                best_junction = junction;
+                members = [l, r].concat();
+            }
+        }
+
+        nodes.push(ClusterNode { members, height: dist, children: Some((left, right)) });
+        let new = nodes.len() - 1;
+        active.retain(|&k| k != left && k != right);
+        active.push(new);
+    }
+
+    let order = nodes[active[0]].members.clone();
+    Some(ClusterFitted { names, nodes, order })
+}
+
+/// The leaf order a `cluster` computed — `zone`'s reading, and the levels the
+/// tree frame declares. Display order, low slot first.
+pub fn cluster_order(
+    df: &DataFrame, leaf_field: &str, value: &str, over: Option<&str>,
+) -> Option<Vec<String>> {
+    let fit = cluster_fit(df, leaf_field, value, over)?;
+    Some(fit.order.iter().map(|&i| fit.names[i].clone()).collect())
+}
+
+/// The tree projection — `path`'s reading: four vertices per merge, riser,
+/// tread, riser, merges in merge order, each merge one run of
+/// [`CLUSTER_MERGE`]. The leaf column stays categorical with the display
+/// order as declared levels, so the axis keeps its labels and takes the
+/// order through the one owner every categorical axis already reads; the
+/// vertices publish their own slot-unit coordinate under [`CLUSTER_AT`],
+/// because a merge stands between two slots and no category lookup can say
+/// "two and a half".
+pub fn cluster_tree(
+    df: &DataFrame, leaf_field: &str, value: &str, over: Option<&str>,
+) -> DataFrame {
+    let Some(fit) = cluster_fit(df, leaf_field, value, over) else {
+        return DataFrame::new();
+    };
+    let n = fit.names.len();
+    let levels: Vec<String> = fit.order.iter().map(|&i| fit.names[i].clone()).collect();
+    let slot_of = |leaf: usize| fit.order.iter().position(|&k| k == leaf).unwrap_or(0) as f64;
+
+    // Each node's elbow foot: a leaf stands on its slot, a merge midway
+    // between its children's feet — computed forward, which the merge order
+    // guarantees is bottom-up.
+    let mut at = vec![0.0_f64; fit.nodes.len()];
+    for (k, node) in fit.nodes.iter().enumerate() {
+        at[k] = match node.children {
+            None => slot_of(node.members[0]),
+            Some((l, r)) => (at[l] + at[r]) / 2.0,
+        };
+    }
+
+    // A vertex is labeled by its subtree's first display-order leaf. Every
+    // leaf is a singleton at its own first merge, so all of them appear and
+    // the declared levels lose no slot.
+    let label_of = |k: usize| fit.names[fit.nodes[k].members[0]].clone();
+
+    let mut leaf_col: Vec<String> = Vec::new();
+    let mut at_col: Vec<f64> = Vec::new();
+    let mut h_col: Vec<f64> = Vec::new();
+    let mut merge_col: Vec<f64> = Vec::new();
+    for (m, k) in (n..fit.nodes.len()).enumerate() {
+        let node = &fit.nodes[k];
+        let Some((l, r)) = node.children else { continue };
+        for (who, foot, top) in [
+            (l, fit.nodes[l].height, node.height),
+            (r, node.height, fit.nodes[r].height),
+        ] {
+            // Two vertices per side: the child's own top, and this merge's
+            // tread — emitted in stroke order, so the left riser climbs and
+            // the right one descends.
+            let (first, second) = (foot, top);
+            leaf_col.push(label_of(who));
+            at_col.push(at[who]);
+            h_col.push(first);
+            merge_col.push(m as f64);
+            leaf_col.push(label_of(who));
+            at_col.push(at[who]);
+            h_col.push(second);
+            merge_col.push(m as f64);
+        }
+    }
+    // The tread itself: the two inner vertices already sit at (at[l], h) and
+    // (at[r], h) consecutively, so the four rows per merge draw riser, tread,
+    // riser in one run.
+    DataFrame::new()
+        .with_levels(leaf_field, leaf_col, levels)
+        .with_float(CLUSTER_AT, at_col)
+        .with_float(CLUSTER_DISTANCE, h_col)
+        .with_float(CLUSTER_MERGE, merge_col)
+}
+
+// ---------------------------------------------------------------------------
 // Tests
 //
 // The estimators (`smooth`, `density`) are pinned by invariants a *correct*
@@ -4281,15 +4559,90 @@ mod tests {
         assert_eq!(family.len(), 5, "the aggregation family is sum/mean/median/max/min: {family:?}");
     }
 
+    // -----------------------------------------------------------------------
+    // Cluster — the statistic, pinned by hand (spec §5, the cluster entry)
+    // -----------------------------------------------------------------------
+
+    /// Four leaves whose whole geometry is checkable on paper. Profiles over
+    /// two coordinates: a=(0,0), b=(0,1), c=(4,0), d=(10,10), so the pair
+    /// distances are ab=1, ac=4, bc=√17, and d is far from everything.
+    fn cluster_paper_table() -> DataFrame {
+        let mut leaf = Vec::new();
+        let mut coord = Vec::new();
+        let mut val = Vec::new();
+        for (name, p, q) in [("a", 0.0, 0.0), ("b", 0.0, 1.0),
+                             ("c", 4.0, 0.0), ("d", 10.0, 10.0)] {
+            leaf.push(name.to_string()); coord.push("p".to_string()); val.push(p);
+            leaf.push(name.to_string()); coord.push("q".to_string()); val.push(q);
+        }
+        DataFrame::new()
+            .with_str("leaf", leaf)
+            .with_str("g", coord)
+            .with_float("v", val)
+    }
+
+    /// The hand-computed answer: UPGMA joins ab at 1, then c at (4+√17)/2,
+    /// then d at (√200+√181+√136)/3 — monotone throughout. And the
+    /// Gruvaeus-Wainer orientation flips {a,b} at the second join, because a
+    /// is nearer c than b is, so the display order is b a c d — the flip is
+    /// the point of the test, since the unflipped order passes a lazier rule.
+    #[test]
+    fn a_cluster_joins_at_average_distance_and_orients_by_the_junction() {
+        let df = cluster_paper_table();
+        let order = cluster_order(&df, "leaf", "v", Some("g")).unwrap();
+        assert_eq!(order, vec!["b", "a", "c", "d"],
+            "the second join flips its left child to put a beside c");
+
+        let tree = cluster_tree(&df, "leaf", "v", Some("g"));
+        let h = tree.float_col(CLUSTER_DISTANCE).unwrap();
+        assert_eq!(h.len(), 12, "three merges, four vertices each");
+        // The tread of each merge is its two middle vertices; treads in merge
+        // order carry the three join heights.
+        let treads: Vec<f64> = (0..3).map(|m| h[m * 4 + 1]).collect();
+        assert!((treads[0] - 1.0).abs() < 1e-9, "ab join at 1: {treads:?}");
+        assert!((treads[1] - (4.0 + 17.0_f64.sqrt()) / 2.0).abs() < 1e-9,
+            "c joins at the average: {treads:?}");
+        let root = (200.0_f64.sqrt() + 181.0_f64.sqrt() + 136.0_f64.sqrt()) / 3.0;
+        assert!((treads[2] - root).abs() < 1e-9, "d joins last: {treads:?}");
+        assert!(treads.windows(2).all(|w| w[0] <= w[1]),
+            "average linkage joins are monotone: {treads:?}");
+
+        // The leaf column carries the display order as declared levels — the
+        // one channel every categorical axis already reads.
+        assert_eq!(tree.levels("leaf").unwrap().to_vec(),
+            vec!["b".to_string(), "a".into(), "c".into(), "d".into()]);
+
+        // Same input, same picture — twice, because everything downstream
+        // stands on it.
+        assert_eq!(cluster_order(&df, "leaf", "v", Some("g")).unwrap(), order);
+    }
+
+    /// Tied distances fall back to original leaf index, so the first join is
+    /// the earliest pair and the result is a total order — floats cannot tie
+    /// their way to an unordered choice.
+    #[test]
+    fn a_clusters_ties_break_by_leaf_index() {
+        let df = DataFrame::new()
+            .with_str("leaf", vec!["w".into(), "x".into(), "y".into(), "z".into()])
+            .with_float("v", vec![0.0, 1.0, 10.0, 11.0]);
+        // d(w,x) = d(y,z) = 1: the tie is broken toward w's pair.
+        let order = cluster_order(&df, "leaf", "v", None).unwrap();
+        assert_eq!(order, vec!["w", "x", "y", "z"]);
+        let tree = cluster_tree(&df, "leaf", "v", None);
+        let m = tree.float_col(CLUSTER_MERGE).unwrap();
+        assert_eq!(m.len(), 12);
+        assert!(m.windows(2).all(|w| w[0] <= w[1]), "merges emit in merge order");
+    }
+
     /// Every transform the kernel has, named here on purpose. `every_transform_has_a_job`
-    /// and the table below both walk it, so a nineteenth variant fails to compile
+    /// and the table below both walk it, so a twentieth variant fails to compile
     /// against this array before it can reach either rule.
-    const EVERY_TRANSFORM: [Transform; 18] = [
+    const EVERY_TRANSFORM: [Transform; 19] = [
         Transform::Bin, Transform::Smooth, Transform::Count, Transform::Density,
         Transform::Sum, Transform::Mean, Transform::Median, Transform::Max,
         Transform::Min, Transform::Proportion, Transform::Range, Transform::Confidence,
         Transform::Box, Transform::Bounds, Transform::Dodge, Transform::Stack,
-        Transform::Jitter, Transform::Partition,
+        Transform::Jitter, Transform::Partition, Transform::Cluster,
     ];
 
     /// **A transform with no job composes silently with everything, so there is no
@@ -4362,6 +4715,8 @@ mod tests {
             (&[Dodge, Stack],      flat, false, "new: side by side and piled at once"),
             (&[Proportion, Stack], share, false, "new: two divisions that cancel"),
             (&[Partition, Bin],    zone, false, "new: a hierarchy and a cut"),
+            (&[Cluster, Mean],     flat, false, "a tree and a reduction each claim the measurement"),
+            (&[Cluster, Bin],      flat, false, "a tree and a cut each claim the cells"),
             // Legal, and the rule must not take them away — every one is in the book.
             (&[Bin, Mean],         flat, true, "the cut yields its tally to the reduction"),
             (&[Bin, Range],        flat, true, "and to a pair just the same"),

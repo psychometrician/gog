@@ -1273,6 +1273,40 @@ end
                         point + network()) "edge * layout(from, to)"
 end
 
+@testset "cluster — the tree of merges, and the seriated tile plot" begin
+    pantry = Dict(
+        :food => ["rice", "rice", "lentils", "lentils",
+                  "chicken", "chicken", "oats", "oats"],
+        :nutrient => ["protein", "iron", "protein", "iron",
+                      "protein", "iron", "protein", "iron"],
+        :amount => [2.7, 0.8, 9.0, 3.3, 25.0, 2.6, 3.4, 1.8],
+    )
+    dendro() = render_svg(data(pantry, name = "pantry") +
+                          path * cluster(:amount, over = :nutrient) + x(:food))
+    first_run = dendro()
+    @test occursin(">Distance<", first_run)
+    @test Base.count("<polyline", first_run) == 3
+    @test first_run == dendro()
+    sideways = render_svg(data(pantry, name = "pantry") +
+                          path * cluster(:amount, over = :nutrient) + y(:food))
+    @test occursin(">Distance<", sideways)
+    plain = render_svg(data(pantry, name = "pantry") + zone +
+                       x(:food) + y(:nutrient) + color(:amount))
+    sorted = render_svg(data(pantry, name = "pantry") +
+                        zone * cluster(over = :nutrient) +
+                        x(:food) + y(:nutrient) + color(:amount))
+    @test plain != sorted
+
+    @refuses render_svg(data(pantry, name = "pantry") +
+                        bar * cluster(:amount, over = :nutrient) +
+                        x(:food)) "path * cluster"
+    @refuses render_svg(data(pantry, name = "pantry") +
+                        path * cluster(over = :nutrient) + x(:food)) "value column"
+    @refuses render_svg(data(pantry, name = "pantry") +
+                        path * cluster(:amount, over = :nutrient) +
+                        x(:food) + y(:amount)) "names itself"
+end
+
 @testset "partition(cross = true) is the mosaic" begin
     # One parameter apart from the icicle, and it buys the whole plot: the levels
     # turn across each other instead of running down one axis. The engine pins the

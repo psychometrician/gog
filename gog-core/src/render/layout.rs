@@ -36,7 +36,7 @@ pub(crate) const STRIP_W: f64 = 20.0;
 /// [`Fit::free`] is the uncomposed plot — nothing decided elsewhere, every panel
 /// where this module would have put it. Every existing plot renders through it,
 /// and its layout is identical to the pixel.
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone)]
 pub(crate) struct Fit {
     /// The panel area's left and right edges, in this plot's own coordinates.
     pub(crate) panel_x: Option<(f64, f64)>,
@@ -49,12 +49,22 @@ pub(crate) struct Fit {
     /// is the rule a facet already follows for its own panels ([`labels_x`]).
     pub(crate) draw_x_axis: bool,
     pub(crate) draw_y_axis: bool,
+    /// The category order the page decided for a shared axis, in axis order —
+    /// `Some` only when a composed, clustered panel derived one (§9). Page
+    /// state exactly like the panel extents above: it reaches the renderer
+    /// through this struct and never enters the wire (Law 9).
+    pub(crate) cats_x: Option<Vec<String>>,
+    pub(crate) cats_y: Option<Vec<String>>,
 }
 
 impl Fit {
     /// A plot nobody has composed: it decides everything itself.
     pub(crate) const fn free() -> Fit {
-        Fit { panel_x: None, panel_y: None, draw_x_axis: true, draw_y_axis: true }
+        Fit {
+            panel_x: None, panel_y: None,
+            draw_x_axis: true, draw_y_axis: true,
+            cats_x: None, cats_y: None,
+        }
     }
 }
 

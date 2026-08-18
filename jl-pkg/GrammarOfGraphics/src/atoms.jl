@@ -432,6 +432,35 @@ function layout(from, to)
 end
 
 """
+    cluster(value; over)
+
+Join the closest leaves, one pair at a time — the cluster tree.
+
+The leaves are the levels of the bound categorical position, each described by
+a profile: its `value` at every level of `over`. The engine measures the
+distance between every pair of profiles and joins the closest two until one
+tree holds them all; the unbound position carries the merge distance and names
+itself.
+
+Two marks read the one tree. `path * cluster(:amount, over = :nutrient) +
+x(:food)` draws it — `y(:food)` lays it on its side — and `zone * cluster(over
+= :nutrient)` reorders a tile plot's slots to the tree's leaf order, the
+values already being on `color`, which is why `value` is omitted there.
+Composed with `|` and `/`, a clustered panel decides the order of any axis it
+shares.
+
+The statistic is fixed: Euclidean distances on the values as given, joined at
+average distance. Rescale the value column where the data lives if its units
+should not weigh in.
+"""
+function cluster(value = nothing; over = nothing)
+    fields = Dict{Symbol,Any}(:transform => "cluster")
+    value === nothing || (fields[:value] = column_name(value, "cluster"))
+    over === nothing || (fields[:over] = column_name(over, "cluster"))
+    Atom(:transform, fields)
+end
+
+"""
     bounds(lower, upper; start, var"end")
 
 Pre-computed bounds: `lower`/`upper` bound the measure axis, `start`/`end` the

@@ -876,6 +876,47 @@ layout <- function(from, to) {
   )
 }
 
+#' Join the closest leaves, one pair at a time -- the cluster tree.
+#'
+#' The leaves are the levels of the bound categorical position, and each one is
+#' described by a profile: its `value` at every level of the `over` column.
+#' The engine measures the distance between every pair of profiles, joins the
+#' closest two, and keeps joining until one tree holds them all.  The other
+#' position stays unbound and carries the merge distance, which the axis names
+#' itself.
+#'
+#' Two marks read the one tree.  `path * cluster(amount, over = nutrient) +
+#' x(food)` draws it: each join stands at the height its two branches merged,
+#' so the reader can see which leaves sit close and where the groups part.
+#' `y(food)` instead lays the same tree on its side.  `zone * cluster(over =
+#' nutrient)` is the other reading: the tile plot unchanged, with the leaf
+#' axis's slots reordered to the tree's leaf order, so alike rows sit together.
+#' On a tile plot the values are already on `color`, which is why `value` is
+#' omitted there.
+#'
+#' Composed with `|` and `/`, a clustered panel decides the order of any axis
+#' it shares, which is what puts a tree flush against a reordered tile plot.
+#'
+#' The statistic is fixed: distances are Euclidean on the values as given, and
+#' branches join at their average distance.  Rescale the value column where the
+#' data lives if its units should not weigh in.
+#'
+#' @param value The numeric column distances are measured on, bare.  Omit it on
+#'   a tile plot, where `color()` already names the values.
+#' @param over  The profile column, bare: each leaf holds one value at every
+#'   level of it.  Omit it only when the table has one row per leaf.
+#' @export
+cluster <- function(value, over) {
+  val <- if (missing(value)) NULL else deparse(substitute(value))
+  ovr <- if (missing(over)) NULL else deparse(substitute(over))
+  structure(
+    Filter(Negate(is.null),
+           list(type = "transform", transform = "cluster",
+                value = val, over = ovr)),
+    class = "gog_atom"
+  )
+}
+
 # `dodge` is the first *collision modifier* (not a statistic): where a `color`
 # split would stack several marks at one shared position, it sets them side by
 # side within that position's slot.  Legal on the width-bearing marks it can

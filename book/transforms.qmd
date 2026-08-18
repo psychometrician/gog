@@ -1147,6 +1147,91 @@ and the [Network](network.qmd) chapter is where the family lives.
 
 ---
 
+## `cluster`: the closest leaves joined first
+
+`cluster` is the fourth of the picture-computing transforms, and the question
+it answers is which things are most alike. It reads the categories of an
+axis as leaves, joins the two closest, then the next two, and keeps joining
+until one tree holds them all. The picture it computes is the cluster tree.
+
+```{r}
+#| echo: false
+peek(nutrients)
+```
+
+Each leaf is described by a profile. `cluster(amount, over = nutrient)` says
+that one leaf's profile is its `amount` in every category of `nutrient`. The
+distance between two leaves is the distance between their profiles, and two
+branches join at the average distance between their leaves.
+
+```{r}
+data(nutrients) + path * cluster(amount, over = nutrient) + x(food) +
+  title("Eight foods, joined by what they are made of")
+```
+
+`path` draws the tree, because the drawing is corner points in a stated
+order, and `path` connects rows without sorting them. The bound position is
+the leaf axis. The other position stays unbound: the tree computes the merge
+distance, and labels that axis itself. Read the height of a join as how
+different its two branches are. Rice and oats join low, beans and lentils
+join lower still, and almonds join last of all.
+
+Bind `y` instead of `x`, and the same tree lies on its side:
+
+```{r}
+data(nutrients) + path * cluster(amount, over = nutrient) + y(food)
+```
+
+The tree's other reading is an order. A tile plot of the same table draws
+its slots in the order the rows arrived, and nothing chose that order:
+
+```{r}
+data(nutrients) + zone + x(food) + y(nutrient) + color(amount) +
+  title("In the order the rows arrived")
+```
+
+`zone * cluster` draws the same tiles with the leaf axis in the tree's
+order. Chicken and salmon now stand together on the left, and the
+carbohydrate columns gather beside each other:
+
+```{r}
+data(nutrients) + zone * cluster(over = nutrient) +
+  x(food) + y(nutrient) + color(amount) +
+  title("In the tree's order")
+```
+
+On a tile plot the values are already bound to `color`, so the atom does not
+name them again. `over` names the profile axis, and the other categorical
+axis is the leaf axis the tree reorders. [Composition](composition.qmd) puts
+the tree and the tiles together in one figure, which usually arrives as a
+chart type with a name of its own.
+
+Three facts about the statistic are fixed. Distances are Euclidean on the
+values as given, so large numbers move the distance more than small ones.
+Rescale where your data lives if that is not what you mean. Branches join at
+their average distance, so every join stands further from the leaves than
+the joins inside it. And two leaves with identical profiles join at zero,
+drawn as a join resting on the leaf axis.
+
+An axis holds one order. `order()` sorts by a column, `cluster` derives an
+order from the tree, and saying both is a contradiction:
+
+```{r}
+#| error: true
+data(nutrients) + path * cluster(amount, over = nutrient) + x(food) +
+  order(food)
+```
+
+A profile holds one value for every category of the profile column, so that
+column must hold categories. A numeric column has none:
+
+```{r}
+#| error: true
+data(gm_all) + path * cluster(life, over = year) + x(continent)
+```
+
+---
+
 ## `dodge`: side by side instead of on top
 
 Every transform above is a *statistic*: it reads columns and writes new ones.

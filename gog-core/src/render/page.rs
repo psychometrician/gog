@@ -116,7 +116,7 @@ pub(crate) fn render(
     ));
     for (i, cell) in cells.iter().enumerate() {
         let drawn = SvgRenderer {
-            fit: fits[i],
+            fit: fits[i].clone(),
             ..SvgRenderer::for_theme(
                 &specs[i].theme.resolved(),
                 cell.rect.w(),
@@ -256,17 +256,50 @@ fn share(
     // not, the plots are placed against different slots and that is said out
     // loud rather than drawn as though it were not happening.
     if facts.iter().any(|f| f.cats.is_some()) {
-        let first = facts[0].cats.clone().unwrap_or_default();
-        if facts.iter().any(|f| f.cats.clone().unwrap_or_default() != first) {
-            diagnostics.push(Diagnostic {
-                kind: DiagnosticKind::Assumption,
-                message: format!(
-                    "gog: composed plots share `{field}` on {ax}, but their categories differ, \
-                     so each is drawn against its own slots. Give both plots the same rows for \
-                     `{field}` — or facet by it instead of composing — if they are meant to line up.",
-                    ax = if horizontal { "x" } else { "y" },
-                ),
-            });
+        // A clustered panel decided this axis's order, and the shared axis
+        // takes it (§9): the tree derived the order, so the panels beside it
+        // read their slots in the same sequence — which is the whole marginal
+        // figure. Authorities are the panels whose spec clusters this column
+        // on this channel; their measured category lists are already in leaf
+        // order. Page state, exactly like the shared extents below — nothing
+        // enters any spec's wire form.
+        let orders: Vec<Vec<String>> = group.iter()
+            .filter(|&&i| crate::legality::cluster_orders(&specs[i], channel, &field))
+            .filter_map(|&i| axis(&measured[i], channel).cats.clone())
+            .collect();
+        // Disagreeing derivations were refused by the figure check; reaching
+        // them here means `GOG_STRICT=0`, where each panel keeps its own slots
+        // and the mismatch is said below like any other.
+        let agreed = orders.windows(2).all(|w| w[0] == w[1]);
+        let orders = if agreed { orders } else { Vec::new() };
+        let sets_agree = |order: &[String]| facts.iter().all(|f| {
+            let mut a = f.cats.clone().unwrap_or_default();
+            let mut b = order.to_vec();
+            a.sort();
+            b.sort();
+            a == b
+        });
+        if let Some(order) = orders.first().filter(|o| sets_agree(o)) {
+            for &i in group {
+                if horizontal {
+                    fits[i].cats_x = Some(order.clone());
+                } else {
+                    fits[i].cats_y = Some(order.clone());
+                }
+            }
+        } else {
+            let first = facts[0].cats.clone().unwrap_or_default();
+            if facts.iter().any(|f| f.cats.clone().unwrap_or_default() != first) {
+                diagnostics.push(Diagnostic {
+                    kind: DiagnosticKind::Assumption,
+                    message: format!(
+                        "gog: composed plots share `{field}` on {ax}, but their categories differ, \
+                         so each is drawn against its own slots. Give both plots the same rows for \
+                         `{field}` — or facet by it instead of composing — if they are meant to line up.",
+                        ax = if horizontal { "x" } else { "y" },
+                    ),
+                });
+            }
         }
     } else {
         // **A projected axis is not shared through a domain**, because `limits` does

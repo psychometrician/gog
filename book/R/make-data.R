@@ -591,6 +591,40 @@ stopifnot(
 )
 rm(.edges)
 
+# -- What eight pantry staples are made of (the cluster tree) ----------------
+# One row is one (food, nutrient) pair, the long form a tile plot reads
+# directly and `cluster` profiles over. Literal values, roughly per 100 g as
+# commonly served, chosen so the tree finds groups a reader already believes:
+# the two grains, the two legumes, the two animal proteins, and almonds off on
+# their own where the fat column puts them. Nothing is standardized — that the
+# large columns weigh most is part of what the chapter teaches.
+#
+# The arrival order interleaves those groups on purpose. The chapter's first
+# tile plot draws the slots in arrival order to show an order nothing chose,
+# and an arrival order that already grouped the foods would show no such
+# thing — the un-clustered picture must have a visible problem for the
+# clustered one to fix.
+nutrients <- local({
+  foods <- c("salmon", "rice", "almonds", "lentils",
+             "chicken", "spinach", "beans", "oats")
+  kinds <- c("protein", "fat", "carbs", "fiber", "iron")
+  amounts <- c(
+    25.4, 12.4,  0.0,  0.0, 0.5,   # salmon
+     2.7,  0.3, 23.0,  1.8, 0.5,   # rice
+    21.2, 49.9, 21.6, 12.5, 3.7,   # almonds
+     9.0,  0.4, 20.0,  7.9, 3.3,   # lentils
+    31.0,  3.6,  0.0,  0.0, 1.0,   # chicken
+     2.9,  0.4,  3.6,  2.2, 2.7,   # spinach
+     8.9,  0.5, 23.7,  8.7, 2.1,   # beans
+     2.5,  1.5, 18.0,  1.7, 0.9    # oats
+  )
+  data.frame(
+    food     = rep(foods, each = length(kinds)),
+    nutrient = rep(kinds, times = length(foods)),
+    amount   = amounts
+  )
+})
+
 # ---------------------------------------------------------------------------
 # Write every frame to book/data/*.csv
 #
