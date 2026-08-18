@@ -113,9 +113,11 @@ data(gm_europe) + point + style(color = "#9e9e9e") +
 
 Three things in that picture are the modifier's own work. Every label sits just
 outside its dot, so no word covers the data it names. A label that moved far keeps
-a thin line back to its point, so you can still see which point it names. And where
-the labels are densest they line up into a column. A word is wider than it is tall,
-so moving up or down is the smaller move.
+a thin line back to its point, so you can still see which point it names. And each
+label rests beside its dot, on whichever side has room. `repel` pulls a label
+toward its dot and pushes it away from every word and every dot. A label with no
+neighbors sits just above its dot. One with neighbors moves to whichever side is
+free.
 
 The placement is **deterministic**. It depends only on the labels and the rows,
 never on a random-number generator or the system time, so the same specification

@@ -2883,8 +2883,13 @@ if (nrow(moved_at) != 6L)
 # reached for a clock would redraw the book differently on every build.
 if (!identical(repelsvg, render_svg(data(crowd) + text * repel + x(px) + y(py) + label(who))))
   stop("FAIL: `repel` must render identically every run")
-# A label pushed clear of its dot keeps a line back to it.
-if (!grepl('stroke-width="0.7"', repelsvg, fixed = TRUE))
+# A label pushed clear of its dot keeps a line back to it. Six names ring their
+# shared point at resting distance, so none travels; it takes a deeper crowd,
+# whose outer ranks are held off by the inner ones, to earn the connector.
+deep <- data.frame(px = rep(5, 14), py = rep(5, 14),
+                   who = paste0("crew ", LETTERS[1:14]))
+deepsvg <- render_svg(data(deep) + text * repel + x(px) + y(py) + label(who))
+if (!grepl('stroke-width="0.7"', deepsvg, fixed = TRUE))
   stop("FAIL: a label driven far from its point should keep a leader line")
 # It is `text`-only, and each refusal names the offset that fits.
 refuses("point * repel", render_svg(data(crowd) + point * repel + x(px) + y(py)),

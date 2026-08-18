@@ -173,8 +173,17 @@ test("`text * repel` separates a label crowd and keeps every label", () => {
   }
   // One specification is one picture, however the placement anneals.
   assert.equal(svg, render_svg(spec), "repel must render identically every run");
-  // A label pushed clear of its dot keeps a line back to it.
-  assert.match(svg, /stroke-width="0.7"/, "a travelled label should keep its leader");
+  // A label pushed clear of its dot keeps a line back to it. Six names ring
+  // their shared point at resting distance, so none travels; it takes a deeper
+  // crowd, whose outer ranks are held off by the inner ones, to earn the
+  // connector.
+  const deep = {
+    px: Array(14).fill(5),
+    py: Array(14).fill(5),
+    who: [..."ABCDEFGHIJKLMN"].map((c) => `crew ${c}`),
+  };
+  const deepSvg = render_svg(plot(data(deep), layer(text, repel), x(col.px), y(col.py), label(col.who)));
+  assert.match(deepSvg, /stroke-width="0.7"/, "a travelled label should keep its leader");
   // It is `text`-only, and each refusal names the offset that fits.
   refuses(() => render_svg(plot(data(crowd), layer(point, repel), x(col.px), y(col.py))), /jitter/);
   refuses(() => render_svg(plot(data(crowd), layer(bar, repel), x(col.who), y(col.py))), /dodge/);

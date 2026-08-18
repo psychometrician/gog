@@ -345,13 +345,15 @@ const REPEL_PULL: f64 = 0.08;
 /// How far a label that is still colliding is shaken each early pass, as a fraction
 /// of the font size, fading out with the pull.
 ///
-/// Separation alone gets stuck: labels part along the axis they overlap least on,
-/// which for a word is up and down, so a knot of them stacks into a column and the
-/// two in the middle have nowhere left to go even though there is space to the
-/// side. The shake is what lets one of them get around another. It is a *hashed*
-/// direction, seeded from the row and the pass — the plot is shaken the same way
-/// every time it is drawn, which is the whole difference between annealing and a
-/// picture that changes when nobody changed anything.
+/// Separation alone gets stuck: a label squeezed between two neighbors is pushed
+/// both ways at once and goes nowhere, even when there is free room one step
+/// around either of them. The shake is what lets it out of that pocket. It is
+/// applied only to a label that ran into *another label* on the pass before —
+/// resting contact with its own dot is the intended steady state, not a jam, and
+/// shaking it reintroduced the instability the shake exists to escape. The
+/// direction is *hashed*, seeded from the row and the pass — the plot is shaken
+/// the same way every time it is drawn, which is the whole difference between
+/// annealing and a picture that changes when nobody changed anything.
 const REPEL_KICK: f64 = 0.25;
 
 /// One label's ink, as the rectangle the placement moves.
@@ -366,12 +368,17 @@ struct LabelBox {
     /// every label, its own included. What a label rests *beside* rather than on.
     ax: f64,
     ay: f64,
-    /// Where it would sit if nothing collided: its point, plus the nudge. The
-    /// placement pulls each label back toward this as it separates them, so a label
-    /// ends up as near its point as the crowd allows rather than wherever the first
-    /// push happened to send it.
-    ix: f64,
-    iy: f64,
+    /// What the pull drags the label toward while the crowd is sorted out. With a
+    /// nudge it is the nudged offset — the side the writer named. With none it is
+    /// the **anchor itself**: the pull draws the label in, the dot pushes it back
+    /// out, and the two settle just clear of the dot on whichever side the crowd
+    /// leaves room. Nothing here says "above" — the resting side is found, not
+    /// chosen. (It used to be the initial above-the-dot offset, which dragged
+    /// every label back to the top of its dot each pass — half of the upward
+    /// bias a reader measured at 24 of 26 labels; [`parting_dir`] tells the
+    /// other half.)
+    tx: f64,
+    ty: f64,
 }
 
 impl LabelBox {
@@ -402,23 +409,34 @@ impl LabelBox {
     }
 }
 
-/// Which way two things part when nothing in their positions says.
+/// Which way two overlapping things part: along the line between their centers,
+/// as a unit vector.
 ///
-/// Almost always the sign of the distance between them. Two labels at the
-/// *identical* pixel have no direction at all, and that is the one place the
-/// placement could have reached for a random number: it hashes the two rows and
-/// their coordinates instead, `jitter`'s rule, so a tie parts the same way every
-/// time the same table is drawn. One specification is one picture (spec §5).
-fn parting_sign(d: f64, i: usize, j: usize, a: f64, b: f64) -> f64 {
-    if d.abs() > 1e-9 {
-        return d.signum();
+/// The center line rather than the axis of least overlap, on purpose. The
+/// axis-aligned escape is the smaller move for one pass, but it can only ever
+/// send a label straight up, down, left or right — and for words, wider than
+/// they are tall, that axis is almost always vertical, so a crowd stacked into
+/// a column and the column re-formed every pass whatever the spring did.
+/// Along the center line a squeezed label slides *around* its neighbor
+/// instead, and the crowd settles on whichever sides have room.
+///
+/// Two centers at the *identical* pixel have no line between them, and that is
+/// the one place the placement could have reached for a random number: it
+/// hashes the two rows and their coordinates instead, `jitter`'s rule, so a
+/// tie parts the same way every time the same table is drawn. One
+/// specification is one picture (spec §5).
+fn parting_dir(dx: f64, dy: f64, i: usize, j: usize, a: f64, b: f64) -> (f64, f64) {
+    let dist = (dx * dx + dy * dy).sqrt();
+    if dist > 1e-9 {
+        return (dx / dist, dy / dist);
     }
     let seed = (i as u64)
         .wrapping_mul(0x9E3779B97F4A7C15)
         ^ (j as u64).rotate_left(23)
         ^ a.to_bits().rotate_left(17)
         ^ b.to_bits().rotate_left(43);
-    if hash01(seed) < 0.5 { -1.0 } else { 1.0 }
+    let angle = hash01(seed) * std::f64::consts::TAU;
+    (angle.cos(), angle.sin())
 }
 
 /// Move the labels that overlap until they do not — `text * repel`, whole.
@@ -428,13 +446,20 @@ fn parting_sign(d: f64, i: usize, j: usize, a: f64, b: f64) -> f64 {
 /// plumbing between the two layers — the labels share `x` and `y` with the dots, so
 /// a label that clears every anchor has cleared every dot the point layer drew.
 ///
-/// **How.** Each pass nudges every overlapping pair apart along the axis they
-/// overlap *least* on, which is the smallest move that resolves them — for a word,
-/// wider than it is tall, that is usually upward or downward, so a crowd resolves
-/// into the stacked column a person would have written. Half the correction is
-/// taken at a time ([`REPEL_RELAX`]) because each label is being pushed by several
-/// neighbors at once. A pull toward home ([`REPEL_PULL`]) runs alongside and fades
-/// out, so the run ends in pure separation and settles.
+/// **How.** Each pass nudges every overlapping pair apart along the line between
+/// their centers ([`parting_dir`]), by the least the overlap requires. Half the
+/// correction is taken at a time ([`REPEL_RELAX`]) because each label is being
+/// pushed by several neighbors at once. A pull toward the label's own point
+/// ([`REPEL_PULL`]) runs alongside and fades out, so the run ends in pure
+/// separation and settles. The pull and the dot's push are one mechanism: the
+/// pull draws the label in, the dot holds it out, and the label comes to rest
+/// just clear of its dot on **whichever side has the least competing pressure**
+/// — no side is preferred. It was not always so: the spring once targeted the
+/// label's *initial* above-the-dot offset rather than the point, and the escape
+/// ran along the axis of least overlap, which for words is nearly always
+/// vertical — together they put 24 of 26 labels above their point on a fixture
+/// where ggrepel spreads them to every side. A reader measured the bias,
+/// diagnosed both mechanisms and prototyped the fix.
 ///
 /// **Nothing is dropped, and nothing is silent** (§12). Every label draws: the
 /// panel is clamped against, so none is pushed out of the picture and clipped away.
@@ -467,14 +492,15 @@ fn place_repelled(
             // conversion carries the half-width — the same label in the same place,
             // described the way a box has to be described.
             //
-            // **With no nudge the label still steps off its dot**, and this is
+            // **With no nudge the label still starts off its dot**, and this is
             // where a repelled label parts company with a plain one. A plain label
             // is centered on its point, dot and all, because it was put there
             // deliberately; a repelled label is being placed *for* the reader, and
             // a word with a dot in the middle of it is the thing the reader was
-            // trying to see. So the resting place is just clear of the dot — the
-            // step `style(nudge = "up")` takes by hand, taken by default and
-            // measured off the dot rather than off the font.
+            // trying to see. The start is just clear of the dot — above it, which
+            // keeps a lone label's rest stable and predictable — but the start is
+            // *only* a start: where the label rests is decided by the pull and
+            // the crowd, not by this offset.
             let (nx, ny) = match nudge {
                 Some("up") => (0.0, -fs),
                 Some("down") => (0.0, fs),
@@ -482,12 +508,16 @@ fn place_repelled(
                 Some("right") => (fs * 0.6 + w / 2.0, 0.0),
                 _ => (0.0, -(dots[bi] + hh)),
             };
+            // The pull's target: the nudged offset when a nudge named a side, the
+            // anchor itself when none did — direction-free, the dot's own push
+            // supplying the clearance.
+            let (tx, ty) = if nudge.is_some() { (ax + nx, ay + ny) } else { (ax, ay) };
             LabelBox {
                 hw: (w + fs * REPEL_PAD_X) / 2.0,
                 hh,
                 cx: ax + nx, cy: ay + ny,
                 ax, ay,
-                ix: ax + nx, iy: ay + ny,
+                tx, ty,
             }
         })
         .collect();
@@ -512,8 +542,8 @@ fn place_repelled(
             let cool = 1.0 - it as f64 / anneal as f64;
             let (pull, kick) = (REPEL_PULL * cool, fs * REPEL_KICK * cool);
             for (i, b) in bs.iter_mut().enumerate() {
-                b.cx += (b.ix - b.cx) * pull;
-                b.cy += (b.iy - b.cy) * pull;
+                b.cx += (b.tx - b.cx) * pull;
+                b.cy += (b.ty - b.cy) * pull;
                 if bumped[i] {
                     let seed = (i as u64)
                         .wrapping_mul(0x9E3779B97F4A7C15)
@@ -529,7 +559,8 @@ fn place_repelled(
         bumped.fill(false);
         let mut moved = false;
 
-        // Label against label.
+        // Label against label. The overlap is a fact about the boxes; the escape
+        // runs along the line between their centers, half each way.
         for i in 0..n {
             for j in (i + 1)..n {
                 let (dx, dy) = (bs[j].cx - bs[i].cx, bs[j].cy - bs[i].cy);
@@ -541,22 +572,21 @@ fn place_repelled(
                 moved = true;
                 bumped[i] = true;
                 bumped[j] = true;
-                if ox < oy {
-                    let s = parting_sign(dx, i, j, bs[i].ax, bs[j].ax) * ox * 0.5 * REPEL_RELAX;
-                    bs[i].cx -= s;
-                    bs[j].cx += s;
-                } else {
-                    let s = parting_sign(dy, i, j, bs[i].ay, bs[j].ay) * oy * 0.5 * REPEL_RELAX;
-                    bs[i].cy -= s;
-                    bs[j].cy += s;
-                }
+                let (ux, uy) = parting_dir(dx, dy, i, j, bs[i].ax, bs[j].ax);
+                let m = ox.min(oy) * 0.5 * REPEL_RELAX;
+                bs[i].cx -= ux * m;
+                bs[i].cy -= uy * m;
+                bs[j].cx += ux * m;
+                bs[j].cy += uy * m;
             }
         }
 
-        // Label against the points — every one of them, its own included. At rest a
-        // label is exactly clear of its own dot, so this does nothing there; what it
-        // does is stop a crowd from shoving a label back down onto the point it
-        // names. The point does not move, so the label takes the whole correction
+        // Label against the points — every one of them, its own included. Against
+        // its *own* dot this is half of the resting mechanism: the pull drags the
+        // label toward the point, this push holds it out, and the two settle at
+        // clearance on whichever side the crowd leaves free. Against the *other*
+        // dots it stops a crowd from shoving a label onto a point it does not
+        // name. The point does not move, so the label takes the whole correction
         // rather than half of it.
         //
         // **Only while there is still room to look for.** Once the pull has faded
@@ -575,11 +605,10 @@ fn place_repelled(
                     continue;
                 }
                 moved = true;
-                if ox < oy {
-                    bs[i].cx += parting_sign(dx, i, k, bs[i].ax, ax) * ox * REPEL_RELAX;
-                } else {
-                    bs[i].cy += parting_sign(dy, i, k, bs[i].ay, ay) * oy * REPEL_RELAX;
-                }
+                let (ux, uy) = parting_dir(dx, dy, i, k, bs[i].ax, ax);
+                let m = ox.min(oy) * REPEL_RELAX;
+                bs[i].cx += ux * m;
+                bs[i].cy += uy * m;
             }
         }
 

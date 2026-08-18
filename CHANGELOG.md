@@ -70,6 +70,19 @@ CRAN-style repositories and PyPI, `GrammarOfGraphics` on Julia's General, and
 
 ### Changed
 
+- **A repelled label now rests on whichever side of its point has room.**
+  `text * repel` pulled every label back toward its starting place above its
+  dot, and moved colliding labels apart only straight up, down, left or right
+  — so nearly every name ended up stacked on top of its point, 24 of 26 on the
+  fixture that measured it, where ggrepel spreads them wherever there is room.
+  The placement now pulls each label toward its own point, pushes it off every
+  word and every dot along the line between their centers, and lets the two
+  motions settle just clear of the dot on the free side. A lone label still
+  rests above its point, `style(nudge = )` still names the side a label
+  prefers, the count of labels still touching is still reported, and the
+  placement is still deterministic. Reported, measured against ggrepel, and
+  prototyped by @lh (#2).
+
 - **`repel` now composes with every transform, `layout` and `flow` included.**
   It was classified as a position modifier and so collided with any transform
   that places its own marks, but repel moves *ink*, at draw time, after every

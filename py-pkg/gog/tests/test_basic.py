@@ -1094,8 +1094,14 @@ assert len(moved) == 6, "repel must draw every label, never leave one out"
 # One specification is one picture: the placement anneals, and an annealing that
 # reached for a clock would redraw the book differently on every build.
 assert moved_svg == render_svg(spec), "repel must render identically every run"
-# A label pushed clear of its dot keeps a line back to it.
-assert 'stroke-width="0.7"' in moved_svg, "a travelled label should keep its leader"
+# A label pushed clear of its dot keeps a line back to it. Six names ring their
+# shared point at resting distance, so none travels; it takes a deeper crowd,
+# whose outer ranks are held off by the inner ones, to earn the connector.
+deep = {"px": [5.0] * 14, "py": [5.0] * 14,
+        "who": [f"crew {c}" for c in "ABCDEFGHIJKLMN"]}
+deep_svg = render_svg(data(deep, name="deep") + text * repel +
+                      x(col.px) + y(col.py) + label(col.who))
+assert 'stroke-width="0.7"' in deep_svg, "a travelled label should keep its leader"
 # It is `text`-only, and each refusal names the offset that fits.
 refuses("point * repel", lambda: render_svg(
     data(crowd, name="crowd") + point * repel + x(col.px) + y(col.py)))

@@ -1648,11 +1648,14 @@ data(gm_europe) + point + style(color = "#9e9e9e") +
 ```
 
 Every label ends up outside its own dot, and one that moved far keeps a thin line
-back to its point. Two rules decide the rest. A word is wider than it is tall, so
-moving up or down is the smaller move, and a group of labels ends up in a column.
-And where a label is pushed by another label above it and by its own dot below, the
-labels win, because a word over a dot can still be read and two words over each
-other cannot.
+back to its point. Two rules set where each label rests. First, a label rests
+beside its dot, on whichever side has room. `repel` pulls the label toward its
+dot and pushes it away from every word and every dot, and the label stops where
+the two balance. A label with no neighbors sits just above its dot. One with
+neighbors moves to whichever side is free. Second, when a label is pushed by
+another label and by its own dot at the same time, it moves off the other label
+and may rest over its dot. A word over a dot is still readable. Two words over
+each other are not.
 
 Like `jitter`, the placement is **deterministic**: it depends only on the labels
 and the rows, never on a random-number generator, so one specification always draws

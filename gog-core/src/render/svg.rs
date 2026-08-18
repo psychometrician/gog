@@ -7351,6 +7351,50 @@ mod tests {
     }
 
     #[test]
+    fn repelled_labels_spread_to_every_side_rather_than_stacking_above() {
+        // The defect a reader measured (issue #2): the spring dragged every label
+        // back toward its initial above-the-dot offset and the escape ran on the
+        // axis of least overlap, so 24 of 26 labels sat above their point where
+        // ggrepel spreads them wherever there is room. The fix's claim is
+        // directional freedom, so its test is directional, on the reader's own
+        // measure: two crowded clusters of names, each label classified by where
+        // it rests relative to its own point. The anchors' pixel positions are
+        // read off the un-repelled sibling, whose labels all draw centered on
+        // them, in the same row order.
+        let n = 30;
+        let coord = |i: usize, salt: u64| crate::render::hash01((i as u64).wrapping_mul(0x9E3779B97F4A7C15) ^ salt);
+        let (mut xs, mut ys) = (Vec::new(), Vec::new());
+        for i in 0..n {
+            let (cx, cy, s) = if i < 18 { (30.0, 30.0, 8.0) } else { (70.0, 65.0, 6.0) };
+            xs.push(cx + (coord(i, 1) - 0.5) * 2.0 * s);
+            ys.push(cy + (coord(i, 2) - 0.5) * 2.0 * s);
+        }
+        let data = HashMap::from([(
+            "t".to_string(),
+            DataFrame::new()
+                .with_float("x", xs)
+                .with_float("y", ys)
+                .with_str("n", (0..n).map(|i| format!("name {i}")).collect()),
+        )]);
+        let plain = label_positions(&SvgRenderer::default().render(&repel_spec(false), &data));
+        let moved = label_positions(&SvgRenderer::default().render(&repel_spec(true), &data));
+        assert_eq!(plain.len(), n);
+        assert_eq!(moved.len(), n);
+        let mut sides = [0usize; 4]; // above, below, left, right
+        for i in 0..n {
+            let (dx, dy) = (moved[i].0 - plain[i].0, moved[i].1 - plain[i].1);
+            if dx.abs() > dy.abs() {
+                sides[if dx > 0.0 { 3 } else { 2 }] += 1;
+            } else {
+                sides[if dy > 0.0 { 1 } else { 0 }] += 1;
+            }
+        }
+        let occupied = sides.iter().filter(|&&c| c > 0).count();
+        assert!(occupied >= 3, "two crowded clusters should rest names on at least three sides of their points: above/below/left/right = {sides:?}");
+        assert!(sides[0] <= 20, "the placement is biased above again: above/below/left/right = {sides:?}");
+    }
+
+    #[test]
     fn repel_is_deterministic() {
         // One specification, one picture. The placement anneals, and an annealing
         // that reached for a clock or a global RNG would redraw the book differently
@@ -7365,13 +7409,25 @@ mod tests {
     fn repel_draws_every_label_even_when_no_arrangement_fits() {
         // §12, the rule the design fixed before anything was built: past some
         // density there is no overlap-free placement, and the answer is never to
-        // drop the labels that did not fit. Forty long names on one point cannot be
-        // separated — all forty still draw, all forty stay inside the panel where
-        // the clip cannot eat them, and the layer says how many are still crowded.
-        let data = crowded_labels(40);
+        // drop the labels that did not fit. Two hundred long names hold more ink
+        // than the panel has area, so no placement can separate them — all two
+        // hundred still draw, all stay inside the panel where the clip cannot eat
+        // them, and the layer says how many are still crowded. (Forty short names
+        // on one point used to be enough; once the placement could spread in every
+        // direction, it fitted all forty, which is the improvement this fixture
+        // has to out-crowd.)
+        let n = 200;
+        let names: Vec<String> = (0..n).map(|i| format!("a rather long label, number {i}")).collect();
+        let data = HashMap::from([(
+            "t".to_string(),
+            DataFrame::new()
+                .with_float("x", vec![5.0; n])
+                .with_float("y", vec![5.0; n])
+                .with_str("n", names),
+        )]);
         let drawn = SvgRenderer::default().draw(&repel_spec(true), &data);
         let placed = label_positions(&drawn.svg);
-        assert_eq!(placed.len(), 40, "every label draws, however crowded");
+        assert_eq!(placed.len(), n, "every label draws, however crowded");
 
         let p = &drawn.panel;
         for (i, &(x, y)) in placed.iter().enumerate() {
@@ -7390,7 +7446,11 @@ mod tests {
         // it belonged to, so the modifier draws the connector itself rather than
         // asking for a second mark (spec §5). A label that only took its resting
         // step off the dot gets none — a line from every label is a panel of lines.
-        let far = SvgRenderer::default().render(&repel_spec(true), &crowded_labels(6));
+        // Fourteen names on one point, because the first few rest against the dot
+        // itself on their several sides; it is the outer ranks, held off by the
+        // inner ones, that have travelled. (Six was enough when the placement
+        // stacked them into one tall column.)
+        let far = SvgRenderer::default().render(&repel_spec(true), &crowded_labels(14));
         let near = SvgRenderer::default().render(&repel_spec(true), &crowded_labels(1));
         let leaders = |svg: &str| svg.matches(r#"stroke-width="0.7""#).count();
         assert!(leaders(&far) >= 4, "labels driven far from their point need leaders: {}", leaders(&far));

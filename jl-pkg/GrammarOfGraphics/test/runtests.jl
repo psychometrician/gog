@@ -293,8 +293,14 @@ end
     end
     # One specification is one picture, however the placement anneals.
     @test svg == render_svg(spec)
-    # A label pushed clear of its dot keeps a line back to it.
-    @test occursin("stroke-width=\"0.7\"", svg)
+    # A label pushed clear of its dot keeps a line back to it. Six names ring
+    # their shared point at resting distance, so none travels; it takes a deeper
+    # crowd, whose outer ranks are held off by the inner ones, to earn the
+    # connector.
+    deep = Dict("px" => fill(5.0, 14), "py" => fill(5.0, 14),
+                "who" => ["crew $(c)" for c in 'A':'N'])
+    deep_svg = render_svg(data(deep) + text * repel + x(:px) + y(:py) + label(:who))
+    @test occursin("stroke-width=\"0.7\"", deep_svg)
     # It is `text`-only, and each refusal names the offset that fits.
     @refuses render_svg(data(crowd) + point * repel + x(:px) + y(:py)) "jitter"
     @refuses render_svg(data(crowd) + bar * repel + x(:who) + y(:py)) "dodge"

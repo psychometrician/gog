@@ -3925,7 +3925,7 @@ fn graph_layout(df: &DataFrame, from: &str, to: &str, dims: usize) -> Option<Gra
     let n_rows = df.len();
     let (a, b) = (df.str_col(from)?, df.str_col(to)?);
     let mut nodes: Vec<String> = Vec::new();
-    let mut index = |name: &str, nodes: &mut Vec<String>| -> Option<usize> {
+    let index = |name: &str, nodes: &mut Vec<String>| -> Option<usize> {
         if name.is_empty() {
             return None;
         }
