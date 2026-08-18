@@ -179,7 +179,7 @@ data(quakes_fiji) + point + x(east) + y(north) + z(elevation) +
   space(turn = 120, tilt = 20) + play(slab)
 ```
 
-The cluster walks down and west as the sequence runs, which is the tilt of that
+The band of points walks down and west as the sequence runs, which is the tilt of that
 sheet read one slice at a time. The frames are not time here. `play` advances
 through the levels of an ordered column, and whether that column measures years
 or kilometers is the column's business, not the channel's. Depth happens to be
@@ -198,6 +198,21 @@ Eight cubes, on one shared scale, so the march is a comparison rather than a
 memory. Which of the two you want is a question about the reader: panels let them
 look back, frames let them see the movement. [Play](../play.qmd) is where that
 choice is argued.
+
+## Which rows and columns are alike?
+
+Two categorical axes and one value make a tile plot, and nothing in the
+data chose its slot order. Build a [cluster](../cluster.qmd) tree on each
+axis, then compose the three plots: the shared axes take the trees' leaf
+order, and tiles of similar color end up next to each other.
+
+```{r}
+(data(nutrients) + path * cluster(amount, over = nutrient) + x(food) +
+   theme(height = 150)) /
+  ((data(nutrients) + zone + x(food) + y(nutrient) + color(amount)) |
+     (data(nutrients) + path * cluster(amount, over = food) + y(nutrient) +
+        theme(width = 150)))
+```
 
 ## What this section refuses
 

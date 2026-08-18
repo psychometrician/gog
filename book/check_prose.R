@@ -68,6 +68,12 @@ check_prose <- function(dirs = c("book", "blog")) {
     # passed every build. Matching is `fixed = TRUE`, so each inflection has to
     # be written out; there is no stem to catch them all.
     "earning its keep", "earning their keep", "earn its keep",
+    # The `put to work` family: a stock phrase standing in for "use", found in
+    # three chapters at once by a reader-review of the cluster chapter. Each
+    # inflection written out, as with `earn`.
+    "put to work", "puts it to work", "put this to work", "puts this to work",
+    "put it to work", "putting it to work", "put them to work",
+    "puts this rule to work", "put this vocabulary to work",
     "earns its place", "earn its place", "earning its place",
     "earns a place", "earn a place", "earns a shortcut", "earn a shortcut",
     "worth reaching for", "reach for it", "reach for this", "reach for that",

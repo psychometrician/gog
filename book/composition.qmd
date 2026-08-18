@@ -134,32 +134,18 @@ stands over the cloud it summarizes, category for category:
 ## A clustered panel decides the order
 
 A categorical axis needs an order, and most plots take the one the data
-arrived in. A panel with [`cluster`](transforms.qmd#cluster-the-closest-leaves-joined-first)
-has computed a better one: the tree's leaf order, which puts similar things
-next to each other. When such a panel shares its axis, the shared axis takes
-that order.
+arrived in. A panel with [`cluster`](cluster.qmd) has computed a better one:
+the tree's leaf order, which puts similar things next to each other. When
+such a panel shares its axis, the shared axis takes that order.
 
 > A shared categorical axis takes the order a clustered panel computed for it.
 
-That one sentence is the whole figure: a tile plot with a tree on two of its
-sides, which usually arrives as a chart type with a name of its own. One tree
-stands above the tiles, a second stands to the right, past the color key, and
-the tile plot itself stays plain: its column order arrives from the top tree,
-its row order from the side one.
-
-```{r}
-(data(nutrients) + path * cluster(amount, over = nutrient) + x(food) +
-   theme(height = 150)) /
-  ((data(nutrients) + zone + x(food) + y(nutrient) + color(amount)) |
-     (data(nutrients) + path * cluster(amount, over = food) + y(nutrient) +
-        theme(width = 150)))
-```
-
-Read a column of tiles upward into the tree above it. The trees are not
-decoration: they put each column next to the column it resembles. gog refuses
-two panels that derive different orders for one shared axis, because one axis
-cannot hold two orders. Give both the same value and profile columns, or
-cluster in one panel alone.
+The panels beside the clustered one stay plain, and their slots arrive in
+the tree's order. gog refuses two panels that derive different orders for
+one shared axis, because one axis cannot hold two orders. Give both the same
+value and profile columns, or cluster in one panel alone. The
+[Cluster](cluster.qmd#the-clustered-heatmap) chapter uses this rule: a tile
+plot with a tree on two of its sides, each tree deciding one axis.
 
 ## How thin is the marginal? `theme(width =, height =)`
 

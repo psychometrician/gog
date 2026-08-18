@@ -213,6 +213,7 @@ book:
         - faceting.qmd
         - composition.qmd
         - flow.qmd
+        - cluster.qmd
         - space.qmd
         - polar.qmd
         - nest.qmd

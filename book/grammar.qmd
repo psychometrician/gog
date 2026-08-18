@@ -495,5 +495,5 @@ of them gives a word to one function, which passes it to a second, as
 [Python](bindings/python.qmd), [Julia](bindings/julia.qmd) and
 [JavaScript](bindings/javascript.qmd).
 
-The next two chapters put this vocabulary to work: first you read ten plots,
+The next two chapters use this vocabulary: first you read ten plots,
 then you write your own.
