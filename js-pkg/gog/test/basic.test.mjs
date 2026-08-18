@@ -91,8 +91,8 @@ import {
   z,
   zone,
   surface,
+  html_block,
 } from "../src/index.js";
-import { htmlBlock } from "../src/render.js";
 
 const df = {
   x: [1, 2, 3, 4, 5],
@@ -2260,7 +2260,7 @@ test("the globe draws its disk and graticule, and refuses with direction", () =>
   // The globe carries the engine for the cube's own reason: an angle worth
   // dragging. Its gate missed this on the day the space shipped, so every
   // globe page drew perfectly with zoom buttons and no drag.
-  const block = htmlBlock(
+  const block = html_block(
     plot(data(places), point, x(col.lon), y(col.lat), globe({ turn: 178, tilt: -18 }))
   );
   assert.ok(block.includes("wasm"), "a globe page must carry the engine to turn");
@@ -2278,4 +2278,32 @@ test("the globe draws its disk and graticule, and refuses with direction", () =>
     plot(data(spiky), bar, x(col.lon), y(col.lat), z(col.v), globe({ turn: 178, tilt: -18 }))
   );
   assert.ok(spikeSvg.includes("<line "), "a spike drew no stroke");
+});
+
+test("the turnable block is reachable from the package's front door", async () => {
+  // The defect this catches was invisible to every other check here, because
+  // every other check imports `../src/render.js` by path — which a reader
+  // cannot do. `package.json` exports `"."` alone, so what a reader can call is
+  // exactly what `index.js` re-exports, and the interactive block was not in
+  // that list. Three bindings hand a notebook the turnable plot through a
+  // display hook of their host's; JavaScript has no hook to register with, so
+  // an unexported function here is a capability that does not exist.
+  //
+  // Imported the way a reader imports it, by package name resolved through the
+  // package's own manifest, rather than by the path this file uses everywhere
+  // else. That is the whole point of the test.
+  const url = new URL("../package.json", import.meta.url);
+  const manifest = JSON.parse(fs.readFileSync(url, "utf8"));
+  assert.equal(manifest.exports["."], "./src/index.js",
+    "the front door moved; this test is asserting against the wrong one");
+
+  const front = await import(new URL(manifest.exports["."], url));
+  assert.equal(typeof front.html_block, "function",
+    "`html_block` is not reachable from the package's only entry point");
+
+  // And it is the interactive one, not the static picture wearing its name.
+  const p = plot(data({ a: [1, 2, 3], b: [4, 5, 6] }), point, x(col.a), y(col.b));
+  const block = front.html_block(p);
+  assert.ok(block.includes("<svg"), "the block carries no picture");
+  assert.ok(block.includes("gog-plot"), "the block is not the page's container");
 });

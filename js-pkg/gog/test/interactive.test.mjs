@@ -2087,7 +2087,7 @@ test("the interactive block names no URL a policy can refuse", async () => {
   const t = { gdp: [1000, 20000, 40000], life: [50, 70, 80] };
   const p = plot(data(t, "t"), point, x(col.gdp), y(col.life),
                  brush(col.gdp, { at: [2000, 30000] }));
-  const block = R.htmlBlock(p);
+  const block = R.html_block(p);
 
   // No script means the browser engine was never built, which is the normal
   // state in CI. There is nothing to assert about a block that does not exist.

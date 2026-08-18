@@ -33,6 +33,7 @@ export { col, Column } from "./columns.js";
 export { Atom, Page, Plot, plot, layer, across, down, beside, below, facet, data, query } from "./spec.js";
 export {
   find_gog_cli,
+  html_block,
   ordered,
   render_svg,
   save,

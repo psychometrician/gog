@@ -8,6 +8,16 @@ CRAN-style repositories and PyPI, `GrammarOfGraphics` on Julia's General, and
 
 ### Added
 
+- **JavaScript: `html_block()` returns a plot the reader can turn.** The same
+  SVG `render_svg()` writes, wrapped for a page, with the controls beside it
+  and the engine that turns a cube or a globe. Write it into a page, a notebook
+  cell, or a dashboard panel. It was in the package and reachable from nothing:
+  a JavaScript reader could get a turnable plot in a browser window through
+  `show()`, and a still picture everywhere else, while R, Python and Julia each
+  handed a notebook the turnable one automatically. Those three answer a
+  question their host asks an object about how to display itself; JavaScript
+  has no such question, so it gets a function.
+
 - **`network()` is a coordinate space, `layout` places a graph in it, and
   `edge` is the fourteenth mark: the network diagram.** `layout(from, to)`
   reads the two endpoint columns of an edge table — one row is one relation —

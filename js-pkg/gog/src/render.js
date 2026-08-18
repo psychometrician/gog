@@ -385,7 +385,7 @@ export function resolveQuery(query, table) {
 }
 
 // The tables, resolved and turned into the wire's column-oriented form. Shared
-// by `render_svg` and `htmlBlock` so the SVG on the page and the spec the
+// by `render_svg` and `html_block` so the SVG on the page and the spec the
 // browser re-renders from can never describe different data.
 function wireData(plot) {
   const data = {};
@@ -638,8 +638,17 @@ function specIsSpatial(spec) {
  * JavaScript and before the engine loads. The script only upgrades a picture
  * that is already there, so when the assets are missing the plot simply stays
  * still.
+ *
+ * **Public, and named the way the other exports are.** The other three bindings
+ * never need this by hand: R registers `repr_html`, Python defines
+ * `_repr_html_`, Julia writes a `text/html` show method, and each one hands a
+ * notebook the turnable block on its own. JavaScript has no such protocol to
+ * register with, so the block has to be reachable as a function or it is not
+ * reachable at all — which it was not, until a test round measured that
+ * `svg_block(render_svg(p))` was the only thing a reader could put in a page,
+ * and that it draws a picture nobody can turn.
  */
-export function htmlBlock(plot) {
+export function html_block(plot) {
   const svg = render_svg(plot).replace(...FIT);
   const spec = plot.spec ?? plot;
   // Two questions, not one. The *engine* has two reasons — an angle worth
@@ -713,7 +722,7 @@ export function show(plot) {
     "<!DOCTYPE html>\n<html>\n<head><meta charset='utf-8'>" +
       "<style>body{margin:0;background:#fff;display:flex;" +
       "justify-content:center;padding:16px;}</style></head>\n<body>\n" +
-      `${htmlBlock(plot)}\n</body>\n</html>`,
+      `${html_block(plot)}\n</body>\n</html>`,
     "utf8"
   );
   return file;

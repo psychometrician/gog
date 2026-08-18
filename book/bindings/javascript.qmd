@@ -263,3 +263,32 @@ console.log(render_svg(plot(data(gm), point, x(col.gdp), y(col.life))));
 the DOM and on a server goes straight into a response. There is no viewer and no
 raster step, which is the one place JavaScript fits the engine better than any
 other language does.
+
+## A plot for a web page: `html_block()`
+
+That string is the drawing and nothing else. For a web page, `html_block()`
+returns the same drawing with everything around it: the line of controls under
+the picture, and, for some plots, the browser engine that redraws them. A plot
+in the cube, a plot on the globe, and a plot with a brush all carry that engine.
+Those are the plots of [Space](../space.qmd), [The globe](../globe.qmd) and
+[Selection](../selection.qmd).
+
+```{r}
+#| echo: false
+js_show(paste0(
+  "const cube = plot(data(gapminder_2007), point,\n",
+  "                  x(col.gdp), y(col.life), z(col.population));\n",
+  "console.log(html_block(cube).split(\"\\n\")[0]);"
+))
+```
+
+The function returns HTML as a string. Put it in a page, a notebook cell, or a
+dashboard panel. The picture is written first, so it is on the page before the
+browser engine loads. A page whose security policy forbids WebAssembly, the
+format the browser engine ships in, still shows the plot. What it loses is the
+turning.
+
+R, Python and Julia never call this function. A notebook in those languages asks
+the plot object how it would be displayed, and each binding answers: R with
+`repr_html`, Python with `_repr_html_`, Julia with a show method. JavaScript has
+no such request to answer, so in JavaScript it is a function you call.
