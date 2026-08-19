@@ -7,7 +7,7 @@ source("../R/setup.R")
 
 How did it change over time? Time is not a chart type in this grammar; it is a
 column, and you choose which channel carries it. On `x` it makes the familiar
-time series; the recipes here work through what that unlocks.
+time series; the recipes here work through what that allows.
 
 ## How did it change?
 
@@ -19,18 +19,19 @@ data(actuals) + line + x(year) + y(sales)
 the rows in x order; with years on x, that order is time.
 
 **One atom away.** If the quantity (not the path) is the story, swap in
-[`area`](../marks/area.qmd): it fills to zero, so the ink is the amount.
+[`area`](../marks/area.qmd): it fills to zero, so the filled area is the
+amount.
 
 ## How did several things change?
 
 A categorical `color` splits the rows into one line per category, then
-colors them, the same one-two it performs everywhere:
+colors them, the same two steps it performs everywhere:
 
 ```{r}
 data(gapminder_asia) + line + x(year) + y(life) + color(country)
 ```
 
-**One atom away.** Too many categories for a legend to earn its space?
+**One atom away.** Too many categories for a legend to stay readable?
 `group` splits without coloring; see [Many groups](groups.qmd).
 
 ## What about real dates?
@@ -45,7 +46,7 @@ data(six_weeks) + line + x(day) + y(orders)
 
 There is no `scale = "time"` to remember: the column's type already said
 it. [Scales](../scales.qmd) owns the calendar's rules: months that read
-as quarters, midnight borrowing the day's name.
+as quarters, and a tick at midnight labeled with that day.
 
 ## What happened, and what do we expect?
 
@@ -59,7 +60,7 @@ data(actuals) + x(year) + y(sales) +
 ```
 
 *"Given the actuals: x is year, y is sales, a line; then given the
-forecast: points."* The forecast dots pick up exactly where the actual
+forecast: points."* The forecast dots begin exactly where the actual
 line ends, and each layer read its own rows.
 [Data](../data.qmd) owns multi-table plots.
 

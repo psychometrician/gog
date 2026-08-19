@@ -6,8 +6,8 @@ source("R/setup.R")
 ```
 
 gog is governed by nine laws.
-They are not preferences or style guides; they are hard constraints
-the package *never* violates.
+They are not preferences or style guides; they are rules
+the package *never* breaks.
 
 Every new feature, every shortcut, every naming decision
 is checked against these rules.
@@ -46,16 +46,16 @@ Change only the mark, and what changes is the geometry:
 ```
 
 One cut and one set of counts, four times over: rectangles, a line through the
-bin centers, that same line filled, and the counts as a stair. Read any bar's
-height off the panel beside it and the number is the same. The transform never
-asks which mark it is feeding.
+bin centers, that same line filled, and the counts as a stair. Compare any bar's
+height with the panel beside it and the number is the same. The transform never
+asks which mark will draw its result.
 
 This is the hardest law to keep as the package grows.
 Every user request that begins "but for maps I need…" or "histograms are special
 because…" is a pressure to break it. What keeps it is that the permitted
-bindings live in **one table** in the engine (`gog-core/src/legality.rs`),
-covering every mark × channel pair. A mark cannot quietly opt out of a channel,
-because there is nowhere to opt out.
+bindings sit in **one table** in the engine (`gog-core/src/legality.rs`),
+covering every mark × channel pair. A mark cannot leave a channel out, because
+there is no place to leave it out.
 
 ## Law 3: Plain Names
 
@@ -75,12 +75,12 @@ because there is nowhere to opt out.
 If a new user has to look up what a name means, it fails this law.
 
 The last row is the one where a word was **removed** rather than replaced, and
-it is worth a moment because the word is not lost. Early drafts of this grammar
+it is worth a second look because the word is not lost. Early drafts of this grammar
 wrote `color_by(species)` and `size_by(population)`. The suffix marked the
 argument as a column, which says nothing here, because every atom that takes an
 argument takes a column. Now read `color(continent)` aloud. It is *"color by
-continent"*. The word *by* lives in how the sentence is read, so writing it into
-the name spells out what the reading already supplies. That is a silent letter
+continent"*. The word *by* is already in how you read the sentence, so writing
+it into the name says it twice. That is a silent letter
 by Law 2's measure, and every channel would have had to carry one.
 
 ### One spelling of English, and it is American
@@ -90,11 +90,11 @@ word of the kernel. There is no British alternative. ggplot2 takes both
 spellings, so `scale_colour_manual()` and `scale_color_manual()` are one
 function there; here there is one spelling and no second one to learn.
 
-Two spellings for one word is a silent letter, which is Law 2's enemy wearing a
-dictionary. The cost is invisible to the person who already knows both forms and
-lands entirely on everyone else: a reader of your code must recognize two shapes
-for one idea, a search for `color(` misses half the corpus, and every document
-that lists the vocabulary has to list it twice.
+Two spellings for one word is a silent letter, and Law 2 refuses silent letters
+in the vocabulary as well as in the grammar. The cost is invisible to the person
+who already knows both forms, and everyone else pays it. A reader of your code
+must recognize two shapes for one idea, a search for `color(` finds only half
+the code, and every document that lists the vocabulary lists it twice.
 
 Because ggplot2 is where most readers arrive from, typing `colour` is the
 likeliest way to meet this law, so the refusal names the word to write:
@@ -105,8 +105,9 @@ data(gapminder_2007) + point + x(gdp) + y(life) + style(colour = "tomato")
 ```
 
 That is the setting. The channel is refused the same way, and `colour` exists in
-the package for no other purpose: it is not a channel, it is a word that says
-where the channel went, exactly as `facet()` does in JavaScript.
+the package for no other purpose: it is not a channel, it is a word whose only
+job is to name the channel you meant, exactly as `facet()` does in
+[JavaScript](bindings/javascript.qmd).
 
 ```{r}
 #| error: true
@@ -136,7 +137,8 @@ data(gapminder_2007) + point + x("gdp") + y("life")
 ```
 
 This law makes plot specifications readable as natural language.
-It also enables autocomplete and early, friendly errors at spec-build time.
+It also enables autocomplete and early, friendly errors while the specification
+is being built.
 
 ---
 
@@ -145,9 +147,9 @@ It also enables autocomplete and early, friendly errors at spec-build time.
 > Short is better than long, unless short is ambiguous.
 > Then say it out loud.
 
-Implicit behavior saves typing and then charges interest in ambiguity. gog
-takes the trade the other way: when brevity would leave a reader guessing what
-the engine decided, the engine makes you say it.
+Implicit behavior saves typing now and costs clarity later. gog chooses the
+other way: when brevity would leave a reader guessing what the engine decided,
+the engine makes you say it.
 
 This law is also what the error messages are for. A refusal must tell you
 **what gog assumed** or **what gog cannot do**, never merely that something
@@ -174,7 +176,7 @@ This also gives the two operations the different rules they deserve. A mapping
 earns a guide and a setting does not, and `line`, which cannot *map* `opacity`
 because one stroke has one opacity, can perfectly well *set* it.
 
-ggplot2 draws the same line in a different place. There the boundary is a
+ggplot2 puts the same boundary in a different place. There the boundary is a
 bracket: `color = "red"` inside `aes()` maps, and the same words outside it
 set. gog moves that boundary from a bracket to a word, so the atom you write
 says which one you meant. The bracket has one failure that a word cannot have.
@@ -185,7 +187,7 @@ in the palette's first color rather than in red.
 ### A missing name must not become a default
 
 `palette()` once accepted any single string as a palette *name*, matched it
-against the two real palettes, and fell through to the default when it matched
+against the three real palettes, and fell through to the default when it matched
 neither. `palette("red")` therefore drew a plot in the standard blue and
 orange, silently:
 
@@ -232,8 +234,9 @@ data(medals) + line + x(country) + y(gold) + z(silver)
 
 That third one is worth reading closely, because it is the kind that is easy to
 mistake for a missing feature. A 3-D `line` is not unbuilt. It is ruled out, and
-the refusal says why: a `line` sorts by `x` and draws one value for each, so in a
-cube it would be sorted by an axis the reader cannot see. The direction it gives
+the refusal says why: a `line` sorts by `x` and draws one value for each, and a
+cube has no left to right, so the sort that makes a line a line has nothing to
+sort along. The direction it gives
 is `path`, which is `line` with that sort removed, and it does draw in space.
 
 Unsupported looks different, and here is one:
@@ -246,12 +249,12 @@ data(medals) + text + x(country) + y(gold) + z(silver) + label(country)
 
 In every case gog **refuses to render**. It does not quietly drop the channel
 and hand you a plot that looks finished. A silently ignored binding is the
-software equivalent of a silent letter: you learn a rule that isn't real.
+software equivalent of a silent letter: you learn a rule that is not real.
 
-All four refusals are **live**: the engine prints them as this page builds. The
-last one will stop being true when `z` on `text` is built, and the first three
+The four refusals above are **live**: the engine prints them as this page builds.
+The last one will stop being true when `z` on `text` is built, and the first three
 never will, which is the whole distinction. A check re-runs every refusal in this
-manual and fails if one has started drawing instead.
+book and fails if one has started drawing instead.
 
 ### Drawing it anyway
 
@@ -270,7 +273,7 @@ Set it on a line of its own, before the sentence you want drawn:
 | Shell | `export GOG_STRICT=0` |
 
 Only `0` works. `GOG_STRICT=false` and `GOG_STRICT=no` still refuse, because a
-switch this blunt is better with one spelling than with a list of words to guess
+switch this simple is better with one spelling than with a list of words to guess
 at.
 
 It then stays on for the rest of your session, which is the part worth
@@ -281,8 +284,8 @@ the plot you wanted.
 You get the plot with the refused part left out, so `bar + size(gold)` draws the
 bars and no size.
 
-The switch cannot reach a refusal your package makes before the engine is asked,
-because there is no half-drawn plot to offer. Your package catches a quoted
+The switch cannot reach a refusal your binding makes before the engine is asked,
+because there is no half-drawn plot to offer. Your binding catches a quoted
 column name, a British spelling, a sentence that does not begin with `data()`,
 and a malformed atom such as `box(whiskers = "middle")`.
 
@@ -296,13 +299,13 @@ and a malformed atom such as `box(whiskers = "middle")`.
 The Korean syllable 하 (*ha*) is pronounced identically in 하늘 (*haneul*, sky),
 하루 (*haru*, a day), and 하지만 (*hajiman*, but). Its reusability comes from
 stability, not from meaning.
-English composition betrays you instead: "ough" is a different sound in
+English composition is not stable: "ough" is a different sound in
 *though*, *through*, *cough*, *rough*, and *bough*. A gog expression must be
 하, never "ough": layering, faceting, or animating a plot may add to it, but
 may not change what the existing part meant.
 
 You can see the law by using one sub-expression in two sentences. `bar * bin`
-is a block: a mark and its transform, composed once.
+is one sub-expression: a mark and its transform, composed once.
 
 ```{r}
 data(gapminder_2007) + bar * bin + x(life)
@@ -314,10 +317,11 @@ Now put that same block inside a faceted sentence:
 data(gapminder_2007) + bar * bin + x(life) | facet(continent)
 ```
 
-The enclosing expression added panels. It did not reinterpret the block: each
-panel bins and counts exactly as the single plot did. That is the whole law,
-and it is what lets you read a long sentence one piece at a time. A block can
-be held in a variable too, `piled <- bar * bin`, and spoken wherever you like.
+The enclosing expression added panels. It did not reinterpret the
+sub-expression: each panel bins and counts exactly as the single plot did. That
+is the whole law, and it is what lets you read a long sentence one piece at a
+time. A sub-expression can be held in a variable too, `piled <- bar * bin`, and
+spoken wherever you like.
 
 ## Law 7: Minimum Syllable
 
@@ -330,7 +334,8 @@ alone either: ㅏ (*a*) must be written 아 (*a*), on a silent carrier.
 
 A mark is the silent consonant: `point` with no positions draws nothing,
 because there is nowhere to draw it. A position is the vowel that needs its
-carrier: `x(gdp)` without a mark answers no question. *What* sits at that x?
+carrier: `x(gdp)` without a mark answers no question. It does not say what sits
+at that x.
 gog refuses the incomplete syllable, and the refusal names the missing half:
 
 ```{r}
@@ -344,7 +349,7 @@ data(gapminder_2007) + point
 > Grammar is law; taste is advice.
 
 꿲 (*kkwek*) obeys every Hangeul syllable rule, you can pronounce it, yet no
-Korean word uses it. The same line runs through plots. This renders, because it is
+Korean word uses it. Plots work the same way. This renders, because it is
 grammatically sound; whether it *says* anything is your judgment, not the
 engine's:
 
@@ -354,9 +359,9 @@ data(gapminder_2007) + point + x(gdp) + y(life) +
   style(opacity = 0.05)
 ```
 
-That draws in silence. No legal combination is ever refused for being ugly: one
-that looks pointless today may be a real chart tomorrow, so refusing it now on
-taste grounds forecloses something you cannot see yet.
+It draws, and almost nothing is visible. No legal combination is ever refused
+for being ugly: one that looks pointless today may be a real plot tomorrow, so
+refusing it now on taste grounds removes something nobody has thought of yet.
 
 The law has a second half, and the two viewing angles of a cube show both at
 once. `space(turn = 390)` is a full circle plus 30 degrees, so it is the same view
@@ -368,9 +373,9 @@ well-formedness is enforced hard. [Space](space.qmd) draws both.
 
 The engine will not judge, so here is the advice instead. gog exists so that
 you can say a visualization in clean, minimal syntax. It will let you combine
-anything the grammar allows, and that includes combinations that bury your
-point. Be like a good writer, and do not let decoration distract from the main
-idea.
+anything the grammar allows, and that includes combinations that hide what you
+wanted to show. Be like a good writer, and do not let decoration distract from
+the main idea.
 
 That advice is about the picture, and it applies to the sentence too. Two
 sentences can build the identical plot while one is much harder to follow. A
@@ -392,17 +397,17 @@ how the light is made. Every declarative sentence leaves that part out, and
 something else has to supply it. In gog the engine does, and every stroke on
 these pages answers a sentence that never mentioned strokes.
 
-What you write in R becomes a small, engine-neutral description (which
+What you write in R becomes a small, engine-neutral specification (which
 marks, which columns on which channels, which transforms), and *that* is what
 renders.
 Today one renderer reads it, producing the SVGs on these pages; the same
-description, unchanged, is what the Python, Julia and JavaScript front ends
+specification, unchanged, is what the Python, Julia and JavaScript bindings
 already build, and what a GPU renderer would read later. This is also why the code in this book never mentions a
 pixel: the specification has none to mention.
 
 ### Why that renderer writes SVG
 
-The law says the description is neutral. It does not say which format comes out
+The law says the specification is neutral. It does not say which format comes out
 of the other end, and **SVG** is a choice with reasons.
 
 The first reason is the one you can see. An SVG stores shapes and coordinates,
@@ -422,8 +427,8 @@ That is what makes the promise of four bindings checkable: every sentence in thi
 book is drawn from R, Python, Julia and JavaScript, and the four files must match
 exactly. Comparing pictures instead would mean comparing colored dots, which
 changes with the version of whatever drew them. An exact test would become an
-approximate one, and a small disagreement between two languages could hide inside
-the tolerance.
+approximate one, and a small disagreement between two languages could pass as a
+rounding difference.
 
 The fourth is motion. A `play` animation is written into the same file as the
 plot, using SVG's own timing elements. A time-lapse is one picture that moves,
@@ -442,11 +447,11 @@ do, and the drift ended somewhere specific. `bar * bin` drew binned counts in on
 format and the raw, untransformed rows in the other. One specification, two
 different plots, and only one of them correct.
 
-That is Law 9 being broken from underneath. A renderer had quietly started
-deciding things the description was supposed to own, and nothing in the design
-made that visible. So the rule now is that there is exactly **one** renderer, and
-a second one waits for a shared stage that holds those decisions where neither
-can copy them.
+That is Law 9 broken by the renderer rather than by the specification. A renderer
+had quietly started deciding things the specification was supposed to own, and
+nothing in the design made that visible. So the rule now is that there is exactly
+**one** renderer, and a second one waits until those five decisions live in one
+shared layer that both renderers read.
 
 Raster output comes from converting the SVG rather than from a second renderer.
 `render_svg()` hands you the plot as ordinary text, in every binding:
@@ -464,7 +469,7 @@ looks like in the one place that is allowed to make them, which is the whole of
 the law above.
 
 The engine does that conversion itself in one case, and the case is worth seeing
-because it shows where the line falls. A plot that binds `play()` moves in a
+because it shows where the boundary sits. A plot that binds `play()` moves in a
 browser and nowhere else, so [`save_gif()`](play.qmd#taking-the-sequence-with-you)
 writes the same sequence as a picture that a slide or a message will play. That
 is still conversion in the sense this section means. The frames come out of the
@@ -480,14 +485,15 @@ it as well: a setting is available on **every mark whose geometry can carry it**
 behaves the same across them, and is absent exactly where composition already
 expresses the feature more capably. The first clause is No Exceptions: no
 mark-specific gap you have to memorize; the second is Orthogonality's *non-redundant*
-half: don't add a knob for what marks already do by combining.
+half: no setting for what marks already do by combining.
 
 That is why `style(border_color =, border_size =)`, an outline distinct from the
 fill, is available on **all five closed-glyph fills** (`bar`, `box`, `point`,
 `zone`, `surface`), not one of them: their perimeter is a shape you cannot trace
 by composition, so a setting is the only way to draw it. And why `style(pattern =)`, the paint's
-**texture**, is realized once per geometry: on the path strokes (`line`, `step`,
-`path`, `interval`, `rule`) as a **dash**, and on the four fills (`bar`, `box`, `area`, `ribbon`)
+**texture**, is realized once per geometry: on the five path strokes (`line`,
+`step`, `interval`, `path`, `rule`) as a **dash**, and on the five fills (`bar`,
+`box`, `area`, `ribbon`, `zone`)
 as a **hatch**: one aesthetic, one form per geometry, the way `color` is a stroke
 on a line and a fill on a bar. A curve fill (`area`, `ribbon`) takes the hatch (a
 region can be textured) but no *border*: its edge is a data curve, which already
@@ -503,7 +509,7 @@ yet"), never a silent nothing, so the gap is visible until it closes.
 
 ## Why these laws matter
 
-Each law fights the same enemy: **the expert's shortcut.**
+Each law refuses the same enemy: **the expert's shortcut.**
 
 Real users constantly request special cases:
 *"Can `bar` have a different color scale than `point`?"*
@@ -511,7 +517,7 @@ Real users constantly request special cases:
 *"Can I just write `alpha`? Everyone knows what it means."*
 
 Each request sounds reasonable in isolation.
-Each one erodes learnability non-linearly: the tenth exception makes
+Each one costs more than the one before it: the tenth exception makes
 the first nine harder to remember.
 
 The laws are the answer: not "no, because we don't want to," but

@@ -10,14 +10,14 @@ them?
 
 Every chapter of this book draws from a small set of shared tables. They are
 published beside the book as CSV files, one per table, so you can run any
-example in this book yourself. Each file sits at a fixed address:
+example in this book yourself. Each file has a fixed address:
 
 ```
 https://psychometrician.github.io/gog-book/data/<name>.csv
 ```
 
 `gapminder_2007.csv` holds the 142 countries the first chapter plots.
-`winds.csv` holds the wind observations behind the polar chapter. The full list
+`winds.csv` holds the wind observations the polar chapter draws. The full list
 is at the end of this page.
 
 Reading one takes a single call, `gog_table()`, which comes with the package
@@ -25,8 +25,7 @@ in all four languages. Nothing else needs installing.
 
 ## Reading a table
 
-`gog_table()` fetches any of the thirty-five by name. It is included with the
-package, so there is nothing to copy:
+`gog_table()` reads any of them by name:
 
 ::: {.panel-tabset}
 
@@ -67,23 +66,23 @@ stay text. Three columns in these tables need that, and the next section
 explains which and why.
 
 This one function is the whole reason the four packages carry anything that is
-not grammar. R reads a CSV in a single call and Python and Julia in a handful,
-but JavaScript has no CSV reader in its standard library, so the same work there
+not grammar. R reads a CSV in one call, and Python and Julia in a few.
+JavaScript has no CSV reader in its standard library, so the same work there
 is more than thirty lines. One country in `gapminder_2007.csv` is
 `"Congo, Dem. Rep."`, and its name holds a comma, so splitting each line on
-commas gives that row seven fields where the header has six. Asking a reader to
-paste that before drawing anything is what moved it into the packages.
+commas gives that row seven fields where the header has six. Nobody should
+have to paste thirty lines of parsing before drawing, so each package carries
+`gog_table()` instead.
 
-Nothing else is needed. `Downloads` in Julia, `urllib` in Python and `fetch` in
-JavaScript are all standard, so the helper costs you no dependency beyond the
-package you already installed to draw.
+Nothing else is needed. `urllib` in Python, `Downloads` in Julia and `fetch`
+in JavaScript are all standard, so `gog_table()` needs nothing beyond the
+package you already installed.
 
 The plot is the same in all four, because the table is the same file and the
 engine is the same program.
 
 Reading a different table is the same call with a different name:
-`gog_table("winds")`, `gog_table("medals")`. The list of names is at the end of
-this page.
+`gog_table("winds")`, `gog_table("medals")`.
 
 ## When the name is wrong
 
@@ -107,18 +106,22 @@ simply down. It sends you to correct a name that was already right.
 All four languages print the same sentences. Each one refuses the way the rest
 of the grammar refuses, so whatever catches a refused plot catches these too.
 
-## Two things a CSV cannot say
+## Two things a CSV cannot record
 
 A CSV is text. It records what a value is, never what kind of thing it is. Two
 kinds of information are therefore lost in the file and have to be restored when
 you read it. Both matter to the plot, so this book states them rather than
 hiding them.
 
-The order of a category. A column such as `direction` holds the eight points
+### The order of a category
+
+A column such as `direction` holds the eight points
 of the compass. Their order is N, NE, E, SE, S, SW, W, NW, which is the order a
 compass runs in. A CSV cannot record that, so every language sorts them
 alphabetically instead: E, N, NE, NW, S, SE, SW, W. The plot still draws, and it
-is wrong in a way that is easy to miss. Declaring the order fixes it:
+is wrong in a way that is easy to miss. This example reads the raw file on
+purpose: `gog_table()` already declares the order for you, and the point here
+is what happens without it. Declaring the order fixes it:
 
 ```{r}
 winds_local <- read.csv("data/winds.csv")
@@ -130,19 +133,25 @@ data(winds_local) + bar * count + x(direction) + polar()
 
 *"Given the winds read from the file: bars derived by count, x is direction."*
 
-The compass now runs the way a compass runs. Without the third line it would
-start at E and the wind rose would point the wrong way.
+The directions now follow the compass, from N clockwise to NW. Without the
+third line the circle would start at E, and the wind rose (the circular count
+of winds the polar chapter draws) would be wrong in a way that is easy to
+miss.
 
 Each language spells the declaration differently: R uses `factor(levels = )`,
-Python and JavaScript use `ordered()`, and Julia uses `ordered()` too. The
+and Python, Julia and JavaScript use `ordered()`. The
 [Data](data.qmd) chapter covers this in full, because declared order is part of
 the grammar and not a detail of file formats.
 
-Labels that look like numbers. Three columns in these tables hold text that a
-reader will turn into numbers unless told otherwise. `census.csv` has an `age`
+### Labels that look like numbers
+
+Three columns in these tables hold text that `gog_table()` would read as
+numbers unless you name them. `census.csv` has an `age`
 column of `0`, `5`, `10`, which are the names of age bands rather than
 quantities. `sessions.csv` has a `session` column of `01`, `02`, `03`, and a
-number cannot keep a leading zero, so `01` comes back as `1`. That is the whole
+number cannot keep a leading zero, so `01` comes back as `1`. `gm_eras.csv`
+has an `era` column of `1957` and `2007`, which name the two eras its rows
+compare rather than measure anything. That is the whole
 reason `gog_table()` takes a `text` argument:
 
 ::: {.panel-tabset}
@@ -152,6 +161,7 @@ reason `gog_table()` takes a `text` argument:
 ```r
 census <- gog_table("census", text = "age")
 sessions <- gog_table("sessions", text = "session")
+gm_eras <- gog_table("gm_eras", text = "era")
 ```
 
 ## Python
@@ -159,6 +169,7 @@ sessions <- gog_table("sessions", text = "session")
 ```python
 census = gog_table("census", text=("age",))
 sessions = gog_table("sessions", text=("session",))
+gm_eras = gog_table("gm_eras", text=("era",))
 ```
 
 ## Julia
@@ -166,6 +177,7 @@ sessions = gog_table("sessions", text=("session",))
 ```julia
 census = gog_table("census"; text = ["age"])
 sessions = gog_table("sessions"; text = ["session"])
+gm_eras = gog_table("gm_eras"; text = ["era"])
 ```
 
 ## JavaScript
@@ -173,13 +185,14 @@ sessions = gog_table("sessions"; text = ["session"])
 ```javascript
 const census = await gog_table("census", ["age"]);
 const sessions = await gog_table("sessions", ["session"]);
+const gm_eras = await gog_table("gm_eras", ["era"]);
 ```
 
 :::
 
-Without it, `age` becomes the numbers 0, 5 and 10, and an axis that should read
-as five labels is drawn as a scale from 0 to 10. The plot looks reasonable, which
-is what makes the mistake worth naming.
+Without it, `age` becomes numbers, and an axis that should show one slot per
+age band is drawn as a numeric scale from 0 to 85. The plot looks reasonable,
+so nothing tells you the axis is wrong.
 
 ## The tables
 
@@ -194,10 +207,11 @@ info <- data.frame(
 knitr::kable(info, row.names = FALSE)
 ```
 
-The tables are not all equally serious. The gapminder cuts are real figures from
-the Gapminder Foundation, released into the public domain. `iris_flowers`,
-`maunga_whau`, `quakes_fiji` and `titanic` are reshaped from tables included
-with R, and carry R's own license. Everything else is written for this book to make a
-particular point, and `census` in particular is two plausible city profiles
-rather than any real census. The terms for each are in
-[`data/LICENSE.md`](data/LICENSE.md).
+Not every table here holds real data. The tables whose names begin with
+`gapminder` or `gm` hold real figures from the Gapminder Foundation, released
+into the public domain. `iris_flowers`, `maunga_whau`, `quakes_fiji` and
+`titanic` are reshaped from tables included with R, and carry R's own
+license. `world_borders` is Natural Earth's public-domain outline of the
+countries. Everything else was written for this book, each table to show one
+thing; `census` is two plausible city profiles, not a real census. The terms
+for each are in [`data/LICENSE.md`](data/LICENSE.md).

@@ -5,7 +5,7 @@
 source("../R/setup.R")
 ```
 
-You have two columns. Do they move together, or do they differ by group? The
+You have two columns. Do they rise and fall together, or do they differ by group? The
 questions split by type: two measurements ask about
 *relationship*; a category and a measurement ask about *comparison*.
 
@@ -30,7 +30,7 @@ Owning chapters: [Point](../marks/point.qmd), [Scales](../scales.qmd).
 ## What is the trend through the cloud?
 
 Layer a derived line over the points; `+` stacks layers in one panel,
-and `* smooth` fits where the cloud is heading:
+and `* smooth` fits a line through the middle of the cloud:
 
 ```{r}
 data(gapminder_2007) + x(gdp) + y(life) +
@@ -42,23 +42,24 @@ The positions are written before any mark, so both layers share them;
 `color` is written after `point`, so only the points split.
 [Encoding scope](../encoding-scope.qmd) owns that rule.
 
-## How much was there, over the range?
+## How much was there at each point?
 
 A line says *where the value went*; an area says *how much there was*.
-It fills to zero so the quantity is the ink:
+It fills to zero, so the filled area is the amount:
 
 ```{r}
 data(actuals) + area + x(year) + y(sales)
 ```
 
 **One atom away.** If zero is not a meaningful floor for your variable,
-you wanted [`line`](../marks/line.qmd), not `area`.
+you want [`line`](../marks/line.qmd), not `area`.
 
 ## What is the typical value per group?
 
 A category and a measurement, summarized. The aggregation family
 (`mean`, `median`, `sum`, `max`, `min`, `quantile`) all read a bound `y` and
-collapse each group to one number:
+collapse each group to one number (`quantile` also needs a probability, such
+as `quantile(0.9)`):
 
 ```{r}
 data(gapminder_2007) + bar * mean + x(continent) + y(life)
@@ -99,7 +100,8 @@ involved; `bar` draws data as it arrives:
 data(medals) + bar + x(country) + y(gold)
 ```
 
-**One atom away.** Ranked, because comparison reads best sorted:
+**One atom away.** Ranked, because a comparison is easiest to read when it
+is sorted:
 
 ```{r}
 data(medals) + bar + x(country) + y(gold) + order(gold, desc = TRUE)
@@ -107,7 +109,7 @@ data(medals) + bar + x(country) + y(gold) + order(gold, desc = TRUE)
 
 There is no hidden counting here to surprise you: if you want a
 computation, you write its name. That is why this recipe and
-[How many of each?](one-variable.qmd) are different sentences.
+[How many of each?](one-variable.qmd#how-many-of-each) are different sentences.
 
 ## What this section refuses
 

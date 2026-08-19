@@ -5,11 +5,21 @@
 source("../R/setup.R")
 ```
 
+Every sentence in this book so far was written in R, so this chapter adds
+nothing to the grammar. What it adds is the four questions only R raises: how
+the two pipes reach `data()`, which of gog's words base R already uses, how a
+database connection arrives, and how the package installs. What a table is, and
+how one is passed, is in [Data](../data.qmd); it needs nothing installed beyond
+R.
+
+Every R block below was executed to draw the plot beside it, through the same
+engine every other chapter uses.
+
 ## Pipes
 
 R has two pipes in common use, and R users reasonably want to start a plot
-with the table they already have in hand. The short answer: the native pipe
-works, and gives you exactly the plot you would have written by hand.
+with a table they already have. The native pipe works, and draws exactly the
+plot the unpiped form draws.
 
 ```{r}
 gapminder_2007 |> data() + point + x(gdp) + y(life)
@@ -26,8 +36,8 @@ quote(gapminder_2007 |> data() + point + x(gdp) + y(life))
 
 Two facts about R combine to make that work, and both have to hold.
 
-The first is precedence. `|>` binds more tightly than `+`, so the pipe closes
-before the chain begins: it takes the table into `data()` and hands the
+The first is precedence. `|>` binds more tightly than `+`, so the pipe finishes
+before the sentence begins: it takes the table into `data()` and hands the
 finished result to `+`. Derivation with `*` sits between the two, which is
 where it needs to be, so a transform still binds to its mark first:
 
@@ -37,7 +47,7 @@ gm_all |> data() + bar * count + x(continent)
 
 The second is *when* it happens. The native pipe is a parser transformation:
 writing `df |> data()` produces the code `data(df)` before any of it runs.
-That matters more than it sounds, because `data()` reads the table's name off
+That timing decides everything, because `data()` reads the table's name off
 the expression you wrote. The pipe leaves it a plain name, so nothing is lost.
 Naming the table is the whole job of `data()` (see [Data](../data.qmd)), and it
 is what a later layer resolves its bare columns against.
@@ -70,11 +80,10 @@ pipe, or name the table yourself:
 gapminder_2007 %>% data(name = "gapminder_2007") + point + x(gdp) + y(life)
 ```
 
-Only the placeholder draws that warning, and it is worth being clear about what
-does *not*. Filtering on the way in is the pipe's most useful shape, and it stays
-silent: the expression you piped is not a plain name, but it is still yours and
-still distinct, so gog keeps it as the table's name rather than lecturing you
-about it.
+Only the placeholder raises that warning, and it is worth saying what does not.
+Filtering before `data()` is the pipe's most useful form, and it raises no
+warning. The expression is not a plain name, but it is still distinct, so gog
+uses it as the table's name.
 
 ```{r}
 gm_all |> subset(year == 2007 & continent == "Europe") |> data() +
@@ -116,8 +125,8 @@ and will not grow one, because that would be a second spelling for something
 the language already spells.
 
 This section is about R specifically. Julia's `|>` is a function-application
-operator with different behavior, and Python has no pipe at all, so their
-chapters will answer the same question their own way.
+operator with different behavior, and Python and JavaScript have no pipe of
+their own, so the question does not arise in the other three chapters.
 
 ## Nineteen names base R already uses
 
@@ -133,7 +142,7 @@ the packages R attaches for you:
 | `utils` | `data` `stack` |
 | `base` | `jitter` `max` `mean` `min` `order` `range` `sum` |
 
-Nine of the nineteen cannot hurt you, and the reason is a rule in R itself.
+Nine of the nineteen cannot affect you, and the reason is a rule in R itself.
 A mark is an *object* rather than a function, and so is a transform that takes no
 parameter. When R evaluates a call, it looks for a function of that name and
 skips any binding that is not one. So base R still answers, even with gog's
@@ -151,7 +160,7 @@ they resolve the name the same way:
 sapply(gapminder_2007["life"], mean)
 ```
 
-The other ten are functions, and those do take over: `box`, `data`,
+The other ten are functions, and a call does reach gog's: `box`, `data`,
 `density`, `jitter`, `order`, `palette`, `quantile`, `range`, `stack` and
 `title`. Qualify the one you want, and both remain available:
 
@@ -178,7 +187,7 @@ the message says so.
 range(c(3, 1, 4, 1, 5))
 ```
 
-`order` is the one that used to hurt. Sorting a data frame beside a plot is
+`order` is the one that used to break. Sorting a data frame beside a plot is
 ordinary work. gog's `order` returns an atom, not the row positions that `[`
 expects. So the failure used to arrive far from the line that caused it, and it
 named neither `order` nor gog. It now says which function you reached, and how to
@@ -207,14 +216,15 @@ mistake, because in each of them the argument you passed is one gog would
 refuse.
 
 The names stay as they are. A grammar keeps its own vocabulary, which is Law 3 and
-a decided question (spec §18). Renaming `order` to `sort_by` would trade a word
-every reader knows for one only this package uses. Where another *package* owns a
-name you want, attach `gog` after it so its names win, or qualify it as
-`gog::interval`. All four languages meet this wall from a different side, and
+a decided question (spec §18). Renaming `order` to `sort_by` would replace a word
+every reader knows with one only this package uses. Where another *package* owns a
+name you want, attach `gog` after it, so R finds gog's names first, or qualify it as
+`gog::interval`. Every language meets this problem, and each one asks you to
+solve it differently;
 [the grammar chapter](../grammar.qmd#names-the-host-language-already-uses)
 compares them.
 
-## Five idioms that still need a prefix
+## Five spellings that still need a prefix
 
 The nine objects above are safe in ordinary code, and safe inside `sapply()`,
 `lapply()`, `tapply()`, `mapply()`, `Map()`, `Reduce()` and `apply()`. Each of
@@ -322,6 +332,6 @@ R CMD INSTALL r-pkg/gog
 The engine is looked for in five places, in this order: the `GOG_CLI_PATH`
 environment variable, a `target/` build in a surrounding checkout, the copy
 inside the installed package, `gog-cli` on your `PATH`, and one last search
-upward from the working directory. A checkout outranks the bundled copy on
-purpose. Inside a checkout the bundled engine is a leftover build artifact, and
-preferring it is how a stale engine gets served to the person editing the engine.
+upward from the working directory. A checkout is searched before the bundled copy
+on purpose. Inside a checkout the bundled engine is a leftover build, and using
+it would give a stale engine to the person editing the engine.

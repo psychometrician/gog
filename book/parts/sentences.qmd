@@ -8,10 +8,9 @@ This part is gog's assembly chapter, and it moves through six groups.
 
 First the mechanics. The `+` operator layers marks in one panel, and the
 `*` operator derives a new statement from a mark and a transform. Position
-in the sentence then decides which layer a channel binds to. Second, the
-two partitions, which are one pair of operators doing two jobs: `|` and `/`
-split one plot into a disciplined grid of panels, and the same pair
-arranges separate plots on a page. Third, the picture-computing transforms:
+in the sentence then decides which layer a channel binds to. Second, one
+pair of operators with two uses: `|` and `/` split one plot into a regular
+grid of panels, and the same pair arranges separate plots on a page. Third, the picture-computing transforms:
 `flow` carries a magnitude through its stages, and `cluster` builds the
 tree that puts an axis in order.
 
@@ -21,11 +20,10 @@ packs a panel into regions. `map` flattens the earth onto the page, and
 `globe` keeps it round. Those five ask nothing new of the sentence;
 `network` is the one that does, placing a graph with no axes at all from a
 transform that lays out its nodes. Fifth is time, where `play` cuts the
-plot into frames and runs them in order. Last is the reader's own hand:
-`brush` picks rows out with the mouse, and the plot dims what you did not
-choose.
+plot into frames and runs them in order. Last is your own hand: `brush`
+selects rows with the mouse, and the plot dims what you did not select.
 
 The rule that holds this part together is Compositional Invariance: a
 composed expression means the same thing wherever it appears. What you
-build in one chapter can be carried into the next without changing under
-you, which is exactly what makes sentences worth building.
+build in one chapter can be carried into the next, and it still means the
+same thing. That is what makes sentences worth building.

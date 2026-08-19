@@ -459,7 +459,7 @@ each one:
 
 | Language | What the language does | To reach the other one |
 |---|---|---|
-| R | Nineteen kernel words collide with R names. Nine are objects, and a call skips them; ten are functions, and those do intercept the call | `base::order(x)`, `stats::density(x)` |
+| R | Nineteen kernel words collide with R names. Nine are objects, and a call skips them; ten are functions, and those mask R's own | `base::order(x)`, `stats::density(x)` |
 | Python | A star-import rebinds six builtins, because Python has no rule that protects them | `from builtins import sum` |
 | Julia | Two modules exporting one name is an error, never a silent choice | `Base.sum([1, 2, 3])` |
 | JavaScript | Nothing happens, because no name reaches your scope unless you import it | nothing to do |
@@ -473,8 +473,8 @@ is not one. Base R therefore still answers `mean(c(1, 2, 3))`, and
 package loads names every collision and cannot show you this distinction, which
 is why the message looks worse than the problem is.
 
-The words that take an argument are functions, and a function does intercept the
-call. `range(0.25, 0.75)` names a band, so base R's `range()` needs its prefix.
+The words that take an argument are functions, and a function does mask R's
+own. `range(0.25, 0.75)` names a band, so base R's `range()` needs its prefix.
 Seven of the ten report the mistake instead of returning a wrong answer.
 Handed a vector where a probability belongs, `range()` says which function you
 reached and names the other one. Three cannot: `box()`, `data(mtcars)` and

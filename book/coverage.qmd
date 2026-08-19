@@ -14,19 +14,20 @@ The ggplot2 column is dated on purpose, because nothing here can check it:
 **reference index of ggplot2 4.0.3, read 2026-07-26**
 [@wickham2026ggplot2pkg]. Every gog claim below is
 either a live plot on this page or a refusal the build re-runs, and ggplot2 is
-deliberately not a dependency of this book, so its half is the half that will age.
+deliberately not a dependency of this book, so its column is the one that can go
+out of date.
 
-The short list is the one people expect to be long, so it goes first and is not
-padded. The long list is the interesting one, because every item on it is one of
-four things, and three of the four were decided on purpose.
+The short list is the one people expect to be long, so it goes first. The long
+list is the interesting one, because every item on it is one of four things, and
+three of the four were decided on purpose.
 
 ## What gog draws that ggplot2 does not
 
-Three things, at the level of pictures.
+Two things, at the level of pictures, and a third that is not a picture.
 
 ### Anything in the cube
 
-Binding `z` stands a plot up off the page, and `surface` draws a height over a
+Binding `z` gives a plot a third position, and `surface` draws a height over a
 plane:
 
 ```{r}
@@ -40,15 +41,16 @@ Six marks draw in the cube (`point`, `path`, `bar`, `interval`, `box` and
 with the two partitions like anything else: `| facet(g)` gives one projected box
 per panel and `+ play(t)` runs the sequence inside one. ggplot2 has no
 depth position and no coordinate system that would read one, and says so outright
-in its own first chapter, so none of this is expressible in it: in R these plots
-come from plotly, rgl or lattice, each with a grammar of its own. Here it is one
-more vowel in the same sentence, and [Space](space.qmd) is the chapter.
+in the first chapter of its book, so none of this is expressible in it: in R
+these plots come from plotly, rgl or lattice, each with a grammar of its own.
+Here `z` is one more channel in the same sentence, and [Space](space.qmd) is the
+chapter.
 
 ### Texture, mapped from a column
 
 `pattern` maps a categorical column to a hatch on fills and a dash on strokes.
 Put it on the same column as `color` and the series are marked twice over,
-in one merged key:
+in one merged legend:
 
 ```{r}
 data(iris_flowers) + bar * mean + x(species) + y(petal_length) +
@@ -57,12 +59,9 @@ data(iris_flowers) + bar * mean + x(species) + y(petal_length) +
 ```
 
 ggplot2 has `linetype` for strokes and nothing for the inside of a filled shape;
-hatching a bar there means the third-party ggpattern. So the print-safe and
-color-blind-safe bar chart above is a gog sentence with no ggplot2 equivalent in
-the box.
-
-That is the whole list. Everything else gog draws, ggplot2 draws too, and
-usually with more knobs on it.
+hatching a bar there means the third-party ggpattern. So the bar chart above
+stays legible in grayscale and with color-blindness, and ggplot2 needs a second
+package for it.
 
 ### The same plot, without a word for it
 
@@ -77,13 +76,13 @@ data(gapminder_2007) + ribbon * density + x(continent) + y(life) +
   y_label("Life expectancy") + title("ribbon * density: no new word required")
 ```
 
-The half violin comes with it, for nothing, because `area` and `ribbon` already
+The half violin comes with it, because `area` and `ribbon` already
 differ by where a region closes: `area * density + x(continent) + y(life)`. That
 is what the orthogonality is *for*: not that the plot is possible, but that the
 vocabulary did not grow to make it so.
 
-The donut is the same story arriving from a *parameter* rather than a geom.
-ggplot2 spells it `coord_radial(inner.radius = )`, a number the space is told; here
+The donut is the same case arriving from a *parameter* rather than a geom.
+ggplot2 spells it `coord_radial(inner.radius = )`, a number given to the space; here
 the hole is not a property of the circle at all. It is a stretch of the radial axis
 with nothing standing on it, so a tree one level deep, drawn on an axis that starts
 below the first ring, is a donut:
@@ -100,10 +99,10 @@ icicle, which is what tells you the hole belongs to the scale rather than to the
 bend. The one reading that cannot state a hole is the plain pie, whose radius is a
 constant with no domain to widen.
 
-The marginal plot is the same story one level up. ggExtra adds `ggMarginal()` to
-ggplot2 and patchwork adds a layout algebra beside it; here a page is `|` and `/`
-between two plots, and the marginals fall out of one rule about what a shared
-column means ([Composition](composition.qmd)):
+The marginal plot is the same again, this time between whole plots. ggExtra adds
+`ggMarginal()` to ggplot2 and patchwork adds a layout algebra beside it; here a
+page is `|` and `/` between two plots, and the marginals follow from one rule
+about what a shared column means ([Composition](composition.qmd)):
 
 ```{r}
 (data(gapminder_2007) + bar * bin + x(gdp) + theme(height = 130)) /
@@ -111,30 +110,32 @@ column means ([Composition](composition.qmd)):
      (data(gapminder_2007) + bar * bin + y(life) + theme(width = 130)))
 ```
 
+That is the whole list. Everything else gog draws, ggplot2 draws too, and
+usually with more settings.
+
 ## What is different rather than missing
 
 The rest is not about pictures at all. These rows are differences in how the two
-packages work, not a scoreboard: each one follows from what its own package set
-out to be.
+packages work: each one follows from what its own package was built for.
 
 | | ggplot2 | gog |
 |---|---|---|
 | Where it runs | R | R, Python, Julia and JavaScript, one engine, the same SVG out of each |
-| What a plot *is* | R closures, alive in the session | an engine-neutral JSON description you can store, diff, send, or generate |
-| A sentence the package dislikes | a warning, and a plot with those rows removed (`Removed 12 rows containing missing values`) | no plot, and a message naming the sentence it would accept |
+| What a plot *is* | R closures, alive in the session | an engine-neutral JSON specification you can store, diff, send, or generate |
+| A sentence the package cannot draw | a warning, and a plot with those rows removed (`Removed 12 rows containing missing values`) | no plot, and a message naming the sentence it would accept |
 | What combines with what | documented per geom | one rule table, every pair decided, dumped from the engine into [Combinations](combinations.qmd) |
 | Picking out a subset with the mouse | outside the package: the plot is a still image, and the answer is plotly or shiny | `brush` is a word in the sentence, so the printed page shows the selection too. It dims what you did not pick and removes no rows. [Selection](selection.qmd) is the chapter |
-| Moving overlapping labels apart | ggrepel, a separate package, with a geom of its own to swap in | `text * repel`, a collision modifier beside `dodge`, `stack` and `jitter`, so it composes with the `text` mark that was already there. It draws a thin line back to the point when a label has moved far, and where no arrangement fits it still draws every label and reports how many still overlap |
+| Moving overlapping labels apart | ggrepel, a separate package, with a geom of its own to use instead | `text * repel`, a collision modifier beside `dodge`, `stack` and `jitter`, so it composes with the `text` mark that was already there. It draws a thin line back to the point when a label has moved far, and where no arrangement fits it still draws every label and reports how many still overlap |
 | Spellings per plot | often two (`geom_bar`/`geom_col`, `geom_histogram`/`stat_bin`) | one |
 | Saying "log" | `scale_x_log10()`, a scale function per transformation | `x(gdp, scale = "log")`, written on the binding |
 | Non-positive values on a log axis | dropped, with a warning | refused, with the fix named |
 | A mean under a log axis | the geometric mean | computed in the data's own units |
-| Centering a diverging ramp | `scale_color_gradient2(midpoint = 0)`, which pins the midpoint and stretches each arm to the data's own ends | `limits = c(-k, k)`, the atom that already states a domain. The middle of a domain *is* a midpoint, so no parameter is added, and the ramp is linear on both arms. |
+| Centering a diverging ramp | `scale_color_gradient2(midpoint = 0)`, which fixes the midpoint and stretches each side to the data's own ends | `limits = c(-k, k)`, the atom that already states a domain. The middle of a domain *is* a midpoint, so no parameter is added, and the ramp is linear on both arms. |
 
 ## What ggplot2 draws that gog does not
 
-Sorted by *why*, because the sort is the useful part. A gap that was argued and
-lost is a different thing from a gap nobody has looked at.
+Sorted by *why*, because the sort is the useful part. A gap with a written ruling
+behind it is a different thing from a gap nobody has examined.
 
 ### Refused, and the reason is on record
 
@@ -144,22 +145,22 @@ them live.
 
 | In ggplot2 | The ruling |
 |---|---|
-| `sec_axis()`, `dup_axis()` | A second y-axis is two coordinate spaces wearing one panel. Facet on the measure, or layer if the units really are shared. |
-| `annotate()` at page coordinates, `annotation_custom()`, `annotation_raster()` | A shape at pixel (120, 340) is a drawing command, and the description has to mean the same thing at another size, in a facet, or on a sphere. Annotation in *data* space needs no new word: layer a mark over a small table. |
-| `ggproto()`, user-written geoms and stats | The guarantees rest on a closed set. An atom the rule table never heard of is a hole in the completeness test, in No Exceptions, and in the wire format at once. Compose instead. |
+| `sec_axis()`, `dup_axis()` | A second y-axis is two coordinate spaces drawn in one panel. Facet on the measure, or layer if the units really are shared. |
+| `annotate()` at page coordinates, `annotation_custom()`, `annotation_raster()` | A shape at pixel (120, 340) is a drawing command, and the specification has to mean the same thing at another size, in a facet, or on a sphere. Annotation in *data* space needs no new word: layer a mark over a small table. |
+| `ggproto()`, user-written geoms and stats | The guarantees rest on a closed set. An atom missing from the rule table breaks the completeness test, breaks No Exceptions, and cannot be written into the JSON. Compose instead. |
 | `coord_flip()` | There is no `flip` atom, because orientation is read off which axis carries the categories. ggplot2 has since superseded it. |
 | `geom_bar()` beside `geom_col()`; `geom_histogram()` beside `stat_bin(geom = "bar")` | gog spells each of these one way. `bar` draws your numbers, `bar * count` counts them, `bar * bin` bins them. |
-| `geom_smooth(method = "lm")` | A family of fits behind one buried argument is exactly the enumeration this grammar refuses. A least-squares line is a different statistic from a local smoother, so it earns its own plain name when it is built. |
+| `geom_smooth(method = "lm")` | A family of fits behind one argument is exactly the enumeration this grammar refuses. A least-squares line is a different statistic from a local smoother, so it needs its own plain name. |
 | `scale_x_log10()`, `scale_x_sqrt()` as *names* | One parameter derives the family: `base = 2`, `base = 10`, `base = exp(1)`. |
 | `coord_polar(theta = "y")` | Which axis is the angle is read off the bindings, not chosen by an argument. |
 | `qplot()`, and plotting bare vectors | A plot is a mapping from a table. Put the vectors in one. |
 | `geom_vline()`, `geom_hline()` as separate marks | Three marks for one idea. They are one `rule`, which takes a *column*, so a table of thresholds draws all of them at once, and which is also the rug via `style(reach = "edge")`. |
-| plotmath, `label_parsed()`, `label_bquote()` | A TeX engine is one backend's typesetting. Unicode does the real work: superscript powers on log ticks, Greek, sub- and superscripts in a label. |
-| `coord_cartesian(xlim = )` | One name here covers two different operations. *Narrowing the domain and running the statistics again* is `limits`, which already counts the rows it left out aloud. *Magnifying the finished picture* changes how you look and not what the plot claims, so it earns no word: it is a button under every plot in the web edition, `−`, `+` and *fit*. |
-| plotly-style interaction: click a point, and read what it is | This earns no word in the kernel, and the survey of what other tools do is what decided it. Plotly hands your application an *event*; Vega-Lite puts a predicate over named fields in the specification; D3 asks the author for a key function, and uses it for animation rather than for selection. gog already holds all three. Reading a row belongs to the page, so the pointer does it, and in the web edition a click leaves that reading on the plot as a stamp. A predicate over a column is `brush`. A key is what an animation needs. |
-| a free-shape selection, drawn around some points with the mouse | The kernel reserved the word `lasso` for this and gave it up. Every other selection can be written down: `brush(gdp, at = c(1200, 45000))` names a range, and the printed page then shows the plot that range asks for. A free shape can only be written as a long list of corners, which nobody writes in a sentence. The *act* was not refused, only the word: in the web edition you draw the shape with the mouse and the sentence still says `brush`. |
+| plotmath, `label_parsed()`, `label_bquote()` | A TeX engine is one backend's typesetting. Unicode covers what readers need: superscript powers on log ticks, Greek, sub- and superscripts in a label. |
+| `coord_cartesian(xlim = )` | One name here covers two different operations. *Narrowing the domain and running the statistics again* is `limits`, which already counts the rows it left out aloud. *Magnifying the finished picture* changes how you look and not what the plot claims, so it needs no word: it is a button under every plot in the web edition, `−`, `+` and *fit*. |
+| plotly-style interaction: click a point, and read what it is | This needs no word in the kernel, and the survey of what other tools do is what decided it. Plotly hands your application an *event*; Vega-Lite puts a predicate over named fields in the specification; D3 asks the author for a row identity, and uses it for animation rather than for selection. gog already holds all three. Reading a row belongs to the page, so the pointer does it, and in the web edition a click leaves that reading on the plot as a [`stamp`](selection.qmd). A predicate over a column is `brush`. A key is what an animation needs. |
+| a free-shape selection, drawn around some points with the mouse | There is no `lasso` word in the kernel. Every other selection can be written down: `brush(gdp, at = c(1200, 45000))` names a range, and the printed page then shows the plot that range asks for. A free shape can only be written as a long list of corners, which nobody writes in a sentence. The *act* was not refused, only the word: in the web edition you draw the shape with the mouse and the sentence still says `brush`. |
 
-The refusal a ggplot2 reader is most likely to walk into is the first one, so
+The refusal a ggplot2 reader is most likely to meet is the first one, so
 here it is, live. Two series in different units, the second asking for its own
 scale:
 
@@ -174,8 +175,9 @@ The message is the pattern: what the rule is, and what to write instead.
 ### The host language's job
 
 These are computations, not pictures. gog draws what you hand it, and the fitted
-value, the theoretical quantile and the reshaped model belong upstream in R,
-Python, Julia or JavaScript, where you already have better tools for them.
+value, the theoretical quantile and the reshaped model belong in R,
+Python, Julia or JavaScript, before the plot, where you already have better tools
+for them.
 
 | In ggplot2 | Where it goes |
 |---|---|
@@ -186,37 +188,36 @@ Python, Julia or JavaScript, where you already have better tools for them.
 | `stat_function()`, `geom_function()` | evaluate the function onto a grid, then `line` |
 | `stat_unique()` | de-duplicate the table |
 | `cut_interval()`, `cut_number()`, `cut_width()` | cut the column, or use `bin` |
-| `mean_cl_boot()` | bootstrap the pair, then `ribbon * bounds(lower, upper)`. Its two neighbors are no longer here: `mean_sdl()` is `deviation` and `median_hilow()` is `range(0.025, 0.975)` with `point * median` |
+| `mean_cl_boot()` | bootstrap the pair, then `ribbon * bounds(lower, upper)`. Two helpers documented beside it are gog atoms instead: `mean_sdl()` is `deviation`, and `median_hilow()` is `range(0.025, 0.975)` with `point * median` |
 | `fortify()`, `autoplot()`, `map_data()` | reach the model or the shapefile in the host, hand over a table |
 | a correlation matrix | `cor()` where the data lives, reshape it long, then `zone + x(var1) + y(var2) + color(r)` |
 
 The boundary is not as clean as that table makes it look, and pretending
 otherwise would be dishonest. gog *does* compute: `bin` cuts, `density`
-estimates, `smooth` fits a local regression, `confidence` builds an interval, and
-`deviation` and `quantile` moved two rows off this table when they shipped. The
-working line is that a histogram has no bars until something bins, so the
-computation is the picture, whereas a quantile regression is a separate answer
-that happens to be drawn as a line. Where exactly that line falls is one of the
-design's open hard parts, not a settled rule.
+estimates, `smooth` fits a local regression, `confidence` builds an interval,
+`deviation` measures spread, and `quantile` cuts a distribution. The test we use
+is whether the computation is the picture. A histogram has no bars until
+something bins. A quantile regression is a separate answer that is then drawn as
+a line. Where the test lands in a new case is not settled.
 
-### Designed and owed
+### Missing, with the direction already settled
 
-Named in the kernel or written down as wanted, with nothing decided against
-them. These are scheduling, not argument.
+gog does not draw these. Each one belongs to a family the grammar already has,
+and nothing about them is disputed.
 
 | In ggplot2 | Here |
 |---|---|
 | `labs(subtitle =, caption =)` | more of the label family, and cheap |
-| `theme(legend.position =)` | it has its home in `theme()` and is waiting for a case that needs it |
-| `geom_smooth(se = TRUE)` | the smoother's band, its missing pair form, exactly as `confidence` is the mean's |
-| `geom_sf()`, `geom_map()`, `coord_sf()`, `borders()` | the `map` space draws, so a mark at a place on a projected earth is an ordinary sentence ([Map](map.qmd)). What is still owed is the polygon geometry underneath a choropleth: a filled region whose boundary comes from the data, with holes in it |
-| `geom_dotplot()` | a cluster-aware mesh, a second cutpoint rule for binning |
+| `theme(legend.position =)` | `theme()` is where this would be written. Every legend sits to the right of the plot area, and no setting moves it |
+| `geom_smooth(se = TRUE)` | the band around a smoother: the pair transform it does not have yet, exactly as `confidence` is the mean's |
+| `geom_sf()`, `geom_map()`, `coord_sf()`, `borders()` | the `map` space draws, so a mark at a place on a projected earth is an ordinary sentence, and `zone` with `group(country)` fills each region from a boundary the data carries, holes included ([Map](map.qmd)). What is still missing is reading a spatial file: a boundary has to arrive as an ordinary table of points, the shape `map_data()` gives one |
+| `geom_dotplot()` | a mesh that follows the data's clusters, and a second rule for choosing bin edges |
 | `scale_x_binned()`, equal-count bins | the other cutpoint rule, the same parameter |
 
 ### Not decided either way
 
-The useful output of the sweep. Nothing has been argued about these, in either
-direction, and they are now written down where a future session will find them.
+Nothing has been argued about these in either direction, so this table is the
+whole record of them.
 
 | In ggplot2 | What is missing here |
 |---|---|
@@ -224,17 +225,17 @@ direction, and they are now written down where a future session will find them.
 | `scale_*_manual(values = c(setosa = "red"))` | binding a color to a level *by name*, shown below |
 | `scale_y_reverse()` | a reversed continuous axis. `order(desc = TRUE)` reverses a categorical one. |
 | `scale_x_sqrt()`, `coord_trans()` | a power scale. The `log10`-style *naming* is refused; the capability never was. |
-| `guides(color = "none")`, `show.legend = FALSE` | turning a key off. A channel that earns a key always draws one. |
+| `guides(color = "none")`, `show.legend = FALSE` | turning a legend off. Every mapped channel earns one, always. |
 | `linewidth` as an aesthetic | a column mapped to stroke width. `size` can be set on a stroke for the whole layer, not mapped per row. |
 | `labs(alt = )`, `get_alt_text()` | alt text on the rendered plot |
-| `geom_label()` | text in a box, as against bare `text` |
+| `geom_label()` | text in a box, rather than bare `text` |
 | `geom_curve()` | a curved connector between two points; `path` joins them straight |
 | `after_stat()`, `after_scale()`, `stage()`, and `geom_count()` with them | sending a transform's *output* to a channel rather than to a position. `point * count + size(count)` is refused, because the count a transform invented is not a column the sentence can name, so sizing a point by how many rows landed on it has no spelling. One question, and it is the widest one on this list. |
 | `geom_contour()` over a supplied `z` | iso-lines of a field you computed. `path * density` traces a field gog estimated. |
 | `geom_text(angle = )`, and ggplot2's polar text generally | a rotated label. `text` places a name at a point in every space, upright, so a [sunburst](polar.qmd) cannot run its labels along their arcs and small wedges collide. general to `polar`, not owned by that plot. |
-| `theme(axis.text = element_blank())` and friends | saying a plot has **no readable axes** as a request. `theme(grid = )` removes gridlines and `tick_count = 0` is refused by design, so the silence has to be *earned from what an axis carries* rather than asked for: a pie is recognized from its bindings, a packing has no axes at all, and a partition's radial axis carries a ring index the transform invented and so draws no ticks, no rings and no name. Three recognitions doing a general job, and the residue is the case where a reader wants a *real* quantity's axis silent: the measure round a sunburst, say, which today takes `x_label("")` and keeps its numbers. |
+| `theme(axis.text = element_blank())` and friends | saying a plot has **no readable axes** as a request. `theme(grid = )` removes gridlines and `tick_count = 0` is refused by design, so the silence has to *follow from what an axis carries* rather than being asked for: a pie is recognized from its bindings, a packing has no axes at all, and a partition's radial axis carries the depth the transform invented and so draws no ticks, no rings and no name. Three recognitions doing a general job, and the residue is the case where a reader wants a *real* quantity's axis silent: the measure around a sunburst, say, which takes `x_label("")` and keeps its numbers. |
 
-The color one is worth seeing, because it is not a missing knob so much as a
+The color one is worth seeing, because it is not a missing setting so much as a
 missing *kind* of statement. Three species, three colors:
 
 ```{r}
@@ -250,10 +251,10 @@ way. Watch the legend:
 by_species <- iris_flowers[base::order(iris_flowers$species, decreasing = TRUE), ]
 data(by_species) + point + x(petal_length) + y(sepal_length) +
   color(species) + palette(c("tomato", "steelblue", "seagreen")) +
-  title("The same three colors, the other way up")
+  title("The same three colors, the rows reversed")
 ```
 
-Nothing is wrong here: a palette hands out its colors in the categories' order,
+Nothing is wrong here. A palette hands out its colors in the categories' order,
 that order is the axis's, and for a text column the axis order is the order the
 values first appear (a factor's levels are honored when you supply one). It is
 consistent and it is documented. What there is no way to say is *setosa is
@@ -266,8 +267,9 @@ The sweep was of ggplot2's reference index, so a plot that lives in one of its
 extensions may be missing from both columns. Networks were the largest such
 family, and they are drawn now: [Network](network.qmd) is the node-link
 diagram, and [Flow](flow.qmd) is the alluvial. One family is still absent with
-nothing built for it: any shape with a hole in it, which is the same geometry a
-choropleth and a ring-shaped filled contour both need.
+nothing built for it: a filled band around a hollow, which is what a ring-shaped
+density needs. The traced contour draws that field correctly and the filled one
+cannot.
 
 For a plot you can name, [Chart names](chart-names.qmd) is the dictionary and
 says which ones are drawn. For a question rather than a name, start at the

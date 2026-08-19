@@ -7,14 +7,13 @@ chapter was lost, and the world had the letters but not the reasons; only
 in 1940 did a surviving copy resurface. The letters worked the whole time.
 But a system whose reasons are lost cannot be extended, only used.
 
-This part is gog's reasons, shipped with the artifact on purpose. The nine
-laws the package never breaks, each with the temptation it exists to
-refuse. Why the engine says no when it does, and why every refusal comes
-with a direction. None of it is required to *use* gog: Parts I through IV
-never lean on it. It is here for the moment you want to know why the
+This part is gog's reasons, published with the package on purpose. It
+states the nine laws the package never breaks, and the shortcut each law
+exists to refuse. It says why the engine refuses what it refuses, and why
+every refusal comes with a direction. None of it is required to *use*
+gog: Parts I to IV never depend on it. It is here for the moment you want to know why the
 grammar is shaped the way it is, or want to predict what it will do in a
 case no chapter covers.
 
-The laws share one enemy, and it is worth naming before you read them:
-the expert's shortcut, the saved keystroke that costs the beginner a
-rule.
+The laws all refuse the same thing, and it has a name: the expert's
+shortcut, the saved keystroke that takes a rule away from the beginner.

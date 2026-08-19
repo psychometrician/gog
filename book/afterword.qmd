@@ -1,14 +1,14 @@
 # Afterword {.unnumbered}
 
 The 1446 book closed with a postface making two claims for its little
-alphabet: that the quick could learn it in a morning and anyone within ten
-days, and that it could write down any sound at all: wind, crane, cock,
-dog. This book closes by restating both, because they are its own measures
+alphabet: that a wise man could learn it before the morning was over, and a
+slow one within ten days, and that it could write down any sound at all: wind,
+crane, cock, dog. This book closes by restating both, because they are its own measures
 of success.
 
 ## The ten-days challenge
 
-The morning is behind you; here is the rest of the promise. For the next ten
+You have finished the morning; here is the rest of the promise. For the next ten
 days, bring one question a day from **your own data**, not the cast's,
 and answer it in one sentence. Start where the [cookbook](cookbook/one-variable.qmd)
 starts: what shape is the data, what do you want to know. By day three the
@@ -19,7 +19,7 @@ learned.
 
 If a sentence surprises you (renders when you expected a refusal, or
 refuses with a direction you disagree with), that is worth reporting. A
-grammar this small stays honest by being argued with.
+grammar this small stays correct only when readers argue with it.
 
 ## What is still to come
 
@@ -27,15 +27,16 @@ The kernel you learned is the *designed* vocabulary, and nothing in it is waitin
 to be drawn. **Every word draws.** Every mark, every space, every channel, and
 the one selection.
 
-What arrives next is a picture rather than a word, and the **choropleth** is the
-pattern to expect. It shades each country by a value, and what it needed was
-geometry: `zone` finds its sides six ways, and a **boundary** is one of them,
-drawn by the data itself. It cost no new word, because `group` already says which
-rows belong together. [Map](map.qmd) draws it.
+Growth arrives as new pictures rather than new words. The **choropleth** is the
+pattern: no atom was added for it. It shades each country by a value, and what
+it needed was geometry: `zone` finds its sides six ways, and a **boundary** is
+one of them, drawn by the data itself. It cost no new word, because `group`
+already says which rows belong together. [Map](map.qmd) draws it with the words
+the kernel already had.
 
-The same sentence you write in R becomes a small, engine-neutral description
-inside the package, and that is what the other front ends speak, same words,
-different capture idiom. All three speak it today, and each one's chapter is
+The same sentence you write in R becomes a small, engine-neutral specification
+inside the package. The other three bindings speak it too, with the same words
+and their own way of naming a column. Each one's chapter is
 its difference list, a page long apiece:
 [Python](bindings/python.qmd), [Julia](bindings/julia.qmd),
 [JavaScript](bindings/javascript.qmd).
@@ -58,24 +59,25 @@ plot(data(gapminder), point, x(col.gdp), y(col.life), color(col.continent))
 
 And one far goal, half of it now arrived. The engine runs inside the page:
 that is how a 3-D plot turns under your mouse in the web edition. What is
-left is the other half, recorded here so you can hold the project to it:
-every example in this book editable in place. Change `color(continent)` to
-`shape(continent)` and watch the plot redraw. The book you are reading is
-already the test suite for that future, because everything in it is a live
-specification.
+left is the other half, written down here so you can check later whether the
+project did it: every example in this book editable in place. Change
+`color(continent)` to `shape(continent)` and watch the plot redraw. The book you
+are reading is already ready for that change, because every example in it is a
+live specification.
 
 ## Writing quickly is not writing well
 
 I think Hangeul (한글) is a perfect writing system. I should admit that I may be
-biased, because it is the language I speak. What cannot be argued is that it is
-fast to read and fast to write.
+biased, because it is the alphabet I write with. What cannot be argued is that
+it is fast to read and fast to write.
 
 Writing quickly is not the same as writing well. There is no shortcut to good
 writing: you read good writing, and you practice. Visualization is no
 different. This tool is new and it has problems, and what I hope it can be for
 now is something worth practicing on.
 
-King Sejong made the alphabet. He was not its great author. I am not a great
+King Sejong made the alphabet. He did not write the books that were written
+with it. I am not a great
 author of plots either. What I do have is twenty years in this field as a user,
 watching and listening and reading. That is what I built from: a tool that is
 easy to learn and easy to use.

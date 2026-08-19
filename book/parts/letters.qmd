@@ -1,17 +1,19 @@
 # The letters
 
-After stating its system in brief, the 1446 book slowed down and walked the
-letters one class at a time (the initial consonants, the vowels, the final
-consonants), each class explained by the same method.
+After stating its system in brief, the 1446 book explained the letters one
+class at a time: the initial consonants, the vowels, the final consonants.
+Each class was explained by the same method.
 
 This part does the same for gog's letters. The marks are the consonants:
-visible forms that are silent until a position gives them somewhere to
-stand. The positions are the vowels: `x`, `y`, and `z`, plus the scales
+visible forms that draw nothing until a position says where they go. The positions are the vowels: `x`, `y`, and `z`, plus the scales
 that decide how a number, a category, or a date becomes a place on an
 axis. The refining channels are the finals: `color`, `size`, `shape`,
-`pattern`, `opacity`. Optional, and each earns the legend that decodes it.
-`group` sits outside both classes: it splits a mark without encoding
-anything, so it earns no key, and is closer to the space between words.
+`pattern`, `opacity`. Each is optional, and each earns the legend that
+decodes it. `group` sits outside both classes: it splits a mark without
+encoding anything, so it earns no legend, and it works like the space
+between words. `label` and `play` stand outside the syllable too: one
+supplies a `text` mark's words, and the other cuts the plot into frames
+and plays them in order.
 Around the letters sit three pieces that complete a layer. The table you
 bind once opens this part, because nothing can be drawn until a table is
 named. The transforms that derive new statements from a mark close it,
@@ -23,4 +25,4 @@ what refines it, what derives from it, what you can set on it, and what it
 refuses. The last two are always the last two, under those names. That
 sameness is deliberate: it is the No Exceptions law applied to a book's
 structure, and it means learning the second mark is faster than the first,
-and the fifth is nearly free.
+and by the fifth you already know the shape.

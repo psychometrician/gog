@@ -9,18 +9,18 @@ How much of the whole does each part take? A share of a whole has to be carried
 by something you can see. Flat, it is a **length**: a segment's height as a
 fraction of the column it sits in. Bent into a circle, it is an **angle**, and
 the column becomes a pie. There is a third answer, and it is the one that fits
-the most categories into the least page: **area**.
+the most categories into the least space: **area**.
 
 That is what `nest()` draws. Each row's measure becomes the size of a region,
 and the regions partition the panel. The plot has a name, treemap, and as with
 the pie there is no atom that spells it.
 
-That name has a precise origin and a mundane one. Ben Shneiderman's 80-megabyte
+That name has an exact and ordinary origin. Ben Shneiderman's 80-megabyte
 hard disk was full in 1990, and a directory listing could not tell him what was
 filling it, so he wrote a display that packs a rectangle with nested rectangles
-sized by what they hold [@shneiderman1992]. Thirty years on it is how a share of a
-whole gets drawn whenever there are more categories than a pie can carry, which is
-the argument this chapter opened with, arrived at from the other end.
+sized by what they hold [@shneiderman1992]. It is now the usual way to draw a
+share of a whole when there are more categories than a pie has room for. That is
+where this chapter started.
 
 ## One sentence, three spaces
 
@@ -42,7 +42,8 @@ data(gapminder_2007) + bar * sum * stack + y(population) + color(continent) +
   polar() + title("The same shares, as angles")
 ```
 
-And the same sentence again, packed:
+And the same sentence again, packed (one word is gone, and the paragraph below
+says why):
 
 ```{r}
 data(gapminder_2007) + bar * sum + y(population) + color(continent) +
@@ -50,34 +51,33 @@ data(gapminder_2007) + bar * sum + y(population) + color(continent) +
 ```
 
 Three pictures, one grammar. Nothing in any of them names a chart: a bar, summed,
-colored by continent, and then a word for the space. Asia is a little over half
+colored by continent, and then a word for the space. Asia is three fifths of
 the world's population in all three, and you can check that against the column,
-the pie and the packing in turn.
+the pie and the treemap in turn.
 
-One word did change, and it is worth the sentence: the flat and polar forms carry
+One word did change, and it is worth explaining: the flat and polar forms carry
 `stack` and the packed form does not. `stack` decides what happens when two marks
-land in the same place, which presupposes that they can. A packing gives every
-piece a region of its own, so there is no collision left to resolve, and gog
+land in the same place, and that assumes they can. A packing gives every
+region a place of its own, so there is no collision left to resolve, and gog
 refuses `stack` here rather than accepting a word with nothing to do.
 
 ## Why area, when a column already worked
 
-Read the column again and look for Oceania. At 0.3% of the world it is about
-**two pixels** tall, which is thinner than the line drawn around it. In the
-packing the same share is a strip about **six pixels** wide, because a column
-spends its whole length on one dimension and a packing has two to spend.
+Read the column again and look for Oceania. At 0.4% of the world it is about
+**two pixels** tall, so nearly half of it is the border drawn around it. In the
+packing the same share is a region about **six pixels** wide, because a column
+has only its length to divide, and a packing divides both width and height.
 
-Three times better is honest, and it is not a transformation. With five parts a
-packing buys you a little; the gain grows with the number of parts, because a
-column can only ever get longer while a panel gets subdivided in both directions
-at once. A packing is for the case where there are *many* shares and the question
-is which of them are large, and where a column would have run out of pixels long
-before it ran out of categories.
+The packing gives Oceania three times more room, and the share it reports is
+unchanged. With five parts a packing gains little; the gain grows with the
+number of parts, because a column can only ever get longer while a panel gets
+subdivided in both directions at once. A packing is for the case where there are
+*many* shares and the question is which of them are large. A column would have
+run out of pixels long before it ran out of categories.
 
-The cost is on the other side, and it is the objection that has always been made
-to the pie: two lengths can be compared exactly, and two areas cannot. If the
-comparison has to be precise, the flat column is still the plot, and this space
-is not trying to replace it.
+Area has one weakness, the same one the pie has: two lengths can be compared
+exactly, and two areas cannot. If the comparison has to be precise, draw the
+flat column.
 
 ## Two levels, from a position
 
@@ -89,23 +89,20 @@ data(gm_eras) + bar * sum + x(continent) + y(population) + color(era) +
   nest() + title("Two eras, inside each continent")
 ```
 
-Each continent is a block sized by its total across both eras, and inside it the
+Each continent is a region sized by its total across both eras, and inside it the
 two eras are packed against each other. The heavier lines are the continents; the
-thinner ones divide what is inside them. Asia's block is not only the largest, it
-is the most lopsided: half a century put far more people into its 2007 half than
-into any other continent's.
+thinner ones divide what is inside them. Africa's region is the most lopsided:
+more than three quarters of it is the 2007 half.
 
 The nesting is not new vocabulary. Wilkinson makes the point directly
-[@wilkinson2005]: a
-dimension hierarchy *is* a nested facet, so `x` here is doing what the outer
-level of a facet does, with the panel divided by share instead of into equal
-boxes.
+[@wilkinson2005]: a **dimension hierarchy** (his name for levels inside levels)
+*is* a nested facet. So `x` here is doing what the outer level of a facet does,
+with the panel divided by share instead of into equal boxes.
 
-The inner level comes from `color`, which sets what the second level can
-usefully be when the legend is what decodes it: a split with few enough values
-to read down the side. Countries inside continents, the treemap most often
-printed, would be a legend of 142 entries, and the section after next names the
-regions in place instead.
+The inner level comes from `color`, and the legend is what decodes it. So the
+second level needs few enough values to read down the side of the plot.
+Countries inside continents, the treemap most often printed, would be a legend
+of 142 entries, and the section after next names the regions in place instead.
 
 ## What a packed panel does not have
 
@@ -114,11 +111,11 @@ rather than a setting you could switch back on.
 
 A flat panel's horizontal direction *means* something: it is a variable, and a
 tick is a place on it. In a packing neither direction is a variable. Wilkinson
-puts it as sharply as it can be put: the two dimensions of a treemap "have no
+puts it plainly: the two dimensions of a treemap "have no
 intrinsic meaning related to the data because they can be reordered without
-changing the metric properties of the tree" [@wilkinson2005]. Two regions that touch are not near
-each other in the data, and moving one to the other side of the panel would not
-change a single share the plot reports.
+changing the metric properties of the tree" [@wilkinson2005]. Two regions that
+touch are not near each other in the data. Moving one to the other side of the
+panel would not change a single share the plot reports.
 
 So there is nothing to tick and nothing to label, and gog refuses to pretend
 otherwise:
@@ -133,9 +130,9 @@ What decodes a packed panel is the color legend, exactly as it decodes a pie.
 
 ## Naming the regions
 
-A legend works while there are few enough entries to scan. Past that it stops
-being a key and becomes a second plot to read, and the countries of the world
-are well past it. So put the name where the region is:
+A legend works while there are few enough entries to scan. With more entries it
+becomes a second thing to read, and 142 countries are far too many. So put the
+name where the region is:
 
 ```{r}
 #| message: true
@@ -147,31 +144,30 @@ data(gapminder_2007) + bar + x(continent) + y(population) + color(continent) +
 Two layers, and the second is the ordinary `text` mark: `label` says which
 column supplies the string, exactly as it does on a scatter. What it does *not*
 say is where to put it, because in this space nothing does. A label goes to the
-center of the region its own row was packed into, which is the same region the
-bar drew: one packing, read by both marks, so a name cannot end up in a
-rectangle that belongs to someone else.
+center of the region its own row was packed into. That is the region the bar
+drew, so both marks read one packing and no name is drawn in another country's
+region.
 
 Notice what is missing from that sentence: there is no `x` on the text layer and
 no `y` either, and the plot's own `y(population)` is doing both jobs at once. It
 sizes the regions, and sizing them is what places the labels. Everywhere else in
-this book a `text` mark needs two positions before it can be drawn at all; here
-it needs a measure and a string, and a packing does the rest.
+this book a `text` mark needs two positions before it can be drawn at all. Here
+it needs a measure and a string, and the packing places it.
 
-Count the names and there are far fewer than 142, which is what the line above
+Count the names and there are far fewer than 142, which is what the message above
 the plot is for. Most of the world's countries have a share narrower than
 their own name, so a label that does not fit its rectangle is not drawn. The
 engine says how many it left out, rather than letting you read the named
-countries as though they were all of them. Nigeria and Ethiopia are named and
-most of Africa is not, and every one of those unnamed countries still has a
-region exactly as wide as its share of the world. The picture is complete and
-the labeling is not, and the plot is the thing that tells you which.
+countries as though they were all of them. Egypt and Sudan are named and most of
+Africa is not. Every one of those unnamed countries still has a region exactly as
+wide as its share of the world. The picture is complete and the labeling is not,
+and the message above the plot says how many names are missing.
 
-That message is why this section is not the trap it looks like. A treemap that
-printed the two dozen names that happened to fit, and said nothing about the
-rest, would read as a complete labeling of two dozen countries.
+That message is why the missing names are safe: a treemap that printed only the
+names that fit, and said nothing, would read as a complete list.
 
-Three things move the number, and each is an atom you have already met: fewer
-categories, a bigger canvas with `theme(width =, height =)`, or smaller type
+Three things move the number, and each is a change you have already met: fewer
+categories, a larger plot with `theme(width =, height =)`, or smaller type
 with `style(size = )`. None of them is a setting for *labels* in particular, and
 none of them will make a name fit a region narrower than the word.
 
@@ -186,14 +182,20 @@ data(gapminder_2007) + point + x(gdp) + y(life) + nest()
 ```
 
 An area cannot be negative, so a measure that runs below zero has no packing.
-Flat, a bar below the baseline reads as a loss; a region has no direction to run
-in, and a treemap whose parts no longer sum to the whole is a treemap that lies.
+On the flat page, a bar below the baseline points down, and the reader can see
+the sign. A region has no direction to point in, and its parts would no longer
+sum to the whole.
+
+```{r}
+#| error: true
+data(cashflow) + bar * sum + y(delta) + color(step) + nest()
+```
 
 A log scale is refused too, and the reason is the one worth remembering: a
 region's size is its **share of the total**, which is arithmetic on the values
 themselves. Re-spacing them changes what a distance means, and a packing has no
-distances. Accepting the scale would have left the picture byte-for-byte
-identical, which is the one thing the engine will not do quietly.
+distances. Accepting the scale would draw exactly the same picture, and gog
+refuses a word that changes nothing.
 
 ```{r}
 #| error: true
@@ -201,19 +203,26 @@ data(gapminder_2007) + bar * sum + y(population, scale = "log") +
   color(continent) + nest()
 ```
 
+One more thing is not offered. The packing is *squarified*, after Bruls, Huizing
+and van Wijk [@bruls2000]: each group of regions is placed so its rectangles come
+out as close to square as they can. The simpler method divides one direction at a
+time, which makes long thin regions, and a long thin area is the hardest kind to
+judge. gog offers no choice here, because a second layout would add a word that
+draws nothing new.
+
 ## The order is yours
 
 Published treemaps usually sort by size, largest first, because the packing
-algorithm produces squarer rectangles that way. gog does not do it for you: the
+produces squarer rectangles that way. gog does not do it for you: the
 regions follow the order the categorical axis already has, so the sort is
-something you say rather than something the layout decides behind you.
+something you write, not something the layout decides for you.
 
 ```{r}
 data(gm_eras) + bar * sum + x(continent) + y(population) + color(era) +
   order(population, desc = TRUE) + nest() + title("Largest continent first")
 ```
 
-That is the same `order()` that turns a bar chart round, doing the same job. Had
+That is the same `order()` that reorders a bar chart, doing the same job here. Had
 the packing sorted on its own, `order()` would have been a word with no effect
 here, and the atom would have quietly meant less than it says.
 
@@ -226,18 +235,5 @@ data(gapminder_2007) + bar * sum + y(population) + color(continent) +
   order(population, desc = TRUE) + nest()
 ```
 
-That refusal is not the packed space's. It is `order()`'s, and it was always
-true: the same sentence flat, a single divided column, had been accepting the
-word and dropping it in silence. Writing this chapter is what found it, which is
-the ordinary way a new space proves its value: it asks an old atom a question
-nobody had asked.
-
-## Where the rectangles come from
-
-The packing is *squarified*, after Bruls, Huizing and van Wijk [@bruls2000]: each
-run of regions is laid down in the strip that keeps its rectangles closest to square.
-The naive alternative cuts one direction at a time, which turns any long tail
-into slivers, and slivers are the shape an area is hardest to judge. There is no
-setting for this. One layout that fixes a real defect is a feature; a second one
-beside it, for completeness, would be the kind of vocabulary this grammar exists
-to refuse.
+That refusal is not the packed space's. It is `order()`'s, and it holds in every
+space.

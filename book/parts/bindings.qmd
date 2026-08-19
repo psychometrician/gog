@@ -1,30 +1,34 @@
 # The host language
 
+The 1446 book had no host language to explain: its letters were the whole
+system. gog's letters live inside four programming languages, and this
+part is what that costs.
+
 Everything so far has been the grammar, and the grammar is the same
-wherever you write it: one engine reads one specification, so a plot means
-what it means regardless of which language built the sentence.
+wherever you write it. One engine reads one specification, so the same
+sentence draws the same plot in every language.
 
-This part is the remainder. Some things belong to the language you are
-typing in rather than to the grammar, and they cannot be stated once for
-everybody: how a table gets into `data()`, how a plot displays in a
-notebook, and how gog's `+` sits beside the operators the language already
-has. Those are real questions, and answering them in the grammar chapters
-would mean answering them wrongly for two readers out of three.
+This part is what is left over. Some things belong to the language you
+type in rather than to the grammar, and they cannot be stated once for
+everybody. A table has to reach `data()`. A plot has to display in a
+notebook. And gog's `+` has to work beside the operators the language
+already has. Those are real questions, and answering them in the grammar
+chapters would answer them wrongly for three readers out of four.
 
-All four bindings run today, so all four have a chapter here
+All four bindings work, so all four have a chapter here
 [@rcore2026; @vanrossum2009python; @bezanson2017julia; @ecma2025javascript].
 None of them required the grammar chapters to be rewritten: that is the reason
 for keeping this part separate.
 
-They are ordered R, Python, Julia, JavaScript, and the order says something. The
+They are ordered R, Python, Julia, JavaScript, and the order has a reason. The
 first three write the same sentence three times: the operators are identical, and
 the only thing that moves is how a column is named, from a bare `gdp` to `col.gdp`
 to `:gdp`. If you have read the R in this book you can read the Python and the
 Julia already. JavaScript is the one that genuinely reads differently, because it
 is the only one of the four that cannot give `+`, `*`, `|` and `/` new meanings, so
-it spells them as words. It is last for that reason rather than by seniority.
+it spells them as words. It is last for that reason, not because it is the newest of the four.
 
-The four chapters are also the claim being tested. Every sentence in this book
-was translated and run through every binding, and they draw the same plots to
-the byte, refuse the same sentences in the same words, and differ only
+The four chapters are also the proof. Every sentence in this book was
+translated and drawn by every binding. The four produce byte-identical
+plots and refuse the same sentences in the same words. They differ only
 where a chapter is about the host language itself.

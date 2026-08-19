@@ -5,25 +5,25 @@
 source("../R/setup.R")
 ```
 
-Which visible form should your data take? A **mark** is the visible form your
-data takes: a dot, a bar, a line. Choosing the right mark is the first question
-in every plot. The answer depends on the **types of your variables** and the
-**question you are asking**.
+Which visible form should your data take? A **mark** is
+that visible form: a dot, a bar, a line. Choosing the mark is the first
+decision in every plot. The answer depends on the *types of your variables*
+and the *question you are asking*.
 
-If you come from ggplot2, a mark is close to a geom, and one difference is
-worth knowing early. Many geoms carry a statistic inside them.
+If you have used ggplot2, a mark is close to a geom, and one difference is
+worth knowing early. Many geoms compute a statistic before they draw.
 `geom_histogram()` bins your data and then draws bars. `geom_smooth()` fits a
 curve and then draws a line. A mark never does that. A mark is only the shape,
 and the statistic is a separate word: a histogram is `bar * bin`, a trend line
 is `line * smooth`. A geom tends to name a chart. A mark names a shape, and
-there are thirteen of them.
+there are fourteen of them.
 
 gog infers variable type automatically from your data:
 
-- **Continuous**, any numeric column (`gdp`, `temperature`, `score`)
-- **Categorical**, any string column (`continent`, `country`, `species`)
-- **Date/time**, any `Date` or `POSIXct` column; the axis reads as a calendar
-  (see [Scales](../scales.qmd))
+- **Continuous.** Any numeric column (`gdp`, `temperature`, `score`).
+- **Categorical.** Any string column (`continent`, `country`, `species`).
+- **Date/time.** Any `Date` or `POSIXct` column; the axis reads as a calendar
+  (see [Scales](../scales.qmd)).
 
 ---
 
@@ -65,8 +65,8 @@ data(gapminder_2007) + bar * proportion + x(continent) +
 
 ### Continuous × Continuous
 
-Both variables are numeric. The natural questions are about **relationships**,
-**trends**, and **patterns**.
+Both variables are numeric. The natural questions are about relationships,
+trends, and patterns.
 
 ```{r}
 # Is there a relationship? → scatter
@@ -75,7 +75,7 @@ data(gapminder_2007) + point + x(gdp) + y(life) + x_label("GDP per capita") +
 ```
 
 ```{r}
-# Smooth the relationship → LOESS trend line
+# Smooth the relationship → fitted trend line
 data(gapminder_2007) + x(gdp) + y(life) +
   point + color(continent) +
   line * smooth +
@@ -89,19 +89,19 @@ data(actuals) + area + x(year) + y(sales) + y_label("Sales") +
   title("Quantity: area")
 ```
 
-`line` and `area` draw the same boundary and mean different things by it. A
-line says *where* the value went; an area says *how much* there was, so it
-fills to zero and the quantity is the ink. Choose `area` when zero is a real
-number for your variable, and `line` when it is not.
+`line` and `area` draw the same boundary and give it different meanings. A
+line says *where* the value was; an area says *how much* there was, so it
+fills to zero and the filled region is the quantity. Choose `area` when zero
+is a true baseline for your variable, and `line` when it is not.
 
-When there is a *spread* to show at each x, such as a min–max range or a
-confidence band, [`ribbon`](ribbon.qmd) fills between a low and a high
+When there is a *spread* to show at each x, such as a lowest-to-highest range
+or a confidence band, [`ribbon`](ribbon.qmd) fills between a low and a high
 boundary that a `range` transform supplies. Layer a `line * mean` through it
 and you have the familiar trend with a band around it.
 
-And when the *order of the rows* is itself the story, [`path`](path.qmd) connects
-them in the table's order rather than sorting by x, so the stroke may double back
-or return where it began. That is the connected scatterplot: two measurements on
+And when the *order of the rows* is what you want to show,
+[`path`](path.qmd) connects them in that order rather than sorting by x, so
+the stroke may reverse or return to where it began. That is the connected scatterplot: two measurements on
 the axes and time in the joining.
 
 ```{r}
@@ -109,16 +109,16 @@ the axes and time in the joining.
 data(gapminder_asia) + path + x(gdp) + y(life) + color(country) +
   style(arrow = "end") +
   x_label("GDP per person") + y_label("Life expectancy") +
-  title("Route: path (the head is 2007)")
+  title("Route: path (the arrow points to 2007)")
 ```
 
 Layered *over* any of these, [`rule`](rule.qmd) marks a value on one axis and
-spans the other: a threshold line, or, reaching only a little way in from the
-edge, a rug showing where the observations actually sit. Layered *under* them,
+spans the other: a threshold line, or a rug. A rug reaches only a little way
+in from the edge and shows where the observations are. Layered *under* them,
 [`zone`](zone.qmd) shades a rectangle the same way: bounded where you give it a
-pair of columns, spanning the panel where you do not. Let `bin` cut the pairs
-instead of naming them and the same mark tiles the panel with counted cells,
-which is a heatmap.
+pair of columns, spanning the panel where you do not. Give `zone` a `bin`
+instead of the pair of columns, and the same mark tiles the panel with
+counted cells: the heatmap.
 
 ```{r}
 # One position, the panel supplies the other → rule
@@ -132,7 +132,7 @@ data(gapminder_2007) + point + x(gdp) + y(life) + style(opacity = 0.45) +
 ### Categorical × Continuous
 
 One axis groups, the other measures. The natural question is
-**how the measurement differs across groups**.
+*how the measurement differs across groups*.
 
 ```{r}
 # Mean value per group → bar
@@ -151,13 +151,13 @@ For the *shape* of each group rather than every point, [`box`](box.qmd) draws
 the five-number summary as `box + x(continent) + y(life)`: median, quartiles,
 and whiskers to the extremes. [`ribbon *
 density`](ribbon.qmd#the-violin-a-distribution-per-category) draws the whole
-estimated distribution that summary is a summary of, which is the violin. When the
-points *are* the picture but overlap hides them,
-[`point * jitter`](../transforms.qmd) spreads the pile sideways, the jittered
-strip plot.
+estimated distribution behind that summary: the violin plot. When every point
+matters but the points overlap,
+[`point * jitter`](../transforms.qmd#jitter-spread-sideways-along-the-category)
+spreads them sideways: the jittered strip plot.
 
-The path and region marks take a category here too, joining one summary per
-group instead of standing a bar on each:
+`line` and its relatives take a category here too, joining one summary per
+group instead of drawing a bar on each:
 
 ```{r}
 # One value per group, joined → profile
@@ -167,17 +167,20 @@ data(gapminder_2007) + x(continent) + y(life) +
   title("Profile: line * mean")
 ```
 
-Bars compare, profiles trace. A profile is the weaker claim of the two, since
-the segments run through space where nothing was measured. It is worth drawing
-when the categories have a direction, such as an ordered scale or a size band,
-or no direction at all. A closed set of categories bent into a circle is the
-radar, in [Polar](../polar.qmd). [`area`](area.qmd) fills the same boundary,
+A bar compares one group with another; a profile traces a change across the
+groups. The profile is the weaker claim of the two, since its segments run
+through space where nothing was measured. It is at its best when the
+categories have an order, such as a rating scale or size bands read smallest
+to largest. The same categories drawn around a circle give the radar chart,
+in [Polar](../polar.qmd). [`area`](area.qmd) fills the same boundary,
 [`step`](step.qmd) holds it flat across each slot, and [`ribbon *
-range`](ribbon.qmd) bands the spread.
+range`](ribbon.qmd) fills the spread as a band.
 
 ---
 
 ## Quick reference
+
+A `—` in the y column means the question needs no second variable.
 
 | x | y | Mark + transform | Question |
 |---|---|---|---|
@@ -212,29 +215,30 @@ Three variables put a third position in the sentence rather than a new mark fami
 | Continuous | Continuous | Continuous | `point` | Relationship, in three? |
 | Continuous | Continuous | Continuous | `path` | A route through three? |
 | Continuous | Continuous | Continuous | [`surface`](surface.qmd) | A height over a plane? (needs a **grid**) |
-| Categorical | Categorical | — | `bar * bin` + `space()` | How many, per pair? |
+| Categorical | Categorical | — | `bar * count` + `space()` | How many, per pair? |
 
-Every **Categorical / Continuous** row above can be read the other way round.
-`bar`, `box` and `interval` sit in a slot on one axis and measure along the
-other, and they read which is which off the bindings. Swapping the two
-positions therefore lays the chart on its side. `box + x(life) + y(continent)`
-is the horizontal box plot, and `bar + x(gold) + y(country)` the horizontal
-bar. That is
-the whole of it, because there is no `flip` atom to learn.
+Every **Categorical / Continuous** row above can also be read with the two
+axes swapped. `bar`, `box` and `interval` sit in a slot on one axis and
+measure along the other, and the bindings say which is which. Swapping the
+two positions therefore draws the same plot horizontally.
+`box + x(life) + y(continent)` is the horizontal box plot, and
+`bar + x(gold) + y(country)` the horizontal bar. Nothing else is needed,
+because there is no `flip` atom to learn.
 
 ---
 
-## Marks come in families
+## Marks form families
 
 The mark list looks like a set to memorize, one entry at a time. It is not, for
-the same reason the consonants of Hangeul (한글) are not fourteen shapes: the
+the same reason the fourteen consonants of Hangeul (한글) are not fourteen
+unrelated shapes: the
 letters are *featural*, built so that most of them are another letter with a
 single feature changed. ㅋ (*k*) is ㄱ (*g*) with a stroke added, and once you
 know ㄱ you have most of ㅋ already.
 
-The marks are built the same way. Some pairs share their **entire channel row**,
+The marks are built the same way. Some pairs share their *entire channel row*,
 meaning everything they require, accept and refuse of your columns is identical,
-and they part only on the geometry they draw:
+and they differ only in the geometry they draw:
 
 ```{r}
 #| echo: false
@@ -269,7 +273,7 @@ differs <- c(
   "box, interval" = "a body that computes its **own five-number summary**, against a span whose **ends you supply**"
 )
 
-cat("| Family | Identical channel row | They part only on |\n")
+cat("| Family | Identical channel row | They differ only in |\n")
 cat("|---|---|---|\n")
 for (f in families) {
   key <- paste(sort(f), collapse = ", ")
@@ -280,19 +284,19 @@ for (f in families) {
 }
 ```
 
-The second member of a pair is nearly free to learn. You already know every
+The second member of a pair takes almost nothing to learn. You already know every
 question it will ask of your data, because it asks exactly the ones its sibling
 asks, so what is left is a single sentence about what it draws. The families sit
 close to one another too, often a single cell apart, which is where the
 structure visible in [Combinations](../combinations.qmd) comes from.
 
-This is a fact about *learning* the set, never a license to grow it. A mark that
+This is a fact about *learning* the set, never a reason to grow it. A mark that
 is another mark with one feature changed belongs only when that feature
 is a geometry nothing else can express. `step` qualifies, because "hold the
 value until it changes" is not something a channel, a transform or a setting can
 say. A thick line does not, because `style(size = )` already says it.
 
-Marks are Lego bricks, and this rule is what that comparison is good for. You
+Marks are Lego bricks, and this rule is the point of that comparison. You
 do not get a new brick because you want to build a new model. Almost every
 model is a new arrangement of bricks you already have. A new brick is cut only
 when the shape you need is one that no existing brick has. That is the test a
@@ -304,11 +308,11 @@ mark has to pass here: a new geometry, never a new chart.
 
 Just as some letter combinations cannot be pronounced, some mark + variable type
 combinations cannot be rendered meaningfully. Each is refused outright, and
-nothing is drawn: a plot you can see is a plot the grammar agreed to.
+nothing is drawn: if a plot was drawn, the grammar accepted it.
 
-The three distributional transforms need a number line to spread along, so a
-category is refused on the axis they read, and each refusal names the atom that
-asks the same question of categories:
+The three distributional transforms need a number line. A category on the
+axis they measure is refused, and each refusal names the atom that asks the
+same question of categories:
 
 | Combination | Problem | Use instead |
 |---|---|---|
@@ -317,5 +321,8 @@ asks the same question of categories:
 | `point * smooth + x(category)` | `smooth` fits a curve along a **number line** | `bar * mean + x(category) + y(value)` |
 
 All three are rendered as live refusals in [What `bin`, `density` and `smooth`
-refuse](../transforms.qmd), so the messages on this page cannot drift from the
-ones the engine actually gives.
+refuse](../transforms.qmd#what-bin-density-and-smooth-refuse); the table
+above is this page's summary of them.
+
+The next fourteen chapters give each mark its own page, starting with
+`point`.

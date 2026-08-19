@@ -10,7 +10,7 @@ The grammar does not change when the language does. One engine reads one
 specification, so a sentence means what it means whoever wrote it, and everything
 in this book up to here is as true in Julia as it is in R.
 
-Of the four languages, Julia is the one with the least to say for itself, and
+Of the four languages, Julia needs the fewest words of explanation, and
 that is the interesting fact about it. It is the only binding besides R that can
 spell all four assembly operators, and its symbols keep a column apart from a
 value the way R's bare names do. So a sentence differs from the R above it by one
@@ -35,8 +35,9 @@ jl_plot("data(gapminder_2007) + point + x(:gdp, scale = \"log\") + y(:life) + co
 ```
 
 That is [A first plot](../first-plot.qmd) with a colon in front of each column.
-The colon is doing the work R's bare name does and Python's `col.` accessor has to
-be built for: in this grammar a plain string is how you spell a *value*, as in
+The colon is doing the work R's bare name does and the `col.` accessor Python and
+JavaScript share has to be built for: in this grammar a plain string is how you
+spell a *value*, as in
 `style(color = "tomato")` or `palette("okabe")`, and a symbol is visibly not a
 string. The grammar's oldest rule, that a channel takes a column and never a
 value, is therefore in the syntax rather than in a check.
@@ -49,7 +50,7 @@ jl_error("data(gapminder_2007) + point + x(\"gdp\") + y(:life)")
 ```
 
 The mistake in the other direction is refused the same way, and for the same
-reason ([Setting is not mapping](../style.qmd)):
+reason ([Setting vs mapping](../style.qmd)):
 
 ```{r}
 #| echo: false
@@ -74,8 +75,8 @@ this book, so it was measured rather than assumed:
 | `a \| b + c` | `(a \| b) + c` | `a \| (b + c)` |
 
 Only the last row differs, and it is the shape where something is written *after*
-a facet. None of the 500 sentences in this book has it, and R refuses that shape
-anyway, so every sentence the manual teaches parses identically in both
+a facet. No sentence in this book has it, and R refuses that shape
+anyway, so every sentence this book teaches parses identically in both
 languages. Left associativity is what saves the first row: `|` sitting beside `+`
 rather than below it does not matter when everything to its left was written
 first.
@@ -94,38 +95,42 @@ And so does a transform, with `*` binding tighter than `+`:
 jl_plot("data(gapminder_2007) + bar * mean + x(:continent) + y(:life)")
 ```
 
-## Ten words need naming twice
+## Nine words need naming twice
 
-This is Julia's one real wrinkle, and every Julia programmer has met it before.
-Ten of the fifty-one kernel words are also names in `Base` (`bin`, `count`, `sum`,
-`min`, `max`, `range`, `size`, `step`, `stack`, `map`), and Julia will not silently
-pick a winner between two modules that export the same name. Using one bare gives an
-`UndefVarError` with a hint rather than the wrong function, which is the good
-outcome, but it does mean a second import line:
+This is the one thing Julia does differently, and every Julia programmer has met
+it before. Nine of the kernel's words are also names in `Base` (`count`, `sum`,
+`min`, `max`, `range`, `size`, `step`, `stack`, `map`), and Julia will not
+silently choose between two modules that export the same name. Writing one of
+them without the import gives an `UndefVarError` with a hint, rather than the
+wrong function, which is the good outcome, but it does mean a second import
+line:
 
 ```{r}
 #| echo: false
 jl_show("println(bar * bin)\nprintln(Base.sum([1, 2, 3]))")
 ```
 
-The preamble that made that work is the one every snippet on this page runs, and
+The preamble that made that work is the one every block on this page runs, and
 it is worth seeing in full:
 
 ```julia
 using GrammarOfGraphics
-using GrammarOfGraphics: bin, count, sum, min, max, range, size, step, stack, map
+using GrammarOfGraphics: count, sum, min, max, range, size, step, stack, map
 ```
 
-`Base.sum` is still there, as the second line of output shows.
+`Base.sum` is still there, as the second line of output shows. `bin` is absent
+from that line because `Base.bin` is not exported, so there is nothing for it to
+be ambiguous with.
 
-The ten are listed as equals, and one is not. `map` is the one most likely to
-reach code you already wrote. `Base.map` is everyday Julia. `Base.step` and
-`Base.stack` are not. A script that called `map` before loading this package
-will stop working, and the error will name a line that did not change.
+The list above treats the nine alike, and one of them is not like the others.
+`map` is the one most likely to reach code you already wrote. `Base.map` is
+everyday Julia. `Base.step` and `Base.stack` are not. A script that called `map`
+before loading this package will stop working, and the error will name a line
+that did not change.
 
-This is the third language to hit the same wall from a different side: R's
-`range`, `sum` and `min` belong to base R, Python's `bin`, `sum` and `max` are
-builtins, and Julia's are `Base`. A grammar keeps its own vocabulary; what
+Every language meets this problem, and each one asks you to solve it
+differently: R's `range`, `sum` and `min` belong to base R, Python's `bin`,
+`sum` and `max` are builtins, and Julia's are `Base`. A grammar keeps its own vocabulary; what
 changes is how each language asks you to say which one you meant.
 
 ## The table
@@ -141,8 +146,8 @@ jl_plot(
 ```
 
 A `Dict` works too, and so does anything that answers `names` and `[!, col]`,
-which is what a DataFrame does. That last one is duck-typed rather than imported,
-so the binding depends on nothing but `Dates`.
+which is what a DataFrame does. That last one is not imported, so the binding
+depends on nothing but `Dates`.
 
 Julia and R are also the only two languages here that draw a *date* apart from a
 *timestamp*, which is the distinction the engine's time axis wants: a `Date`
@@ -151,7 +156,7 @@ in between.
 
 R reads a table's name off the expression you wrote, and Julia cannot, so an
 unnamed table is given a unique one and `data(df, name = "notes")` is there when
-a message should say `notes` rather than `data2` ([Bind once](../data.qmd)).
+a message should say `notes` rather than `data2` ([Data](../data.qmd)).
 
 ## Reading from a database
 
@@ -167,8 +172,8 @@ query(con, "SELECT status, revenue FROM orders") + bar + x(:status) + y(:revenue
 
 One detail is specific to this binding. `GrammarOfGraphics` **does not depend on
 DBInterface**. The package declares one dependency, `Dates`, and adding a
-database stack for a feature many readers never use would be a poor trade. So
-the package looks DBInterface up in your session instead.
+database dependency for a feature many readers never use would cost more than it
+gives. So the package looks DBInterface up in your session instead.
 
 The practical consequence is one line: you must write `using DBInterface`
 yourself. Without it, `query()` says so and names the fix rather than failing
@@ -205,8 +210,8 @@ looks for one only when it draws, so the other order works as well. Installing
 the engine first means you never meet the error.
 
 The proper answer is an artifact, which is how Julia normally distributes a
-compiled binary, and it is owed rather than optional. Until it lands, the
-examples in this chapter assume you installed the engine yourself.
+compiled binary. Until the package ships one, this chapter assumes you installed
+the engine yourself.
 
 To work from a checkout instead, add the package from the path where it sits:
 

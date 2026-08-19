@@ -6,11 +6,10 @@ source("R/setup.R")
 ```
 
 How did the whole picture change from year to year? `play` cuts the plot into
-frames and shows them in sequence. It is the last channel in the kernel to
-draw, and the shortest way to say what it does is that it is
-[faceting](faceting.qmd) read in time. A facet splits the rows by a column's
-distinct values and lays the pieces out across the page; `play` splits them
-exactly the same way and lays them out along the clock.
+frames and shows them in sequence. The shortest way to say what `play` does is
+that it is [faceting](faceting.qmd) read in time. A facet splits the rows by a
+column's distinct values and lays the pieces out across the page; `play` splits
+them exactly the same way and lays them out in time, one after another.
 
 ```{r}
 data(gm_all) + point + x(gdp, scale = "log") + y(life) + color(continent) +
@@ -19,7 +18,7 @@ data(gm_all) + point + x(gdp, scale = "log") + y(life) + color(continent) +
 
 *"Given all the gapminder years: points, x is gdp on a log scale, y is life, color by continent, played by year."*
 
-Twelve frames, one per census year in the data, running from 1952 to 2007. The
+Twelve frames, one per year in the data, running from 1952 to 2007. The
 strip above the panel names the one you are looking at.
 
 ## The same sentence, in space
@@ -46,9 +45,10 @@ point that shifts left is a point you watch move rather than one you have to
 find twice. Neither is a different plot; they are one plot read two ways, which
 is why they are one grammar with one column bound differently.
 
-Print gets the first frame. This page in the PDF shows 1952 with its strip, and
-that is why the faceted version is here beside it: the grid is what a reader
-holding the printed book sees instead of the motion.
+On paper only the first frame is printed: in the PDF this page shows 1952 with
+its strip, while the web edition plays. That is why the faceted version is here
+beside it: the grid is what a reader holding the printed book sees instead of
+the motion.
 
 ## The column needs an order
 
@@ -57,7 +57,7 @@ columns to suit both. They do not. The test is not the column's type. It is
 whether the column has an order.
 
 A facet lays its panels out in space, and you read space in any order you like.
-Your eye goes to the panel it wants, then comes back. A sequence lays its pieces
+Your eye goes to any panel you choose, then comes back. A sequence lays its pieces
 out in time, and time arrives in one order only. So a sequence claims something
 a grid never claims: this frame comes after that one.
 
@@ -72,45 +72,45 @@ data(gapminder_2007) + point + x(gdp, scale = "log") + y(life) +
 Watch the strip: Asia, Europe, Africa, Americas, Oceania. That order is not
 alphabetical, and it is not geographic. It is the order the continents first
 appear in the table, because the rows are sorted by country and Afghanistan
-comes before Albania. The animation is showing you how a file was sorted. The
+comes before Albania. The sequence is showing you how a file was sorted. The
 points jump between frames, and none of the jumps mean anything.
 
 gog says so above the plot, and it draws it anyway. Nothing about the sentence
-is malformed, so the sequence is yours to keep if you meant it; what the message
-gives you is the running order it had to invent, and the two ways to state one.
-Give the column its levels and the frames follow them. Bind `facet(continent)`
-instead and the panels claim no order at all.
+is malformed, so the sequence is yours to keep if you meant it. The message names
+the order it had to choose, and the two answers to it: declare the column's
+levels, or facet instead. Give the column its levels and the frames follow them.
+Bind `facet(continent)` instead and the panels claim no order at all.
 
-This is the same mistake as a rainbow ramp on a numeric column
-([Channels](channels.qmd)). The encoding carries an order the thing itself does
-not have, so a reader looks for a pattern that was never there. Written as
+This is the rainbow-ramp mistake ([Channels](channels.qmd)) in reverse. There the
+data had an order the hues could not carry; here the frames carry an order the
+data does not have, so a reader looks for a pattern that was never there. Written as
 `| facet(continent)`, the five groups sit side by side and claim nothing about
 sequence.
 
 Ordered does not mean numeric. A year is ordered, and so is a date. So is a text
 column whose levels you declared: months in calendar order, or a rating from low
 to high. gog runs the frames in the order the levels declare, the same way it
-runs an axis ([Data](data.qmd)). A text column with no declared levels falls
-back to the order its values first appear, which is the trap above.
+runs an axis ([Data](data.qmd)). A text column with no declared levels takes the
+order its values first appear in, which is the trap above.
 
-How many values there are is a separate question, and the next section takes it
-up. Twelve
+How many values there are is a separate question, and the next section answers
+it. Twelve
 frames and a hundred and forty frames are both worth animating, as long as each
-one means something beside the one before it. A long sequence costs time rather
-than sense, and [`speed`](#how-fast) is there for that.
+one means something beside the one before it. A long sequence costs the reader
+time, not meaning, and [`speed`](#how-fast) is there for that.
 
 ## Too many panels for one page
-
-A sequence can hold more pieces than a facet can, and this section is about that
-difference. It splits the rows the way a facet does, and nothing limits how many
-pieces it shows, because it shows them one at a time.
 
 Whether a column has an order decides whether it can be played. How many values
 it has decides something else: whether a facet of it is still readable. A facet
 has to fit every piece on one page. A sequence does not.
 
+A sequence can hold more pieces than a facet can. It splits the rows the way a
+facet does, and nothing limits how many pieces it shows, because it shows them
+one at a time.
+
 Having an order is not on its own a reason to play a column. A short sequence
-earns its motion only when its frames hold the same things in different states.
+should move only when its frames hold the same things in different states.
 Then a reader can follow one of them across the frames. The four frames above are
 that case: the same countries at four dates, and the cloud climbs. Four frames
 holding four different sets of things are not that case. Nothing moves between
@@ -118,7 +118,7 @@ them. The reader waits, and then has to remember what a facet would have shown a
 once. This is worth saying plainly, because animation is the choice most people
 want to make.
 
-The other end is where the panels stop. They share one page, so every panel added
+The limit is the point where panels stop being readable. They share one page, so every panel added
 makes every panel smaller. `wrap` folds a long line into a rectangle, which makes
 each panel wider and shorter ([Faceting](faceting.qmd)). The rectangle is still
 one page.
@@ -139,7 +139,8 @@ printed over one another. A dot cannot be read against them, and its position is
 all this plot measures. A reader can see that something moves, and cannot see
 where.
 
-The same rows along the clock instead:
+The same rows along the clock instead (`speed` is explained under How fast,
+below):
 
 ```{r}
 #| message: true
@@ -158,9 +159,9 @@ can measure. The note above counts the frames and reports how long one loop
 takes. It offers two answers: [`speed`](#how-fast), or a column with fewer values.
 
 That judgment is worth making before anyone else sees the plot. A facet that was
-the wrong choice costs a reader one glance. A sequence asks an audience to watch,
-and holds them for as long as the loop runs. If it then says nothing, that time
-was spent for nothing, and an audience can usually tell.
+the wrong choice costs a reader one glance. A sequence asks a reader to watch,
+and keeps them for as long as the loop runs. If it then says nothing, that time
+was spent for nothing, and a reader can usually tell.
 
 The choice is easiest to see with a large number. Imagine a year of hourly
 temperatures for New York, drawn as one curve for each day. As a facet that is
@@ -170,27 +171,27 @@ the panels usually read better, and [Faceting](faceting.qmd) shows ten of them
 wrapped and readable. Above that the page cannot hold them, and the sequence is
 what is left.
 
-Holding more does not make a sequence the better picture. What it gives up is
+Holding more does not make a sequence the better picture. What it loses is
 what a facet does best: two pieces side by side, where a reader compares them
 instead of remembering them.
 
 ## Nothing moves that the data did not move
 
 Every scale, the color map and every legend are fitted across the whole
-sequence at once, never per frame. That is the property that makes an
-animation worth trusting, and it is worth seeing what its absence would look
+sequence at once, never per frame. That is the property that makes a
+sequence worth trusting, and it is worth seeing what its absence would look
 like. If each frame fitted its own axis, 1952's poorest countries and 2007's
-would both sit at the left edge. A world that grew six-fold would draw as a
+would both sit at the left edge. A world whose incomes tripled would draw as a
 world that stood still. The only thing actually moving would be the axis,
 silently, with nothing on the page to say so.
 
 Because the frames share their scales, the opposite reads correctly: in the plot
-above, the cloud genuinely walks right and up, and the countries that do not
+above, the cloud genuinely moves right and up, and the countries that do not
 move are countries that did not.
 
-The color map is shared for a second reason. A reader tracks a bubble by its
-color, so a palette reassigned partway through would break the one thread they
-are holding on to. Every continent keeps its color in every frame, including
+The color map is shared for a second reason. A reader follows a point by its
+color, so a palette that changed partway through would take away the one thing
+they are following. Every continent keeps its color in every frame, including
 frames where it happens to have no rows.
 
 What is *not* shared is the statistics. A transform sees each frame's rows as if
@@ -208,7 +209,7 @@ with twelve, and Europe starts at twenty-three and then runs out of countries to
 add.
 
 A tally can also have nothing to report, and it is worth seeing that once,
-because a still animation is sometimes an answer rather than a fault:
+because a still sequence is sometimes an answer rather than a fault:
 
 ```{r}
 data(gm_all) + bar * count + x(continent) + play(year)
@@ -217,7 +218,7 @@ data(gm_all) + bar * count + x(continent) + play(year)
 Twelve frames run and not a bar moves. The statistic is being recomputed in every
 one of them; it keeps arriving at the same number, because gapminder holds the
 same 142 countries in every year, so counting rows per continent counts the
-*table* and not the year. Only the strip changes, which is the plot saying so.
+*table* and not the year. Only the strip changes, which is how the plot shows it.
 Filtering first, as the sentence above it does, is what turns a count of countries
 into a count of something that happened.
 
@@ -231,7 +232,7 @@ with "panel" read as "frame".
 data(gm_all) + bar * bin + x(life) + play(year)
 ```
 
-The distribution walks right across half a century, and it does so against bars
+The distribution moves right across half a century, and it does so against bars
 of one width, which is the only way the walk is legible.
 
 ## A layer that does not play stands still
@@ -260,8 +261,8 @@ data(thermals) + path + x(east) + y(north) + z(altitude) + color(glider) +
 
 `play` is bound to the second layer because `x`, `y` and `z` were bound to the
 first, and a channel written after a mark reaches that mark alone. So the coil
-stands still in both panels while a dot climbs it, and you can see the tighter
-glider on the right outclimbing the wider one on the left, which is the whole
+stands still in both panels while a dot climbs it, and you can see the glider
+with the tighter coil climbing faster than the wider one, which is the whole
 reason the two tables are drawn together.
 
 One detail of the second table is worth knowing, because it decides the size of
@@ -291,9 +292,9 @@ and cannot see.
 
 ## The column that cannot do both jobs
 
-There is one shape worth knowing because it looks so reasonable. Bind the same
+One sentence is worth knowing, because it looks so reasonable. Bind the same
 column to `x` and to `play`, on a mark that reads a function along `x`, and every
-frame is left holding a single position:
+frame then holds a single position:
 
 ```{r}
 #| error: true
@@ -303,15 +304,14 @@ data(gapminder_asia) + line + x(year) + y(life) + color(country) +
 
 A `line` needs at least two positions to read between. If each frame is one year,
 there is no domain left in it, and what you get is axes and a legend around an
-empty panel. That refusal is here because the first draft of this chapter
-contained exactly that sentence, and it rendered, silently, exit 0, a frame
-strip counting up over nothing. A reader spotted it.
+empty panel. That refusal is here because the sentence once rendered instead of
+refusing: a frame strip counting up over an empty panel, with no error.
 
 The same is true of the same column split across the page rather than the clock,
 `| facet(year)`, and for the same reason; the engine refuses both, because
 [panels and frames are one partition asked twice](faceting.qmd). Marks that place
 each row on its own (`point`, `bar`, `box`) have no domain to lose, so they
-sweep through happily:
+draw in every frame:
 
 ```{r}
 data(gapminder_asia) + point + x(year) + y(life) + color(country) + play(year)
@@ -328,7 +328,7 @@ data(gm_all) + point + x(gdp, scale = "log") + y(life) + play(year) |
 ```
 
 Five continents, twelve frames, one shared pair of axes. Each panel is its own
-story and the strip above them all says which year every story is at.
+continent, and the strip above them all names the year they share.
 
 ## The cube also moves
 
@@ -342,11 +342,11 @@ data(gm_all) + point + x(gdp, scale = "log") + y(life) + z(population) +
 ```
 
 That one is worth reading slowly, because it is the sentence this kernel was
-designed around. The vocabulary was drawn up with four words held in reserve for
-things it could not yet draw: the third position, the animation, the per-layer
-table, and the selection. The sentence above spends three of them at once. The
-fourth, `brush`, draws now too. [Selection](selection.qmd) closes by adding it to
-this very sentence, so all four are spent in one line.
+designed around. The vocabulary kept four words for things it could not yet
+draw: the third position, the sequence, the per-layer table, and the selection.
+The sentence above uses three of them at once. The fourth, `brush`, draws now
+too. [Selection](selection.qmd) closes by adding it to this very sentence, so
+all four are used in one line.
 
 The cube is fitted once across the whole sequence, exactly as a flat plot's axes
 are, and it earns more here than it does on the page. A box that resized itself
@@ -371,32 +371,32 @@ never move, so what you are watching is the countries changing which cell they
 fall in. `color(continent)` names the same column the `y` axis does, and it is there so
 that following one row is possible at all. A floor axis in a cube runs
 diagonally into the picture. Picking a row off it by eye means tracing a
-receding edge while five rows of columns stand in the way. The legend does in one
-glance what the axis makes you work for.
+receding edge while five rows of columns stand in the way. The legend names the
+row at once, where the axis makes you trace it.
 
-The palette is a choice the cube makes for you, and it is the same argument the
-[`okabe` set](channels.qmd) was built on arriving from an unexpected direction. A
+The palette is a choice the cube makes for you, and it is the argument the
+[`okabe` set](channels.qmd) was built on, reached a second way. A
 solid in space is shaded per face, so one category is already three tones before
 any two categories are compared, and a palette whose hues sit close together
-loses the distinction that shading eats. Okabe-Ito's eight are spaced for readers
+loses the difference that shading has already reduced. Okabe-Ito's eight are spaced for readers
 who cannot separate some hues at all, which turns out to be the same requirement
 as separating them after a third of the light has been taken out.
 
 What the frames do not touch is the viewing angle. `space(turn = , tilt = )` is a
 property of the space rather than of the data, so one angle serves the whole
 sequence and every frame is seen from the same place. That is not a gap waiting to
-be filled: a camera that swung while the sequence played would be motion carrying
-no column, and a reader would then have to subtract it from the motion that does
-carry one. `play` moves the data past a fixed eye.
+be filled: a camera that swung while the sequence played would be motion that no
+column asked for, and a reader would then have to subtract it from the motion
+that does carry one. `play` moves the data past a fixed viewpoint.
 
 You can still turn the plot yourself while it runs, and that is a different
-thing. The refusal above is about a camera that moves on its own, with no column
+thing. The design choice above is about a camera that moves on its own, with no column
 behind it. A reader who drags knows which motion is theirs, and can stop it.
 This is worth more here than anywhere else in the book. Something is moving
 inside a solid shape. The only way to see what the near edge hides is to look
 around it.
 
-Panels and frames do not come apart here, and that is deliberate. They are one
+Panels and frames still compose here, and that is what this shows. They are one
 split asked twice, so crossing them costs nothing: the panels divide the page,
 the frames divide the clock, and each panel projects the cube its own rectangle
 has room for.
@@ -406,13 +406,13 @@ data(gm_all) + point + x(gdp, scale = "log") + y(life) + z(population) +
   color(continent) + play(year) | facet(continent, wrap = 3)
 ```
 
-Five cubes, twelve moments, and one strip above them all naming the year, because
+Five cubes, twelve frames, and one strip above them all naming the year, because
 a frame is the whole plot where a panel is one piece of it. That is four of the
 kernel's ideas in one sentence: the third position, the panels, the frames, and a
 scale shared across every one of them so the cubes stay comparable while they run.
 
-And the sheet moves too. `ripples` is a wave tank tapped in one corner, measured
-on a grid at twelve instants, in a shallow tank and a deep one.
+And the sheet moves too. `ripples` records a wave tank tapped in one corner,
+measured on a grid at twelve instants, in a shallow tank and a deep one.
 
 ```{r}
 #| echo: false
@@ -431,19 +431,20 @@ data(ripples) + surface + x(across) + y(along) + z(height) +
 
 Watch one arc leave the corner and cross the floor. It is the same wave in both
 panels and it is drawn against one shared height scale, so the difference you see
-is a wavelength and not a scaling. `speed = 4` is doing real work here: at the
+is a wavelength and not a scaling. `speed = 4` matters here: at the
 normal pace twelve frames take nine and a half seconds, which is a slideshow of a
 wave rather than a wave.
 
 The height is said twice, once as the third position and once as the color, and
-that is worth doing rather than a redundancy to apologize for. A sheet seen from
+that is deliberate rather than a redundancy. A sheet seen from
 one angle hides part of itself: the far corner is foreshortened and the near
 crests stand in front of the troughs behind them, so a shape that is plain at the
 front is guesswork at the back. Bright crest bands survive the projection where
 the height alone does not, and the wavelength this plot exists to compare is the
 spacing of those bands. `palette("plasma")` runs dark magenta through orange to
 yellow; [Scales](scales.qmd) has the rest, including two diverging ramps whose
-neutral would sit at the still water line if the sign were the point instead.
+neutral color would sit at the still water line if the sign of the height were
+the point.
 
 ## The circle also moves
 
@@ -460,8 +461,8 @@ century. The radial axis is fitted over the whole sequence exactly as a flat one
 is, which is why the ring at 80 is already drawn in 1952 with nothing reaching it:
 the petals grow inside a circle that does not resize under them. Asia's is the one
 to watch, from 46 years to 71. Africa's climbs steadily until the late 1980s and
-then stops for fifteen years, which is a decade the average is reporting rather
-than smoothing away.
+then stops for fifteen years, which is a pause the average reports rather than
+smooths away.
 
 The pie is where that shared axis says something surprising, and it is worth
 following, because it is the flat rule bent rather than a rule of its own:
@@ -473,8 +474,8 @@ data(gm_all) + bar * sum * stack + y(population) + color(continent) + polar() +
 
 The circle does not close until the last frame. A pie's turn *is* its measure
 axis, that axis is fitted across the sequence like every other, and 1952's world
-holds a little under two fifths of 2007's, so 1952 sweeps a little under two
-fifths of the turn. The identical sentence without `polar()` draws a stacked
+population is a little under two fifths of 2007's, so 1952 sweeps a little under
+two fifths of the turn. The identical sentence without `polar()` draws a stacked
 column that stops well short of the top of its axis, and nobody finds that
 surprising. A pie that does not close is that column bent.
 
@@ -488,7 +489,7 @@ data(gm_all) + bar * sum * stack(share = TRUE) + y(population) + color(continent
 
 The turn is one whole in every frame now, and what moves is how it divides: Asia
 widens a little from 58% to 61%, Europe falls from 17% to 9%, and Africa grows by
-half again, from 10% to 15%. Two sentences, one atom apart, answering two
+half, from 10% to 15%. Two sentences, one atom apart, answering two
 different questions about the same column. Choosing between them is the reader's
 job and the grammar's business is to keep both sayable.
 
@@ -514,17 +515,18 @@ itself, so the same line works on every machine that can draw the plot at all.
 
 `scale` multiplies the canvas. A plot is 800 by 600 pixels unless its theme says
 otherwise, which is small for a post, so `scale = 2` doubles both numbers. The
-pace carries over without being restated: this sequence was written `speed = 4`,
+pace is kept without being restated: this sequence was written `speed = 4`,
 and each frame holds for a fifth of a second in the file as it does on the page.
 
 The file cannot disagree with the plot beside it, and the reason is worth one
-paragraph, because it is the same reason the last section gives for having one
-renderer. The frames are not drawn again one at a time. The plot is drawn once,
-with every scale, the color map and each legend fitted across the whole sequence,
-and each frame is that single drawing with one moment left showing. So there is
-no second set of decisions that could come out different.
+paragraph, because it is the reason [Design laws](design-laws.qmd) gives for
+having one renderer. The frames are not drawn again one at a time. The plot is
+drawn once, with every scale, the color map and each legend fitted across the
+whole sequence, and what you see at any time is that single drawing with one
+frame left showing. So there is no second set of decisions that could come out
+different.
 
-Two sentences are refused. A plot with no `play()` has no moments to write, and
+Two sentences are refused. A plot with no `play()` has no frames to write, and
 saying so is more useful than writing a file of one frame:
 
 ```{r}
@@ -542,7 +544,7 @@ moving <- data(gm_all) + point + x(gdp) + y(life) + play(year)
 save_gif(moving, "wave.png")
 ```
 
-One thing changes on the way out, and it is worth knowing before you send the
+One thing changes when the file is written, and it is worth knowing before you send the
 file rather than after. A GIF is pixels. The text stops being text, so it no
 longer sharpens when a reader zooms in, and the colors are fitted to a palette of
 256. The SVG remains the plot itself. The GIF is a copy of it made for somewhere
@@ -558,7 +560,7 @@ Making a video needs a video encoder. The common one is more than ten times the
 size of this whole engine, once for every platform a package supports, and its
 license does not allow it to travel inside a package licensed the way this one
 is. The other route is to require the reader to install it separately. That
-sounds harmless until you count who cannot. A reader who installs a prebuilt
+sounds harmless until you count the readers who cannot. A reader who installs a prebuilt
 package rather than building from source gets whatever the package carries, so a
 tool that cannot fit inside it never reaches them at all. The feature would work
 for some readers and refuse for others, which is a worse answer than not having
@@ -567,7 +569,7 @@ it.
 A GIF asks for nothing. The engine writes it on every machine that can draw the
 plot, in every one of the four languages. When the file looks soft, raise
 `scale`. When you genuinely need a video, converting a GIF into one is a solved
-problem, and there are free converters online that do it in a step.
+problem, and free converters online do it in one step.
 
 ## What it refuses
 
@@ -579,7 +581,7 @@ put one panel's rows in one frame and leave every other panel empty:
 data(gm_four) + point + x(gdp) + y(life) + play(period) | facet(period)
 ```
 
-A `speed` that is not a pace is refused where you wrote it:
+A `speed` that is not a pace is refused at the binding that carries it:
 
 ```{r}
 #| error: true
@@ -587,7 +589,7 @@ data(gm_all) + point + x(gdp) + y(life) + play(year, speed = 0)
 ```
 
 `speed` belongs to `play` and to nothing else, because nothing else in the
-grammar spends time: a color is drawn all at once, so there is no duration for
+grammar takes time to draw: a color is drawn all at once, so there is no duration for
 a multiplier to scale. That one is not shown here as a gog refusal, and the
 reason is worth saying. No binding gives any other channel a `speed` argument at
 all, so `color(continent, speed = 2)` fails in R (or in Python, or Julia, or
@@ -601,7 +603,7 @@ the earlier and better place for it.
 A played plot on a web page carries three more buttons. They sit on the same line
 as [the four every plot
 has](first-plot.qmd#the-boxes-under-every-plot), a little to the right of them,
-and they work the clock:
+and they control the clock:
 
 | Control | What it does |
 |---|---|
@@ -609,14 +611,14 @@ and they work the clock:
 | the pause | Stops the clock. It becomes a play arrow, which starts it again |
 | the right arrow | Goes forward one frame, and stops the clock |
 
-Stepping stops the clock, and it has to. A clock left running would carry you off
-the frame you just asked for, in less than a second. So the arrows stop it, and
+Stepping stops the clock, and it has to. A running clock would move past the
+frame you just asked for, in less than a second. So the arrows stop it, and
 the middle button is how you start it again.
 
 The ends join up. Go back from the first frame and you arrive at the last.
 The sequence already runs that way: it loops, so the last frame is followed by
-the first every time round. Buttons that stopped at the ends would disagree with
-the animation they control.
+the first, every time. Buttons that stopped at the ends would disagree with
+the sequence they control.
 
 Nothing displays the frame you are on, because the strip above the panel already
 names it. That strip is the sequence's guide, drawn on every played plot, the way
@@ -626,8 +628,8 @@ None of the three is in the sentence, and that is the rule rather than an
 omission. Every frame is already in the file: the whole sequence is drawn once,
 and a clock decides which frame you see at each moment. Stepping moves that
 clock. It chooses no rows, hides no rows, and changes nothing the sentence said.
-So it stands where turning a cube stands ([Space](space.qmd)), which changes how
-you look and never what is drawn. Neither one earns a word in the grammar.
+So it is like turning a cube ([Space](space.qmd)), which changes how
+you look and never what is drawn. Neither one needs a word in the grammar.
 
 Stop the clock and the camera photographs the frame you stopped on. That is the
 camera's own rule holding rather than a rule about animation: it saves what you
@@ -639,11 +641,11 @@ missing there.
 
 ## What is not here yet
 
-There is **no tweening**: frames cut, they do not glide. A bubble in 1957 and a
-bubble in 1962 are two complete pictures shown in turn, not one bubble eased
+There is **no tweening**: frames cut, they do not glide. A point in 1957 and a
+point in 1962 are two complete pictures shown in turn, not one point eased
 between two positions. What easing needs first is a **key**, something that says
 Afghanistan in one frame is the same country as Afghanistan in the next, and the
 grammar has no word for that yet. `group` looks like the word until you notice
-that a `point` does not take it, and the bubble everyone wants to see glide is a
-point. So the missing piece is a vocabulary decision rather than a drawing
-technique, which is why it is owed rather than half-built.
+that a `point` does not take it, and the gliding point everyone wants to see is
+exactly that: a `point`. So the missing piece is a vocabulary decision rather
+than a drawing technique, which is why it is owed rather than half-built.

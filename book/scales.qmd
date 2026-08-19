@@ -5,9 +5,9 @@
 source("R/setup.R")
 ```
 
-What do you do when most of your data is crowded into one corner? A **scale**
-decides how a number becomes a position. It is written on the binding, not as
-an atom of its own:
+What do you do when most of your data is crowded into one corner? You change
+the **scale**, which decides how a number becomes a position. It is written
+on the binding, not as an atom of its own:
 
 ```r
 x(gdp, scale = "log")
@@ -29,7 +29,7 @@ there is no second function to go and find.
 data. A scale produces no new values at all. It changes how far along the axis a
 number lands and what the ticks say, and nothing else.
 
-The difference shows up in what the reader sees. Here is `gdp` plotted with a
+The difference is visible in the finished plot. Here is `gdp` plotted with a
 log **scale**:
 
 ```{r}
@@ -57,7 +57,7 @@ gm_logged$log_gdp <- log10(gm_logged$gdp)
 
 data(gm_logged) + point + x(log_gdp) + y(life) +
   color(continent) +
-  title("The same shape, in units nobody asked for")
+  title("The same shape, with the axis in log units")
 ```
 
 Identical shape, and the axis now reads 2, 3, 4, 5. To know what a point is
@@ -71,12 +71,13 @@ only want to see it across orders of magnitude.
 
 ## Where a scale sits in the pipeline
 
-Once a transform is in the plot, "the scale is only about display" stops being
-quite true, because a transform has to decide *which space* to work in. gog
+Once a transform is in the plot, a scale is no longer only about display,
+because a transform has to choose which numbers to work on. gog
 follows one rule, and it has no per-transform exceptions:
 
-> A scale applies *before* the transform on the axis it groups by, and
-> *after* it on the axis the transform writes.
+> A transform groups by one axis and measures on the other. The scale is
+> applied before the transform on the grouping axis, and after it on the
+> measured axis.
 
 ### Grouping happens in the space you will see
 
@@ -90,16 +91,15 @@ data(gapminder_2007) + bar * bin + x(gdp, scale = "log") +
   title("Bins cut in log space are evenly spaced")
 ```
 
-Had the bins been cut in dollars and only the *drawing* been logarithmic, they
-would have bunched into the right-hand end. On this data the gaps between bars
-run 176, 82, 54, 40, 32, 27 pixels, and the left half of the plot is empty. That
-reads as a broken picture rather than as a modeling choice, which is why the
-grouping axis is scaled first.
+If the bins had been cut in dollars and only the *drawing* had been
+logarithmic, the first bin alone would cover most of the axis, and the rest
+would crowd into the right edge. That reads as a broken picture rather than
+as a modeling choice, which is why the grouping axis is scaled first.
 
 ### The measured value keeps its own units
 
-`sum` writes to y, so a log y is applied *after* the sum. The bars below total
-100 and 10:
+`sum` writes to y, so a log y is applied *after* the sum. The two bars below
+stand for 100 and 10:
 
 ```{r}
 receipts <- data.frame(
@@ -115,24 +115,25 @@ If the scale had been applied first, gog would have added the *logarithms*,
 giving the log of a product, which is not a quantity anyone asked for. Summing
 first and displaying second keeps `sum` meaning what its name says.
 
-The order is worth knowing if you arrive from ggplot2, where it runs the other
-way: under `scale_y_log10()`, a `stat_summary(fun = mean)` averages the logged
-values and returns a geometric mean. gog computes the summary in your data's
+The order is worth knowing if you come from ggplot2, which does the
+opposite: under `scale_y_log10()`, a `stat_summary(fun = mean)` averages the
+logged values and returns a geometric mean (the average computed on the
+logs). gog computes the summary in your data's
 units and scales the result, so the number the bar stands for is the number you
 would get from `sum()` or `mean()` yourself.
 
-### A smoother fits within its groups
+### `smooth` fits inside its groups
 
 `smooth` groups by x, so a log x means the curve is fitted against log income,
 which is what makes a straight line out of a relationship that is otherwise all
-bunched into the left margin:
+bunched into the left of the panel:
 
 ```{r}
 data(gapminder_2007) + point + x(gdp, scale = "log") + y(life) +
-  style(color = "lightgrey") +
+  style(color = "lightgray") +
   line * smooth + x(gdp, scale = "log") + y(life) +
   x_label("GDP per capita") +
-  title("A LOESS fitted against log income")
+  title("A trend fitted against log income")
 ```
 
 ## What a log scale refuses
@@ -150,8 +151,8 @@ readings <- data.frame(
 data(readings) + point + x(depth, scale = "log") + y(temp)
 ```
 
-The message names how many rows are affected and how far down the column goes,
-because "some of your data cannot be drawn" is not enough to act on.
+The message names how many rows are affected and the smallest value in the
+column, because "some of your data cannot be drawn" is not enough to act on.
 
 Text has no logarithm either, and a text column already gets a categorical axis
 without being asked:
@@ -173,12 +174,12 @@ The base is a **number**, not a name. There is no `"log2"` or `"ln"` scale,
 because that would enumerate what one parameter already derives, the same
 objection that rules out ggplot2's `scale_x_log10` / `scale_x_sqrt` family.
 
-### The base is almost entirely cosmetic
+### The base changes the labels, not the picture
 
 This is the surprising part, and it is worth knowing before you use it.
 log_b(x) differs from log₁₀(x) by a constant factor, and gog normalizes every
-axis by its own range, so the factor cancels and **every base draws the same
-picture**. It even survives the transforms: bins of equal width in log₂ space
+axis by its own range, so the factor cancels and the points land in *the
+same places in every base*. It even survives the transforms: bins of equal width in log₂ space
 are equal width in log₁₀ space, so `bar * bin` cuts at the same values whichever
 base you name.
 
@@ -202,7 +203,7 @@ data(octaves) + point + x(freq, scale = "log", base = 2) + y(level) +
 
 The points have not moved. The second chart puts a gridline on each doubling,
 which is what "an octave" means, so for pitch, bits, or doubling times, base 2
-is the one that makes the axis say something.
+is the one whose labels carry the meaning.
 
 ### Natural log
 
@@ -216,13 +217,13 @@ decay <- data.frame(
 
 data(decay) + point + x(amount, scale = "log", base = exp(1)) + y(hours) +
   x_label("Amount remaining") +
-  title("Gridlines at each e-folding")
+  title("Gridlines at each e-folding (growth by a factor of e)")
 ```
 
 Notice the labels: **e, e², e³**, not 2.718, 7.389, 20.09. That follows from one
 rule gog applies to every base:
 
-> Label the quantity when it reads cleanly; otherwise label the power.
+> Label the quantity when it is a short number; otherwise label the power.
 
 Base 10 gives 1, 10, 100, 1K, always clean. Base 2 gives 1, 2, 4 … 1048576,
 clean until it grows too wide to sit under a tick, and then `2²⁴`. Base *e*
@@ -262,8 +263,8 @@ No `scale = "time"` anywhere: writing it is allowed and means nothing extra,
 exactly like writing `scale = "linear"` on a number.
 
 The ticks land on **calendar boundaries**, because the calendar is not decimal.
-An axis of years walks 1-2-5 like any other number line, but below the year the
-`nice_number` habit has no meaning: nobody reads an axis cut in fifths of a
+An axis of years steps 1, 2 or 5 like any number line. Below the year those
+steps mean nothing: nobody reads an axis cut in fifths of a
 year. Months step by 1, 2, 3 or 6 so that January stays a gridline and
 3-month steps read as quarters; weeks land on **Mondays**; days, hours and
 minutes take the steps a clock face suggests.
@@ -288,16 +289,17 @@ data(monitoring) + line + x(at) + y(load) +
   title("A day and a half, ticked by the clock")
 ```
 
-Midnight's clock face says nothing, `00:00` happens every day, so the
-midnight tick borrows the day's name instead. That is the label rule stated
+`00:00` happens every day, so it names no particular one. The midnight tick
+shows the day's name instead. That is the label rule stated
 once: *a tick names the finest unit that distinguishes it from its
 neighbors.*
 
 ### Bars sit on dates; they never measure one
 
-Bars positioned at dates are an ordinary time series, and the ticks still come
-from the calendar rather than one per bar. Wilkinson's stock-price example
-[@wilkinson2005] ticks Sundays, not trades:
+Bars positioned at dates are an ordinary time series, and the ticks still
+come from the calendar rather than one per bar. Wilkinson's stock-price
+example ticks Sundays, not trades [@wilkinson2005], and the same rule here
+ticks the six weeks of orders at week boundaries:
 
 ```{r}
 data(six_weeks) + bar + x(day) + y(orders) +
@@ -335,11 +337,12 @@ data(revenue) + point + x(sales, scale = "time") + y(sales)
 The fix belongs in the data, where the answer is known: convert the column
 with `as.Date()` or `as.POSIXct()`.
 
-A word on timezones: the engine is naive on purpose. It draws the clock time
-you see in R: a `POSIXct` is formatted in its own timezone on the way out and
-never converted again, so the axis can never disagree with what `print()`
-showed you. If two series must share an axis, put them in one timezone before
-plotting; that decision belongs to the analysis, not the renderer.
+A word on timezones: the engine never converts a timezone: it draws the
+clock time you gave it. A `POSIXct` is formatted in its own timezone on the
+way out and never converted again, so the axis can never disagree with what
+`print()` showed you. If two series must share an axis, put them in one
+timezone before plotting; that decision belongs to the analysis, not the
+engine.
 
 ### Time on the other channels
 
@@ -377,28 +380,27 @@ data(gapminder_asia) + area + x(year) + y(life) +
 ```
 
 Two things are calibrated on top of that fit, each for a reason you can see in
-the plot. A **free end breathes** a little, so a mark is not welded to the
+the plot. A **free end leaves a small margin**, so a mark never touches the
 frame. A point at the exact maximum would otherwise be sliced in half by the
 panel edge:
 
 ```{r}
 data(gapminder_2007) + point + x(gdp) + y(life) + color(continent) +
-  x_label("GDP per capita") + title("Points breathe off every edge")
+  x_label("GDP per capita") + title("Every point sits clear of the panel edge")
 ```
 
-A baseline does not breathe. When a bar or an area measures from zero, that
+A baseline gets no margin. When a bar or an area measures from zero, that
 zero is a real coordinate, and a gap beneath it would draw the baseline where
-the baseline is not, so it sits flush. An `area` also has no glyph to clip, so
-on the axis it fills along it reaches the panel edges instead of leaving an
-empty strip each side. That is why the area above spans the full width while the
+the baseline is not, so it sits flush. An `area` has no glyph to clip. Along
+the axis it fills, it runs to both panel edges. That is why the area above spans the full width while the
 scatter here keeps its margins: a fill's edges *are* the shape, a point's are
 not.
 
 ## A scale is not only for axes
 
 `x` and `y` turn a number into a position, but so do `color`, `size` and
-`opacity`: a ramp position, a radius, a transparency. All four answer *how far
-along?*, so all four take a scale.
+`opacity`: a ramp position, a radius, a transparency. All five answer *how
+far along?*, so all five take a scale.
 
 This matters most for a column spread across orders of magnitude. `population`
 runs from about 200 thousand to 1.3 billion, and on a linear ramp the median
@@ -436,11 +438,13 @@ there is no distance between circle and square for a scale to run along.
 
 ## `limits`: when your data is not the authority
 
-Everything above derives the range from the data, which is right by default and
-wrong whenever the data is not the whole story. A tide gauge reading every three
-hours never reaches midnight, and a periodic axis has no way to know the missing
-hours are still part of the day, and nothing in a column of hours says the day
-wraps. `limits` says the domain out loud:
+Everything above derives the range from the data, which is right by default
+and wrong whenever the data does not cover the domain. A tide gauge reading
+every three hours never reaches midnight. A periodic axis cannot know the
+missing hours are still part of the day, because nothing in a column of hours
+says the day wraps. The `tide` table holds a gauge's readings, a height every
+three hours; `polar()` bends the axis into the circle that [Polar](polar.qmd)
+teaches in full. `limits` states the domain:
 
 ```{r}
 data(tide) + line + x(hour, limits = c(0, 24)) + y(height) + polar() +
@@ -457,10 +461,10 @@ observation to fill it. That gap is the data's, drawn at its true width.
 `limits` is written on the binding, beside `scale` and `base`, for the same
 reason they are: a domain belongs to one channel, and an atom of its own would
 name that channel twice. A stated end is drawn exactly where you state it, and the
-breathing margin exists to keep a glyph off the frame, and an end you chose is
+margin exists to keep a glyph off the frame, and an end you chose is
 not a data extreme that needs the room.
 
-Stating a domain widens as readily as it narrows. Nothing was dropped above:
+A domain can widen the axis as easily as it narrows it. Nothing was dropped above:
 the readings run 1 through 22 and all of them lie inside 0 through 24. Narrowing
 is the direction that removes rows, and it says so:
 
@@ -476,13 +480,13 @@ for, so the plot draws, but gog will not remove data without saying so. Ask for
 a domain no row can satisfy and it refuses instead, because the alternative is
 an empty panel with axes drawn over nothing.
 
-Keeping every country on the page and making one group of them stand out is a
+Keeping every country on the page and marking one group of them is a
 different operation, and it has a different word. `limits` runs before the
-statistics and removes rows. `brush` runs after the picture is composed and
+transforms and removes rows. `brush` runs after the picture is composed and
 removes nothing. [Selection](selection.qmd) sets the two side by side.
 
-**Either end alone.** `NA` leaves that end to the data, which is how you pin a
-baseline without capping the top:
+**Either end alone.** `NA` leaves that end to the data, which is how you fix
+a baseline and leave the top to the data:
 
 ```{r}
 data(gapminder_2007) + point * mean + x(continent) + y(life, limits = c(0, NA)) +
@@ -500,7 +504,7 @@ data(gapminder_2007) + point + x(gdp, scale = "log") + y(life) +
 ```
 
 On a categorical axis `limits` is refused, and the refusal points you at the
-atom that does the job you probably meant. A category has no range to lie
+two fixes that do the job you probably meant. A category has no range to lie
 inside. Choosing *which* categories appear is filtering your table, and
 choosing what order they appear in is `order()`.
 
@@ -516,13 +520,13 @@ The scales in the table above are not all chosen the same way. You ask for
 column: a `Date` column gets a calendar axis, and a text column gets one slot
 per distinct value.
 
-You may still say them out loud. Writing `scale = "category"` on a text column
+You may still write them. Writing `scale = "category"` on a text column
 is allowed and changes nothing, in the same way `scale = "linear"` on a number
 changes nothing. The plot below is identical to the one without it:
 
 ```{r}
 data(gapminder_2007) + bar * mean + x(continent, scale = "category") + y(life) +
-  title("Saying it out loud draws the same plot")
+  title("Writing it changes nothing")
 ```
 
 What you cannot do is use a scale to contradict the column. Ask for a
@@ -533,7 +537,7 @@ categorical axis on a number and gog refuses:
 data(gapminder_2007) + point + x(gdp, scale = "category") + y(life)
 ```
 
-The reason behind that refusal also explains three others in this chapter. A
+The reason behind that refusal also explains the others in this chapter. A
 scale says **how** a measured column is placed. Whether the axis measures at
 all is the column's type. So `log` on a text column is refused, `time` on a
 plain number is refused, and a date column cannot be turned back into raw
@@ -548,13 +552,13 @@ and is covered in [Transforms](transforms.qmd).
 
 ## `tick_count`: how many ticks the axis aims for
 
-An axis picks five ticks or so by default, and the count is the one thing
-about the fit you may want a say in. A crowded axis reads better with fewer;
-an axis someone will read values off reads better with more. `tick_count` is
+An axis picks five ticks or so by default, and the count is the one part of
+the fit you may want to choose. A crowded axis is easier to read with fewer;
+an axis someone will take numbers from is easier with more. `tick_count` is
 written on the binding, beside `scale`, `base` and `limits`, and for the same
 reason. How many ticks an axis gets is a property of the **scale**, so it
 belongs to the sentence that describes the scale rather than to `theme()`,
-which is the page.
+which controls the page.
 
 ```{r}
 (data(gapminder_2007) + point + x(gdp, tick_count = 3) + y(life) +
@@ -570,7 +574,7 @@ axis running 0 to 100 gets a step of 10 and eleven ticks. What you can rely on i
 the direction: ask for more and you get more, and every tick still falls on a
 round number.
 
-The two ends of the range are the same range in both panels above. That is the
+Both panels above cover the same range. That is the
 rule the parameter is careful about: it changes how densely an axis is
 *labeled*, never where the axis stops. Ask for two ticks and the axis does not
 shrink to the two values it draws.
@@ -592,18 +596,18 @@ data(gapminder_2007) + bar * mean + x(continent, tick_count = 3) + y(life)
 
 And a legend is not a short axis. `limits` reaches every channel that
 measures, because every one of them has a domain; `tick_count` reaches only
-the three that draw an axis. A color bar names three rows, both ends and the
+the three position channels that draw an axis: `x`, `y` and `z`. A color bar names three rows, both ends and the
 middle, and those come from the scale's own shape rather than from a count you
 could choose. On a log ramp the middle row is the geometric mean, the label
 for the color actually painted halfway along the strip. So `color()`, `size()`
 and `opacity()` take no `tick_count` at all, the same way `shape()` takes no
-`scale` and no `limits`: the parameter is absent rather than refused, which
-is the strongest form the refusal can take.
+`scale` and no `limits`: the parameter does not exist there, which is
+stronger than refusing it.
 
 ### Crowding in the plane and in the cube
 
-Worth knowing if you read the same plot both ways, because the two answers
-look inconsistent and are not. A flat axis draws *every* tick it chose,
+This matters if you read the same plot both ways: the two answers differ,
+and neither is wrong. A flat axis draws *every* tick it chose,
 however tight they get. The panel is as wide as it is going to be, and the
 labels sit in a margin reserved for them. An edge label that would overhang
 its panel is anchored inward instead. Nothing is dropped, so what you asked
@@ -613,6 +617,6 @@ A cube cannot make that promise. An axis in [space](space.qmd) is drawn at
 whatever length the viewing angle leaves it, and tilted far enough it has no room
 for its numbers at all, so the frame draws as many as fit and leaves the rest
 out. Both are the same rule underneath, *do not print one number through
-another*, and they differ only in what is available to spend: the plane can
+another*, and they differ only in how much room each one has: the plane can
 reserve room in advance, and the cube cannot. When a count you stated has to be
 thinned that way, the engine says so rather than quietly drawing fewer.

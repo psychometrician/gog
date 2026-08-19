@@ -15,17 +15,19 @@ panel exactly as they would draw the whole.
 The picture has been invented more than once, so you may know it under another
 name. Becker and Cleveland's group at Bell Labs built it into S as **Trellis
 display** [@becker1996trellis], the name borrowed from the garden trellis its
-rows and columns resemble, and S-PLUS is where most people met it. R draws it
+rows and columns resemble, and most people first saw it in S-PLUS. R draws it
 that way still in the **lattice** package [@sarkar2026lattice], and its own
 book is where the display is set out in full [@sarkar2008lattice]. Base R's
 `coplot()` is the same idea
 under a third name, the conditioning plot, because what a trellis conditions
-*on* is the facet column. That is also why the operator in the next section is a
-bar, a lineage [Composition](composition.qmd) finishes telling. Tufte's **small
+*on* is the facet column. That is also why the operator in the next section is
+`|`, the sign statistics already writes for conditioning.
+[Composition](composition.qmd) finishes that history. Tufte's **small
 multiples** [@tufte1990] names the result rather than the operation, which is the
 division this book keeps: small multiples for the picture, `facet` for the thing
 you write. And **facet** is Wilkinson's own word [@wilkinson2005], from the Latin
-*facies*, a face: one side of a many-sided thing, a cut diamond's. gog takes his
+*facies*, a face: one side of a many-sided thing, like one face of a cut
+diamond. gog takes his
 because his is the widest of the four. A trellis, to him, is one arrangement a
 facet can take, next to the scatterplot matrix and the row plot, and a grammar
 needs the term that covers all three. The word every one of these systems shares
@@ -45,7 +47,8 @@ data(gapminder_2007) + point + x(gdp) + y(life) | facet(continent)
 Reading across, the panels share both axes, so a shift *between* continents
 reads as plainly as a pattern within one. That shared frame is what faceting
 is for: the alternative (one plot per continent, each with its own scale)
-looks similar and quietly stops the comparison working.
+looks similar and stops the comparison working, with nothing on the page to
+show it.
 
 ## `/`: panels stacked
 
@@ -61,22 +64,24 @@ The three distributions line up column for column: Africa's life expectancies
 spread wide and low, Europe's cluster high and narrow.
 
 That reading only works because the bars are the same width in all three
-panels, and a histogram under a facet is where the two halves of faceting come
-apart. Each panel counts its own rows, because a statistic always sees the
-panel's subset as if it were the whole data: the No Exceptions law applied to
-frames. But `bin` is not only a statistic. It cuts the axis into cells *and*
+panels, and a histogram under a facet is where the count and the cut have to be
+decided separately. Each panel counts its own rows, because a statistic always
+sees the panel's subset as if it were the whole data, and that holds for every
+transform on every mark: the No Exceptions law, met one panel at a time. But
+`bin` is not only a statistic. It cuts the axis into cells *and*
 tallies what lands in them, and the cut is a description of the axis rather
 than a measurement of the rows, so it belongs with the shared scale. One set of
 bins is cut from all three panels' rows at once, and each panel then counts
 only its own into them.
 
-The alternative is worth picturing. Cut
-per panel, Europe's narrow spread earns narrow bins and Africa's wide one earns
+It helps to see what the alternative would draw. Cut
+per panel, Europe's narrow spread gets narrow bins and Africa's wide one gets
 wide bins, so bars of different widths stand against a single axis. A bar four
 years wide holding nine countries and a bar one year wide holding eight then
-draw at nearly the same height while describing populations twice as different.
-The panels stay aligned, the axis stays honest, and the comparison the chapter
-opened with quietly stops working.
+draw at nearly the same height, while the yearly rates they stand for differ by
+more than a factor of three. The panels are still aligned and the axis still
+looks correct, and yet the comparison this chapter began with has stopped
+working.
 
 ## Crossing into a grid
 
@@ -90,8 +95,8 @@ data(gm_years) + point + x(gdp) + y(life) | facet(continent) / facet(period)
 ```
 
 Fifty years, five continents, one frame: every panel column is a continent,
-every panel row a period, and the shared scale lets the eye measure the
-half-century's climb in life expectancy panel by panel.
+every panel row a period, and the shared scale lets a reader measure the
+half-century's rise in life expectancy panel by panel.
 
 The grid is a **crossing** in Wilkinson's sense: every row × column
 combination gets a panel, and a combination with no rows still gets an empty
@@ -112,10 +117,10 @@ gm_top <- gm_all[gm_all$country %in% utils::head(ranked$country, 10), ]
 data(gm_top) + line + group(country) + x(year) + y(life) | facet(country)
 ```
 
-The shapes are still there, but nothing else is. Read the axis: the tick labels
-have run into each other and print as `19502000`, and the last strip has more
-name than panel to write it in. Ten panels is not an unusual number of
-categories, and it is already past what one line of them can carry.
+The shapes are still readable and nothing else on the panel is. Read the axis:
+the tick labels have run into each other and print as `19502000`, and the last
+panel's name is wider than the strip that prints it. Ten categories is a common
+number, and one line of panels is already too narrow for it.
 
 `wrap` folds that line into a rectangle. The number is how many panels to draw
 before the line turns:
@@ -125,8 +130,8 @@ data(gm_top) + line + group(country) + x(year) + y(life) | facet(country, wrap =
 ```
 
 Same ten panels, same shared scale, same sentence with one setting added. The
-years are readable, `United States` fits its strip, and the climb in each
-country is worth looking at rather than merely present.
+years are readable, `United States` fits its strip, and each country's rise is
+now large enough to look at.
 
 Notice what `wrap` does *not* say: which way the panels run. That was settled
 before `wrap` was written, by the operator. `|` runs the line across, so four to
@@ -141,9 +146,9 @@ the rows. One number is enough because the direction is already in the sentence,
 which is why there is no second setting for it. ggplot2 spells the same idea as
 `nrow` and `ncol`.
 
-Two details in the wrapped plots are the fold showing through. The first is the
-bottom right, where the last row stops after two panels: those cells are the
-slack that folding ten panels into a twelve-cell rectangle leaves over, so
+Two details in the wrapped plots come from the fold itself. The first is the
+bottom right, where the last row stops after two panels: those two places are
+what is left over when ten panels are folded into a twelve-cell rectangle, so
 nothing is drawn in them. They are not the empty panels of the previous section.
 An empty panel in a crossing is a combination the frame says is possible and the
 data has no example of, which is information; here there is no combination at
@@ -151,13 +156,13 @@ all, only room.
 
 The second is the axis under `Mexico` and `Nigeria`. Tick labels belong to
 panels that touch the margin the axis lives in, which in a full grid is the
-bottom row. Once a row is ragged that stops being the same sentence, so the rule
-is the more general one it was always a special case of: a panel draws the x
-axis when no panel sits below it. `Mexico` and `Nigeria` hang over the gap, so
-they keep their years.
+bottom row. Once a row is ragged that rule stops describing the plot, so gog
+uses the general rule it was always a special case of: a panel draws the x
+axis when no panel sits below it. `Mexico` and `Nigeria` sit above the gap, so
+they keep their year labels.
 
 Wrapping a crossed grid is refused. The crossing has already made a rectangle
-out of two columns, and a count beside it could only be a second opinion about
+out of two columns, and a count beside it could only be a second answer about
 the same shape:
 
 ```{r}
@@ -168,7 +173,7 @@ render_svg(data(gm_years) + point + x(gdp) + y(life) |
 
 ## Giving a panel its own scale
 
-Everything so far has rested on one scale across every panel, which is what makes
+Everything so far has used one scale across every panel, which is what makes
 the panels comparable. It is also what makes some of them unreadable. Here is the
 world's population by continent, one panel each:
 
@@ -176,9 +181,10 @@ world's population by continent, one panel each:
 data(gm_all) + line * sum + x(year) + y(population) | facet(continent, wrap = 3)
 ```
 
-Asia is four billion people and Oceania is twenty million, so the axis is spent
-on Asia and Oceania is a flat line along the bottom. Its shape is in the picture
-and cannot be seen. The plot is not wrong: it is telling you, correctly and
+Asia is nearly four billion people and Oceania about twenty-five million, so the
+axis is sized for Asia and Oceania is a flat line along the bottom. Oceania's
+line is drawn correctly, but the axis is too tall for its shape to show. The
+plot is not wrong: it is telling you, correctly and
 loudly, that these five quantities are not the same size. But if the question was
 "how did each continent grow", it has answered a different one.
 
@@ -191,18 +197,18 @@ data(gm_all) + line * sum + x(year) +
 
 Now every panel has a shape, and Oceania turns out to have more than doubled.
 Notice the y axis: each panel carries its own numbers, because one set of labels
-along the edge was only ever enough while one scale was.
+along the edge was enough only while the scale was shared.
 
-Notice also what the second plot costs, because it is the reason this is a
+Notice also what the second plot gives up, because it is the reason this is a
 request and never a default. All five panels now look alike: five lines rising
 left to right at about the same angle. Reading them side by side, nothing says
 that one of those climbs is measured in billions and another in tens of millions,
-and a reader who glances at the shapes without reading the axes will take away
-something false. The first plot cannot mislead that way and the second can, which
+and a reader who glances at the shapes without reading the axes will leave with
+a false impression. The first plot cannot mislead that way and the second can, which
 is why gog will not do this unless you ask.
 
-Which axis is freed is decided by where you write it. That is the same trick
-`wrap` plays with `|` and `/`: the sentence already names the axis, so `free`
+Which axis is freed is decided by where you write it. `wrap` works the same way
+with `|` and `/`: the sentence already names the axis, so `free`
 does not name it again. There is no `free_x` or `free_y`, and freeing both is
 writing it twice:
 
@@ -211,8 +217,8 @@ data(gm_all) + point + x(gdp, free = TRUE) + y(life, free = TRUE) |
   facet(continent, wrap = 3)
 ```
 
-There is a third position, and it takes `free` on the same terms. Panels of
-[cubes](space.qmd) are panels:
+There is a third position, and it takes `free` the same way. A cube sits in a
+panel like any other plot ([Space](space.qmd)):
 
 ```{r}
 data(gapminder_2007) + point + x(gdp) + y(life) +
@@ -221,13 +227,12 @@ data(gapminder_2007) + point + x(gdp) + y(life) +
 
 Shared, the height axis has to reach China, so Oceania's two countries lie flat
 on the floor with nothing to read. Freed, Oceania is measured in tens of millions
-and has a shape again, at the price this whole section is about: the five cubes
+and has a shape again, with the loss this whole section is about: the five cubes
 no longer compare. Nothing was added to the grammar to reach that plot. `free` is
-written on a position and `z` is a position, so the third one has always accepted
-it, and the sentence only became possible to write when the cube learned to sit
-in a panel.
+written on a position and `z` is a position, so the third one accepts it like the
+other two.
 
-Three things travel with a free scale, and none of them is separately requestable.
+Three things follow a free scale, and none can be asked for on its own.
 The first is the bin cut. The histogram earlier in this chapter shares one set of
 bin edges across every panel, because a cut describes the axis and the axis was
 shared. Free the axis and the edges follow it, for exactly the same reason:
@@ -237,20 +242,22 @@ data(gm_all) + bar * bin + x(gdp, free = TRUE) | facet(continent, wrap = 3)
 ```
 
 Each panel is cut from its own rows, so Africa gets bins the size of Africa's
-spread rather than bins sized for Norway. There is no way to ask for a free scale
+spread rather than bins sized for the richest countries in the data. There is no
+way to ask for a free scale
 over a shared cut, which would be a picture whose bars are the panel's and whose
 edges are the plot's.
 
-The second is the panel's **guides**. A scale says where the marks go, and where
-the axis marks it. Freeing one has to move both, or the numbers stop describing
+The second is the panel's **guides**: its axis numbers and gridlines. A scale
+says where the marks go, and where the axis prints its numbers. Freeing one has
+to move both, or the numbers stop describing
 the picture. Look again at the freed population plot above. Its gridlines sit at
 different heights in every panel, and each panel's labels sit beside its own.
 Shared, those same lines are drawn at one set of heights across all five. That is
 the whole of what a freed guide means: the lines a reader measures against belong
 to the scale that was freed.
 
-The third is that a free scale is a *panel's*, never a *frame's*. `play`
-([Animation](play.qmd)) splits rows the same way a facet does, so asking for this
+The third is that a free scale belongs to a panel, never to an animation frame.
+`play` ([Animation](play.qmd)) splits rows the same way a facet does, so asking for this
 over frames is a sentence you can write, and it is refused:
 
 ```{r}
@@ -261,11 +268,12 @@ render_svg(data(gm_all) + point + x(gdp) + y(life, free = TRUE) + play(year))
 The reason is in the message. Panels sit beside each other and a reader compares
 them; a frame *replaces* the one before it, so an axis refitted every frame would
 move under the data and the motion on screen would be the scale's rather than the
-data's. The same freedom is a fair trade in space and a lie in time.
+data's. Across panels the freedom is safe. Across frames it would misreport the
+data.
 
 Free scales are refused in two more places, both for the same kind of reason. On
-a channel that is not a position there is no axis to free, only a legend, and one
-key decodes the whole plot. And with no facet there are no panels:
+a channel that is not a position there is no axis to free, only a legend, and
+that one legend decodes the whole plot. And with no facet there are no panels:
 
 ```{r}
 #| error: true
@@ -275,7 +283,7 @@ render_svg(data(gapminder_2007) + point + x(gdp) + y(life, free = TRUE))
 ## A layer without the facet column
 
 A layer whose table does not have the facet column is drawn in full in every
-panel. That is how a shared reference belongs behind small multiples:
+panel. That is how one shared reference line is drawn behind small multiples:
 
 ```{r}
 world_median <- data.frame(
@@ -288,13 +296,13 @@ data(gapminder_2007) + point + x(gdp) + y(life) +
 ```
 
 The gray line, the world's median life expectancy, repeats in every panel,
-so each continent is read against the same anchor. The engine reports this
+so each continent is read against the same line. The engine reports this
 as an assumption rather than doing it in silence: the table `world_median`
 has no `continent` column, so its layer is drawn everywhere.
 
 ## The facet column must be a category
 
-A facet variable *names* the panels, so it must be a category column: a
+A facet column *names* the panels, so it must be a category column: a
 number is a position along an axis, not a name for a frame. Faceting by a
 numeric column refuses with direction:
 
@@ -303,14 +311,14 @@ numeric column refuses with direction:
 render_svg(data(gapminder_2007) + point + x(gdp) + y(life) | facet(population))
 ```
 
-The same judgment `shape` and `group` make about a mark's features, applied
+This is the judgment `shape` and `group` make about a mark's features, applied
 to the plot's outer frame. In R, `factor()`, or any explicit cut into named
 groups, is the way to say which panels you mean.
 
 Trellis named that cut a **shingle**, and lattice still builds one with
 `shingle()` or `equal.count()`. A shingle's intervals are allowed to overlap, so
-one row can appear in two panels, which smooths the run of panels at the price of
-counting some rows twice. Cutting the column yourself with `cut()` gives up the
+one row can appear in two panels. That smooths the run of panels, and it counts
+some rows twice. Cutting the column yourself with `cut()` gives up the
 smoothing and puts the boundaries somewhere a reader can check them, in the strip
 labels.
 

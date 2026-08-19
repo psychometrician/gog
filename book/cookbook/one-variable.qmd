@@ -5,7 +5,7 @@
 source("../R/setup.R")
 ```
 
-You have one column in front of you. What can it tell you? The questions it can
+You have one column. What can it tell you? The questions it can
 answer, and the sentence for each.
 
 ## How many of each?
@@ -18,7 +18,7 @@ data(gapminder_2007) + bar * count + x(continent)
 ```
 
 *"Bars derived by count: x is continent."* No `y()` is bound because the
-count is invented, and the axis labels itself.
+count is invented, and the engine labels the axis for you.
 
 **One atom away.** Long category names? Put the categories on `y` and the
 bars lie down, same sentence, positions swapped:
@@ -32,14 +32,14 @@ Owning chapters: [Bar](../marks/bar.qmd), [Transforms](../transforms.qmd).
 
 ## What share of the whole is each?
 
-Swap `count` for `proportion` and the tallies become fractions that sum
+Swap `count` for `proportion` and the counts become fractions that sum
 to one:
 
 ```{r}
 data(iris_flowers) + bar * proportion + x(species)
 ```
 
-**One atom away.** Back to raw tallies: `* count`. Sorted by size:
+**One atom away.** Back to raw counts: `* count`. Sorted by size:
 add [`order()`](../data.qmd).
 
 ## How is a measurement distributed?
@@ -66,7 +66,7 @@ chapters: [Bar](../marks/bar.qmd), [Transforms](../transforms.qmd).
 ## What is its smooth shape?
 
 The binned view depends on where the bin edges fall; the density estimate
-smooths that decision away:
+removes that decision:
 
 ```{r}
 data(gapminder_2007) + line * density + x(life)
@@ -74,10 +74,10 @@ data(gapminder_2007) + line * density + x(life)
 
 *"A line derived by density: x is life."* Same question as the
 histogram, one derivation over. Use both when the bumps matter. One atom tunes
-the smoothing: `density(0.5)` sharpens the bumps, `density(2)` irons them out,
+the smoothing: `density(0.5)` sharpens the bumps, `density(2)` flattens them,
 and `density(bandwidth = 1)` fixes the kernel width in years.
 
-## Where does the distribution step?
+## How does the distribution look in steps?
 
 The third rendering of `bin`: an unfilled staircase silhouette, tracing
 bin tops without any fill. It is most useful when several distributions
@@ -90,12 +90,12 @@ data(gapminder_2007) + step * bin + x(life)
 
 Three marks (`bar`, `line`, `step`), one `bin`. The transform never
 changed; only the geometry drawing its output did. That is the
-[No Exceptions law](../design-laws.qmd) doing its quiet work.
+[No Exceptions law](../design-laws.qmd), and nothing else.
 
 ## And when there are only thirty rows?
 
 Every answer above summarizes: `bin` needs a bin width, `density` needs a
-bandwidth, and both choices show more when there are fewer rows to
+bandwidth, and both choices matter more when there are fewer rows to
 average over. With thirty numbers you can skip the choice and draw all
 thirty. Add `stack` and a `point` piles one dot per observation:
 

@@ -5,27 +5,29 @@
 source("../R/setup.R")
 ```
 
-What if a value holds steady until it jumps? `step` is the line family's
-staircase. Where `line` slants straight from one point to the next, `step`
-**holds each value until it changes, then jumps**. That is the right shape for
-anything that stays put between observations: a cumulative count, a survival
-probability, an interest rate that was 2.5 % until the day it wasn't. It takes
-the same channels as `line`; only the interpolation differs.
+How do you draw a value that holds until it jumps? `step` is the line
+family's staircase. Where `line` slants straight from one point to the next,
+`step` **holds each value until it changes, then jumps**. That is the right
+shape for anything that does not change between observations: a cumulative
+count, a survival probability, an interest rate that was 2.5% until the day
+it changed. It takes the same channels as `line`; only the path between the
+points differs.
 
 The shape has a name in every field that needs it, and they are all this one mark.
-Statisticians draw the **empirical distribution function** with it. Medicine draws
+Statisticians draw the **empirical cumulative distribution function** (the
+CDF) with it. Medicine draws
 the **survival curve**, the Kaplan–Meier estimate [@kaplan1958], whose steps fall at the
 observed deaths. Reliability engineering draws the same curve and calls it a
 hazard or failure plot, and finance draws the **step chart** of a rate that holds
-until someone changes it. A cumulative count and a survival probability are one
-staircase read in opposite directions.
+until someone changes it. A cumulative count climbs and a survival
+probability falls; both are this one staircase.
 
 ## Histogram outline
 
-`step * bin` draws a histogram as a **silhouette** rather than as bars: one
-stepped line tracing the top of each bin. Split it by `color` and you get the
-overlaid outline histogram, one staircase per group, with nothing painted over
-anything:
+`step * bin` draws a histogram as an **outline** rather than as bars: one
+stepped line tracing the top of each bin. Split it by `color` for the
+overlaid outline histogram, one staircase per group, each drawn without a
+fill:
 
 ```{r}
 data(iris_flowers) + step * bin + x(petal_length) + color(species) +
@@ -34,25 +36,25 @@ data(iris_flowers) + step * bin + x(petal_length) + color(species) +
 
 *"Given the iris flowers: a step outline derived by bin, x is petal length, color by species."*
 
-This is the third way to draw a binned distribution, and the mark is the only
-thing that changes:
+There are three ways to draw a binned distribution, and only the mark
+changes:
 
-| Mark over `bin` | Shape |
+| Mark derived by `bin` | Shape |
 |---|---|
 | `bar * bin` | filled bars |
 | `line * bin` | frequency polygon: straight lines through the bin centers |
-| `step * bin` | the staircase silhouette above |
+| `step * bin` | the staircase outline above |
 
-The bins are shared across the groups, so the three silhouettes line up on the
-same edges, and each drops to the axis where its species has no data. Because a
-step is a single unfilled stroke, overlapping groups never obscure one another:
-no opacity to set, no "which was drawn last" to worry about.
+The bins are shared across the groups, so the three outlines share the
+same edges, and each drops to the axis where its species has no data. Because
+a step is a single unfilled stroke, each group's shape stays readable through
+the others, and no opacity has to be set.
 
 ## A step function
 
 Give `step` an `x` and a `y` directly and it draws a step function. An empirical
-cumulative distribution is the classic example; it jumps by 1/n at each
-observation and is flat between:
+CDF is the classic example: with n observations it climbs by 1/n at each
+one, and is flat between:
 
 ```{r}
 v <- sort(gapminder_2007$life)
@@ -63,14 +65,15 @@ data(ecdf_df) + step + x(life) + y(share) +
 ```
 
 Drawn with `line`, this same data would slant between points and imply
-cumulative shares at life expectancies that no country has. The step tells the
-truth: the share *was* that value until the next country's.
+cumulative shares at life expectancies that no country has. The step is
+exact: the share stayed at that value until the next observation.
 
 ## A value that holds until it changes
 
-The same honesty matters for anything that steps rather than glides: a policy
-rate, a price, an inventory level. It held its value, then jumped on a single
-day; a straight line would draw a gradual change that never happened:
+The same exactness matters for anything that jumps rather than changing
+gradually: a policy rate, a price, an inventory level. Each held its value,
+then jumped on a single day; a straight line would draw a gradual change that
+never happened:
 
 ```{r}
 rates <- data.frame(
@@ -101,9 +104,9 @@ data(inventory) + step + x(week) + y(units) + color(site) +
 
 ## A category on the domain
 
-`step` shares `line`'s row in the legality table, which is the No Exceptions law
-made literal: the two marks differ in how the path is drawn, never in what it may
-be bound to. So a category on the domain works here exactly as it does there, and
+`step` shares `line`'s row in the legality table. That is the No Exceptions
+law in one row: the two marks differ in how the path is drawn, never in what
+may be bound to them. So a category on the domain works here exactly as it does there, and
 the staircase holds each category's value across its own slot:
 
 ```{r}
@@ -112,7 +115,7 @@ data(gapminder_2007) + step * mean + x(continent) + y(life) +
   title("step * mean + x(continent): held across each slot")
 ```
 
-That reading is arguably the more honest of the two. A `line` slopes between two
+Of the two, the step claims less about what was measured. A `line` slopes between two
 categories and so draws a change passing through values nothing recorded; a step
 holds flat and jumps, which is closer to what a set of separate groups actually
 says. The same argument the [step function](#a-step-function) section makes about
@@ -150,14 +153,15 @@ data(six_weeks) + step + x(day) + y(orders) +
   y_label("Orders") + title("A dotted staircase")
 ```
 
-A dash on a step is worth knowing about, because the two say different things: the
-staircase is *geometry* (it moves the path, inserting corners and holding values),
-while the dash is *paint*. That is the reason `step` is a mark and `pattern` is a
-setting rather than both being one or the other.
+A dash on a step deserves one sentence, because the two do different work.
+The staircase is *geometry*: it moves the path, adding corners and holding
+values. The dash is *paint*. That is why `step` is a mark and `pattern` is a
+setting, rather than both being one or the other.
 
 ## What it refuses
 
-A step is one polyline drawn with one stroke, and that settles both refusals.
+A step is one polyline (a single connected stroke), and that explains both
+refusals.
 
 One stroke has one width (there is no answer to "how wide is the staircase
 *here*"), so a width cannot vary along it:
@@ -171,7 +175,7 @@ The stroke still *has* a width, which is why the setting above works and the
 mapping does not. That distinction is the subject of
 [Setting vs mapping](../style.qmd).
 
-The second is vocabulary again. A hatch is a fill's texture, and a staircase is
+The second refusal is about vocabulary. A hatch is a fill's texture, and a staircase is
 line-work with nothing inside it:
 
 ```{r}
@@ -179,11 +183,10 @@ line-work with nothing inside it:
 data(gapminder_asia) + step + x(year) + y(life) + style(pattern = "hatch")
 ```
 
-A color is not like a width, though, and `step` takes `line`'s answer here as
-it takes `line`'s answer everywhere: you *can* point at one tread and ask what
-color it is, so a measure varies along the staircase. Each tread shows the
-value it holds and each riser blends between the two it joins, which is what a
-tread and a riser respectively mean:
+A color is different. A **tread** is a flat run at one value, and a **riser**
+is the jump between two. Point anywhere on the staircase and it has a color,
+so a measure can vary along it: each tread takes its row's own color, and
+each riser blends the two it joins:
 
 ```{r}
 data(gapminder_asia) + step + x(year) + y(life) + group(country) +

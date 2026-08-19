@@ -25,13 +25,13 @@ py_plot("data(gapminder_2007) + point + x(col.gdp, scale='log') + y(col.life) + 
 ```
 
 The R form of that sentence is the one from [A first plot](../first-plot.qmd),
-with `col.` in front of each column. Those four characters buy something worth
-paying for. In R a bare `gdp` cannot be anything except a name; Python has no
-bare names, and in this grammar a plain string is how you spell a *value*:
-`style(color="tomato")`, `title("…")`, `palette("okabe")`. Without the accessor
-a column and a value would look identical, and the grammar's oldest rule (a
-channel takes a column, never a value) would be invisible in the one language
-that cannot see it.
+with `col.` in front of each column. Those four characters do real work, and the
+next paragraph says what. In R a bare `gdp` cannot be anything except a name;
+Python has no bare names, and in this grammar a plain string is how you spell a
+*value*: `style(color="tomato")`, `title("…")`, `palette("okabe")`. Without the
+accessor a column and a value would look identical, and the grammar's oldest
+rule (a channel takes a column, never a value) would be invisible in the two
+languages that most need it stated.
 
 So a string where a column belongs is refused, and told what to write:
 
@@ -41,7 +41,7 @@ py_error("data(gapminder_2007) + point + x('gdp') + y(col.life)")
 ```
 
 The message offers both spellings because both are real: one *maps* a column and
-earns a legend, the other *sets* one value and earns none ([Setting is not
+earns a legend, the other *sets* one value and earns none ([Setting vs
 mapping](../style.qmd)). The mistake in the other direction is refused the same
 way:
 
@@ -52,7 +52,8 @@ py_error("data(gapminder_2007) + point + x(col.gdp) + y(col.life) + style(color=
 
 A column whose name Python cannot spell as an attribute takes the bracket form
 instead, `col["life exp"]`, which is also how you reach a name with a space or a
-dot in it.
+dot in it. A non-Latin column name needs nothing special either: `col.국가`
+works, and the bracket form covers the rest.
 
 ## A sentence over several lines takes parentheses
 
@@ -77,26 +78,27 @@ py_plot("data({'level': ['Low', 'Medium', 'High'], 'count': [30.0, 20.0, 10.0]},
 ```
 
 Anything carrying `.columns` and `df[name]` is also a table, which covers pandas
-and polars. They are duck-typed rather than imported, so neither is a dependency
-of the binding, and the ordinary way in is the one you already use:
+and polars. Neither is imported, so neither is a dependency of the binding, and
+the ordinary way in is the one you already use:
 
 ```{r}
 #| echo: false
 py_show("import pandas as pd\n\ngapminder_2007 = pd.read_csv(GAPMINDER_CSV)\nprint(gapminder_2007.shape, list(gapminder_2007.columns))")
 ```
 
-Every plot on this page reads that frame. Types cross as you would expect:
+Every plot on this page reads that frame. Types convert as you would expect:
 numbers become positions, text becomes categories, `datetime64` and Python's own
 `date` and `datetime` become a calendar axis, and `NaN` or `None` is a missing
 value the engine drops from the rows it cannot place, saying how many. A pandas
 `Categorical` carries its declared order across, which is the counterpart of R's
 `factor(x, levels = …)`; a plain dict of strings has nowhere to put that, so
-there the categories fall back to the order the rows came in, which
+there the categories take the order the rows came in, which
 [Data](../data.qmd) describes.
 
 ## Computation is pandas' job, not the grammar's
 
-A channel takes a column name and never an expression. There is no
+A channel takes a column name and never an expression. This is true in all four
+languages; pandas is simply where a Python reader will meet it. There is no
 `x(log(gdp))`, and gog grows no small language for deriving values, because
 Python already is one: compute the column, then bind it by name.
 
@@ -146,17 +148,21 @@ py_show("plot = data(gapminder_2007) + point + x(col.gdp) + y(col.life)\nprint(p
 it as a string. R's `print()` opens the viewer without being asked; Python waits
 to be told, which is the convention each language already has.
 
-## Five names Python already uses
+## Six names Python already uses
 
-`bin`, `sum`, `min`, `max` and `range` are transforms here and builtins there,
-so `from gog import *` puts gog's over Python's for the rest of the file. The R
-package takes the same names from base R: a grammar keeps its own vocabulary.
-Calling one says so rather than failing obscurely:
+`bin`, `map`, `max`, `min`, `range` and `sum` are gog's words here and builtins
+there, so `from gog import *` puts gog's over Python's for the rest of the file.
+The R package takes the same names from base R: a grammar keeps its own
+vocabulary. Calling some of them says so; the rest return a gog object where a
+value was expected, which is quieter than a refusal:
 
 ```{r}
 #| echo: false
 py_show("try:\n    range(10)\nexcept GogError as error:\n    print(error)")
 ```
+
+The worst of the six is `map`: it is the one you may already call, and the error
+it raises does not mention gog.
 
 A module that needs both can `import gog` and write `gog.point`, or take the
 builtin back with `from builtins import sum`.
@@ -184,18 +190,18 @@ py_error("data(gapminder_2007) + bar + x(col.continent)")
 ```
 
 How far apart are the two spellings, then? That is measured rather than argued.
-Every sentence in this book, 481 of them, was translated by rule and run through
-the Python binding: 379 drew a **byte-identical** plot, 88 earned a
-word-identical refusal, and seven differed only in the example inside the
-message, where each binding teaches its own syntax. Seven sentences do not carry
-over at all, and every one of them is in [R](r.qmd), about R's pipes. Two
-rewrites account for nearly all the rest: the accessor, 471 times, and the
-parentheses, 326.
+Every sentence in this book was translated by rule and run through
+the Python binding: 623 drew a **byte-identical** plot, 166 earned a
+word-identical refusal, and 19 differed only in the example inside the
+message, where each binding teaches its own syntax. Eleven sentences do not
+carry over at all. Nine are in [R](r.qmd), about R-only spellings, and two are
+the GIF exports in [Play](../play.qmd). Two rewrites account for nearly all the
+rest: the accessor, 803 times, and the parentheses, 549.
 
 ## Reading from a database
 
 Python has a database standard, and `query()` speaks it. It also speaks Spark,
-because that is where a large share of Python's data actually lives.
+because that is where a large share of Python's data is stored.
 
 The standard is DB-API, also called PEP 249. Anything with a `.cursor()`
 method works: the built-in `sqlite3`, DuckDB, `psycopg`, `pyodbc`, Snowflake's
@@ -223,7 +229,7 @@ only setup step.
 Neither route adds a dependency to `gog`. You bring the connection; `gog` reads
 rows from it.
 
-## Getting it running
+## Getting it
 
 A plot is drawn by the engine, which is a compiled Rust binary, so the Python
 package has to be able to find one. The released wheel **carries it**: one wheel

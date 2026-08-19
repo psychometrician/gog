@@ -9,9 +9,9 @@ Where did it happen? Some data answers that with a place on the earth, and a
 place is two numbers: **longitude**, how far east or west, and **latitude**, how
 far north or south. Both are angles, measured in degrees.
 
-Two numbers is what every plot in this book has taken. So a map is not a new
+Every plot in this book has used two numbers for position. So a map is not a new
 kind of picture. It is the same sentence you already write, drawn in a space
-that knows the two numbers are angles on a sphere.
+that treats the two numbers as angles on a sphere.
 
 ```{r}
 data(quakes_fiji) + point + x(east) + y(north) + map()
@@ -20,11 +20,11 @@ data(quakes_fiji) + point + x(east) + y(north) + map()
 *"Given quakes Fiji: points, x is east, y is north, in the map space."*
 
 That is a thousand earthquakes recorded near Fiji. `x` is longitude and `y` is
-latitude, and `map()` is the whole of what makes it a map. The axes read in
-degrees, because that is what the columns hold.
+latitude, and `map()` is the whole of what makes it a map. The axes are labeled
+in degrees, because that is what the columns hold.
 
-In the web edition, `−`, `+` and *fit* under the plot look closer at a crowded
-part of it and return to the whole. A map wants that more than most plots,
+In the web edition, `−`, `+` and *fit* under the plot magnify a crowded part and
+then show the whole map again. A map needs that more than most plots do,
 because places are crowded at every scale. Zooming is a **view**: it magnifies
 the picture and changes nothing the plot claims.
 
@@ -32,7 +32,7 @@ the picture and changes nothing the plot claims.
 
 The earth is round and the page is flat. No projection can flatten a sphere
 without distorting it, and the choice is not between a good projection and a bad
-one. It is between which mistake you prefer.
+one. You choose which distortion you accept.
 
 Two properties matter most, and a projection can keep one of them, never both.
 `preserve` says which:
@@ -44,25 +44,27 @@ Two properties matter most, and a projection can keep one of them, never both.
      map(preserve = "angle") + title("preserve = \"angle\""))
 ```
 
+The world map above is a table like any other, and the next section reads it
+column by column.
+
 Look at Greenland, at the top left of each map, and compare it with Africa. In
 the first, Greenland is small, which is correct: Africa is about fourteen times
-larger. In the second, Greenland has grown until it rivals Africa. The second
-map has kept every small shape's true form and paid for it in size.
+larger. In the second, Greenland has grown until it looks as large as Africa.
+The second map keeps every small shape's true form and gets the sizes wrong.
 
-The two are the same width and not the same height, and that is the projection
-speaking rather than the page. Both cover every degree of longitude, so `/`
+The two are the same width and not the same height, and the projection sets that
+height. Both cover every degree of longitude, so `/`
 gives them one `lon` axis and one width. Keeping every small shape's form is
 what stretches the second one north and south.
 
-`preserve = "area"` is the default, and the reason is what a reader does with a
+`preserve = "area"` is the default, and the reason is how a reader uses a
 map. A map is usually read by comparing how much space something takes. A
 projection that inflates the far north tells the reader something false about
 every number placed there.
 
 ## Drawing the outlines
 
-The world map above is a table like any other. It has one row for every point
-along a coastline or a border:
+The table has one row for every point along a coastline or a border:
 
 ```{r}
 knitr::kable(head(world_borders, 4))
@@ -71,17 +73,18 @@ knitr::kable(head(world_borders, 4))
 `path` connects rows in the order the table gives them, which is exactly what
 tracing a coastline needs. `group(piece)` says where one outline ends and the
 next begins. A country is not always one closed shape: islands are separate
-rings, and a country lying wholly inside another is a ring of its own. So
-`piece` counts rings rather than countries.
+rings, and a country that encloses another needs a second ring for the hole (a
+ring ends where it returns to its starting point). So `piece` counts rings
+rather than countries.
 
 Without that split, `path` would join the last point of one country to the first
 point of the next, and draw a line across the ocean between them.
 
 ## The second layer is the data
 
-An outline on its own is a backdrop. The plot begins when something is drawn on
-top of it, and that is ordinary layering: the outline is one `data()` and one
-mark, the observations are another.
+An outline on its own is only a background. It becomes a plot when something is
+drawn on top of it, and that is ordinary layering: the outline is one `data()`
+and one mark, the observations are another.
 
 ```{r}
 data(world_borders) + path + x(lon) + y(lat) + group(piece) +
@@ -98,8 +101,8 @@ follows it.
 ## A quantity goes on a channel
 
 Every other space leaves you an axis to measure along. A bar stands on one axis
-and measures up the other. A map has no axis to spare, because longitude and
-latitude have taken both.
+and measures its length along the other. A map has no axis left, because
+longitude and latitude use both.
 
 So a quantity moves to a **channel**. Size each place by it:
 
@@ -111,10 +114,10 @@ data(world_borders) + path + x(lon) + y(lat) + group(piece) +
   map() + title("Sized by magnitude")
 ```
 
-That plot has a name, the **proportional-symbol map**, and there is no atom that
-spells it. It is `point` with `size` bound, in this space.
+That plot has a name, the **proportional-symbol map**, and no single atom draws
+it. It is `point` with `size` bound, in this space.
 
-Color works the same way, and reads a category rather than a quantity:
+Color works the same way, and takes a category rather than a quantity:
 
 ```{r}
 data(world_borders) + path + x(lon) + y(lat) + group(piece) +
@@ -124,8 +127,9 @@ data(world_borders) + path + x(lon) + y(lat) + group(piece) +
 
 ## Meridians and parallels
 
-A `rule` draws a line at one position and spans the axis it does not name. Flat,
-that is a reference line. Here, a rule at one longitude is a **meridian**, and a
+A `rule` draws a line at one position and spans the axis it does not name. In a
+flat space that is a reference line. Here, a rule at one longitude is a
+**meridian**, and a
 rule at one latitude is a **parallel**:
 
 ```{r}
@@ -142,8 +146,8 @@ above comes from a one-row table. That is the same way a reference line is drawn
 on any other plot.
 
 Nothing was added to the grammar to draw that. The same sentence that puts a
-reference line on a scatter puts the equator on a map, because the space bends
-what the mark means without changing what the mark is.
+reference line on a scatter puts the equator on a map. The space gives the mark
+a new meaning, and the mark itself is unchanged.
 
 ## Naming places
 
@@ -174,8 +178,8 @@ drawing something that looks like a map and is not one:
 data(quakes_fiji) + bar * count + x(east) + map()
 ```
 
-The message names the four marks that do draw, and it names the way out: put the
-quantity on `size` or `color`, which is what the two plots above did.
+The message names the marks that do draw, and it says what to do instead: put
+the quantity on `size` or `color`, which is what the two plots above did.
 
 A position on a map is a place, so a category cannot be one:
 
@@ -197,9 +201,10 @@ engine refuses it instead of accepting the number and ignoring it.
 
 ## Where Mercator stops
 
-`preserve = "angle"` sends the poles infinitely far away, so it has to stop
-short of them. It stops at 85.05 degrees, and it says how many rows it could not
-reach rather than moving them in silence:
+`preserve = "angle"` is the **Mercator** projection, the one behind most web
+maps. It sends the poles infinitely far away, so it has to stop short of them.
+It stops at 85.05 degrees, and it says how many rows it could not reach rather
+than moving them and saying nothing:
 
 ```{r}
 far_north <- data.frame(
@@ -221,7 +226,7 @@ plot most people picture when they hear "map", and it has a name: the
 **choropleth**.
 
 The mark is `zone`, which shades a region. Everywhere else in this book a zone
-finds its sides from its own row: a category's slot, `bounds`, `bin` or
+takes its sides from its own row: a category's slot, `bounds`, `bin` or
 `density`. A coastline is a fifth way, and it is the first that arrives as
 **many rows for one shape**. So the sentence needs a word for which rows belong
 to which region, and `group` is that word already:
@@ -238,12 +243,13 @@ groups by country.
 
 ## A value on the map
 
-`color` reads a number as readily as a category, and that is the choropleth
-proper. The value comes from a table you already know: `gapminder_2007`, the
+`color` reads a number as readily as a category, and that is a true choropleth.
+The value comes from a table you already know: `gapminder_2007`, the
 same 142 countries the scatter chapters draw.
 
-Joining two tables is the host language's job, not the grammar's. In R that is
-one line with `match()`:
+Joining two tables is the host language's job, not the grammar's. In R the join
+itself is one `match()` call. Every host language has its own one-call lookup,
+and the plot sentence below it is the same in all four:
 
 ```{r}
 filled <- world_borders
@@ -257,7 +263,7 @@ data(world_borders) + zone + x(lon) + y(lat) + group(country) +
   map() + title("Life expectancy at birth, 2007")
 ```
 
-Two layers again, and the first one is doing real work. `gapminder_2007` covers
+Two layers again, and the first one is not decoration. `gapminder_2007` covers
 120 of the 176 countries in the outline table, so the pale gray layer underneath
 is what the reader sees where there is no number. Without it those countries
 would simply be absent, and a reader could not tell "no data" from "no country".
@@ -288,10 +294,11 @@ data(enclave) + zone + x(lon) + y(lat) + group(country) + color(life) +
 
 Lesotho is a hole in South Africa, not a patch laid over it. The difference
 matters because the two countries have different values, and a patch would be
-correct only if it happened to be drawn second.
+correct only when it is drawn second, and nothing guarantees that.
 
 If a ring in your data does not close, gog cannot tell where one ring ends and
-the next begins. It says so rather than guessing quietly, and names what to fix.
+the next begins. It says so rather than guessing without saying so, and names
+what to fix.
 
 Every sentence in this chapter also draws with the sphere kept round: that is
 [Globe](globe.qmd), the same marks at the same places, viewed.

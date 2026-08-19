@@ -120,13 +120,14 @@ check_prose <- function(dirs = c("book", "blog")) {
   # writes, never text it quotes.
   idiom_exempt <- list("index.qmd" = "difficulty earns its keep")
 
-  # Two places transcribe an engine diagnostic word for word, and a diagnostic is
+  # One place transcribes an engine diagnostic word for word, and a diagnostic is
   # the *package's* sentence, not the book's. The book has to quote it exactly or
   # it is claiming output the reader will not get, so the em dash stays and the
-  # engine keeps its own punctuation. `legality.rs` emits both.
+  # engine keeps its own punctuation. (channels.qmd used to be the second such
+  # place; its quoted refusal became a live chunk, whose output the reader gets
+  # from the engine itself.)
   dash_exempt <- list(
-    "channels.qmd"   = "has no opacity feature",
-    "transforms.qmd" = "a share is a share of a"
+    "transforms.qmd" = "a share is a share *of*"
   )
   dash_ok <- function(short, line) {
     ex <- dash_exempt[[short]]

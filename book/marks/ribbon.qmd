@@ -7,11 +7,11 @@ source("../R/setup.R")
 
 How wide is the band the values fall in, across a span? `ribbon` draws a
 filled band from a low boundary to a high one across x: a confidence band,
-a spread band, the shaded region around a trend. It is [`area`](area.qmd) fed
-by [`interval`](interval.qmd)'s machinery: `area`'s single filled region, but
-closed on a *second data boundary* instead of a baseline at zero. Where an area
-fills from the data down to the ground, a ribbon fills between two lines the
-data draws.
+a spread band, the shaded region around a trend. It is [`area`](area.qmd)'s
+single filled region reading [`interval`](interval.qmd)'s low and high pair:
+closed on a *second data boundary* instead of a baseline at zero. Where an
+area fills from the data down to zero, a ribbon fills between two boundaries
+the data supplies.
 
 ## A band from a range
 
@@ -30,13 +30,13 @@ data(gapminder_asia) + ribbon * range + x(year) + y(life) +
 
 Every year, the band's lower edge is the shortest-lived country and its upper
 edge the longest-lived; the band is the region that contains all five. Read it as
-`interval * range` drawn as a *continuous* fill rather than a whisker at each x:
-the same low/high pair, one geometry apart.
+`interval * range` drawn as a *continuous* fill rather than a whisker at each
+x. The pair is the same; only the geometry differs.
 
 ## The mean and its band
 
-On its own a band shows spread but not center. The band's natural partner is a
-line through the middle, and superposition, not a new option on either mark,
+On its own a band shows spread but not center. A band is usually drawn with a
+line through the middle, and layering, not a new option on either mark,
 is how you compose them. A `ribbon * range` for the spread, a `line * mean` for
 the trend, sharing one `x` and `y`:
 
@@ -50,7 +50,7 @@ data(gapminder_asia) + x(year) + y(life) +
 
 Each layer runs its own transform on the shared data: `mean` collapses each year
 to one point for the line, `range` to a low/high pair for the band. This is the
-archetypal ribbon plot, a trend with the uncertainty or spread drawn around it,
+most common ribbon plot, a trend with the uncertainty or spread drawn around it,
 and it is two marks the grammar already has, added with `+`.
 
 ## A fan chart of nested bands
@@ -70,13 +70,14 @@ data(gm_all) + x(year) + y(life) +
   title("Life expectancy across 142 countries, 1952 to 2007")
 ```
 
-The pale band holds the middle 80% of countries. The darker one holds the
-middle half, and the line is the median. The plot then says something the min–max
+The pale band contains the middle 80% of countries. The darker one contains
+the middle half, and the line is the median. The plot then says something the min–max
 version cannot. The median rose from 45 years to 72, and the 90th percentile from
 67 to 80, so the distance between them fell from 22 years to 8.
 
-The bottom of the plot moves the other way. Both lower edges fall between 1992
-and 2002, the 10th percentile and the 25th, while the median rises throughout.
+The bottom of the plot moves the other way. Both lower edges, the 10th
+percentile and the 25th, decline between 1992 and 2002 while the median rises
+throughout.
 A min–max band cannot show this, because its lower edge is one country.
 
 Each band is one more layer, so a third pair adds a third. The bands must be
@@ -84,9 +85,10 @@ drawn widest first, because a later layer is painted over an earlier one.
 
 ## Why a ribbon needs a transform
 
-A low *and* a high are two numbers, and a plain `y()` supplies one. So (like
-`interval`, and unlike `area`, which closes on the zero the grammar already
-knows) a ribbon's minimum syllable includes a range-producing transform. Ask for
+A low *and* a high are two numbers, and a plain `y()` supplies one. An `area`
+closes on zero, which the grammar supplies. A ribbon has no such second
+number, so like `interval` its minimum syllable includes a range-producing
+transform. Ask for
 one without it and the engine says so rather than drawing an empty panel:
 
 ```{r}
@@ -95,16 +97,16 @@ data(gapminder_asia) + ribbon + x(year) + y(life)
 ```
 
 This is the same design choice that keeps the [channel
-vocabulary](../grammar.qmd) small. The alternative, `ymin`/`ymax` aesthetics,
-would add two channels meaningful to a single mark. Instead the boundaries are
+vocabulary](../grammar.qmd) small. The alternative would add `ymin` and
+`ymax` as two more channels meaningful to a single mark. Instead the boundaries are
 **invented by a transform**, exactly as `bin` invents a count, so the same
 low/high-rows mechanism feeds the whisker, the box, and the band alike; see
 [Transforms](../transforms.qmd) for the `range`, `confidence` and `deviation`
 statistics.
 
-Read the requirement as *where are my two boundaries?* rather than as a list of
-four transforms. There is a fifth answer, and it looks nothing like the other
-four: `density` over a category gives a ribbon its boundaries by
+Read the requirement as *where do the two boundaries come from?* rather than
+as a list of transforms. One answer looks nothing like the others: `density`
+over a category gives a ribbon its boundaries by
 **reflection**. That is [the violin](#the-violin-a-distribution-per-category),
 at the end of this chapter.
 
@@ -112,7 +114,8 @@ at the end of this chapter.
 
 `range` shows the full spread. For the **uncertainty of the mean**, the shaded
 band of a regression or a group mean, use `confidence`, which computes the
-mean's t-interval per `x` and fills between its bounds:
+mean's t-interval per `x` (wider when the group is small) and fills between
+its bounds:
 
 ```{r}
 data(gapminder_asia) + ribbon * confidence(0.95) + x(year) + y(life) +
@@ -121,7 +124,7 @@ data(gapminder_asia) + ribbon * confidence(0.95) + x(year) + y(life) +
 ```
 
 The band is narrow because the five countries agree closely on the mean in each
-year; a wider level draws a wider band. Which statistic you ask for chooses the
+year; a higher level draws a wider band. Which statistic you ask for chooses the
 band's meaning, the observed spread (`range`) or the uncertainty of the mean
 (`confidence`), with no new mark to learn, the same rule the
 [`interval`](interval.qmd) family follows.
@@ -129,10 +132,10 @@ band's meaning, the observed spread (`range`) or the uncertainty of the mean
 ## A pre-computed band
 
 `range`, `confidence` and `deviation` compute the band *from raw values in the
-plot*. But most
-confidence bands are not computed at the plot at all: a model's standard error, a
-psychometric standard error of measurement, a bootstrap interval are all worked out
-**upstream**, and you arrive with the bounds already in two columns. gog draws what
+plot*. But most confidence bands are not computed in the plot at all. A
+model's standard error, a standard error of measurement, a bootstrap
+interval: each is computed **before the plot**, and its bounds arrive as two
+columns. gog draws what
 you computed; it does not re-fit the model. So the ribbon reads those columns
 directly, through `bounds(lower, upper)`:
 
@@ -143,12 +146,12 @@ data(score_band) + ribbon * bounds(lower, upper) + x(score) +
 ```
 
 `bounds` is `range`'s counterpart that **computes nothing**: it reshapes the two
-columns you hand it into the same low/high pair `range` produces, so the band draws
-with no new machinery and no `y()` (the two columns *are* the extents). It is the
-common case the summary transforms cannot serve: a band whose bounds came from
-somewhere gog will never be.
+columns you hand it into the same low/high pair `range` produces, so the band
+draws with nothing new and no `y()` (the two columns *are* the boundaries).
+It is the common case the computing transforms cannot serve: a band whose
+bounds were computed before the data reached the plot.
 
-Its natural companion is the curve the band surrounds. Here the scoring model's
+It is usually drawn with the curve the band surrounds. Here the scoring model's
 **expected true score** runs through the middle, drawn as a dashed
 [`line`](line.qmd) with a marker at each integer raw score (the band, the trend,
 and the score points, composed with `+`):
@@ -159,11 +162,11 @@ data(score_band) + x(score) + y(expected) +
   line + style(color = "steelblue", size = 1.4, pattern = "dashed") +
   point + style(color = "steelblue", size = 2.4) +
   y_label("Expected true score") + x_label("Raw score") +
-  title("Expected score with its 95% CSEM band")
+  title("Expected score with its measurement error band")
 ```
 
 The dashed line is [`style(pattern = )`](../style.qmd): on a stroke the texture is a
-**dash**, so it rides the `line` here, not the band. The band can take the same
+**dash**, so it applies to the `line` here, not to the band. The band can take the same
 setting too: there it is a **hatch** (a fill texture), not a dash.
 
 ## Filled, or two dashed edges
@@ -172,7 +175,7 @@ A band is a low/high pair, and the *mark* chooses how to draw it: the same
 [No Exceptions](../design-laws.qmd) rule that gives one `bin` a bar, a line, and a
 step histogram. `ribbon` **fills** the pair; a [`line`](line.qmd) traces its **two
 boundaries**, the unfilled band publications often prefer, and with
-`style(pattern = )`, the classic dashed ± curves:
+`style(pattern = )`, the dashed pair of curves publications often draw:
 
 ```{r}
 data(score_band) + x(score) + y(expected) +
@@ -183,13 +186,14 @@ data(score_band) + x(score) + y(expected) +
   title("The same band, unfilled: two dashed edges")
 ```
 
-`line * bounds` is one layer that draws *both* edges, splitting the pair into a
-low locus and a high one. It therefore needs no second `y`. That is why the two
-boundaries come out as separate curves, where two hand-written `line` layers
-could not manage it. It reads any pair the same way: `line * range` traces a min–max envelope,
+`line * bounds` is one layer that draws *both* edges, splitting the pair into
+a low curve and a high one. It therefore needs no second `y`, and that is why
+the two boundaries are drawn as separate curves: two hand-written `line`
+layers cannot do it, because each takes only one `y`. `line * bounds` reads
+any pair the same way: `line * range` traces a min–max envelope,
 `line * confidence` the CI edges, and [`step`](step.qmd) `* bounds` draws them as
 staircases (stepped control limits). Filled or unfilled, solid or dashed, it is one
-pair and a choice of mark, never a new option bolted onto the band.
+pair and a choice of mark, never a new option added to the band.
 
 ## One band per group
 
@@ -204,13 +208,13 @@ data(gm_continents) + ribbon * range + x(year) + y(life) + color(continent) +
 ```
 
 The bands overlap where the continents do, and unlike a split `area`, which
-stays opaque and points you at `stack`, a ribbon draws its split **translucent**
-by default, so a band behind another still shows through. That difference is
+stays opaque and leaves `stack` as the answer, a ribbon draws its split
+**translucent** by default, so a band behind another still shows through. That difference is
 principled: an area measures a height from the baseline, so its groups can be
 piled into a total; a ribbon already spans a low to a high and measures no such
-height, so there is nothing to stack. Transparency, not accumulation, is a band's
-honest answer to overlap, which is why `ribbon * stack` is refused with
-direction toward `style(opacity = )`.
+height, so there is nothing to stack. Overlapping bands are read through
+transparency, never stacked, which is why `ribbon * stack` is refused and the
+refusal names `style(opacity = )`.
 
 ## One region, one fill
 
@@ -223,8 +227,8 @@ own, so there is nothing for a per-row opacity to vary along.
 render_svg(data(gapminder_asia) + ribbon * range + x(year) + y(life) + opacity(gdp))
 ```
 
-And `size` cannot even be set: a band's extent is pinned by its x and its two
-boundaries, with no width left to choose. Its edge, if you want one, is a `line`
+And `size` cannot even be set: a band's extent comes from its x and its two
+boundaries, so there is no width to choose. Its edge, if you want one, is a `line`
 layered along a boundary (`ribbon + line`, the composition the previous section
 already drew), never an outline option on the mark.
 
@@ -240,10 +244,10 @@ data(gapminder_2007) + ribbon * range + line * mean + x(continent) + y(life) +
 ```
 
 For most such data an [`interval`](interval.qmd) is the better sentence. It draws
-a separate whisker at each category and claims nothing about the space between
-them, where the band's edges slope across ground that holds no observations. The
-grammar does not decide that for you: both expressions are well formed, and which
-one is honest about *your* data is a question about the data.
+a separate whisker at each category and claims nothing about the space
+between them, where the band's edges slope across x values that have no rows.
+The grammar does not decide that for you: both sentences are well formed, and
+which one fits *your* data is a question about the data.
 
 ```{r}
 data(gapminder_2007) + interval * range + x(continent) + y(life) +
@@ -273,8 +277,8 @@ it would be four things at once (the mark, the statistic, the mirror, and the
 slot), and each of those is already said by something you know.
 
 Read it against the [`box`](box.qmd) of the same two columns. A box gives you
-five numbers you can name; the violin gives you the shape those five numbers are
-a summary of, and shows the two humps a median hides.
+five numbers you can name; the violin gives you the shape those five numbers
+summarize. Africa's violin has two peaks, which its median hides.
 
 ```{r}
 data(gapminder_2007) + box + x(continent) + y(life) +
@@ -283,8 +287,8 @@ data(gapminder_2007) + box + x(continent) + y(life) +
 
 ### What the width means
 
-Every group's density integrates to 1 on its own, so left alone the widths would
-say nothing about how much data each group has: a continent of two countries
+Every group's density integrates to 1 on its own, so without the weighting
+the widths would say nothing about how much data each group has: a continent of two countries
 would be drawn as boldly as a continent of fifty-two. So by default the estimate
 is weighted by the group's row count, and width means the same thing across the
 whole panel. Oceania above is two countries, and it is drawn as two countries.
@@ -292,7 +296,7 @@ whole panel. Oceania above is two countries, and it is drawn as two countries.
 `compare = "shape"` takes that weighting back off and draws every violin to the
 same area. It is the right reading when the question is about the shapes and the
 groups are of unequal size on purpose, and the wrong one when a small group's
-spike can take the panel:
+spike sets the width for the whole panel:
 
 ```{r}
 data(gapminder_2007) + ribbon * density(compare = "shape") + x(continent) + y(life) +
@@ -300,16 +304,16 @@ data(gapminder_2007) + ribbon * density(compare = "shape") + x(continent) + y(li
   title('density(compare = "shape"): every violin the same area')
 ```
 
-Two countries now occupy as much ink as fifty-two, and because two nearby values
-make a tall narrow estimate, Oceania takes the width and everything else is
-squeezed. Both plots are honest about something different, which is why the
+Two countries now fill as much space as fifty-two. Two nearby values make a
+tall narrow estimate, so Oceania sets the width and every other violin is
+drawn thinner. Both plots are honest about something different, which is why the
 choice is a word you write rather than a default nobody stated.
 
 ### Sideways, and halved
 
-The category can go on either axis, and the violins turn to follow it. Read off
-the bindings, exactly as a [`bar`](bar.qmd)'s or a [`box`](box.qmd)'s orientation
-is. It is the form with room for long category names:
+The category can go on either axis, and the violins turn to follow it. The
+orientation is read off the bindings, exactly as a [`bar`](bar.qmd)'s or a
+[`box`](box.qmd)'s is. It is the form with room for long category names:
 
 ```{r}
 data(gapminder_2007) + ribbon * density + x(life) + y(continent) +
@@ -348,13 +352,14 @@ names for one idea, and the other two combinations would have no word at all.
 
 ### Letting the ridges overlap
 
-Each shape reaches four tenths of a slot by default, so two violins face to face
-fill four fifths of the space between their categories and the remaining fifth is
-air. That is a [`bar`](bar.qmd)'s own rule, for a bar's reason: the gap is what
+Each shape reaches four tenths of a slot by default, so two violins face to
+face fill four fifths of the space between their categories, and the
+remaining fifth stays empty. That is a [`bar`](bar.qmd)'s own rule, for a bar's reason: the gap is what
 says the categories are separate rather than a divided continuum.
 
-The joyplot as it is usually drawn is not like that. Its ridges are tall enough
-to run into the row above, and that overlap is the look. `density(reach = )` says
+The ridgeline as it is usually drawn (the form some call a joyplot) is not
+like that. Its ridges are tall enough to reach into the row above, and that
+overlap is part of the design. `density(reach = )` says
 how far, **in slots**:
 
 ```{r}
@@ -372,13 +377,13 @@ category simply draws over the earlier one.
 The category axis grows to hold them. Half a slot of margin is right for a
 [`bar`](bar.qmd) or a [`box`](box.qmd), which stand *in* their slots. A ridge
 2.5 slots tall does not, and without the extra room the frame would cut the top
-one off. That would be a mark drawn outside its own panel: a plot that is wrong
-in a way nothing but a reader would notice.
+one off. That would be a mark drawn outside its own panel. No check would
+catch it, and a reader would see the cut ridge.
 
 The edge is a layer, as it is for every filled band in this chapter: a `ribbon`
-takes no border setting, and neither does the violin, because
-[`line`](line.qmd) reads the same slot reading and **traces** what the fill
-fills. That is the "filled, or two edges" rule again, now against a slot:
+takes no border setting, and neither does the violin: a [`line`](line.qmd)
+given the same transform **traces** the boundary the fill stops at. That is
+the "filled, or two dashed edges" rule again, now against a slot:
 
 ```{r}
 data(gapminder_2007) + x(life) + y(continent) +
@@ -416,9 +421,9 @@ cat("| Setting | Value |\n|---|---|\n")
 mark_options("ribbon")
 ```
 
-A ribbon takes `area`'s list, and for `area`'s reasons: no `size`, because the
-band's extent is pinned by the two boundaries a range transform supplies, and no
-border, because the edge is a `line` traced along the same pair.
+A ribbon takes `area`'s list, and for `area`'s reasons: no `size`, because
+the band's extent comes from the two boundaries its transform supplies, and
+no border, because the edge is a `line` traced along the same pair.
 
 ```{r}
 data(score_band) + x(score) +
@@ -428,8 +433,8 @@ data(score_band) + x(score) +
   y_label("Expected true score") + title("A textured band, and its two edges")
 ```
 
-Both marks read the same `bounds(lower, upper)` there, so the dashed edges cannot
-drift from the band they belong to. Note the two `pattern` values in one
+Both marks read the same `bounds(lower, upper)` there, exactly as in the
+ridge section, so the edges stay on the band. Note the two `pattern` values in one
 sentence: `"grid"` is a fill texture on the ribbon and `"dashed"` a stroke dash on
 the line, the same setting realized once per geometry.
 

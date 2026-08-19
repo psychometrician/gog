@@ -50,20 +50,20 @@ that; they are the `+` signs.
 ## `layer()` is `*`
 
 In R, `*` binds tighter than `+`, which is how `bar * bin + x(life)` reads as a
-binned bar rather than a bar plus a bin. JavaScript has no precedence to lean on,
-so the tighter binding becomes nesting:
+binned bar rather than a bar plus a bin. JavaScript has no precedence to use
+here, so the tighter binding becomes nesting:
 
 ```{r}
 #| echo: false
 js_plot("plot(data(gapminder_2007), layer(bar, mean), x(col.continent), y(col.life))")
 ```
 
-Nesting is arguably the better of the two. A reader who does not already know
+Nesting is the clearer of the two. A reader who does not already know
 that `*` binds tighter than `+` has to be told; a reader looking at
 `layer(bar, mean)` can see it.
 
-Most sentences need no `layer()` at all. Of the 500 sentences in this book, 264
-are a flat list of words, and the ones that do use it usually hold two:
+Most sentences need no `layer()` at all. Just over half the sentences in this
+book are a flat list of words, and the ones that do use it usually hold two:
 
 ```{r}
 #| echo: false
@@ -84,8 +84,8 @@ js_plot("plot(data(gapminder_2007), point, x(col.gdp, { scale: 'log' }), y(col.l
 `down()` stacks them instead, and writing both crosses the two into a grid, which
 is what `plot | facet(a) / facet(b)` does in R.
 
-Because the pair is one word here, there is no separate `facet()` to write. Typing
-one from memory says where it went:
+Because the pair is one word here, there is no separate `facet()` to write.
+Writing `facet()` from memory gets a refusal that names the word to use instead:
 
 ```{r}
 #| echo: false
@@ -96,7 +96,7 @@ js_error("plot(data(gapminder_2007), point, x(col.gdp), y(col.life), facet(col.c
 
 R's `|` means two things, and what is on its right decides which: `plot | facet(g)`
 splits one plot into panels, `plot_a | plot_b` arranges two plots on a page. With
-no operator to overload there is nothing to read, so the second reading is
+no operator to overload there is nothing to interpret, so the second meaning gets
 its own word: `beside()`, and `below()` for `/`:
 
 ```{r}
@@ -106,7 +106,8 @@ js_plot("below(plot(data(gapminder_2007), layer(bar, bin), x(col.gdp), theme({ h
 
 The two words are not new coinages: Henderson's *Functional Geometry*
 [@henderson1982] built its algebra of pictures out of `beside` and `above`, and
-that is the picture language SICP teaches. Both take pages as well as plots, so
+that is the picture language SICP teaches ([Composition](../composition.qmd)
+gives its full name). Both take pages as well as plots, so
 `below(top, beside(main, right))` is the marginal plot, exactly as
 `top / (main | right)` is in R. What the composed
 plots share is decided by the engine and not by the spelling: the same column on
@@ -120,7 +121,7 @@ they give it for the same reason: in this grammar a plain string is how you spel
 a *value*, as in `style({ color: "tomato" })`, `title("…")`, `palette("okabe")`.
 Without the accessor a column and a value would look identical, and the grammar's
 oldest rule (a channel takes a column, never a value) would be invisible in the
-one place it most needs saying.
+two languages that most need it stated.
 
 So a string where a column belongs is refused, and told what to write:
 
@@ -130,7 +131,7 @@ js_error("plot(data(gapminder_2007), point, x('gdp'), y(col.life))")
 ```
 
 The message offers both spellings because both are real: one *maps* a column and
-earns a legend, the other *sets* one value and earns none ([Setting is not
+earns a legend, the other *sets* one value and earns none ([Setting vs
 mapping](../style.qmd)). The mistake in the other direction is refused the same
 way:
 
@@ -171,15 +172,15 @@ js_plot(
 ```
 
 R reads the table's *name* off the expression you wrote, and Python off the
-frame you called from. JavaScript can do neither, and the name matters: a layer
-resolves its columns against the nearest table by that name ([Bind
-once](../data.qmd)). So an unnamed table is given a unique one, which is enough
+variable you passed. JavaScript can do neither, and the name matters: a layer
+resolves its columns against the nearest table by that name
+([Data](../data.qmd)). So an unnamed table is given a unique one, which is enough
 for two tables in one sentence to stay apart, and `data(df, { name: "notes" })`
 is there for when a message should say `notes` rather than `data2`.
 
 ## A sub-expression is a value
 
-One thing this spelling gains over R's. A piece of a sentence is an ordinary
+This spelling gains one thing over R's. A piece of a sentence is an ordinary
 JavaScript value, so it can be named, reused, and passed around, and it means the
 same thing everywhere it lands:
 
@@ -190,8 +191,8 @@ js_show(
 )
 ```
 
-That is the sixth of the [nine laws](../design-laws.qmd) holding in a language
-that had to be talked into the other eight.
+That is the sixth of the [nine laws](../design-laws.qmd), and it works here
+without any change. The other eight needed one.
 
 ## Reading from a database
 
@@ -228,10 +229,13 @@ render_svg(plot(data(rows), bar, x(col.status), y(col.revenue)));
 
 That works with every driver, asynchronous ones included. `data()` takes the
 rows an async driver returns, and the sentence after it is unchanged. This is
-the only place in the four bindings where a language's own shape reaches into
-the grammar, and it costs one `await`.
+the only place in the four bindings where the language's own rules reach the
+grammar, and it costs one `await`.
 
 ## Getting it
+
+A plot is drawn by the engine, which is a compiled Rust binary, so the npm
+package has to be able to find one.
 
 ```bash
 npm install grammar-of-graphics
@@ -263,6 +267,23 @@ console.log(render_svg(plot(data(gm), point, x(col.gdp), y(col.life))));
 the DOM and on a server goes straight into a response. There is no viewer and no
 raster step, which is the one place JavaScript fits the engine better than any
 other language does.
+
+To work from a checkout instead, build the engine once and import the package
+from where it sits:
+
+```bash
+cargo build --release -p gog-cli
+```
+
+```js
+import { plot, data, point, x, y, col, render_svg } from "./js-pkg/gog/index.js";
+```
+
+The engine is looked for in four places, in this order: the `GOG_CLI_PATH`
+environment variable, the platform package installed beside this one,
+`gog-cli` on your `PATH`, and a `target/release` build in a surrounding
+checkout. The first three are how an installed copy works; the last is how this
+page was rendered.
 
 ## A plot for a web page: `html_block()`
 

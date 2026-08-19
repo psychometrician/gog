@@ -2,21 +2,20 @@
 
 The 1446 book ends its explanations with a list: ninety-four everyday
 words, written out in the new letters. Eagle, ice, brook, unripe rice.
-Not rules; usage. Proof that the system meets ordinary life.
+Not rules, but usage: proof that the system could write ordinary life.
 
 This part is that list. It is organized the way questions actually arrive,
 by the shape of your data and the thing you want to know, never by
 chart name. You will not find a chapter called "histograms"; you will find
 *how is one measurement distributed?*, and the sentence that answers it.
-(If you arrive holding a chart's name, the
+(If you already know the chart's name, the
 [chart names appendix](../chart-names.qmd) translates it into a sentence.)
 
 Every recipe has one shape: the question, the sentence that answers it,
 the plot, a line or two on why it works, and the variations that are one
-atom away. The variations are the real lesson. A cookbook of endpoints
-teaches you recipes; this one tries to teach you that the recipes were
-never separate things: swap one atom and you are already cooking the
-next one.
+atom away. The variations are the real lesson. A cookbook of finished charts
+teaches you charts. This one teaches you that the recipes were never
+separate: swap one atom and you have the next one.
 
 The recipes use only the cast of tables from the Preface, and only atoms
 taught in Parts I–III; every recipe links back to the chapter that owns

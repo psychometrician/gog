@@ -149,7 +149,7 @@ connections, and the sphere carries the shortest ways between them.
 
 A `rule` holds one position and spans the axis it does not name. On the map
 that drew the equator as a straight line. Here the same sentence draws it all
-the way round:
+the way around:
 
 ```{r}
 lines_of <- data.frame(lat = 0)
@@ -205,7 +205,7 @@ data(world_borders) + path + x(lon) + y(lat) + group(piece) +
 Finding a country's center and joining the population are the host language's
 job, as the join was on the map. So is shaping the measure: the square root
 keeps China from dwarfing every other spike, and it is one line in R where a
-scale knob would be a second way of writing it.
+scale parameter would be a second way of writing it.
 
 Look at the rim. A spike is clipped by the sphere itself, so one standing just
 behind the horizon still peeks over the limb when it is tall enough, and the

@@ -6,7 +6,7 @@ source("../R/setup.R")
 ```
 
 How did one value change over time? `line` connects the rows in **x order**,
-drawing a polyline through each `(x, y)` point.
+drawing one unbroken stroke (a polyline) through each `(x, y)` point.
 
 ## Basic usage
 
@@ -28,7 +28,8 @@ scrambled <- data.frame(year = c(1992, 1962, 2002, 1972, 1982),
 data(scrambled) + line + x(year) + y(life)
 ```
 
-That is a property of the mark rather than a convenience. A line says *this value
+That sorting is part of what the mark means, not an extra step the engine
+saves you. A line says *this value
 changed along this axis*, and an axis has one direction, so there is only one order
 the vertices could be joined in.
 
@@ -51,10 +52,10 @@ A color legend is generated automatically.
 
 ## Layering line over other marks
 
-`line` and `point` are often combined: the point layer adds
-visible markers at each data position.
+`line` and `point` are often combined: the point layer adds a dot at each
+data position.
 Write `color` *before* the marks and it belongs to the plot, so both layers
-take it:
+use it:
 
 ```{r}
 data(gapminder_asia) + x(year) + y(life) + color(country) +
@@ -85,9 +86,9 @@ data(gapminder_asia) + x(year) + y(life) +
   title("Color on the lines, size on the points")
 ```
 
-That works because channels bind **forward only**. A channel that also reached
-backwards would put `size` on the `line`, which has no size, and the plot would
-be refused with no way to say what you meant. See
+That works because channels bind **forward only**. A channel that also bound
+backwards would put `size` on the `line`, which has no size, and the plot
+would be refused. See
 [Encoding scope](../encoding-scope.qmd).
 
 ## A category on the domain: the profile
@@ -103,24 +104,25 @@ data(gapminder_2007) + line * mean + point * mean + x(continent) + y(life) +
   title("line * mean + x(continent): one value per category, joined")
 ```
 
-The transform is doing real work there. Without one, a `line` would connect every
-row in the frame, and 142 countries sharing five slots is a scribble rather than a
-profile; the engine says so on stderr when it sees a line with many ungrouped
-rows. `mean` leaves exactly one point per category, which is what makes the
-connected path mean anything.
+The transform is what makes that plot readable. Without one, a `line` would
+connect all 142 rows across five category slots, and no reader can follow
+that. The engine prints a warning on your console when a line has many
+ungrouped rows. `mean` leaves exactly one point per category, which is what
+makes the connected path mean anything.
 
-Whether the connection is honest is a question about your data, and it is
-worth asking. The segment from Africa to the Americas crosses ground where
-nothing was measured. Read the vertices, and the segments guide the eye down a
-ranking; read the segments, and they assert a change over a distance that does
-not exist. The grammar draws what you said and leaves the judgment with you.
+Does the connection mean anything? That depends on your data. Nothing was
+measured between Africa and the Americas, and the segment still draws a path
+there. Read the vertices, and the segments only help you compare the five
+heights. Read the segments themselves, and they claim a change that never
+happened. The grammar draws what you asked for; you decide whether the
+connection is fair.
 Two cases make the judgment easy. An ordered category, such as a grade, a size
 band or a survey scale, genuinely has a direction for the path to run along. A
-**circular** one has no ends at all, which is the plot the next section is
-really about.
+**circular** one has no ends at all, and that is the plot this section turns
+to next.
 
-Because it is the same sentence, the same profile bends into a circle. That is
-the radar, and it needs no new atom:
+Drop the point layer, add `polar()`, and the same profile bends into a
+circle. That is the radar, and it needs no new atom:
 
 ```{r}
 data(gapminder_2007) + line * mean + x(continent) + y(life) + polar() +
@@ -134,7 +136,7 @@ Nothing was added to say so: a categorical angular axis wraps, and the mark read
 that off the space it is drawn in. Full treatment in
 [Polar](../polar.qmd).
 
-A categorical **measure** is a different matter and is refused, because a line
+A categorical **measure** is refused instead, because a line
 traces a quantity and category names are not one:
 
 ```{r}
@@ -157,8 +159,8 @@ data(gapminder_2007) + x(gdp) + y(life) +
 
 Most transforms give a `line` one value per x. A **pair** transform
 ([`range`](../transforms.qmd), `confidence`, `deviation`, or `bounds`) gives it
-two (a low and a high), and a `line` then draws **both boundaries** as separate
-curves rather than connecting them in a zigzag. It is the *unfilled* counterpart to a
+two (a low and a high), and a `line` then draws **both boundaries** as two
+separate lines rather than connecting them into one zigzag. It is the *unfilled* counterpart to a
 [`ribbon`](ribbon.qmd) filling the same pair. Here the min–max envelope of five
 countries, as two lines:
 
@@ -167,7 +169,7 @@ data(gapminder_asia) + line * range + x(year) + y(life) +
   y_label("Life expectancy") + title("A min–max envelope, as two boundary lines")
 ```
 
-Add `style(pattern = "dashed")` for the dashed ± band publications use; see
+Add `style(pattern = "dashed")` for the dashed band publications often draw; see
 [Ribbon](ribbon.qmd) for the filled and unfilled versions side by side.
 
 ## Stroke width and opacity
@@ -187,13 +189,13 @@ This is the clearest case of the split described in
 this mark have this property?"* are different questions, and `line` answers them
 differently.
 
-A set color is the usual way to push a layer into the background:
+A set color is the usual way to turn a layer into background:
 
 ```{r}
 data(gapminder_asia) + x(year) + y(life) +
-  line + group(country) + style(color = "lightgrey") +
+  line + group(country) + style(color = "lightgray") +
   line * smooth + style(color = "firebrick", size = 3) +
-  title("Context in gray, message in red")
+  title("Every country in gray, the trend in red")
 ```
 
 `style()` scopes like a channel: it attaches to the mark it is written after.
@@ -213,9 +215,9 @@ mark_options("line")
 A line is a stroke, so `size` is its width and `pattern` its dash. Neither can
 vary along the line, because a width and a dash are properties of the whole
 stroke: they are settings here even though `size` maps per row on `point`.
-(`color` is the one that *can* vary along it, and the reason is exactly that a
-color is a property of a **place** on the stroke rather than of the stroke:
-see [What it refuses](#what-it-refuses).)
+(`color` is the one that *can* vary along it, because a color is a property
+of a **place** on the stroke rather than of the stroke; the last section of
+this chapter ends on that case.)
 
 ```{r}
 data(gapminder_asia) + line + x(year) + y(life) + color(country) +
@@ -227,33 +229,34 @@ data(gapminder_asia) + line + x(year) + y(life) + color(country) +
 the same feature is refused, because one of the two would have to be silently
 dropped.
 
-The transforms a line takes carry their own parameters, which is where the rest
-of the control lives: `line * density(adjust = 1.5)` widens the kernel,
-`line * bounds(lo, hi)` traces a pre-computed band's two edges.
+The transforms a line takes carry their own parameters, and those hold the
+rest of the control: `line * density(adjust = 1.5)` widens the bandwidth, and
+`line * bounds(lo, hi)` traces a band's two edges.
 
 ## What it refuses
 
-A line is a stroke, and its texture vocabulary says so: a line's pattern is a
-dash, while a hatch fills an area, and a line has no area to fill.
+A line is a stroke, so its texture is a dash. A hatch fills an area, and a
+line has no area to fill.
 
 ```{r}
 #| error: true
 data(gapminder_asia) + line + x(year) + y(life) + style(pattern = "hatch")
 ```
 
-The refusal lists the three dashes a stroke does take. Its other two refusals
-are above rather than here, each in the section that earns it. One is a
-statistic across a category, which `line` cannot lay down. The other is a
-mapped width or opacity, which one stroke cannot vary row by row even though
-it can be set. That second pair is the worked example in [Setting vs
-mapping](../style.qmd).
+The refusal lists the three values a stroke's pattern does take. Its other
+two refusals belong to earlier sections. One is shown above: a category on
+the measure axis, which a line cannot trace. The other is stated under Stroke
+width and opacity: a mapped width or opacity, which one stroke cannot vary
+row by row even though it can be set. That second pair is the worked example
+in [Setting vs mapping](../style.qmd).
 
-`color` is deliberately *not* in that pair, and the line between them is worth
-drawing precisely, because it is the reason none of this is arbitrary. A width
+`color` is deliberately *not* in that pair, and the difference is worth
+stating exactly, because it is the reason none of this is arbitrary. A width
 and an opacity are properties of the stroke as a whole (there is no answer to
 "how wide is the line *here*"). A color has an answer everywhere: point at a
-place on the line and it has one. So a measure can ride `color` and vary along
-the stroke, and it earns a gradient key rather than one swatch per series:
+place on the line and it has one. So a measure can be mapped to `color` and
+vary along the stroke, and it earns a gradient legend rather than one color
+per series:
 
 ```{r}
 data(gapminder_asia) + line + x(year) + y(life) + group(country) +
@@ -261,8 +264,8 @@ data(gapminder_asia) + line + x(year) + y(life) + group(country) +
   y_label("Life expectancy") + title("Each country's line, colored by its income")
 ```
 
-Read one thread from left to right and you are watching two variables at once:
-how long people live (the height) and how rich the country was when they did
+Read one country's line from left to right and you watch two variables at
+once: how long people live (the height) and how rich the country was then
 (the color). `group` still splits the mark into one line per country; `color`
-answers the other question. A *categorical* `color` splits and colors in one
-go, exactly as it always has, which is the sentence at the top of this chapter.
+answers the other question. A *categorical* `color` splits and colors at the
+same time, which is the sentence under Multiple series above.

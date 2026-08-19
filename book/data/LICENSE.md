@@ -11,14 +11,14 @@ Three tiers, and they are not under one license.
 
 ## Original to this book — Apache License 2.0
 
-Twenty-one frames are written out as literals or generated from a fixed seed by
+These frames are written out as literals or generated from a fixed seed by
 this project's author, and carry the same license as the rest of the code:
 
 `actuals` · `cashflow` · `census` · `commutes` · `day_cycle` · `forecast` ·
 `gdp_threshold` · `life_bands` · `listening` · `medals` · `milestones` ·
-`quarterly` · `recessions` · `ripples` · `score_band` · `sessions` ·
-`six_weeks` · `speed_target` · `spending` · `target_band` · `tide` ·
-`thermals` · `thermal_marks` · `winds`
+`nutrients` · `quarterly` · `recessions` · `ripples` · `score_band` ·
+`sessions` · `six_weeks` · `speed_target` · `spending` · `target_band` ·
+`tide` · `thermals` · `thermal_marks` · `winds`
 
 Illustrative rather than authoritative. `census` is two plausible city age
 profiles, not a census; `medals` is a medal table's shape, not a record of any
@@ -26,7 +26,7 @@ particular games. Do not cite them as data about the world.
 
 ## Derived from gapminder — CC0 1.0 (public domain)
 
-Eleven frames are cuts of the `gapminder` R package's table, with three columns
+These frames are cuts of the `gapminder` R package's table, with three columns
 renamed for readability (`gdpPercap` → `gdp`, `lifeExp` → `life`,
 `pop` → `population`):
 
@@ -40,7 +40,7 @@ Foundation's — <https://www.gapminder.org/data/>.
 
 ## Derived from R's `datasets` package — GPL-2 | GPL-3
 
-Three frames are reshaped from tables that ship with R itself:
+These frames are reshaped from tables that ship with R itself:
 
 | Frame | From | Reshaping |
 |---|---|---|
@@ -53,7 +53,7 @@ Three frames are reshaped from tables that ship with R itself:
 `datasets` is licensed GPL-2 | GPL-3, which is copyleft and cannot be absorbed
 into an Apache-2.0 wheel or tarball. Hosting them beside the book is ordinary
 distribution, which the GPL permits when its terms travel with the files — this
-note is that. A reader who uses these four frames is using GPL data and should
+note is that. A reader who uses these frames is using GPL data and should
 treat it accordingly.
 
 The underlying observations are old and public: Edgar Anderson's iris

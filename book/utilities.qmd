@@ -10,15 +10,15 @@ channel, `bin` is a transform, and none of them means anything on its own. They
 are words, and a word needs a sentence.
 
 The functions in this appendix are not words. They take a plot you have already
-written and do something with it, or they hand you a table to write one about.
+written and do something with it, or they give you a table to write one about.
 None of them can appear inside a specification, and none of them is part of the
 grammar.
 
 You can tell the two apart by looking at the name. A word of the grammar is one
 ordinary English word: `bar`, `color`, `smooth`, `play`. A function around the
 grammar is two words joined by an underscore: `render_svg`, `save_gif`,
-`gog_table`. That rule is why `x`, `y` and `z` are the kernel's only short
-names, and it is also why these three are not listed in
+`gog_table`. A separate rule exempts `x`, `y` and `z` as the only single-letter
+names, which is why these three are not listed in
 [The kernel card](kernel-card.qmd).
 
 | | What it gives you |
@@ -32,7 +32,7 @@ rule: two words, an underscore between them, and no place in a sentence.
 
 ## `render_svg()`
 
-A plot is a description until something draws it. `render_svg()` draws it and
+A plot is a specification until something draws it. `render_svg()` draws it and
 gives you the result as ordinary text:
 
 ```{r}
@@ -103,8 +103,9 @@ move a selection or turn the view. The second drawing needs the numbers, so the
 file carries the table as well as the picture.
 
 It carries the whole table, including columns the sentence never maps. The table
-that `show rows` opens lists only the mapped columns, and the file itself carries
-every column.
+that `show rows` (a button under the plot, explained in
+[Selection](selection.qmd)) opens lists only the mapped columns, and the file
+itself carries every column.
 
 A static plot never does this, even when its sentence names a brush.
 `render_svg()` gives you the picture and stops.
@@ -128,7 +129,7 @@ behind it is simpler than the phrase sounds.
 
 A plot looks like a picture on your screen. Underneath, it is the text you just
 saw. Two plots are the same when that text is the same, character for character.
-Not similar. Not close enough to pass a glance. The same.
+Not similar. Not close enough to look the same. The same.
 
 That is how the four languages are held together. Every sentence in this book is
 written in R, in Python, in Julia and in JavaScript. Each one is turned into its
@@ -138,12 +139,12 @@ place counts as a disagreement and has to be explained.
 The reason for such a strict test is that a loose one would miss things. Nobody
 looks at four pictures and decides whether they match. A person cannot see a bar
 that is half a pixel too wide, or a color that is one shade off. This check can,
-and it never gets tired.
+and it compares them the same way every time.
 
 ## `save_gif()`
 
 A plot that binds `play()` moves in a browser, because the SVG carries its own
-timing. A message, a slide and a post do not read that timing.
+timing. A message, a slide and a post cannot play that timing.
 [`save_gif()`](play.qmd#taking-the-sequence-with-you) writes the same sequence as
 a file that they do play:
 
@@ -187,8 +188,8 @@ That block does not run on this page, and the reason is worth one line. The call
 reads the table over the network, and a page that fetched on every build would
 make the book depend on a working connection to describe itself.
 
-[The book's data](book-data.qmd) is the chapter for this one. It lists all
-thirty-five names and shows the call in each of the four languages.
+[The book's data](book-data.qmd) is the chapter for this one. It lists every
+table in the book and shows the call in each of the four languages.
 
 `gog_table()` exists for reading this book rather than for your own work. When
 the data is yours, bind it with `data()` and skip this entirely.

@@ -5,19 +5,19 @@
 source("../R/setup.R")
 ```
 
-How do two measurements move together? `point` draws one glyph per row of data
-at the `(x, y)` position.
+How does one measurement change as another changes? `point` draws one glyph
+per row of data at the `(x, y)` position.
 
-The plot it makes is the **scatterplot**, which is the youngest of the plain
-chart types by half a century. Playfair had the line and the bar in 1786, and
-the pie by 1801. A picture that sets two measured columns against each other
-is usually dated to John Herschel. In 1833 he plotted the position of twin
-stars against the year, then drew a smooth curve through the dots to read a
-trend off them [@friendly2005]. Other names for it are the same picture:
+The plot it makes is the **scatterplot**, the last of the plain chart types
+to arrive. Playfair had the line and the bar in 1786, and the pie by 1801;
+the scatterplot came three decades later. A picture that plots one measured
+column against another is usually dated to John Herschel. In 1833 he plotted
+the position of twin stars against the year, then drew a smooth curve through
+the dots so the trend could be seen [@friendly2005]. Other names for it are the same picture:
 scatter diagram, scattergram, and, once `size` carries a third column, the
 bubble chart.
 
-None of those is an atom here, and the reason is the whole design. `point` names
+None of those is an atom here, and the reason is the design itself. `point` names
 the **mark**, not the chart. `point + x(gdp) + y(life)` is a scatterplot and
 `point + x(continent) + y(life)` is a strip plot, and nothing about the mark
 changed between them: the chart name is a property of the sentence, not a word in
@@ -34,8 +34,8 @@ data(gapminder_2007) + point + x(gdp) + y(life)
 
 ## The dot is a default, not the mark
 
-Reach for `point` and you get a dot, and treating it as *the dot mark* will serve
-you well almost every time. But the dot is a **default**, not the mark's whole
+Write `point` and you get a dot, and treating it as *the dot mark* is right
+almost every time. But the dot is a **default**, not the mark's whole
 identity. A point is *a glyph at a position*, and the glyph is yours to change:
 `shape` swaps the dot for one of five.
 
@@ -78,20 +78,21 @@ data(gapminder_2007) + bar * mean + x(continent) + y(life) +
 ```
 
 The strip plot shows Africa's spread and its overlap with Asia; the bar chart
-shows neither. Its one weakness: points at the same category sit on one line,
-so heavy overlap can hide density. `opacity` helps, and
-[`point * jitter`](../transforms.qmd) spreads the pile sideways to reveal it
-outright, nudging each point along the category axis only, never off its
-measured value.
+shows neither. The strip plot's one weakness: points at the same category sit
+on one line, so heavy overlap can hide density. `opacity` softens that, and
+[`point * jitter`](../transforms.qmd#jitter-spread-sideways-along-the-category)
+spreads the stacked points sideways so the density shows, nudging each point
+along the category axis only, never off its measured value.
 
-The other way to resolve that overlap is to stop hiding the coincident points and
+A second answer is to stop hiding the coincident points and
 *count* them: [`point * bin * stack`](../transforms.qmd) piles one dot per
-observation up the measure axis, which is the dot plot. One mark, two overlap
-answers: a nudge along a category, a pile along a measure.
+observation up the measure axis, which is the dot plot. One mark answers
+overlap in two ways: a nudge along a category, or a pile along a measure.
 
 ### Either axis: a horizontal strip
 
-Because it *is* the same rule, the category can sit on `y` instead of `x`. The
+Because the categorical-axis rule is `bar`'s rule, the category can sit on
+`y` instead of `x`. The
 strip then lies down, the same countries and the same distributions, read left
 to right along each row:
 
@@ -103,32 +104,30 @@ data(gapminder_2007) + point + x(life) + y(continent) +
 ```
 
 This is the orientation freedom `bar` already has, and gog reads it the same
-way: whichever axis carries the category decides which way the plot faces;
-there is no `flip` atom to set. Reach for the horizontal form when the category
-names are long enough to collide across the bottom, or when there are enough of
-them that rows stacked down the page scan more easily than columns across it.
+way: whichever axis carries the category decides the direction, and there is
+no `flip` atom to set. Use the horizontal form when the category names are
+too long to fit across the bottom, or when there are so many categories that
+rows read more easily than columns.
 
 ## Color
 
 Bind `color` to a categorical column to color points by group.
-gog assigns a distinct color from a 10-color palette automatically.
+gog assigns a distinct color from a 20-color palette automatically.
 
 ```{r}
 data(gapminder_2007) + point + x(gdp) + y(life) +
   color(continent)
 ```
 
-A color legend is generated automatically whenever `color` is active.
+A color legend is generated automatically whenever a column is mapped to
+`color`.
 
 ## Shape
 
 `shape` maps a categorical column to one of five glyphs:
-circle, square, triangle, diamond, or cross.
-
-```{r}
-data(gapminder_2007) + point + x(gdp) + y(life) +
-  shape(continent)
-```
+circle, square, triangle, diamond, or cross. Assignment is automatic and
+consistent: the first category gets the circle, the second the square, and
+so on.
 
 Combine `color` and `shape` on the same column to make groups
 distinguishable for colorblind readers and in black-and-white print:
@@ -140,18 +139,19 @@ data(gapminder_2007) + point + x(gdp) + y(life) +
 
 ## Size
 
-`size` maps a numeric column to the point radius (3 – 12 px by default).
+`size` maps a numeric column to the point radius (3–12 pixels by default).
 
 ```{r}
 data(gapminder_2007) + point + x(gdp) + y(life) +
   color(continent) + size(population)
 ```
 
-A size legend showing the min, midpoint, and max values is generated automatically.
+A size legend showing the minimum, midpoint, and maximum of the column is
+generated automatically.
 
 ## Opacity
 
-`opacity` maps a numeric column (0 – 1) to transparency.
+`opacity` maps a numeric column to transparency.
 Useful for dense scatterplots where overplotting hides structure.
 
 ```{r}
@@ -162,19 +162,20 @@ data(gapminder_2007) + point + x(gdp) + y(life) + opacity(population) +
 See [Channels and legends](../channels.qmd) for the opacity range and why `line`
 does not accept this channel.
 
-That example maps opacity to a column. For plain overplotting relief you want
-the same opacity for every point, which is a *setting* rather than a mapping.
-`style(opacity = )`, and no legend:
+That example maps opacity to a column. To reduce plain overplotting you want
+the same opacity on every point, which is a *setting* rather than a mapping.
+`style(opacity = )`, and no legend; see [Setting vs
+mapping](../style.qmd):
 
 ```{r}
 data(gm_all) + point + x(gdp) + y(life) +
   style(opacity = 0.2, size = 3) +
-  title("Every point at one opacity: see Setting vs mapping")
+  title("Every point at one opacity")
 ```
 
 ## All channels at once
 
-All decorative channels can be combined freely:
+The optional channels can all be combined freely:
 
 ```{r}
 data(gapminder_2007) + point + x(gdp) + y(life) +
@@ -183,19 +184,6 @@ data(gapminder_2007) + point + x(gdp) + y(life) +
   size(population) +
   title("GDP, Life Expectancy, and Population")
 ```
-
-## Available shapes
-
-| Index | Shape |
-|-------|-------|
-| 0 | Circle (default) |
-| 1 | Square |
-| 2 | Triangle |
-| 3 | Diamond |
-| 4 | Cross |
-
-Shape assignment is automatic and consistent: the first unique category
-always gets circle, the second gets square, and so on.
 
 ## What you can set
 
@@ -206,31 +194,31 @@ cat("| Setting | Value |\n|---|---|\n")
 mark_options("point")
 ```
 
-A point is a closed glyph, and its row is the widest in the book because of it:
-it is the only mark that picks a `shape`, and one of five that carry a rim.
-`size` is the radius in pixels, and `border_*` draws that rim distinct from the
-fill.
+A point is a closed glyph, and its settings row is wide because of it:
+it is the only mark that picks a `shape`, and one of five that carry a border.
+`size` is the radius in pixels, and `border_*` draws that border distinct from
+the fill.
 
 ```{r}
 data(gapminder_2007) + point + x(gdp) + y(life) +
   style(shape = "diamond", size = 7, color = "steelblue",
         border_color = "white", border_size = 1.5) +
   x_label("GDP per person") + y_label("Life expectancy") +
-  title("A shape, a size, and a rim")
+  title("A shape, a size, and a border")
 ```
 
-The white rim is doing real work there: it separates points that overlap, which
-is what a rim is for on a glyph dense enough to pile up. A `cross` has no fill to
+The white border is what separates the overlapping points, which is what a
+border is for in a dense cloud. A `cross` has no fill to
 outline, so a border on that shape has nothing to draw on.
 
-There is no `pattern`. A texture needs an area to fill or a stroke to dash, and a
-5-pixel glyph is neither; a point's form is `shape`. The other way to answer
+There is no `pattern`. A texture needs an area to fill or a stroke to dash, and
+a small glyph is neither; a point's form is `shape`. The other way to answer
 overplotting is the collision modifier, which takes a parameter of its own:
 `point * jitter(0.4)` spreads coincident points along a categorical axis.
 
 ## What it refuses
 
-A point is a glyph, and both refusals worth meeting follow from that.
+A point is a glyph, and both of its refusals follow from that.
 
 `size` measures, so it needs something to measure:
 
@@ -240,14 +228,16 @@ data(gapminder_2007) + point + x(gdp) + y(life) + size(continent)
 ```
 
 Continents are names, not amounts, and a larger dot would claim an order the data
-does not have. The refusal names the three channels that do separate categories.
+does not have. The refusal names the three channels that separate categories;
+on a point, `color` and `shape` are the two that apply, and the third is
+refused next.
 
-Texture is the other. A pattern is a stroke's dash or a fill's hatch, and a glyph
-five pixels across is neither:
+Texture is the other. A pattern is a stroke's dash or a fill's hatch, and a
+small closed glyph is neither:
 
 ```{r}
 #| error: true
 data(gapminder_2007) + point + x(gdp) + y(life) + style(pattern = "dashed")
 ```
 
-Both refusals point the same way, at `shape`, which is a point's own form.
+Both refusals end at `shape`, which is a point's own form.

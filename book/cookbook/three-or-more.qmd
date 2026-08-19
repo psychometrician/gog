@@ -6,11 +6,11 @@ source("../R/setup.R")
 ```
 
 You have more columns than positions. Where do the rest go? Two positions are
-spoken for. Every further variable rides a refining channel (color, shape,
+already taken. Every further variable rides a refining channel (color, shape,
 size, opacity) or the third position, `z`. Each channel answers one kind of
 question, and each mapping earns the legend that decodes it.
 
-## Which group is each mark?
+## Which group does each mark belong to?
 
 A category rides `color`, and the palette gives each category one hue:
 
@@ -22,10 +22,10 @@ data(gapminder_2007) + point + x(gdp, scale = "log") + y(life) +
 *"Given gapminder 2007: points, x is gdp on a log scale, y is life, color by continent."*
 
 **One atom away.** The same split without color, when you want the
-grouping but not the rainbow, is the `group` channel; see
+grouping but not the hues, is the `group` channel; see
 [Many groups](groups.qmd).
 
-## Will it survive a photocopier?
+## Will it read in gray?
 
 Bind `color` *and* `shape` to the same column and each group is said
 twice, readable for color-blind readers, in grayscale print, and in bad
@@ -64,9 +64,8 @@ data(gapminder_2007) + point +
 ```
 
 Every channel keeps its own rule and its own legend; none of them changed
-meaning by being combined. Four variables is a sensible ceiling in
-practice; beyond it, consider [panels](groups.qmd) instead of more
-channels.
+meaning by being combined. Four variables is a sensible limit; past that,
+use [panels](groups.qmd) instead of more channels.
 
 ## What if the third variable is a number?
 
@@ -84,7 +83,7 @@ different column type. [Scales](../scales.qmd) owns the log story.
 
 ## The third position
 
-When three *measurements* deserve equal footing, the third one is a
+When three *measurements* matter equally, the third one is a
 position, not a decoration. One more vowel and the plot stands up:
 
 ```{r}
@@ -94,7 +93,7 @@ data(iris_flowers) + point +
 ```
 
 **One atom away.** The viewing angle is a property of the space, not of
-the data; `turn` swings the scene, `tilt` lifts your eye:
+the data; `turn` rotates the scene sideways, `tilt` raises the viewing height:
 
 ```{r}
 data(iris_flowers) + point +
@@ -108,11 +107,10 @@ data(iris_flowers) + point +
 ## What if the rows form a route?
 
 The scatter above is a cloud: each flower is its own dot and the table's
-order means nothing. Sometimes the order is the whole story. Two gliders
-circling one thermal are measured every few seconds, and each row is
-*where that glider was next*, so the marks should be joined, in the
-order they were recorded, and the mark that joins rows in table order is
-`path`:
+order means nothing. Sometimes the order is the point. The two gliders from
+[Path](../marks/path.qmd) again, each row *where that glider was next*, so the
+marks should be joined in the order they were recorded, and the mark that
+joins rows in table order is `path`:
 
 ```{r}
 data(thermals) + path + x(east) + y(north) + z(altitude) +
@@ -122,7 +120,7 @@ data(thermals) + path + x(east) + y(north) + z(altitude) +
 
 Each thread rises because the gliders do. Nothing in the sentence draws a
 spiral: `path` was told to connect the rows in order, the rows happen to
-go round while they go up, and the coil is what that *is*. Watch where the
+go around while they go up, and the coil is the result. Watch where the
 two threads cross, too. Whichever is nearer covers the other, and which
 one that is changes as they climb, so neither glider is simply drawn on
 top.
@@ -138,9 +136,10 @@ data(thermals) + path + x(east) + y(north) + z(altitude) +
 ```
 
 From nearly overhead the climb collapses and you are looking down at two
-circles. The plot has become a picture of the turn radius, and the reading
-it hands you is one the first view buried: Bravo is flying a far tighter
-circle than Alpha, which is why Bravo is also the one climbing faster.
+circles. The plot has become a picture of the turn radius, and it shows what
+the first view hid: Bravo is flying a far tighter circle than Alpha. The side
+view above showed Bravo climbing faster; this view shows the tighter turn that
+goes with it.
 
 **One atom away.** `path` is the only stroke that takes `z`, and the
 reason is the one that separates it from `line` in the plane. A path
@@ -148,7 +147,8 @@ joins rows in the table's order, and an order belongs to no axis, so it
 survives the third dimension untouched. A `line` sorts by `x`, and the
 cube has no left to right: at some angles `x` runs straight into the page
 and becomes depth rather than position, which would leave a line sorted
-by an axis you cannot see. So a rising route is `path`; `line` says so:
+by an axis you cannot see. So a rising route is `path`, and `line` refuses to
+pretend otherwise:
 
 ```{r}
 #| error: true
@@ -157,9 +157,9 @@ data(thermals) + line + x(east) + y(north) + z(altitude) + color(glider)
 
 ## What if the shape needs three dimensions?
 
-`quakes_fiji` is a thousand earthquakes recorded near Fiji, each with a place on
-the globe and a depth below it. The reason it is here is that no pair of its
-columns shows what all three do:
+`quakes_fiji` is the thousand earthquakes from [Map](../map.qmd), each with a
+place on the globe and a depth below it. The reason it is here is that no pair
+of its columns shows what all three do:
 
 ```{r}
 data(quakes_fiji) + point + x(east) + y(north) + z(elevation) +
@@ -167,35 +167,38 @@ data(quakes_fiji) + point + x(east) + y(north) + z(elevation) +
   title("A thousand earthquakes, and the plate they sit on")
 ```
 
-They are not scattered through the volume. They lie on a sheet, tilted, running
-from shallow near the trench down past 600 km to the west, which is a slab of
-ocean floor sinking under the plate beside it. That is a shape, and a shape needs
-three positions to be a shape.
+The column is named `elevation`, so depth is a negative number: −680 km is the
+deepest quake in the table. They are not scattered through the volume. The
+quakes trace a sheet of ocean floor sinking into the earth. It starts shallow in
+the east and runs down past 600 km to the west. That is a shape, and a shape
+needs three positions to be a shape.
 
-Now cut it into 90 km slices of depth and run them:
+Now cut it into 90 km slices of depth and run them. `play(slab)` steps through
+the `slab` column, which cuts the quakes into 90 km depth bands:
 
 ```{r}
 data(quakes_fiji) + point + x(east) + y(north) + z(elevation) +
   space(turn = 120, tilt = 20) + play(slab)
 ```
 
-The band of points walks down and west as the sequence runs, which is the tilt of that
+The band of points moves down and west as the sequence runs, which is the tilt of that
 sheet read one slice at a time. The frames are not time here. `play` advances
 through the levels of an ordered column, and whether that column measures years
 or kilometers is the column's business, not the channel's. Depth happens to be
 the one variable a cross-section is usually cut on, so this is the ordinary
-tomographic slice, spelled with the atom that was designed for animation.
+cross-section view, spelled with the atom that was designed for animation.
 
-The same slices laid out across the page instead of along the clock, which is the
-other half of the same split:
+The same slices laid out across the page instead of shown one after another in
+time:
 
 ```{r}
 data(quakes_fiji) + point + x(east) + y(north) + z(elevation) +
   space(turn = 120, tilt = 20) | facet(slab, wrap = 4)
 ```
 
-Eight cubes, on one shared scale, so the march is a comparison rather than a
-memory. Which of the two you want is a question about the reader: panels let them
+Eight cubes, on one shared scale, so the reader compares them side by side
+instead of remembering them. Which of the two you want is a question about the
+reader: panels let them
 look back, frames let them see the movement. [Play](../play.qmd) is where that
 choice is argued.
 

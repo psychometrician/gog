@@ -5,8 +5,8 @@
 source("R/setup.R")
 ```
 
-How is a measurement distributed across your rows? A transform is the
-"add-a-stroke" derivation in the grammar. It modifies how data reaches the mark,
+How is a measurement distributed across your rows? A transform derives a new
+mark from one that already exists. It modifies how data reaches the mark,
 preprocessing it statistically before any pixel is drawn.
 
 The family has other names. ggplot2 says **stat**, and the chapter Wilkinson
@@ -65,9 +65,8 @@ makes itself. You name only the
 variable whose shape you are asking about, and the transform invents the y column
 and labels it ("Count", "Proportion", "Density"). `bar * bin + x(life)` and
 `line * density + x(life)` are the same grammatical shape: one name in, a new
-axis out. Leaving `y()` off is not a shortcut the engine tolerates:
-there is exactly one sensible y here (the count, the density), so the omission
-cannot be misread and the engine fills it in silently.
+axis out. The engine is not overlooking a missing `y()`. There is exactly
+one sensible y here, the count or the density, so it fills that in.
 
 **Reading** transforms (`smooth`, `sum`, `mean`, `median`, `max`, `min`,
 `quantile`, `range`, `confidence`, `deviation`) read *two* columns and reshape
@@ -95,8 +94,8 @@ colors it and the legend agrees.
 
 ## `bin`: histogram
 
-`bin` groups `x` values into equal-width buckets and counts the observations
-in each bucket.
+`bin` is the first inventing transform. It cuts `x` into equal-width bins and
+counts the rows in each.
 Combine it with `bar` to draw a histogram:
 
 ```{r}
@@ -129,7 +128,7 @@ data(gapminder_2007) + bar * bin(width = 5) + x(life) +
 The positional number is the *count*: `bin(30)` is thirty bins. A width is the
 less common request, so it is said out loud, `bin(width = 5)`; the two are
 mutually exclusive. Writing `bin(30, width = 5)` refuses with direction rather
-than guessing which you meant: the same reason `bin(30)` alone can't mean a
+than guessing which you meant: the same reason `bin(30)` alone cannot mean a
 width, since on this data five bins and five-wide bins are opposite plots.
 
 ### Why `bar * bin`, not a `histogram()` shortcut?
@@ -161,7 +160,7 @@ That is a heatmap, with no atom added to the kernel.
 
 ### One of each: the mixed mesh
 
-"Cuts both" is a shade too strong. What `bin` cuts is every axis that has a
+"Cuts both" is slightly too strong. What `bin` cuts is every axis that has a
 width to cut, and a categorical axis has none, because it arrived already cut:
 a category *is* a cell. Give a zone one of each and the transform does the only
 coherent thing, which is to cut the continuous axis and leave the other alone:
@@ -196,34 +195,11 @@ including why the empty cells are left as panel.
 
 ---
 
-## `smooth`: LOESS trend line
-
-`smooth` fits a locally weighted linear regression (LOESS) through the
-`(x, y)` points and evaluates it at 100 evenly spaced x positions
-[@cleveland1979].
-
-Combine it with `line` to overlay a trend line on a scatter plot:
-
-```{r}
-data(gapminder_2007) + x(gdp) + y(life) +
-  point + color(continent) +
-  line * smooth +
-  title("GDP vs Life Expectancy with LOESS Smooth")
-```
-
-**Span** defaults to 0.75: 75 % of the data is used for each local regression.
-A larger span gives a smoother curve; a smaller span follows the data more
-closely. `smooth` requires both `x` and `y` to be numeric columns, and at least
-three rows in each group it fits; both refusals are at the end of this chapter,
-under [what these three refuse](#what-bin-density-and-smooth-refuse). It
-preserves the field names, so no extra `y()` binding is needed.
-
----
-
 ## `count`: frequency aggregation
 
-`count` counts the number of rows for each unique value of `x`.
-Works on both string and numeric columns.
+`count` counts the number of rows for each unique value of `x`, and it works
+on both string and numeric columns. It is the categorical counterpart to
+`bin`: `bin` groups a continuous variable; `count` groups a discrete one.
 
 ```{r}
 # How many countries are in each continent?
@@ -231,10 +207,8 @@ data(gapminder_2007) + bar * count + x(continent) +
   title("Countries per Continent, 2007")
 ```
 
-This is the categorical counterpart to `bin`:
-`bin` groups a continuous variable; `count` groups a discrete one. The bars show
-it: a histogram's touch (adjacent slices of one continuum), a bar chart's stand
-apart (distinct categories).
+The bars show it. Histogram bars touch, because the slices adjoin on one
+continuum. Bar chart bars stand apart, because the categories are separate.
 
 `count`, `bin`, and `density` are the three **inventing** transforms, and
 `proportion` behaves as one when it stands alone, so `y()` is optional for all
@@ -244,7 +218,7 @@ four and the y-axis labels itself automatically ("Count", "Proportion",
 ### The same `count`, tallying two axes
 
 `bin` cuts one axis on a bar and two on a zone, and `count` divides the same way for
-the same reason. A bar has a length to spend the tally on, so it groups by one axis;
+the same reason. A bar has a length to show the tally along, so it groups by one axis;
 a [`zone`](marks/zone.qmd) measures nothing by length, so it tallies rows into the
 cell where *two* categories cross and the count goes to `color`:
 
@@ -309,8 +283,8 @@ data(winds) + bar * proportion + x(direction) | facet(season)
 ```
 
 Read the two plots against each other and the difference is the whole distinction: in
-the first, summer's bars and winter's bars are competing for one total; in the second
-each season gets its own.
+the first, summer's bars and winter's bars divide one total between them; in
+the second each season gets its own.
 
 ### Normalizing something other than a tally
 
@@ -347,8 +321,10 @@ data(gm_all) + line * density * proportion + x(life)
 
 ## `density`: kernel density estimate
 
-`density` estimates the probability density function of `x` using a Gaussian
-kernel, evaluated at 256 evenly spaced points. By default the bandwidth (how
+`density` is the third inventing transform: it estimates the distribution
+`bin` counts, as a smooth curve. The curve is the probability density
+function of `x`, estimated with a Gaussian kernel and evaluated at 256 evenly
+spaced points. By default the bandwidth (how
 wide each kernel is, and so how smooth the curve) is chosen automatically by
 Silverman's rule-of-thumb [@silverman1986], IQR-adjusted for robustness.
 
@@ -366,7 +342,7 @@ density column and its axis label are both made for you.
 ### Choosing the bandwidth
 
 The automatic bandwidth is a sensible default, not a mandate, and it is
-`density`'s one knob, just as the bin count is `bin`'s. It is set the same two
+`density`'s one parameter, just as the bin count is `bin`'s. It is set the same two
 ways. A positional number is an *adjust* multiplier on the automatic bandwidth:
 `density(2)` is twice as smooth, `density(0.5)` half as smooth and so more
 jagged.
@@ -412,14 +388,15 @@ data(gapminder_2007) + ribbon * density + x(continent) + y(life) +
   y_label("Life expectancy") + title("ribbon * density: the slot reading")
 ```
 
-Each of `density`'s knobs belongs to one of those readings, and asking for one in
-a reading it cannot mean is refused rather than ignored. `bandwidth` is a length
-in one column's units, so it means nothing to a field, whose two axes measure
-different quantities. `levels` counts iso-lines, and a curve has none to count.
-And the slot reading has two of its own: `compare` says what a violin's width
-*means* from one slot to the next, and `reach` says how far it goes, in slots, so
-that past half a slot the shapes run into their neighbors and the plot is a
-ridgeline. Neither means anything to a plot with no slots:
+Each of `density`'s parameters belongs to one of those readings, and asking
+for one in a reading it cannot mean is refused rather than ignored.
+`bandwidth` is a length in one column's units, so it means nothing to a
+field, whose two axes measure different quantities. `levels` counts lines of
+equal density, and a curve has none to count. The slot reading has two
+parameters of its own. `compare` says what a violin's width *means* from one
+slot to the next. `reach` says how far the shape extends, measured in slots,
+and past half a slot the shapes reach into their neighbors: the ridgeline.
+Neither means anything to a plot with no slots:
 
 ```{r}
 #| error: true
@@ -592,7 +569,8 @@ with neither able to give way, so a cell would be measured twice:
 data(gm_all) + bar * bin * count + x(life)
 ```
 
-Each refusal names both ways out, and the first two also name the way *through*:
+Each refusal names both transforms you could drop, and the first two also
+name a third option:
 `bin` is the transform that cuts without keeping the measurement.
 
 The same rule reaches the other three jobs, and it reads the same way each time. Two
@@ -631,9 +609,11 @@ data(gm_all) + bar * count * proportion + x(continent) +
 ```
 
 It also prints a warning on your console. This page cannot show you that warning,
-because only refusals appear in a rendered book. It reads: *"`bar * count *
-proportion` draws the same plot as `bar * proportion` — a share is a share of a
-tally, so `proportion` already counts the rows and `count` adds nothing."*
+because only refusals appear in a rendered book. It reads: *"gog: `bar * count *
+proportion` draws the same plot as `bar * proportion` — a share is a share *of*
+a tally, so `proportion` already counts the rows and `count` adds nothing. Drop
+it, or keep `bar * count` on its own to read the tallies themselves rather than
+their shares."*
 
 That is the line between the two answers. When keeping both transforms would mean
 throwing one away, the engine refuses. When both can stay and one of them simply
@@ -643,6 +623,9 @@ underneath both: a word you wrote is never read and then ignored.
 ---
 
 ## Output columns
+
+Every transform writes its answer into a named column, and this table is the
+full list of those names.
 
 | Transform | Reads from | Writes to |
 |-----------|-----------|-----------|
@@ -667,11 +650,40 @@ summary rather than a count.
 
 ---
 
+## `smooth`: LOESS trend line
+
+The inventing transforms made new measurements. The **reading** transforms
+are the other half of the sort: each one reads a column you name and answers
+with a summary of it, and `smooth` is the first.
+
+`smooth` fits a locally weighted linear regression (LOESS) through the
+`(x, y)` points and evaluates it at 100 evenly spaced x positions
+[@cleveland1979].
+
+Combine it with `line` to overlay a trend line on a scatter plot:
+
+```{r}
+data(gapminder_2007) + x(gdp) + y(life) +
+  point + color(continent) +
+  line * smooth +
+  title("GDP vs Life Expectancy with LOESS Smooth")
+```
+
+**Span** defaults to 0.75: 75% of the data is used for each local regression.
+A larger span gives a smoother curve; a smaller span follows the data more
+closely. `smooth` requires both `x` and `y` to be numeric columns, and at least
+three rows in each group it fits; both refusals are earlier in this chapter,
+under [what these three refuse](#what-bin-density-and-smooth-refuse). It
+preserves the field names, so no extra `y()` binding is needed.
+
+---
+
 ## Aggregation family: `sum`, `mean`, `median`, `max`, `min`, `quantile`
 
-When a dataset has multiple rows for the same x value (e.g., medals from
-different years, all labeled "USA"), `bar` alone draws one bar per row:
-the last row silently wins.
+The six summaries are the reading family at its plainest. When a table has
+multiple rows for the same x value (for example, medals from different years,
+all labeled "USA"), `bar` alone draws one bar per row: the last row silently
+overwrites the others.
 
 The aggregation family groups rows by x and reduces y to a single value
 per group. All six follow exactly the same grammar:
@@ -744,10 +756,11 @@ groups are sorted ascending.
 ### The same six, grouping by a pair
 
 `count` follows a bar onto a zone and tallies two axes instead of one, and these
-six follow it, for the same reason and by the same rule. A bar has a length to
-spend, so it groups by one position and measures along the other; a
+six follow it, for the same reason and by the same rule. A bar has a length
+to show the answer along, so it groups by one position and measures along the
+other; a
 [zone](marks/zone.qmd) measures nothing by length, so both its positions are free
-to be keys and the answer goes to `color`:
+to be grouping columns and the answer goes to `color`:
 
 ```{r}
 data(winds) + zone * mean + x(direction) + y(season) + color(speed) +
@@ -779,14 +792,15 @@ lays on the cell the pair names, a column or a plateau.
 The division from `count`, `bin` and `density` is not about how many
 axes anything can reach: all of them read a mesh. It is about what each was handed.
 Those three invent their measurement, so they need no column named and publish
-their answer under a name of their own; these five are given a column, so the
+their answer under a name of their own; these six are given a column, so the
 sentence has to say which one, and the answer replaces it. `proportion` sits outside
 the division because it is handed neither: it takes whatever measurement the sentence
 already made and divides it.
 
 ### Why verbs?
 
-`count`, `sum`, `mean`, `median`, `max`, `min` are all **verbs**: they describe
+One naming question is worth settling before the six are used. `count`,
+`sum`, `mean`, `median`, `max`, `min` are all **verbs**: they describe
 *what to do* to y, not a data type or a chart name. The `*` operator makes
 this explicit: `bar * sum` reads as "a bar that sums". Every aggregation is
 a plain English word; none are abbreviations (Law 3: Plain Names).
@@ -827,7 +841,7 @@ data(gm_all) + line * quantile + x(year) + y(life)
 ```
 
 The only sensible default is the middle, and the middle already has a plain
-name. That is also why three particular values draw a remark rather than a
+name. That is also why three particular values get a remark rather than a
 refusal:
 
 ```{r}
@@ -908,7 +922,8 @@ For a low and a high you computed yourself, in the data's own units, use
 
 `range` shows the *full* spread; often you want the **uncertainty of the mean**
 instead: an error bar. `confidence` computes the mean's confidence interval per
-group (mean ± t·se, the t-interval), emitting a low, a high, *and* a center.
+group (mean ± t·se, with se the standard error: the t-interval), emitting a
+low, a high, *and* a center.
 That center is what turns the whisker into a pointrange:
 
 ```{r}
@@ -981,10 +996,9 @@ It differs from every transform above in two ways that both follow from *reshapi
 not computing*. Its arguments are **column names**, not a number: it has to be told
 which columns hold the bounds. And it needs **no `y()`**: those two columns *are* the
 extents, so (like `count`, which invents its own y) the mark takes its low and
-high from `bounds` and the y-axis fits them. This is gog's line held exactly: the
-statistics it *does* compute (`bin`, `smooth`, `density`, `range`, `confidence`) are
-a deliberate few; everything else you compute yourself and gog draws, and `bounds`
-is the door for a band you already have.
+high from `bounds` and the y-axis fits them. This is exactly where gog stops.
+It computes a deliberate few statistics; everything else you compute
+yourself, and `bounds` is how a band you already have gets drawn.
 
 It is legal on the five marks that can draw a low/high pair, each a different
 geometry over the *same* statistic, the [No Exceptions](design-laws.qmd) rule that
@@ -1006,7 +1020,8 @@ drawn by a different mark, that `ribbon * bounds` fills. On any mark that draws
 
 ## `partition`: a whole among nested parts
 
-Every transform so far reads a column and writes a summary of it. `partition`
+Nearly every transform so far reads a column and writes a summary of it;
+`bounds` alone reshapes what you already had. `partition`
 reads a **hierarchy** (two or three columns spelling the path down to each row)
 and writes the region each node of that hierarchy occupies: four edges and a
 center, which is exactly what [`bin`](#bin-histogram) publishes for a cell. That
@@ -1014,9 +1029,10 @@ is what makes it a transform rather than a coordinate space, and it is why
 [`zone`](marks/zone.qmd) needs no new machinery to draw the result.
 
 The levels can run two ways, and the difference is one parameter. **Nested** is
-the default: every level divides the same axis, and the other axis steps out one
-ring per level. Flat that is the icicle, and in [`polar()`](polar.qmd) it is the
-sunburst, which is where that reading is worked through in full.
+the default: every level divides the same axis, and the other axis steps out
+one ring per level. On a flat plot that reading is the icicle. In
+[`polar()`](polar.qmd) it is the sunburst, and that chapter works it through
+in full.
 
 **Crossed** is the other, and it is the one this chapter draws, because it stays
 flat. The levels alternate: the first divides the width, the second divides the
@@ -1025,8 +1041,8 @@ plot it makes is the **mosaic**.
 
 ### The mosaic
 
-`commutes` is a survey of how people get to work in four cities, one row per
-city-and-mode with a count:
+**Crossed** is the reading this section draws. `commutes` is a survey of how
+people get to work in four cities, one row per city-and-mode with a count:
 
 ```{r}
 knitr::kable(head(commutes, 6))
@@ -1047,7 +1063,7 @@ compares areas across the whole panel without being told to.
 
 That is also what makes Millbrook readable rather than misleading. Its cycling
 share is the largest of the four and its column is the narrowest, so the plot
-reports the finding and the weight of evidence behind it in the same gesture,
+reports the finding and the weight of evidence behind it at once,
 which four equal-width stacked bars cannot do at all.
 
 The two axes therefore carry different quantities, which is worth looking at
@@ -1075,7 +1091,7 @@ The labels sit at the middle of each column because that is where the center of 
 column is, and `style(nudge = )` is what moves them if you want them along the
 top. That is an honest limit rather than a choice: a mosaic's column names belong
 on an axis, and gog's category axis gives every slot the same width, which is the
-one thing a mosaic's columns are not. Until that axis learns to take its positions
+one thing a mosaic's columns are not. Until that axis can take its positions
 from the data, the names arrive as a layer.
 
 The cell edges are a `style()` setting like any other, and they matter more here
@@ -1090,8 +1106,8 @@ data(commutes) + zone * partition(city, mode, cross = TRUE) + x(people) +
 
 Both plots draw the same numbers. The second is the reason a
 [`zone`](marks/zone.qmd) carries `style(border_color = , border_size = )` at all:
-the mark began as a highlight behind a line, where a frame would compete with the
-data, and it now also draws the cells that *are* the data.
+the mark is both a highlight behind a line, where a frame would distract from
+the data, and the cells that *are* the data.
 
 One level is legal and means something: the **spine plot**, columns of varying
 width and nothing dividing them, which is the marginal distribution on its own.
@@ -1171,8 +1187,8 @@ the atom in the family.
 
 ## `dodge`: side by side instead of on top
 
-Every transform above is a *statistic*: it reads columns and writes new ones.
-`dodge` is a different kind of atom: a **collision modifier**. It writes no new
+Every transform above answers a question about the data. The four that remain
+answer none. `dodge` is a different kind of atom: a **collision modifier**. It writes no new
 values; it *moves* the marks that a color split would otherwise stack at one
 position, setting them side by side instead.
 
@@ -1194,7 +1210,7 @@ untouched. There is no width to set: `dodge` derives it from the number of group
 outright, dodged bars draw **solid**: the translucent fill exists only to see
 through a pile-up, and there is none left.
 
-It rides the `*` slot like any transform, so it composes cleanly:
+It is written after `*` like any transform, so it composes cleanly:
 `bar * mean * dodge` aggregates first and dodges the result; `box * dodge` dodges
 a box's own summary; `interval * range * dodge` dodges grouped whiskers. Here it
 sets each continent's two distributions side by side:
@@ -1210,7 +1226,7 @@ Which marks `dodge` serves is decided by what a mark *is*. It subdivides a
 for `bar`, `box` and `interval`. A `point` has no width to subdivide (its
 overlap answer is `jitter`, below); a `line` or `area` is offset by
 *accumulating* rather than subdividing (that is `stack`, next). Ask for
-`dodge` on one of those and gog refuses, naming the offset that fits. That is
+`dodge` on one of those and gog refuses, naming the collision modifier that fits. That is
 the discipline the rest of the kernel follows: an atom combines with the marks
 it was defined for, and the refusal points at the right tool rather than
 drawing something wrong.
@@ -1225,7 +1241,7 @@ silent no-op.
 `stack` is `dodge`'s sibling: the other way to resolve a color split's overlap.
 Where `dodge` sets the groups *beside* each other, `stack` piles them *on top* of
 each other along the measure axis, each group starting where the one below it
-ended. It is the offset for the marks that **sum**: `bar` and `area`.
+ended. It is the collision modifier for the marks that **sum**: `bar` and `area`.
 
 Take the dodge example and change one atom:
 
@@ -1241,7 +1257,7 @@ the full bar reads as "everyone, both eras". Two mean life expectancies do not a
 (a bar reaching 130 years is nonsense), so that comparison wants `dodge`, side by
 side. The grammar writes either; the data decides which is honest. Because the pile
 resolves the overlap, the bars draw **solid**, and the axis grows to the tallest
-*stack*: Asia clears five billion, the sum of its two eras.
+*stack*: Asia passes five billion, the sum of its two eras.
 
 ### Stacked areas: the case `stack` was built for
 
@@ -1258,7 +1274,7 @@ data(gm_all) + area * sum * stack + x(year) + y(population) + color(continent) +
 ```
 
 Asia fills the floor; Europe, Africa, the Americas and Oceania pile on top, and the
-band's upper edge is the world total climbing from two billion to six and a half.
+band's upper edge is the world total climbing from 2.4 billion to 6.25.
 Read any one color's *thickness* for that continent's share.
 
 ### `stack(share = TRUE)`: every pile filled to one
@@ -1273,11 +1289,11 @@ data(gm_all) + area * sum * stack(share = TRUE) + x(year) + y(population) +
   color(continent) + title("Every year's composition, filled to one")
 ```
 
-Now Asia's band is a constant-ish two thirds and Europe's visibly narrows across the
+Now Asia's band holds near two thirds and Europe's visibly narrows across the
 century, both of which the plot above hides inside a rising total. The axis says
 `Share`, because whatever the numbers were before, they are fractions of one now.
 
-This is not `proportion` wearing a second face. The two divide by different
+This is not a second name for `proportion`. The two divide by different
 totals. `proportion` divides by the **whole plot's**, so its bars still say how
 big each slot is. This one divides by the **slot's own**, which deliberately
 throws that away. And only this one composes with a measurement it was not
@@ -1300,7 +1316,7 @@ to stretch across it, spends it on *how many dots there are* (the dot plot, just
 below). A `box` or `interval` is set beside its neighbors rather than piled (that
 is `dodge`); an unfilled `line` has nothing to fill and stack (use `area`); a
 `ribbon` already spans a low to a high, so it measures no height from a baseline.
-Ask for `stack` on one of those and gog refuses, naming the offset that fits. For
+Ask for `stack` on one of those and gog refuses, naming the collision modifier that fits. For
 `bar` and `area` it also needs a `color` (or `group`) split to pile: `bar * stack`
 alone is refused toward adding the color, never accepted as a silent no-op.
 
@@ -1314,8 +1330,8 @@ That layout has a known weakness. Only the bottom band has a shape you can read.
 Every band above it rests on the sum of the bands below, so it inherits all of
 their movement as well as its own.
 
-The weakness is easiest to see when the series take turns. Here are four music
-genres over half a year, each popular at a different time:
+The weakness is easiest to see when each series peaks at a different time.
+Here are four music genres over half a year:
 
 ```{r}
 data(listening) + area * stack + x(week) + y(plays) + color(genre) +
@@ -1345,14 +1361,15 @@ data(listening) + area * stack(baseline = "wiggle") + x(week) + y(plays) +
   color(genre) + title("Flattest: the streamgraph")
 ```
 
-Now Techno is a clean lens shape that swells and fades, which is what the numbers
+Now Techno is one clean shape, widening and then narrowing, which is what the numbers
 actually say. Folk, the blue band, is a steady decline rather than a wedge. No band
 changed thickness between these three plots. Only the place each pile hangs changed.
 
 The last plot is a streamgraph [@byron2008]. The middle one is a ThemeRiver. The two are often
 confused and they are not the same layout: one is symmetric, the other is chosen to
-reduce movement. Readers compare values more accurately on a streamgraph than on
-either of the other two, and that result is the reason this option exists.
+reduce movement. The streamgraph's designers argue readers compare values more
+accurately on it, and that argument is the reason this option exists
+[@byron2008].
 
 Notice also that these two plots have no numbers on the measure axis. Once a pile
 has moved off zero, no value on that axis means anything. A band drawn from 12 to
@@ -1374,8 +1391,8 @@ One parameter, both geometries. `share` follows the same rule, and so does plain
 `stack`, which hands both marks one span and lets each draw it:
 [No Exceptions](design-laws.qmd).
 
-Moving a pile costs the origin of the measure axis. Only a flat plot has an origin
-to spare, so the other spaces refuse it:
+Moving a pile gives up the origin of the measure axis. Only a flat plot can
+give that up, so the other spaces refuse:
 
 ```{r}
 #| error: true
@@ -1478,8 +1495,8 @@ data(gapminder_2007) + point * count * stack + x(continent) +
 ```
 
 The dots pack tightly here and loosely on a small table, and that is not a
-setting: the gap between two rungs is one count unit on the y axis, so a
-taller pile subdivides the panel more finely. A pile of ten dots in a tall
+setting: the **rung**, the fixed vertical gap between stacked dots, is one
+count unit on the y axis, so a taller pile subdivides the panel more finely. A pile of ten dots in a tall
 panel is airy. `style(size = )` will fatten the dots, but making them *touch*
 means fixing the panel's height to the tallest pile. That is the aspect-ratio
 control gog does not have yet, the same one [polar](polar.qmd)'s circles and
@@ -1501,8 +1518,8 @@ data(gm_all) + point * bin * stack + x(life) +
 gog draws it, and says what happened. The piles have become solid sticks: at 314
 rungs the gap between two of them is under a pixel, so the dots overlap and nothing
 can be counted, which was this plot's entire claim. What you are looking at is a
-histogram drawn dot by dot, and an expensive one, since it ships 1704 circles where
-`bar * bin` ships fourteen rectangles.
+histogram drawn dot by dot, and a costly one: it draws 1704 circles where
+`bar * bin` draws twelve rectangles.
 
 The warning is not a row limit, and that matters. It compares one rung's gap
 against one dot's diameter, both of which gog knows once the panel is laid
@@ -1512,7 +1529,7 @@ silent; widen the piles and a smaller one speaks up. A number like "more than
 500 rows" would be wrong at some panel size or dot size, and there is no need
 to guess one when the real condition is available.
 
-Which also means the warning is a prompt, not a verdict. Two atoms usually answer it
+Which also means the warning is advice, not a limit. Two atoms usually answer it
 without giving up a single dot, and the first is the one people forget: **more bins**
 spread the same rows over more piles, so every pile gets shorter without anything
 getting smaller. Then the dots themselves:
@@ -1523,18 +1540,18 @@ data(gm_all) + point * bin(40) * stack + x(life) + style(size = 1.5) +
 ```
 
 The columns are made of visible dots again, and every one of the 1704 is still on the
-page. [Faceting](faceting.qmd) is the third lever, since fewer rows per panel means
+page. [Faceting](faceting.qmd) is the third way, since fewer rows per panel means
 shorter piles in each.
 
-What none of them can beat is the arithmetic. Counting needs at least one
+What none of them changes is the arithmetic. Counting needs at least one
 dot-diameter of axis per row, so the tallest honest pile is about the panel's
 height divided by a dot: a few hundred with dots you can see, a few dozen if
 you mean to count them. Past that a summary is not second best but the
 better answer, and the reason is the one that makes the dot plot worth having
 in the first place. A bin width or a bandwidth is a guess about structure when
 there are thirty rows. It is a reliable description when there are ten
-thousand. The plot runs out exactly where the summaries stop needing an
-apology.
+thousand. So the dot plot stops working at the same size where a summary
+starts working well.
 
 ### One column, split into its parts
 
@@ -1596,7 +1613,7 @@ leaves the measured one exact.
 
 The spread is **deterministic**: it is computed from the data itself, not from a
 random-number generator or the clock, so the same plot drawn twice is pixel-for-pixel
-the same picture. A spec always means one plot.
+the same picture. A specification always means one plot.
 
 ### How much to spread: `jitter(amount)`
 
@@ -1612,12 +1629,12 @@ data(gapminder_2007) + point * jitter(0.5) + x(continent) + y(life) +
   title("point * jitter(0.5): a tighter spread")
 ```
 
-The knob has the same shape as `density`'s `adjust`, a dimensionless multiple
-of an automatic value. It is there for the same reason `density` and `bin`
-take a parameter while `dodge` does not. The jitter amount is a *legibility
-choice* with no single right value, whereas `dodge`'s width is *determined* by
-the group count. A
-free parameter earns a knob; a settled one does not. (`jitter(0)` is legal and draws
+The parameter has the same shape as `density`'s `adjust`, a dimensionless
+multiple of an automatic value. It is there for the same reason `density` and
+`bin` take a parameter while `dodge` does not. The jitter amount is a
+*legibility choice* with no single right value, whereas `dodge`'s width is
+*determined* by the group count. A value the writer must choose takes a
+parameter; a value gog can work out does not. (`jitter(0)` is legal and draws
 the plain strip plot, un-spread: gog never forbids the harmless.)
 
 Two things set `jitter` apart from its siblings. It needs **no `color` split**:
@@ -1633,23 +1650,23 @@ Which marks `jitter` serves is decided by what a mark *is*: the rule that
 divides the whole trio. `jitter` spreads a scatter of individual points, so it is
 defined for `point` alone. A `bar`, `box` or `interval` has a width, and its groups
 are set apart by `dodge`; a `line` or `area` is one connected shape, not a cloud of
-points. Ask for `jitter` on any of those and gog refuses, naming the offset that
-fits.
+points. Ask for `jitter` on any of those and gog refuses, naming the collision
+modifier that fits.
 
-Three of the four offsets divide the marks by geometry **and by axis**: **`dodge`**
+Three of the four collision modifiers divide the marks by geometry **and by axis**: **`dodge`**
 subdivides a width, **`stack`** accumulates along the *measure* axis, **`jitter`**
 spreads along the *categorical* one. Every mark has an honest answer to overlap, and
 `point` has two, because it is the one mark that can collide on either axis: piled
 into a countable stack of dots along a measure, nudged apart within a slot along a
-category. The offset follows the axis, which is why neither reading needs a third
+category. The modifier follows the axis, which is why neither reading needs a third
 name.
 
 ## `repel`: move the labels off each other
 
-The fourth offset answers a collision the first three cannot see. They all resolve
+The fourth collision modifier answers a collision the first three cannot see. They all resolve
 marks that landed on one *position*, which is a fact about the data. A label is as
 wide as the word it draws, so two labels overlap at positions their points never
-shared, and no offset computed from a position can find them. Thirty European
+shared, and no modifier computed from a position can find them. Thirty European
 countries, each named:
 
 ```{r}
@@ -1702,6 +1719,6 @@ described in [Text](marks/text.qmd#nudging-the-label-off-its-point). The two
 compose: the nudge says which side a label prefers, and `repel` resolves the
 overlaps that remain.
 
-The four offsets are one family, and two questions divide it. Three of them ask
+The four collision modifiers are one family, and two questions divide it. Three of them ask
 *what geometry does this mark have*, and answer with a width, a measure or a band.
 The fourth asks *what is this mark made of*, and only one mark is made of words.

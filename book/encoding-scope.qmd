@@ -5,10 +5,9 @@
 source("R/setup.R")
 ```
 
-If you write one x and then two marks, which marks does it apply to? Each atom
-in a plot expression binds to a specific scope. Understanding this one rule
-eliminates all ambiguity about which encoding belongs to which part of the
-plot.
+If you write one `x()` and then two marks, which marks use it? Both do. Each
+atom binds to a **scope**: the whole plot, or one layer, and this chapter is
+the rule for which.
 
 ## The rule
 
@@ -16,32 +15,33 @@ plot.
 |------|-------|-------------------|
 | `x()`, `y()`, `z()` **before any mark** | **Plot**, every layer | Yes |
 | the same positions **after a mark** | **Layer**, that mark's column for the shared axis | Yes |
-| `data()` at expression start | **Plot**, default table | No |
-| `data()` between two marks | **Next layer** only | Yes |
+| `data()` **before any mark** | **Plot**, default table | No |
+| `data()` **after a mark** | **Next layer** only | Yes |
 | `color()`, `size()`, `shape()`, `opacity()`, `group()` **before any mark** | **Plot**, every layer that can accept it | Yes |
 | the same channels **after a mark** | **Layer**, that mark alone | Yes |
 | `style()` | **Layer**, nearest preceding mark | Yes |
 | `title()`, `x_label()`, `y_label()`, `z_label()`, `palette()` | **Plot** | No |
 
-One rule covers the whole table: an atom binds forward, never backward, and
-what it binds to is whatever it is written after. Write a channel before any
-mark and it has only the plot to attach to; write it after a mark and it attaches
-to that mark.
+One rule covers the position-sensitive rows: an atom binds forward, never
+backward, to whatever it is written after. The rows marked **No** (the labels,
+`palette()`, and a `data()` before any mark) belong to the plot wherever they
+are written. Write a channel before any mark and it binds to the plot; write it
+after a mark and it binds to that mark.
 
-Where two bindings could apply, the **nearer** one wins: the same rule that
-makes a mid-expression `data()` beat the plot's table.
+Where two bindings could apply, the **nearest** one wins: the same rule that
+lets a mid-expression `data()` replace the plot's table.
 
 ## One axis, and which column each layer reads
 
 Every layer of a plot shares the same axes. That is what makes it one plot
-rather than two drawn on top of each other, and it is not negotiable: there is
-one x scale, one set of ticks, one label. A table that does not belong on those
-axes does not belong in this plot. [Composition](composition.qmd) has the choice
+rather than two drawn on top of each other. gog allows no second axis: one x
+scale, one set of ticks, one label. A table that does not belong on those axes
+does not belong in this plot. [Composition](composition.qmd) covers the choice
 between layering, faceting, and a page of separate plots.
 
-Sharing an axis is not the same as sharing a *column name*, though, and those
-two were run together for a long time. Bind the positions once before the marks
-and every layer reads them, which is what you want almost always:
+Sharing an axis is not the same as sharing a *column name*, and the two are
+easy to confuse. Bind the positions once before the marks and every layer reads
+them, which is what you want almost always:
 
 ```{r}
 # x and y defined once: both marks use them
@@ -54,7 +54,8 @@ data(actuals) + x(year) + y(sales) +
 
 Write a position after a mark and it belongs to that mark, exactly as a color
 does. The axis does not move; the layer is only saying which of *its* columns
-supplies the values. That is what lets a second table keep its own vocabulary:
+supplies the values. That is the scope rule behind the second table in
+[Data](data.qmd), which kept its own column names:
 
 ```{r}
 # `milestones` calls its columns `at` and `value`, not `gdp` and `life`
@@ -63,12 +64,12 @@ data(gapminder_2007) + point + x(gdp) + y(life) +
 ```
 
 Look at the axis labels: they still read `Gdp` and `Life`. The note's own column
-names never surface as chrome, because the axis is the plot's and only the
-reading is local. Without this, the note table would have to rename its columns
-to match the base data, which is fine when you are inventing the table and
-tedious when it already exists.
+names never reach the axis labels, because the axis is the plot's and only the
+column choice is local. Without this, the note table would have to rename its
+columns to match the base table, which is fine when you are inventing the table
+and tedious when it already exists.
 
-The same rule answers two columns of one table on one axis:
+The same rule covers two columns of one table on one axis:
 
 ```{r}
 data(actuals) + x(year) +
@@ -76,9 +77,9 @@ data(actuals) + x(year) +
   line + y(sales) + style(color = "tomato", pattern = "dashed")
 ```
 
-Reshaping to tidy form (one `value` column plus a `type` column) and using
-`color(type)` is still usually better, because it earns you a legend and scales
-past two series. Naming the columns per layer is for when you want the two lines
+Reshaping to tidy data (one `value` column plus a `type` column) and using
+`color(type)` is still usually better: it earns a legend and handles more than
+two series. Naming the columns per layer is for when you want the two lines
 styled differently, or when the second set of values genuinely lives elsewhere.
 
 What a layer may *not* do is bring its own scale:
@@ -90,9 +91,8 @@ data(gapminder_2007) + point + x(gdp) + y(life) +
 ```
 
 A second scale on one axis is a second axis, and every mark would then be read
-against something the expression never named. That is the refusal in
-[Design laws](design-laws.qmd), and the line between it and the feature above is
-exactly one word wide: a layer names its own **column**, never its own scale.
+against something the expression never named. That refusal and the feature above
+differ by one word: a layer names its own **column**, never its own scale.
 
 ## Channels: plot-scoped or layer-scoped, by position
 
@@ -104,8 +104,8 @@ data(gapminder_2007) + x(gdp) + y(life) +
   line                         # line uses a single default color
 ```
 
-Written **before any mark**, there is no mark to attach to, so it belongs to the
-plot and reaches every layer:
+Written **before any mark**, a channel has no mark to bind to, so it binds to
+the plot and covers every layer:
 
 ```{r}
 data(gapminder_2007) + x(gdp) + y(life) + color(continent) +
@@ -114,10 +114,9 @@ data(gapminder_2007) + x(gdp) + y(life) + color(continent) +
 ```
 
 That is the same position rule `x` and `y` follow: written before the marks they
-apply to all of them, written after one they belong to it. There is no channel
-with a scoping rule of its own, and the positions differ only in what a layer-scoped
-one *means*, which is a column for the shared axis rather than an axis of its
-own.
+apply to all of them, written after one they belong to it. No channel has a
+scoping rule of its own. For `x`, `y` and `z`, a layer-scoped binding names a
+column, never a new axis.
 
 ### Why binding only goes forward
 
@@ -132,14 +131,14 @@ data(gapminder_asia) + x(year) + y(life) +
   point + size(population)
 ```
 
-A channel that reached backwards could not express this. It would put `size` on
+A channel that bound backward could not draw this. It would put `size` on
 the `line` too, and a line has no size, so the plot would be refused, with no
 way to say what you meant.
 
-### A plot-scoped channel skips marks without the feature
+### A plot-scoped channel skips marks without it
 
-`size` written for the whole plot means the points; a line has no size to give.
-gog applies it where it fits and says where it did not; this is an
+`size` written for the whole plot means the points; a line has no size.
+gog applies it where it fits and says where it does not; this is an
 **assumption**, not a refusal, so the plot still renders:
 
 ```{r}
@@ -149,8 +148,8 @@ data(gapminder_asia) + x(year) + y(life) + size(population) +
   point
 ```
 
-If *no* mark in the plot has the feature, the binding would do nothing at all,
-so it is refused instead:
+If *no* mark in the plot can accept the channel, the binding would do nothing at
+all, so it is refused instead:
 
 ```{r}
 #| error: true
@@ -160,8 +159,9 @@ data(gapminder_asia) + x(year) + y(life) + size(population) +
 
 ## `data()` mid-expression
 
-A `data()` that appears between two marks is layer-scoped:
-it sets the table for the mark that immediately follows it.
+[Data](data.qmd) gave the rule, and it is a scope rule: the first `data()` is
+the plot's table, and each later `data()` applies to the mark written directly
+after it.
 
 ```{r}
 data(actuals) + x(year) + y(sales) +
