@@ -497,7 +497,7 @@ by composition, so a setting is the only way to draw it. And why `style(pattern 
 as a **hatch**: one aesthetic, one form per geometry, the way `color` is a stroke
 on a line and a fill on a bar. A curve fill (`area`, `ribbon`) takes the hatch (a
 region can be textured) but no *border*: its edge is a data curve, which already
-*is* a `line` (`area + line`, `line * bounds`), more capable than any rim. The
+*is* a `line` (`area + line`, `line * bounds`), more capable than any border. The
 classes, not the individual marks, decide.
 
 The failure this prevents is the quiet surprise: learning a setting on one mark and

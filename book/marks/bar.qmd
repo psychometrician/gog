@@ -293,7 +293,7 @@ data(iris_flowers) + bar * bin + x(petal_length) + color(species) +
 ```
 
 The outline is the series color by default, but you can recolor it:
-`style(border_color = )` sets the rim, `style(border_size = )` its width. A white
+`style(border_color = )` sets the border, `style(border_size = )` its width. A white
 border cleanly parts the overlapping fills, the way many overlaid histograms are
 drawn:
 
@@ -405,13 +405,13 @@ mark_options("bar")
 
 A bar has no `size`, and that is deliberate. Its position and its value already
 fix how large it is, so a width setting would be a second, conflicting answer.
-What it does have, being a closed fill, is a rim.
+What it does have, being a closed fill, is a border.
 
 ```{r}
 data(medals) + bar * sum + x(country) + y(gold) +
   style(color = "goldenrod", pattern = "crosshatch",
         border_color = "black", border_size = 1) +
-  y_label("Gold medals") + title("A fill, a texture, and a rim")
+  y_label("Gold medals") + title("A fill, a texture, and a border")
 ```
 
 The `pattern` values here are the five **fill textures**, not the three dashes a

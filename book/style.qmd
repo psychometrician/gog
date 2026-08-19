@@ -136,7 +136,7 @@ exactly as on `bar` and `box`:
 data(gapminder_2007) + point + x(gdp) + y(life) +
   style(color = "steelblue", opacity = 0.7, size = 5, border_color = "white", border_size = 1) +
   x_label("GDP per capita") + y_label("Life expectancy") +
-  title("A point with a white rim")
+  title("A point with a white border")
 ```
 
 A **curve fill** (`area`, `ribbon`) takes no border: its edge is a *data curve*,
@@ -557,8 +557,8 @@ data(gapminder_2007) + bar * mean + x(continent) + y(life) +
 
 It is called `frame` and not `border` because `style(border_color = )`
 already uses that word, and it means something else: the border of a *mark*,
-a bar's outline or a point's border. A frame surrounds the picture; a border is what a shape is drawn
-with. One word, one meaning.
+a bar's or a point's. A frame surrounds the picture; a border is what a shape is
+drawn with. One word, one meaning.
 
 `background` takes any color the rest of the grammar takes, which includes the
 one a journal usually asks for, since the figure is going onto a page whose

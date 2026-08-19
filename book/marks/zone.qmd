@@ -837,7 +837,7 @@ data(quarterly) + x(year) + y(sales) +
   data(recessions) + zone * bounds(start = start, end = end) +
     style(border_color = "black") +
   data(quarterly) + line +
-  y_label("Sales") + title("A zone with a rim of its own")
+  y_label("Sales") + title("A zone with a border of its own")
 ```
 
 Both readings stay available, and which one is right depends on whether the
