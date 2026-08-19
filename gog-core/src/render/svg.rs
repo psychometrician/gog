@@ -6737,8 +6737,45 @@ mod tests {
         assert_eq!(drawn.remarks.len(), 1, "one sentence for the layer: {said:?}");
         assert!(drawn.remarks[0].kind == crate::legality::DiagnosticKind::Assumption,
                 "the plot drew, so this is a remark and not a refusal");
-        assert!(said[0].contains("3 of 4 labels"),
-                "the remark must count what it left out: {said:?}");
+        assert!(said[0].contains("1 of 4 labels are drawn"),
+                "the remark must say how many names the reader can see: {said:?}");
+        assert!(said[0].contains("3 are wider than the region they name"),
+                "and why the rest are missing: {said:?}");
+    }
+
+    /// **The two numbers have to close.** A share too small to have a region at
+    /// all is not an unfitted label, and counting it in neither number is what let
+    /// the book's own treemap report *116 of 142 left out* over a plot carrying 25
+    /// names — the reader subtracts and lands one too high. So the remark names
+    /// what was **drawn** and accounts for every row that was not.
+    #[test]
+    fn the_label_report_accounts_for_every_row() {
+        // One roomy region, two that a name cannot fit, and one share so small it
+        // has no region to fit a name in.
+        let data: HashMap<String, DataFrame> = HashMap::from([(
+            "t".to_string(),
+            DataFrame::new()
+                .with_str("g", ["roomy", "cramped one", "cramped two", "vanishing"]
+                    .into_iter().map(String::from).collect())
+                .with_float("v", vec![4000.0, 12.0, 12.0, 0.02]),
+        )]);
+        let bars = Layer::new(Mark::Bar).encode(Channel::Color, "g");
+        let names = Layer::new(Mark::Text).encode(Channel::Label, "g");
+        let drawn = SvgRenderer::default().draw(
+            &PlotSpec::new().data("t").y("v").coord(CoordSpace::Nest).layer(bars).layer(names),
+            &data);
+
+        let labels = packed_labels(&drawn.svg);
+        let said = drawn.remarks.iter().map(|d| d.message.as_str())
+            .find(|m| m.contains("labels are drawn"))
+            .unwrap_or_else(|| panic!("no label report: {:?}", drawn.remarks));
+
+        // What the plot drew is what the sentence claims it drew.
+        assert!(said.contains(&format!("{} of 4 labels are drawn", labels.len())),
+                "{} names on the plot: {said}", labels.len());
+        // And the row with no region is named rather than left out of both counts.
+        assert!(said.contains("too small to have a region at all"),
+                "the vanishing share has to be accounted for: {said}");
     }
 
     /// The dropped-rows report rides in `remarks`, not on stderr: a browser has

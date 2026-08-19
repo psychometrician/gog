@@ -157,11 +157,12 @@ it needs a measure and a string, and the packing places it.
 Count the names and there are far fewer than 142, which is what the message above
 the plot is for. Most of the world's countries have a share narrower than
 their own name, so a label that does not fit its rectangle is not drawn. The
-engine says how many it left out, rather than letting you read the named
-countries as though they were all of them. Egypt and Sudan are named and most of
-Africa is not. Every one of those unnamed countries still has a region exactly as
-wide as its share of the world. The picture is complete and the labeling is not,
-and the message above the plot says how many names are missing.
+engine says how many names it drew and why the rest are missing, rather than
+letting you read the named countries as though they were all of them. Egypt and
+Sudan are named and most of Africa is not. Every one of those unnamed countries
+still has a region exactly as wide as its share of the world. The picture is
+complete and the labeling is not, and the count above the plot is the one you
+can check against the names.
 
 That message is why the missing names are safe: a treemap that printed only the
 names that fit, and said nothing, would read as a complete list.

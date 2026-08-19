@@ -4,6 +4,19 @@ All four packages share one version number and are released together: `gog` on
 CRAN-style repositories and PyPI, `GrammarOfGraphics` on Julia's General, and
 `grammar-of-graphics` on npm. A version means the same grammar in every one.
 
+## Unreleased
+
+### Fixed
+
+- **A treemap's label report now names what it drew, so its numbers close.** A
+  packing says how many names it could not fit, and a reader subtracts to learn
+  how many are on the plot. The subtraction was wrong wherever a share was too
+  small to have a region at all: such a row is not an unfitted label, so it was
+  counted in neither number, and the book's own treemap of 142 countries
+  reported 116 left out over a plot carrying 25 names. The message leads with
+  the drawn count and gives a reason for every row that is missing, so nothing
+  has to be worked out and no row goes unaccounted for.
+
 ## 0.1.0 (2026-08-18)
 
 ### Added

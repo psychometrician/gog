@@ -268,6 +268,8 @@ impl SvgRenderer {
             r##"  <g clip-path="url(#{clip})" font-family="system-ui,sans-serif" font-size="{fs}" text-anchor="middle">"##
         ).unwrap();
         let mut unfitted = 0usize;
+        let mut no_room = 0usize;
+        let mut drawn = 0usize;
         for i in 0..n {
             let c = cells[i];
             let label = &labels[i];
@@ -280,9 +282,11 @@ impl SvgRenderer {
             if !(c.w >= w + 2.0 && c.h >= estimate_cap_height(fs) + 2.0) {
                 // A region with no area at all is not an unfitted label — it is a
                 // share too small to have a region, which the bar does not draw
-                // either. Counting it would report a name the plot never had room
-                // to consider.
-                if c.w >= 0.5 && c.h >= 0.5 { unfitted += 1; }
+                // either. It is counted **apart** from the names that had a region
+                // and did not fit, because the two ask for different fixes: one
+                // wants more room, the other has no share to give room to. Both are
+                // reported, which is what the message below is careful about.
+                if c.w >= 0.5 && c.h >= 0.5 { unfitted += 1; } else { no_room += 1; }
                 continue;
             }
             let fill: String = if let Some(sc) = &set_color {
@@ -296,17 +300,36 @@ impl SvgRenderer {
                 r#"    <text x="{:.2}" y="{:.2}" fill="{fill}" fill-opacity="{opacity:.3}">{}</text>"#,
                 c.x + c.w / 2.0, c.y + c.h / 2.0 + dy, esc(label)
             ).unwrap();
+            drawn += 1;
         }
         writeln!(svg, "  </g>").unwrap();
 
+        // **The drawn count leads, and it is the reason this sentence is shaped the
+        // way it is.** Reporting only what was left out made the reader subtract,
+        // and the subtraction was wrong wherever a share was too small to have a
+        // region: the book's own treemap said *116 of 142 were left out* over a
+        // plot carrying 25 names, because the 142nd was in neither number. Naming
+        // what was drawn leaves nothing to work out, and each reason is printed
+        // only when it happened, so no clause ever reads "0 are wider".
+        let mut why: Vec<String> = Vec::new();
         if unfitted > 0 {
+            why.push(format!("{unfitted} are wider than the region they name"));
+        }
+        if no_room > 0 {
+            why.push(match no_room {
+                1 => "one share is too small to have a region at all".to_string(),
+                k => format!("{k} shares are too small to have a region at all"),
+            });
+        }
+        if !why.is_empty() {
+            let why = why.join(", and ");
             remarks.push(Diagnostic {
                 kind: DiagnosticKind::Assumption,
                 message: format!(
-                    "gog: {unfitted} of {n} labels are wider than the region they name, and \
-                     were left out — the packing drew every share, the names are what is \
-                     missing. Fewer categories, a larger plot (`theme(width =, height =)`) or \
-                     a smaller `style(size = )` fits more of them in."
+                    "gog: {drawn} of {n} labels are drawn — {why}. The packing drew every \
+                     share, so the names are what is missing. Fewer categories, a larger \
+                     plot (`theme(width =, height =)`) or a smaller `style(size = )` fits \
+                     more of them in."
                 ),
             });
         }
