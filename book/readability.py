@@ -37,11 +37,11 @@ from glob import glob
 
 BOOK = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.dirname(BOOK)
-# The blog is measured beside the book, for the reason `check_prose.R` gives:
-# same voice, same readers, and a post that reads differently from the manual it
-# links to is what both guards exist to catch. A missing directory contributes
-# no files, so a checkout with only the book reports exactly as it always did.
-DIRS = [BOOK, os.path.join(ROOT, "blog")]
+# One directory. The site this book is linked from is measured the same way and
+# from its own repository, for the reason `check_prose.R` gives: same voice,
+# same readers, and a post that reads differently from the manual it links to is
+# what both guards exist to catch.
+DIRS = [BOOK]
 TARGET = 18.0  # spec §20 book law 8: 15-18 words, one idea per sentence
 LONG = 30      # a sentence a reader has to hold open while parsing it
 VERY_LONG = 45 # a sentence to rewrite rather than trim

@@ -9,10 +9,10 @@
 # ---------------------------------------------------------------------------
 
 # Quarto sets getwd() to the directory of the .qmd file being rendered, so the
-# project root is however many levels up that page happens to sit. Five, not the
-# book's own two, because this file is sourced from more than the book now: a
-# blog post at `blog/posts/<slug>/` is four levels down, and `R/data.R` beside
-# this one already walks four for the same reason.
+# project root is however many levels up that page happens to sit. Five rather
+# than the two a chapter needs, because a caller sourcing this from anywhere in
+# the tree is the case it was written for, and `R/data.R` beside this one
+# already walks four for the same reason.
 find_proj_root <- function() {
   for (up in c(".", "..", "../..", "../../..", "../../../..")) {
     p <- normalizePath(file.path(up, "gog-cli"), mustWork = FALSE)
@@ -119,9 +119,9 @@ local({
     # the output tree mirrors the source tree exactly.
     #
     # Measured against the *nearest `_quarto.yml`*, which is the page's own
-    # project. It named the book's directory outright until the blog arrived,
-    # and that was right only while the book was the sole project here: from a
-    # blog page the pattern matched nothing, the subject stayed an absolute
+    # project. It named this directory outright once, and that was right only
+    # while the book was the sole Quarto project in the tree: from a page in any
+    # other one the pattern matched nothing, the subject stayed an absolute
     # path, and the depth came out as its directory count — eight on a typical
     # checkout, for a page two levels down. Two smaller faults went with it. A
     # filesystem path was being spliced in as a *regex*, so any character

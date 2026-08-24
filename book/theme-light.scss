@@ -3,14 +3,16 @@
 // The light theme. Bootstrap variables only, so Quarto compiles them into the
 // framework rather than fighting it afterwards with `!important`.
 //
-// This file is two things at once, and the split is deliberate. It is the gog
-// book's theme, so every accent in it is gog's — the sticker's peach and the
-// amber derived from it. And it is the structural base the site stages for its
-// own render: the grays, the hairlines, the chrome, the code sizing. The site
-// fronts two packages, so it does not use either package's accent; it layers
-// its own neutral one over this file in `blog/accent-light.scss`, listed after
-// the staged copy. One copy of the structure, and each surface keeps its own
-// color — a package's accent is never copied onto the other, or onto the site.
+// This book's own theme, and every accent in it is gog's — the sticker's peach
+// and the amber derived from it. god's book carries a file built the same way
+// on its own slate, and the site both books are linked from carries a third on
+// a neutral teal. Three surfaces, one construction, each keeping its own color:
+// a package's accent is never copied onto the other, or onto the site.
+//
+// It is not one shared file. A copy staged across a repository would have to be
+// either fetched or synced, and neither belongs in a render. What is shared is
+// the construction, so when the look changes it changes on the site first and
+// the two books follow.
 
 $peach:        #ffdba4;   // gog's, from the sticker
 $ink-bar:      #241f19;   // the chrome: warm, near-black, shared structure
@@ -74,7 +76,7 @@ $font-family-monospace:  ui-monospace, "SF Mono", Menlo, Consolas,
 
 // Larger than Bootstrap's 16px and looser than its 1.5. Both are readability
 // rather than taste: the book is written for readers working in a second
-// language, and the blog is held to the same measure.
+// language, and the site is held to the same measure.
 $font-size-base:   1.0625rem;
 $line-height-base: 1.7;
 

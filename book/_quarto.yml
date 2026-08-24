@@ -99,9 +99,10 @@ book:
   # Two licenses, because the book is mostly executable code. The prose is
   # NonCommercial so a print edition stays worth publishing; the code samples
   # are Apache 2.0 so they can be used in real work.
-  # The site's footer, said again here, because the book and the blog are one
-  # project and a reader should not be able to tell which one they are standing
-  # in. `gog.css` holds how it looks; this is what is in it.
+  # The site's footer, said again here, because the manual and the site it is
+  # linked from are one project and a reader should not be able to tell which
+  # one they are standing in. `gog.css` holds how it looks; this is what is in
+  # it.
   #
   # Licences on the left, as the small print they are. The row of links on the
   # right, because that is what a reader who has reached the end of a chapter is
@@ -153,7 +154,7 @@ book:
       # cannot be mistaken for each other by a reader who sees both.
       - icon: journal-text
         href: https://psychometrician.github.io/
-        aria-label: "psychometrician, the blog"
+        aria-label: "psychometrician, the site"
         target: _blank
 
   # A toggle in the top right that folds away the chapter sidebar and the table
@@ -290,10 +291,10 @@ format:
     # switch and put `quarto-light` / `quarto-dark` on the body, which is what
     # `gog.css` keys its dark rules off.
     #
-    # The two files are the book's and the blog stages them, the same direction
-    # `gog.css` already travels. One palette, one home: the book and the site
-    # are one project, and a second copy of a color is how they would drift into
-    # looking like two.
+    # This book's own two files. The site it is linked from carries a pair
+    # built the same way on a different palette, as god's book does: three
+    # surfaces, one construction, and each keeping its own color. When the look
+    # changes it changes on the site first and the two books follow.
     theme:
       light: [cosmo, theme-light.scss]
       dark: [darkly, theme-dark.scss]

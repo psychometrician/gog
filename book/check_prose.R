@@ -28,12 +28,14 @@
 #
 # Run from the repo root; sourced by r-pkg/gog/tests/test_basic.R.
 
-# Two directories, not one. The blog is held to the book's rules because it is
-# the same voice reaching the same readers, and a post that reads differently
-# from the manual it links to is the thing this guard exists to prevent. A
-# directory that is absent yields no files and no complaint, so a checkout with
-# only the book still passes.
-check_prose <- function(dirs = c("book", "blog")) {
+# `dirs` is a list rather than a fixed directory, and the reason is the site
+# this book is linked from. It is held to these same rules, because it is the
+# same voice reaching the same readers and a post that reads differently from
+# the manual it links to is the thing this guard exists to prevent. It lives in
+# its own repository and runs this file over its own pages from there, which is
+# why one directory is named here and the argument stays open. A directory that
+# is absent yields no files and no complaint.
+check_prose <- function(dirs = "book") {
   qmds <- unlist(lapply(dirs, function(d)
     list.files(d, pattern = "[.]qmd$", recursive = TRUE, full.names = TRUE)))
 
@@ -58,7 +60,7 @@ check_prose <- function(dirs = c("book", "blog")) {
     "apples to apples", "cuts both ways", "no free lunch",
     "elephant in the room", "tip of the iceberg", "second nature",
     "load-bearing", "the expert's convenience",
-    # Added after each one was written into a blog post and read past by the
+    # Added after each one was written into a post on the site and read past by the
     # author, the reviewer and this guard. Every phrase here means something
     # other than the sum of its words, so a translator has to guess: "held" for
     # delayed, "part company" for differ, "falls behind" for is out of date.

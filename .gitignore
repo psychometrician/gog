@@ -26,15 +26,6 @@
 # `gog-cli` at render time, so one engine change invalidates every page at once.
 !/book/
 
-# The blog, which is here for the same reason and shares the book's setup: a
-# post draws its plots with the engine built from this checkout, so it can show
-# a feature before the feature is released. Named for the reason the header
-# gives -- `git check-ignore -v blog/index.qmd` answers `/*`, and a directory
-# left unnamed is invisible with no error at all. A `blog/.gitignore` could not
-# rescue it either, since git will not re-include a file whose parent is
-# excluded.
-!/blog/
-
 !/.github/
 
 # The README's five language logos, normalized to one optical size. Named here
@@ -92,19 +83,7 @@ target/
 /book/.quarto/
 /book/site_libs/
 /book/_freeze/
-/blog/_site/
-/blog/.quarto/
-/blog/site_libs/
-/blog/_freeze/
 **/*.quarto_ipynb
-
-# Staged into `blog/` by its pre-render so Quarto can publish them beside the
-# pages that fetch them: the browser engine, the two modules that drive it, and
-# the book's stylesheet. Build output and a copy, not source.
-/blog/gog.wasm
-/blog/interactive.js
-/blog/view.js
-/blog/gog.css
 
 # R
 .Rproj.user/
@@ -167,3 +146,4 @@ desktop.ini
 *~
 *.bak
 *.orig
+book/_pdf-check/gog--A-Grammar-of-Graphics.pdf

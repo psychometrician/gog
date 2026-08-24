@@ -1,8 +1,9 @@
 /* gog.css — the book's hand-written stylesheet, and it began for one reason.
  *
- * The blog loads it too, staged in by that project's pre-render, so a plot and
- * its refusals look the same in both places. Anything written here reaches both
- * sites; anything true of only one belongs in `blog.css`.
+ * The site this book is linked from loads it too, staged in by that project's
+ * pre-render, so a plot and its refusals look the same in both places. Anything
+ * written here reaches both; anything true of only one belongs in that site's
+ * own stylesheet.
  *
  * Two things live here now. The first is below: how a `gog:` diagnostic is set,
  * which is what the file was written for. The second is at the end: what color a
@@ -380,9 +381,8 @@ body.quarto-dark div.sourceCode code span.co {
 /* ---------------------------------------------------------------------------
  * The footer
  *
- * One footer, two sites, and it lives here for the reason the palette does: the
- * book and the blog are one project, and a second copy of a design is how they
- * would drift into looking like two.
+ * One footer, two sites, and it lives here because they are one project and a
+ * second copy of a design is how they would drift into looking like two.
  *
  * Licences on the left, because they are the small print. The row of links on
  * the right, because that is what a reader who has reached the end is looking
@@ -395,14 +395,14 @@ body.quarto-dark div.sourceCode code span.co {
  * defect: with nothing holding it, the footer's contents ran to the edges of
  * however wide the monitor was, licences at one horizon and icons at the
  * other. A footer is not allowed to expand with the glass. So the contents
- * are held to the same measure the blog holds its own to, centered; the band
+ * are held to the same measure the site holds its own to, centered; the band
  * behind them still spans the window.
  * ------------------------------------------------------------------------- */
 
 /* `footer.footer .nav-footer` rather than `.nav-footer`: the framework sets
  * the side padding with `footer.footer .nav-footer, #quarto-header>nav`,
- * which is (0,2,1) and beats a bare class. The blog pairs its navbar with the
- * same numbers in `blog.css`; the navbar is that site's alone, so only the
+ * which is (0,2,1) and beats a bare class. The site pairs its navbar with the
+ * same numbers on its own side; the navbar is that site's alone, so only the
  * footer half lives here. */
 footer.footer .nav-footer {
   max-width: 1135px;
@@ -519,10 +519,9 @@ body.quarto-dark .nav-footer .nav-item .nav-link:focus-visible {
  * so the glyph is a `::before` on the link and the switch it draws is left
  * alone.
  *
- * Here rather than in `blog.css` for the reason the footer and the palette are:
- * the book and the site are one project. What stays on the site's side is the
- * *color* of this control against a peach bar, which the book has no equivalent
- * of.
+ * Here rather than on the site's side for the reason the footer is: the book
+ * and the site are one project. What stays over there is the *color* of this
+ * control against that site's bar, which the book has no equivalent of.
  * ------------------------------------------------------------------------- */
 
 /* A sun in light mode and a moon in dark, before the toggle rather than instead

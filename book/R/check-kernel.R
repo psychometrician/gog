@@ -41,11 +41,11 @@
 local({
   fail <- function(...) stop("gog: ", ..., call. = FALSE)
 
-  # Run by both projects, as a pre-render, with the project directory as the
-  # working directory. `book/` and `blog/` sit at the same depth, so the package
-  # sources are `../` from either; the chapter is here in one and one directory
-  # over in the other, and the highlighter is local to both because the blog
-  # stages a copy of it beside the stylesheet.
+  # A pre-render, with the project directory as the working directory. The
+  # site this book is linked from runs it too, over this same checkout and from
+  # this same directory, because it stages the highlighter out of here and
+  # checking it before copying it costs nothing. The fallbacks below are what
+  # let a caller standing one directory over find the chapter and the filter.
   painter <- "gog-syntax.html"
   grammar <- Filter(file.exists,
                     c("grammar.qmd", file.path("..", "book", "grammar.qmd")))[1]

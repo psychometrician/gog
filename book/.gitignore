@@ -25,7 +25,8 @@
 # The one hand-written HTML here, un-ignored by name as the rule above asks. It
 # is `include-after-body`, and it colors a gog specification by kind: a table, a
 # mark, a channel, a transform, and one quiet ink for the six that refine. The
-# blog stages a copy, the direction `gog.css` and the palette already travel.
+# site this book is linked from stages a copy of it, the direction `gog.css`
+# travels as well.
 #
 # It fails quietly if it is missing. The book still builds, exits 0, and simply
 # prints every specification in one ink, which looks like a decision rather than
