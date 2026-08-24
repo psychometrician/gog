@@ -3290,7 +3290,7 @@ cat("PASS: a `zone` carries `style(border_color =, border_size =)`
 ")
 
 # --- the masked base-R names refuse with direction (§12, §18) ----------------
-# Eighteen exports collide with the attached base packages, and ten of them are
+# Twenty exports collide with the attached base packages, and nine of them are
 # harmless: R skips a non-function binding when it resolves a call, so a mark or
 # transform *constant* cannot break `mean(x)`. Assert that, because the book now
 # tells readers so and the claim has to be able to fail here first.
@@ -3299,9 +3299,9 @@ if (!identical(mean(1:10), 5.5)) stop("FAIL: base::mean must still answer mean(1
 if (!identical(sum(1:10), 55L)) stop("FAIL: base::sum must still answer sum(1:10)")
 if (!identical(unname(sapply(data.frame(a = c(2, 4)), mean)), 3))
   stop("FAIL: sapply(df, mean) must still reach base::mean via match.fun")
-cat("PASS: the ten masked *objects* leave base R's calls working\n")
+cat("PASS: the nine masked *objects* leave base R's calls working\n")
 
-# The eight that are functions do take over, and the two measured to hurt are
+# The eleven that are functions do take over, and the two measured to hurt are
 # `order` (dies at `invalid subscript type 'list'` in `[.data.frame`, naming
 # neither `order` nor gog) and `data` (returns a spec, silently). Each refusal
 # below has to name the base function, since not knowing which one answered is
@@ -3323,6 +3323,7 @@ masked("jitter(<column>)",  jitter(c(1.5, 2.5)),       "base::jitter()")
 masked("stack(<table>)",    stack(data.frame(a = 1)),  "utils::stack()")
 masked("palette()",         palette(),                 "grDevices::palette()")
 masked("title()",           title(),                   "graphics::title(main = )")
+masked("layout(<matrix>)",  layout(matrix(1:4, 2)),    "graphics::layout()")
 
 # And the two spellings that must keep working, because a guard that refuses a
 # legal sentence is worse than the collision it was written for. `order()` takes

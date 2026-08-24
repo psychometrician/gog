@@ -6,15 +6,15 @@
 # ---------------------------------------------------------------------------
 # Masked base-R names — one helper, used by every atom that can prove the mistake
 # ---------------------------------------------------------------------------
-# Nineteen of this package's exports are also names in the attached base
+# Twenty of this package's exports are also names in the attached base
 # packages, and they divide in two. Nine are *objects* (`mean`, `sum`, `line`,
 # `text` and the rest of the mark and transform constants), and R skips a
 # non-function binding when it resolves a call, so `mean(x)` still reaches
-# `base::mean` and those nine cannot break anything. Ten are *functions* and do
-# take over: `box`, `data`, `density`, `jitter`, `order`, `palette`,
-# `quantile`, `range`, `stack`, `title`.
+# `base::mean` and those nine cannot break anything. Eleven are *functions* and
+# do take over: `box`, `data`, `density`, `jitter`, `layout`, `order`,
+# `palette`, `quantile`, `range`, `stack`, `title`.
 #
-# For those eight the collision costs one thing only — not knowing which
+# For those eleven the collision costs one thing only — not knowing which
 # function answered. So where the argument shape proves the caller meant the
 # base one, the refusal names it. A whole column, or a table, arriving where an
 # atom wants a single setting is that proof.
@@ -865,7 +865,14 @@ flow <- function(...) {
 layout <- function(from, to) {
   ends <- vapply(as.list(substitute(list(from, to)))[-1L], deparse, character(1))
   if (length(ends) != 2L || missing(from) || missing(to)) {
-    stop("gog: `layout()` takes the two endpoint columns, in order — ",
+    if (!missing(from) && missing(to) &&
+        is.matrix(tryCatch(from, error = function(e) NULL))) {
+      stop("gog: `layout()` takes the two endpoint columns of an edge table, ",
+           "as `layout(from, to)`. A matrix arrived instead, so the call you ",
+           "want is probably `graphics::layout()`, the function this atom's ",
+           "name masks.", call. = FALSE)
+    }
+    stop("gog: `layout()` takes the two endpoint columns, in order \u2014 ",
          "`layout(from, to)`. One row of the table is one edge, and those ",
          "columns name the two nodes it connects.", call. = FALSE)
   }

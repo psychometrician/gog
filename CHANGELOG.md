@@ -8,6 +8,12 @@ CRAN-style repositories and PyPI, `GrammarOfGraphics` on Julia's General, and
 
 ### Fixed
 
+- **R: `layout()` handed a matrix now names `graphics::layout()`.** gog's
+  `layout` masks the base function that arranges plot panels, and a masked
+  name's refusal must say which function answered. A matrix is that proof: it
+  is `graphics::layout()`'s first argument and can never be an edge column, so
+  the refusal now points there, the way `density()`, `jitter()` and the other
+  masked names already do.
 - **A treemap's label report now names what it drew, so its numbers close.** A
   packing says how many names it could not fit, and a reader subtracts to learn
   how many are on the plot. The subtraction was wrong wherever a share was too
