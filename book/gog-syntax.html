@@ -21,8 +21,8 @@
 //
 // The way out is to stop asking the host language. gog's vocabulary is a closed
 // list of sixty-five ordinary words in eleven kinds, declared in the book's
-// kernel table, so it can be painted as what it is: a table, a mark, a channel,
-// a transform. That reading is the same in all four languages, which is the
+// kernel table, so it can be painted as what it is: a source, a mark, a
+// channel, a transform. That reading is the same in all four languages, which is the
 // point of the tabs.
 //
 // This runs in the browser rather than at render time, and that is deliberate.
@@ -41,13 +41,13 @@
   // against the book on every render by `R/check-kernel.R`, which stops the
   // render rather than letting the two drift.
   var KERNEL = {
-    table:     "data query",
+    source:    "data query",
     mark:      "point line area bar step interval box ribbon text path rule zone surface edge",
     channel:   "x y z color size shape pattern opacity group label play",
     transform: "bin smooth count density proportion sum mean median max min " +
                "quantile range confidence deviation bounds partition flow layout cluster dodge stack jitter repel",
     scale:     "linear log time category order",
-    space:     "flat space polar nest globe map network",
+    space:     "flat space polar nest map globe network",
     setting:   "style theme palette",
     label:     "title x_label y_label z_label",
     facet:     "facet",
@@ -83,8 +83,12 @@
   // channel's ink at first, which read well and said something false: `facet()`
   // and `style()` are not channels, and a rule written down is a rule that has
   // to survive being read.
+  //
+  // The source kind paints with the ink named "table". An ink's name is a CSS
+  // class on every rendered page and a color command in the PDF preamble, so
+  // it does not follow when a kind's label changes.
   var INK = {
-    table: "table", mark: "mark", channel: "channel", transform: "transform",
+    source: "table", mark: "mark", channel: "channel", transform: "transform",
     scale: "refine", space: "refine", setting: "refine",
     label: "refine", facet: "refine", selection: "refine",
     operator: "operator"

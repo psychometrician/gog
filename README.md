@@ -155,13 +155,13 @@ types — there is no `histogram()` to look up.
 
 | | |
 |---|---|
-| **Tables** | `data` `query` |
-| **Marks** | `point` `line` `area` `bar` `step` `interval` `box` `ribbon` `text` `path` `rule` `zone` `surface` |
+| **Sources** | `data` `query` |
+| **Marks** | `point` `line` `area` `bar` `step` `interval` `box` `ribbon` `text` `path` `rule` `zone` `surface` `edge` |
 | **Channels** | `x` `y` `z` `color` `size` `shape` `pattern` `opacity` `group` `label` `play` |
 | **Selections** | `brush` |
-| **Transforms** | `bin` `smooth` `count` `density` `proportion` `sum` `mean` `median` `max` `min` `quantile` `range` `confidence` `deviation` `bounds` `partition`, plus `dodge` `stack` `jitter` `repel` |
+| **Transforms** | `bin` `smooth` `count` `density` `proportion` `sum` `mean` `median` `max` `min` `quantile` `range` `confidence` `deviation` `bounds` `partition` `flow` `layout` `cluster`, plus `dodge` `stack` `jitter` `repel` |
 | **Scales** | `linear` `log` `time` `category` `order` |
-| **Spaces** | `flat` `space` `polar` `nest` `map` |
+| **Spaces** | `flat` `space` `polar` `nest` `map` `globe` `network` |
 | **Labels** | `title` `x_label` `y_label` `z_label` |
 | **Settings** | `style` `theme` `palette` |
 | **Composition** | `facet`, and the operators: layering `+`, derivation `*`, arranging `\|` and `/` |

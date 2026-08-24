@@ -131,11 +131,31 @@ check_promises <- function(book = "book") {
   # several sentences later. 120 characters is about two short sentences, which
   # leaves room for the cookbook's shape ("You have one column. What can it tell
   # you?") without letting a question four sentences down count as an opening.
+  #
+  # The rule's other half is "never with a feature name": nothing from the
+  # kernel may be named before the question is asked. A table name in backticks
+  # is welcome in an opening ("Where do `gapminder_2007` … come from?"), so the
+  # test matches the kernel's atoms alone, read from the block that declares
+  # them rather than kept as a second copy here.
+  g <- read_chapter("grammar.qmd")
+  kstart <- grep("^## The kernel", g)[1]
+  kblock <- g[kstart:length(g)]
+  kblock <- kblock[seq_len(which(!grepl("^\\|", kblock) & nzchar(trimws(kblock)) &
+                                 seq_along(kblock) > 2)[1])]
+  kblock <- kblock[grepl("^\\|", kblock)]
+  atoms <- gsub("`", "", unlist(regmatches(kblock, gregexpr("`[^`]+`", kblock))))
+  atoms <- unique(atoms[grepl("^[a-z][a-z_0-9]*$", atoms)])
+  atom_re <- paste0("`(", paste(atoms, collapse = "|"), ")`")
   for (f in teaching) {
     p <- first_prose(read_chapter(f))
     if (!grepl("\\?", substr(p, 1, 120)))
       problems <- c(problems, sprintf(
         "%s does not open with a question: %s", f, substr(p, 1, 64)))
+    before_q <- if (grepl("\\?", p)) substr(p, 1, regexpr("\\?", p) - 1) else p
+    if (grepl(atom_re, before_q))
+      problems <- c(problems, sprintf(
+        "%s names a feature before its opening question: %s",
+        f, substr(before_q, 1, 64)))
   }
 
   # --- Rule 4: read it aloud ----------------------------------------------
@@ -183,6 +203,7 @@ check_promises <- function(book = "book") {
     "medals",                                                    # medals
     "actuals", "forecast",                                       # forecast
     "winds", "day_cycle",                                        # winds
+    "six_weeks",                                                 # the calendar
     "titanic",                                                   # the flows
     "trade_partners")                                            # the relations
   used <- character()
@@ -191,10 +212,13 @@ check_promises <- function(book = "book") {
                     gregexpr("data\\(\\s*[A-Za-z_][A-Za-z0-9_.]*", read_chapter(f)))
     used <- c(used, sub("data\\(\\s*", "", unlist(m)))
   }
+  # The preface claims more than two in three. The floor sits above the claim
+  # on purpose: it trips while the sentence is still true, so the re-decision
+  # happens before the book is wrong rather than after.
   share <- mean(used %in% families)
   if (share < 0.70)
     problems <- c(problems, sprintf(
-      "the seven table families carry %.0f%% of plots; the preface claims three in four",
+      "the eight table families carry %.0f%% of plots; the preface claims more than two in three",
       share * 100))
 
   # Rule 5, errors on stage, is check_refusals.R's job and is not repeated here.
@@ -208,7 +232,7 @@ check_promises <- function(book = "book") {
                  length(problems)))
   }
   message(sprintf(
-    "check_promises: OK (%d teaching chapters open with a question and gloss their first specification; seven families carry %.0f%% of plots)",
+    "check_promises: OK (%d teaching chapters open with a question and gloss their first specification; eight families carry %.0f%% of plots)",
     length(teaching), share * 100))
   invisible(TRUE)
 }

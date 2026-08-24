@@ -17,8 +17,8 @@ end   <- which(!grepl("^\\|", rest) & nzchar(trimws(rest)) & seq_along(rest) > 2
 cat(rest[seq_len(end)][grepl("^\\|", rest[seq_len(end)])], sep = "\n")
 ```
 
-**The minimum sentence** is a table, a mark, and the mark's required
-positions:
+**The minimum sentence** is a source, a mark, and the mark's required
+position channels:
 
 ```r
 data(table) + mark + x(column) + y(column)

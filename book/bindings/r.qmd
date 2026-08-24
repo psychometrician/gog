@@ -128,21 +128,21 @@ This section is about R specifically. Julia's `|>` is a function-application
 operator with different behavior, and Python and JavaScript have no pipe of
 their own, so the question does not arise in the other three chapters.
 
-## Nineteen names base R already uses
+## Twenty names base R already uses
 
 `library(gog)` prints a long list of masked names, and the list is alarming out
-of proportion to the problem. Nineteen of the package's exports are also names in
+of proportion to the problem. Twenty of the package's exports are also names in
 the packages R attaches for you:
 
 | from | names |
 |---|---|
 | `stats` | `density` `line` `median` `quantile` `smooth` `step` |
-| `graphics` | `box` `text` `title` |
+| `graphics` | `box` `layout` `text` `title` |
 | `grDevices` | `palette` |
 | `utils` | `data` `stack` |
 | `base` | `jitter` `max` `mean` `min` `order` `range` `sum` |
 
-Nine of the nineteen cannot affect you, and the reason is a rule in R itself.
+Nine of the twenty cannot affect you, and the reason is a rule in R itself.
 A mark is an *object* rather than a function, and so is a transform that takes no
 parameter. When R evaluates a call, it looks for a function of that name and
 skips any binding that is not one. So base R still answers, even with gog's
@@ -160,9 +160,9 @@ they resolve the name the same way:
 sapply(gapminder_2007["life"], mean)
 ```
 
-The other ten are functions, and a call does reach gog's: `box`, `data`,
-`density`, `jitter`, `order`, `palette`, `quantile`, `range`, `stack` and
-`title`. Qualify the one you want, and both remain available:
+The other eleven are functions, and a call does reach gog's: `box`, `data`,
+`density`, `jitter`, `layout`, `order`, `palette`, `quantile`, `range`,
+`stack` and `title`. Qualify the one you want, and both remain available:
 
 | you write | you get | for base R's, write |
 |---|---|---|
@@ -207,11 +207,11 @@ head(ranked[c("country", "population")], 3)
 
 This book does that in three chapters, for exactly this reason.
 
-Three of the ten refuse nothing, because nothing separates the two intentions.
+Three of the eleven refuse nothing, because nothing separates the two intentions.
 `data(mtcars)` is well formed in both readings. It returns a plot's table and no
 complaint, so write `utils::data()` when you mean to load a dataset.
 `title("...")` is the same case: a string is what both want. So is `box()`,
-which takes no argument in either language. The other seven all report the
+which takes no argument in either language. The other eight all report the
 mistake, because in each of them the argument you passed is one gog would
 refuse.
 

@@ -124,8 +124,8 @@ data(iris_flowers) + bar * bin + x(petal_length) + color(species)
 species."* The two peaks from plot three now sit in separate histograms, one
 per species. All three use the same bin edges, and each is drawn where its own
 values fall. Each fill is translucent under a solid outline, so every
-histogram stays visible. The channel that split the lines in plot seven splits
-the rows here: same word, same rule.
+histogram stays visible. `color` does the splitting here, the way
+it split the lines in plot seven: same word, same rule.
 
 ## One panel per continent
 
@@ -149,7 +149,9 @@ data(iris_flowers) + point +
 *"Given iris flowers: points, x is sepal length, y is sepal width, z is petal
 length, color by species."* The third dimension is not a different package, and not a
 different mark. It is one more position channel, and the sentence grew by one
-word.
+word. In the web edition the cube turns with a drag: drag right and the side
+facing you moves right, drag down and it tips. Each angle shows what another
+hides, so try a few.
 
 ## What you just did
 

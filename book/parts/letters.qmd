@@ -13,16 +13,20 @@ decodes it. `group` sits outside both classes: it splits a mark without
 encoding anything, so it earns no legend, and it works like the space
 between words. `label` and `play` stand outside the syllable too: one
 supplies a `text` mark's words, and the other cuts the plot into frames
-and plays them in order.
-Around the letters sit three pieces that complete a layer. The table you
-bind once opens this part, because nothing can be drawn until a table is
-named. The transforms that derive new statements from a mark close it,
-together with the line between *mapping* a column and *setting* a
-constant.
+and plays them in order. `play` acts on the whole plot, the way faceting
+does, so its chapter waits in the next part.
+Around the letters sit the chapters that complete a layer.
+[Data](../data.qmd), the table you bind once, opens this part, because
+nothing can be drawn until a table is named. [The book's
+data](../book-data.qmd) follows, saying where this book's own tables come
+from and how to read one in your language. [Setting vs mapping](../style.qmd) draws the line between a column you
+*map* and a constant you *set*, and [Transforms](../transforms.qmd), which
+derives new values from your columns, closes the part.
 
-The mark chapters follow one template: what it draws, what it requires,
-what refines it, what derives from it, what you can set on it, and what it
-refuses. The last two are always the last two, under those names. That
+Each mark has a chapter of its own, fourteen in a row from
+[point](../marks/point.qmd) to [edge](../marks/edge.qmd), and every one
+follows the same template: what it draws, what it requires, what refines
+it, what derives from it, what you can set on it, and what it refuses. The last two are always the last two, under those names. That
 sameness is deliberate: it is the No Exceptions law applied to a book's
 structure, and it means learning the second mark is faster than the first,
-and by the fifth you already know the shape.
+and by the fifth mark you already know the shape.

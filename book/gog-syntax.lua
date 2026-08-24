@@ -1,8 +1,8 @@
 -- Coloring a gog specification in the PDF, which is the browser pass done again
 -- in the one place a browser cannot reach.
 --
--- `gog-syntax.html` colors a specification by kind in HTML: a table, a mark, a
--- channel, a transform, and one quiet ink for the six that refine. The reason it
+-- `gog-syntax.html` colors a specification by kind in HTML: a source, a mark,
+-- a channel, a transform, and one quiet ink for the six that refine. The reason it
 -- is needed at all is written there, and it is the same here. Pandoc's four
 -- highlighters disagree about the same specification, and every one of them
 -- reads `point` as a bare name, so no color scheme can reach it.
@@ -41,8 +41,11 @@ end
 -- refine or arrange share one, because none of them is required. The operator
 -- is the fifth builder and takes weight rather than a color, since in three of
 -- the four languages it is punctuation and already reads as itself.
+-- The source kind paints with the ink named "Table": an ink's name is a color
+-- command in the PDF preamble, so it does not follow when a kind's label
+-- changes.
 local INK = {
-  table = "Table", mark = "Mark", channel = "Channel", transform = "Transform",
+  source = "Table", mark = "Mark", channel = "Channel", transform = "Transform",
   scale = "Refine", space = "Refine", setting = "Refine",
   label = "Refine", facet = "Refine", selection = "Refine",
   operator = "Operator",

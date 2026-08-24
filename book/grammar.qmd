@@ -9,17 +9,23 @@ What do you have to say about your data before a plot can be drawn? gog's whole
 vocabulary is a short list of ordinary English words. Learn them once and you
 can read, and write, any plot.
 
+This chapter is a small dictionary, and a dictionary is not read the way a
+story is. Nobody memorizes one before writing, and these lists ask for no
+memorizing either. Draw your own data with the few words your question needs,
+and the plot shows you what each one does. Each plot you write builds the
+skill, and the skill brings more of these words into use.
+
 ## The kernel
 
 | Kind | The words |
 |---|---|
-| **Tables** | `data` `query` |
+| **Sources** | `data` `query` |
 | **Marks** | `point` `line` `area` `bar` `step` `interval` `box` `ribbon` `text` `path` `rule` `zone` `surface` `edge` |
 | **Channels** | `x` `y` `z` `color` `size` `shape` `pattern` `opacity` `group` `label` `play` |
 | **Transforms** | `bin` `smooth` `count` `density` `proportion` `sum` `mean` `median` `max` `min` `quantile` `range` `confidence` `deviation` `bounds` `partition` `flow` `layout` `cluster`, and the four collision modifiers, `dodge` `stack` `jitter` `repel` |
 | **Operators** | `+` layers, `*` derives, `|` and `/` arrange |
 | **Scales** | `linear` `log` `time` `category` `order` |
-| **Spaces** | `flat` `space` `polar` `nest` `globe` `map` `network` |
+| **Spaces** | `flat` `space` `polar` `nest` `map` `globe` `network` |
 | **Settings** | `style` `theme` `palette` |
 | **Labels** | `title` `x_label` `y_label` `z_label` |
 | **Facets** | `facet` |
@@ -32,8 +38,8 @@ something in R, Python or Julia before gog is loaded, and
 what happens then.
 
 Read the kernel as two groups: what a plot needs, and what refines or arranges
-it. Five kinds build a plot. A **table** supplies the rows and the columns. A
-**mark** is the shape drawn for each row. A **channel** maps a column to
+it. Five kinds build a plot. A **source** names the table that supplies the
+rows and the columns. A **mark** is the shape drawn for each row. A **channel** maps a column to
 something you can see, such as a position or a color. A **transform** derives new
 values from the columns you named. An **operator** joins the words into one
 sentence.
@@ -45,8 +51,8 @@ the plot looks without saying anything about the data, and a **label** names it.
 A **facet** cuts one plot into panels. A **selection** picks rows out of a plot
 that is already drawn.
 
-So **the minimum sentence** is a table, a mark, and the positions that mark
-needs:
+So **the minimum sentence** is a source, a mark, and the position channels
+that mark needs:
 
 ```
 data(table) + mark + x(column) + y(column)
@@ -60,10 +66,11 @@ names the rule. See
 grammar forbids it) and **unsupported** (the grammar allows it; the engine
 cannot draw it yet).
 
-## The colors
+## The colors of the code
 
-Every specification in this book is colored by kind. The colors show the two
-groups above; they are not decoration.
+In every specification in this book, each word of the kernel is printed in
+the color of its kind. These colors belong to the code, never to a plot. They
+are not decoration: they show the two groups above.
 
 Four of the five kinds that build a plot are words, and each takes a color of its
 own. The fifth is the operator, which is punctuation in most of these languages,
@@ -87,21 +94,25 @@ Inside `style`, the word `color` stays the color of the text. It names a propert
 here rather than a column, so it is not the `color` channel: a word you write as
 an argument name is never one of gog's words.
 
-One color says the same thing in every language. A highlighter cannot do this.
-Each language sorts these words by its own rules, and the four disagree: R
-calls `data` a function, Python marks it as nothing at all, and none of the
-four can see that `point` is a mark. The four spellings of one specification
-would be printed four different ways.
+An ordinary syntax highlighter could not have drawn these colors. It colors
+code by the host language's own categories, and the four languages disagree
+about gog's words. R sees `data` as a function, Python sees a plain name, and
+none of the four has a category for a mark. So the four spellings of one
+specification would be colored four different ways. Coloring by kind instead
+gives a word the same color in all four languages. Your own editor highlights
+the ordinary way, so do not expect these colors there: on your screen a gog
+sentence looks like ordinary code.
 
 Each kind has a section below, in the order of the kernel above: the five that
 build a plot first, then the six that refine or arrange one. Each section gives
 the words and what they do, and names the chapter that teaches them in full.
 
-## Tables: where the rows come from
+## Sources: where the rows come from
 
-Every sentence begins with a table, and there are two ways to name one.
+Every sentence begins with a table, and a source is the word that names one.
+There are two.
 
-| Table | Where the rows come from |
+| Source | Where the rows come from |
 |---|---|
 | `data` | A table already in memory |
 | `query` | A table a database returns, named by SQL |
@@ -119,11 +130,15 @@ because a database returns a table, and every sentence begins with a table. See
 
 ## Marks: the shape drawn for each row
 
-A mark is the geometric form drawn for each row of data.
+A mark is the geometric form drawn for each row of data. There are fourteen,
+and you do not need to learn them all now. A few of them draw most of the
+plots in this book. Each mark has a chapter of its own in
+[Part II](parts/letters.qmd), where its plots show what a one-line
+description cannot.
 
 | Mark | What it draws |
 |------|--------------|
-| `point` | One glyph per row |
+| `point` | One glyph (a small drawn symbol, a dot by default) per row |
 | `line` | Rows connected in *x order*: one value per x, read left to right |
 | `bar` | Rectangle from baseline to value, vertical or horizontal |
 | `area` | Filled region between a line and the baseline |
@@ -181,8 +196,9 @@ what the plot says, which is exactly why each needs a key to decode it.
 
 `group` and `label` are neither. `group` splits without encoding: on a `line`
 it performs the very same split `color` does, one line per category, and
-then stops. It is what is left of `color` once the decoding is taken away,
-so it works like the space between words rather than like a letter. `label`
+then stops. Take away `color`'s visible differences and its legend, and what
+remains is `group`. So it works like the space between words rather than like
+a letter: it separates, but it shows nothing. `label`
 supplies a `text` mark's content rather than refining it.
 
 `play` is the fourth kind, and it stands outside the syllable the way faceting
@@ -232,13 +248,14 @@ marks that would otherwise land on top of each other:
 | `jitter` | Spreads them sideways along a category |
 | `repel` | Moves labels off one another when they overlap |
 
-And four transforms compute an entire picture. `partition` divides a whole
-among nested parts, which is what a treemap and a mosaic are built from.
-`flow` carries a magnitude through its stages, which is what a flow diagram
-is built from. `layout` places a graph from an edge table, which is what a
-network diagram is built from. `cluster` joins the closest categories of an
-axis one pair at a time, which is what a cluster tree is built from. It also
-puts a tile plot's slots in a useful order.
+And four transforms compute an entire picture:
+
+| Transform | What it computes |
+|---|---|
+| `partition` | Divides a whole among nested parts: the treemap and the mosaic |
+| `flow` | Carries a magnitude through its stages: the flow diagram |
+| `layout` | Places a graph from an edge table: the network diagram |
+| `cluster` | Joins the closest categories of an axis one pair at a time: the cluster tree. It also puts a tile plot's slots in a useful order |
 
 See [Transforms](transforms.qmd) for each one in detail, and
 [Combinations](combinations.qmd) for which marks take which.
@@ -283,14 +300,15 @@ line * smooth  # smoothed trend line
 zone * bin     # heatmap: the same `bin`, cutting both axes
 ```
 
-The last line shows the pattern: one transform means one thing, and the mark
-decides where it applies. A `bar` keeps one axis to measure the count along,
-so `bin` cuts the other one. A `zone` measures nothing by length and needs an
-extent on both axes, so the same word cuts both, and the count becomes the
-color. When one of a zone's positions is categorical, `bin` cuts only the
-other one, because a category is already cut into slots.
+The last line, `zone * bin`, shows the pattern: one transform means one
+thing, and the mark decides where it applies. In a histogram the bar's height carries the count, so the count takes one
+axis and `bin` cuts the other. A `zone` carries its count by color instead,
+so both axes are free, and the same `bin` cuts both. When one of a zone's
+positions is categorical, `bin` cuts only the other one, because a category
+is already cut into slots.
 
-The summaries follow the same rule, read in the other direction. A summary
+The six summaries (`sum`, `mean`, `median`, `max`, `min`, `quantile`) follow
+the same rule, read in the other direction. A summary
 groups the rows by every position the mark does *not* measure with. It then
 reduces the named column on the position the mark does measure with: `y` on a
 bar, `color` on a zone, `z` in [`space()`](space.qmd). So
@@ -374,9 +392,9 @@ plane. That space is `flat`, and you never have to write it.
 | `space` | The cube: `x`, `y` and `z`, projected onto the page |
 | `polar` | The plane bent into a circle: one position becomes an angle, the other a radius |
 | `nest` | Rectangles inside rectangles, each sized by its share of the one holding it |
-| `globe` | The earth itself, viewed: marks stand on the half of the sphere that faces you |
 | `map` | The earth flattened: longitude across, latitude up |
-| `network` | The graph-theoretic space: positions come from `layout`, so it draws no axes at all; state an angle and it is a cube |
+| `globe` | The earth itself, viewed: marks stand on the half of the sphere that faces you |
+| `network` | The space of a graph: positions come from `layout` and their numbers mean nothing, so it draws no axes. State a viewing angle in `network()` and the layout is computed in the cube instead |
 
 One space holds the whole plot. See [Space](space.qmd), [Polar](polar.qmd),
 [Nest](nest.qmd), [Map](map.qmd), [Globe](globe.qmd) and
@@ -432,8 +450,9 @@ has no other way to say what it is about.
 |---|---|
 | `facet` | Splits one plot into panels, one per category of the column it names |
 
-A facet is written on the right of `|` or `/`, which is why it appeared in the
-operator section above: `… | facet(continent)`. See [Faceting](faceting.qmd).
+A facet is written on the right of `|` or `/`, which is why you have already
+seen it drawn in the operator section: `… | facet(continent)`. See
+[Faceting](faceting.qmd).
 
 ## Selections: choosing rows in a drawn plot
 
@@ -441,9 +460,10 @@ operator section above: `… | facet(continent)`. See [Faceting](faceting.qmd).
 |---|---|
 | `brush` | Dims the rows you did not pick, and removes none of them |
 
-A selection is the only kind that acts on a plot after it is drawn. What it does
-not change is the sentence, so the printed page still shows the selection that
-sentence named. See [Selection](selection.qmd).
+A selection is the only kind that acts on a plot after it is drawn. Dragging
+changes what you see, never the sentence. Draw the sentence again and you get
+the selection it names, not the one you dragged. See
+[Selection](selection.qmd).
 
 ## Names the host language already uses
 
@@ -453,13 +473,13 @@ already taken. `mean` names a statistic in every language that has one. `data`,
 That is a consequence of choosing plain names rather than a sign that something
 has gone wrong, and in ordinary code almost nothing changes.
 
-Which name a bare word reaches is the host language's decision, and gog does not
-override it. Each language decides differently, so the answer is different in
-each one:
+When a word is both gog's and the language's own, the language decides which
+one your call reaches. gog does not change that, and each language decides
+differently, so the answer is different in each one:
 
 | Language | What the language does | To reach the other one |
 |---|---|---|
-| R | Nineteen kernel words collide with R names. Nine are objects, and a call skips them; ten are functions, and those mask R's own | `base::order(x)`, `stats::density(x)` |
+| R | Twenty kernel words collide with R names. Nine are objects, and a call skips them; eleven are functions, and those mask R's own | `base::order(x)`, `stats::density(x)` |
 | Python | A star-import rebinds six builtins, because Python has no rule that protects them | `from builtins import sum` |
 | Julia | Two modules exporting one name is an error, never a silent choice | `Base.sum([1, 2, 3])` |
 | JavaScript | Nothing happens, because no name reaches your scope unless you import it | nothing to do |
@@ -473,13 +493,17 @@ is not one. Base R therefore still answers `mean(c(1, 2, 3))`, and
 package loads names every collision and cannot show you this distinction, which
 is why the message looks worse than the problem is.
 
-The words that take an argument are functions, and a function does mask R's
-own. `range(0.25, 0.75)` names a band, so base R's `range()` needs its prefix.
-Seven of the ten report the mistake instead of returning a wrong answer.
-Handed a vector where a probability belongs, `range()` says which function you
-reached and names the other one. Three cannot: `box()`, `data(mtcars)` and
-`title("...")` are well formed under both readings, and a refusal needs a
-mistake the engine can detect.
+The other eleven words take arguments, so they are functions, and a function
+does mask R's own. Once gog loads, `range(0.25, 0.75)` is gog's band; to
+reach base R's, write `base::range()`. Say you forget the masking and write
+`range(heights)` for a vector's smallest and largest. The call reaches gog's
+`range()`, which takes two numbers between 0 and 1, not a vector. For eight
+of the eleven functions, a wrong argument like that proves the mistake: the
+call is refused, and the refusal points you to `base::range()`. Now write
+`data(mtcars)`, meaning to load R's example dataset. That call is also
+correct gog, naming a plot's table, so gog answers it and cannot warn you.
+`box()` and `title("...")` are the same case. A refusal needs a mistake the
+engine can detect, and these three calls hold none.
 
 The collision has no good ending. Prefixing the vocabulary, `gog_mean` and
 `gog_range`, would remove the reason for the vocabulary: a reader who has to
@@ -488,10 +512,11 @@ more. Renaming `order` to `sort_by` would take away a word every reader
 already knows. So the words stay, and the few places that need a qualified
 name write one.
 
-Each binding chapter carries the full list for its language, the rule above in
-code you can run, and the spellings that still fail. R's are five, and every one
-of them gives a word to one function, which passes it to a second, as
-`aggregate(v ~ g, df, mean)` does. See [R](bindings/r.qmd),
+Each binding chapter carries three things for its language: the full list of
+collisions, the rule above as code you can run, and the few spellings the
+rule cannot save. R has five. All five share one shape: a word is handed to
+one function, which passes it to a second, the way
+`aggregate(v ~ g, df, mean)` passes `mean` on. See [R](bindings/r.qmd),
 [Python](bindings/python.qmd), [Julia](bindings/julia.qmd) and
 [JavaScript](bindings/javascript.qmd).
 

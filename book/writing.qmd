@@ -13,14 +13,20 @@ it gave you finished sentences and asked what they say. Recall starts from
 nothing in front of you: you produce the answer yourself. It is the
 harder of the two, and it is what writing a specification asks of you.
 
-This chapter builds three sentences from three questions, the way you will
-actually work: start with the minimum sentence, look, refine. Then it shows
-the other half of writing: what happens when a sentence is wrong, and how
-quickly a refusal teaches the rule.
+This chapter works in the recall direction from here on. Three builds come
+first, showing the method you will actually use: start with the minimum
+sentence, look, refine. Five questions follow with nothing in front of you,
+each answered by a sentence you met in the last chapter: write yours before
+you scroll, then check it against the printed one. Last comes the other half
+of writing: what happens when a sentence is wrong, and how quickly a refusal
+teaches the rule.
 
 ## Which continents live longest?
 
-Start with the minimum sentence, the smallest one that shows the data:
+Before reading on, try to write the sentence that will answer it: which mark,
+which transform, which positions? Then build it the way this chapter always
+will. Start with the
+minimum sentence, the smallest one that shows the data:
 
 ```{r}
 data(gapminder_2007) + point + x(continent) + y(life)
@@ -34,8 +40,10 @@ country. Swap the mark and give it a derivation; everything else stays:
 data(gapminder_2007) + bar * mean + x(continent) + y(life)
 ```
 
-A comparison reads best in order. `order()` sorts a categorical axis by a
-value, something the column's own declared order cannot do:
+A comparison reads best in order. A categorical column can carry a fixed
+order, declared where the data is made. The order wanted here depends on the
+means this plot just computed, so only the sentence can ask for it: `order()`
+sorts the axis by the column you name:
 
 ```{r}
 data(gapminder_2007) + bar * mean + x(continent) + y(life) +
@@ -48,7 +56,8 @@ word you already wrote.
 
 ## How do petal lengths differ by species?
 
-The one-variable question first, then the same question split by species:
+The last chapter drew both of these. Write the two sentences from memory: the
+one-variable question first, then the same question split by species.
 
 ```{r}
 data(iris_flowers) + bar * bin + x(petal_length)
@@ -71,8 +80,8 @@ every mark that can take it.
 
 ## Where is the world's wealth, and its health?
 
-The sentence from the first chapter, with `size` added, written all at once
-this time:
+Chapter one built this sentence step by step. Write it in one pass now,
+adding `size` for population, then check:
 
 ```{r}
 data(gapminder_2007) + point +
@@ -82,8 +91,68 @@ data(gapminder_2007) + point +
 ```
 
 *"Given gapminder 2007: points, x is gdp on a log scale, y is life, color
-by continent, size by population, titled."* Three atoms past the minimum
-sentence, and still no new grammar in it.
+by continent, size by population, titled."* Three atoms added to the minimum
+sentence (`color`, `size` and `title`; the log scale rides inside `x` rather
+than counting as a word), and still no new grammar in it.
+
+## Five questions, nothing in front of you
+
+Each question below matches one plot from the last chapter. Write your
+sentence first; the printed one is there to check against, not to read first.
+
+Which countries won the most gold? Every country name has to stay readable,
+so lay the bars down.
+
+```{r}
+data(medals) + bar + x(gold) + y(country)
+```
+
+*"Given the medals: bars, x is gold, y is country."* One swap of the two
+bindings lies the bars down, and no new word was needed.
+
+How is life expectancy distributed, drawn as a smooth curve rather than
+counted into bins?
+
+```{r}
+data(gapminder_2007) + line * density + x(life)
+```
+
+*"Given gapminder 2007: a line derived by density, x is life."* The
+histogram's sibling: one atom swapped, same question.
+
+How did life expectancy move across the decades in the five Asian countries,
+one line per country?
+
+```{r}
+data(gapminder_asia) + line + x(year) + y(life) + color(country)
+```
+
+*"Given gapminder Asia: lines, x is year, y is life, color by country."*
+`color` splits first and colors second, exactly as it did in the last
+chapter.
+
+Does the wealth and health relationship hold inside each continent, one
+panel per continent?
+
+```{r}
+data(gapminder_2007) + point + x(gdp, scale = "log") + y(life) | facet(continent)
+```
+
+*"Given gapminder 2007: points, x is gdp on a log scale, y is life, split
+into panel columns by continent."* The `|` and its facet, shared scales and
+all.
+
+Do the three iris measurements separate the species when seen together?
+
+```{r}
+data(iris_flowers) + point +
+  x(sepal_length) + y(sepal_width) + z(petal_length) +
+  color(species)
+```
+
+*"Given iris flowers: points, x is sepal length, y is sepal width, z is
+petal length, color by species."* The cube again, and you wrote it yourself
+this time.
 
 ## When the engine says no
 

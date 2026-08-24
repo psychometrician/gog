@@ -31,7 +31,7 @@ point per row. You never call a drawing function, because a plot here is a
 Rendering it is the engine's job, not yours.
 
 None of those four words is yours to define. They arrive with the package, so
-loading gog is what makes `point` and `x` available. A word is written bare
+loading gog is what makes `data`, `point`, `x` and `y` available. A word is written bare
 when it has nothing to take, which is why `point` has no parentheses.
 Parentheses appear when there is something to put in them, like the column in
 `x(gdp)`.
@@ -147,8 +147,8 @@ left to right, and the four words you learned first are unchanged.
 
 ## The shape of every sentence
 
-Every plot in this book, through the 3-D scenes at the end, is this same
-shape:
+Every plot in this book, through the globes, networks and brushed plots at
+the end, is this same shape:
 
 ```
 data(table) + mark + positions + refinements
@@ -158,7 +158,7 @@ A table bound once, so columns are bare names. A mark, the visible form.
 Positions, where the marks stand. Then any number of optional refinements:
 channels like `color()`, and labels like `title()`.
 
-Two words describe this, and the book uses both. A column is **bound** to a
+Two words describe putting a column into a channel, and the book uses both. A column is **bound** to a
 channel, and the binding is where a scale gets written. The same act is called
 **mapping** to emphasize that a channel received a column rather than a fixed
 value.
