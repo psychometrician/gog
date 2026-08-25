@@ -14,6 +14,12 @@ pass "reads more simply now" when the numbers say it does not.
 
     python3 book/readability.py            # every chapter, worst first
     python3 book/readability.py transforms # one chapter, with its long sentences
+    python3 book/readability.py --dir ../blog .   # somewhere else, same measure
+
+`--dir` is what lets the site this book is linked from be measured the same way
+from its own repository. It takes the place of the book's own directory rather
+than adding to it, so a run reports one surface at a time and the two averages
+stay separable.
 
 What it measures, and what it cannot. Words per sentence and the share of long
 sentences are the two things that correlate with difficulty for a reader
@@ -101,12 +107,27 @@ def measure(path):
 
 
 def main():
+    global DIRS, ROOT
+    args = sys.argv[1:]
+    if args and args[0] == "--dir":
+        if len(args) < 2:
+            sys.exit("--dir needs a directory")
+        target = os.path.abspath(args[1])
+        if not os.path.isdir(target):
+            sys.exit(f"not a directory: {args[1]}")
+        DIRS = [target]
+        # Paths are reported against the directory being measured rather than
+        # against this repository, which would print a row of `../` on every
+        # line and sort no better for it.
+        ROOT = target
+        args = args[2:]
+
     rows = [r for r in (measure(p) for p in chapters()) if r]
-    if len(sys.argv) > 1:
-        want = sys.argv[1].lower()
+    if args:
+        want = args[0].lower()
         rows = [r for r in rows if want in r["file"].lower()]
         if not rows:
-            sys.exit(f"no chapter matching {want!r}")
+            sys.exit(f"no file matching {want!r}")
 
     rows.sort(key=lambda r: -r["mean"])
     print(f"{'file':40}{'sent':>6}{'words':>7}{'avg':>7}{'>%dw' % LONG:>7}")
@@ -124,7 +145,7 @@ def main():
     print(f"\nTarget is {TARGET:.0f} words per sentence (spec §20, book law 8). "
           f"{very} sentences of {VERY_LONG}+ words.")
 
-    if len(sys.argv) > 1:
+    if args:
         for r in rows:
             for s in sorted(r["very"], key=lambda s: -len(s.split())):
                 print(f"\n[{len(s.split())}w] {r['file']}\n  {s}")
