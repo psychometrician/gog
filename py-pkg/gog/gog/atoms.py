@@ -456,7 +456,7 @@ def flow(*stages: Column) -> Atom:
     """Lay a magnitude through its stages — the flow diagram.
 
     The stages arrive as **columns**, in reading order: one row of the table is
-    one path through all of them, and `flow(col.klass, col.sex, col.survived)`
+    one path through all of them, and `flow(col["class"], col.sex, col.survived)`
     runs each row from its first stage to its last. Rows sharing a path add
     together, which quietly sets aside any column the atom did not name.
 
@@ -473,8 +473,8 @@ def flow(*stages: Column) -> Atom:
     if len(stages) < 2:
         raise GogError(
             "gog: `flow()` needs at least two stage columns, in reading order — "
-            "`flow(col.klass, col.sex, col.survived)` runs each row from its "
-            "first stage to its last. One column has no between."
+            '`flow(col["class"], col.sex, col.survived)` runs each row from its '
+            '`col["class"]` to its `col.survived`. One column has no between.'
         )
     return Atom(
         "transform",

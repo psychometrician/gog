@@ -290,9 +290,20 @@ install.packages("gog", repos = c("https://psychometrician.r-universe.dev",
 ```
 
 That command works today. `gog` is published on
-[r-universe](https://psychometrician.r-universe.dev/gog), which builds a binary
-for macOS, Windows and Linux, and every one of them has the engine inside it. So
-installing needs no Rust toolchain.
+[r-universe](https://psychometrician.r-universe.dev/gog). On macOS and Windows
+it builds a binary with the engine inside it, so installing needs no Rust
+toolchain.
+
+On Linux the same command installs from source, and the source build compiles the
+engine. That needs Rust and a network connection. If the machine does not have
+Rust, install it first and then run the command above:
+
+```bash
+curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
+source "$HOME/.cargo/env"
+```
+
+The build runs once, while the package installs.
 
 The `repos` argument names two addresses because r-universe is not CRAN. The
 first address is where `gog` lives. The second is an ordinary CRAN mirror, and it
@@ -308,8 +319,8 @@ remotes::install_github("psychometrician/gog", subdir = "r-pkg/gog")
 
 A tarball from GitHub carries the engine's Rust sources, and `configure` compiles
 them during the install. So this route does need a Rust toolchain, and the
-r-universe binaries do not. Take it when you want one particular branch or commit
-rather than the latest build.
+macOS and Windows binaries do not. Take it when you want one particular branch
+or commit rather than the latest build.
 
 You can also work from a checkout. Build the engine once, then load the package
 from where it sits:

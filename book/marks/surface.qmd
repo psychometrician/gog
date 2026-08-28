@@ -387,6 +387,62 @@ data(band) + surface + x(east) + y(north) + z(elevation) + color(side) +
   z_label("Elevation (m)") + title("Two sheets, sorted together")
 ```
 
+## Opacity by a measure, per face
+
+`opacity` maps on a surface, and it maps for the reason `color` does. A face is
+small enough to hold one value, so it can hold an opacity too. Every face takes its
+own transparency, and a face fades where its measure is small:
+
+```{r}
+data(maunga_whau) + surface +
+  x(east) + y(north) + z(elevation) + opacity(elevation) +
+  z_label("Elevation (m)") + title("Faint where the ground is low")
+```
+
+Over the low ground the fill drains away and each face keeps its outline, so that
+part of the sheet reads as bare mesh. A ramp cannot do that; an opacity can. A
+color changes what a face says. An opacity changes whether the face hides what is
+behind it. The legend beside the plot reads the same way `color`'s does, with the
+smallest, middle and largest values of the column.
+
+No face disappears completely. Mapped values run from 0.15 to 0.95, so the faintest
+face here is still drawn, which is the rule every mapped `opacity` follows
+([Channels](../channels.qmd)).
+
+A quad reads its opacity where it reads its color, at its own center, which is the
+mean of its four corners. A plateau and a riser each own one cell, so each reads its
+own row. Either way one face has one reading, whichever channel asks for it.
+
+In that first plot the height is said twice, once as a position and once as a
+transparency. A second column is the more useful case: the shape stays in `z`, and
+another measure decides which faces fade.
+
+```{r}
+relief <- maunga_whau
+h <- matrix(relief$elevation, nrow = length(unique(relief$north)))
+up   <- rbind(h[-1, ], h[nrow(h), ])
+side <- cbind(h[, -1], h[, ncol(h)])
+relief$steepness <- as.vector(sqrt((up - h)^2 + (side - h)^2))
+
+data(relief) + surface + x(east) + y(north) + z(elevation) + opacity(steepness) +
+  z_label("Elevation (m)") + title("Solid where the ground is steep")
+```
+
+`steepness` combines the two elevation changes at each crossing, one toward the
+next east value and one toward the next north value. The steep sides of the hill
+stay solid, and the flat ground around them fades away. The sheet is the same shape
+as the one above it, and a different part of it is solid.
+
+An [`area`](area.qmd) refuses a mapped opacity for the reason it refuses a measured
+color. A region has one interior and one fill, so a row there is a corner of the
+outline rather than a part that can carry a value. A mesh has faces, so it has
+parts. Both channels ask the same question of a mark, so a mark that refuses one
+refuses the other.
+
+One value for the whole sheet is still [`style(opacity = )`](../style.qmd). Set it
+when you want to see one sheet through another, and map it when you want each face
+to fade by its own value.
+
 ## One sheet, four angles
 
 A still 3-D plot hides something at every angle, and which thing it hides is the

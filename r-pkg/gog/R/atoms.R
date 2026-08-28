@@ -832,7 +832,7 @@ partition <- function(..., cross = FALSE) {
 flow <- function(...) {
   stages <- vapply(as.list(substitute(list(...)))[-1L], deparse, character(1))
   if (length(stages) < 2L) {
-    stop("gog: `flow()` needs at least two stage columns, in reading order — ",
+    stop("gog: `flow()` needs at least two stage columns, in reading order \u2014 ",
          "`flow(class, sex, survived)` runs each row from its `class` to its ",
          "`survived`. One column has no between.", call. = FALSE)
   }

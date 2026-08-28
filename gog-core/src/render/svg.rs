@@ -12739,6 +12739,117 @@ mod tests {
         }
     }
 
+    /// The `fill-opacity` of every face of a sheet, in the order they were painted.
+    fn surface_fades(svg: &str) -> Vec<String> {
+        svg.lines()
+            .filter(|l| l.contains("<path d=\"M") && l.contains("fill-opacity"))
+            .map(|l| l.split(r#"fill-opacity=""#).nth(1).unwrap()
+                      .split('"').next().unwrap().to_string())
+            .collect()
+    }
+
+    #[test]
+    fn a_mesh_face_reads_a_mapped_opacity_at_the_same_center_its_color_reads() {
+        // **The Law-2 half of the channel, and the reason it is worth a test of its
+        // own.** A face has four corners and one value, and *which* value is a question
+        // every measured channel asks — so if `color` answers it at the face's center
+        // and `opacity` answers it at a corner, one mark has grown two readings of one
+        // geometry, which is the per-mark exception Law 2 forbids. The two run over the
+        // same probe below and are asserted to agree face for face.
+        //
+        // Coarse on purpose, for the color test's reason one channel over: a face named
+        // by its low corner is wrong by half a cell everywhere, and on a fine lattice
+        // neighbors barely differ, so nothing shows.
+        let xs9: Vec<f64> = (0..9).map(|i| [-2.0, 0.0, 2.0][i / 3]).collect();
+        let ys9: Vec<f64> = (0..9).map(|i| [-2.0, 0.0, 2.0][i % 3]).collect();
+        let vs: Vec<f64> = (0..9)
+            .map(|i| { let (a, b) = (xs9[i], ys9[i]); 0.019 + 0.0025 * (a * a + b * b) })
+            .collect();
+
+        // A symmetric bowl: four congruent faces, one mean height, so one fade. Reading
+        // a corner instead paints a difference the data does not have.
+        let frame = DataFrame::new()
+            .with_float("x", xs9.clone()).with_float("y", ys9.clone())
+            .with_float("v", vs.clone());
+        let data = HashMap::from([("t".to_string(), frame)]);
+        let spec = PlotSpec::new().data("t").x("x").y("y").z("v").layer(
+            Layer::new(Mark::Surface).encode(Channel::Opacity, "v"),
+        );
+        let fades = surface_fades(&SvgRenderer::default().render(&spec, &data));
+        assert_eq!(fades.len(), 4, "a 3x3 lattice is 2x2 faces");
+        let distinct: std::collections::HashSet<&String> = fades.iter().collect();
+        assert_eq!(distinct.len(), 1,
+            "four congruent faces of a symmetric bowl must share one opacity, got {fades:?}");
+
+        // **Every node reaches exactly the faces it belongs to, and the two channels
+        // agree about which.** Lighting one node at a time is exact rather than
+        // suggestive: with a single node at 1 and the rest at 0 a face's mean is 0.25
+        // if it touches that node and 0 otherwise, so the sizes of the groups count the
+        // faces the node reached — 1 to each corner, 2 to each edge midpoint, 4 to the
+        // center. Comparing the *partition* rather than picking the lit value keeps the
+        // claim free of any assumption about which string is the bright one.
+        let partition = |v: &[String]| -> Vec<usize> {
+            let mut c: std::collections::HashMap<&str, usize> = Default::default();
+            for x in v { *c.entry(x.as_str()).or_default() += 1; }
+            let mut sizes: Vec<usize> = c.into_values().collect();
+            sizes.sort_unstable();
+            sizes
+        };
+        for k in 0..9 {
+            let mut w = vec![0.0; 9];
+            w[k] = 1.0;
+            let frame = DataFrame::new()
+                .with_float("x", xs9.clone()).with_float("y", ys9.clone())
+                .with_float("v", vs.clone()).with_float("w", w);
+            let d = HashMap::from([("t".to_string(), frame)]);
+            let faded = PlotSpec::new().data("t").x("x").y("y").z("v").layer(
+                Layer::new(Mark::Surface).encode(Channel::Opacity, "w"),
+            );
+            let ramped = PlotSpec::new().data("t").x("x").y("y").z("v").layer(
+                Layer::new(Mark::Surface).encode(Channel::Color, "w"),
+            );
+            let by_fade = partition(&surface_fades(&SvgRenderer::default().render(&faded, &d)));
+            let by_color = partition(
+                &surface_faces(&SvgRenderer::default().render(&ramped, &d))
+                    .into_iter().map(|(f, _)| f).collect::<Vec<_>>());
+            let expect = [1, 2, 1][k / 3] * [1, 2, 1][k % 3];
+            let mut want = if expect == 4 { vec![4] } else { vec![expect, 4 - expect] };
+            want.sort_unstable();
+            assert_eq!(by_fade, want, "node {k} belongs to {expect} of the 4 faces");
+            assert_eq!(by_fade, by_color,
+                "one face, one reading: the fade and the ramp disagree at node {k}");
+        }
+    }
+
+    #[test]
+    fn a_lid_fades_by_its_own_cell_where_a_quad_fades_by_the_four_it_spans() {
+        // The other half of `face_value`: a cut floor never had the mesh's question.
+        // A lid *is* one cell and owns its number outright, so averaging anything into
+        // it would paint a value the cell does not have — the same reasoning that keeps
+        // a riser on the plateau it descends from. Nine cells, nine distinct heights,
+        // so nine distinct fades; a mesh over the same nine nodes has four.
+        let (mut xs, mut ys, mut vs) = (vec![], vec![], vec![]);
+        for i in 0..3 {
+            for j in 0..3 {
+                xs.push(i as f64);
+                ys.push(j as f64);
+                vs.push((1 + i * 3 + j) as f64);
+            }
+        }
+        let frame = DataFrame::new()
+            .with_float("x", xs).with_float("y", ys).with_float("v", vs);
+        let data = HashMap::from([("t".to_string(), frame)]);
+        let cut = PlotSpec::new().data("t").x("x").y("y").z("v").layer(
+            Layer::new(Mark::Surface)
+                .transform(Transform::Bin).transform(Transform::Mean).bins(3)
+                .encode(Channel::Opacity, "v"),
+        );
+        let fades = surface_fades(&SvgRenderer::default().render(&cut, &data));
+        let lids: std::collections::HashSet<&String> = fades.iter().collect();
+        assert!(lids.len() >= 9,
+            "nine cells hold nine different numbers, so nine different fades, got {:?}", lids.len());
+    }
+
     #[test]
     fn a_sheet_ramped_by_its_own_estimate_gets_a_key_that_decodes_it() {
         // The half of this that no legality check could see. Past the refusal the sheet

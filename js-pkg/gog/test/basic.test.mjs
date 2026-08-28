@@ -1012,6 +1012,15 @@ test("a surface draws one face per complete cell of its grid", () => {
       style({ border_color: "white", border_size: 0.6 }))),
     /stroke="white"/
   );
+
+  // A mapped opacity fades the sheet face by face — `color`'s per-face reading, one
+  // channel over. A mesh has parts small enough to each hold one value, so it can
+  // hold this one, and the sheet then thins where its measure is small.
+  const faded = render_svg(
+    plot(data(surf), surface, x(col.gx), y(col.gy), z(col.h), opacity(col.h)));
+  const fades = new Set(faded.match(/fill-opacity="[0-9.]+"/g) || []);
+  assert.ok(fades.size >= 20,
+    `a mapped opacity should fade face by face, got ${fades.size} values`);
 });
 
 test("a surface without the cube, and a scatter, are refused with direction", () => {
@@ -1709,6 +1718,17 @@ test("`flow` lays bands, slots and names from one layout", () => {
   assert.strictEqual(first, alluvial(), "one flow sentence is one picture, every run");
 
   refuses(() => flow(col.klass), /at least two stage columns/);
+  // The endpoint clause, and the spelling. `col.class` is legal here — the
+  // accessor is a Proxy, so a reserved word is a fine property key — and it is
+  // what the book's table actually calls that column.
+  {
+    let msg = "";
+    try { flow(col.class); } catch (e) { msg = e.message; }
+    assert.ok(msg.includes("`col.class` to its `col.survived`"),
+      `the refusal must name its example's own endpoints: ${msg}`);
+    assert.ok(!msg.includes("col.klass"),
+      `the refusal must not send a reader to a column no table has: ${msg}`);
+  }
   refuses(() => render_svg(plot(data(voyage, { name: "voyage" }), y(col.n),
     layer(bar, flow(col.klass, col.survived)))), /no reading for that/);
   refuses(() => render_svg(plot(data(voyage, { name: "voyage" }), x(col.n),

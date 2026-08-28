@@ -15,6 +15,7 @@ use std::collections::HashMap;
 use std::fmt::Write;
 use crate::data::{DataFrame, Lattice};
 use crate::ir::{Channel, Layer};
+use crate::render::encode::opacity_at;
 use crate::render::palette::{ramp_at, shade, PALETTE_GOG};
 use crate::render::project;
 use crate::render::svg::{unit_norm, SvgRenderer};
@@ -50,17 +51,49 @@ struct Face {
     /// Projected corners, counter-clockwise seen from above.
     pts: [project::Screen; 4],
     depth: f64,
-    /// The table row whose `color` the face takes — for a lid its own cell, for a
+    /// The table row whose value the face takes — for a lid its own cell, for a
     /// mesh quad the corner at the lattice crossing `(i, j)` that names it. Still the
     /// whole answer for a **categorical** color, which cannot be averaged: a face
     /// belongs to one series or another, never to the mean of two.
     row: usize,
-    /// What a **measured** color reads instead, when the face's own value is not
-    /// simply its row's. `None` for a lid and a riser, each of which owns exactly one
-    /// cell's number; `Some(mean of the four corners)` for a mesh quad, which owns
-    /// none of its corners and spans all of them.
-    measure: Option<f64>,
+    /// The four rows a **mesh quad** spans, when the face's value is not simply its
+    /// row's. `None` for a lid and a riser, each of which owns exactly one cell's
+    /// number; `Some(the four corners)` for a quad, which owns none of them.
+    ///
+    /// Held as the rows rather than as one averaged number so that **every** measured
+    /// channel reads the same face the same way. `color` and `opacity` both want the
+    /// field at the face's center, and each reads a different column to find it; a
+    /// mean stored here would have served whichever channel was written first and left
+    /// the other to invent its own reading, which is the per-mark exception one level
+    /// down. `face_value` is the one place the question is answered.
+    corners: Option<[usize; 4]>,
     dim: f64,
+}
+
+/// A measured channel's value for one face: the field at the face's center.
+///
+/// **A quad takes the mean of its four corners**, because the face interpolates
+/// bilinearly between them and a bilinear patch at its center is exactly their mean.
+/// So a ramp and the height agree at every face's center, which is the whole of what
+/// "the height, said twice" claims. Reading one named corner instead was off by half a
+/// cell everywhere, and *discarded data*: a face is named by its low corner, so on an
+/// `nx` by `ny` lattice the last row and the last column were read by nothing at all —
+/// four congruent faces given three values, a difference the data did not have.
+///
+/// A lid and a riser have no such question. Each owns exactly one cell's number, so
+/// each reads its own row.
+fn face_value(f: &Face, vals: &[f64]) -> f64 {
+    let Some(corners) = f.corners else {
+        return vals.get(f.row).copied().unwrap_or(f64::NAN);
+    };
+    let (mut sum, mut k) = (0.0, 0.0);
+    for &r in corners.iter() {
+        if let Some(v) = vals.get(r).copied().filter(|v| v.is_finite()) {
+            sum += v;
+            k += 1.0;
+        }
+    }
+    if k > 0.0 { sum / k } else { f64::NAN }
 }
 
 /// Everything a face needs to choose its fill, gathered once so the paint loop can be
@@ -72,6 +105,10 @@ struct Paint<'a> {
     map: &'a HashMap<String, String>,
     ramp: &'a [String],
     default_color: &'a str,
+    /// The `opacity` column, when one is mapped — read per face exactly as the ramp is.
+    fade: Option<&'a [f64]>,
+    fade_scale: scale::ChannelScale,
+    /// What every face takes when no column is mapped: `style(opacity = )`, or opaque.
     opacity: f64,
     mesh_color: Option<&'a str>,
     mesh_width: f64,
@@ -88,7 +125,7 @@ struct Paint<'a> {
 fn paint_faces(svg: &mut String, faces: &mut [Face], clip: &str, p: &Paint) {
     faces.sort_by(|a, b| b.depth.partial_cmp(&a.depth).unwrap_or(std::cmp::Ordering::Equal));
 
-    let (o, mesh_width) = (p.opacity, p.mesh_width);
+    let mesh_width = p.mesh_width;
     writeln!(svg, r##"  <g clip-path="url(#{clip})">"##).unwrap();
     for f in faces.iter() {
         let ramped: String;
@@ -100,14 +137,22 @@ fn paint_faces(svg: &mut String, faces: &mut [Face], clip: &str, p: &Paint) {
             // cannot: an `area` has one interior and would need a gradient fill, a face
             // is already small enough to hold one value (spec §15).
             //
-            // *Which* one value is `measure`'s question, and the answer is the face's
-            // own center rather than a corner it happens to be named after.
-            let v = f.measure.unwrap_or_else(|| vals.get(f.row).copied().unwrap_or(f64::NAN));
-            let frac = p.scale.fraction(v);
+            // *Which* one value is `face_value`'s question, and the answer is the
+            // face's own center rather than a corner it happens to be named after.
+            let frac = p.scale.fraction(face_value(f, vals));
             ramped = ramp_at(&p.ramp.iter().map(String::as_str).collect::<Vec<_>>(), frac);
             &ramped
         } else {
             p.default_color
+        };
+        // **A mapped opacity reads the same face the ramp does** — one column over, and
+        // through `face_value` for the same reason. The sheet then fades where its
+        // evidence thins, and the depth sort above is what makes that legible: faces
+        // are painted back to front, so a translucent near face composites over the far
+        // ones already down, which is what a reader means by seeing through it.
+        let o = match p.fade {
+            Some(vals) => opacity_at(p.fade_scale.fraction(face_value(f, vals))),
+            None => p.opacity,
         };
         let fill = shade(color, f.dim);
         let stroke = p.mesh_color.unwrap_or(&fill);
@@ -155,6 +200,12 @@ impl SvgRenderer {
             Some(c) => scale::ChannelScale::of(c, layer.encodings.get(&Channel::Color)),
             None => scale::ChannelScale::unbound(),
         };
+        // The fade, read exactly as the ramp is — `bar`'s two lines, one mark over.
+        let fade_vals = layer.encodings.get(&Channel::Opacity).and_then(|c| df.float_col(&c.field));
+        let fade_scale = match fade_vals {
+            Some(c) => scale::ChannelScale::of(c, layer.encodings.get(&Channel::Opacity)),
+            None => scale::ChannelScale::unbound(),
+        };
         // A `group` split colors nothing and is not read here at all: it separates
         // one sheet's faces from another's, and the depth sort already interleaves
         // every face of every series. Two sheets therefore thread through each other
@@ -179,6 +230,8 @@ impl SvgRenderer {
             map: color_map,
             ramp,
             default_color: &default_color,
+            fade: fade_vals.map(|c| &c[..]),
+            fade_scale,
             opacity: o,
             mesh_color: mesh_color.as_deref(),
             mesh_width,
@@ -251,7 +304,7 @@ impl SvgRenderer {
                     // is nothing to average — the cut floor never had the mesh's
                     // problem, because a cut cell owns a value where a quad only spans
                     // four of them.
-                    measure: None,
+                    corners: None,
                     // A lid is level by construction, so it takes the color undimmed —
                     // `SLOPE_DIM * (1 - 1)`, the plateau end of the same continuum a
                     // sloped face samples further along.
@@ -318,7 +371,7 @@ impl SvgRenderer {
                                 // the reason just above: a riser is the step's face and
                                 // belongs to the plateau it descends from. Averaging
                                 // the two would paint it a height neither cell has.
-                                measure: None,
+                                corners: None,
                                 // Vertical, so the far end of the same continuum the
                                 // lid sits at zero of — a bar's side-face shade.
                                 dim: SLOPE_DIM,
@@ -375,39 +428,16 @@ impl SvgRenderer {
             // A degenerate face (zero area) has no normal; read it as level rather
             // than dividing by zero. It draws as a line and shows nothing either way.
             let level = if len > 0.0 { (cross.2 / len).abs() } else { 1.0 };
-            // **The measured color is read at the face's center, which is the mean of
-            // its four corners** — the same argument the normal above makes, one
-            // attribute over: picking one pair of edges would report the tilt of one
-            // corner, and picking `corners[0]` reported the *value* at one corner.
-            //
-            // It is the field's own value there rather than a summary of convenience:
-            // the face interpolates bilinearly between its corners, and a bilinear
-            // patch at its center is exactly their mean. So the ramp and the height
-            // agree at every face's center, which is the whole of what "the height,
-            // said twice" claims — and under `corners[0]` that claim was off by half a
-            // cell everywhere.
-            //
-            // The old reading also *discarded data*: a face is named by its low corner,
-            // so on an `nx` by `ny` lattice the last row and the last column colored
-            // nothing at all. Five of nine values on a 3x3 grid, and a symmetric field
-            // came out asymmetric — four congruent faces painted three colors, which is
-            // a difference the data did not have. Invisible on a fine mesh, where
-            // neighbors barely differ, which is why it survived the volcano.
-            let measure = color_vals.map(|vals| {
-                let (mut sum, mut k) = (0.0, 0.0);
-                for &r in corners.iter() {
-                    if let Some(v) = vals.get(r).copied().filter(|v| v.is_finite()) {
-                        sum += v;
-                        k += 1.0;
-                    }
-                }
-                if k > 0.0 { sum / k } else { f64::NAN }
-            });
             faces.push(Face {
                 pts,
                 depth: pts.iter().map(|p| p.depth).sum::<f64>() / 4.0,
                 row: corners[0],
-                measure,
+                // **A measured channel is read at the face's center, which is the mean
+                // of these four** — the same argument the normal above makes, one
+                // attribute over: picking one pair of edges would report the tilt of one
+                // corner, and picking `corners[0]` reported the *value* at one corner.
+                // `face_value` carries the reading and the reason for it.
+                corners: Some(corners),
                 // Level face → the color itself, vertical → `SLOPE_DIM`. The
                 // continuum a bar's three fixed shades are three samples of.
                 dim: SLOPE_DIM * (1.0 - level),

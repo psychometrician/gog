@@ -620,6 +620,15 @@ assert 'stroke="white"' in render_svg(
     style(border_color="white", border_size=0.6))
 ok("style(border_color=) is the wireframe over the sheet")
 
+# A mapped opacity fades the sheet face by face — `color`'s per-face reading, one
+# channel over. A mesh has parts small enough to each hold one value, so it can hold
+# this one, and the sheet then thins where its measure is small.
+_faded = render_svg(data(surf, name="surf") + surface + x(col.gx) + y(col.gy) +
+                    z(col.h) + opacity(col.h))
+assert len(set(re.findall(r'fill-opacity="([0-9.]+)"', _faded))) >= 20, \
+    "a mapped opacity should fade face by face"
+ok("opacity maps on a surface, one value per face")
+
 # A flat surface is one failure, not two, and the direction names both routes in.
 refuses("a surface with no height",
         lambda: render_svg(data(surf, name="surf") + surface + x(col.gx) + y(col.gy)))
@@ -1334,6 +1343,22 @@ first = alluvial()
 assert " C " in first, "a flow's band is a cubic curve"
 assert "<rect" in first, "a flow's slots are rectangles"
 assert ">First<" in first, "`label(col.name)` names each slot"
+
+# The refusal, which this suite did not exercise at all until the bed found the
+# four bindings disagreeing on it. Two claims: the endpoint clause every binding
+# has to share, and the spelling Python actually needs. `col.klass` names a
+# column called "klass"; the book's table has one called "class", and
+# `col["class"]` is the escape hatch `columns.py` documents for exactly this.
+refuses("flow with one stage", lambda: flow(col["class"]))
+_flow_msg = ""
+try:
+    flow(col["class"])
+except GogError as _e:
+    _flow_msg = str(_e)
+assert '`col["class"]` to its `col.survived`' in _flow_msg, (
+    f"the refusal must name its example's own endpoints: {_flow_msg}")
+assert "col.klass" not in _flow_msg, (
+    f"the refusal must not send a reader to a column no table has: {_flow_msg}")
 assert first == alluvial(), "one flow sentence is one picture, every run"
 ok("`ribbon * flow` bands, `zone * flow` slots, `text * flow` names")
 

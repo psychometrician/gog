@@ -125,6 +125,59 @@ whether all eight move together and Cargo and npm manifests carry development
 numbers nobody is installing. That is a decision, not a default; nothing in the
 current setup depends on it either way.
 
+**The binaries are not uniform across platforms, and the gaps are silent.** What
+r-universe builds is not what `install.packages()` reaches, and they differ by
+platform:
+
+* **macOS and Windows** get real binaries carrying the engine, and a plain
+  `install.packages()` uses them. Windows binaries exist only for the R versions
+  r-universe currently builds; below that range the same command falls back to a
+  **source** install needing Rtools and Rust. Check the package actually appears
+  in the index for every R version `DESCRIPTION` claims to support, because
+  `Depends:` can promise a version no binary exists for.
+* **Linux always installs from source** with the documented one-line command.
+  `install.packages()` defaults to `type = "source"` there, and the plain
+  repository URL serves only `/src/contrib`. Nothing rescues it: a
+  distro-flavored User-Agent returns the same source entry. Linux binaries do
+  exist, under `/bin/linux/<distro>-x86_64/<rver>/`, but reaching them takes a
+  different `repos` value than the one users are handed.
+* **A Linux binary is built against r-universe's own distro**, which can be far
+  newer than any long-term-support release. Read the glibc floor of the bundled
+  engine before recommending one. A binary needing a newer glibc than the user
+  has installs cleanly and then fails at draw time, which reads as a broken
+  package rather than a wrong download.
+
+So "r-universe builds binaries for macOS, Windows and Linux, so nothing needs
+Rust" is false as written. It was published in three files for weeks, and it was
+a user on Ubuntu who found it. Verify a claim about installing by installing, on
+the platform the claim names.
+
+### Reading a check result
+
+The badge says `7 WARNING` without saying what any of them is. The job list, with
+one artifact id per target, is in the API record under `_jobs`:
+
+```bash
+curl -s https://<owner>.r-universe.dev/api/packages/<pkg> \
+  | python3 -c "import json,sys; [print(j) for j in json.load(sys.stdin)['_jobs']]"
+gh api repos/r-universe/<owner>/actions/artifacts/<id>/zip > a.zip
+unzip -o a.zip && grep -B2 -A12 WARNING <pkg>.Rcheck/00check.log
+```
+
+**Open more than one.** Seven identical-looking warnings can be seven different
+causes, and assuming they share one is how six go unfixed. Here they did share a
+cause, but that was checked rather than assumed.
+
+**`source` reading OK while every binary target warns is itself the diagnosis.**
+The source tarball is checked before installation and the binaries after it, so a
+check that reads installed files sees what the source check cannot.
+
+**Non-ASCII in R code warns on every binary target at once.** Comments are
+exempt, which is why most files may carry an em dash while only one is ever
+named. A diagnostic string is code, so it has to be written as its `\uXXXX`
+escape and rendered at run time. Grep cannot tell code from comment; parse and
+inspect non-`COMMENT` tokens. The R suite now does this, and the check can break.
+
 ### PyPI (Python) — tag-gated, and rehearsed first
 
 Tag `py-vX.Y.Z`. Five jobs, each able to fail only forward:
@@ -276,6 +329,12 @@ absence looks like a green build that fails on its last step.
 filename, so a rename silently invalidates every publisher registered against it.
 
 ## Cutting a release
+
+**Run it from bash.** It resolves its own directory through `BASH_SOURCE`, which
+zsh does not set, so invoking or sourcing it from a zsh prompt puts it one level
+above the repository, where every file it means to edit is missing. It reports
+each miss and changes nothing, so the failure is loud rather than silent, but the
+error text names paths rather than the cause.
 
 `.github/release` does every mechanical step below and refuses to do the rest:
 

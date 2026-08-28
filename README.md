@@ -119,12 +119,15 @@ All four are live, on
 [r-universe](https://psychometrician.r-universe.dev/gog),
 [PyPI](https://pypi.org/project/gog/),
 [General](https://github.com/JuliaRegistries/General/tree/master/G/GrammarOfGraphics)
-and [npm](https://www.npmjs.com/package/grammar-of-graphics). Three of them
-**ship the engine inside the package**, built for your platform. For those three
-there is nothing else to install, nothing to put on your `PATH`, and no Rust
-toolchain to set up.
+and [npm](https://www.npmjs.com/package/grammar-of-graphics). Python and
+JavaScript **ship the engine inside the package**, built for your platform, and R
+does the same on macOS and Windows. For those there is nothing else to install,
+nothing to put on your `PATH`, and no Rust toolchain to set up.
 
-Each of those three also carries a second copy of the engine, built for the
+On Linux the R package installs from source and compiles the engine, so that one
+needs Rust and a network connection.
+
+Each of those packages also carries a second copy of the engine, built for the
 browser. That is what lets a 3-D plot turn under the mouse on a web page. It is
 optional: a package without it still draws every plot, and the 3-D ones simply
 do not turn.

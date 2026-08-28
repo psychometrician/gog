@@ -177,7 +177,7 @@ one *earns*:
 | `size` | Radius, on `point` | a legend |
 | `shape` | Glyph (circle, square, triangle) on `point` | a legend |
 | `pattern` | Texture: a fill's hatch, a stroke's dash. Every mark but `point`, `text` and `surface` | a legend |
-| `opacity` | Transparency, on `point` and `bar` | a legend |
+| `opacity` | Transparency, on `point`, `bar`, `edge` and `surface` | a legend |
 | `group` | Splits a mark into one line per category, without encoding it. On `line`, `area`, `step`, `interval`, `box`, `ribbon`, `path`, `zone` and `surface` | nothing |
 | `label` | The string a `text` mark draws, its content | nothing |
 | `play` | Cuts the plot into frames and plays them in sequence, from a numeric or categorical column | a strip |

@@ -589,10 +589,23 @@ pub fn rule_for(mark: &Mark, channel: &Channel) -> Rule {
             // splits the mark into one sheet per group, interleaved correctly because
             // the depth sort runs over every face of every series at once.
             Color => rule(Can, Either, Some(Either)).settable(),
-            // Set, not mapped, for `area`'s reason: a face has four nodes and a
-            // per-row opacity has no single answer at one. Settable so two sheets
-            // can be seen through each other.
-            Opacity => rule(Can, Continuous, None).settable(),
+            // **Mapped, and for `color`'s reason one line up rather than `area`'s.**
+            // This cell read `renders: None` and cited an area's refusal — *a face has
+            // four nodes, so a per-row opacity has no single answer at one* — which
+            // stopped being true when the ramp moved to the face's center. An `area`
+            // refuses because a row there is a **vertex of one region**, so there is no
+            // second region for a per-row value to differ from; a mesh is a *collection*
+            // of faces, Wilkinson's own contrast (ch. 8) between "the area graph, which
+            // represents a single area" and a "collection of areas, one for each bar",
+            // and a face is small enough to hold one value. Which value is settled
+            // already: the mean of the four corners, the bilinear patch read at its own
+            // center, the same answer `color` takes. Two channels reading one face two
+            // ways would have been the per-mark exception Law 2 forbids.
+            //
+            // What it draws is the sheet that fades where its evidence thins — a fitted
+            // surface faded by its own confidence, extrapolated corners barely there.
+            // Still settable, so two sheets can be seen through each other.
+            Opacity => rule(Can, Continuous, Some(Continuous)).settable(),
             // Splits into one sheet per category without coloring — `line`'s and
             // `path`'s `group`, and it means the same thing here.
             Group => rule(Can, Discrete, Some(Discrete)),
@@ -6174,8 +6187,16 @@ pub fn check(spec: &PlotSpec, data: &HashMap<String, DataFrame>) -> Vec<Diagnost
                 out.push(Diagnostic {
                     kind: DiagnosticKind::Illegal,
                     message: format!(
+                        // **The direction names the column, never a call.** The engine
+                        // is not told which binding built the request — the wire spec
+                        // carries no field naming the caller — so a spelled call here
+                        // reaches a Python reader in R's idiom, telling them to remove
+                        // `opacity(life)` when they wrote `opacity(col.life)`. Naming the
+                        // channel and the column separately is idiom-free and reads
+                        // correctly in all four. A refusal a *binding* raises may still
+                        // spell a call, because a binding knows its own reader.
                         "gog: `{c}` cannot be bound to `{m}` — {} {m} has no {c} feature. \
-                         Remove `{c}({field})`, or use a mark that has one.",
+                         Remove the `{field}` mapping from `{c}`, or use a mark that has one.",
                         article(m)
                     ),
                 });
@@ -12773,14 +12794,72 @@ mod tests {
     }
 
     #[test]
-    fn opacity_renders_on_point_and_bar() {
-        for mark in [Mark::Point, Mark::Bar] {
-            let spec = base().layer(Layer::new(mark.clone()).encode(Channel::Opacity, "gdp"));
-            assert!(
-                check(&spec, &data()).is_empty(),
-                "opacity should render on {:?}",
-                mark
-            );
+    fn opacity_spans_the_marks_with_parts_small_enough_to_hold_one_value() {
+        // **The class, named mark by mark**, because the rule was never "regions refuse
+        // it, glyphs take it": it is whether the mark has *parts* a per-row number can
+        // land on. A `point` is one part per row and a `bar` one column per row, an
+        // `edge` one stroke per row, and a `surface` is a mesh of faces — small enough
+        // to each hold one value, which is the same reading that lets a mesh take a
+        // measured color where an `area` cannot.
+        //
+        // This test read `opacity_renders_on_point_and_bar` and named two marks, which
+        // is how `surface` sat outside it while sitting inside the class: the sheet
+        // could be moved from one side to the other and the assertion stayed green
+        // either way. That is `border_spans_*`'s lesson, one channel over, and the
+        // drift guard below is the half a hand-written list cannot be.
+        // What a caller meets for one mark: the diagnostics that mention `opacity`,
+        // and nothing else. Keyed on the message rather than on an empty list so that
+        // every mark can be walked under one `base()` — a `surface` wants the cube and
+        // an `edge` a layout, and their own minimum-syllable complaints are not what
+        // is under test here. The column is numeric, so the categorical refusal cannot
+        // fire and confuse the reading.
+        let fade = |m: &Mark| -> Vec<DiagnosticKind> {
+            let layer = Layer::new(m.clone()).encode(Channel::Opacity, "gdp");
+            let layer = match m {
+                Mark::Interval | Mark::Ribbon => layer.transform(Transform::Range),
+                Mark::Text => layer.encode(Channel::Label, "continent"),
+                _ => layer,
+            };
+            check(&base().layer(layer), &data()).into_iter()
+                .filter(|d| d.message.contains("`opacity`"))
+                .map(|d| d.kind).collect()
+        };
+
+        for m in [Mark::Point, Mark::Bar, Mark::Edge, Mark::Surface] {
+            assert!(fade(&m).is_empty(),
+                "{m:?} has parts to fade, so a mapped opacity draws with no complaint");
+        }
+        // One region, one stroke: a row is a *vertex of the boundary* rather than a
+        // part of its own, so there is nothing for a per-row value to vary across.
+        // Every one of these still takes `style(opacity = )`, which is the whole of
+        // what `SET_ONLY` means.
+        for m in [Mark::Line, Mark::Step, Mark::Area, Mark::Interval,
+                  Mark::Box, Mark::Ribbon, Mark::Path, Mark::Rule, Mark::Zone] {
+            assert!(fade(&m).contains(&DiagnosticKind::Illegal),
+                "{m:?} refuses a mapped opacity with direction, met {:?}", fade(&m));
+            assert!(rule_for(&m, &Channel::Opacity).settable,
+                "{m:?} still takes a set opacity");
+        }
+
+        // And the drift guard the two lists cannot be: walk **every** mark and require
+        // the diagnostic a caller actually meets to agree with what `rule_for` says —
+        // which is what the book's generated grid prints and what `--rules` dumps. A
+        // mark named in neither list above is invisible to both assertions.
+        for m in &ALL_MARKS {
+            let r = rule_for(m, &Channel::Opacity);
+            let met = fade(m);
+            let want = match (r.obligation, r.renders) {
+                (Obligation::Cannot, _) => Some(DiagnosticKind::Illegal),
+                (_, None) => Some(DiagnosticKind::Unsupported),
+                (_, Some(_)) => None,
+            };
+            match want {
+                None => assert!(met.is_empty(),
+                    "{m:?} renders a mapped opacity, so nothing should be said: {met:?}"),
+                Some(k) => assert!(met.contains(&k),
+                    "{m:?} is {:?}/{:?} in the table, so a caller should meet {k:?}, met {met:?}",
+                    r.obligation, r.renders),
+            }
         }
     }
 

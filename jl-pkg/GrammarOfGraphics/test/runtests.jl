@@ -733,6 +733,12 @@ end
                    render_svg(data(surf) + surface + x(:gx) + y(:gy) + z(:h) +
                               style(border_color = "white", border_size = 0.6)))
 
+    # A mapped opacity fades the sheet face by face — `color`'s per-face reading,
+    # one channel over. A mesh has parts small enough to each hold one value, so it
+    # can hold this one, and the sheet then thins where its measure is small.
+    faded = render_svg(data(surf) + surface + x(:gx) + y(:gy) + z(:h) + opacity(:h))
+    @test length(Set(m.match for m in eachmatch(r"fill-opacity=\"[0-9.]+\"", faded))) >= 20
+
     # A flat surface is one failure, not two, and the direction names both routes
     # in plus the mark that draws the same field in the plane.
     @refuses render_svg(data(surf) + surface + x(:gx) + y(:gy)) "needs the cube"
@@ -1236,6 +1242,11 @@ end
     @test first_run == alluvial()
 
     @refuses flow(:class) "at least two stage columns"
+    # The endpoint clause the four bindings share. Julia could always spell
+    # `:class`; what it lacked was the clause naming the example's own ends.
+    let msg = try; flow(:class); "" catch e; e.msg end
+        @test occursin("`:class` to its `:survived`", msg)
+    end
     @refuses render_svg(data(voyage, name = "voyage") + y(:n) +
                         bar * flow(:class, :survived)) "no reading for that"
     @refuses render_svg(data(voyage, name = "voyage") + x(:n) +

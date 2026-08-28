@@ -402,8 +402,8 @@ function flow(stages...)
     if length(stages) < 2
         throw(GogError(
             "gog: `flow()` needs at least two stage columns, in reading order — " *
-            "`flow(:class, :sex, :survived)` runs each row from its first stage " *
-            "to its last. One column has no between."))
+            "`flow(:class, :sex, :survived)` runs each row from its `:class` " *
+            "to its `:survived`. One column has no between."))
     end
     Atom(:transform, Dict{Symbol,Any}(
         :transform => "flow",

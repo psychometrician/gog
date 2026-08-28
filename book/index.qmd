@@ -541,8 +541,8 @@ drawn by the engine at that moment.
 
 ## Installing gog
 
-You have watched the engine draw every plot on this page. It installs with a
-single command; all four bindings work. Copy the command for your language.
+You have watched the engine draw every plot on this page. All four bindings
+work. Copy the command for your language, and read the notes that follow.
 
 **R**
 
@@ -576,15 +576,18 @@ capitalized words, and npm already had a package called `gog`. So those two spel
 out instead, each in its own style: `GrammarOfGraphics` in Julia, and
 `grammar-of-graphics` on npm, which does not allow capital letters.
 
-Three of these packages carry the engine inside them, already built for your
-computer. For those three you do not need a Rust [@klabnik2023rust] toolchain,
-and nothing has to be added to your `PATH`. Two of the four commands have a
-note to read before you run them: the R command and the Julia command.
+The Python and JavaScript packages carry the engine inside them, already built
+for your computer, and the R package carries it on macOS and Windows. For those
+you do not need a Rust [@klabnik2023rust] toolchain, and nothing has to be added
+to your `PATH`. Two of the four commands have a note to read before you run
+them: the R command and the Julia command.
 
 The R package is not on CRAN yet. It is published on
 [r-universe](https://psychometrician.r-universe.dev/gog) instead, which is why the
 `repos` argument names two addresses. The second address is an ordinary CRAN
-mirror, and it is there so your other packages still install as usual.
+mirror, and it is there so your other packages still install as usual. On Linux
+the command builds the engine from source, which needs Rust and a network
+connection. The [R](bindings/r.qmd) chapter gives the command that installs Rust.
 
 The Julia package is the one binding that does not carry the engine yet: it
 installs and loads, but it cannot draw until you add the engine. One more

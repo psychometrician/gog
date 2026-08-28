@@ -569,6 +569,15 @@ if (!grepl('stroke="white"', meshed, fixed = TRUE))
   stop("FAIL: style(border_color =) should draw the mesh lines")
 cat("PASS: style(border_color =) is the wireframe over the sheet\n")
 
+# A mapped opacity fades the sheet face by face — `color`'s per-face reading, one
+# channel over. A mesh has parts small enough to each hold one value, so it can hold
+# this one, and the sheet then thins where its measure is small.
+faded <- render_svg(data(surf_grid) + surface + x(gx) + y(gy) + z(h) + opacity(h))
+fades <- unique(regmatches(faded, gregexpr('fill-opacity="[0-9.]+"', faded))[[1]])
+if (length(fades) < 20L)
+  stop("FAIL: a mapped opacity should fade face by face, got ", length(fades), " values")
+cat("PASS: opacity maps on a surface, one value per face\n")
+
 # A flat surface is one failure, not two, and the direction names both routes in.
 flat <- tryCatch({ render_svg(data(surf_grid) + surface + x(gx) + y(gy)); NA_character_ },
                  error = function(e) conditionMessage(e))
@@ -1560,6 +1569,42 @@ if (!file.exists(ns_path)) {
     stop("FAIL: NAMESPACE claims roxygen2 authorship but is hand-maintained")
 
   cat("\nNAMESPACE tests passed.\n")
+}
+
+# ---------------------------------------------------------------------------
+# R code must be ASCII - the portability warning that reaches seven platforms
+#
+# `R CMD check` warns when non-ASCII characters appear in R *code*. Comments are
+# exempt, which is why this file and the sources beside it keep their em dashes
+# and only one file was ever named. A diagnostic string is code, so the package
+# writes `\uXXXX` and R renders the character at run time; 51 diagnostics already
+# do. The escape is easy to lose, and losing it is quiet: one `stop()` in atoms.R
+# drifted back to the literal character and warned on all seven binary targets
+# while the source check stayed clean, because the source tarball is checked
+# before installation and the binaries after it. Grep cannot tell code from
+# comment, so this parses.
+# ---------------------------------------------------------------------------
+
+r_src_dir <- "r-pkg/gog/R"
+
+# Skipped under `R CMD check` for the reason the NAMESPACE block gives: there are
+# no sources there, and an unguarded check failed every platform at once.
+if (!dir.exists(r_src_dir)) {
+  cat("SKIP: non-ASCII scan - run from the repo root to check it\n")
+} else {
+  offenders <- character(0)
+  for (f in list.files(r_src_dir, pattern = "\\.R$", full.names = TRUE)) {
+    pd <- utils::getParseData(parse(f, keep.source = TRUE))
+    bad <- pd[pd$token != "COMMENT" & grepl("[^\x01-\x7F]", pd$text), ]
+    if (nrow(bad))
+      offenders <- c(offenders,
+                     sprintf("%s:%s", basename(f), paste(unique(bad$line1), collapse = ",")))
+  }
+  if (length(offenders))
+    stop("FAIL: non-ASCII in R code — write the \\uXXXX escape instead, the way ",
+         "every other diagnostic does. Offending files: ",
+         paste(offenders, collapse = "; "))
+  cat("PASS: R code is ASCII; only comments carry the character itself\n")
 }
 
 # ---------------------------------------------------------------------------
@@ -3167,6 +3212,19 @@ cat("PASS: `ribbon * flow` bands, `zone * flow` slots, `text * flow` names
 ")
 
 refuses("flow with one stage", flow(class), "at least two stage columns")
+
+# **The clause the four bindings must share, and the spelling each needs to say
+# it.** A4 blanks a backquoted span, so what has to match across R, Python, Julia
+# and JavaScript is the *shape*: `runs each row from its X to its Y`. Three
+# bindings had dropped it for "from its first stage to its last", and the check
+# above could not see that, because it matches only the half that never differed.
+# Python's and JavaScript's also named `col.klass`, a column no table has.
+local({
+  msg <- tryCatch(flow(class), error = function(e) conditionMessage(e))
+  if (!grepl("runs each row from its `class` to its `survived`", msg, fixed = TRUE))
+    stop("FAIL: `flow()`'s refusal must name its example's own endpoints: ", msg)
+  cat("PASS: `flow()`'s refusal names the endpoints of its own example\n")
+})
 refuses("a mark with no flow reading",
         render_svg(data(voyage) + y(n) + bar * flow(class, survived)),
         "no reading for that")

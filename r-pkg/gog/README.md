@@ -43,8 +43,16 @@ install.packages("gog", repos = c("https://psychometrician.r-universe.dev",
 
 `gog` is not on CRAN yet, so it comes from [r-universe][r-universe] for now — which
 is why the `repos` line is there, and why the second entry is CRAN, so your other
-packages still resolve. r-universe builds binaries for macOS, Windows and Linux, and
-each one carries the engine, so nothing needs Rust installed.
+packages still resolve. On macOS and Windows r-universe builds a binary that carries
+the engine, so nothing needs Rust installed.
+
+On Linux the same command installs from source and compiles the engine, which needs
+Rust and a network connection. Install Rust first if the machine does not have it:
+
+```sh
+curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
+source "$HOME/.cargo/env"
+```
 
 Building from a checkout instead is what you want if you are changing the engine
 rather than using it; the book's [R chapter][r-chapter] shows that route.

@@ -4,9 +4,40 @@ All four packages share one version number and are released together: `gog` on
 CRAN-style repositories and PyPI, `GrammarOfGraphics` on Julia's General, and
 `grammar-of-graphics` on npm. A version means the same grammar in every one.
 
-## Unreleased
+## 0.2.0 (2026-08-27)
+
+### Added
+
+- **`opacity` maps on a `surface`, face by face.** Bind a column and each face of
+  the sheet takes its own transparency, so the mesh thins where its measure is
+  small and a reader sees through it to what it was hiding. A face reads its
+  opacity where it reads its color, at its own center, which is the mean of its
+  four corners — one reading of a face however many channels ask for it. The
+  mapping was legal grammar the engine refused, and the refusal argued from an
+  `area`'s reason: a region has one interior, so a row there is a vertex of the
+  boundary and there is nothing for a per-row value to vary across. That is still
+  true of `area` and `ribbon`, and it was never true of a mesh, which has faces.
+  `style(opacity = )` still sets one value for a whole sheet.
 
 ### Fixed
+
+- **A refusal from the engine now names the column instead of spelling a call.**
+  Binding a channel a mark has no feature for used to say `Remove `opacity(life)``,
+  which is R's spelling shown to every reader; a Python reader who wrote
+  `opacity(col.life)` was told to remove something they had not typed. The engine
+  is never told which language called it, so it now writes `Remove the `life`
+  mapping from `opacity``, which reads correctly in all four. A refusal a binding
+  raises itself still speaks that binding's idiom, because a binding knows its
+  reader.
+
+- **`flow()`'s refusal now reads the same in all four bindings, and names a
+  column that exists.** Given one stage column, every binding refuses and writes
+  its own message. R named the endpoints of its own example, the other three said
+  "from its first stage to its last", and the four therefore disagreed on wording
+  that carries no idiom. All four now name the endpoints. Python's and
+  JavaScript's also pointed at `col.klass`, which names a column called `klass`;
+  the table in question has one called `class`, so they now read `col["class"]`
+  and `col.class`, each of which resolves to the real column.
 
 - **R: `layout()` handed a matrix now names `graphics::layout()`.** gog's
   `layout` masks the base function that arranges plot panels, and a masked
