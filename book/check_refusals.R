@@ -46,35 +46,65 @@ check_refusals <- function(book = "book") {
                          list.files, pattern = "\\.qmd$", full.names = TRUE)))
 
   drew <- character()
+  unready <- character()
   n <- 0L
+
+  # A chapter's chunks run in order when the book renders, so a refusal may
+  # bind a table an earlier chunk built (`wide` in the Data chapter, `revenue`
+  # in Scales). Evaluated alone, such a chunk errors with "object not found"
+  # before the engine ever sees the sentence, and that error used to count as
+  # the refusal: seven chunks passed that way. So each chapter's earlier chunks
+  # are evaluated first, into an environment the refusals inherit. Building a
+  # spec is inert (nothing renders until knit_print), so this is cheap; the few
+  # chunks that render or shell out on their own are skipped, and an earlier
+  # chunk that fails is simply left out, since it is not the thing under test.
+  inert <- "render_svg\\(|save_gif\\(|(py|jl|js)_[a-z]+\\(|tab_|source\\(|find_gog_cli|system2\\(|peek\\(|mark_options\\(|kable\\(|query\\("
 
   for (f in qmd) {
     ln <- readLines(f, warn = FALSE)
+    chapter_env <- new.env(parent = book_env)
     for (s in grep("^```\\{r\\}\\s*$", ln)) {
       e <- s + 1L
       while (e <= length(ln) && !grepl("^```\\s*$", ln[e])) e <- e + 1L
       body <- ln[(s + 1L):(e - 1L)]
-      if (!any(grepl("error:\\s*true", grep("^#\\|", body, value = TRUE)))) next
+      opts <- grep("^#\\|", body, value = TRUE)
       code <- body[!grepl("^#\\|", body)]
       code <- code[nzchar(trimws(code))]
       if (!length(code)) next
+      text <- paste(code, collapse = "\n")
+
+      if (!any(grepl("error:\\s*true", opts))) {
+        if (any(grepl("eval:\\s*false|include:\\s*false", opts))) next
+        if (grepl(inert, text)) next
+        try(suppressWarnings(suppressMessages(
+          eval(parse(text = text), envir = chapter_env))), silent = TRUE)
+        next
+      }
       n <- n + 1L
 
       where <- sprintf("%s:%d", basename(f), s)
-      chunk_env <- new.env(parent = book_env)
+      chunk_env <- new.env(parent = chapter_env)
+      err <- NULL
       outcome <- tryCatch({
-        v <- eval(parse(text = paste(code, collapse = "\n")), envir = chunk_env)
+        v <- eval(parse(text = text), envir = chunk_env)
         # A spec is inert until it is drawn — knit_print renders it, so the check
         # must too, or every refusal would look like a pass.
         if (inherits(v, "gog_spec")) {
           suppressMessages(render_svg(v))
           "drew a plot"
         } else "evaluated without error"
-      }, error = function(e) NULL)
+      }, error = function(e) { err <<- conditionMessage(e); NULL })
 
       if (!is.null(outcome))
         drew <- c(drew, sprintf("%s (%s): %s", where, outcome,
                                 paste(trimws(code), collapse = " ")))
+      # A refusal is the engine's. A sentence that never reached it, because a
+      # name it binds does not exist, is a missing table rather than a refusal;
+      # a chunk with no sentence at all (the R chapter's masking demonstrations)
+      # is R's own error and is what the chunk is there to show.
+      else if (grepl("\\b(data|query)\\(", text) &&
+               grepl("object '[^']*' not found|could not find function", err))
+        unready <- c(unready, sprintf("%s: %s", where, sub("\n.*$", "", err)))
     }
   }
 
@@ -83,6 +113,10 @@ check_refusals <- function(book = "book") {
     fail("FAIL: presented as refusals, but did not refuse:\n  ",
          paste(drew, collapse = "\n  "),
          "\n  Either the engine stopped refusing, or the prose should not claim it does.")
+  if (length(unready))
+    fail("FAIL: presented as refusals, but errored before the engine saw the sentence:\n  ",
+         paste(unready, collapse = "\n  "),
+         "\n  The table it binds is not built by an earlier chunk of the chapter, or that chunk is skipped here.")
 
   cat("PASS: every documented refusal refuses (", n, "`error: true` chunks )\n")
   invisible(TRUE)

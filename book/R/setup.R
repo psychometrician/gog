@@ -164,10 +164,9 @@ peek <- function(x, n = 5) {
   name  <- deparse(substitute(x))
   total <- nrow(x)
   shown <- min(n, total)
-  knitr::kable(utils::head(x, n), caption = sprintf(
-    if (shown >= total) "`%s`: all %d rows" else "`%s`: first %d of %d rows",
-    name, shown, total
-  ))
+  caption <- if (shown >= total) sprintf("`%s`: all %d rows", name, total)
+             else sprintf("`%s`: first %d of %d rows", name, shown, total)
+  knitr::kable(utils::head(x, n), caption = caption)
 }
 
 # ---------------------------------------------------------------------------

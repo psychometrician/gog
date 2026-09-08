@@ -48,16 +48,26 @@ Every table in this book has the same shape. Each row is one observation, and
 each column is one variable. That shape has a name, **tidy data**
 [@wickham2014tidy], and gog assumes it in every sentence you write.
 
-The reason is a rule you have already read. A channel takes a column, so
-anything you want to map has to *be* a column. Suppose you record sales for two
-regions, and you give each region a column of its own:
+The reason is the rule that defines a channel in [Grammar](grammar.qmd): a
+channel maps a column to a visual property, so anything you want to map has to
+*be* a column. Suppose you record sales for two regions, and you give each
+region a column of its own:
 
 ```{r}
-#| error: true
 wide <- data.frame(year  = 2019:2023,
                    north = c(120, 135, 128, 152, 168),
                    south = c( 90, 101, 140, 133, 155))
+```
 
+```{r}
+#| echo: false
+peek(wide)
+```
+
+Now ask for one line per region:
+
+```{r}
+#| error: true
 data(wide) + line + x(year) + y(sales) + color(region)
 ```
 
@@ -66,14 +76,24 @@ called `region`. Your two regions are column *names*, and a name is not a
 column. Your sales numbers sit in two columns instead of one. The sentence asks
 for columns the table does not have, so gog draws nothing.
 
-The same numbers, one row per observation, draw the plot and earn the legend:
+The same numbers, one row per observation, look like this:
 
 ```{r}
 long <- data.frame(year   = rep(2019:2023, times = 2),
                    region = rep(c("north", "south"), each = 5),
                    sales  = c(120, 135, 128, 152, 168,
                                90, 101, 140, 133, 155))
+```
 
+```{r}
+#| echo: false
+peek(long, n = 10)
+```
+
+Now `sales` is a column and `region` is a column, so the sentence draws the
+plot and earns the legend:
+
+```{r}
 data(long) + line + x(year) + y(sales) + color(region)
 ```
 
