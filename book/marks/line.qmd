@@ -47,6 +47,8 @@ data(gapminder_asia) + line + x(year) + y(life) +
   color(country)
 ```
 
+*"Given gapminder Asia: lines, x is year, y is life, color by country."*
+
 Each unique value in `country` becomes a separate line with its own color.
 A color legend is generated automatically.
 
@@ -62,6 +64,9 @@ data(gapminder_asia) + x(year) + y(life) + color(country) +
   line + point
 ```
 
+*"Given gapminder Asia: x is year, y is life, color by country, lines and also
+points."*
+
 Both the lines and the points share the same color per country.
 
 ### Giving each layer its own appearance
@@ -76,6 +81,9 @@ data(gapminder_asia) + x(year) + y(life) +
   title("Blue line, red points: styled per layer")
 ```
 
+*"Given gapminder Asia: x is year, y is life, lines grouped by country, colored
+steelblue, and also points, colored firebrick, with size 3."*
+
 Channels scope the same way. Written after a mark, one binds to that mark alone,
 so each layer can carry a different encoding:
 
@@ -85,6 +93,9 @@ data(gapminder_asia) + x(year) + y(life) +
   point + size(population) +
   title("Color on the lines, size on the points")
 ```
+
+*"Given gapminder Asia: x is year, y is life, lines, color by country, and also
+points, size by population."*
 
 That works because channels bind **forward only**. A channel that also bound
 backwards would put `size` on the `line`, which has no size, and the plot
@@ -103,6 +114,9 @@ data(gapminder_2007) + line * mean + point * mean + x(continent) + y(life) +
   y_label("Mean life expectancy") +
   title("line * mean + x(continent): one value per category, joined")
 ```
+
+*"Given gapminder 2007: a line derived by mean and also points derived by mean,
+x is continent, y is life."*
 
 The transform is what makes that plot readable. Without one, a `line` would
 connect all 142 rows across five category slots, and no reader can follow
@@ -128,6 +142,9 @@ circle. That is the radar, and it needs no new atom:
 data(gapminder_2007) + line * mean + x(continent) + y(life) + polar() +
   title("line * mean + polar(): the radar")
 ```
+
+*"Given gapminder 2007: a line derived by mean, x is continent, y is life, in
+polar."*
 
 Look at the segment from Oceania back to Asia. On the flat profile the path has
 two ends, because a straight axis has two ends; in the circle the categories fill
@@ -155,6 +172,9 @@ data(gapminder_2007) + x(gdp) + y(life) +
   line * smooth
 ```
 
+*"Given gapminder 2007: x is gdp, y is life, points, color by continent, and
+also a line derived by smooth."*
+
 ## Two boundaries from a pair
 
 Most transforms give a `line` one value per x. A **pair** transform
@@ -168,6 +188,8 @@ countries, as two lines:
 data(gapminder_asia) + line * range + x(year) + y(life) +
   y_label("Life expectancy") + title("A min–max envelope, as two boundary lines")
 ```
+
+*"Given gapminder Asia: a line derived by range, x is year, y is life."*
 
 Add `style(pattern = "dashed")` for the dashed band publications often draw; see
 [Ribbon](ribbon.qmd) for the filled and unfilled versions side by side.
@@ -183,6 +205,9 @@ data(gapminder_asia) + line + x(year) + y(life) + group(country) +
   style(size = 4, opacity = 0.45) +
   title("One width, one opacity, for the whole layer")
 ```
+
+*"Given gapminder Asia: lines, x is year, y is life, grouped by country, with
+size 4 and opacity 0.45."*
 
 This is the clearest case of the split described in
 [Setting vs mapping](../style.qmd): *"can a column be mapped here?"* and *"does
@@ -225,6 +250,9 @@ data(gapminder_asia) + line + x(year) + y(life) + color(country) +
   y_label("Life expectancy") + title("One width and one dash, for every series")
 ```
 
+*"Given gapminder Asia: lines, x is year, y is life, color by country, with size
+3 and pattern dashed."*
+
 `color` is mapped there, so it is not also set; a layer that both maps and sets
 the same feature is refused, because one of the two would have to be silently
 dropped.
@@ -263,6 +291,9 @@ data(gapminder_asia) + line + x(year) + y(life) + group(country) +
   color(gdp, scale = "log") + palette("viridis") +
   y_label("Life expectancy") + title("Each country's line, colored by its income")
 ```
+
+*"Given gapminder Asia: lines, x is year, y is life, grouped by country, color
+by gdp on a log scale, with the viridis palette."*
 
 Read one country's line from left to right and you watch two variables at
 once: how long people live (the height) and how rich the country was then

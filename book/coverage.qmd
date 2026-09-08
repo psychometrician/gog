@@ -36,6 +36,9 @@ data(maunga_whau) + surface + x(east) + y(north) + z(elevation) +
   title("Maunga Whau, one row per crossing")
 ```
 
+*"Given Maunga Whau: a surface, x is east, y is north, z is elevation, color by
+elevation."*
+
 Six marks draw in the cube (`point`, `path`, `bar`, `interval`, `box` and
 `surface`), the viewing angle is `space(turn = , tilt = )`, and the cube composes
 with the two partitions like anything else: `| facet(g)` gives one projected box
@@ -58,6 +61,9 @@ data(iris_flowers) + bar * mean + x(species) + y(petal_length) +
   title("Hue and hatch, one legend")
 ```
 
+*"Given the iris flowers: bars derived by mean, x is species, y is petal length,
+color by species, pattern by species."*
+
 ggplot2 has `linetype` for strokes and nothing for the inside of a filled shape;
 hatching a bar there means the third-party ggpattern. So the bar chart above
 stays legible in grayscale and with color-blindness, and ggplot2 needs a second
@@ -76,6 +82,8 @@ data(gapminder_2007) + ribbon * density + x(continent) + y(life) +
   y_label("Life expectancy") + title("ribbon * density: no new word required")
 ```
 
+*"Given gapminder 2007: ribbons derived by density, x is continent, y is life."*
+
 The half violin comes with it, because `area` and `ribbon` already
 differ by where a region closes: `area * density + x(continent) + y(life)`. That
 is what the orthogonality is *for*: not that the plot is possible, but that the
@@ -93,6 +101,9 @@ data(spending) + zone * partition(group) + x(amount) +
   title("a donut is a sunburst of a one-level tree")
 ```
 
+*"Given the spending table: zones derived by partition through group, x is
+amount, y is depth from 0 to 2, color by group, in polar."*
+
 Nothing there is about donuts, and the same `limits` that hollow this out hollow
 the three-level [sunburst](polar.qmd) and leave an empty band under the flat
 icicle, which is what tells you the hole belongs to the scale rather than to the
@@ -109,6 +120,9 @@ about what a shared column means ([Composition](composition.qmd)):
   ((data(gapminder_2007) + point + x(gdp) + y(life)) |
      (data(gapminder_2007) + bar * bin + y(life) + theme(width = 130)))
 ```
+
+*"Given gapminder 2007: bars derived by bin, x is gdp; above points, x is gdp, y
+is life, beside bars derived by bin, y is life."*
 
 That is the whole list. Everything else gog draws, ggplot2 draws too, and
 usually with more settings.
@@ -243,6 +257,9 @@ data(iris_flowers) + point + x(petal_length) + y(sepal_length) +
   color(species) + palette(c("tomato", "steelblue", "seagreen")) +
   title("Rows in the order the table has them")
 ```
+
+*"Given the iris flowers: points, x is petal length, y is sepal length, color by
+species, with a palette of tomato, steelblue and seagreen."*
 
 Now the same sentence and the same palette, over the same rows sorted the other
 way. Watch the legend:

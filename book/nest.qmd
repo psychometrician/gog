@@ -42,6 +42,9 @@ data(gapminder_2007) + bar * sum * stack + y(population) + color(continent) +
   polar() + title("The same shares, as angles")
 ```
 
+*"Given gapminder 2007: bars derived by sum and stack, y is population, color by
+continent, in polar."*
+
 And the same sentence again, packed (one word is gone, and the paragraph below
 says why):
 
@@ -49,6 +52,9 @@ says why):
 data(gapminder_2007) + bar * sum + y(population) + color(continent) +
   nest() + title("The same shares, as areas")
 ```
+
+*"Given gapminder 2007: bars derived by sum, y is population, color by
+continent, in the nest."*
 
 Three pictures, one grammar. Nothing in any of them names a chart: a bar, summed,
 colored by continent, and then a word for the space. Asia is three fifths of
@@ -88,6 +94,9 @@ by its own total, and the rows inside it are packed into that region:
 data(gm_eras) + bar * sum + x(continent) + y(population) + color(era) +
   nest() + title("Two eras, inside each continent")
 ```
+
+*"Given the gapminder eras: bars derived by sum, x is continent, y is
+population, color by era, in the nest."*
 
 Each continent is a region sized by its total across both eras, and inside it the
 two eras are packed against each other. The heavier lines are the continents; the
@@ -140,6 +149,9 @@ data(gapminder_2007) + bar + x(continent) + y(population) + color(continent) +
   text + label(country) + style(color = "white") + nest() +
   title("Countries inside continents")
 ```
+
+*"Given gapminder 2007: bars, x is continent, y is population, color by
+continent, and also text, label by country, in the nest."*
 
 Two layers, and the second is the ordinary `text` mark: `label` says which
 column supplies the string, exactly as it does on a scatter. What it does *not*
@@ -222,6 +234,9 @@ something you write, not something the layout decides for you.
 data(gm_eras) + bar * sum + x(continent) + y(population) + color(era) +
   order(population, desc = TRUE) + nest() + title("Largest continent first")
 ```
+
+*"Given the gapminder eras: bars derived by sum, x is continent, y is
+population, color by era, ordered by population, largest first, in the nest."*
 
 That is the same `order()` that reorders a bar chart, doing the same job here. Had
 the packing sorted on its own, `order()` would have been a word with no effect

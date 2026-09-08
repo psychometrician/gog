@@ -117,6 +117,9 @@ shown <- private[, c("patient", "weight")]
 data(shown) + point + x(weight) + y(patient) + brush(weight)
 ```
 
+*"Given the shown table: points, x is weight, y is patient, and let the reader
+select."*
+
 That sentence names a brush, so this page carries a table. The table it carries
 is `shown`, which has two columns. Bind `private` instead and `email` would be in
 this page too.

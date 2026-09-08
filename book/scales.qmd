@@ -91,6 +91,8 @@ data(gapminder_2007) + bar * bin + x(gdp, scale = "log") +
   title("Bins cut in log space are evenly spaced")
 ```
 
+*"Given gapminder 2007: bars derived by bin, x is gdp on a log scale."*
+
 If the bins had been cut in dollars and only the *drawing* had been
 logarithmic, the first bin alone would cover most of the axis, and the rest
 would crowd into the right edge. That reads as a broken picture rather than
@@ -110,6 +112,9 @@ receipts <- data.frame(
 data(receipts) + bar * sum + x(store) + y(sales, scale = "log") +
   title("A sum is still a sum")
 ```
+
+*"Given the receipts: bars derived by sum, x is store, y is sales on a log
+scale."*
 
 If the scale had been applied first, gog would have added the *logarithms*,
 giving the log of a product, which is not a quantity anyone asked for. Summing
@@ -135,6 +140,9 @@ data(gapminder_2007) + point + x(gdp, scale = "log") + y(life) +
   x_label("GDP per capita") +
   title("A trend fitted against log income")
 ```
+
+*"Given gapminder 2007: points, x is gdp on a log scale, y is life, and also a
+line derived by smooth, x is gdp on a log scale, y is life."*
 
 ## What a log scale refuses
 
@@ -200,6 +208,8 @@ data(octaves) + point + x(freq, scale = "log") + y(level) +
 data(octaves) + point + x(freq, scale = "log", base = 2) + y(level) +
   x_label("Frequency (Hz)") + title("Base 2: gridlines on every octave")
 ```
+
+*"Given the octaves: points, x is freq on a log scale in base 2, y is level."*
 
 The points have not moved. The second chart puts a gridline on each doubling,
 which is what "an octave" means, so for pitch, bits, or doubling times, base 2
@@ -379,6 +389,8 @@ data(gapminder_asia) + area + x(year) + y(life) +
   title("The year axis fits 1952–2007; the ticks fall inside it")
 ```
 
+*"Given gapminder Asia: areas, x is year, y is life, grouped by country."*
+
 Two things are calibrated on top of that fit, each for a reason you can see in
 the plot. A **free end leaves a small margin**, so a mark never touches the
 frame. A point at the exact maximum would otherwise be sliced in half by the
@@ -419,6 +431,9 @@ data(gapminder_2007) + point + x(gdp, scale = "log") + y(life) +
   x_label("GDP per capita") + title("Log color: the ramp is actually used")
 ```
 
+*"Given gapminder 2007: points, x is gdp on a log scale, y is life, color by
+population on a log scale."*
+
 The same is true of `size`, where a linear scale leaves almost every point at
 the minimum radius:
 
@@ -427,6 +442,9 @@ data(gapminder_2007) + point + x(gdp, scale = "log") + y(life) +
   size(population, scale = "log") + style(color = "steelblue") +
   x_label("GDP per capita") + title("Log size")
 ```
+
+*"Given gapminder 2007: points, x is gdp on a log scale, y is life, size by
+population on a log scale."*
 
 Look at the middle of the color legend above. On a linear ramp it is the
 arithmetic midpoint; on a log ramp it is the **geometric** one: √(min · max),
@@ -450,6 +468,8 @@ teaches in full. `limits` states the domain:
 data(tide) + line + x(hour, limits = c(0, 24)) + y(height) + polar() +
   title("The whole day, whatever the gauge happened to catch")
 ```
+
+*"Given the tide: a line, x is hour from 0 to 24, y is height, in polar."*
 
 Without that, one turn would cover 1 to 22 and the first and last readings would
 be drawn on the same spoke. With it, each sits where a clock would put it. The
@@ -493,6 +513,9 @@ data(gapminder_2007) + point * mean + x(continent) + y(life, limits = c(0, NA)) 
   title("y from zero, top still fitted to the data")
 ```
 
+*"Given gapminder 2007: points derived by mean, x is continent, y is life from
+0."*
+
 It is not only for axes. A domain is a property of the scale, so it reaches
 every channel that measures, which is how you hold one color ramp still across
 plots that have different data in them:
@@ -528,6 +551,9 @@ changes nothing. The plot below is identical to the one without it:
 data(gapminder_2007) + bar * mean + x(continent, scale = "category") + y(life) +
   title("Writing it changes nothing")
 ```
+
+*"Given gapminder 2007: bars derived by mean, x is continent as a category, y is
+life."*
 
 What you cannot do is use a scale to contradict the column. Ask for a
 categorical axis on a number and gog refuses:
@@ -566,6 +592,9 @@ which controls the page.
   (data(gapminder_2007) + point + x(gdp, tick_count = 12) + y(life) +
      x_label("GDP per capita") + title("Twelve: for reading values off"))
 ```
+
+*"Given gapminder 2007: points, x is gdp with 3 ticks, y is life, beside the
+same with 12 ticks."*
 
 It is a **target rather than a promise**, and the difference is worth
 understanding because it is not a defect. The count chooses a *step*, and the

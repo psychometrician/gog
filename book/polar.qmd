@@ -53,6 +53,8 @@ Now add one atom to the same sentence:
 data(winds) + bar * count + x(direction) + polar()
 ```
 
+*"Given the winds: bars derived by count, x is direction, in polar."*
+
 Same mark, same transform, same binding, same data. The only thing that changed
 is the space the plot is drawn in, and north-west is beside north because on the
 compass it is beside north. The common west wind is now a shape rather than a
@@ -84,6 +86,9 @@ rewritten for it:
 data(winds) + bar * count * dodge + x(direction) + color(season) + polar()
 ```
 
+*"Given the winds: bars derived by count and dodge, x is direction, color by
+season, in polar."*
+
 `color` splits the count by season, `dodge` sets the two halves of the split side
 by side inside each slot instead of on top of each other, and the legend decodes
 the hues. Every one of those works in a circle exactly as it works on a page,
@@ -102,6 +107,9 @@ ring on top of another:
 ```{r}
 data(winds) + bar * count * stack + x(direction) + color(season) + polar()
 ```
+
+*"Given the winds: bars derived by count and stack, x is direction, color by
+season, in polar."*
 
 Summer lies against the center and winter is stacked on top of it, so each wedge now
 reaches the season total: west runs out to 63, where the dodged rose above
@@ -137,6 +145,9 @@ From there, `polar(start = )` turns the whole space by a number of degrees:
 ```{r}
 data(day_cycle) + line + x(hour) + y(trips) + polar(start = -180)
 ```
+
+*"Given the day cycle: a line, x is hour, y is trips, in polar, starting at
+-180."*
 
 The same day as before, half a turn around. Noon is at the top now and midnight
 at the bottom, which is the right way up if you are reading the working day
@@ -182,6 +193,8 @@ of hours says the day wraps. So say it:
 data(tide) + line + x(hour, limits = c(0, 24)) + y(height) + polar()
 ```
 
+*"Given the tide: a line, x is hour from 0 to 24, y is height, in polar."*
+
 Now each reading sits where a clock would put it: hour 1 a twenty-fourth of a
 turn past midnight, hour 22 a twelfth short of it, and the two are 45 degrees
 apart, which is the three hours they really are.
@@ -207,6 +220,8 @@ a straight line under the curve:
 data(day_cycle) + area + x(hour) + y(trips) + polar()
 ```
 
+*"Given the day cycle: an area, x is hour, y is trips, in polar."*
+
 ## The radar: a categorical angle
 
 A named angle closes differently, and the difference is worth following because
@@ -221,6 +236,9 @@ first. So a path across categories closes:
 data(gapminder_2007) + line * mean + x(continent) + y(life) + polar() +
   title("line * mean + x(continent) + polar()")
 ```
+
+*"Given gapminder 2007: a line derived by mean, x is continent, y is life, in
+polar."*
 
 That is a radar plot, and there is no `radar` atom in this grammar: the same
 sentence flat is the profile from the [Line](marks/line.qmd) chapter, with a
@@ -258,6 +276,9 @@ around a circle:
 data(winds) + point + x(bearing) + y(speed) + color(season) + polar()
 ```
 
+*"Given the winds: points, x is bearing, y is speed, color by season, in
+polar."*
+
 Each dot sits at its own bearing, at the radius its speed sets, and the eight
 clusters the observations were recorded in are visible as clusters rather than as
 eight separate columns. The radial gridlines are read outward from the center,
@@ -269,6 +290,8 @@ bars:
 ```{r}
 data(winds) + bar * bin + x(bearing) + polar()
 ```
+
+*"Given the winds: bars derived by bin, x is bearing, in polar."*
 
 That is the *rosa ventorum*, Latin for wind rose, that cartographers drew by hand from the 13th
 century, and it is one atom different from a histogram: `bar * bin` in both
@@ -336,6 +359,9 @@ weighted by how hard the wind blew rather than by how often:
 data(winds) + bar * sum * stack + y(speed) + color(direction) + polar()
 ```
 
+*"Given the winds: bars derived by sum and stack, y is speed, color by
+direction, in polar."*
+
 Compare it with the pie above: the same categories, a different answer. West is
 both the commonest direction and the strongest, so its slice widens from about a
 quarter of the circle to a third. Winds from the north and south are the gentlest,
@@ -347,6 +373,9 @@ And `proportion` puts the shares on the axis rather than leaving them implied:
 ```{r}
 data(winds) + bar * proportion * stack + color(season) + polar()
 ```
+
+*"Given the winds: bars derived by proportion and stack, color by season, in
+polar."*
 
 The split has to be there. A stack with nothing to pile, or a bar with neither a
 position nor a split, is refused rather than guessed at. So is a statistic
@@ -390,6 +419,8 @@ the geometry changed.
 data(winds) + box + x(direction) + y(speed) + polar()
 ```
 
+*"Given the winds: boxes, x is direction, y is speed, in polar."*
+
 Each box is a wedge of the ring between its quartiles, its median an arc across
 it, its whiskers running straight out from the center. Compare it with the same
 sentence flat and nothing has been added or taken away.
@@ -401,6 +432,9 @@ quartiles are more detail than the question needs:
 data(winds) + interval * range + x(direction) + y(speed) + polar()
 ```
 
+*"Given the winds: intervals derived by range, x is direction, y is speed, in
+polar."*
+
 A band works the same way, and gives the shape that has a name of its own: bind
 a low and a high boundary across the compass and `polar()` turns it into the
 **radar band**, the filled counterpart of the radar `line` already drew.
@@ -408,6 +442,9 @@ a low and a high boundary across the compass and `polar()` turns it into the
 ```{r}
 data(winds) + ribbon * range + x(direction) + y(speed) + polar()
 ```
+
+*"Given the winds: a ribbon derived by range, x is direction, y is speed, in
+polar."*
 
 A staircase holds each value across its own slot rather than sloping between
 them, so in a circle it is a ring of arcs joined by radial jumps. And because the
@@ -417,6 +454,9 @@ and the shape closes:
 ```{r}
 data(winds) + step * mean + x(direction) + y(speed) + polar()
 ```
+
+*"Given the winds: a step outline derived by mean, x is direction, y is speed,
+in polar."*
 
 Look at where the value changes. Every jump is a straight line out from the
 center, and every held value is a genuine arc rather than a chord cutting across
@@ -431,6 +471,9 @@ plot bent into a disc, a cell per pair:
 ```{r}
 data(winds) + zone * count + x(direction) + y(season) + polar()
 ```
+
+*"Given the winds: zones derived by count, x is direction, y is season, in
+polar."*
 
 The one thing that does not bend is `surface`, and it is not a polar refusal: a
 sheet through three positions has no reading in a space with two, which is the
@@ -482,6 +525,9 @@ worth naming, so it reaches the second level and no further.
 data(spending) + zone * partition(group, item, detail) + x(amount) +
   color(group) + polar()
 ```
+
+*"Given the spending table: zones derived by partition through group, item and
+detail, x is amount, color by group, in polar."*
 
 `partition(group, item, detail)` names the levels from the top of the tree down,
 so `group` is the innermost ring and `detail` the rim. `x(amount)` is what each branch is
@@ -549,6 +595,10 @@ data(spending) + x(amount) + y(depth, limits = c(0, 2)) +
   text * partition(group) + label(name) + style(color = "white") +
   polar() + x_label("")
 ```
+
+*"Given the spending table: x is amount, y is depth from 0 to 2, zones derived
+by partition through group, color by group, and also text derived by partition
+through group, label by name, in polar."*
 
 The legend is now saying twice what the ring says once, so one of them should go.
 The chapter keeps both, so that the two ways of decoding a wedge sit side by side.

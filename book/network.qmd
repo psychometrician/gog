@@ -68,6 +68,11 @@ data(trade_partners) +
   title("Who trades with whom")
 ```
 
+*"Given trade partners: edges derived by layout from exporter to importer, and
+also points derived by layout from exporter to importer, size by degree, and
+also text derived by layout from exporter to importer and repel, label by name,
+in the network."*
+
 The nodes with the most relations end up near the middle. No row of the
 table says that the United States, China and Germany are centers of trade;
 saying it is what the layout is for.
@@ -87,6 +92,11 @@ data(trade_partners) +
   title("Heavier trade, darker stroke")
 ```
 
+*"Given trade partners: edges derived by layout from exporter to importer,
+opacity by billions, and also points derived by layout from exporter to
+importer, size by degree, and also text derived by layout from exporter to
+importer and repel, label by name, in the network."*
+
 A node is different. A node stands for many rows, and those rows carry
 different values. So a node layer maps only `name` and `degree`, and any
 other column is refused toward the `edge` layer, where it belongs.
@@ -103,6 +113,10 @@ data(trade_partners) +
   network(turn = 35, tilt = 20) +
   title("The same network, given depth")
 ```
+
+*"Given trade partners: edges derived by layout from exporter to importer,
+opacity by billions, and also points derived by layout from exporter to
+importer, size by degree, in the network, turned 35, tilted 20."*
 
 There is no third column behind this and nothing to bind to `z`. The third
 dimension belongs to the space, exactly as the viewing angle does, so asking

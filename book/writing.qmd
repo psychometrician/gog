@@ -40,6 +40,8 @@ country. Swap the mark and give it a derivation; everything else stays:
 data(gapminder_2007) + bar * mean + x(continent) + y(life)
 ```
 
+*"Given gapminder 2007: bars derived by mean, x is continent, y is life."*
+
 A comparison reads best in order. A categorical column can carry a fixed
 order, declared where the data is made. The order wanted here depends on the
 means this plot just computed, so only the sentence can ask for it: `order()`
@@ -49,6 +51,9 @@ sorts the axis by the column you name:
 data(gapminder_2007) + bar * mean + x(continent) + y(life) +
   order(life, desc = TRUE)
 ```
+
+*"Given gapminder 2007: bars derived by mean, x is continent, y is life, ordered
+by life, largest first."*
 
 Three steps, and no step rewrote the sentence: words were added or swapped,
 never restructured. That is what composition gives you: each step keeps every
@@ -63,9 +68,14 @@ one-variable question first, then the same question split by species.
 data(iris_flowers) + bar * bin + x(petal_length)
 ```
 
+*"Given the iris flowers: bars derived by bin, x is petal length."*
+
 ```{r}
 data(iris_flowers) + bar * bin + x(petal_length) + color(species)
 ```
+
+*"Given the iris flowers: bars derived by bin, x is petal length, color by
+species."*
 
 And if the overlap bothers you, one mark changes it: `step` draws each bin's
 height as an unfilled line, so the three species never cover each other:
@@ -73,6 +83,9 @@ height as an unfilled line, so the three species never cover each other:
 ```{r}
 data(iris_flowers) + step * bin + x(petal_length) + color(species)
 ```
+
+*"Given the iris flowers: step outlines derived by bin, x is petal length, color by
+species."*
 
 The transform never changed. `bin` cut the same intervals all three times;
 only the mark drawing them changed. A derivation you learn once works with
@@ -90,8 +103,8 @@ data(gapminder_2007) + point +
   title("The health and wealth of nations, 2007")
 ```
 
-*"Given gapminder 2007: points, x is gdp on a log scale, y is life, color
-by continent, size by population, titled."* Three atoms added to the minimum
+*"Given gapminder 2007: points, x is gdp on a log scale, y is life, color by
+continent, size by population."* Three atoms added to the minimum
 sentence (`color`, `size` and `title`; the log scale rides inside `x` rather
 than counting as a word), and still no new grammar in it.
 
@@ -150,7 +163,7 @@ data(iris_flowers) + point +
   color(species)
 ```
 
-*"Given iris flowers: points, x is sepal length, y is sepal width, z is
+*"Given the iris flowers: points, x is sepal length, y is sepal width, z is
 petal length, color by species."* The cube again, and you wrote it yourself
 this time.
 

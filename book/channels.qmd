@@ -73,6 +73,8 @@ data(gapminder_2007) + point + x(gdp) + y(life) +
   color(continent)
 ```
 
+*"Given gapminder 2007: points, x is gdp, y is life, color by continent."*
+
 A **numeric** column asks *"how much?"* Its values run along a **ramp**. A ramp
 is a range of colors that a number is placed along, the way an axis is a range
 of positions. This one runs light to dark, and the legend is the ramp itself,
@@ -111,6 +113,9 @@ data(gapminder_asia) + x(year) + y(life) + color(country) +
   line + point
 ```
 
+*"Given gapminder Asia: x is year, y is life, color by country, lines and also
+points."*
+
 Position decides which layers a channel reaches. `color(country)` is written
 *before* any mark above, so it belongs to the plot and colors both the
 lines and the points. Written *after* a mark it binds to that mark alone:
@@ -120,6 +125,9 @@ data(gapminder_asia) + x(year) + y(life) +
   line  + color(country) +
   point + size(population)
 ```
+
+*"Given gapminder Asia: x is year, y is life, lines, color by country, and also
+points, size by population."*
 
 Channels bind forward, never backward. See
 [Encoding scope](encoding-scope.qmd).
@@ -156,6 +164,8 @@ data(gapminder_2007) + point + x(gdp) + y(life) +
   shape(continent)
 ```
 
+*"Given gapminder 2007: points, x is gdp, y is life, shape by continent."*
+
 `color` and `shape` can be bound to the same column. This is redundant
 encoding of the grouping, and it improves accessibility:
 
@@ -181,6 +191,9 @@ data(iris_flowers) + bar * mean + x(species) + y(petal_length) +
   pattern(species) + y_label("Mean petal length (cm)")
 ```
 
+*"Given the iris flowers: bars derived by mean, x is species, y is petal length,
+pattern by species."*
+
 The point of the channel is **redundant encoding**: the same column on `color`
 *and* `pattern`, so a reader separates the series by hue *and* by texture at once (the
 accessibility best practice). gog draws these as **one merged legend**, not two:
@@ -194,6 +207,9 @@ sales <- data.frame(
 data(sales) + bar * sum * dodge + x(quarter) + y(revenue) + color(channel) +
   pattern(channel) + title("Grouped bars, separated by hue and hatch")
 ```
+
+*"Given the sales table: bars derived by sum and dodge, x is quarter, y is
+revenue, color by channel, pattern by channel."*
 
 On a stroke the same channel dashes each series instead, giving a line chart
 with no color:
@@ -226,6 +242,8 @@ data(gapminder_2007) + point + x(gdp) + y(life) + opacity(population) +
   title("Opacity: larger populations drawn more solidly")
 ```
 
+*"Given gapminder 2007: points, x is gdp, y is life, opacity by population."*
+
 Mapped values run from 0.15 to 0.95 rather than 0 to 1: a fully transparent mark
 is invisible, which is never what a reader wants. Marks with no `opacity`
 binding are drawn at 0.82, unless [`style(opacity = )`](style.qmd) sets one.
@@ -250,6 +268,9 @@ data(gapminder_asia) + line + x(year) + y(life) + group(country) +
   style(opacity = 0.4)
 ```
 
+*"Given gapminder Asia: lines, x is year, y is life, grouped by country, with
+opacity 0.4."*
+
 To distinguish lines *by data*, use `color` or `group`.
 
 `color` is the one that does not follow `size` and `opacity` here, and the
@@ -265,6 +286,9 @@ data(gapminder_asia) + line + x(year) + y(life) + group(country) +
   color(gdp, scale = "log") + palette("viridis") +
   y_label("Life expectancy") + title("One line per country, colored by income")
 ```
+
+*"Given gapminder Asia: lines, x is year, y is life, grouped by country, color
+by gdp on a log scale, with the viridis palette."*
 
 A category on `color` splits the mark into one stroke per group, as it always
 has. A measure varies the color *along* each stroke and earns the ramp legend
@@ -350,6 +374,9 @@ data(gapminder_2007) + bar * count + x(continent) + color(continent) +
   title("The default, over filled bars")
 ```
 
+*"Given gapminder 2007: bars derived by count, x is continent, color by
+continent."*
+
 ```{r}
 data(gapminder_2007) + bar * count + x(continent) + color(continent) +
   palette("soft") + title("palette(\"soft\")")
@@ -396,6 +423,11 @@ one page:
      (data(maunga_whau) + zone * bin(16) * mean + x(east) + y(north) +
         color(elevation) + palette("gray") + title("gray")))
 ```
+
+*"Given Maunga Whau: zones derived by bin into 16 and mean, x is east, y is
+north, color by elevation, with the viridis palette, beside the same with magma;
+above the same pair with inferno and plasma; above the same pair with cividis
+and gray."*
 
 That is the same sentence six times with one word changed, written out rather
 than wrapped in a helper, because a helper would be an R function and this book
@@ -474,6 +506,9 @@ data(cashflow) + point + x(step) + y(delta) +
   title("limits = c(-120, 120) puts zero on the neutral")
 ```
 
+*"Given the cashflow table: points, x is step, y is delta, color by delta from
+-120 to 120, with the blue red palette."*
+
 Two things follow from doing it this way. The ramp stays **linear**: equal
 distance in color is equal distance in the data on both sides of the center,
 which is not true of a scale that pins a midpoint and then stretches each
@@ -491,6 +526,9 @@ data(gapminder_2007) + point + x(gdp) + y(life) +
   color(life) + palette(c("white", "navy")) + style(size = 6) +
   title("Custom stops")
 ```
+
+*"Given gapminder 2007: points, x is gdp, y is life, color by life, with a
+palette of white and navy."*
 
 Asking for a palette of the wrong kind is refused rather than guessed at. A
 categorical palette cannot serve a numeric column:

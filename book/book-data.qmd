@@ -131,7 +131,8 @@ winds_local$direction <- factor(winds_local$direction, levels = compass)
 data(winds_local) + bar * count + x(direction) + polar()
 ```
 
-*"Given the winds read from the file: bars derived by count, x is direction."*
+*"Given the winds read from the file: bars derived by count, x is direction, in
+polar."*
 
 The directions now follow the compass, from N clockwise to NW. Without the
 third line the circle would start at E, and the wind rose (the circular count

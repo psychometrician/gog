@@ -44,6 +44,9 @@ Two properties matter most, and a projection can keep one of them, never both.
      map(preserve = "angle") + title("preserve = \"angle\""))
 ```
 
+*"Given the world borders: paths, x is lon, y is lat, grouped by piece, in the
+map space preserving area, above the same preserving angle."*
+
 The world map above is a table like any other, and the next section reads it
 column by column.
 
@@ -94,6 +97,9 @@ data(world_borders) + path + x(lon) + y(lat) + group(piece) +
   map() + title("A thousand earthquakes, and where Fiji is")
 ```
 
+*"Given the world borders: paths, x is lon, y is lat, grouped by piece; then
+given quakes Fiji: points, x is east, y is north, in the map space."*
+
 The earthquakes now sit somewhere a reader can find. Nothing in the sentence is
 new: two tables, two marks, and the second `data()` binds to the mark that
 follows it.
@@ -114,6 +120,10 @@ data(world_borders) + path + x(lon) + y(lat) + group(piece) +
   map() + title("Sized by magnitude")
 ```
 
+*"Given the world borders: paths, x is lon, y is lat, grouped by piece; then
+given quakes Fiji: points, x is east, y is north, size by magnitude, in the map
+space."*
+
 That plot has a name, the **proportional-symbol map**, and no single atom draws
 it. It is `point` with `size` bound, in this space.
 
@@ -124,6 +134,9 @@ data(world_borders) + path + x(lon) + y(lat) + group(piece) +
   color(continent) + map() +
   title("Each continent in its own color")
 ```
+
+*"Given the world borders: paths, x is lon, y is lat, grouped by piece, color by
+continent, in the map space."*
 
 ## Meridians and parallels
 
@@ -140,6 +153,9 @@ data(world_borders) + path + x(lon) + y(lat) + group(piece) +
   data(lines_of) + rule + y(lat) + style(color = "#d4674f") +
   map() + title("The equator")
 ```
+
+*"Given the world borders: paths, x is lon, y is lat, grouped by piece; then
+given the lines of table: a rule, y is lat, in the map space."*
 
 A `rule` takes its position from a column, like every other mark, so the line
 above comes from a one-row table. That is the same way a reference line is drawn
@@ -167,6 +183,10 @@ data(world_borders) + path + x(lon) + y(lat) + group(piece) +
   style(nudge = "up", size = 11) +
   map() + title("Five cities")
 ```
+
+*"Given the world borders: paths, x is lon, y is lat, grouped by piece; then
+given the capitals: points, x is lon, y is lat; then given the capitals: text, x
+is lon, y is lat, label by name, in the map space."*
 
 ## What a map refuses
 
@@ -235,6 +255,9 @@ to which region, and `group` is that word already:
 data(world_borders) + zone + x(lon) + y(lat) + group(country) +
   color(continent) + map() + title("Every country, filled by continent")
 ```
+
+*"Given the world borders: zones, x is lon, y is lat, grouped by country, color
+by continent, in the map space."*
 
 Compare that with the outline map earlier. Only two things changed: `path`
 became `zone`, and `group(piece)` became `group(country)`. A `path` traces one

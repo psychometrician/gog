@@ -39,6 +39,9 @@ data(gapminder_2007) + point + x(gdp) + y(life) + color(continent) +
   theme(width = 620) + brush(gdp, at = c(20000, 60000))
 ```
 
+*"Given gapminder 2007: points, x is gdp, y is life, color by continent, and let
+the reader select gdp, starting from 20000 to 60000."*
+
 The thirty or so countries above 20,000 dollars keep their color, and you can
 see at once that they sit almost entirely above 75 years. That is closer to an
 annotation than to a tool: the sentence has done the selecting, and a reader can
@@ -64,6 +67,8 @@ One range, one mark, two outcomes:
 data(gapminder_2007) + point + x(gdp, limits = c(20000, 60000)) + y(life) +
   theme(width = 620, height = 300) + title("limits: 109 countries gone")
 ```
+
+*"Given gapminder 2007: points, x is gdp from 20000 to 60000, y is life."*
 
 ```{r}
 data(gapminder_2007) + point + x(gdp) + y(life) +
@@ -96,6 +101,10 @@ data(gapminder_2007) + point + x(gdp) + y(life) + color(continent) +
   theme(width = 620) + brush(gdp, at = c(20000, 60000)) + brush(life, at = c(78, 85))
 ```
 
+*"Given gapminder 2007: points, x is gdp, y is life, color by continent, and let
+the reader select gdp, starting from 20000 to 60000, and life, starting from 78
+to 85."*
+
 The rich countries that also live longest. Six of the countries that survived
 the first bound do not survive this one, and you can see exactly which six,
 because they are still on the page.
@@ -113,6 +122,9 @@ range. Names are a set of slots:
 data(gapminder_2007) + point + x(continent) + y(life) + color(continent) +
   theme(width = 620) + brush(continent, at = c("Europe", "Oceania"))
 ```
+
+*"Given gapminder 2007: points, x is continent, y is life, color by continent,
+and let the reader select continent, starting with Europe and Oceania."*
 
 One word, two readings, decided by the column rather than by a second atom. Drag
 across the slots and the selection follows them, whole slots at a time, because
@@ -152,6 +164,10 @@ that needs a second picture:
      brush(gdp, at = c(20000, 60000)) + theme(height = 200))
 ```
 
+*"Given gapminder 2007: points, x is gdp, y is life, and let the reader select
+gdp, starting from 20000 to 60000, above points, x is gdp, y is population on a
+log scale, and let the reader select gdp, starting from 20000 to 60000."*
+
 Two plots, one page, and one bound lighting the same countries in both. Drag in
 either and the other follows. The rich countries live long, which the top plot
 says; they are also mostly small, which only the bottom one says, and neither
@@ -179,6 +195,9 @@ data(gapminder_2007) + point + x(gdp) + y(life) +
   brush(gdp, at = c(20000, 60000)) | facet(continent)
 ```
 
+*"Given gapminder 2007: points, x is gdp, y is life, and let the reader select
+gdp, starting from 20000 to 60000, split into panel columns by continent."*
+
 Five panels, one bound, and the rich countries keeping their color in each.
 Europe has many and Africa has none, which is the comparison the split was made
 for. Again nothing was added: `facet` divides the rows and `brush` dims the
@@ -199,6 +218,9 @@ data(gapminder_2007) + point + x(gdp) + y(life) +
   text + label(country) + style(size = 7) +
   brush(gdp, at = c(30000, 60000)) + theme(width = 620)
 ```
+
+*"Given gapminder 2007: points, x is gdp, y is life, and also text, label by
+country, and let the reader select gdp, starting from 30000 to 60000."*
 
 A hundred and forty-two labels is unreadable, and that is what selection
 answers: the ones you did not select are dimmed with their points, and about
@@ -255,6 +277,9 @@ data(gapminder_2007) + point + x(gdp) + y(life) +
   brush(gdp, at = c(20000, 60000))
 ```
 
+*"Given gapminder 2007: points, x is gdp, y is life, and also a line derived by
+smooth, and let the reader select gdp, starting from 20000 to 60000."*
+
 The points answer the selection and the trend line does not, so the line is
 drawn once, at full strength, through all 142 countries. That is the right
 answer: a trend fitted to the selection alone would be a different statistic,
@@ -279,6 +304,10 @@ tested again inside every frame:
 data(gm_all) + point + x(gdp, scale = "log") + y(life) + color(continent) +
   theme(width = 620) + play(year) + brush(gdp, at = c(3000, 20000))
 ```
+
+*"Given all the gapminder years: points, x is gdp on a log scale, y is life,
+color by continent, played by year, and let the reader select gdp, starting from
+3000 to 20000."*
 
 Watch countries cross into the selection, frame by frame. The bound stays at
 3,000 to 20,000 dollars while the countries move. In 1952 the selected group is
@@ -344,6 +373,10 @@ ideas, and none of them was taught about the others. So they compose:
 data(gm_all) + point + x(gdp, scale = "log") + y(life) + z(population) +
   color(continent) + play(year) + brush(gdp, at = c(3000, 20000))
 ```
+
+*"Given all the gapminder years: points, x is gdp on a log scale, y is life, z
+is population, color by continent, played by year, and let the reader select
+gdp, starting from 3000 to 20000."*
 
 A cube of 142 countries, twelve frames, and one bound tested inside every one
 of them. Drag the plot to turn it and the selection turns with the cloud, because

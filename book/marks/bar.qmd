@@ -47,6 +47,8 @@ data(medals) + bar + x(country) + y(gold) +
   color(country)
 ```
 
+*"Given the medals: bars, x is country, y is gold, color by country."*
+
 ## Ordering bars
 
 `order()` controls the sequence of categories along whichever axis carries
@@ -71,6 +73,9 @@ data(medals) + bar + x(country) + y(gold) +
   order(gold, desc = TRUE) +
   title("Gold medals: largest first")
 ```
+
+*"Given the medals: bars, x is country, y is gold, ordered by gold, largest
+first."*
 
 **By value, ascending**, smallest first, useful when scanning for the lowest values:
 
@@ -129,6 +134,9 @@ data(medals_dup) + bar * sum + x(country) + y(gold) +
   order(gold, desc = TRUE) + title("Totals: bar * sum")
 ```
 
+*"Given the medals dup table: bars derived by sum, x is country, y is gold,
+ordered by gold, largest first."*
+
 `bar * sum` and `order()` compose freely, because they do different jobs. `sum`
 totals the values; `order()` sorts the categories those totals land on.
 
@@ -155,6 +163,9 @@ data(balance) + bar + x(quarter) + y(profit) + color(result) +
   palette(c("firebrick", "seagreen")) +
   title("Red below zero, green above")
 ```
+
+*"Given the balance table: bars, x is quarter, y is profit, color by result,
+with a palette of firebrick and seagreen."*
 
 `palette()` hands its colors out in **category order**, and that is why `result`
 is a factor here instead of a plain character column. Left to itself a character
@@ -228,6 +239,8 @@ data(medals) + bar + x(country) + y(gold) +
   title("A hatched bar reads without color")
 ```
 
+*"Given the medals: bars, x is country, y is gold, with pattern hatch."*
+
 The five fill textures are `"solid"` (the default), `"hatch"`, `"crosshatch"`,
 `"grid"`, and `"dots"`; the
 [style chapter](../style.qmd) lays them out beside the strokes' dash, `style(pattern
@@ -245,6 +258,8 @@ data(gapminder_2007) + bar * bin + x(life) + y(count) +
   x_label("Life expectancy (years)") + y_label("Count") +
   title("Histogram of life expectancy, 2007")
 ```
+
+*"Given gapminder 2007: bars derived by bin, x is life, y is count."*
 
 Thickness is automatic, and it is the one place a histogram and a bar chart
 differ. A **categorical** bar fills 80% of the gap to its neighbor, leaving the space
@@ -292,6 +307,9 @@ data(iris_flowers) + bar * bin + x(petal_length) + color(species) +
   title("A heavier fill: style(opacity = 0.6)")
 ```
 
+*"Given the iris flowers: bars derived by bin, x is petal length, color by
+species, with opacity 0.6."*
+
 The outline is the series color by default, but you can recolor it:
 `style(border_color = )` sets the border, `style(border_size = )` its width. A white
 border cleanly parts the overlapping fills, the way many overlaid histograms are
@@ -302,6 +320,9 @@ data(iris_flowers) + bar * bin + x(petal_length) + color(species) +
   style(border_color = "white", border_size = 1.5) +
   x_label("Petal length (cm)") + title("White borders between the fills")
 ```
+
+*"Given the iris flowers: bars derived by bin, x is petal length, color by
+species, with border color white and border size 1.5."*
 
 The fill and the outline are independent: a bar can be one color inside and
 another at its edge, whether the fill was mapped (as here) or set. See
@@ -340,6 +361,9 @@ data(gm_eras) + bar * mean * dodge + x(continent) + y(life) + color(era) +
   title("Mean life expectancy by continent, 1957 vs 2007")
 ```
 
+*"Given the gapminder eras: bars derived by mean and dodge, x is continent, y is
+life, color by era."*
+
 `dodge` is a collision modifier: it moves the bars rather than summarizing them,
 so it composes with the statistic (`bar * mean * dodge` here, `bar * count * dodge`
 for tallies). See [Transforms](../transforms.qmd) for the whole family.
@@ -355,6 +379,9 @@ data(gm_eras) + bar * sum * stack + x(continent) + y(population) + color(era) +
   y_label("Population") +
   title("Population by continent, 1957 and 2007 stacked")
 ```
+
+*"Given the gapminder eras: bars derived by sum and stack, x is continent, y is
+population, color by era."*
 
 `dodge` compares the groups (equal baselines, side by side); `stack` sums them
 (one bar, segments piled). Use `stack` when the parts add to a meaningful
@@ -375,6 +402,9 @@ are the only thing left to read:
 data(gm_eras) + bar * sum * stack(share = TRUE) + x(continent) + y(population) +
   color(era) + title("Each continent's 1957/2007 split, filled to one")
 ```
+
+*"Given the gapminder eras: bars derived by sum and stack as shares, x is
+continent, y is population, color by era."*
 
 Now the comparison is between continents rather than inside one, and two
 continents show the range. **Africa** is the most lopsided: 78% of its two-era total
@@ -413,6 +443,9 @@ data(medals) + bar * sum + x(country) + y(gold) +
         border_color = "black", border_size = 1) +
   y_label("Gold medals") + title("A fill, a texture, and a border")
 ```
+
+*"Given the medals: bars derived by sum, x is country, y is gold, colored
+goldenrod, with pattern crosshatch, border color black and border size 1."*
 
 The `pattern` values here are the five **fill textures**, not the three dashes a
 `line` takes. One setting name, one realization per geometry, so a plot that has

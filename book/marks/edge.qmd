@@ -48,6 +48,10 @@ data(trade_partners) +
   title("Heavier trade, darker stroke")
 ```
 
+*"Given trade partners: edges derived by layout from exporter to importer,
+opacity by billions, and also points derived by layout from exporter to
+importer, in the network."*
+
 On `line`, `opacity` is only a setting, because a line is one stroke with one
 value. An edge layer is many strokes, and each row carries its own.
 
@@ -61,6 +65,10 @@ data(trade_partners) +
   network() +
   title("Each stroke, colored by its exporter")
 ```
+
+*"Given trade partners: edges derived by layout from exporter to importer, color
+by exporter, and also points derived by layout from exporter to importer, in the
+network."*
 
 ## What you can set
 

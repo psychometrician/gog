@@ -53,6 +53,9 @@ data(world_borders) + path + x(lon) + y(lat) + group(piece) +
   globe(turn = 178, tilt = -18) + title("The map chapter's layers, kept round")
 ```
 
+*"Given the world borders: paths, x is lon, y is lat, grouped by piece; then
+given quakes Fiji: points, x is east, y is north, on the globe."*
+
 Read the message above the plot. The coastline table covers the whole earth,
 so most of its rows face away from any one view, while every earthquake faces
 this one. Turning the globe brings the hidden rows around:
@@ -133,6 +136,11 @@ data(world_borders) + path + x(lon) + y(lat) + group(piece) +
   globe(turn = 95, tilt = 30) + title("Routes between cities")
 ```
 
+*"Given the world borders: paths, x is lon, y is lat, grouped by piece; then
+given the routes: paths, x is lon, y is lat, grouped by route; then given the
+cities: points, x is lon, y is lat; then given the cities: text, x is lon, y is
+lat, label by city, on the globe."*
+
 Looking up each city's longitude and latitude is the host language's job,
 the same join the spike section below does for country centers. What the
 sentence adds is only the layers: routes, cities, names, each reading its
@@ -160,6 +168,9 @@ data(world_borders) + path + x(lon) + y(lat) + group(piece) +
   globe(turn = 20, tilt = 30) + title("The equator, held whole")
 ```
 
+*"Given the world borders: paths, x is lon, y is lat, grouped by piece; then
+given the lines of table: a rule, y is lat, on the globe."*
+
 A rule on `y` is a parallel, a circle of constant latitude. A rule on `x` is a
 meridian, and it runs pole to pole.
 
@@ -173,6 +184,9 @@ data(world_borders) + zone + x(lon) + y(lat) + group(country) +
   color(continent) + globe(turn = 20, tilt = 5) +
   title("Every country, filled by continent")
 ```
+
+*"Given the world borders: zones, x is lon, y is lat, grouped by country, color
+by continent, on the globe."*
 
 Look at the countries the edge of the disk cuts through. A shape the horizon
 cuts is closed again along it, so a half-visible country is still a filled
@@ -201,6 +215,10 @@ data(world_borders) + path + x(lon) + y(lat) + group(piece) +
   globe(turn = 20, tilt = 12) +
   title("World population, standing on its places")
 ```
+
+*"Given the world borders: paths, x is lon, y is lat, grouped by piece; then
+given the spikes: bars, x is lon, y is lat, z is reach, color by continent, on
+the globe."*
 
 Finding a country's center and joining the population are the host language's
 job, as the join was on the map. So is shaping the measure: the square root
@@ -237,6 +255,9 @@ data(quakes_fiji) + point + x(east) + y(north) + z(elevation) +
   color(slab) + space(turn = 130, tilt = 25) +
   title("The same earthquakes, read by depth")
 ```
+
+*"Given quakes Fiji: points, x is east, y is north, z is elevation, color by
+slab."*
 
 Drag this one too: the globe turns the earth, and the cube turns the cloud,
 one gesture for both. The epicenters this chapter has drawn are the view from

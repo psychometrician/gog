@@ -20,7 +20,8 @@ solid outline:
 data(iris_flowers) + bar * bin + x(petal_length) + color(species)
 ```
 
-*"Bars derived by bin: x is petal length, color by species."* The
+*"Given the iris flowers: bars derived by bin, x is petal length, color by
+species."* The
 outline is what keeps each species' silhouette readable where the fills
 overlap.
 
@@ -32,6 +33,9 @@ an unfilled staircase, so nothing can hide anything:
 ```{r}
 data(iris_flowers) + step * bin + x(petal_length) + color(species)
 ```
+
+*"Given the iris flowers: step outlines derived by bin, x is petal length, color
+by species."*
 
 One mark swapped, nothing else. [Step](../marks/step.qmd) owns the
 staircase.
@@ -46,6 +50,8 @@ without coloring:
 data(gapminder_asia) + line + x(year) + y(life) + group(country)
 ```
 
+*"Given gapminder Asia: lines, x is year, y is life, grouped by country."*
+
 Five countries, five lines, no legend: the shape of the bundle is the
 answer. Bind [`color`](../channels.qmd) instead when the reader needs to
 know which is which.
@@ -59,6 +65,9 @@ shared so panels stay comparable:
 ```{r}
 data(gapminder_2007) + bar * bin + x(life) | facet(continent)
 ```
+
+*"Given gapminder 2007: bars derived by bin, x is life, split into panel columns
+by continent."*
 
 Five distributions on one common axis, cut into one common set of bins and
 counted continent by continent. Compare the shapes column by column: Africa's
@@ -80,6 +89,9 @@ data(gm_years) + point + x(gdp, scale = "log") + y(life) |
   facet(continent) / facet(period)
 ```
 
+*"Given the gm years table: points, x is gdp on a log scale, y is life, split
+into panel columns by continent and panel rows by period."*
+
 Fifty years of change, read down each continent's column. The `period`
 column exists because a facet variable names panels, which is also what
 the [Over time](over-time.qmd) refusal is about.
@@ -92,6 +104,9 @@ say "order me by value"; that is what `order()` is for:
 ```{r}
 data(medals) + bar + x(country) + y(gold) + order(gold, desc = TRUE)
 ```
+
+*"Given the medals: bars, x is country, y is gold, ordered by gold, largest
+first."*
 
 **One atom away.** `desc = FALSE` (the default) for ascending; naming a column
 other than the axis's own, as here, also overrides a

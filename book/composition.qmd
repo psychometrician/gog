@@ -28,7 +28,8 @@ what you write on the right of the operator, and by nothing else.
   (data(gapminder_2007) + bar * count + x(continent) + theme(tick_angle = 45))
 ```
 
-*"Points, x is gdp, y is life, beside bars derived by count, x is continent."*
+*"Given gapminder 2007: points, x is gdp, y is life, beside bars derived by
+count, x is continent."*
 
 Two entirely different measurements: a country's income against its life
 expectancy, and how many countries each continent holds. They share nothing,
@@ -41,6 +42,9 @@ page divides evenly between them.
 (data(gapminder_2007) + point + x(gdp) + y(life)) /
   (data(gapminder_2007) + bar * count + x(continent))
 ```
+
+*"Given gapminder 2007: points, x is gdp, y is life, above bars derived by
+count, x is continent."*
 
 Both operators take pages as well as plots, so a page can hold another page:
 `(a | b) / c` is two plots in a row above one across the bottom. In R, and in
@@ -65,6 +69,9 @@ Here are two plots, both reading `gdp` on x:
   (data(gapminder_2007) + point + x(gdp) + y(life))
 ```
 
+*"Given gapminder 2007: bars derived by bin, x is gdp, above points, x is gdp, y
+is life."*
+
 Look at what the rule did. The histogram's panel is exactly as wide as the
 scatter's, so a bar stands over the points it counts. Both plots measure `gdp`
 over the same range, so the bar edges and the point positions mean the same
@@ -83,6 +90,9 @@ Compose two plots that both map `color` and you get two legends, one for each:
 (data(gapminder_2007) + point + x(gdp) + y(life) + color(continent)) |
   (data(gapminder_2007) + point + x(population) + y(life) + color(continent))
 ```
+
+*"Given gapminder 2007: points, x is gdp, y is life, color by continent, beside
+points, x is population, y is life, color by continent."*
 
 Look at what that figure draws once, and what it draws twice. Both plots read
 `life` on `y`, so that axis is shared and written a single time, on the left.
@@ -116,6 +126,9 @@ most tools offer as a named chart type:
      (data(gapminder_2007) + bar * bin + y(life) + theme(width = 130)))
 ```
 
+*"Given gapminder 2007: bars derived by bin, x is gdp, above points, x is gdp, y
+is life, beside bars derived by bin, y is life."*
+
 Three ordinary plots and two operators. The top histogram shares `gdp` with the
 scatter, so it is squeezed to the scatter's panel. The right-hand one shares
 `life`, so it is aligned to the scatter's rows, and the `life` axis is drawn
@@ -132,6 +145,9 @@ stands over the points it summarizes, one category at a time:
 (data(gapminder_2007) + box + x(continent) + y(life) + theme(height = 150)) /
   (data(gapminder_2007) + point + x(continent) + y(gdp) + color(continent))
 ```
+
+*"Given gapminder 2007: boxes, x is continent, y is life, above points, x is
+continent, y is gdp, color by continent."*
 
 ## A clustered panel decides the order
 

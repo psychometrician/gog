@@ -57,6 +57,9 @@ data(iris_flowers) + interval * range(0.25, 0.75) + x(species) + y(petal_length)
   title("Middle half of petal length per species")
 ```
 
+*"Given the iris flowers: intervals derived by range from 0.25 to 0.75, x is
+species, y is petal length."*
+
 This spans the first quartile to the third, which is the **interquartile range**.
 `range(0.1, 0.9)` keeps the middle 80%, and any other pair works the same
 way. Bare `range` is `range(0, 1)`, so the plain sentence above is unchanged.
@@ -78,6 +81,10 @@ data(iris_flowers) +
   x_label("Species") + y_label("Petal length (cm)") +
   title("Petal length per species, drawn in three layers")
 ```
+
+*"Given the iris flowers: intervals derived by range, and also intervals derived
+by range from 0.25 to 0.75, and also points derived by median, x is species, y
+is petal length."*
 
 The gray whisker is the full range, the thick blue band is the middle half, and
 the white dot is the median. The three layers name the three statistics. A box
@@ -107,6 +114,9 @@ data(iris_flowers) + interval * confidence(0.95) + x(species) + y(petal_length) 
   title("95% CI of mean petal length")
 ```
 
+*"Given the iris flowers: intervals derived by confidence at 95%, x is species,
+y is petal length."*
+
 The level is a parameter, so `confidence(0.99)` draws wider. It uses the
 t-distribution, which widens the interval further when the group is small.
 
@@ -120,6 +130,9 @@ data(iris_flowers) + interval * deviation + x(species) + y(petal_length) +
   x_label("Species") + y_label("Petal length (cm)") +
   title("Mean petal length, with one standard deviation")
 ```
+
+*"Given the iris flowers: intervals derived by deviation, x is species, y is
+petal length."*
 
 `deviation(2)` reaches two standard deviations on each side of the mean, so that
 band is four standard deviations wide. The default is one each side. Like
@@ -139,6 +152,10 @@ they are over the same fifty flowers per species, sharing one y scale:
   (data(iris_flowers) + interval * confidence + x(species) + y(petal_length) +
      y_label("") + title("Uncertainty of the mean"))
 ```
+
+*"Given the iris flowers: intervals derived by deviation, x is species, y is
+petal length, beside intervals derived by confidence, x is species, y is petal
+length."*
 
 The bands on the right are less than a third as long, on identical data, and the
 ratio is the same in all three species. The two numbers do not contradict each
@@ -223,6 +240,8 @@ data(coefs) + interval * bounds(lo, hi) + y(term) +
   title("A coefficient plot, from bounds you already have")
 ```
 
+*"Given the coefs table: intervals from lo to hi, y is term."*
+
 The two intervals that cross zero cover positive and negative values alike,
 so those two effects could go either way.
 
@@ -246,6 +265,9 @@ data(iris_flowers) + interval * confidence(0.95) + x(species) + y(petal_length) 
   title("95% CI of mean petal length, by species")
 ```
 
+*"Given the iris flowers: intervals derived by confidence at 95%, x is species,
+y is petal length, color by species."*
+
 When the split is a *second* category, so several whiskers share one x, they
 overlap, and [`dodge`](../transforms.qmd) sets them side by side, the same
 collision modifier that separates grouped bars and boxes:
@@ -255,6 +277,9 @@ data(gm_eras) + interval * range * dodge + x(continent) + y(life) + color(era) +
   y_label("Life expectancy range") +
   title("Life expectancy range per continent, 1957 vs 2007")
 ```
+
+*"Given the gapminder eras: intervals derived by range and dodge, x is
+continent, y is life, color by era."*
 
 Width and opacity stay *settings*. One whisker is a single stroke, so there
 is no row for `size` or `opacity` to vary over, and `style()` sets them for
@@ -266,6 +291,9 @@ data(iris_flowers) + interval * range + x(species) + y(petal_length) +
   x_label("Species") + y_label("Petal length (cm)") +
   title("A heavier, one-color range")
 ```
+
+*"Given the iris flowers: intervals derived by range, x is species, y is petal
+length, colored tomato, with size 2.5."*
 
 ## Caps, or a bare linerange
 
@@ -280,6 +308,9 @@ data(iris_flowers) + interval * confidence(0.95) + x(species) + y(petal_length) 
   x_label("Species") + y_label("Petal length (cm)") +
   title("The same CI, drawn as a linerange")
 ```
+
+*"Given the iris flowers: intervals derived by confidence at 95%, x is species,
+y is petal length, color by species, with caps off."*
 
 Because caps are geometry only `interval` has, `style(caps = )` on any other mark
 is refused with direction, the same way a bar's `border_size` is refused on a
@@ -300,6 +331,9 @@ data(iris_flowers) + interval * confidence(0.95) + x(species) + y(petal_length) 
   x_label("Species") + y_label("Petal length (cm)") +
   title("The same CI, without its center dots")
 ```
+
+*"Given the iris flowers: intervals derived by confidence at 95%, x is species,
+y is petal length, color by species, with center off."*
 
 `center` and `caps` are the interval's two switches, its middle and its
 ends, so a confidence interval draws four ways. A capped pointrange is the
@@ -322,6 +356,9 @@ data(iris_flowers) + interval * confidence(0.95) + x(species) + y(petal_length) 
   x_label("Species") + y_label("Petal length (cm)") +
   title("A dashed 95% CI")
 ```
+
+*"Given the iris flowers: intervals derived by confidence at 95%, x is species,
+y is petal length, color by species, with pattern dashed."*
 
 The five-number summary has its own mark, [`box`](box.qmd), and the same
 low and high pair drawn as a continuous fill is the [`ribbon`](ribbon.qmd)

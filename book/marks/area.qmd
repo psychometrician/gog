@@ -55,6 +55,8 @@ data(gapminder_asia) + line + x(year) + y(life) + color(country) +
   title("The same data, as paths rather than quantities")
 ```
 
+*"Given gapminder Asia: lines, x is year, y is life, color by country."*
+
 ## Multiple series
 
 A categorical column *splits* a mark, one region per category, exactly as
@@ -93,6 +95,9 @@ data(gapminder_asia) + area * stack + x(year) + y(population) + color(country) +
   title("Five Asian countries, population stacked")
 ```
 
+*"Given gapminder Asia: areas derived by stack, x is year, y is population,
+color by country."*
+
 Read one color's *thickness* for that country; the band's top edge is the
 five-country total. The measure moved from `life` to `population` on purpose:
 you stack quantities that *add* (populations sum to a real total), never
@@ -111,6 +116,8 @@ data(actuals) + x(year) + y(sales) +
   line + style(color = "steelblue", size = 2.5) +
   title("area + line: the fill and its edge, composed")
 ```
+
+*"Given the actuals: x is year, y is sales, an area and also a line."*
 
 There is deliberately no border setting on `area` to use instead. Two marks
 that already exist, combined with `+`, are better than a new setting on one
@@ -153,6 +160,8 @@ data(gapminder_2007) + area * bin + x(life) +
   title("area * bin: a filled histogram")
 ```
 
+*"Given gapminder 2007: an area derived by bin, x is life."*
+
 Smoothed into a density, it is the distribution as a shape:
 
 ```{r}
@@ -160,6 +169,8 @@ data(gapminder_2007) + area * density + x(life) +
   x_label("Life expectancy (years)") +
   title("area * density")
 ```
+
+*"Given gapminder 2007: an area derived by density, x is life."*
 
 Give that same sentence a category on `x` and a number on `y`, and the
 estimate is drawn *across each category's slot* instead of along the
@@ -186,6 +197,8 @@ data(gapminder_asia) + area * mean + x(year) + y(life) +
   y_label("Mean life expectancy") +
   title("area * mean: five countries averaged per year")
 ```
+
+*"Given gapminder Asia: an area derived by mean, x is year, y is life."*
 
 ## A category on the domain
 
@@ -215,6 +228,9 @@ data(gapminder_2007) + area * mean + x(continent) + y(life) + polar() +
   title("the same sentence, read in a circle")
 ```
 
+*"Given gapminder 2007: an area derived by mean, x is continent, y is life, in
+polar."*
+
 ## What you can set
 
 ```{r}
@@ -235,6 +251,9 @@ data(actuals) + x(year) + y(sales) +
   line + style(color = "seagreen", size = 2) +
   y_label("Sales") + title("A textured fill, and a line for the edge")
 ```
+
+*"Given the actuals: x is year, y is sales, an area colored seagreen, with
+pattern hatch and opacity 0.5, and also a line colored seagreen, with size 2."*
 
 Layering the line is more capable than a border setting would be. It can be
 dashed, colored differently, or smoothed. And it traces only the data

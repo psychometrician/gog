@@ -63,6 +63,9 @@ data(gapminder_2007) + point + x(gdp) + y(life) +
   data(milestones) + text + x(at) + y(value) + label(note)
 ```
 
+*"Given gapminder 2007: points, x is gdp, y is life; then given the milestones:
+text, x is at, y is value, label by note."*
+
 Look at the axis labels: they still read `Gdp` and `Life`. The note's own column
 names never reach the axis labels, because the axis is the plot's and only the
 column choice is local. Without this, the note table would have to rename its
@@ -76,6 +79,9 @@ data(actuals) + x(year) +
   line + y(sales) + style(color = "steelblue") +
   line + y(sales) + style(color = "tomato", pattern = "dashed")
 ```
+
+*"Given the actuals: x is year, a line, y is sales, colored steelblue, and also
+a line, y is sales, colored tomato."*
 
 Reshaping to tidy data (one `value` column plus a `type` column) and using
 `color(type)` is still usually better: it earns a legend and handles more than
@@ -104,6 +110,9 @@ data(gapminder_2007) + x(gdp) + y(life) +
   line                         # line uses a single default color
 ```
 
+*"Given gapminder 2007: x is gdp, y is life, points colored by continent, and
+also a line."*
+
 Written **before any mark**, a channel has no mark to bind to, so it binds to
 the plot and covers every layer:
 
@@ -112,6 +121,9 @@ data(gapminder_2007) + x(gdp) + y(life) + color(continent) +
   point +
   line
 ```
+
+*"Given gapminder 2007: x is gdp, y is life, color by continent, points and also
+a line."*
 
 That is the same position rule `x` and `y` follow: written before the marks they
 apply to all of them, written after one they belong to it. No channel has a
@@ -131,6 +143,9 @@ data(gapminder_asia) + x(year) + y(life) +
   point + size(population)
 ```
 
+*"Given gapminder Asia: x is year, y is life, lines colored by country, and also
+points sized by population."*
+
 A channel that bound backward could not draw this. It would put `size` on
 the `line` too, and a line has no size, so the plot would be refused, with no
 way to say what you meant.
@@ -147,6 +162,9 @@ data(gapminder_asia) + x(year) + y(life) + size(population) +
   line + group(country) +
   point
 ```
+
+*"Given gapminder Asia: x is year, y is life, size by population, lines grouped
+by country, and also points."*
 
 If *no* mark in the plot can accept the channel, the binding would do nothing at
 all, so it is refused instead:

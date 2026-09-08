@@ -120,10 +120,14 @@ data(gapminder_2007) + bar * bin(30) + x(life) +
   x_label("Life expectancy (years)") + title("Thirty bins: a finer histogram")
 ```
 
+*"Given gapminder 2007: bars derived by bin into 30, x is life."*
+
 ```{r}
 data(gapminder_2007) + bar * bin(width = 5) + x(life) +
   x_label("Life expectancy (years)") + title("Bins five years wide")
 ```
+
+*"Given gapminder 2007: bars derived by bin at width 5, x is life."*
 
 The positional number is the *count*: `bin(30)` is thirty bins. A width is the
 less common request, so it is said out loud, `bin(width = 5)`; the two are
@@ -156,6 +160,9 @@ data(gm_all) + zone * bin(24) + x(gdp, scale = "log") + y(life) +
   title("One bin, two axes: the heatmap")
 ```
 
+*"Given all the gapminder years: zones derived by bin into 24, x is gdp on a log
+scale, y is life."*
+
 That is a heatmap, with no atom added to the kernel.
 
 ### One of each: the mixed mesh
@@ -169,6 +176,9 @@ coherent thing, which is to cut the continuous axis and leave the other alone:
 data(gm_all) + zone * bin(20) + x(life) + y(continent) +
   palette("viridis") + title("One axis cut, one already cut")
 ```
+
+*"Given all the gapminder years: zones derived by bin into 20, x is life, y is
+continent, with the viridis palette."*
 
 A row of cells per continent, every row cut on the same edges, so a column
 compares straight down. It is a distribution per category shown as shade rather
@@ -188,6 +198,9 @@ data(gm_all) + zone * bin(20, tiling = "hex") + x(gdp, scale = "log") + y(life) 
   title("Carr's staggered mesh: tiling = hex")
 ```
 
+*"Given all the gapminder years: zones derived by bin into 20 on hexagons, x is
+gdp on a log scale, y is life."*
+
 A tiling means nothing to a bin that cuts one axis, since there the cells are
 intervals and an interval has no shape, so `bar * bin(tiling = )` is refused
 pointing at `zone`. The [Zone chapter](marks/zone.qmd) works through both meshes,
@@ -206,6 +219,8 @@ on both string and numeric columns. It is the categorical counterpart to
 data(gapminder_2007) + bar * count + x(continent) +
   title("Countries per Continent, 2007")
 ```
+
+*"Given gapminder 2007: bars derived by count, x is continent."*
 
 The bars show it. Histogram bars touch, because the slices adjoin on one
 continuum. Bar chart bars stand apart, because the categories are separate.
@@ -254,6 +269,8 @@ data(gapminder_2007) + bar * proportion + x(continent) +
   title("Continent share, 2007")
 ```
 
+*"Given gapminder 2007: bars derived by proportion, x is continent."*
+
 Use `proportion` when you care about relative composition rather than raw
 counts, e.g. "what fraction of respondents chose each option?" Because
 `count` and `proportion` differ only by a constant factor (total n), `order`
@@ -273,6 +290,9 @@ data(winds) + bar * proportion + x(direction) + color(season) +
   title("Every bar is a share of all 264 observations")
 ```
 
+*"Given the winds: bars derived by proportion, x is direction, color by
+season."*
+
 Add up the sixteen segments there and you get 1, not 2. What you cannot get that way
 is the *conditional* reading, "of the summer winds, what share came from the west",
 and that is the facet, which cuts the data into panels before any of this runs, so
@@ -281,6 +301,9 @@ each panel normalizes inside itself:
 ```{r}
 data(winds) + bar * proportion + x(direction) | facet(season)
 ```
+
+*"Given the winds: bars derived by proportion, x is direction, split into panel
+columns by season."*
 
 Read the two plots against each other and the difference is the whole distinction: in
 the first, summer's bars and winter's bars divide one total between them; in
@@ -298,6 +321,9 @@ data(gm_all) + bar * bin(20) * proportion + x(life) +
   title("Relative frequency, not counts")
 ```
 
+*"Given all the gapminder years: bars derived by bin into 20 and proportion, x
+is life."*
+
 Put it after a summary and the column you named is the thing rescaled, so each slot
 reads as its share of the grand total:
 
@@ -305,6 +331,9 @@ reads as its share of the grand total:
 data(gapminder_2007) + bar * sum * proportion + x(continent) + y(population) +
   title("Each continent's share of world population, 2007")
 ```
+
+*"Given gapminder 2007: bars derived by sum and proportion, x is continent, y is
+population."*
 
 What it refuses is what leaves it nothing to divide by. A `density` already
 integrates to 1, and its cells are sample points rather than parts of a whole. A
@@ -336,6 +365,8 @@ data(gapminder_2007) + line * density + x(life) +
   title("Kernel Density: Life Expectancy 2007")
 ```
 
+*"Given gapminder 2007: a line derived by density, x is life."*
+
 As with the other inventing transforms, there is no `y()` to write: the
 density column and its axis label are both made for you.
 
@@ -352,6 +383,8 @@ data(gapminder_2007) + line * density(2) + x(life) +
   x_label("Life expectancy (years)") + title("density(2): twice as smooth")
 ```
 
+*"Given gapminder 2007: a line derived by density adjusted by 2, x is life."*
+
 To fix the bandwidth in the data's own units instead, name it. Here
 `bandwidth = 1` sets each kernel one year wide, narrower than the default, so
 the curve keeps more of the distribution's fine structure:
@@ -360,6 +393,8 @@ the curve keeps more of the distribution's fine structure:
 data(gapminder_2007) + line * density(bandwidth = 1) + x(life) +
   x_label("Life expectancy (years)") + title("bandwidth = 1 year: an absolute width")
 ```
+
+*"Given gapminder 2007: a line derived by density at bandwidth 1, x is life."*
 
 This mirrors `bin` exactly. The positional number is the *adjust* multiplier:
 the common request, since you rarely know the bandwidth you want up front and
@@ -387,6 +422,8 @@ drawn across the category's slot, one distribution per group, which is
 data(gapminder_2007) + ribbon * density + x(continent) + y(life) +
   y_label("Life expectancy") + title("ribbon * density: the slot reading")
 ```
+
+*"Given gapminder 2007: ribbons derived by density, x is continent, y is life."*
 
 Each of `density`'s parameters belongs to one of those readings, and asking
 for one in a reading it cannot mean is refused rather than ignored.
@@ -520,6 +557,9 @@ data(gm_all) + bar * bin(20) * mean + x(gdp, scale = "log") + y(life) +
   title("Mean life expectancy by income band")
 ```
 
+*"Given all the gapminder years: bars derived by bin into 20 and mean, x is gdp
+on a log scale, y is life."*
+
 Read the sentence as three separate claims. `bin(20)` cuts income into twenty bands.
 `mean` reduces `life` within each one. `bar` draws the result as a length from zero.
 The bars touch because the bands tile the axis, exactly as a histogram's do, and the
@@ -532,6 +572,9 @@ points instead:
 data(gm_all) + point * bin(20) * median + x(gdp, scale = "log") + y(life) +
   title("Median life expectancy by income band")
 ```
+
+*"Given all the gapminder years: points derived by bin into 20 and median, x is
+gdp on a log scale, y is life."*
 
 ### What cannot be chained, and why
 
@@ -608,6 +651,9 @@ data(gm_all) + bar * count * proportion + x(continent) +
   title("Share of countries by continent")
 ```
 
+*"Given all the gapminder years: bars derived by count and proportion, x is
+continent."*
+
 It also prints a warning on your console. This page cannot show you that warning,
 because only refusals appear in a rendered book. It reads: *"gog: `bar * count *
 proportion` draws the same plot as `bar * proportion` — a share is a share *of*
@@ -669,6 +715,9 @@ data(gapminder_2007) + x(gdp) + y(life) +
   title("GDP vs Life Expectancy with LOESS Smooth")
 ```
 
+*"Given gapminder 2007: x is gdp, y is life, points colored by continent, and
+also a line derived by smooth."*
+
 **Span** defaults to 0.75: 75% of the data is used for each local regression.
 A larger span gives a smoother curve; a smaller span follows the data more
 closely. `smooth` requires both `x` and `y` to be numeric columns, and at least
@@ -709,6 +758,9 @@ data(medals_dup) + bar * sum + x(country) + y(gold) +
   y_label("Total gold medals") + title("Sum per country: bar * sum")
 ```
 
+*"Given the medals dup table: bars derived by sum, x is country, y is gold,
+ordered by gold, largest first."*
+
 **`mean`**, average y per group, useful for comparing typical values:
 
 ```{r}
@@ -733,6 +785,9 @@ data(medals_dup) + bar * max + x(country) + y(gold) +
   y_label("Max gold") + title("Max per country: bar * max")
 ```
 
+*"Given the medals dup table: bars derived by max, x is country, y is gold,
+ordered by gold, largest first."*
+
 **`min`**, the smallest value within each group:
 
 ```{r}
@@ -740,6 +795,9 @@ data(medals_dup) + bar * min + x(country) + y(gold) +
   order(gold, desc = TRUE) +
   y_label("Min gold") + title("Min per country: bar * min")
 ```
+
+*"Given the medals dup table: bars derived by min, x is country, y is gold,
+ordered by gold, largest first."*
 
 All six aggregations work with both string and numeric x columns. For string
 x, groups preserve first-appearance order (before any `order`); for numeric x,
@@ -827,6 +885,10 @@ data(gm_all) + x(year) + y(life) +
   title("The 90th percentile, the median, and the 10th")
 ```
 
+*"Given all the gapminder years: x is year, y is life, a line derived by
+quantile at 0.9, colored steelblue, and also a line derived by median, colored
+gray, and also a line derived by quantile at 0.1, colored tomato."*
+
 The three lines are three sentences over one table, and they say different things
 about the same 142 countries. The middle rose steadily. The top rose more slowly,
 because it was already high. The bottom rose and then declined for a decade,
@@ -871,6 +933,9 @@ data(iris_flowers) + interval * range + x(species) + y(petal_length) +
   title("Petal length range per species")
 ```
 
+*"Given the iris flowers: intervals derived by range, x is species, y is petal
+length."*
+
 `range` reads a `y` and groups by `x` exactly like the aggregation family: it
 needs a `y()` in scope and works on string or numeric x alike. What differs is
 the *output*: two rows per group instead of one. This low/high-rows shape is
@@ -892,6 +957,9 @@ data(iris_flowers) + interval * range(0.25, 0.75) + x(species) + y(petal_length)
   x_label("Species") + y_label("Petal length (cm)") +
   title("Middle half of petal length per species")
 ```
+
+*"Given the iris flowers: intervals derived by range from 0.25 to 0.75, x is
+species, y is petal length."*
 
 The two numbers are quantile probabilities, so `range(0.25, 0.75)` spans the
 first quartile to the third. That span is the **interquartile range**, and it is
@@ -932,6 +1000,9 @@ data(iris_flowers) + interval * confidence(0.95) + x(species) + y(petal_length) 
   title("95% CI of mean petal length")
 ```
 
+*"Given the iris flowers: intervals derived by confidence at 95%, x is species,
+y is petal length."*
+
 The level is a parameter, exactly like `bin(30)` and `density(2)`: `confidence`
 alone is 95%, `confidence(0.99)` is wider. It uses the **t**-distribution (not a
 fixed 1.96), so a small group's interval is honestly wider, and a group of one,
@@ -956,6 +1027,9 @@ data(iris_flowers) + interval * deviation + x(species) + y(petal_length) +
   x_label("Species") + y_label("Petal length (cm)") +
   title("Mean petal length, with one standard deviation")
 ```
+
+*"Given the iris flowers: intervals derived by deviation, x is species, y is
+petal length."*
 
 The multiplier is a parameter, like `confidence`'s level: `deviation` alone
 reaches one standard deviation on each side of the mean, and `deviation(2)`
@@ -991,6 +1065,8 @@ data(score_band) + ribbon * bounds(lower, upper) + x(score) +
   y_label("Expected true score") + x_label("Raw score") +
   title("A pre-computed band: ribbon with bounds")
 ```
+
+*"Given the score band: a ribbon from lower to upper, x is score."*
 
 It differs from every transform above in two ways that both follow from *reshaping,
 not computing*. Its arguments are **column names**, not a number: it has to be told
@@ -1054,6 +1130,9 @@ data(commutes) + zone * partition(city, mode, cross = TRUE) + x(people) +
   x_label("People surveyed") + title("How four cities get to work")
 ```
 
+*"Given the commutes: zones derived by partition through city and mode, crossed,
+x is people, color by mode."*
+
 Two variables, and the plot reads them in two directions at once. A column's
 **width** is that city's share of everyone surveyed, so Ashford's column is three
 times Millbrook's; a cell's **height** is that mode's share *within its own city*,
@@ -1086,6 +1165,10 @@ data(commutes) + x(people) +
   text * partition(city, cross = TRUE) + label(name) +
   x_label("People surveyed") + title("The same plot, with its columns named")
 ```
+
+*"Given the commutes: x is people, zones derived by partition through city and
+mode, crossed, color by mode, and also text derived by partition through city,
+crossed, label by name."*
 
 The labels sit at the middle of each column because that is where the center of a
 column is, and `style(nudge = )` is what moves them if you want them along the
@@ -1143,6 +1226,9 @@ data(titanic) + y(n) +
   title("Who survived, by class")
 ```
 
+*"Given titanic: y is n, ribbons derived by flow through class and survived,
+color by class, and also zones derived by flow through class and survived."*
+
 The `ribbon` layer draws the bands, one per path, as thick as the path's total
 at both ends. The `zone` layer draws each stage's slots, stacked with no
 padding, so the measure axis keeps its ticks and reads true counts. A `text`
@@ -1177,6 +1263,9 @@ data(nutrients) + path * cluster(amount, over = nutrient) + x(food) +
   title("Eight foods, joined by what they are made of")
 ```
 
+*"Given nutrients: paths derived by cluster on amount, over nutrient, x is
+food."*
+
 `path` draws the tree, and the height of a join says how different its two
 branches are. The same transform on `zone` reorders a tile plot's slots to
 the tree's leaf order. The [Cluster](cluster.qmd) chapter grows the tree,
@@ -1203,6 +1292,9 @@ data(gm_eras) + bar * mean * dodge + x(continent) + y(life) + color(era) +
   title("Mean life expectancy by continent, 1957 vs 2007")
 ```
 
+*"Given the gapminder eras: bars derived by mean and dodge, x is continent, y is
+life, color by era."*
+
 The two eras sit next to each other in every continent, each bar half as wide,
 together filling exactly the slot one bar would; the gap between continents is
 untouched. There is no width to set: `dodge` derives it from the number of groups
@@ -1220,6 +1312,9 @@ data(gm_eras) + box * dodge + x(continent) + y(life) + color(era) +
   y_label("Life expectancy") +
   title("Life expectancy distribution, 1957 vs 2007")
 ```
+
+*"Given the gapminder eras: boxes derived by dodge, x is continent, y is life,
+color by era."*
 
 Which marks `dodge` serves is decided by what a mark *is*. It subdivides a
 *width* (a bar's thickness, a box's body, a whisker's slot) so it is defined
@@ -1251,6 +1346,9 @@ data(gm_eras) + bar * sum * stack + x(continent) + y(population) + color(era) +
   title("Population by continent, 1957 and 2007 stacked")
 ```
 
+*"Given the gapminder eras: bars derived by sum and stack, x is continent, y is
+population, color by era."*
+
 Notice the measure also changed, from `mean life` to `sum population`. You stack
 quantities that *add up*: two populations sum to a total that means something, so
 the full bar reads as "everyone, both eras". Two mean life expectancies do not add
@@ -1273,6 +1371,9 @@ data(gm_all) + area * sum * stack + x(year) + y(population) + color(continent) +
   title("World population by continent, stacked")
 ```
 
+*"Given all the gapminder years: areas derived by sum and stack, x is year, y is
+population, color by continent."*
+
 Asia fills the floor; Europe, Africa, the Americas and Oceania pile on top, and the
 band's upper edge is the world total climbing from 2.4 billion to 6.25.
 Read any one color's *thickness* for that continent's share.
@@ -1288,6 +1389,9 @@ reach 1 and only the proportions are left:
 data(gm_all) + area * sum * stack(share = TRUE) + x(year) + y(population) +
   color(continent) + title("Every year's composition, filled to one")
 ```
+
+*"Given all the gapminder years: areas derived by sum and stack as shares, x is
+year, y is population, color by continent."*
 
 Now Asia's band holds near two thirds and Europe's visibly narrows across the
 century, both of which the plot above hides inside a rising total. The axis says
@@ -1349,6 +1453,9 @@ data(listening) + area * stack(baseline = "center") + x(week) + y(plays) +
   color(genre) + title("Centered: the ThemeRiver")
 ```
 
+*"Given the listening table: areas derived by stack on the center baseline, x is
+week, y is plays, color by genre."*
+
 That symmetric layout is the **ThemeRiver** [@havre2000], named for the plot it
 was built to draw: how much each theme is written about, over time.
 
@@ -1360,6 +1467,9 @@ the movement instead:
 data(listening) + area * stack(baseline = "wiggle") + x(week) + y(plays) +
   color(genre) + title("Flattest: the streamgraph")
 ```
+
+*"Given the listening table: areas derived by stack on the wiggle baseline, x is
+week, y is plays, color by genre."*
 
 Now Techno is one clean shape, widening and then narrowing, which is what the numbers
 actually say. Folk, the blue band, is a steady decline rather than a wedge. No band
@@ -1469,6 +1579,8 @@ data(gapminder_2007) + point * bin * stack + x(life) +
   x_label("Life expectancy (years)") + title("One dot per country")
 ```
 
+*"Given gapminder 2007: points derived by bin and stack, x is life."*
+
 That is a dot plot [@wilkinson1999dotplots], and it is the same sentence as the histogram at the top of this
 chapter with one atom changed and one added. Compare the two: `bar * bin` draws each
 tally as a length, and you read the shape off the outline; `point * bin * stack`
@@ -1539,6 +1651,9 @@ data(gm_all) + point * bin(40) * stack + x(life) + style(size = 1.5) +
   x_label("Life expectancy (years)") + title("The same 1704 rows, cut finer and drawn smaller")
 ```
 
+*"Given all the gapminder years: points derived by bin into 40 and stack, x is
+life, with size 1.5."*
+
 The columns are made of visible dots again, and every one of the 1704 is still on the
 page. [Faceting](faceting.qmd) is the third way, since fewer rows per panel means
 shorter piles in each.
@@ -1562,6 +1677,8 @@ single column, showing how one total breaks up.
 ```{r}
 data(winds) + bar * count * stack + color(direction)
 ```
+
+*"Given the winds: bars derived by count and stack, color by direction."*
 
 There is no `x()` in that sentence, and none is needed. A bar normally requires a
 position because it has to stand somewhere, but here the split *is* the
@@ -1597,6 +1714,8 @@ data(gapminder_2007) + point * jitter + x(continent) + y(life) + style(opacity =
   y_label("Life expectancy") + title("point * jitter: the same points, spread to show density")
 ```
 
+*"Given gapminder 2007: points derived by jitter, x is continent, y is life."*
+
 Africa's long tail of low values and Europe's tight cluster near the top were both
 there before; the spread is what lets you read them.
 
@@ -1628,6 +1747,9 @@ data(gapminder_2007) + point * jitter(0.5) + x(continent) + y(life) +
   style(opacity = 0.5) + y_label("Life expectancy") +
   title("point * jitter(0.5): a tighter spread")
 ```
+
+*"Given gapminder 2007: points derived by jitter at 0.5, x is continent, y is
+life."*
 
 The parameter has the same shape as `density`'s `adjust`, a dimensionless
 multiple of an automatic value. It is there for the same reason `density` and
@@ -1685,6 +1807,9 @@ data(gm_europe) + point + style(color = "#9e9e9e") +
   x_label("GDP per capita") + y_label("Life expectancy") +
   title("text * repel: the same names, moved apart")
 ```
+
+*"Given gapminder Europe: points, and also text derived by repel, x is gdp, y is
+life, label by country."*
 
 Every label ends up outside its own dot, and one that moved far keeps a thin line
 back to its point. Two rules set where each label rests. First, a label rests

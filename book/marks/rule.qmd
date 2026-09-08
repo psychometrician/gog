@@ -76,6 +76,9 @@ data(gapminder_2007) + point + x(gdp) + y(life) + style(opacity = 0.45) +
   title("Where the countries actually sit on the income axis")
 ```
 
+*"Given gapminder 2007: points, x is gdp, y is life, and also rules from the gdp
+rug, with reach edge."*
+
 Look along the bottom. Each tick is one country, drawn at its own income, and the
 row of them answers a question the cloud above cannot: how many countries are
 there at each income, including the ones hidden underneath each other? Points
@@ -133,6 +136,9 @@ data(gapminder_2007) + point + x(gdp) + y(life) + style(color = "lightgray") +
   title("One line per band, keyed by the legend")
 ```
 
+*"Given gapminder 2007: points, x is gdp, y is life, and also rules from the
+life bands, color by band."*
+
 A rule has no area for a reader to decode a ramp from, so `color` takes
 categories rather than a continuous ramp, the same answer `line` and `path`
 give.
@@ -148,6 +154,9 @@ data(gapminder_2007) + point + x(gdp) + y(life) + style(opacity = 0.55) +
   x_label("GDP per person") + y_label("Life expectancy") +
   title("A thick rule: emphasis, measured in pixels")
 ```
+
+*"Given gapminder 2007: points, x is gdp, y is life, and also rules from the
+life bands, colored seagreen, with size 26 and opacity 0.20."*
 
 That is a good way to draw attention to a value, and be clear about what it
 is: a stroke width is pixels, not data. The band above
@@ -171,6 +180,9 @@ data(healthy) + ribbon * bounds(lo, hi) + style(color = "seagreen", opacity = 0.
   x_label("GDP per person") + y_label("Life expectancy") +
   title("A band whose edges are 65 and 75, and rules on top")
 ```
+
+*"Given the healthy table: a ribbon from lo to hi; then given gapminder 2007:
+points, x is gdp, y is life, and also rules from the life bands."*
 
 Now 65 and 75 are positions. They rescale with the axis, they hold across
 facets, and on a log axis they land where the data puts them rather than
@@ -201,6 +213,9 @@ data(winds) + line * mean + x(direction) + y(speed) + polar() +
   data(speed_target) + rule + style(color = "firebrick", pattern = "dashed") +
   title("A target speed, ringed")
 ```
+
+*"Given the winds: a line derived by mean, x is direction, y is speed, in polar,
+and also rules from the speed target."*
 
 Span the **radius** whole and you get a spoke, a line from the center to the
 rim. Nothing was added to the mark for either one. Spanning the axis a rule
@@ -240,6 +255,13 @@ data(gapminder_2007) + point + x(gdp) + y(life) + style(color = "lightgray") +
   x_label("GDP per person") + y_label("Life expectancy") +
   title("Bottom to top: size, dashed, dotted, a faded thick rule")
 ```
+
+*"Given gapminder 2007: points, x is gdp, y is life, colored lightgray; then
+given one row with life 50: a rule colored firebrick, with size 4; then given
+one row with life 60: a rule colored seagreen, with pattern dashed; then given
+one row with life 70: a rule colored steelblue, with pattern dotted and size
+2.5; then given one row with life 80: a rule colored black, with size 6 and
+opacity 0.25."*
 
 The `pattern` values are the three **dashes**, because a rule is a stroke.
 `style(pattern = "hatch")` is refused, pointing at the dashes: a hatch is a

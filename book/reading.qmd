@@ -55,7 +55,7 @@ peek(iris_flowers)
 data(iris_flowers) + bar * bin + x(petal_length)
 ```
 
-*"Given iris flowers: bars derived by bin, x is petal length."* The `*`
+*"Given the iris flowers: bars derived by bin, x is petal length."* The `*`
 derives: `bin` cuts the axis into intervals and counts rows into them, and
 `bar` draws the counts. You did not bind `y`; `bin` invents the count, and
 the axis says so. Note the two peaks. Plot eight explains them.
@@ -120,7 +120,7 @@ once.
 data(iris_flowers) + bar * bin + x(petal_length) + color(species)
 ```
 
-*"Given iris flowers: bars derived by bin, x is petal length, color by
+*"Given the iris flowers: bars derived by bin, x is petal length, color by
 species."* The two peaks from plot three now sit in separate histograms, one
 per species. All three use the same bin edges, and each is drawn where its own
 values fall. Each fill is translucent under a solid outline, so every
@@ -146,7 +146,7 @@ data(iris_flowers) + point +
   color(species)
 ```
 
-*"Given iris flowers: points, x is sepal length, y is sepal width, z is petal
+*"Given the iris flowers: points, x is sepal length, y is sepal width, z is petal
 length, color by species."* The third dimension is not a different package, and not a
 different mark. It is one more position channel, and the sentence grew by one
 word. In the web edition the cube turns with a drag: drag right and the side

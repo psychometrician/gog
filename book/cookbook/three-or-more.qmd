@@ -37,6 +37,9 @@ data(iris_flowers) + point + x(petal_length) + y(sepal_length) +
   palette("okabe")
 ```
 
+*"Given the iris flowers: points, x is petal length, y is sepal length, color by
+species, shape by species, with the okabe palette."*
+
 `palette()` chooses which colors the `color` channel hands out: here
 the Okabe–Ito color-blind-safe set. Owning chapters:
 [Channels](../channels.qmd), [Setting vs mapping](../style.qmd).
@@ -50,6 +53,9 @@ only accepts a numeric column:
 data(gapminder_2007) + point + x(gdp, scale = "log") + y(life) +
   size(population)
 ```
+
+*"Given gapminder 2007: points, x is gdp on a log scale, y is life, size by
+population."*
 
 ## All of it at once
 
@@ -78,6 +84,9 @@ data(gapminder_2007) + point + x(gdp, scale = "log") + y(life) +
   color(population, scale = "log")
 ```
 
+*"Given gapminder 2007: points, x is gdp on a log scale, y is life, color by
+population on a log scale."*
+
 The legend becomes a labeled gradient strip: same channel, same rule,
 different column type. [Scales](../scales.qmd) owns the log story.
 
@@ -92,6 +101,9 @@ data(iris_flowers) + point +
   color(species)
 ```
 
+*"Given the iris flowers: points, x is sepal length, y is sepal width, z is
+petal length, color by species."*
+
 **One atom away.** The viewing angle is a property of the space, not of
 the data; `turn` rotates the scene sideways, `tilt` raises the viewing height:
 
@@ -101,6 +113,9 @@ data(iris_flowers) + point +
   color(species) +
   space(turn = -50, tilt = 15)
 ```
+
+*"Given the iris flowers: points, x is sepal length, y is sepal width, z is
+petal length, color by species, turned -50, tilted 15."*
 
 [Space](../space.qmd) owns the third dimension.
 
@@ -117,6 +132,9 @@ data(thermals) + path + x(east) + y(north) + z(altitude) +
   color(glider) +
   title("Two gliders, one thermal")
 ```
+
+*"Given the thermals: paths, x is east, y is north, z is altitude, color by
+glider."*
 
 Each thread rises because the gliders do. Nothing in the sentence draws a
 spiral: `path` was told to connect the rows in order, the rows happen to
@@ -181,6 +199,9 @@ data(quakes_fiji) + point + x(east) + y(north) + z(elevation) +
   space(turn = 120, tilt = 20) + play(slab)
 ```
 
+*"Given quakes Fiji: points, x is east, y is north, z is elevation, played by
+slab."*
+
 The band of points moves down and west as the sequence runs, which is the tilt of that
 sheet read one slice at a time. The frames are not time here. `play` advances
 through the levels of an ordered column, and whether that column measures years
@@ -195,6 +216,9 @@ time:
 data(quakes_fiji) + point + x(east) + y(north) + z(elevation) +
   space(turn = 120, tilt = 20) | facet(slab, wrap = 4)
 ```
+
+*"Given quakes Fiji: points, x is east, y is north, z is elevation, split into
+panel columns by slab, wrapped at 4."*
 
 Eight cubes, on one shared scale, so the reader compares them side by side
 instead of remembering them. Which of the two you want is a question about the
@@ -216,6 +240,10 @@ order, and tiles of similar color end up next to each other.
      (data(nutrients) + path * cluster(amount, over = food) + y(nutrient) +
         theme(width = 150)))
 ```
+
+*"Given nutrients: paths derived by cluster on amount, over nutrient, x is food;
+above zones, x is food, y is nutrient, color by amount, beside paths derived by
+cluster on amount, over food, y is nutrient."*
 
 ## What this section refuses
 

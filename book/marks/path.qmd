@@ -52,6 +52,8 @@ data(gapminder_asia) + line + x(gdp) + y(life) + color(country) +
   title("the same data, sorted by x")
 ```
 
+*"Given gapminder Asia: lines, x is gdp, y is life, color by country."*
+
 Look at China's thread. Its income did not rise steadily: it fell and
 recovered, so the year order and the income order are different sequences,
 and `line` draws the income one. Every point is in the right place, and every
@@ -75,6 +77,9 @@ data(gapminder_asia) + path + x(gdp) + y(life) + color(country) +
   x_label("GDP per person") + y_label("Life expectancy") +
   title("style(arrow = \"end\"): the head is 2007")
 ```
+
+*"Given gapminder Asia: paths, x is gdp, y is life, color by country, with arrow
+end."*
 
 Now each route points at its last row. `arrow` takes `"end"`, `"start"`, or
 `"both"`: a head at the last row, at the first, or at each.
@@ -106,6 +111,9 @@ data(gapminder_2007) + point + x(gdp) + y(life) +
   data(note) + text + label(what) +
   title("a callout, in the grammar you already have")
 ```
+
+*"Given gapminder 2007: points, x is gdp, y is life, and also a path from the
+seg table and text from the note table, label by what."*
 
 There is no `annotate()` function in this grammar and there will not be one. An
 annotation is a layer over a small table, and the marks it uses are the marks
@@ -146,6 +154,9 @@ data(iris_flowers) + path * density +
   title("where the flowers cluster")
 ```
 
+*"Given the iris flowers: paths derived by density, x is sepal length, y is
+petal length."*
+
 Nothing new was added to the grammar to draw that. The rule that made a
 [heatmap](zone.qmd) out of `zone * bin` is the same one at work here: how many
 axes a transform cuts is read off the mark, never asked for. A `bar` leaves an
@@ -171,6 +182,9 @@ data(iris_flowers) + path * density(levels = 10) +
   x(sepal_length) + y(petal_length) + color(level) +
   title("ten levels, named out loud")
 ```
+
+*"Given the iris flowers: paths derived by density at 10 levels, x is sepal
+length, y is petal length, color by level."*
 
 `density` is one transform read three ways, so each of its parameters belongs
 to one reading and is refused in the other two. `levels` cuts the **field**
@@ -203,6 +217,9 @@ data(iris_flowers) + path * density(adjust = 1.6) +
   title("the same cloud, smoothed harder")
 ```
 
+*"Given the iris flowers: paths derived by density adjusted by 1.6, x is sepal
+length, y is petal length."*
+
 To estimate one field per category, `group` splits it. The level already
 holds `color`, which is exactly why the split is `group` and not `color`:
 
@@ -213,6 +230,9 @@ data(petals) + path * density(levels = 4) +
   x(sepal_length) + y(petal_length) + group(species) +
   title("two species, estimated separately")
 ```
+
+*"Given the petals: paths derived by density at 4 levels, x is sepal length, y
+is petal length, grouped by species."*
 
 A `zone` has no measure axis either, so it reads `density` in two dimensions too,
 and it *fills* what this mark strokes. Give both marks the same `levels` and you get
@@ -235,6 +255,8 @@ data(spiral) + path + x(a) + y(r) + polar() +
   title("a path in polar")
 ```
 
+*"Given the spiral: a path, x is a, y is r, in polar."*
+
 One thing `path` does not copy from `line` is the radar's closing segment
 ([Polar](../polar.qmd) draws it). A
 categorical `line` in polar joins its last vertex back to its first, because
@@ -255,6 +277,9 @@ they climb:
 data(thermals) + path + x(east) + y(north) + z(altitude) + color(glider) +
   title("Two gliders, one thermal")
 ```
+
+*"Given the thermals: paths, x is east, y is north, z is altitude, color by
+glider."*
 
 An order belongs to no axis, so it survives the third dimension untouched: the
 route is the same route however the scene is turned. A `line` sorts by `x`, and
@@ -288,6 +313,9 @@ data(thermals) + path + x(east) + y(north) + z(altitude) +
   title("Altitude, said twice")
 ```
 
+*"Given the thermals: paths, x is east, y is north, z is altitude, color by
+altitude, grouped by glider, with the viridis palette."*
+
 `palette("viridis")` picks the ramp; `group(glider)` keeps the two routes
 apart. Drop that last atom and the plot is wrong. A *category* on `color` splits the
 mark into one stroke per group, but a *measure* has no categories to split on.
@@ -305,6 +333,9 @@ data(thermals) + path + x(east) + y(north) + z(altitude) + color(glider) +
   style(pattern = "dashed") +
   space(turn = -25, tilt = 20)
 ```
+
+*"Given the thermals: paths, x is east, y is north, z is altitude, color by
+glider, with pattern dashed."*
 
 The dashes run along the route rather than resetting at every sample, because the
 dash is a property of the route and not of the segmentation the depth sort
@@ -344,6 +375,9 @@ data(gapminder_asia) + path + x(gdp) + y(life) + color(country) +
   x_label("GDP per person") + y_label("Life expectancy") +
   title("Both ends marked, on a dotted route")
 ```
+
+*"Given gapminder Asia: paths, x is gdp, y is life, color by country, with arrow
+both, size 2.5 and pattern dotted."*
 
 It takes a *value* rather than `TRUE`/`FALSE`, because `"both"` is an ordinary
 want and a flag would have needed a second setting to express it. Note that the

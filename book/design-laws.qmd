@@ -45,6 +45,10 @@ Change only the mark, and what changes is the geometry:
    (data(gapminder_2007) + step * bin + x(life)))
 ```
 
+*"Given gapminder 2007: bars derived by bin, x is life, beside a line derived by
+bin, x is life; above an area derived by bin, x is life, beside a step outline
+derived by bin, x is life."*
+
 One cut and one set of counts, four times over: rectangles, a line through the
 bin centers, that same line filled, and the counts as a stair. Compare any bar's
 height with the panel beside it and the number is the same. The transform never
@@ -128,6 +132,8 @@ the American spelling is simply the only one there has ever been.
 data(gapminder_2007) + point + x(gdp) + y(life)
 ```
 
+*"Given gapminder 2007: points, x is gdp, y is life."*
+
 Quoting a column name is a habit carried in from other plotting libraries rather
 than a typo, so gog says which fix it wants:
 
@@ -171,6 +177,9 @@ So gog says it out loud. Mapping is a channel; setting is
 data(gapminder_2007) + point + x(gdp) + y(life) +
   style(color = "seagreen", opacity = 0.5)
 ```
+
+*"Given gapminder 2007: points, x is gdp, y is life, colored seagreen, with
+opacity 0.5."*
 
 This also gives the two operations the different rules they deserve. A mapping
 earns a guide and a setting does not, and `line`, which cannot *map* `opacity`
@@ -316,6 +325,9 @@ Now put that same block inside a faceted sentence:
 ```{r}
 data(gapminder_2007) + bar * bin + x(life) | facet(continent)
 ```
+
+*"Given gapminder 2007: bars derived by bin, x is life, split into panel columns
+by continent."*
 
 The enclosing expression added panels. It did not reinterpret the
 sub-expression: each panel bins and counts exactly as the single plot did. That

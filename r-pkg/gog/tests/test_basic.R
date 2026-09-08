@@ -2652,6 +2652,26 @@ if (file.exists("book/check_titles.R")) {
 }
 
 # ---------------------------------------------------------------------------
+# Every plot that says something new says it in English too
+# ---------------------------------------------------------------------------
+# The read-aloud sentence under a plot (*"Given gapminder 2007: points, x is
+# gdp, y is life."*) is the book's approachability mechanism, and the rule for
+# where one goes is per chapter: the first plot, and every later plot that
+# uses an element no earlier plot in the chapter used. A new plot with a new
+# channel and no sentence renders clean and reads as a gap, so the rule is
+# checked at the source, like the titles: check_glosses.R walks each chapter's
+# chunks in order and fails on the plot that introduces an element without a
+# sentence directly after it, or on a sentence that does not start with
+# "Given" and end with a period inside the quotes.
+if (file.exists("book/check_glosses.R")) {
+  source("book/check_glosses.R")
+  check_glosses()
+  cat("\nread-aloud sentence tests passed.\n")
+} else {
+  cat("SKIP: book/ not found \u2014 run from the repo root to check the read-aloud sentences\n")
+}
+
+# ---------------------------------------------------------------------------
 # One thing, one spelling: gog in prose, `gog` in code font
 # ---------------------------------------------------------------------------
 

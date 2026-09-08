@@ -141,8 +141,8 @@ data(gapminder_2007) + point + x(gdp, scale = "log") + y(life) +
   title("The health and wealth of nations, 2007")
 ```
 
-*"Given gapminder 2007: points, x is gdp on a log scale, y is life, color
-by continent, titled."* Three refinements later, the sentence still reads
+*"Given gapminder 2007: points, x is gdp on a log scale, y is life, color by
+continent."* Three refinements later, the sentence still reads
 left to right, and the four words you learned first are unchanged.
 
 ## The shape of every sentence

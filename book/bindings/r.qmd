@@ -25,6 +25,8 @@ plot the unpiped form draws.
 gapminder_2007 |> data() + point + x(gdp) + y(life)
 ```
 
+*"Given gapminder 2007: points, x is gdp, y is life."*
+
 That is not a second way of saying it, and gog does not implement it. By the
 time the engine sees anything, the two forms are the *same expression*. You can
 watch R rewrite one into the other, because `quote()` shows what the parser
@@ -44,6 +46,8 @@ where it needs to be, so a transform still binds to its mark first:
 ```{r}
 gm_all |> data() + bar * count + x(continent)
 ```
+
+*"Given all the gapminder years: bars derived by count, x is continent."*
 
 The second is *when* it happens. The native pipe is a parser transformation:
 writing `df |> data()` produces the code `data(df)` before any of it runs.
@@ -319,11 +323,26 @@ remotes::install_github("psychometrician/gog", subdir = "r-pkg/gog")
 
 A tarball from GitHub carries the engine's Rust sources, and `configure` compiles
 them during the install. So this route does need a Rust toolchain, and the
-macOS and Windows binaries do not. Take it when you want one particular branch
-or commit rather than the latest build.
+macOS and Windows binaries do not. It also needs the `remotes` package, which
+`install.packages("remotes")` adds if you do not have it. Take it when you want
+one particular branch or commit rather than the latest build.
 
-You can also work from a checkout. Build the engine once, then load the package
-from where it sits:
+You can also work from a checkout. On that route nothing installs other
+packages for you, so two have to be installed first. Outside base R, gog needs
+one package, `jsonlite`. It turns the sentence you write into the JSON that the
+engine reads. `install.packages()` and `remotes::install_github()` both install
+it along with gog. Loading from a checkout also needs `pkgload`, which loads a
+package from a folder instead of from a library. Install both if you do not
+have them:
+
+```r
+install.packages(c("jsonlite", "pkgload"))
+```
+
+If one is missing, the step that needs it stops immediately, and the message
+names the missing package.
+
+Then build the engine once and load the package from where it sits:
 
 ```bash
 cargo build --release -p gog-cli

@@ -15,7 +15,8 @@ questions split by type: two measurements ask about
 data(gapminder_2007) + point + x(gdp) + y(life)
 ```
 
-*"Points, x is gdp, y is life."* The scatter is the plainest sentence in
+*"Given gapminder 2007: points, x is gdp, y is life."* The scatter is the
+plainest sentence in
 the grammar: a mark and its two positions, nothing else.
 
 **One atom away.** When one variable spans orders of magnitude, read its
@@ -24,6 +25,8 @@ axis logarithmically. A property of the binding, not a new plot:
 ```{r}
 data(gapminder_2007) + point + x(gdp, scale = "log") + y(life)
 ```
+
+*"Given gapminder 2007: points, x is gdp on a log scale, y is life."*
 
 Owning chapters: [Point](../marks/point.qmd), [Scales](../scales.qmd).
 
@@ -38,6 +41,9 @@ data(gapminder_2007) + x(gdp) + y(life) +
   line * smooth
 ```
 
+*"Given gapminder 2007: x is gdp, y is life, points colored by continent, and
+also a line derived by smooth."*
+
 The positions are written before any mark, so both layers share them;
 `color` is written after `point`, so only the points split.
 [Encoding scope](../encoding-scope.qmd) owns that rule.
@@ -50,6 +56,8 @@ It fills to zero, so the filled area is the amount:
 ```{r}
 data(actuals) + area + x(year) + y(sales)
 ```
+
+*"Given the actuals: an area, x is year, y is sales."*
 
 **One atom away.** If zero is not a meaningful floor for your variable,
 you want [`line`](../marks/line.qmd), not `area`.
@@ -65,11 +73,15 @@ as `quantile(0.9)`):
 data(gapminder_2007) + bar * mean + x(continent) + y(life)
 ```
 
+*"Given gapminder 2007: bars derived by mean, x is continent, y is life."*
+
 **One atom away.** Robust to outliers? Swap the word:
 
 ```{r}
 data(gapminder_2007) + bar * median + x(continent) + y(life)
 ```
+
+*"Given gapminder 2007: bars derived by median, x is continent, y is life."*
 
 ## What does *every* value per group look like?
 
@@ -86,6 +98,8 @@ the category axis only, so every dot keeps its exact height:
 ```{r}
 data(gapminder_2007) + point * jitter + x(continent) + y(life) + style(opacity = 0.6)
 ```
+
+*"Given gapminder 2007: points derived by jitter, x is continent, y is life."*
 
 **One atom away.** Swap the positions and the strips lie down, useful
 when the category names are long. See [Point](../marks/point.qmd) and
@@ -106,6 +120,9 @@ is sorted:
 ```{r}
 data(medals) + bar + x(country) + y(gold) + order(gold, desc = TRUE)
 ```
+
+*"Given the medals: bars, x is country, y is gold, ordered by gold, largest
+first."*
 
 There is no hidden counting here to surprise you: if you want a
 computation, you write its name. That is why this recipe and

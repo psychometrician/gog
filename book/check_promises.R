@@ -182,7 +182,9 @@ check_promises <- function(book = "book") {
     }
     if (is.na(firstplot)) next                    # a chapter may draw nothing
     window <- ln[firstplot:min(length(ln), firstplot + 10)]
-    if (!any(grepl('\\*"[^"]*"\\*', window)))
+    # The sentence may wrap onto a second line, so the window is read as one
+    # string rather than line by line.
+    if (!grepl('\\*"[^"]*"\\*', paste(window, collapse = " ")))
       problems <- c(problems, sprintf(
         "%s:%d first specification has no read-aloud sentence within 10 lines",
         f, firstplot))

@@ -76,6 +76,9 @@ arranged six ways, so here are all six.
    (data(iris_flowers) + color(species) + x(petal_length) + bar * bin))
 ```
 
+*"Given the iris flowers: bars derived by bin, x is petal length, color by
+species."*
+
 Six sentences, and the same histogram six times. Not six plots that look alike:
 the engine emits the same bytes for every one of them.
 
@@ -121,6 +124,9 @@ positions in between:
 data(gm_eras) + bar * mean * dodge + x(continent) + y(life) + color(era) +
   title("Mean life expectancy by continent, 1957 vs 2007")
 ```
+
+*"Given the gapminder eras: bars derived by mean and dodge, x is continent, y is
+life, color by era."*
 
 `dodge` and `color(era)` are plainly related: `dodge` has nothing to set side
 by side until a `color` (or `group`) names the groups. So why not write them
@@ -227,12 +233,17 @@ data(gapminder_2007) + x(gdp) + y(life) +
   title("GDP vs Life Expectancy with LOESS Smooth")
 ```
 
+*"Given gapminder 2007: x is gdp, y is life, points colored by continent, and
+also a line derived by smooth."*
+
 ```{r}
 # Kernel density estimate
 data(gapminder_2007) + line * density + x(life) + y(density) +
   x_label("Life expectancy (years)") + y_label("Density") +
   title("Kernel Density: Life Expectancy 2007")
 ```
+
+*"Given gapminder 2007: a line derived by density, x is life, y is density."*
 
 ---
 
@@ -249,12 +260,18 @@ category of the column it names.
 data(gapminder_2007) + point + x(gdp) + y(life) | facet(continent)
 ```
 
+*"Given gapminder 2007: points, x is gdp, y is life, split into panel columns by
+continent."*
+
 `/` produces small multiples stacked in rows:
 
 ```{r}
 gm_two <- gapminder_2007[gapminder_2007$continent %in% c("Africa", "Europe"), ]
 data(gm_two) + point + x(gdp) + y(life) / facet(continent)
 ```
+
+*"Given the gm two table: points, x is gdp, y is life, split into panel rows by
+continent."*
 
 Write both to cross them into a grid: each operator applies to the facet
 written after it, read left to right. See [Faceting](faceting.qmd) for the
@@ -268,6 +285,9 @@ name the same column on it:
 (data(gapminder_2007) + point + x(gdp) + y(life)) |
   (data(gapminder_2007) + bar * count + x(continent))
 ```
+
+*"Given gapminder 2007: points, x is gdp, y is life, beside bars derived by
+count, x is continent."*
 
 One pair of operators, two meanings, and the operand decides which, rather than
 a second pair of words. See [Composition](composition.qmd).
@@ -457,10 +477,10 @@ should not matter, and it leaves the atoms as nouns so that `*` can exist.
 |----------|----------|---------|
 | `+` | "…and also…" | `point + color(continent)` |
 | `*` | "…derived by…" | `bar * bin` |
-| <code>&#124;</code> | "…one panel per…" (columns) | <code>plot &#124; facet(continent)</code> |
-| `/` | "…one panel per…" (rows) | `plot / facet(continent)` |
+| <code>&#124;</code> | "…split into panel columns by…" | <code>plot &#124; facet(continent)</code> |
+| `/` | "…split into panel rows by…" | `plot / facet(continent)` |
 | <code>&#124;</code> | "…beside…" | <code>plot_a &#124; plot_b</code> |
-| `/` | "…below…" | `plot_a / plot_b` |
+| `/` | "…above…" | `plot_a / plot_b` |
 
 A finite set of rules.
 An infinite space of plots.

@@ -45,6 +45,8 @@ data(gapminder_2007) + line * density + x(life) +
   x_label("Life expectancy (years)") + title("Density: line * density")
 ```
 
+*"Given gapminder 2007: a line derived by density, x is life."*
+
 ### Categorical variable
 
 ```{r}
@@ -53,11 +55,15 @@ data(gapminder_2007) + bar * count + x(continent) +
   title("Frequency: bar * count")
 ```
 
+*"Given gapminder 2007: bars derived by count, x is continent."*
+
 ```{r}
 # What share of countries per continent? → proportion bar
 data(gapminder_2007) + bar * proportion + x(continent) +
   title("Relative frequency: bar * proportion")
 ```
+
+*"Given gapminder 2007: bars derived by proportion, x is continent."*
 
 ---
 
@@ -74,6 +80,8 @@ data(gapminder_2007) + point + x(gdp) + y(life) + x_label("GDP per capita") +
   y_label("Life expectancy") + title("Relationship: point")
 ```
 
+*"Given gapminder 2007: points, x is gdp, y is life."*
+
 ```{r}
 # Smooth the relationship → fitted trend line
 data(gapminder_2007) + x(gdp) + y(life) +
@@ -83,11 +91,16 @@ data(gapminder_2007) + x(gdp) + y(life) +
   title("Trend: point + line * smooth")
 ```
 
+*"Given gapminder 2007: x is gdp, y is life, points, color by continent, and
+also a line derived by smooth."*
+
 ```{r}
 # How much, not just where → filled area
 data(actuals) + area + x(year) + y(sales) + y_label("Sales") +
   title("Quantity: area")
 ```
+
+*"Given the actuals: an area, x is year, y is sales."*
 
 `line` and `area` draw the same boundary and give it different meanings. A
 line says *where* the value was; an area says *how much* there was, so it
@@ -112,6 +125,9 @@ data(gapminder_asia) + path + x(gdp) + y(life) + color(country) +
   title("Route: path (the arrow points to 2007)")
 ```
 
+*"Given gapminder Asia: paths, x is gdp, y is life, color by country, with arrow
+end."*
+
 Layered *over* any of these, [`rule`](rule.qmd) marks a value on one axis and
 spans the other: a threshold line, or a rug. A rug reaches only a little way
 in from the edge and shows where the observations are. Layered *under* them,
@@ -129,6 +145,9 @@ data(gapminder_2007) + point + x(gdp) + y(life) + style(opacity = 0.45) +
   title("Threshold and rug: rule")
 ```
 
+*"Given gapminder 2007: points, x is gdp, y is life, and also rules from the gdp
+rug, with reach edge, and also rules from the life bands, color by band."*
+
 ### Categorical × Continuous
 
 One axis groups, the other measures. The natural question is
@@ -139,6 +158,8 @@ One axis groups, the other measures. The natural question is
 data(gapminder_2007) + bar * mean + x(continent) + y(life) +
   y_label("Mean life expectancy") + title("Group summary: bar * mean")
 ```
+
+*"Given gapminder 2007: bars derived by mean, x is continent, y is life."*
 
 ```{r}
 # All individual points per group → strip plot

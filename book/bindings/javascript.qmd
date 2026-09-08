@@ -41,6 +41,9 @@ A gog sentence is a list of words, and in JavaScript it is a list of arguments.
 js_plot("plot(data(gapminder_2007), point, x(col.gdp, { scale: 'log' }), y(col.life), color(col.continent))")
 ```
 
+*"Given gapminder 2007: points, x is gdp on a log scale, y is life, color by
+continent."*
+
 That is [A first plot](../first-plot.qmd) exactly: the same words, in the same
 order, reading the same way. Position still decides scope ([Encoding
 scope](../encoding-scope.qmd)), so a channel written after a mark belongs to that
@@ -58,6 +61,8 @@ here, so the tighter binding becomes nesting:
 js_plot("plot(data(gapminder_2007), layer(bar, mean), x(col.continent), y(col.life))")
 ```
 
+*"Given gapminder 2007: bars derived by mean, x is continent, y is life."*
+
 Nesting is the clearer of the two. A reader who does not already know
 that `*` binds tighter than `+` has to be told; a reader looking at
 `layer(bar, mean)` can see it.
@@ -70,6 +75,8 @@ book are a flat list of words, and the ones that do use it usually hold two:
 js_plot("plot(data(gapminder_2007), layer(bar, count), x(col.continent), style({ color: 'steelblue' }))")
 ```
 
+*"Given gapminder 2007: bars derived by count, x is continent."*
+
 ## `across()` and `down()` are `|` and `/`
 
 Faceting in R is `plot | facet(era)`, panels side by side, or `plot / facet(era)`,
@@ -80,6 +87,9 @@ anything without the other), so JavaScript writes the phrase as one word:
 #| echo: false
 js_plot("plot(data(gapminder_2007), point, x(col.gdp, { scale: 'log' }), y(col.life), across(col.continent))")
 ```
+
+*"Given gapminder 2007: points, x is gdp on a log scale, y is life, split into
+panel columns by continent."*
 
 `down()` stacks them instead, and writing both crosses the two into a grid, which
 is what `plot | facet(a) / facet(b)` does in R.
@@ -103,6 +113,9 @@ its own word: `beside()`, and `below()` for `/`:
 #| echo: false
 js_plot("below(plot(data(gapminder_2007), layer(bar, bin), x(col.gdp), theme({ height: 130 })), plot(data(gapminder_2007), point, x(col.gdp), y(col.life)))")
 ```
+
+*"Given gapminder 2007: bars derived by bin, x is gdp, above points, x is gdp, y
+is life."*
 
 The two words are not new coinages: Henderson's *Functional Geometry*
 [@henderson1982] built its algebra of pictures out of `beside` and `above`, and
@@ -155,6 +168,8 @@ ones stay where they are:
 #| echo: false
 js_plot("plot(data(gapminder_2007), point, x(col.gdp, { scale: 'log', base: 2 }), y(col.life), title('Doublings of income'))")
 ```
+
+*"Given gapminder 2007: points, x is gdp on a log scale in base 2, y is life."*
 
 `style()` is the case where every argument is named, so it is written as one
 object throughout the book: `style({ color: "tomato", size: 3 })`.

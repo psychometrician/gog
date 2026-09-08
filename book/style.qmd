@@ -31,6 +31,8 @@ data(gapminder_2007) + point + x(gdp) + y(life) +
   title("Set: no legend, because there is nothing to look up")
 ```
 
+*"Given gapminder 2007: points, x is gdp, y is life, colored tomato."*
+
 ## Why a constant is not a channel
 
 Every channel in gog maps a data column to a visual feature. A constant maps
@@ -102,6 +104,9 @@ data(gapminder_asia) + line * mean + x(year) + y(life) +
   title("A dashed trend line")
 ```
 
+*"Given gapminder Asia: a line derived by mean, x is year, y is life, with
+pattern dashed and size 1.5."*
+
 On a fill the same setting hatches the region, a print-ready look that survives
 a black-and-white photocopy:
 
@@ -111,6 +116,9 @@ data(gapminder_2007) + bar * mean + x(continent) + y(life) +
   y_label("Mean life expectancy") +
   title("A crosshatched bar")
 ```
+
+*"Given gapminder 2007: bars derived by mean, x is continent, y is life, with
+pattern crosshatch."*
 
 The texture is one per layer: `style()` gives every bar in the layer the *same*
 hatch, so it cannot give each category of a color split its own. Doing that is a
@@ -129,6 +137,9 @@ data(gapminder_2007) + box + x(continent) + y(life) +
   y_label("Life expectancy") + title("A box: light fill, dark outline")
 ```
 
+*"Given gapminder 2007: boxes, x is continent, y is life, colored
+lightsteelblue, with border color #26456e and border size 1.6."*
+
 The same setting outlines a `point`, so overlapping points stay separate,
 exactly as on `bar` and `box`:
 
@@ -138,6 +149,9 @@ data(gapminder_2007) + point + x(gdp) + y(life) +
   x_label("GDP per capita") + y_label("Life expectancy") +
   title("A point with a white border")
 ```
+
+*"Given gapminder 2007: points, x is gdp, y is life, colored steelblue, with
+opacity 0.7, size 5, border color white and border size 1."*
 
 A **curve fill** (`area`, `ribbon`) takes no border: its edge is a *data curve*,
 which already is a `line` (`area + line`, `line * bounds`), more capable than
@@ -166,6 +180,9 @@ data(gapminder_asia) + path + x(gdp) + y(life) + color(country) +
   title("Each path ends at 2007")
 ```
 
+*"Given gapminder Asia: paths, x is gdp, y is life, color by country, with arrow
+end."*
+
 It takes `"end"`, `"start"`, or `"both"`: a value rather than a `TRUE`/`FALSE`,
 because a double-headed arrow is a common request, and `TRUE`/`FALSE` would
 have needed a second setting.
@@ -186,6 +203,9 @@ data(gapminder_asia) + line + x(year) + y(life) + group(country) +
   style(color = "red") +
   title("line")
 ```
+
+*"Given gapminder Asia: lines, x is year, y is life, grouped by country, colored
+red."*
 
 ```{r}
 data(medals) + bar + x(country) + y(gold) +
@@ -210,6 +230,9 @@ say which one you mean.
 data(gapminder_2007) + point + x(gdp) + y(life) +
   style(color = "#2a6f97", opacity = 0.45, size = 7, shape = "diamond")
 ```
+
+*"Given gapminder 2007: points, x is gdp, y is life, colored #2a6f97, with
+opacity 0.45, size 7 and shape diamond."*
 
 ### Colors are CSS colors
 
@@ -265,6 +288,9 @@ data(gapminder_asia) + x(year) + y(life) +
   line * smooth + style(color = "firebrick", size = 3) +
   title("Five countries in gray; the trend in red")
 ```
+
+*"Given gapminder Asia: x is year, y is life, lines, grouped by country, colored
+lightgray, and also a line derived by smooth, colored firebrick, with size 3."*
 
 ## `line` takes settings it refuses as channels
 
@@ -326,6 +352,9 @@ data(gapminder_2007) + point + x(gdp) + y(life) + color(continent) +
   palette(c("tomato", "steelblue", "seagreen", "goldenrod", "orchid"))
 ```
 
+*"Given gapminder 2007: points, x is gdp, y is life, color by continent, with a
+palette of tomato, steelblue, seagreen, goldenrod and orchid."*
+
 A palette needs a mapping to give its colors to. With nothing on `color` it
 has nothing to color, so it is refused rather than accepted and then ignored:
 
@@ -367,6 +396,9 @@ data(gapminder_2007) + point + x(gdp, scale = "log") + y(life) +
   color(continent) + theme(grid = "none")
 ```
 
+*"Given gapminder 2007: points, x is gdp on a log scale, y is life, color by
+continent."*
+
 `grid` names its sets by the **axis whose ticks they mark**, not by the direction
 they run: `"x"` keeps the lines standing up from the x axis and drops the rest.
 Naming them that way is what lets the setting survive a bent plane, where the y
@@ -377,6 +409,9 @@ data(winds) + bar * proportion * stack + color(season) + polar() +
   theme(grid = "x")
 ```
 
+*"Given the winds: bars derived by proportion and stack, color by season, in
+polar."*
+
 `ratio` sets the panel's width divided by its height, which is how a circle
 comes out round. The image keeps the size it was given and the panel shrinks
 inside it, so the plot still takes the same room on a page:
@@ -384,6 +419,8 @@ inside it, so the plot still takes the same room on a page:
 ```{r}
 data(winds) + bar * count + x(direction) + polar() + theme(ratio = 1)
 ```
+
+*"Given the winds: bars derived by count, x is direction, in polar."*
 
 And `tick_angle` turns the x labels, which is the answer to category names
 that overlap. The bottom margin grows to hold them:
@@ -481,6 +518,9 @@ each name to its own panel:
 (data(gapminder_2007) + point + x(gdp, tick_count = 3) + y(life)) |
   facet(continent)
 ```
+
+*"Given gapminder 2007: points, x is gdp with 3 ticks, y is life, split into
+panel columns by continent."*
 
 On paper it is not fine. A light gray is printed as a pattern of tiny dots, and
 that pattern sits directly under small text. The label gets harder to read, and

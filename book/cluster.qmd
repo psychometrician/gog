@@ -49,6 +49,9 @@ Bind `y` instead of `x`, and the same tree lies on its side:
 data(nutrients) + path * cluster(amount, over = nutrient) + y(food)
 ```
 
+*"Given nutrients: paths derived by cluster on amount, over nutrient, y is
+food."*
+
 Three things about the statistic cannot be changed. Distance is
 straight-line distance on the values as given, so a nutrient measured in
 large amounts counts for more than one measured in small amounts. Rescale
@@ -67,6 +70,8 @@ data(nutrients) + zone + x(food) + y(nutrient) + color(amount) +
   title("In the order the rows arrived")
 ```
 
+*"Given nutrients: zones, x is food, y is nutrient, color by amount."*
+
 `zone * cluster` draws the same tiles with the leaf axis in the tree's
 order. Chicken and salmon now stand together on the left, and the four
 foods that are mostly carbohydrate gather in the middle:
@@ -76,6 +81,9 @@ data(nutrients) + zone * cluster(over = nutrient) +
   x(food) + y(nutrient) + color(amount) +
   title("In the tree's order")
 ```
+
+*"Given nutrients: zones derived by cluster over nutrient, x is food, y is
+nutrient, color by amount."*
 
 On a tile plot the values are already bound to `color`, so the atom does not
 name them again. `over` names the profile column, and the other categorical
@@ -99,6 +107,10 @@ tree, and its row order from the side one.
      (data(nutrients) + path * cluster(amount, over = food) + y(nutrient) +
         theme(width = 150)))
 ```
+
+*"Given nutrients: paths derived by cluster on amount, over nutrient, x is food,
+above zones, x is food, y is nutrient, color by amount, beside paths derived by
+cluster on amount, over food, y is nutrient."*
 
 Follow a column of tiles up to the tree above it, and the tree says which
 columns it was joined with. The trees are not decoration: they decide which

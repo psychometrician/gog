@@ -31,6 +31,8 @@ colors them, the same two steps it performs everywhere:
 data(gapminder_asia) + line + x(year) + y(life) + color(country)
 ```
 
+*"Given gapminder Asia: lines, x is year, y is life, color by country."*
+
 **One atom away.** Too many categories for a legend to stay readable?
 `group` splits without coloring; see [Many groups](groups.qmd).
 

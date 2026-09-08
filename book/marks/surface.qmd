@@ -118,16 +118,25 @@ data(iris_flowers) + zone * density +
   x(petal_length) + y(sepal_length) + title("As cells: zone")
 ```
 
+*"Given the iris flowers: zones derived by density, x is petal length, y is
+sepal length."*
+
 ```{r}
 data(iris_flowers) + path * density +
   x(petal_length) + y(sepal_length) + title("As contours: path")
 ```
+
+*"Given the iris flowers: paths derived by density, x is petal length, y is
+sepal length."*
 
 ```{r}
 data(iris_flowers) + surface * density +
   x(petal_length) + y(sepal_length) + space() +
   title("As a sheet: surface")
 ```
+
+*"Given the iris flowers: a surface derived by density, x is petal length, y is
+sepal length, in the cube."*
 
 Look at what the third one shows that the other two cannot: *how much* higher the
 tight cluster is than the broad one. Cells and contours show *where* the
@@ -165,6 +174,9 @@ data(maunga_whau) + surface * bin(12) * mean +
   z_label("Elevation (m)") + title("Maunga Whau, one elevation per cell")
 ```
 
+*"Given Maunga Whau: a surface derived by bin into 12 and mean, x is east, y is
+north, z is elevation."*
+
 Nothing about the mountain changed. What changed is the **claim**. The sheet at the
 top of this chapter says the ground rises smoothly between its samples; this one
 says each cell has a single elevation and nothing is asserted about the ground
@@ -193,6 +205,9 @@ one gets a plateau of its own:
 data(cells) + surface * bin(3) * mean + x(a) + y(b) + z(v) +
   color(v) + palette("plasma") + title("Nine values, nine plateaus")
 ```
+
+*"Given the cells: a surface derived by bin into 3 and mean, x is a, y is b, z
+is v, color by v, with the plasma palette."*
 
 Nine plateaus, and three colors. This bowl is symmetric, so the four corner cells
 share one height and the four edge cells share another. The ramp is what makes
@@ -224,6 +239,9 @@ Both are set to one color, so the only thing that differs between them is the sh
       space(turn = 60) + style(color = "#76b7b2") + title("Plateaus, turned"))) +
   theme(height = 430)
 ```
+
+*"Given the cells: bars derived by bin into 3 and mean, x is a, y is b, z is v,
+beside a surface derived by bin into 3 and mean, x is a, y is b, z is v."*
 
 `|` composes them ([Composition](../composition.qmd)), so the two are one
 figure and turn together. That is what makes this a fair comparison, rather
@@ -261,6 +279,9 @@ data(maunga_whau) + surface +
   z_label("Elevation (m)") + title("The mesh, drawn")
 ```
 
+*"Given Maunga Whau: a surface, x is east, y is north, z is elevation, with
+border color white and border size 0.4."*
+
 It costs nothing to draw, because every face is already stroked in its own
 shade; that thin stroke covers the pale seam that would otherwise show
 between neighboring faces. `border_color` replaces its color. Set
@@ -277,6 +298,9 @@ data(maunga_whau) + surface +
   space(turn = 130, tilt = 35) +
   z_label("Elevation (m)") + title("Turned, not relit")
 ```
+
+*"Given Maunga Whau: a surface, x is east, y is north, z is elevation, turned
+130, tilted 35."*
 
 Compare the crater walls here with the first plot. Same faces, same shades, seen
 from the other side. A lamp fixed to the page would have repainted every one
@@ -331,6 +355,9 @@ fine   <- bowl(7)
       color(v) + palette("plasma") + title("Sampled 7 by 7: thirty-six faces"))) +
   theme(height = 320)
 ```
+
+*"Given coarse: a surface, x is a, y is b, z is v, color by v, with the plasma
+palette, beside the same given fine."*
 
 Two tables on one page, so each is named. A layer finds its columns in the
 nearest table by that name, and two tables with the same name would leave
@@ -399,6 +426,9 @@ data(maunga_whau) + surface +
   z_label("Elevation (m)") + title("Faint where the ground is low")
 ```
 
+*"Given Maunga Whau: a surface, x is east, y is north, z is elevation, opacity
+by elevation."*
+
 Over the low ground the fill drains away and each face keeps its outline, so that
 part of the sheet reads as bare mesh. A ramp cannot do that; an opacity can. A
 color changes what a face says. An opacity changes whether the face hides what is
@@ -463,6 +493,10 @@ of it. Each of these changes exactly *one* of `turn`/`tilt` from the first:
     color(elevation) + palette("viridis") + space(turn = 30, tilt = 5) +
     z_label("Elevation (m)") + title("Tilted down: the skyline")))
 ```
+
+*"Given Maunga Whau: a surface, x is east, y is north, z is elevation, color by
+elevation, with the viridis palette, turned 30, tilted 25, beside the same
+turned 140; above the same tilted 70, beside the same tilted 5."*
 
 Read them as a set and the cost of each angle is plain. The crater is not visible at all in
 the first two, and it is the most interesting thing about this hill: the summit

@@ -27,7 +27,7 @@ data(quarterly) + x(year) + y(sales) +
   y_label("Sales") + title("A target band, 150 to 175")
 ```
 
-*"Given quarterly: x is year, y is sales, a target zone from lower to upper, and also a line with points."*
+*"Given quarterly: x is year, y is sales, a target zone from lower to upper, and also a line and points."*
 
 `bounds(lower, upper)` names the two columns holding the bottom and top. Nothing
 names a left or a right, so the zone takes those from the panel and runs edge to
@@ -45,6 +45,9 @@ data(quarterly) + x(year) + y(sales) +
   data(quarterly) + line + point +
   y_label("Sales") + title("Two slumps, from one table")
 ```
+
+*"Given quarterly: x is year, y is sales, recession zones from start to end, and
+also a line and points."*
 
 Two shaded spans, and only one `zone` in the sentence. **One row is one
 rectangle**, so a two-row table draws two bands, the same property that lets
@@ -74,6 +77,9 @@ data(quarterly) + x(year) + y(sales) +
   y_label("Sales") + title("A box over four years of sales")
 ```
 
+*"Given quarterly: x is year, y is sales, a corner zone from lower to upper and
+from start to end, and also a line and points."*
+
 So one atom covers the three shapes people actually want (a horizontal band, a
 vertical band, and a box), and which one you get is decided by which pairs you
 name. There is no `hband`, no `vband`, no `rect`.
@@ -96,6 +102,9 @@ data(funnel) + zone * bounds(lo, hi) + y(stage) + style(opacity = 1) +
   text + label(n) + x(mid) +
   x_label("") + y_label("Stage") + title("A funnel, and no funnel atom")
 ```
+
+*"Given the funnel: zones from lo to hi, y is stage, and also text, x is mid,
+label by n."*
 
 That is a funnel chart. No atom in the sentence is a funnel.
 
@@ -125,6 +134,9 @@ data(quarterly) + x(year) + y(sales) +
   data(quarterly) + line + point +
   y_label("Sales") + title("Named, and keyed by the legend")
 ```
+
+*"Given quarterly: x is year, y is sales, recession zones from start to end,
+color by slump, and also a line and points."*
 
 A zone's `color` also takes a **number**, reading the sequential ramp instead
 of a palette, where `bar`, `area` and `ribbon` keep to categories. A
@@ -168,6 +180,9 @@ data(w) + zone * bounds(base, top, start = left, end = right) +
   palette(c("steelblue", "seagreen", "indianred")) +
   y_label("Cash (thousands)") + title("Where the money went")
 ```
+
+*"Given the w table: zones from base to top and from left to right, x is step,
+color by dir, with opacity 1."*
 
 A few lines of host arithmetic and one sentence. The bars that rest on the floor
 are not an exception the grammar had to learn; they are rows whose `base` is 0,
@@ -219,6 +234,9 @@ data(s) + x(session) +
   y_label("Price") + title("Fourteen sessions")
 ```
 
+*"Given the s table: x is session, intervals from low to high, color by dir, and
+also zones from body lo to body hi and from left to right, color by dir."*
+
 `color(dir)` is said twice, once per layer, and that is [scope](../encoding-scope.qmd)
 working rather than repetition: a channel written after a mark belongs to that
 mark, so the whisker takes its session's color along with the body. Both readings
@@ -247,6 +265,9 @@ data(gm_all) + zone * bin(24) + x(gdp, scale = "log") + y(life) +
   x_label("GDP per capita") + y_label("Life expectancy") +
   title("Where the country-years actually are")
 ```
+
+*"Given all the gapminder years: zones derived by bin into 24, x is gdp on a log
+scale, y is life."*
 
 Read the ridge running up the middle: wealth and life expectancy rise
 together, and the darkest cell says how many country-years sit at that exact
@@ -296,6 +317,9 @@ data(gm_all) + zone * bin(24) + x(gdp, scale = "log") + y(life) +
   title("The same cells, counted on a log ramp")
 ```
 
+*"Given all the gapminder years: zones derived by bin into 24, x is gdp on a log
+scale, y is life, color by count on a log scale."*
+
 Now the sparse tail separates and the ridge is a gradient rather than a blot.
 Look at the legend's middle label: 6.32, not 20.5, because the midpoint of a log
 ramp is the geometric mean, so the strip names the color it actually paints
@@ -335,6 +359,9 @@ data(gm_all) + zone * bin(20, tiling = "hex") + x(gdp, scale = "log") + y(life) 
   x_label("GDP per capita") + y_label("Life expectancy") +
   title("The same country-years, hexagonal cells")
 ```
+
+*"Given all the gapminder years: zones derived by bin into 20 on hexagons, x is
+gdp on a log scale, y is life, with the viridis palette."*
 
 Two things changed there, and only one of them is the mesh. `palette("viridis")`
 swaps the sequential ramp, and it is the right choice for a count: viridis is built so
@@ -419,6 +446,9 @@ data(iris_flowers) + zone * density +
   title("Where the flowers cluster")
 ```
 
+*"Given the iris flowers: zones derived by density, x is sepal length, y is
+petal length."*
+
 Every sentence from the heatmap above carries over word for word. Both axes were
 cut and nothing asked for it, because a zone measures nothing by height and needs
 an extent on both before it can be a rectangle at all. The measurement went to
@@ -459,6 +489,9 @@ data(iris_flowers) + zone * density(adjust = 1.6) +
   title("The same cloud, smoothed harder")
 ```
 
+*"Given the iris flowers: zones derived by density adjusted by 1.6, x is sepal
+length, y is petal length, with the viridis palette."*
+
 The same field *traced* rather than painted is [`path * density`](path.qmd), the
 contour, and the division between them is the one `bar * bin` and `line * bin`
 already made: the mark chooses the geometry, the transform stays constant.
@@ -474,6 +507,9 @@ data(iris_flowers) + zone * density(levels = 8) +
   title("Filled density bands")
 ```
 
+*"Given the iris flowers: zones derived by density at 8 levels, x is sepal
+length, y is petal length."*
+
 That is the **filled contour**, and it is the same parameter `path` takes. `levels`
 means one thing (cut the field into this many) and then each mark does what it
 does: a path traces the boundaries, a zone fills between them. So the two are not
@@ -485,6 +521,9 @@ data(iris_flowers) + path * density(levels = 8) +
   x(sepal_length) + y(petal_length) + palette("viridis") +
   title("The same eight levels, traced")
 ```
+
+*"Given the iris flowers: paths derived by density at 8 levels, x is sepal
+length, y is petal length."*
 
 Which makes three readings of one transform, and the mark decides every time:
 `line * density` is a curve, `zone * density` a painted field, and `levels` turns
@@ -515,6 +554,8 @@ data(six_weeks) + zone + x(week) + y(weekday) + color(orders) +
   title("Six weeks of orders, a day at a time")
 ```
 
+*"Given the six weeks table: zones, x is week, y is weekday, color by orders."*
+
 That is a calendar heatmap, and the whole of it is `zone + x + y + color`. What makes
 it worth drawing is that 42 daily counts carry two rhythms at once and a single
 column of numbers shows neither, where a grid separates them by direction. Read
@@ -540,6 +581,8 @@ data(winds) + zone * count + x(direction) + y(season) +
   title("Wind observations by direction and season")
 ```
 
+*"Given the winds: zones derived by count, x is direction, y is season."*
+
 That is the confusion matrix's shape, and a confusion matrix is the same sentence with
 different columns: `zone * count + x(actual) + y(predicted)`.
 
@@ -563,6 +606,8 @@ absolute numbers are not the point:
 data(winds) + zone * proportion + x(direction) + y(season) +
   palette("viridis") + title("The same observations, as shares")
 ```
+
+*"Given the winds: zones derived by proportion, x is direction, y is season."*
 
 That share is of *every* row counted, not of a row or a column of the grid. A
 confusion matrix normalized per true class asks a different question, *which margin
@@ -589,6 +634,9 @@ tally at all; it is the other kind of statistic, the kind you point at a column:
 data(winds) + zone * mean + x(direction) + y(season) + color(speed) +
   title("Mean wind speed, by direction and season")
 ```
+
+*"Given the winds: zones derived by mean, x is direction, y is season, color by
+speed."*
 
 Compare that with `zone * count` two plots up. The sentence is the same shape and one
 word longer, and the extra word is the whole difference: `count` was handed no column,
@@ -714,6 +762,10 @@ data(winds) + point * jitter + x(direction) + y(speed) +
   y_label("Speed") + title("The two directions the wind actually comes from")
 ```
 
+*"Given the winds: points derived by jitter, x is direction, y is speed; then
+given the prevailing table: zones, x is direction; then given the winds: points
+derived by jitter, x is direction, y is speed."*
+
 Nothing was built for that. It is the same sentence as the tile plot with one axis
 left unsaid, which is the test that the fourth source is a rule rather than a
 special case for one chart.
@@ -785,6 +837,11 @@ data(quarterly) + x(year) + y(sales) +
   y_label("Sales") + title("Color, then opacity, then a hatch")
 ```
 
+*"Given quarterly: x is year, y is sales, an early zone from start to end
+colored seagreen, and also a middle zone from start to end colored indianred,
+with opacity 0.55, and also a late zone from start to end colored steelblue,
+with pattern hatch and opacity 0.7, and also a line and points."*
+
 The default opacity is what makes the first band readable without your saying
 anything: a highlight that hides the data is not a highlight. Raise it when the
 zone is the subject of the plot rather than its background, as the red band does
@@ -816,6 +873,9 @@ data(quarterly) + x(year) + y(sales) +
   y_label("Sales") + title("A zone for the region, rules for its edges")
 ```
 
+*"Given quarterly: x is year, y is sales, a target zone from lower to upper, and
+also rules from the edges, and also a line and points."*
+
 The two marks read their positions differently, which is why the edge table is
 derived rather than reused. A zone is told which columns hold its sides
 (`bounds(lower, upper)`), while a rule reads whichever of the plot's own position
@@ -839,6 +899,9 @@ data(quarterly) + x(year) + y(sales) +
   data(quarterly) + line +
   y_label("Sales") + title("A zone with a border of its own")
 ```
+
+*"Given quarterly: x is year, y is sales, recession zones from start to end,
+with border color black, and also a line."*
 
 Both readings stay available, and which one is right depends on whether the
 zone is the background or the subject. A zone you do not ask draws no stroke:

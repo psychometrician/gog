@@ -48,6 +48,9 @@ data(gapminder_asia) + x(year) + y(life) +
   title("Mean life expectancy, with its min–max band")
 ```
 
+*"Given gapminder Asia: x is year, y is life, a ribbon derived by range and also
+a line derived by mean."*
+
 Each layer runs its own transform on the shared data: `mean` collapses each year
 to one point for the line, `range` to a low/high pair for the band. This is the
 most common ribbon plot, a trend with the uncertainty or spread drawn around it,
@@ -69,6 +72,10 @@ data(gm_all) + x(year) + y(life) +
   y_label("Life expectancy") +
   title("Life expectancy across 142 countries, 1952 to 2007")
 ```
+
+*"Given all the gapminder years: x is year, y is life, a ribbon derived by range
+from 0.1 to 0.9, and also a ribbon derived by range from 0.25 to 0.75, and also
+a line derived by median."*
 
 The pale band contains the middle 80% of countries. The darker one contains
 the middle half, and the line is the median. The plot then says something the min–max
@@ -123,6 +130,9 @@ data(gapminder_asia) + ribbon * confidence(0.95) + x(year) + y(life) +
   title("95% confidence band for mean life expectancy")
 ```
 
+*"Given gapminder Asia: a ribbon derived by confidence at 95%, x is year, y is
+life."*
+
 The band is narrow because the five countries agree closely on the mean in each
 year; a higher level draws a wider band. Which statistic you ask for chooses the
 band's meaning, the observed spread (`range`) or the uncertainty of the mean
@@ -145,6 +155,8 @@ data(score_band) + ribbon * bounds(lower, upper) + x(score) +
   title("A pre-computed measurement band")
 ```
 
+*"Given the score band: a ribbon from lower to upper, x is score."*
+
 `bounds` is `range`'s counterpart that **computes nothing**: it reshapes the two
 columns you hand it into the same low/high pair `range` produces, so the band
 draws with nothing new and no `y()` (the two columns *are* the boundaries).
@@ -164,6 +176,9 @@ data(score_band) + x(score) + y(expected) +
   y_label("Expected true score") + x_label("Raw score") +
   title("Expected score with its measurement error band")
 ```
+
+*"Given the score band: x is score, y is expected, a ribbon from lower to upper,
+and also a line and points."*
 
 The dashed line is [`style(pattern = )`](../style.qmd): on a stroke the texture is a
 **dash**, so it applies to the `line` here, not to the band. The band can take the same
@@ -186,6 +201,9 @@ data(score_band) + x(score) + y(expected) +
   title("The same band, unfilled: two dashed edges")
 ```
 
+*"Given the score band: x is score, y is expected, lines from lower to upper,
+and also a line and points."*
+
 `line * bounds` is one layer that draws *both* edges, splitting the pair into
 a low curve and a high one. It therefore needs no second `y`, and that is why
 the two boundaries are drawn as separate curves: two hand-written `line`
@@ -206,6 +224,9 @@ data(gm_continents) + ribbon * range + x(year) + y(life) + color(continent) +
   y_label("Life expectancy") +
   title("Life expectancy spread, three continents")
 ```
+
+*"Given the gapminder continents: ribbons derived by range, x is year, y is
+life, color by continent."*
 
 The bands overlap where the continents do, and unlike a split `area`, which
 stays opaque and leaves `stack` as the answer, a ribbon draws its split
@@ -255,6 +276,8 @@ data(gapminder_2007) + interval * range + x(continent) + y(life) +
   title("interval * range: the same numbers, claiming less")
 ```
 
+*"Given gapminder 2007: intervals derived by range, x is continent, y is life."*
+
 ## The violin: a distribution per category
 
 A `range` on a category gives two numbers per group, the lowest and the highest.
@@ -268,6 +291,8 @@ data(gapminder_2007) + ribbon * density + x(continent) + y(life) +
   y_label("Life expectancy") +
   title("ribbon * density: one distribution per continent")
 ```
+
+*"Given gapminder 2007: ribbons derived by density, x is continent, y is life."*
 
 Nothing new was added to the grammar to draw it. A ribbon is the mark that closes
 on a second data boundary, and a violin closes on its own reflection, which is
@@ -284,6 +309,8 @@ summarize. Africa's violin has two peaks, which its median hides.
 data(gapminder_2007) + box + x(continent) + y(life) +
   y_label("Life expectancy") + title("box + x + y: the same distributions, summarized")
 ```
+
+*"Given gapminder 2007: boxes, x is continent, y is life."*
 
 ### What the width means
 
@@ -303,6 +330,9 @@ data(gapminder_2007) + ribbon * density(compare = "shape") + x(continent) + y(li
   y_label("Life expectancy") +
   title('density(compare = "shape"): every violin the same area')
 ```
+
+*"Given gapminder 2007: ribbons derived by density compared by shape, x is
+continent, y is life."*
 
 Two countries now fill as much space as fifty-two. Two nearby values make a
 tall narrow estimate, so Oceania sets the width and every other violin is
@@ -328,6 +358,8 @@ the difference between the two marks everywhere else in the book:
 data(gapminder_2007) + area * density + x(continent) + y(life) +
   y_label("Life expectancy") + title("area * density: the half violin")
 ```
+
+*"Given gapminder 2007: areas derived by density, x is continent, y is life."*
 
 Two choices, made independently: which mark closes the region, and which axis
 carries the category. That is four plots, and the fourth one has a name of its
@@ -366,6 +398,9 @@ how far, **in slots**:
 data(gapminder_2007) + area * density(reach = 2.5) + x(life) + y(continent) +
   x_label("Life expectancy") + title("reach = 2.5: each ridge two and a half slots tall")
 ```
+
+*"Given gapminder 2007: areas derived by density reaching 2.5 slots, x is life,
+y is continent."*
 
 The number is measured from the line a category sits on to the shape's furthest
 point. That is why it means the same thing to both marks: a `ribbon` reaches it
@@ -432,6 +467,9 @@ data(score_band) + x(score) +
   line * bounds(lower, upper) + style(color = "slateblue", pattern = "dashed") +
   y_label("Expected true score") + title("A textured band, and its two edges")
 ```
+
+*"Given the score band: x is score, a ribbon from lower to upper, with pattern
+grid, and also lines from lower to upper, with pattern dashed."*
 
 Both marks read the same `bounds(lower, upper)` there, exactly as in the
 ridge section, so the edges stay on the band. Note the two `pattern` values in one

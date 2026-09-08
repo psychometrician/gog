@@ -279,6 +279,8 @@ data(actuals) + x(year) + y(sales) +
   point + style(color = "steelblue", size = 6)
 ```
 
+*"Given the actuals: x is year, y is sales, bars and also points."*
+
 Each mark opens a new layer.
 Layers are rendered in order: first mark drawn first (at the bottom).
 
@@ -331,6 +333,9 @@ of the column it names:
 data(gapminder_2007) + point + x(gdp) + y(life) | facet(continent)
 ```
 
+*"Given gapminder 2007: points, x is gdp, y is life, split into panel columns by
+continent."*
+
 Every panel shares one scale, that is what makes them comparable, and both
 operators together cross into a grid. See [Faceting](faceting.qmd) for the
 full rules.
@@ -343,6 +348,9 @@ its own coordinate space:
 (data(gapminder_2007) + point + x(gdp) + y(life)) |
   (data(gapminder_2007) + bar * count + x(continent))
 ```
+
+*"Given gapminder 2007: points, x is gdp, y is life, beside bars derived by
+count, x is continent."*
 
 Composed plots share nothing until they name the same column on the same axis,
 and then they share that axis outright: one scale, one extent, drawn once. That
@@ -428,6 +436,9 @@ data(gapminder_2007) + point + x(gdp) + y(life) + color(continent)
 data(gapminder_2007) + point + x(gdp) + y(life) +
   style(color = "tomato", opacity = 0.5)
 ```
+
+*"Given gapminder 2007: points, x is gdp, y is life, colored tomato, with
+opacity 0.5."*
 
 See [Setting vs mapping](style.qmd) for the full rules.
 

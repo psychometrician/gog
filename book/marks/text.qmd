@@ -32,6 +32,8 @@ data(medals) + text + x(gold) + y(silver) + label(country) +
   title("The same five, named")
 ```
 
+*"Given the medals: text, x is gold, y is silver, label by country."*
+
 That is the whole difference between the two marks: `point` draws a glyph *at*
 the row, `text` draws the row's own value *as* the glyph.
 
@@ -48,6 +50,9 @@ data(medals) + point + style(size = 5, color = "#9e9e9e") +
   x_label("Gold") + y_label("Silver") +
   title("Located by the dot, named just above")
 ```
+
+*"Given the medals: points and also text, x is gold, y is silver, label by
+country, with nudge up."*
 
 There is no "labeled point" mark to learn: a labeled scatter is just
 `point + text`, layered with the `+` [operator](../operators.qmd).
@@ -110,6 +115,9 @@ data(gm_europe) + point + style(color = "#9e9e9e") +
   title("The same thirty, moved apart")
 ```
 
+*"Given gapminder Europe: points and also text derived by repel, x is gdp, y is
+life, label by country."*
+
 The modifier does three things in that picture. Every label sits just
 outside its dot, so no word covers the data it names. A label that moved far keeps
 a thin line back to its point, so you can still see which point it names. And each
@@ -152,6 +160,9 @@ data(medals) + bar + style(color = "steelblue") +
   title("Each bar labeled with its height")
 ```
 
+*"Given the medals: bars and also text, x is country, y is gold, label by
+gold."*
+
 ## Color
 
 `color` splits the labels by group and earns a legend, the same discrete split
@@ -162,6 +173,9 @@ data(medals) + text + x(gold) + y(silver) + label(country) + color(country) +
   x_label("Gold") + y_label("Silver") +
   title("One hue per country")
 ```
+
+*"Given the medals: text, x is gold, y is silver, label by country, color by
+country."*
 
 ## Styling: one color, one size
 
@@ -174,6 +188,9 @@ data(medals) + text + x(gold) + y(silver) + label(country) +
   x_label("Gold") + y_label("Silver") +
   title("Bigger, greener labels")
 ```
+
+*"Given the medals: text, x is gold, y is silver, label by country, colored
+seagreen, with size 17."*
 
 A per-row font size (a word cloud, where the biggest word is the most
 frequent) is not built yet; for now `size` is a layer setting, not a mapped
@@ -210,6 +227,9 @@ data(gapminder_2007) + point + x(gdp) + y(life) +
   data(notes) + text + label(what) +
   title("A note is a layer, not a function")
 ```
+
+*"Given gapminder 2007: points, x is gdp, y is life, and also text from the
+notes, label by what."*
 
 Nothing was added to the grammar to reach that. `data()` already binds the
 nearest table, `text` already draws one string per row, and a note is a table

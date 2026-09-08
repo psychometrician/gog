@@ -32,6 +32,9 @@ data(iris_flowers) + point +
   x(petal_length) + y(sepal_length) + z(sepal_width) + color(species)
 ```
 
+*"Given the iris flowers: points, x is petal length, y is sepal length, z is
+sepal width, color by species."*
+
 That is the whole idea. A 3-D scatter is not a different chart with a different
 name; it is `point` with its third position bound, the same way a horizontal bar
 is just `bar` with its categories on `y`. A flat plot is a spatial one with `z`
@@ -70,6 +73,9 @@ data(iris_flowers) + point +
   x(petal_length) + y(sepal_length) + z(sepal_width) + color(species) +
   space(turn = -50, tilt = 15)
 ```
+
+*"Given the iris flowers: points, x is petal length, y is sepal length, z is
+sepal width, color by species, turned -50, tilted 15."*
 
 Same data, same bindings: turned around and seen from lower down. The choice
 matters: from this angle the three species separate along `z` more
@@ -155,6 +161,9 @@ climb:
 data(thermals) + path + x(east) + y(north) + z(altitude) + color(glider)
 ```
 
+*"Given the thermals: paths, x is east, y is north, z is altitude, color by
+glider."*
+
 Nothing in that sentence asks for a spiral. `path` was told to join the rows in
 order, and the gliders went round while they went up. The coil is what that
 looks like when it is drawn. The same three bindings would draw a straight line
@@ -195,10 +204,16 @@ standing bars:
 data(gm_all) + zone * bin(20) + x(gdp, scale = "log") + y(life)
 ```
 
+*"Given all the gapminder years: zones derived by bin into 20, x is gdp on a log
+scale, y is life."*
+
 ```{r}
 data(gm_all) + bar * bin(20) + x(gdp, scale = "log") + y(life) + space() +
   style(color = "#2a9d8f")
 ```
+
+*"Given all the gapminder years: bars derived by bin into 20, x is gdp on a log
+scale, y is life, in the cube."*
 
 One word changed. The transform is the same `bin`, cutting the same two axes
 into the same cells, and the count it invents is the same count. What differs is
@@ -232,6 +247,9 @@ on which kind of axis you have, and a floor can be one of each:
 data(gm_eras) + bar * count + x(continent) + y(era) + space() + style(color = "#2a9d8f")
 ```
 
+*"Given the gapminder eras: bars derived by count, x is continent, y is era, in
+the cube."*
+
 That one counts into slots on both axes: a table of counts, standing up. And a
 floor with one axis of each kind is a distribution per category, drawn as bars:
 
@@ -264,6 +282,9 @@ sentence names that column, on the axis the answer is measured along:
 data(gm_eras) + bar * mean + x(continent) + y(era) + z(life) + space() +
   style(color = "#2a9d8f")
 ```
+
+*"Given the gapminder eras: bars derived by mean, x is continent, y is era, z is
+life."*
 
 Read that beside the flat `bar * mean + x(continent) + y(life)`. The rule is the
 same in both. A summary groups by every position the mark does not measure
@@ -309,6 +330,9 @@ data(gm_eras) + interval * range + x(continent) + y(era) + z(life) + space() +
   style(color = "#2a9d8f")
 ```
 
+*"Given the gapminder eras: intervals derived by range, x is continent, y is
+era, z is life."*
+
 Every cell's whisker spans that cell's own low and high. The caps are a **cross**
 rather than a single tick, and that is not decoration: on the flat page, a cap
 runs across the slot in the one direction left over, and a cube leaves two.
@@ -322,12 +346,17 @@ data(gm_eras) + interval * confidence + x(continent) + y(era) + z(life) +
   space() + style(color = "#2a9d8f")
 ```
 
+*"Given the gapminder eras: intervals derived by confidence, x is continent, y
+is era, z is life."*
+
 And the five-number summary stands the same way, its box a solid between the
 quartiles with the whiskers reaching past it:
 
 ```{r}
 data(gm_eras) + box + x(continent) + y(era) + z(life) + space() + style(color = "#2a9d8f")
 ```
+
+*"Given the gapminder eras: boxes, x is continent, y is era, z is life."*
 
 Look at the median on each box. It is drawn only where the box's own sides face
 you. The median is a plane *inside* an opaque solid, so the far half of it is
@@ -453,6 +482,9 @@ data(gapminder_2007) + point + x(gdp) + y(life) + z(population) +
   color(continent) | facet(continent)
 ```
 
+*"Given gapminder 2007: points, x is gdp, y is life, z is population, color by
+continent, split into panel columns by continent."*
+
 The scales are shared, exactly as they are on the flat page, so the five cubes
 are the same cube five times and a height in one is a height in another. Oceania
 holds two countries and almost nothing drawn, and that is the correct reading: the
@@ -504,6 +536,9 @@ summary at two tilts, and the second one is seen from almost straight above:
       z_label("Mean life expectancy") + title("Tilted up, and thinned"))) +
   theme(height = 430)
 ```
+
+*"Given the gapminder eras: bars derived by mean, x is continent, y is era, z is
+life, beside the same tilted 85."*
 
 The right-hand plot draws fewer numbers up its measure axis, and that is all it
 does about the crowding: it drops *labels* and never changes the scale. The

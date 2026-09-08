@@ -17,7 +17,8 @@ different kind of chart, so it is `bar` with `* count`:
 data(gapminder_2007) + bar * count + x(continent)
 ```
 
-*"Bars derived by count: x is continent."* No `y()` is bound because the
+*"Given gapminder 2007: bars derived by count, x is continent."* No `y()` is
+bound because the
 count is invented, and the engine labels the axis for you.
 
 **One atom away.** Long category names? Put the categories on `y` and the
@@ -26,6 +27,8 @@ bars lie down, same sentence, positions swapped:
 ```{r}
 data(gapminder_2007) + bar * count + y(continent)
 ```
+
+*"Given gapminder 2007: bars derived by count, y is continent."*
 
 The count still measures along the invented axis, which is now x.
 Owning chapters: [Bar](../marks/bar.qmd), [Transforms](../transforms.qmd).
@@ -38,6 +41,8 @@ to one:
 ```{r}
 data(iris_flowers) + bar * proportion + x(species)
 ```
+
+*"Given the iris flowers: bars derived by proportion, x is species."*
 
 **One atom away.** Back to raw counts: `* count`. Sorted by size:
 add [`order()`](../data.qmd).
@@ -52,6 +57,8 @@ because the intervals are adjacent:
 data(iris_flowers) + bar * bin + x(petal_length)
 ```
 
+*"Given the iris flowers: bars derived by bin, x is petal length."*
+
 **One atom away.** `bin` takes a count or a width when the default
 guesses wrong. `bin(30)` for thirty bins, or intervals in the data's own
 units:
@@ -59,6 +66,8 @@ units:
 ```{r}
 data(iris_flowers) + bar * bin(width = 0.5) + x(petal_length)
 ```
+
+*"Given the iris flowers: bars derived by bin at width 0.5, x is petal length."*
 
 A `line * bin` draws the same counts as a frequency polygon. Owning
 chapters: [Bar](../marks/bar.qmd), [Transforms](../transforms.qmd).
@@ -72,7 +81,8 @@ removes that decision:
 data(gapminder_2007) + line * density + x(life)
 ```
 
-*"A line derived by density: x is life."* Same question as the
+*"Given gapminder 2007: a line derived by density, x is life."* Same question as
+the
 histogram, one derivation over. Use both when the bumps matter. One atom tunes
 the smoothing: `density(0.5)` sharpens the bumps, `density(2)` flattens them,
 and `density(bandwidth = 1)` fixes the kernel width in years.
@@ -87,6 +97,8 @@ too:
 ```{r}
 data(gapminder_2007) + step * bin + x(life)
 ```
+
+*"Given gapminder 2007: a step outline derived by bin, x is life."*
 
 Three marks (`bar`, `line`, `step`), one `bin`. The transform never
 changed; only the geometry drawing its output did. That is the
@@ -104,7 +116,8 @@ data(gm_europe) + point * bin * stack + x(life) +
   x_label("Life expectancy (years)") + title("Thirty countries, thirty dots")
 ```
 
-*"Points derived by bin and stack: x is life."* The pile's height is a count, so
+*"Given gapminder Europe: points derived by bin and stack, x is life."* The
+pile's height is a count, so
 the tallest column can be read off the axis or simply counted, and no
 observation has been averaged into anything. Compare the same thirty as
 bars, where a single bin edge moving would redraw the shape:

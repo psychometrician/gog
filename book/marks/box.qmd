@@ -123,6 +123,9 @@ data(gapminder_2007) + box(whiskers = "range") + x(continent) + y(life) +
   title("The same, with whiskers to the full range")
 ```
 
+*"Given gapminder 2007: boxes with whiskers to the range, x is continent, y is
+life."*
+
 Now Afghanistan and Haiti are the ends of their whiskers rather than dots. No
 point is called an outlier. The default is `"tukey"` (fences and outliers, the
 standard box plot); `"range"` is the whole five-number summary with nothing set
@@ -163,6 +166,9 @@ data(iris_flowers) + box + x(species) + y(petal_length) + color(species) +
   title("The same distributions, colored by species")
 ```
 
+*"Given the iris flowers: boxes, x is species, y is petal length, color by
+species."*
+
 Mapping `color` to a *second* category splits each x-group into one box per
 color. Without `dodge` those boxes share one x and overlap, and their fills
 turn translucent so both stay readable. [`dodge`](../transforms.qmd) sets
@@ -173,6 +179,9 @@ data(gm_eras) + box * dodge + x(continent) + y(life) + color(era) +
   y_label("Life expectancy") +
   title("Life expectancy per continent, 1957 vs 2007")
 ```
+
+*"Given the gapminder eras: boxes derived by dodge, x is continent, y is life,
+color by era."*
 
 Stroke width and opacity stay *settings*: a box is one shape, so there is no
 row for `size` or `opacity` to vary over. `style(size = )` is the width of
