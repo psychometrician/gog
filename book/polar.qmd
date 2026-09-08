@@ -518,7 +518,7 @@ row per leaf, and the first three columns spell the path down to it:
 knitr::kable(head(spending, 6))
 ```
 
-`NA` is not missing data there. It says the branch stops: rent has no sub-parts
+A missing value is not missing data there. It says the branch stops: rent has no sub-parts
 worth naming, so it reaches the second level and no further.
 
 ```{r}
@@ -549,7 +549,7 @@ made between `count` and `sum`, arriving at a tree.
 Read the outer rim. It is blank across Rent and Groceries and solid across
 Utilities and Car, because those two branches are the only ones with a third
 level. A ragged rim is what a real hierarchy looks like, and it comes from the
-`NA`s rather than from anything the plot was told.
+missing values rather than from anything the plot was told.
 
 The radial axis carries **depth**, which is the level a node sits at: 1 for the
 groups on the inner ring, 2 for the items outside them, 3 for the details on the

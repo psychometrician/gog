@@ -373,7 +373,7 @@ data(six_weeks) + point + x(day) + y(orders) + color(day) +
 | `linear` | Equal steps for equal differences. The default |
 | `log` | Equal steps for equal ratios, on `x`, `y`, `color`, `size` and `opacity`, with any `base` |
 | `time` | Positions dates and times, chosen from the column type: `Date` and `POSIXct` columns, on every channel that measures |
-| `category` | One slot per distinct value, chosen from the column type: text and factor columns |
+| `category` | One slot per distinct value, chosen from the column type: text columns, and columns with a declared order |
 
 ## The axis fits your data
 
@@ -505,7 +505,7 @@ different operation, and it has a different word. `limits` runs before the
 transforms and removes rows. `brush` runs after the picture is composed and
 removes nothing. [Selection](selection.qmd) sets the two side by side.
 
-**Either end alone.** `NA` leaves that end to the data, which is how you fix
+**Either end alone.** An empty end leaves that end to the data, which is how you fix
 a baseline and leave the top to the data:
 
 ```{r}

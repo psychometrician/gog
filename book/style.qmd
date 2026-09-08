@@ -372,7 +372,7 @@ A mapping need not be written to be there. A `zone * density` measures by color
 with nothing bound ([Zone](marks/zone.qmd)), so a palette works on one.
 
 One color, though, is not a palette. `palette()` takes either a **palette
-name** (`"gog"`, `"okabe"`) or a **vector of colors**; a single color name
+name** (`"gog"`, `"okabe"`) or the **colors themselves**; a single color name
 is neither, so it is refused rather than quietly using the default:
 
 ```{r}

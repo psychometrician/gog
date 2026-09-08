@@ -409,7 +409,7 @@ how the light is made. Every declarative sentence leaves that part out, and
 something else has to supply it. In gog the engine does, and every stroke on
 these pages answers a sentence that never mentioned strokes.
 
-What you write in R becomes a small, engine-neutral specification (which
+What you write becomes a small, engine-neutral specification (which
 marks, which columns on which channels, which transforms), and *that* is what
 renders.
 Today one renderer reads it, producing the SVGs on these pages; the same

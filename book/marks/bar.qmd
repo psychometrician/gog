@@ -56,7 +56,7 @@ them: `x` on a vertical plot, `y` on a horizontal one. The key can be any
 column in the data: the category column itself, the measured column, or a third
 variable entirely. Naming the category column asks for that column's own order,
 which is alphabetical here because `country` is plain text; a
-[factor](../data.qmd) would use its declared levels instead.
+[declared order](../data.qmd) would be used instead.
 
 **Default, data order** (rows as they appear in the table):
 
@@ -168,13 +168,13 @@ data(balance) + bar + x(quarter) + y(profit) + color(result) +
 with a palette of firebrick and seagreen."*
 
 `palette()` hands its colors out in **category order**, and that is why `result`
-is a factor here instead of a plain character column. Left to itself a character
+carries a declared order here instead of being plain text. Left to itself a text
 column takes the order its values first appear in, and this data opens on a
 profit, so the palette would arrive reversed and paint the gains red.
 Declaring `levels = c("loss", "profit")` pins the order, the legend reads in it
 too, and the plot cannot silently invert if next quarter's numbers start with a
 loss. This is the same mechanism as
-[Factors decide the order of categories](../data.qmd).
+[Declaring the order of categories](../data.qmd).
 
 Red for loss and green for gain is one common convention, and the hardest
 pair to separate for the most common color blindness. Texture answers that

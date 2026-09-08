@@ -376,7 +376,7 @@ data(gapminder_2007) + point + x(gdp, scale = "log") + y(life) +
 | `linear` | Equal steps for equal differences. The default |
 | `log` | Equal steps for equal ratios, on `x`, `y`, `color`, `size` and `opacity`, with any `base` |
 | `time` | Positions dates and times, chosen from the column type: `Date` and `POSIXct` |
-| `category` | One slot per distinct value, chosen from the column type: text and factor columns |
+| `category` | One slot per distinct value, chosen from the column type: text columns, and columns with a declared order |
 | `order` | Which way a categorical axis runs, or [declare it on the column](data.qmd): a factor in R, `ordered()` in the other three |
 
 A scale is not a transform: it produces no new values, only different positions

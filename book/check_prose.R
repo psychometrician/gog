@@ -122,6 +122,17 @@ check_prose <- function(dirs = "book") {
   # writes, never text it quotes.
   idiom_exempt <- list("index.qmd" = "difficulty earns its keep")
 
+  # gog is one grammar in four languages, and the prose speaks for all four.
+  # The code chunks are R with a tab per language, so a sentence about the
+  # grammar never calls a thing R's unless it is: a *table*, not a data frame
+  # or a tibble; *your session*, not your R environment or workspace; *the
+  # colors themselves*, not a character vector. The bindings part and the
+  # preface's install section are where R is R, and they are exempt; so is the
+  # one sentence in the Data chapter that names all four tables side by side.
+  r_only <- c("data frame", "tibble", "r environment", "your workspace",
+              "character vector", "vector of colors", "color vector")
+  r_only_exempt <- list("data.qmd" = "a data frame in r,")
+
   # One place transcribes an engine diagnostic word for word, and a diagnostic is
   # the *package's* sentence, not the book's. The book has to quote it exactly or
   # it is claiming output the reader will not get, so the em dash stays and the
@@ -193,6 +204,7 @@ check_prose <- function(dirs = "book") {
   bad_case <- character(0)
   bad_call <- character(0)
   bad_idiom <- character(0)
+  bad_r <- character(0)
 
   for (f in qmds) {
     lines <- readLines(f, warn = FALSE)
@@ -287,6 +299,17 @@ check_prose <- function(dirs = "book") {
         }
       }
 
+      # --- R-only wording ---------------------------------------------------
+      if (!grepl("^(bindings/|index\\.qmd)", short)) {
+        for (p in r_only) {
+          if (grepl(p, low, fixed = TRUE)) {
+            ex <- r_only_exempt[[short]]
+            if (!is.null(ex) && grepl(ex, low, fixed = TRUE)) next
+            bad_r <- c(bad_r, sprintf("  %s:%d  \"%s\"", short, i, p))
+          }
+        }
+      }
+
       # --- Bolded sentences -------------------------------------------------
       # A short bold run-in label may open a *list item*, with the terminal
       # period inside the bold. That is a layout device, and it is the only
@@ -331,7 +354,7 @@ check_prose <- function(dirs = "book") {
   }
 
   total <- length(bad_bold) + length(bad_dash) + length(bad_head) +
-    length(bad_case) + length(bad_call) + length(bad_idiom)
+    length(bad_case) + length(bad_call) + length(bad_idiom) + length(bad_r)
 
   report <- function(items, headline, advice) {
     if (!length(items)) return(invisible(NULL))
@@ -353,6 +376,8 @@ check_prose <- function(dirs = "book") {
            "Weave the point into the prose, or let the plot show it.")
     report(bad_idiom, "FAIL: idiom does not translate",
            "Say the literal thing. This book is planned in every major language.")
+    report(bad_r, "FAIL: R-only wording in prose that speaks for four languages",
+           "Say table, session, the colors themselves. R is one of four; the bindings part is where it is R.")
     stop("check_prose: ", total, " prose inconsistency(ies)")
   }
 

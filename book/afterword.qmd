@@ -34,7 +34,7 @@ one of them, drawn by the data itself. It cost no new word, because `group`
 already says which rows belong together. [Map](map.qmd) draws it with the words
 the kernel already had.
 
-The same sentence you write in R becomes a small, engine-neutral specification
+The same sentence you write becomes a small, engine-neutral specification
 inside the package. The other three bindings speak it too, with the same words
 and their own way of naming a column. Each one's chapter is
 its difference list, a page long apiece:

@@ -110,7 +110,7 @@ first."*
 
 **One atom away.** `desc = FALSE` (the default) for ascending; naming a column
 other than the axis's own, as here, also overrides a
-[factor's declared levels](../data.qmd).
+[declared order](../data.qmd).
 
 ## Two groups, back to back
 

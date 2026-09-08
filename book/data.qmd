@@ -12,9 +12,8 @@ travel with its columns.
 
 ## Binding a table
 
-`data()` takes a data frame directly from
-your R environment. Column names after that are bare words: no quotes, no `$`,
-no indexing.
+`data()` takes a table you already hold in your session. Column names after
+that are bare words: no quotes, no table prefix, no indexing.
 
 ```{r}
 data(gapminder_2007) + point + x(gdp) + y(life)
@@ -22,11 +21,11 @@ data(gapminder_2007) + point + x(gdp) + y(life)
 
 *"Given gapminder 2007: points, x is gdp, y is life."*
 
-gog looks up `gdp` and `life` inside the `gapminder_2007` data frame automatically.
+gog looks up `gdp` and `life` inside the `gapminder_2007` table automatically.
 This is the **Bind-Once Law**: name the table once, then use columns freely.
 
-`gapminder_2007` here is just a regular R data frame (or tibble) in your workspace:
-no registration step, no special wrapping required.
+`gapminder_2007` here is an ordinary table in your session, whatever your
+language calls one: no registration step, no special wrapping required.
 
 Writing `data()` does more than supply the numbers. When you write
 `data(gapminder_2007)`, gog keeps the name `gapminder_2007`, not only the
@@ -40,9 +39,8 @@ tells you what to write:
 gapminder_2007 + point + x(gdp) + y(life)
 ```
 
-gog gives the same advice for a bare table written mid-expression: write
-`+ data(forecast)`, not `+ forecast`. It gives it again for a sentence with
-no data at all, `point + x(gdp)` with nothing before it.
+gog gives the same advice for a sentence with no data at all, `point + x(gdp)`
+with nothing before it.
 
 ## The table has to be tidy
 
@@ -133,7 +131,8 @@ points."*
 
 The rule: the first `data()` is the plot's table, and each later `data()`
 applies to the mark written directly after it. A mark with no `data()` of
-its own reads the plot's table.
+its own reads the plot's table. The refusal at the start of this chapter
+holds for the second table too: write `+ data(forecast)`, not `+ forecast`.
 
 Two things follow from that rule, and both are easy to miss.
 
@@ -383,28 +382,19 @@ in as many languages and places as we can reach.
 DBI::dbDisconnect(con)
 ```
 
-## Passing data in R
+## Passing a table
 
-Any R data frame or tibble passes directly:
-
-```r
-library(gog)
-
-# gapminder_2007 is a regular data frame in your environment
-data(gapminder_2007) + point + x(gdp) + y(life) + color(continent)
-```
-
-That first line prints a long list of masked names (names R will now read as
-gog's first), and most of the list cannot affect you. `mean(x)` and `sum(x)`
-keep working, because R skips a name that is not a function when it resolves
-a call. Ten names do mask R's own, `data` among them, and the
-[R](bindings/r.qmd) chapter lists all ten with the qualified form of each.
+Any table your language already holds passes directly: a data frame in R, a
+dict of columns or a pandas DataFrame in Python, a named tuple of columns or a
+DataFrame in Julia, an object of columns in JavaScript. Each chapter in the
+bindings part shows its own. The [R](bindings/r.qmd) chapter also lists the
+ten names that loading gog masks in R, with the qualified form of each.
 
 Today the table crosses to the engine as an in-memory copy. Apache Arrow,
 which would let the engine read the same memory instead of copying it, is
 planned to replace that.
 
-## Factors decide the order of categories
+## Declaring the order of categories
 
 A plain text column has no order of its own, so gog draws its categories in the
 order the rows happen to arrive:
@@ -419,14 +409,14 @@ data(severity) + bar + x(level) + y(count) +
   title("Text column: the order the rows came in")
 ```
 
-That is rarely what you want here. Make it a **factor** and say what order you
-mean:
+That is rarely what you want here. Declare the order you mean. In R the
+declaration is a **factor**:
 
 ```{r}
 severity$level <- factor(severity$level, levels = c("Low", "Medium", "High"))
 
 data(severity) + bar + x(level) + y(count) +
-  title("Factor: the order you declared")
+  title("Declared: the order you asked for")
 ```
 
 The `levels =` goes with the column, so *every part of the plot agrees*:
@@ -529,10 +519,10 @@ largest first."*
 
 Name the **category column itself** and you are asking for that column's own
 order, so there is nothing to override. A plain text column carries nothing but
-its spelling and sorts alphabetically; a factor carries its levels, so it keeps
-them, and `desc = TRUE` reverses them. That leaves no way to alphabetize a
-factor's labels from inside the plot, and the job belongs elsewhere anyway:
-set the levels again in the host language, which owns them.
+its spelling and sorts alphabetically; a column with a declared order keeps
+it, and `desc = TRUE` reverses it. That leaves no way to alphabetize a
+declared order from inside the plot, and the job belongs elsewhere anyway:
+set the order again in the host language, which owns it.
 
 ## Missing values
 
@@ -558,7 +548,7 @@ missing value in a column the plot never reads changes nothing: leave `batch`
 unbound and its gaps are ignored. Bind it to `color` and a row missing its
 batch drops too, because it now has no color to take. Other plotting tools
 follow the same rule: only the channels in use decide which rows are kept, so
-a stray `NA` in an unused column never quietly shrinks the picture.
+a stray missing value in an unused column never quietly shrinks the picture.
 
 ## Labels are drawn exactly as written
 

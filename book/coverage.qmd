@@ -273,7 +273,7 @@ data(by_species) + point + x(petal_length) + y(sepal_length) +
 
 Nothing is wrong here. A palette hands out its colors in the categories' order,
 that order is the axis's, and for a text column the axis order is the order the
-values first appear (a factor's levels are honored when you supply one). It is
+values first appear (a declared order is honored when you supply one). It is
 consistent and it is documented. What there is no way to say is *setosa is
 tomato*, so a category cannot keep its color across two plots whose category
 order differs, which is what a report of small multiples usually wants.

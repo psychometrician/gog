@@ -332,7 +332,7 @@ data(gapminder_2007) + point + x(gdp) + y(life) +
 
 `palette()` chooses the colors the `color` channel assigns. There is no
 separate atom for ramps, which ggplot2 calls gradients. The same word covers
-both, because whether a color vector means *one color per category* or
+both, because whether a set of colors means *one color per category* or
 **stops** to interpolate between (the fixed colors a ramp passes through)
 follows from the column `color` is bound to.
 
@@ -519,7 +519,7 @@ symmetry has a cost, and it is worth knowing before you use this. A signed
 column that is lopsided, -2 to 100 say, spends almost none of its blue half,
 because a symmetric domain is mostly empty on the short side.
 
-A vector of colors becomes the **stops**, interpolated between:
+The colors you pass become the **stops**, interpolated between:
 
 ```{r}
 data(gapminder_2007) + point + x(gdp) + y(life) +
@@ -556,7 +556,7 @@ far along?". `shape`, `pattern` and `group` do not: they answer "which one?".
 
 ### Custom colors
 
-Pass a character vector (hex values, CSS color names, or a mix):
+Pass the colors yourself (hex values, CSS color names, or a mix):
 
 ```{r}
 data(gapminder_2007) + point + x(gdp) + y(life) +
@@ -586,7 +586,7 @@ second, and so on), so color assignment is deterministic and predictable.
 sequence.)
 
 One mistake to know about: a single color is not a palette. `palette()`
-takes a palette *name* or a *vector* of colors, and `palette("red")` is
+takes a palette *name* or the *colors themselves*, and `palette("red")` is
 neither; it is an attempt to set one constant color, which is
 [`style(color = "red")`](style.qmd):
 
