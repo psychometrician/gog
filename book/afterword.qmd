@@ -1,17 +1,17 @@
 # Afterword {.unnumbered}
 
-The 1446 book closed with a postface making two claims for its little
-alphabet: that a wise man could learn it before the morning was over, and a
-slow one within ten days, and that it could write down any sound at all: wind,
-crane, cock, dog. This book closes by restating both, because they are its own measures
+The 1446 book closed with a postface making two claims for its little alphabet:
+that a wise man could learn it before the morning was over, and a slow one
+within ten days, and that it could write down any sound at all: wind, crane,
+cock, dog. This book closes by restating both, because they are its own measures
 of success.
 
-## The ten-days challenge
+## The ten-day challenge
 
-You have finished the morning; here is the rest of the promise. For the next ten
-days, bring one question a day from **your own data**, not the cast's,
-and answer it in one sentence. Start where the [cookbook](cookbook/one-variable.qmd)
-starts: what shape is the data, what do you want to know. By day three the
+You have finished the morning; here is the rest of the promise. For the next
+ten days, bring one question a day from *your own data*, not the cast's, and
+answer it in one sentence. Start where the [cookbook](parts/cookbook.qmd)
+starts: what shape is the data, and what do you want to know? By day three the
 recipes will feel like spellings of things you already say. By day ten you
 should be writing sentences this book never showed you, which is the only
 outcome that would prove the grammar, rather than the examples, is what you
@@ -21,43 +21,45 @@ If a sentence surprises you (renders when you expected a refusal, or
 refuses with a direction you disagree with), that is worth reporting. A
 grammar this small stays correct only when readers argue with it.
 
-## What is still to come
+## Growth without new words
 
-The kernel you learned is the *designed* vocabulary, and nothing in it is waiting
-to be drawn. **Every word draws.** Every mark, every space, every channel, and
-the one selection.
+The kernel you learned is the whole vocabulary, and nothing in it is waiting to
+be drawn. Every word draws. Every mark, every space, every channel, and the one
+selection.
 
 Growth arrives as new pictures rather than new words. The **choropleth** is the
 pattern: no atom was added for it. It shades each country by a value, and what
-it needed was geometry: `zone` finds its sides six ways, and a **boundary** is
+it needed was geometry. `zone` finds its sides five ways, and a **boundary** is
 one of them, drawn by the data itself. It cost no new word, because `group`
 already says which rows belong together. [Map](map.qmd) draws it with the words
 the kernel already had.
 
-The same sentence you write becomes a small, engine-neutral specification
-inside the package. The other three bindings speak it too, with the same words
-and their own way of naming a column. Each one's chapter is
-its difference list, a page long apiece:
-[Python](bindings/python.qmd), [Julia](bindings/julia.qmd),
+The same sentence you write becomes a small, engine-neutral specification inside
+the package. Every binding speaks it, with the same words and its own way of
+naming a column. Each has a short chapter of its own, a difference list:
+[R](bindings/r.qmd), [Python](bindings/python.qmd), [Julia](bindings/julia.qmd),
 [JavaScript](bindings/javascript.qmd).
 
 ```python
 # Python
-(data(gapminder) + point + x(col.gdp) + y(col.life)
+(data(gapminder_2007) + point + x(col.gdp) + y(col.life)
   + color(col.continent))
 ```
 
 ```julia
 # Julia
-data(gapminder) + point + x(:gdp) + y(:life) + color(:continent)
+data(gapminder_2007) + point + x(:gdp) + y(:life) + color(:continent)
 ```
 
 ```js
 // JavaScript, the one binding that cannot overload the operators
-plot(data(gapminder), point, x(col.gdp), y(col.life), color(col.continent))
+plot(data(gapminder_2007), point, x(col.gdp), y(col.life), color(col.continent))
 ```
 
-And one far goal, half of it now arrived. The engine runs inside the page:
+## One goal left
+
+One goal is bigger than the rest, and half of it is already here. The engine
+runs inside the page:
 that is how a 3-D plot turns under your mouse in the web edition. What is
 left is the other half, written down here so you can check later whether the
 project did it: every example in this book editable in place. Change
@@ -86,11 +88,10 @@ I hope good work comes out of it.
 
 ## The gap
 
-A specification is a sentence said before the picture exists. Everyone who
-uses this grammar (reader, analyst, engine-builder) lives in the moment
-between declaring what they want to see and finding out whether the engine
-agrees. The package is `gog`. The state of working with it is *agog*. We
-hope the book kept you there.
+A specification is a sentence said before the picture exists. Everyone who uses
+this grammar lives in the moment between declaring what they want to see and
+finding out whether the engine agrees. The package is `gog`. The state of
+working with it is *agog*. We hope the book kept you there.
 
 :::: {.content-visible when-format="html"}
 ::: {.gog-slogan .gog-slogan-close}

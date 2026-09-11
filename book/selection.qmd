@@ -14,7 +14,8 @@ data(gapminder_2007) + point + x(gdp) + y(life) + color(continent) +
   theme(width = 620) + brush
 ```
 
-*"Given gapminder 2007: points, x is gdp, y is life, color by continent, and let the reader select."*
+*"Given gapminder 2007: points, x is gdp, y is life, color by continent, and let
+the reader select."*
 
 On a page that can run the engine, drag across that plot. On paper it is the
 scatter itself, because nothing is selected until someone selects it.
@@ -57,8 +58,8 @@ This is the one rule to learn, and it separates `brush` from an atom you already
 know. [`limits`](scales.qmd) also takes a range in a column's own units. It does
 something different with it.
 
-`limits` runs **before** the statistics. It removes rows, and the transform then
-sees the survivors as if they were the whole data. `brush` runs **after** the
+`limits` runs *before* the statistics. It removes rows, and the transform then
+sees the survivors as if they were the whole data. `brush` runs *after* the
 picture is composed. It removes nothing and recomputes nothing.
 
 One range, one mark, two outcomes:
@@ -76,21 +77,21 @@ data(gapminder_2007) + point + x(gdp) + y(life) +
   title("brush: all 142 still here")
 ```
 
-The first plot is a different plot. Its axis runs from 20,000 to 60,000, only the
-countries inside that range are drawn, and both axes were fitted to the ones
-that survived. Look at its y axis: it starts near 70, because every country with
-a low life expectancy was removed. gog prints how many it removed rather than
-removing them in silence.
+The first plot is a different plot. Its axis runs from 20,000 to 60,000, only
+the countries inside that range are drawn, and both axes were fitted to the ones
+that survived. Look at its y axis: the lowest number on it is 74, because every
+country with a low life expectancy was removed. gog prints how many it removed
+rather than removing them in silence.
 
-The second is the whole world, with one group keeping its color. Its axes are the
-axes of all 142 countries, so the selection sits where it always sat. Stacked
-rather than side by side on purpose: the two share nothing, and setting them
-next to each other invites a reader to compare positions that were fitted to
-different data.
+The second is the whole world, with one group keeping its color. Its axes are
+the axes of all 142 countries, so the selection sits where it always sat.
+Stacked rather than side by side on purpose: the two share no fitted axis, and
+setting them next to each other invites a reader to compare positions that were
+fitted to different data.
 
-Which of the two you want is a genuine choice and the grammar keeps both sayable.
-Ask *how does this subgroup look on its own* and you want `limits`. Ask *where
-does this subgroup sit inside the whole* and you want `brush`.
+Which of the two you want is a genuine choice and the grammar keeps both
+sayable. Ask *how does this subgroup look on its own* and you want `limits`. Ask
+*where does this subgroup sit inside the whole* and you want `brush`.
 
 ## Two bounds make a rectangle
 
@@ -131,31 +132,31 @@ across the slots and the selection follows them, whole slots at a time, because
 a category has no half.
 
 The column is on the `x` axis here and that is not decoration. A drag can only
-reach a column the panel places. Written over the scatter this chapter opened
-with, where `continent` is a color and nothing else, `brush(continent, at = ...)`
-is still a legal sentence and still dims the right countries, but there is
-nowhere to drag, because no axis is measuring continents. The sentence has
-chosen the selection, and dragging cannot change it.
+reach a column the panel places. Write it over the scatter this chapter opened
+with, where `continent` is only a color. The sentence is still legal and still
+dims the right countries. But there is nowhere to drag, because no axis is
+measuring continents. The sentence has chosen the selection, and dragging cannot
+change it.
 
 *Which* axis places it does not matter. Here is the same sentence with `x` and
-`y` exchanged:
+`y` exchanged, in a shorter panel:
 
 ```{r}
 data(gapminder_2007) + point + x(life) + y(continent) + color(continent) +
   theme(width = 620, height = 320) + brush(continent, at = c("Europe", "Oceania"))
 ```
 
-The slots stack up the side now, and the same two continents keep their color. Drag on it
-and the band lies across the panel instead of standing in it, whole slots at a
-time as before. The bound never mentions an axis. It names a column, so turning
-the plot moves the drag and leaves the sentence alone.
+The slots stack up the side now, and the same two continents keep their color.
+Drag on it and the band lies across the panel instead of standing in it, whole
+slots at a time as before. The bound never mentions an axis. It names a column,
+so turning the plot moves the drag and leaves the sentence alone.
 
 ## Two views, one selection
 
-This is the use a brush was invented for, and the sections above prepared for
-it. Selecting inside one plot shows you what the plot already showed. The
-question worth asking is *where does this group sit in a different picture*, and
-that needs a second picture:
+This is what a brush is most useful for, and the sections above prepared for it.
+Selecting inside one plot shows you what the plot already showed. The question
+worth asking is *where does this group sit in a different picture*, and that
+needs a second picture:
 
 ```{r}
 (data(gapminder_2007) + point + x(gdp) + y(life) +
@@ -168,27 +169,28 @@ that needs a second picture:
 gdp, starting from 20000 to 60000, above points, x is gdp, y is population on a
 log scale, and let the reader select gdp, starting from 20000 to 60000."*
 
-Two plots, one page, and one bound lighting the same countries in both. Drag in
-either and the other follows. The rich countries live long, which the top plot
-says; they are also mostly small, which only the bottom one says, and neither
-plot could have told you both.
+Two plots, one page, and one bound keeping the same countries in color in both.
+Drag in either and the other follows. The rich countries live long, which the
+top plot says; their populations run from under a million to over three hundred
+million, which only the bottom one says, and neither plot could have told you
+both.
 
 Nothing was added to the grammar to link them. Look at what the two sentences
-share: the column `gdp`, named on `x` in each. A bound is a fact about a column's
-values rather than about a panel, so two plots that read that column are already
-answering the same question. There is no name to declare, no identifier to match
-up, and no third atom joining them.
+share: the column `gdp`, named on `x` in each. A bound is a fact about a
+column's values rather than about a panel, so two plots that read that column
+are already answering the same question. There is no name to declare, no
+identifier to match up, and no third atom joining them.
 
 That is [composition](composition.qmd)'s one rule again, in a new place. Two
-composed plots naming the same column on the same axis share that axis,
-which is why these two are the same width and the `gdp` numbers are written once.
-The selection is shared for the same reason.
+composed plots naming the same column on the same axis share that axis, which is
+why these two are the same width and the `gdp` numbers are written once. The
+selection is shared for the same reason.
 
 ## One bound reaches every panel
 
-[Faceting](faceting.qmd) is the other way to get more than one panel, and a brush
-treats it the same way. The bound is a fact about a column, and every panel reads
-that column, so every panel answers:
+[Faceting](faceting.qmd) is the other way to get more than one panel, and a
+brush treats it the same way. The bound is a fact about a column, and every
+panel reads that column, so every panel answers:
 
 ```{r}
 data(gapminder_2007) + point + x(gdp) + y(life) +
@@ -198,14 +200,14 @@ data(gapminder_2007) + point + x(gdp) + y(life) +
 *"Given gapminder 2007: points, x is gdp, y is life, and let the reader select
 gdp, starting from 20000 to 60000, split into panel columns by continent."*
 
-Five panels, one bound, and the rich countries keeping their color in each.
-Europe has many and Africa has none, which is the comparison the split was made
-for. Again nothing was added: `facet` divides the rows and `brush` dims the
-rest, and neither atom knows about the other.
+Five panels, one bound, and the rich countries keeping their color. Europe has
+many and Africa has none, which is the comparison the split was made for. Again
+nothing was added: `facet` divides the rows and `brush` dims the rest, and
+neither atom knows about the other.
 
-The panels differ in one way worth knowing. A bound is shared, because it names a
-column. Pointing is not, because it names a place: in the web edition, the values
-that appear under the pointer come from the panel you are pointing at, and never
+The panels differ in one way worth knowing. A bound is shared, because it names
+a column. Pointing is not. In the web edition, resting the pointer on a mark
+shows that row's values. They come from the panel you are pointing at, never
 from a row another panel drew.
 
 ## Which one is that?
@@ -228,17 +230,18 @@ twenty names keep their color. Drag the bound and a different twenty are
 readable.
 
 This works because `text` is one of the marks a brush reaches, on the same test
-as `point`: one row is one label. Nothing here is about selection *and* labels
-being designed together, because they were not.
+as `point`: one row is one label. No rule joins selection to labels. Each
+follows its own rule, and this plot is where the two meet.
 
 ## What can be brushed
 
-A selection picks out rows, so a mark can be brushed when **one row is one
-shape**: `point`, `text`, `rule` and `zone`.
+A selection picks out rows, so a mark can be brushed when *one row is one
+shape*: `point`, `text`, `rule` and `zone`.
 
-A plain `bar` is the exception: one row is one bar, but a bar's thickness is
-measured from the gap between neighbors, so selected and unselected bars would
-draw at different widths. The engine refuses it for now and the message says so.
+A plain `bar` passes that test and still refuses: one row is one bar, but a
+bar's thickness is measured from the gap between neighbors, so selected and
+unselected bars would draw at different widths. The engine refuses it, and the
+message says so.
 A jittered `point` refuses for the same kind of reason, because its offset is
 seeded from the row's place in the table, and a repelled `text` layer is drawn
 whole instead, with a note that says why.
@@ -253,13 +256,14 @@ data(gapminder_asia) + line + x(year) + y(life) + group(country) +
   brush(life, at = c(60, 80))
 ```
 
-The refusal names both ways forward. Split the line with `group()`, or brush a
-mark that draws one shape per row.
+The refusal names two ways out. This sentence has already taken the first:
+`group()` splits the line, and each piece still runs through twelve years. So
+take the second, and brush a mark that draws one shape per row.
 
 A summarized layer refuses for a different reason. A bar of `bar * count` stands
-for as many as fifty countries at once, so "twelve of these are selected" has no honest
-picture: dimming the whole bar would be wrong, and dimming part of it would
-invent a mark nobody asked for. gog says so instead of guessing:
+for as many as fifty-two countries at once, so "twelve of these are selected"
+has no honest picture: dimming the whole bar would be wrong, and dimming part of
+it would invent a mark nobody asked for. gog says so instead of guessing:
 
 ```{r}
 #| error: true
@@ -267,8 +271,8 @@ data(gapminder_2007) + bar * count + x(continent) +
   brush(gdp, at = c(20000, 60000))
 ```
 
-When a layer that *can* answer is present, neither of these is a refusal. The plot draws,
-and gog reports which layer it left whole:
+When a layer that *can* answer is present, neither of these is a refusal. The
+plot draws, and gog reports which layer it left whole:
 
 ```{r}
 #| message: true
@@ -281,9 +285,9 @@ data(gapminder_2007) + point + x(gdp) + y(life) +
 smooth, and let the reader select gdp, starting from 20000 to 60000."*
 
 The points answer the selection and the trend line does not, so the line is
-drawn once, at full strength, through all 142 countries. That is the right
-answer: a trend fitted to the selection alone would be a different statistic,
-and the sentence did not ask for one.
+drawn once, undimmed, through all 142 countries. That is the right answer: a
+trend fitted to the selection alone would be a different statistic, and the
+sentence did not ask for one.
 
 A range that does not run upward selects nothing, so it is a mistake rather than
 an empty selection:
@@ -312,14 +316,14 @@ color by continent, played by year, and let the reader select gdp, starting from
 Watch countries cross into the selection, frame by frame. The bound stays at
 3,000 to 20,000 dollars while the countries move. In 1952 the selected group is
 that year's middle-income countries. By 2007 many have grown past 20,000 and
-poorer ones have grown into the range. Nothing pauses, and no
-frame is skipped. The same test simply gets a different answer in each one, which
-is what makes a brush a threshold you watch the world cross.
+poorer ones have grown into the range. Nothing pauses, and no frame is skipped.
+The same test simply gets a different answer in each one. The bound stays still,
+and the countries move across it.
 
 ### What the count includes
 
 Stop the clock, draw a small box, and the count under the plot (the line reading
-`17 of 142 selected`) looks far too large. The number is right, and the reason
+`17 of 1704 selected`) looks far too large. The number is right, and the reason
 is one sentence: a bound is a test on a column's values, so it holds or fails
 for every row in the table. It does not stop at the frame you can see. The count
 and `show rows` (a button under the plot, listed below) report the whole
@@ -346,10 +350,10 @@ edge of the page. The rule is the same one; only the picture differs.
 The start of a sequence is where an animation misleads. Count what a bound
 selects in each frame before you write it down. From 3,000 to 20,000 dollars
 selects between 52 and 74 countries in every frame here. From 20,000 to 60,000
-dollars selects none at all in 1952 and 1957, one in 1962, and four by 1972. The second is a true
-picture and it reads as a broken plot, because a reader cannot tell *nothing is
-selected here* from *this is not working*. Drag the bound upward and you will
-watch it happen.
+dollars selects none at all in 1952 and 1957, one in 1962, and four by 1972. The
+second is a true picture and it reads as a broken plot, because a reader cannot
+tell *nothing is selected here* from *this is not working*. Drag the bound
+upward and you will watch it happen.
 
 One column cannot do both jobs. Brushing the column the frames are cut on would
 select frames rather than rows inside one, and that is a control for moving
@@ -360,8 +364,8 @@ through time rather than a selection:
 data(gm_all) + point + x(gdp) + y(life) + play(year) + brush(year, at = c(1980, 2007))
 ```
 
-Moving the clock belongs to the page a plot is shown on, not to the sentence that
-describes the plot. That is what the buttons under a played plot do, and
+Moving the clock belongs to the page a plot is shown on, not to the sentence
+that describes the plot. That is what the buttons under a played plot do, and
 [Play](play.qmd#what-the-page-adds) says why they have no word here.
 
 ## All three at once
@@ -378,37 +382,37 @@ data(gm_all) + point + x(gdp, scale = "log") + y(life) + z(population) +
 is population, color by continent, played by year, and let the reader select
 gdp, starting from 3000 to 20000."*
 
-A cube of 142 countries, twelve frames, and one bound tested inside every one
-of them. Drag the plot to turn it and the selection turns with the cloud, because
+A cube of 142 countries, twelve frames, and one bound tested inside every one of
+them. Drag the plot to turn it and the selection turns with the cloud, because
 the bound picks rows and the angle picks a viewpoint, and neither asks the other
 anything.
 
 There is one difference here, and it is worth knowing rather than working out.
-In the cube the drag already belongs to the camera, so the sentence has to name
-the bound: `brush` on its own would declare a region with no way to draw one.
-That is the same rule as everywhere else in this chapter, arriving from the other
-side. A drag means one thing at a time, and in the cube it means turn.
+In the cube the drag already turns the plot, so name the bound in the sentence:
+`brush` on its own would declare a region with no way to draw one. That is the
+same rule as everywhere else in this chapter, arriving from the other side. A
+drag means one thing at a time, and in the cube it means turn.
 
 ## Moving the bound yourself
 
-Every plot in this chapter after the first states where its selection starts. On a page that can
-run the engine, you can drag the panel to move the bound, and the plot redraws
-under your hand.
+Every brushed plot in this chapter after the first states where its selection
+starts. On a page that can run the engine, you can drag the panel to move the
+bound, and the plot redraws under your hand.
 
 This changes nothing about the sentence, and it is the same arrangement the cube
-uses. `space(turn =, tilt =)` chooses the angle a plot starts at and the mouse
-takes you anywhere else; `brush(gdp, at = )` chooses the bound a plot starts with
-and the mouse does the same. Drag to find a selection, then write it into the
-sentence.
+uses. `space(turn =, tilt =)` chooses the angle a plot starts at and the pointer
+takes you anywhere else; `brush(gdp, at = )` chooses the bound a plot starts
+with and the pointer does the same. Drag to find a selection, then write it into
+the sentence.
 
 On paper, and in the PDF edition, each plot shows the bound its sentence asked
 for. That is why naming it is worth doing even though a reader can move it. The
 printed figure shows the selection you chose, and a reader who can drag starts
 from it.
 
-Written with no `at` at all, `brush` selects nothing. The plot then draws exactly as
-it would with no `brush` in the sentence, which is the resting state a page shows
-before the first drag.
+Written with no `at` at all, `brush` selects nothing. The plot then draws
+exactly as it would with no `brush` in the sentence, which is the resting state
+a page shows before the first drag.
 
 ## What the page adds
 
@@ -417,7 +421,7 @@ are in the sentence, and that is the rule rather than an omission. They report a
 selection, or they change how you look at one. Not one of them changes what the
 plot claims about the data, so none of them needs a word in the grammar. It is
 the same reason a plot in the cube has a line of controls and `space()` has no
-word for the mouse.
+word for the pointer.
 
 They come in two lines, and the first is [the one every plot
 carries](first-plot.qmd#the-boxes-under-every-plot):
@@ -445,67 +449,66 @@ The second line is what a brush adds:
 | `17 of 142 selected` | How many rows the current bound selects. On a played plot this counts every frame, not the one on screen |
 | `show rows` | Opens a table of those rows; while the table is open the button reads `hide rows`. A long selection arrives ten at a time, with `‹` and `›` under the table |
 | `clear` | Puts the selection back to what the sentence asked for |
-| `unstamp` | Takes the stamps off. Absent until you have made one |
+| `unstamp` | Takes the stamps off, and counts them once there are several. Absent until you have made one |
 
 A control drawn as an icon names itself when the pointer rests on it. The ones
 with a word on them need no name.
 
 ### Selecting
 
-Drag across the panel. A dotted box follows the pointer, and it shows **exactly
-what is bound**. On a plot with one brush the box spans the whole panel in the
+Drag across the panel. A dotted box follows the pointer, and it shows *exactly*
+what is bound. On a plot with one brush the box spans the whole panel in the
 other direction, because that direction was not selected. On a plot with two, it
 is a rectangle. A box that narrowed an axis nobody bound would be claiming a
 range you did not choose.
 
 Dragging in either direction gives the same bound, so you can start from any
-corner. A click on **empty space clears** the selection, which is what a click on
-empty space does everywhere else. A click that lands on a mark does something
-else, and the section below is about that.
+corner. A click on empty space clears the selection. A click that lands on a
+mark does something else, and the section below is about that.
 
 ### Drawing around a group
 
 A rectangle is what a sentence can say. Some groups are not rectangles. A cloud
-of points often has a shape: an arm reaching out to one side, a curve, a clump
-away from the rest. A box drawn around such a group includes points you did not
+of points often has a shape: a narrow tail to one side, a curve, a group sitting
+apart from the rest. A box drawn around such a group includes points you did not
 mean.
 
-The second icon beside `drag:` is the **free shape**. Choose it, then draw around
-the group with the pointer held down. The outline closes itself when you let go,
-and everything inside it is selected. The count and the row table read exactly as
-they do for a box, because a shape and a bound ask the same question: which rows
-do you mean.
+The second icon beside `drag:` is the **free shape**. Choose it, then draw
+around the group with the pointer held down. The outline closes itself when you
+let go, and everything inside it is selected. The count and the row table read
+exactly as they do for a box, because a shape and a bound ask the same question:
+which rows do you mean.
 
 Nothing about the sentence changes. You do not type a shape, and the printed
 page still shows the bound the sentence named. Drawing one is a way of looking,
 like turning a cube, rather than a claim about the data.
 
-That is also why the grammar has no word for it, and `lasso` is not one. A shape
-can only be written down as a long list
-of corners, and a specification is something you can write down and print. The
-act survives; the word does not.
+That is also why the grammar has no word for it. Other tools call the gesture a
+*lasso*, and gog has no such word. A shape can only be written down as a long
+list of corners, and a specification is something you can write down and print.
+You can still draw the shape; you cannot write it.
 
-Two limits are worth knowing. A free shape needs two axes that measure, so where
-one axis carries categories the drag stays a rectangle. A category has no half,
-and whole slots are what you wanted there anyway. And `clear` removes the shape
-instead of restoring it, because a shape has no resting form for a sentence to
-state.
+Two restrictions are worth knowing. A free shape needs two axes that measure, so
+where one axis carries categories the drag stays a rectangle. A category has no
+half, and whole slots are what you wanted there anyway. And `clear` removes the
+shape instead of restoring it, because a shape has no resting form for a
+sentence to state.
 
 ### Reading what you selected
 
 The count is always there. `show rows` opens a table underneath, listing the
-columns the sentence maps rather than every column in the table, because twelve
-columns of a spreadsheet are not what you are looking at.
+columns the sentence maps rather than every column in the table, because the
+columns you did not plot are not what you are looking at.
 
 A long selection arrives ten rows at a time. The line under the table says which
 rows you are reading, as `11–20 of 40`, and the two arrows beside it move you
 through the rest. Every row you selected is reachable, and none of them pushes
 the plot off the screen. A selection short enough to fit shows no arrows at all.
 
-The table names every row you selected, in one place, away from the picture. Draw a
-bound tight around one point and it names that point alone.
+The table names every row you selected, in one place, away from the picture.
+Draw a bound tight around one point and it names that point alone.
 
-For a quick look without selecting anything, **move the pointer over a mark** and
+For a quick look without selecting anything, move the pointer over a mark and
 that row's values appear beside it. Nothing is selected and nothing changes.
 
 ### Stamping a point
@@ -521,46 +524,46 @@ want to compare. The card sits on the picture beside the mark it belongs to,
 which is the difference between a stamp and the row table. One names rows, the
 other labels the plot.
 
-A card takes up room. On a crowded scatter it covers the very points you stamped
-it to read. So drag a card and it goes where you put it. The line stretches to
-follow, and a long line ends in an arrow head pointing at the row. Move
-four cards out to the edges and the picture underneath stays whole.
+A card needs space on the picture. On a crowded scatter it covers the very
+points you stamped it to read. So drag a card and it goes where you put it. The
+line stretches to follow, and a long line ends in an arrow head pointing at the
+row. Move four cards out to the edges and the picture underneath stays whole.
 
-Where you put a card is where it stays. Zoom in, pan across, or drag a new bound:
-the card holds its place beside its point while the picture moves under it. Zoom
-far enough that the point leaves the panel and the whole stamp waits out of sight.
-It has nothing left to point at, and a card left over an unrelated corner would
-claim a point that is not there. Bring the point back and the card is where you
-left it.
+Where you put a card is where it stays. Zoom in, pan across, or drag a new
+bound: the card holds its place beside its point while the picture moves under
+it. Zoom far enough that the point leaves the panel and the whole stamp waits
+out of sight. It has nothing left to point at, and a card left over an unrelated
+corner would claim a point that is not there. Bring the point back and the card
+is where you left it.
 
-A played plot works the same way, for the same reason. A row there is one country
-in one year, so a stamp made in 1972 names something the 1987 frame does not draw.
-It waits while the other frames run, and comes back on its point when the loop
-returns. The card names the year it holds. Stamp the same country in three frames
-and each card appears in its own.
+A played plot works the same way, for the same reason. A row there is one
+country in one year, so a stamp made in 1972 names something the 1987 frame does
+not draw. It waits while the other frames run, and comes back on its point when
+the loop returns. The card names the year it holds. Stamp the same country in
+three frames and each card appears in its own.
 
-There are three ways to take a stamp off. The `×` in the corner of a card removes
-that card. Clicking the card itself does the same, as long as you did not move it.
-If the pointer traveled, you moved the card. If it did not, the card comes off.
-`unstamp` removes every card at once.
+There are three ways to take a stamp off. The `×` in the corner of a card
+removes that card. Clicking the card itself does the same, as long as you did
+not move it. If the pointer traveled, you moved the card. If it did not, the
+card comes off. `unstamp` removes every card at once.
 
 `clear` leaves them alone, because a stamp is not a selection: clear a bound to
-read your stamped rows against the whole data and they are all still there. Each
-of the three controls undoes one thing, which the section below sets out.
+read your stamped rows against the whole data and they are all still there.
+`clear`, `unstamp` and the frame each undo one thing, which the section below
+sets out.
 
 The camera saves them. Arrange the cards, press the camera, and the picture file
 carries the plot with your annotations on it, where they sit and pointing where
 they point. That is the camera's rule rather than a rule about stamps: it saves
-what you are looking at, the same way it saves how far you have zoomed in and the
-angle a cube is turned to.
+what you are looking at, the same way it saves how far you have zoomed in and
+the angle a cube is turned to.
 
-Nothing about the sentence changes. You do not type a stamp, and the printed page
-carries none. Stamping is a way of reading the plot, like turning a cube.
+You do not type a stamp, and the printed page carries none.
 
 A stamp is for deciding which points are worth naming. A plot with a name on
-every point is unreadable, and a plot with a name on the four that matter is the
-one you wanted. Stamping lets you try the four before you commit to them. To
-put those names in the picture itself, where the page and the PDF will both carry
+every point is unreadable, and a plot with a name on the few that matter is the
+one you wanted. Stamping lets you try a few before you commit to them. To put
+those names in the picture itself, where the page and the PDF will both carry
 them, write them down: that is [`text`](marks/text.qmd), and it is a layer like
 any other.
 
@@ -569,7 +572,7 @@ job inside the sentence. Every label ends up outside its own dot, and one that
 moved far keeps a thin line back to the point it names. That is the stamp's line
 again, written down rather than dragged. Stamp to decide what is worth naming,
 then write the labels down and let
-[`repel`](marks/text.qmd#moving-the-labels-off-each-other-repel) place them.
+[`repel`](marks/text.qmd#repel-moving-labels-off-each-other) place them.
 
 The stamp is for looking. `text` is for saying.
 
@@ -581,7 +584,7 @@ labels down to keep the plot itself.
 
 ### Where pointing cannot answer
 
-The page works out where each row was drawn, from the row's own value and the two
+The page computes where each row was drawn, from the row's own value and the two
 ends of the axis the panel records. That is exact wherever a mark stands at its
 value, and some plots put a mark somewhere else on purpose.
 
@@ -592,42 +595,41 @@ rows, so there is no single row under the pointer to name. A polar plot bends
 both axes around a circle, and a map turns two columns into places on the page
 before it draws anything.
 
-On any of those the pointer stays quiet rather than naming a row that is not
-there, and a line under the plot says which of them it was. Nothing is stamped
-either, for the same reason. The page computes a position rather than reading
-one, so it stays quiet where it cannot compute. Knowing that explains why some
-plots name no row.
+On any plot like those the pointer stays quiet rather than naming a row that is
+not there, and a line under the plot says which reason applied. Nothing is
+stamped either, for the same reason. The page computes a position rather than
+reading one, so it stays quiet where it cannot compute. That is why some plots
+name no row.
 
 ### Looking closer
 
-`+` and `−` magnify the picture and the frame returns to the whole of it. Zooming in
-switches the drag to panning, because a reader who has just looked closer usually
-wants to move around inside it; the frame hands the drag back to selecting. You can
-switch by hand at any time with the button on the left, and the pointer tells you
-which mode you are in: a crosshair to draw a box, an open hand to move the
-picture.
+`+` and `−` magnify the picture and the frame returns to the whole of it.
+Zooming in switches the drag to panning, because a reader who has just looked
+closer usually wants to move around inside it; the frame hands the drag back to
+selecting. You can switch by hand at any time with the button on the left, and
+the pointer tells you which mode you are in: a crosshair to draw a box, an open
+hand to move the picture.
 
-This is a *view*, so it **recomputes nothing**. The bars are the same bars and the
+This is a *view*, so it *recomputes nothing*. The bars are the same bars and the
 ticks are the same ticks, drawn larger. Zoom far enough into a histogram and you
 will see the same bins, not finer ones. If you want the statistics re-run over a
-narrower range, that is [`limits`](scales.qmd), and it is the operation this
-chapter set against `brush`.
+narrower range, that is [`limits`](scales.qmd), the atom this chapter compared
+with `brush`.
 
 ### Three words, three things
 
 `clear` acts on the **selection**, `unstamp` acts on the **stamps**, and the
 frame acts on the **view**. Three controls that undo three different things, so
 each is named for what it acts on rather than all three being called reset. The
-frame sits a line above the other two, with the buttons that changed the view it
-returns.
+frame sits a line above the other two, beside the zoom buttons. It puts back the
+view they changed.
 
-The `×` on a card is a fourth undo, and it is not in this line. It belongs to the
-card rather than to the plot. A control under the picture acts on all of
+The `×` on a card is a fourth undo, and it is not in this line. It belongs to
+the card rather than to the plot. A control under the picture acts on all of
 something. A control on a card acts on that card.
 
 None of this exists on paper, and paper loses nothing by it. The PDF shows the
-bound the sentence named, which is why naming one is worth doing even where a
-reader can move it.
+bound the sentence named.
 
 ### Your data on the page
 

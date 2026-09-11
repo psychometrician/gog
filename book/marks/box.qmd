@@ -5,33 +5,35 @@
 source("../R/setup.R")
 ```
 
-How is each group spread out? `box` draws the **box-and-whisker of a
-distribution**, one per group. At each category it summarizes the measured
-column. A box spans the lower quartile to the upper, with a line at the median.
-Whiskers reach to the most extreme values *within 1.5 times the interquartile
-range (IQR) of the box*. Any points beyond that are outliers, drawn
-individually as dots. Whereas `bar * mean` gives one number per group, `box`
-gives the shape of all of them, and marks the few values far from the rest. Boxes stand up by default and lie down when the categories are on
-`y`; see [Boxes on their side](#boxes-on-their-side).
+How is each group spread out? `box` draws the **box-and-whisker** of a
+distribution, one per group. In each category it summarizes the measured column.
+A box spans the lower quartile to the upper, with a line at the median. Whiskers
+reach to the most extreme values *within 1.5 times the interquartile range (IQR)
+of the box*. Any points beyond that are outliers, drawn individually as dots.
+`bar * mean` gives one number per group. `box` shows how the whole group is
+spread, and draws the few values far from the rest as separate dots. Boxes stand
+up by default and lie down when the categories are on `y`; see [Boxes on their
+side](#boxes-on-their-side).
 
-The construction is John Tukey's, from *Exploratory Data Analysis*
-[@tukey1977], where he called it a **schematic plot**. The name readers kept
-was his informal one, box-and-whisker, now usually shortened to **box plot**.
-Mary Eleanor Spear's **range bar** of 1952 [@spear1952] had drawn the box and
-the extremes a quarter century earlier. What it had no rule for is the
-**fence**, the cutoff that decides which values count as outliers. That rule,
-1.5 times the IQR, is Tukey's, and so is the decision it encodes.
+The construction is John Tukey's, from *Exploratory Data Analysis* [@tukey1977],
+where he called it a **schematic plot**. The name readers kept was his informal
+one, box-and-whisker, now usually shortened to **box plot**. Mary Eleanor
+Spear's **range bar** of 1952 [@spear1952] had drawn the box and the extremes a
+quarter century earlier. The range bar had no rule for the **fence**, the cutoff
+that decides which values are outliers. That rule, 1.5 times the IQR, is
+Tukey's, and so is the choice of where ordinary values stop and unusual ones
+begin.
 
 One difference is worth knowing if you know his book. Tukey's box spans
-**hinges**, the medians of the sorted batch's two halves; gog spans the lower and
-upper **quartiles**, as most software does. They agree on most samples and can
-differ by a little on small ones, so a box drawn here is not always the box *EDA*
-would have drawn.
+**hinges**. Sort the values, cut the sorted list in half, and take the median of
+each half. gog spans the lower and upper **quartiles** instead, as most software
+does. The two agree on most samples and differ slightly on small ones. A box
+drawn by gog is therefore not always the box Tukey's own rule gives.
 
 ## A summary per group
 
-Name the category that splits the data on x and the measured column on y. The
-mark computes the summary itself:
+Put the category that splits the data on x, and put the measured column on y.
+The mark computes the summary itself:
 
 ```{r}
 data(iris_flowers) + box + x(species) + y(petal_length) +
@@ -42,16 +44,17 @@ data(iris_flowers) + box + x(species) + y(petal_length) +
 *"Given the iris flowers: boxes, x is species, y is petal length."*
 
 Every box reads the same way. Half the flowers of a species fall inside the box
-(the middle 50%, from the lower quartile to the upper); the line across it is the
-median; the whiskers run to the rest of the bulk. The separate dots are the
-outliers: petals more than 1.5 IQR from the box, so the whisker stops short
-and each is drawn on its own.
+(the middle 50%, from the lower quartile to the upper); the line across it is
+the median; the whiskers run to the rest of the values inside the fence. The
+separate dots are the outliers: flowers more than 1.5 IQR from the box. The
+whisker stops before them, and each one is drawn on its own.
 
 ## Distribution across many groups
 
-The comparison still works with more groups, and now the outliers carry
-information. Here is life expectancy across the continents in 2007: five
-distributions in one panel, and two countries far below their neighbors:
+The comparison still works with more groups, and here the outliers name
+particular countries. This is life expectancy across the continents in 2007,
+five distributions in one panel, with two countries far below the rest of their
+continent:
 
 ```{r}
 data(gapminder_2007) + box + x(continent) + y(life) +
@@ -59,19 +62,19 @@ data(gapminder_2007) + box + x(continent) + y(life) +
   title("Life expectancy by continent, 2007")
 ```
 
-The low dot under Asia is Afghanistan; the one under the Americas is Haiti,
-each far enough below its continent's box to be drawn as its own dot rather
-than reached by a whisker. That is what the Tukey construction is for: the
-whiskers describe the bulk, and the dots say *these are unusual*. When a
-group's middle 50% share almost one value, the box has zero height and draws
-as a flat line; gog does not widen it to make it look like more.
+The low dot below Asia is Afghanistan, and the one below the Americas is Haiti.
+Each sits far enough below its continent's box that no whisker reaches it. That
+is what the Tukey construction is for: the whiskers cover the values near the
+middle, and the dots are the values far from it. When every value in a group's
+middle 50% is the same, the box has no height and draws as a flat line. gog does
+not give it a minimum height to make the spread look larger.
 
 ## Boxes on their side
 
 Swap the two positions and the same sentence draws the same plot, turned. There
-is no `flip` atom, for the reason there is none on [`bar`](bar.qmd): gog
-decides which axis measures by reading the two bindings, and a second way to
-say one thing is a second thing to learn.
+is no `flip` atom, for the reason there is none on [`bar`](bar.qmd). gog reads
+the two bindings and decides from them which axis carries the numbers. A second
+way to say one thing is a second thing to learn.
 
 ```{r}
 data(gapminder_2007) + box + x(life) + y(continent) +
@@ -79,15 +82,17 @@ data(gapminder_2007) + box + x(life) + y(continent) +
   title("The same five distributions, lying down")
 ```
 
-Set it beside the upright version above. Every box, whisker and outlier dot sits
-in the same place relative to its neighbors, rotated a quarter turn, and
-Afghanistan and Haiti are still the two dots below their continents'
-whiskers. Nothing else in the chapter changes with the orientation either:
-`color`, `dodge`, the `whiskers` parameter and `style()` all behave
-identically whichever axis holds the categories.
+Compare it with the upright version above. Every box, whisker and outlier dot
+keeps its place relative to its neighbors, rotated a quarter turn. Afghanistan
+and Haiti are still the two dots beyond their continents' whiskers. Everything
+the rest of this chapter adds behaves the same whichever axis holds the
+categories: the color split, boxes set side by side, the whisker rule and
+`style()`.
 
-Use it when the category names are long. A vertical axis gives each label
-a whole line, while an upright plot has to fit it into a slot one box wide:
+Use it when the category names are long. The table below is invented: five
+teams, thirty people in each, and the years each person has been at the company.
+A vertical axis gives each name a whole line, while an upright plot has to fit
+it into a slot one box wide:
 
 ```{r}
 set.seed(4)
@@ -100,7 +105,7 @@ tenure <- data.frame(
 )
 data(tenure) + box + x(years) + y(team) +
   x_label("Years at the company") +
-  title("Long labels fit on a vertical axis")
+  title("Team names fit on a vertical axis")
 ```
 
 A box needs a number to summarize, so two categorical axes are refused, exactly
@@ -113,8 +118,8 @@ data(gapminder_2007) + box + x(continent) + y(continent)
 
 ## Whiskers to the extremes
 
-Sometimes you do not want outliers split off: you want the whiskers to run to the
-true minimum and maximum, the plain five-number summary. That is the one
+Sometimes you do not want outliers split off: you want the whiskers to run to
+the true minimum and maximum, the plain five-number summary. That is the one
 parameter the box mark carries, `box(whiskers = "range")`:
 
 ```{r}
@@ -129,30 +134,29 @@ life."*
 Now Afghanistan and Haiti are the ends of their whiskers rather than dots. No
 point is called an outlier. The default is `"tukey"` (fences and outliers, the
 standard box plot); `"range"` is the whole five-number summary with nothing set
-apart. It is a parameter of the mark, the way `bin(bins = 30)` and
-`confidence(0.99)` parameterize their statistics, and it is the only choice a
-box offers.
+apart. `whiskers` is the only choice a box offers.
 
 ## Why `box` needs no transform
 
-An [`interval`](interval.qmd) cannot draw without a `range` transform to give
-it a low and a high; a `box` never needs one. The reason is a small but real
-distinction. `interval` is pure geometry ("span from here to there") and *which*
-low and high it spans is a genuine choice (a min–max range, a confidence
-interval, a precomputed pair). A `box` is a named statistical glyph: the summary
-*is* what a box plot means. A statistic that draws as exactly one mark belongs *to*
-that mark, not beside it as a transform you compose. So the whole box is
-`box + x + y`, and asking for a transform on top is refused with direction:
+An [`interval`](interval.qmd) cannot draw without a `range` transform to give it
+a low and a high; a `box` never needs one. `interval` is pure geometry ("span
+from here to there") and *which* low and high it spans is a genuine choice (a
+min–max range, a confidence interval, a precomputed pair). A `box` is a named
+statistical glyph: the summary *is* what a box plot means. A statistic that
+draws as exactly one mark belongs *to* that mark, not beside it as a transform
+you compose. So the whole box is `box + x + y`, and adding a transform to it is
+refused with direction:
 
 ```{r}
 #| error: true
 data(iris_flowers) + box * mean + x(species) + y(petal_length)
 ```
 
-This is the principle that keeps the [channel vocabulary](../grammar.qmd)
-small, applied to a mark instead of a channel. Borrowing `ymin`/`ymax`/`lower`/`middle`/`upper`
-as channels would add *five* channels meaningful to a single mark; instead the
-summary is invented inside the mark, and the channel set never grows.
+This is the principle that keeps the [channel vocabulary](../grammar.qmd) small,
+applied to a mark instead of a channel. Borrowing
+`ymin`/`ymax`/`lower`/`middle`/`upper` as channels would add *five* channels
+meaningful to a single mark; instead the summary is invented inside the mark,
+and the channel set never grows.
 
 ## Coloring the boxes
 
@@ -170,9 +174,9 @@ data(iris_flowers) + box + x(species) + y(petal_length) + color(species) +
 species."*
 
 Mapping `color` to a *second* category splits each x-group into one box per
-color. Without `dodge` those boxes share one x and overlap, and their fills
-turn translucent so both stay readable. [`dodge`](../transforms.qmd) sets
-them side by side, each continent's two eras next to each other:
+color. Without `dodge` those boxes share one x and overlap, and their fills turn
+translucent so each stays readable. [`dodge`](../transforms.qmd) sets them side
+by side, each continent's two eras next to each other:
 
 ```{r}
 data(gm_eras) + box * dodge + x(continent) + y(life) + color(era) +
@@ -183,16 +187,19 @@ data(gm_eras) + box * dodge + x(continent) + y(life) + color(era) +
 *"Given the gapminder eras: boxes derived by dodge, x is continent, y is life,
 color by era."*
 
-Stroke width and opacity stay *settings*: a box is one shape, so there is no
-row for `size` or `opacity` to vary over. `style(size = )` is the width of
-the line-work, set for the whole layer.
+Stroke width and opacity stay *settings*. `color` and `pattern` can split one
+group into several boxes. `size` and `opacity` cannot: they would have to change
+inside a single box, and a box is one shape. `style(size = )` sets the width of
+every line a box draws, for the whole layer: the outline, the whiskers, the
+median and the end caps.
 
-`box` joins the other distribution marks: [`bar * bin`](bar.qmd) for one
-variable's histogram, [`interval`](interval.qmd) for a range or an error bar,
-`box` for the summary per group, and the violin
-([`ribbon * density`](ribbon.qmd#the-violin-a-distribution-per-category)) for
-the whole shape behind that summary. See [Transforms](../transforms.qmd) for
-`dodge` and how the summarizing statistics relate.
+`box` joins the other distribution marks. [`bar * bin`](bar.qmd) draws one
+variable's histogram, and [`interval`](interval.qmd) draws a range or an
+error bar. `box` gives the summary per group, and the violin
+([`ribbon * density`](ribbon.qmd#the-violin-a-distribution-per-category))
+gives the whole shape behind that summary. See
+[Transforms](../transforms.qmd) for `dodge`, and for how `mean`, `median` and
+`range` differ from the box's own summary.
 
 ## What you can set
 
@@ -203,10 +210,12 @@ cat("| Setting | Value |\n|---|---|\n")
 mark_options("box")
 ```
 
-A box is the one mark in the kernel with a **parameter of its own**. Every
-other parameter in the grammar belongs to a transform (`bin(bins = )`,
-`confidence(0.99)`) or to `style()`, but a box carries its summary inside
-itself, so the one choice that summary offers belongs to the mark:
+A box is the one mark in the kernel that takes a **parameter**. The other
+parameters you have met belong to a transform (`bin(bins = )`), to a position
+(`x(gdp, scale = "log")`), or to `style()`. A box carries its summary inside
+itself, so the one choice that summary offers belongs to the mark. The plot
+below reads `gm_continents`: three continents, every year from 1952 to 2007.
+Each box therefore covers many more countries than the 2007 plots above:
 
 ```{r}
 data(gm_continents) + box(whiskers = "range") + x(continent) + y(life) +
@@ -214,30 +223,33 @@ data(gm_continents) + box(whiskers = "range") + x(continent) + y(life) +
   y_label("Life expectancy") + title("Whiskers to the true extremes, and a border")
 ```
 
-Both values of `whiskers` still draw as a box, which is why it is a parameter
-and not a transform: it changes the rule the summary follows, not the
-geometry it becomes.
+Both values of `whiskers` still draw a box, which is why it is a parameter and
+not a transform. It changes the rule the summary follows, not the shape the
+summary is drawn as.
 
 `border_color` and `border_size` are worth using on a box specifically,
-because a box is line-work *and* fill. The setting takes the outline, the
-whiskers and the median together, so a pale fill with a dark edge stays legible at small sizes, while a solid fill does not.
+because a box draws lines *and* a fill. Both settings apply to every line the
+box draws: the outline, the whiskers, the median and the caps. A pale fill
+with a dark edge stays legible at small sizes, and a solid fill does not.
 
 ## What it refuses
 
-A box is line-work *and* fill, so its `pattern` takes a fill's texture and
-not a stroke's dash: `"hatch"` is accepted, and `"dashed"` is refused.
+A box draws lines and a fill, so its `pattern` takes a fill's texture and not a
+stroke's dash. `"hatch"`, `"crosshatch"`, `"grid"` and `"dots"` are accepted;
+`"dashed"` is refused.
 
 ```{r}
 #| error: true
 data(gapminder_2007) + box + x(continent) + y(life) + style(pattern = "dashed")
 ```
 
-A mapped `size` is the other one. No row can vary a box's size: the box's
-width is the slot it sits in, and the line-work's width is a layer setting:
+A mapped `size` is the second. No row can vary a box's size: the box's width is
+the slot it sits in, and the line-work's width is a layer setting:
 
 ```{r}
 #| error: true
 data(gapminder_2007) + box + x(continent) + y(life) + size(life)
 ```
 
-The statistic refusal a box makes is above, under why it needs no transform.
+The third refusal is above, under Why `box` needs no transform: a box already
+summarizes, so it takes none.

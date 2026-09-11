@@ -4,29 +4,30 @@ After stating its system in brief, the 1446 book explained the letters one
 class at a time: the initial consonants, the vowels, the final consonants.
 Each class was explained by the same method.
 
-This part does the same for gog's letters. The marks are the consonants:
-visible forms that draw nothing until a position says where they go. The positions are the vowels: `x`, `y`, and `z`, plus the scales
-that decide how a number, a category, or a date becomes a place on an
-axis. The refining channels are the finals: `color`, `size`, `shape`,
-`pattern`, `opacity`. Each is optional, and each earns the legend that
-decodes it. `group` sits outside both classes: it splits a mark without
-encoding anything, so it earns no legend, and it works like the space
-between words. `label` and `play` stand outside the syllable too: one
-supplies a `text` mark's words, and the other cuts the plot into frames
-and plays them in order. `play` acts on the whole plot, the way faceting
-does, so its chapter waits in the next part.
-Around the letters sit the chapters that complete a layer.
-[Data](../data.qmd), the table you bind once, opens this part, because
-nothing can be drawn until a table is named. [The book's
-data](../book-data.qmd) follows, saying where this book's own tables come
-from and how to read one in your language. [Setting vs mapping](../style.qmd) draws the line between a column you
-*map* and a constant you *set*, and [Transforms](../transforms.qmd), which
-derives new values from your columns, closes the part.
+This part does the same for gog's letters. The marks are the initial consonants:
+visible forms that draw nothing until a position says where they go. The
+positions are the vowels: `x`, `y`, and `z`, plus the scales that decide how a
+number, a category, or a date becomes a place on an axis. The refining channels
+are the finals: `color`, `size`, `shape`, `pattern`, `opacity`. Each is
+optional, and each earns the legend that decodes it. `group` and `label` are
+neither. `group` splits a mark without encoding anything, so it earns no legend,
+and it works like the space between words. `label` supplies a `text` mark's
+words rather than refining them. `play` stands outside the syllable, the way
+faceting does: it cuts the plot into frames and plays them in order, and its
+chapter waits in the next part. Around the letters sit the chapters that finish
+a plot. [Data](../data.qmd), the table you bind once, opens this part, because
+nothing can be drawn until a table is named. [The book's data](../book-data.qmd)
+follows, saying where this book's own tables come from and how to read one in
+your language. [Setting vs mapping](../style.qmd) separates a column you *map*
+from a constant you *set*, and [Transforms](../transforms.qmd), which derives
+new values from your columns, closes the part.
 
-Each mark has a chapter of its own, fourteen in a row from
-[point](../marks/point.qmd) to [edge](../marks/edge.qmd), and every one
-follows the same template: what it draws, what it requires, what refines
-it, what derives from it, what you can set on it, and what it refuses. The last two are always the last two, under those names. That
-sameness is deliberate: it is the No Exceptions law applied to a book's
-structure, and it means learning the second mark is faster than the first,
-and by the fifth mark you already know the shape.
+[Choosing a mark](../marks/index.qmd) opens the letters themselves, and then
+each mark has a chapter of its own, fourteen in a row from
+[point](../marks/point.qmd) to [edge](../marks/edge.qmd). Every one follows the
+same template: what it draws, what it requires, what refines it, what derives
+from it, what you can set on it, and what it refuses. The last two are always
+the last two, under those names. That sameness is deliberate: it is the [No
+Exceptions](../design-laws.qmd) law applied to a book's structure. Learning the
+second mark is faster than the first, and by the fifth you already know the
+shape.

@@ -88,6 +88,25 @@ js_value <- function(v) {
       return(paste0("-", js_value(parts[[1]])))
     if (fn == "exp" && length(parts) == 1 && identical(parts[[1]], 1))
       return("Math.E")
+    # `factor(values, levels = l)` is a declared category order, and every
+    # binding spells the declaration `ordered(values, levels)`. `ordered = TRUE`
+    # is dropped, since gog follows the order in both of R's factor kinds. A
+    # factor without `levels =` would have to compute its order, which is a
+    # guess this emitter does not make, so it is declined and counted as a gap.
+    if (fn == "factor") {
+      nms <- names(parts); if (is.null(nms)) nms <- rep("", length(parts))
+      values <- parts[!nzchar(nms)]
+      levels <- parts[nms == "levels"]
+      if (length(values) != 1 || length(levels) != 1 ||
+          !all(nms %in% c("", "levels", "ordered"))) {
+        js_note_gap("factor without written-out levels"); return(NA_character_)
+      }
+      v <- js_value(values[[1]]); l <- js_value(levels[[1]])
+      if (is.na(v) || is.na(l)) return(NA_character_)
+      if (!startsWith(v, "[")) v <- paste0("[", v, "]")
+      if (!startsWith(l, "[")) l <- paste0("[", l, "]")
+      return(paste0("ordered(", v, ", ", l, ")"))
+    }
     if (fn == "data.frame") {
       nms <- names(parts)
       if (is.null(nms) || any(!nzchar(nms))) {
@@ -98,7 +117,8 @@ js_value <- function(v) {
         if (is.na(inner)) return(NA_character_)
         # A column is an array at every length — the wire invariant a one-row
         # frame broke once already (`df_to_wire`, and the `I()` that fixed it).
-        if (!startsWith(inner, "[")) inner <- paste0("[", inner, "]")
+        if (!startsWith(inner, "[") && !startsWith(inner, "ordered("))
+          inner <- paste0("[", inner, "]")
         paste0(nms[i], ": ", inner)
       }, "")
       if (any(is.na(cells))) return(NA_character_)

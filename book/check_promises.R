@@ -172,9 +172,12 @@ check_promises <- function(book = "book") {
     if (length(fences) >= 2) {
       for (k in seq(1, length(fences) - 1, by = 2)) {
         body <- ln[fences[k]:fences[k + 1]]
+        # A hidden chunk (`echo: false`) shows the reader no specification, so
+        # it cannot be the first one they read: a table view, or four spellings
+        # of a call written as strings for `spellings()`.
         if (grepl("^```\\{r\\}", ln[fences[k]]) &&
             any(grepl("data\\(", body)) &&
-            !any(grepl("error: true|include: false", body))) {
+            !any(grepl("error: true|include: false|echo: false", body))) {
           firstplot <- fences[k + 1]
           break
         }

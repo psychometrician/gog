@@ -9,7 +9,8 @@ What does the data look like on the earth itself? The map chapter flattened
 the sphere to fit a page. This chapter keeps it round, and turns it toward
 you.
 
-The sentence is the map chapter's first one, with the space swapped:
+Here is the map chapter's first sentence, and beside it the same sentence with
+the space swapped:
 
 ```{r}
 (data(quakes_fiji) + point + x(east) + y(north) + map() +
@@ -35,11 +36,11 @@ equator crosses the prime meridian.
 `turn` is a bearing, so any number is a view: 190 and -170 face the same
 place. `tilt` is a latitude, and it stops at the poles.
 
-In the web edition the written angle is only where the globe starts. Drag it
-and it turns, the way the cube in [Space](space.qmd) turns, and the far half
-of the earth comes around; *reset* returns to the view the sentence asked
-for. On paper a plot keeps its one view, which is why this chapter also
-writes second views out.
+In the web edition the written angle is only where the globe starts. Drag it and
+it turns, the way the cube in [Space](space.qmd) turns, and the far half of the
+earth comes around; *reset* returns to the view the sentence asked for. On paper
+a plot keeps its one view, which is why this chapter also draws some data at a
+second angle.
 
 Half the earth faces away, and data on that half is hidden behind the sphere.
 gog counts what a view hides rather than dropping it in silence:
@@ -97,8 +98,9 @@ data(world_borders) + path + x(lon) + y(lat) + group(piece) +
   globe(turn = 178, tilt = -18) + title("Tokyo to Los Angeles")
 ```
 
-Two rows describe that route, and the curve between them is the sphere's own.
-The arc leans toward the pole because the shortest way across an ocean does.
+Two rows describe that route, and the sphere sets the curve between them. The
+arc bends toward the pole because the shortest way across an ocean bends there
+too.
 
 ## Many routes are a network
 
@@ -141,23 +143,21 @@ given the routes: paths, x is lon, y is lat, grouped by route; then given the
 cities: points, x is lon, y is lat; then given the cities: text, x is lon, y is
 lat, label by city, on the globe."*
 
-Looking up each city's longitude and latitude is the host language's job,
-the same join the spike section below does for country centers. What the
-sentence adds is only the layers: routes, cities, names, each reading its
-own table.
+Looking up each city's longitude and latitude is the host language's job, the
+same join a later section does for country centers. What the sentence adds is
+only the layers: the routes, then the cities, then their names.
 
-Every arc bends with the surface, and the count above the plot is the same
-honesty as before: the far side's coastlines are hidden, every city faces
-this view, and dragging the globe in the web edition brings the rest around.
-This is worth a moment, because a network between places asks nothing new of
-the grammar. The places carry the positions, `group()` carries the
-connections, and the sphere carries the shortest ways between them.
+Every arc bends with the surface. The count above the plot reports what this
+view hides: the coastlines on the far side, and no city. Dragging the globe in
+the web edition brings those coastlines around. A network between places asks
+nothing new of the grammar. The places carry the positions, `group()` carries
+the connections, and the sphere carries the shortest ways between them.
 
 ## Meridians and parallels
 
-A `rule` holds one position and spans the axis it does not name. On the map
-that drew the equator as a straight line. Here the same sentence draws it all
-the way around:
+A `rule` draws a line at one position and spans the axis it does not name. On
+the map that drew the equator as a straight line. Here the same sentence bends
+it around the sphere:
 
 ```{r}
 lines_of <- data.frame(lat = 0)
@@ -165,7 +165,7 @@ lines_of <- data.frame(lat = 0)
 data(world_borders) + path + x(lon) + y(lat) + group(piece) +
   style(color = "#c9ccd6") +
   data(lines_of) + rule + y(lat) + style(color = "#d4674f") +
-  globe(turn = 20, tilt = 30) + title("The equator, held whole")
+  globe(turn = 20, tilt = 30) + title("The equator, bent around the sphere")
 ```
 
 *"Given the world borders: paths, x is lon, y is lat, grouped by piece; then
@@ -176,8 +176,8 @@ meridian, and it runs pole to pole.
 
 ## The choropleth, kept round
 
-The map chapter filled each country by a value. The same sentence fills the
-countries on the sphere:
+The map chapter filled each country by its continent. The same sentence fills
+the countries on the sphere:
 
 ```{r}
 data(world_borders) + zone + x(lon) + y(lat) + group(country) +
@@ -188,16 +188,16 @@ data(world_borders) + zone + x(lon) + y(lat) + group(country) +
 *"Given the world borders: zones, x is lon, y is lat, grouped by country, color
 by continent, on the globe."*
 
-Look at the countries the edge of the disk cuts through. A shape the horizon
-cuts is closed again along it, so a half-visible country is still a filled
-region rather than a shape left open.
+Look at the countries the edge of the disk cuts through. gog closes each cut
+shape along that edge, so a half-visible country is still a filled region rather
+than an open outline.
 
 ## A measure stands on the radius
 
-The flattened map has no axis to spare. The sphere has exactly one: the
-radius, pointing away from every place. A `bar` here stands at its place and
-measures outward along it, a spike from the surface, and `z` names its
-measure:
+The flattened map has no axis to spare. The sphere has exactly one: the radius,
+which runs straight out from the surface at every place. A `bar` here stands at
+its place and measures outward along it, a spike from the surface, and `z` names
+its measure:
 
 ```{r}
 centers <- do.call(rbind, lapply(split(world_borders[, c("lon", "lat")],
@@ -221,13 +221,13 @@ given the spikes: bars, x is lon, y is lat, z is reach, color by continent, on
 the globe."*
 
 Finding a country's center and joining the population are the host language's
-job, as the join was on the map. So is shaping the measure: the square root
-keeps China from dwarfing every other spike, and it is one line in R where a
-scale parameter would be a second way of writing it.
+job, as the join was on the map. Shaping the measure is its job too. The square
+root keeps China's spike from making the rest look tiny, and a scale parameter
+would only be a second way of writing that one line.
 
-Look at the rim. A spike is clipped by the sphere itself, so one standing just
-behind the horizon still peeks over the limb when it is tall enough, and the
-tallest spikes read in profile at the edge of the disk. A spike facing you
+Look at the edge of the disk. The sphere itself clips a spike, so one standing
+just behind that edge still shows its top when it is tall enough. The tallest
+spikes there are seen from the side. A spike facing you
 foreshortens toward a point, which is why a plot like this is read by turning
 it.
 
@@ -235,10 +235,9 @@ it.
 
 Each earthquake here carries a third number: `elevation`, its depth below the
 surface. That is not a length to raise from the surface but a third place
-coordinate, and on the globe `z` belongs to the spike alone. So gog refuses
-the sentence below rather than guessing at it, and the red message is the
-point of this chunk: it prints live as the page builds, and it names both
-ways out.
+coordinate, and on the globe `z` belongs to the spike alone. So gog refuses the
+sentence below rather than guessing at it. The refusal names three ways forward:
+add a `bar` layer, drop `z()`, or draw the same table in the cube.
 
 ```{r}
 #| error: true
@@ -246,9 +245,8 @@ data(quakes_fiji) + point + x(east) + y(north) + z(elevation) +
   globe(turn = 178, tilt = -18)
 ```
 
-For a place with a depth, the cube is the space with a third position, and
-the same table draws there, `space()` naming its view with the words `globe()`
-uses:
+A place with a depth belongs in the cube, the space with a third position.
+`space()` names the view with the words `globe()` uses:
 
 ```{r}
 data(quakes_fiji) + point + x(east) + y(north) + z(elevation) +
@@ -259,24 +257,25 @@ data(quakes_fiji) + point + x(east) + y(north) + z(elevation) +
 *"Given quakes Fiji: points, x is east, y is north, z is elevation, color by
 slab."*
 
-Drag this one too: the globe turns the earth, and the cube turns the cloud,
-one gesture for both. The epicenters this chapter has drawn are the view from
-above of the slab this plot shows sinking.
+Drag this one too: the globe turns the earth, and the cube turns the cloud, one
+gesture for both. `slab` names the depth band each quake falls in. The earlier
+plots looked straight down on these quakes; this one shows the sinking sheet of
+ocean floor they sit on.
 
 ## What a globe refuses
 
-Both positions are spent on the place, exactly as on the map, so a mark that
-reads a domain along an axis has none to read:
+Both positions carry the place, exactly as on the map, so a mark that measures
+along an axis has no axis left:
 
 ```{r}
 #| error: true
 data(quakes_fiji) + line + x(east) + y(north) + globe()
 ```
 
-The quantity moves to a channel instead, `size()` or `color()`, or it stands
-on the radius as a spike, as the section above drew.
+The quantity moves to a channel instead, `size()` or `color()`, or it stands on
+the radius as a spike, the way the population spikes above do.
 
-A latitude past a pole is not a place, so a view cannot face one:
+A latitude past a pole names no place, so a view cannot face that latitude:
 
 ```{r}
 #| error: true

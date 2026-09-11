@@ -5,31 +5,31 @@
 source("../R/setup.R")
 ```
 
-You have more columns than positions. Where do the rest go? Two positions are
-already taken. Every further variable rides a refining channel (color, shape,
-size, opacity) or the third position, `z`. Each channel answers one kind of
-question, and each mapping earns the legend that decodes it.
+You have more columns than the flat page has positions. Where do the rest go?
+`x` and `y` are already taken. Every further variable is carried by a refining
+channel (`color`, `size`, `shape`, `pattern`, `opacity`) or by the third
+position, `z`. Each channel answers one kind of question, and a refining channel
+earns the legend that decodes it.
 
 ## Which group does each mark belong to?
 
-A category rides `color`, and the palette gives each category one hue:
+A category is carried by `color`, and the palette gives each category one hue:
 
 ```{r}
 data(gapminder_2007) + point + x(gdp, scale = "log") + y(life) +
   color(continent)
 ```
 
-*"Given gapminder 2007: points, x is gdp on a log scale, y is life, color by continent."*
+*"Given gapminder 2007: points, x is gdp on a log scale, y is life, color by
+continent."*
 
-**One atom away.** The same split without color, when you want the
-grouping but not the hues, is the `group` channel; see
-[Many groups](groups.qmd).
+**One atom away.** The same split without color, when you want the grouping but
+not the hues, is the `group` channel; see [Channels](../channels.qmd).
 
 ## Will it read in gray?
 
-Bind `color` *and* `shape` to the same column and each group is said
-twice, readable for color-blind readers, in grayscale print, and in bad
-light:
+Bind `color` *and* `shape` to the same column and each group is said twice,
+readable for colorblind readers, in grayscale print, and in poor light:
 
 ```{r}
 data(iris_flowers) + point + x(petal_length) + y(sepal_length) +
@@ -40,13 +40,13 @@ data(iris_flowers) + point + x(petal_length) + y(sepal_length) +
 *"Given the iris flowers: points, x is petal length, y is sepal length, color by
 species, shape by species, with the okabe palette."*
 
-`palette()` chooses which colors the `color` channel hands out: here
-the Okabe–Ito color-blind-safe set. Owning chapters:
-[Channels](../channels.qmd), [Setting vs mapping](../style.qmd).
+`palette()` chooses which colors the `color` channel uses: here the Okabe and
+Ito colorblind-safe set. Saying one column twice is redundant encoding. Owning
+chapters: [Channels](../channels.qmd), [Setting vs mapping](../style.qmd).
 
 ## How big is each observation?
 
-A magnitude rides `size`; the channel's question is *how much*, so it
+A magnitude is carried by `size`; the channel's question is *how much*, so it
 only accepts a numeric column:
 
 ```{r}
@@ -55,12 +55,14 @@ data(gapminder_2007) + point + x(gdp, scale = "log") + y(life) +
 ```
 
 *"Given gapminder 2007: points, x is gdp on a log scale, y is life, size by
-population."*
+population."* A legend decodes the radius. Owning chapter:
+[Channels](../channels.qmd).
 
-## All of it at once
+## What if four variables matter?
 
-Channels compose: that is what being orthogonal gives you.
-Wealth, health, population, and continent in one sentence:
+Channels compose: every one of them works beside every other. That rule is
+[Orthogonality](../design-laws.qmd). Wealth, health, population, and continent
+in one sentence:
 
 ```{r}
 data(gapminder_2007) + point +
@@ -70,8 +72,8 @@ data(gapminder_2007) + point +
 ```
 
 Every channel keeps its own rule and its own legend; none of them changed
-meaning by being combined. Four variables is a sensible limit; past that,
-use [panels](groups.qmd) instead of more channels.
+meaning by being combined. Four variables is usually the most a single plot can
+carry. Past that, use [panels](../faceting.qmd) instead of more channels.
 
 ## What if the third variable is a number?
 
@@ -87,10 +89,10 @@ data(gapminder_2007) + point + x(gdp, scale = "log") + y(life) +
 *"Given gapminder 2007: points, x is gdp on a log scale, y is life, color by
 population on a log scale."*
 
-The legend becomes a labeled gradient strip: same channel, same rule,
-different column type. [Scales](../scales.qmd) owns the log story.
+The legend becomes a labeled gradient strip: same channel, same rule, different
+column type. [Scales](../scales.qmd) owns the log scale.
 
-## The third position
+## What if three measurements matter equally?
 
 When three *measurements* matter equally, the third one is a
 position, not a decoration. One more vowel and the plot stands up:
@@ -121,11 +123,11 @@ petal length, color by species, turned -50, tilted 15."*
 
 ## What if the rows form a route?
 
-The scatter above is a cloud: each flower is its own dot and the table's
-order means nothing. Sometimes the order is the point. The two gliders from
-[Path](../marks/path.qmd) again, each row *where that glider was next*, so the
-marks should be joined in the order they were recorded, and the mark that
-joins rows in table order is `path`:
+The scatter above is a cloud: each flower is its own dot and the table's order
+means nothing. Sometimes the order is the point. Here are the two gliders from
+[Path](../marks/path.qmd) again. Each row records where that glider was next, so
+the marks belong joined in the order they were recorded. The mark that joins
+rows in table order is `path`:
 
 ```{r}
 data(thermals) + path + x(east) + y(north) + z(altitude) +
@@ -136,15 +138,14 @@ data(thermals) + path + x(east) + y(north) + z(altitude) +
 *"Given the thermals: paths, x is east, y is north, z is altitude, color by
 glider."*
 
-Each thread rises because the gliders do. Nothing in the sentence draws a
-spiral: `path` was told to connect the rows in order, the rows happen to
-go around while they go up, and the coil is the result. Watch where the
-two threads cross, too. Whichever is nearer covers the other, and which
-one that is changes as they climb, so neither glider is simply drawn on
-top.
+Each route rises because the gliders do. Nothing in the sentence draws a spiral:
+`path` was told to connect the rows in order, the rows happen to go around while
+they go up, and the coil is the result. Watch where the two routes cross, too.
+Whichever route is nearer covers the other, and the nearer one changes as they
+climb, so neither glider is simply drawn on top.
 
-Swing the view and the same route answers a different question, without a
-single binding changing:
+Turn the view and the same route answers a different question, with no binding
+changed:
 
 ```{r}
 data(thermals) + path + x(east) + y(north) + z(altitude) +
@@ -154,19 +155,18 @@ data(thermals) + path + x(east) + y(north) + z(altitude) +
 ```
 
 From nearly overhead the climb collapses and you are looking down at two
-circles. The plot has become a picture of the turn radius, and it shows what
-the first view hid: Bravo is flying a far tighter circle than Alpha. The side
-view above showed Bravo climbing faster; this view shows the tighter turn that
-goes with it.
+circles. The plot has become a picture of how wide each circle is, and it shows
+what the first view hid: Bravo is flying a far tighter circle than Alpha. The
+side view above showed Bravo climbing faster; this view shows the tighter turn
+that goes with it.
 
-**One atom away.** `path` is the only stroke that takes `z`, and the
-reason is the one that separates it from `line` in the plane. A path
-joins rows in the table's order, and an order belongs to no axis, so it
-survives the third dimension untouched. A `line` sorts by `x`, and the
-cube has no left to right: at some angles `x` runs straight into the page
-and becomes depth rather than position, which would leave a line sorted
-by an axis you cannot see. So a rising route is `path`, and `line` refuses to
-pretend otherwise:
+Of `line`, `step`, `area`, `ribbon` and `path`, only `path` takes `z`, and the
+reason is the one that separates it from `line` in the plane. A path joins rows
+in the table's order, and an order belongs to no axis, so it survives the third
+dimension untouched. A `line` sorts by `x`, and the cube has no left to right:
+at some angles `x` runs straight into the page and becomes depth rather than
+position, which would leave a line sorted by an axis you cannot see. So a rising
+route is `path`, and `line` refuses to pretend otherwise:
 
 ```{r}
 #| error: true
@@ -176,23 +176,23 @@ data(thermals) + line + x(east) + y(north) + z(altitude) + color(glider)
 ## What if the shape needs three dimensions?
 
 `quakes_fiji` is the thousand earthquakes from [Map](../map.qmd), each with a
-place on the globe and a depth below it. The reason it is here is that no pair
-of its columns shows what all three do:
+place on the globe and a depth below it. The reason it is here is that `east`,
+`north` and `elevation` show together what no pair of them shows alone:
 
 ```{r}
 data(quakes_fiji) + point + x(east) + y(north) + z(elevation) +
   color(magnitude) + palette("viridis") + space(turn = 120, tilt = 20) +
-  title("A thousand earthquakes, and the plate they sit on")
+  title("A thousand earthquakes, and the sheet they lie on")
 ```
 
-The column is named `elevation`, so depth is a negative number: −680 km is the
-deepest quake in the table. They are not scattered through the volume. The
-quakes trace a sheet of ocean floor sinking into the earth. It starts shallow in
-the east and runs down past 600 km to the west. That is a shape, and a shape
-needs three positions to be a shape.
+The column is named `elevation`, so a measurement below sea level is a negative
+number: the deepest quake in the table sits at −680 km. The quakes are not
+scattered through the cube. They trace a sheet of ocean floor sinking into the
+earth. It starts shallow in the east and runs down past 600 km to the west. That
+is a shape, and a shape needs three positions to be a shape.
 
-Now cut it into 90 km slices of depth and run them. `play(slab)` steps through
-the `slab` column, which cuts the quakes into 90 km depth bands:
+Now cut the quakes into slices of depth and run the slices one after another.
+`play(slab)` steps through `slab`, a column that holds the depth in 90 km bands:
 
 ```{r}
 data(quakes_fiji) + point + x(east) + y(north) + z(elevation) +
@@ -202,12 +202,12 @@ data(quakes_fiji) + point + x(east) + y(north) + z(elevation) +
 *"Given quakes Fiji: points, x is east, y is north, z is elevation, played by
 slab."*
 
-The band of points moves down and west as the sequence runs, which is the tilt of that
-sheet read one slice at a time. The frames are not time here. `play` advances
-through the levels of an ordered column, and whether that column measures years
-or kilometers is the column's business, not the channel's. Depth happens to be
-the one variable a cross-section is usually cut on, so this is the ordinary
-cross-section view, spelled with the atom that was designed for animation.
+The band of points moves down and west as the sequence runs, which is the slope
+of that sheet read one slice at a time. The frames are not time here. `play`
+advances through the levels of an ordered column, and whether that column
+measures years or kilometers is the column's business, not the channel's. Depth
+happens to be the one variable a cross-section is usually cut on, so this is the
+ordinary cross-section view, spelled with the atom that also animates a year.
 
 The same slices laid out across the page instead of shown one after another in
 time:
@@ -221,10 +221,9 @@ data(quakes_fiji) + point + x(east) + y(north) + z(elevation) +
 panel columns by slab, wrapped at 4."*
 
 Eight cubes, on one shared scale, so the reader compares them side by side
-instead of remembering them. Which of the two you want is a question about the
-reader: panels let them
-look back, frames let them see the movement. [Play](../play.qmd) is where that
-choice is argued.
+instead of remembering them. Choosing between them is a question about the
+reader: panels let them look back, frames let them see the movement.
+[Play](../play.qmd) owns that choice.
 
 ## Which rows and columns are alike?
 
@@ -243,12 +242,13 @@ order, and tiles of similar color end up next to each other.
 
 *"Given nutrients: paths derived by cluster on amount, over nutrient, x is food;
 above zones, x is food, y is nutrient, color by amount, beside paths derived by
-cluster on amount, over food, y is nutrient."*
+cluster on amount, over food, y is nutrient."* Owning chapters:
+[Cluster](../cluster.qmd), [Zone](../marks/zone.qmd).
 
 ## What this section refuses
 
-Glyphs cannot order themselves, so `shape` refuses a numeric column, and
-names the channels that do carry magnitude:
+Five glyph shapes have no order from smallest to largest, so `shape` refuses a
+numeric column and names the channels that do carry magnitude:
 
 ```{r}
 #| error: true

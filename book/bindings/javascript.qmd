@@ -7,18 +7,18 @@ source("../R/javascript.R")
 ```
 
 The grammar does not change when the language does. One engine reads one
-specification, so a sentence means what it means whoever wrote it, and
+specification, so a sentence means the same thing no matter who wrote it, and
 everything in this book up to here is as true in JavaScript as it is in R.
 
-The *sentence*, though, is spelled differently here, and this is the one chapter
-in the book where that is so. Every other binding writes the same words joined by
-the same four operators. JavaScript cannot join them, because `+`, `*`, `|` and
-`/` cannot be given a meaning on objects: whatever you put on either side, `a + b`
-is a number and `a | b` is a bitwise integer. There is no version of the language
-in which `data(gm) + point` builds a plot.
+The *sentence*, though, is spelled differently here, and the operators are why.
+Every other binding writes the same words joined by the same four operators.
+JavaScript cannot join them, because `+`, `*`, `|` and `/` cannot be given a
+meaning on objects: `a + b` glues two objects into text, `a * b` is `NaN`, and
+`a | b` is a bitwise integer. There is no version of the language in which
+`data(gm) + point` builds a plot.
 
-So JavaScript spells the four operators as four words. That is all that changes,
-and it is worth reading the two lines side by side before anything else:
+So JavaScript spells the four operators as four words. That is the change this
+chapter starts from, and it is worth reading the two lines side by side first:
 
 ```r
 data(gm) + bar * bin + x(life) | facet(era)
@@ -28,13 +28,15 @@ data(gm) + bar * bin + x(life) | facet(era)
 plot(data(gm), layer(bar, bin), x(col.life), across(col.era))
 ```
 
-Every JavaScript block below was executed to draw the plot beside it, through the
-same engine every other chapter uses.
+Every JavaScript block with a plot under it was executed, through the same
+engine every other chapter uses.
 
 ## The comma is `+`
 
 A gog sentence is a list of words, and in JavaScript it is a list of arguments.
-`plot()` is what gives the comma its meaning:
+`plot()` is what gives the comma its meaning. A named argument such as
+`scale = "log"` gathers into an object at the end of the call, which the section
+on named arguments below sets out in full:
 
 ```{r}
 #| echo: false
@@ -46,9 +48,9 @@ continent."*
 
 That is [A first plot](../first-plot.qmd) exactly: the same words, in the same
 order, reading the same way. Position still decides scope ([Encoding
-scope](../encoding-scope.qmd)), so a channel written after a mark belongs to that
-mark and one written before belongs to the plot. The commas change nothing about
-that; they are the `+` signs.
+scope](../encoding-scope.qmd)), so a channel written after a mark belongs to
+that mark and one written before belongs to the plot. The commas change nothing
+about that; they are the `+` signs.
 
 ## `layer()` is `*`
 
@@ -79,9 +81,10 @@ js_plot("plot(data(gapminder_2007), layer(bar, count), x(col.continent), style({
 
 ## `across()` and `down()` are `|` and `/`
 
-Faceting in R is `plot | facet(era)`, panels side by side, or `plot / facet(era)`,
-panels stacked. The `|` and the `facet()` were always one phrase (neither means
-anything without the other), so JavaScript writes the phrase as one word:
+Faceting in R is `plot | facet(era)`, panels side by side, or `plot /
+facet(era)`, panels stacked. The `|` and the `facet()` were always one phrase,
+because `facet()` means nothing without one of them, so JavaScript writes the
+phrase as one word:
 
 ```{r}
 #| echo: false
@@ -91,8 +94,8 @@ js_plot("plot(data(gapminder_2007), point, x(col.gdp, { scale: 'log' }), y(col.l
 *"Given gapminder 2007: points, x is gdp on a log scale, y is life, split into
 panel columns by continent."*
 
-`down()` stacks them instead, and writing both crosses the two into a grid, which
-is what `plot | facet(a) / facet(b)` does in R.
+`down()` stacks them instead, and writing both crosses the two into a grid,
+which is what `plot | facet(a) / facet(b)` does in R.
 
 Because the pair is one word here, there is no separate `facet()` to write.
 Writing `facet()` from memory gets a refusal that names the word to use instead:
@@ -104,10 +107,10 @@ js_error("plot(data(gapminder_2007), point, x(col.gdp), y(col.life), facet(col.c
 
 ## Composing two plots: `beside()` and `below()`
 
-R's `|` means two things, and what is on its right decides which: `plot | facet(g)`
-splits one plot into panels, `plot_a | plot_b` arranges two plots on a page. With
-no operator to overload there is nothing to interpret, so the second meaning gets
-its own word: `beside()`, and `below()` for `/`:
+R's `|` means two things, and what is on its right decides which: `plot |
+facet(g)` splits one plot into panels, `plot_a | plot_b` arranges two plots on a
+page. With no operator to overload there is nothing to interpret, so the second
+meaning gets its own word: `beside()`, and `below()` for `/`:
 
 ```{r}
 #| echo: false
@@ -117,24 +120,23 @@ js_plot("below(plot(data(gapminder_2007), layer(bar, bin), x(col.gdp), theme({ h
 *"Given gapminder 2007: bars derived by bin, x is gdp, above points, x is gdp, y
 is life."*
 
-The two words are not new coinages: Henderson's *Functional Geometry*
-[@henderson1982] built its algebra of pictures out of `beside` and `above`, and
-that is the picture language SICP teaches ([Composition](../composition.qmd)
-gives its full name). Both take pages as well as plots, so
-`below(top, beside(main, right))` is the marginal plot, exactly as
-`top / (main | right)` is in R. What the composed
+The two words come from an older algebra: Henderson's *Functional Geometry*
+[@henderson1982] combines pictures with `beside` and `above`, and that is the
+picture language SICP teaches ([Composition](../composition.qmd) gives its full
+name). Both take pages as well as plots, so `below(top, beside(main, right))` is
+the marginal plot, exactly as `top / (main | right)` is in R. What the composed
 plots share is decided by the engine and not by the spelling: the same column on
 the same axis in two of them is one axis. See [Composition](../composition.qmd).
 
 ## A column is written `col.gdp`
 
-R writes a column as a bare name, Julia as a symbol, Python and JavaScript through
-a small accessor. The two languages with no bare names give the same answer, and
-they give it for the same reason: in this grammar a plain string is how you spell
-a *value*, as in `style({ color: "tomato" })`, `title("…")`, `palette("okabe")`.
-Without the accessor a column and a value would look identical, and the grammar's
-oldest rule (a channel takes a column, never a value) would be invisible in the
-two languages that most need it stated.
+R writes a column as a bare name, Julia as a symbol, Python and JavaScript
+through a small accessor. The two languages with no bare names give the same
+answer, and they give it for the same reason: in this grammar a plain string is
+how you spell a *value*, as in `style({ color: "tomato" })`, `title("…")`,
+`palette("okabe")`. Without the accessor a column and a value would look
+identical, and the grammar's oldest rule (a channel takes a column, never a
+value) would be invisible in the two languages that most need it stated.
 
 So a string where a column belongs is refused, and told what to write:
 
@@ -143,20 +145,19 @@ So a string where a column belongs is refused, and told what to write:
 js_error("plot(data(gapminder_2007), point, x('gdp'), y(col.life))")
 ```
 
-The message offers both spellings because both are real: one *maps* a column and
-earns a legend, the other *sets* one value and earns none ([Setting vs
-mapping](../style.qmd)). The mistake in the other direction is refused the same
-way:
+The message names the spelling to write, because a string here is a *value* and
+a channel takes a *column* ([Setting vs mapping](../style.qmd)). The mistake in
+the other direction is refused the same way:
 
 ```{r}
 #| echo: false
 js_error("plot(data(gapminder_2007), point, x(col.gdp), y(col.life), style({ color: col.continent }))")
 ```
 
-A column whose name is not a JavaScript identifier takes the bracket form
-instead, `col["life exp"]`, which is also how you reach a name with a space or a
-dot in it. Names in other scripts need no such thing: `col.지역` (*jiyeok*,
-region) is a perfectly ordinary identifier.
+A column whose name is not a JavaScript identifier, because it holds a space or
+a dot, takes the bracket form instead: `col["life exp"]`. Names in other writing
+systems need no such thing: `col.지역` (*jiyeok*, region) is an ordinary
+identifier.
 
 ## A named argument is one trailing object
 
@@ -174,9 +175,10 @@ js_plot("plot(data(gapminder_2007), point, x(col.gdp, { scale: 'log', base: 2 })
 `style()` is the case where every argument is named, so it is written as one
 object throughout the book: `style({ color: "tomato", size: 3 })`.
 
-## The table, and what is lost
+## The table, and its name
 
-A table is an object of columns, so a first plot needs nothing installed:
+A table is an object of columns, `{ person: ['Ada', 'Alan', 'Grace'], cm: [160,
+172, 181] }`, so a first plot needs nothing installed:
 
 ```{r}
 #| echo: false
@@ -189,15 +191,15 @@ js_plot(
 R reads the table's *name* off the expression you wrote, and Python off the
 variable you passed. JavaScript can do neither, and the name matters: a layer
 resolves its columns against the nearest table by that name
-([Data](../data.qmd)). So an unnamed table is given a unique one, which is enough
-for two tables in one sentence to stay apart, and `data(df, { name: "notes" })`
-is there for when a message should say `notes` rather than `data2`.
+([Data](../data.qmd)). So an unnamed table is given a unique one, which is
+enough for two tables in one sentence to stay apart, and `data(df, { name:
+"notes" })` is there for when a message should say `notes` rather than `data2`.
 
 ## A sub-expression is a value
 
-This spelling gains one thing over R's. A piece of a sentence is an ordinary
-JavaScript value, so it can be named, reused, and passed around, and it means the
-same thing everywhere it lands:
+This spelling makes one law easy to see. A piece of a sentence is an ordinary
+JavaScript value, so it can be named, reused, and passed around, and it means
+the same thing everywhere it lands:
 
 ```{r}
 #| echo: false
@@ -206,26 +208,28 @@ js_show(
 )
 ```
 
-That is the sixth of the [nine laws](../design-laws.qmd), and it works here
-without any change. The other eight needed one.
+That law is Compositional Invariance, the sixth of the [nine
+laws](../design-laws.qmd), and JavaScript keeps it with no help from the
+binding.
 
 ## Reading from a database
 
-Node has no database standard, so `query()` accepts a connection by the shape of
-its methods rather than by its type. A connection that can prepare a statement
-and return all its rows works:
+Node.js, where JavaScript runs outside a browser, has no database standard, so
+`query()` accepts a connection by the shape of its methods rather than by its
+type. A connection that can prepare a statement and return all its rows works:
 
 ```javascript
 import { DatabaseSync } from "node:sqlite";
-import { plot, query, bar, x, y, col, render_svg } from "grammar-of-graphics";
+import { plot, data, query, bar, x, y, col, render_svg } from "grammar-of-graphics";
 
 const con = new DatabaseSync("sales.db");
 render_svg(plot(query(con, "SELECT status, revenue FROM orders"),
   bar, x(col.status), y(col.revenue)));
 ```
 
-`node:sqlite` is included with Node from version 22, so that example needs nothing
-installed. `better-sqlite3` has the same shape and works the same way.
+`node:sqlite` is built into Node.js, behind a flag from version 22 and without
+one from 23.4, so that example needs nothing installed. `better-sqlite3` has the
+same shape and works the same way.
 
 ### Asynchronous drivers are refused
 
@@ -244,8 +248,8 @@ render_svg(plot(data(rows), bar, x(col.status), y(col.revenue)));
 
 That works with every driver, asynchronous ones included. `data()` takes the
 rows an async driver returns, and the sentence after it is unchanged. This is
-the only place in the four bindings where the language's own rules reach the
-grammar, and it costs one `await`.
+the only place where a language rule changes what a sentence can *do* rather
+than how it is spelled, and it costs one `await`.
 
 ## Getting it
 
@@ -257,10 +261,10 @@ npm install grammar-of-graphics
 ```
 
 That command works today. The package is on
-[npm](https://www.npmjs.com/package/grammar-of-graphics), and the name is spelled
-out because npm already had a package called `gog`. The registry also forbids
-capital letters in a new name, so this is Julia's `GrammarOfGraphics` written the
-way npm writes names.
+[npm](https://www.npmjs.com/package/grammar-of-graphics), and the name is
+spelled out because npm already had a package called `gog`. The registry also
+forbids capital letters in a new name, so this is Julia's `GrammarOfGraphics`
+written the way npm writes names.
 
 The engine arrives with it. There are five more packages on npm, one per
 platform, each holding the engine compiled for that platform, and the main
@@ -268,8 +272,8 @@ package lists all five as optional dependencies. Installing takes the one that
 matches your computer and skips the other four. So there is nothing to put on
 your `PATH`, nothing to build, and no Rust toolchain to install.
 
-The binding itself is a thin layer over that engine, and it depends on nothing
-else:
+The binding itself only builds the specification and hands it to that engine,
+and it depends on nothing else:
 
 ```js
 import { plot, data, point, x, y, col, render_svg } from "grammar-of-graphics";
@@ -278,10 +282,10 @@ const gm = { gdp: [1000, 2000, 3000], life: [60, 70, 80] };
 console.log(render_svg(plot(data(gm), point, x(col.gdp), y(col.life))));
 ```
 
-`render_svg()` returns the SVG as a string, which in a browser goes straight into
-the DOM and on a server goes straight into a response. There is no viewer and no
-raster step, which is the one place JavaScript fits the engine better than any
-other language does.
+`render_svg()` returns the SVG as a string, which in a browser goes straight
+into the DOM and on a server goes straight into a response. Nothing has to open
+a viewer window and nothing has to become pixels first, which is where
+JavaScript sits closest to the engine.
 
 To work from a checkout instead, build the engine once and import the package
 from where it sits:
@@ -291,23 +295,24 @@ cargo build --release -p gog-cli
 ```
 
 ```js
-import { plot, data, point, x, y, col, render_svg } from "./js-pkg/gog/index.js";
+import { plot, data, point, x, y, col, render_svg } from "./js-pkg/gog/src/index.js";
 ```
 
 The engine is looked for in four places, in this order: the `GOG_CLI_PATH`
-environment variable, the platform package installed beside this one,
-`gog-cli` on your `PATH`, and a `target/release` build in a surrounding
-checkout. The first three are how an installed copy works; the last is how this
+environment variable, the platform package installed beside this one, `gog-cli`
+on your `PATH`, and a `target/release` build in a surrounding checkout. The
+second and third are how an installed copy works; `GOG_CLI_PATH` is how this
 page was rendered.
 
 ## A plot for a web page: `html_block()`
 
-That string is the drawing and nothing else. For a web page, `html_block()`
-returns the same drawing with everything around it: the line of controls under
-the picture, and, for some plots, the browser engine that redraws them. A plot
-in the cube, a plot on the globe, and a plot with a brush all carry that engine.
-Those are the plots of [Space](../space.qmd), [The globe](../globe.qmd) and
-[Selection](../selection.qmd).
+The string `render_svg()` returns is the drawing and nothing else. For a web
+page, `html_block()` returns the same drawing with everything around it: the
+line of controls under the picture, and, for some plots, a copy of the engine
+compiled for the browser, which redraws them. A plot in the cube, a plot on the
+globe, a turned network, and a plot with a brush all carry that engine. Those
+are the plots of [Space](../space.qmd), [Globe](../globe.qmd),
+[Network](../network.qmd) and [Selection](../selection.qmd).
 
 ```{r}
 #| echo: false
@@ -319,10 +324,10 @@ js_show(paste0(
 ```
 
 The function returns HTML as a string. Put it in a page, a notebook cell, or a
-dashboard panel. The picture is written first, so it is on the page before the
-browser engine loads. A page whose security policy forbids WebAssembly, the
-format the browser engine ships in, still shows the plot. What it loses is the
-turning.
+dashboard panel. The picture is written first, so it is on the page before that
+copy of the engine loads. A page whose security policy forbids WebAssembly, the
+format that copy ships in, still shows the plot. What it loses is the dragging:
+the cube and the globe stop turning, and the brush stops moving.
 
 R, Python and Julia never call this function. A notebook in those languages asks
 the plot object how it would be displayed, and each binding answers: R with

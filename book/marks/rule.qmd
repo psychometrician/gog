@@ -5,17 +5,16 @@
 source("../R/setup.R")
 ```
 
-Where is the threshold your values should be compared against? `rule` draws a
-line at one position and spans the whole of the other axis. Every other mark
-reads two positions; a rule reads one and takes the rest from the panel. That
-gives two familiar plots: a reference line at a threshold, and a rug of ticks
-showing where the observations sit.
+Where is the line you want to compare every value against? `rule` draws a line
+at one position and lets the other axis decide how far it reaches. Every other
+mark reads two positions; a rule reads one and takes the rest from the panel.
+That gives two familiar plots: a reference line at a threshold, and a rug of
+ticks showing where the observations sit.
 
 Those are often three separate marks: a vertical reference line, a horizontal
-one, and a rug. gog has one, because a vertical
-and a horizontal reference line differ only in **which axis
-carries the position**, and the grammar already reads that off the bindings,
-the same way it decides whether a bar stands up or lies down.
+one, and a rug. gog has one. A vertical and a horizontal reference line differ
+only in which axis carries the position. The grammar reads that off the
+bindings, exactly as it does for a bar.
 
 ## A line at a threshold
 
@@ -29,10 +28,11 @@ data(gapminder_2007) + point + x(gdp) + y(life) +
   title("Three thresholds, one table")
 ```
 
-*"Given gapminder 2007: points, x is gdp, y is life, and also rules from the life bands."*
+*"Given gapminder 2007: points, x is gdp, y is life, and also rules from the
+life bands."*
 
-Three lines, and only one `rule` in the sentence. That is the mark's most
-useful property: **its position is a column**, not a number. `life_bands` holds three
+Three lines, and only one `rule` in the sentence. That is the mark's most useful
+property: its position is a **column**, not a number. `life_bands` holds three
 values, so it draws three lines. Add a fourth row and a fourth line appears with
 no change to the plot's sentence at all.
 
@@ -53,6 +53,11 @@ Change which column the table holds and the same word draws the line
 vertically:
 
 ```{r}
+#| echo: false
+peek(gdp_threshold)
+```
+
+```{r}
 data(gapminder_2007) + point + x(gdp) + y(life) +
   data(gdp_threshold) + rule + style(color = "firebrick", pattern = "dashed") +
   x_label("GDP per person") + y_label("Life expectancy") +
@@ -61,7 +66,7 @@ data(gapminder_2007) + point + x(gdp) + y(life) +
 
 `gdp_threshold` holds `gdp`, the plot's `x`, so the line stands up. The mark did
 not change, the sentence did not change, and there is no `flip` anywhere: the
-data said which axis it was about.
+column the table holds is what chose the axis.
 
 ## A rug is the same mark
 
@@ -79,30 +84,36 @@ data(gapminder_2007) + point + x(gdp) + y(life) + style(opacity = 0.45) +
 *"Given gapminder 2007: points, x is gdp, y is life, and also rules from the gdp
 rug, with reach edge."*
 
-Look along the bottom. Each tick is one country, drawn at its own income, and the
-row of them answers a question the cloud above cannot: how many countries are
-there at each income, including the ones hidden underneath each other? Points
-overlap, and the 66 countries below $5,000 look much like half that many. The
-ticks share only one coordinate instead of two, so they overlap less, and the
-crowding at the left stays visible.
+Look along the bottom. Each tick is one country, drawn at its own income.
+Together they answer a question the points above cannot. How many countries sit
+at each income, counting the ones hidden under other points? Points overlap, so
+the 66 countries below $5,000 look like far fewer dots than that. The ticks
+share only one coordinate instead of two, so they overlap less, and the crowding
+at the left stays visible.
 
 That is what a rug is for in general. It puts the one-dimensional
 distribution of a variable in the margin of a plot that is already showing
 something else. You can read the spread of `gdp` without losing the scatter,
 and without a second plot whose axis you would have to match.
 
-Everything else about the mark is unchanged. `style(reach = "edge")` is the only
-difference between this and the threshold lines above, and there is no distance to
-set: a tick's length comes from the panel, the way a label's `nudge` comes from
-the font size. A number there would be a pixel count that meant something
-different in every facet and at every plot size.
+Everything else about the mark is unchanged. The only change to the rule itself
+is `style(reach = "edge")`, and there is no distance to set. A tick's length
+comes from the panel, the way a label's nudge distance comes from the font size.
+A number there would be a pixel count that meant something different in every
+facet and at every plot size.
 
 ### The other axis
 
-A rug is not tied to the horizontal. Which axis it lands on is decided the way it
-was for the threshold lines: by the column its own table holds. Hand it `life`
-instead of `gdp` and the ticks run up the left edge. Hand it both, as two layers,
-and you get the margins of the scatter on both sides at once:
+A rug is not tied to the horizontal. Which axis it lands on is decided the way
+it was for the threshold lines: by the column its own table holds. Hand it
+`life` instead of `gdp` and the ticks run up the left edge. Add both tables as
+two layers, and the scatter gets a rug along the bottom and another up the left
+at once:
+
+```{r}
+#| echo: false
+peek(life_rug)
+```
 
 ```{r}
 data(gapminder_2007) + point + x(gdp) + y(life) + style(opacity = 0.45) +
@@ -118,16 +129,16 @@ grammar refuses, and the refusal offers two ways out: a single-column table,
 or naming the axis on the layer, `rule + x(gdp)`.
 
 Read the left edge and the distribution looks different. The ticks crowd
-above 70, thin out through the sixties, then spread out again from 60 all the
-way down to 40. That thin band in the middle is what to notice: of the 142 countries,
-83 sit above 70 and 43 below 60, with only 16 in the decade between. It is a
+together above 70, thin out between 60 and 70, then run down to 40 in a looser
+second band. That thin band in the middle is what to notice: of the 142
+countries, 83 sit above 70 and 43 below 60, with only 16 between. It is a
 distribution with two groups and a gap, not one spread, and neither the scatter
 nor the bottom rug shows it.
 
 ## Coloring the lines
 
 Each row of a rule's table is its own segment, so `color` maps per row. The
-second column in `life_bands` is for this:
+`band` column in `life_bands`, which names each threshold, is for this:
 
 ```{r}
 data(gapminder_2007) + point + x(gdp) + y(life) + style(color = "lightgray") +
@@ -139,14 +150,13 @@ data(gapminder_2007) + point + x(gdp) + y(life) + style(color = "lightgray") +
 *"Given gapminder 2007: points, x is gdp, y is life, and also rules from the
 life bands, color by band."*
 
-A rule has no area for a reader to decode a ramp from, so `color` takes
-categories rather than a continuous ramp, the same answer `line` and `path`
-give.
+A thin line gives a reader no area to compare shades in, so `color` here takes
+categories, not a continuous ramp. `line` and `path` answer the same way.
 
 ## Thickening a rule
 
-`style(size = )` makes a rule as thick as you want, and a thick translucent
-one looks like a highlighted band:
+Width is the rule's other visible setting. `style(size = )` sets it, and a wide,
+faint rule reads as a highlighted band:
 
 ```{r}
 data(gapminder_2007) + point + x(gdp) + y(life) + style(opacity = 0.55) +
@@ -158,18 +168,19 @@ data(gapminder_2007) + point + x(gdp) + y(life) + style(opacity = 0.55) +
 *"Given gapminder 2007: points, x is gdp, y is life, and also rules from the
 life bands, colored seagreen, with size 26 and opacity 0.20."*
 
-That is a good way to draw attention to a value, and be clear about what it
-is: a stroke width is pixels, not data. The band above
-covers about four years of life expectancy, but only because of where this
-plot's vertical axis happens to sit. Facet it, resize it, or change the data's range
-and the same `size = 26` will cover a different number of years while looking
-identical. Nothing is wrong with that as long as the width is decoration; it is
-wrong the moment the width is supposed to *mean* something.
+That is a good way to mark a value, as long as you remember what the width is:
+pixels, not data. The band above covers about two and a half years of life
+expectancy. It covers that much only because this panel holds the range from 40
+to 80. Facet it, resize it, or change the data's range and the same `size = 26`
+will cover a different number of years while looking identical. Nothing is wrong
+with that as long as the width is decoration; it is wrong the moment the width
+is supposed to *mean* something.
 
 When it should mean something ("the healthy range is 65 to 75", not "look
 here"), the thickness belongs to the data, and then you want a region with real
-edges. That is [`ribbon`](ribbon.qmd) given a low and a high column you
-computed, with a two-row table placing the left and right edges:
+edges. That is [`ribbon`](ribbon.qmd), given a low column and a high column you
+computed. The table has two rows, one at each end of the income axis, so the
+band reaches from side to side:
 
 ```{r}
 healthy <- data.frame(gdp = base::range(gapminder_2007$gdp), lo = 65.0, hi = 75.0)
@@ -184,29 +195,43 @@ data(healthy) + ribbon * bounds(lo, hi) + style(color = "seagreen", opacity = 0.
 *"Given the healthy table: a ribbon from lo to hi; then given gapminder 2007:
 points, x is gdp, y is life, and also rules from the life bands."*
 
-Now 65 and 75 are positions. They rescale with the axis, they hold across
-facets, and on a log axis they land where the data puts them rather than
-where the pixels did. The highlight is written *first* so the points draw
-over it.
+Now 65 and 75 are positions. They rescale with the axis and keep the same values
+in every facet. On a log axis they land where the data puts them, not at a fixed
+number of pixels. The highlight is written *first* so the points draw over it.
 
 Give that same table two different `gdp` values instead of the data's range,
 and the band becomes a box bounded on both axes. That is how you shade a
 corner of a scatter, or one span of a time series.
 
-Neither the band nor the box reaches the **panel**. A ribbon is bounded
-by its data, so it stops exactly at the numbers you gave it, and you cannot pad
-them outward without widening the scale itself. A rectangle that takes one
-extent from the data and the other from the panel is `rule`'s sibling one
-dimension up, and that is exactly what [`zone`](zone.qmd) is.
+Neither the band nor the box stretches to the edge of the panel. A ribbon is
+bounded by its data, so it stops exactly at the numbers you gave it, and you
+cannot pad them outward without widening the scale itself. For a rectangle that
+takes one side from the data and the other from the panel, use
+[`zone`](zone.qmd). It is `rule` with one more dimension.
 
-## Bent: the ring and the spoke
+## In polar: the ring and the spoke
 
 The mark does one thing: it spans the whole of the axis it does not name. In
 polar that is unchanged, and it draws two shapes rather than one, because a
-circle has two ways of going all the way around.
+circle has two axes to span. [Polar](../polar.qmd) builds the circle itself;
+what matters here is that a rule spans whichever axis it does not name.
 
-Span the **turn** whole and you get a ring. Here it marks a target wind speed
-on a circular wind plot, and `speed` is the radial axis:
+The `winds` table holds one wind observation per row, and `speed_target` holds
+the one target speed:
+
+```{r}
+#| echo: false
+peek(winds)
+```
+
+```{r}
+#| echo: false
+peek(speed_target)
+```
+
+The angular axis runs all the way around the circle, and that whole sweep is the
+**turn**. Span the turn whole and you get a ring. Here it marks a target wind
+speed on a circular wind plot, and `speed` is the radial axis:
 
 ```{r}
 data(winds) + line * mean + x(direction) + y(speed) + polar() +
@@ -217,15 +242,17 @@ data(winds) + line * mean + x(direction) + y(speed) + polar() +
 *"Given the winds: a line derived by mean, x is direction, y is speed, in polar,
 and also rules from the speed target."*
 
-Span the **radius** whole and you get a spoke, a line from the center to the
-rim. Nothing was added to the mark for either one. Spanning the axis a rule
-does not name is what it always did, and in a circle the radial axis runs
-from the center outward while the angular axis runs all the way around.
+Span the *radius* whole and you get a spoke, a line from the center to the rim.
+Give the rule a table holding `direction` instead of `speed`, and the line
+stands at that compass point. Neither shape is a special case in the mark.
+Spanning the axis a rule does not name is what it always did, and in a circle
+the radial axis runs from the center outward while the angular axis runs all the
+way around.
 
-That is what a mark must show before polar counts as the same mark: stated
-once, read off the bindings, meaning the same thing in every space. A rule
-that needed a special case in polar would not have been one mark; it would
-have been three marks under one name.
+That is what a mark must show before polar counts as the same mark: stated once,
+read off the bindings, meaning the same thing in every space. A rule that needed
+a special case in polar would not be one mark. It would be three: a flat line, a
+ring, and a spoke.
 
 ## What you can set
 
@@ -240,9 +267,9 @@ mark_options("rule")
 ```
 
 Four of those are a stroke's ordinary controls, and one is the mark's own.
-`style(reach = )` decides how far the rule crosses the axis it does not name, and
-it is what makes the rug the same mark rather than a second one. The other four
-behave here as on `line` or `path`:
+`style(reach = )` decides how far the rule crosses the axis it does not name,
+and it is what makes the rug the same mark rather than a second one. The other
+four behave here as on `line` or `path`:
 
 ```{r}
 data(gapminder_2007) + point + x(gdp) + y(life) + style(color = "lightgray") +
@@ -268,8 +295,8 @@ The `pattern` values are the three **dashes**, because a rule is a stroke.
 *fill*'s texture, and it is what [`zone`](zone.qmd) takes instead. One setting
 name, one realization per geometry.
 
-What a rule refuses shows the same thing. There is no `shape`,
-because a stroke has no glyph to choose. And there is no border:
+What a rule refuses follows from the same geometry. There is no `shape`, because
+a stroke has no glyph to choose. And there is no border:
 
 ```{r}
 #| error: true
@@ -292,12 +319,11 @@ than picking one:
 data(gapminder_2007) + point + x(gdp) + y(life) + rule
 ```
 
-That refusal is why the tables above each hold a single column, and its
-message names the other way out: `rule + x(gdp)` says the axis on the layer,
-and then a both-column table works. It is the same shape as a bar with a
-category on both axes: the grammar reads an orientation only when the
-bindings distinguish the two axes, and guessing would teach the reader a
-pattern the grammar does not follow.
+That refusal is why the tables above each hold a single column. Its message
+repeats the second way out: `rule + x(gdp)` says the axis on the layer, and then
+a both-column table works. A bar with a category on both axes is refused for a
+related reason. The grammar reads an orientation only when the two bindings
+differ, and a guess would teach you a rule it does not follow.
 
 A rule takes no transform either. It has handed one whole axis to the panel, so
 there is no measure for a statistic to compute and nowhere to put the answer:
@@ -308,6 +334,6 @@ data(gapminder_2007) + point + x(gdp) + y(life) +
   data(life_bands) + rule * mean
 ```
 
-The direction it gives is the one the mark is built on. A line at the mean is a
-mean you computed, handed over as a column, which is what a rule's position
-always is.
+The message points back at what a rule is. A line at the mean is a mean you
+computed yourself, passed in as a column. A rule's position always comes from a
+column.

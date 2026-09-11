@@ -5,13 +5,13 @@
 source("../R/setup.R")
 ```
 
-You have one column. What can it tell you? The questions it can
-answer, and the sentence for each.
+You have one column. What can it tell you? The answer depends on the column's
+type: text asks how many of each, a measurement asks how the values spread.
 
 ## How many of each?
 
-A text column's first question. Counting rows is a derivation, not a
-different kind of chart, so it is `bar` with `* count`:
+A text column's first question. Counting rows is a derivation, not a different
+kind of chart, so the sentence is `bar` with `* count`:
 
 ```{r}
 data(gapminder_2007) + bar * count + x(continent)
@@ -21,8 +21,8 @@ data(gapminder_2007) + bar * count + x(continent)
 bound because the
 count is invented, and the engine labels the axis for you.
 
-**One atom away.** Long category names? Put the categories on `y` and the
-bars lie down, same sentence, positions swapped:
+**One atom away.** Long category names? Move the categories to `y` and the bars
+lie down. The sentence is otherwise the same.
 
 ```{r}
 data(gapminder_2007) + bar * count + y(continent)
@@ -39,19 +39,20 @@ Swap `count` for `proportion` and the counts become fractions that sum
 to one:
 
 ```{r}
-data(iris_flowers) + bar * proportion + x(species)
+data(gapminder_2007) + bar * proportion + x(continent)
 ```
 
-*"Given the iris flowers: bars derived by proportion, x is species."*
+*"Given gapminder 2007: bars derived by proportion, x is continent."*
 
-**One atom away.** Back to raw counts: `* count`. Sorted by size:
-add [`order()`](../data.qmd).
+**One atom away.** Back to raw counts: `* count`. [`order()`](../data.qmd)
+reorders the categories by a column the table holds, never by the invented
+share.
 
 ## How is a measurement distributed?
 
-The continuous column's first question. `bin` cuts the axis into
-intervals and counts rows into each; `bar` draws the counts touching,
-because the intervals are adjacent:
+The continuous column's first question. `bin` cuts the axis into equal-width
+bins and counts the rows in each; `bar` draws them touching, so a gap means a
+bin with no rows. The result is the **histogram**:
 
 ```{r}
 data(iris_flowers) + bar * bin + x(petal_length)
@@ -59,9 +60,9 @@ data(iris_flowers) + bar * bin + x(petal_length)
 
 *"Given the iris flowers: bars derived by bin, x is petal length."*
 
-**One atom away.** `bin` takes a count or a width when the default
-guesses wrong. `bin(30)` for thirty bins, or intervals in the data's own
-units:
+**One atom away.** `bin` takes a count or a width when the default does not suit
+the data. `bin(30)` asks for thirty bins; `bin(width = 0.5)` asks for bins half
+a unit wide:
 
 ```{r}
 data(iris_flowers) + bar * bin(width = 0.5) + x(petal_length)
@@ -69,8 +70,9 @@ data(iris_flowers) + bar * bin(width = 0.5) + x(petal_length)
 
 *"Given the iris flowers: bars derived by bin at width 0.5, x is petal length."*
 
-A `line * bin` draws the same counts as a frequency polygon. Owning
-chapters: [Bar](../marks/bar.qmd), [Transforms](../transforms.qmd).
+A `line * bin` is the frequency polygon: the same counts, joined through the bin
+centers. Owning chapters: [Bar](../marks/bar.qmd),
+[Transforms](../transforms.qmd).
 
 ## What is its smooth shape?
 
@@ -81,18 +83,18 @@ removes that decision:
 data(gapminder_2007) + line * density + x(life)
 ```
 
-*"Given gapminder 2007: a line derived by density, x is life."* Same question as
-the
-histogram, one derivation over. Use both when the bumps matter. One atom tunes
-the smoothing: `density(0.5)` sharpens the bumps, `density(2)` flattens them,
-and `density(bandwidth = 1)` fixes the kernel width in years.
+*"Given gapminder 2007: a line derived by density, x is life."* The same
+question the histogram answered, with one derivation changed. Draw both when the
+number of peaks is the thing you want to show. One atom tunes the smoothing:
+`density(0.5)` sharpens the peaks, `density(2)` flattens them, and
+`density(bandwidth = 1)` fixes the kernel width in years. Owning chapters:
+[Line](../marks/line.qmd), [Transforms](../transforms.qmd).
 
 ## How does the distribution look in steps?
 
-The third rendering of `bin`: an unfilled staircase silhouette, tracing
-bin tops without any fill. It is most useful when several distributions
-share an axis, see [Many groups](groups.qmd), but reads cleanly alone
-too:
+A third mark on the same `bin`: a staircase silhouette, tracing the bin tops
+with no fill. It is most useful when several distributions share an axis, as in
+[Many groups](groups.qmd), and it reads well alone:
 
 ```{r}
 data(gapminder_2007) + step * bin + x(life)
@@ -100,16 +102,17 @@ data(gapminder_2007) + step * bin + x(life)
 
 *"Given gapminder 2007: a step outline derived by bin, x is life."*
 
-Three marks (`bar`, `line`, `step`), one `bin`. The transform never
-changed; only the geometry drawing its output did. That is the
-[No Exceptions law](../design-laws.qmd), and nothing else.
+Two marks (`bar`, `step`) and one `bin`, with `line * bin` above making three.
+The transform never changed. Only the geometry that draws its output changed.
+That is the [No Exceptions law](../design-laws.qmd) doing its job. Owning
+chapters: [Step](../marks/step.qmd), [Transforms](../transforms.qmd).
 
-## And when there are only thirty rows?
+## When there are only thirty rows
 
 Every answer above summarizes: `bin` needs a bin width, `density` needs a
 bandwidth, and both choices matter more when there are fewer rows to
-average over. With thirty numbers you can skip the choice and draw all
-thirty. Add `stack` and a `point` piles one dot per observation:
+average over. With thirty numbers the bins can stay and every row still
+shows. Add `stack` and a `point` piles one dot per observation:
 
 ```{r}
 data(gm_europe) + point * bin * stack + x(life) +
@@ -117,10 +120,10 @@ data(gm_europe) + point * bin * stack + x(life) +
 ```
 
 *"Given gapminder Europe: points derived by bin and stack, x is life."* The
-pile's height is a count, so
-the tallest column can be read off the axis or simply counted, and no
-observation has been averaged into anything. Compare the same thirty as
-bars, where a single bin edge moving would redraw the shape:
+pile's height is a count, so the tallest pile can be read off the axis or
+counted dot by dot. No row has been averaged into anything. Compare the same
+thirty as bars, where each pile becomes one length and the rows disappear into
+it:
 
 ```{r}
 data(gm_europe) + bar * bin + x(life) +
@@ -133,9 +136,9 @@ piles one dot per row in each category. Owning chapter:
 
 ## What this section refuses
 
-A distribution question needs a continuous column. Ask `density` about a
-category and the refusal names the type the estimate needs. The
-categorical version of this question is the share recipe above:
+A distribution question needs a continuous column. Give `density` a category and
+the refusal names the column type it needs. The categorical version of this
+question is the share recipe above:
 
 ```{r}
 #| error: true

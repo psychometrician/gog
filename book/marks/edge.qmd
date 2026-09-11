@@ -5,15 +5,18 @@
 source("../R/setup.R")
 ```
 
-What draws a relation? `edge` does: one stroke per row of the table, between
-the two things that row relates. Every other stroke joins positions bound
-from columns. A `line` runs along its domain, a `path` follows the table's
-order, an `interval` spans two values. An `edge` is different, because the
-ends of an edge are names, not numbers, so no axis can measure them.
+Which things in your table are connected to which? `edge` draws one stroke per
+row of the table, between the two things that row names. The other strokes draw
+between positions taken from columns. A `line` runs along its domain, a `path`
+follows the table's order, an `interval` spans two values. An `edge` is
+different, because the endpoints of an edge are names, not numbers, so no axis
+can measure them. The picture an `edge` layer makes is the **network diagram**.
 
-That difference is what makes this mark unusual. Its two endpoints are not
-bound to channels; they come from a [`layout`](../network.qmd), which reads
-the two endpoint columns and computes a position for every name.
+So an edge takes no `x` and no `y`. Its two endpoints come from a
+[`layout`](../network.qmd), a transform that reads the two name columns and
+computes a position for every name. Write the source column first and the
+destination second.
+
 `trade_partners` holds one row per trade relation: who exports, who imports,
 and the value of the goods, in billions of dollars, rounded:
 
@@ -22,23 +25,26 @@ and the value of the goods, in billions of dollars, rounded:
 peek(trade_partners)
 ```
 
-The smallest sentence needs three parts: the mark, its layout, and the space:
+Name the table, then write three things: the mark, its layout, and the space
+`network()`:
 
 ```{r}
 data(trade_partners) + edge * layout(exporter, importer) + network()
 ```
 
-*"Given trade partners: edges derived by layout from exporter to importer, in the network."*
+*"Given trade partners: edges derived by layout from exporter to importer, in
+the network."*
 
-An `edge` draws only inside `network()`. Outside it, every axis promises a
-measurement, and an edge's ends have none to offer, so the sentence is
-refused rather than drawn.
+An `edge` draws only inside `network()`. Every other space labels its axes with
+numbers, and an edge's two endpoints are names. gog refuses the sentence rather
+than drawing it.
 
-## What varies by edge
+## Color and opacity, one per row
 
-An edge is one row, so its color and its opacity can follow any column of
-the table. `color` maps a category, and `opacity` maps a number such as
-`billions`:
+An edge is one row, so its color and its opacity can follow a column of the
+table. `color` maps a category, and `opacity` maps a number such as
+`billions`. A second layer, `point * layout(exporter, importer)`, reads the
+same layout and draws a dot at each name:
 
 ```{r}
 data(trade_partners) +
@@ -53,10 +59,11 @@ opacity by billions, and also points derived by layout from exporter to
 importer, in the network."*
 
 On `line`, `opacity` is only a setting, because a line is one stroke with one
-value. An edge layer is many strokes, and each row carries its own.
+value. An edge layer is many strokes, and each row gives its stroke an opacity
+of its own.
 
-The same is true of `color`. Each stroke takes the color of its exporter, so
-Germany's five strokes share one color:
+`color` works the same way, one value per row. Each stroke takes the color of
+its exporter, so Germany's five strokes share one color:
 
 ```{r}
 data(trade_partners) +
@@ -72,6 +79,9 @@ network."*
 
 ## What you can set
 
+Everything an edge can be told to look like, generated from the engine's own
+legality table, so this page cannot differ from what `style()` accepts:
+
 ```{r}
 #| echo: false
 #| results: asis
@@ -79,26 +89,27 @@ cat("| Setting | Value |\n|---|---|\n")
 mark_options("edge")
 ```
 
-`style(size = )` sets the stroke width for the layer, `style(color = )` sets
-one color when nothing maps, `style(opacity = )` sets one opacity the same
-way, and `style(pattern = )` dashes the strokes.
+`style(size = )` sets the stroke width for the whole layer. `style(color = )`
+and `style(opacity = )` give every stroke one value, for the case where no
+column maps. `style(pattern = )` chooses the dash: `solid`, `dashed` or
+`dotted`.
 
 ## What it refuses
 
-An `edge` without its `layout` has no endpoints to draw, and a position bound
-to it would say nothing the layout has not already said:
+An `edge` with no `layout` has no endpoints to draw. `x` and `y` cannot supply
+them, so gog refuses each binding, then refuses the empty `network()`:
 
 ```{r}
 #| error: true
 data(trade_partners) + edge + x(billions) + y(exporter) + network()
 ```
 
-And a `layout` is read only in its space:
+A `layout` is read only inside `network()`, so the space cannot be left out:
 
 ```{r}
 #| error: true
 data(trade_partners) + edge * layout(exporter, importer)
 ```
 
-The [Network](../network.qmd) chapter has the whole family: the nodes, the
-names, the cube, and the rest of the refusals.
+The [Network](../network.qmd) chapter draws the rest: a dot for every name, a
+label beside each dot, the same graph in a cube, and the other refusals.

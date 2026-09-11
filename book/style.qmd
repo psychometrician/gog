@@ -5,16 +5,16 @@
 source("R/setup.R")
 ```
 
-Should this color come from your data, or from you? There are two ways to make
-something red, and gog keeps them apart on purpose.
+Should a mark's color come from your data, or from you? There are two ways to
+make something red, and gog keeps them apart on purpose.
 
 **Mapping** lets the data decide a visual property. `color(continent)` says
 *let the continent decide the color*, so gog builds a scale, assigns a color
 per continent, and draws a legend to decode it.
 
-**Setting** gives the property a value yourself. `style(color = "tomato")`
-says *make them all tomato*. No column is read, no scale is built, and no
-legend appears, because there is nothing to decode.
+**Setting** means you give the property a value yourself. `style(color =
+"tomato")` says *make them all tomato*. No column is read, no scale is built,
+and no legend appears, because there is nothing to decode.
 
 ```{r}
 # MAP: color answers "which continent?"
@@ -28,28 +28,29 @@ data(gapminder_2007) + point + x(gdp) + y(life) + color(continent) +
 # SET: color answers nothing; note the missing legend
 data(gapminder_2007) + point + x(gdp) + y(life) +
   style(color = "tomato") +
-  title("Set: no legend, because there is nothing to look up")
+  title("Set: no legend, because there is nothing to decode")
 ```
 
 *"Given gapminder 2007: points, x is gdp, y is life, colored tomato."*
 
 ## Why a constant is not a channel
 
-Every channel in gog maps a data column to a visual feature. A constant maps
+Every channel in gog maps a data column to a visual property. A constant maps
 nothing, so it fails the definition: the same reason rotating a 3-D plot is a
 property of the coordinate space rather than a channel.
 
-A practical test agrees: a mapping draws a legend, a setting draws none. If
-the plot needs a legend to be read, it was a mapping.
+A practical test agrees: a mapping to color, size, shape, pattern or opacity
+draws a legend, and a setting draws none. If the plot needs a legend to be read,
+it was a mapping.
 
 ## What you can set
 
-Every mark is a row and every setting is a column. The grid shows what each
-mark takes and what it refuses, including combinations you would not have
-guessed were legal. **Legal is not the same as useful** (that is
-[Law 8](design-laws.qmd): the grammar guarantees the first, you judge the second);
-the table shows the limit of what can be expressed. Its companion grid,
-what a mark lets you *map* rather than set, is [Combinations](combinations.qmd).
+Every setting is a row and every mark is a column. The grid shows what each mark
+takes and what it refuses, including combinations you would not have guessed
+were legal. Legal is not the same as useful. [Law 8](design-laws.qmd) says the
+grammar guarantees a plot is legal, and you judge whether it is useful. The
+table shows the limit of what can be expressed. Its companion grid, what a mark
+lets you *map* rather than set, is [Combinations](combinations.qmd).
 
 ```{r}
 #| echo: false
@@ -74,29 +75,30 @@ rows <- vapply(setts, function(s) {
 cat(header, divider, rows, sep = "\n")
 ```
 
-(✅ the setting is available · `—` the mark's geometry cannot carry it. Generated live from the
-engine, like the [Combinations](combinations.qmd) grid, so it cannot drift from
-what `style()` accepts.)
+(✅ the setting is available · `—` the mark's geometry cannot carry it. Generated
+live from the engine, like the [Combinations](combinations.qmd) grid, so it
+cannot drift from what `style()` accepts.)
 
 `color` (CSS name or hex) and `opacity` (`0`–`1`) are set on every mark. The
 other rows are not arbitrary permissions: each follows from the mark's geometry,
-and a setting is available on *every* mark of a kind, never one by accident. That
-is the [settable rule](design-laws.qmd): a setting spans its *geometry class*.
+and a setting is available on *every* mark of a kind, never one by accident.
+That is the [settable rule](design-laws.qmd): a setting spans its *geometry
+class*, the group of marks built the same way.
 
-`size` is a measurement in pixels: a radius, a stroke width, or a font size.
-It belongs to every glyph and stroke, and not to `bar`, `area` or `ribbon`,
-whose size their positions already fix. `shape` (one of five glyphs) is
-`point`'s alone.
+`size` is a measurement in pixels: a radius, a stroke width, or a font size. It
+belongs to every glyph and stroke. The grid leaves it blank for `bar`, `area`,
+`ribbon`, `zone` and `surface`, whose positions already fix their size. `shape`
+(one of five glyphs) is `point`'s alone.
 
 `pattern` is the **texture** of a mark's paint: a general aesthetic, realized by
-geometry the way `color` is a fill on a bar and a stroke on a line. On the
-five path strokes (`line`, `step`, `path`, `interval`, `rule`) it is the
-**dash**: `"solid"`/`"dashed"`/`"dotted"`, a dashed error bar included. On
-the five fills (`bar`, `box`, `area`, `ribbon`, `zone`) it is a **fill
-texture**: `"solid"`/`"hatch"`/`"crosshatch"`/`"grid"`/`"dots"`, the
-hatchings a plot can be read by in grayscale or in print, where hue is gone.
-It is paint, never geometry: a dashed line and a solid one trace the same
-path. A `step` changes the path itself.
+geometry the way `color` is a fill on a bar and a stroke on a line. On the six
+path strokes (`line`, `step`, `path`, `interval`, `rule`, `edge`) it is the
+**dash**: `"solid"`/`"dashed"`/`"dotted"`, a dashed error bar included. On the
+five fills (`bar`, `box`, `area`, `ribbon`, `zone`) it is a **fill texture**:
+`"solid"`/`"hatch"`/`"crosshatch"`/`"grid"`/`"dots"`, the hatchings a plot can
+be read by in grayscale or in print, where hue is gone. It is paint, never
+geometry: a dashed line and a solid one trace the same path. A `step`, by
+contrast, is a different mark because it traces a different path.
 
 ```{r}
 data(gapminder_asia) + line * mean + x(year) + y(life) +
@@ -122,14 +124,15 @@ pattern crosshatch."*
 
 The texture is one per layer: `style()` gives every bar in the layer the *same*
 hatch, so it cannot give each category of a color split its own. Doing that is a
-*mapping* (a category to a texture), which is the
-[`pattern()` channel](channels.qmd#pattern), the texture twin of `shape()`.
+*mapping* (a category to a texture), which is the [`pattern()`
+channel](channels.qmd#pattern), the texture channel that matches `shape()`.
 
-`border_color` and `border_size` (an outline distinct from the fill, `0` = no
-border) belong to the five **closed-glyph fills** (`bar`, `box`, `point`, `zone`
-and `surface`) where the border is a shape no composition can trace, so a
-setting is the only way to draw it. `color` fills the shape; `border_color` outlines it; the two are
-independent, so a box can be pale inside and dark-edged:
+`border_color` and `border_size` draw an outline separate from the fill, and `0`
+means no border. They belong to the five **closed-glyph fills** (`bar`, `box`,
+`point`, `zone` and `surface`). On those marks no composition can trace the
+border, so a setting is the only way to draw it. `color` fills the shape;
+`border_color` outlines it; the two are independent, so a box can be pale inside
+and dark-edged:
 
 ```{r}
 data(gapminder_2007) + box + x(continent) + y(life) +
@@ -140,7 +143,7 @@ data(gapminder_2007) + box + x(continent) + y(life) +
 *"Given gapminder 2007: boxes, x is continent, y is life, colored
 lightsteelblue, with border color #26456e and border size 1.6."*
 
-The same setting outlines a `point`, so overlapping points stay separate,
+The same two settings outline a `point`, so overlapping points stay separate,
 exactly as on `bar` and `box`:
 
 ```{r}
@@ -153,25 +156,23 @@ data(gapminder_2007) + point + x(gdp) + y(life) +
 *"Given gapminder 2007: points, x is gdp, y is life, colored steelblue, with
 opacity 0.7, size 5, border color white and border size 1."*
 
-A **curve fill** (`area`, `ribbon`) takes no border: its edge is a *data curve*,
-which already is a `line` (`area + line`, `line * bounds`), more capable than
-a border setting could be. And a `cross` point has no fill to outline, so a border on a
-`cross`-shaped glyph simply has nothing to draw on.
+A **curve fill** (`area`, `ribbon`) takes no border. Its edge is a data curve,
+so you draw it as a `line` layer (`area + line`, `line * bounds`), which can do
+more than a border setting. And a `cross` point has no fill to outline, so a
+border on a `cross`-shaped glyph simply has nothing to draw on.
 
 The last five rows are **display toggles**, each tied to one mark's own
-geometry. `caps` and `center` show or hide an
-[`interval`](marks/interval.qmd)'s end caps and center dot. `nudge` moves a
-[`text`](marks/text.qmd) label off its point. `arrow` puts a head on a
-[`path`](marks/path.qmd)'s end. And `reach` says how far a
-[`rule`](marks/rule.qmd) crosses the axis it does not name. They are single-mark on
-purpose (a cap is a thing only a whisker has), which is why their rows are nearly
-empty, and that emptiness is information: it says the setting belongs to that mark
-and no other.
+geometry. `caps` and `center` show or hide an [`interval`](marks/interval.qmd)'s
+end caps and center dot. `nudge` moves a [`text`](marks/text.qmd) label off its
+point. `arrow` puts a head on a [`path`](marks/path.qmd)'s end. And `reach` says
+how far a [`rule`](marks/rule.qmd) crosses the axis it does not name. They are
+single-mark on purpose, because only a whisker has a cap. That is why their rows
+are nearly empty, and an empty row tells you the setting belongs to one mark.
 
-`arrow` shows this best: its row has one cell, and that one cell is the
-reason only `path` takes it. A head marks a direction, and only a path has
-one: a `line` sorts its vertices by `x`, so its last point is wherever the domain
-ends rather than where the data stopped.
+`arrow` shows this best: only `path` is checked in its row, and the reason is
+geometry. A head marks a direction, and only a path has one: a `line` sorts its
+vertices by `x`, so its last point is the largest `x`, not the point the data
+ended on.
 
 ```{r}
 data(gapminder_asia) + path + x(gdp) + y(life) + color(country) +
@@ -213,7 +214,7 @@ data(medals) + bar + x(country) + y(gold) +
   title("bar")
 ```
 
-Note what is *not* the way to do this:
+This next sentence looks like the same request, and it is not:
 
 ```{r}
 #| error: true
@@ -236,7 +237,8 @@ opacity 0.45, size 7 and shape diamond."*
 
 ### Colors are CSS colors
 
-Both forms work anywhere a color is accepted, in `style()` and in `palette()`:
+A CSS name and a hex value both work anywhere a color is accepted, in `style()`
+and in `palette()`:
 
 ```{r}
 data(medals) + bar + x(country) + y(gold) +
@@ -244,7 +246,7 @@ data(medals) + bar + x(country) + y(gold) +
   title("A CSS color name")
 ```
 
-A name gog does not recognize is refused, with the nearest real one offered,
+A name gog does not recognize is refused, and the closest valid name is offered,
 rather than being passed to the renderer and painted black:
 
 ```{r}
@@ -252,11 +254,10 @@ rather than being passed to the renderer and painted black:
 data(medals) + bar + x(country) + y(gold) + style(color = "stelblue")
 ```
 
-R users predictably assume R color names are CSS color names. They are not.
-R's `colors()` includes numbered shades (`gray80`, `gray50`,
-`steelblue3`) that CSS does not have. gog uses CSS colors because that is
-what SVG accepts and what the other three bindings use too, so the
-vocabulary is the same in every language:
+R users often assume R color names are CSS color names. They are not. R's
+`colors()` includes numbered shades (`gray80`, `gray50`, `steelblue3`) that CSS
+does not have. gog uses CSS colors because that is what SVG accepts and what the
+other three bindings use too, so the vocabulary is the same in every language:
 
 ```{r}
 #| error: true
@@ -265,13 +266,13 @@ data(medals) + bar + x(country) + y(gold) + style(color = "gray80")
 
 For an exact shade, give the hex value.
 
-## The case setting exists for
+## What settings are for
 
-Two jobs come up constantly, and neither is a mapping.
+Two jobs occur constantly, and neither is a mapping.
 
-**Overplotting.** With enough points, the marks cover one another and the
-shape disappears. Lowering opacity
-is a statement about the *rendering*, not about the data:
+**Overplotting.** With enough points, the marks cover one another and the shape
+of the cloud disappears. Lowering opacity is a statement about the *rendering*,
+not about the data:
 
 ```{r}
 data(gm_all) + point + x(gdp) + y(life) +
@@ -279,8 +280,8 @@ data(gm_all) + point + x(gdp) + y(life) +
   title("1704 points: transparency reveals the density")
 ```
 
-**A reference layer.** When one layer carries the message, the others should
-be drawn faintly:
+**A reference layer.** When one layer is the point of the plot, the others
+should be drawn faintly:
 
 ```{r}
 data(gapminder_asia) + x(year) + y(life) +
@@ -294,8 +295,8 @@ lightgray, and also a line derived by smooth, colored firebrick, with size 3."*
 
 ## `line` takes settings it refuses as channels
 
-A polyline is drawn with *one* stroke. There is no per-row anything to vary
-along it, so `size` and `opacity` are not channels on `line`:
+A polyline is drawn with *one* stroke. Nothing varies from row to row along that
+stroke, so `size` and `opacity` are not channels on `line`:
 
 ```{r}
 #| error: true
@@ -311,8 +312,8 @@ data(gapminder_asia) + line + x(year) + y(life) + group(country) +
 ```
 
 This is where the distinction matters most. "Can a column be mapped here?" and
-"does this mark have this property?" are different questions, and `line` is
-where they diverge.
+"Does this mark have this property?" are different questions, and `line` is
+where the answers differ.
 
 ## You cannot map and set the same property
 
@@ -329,9 +330,9 @@ Pick the one you meant.
 
 ## `style` applies to one layer only
 
-`color()` also applies to earlier layers that have none. `style()` attaches
-to the nearest mark before it and goes no further, because a decoration
-written for one layer should not change another:
+`color()` written before any mark applies to every layer that can take it.
+`style()` attaches to the nearest mark before it and goes no further, because a
+decoration written for one layer should not change another:
 
 ```{r}
 data(gapminder_2007) + x(gdp) + y(life) +
@@ -344,8 +345,8 @@ To style both layers, say so on both.
 
 ## `palette`: choosing the colors a mapping uses
 
-`style(color = )` removes the mapping. `palette()` keeps it and chooses which
-colors the categories receive:
+`style(color = )` is written instead of a mapping. `palette()` keeps the mapping
+and chooses which colors the categories receive:
 
 ```{r}
 data(gapminder_2007) + point + x(gdp) + y(life) + color(continent) +
@@ -355,21 +356,22 @@ data(gapminder_2007) + point + x(gdp) + y(life) + color(continent) +
 *"Given gapminder 2007: points, x is gdp, y is life, color by continent, with a
 palette of tomato, steelblue, seagreen, goldenrod and orchid."*
 
-A palette needs a mapping to give its colors to. With nothing on `color` it
-has nothing to color, so it is refused rather than accepted and then ignored:
+A palette needs a mapping to give its colors to. With no column bound to `color`
+it has nothing to color, so it is refused rather than accepted and then ignored:
 
 ```{r}
 #| error: true
 data(gapminder_2007) + point + x(gdp) + y(life) + palette("okabe")
 ```
 
-The message names two ways forward, because there are two things a reader may
-have meant. To give each category its own color, bind the column with
-`color(continent)`. To paint every mark one color, that is a setting rather than
-a palette, and `style(color = "steelblue")` is where it belongs.
+The message names two repairs, because there are two things you may have meant.
+To give each category its own color, bind the column with `color(continent)`. To
+paint every mark one color, that is a setting rather than a palette, and
+`style(color = "steelblue")` is where it belongs.
 
-A mapping need not be written to be there. A `zone * density` measures by color
-with nothing bound ([Zone](marks/zone.qmd)), so a palette works on one.
+A mapping need not be written to be there. A `zone * density` colors its cells
+by a measure it computes itself ([Zone](marks/zone.qmd)), so `palette()` works
+on that plot.
 
 One color, though, is not a palette. `palette()` takes either a **palette
 name** (`"gog"`, `"okabe"`) or the **colors themselves**; a single color name
@@ -381,10 +383,10 @@ data(gapminder_2007) + point + x(gdp) + y(life) + color(continent) +
   palette("red")
 ```
 
-To make everything one color you are *setting*, not choosing a palette; use
+Making everything one color is *setting*, not choosing a palette, so use
 `style(color = "red")`.
 
-## `theme`: the page rather than the ink
+## `theme`: settings that belong to no mark
 
 `style()` sets a mark's own appearance. Some settings belong to no mark at all:
 the gridlines, the shape of the panel, the angle the tick labels are read at.
@@ -399,7 +401,7 @@ data(gapminder_2007) + point + x(gdp, scale = "log") + y(life) +
 *"Given gapminder 2007: points, x is gdp on a log scale, y is life, color by
 continent."*
 
-`grid` names its sets by the **axis whose ticks they mark**, not by the direction
+`grid` names its sets by the axis whose ticks they mark, not by the direction
 they run: `"x"` keeps the lines standing up from the x axis and drops the rest.
 Naming them that way is what lets the setting survive a bent plane, where the y
 axis's gridlines are rings and nothing runs vertically at all:
@@ -431,13 +433,13 @@ data(gapminder_2007) + bar * mean + x(continent) + y(life) +
 ```
 
 `font_size` sets how big the plot's text is. It is **one number, not three**.
-The number itself is the size of a tick label, in pixels. The axis names and
-the title are a fixed proportion above it, so the default of `11` draws ticks
-at 11, axis names at 13 and the title at 16. Ask for 16 and those three become 16, 19 and 23:
+The number itself is the size of a tick label, in pixels. The axis names and the
+title are a fixed step larger. The default of `11` draws ticks at 11, axis names
+at 13 and the title at 16. Ask for 16 and those three become 16, 19 and 23:
 
 ```{r}
 data(gapminder_2007) + point + x(gdp, scale = "log") + y(life) +
-  title("Bigger type, one number") + theme(font_size = 16)
+  title("Bigger text, one number") + theme(font_size = 16)
 ```
 
 Look at the margins. They grew with the text, because the room an axis needs is
@@ -448,30 +450,30 @@ A smaller number keeps a plot readable when it has to be printed small:
 
 ```{r}
 data(gapminder_2007) + point + x(gdp, scale = "log") + y(life) +
-  title("Smaller type, same plot") + theme(font_size = 8)
+  title("Smaller text, same plot") + theme(font_size = 8)
 ```
 
-One number covers all the text because the three sizes were never
-independent. If the three sizes were set separately, one plot could carry
-three unrelated type sizes. Asking for a big title alone is not possible
-here, and that is the design rather than a gap in it.
+One number covers all the text because the three sizes were never independent.
+If the three sizes were set separately, one plot could carry three unrelated
+text sizes. Asking for a big title alone is not possible here, and that is the
+design rather than a gap in it.
 
 The number is a **measurement in pixels, not a multiplier**. `font_size = 1.5`
-is refused, because pixels are easy to mistake for a multiplier:
+is refused, because a number that small is almost always meant as a multiplier:
 
 ```{r}
 #| error: true
 data(gapminder_2007) + point + x(gdp) + y(life) + theme(font_size = 1.5)
 ```
 
-`font_size` does not name a typeface. The engine measures text with its own table
-of character widths, which is what lets it lay out a plot without a font
-installed, so there is no font for it to choose. The reader's own system supplies
-the letterforms.
+`font_size` does not name a typeface. The engine measures text with its own
+table of character widths, which is what lets it lay out a plot without a font
+installed, so there is no font for it to choose. The computer that opens the
+plot supplies the letters.
 
-A theme can also be asked for by name, and then adjusted. A preset you cannot
-adjust would leave you setting every property one at a time, which is the
-thing this atom exists to avoid:
+A theme can also be asked for by name. A named bundle of these properties is a
+**preset**, and you can still adjust it. A preset you could not adjust would
+send you back to setting every property one at a time:
 
 ```{r}
 data(gapminder_2007) + point + x(gdp, scale = "log") + y(life) +
@@ -488,10 +490,10 @@ data(gapminder_2007) + point + x(gdp, scale = "log") + y(life) +
   color(continent) + theme("bw")
 ```
 
-The name is the misleading part, and it is worth being exact about it. What
-goes black and white is the page around the data, never the data: the
-continents above keep every color the palette handed them. In a "bw" plot
-only the data carries color; everything around it is black, white or gray.
+The name is the misleading part, and it is worth being exact about it. What goes
+black and white is the page around the data, never the data: the continents
+above keep every color the palette gave them. In a "bw" plot only the data
+carries color; everything around it is black, white or gray.
 
 Three settings carry the whole preset. This sentence draws the same picture
 as `theme("bw")` above:
@@ -505,11 +507,11 @@ That is the rule every preset in gog follows: a preset only names settings
 you could have written yourself. One that went further would be a second
 vocabulary inside the first.
 
-## The strip, and why print is the test
+## The strip, and how it prints
 
-The third property is `strip`. It colors the band above each panel that names
-the level the panel holds. You only see it on a faceted plot, and it shows
-itself in print rather than on screen.
+The third property is `strip`. It colors the band above each panel, the band
+that names the category the panel holds. You only see it on a faceted plot,
+and its color matters more in print than on screen.
 
 By default the band is a light gray. On a screen that is fine, and it ties
 each name to its own panel:
@@ -527,8 +529,8 @@ that pattern sits directly under small text. The label gets harder to read, and
 a photocopy makes it worse. This is the same reason `pattern` exists for fills:
 what survives on a screen and what survives on a page are different questions.
 
-So `theme("bw")` makes the band white as well. The framed panel already separates
-one panel from the next, so the tint has nothing left to do:
+So `theme("bw")` makes the band white as well. The framed panel already
+separates one panel from the next, so the tint has nothing left to do:
 
 ```{r}
 (data(gapminder_2007) + point + x(gdp, tick_count = 3) + y(life) + theme("bw")) |
@@ -545,13 +547,13 @@ rather than hurts:
 ```
 
 An animated plot ([Play](play.qmd), later in the book) gets the same band,
-because it names its frame the same way. `theme(strip = )` colors that one
-too. A property that moved one and left the
-other would be exactly the kind of exception [Law 2](design-laws.qmd) forbids.
+because it names the value it is showing the same way. `theme(strip = )` colors
+that one too. A property that moved one and left the other would be exactly the
+kind of exception [Law 2](design-laws.qmd) forbids.
 
 ### The label color follows the band
 
-A dark strip with light type is a common look, and it takes one property:
+A dark strip with light text is a common look, and it takes one property:
 
 ```{r}
 (data(gapminder_2007) + point + x(gdp, tick_count = 3) + y(life) +
@@ -559,18 +561,19 @@ A dark strip with light type is a common look, and it takes one property:
   facet(continent)
 ```
 
-You did not name a text color, and the type came out white. gog reads the band
-you asked for and picks whichever of its two default inks contrasts more against
-it. A pale band keeps the dark ink, so nothing above this point changed.
+You did not name a text color, and the text came out white. gog reads the band
+you asked for and picks whichever of its two default label colors contrasts more
+against it. A pale band keeps the dark label color, so the plots earlier in this
+section are unchanged.
 
-gog works the ink color out; it does not guess to save you typing. Without
-it, `theme(strip = "black")` would paint the near-black default label onto a
-near-black band, and every panel would lose its name while the plot still
-looked finished. gog will not draw a strip whose name cannot be read, so the
-second half of the instruction is supplied rather than required.
+gog works the label color out; it does not guess to save you typing. Without
+that rule, `theme(strip = "black")` would paint the near-black default label
+onto a near-black band. Every panel name would be unreadable while the plot
+still looked finished. gog will not draw a panel name that cannot be read, so it
+supplies the label color you did not write.
 
-When the ink is a real choice rather than a legibility question, name it. A navy
-band with gold type is legible, and nothing should argue with it:
+When the label color is a real choice rather than a legibility question, name
+it. A navy band with gold text is legible, so gog uses the color you name:
 
 ```{r}
 (data(gapminder_2007) + point + x(gdp, tick_count = 3) + y(life) +
@@ -582,13 +585,13 @@ That is the shape of every derivation in gog: it decides what you did not
 say, and stops deciding as soon as you say it. The engine guarantees the plot is
 well-formed and leaves taste to you, which is [Law 8](design-laws.qmd).
 
-One band has no color to read. `"transparent"` shows whatever is behind it,
-and gog cannot know what that is, so the ink stays dark, which is
-right for the page a transparent band is usually sitting on.
+One band gives gog no color to read. `"transparent"` shows whatever is behind
+it, and gog cannot know what that is. So the label stays dark, which suits the
+white page a transparent band usually sits on.
 
-`frame` says how the panel is bounded, and it has three answers rather than two.
-`"full"` closes the axis lines into a rectangle, `"axes"` is the default pair
-along the bottom and left, and `"none"` removes them:
+`frame` says how the panel is bounded, and it takes three values. `"full"`
+closes the axis lines into a rectangle, `"axes"` is the default pair along the
+bottom and left, and `"none"` removes them:
 
 ```{r}
 data(gapminder_2007) + bar * mean + x(continent) + y(life) +
@@ -600,17 +603,17 @@ already uses that word, and it means something else: the border of a *mark*,
 a bar's or a point's. A frame surrounds the picture; a border is what a shape is
 drawn with. One word, one meaning.
 
-`background` takes any color the rest of the grammar takes, which includes the
-one a journal usually asks for, since the figure is going onto a page whose
-color it does not know:
+`background` takes any color the rest of the grammar takes, `transparent` among
+them. A journal usually asks for that one, because the figure goes onto a page
+whose color gog does not know:
 
 ```{r}
 data(gapminder_2007) + point + x(gdp, scale = "log") + y(life) +
   theme(background = "transparent", frame = "full")
 ```
 
-Everything `theme()` accepts is validated, and a name it does not know is refused
-rather than quietly ignored:
+Everything `theme()` accepts is validated, and a name it does not know is
+refused rather than quietly ignored:
 
 ```{r}
 #| error: true
@@ -626,13 +629,11 @@ The line between the two settings atoms is worth stating once, because it is not
 about which is more important. `style()` is the ink: it belongs to a mark, and a
 plot with three layers can carry three different ones. `theme()` is the page:
 there is one of it, and no single layer has gridlines or a background of its
-own.
-That the two never overlap is why they are two words rather than one word read
-differently depending on where you put it.
+own. The two never overlap, and that is why they are two words rather than one.
 
-Type is where that line is easiest to see, because both atoms can set a size.
-`style(size = 17)` on a [`text`](marks/text.qmd) layer sets how big *those labels*
-are, and they are labels the data asked for. `theme(font_size = 16)` sets how big
-the tick labels, the axis names and the title are, and those belong to the page.
-One is a property of a mark and the other is a property of the plot, so neither
-can do the other's job.
+Text size is where that split is easiest to see, because both atoms can set a
+size. `style(size = 17)` on a [`text`](marks/text.qmd) layer sets how big *those
+labels* are, and they are labels the data asked for. `theme(font_size = 16)`
+sets how big the tick labels, the axis names and the title are, and those belong
+to the page. One is a property of a mark and the other is a property of the
+plot, so neither can do the other's job.

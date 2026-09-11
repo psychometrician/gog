@@ -1,16 +1,16 @@
 # A morning
 
 In 1446, the book that introduced Hangeul (한글) opened by stating the entire
-system in a few pages (every letter, every assembly rule) before a single
-page of explanation. The scholars who wrote its postface made a claim about
-that brevity: *the wise can learn these letters before the morning is over.*
+system in a few pages (every letter, every assembly rule) before a single page
+of explanation. The scholars who wrote its postface made a claim about that
+brevity: *a wise man can learn the letters before the morning is over.*
 
 This part makes the same claim. It is short on purpose, and it is meant to
 be read in one sitting: a first plot, then the kernel on one page, then
 practice. The practice has two halves: first reading finished sentences, then
 writing your own and meeting the refusals you are most likely to see.
 
-Nothing in this part is exhaustive. Every idea you meet here has a full
+Nothing in this part is exhaustive. Nearly every idea you meet here has a full
 chapter later in the book. The goal of the morning is different. When it is
 over, you should be able to read any gog sentence, in this book or in a
 colleague's script.

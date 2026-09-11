@@ -5,18 +5,19 @@
 source("../R/setup.R")
 ```
 
-Where did each country travel, in the order it happened? `path` strokes the
-rows **in the order the table gives them**. That is all of it, and it is
-the one thing `line` will not do. A line sorts its vertices by `x` first,
-because a line draws a *function*: one `y` for each `x`, read left to
-right along a domain. A path draws a *route*. It visits row 1, then row 2,
-and it may turn back, cross itself, or return to where it started.
+How did income and life expectancy change together in each country, year by
+year? `path` strokes the rows *in the order the table gives them*. That is all
+of it, and it is the one thing `line` does not do. A line sorts its vertices by
+`x` first, because a line draws a *function*: one `y` for each `x`, read left to
+right along a domain. A path draws a *route*. It visits row 1, then row 2, and
+it may turn back, cross itself, or return to where it started.
 
-Everything the two marks share, they share exactly: same stroke, same `color` and
-`group` splits, same `style(size =)`, same dash. One question separates them, and
-this chapter shows what that question gives a path: an arrowhead, a spiral in
-polar, and the third dimension. A `line` can have none of the three. All three are the same
-answer read in different places, so none of them is a special case.
+Everything the two marks share, they share exactly: same stroke, same `color`
+and `group` splits, same `style(size = )`, same `style(pattern = )` dash. One
+question separates them: does the order of the rows mean something? Because a
+path keeps that order, it can carry three things a `line` cannot in general: an
+arrowhead, a spiral, and the third dimension. All three follow from the row
+order, so none of them is a special case.
 
 ## The connected scatterplot
 
@@ -32,19 +33,18 @@ data(gapminder_asia) + path + x(gdp) + y(life) + color(country) +
 
 *"Given gapminder Asia: paths, x is gdp, y is life, color by country."*
 
-Each thread is one country's history. Time is nowhere on the plot, and yet the
-whole chart is about time: it is the order the points are joined in. Japan
-climbs steeply, then turns right and flattens: past that corner, income keeps
-rising and life expectancy barely moves. Korea follows the same corner two
-decades later.
-China goes almost straight up at very low income, which is the shape of a country
-that got healthier long before it got rich, and Indonesia's path bends the
-same way. This is a **connected scatterplot**, and no other arrangement of these atoms
-draws it.
+Each route is one country's history. Time is nowhere on the plot, and yet the
+whole plot is about time: it is the order the points are joined in. Japan climbs
+steeply, then turns right and flattens: past that corner, income keeps rising
+and life expectancy barely moves. Korea's route bends in the same place two
+decades later. China's route goes almost straight up at very low income. That
+shape belongs to a country that got healthier long before it got rich, and
+Indonesia's route bends the same way. This is a **connected scatterplot**, and
+no other arrangement of these atoms draws it.
 
 ## Why `line` cannot draw it
 
-Change one word and the same sentence collapses:
+Change one word and the same sentence draws the wrong picture:
 
 ```{r}
 data(gapminder_asia) + line + x(gdp) + y(life) + color(country) +
@@ -54,38 +54,38 @@ data(gapminder_asia) + line + x(gdp) + y(life) + color(country) +
 
 *"Given gapminder Asia: lines, x is gdp, y is life, color by country."*
 
-Look at China's thread. Its income did not rise steadily: it fell and
-recovered, so the year order and the income order are different sequences,
-and `line` draws the income one. Every point is in the right place, and every
-route between them is wrong. That is not a bug in `line`; it is what a line
-*is*. A function has one value per `x`, so sorting changes nothing, and for a
-time series read along a date axis the sort helps.
+Look at China's route. Its income did not rise steadily: it fell and recovered,
+so the year order and the income order are different sequences, and `line` draws
+the income one. Every point is in the right place, and every route between them
+is wrong. That is not a bug in `line`; it is what a line *is*. A function has
+one value per `x`, so sorting changes nothing. For a time series read along a
+date axis, the sort puts the rows in date order.
 
-The two marks answer different questions, so a spec that names the wrong one gets
-a plausible picture rather than an error. The rule is this: if the reader
-should follow the marks in a particular order, that order has to come from
-the table, and only `path` takes it from there.
+The two marks answer different questions, so a specification that names the
+wrong one gets a plausible picture rather than an error. The rule is this. If
+the reader should follow the marks in a particular order, that order has to
+come from the table. Only `path` reads it there.
 
 ## Which end is the last row?
 
-A route has a direction, and the plot above does not show it. Japan's thread
+A route has a direction, and the plot above does not show it. Japan's route
 could be read from either end. So `path` takes a setting no other mark can:
 
 ```{r}
 data(gapminder_asia) + path + x(gdp) + y(life) + color(country) +
   style(arrow = "end") +
   x_label("GDP per person") + y_label("Life expectancy") +
-  title("style(arrow = \"end\"): the head is 2007")
+  title("style(arrow = \"end\"): the head sits at 2007")
 ```
 
 *"Given gapminder Asia: paths, x is gdp, y is life, color by country, with arrow
 end."*
 
 Now each route points at its last row. `arrow` takes `"end"`, `"start"`, or
-`"both"`: a head at the last row, at the first, or at each.
+`"both"`: a head at the last row, at the first row, or at both ends.
 
-It belongs to `path` alone, and every other mark refuses it, which is worth
-seeing because the refusal is really the argument for the mark:
+It belongs to `path` alone, and every other mark refuses it. The refusal is
+worth reading, because it states why `path` is a separate mark:
 
 ```{r}
 #| error: true
@@ -98,9 +98,9 @@ comes from the data.
 
 ## An arrow is a layer
 
-That makes `path` the other half of the annotation the [Text](text.qmd)
-chapter began. A note is a one-row table; the arrow that points from the note
-to the thing is a **two-row** table, one row for each end:
+The [Text](text.qmd) chapter drew the note; `path` draws the arrow beside it. A
+note is a one-row table; the arrow that points from the note to the thing is a
+*two-row* table, one row for each end:
 
 ```{r}
 seg  <- data.frame(gdp = c(20000, 13100), life = c(45.5, 50.2))
@@ -109,44 +109,45 @@ note <- data.frame(gdp = 20500, life = 44.8, what = "Botswana")
 data(gapminder_2007) + point + x(gdp) + y(life) +
   data(seg)  + path + style(arrow = "end", color = "#c0392b") +
   data(note) + text + label(what) +
-  title("a callout, in the grammar you already have")
+  title("an annotation, in the grammar you already have")
 ```
 
 *"Given gapminder 2007: points, x is gdp, y is life, and also a path from the
 seg table and text from the note table, label by what."*
 
-There is no `annotate()` function in this grammar and there will not be one. An
-annotation is a layer over a small table, and the marks it uses are the marks
-everything else uses: `text` for the words, `path` for the arrow, `point` for a
-marker. What the table holds is data, so it is scaled like data, which is why
-the arrow's ends are written in the data's own units rather than in pixels.
+This grammar has no `annotate()` function, and it needs none. An annotation is a
+layer over a small table, and the marks it uses are the marks everything else
+uses: `text` for the words, `path` for the arrow, `point` for a marker. What the
+table holds is data, so it is scaled like data, which is why the arrow's ends
+are written in the data's own units rather than in pixels.
 
-## One transform, and the rest refused
+## Two transforms, and the rest refused
 
-The other stroke and band marks compose with any transform. `path` composes
-with one, and the refusals say why:
+The other stroke and band marks compose with many transforms. `path` composes
+with two, `density` and [`cluster`](../cluster.qmd), and the refusals say
+why:
 
 ```{r}
 #| error: true
 render_svg(data(gapminder_asia) + path * mean + x(country) + y(life))
 ```
 
-A summary replaces the rows. `mean` reduces each country to one number, and
-what is left to connect is one point per country, in whatever order the
-summary produced them. That is a `line`, reached by a detour. The order a path *is*
-does not survive being summarized, and that one sentence empties almost the whole
-column of the [Combinations](../combinations.qmd) grid for this mark.
+A summary replaces the rows. `mean` reduces each country to one number, and what
+is left to connect is one point per country, in whatever order the summary
+produced them. That is a `line`, written the long way around. The order a path
+*is* does not survive being summarized, and that one fact empties almost the
+whole row this mark has on the [Combinations](../combinations.qmd) grid.
 
-There is one exception: `density`, and it is an exception to the *sentence*
-rather
-than to the rule: a summary reduces each group to one value, but a density estimated
-over the plane does not reduce anything to keys at all. What it produces is
-vertices **in the order they were traced**, which is the one thing a path is for.
+`density` is the one exception, and it does not break the rule above. A
+summary reduces each group to one value. A density estimated over the plane
+groups nothing and reduces nothing. It produces vertices *in the order they
+were traced*, which is the one thing a path is for.
 
 ## The contour: `path * density`
 
-Bind both positions and compose `density`, and gog estimates how thick the cloud
-is everywhere on the plane, then traces the rings where it is equally thick:
+Bind both positions and compose `density`. gog estimates how thick the cloud of
+points is everywhere on the plane, then traces the rings where it is equally
+thick:
 
 ```{r}
 data(iris_flowers) + path * density +
@@ -157,21 +158,20 @@ data(iris_flowers) + path * density +
 *"Given the iris flowers: paths derived by density, x is sepal length, y is
 petal length."*
 
-Nothing new was added to the grammar to draw that. The rule that made a
-[heatmap](zone.qmd) out of `zone * bin` is the same one at work here: how many
-axes a transform cuts is read off the mark, never asked for. A `bar` leaves an
-axis free to measure the density along, so `bar * density` spreads it along one
-axis and draws a curve. A `path` is a route through two data columns and privileges
-neither, so it has no axis to spare, and `density` cuts both. There is no
-`contour` atom for the same reason there is no `pie()`
-([Polar](../polar.qmd) makes that argument): the sentence already exists.
+Nothing new was added to the grammar to draw that. One rule decides this, and
+the same rule turns `zone * bin` into a [heatmap](zone.qmd). The mark decides
+how many axes a transform cuts, and you never state it. A `bar` leaves an axis
+free to measure the density along, so `bar * density` spreads it along one axis
+and draws a curve. A `path` is a route through two columns and treats them
+equally, so it has no axis left over. `density` therefore cuts both. There is no
+`contour` atom for the same reason there is no `pie()` ([Polar](../polar.qmd)
+makes that argument): the sentence already exists.
 
 Read the outermost ring, then the ones inside it. The outermost is a *single*
 ring around both clusters, and the next level inward splits into two separate
-rings, which is
-why a level is not enough to tell gog where one stroke ends. Each ring is its own
-stroke, and the level only decides its color, so the two inner rings never get
-joined by a line drawn across the empty ground between them.
+rings. So a level alone cannot tell gog where one stroke ends. Each ring is its
+own stroke, and the level only decides its color, so the two inner rings are
+never joined by a stroke across the gap between them.
 
 The color is the level, and nothing had to bind it, exactly as `bar * bin`
 binds `y` for you. Say it out loud if you prefer, and change how many
@@ -186,21 +186,23 @@ data(iris_flowers) + path * density(levels = 10) +
 *"Given the iris flowers: paths derived by density at 10 levels, x is sepal
 length, y is petal length, color by level."*
 
-`density` is one transform read three ways, so each of its parameters belongs
-to one reading and is refused in the other two. `levels` cuts the **field**
-(the estimated thickness everywhere on the plane) into that many steps, so it
-needs a field to cut: the one-dimensional reading is a single curve, with
-nothing to cut.
+`density` is one transform read three ways. A `line` draws a curve, a `zone`
+paints the whole field, and a `path` strokes the level sets that `levels` cuts
+the field into. Each parameter belongs to one reading and is refused in the
+other two. `levels` cuts the **field**, the estimated thickness everywhere on
+the plane, into that many steps. A one-dimensional density is a single curve,
+and a curve has no field to cut.
 
 ```{r}
 #| error: true
 render_svg(data(iris_flowers) + line * density(levels = 8) + x(sepal_length))
 ```
 
-`bandwidth` is refused for the opposite reason. It is a width in the data's own units, and a
-contour spreads over two columns that measure different things. Here they
-happen to agree, sepal length and petal length both in centimeters, but there
-is no reason two axes ever do. One number cannot be a width in both:
+`bandwidth` is refused for the mirror reason: it needs one axis, and a contour
+has two. It is a width in the data's own units, and a contour spreads over two
+columns that measure different things. Here the two agree, since sepal length
+and petal length are both in centimeters, but two axes usually do not. One
+number cannot be a width in both:
 
 ```{r}
 #| error: true
@@ -208,8 +210,8 @@ render_svg(data(iris_flowers) + path * density(bandwidth = 0.5) +
   x(sepal_length) + y(petal_length))
 ```
 
-`adjust` is the parameter that means the same thing on either axis, because it is a
-multiplier rather than a length, so it is the one that reaches all three readings:
+`adjust` is a multiplier rather than a length, so it means the same thing on
+either axis. It is the one parameter all three readings accept:
 
 ```{r}
 data(iris_flowers) + path * density(adjust = 1.6) +
@@ -220,8 +222,8 @@ data(iris_flowers) + path * density(adjust = 1.6) +
 *"Given the iris flowers: paths derived by density adjusted by 1.6, x is sepal
 length, y is petal length."*
 
-To estimate one field per category, `group` splits it. The level already
-holds `color`, which is exactly why the split is `group` and not `color`:
+To estimate one field per category, split the rows with `group`. The level is
+already on `color`, which is why the split has to be `group`:
 
 ```{r}
 petals <- iris_flowers[iris_flowers$species != "setosa", ]
@@ -234,18 +236,19 @@ data(petals) + path * density(levels = 4) +
 *"Given the petals: paths derived by density at 4 levels, x is sepal length, y
 is petal length, grouped by species."*
 
-A `zone` has no measure axis either, so it reads `density` in two dimensions too,
-and it *fills* what this mark strokes. Give both marks the same `levels` and you get
-the same curves twice, once as lines and once as the edges of filled bands, which is
-the plot usually meant by a *filled* density. It belongs to the mark that draws it:
-[`zone * density`](zone.qmd), and the zone chapter covers its ramp. One
-field, two marks, [the same split](../grammar.qmd) as `bar * bin` and
-`line * bin`: the mark chooses the geometry, the transform stays constant.
+A `zone` has no measure axis either, so it reads `density` in two dimensions
+too, and it *fills* what this mark strokes. Give both marks the same `levels`
+and you get the same curves twice: once as strokes, once as the edges of filled
+bands. That pair is the plot usually meant by a *filled* density. That plot
+belongs to the mark that fills it, [`zone * density`](zone.qmd), and the zone
+chapter covers the color ramp it uses. One field, two marks. It is [the same
+split](../grammar.qmd) as `bar * bin` and `line * bin`: the mark chooses the
+geometry, and the transform stays the same.
 
 ## In polar, a route is a spiral
 
-`path` bends with everything else. Give it an angle and a radius that both grow,
-and the route winds outward:
+`path` bends into polar like every other mark. Give it an angle and a radius
+that both grow, and the route winds outward:
 
 ```{r}
 spiral <- data.frame(a = seq(0, 6.2, length.out = 90))
@@ -257,21 +260,28 @@ data(spiral) + path + x(a) + y(r) + polar() +
 
 *"Given the spiral: a path, x is a, y is r, in polar."*
 
-One thing `path` does not copy from `line` is the radar's closing segment
-([Polar](../polar.qmd) draws it). A
-categorical `line` in polar joins its last vertex back to its first, because
-the categories fill the whole turn, and a gap there would leave one sector
-blank. A path is not indexed by the angular axis at all, so its last vertex is
-simply where the data stopped, and closing it would draw a segment nothing asked
-for. If a route does return to its start, say so by repeating the first row.
+There is one thing `path` does not copy from `line`: the segment that closes a
+radar chart ([Polar](../polar.qmd) draws one). A categorical `line` in polar
+joins its last vertex back to its first, because the categories fill the whole
+turn, and a gap there would leave one sector blank. A path does not read the
+angular axis as a set of categories. Its last vertex is where the data stopped,
+so closing the route would add a segment nobody asked for. If a route does
+return to its start, say so by repeating the first row.
 
 ## In space, the route is unchanged
 
-Bind `z` and the route runs through the cube instead of across the page.
-`path` is the *only* stroke that takes
-the third position, and the reason is the one this whole chapter is about. Two
-gliders circling the same thermal (a rising column of warm air), sampled as
-they climb:
+The `thermals` table holds two gliders circling the same thermal, a rising
+column of warm air, sampled as they climb:
+
+```{r}
+#| echo: false
+peek(thermals)
+```
+
+Bind `z` and the route runs through the cube instead of across the page. Of
+the marks that join their rows into one stroke, `path` is the only one that
+takes the third position. The reason is the row order this whole chapter is
+about:
 
 ```{r}
 data(thermals) + path + x(east) + y(north) + z(altitude) + color(glider) +
@@ -283,28 +293,28 @@ glider."*
 
 An order belongs to no axis, so it survives the third dimension untouched: the
 route is the same route however the scene is turned. A `line` sorts by `x`, and
-the cube has no left to right. There `x` is one of three equal positions, and at
-some viewing angles it runs straight into the page and becomes depth rather than
-position, which would leave a line sorted by an axis the reader cannot see. So
-the sort that makes a `line` a line is the very thing that will not follow it
-into space, and `line`, `step` and `area` say so rather than half-drawing it:
+the cube has no left to right. There `x` is one of three equal positions. At
+some viewing angles it runs straight into the page and becomes depth, which
+would leave a line sorted by an axis the reader cannot see. So the sort that
+makes a `line` a line cannot follow it into the cube. `line`, `step`, `area` and
+`ribbon` refuse `z` rather than half-drawing it:
 
 ```{r}
 #| error: true
 data(thermals) + line + x(east) + y(north) + z(altitude)
 ```
 
-Watch the two threads where they cross: whichever is nearer covers the other,
-and which one that is changes as they climb. A glyph sits at one distance from
-the eye and can be sorted whole. A stroke running through the cube has a far
-end and a near end, so the unit that gets sorted is the **segment**. The
+Watch the two routes where they cross: whichever is nearer to the eye covers the
+other, and which one that is changes as they climb. A glyph sits at one distance
+from the eye and can be sorted whole. A stroke running through the cube has a
+far end and a near end, so the unit that gets sorted is the **segment**. The
 segments of both routes are sorted together. If each stroke were sorted as a
-whole, one glider would sit entirely in front of the other: two coils that
-never meet, rather than two that thread through each other.
+whole, one glider would sit entirely in front of the other: two coils that never
+meet, rather than two that thread through each other.
 
 Cutting the route into segments is also what lets `color` carry a **measure**
-along it. Bind the altitude to the color as well as to the height, and the
-climb is said twice: once by where the thread is, once by what color it is:
+along it. Bind the altitude to the color as well as to the height, and the climb
+is said twice: once by where the route is, once by what color it is:
 
 ```{r}
 data(thermals) + path + x(east) + y(north) + z(altitude) +
@@ -316,17 +326,16 @@ data(thermals) + path + x(east) + y(north) + z(altitude) +
 *"Given the thermals: paths, x is east, y is north, z is altitude, color by
 altitude, grouped by glider, with the viridis palette."*
 
-`palette("viridis")` picks the ramp; `group(glider)` keeps the two routes
-apart. Drop that last atom and the plot is wrong. A *category* on `color` splits the
+`palette("viridis")` picks the ramp; `group(glider)` keeps the two routes apart.
+Drop that last atom and the plot is wrong. A *category* on `color` splits the
 mark into one stroke per group, but a *measure* has no categories to split on.
 Without `group` the two gliders would be joined into a single route, and a
-straight line would run from where one glider's rows stop to where the
-other's begin. Color
-answers what the route was carrying; `group` answers which route it is. Two
-questions, two atoms.
+straight line would run from where one glider's rows stop to where the other's
+begin. Color answers what the route was carrying; `group` answers which route it
+is. Two questions, two atoms.
 
 A dash survives the segmentation too. Each segment is drawn as its own piece,
-and a dash normally restarts at the start of a piece:
+and a dash would normally restart at the start of each piece:
 
 ```{r}
 data(thermals) + path + x(east) + y(north) + z(altitude) + color(glider) +
@@ -337,23 +346,23 @@ data(thermals) + path + x(east) + y(north) + z(altitude) + color(glider) +
 *"Given the thermals: paths, x is east, y is north, z is altitude, color by
 glider, with pattern dashed."*
 
-The dashes run along the route rather than resetting at every sample, because the
-dash is a property of the route and not of the segmentation the depth sort
-happens to need. An arrowhead behaves the same way: it is sorted at the depth
-of its own tip, so a head that ends deep in the cube is covered by whatever passes
-in front of it.
+The dashes run along the route rather than resetting at every sample. The dash
+belongs to the route, not to the segments the depth sort needs. An arrowhead is
+sorted the same way, at the depth of its own tip. A head that sits deep in the
+cube is covered by whatever passes in front of it.
 
 [Space](../space.qmd) owns the third dimension and the viewing angle.
 
 ## What a path is for
 
 The connected scatterplot is the best known use, but the mark is more general
-than that. Anything whose reading order is the table's order is a path: a
-trajectory through any two measurements over time, a route through space, a
-cycle that returns to where it began, a hysteresis loop (a cycle whose
-forward and return paths differ), an arrow. The test is always the
-same one question. Does the order of the rows mean something? If it does, the
-mark is `path`; if the reader should read left to right, it is `line`.
+than that. Any picture whose reading order is the table's order is a path. A
+trajectory through two measurements over time is one. So is a route through
+space, and a cycle that returns to where it began. So is a hysteresis loop,
+which is a cycle whose forward and return paths differ, and so is an arrow. The
+test is always the same question. Does the order of the rows mean something? If
+it does, the mark is `path`; if the reader should read left to right, it is
+`line`.
 
 ## What you can set
 
@@ -364,10 +373,10 @@ cat("| Setting | Value |\n|---|---|\n")
 mark_options("path")
 ```
 
-`arrow` is the path's own, and it is a one-mark setting for a reason about
-geometry rather than taste. A head marks a direction, and a path is the only mark
-that has one: `line`, `step` and `area` sort their vertices by `x`, so their last
-point is wherever the domain ends rather than where the data stopped.
+`arrow` belongs to `path` alone, and geometry decides that rather than taste. A
+head marks a direction, and a path is the only mark that has one. `line`, `step`
+and `area` sort their vertices by `x`, so their last point is wherever the
+domain ends rather than where the data stopped.
 
 ```{r}
 data(gapminder_asia) + path + x(gdp) + y(life) + color(country) +
@@ -379,27 +388,30 @@ data(gapminder_asia) + path + x(gdp) + y(life) + color(country) +
 *"Given gapminder Asia: paths, x is gdp, y is life, color by country, with arrow
 both, size 2.5 and pattern dotted."*
 
-It takes a *value* rather than `TRUE`/`FALSE`, because `"both"` is an ordinary
-want and a flag would have needed a second setting to express it. Note that the
-heads draw solid on a dotted path: the dash is the route's texture, and a head
-chopped into dashes stops reading as an arrow.
+It takes a *value* rather than a true-or-false flag, because `"both"` is an
+ordinary thing to ask for, and a flag would have needed a second setting to say
+it. The heads draw solid on a dotted path. The dash is the route's texture, and
+a head cut into dashes no longer reads as an arrow.
 
-The one transform a path takes parameters from is `density`, whose `levels`
-and `adjust` are above. Everything else that varies is either mapped or set.
+The transform whose parameters this chapter covers is `density`, and `levels`
+and `adjust` are above. `cluster` takes its own, in
+[Cluster](../cluster.qmd). Everything else that varies is either mapped or
+set.
 
 ## What it refuses
 
-A path is one stroke, and a stroke has one width (there is no answer to "how
-thick is the route *here*"), so a width cannot vary along it:
+A path is one stroke, and a stroke has one width. There is no answer to how
+thick the route is at a single point, so width cannot vary along it:
 
 ```{r}
 #| error: true
 data(gapminder_asia) + path + x(gdp) + y(life) + size(gdp)
 ```
 
-Set it instead and every segment takes the same width, which is the [Setting
-vs mapping](../style.qmd) distinction again. The refusals a path makes that
-no other mark does are above rather than here. One is the summaries it cannot
-take, because a summary replaces the very rows whose order *is* the path. One
-is the two `density` parameters, each refused in the reading it cannot mean.
-The last is an arrow asked of `line`, which has no end to point from.
+Set it instead and every segment takes the same width, which is the [Setting vs
+mapping](../style.qmd) distinction again. The refusals that belong to `path`
+alone are stated above rather than here. One is the summaries it cannot take,
+because a summary replaces the very rows whose order *is* the path. One is
+`density(bandwidth = )`, which is a width in one column's units and cannot be a
+width in two. The last is an arrow asked of `line`, which has no end for a head
+to sit on.

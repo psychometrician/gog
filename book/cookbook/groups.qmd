@@ -5,10 +5,9 @@
 source("../R/setup.R")
 ```
 
-How do several groups compare? The comparison questions: several groups, one
-framework. Two families of answer: split the marks *inside* one panel (`color`,
-`group`), or split the plot *into* panels (`|`, `/`). The recipes run from one
-to the other.
+How do several groups compare? There are two ways to answer. You can split the
+marks *inside* one panel, with `color` or `group`. You can split the plot *into*
+panels, with `|` or `/`. The recipes below use both.
 
 ## How do the groups' distributions compare?
 
@@ -21,11 +20,11 @@ data(iris_flowers) + bar * bin + x(petal_length) + color(species)
 ```
 
 *"Given the iris flowers: bars derived by bin, x is petal length, color by
-species."* The
-outline is what keeps each species' silhouette readable where the fills
-overlap.
+species."* The outline is what keeps each species' silhouette readable where the
+fills overlap. Owning chapters: [Bar](../marks/bar.qmd),
+[Transforms](../transforms.qmd), [Channels](../channels.qmd).
 
-## And when the overlap gets worse?
+## What if the overlap gets worse?
 
 Drop the fills entirely: `step * bin` traces each group's silhouette as
 an unfilled staircase, so nothing can hide anything:
@@ -40,7 +39,7 @@ by species."*
 One mark swapped, nothing else. [Step](../marks/step.qmd) owns the
 staircase.
 
-## Split, but don't decorate
+## Grouping without a legend
 
 Sometimes the grouping matters and the identities do not: you want the
 *shape* of many series, not a legend naming each. `group` splits
@@ -52,14 +51,14 @@ data(gapminder_asia) + line + x(year) + y(life) + group(country)
 
 *"Given gapminder Asia: lines, x is year, y is life, grouped by country."*
 
-Five countries, five lines, no legend: the shape of the bundle is the
-answer. Bind [`color`](../channels.qmd) instead when the reader needs to
+Five countries, five lines, no legend. The shape the five lines make together is
+the answer. Bind [`color`](../channels.qmd) instead when the reader needs to
 know which is which.
 
 ## One panel per group
 
-When each group deserves its own pair of axes, multiply the plot
-instead of the marks. Statistics run *within* each panel; the scale stays
+When each group needs its own pair of axes, split the plot into panels instead
+of splitting the marks. Statistics run *within* each panel; the scale stays
 shared so panels stay comparable:
 
 ```{r}
@@ -70,16 +69,18 @@ data(gapminder_2007) + bar * bin + x(life) | facet(continent)
 by continent."*
 
 Five distributions on one common axis, cut into one common set of bins and
-counted continent by continent. Compare the shapes column by column: Africa's
-bars sit left, Europe's right, and because every bar covers the same span of
-years the heights mean the same thing in each panel.
-[Faceting](../faceting.qmd) owns the rules, including why the cut is shared
-when the count is not.
+counted continent by continent. Compare the panels one at a time. Africa's bars
+sit at the low end of the axis. Europe's bars sit at the high end. Bins and the
+count axis are shared, so equal heights mean equal counts.
+[Faceting](../faceting.qmd) owns the rules, including why the cut is shared when
+the count is not.
 
 ## Two grouping variables at once
 
-`|` splits into panel columns, `/` into panel rows; written together they
-cross into a grid. Every combination gets a panel:
+`|` splits into panel columns, `/` into panel rows; written together they cross
+into a grid. Every combination gets a panel. The two years are picked out in R,
+because subsetting a table is the host language's job, and the other three
+bindings do it their own way:
 
 ```{r}
 gm_years <- gm_all[gm_all$year %in% c(1957, 2007), ]
@@ -92,14 +93,14 @@ data(gm_years) + point + x(gdp, scale = "log") + y(life) |
 *"Given the gm years table: points, x is gdp on a log scale, y is life, split
 into panel columns by continent and panel rows by period."*
 
-Fifty years of change, read down each continent's column. The `period`
-column exists because a facet variable names panels, which is also what
-the [Over time](over-time.qmd) refusal is about.
+Fifty years of change, read down each continent's column. `year` is a number,
+and a facet variable has to name its panels, so `period` is `year` written as
+text. That is what the [Over time](over-time.qmd) refusal is about.
 
 ## Which group is biggest?
 
-A comparison is easiest to read when it is sorted, and no bare text column can
-say "order me by value"; that is what `order()` is for:
+A comparison is easiest to read when it is sorted, and a text column carries no
+order of its own. `order()` is how you give it one:
 
 ```{r}
 data(medals) + bar + x(country) + y(gold) + order(gold, desc = TRUE)
@@ -108,11 +109,11 @@ data(medals) + bar + x(country) + y(gold) + order(gold, desc = TRUE)
 *"Given the medals: bars, x is country, y is gold, ordered by gold, largest
 first."*
 
-**One atom away.** `desc = FALSE` (the default) for ascending; naming a column
-other than the axis's own, as here, also overrides a
-[declared order](../data.qmd).
+**One atom away.** `desc = FALSE`, the default, sorts smallest first. `order()`
+names `gold` here, not the category column `country`: that is how a category is
+sorted by a value. It overrides a [declared order](../data.qmd) as well.
 
-## Two groups, back to back
+## Two groups, mirrored
 
 A **population pyramid** is a named chart type, and nothing in the kernel knows
 its name. It follows from rules that were already there, for other reasons.
@@ -120,6 +121,11 @@ its name. It follows from rules that were already there, for other reasons.
 The `census` table holds 36 rows: an `age` band, a `city` (Busan or Seoul), and
 a `population` for each of 18 bands per city. It is invented data, shaped like a
 census.
+
+```{r}
+#| echo: false
+peek(census)
+```
 
 The mirror comes from a minus sign: one city's populations are negated so its
 bars grow the other way. That is arithmetic, so it happens in the table, before
@@ -140,30 +146,31 @@ data(mirrored) + bar + y(age) + x(population) + color(city) +
   order(age, desc = TRUE)
 ```
 
-No new atom, and none was needed. Three rules the grammar already stated met
-here on their own. Orientation is read off the bindings, so `y(age)` being a
-category is what lays the bars down, and there is no `flip` atom because that
-would be a second way to say one thing. A bar runs from the zero baseline to its
-value in whichever direction that value sits, so a negative bar is not a special
-case; it is the same rectangle pointing the other way. And `stack` is something
-you ask for rather than something that happens, so two bars sharing one slot sit
-back to back instead of piling up.
+No new atom, and none was needed. The pyramid comes from three rules the grammar
+already states. Orientation is read off the bindings, so a category on `y` lays
+the bars down. There is no `flip` atom, because that would be a second way to
+say one thing. A bar runs from the zero baseline to its value, in whichever
+direction that value lies. A negative bar is not a special case. It is the same
+rectangle, pointing the other way. And `stack` is something you ask for rather
+than something that happens, so two bars sharing one slot sit back to back
+instead of piling up.
 
 `order(age, desc = TRUE)` is the atom from the section above, doing exactly what
-it did there. gog puts the first category at the top of a horizontal chart. A
-pyramid needs its youngest band at the bottom instead.
+it did there. gog puts the first category at the top of a horizontal chart, so
+age 0 would sit at the top. A pyramid needs its youngest band at the bottom, and
+`desc = TRUE` turns the list over.
 
-Now look at the left half of that axis. It reads -40K, not 40K.
+Now look at the left half of the population axis. It reads -40K, not 40K.
 
 This chart is often drawn with the tick text replaced by its absolute value,
 which hides the minus sign the bars were placed with. gog keeps the coordinates
 it drew, and this is the clearest case for why. Relabeled, the axis carries two
-different ticks both reading 40K, and only a reader who knows the convention
-can see which is which. That reader did not need the help; the one who did has been
-handed a plot that contradicts its own coordinates. Choosing your own tick text
-is a capability nothing here has ruled on in either direction, and
-[Coverage](../coverage.qmd) keeps it on the open list. This is the argument
-against it.
+different ticks both reading 40K, and only a reader who knows the convention can
+see which is which. That reader did not need the help. The reader who did need
+it is now given a plot that disagrees with its own axis. gog has no way to set
+your own tick text, and [Coverage](../coverage.qmd) lists it among the
+capabilities with no decision recorded. The paragraph above is the case against
+adding one.
 
 ## What this section refuses
 

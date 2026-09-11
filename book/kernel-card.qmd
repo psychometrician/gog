@@ -1,8 +1,9 @@
 # The kernel card
 
-The whole taught vocabulary, on one page. This card is extracted live from
-[The kernel](grammar.qmd) as the book builds, so it cannot disagree with the
-chapter it comes from.
+The whole grammar, on one page. The functions around it are in [Functions around
+the grammar](utilities.qmd). This card is extracted live from [The
+kernel](grammar.qmd) as the book builds, so it cannot disagree with the chapter
+it comes from.
 
 ```{r}
 #| echo: false
@@ -20,24 +21,25 @@ cat(rest[seq_len(end)][grepl("^\\|", rest[seq_len(end)])], sep = "\n")
 **The minimum sentence** is a source, a mark, and the mark's required
 position channels:
 
-```r
+```
 data(table) + mark + x(column) + y(column)
 ```
 
-**Reading order** puts every sentence left to right as
-*data, mark, positions, refinements*. A channel written before any mark
-is shared by all layers; written after a mark, it belongs to that mark
-alone. Each later `data()` applies to the next mark.
+**The order of `+`** is a convention, not a rule: every sentence in this book
+reads left to right as *data, mark, positions, refinements*. A channel written
+before any mark is shared by every layer that can accept it; written after a
+mark, it belongs to that mark alone. Each later `data()` applies to the next
+mark.
 
 **Deriving** is what `*` does: it puts a transform on a mark, and the mark is
 always on the left. Two transforms are written in the order they happen:
 `bar * bin * mean` cuts the axis into bands, then averages inside each.
 
-**Grouping** follows one precedence: `*` binds tightest, then `+`, then `|`, so
-a sentence needs no parentheses. `data(t) + bar * bin + x(a) | facet(g)` derives
-the mark, builds the plot, then splits it.
+**Precedence** decides what groups first: `*`, then `/`, then `+`, then `|`. A
+single plot then needs no parentheses; a page of plots does. `data(t) + bar *
+bin + x(a) | facet(g)` derives the mark, builds the plot, then splits it.
 
-**When it refuses**, the message names the rule and the fix. **Illegal**
-means the grammar forbids it: rewrite. **Unsupported** means the engine
-cannot draw it yet: write it another way, or wait for a later version. A warning
-means a default was chosen: confirm it is what you meant.
+**When gog refuses**, the message names the rule and the fix. **Illegal** means
+the grammar forbids it: rewrite. **Unsupported** means the engine does not draw
+it: write it another way. A warning means gog drew the plot and something is
+worth checking: read it and decide.

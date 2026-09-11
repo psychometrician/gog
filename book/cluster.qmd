@@ -23,25 +23,26 @@ peek(nutrients)
 
 ## The tree
 
-Each leaf is described by a **profile**. `cluster(amount, over = nutrient)`
-says that one leaf's profile is its `amount` in every category of
-`nutrient`. The distance between two leaves is the distance between their
-profiles, and two branches join at the average distance between their
-leaves.
+Each leaf is described by a **profile**. `cluster(amount, over = nutrient)` says
+that one leaf's profile is its `amount` in every category of `nutrient`. The
+distance between two leaves is the straight-line distance between their two
+profiles. Two branches join at the average distance between their leaves.
 
 ```{r}
 data(nutrients) + path * cluster(amount, over = nutrient) + x(food) +
   title("Eight foods, joined by what they are made of")
 ```
 
-*"Given nutrients: paths derived by cluster on amount, over nutrient, x is food."*
+*"Given nutrients: paths derived by cluster on amount, over nutrient, x is
+food."*
 
-`path` draws the tree, because the drawing is corner points in a stated
-order, and `path` connects rows without sorting them. The bound position is
-the leaf axis. The other position stays unbound: the tree computes the
-distance at which two branches join, and labels that axis itself. Read the
-height of a join as how different its two branches are. Rice and oats join
-low, beans and lentils join about as low, and almonds join last of all.
+`path` draws the tree. A tree is a set of corners joined in a fixed order, and
+`path` joins rows in the order the table gives them. The bound position is the
+leaf axis. The other position stays unbound: the tree computes the distance at
+which two branches join, and names that axis Distance. The place where two
+branches meet is a **join**, and its height says how different they are. Beans
+and lentils join lowest, rice and oats join just above them, and almonds join
+last of all.
 
 Bind `y` instead of `x`, and the same tree lies on its side:
 
@@ -52,13 +53,13 @@ data(nutrients) + path * cluster(amount, over = nutrient) + y(food)
 *"Given nutrients: paths derived by cluster on amount, over nutrient, y is
 food."*
 
-Three things about the statistic cannot be changed. Distance is
-straight-line distance on the values as given, so a nutrient measured in
-large amounts counts for more than one measured in small amounts. Rescale
-where your data lives if that is not what you mean. Branches join at their
-average distance, so every join stands further from the leaves than the
-joins inside it. And two leaves with identical profiles join at zero, drawn
-as a join resting on the leaf axis.
+Three things about how `cluster` builds the tree cannot be changed. Distance is
+straight-line distance on the values as given, so a nutrient with large values
+changes the distance more than one with small values. Rescale where your data
+lives if that is not what you mean. Branches join at their average distance, so
+every join stands further from the leaves than the joins inside it. And two
+leaves with identical profiles join at zero, drawn as a join resting on the leaf
+axis.
 
 ## The order
 
@@ -72,9 +73,9 @@ data(nutrients) + zone + x(food) + y(nutrient) + color(amount) +
 
 *"Given nutrients: zones, x is food, y is nutrient, color by amount."*
 
-`zone * cluster` draws the same tiles with the leaf axis in the tree's
-order. Chicken and salmon now stand together on the left, and the four
-foods that are mostly carbohydrate gather in the middle:
+`zone * cluster` draws the same tiles with the leaf axis in the tree's order.
+Chicken and salmon now stand together on the left, and the four foods that are
+mostly carbohydrate stand together between spinach and almonds:
 
 ```{r}
 data(nutrients) + zone * cluster(over = nutrient) +
@@ -85,20 +86,20 @@ data(nutrients) + zone * cluster(over = nutrient) +
 *"Given nutrients: zones derived by cluster over nutrient, x is food, y is
 nutrient, color by amount."*
 
-On a tile plot the values are already bound to `color`, so the atom does not
-name them again. `over` names the profile column, and the other categorical
-axis is the leaf axis the tree reorders.
+On a tile plot the values are already bound to `color`, so `cluster` need not
+name them again. `over` names the profile column, and the other categorical axis
+is the leaf axis the tree reorders.
 
 ## The clustered heatmap
 
-The full figure puts a tree beside the tiles on two sides, so a reader can
-see where the order came from. The world calls it a clustered heatmap. It is
-three plots and two operators: a tree above, the tile plot, and a second
-tree on the right, beyond the color key. The alignment comes from one rule
-in [Composition](composition.qmd#a-clustered-panel-decides-the-order): a
-shared categorical axis takes the order a clustered panel computed for it.
-The tile plot itself stays plain. Its column order arrives from the top
-tree, and its row order from the side one.
+The full figure puts a tree on two sides of the tiles, so you can see where each
+order came from. The world calls it a clustered heatmap. It is three plots and
+two operators: a tree above, the tile plot, and a second tree on the right,
+beyond the legend. The alignment comes from one rule in
+[Composition](composition.qmd#a-clustered-panel-decides-the-order): a shared
+categorical axis takes the order a clustered panel computed for it. The tile
+plot itself stays plain. Its column order arrives from the tree above, and its
+row order from the tree on the right.
 
 ```{r}
 (data(nutrients) + path * cluster(amount, over = nutrient) + x(food) +
@@ -112,9 +113,9 @@ tree, and its row order from the side one.
 above zones, x is food, y is nutrient, color by amount, beside paths derived by
 cluster on amount, over food, y is nutrient."*
 
-Follow a column of tiles up to the tree above it, and the tree says which
-columns it was joined with. The trees are not decoration: they decide which
-column stands next to which.
+Follow a column of tiles up into the tree, and the tree says which columns that
+food was joined with. The trees are not decoration: they decide which column
+stands next to which.
 
 ## What cluster refuses
 
@@ -135,10 +136,9 @@ column must hold categories. A numeric column has none:
 data(gm_all) + path * cluster(life, over = year) + x(continent)
 ```
 
-A profile's entry is one value, so a pair that holds several rows is
-refused, and the message names the pair. In `gm_eras` every continent holds
-one row per country in each era. Aggregate to one row per pair first, where
-the data lives:
+A profile's entry is one value, so a pair that holds several rows is refused,
+and the message names the pair. In `gm_eras` every continent holds one row per
+country in each era. Aggregate to one row per pair first, where your data lives:
 
 ```{r}
 #| error: true
@@ -147,7 +147,7 @@ data(gm_eras) + path * cluster(life, over = era) + x(continent)
 
 ## Where the limits are
 
-A circular tree is valid grammar that this engine does not draw yet. Adding
+A circular tree is valid grammar that this engine does not draw. Adding
 `polar()` says exactly that:
 
 ```{r}
@@ -155,8 +155,8 @@ A circular tree is valid grammar that this engine does not draw yet. Adding
 data(nutrients) + path * cluster(amount, over = nutrient) + x(food) + polar()
 ```
 
-Cutting the tree into groups and coloring each group is not built, and
-`color()` on the tree says what is missing:
+The grammar has no way to cut the tree into groups and color each group, and
+`color()` on the tree says so:
 
 ```{r}
 #| error: true

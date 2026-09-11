@@ -25,7 +25,12 @@ gog looks up `gdp` and `life` inside the `gapminder_2007` table automatically.
 This is the **Bind-Once Law**: name the table once, then use columns freely.
 
 `gapminder_2007` here is an ordinary table in your session, whatever your
-language calls one: no registration step, no special wrapping required.
+language calls one: a data frame in R, a dict of columns or a pandas DataFrame
+in Python, a named tuple of columns or a DataFrame in Julia, an object of
+columns in JavaScript. No registration step, no special wrapping required. Each
+chapter in the bindings part shows its own. The [R](bindings/r.qmd) chapter
+also lists the ten names that loading gog masks in R, with the qualified form
+of each.
 
 Writing `data()` does more than supply the numbers. When you write
 `data(gapminder_2007)`, gog keeps the name `gapminder_2007`, not only the
@@ -136,6 +141,19 @@ data(gapminder_2007) + x(gdp) + y(life) +
 
 *"Given gapminder 2007: x is gdp, y is life, a line and also points."*
 
+The next plots use two tables. `actuals` holds the sales of five years that
+have passed, and `forecast` holds the three years still to come:
+
+```{r}
+#| echo: false
+peek(actuals)
+```
+
+```{r}
+#| echo: false
+peek(forecast)
+```
+
 A `data()` that appears **between two marks** overrides the table for
 the layer that follows it:
 
@@ -179,7 +197,7 @@ data(actuals) + x(year) + y(sales) +
 ```
 
 *"Given the actuals: x is year, y is sales, a line; then given the forecast:
-points and also an area."*
+points; then given the actuals again: an area."*
 
 The two tables cover different years, which makes the change easy to see.
 `actuals` runs from 2019 to 2023, and `forecast` from 2024 to 2026. The area
@@ -194,23 +212,36 @@ To draw two marks from the second table, write `data()` before each of them.
 
 The specification above is correct, and it still reads badly. `area` sits on the line
 below `data(forecast)`, so it looks like part of the forecast. Only the rule
-says otherwise.
+says otherwise. The same plot reads better with the marks grouped by the table
+they read. Drawn again, it is the same picture:
 
-This is style, not grammar. Both spellings are legal, and both build the same
-plot. gog will never refuse either one, because legal is not the same as clear
+```{r}
+data(actuals) + x(year) + y(sales) +
+  line + area +
+  data(forecast) + point
+```
+
+*"Given the actuals: x is year, y is sales, a line and also an area; then given
+the forecast: points."*
+
+This is style, not grammar. Both spellings are legal, and both draw the same
+plot. The order of `area` and `point` has changed, and here that changes
+nothing. The two tables share no year, so neither mark is drawn over the other.
+gog will never refuse either spelling, because legal is not the same as clear
 ([Law 8](design-laws.qmd)). Two sentences can mean the same thing and still be
 very different to read. That difference is yours to control.
 
 So group the marks by the table they read. Keep each extra `data()` on the
 same line as the mark it applies to, and keep the marks that read the
-plot-level table together. The plot above is better written with
-`line + area` on one line, and `data(forecast) + point` on the next. Every line
-is then one table and the marks that read it, and no mark sits under a table it
-does not read. The rest of this book follows that layout.
+plot-level table together. Every line is then one table and the marks that
+read it, and no mark sits under a table it does not read. The rest of this
+book follows that layout.
 
-The first `data()` in a sentence applies to every mark below it, so a line
-of its own suits it. A later one reaches one mark only, and a line of its
-own would make it look like it reaches further.
+The first `data()` is the one exception. It applies to every mark below it,
+so it takes a line of its own. A later `data()` applies to one mark only. On a
+line of its own, it would look like it applies to every mark below it, as the
+first one does. That is why `data(actuals)` stands alone above and
+`data(forecast)` shares its line with `point`.
 
 ## When the second table names its columns differently
 
@@ -218,10 +249,17 @@ The plot above was the easy case: `actuals` and `forecast` both call their
 columns `year` and `sales`, so one pair of positions written at the front served
 both layers.
 
-A second table usually does not match. The `milestones` table marks two points on
-the income axis, and its columns are `at`, `value` and `note`. None of those
-names appear in `gapminder_2007`, whose columns are `gdp` and `life`. A layer may
-name its own columns, and the axis does not change:
+A second table usually does not match. The `milestones` table marks two points
+on the income axis:
+
+```{r}
+#| echo: false
+peek(milestones)
+```
+
+Its columns are `at`, `value` and `note`. None of those names appear in
+`gapminder_2007`, whose columns are `gdp` and `life`. A layer may name its own
+columns, and the axis does not change:
 
 ```{r}
 data(gapminder_2007) + point + x(gdp) + y(life) +
@@ -243,11 +281,11 @@ however its columns are spelled: put sales figures on an income axis and the
 plot is drawn correctly and reads as nonsense. Matching names are not the test.
 Matching meanings are.
 
-That test decides whether the second table belongs in this plot at all. A layer
-joins a frame the first table built, so its values have to fit the axes that
-frame already has. When they do not, the two tables measure different things,
-and two plots on one page show that where one plot cannot.
-[Composition](composition.qmd) is the operator for it.
+The same test says when a second table does not belong in the plot at all. A
+layer is drawn on the axes the first table set, so its values must measure
+what those axes measure. Values that measure something else need axes of their
+own, and axes of their own means a plot of its own. Put that plot beside the
+first one instead. [Composition](composition.qmd) shows how, with `|` and `/`.
 
 A layer that names no position of its own reads the axis that is already
 there. That is why the earlier plot worked with the positions written once at
@@ -350,26 +388,6 @@ query(con, "SELECT continent, COUNT(*) AS countries
 Five rows crossed the connection, not 142. The plot is the same
 one you would get by counting locally.
 
-The common summaries all have a SQL form:
-
-| The plot you want | What to ask the database for |
-|---|---|
-| Bars of counts | `SELECT key, COUNT(*) AS n ... GROUP BY key` |
-| A histogram | `SELECT FLOOR(v / 5000) * 5000 AS bin, COUNT(*) AS n ... GROUP BY 1` |
-| A time series | `SELECT date_trunc('month', t) AS month, SUM(v) AS total ... GROUP BY 1` |
-| A scatter plot of a huge table | a sample: `TABLESAMPLE`, or `USING SAMPLE 10000` in DuckDB |
-
-Two transforms are harder. `smooth` and `density` fit a curve through the
-individual rows, and a curve fitted through counts is not the same curve. A
-database *can* compute them, and some tools do, but gog does not ask it to
-yet. For now, take a sample for those two and say so in the title.
-
-Writing the summary is your job today. The design leaves room for the engine
-to do it later: `query()` holds its SQL instead of running it, which is what
-would let the engine send the `GROUP BY` itself and receive only the summary.
-The sentence you write would not change. That is a direction the design
-points in, not a promise with a date.
-
 ### Two directions, and which one suits you
 
 There is another way to give SQL users a grammar of graphics. Posit's **ggsql**
@@ -380,8 +398,9 @@ It has two strengths. Its clauses read like SQL, so someone who
 writes SQL all day stays in the language they already think in, and no host
 language is installed at all. And it runs the whole pipeline in the database, one
 query per layer, so a bar chart of ten billion rows fetches only the bar heights.
-On that second point ggsql does something gog cannot do yet.
-That limit belongs to gog, not to the idea.
+On that second point ggsql does something gog does not. gog brings the rows to
+you, so on a large table you write the summary in SQL yourself, as the count
+above did.
 
 If SQL is where you work, ggsql is probably the better fit. gog would first
 ask you to learn R, Python, Julia or JavaScript, which is a real cost for
@@ -402,18 +421,6 @@ in as many languages and places as we can reach.
 DBI::dbDisconnect(con)
 ```
 
-## Passing a table
-
-Any table your language already holds passes directly: a data frame in R, a
-dict of columns or a pandas DataFrame in Python, a named tuple of columns or a
-DataFrame in Julia, an object of columns in JavaScript. Each chapter in the
-bindings part shows its own. The [R](bindings/r.qmd) chapter also lists the
-ten names that loading gog masks in R, with the qualified form of each.
-
-Today the table crosses to the engine as an in-memory copy. Apache Arrow,
-which would let the engine read the same memory instead of copying it, is
-planned to replace that.
-
 ## Declaring the order of categories
 
 A plain text column has no order of its own, so gog draws its categories in the
@@ -429,18 +436,24 @@ data(severity) + bar + x(level) + y(count) +
   title("Text column: the order the rows came in")
 ```
 
-That is rarely what you want here. Declare the order you mean. In R the
-declaration is a **factor**:
+That is rarely what you want here. Declare the order you mean, where you build
+the table. In R the declaration is a **factor**. Python, Julia and JavaScript
+have no factor type, so gog supplies the declaration itself, under one name:
+`ordered()`. It takes the column's values and the order its categories go in,
+and everything after it reads the same in all four languages:
 
 ```{r}
-severity$level <- factor(severity$level, levels = c("Low", "Medium", "High"))
+severity <- data.frame(
+  level = factor(c("High", "Low", "Medium"), levels = c("Low", "Medium", "High")),
+  count = c(30.0, 10.0, 20.0)
+)
 
 data(severity) + bar + x(level) + y(count) +
   title("Declared: the order you asked for")
 ```
 
-The `levels =` goes with the column, so *every part of the plot agrees*:
-the axis, the color assignment, and the legend all read in the same order.
+The order goes with the column, so *every part of the plot agrees*: the axis,
+the color assignment, and the legend all read in the same order.
 
 ```{r}
 data(severity) + point + x(count) + y(count) + color(level) +
@@ -450,7 +463,7 @@ data(severity) + point + x(count) + y(count) + color(level) +
 The order holds even when gog does the counting for you. These tickets arrive
 `High` first, but `bar * count` still reads Low, Medium, High. A summary carries
 the declared order onto its axis. It does not return to the order the rows
-arrived in:
+arrived in: 
 
 ```{r}
 tickets <- data.frame(
@@ -466,68 +479,29 @@ data(tickets) + bar * count + x(level) +
 
 *"Given the tickets: bars derived by count, x is level."*
 
-R has two kinds of factor: `factor(x, ordered = TRUE)`, meaning Low really is
-*less than* High, and a plain factor that merely lists its levels. gog follows
-the order in both cases, because most people declare a plain factor only to
-fix the display order, and mean nothing mathematical by it.
+In R, the list of levels can mean two things. `factor(x, levels = ...)` says
+only which order the categories appear in. Adding `ordered = TRUE` says more:
+that Low really is *less than* High. gog draws the categories in the listed
+order either way. Most people list levels only to set the order on the page,
+and a plot needs nothing more than that.
 
-### The same declaration in the other three languages
-
-`factor()` is R's word for this. Python, Julia and JavaScript have no factor
-type, so gog supplies the declaration itself, under one name: `ordered()`. It
-takes the column's values and the order its categories go in. Declare it where
-you build the table, and everything after that reads the same in all four
-languages.
-
-**R**
-
-```r
-severity <- data.frame(
-  level = factor(c("High", "Low", "Medium"), levels = c("Low", "Medium", "High")),
-  count = c(30.0, 10.0, 20.0)
-)
-```
-
-**Python**
-
-```python
-severity = {
-    "level": ordered(["High", "Low", "Medium"], ["Low", "Medium", "High"]),
-    "count": [30.0, 10.0, 20.0],
-}
-```
-
-**Julia**
-
-```julia
-severity = Dict(
-    "level" => ordered(["High", "Low", "Medium"], ["Low", "Medium", "High"]),
-    "count" => [30.0, 10.0, 20.0],
-)
-```
-
-**JavaScript**
-
-```js
-const severity = {
-  level: ordered(["High", "Low", "Medium"], ["Low", "Medium", "High"]),
-  count: [30.0, 10.0, 20.0],
-};
-```
-
-Python reads a pandas `Categorical` as well, and takes its categories as the
-levels. `ordered()` is what a plain dictionary of lists uses, because gog does
-not require pandas.
+In Python, a pandas table can carry the same declaration as a `Categorical`
+column, and gog reads its categories, in their order, as the levels.
+`ordered()` is for a plain dictionary of lists, so that you can declare an
+order without pandas installed.
 
 Two rules worth knowing:
 
-- **Levels set the order.** The data decides which categories appear. A level with no rows
-  draws no bar and gets no slot on the axis: an empty labeled gap is harder to
-  read than a shorter axis. A value in the data that is *not* in the levels is
-  never dropped; it goes on the end.
-- **An explicit `order()` takes priority.** You wrote it in the plot, which is nearer than
-  the table. Name a *different* column and it overrides the levels, which is what
-  lets you sort by value:
+- **Levels set the order.** The data sets which categories appear. A level
+  with no rows in the data gets no bar and no slot on the axis, because an
+  empty labeled gap is harder to read than a shorter axis. A value in the data
+  that the levels do not mention is not dropped. It is drawn after the listed
+  ones.
+- **`order()` in the plot wins.** The levels came with the table, so they apply
+  to every plot drawn from it. `order()` is written in this one plot, so it
+  applies here, and the more specific instruction wins. Name a different column
+  in `order()`, and the categories follow that column's values instead. That is
+  how you sort by value:
 
 ```{r}
 data(severity) + bar + x(level) + y(count) + order(count, desc = TRUE) +
@@ -537,12 +511,13 @@ data(severity) + bar + x(level) + y(count) + order(count, desc = TRUE) +
 *"Given the severity table: bars, x is level, y is count, ordered by count,
 largest first."*
 
-Name the **category column itself** and you are asking for that column's own
-order, so there is nothing to override. A plain text column carries nothing but
-its spelling and sorts alphabetically; a column with a declared order keeps
-it, and `desc = TRUE` reverses it. That leaves no way to alphabetize a
-declared order from inside the plot, and the job belongs elsewhere anyway:
-set the order again in the host language, which owns it.
+`order()` can also name the categorical column itself, as in `order(level)`.
+That asks for the column's own order. For a plain text column, that order is
+alphabetical. For a column with declared levels, it is the declared order.
+`desc = TRUE` reverses whichever applies. So a declared order cannot be turned
+alphabetical from inside the plot. To change it, change the levels where the
+table was built, in the language you are already using. The declaration
+belongs to the table, and so does the change.
 
 ## Missing values
 
@@ -554,7 +529,7 @@ with no value where the plot needs one cannot be placed, so gog drops it and
 #| message: true
 patchy <- data.frame(
   weight = c(3.1, 4.2, NA, 5.8, 6.0, NA, 4.9, 5.1, 3.7, 5.5),
-  batch  = c("A", "A", "B", "B", "A", "B", "A", "B", "A", "B")
+  batch  = c("A", "A", "B", "B", NA, "B", "A", "B", "A", "B")
 )
 data(patchy) + bar * bin + x(weight) +
   x_label("Weight") + title("Two rows have no weight")
@@ -562,19 +537,32 @@ data(patchy) + bar * bin + x(weight) +
 
 *"Given the patchy table: bars derived by bin, x is weight."*
 
-The drop covers only the columns the plot **maps**. The message names `weight`
-because `weight` is bound to `x`, and a row with no `x` cannot be placed. A
-missing value in a column the plot never reads changes nothing: leave `batch`
-unbound and its gaps are ignored. Bind it to `color` and a row missing its
-batch drops too, because it now has no color to take. Other plotting tools
-follow the same rule: only the channels in use decide which rows are kept, so
-a stray missing value in an unused column never quietly shrinks the picture.
+Only the columns the plot maps decide which rows are dropped. This plot maps
+`weight`, so the message names `weight`, and the two rows with no weight are
+left out. The table also has one row with no `batch`. The plot never reads
+`batch`, so that row stays in the histogram. Bind `batch` to `color`, and the
+same row is dropped as well, because it now has no color to take. The message
+then names both columns:
 
-## Labels are drawn exactly as written
+```{r}
+#| message: true
+data(patchy) + bar * bin + x(weight) + color(batch) +
+  x_label("Weight") + title("One more column mapped, one more row dropped")
+```
 
-Category names, titles, and axis labels are drawn exactly as they appear in your
-data. Characters with meaning in the output format (`&`, `<`, `>`) are escaped
-for you, so a name like `R&D` needs no special handling:
+*"Given the patchy table: bars derived by bin, x is weight, color by batch."*
+
+So a missing value in a column the plot never reads changes nothing. A missing
+value in a column the plot maps always drops the row, and the message says
+which column.
+
+## Special characters and other writing systems
+
+Category names, titles, and axis labels are drawn exactly as you wrote them.
+Three characters have a special meaning inside an SVG file: `&`, `<` and `>`.
+gog writes them in the form the file needs, so they print as themselves, and a
+name like `R&D` needs no special handling. The plot below puts all three into
+its names and its title:
 
 ```{r}
 special <- data.frame(
@@ -584,9 +572,10 @@ special <- data.frame(
 data(special) + bar + x(firm) + y(spend) + title("Q3 <spend> & forecast")
 ```
 
-Non-Latin scripts work the same way, including as bare column names. The table
-below is Korean. 지역별 (*jiyeokbyeol*) means by region, 지역 (*jiyeok*) is region,
-and 값 (*gap*) is value. The three rows are the cities 서울 (*Seoul*), 부산
+A name in another writing system is also drawn as written, and it can be a
+bare column name as well as a label. The table below is in Korean. Its name,
+지역별 (*jiyeokbyeol*), means by region. Its two columns are 지역 (*jiyeok*),
+region, and 값 (*gap*), value. The three rows are the cities 서울 (*Seoul*), 부산
 (*Busan*) and 대구 (*Daegu*). The plot title 한국 지역별 값 (*Hanguk jiyeokbyeol
 gap*) reads *value by region, Korea*.
 
@@ -598,8 +587,9 @@ gap*) reads *value by region, Korea*.
 data(지역별) + bar + x(지역) + y(값) + title("한국 지역별 값")
 ```
 
-Label widths are measured per character, so full-width scripts reserve the right
-amount of margin rather than three times too much.
+A label's width is measured from its characters, and a Korean or Chinese
+character is about twice as wide as a Latin one, so these labels get the margin
+they need and no more.
 
 That is everything a sentence needs from its table. The next chapter shows
-where this book's own tables come from, and then the marks begin.
+where this book's own tables come from, and the mark chapters follow it.

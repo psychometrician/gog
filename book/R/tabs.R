@@ -332,31 +332,34 @@ knitr::knit_hooks$set(source = function(x, options) {
   # sit together and the odd one out arrives after the pattern is established,
   # instead of interrupting it. Set here, so the tabs, the print blocks and the
   # warnings below cannot disagree; the chapter order in `_quarto.yml` matches.
-  spelling <- function(name, language, source) {
-    if (is.null(source)) return("")
-    paste0("**", name, "**\n\n```", language, "\n", source, "\n```\n\n")
-  }
-  if (!knitr::is_html_output()) {
-    return(paste0(
-      "\n",
-      spelling("R", "r", code),
-      spelling("Python", "python", entry$python),
-      spelling("Julia", "julia", entry$julia),
-      spelling("JavaScript", "js", entry$js)
-    ))
-  }
-
-  tab <- function(name, language, source) {
-    if (is.null(source)) return("")
-    paste0("## ", name, "\n\n```", language, "\n", source, "\n```\n\n")
-  }
-
-  paste0(
-    "\n::: {.panel-tabset}\n\n",
-    tab("R", "r", code),
-    tab("Python", "python", entry$python),
-    tab("Julia", "julia", entry$julia),
-    tab("JavaScript", "js", entry$js),
-    ":::\n"
-  )
+  spelling_blocks(list(r = code, python = entry$python, julia = entry$julia,
+                       js = entry$js))
 })
+
+# The four spellings of one example, in the two forms the formats need: a tabset
+# the reader clicks in HTML, four labeled blocks they read down in print. The
+# hook above hands every live chunk through here, and `spellings()` below hands
+# a block written by hand through the same door, so the two can never differ in
+# order or in shape. The order is the book's reading order, set once.
+tab_languages <- c(R = "r", Python = "python", Julia = "julia", JavaScript = "js")
+
+spelling_blocks <- function(sources, html = knitr::is_html_output()) {
+  block <- function(name, language, source) {
+    if (is.null(source)) return("")
+    label <- if (html) paste0("## ", name) else paste0("**", name, "**")
+    paste0(label, "\n\n```", language, "\n", source, "\n```\n\n")
+  }
+  body <- paste(vapply(names(tab_languages), function(name) {
+    block(name, tab_languages[[name]], sources[[tab_languages[[name]]]])
+  }, character(1)), collapse = "")
+  if (html) paste0("\n::: {.panel-tabset}\n\n", body, ":::\n") else paste0("\n", body)
+}
+
+# A four-language block written by hand, for the places no live chunk can
+# produce the tabs: an install command, a read of the shared tables. Give each
+# spelling as a raw string, `r"(...)"`, so the quotes inside need no escaping,
+# and call it from a chunk marked `echo: false`. A language not given is left
+# out, as the hook leaves out a tab it has no translation for.
+spellings <- function(r = NULL, python = NULL, julia = NULL, js = NULL) {
+  knitr::asis_output(spelling_blocks(list(r = r, python = python, julia = julia, js = js)))
+}

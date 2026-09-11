@@ -9,11 +9,12 @@ Every sentence in this book so far was written in R, so this chapter adds
 nothing to the grammar. What it adds is the four questions only R raises: how
 the two pipes reach `data()`, which of gog's words base R already uses, how a
 database connection arrives, and how the package installs. What a table is, and
-how one is passed, is in [Data](../data.qmd); it needs nothing installed beyond
-R.
+how one is passed, is in [Data](../data.qmd). A table is an ordinary R data
+frame, and needs no package of its own.
 
-Every R block below was executed to draw the plot beside it, through the same
-engine every other chapter uses.
+Every block marked `{r}` below was run when this page was built, through the
+same engine every other chapter uses. The install commands at the end are
+shown, not run.
 
 ## Pipes
 
@@ -84,19 +85,19 @@ pipe, or name the table yourself:
 gapminder_2007 %>% data(name = "gapminder_2007") + point + x(gdp) + y(life)
 ```
 
-Only the placeholder raises that warning, and it is worth saying what does not.
-Filtering before `data()` is the pipe's most useful form, and it raises no
-warning. The expression is not a plain name, but it is still distinct, so gog
-uses it as the table's name.
+Only the placeholder raises that warning, so it is worth saying what does not
+raise it. Filtering before `data()` is the native pipe's most useful form, and
+it raises no warning. The expression is not a plain name, but it is still
+distinct, so gog uses it as the table's name.
 
 ```{r}
 gm_all |> subset(year == 2007 & continent == "Europe") |> data() +
   point + x(gdp) + y(life)
 ```
 
-The table there is called `subset(gm_all, year == 2007 & continent == "Europe")`,
-which is ugly and works. `name =` is available when you would rather read
-something else, and becomes worth using once a second table is involved:
+The table there is called `subset(gm_all, year == 2007 & continent == Europe)`,
+which is ugly and still works. `name =` gives the table a shorter name, and is
+worth using once a second table is involved:
 
 ```{r}
 gm_all |> subset(year == 2007 & continent == "Europe") |> data(name = "europe") +
@@ -105,9 +106,9 @@ gm_all |> subset(year == 2007 & continent == "Europe") |> data(name = "europe") 
 
 ## Why the name is worth a warning
 
-An unnamed table is fine until there are two of them. A second `data()` gives
-a layer its own table, and "nearest table wins" is decided *by name*, so two
-tables that both lost theirs leave the rule nothing to choose between:
+An unnamed table is fine until there are two of them. A second `data()` gives a
+layer its own table, and "nearest table wins" is decided *by name*, so two
+tables under one name leave the rule nothing to choose between:
 
 ```{r}
 #| error: true
@@ -115,18 +116,17 @@ data(actuals, name = "series") + x(year) + y(sales) + line +
   data(forecast, name = "series") + point
 ```
 
-Before the warning existed, that plot did not refuse. It drew the first table
-twice and reported the second table's columns as misspellings, which blames
-the reader for something the binding lost. Two `%>%` pipes in one expression
-reached exactly that state, both tables having arrived as `.`.
+Without that refusal the plot would draw the first table twice and report the
+second table's columns as misspellings, which blames the reader for something
+the binding lost. Two `%>%` pipes in one expression reach that state, because
+both tables arrive as `.`.
 
 ## What the pipe does not change
 
-The pipe feeds `data()`. It does not replace `+`, and there is no piped form
-of the rest of the sentence: marks, channels, and transforms compose with `+`
-and `*` as they do everywhere else in this book. gog has no pipe of its own
-and will not grow one, because that would be a second spelling for something
-the language already spells.
+The pipe feeds `data()`. It does not replace `+`, and there is no piped form of
+the rest of the sentence: marks, channels, and transforms compose with `+` and
+`*` as they do everywhere else in this book. gog has no pipe of its own, because
+that would be a second spelling for something the language already spells.
 
 This section is about R specifically. Julia's `|>` is a function-application
 operator with different behavior, and Python and JavaScript have no pipe of
@@ -134,9 +134,8 @@ their own, so the question does not arise in the other three chapters.
 
 ## Twenty names base R already uses
 
-`library(gog)` prints a long list of masked names, and the list is alarming out
-of proportion to the problem. Twenty of the package's exports are also names in
-the packages R attaches for you:
+Twenty of the package's exports are also names in the packages R attaches for
+you, and `library(gog)` warns you about eleven of them. Here are all twenty:
 
 | from | names |
 |---|---|
@@ -146,11 +145,12 @@ the packages R attaches for you:
 | `utils` | `data` `stack` |
 | `base` | `jitter` `max` `mean` `min` `order` `range` `sum` |
 
-Nine of the twenty cannot affect you, and the reason is a rule in R itself.
-A mark is an *object* rather than a function, and so is a transform that takes no
-parameter. When R evaluates a call, it looks for a function of that name and
-skips any binding that is not one. So base R still answers, even with gog's
-`mean` sitting closer:
+Nine of the twenty cannot affect you, which is why `library(gog)` leaves them
+out, and the reason is a rule in R itself. A mark that takes no argument is an
+*object* rather than a function, and so is a transform that takes no parameter.
+When R evaluates a call, it looks for a function of that name and skips any
+binding that is not one. So base R still answers, even though `library(gog)` put
+its own `mean` in front:
 
 ```{r}
 is.function(mean)   # gog's `mean` is an object, so a call cannot reach it
@@ -181,21 +181,21 @@ The other eleven are functions, and a call does reach gog's: `box`, `data`,
 | `title("Life expectancy")` | the plot's title | `graphics::title(main = "…")` |
 | `box()` | the box-and-whisker mark | `graphics::box()` |
 
-`range` is a function because it takes a band, and R finds a function first. That
-is what writing `range(0.25, 0.75)` costs you. The refusal reads the argument it
-was given: a vector where a probability belongs means you wanted base R's, and
-the message says so.
+`range` is a function because it takes a band, so the skip rule above does not
+save you. That is what writing `range(0.25, 0.75)` costs you. The refusal reads
+the argument it was given: a vector where a probability belongs means you wanted
+base R's, and the message says so.
 
 ```{r}
 #| error: true
 range(c(3, 1, 4, 1, 5))
 ```
 
-`order` is the one that used to break. Sorting a data frame beside a plot is
-ordinary work. gog's `order` returns an atom, not the row positions that `[`
-expects. So the failure used to arrive far from the line that caused it, and it
-named neither `order` nor gog. It now says which function you reached, and how to
-reach the other one:
+`order` is the one that breaks the most ordinary code. Sorting a table beside a
+plot is ordinary work. gog's `order` returns an atom, not the row positions that
+`[` expects. Left alone, the failure arrives far from the line that caused it
+and names neither `order` nor gog. Whenever the argument is not a bare name, the
+refusal says which function you reached and how to reach the other one:
 
 ```{r}
 #| error: true
@@ -209,24 +209,24 @@ ranked <- gapminder_2007[base::order(-gapminder_2007$population), ]
 head(ranked[c("country", "population")], 3)
 ```
 
-This book does that in three chapters, for exactly this reason.
+This book does that in several other chapters, for exactly this reason.
 
-Three of the eleven refuse nothing, because nothing separates the two intentions.
+Three of the eleven refuse nothing, because nothing separates the two readings.
 `data(mtcars)` is well formed in both readings. It returns a plot's table and no
 complaint, so write `utils::data()` when you mean to load a dataset.
 `title("...")` is the same case: a string is what both want. So is `box()`,
-which takes no argument in either language. The other eight all report the
-mistake, because in each of them the argument you passed is one gog would
-refuse.
+which both readings accept with no argument at all. The other eight report the
+mistake, because the argument you passed is one gog would refuse. `order` is
+the partial case: it catches `order(df$population)` and not `order(pop)`, where
+`pop` is a bare name holding a vector.
 
-The names stay as they are. A grammar keeps its own vocabulary, which is Law 3 and
-a decided question (spec §18). Renaming `order` to `sort_by` would replace a word
-every reader knows with one only this package uses. Where another *package* owns a
-name you want, attach `gog` after it, so R finds gog's names first, or qualify it as
-`gog::interval`. Every language meets this problem, and each one asks you to
-solve it differently;
-[the grammar chapter](../grammar.qmd#names-the-host-language-already-uses)
-compares them.
+The names stay as they are. A grammar keeps its own vocabulary, which is Law 3,
+and the question is settled. Renaming `order` to `sort_by` would replace a word
+every reader knows with one only this package uses. Where another package
+defines a name gog also defines, attach gog after that package, so R finds gog's
+name first, or write `gog::interval`. Every language meets this problem, and
+each one asks you to solve it differently; [the grammar
+chapter](../grammar.qmd#names-the-host-language-already-uses) compares them.
 
 ## Five spellings that still need a prefix
 
@@ -235,7 +235,7 @@ The nine objects above are safe in ordinary code, and safe inside `sapply()`,
 those asks R for a function of the name it was handed, which finds base R's.
 
 Five spellings still fail, for two different reasons. The first is a name that
-travels through two layers before anyone looks it up:
+is passed on twice before anyone looks it up:
 
 ```{r}
 #| error: true
@@ -243,16 +243,16 @@ aggregate(life ~ continent, gapminder_2007, mean)
 ```
 
 By the time the lookup happens, the name being searched for is `FUN` and not
-`mean`, so the message names neither `mean` nor gog. `by()` and
-`ave(..., FUN = mean)` fail the same way. Writing `base::mean` fixes all three.
-The data frame form of `aggregate()` looks the name up one layer earlier, so
+`mean`, so the message names neither `mean` nor gog. `by()` and `ave(..., FUN =
+mean)` fail the same way. Writing `base::mean` fixes all three. The data frame
+form of `aggregate()` looks the name up one step earlier, so
 `aggregate(gapminder_2007["life"], gapminder_2007["continent"], mean)` works
 unchanged.
 
 The second reason is a name used as a value rather than called. `do.call(sum,
-list(x))` wants a function and receives an object, so write
-`do.call("sum", list(x))` or `do.call(base::sum, list(x))`. And `f <- mean`
-copies the object, so `f(x)` reports that `f` is not a function.
+list(x))` wants a function and receives an object, so write `do.call("sum",
+list(x))` or `do.call(base::sum, list(x))`. And `f <- mean` copies the object,
+so `f(x)` reports that it could not find a function called `f`.
 
 That is the whole cost, and it is worth stating as one rule. If you hand one of
 those nine words to another function *by name*, and that function hands it on
@@ -278,13 +278,13 @@ your database needs:
 install.packages(c("DBI", "RSQLite"))    # or RPostgres, RMariaDB, odbc, bigrquery
 ```
 
-`gog` never opens a connection and never stores a password. You connect the way
+gog never opens a connection and never stores a password. You connect the way
 you already do, and hand the open connection over.
 
 ## Getting it
 
 A plot is drawn by the engine, which is a compiled Rust binary, so the R package
-has to be able to find one. An installed copy **carries its own**. The package's
+has to be able to find one. An installed copy carries its own. The package's
 `configure` script bundles the engine at install time, and refuses to install at
 all rather than leave you a package that cannot draw.
 
@@ -293,14 +293,14 @@ install.packages("gog", repos = c("https://psychometrician.r-universe.dev",
                                   "https://cloud.r-project.org"))
 ```
 
-That command works today. `gog` is published on
+That command works today. gog is published on
 [r-universe](https://psychometrician.r-universe.dev/gog). On macOS and Windows
 it builds a binary with the engine inside it, so installing needs no Rust
 toolchain.
 
-On Linux the same command installs from source, and the source build compiles the
-engine. That needs Rust and a network connection. If the machine does not have
-Rust, install it first and then run the command above:
+On Linux the same command installs from source, and the source build compiles
+the engine. That needs Rust and a network connection. If the machine does not
+have Rust, install it first and then run the command above:
 
 ```bash
 curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
@@ -310,10 +310,9 @@ source "$HOME/.cargo/env"
 The build runs once, while the package installs.
 
 The `repos` argument names two addresses because r-universe is not CRAN. The
-first address is where `gog` lives. The second is an ordinary CRAN mirror, and it
-is there so your other packages still install as usual. `gog` is not on CRAN yet;
-when it is, the plain `install.packages("gog")` will work and this line can lose
-its second half.
+first address is where gog lives. The second is an ordinary CRAN mirror, and it
+is there so your other packages still install as usual. gog is not on CRAN, so
+both addresses are needed.
 
 There is another route, and it installs straight from the source repository:
 
@@ -321,19 +320,19 @@ There is another route, and it installs straight from the source repository:
 remotes::install_github("psychometrician/gog", subdir = "r-pkg/gog")
 ```
 
-A tarball from GitHub carries the engine's Rust sources, and `configure` compiles
-them during the install. So this route does need a Rust toolchain, and the
-macOS and Windows binaries do not. It also needs the `remotes` package, which
-`install.packages("remotes")` adds if you do not have it. Take it when you want
-one particular branch or commit rather than the latest build.
+A tarball from GitHub carries the engine's Rust sources, and `configure`
+compiles them during the install. So this route needs a Rust toolchain, which
+the macOS and Windows builds above do not. It also needs the `remotes` package,
+which `install.packages("remotes")` adds if you do not have it. Take it when you
+want one particular branch or commit rather than the latest build.
 
-You can also work from a checkout. On that route nothing installs other
-packages for you, so two have to be installed first. Outside base R, gog needs
-one package, `jsonlite`. It turns the sentence you write into the JSON that the
-engine reads. `install.packages()` and `remotes::install_github()` both install
-it along with gog. Loading from a checkout also needs `pkgload`, which loads a
-package from a folder instead of from a library. Install both if you do not
-have them:
+You can also work from a checkout. On that route nothing installs other packages
+for you, so `jsonlite` and `pkgload` have to be installed first. Outside base R,
+gog needs one package, `jsonlite`. It turns the sentence you write into the JSON
+that the engine reads. `install.packages()` and `remotes::install_github()` both
+install it along with gog. Loading from a checkout also needs `pkgload`, which
+loads a package from a folder instead of from a library. Install both if you do
+not have them:
 
 ```r
 install.packages(c("jsonlite", "pkgload"))
@@ -362,6 +361,6 @@ R CMD INSTALL r-pkg/gog
 The engine is looked for in five places, in this order: the `GOG_CLI_PATH`
 environment variable, a `target/` build in a surrounding checkout, the copy
 inside the installed package, `gog-cli` on your `PATH`, and one last search
-upward from the working directory. A checkout is searched before the bundled copy
-on purpose. Inside a checkout the bundled engine is a leftover build, and using
-it would give a stale engine to the person editing the engine.
+upward from the working directory. A checkout is searched before the bundled
+copy on purpose. Inside a checkout the bundled engine is a leftover build, and
+using it would give a stale engine to the person editing the engine.

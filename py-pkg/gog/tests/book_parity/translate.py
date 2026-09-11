@@ -216,6 +216,70 @@ def _vectors(text: str, fired: List[str]) -> str:
     return text
 
 
+def _factors(text: str, fired: List[str]) -> Optional[str]:
+    """Rule 5 — `factor(values, levels = l)` is `ordered(values, l)`.
+
+    A factor with its levels written out is a declared category order, and
+    every binding spells that declaration the same way, `ordered(values,
+    levels)`, which is what a plain dict of lists uses in Python. So the tab is
+    one a reader can run, and the plot it draws is R's. `ordered = TRUE` is
+    dropped rather than refused: gog follows the declared order in both of R's
+    factor kinds. A factor *without* `levels =` would have to compute its order
+    (R sorts the distinct values), which is the kind of guess a tab must not
+    make, so that form returns None and the table is declined whole.
+    """
+    for start, open_index, close in reversed(_calls(text, {"factor"})):
+        values, levels = None, None
+        for arg in _split_args(text[open_index + 1:close]):
+            body = arg.strip()
+            keyword = re.match(r"^([A-Za-z_.][A-Za-z0-9._]*)\s*=\s*(.*)$", body, re.S)
+            if keyword and keyword.group(1) == "levels":
+                levels = keyword.group(2).strip()
+            elif keyword and keyword.group(1) == "ordered":
+                continue
+            elif keyword or values is not None:
+                return None
+            else:
+                values = body
+        if values is None or levels is None:
+            return None
+        text = text[:start] + f"ordered({values}, {levels})" + text[close + 1:]
+        fired.append("declared order")
+    return text
+
+
+def _literal_table(text: str) -> bool:
+    """Is this a Python literal, allowing `ordered(list, list)` as a column?
+
+    `ast.literal_eval` was the proof that a translated table is something a
+    reader can paste and run, and a declared order fails it only because
+    `ordered()` is a call. This walk accepts what the literal evaluator accepts,
+    plus that one call over two literal lists, and nothing else.
+    """
+    try:
+        tree = ast.parse(text, mode="eval")
+    except SyntaxError:
+        return False
+
+    def literal(node) -> bool:
+        if isinstance(node, ast.Constant):
+            return True
+        if isinstance(node, (ast.List, ast.Tuple)):
+            return all(literal(item) for item in node.elts)
+        if isinstance(node, ast.Dict):
+            return (all(key is not None and literal(key) for key in node.keys)
+                    and all(literal(value) for value in node.values))
+        if isinstance(node, ast.UnaryOp) and isinstance(node.op, (ast.UAdd, ast.USub)):
+            return literal(node.operand)
+        if isinstance(node, ast.Call):
+            return (isinstance(node.func, ast.Name) and node.func.id == "ordered"
+                    and len(node.args) == 2 and not node.keywords
+                    and all(isinstance(arg, ast.List) and literal(arg) for arg in node.args))
+        return False
+
+    return literal(tree.body)
+
+
 def _constants(text: str, fired: List[str]) -> str:
     """Rule 4 — R has no `e`, Python keeps it in `math`."""
     if "exp(1)" in text:
@@ -244,7 +308,7 @@ def _inline_frames(text: str, fired: List[str]) -> str:
     return text
 
 
-def _frame_columns(args: str) -> Optional[str]:
+def _frame_columns(args: str, fired: Optional[List[str]] = None) -> Optional[str]:
     """The `{...}` body of a `data.frame(...)` argument list, or None.
 
     A column is a vector at every length, so each value is bracketed — except
@@ -256,13 +320,16 @@ def _frame_columns(args: str) -> Optional[str]:
     translated. The two R-side emitters already test `startsWith(inner, "[")`
     for the same reason.
     """
+    args = _factors(args, fired if fired is not None else [])
+    if args is None:
+        return None
     columns = []
     for arg in _split_args(args):
         keyword = re.match(r"^\s*([A-Za-z_.][A-Za-z0-9._]*)\s*=\s*(.*)$", arg, re.S)
         if not keyword:
             return None
         value = keyword.group(2).strip()
-        cell = value if re.match(r"^c\s*\(", value) else f"[{value}]"
+        cell = value if re.match(r"^(c|ordered)\s*\(", value) else f"[{value}]"
         columns.append(f'"{keyword.group(1)}": {cell}')
     return "{" + ", ".join(columns) + "}"
 
@@ -315,7 +382,7 @@ def translate(source: str) -> Tuple[Optional[str], List[str], Optional[str]]:
         r"^\s*([A-Za-z._][A-Za-z0-9._]*)\s*<-\s*data\.frame\s*\((.*)\)\s*$",
         body, re.S)
     if table_def:
-        columns = _frame_columns(table_def.group(2))
+        columns = _frame_columns(table_def.group(2), fired)
         if columns is None:
             return None, fired, "table built by something other than column literals"
         columns = _literals(_vectors(columns, fired), fired)
@@ -324,9 +391,7 @@ def translate(source: str) -> Tuple[Optional[str], List[str], Optional[str]]:
         # every regex above and yields `{"hours": [0:5 + 0.0]}`, which is not
         # Python at all — a tab that lies is worse than a chunk with no tab, so
         # a table built by R computation is blocked and counted as a gap.
-        try:
-            ast.literal_eval(columns)
-        except (ValueError, SyntaxError):
+        if not _literal_table(columns):
             return None, fired, "table computed in R, not written out as literal columns"
         fired.append("named table")
         return f"{table_def.group(1)} = {columns}", fired, None
