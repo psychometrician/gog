@@ -18,6 +18,9 @@ bindings, exactly as it does for a bar.
 
 ## A line at a threshold
 
+Which countries have a life expectancy above 70? A scatter leaves the reader
+to find 70 on the axis and hold a line there by eye. A line drawn at the
+threshold does that once, for every reader.
 Here is the 2007 gapminder scatter, income against life expectancy, with
 lines drawn at three life-expectancy thresholds:
 
@@ -49,6 +52,8 @@ how: `life_bands` has a `life` column and no `gdp` column, and
 the plot's `y` is `life`. One axis answers, the other does not, so the rule sits
 on the one that does and spans the one that does not.
 
+A threshold on income wants a line standing up rather than lying across, and
+there is no second mark for it.
 Change which column the table holds and the same word draws the line
 vertically:
 
@@ -71,6 +76,8 @@ and `geom_hline()`, and matplotlib `axvline()` and `axhline()`, gog has one
 
 ## A rug is the same mark
 
+A scatter says where each country sits. How the countries are spread along the
+income axis alone is a second question.
 A rug tick has no second position either: it sits at one value and reaches a
 little way in from the edge. That is not a different geometry, only a different
 distance, so it is a setting rather than a second mark:
@@ -110,6 +117,8 @@ facet and at every plot size.
 
 ### The other axis
 
+Income is not the only axis worth a rug. Life expectancy has a distribution of
+its own, and the scatter hides it the same way.
 A rug is not tied to the horizontal. Which axis it lands on is decided by the
 position you name on the layer. Write `y(life)` instead of `x(gdp)` and the
 ticks run up the left edge. Write both, as two layers, and the scatter gets a
@@ -135,6 +144,9 @@ nor the bottom rug shows it.
 
 ## Coloring the lines
 
+Three lines drawn alike leave the reader to work out which threshold is which
+from the axis. A name on each, carried by its color and decoded by the legend,
+removes that step.
 Each row of a rule's table is its own segment, so `color` maps per row. The
 `band` column in `life_bands`, which names each threshold, is for this:
 
@@ -153,6 +165,8 @@ categories, not a continuous ramp. `line` and `path` answer the same way.
 
 ## Thickening a rule
 
+A thin line marks a threshold without making it prominent. When one value is
+the point of the plot, it should be seen before the data around it.
 Width is the rule's other visible setting. `style(size = )` sets it, and a wide,
 faint rule reads as a highlighted band:
 
@@ -209,6 +223,9 @@ takes one side from the data and the other from the panel, use
 
 ## In polar: the ring and the spoke
 
+A wind plot is drawn on a circle, and a target speed on it is a threshold like
+any other. The question is what a line at one value becomes when the axis it
+spans is bent.
 The mark does one thing: it spans the whole of the axis it does not name. In
 polar that is unchanged, and it draws two shapes rather than one, because a
 circle has two axes to span. [Polar](../polar.qmd) builds the circle itself;
@@ -249,8 +266,10 @@ ring, and a spoke.
 
 ## What you can set
 
-Everything a rule can be told to look like, generated from the engine's own
-legality table, so this page cannot differ from what `style()` accepts:
+A threshold line has to look different from the data it crosses, and no column
+says how. A setting decides that without reading one, and each mark takes its
+own. These are a rule's, generated from the engine's own legality table, so
+this page cannot differ from what `style()` accepts:
 
 ```{r}
 #| echo: false
@@ -303,6 +322,8 @@ answer `line`, `step` and `path` give, because it is the same geometry.
 
 ## What it refuses
 
+The shortest sentence to try is a bare `rule` over the plot's own table,
+expecting a default axis.
 Give a rule the plot's own table and both position columns answer at once.
 There is then nothing to say which axis is meant, so gog refuses rather than
 picking one:

@@ -17,6 +17,8 @@ be drawn is a rectangle that reaches the **panel**.
 
 ## A band across the panel
 
+Were sales inside the target each year? Two numbers in a caption let a reader
+check, year by year. A band shaded behind the line shows it at once.
 The `quarterly` table holds one sales figure for each year, and `target_band`
 holds the two edges of a target band:
 
@@ -50,6 +52,8 @@ highlight belongs behind what it highlights.
 
 ## A band up the panel
 
+Some highlights are spans of time rather than of value. The years a recession
+lasted are one, when the question is how sales moved through them.
 Swap which pair you give it and the rectangle stands up instead. The
 `recessions` table holds the two slumps, each with a start year and an end year:
 
@@ -85,6 +89,9 @@ so the same words keep working when the category axis becomes an angle.
 
 ## Both pairs: a rectangle
 
+Sometimes the region to highlight is bounded on both axes: these four years,
+this range of sales, and nothing outside either. That is a box rather than a
+band.
 Name all four and neither axis comes from the panel:
 
 ```{r}
@@ -106,6 +113,9 @@ name. There is no `hband`, no `vband`, no `rect`.
 
 ## Which axis the pair bounds
 
+A funnel counts how many people are left at each stage, from website visits
+down to invoices sent. Its usual picture is a stack of centered blocks, one per
+stage, measured across the page rather than up it.
 `lower` and `upper` bound the *measure* axis. Every plot so far has measured
 along `y`, so every `lower`/`upper` band so far has run across the panel. Now
 put a category on `y` instead. The measure moves to `x`, and the same two
@@ -146,6 +156,8 @@ nothing like ggplot2's `coord_flip()` to write.
 
 ## Coloring the zones
 
+Two bands in one red are two unnamed slumps. Color each by its name and the
+legend says which is which, with no note on the plot.
 Each row is its own rectangle, so `color` maps per row. `recessions` carries a
 name for each slump:
 
@@ -382,6 +394,7 @@ nothing behind it to show through.
 
 ## Hexagons: the other mesh
 
+Do the rows and columns in a heatmap belong to the data or to the mesh?
 The cells above are rectangles, and that is a choice rather than a fact about
 binning. Say `tiling = "hex"` and the plane is cut a different way:
 
@@ -465,6 +478,8 @@ panel gives roughly regular hexagons.
 
 ## Cells the data estimated: `zone * density`
 
+A count per cell is honest and ragged when the table is small. The 150 flowers
+spread over a mesh would leave most cells holding one or two, or none.
 `bin` counts what landed in each cell. There is a second thing worth measuring
 at a cell, and it needs no new mark either: how *thick* the cloud is there. That
 is `density`, the transform that draws a smooth curve on a [line](line.qmd),
@@ -529,6 +544,9 @@ already made: the mark chooses the geometry, the transform stays constant.
 
 ## Bands the data cut: `zone * density(levels = )`
 
+A smooth ramp is hard to read a value from: two nearby cells differ by a shade
+the eye cannot name. Cut the field into a few steps and each band has a level a
+reader can point to.
 Ask for levels and the field stops being continuous. It is cut into that many
 steps, and a zone fills between them:
 
@@ -575,6 +593,8 @@ Three sources of sides so far, and every one of them put the sides in a column:
 `bounds` named them, `bin` cut them, `density(levels = )` traced them. There is
 a fourth, and it needs no column at all.
 
+Six weeks of daily orders is already a grid: weeks across, weekdays down, one
+count in each cell. The grid itself is the picture you want.
 A categorical axis is already divided. Six weeks on the x axis is six
 slots. The slot "Week 3" owns is a place on the panel with a left edge and a
 right edge, both fixed by the axis when it laid the categories out. So a
@@ -716,6 +736,8 @@ put a category on each position, or cut the numeric axis first with `bin`.
 
 ### Cells cut, then summarized: the summary heatmap
 
+How does life expectancy depend on income and on time together? Both are
+continuous, so neither owns a slot, and a mean needs a cell to compute inside.
 A category owns a slot, and that is one way an axis can arrive already divided.
 Cutting a continuous axis is the other, and `bin` is what cuts. Compose the two
 and each supplies half of what a cell needs:
@@ -749,6 +771,8 @@ data(gm_all) + zone * bin(12) * mean + x(gdp, scale = "log") + y(continent) +
 
 ### One of each: the mixed mesh
 
+How does the spread of life expectancy differ by continent? Five histograms
+answer it, in five panels the reader must compare one by one.
 The pair above was stated one axis at a time, which leaves a case in the middle:
 one axis continuous, one categorical. Nothing new has to be decided for it.
 `bin` cuts the axis that has a width to cut and leaves alone the one that
@@ -787,6 +811,8 @@ and it is this.
 
 ### Half a mesh: bounded by one slot
 
+Two of the eight directions are the ones the wind comes from most often, and a
+reader of the strip plot should see those two columns marked.
 The rule was stated one axis at a time, so read it that way and a zone bounded
 on *one* categorical axis follows. It takes that slot and spans the panel on the
 other, which is what this mark has done from the beginning. One row is still one
@@ -826,6 +852,8 @@ Every section above finds a zone's sides in the same place: **the row being
 drawn**. `bounds` names them, `bin` and `density` cut them, and a category owns
 a slot. There is a fifth source, and it is the only one that spans many rows.
 
+A map with every country shaded is a plot most readers have seen, and a
+country's shape is not a rectangle.
 A boundary is a list of points around the edge of a region: a coastline, a
 border, the outline of a sales territory. It arrives as one row per point, so a
 single shape needs hundreds of rows, and the sentence needs a word for which
@@ -851,8 +879,11 @@ about naming an extent.
 
 ## What you can set
 
-Everything a zone can be told to look like, generated from the engine's own
-legality table, so this page cannot differ from what `style()` accepts:
+A highlight has to let the data show through, and a heatmap cell has to be
+solid. gog picks one of the two by default, and a setting overrides it without
+reading a column. Each mark takes its own settings. These are a zone's,
+generated from the engine's own legality table, so this page cannot differ from
+what `style()` accepts:
 
 ```{r}
 #| echo: false
@@ -958,6 +989,8 @@ stroke: with no `border_color` and no `border_size` there is none at all.
 
 ## What it refuses
 
+A `point` or a `line` draws from the plot's own `x` and `y`, so a bare `zone`
+over the same table is the natural first attempt.
 A zone with nothing to bound it has no sides:
 
 ```{r}

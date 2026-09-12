@@ -13,7 +13,10 @@ earns the legend that decodes it.
 
 ## Which group does each mark belong to?
 
-A category is carried by `color`, and the palette gives each category one hue:
+The scatter of wealth against life expectancy draws every country as an
+identical dot. Nothing in it says which continent a country belongs to, and
+that third column is categorical. A category is carried by `color`, and the
+palette gives each category one hue:
 
 ```{r}
 data(gapminder_2007) + point + x(gdp, scale = "log") + y(life) +
@@ -28,8 +31,9 @@ not the hues, is the `group` channel; see [Channels](../channels.qmd).
 
 ## Will it read in gray?
 
-Bind `color` *and* `shape` to the same column and each group is said twice,
-readable for colorblind readers, in grayscale print, and in poor light:
+Hue alone separates groups on a screen but not in grayscale print, in poor
+light, or for a colorblind reader. When the plot must survive all three, bind
+`color` *and* `shape` to the same column. Each group is then said twice:
 
 ```{r}
 data(iris_flowers) + point + x(petal_length) + y(sepal_length) +
@@ -46,8 +50,9 @@ chapters: [Channels](../channels.qmd), [Setting vs mapping](../style.qmd).
 
 ## How big is each observation?
 
-A magnitude is carried by `size`; the channel's question is *how much*, so it
-only accepts a continuous column:
+Population is a third measurement of each country, and both positions are
+already taken by wealth and health. A magnitude is carried by `size`; the
+channel's question is *how much*, so it only accepts a continuous column:
 
 ```{r}
 data(gapminder_2007) + point + x(gdp, scale = "log") + y(life) +
@@ -60,7 +65,10 @@ population."* A legend decodes the radius. Owning chapter:
 
 ## What if four variables matter?
 
-Channels compose: every one of them works beside every other. That rule is
+The recipes above bound `color` to the continent and `size` to the population,
+one column at a time. You may need both at once, to see which continent a
+country is in and how many people live there. Channels compose: every one of
+them works beside every other. That rule is
 [Orthogonality](../design-laws.qmd). Wealth, health, population, and continent
 in one sentence:
 
@@ -80,6 +88,8 @@ carry. Past that, use [panels](../faceting.qmd) instead of more channels.
 
 ## What if the third variable is a number?
 
+The third column can be continuous rather than categorical. Population is one,
+carried here by hue rather than by radius, so every dot keeps one size.
 `color` accepts either kind of column. A continuous column gets a
 sequential ramp instead of a palette, and a skewed one reads better on a
 log ramp, exactly like a skewed axis:
@@ -97,8 +107,10 @@ column type. [Scales](../scales.qmd) owns the log scale.
 
 ## What if three measurements matter equally?
 
-When three *measurements* matter equally, the third one is a
-position, not a decoration. One more vowel and the plot stands up:
+Each iris here has three measurements, and none of them is less important than
+the others. `color` or `size` would carry the third one as a refinement of a
+plot about the other two. When three *measurements* matter equally, the third
+one is a position, not a decoration. One more vowel and the plot stands up:
 
 ```{r}
 data(iris_flowers) + point +
@@ -236,10 +248,12 @@ reader: panels let them look back, frames let them see the movement.
 
 ## Which rows and columns are alike?
 
-Two categorical axes and one value make a tile plot, and nothing in the
-data chose its slot order. Build a [cluster](../cluster.qmd) tree on each
-axis, then compose the three plots: the shared axes take the trees' leaf
-order, and tiles of similar color end up next to each other.
+The `nutrients` table gives the amount of five nutrients in each of eight foods.
+The question is which foods resemble each other, and which nutrients are found
+in the same foods. Two categorical axes and one value make a tile plot, and
+nothing in the data chose its slot order. Build a [cluster](../cluster.qmd)
+tree on each axis, then compose the three plots: the shared axes take the
+trees' leaf order, and tiles of similar color end up next to each other.
 
 ```{r}
 (data(nutrients) + path * cluster(amount, over = nutrient) + x(food) +
@@ -256,8 +270,10 @@ cluster on amount, over food, y is nutrient."* Owning chapters:
 
 ## What this section refuses
 
-Five glyph shapes have no order from smallest to largest, so `shape` refuses a
-continuous column and names the channels that do carry magnitude:
+Population was bound to `size` earlier, and `shape` may look like another
+channel that could carry it. Five glyph shapes have no order from smallest to
+largest, so `shape` refuses a continuous column and names the channels that do
+carry magnitude:
 
 ```{r}
 #| error: true

@@ -41,6 +41,9 @@ than drawing it.
 
 ## Color and opacity, one per row
 
+Every stroke in the network above looks the same, so a trade of 500 billion
+looks like a trade of 50. The table holds the value, and a stroke can show it
+by how dark it is.
 An edge is one row, so its color and its opacity can follow a column of the
 table. `color` maps a category, and `opacity` maps a number such as
 `billions`. A second layer, `point * layout(exporter, importer)`, reads the
@@ -62,6 +65,7 @@ On `line`, `opacity` is only a setting, because a line is one stroke with one
 value. An edge layer is many strokes, and each row gives its stroke an opacity
 of its own.
 
+Which strokes start at the same country?
 `color` works the same way, one value per row. Each stroke takes the color of
 its exporter, so Germany's five strokes share one color:
 
@@ -79,8 +83,10 @@ network."*
 
 ## What you can set
 
-Everything an edge can be told to look like, generated from the engine's own
-legality table, so this page cannot differ from what `style()` accepts:
+Whether the strokes are thin or thick, solid or dashed, is not in any column of
+the table. A setting decides that without reading one, and each mark takes its
+own. These are an edge's, generated from the engine's own legality table, so
+this page cannot differ from what `style()` accepts:
 
 ```{r}
 #| echo: false
@@ -96,6 +102,8 @@ column maps. `style(pattern = )` chooses the dash: `solid`, `dashed` or
 
 ## What it refuses
 
+The other marks take their positions from `x` and `y`, so writing them on an
+edge is the natural first attempt.
 An `edge` with no `layout` has no endpoints to draw. `x` and `y` cannot supply
 them, so gog refuses each binding, then refuses the empty `network()`:
 

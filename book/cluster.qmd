@@ -23,7 +23,9 @@ peek(nutrients)
 
 ## The tree
 
-Each leaf is described by a **profile**. `cluster(amount, over = nutrient)` says
+Which two of the eight foods are most alike, and which one is least like all
+the rest? To answer that, the engine needs to know what to compare. Each
+leaf is described by a **profile**. `cluster(amount, over = nutrient)` says
 that one leaf's profile is its `amount` in every category of `nutrient`. The
 distance between two leaves is the straight-line distance between their two
 profiles. Two branches join at the average distance between their leaves.
@@ -63,8 +65,10 @@ axis.
 
 ## The order
 
-The tree can also be read as an order. A tile plot of the same table draws
-its slots in the order the rows arrived, and nothing chose that order:
+Similar foods should stand next to each other on a tile plot, or the pattern in
+the tiles is hard to see. The tree can also be read as an order. A tile plot of
+the same table draws its slots in the order the rows arrived, and nothing chose
+that order:
 
 ```{r}
 data(nutrients) + zone + x(food) + y(nutrient) + color(amount) +
@@ -119,6 +123,7 @@ stands next to which.
 
 ## What cluster refuses
 
+Having learned `order()` on a bar chart, you may write it on the tree as well.
 An axis holds one order. `order()` sorts by a column, `cluster` derives an
 order from the tree, and saying both is a contradiction:
 
@@ -147,8 +152,9 @@ data(gm_eras) + path * cluster(life, over = era) + x(continent)
 
 ## Where the limits are
 
-A circular tree is valid grammar that this engine does not draw. Adding
-`polar()` says exactly that:
+Trees are often drawn in a circle, with the leaves around the rim, so you may
+write `polar()` here. A circular tree is valid grammar that this engine does
+not draw. Adding `polar()` says exactly that:
 
 ```{r}
 #| error: true

@@ -40,9 +40,10 @@ answer depends on whether the column is continuous or categorical.
 
 ### Continuous variable
 
-A continuous column can be cut into bands, or a smooth curve can be estimated
-over it. `bin` cuts the column into bands and counts the rows in each. `bar *
-bin` draws one bar per band, which is the histogram:
+Are the life expectancies of 142 countries close to one value, or spread
+across a wide range? A continuous column can be cut into bands, or a smooth
+curve can be estimated over it. `bin` cuts the column into bands and counts
+the rows in each. `bar * bin` draws one bar per band, which is the histogram:
 
 ```{r}
 # How is life expectancy distributed? → histogram
@@ -52,8 +53,9 @@ data(gapminder_2007) + bar * bin + x(life) +
 
 *"Given gapminder 2007: bars derived by bin, x is life."*
 
-`density` estimates a smooth curve over the same column, and `line * density`
-draws that curve:
+When the jumps between bars distract from the shape, a curve shows the same
+spread without them. `density` estimates a smooth curve over the same column,
+and `line * density` draws that curve:
 
 ```{r}
 # Smooth shape of the distribution → density curve
@@ -77,6 +79,8 @@ data(gapminder_2007) + bar * count + x(continent) +
 
 *"Given gapminder 2007: bars derived by count, x is continent."*
 
+Africa's 52 countries are easier to compare with the other continents as a
+share of all 142.
 `proportion` is the same tally as a share of the whole, so the bars sum to 1:
 
 ```{r}
@@ -95,8 +99,9 @@ With two variables, the pair of column types decides the mark.
 
 ### Continuous × Continuous
 
-Both variables are numeric. The natural questions are about relationships,
-trends, and patterns.
+Both variables are continuous, so the questions are about relationships,
+trends and patterns. Do richer countries live longer? `point` places one glyph
+per row, and the shape they make is the first answer:
 
 ```{r}
 # Is there a relationship? → scatter
@@ -106,6 +111,7 @@ data(gapminder_2007) + point + x(gdp) + y(life) + x_label("GDP per capita") +
 
 *"Given gapminder 2007: points, x is gdp, y is life."*
 
+The direction of the cloud can matter more than any one country in it.
 `smooth` fits a trend line through the points, and `line * smooth` draws it
 over the scatter. The points are colored by continent here, and the one line
 runs through all of them: 
@@ -121,6 +127,9 @@ data(gapminder_2007) + x(gdp) + y(life) +
 
 *"Given gapminder 2007: x is gdp, y is life, points, color by continent, and
 also a line derived by smooth."*
+
+The `actuals` table records yearly sales, and the question about an amount is
+how much of it there was:
 
 ```{r}
 # How much, not just where → filled area
@@ -165,7 +174,8 @@ the same way: bounded where you give it a pair of columns, spanning the panel
 where you do not. Give `zone` a `bin` instead of the pair of columns, and the
 same mark tiles the panel with counted cells: the heatmap.
 
-`life_bands` holds three named bands of life expectancy:
+How many countries fall below 60, 70 or 80 years, and where along the income
+axis do they gather? `life_bands` holds three named bands of life expectancy:
 
 ```{r}
 #| echo: false
@@ -208,7 +218,9 @@ data(gapminder_2007) + bar * mean + x(continent) + y(life) +
 
 *"Given gapminder 2007: bars derived by mean, x is continent, y is life."*
 
-Drop the transform, and `point` draws every country in its continent's slot:
+A mean hides how far apart the countries inside one continent are. Sometimes
+that spread is what you want to see. Drop the transform, and `point` draws every
+country in its continent's slot:
 
 ```{r}
 # All individual points per group → strip plot
@@ -233,8 +245,10 @@ When every point matters but the points overlap,
 [`point * jitter`](../transforms.qmd#jitter-spread-sideways-along-the-category)
 spreads them sideways: the jittered strip plot.
 
-`line`, `area`, `step` and `ribbon` take a category here too, joining one
-summary per group instead of drawing a bar on each:
+The question is not always which group is highest. It can be how the measure
+moves from one group to the next. `line`, `area`, `step` and `ribbon` take a
+category here too, joining one summary per group instead of drawing a bar on
+each:
 
 ```{r}
 # One value per group, joined → profile

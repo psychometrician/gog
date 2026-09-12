@@ -31,8 +31,10 @@ at the end, which is what the rest of this chapter is about.
 
 ## The axis that breaks a circle
 
-Here is a season of wind observations as an ordinary bar chart, one bar per
-compass point:
+How often the wind blew from each direction is a count per compass point, so
+start with the plot you know. It shows what a straight axis loses. Here is a
+season of wind observations as an ordinary bar chart, one bar per compass
+point:
 
 ```{r}
 data(winds) + bar * count + x(direction)
@@ -78,8 +80,9 @@ each bar stands at. `polar()` only decides that positions are bearings rather
 than places along a line. A bar still runs from its baseline to its value, which
 is why the count still sets how far each wedge reaches: the center is zero.
 
-Nothing else in the grammar knows the space changed, so nothing else has to be
-rewritten for it:
+The next question is whether the rest of the grammar survives the bend: a split
+by season, say, with the two seasons side by side. Nothing else in the grammar
+knows the space changed, so nothing else has to be rewritten for it:
 
 ```{r}
 data(winds) + bar * count * dodge + x(direction) + color(season) + polar()
@@ -146,7 +149,9 @@ The `day_cycle` table holds one day of trips, hour by hour:
 peek(day_cycle)
 ```
 
-`polar(start = )` turns the whole space by a number of degrees:
+The axis starts at the top, so midnight sits there. A working day reads better
+with noon at the top. `polar(start = )` turns the whole space by a number of
+degrees:
 
 ```{r}
 data(day_cycle) + line + x(hour) + y(trips) + polar(start = -180)
@@ -277,9 +282,10 @@ precisely, and is two atoms away.
 
 ## An angle that is measured, not named
 
-An angular position does not have to be a category. `bearing` is the same wind
-observation recorded in degrees, a continuous position that happens to run
-around a circle:
+The eight compass points are names. An instrument records the same directions
+as degrees, with a speed beside each reading. An angular position does not have
+to be a category. `bearing` is the same wind observation recorded in degrees, a
+continuous position that happens to run around a circle:
 
 ```{r}
 data(winds) + point + x(bearing) + y(speed) + color(season) + polar()
@@ -419,6 +425,8 @@ drop the last atom and read the bar.
 
 ## The marks in a circle
 
+The rose counted observations per direction. How fast the wind blew from each
+direction, and how much that varied, is a question for the summary marks.
 There is no mark that draws on the page and refuses the circle. The summary
 marks read here exactly as they read flat: a box is still a five-number summary,
 a whisker still shows how far the values reach, a band is still a spread. Only
@@ -513,8 +521,10 @@ the engine's own table, so it cannot promise a plot the engine will not draw.
 
 ## The sunburst: depth is the radius
 
-A **sunburst** draws a tree: one ring per level, each arc as wide as its share
-of the whole and sitting inside its parent's. It has no mark of its own and
+Where does a household's money go, and inside each group, which items take the
+most? That is a tree of shares, one level inside another. A **sunburst** draws
+a tree: one ring per level, each arc as wide as its share of the whole and
+sitting inside its parent's. It has no mark of its own and
 needs none. An arc of a ring is a rectangle in angle and radius. `zone` is the
 mark bounded by a pair on each axis, and this space is what bends a rectangle
 into a sector. The arithmetic between a hierarchy and those four edges is
@@ -623,7 +633,8 @@ radius carries something, and that sentence is one atom away.
 
 ## The same sentence, unbent
 
-Take `polar()` off the three-level sunburst and change nothing else:
+If the circle really is one word, taking the word away should leave a readable
+plot. Take `polar()` off the three-level sunburst and change nothing else:
 
 ```{r}
 data(spending) + zone * partition(group, item, detail) + x(amount) +
@@ -642,9 +653,10 @@ disc at the center.
 
 ## Naming the nodes
 
-`partition` publishes each node's **center** as well as its four edges, which is
-why a second mark can read the same computation. `text` takes the center and
-labels the node:
+The legend decodes the groups and nothing inside them, so the items on the
+middle ring are unnamed. `partition` publishes each node's **center** as well
+as its four edges, which is why a second mark can read the same computation.
+`text` takes the center and labels the node:
 
 ```{r}
 data(spending) + x(amount) + y(depth, limits = c(0, 4)) +

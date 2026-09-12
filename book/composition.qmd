@@ -22,6 +22,9 @@ what you write on the right of the operator, and by nothing else.
 
 ## Two plots, one page
 
+Two views of one table often belong side by side, even when they share no
+axis. Write each plot in full, then put `|` between them:
+
 ```{r}
 (data(gapminder_2007) + point + x(gdp) + y(life)) |
   (data(gapminder_2007) + bar * count + x(continent) + theme(tick_angle = 45))
@@ -84,7 +87,9 @@ label's height above it. A plot that draws no axis reserves no margin for one.
 
 ### One axis, but not one legend
 
-Compose two plots that both map `color` and you get two legends, one for each:
+Having seen an axis merge, you might expect a shared legend to merge the same
+way. Compose two plots that both map `color` and you get two legends, one for
+each:
 
 ```{r}
 (data(gapminder_2007) + point + x(gdp) + y(life) + color(continent)) |
@@ -235,9 +240,10 @@ render_svg(((data(gapminder_2007) + point + x(gdp) + y(life)) |
 
 ## What a page is not
 
-A page is plots arranged, so anything belonging to *one* plot is written into
-that plot before it is composed. Apart from the size above, an atom added to a
-page refuses and says so:
+A title over two plots seems to belong to the page rather than to either plot,
+so you may write it there. A page is plots arranged, so anything belonging to
+*one* plot is written into that plot before it is composed. Apart from the size
+above, an atom added to a page refuses and says so:
 
 ```{r}
 #| error: true

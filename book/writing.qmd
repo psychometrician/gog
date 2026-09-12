@@ -93,8 +93,9 @@ every mark that can take it.
 
 ## Where is the world's wealth, and its health?
 
-Chapter one built this sentence step by step. Write it in one pass now,
-adding `size` for population, then check:
+Income and life expectancy fill both positions. A reader also wants to know how
+many people each dot stands for. Chapter one built this sentence step by step.
+Write it in one pass now, adding `size` for population, then check:
 
 ```{r}
 data(gapminder_2007) + point +

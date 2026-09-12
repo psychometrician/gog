@@ -38,7 +38,7 @@ keeps both words. A channel is what you write; an encoding is what it does.
 | `x(field)` | horizontal position | any |
 | `y(field)` | vertical position | any |
 | `z(field)` | depth: the third position, which makes a plot 3-D | continuous |
-| `color(field)` | fill / stroke color | categorical *or* continuous |
+| `color(field)` | fill / stroke color | continuous *or* categorical |
 | `size(field)` | point radius | continuous |
 | `shape(field)` | glyph shape | categorical |
 | `pattern(field)` | fill hatch / stroke dash | categorical |
@@ -57,6 +57,9 @@ so there is nothing for a key to decode.
 
 ## `color`
 
+Which points belong together? A plain scatter cannot say, so the grouping has to
+come from a column.
+
 `color(field)` maps a column to color, and a legend appears automatically.
 It takes *either* kind of column, and the kind decides what color means.
 
@@ -65,7 +68,7 @@ and accepts no second spelling, so there is no `colour` here as there is in
 ggplot2; writing one earns a refusal that names the fix (see
 [Law 3](design-laws.qmd)).
 
-A **text** column asks *"which one?"* Each category gets its own hue from the
+A **categorical** column asks *"which one?"* Each category gets its own hue from the
 palette:
 
 ```{r}
@@ -75,7 +78,7 @@ data(gapminder_2007) + point + x(gdp) + y(life) +
 
 *"Given gapminder 2007: points, x is gdp, y is life, color by continent."*
 
-A **numeric** column asks *"how much?"* Its values run along a **ramp**. A ramp
+A **continuous** column asks *"how much?"* Its values run along a **ramp**. A ramp
 is a range of colors that a number is placed along, the way an axis is a range
 of positions. This one runs light to dark, and the legend is the ramp itself,
 labeled at its minimum, midpoint, and maximum:
@@ -134,6 +137,9 @@ Channels bind forward, never backward. See
 ---
 
 ## `size`
+
+With `x` and `y` spent on income and life expectancy, a third number such as
+population still needs a place on the plot.
 
 `size(field)` scales point radius linearly from 3px (min) to 12px (max).
 A size legend shows three representative circles.
@@ -236,6 +242,9 @@ for a whole layer instead of mapping a column, use [`style(pattern =
 
 ## `opacity`
 
+Sometimes a number should decide how faint a mark is drawn, so that small values
+fade and large ones stay solid.
+
 `opacity(field)` maps a continuous column to transparency. Use it when marks
 overlap, so the crowded regions look darker than the empty ones.
 
@@ -317,6 +326,9 @@ it implies grouping automatically.
 
 ## Multiple channels
 
+Two positions and one refining channel carry three columns. A table usually has
+a fourth you want on the page.
+
 Channels compose freely, so you can bind several of them on one mark:
 
 ```{r}
@@ -389,7 +401,7 @@ neighbors.
 
 ### Ramps {#ramps}
 
-For a **numeric** color column, `palette()` names a ramp instead. These run
+For a **continuous** color column, `palette()` names a ramp instead. These run
 one way, from low values to high, and lightness is what carries the ordering.
 
 | Name | What it is | Use it when |
@@ -553,6 +565,9 @@ data(gapminder_2007) + point + x(gdp, scale = "log") + y(life) +
 far along?". `shape`, `pattern` and `group` do not: they answer "which one?".
 
 ### Custom colors
+
+Often the colors are decided before you begin: a journal asks for them, or an
+earlier figure already used them.
 
 Pass the colors yourself: hex values, CSS color names such as `firebrick`, or a
 mix of the two:

@@ -24,7 +24,9 @@ staircase.
 
 ## Histogram outline
 
-`step * bin` draws a histogram as an **outline** rather than as bars: one
+How do three distributions compare in one panel? Filled histograms cover one
+another. An outline has no fill to cover with, so several groups can share a
+panel. `step * bin` draws a histogram as an **outline** rather than as bars: one
 stepped line tracing the top of each bin. Split it by `color` for the
 overlaid outline histogram, one staircase per group, each drawn without a
 fill:
@@ -53,7 +55,9 @@ and no opacity has to be set.
 
 ## A step function
 
-Give `step` an `x` and a `y` directly and it draws a step function. An empirical
+What share of countries have a life expectancy at or below 60 years, or 70, or
+any value you choose? The empirical CDF answers all of those at once. Give
+`step` an `x` and a `y` directly and it draws a step function. An empirical
 CDF is the best-known example: with *n* observations it climbs by 1/*n* at each
 observation, and stays flat between them:
 
@@ -90,7 +94,9 @@ data(rates) + step + x(year) + y(rate) +
 
 ## Multiple series
 
-`color` and `group` split a `step` exactly as they split a `line`: one staircase
+Two sites each hold their stock until a delivery or a sale changes it. To
+compare them week by week, you want both on one plot. `color` and `group`
+split a `step` exactly as they split a `line`: one staircase
 per category. Here two series hold and jump independently:
 
 ```{r}
@@ -107,11 +113,12 @@ data(inventory) + step + x(week) + y(units) + color(site) +
 
 ## A category on the domain
 
-`step` and `line` share one channel row: whatever one requires, accepts or
-refuses, the other does too. They differ in how the path is drawn, never in what
-you may bind. So a category on the domain works here as it does in
-[Line](line.qmd), and the staircase holds each category's value across its own
-slot:
+How do the continents compare on one summary, without a slope that claims a
+change between them? `step` and `line` share one channel row: whatever one
+requires, accepts or refuses, the other does too. They differ in how the path is
+drawn, never in what you may bind. So a category on the domain works here as it
+does in [Line](line.qmd), and the staircase holds each category's value across
+its own slot:
 
 ```{r}
 data(gapminder_2007) + step * mean + x(continent) + y(life) +
@@ -130,8 +137,10 @@ argument about time. It applies to categories in the same way.
 
 ## Stroke width and opacity
 
-Like `line`, a `step` is a single stroke per series, so `size` and `opacity` are
-not channels; they are settings on the whole stroke:
+Three thin outlines are hard to follow where they cross. A heavier stroke is
+easier to see, and a little transparency keeps each one visible where it passes
+over another. Like `line`, a `step` is a single stroke per series, so `size` and
+`opacity` are not channels; they are settings on the whole stroke:
 
 ```{r}
 data(iris_flowers) + step * bin + x(petal_length) + color(species) +
@@ -147,6 +156,9 @@ the same *setting vs mapping* rule as `line`; see [Setting vs
 mapping](../style.qmd).
 
 ## What you can set
+
+A setting changes how the staircase looks without reading a column, and each
+mark takes its own. These are a step's, with the values each accepts:
 
 ```{r}
 #| echo: false

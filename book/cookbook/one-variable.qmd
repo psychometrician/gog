@@ -10,8 +10,9 @@ type: text asks how many of each, a measurement asks how the values spread.
 
 ## How many of each?
 
-A categorical column's first question. Counting rows is a derivation, not a different
-kind of chart, so the sentence is `bar` with `* count`:
+Your column is categorical, one continent per country. The first question is
+how many countries each continent holds. Counting rows is a derivation, not a
+different kind of chart, so the sentence is `bar` with `* count`:
 
 ```{r}
 data(gapminder_2007) + bar * count + x(continent)
@@ -35,7 +36,9 @@ Owning chapters: [Bar](../marks/bar.qmd), [Transforms](../transforms.qmd).
 
 ## What share of the whole is each?
 
-Swap `count` for `proportion` and the counts become fractions that sum
+The count above shows 52 countries in Africa. That number means little until
+you know it is 52 out of 142. When the question is each continent's share of
+the whole, swap `count` for `proportion`. The counts become fractions that sum
 to one:
 
 ```{r}
@@ -50,9 +53,10 @@ share.
 
 ## How is a measurement distributed?
 
-The continuous column's first question. `bin` cuts the axis into equal-width
-bins and counts the rows in each; `bar` draws them touching, so a gap means a
-bin with no rows. The result is the **histogram**:
+Your column is continuous, one petal length per flower. The first question is
+where the values cluster and how far they spread. `bin` cuts the axis into
+equal-width bins and counts the rows in each; `bar` draws them touching, so a
+gap means a bin with no rows. The result is the **histogram**:
 
 ```{r}
 data(iris_flowers) + bar * bin + x(petal_length)
@@ -76,8 +80,9 @@ centers. Owning chapters: [Bar](../marks/bar.qmd),
 
 ## What is its smooth shape?
 
-The binned view depends on where the bin edges fall; the density estimate
-removes that decision:
+A histogram's shape depends on where its bin edges fall. A reader can mistake
+that choice for a feature of the data. When the shape of the distribution
+itself is the answer, the density estimate removes that decision:
 
 ```{r}
 data(gapminder_2007) + line * density + x(life)

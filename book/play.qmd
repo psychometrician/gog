@@ -24,8 +24,9 @@ strip above the panel names the one you are looking at.
 
 ## The same sentence, in space
 
-Everything `play` does, `facet` does too, and swapping one operator for the
-other is the whole difference:
+A sequence is not the only way to show the years. The choice is easier to make
+with the same rows drawn as panels. Everything `play` does, `facet` does too,
+and swapping one operator for the other is the whole difference:
 
 ```{r}
 gm_four <- gm_all[gm_all$year %in% c(1952, 1972, 1992, 2007), ]
@@ -308,8 +309,9 @@ have run 170 frames instead of 17.
 
 ## How fast
 
-`speed` is a multiple of the normal pace, written on the binding beside
-`scale` and `limits`, because it belongs to `play` and to nothing else:
+A slow loop makes a reader wait for a pattern they have already seen. `speed`
+is a multiple of the normal pace, written on the binding beside `scale` and
+`limits`, because it belongs to `play` and to nothing else:
 
 ```{r}
 data(gm_all) + point + x(gdp, scale = "log") + y(life) + color(continent) +
@@ -350,8 +352,8 @@ data(gapminder_asia) + point + x(year) + y(life) + color(country) + play(year)
 
 ## Crossed with a facet
 
-Panels split the page and frames split the clock, so the two compose and every
-panel advances together:
+Do all five continents climb at the same pace? Panels split the page and frames
+split the clock, so the two compose and every panel advances together:
 
 ```{r}
 data(gm_all) + point + x(gdp, scale = "log") + y(life) + play(year) |
@@ -363,8 +365,10 @@ continent, and the strip above them all names the year they share.
 
 ## Frames in the cube
 
-Nothing about `play` belongs to the plane. A frame is a subset of the rows, and
-the [third position](space.qmd) is a way of looking at whatever rows you have,
+The gapminder cloud has a third measurement, population, and the whole cloud
+moves through the years. Nothing about `play` belongs to the plane. A frame is
+a subset of the rows, and the [third position](space.qmd) is a way of looking
+at whatever rows you have,
 so the two compose, and neither needed anything added for the other:
 
 ```{r}
@@ -490,7 +494,9 @@ height were the point.
 
 ## Frames in polar
 
-The next coordinate space works the same way, and for the same reason.
+Every picture in the polar chapter held one moment, and a rose can grow across
+the years too. The next coordinate space works the same way, and for the same
+reason.
 [`polar()`](polar.qmd) bends the panel, the frames choose the rows, and neither
 has to know about the other:
 
@@ -624,7 +630,8 @@ free converters online do it in one step.
 
 ## What it refuses
 
-One column names the panels or names the frames, and not both. If it were drawn,
+Having crossed frames with panels, you may try the same column on both. One
+column names the panels or names the frames, and not both. If it were drawn,
 one panel's rows would fall in one frame and every other panel would be empty:
 
 ```{r}

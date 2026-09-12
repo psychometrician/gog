@@ -156,8 +156,10 @@ description cannot.
 
 ## Channels: a column made visible
 
-A channel maps a data column to a visual property of the mark. Adding one word
-to the sentence adds one thing the reader can see:
+The first chapter placed each country by two positions and said nothing more
+about it. Which continent does each dot belong to? A channel maps a data column
+to a visual property of the mark. Adding one word to the sentence adds one
+thing the reader can see:
 
 ```{r}
 data(gapminder_2007) + point + x(gdp) + y(life) + color(continent)
@@ -263,8 +265,10 @@ See [Transforms](transforms.qmd) for each one in detail, and
 
 ## The `+` operator: layering
 
-`+` joins one word to the next. Every sentence in this book is built with it,
-and the words can be read left to right in the order they were written.
+A plot often needs more than one mark on one pair of axes, and one operator
+joins them. It is the same operator that joins every other word. `+` joins one
+word to the next. Every sentence in this book is built with it, and the words
+can be read left to right in the order they were written.
 
 ```{r}
 # One layer
@@ -272,6 +276,9 @@ data(gapminder_2007) + point + x(gdp) + y(life)
 ```
 
 *"Given gapminder 2007: points, x is gdp, y is life."* One mark, one layer.
+
+Bars can show the amounts, with a point on top of each bar to mark the exact
+value:
 
 ```{r}
 # Two layers: bars behind, points on top
@@ -323,8 +330,12 @@ and [Transforms](transforms.qmd) for each transform in detail.
 
 ## The `|` and `/` operators: faceting, or composing
 
-`|` puts things side by side and `/` puts one above the other. Whether those are
-panels or whole plots is decided by what you write on the right.
+Across the world, life expectancy rises with income. One cloud of 142
+countries cannot show whether that holds inside each continent. A second
+question, how many countries each continent has, needs a plot of its own
+beside the first. Two operators arrange both. `|` puts things
+side by side and `/` puts one above the other. Whether those are panels or
+whole plots is decided by what you write on the right.
 
 With `facet()` on the right they split *one* plot into panels, one per category
 of the column it names:
@@ -361,9 +372,11 @@ See [Composition](composition.qmd).
 
 ## Scales: how a number becomes a position
 
-A scale is written on the **binding**, the channel with its column in it. It is
-not a word of its own, because it belongs to one channel and nothing else can
-combine with it:
+Incomes in `gapminder_2007` run from under 300 dollars to nearly 50,000. Most
+countries therefore crowd the left end of a linear axis, and a log scale
+spreads them out. A scale is written on the **binding**, the channel with its
+column in it. It is not a word of its own, because it belongs to one channel
+and nothing else can combine with it:
 
 ```{r}
 data(gapminder_2007) + point + x(gdp, scale = "log") + y(life) +

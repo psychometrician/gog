@@ -34,8 +34,10 @@ The channel must be generalized, not specialized.
 
 > A transform behaves identically on every mark. > No per-mark special cases.
 
-`bin` cuts the same buckets and counts the same rows whichever mark reads it.
-Change only the mark, and what changes is the geometry:
+Without this law you would have to learn each transform again for every mark
+that can read it. `bin` cuts the same buckets and counts the same rows
+whichever mark reads it. Change only the mark, and what changes is the
+geometry:
 
 ```{r}
 ((data(gapminder_2007) + bar * bin + x(life)) |
@@ -123,6 +125,10 @@ the American spelling is simply the only one there has ever been.
 > A table is named once.
 > Columns are then bare names.
 > The nearest `data()` wins.
+
+Other plotting libraries often repeat the table in every call, or quote each
+column as a string. Naming the table once is what lets the rest of the sentence
+read as plain words.
 
 ```{r}
 # Correct: table named once, columns bare

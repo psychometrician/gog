@@ -26,8 +26,9 @@ peek(trade_partners)
 
 ## One row is one edge
 
-Write the `edge` mark derived by `layout()`, name the two endpoint columns in
-order, and say the space:
+The first question of the trade table is who trades with whom, and one stroke
+per row draws exactly that. Write the `edge` mark derived by `layout()`, name
+the two endpoint columns in order, and say the space:
 
 ```{r}
 data(trade_partners) + edge * layout(exporter, importer) + network()
@@ -50,14 +51,15 @@ data. A `layout` therefore draws in `network()` and in no other space.
 
 ## The nodes and their names
 
-Two more layers finish the diagram. A `point` layer draws the nodes, and a
-`text` layer names them. Each one writes the same `layout`, and the engine
-computes it once per layer. Every computation lands on the same positions,
-because the placement is deterministic. The layout publishes two columns about
-each node: its `name`, and its `degree`, the count of its relations.
-`size(degree)` draws the nodes with the most relations largest. The `text` layer
-also composes `repel`, the modifier that moves labels off each other, so a name
-rests beside its dot instead of covering it:
+The strokes alone do not say which node is which country, or which countries
+trade the most. Two more layers finish the diagram. A `point` layer draws the
+nodes, and a `text` layer names them. Each one writes the same `layout`, and
+the engine computes it once per layer. Every computation lands on the same
+positions, because the placement is deterministic. The layout publishes two
+columns about each node: its `name`, and its `degree`, the count of its
+relations. `size(degree)` draws the nodes with the most relations largest. The
+`text` layer also composes `repel`, the modifier that moves labels off each
+other, so a name rests beside its dot instead of covering it:
 
 ```{r}
 data(trade_partners) +
@@ -79,9 +81,10 @@ what the layout is for.
 
 ## An edge carries its own columns
 
-An edge is one row, so its color and its opacity can follow any column of the
-table. `opacity(billions)` maps each stroke's opacity to its value, so the
-heavier relations draw darker:
+Every stroke so far is drawn alike, whether the trade is 500 billion dollars or
+50 billion. An edge is one row, so its color and its opacity can follow any
+column of the table. `opacity(billions)` maps each stroke's opacity to its
+value, so the heavier relations draw darker:
 
 ```{r}
 data(trade_partners) +
@@ -103,8 +106,10 @@ belongs on the `edge` layer, where one row carries one value.
 
 ## An angle asks for the cube
 
-Bare `network()` computes the layout in the plane. State a viewing angle and the
-same edges are laid out in a cube instead. Every node takes a new position, and
+A plane gives the layout two directions to spread its nodes, and a cube gives
+it three, in a picture you can turn. Bare `network()` computes the layout in
+the plane. State a viewing angle and the same edges are laid out in a cube
+instead. Every node takes a new position, and
 the picture is drawn from the angle you asked for:
 
 ```{r}
@@ -141,8 +146,9 @@ data(trade_partners) +
 
 ## What the network refuses
 
-A `layout` outside its space would draw axes, and the numbers along them would
-mean nothing:
+The likeliest mistake is to leave `network()` off, since a flat plot needs no
+word for its space. A `layout` outside its space would draw axes, and the
+numbers along them would mean nothing:
 
 ```{r}
 #| error: true

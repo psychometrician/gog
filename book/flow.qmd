@@ -28,7 +28,10 @@ peek(titanic)
 
 ## One row is one path
 
-Name the stages in the atom, left to right, and bind the count to `y`:
+The first question of the Titanic table is who survived, and whether class
+changed the chances. That is a movement from a class to an outcome, which is a
+flow with two stages. Name the stages in the atom, left to right, and bind the
+count to `y`:
 
 ```{r}
 data(titanic) + ribbon * flow(class, survived) + y(n) +
@@ -53,8 +56,10 @@ any band gives the total of that band and every band under it.
 
 ## Adding a stage
 
-Add a stage by adding a column. Each path now crosses three stages, and each
-band still carries one path's count at both of its ends:
+The next question is whether women survived more often than men, which the
+two-stage diagram could not answer. Add a stage by adding a column. Each path
+now crosses three stages, and each band still carries one path's count at both
+of its ends:
 
 ```{r}
 data(titanic) + ribbon * flow(class, sex, survived) + y(n) +
@@ -71,9 +76,10 @@ whether they survived.
 
 ## Color comes from a stage
 
-A band runs through every stage, so any stage can color it. Write `color()`
-after the `ribbon` layer and name the stage whose value gives each band its
-color:
+With three stages the bands cross one another, and a path is hard to follow
+through a crossing unless something marks it. A band runs through every stage,
+so any stage can color it. Write `color()` after the `ribbon` layer and name
+the stage whose value gives each band its color:
 
 ```{r}
 data(titanic) + ribbon * flow(class, sex, survived) + y(n) + color(class) +
@@ -91,6 +97,7 @@ carries.
 
 ## The slots and their names
 
+So far you have found a path by its position, because no slot carries a name.
 Two more layers finish the diagram. A `zone` layer draws each stage's slots, the
 stacked blocks the bands leave and arrive at. A `text` layer names them. The
 three layers read one computation, so they always agree about where everything
@@ -153,8 +160,10 @@ data(titanic) + y(n) + ribbon * flow(class, survived) + color(n)
 
 ## Where the limits are
 
-Bending a flow into `polar()` is valid grammar. The bands bent around a
-circle are the chord diagram, which this engine does not draw:
+Every mark that draws on the page also bends into a circle, so the flow is a
+natural thing to try there. Bending a flow into `polar()` is valid grammar. The
+bands bent around a circle are the chord diagram, which this engine does not
+draw:
 
 ```{r}
 #| error: true

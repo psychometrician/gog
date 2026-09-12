@@ -25,8 +25,9 @@ display is the one this chapter teaches.
 
 ## One sentence, three spaces
 
-Here is the population of each continent as a single column, divided into its
-parts:
+How is the world's population divided among the continents? You already know
+one plot that shows a share: the divided column. Start there. Here is the
+population of each continent as a single column, divided into its parts:
 
 ```{r}
 data(gapminder_2007) + bar * sum * stack + y(population) + color(continent) +
@@ -89,9 +90,11 @@ flat column.
 
 ## Two levels, from a position
 
-A packing can nest one split inside another, and binding a position is what adds
-that second level. Each category gets a region sized by its own total, and the
-rows inside it are packed into that region:
+A share often has a share inside it: each continent's population, and within it
+how much belongs to 1957 and how much to 2007. A packing can nest one split
+inside another, and binding a position is what adds that second level. Each
+category gets a region sized by its own total, and the rows inside it are
+packed into that region:
 
 ```{r}
 data(gm_eras) + bar * sum + x(continent) + y(population) + color(era) +

@@ -28,7 +28,8 @@ takes a web address reads them.
 
 ## Reading a table
 
-`gog_table()` reads any of these tables by name:
+To run the first chapter's plot yourself, you need its table in your session.
+One line fetches it. `gog_table()` reads any of these tables by name:
 
 ```{r}
 #| echo: false
@@ -87,7 +88,9 @@ you read the file back. Both change the plot, and this page takes each in turn.
 
 ### A declared order
 
-The `winds` table records one wind observation per row:
+The eight compass directions have a fixed order, and a plot of them is correct
+only when it keeps that order. The `winds` table records one wind
+observation per row:
 
 ```{r}
 #| echo: false

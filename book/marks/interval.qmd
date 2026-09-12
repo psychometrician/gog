@@ -30,9 +30,11 @@ the choice, and a written sentence cannot.
 
 ## A range per group
 
-The low value and the high value come from a transform, not from two extra
-channels. `range` reduces `y` to its minimum and maximum within each `x` group,
-and `interval` spans between them:
+How far do the petal lengths of each species reach, from the shortest to the
+longest? One whisker per species answers it, and a whisker needs a low value and
+a high value to span. The low value and the high value come from a transform,
+not from two extra channels. `range` reduces `y` to its minimum and maximum
+within each `x` group, and `interval` spans between them:
 
 ```{r}
 data(iris_flowers) + interval * range + x(species) + y(petal_length) +
@@ -106,6 +108,8 @@ five numbers and the outlier rule together.
 
 ## A confidence interval, with a center
 
+How well is the average petal length of each species known? That is a different
+question from how far the flowers spread, and it needs a different statistic.
 `range` shows the full spread. For the **uncertainty of the mean**, use
 `confidence`. It computes a t-interval for each group's mean (a t-interval
 widens when the group is small) and keeps that mean as the center. The interval
@@ -125,7 +129,9 @@ The level is a parameter, so `confidence(0.99)` draws wider than
 
 ## The spread of the data
 
-The opening of this chapter named a standard deviation, a standard error and a
+How far is a typical flower from the average of its species? That is a question
+about the spread of the data, not about how well the average is known. The
+opening of this chapter named a standard deviation, a standard error and a
 confidence interval. `confidence` draws the third. The first is `deviation`:
 
 ```{r}
@@ -211,7 +217,9 @@ upper)`](../transforms.qmd) supplies them without computing anything: `interval
 
 ## Whiskers on their side
 
-An interval reads its orientation off the bindings, the way a [`bar`](bar.qmd)
+Whiskers lie down for the reasons bars do: the names are long, or there are
+many of them. A list of rows is then easier to scan than a row of columns. An
+interval reads its orientation off the bindings, the way a [`bar`](bar.qmd)
 and a [`box`](box.qmd) do. Put the categories on `y` and the measured column on
 `x`, and the whiskers lie down:
 
@@ -259,7 +267,9 @@ data(gapminder_2007) + interval * range + x(continent) + y(continent)
 
 ## Splitting by color
 
-`color` splits an interval into one whisker per group, the same categorical
+A color says which whisker is which without reading the axis. It is also the
+only way to put a second category on the same axis. `color` splits an
+interval into one whisker per group, the same categorical
 split `line` and `bar` make. The statistic is computed inside each group, so
 each gets its own interval, its own hue, and a legend:
 
@@ -302,7 +312,9 @@ length, colored tomato, with size 2.5."*
 
 ## Caps, or a bare linerange
 
-The end caps, the short crossbars, are decoration, not data; they only
+Whether a whisker ends in a crossbar is a matter of style, and a crowded plot
+often reads more cleanly without them. The end caps, the short crossbars, are
+decoration, not data; they only
 emphasize where a whisker stops. So whether to draw them is a *setting*:
 `style(caps = FALSE)` drops them for a bare linerange, and `caps = TRUE` (the
 default) keeps the capped error bar.
@@ -349,7 +361,9 @@ with direction.
 
 ## A dashed whisker
 
-A whisker is a **stroke**, so it takes `style(pattern = )` the same way a
+A dash separates one layer from another without a second color, and it
+survives a print in black and white. A whisker is a **stroke**, so it takes
+`style(pattern = )` the same way a
 [`line`](line.qmd) does. This is the [settable rule](../design-laws.qmd): a dash
 patterns every path-stroke mark (`line`, `step`, `interval`, `path`, `rule`).
 The dash is drawn on the whisker span only. The caps and the center dot stay
@@ -372,6 +386,9 @@ band. See
 sit among the others.
 
 ## What you can set
+
+A setting changes how every whisker looks without reading a column, and each
+mark takes its own. These are an interval's, with the values each accepts:
 
 ```{r}
 #| echo: false

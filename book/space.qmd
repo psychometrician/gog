@@ -194,7 +194,8 @@ data(thermals) + line + x(east) + y(north) + z(altitude)
 Every cube so far bound a column to each of the three axes. The third axis can
 also carry something the data does not hold. The [heatmap](marks/zone.qmd) cuts
 a plane into cells and colors each one by how many rows fell in it. The cells
-already cover a floor, and the color represents a quantity. Bind that quantity
+already cover a floor, and the color represents a quantity. Two shades of one
+color are hard to compare exactly, and two heights are easy. Bind that quantity
 to a height instead and the same counts are drawn as standing bars:
 
 ```{r}
@@ -318,8 +319,10 @@ reason, stated by a transform this time instead of by a mark.
 
 ## `interval` and `box` in the cube
 
-A bar is not the only mark that stands in a slot and measures along the other
-axis. A whisker spans a range and a box summarizes one. `bar`, `interval` and
+A mean per cell hides how far the values in that cell spread, and the spread is
+often the question. A bar is not the only mark that stands in a slot and
+measures along the other axis. A whisker spans a range and a box summarizes
+one. `bar`, `interval` and
 `box` ask the same question of the same pair of axes, so all three take the
 third dimension. Give the pair a cube and each stands on a *cell* of the floor,
 measuring along `z`:
@@ -468,9 +471,10 @@ dimension is the one failure this project refuses above all others.
 
 ## Faceting: one cube per panel
 
-A facet splits the rows into panels, and a panel is a rectangle. The cube is
-drawn inside a rectangle. So a faceted 3-D plot is one cube per panel, each
-projected into its own panel:
+A cube of 142 countries mixes five continents together. The question is how one
+continent's cloud differs from another's. A facet splits the rows into panels,
+and a panel is a rectangle. The cube is drawn inside a rectangle. So a faceted
+3-D plot is one cube per panel, each projected into its own panel:
 
 ```{r}
 data(gapminder_2007) + point + x(gdp) + y(life) + z(population) +

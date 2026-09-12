@@ -45,6 +45,9 @@ it was a mapping.
 
 ## What you can set
 
+Before you write a setting, you need to know whether the mark can carry it, and
+the answer differs between a bar and a point.
+
 Every setting is a row and every mark is a column. The grid shows what each mark
 takes and what it refuses, including combinations you would not have guessed
 were legal. Legal is not the same as useful. [Law 8](design-laws.qmd) says the
@@ -99,6 +102,9 @@ five fills (`bar`, `box`, `area`, `ribbon`, `zone`) it is a **fill texture**:
 be read by in grayscale or in print, where hue is gone. It is paint, never
 geometry: a dashed line and a solid one trace the same path. A `step`, by
 contrast, is a different mark because it traces a different path.
+
+A trend drawn through the data is often dashed, so that it reads as a summary
+rather than as a measurement:
 
 ```{r}
 data(gapminder_asia) + line * mean + x(year) + y(life) +
@@ -190,6 +196,9 @@ have needed a second setting.
 
 ### One color, any mark
 
+Having set a point's color once, you should not need a second spelling for a
+line or a bar.
+
 `style(color = )` is the same instruction whichever mark it lands on. It fills
 points, strokes lines, and fills bars:
 
@@ -227,6 +236,9 @@ say which one you mean.
 
 ### Several at once
 
+A figure for publication is rarely one setting. Color, opacity, size and shape
+are decided together, so they are written together:
+
 ```{r}
 data(gapminder_2007) + point + x(gdp) + y(life) +
   style(color = "#2a6f97", opacity = 0.45, size = 7, shape = "diamond")
@@ -241,6 +253,9 @@ remove any one and the other three are unchanged. Each mark's chapter lists
 what you can set on it, under [What you can set](marks/point.qmd#what-you-can-set).
 
 ### Colors are CSS colors
+
+A color arrives as a hex value from a style guide, or as a name remembered from
+another tool. Not every name you remember is one gog knows.
 
 A CSS name and a hex value both work anywhere a color is accepted, in `style()`
 and in `palette()`:
@@ -300,6 +315,9 @@ lightgray, and also a line derived by smooth, colored firebrick, with size 3."*
 
 ## `line` takes settings it refuses as channels
 
+A mapped `opacity` works on a point. Try the same binding on a line and gog
+refuses it.
+
 A line is drawn with *one* stroke from its first point to its last. Nothing
 varies from row to row along that stroke, so `size` and `opacity` are not
 channels on `line`:
@@ -323,6 +341,9 @@ where the answers differ.
 
 ## You cannot map and set the same property
 
+It is easy to write both by accident: a `color(continent)` left from an earlier
+draft, and a `style(color = )` added to try one shade.
+
 Doing both would mean one of the two instructions is silently discarded, which
 gog never does:
 
@@ -335,6 +356,9 @@ data(gapminder_2007) + point + x(gdp) + y(life) +
 Pick the one you meant.
 
 ## `style` applies to one layer only
+
+A trend over a cloud of points usually wants the points faint and the line
+plain, so the two layers cannot look the same.
 
 `color()` written before any mark applies to every layer that can take it.
 `style()` attaches to the nearest mark before it and goes no further, because a
@@ -350,6 +374,9 @@ data(gapminder_2007) + x(gdp) + y(life) +
 To style both layers, say so on both.
 
 ## `palette`: choosing the colors a mapping uses
+
+You may want both at once: the continents separated by color, and those five
+colors chosen by you rather than by gog.
 
 `style(color = )` is written instead of a mapping. `palette()` keeps the mapping
 and chooses which colors the categories receive:
@@ -393,6 +420,9 @@ Making everything one color is *setting*, not choosing a palette, so use
 `style(color = "red")`.
 
 ## `theme`: settings that belong to no mark
+
+The gridlines distract on a slide. The category names overlap along the bottom.
+Neither problem belongs to any mark.
 
 `style()` sets a mark's own appearance. Some settings belong to no mark at all:
 the gridlines, the shape of the panel, the angle the tick labels are read at.
@@ -488,6 +518,8 @@ data(gapminder_2007) + point + x(gdp, scale = "log") + y(life) +
 
 ## The journal look
 
+A journal often asks for a figure on a white background inside a framed panel.
+
 `theme("bw")` is the one most often wanted for publication: a white panel inside
 a full rectangle.
 
@@ -558,6 +590,9 @@ that one too. A property that moved one and left the other would be exactly the
 kind of exception [Law 2](design-laws.qmd) forbids.
 
 ### The label color follows the band
+
+A dark band is a real choice, and it raises one worry: the default label is dark
+too.
 
 A dark strip with light text is a common look, and it takes one property:
 

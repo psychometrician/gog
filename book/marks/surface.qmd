@@ -17,6 +17,8 @@ share.
 
 ## A sheet through the samples
 
+A grid of elevations is a table of numbers, 1364 of them here. No reader can
+see a hill in a column of numbers, and drawn as a sheet the hill appears.
 Here is Maunga Whau, a volcano in Auckland. The book's copy keeps every second
 row and column, a 20 m grid. Ross Ihaka digitized the elevations from a
 topographic map, and they reach this page through R's `datasets` package
@@ -37,6 +39,8 @@ want a different one.
 
 ## One row per crossing
 
+What shape must a table have before a surface can draw it? A scatter's table
+does not have it, and the reason decides which of your tables can be a sheet.
 Given two position columns and no transform, a surface reads its rows as
 **nodes**, and the sheet is the faces between them. You never declare which
 nodes are neighbors. gog recovers that from your two position columns: the
@@ -90,6 +94,8 @@ with holes nobody designed.
 
 ## A continuous floor
 
+A continent in one column and a year in another looks like a grid too. A sheet
+over it is a natural thing to ask for.
 Both position columns have to be numbers. A face spans the gap between two
 samples and so asserts every height *inside* that gap, and between one category
 and the next there is no inside to assert anything about:
@@ -112,6 +118,9 @@ category and a cut number, one dimension higher.
 
 ## The third geometry of one field
 
+Which of the two iris clusters is denser, and by how much? The heatmap and the
+contour show where each cluster is, and leave its height to a legend or a
+level.
 A surface takes two transforms, and `density` is the one that makes it the third
 way gog draws a field. The same estimate over the same two columns, three times:
 
@@ -166,6 +175,8 @@ on a third axis.
 
 ## When each cell holds one value
 
+Does the ground rise smoothly between your samples, or does each cell hold one
+value that says nothing about its neighbors?
 `bin` is the other transform, and it draws a different sheet: flat across each
 cell, stepping at the boundary. Here is the same volcano, read as a coarse grid
 rather than a fine one:
@@ -272,6 +283,9 @@ data(gm_eras) + surface * count + x(continent) + y(era) + space()
 
 ## The mesh, and what the shading means
 
+A smooth sheet hides where its samples were, the way a line hides its rows.
+Drawing the mesh puts the grid back, so a reader can see how fine the sampling
+was.
 `border_color` and `border_size` draw the **mesh lines**. A face is a closed
 fill like a bar's or a box's, so the [settable rule](../design-laws.qmd) gives
 it a border. On a mesh those borders draw the grid itself:
@@ -313,6 +327,7 @@ reader with no way to notice.
 
 ## Color by height, per face
 
+How high is the summit, and how deep is the crater?
 `color` maps on a surface, and a **measured** column colors it face by face
 along a ramp. [`palette()`](../style.qmd) chooses which ramp. `"viridis"` suits
 a topographic sheet, because it gets lighter the whole way, so you can judge the
@@ -419,6 +434,8 @@ data(band) + surface + x(east) + y(north) + z(elevation) + color(side) +
 
 ## Opacity by a measure, per face
 
+Part of a sheet is often not the subject. The flat ground around a hill only
+hides what is behind it, and fading those faces leaves the hill.
 `opacity` maps on a surface, and it maps for the reason `color` does. A face is
 small enough to hold one value, so it can hold an opacity too. Every face takes
 its own opacity, and a face fades where its measure is small:
@@ -553,8 +570,10 @@ On a grid it does; in a cloud it does not.
 
 ## What you can set
 
-Everything a surface can be told to look like, generated from the engine's
-own legality table, so this page cannot differ from what `style()` accepts:
+No column says whether the mesh lines show, or how far you can see through a
+sheet. A setting decides that without reading one, and each mark takes its own.
+These are a surface's, generated from the engine's own legality table, so this
+page cannot differ from what `style()` accepts:
 
 ```{r}
 #| echo: false
@@ -568,6 +587,8 @@ section explains: no `size`, and no `pattern`.
 
 ## What it refuses
 
+The flat marks take no `z`, so a surface with only `x` and `y` is the first
+sentence to try.
 A surface with no height is the same mistake as a surface in the plane, so it is
 one refusal rather than two, and it names both routes into the cube along with
 the mark that draws a field in the plane:

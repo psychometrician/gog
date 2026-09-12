@@ -39,11 +39,14 @@ the row, `text` draws the row's own value *as* the glyph.
 
 ## Both at once: the labeled scatter
 
-They compose. Layer a `point` and a `text` over one `(x, y)`. The dot gives the
-exact position and the string gives the name. That is a labeled scatter, built
-from two marks rather than a third mark of its own. Each `style()` applies to
-the mark written before it, so the gray below belongs to the dots alone. A label
-would otherwise sit on top of its dot, so `style(nudge = "up")` moves it off:
+A word is wide and a position is a point, so a name alone marks its row only
+roughly.
+The two marks compose. Layer a `point` and a `text` over one `(x, y)`.
+The dot gives the exact position and the string gives the name. That is a
+labeled scatter, built from two marks rather than a third mark of its own.
+Each `style()` applies to the mark written before it, so the gray below
+belongs to the dots alone. A label would otherwise sit on top of its dot, so
+`style(nudge = "up")` moves it off:
 
 ```{r}
 data(medals) + point + style(size = 5, color = "#9e9e9e") +
@@ -67,6 +70,9 @@ a `text` label is part of the specification, so it is drawn every time.
 
 ### Nudging the label off its point
 
+Up is one of four directions, and it is not always the empty side. A dot near
+the top of the panel, or one with a neighbor just above it, wants its name
+somewhere else.
 `style(nudge = )` shifts a text label off its `(x, y)`. It takes one direction:
 `"up"`, `"down"`, `"left"`, or `"right"`:
 
@@ -147,6 +153,8 @@ data(gm_europe) + point + style(color = "#9e9e9e") +
 
 ## Numeric labels: the value on each mark
 
+A bar shows which country won more, and the axis only lets a reader estimate by
+how much. Sometimes the number itself is the answer.
 A `label` need not be a name. Bind a column that holds numbers and each row's value is
 drawn. A whole number is printed without a decimal point. Layer `text` over
 `bar` to print each bar's height at its top:
@@ -163,6 +171,8 @@ gold."*
 
 ## Color
 
+Every label is printed in one color until a column separates them. A reader
+sees a hue before reading a word, so the group arrives before the name.
 `color` splits the labels by group and earns a legend, the same categorical split
 `bar` makes. Here each country's name takes its own hue:
 
@@ -177,6 +187,9 @@ country."*
 
 ## Styling: one color, one size
 
+When the labels are the plot rather than notes beside it, the default font can
+be small for the job. A larger size for all of them, and a color of your own,
+are settings, because no column decides them.
 `style(color = )` sets the color of the words. `style(size = )` sets the font
 size in pixels. Both cover the whole layer:
 
@@ -196,6 +209,8 @@ size per row.
 
 ## Why `label` is a channel
 
+You might expect to type the words into the sentence, the way a title is typed.
+A label is not a title: it is one value per row, and that makes it data.
 `text` *requires* a `label`: it is the mark's minimum syllable, the way `x` and
 `y` are. Ask for a `text` mark with no `label` and the engine refuses, and says
 what to write instead:
@@ -214,6 +229,8 @@ is why a labeled scatter is `point + text` and never a `label` on `point`.
 
 ## A note is a layer
 
+A plot often needs one remark written on it, at a place you choose. It may say
+what a region of the scatter means, or why a point sits where it does.
 That one-row table is worth seeing drawn. In ggplot2 a note is a separate
 function, `annotate()`. In gog it is a table with one row. A second `data()`
 opens a second layer over its own table (the [Data](../data.qmd) chapter's
@@ -244,6 +261,11 @@ rows.
 
 ## What you can set
 
+Once the words are on the plot, the next question is how they look. Which size,
+which color, and which side of the dot? None of that is in a column, so it is
+set rather than mapped, and each mark takes its own settings. These are a text
+mark's, with the values each accepts:
+
 ```{r}
 #| echo: false
 #| results: asis
@@ -271,6 +293,8 @@ size with `style(size = )` instead.
 
 ## What it refuses
 
+A reader who knows `point` will try its channels on `text`, and one of them has
+no work to do on a string.
 A text mark's glyph *is* its content, so it has nothing left for `shape` to
 vary:
 

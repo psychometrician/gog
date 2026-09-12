@@ -72,7 +72,8 @@ column by column.
 
 ## Drawing the outlines
 
-The table has one row for every point along a coastline or a border:
+To draw a boundary of your own, you need to know what shape of table the engine
+reads. The table has one row for every point along a coastline or a border:
 
 ```{r}
 knitr::kable(head(world_borders, 4))
@@ -90,8 +91,10 @@ point of the next, and draw a line across the ocean between them.
 
 ## The second layer is the data
 
-An outline on its own is only a background. It becomes a plot when something is
-drawn on top of it, and that is ordinary layering. The outline is one `data()`
+The chapter's first plot drew the earthquakes with no coastline, so nothing
+said where on the earth they were. An outline on its own is only a background.
+It becomes a plot when something is drawn on top of it, and that is ordinary
+layering. The outline is one `data()`
 and one mark, and the earthquakes are another.
 
 ```{r}
@@ -111,9 +114,10 @@ are. Nothing in the sentence is new: two tables, two marks, and the second
 
 ## A quantity goes on a channel
 
-A flat plot, a cube and a polar plot all leave you an axis to measure along. A
-bar stands on one axis and measures its length along the other. A map has no
-axis left, because longitude and latitude use both.
+The earthquakes differ in magnitude, and the picture so far shows only where
+they were. A flat plot, a cube and a polar plot all leave you an axis to
+measure along. A bar stands on one axis and measures its length along the
+other. A map has no axis left, because longitude and latitude use both.
 
 So a quantity moves to a **channel**. Size each place by it:
 
@@ -145,7 +149,8 @@ continent, in the map space."*
 
 ## Meridians and parallels
 
-A `rule` draws a line at one position and spans the axis it does not name. In a
+A map often needs a reference line, and the most common one is the equator. A
+`rule` draws a line at one position and spans the axis it does not name. In a
 flat space that is a reference line. Here, a rule at one latitude is a
 **parallel**, and a rule at one longitude is a **meridian**. The plot below
 draws one parallel, the equator:
@@ -172,7 +177,9 @@ a new meaning, and the mark itself is unchanged.
 
 ## Naming places
 
-`text` writes a string at a position, and a position here is a place:
+A coastline alone does not say which part of the world it is. A few named
+cities do. `text` writes a string at a position, and a position here is a
+place:
 
 ```{r}
 capitals <- data.frame(
@@ -195,8 +202,9 @@ is lon, y is lat, label by name, in the map space."*
 
 ## What a map refuses
 
-A mark that measures along an axis has no axis here. gog says so rather than
-drawing something that looks like a map and is not one:
+You may want to count the earthquakes by longitude, which on a flat page is
+`bar * count`. A mark that measures along an axis has no axis here. gog says so
+rather than drawing something that looks like a map and is not one:
 
 ```{r}
 #| error: true
@@ -270,9 +278,10 @@ country, so it groups by country.
 
 ## A value on the map
 
-`color` reads a number as readily as a category, so the same sentence shades
-each country by a value. The value comes from a table you already know:
-`gapminder_2007`, the same 142 countries [A first plot](first-plot.qmd) draws.
+Where in the world do people live longest? `color` reads a number as readily as
+a category, so the same sentence shades each country by a value. The value
+comes from a table you already know: `gapminder_2007`, the same 142 countries
+[A first plot](first-plot.qmd) draws.
 
 Joining two tables is the host language's job, not the grammar's. In R the join
 itself is one `match()` call. Every host language has its own one-call lookup.

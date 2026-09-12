@@ -11,9 +11,10 @@ panels, with `|` or `/`. The recipes below use both.
 
 ## How do the groups' distributions compare?
 
-The overlaid histogram: `bin` cuts one set of intervals for everyone, so
-the groups sit on shared edges, each a translucent fill under its own
-solid outline:
+Three species of iris share one petal length axis. The question is whether
+their petal lengths overlap or sit apart. The overlaid histogram: `bin` cuts
+one set of intervals for everyone, so the groups sit on shared edges, each a
+translucent fill under its own solid outline:
 
 ```{r}
 data(iris_flowers) + bar * bin + x(petal_length) + color(species)
@@ -26,8 +27,10 @@ fills overlap. Owning chapters: [Bar](../marks/bar.qmd),
 
 ## What if the overlap gets worse?
 
-Drop the fills entirely: `step * bin` traces each group's silhouette as
-an unfilled staircase, so nothing can hide anything:
+Three translucent fills are still readable. More groups, or groups that sit
+closer together, hide more of each fill. Drop the fills entirely:
+`step * bin` traces each group's silhouette as an unfilled staircase, so
+nothing can hide anything:
 
 ```{r}
 data(iris_flowers) + step * bin + x(petal_length) + color(species)
@@ -57,9 +60,10 @@ know which is which.
 
 ## One panel per group
 
-When each group needs its own pair of axes, split the plot into panels instead
-of splitting the marks. Statistics run *within* each panel; the scale stays
-shared so panels stay comparable:
+Five continents on one histogram would be five overlaid fills; the recipes
+above had only three to separate. When each group needs its own pair of axes,
+split the plot into panels instead of splitting the marks. Statistics run
+*within* each panel; the scale stays shared so panels stay comparable:
 
 ```{r}
 data(gapminder_2007) + bar * bin + x(life) | facet(continent)
@@ -77,7 +81,9 @@ the count is not.
 
 ## Two grouping variables at once
 
-`|` splits into panel columns, `/` into panel rows; written together they cross
+Continent is one grouping and year is another. You want each continent drawn
+in 1957 and again in 2007, to see what changed between the two years. `|`
+splits into panel columns, `/` into panel rows; written together they cross
 into a grid. Every combination gets a panel. The two years are picked out in R,
 because subsetting a table is the host language's job, and the other three
 bindings do it their own way:
@@ -99,8 +105,9 @@ text. That is what the [Over time](over-time.qmd) refusal is about.
 
 ## Which group is biggest?
 
-A comparison is easiest to read when it is sorted, and a column of plain text carries no
-order of its own. `order()` is how you give it one:
+The `medals` table lists five countries, and the question is which of them won
+the most gold. A comparison is easiest to read when it is sorted, and a column
+of plain text carries no order of its own. `order()` is how you give it one:
 
 ```{r}
 data(medals) + bar + x(country) + y(gold) + order(gold, desc = TRUE)
@@ -115,8 +122,11 @@ sorted by a value. It overrides a [declared order](../data.qmd) as well.
 
 ## Two groups, mirrored
 
-A **population pyramid** is a named chart type, and nothing in the kernel knows
-its name. It follows from rules that were already there, for other reasons.
+Two cities each have a population count in every age band, and the question is
+how the two age structures compare. The chart drawn for that question is the
+**population pyramid**. It is a named chart type, and nothing in the kernel
+knows its name. It follows from rules that were already there, for other
+reasons.
 
 The `census` table holds 36 rows: an `age` band, a `city` (Busan or Seoul), and
 a `population` for each of 18 bands per city. It is invented data, shaped like a
@@ -183,9 +193,10 @@ adding one.
 
 ## What this section refuses
 
-A bar is a rectangle; it has no glyph to vary, so `shape` on a `bar` is
-refused outright. The table of what each mark accepts is one table, with
-no per-mark exceptions:
+`shape` separates categories on a point, one glyph per category, and you might
+expect the same on a bar. A bar is a rectangle; it has no glyph to vary, so
+`shape` on a `bar` is refused outright. The table of what each mark accepts is
+one table, with no per-mark exceptions:
 
 ```{r}
 #| error: true

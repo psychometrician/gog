@@ -26,6 +26,9 @@ there is no second function to go and find.
 
 ## A scale is not a transform
 
+You could also take the logarithm of the column yourself and plot the result.
+That is a different act, and the difference decides what the axis says.
+
 `bin` and `mean` are **transforms**: they read your data and produce different
 data. A scale produces no new values at all. It changes how far along the axis a
 number lands and what the ticks say, and nothing else.
@@ -83,6 +86,9 @@ follows one rule, and it has no per-transform exceptions:
 
 ### Scaling the grouping axis
 
+A histogram of income is the first place the rule matters. Its bins have to be
+cut somewhere, in dollars or in their logarithms.
+
 `bin` groups by x, so a log x is applied first. The bins are cut on the
 logarithms, not on the dollars. Each bin then spans one constant *ratio*, so the
 bars land at a constant spacing and cover the axis:
@@ -101,6 +107,9 @@ would crowd into the right edge. That reads as a broken picture rather than as a
 modeling choice, which is why the grouping axis is scaled first.
 
 ### The measured value keeps its own units
+
+Put the log on the measured axis instead and a different question arises. Does a
+bar on a log scale stand for a sum of dollars, or for a sum of logarithms?
 
 `sum` writes to y, so a log y is applied *after* the sum. The two bars below
 stand for 100 and 10:
@@ -131,6 +140,10 @@ yourself.
 
 ### `smooth` fits inside its groups
 
+A fitted curve asks the same question from the grouping side: does the fit see
+dollars, or their logarithms? On incomes that run from a few hundred dollars to
+nearly fifty thousand, the answer changes the shape of the curve.
+
 `smooth` groups by x, so a log x fits the curve against log income. That is what
 straightens a relationship otherwise crowded into the left of the panel:
 
@@ -146,6 +159,9 @@ data(gapminder_2007) + point + x(gdp, scale = "log") + y(life) +
 line derived by smooth, x is gdp on a log scale, y is life."*
 
 ## What a log scale refuses
+
+Some columns cannot take a log scale, and you will meet them: a depth that goes
+below zero, a balance that went negative, a count of zero.
 
 A logarithm is undefined at zero and below, so those rows have no position on
 the axis. gog says so rather than dropping them quietly:
@@ -172,6 +188,10 @@ data(gapminder_2007) + point + x(continent, scale = "log") + y(life)
 ```
 
 ## Choosing the base
+
+Ten is the usual base for money and for population, and not for everything you
+measure. A pitch doubles with every octave, and a decay is counted in factors of
+*e*.
 
 `scale = "log"` means base 10 unless you say otherwise:
 
@@ -219,6 +239,10 @@ is the one whose labels name what you are counting.
 
 ### Natural log
 
+The natural base is for a quantity that decays at a constant rate. The amount
+below falls by a factor of *e* every hour, so one gridline falls between every
+two consecutive readings.
+
 R has no `e` constant, so it is `base = exp(1)`:
 
 ```{r}
@@ -255,6 +279,10 @@ data(octaves) + point + x(freq, base = 2) + y(level)
 ```
 
 ## Time: a date column gets a calendar axis
+
+A column of dates raises a question the other columns do not. Where do the ticks
+go, and what do they say, when the units are years and months rather than tens
+and hundreds?
 
 The time scale is one you never have to write. A `Date` or `POSIXct` column
 *is* temporal, the type already says so, and gog reads the calendar from the
@@ -307,6 +335,9 @@ tick names the finest unit that distinguishes it from its neighbors.*
 
 ### Bars sit on dates; they never measure one
 
+Daily orders make a natural bar chart, one bar per day, and forty-two bars raise
+the question of where the ticks go.
+
 Bars positioned at dates are an ordinary time series, and the ticks still
 come from the calendar rather than one per bar. Wilkinson's stock-price
 example ticks Sundays, not trades [@wilkinson2005], and the same rule here
@@ -327,6 +358,9 @@ data(revenue) + bar + x(sales) + y(day)
 ```
 
 ### What a time axis refuses
+
+A date is stored as a number underneath. You might therefore expect a date to
+take a log scale, and a number to take a time scale. Neither is allowed.
 
 A moment has no logarithm. The calendar's zero is an arbitrary convention,
 and a logarithm measured from an arbitrary zero measures nothing:
@@ -376,6 +410,10 @@ data(six_weeks) + point + x(day) + y(orders) + color(day) +
 | `category` | One slot per distinct value, chosen from the column type: columns of text, and columns with a declared order |
 
 ## The axis fits your data
+
+Where should an axis end, on the data or on the next round number past it?
+Padding to a round number leaves part of the panel blank, and implies that the
+data reaches further than it does.
 
 An axis shows round numbers on its ticks, but the **range** follows your data,
 not the round numbers. The ticks are the nice values that fall *inside* the
@@ -543,6 +581,9 @@ data(gapminder_2007) + bar * mean + x(continent, limits = c(0, 3)) + y(life)
 ```
 
 ## The column's type picks the axis
+
+Other tools make you name a scale whenever you want to change one, so `scale =
+"category"` is a habit a reader may arrive with.
 
 The scales in the table above are not all chosen the same way. You ask for
 `log`. You do not ask for `time` or `category`. gog reads those off the column:

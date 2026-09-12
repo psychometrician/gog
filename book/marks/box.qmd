@@ -32,8 +32,9 @@ drawn by gog is therefore not always the box Tukey's own rule gives.
 
 ## A summary per group
 
-Put the category that splits the data on x, and put the measured column on y.
-The mark computes the summary itself:
+How do the three species differ in petal length, not only on average but in how
+widely each varies? Put the category that splits the data on x, and put the
+measured column on y. The mark computes the summary itself:
 
 ```{r}
 data(iris_flowers) + box + x(species) + y(petal_length) +
@@ -51,7 +52,9 @@ whisker stops before them, and each one is drawn on its own.
 
 ## Distribution across many groups
 
-The comparison still works with more groups, and here the outliers name
+Which continent varies the most, and which countries fall far below the rest
+of their own continent? Five boxes answer both at once. The comparison still
+works with more groups, and here the outliers name
 particular countries. This is life expectancy across the continents in 2007,
 five distributions in one panel, with two countries far below the rest of their
 continent:
@@ -71,7 +74,9 @@ not give it a minimum height to make the spread look larger.
 
 ## Boxes on their side
 
-Swap the two positions and the same sentence draws the same plot, turned. If
+When the category names are long, or there are many of them, the boxes should
+lie down. Swap the two positions and the same sentence draws the same plot,
+turned. If
 you know ggplot2's `coord_flip()`, there is no such word here, for the reason
 there is none on [`bar`](bar.qmd). gog reads the two bindings and decides from
 them which axis carries the numbers. A second way to say one thing is a second
@@ -161,7 +166,10 @@ and the channel set never grows.
 
 ## Coloring the boxes
 
-`color` gives each box its own hue and a legend, the same categorical split `bar`
+Three boxes in one color read as one series. A color per species lets a reader
+match each box to the same species in another plot. A color is also how a
+second category, such as an era, shares each slot. `color` gives each box its
+own hue and a legend, the same categorical split `bar`
 and `interval` make. Mapped to the same column that sits on x, it colors one box
 per group:
 
@@ -203,6 +211,9 @@ gives the whole shape behind that summary. See
 `range` differ from the box's own summary.
 
 ## What you can set
+
+A setting changes how every box looks without reading a column, and each mark
+takes its own. These are a box's, with the values each accepts:
 
 ```{r}
 #| echo: false

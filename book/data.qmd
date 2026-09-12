@@ -12,8 +12,10 @@ travel with its columns.
 
 ## Binding a table
 
-`data()` takes a table you already hold in your session. Column names after
-that are bare words: no quotes, no table prefix, no indexing.
+Most of the time the table is already loaded and you know what you want to ask.
+The only work left is the sentence. `data()` takes a table you already hold in
+your session. Column names after that are bare words: no quotes, no table
+prefix, no indexing.
 
 ```{r}
 data(gapminder_2007) + point + x(gdp) + y(life)
@@ -129,8 +131,10 @@ before you read this one.
 
 ## Plot-level vs. layer-level data
 
-`data()` at the start of the expression is the **plot-level default**:
-it applies to all layers that don't declare their own table.
+A line and the points it passes through come from one table. You should not
+have to name it twice. `data()` at the start of the expression is the
+**plot-level default**: it applies to all layers that don't declare their own
+table.
 
 ```{r}
 # Both layers read from "gapminder_2007"
@@ -141,8 +145,10 @@ data(gapminder_2007) + x(gdp) + y(life) +
 
 *"Given gapminder 2007: x is gdp, y is life, a line and also points."*
 
-The next plots use two tables. `actuals` holds the sales of five years that
-have passed, and `forecast` holds the three years still to come:
+A forecast continues a history of past values, and the two usually arrive as
+separate tables. You want both on one pair of axes. `actuals` holds the sales
+of five years that have passed, and `forecast` holds the three years still to
+come:
 
 ```{r}
 #| echo: false
@@ -246,11 +252,12 @@ first one does. That is why `data(actuals)` stands alone above and
 ## When the second table names its columns differently
 
 The plot above was the easy case: `actuals` and `forecast` both call their
-columns `year` and `sales`, so one pair of positions written at the front served
-both layers.
+columns `year` and `sales`, so one pair of positions written at the front
+served both layers.
 
-A second table usually does not match. The `milestones` table marks two points
-on the income axis:
+Plots often carry a note at a chosen point, and the note comes from a small
+table of its own. That table's column names rarely match the first table's.
+The `milestones` table marks two points on the income axis:
 
 ```{r}
 #| echo: false
@@ -423,8 +430,10 @@ DBI::dbDisconnect(con)
 
 ## Declaring the order of categories
 
-A column of plain text has no order of its own, so gog draws its categories in the
-order the rows happen to arrive:
+Low, Medium and High have an order every reader knows. A plot that draws them
+in any other order makes the reader sort them. A column of plain text
+has no order of its own, so gog draws its categories in the order the rows
+happen to arrive:
 
 ```{r}
 severity <- data.frame(
@@ -558,8 +567,10 @@ which column.
 
 ## Special characters and other writing systems
 
-Category names, titles, and axis labels are drawn exactly as you wrote them.
-Three characters have a special meaning inside an SVG file: `&`, `<` and `>`.
+The people who built a table chose its names, and a plot has to print them
+unchanged. Category names, titles, and axis labels are drawn
+exactly as you wrote them. Three characters have a special meaning inside an
+SVG file: `&`, `<` and `>`.
 gog writes them in the form the file needs, so they print as themselves, and a
 name like `R&D` needs no special handling. The plot below puts all three into
 its names and its title:
@@ -572,12 +583,13 @@ special <- data.frame(
 data(special) + bar + x(firm) + y(spend) + title("Q3 <spend> & forecast")
 ```
 
-A name in another writing system is also drawn as written, and it can be a
-bare column name as well as a label. The table below is in Korean. Its name,
-지역별 (*jiyeokbyeol*), means by region. Its two columns are 지역 (*jiyeok*),
-region, and 값 (*gap*), value. The three rows are the cities 서울 (*Seoul*), 부산
-(*Busan*) and 대구 (*Daegu*). The plot title 한국 지역별 값 (*Hanguk jiyeokbyeol
-gap*) reads *value by region, Korea*.
+Many tables are not written in Latin letters at all. Their column names should
+be drawn as they are, with no renaming first. A name in another writing system
+is also drawn as written, and it can be a bare column name as well as a label.
+The table below is in Korean. Its name, 지역별 (*jiyeokbyeol*), means by region.
+Its two columns are 지역 (*jiyeok*), region, and 값 (*gap*), value. The three rows
+are the cities 서울 (*Seoul*), 부산 (*Busan*) and 대구 (*Daegu*). The plot title 한국
+지역별 값 (*Hanguk jiyeokbyeol gap*) reads *value by region, Korea*.
 
 ```{r}
 지역별 <- data.frame(

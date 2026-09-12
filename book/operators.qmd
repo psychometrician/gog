@@ -27,7 +27,8 @@ section below.
 
 ## `+`: compose
 
-`+` is the general assembly operator.
+Every sentence you have written so far holds several atoms, and one operator
+joins them. `+` is the general assembly operator.
 Every atom enters a specification via `+`:
 
 ```r
@@ -65,9 +66,11 @@ bottom. Add a `line` after `point` to draw the line on top of the points.
 
 ### The order of `+`: data, mark, positions, refinements
 
-Inside a single layer the channels **commute**, and the mark commutes among
-them. Write the mark, `x` and `color` in any order and the plot is the same.
-Three things can be arranged six ways, so here are all six.
+Every sentence in this book is written in one order, and you may wonder
+whether the engine requires it. Inside a single layer the channels **commute**,
+and the mark commutes among them. Write the mark, `x` and `color` in any order
+and the plot is the same. Three things can be arranged six ways, so here are
+all six.
 
 ```{r}
 ((data(iris_flowers) + bar * bin + x(petal_length) + color(species)) |
@@ -156,7 +159,10 @@ they sit side by side on the page.
 
 ## `*`: derive
 
-`*` joins a transform to a mark, and the result is one **compound mark**.
+A mark on its own draws the rows as they are. A histogram counts them first,
+and a trend line fits a curve to them first. That computing step needs a word
+of its own. `*` joins a transform to a mark, and the result is one
+**compound mark**.
 
 ```r
 bar * bin     # histogram
@@ -219,6 +225,10 @@ pairs one by one.
 
 ### Live examples
 
+The three compound marks named above appear in the sentences you will write
+most often. Here each one is drawn, so you can see what the transform did to
+the rows before the mark drew them.
+
 ```{r}
 # Histogram: life expectancy across all countries in 2007
 data(gapminder_2007) + bar * bin + x(life) + y(count) +
@@ -250,8 +260,10 @@ data(gapminder_2007) + line * density + x(life) + y(density) +
 
 ## `|` and `/`: facet, or compose
 
-`|` puts things side by side and `/` puts one above the other. What is written
-on the right decides which. A `facet()` splits one plot into panels; a second
+Two questions lead to the last two operators: how the same plot looks for each
+group, and how two different plots fit on one page. `|` puts things side by
+side and `/` puts one above the other. What is written on the right decides
+which. A `facet()` splits one plot into panels; a second
 plot is placed beside or below the first.
 
 With `facet()`, `|` produces small multiples arranged in columns, one panel per

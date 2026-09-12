@@ -106,7 +106,9 @@ one word: a layer names its own *column*, never its own scale.
 Positions were the hard case, because every layer shares one axis. The other
 channels share nothing, and they follow the same position rule.
 
-Written *after a mark*, a channel binds to that mark alone:
+A channel is often meant for one layer alone: colored points under a single
+plain line, for example. Written *after a mark*, a channel binds to that mark
+alone:
 
 ```{r}
 data(gapminder_2007) + x(gdp) + y(life) +
@@ -136,8 +138,9 @@ binding names a column, never a new axis.
 
 ### Why binding only goes forward
 
-Because a mark takes only the atoms written after it, the same atoms always mean
-the same thing:
+Suppose you want the lines colored by country and only the points sized by
+population. Because a mark takes only the atoms written after it, the same
+atoms always mean the same thing:
 
 ```{r}
 # `size` is written after `point`, so it belongs to the points;
@@ -182,9 +185,10 @@ data(gapminder_asia) + x(year) + y(life) + size(population) +
 
 ## `data()` mid-expression
 
-[Data](data.qmd) states this rule, and it is a scope rule. The first `data()` is
-the plot's table. Each later `data()` applies to the mark written directly after
-it.
+A forecast, a threshold or a set of labels usually arrives in a table of its
+own, so one plot often reads two tables. [Data](data.qmd) states this rule, and
+it is a scope rule. The first `data()` is the plot's table. Each later `data()`
+applies to the mark written directly after it.
 
 ```{r}
 data(actuals) + x(year) + y(sales) +

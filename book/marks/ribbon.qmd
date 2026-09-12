@@ -15,10 +15,12 @@ boundaries the data supplies.
 
 ## A band from a range
 
-The two boundaries come from a transform, exactly as an interval's two extents
-do. `range` reduces `y` to its minimum and maximum within each `x`, and the
-ribbon fills between them. Here, the spread of life expectancy across five Asian
-countries, year by year:
+Did the five countries move closer together over the years, or further apart?
+The gap between the lowest and the highest in each year answers that. A band
+drawn between the two shows it as one shape. The two boundaries come from a
+transform, exactly as an interval's two extents do. `range` reduces `y` to its
+minimum and maximum within each `x`, and the ribbon fills between them. Here,
+the spread of life expectancy across five Asian countries, year by year:
 
 ```{r}
 data(gapminder_asia) + ribbon * range + x(year) + y(life) +
@@ -119,7 +121,9 @@ at the end of this chapter.
 
 ## A confidence band
 
-`range` shows the full spread. For the **uncertainty of the mean**, use
+How well is the mean life expectancy known in each year? That is a different
+question from how far the five countries spread. `range` shows the full
+spread. For the **uncertainty of the mean**, use
 `confidence`. It computes a t-interval for the mean at each `x`, and the ribbon
 fills between its two bounds. The interval widens when the group is small:
 
@@ -224,7 +228,9 @@ to the band.
 
 ## One band per group
 
-A categorical column *splits* a ribbon into one band per group, the same split
+How does the spread of one continent compare with another's, year by year? One
+band per continent puts the three ranges in one panel. A categorical column
+*splits* a ribbon into one band per group, the same split
 [`area`](area.qmd) and `line` make. Here each continent gets its own band, the
 range of its countries' life expectancy over time:
 
@@ -264,7 +270,9 @@ pre-computed band drew above), never an outline option on the mark.
 
 ## A category on the domain
 
-A ribbon takes a category on `x`, the same way an [`area`](area.qmd) does, and
+The spread of each continent and its center can be drawn as one band across
+the categories. It is then read as a shape, the way an area's filled profile
+is. A ribbon takes a category on `x`, the same way an [`area`](area.qmd) does, and
 fills the spread across the categories in axis order:
 
 ```{r}
@@ -459,6 +467,9 @@ sentence where it matters.
 a mark draws whatever a transform hands it, in the mark's own way.
 
 ## What you can set
+
+A setting changes how the band looks without reading a column, and each mark
+takes its own. These are a ribbon's, with the values each accepts:
 
 ```{r}
 #| echo: false

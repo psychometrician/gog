@@ -30,6 +30,10 @@ from a continuous axis and touch; that is `bar * bin`, in
 
 ## Basic usage
 
+Which country won the most gold medals? Everything in this chapter is added to
+one sentence, the smallest that draws a bar: a source, the mark, and its two
+positions.
+
 ```{r}
 data(medals) + bar + x(country) + y(gold)
 ```
@@ -41,7 +45,10 @@ zero unless you state your own `limits`, so a bar's length is its value.
 
 ## Color
 
-`color` fills each bar with a distinct color:
+Every bar is the same color until a column separates them. A color of its own
+lets a reader find one country quickly, and match it to the same country in
+another plot. Bind `color` to the column that already sits on `x`. `color`
+fills each bar with a distinct color:
 
 ```{r}
 data(medals) + bar + x(country) + y(gold) +
@@ -52,12 +59,14 @@ data(medals) + bar + x(country) + y(gold) +
 
 ## Ordering bars
 
-`order()` controls the sequence of categories along whichever axis carries them:
-`x` on a vertical plot, `y` on a horizontal one. You can sort on any column in
-the table: the categorical column itself, the measured column, or a third column
-entirely. Naming the categorical column asks for that column's own order. Here
-that is alphabetical, because `country` is plain text. A column with a [declared
-order](../data.qmd) uses that order instead.
+In what order should the bars stand? A reader looking for the largest value
+wants it first. A reader looking for one name wants the names in alphabetical
+order. `order()` controls the sequence of categories along whichever axis
+carries them: `x` on a vertical plot, `y` on a horizontal one. You can sort on
+any column in the table: the categorical column itself, the measured column, or
+a third column entirely. Naming the categorical column asks for that column's
+own order. Here that is alphabetical, because `country` is plain text. A column
+with a [declared order](../data.qmd) uses that order instead.
 
 **Default, data order** (rows as they appear in the table):
 
@@ -123,7 +132,9 @@ data(medals) + bar + x(country) + y(gold) +
 
 ## Duplicate categories
 
-If the same category appears in multiple rows, `bar` draws one bar per row;
+A table often holds several rows for one category, one per event or one per
+year. The question is still how large each category is in total. If the same
+category appears in multiple rows, `bar` draws one bar per row;
 the last silently overlaps the earlier ones.
 
 Use the `sum` transform to total the values per category first:
@@ -185,9 +196,12 @@ photocopier?](../cookbook/three-or-more.qmd) in the cookbook.
 
 ## Horizontal bars
 
-Swap the bindings. If you know ggplot2's `coord_flip()` or matplotlib's
-`barh()`, there is no such word here, because it would be a second way to say
-one thing. Put the categories on `y` and the measure on `x`:
+Sometimes the bars should lie down. The category names may be too long for the
+bottom axis. Or there may be many categories, and a list of rows reads more
+easily than a row of columns. Swap the bindings. If you know ggplot2's
+`coord_flip()` or matplotlib's `barh()`, there is no such word here, because it
+would be a second way to say one thing. Put the categories on `y` and the
+measure on `x`:
 
 ```{r}
 data(medals) + bar + x(gold) + y(country) +
@@ -253,7 +267,10 @@ for glyphs.
 
 ## Histogram
 
-Combine `bar` with the `bin` transform to create a histogram. `bin` groups
+How are the world's life expectancies spread out, and where do most countries
+fall? That is a question about one continuous column, and a bar needs a
+category to stand on. Combine `bar` with the `bin` transform to create a
+histogram. `bin` groups
 continuous `x` values into equal-width bins and counts the rows in each:
 
 ```{r}
@@ -353,6 +370,8 @@ See [Transforms](../transforms.qmd) for details on `bin` and other transforms.
 
 ## Grouped bars: side by side
 
+How did each continent's life expectancy change between 1957 and 2007? That is a
+comparison inside each category, so each continent needs two bars, one per era.
 A color split draws the groups at one position, each one covering the last. To
 set them **side by side** as a grouped bar chart, add
 [`dodge`](../transforms.qmd). Each group's bar narrows to share the slot, and
@@ -381,7 +400,9 @@ dodge` for tallies). See [Transforms](../transforms.qmd) for the whole family.
 
 ## Stacked bars: piled up
 
-The other way to place a color split: instead of side by side, pile the groups
+Sometimes the question is the total as well as the parts: how much is there
+altogether, and how much of it does each group hold? The other way to place a
+color split: instead of side by side, pile the groups
 **on top of each other** with [`stack`](../transforms.qmd). Each bar's height
 becomes the category's total across the groups, and the segments read as parts
 of a whole:
@@ -436,6 +457,9 @@ divides by the bar's own total. And only this one works on a `sum` of a column,
 which `proportion` has no way to say.
 
 ## What you can set
+
+A setting changes how every bar looks without reading a column, and each mark
+takes its own. These are a bar's, with the values each accepts:
 
 ```{r}
 #| echo: false

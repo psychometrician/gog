@@ -12,7 +12,9 @@ with high values of the other? A category and a measurement ask about
 
 ## Are two measurements related?
 
-Two measurements, one on each position, and nothing else:
+Each country in the table has two measurements, its wealth and its life
+expectancy. The question is whether the richer countries also live longer. Two
+measurements, one on each position, and nothing else:
 
 ```{r}
 data(gapminder_2007) + point + x(gdp) + y(life)
@@ -35,8 +37,11 @@ Owning chapters: [Point](../marks/point.qmd), [Scales](../scales.qmd).
 
 ## What is the trend through the cloud?
 
-Layer a derived line over the points. `+` puts both marks in one panel, and `*
-smooth` fits a curve through the middle of the cloud:
+The scatter above is a cloud of 142 countries. The direction of that cloud is
+hard to judge from the dots alone. When the trend is the answer and every
+country still has to be seen, layer a derived line over the points. `+` puts
+both marks in one panel, and `* smooth` fits a curve through the middle of the
+cloud:
 
 ```{r}
 data(gapminder_2007) + x(gdp) + y(life) +
@@ -53,8 +58,10 @@ owns `smooth`; [Encoding scope](../encoding-scope.qmd) owns that rule.
 
 ## How much was there at each time?
 
-A line says *where the value went*; an area says *how much there was*.
-It fills to zero, so the filled area is the amount:
+The `actuals` table holds one sales figure per year. Sometimes the question is
+not whether sales rose but how large they were in each year. A line says *where
+the value went*; an area says *how much there was*. It fills to zero, so the
+filled area is the amount:
 
 ```{r}
 data(actuals) + area + x(year) + y(sales)
@@ -68,10 +75,12 @@ data(actuals) + area + x(year) + y(sales)
 
 ## What is the typical value per group?
 
-A category and a measurement, summarized. The aggregation family is `sum`,
-`mean`, `median`, `max`, `min` and `quantile`. Each one reads a bound `y` and
-reduces every group to a single number. `quantile` also needs a probability,
-written `quantile(0.9)`:
+Each continent holds many countries, and each country has its own life
+expectancy. To compare the continents you need one number for each, so you
+summarize the measurement within each category. The aggregation family is
+`sum`, `mean`, `median`, `max`, `min` and `quantile`. Each one reads a bound
+`y` and reduces every group to a single number. `quantile` also needs a
+probability, written `quantile(0.9)`:
 
 ```{r}
 data(gapminder_2007) + bar * mean + x(continent) + y(life)
@@ -91,9 +100,11 @@ Owning chapters: [Bar](../marks/bar.qmd), [Transforms](../transforms.qmd).
 
 ## What does *every* value per group look like?
 
-Summaries hide spread. The strip plot drops the derivation and changes the
-mark: `point` where `bar * mean` stood. Each row is one dot, at its own height
-in its category's slot:
+The bars above gave each continent one number, and that number hides how far
+its countries spread. Sometimes you want to see every country, not only the
+mean. The strip plot drops the derivation and changes the mark: `point` where
+`bar * mean` stood. Each row is one dot, at its own height in its category's
+slot:
 
 ```{r}
 data(gapminder_2007) + point + x(continent) + y(life)
@@ -116,8 +127,9 @@ when the category names are long. See [Point](../marks/point.qmd) and
 
 ## What if the table already has the answer?
 
-When the table already holds one value per category, no transform is
-involved; `bar` draws data as it arrives:
+The `medals` table holds one row per country, and the question is how many
+bronze medals each one won. That count is already in the table, so no transform
+is involved; `bar` draws data as it arrives:
 
 ```{r}
 data(medals) + bar + x(country) + y(bronze)
@@ -141,9 +153,10 @@ computation, you write its name. That is why this recipe and
 
 ## What this section refuses
 
-A bar needs at least one of its axes to be a number: that number is the length
-of the bar. Two categories leave it nothing to measure, so the refusal names
-`count`:
+Suppose both columns are categorical, a country and its continent, and you
+write `bar` with one on each axis. A bar needs at least one of its axes to be a
+number: that number is the length of the bar. Two categories leave it nothing
+to measure, so the refusal names `count`:
 
 ```{r}
 #| error: true

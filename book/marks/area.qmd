@@ -12,6 +12,12 @@ as a path.
 
 ## Basic usage
 
+How did life expectancy move in five Asian countries, drawn as a quantity
+rather than as a path? Everything in this chapter is added to one sentence: a
+source, the mark, and its two positions. The table holds five countries, so
+`group` keeps their regions apart, and the opacity lets each region show
+through the others.
+
 ```{r}
 data(gapminder_asia) + area + x(year) + y(life) +
   group(country) + style(opacity = 0.4) +
@@ -57,7 +63,9 @@ data(gapminder_asia) + line + x(year) + y(life) + color(country) +
 
 ## Multiple series
 
-A categorical column *splits* a mark, one region per category, exactly as
+The opening plot drew five regions in one color, so nothing on it says which
+country is which. `color` names them, with a legend. A categorical column
+*splits* a mark, one region per category, exactly as
 `color` splits `line` into one stroke per category:
 
 ```{r}
@@ -104,7 +112,9 @@ full.
 
 ## Giving an area an edge
 
-An area takes no border of its own. The edge on top of a filled region is a
+A pale fill has a soft top edge, and the top edge is where the data is. A
+stroke along it makes the boundary easy to read. An area takes no border of
+its own. The edge on top of a filled region is a
 `line`, and layering one over the other is how you ask for it:
 
 ```{r}
@@ -148,8 +158,10 @@ work on both.
 
 ## With transforms
 
-`bin`, `density` and the aggregations mean the same thing on an area as on a
-bar. Binned, it is a filled histogram:
+A distribution can be drawn as a filled shape. The question is the one a
+histogram answers: how many rows fall in each interval? `bin`, `density` and the
+aggregations mean the same thing on an area as on a bar. Binned, it is a filled
+histogram:
 
 ```{r}
 data(gapminder_2007) + area * bin + x(life) +
@@ -198,9 +210,11 @@ data(gapminder_asia) + area * mean + x(year) + y(life) +
 
 ## A category on the domain
 
-The domain takes a category as readily as a number. Each category gets a slot,
-the boundary runs across them in axis order, and the region fills to the same
-baseline it always fills to:
+One summary per continent is usually a bar chart. Draw it as a filled profile
+when the five values should read as one shape, which is what a radar chart asks
+for. The domain takes a category as readily as a number. Each category gets a
+slot, the boundary runs across them in axis order, and the region fills to the
+same baseline it always fills to:
 
 ```{r}
 data(gapminder_2007) + area * mean + x(continent) + y(life) +
@@ -228,6 +242,9 @@ data(gapminder_2007) + area * mean + x(continent) + y(life) + polar() +
 polar."*
 
 ## What you can set
+
+A setting changes how the region looks without reading a column, and each mark
+takes its own. These are an area's, with the values each accepts:
 
 ```{r}
 #| echo: false

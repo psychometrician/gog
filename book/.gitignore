@@ -21,6 +21,9 @@
 # If a hand-written `.html` include is ever needed here, un-ignore it explicitly
 # (`!partials/foo.html`) rather than loosening this.
 *.html
+# The PDF is a render output like the HTML, and a render interrupted at its
+# final step leaves it beside the sources, where a sweep can commit 15 MB.
+*.pdf
 
 # The one hand-written HTML here, un-ignored by name as the rule above asks. It
 # is `include-after-body`, and it colors a gog specification by kind: a table, a

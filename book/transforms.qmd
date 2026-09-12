@@ -95,6 +95,9 @@ agrees.
 
 ## `bin`: histogram
 
+The first question to ask of one continuous column is how its values are spread.
+Where are they dense, where are they sparse, and is there one peak or two?
+
 `bin` is the first inventing transform. It cuts `x` into equal-width bins and
 counts the rows in each.
 Combine it with `bar` to draw a histogram:
@@ -112,6 +115,10 @@ Notice there is no `y()` in the expression: `bin` invents the count column
 internally, and the y-axis is labeled "Count" automatically.
 
 ### Choosing the bin count
+
+A histogram's shape depends on how it is cut, and the default cut may hide a gap
+or split a peak. You will often want a finer cut, or bins whose width means
+something in the data's units.
 
 Sturges' rule is a sensible default, not a mandate. Pass a number to set the bin
 count, or name a `width` to fix the bin width in the data's own units:
@@ -149,6 +156,10 @@ mark+transform pair.
 
 ### The same `bin`, cutting two axes
 
+All twelve gapminder years on one scatter make 1704 points, and where they
+overlap you cannot see how dense the cloud is. The answer is to count rows in
+cells of the plane, not only along one axis.
+
 The mark decides something else too: *how many axes get cut*. Each mark above
 leaves one axis free to measure the count along, so `bin` cuts the other one. A
 [`zone`](marks/zone.qmd) measures nothing by length, and it needs an extent on
@@ -167,6 +178,9 @@ scale, y is life."*
 That is a heatmap, with no atom added to the kernel.
 
 ### One of each: the mixed mesh
+
+Five continents make five histograms, and comparing five panels is harder than
+comparing five rows of one picture.
 
 "Cuts both" needs one qualification. What `bin` cuts is every axis that has a
 width to cut, and a categorical axis has none, because it arrived already cut: a
@@ -211,6 +225,9 @@ meshes, including why the empty cells are left as panel.
 
 ## `count`: frequency aggregation
 
+The first question to ask of a categorical column is how many rows fall in each
+category. A table with one row per country does not hold that number anywhere.
+
 `count` counts the number of rows for each unique value of `x`, and it works
 on both categorical and continuous columns. It is the categorical counterpart to
 `bin`: `bin` groups a continuous column; `count` groups a categorical one.
@@ -232,6 +249,9 @@ four and the y-axis labels itself automatically ("Count", "Proportion",
 "Density"). Bind `y(my_name)` only when you want a custom axis label.
 
 ### The same `count`, tallying two axes
+
+With two categorical columns the question becomes how often each pair occurs,
+such as how many winds came from the west in winter.
 
 `bin` cuts one axis on a bar and two on a zone, and `count` divides the same way
 for the same reason. A bar has a length to show the tally along, so it groups by
@@ -260,6 +280,9 @@ to cut at all.
 
 ## `proportion`: relative frequency
 
+Fifty-two of the 142 countries are in Africa, and that fact reads differently as
+a count than as a share of the whole.
+
 `proportion` divides a measurement by its total, producing shares in [0, 1] that
 sum to 1. Left to itself it has nothing to divide yet, so it tallies the rows
 first exactly as `count` does:
@@ -281,6 +304,9 @@ It follows `count` into two dimensions as well, so `zone * proportion` reads a
 tile plot as shares (see [Zone](marks/zone.qmd)).
 
 ### The total is the whole plot, always
+
+Once a second column splits the bars, each segment could be a share of its own
+bar or of the whole plot.
 
 The denominator is every row the plot draws, in every context. That is the one
 thing the word is allowed to mean. Split the bars by a second column and they
@@ -312,6 +338,9 @@ distinction: in the first, summer's bars and winter's bars divide one total
 between them; in the second each season gets its own.
 
 ### Normalizing something other than a tally
+
+Two histograms from tables of different sizes cannot be compared by their
+counts, and a continent's population means more as a share of the world's.
 
 Because `proportion` divides whatever measurement it finds, it composes with any
 transform that leaves one number per cell. Put it after a `bin` and the
@@ -352,6 +381,10 @@ data(gm_all) + line * density * proportion + x(life)
 
 ## `density`: kernel density estimate
 
+A histogram's outline changes with every choice of bin, and its steps belong to
+the bins rather than to the data. A smooth curve describes the same distribution
+without the steps.
+
 `density` is the third inventing transform: it estimates the distribution
 `bin` counts, as a smooth curve. The curve is the probability density
 function of `x`, estimated with a Gaussian kernel and evaluated at 256 evenly
@@ -373,6 +406,9 @@ As with the other inventing transforms, there is no `y()` to write: the
 density column and its axis label are both made for you.
 
 ### Choosing the bandwidth
+
+The automatic curve can be smoother than the data supports, hiding a second
+peak, or rougher, showing bumps that are only noise.
 
 The automatic bandwidth is a sensible default, not a mandate, and it is
 `density`'s one parameter, just as the bin count is `bin`'s. It is set the same
@@ -406,6 +442,10 @@ two are mutually exclusive, and `density(2, bandwidth = 1)` refuses with
 direction rather than guessing which you meant.
 
 ### One transform, four readings
+
+Once you have a curve for one column, you will want the same estimate over two
+columns, or one curve per category, side by side. Each of those is still
+`density`.
 
 `density` estimates a distribution; what it is *drawn as* depends on how much
 room the bindings leave it, and the answer is different in each case rather than
@@ -445,6 +485,9 @@ data(gapminder_2007) + line * density(compare = "count") + x(life)
 ---
 
 ## What `bin`, `density` and `smooth` refuse
+
+A histogram of `continent` is an easy thing to ask for. The refusal is easier to
+act on once you know what these three transforms share.
 
 The two families above sort the transforms by how many columns they read. A
 second property cuts across that sort: these three all describe how values are
@@ -489,6 +532,9 @@ on both.
 
 ### A fit needs rows to fit through
 
+It is easy to ask for a trend through very few rows: a table filtered to its
+latest years, or a group with two members.
+
 Having numbers is not the same as having enough of them. `smooth` fits a curve,
 and two points are a straight line while one is a point, so it asks for at least
 three:
@@ -526,6 +572,9 @@ not is worse than one that refuses.
 ---
 
 ## Chaining transforms
+
+Some questions need two transforms. To show life expectancy across income bands,
+cut income into bands and take a mean of life inside each one.
 
 Two transforms on one mark have to divide the work, and there are only four jobs
 to divide. A transform can say *where the cells are*, it can say *what is in
@@ -580,6 +629,8 @@ data(gm_all) + point * bin(20) * median + x(gdp, scale = "log") + y(life) +
 gdp on a log scale, y is life."*
 
 ### What cannot be chained, and why
+
+Having seen `bin * mean` work, you will want to know which other pairs do.
 
 The other two inventing transforms cannot give their measurement up, because
 measuring is all they do. Take it away from `count` and nothing is left of it:
@@ -707,6 +758,10 @@ The inventing transforms made new measurements. The **reading** transforms
 are the other half of the sort: each one reads a column you name and answers
 with a summary of it, and `smooth` is the first.
 
+Income and life expectancy rise together across the scatter, and one curve
+through the cloud states that relationship more plainly than 142 separate
+points.
+
 `smooth` fits a locally weighted linear regression (LOESS) through the `(x, y)`
 points and evaluates it at 100 evenly spaced x positions [@cleveland1979]. The
 curve is the engine's own, with no robustness pass, so it is identical in all
@@ -822,6 +877,9 @@ groups are sorted ascending.
 
 ### The same six, grouping by a pair
 
+Mean wind speed by direction is one bar chart. Mean wind speed by direction
+*and* season is a grid of cells, with one mean in each.
+
 `count` follows a bar onto a zone and tallies two axes instead of one, and these
 six follow it, for the same reason and by the same rule. A bar has a length to
 show the answer along, so it groups by one position and measures along the
@@ -929,6 +987,9 @@ reason. They are not silent either, because
 ---
 
 ## `range`: a low/high pair
+
+A mean per species says where each group sits and nothing about how far its
+values reach.
 
 Every transform above writes a single measured value per group. `range` is the
 first to write *two*: the minimum and the maximum of `y` within each group,
@@ -1127,6 +1188,9 @@ plot it makes is the **mosaic**.
 
 ### The mosaic
 
+A cross-tabulation raises two questions at once: how the two categories relate,
+and how many people each cell counts. A mosaic answers both in one picture.
+
 `commutes` is a survey of how people get to work in four cities, one row per
 city and mode, with a count:
 
@@ -1221,6 +1285,9 @@ chapter](polar.qmd) meets each of them where they are easiest to see.
 ---
 
 ## `flow`: a magnitude through its stages
+
+Passengers are counted by class, then by whether they survived. The question is
+how many of each class reached each outcome.
 
 `flow` is `partition`'s neighbor. Both read categorical columns named in the
 atom, both place their own marks, and both feed more than one mark from one
@@ -1354,6 +1421,9 @@ one there is a single mark per slot and nothing to set beside anything, so
 silent no-op.
 
 ## `stack`: piled up, not side by side
+
+Side by side, two eras' populations never show what they add up to, and when the
+total means something the pile is the better picture.
 
 `stack` is `dodge`'s sibling: the other way to resolve a color split's overlap.
 Where `dodge` sets the groups *beside* each other, `stack` piles them *on top*
@@ -1551,6 +1621,9 @@ a place on the plot.
 `stack` has a third condition. The first two are about the sentence. This one is
 about the numbers.
 
+Refunds and chargebacks arrive as negative numbers, so the question is whether a
+pile can grow downward at all.
+
 A pile puts its groups end to end. Every member must therefore point the same
 way.
 
@@ -1603,6 +1676,9 @@ on its own. One quarter can be positive and the next negative in the same plot.
 
 ### The dot plot
 
+A histogram's bars hide the rows inside them. When every country should stay
+visible, and countable, the mark to pile is the point.
+
 A point has no length. Give it the same span every other mark gets and the only
 thing it can spend it on is *itself*: one dot per unit, piled up from the foot.
 The unit of a count is one row, so a pile of dots is a count you can count:
@@ -1650,6 +1726,9 @@ either way, and that choice is deliberate: the alternative is to draw the dots
 touching and leave the axis with no meaning.
 
 ### How many rows is too many
+
+One dot per country works at 142 rows. A table twelve times that size is where
+the picture starts to fail.
 
 Push the same sentence far enough and the dots stop being dots. Every year of
 gapminder rather than one is 1704 rows, and the tallest pile is 314 of them:
@@ -1701,6 +1780,9 @@ when there are ten thousand. So the dot plot stops working at the same size
 where a summary starts working well.
 
 ### One column, split into its parts
+
+Not every question comes with a category to stand bars on. The 264 winds are one
+total, and the only question is how it divides by direction.
 
 Every stacked bar so far has stood at a position, one pile per category on the
 x-axis. Take the position away and the split still has something to divide: a
@@ -1767,6 +1849,9 @@ random-number generator or the clock, so the same plot drawn twice is
 pixel-for-pixel the same picture. A specification always means one plot.
 
 ### How much to spread: `jitter(amount)`
+
+The default spread is one guess at what reads well, and on your figure it may be
+too wide or too narrow.
 
 The default spread fills a fraction of each category's slot: wide enough to show
 the pile, narrow enough to leave a gap between categories so no point strays

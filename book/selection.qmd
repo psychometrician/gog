@@ -31,9 +31,10 @@ sit at the top right of the whole world.
 
 ## Saying where the selection starts
 
-Name a column and the brush states a **bound** on it: the two values the
-selection starts between. That is how you point at something rather than let a
-reader look for it:
+On paper the first plot is a plain scatter, and the reader still has to find
+the rich countries. Name a column and the brush states a **bound** on it: the
+two values the selection starts between. That is how you point at something
+rather than let a reader look for it:
 
 ```{r}
 data(gapminder_2007) + point + x(gdp) + y(life) + color(continent) +
@@ -95,7 +96,8 @@ sayable. Ask *how does this subgroup look on its own* and you want `limits`. Ask
 
 ## Two bounds make a rectangle
 
-One `brush` is one column. Write two, and a row has to satisfy both:
+Which of the rich countries also live longest? That is two conditions on one
+row. One `brush` is one column. Write two, and a row has to satisfy both:
 
 ```{r}
 data(gapminder_2007) + point + x(gdp) + y(life) + color(continent) +
@@ -370,8 +372,10 @@ that describes the plot. That is what the buttons under a played plot do, and
 
 ## All three at once
 
-The [third position](space.qmd), the frames and the selection are three separate
-ideas, and none of them was taught about the others. So they compose:
+[Play](play.qmd) drew the cube of countries through the years, and nothing in
+it marks the middle-income countries. The [third position](space.qmd), the
+frames and the selection are three separate ideas, and none of them was taught
+about the others. So they compose:
 
 ```{r}
 data(gm_all) + point + x(gdp, scale = "log") + y(life) + z(population) +

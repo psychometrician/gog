@@ -176,8 +176,9 @@ meridian, and it runs pole to pole.
 
 ## The choropleth, kept round
 
-The map chapter filled each country by its continent. The same sentence fills
-the countries on the sphere:
+Filling countries is the map's most familiar use, and the edge of the disk is
+the hard case for a fill. The map chapter filled each country by its
+continent. The same sentence fills the countries on the sphere:
 
 ```{r}
 data(world_borders) + zone + x(lon) + y(lat) + group(country) +
@@ -264,8 +265,9 @@ ocean floor they sit on.
 
 ## What a globe refuses
 
-Both positions carry the place, exactly as on the map, so a mark that measures
-along an axis has no axis left:
+You may try a `line` through the earthquakes, as you would on a flat page. Both
+positions carry the place, exactly as on the map, so a mark that measures along
+an axis has no axis left:
 
 ```{r}
 #| error: true

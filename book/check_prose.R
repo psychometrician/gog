@@ -320,6 +320,9 @@ check_prose <- function(dirs = "book") {
 
       # --- Idiom ------------------------------------------------------------
       low <- tolower(line)
+      # Bold and italic markers split a phrase ("A **text** column"), and every
+      # list below is matched as a fixed phrase, so read through the markers.
+      low <- gsub("*", "", low, fixed = TRUE)
       for (p in idioms) {
         if (grepl(p, low, fixed = TRUE)) {
           ex <- idiom_exempt[[short]]

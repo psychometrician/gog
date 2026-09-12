@@ -35,8 +35,10 @@ produces, and this chapter uses it the same way.
 
 ## `|`: panels side by side
 
-The `facet()` atom names the column that does the splitting, and `|` arranges
-the panels in columns:
+The scatter of income against life expectancy holds five continents in one
+cloud. You want to see each on its own without losing the comparison between
+them. The `facet()` atom names the column that does the splitting, and `|`
+arranges the panels in columns:
 
 ```{r}
 data(gapminder_2007) + point + x(gdp) + y(life) | facet(continent)
@@ -52,8 +54,10 @@ breaks the comparison, and nothing on the page warns the reader.
 
 ## `/`: panels stacked
 
-`/` arranges the panels in rows. Stacking aligns the x axis, which is the
-better direction when the comparison is *where things sit along x*:
+Are lives in Africa shorter than in Europe, and by how much? That is a question
+about where each distribution sits along one axis. `/` arranges the panels in
+rows. Stacking aligns the x axis, which is the better direction when the
+comparison is *where things sit along x*:
 
 ```{r}
 gm_ae <- gapminder_2007[gapminder_2007$continent %in% c("Africa", "Americas", "Europe"), ]
@@ -87,8 +91,10 @@ chapter began with has stopped working.
 
 ## Crossing into a grid
 
-Write both operators to cross two columns into a grid. Each operator applies
-to the facet written after it, read left to right:
+Two columns can both matter at once. Here the question is how each continent's
+countries moved between 1957 and 2007, which is a split by continent and by
+period together. Write both operators to cross two columns into a grid. Each
+operator applies to the facet written after it, read left to right:
 
 ```{r}
 gm_years <- gm_all[gm_all$year %in% c(1957, 2007), ]
@@ -301,8 +307,10 @@ render_svg(data(gapminder_2007) + point + x(gdp) + y(life, free = TRUE))
 
 ## A layer without the facet column
 
-A layer whose table does not have the facet column is drawn in full in every
-panel. That is how one shared reference line is drawn behind small multiples:
+Five panels are easier to judge against one common reference, such as the
+world's median life expectancy. A layer whose table does not have the facet
+column is drawn in full in every panel. That is how one shared reference line
+is drawn behind small multiples:
 
 ```{r}
 #| message: true
@@ -325,8 +333,10 @@ has no `continent` column, so its layer is drawn everywhere.
 
 ## The facet column's type
 
-A facet column *names* the panels, so it must be a categorical column: a
-number is a position along an axis, not a name for a frame. Faceting by a
+You may want one panel for small countries and one for large ones, which is a
+split by `population`. A facet column *names* the panels, so it must be a
+categorical column: a number is a position along an axis, not a name for a
+frame. Faceting by a
 continuous column refuses with direction:
 
 ```{r}
