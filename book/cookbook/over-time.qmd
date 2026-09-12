@@ -46,6 +46,8 @@ weekly steps land on Mondays:
 data(six_weeks) + line + x(day) + y(orders)
 ```
 
+*"Given the six weeks table: a line, x is day, y is orders."*
+
 You never have to write `scale = "time"`: the column's type already says it.
 [Scales](../scales.qmd) owns the calendar's rules: three-month steps that read
 as quarters, and a midnight tick labeled with the day's name.

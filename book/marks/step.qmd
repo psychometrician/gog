@@ -180,8 +180,8 @@ dash is *paint*: it changes how the path looks, never where it goes. That is why
 
 ## What it refuses
 
-A step is one polyline (a single connected stroke), and that explains the two
-refusals below. The third is `line`'s: a category on `y` is refused, because `y`
+A step is one connected stroke from its first point to its last, and that
+explains the two refusals below. The third is `line`'s: a category on `y` is refused, because `y`
 carries a quantity.
 
 One stroke has one width (there is no answer to "how wide is the staircase

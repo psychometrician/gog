@@ -327,7 +327,7 @@ has no `continent` column, so its layer is drawn everywhere.
 
 A facet column *names* the panels, so it must be a categorical column: a
 number is a position along an axis, not a name for a frame. Faceting by a
-numeric column refuses with direction:
+continuous column refuses with direction:
 
 ```{r}
 #| error: true

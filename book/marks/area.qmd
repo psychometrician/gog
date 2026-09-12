@@ -58,7 +58,7 @@ data(gapminder_asia) + line + x(year) + y(life) + color(country) +
 ## Multiple series
 
 A categorical column *splits* a mark, one region per category, exactly as
-`color` splits `line` into one polyline each:
+`color` splits `line` into one stroke per category:
 
 ```{r}
 data(gapminder_asia) + area + x(year) + y(life) + color(country) +
@@ -66,7 +66,7 @@ data(gapminder_asia) + area + x(year) + y(life) + color(country) +
   title("One region per country")
 ```
 
-Regions are filled, so unlike polylines they hide one another. Write that plot
+Regions are filled, so unlike strokes they hide one another. Write that plot
 without an opacity and gog warns you, rather than letting you read a plot with
 a region hidden underneath:
 
@@ -267,11 +267,11 @@ asks for the category on `x` instead:
 render_svg(data(gapminder_2007) + area * mean + x(life) + y(continent))
 ```
 
-The second refusal comes from the domain. `bin` cuts a number line into
-intervals, and a category is one slot with no width to cut. `density` also needs
-a number line, so it refuses only when the sentence leaves it no numeric axis,
-which is why the half violin above draws. Each message names the transform for
-categories: `count` after `bin`, `proportion` after `density`.
+The second refusal comes from the domain. `bin` cuts a continuous axis into
+intervals, and a category is one slot with no width to cut. `density` also
+needs a continuous axis, so it refuses only when the sentence leaves it no
+numeric axis, which is why the half violin above draws. Each message names the
+transform for categories: `count` after `bin`, `proportion` after `density`.
 
 ```{r}
 #| error: true

@@ -130,7 +130,7 @@ That is a funnel chart. No atom in the sentence is a funnel.
 
 The blocks are the `zone`, one row each. The columns `lo` and `hi` hold `-n/2`
 and `n/2`, computed in R before the plot. The waterfall below does the same,
-computing its running total in the language you write the plot in. The numbers
+computing its running total in the language you write the sentence in. The numbers
 inside the blocks are a second layer, drawn by `text`.
 
 A funnel is a bar chart whose blocks are centered on zero. Centering is
@@ -141,8 +141,8 @@ the *measure* axis. They do not mean the bottom and the top of a screen. gog
 never asks which way the screen runs; it asks what each axis carries. Here `y`
 carries a category, so `y` holds slots, and the measurement can only go on `x`.
 This is the rule [`bar`](bar.qmd) already follows: one categorical position, one
-measured position, and their types decide the orientation. It is why there is no
-`flip`.
+measured position, and their types decide the orientation. It is why there is
+nothing like ggplot2's `coord_flip()` to write.
 
 ## Coloring the zones
 

@@ -129,7 +129,7 @@ data(nutrients) + path * cluster(amount, over = nutrient) + x(food) +
 ```
 
 A profile holds one value for every category of the profile column, so that
-column must hold categories. A numeric column has none:
+column must hold categories. A continuous column has none:
 
 ```{r}
 #| error: true

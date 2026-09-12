@@ -65,8 +65,9 @@ data(gapminder_2007) + point + x(gdp) + y(life) +
 ```
 
 `gdp_threshold` holds `gdp`, the plot's `x`, so the line stands up. The mark did
-not change, the sentence did not change, and there is no `flip` anywhere: the
-column the table holds is what chose the axis.
+not change and the sentence did not change. Where ggplot2 has `geom_vline()`
+and `geom_hline()`, and matplotlib `axvline()` and `axhline()`, gog has one
+`rule`: the column the table holds is what chose the axis.
 
 ## A rug is the same mark
 
@@ -76,13 +77,18 @@ distance, so it is a setting rather than a second mark:
 
 ```{r}
 data(gapminder_2007) + point + x(gdp) + y(life) + style(opacity = 0.45) +
-  data(gdp_rug) + rule + style(reach = "edge") +
+  rule + x(gdp) + style(reach = "edge") +
   x_label("GDP per person") + y_label("Life expectancy") +
   title("Where the countries actually sit on the income axis")
 ```
 
-*"Given gapminder 2007: points, x is gdp, y is life, and also rules from the gdp
-rug, with reach edge."*
+*"Given gapminder 2007: points, x is gdp, y is life, and also rules, x is gdp,
+with reach edge."*
+
+The rule names `x(gdp)` even though the points already named it. This layer has
+no table of its own, so it reads the scatter's, which holds both `gdp` and
+`life`. Both axes answer, so the rule has to say which one it sits on.
+`life_bands` above held only one, which is why those rules named nothing.
 
 Look along the bottom. Each tick is one country, drawn at its own income.
 Together they answer a question the points above cannot. How many countries sit
@@ -96,37 +102,29 @@ distribution of a variable in the margin of a plot that is already showing
 something else. You can read the spread of `gdp` without losing the scatter,
 and without a second plot whose axis you would have to match.
 
-Everything else about the mark is unchanged. The only change to the rule itself
-is `style(reach = "edge")`, and there is no distance to set. A tick's length
+Everything else about the mark is unchanged. The only new setting is
+`style(reach = "edge")`, and there is no distance to set. A tick's length
 comes from the panel, the way a label's nudge distance comes from the font size.
 A number there would be a pixel count that meant something different in every
 facet and at every plot size.
 
 ### The other axis
 
-A rug is not tied to the horizontal. Which axis it lands on is decided the way
-it was for the threshold lines: by the column its own table holds. Hand it
-`life` instead of `gdp` and the ticks run up the left edge. Add both tables as
-two layers, and the scatter gets a rug along the bottom and another up the left
-at once:
-
-```{r}
-#| echo: false
-peek(life_rug)
-```
+A rug is not tied to the horizontal. Which axis it lands on is decided by the
+position you name on the layer. Write `y(life)` instead of `x(gdp)` and the
+ticks run up the left edge. Write both, as two layers, and the scatter gets a
+rug along the bottom and another up the left at once:
 
 ```{r}
 data(gapminder_2007) + point + x(gdp) + y(life) + style(opacity = 0.45) +
-  data(gdp_rug)  + rule + style(reach = "edge") +
-  data(life_rug) + rule + style(reach = "edge") +
+  rule + x(gdp)  + style(reach = "edge") +
+  rule + y(life) + style(reach = "edge") +
   x_label("GDP per person") + y_label("Life expectancy") +
-  title("Both margins, from two tables")
+  title("Both margins, from two layers")
 ```
 
-Two layers rather than one, because each rug reads its own single-column
-table. A table holding `gdp` *and* `life` at once is the ambiguous case the
-grammar refuses, and the refusal offers two ways out: a single-column table,
-or naming the axis on the layer, `rule + x(gdp)`.
+Two layers rather than one, because each rug names one axis, and both read the
+scatter's table.
 
 Read the left edge and the distribution looks different. The ticks crowd
 together above 70, thin out between 60 and 70, then run down to 40 in a looser
@@ -216,13 +214,8 @@ polar that is unchanged, and it draws two shapes rather than one, because a
 circle has two axes to span. [Polar](../polar.qmd) builds the circle itself;
 what matters here is that a rule spans whichever axis it does not name.
 
-The `winds` table holds one wind observation per row, and `speed_target` holds
-the one target speed:
-
-```{r}
-#| echo: false
-peek(winds)
-```
+`winds` is the table [The book's data](../book-data.qmd) introduced, and
+`speed_target` holds the one target speed:
 
 ```{r}
 #| echo: false
@@ -310,20 +303,21 @@ answer `line`, `step` and `path` give, because it is the same geometry.
 
 ## What it refuses
 
-Give a rule the plot's own table and both position columns answer at once. There
-is then nothing to say which axis is meant, so the grammar refuses rather
-than picking one:
+Give a rule the plot's own table and both position columns answer at once.
+There is then nothing to say which axis is meant, so gog refuses rather than
+picking one:
 
 ```{r}
 #| error: true
 data(gapminder_2007) + point + x(gdp) + y(life) + rule
 ```
 
-That refusal is why the tables above each hold a single column. Its message
-repeats the second way out: `rule + x(gdp)` says the axis on the layer, and then
-a both-column table works. A bar with a category on both axes is refused for a
-related reason. The grammar reads an orientation only when the two bindings
-differ, and a guess would teach you a rule it does not follow.
+That refusal is why the rugs above name their axis, `rule + x(gdp)` and `rule +
+y(life)`. A threshold with a table of its own needs no position. That table
+holds only one of the two columns, so the axis is read off it. A bar with
+categories on both axes is refused for a related reason. Neither axis measures
+anything, so there is nothing to read the orientation from, and gog will not
+guess.
 
 A rule takes no transform either. It has handed one whole axis to the panel, so
 there is no measure for a statistic to compute and nowhere to put the answer:

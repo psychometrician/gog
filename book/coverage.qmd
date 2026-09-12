@@ -165,7 +165,7 @@ them live.
 | `sec_axis()`, `dup_axis()` | A second y-axis is two coordinate spaces drawn in one panel. Facet on the measure, or layer if the units really are shared. |
 | `annotate()` at page coordinates, `annotation_custom()`, `annotation_raster()` | A shape at pixel (120, 340) is a drawing command, and the specification has to mean the same thing at another size, in a facet, or on a sphere. Annotation in *data* space needs no new word: layer a mark over a small table. |
 | `ggproto()`, user-written geoms and stats | Every promise on the [Combinations](combinations.qmd) grid depends on the vocabulary being fixed. An atom missing from the rule table has no row on that grid, breaks No Exceptions, and cannot be written into the JSON. Compose instead. |
-| `coord_flip()` | There is no `flip` atom, because orientation is read off which axis carries the categories. ggplot2 has since superseded it. |
+| `coord_flip()` | Nothing to write: orientation is read off which axis carries the categories, so swapping the two bindings turns the plot. ggplot2 has since superseded it. |
 | `geom_bar()` beside `geom_col()`; `geom_histogram()` beside `stat_bin(geom = "bar")` | gog spells each of these one way. `bar` draws your numbers, `bar * count` counts them, `bar * bin` bins them. |
 | `geom_smooth(method = "lm")` | A family of fits behind one argument is exactly the enumeration this grammar refuses. A least-squares line is a different statistic from a local smoother, so it needs its own plain name. |
 | `scale_x_log10()`, `scale_x_sqrt()` as *names* | One parameter derives the family: `base = 2`, `base = 10`, `base = exp(1)`. |
@@ -276,7 +276,7 @@ data(by_species) + point + x(petal_length) + y(sepal_length) +
 ```
 
 Nothing is wrong here. A palette gives out its colors in the categories' order,
-and that order is the axis's order. For a text column, the axis order is the
+and that order is the axis's order. For a column of text, the axis order is the
 order in which the values first appear. A declared order is honored when you
 supply one. It is consistent and it is documented. There is no way to say
 *setosa is tomato*. So a category cannot keep its color across two plots whose

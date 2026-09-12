@@ -2712,6 +2712,26 @@ if (file.exists("book/check_tabs.R")) {
 }
 
 # ---------------------------------------------------------------------------
+# A section with a plot says something about it
+# ---------------------------------------------------------------------------
+
+# The twelfth guard. A heading followed by nothing but a plot and its read-aloud
+# sentence is a caption, not a section: the sentence says what the specification
+# *says*, and nothing says what the plot *shows*. Three sections were built that
+# way, and one of them drew a single stroke through five countries at every
+# year, a sawtooth, beside no sentence saying why. The engine even warns on that
+# sentence, and the book does not print the warning, so the reader had nothing
+# at all. check_sections.R walks every chapter's headings and fails on a section
+# that holds a chunk and not one line of prose.
+if (file.exists("book/check_sections.R")) {
+  source("book/check_sections.R")
+  check_sections()
+  cat("\nsection tests passed.\n")
+} else {
+  cat("SKIP: book/ not found \u2014 run from the repo root to check the sections\n")
+}
+
+# ---------------------------------------------------------------------------
 # One voice across 56 chapters
 # ---------------------------------------------------------------------------
 

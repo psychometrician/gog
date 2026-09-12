@@ -5,21 +5,22 @@
 source("../R/setup.R")
 ```
 
-How does one measurement change as another changes? `point` draws one glyph
-per row of data at the `(x, y)` position.
+How does one measurement change as another changes? `point` draws one glyph,
+a small symbol, at the `(x, y)` position of each row. The glyph is a dot unless
+you choose another.
 
 The plot it makes is the **scatterplot**, and it was invented later than the
-other basic charts. Playfair published the line chart and the bar chart in 1786,
-and the pie chart by 1801. The scatterplot came about thirty years after the pie
-chart. A picture that plots one measured column against another is usually dated
-to John Herschel. In 1833 he plotted the position of twin stars against the
-year, then drew a smooth curve through the dots so the trend could be seen
-[@friendly2005]. Other names for the same picture are scatter diagram and
-scattergram. When `size` maps a third column, the same plot is called the bubble
-chart.
+other basic charts. Playfair published the line chart and the bar chart in 1786
+[@playfair1786], and the pie chart in 1801 [@playfair1801]. The scatterplot came
+about thirty years after the pie chart. A picture that plots one measured column
+against another is usually dated to John Herschel. In 1833 he plotted the
+position of twin stars against the year, then drew a smooth curve through the
+dots so the trend could be seen [@friendly2005]. Other names for the same
+picture are scatter diagram and scattergram. When `size` maps a third column,
+the same plot is called the bubble chart.
 
-None of those is an atom here, and the reason is the design itself. `point`
-names the **mark**, not the chart. `point + x(gdp) + y(life)` is a scatterplot,
+None of those chart names is a word in gog, and that is deliberate. `point`
+is a **mark**, not a chart. `point + x(gdp) + y(life)` is a scatterplot,
 and `point + x(continent) + y(life)` is a strip plot. The mark is the same in
 both. The chart name belongs to the whole sentence, not to any word in the
 vocabulary. That is why the names live in an appendix, [Chart
@@ -27,18 +28,28 @@ names](../chart-names.qmd), instead of in the kernel.
 
 ## Basic usage
 
+Everything in this chapter is added to one sentence, the smallest that draws a
+point: a source, the mark, and its two positions.
+
 ```{r}
 data(gapminder_2007) + point + x(gdp) + y(life)
 ```
 
 *"Given gapminder 2007: points, x is gdp, y is life."*
 
+Each dot is one row, one country, placed by its `gdp` and its `life`. Nothing
+else about the row is shown yet. Both columns hold numbers, so
+each axis is a linear scale. Most of the dots sit on the left, because most
+countries have far lower incomes than the richest few. The
+[Scales](../scales.qmd) chapter shows the log scale that spreads them out.
+
 ## The dot as a default
 
 Write `point` and you get a dot, and treating it as *the dot mark* is right
 almost every time. But the dot is only a *default*, and you can change it. A
-point is *a glyph at a position*, and `shape` replaces the dot with one of five
-glyphs.
+point is *a glyph at a position*, and `shape` replaces the dot with another of
+the five glyphs gog draws, one per category. [Shape](#shape) below names the
+five, says which category gets which, and what to do with more than five.
 
 ```{r}
 data(gapminder_2007) + point + x(gdp) + y(life) + shape(continent) +
@@ -67,7 +78,7 @@ country."*
 
 ## A categorical x: the strip plot
 
-`x` accepts a text column as readily as a numeric one. Each category gets a
+`x` accepts a categorical column as readily as a continuous one. Each category gets a
 position on the axis, and every row is drawn there. You see the whole
 distribution rather than a summary of it:
 
@@ -96,15 +107,22 @@ jitter`](../transforms.qmd#jitter-spread-sideways-along-the-category) spreads
 overlapping points along the category axis, never off their measured value.
 
 A second answer is to count the overlapping points instead of separating them.
-[`point * bin * stack`](../transforms.qmd) stacks one dot per row along the
-measure axis, which is the dot plot. One mark handles overlap in two ways:
-spread along a category, or count along a measure.
+[`point * bin * stack`](../transforms.qmd#the-dot-plot) stacks one dot per row
+along the measure axis, which is the dot plot. The cookbook draws it with
+[thirty rows](../cookbook/one-variable.qmd#when-there-are-only-thirty-rows),
+where every row still shows. Which to write is your choice, by what you want
+the reader to see. `jitter` keeps the spread: every value sits where it was
+measured. `bin * stack` gives the count: how many rows fall in each bin, which
+is close to a bar chart, with the rows still visible instead of summarized into
+one length.
 
 ### Either axis: a horizontal strip
 
-Because the categorical-axis rule is `bar`'s rule, the category can sit on `y`
-instead of `x`. The strips then lie down. The countries and the distributions
-are the same, and each row now reads left to right:
+gog reads the direction of a plot from its bindings: whichever axis carries the
+category decides it, for a point as for a [bar](bar.qmd#horizontal-bars). So
+the category can sit on `y` instead of `x`, and the strips lie down. The
+countries and the distributions are the same, and each row now reads left to
+right:
 
 ```{r}
 data(gapminder_2007) + point + x(life) + y(continent) +
@@ -113,16 +131,17 @@ data(gapminder_2007) + point + x(life) + y(continent) +
   title("The same distributions, lying down")
 ```
 
-`bar` already works this way, and gog reads a point the same way. Whichever axis
-carries the category decides the direction, and there is no `flip` atom to set.
-Use the horizontal form when the category names are too long for the bottom
-axis. It also helps when there are many categories, since a list of rows is
-easier to read than a list of columns.
+If you know ggplot2's `coord_flip()`, there is no such word here: swapping the
+two bindings was the whole change, as swapping the two arguments of
+matplotlib's `scatter()` is. Use the horizontal form when the category names
+are too long for the bottom axis. It also helps when there are many categories,
+since a list of rows is easier to read than a list of columns.
 
 ## Color
 
-Bind `color` to a categorical column to color points by group.
-gog assigns a distinct color from a 20-color palette automatically.
+Which continent is which? Every dot looks the same until a column tells them
+apart. Bind `color` to a categorical column to color points by group. gog
+assigns a distinct color from a 20-color palette automatically.
 
 ```{r}
 data(gapminder_2007) + point + x(gdp) + y(life) +
@@ -136,10 +155,35 @@ A color legend is generated automatically whenever a column is mapped to
 
 ## Shape
 
-`shape` maps a categorical column to one of five glyphs:
-circle, square, triangle, diamond, or cross. Assignment is automatic and
-consistent: the first category gets the circle, the second the square, and
-so on.
+`shape` maps a categorical column to one of five glyphs. In order, they are
+the circle, the square, the triangle, the diamond and the cross, one per
+category. Categories are taken as they first appear in the table, or in the
+[order you declare](../data.qmd#declaring-the-order-of-categories), so the
+first category gets the circle, the second the square, and so on. Asia comes
+first in the gapminder table, so Asia is the circle, and the legend below reads
+the same way. Five is the whole set, and about as many as a
+reader can separate on one plot. Do not map `shape` to a column with more than
+five categories: the sixth starts over at the circle, two categories then share
+a glyph and look the same, and gog does not warn. The book shows four ways to
+draw more groups than that:
+
+- `color`, whose default palette has twenty colors, as [Color](#color) above
+  does with the continents.
+- One panel per category with `facet`, folded into rows so the panels stay
+  wide: [Folding a long line of
+  panels](../faceting.qmd#folding-a-long-line-of-panels).
+- The name on the point instead of a glyph: a `text` layer with `label`, the
+  [labeled scatter](text.qmd#both-at-once-the-labeled-scatter), and
+  [`repel`](text.qmd#repel-moving-labels-off-each-other) when the names
+  overlap. This is the one route that reaches a hundred categories, and in the
+  web edition a [brush](../selection.qmd#which-one-is-that) leaves only the
+  selected names readable.
+- Every category in one pale color, with the few that matter drawn over it in
+  a second layer: [What settings are for](../style.qmd#what-settings-are-for).
+
+A column with fewer categories often carries the encoding: `continent` groups
+the countries and fits the five glyphs, so `country` goes on the label or the
+facet.
 
 Combine `color` and `shape` on the same column so that colorblind readers, and
 black-and-white printing, can still separate the groups:
@@ -151,8 +195,9 @@ data(gapminder_2007) + point + x(gdp) + y(life) +
 
 ## Size
 
-`size` maps a numeric column to the point radius, from 3 pixels at the smallest
-value to 12 at the largest.
+A third measurement has nowhere to go once both positions are taken. `size`
+gives it one: it maps a continuous column to the point radius, from 3 pixels
+at the smallest value to 12 at the largest.
 
 ```{r}
 data(gapminder_2007) + point + x(gdp) + y(life) +
@@ -167,22 +212,27 @@ generated automatically.
 
 ## Opacity
 
-`opacity` maps a numeric column to transparency. It helps in a dense
+`opacity` maps a continuous column to transparency. It helps in a dense
 scatterplot, where marks cover one another and hide the shape of the data.
+Population is skewed, so on a linear scale two countries are dark and the rest
+are faint. The log scale spreads them across the range:
 
 ```{r}
-data(gapminder_2007) + point + x(gdp) + y(life) + opacity(population) +
-  title("Opacity: population")
+data(gapminder_2007) + point + x(gdp) + y(life) +
+  opacity(population, scale = "log") +
+  title("Opacity: population, on a log scale")
 ```
 
-*"Given gapminder 2007: points, x is gdp, y is life, opacity by population."*
+*"Given gapminder 2007: points, x is gdp, y is life, opacity by population on a
+log scale."*
 
 See [Channels and legends](../channels.qmd) for the opacity range and why `line`
 does not accept this channel.
 
-That example maps opacity to a column. When points simply cover one another, you
-want one opacity on every point instead. That is a *setting* rather than a
-mapping, so you write `style(opacity = )` and no legend appears; see [Setting vs
+That example maps opacity to a column. Often there is no column to show: the
+only problem is that many points overlap. Then you want one opacity on every
+point instead. That is a *setting* rather than a mapping, so you write
+`style(opacity = )` and no legend appears; see [Setting vs
 mapping](../style.qmd). The table below, `gm_all`, holds every gapminder country
 in every year, so the points overlap heavily:
 
@@ -202,7 +252,10 @@ data(gm_all) + point + x(gdp) + y(life) +
 
 ## All channels at once
 
-The refining channels can all be combined on one plot:
+A table often has more to show than two positions can hold. The refining
+channels carry the rest, and they can all be on one plot at once. Here
+`continent` goes to `color` and `shape` together, so the groups survive
+black-and-white printing, and `population` goes to `size`:
 
 ```{r}
 data(gapminder_2007) + point + x(gdp) + y(life) +
@@ -213,6 +266,9 @@ data(gapminder_2007) + point + x(gdp) + y(life) +
 ```
 
 ## What you can set
+
+A setting changes how every point looks without reading a column, and each
+mark takes its own. These are a point's, with the values each accepts:
 
 ```{r}
 #| echo: false
@@ -225,28 +281,30 @@ A point is a closed glyph, a shape with an inside to fill, so it takes more
 settings than most marks. It is the only mark that picks a `shape`, and one of
 the five marks that draw a border.
 `size` is the radius in pixels, and `border_*` draws that border distinct from
-the fill.
+the fill. 
 
 ```{r}
 data(gapminder_2007) + point + x(gdp) + y(life) +
   style(shape = "diamond", size = 7, color = "steelblue",
-        border_color = "white", border_size = 1.5) +
+        border_color = "navy", border_size = 1.5) +
   x_label("GDP per person") + y_label("Life expectancy") +
   title("A shape, a size, and a border")
 ```
 
 *"Given gapminder 2007: points, x is gdp, y is life, colored steelblue, with
-shape diamond, size 7, border color white and border size 1.5."*
+shape diamond, size 7, border color navy and border size 1.5."*
 
-The white border is what separates the overlapping points, which is what a
+The navy border is what separates the overlapping points, which is what a
 border is for in a dense cloud. A `cross` has no fill to outline, so
 `border_color` and `border_size` change nothing on that shape.
 
-There is no `pattern`. A texture needs an area to fill or a stroke to dash, and
-a small glyph is neither; a point's form is `shape`. The other way to handle
-points that cover one another is `jitter`, one of the four collision modifiers.
-It takes an amount: `point * jitter(0.4)` spreads overlapping points along a
-categorical axis.
+`pattern` is not on the list. A texture needs an area to fill or a stroke to
+dash, and a small glyph has neither, so a point's only form is its `shape`;
+[What it refuses](#what-it-refuses) shows the refusal. When points overlap, a
+border keeps them apart, and so does `jitter`, one of the four collision
+modifiers: `point * jitter(0.4)` moves each point a little along the
+categorical axis, by that amount, as the [strip
+plot](#a-categorical-x-the-strip-plot) showed.
 
 ## What it refuses
 

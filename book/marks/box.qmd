@@ -71,10 +71,11 @@ not give it a minimum height to make the spread look larger.
 
 ## Boxes on their side
 
-Swap the two positions and the same sentence draws the same plot, turned. There
-is no `flip` atom, for the reason there is none on [`bar`](bar.qmd). gog reads
-the two bindings and decides from them which axis carries the numbers. A second
-way to say one thing is a second thing to learn.
+Swap the two positions and the same sentence draws the same plot, turned. If
+you know ggplot2's `coord_flip()`, there is no such word here, for the reason
+there is none on [`bar`](bar.qmd). gog reads the two bindings and decides from
+them which axis carries the numbers. A second way to say one thing is a second
+thing to learn.
 
 ```{r}
 data(gapminder_2007) + box + x(life) + y(continent) +
@@ -160,7 +161,7 @@ and the channel set never grows.
 
 ## Coloring the boxes
 
-`color` gives each box its own hue and a legend, the same discrete split `bar`
+`color` gives each box its own hue and a legend, the same categorical split `bar`
 and `interval` make. Mapped to the same column that sits on x, it colors one box
 per group:
 

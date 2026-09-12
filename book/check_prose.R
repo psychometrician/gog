@@ -133,6 +133,32 @@ check_prose <- function(dirs = "book") {
               "character vector", "vector of colors", "color vector")
   r_only_exempt <- list("data.qmd" = "a data frame in r,")
 
+  # Two names for one kind of column. The book's kinds are *continuous* and
+  # *categorical*, the words the engine's refusals lead with. "Numeric" and
+  # "text" name what a column holds, not how the grammar reads it, and a column
+  # of numbers with a declared order is categorical, so as labels for the kinds
+  # they are wrong as well as second. Where what a column holds is the point,
+  # say it in words: "a column of text", "a column that holds numbers". The
+  # book had 14 "numeric column" against 8 "continuous column", and 18 "text
+  # column" against 19 "categorical column", before the 2026-09-12 sweep.
+  kinds <- c("numeric column", "text column", "string column", "discrete column",
+             "numeric or categorical", "categorical or continuous",
+             "column of categories")
+
+  # A sentence is written; a plot is drawn. The reader writes a specification,
+  # the engine draws the plot from it, and "write a plot" collapses the two
+  # things the whole book keeps apart. Each inflection written out, as with
+  # `earn`, since matching is fixed.
+  plot_verbs <- c("write a plot", "writes a plot", "writing a plot", "wrote a plot",
+                  "written a plot", "write the plot", "writes the plot",
+                  "writing the plot", "wrote the plot", "written the plot",
+                  "write plots", "writing plots")
+
+  # Jargon with a plain description available. A reader asked what a polyline
+  # was; the answer, straight pieces laid end to end from one row's point to the
+  # next, is shorter than the reader's stop, so the book says that instead.
+  jargon <- c("polyline")
+
   # One place transcribes an engine diagnostic word for word, and a diagnostic is
   # the *package's* sentence, not the book's. The book has to quote it exactly or
   # it is claiming output the reader will not get, so the em dash stays and the
@@ -205,6 +231,9 @@ check_prose <- function(dirs = "book") {
   bad_call <- character(0)
   bad_idiom <- character(0)
   bad_r <- character(0)
+  bad_kind <- character(0)
+  bad_verb <- character(0)
+  bad_jargon <- character(0)
 
   for (f in qmds) {
     lines <- readLines(f, warn = FALSE)
@@ -310,6 +339,27 @@ check_prose <- function(dirs = "book") {
         }
       }
 
+      # --- Two names for one kind of column ---------------------------------
+      for (p in kinds) {
+        if (grepl(p, low, fixed = TRUE)) {
+          bad_kind <- c(bad_kind, sprintf("  %s:%d  \"%s\"", short, i, p))
+        }
+      }
+
+      # --- A sentence is written, a plot is drawn ----------------------------
+      for (p in plot_verbs) {
+        if (grepl(p, low, fixed = TRUE)) {
+          bad_verb <- c(bad_verb, sprintf("  %s:%d  \"%s\"", short, i, p))
+        }
+      }
+
+      # --- Jargon with a plain description available -------------------------
+      for (p in jargon) {
+        if (grepl(p, low, fixed = TRUE)) {
+          bad_jargon <- c(bad_jargon, sprintf("  %s:%d  \"%s\"", short, i, p))
+        }
+      }
+
       # --- Bolded sentences -------------------------------------------------
       # A short bold run-in label may open a *list item*, with the terminal
       # period inside the bold. That is a layout device, and it is the only
@@ -354,7 +404,8 @@ check_prose <- function(dirs = "book") {
   }
 
   total <- length(bad_bold) + length(bad_dash) + length(bad_head) +
-    length(bad_case) + length(bad_call) + length(bad_idiom) + length(bad_r)
+    length(bad_case) + length(bad_call) + length(bad_idiom) + length(bad_r) +
+    length(bad_kind) + length(bad_verb) + length(bad_jargon)
 
   report <- function(items, headline, advice) {
     if (!length(items)) return(invisible(NULL))
@@ -378,6 +429,12 @@ check_prose <- function(dirs = "book") {
            "Say the literal thing. This book is planned in every major language.")
     report(bad_r, "FAIL: R-only wording in prose that speaks for four languages",
            "Say table, session, the colors themselves. R is one of four; the bindings part is where it is R.")
+    report(bad_kind, "FAIL: two names for one kind of column",
+           "Say continuous or categorical. When what a column holds is the point, say a column of text, or a column that holds numbers.")
+    report(bad_verb, "FAIL: a plot is drawn, a sentence is written",
+           "You write a sentence, or a specification; the engine draws the plot. Say which.")
+    report(bad_jargon, "FAIL: jargon where a description would do",
+           "A polyline is one stroke of straight pieces, from one row's point to the next. Say that.")
     stop("check_prose: ", total, " prose inconsistency(ies)")
   }
 

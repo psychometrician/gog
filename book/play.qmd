@@ -95,7 +95,7 @@ nothing about sequence.
 Ordered does not mean numeric. A year is ordered, and so is a date. So is a text
 column whose levels you declared: months in calendar order, or a rating from low
 to high. gog runs the frames in the order the levels declare, the same way it
-runs an axis ([Data](data.qmd)). A text column with no declared levels takes the
+runs an axis ([Data](data.qmd)). A categorical column with no declared levels takes the
 order its values first appear in, which is the trap above.
 
 How many values there are is a separate question, and the next section answers

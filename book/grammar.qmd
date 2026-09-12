@@ -7,7 +7,8 @@ source("R/setup.R")
 
 What do you have to say about your data before a plot can be drawn? gog's whole
 vocabulary is a short list of ordinary English words. Learn them once and you
-can read, and write, any plot.
+can read, and write, any plot. This book calls each word an **atom**, a piece
+that nothing divides further.
 
 This chapter is a small dictionary, and a dictionary is not read the way a
 story is. Nobody memorizes one before writing, and these lists ask for no
@@ -170,17 +171,17 @@ one *earns*:
 
 | Channel | What it does | Earns |
 |---------|-------------|-------|
-| `x` | Horizontal position, from a numeric or categorical column | an axis |
-| `y` | Vertical position, from a numeric or categorical column | an axis |
+| `x` | Horizontal position, from a continuous or categorical column | an axis |
+| `y` | Vertical position, from a continuous or categorical column | an axis |
 | `z` | Depth, the third position: it makes a plot 3-D. Drawn by `point`, `bar`, `interval`, `box`, `path` and `surface` | an axis |
-| `color` | Fill or stroke color, from a categorical or continuous column | a legend |
+| `color` | Fill or stroke color, from a continuous or categorical column | a legend |
 | `size` | Radius, on `point` | a legend |
 | `shape` | Glyph (circle, square, triangle) on `point` | a legend |
 | `pattern` | Texture: a fill's hatch, a stroke's dash. Every mark but `point`, `text` and `surface` | a legend |
 | `opacity` | Transparency, on `point`, `bar`, `edge` and `surface` | a legend |
 | `group` | Splits a mark into one line per category, without encoding it. On `line`, `area`, `step`, `interval`, `box`, `ribbon`, `path`, `zone` and `surface` | nothing |
 | `label` | The string a `text` mark draws, its content | nothing |
-| `play` | Cuts the plot into frames and plays them in sequence, from a numeric or categorical column | a strip |
+| `play` | Cuts the plot into frames and plays them in sequence, from a continuous or categorical column | a strip |
 
 The **Earns** column sorts the channels into four groups, and a Korean
 syllable shows how they fit together. It has three slots: an initial consonant,
@@ -371,12 +372,16 @@ data(gapminder_2007) + point + x(gdp, scale = "log") + y(life) +
 
 *"Given gapminder 2007: points, x is gdp on a log scale, y is life."*
 
+`x_label()` writes your own words under the axis in place of the column name.
+It is a label, not a scale, and [Labels](#labels-the-words-on-the-plot), below,
+covers the four of them.
+
 | Scale | What it does |
 |-------|-------------|
 | `linear` | Equal steps for equal differences. The default |
 | `log` | Equal steps for equal ratios, on `x`, `y`, `color`, `size` and `opacity`, with any `base` |
 | `time` | Positions dates and times, chosen from the column type: `Date` and `POSIXct` |
-| `category` | One slot per distinct value, chosen from the column type: text columns, and columns with a declared order |
+| `category` | One slot per distinct value, chosen from the column type: columns of text, and columns with a declared order |
 | `order` | Which way a categorical axis runs, or [declare it on the column](data.qmd): a factor in R, `ordered()` in the other three |
 
 A scale is not a transform: it produces no new values, only different positions

@@ -235,6 +235,11 @@ data(gapminder_2007) + point + x(gdp) + y(life) +
 *"Given gapminder 2007: points, x is gdp, y is life, colored #2a6f97, with
 opacity 0.45, size 7 and shape diamond."*
 
+One `style()` call carries as many settings as the mark can take, and every
+row in the layer is drawn with all of them. The four here are independent:
+remove any one and the other three are unchanged. Each mark's chapter lists
+what you can set on it, under [What you can set](marks/point.qmd#what-you-can-set).
+
 ### Colors are CSS colors
 
 A CSS name and a hex value both work anywhere a color is accepted, in `style()`
@@ -295,8 +300,9 @@ lightgray, and also a line derived by smooth, colored firebrick, with size 3."*
 
 ## `line` takes settings it refuses as channels
 
-A polyline is drawn with *one* stroke. Nothing varies from row to row along that
-stroke, so `size` and `opacity` are not channels on `line`:
+A line is drawn with *one* stroke from its first point to its last. Nothing
+varies from row to row along that stroke, so `size` and `opacity` are not
+channels on `line`:
 
 ```{r}
 #| error: true

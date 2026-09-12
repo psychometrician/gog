@@ -249,15 +249,9 @@ life_bands <- data.frame(
 # 2007 cloud stops climbing steeply and starts flattening.
 gdp_threshold <- data.frame(gdp = 10000.0)
 
-# A rug is not a different mark, only a different reach, so its table is the same
-# shape as a threshold's: one position column, one row per observation. Two
-# frames, not one, because which axis a rule lands on is read off which of the
-# plot's position columns its table holds — a table holding `gdp` and `life` at
-# once answers both, and is refused for saying nothing about which is meant. The
-# layer can now say so itself (`rule + x(gdp)`), so that refusal is the *silent*
-# case rather than the only one; two single-column frames stay the tidier way in.
-gdp_rug  <- data.frame(gdp  = gapminder_2007$gdp)
-life_rug <- data.frame(life = gapminder_2007$life)
+# A rug needs no table of its own: it is a `rule` layer on the scatter's table
+# with one position named on the layer, `rule + x(gdp)`, so the two single-column
+# frames that once carried it (`gdp_rug`, `life_rug`) are gone.
 
 # -- A note to write on a plot (per-layer position examples) ------------------
 # Deliberately spelled in its own vocabulary: `at`/`value` where the base table

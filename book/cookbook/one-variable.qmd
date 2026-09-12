@@ -10,7 +10,7 @@ type: text asks how many of each, a measurement asks how the values spread.
 
 ## How many of each?
 
-A text column's first question. Counting rows is a derivation, not a different
+A categorical column's first question. Counting rows is a derivation, not a different
 kind of chart, so the sentence is `bar` with `* count`:
 
 ```{r}
@@ -129,6 +129,8 @@ it:
 data(gm_europe) + bar * bin + x(life) +
   x_label("Life expectancy (years)") + title("The same thirty, summarized")
 ```
+
+*"Given gapminder Europe: bars derived by bin, x is life."*
 
 **One atom away.** A categorical column instead: `point * count * stack`
 piles one dot per row in each category. Owning chapter:

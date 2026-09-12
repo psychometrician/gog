@@ -170,7 +170,7 @@ data(balance) + bar + x(quarter) + y(profit) + color(result) +
 with a palette of firebrick and seagreen."*
 
 `palette()` hands its colors out in **category order**, and that is why `result`
-carries a declared order here instead of being plain text. A plain text column
+carries a declared order here instead of being plain text. A column of plain text
 takes the order its values first appear in. The first row here is a profit, so
 the palette would give firebrick to the gains. Declaring `levels = c("loss",
 "profit")` pins the order, the legend reads in it too, and the plot cannot
@@ -185,8 +185,9 @@ photocopier?](../cookbook/three-or-more.qmd) in the cookbook.
 
 ## Horizontal bars
 
-Swap the bindings. There is no `flip` atom, because that would be a second way
-to say one thing. Put the categories on `y` and the measure on `x`:
+Swap the bindings. If you know ggplot2's `coord_flip()` or matplotlib's
+`barh()`, there is no such word here, because it would be a second way to say
+one thing. Put the categories on `y` and the measure on `x`:
 
 ```{r}
 data(medals) + bar + x(gold) + y(country) +

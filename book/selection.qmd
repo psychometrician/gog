@@ -113,7 +113,7 @@ because they are still on the page.
 Writing it as two atoms rather than one with two arguments follows the rest of
 the grammar. A position is one column at a time, and so is a bound.
 
-## A column of categories selects slots
+## A categorical column selects slots
 
 `at` is where the selection starts. The column decides which reading you get, in
 the same way it decides whether `color` uses a ramp or a palette. Numbers are a

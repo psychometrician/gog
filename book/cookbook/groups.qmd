@@ -99,7 +99,7 @@ text. That is what the [Over time](over-time.qmd) refusal is about.
 
 ## Which group is biggest?
 
-A comparison is easiest to read when it is sorted, and a text column carries no
+A comparison is easiest to read when it is sorted, and a column of plain text carries no
 order of its own. `order()` is how you give it one:
 
 ```{r}
@@ -137,6 +137,11 @@ mirrored$population <- ifelse(mirrored$city == "Busan",
                               -mirrored$population, mirrored$population)
 ```
 
+```{r}
+#| echo: false
+peek(mirrored)
+```
+
 The arithmetic is written in R, because it is R's job, and the other three
 bindings negate a column the same way. What follows is the sentence, and it has
 four spellings like every other:
@@ -146,11 +151,15 @@ data(mirrored) + bar + y(age) + x(population) + color(city) +
   order(age, desc = TRUE)
 ```
 
+*"Given the mirrored table: bars, y is age, x is population, color by city,
+ordered by age, largest first."*
+
 No new atom, and none was needed. The pyramid comes from three rules the grammar
 already states. Orientation is read off the bindings, so a category on `y` lays
-the bars down. There is no `flip` atom, because that would be a second way to
-say one thing. A bar runs from the zero baseline to its value, in whichever
-direction that value lies. A negative bar is not a special case. It is the same
+the bars down. There is no `coord_flip()` as in ggplot2, and no `barh()` as in
+matplotlib, because either would be a second way to say one thing. A bar runs
+from the zero baseline to its value, in whichever direction that value lies.
+A negative bar is not a special case. It is the same
 rectangle, pointing the other way. And `stack` is something you ask for rather
 than something that happens, so two bars sharing one slot sit back to back
 instead of piling up.

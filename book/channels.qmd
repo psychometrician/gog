@@ -156,7 +156,10 @@ data(gapminder_2007) + point + x(gdp) + y(life) +
 
 `shape(field)` maps a categorical column to one of five glyphs: circle, square,
 triangle, diamond, cross. This is what separates groups in a figure printed in
-black and white.
+black and white. Five is the whole set. Do not map `shape` to a column with
+more categories: the sixth starts over at the circle, and two categories then
+share a glyph. The [Shape](marks/point.qmd#shape) section of the point chapter
+lists the ways past five.
 
 ```{r}
 data(gapminder_2007) + point + x(gdp) + y(life) +
@@ -329,8 +332,8 @@ data(gapminder_2007) + point + x(gdp) + y(life) +
 
 `palette()` chooses the colors the `color` channel assigns. There is no separate
 atom for ramps, which ggplot2 calls gradients. One word covers both, because the
-column decides. A text column reads a set of colors as *one color per category*.
-A numeric column reads the same set as **stops**, the fixed colors a ramp passes
+column decides. A categorical column reads a set of colors as *one color per category*.
+A continuous column reads the same set as **stops**, the fixed colors a ramp passes
 through.
 
 There are three kinds of named palette, and they say three different things: a
@@ -457,7 +460,7 @@ costs, and it is worth accepting whenever the ramp itself has to stay readable.
 and there is no categorical gray palette. Readers cannot tell more than about
 four grays apart, and the grammar has a better answer for categories in a print
 figure. That answer is [`pattern`](#pattern), which separates them without
-spending color at all, and asking for `palette("gray")` on a text column says
+spending color at all, and asking for `palette("gray")` on a categorical column says
 so:
 
 ```{r}
@@ -526,7 +529,7 @@ data(gapminder_2007) + point + x(gdp) + y(life) +
 palette of white and navy."*
 
 Asking for a palette of the wrong kind is refused rather than guessed at. A
-categorical palette cannot serve a numeric column:
+categorical palette cannot serve a continuous column:
 
 ```{r}
 #| error: true

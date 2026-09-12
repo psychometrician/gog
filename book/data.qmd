@@ -423,7 +423,7 @@ DBI::dbDisconnect(con)
 
 ## Declaring the order of categories
 
-A plain text column has no order of its own, so gog draws its categories in the
+A column of plain text has no order of its own, so gog draws its categories in the
 order the rows happen to arrive:
 
 ```{r}
@@ -512,7 +512,7 @@ data(severity) + bar + x(level) + y(count) + order(count, desc = TRUE) +
 largest first."*
 
 `order()` can also name the categorical column itself, as in `order(level)`.
-That asks for the column's own order. For a plain text column, that order is
+That asks for the column's own order. For a column of plain text, that order is
 alphabetical. For a column with declared levels, it is the declared order.
 `desc = TRUE` reverses whichever applies. So a declared order cannot be turned
 alphabetical from inside the plot. To change it, change the levels where the

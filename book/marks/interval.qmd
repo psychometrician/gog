@@ -259,7 +259,7 @@ data(gapminder_2007) + interval * range + x(continent) + y(continent)
 
 ## Splitting by color
 
-`color` splits an interval into one whisker per group, the same discrete
+`color` splits an interval into one whisker per group, the same categorical
 split `line` and `bar` make. The statistic is computed inside each group, so
 each gets its own interval, its own hue, and a legend:
 

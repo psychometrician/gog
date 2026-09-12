@@ -224,10 +224,12 @@ mark_options <- function(mark) {
 
   cat(paste0("| `style(", sc$setting, " = )` | ", vals, " |"),
       sep = "\n")
-  cat("\n\nAnd these vary per row if you map them to a column instead: ",
+  cat("\n\nAnd these vary per row if you map them to a column instead, ",
+      "with the kind of column each accepts: ",
       paste0("`", mapped$channel, "()`", " (",
-             ifelse(mapped$accepts == "discrete", "categories",
-                    ifelse(mapped$accepts == "continuous", "numbers", "either")),
+             ifelse(mapped$accepts == "discrete", "categorical",
+                    ifelse(mapped$accepts == "continuous", "continuous",
+                           "continuous or categorical")),
              ")", collapse = ", "),
       ".\n", sep = "")
 }

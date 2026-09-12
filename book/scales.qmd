@@ -163,7 +163,7 @@ data(readings) + point + x(depth, scale = "log") + y(temp)
 The message names how many rows are affected and the smallest value in the
 column, because "some of your data cannot be drawn" is not enough to act on.
 
-Text has no logarithm either, and a text column already gets a categorical axis
+Text has no logarithm either, and a column of text already gets a categorical axis
 without being asked:
 
 ```{r}
@@ -258,7 +258,7 @@ data(octaves) + point + x(freq, base = 2) + y(level)
 
 The time scale is one you never have to write. A `Date` or `POSIXct` column
 *is* temporal, the type already says so, and gog reads the calendar from the
-type, the same way a text column already gets a categorical axis:
+type, the same way a column of text already gets a categorical axis:
 
 ```{r}
 revenue <- data.frame(
@@ -373,7 +373,7 @@ data(six_weeks) + point + x(day) + y(orders) + color(day) +
 | `linear` | Equal steps for equal differences. The default |
 | `log` | Equal steps for equal ratios, on `x`, `y`, `color`, `size` and `opacity`, with any `base` above 1 |
 | `time` | Positions dates and times, chosen from the column type: `Date` and `POSIXct` columns, on every channel that measures |
-| `category` | One slot per distinct value, chosen from the column type: text columns, and columns with a declared order |
+| `category` | One slot per distinct value, chosen from the column type: columns of text, and columns with a declared order |
 
 ## The axis fits your data
 
@@ -546,10 +546,10 @@ data(gapminder_2007) + bar * mean + x(continent, limits = c(0, 3)) + y(life)
 
 The scales in the table above are not all chosen the same way. You ask for
 `log`. You do not ask for `time` or `category`. gog reads those off the column:
-a `Date` column gets a calendar axis, and a text column gets one slot per
+a `Date` column gets a calendar axis, and a column of text gets one slot per
 distinct value.
 
-You may still write them. Writing `scale = "category"` on a text column is
+You may still write them. Writing `scale = "category"` on a categorical column is
 allowed and changes nothing, in the same way `scale = "linear"` on a number
 changes nothing. The plot below is identical to the same sentence with the
 scale left off:
@@ -572,7 +572,7 @@ data(gapminder_2007) + point + x(gdp, scale = "category") + y(life)
 
 The reason behind that refusal also explains the others in this chapter. A scale
 says *how* a measured column is placed. Whether the axis measures at all is the
-column's type. So `log` on a text column is refused, `time` on a plain number is
+column's type. So `log` on a categorical column is refused, `time` on a plain number is
 refused, and a date column cannot be turned back into raw numbers by asking for
 `linear`. Every one of those refusals tells you to change the column, because
 the column is where the answer lives.

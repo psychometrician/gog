@@ -31,7 +31,7 @@ renamed for readability (`gdpPercap` → `gdp`, `lifeExp` → `life`,
 `pop` → `population`):
 
 `gm_all` · `gapminder_2007` · `gapminder_asia` · `gm_continents` · `gm_eras` ·
-`gm_europe` · `gdp_rug` · `life_rug`
+`gm_europe`
 
 The `gapminder` package is released under **CC0 1.0**, a public domain
 dedication, so no permission or attribution is required. It is credited anyway:

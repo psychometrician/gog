@@ -697,7 +697,7 @@ belongs to your table rather than to the grammar. Put every number on a leaf and
 let the parents be the sums, which is what a partition computes.
 
 The other refusals are the same rule in smaller cases. A level must be a
-**name** that a branch shares, so a numeric column is refused and sent to `x()`,
+**name** that a branch shares, so a continuous column is refused and sent to `x()`,
 where a measurement belongs. A branch may stop early but may not skip a level,
 since nothing below a stop can be reached. And a mark with no reading for a
 region is sent to `zone` or `text`.

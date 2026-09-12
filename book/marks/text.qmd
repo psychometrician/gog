@@ -147,7 +147,7 @@ data(gm_europe) + point + style(color = "#9e9e9e") +
 
 ## Numeric labels: the value on each mark
 
-A `label` need not be a name. Bind a numeric column and each row's value is
+A `label` need not be a name. Bind a column that holds numbers and each row's value is
 drawn. A whole number is printed without a decimal point. Layer `text` over
 `bar` to print each bar's height at its top:
 
@@ -163,7 +163,7 @@ gold."*
 
 ## Color
 
-`color` splits the labels by group and earns a legend, the same discrete split
+`color` splits the labels by group and earns a legend, the same categorical split
 `bar` makes. Here each country's name takes its own hue:
 
 ```{r}

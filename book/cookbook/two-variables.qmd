@@ -99,6 +99,8 @@ in its category's slot:
 data(gapminder_2007) + point + x(continent) + y(life)
 ```
 
+*"Given gapminder 2007: points, x is continent, y is life."*
+
 When the dots pile onto one line, `* jitter` spreads them sideways, along
 the category axis only, so every dot keeps its exact height:
 
@@ -120,6 +122,8 @@ involved; `bar` draws data as it arrives:
 ```{r}
 data(medals) + bar + x(country) + y(bronze)
 ```
+
+*"Given the medals: bars, x is country, y is bronze."*
 
 **One atom away.** Ranked, because a comparison is easiest to read when it
 is sorted:

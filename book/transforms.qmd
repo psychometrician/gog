@@ -212,8 +212,8 @@ meshes, including why the empty cells are left as panel.
 ## `count`: frequency aggregation
 
 `count` counts the number of rows for each unique value of `x`, and it works
-on both string and numeric columns. It is the categorical counterpart to
-`bin`: `bin` groups a continuous variable; `count` groups a discrete one.
+on both categorical and continuous columns. It is the categorical counterpart to
+`bin`: `bin` groups a continuous column; `count` groups a categorical one.
 
 ```{r}
 # How many countries are in each continent?
@@ -707,9 +707,11 @@ The inventing transforms made new measurements. The **reading** transforms
 are the other half of the sort: each one reads a column you name and answers
 with a summary of it, and `smooth` is the first.
 
-`smooth` fits a locally weighted linear regression (LOESS) through the
-`(x, y)` points and evaluates it at 100 evenly spaced x positions
-[@cleveland1979].
+`smooth` fits a locally weighted linear regression (LOESS) through the `(x, y)`
+points and evaluates it at 100 evenly spaced x positions [@cleveland1979]. The
+curve is the engine's own, with no robustness pass, so it is identical in all
+four languages and differs from `geom_smooth()`, whose default fit is a local
+quadratic.
 
 Combine it with `line` to overlay a trend line on a scatter plot:
 
@@ -725,7 +727,7 @@ also a line derived by smooth."*
 
 **Span** defaults to 0.75: 75% of the data is used for each local regression.
 A larger span gives a smoother curve; a smaller span follows the data more
-closely. `smooth` requires both `x` and `y` to be numeric columns, and at least
+closely. `smooth` requires both `x` and `y` to be continuous columns, and at least
 three rows in each group it fits; both refusals are earlier in this chapter,
 under [what these three refuse](#what-bin-density-and-smooth-refuse). It
 preserves the field names, so no extra `y()` binding is needed.

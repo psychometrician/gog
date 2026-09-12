@@ -10,7 +10,7 @@ channel, `bin` is a transform, and none of them means anything on its own. They
 are words, and a word needs a sentence.
 
 The functions in this appendix are not words. They take a plot you have already
-written and act on it, or they hand you a table to write a plot about. None of
+written and act on it, or they hand you a table to write a sentence about. None of
 them joins a sentence with `+` or `*`, and none of them is part of the grammar.
 
 The name alone will not tell you which is which. `x_label` is a word of the

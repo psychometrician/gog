@@ -5,10 +5,15 @@
 source("../R/setup.R")
 ```
 
-How did one value change over time? `line` connects the rows in **x order**,
-drawing one unbroken stroke (a polyline) through all the `(x, y)` points.
+How did one value change over time? `line` sorts the rows by `x`, from
+smallest to largest, and draws one stroke through their `(x, y)` points in that
+order, the **x order**. The stroke is straight pieces laid end to end, each
+joining one row's point to the next, with nothing smoothed between them.
 
 ## Basic usage
+
+Everything in this chapter is added to one sentence, the smallest that draws a
+line: a source, the mark, and its two positions.
 
 ```{r}
 data(gapminder_asia) + line + x(year) + y(life)
@@ -16,10 +21,20 @@ data(gapminder_asia) + line + x(year) + y(life)
 
 *"Given gapminder Asia: a line, x is year, y is life."*
 
+The stroke looks wrong, and the plot is correct. All five countries have a
+row for each year, so the one stroke passes through five values at every year,
+and the vertical segments are it joining the five countries inside one year
+before moving on to the next. That is exactly what a line does when nothing
+splits the rows: it draws one **series**, a single stroke in x order. gog warns
+about this sentence and says what to add, a `color` or a `group`. [Multiple
+series](#multiple-series) below draws the same table as five lines, one per
+country.
+
 ## Automatic sorting by x
 
-`line` sorts its own vertices, the points it joins, by `x`, so the rows may
-arrive in any order. The table below is deliberately shuffled, and the line
+Rows rarely arrive in the order a line needs: a file is sorted by name, or by
+nothing at all. `line` sorts its own vertices, the points it joins, by `x`, so
+the rows may arrive in any order. The table below is deliberately shuffled, and the line
 still runs from left to right:
 
 ```{r}
@@ -42,7 +57,9 @@ shape.
 
 ## Multiple series
 
-Use `color` to split into one line per group:
+This is the plot the warning above asked for. The table is the same one the
+chapter opened with, and one word splits the single stroke into a line per
+country: `color`, which also tells the reader which line is which.
 
 ```{r}
 data(gapminder_asia) + line + x(year) + y(life) +
@@ -51,13 +68,16 @@ data(gapminder_asia) + line + x(year) + y(life) +
 
 *"Given gapminder Asia: lines, x is year, y is life, color by country."*
 
-Each unique value in `country` becomes a separate line with its own color.
-A color legend is generated automatically.
+Each unique value in `country` becomes a separate line with its own color, and
+a color legend is generated automatically. `group` makes the same split without
+a color or a legend, which the [Groups](../cookbook/groups.qmd#grouping-without-a-legend)
+recipe shows, for when the shape of the lines together is the answer and their
+names are not.
 
 ## Layering line over other marks
 
-`line` and `point` are often combined: the point layer adds a dot at each
-data position.
+A line shows the trend and hides where the measurements were. A dot at each
+row puts them back, which is why `line` and `point` are so often combined.
 Write `color` *before* the marks and it belongs to the plot, so both layers
 use it:
 
@@ -73,6 +93,10 @@ Both the lines and the points share the same color per country.
 
 ### Giving each layer its own appearance
 
+You do not have to map a column to `color` at all. If you want one color for
+the lines and another for the points, chosen by you rather than read from the
+data, that is a *setting*, `style(color = )`, and no legend appears.
+`group(country)` still keeps one line per country: it splits without coloring.
 `style()` attaches to the nearest preceding mark and *stops there*, so each
 layer can be styled independently:
 
@@ -163,8 +187,9 @@ render_svg(data(gapminder_2007) + line * mean + x(life) + y(continent))
 
 ## Smoothed trend line
 
-Combine `line` with the `smooth` transform to draw a fitted trend
-instead of raw data:
+The cloud of countries leans one way, and sometimes that lean is the whole
+answer. Combine `line` with the `smooth` transform to draw a fitted trend
+through all the rows instead of the rows themselves:
 
 ```{r}
 data(gapminder_2007) + x(gdp) + y(life) +
@@ -202,8 +227,9 @@ other.
 
 ## Stroke width and opacity
 
-A polyline is drawn with a *single* stroke, so `size` and `opacity` are not
-channels here: there is nothing per row for them to vary along. That one
+A line is drawn with a *single* stroke from its first point to its last, so
+`size` and `opacity` are not channels here: there is nothing per row for them
+to vary along. That one
 stroke still has a width and an opacity, and `style()` sets them:
 
 ```{r}
@@ -235,6 +261,9 @@ Unlike a channel it has no plot-scoped form. Writing it before any mark is an
 error, because a plot has no appearance of its own to style.
 
 ## What you can set
+
+A setting changes how the stroke looks without reading a column, and each
+mark takes its own. These are a line's, with the values each accepts:
 
 ```{r}
 #| echo: false

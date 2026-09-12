@@ -47,7 +47,7 @@ chapters: [Channels](../channels.qmd), [Setting vs mapping](../style.qmd).
 ## How big is each observation?
 
 A magnitude is carried by `size`; the channel's question is *how much*, so it
-only accepts a numeric column:
+only accepts a continuous column:
 
 ```{r}
 data(gapminder_2007) + point + x(gdp, scale = "log") + y(life) +
@@ -71,13 +71,16 @@ data(gapminder_2007) + point +
   title("The health and wealth of nations, 2007")
 ```
 
+*"Given gapminder 2007: points, x is gdp on a log scale, y is life, color by
+continent, size by population."*
+
 Every channel keeps its own rule and its own legend; none of them changed
 meaning by being combined. Four variables is usually the most a single plot can
 carry. Past that, use [panels](../faceting.qmd) instead of more channels.
 
 ## What if the third variable is a number?
 
-`color` accepts either kind of column. A numeric column gets a
+`color` accepts either kind of column. A continuous column gets a
 sequential ramp instead of a palette, and a skewed one reads better on a
 log ramp, exactly like a skewed axis:
 
@@ -154,6 +157,9 @@ data(thermals) + path + x(east) + y(north) + z(altitude) +
   title("The same two routes, seen from overhead")
 ```
 
+*"Given the thermals: paths, x is east, y is north, z is altitude, color by
+glider, turned 20, tilted 80."*
+
 From nearly overhead the climb collapses and you are looking down at two
 circles. The plot has become a picture of how wide each circle is, and it shows
 what the first view hid: Bravo is flying a far tighter circle than Alpha. The
@@ -184,6 +190,9 @@ data(quakes_fiji) + point + x(east) + y(north) + z(elevation) +
   color(magnitude) + palette("viridis") + space(turn = 120, tilt = 20) +
   title("A thousand earthquakes, and the sheet they lie on")
 ```
+
+*"Given quakes Fiji: points, x is east, y is north, z is elevation, color by
+magnitude."*
 
 The column is named `elevation`, so a measurement below sea level is a negative
 number: the deepest quake in the table sits at −680 km. The quakes are not
@@ -248,7 +257,7 @@ cluster on amount, over food, y is nutrient."* Owning chapters:
 ## What this section refuses
 
 Five glyph shapes have no order from smallest to largest, so `shape` refuses a
-numeric column and names the channels that do carry magnitude:
+continuous column and names the channels that do carry magnitude:
 
 ```{r}
 #| error: true
