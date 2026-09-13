@@ -88,8 +88,10 @@ check_refusals <- function(book = "book") {
       outcome <- tryCatch({
         v <- eval(parse(text = text), envir = chunk_env)
         # A spec is inert until it is drawn — knit_print renders it, so the check
-        # must too, or every refusal would look like a pass.
-        if (inherits(v, "gog_spec")) {
+        # must too, or every refusal would look like a pass. A composed page is
+        # inert the same way and prints through the same method, so it is
+        # rendered here too; a page-level refusal was invisible until it was.
+        if (inherits(v, c("gog_spec", "gog_page"))) {
           suppressMessages(render_svg(v))
           "drew a plot"
         } else "evaluated without error"

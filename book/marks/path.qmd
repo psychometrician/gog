@@ -95,7 +95,7 @@ worth reading, because it states why `path` is a separate mark:
 
 ```{r}
 #| error: true
-render_svg(data(gapminder_asia) + line + x(year) + y(life) + style(arrow = "end"))
+data(gapminder_asia) + line + x(year) + y(life) + style(arrow = "end")
 ```
 
 A line's last vertex is wherever the domain happens to end, so a head there
@@ -139,7 +139,7 @@ why:
 
 ```{r}
 #| error: true
-render_svg(data(gapminder_asia) + path * mean + x(country) + y(life))
+data(gapminder_asia) + path * mean + x(country) + y(life)
 ```
 
 A summary replaces the rows. `mean` reduces each country to one number, and what
@@ -208,7 +208,7 @@ and a curve has no field to cut.
 
 ```{r}
 #| error: true
-render_svg(data(iris_flowers) + line * density(levels = 8) + x(sepal_length))
+data(iris_flowers) + line * density(levels = 8) + x(sepal_length)
 ```
 
 `bandwidth` is refused for the mirror reason: it needs one axis, and a contour
@@ -219,8 +219,8 @@ number cannot be a width in both:
 
 ```{r}
 #| error: true
-render_svg(data(iris_flowers) + path * density(bandwidth = 0.5) +
-  x(sepal_length) + y(petal_length))
+data(iris_flowers) + path * density(bandwidth = 0.5) +
+  x(sepal_length) + y(petal_length)
 ```
 
 `adjust` is a multiplier rather than a length, so it means the same thing on

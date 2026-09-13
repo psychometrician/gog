@@ -139,8 +139,9 @@ petal length, color by species, turned -50, tilted 15."*
 ## What if the rows form a route?
 
 The scatter above is a cloud: each flower is its own dot and the table's order
-means nothing. Sometimes the order is the point. Here are the two gliders from
-[Path](../marks/path.qmd) again. Each row records where that glider was next, so
+means nothing. Sometimes the order is what matters. Here are the two gliders
+from [Path](../marks/path.qmd) again. Each row records where that glider was a
+moment later, so
 the marks belong joined in the order they were recorded. The mark that joins
 rows in table order is `path`:
 
@@ -226,7 +227,7 @@ slab."*
 The band of points moves down and west as the sequence runs, which is the slope
 of that sheet read one slice at a time. The frames are not time here. `play`
 advances through the levels of an ordered column, and whether that column
-measures years or kilometers is the column's business, not the channel's. Depth
+measures years or kilometers is the column's job, not the channel's. Depth
 happens to be the one variable a cross-section is usually cut on, so this is the
 ordinary cross-section view, spelled with the atom that also animates a year.
 
@@ -253,7 +254,7 @@ The question is which foods resemble each other, and which nutrients are found
 in the same foods. Two categorical axes and one value make a tile plot, and
 nothing in the data chose its slot order. Build a [cluster](../cluster.qmd)
 tree on each axis, then compose the three plots: the shared axes take the
-trees' leaf order, and tiles of similar color end up next to each other.
+trees' leaf order, and tiles of similar color sit next to each other.
 
 ```{r}
 (data(nutrients) + path * cluster(amount, over = nutrient) + x(food) +

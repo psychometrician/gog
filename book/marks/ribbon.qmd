@@ -260,7 +260,7 @@ its own, so a per-row opacity has nothing to vary along.
 
 ```{r}
 #| error: true
-render_svg(data(gapminder_asia) + ribbon * range + x(year) + y(life) + opacity(gdp))
+data(gapminder_asia) + ribbon * range + x(year) + y(life) + opacity(gdp)
 ```
 
 And `size` cannot even be set: a band's extent comes from its x and its two
@@ -506,7 +506,7 @@ a category on `y`, but there `density` makes it a slot rather than the measure:
 
 ```{r}
 #| error: true
-render_svg(data(gapminder_2007) + ribbon * range + x(life) + y(continent))
+data(gapminder_2007) + ribbon * range + x(life) + y(continent)
 ```
 
 `ribbon` completes the low/high family: [`interval`](interval.qmd) draws the

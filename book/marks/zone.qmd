@@ -24,11 +24,6 @@ holds the two edges of a target band:
 
 ```{r}
 #| echo: false
-peek(quarterly)
-```
-
-```{r}
-#| echo: false
 peek(target_band)
 ```
 

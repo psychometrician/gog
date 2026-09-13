@@ -183,8 +183,8 @@ time:
 
 ```{r}
 #| error: true
-render_svg(data(gm_years) + point + x(gdp) + y(life) |
-             facet(continent, wrap = 2) / facet(period))
+data(gm_years) + point + x(gdp) + y(life) |
+  facet(continent, wrap = 2) / facet(period)
 ```
 
 ## Giving a panel its own scale
@@ -287,7 +287,7 @@ write `free` on a played plot. It is refused:
 
 ```{r}
 #| error: true
-render_svg(data(gm_all) + point + x(gdp) + y(life, free = TRUE) + play(year))
+data(gm_all) + point + x(gdp) + y(life, free = TRUE) + play(year)
 ```
 
 The reason is in the message. Panels sit beside each other and a reader compares
@@ -302,7 +302,7 @@ decodes the whole plot. And with no facet there are no panels:
 
 ```{r}
 #| error: true
-render_svg(data(gapminder_2007) + point + x(gdp) + y(life, free = TRUE))
+data(gapminder_2007) + point + x(gdp) + y(life, free = TRUE)
 ```
 
 ## A layer without the facet column
@@ -341,7 +341,7 @@ continuous column refuses with direction:
 
 ```{r}
 #| error: true
-render_svg(data(gapminder_2007) + point + x(gdp) + y(life) | facet(population))
+data(gapminder_2007) + point + x(gdp) + y(life) | facet(population)
 ```
 
 `shape` and `group` ask the same question of a column, and a facet asks it of

@@ -63,7 +63,7 @@ data(iris_flowers) + bar * bin + x(petal_length)
 *"Given the iris flowers: bars derived by bin, x is petal length."* The `*`
 derives: `bin` cuts the axis into intervals and counts rows into them, and
 `bar` draws the counts. You did not bind `y`; `bin` invents the count, and
-the axis says so. Note the two peaks. Plot eight explains them.
+the axis says `Count`. Note the two peaks. Plot eight explains them.
 
 ## The same question, smoothly
 
@@ -105,10 +105,9 @@ data(gapminder_2007) + bar * mean + x(continent) + y(life)
 ```
 
 *"Given gapminder 2007: bars derived by mean, x is continent, y is life."*
-The strip plot above
-showed every country; `* mean` collapses each continent to its average.
-Here `y(life)` names the column the mean *reads*: a transform that reads
-a column makes you say which one.
+The strip plot above showed every country; `* mean` reduces each continent to
+one value, its average. Here `y(life)` names the column the mean *reads*: a
+transform that reads a column makes you say which one.
 
 ## Five countries across the decades
 
@@ -182,5 +181,6 @@ hides, so try a few.
 
 Ten plots, and twelve distinct words. Every one read left to right
 as *data, mark, positions, refinements*. Nothing you learned for one plot had
-to be unlearned for the next. The same `color` split bars, lines and points.
-The same `*` derived counts, means and densities. Now you write.
+to be unlearned for the next. The same `color` split the bars and lines, and
+colored the points. The same `*` derived counts, means and densities. Now
+you write.

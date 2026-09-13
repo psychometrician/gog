@@ -53,9 +53,9 @@ check_tabs <- function(book_dir = "book") {
   env$proj_root <- root
   suppressWarnings(sys.source(file.path(book_dir, "R", "tabs.R"), envir = env))
 
-  # The chunk reader. `error: true` chunks are R-only on purpose — their subject
-  # is the *message*, and the message shown would be R's — so they are skipped
-  # here exactly as `tabs.R` skips them.
+  # The chunk reader. A refusal chunk (`error: true`) is tabbed like any other
+  # sentence, so it is read here exactly as `tabs.R` reads it; only a chunk that
+  # is never shown (`include: false`) is skipped.
   chunks_of <- function(path) {
     lines <- readLines(path, warn = FALSE)
     out <- character()
@@ -66,7 +66,7 @@ check_tabs <- function(book_dir = "book") {
         while (j <= length(lines) && !grepl("^```\\s*$", lines[j])) j <- j + 1L
         body <- lines[seq.int(i + 1L, j - 1L)]
         opts <- body[grepl("^#\\|", body)]
-        if (!any(grepl("error:\\s*true|include:\\s*false", opts)))
+        if (!any(grepl("include:\\s*false", opts)))
           out <- c(out, paste(body[!grepl("^#\\|", body)], collapse = "\n"))
         i <- j + 1L
       } else i <- i + 1L

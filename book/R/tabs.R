@@ -24,10 +24,12 @@
 # written in R and R's own parser supplies the precedence — which means this file
 # can simply call it.
 #
-# Two things are deliberately left alone. A chunk that is not a sentence keeps
-# its ordinary rendering, and a chunk marked `error: true` stays R-only: its
-# subject is the *message*, and the message shown would be R's. How those read
-# in Python has its own page (`bindings/python.qmd`).
+# One thing is deliberately left alone: a chunk that is not a sentence keeps
+# its ordinary rendering. A refusal chunk (`error: true`) is tabbed like any
+# other sentence. Its message comes from the engine and is the same in all four
+# bindings, so the four spellings and the one message agree; a refusal that a
+# binding raises before the engine reads differently in each language, and how
+# those read has its own page per binding.
 
 tab_translator <- file.path(proj_root, "py-pkg", "gog", "tests", "book_parity")
 tab_js_emitter <- file.path(proj_root, "js-pkg", "gog", "test", "book_parity",
@@ -288,14 +290,14 @@ knitr::knit_hooks$set(source = function(x, options) {
   # Which chunks are claimed at all. The format is deliberately *not* one of these
   # tests any more (see below); these three are the same in every format.
   #
-  # A chunk marked `error: true` stays R-only because its subject is the *message*,
-  # and a message is worded in the caller's own syntax — showing four spellings of a
-  # sentence beside one binding's refusal would be four claims and one piece of
-  # evidence. A laid-out chunk (`layout-ncol`) is left alone because the layout is
-  # over *plots*, and re-emitting its source as four blocks would put them in the
-  # grid. And a chunk that is not a gog sentence has nothing to spell twice.
+  # A refusal chunk (`error: true`) is tabbed like any other sentence: the
+  # reader wants the refused sentence in their own language, and the engine's
+  # message is the same in all four. A laid-out chunk (`layout-ncol`) is left
+  # alone because the layout is over *plots*, and re-emitting its source as four
+  # blocks would put them in the grid. And a chunk that is not a gog sentence
+  # has nothing to spell twice.
   laid_out <- any(nzchar(unlist(options[grepl("^layout", names(options))])))
-  if (isTRUE(options$error) || laid_out || !is_tabbable(code)) {
+  if (laid_out || !is_tabbable(code)) {
     return(tab_default(x, options))
   }
 

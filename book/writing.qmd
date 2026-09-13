@@ -13,10 +13,10 @@ it gave you finished sentences and asked what they say. Recall starts from
 nothing in front of you: you produce the answer yourself. It is the
 harder of the two, and it is what writing a specification asks of you.
 
-This chapter works in the recall direction from here on. Three builds come
-first, showing the method you will actually use: start with the minimum
-sentence, look, refine. Five questions follow with nothing in front of you,
-each answered by a sentence you met in the last chapter: write yours before
+This chapter works in the recall direction from here on. Three worked examples
+come first, showing the method you will use: start with the minimum sentence,
+look, refine. Five questions follow with nothing in front of you, each answered
+by a sentence you met in the last chapter: write yours before
 you scroll, then check it against the printed one. Last comes the other half
 of writing: what happens when a sentence is wrong, and how quickly a refusal
 teaches the rule.
@@ -77,8 +77,9 @@ data(iris_flowers) + bar * bin + x(petal_length) + color(species)
 *"Given the iris flowers: bars derived by bin, x is petal length, color by
 species."*
 
-And if the overlap bothers you, one mark changes it: `step` draws each bin's
-height as an unfilled line, so the three species never cover each other:
+If the overlapping bars are hard to compare, one mark changes that: `step`
+draws each bin's height as an unfilled line, so the three species never cover
+each other:
 
 ```{r}
 data(iris_flowers) + step * bin + x(petal_length) + color(species)
@@ -106,8 +107,8 @@ data(gapminder_2007) + point +
 
 *"Given gapminder 2007: points, x is gdp on a log scale, y is life, color by
 continent, size by population."* Three atoms added to the minimum
-sentence (`color`, `size` and `title`; the log scale rides inside `x` rather
-than counting as a word), and still no new grammar in it.
+sentence (`color`, `size` and `title`; the log scale is written inside `x`
+rather than counting as a word), and still no new grammar in it.
 
 ## Five questions, nothing in front of you
 
@@ -122,7 +123,7 @@ data(medals) + bar + x(gold) + y(country)
 ```
 
 *"Given the medals: bars, x is gold, y is country."* One swap of the two
-bindings lies the bars down, and no new word was needed.
+bindings lays the bars down, and no new word was needed.
 
 How is life expectancy distributed, drawn as a smooth curve rather than
 counted into bins?
@@ -153,8 +154,8 @@ data(gapminder_2007) + point + x(gdp, scale = "log") + y(life) | facet(continent
 ```
 
 *"Given gapminder 2007: points, x is gdp on a log scale, y is life, split
-into panel columns by continent."* The `|` and its facet, shared scales and
-all.
+into panel columns by continent."* The `|` and its facet, with scales shared
+across panels.
 
 Do the three iris measurements separate the species when seen together?
 

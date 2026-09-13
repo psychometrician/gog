@@ -140,7 +140,7 @@ a setting on `line`, one dimension down:
 
 ```{r}
 #| error: true
-render_svg(data(gapminder_asia) + area + x(year) + y(life) + opacity(gdp))
+data(gapminder_asia) + area + x(year) + y(life) + opacity(gdp)
 ```
 
 `size` is refused entirely: on `area` it cannot even be set. A stroke has a
@@ -149,7 +149,7 @@ x, its y and its baseline, so there is no size to choose:
 
 ```{r}
 #| error: true
-render_svg(data(actuals) + area + x(year) + y(sales) + style(size = 4))
+data(actuals) + area + x(year) + y(sales) + style(size = 4)
 ```
 
 Two marks, two different answers, both derived from what the mark *is* rather
@@ -281,7 +281,7 @@ asks for the category on `x` instead:
 
 ```{r}
 #| error: true
-render_svg(data(gapminder_2007) + area * mean + x(life) + y(continent))
+data(gapminder_2007) + area * mean + x(life) + y(continent)
 ```
 
 The second refusal comes from the domain. `bin` cuts a continuous axis into
@@ -292,5 +292,5 @@ transform for categories: `count` after `bin`, `proportion` after `density`.
 
 ```{r}
 #| error: true
-render_svg(data(gapminder_2007) + area * bin + x(continent))
+data(gapminder_2007) + area * bin + x(continent)
 ```

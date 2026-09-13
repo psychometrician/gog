@@ -6,7 +6,8 @@ source("../R/setup.R")
 ```
 
 You have one column. What can it tell you? The answer depends on the column's
-type: text asks how many of each, a measurement asks how the values spread.
+type. A categorical column asks how many of each; a continuous column asks how
+the values spread.
 
 ## How many of each?
 
@@ -97,7 +98,7 @@ number of peaks is the thing you want to show. One atom tunes the smoothing:
 
 ## How does the distribution look in steps?
 
-A third mark on the same `bin`: a staircase silhouette, tracing the bin tops
+A third mark on the same `bin`: a staircase outline, tracing the bin tops
 with no fill. It is most useful when several distributions share an axis, as in
 [Many groups](groups.qmd), and it reads well alone:
 

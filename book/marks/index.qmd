@@ -153,7 +153,7 @@ When the *order of the rows* is what you want to show, [`path`](path.qmd)
 connects them in that order. `line` sorts its points by x before it joins them.
 `path` does not, so the stroke can move left as well as right, cross itself, or
 return to where it started. That is the **connected scatterplot**: the two axes
-carry measurements, and the joining line carries time.
+carry measurements, and the joining line shows the order in time.
 
 ```{r}
 # The reading order is the table's → path
@@ -232,13 +232,13 @@ data(gapminder_2007) + point + x(continent) + y(life) +
 *"Given gapminder 2007: points, x is continent, y is life."*
 
 Nothing is summarized: each dot is one country, placed by its continent and its
-life expectancy. Countries with the same life expectancy land on the same spot,
+life expectancy. Dots for countries with the same life expectancy overlap,
 so a crowded column hides two things: how many dots it holds, and how they are
 spread. The next paragraph names three marks that show both.
 
 For the *shape* of each group rather than every point, [`box`](box.qmd) draws
 the five-number summary as `box + x(continent) + y(life)`: median, quartiles,
-and whiskers, with far values drawn as separate dots. [`ribbon *
+and whiskers, with outliers drawn as separate dots. [`ribbon *
 density`](ribbon.qmd#the-violin-a-distribution-per-category) draws the whole
 estimated distribution that those five numbers summarize: the violin plot.
 When every point matters but the points overlap,
@@ -268,7 +268,7 @@ an order, such as a rating scale or size groups from smallest to largest.
 Continents have no order, so this plot does what that advice says not to do,
 and gog draws it anyway. The grammar refuses a sentence that is ill-formed,
 never one that is only unwise; whether a profile suits your categories is your
-call ([Law 8](../design-laws.qmd)). The same categories drawn around a circle
+judgment ([Law 8](../design-laws.qmd)). The same categories drawn around a circle
 give the radar chart, in [Polar](../polar.qmd). [`area`](area.qmd) fills the same boundary,
 [`step`](step.qmd) holds it flat across each slot, and [`ribbon *
 range`](ribbon.qmd) fills the spread as a band.
@@ -332,6 +332,13 @@ y(country)` the horizontal bar. Nothing else is needed. If you know ggplot2's
 `coord_flip()` or matplotlib's `barh()`, this is the same result with no extra
 word. gog reads the orientation from which axis carries the categories, as
 ggplot2 itself now does.
+
+That turn belongs to the marks with a slot, and not to every mark. `line`,
+`step`, `area` and `ribbon` read a domain along `x` and trace a measure up `y`,
+and they do not turn on their side when you swap their bindings: their two
+columns are often both numbers, so no column type could say which is the
+domain, and the mark fixes it. The [`line`](line.qmd#a-category-on-the-domain-the-profile) chapter
+says why, and what to write when the domain has to run up the page.
 
 ---
 

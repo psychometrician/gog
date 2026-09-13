@@ -198,10 +198,8 @@ shows the arithmetic:
 
 ```{r}
 #| error: true
-render_svg(
-  (data(gapminder_2007) + point + x(gdp) + y(life) + theme(height = 500)) /
-    (data(gapminder_2007) + point + x(gdp) + y(life) + theme(height = 500))
-)
+(data(gapminder_2007) + point + x(gdp) + y(life) + theme(height = 500)) /
+  (data(gapminder_2007) + point + x(gdp) + y(life) + theme(height = 500))
 ```
 
 ## How big is the page itself?
@@ -234,8 +232,8 @@ and the refusal names the plot it belongs to:
 
 ```{r}
 #| error: true
-render_svg(((data(gapminder_2007) + point + x(gdp) + y(life)) |
-              (data(gapminder_2007) + bar * count + x(continent))) + theme(grid = "none"))
+((data(gapminder_2007) + point + x(gdp) + y(life)) |
+  (data(gapminder_2007) + bar * count + x(continent))) + theme(grid = "none")
 ```
 
 ## What a page is not
@@ -247,8 +245,8 @@ above, an atom added to a page refuses and says so:
 
 ```{r}
 #| error: true
-render_svg(((data(gapminder_2007) + point + x(gdp) + y(life)) |
-              (data(gapminder_2007) + bar * count + x(continent))) + title("Two views"))
+((data(gapminder_2007) + point + x(gdp) + y(life)) |
+  (data(gapminder_2007) + bar * count + x(continent))) + title("Two views")
 ```
 
 And a page cannot be faceted, because a facet splits one plot by a column and a
@@ -256,8 +254,8 @@ page is not one plot:
 
 ```{r}
 #| error: true
-render_svg(((data(gapminder_2007) + point + x(gdp) + y(life)) |
-              (data(gapminder_2007) + bar * count + x(continent))) | facet(continent))
+((data(gapminder_2007) + point + x(gdp) + y(life)) |
+  (data(gapminder_2007) + bar * count + x(continent))) | facet(continent)
 ```
 
 Facet first, then compose: `(plot | facet(g)) | other_plot` is a faceted plot

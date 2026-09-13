@@ -13,8 +13,8 @@ panels, with `|` or `/`. The recipes below use both.
 
 Three species of iris share one petal length axis. The question is whether
 their petal lengths overlap or sit apart. The overlaid histogram: `bin` cuts
-one set of intervals for everyone, so the groups sit on shared edges, each a
-translucent fill under its own solid outline:
+one set of intervals for all three species, so the groups sit on shared
+edges, each a translucent fill under its own solid outline:
 
 ```{r}
 data(iris_flowers) + bar * bin + x(petal_length) + color(species)
@@ -84,7 +84,7 @@ the count is not.
 Continent is one grouping and year is another. You want each continent drawn
 in 1957 and again in 2007, to see what changed between the two years. `|`
 splits into panel columns, `/` into panel rows; written together they cross
-into a grid. Every combination gets a panel. The two years are picked out in R,
+into a grid. Every combination gets a panel. The two years are selected in R,
 because subsetting a table is the host language's job, and the other three
 bindings do it their own way:
 
@@ -138,7 +138,7 @@ peek(census)
 ```
 
 The mirror comes from a minus sign: one city's populations are negated so its
-bars grow the other way. That is arithmetic, so it happens in the table, before
+bars point the other way. That is arithmetic, so it happens in the table, before
 the sentence:
 
 ```{r}
@@ -171,13 +171,13 @@ matplotlib, because either would be a second way to say one thing. A bar runs
 from the zero baseline to its value, in whichever direction that value lies.
 A negative bar is not a special case. It is the same
 rectangle, pointing the other way. And `stack` is something you ask for rather
-than something that happens, so two bars sharing one slot sit back to back
-instead of piling up.
+than something that happens, so two bars sharing one slot sit on opposite
+sides of zero instead of stacking.
 
 `order(age, desc = TRUE)` is the atom from the section above, doing exactly what
 it did there. gog puts the first category at the top of a horizontal chart, so
 age 0 would sit at the top. A pyramid needs its youngest band at the bottom, and
-`desc = TRUE` turns the list over.
+`desc = TRUE` reverses the order.
 
 Now look at the left half of the population axis. It reads -40K, not 40K.
 

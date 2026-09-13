@@ -207,8 +207,11 @@ network (`edge`, `point`, `text`), and `cluster` orders leaves by similarity
 ### Ranges and bands
 
 Four transforms produce a *pair* of values, a low boundary and a high one, per
-group. `range`, `confidence` and `deviation` compute the pair from your data;
-`bounds` reshapes a pair you computed already. Five marks draw such a pair:
+group. [`range`](transforms.qmd#range-a-lowhigh-pair),
+[`confidence`](transforms.qmd#confidence-the-interval-of-the-mean) and
+[`deviation`](transforms.qmd#deviation-the-spread-of-the-data) compute the pair from your
+data; [`bounds`](transforms.qmd#bounds-a-pre-computed-lowhigh-pair) reshapes a pair you
+computed already. Five marks draw such a pair:
 `interval` shows it as a whisker, `ribbon` fills it, `line` and `step` trace its
 two boundaries, and `zone` reads it as two sides.
 

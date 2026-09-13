@@ -398,7 +398,7 @@ that only means something *along* an axis:
 
 ```{r}
 #| error: true
-render_svg(data(winds) + bar * bin * stack + color(season) + polar())
+data(winds) + bar * bin * stack + color(season) + polar()
 ```
 
 ## What a circle makes harder to read
@@ -503,7 +503,7 @@ third form of one rule:
 
 ```{r}
 #| error: true
-render_svg(data(gm_all) + zone * bin(tiling = "hex") + x(gdp) + y(life) + polar())
+data(gm_all) + zone * bin(tiling = "hex") + x(gdp) + y(life) + polar()
 ```
 
 `bin(tiling = )` says how to partition a *plane*. It is refused on a
@@ -698,7 +698,7 @@ a real ambiguity rather than a mistake:
 mixed <- data.frame(group = c("Housing", "Housing"),
                     item  = c(NA, "Rent"),
                     amount = c(50, 980))
-render_svg(data(mixed) + x(amount) + zone * partition(group, item) + polar())
+data(mixed) + x(amount) + zone * partition(group, item) + polar()
 ```
 
 Housing has a number of its own *and* a child with a number, and those two

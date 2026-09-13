@@ -44,8 +44,8 @@ data(gapminder_asia) + line + x(year) + y(life) + color(country)
 ## What about a date column?
 
 The `six_weeks` table records orders by day, and its `day` column holds
-calendar dates. The `year` above is a plain number. A `Date` column *is*
-temporal, so you get a calendar axis without asking for one. Ticks land on
+calendar dates. The `year` above is a plain number. A column of calendar dates
+*is* temporal, so you get a calendar axis without asking for one. Ticks land on
 calendar boundaries, and weekly steps land on Mondays:
 
 ```{r}

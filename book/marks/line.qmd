@@ -22,9 +22,9 @@ data(gapminder_asia) + line + x(year) + y(life)
 *"Given gapminder Asia: a line, x is year, y is life."*
 
 The stroke looks wrong, and the plot is correct. All five countries have a
-row for each year, so the one stroke passes through five values at every year,
-and the vertical segments are it joining the five countries inside one year
-before moving on to the next. That is exactly what a line does when nothing
+row for each year, so the one stroke passes through five values at every year.
+The vertical segments are where it joins the five countries inside one year,
+before it continues to the next year. That is exactly what a line does when nothing
 splits the rows: it draws one **series**, a single stroke in x order. gog warns
 about this sentence and says what to add, a `color` or a `group`. [Multiple
 series](#multiple-series) below draws the same table as five lines, one per
@@ -51,9 +51,9 @@ joined in.
 
 [`path`](path.qmd) is the mark that does the opposite. It joins the rows in the
 order your table holds them, which is what draws a route or a loop. So choosing
-between the two is choosing whether the order of your rows carries meaning: With
-`line` the row order cannot carry meaning; with `path` it decides the whole
-shape.
+between the two is choosing whether the order of your rows carries meaning. With
+`line` the row order cannot carry meaning; with `path` the row order sets the
+whole shape.
 
 ## Multiple series
 
@@ -110,8 +110,11 @@ data(gapminder_asia) + x(year) + y(life) +
 *"Given gapminder Asia: x is year, y is life, lines grouped by country, colored
 steelblue, and also points, colored firebrick, with size 3."*
 
-Channels scope the same way. A channel written after a mark binds to that mark
-alone, so each layer can carry a different encoding:
+Channels scope the same way. Written before any mark, a channel belongs to the
+plot and reaches every layer, as `color(country)` did above. Written after a
+mark, it binds to that mark alone, and not to any mark written after it, so
+each layer can carry a different encoding. The whole rule, for every atom, is
+one table in [Encoding scope](../encoding-scope.qmd#the-rule):
 
 ```{r}
 data(gapminder_asia) + x(year) + y(life) +
@@ -131,9 +134,63 @@ plot would be refused. See
 ## A category on the domain: the profile
 
 A line's two axes are not the same kind of thing. `x` is the **domain**, the
-axis the line is read along; `y` is the **measure**, the quantity it traces. The
-domain takes a category as readily as a number, and connecting one summary per
-category is the profile plot:
+axis the line is read along. `y` is the **measure**, the quantity it traces.
+
+A bar turns on its side when you swap its bindings, because its categorical
+column says which axis holds the slots. A line has no such column. Its two columns are
+usually both numbers, such as year and life, so the rule fixes the domain: it
+is always `x`. The `quarterly` table holds one sales figure for each year.
+With the years on `x`, the line is the plot you expect:
+
+```{r}
+#| echo: false
+peek(quarterly)
+```
+
+```{r}
+data(quarterly) + line + x(year) + y(sales) +
+  title("Years on x: sales read along the years")
+```
+
+*"Given quarterly: a line, x is year, y is sales."*
+
+Sales climbed for most of the years. They fell in 2008 and 2009, and again in
+2020, and climbed back after each fall. Swap the two bindings and the line still
+sorts along `x`, which is now sales. The stroke starts at 2009, the year with the
+lowest sales, and puts 2020 between 2012 and 2013, so the years are scrambled:
+
+```{r}
+data(quarterly) + line + x(sales) + y(year) +
+  title("The bindings swapped: the line still sorts along x")
+```
+
+*"Given quarterly: a line, x is sales, y is year."*
+
+Read as a history of sales, this seems to say that sales fluctuated while
+climbing. It does not. Each segment joins the two years with the nearest sales,
+not two consecutive years, so the rises and falls come from the sorting, not
+from the sales. Only the overall slope survives, and only because sales were
+mostly higher in later years.
+
+Put a category on `y` instead and gog refuses it, as the end of this section
+shows. So there are two cases. When both columns are numbers, the swap
+is accepted, but you do not get the same plot on its side: the line sorts
+along `x` and draws a different picture. When one column is a category, it must be on `x`.
+
+Sometimes the domain has to run up the page, as depth does in an ocean profile,
+or as the years do here. Then write [`path`](path.qmd) instead. A path joins
+the rows in the order the table holds them, so a table sorted along the domain
+draws the vertical series the line could not:
+
+```{r}
+data(quarterly) + path + x(sales) + y(year) +
+  title("The same rows, joined in table order")
+```
+
+*"Given quarterly: a path, x is sales, y is year."*
+
+The domain takes a category as readily as a number, and connecting one summary
+per category is the profile plot:
 
 ```{r}
 data(gapminder_2007) + line * mean + point * mean + x(continent) + y(life) +
@@ -144,11 +201,21 @@ data(gapminder_2007) + line * mean + point * mean + x(continent) + y(life) +
 *"Given gapminder 2007: a line derived by mean and also points derived by mean,
 x is continent, y is life."*
 
-The transform is what makes that plot readable. Without one, a `line` would
-connect all 142 rows across five category slots, and no reader can follow that.
-The engine prints a warning on your console when a line has many ungrouped rows.
-`mean` leaves exactly one point per category, which is what makes the connected
-line mean anything.
+The transform is what makes that plot readable. Without one, a `line`
+connects all 142 rows across five category slots:
+
+```{r}
+data(gapminder_2007) + line + x(continent) + y(life) +
+  title("Without the transform: 142 rows across five slots")
+```
+
+*"Given gapminder 2007: a line, x is continent, y is life."*
+
+No reader can follow that. Inside each slot the stroke runs up and down through
+every country, and between slots it joins whichever two countries the sort put
+last and first. The engine prints a warning on your console when a line has
+many ungrouped rows. `mean` leaves exactly one point per category, which is
+what makes the connected line mean anything.
 
 Does the connection mean anything? That depends on your data. Nothing was
 measured between Africa and the Americas, and the segment is still drawn there.
@@ -174,22 +241,24 @@ Look at the segment from Oceania back to Asia. On the flat profile the line has
 two ends, because a straight axis has two ends. In the circle the five
 categories are spread around the whole ring, so the last one sits beside the
 first and the line closes. Nothing was added to say so: a categorical angular
-axis wraps, and the mark takes that from the space it is drawn in. Full
-treatment in [Polar](../polar.qmd).
+axis wraps, and the mark follows the space it is drawn in. The
+[Polar](../polar.qmd) chapter covers this in full.
 
 A category on the measure axis is refused, because a line traces a quantity and
 category names are not a quantity:
 
 ```{r}
 #| error: true
-render_svg(data(gapminder_2007) + line * mean + x(life) + y(continent))
+data(gapminder_2007) + line * mean + x(life) + y(continent)
 ```
 
 ## Smoothed trend line
 
-The cloud of countries leans one way, and sometimes that lean is the whole
-answer. Combine `line` with the `smooth` transform to draw a fitted trend
-through all the rows instead of the rows themselves:
+Richer countries tend to live longer. The relationship between gdp and life is
+positive: as one rises, the other tends to rise as well. Sometimes the direction
+of a relationship is all a reader needs to know. Combine `line` with the
+`smooth` transform to draw a trend line fitted through all the rows instead of
+the rows themselves:
 
 ```{r}
 data(gapminder_2007) + x(gdp) + y(life) +
@@ -206,11 +275,14 @@ are untouched.
 
 ## Two boundaries from a pair
 
-Most transforms give a `line` one value per x. A **pair** transform
-([`range`](../transforms.qmd), `confidence`, `deviation`, or `bounds`) gives it
-two (a low and a high), and a `line` then draws *both boundaries* as two
-separate lines rather than connecting them into one zigzag. It is the *unfilled*
-counterpart to a [`ribbon`](ribbon.qmd) filling the same pair. Here are the
+Most transforms give a `line` one value per x. A **pair** transform gives it
+two, a low and a high, and a `line` then draws *both boundaries* as two separate
+lines rather than connecting them into one zigzag. That is the *unfilled*
+counterpart to a [`ribbon`](ribbon.qmd) filling the same pair. There are four
+pair transforms: [`range`](../transforms.qmd#range-a-lowhigh-pair),
+[`confidence`](../transforms.qmd#confidence-the-interval-of-the-mean),
+[`deviation`](../transforms.qmd#deviation-the-spread-of-the-data) and
+[`bounds`](../transforms.qmd#bounds-a-pre-computed-lowhigh-pair). Here are the
 lowest and highest life expectancies among five countries, drawn as two lines:
 
 ```{r}
@@ -221,8 +293,8 @@ data(gapminder_asia) + line * range + x(year) + y(life) +
 
 *"Given gapminder Asia: a line derived by range, x is year, y is life."*
 
-Add `style(pattern = "dashed")` for the dashed band that publications often
-draw. [Ribbon](ribbon.qmd) shows the filled and unfilled versions next to each
+Add `style(pattern = "dashed")` for the dashed band often used in published
+figures. [Ribbon](ribbon.qmd) shows the filled and unfilled versions next to each
 other.
 
 ## Stroke width and opacity
@@ -241,13 +313,13 @@ data(gapminder_asia) + line + x(year) + y(life) + group(country) +
 *"Given gapminder Asia: lines, x is year, y is life, grouped by country, with
 size 4 and opacity 0.45."*
 
-Two questions look alike and are not. *"Can a column be mapped here?"* and
+Two questions look alike but are not the same. *"Can a column be mapped here?"* and
 *"Does this mark have this property?"* get different answers on a `line`,
 which is why [Setting vs mapping](../style.qmd) uses it as its clearest
 case.
 
 Setting one pale color is the usual way to keep a layer behind the one you want
-read:
+the reader to read:
 
 ```{r}
 data(gapminder_asia) + x(year) + y(life) +
@@ -263,7 +335,7 @@ error, because a plot has no appearance of its own to style.
 ## What you can set
 
 A setting changes how the stroke looks without reading a column, and each
-mark takes its own. These are a line's, with the values each accepts:
+mark takes its own. These are a line's settings, with the values each accepts:
 
 ```{r}
 #| echo: false
@@ -277,7 +349,7 @@ varies *along* one line, because a width and a dash belong to the whole stroke.
 A mapped `pattern` still gives each series its own dash, and `size` is a setting
 here even though it maps per row on `point`. `color` is the one that *can* vary
 along the stroke, because a color belongs to a place on the stroke rather than
-to the whole stroke. The last section of this chapter shows that case.
+to the whole stroke. The gradient at the end of this chapter shows that case.
 
 ```{r}
 data(gapminder_asia) + line + x(year) + y(life) + color(country) +
@@ -292,8 +364,8 @@ data(gapminder_asia) + line + x(year) + y(life) + color(country) +
 the same feature is refused, because one of the two would have to be dropped in
 silence.
 
-The transforms a line takes carry their own parameters, and those give you the
-rest of the control. `line * density(adjust = 1.5)` makes the density curve
+The transforms a line takes carry their own parameters, and those parameters
+give you finer control. `line * density(adjust = 1.5)` makes the density curve
 smoother, and `line * bounds(lower, upper)` traces a band's two edges.
 
 ## What it refuses
@@ -306,9 +378,9 @@ has no area to fill.
 data(gapminder_asia) + line + x(year) + y(life) + style(pattern = "hatch")
 ```
 
-The refusal lists the three values a stroke's pattern does take. The two other
-refusals this chapter shows appeared in earlier sections. One is shown above: a
-category on the measure axis, which a line cannot trace. The other is stated
+The refusal lists the three values a stroke's pattern does take. Two other
+refusals belong to this chapter. One was drawn earlier: a category on the
+measure axis, which a line cannot trace. The other is stated
 under Stroke width and opacity: a mapped width or opacity, which one stroke
 cannot vary row by row even though it can be set. That second pair is the worked
 example in [Setting vs mapping](../style.qmd).

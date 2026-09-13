@@ -129,7 +129,7 @@ when the category names are long. See [Point](../marks/point.qmd) and
 
 The `medals` table holds one row per country, and the question is how many
 bronze medals each one won. That count is already in the table, so no transform
-is involved; `bar` draws data as it arrives:
+is involved; `bar` draws the numbers as they arrive:
 
 ```{r}
 data(medals) + bar + x(country) + y(bronze)
