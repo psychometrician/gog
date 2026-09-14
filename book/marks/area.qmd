@@ -273,6 +273,10 @@ That layered line can be dashed, colored differently, or smoothed, and it traces
 only the data boundary. A border would also stroke the two sides and the
 baseline.
 
+The [grid of every mark and every setting](../style.qmd#what-you-can-set) shows
+which other marks share this list. What a mark *maps* rather than sets is its
+row on the [companion grid](../combinations.qmd#marks-and-channels).
+
 ## What it refuses
 
 The first refusal comes from the measure axis. A region fills to a baseline at

@@ -472,6 +472,8 @@ A bar has no `size`, and that is deliberate. Its position and its value already
 fix how large it is, so a width setting would be a second, conflicting answer.
 What it does have, being a shape with an inside and an outline, is a border.
 
+The three compose, so one layer can carry all of them:
+
 ```{r}
 data(medals) + bar * sum + x(country) + y(gold) +
   style(color = "goldenrod", pattern = "crosshatch",
@@ -491,6 +493,10 @@ The one thing left to adjust is the histogram's bins, and that is not a setting.
 `bin(bins = 20)` and `bin(width = 5)` control the histogram `bar * bin` draws.
 They belong to the transform, because binning is what has a parameter, not the
 rectangle.
+
+The [grid of every mark and every setting](../style.qmd#what-you-can-set) shows
+which other marks share this list. What a mark *maps* rather than sets is its
+row on the [companion grid](../combinations.qmd#marks-and-channels).
 
 ## What it refuses
 

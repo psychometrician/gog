@@ -244,6 +244,10 @@ because a box draws lines *and* a fill. Both settings apply to every line the
 box draws: the outline, the whiskers, the median and the caps. A pale fill
 with a dark edge stays legible at small sizes, and a solid fill does not.
 
+The [grid of every mark and every setting](../style.qmd#what-you-can-set) shows
+which other marks share this list. What a mark *maps* rather than sets is its
+row on the [companion grid](../combinations.qmd#marks-and-channels).
+
 ## What it refuses
 
 A box draws lines and a fill, so its `pattern` takes a fill's texture and not a

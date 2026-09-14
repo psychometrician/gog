@@ -402,6 +402,8 @@ head marks a direction, and a path is the only mark that has one. `line`, `step`
 and `area` sort their vertices by `x`, so their last point is wherever the
 domain ends rather than where the data stopped.
 
+A route can carry the heads, a width and a dash together:
+
 ```{r}
 data(gapminder_asia) + path + x(gdp) + y(life) + color(country) +
   style(arrow = "both", size = 2.5, pattern = "dotted") +
@@ -421,6 +423,10 @@ The transform whose parameters this chapter covers is `density`, and `levels`
 and `adjust` are above. `cluster` takes its own, in
 [Cluster](../cluster.qmd). Everything else that varies is either mapped or
 set.
+
+The [grid of every mark and every setting](../style.qmd#what-you-can-set) shows
+which other marks share this list. What a mark *maps* rather than sets is its
+row on the [companion grid](../combinations.qmd#marks-and-channels).
 
 ## What it refuses
 

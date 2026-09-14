@@ -281,7 +281,9 @@ A point is a closed glyph, a shape with an inside to fill, so it takes more
 settings than most marks. It is the only mark that picks a `shape`, and one of
 the five marks that draw a border.
 `size` is the radius in pixels, and `border_*` draws that border distinct from
-the fill. 
+the fill.
+
+A point layer can carry several of them at once:
 
 ```{r}
 data(gapminder_2007) + point + x(gdp) + y(life) +
@@ -305,6 +307,10 @@ border keeps them apart, and so does `jitter`, one of the four collision
 modifiers: `point * jitter(0.4)` moves each point a little along the
 categorical axis, by that amount, as the [strip
 plot](#a-categorical-x-the-strip-plot) showed.
+
+The [grid of every mark and every setting](../style.qmd#what-you-can-set) shows
+which other marks share this list. What a mark *maps* rather than sets is its
+row on the [companion grid](../combinations.qmd#marks-and-channels).
 
 ## What it refuses
 

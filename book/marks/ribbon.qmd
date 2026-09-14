@@ -482,6 +482,8 @@ A ribbon takes `area`'s list, and for `area`'s reasons. There is no `size`,
 because the band's extent comes from the two boundaries its transform supplies.
 There is no border, because the edge is a `line` traced along the same pair.
 
+Here is the textured band with a `line` along both of its edges:
+
 ```{r}
 data(score_band) + x(score) +
   ribbon * bounds(lower, upper) +
@@ -497,6 +499,10 @@ Both marks read the same `bounds(lower, upper)` there, exactly as in the ridge
 section, so the edges stay on the band. Note the two `pattern` values in one
 sentence: `"grid"` is a fill texture on the ribbon and `"dashed"` a stroke dash
 on the line, the same setting realized once per geometry.
+
+The [grid of every mark and every setting](../style.qmd#what-you-can-set) shows
+which other marks share this list. What a mark *maps* rather than sets is its
+row on the [companion grid](../combinations.qmd#marks-and-channels).
 
 ## What it refuses
 

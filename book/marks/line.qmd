@@ -335,7 +335,7 @@ error, because a plot has no appearance of its own to style.
 ## What you can set
 
 A setting changes how the stroke looks without reading a column, and each
-mark takes its own. These are a line's settings, with the values each accepts:
+mark takes its own. These are a line's settings, with the values each accepts: 
 
 ```{r}
 #| echo: false
@@ -344,12 +344,21 @@ cat("| Setting | Value |\n|---|---|\n")
 mark_options("line")
 ```
 
-A line is a stroke, so `size` is its width and `pattern` its dash. Neither
-varies *along* one line, because a width and a dash belong to the whole stroke.
-A mapped `pattern` still gives each series its own dash, and `size` is a setting
-here even though it maps per row on `point`. `color` is the one that *can* vary
-along the stroke, because a color belongs to a place on the stroke rather than
-to the whole stroke. The gradient at the end of this chapter shows that case.
+A line is a stroke, so `size` is its width and `pattern` its dash. A setting
+gives the whole layer one value. A channel reads a column instead, so what is
+drawn follows the data.
+
+Two of the four above are also channels. `color(country)` draws one color per
+country. A mapped `pattern` dashes the series instead, though a stroke has only
+three dashes, so they repeat past the third series: see
+[`pattern`](../channels.qmd#pattern). `opacity` and `size` can only be set,
+because a width and an opacity belong to the whole stroke, and there is nothing
+per row for a column to give. `color` goes one step further. It is the only one
+that can vary *along* a single stroke, because a color belongs to a place on the
+stroke rather than to the whole stroke. The gradient at the end of this chapter
+shows that case.
+
+Set both at once, and every series takes the same width and the same dash:
 
 ```{r}
 data(gapminder_asia) + line + x(year) + y(life) + color(country) +
@@ -360,13 +369,21 @@ data(gapminder_asia) + line + x(year) + y(life) + color(country) +
 *"Given gapminder Asia: lines, x is year, y is life, color by country, with size
 3 and pattern dashed."*
 
-`color` is mapped there, so it is not also set. A layer that both maps and sets
-the same feature is refused, because one of the two would have to be dropped in
-silence.
+Each property takes its value from one place: a column, or you. Here `color`
+reads a column, and `size` and `pattern` are set, so nothing collides. Ask for
+both on one property and gog refuses, rather than dropping one in silence.
+[Setting vs mapping](../style.qmd#you-cannot-map-and-set-the-same-property)
+shows the refusal.
 
-The transforms a line takes carry their own parameters, and those parameters
-give you finer control. `line * density(adjust = 1.5)` makes the density curve
-smoother, and `line * bounds(lower, upper)` traces a band's two edges.
+A third kind of number belongs to neither the column nor you. A transform
+carries its own, and they change what is computed rather than how it is drawn.
+`line * density(adjust = 1.5)` widens the bandwidth, so the curve comes out
+smoother than the automatic one. [Transforms](../transforms.qmd) lists what each
+one takes.
+
+The [grid of every mark and every setting](../style.qmd#what-you-can-set) shows
+which other marks share this list. What a mark *maps* rather than sets is its
+row on the [companion grid](../combinations.qmd#marks-and-channels).
 
 ## What it refuses
 
@@ -378,20 +395,19 @@ has no area to fill.
 data(gapminder_asia) + line + x(year) + y(life) + style(pattern = "hatch")
 ```
 
-The refusal lists the three values a stroke's pattern does take. Two other
-refusals belong to this chapter. One was drawn earlier: a category on the
-measure axis, which a line cannot trace. The other is stated
-under Stroke width and opacity: a mapped width or opacity, which one stroke
-cannot vary row by row even though it can be set. That second pair is the worked
-example in [Setting vs mapping](../style.qmd).
+The refusal lists the three values a stroke's pattern does take. Two more
+refusals belong to a line. One of them is drawn in [the
+profile](#a-category-on-the-domain-the-profile) section: a categorical column on
+`y`, refused because `y` carries the quantity a line traces, and category names
+are not a quantity. The other is only described, under [Stroke width and
+opacity](#stroke-width-and-opacity): a mapped width or opacity, refused because
+one stroke has a single width and a single opacity, so no row is left for a
+column to answer.
 
-`color` is deliberately *not* in that pair, and the difference is worth
-stating exactly, because it is the reason none of this is arbitrary. A width
-and an opacity are properties of the stroke as a whole (there is no answer to
-"how wide is the line *here*"). A color has an answer everywhere: point at a
-place on the line and it has one. So a measure can be mapped to `color` and
-vary along the stroke, and it earns a gradient legend rather than one color
-per series:
+`color` is the exception, for the reason the section above gave: a color belongs
+to a place on the stroke rather than to the whole stroke. A continuous column
+mapped to `color` therefore varies along one line, and it earns a gradient
+legend rather than one color per series:
 
 ```{r}
 data(gapminder_asia) + line + x(year) + y(life) + group(country) +

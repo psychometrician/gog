@@ -218,18 +218,13 @@ mark_options <- function(mark) {
     else ""
   }, character(1))
 
-  cells <- r$cells
-  mapped <- cells[cells$mark == mark & cells$obligation != "cannot" &
-                    !is.na(cells$renders) & !cells$channel %in% c("x", "y", "z"), ]
-
+  # Rows only, and deliberately no trailing prose. Generated text is invisible
+  # in the `.qmd`, so an author editing the chapter cannot see it, review it, or
+  # fix it in place. A sentence listing *channels* used to be printed here and
+  # read as part of the settings table: four names (`color`, `opacity`, `size`,
+  # `pattern`) are both, so it invited mapping `size` on a `line`, which the
+  # engine refuses. What a mark maps is a question the chapter's own sections
+  # answer, and the mapping grid answers for every mark at once.
   cat(paste0("| `style(", sc$setting, " = )` | ", vals, " |"),
       sep = "\n")
-  cat("\n\nAnd these vary per row if you map them to a column instead, ",
-      "with the kind of column each accepts: ",
-      paste0("`", mapped$channel, "()`", " (",
-             ifelse(mapped$accepts == "discrete", "categorical",
-                    ifelse(mapped$accepts == "continuous", "continuous",
-                           "continuous or categorical")),
-             ")", collapse = ", "),
-      ".\n", sep = "")
 }

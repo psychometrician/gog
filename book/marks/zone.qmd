@@ -927,7 +927,7 @@ overlapping zones need more than color to separate them. Give it more opacity
 than a flat fill wants, as the blue band does: a hatch is line-work with gaps
 between the lines, so fading it to 0.2 leaves very little to see. It takes the
 *fill* textures, not a stroke's dashes; `style(pattern = "dashed")` on a zone is
-refused, pointing at the four textures instead.
+refused, pointing at the five fill textures instead.
 
 One setting you might expect is refused, and the refusal says something about
 the mark: `style(size = )`, because a zone's extent *is* its bounds and a size
@@ -981,6 +981,10 @@ with border color black, and also a line."*
 Both readings stay available, and which one is right depends on whether the zone
 is the background or the subject. A zone you do not ask for a border draws no
 stroke: with no `border_color` and no `border_size` there is none at all.
+
+The [grid of every mark and every setting](../style.qmd#what-you-can-set) shows
+which other marks share this list. What a mark *maps* rather than sets is its
+row on the [companion grid](../combinations.qmd#marks-and-channels).
 
 ## What it refuses
 

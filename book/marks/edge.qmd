@@ -100,6 +100,10 @@ and `style(opacity = )` give every stroke one value, for the case where no
 column maps. `style(pattern = )` chooses the dash: `solid`, `dashed` or
 `dotted`.
 
+The [grid of every mark and every setting](../style.qmd#what-you-can-set) shows
+which other marks share this list. What a mark *maps* rather than sets is its
+row on the [companion grid](../combinations.qmd#marks-and-channels).
+
 ## What it refuses
 
 The other marks take their positions from `x` and `y`, so writing them on an

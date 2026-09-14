@@ -585,6 +585,10 @@ mark_options("surface")
 A surface is a fill, so it takes a fill's settings, with two absences the next
 section explains: no `size`, and no `pattern`.
 
+The [grid of every mark and every setting](../style.qmd#what-you-can-set) shows
+which other marks share this list. What a mark *maps* rather than sets is its
+row on the [companion grid](../combinations.qmd#marks-and-channels).
+
 ## What it refuses
 
 The flat marks take no `z`, so a surface with only `x` and `y` is the first

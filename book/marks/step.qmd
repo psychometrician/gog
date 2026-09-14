@@ -190,6 +190,10 @@ it decides where the path goes, and puts a corner where the value changes. The
 dash is *paint*: it changes how the path looks, never where it goes. That is why
 `step` is a mark and `pattern` is a setting.
 
+The [grid of every mark and every setting](../style.qmd#what-you-can-set) shows
+which other marks share this list. What a mark *maps* rather than sets is its
+row on the [companion grid](../combinations.qmd#marks-and-channels).
+
 ## What it refuses
 
 A step is one connected stroke from its first point to its last, and that

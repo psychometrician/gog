@@ -539,6 +539,12 @@ each language captures a column name, and, for JavaScript alone, the four
 words it needs because it cannot give `+ * | /` a meaning of its own. Most code blocks are executed as the page builds: the plots you see are
 drawn by the engine at that moment.
 
+A code block that is a gog sentence also carries a tab per language, so you can
+read the same sentence in whichever one you write. A few refusals appear in R
+alone. When a binding catches a mistake before the engine sees it, the advice
+names that language's own way of writing a column, and one message cannot serve
+four.
+
 ## Installing gog
 
 You have watched the engine draw every plot on this page. All four bindings

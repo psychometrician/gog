@@ -320,6 +320,10 @@ A border belongs to a filled shape, and a rule is the outline already, so
 `style(color = )` is its color and `style(size = )` its width. That is the same
 answer `line`, `step` and `path` give, because it is the same geometry.
 
+The [grid of every mark and every setting](../style.qmd#what-you-can-set) shows
+which other marks share this list. What a mark *maps* rather than sets is its
+row on the [companion grid](../combinations.qmd#marks-and-channels).
+
 ## What it refuses
 
 The shortest sentence to try is a bare `rule` over the plot's own table,

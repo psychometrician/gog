@@ -291,6 +291,10 @@ A mapped `size` on `text` is valid grammar this engine does not draw, so
 `size(population)` is refused as unsupported rather than ignored. Set the font
 size with `style(size = )` instead.
 
+The [grid of every mark and every setting](../style.qmd#what-you-can-set) shows
+which other marks share this list. What a mark *maps* rather than sets is its
+row on the [companion grid](../combinations.qmd#marks-and-channels).
+
 ## What it refuses
 
 A reader who knows `point` will try its channels on `text`, and one of them has

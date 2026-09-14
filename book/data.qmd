@@ -47,7 +47,8 @@ gapminder_2007 + point + x(gdp) + y(life)
 ```
 
 gog gives the same advice for a sentence with no data at all, `point + x(gdp)`
-with nothing before it.
+with nothing before it. Each binding words the advice for its own spelling of a
+column, so this refusal is shown in R alone.
 
 ## The table has to be tidy
 

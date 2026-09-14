@@ -183,6 +183,9 @@ Forgetting to bind the table. The sentence must start with the data:
 gapminder_2007 + point + x(gdp) + y(life)
 ```
 
+Each binding words that advice for its own spelling of a column, so this one
+refusal is shown in R alone.
+
 Quoting a column name, a habit from other packages. The refusal names the
 fix:
 
