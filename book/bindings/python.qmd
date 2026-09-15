@@ -21,6 +21,11 @@ accessor:
 
 ```{r}
 #| echo: false
+peek(gapminder_2007)
+```
+
+```{r}
+#| echo: false
 py_plot("data(gapminder_2007) + point + x(col.gdp, scale='log') + y(col.life) + color(col.continent)")
 ```
 

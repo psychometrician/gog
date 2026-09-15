@@ -37,6 +37,11 @@ season of wind observations as an ordinary bar chart, one bar per compass
 point:
 
 ```{r}
+#| echo: false
+peek(winds)
+```
+
+```{r}
 data(winds) + bar * count + x(direction)
 ```
 
@@ -190,6 +195,11 @@ hours and reaches neither midnight (hour 0 nor hour 24), so the axis it gets
 spans 1 to 22, and the failure that causes is easy to see:
 
 ```{r}
+#| echo: false
+peek(tide)
+```
+
+```{r}
 data(tide) + line + x(hour) + y(height) + polar()
 ```
 
@@ -247,6 +257,11 @@ fill the whole turn, which makes the last one genuinely adjacent to the first.
 So a path across categories closes:
 
 ```{r}
+#| echo: false
+peek(gapminder_2007)
+```
+
+```{r}
 data(gapminder_2007) + line * mean + x(continent) + y(life) + polar() +
   title("line * mean + x(continent) + polar()")
 ```
@@ -266,6 +281,11 @@ data(gapminder_2007) + area * mean + x(continent) + y(life) + polar() +
 
 Split it and each group is its own outline, and the split reads exactly as it
 does on a flat profile:
+
+```{r}
+#| echo: false
+peek(gm_eras)
+```
 
 ```{r}
 data(gm_eras) + line * mean + x(continent) + y(life) + color(era) + polar() +
@@ -502,6 +522,11 @@ One sentence is refused here, and the reason is worth reading, because it is the
 third form of one rule:
 
 ```{r}
+#| echo: false
+peek(gm_all)
+```
+
+```{r}
 #| error: true
 data(gm_all) + zone * bin(tiling = "hex") + x(gdp) + y(life) + polar()
 ```
@@ -535,7 +560,8 @@ row per leaf, meaning the last level of a branch, and the first three columns
 spell the path down to it:
 
 ```{r}
-knitr::kable(head(spending, 6))
+#| echo: false
+peek(spending, n = 6)
 ```
 
 A missing value is not missing data there. It says the branch stops: rent has no

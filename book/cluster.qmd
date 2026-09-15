@@ -137,6 +137,11 @@ A profile holds one value for every category of the profile column, so that
 column must hold categories. A continuous column has none:
 
 ```{r}
+#| echo: false
+peek(gm_all)
+```
+
+```{r}
 #| error: true
 data(gm_all) + path * cluster(life, over = year) + x(continent)
 ```
@@ -144,6 +149,11 @@ data(gm_all) + path * cluster(life, over = year) + x(continent)
 A profile's entry is one value, so a pair that holds several rows is refused,
 and the message names the pair. In `gm_eras` every continent holds one row per
 country in each era. Aggregate to one row per pair first, where your data lives:
+
+```{r}
+#| echo: false
+peek(gm_eras)
+```
 
 ```{r}
 #| error: true

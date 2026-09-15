@@ -40,6 +40,11 @@ whichever mark reads it. Change only the mark, and what changes is the
 geometry:
 
 ```{r}
+#| echo: false
+peek(gapminder_2007)
+```
+
+```{r}
 ((data(gapminder_2007) + bar * bin + x(life)) |
    (data(gapminder_2007) + line * bin + x(life))) /
 ((data(gapminder_2007) + area * bin + x(life)) |
@@ -220,6 +225,11 @@ gog separates two refusals, because they ask different things of you:
 
 Calling a valid combination "illegal" would teach you a rule that does not
 exist. So gog says which it is.
+
+```{r}
+#| echo: false
+peek(medals)
+```
 
 ```{r}
 #| error: true

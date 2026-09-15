@@ -72,6 +72,11 @@ one smooth curve instead. The measurement this time is life expectancy, across
 the 142 countries.
 
 ```{r}
+#| echo: false
+peek(gapminder_2007)
+```
+
+```{r}
 data(gapminder_2007) + line * density + x(life)
 ```
 

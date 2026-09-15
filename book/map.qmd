@@ -45,6 +45,11 @@ Two properties matter most: a region's area, and a small shape's form. A
 projection can keep one of them, never both. `preserve` says which:
 
 ```{r}
+#| echo: false
+peek(world_borders)
+```
+
+```{r}
 (data(world_borders) + path + x(lon) + y(lat) + group(piece) +
    map(preserve = "area") + title("preserve = \"area\"")) /
   (data(world_borders) + path + x(lon) + y(lat) + group(piece) +
@@ -215,6 +220,11 @@ The message names the marks that do draw, and it says what to do instead. Put
 the quantity on `size`, as the magnitude map above does, or on `color`.
 
 A position on a map is a place, so a category cannot be one:
+
+```{r}
+#| echo: false
+peek(gapminder_2007)
+```
 
 ```{r}
 #| error: true

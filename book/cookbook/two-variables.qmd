@@ -17,6 +17,11 @@ expectancy. The question is whether the richer countries also live longer. Two
 measurements, one on each position, and nothing else:
 
 ```{r}
+#| echo: false
+peek(gapminder_2007)
+```
+
+```{r}
 data(gapminder_2007) + point + x(gdp) + y(life)
 ```
 
@@ -62,6 +67,11 @@ The `actuals` table holds one sales figure per year. Sometimes the question is
 not whether sales rose but how large they were in each year. A line says *where
 the value went*; an area says *how much there was*. It fills to zero, so the
 filled area is the amount:
+
+```{r}
+#| echo: false
+peek(actuals)
+```
 
 ```{r}
 data(actuals) + area + x(year) + y(sales)
@@ -130,6 +140,11 @@ when the category names are long. See [Point](../marks/point.qmd) and
 The `medals` table holds one row per country, and the question is how many
 bronze medals each one won. That count is already in the table, so no transform
 is involved; `bar` draws the numbers as they arrive:
+
+```{r}
+#| echo: false
+peek(medals)
+```
 
 ```{r}
 data(medals) + bar + x(country) + y(bronze)

@@ -19,6 +19,11 @@ that third column is categorical. A category is carried by `color`, and the
 palette gives each category one hue:
 
 ```{r}
+#| echo: false
+peek(gapminder_2007)
+```
+
+```{r}
 data(gapminder_2007) + point + x(gdp, scale = "log") + y(life) +
   color(continent)
 ```
@@ -34,6 +39,11 @@ not the hues, is the `group` channel; see [Channels](../channels.qmd).
 Hue alone separates groups on a screen but not in grayscale print, in poor
 light, or for a colorblind reader. When the plot must survive all three, bind
 `color` *and* `shape` to the same column. Each group is then said twice:
+
+```{r}
+#| echo: false
+peek(iris_flowers)
+```
 
 ```{r}
 data(iris_flowers) + point + x(petal_length) + y(sepal_length) +
@@ -146,6 +156,11 @@ the marks belong joined in the order they were recorded. The mark that joins
 rows in table order is `path`:
 
 ```{r}
+#| echo: false
+peek(thermals)
+```
+
+```{r}
 data(thermals) + path + x(east) + y(north) + z(altitude) +
   color(glider) +
   title("Two gliders, one thermal")
@@ -197,6 +212,11 @@ data(thermals) + line + x(east) + y(north) + z(altitude) + color(glider)
 `quakes_fiji` is the thousand earthquakes from [Map](../map.qmd), each with a
 place on the globe and a depth below it. The reason it is here is that `east`,
 `north` and `elevation` show together what no pair of them shows alone:
+
+```{r}
+#| echo: false
+peek(quakes_fiji)
+```
 
 ```{r}
 data(quakes_fiji) + point + x(east) + y(north) + z(elevation) +
@@ -255,6 +275,11 @@ in the same foods. Two categorical axes and one value make a tile plot, and
 nothing in the data chose its slot order. Build a [cluster](../cluster.qmd)
 tree on each axis, then compose the three plots: the shared axes take the
 trees' leaf order, and tiles of similar color sit next to each other.
+
+```{r}
+#| echo: false
+peek(nutrients)
+```
 
 ```{r}
 (data(nutrients) + path * cluster(amount, over = nutrient) + x(food) +

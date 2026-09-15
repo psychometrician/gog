@@ -111,6 +111,12 @@ layer its own table, and "nearest table wins" is decided *by name*, so two
 tables under one name leave the rule nothing to choose between:
 
 ```{r}
+#| echo: false
+peek(actuals)
+peek(forecast)
+```
+
+```{r}
 #| error: true
 data(actuals, name = "series") + x(year) + y(sales) + line +
   data(forecast, name = "series") + point

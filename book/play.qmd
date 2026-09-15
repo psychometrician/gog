@@ -12,6 +12,11 @@ column's distinct values and lays the pieces out across the page; `play` splits
 them exactly the same way and lays them out in time, one after another.
 
 ```{r}
+#| echo: false
+peek(gm_all)
+```
+
+```{r}
 data(gm_all) + point + x(gdp, scale = "log") + y(life) + color(continent) +
   play(year)
 ```
@@ -67,6 +72,11 @@ pieces out in time, and time arrives in one order only. So a sequence claims
 something a grid never claims: this frame comes after that one.
 
 Bind a column with no order, and the plot shows movement the data does not have:
+
+```{r}
+#| echo: false
+peek(gapminder_2007)
+```
 
 ```{r}
 #| message: true
@@ -148,6 +158,11 @@ changes, and cannot see what.
 
 The same rows advanced in time instead, one frame per second of flight
 (`speed` is explained under How fast, below):
+
+```{r}
+#| echo: false
+peek(thermals)
+```
 
 ```{r}
 #| message: true
@@ -260,6 +275,11 @@ that layer alone. A layer that never names it is drawn whole in every frame,
 which is how a fixed reference sits behind something that moves.
 
 ```{r}
+#| echo: false
+peek(life_bands)
+```
+
+```{r}
 data(gm_all) + point + x(gdp, scale = "log") + y(life) + play(year) +
   data(life_bands) + rule + y(life) + style(color = "#c0392b")
 ```
@@ -328,6 +348,11 @@ take. The length of a loop is a default you did not choose and cannot see.
 One sentence is worth knowing, because it looks so reasonable. Bind the same
 column to `x` and to `play`, on a mark that reads a function along `x`, and
 every frame then holds a single position:
+
+```{r}
+#| echo: false
+peek(gapminder_asia)
+```
 
 ```{r}
 #| error: true

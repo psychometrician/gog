@@ -72,6 +72,11 @@ A **categorical** column asks *"which one?"* Each category gets its own hue from
 palette:
 
 ```{r}
+#| echo: false
+peek(gapminder_2007)
+```
+
+```{r}
 data(gapminder_2007) + point + x(gdp) + y(life) +
   color(continent)
 ```
@@ -109,6 +114,11 @@ and custom stops.
 
 `color` also implies grouping for line marks. Each unique value gets its own
 connected line:
+
+```{r}
+#| echo: false
+peek(gapminder_asia)
+```
 
 ```{r}
 data(gapminder_asia) + x(year) + y(life) + color(country) +
@@ -193,6 +203,11 @@ the strokes (`line`, `step`, `interval`, `path`, `rule`). Textures read without
 hue, so a plot mapped by `pattern` stays legible in grayscale or with color
 blindness. The first category is always the plain one (solid), the rest
 textured:
+
+```{r}
+#| echo: false
+peek(iris_flowers)
+```
 
 ```{r}
 data(iris_flowers) + bar * mean + x(species) + y(petal_length) +
@@ -421,6 +436,11 @@ colored by mean height, the dense continuous surface a ramp is picked for.
 `/` put them on one page:
 
 ```{r}
+#| echo: false
+peek(maunga_whau)
+```
+
+```{r}
 #| fig-height: 7
 ((data(maunga_whau) + zone * bin(16) * mean + x(east) + y(north) +
     color(elevation) + palette("viridis") + title("viridis")) |
@@ -501,6 +521,11 @@ of the scale's domain, so `limits` is what puts zero in the middle. Without
 `limits`, the middle falls on the data's own midpoint. Here the cash flow runs
 from -32 to 120, so the midpoint is 44: that is what gets painted gray, and zero
 comes out blue.
+
+```{r}
+#| echo: false
+peek(cashflow)
+```
 
 ```{r}
 data(cashflow) + point + x(step) + y(delta) +

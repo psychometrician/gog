@@ -30,6 +30,11 @@ one plot that shows a share: the divided column. Start there. Here is the
 population of each continent as a single column, divided into its parts:
 
 ```{r}
+#| echo: false
+peek(gapminder_2007)
+```
+
+```{r}
 data(gapminder_2007) + bar * sum * stack + y(population) + color(continent) +
   title("A column divided")
 ```
@@ -95,6 +100,11 @@ how much belongs to 1957 and how much to 2007. A packing can nest one split
 inside another, and binding a position is what adds that second level. Each
 category gets a region sized by its own total, and the rows inside it are
 packed into that region:
+
+```{r}
+#| echo: false
+peek(gm_eras)
+```
 
 ```{r}
 data(gm_eras) + bar * sum + x(continent) + y(population) + color(era) +
@@ -207,6 +217,11 @@ An area cannot be negative, so a measure that runs below zero has no packing.
 On the flat page, a bar below the baseline points down, and the reader can see
 the sign. A region has no direction to point in, and its parts would no longer
 sum to the whole.
+
+```{r}
+#| echo: false
+peek(cashflow)
+```
 
 ```{r}
 #| error: true

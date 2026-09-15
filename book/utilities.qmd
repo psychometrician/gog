@@ -34,6 +34,11 @@ A plot is a specification until something draws it. `render_svg()` draws it and
 gives you the result as ordinary text:
 
 ```{r}
+#| echo: false
+peek(gapminder_2007)
+```
+
+```{r}
 picture <- render_svg(data(gapminder_2007) + point + x(gdp) + y(life))
 cat(substr(picture, 1, 51), "\n")
 cat(nchar(picture), "characters\n")
@@ -152,6 +157,11 @@ A plot that binds `play()` moves in a browser, because the SVG carries its own
 timing. A message, a slide in a talk and a post on a social site cannot play
 that timing. [`save_gif()`](play.qmd#taking-the-sequence-with-you) writes the
 same sequence as a file that they do play:
+
+```{r}
+#| echo: false
+peek(gm_all)
+```
 
 ```{r}
 ring <- file.path(tempdir(), "ring.gif")

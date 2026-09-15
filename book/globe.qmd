@@ -13,6 +13,11 @@ Here is the map chapter's first sentence, and beside it the same sentence with
 the space swapped:
 
 ```{r}
+#| echo: false
+peek(quakes_fiji)
+```
+
+```{r}
 (data(quakes_fiji) + point + x(east) + y(north) + map() +
    title("map()")) |
   (data(quakes_fiji) + point + x(east) + y(north) +
@@ -44,6 +49,11 @@ second angle.
 
 Half the earth faces away, and data on that half is hidden behind the sphere.
 gog counts what a view hides rather than dropping it in silence:
+
+```{r}
+#| echo: false
+peek(world_borders)
+```
 
 ```{r}
 #| message: true

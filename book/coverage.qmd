@@ -32,6 +32,11 @@ Binding `z` gives a plot a third position, and `surface` draws a height over a
 plane:
 
 ```{r}
+#| echo: false
+peek(maunga_whau)
+```
+
+```{r}
 data(maunga_whau) + surface + x(east) + y(north) + z(elevation) +
   color(elevation) + palette("plasma") +
   title("Maunga Whau, one row per crossing")
@@ -57,6 +62,11 @@ Put it on the same column as `color` and each series is marked twice, by hue and
 by hatch, in one merged legend:
 
 ```{r}
+#| echo: false
+peek(iris_flowers)
+```
+
+```{r}
 data(iris_flowers) + bar * mean + x(species) + y(petal_length) +
   color(species) + pattern(species) +
   title("Hue and hatch, one legend")
@@ -80,6 +90,11 @@ that closes on a second boundary, given the transform that estimates a
 distribution, over a category:
 
 ```{r}
+#| echo: false
+peek(gapminder_2007)
+```
+
+```{r}
 data(gapminder_2007) + ribbon * density + x(continent) + y(life) +
   y_label("Life expectancy") + title("ribbon * density: no new word required")
 ```
@@ -96,6 +111,11 @@ ggplot2 spells it `coord_radial(inner.radius = )`, a number given to the space;
 here the hole is not a property of the circle at all. It is a stretch of the
 radial axis with nothing standing on it, so a tree one level deep, drawn on an
 axis that starts below the first ring, is a donut:
+
+```{r}
+#| echo: false
+peek(spending)
+```
 
 ```{r}
 data(spending) + zone * partition(group) + x(amount) +
@@ -180,6 +200,11 @@ them live.
 The refusal a ggplot2 reader is most likely to meet is the first one, so
 here it is, live. Two series in different units, the second asking for its own
 scale:
+
+```{r}
+#| echo: false
+peek(quarterly)
+```
 
 ```{r}
 #| error: true

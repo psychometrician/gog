@@ -17,6 +17,11 @@ per continent, and draws a legend to decode it.
 and no legend appears, because there is nothing to decode.
 
 ```{r}
+#| echo: false
+peek(gapminder_2007)
+```
+
+```{r}
 # MAP: color answers "which continent?"
 data(gapminder_2007) + point + x(gdp) + y(life) + color(continent) +
   title("Mapped: a legend decodes the color")
@@ -108,6 +113,11 @@ contrast, is a different mark because it traces a different path.
 
 A trend drawn through the data is often dashed, so that it reads as a summary
 rather than as a measurement:
+
+```{r}
+#| echo: false
+peek(gapminder_asia)
+```
 
 ```{r}
 data(gapminder_asia) + line * mean + x(year) + y(life) +
@@ -222,6 +232,11 @@ data(gapminder_asia) + line + x(year) + y(life) + group(country) +
 red."*
 
 ```{r}
+#| echo: false
+peek(medals)
+```
+
+```{r}
 data(medals) + bar + x(country) + y(gold) +
   style(color = "red") +
   title("bar")
@@ -297,6 +312,11 @@ Two jobs are constant in practice, and neither is a mapping.
 **Overplotting.** With enough points, the marks cover one another and the shape
 of the cloud disappears. Lowering opacity is a statement about the *rendering*,
 not about the data:
+
+```{r}
+#| echo: false
+peek(gm_all)
+```
 
 ```{r}
 data(gm_all) + point + x(gdp) + y(life) +
@@ -446,6 +466,11 @@ they run: `"x"` keeps the lines standing up from the x axis and removes the
 others.
 Naming them that way is what lets the setting survive a bent plane, where the y
 axis's gridlines are rings and nothing runs vertically at all:
+
+```{r}
+#| echo: false
+peek(winds)
+```
 
 ```{r}
 data(winds) + bar * proportion * stack + color(season) + polar() +

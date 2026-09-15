@@ -10,6 +10,11 @@ them among 142 dots takes a long time. Add one word and the reader can draw a
 box around any group, and the rest are dimmed:
 
 ```{r}
+#| echo: false
+peek(gapminder_2007)
+```
+
+```{r}
 data(gapminder_2007) + point + x(gdp) + y(life) + color(continent) +
   theme(width = 620) + brush
 ```
@@ -253,6 +258,11 @@ a corner of the line rather than a thing of its own. Selecting half of a line
 would mean cutting it in two, and cutting a line in two already has a word:
 
 ```{r}
+#| echo: false
+peek(gapminder_asia)
+```
+
+```{r}
 #| error: true
 data(gapminder_asia) + line + x(year) + y(life) + group(country) +
   brush(life, at = c(60, 80))
@@ -305,6 +315,11 @@ data(gapminder_2007) + point + x(gdp) + y(life) +
 A frame is a subset of the rows, and a bound is a test on a column's values, so
 the two compose and neither needed anything added for the other. The bound is
 tested again inside every frame:
+
+```{r}
+#| echo: false
+peek(gm_all)
+```
 
 ```{r}
 data(gm_all) + point + x(gdp, scale = "log") + y(life) + color(continent) +

@@ -25,6 +25,12 @@ Here is the 2007 gapminder scatter, income against life expectancy, with
 lines drawn at three life-expectancy thresholds:
 
 ```{r}
+#| echo: false
+peek(gapminder_2007)
+peek(life_bands)
+```
+
+```{r}
 data(gapminder_2007) + point + x(gdp) + y(life) +
   data(life_bands) + rule +
   x_label("GDP per person") + y_label("Life expectancy") +
@@ -236,6 +242,7 @@ what matters here is that a rule spans whichever axis it does not name.
 
 ```{r}
 #| echo: false
+peek(winds)
 peek(speed_target)
 ```
 

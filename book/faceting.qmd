@@ -41,6 +41,11 @@ them. The `facet()` atom names the column that does the splitting, and `|`
 arranges the panels in columns:
 
 ```{r}
+#| echo: false
+peek(gapminder_2007)
+```
+
+```{r}
 data(gapminder_2007) + point + x(gdp) + y(life) | facet(continent)
 ```
 
@@ -192,6 +197,11 @@ data(gm_years) + point + x(gdp) + y(life) |
 Everything so far has used one scale across every panel, which is what makes the
 panels comparable. It is also what makes some of them unreadable. Here is the
 world's population by continent, one panel each:
+
+```{r}
+#| echo: false
+peek(gm_all)
+```
 
 ```{r}
 data(gm_all) + line * sum + x(year) + y(population) | facet(continent, wrap = 3)

@@ -18,6 +18,11 @@ your session. Column names after that are bare words: no quotes, no table
 prefix, no indexing.
 
 ```{r}
+#| echo: false
+peek(gapminder_2007)
+```
+
+```{r}
 data(gapminder_2007) + point + x(gdp) + y(life)
 ```
 

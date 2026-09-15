@@ -51,6 +51,12 @@ Multiple marks in the same expression produce multiple layers, rendered in
 order:
 
 ```{r}
+#| echo: false
+peek(gapminder_2007)
+peek(life_bands)
+```
+
+```{r}
 # Scatter plot: points, and a horizontal reference line at each band
 data(gapminder_2007) + x(gdp) + y(life) +
   point + color(continent) +
@@ -71,6 +77,11 @@ whether the engine requires it. Inside a single layer the channels **commute**,
 and the mark commutes among them. Write the mark, `x` and `color` in any order
 and the plot is the same. Three things can be arranged six ways, so here are
 all six.
+
+```{r}
+#| echo: false
+peek(iris_flowers)
+```
 
 ```{r}
 ((data(iris_flowers) + bar * bin + x(petal_length) + color(species)) |
@@ -122,6 +133,11 @@ enforces under `+` and `*`, and what you are free to arrange.
 One part of the convention is easy to misread. A grouped bar chart pairs
 `dodge` with `color`, yet the sentence puts them at opposite ends, with the
 positions in between:
+
+```{r}
+#| echo: false
+peek(gm_eras)
+```
 
 ```{r}
 data(gm_eras) + bar * mean * dodge + x(continent) + y(life) + color(era) +
@@ -387,6 +403,12 @@ otherwise ([Composition](composition.qmd)).
 They do not group **marks**. A second `data()` applies to the mark written
 directly after it ([Data](data.qmd)). Parentheses around several marks do not
 extend that table to all of them:
+
+```{r}
+#| echo: false
+peek(actuals)
+peek(forecast)
+```
 
 ```{r}
 #| error: true

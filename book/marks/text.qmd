@@ -16,6 +16,11 @@ A point tells you *where* a row sits; it cannot tell you *which* row. Five medal
 counts drawn as dots are five anonymous points:
 
 ```{r}
+#| echo: false
+peek(medals)
+```
+
+```{r}
 data(medals) + point + x(gold) + y(silver) +
   x_label("Gold") + y_label("Silver") +
   title("Five countries, and no names")
@@ -235,6 +240,11 @@ That one-row table is worth seeing drawn. In ggplot2 a note is a separate
 function, `annotate()`. In gog it is a table with one row. A second `data()`
 opens a second layer over its own table (the [Data](../data.qmd) chapter's
 rule), and a table with one row in it puts one string on the plot:
+
+```{r}
+#| echo: false
+peek(gapminder_2007)
+```
 
 ```{r}
 notes <- data.frame(gdp = 35000, life = 66, what = "high income, short lives")

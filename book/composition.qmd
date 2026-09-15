@@ -26,6 +26,11 @@ Two views of one table often belong side by side, even when they share no
 axis. Write each plot in full, then put `|` between them:
 
 ```{r}
+#| echo: false
+peek(gapminder_2007)
+```
+
+```{r}
 (data(gapminder_2007) + point + x(gdp) + y(life)) |
   (data(gapminder_2007) + bar * count + x(continent) + theme(tick_angle = 45))
 ```

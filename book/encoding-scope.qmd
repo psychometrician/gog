@@ -44,6 +44,11 @@ easy to confuse. Bind the positions once before the marks and every layer reads
 them, which is what you want almost always:
 
 ```{r}
+#| echo: false
+peek(actuals)
+```
+
+```{r}
 # x and y defined once: both marks use them
 data(actuals) + x(year) + y(sales) +
   bar +
@@ -56,6 +61,12 @@ Write a position after a mark and it belongs to that mark, exactly as `color()`
 does. The axis is unchanged. The layer is only saying which of *its* columns
 supplies the values. That rule is what lets `milestones` in [Data](data.qmd)
 keep its own column names:
+
+```{r}
+#| echo: false
+peek(gapminder_2007)
+peek(milestones)
+```
 
 ```{r}
 # `milestones` calls its columns `at` and `value`, not `gdp` and `life`
@@ -73,6 +84,11 @@ rename `at` and `value` to `gdp` and `life`. That is easy when you are inventing
 a table, and tedious when the table already exists.
 
 The same rule covers two columns of one table on one axis:
+
+```{r}
+#| echo: false
+peek(sessions)
+```
 
 ```{r}
 data(sessions) + x(session) +
@@ -143,6 +159,11 @@ population. Because a mark takes only the atoms written after it, the same
 atoms always mean the same thing:
 
 ```{r}
+#| echo: false
+peek(gapminder_asia)
+```
+
+```{r}
 # `size` is written after `point`, so it belongs to the points;
 # the line beside them does not change, and keeps its own color
 data(gapminder_asia) + x(year) + y(life) +
@@ -189,6 +210,11 @@ A forecast, a threshold or a set of labels usually arrives in a table of its
 own, so one plot often reads two tables. [Data](data.qmd) states this rule, and
 it is a scope rule. The first `data()` is the plot's table. Each later `data()`
 applies to the mark written directly after it.
+
+```{r}
+#| echo: false
+peek(forecast)
+```
 
 ```{r}
 data(actuals) + x(year) + y(sales) +

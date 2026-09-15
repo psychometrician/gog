@@ -37,6 +37,11 @@ The difference is visible in the finished plot. Here is `gdp` plotted with a
 log **scale**:
 
 ```{r}
+#| echo: false
+peek(gapminder_2007)
+```
+
+```{r}
 data(gapminder_2007) + point + x(gdp, scale = "log") + y(life) +
   color(continent) +
   x_label("GDP per capita") +
@@ -310,6 +315,11 @@ Weeks land on **Mondays**, and days, hours and minutes take the steps a clock
 face suggests.
 
 ```{r}
+#| echo: false
+peek(six_weeks)
+```
+
+```{r}
 # six_weeks is the cast's daily orders table, see the Preface
 data(six_weeks) + line + x(day) + y(orders) +
   title("Six weeks, ticked on Mondays")
@@ -421,6 +431,11 @@ data, or at most a little past it into the margin; the axis does not stretch out
 to the next ten just to end on one. A span of 1952–2007 is drawn as 1952–2007,
 with ticks at 1960, 1980 and 2000, not padded to 1940–2020 with a third of the
 panel left blank:
+
+```{r}
+#| echo: false
+peek(gapminder_asia)
+```
 
 ```{r}
 data(gapminder_asia) + area + x(year) + y(life) +

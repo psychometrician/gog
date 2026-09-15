@@ -40,6 +40,11 @@ on named arguments below sets out in full:
 
 ```{r}
 #| echo: false
+peek(gapminder_2007)
+```
+
+```{r}
+#| echo: false
 js_plot("plot(data(gapminder_2007), point, x(col.gdp, { scale: 'log' }), y(col.life), color(col.continent))")
 ```
 

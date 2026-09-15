@@ -29,6 +29,11 @@ will. Start with the
 minimum sentence, the smallest one that shows the data:
 
 ```{r}
+#| echo: false
+peek(gapminder_2007)
+```
+
+```{r}
 data(gapminder_2007) + point + x(continent) + y(life)
 ```
 
@@ -63,6 +68,11 @@ word you already wrote.
 
 The last chapter drew both of these. Write the two sentences from memory: the
 one-variable question first, then the same question split by species.
+
+```{r}
+#| echo: false
+peek(iris_flowers)
+```
 
 ```{r}
 data(iris_flowers) + bar * bin + x(petal_length)
@@ -119,6 +129,11 @@ Which countries won the most gold? Every country name has to stay readable,
 so lay the bars down.
 
 ```{r}
+#| echo: false
+peek(medals)
+```
+
+```{r}
 data(medals) + bar + x(gold) + y(country)
 ```
 
@@ -137,6 +152,11 @@ histogram's sibling: one atom swapped, same question.
 
 How did life expectancy move across the decades in the five Asian countries,
 one line per country?
+
+```{r}
+#| echo: false
+peek(gapminder_asia)
+```
 
 ```{r}
 data(gapminder_asia) + line + x(year) + y(life) + color(country)

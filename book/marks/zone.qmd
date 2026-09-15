@@ -24,6 +24,7 @@ holds the two edges of a target band:
 
 ```{r}
 #| echo: false
+peek(quarterly)
 peek(target_band)
 ```
 
@@ -301,6 +302,11 @@ becomes one dark mass, because a thousand dots in one place look exactly like
 two hundred:
 
 ```{r}
+#| echo: false
+peek(gm_all)
+```
+
+```{r}
 data(gm_all) + zone * bin(24) + x(gdp, scale = "log") + y(life) +
   x_label("GDP per capita") + y_label("Life expectancy") +
   title("Where the country-years actually are")
@@ -481,6 +487,11 @@ is `density`, the transform that draws a smooth curve on a [line](line.qmd),
 read in two dimensions for exactly the reason `bin` was.
 
 ```{r}
+#| echo: false
+peek(iris_flowers)
+```
+
+```{r}
 data(iris_flowers) + zone * density +
   x(sepal_length) + y(petal_length) +
   title("Where the flowers cluster")
@@ -597,6 +608,11 @@ category bounds its own axis, and two categorical positions bound a zone
 completely, with no transform in the sentence:
 
 ```{r}
+#| echo: false
+peek(six_weeks)
+```
+
+```{r}
 data(six_weeks) + zone + x(week) + y(weekday) + color(orders) +
   title("Six weeks of orders, a day at a time")
 ```
@@ -622,6 +638,11 @@ no transform, no channel.
 The calendar table had one row per cell already. When it does not, when you hold
 the raw observations and want to know how many fell in each cell, the transform
 that tallies is `count`, exactly as it is for a bar chart:
+
+```{r}
+#| echo: false
+peek(winds)
+```
 
 ```{r}
 data(winds) + zone * count + x(direction) + y(season) +

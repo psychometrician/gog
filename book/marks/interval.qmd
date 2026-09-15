@@ -37,6 +37,11 @@ not from two extra channels. `range` reduces `y` to its minimum and maximum
 within each `x` group, and `interval` spans between them:
 
 ```{r}
+#| echo: false
+peek(iris_flowers)
+```
+
+```{r}
 data(iris_flowers) + interval * range + x(species) + y(petal_length) +
   x_label("Species") + y_label("Petal length (cm)") +
   title("Range of petal length per species")
@@ -261,6 +266,11 @@ the data does not settle whether those two effects are positive or negative.
 An interval needs a number to span, so two categorical axes are refused:
 
 ```{r}
+#| echo: false
+peek(gapminder_2007)
+```
+
+```{r}
 #| error: true
 data(gapminder_2007) + interval * range + x(continent) + y(continent)
 ```
@@ -286,6 +296,11 @@ y is petal length, color by species."*
 When the split is a *second* category, so several whiskers share one x, they
 overlap, and [`dodge`](../transforms.qmd) sets them side by side, the same
 collision modifier that separates grouped bars and boxes:
+
+```{r}
+#| echo: false
+peek(gm_eras)
+```
 
 ```{r}
 data(gm_eras) + interval * range * dodge + x(continent) + y(life) + color(era) +

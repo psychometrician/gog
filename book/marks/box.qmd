@@ -37,6 +37,11 @@ widely each varies? Put the category that splits the data on x, and put the
 measured column on y. The mark computes the summary itself:
 
 ```{r}
+#| echo: false
+peek(iris_flowers)
+```
+
+```{r}
 data(iris_flowers) + box + x(species) + y(petal_length) +
   x_label("Species") + y_label("Petal length (cm)") +
   title("Distribution of petal length per species")
@@ -58,6 +63,11 @@ works with more groups, and here the outliers name
 particular countries. This is life expectancy across the continents in 2007,
 five distributions in one panel, with two countries far below the rest of their
 continent:
+
+```{r}
+#| echo: false
+peek(gapminder_2007)
+```
 
 ```{r}
 data(gapminder_2007) + box + x(continent) + y(life) +
@@ -188,6 +198,11 @@ translucent so each stays readable. [`dodge`](../transforms.qmd) sets them side
 by side, each continent's two eras next to each other:
 
 ```{r}
+#| echo: false
+peek(gm_eras)
+```
+
+```{r}
 data(gm_eras) + box * dodge + x(continent) + y(life) + color(era) +
   y_label("Life expectancy") +
   title("Life expectancy per continent, 1957 vs 2007")
@@ -228,6 +243,11 @@ parameters you have met belong to a transform (`bin(bins = )`), to a position
 itself, so the one choice that summary offers belongs to the mark. The plot
 below reads `gm_continents`: three continents, every year from 1952 to 2007.
 Each box therefore covers many more countries than the 2007 plots above:
+
+```{r}
+#| echo: false
+peek(gm_continents)
+```
 
 ```{r}
 data(gm_continents) + box(whiskers = "range") + x(continent) + y(life) +

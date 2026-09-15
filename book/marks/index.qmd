@@ -46,6 +46,11 @@ curve can be estimated over it. `bin` cuts the column into bands and counts
 the rows in each. `bar * bin` draws one bar per band, which is the histogram:
 
 ```{r}
+#| echo: false
+peek(gapminder_2007)
+```
+
+```{r}
 # How is life expectancy distributed? → histogram
 data(gapminder_2007) + bar * bin + x(life) +
   x_label("Life expectancy (years)") + title("Distribution: bar * bin")
@@ -132,6 +137,11 @@ The `actuals` table records yearly sales, and the question about an amount is
 how much of it there was:
 
 ```{r}
+#| echo: false
+peek(actuals)
+```
+
+```{r}
 # How much, not just where → filled area
 data(actuals) + area + x(year) + y(sales) + y_label("Sales") +
   title("Quantity: area")
@@ -154,6 +164,11 @@ connects them in that order. `line` sorts its points by x before it joins them.
 `path` does not, so the stroke can move left as well as right, cross itself, or
 return to where it started. That is the **connected scatterplot**: the two axes
 carry measurements, and the joining line shows the order in time.
+
+```{r}
+#| echo: false
+peek(gapminder_asia)
+```
 
 ```{r}
 # The reading order is the table's → path

@@ -23,6 +23,11 @@ minimum and maximum within each `x`, and the ribbon fills between them. Here,
 the spread of life expectancy across five Asian countries, year by year:
 
 ```{r}
+#| echo: false
+peek(gapminder_asia)
+```
+
+```{r}
 data(gapminder_asia) + ribbon * range + x(year) + y(life) +
   y_label("Life expectancy") +
   title("The min–max spread across five Asian countries, per year")
@@ -65,6 +70,11 @@ countries in all. A min–max band over it shows what every country did, but onl
 the two extreme countries set its edges. Naming two quantiles instead gives a
 band that contains most of the countries. Layer two bands of different widths
 and you have a **fan chart**:
+
+```{r}
+#| echo: false
+peek(gm_all)
+```
 
 ```{r}
 data(gm_all) + x(year) + y(life) +
@@ -235,6 +245,11 @@ band per continent puts the three ranges in one panel. A categorical column
 range of its countries' life expectancy over time:
 
 ```{r}
+#| echo: false
+peek(gm_continents)
+```
+
+```{r}
 data(gm_continents) + ribbon * range + x(year) + y(life) + color(continent) +
   y_label("Life expectancy") +
   title("Life expectancy spread, three continents")
@@ -274,6 +289,11 @@ The spread of each continent and its center can be drawn as one band across
 the categories. It is then read as a shape, the way an area's filled profile
 is. A ribbon takes a category on `x`, the same way an [`area`](area.qmd) does, and
 fills the spread across the categories in axis order:
+
+```{r}
+#| echo: false
+peek(gapminder_2007)
+```
 
 ```{r}
 data(gapminder_2007) + ribbon * range + line * mean + x(continent) + y(life) +

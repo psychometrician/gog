@@ -157,14 +157,19 @@ local({
 #   2. **The row count is stated.** Five rows of a 142-row table read as the
 #      whole table otherwise, and that misreads every plot drawn from it.
 #   3. **Short tables say so.** `medals` is five rows, so "first 5 of 5" would
-#      invite a reader to look for the rest.
+#      invite a reader to look for the rest. A one-row table reads "its one
+#      row": "all 1 rows" is not English, and a threshold table is often one row.
+#
+# The view is shown once per chapter, at the first sentence that reads the
+# table, and it repeats in every chapter that draws from it.
 # ---------------------------------------------------------------------------
 
 peek <- function(x, n = 5) {
   name  <- deparse(substitute(x))
   total <- nrow(x)
   shown <- min(n, total)
-  caption <- if (shown >= total) sprintf("`%s`: all %d rows", name, total)
+  caption <- if (total == 1) sprintf("`%s`: its one row", name)
+             else if (shown >= total) sprintf("`%s`: all %d rows", name, total)
              else sprintf("`%s`: first %d of %d rows", name, shown, total)
   knitr::kable(utils::head(x, n), caption = caption)
 }

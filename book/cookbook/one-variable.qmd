@@ -16,6 +16,11 @@ how many countries each continent holds. Counting rows is a derivation, not a
 different kind of chart, so the sentence is `bar` with `* count`:
 
 ```{r}
+#| echo: false
+peek(gapminder_2007)
+```
+
+```{r}
 data(gapminder_2007) + bar * count + x(continent)
 ```
 
@@ -58,6 +63,11 @@ Your column is continuous, one petal length per flower. The first question is
 where the values cluster and how far they spread. `bin` cuts the axis into
 equal-width bins and counts the rows in each; `bar` draws them touching, so a
 gap means a bin with no rows. The result is the **histogram**:
+
+```{r}
+#| echo: false
+peek(iris_flowers)
+```
 
 ```{r}
 data(iris_flowers) + bar * bin + x(petal_length)
@@ -119,6 +129,11 @@ Every answer above summarizes: `bin` needs a bin width, `density` needs a
 bandwidth, and both choices matter more when there are fewer rows to
 average over. With thirty numbers the bins can stay and every row still
 shows. Add `stack` and a `point` piles one dot per observation:
+
+```{r}
+#| echo: false
+peek(gm_europe)
+```
 
 ```{r}
 data(gm_europe) + point * bin * stack + x(life) +

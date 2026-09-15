@@ -29,6 +29,11 @@ Put income on one axis and life expectancy on the other, and connect each
 country's measurements in the order they were taken:
 
 ```{r}
+#| echo: false
+peek(gapminder_asia)
+```
+
+```{r}
 data(gapminder_asia) + path + x(gdp) + y(life) + color(country) +
   x_label("GDP per person") + y_label("Life expectancy") +
   title("Fifty-five years, five countries, one plane")
@@ -111,6 +116,11 @@ note is a one-row table; the arrow that points from the note to the thing is a
 *two-row* table, one row for each end:
 
 ```{r}
+#| echo: false
+peek(gapminder_2007)
+```
+
+```{r}
 seg  <- data.frame(gdp = c(20000, 13100), life = c(45.5, 50.2))
 note <- data.frame(gdp = 20500, life = 44.8, what = "Botswana")
 
@@ -161,6 +171,11 @@ the shape of the cloud without drawing the points.
 Bind both positions and compose `density`. gog estimates how thick the cloud of
 points is everywhere on the plane, then traces the rings where it is equally
 thick:
+
+```{r}
+#| echo: false
+peek(iris_flowers)
+```
 
 ```{r}
 data(iris_flowers) + path * density +

@@ -82,6 +82,11 @@ Your own names keep the color of the text around them. That is the first thing
 the coloring tells you: which words belong to gog, and which are yours.
 
 ```{r}
+#| echo: false
+peek(gapminder_2007)
+```
+
+```{r}
 data(gapminder_2007) + bar * bin + x(life) + style(color = "tomato")
 ```
 
@@ -279,6 +284,11 @@ data(gapminder_2007) + point + x(gdp) + y(life)
 
 Bars can show the amounts, with a point on top of each bar to mark the exact
 value:
+
+```{r}
+#| echo: false
+peek(actuals)
+```
 
 ```{r}
 # Two layers: bars behind, points on top

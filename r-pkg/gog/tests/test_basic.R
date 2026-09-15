@@ -2672,6 +2672,28 @@ if (file.exists("book/check_glosses.R")) {
 }
 
 # ---------------------------------------------------------------------------
+# A chapter shows every table it draws from, before it draws from it
+# ---------------------------------------------------------------------------
+
+# The five-row view under `peek()` used to be per book: a table was shown once,
+# at its first appearance anywhere, and never again. That reads well front to
+# back and badly everywhere else, because a manual is opened at the chapter
+# somebody needs. A reader arriving at Polar met `tide` cold. So the scope is
+# the chapter now, and the view repeats where the table does.
+#
+# One chapter, one view, at the first sentence that reads the table: that is a
+# rule a new plot breaks without any sign, since a sentence naming an unseen
+# table renders perfectly. check_peeks.R walks each chapter's R chunks in order
+# and fails on a `data(<shared table>)` that no `peek()` above it has shown.
+if (file.exists("book/check_peeks.R")) {
+  source("book/check_peeks.R")
+  check_peeks()
+  cat("\ntable view tests passed.\n")
+} else {
+  cat("SKIP: book/ not found \u2014 run from the repo root to check the table views\n")
+}
+
+# ---------------------------------------------------------------------------
 # One thing, one spelling: gog in prose, `gog` in code font
 # ---------------------------------------------------------------------------
 

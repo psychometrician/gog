@@ -32,6 +32,11 @@ overlaid outline histogram, one staircase per group, each drawn without a
 fill:
 
 ```{r}
+#| echo: false
+peek(iris_flowers)
+```
+
+```{r}
 data(iris_flowers) + step * bin + x(petal_length) + color(species) +
   x_label("Petal length (cm)") + title("Petal length by species: step outline")
 ```
@@ -121,6 +126,11 @@ does in [Line](line.qmd), and the staircase holds each category's value across
 its own slot:
 
 ```{r}
+#| echo: false
+peek(gapminder_2007)
+```
+
+```{r}
 data(gapminder_2007) + step * mean + x(continent) + y(life) +
   y_label("Mean life expectancy") +
   title("step * mean + x(continent): one value per category, held")
@@ -202,6 +212,11 @@ carries a quantity.
 
 One stroke has one width (there is no answer to "how wide is the staircase
 *here*"), so a width cannot vary along it:
+
+```{r}
+#| echo: false
+peek(gapminder_asia)
+```
 
 ```{r}
 #| error: true

@@ -25,6 +25,11 @@ topographic map, and they reach this page through R's `datasets` package
 [@rcore2026]:
 
 ```{r}
+#| echo: false
+peek(maunga_whau)
+```
+
+```{r}
 data(maunga_whau) + surface +
   x(east) + y(north) + z(elevation) +
   z_label("Elevation (m)") + title("Maunga Whau, at 20 m")
@@ -64,6 +69,11 @@ countries has its own `gdp` and its own `life`. That makes a grid 142 wide and
 would be empty:
 
 ```{r}
+#| echo: false
+peek(gapminder_2007)
+```
+
+```{r}
 #| error: true
 data(gapminder_2007) + surface + x(gdp) + y(life) + z(population)
 ```
@@ -101,6 +111,11 @@ samples and so asserts every height *inside* that gap, and between one category
 and the next there is no inside to assert anything about:
 
 ```{r}
+#| echo: false
+peek(gm_eras)
+```
+
+```{r}
 #| error: true
 data(gm_eras) + surface + x(continent) + y(year) + z(life)
 ```
@@ -123,6 +138,11 @@ contour show where each cluster is, and leave its height to a legend or a
 level.
 A surface takes two transforms, and `density` is the one that makes it the third
 way gog draws a field. The same estimate over the same two columns, three times:
+
+```{r}
+#| echo: false
+peek(iris_flowers)
+```
 
 ```{r}
 data(iris_flowers) + zone * density +

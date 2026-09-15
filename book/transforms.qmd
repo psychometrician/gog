@@ -103,6 +103,11 @@ counts the rows in each.
 Combine it with `bar` to draw a histogram:
 
 ```{r}
+#| echo: false
+peek(gapminder_2007)
+```
+
+```{r}
 data(gapminder_2007) + bar * bin + x(life) +
   x_label("Life expectancy (years)") +
   title("Histogram of Life Expectancy, 2007")
@@ -165,6 +170,11 @@ leaves one axis free to measure the count along, so `bin` cuts the other one. A
 [`zone`](marks/zone.qmd) measures nothing by length, and it needs an extent on
 both axes to be a rectangle. So the same word cuts both, and the count goes to
 `color`, the only channel left holding a number:
+
+```{r}
+#| echo: false
+peek(gm_all)
+```
 
 ```{r}
 data(gm_all) + zone * bin(24) + x(gdp, scale = "log") + y(life) +
@@ -257,6 +267,11 @@ such as how many winds came from the west in winter.
 for the same reason. A bar has a length to show the tally along, so it groups by
 one axis; a [`zone`](marks/zone.qmd) measures nothing by length, so it tallies
 rows into the cell where *two* categories cross and the count goes to `color`:
+
+```{r}
+#| echo: false
+peek(winds)
+```
 
 ```{r}
 data(winds) + zone * count + x(direction) + y(season) +
@@ -1000,6 +1015,11 @@ emitted as a low then a high. That pair is exactly what an
 [`interval`](marks/interval.qmd) spans:
 
 ```{r}
+#| echo: false
+peek(iris_flowers)
+```
+
+```{r}
 data(iris_flowers) + interval * range + x(species) + y(petal_length) +
   x_label("Species") + y_label("Petal length (cm)") +
   title("Petal length range per species")
@@ -1135,6 +1155,11 @@ reshapes those two columns into the very same low/high pair, so a
 no new atom and no new rule:
 
 ```{r}
+#| echo: false
+peek(score_band)
+```
+
+```{r}
 data(score_band) + ribbon * bounds(lower, upper) + x(score) +
   y_label("Expected true score") + x_label("Raw score") +
   title("A pre-computed band: ribbon with bounds")
@@ -1200,7 +1225,8 @@ and how many people each cell counts. A mosaic answers both in one picture.
 city and mode, with a count:
 
 ```{r}
-knitr::kable(head(commutes, 6))
+#| echo: false
+peek(commutes, n = 6)
 ```
 
 ```{r}
@@ -1379,6 +1405,11 @@ When `color` splits a `bar`, a `box` or an `interval` into groups, the groups
 share their category's slot and pile up. A histogram reads well that way,
 because the overlapping bars are translucent. A grouped bar chart does not,
 because there you want the groups set side by side. `dodge` does exactly that:
+
+```{r}
+#| echo: false
+peek(gm_eras)
+```
 
 ```{r}
 data(gm_eras) + bar * mean * dodge + x(continent) + y(life) + color(era) +
@@ -1913,6 +1944,11 @@ They all resolve marks that landed on one *position*, which is a fact about the
 data. A label is as wide as the word it draws, so two labels overlap at
 positions their points never shared, and no modifier computed from a position
 can find them. Thirty European countries, each named:
+
+```{r}
+#| echo: false
+peek(gm_europe)
+```
 
 ```{r}
 data(gm_europe) + point + style(color = "#9e9e9e") +

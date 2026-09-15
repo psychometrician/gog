@@ -19,6 +19,11 @@ source, the mark, and its two positions. The table holds five countries, so
 through the others.
 
 ```{r}
+#| echo: false
+peek(gapminder_asia)
+```
+
+```{r}
 data(gapminder_asia) + area + x(year) + y(life) +
   group(country) + style(opacity = 0.4) +
   title("Life expectancy, five Asian countries")
@@ -46,6 +51,11 @@ height that measures nothing.
 That makes the mark a real choice rather than decoration. Life expectancy has no
 meaningful zero, and the plot above fills every year from zero up to each curve.
 Sales do have a meaningful zero, and the same mark reads correctly:
+
+```{r}
+#| echo: false
+peek(actuals)
+```
 
 ```{r}
 data(actuals) + area + x(year) + y(sales) +
@@ -162,6 +172,11 @@ A distribution can be drawn as a filled shape. The question is the one a
 histogram answers: how many rows fall in each interval? `bin`, `density` and the
 aggregations mean the same thing on an area as on a bar. Binned, it is a filled
 histogram:
+
+```{r}
+#| echo: false
+peek(gapminder_2007)
+```
 
 ```{r}
 data(gapminder_2007) + area * bin + x(life) +

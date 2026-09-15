@@ -264,6 +264,11 @@ it is `bar * bin`, a bar mark derived by binning, the way ㅋ (*k*) is derived
 from ㄱ (*g*) rather than invented fresh.
 
 ```{r}
+#| echo: false
+peek(gapminder_2007)
+```
+
+```{r}
 data(gapminder_2007) + bar * bin + x(life)
 ```
 
