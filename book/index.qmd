@@ -628,10 +628,10 @@ available even if this site does not.
 
 ## Who wrote this
 
-This book carries five names, and the division of labor behind them is worth
+This book carries six names, and the division of labor behind them is worth
 stating plainly rather than leaving in a footnote.
 
-One of the five is not a name. I publish as **psychometrician**. I learned what
+One of the six is not a name. I publish as **psychometrician**. I learned what
 a pen name was in 1992, when I took introductory statistics in the psychology
 department. That is where I met *Student*. Student was [William Sealy
 Gosset](https://en.wikipedia.org/wiki/William_Sealy_Gosset), an English chemist
@@ -675,7 +675,7 @@ become: those are the parts I am answerable for. The hex sticker is mine as
 well. I designed it myself in [Canva](https://www.canva.com), with no sticker
 package. I am not an artist, and what I wanted was not a beautiful
 sticker but an unmistakable one. The Rust
-engine was written entirely by the four Claude models on the cover, as were all
+engine was written entirely by the five Claude models on the cover, as were all
 four language bindings and the test suites. They also did the work nobody is
 ever thanked for, which is running every sentence in this book through four
 languages, again and again, until all four agreed to the byte.
@@ -727,7 +727,7 @@ project and I maintain it. The credit is shared; the fault is not.
 One last item belongs in an honest accounting. I work as a psychometrician, and
 this package was never part of that job. It was built late at night, on
 weekends, and on vacation days. That time belonged to my wife and daughter, and
-I spent it talking to the four Claude models on the cover instead. I am not
+I spent it talking to the five Claude models on the cover instead. I am not
 going to call that devotion to the craft. To my wife and daughter: sorry.
 I would like to end by saying it is finished. It is not. The version is 0.1.0,
 and what comes next will cost the same nights, weekends and vacation days.
@@ -833,7 +833,7 @@ willing to play with this tool, you are already there. Much bigger things than
 this package will come out of that.
 
 So, thank you to the people at [Anthropic](https://www.anthropic.com/) who built
-Claude Code, and to the four models named on this book's cover. I do not know
+Claude Code, and to the five models named on this book's cover. I do not know
 most of your names. I know two of them from YouTube:
 [Boris Cherny](https://x.com/bcherny) and [Cat Wu](https://x.com/_catwu). You
 built the thing that let a psychometrician write a graphics engine in Rust. How

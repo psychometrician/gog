@@ -66,9 +66,9 @@ book:
     built from the package's four operators: a plus and an asterisk as its two
     eyes, a slash and a vertical bar as its nose, and the package name as its
     mouth.
-  # Five names, and the division of labor behind them is stated in the
+  # Six names, and the division of labor behind them is stated in the
   # preface ("Who wrote this") rather than left to a reader to guess. The
-  # four models wrote the engine, the four bindings and the test suites, and
+  # five models wrote the engine, the four bindings and the test suites, and
   # put the text into English; the thinking the text expresses is the human's,
   # the way a ghostwritten autobiography is its subject's. The copyright
   # holder and sole package author is the human, because a model cannot hold
@@ -79,6 +79,7 @@ book:
     - "Claude Opus 4.8"
     - "Claude Opus 5"
     - "Claude Fable 5"
+    - "Claude Fable 5.1"
   # Two dates, and only one of them moves. `date` is the day the book first went
   # up as a public website, written out in full so no render can change it. Its
   # partner `date-modified` re-stamps on every build, and lives in `index.qmd`'s
@@ -305,6 +306,14 @@ format:
     # refusal ran off the edge and a reader saw the half that fitted.
     # `code-overflow: wrap` does not reach these: it styles *source* blocks only.
     css: gog.css
+    # And this is the source half. A chunk's R source is hand-wrapped, but the
+    # language tabs beside it are generated, and a table definition comes out of
+    # the translators as one line: `long` in the bar chapter is 167 characters
+    # in JavaScript, inside a block 617 pixels wide at a 1280-pixel window.
+    # Quarto's default lets that block scroll sideways, so a reader saw the
+    # first 40 percent of the table and a scrollbar. The PDF already wraps its
+    # source blocks, through `fvextra` below; this makes the two formats agree.
+    code-overflow: wrap
     # Sets every package name in code font, in prose, from a list of names rather
     # than from 350 pairs of backticks a writer would have to remember. Listed
     # under both formats on purpose: a format's `filters:` replaces the value

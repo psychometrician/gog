@@ -308,8 +308,14 @@ def _inline_frames(text: str, fired: List[str]) -> str:
     return text
 
 
-def _frame_columns(args: str, fired: Optional[List[str]] = None) -> Optional[str]:
+def _frame_columns(args: str, fired: Optional[List[str]] = None,
+                   multiline: bool = False) -> Optional[str]:
     """The `{...}` body of a `data.frame(...)` argument list, or None.
+
+    `multiline` keeps the author's layout: a table R wrote over several lines,
+    one column to a line, comes out the same way, so the Python tab reads like
+    the R beside it instead of as one 160-character dict. Inline frames inside
+    `data(...)` never ask for it; a one-column table has nothing to lay out.
 
     A column is a vector at every length, so each value is bracketed — except
     when it is already a `c(...)`, which `_vectors` brackets later. Wrapping
@@ -331,6 +337,8 @@ def _frame_columns(args: str, fired: Optional[List[str]] = None) -> Optional[str
         value = keyword.group(2).strip()
         cell = value if re.match(r"^(c|ordered)\s*\(", value) else f"[{value}]"
         columns.append(f'"{keyword.group(1)}": {cell}')
+    if multiline and len(columns) > 1:
+        return "{\n  " + ",\n  ".join(columns) + ",\n}"
     return "{" + ", ".join(columns) + "}"
 
 
@@ -382,7 +390,8 @@ def translate(source: str) -> Tuple[Optional[str], List[str], Optional[str]]:
         r"^\s*([A-Za-z._][A-Za-z0-9._]*)\s*<-\s*data\.frame\s*\((.*)\)\s*$",
         body, re.S)
     if table_def:
-        columns = _frame_columns(table_def.group(2), fired)
+        columns = _frame_columns(table_def.group(2), fired,
+                                 multiline="\n" in table_def.group(2))
         if columns is None:
             return None, fired, "table built by something other than column literals"
         columns = _literals(_vectors(columns, fired), fired)

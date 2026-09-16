@@ -29,7 +29,7 @@
   "kernel-card": "afccfb2f4328bba4c89f00febdeb711fc2bc5fb2c085233d3b05afba734915a1",
   "map": "95ad967a8a25598a8f79765703c7c31a4cc0b8753b572b9fac65c897b4d3c4fe",
   "marks/area": "2859c1329549f5740cef60a403017fc6d609e787cc906683fd1fcf986f7bfac7",
-  "marks/bar": "21d62c9ad4076b08fe73a7d394ae349cc1d628c49f9c4cc66374a7de9f7c5d59",
+  "marks/bar": "07c9ba45a60495423ddae8621bd01ff33f0af704eab366cd830ce3d258f2b4dd",
   "marks/box": "637bba2052ab5b04d77f7794b10de58b123c2b96f01515ebbbcb2570fb51153e",
   "marks/edge": "2102450b5df7af40c967ae94344e662d3900f766ee1050a4825524b85b8b7484",
   "marks/index": "1d9fffb88eecfe11e0d4e7b28739b55659412d5255a6b25ea583465ab5a36568",
@@ -66,5 +66,5 @@
   "writing": "a7c1675fa4f0026e4d0e4fbb5c4c68bfbab2cfd3debbf22378ae07a3935ef676"
  },
  "engine": "7807818f280ea14ac46fe2be069a11060de53e4d0b50cde9788c9c07adceeb62",
- "sentences": 835
+ "sentences": 838
 }

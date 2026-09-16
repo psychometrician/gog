@@ -67,7 +67,7 @@ jl_keyword <- function(name) if (name == "end") "var\"end\"" else name
 
 # ---- values -------------------------------------------------------------
 
-jl_value <- function(v) {
+jl_value <- function(v, multiline = FALSE) {
   if (is.character(v)) return(jl_quote(v))
   if (is.logical(v))   return(if (is.na(v)) "missing" else if (v) "true" else "false")
   if (is.numeric(v))   return(as.character(v))
@@ -129,6 +129,10 @@ jl_value <- function(v) {
       if (any(is.na(cells))) return(NA_character_)
       # The trailing comma is not decoration: `(x = [1])` is a parenthesized
       # assignment in Julia, and only `(x = [1],)` is a one-column table.
+      # The author's layout, kept: one column to a line when the R was written
+      # that way. A newline inside parentheses is free in Julia.
+      if (multiline && length(cells) > 1L)
+        return(paste0("(\n  ", paste(cells, collapse = ",\n  "), ",\n)"))
       return(paste0("(", paste(cells, collapse = ", "), ",)"))
     }
     jl_note_gap(paste0("value call `", fn, "()`"))
@@ -320,12 +324,19 @@ translate_julia <- function(source) {
   if (grepl("~", gsub("#[^\n]*", "", source)))
     return(list(julia = NA_character_, blocked = "R formula — a host-language idiom"))
 
-  parsed <- tryCatch(parse(text = source), error = function(e) NULL)
+  # `keep.source` is what lets a table keep its author's layout below: the
+  # parse tree has no line breaks, the source reference still does.
+  parsed <- tryCatch(parse(text = source, keep.source = TRUE), error = function(e) NULL)
   if (is.null(parsed) || !length(parsed))
     return(list(julia = NA_character_, blocked = "did not parse as R"))
 
+  refs <- attr(parsed, "srcref")
   out <- character()
-  for (expr in as.list(parsed)) {
+  for (i in seq_along(parsed)) {
+    expr <- parsed[[i]]
+    # Did the author write this statement over several lines? A table that did
+    # comes out one column to a line, so the tab reads like the R beside it.
+    multiline <- !is.null(refs) && length(as.character(refs[[i]])) > 1L
     # A table the chunk defines for itself keeps its *name*, because the sentence
     # below is about to use it. Only the spec assignment (`p <- data(…) + …`) is
     # droppable, where the name is R's bookkeeping rather than content.
@@ -340,7 +351,7 @@ translate_julia <- function(source) {
     # its own way.
     if (is.call(expr) && deparse(expr[[1]]) %in% c("<-", "=") &&
         is.call(expr[[3]]) && identical(deparse(expr[[3]][[1]]), "data.frame")) {
-      literal <- jl_value(expr[[3]])
+      literal <- jl_value(expr[[3]], multiline = multiline)
       if (is.na(literal))
         return(list(julia = NA_character_,
                     blocked = "table computed in R, not written out as literal columns"))

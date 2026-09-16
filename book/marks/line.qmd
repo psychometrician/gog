@@ -428,6 +428,9 @@ data(gapminder_asia) + line + x(year) + y(life) + group(country) +
 *"Given gapminder Asia: lines, x is year, y is life, grouped by country, color
 by gdp on a log scale, with the viridis palette."*
 
+`palette()` names the colors a mapping uses. `"viridis"` is a ramp, and the
+named palettes and what each is for are in [Palettes](../channels.qmd#palettes).
+
 Read one country's line from left to right and you see two variables. The height
 is how long people live, and the color is how rich the country was then. `group`
 still splits the mark into one line per country; `color` answers the other
