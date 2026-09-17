@@ -522,12 +522,15 @@ the grouped bars averaged `life`.
 
 ### The 100% stacked bar
 
-The plot above answers two questions at once, and the larger answer covers the
-smaller one. Asia's two eras total 5.4 billion and Oceania's total 0.04 billion,
+The population stack answers two questions at once: how large each total is,
+and how it splits. The first answer makes the second too small to read. Asia's
+two eras total 5.4 billion and Oceania's total 0.04 billion,
 so the axis is scaled for Asia and the *split* inside the small continents
-cannot be read. When the composition is the question and the total is not,
-`stack(share = TRUE)` divides each pile by its own bar's total, so every bar
-reaches 1 and the segments are the only thing left to read:
+cannot be read. When the split is the question and the total is not, ask for shares.
+`stack(share = TRUE)` divides each segment by its own bar's total. A segment
+then reads as the share of its bar that its group holds, a number from 0 to 1.
+Every bar reaches 1, so all the splits sit on one scale and can be compared
+across continents:
 
 ```{r}
 data(gm_eras) + bar * sum * stack(share = TRUE) + x(continent) + y(population) +
@@ -537,17 +540,23 @@ data(gm_eras) + bar * sum * stack(share = TRUE) + x(continent) + y(population) +
 *"Given the gapminder eras: bars derived by sum and stack as shares, x is
 continent, y is population, color by era."*
 
-Now the comparison is between continents rather than inside one, and two
-continents show the range. **Africa** is the most uneven: 78% of its two-era
-total falls in 2007, so its population more than tripled. **Europe** is the most
-even at 57%, the closest any continent comes to a half-and-half split. Neither
-split can be read in the stacked plot above this section, at any size. What you
-lose is the totals: the plot no longer shows them at all. That is the cost of
-the choice, not a fault. Oceania's bar is now as tall as Asia's.
+With every bar at 1, the question changes. The population stack compared the
+two eras inside one continent, and only for the large ones. This plot compares
+the splits across continents: which population grew the most between the two
+eras. Africa's did: 78% of its two-era total falls in 2007, so its population
+more than tripled. Europe's grew the least: 57%, the closest any continent
+comes to an even split. Neither number can be read from the population stack
+above. This plot, in turn, no longer shows the totals at all, which is why
+Oceania's bar is now as tall as Asia's. The two plots are complementary, each
+answering half of one question. `stack` says how much each continent has, and
+`stack(share = TRUE)` says how it splits. When you need both answers, draw
+both plots.
 
 The axis says `Share`, because the numbers are fractions of one now, whatever
 they were before. That is true even though `y(population)` names a column:
-`stack(share = TRUE)` rescales an axis you already named. It is not
+`stack(share = TRUE)` rescales an axis you already named. `Share` alone does
+not say a share of what, so name it yourself with
+`y_label("Share of two-era population")`. It is not
 [`proportion`](../transforms.qmd#proportion-relative-frequency) under another
 name. The two divide by different totals. `proportion` divides by the whole
 plot's total, so its bars still show how large each category is. This one
@@ -583,14 +592,14 @@ data(medals) + bar * sum + x(country) + y(gold) +
 goldenrod, with pattern crosshatch, border color black and border size 1."*
 
 The `pattern` values here are the five **fill textures**, not the three dashes a
-`line` takes. One setting name, and each shape realizes it in its own way, so a
-plot that has to survive grayscale printing can separate its bars by texture
-instead of color.
+`line` takes. The setting has one name, and each mark draws it the way its
+shape allows. A fill takes a hatch, and a stroke takes a dash. Texture survives
+a grayscale printer, where color does not. A plot that will be printed in black
+and white can separate its bars by texture instead of color.
 
-The one thing left to adjust is the histogram's bins, and that is not a setting.
-`bin(bins = 20)` and `bin(width = 5)` control the histogram `bar * bin` draws.
-They belong to the transform, because binning is what has a parameter, not the
-rectangle.
+The histogram's bins are not a setting. `bin(30)` and `bin(width = 5)` belong
+to the transform, because they change what is counted, not how a bar is drawn.
+[Histogram](#histogram) shows both.
 
 The [grid of every mark and every setting](../style.qmd#what-you-can-set) shows
 which other marks share this list. What a mark *maps* rather than sets is its
