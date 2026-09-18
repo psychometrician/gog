@@ -60,6 +60,7 @@ gapminder_2007 <- .gog_read("gapminder_2007")
 gapminder_asia <- .gog_read("gapminder_asia")
 gm_continents  <- .gog_read("gm_continents")
 gm_europe      <- .gog_read("gm_europe")
+gm_europe_cdf  <- .gog_read("gm_europe_cdf")
 
 gm_eras <- .gog_read("gm_eras", chr = "era")
 gm_eras$era <- .gog_ordered(gm_eras$era, c("1957", "2007"))
@@ -85,6 +86,8 @@ maunga_whau   <- .gog_read("maunga_whau")
 nutrients     <- .gog_read("nutrients")
 thermals      <- .gog_read("thermals")
 thermal_marks <- .gog_read("thermal_marks")
+policy_rates  <- .gog_read("policy_rates")
+inventory     <- .gog_read("inventory")
 
 # -- The frames whose category order is the point ----------------------------
 census <- .gog_read("census", chr = "age")
@@ -136,6 +139,55 @@ six_weeks$weekday <- .gog_ordered(
   six_weeks$weekday, c("Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"))
 six_weeks$week <- .gog_ordered(six_weeks$week, paste("Week", 1:6))
 
+# -- The chapters' own small tables ------------------------------------------
+# Each of these was typed into the chunk that draws it until the chapter lost
+# its Python, Julia and JavaScript tabs over it: a table written inside a chunk
+# is a table only R can spell. Ten stayed behind in their chapters, where the
+# typing is the lesson rather than the setup.
+channel_sales     <- .gog_read("channel_sales")
+team_trend        <- .gog_read("team_trend")
+world_median      <- .gog_read("world_median")
+flight            <- .gog_read("flight")
+cities            <- .gog_read("cities")
+routes            <- .gog_read("routes")
+equator           <- .gog_read("equator")
+population_spikes <- .gog_read("population_spikes")
+capitals          <- .gog_read("capitals")
+far_north         <- .gog_read("far_north")
+departments       <- .gog_read("departments")
+tenure            <- .gog_read("tenure")
+coefs             <- .gog_read("coefs")
+scrambled         <- .gog_read("scrambled")
+botswana_arrow    <- .gog_read("botswana_arrow")
+botswana_label    <- .gog_read("botswana_label")
+spiral            <- .gog_read("spiral")
+healthy_band      <- .gog_read("healthy_band")
+income_note       <- .gog_read("income_note")
+sales_box         <- .gog_read("sales_box")
+prevailing_winds  <- .gog_read("prevailing_winds")
+span_early        <- .gog_read("span_early")
+span_middle       <- .gog_read("span_middle")
+span_late         <- .gog_read("span_late")
+target_edges      <- .gog_read("target_edges")
+slump             <- .gog_read("slump")
+banded            <- .gog_read("banded")
+receipts          <- .gog_read("receipts")
+depth_readings    <- .gog_read("depth_readings")
+octaves           <- .gog_read("octaves")
+decay             <- .gog_read("decay")
+medal_repeats     <- .gog_read("medal_repeats")
+drawdown          <- .gog_read("drawdown")
+mixed_signs       <- .gog_read("mixed_signs")
+
+# The two that carry a moment rather than a number, restored the way
+# `six_weeks$day` is. A CSV holds the text; the class is put back here, and
+# `monitoring` is read in UTC because that is the zone it was written in.
+revenue <- .gog_read("revenue")
+revenue$day <- as.Date(revenue$day)
+
+monitoring <- .gog_read("monitoring")
+monitoring$at <- as.POSIXct(monitoring$at, tz = "UTC")
+
 # The assertions that used to guard the construction still guard the read: a
 # truncated or mis-parsed CSV fails here rather than in a plot.
 stopifnot(
@@ -146,6 +198,10 @@ stopifnot(
   !anyNA(census$age),
   !anyNA(winds$direction),
   !anyNA(six_weeks$day),
+  !anyNA(revenue$day),
+  !anyNA(monitoring$at),
+  inherits(monitoring$at, "POSIXct"),
+  nrow(population_spikes) == 120,
   length(unique(world_borders$country)) == 176,
   # Every ring closes on the vertex it started from, or the outline is drawn
   # with a gap in it and the map quietly looks broken.

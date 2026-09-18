@@ -178,25 +178,14 @@ Can you map a column to an area's opacity? No, and the reason is the shape. An a
 is a single filled region, so `opacity` is a *setting* here and not a channel.
 Each row of the table is one corner of the top edge, not a piece of the fill.
 No part of the region belongs to one row, so a column cannot make one row
-lighter or darker than another:
-
-```{r}
-#| error: true
-data(gapminder_asia) + area + x(year) + y(life) + opacity(gdp)
-```
-
-`opacity` is a setting on `line` for the same reason.
+lighter or darker than another. `opacity` is a setting on `line` for the same
+reason.
 
 `size` is refused both ways: `area` neither maps it nor sets it. A stroke has a
 width, so `line` lets you set one. An area's extent comes from its x, its y and
-its baseline, so there is no size to choose:
-
-```{r}
-#| error: true
-data(actuals) + area + x(year) + y(sales) + style(size = 4)
-```
-
-Both marks take `style(color = )` and `style(opacity = )`.
+its baseline, so there is no size to choose. Both marks take `style(color = )`
+and `style(opacity = )`, and [What it refuses](#what-it-refuses) shows the two
+refusals.
 
 ## With transforms
 
@@ -247,17 +236,24 @@ form, and that section says what the width of a violin can mean:
 
 ```{r}
 data(gapminder_2007) + area * density + x(continent) + y(life) +
+  color(continent) +
   y_label("Life expectancy") +
   title("area * density + x(continent): the half violin")
 ```
 
-*"Given gapminder 2007: areas derived by density, x is continent, y is life."*
+*"Given gapminder 2007: areas derived by density, x is continent, y is life,
+color by continent."*
 
-The two sentences differ in two places: `x` moved from `life` to `continent`,
-and `y(life)` was added. With only `x(life)`, life runs along `x` and the `y`
-axis is unused, so the estimate rises along it. With a category on `x` and a
-number on `y`, no axis is unused, so each estimate is drawn across its
-category's slot, one distribution per group.
+The two sentences differ in three places: `x` moved from `life` to
+`continent`, `y(life)` was added, and so was `color(continent)`. With only
+`x(life)`, life runs along `x` and `y` is free, so `y` carries the density
+estimate, as it carried the count for `bin`. With a category on `x` and a
+number on `y`, no axis is free, so each estimate is drawn across its
+category's slot, one distribution per group. `color` does what it did in
+[Multiple series](#multiple-series): a categorical column gives each region
+its own fill and a legend. On a `line` the same channel colors the stroke; on
+an area it colors the fill. The slots already keep the continents apart, so
+here `color` changes only the fill of each one.
 
 Can the two bindings be swapped? For `density`, yes. Put life on `x` and the
 category on `y`, and each curve lies on its own line instead of standing in
@@ -266,10 +262,12 @@ sentence with `x` and `y` exchanged:
 
 ```{r}
 data(gapminder_2007) + area * density + x(life) + y(continent) +
+  color(continent) +
   x_label("Life expectancy") + title("area * density + x(life): the ridgeline")
 ```
 
-*"Given gapminder 2007: areas derived by density, x is life, y is continent."*
+*"Given gapminder 2007: areas derived by density, x is life, y is continent,
+color by continent."*
 
 [Ribbon](ribbon.qmd#sideways-and-halved) draws all four forms together: one
 side or two, and the category on either axis.
@@ -362,7 +360,7 @@ row on the [companion grid](../combinations.qmd#marks-and-channels).
 
 ## What it refuses
 
-Both refusals in this section come from an axis. The first is the measure. A
+The first two refusals come from an axis. The first is the measure. A
 region fills to a baseline at zero, and a category has none. So a categorical
 `y` is refused, and the message asks for the category on `x` instead:
 
@@ -387,3 +385,23 @@ data(gapminder_2007) + area * bin + x(continent)
 ```
 
 A `density` on a category names `proportion` the same way.
+
+The last two refusals come from the fill. A mapped `opacity` is the third.
+Each row is one corner of the top edge, so no part of the region belongs to a
+single row, as [One region, one fill](#one-region-one-fill) explained.
+
+```{r}
+#| error: true
+data(gapminder_asia) + area + x(year) + y(life) + opacity(gdp)
+```
+
+A `size` is the fourth, and it is refused both ways. An area's extent comes
+from its x, its y and its baseline, so there is no size to map and none to
+set:
+
+```{r}
+#| error: true
+data(actuals) + area + x(year) + y(sales) + style(size = 4)
+```
+
+A `line` accepts a size, because a stroke has a width to choose.

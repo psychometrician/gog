@@ -91,10 +91,13 @@ band.
 Name all four and neither axis comes from the panel:
 
 ```{r}
-corner <- data.frame(start = 2015.0, end = 2019.0, lower = 145.0, upper = 190.0)
+#| echo: false
+peek(sales_box)
+```
 
+```{r}
 data(quarterly) + x(year) + y(sales) +
-  data(corner) + zone * bounds(lower, upper, start = start, end = end) +
+  data(sales_box) + zone * bounds(lower, upper, start = start, end = end) +
     style(color = "goldenrod", opacity = 0.3) +
   data(quarterly) + line + point +
   y_label("Sales") + title("A box over four years of sales")
@@ -458,12 +461,8 @@ The mesh both shapes the cells *and* tags each row with the cell it fell in. One
 operation, both effects.
 
 The consequence you can see: a tiling means nothing to a bin that cuts one axis,
-because there the cells are intervals and an interval has no shape.
-
-```{r}
-#| error: true
-data(gm_all) + bar * bin(tiling = "hex") + x(life)
-```
+because there the cells are intervals and an interval has no shape. So `bar *
+bin(tiling = "hex")` is refused, as [What it refuses](#what-it-refuses) shows.
 
 ### One caveat
 
@@ -731,24 +730,12 @@ positional, so it groups by both. In [the cube](../space.qmd) a bar measures
 with `z`, so it groups by the pair as well.
 
 Say `mean` with nothing for it to reduce and the engine asks for the column
-rather than guessing:
-
-```{r}
-#| error: true
-data(winds) + zone * mean + x(direction) + y(season)
-```
+rather than guessing, as [What it refuses](#what-it-refuses) shows.
 
 And a summary still needs a cell to summarize into. These six *measure* without
 cutting, so they need axes that arrive already divided: a number is a point, and
-a point owns no cell to summarize into.
-
-```{r}
-#| error: true
-data(winds) + zone * mean + x(speed) + y(season) + color(bearing)
-```
-
-Read the refusal rather than only the fact of it. It gives you both ways out:
-put a category on each position, or cut the numeric axis first with `bin`.
+a point owns no cell to summarize into. That refusal gives both ways out, a
+category on each position or `bin` on the continuous axis first.
 
 ### Cells cut, then summarized: the summary heatmap
 
@@ -835,10 +822,13 @@ other, which is what this mark has done from the beginning. One row is still one
 rectangle, so the table you give it is the list of slots to shade:
 
 ```{r}
-prevailing <- data.frame(direction = c("SW", "W"))
+#| echo: false
+peek(prevailing_winds)
+```
 
+```{r}
 data(winds) + point * jitter + x(direction) + y(speed) +
-  data(prevailing) + zone + x(direction) + style(color = "goldenrod") +
+  data(prevailing_winds) + zone + x(direction) + style(color = "goldenrod") +
   data(winds) + point * jitter + x(direction) + y(speed) +
   y_label("Speed") + title("The two directions the wind actually comes from")
 ```
@@ -918,16 +908,19 @@ nothing behind it to reveal.
 All three at once, one per band:
 
 ```{r}
-early <- data.frame(start = 2006.0, end = 2009.0)
-middle <- data.frame(start = 2011.0, end = 2014.0)
-late <- data.frame(start = 2017.0, end = 2020.0)
+#| echo: false
+peek(span_early)
+peek(span_middle)
+peek(span_late)
+```
 
+```{r}
 data(quarterly) + x(year) + y(sales) +
-  data(early) + zone * bounds(start = start, end = end) +
+  data(span_early) + zone * bounds(start = start, end = end) +
     style(color = "seagreen") +
-  data(middle) + zone * bounds(start = start, end = end) +
+  data(span_middle) + zone * bounds(start = start, end = end) +
     style(color = "indianred", opacity = 0.55) +
-  data(late) + zone * bounds(start = start, end = end) +
+  data(span_late) + zone * bounds(start = start, end = end) +
     style(color = "steelblue", pattern = "hatch", opacity = 0.7) +
   data(quarterly) + line + point +
   y_label("Sales") + title("Color, then opacity, then a hatch")
@@ -960,11 +953,14 @@ better edges: dashed, colored per row, and real positions rather than
 decoration:
 
 ```{r}
-edges <- data.frame(sales = c(target_band$lower, target_band$upper))
+#| echo: false
+peek(target_edges)
+```
 
+```{r}
 data(quarterly) + x(year) + y(sales) +
   data(target_band) + zone * bounds(lower, upper) + style(color = "seagreen") +
-  data(edges) + rule + style(color = "seagreen", pattern = "dashed") +
+  data(target_edges) + rule + style(color = "seagreen", pattern = "dashed") +
   data(quarterly) + line + point +
   y_label("Sales") + title("A zone for the region, rules for its edges")
 ```
@@ -1033,10 +1029,13 @@ the measure axis *at each position*, so it has no extent along the domain to
 bound:
 
 ```{r}
+#| echo: false
+peek(slump)
+```
+
+```{r}
 #| error: true
-slumps <- data.frame(year = 2008.0, sales = 100.0,
-                     start = 2007.5, end = 2009.5)
-data(slumps) + x(year) + y(sales) +
+data(slump) + x(year) + y(sales) +
   ribbon * bounds(start = start, end = end)
 ```
 
@@ -1075,12 +1074,24 @@ data(winds) + zone * count * mean + x(direction) + y(season) + color(speed)
 same shape and is not a contradiction: `bin` supplies the cells, and `mean`
 supplies the measurement inside them.
 
+Say `mean` with no column to reduce and gog asks for one rather than guessing.
+A zone measures by `color`, so `color` is the binding the refusal names:
+
+```{r}
+#| error: true
+data(winds) + zone * mean + x(direction) + y(season)
+```
+
 Asking for both extents at once is refused rather than resolved by picking one,
 since the two would disagree the moment the mesh moved:
 
 ```{r}
+#| echo: false
+peek(banded)
+```
+
+```{r}
 #| error: true
-banded <- data.frame(gdp = 1000.0, life = 50.0, lower = 45.0, upper = 55.0)
 data(banded) + x(gdp) + y(life) +
   zone * bounds(lower, upper) * bin
 ```
@@ -1121,6 +1132,15 @@ construction:
 data(gm_all) + zone * bin(tiling = "hex") + x(life) + y(continent)
 ```
 
+A mark that cuts one axis gives a tiling even less to be regular against. `bar
+* bin` cuts intervals, and an interval has no shape, so the refusal sends the
+tiling back to `zone`:
+
+```{r}
+#| error: true
+data(gm_all) + bar * bin(tiling = "hex") + x(life)
+```
+
 And the mirror of the first refusal, which is the same rule read the other way.
 A tally needs cells that exist; a number is a point and owns none, so `count`
 sends you back to `bin`:
@@ -1128,6 +1148,15 @@ sends you back to `bin`:
 ```{r}
 #| error: true
 data(gm_all) + zone * count + x(gdp) + y(life)
+```
+
+The six summaries follow the same rule. `mean` reduces a column inside a cell,
+and a continuous position gives it no cell, so the refusal offers both ways
+out, a category on each position or `bin` on the continuous axis first:
+
+```{r}
+#| error: true
+data(winds) + zone * mean + x(speed) + y(season) + color(bearing)
 ```
 
 And the cells' measure is already the count, so coloring by anything else asks

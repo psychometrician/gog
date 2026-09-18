@@ -249,12 +249,12 @@ This is what you want whenever the category names are long, because a vertical
 axis gives each label a whole line instead of a cramped slot:
 
 ```{r}
-long <- data.frame(
-  department = c("Research & Development", "Sales and Marketing",
-                 "Customer Operations", "Finance", "People & Culture"),
-  headcount  = c(128.0, 96.0, 74.0, 31.0, 22.0)
-)
-data(long) + bar + x(headcount) + y(department) +
+#| echo: false
+peek(departments)
+```
+
+```{r}
+data(departments) + bar + x(headcount) + y(department) +
   order(headcount, desc = TRUE) +
   x_label("Headcount") +
   title("Long labels fit on a vertical axis")
@@ -268,12 +268,8 @@ Orientation is only ambiguous if neither axis is categorical. In that case gog
 draws vertically, so `x(year) + y(sales)` is a column chart. To lay that out
 horizontally, name the measure on `x`.
 
-A bar needs something to measure, so two categorical axes are refused:
-
-```{r}
-#| error: true
-data(medals) + bar + x(country) + y(country)
-```
+A bar needs something to measure, so two categorical axes are refused.
+[What it refuses](#what-it-refuses) shows that refusal.
 
 ## Texture
 
@@ -607,9 +603,10 @@ row on the [companion grid](../combinations.qmd#marks-and-channels).
 
 ## What it refuses
 
-The two refusals below come from different facts. The first belongs to the
-transform rather than the mark: `bin` needs a continuous axis to cut. The second
-belongs to the mark: a bar is a fill rather than a stroke.
+The three refusals below come from different facts. The first belongs to the
+transform rather than the mark: `bin` needs a continuous axis to cut. The other
+two belong to the mark: a bar is a fill rather than a stroke, and a bar needs a
+number to measure.
 
 Binning cuts a continuous axis into intervals, so there is nothing for it to cut
 on a categorical one:
@@ -631,6 +628,17 @@ data(medals) + bar + x(country) + y(gold) + style(pattern = "dashed")
 ```
 
 A bar's outline takes a color and a width, never a dash. `border_color` and
-`border_size` are the only two settings the outline has. And a bar given two
-categorical positions has nothing left to measure, which is the refusal shown
-above under [Horizontal bars](#horizontal-bars).
+`border_size` are the only two settings the outline has.
+
+Two categorical positions are the third refusal. The category decides which
+axis the bars stand on, and the number decides how far they reach, as
+[Horizontal bars](#horizontal-bars) explained. With a category on both, there
+is no length left to draw:
+
+```{r}
+#| error: true
+data(medals) + bar + x(country) + y(country)
+```
+
+The message names both ways forward: put a number on one axis, or count the
+rows per category with `bar * count`.

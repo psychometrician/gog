@@ -63,6 +63,52 @@ asia_five <- c("China", "India", "Japan", "Korea, Rep.", "Indonesia")
 gapminder_asia <- gm_all[gm_all$country %in% asia_five, ]
 stopifnot(length(unique(gapminder_asia$country)) == length(asia_five))
 
+# -- The empirical CDF of life expectancy (the plainest step function) ------
+# One row per European country in 2007, sorted by life expectancy, with the
+# share of countries at or below it.
+#
+# Europe's thirty rather than the world's 142, and the size is the whole point:
+# a riser is 1/n of the axis, so at 142 it is 3.4 pixels, about a stroke width,
+# and the staircase reads as a slightly rough line. The chapter's first `step`
+# would then be a plot in which `step` and `line` are indistinguishable. At
+# thirty a riser is 16.5 pixels and the treads are plain. Measured before
+# choosing, by rendering both marks at both sizes.
+#
+# Built here rather than in the chapter because a table computed in R is a table
+# only R can show: the chapter would draw it and the Python, Julia and
+# JavaScript spellings of that sentence could not be written, so the page would
+# lose its language tabs. Sorting and a running share are the host language's
+# work in any of the four, and none of that is grammar, so the book fetches the
+# answer instead of teaching one language's way to compute it.
+gm_europe_cdf <- data.frame(
+  life  = sort(gm_europe$life),
+  share = seq_len(nrow(gm_europe)) / nrow(gm_europe)
+)
+
+# -- A policy rate, and two stock levels (the step chapter) -----------------
+# Both are invented, and both are here rather than typed into the chapter for
+# the same reason the gapminder cuts are: a table written inside a chunk is a
+# table only R can spell, so the sentence beside it loses its Python, Julia and
+# JavaScript tabs. `inventory` also used `rep()`, which the three translators
+# decline as a computed column even though every value is literal.
+#
+# `policy_rates` holds, falls, then rises twice, which is what makes it a step
+# rather than a line: the rate was never at any value between two of these.
+policy_rates <- data.frame(
+  year = c(2018, 2019, 2020, 2021, 2022, 2023),
+  rate = c(1.50, 2.25, 0.25, 0.25, 1.75, 4.50)
+)
+
+# Two sites whose stock changes only on a delivery or a sale, so each series
+# holds and jumps on its own. Eight weeks is enough for North to fall twice and
+# rise once while South does something different.
+inventory <- data.frame(
+  week  = rep(1:8, 2),
+  units = c(40, 40, 25, 25, 25, 10, 55, 55,
+            30, 18, 18, 18, 42, 42, 30, 30),
+  site  = rep(c("North", "South"), each = 8)
+)
+
 # -- iris (3-D scatter: three comparable measures + a category) -------------
 # The textbook 3-D dataset: three flower measurements on one scale (cm) so no
 # axis dwarfs another, and a species that separates cleanly in space. gapminder
@@ -659,10 +705,222 @@ nutrients <- local({
 .gog_as_csv <- function(x) {
   if (is.factor(x))                   return(as.character(x))
   if (inherits(x, "Date"))            return(format(x, "%Y-%m-%d"))
+  # A time, before the `is.double()` test below, which would otherwise catch it:
+  # POSIXct *is* a double underneath, so the epoch seconds would be written and
+  # the column would read back as a plain number on a linear axis. Written in
+  # UTC because that is the zone it was built in, and `data.R` reads it back the
+  # same way; a zone left to the reader's machine is a plot that moves.
+  if (inherits(x, "POSIXct"))         return(format(x, "%Y-%m-%d %H:%M:%S", tz = "UTC"))
   if (is.integer(x) || is.logical(x)) return(as.character(x))
   if (is.double(x))                   return(.gog_shortest(x))
   as.character(x)
 }
+
+# ---------------------------------------------------------------------------
+# The chapters' own small tables
+#
+# Every one of these was typed into a chunk in the chapter that draws it. They
+# are here instead for one reason: a table written inside a chunk is a table
+# only R can spell, so the sentence beside it loses its Python, Julia and
+# JavaScript tabs, and a reader of those three sees a page the R reader does
+# not. The chapters now read them like any other shared table, and show them
+# with `peek()`.
+#
+# Ten definitions deliberately stayed in their chapters, because there the
+# typing is the lesson rather than the setup: the Data chapter's declared order,
+# missing values and non-ASCII names; the Bar chapter's duplicate categories;
+# the Polar chapter's refused `NA` parent; and the Zone chapter's funnel, whose
+# levels come from a variable.
+#
+# A dot-prefixed name is an intermediate: `ls()` skips it, so it is used here
+# and never written out as a table of its own.
+# ---------------------------------------------------------------------------
+
+.gog_data_dir <- local({
+  for (up in c(".", "..", "../..", "../../..")) {
+    if (dir.exists(file.path(up, "gog-cli")))
+      return(normalizePath(file.path(up, "book", "data"), mustWork = TRUE))
+  }
+  stop("make-data.R: cannot find the repository root from ", getwd())
+})
+# `world_borders` is not built here — it is Natural Earth's outline, committed
+# rather than generated — so the one table derived from it reads the CSV back.
+.world <- read.csv(file.path(.gog_data_dir, "world_borders.csv"),
+                   stringsAsFactors = FALSE)
+
+# -- Channels: two series told apart twice over ------------------------------
+channel_sales <- data.frame(
+  quarter = rep(c("Q1", "Q2", "Q3"), each = 2),
+  channel = rep(c("Retail", "Online"), 3),
+  revenue = c(4, 3, 5, 6, 4, 8)
+)
+
+team_trend <- data.frame(
+  month = rep(1:6, 2),
+  team  = rep(c("North", "South"), each = 6),
+  sales = c(2, 3, 4, 5, 6, 7,  5, 4, 4, 3, 2, 2)
+)
+
+# -- Faceting: one world-wide line drawn into every panel --------------------
+world_median <- data.frame(
+  gdp  = c(min(gapminder_2007$gdp), max(gapminder_2007$gdp)),
+  life = rep(median(gapminder_2007$life), 2)
+)
+
+# -- Globe and map -----------------------------------------------------------
+flight <- data.frame(lon = c(139.69, -118.24), lat = c(35.69, 34.05))
+
+cities <- data.frame(
+  city = c("Seoul", "Tokyo", "Singapore", "Delhi", "Cairo",
+           "London", "Anchorage", "Sydney"),
+  lon  = c(126.98, 139.69, 103.82, 77.21, 31.24, -0.13, -149.90, 151.21),
+  lat  = c(37.57, 35.68, 1.35, 28.61, 30.04, 51.51, 61.22, -33.87)
+)
+.legs <- data.frame(
+  route = rep(c("Seoul-Tokyo", "Seoul-Singapore", "Seoul-Delhi",
+                "Delhi-Cairo", "Cairo-London", "Tokyo-Anchorage",
+                "Singapore-Sydney"), each = 2),
+  city  = c("Seoul", "Tokyo", "Seoul", "Singapore", "Seoul", "Delhi",
+            "Delhi", "Cairo", "Cairo", "London", "Tokyo", "Anchorage",
+            "Singapore", "Sydney")
+)
+routes <- merge(.legs, cities, by = "city", sort = FALSE)
+
+# One row, read by both the globe chapter and the map chapter, which draw the
+# same line on a sphere and on a flat page.
+equator <- data.frame(lat = 0)
+
+capitals <- data.frame(
+  lon  = c(-0.13, 139.69, -74.01, 151.21, 18.42),
+  lat  = c(51.51,  35.69,  40.71, -33.87, -33.92),
+  name = c("London", "Tokyo", "New York", "Sydney", "Cape Town"))
+
+far_north <- data.frame(
+  lon = c(0, 15, -45, 10),
+  lat = c(60, 78, 83, 89))
+
+.centers <- do.call(rbind, lapply(split(.world[, c("lon", "lat")],
+                                        .world$country), colMeans))
+population_spikes <- data.frame(country = rownames(.centers), .centers)
+.matched <- match(population_spikes$country, gapminder_2007$country)
+population_spikes$people <- gapminder_2007$population[.matched]
+population_spikes$continent <- gapminder_2007$continent[.matched]
+population_spikes <- population_spikes[!is.na(population_spikes$people), ]
+population_spikes$reach <- sqrt(population_spikes$people)
+
+# -- Marks -------------------------------------------------------------------
+# Long department names, which is the argument for putting a category on y.
+departments <- data.frame(
+  department = c("Research & Development", "Sales and Marketing",
+                 "Customer Operations", "Finance", "People & Culture"),
+  headcount  = c(128.0, 96.0, 74.0, 31.0, 22.0)
+)
+
+# Five teams, thirty people each. Drawn rather than measured, which is why the
+# seed is here: the box chapter's plot has to be the same on every render.
+set.seed(4)
+.teams <- c("Research & Development", "Sales & Marketing",
+            "Customer Operations", "Finance", "People & Culture")
+tenure <- data.frame(
+  team  = rep(.teams, each = 30),
+  years = round(pmax(rnorm(150, rep(c(6.2, 3.1, 2.4, 7.8, 4.5), each = 30),
+                           rep(c(2.4, 1.6, 1.2, 3.0, 2.0), each = 30)), 0.2), 1)
+)
+
+# A coefficient plot's two ends, which is all `interval * bounds` needs.
+coefs <- data.frame(
+  term = c("Age", "Education", "Experience", "Region: North", "Region: South"),
+  lo   = c(0.02, 0.31, 0.11, -0.24, -0.05),
+  hi   = c(0.18, 0.55, 0.29,  0.06,  0.21)
+)
+
+# Out of order on purpose: `line` sorts by x, and this is how the chapter says so.
+scrambled <- data.frame(year = c(1992, 1962, 2002, 1972, 1982),
+                        life  = c(  68,   52,   71,   58,   63))
+
+# An arrow and its label, the two layers an annotation is made of.
+botswana_arrow <- data.frame(gdp = c(20000, 13100), life = c(45.5, 50.2))
+botswana_label <- data.frame(gdp = 20500, life = 44.8, what = "Botswana")
+
+spiral <- data.frame(a = seq(0, 6.2, length.out = 90),
+                     r = seq(0.1, 4, length.out = 90))
+
+healthy_band <- data.frame(gdp = base::range(gapminder_2007$gdp),
+                           lo = 65.0, hi = 75.0)
+
+income_note <- data.frame(gdp = 35000, life = 66,
+                          what = "high income, short lives")
+
+# -- Zone: regions named by their corners ------------------------------------
+sales_box <- data.frame(start = 2015.0, end = 2019.0,
+                        lower = 145.0, upper = 190.0)
+
+prevailing_winds <- data.frame(direction = c("SW", "W"))
+
+span_early  <- data.frame(start = 2006.0, end = 2009.0)
+span_middle <- data.frame(start = 2011.0, end = 2014.0)
+span_late   <- data.frame(start = 2017.0, end = 2020.0)
+
+target_edges <- data.frame(sales = c(target_band$lower, target_band$upper))
+
+# Two tables that exist to be refused, and the refusal is the chapter's point.
+slump  <- data.frame(year = 2008.0, sales = 100.0,
+                     start = 2007.5, end = 2009.5)
+banded <- data.frame(gdp = 1000.0, life = 50.0, lower = 45.0, upper = 55.0)
+
+# -- Scales ------------------------------------------------------------------
+receipts <- data.frame(
+  store = c("North", "North", "South", "South"),
+  sales = c(10.0, 90.0, 1.0, 9.0)
+)
+
+# A zero and a negative, so the log scale has something to refuse.
+depth_readings <- data.frame(
+  depth = c(1.0, 0.0, -4.0, 100.0),
+  temp  = c(12.0, 14.0, 15.0, 9.0)
+)
+
+octaves <- data.frame(
+  freq  = c(55.0, 110.0, 220.0, 440.0, 880.0, 1760.0),
+  level = c(3.0, 6.0, 9.0, 7.0, 4.0, 2.0)
+)
+
+decay <- data.frame(
+  hours  = 0:5 + 0.0,
+  amount = exp(-(0:5)) * 100
+)
+
+revenue <- data.frame(
+  day   = as.Date(paste0(1994:2019, "-06-30")),
+  sales = c(52, 57, 55, 61, 64, 60, 68, 66, 71, 75, 74, 80, 78, 85,
+            72, 72, 79, 84, 88, 87, 93, 96, 94, 101, 105, 103)
+)
+
+# The book's one table with a time rather than a date, which is why the writer
+# above learned POSIXct.
+monitoring <- data.frame(
+  at   = as.POSIXct("2024-03-04 06:00", tz = "UTC") + 3600 * 0:36,
+  load = round(40 + 25 * sin(0:36 / 4) + (0:36 %% 5))
+)
+
+# -- Transforms --------------------------------------------------------------
+# Repeated countries, so `sum` has something to add up. The Bar chapter keeps
+# its own copy of this shape inline, where the duplicate rows are the lesson.
+medal_repeats <- data.frame(
+  country = c("USA", "USA", "GBR", "GBR", "JPN"),
+  gold    = c(10, 5, 8, 4, 6)
+)
+
+drawdown <- data.frame(
+  quarter = rep(c("Q1", "Q2", "Q3"), 2),
+  cost    = c(-5, -4, -6, -3, -2, -3),
+  kind    = rep(c("refunds", "chargebacks"), each = 3))
+
+# Both signs in one stack, which `stack` refuses.
+mixed_signs <- data.frame(
+  quarter = rep(c("Q1", "Q2", "Q3"), 2),
+  amount  = c(5, 5, 5, 2, -3, 2),
+  kind    = rep(c("sales", "returns"), each = 3))
 
 # The same `gog-cli/` marker `data.R` and `setup.R` walk up for, so all three
 # agree about where the repository is regardless of the working directory.

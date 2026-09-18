@@ -111,26 +111,19 @@ A vertical axis gives each name a whole line, while an upright plot has to fit
 it into a slot one box wide:
 
 ```{r}
+#| echo: false
+peek(tenure)
+```
+
+```{r}
 set.seed(4)
-.teams <- c("Research & Development", "Sales & Marketing",
-            "Customer Operations", "Finance", "People & Culture")
-tenure <- data.frame(
-  team  = rep(.teams, each = 30),
-  years = round(pmax(rnorm(150, rep(c(6.2, 3.1, 2.4, 7.8, 4.5), each = 30),
-                           rep(c(2.4, 1.6, 1.2, 3.0, 2.0), each = 30)), 0.2), 1)
-)
 data(tenure) + box + x(years) + y(team) +
   x_label("Years at the company") +
   title("Team names fit on a vertical axis")
 ```
 
 A box needs a number to summarize, so two categorical axes are refused, exactly
-as they are on a bar:
-
-```{r}
-#| error: true
-data(gapminder_2007) + box + x(continent) + y(continent)
-```
+as they are on a bar. [What it refuses](#what-it-refuses) shows that refusal.
 
 ## Whiskers to the extremes
 
@@ -161,12 +154,7 @@ min–max range, a confidence interval, a precomputed pair). A `box` is a named
 statistical glyph: the summary *is* what a box plot means. A statistic that
 draws as exactly one mark belongs *to* that mark, not beside it as a transform
 you compose. So the whole box is `box + x + y`, and adding a transform to it is
-refused with direction:
-
-```{r}
-#| error: true
-data(iris_flowers) + box * mean + x(species) + y(petal_length)
-```
+refused with direction, as [What it refuses](#what-it-refuses) shows.
 
 This is the principle that keeps the [channel vocabulary](../grammar.qmd) small,
 applied to a mark instead of a channel. Borrowing
@@ -287,5 +275,23 @@ the slot it sits in, and the line-work's width is a layer setting:
 data(gapminder_2007) + box + x(continent) + y(life) + size(life)
 ```
 
-The third refusal is above, under Why `box` needs no transform: a box already
-summarizes, so it takes none.
+Two categorical axes are the third. A box reads which axis carries the numbers
+from its two bindings, so one axis has to be continuous. Two categories leave
+it nothing to summarize, exactly as they do on a bar:
+
+```{r}
+#| error: true
+data(gapminder_2007) + box + x(continent) + y(continent)
+```
+
+A transform is the fourth. A box already summarizes each group into quartiles,
+a median and whiskers, so it takes none. [Why `box` needs no
+transform](#why-box-needs-no-transform) gave the reason:
+
+```{r}
+#| error: true
+data(iris_flowers) + box * mean + x(species) + y(petal_length)
+```
+
+The message names the fix: drop the transform, and the box draws its own
+summary.

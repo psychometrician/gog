@@ -218,12 +218,7 @@ You might expect to type the words into the sentence, the way a title is typed.
 A label is not a title: it is one value per row, and that makes it data.
 `text` *requires* a `label`: it is the mark's minimum syllable, the way `x` and
 `y` are. Ask for a `text` mark with no `label` and the engine refuses, and says
-what to write instead:
-
-```{r}
-#| error: true
-data(medals) + text + x(gold) + y(silver)
-```
+what to write instead, as [What it refuses](#what-it-refuses) shows.
 
 The grammar's own rule decides this. A label's string is *data*, and data
 reaches a mark only through a channel. So `label` is a channel, and a mark takes
@@ -247,9 +242,13 @@ peek(gapminder_2007)
 ```
 
 ```{r}
-notes <- data.frame(gdp = 35000, life = 66, what = "high income, short lives")
+#| echo: false
+peek(income_note)
+```
+
+```{r}
 data(gapminder_2007) + point + x(gdp) + y(life) +
-  data(notes) + text + label(what) +
+  data(income_note) + text + label(what) +
   title("A note is a layer, not a function")
 ```
 
@@ -307,6 +306,16 @@ row on the [companion grid](../combinations.qmd#marks-and-channels).
 
 ## What it refuses
 
+A `text` with no `label` is refused first. The label is the mark's minimum
+syllable, the way `x` and `y` are, for the reason [Why `label` is a
+channel](#why-label-is-a-channel) gave. The engine refuses and names the
+channel to add:
+
+```{r}
+#| error: true
+data(medals) + text + x(gold) + y(silver)
+```
+
 A reader who knows `point` will try its channels on `text`, and one of them has
 no work to do on a string.
 A text mark's glyph *is* its content, so it has nothing left for `shape` to
@@ -317,9 +326,9 @@ vary:
 data(medals) + text + x(gold) + y(silver) + label(country) + shape(country)
 ```
 
-A text mark's form comes from `label`, for the reason [Why `label` is a
-channel](#why-label-is-a-channel) gave. For the same reason a string takes no
-texture, being neither a stroke to dash nor a region to hatch:
+A text mark's form comes from `label`, for the reason that section gave. For
+the same reason a string takes no texture, being neither a stroke to dash nor a
+region to hatch:
 
 ```{r}
 #| error: true

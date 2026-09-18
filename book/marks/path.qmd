@@ -95,17 +95,10 @@ end."*
 Now each route points at its last row. `arrow` takes `"end"`, `"start"`, or
 `"both"`: a head at the last row, at the first row, or at both ends.
 
-It belongs to `path` alone, and every other mark refuses it. The refusal is
-worth reading, because it states why `path` is a separate mark:
-
-```{r}
-#| error: true
-data(gapminder_asia) + line + x(year) + y(life) + style(arrow = "end")
-```
-
-A line's last vertex is wherever the domain happens to end, so a head there
-marks the sort rather than anything the data did. Only a path has an end that
-comes from the data.
+It belongs to `path` alone, and every other mark refuses it. A line's last
+vertex is wherever the domain happens to end, so a head there marks the sort
+rather than anything the data did. Only a path has an end that comes from the
+data. [What it refuses](#what-it-refuses) shows a line refusing an arrowhead.
 
 ## An arrow is a layer
 
@@ -121,12 +114,15 @@ peek(gapminder_2007)
 ```
 
 ```{r}
-seg  <- data.frame(gdp = c(20000, 13100), life = c(45.5, 50.2))
-note <- data.frame(gdp = 20500, life = 44.8, what = "Botswana")
+#| echo: false
+peek(botswana_arrow)
+peek(botswana_label)
+```
 
+```{r}
 data(gapminder_2007) + point + x(gdp) + y(life) +
-  data(seg)  + path + style(arrow = "end", color = "#c0392b") +
-  data(note) + text + label(what) +
+  data(botswana_arrow)  + path + style(arrow = "end", color = "#c0392b") +
+  data(botswana_label) + text + label(what) +
   title("an annotation, in the grammar you already have")
 ```
 
@@ -144,13 +140,8 @@ are written in the data's own units rather than in pixels.
 A summary such as `mean` composes with `line`. Writing the same sentence with
 `path` is a natural next step.
 The other stroke and band marks compose with many transforms. `path` composes
-with two, `density` and [`cluster`](../cluster.qmd), and the refusals say
-why:
-
-```{r}
-#| error: true
-data(gapminder_asia) + path * mean + x(country) + y(life)
-```
+with two, `density` and [`cluster`](../cluster.qmd), and every summary is
+refused. [What it refuses](#what-it-refuses) shows one.
 
 A summary replaces the rows. `mean` reduces each country to one number, and what
 is left to connect is one point per country, in whatever order the summary
@@ -221,22 +212,12 @@ other two. `levels` cuts the **field**, the estimated thickness everywhere on
 the plane, into that many steps. A one-dimensional density is a single curve,
 and a curve has no field to cut.
 
-```{r}
-#| error: true
-data(iris_flowers) + line * density(levels = 8) + x(sepal_length)
-```
-
 `bandwidth` is refused for the mirror reason: it needs one axis, and a contour
 has two. It is a width in the data's own units, and a contour spreads over two
 columns that measure different things. Here the two agree, since sepal length
 and petal length are both in centimeters, but two axes usually do not. One
-number cannot be a width in both:
-
-```{r}
-#| error: true
-data(iris_flowers) + path * density(bandwidth = 0.5) +
-  x(sepal_length) + y(petal_length)
-```
+number cannot be a width in both. [What it refuses](#what-it-refuses) shows
+both refusals.
 
 `adjust` is a multiplier rather than a length, so it means the same thing on
 either axis. It is the one parameter all three readings accept:
@@ -282,9 +263,11 @@ turn is far from the start of the next, and on a circle they meet.
 that both grow, and the route winds outward:
 
 ```{r}
-spiral <- data.frame(a = seq(0, 6.2, length.out = 90))
-spiral$r <- seq(0.1, 4, length.out = 90)
+#| echo: false
+peek(spiral)
+```
 
+```{r}
 data(spiral) + path + x(a) + y(r) + polar() +
   title("a path in polar")
 ```
@@ -331,15 +314,12 @@ the cube has no left to right. There `x` is one of three equal positions. At
 some viewing angles it runs straight into the page and becomes depth, which
 would leave a line sorted by an axis the reader cannot see. So the sort that
 makes a `line` a line cannot follow it into the cube. `line`, `step`, `area` and
-`ribbon` refuse `z` rather than half-drawing it:
+`ribbon` refuse `z` rather than half-drawing it, as [What it
+refuses](#what-it-refuses) shows.
 
-```{r}
-#| error: true
-data(thermals) + line + x(east) + y(north) + z(altitude)
-```
-
-Watch the two routes where they cross: whichever is nearer to the eye covers the
-other, and which one that is changes as they climb. A glyph sits at one distance
+Look again at the two routes in the plot above. Where they cross, whichever is
+nearer to the eye covers the other, and which one that is changes as they
+climb. A glyph sits at one distance
 from the eye and can be sorted whole. A stroke running through the cube has a
 far end and a near end, so the unit that gets sorted is the **segment**. The
 segments of both routes are sorted together. If each stroke were sorted as a
@@ -456,9 +436,52 @@ data(gapminder_asia) + path + x(gdp) + y(life) + size(gdp)
 ```
 
 Set it instead and every segment takes the same width, which is the [Setting vs
-mapping](../style.qmd) distinction again. The refusals that belong to `path`
-alone are stated above rather than here. One is the summaries it cannot take,
-because a summary replaces the very rows whose order *is* the path. One is
-`density(bandwidth = )`, which is a width in one column's units and cannot be a
-width in two. The last is an arrow asked of `line`, which has no end for a head
-to sit on.
+mapping](../style.qmd) distinction again.
+
+A summary is the second refusal. It replaces the very rows whose order *is* the
+path, as [Two transforms, and the rest
+refused](#two-transforms-and-the-rest-refused) explained:
+
+```{r}
+#| error: true
+data(gapminder_asia) + path * mean + x(country) + y(life)
+```
+
+`density(bandwidth = )` is the third. It is a width in one column's own units,
+and a contour spreads over two columns that measure different quantities, so
+one number cannot be a width in both:
+
+```{r}
+#| error: true
+data(iris_flowers) + path * density(bandwidth = 0.5) +
+  x(sepal_length) + y(petal_length)
+```
+
+The last three are sentences `line` refuses, and each one says why `path` is a
+separate mark. An arrowhead is the first. A line's last vertex is wherever the
+domain ends, so a head there would mark the sort rather than the data:
+
+```{r}
+#| error: true
+data(gapminder_asia) + line + x(year) + y(life) + style(arrow = "end")
+```
+
+`density(levels = )` is the second. It cuts the estimated field into steps, and
+a one-dimensional density is a single curve with no field to cut:
+
+```{r}
+#| error: true
+data(iris_flowers) + line * density(levels = 8) + x(sepal_length)
+```
+
+`z` is the third. A line sorts by `x`, and the cube has no left to right, so
+that sort cannot follow it in, as [In space, the route is
+unchanged](#in-space-the-route-is-unchanged) explained:
+
+```{r}
+#| error: true
+data(thermals) + line + x(east) + y(north) + z(altitude)
+```
+
+All three point at one fact. A line's shape comes from the sort, and a path's
+comes from the rows.

@@ -331,7 +331,7 @@ def _frame_columns(args: str, fired: Optional[List[str]] = None,
         return None
     columns = []
     for arg in _split_args(args):
-        keyword = re.match(r"^\s*([A-Za-z_.][A-Za-z0-9._]*)\s*=\s*(.*)$", arg, re.S)
+        keyword = re.match(r"^\s*((?:[^\W\d]|\.)[\w.]*)\s*=\s*(.*)$", arg, re.S)
         if not keyword:
             return None
         value = keyword.group(2).strip()
@@ -386,8 +386,15 @@ def translate(source: str) -> Tuple[Optional[str], List[str], Optional[str]]:
     # the table's *name*, because the sentence below is about to use it. Only
     # the spec assignment (`p <- data(…) + …`) is droppable: there the name is
     # R's bookkeeping and the sentence is the whole content.
+    # The name is matched with Unicode classes, not `[A-Za-z]`. An R identifier
+    # is locale-aware, and the Data chapter's `지역별 <- data.frame(지역 = ...)` is a
+    # legal name the ASCII spelling refused. It fell through to the rewrites
+    # below, which bracketed the columns and left `지역별 <- data.frame(` in place:
+    # not Python, so `compile()` rejected it and the tab vanished while
+    # JavaScript and Julia rendered fine. `(?:[^\W\d]|\.)` is a letter or a dot
+    # and never a digit, which is R's own rule for a first character.
     table_def = re.match(
-        r"^\s*([A-Za-z._][A-Za-z0-9._]*)\s*<-\s*data\.frame\s*\((.*)\)\s*$",
+        r"^\s*((?:[^\W\d]|\.)[\w.]*)\s*<-\s*data\.frame\s*\((.*)\)\s*$",
         body, re.S)
     if table_def:
         columns = _frame_columns(table_def.group(2), fired,
@@ -405,7 +412,7 @@ def translate(source: str) -> Tuple[Optional[str], List[str], Optional[str]]:
         fired.append("named table")
         return f"{table_def.group(1)} = {columns}", fired, None
 
-    assignment = re.match(r"^\s*[A-Za-z._][A-Za-z0-9._]*\s*<-\s*(.*)$", body, re.S)
+    assignment = re.match(r"^\s*(?:[^\W\d]|\.)[\w.]*\s*<-\s*(.*)$", body, re.S)
     if assignment:
         body = assignment.group(1)
         fired.append("assignment dropped")

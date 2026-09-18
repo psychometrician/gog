@@ -1,0 +1,7 @@
+"quarter","cost","kind"
+"Q1","-5.0","refunds"
+"Q2","-4.0","refunds"
+"Q3","-6.0","refunds"
+"Q1","-3.0","chargebacks"
+"Q2","-2.0","chargebacks"
+"Q3","-3.0","chargebacks"

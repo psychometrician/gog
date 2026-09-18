@@ -830,22 +830,23 @@ bar * quantile(0.9) + x(country) + y(gold)
 amounts:
 
 ```{r}
-medals_dup <- data.frame(
-  country = c("USA", "USA", "GBR", "GBR", "JPN"),
-  gold    = c(10, 5, 8, 4, 6)
-)
-data(medals_dup) + bar * sum + x(country) + y(gold) +
+#| echo: false
+peek(medal_repeats)
+```
+
+```{r}
+data(medal_repeats) + bar * sum + x(country) + y(gold) +
   order(gold, desc = TRUE) +
   y_label("Total gold medals") + title("Sum per country: bar * sum")
 ```
 
-*"Given the medals dup table: bars derived by sum, x is country, y is gold,
+*"Given the medal repeats table: bars derived by sum, x is country, y is gold,
 ordered by gold, largest first."*
 
 **`mean`**, average y per group, useful for comparing typical values:
 
 ```{r}
-data(medals_dup) + bar * mean + x(country) + y(gold) +
+data(medal_repeats) + bar * mean + x(country) + y(gold) +
   order(gold, desc = TRUE) +
   y_label("Mean gold medals") + title("Mean per country: bar * mean")
 ```
@@ -853,7 +854,7 @@ data(medals_dup) + bar * mean + x(country) + y(gold) +
 **`median`**, the middle value, robust to outliers:
 
 ```{r}
-data(medals_dup) + bar * median + x(country) + y(gold) +
+data(medal_repeats) + bar * median + x(country) + y(gold) +
   order(gold, desc = TRUE) +
   y_label("Median gold") + title("Median per country: bar * median")
 ```
@@ -861,23 +862,23 @@ data(medals_dup) + bar * median + x(country) + y(gold) +
 **`max`**, the largest value within each group:
 
 ```{r}
-data(medals_dup) + bar * max + x(country) + y(gold) +
+data(medal_repeats) + bar * max + x(country) + y(gold) +
   order(gold, desc = TRUE) +
   y_label("Max gold") + title("Max per country: bar * max")
 ```
 
-*"Given the medals dup table: bars derived by max, x is country, y is gold,
+*"Given the medal repeats table: bars derived by max, x is country, y is gold,
 ordered by gold, largest first."*
 
 **`min`**, the smallest value within each group:
 
 ```{r}
-data(medals_dup) + bar * min + x(country) + y(gold) +
+data(medal_repeats) + bar * min + x(country) + y(gold) +
   order(gold, desc = TRUE) +
   y_label("Min gold") + title("Min per country: bar * min")
 ```
 
-*"Given the medals dup table: bars derived by min, x is country, y is gold,
+*"Given the medal repeats table: bars derived by min, x is country, y is gold,
 ordered by gold, largest first."*
 
 All six aggregations work the same whether x is continuous or categorical. For a
@@ -1668,11 +1669,11 @@ Negative values are allowed. A pile of them grows *downward* from zero, exactly
 as a positive pile grows up:
 
 ```{r}
-drawdown <- data.frame(
-  quarter = rep(c("Q1", "Q2", "Q3"), 2),
-  cost    = c(-5, -4, -6, -3, -2, -3),
-  kind    = rep(c("refunds", "chargebacks"), each = 3))
+#| echo: false
+peek(drawdown)
+```
 
+```{r}
 data(drawdown) + bar * stack + x(quarter) + y(cost) + color(kind) +
   y_label("Cost") + title("A pile that grows down")
 ```
@@ -1684,13 +1685,13 @@ the first group. A reader would see a solid block of length 3 where the number
 is negative. So gog refuses:
 
 ```{r}
-#| error: true
-mixed <- data.frame(
-  quarter = rep(c("Q1", "Q2", "Q3"), 2),
-  amount  = c(5, 5, 5, 2, -3, 2),
-  kind    = rep(c("sales", "returns"), each = 3))
+#| echo: false
+peek(mixed_signs)
+```
 
-data(mixed) + bar * stack + x(quarter) + y(amount) + color(kind)
+```{r}
+#| error: true
+data(mixed_signs) + bar * stack + x(quarter) + y(amount) + color(kind)
 ```
 
 The message names the position, both groups, and both numbers. A message that

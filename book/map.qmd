@@ -161,11 +161,14 @@ flat space that is a reference line. Here, a rule at one latitude is a
 draws one parallel, the equator:
 
 ```{r}
-lines_of <- data.frame(lat = 0)
+#| echo: false
+peek(equator)
+```
 
+```{r}
 data(world_borders) + path + x(lon) + y(lat) + group(piece) +
   style(color = "#c9ccd6") +
-  data(lines_of) + rule + y(lat) + style(color = "#d4674f") +
+  data(equator) + rule + y(lat) + style(color = "#d4674f") +
   map() + title("The equator")
 ```
 
@@ -187,11 +190,11 @@ cities do. `text` writes a string at a position, and a position here is a
 place:
 
 ```{r}
-capitals <- data.frame(
-  lon  = c(-0.13, 139.69, -74.01, 151.21, 18.42),
-  lat  = c(51.51,  35.69,  40.71, -33.87, -33.92),
-  name = c("London", "Tokyo", "New York", "Sydney", "Cape Town"))
+#| echo: false
+peek(capitals)
+```
 
+```{r}
 data(world_borders) + path + x(lon) + y(lat) + group(piece) +
   style(color = "#c9ccd6") +
   data(capitals) + point + x(lon) + y(lat) +
@@ -250,10 +253,11 @@ them. It stops at 85.05 degrees. A row beyond that is drawn at the edge, and gog
 reports how many:
 
 ```{r}
-far_north <- data.frame(
-  lon = c(0, 15, -45, 10),
-  lat = c(60, 78, 83, 89))
+#| echo: false
+peek(far_north)
+```
 
+```{r}
 data(far_north) + point + x(lon) + y(lat) + map(preserve = "angle")
 ```
 

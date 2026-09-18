@@ -43,9 +43,11 @@ the rows may arrive in any order. The table below is deliberately shuffled, and 
 still runs from left to right:
 
 ```{r}
-scrambled <- data.frame(year = c(1992, 1962, 2002, 1972, 1982),
-                        life  = c(  68,   52,   71,   58,   63))
+#| echo: false
+peek(scrambled)
+```
 
+```{r}
 data(scrambled) + line + x(year) + y(life)
 ```
 
@@ -177,8 +179,8 @@ not two consecutive years, so the rises and falls come from the sorting, not
 from the sales. Only the overall slope survives, and only because sales were
 mostly higher in later years.
 
-Put a category on `y` instead and gog refuses it, as the end of this section
-shows. So there are two cases. When both columns are numbers, the swap
+Put a category on `y` instead and gog refuses it, as [What it
+refuses](#what-it-refuses) shows. So there are two cases. When both columns are numbers, the swap
 is accepted, but you do not get the same plot on its side: the line sorts
 along `x` and draws a different picture. When one column is a category, it must be on `x`.
 
@@ -253,14 +255,6 @@ categories are spread around the whole ring, so the last one sits beside the
 first and the line closes. Nothing was added to say so: a categorical angular
 axis wraps, and the mark follows the space it is drawn in. The
 [Polar](../polar.qmd) chapter covers this in full.
-
-A category on the measure axis is refused, because a line traces a quantity and
-category names are not a quantity:
-
-```{r}
-#| error: true
-data(gapminder_2007) + line * mean + x(life) + y(continent)
-```
 
 ## Smoothed trend line
 
@@ -406,10 +400,18 @@ data(gapminder_asia) + line + x(year) + y(life) + style(pattern = "hatch")
 ```
 
 The refusal lists the three values a stroke's pattern does take. Two more
-refusals belong to a line. One of them is drawn in [the
-profile](#a-category-on-the-domain-the-profile) section: a categorical column on
-`y`, refused because `y` carries the quantity a line traces, and category names
-are not a quantity. The other is only described, under [Stroke width and
+refusals belong to a line. The first is a categorical column on `y`, refused
+because `y` carries the quantity a line traces, and category names are not a
+quantity. [A category on the
+domain](#a-category-on-the-domain-the-profile) showed where that rule comes
+from:
+
+```{r}
+#| error: true
+data(gapminder_2007) + line * mean + x(life) + y(continent)
+```
+
+The second is only described, under [Stroke width and
 opacity](#stroke-width-and-opacity): a mapped width or opacity, refused because
 one stroke has a single width and a single opacity, so no row is left for a
 column to answer.

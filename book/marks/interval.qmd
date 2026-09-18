@@ -203,12 +203,7 @@ the grammar already supplies: zero. An `interval` has no such default. A low
 *and* a high are two numbers, and a plain `y()` supplies one. So the shortest
 interval that draws, its minimum syllable, includes a transform that produces a
 range. Ask for an interval without one and the engine says so, rather than
-drawing an empty panel:
-
-```{r}
-#| error: true
-data(iris_flowers) + interval + x(species) + y(petal_length)
-```
+drawing an empty panel. [What it refuses](#what-it-refuses) shows that refusal.
 
 This is the design choice that keeps the [channel vocabulary](../grammar.qmd)
 small. The obvious alternative would add `ymin` and `ymax` as two more channels
@@ -248,11 +243,11 @@ terms on `y`, the measured axis is the one `bounds` invents, so there is no
 `x()` to write:
 
 ```{r}
-coefs <- data.frame(
-  term = c("Age", "Education", "Experience", "Region: North", "Region: South"),
-  lo   = c(0.02, 0.31, 0.11, -0.24, -0.05),
-  hi   = c(0.18, 0.55, 0.29,  0.06,  0.21)
-)
+#| echo: false
+peek(coefs)
+```
+
+```{r}
 data(coefs) + interval * bounds(lo, hi) + y(term) +
   x_label("Effect on log wage") +
   title("A coefficient plot, from bounds you already have")
@@ -263,17 +258,9 @@ data(coefs) + interval * bounds(lo, hi) + y(term) +
 The two intervals that cross zero cover positive and negative values alike, so
 the data does not settle whether those two effects are positive or negative.
 
-An interval needs a number to span, so two categorical axes are refused:
-
-```{r}
-#| echo: false
-peek(gapminder_2007)
-```
-
-```{r}
-#| error: true
-data(gapminder_2007) + interval * range + x(continent) + y(continent)
-```
+An interval needs a number to span, so two categorical axes are refused, as
+they are on a bar and a box. [What it refuses](#what-it-refuses) shows that
+refusal.
 
 ## Splitting by color
 
@@ -447,6 +434,11 @@ An interval is a stroke, however much it looks like a bar, so its pattern is a
 dash and a hatch is refused:
 
 ```{r}
+#| echo: false
+peek(gapminder_2007)
+```
+
+```{r}
 #| error: true
 data(gapminder_2007) + interval * range + x(continent) + y(life) +
   style(pattern = "hatch")
@@ -454,8 +446,26 @@ data(gapminder_2007) + interval * range + x(continent) + y(life) +
 
 That refusal is worth explaining, because a capped range looks like a shape with
 an inside. The engine draws it as a stroke, which is why the whisker takes a
-dash and not a hatch. Two more refusals appear earlier in this chapter. A bare
-`interval` has no extents to span, under [Why `interval` needs a
-transform](#why-interval-needs-a-transform), and an interval with two
-categorical axes has nothing to measure, under [Whiskers on their
-side](#whiskers-on-their-side).
+dash and not a hatch.
+
+A bare `interval` is the second refusal. A plain `y()` supplies one number, and
+a span needs two, as [Why `interval` needs a
+transform](#why-interval-needs-a-transform) explained. The engine says so
+rather than drawing an empty panel:
+
+```{r}
+#| error: true
+data(iris_flowers) + interval + x(species) + y(petal_length)
+```
+
+The message lists the transforms that produce a range. Two categorical axes
+are the third refusal. An interval reads its orientation off the bindings, so
+one axis has to be continuous:
+
+```{r}
+#| error: true
+data(gapminder_2007) + interval * range + x(continent) + y(continent)
+```
+
+That continuous column is where the low and the high come from. Two categories
+leave the mark nothing to span.

@@ -201,16 +201,19 @@ computed. The table has two rows, one at each end of the income axis, so the
 band reaches from side to side:
 
 ```{r}
-healthy <- data.frame(gdp = base::range(gapminder_2007$gdp), lo = 65.0, hi = 75.0)
+#| echo: false
+peek(healthy_band)
+```
 
-data(healthy) + ribbon * bounds(lo, hi) + style(color = "seagreen", opacity = 0.18) +
+```{r}
+data(healthy_band) + ribbon * bounds(lo, hi) + style(color = "seagreen", opacity = 0.18) +
   data(gapminder_2007) + point + x(gdp) + y(life) +
   data(life_bands) + rule + style(color = "seagreen", pattern = "dashed") +
   x_label("GDP per person") + y_label("Life expectancy") +
   title("A band whose edges are 65 and 75, and rules on top")
 ```
 
-*"Given the healthy table: a ribbon from lo to hi; then given gapminder 2007:
+*"Given the healthy band table: a ribbon from lo to hi; then given gapminder 2007:
 points, x is gdp, y is life, and also rules from the life bands."*
 
 Now 65 and 75 are positions. They rescale with the axis and keep the same values
@@ -314,18 +317,9 @@ The `pattern` values are the three **dashes**, because a rule is a stroke.
 *fill*'s texture, and it is what [`zone`](zone.qmd) takes instead. One setting
 name, one realization per geometry.
 
-What a rule refuses follows from the same geometry. There is no `shape`, because
-a stroke has no glyph to choose. And there is no border:
-
-```{r}
-#| error: true
-data(gapminder_2007) + point + x(gdp) + y(life) +
-  data(life_bands) + rule + style(border_color = "black")
-```
-
-A border belongs to a filled shape, and a rule is the outline already, so
-`style(color = )` is its color and `style(size = )` its width. That is the same
-answer `line`, `step` and `path` give, because it is the same geometry.
+What a rule refuses follows from the same geometry. There is no `shape`,
+because a stroke has no glyph to choose, and there is no border. [What it
+refuses](#what-it-refuses) shows the border refused.
 
 The [grid of every mark and every setting](../style.qmd#what-you-can-set) shows
 which other marks share this list. What a mark *maps* rather than sets is its
@@ -363,3 +357,16 @@ data(gapminder_2007) + point + x(gdp) + y(life) +
 The message points back at what a rule is. A line at the mean is a mean you
 computed yourself, passed in as a column. A rule's position always comes from a
 column.
+
+A rule has no border either. A border belongs to a filled shape, and a rule is
+the outline already:
+
+```{r}
+#| error: true
+data(gapminder_2007) + point + x(gdp) + y(life) +
+  data(life_bands) + rule + style(border_color = "black")
+```
+
+So `style(color = )` is a rule's color and `style(size = )` its width. That is
+the same answer `line`, `step` and `path` give, because it is the same
+geometry.

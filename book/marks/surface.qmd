@@ -108,20 +108,12 @@ A continent in one column and a year in another looks like a grid too. A sheet
 over it is a natural thing to ask for.
 Both position columns have to be numbers. A face spans the gap between two
 samples and so asserts every height *inside* that gap, and between one category
-and the next there is no inside to assert anything about:
+and the next there is no inside to assert anything about. So a category on
+either position is refused, and [What it refuses](#what-it-refuses) names the
+mark that draws one.
 
-```{r}
-#| echo: false
-peek(gm_eras)
-```
-
-```{r}
-#| error: true
-data(gm_eras) + surface + x(continent) + y(year) + z(life)
-```
-
-The direction there points at the other mark. A category owns a slot with air on
-either side of it, and a [3-D bar](bar.qmd) stands *in* its slot, claiming
+That mark is the [3-D bar](bar.qmd). A category owns a slot with air on
+either side of it, and a 3-D bar stands *in* its slot, claiming
 nothing about the space between cells. So `bar * count + x(a) + y(b) + space()`
 stands one bar over each pair of categories, and a surface cannot: tiles that
 float apart are not a sheet.
@@ -294,12 +286,8 @@ cell, so a cell with nothing in it is simply a cell with no top. It is the same
 opening a missing crossing makes in a node mesh, for a different reason.
 
 What a surface refuses is a grid of **slots**. `count` and `proportion` count
-rows into the cells two categories make, and categories have gaps between them:
-
-```{r}
-#| error: true
-data(gm_eras) + surface * count + x(continent) + y(era) + space()
-```
+rows into the cells two categories make, and categories have gaps between them.
+[What it refuses](#what-it-refuses) shows that refusal.
 
 ## The mesh, and what the shading means
 
@@ -621,6 +609,32 @@ the mark that draws a field in the plane:
 #| error: true
 data(maunga_whau) + surface + x(east) + y(north)
 ```
+
+A category on either position is the second refusal, for the reason [A
+continuous floor](#a-continuous-floor) gave. A face spans the gap between two
+samples, and between two categories there is no gap to span:
+
+```{r}
+#| echo: false
+peek(gm_eras)
+```
+
+```{r}
+#| error: true
+data(gm_eras) + surface + x(continent) + y(year) + z(life)
+```
+
+The message names the mark that stands in its slot instead, the [3-D
+bar](bar.qmd). The transforms that tally into slots are refused by the same
+rule. `count` and `proportion` count rows into the cells two categories make:
+
+```{r}
+#| error: true
+data(gm_eras) + surface * count + x(continent) + y(era) + space()
+```
+
+That refusal lists the two transforms that do tile a floor, `bin` and
+`density`.
 
 `density(levels = )` cuts a field into level *sets*, and a level set is a region
 in the plane. A surface has already given the third axis to the measurement, so

@@ -99,8 +99,11 @@ route does not exist. The shortest way between two places bends with the
 surface, along a great circle, and a `path` here follows it:
 
 ```{r}
-flight <- data.frame(lon = c(139.69, -118.24), lat = c(35.69, 34.05))
+#| echo: false
+peek(flight)
+```
 
+```{r}
 data(world_borders) + path + x(lon) + y(lat) + group(piece) +
   style(color = "#c9ccd6") +
   data(flight) + path + x(lon) + y(lat) +
@@ -122,23 +125,13 @@ network, and it needs no new word, because every position in it is a place
 the data already knows:
 
 ```{r}
-#| message: true
-cities <- data.frame(
-  city = c("Seoul", "Tokyo", "Singapore", "Delhi", "Cairo",
-           "London", "Anchorage", "Sydney"),
-  lon  = c(126.98, 139.69, 103.82, 77.21, 31.24, -0.13, -149.90, 151.21),
-  lat  = c(37.57, 35.68, 1.35, 28.61, 30.04, 51.51, 61.22, -33.87)
-)
-legs <- data.frame(
-  route = rep(c("Seoul-Tokyo", "Seoul-Singapore", "Seoul-Delhi",
-                "Delhi-Cairo", "Cairo-London", "Tokyo-Anchorage",
-                "Singapore-Sydney"), each = 2),
-  city  = c("Seoul", "Tokyo", "Seoul", "Singapore", "Seoul", "Delhi",
-            "Delhi", "Cairo", "Cairo", "London", "Tokyo", "Anchorage",
-            "Singapore", "Sydney")
-)
-routes <- merge(legs, cities, by = "city", sort = FALSE)
+#| echo: false
+peek(routes)
+peek(cities)
+```
 
+```{r}
+#| message: true
 data(world_borders) + path + x(lon) + y(lat) + group(piece) +
   style(color = "#c9ccd6") +
   data(routes) + path + x(lon) + y(lat) + group(route) +
@@ -170,11 +163,14 @@ the map that drew the equator as a straight line. Here the same sentence bends
 it around the sphere:
 
 ```{r}
-lines_of <- data.frame(lat = 0)
+#| echo: false
+peek(equator)
+```
 
+```{r}
 data(world_borders) + path + x(lon) + y(lat) + group(piece) +
   style(color = "#c9ccd6") +
-  data(lines_of) + rule + y(lat) + style(color = "#d4674f") +
+  data(equator) + rule + y(lat) + style(color = "#d4674f") +
   globe(turn = 20, tilt = 30) + title("The equator, bent around the sphere")
 ```
 
@@ -211,18 +207,14 @@ its place and measures outward along it, a spike from the surface, and `z` names
 its measure:
 
 ```{r}
-centers <- do.call(rbind, lapply(split(world_borders[, c("lon", "lat")],
-                                       world_borders$country), colMeans))
-spikes <- data.frame(country = rownames(centers), centers)
-matched <- match(spikes$country, gapminder_2007$country)
-spikes$people <- gapminder_2007$population[matched]
-spikes$continent <- gapminder_2007$continent[matched]
-spikes <- spikes[!is.na(spikes$people), ]
-spikes$reach <- sqrt(spikes$people)
+#| echo: false
+peek(population_spikes)
+```
 
+```{r}
 data(world_borders) + path + x(lon) + y(lat) + group(piece) +
   style(color = "#c9ccd6") +
-  data(spikes) + bar + x(lon) + y(lat) + z(reach) + color(continent) +
+  data(population_spikes) + bar + x(lon) + y(lat) + z(reach) + color(continent) +
   globe(turn = 20, tilt = 12) +
   title("World population, standing on its places")
 ```

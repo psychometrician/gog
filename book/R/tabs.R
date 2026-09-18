@@ -65,8 +65,14 @@ is_sentence <- function(code) {
 # translators can spell one: `octaves <- data.frame(freq = c(55, 110))` becomes a
 # dict, an object, and a NamedTuple. A table *computed* in R (`exp(-(0:5)) * 100`)
 # is refused by the translators themselves and reported as a gap, never guessed.
+# `[[:alpha:]]` rather than `[A-Za-z]`, and the Data chapter is why. An R name is
+# locale-aware, so `지역별 <- data.frame(지역 = ..., 값 = ...)` is as legal a name as
+# `sales <- data.frame(...)`, and that chunk exists to say so. Under the ASCII
+# spelling it was the one keeper in the book with no tabs: the chapter proving
+# gog takes Korean column names proved it in R alone. Python's translator
+# carried the same assumption in three places and was widened with this.
 is_table_def <- function(code) {
-  grepl("^\\s*[A-Za-z._][A-Za-z0-9._]*\\s*<-\\s*data\\.frame\\s*\\(", code) &&
+  grepl("^\\s*[[:alpha:]._][[:alnum:]._]*\\s*<-\\s*data\\.frame\\s*\\(", code) &&
     !grepl("library\\(|source\\(|::", code)
 }
 

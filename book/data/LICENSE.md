@@ -14,11 +14,18 @@ Three tiers, and they are not under one license.
 These frames are written out as literals or generated from a fixed seed by
 this project's author, and carry the same license as the rest of the code:
 
-`actuals` · `cashflow` · `census` · `commutes` · `day_cycle` · `forecast` ·
-`gdp_threshold` · `life_bands` · `listening` · `medals` · `milestones` ·
-`nutrients` · `quarterly` · `recessions` · `ripples` · `score_band` ·
-`sessions` · `six_weeks` · `speed_target` · `spending` · `target_band` ·
-`tide` · `thermals` · `thermal_marks` · `winds`
+`actuals` · `banded` · `botswana_arrow` · `botswana_label` · `capitals` ·
+`cashflow` · `census` · `channel_sales` · `cities` · `coefs` · `commutes` ·
+`day_cycle` · `decay` · `departments` · `depth_readings` · `drawdown` ·
+`equator` · `far_north` · `flight` · `forecast` · `gdp_threshold` ·
+`income_note` · `inventory` · `life_bands` · `listening` · `medal_repeats` ·
+`medals` · `milestones` · `mixed_signs` · `monitoring` · `nutrients` ·
+`octaves` · `policy_rates` · `prevailing_winds` · `quarterly` · `receipts` ·
+`recessions` · `revenue` · `ripples` · `routes` · `sales_box` · `score_band` ·
+`scrambled` · `sessions` · `six_weeks` · `slump` · `span_early` ·
+`span_late` · `span_middle` · `speed_target` · `spending` · `spiral` ·
+`target_band` · `target_edges` · `team_trend` · `tenure` · `thermal_marks` ·
+`thermals` · `tide` · `winds`
 
 Illustrative rather than authoritative. `census` is two plausible city age
 profiles, not a census; `medals` is a medal table's shape, not a record of any
@@ -28,10 +35,15 @@ particular games. Do not cite them as data about the world.
 
 These frames are cuts of the `gapminder` R package's table, with three columns
 renamed for readability (`gdpPercap` → `gdp`, `lifeExp` → `life`,
-`pop` → `population`):
+`pop` → `population`). `gm_europe_cdf` is the one derivation rather than a cut:
+`gm_europe`'s life expectancies sorted, with the running share of countries
+beside each one.
 
 `gm_all` · `gapminder_2007` · `gapminder_asia` · `gm_continents` · `gm_eras` ·
-`gm_europe`
+`gm_europe` · `gm_europe_cdf` · `healthy_band` · `world_median`
+
+`population_spikes` draws on this table and on Natural Earth's, below: a
+country's population set at the middle of its own outline.
 
 The `gapminder` package is released under **CC0 1.0**, a public domain
 dedication, so no permission or attribution is required. It is credited anyway:

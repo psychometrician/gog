@@ -323,11 +323,12 @@ column is drawn in full in every panel. That is how one shared reference line
 is drawn behind small multiples:
 
 ```{r}
+#| echo: false
+peek(world_median)
+```
+
+```{r}
 #| message: true
-world_median <- data.frame(
-  gdp  = c(min(gapminder_2007$gdp), max(gapminder_2007$gdp)),
-  life = rep(median(gapminder_2007$life), 2)
-)
 data(gapminder_2007) + point + x(gdp) + y(life) +
   data(world_median) + line + style(color = "gray", size = 1) |
   facet(continent)

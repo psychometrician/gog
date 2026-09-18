@@ -222,28 +222,28 @@ The point of the channel is redundant encoding: the same column on `color` *and*
 draws these as **one merged legend**, not two:
 
 ```{r}
-sales <- data.frame(
-  quarter = rep(c("Q1", "Q2", "Q3"), each = 2),
-  channel = rep(c("Retail", "Online"), 3),
-  revenue = c(4, 3, 5, 6, 4, 8)
-)
-data(sales) + bar * sum * dodge + x(quarter) + y(revenue) + color(channel) +
+#| echo: false
+peek(channel_sales)
+```
+
+```{r}
+data(channel_sales) + bar * sum * dodge + x(quarter) + y(revenue) + color(channel) +
   pattern(channel) + title("Grouped bars, separated by hue and hatch")
 ```
 
-*"Given the sales table: bars derived by sum and dodge, x is quarter, y is
+*"Given the channel sales table: bars derived by sum and dodge, x is quarter, y is
 revenue, color by channel, pattern by channel."*
 
 On a stroke the same channel dashes each series instead, so these two lines are
 separated by hue and by dash:
 
 ```{r}
-trend <- data.frame(
-  month = rep(1:6, 2),
-  team  = rep(c("North", "South"), each = 6),
-  sales = c(2, 3, 4, 5, 6, 7,  5, 4, 4, 3, 2, 2)
-)
-data(trend) + line + x(month) + y(sales) + color(team) + pattern(team) +
+#| echo: false
+peek(team_trend)
+```
+
+```{r}
+data(team_trend) + line + x(month) + y(sales) + color(team) + pattern(team) +
   title("Two series, by hue and dash")
 ```
 

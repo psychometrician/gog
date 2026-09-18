@@ -120,11 +120,11 @@ bar on a log scale stand for a sum of dollars, or for a sum of logarithms?
 stand for 100 and 10:
 
 ```{r}
-receipts <- data.frame(
-  store = c("North", "North", "South", "South"),
-  sales = c(10.0, 90.0, 1.0, 9.0)
-)
+#| echo: false
+peek(receipts)
+```
 
+```{r}
 data(receipts) + bar * sum + x(store) + y(sales, scale = "log") +
   title("A sum is still a sum")
 ```
@@ -172,13 +172,13 @@ A logarithm is undefined at zero and below, so those rows have no position on
 the axis. gog says so rather than dropping them quietly:
 
 ```{r}
-#| error: true
-readings <- data.frame(
-  depth = c(1.0, 0.0, -4.0, 100.0),
-  temp  = c(12.0, 14.0, 15.0, 9.0)
-)
+#| echo: false
+peek(depth_readings)
+```
 
-data(readings) + point + x(depth, scale = "log") + y(temp)
+```{r}
+#| error: true
+data(depth_readings) + point + x(depth, scale = "log") + y(temp)
 ```
 
 The message names how many rows are affected and the smallest value in the
@@ -222,11 +222,11 @@ Here are six frequencies, each one an octave above the last, on base 10 and
 then base 2:
 
 ```{r}
-octaves <- data.frame(
-  freq  = c(55.0, 110.0, 220.0, 440.0, 880.0, 1760.0),
-  level = c(3.0, 6.0, 9.0, 7.0, 4.0, 2.0)
-)
+#| echo: false
+peek(octaves)
+```
 
+```{r}
 data(octaves) + point + x(freq, scale = "log") + y(level) +
   x_label("Frequency (Hz)") + title("Base 10: gridlines at 100, 1K")
 ```
@@ -251,11 +251,11 @@ two consecutive readings.
 R has no `e` constant, so it is `base = exp(1)`:
 
 ```{r}
-decay <- data.frame(
-  hours  = 0:5 + 0.0,
-  amount = exp(-(0:5)) * 100
-)
+#| echo: false
+peek(decay)
+```
 
+```{r}
 data(decay) + point + x(amount, scale = "log", base = exp(1)) + y(hours) +
   x_label("Amount remaining") +
   title("Gridlines at each e-folding: one step is a factor of e")
@@ -294,12 +294,11 @@ The time scale is one you never have to write. A `Date` or `POSIXct` column
 type, the same way a column of text already gets a categorical axis:
 
 ```{r}
-revenue <- data.frame(
-  day   = as.Date(paste0(1994:2019, "-06-30")),
-  sales = c(52, 57, 55, 61, 64, 60, 68, 66, 71, 75, 74, 80, 78, 85,
-            72, 72, 79, 84, 88, 87, 93, 96, 94, 101, 105, 103)
-)
+#| echo: false
+peek(revenue)
+```
 
+```{r}
 data(revenue) + line + x(day) + y(sales) +
   title("Twenty-six years, ticked in years")
 ```
@@ -330,11 +329,11 @@ a month step, `Mar 4` for a day step. A `Date` column never gets clock ticks,
 however narrow its range; a `POSIXct` may:
 
 ```{r}
-monitoring <- data.frame(
-  at   = as.POSIXct("2024-03-04 06:00", tz = "UTC") + 3600 * 0:36,
-  load = round(40 + 25 * sin(0:36 / 4) + (0:36 %% 5))
-)
+#| echo: false
+peek(monitoring)
+```
 
+```{r}
 data(monitoring) + line + x(at) + y(load) +
   title("A day and a half, ticked by the clock")
 ```
