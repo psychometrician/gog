@@ -259,3 +259,72 @@ jobs:
         run: |
           julia --project=jl-pkg/GrammarOfGraphics/test/book_parity \
                 jl-pkg/GrammarOfGraphics/test/book_parity/run.jl
+
+  # ---------------------------------------------------------------------------
+  # What r-universe checks, checked here instead of after publishing.
+  #
+  # **Four releases failed this way before this job existed** — 0.0.3, 0.0.4,
+  # 0.2.0 and 0.3.0 — and every one was found on r-universe's build page after
+  # the version had shipped. The shape is always the same: `source` passes and
+  # every binary target fails, because those targets check an *installed*
+  # package and the job above checks a checkout.
+  #
+  # The difference that matters is not the platform. It is that an installed
+  # package has no `target/` directory and no `GOG_CLI_PATH`: `configure`
+  # bundles the engine into `inst/bin/`, and anything that reaches for a build
+  # path instead of asking `find_gog_cli()` resolves in a checkout and nowhere
+  # else. 0.3.0 shipped with seven targets reading
+  # `sh: 1: target/release/gog-cli: not found` from one such line in the test
+  # file. The other three failures were an unrendered `man/` page twice and a
+  # literal em dash in a diagnostic, both of which are also checks that read
+  # installed files.
+  #
+  # So this job reproduces exactly those conditions and nothing else: build the
+  # tarball the way `R CMD build` does, check it with the variable unset, and
+  # refuse anything that is not a clean bill. It costs a few minutes because
+  # `configure` compiles the engine from the staged sources, which is the point
+  # — that compile is what r-universe does too, and it has broken on its own.
+  installed:
+    name: the package as r-universe checks it
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: r-lib/actions/setup-r@v2
+        with:
+          use-public-rspm: true
+      - uses: r-lib/actions/setup-r-dependencies@v2
+        with:
+          packages: jsonlite, knitr, gapminder, repr, rcmdcheck
+
+      # `.prepare` stages the crate sources into `tools/rust/`, which is how a
+      # subdirectory build reaches them. r-universe runs it the same way, and it
+      # is generated output that is never committed.
+      - name: Stage the engine sources
+        run: cd r-pkg/gog && sh .prepare
+
+      # Built and checked from a directory with no `target/` above it, so a path
+      # that only exists in a checkout cannot resolve. `GOG_CLI_PATH` is unset
+      # rather than merely absent, because a pre-flight script that exported it
+      # is what hid this in the first place.
+      - name: Build and check with no engine path
+        env:
+          GOG_CLI_PATH: ""
+        run: |
+          unset GOG_CLI_PATH
+          mkdir -p "$RUNNER_TEMP/rcheck"
+          cd "$RUNNER_TEMP/rcheck"
+          R CMD build "$GITHUB_WORKSPACE/r-pkg/gog"
+          R CMD check gog_*.tar.gz
+
+      # `R CMD check` exits 0 on a WARNING, so the status line is the assertion.
+      # NOTEs are allowed: an installed size over 5 MB is one, and the engine is
+      # 6 MB by design.
+      - name: A warning is a failure here
+        run: |
+          log="$RUNNER_TEMP/rcheck/gog.Rcheck/00check.log"
+          tail -5 "$log"
+          if grep -qE "^Status: .*(ERROR|WARNING)" "$log"; then
+            echo "::error::r-universe would report this. See 00check.log above."
+            exit 1
+          fi
