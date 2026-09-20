@@ -145,9 +145,18 @@ cat("PASS: query() given a query that is not text refused\n")
 # compared them to the engine, so growing a vocabulary was four edits that could
 # fail silently. `--rules` is the engine's own dump, so this is the comparison
 # rather than a second hand-typed list.
+#
+# **Ask the package where the engine is; never guess.** This block first read
+# `GOG_CLI_PATH` and fell back to `target/release/gog-cli`, which exists in a
+# checkout and nowhere else. `R CMD check` runs against an *installed* package,
+# whose engine `configure` bundled into `inst/bin/`, so on r-universe the
+# fallback resolved to nothing and every one of the seven binary targets failed
+# with `sh: 1: target/release/gog-cli: not found` while `source` passed. That
+# split is the tell: a check that reads installed files failing while the source
+# check passes is a path this file invented rather than asked for.
+# `find_gog_cli()` is the package's own answer and tries five places.
 local({
-  cli <- Sys.getenv("GOG_CLI_PATH", unset = "")
-  if (!nzchar(cli)) cli <- file.path("target", "release", "gog-cli")
+  cli <- gog:::find_gog_cli()
   rules <- jsonlite::fromJSON(system2(cli, "--rules", stdout = TRUE),
                               simplifyVector = FALSE)
   vals <- function(setting, mark) {
