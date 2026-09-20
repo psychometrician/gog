@@ -387,10 +387,12 @@ data(gapminder_2007) + bar * bin + x(life) | facet(continent)
 atoms join the plot next, and the facet splits the finished plot last. `/`
 groups before `|`; the next section has the rule.
 
-Those are R's own precedences, and Python's and Julia's, so one sentence groups
-the same way in three of the four languages. JavaScript can give no operator a
-meaning of its own, so it spells the four as words, which makes the grouping
-something you see instead of something you remember
+Those are R's own precedences, and Python's. Julia puts `|` in the addition
+tier, beside `+` rather than below it, so a sentence that writes `+` *after* a
+`|` groups differently there; that is why a composed page is parenthesized, and
+[Julia](bindings/julia.qmd) measures the four shapes side by side. JavaScript
+can give no operator a meaning of its own, so it spells the four as words, which
+makes the grouping something you see instead of something you remember
 ([JavaScript](bindings/javascript.qmd)).
 
 ### What parentheses may group
@@ -515,3 +517,9 @@ should not matter, and it leaves the atoms as nouns so that `*` can exist.
 | `/` | "…above…" | `plot_a / plot_b` |
 
 A finite set of rules. An unlimited number of plots.
+
+## What comes next
+
+The operators say how sentences combine, and not which layer a channel belongs
+to once there are two. [Encoding scope](encoding-scope.qmd) gives the rule:
+where you write an atom decides what it binds to.

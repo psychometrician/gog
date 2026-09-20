@@ -170,12 +170,14 @@ data(gapminder_2007) + point + x(gdp) + y(life) +
 
 ## `shape`
 
-`shape(field)` maps a categorical column to one of five glyphs: circle, square,
-triangle, diamond, cross. This is what separates groups in a figure printed in
-black and white. Five is the whole set. Do not map `shape` to a column with
-more categories: the sixth starts over at the circle, and two categories then
-share a glyph. The [Shape](marks/point.qmd#shape) section of the point chapter
-lists the ways past five.
+`shape(field)` maps a categorical column to one of seven glyphs: circle, square,
+triangle, diamond, cross, star, wye. This is what separates groups in a figure
+printed in black and white. Seven is the whole set, and about as many kinds as a
+reader holds in mind at once. Map `shape` to a column with more categories and
+the eighth starts over at the circle, so two categories share a glyph; gog says
+so rather than leaving it to be noticed. The
+[Shape](marks/point.qmd#shape) section of the point chapter lists the ways past
+seven.
 
 ```{r}
 data(gapminder_2007) + point + x(gdp) + y(life) +
@@ -247,9 +249,11 @@ data(team_trend) + line + x(month) + y(sales) + color(team) + pattern(team) +
   title("Two series, by hue and dash")
 ```
 
-The texture palette is deliberately small: four hatches beside solid on a fill,
-and two dashes beside solid on a stroke. So `pattern` suits a few categories
-rather than dozens, and past that count the textures repeat. To fix one texture
+The texture palette is deliberately small: five hatches beside solid on a fill,
+and four dashes beside solid on a stroke. A fill is the largest thing on the
+panel and a dash reads only where enough uninterrupted line is visible, which is
+why the two counts differ. So `pattern` suits a few categories rather than
+dozens, and past that count the textures repeat and gog says so. To fix one texture
 for a whole layer instead of mapping a column, use [`style(pattern =
 )`](style.qmd).
 
@@ -641,3 +645,16 @@ data(gapminder_2007) + point + x(gdp) + y(life) +
 gog places every legend to the right of the plot area. The plot area shrinks by
 itself to make room, so there is no margin to set, no position to choose, and no
 way to hide a legend.
+
+## In short
+
+A channel takes a column and never a value, so `color("red")` is refused and
+sent to `style()`. The five refining channels earn a legend, `x`, `y` and `z`
+earn an axis, and `group` earns neither. Which channels a mark accepts follows
+from its geometry.
+
+## What comes next
+
+Every channel here reads a column, so every plot answers a question about the
+data. [Setting vs mapping](style.qmd) covers the other half: a value you choose
+yourself, which reads no column and earns no legend.

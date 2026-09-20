@@ -162,6 +162,16 @@ applied to a mark instead of a channel. Borrowing
 meaningful to a single mark; instead the summary is invented inside the mark,
 and the channel set never grows.
 
+The difference is one row in a table. Three marks read a low and a high value
+from a transform, and the fourth carries its own:
+
+| Mark | The spread it draws |
+|---|---|
+| `interval * range` | a whisker from the low value to the high |
+| `ribbon * range` | the band between them, filled |
+| `line * range` | the two values as two separate strokes |
+| `box` | the five-number summary, with no transform to write |
+
 ## Coloring the boxes
 
 Three boxes in one color read as one series. A color per species lets a reader
@@ -259,7 +269,8 @@ row on the [companion grid](../combinations.qmd#marks-and-channels).
 ## What it refuses
 
 A box draws lines and a fill, so its `pattern` takes a fill's texture and not a
-stroke's dash. `"hatch"`, `"crosshatch"`, `"grid"` and `"dots"` are accepted;
+stroke's dash. `"hatch"`, `"crosshatch"`, `"stripes"`, `"grid"` and `"dots"`
+are accepted;
 `"dashed"` is refused.
 
 ```{r}
@@ -295,3 +306,17 @@ data(iris_flowers) + box * mean + x(species) + y(petal_length)
 
 The message names the fix: drop the transform, and the box draws its own
 summary.
+
+## In short
+
+gog's box spans the quartiles where Tukey's spans hinges, so on a small sample
+the two differ. The summary is inside the mark: a `box` refuses every statistic,
+and takes only `dodge`, which moves boxes rather than measuring them. `whiskers`
+is its one parameter. Its width is the slot it sits in, so no column can vary
+it.
+
+## What comes next
+
+One box stands at one place on the axis, however wide the domain is.
+[Ribbon](ribbon.qmd) carries a spread along the whole of it, filling the band
+between a low boundary and a high one.

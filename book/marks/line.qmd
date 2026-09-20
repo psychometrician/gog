@@ -234,9 +234,12 @@ measured between Africa and the Americas, and the segment is still drawn there.
 If you read only the vertices, the segments help you compare the five heights.
 If you read the segments themselves, they claim a change that never happened.
 The grammar draws what you asked for. You decide whether your data supports the
-connection. Two cases make the judgment easy. An ordered category, such as a
-grade, a size band or a survey scale, genuinely has a direction for the line to
-follow. A *circular* category has no ends at all, and that is the next plot.
+connection. When it does not, keep the `mean` and change the mark to
+[`bar`](bar.qmd). A bar stands in its own slot and claims nothing between one
+slot and the next. Two cases make the choice of mark easy. An ordered category,
+such as a grade, a size band or a survey scale, genuinely has a direction for
+the line to follow. A
+*circular* category has no ends at all, and that is the next plot.
 
 Drop the point layer, add `polar()`, and the same profile bends into a
 circle. That is the **radar chart**, and it needs no new atom:
@@ -276,6 +279,17 @@ also a line derived by smooth."*
 The point layer keeps every country visible, and `smooth` reduces the same rows
 to one fitted curve. Only the `line` layer carries the transform, so the points
 are untouched.
+
+`smooth` is not the line's own transform. Four other marks fit the same curve,
+and only the shape changes:
+
+| Mark derived by `smooth` | Shape |
+|---|---|
+| `point * smooth` | one dot at each fitted value |
+| `area * smooth` | the curve filled to the baseline |
+| `bar * smooth` | one thin bar at each fitted value |
+| `step * smooth` | the curve as a staircase |
+| `line * smooth` | the fitted curve above |
 
 ## Two boundaries from a pair
 
@@ -353,8 +367,23 @@ gives the whole layer one value. A channel reads a column instead, so what is
 drawn follows the data.
 
 Two of the four above are also channels. `color(country)` draws one color per
-country. A mapped `pattern` dashes the series instead, though a stroke has only
-three dashes, so they repeat past the third series: see
+country. A mapped `pattern` dashes the series instead. A stroke has five
+dashes, drawn here in the order they are handed out:
+
+```{r}
+dash_order <- c("solid", "dashed", "dotted", "dotdash", "longdash")
+dashes <- data.frame(
+  dash = ordered(rep(dash_order, each = 2), levels = dash_order),
+  at = rep(c(1, 2), times = 5),
+  level = rep(c(5, 4, 3, 2, 1), each = 2))
+data(dashes) + line + x(at) + y(level) + pattern(dash) +
+  style(size = 2) + x_label("") + y_label("") + title("The five dashes")
+```
+
+*"Given the dashes table: lines, x is at, y is level, pattern by dash, with size
+2."*
+
+They repeat past the fifth series, and gog says so: see
 [`pattern`](../channels.qmd#pattern). `opacity` and `size` can only be set,
 because a width and an opacity belong to the whole stroke, and there is nothing
 per row for a column to give. `color` goes one step further. It is the only one
@@ -438,3 +467,16 @@ is how long people live, and the color is how rich the country was then. `group`
 still splits the mark into one line per country; `color` answers the other
 question. A *categorical* `color` splits and colors at the same time, which is
 what Multiple series showed above.
+
+## In short
+
+A line always sorts along `x`. Swap the two bindings and you get a different
+plot, not the same one on its side. The order of the rows means nothing to it.
+Width and opacity belong to the whole stroke, and only `color` varies along
+it.
+
+## What comes next
+
+A line's values are read against each other, never against zero.
+[Bar](bar.qmd) measures from the baseline instead, so one length reads on its
+own.

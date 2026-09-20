@@ -374,6 +374,12 @@ its own coordinate space:
 *"Given gapminder 2007: points, x is gdp, y is life, beside bars derived by
 count, x is continent."*
 
+The parentheses group each plot, and a composed page keeps them. R and Python
+read this sentence the same way without them, because `+` groups before `|`
+there. Julia gives `+` and `|` the same precedence, so in Julia the parentheses
+are what keep each plot whole. [What parentheses may
+group](operators.qmd#what-parentheses-may-group) has the rule.
+
 Composed plots share nothing until they name the same column on the same axis,
 and then they share that axis outright: one scale, one extent, drawn once. That
 single rule is what makes a marginal plot (a scatter with a small distribution
@@ -450,7 +456,7 @@ and has nothing to decode, so it is not a channel. That is `style`:
 | `style(opacity = )` | One opacity, `0`–`1` |
 | `style(size = )` | Point radius, or line stroke width |
 | `style(shape = )` | One glyph for every point |
-| `style(pattern = )` | The texture of a mark's paint: a stroke's dash (solid/dashed/dotted), a fill's hatch (hatch/crosshatch/grid/dots). Every mark but `point`, `text` and `surface` |
+| `style(pattern = )` | The texture of a mark's paint: a stroke's dash (solid/dashed/dotted/dotdash/longdash), a fill's hatch (hatch/crosshatch/stripes/grid/dots). Every mark but `point`, `text` and `surface` |
 | `palette( )` | Which colors the `color` channel uses |
 | `theme( )` | The page around the plot: grid, background, fonts, size |
 
@@ -559,5 +565,16 @@ one function, which passes it to a second, the way
 [Python](bindings/python.qmd), [Julia](bindings/julia.qmd) and
 [JavaScript](bindings/javascript.qmd).
 
-The next two chapters use this vocabulary: first you read ten plots,
-then you write your own.
+## In short
+
+gog never accepts a word and then ignores it. A sentence it cannot draw is
+refused, and the refusal says what to write instead. The minimum sentence is a
+table, a mark, and that mark's required positions. Most of `+`'s order is free,
+but two arrangements are not: two marks swapped draw in the order you wrote
+them, and a channel written before any mark reaches every layer.
+
+## What comes next
+
+The kernel is the whole vocabulary, and a vocabulary is not yet fluency.
+[Reading practice](reading.qmd) gives you ten plots written in these words, and
+the chapter after it leaves the writing to you.

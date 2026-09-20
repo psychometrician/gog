@@ -17,7 +17,7 @@ Column names here are placeholders: put your own in their place.
 | Strip plot | `point + x(category) + y(measure)`, or swap the axes to draw it sideways |
 | Bar chart | `bar + x(category) + y(measure)` |
 | Horizontal bar chart | `bar + x(measure) + y(category)` |
-| Hatched (print-safe) bars | `bar + x(category) + y(measure) + style(pattern = "hatch")`, also `"crosshatch"`/`"grid"`/`"dots"` |
+| Hatched (print-safe) bars | `bar + x(category) + y(measure) + style(pattern = "hatch")`, also `"crosshatch"`/`"stripes"`/`"grid"`/`"dots"` |
 | Count (frequency) chart | `bar * count + x(category)` |
 | Proportion chart | `bar * proportion + x(category)` |
 | Histogram | `bar * bin + x(measure)`, `bin(30)` or `bin(width = 5)` to tune |
@@ -111,7 +111,7 @@ then says what the near miss costs you.
 | Dendrogram / cluster tree | `path * cluster(value, over = profile) + x(leaves)` joins the closest leaves one pair at a time, with each join's distance on an axis of its own; `y(leaves)` lays it on its side ([Cluster](cluster.qmd)). *Dendrogram* is Greek for tree drawing, which is what *cluster tree* says in English |
 | Clustered heatmap | `zone * cluster(over = profile)` reorders a tile plot's slots to the tree's leaf order, and the full figure is the marginal plot, with trees above and beside the tiles; the shared axes take the trees' order ([Cluster](cluster.qmd#the-clustered-heatmap)) |
 | 3-D surface | The same sentence as **Surface plot** above, `surface + x(a) + y(b) + z(c)` over a grid table, or `surface * density + x(a) + y(b) + space()` to raise an estimated field. A *scatter* cannot be one, and is refused toward `point` rather than drawn as an empty sheet: a surface's faces span the gaps between its samples, so it needs samples on a grid |
-| Terraced / stepped surface (one value per cell) | `surface * bin * mean + x(a) + y(b) + z(v)` cuts the floor into cells and lays a flat plateau on each, with a riser at every step. The sentence for a design that measures one number per condition, where an interpolated sheet would assert a gradient nobody observed ([Surface](marks/surface.qmd)) |
+| Terraced / stepped surface (one value per cell) | `surface * bin * mean + x(a) + y(b) + z(v)` cuts the floor into cells and lays a flat plateau on each, with a vertical face at every step. The sentence for a design that measures one number per condition, where an interpolated sheet would assert a gradient nobody observed ([Surface](marks/surface.qmd)) |
 
 If the name you came with is in neither table, it is usually a styling of a name
 that is listed. Ask what question the chart answers, and start from the

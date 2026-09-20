@@ -81,10 +81,13 @@ this book, so it was measured rather than assumed:
 | `a \| b + c` | `(a \| b) + c` | `a \| (b + c)` |
 
 Only the last row differs, and it is the shape where something is written
-*after* a facet. No sentence in this book has it, and R refuses that shape
-anyway, so every sentence this book teaches parses identically in both
-languages. The first row is safe because Julia reads operators of one tier from
-left to right: everything left of the `|` is joined before the `|` is reached.
+*after* a `|`. A facet sentence never has it, and R refuses that shape anyway.
+A composed page would have it, because the plot on the right names its own table
+and then adds atoms to it, so every composed page in this book is written in
+parentheses. They close each plot before the `|` is reached, which is what keeps
+the last row from ever arising. The first row is safe for the same reason: Julia
+reads operators of one tier from left to right, so everything left of the `|` is
+joined first.
 
 Faceting therefore reads exactly as it does in R:
 
@@ -194,31 +197,16 @@ R and Python use, and the registry is the reason. Julia requires a package name
 of at least five letters, in capitalized words, so a lowercase `gog` cannot be
 registered.
 
-Installing takes two commands here, and the engine comes first. A plot is drawn
-by the engine, which is a compiled Rust binary. The Python and JavaScript
-packages carry an engine built for your computer, and the R package carries one
-on macOS and Windows. The Julia package carries none, so this is the binding
-that asks you to install it:
-
-```bash
-cargo install --git https://github.com/psychometrician/gog gog-cli
-```
-
-That command needs Rust, which [rustup](https://rustup.rs) installs in one step.
-`cargo install` then puts `gog-cli` on your `PATH`, which is one of the places
-the package looks. If you started Julia from an editor or a notebook, that
-session may not see your `PATH`, so set `ENV["GOG_CLI_PATH"]` to the binary
-instead. Then the package:
+Installing takes one command. A plot is drawn by the engine, a compiled Rust
+binary, and every package carries one: Python and JavaScript ship it, R builds
+or bundles it, and Julia fetches it as an **artifact**, which is how a Julia
+package distributes a binary. `Pkg` downloads the build for your computer along
+with the package, so there is nothing else to install.
 
 ```julia
 using Pkg
 Pkg.add("GrammarOfGraphics")
 ```
-
-The order is advice rather than a rule. The package loads without an engine and
-looks for one only when it draws, so the other order works as well. Installing
-the engine first means you never meet the message that says the engine is
-missing.
 
 To work from a checkout instead, add the package from the path where it sits:
 
@@ -229,11 +217,18 @@ Pkg.develop(path = "jl-pkg/GrammarOfGraphics")
 using GrammarOfGraphics
 ```
 
-The engine is looked for in four places, in this order: the `GOG_CLI_PATH`
-environment variable, the copy inside the installed package, `gog-cli` on your
-`PATH`, and a local `target/release` build. The Julia package carries no engine
-of its own, so the third and the fourth places are the ones that find it.
+The engine is looked for in five places, in this order: the `GOG_CLI_PATH`
+environment variable, the artifact the install fetched, a copy staged inside the
+package by hand, `gog-cli` on your `PATH`, and a local `target/release` build.
+An installed copy stops at the second. A checkout has no artifact and reaches
+the last, which is the engine your own build made.
 
 `render_svg(plot)` returns the SVG as a string, and a plot shown in a notebook
 draws itself, because the binding hands the notebook a picture when it asks for
 one.
+
+## What comes next
+
+The first three languages write one sentence three ways, differing only in how a
+column is named. [JavaScript](javascript.qmd) is the one that reads differently,
+because it cannot overload `+ * | /` and spells them as four words.

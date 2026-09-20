@@ -7,26 +7,27 @@ source("../R/setup.R")
 
 How far does each group reach, from its lowest value to its highest? `interval`
 draws a span from a low value to a high one at each position: a whisker, capped
-at both ends. It is the mark behind error bars and min–max ranges. A `bar`
-measures from a baseline up to a value. An `interval` spans a low value and a
-high value instead: it has no baseline, and it needs both before it can draw.
-Whiskers stand up by default and lie down when the categories are on `y`; see
-[Whiskers on their side](#whiskers-on-their-side).
+at both ends. It is the mark that draws error bars and min–max ranges. A `bar`
+measures from a baseline up to a value. An `interval` has no baseline. It spans
+from a low value to a high value, and it needs both of them before it can draw.
+Whiskers are vertical when the categories are on `x` and horizontal when they
+are on `y`; see [Horizontal whiskers](#horizontal-whiskers).
 
-Almost everyone calls this an **error bar**, and the name hides a choice no
-drawing can show. Three different quantities get drawn as the same picture: a
+Almost everyone calls this an **error bar**, and that name does not say what the
+whisker measures. Three different quantities are drawn as the same picture: a
 standard deviation, a standard error, and a confidence interval. On the same
 data, one can be several times longer than another. Nothing in the drawing says
-which one it is, so a reader without the caption is guessing at a number's
-meaning.
+which one it is, and a reader with no caption cannot tell.
 
 gog makes the sentence name the statistic instead. `interval * range` spans the
-observed extremes, `interval * confidence(0.95)` computes the interval and names
-its level, and `interval * bounds(lower, upper)` takes two columns you computed
-yourself. The mark is the same whisker in all three; what differs is the
-transform, and the transform is written down. That is the law of [Explicit Over
-Implicit](../design-laws.qmd), shown in one mark: the name *error bar* can hide
-the choice, and a written sentence cannot.
+observed extremes. `interval * confidence(0.95)` computes a confidence interval
+and states its level in the sentence. `interval * bounds(lower, upper)` reads
+two columns you computed yourself. The mark is the same whisker in all three;
+what differs is the transform, and the transform is written down. That is the
+law of [Explicit Over
+Implicit](../design-laws.qmd#law-5-explicit-over-implicit), shown in one mark:
+the name *error bar* does not say which statistic it drew, and a written
+sentence must.
 
 ## A range per group
 
@@ -50,9 +51,25 @@ data(iris_flowers) + interval * range + x(species) + y(petal_length) +
 *"Given the iris flowers: intervals derived by range, x is species, y is petal
 length."*
 
-Read it exactly like `bar * mean`. Here the transform gives a range, while
-`mean` gives one number. You name the one variable whose spread you are asking
-about; the transform invents the two extents and the mark spans them.
+This sentence has the same shape as `bar * mean`. The difference is what the
+transform returns: `mean` returns one number per group, and `range` returns two.
+You name only the one variable whose spread you are asking about. The transform
+invents the two extents, and the mark spans them.
+
+`range` is not the interval's own transform. Three other marks read the same
+low and high value, and only the shape changes:
+
+| Mark derived by `range` | Shape |
+|---|---|
+| `ribbon * range` | the band between the two values, filled |
+| `line * range` | the two values as two separate strokes |
+| `step * range` | the same two boundaries, as staircases |
+| `interval * range` | one whisker per group |
+
+`range` is one of four **pair transforms**. A pair transform supplies a low
+value and a high value, where most transforms supply a single number. The other
+three are `confidence`, `deviation` and `bounds`, and each one works the same
+way in every row of that table. A mark that spans a pair takes all four.
 
 ## The middle half of each group
 
@@ -71,21 +88,22 @@ species, y is petal length."*
 
 This spans the first quartile to the third, which is the **interquartile
 range**. `range(0.1, 0.9)` keeps the middle 80%, and any other pair works the
-same way. Bare `range` is `range(0, 1)`, so the plain sentence above is
-unchanged. [Transforms](../transforms.qmd#a-band-between-two-quantiles) gives
-the full account of the two arguments.
+same way. `range` written with no arguments means `range(0, 1)`, so it still
+spans from the minimum to the maximum.
+[Transforms](../transforms.qmd#a-band-between-two-quantiles) gives the full
+account of the two arguments.
 
 ## Three layers instead of one mark
 
 A [`box`](box.qmd) draws five numbers in one mark, and you take all five or
 none. Draw the band and the full range as two layers, and the median as a third.
-You can restyle any of the three layers, drop one, or replace one:
+You can give any of the three layers its own style, drop one, or replace one:
 
 ```{r}
 data(iris_flowers) +
-  interval * range + style(color = "lightgray") +
+  interval * range + style(color = "darkgray") +
   interval * range(0.25, 0.75) + style(color = "steelblue", size = 8) +
-  point * median + style(color = "white", size = 3) +
+  point * median + style(color = "gold", size = 5, opacity = 1) +
   x(species) + y(petal_length) +
   x_label("Species") + y_label("Petal length (cm)") +
   title("Petal length per species, drawn in three layers")
@@ -96,29 +114,37 @@ by range from 0.25 to 0.75, and also points derived by median, x is species, y
 is petal length."*
 
 The gray whisker is the full range, the thick blue band is the middle half, and
-the white dot is the median. The three layers name the three statistics. A box
-plot draws the same three and names none of them.
+the gold dot is the median. Order decides what you can see. A later layer is
+painted over an earlier one, so the median is written last. Move it to the
+front of the sentence and the band draws over it, leaving almost nothing to
+see. If you have used ggplot2, this is the rule you already know: a `geom_`
+added later draws on top. The dot is set opaque as well, since every mark is
+slightly translucent by default.
 
-This is not a `box` redrawn, and the difference is at the ends. A `box` stops
-its whiskers at a cutoff computed from the quartiles, and draws every point
-beyond that cutoff as an outlier. Drawn as a box, setosa shows four outlier dots
-that are absent here, because these whiskers run to the true minimum and
-maximum. What the layers give you instead is a plot you can change. Widen the
-band to `range(0.1, 0.9)` and the plot reports a different statistic, with the
-same marks. Drop the gray layer and the y axis covers the band rather than the
-extremes. Add a third layer with another pair of quantiles, and you have the
-[fan chart](ribbon.qmd#a-fan-chart-of-nested-bands) drawn over categories
-instead of along a line. A `box` is still the shorter sentence when you want the
-five numbers and the outlier rule together.
+The three layers name the three statistics, and a box plot draws the same three
+and names none of them. This is not a `box` redrawn, though, and the difference
+is at the ends. A `box` stops its whiskers at a cutoff computed from the
+quartiles, and draws every point beyond that cutoff as an outlier. A `box` on
+this same data draws outlier dots for setosa and versicolor. They are absent
+here, because these whiskers run to the true minimum and maximum.
+
+Because each statistic is its own layer, you can change one without touching the
+others. Widen the band to `range(0.1, 0.9)` and the plot reports a different
+statistic, with the same marks. Drop the gray layer and the y axis is scaled to
+the band rather than to the extremes. Add a third layer with another pair of
+quantiles, and you have the [fan chart](ribbon.qmd#a-fan-chart-of-nested-bands)
+drawn over categories instead of along a line. A `box` is still the shorter
+sentence when you want the five numbers and the outlier rule together.
 
 ## A confidence interval, with a center
 
 How well is the average petal length of each species known? That is a different
 question from how far the flowers spread, and it needs a different statistic.
 `range` shows the full spread. For the **uncertainty of the mean**, use
-`confidence`. It computes a t-interval for each group's mean (a t-interval
-widens when the group is small) and keeps that mean as the center. The interval
-then draws a dot at that center: a pointrange.
+`confidence`. It computes a **t-interval** for each group's mean, which is the
+confidence interval the opening named, and that interval widens when the group
+is small. It keeps the mean as the center of the span, and the mark draws a dot
+there. A whisker with a dot at its center is a **pointrange**.
 
 ```{r}
 data(iris_flowers) + interval * confidence(0.95) + x(species) + y(petal_length) +
@@ -129,15 +155,19 @@ data(iris_flowers) + interval * confidence(0.95) + x(species) + y(petal_length) 
 *"Given the iris flowers: intervals derived by confidence at 95%, x is species,
 y is petal length."*
 
-The level is a parameter, so `confidence(0.99)` draws wider than
-`confidence(0.95)`.
+The level is the only parameter, so `confidence(0.99)` draws wider than
+`confidence(0.95)`. `confidence` computes a t-interval and takes no other. For
+a z-interval, a bootstrap, or the standard errors a model already gave you,
+compute the two numbers yourself and pass them to
+[`bounds`](../transforms.qmd#bounds-a-pre-computed-lowhigh-pair).
 
 ## The spread of the data
 
 How far is a typical flower from the average of its species? That is a question
 about the spread of the data, not about how well the average is known. The
-opening of this chapter named a standard deviation, a standard error and a
-confidence interval. `confidence` draws the third. The first is `deviation`:
+opening of this chapter named three quantities: a standard deviation, a standard
+error and a confidence interval. `confidence` draws the confidence interval. The
+standard deviation has a transform of its own, `deviation`:
 
 ```{r}
 data(iris_flowers) + interval * deviation + x(species) + y(petal_length) +
@@ -148,17 +178,22 @@ data(iris_flowers) + interval * deviation + x(species) + y(petal_length) +
 *"Given the iris flowers: intervals derived by deviation, x is species, y is
 petal length."*
 
-`deviation(2)` reaches two standard deviations on each side of the mean, so that
-band is four standard deviations wide. The default is one each side. Like
+`deviation` alone reaches one standard deviation on each side of the mean.
+`deviation(2)` reaches two, so that band is four standard deviations wide. Like
 `confidence` it carries a center, so it draws a pointrange rather than a bare
 whisker.
 
-The standard error has no transform of its own, and that is deliberate.
-`confidence` computes it internally and reports the interval, which is what a
-reader needs from it.
+The standard error has no transform of its own, and it does not need one. It is
+the standard deviation divided by the square root of the group size.
+`confidence` computes it internally and reports the interval built from it,
+which is what a reader of the plot needs.
 
-`deviation` and `confidence` look alike and answer different questions, so here
-they are on the same fifty flowers per species, sharing one y scale:
+`deviation` and `confidence` look alike and answer different questions. `|` puts
+two plots side by side on one page, and because both name `petal_length` on `y`
+they share that scale, drawn once down the left. The same operator splits one
+plot into panels when `facet()` is on its right instead, and
+[Composition](../composition.qmd) and [Faceting](../faceting.qmd) have the rules
+for each. Here are the two statistics on the same fifty flowers per species:
 
 ```{r}
 (data(iris_flowers) + interval * deviation + x(species) + y(petal_length) +
@@ -171,15 +206,15 @@ they are on the same fifty flowers per species, sharing one y scale:
 petal length, beside intervals derived by confidence, x is species, y is petal
 length."*
 
-The bands on the right are less than a third as long, on identical data, and the
-ratio is the same in all three species. The two numbers do not contradict each
-other. `deviation` describes how far the flowers are from their average, and
-measuring more of them does not make that band shorter. `confidence` describes
-how precisely the average itself is known. More flowers make it shorter: four
-times as many flowers make it half as long. Fifty flowers per species is what
-sets that ratio here.
+The bands on the right are less than a third as long, and the data is identical.
+The ratio is the same in all three species. The two statistics do not contradict
+each other. `deviation` describes how far the flowers are from their average,
+and measuring more of them does not make that band shorter. `confidence`
+describes how precisely the average itself is known. More flowers make it
+shorter: four times as many flowers make it half as long. That ratio comes from
+the group size, fifty flowers per species.
 
-So choose by the sentence you would write under the plot. *"A versicolor petal
+So choose by the caption you would write under the plot. *"A versicolor petal
 is usually within half a centimeter of its species average"* describes the left
 panel. *"The average versicolor petal is 4.26 cm, and the interval reaches 0.13
 cm on either side"* describes the right one. Reporting one and meaning the other
@@ -191,56 +226,62 @@ larger. On fifty flowers it is under a third of the spread; on three flowers it
 is the wider of the two.
 
 Whether a center exists is decided by the statistic, not by a setting.
-`confidence` and `deviation` have a mean and `range` does not, so the statistic
-chooses the geometry: a bare error bar or a pointrange. A setting can *hide* an
-existing center ([below](#hiding-the-center-dot)), but no setting adds one to
-`range`. See [Transforms](../transforms.qmd) for the whole range family.
+`confidence` and `deviation` compute a mean and `range` does not. So the shape
+follows from the statistic: a bare error bar for `range`, a pointrange for the
+other two. A setting can
+*hide* an existing center, as [Hiding the center dot](#hiding-the-center-dot)
+shows, but no setting adds one to `range`. See
+[Transforms](../transforms.qmd) for the whole range family.
 
 ## Why `interval` needs a transform
 
-`bar` needs no transform, `bar + x + y`, because a bar measures from a baseline
-the grammar already supplies: zero. An `interval` has no such default. A low
-*and* a high are two numbers, and a plain `y()` supplies one. So the shortest
-interval that draws, its minimum syllable, includes a transform that produces a
-range. Ask for an interval without one and the engine says so, rather than
-drawing an empty panel. [What it refuses](#what-it-refuses) shows that refusal.
+Every plot so far has named a transform, and the rule behind that is worth
+stating on its own. A bar needs no transform, because the grammar already
+supplies its baseline: zero. `bar + x + y` draws. An `interval` has no such
+default. A low *and* a high are two numbers, and a plain `y()` supplies one. So
+the shortest interval that will draw is a mark, two positions, and a transform
+that produces a range. That is its minimum syllable. Ask for an interval without
+a transform and the engine refuses the sentence rather than drawing an empty
+panel. [What it refuses](#what-it-refuses) shows that refusal.
 
-This is the design choice that keeps the [channel vocabulary](../grammar.qmd)
-small. The obvious alternative would add `ymin` and `ymax` as two more channels
-meaningful to a single mark, and a box plot would need five channels. Instead a
-transform invents the extents, exactly as `bin` invents a count, so the channel
-set never grows. The same low and high rows are what [`box`](box.qmd) and
-[`ribbon`](ribbon.qmd) draw from. When you already have the extents, from a
-fitted model or a published standard error, [`bounds(lower,
-upper)`](../transforms.qmd) supplies them without computing anything: `interval
-* bounds(lower, upper)` draws one whisker per row.
+This is the design choice that keeps the [channel
+vocabulary](../grammar.qmd#channels-a-column-made-visible) small. The obvious
+alternative would add `ymin` and `ymax` as two more channels meaningful to a
+single mark, and a box plot would need five channels. Instead a transform
+invents the extents, exactly as `bin` invents a count, so the channel set never
+grows. [`box`](box.qmd) and [`ribbon`](ribbon.qmd) read the same low and high
+values. The pair transform
+[`bounds(lower, upper)`](../transforms.qmd#bounds-a-pre-computed-lowhigh-pair)
+takes extents you already hold, and
+[Horizontal whiskers](#horizontal-whiskers) draws a coefficient plot with it.
 
-## Whiskers on their side
+## Horizontal whiskers
 
-Whiskers lie down for the reasons bars do: the names are long, or there are
-many of them. A list of rows is then easier to scan than a row of columns. An
-interval reads its orientation off the bindings, the way a [`bar`](bar.qmd)
+Whiskers turn horizontal for the reasons bars do: the names are long, or there
+are many of them. A list of rows is then easier to scan than a row of columns.
+An interval takes its orientation from the bindings, the way a [`bar`](bar.qmd)
 and a [`box`](box.qmd) do. Put the categories on `y` and the measured column on
-`x`, and the whiskers lie down:
+`x`:
 
 ```{r}
 data(iris_flowers) + interval * confidence(0.95) + x(petal_length) + y(species) +
   x_label("Petal length (cm)") + y_label("Species") +
-  title("The same 95% CI, lying down")
+  title("The same 95% CI, horizontal")
 ```
 
-The caps turn with the whisker, since a cap always crosses the span at its end,
-and the center dot stays at the center. Everything else in this chapter is
+The caps turn with the whisker, since a cap always crosses the span at its end.
+The center dot stays at the center. Everything else in this chapter is
 unchanged: `pattern`, `color` and `dodge` behave the same whichever axis carries
-the categories, and so do the two settings the later sections introduce.
+the categories, and so do `caps` and `center`.
 
 This is the usual shape for a **coefficient plot**, where each row is a named
-estimate and the reader scans down a column of intervals. Estimates like these
+estimate and the reader reads down the list of intervals. Estimates like these
 normally arrive already computed, from a model rather than from raw
-observations. That is what [`bounds`](../transforms.qmd) is for: it reads two
-columns you already have as the low and the high, and computes nothing. With the
-terms on `y`, the measured axis is the one `bounds` invents, so there is no
-`x()` to write:
+observations. That is what
+[`bounds`](../transforms.qmd#bounds-a-pre-computed-lowhigh-pair) is for: it
+reads two columns you already have as the low and the high, and computes
+nothing. The terms go on `y`. `bounds` supplies the values for the other axis,
+so there is no `x()` to write:
 
 ```{r}
 #| echo: false
@@ -255,8 +296,9 @@ data(coefs) + interval * bounds(lo, hi) + y(term) +
 
 *"Given the coefs table: intervals from lo to hi, y is term."*
 
-The two intervals that cross zero cover positive and negative values alike, so
-the data does not settle whether those two effects are positive or negative.
+Two intervals, Region: North and Region: South, run from a negative low to a
+positive high. Each one includes zero, so this data cannot say whether either
+effect is positive or negative.
 
 An interval needs a number to span, so two categorical axes are refused, as
 they are on a bar and a box. [What it refuses](#what-it-refuses) shows that
@@ -264,11 +306,12 @@ refusal.
 
 ## Splitting by color
 
-A color says which whisker is which without reading the axis. It is also the
-only way to put a second category on the same axis. `color` splits an
-interval into one whisker per group, the same categorical
-split `line` and `bar` make. The statistic is computed inside each group, so
-each gets its own interval, its own hue, and a legend:
+A color says which whisker is which without reading the axis. The x axis
+already carries one category, so a channel is what separates a second one.
+`color` splits an interval
+into one whisker per group, the same categorical split `line` and `bar` make.
+The statistic is computed inside each group, so every group gets its own
+interval and its own hue. One legend names all of them:
 
 ```{r}
 data(iris_flowers) + interval * confidence(0.95) + x(species) + y(petal_length) +
@@ -280,9 +323,10 @@ data(iris_flowers) + interval * confidence(0.95) + x(species) + y(petal_length) 
 *"Given the iris flowers: intervals derived by confidence at 95%, x is species,
 y is petal length, color by species."*
 
-When the split is a *second* category, so several whiskers share one x, they
-overlap, and [`dodge`](../transforms.qmd) sets them side by side, the same
-collision modifier that separates grouped bars and boxes:
+A split by a *second* category puts several whiskers at one x, and they overlap.
+[`dodge`](../transforms.qmd#dodge-side-by-side-instead-of-on-top) sets them side
+by side instead. It is the same collision modifier that separates grouped bars
+and boxes:
 
 ```{r}
 #| echo: false
@@ -298,9 +342,9 @@ data(gm_eras) + interval * range * dodge + x(continent) + y(life) + color(era) +
 *"Given the gapminder eras: intervals derived by range and dodge, x is
 continent, y is life, color by era."*
 
-Width and opacity stay *settings*. One whisker is a single stroke, so there
-is no row for `size` or `opacity` to vary over, and `style()` sets them for
-the layer:
+Width and opacity stay *settings*. A channel needs one value per row, and one
+whisker is a single stroke drawn from a whole group, so `size` and `opacity`
+have no rows to follow. `style()` sets them once for the layer:
 
 ```{r}
 data(iris_flowers) + interval * range + x(species) + y(petal_length) +
@@ -314,12 +358,12 @@ length, colored tomato, with size 2.5."*
 
 ## Caps, or a bare linerange
 
-Whether a whisker ends in a crossbar is a matter of style, and a crowded plot
-often reads more cleanly without them. The end caps, the short crossbars, are
-decoration, not data; they only
-emphasize where a whisker stops. So whether to draw them is a *setting*:
-`style(caps = FALSE)` drops them for a bare linerange, and `caps = TRUE` (the
-default) keeps the capped error bar.
+The end caps are the short crossbars at each end of a whisker. They are
+decoration rather than data, because they only emphasize where a whisker stops,
+and a crowded plot often reads more cleanly without them. So whether to draw
+them is a *setting*. `style(caps = FALSE)` drops them for a bare **linerange**,
+a whisker with no crossbars at its ends. `caps = TRUE`, the default, keeps the
+capped error bar.
 
 ```{r}
 data(iris_flowers) + interval * confidence(0.95) + x(species) + y(petal_length) +
@@ -331,16 +375,16 @@ data(iris_flowers) + interval * confidence(0.95) + x(species) + y(petal_length) 
 *"Given the iris flowers: intervals derived by confidence at 95%, x is species,
 y is petal length, color by species, with caps off."*
 
-Because caps are geometry only `interval` has, `style(caps = )` on any other
-mark is refused with direction, the same way a bar's `border_size` is refused on
-a `line`. `caps` combines with `range`, `confidence` and `deviation`, and with
-the `color` split. So error bar, linerange, pointrange and their colored
-versions are one mark, one transform and one setting.
+No other mark has caps. On any other mark `style(caps = )` is refused with
+direction, the same way a bar's `border_size` is refused on a `line`. `caps`
+combines with `range`, `confidence` and `deviation`, and with the `color` split.
+So the error bar, the linerange, the pointrange and their colored versions are
+all the same mark. Only the transform and one setting change.
 
 ## Hiding the center dot
 
-A pointrange's dot is the mean; sometimes you want the confidence whiskers
-without it, a plain error bar. `style(center = FALSE)` drops the dot, and
+A pointrange's dot is the mean. Sometimes you want the whiskers without it,
+which is a plain error bar. `style(center = FALSE)` drops the dot, and
 `center = TRUE` (the default) keeps it. Like `caps`, it only *hides*: it cannot
 add a center to `range`, which has none to draw.
 
@@ -354,8 +398,9 @@ data(iris_flowers) + interval * confidence(0.95) + x(species) + y(petal_length) 
 *"Given the iris flowers: intervals derived by confidence at 95%, x is species,
 y is petal length, color by species, with center off."*
 
-`center` and `caps` are the interval's two settings, one for its middle and one
-for its ends, so a confidence interval draws four ways. A capped pointrange is
+`center` and `caps` are the interval's two settings. One is for its middle and
+one for its ends. Each takes two values, so a confidence interval draws four
+ways. A capped pointrange is
 the default. A capped bare error bar is `center = FALSE`. A linerange with a dot
 is `caps = FALSE`, and a plain linerange is both `FALSE`. Like `style(caps = )`,
 `style(center = )` belongs to `interval` alone; on any other mark it is refused
@@ -363,10 +408,10 @@ with direction.
 
 ## A dashed whisker
 
-A dash separates one layer from another without a second color, and it
-survives a print in black and white. A whisker is a **stroke**, so it takes
-`style(pattern = )` the same way a
-[`line`](line.qmd) does. This is the [settable rule](../design-laws.qmd): a dash
+A dash separates one layer from another without a second color, and it still
+separates them when the plot is printed in black and white. A whisker is a
+**stroke**, so it takes `style(pattern = )` the same way a [`line`](line.qmd)
+does. This is the [settable rule](../design-laws.qmd#the-settable-rule): a dash
 patterns every path-stroke mark (`line`, `step`, `interval`, `path`, `rule`).
 The dash is drawn on the whisker span only. The caps and the center dot stay
 solid, since a dashed crossbar is hard to read as a cap:
@@ -381,11 +426,60 @@ data(iris_flowers) + interval * confidence(0.95) + x(species) + y(petal_length) 
 *"Given the iris flowers: intervals derived by confidence at 95%, x is species,
 y is petal length, color by species, with pattern dashed."*
 
-The five-number summary has its own mark, [`box`](box.qmd), and the same
-low and high pair drawn as a continuous fill is the [`ribbon`](ribbon.qmd)
-band. See
-[Transforms](../transforms.qmd) for where `range`, `confidence` and `deviation`
-sit among the others.
+## A bar with its error bar
+
+Two marks can answer two questions about the same groups. A `bar` shows where
+each group's mean sits. An `interval` shows how well that mean is known. Layer
+them and you have a plot that appears throughout the social sciences, usually
+with a bare error bar rather than a pointrange:
+
+```{r}
+data(iris_flowers) + bar * mean + style(color = "lightgray") +
+  interval * confidence(0.95) + style(center = FALSE, color = "black") +
+  x(species) + y(petal_length) +
+  x_label("Species") + y_label("Mean petal length (cm)") +
+  title("Mean petal length, with a 95% confidence interval")
+```
+
+*"Given the iris flowers: bars derived by mean, colored lightgray, and also
+intervals derived by confidence at 95%, with center off, colored black, x is
+species, y is petal length."*
+
+Each layer names its own statistic. `bar * mean` reduces each group to one
+number, and `interval * confidence(0.95)` computes the interval around that
+number. Both read the same column and report different things, and the sentence
+says which is which. The dot is turned off because the top of the bar already
+marks the mean, and the engine draws the two at exactly the same height.
+
+The opening of this chapter named three quantities that all draw as the same
+whisker. A published figure of this shape has to say in its caption which one it
+used, because the drawing cannot show it. Here the sentence carries it:
+`confidence(0.95)` sits beside the plot, and `deviation` would be a different
+sentence and a different picture.
+
+A second category goes side by side, with the same `dodge` that separates
+grouped bars. Bind `color` to the bars and `group` to the whiskers. Both layers
+then split into the same slots, and the plot keeps one legend:
+
+```{r}
+data(gm_eras) +
+  bar * mean * dodge + color(era) +
+  interval * confidence(0.95) * dodge + group(era) +
+  style(center = FALSE, color = "black") +
+  x(continent) + y(life) +
+  y_label("Mean life expectancy (years)") +
+  title("Mean life expectancy by continent, 1957 and 2007")
+```
+
+*"Given the gapminder eras: bars derived by mean and dodge, color by era, and
+also intervals derived by confidence at 95% and dodge, grouped by era, with
+center off, colored black, x is continent, y is life."*
+
+What this plot does not show is the data. Two groups can have the same mean and
+the same interval and still hold very different values, and a bar reports only
+the one number. [Three layers instead of one
+mark](#three-layers-instead-of-one-mark) draws the spread itself, and
+[`box`](box.qmd) draws five numbers at once.
 
 ## What you can set
 
@@ -399,13 +493,13 @@ cat("| Setting | Value |\n|---|---|\n")
 mark_options("interval")
 ```
 
-`caps` and `center` are the interval's own settings, and both only ever *hide*.
-`caps` turns the end crossbars off, leaving a bare linerange; `center` hides the
-dot that `confidence` supplies. Neither can add geometry the statistic did not
-produce, so `style(center = TRUE)` on `interval * range` changes nothing: a
-range has no center. The plot below reads `gm_continents`, three continents
-across every year from 1952 to 2007, so each interval pools twelve years of
-countries.
+`caps` and `center` are the interval's own settings, and neither can add
+geometry the statistic did not produce. A range has no center, so `style(center
+= TRUE)` on `interval * range` changes nothing. It draws the same picture as the
+sentence without the setting. Several settings can also be given at once. This
+plot reads `gm_continents`, three continents across every year from 1952 to
+2007, so each interval is computed from every country in that continent, across
+all twelve years.
 
 ```{r}
 #| echo: false
@@ -418,11 +512,10 @@ data(gm_continents) + interval * confidence(0.99) + x(continent) + y(life) +
   y_label("Life expectancy") + title("A bare, thick, dotted 99% interval")
 ```
 
-One number is missing from that table, and the transform carries it:
-`confidence(0.99)` widens the interval from the default 0.95. That belongs to
-the transform rather than to `style()`, because it changes *what is computed*,
-not how it is drawn. The test is whether the numbers change: they do here, so it
-is not a setting.
+The confidence level is not in that table, because it is not a setting. It is
+written into the transform instead. `confidence(0.99)` changes *what is
+computed*, not how it is drawn. The test is whether the numbers change: they do
+here, so it is not a setting.
 
 The [grid of every mark and every setting](../style.qmd#what-you-can-set) shows
 which other marks share this list. What a mark *maps* rather than sets is its
@@ -444,9 +537,9 @@ data(gapminder_2007) + interval * range + x(continent) + y(life) +
   style(pattern = "hatch")
 ```
 
-That refusal is worth explaining, because a capped range looks like a shape with
-an inside. The engine draws it as a stroke, which is why the whisker takes a
-dash and not a hatch.
+That refusal has a reason. A capped range looks like a shape with an inside. The
+engine draws it as a stroke, which is why the whisker takes a dash and not a
+hatch.
 
 A bare `interval` is the second refusal. A plain `y()` supplies one number, and
 a span needs two, as [Why `interval` needs a
@@ -458,9 +551,10 @@ rather than drawing an empty panel:
 data(iris_flowers) + interval + x(species) + y(petal_length)
 ```
 
-The message lists the transforms that produce a range. Two categorical axes
-are the third refusal. An interval reads its orientation off the bindings, so
-one axis has to be continuous:
+The message names two of those transforms, `range` and `bounds`, and writes out
+a sentence the engine would accept. Two categorical axes are the third refusal.
+An interval takes its orientation from the bindings, so one axis has to be
+continuous:
 
 ```{r}
 #| error: true
@@ -469,3 +563,15 @@ data(gapminder_2007) + interval * range + x(continent) + y(continent)
 
 That continuous column is where the low and the high come from. Two categories
 leave the mark nothing to span.
+
+## In short
+
+An interval is geometry and nothing else. The transform says which two numbers
+it spans, and whether there is a center to draw. Caps, the center dot and the
+dash are settings, so none of the three reads a column.
+
+## What comes next
+
+Which two numbers an interval spans is the transform's answer, never the
+mark's. [Box](box.qmd) answers it inside the mark, with the five-number summary
+that gives the box plot its name.

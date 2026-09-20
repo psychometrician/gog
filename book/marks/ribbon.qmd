@@ -200,7 +200,8 @@ and also a line and points."*
 The dashed line is [`style(pattern = )`](../style.qmd): on a stroke the texture
 is a **dash**, so it applies to the `line` here, not to the band. The band takes
 the same setting, with different values. On a fill the texture is a **hatch**:
-`"hatch"`, `"crosshatch"`, `"grid"` or `"dots"`, never `"dashed"`.
+`"hatch"`, `"crosshatch"`, `"stripes"`, `"grid"` or `"dots"`, never
+`"dashed"`.
 
 ## Filled, or two dashed edges
 
@@ -324,6 +325,18 @@ data(gapminder_2007) + ribbon * density + x(continent) + y(life) +
 ```
 
 *"Given gapminder 2007: ribbons derived by density, x is continent, y is life."*
+
+`density` is not the ribbon's own transform. Five other marks estimate the same
+curve, and only the shape changes:
+
+| Mark derived by `density` | Shape |
+|---|---|
+| `line * density` | the curve as a stroke |
+| `step * density` | the curve as a staircase |
+| `area * density` | the curve filled to the baseline |
+| `point * density` | one dot at each point the curve was estimated |
+| `bar * density` | one thin bar at each of those points |
+| `ribbon * density` | the curve mirrored, the violin above |
 
 Nothing new was added to the grammar to draw it. A ribbon closes on a second
 boundary the data supplies, and a violin closes on the mirror image of its own
@@ -554,3 +567,15 @@ two boundaries, and `ribbon` fills between them. One `range`, four marks: [No
 Exceptions](../design-laws.qmd) made visible. See
 [Transforms](../transforms.qmd) for the `range`, `confidence` and `deviation`
 statistics all four share.
+
+## In short
+
+A ribbon fills a pair, and refuses to draw until a pair transform gives it one.
+Which pair you choose is what the band means: the extremes from `range`, the
+middle from two quantiles, the mean's uncertainty from `confidence`. Both edges
+are data, so the band's shape is never yours to set.
+
+## What comes next
+
+A ribbon shows a region and names nothing inside it. [Text](text.qmd) draws the
+words: one string per row, read from a column, wherever the positions put it.

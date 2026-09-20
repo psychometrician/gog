@@ -53,8 +53,8 @@ countries have far lower incomes than the richest few. The
 Write `point` and you get a dot, and treating it as *the dot mark* is right
 almost every time. But the dot is only a *default*, and you can change it. A
 point is *a glyph at a position*, and `shape` replaces the dot with another of
-the five glyphs gog draws, one per category. [Shape](#shape) below names the
-five, says which category gets which, and what to do with more than five.
+the seven glyphs gog draws, one per category. [Shape](#shape) below names the
+seven, says which category gets which, and what to do with more than seven.
 
 ```{r}
 data(gapminder_2007) + point + x(gdp) + y(life) + shape(continent) +
@@ -63,10 +63,10 @@ data(gapminder_2007) + point + x(gdp) + y(life) + shape(continent) +
 
 *"Given gapminder 2007: points, x is gdp, y is life, shape by continent."*
 
-So "a dot" means "the first of the five shapes, drawn when you name no shape."
+So "a dot" means "the first of the seven shapes, drawn when you name no shape."
 That is what makes `point` and [`text`](text.qmd) **siblings**: both draw one
 glyph per row at `(x, y)`, differing only in *where the glyph comes from*. A
-point picks its glyph from the fixed set of five, with `shape`. A text mark
+point picks its glyph from the fixed set of seven, with `shape`. A text mark
 takes its glyph from a column, with `label`, so what you see is the value in
 that column. Put both on one plot and each row is located by a dot and named by
 its label:
@@ -107,6 +107,20 @@ data(gapminder_2007) + bar * mean + x(continent) + y(life) +
 ```
 
 *"Given gapminder 2007: bars derived by mean, x is continent, y is life."*
+
+`mean` is not the bar's own transform. Four other marks take it, and only the
+shape changes:
+
+| Mark derived by `mean` | Shape |
+|---|---|
+| `point * mean` | one dot at each mean |
+| `line * mean` | the means joined into a profile |
+| `area * mean` | the same profile, filled to the baseline |
+| `step * mean` | each mean held flat across its slot |
+| `bar * mean` | one bar per category, the plot above |
+
+`median`, `sum`, `min`, `max` and `quantile` swap into every row of that table.
+The statistic decides the number, and the mark decides the shape.
 
 The strip plot shows Africa's spread and its overlap with Asia; the bar chart
 shows neither. The strip plot has one weakness: every point in a category sits
@@ -165,16 +179,49 @@ A color legend is generated automatically whenever a column is mapped to
 
 ## Shape
 
-`shape` maps a categorical column to one of five glyphs. In order, they are
-the circle, the square, the triangle, the diamond and the cross, one per
-category. Categories are taken as they first appear in the table, or in the
+`shape` maps a categorical column to one of seven glyphs. In order, they are
+the circle, the square, the triangle, the diamond, the cross, the star and the
+wye, one per category. Categories are taken as they first appear in the table, or in the
 [order you declare](../data.qmd#declaring-the-order-of-categories), so the
-first category gets the circle, the second the square, and so on. Asia comes
-first in the gapminder table, so Asia is the circle, and the legend below reads
-the same way. Five is the whole set, and about as many as a
-reader can separate on one plot. Do not map `shape` to a column with more than
-five categories: the sixth starts over at the circle, two categories then share
-a glyph and look the same, and gog does not warn. The book shows four ways to
+first category gets the circle, the second the square, and so on. Here is the
+whole set, in the order it is handed out:
+
+```{r}
+glyph_order <- c("circle", "square", "triangle", "diamond", "cross", "star", "wye")
+glyphs <- data.frame(glyph = ordered(glyph_order, levels = glyph_order),
+                     row = c(1, 1, 1, 1, 1, 1, 1))
+data(glyphs) + point + x(glyph) + y(row) + shape(glyph) +
+  style(size = 8) + x_label("") + y_label("") +
+  title("The seven glyphs, in the order they are assigned")
+```
+
+*"Given the glyphs table: points, x is glyph, y is row, shape by glyph, with
+size 8."*
+
+Asia comes first in the gapminder table, so Asia is the circle, and the legend
+below reads the same way. Seven is the whole set, and about as many as a reader can
+separate on one plot. Map `shape` to a column with more than seven categories
+and the eighth starts over at the circle, so two categories share a glyph and
+look the same. gog says so when that happens, naming the count and the limit,
+and the plot still draws. The `nutrients` table has eight foods, one more than
+there are glyphs:
+
+```{r}
+#| echo: false
+peek(nutrients)
+```
+
+```{r}
+#| message: true
+data(nutrients) + point + x(nutrient) + y(amount) + shape(food) +
+  y_label("Amount per 100g") + title("Eight foods, seven glyphs")
+```
+
+*"Given the nutrients: points, x is nutrient, y is amount, shape by food."*
+
+Oats came last, so oats draws a circle and shares it with salmon. Nothing in the
+picture says which circle is which, which is why the message counts the
+categories rather than leaving you to find the pair. The book shows four ways to
 draw more groups than that:
 
 - `color`, whose default palette has twenty colors, as [Color](#color) above
@@ -192,7 +239,7 @@ draw more groups than that:
   a second layer: [What settings are for](../style.qmd#what-settings-are-for).
 
 A column with fewer categories often carries the encoding: `continent` groups
-the countries and fits the five glyphs, so `country` goes on the label or the
+the countries and fits the seven glyphs, so `country` goes on the label or the
 facet.
 
 Combine `color` and `shape` on the same column so that colorblind readers, and
@@ -347,3 +394,14 @@ data(gapminder_2007) + point + x(gdp) + y(life) + style(pattern = "dashed")
 ```
 
 Both messages send you to `shape`, which is the one form a point can change.
+
+## In short
+
+A point is a glyph at a position, one per row until a transform groups the
+rows. It is the only mark that maps `shape`, having the only glyph to change.
+
+## What comes next
+
+A point marks one row and leaves it there. When the rows belong in an order,
+what happens between them matters, and [Line](line.qmd) joins them into one
+stroke that shows which way the measure moved.

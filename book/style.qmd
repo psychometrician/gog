@@ -88,6 +88,10 @@ cat(header, divider, rows, sep = "\n")
 live from the engine, like the [Combinations](combinations.qmd) grid, so it
 cannot drift from what `style()` accepts.)
 
+The twelve rows are every setting there is. `x`, `y`, `z`, `group`, `label` and
+`play` are absent because they are channels and nothing else, which [Two
+questions, not one](#two-questions-not-one) works through.
+
 `color` (CSS name or hex) and `opacity` (`0`–`1`) are set on every mark. The
 other rows are not arbitrary permissions: each follows from the mark's geometry,
 and a setting is available on *every* mark of a kind, never on one mark by
@@ -99,15 +103,16 @@ class*, the group of marks built the same way.
 belongs to every glyph and stroke, and to `box`, whose width it sets. The grid
 leaves it blank for `bar`, `area`, `ribbon`, `zone` and `surface`, whose
 positions already decide their size. `shape`
-(one of five glyphs) is `point`'s alone.
+(one of seven glyphs) is `point`'s alone.
 
 `pattern` is the **texture** of a mark's paint: one visual property, realized by
 geometry the way `color` is a fill on a bar and a stroke on a line. On the six
 path strokes (`line`, `step`, `path`, `interval`, `rule`, `edge`) it is the
-**dash**: `"solid"`/`"dashed"`/`"dotted"`, a dashed error bar included. On the
-five fills (`bar`, `box`, `area`, `ribbon`, `zone`) it is a **fill texture**:
-`"solid"`/`"hatch"`/`"crosshatch"`/`"grid"`/`"dots"`, the hatchings that keep a plot
-readable in grayscale or in print, where there is no color. It is paint, never
+**dash**: `"solid"`/`"dashed"`/`"dotted"`/`"dotdash"`/`"longdash"`, a dashed
+error bar included. On the five fills (`bar`, `box`, `area`, `ribbon`, `zone`)
+it is a **fill texture**:
+`"solid"`/`"hatch"`/`"crosshatch"`/`"stripes"`/`"grid"`/`"dots"`, the hatchings
+that keep a plot readable in grayscale or in print, where there is no color. It is paint, never
 geometry: a dashed line and a solid one trace the same path. A `step`, by
 contrast, is a different mark because it traces a different path.
 
@@ -337,7 +342,7 @@ data(gapminder_asia) + x(year) + y(life) +
 *"Given gapminder Asia: x is year, y is life, lines, grouped by country, colored
 lightgray, and also a line derived by smooth, colored firebrick, with size 3."*
 
-## `line` takes settings it refuses as channels
+## Two questions, not one
 
 A mapped `opacity` works on a point. Try the same binding on a line and gog
 refuses it.
@@ -362,6 +367,59 @@ data(gapminder_asia) + line + x(year) + y(life) + group(country) +
 This is where the distinction matters most. "Can a column be mapped here?" and
 "Does this mark have this property?" are different questions, and `line` is
 where the answers differ.
+
+Every mark answers both. Five properties are a channel and a setting under the
+same name, and this is what each mark says about them:
+
+```{r}
+#| echo: false
+#| results: asis
+# Generated from the same `gog-cli --rules` dump behind the grid above and the
+# one in Combinations, so this table cannot claim a state the engine would not
+# enforce. Three answers rather than four: the engine tests that whatever a mark
+# can map it can also set, so "map only" cannot occur in these five columns.
+#
+# `renders` and not `obligation` alone decides the mapping half. Three cells are
+# legal grammar the engine does not draw yet (`size` and `opacity` on `text`,
+# `pattern` on `edge`), and a table reading them as mappable would promise a
+# plot nobody gets. Combinations marks those with a separate glyph; here they
+# read as what you can do today, and the sentence under the table says which.
+r     <- .gog_rules()
+props <- c("color", "size", "shape", "pattern", "opacity")
+cells <- r$cells
+state <- function(m, p) {
+  row  <- cells[cells$mark == m & cells$channel == p, ]
+  maps <- nrow(row) == 1 && row$obligation %in% c("must", "can") && !is.na(row$renders)
+  sets <- nrow(row) == 1 && row$settable
+  if (maps && sets) "map or set" else if (sets) "set only" else "—"
+}
+cat(paste0("| Mark | ", paste0("`", props, "`", collapse = " | "), " |"),
+    paste0("|:--|", paste(rep(":--:", length(props)), collapse = "|"), "|"),
+    vapply(r$marks$name[r$marks$drawable], function(m) {
+      paste0("| `", m, "` | ",
+             paste(vapply(props, function(p) state(m, p), character(1)),
+                   collapse = " | "), " |")
+    }, character(1)),
+    sep = "\n")
+```
+
+Read a `set only` cell as a mark with one of something: one stroke, one region,
+one band. Bind a column there and the refusal says as much, and names the
+setting to write instead.
+
+Three of those cells are temporary rather than geometric. `size` and `opacity`
+on a `text`, and `pattern` on an `edge`, are legal grammar the engine has not
+built yet, so today they behave as set only and the refusal calls itself
+unsupported rather than illegal. [Combinations](combinations.qmd) gives them a
+glyph of their own.
+
+Six channels are missing from that table because they are only ever mapped.
+`x`, `y`, `z`, `group`, `label` and `play` have no row on the grid above either,
+and the reason is the same: a position, a grouping or a name comes from data or
+it does not exist. There is nothing to set. Seven settings run the other way and
+never appear on the [mapping grid](combinations.qmd): `border_color`,
+`border_size`, `caps`, `center`, `nudge`, `arrow` and `reach` decorate a mark
+and say nothing about a column.
 
 ## You cannot map and set the same property
 
@@ -497,6 +555,22 @@ that overlap. The bottom margin grows to hold them:
 data(gapminder_2007) + bar * mean + x(continent) + y(life) +
   theme(tick_angle = 45)
 ```
+
+`axis_label` says where an axis's *name* sits. By default each name is centered
+along its own axis, which turns the y name through 90 degrees. Ask for `"end"`
+and both names move to their axis's far end and stay horizontal, so nothing on
+the plot has to be read sideways. It is one property rather than one per axis
+because it states a convention, and a plot that followed two of them would have
+no rule to explain:
+
+```{r}
+data(gapminder_2007) + point + x(gdp, scale = "log") + y(life) +
+  x_label("GDP per person") + y_label("Life expectancy (years)") +
+  theme(axis_label = "end")
+```
+
+*"Given gapminder 2007: points, x is gdp on a log scale, y is life, with the
+axis names at their ends."*
 
 `font_size` sets how big the plot's text is. It is **one number, not three**.
 The number itself is the size of a tick label, in pixels. The axis names and the
@@ -712,3 +786,15 @@ labels* are, and they are labels the data asked for. `theme(font_size = 16)`
 sets how big the tick labels, the axis names and the title are, and those belong
 to the page. One is a property of a mark and the other is a property of the
 plot, so neither can do the other's job.
+
+## In short
+
+A mapping earns a guide and a setting earns none. That is the quickest test for
+which one you wrote. Five names are both: `color`, `size`, `shape`, `pattern`
+and `opacity`. Which call you write decides which you get.
+
+## What comes next
+
+A setting changes how a mark looks and computes nothing from the rows.
+[Transforms](transforms.qmd) derives values the table does not hold: counts,
+means, bins, densities, and the spreads a span mark needs.

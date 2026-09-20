@@ -286,10 +286,22 @@ data(medals) + bar + x(country) + y(gold) +
 
 *"Given the medals: bars, x is country, y is gold, with pattern hatch."*
 
-The five fill textures are `"solid"` (the default), `"hatch"`, `"crosshatch"`,
-`"grid"`, and `"dots"`; the [style chapter](../style.qmd) shows them beside the
-dashes a stroke takes, because `style(pattern = )` is one name with one meaning
-per shape. One texture covers the whole layer; to give each color category its
+The six fill textures are `"solid"` (the default), `"hatch"`, `"crosshatch"`,
+`"stripes"`, `"grid"`, and `"dots"`, drawn here in that order:
+
+```{r}
+texture_order <- c("solid", "hatch", "crosshatch", "stripes", "grid", "dots")
+textures <- data.frame(texture = ordered(texture_order, levels = texture_order),
+                       height = c(6, 5, 4, 3, 2, 1))
+data(textures) + bar + x(texture) + y(height) + pattern(texture) +
+  x_label("") + y_label("") + title("The six fill textures")
+```
+
+*"Given the textures table: bars, x is texture, y is height, pattern by
+texture."*
+
+The [style chapter](../style.qmd) shows them beside the dashes a stroke takes,
+because `style(pattern = )` is one name with one meaning per shape. One texture covers the whole layer; to give each color category its
 *own* hatch, map a column with the [`pattern()`
 channel](../channels.qmd#pattern), which does for texture what `shape()` does
 for glyphs.
@@ -323,6 +335,20 @@ and the next and the bars **touch**, with a thin line in the panel's background
 color to keep them readable. You set nothing in either plot. The bar chart at
 the top of this chapter and this histogram both take their thickness from the
 axis the bars sit on.
+
+`bin` is not the bar's own transform. Four other marks cut the same bins, and
+only the shape changes:
+
+| Mark derived by `bin` | Shape |
+|---|---|
+| `point * bin` | one dot at the top of each bin |
+| `line * bin` | the frequency polygon: straight lines through the bin centers |
+| `area * bin` | the same polygon, filled to the baseline |
+| `step * bin` | the staircase outline, drawn in [Step](step.qmd) |
+| `bar * bin` | filled bars, the histogram above |
+
+`zone * bin` cuts two axes instead of one, which is the heatmap in
+[Zone](zone.qmd).
 
 How fine the cut is decides what the histogram shows. Left alone, `bin` picks
 the number of bins from the number of rows, by Sturges' rule. Name a width to
@@ -587,7 +613,7 @@ data(medals) + bar * sum + x(country) + y(gold) +
 *"Given the medals: bars derived by sum, x is country, y is gold, colored
 goldenrod, with pattern crosshatch, border color black and border size 1."*
 
-The `pattern` values here are the five **fill textures**, not the three dashes a
+The `pattern` values here are the six **fill textures**, not the five dashes a
 `line` takes. The setting has one name, and each mark draws it the way its
 shape allows. A fill takes a hatch, and a stroke takes a dash. Texture survives
 a grayscale printer, where color does not. A plot that will be printed in black
@@ -642,3 +668,16 @@ data(medals) + bar + x(country) + y(country)
 
 The message names both ways forward: put a number on one axis, or count the
 rows per category with `bar * count`.
+
+## In short
+
+A bar's length is its value, and the measured axis reaches zero unless you state
+your own `limits`. Without a transform one bar is drawn per row, and rows
+sharing a category overlap in one slot. Thickness is never yours to set: 80% of
+the slot for a category, edge to edge for a bin.
+
+## What comes next
+
+The gap on each side of a bar is what says the categories are separate. Close
+it and you have an [area](area.qmd), filling the region under a boundary for a
+measure that runs without breaks.
