@@ -190,3 +190,9 @@ operation, so do it in the host language, before the plot. A `brush` is refused
 too, and its answer is also upstream: a brush names a range on the data's axes,
 and a network has none. Select the rows in your table first, then color the
 edges they make.
+
+## What comes next
+
+A network is one picture of one table, however its nodes are laid out.
+[Play](play.qmd) adds time to any of them: the same sentence cut into frames and
+run in order, so the reader watches the picture change.

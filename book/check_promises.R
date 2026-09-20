@@ -1,8 +1,10 @@
-# check_promises.R — does the book keep the five rules its preface states?
+# check_promises.R — does the book keep the rules its preface states?
 #
-# `index.qmd` says, in the book's own voice, "Five rules govern every page, and
-# you can hold the book to them." On 2026-07-28 a reader held it to them and
-# three of the five were false:
+# `index.qmd` says, in the book's own voice, "Six rules govern every page, and
+# you can hold the book to them." It said five until 2026-09-18, when the
+# chapters gained a closing section and the preface gained the rule that goes
+# with it; that sixth one is `check_closers.R`'s, not this file's. On
+# 2026-07-28 a reader held the book to the first five and three were false:
 #
 #   * "Questions first. Chapters and recipes open with a question about data,
 #     never with a feature name." — 1 of 43 plot-drawing chapters opened with a

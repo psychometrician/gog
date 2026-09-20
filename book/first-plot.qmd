@@ -194,4 +194,8 @@ refine. A plot is not a different kind of object. Some of its parts are
 required, and the rest refine it. That division is the same in every plot in
 this book, so you learn it one time.
 
-The next chapter states the kernel on one page, and the page is short.
+## What comes next
+
+One plot needs four words, and this chapter never said how many there are in
+all. [The grammar](grammar.qmd) states the whole kernel in one table, then takes
+each kind of word in turn.

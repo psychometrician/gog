@@ -485,7 +485,7 @@ polar."*
 
 A staircase holds each value across its own slot rather than sloping between
 them, so in a circle it is a ring of arcs joined by radial jumps. And because
-the categories exhaust the turn, the last one's tread carries around to the
+the categories exhaust the turn, the last one's arc carries around to the
 first and the shape closes:
 
 ```{r}
@@ -746,3 +746,16 @@ too. A tree of arbitrary depth arriving as a parent column and a child column is
 the shape a *network* has, and [Network](network.qmd) is where that shape is
 read: `layout(parent, child)` places it, in a space with its own rules. Each
 family answers the question it is built for.
+
+## In short
+
+`x` becomes the angle and `y` the radius, because the first position is what you
+search in. Bind only one position and it becomes the angle, which is what lets a
+stacked bar draw a pie. A categorical angle wraps, so the last category sits
+beside the first.
+
+## What comes next
+
+Polar bends the axes, and it still has axes. [Nest](nest.qmd) has none: it
+packs a panel into regions whose areas are the measure, which is how a treemap
+shows a share of a whole.

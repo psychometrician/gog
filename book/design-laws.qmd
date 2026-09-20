@@ -536,3 +536,9 @@ the first nine harder to remember.
 The laws are the answer: not "no, because we don't want to," but
 "no, because that would break Law 2 / Law 3 / …"
 The rule, not the maintainer, says no.
+
+## What comes next
+
+The laws say what the grammar will and will not do, in any language.
+[R](bindings/r.qmd) opens the four chapters that say what belongs to your
+language instead: its pipes, its masked names, and how it spells a column.

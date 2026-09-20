@@ -26,8 +26,10 @@ new values from your columns, closes the part.
 each mark has a chapter of its own, fourteen in a row from
 [point](../marks/point.qmd) to [edge](../marks/edge.qmd). Every one follows the
 same template: what it draws, what it requires, what refines it, what derives
-from it, what you can set on it, and what it refuses. The last two are always
-the last two, under those names. That sameness is deliberate: it is the [No
-Exceptions](../design-laws.qmd) law applied to a book's structure. Learning the
+from it, what you can set on it, what it refuses, and what comes next. Those
+three are always the last three, under those names, and thirteen of the fourteen
+put a short summary of the mark's rules in front of them. That sameness is deliberate:
+it is the [No Exceptions](../design-laws.qmd) law applied to a book's
+structure. Learning the
 second mark is faster than the first, and by the fifth you already know the
 shape.

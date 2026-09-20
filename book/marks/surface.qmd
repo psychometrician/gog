@@ -175,6 +175,12 @@ sentence never binds `z()` and still gets a third axis, labeled Density: the
 transform supplies the measurement, and the mark puts it on the height. A flat
 `bar * bin` does the same for `y`.
 
+| Mark derived by `density`, over two positions | Where the measurement goes |
+|---|---|
+| `zone * density` | into the color of each cell |
+| `path * density` | into the level each contour was cut at |
+| `surface * density` | into the height of the sheet, the third plot above |
+
 Here the transform stays the same and the mark chooses the geometry. That is the
 rule that already made the contour and the estimated heatmap one feature instead
 of two.
@@ -246,18 +252,19 @@ differs. Where a table holds one row per cell, as this one does, the mean of a
 single value is that value, and the transform is doing nothing but naming the
 column.
 
-The step between two plateaus is drawn, as a **riser** standing on the line the
-two cells share. That line has no width, so the riser asserts nothing about any
-area: it is simply what a jump looks like. Without it the mark would draw
-disconnected tiles floating at their own heights, and a reader could not tell a
-step from a missing cell.
+The step between two plateaus is drawn, as a **vertical face** standing on the
+line the two cells share. That line has no width, so the vertical face asserts
+nothing about any area: it is simply what a jump looks like. Without it the
+mark would draw disconnected tiles floating at their own heights, and a reader
+could not tell a step from a missing cell.
 
-A riser spans the *difference* between two neighbors, and that is what separates
-this from standing a [3-D bar](bar.qmd) on every cell. A bar runs the whole way
-down to the baseline, so a field of bars hides its own back rows as soon as you
-turn it. A riser is only as tall as its own step. Both are turned by 60 degrees
-below, so you can see which one is still legible. Both are set to one color, so
-the only thing that differs between them is the shape:
+A vertical face spans the *difference* between two neighbors, and that
+separates this from standing a [3-D bar](bar.qmd) on every cell. A bar runs
+the whole way down to the baseline, so a field of bars hides its own back rows
+as soon as you turn it. A vertical face is only as tall as its own step. Both
+are turned by 60 degrees below, so you can see which one is still legible.
+Both are set to one color, so the only thing that differs between them is the
+shape:
 
 ```{r}
 ((data(cells) + bar * bin(3) * mean + x(a) + y(b) + z(v) +
@@ -469,9 +476,9 @@ faintest face here is still drawn, which is the rule every mapped `opacity`
 follows ([Channels](../channels.qmd)).
 
 A face reads its opacity where it reads its color, at its own center, which is
-the mean of its four corners. A plateau and a riser each own one cell, so each
-reads its own row. Either way one face has one reading, whichever channel asks
-for it.
+the mean of its four corners. A plateau and a vertical face each own one cell,
+so each reads its own row. Either way one face has one reading, whichever
+channel asks for it.
 
 In the plot above, the height is said twice: once as a position and once as an
 opacity. A second column is the more useful case: the shape stays in `z`, and
@@ -674,3 +681,15 @@ A hatch tile is a texture in *screen* space, and every face of a projected mesh
 is foreshortened differently, so one tile size would read as a different density
 on every face. The texture would then follow the viewing angle rather than the
 data, which is the one thing this mark's shading is built to avoid.
+
+## In short
+
+A surface spans the gaps between its samples, so it needs a floor whose cells
+tile. A scatter cannot be one. A face needs all four of its corners, so a gap in
+the grid is a hole rather than a guess.
+
+## What comes next
+
+Two positions whose cells tile without gaps are what a surface needs under it.
+[Edge](edge.qmd) draws the tables that have no positions at all: rows naming two
+things and saying they are connected.

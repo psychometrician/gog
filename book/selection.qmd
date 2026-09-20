@@ -660,3 +660,16 @@ This matters when a table has a column you would not publish. Bind the columns
 you plot and drop the rest, as you would check any file before sharing it.
 [What the file carries](utilities.qmd#what-the-file-carries) states the rule for
 both kinds of plot, with the one line that applies it.
+
+## In short
+
+A selection runs after the picture is composed: it dims rows, removes none, and
+leaves the axes where they were. The column decides the reading, a range for
+numbers and a set for categories. Everything a brush needs travels inside the
+saved file.
+
+## What comes next
+
+Selection is the last of the atoms, and every part so far has taught them one
+family at a time. [The cookbook](cookbook/one-variable.qmd) starts from your
+data instead: one variable first, then two, then more.

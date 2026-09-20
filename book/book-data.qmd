@@ -273,3 +273,10 @@ license. `world_borders` is Natural Earth's public-domain outline of the
 countries. Everything else was written for this book, each table to show one
 thing; `census` is two plausible city profiles, not a real census. The terms
 for each are in [`data/LICENSE.md`](data/LICENSE.md).
+
+## What comes next
+
+A table names the rows, and names nothing you can see on the page.
+[Choosing a mark](marks/index.qmd) picks the shape that draws them, one of
+fourteen, by the question you are asking and the columns you have to answer it
+with.

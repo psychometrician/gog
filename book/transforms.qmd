@@ -115,6 +115,20 @@ data(gapminder_2007) + bar * bin + x(life) +
 
 *"Given gapminder 2007: bars derived by bin, x is life."*
 
+`bin` is not the bar's own transform. Four other marks cut the same bins, and
+only the shape changes:
+
+| Mark derived by `bin` | Shape |
+|---|---|
+| `point * bin` | one dot at the top of each bin |
+| `line * bin` | the frequency polygon: straight lines through the bin centers |
+| `area * bin` | the same polygon, filled to the baseline |
+| `step * bin` | the staircase outline |
+| `bar * bin` | filled bars, the histogram above |
+
+`zone * bin` cuts two axes instead of one, which is the heatmap, and
+`surface * bin` raises the same cells into the cube.
+
 **Bin count** defaults to Sturges' rule [@sturges1926]: `k = ⌈log₂(n)⌉ + 1`.
 Notice there is no `y()` in the expression: `bin` invents the count column
 internally, and the y-axis is labeled "Count" automatically.
@@ -250,6 +264,18 @@ data(gapminder_2007) + bar * count + x(continent) +
 
 *"Given gapminder 2007: bars derived by count, x is continent."*
 
+`count` is not the bar's own transform. Five other marks tally the same rows,
+and only the shape changes:
+
+| Mark derived by `count` | Shape |
+|---|---|
+| `point * count` | one dot at each count |
+| `line * count` | the counts joined into a profile |
+| `area * count` | the same profile, filled to the baseline |
+| `step * count` | each count held flat across its slot |
+| `zone * count` | one cell per pair of categories, colored by its count |
+| `bar * count` | one bar per category, the plot above |
+
 The bars show it. Histogram bars touch, because the slices adjoin on one
 continuum. Bar chart bars stand apart, because the categories are separate.
 
@@ -309,6 +335,17 @@ data(gapminder_2007) + bar * proportion + x(continent) +
 ```
 
 *"Given gapminder 2007: bars derived by proportion, x is continent."*
+
+The same six marks read a share as they read a count:
+
+| Mark derived by `proportion` | Shape |
+|---|---|
+| `point * proportion` | one dot at each share |
+| `line * proportion` | the shares joined into a profile |
+| `area * proportion` | the same profile, filled to the baseline |
+| `step * proportion` | each share held flat across its slot |
+| `zone * proportion` | one cell per pair of categories, colored by its share |
+| `bar * proportion` | one bar per category, the plot above |
 
 Use `proportion` when you care about relative composition rather than raw
 counts, for example "what fraction of respondents chose each option?" Because
@@ -416,6 +453,21 @@ data(gapminder_2007) + line * density + x(life) +
 ```
 
 *"Given gapminder 2007: a line derived by density, x is life."*
+
+`density` is not the line's own transform. Five other marks estimate the same
+curve, and only the shape changes:
+
+| Mark derived by `density` | Shape |
+|---|---|
+| `area * density` | the curve filled to the baseline |
+| `step * density` | the curve as a staircase |
+| `point * density` | one dot at each point the curve was estimated |
+| `bar * density` | one thin bar at each of those points |
+| `ribbon * density` | the curve mirrored, which is the violin |
+| `line * density` | the curve as a stroke, the plot above |
+
+Bind two positions instead of one and `density` cuts both axes. `zone` then
+draws the field as cells, `path` as contour rings, and `surface` as a sheet.
 
 As with the other inventing transforms, there is no `y()` to write: the
 density column and its axis label are both made for you.
@@ -798,6 +850,17 @@ data(gapminder_2007) + x(gdp) + y(life) +
 *"Given gapminder 2007: x is gdp, y is life, points colored by continent, and
 also a line derived by smooth."*
 
+`smooth` is not the line's own transform. Four other marks fit the same curve,
+and only the shape changes:
+
+| Mark derived by `smooth` | Shape |
+|---|---|
+| `point * smooth` | one dot at each fitted value |
+| `area * smooth` | the curve filled to the baseline |
+| `bar * smooth` | one thin bar at each fitted value |
+| `step * smooth` | the curve as a staircase |
+| `line * smooth` | the fitted curve above |
+
 **Span** defaults to 0.75: 75% of the data is used for each local regression.
 A larger span gives a smoother curve; a smaller span follows the data more
 closely. `smooth` requires both `x` and `y` to be continuous columns, and at least
@@ -842,6 +905,20 @@ data(medal_repeats) + bar * sum + x(country) + y(gold) +
 
 *"Given the medal repeats table: bars derived by sum, x is country, y is gold,
 ordered by gold, largest first."*
+
+`sum` is not the bar's own transform, and the whole family behaves alike:
+
+| Mark derived by `sum` | Shape |
+|---|---|
+| `point * sum` | one dot at each total |
+| `line * sum` | the totals joined into a profile |
+| `area * sum` | the same profile, filled to the baseline |
+| `step * sum` | each total held flat across its slot |
+| `zone * sum` | one cell per pair of categories, colored by its total |
+| `bar * sum` | one bar per category, the plot above |
+
+`mean`, `median`, `min`, `max` and `quantile` swap into every row of that
+table. The statistic decides the number, and the mark decides the shape.
 
 **`mean`**, average y per group, useful for comparing typical values:
 
@@ -1028,6 +1105,19 @@ data(iris_flowers) + interval * range + x(species) + y(petal_length) +
 
 *"Given the iris flowers: intervals derived by range, x is species, y is petal
 length."*
+
+`range` is not the interval's own transform. Three other marks read the same
+low and high value, and only the shape changes:
+
+| Mark derived by `range` | Shape |
+|---|---|
+| `ribbon * range` | the band between the two values, filled |
+| `line * range` | the two values as two separate strokes |
+| `step * range` | the same two boundaries, as staircases |
+| `interval * range` | one whisker per group, the plot above |
+
+`confidence`, `deviation` and `bounds` swap into every row of that table, and
+`bounds` adds `zone`, which shades the region between its two columns.
 
 `range` reads a `y` and groups by `x` exactly like the aggregation family: it
 needs a `y()` in scope and works the same whether x is continuous or
@@ -1239,6 +1329,13 @@ data(commutes) + zone * partition(city, mode, cross = TRUE) + x(people) +
 *"Given the commutes: zones derived by partition through city and mode, crossed,
 x is people, color by mode."*
 
+Two marks read a partition, and the second names what the first drew:
+
+| Mark derived by `partition` | Shape |
+|---|---|
+| `text * partition` | the node's own name, at its center |
+| `zone * partition` | one box per node, the plot above |
+
 Two variables, and the plot reads them in two directions at once. A column's
 *width* is that city's share of everyone surveyed, so Ashford's column is three
 times Millbrook's; a cell's *height* is that mode's share *within its own city*,
@@ -1343,6 +1440,14 @@ data(titanic) + y(n) +
 *"Given titanic: y is n, ribbons derived by flow through class and survived,
 color by class, and also zones derived by flow through class and survived."*
 
+Three marks read a flow, and a full diagram layers all three:
+
+| Mark derived by `flow` | Shape |
+|---|---|
+| `zone * flow` | the block at each stage |
+| `text * flow` | the name on each block |
+| `ribbon * flow` | the streams between the stages, the plot above |
+
 The `ribbon` layer draws the bands, one per path, as thick as the path's total
 at both ends. The `zone` layer draws each stage's slots, stacked with no
 padding, so the measure axis is drawn with its usual ticks and reads true
@@ -1362,6 +1467,12 @@ same way in every language. Three marks read the placement inside `network()`:
 `edge` the connections, `point` the nodes, `text` their names. Its positions
 mean nothing as quantities, so its space draws no axes, and the
 [Network](network.qmd) chapter is where the family lives.
+
+| Mark derived by `layout` | Shape |
+|---|---|
+| `point * layout` | one dot per node |
+| `text * layout` | each node's name |
+| `edge * layout` | one stroke per link |
 
 ---
 
@@ -1386,6 +1497,13 @@ data(nutrients) + path * cluster(amount, over = nutrient) + x(food) +
 
 *"Given nutrients: paths derived by cluster on amount, over nutrient, x is
 food."*
+
+Two marks read a cluster:
+
+| Mark derived by `cluster` | Shape |
+|---|---|
+| `zone * cluster` | the same leaves as cells, in the tree's order |
+| `path * cluster` | the tree as joined strokes, the plot above |
 
 `path` draws the tree, and the height of a join says how different its two
 branches are. The same transform on `zone` reorders a tile plot's slots to
@@ -1420,6 +1538,14 @@ data(gm_eras) + bar * mean * dodge + x(continent) + y(life) + color(era) +
 
 *"Given the gapminder eras: bars derived by mean and dodge, x is continent, y is
 life, color by era."*
+
+Three marks subdivide a slot, since a slot has to have a width to share:
+
+| Mark derived by `dodge` | Shape |
+|---|---|
+| `box * dodge` | one box per group, side by side in the slot |
+| `interval * dodge` | one whisker per group, side by side |
+| `bar * dodge` | one bar per group, the plot above |
 
 The two eras sit next to each other in every continent, each bar half as wide,
 together filling exactly the slot one bar would; the gap between continents is
@@ -1478,6 +1604,14 @@ data(gm_eras) + bar * sum * stack + x(continent) + y(population) + color(era) +
 
 *"Given the gapminder eras: bars derived by sum and stack, x is continent, y is
 population, color by era."*
+
+Three marks pile instead of overlapping:
+
+| Mark derived by `stack` | Shape |
+|---|---|
+| `area * stack` | each region starting at the top of the one below |
+| `point * bin * stack` | one dot per row, piled into a column, which is the dot plot |
+| `bar * stack` | one segment per group, piled, the plot above |
 
 Notice the measure also changed, from `mean life` to `sum population`. You stack
 quantities that *add up*: two populations sum to a total that means something,
@@ -2009,3 +2143,17 @@ The four collision modifiers are one family, and two questions divide it. Three
 of them ask *what geometry does this mark have*, and answer with a width, a
 measure or a band. The fourth asks *what is this mark made of*, and only one
 mark is made of words.
+
+## In short
+
+`bin`, `count` and `density` read one column and write the measured axis
+themselves, so they need no `y`. The ones that read two columns refuse without
+it. A statistic runs inside each group, so binding `color` changes what it
+computes. Two transforms compose when their jobs differ and contradict when
+they do not.
+
+## What comes next
+
+Deriving values for one mark leaves every other mark alone.
+[Operators](operators.qmd) says how whole sentences join: how two marks share a
+panel, and how one plot is split or set beside another.

@@ -350,5 +350,8 @@ If a ring in your data does not close, gog cannot tell where one ring ends and
 the next begins. It draws the region, warns you that the ring ends had to be
 guessed, and names what to fix.
 
-Every sentence in this chapter also draws on the sphere itself. That is
-[Globe](globe.qmd): the same marks at the same places, seen from one side.
+## What comes next
+
+A map flattens the sphere so a page can hold it, and every sentence in this
+chapter also draws on the sphere itself. That is [Globe](globe.qmd): the same
+marks at the same places, seen from one side.

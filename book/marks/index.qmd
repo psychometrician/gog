@@ -451,5 +451,8 @@ All three are rendered as live refusals in [What `bin`, `density` and `smooth`
 refuse](../transforms.qmd#what-bin-density-and-smooth-refuse); the table
 above is this page's summary of them.
 
-The next fourteen chapters give each mark its own page, starting with
-`point`.
+## What comes next
+
+Choosing the mark is the first question and not the last one. [Point](point.qmd)
+opens the fourteen chapters that follow, each giving one mark its channels, its
+transforms, its settings and its refusals.

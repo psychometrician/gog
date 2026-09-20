@@ -370,3 +370,10 @@ inside the installed package, `gog-cli` on your `PATH`, and one last search
 upward from the working directory. A checkout is searched before the bundled
 copy on purpose. Inside a checkout the bundled engine is a leftover build, and
 using it would give a stale engine to the person editing the engine.
+
+## What comes next
+
+R's sentence is the one this book has been writing all along.
+[Python](python.qmd) writes the same sentence with `col.gdp` where R writes a
+bare name, and draws the same picture, byte for byte.
+

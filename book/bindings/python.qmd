@@ -285,3 +285,9 @@ environment variable, the copy inside the installed package, `gog-cli` on your
 `PATH`, and a local `target/release` build. The first three are how an installed
 copy works. This page was rendered through the first: the book points
 `GOG_CLI_PATH` at a local build before any Python runs.
+
+## What comes next
+
+Python's differences are spelling rather than grammar. [Julia](julia.qmd) has
+its own three: a symbol for a column, keyword arguments the language already
+had, and a package name of its own.

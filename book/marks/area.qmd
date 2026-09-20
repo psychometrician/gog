@@ -226,6 +226,18 @@ data(gapminder_2007) + area * density + x(life) +
 
 *"Given gapminder 2007: an area derived by density, x is life."*
 
+`density` is not the area's own transform. Five other marks estimate the same
+curve, and only the shape changes:
+
+| Mark derived by `density` | Shape |
+|---|---|
+| `line * density` | the curve as a stroke |
+| `step * density` | the curve as a staircase |
+| `point * density` | one dot at each point the curve was estimated |
+| `bar * density` | one thin bar at each of those points |
+| `ribbon * density` | the curve mirrored, which is the violin |
+| `area * density` | the curve filled to the baseline, the plot above |
+
 Give that same sentence a category on `x` and a number on `y`, and the curve
 turns. Life now runs along `y`, and the estimate is drawn across each
 category's slot. That plot is the half violin.
@@ -405,3 +417,15 @@ data(actuals) + area + x(year) + y(sales) + style(size = 4)
 ```
 
 A `line` accepts a size, because a stroke has a width to choose.
+
+## In short
+
+An area measures on `y`, and never turns on its side the way a bar does. Its
+interior belongs to no single row. That is why `opacity` can only be set, and
+why `size` is refused both ways.
+
+## What comes next
+
+An area slopes from one measurement to the next, and the slope is a claim about
+values nobody recorded. [Step](step.qmd) holds each value across that gap and
+jumps where it changes.

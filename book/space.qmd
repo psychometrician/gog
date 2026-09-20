@@ -577,3 +577,15 @@ they are on the flat page. So a `point` cloud layered over a `path` sits in
 front of the whole route rather than threading through it. That is the ordinary
 layering rule applied in space, not a new exception, so read a layered 3-D plot
 as layers, not as one depth-sorted scene.
+
+## In short
+
+Binding `z` is the whole of it. The mark lifts, and nothing else in the sentence
+is rewritten. Turning the plot changes how you look and never what is drawn,
+which is why the angle belongs to the space.
+
+## What comes next
+
+A cube keeps the axes straight and adds one. [Polar](polar.qmd) bends them
+instead: the same marks on the same data, with `x` running around a circle and
+`y` out from its center.

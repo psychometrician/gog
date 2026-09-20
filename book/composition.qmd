@@ -319,3 +319,16 @@ A marginal plot is composition because the histogram and the scatter measure
 different things: one counts countries, the other puts each country at its own
 position. They share `gdp`, and that shared column is exactly what the rule
 above matches.
+
+## In short
+
+`|` and `/` mean faceting when a column cuts the panels, and composition when
+their operands are whole plots. A shared column becomes a shared axis, and plots
+that share nothing keep their own scales. The page is arranged rather than
+recomputed.
+
+## What comes next
+
+Composition arranges finished plots, and each one still draws the rows it was
+given. [Flow](flow.qmd) computes a picture instead: a magnitude carried through
+its stages, with the stages worked out from the table.

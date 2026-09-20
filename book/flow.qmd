@@ -177,3 +177,9 @@ merge, skip a stage, or return to a stage they already visited. gog does not
 read it. The stage-column shape settles three things by itself. Every path
 passes through every stage, the totals match at each one, and no path can return
 to a stage it already visited.
+
+## What comes next
+
+A flow needs its stages named, in the order you want them read.
+[Cluster](cluster.qmd) works the order out instead, joining the closest
+categories first and putting an axis in the tree's order.

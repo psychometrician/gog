@@ -15,15 +15,15 @@ surprising-but-legal pairings you would never think to try.
 
 These grids are the orthogonality law made visible. [Law 1](design-laws.qmd)
 says every compatible atom combines with every other; a table is that promise
-enumerated, one cell at a time. It is the direct analog of the *jamo* (자모) chart
-a Hangeul (한글) learner reads. The *jamo* are Hangeul's individual letters: its
-consonants and its vowels. A syllable block is what they assemble into. This
-book has used that pairing from the start: a mark is a consonant and a position
-is a vowel, and neither draws alone. The chart puts the consonants down the side
-and the vowels across the top. The whole syllable space appears in the crossing.
+enumerated, one cell at a time. It is the direct analog of the letter chart a
+Hangeul (한글) learner reads, with the consonants down one side and the vowels
+across the top. A syllable block is what those letters assemble into. This book
+has used that pairing from the start: a mark is a consonant and a position is a
+vowel, and neither draws alone. The whole syllable space appears in the
+crossing.
 
 Legal is not the same as useful. [Law 8](design-laws.qmd), Pronounceable ≠
-Useable, guarantees only that the engine draws what a cell allows. Whether it
+Usable, guarantees only that the engine draws what a cell allows. Whether it
 should be drawn is your judgment. A cell the engine refuses teaches as much as
 one it draws. It marks a real limit of the geometry, not an oversight.
 
@@ -88,7 +88,10 @@ Reading the five glyphs:
 - **○ set**: the mark has this feature, but not row by row. A `line` is one
   stroke, so its `size` and `opacity` are a single value for the whole layer,
   fixed with [`style()`](style.qmd) rather than mapped. Those constants have
-  their own [Mark × Setting grid](style.qmd).
+  their own [Mark × Setting grid](style.qmd), and seven of those never appear
+  on this grid at all: `border_color`, `border_size`, `caps`, `center`,
+  `nudge`, `arrow` and `reach` are settings and nothing else. [Two questions,
+  not one](style.qmd#two-questions-not-one) puts both halves in one table.
 - **◌ not drawn**: legal grammar the engine refuses today, with a direction
   rather than a wrong picture. One glyph, three verdicts, and the refusal
   message tells you which you have. **Owed**: a mapped `size` or `opacity` on

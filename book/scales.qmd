@@ -709,3 +709,16 @@ are the same rule underneath, *do not print one number through another*. They
 differ only in how much room each has, because the plane can reserve room in
 advance and the cube cannot. When a count you stated has to be thinned that way,
 the engine says so rather than quietly drawing fewer.
+
+## In short
+
+A scale moves where a number lands, and never what it is. `limits` states the
+domain: narrowing it removes rows and prints how many, where a brush removes
+none. In a flat panel `tick_count` is a target rather than a promise, and a cube
+drops the ticks that will not fit.
+
+## What comes next
+
+A scale decides where a number lands on an axis, and says nothing about color,
+size or shape. [Channels](channels.qmd) covers the rest of them: which visual
+property carries a column, and what guide it earns.

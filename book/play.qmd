@@ -731,3 +731,17 @@ such word. `group` looks like the word until you notice that a `point` does not
 take it, and the point everyone pictures gliding is exactly that: a `point`. So
 the difference is a word the vocabulary does not have, not a picture the engine
 cannot draw.
+
+## In short
+
+One set of scales and one palette serve every frame, fitted once across the
+sequence. A sequence claims that one frame follows another, so playing an
+unordered column warns and names the two fixes. A mark that reads a function
+along `x` loses its domain when the same column plays, and that pair is
+refused.
+
+## What comes next
+
+Play runs the frames and you watch them. [Selection](selection.qmd) gives you
+the pointer instead: brush a group of rows, and the plot dims the ones you did
+not choose.

@@ -268,6 +268,23 @@ names, `gdp` and `life`. A note with its own names writes its positions after
 plot is a `point` over the same one-row table, and several notes are several
 rows.
 
+## Text that a transform places
+
+The notes above name a place you chose. A transform can choose the place
+instead, and then the text names whatever that transform built. Each of these
+sentences has a sibling that draws the shape the text is labeling:
+
+| Text derived by | What it labels |
+|---|---|
+| `text * layout` | the nodes of a network, beside `point * layout` and `edge * layout` |
+| `text * flow` | the blocks of a flow, beside `ribbon * flow` and `zone * flow` |
+| `text * partition` | the boxes of a packing, beside `zone * partition` |
+| `text * repel` | the same scatter labels as above, moved apart until they fit |
+
+The chapters that draw them are [Network](../network.qmd), [Flow](../flow.qmd)
+and [Transforms](../transforms.qmd#partition-a-whole-among-nested-parts). In each one the text is a layer over the mark that
+drew the shape, and both layers read the same transform.
+
 ## What you can set
 
 Once the words are on the plot, the next question is how they look. Which size,
@@ -335,3 +352,16 @@ region to hatch:
 data(medals) + text + x(gold) + y(silver) + label(country) +
   style(pattern = "hatch")
 ```
+
+## In short
+
+A `text` will not draw without a `label`, and no other mark accepts one. Its
+words come from a column, so a fixed note is a one-row table. `repel` reports
+how many labels it could not place, because a label dropped in silence is a plot
+that lies.
+
+## What comes next
+
+Row order means nothing to a text mark, which puts each word where its
+positions say. It is everything to a [path](path.qmd), the mark that joins the
+rows in the order the table holds them.

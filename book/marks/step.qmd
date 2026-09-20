@@ -7,11 +7,11 @@ source("../R/setup.R")
 
 How do you draw a value that holds until it jumps? `step` draws it as a
 staircase. A `line` slopes straight from one point to the next. A `step`
-**holds** each value until it changes, then jumps. The flat part is the
-**tread**, and the jump is the **riser**. That is the right shape for anything
-that does not change between observations: a cumulative count, a survival
-probability, an interest rate. `step` takes the same channels as `line`, and
-only the path drawn between two points differs.
+**holds** each value until it changes, then jumps. The **flat part** runs from
+one measurement to the next, and the **jump** is where the value changes. That
+is the right shape for anything that does not change between observations: a
+cumulative count, a survival probability, an interest rate. `step` takes the
+same channels as `line`, and only the path drawn between two points differs.
 
 Several subjects have their own name for this shape, and one mark draws them
 all. Statisticians draw the **empirical cumulative distribution function** (the
@@ -50,8 +50,8 @@ cumulative shares at life expectancies no country has. The step is exact: the
 share stayed at that value until the next observation.
 
 The size of *n* decides whether you can see that. Thirty countries make each
-riser a thirtieth of the axis, and the treads between them are plain. The same
-plot over all 142 countries in the world gives each riser a fifth of that
+jump a thirtieth of the axis, and the flat parts between them are plain. The
+same plot over all 142 countries in the world gives each jump a fifth of that
 height, and the staircase reads as a slightly rough line.
 
 ## A value that holds until it changes
@@ -103,10 +103,10 @@ slopes between its changes.
 
 ## A category on the domain
 
-How do the continents compare on one summary, without a slope that claims a
-change between them? `step` takes the same channels as `line`, so a category on
-the domain works here as it does in [Line](line.qmd). The staircase holds each
-category's value across its own slot:
+How do the continents compare on one summary value, and should a staircase be
+the mark that shows it? A category works on the domain here exactly as it does
+in [Line](line.qmd), and the staircase holds each category's value across its
+own slot:
 
 ```{r}
 #| echo: false
@@ -122,11 +122,36 @@ data(gapminder_2007) + step * mean + x(continent) + y(life) +
 *"Given gapminder 2007: a step outline derived by mean, x is continent, y is
 life."*
 
+Africa sits lowest at 54.8 years and Oceania highest at 80.7. The five slots
+run in alphabetical order, so the rise and fall across them is not a trend.
+
 A step draws only the values that were measured. A `line` slopes from one
 category to the next, and nothing was measured between them. A step holds flat
-and then jumps, which suits separate groups better. The section [A value that
-holds](#a-value-that-holds-until-it-changes) said the same thing about time. It
-is true for categories as well.
+and jumps at the edge of each slot, so it claims no change between two
+continents.
+
+That does not make it the right mark for this plot. A flat part claims the
+value held across that stretch of the axis. A policy rate does hold between
+two dates, as [A value that holds until it
+changes](#a-value-that-holds-until-it-changes) showed. A continent is a slot
+rather than a stretch, so the flat part says nothing about the data. One
+summary value per category is what a [bar](bar.qmd) draws: keep the `mean` and
+change the mark. Each bar stands in its own slot, joined to nothing.
+
+Every mark that reads one measure takes the same `mean`, and only the shape
+changes:
+
+| Mark derived by `mean` | Shape |
+|---|---|
+| `bar * mean` | one bar per category, each in its own slot |
+| `point * mean` | one dot at each mean |
+| `line * mean` | the means joined into a profile |
+| `area * mean` | the same profile, filled to the baseline |
+| `step * mean` | each mean held flat across its slot, the plot above |
+
+Legal is not the same as useful. gog draws this step and prints no warning.
+[Law 8](../design-laws.qmd) guarantees a legal plot, never a useful one, so the
+choice of mark is yours.
 
 ## Histogram outline
 
@@ -267,10 +292,12 @@ its domain and `y` as its measure, so a category on `y` has nothing to measure:
 data(gapminder_2007) + step * mean + x(life) + y(continent)
 ```
 
-`color` is different from the first two, and it is the case the settings section
-pointed to. A width belongs to the whole stroke, but a color belongs to a place
-on it. Point anywhere on the staircase and that place has a color, so a measure
-can vary along it. Each tread takes its row's color, and each riser blends the
+`color` is the exception, and it is not a refusal at all. This is the plot
+[What you can set](#what-you-can-set) promised. A stroke has one width the whole
+way along it, so asking what its width is at one point means nothing, and a dash
+is the same. A color is not like that. Every point along the staircase is drawn
+in some color, so the color can change from one end to the other, and a column
+can decide where. Each flat part takes its row's color, and each jump blends the
 colors of the two rows it joins:
 
 ```{r}
@@ -284,5 +311,17 @@ color by gdp on a log scale, with the viridis palette."*
 
 Read one country's staircase from left to right and you see two variables. The
 height is how long people live, and the color is how rich the country was then.
-The tread and the riser are the whole mark: a value held, then the jump to the
-next one.
+The flat part and the jump are the whole mark: a value held, then the change to
+the next one.
+
+## In short
+
+A step holds each value until it changes, so nothing between two measurements is
+claimed. It takes the same channels as a `line`: width and opacity are settings,
+and only `color` varies along the stroke. Each jump is 1/*n* of the axis, so a
+large *n* reads as a rough line.
+
+## What comes next
+
+A step shows one value at each `x`, never a pair. [Interval](interval.qmd)
+draws the pair instead, a low value and a high one at every position.

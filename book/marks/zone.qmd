@@ -318,6 +318,15 @@ data(gm_all) + zone * bin(24) + x(gdp, scale = "log") + y(life) +
 *"Given all the gapminder years: zones derived by bin into 24, x is gdp on a log
 scale, y is life."*
 
+`bin` is not the zone's own transform. What the mark changes is how many axes
+the cut runs along:
+
+| Mark derived by `bin` | Shape |
+|---|---|
+| `bar * bin` | one axis cut, drawn as the bars of a histogram |
+| `zone * bin` | two axes cut, drawn as the cells above |
+| `surface * bin` | the same two axes, with the count raised into the cube |
+
 Read the band of dark cells running up the middle: wealth and life expectancy
 rise together. The darkest cell says how many country-years sit at that
 combination, which overlapping dots cannot.
@@ -941,7 +950,7 @@ overlapping zones need more than color to separate them. Give it more opacity
 than a flat fill wants, as the blue band does: a hatch is line-work with gaps
 between the lines, so fading it to 0.2 leaves very little to see. It takes the
 *fill* textures, not a stroke's dashes; `style(pattern = "dashed")` on a zone is
-refused, pointing at the five fill textures instead.
+refused, pointing at the six fill textures instead.
 
 One setting you might expect is refused, and the refusal says something about
 the mark: `style(size = )`, because a zone's extent *is* its bounds and a size
@@ -1186,3 +1195,16 @@ same thing on either axis.
 data(iris_flowers) + zone * density(bandwidth = 0.5) +
   x(sepal_length) + y(petal_length)
 ```
+
+## In short
+
+A zone is bounded by the columns you give it, and reaches the panel edge where a
+`ribbon` stops at the numbers you hand it. The pair you name decides which axis
+it bounds, and the column types decide which one measures. Compose `bin` instead
+of naming a pair, and a zone cuts both axes at once.
+
+## What comes next
+
+Color is how a zone carries a measure, read back from a legend.
+[Surface](surface.qmd) gives that measure a height instead, and the same field
+becomes a sheet standing in the cube.

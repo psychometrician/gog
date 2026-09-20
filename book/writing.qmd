@@ -260,7 +260,12 @@ If you started this part in one sitting, check yourself against its promise:
 - Predict whether a sentence will render or refuse, and roughly what the
   refusal will say.
 
-If that mostly works, the morning worked. Part II gives every letter its full
-chapter. Or go straight to [the cookbook](cookbook/one-variable.qmd) and
-answer your own questions, following a link back whenever a recipe uses a word
-you want explained.
+If that mostly works, the morning worked. Or go straight to [the
+cookbook](cookbook/one-variable.qmd) and answer your own questions, following a
+link back whenever a recipe uses a word you want explained.
+
+## What comes next
+
+A morning teaches the shape of a sentence, not the range of any one word.
+[Data](data.qmd) opens the letters with the table every sentence starts from:
+the shape gog needs, and what gog does with the columns it finds.

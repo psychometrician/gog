@@ -2,7 +2,7 @@
 % Please edit documentation in R/atoms.R
 \name{cluster}
 \alias{cluster}
-\title{Join the closest leaves under one elbow -- the cluster tree.}
+\title{Join the closest leaves, one pair at a time -- the cluster tree.}
 \usage{
 cluster(value, over)
 }
@@ -22,7 +22,7 @@ position stays unbound and carries the merge distance, which the axis names
 itself.
 }
 \details{
-Two marks read the one tree.  \code{path * cluster(amount, over = nutrient) + x(food)} draws it: each elbow joins two branches at the height they merged,
+Two marks read the one tree.  \code{path * cluster(amount, over = nutrient) + x(food)} draws it: each join stands at the height its two branches merged,
 so the reader can see which leaves sit close and where the groups part.
 \code{y(food)} instead lays the same tree on its side.  \code{zone * cluster(over = nutrient)} is the other reading: the tile plot unchanged, with the leaf
 axis's slots reordered to the tree's leaf order, so alike rows sit together.

@@ -224,3 +224,9 @@ data(actuals) + x(year) + y(sales) +
 
 Position matters here because each `data()` marks where one layer's table ends
 and the next layer's begins.
+
+## What comes next
+
+Scope settles which layer reads an atom inside one panel.
+[Faceting](faceting.qmd) makes more panels, one per category, every one drawn by
+the same sentence and read against the same axes.

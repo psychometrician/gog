@@ -154,10 +154,41 @@ check_prose <- function(dirs = "book") {
                   "writing the plot", "wrote the plot", "written the plot",
                   "write plots", "writing plots")
 
+  # One spelling, the American one. The edit guide's decided-words table records
+  # spelling as *not checked*, and on 2026-09-18 that showed: Law 8 was written
+  # `Pronounceable ≠ Useable` in `combinations.qmd`, `CONTRIBUTING.md`, the
+  # working agreement and the spec, and `Pronounceable ≠ Usable` in the heading
+  # that names it. The heading was right twice over, since American English takes
+  # `usable` and `marks/bar.qmd` already links to the anchor built from it.
+  #
+  # Only variants that cannot appear as data are listed. `colour` is deliberately
+  # absent: it is a real R export, kept so it can be refused, and the style
+  # chapter writes it. `grey` is absent for the same reason, R's `grey80` being a
+  # color name rather than a word.
+  spelling <- c("useable", "centre", "behaviour", "normalise", "labelled")
+
   # Jargon with a plain description available. A reader asked what a polyline
   # was; the answer, straight pieces laid end to end from one row's point to the
   # next, is shorter than the reader's stop, so the book says that instead.
-  jargon <- c("polyline")
+  #
+  # `tread` and `riser` are the same case from a different trade. They are the
+  # exact terms for the two parts of a stair, so they are not loose writing, but
+  # they come from carpentry rather than from this subject, and a translator has
+  # to find a building term in each language for a shape the book can name
+  # directly. A step function is flat between observations and *jumps* at each
+  # one, which is the word the statistics of step functions already uses, and
+  # the chapter's own definition sentence reached for "the flat part" and "the
+  # jump" first. So the book says those, and in the cube, where the jump is a
+  # rectangle rather than a segment, "a vertical face".
+  # `jamo` (자모) was the third: Hangeul's individual letters, its consonants and
+  # its vowels. It is the right Korean word and the book used it twice, in two
+  # adjacent lines of one paragraph, then never again — and the paragraph itself
+  # switched to "consonants" and "vowels" one sentence later. A reader who does
+  # not read Korean has to hold a term that earns nothing, and the metaphor the
+  # whole book runs on (a mark is a consonant, a position is a vowel) is already
+  # in plain words everywhere else. Hangeul and Hunminjeongeum stay: one names
+  # the writing system, the other a book, and neither has an English equivalent.
+  jargon <- c("polyline", "tread", "riser", "jamo")
 
   # One place transcribes an engine diagnostic word for word, and a diagnostic is
   # the *package's* sentence, not the book's. The book has to quote it exactly or
@@ -234,6 +265,7 @@ check_prose <- function(dirs = "book") {
   bad_kind <- character(0)
   bad_verb <- character(0)
   bad_jargon <- character(0)
+  bad_spelling <- character(0)
 
   for (f in qmds) {
     lines <- readLines(f, warn = FALSE)
@@ -356,6 +388,18 @@ check_prose <- function(dirs = "book") {
         }
       }
 
+      # --- One spelling, the American one ------------------------------------
+      # Read the code-stripped line, unlike the lists above. A British spelling
+      # inside backticks is data rather than prose: `design-laws.qmd` writes
+      # ``border_colour`` and ``centre`` to show what the grammar refuses, and
+      # the first thing this check did on the whole book was flag that sentence.
+      low_prose <- tolower(gsub("*", "", prose, fixed = TRUE))
+      for (p in spelling) {
+        if (grepl(p, low_prose, fixed = TRUE)) {
+          bad_spelling <- c(bad_spelling, sprintf("  %s:%d  \"%s\"", short, i, p))
+        }
+      }
+
       # --- Jargon with a plain description available -------------------------
       for (p in jargon) {
         if (grepl(p, low, fixed = TRUE)) {
@@ -408,7 +452,8 @@ check_prose <- function(dirs = "book") {
 
   total <- length(bad_bold) + length(bad_dash) + length(bad_head) +
     length(bad_case) + length(bad_call) + length(bad_idiom) + length(bad_r) +
-    length(bad_kind) + length(bad_verb) + length(bad_jargon)
+    length(bad_kind) + length(bad_verb) + length(bad_jargon) +
+    length(bad_spelling)
 
   report <- function(items, headline, advice) {
     if (!length(items)) return(invisible(NULL))
@@ -436,8 +481,13 @@ check_prose <- function(dirs = "book") {
            "Say continuous or categorical. When what a column holds is the point, say a column of text, or a column that holds numbers.")
     report(bad_verb, "FAIL: a plot is drawn, a sentence is written",
            "You write a sentence, or a specification; the engine draws the plot. Say which.")
+    report(bad_spelling, "FAIL: not the American spelling",
+           "The book is one spelling: usable, center, behavior, normalize, labeled.")
     report(bad_jargon, "FAIL: jargon where a description would do",
-           "A polyline is one stroke of straight pieces, from one row's point to the next. Say that.")
+           paste("A polyline is one stroke of straight pieces, from one row's point to the next.",
+                 "A tread is the flat part of a staircase and a riser is the jump;",
+                 "in the cube the jump is a vertical face. The jamo are Hangeul's",
+                 "consonants and vowels. Say those."))
     stop("check_prose: ", total, " prose inconsistency(ies)")
   }
 

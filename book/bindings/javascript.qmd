@@ -338,3 +338,9 @@ R, Python and Julia never call this function. A notebook in those languages asks
 the plot object how it would be displayed, and each binding answers: R with
 `repr_html`, Python with `_repr_html_`, Julia with a show method. JavaScript has
 no such request to answer, so in JavaScript it is a function you call.
+
+## What comes next
+
+These four chapters are about spelling, and none of them changes what a
+sentence means. [The afterword](../afterword.qmd) closes the book with the
+ten-day challenge, and the one goal the project has not built yet.

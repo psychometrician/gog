@@ -297,3 +297,9 @@ data(quakes_fiji) + point + x(east) + y(north) + globe() + x_label("Longitude")
 The map and the globe are one meaning with two pictures of it. The map trades
 the sphere for a page a reader sees whole. The globe keeps the sphere and
 trades away the far half. Moving between them costs one word.
+
+## What comes next
+
+A globe places a row by two numbers that mean a place on the earth.
+[Network](network.qmd) draws the tables that hold no place at all, rows saying
+one thing is connected to another, positioned by a layout rather than an axis.

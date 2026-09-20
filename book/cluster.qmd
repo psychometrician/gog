@@ -182,3 +182,8 @@ data(nutrients) + path * cluster(amount, over = nutrient) + x(food) +
 
 And one plot clusters one axis. The heatmap above orders both, because it
 composes two clustered plots, one for each axis.
+
+## What comes next
+
+A cluster reorders an axis and leaves the plot flat. [Space](space.qmd) adds the
+third position, `z`, and stands the whole plane up into a cube you can turn.

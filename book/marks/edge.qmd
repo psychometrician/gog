@@ -39,6 +39,17 @@ An `edge` draws only inside `network()`. Every other space labels its axes with
 numbers, and an edge's two endpoints are names. gog refuses the sentence rather
 than drawing it.
 
+`layout` is not the edge's own transform. It works out where every node sits,
+and two other marks read the same places:
+
+| Mark derived by `layout` | Shape |
+|---|---|
+| `point * layout` | one dot per node |
+| `text * layout` | each node's name |
+| `edge * layout` | one stroke per link, the plot above |
+
+[Network](../network.qmd) layers all three into one plot.
+
 ## Color and opacity, one per row
 
 Every stroke in the network above looks the same, so a trade of 500 billion
@@ -125,3 +136,9 @@ data(trade_partners) + edge * layout(exporter, importer)
 
 The [Network](../network.qmd) chapter draws the rest: a dot for every name, a
 label beside each dot, the same graph in a cube, and the other refusals.
+
+## What comes next
+
+An edge is placed by a layout rather than by an axis, which is why it draws only
+inside `network()`. Every other space puts a number somewhere on an axis, and
+[Scales](../scales.qmd) is where a number becomes a place.

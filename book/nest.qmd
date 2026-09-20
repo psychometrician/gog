@@ -278,3 +278,9 @@ data(gapminder_2007) + bar * sum + y(population) + color(continent) +
 
 That refusal is not the packed space's. It is `order()`'s, and it applies in
 every space.
+
+## What comes next
+
+Regions in a nest are sized by the measure and put wherever they fit.
+[Map](map.qmd) puts them where they belong instead: longitude and latitude,
+projected onto the page.

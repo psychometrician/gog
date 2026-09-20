@@ -189,3 +189,8 @@ as *data, mark, positions, refinements*. Nothing you learned for one plot had
 to be unlearned for the next. The same `color` split the bars and lines, and
 colored the points. The same `*` derived counts, means and densities. Now
 you write.
+
+## What comes next
+
+Every sentence here was already written, so nothing asked you to choose a mark.
+[Writing practice](writing.qmd) gives you the question and nothing else.

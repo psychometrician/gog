@@ -177,6 +177,17 @@ data(iris_flowers) + path * density +
 *"Given the iris flowers: paths derived by density, x is sepal length, y is
 petal length."*
 
+Three marks read a density over two positions, and each one draws the same
+field differently:
+
+| Mark derived by `density`, over two positions | Shape |
+|---|---|
+| `zone * density` | the field as filled cells |
+| `surface * density` | the field as a sheet in the cube |
+| `path * density` | the field as contour rings, the plot above |
+
+[Surface](surface.qmd) draws all three from one table, side by side.
+
 Nothing new was added to the grammar to draw that. One rule decides this, and
 the same rule turns `zone * bin` into a [heatmap](zone.qmd). The mark decides
 how many axes a transform cuts, and you never state it. A `bar` leaves an axis
@@ -485,3 +496,15 @@ data(thermals) + line + x(east) + y(north) + z(altitude)
 
 All three point at one fact. A line's shape comes from the sort, and a path's
 comes from the rows.
+
+## In short
+
+A path joins the rows in the order the table holds them, so sorting the table
+changes the picture. That order is the mark's meaning. The arrowhead belongs to
+`path` alone, and the one transform it takes is `density`.
+
+## What comes next
+
+A path follows the rows wherever they go, so every part of it comes from data.
+[Rule](rule.qmd) draws the other kind of line, one that crosses the whole panel
+at a value you pass in.

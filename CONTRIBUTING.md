@@ -24,7 +24,7 @@ The one enemy behind all nine: *the expert's shortcut*.
 | **5** | **Explicit Over Implicit** | Short beats long — unless short is ambiguous, and then it is said out loud. |
 | **6** | **Compositional Invariance** | A composed sub-expression means the same thing in every context it appears in. |
 | **7** | **Minimum Syllable** | A visual is a mark plus its required positions. Neither renders alone. |
-| **8** | **Pronounceable ≠ Useable** | Enforce well-formedness hard; guide taste softly; never forbid the ugly-but-legal. |
+| **8** | **Pronounceable ≠ Usable** | Enforce well-formedness hard; guide taste softly; never forbid the ugly-but-legal. |
 | **9** | **Universal Transcription** | The IR encodes the *visual*, never one backend's draw commands. |
 
 Two consequences worth stating separately, because they are the ones most often

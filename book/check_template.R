@@ -20,9 +20,13 @@
 # in the toolchain could check. So it is checked here.
 #
 # Three assertions per mark chapter:
-#   1. The last two sections are `## What you can set` then `## What it refuses`,
-#      in that order. Refusals last because that is where the stated template
-#      ends.
+#   1. The chapter ends `## What you can set`, `## What it refuses`, then
+#      `## What comes next`, with an optional `## In short` between the last two.
+#      The closer joined the template on 2026-09-18 and is the last section in
+#      every chapter of the book that has one, so a mark chapter ends the way the
+#      rest of the book does. The summary is optional because it is only worth a
+#      reader's attention where a chapter's rules are not already its headings,
+#      which is 12 of the 14 marks; `check_closers.R` owns both of them.
 #   2. One spelling, everywhere. Enforced by (1) being an exact string match.
 #   3. The refusals section holds at least one `#| error: true` chunk — the
 #      section must *show* a refusal, not merely be titled one. check_refusals.R
@@ -36,6 +40,8 @@ check_template <- function(book = "book") {
 
   SET     <- "## What you can set"
   REFUSES <- "## What it refuses"
+  NEXT    <- "## What comes next"
+  SHORT   <- "## In short"
 
   chapters <- list.files(file.path(book, "marks"), pattern = "\\.qmd$",
                          full.names = TRUE)
@@ -69,22 +75,31 @@ check_template <- function(book = "book") {
     }
     h2 <- trimws(ln[h2_at])
 
-    if (length(h2) < 2) {
+    if (length(h2) < 3) {
       bad <- c(bad, sprintf("%s: only %d section(s)", basename(f), length(h2)))
       next
     }
-    last_two <- tail(h2, 2)
-    if (!identical(last_two, c(SET, REFUSES))) {
-      bad <- c(bad, sprintf("%s: ends on %s, expected `%s` then `%s`",
+    # Drop the optional summary before comparing: it sits between the refusals
+    # and the closer, and whether a chapter has one is `check_closers.R`'s
+    # question, not this file's.
+    spine <- h2[h2 != SHORT]
+    last_three <- tail(spine, 3)
+    if (!identical(last_three, c(SET, REFUSES, NEXT))) {
+      bad <- c(bad, sprintf("%s: ends on %s, expected `%s`, `%s`, then `%s`",
                             basename(f),
-                            paste(sprintf("`%s`", last_two), collapse = " then "),
-                            SET, REFUSES))
+                            paste(sprintf("`%s`", last_three), collapse = " then "),
+                            SET, REFUSES, NEXT))
       next
     }
 
-    # The refusals section must show a refusal. Everything from its heading to
-    # the end of the file is the section, it being last by the check above.
-    body <- ln[tail(h2_at, 1):length(ln)]
+    # The refusals section must show a refusal. It is the second to last section
+    # by the check above, so it runs from its own heading to the closer's. Read
+    # that span rather than everything after the last heading: the closer is
+    # prose and holds no chunk, so scanning to the end of the file would search
+    # the wrong section and pass for the wrong reason.
+    refuses_at <- h2_at[which(trimws(ln[h2_at]) == REFUSES)]
+    after <- h2_at[h2_at > refuses_at]
+    body <- ln[refuses_at:(min(after) - 1)]
     if (!any(grepl("error:\\s*true", grep("^#\\|", body, value = TRUE))))
       bad <- c(bad, sprintf(paste("%s: `%s` contains no `error: true` chunk —",
                                   "the section must *show* a refusal, not just",
@@ -98,6 +113,7 @@ check_template <- function(book = "book") {
          "\n  Either fix the chapter, or stop claiming the template there.")
 
   cat("PASS: every mark chapter follows the template (", length(chapters),
-      "chapters, ending `What you can set` then `What it refuses` )\n")
+      "chapters, ending `What you can set`, `What it refuses`,",
+      "then `What comes next` )\n")
   invisible(TRUE)
 }

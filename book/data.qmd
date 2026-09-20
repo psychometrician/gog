@@ -609,5 +609,17 @@ A label's width is measured from its characters, and a Korean or Chinese
 character is about twice as wide as a Latin one, so these labels get the margin
 they need and no more.
 
-That is everything a sentence needs from its table. The next chapter shows
-where this book's own tables come from, and the mark chapters follow it.
+That is everything a sentence needs from its table.
+
+## In short
+
+A table is named once, and the nearest one wins. A sentence naming columns the
+table does not have is refused rather than pivoted. A declared order travels
+with the column onto the axis and the legend; `order()` overrides it for one
+plot, and only the levels change it everywhere.
+
+## What comes next
+
+This chapter says what gog needs from your own table, and nothing about the
+tables in this book. [The book's data](book-data.qmd) names them, says where
+they come from, and shows how to read one in your own language.

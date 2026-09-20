@@ -369,3 +369,15 @@ check them, in the strip labels.
 Faceting joins with the operators, never with `+`; a facet is a property of
 the whole plot's frame, not one more encoding in the chain. Writing
 `+ facet(continent)` refuses and points at `|` and `/`.
+
+## In short
+
+Every panel is drawn by the same sentence and read against the same scales.
+`free` gives that up on purpose. A layer whose table does not carry the facet
+column is drawn in full in every panel.
+
+## What comes next
+
+Faceting cuts one plot into panels that share a sentence and an axis.
+[Composition](composition.qmd) does the opposite, arranging plots that were
+never one plot onto a page.
