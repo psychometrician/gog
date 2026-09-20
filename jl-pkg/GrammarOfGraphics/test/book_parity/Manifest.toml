@@ -37,10 +37,10 @@ uuid = "7b1f6079-737a-58dc-b8bc-7a2ca5c1b5ee"
 version = "1.11.0"
 
 [[deps.GrammarOfGraphics]]
-deps = ["Base64", "Dates", "DelimitedFiles", "Downloads", "Random"]
+deps = ["Artifacts", "Base64", "Dates", "DelimitedFiles", "Downloads", "Random"]
 path = "../.."
 uuid = "c00c8485-9aac-4319-bba4-e242535f49e2"
-version = "0.2.0"
+version = "0.3.0"
 
 [[deps.JSON]]
 deps = ["Dates", "Logging", "Parsers", "PrecompileTools", "StructUtils", "UUIDs", "Unicode"]
