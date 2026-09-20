@@ -14,6 +14,7 @@ theme(
   strip = NULL,
   strip_text = NULL,
   frame = NULL,
+  axis_label = NULL,
   width = NULL,
   height = NULL
 )
@@ -57,6 +58,10 @@ gold type.}
 \item{frame}{How the panel is bounded: \code{"full"} (a rectangle, which is what
 \code{theme("bw")} sets and what a journal usually asks for), \code{"axes"} (the
 default, bottom and left only) or \code{"none"}.}
+
+\item{axis_label}{Where each axis's name sits: \code{"beside"} (the default,
+centered along its own axis, which turns the y name through 90 degrees) or
+\code{"end"} (at the axis's far end, horizontal, so nothing is read sideways).}
 
 \item{width, height}{How many pixels the plot asks for. On its own that is the
 image; composed onto a page with \code{|} or \code{/} it is the plot's \emph{cell}, and

@@ -30,7 +30,7 @@ channel there is no data range to rescale from.}
 (default 2).}
 
 \item{shape}{One of \code{"circle"}, \code{"square"}, \code{"triangle"},
-\code{"diamond"}, \code{"cross"}.}
+\code{"diamond"}, \code{"cross"}, \code{"star"}, \code{"wye"}.}
 
 \item{border_color}{Outline color for a closed glyph.}
 

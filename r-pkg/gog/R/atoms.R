@@ -67,10 +67,16 @@ column_name <- function(sub, atom, settable = FALSE) {
 # caller wrote, as Julia and JavaScript check it, so `space(turn = "left")` is
 # refused here rather than shipped to the wire as a string. The engine checks
 # too; a rule implemented in one binding is a rule the other three get wrong.
+# The four atoms that take an angle, each with its own call to show. JavaScript
+# has carried these examples since it was written and the other three did not,
+# which is four copies of one rule drifting rather than four idioms.
+DEGREE_EXAMPLES <- c(space = "space(45, 20)", polar = "polar(90)",
+                     globe = "globe(178, -18)", network = "network(30, 25)")
+
 degrees <- function(value, atom, name) {
   if (!is.numeric(value) || length(value) != 1L || !is.finite(value)) {
-    stop("gog: `", atom, "(", name, " = )` needs a single number of degrees.",
-         call. = FALSE)
+    stop("gog: `", atom, "(", name, " = )` needs a single number of degrees, e.g. `",
+         DEGREE_EXAMPLES[[atom]], "`.", call. = FALSE)
   }
   as.numeric(value)
 }
@@ -1781,7 +1787,7 @@ reject_setting <- function(name) {
 #' @param size    Pixels: point radius (default 4.5), or line stroke width
 #'   (default 2).
 #' @param shape   One of \code{"circle"}, \code{"square"}, \code{"triangle"},
-#'   \code{"diamond"}, \code{"cross"}.
+#'   \code{"diamond"}, \code{"cross"}, \code{"star"}, \code{"wye"}.
 #'
 #' @examples
 #' \dontrun{
@@ -1873,18 +1879,22 @@ style <- function(color = NULL, opacity = NULL, size = NULL, shape = NULL,
   }
 
   # `pattern` is the texture of a mark's paint, realized per geometry (spec §4):
-  # on a stroke (`line`/`step`/`interval`) the dash (`dashed`/`dotted`), on a fill
-  # (`bar`/`box`/`area`/`ribbon`) a hatch (`hatch`/`crosshatch`/`grid`/`dots`);
+  # on a stroke (`line`/`step`/`interval`) the dash (`dashed`/`dotted`/`dotdash`/
+  # `longdash`), on a fill (`bar`/`box`/`area`/`ribbon`) a hatch (`hatch`/
+  # `crosshatch`/`stripes`/`grid`/`dots`);
   # `solid` is the shared no-texture default. Here we only check the value is one of
   # the union; the engine, which knows the mark, refuses a dash on a fill (or a
   # hatch on a stroke) with direction.
-  pattern_values <- c("solid", "dashed", "dotted", "hatch", "crosshatch", "grid", "dots")
+  pattern_values <- c("solid", "dashed", "dotted", "dotdash", "longdash",
+                      "hatch", "crosshatch", "stripes", "grid", "dots")
   if (!is.null(props$pattern) &&
       (!is.character(props$pattern) || length(props$pattern) != 1L ||
        !props$pattern %in% pattern_values)) {
     stop("gog: `style(pattern = )` needs a stroke's dash ",
-         "(\"solid\", \"dashed\", \"dotted\") or a fill's texture ",
-         "(\"hatch\", \"crosshatch\", \"grid\", \"dots\").", call. = FALSE)
+         "(\"solid\", \"dashed\", \"dotted\", \"dotdash\", \"longdash\") ",
+         "or a fill's texture ",
+         "(\"hatch\", \"crosshatch\", \"stripes\", \"grid\", \"dots\").",
+         call. = FALSE)
   }
 
   # `arrow` puts a head on a `path`'s end -- the one mark with a direction to
@@ -2080,6 +2090,9 @@ palette <- function(pal) {
 #' @param frame How the panel is bounded: `"full"` (a rectangle, which is what
 #'   `theme("bw")` sets and what a journal usually asks for), `"axes"` (the
 #'   default, bottom and left only) or `"none"`.
+#' @param axis_label Where each axis's name sits: `"beside"` (the default,
+#'   centered along its own axis, which turns the y name through 90 degrees) or
+#'   `"end"` (at the axis's far end, horizontal, so nothing is read sideways).
 #' @param width,height How many pixels the plot asks for. On its own that is the
 #'   image; composed onto a page with `|` or `/` it is the plot's *cell*, and
 #'   the plots that ask for nothing split what is left — which is how a marginal
@@ -2089,14 +2102,16 @@ palette <- function(pal) {
 #' @export
 theme <- function(preset = NULL, grid = NULL, ratio = NULL, tick_angle = NULL,
                   font_size = NULL, background = NULL, strip = NULL,
-                  strip_text = NULL, frame = NULL, width = NULL, height = NULL) {
+                  strip_text = NULL, frame = NULL, axis_label = NULL,
+                  width = NULL, height = NULL) {
   if (!is.null(preset) && !(is.character(preset) && length(preset) == 1)) {
     stop("gog: `theme()` takes a preset name first \u2014 `theme(\"minimal\")` \u2014 and ",
          "everything else by name: `theme(grid = \"none\")`.", call. = FALSE)
   }
   if (is.null(preset) && is.null(grid) && is.null(ratio) && is.null(tick_angle) &&
       is.null(font_size) && is.null(background) && is.null(strip) &&
-      is.null(strip_text) && is.null(frame) && is.null(width) && is.null(height)) {
+      is.null(strip_text) && is.null(frame) && is.null(axis_label) &&
+      is.null(width) && is.null(height)) {
     stop("gog: `theme()` sets nothing. Name a preset or a property, e.g. ",
          "`theme(\"minimal\")` or `theme(grid = \"none\", ratio = 1)`.", call. = FALSE)
   }
@@ -2138,6 +2153,14 @@ theme <- function(preset = NULL, grid = NULL, ratio = NULL, tick_angle = NULL,
     stop("gog: `theme(strip = )` needs a single color for the band above each ",
          "panel, e.g. `theme(strip = \"white\")`.", call. = FALSE)
   }
+  if (!is.null(axis_label) &&
+      !(is.character(axis_label) && length(axis_label) == 1 &&
+        axis_label %in% c("end", "beside"))) {
+    stop("gog: `theme(axis_label = )` is \"end\" or \"beside\" \u2014 where each ",
+         "axis's name sits: at the axis's far end, or centered along it.",
+         call. = FALSE)
+  }
+
   if (!is.null(strip_text) && !(is.character(strip_text) && length(strip_text) == 1)) {
     stop("gog: `theme(strip_text = )` needs a single color for the strip's label. ",
          "Leave it out and gog picks the one that reads on the band.", call. = FALSE)
@@ -2157,6 +2180,7 @@ theme <- function(preset = NULL, grid = NULL, ratio = NULL, tick_angle = NULL,
                  ratio = ratio, tick_angle = tick_angle, font_size = font_size,
                  background = background, strip = strip,
                  strip_text = strip_text, frame = frame,
+                 axis_label = axis_label,
                  width = width, height = height),
             class = "gog_atom")
 }

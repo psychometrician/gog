@@ -140,6 +140,103 @@ if (!grepl("SELECT as one string", refusal, fixed = TRUE))
   stop("FAIL: query() given a non-string query did not say so — got: ", refusal)
 cat("PASS: query() given a query that is not text refused\n")
 
+# --- the binding's vocabularies against the engine's -------------------------
+# Four bindings each keep their own copy of `pattern`'s values, and nothing
+# compared them to the engine, so growing a vocabulary was four edits that could
+# fail silently. `--rules` is the engine's own dump, so this is the comparison
+# rather than a second hand-typed list.
+local({
+  cli <- Sys.getenv("GOG_CLI_PATH", unset = "")
+  if (!nzchar(cli)) cli <- file.path("target", "release", "gog-cli")
+  rules <- jsonlite::fromJSON(system2(cli, "--rules", stdout = TRUE),
+                              simplifyVector = FALSE)
+  vals <- function(setting, mark) {
+    for (c in rules$setting_cells)
+      if (identical(c$setting, setting) && identical(c$mark, mark))
+        return(unlist(c$values))
+    character(0)
+  }
+  shapes <- vals("shape", "point")
+  dashes <- vals("pattern", "line")
+  fills  <- vals("pattern", "bar")
+  stopifnot(length(shapes) > 0, length(dashes) > 0, length(fills) > 0)
+
+  df <- data.frame(a = c(1, 2, 3), b = c(4, 5, 6))
+  for (s in shapes) {
+    ok <- tryCatch({ render_svg(data(df) + point + x(a) + y(b) + style(shape = s)); TRUE },
+                   error = function(e) FALSE)
+    if (!ok) stop("FAIL: the engine lists shape \"", s, "\" and R refuses it")
+  }
+  for (d in dashes) {
+    ok <- tryCatch({ render_svg(data(df) + line + x(a) + y(b) + style(pattern = d)); TRUE },
+                   error = function(e) FALSE)
+    if (!ok) stop("FAIL: the engine lists dash \"", d, "\" and R refuses it")
+  }
+  for (f in fills) {
+    ok <- tryCatch({ render_svg(data(df) + bar + x(a) + y(b) + style(pattern = f)); TRUE },
+                   error = function(e) FALSE)
+    if (!ok) stop("FAIL: the engine lists fill texture \"", f, "\" and R refuses it")
+  }
+  cat("PASS: R accepts every value the engine lists (", length(shapes), "shapes,",
+      length(dashes), "dashes,", length(fills), "fill textures )\n")
+})
+
+# A *which one?* column past its vocabulary is legal and draws, and says so.
+local({
+  n <- 9L
+  many <- data.frame(a = seq_len(n), b = seq_len(n),
+                     g = paste0("c", seq_len(n)))
+  msg <- capture.output(
+    render_svg(data(many) + point + x(a) + y(b) + shape(g)),
+    type = "message")
+  hit <- grep("starts over", msg, value = TRUE)
+  if (length(hit) == 0)
+    stop("FAIL: a shape column past the vocabulary drew without a word")
+  cat("PASS: a which-one column past its vocabulary is reported, not dropped\n")
+})
+
+# --- `theme(axis_label = )`: one convention for both axis names ---------------
+local({
+  df <- data.frame(a = c(1, 2, 3), b = c(4, 5, 6))
+  base <- data(df) + point + x(a) + y(b) + x_label("A") + y_label("B")
+  beside <- render_svg(base)
+  ended  <- render_svg(base + theme(axis_label = "end"))
+  if (!grepl("rotate(-90", beside, fixed = TRUE))
+    stop("FAIL: the default should turn the y name through 90 degrees")
+  if (grepl("rotate(-90", ended, fixed = TRUE))
+    stop("FAIL: `axis_label = \"end\"` should leave every name horizontal")
+  # At its end the x name is right-aligned; beside its axis it is centered.
+  if (!grepl('text-anchor="end">A<', ended))
+    stop("FAIL: at its end the x name should be anchored at the axis's end")
+  cat("PASS: `theme(axis_label = )` places both axis names by one rule\n")
+  refused <- tryCatch({ theme(axis_label = "sideways"); "drew" },
+                      error = function(e) conditionMessage(e))
+  if (!grepl("end", refused) || !grepl("beside", refused))
+    stop("FAIL: an unknown placement should name the two that exist")
+  cat("PASS: refused \u2014 an axis_label placement that does not exist\n")
+})
+
+# --- two plots in one document may not share an id -----------------------------
+# A notebook is one document and an id resolves against the whole of it, so a
+# second plot borrowing the first's `<pattern>` draws nothing once a host
+# detaches the owning cell. No suite that writes one picture per file can see it.
+local({
+  a <- render_svg(data(data.frame(g = c("a","b","c"), v = c(1, 2, 3))) +
+                    bar + x(g) + y(v) + style(pattern = "hatch"))
+  b <- render_svg(data(data.frame(g = c("a","b","c"), v = c(3, 1, 2))) +
+                    bar + x(g) + y(v) + style(pattern = "hatch"))
+  ids <- function(s) unique(gsub('id="|"', "", regmatches(s, gregexpr('id="[^"]+"', s))[[1]]))
+  shared <- intersect(ids(a), ids(b))
+  if (length(shared) > 0)
+    stop("FAIL: two different plots share an id: ", paste(shared, collapse = ", "))
+  for (s in list(a, b)) {
+    refs <- unique(gsub("url\\(#|\\)", "", regmatches(s, gregexpr("url\\(#[^)]+\\)", s))[[1]]))
+    if (!all(refs %in% ids(s)))
+      stop("FAIL: a reference points outside its own plot")
+  }
+  cat("PASS: two plots in one document mint no id in common\n")
+})
+
 cat("\nAll tests passed.\n")
 
 # --- * operator: bar * bin (histogram) ---
@@ -800,7 +897,7 @@ cat("PASS: a map earns a legend, a set does not\n")
 # `line` refuses opacity as a channel but accepts it as a setting — the case
 # the whole set/map split exists for.
 refuses("opacity(y) on line", render_svg(data(df) + x(x) + y(y) + line + opacity(y)),
-        "no opacity feature")
+        "style(opacity = )")
 svg14 <- render_svg(data(df) + x(x) + y(y) + line + style(opacity = 0.4, size = 6))
 if (!grepl('stroke-width="6"', svg14)) stop("FAIL: style(size) missing on line")
 if (!grepl('stroke-opacity="0.400"', svg14)) stop("FAIL: style(opacity) missing on line")
@@ -2550,7 +2647,7 @@ cat("PASS: a category splits an area into one region each\n")
 
 # One region has one fill: opacity is a setting, never a channel.
 refuses("opacity(y) on area", render_svg(data(df) + area + x(x) + y(y) + opacity(y)),
-        "no opacity feature")
+        "style(opacity = )")
 svg_area3 <- render_svg(data(df) + area + x(x) + y(y) + style(opacity = 0.3))
 if (!grepl('fill-opacity="0.300"', svg_area3))
   stop("FAIL: style(opacity) did not reach the area")
@@ -2635,6 +2732,22 @@ if (file.exists("book/check_template.R")) {
   cat("\ntemplate tests passed.\n")
 } else {
   cat("SKIP: book/ not found — run from the repo root to check the template\n")
+}
+
+# The template's companion, and the one that watches where a chapter *ends*.
+# Measured 2026-09-18: of 57 chapters, 7 stopped on a refused specification with
+# no prose after it and 19 more on a one-line gloss of that refusal, while only
+# 5 told the reader what followed. Quarto's footer prints the next chapter's
+# name, so a closer carries the reason instead, and the guard exists for the
+# half that cannot be written by hand and left alone: the link has to name the
+# chapter that genuinely follows in `_quarto.yml`, or a reorder leaves 44 stale
+# sentences behind it.
+if (file.exists("book/check_closers.R")) {
+  source("book/check_closers.R")
+  check_closers()
+  cat("\nclosing tests passed.\n")
+} else {
+  cat("SKIP: book/ not found — run from the repo root to check the closers\n")
 }
 
 # The fourth, and the one that watches the *plots* rather than the prose. Quarto

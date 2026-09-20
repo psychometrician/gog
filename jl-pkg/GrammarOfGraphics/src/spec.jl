@@ -478,7 +478,7 @@ function Base.:+(left::Plot, right::Atom)
         # are written, keeping "said nothing" apart from "asked for the default"
         # (spec §7).
         haskey(plot.spec, "theme") || (plot.spec["theme"] = Dict{String,Any}())
-        for key in (:preset, :grid, :ratio, :tick_angle, :font_size, :background, :strip, :strip_text, :frame,
+        for key in (:preset, :grid, :ratio, :tick_angle, :font_size, :background, :strip, :strip_text, :frame, :axis_label,
                     :width, :height)
             value = right.fields[key]
             value === nothing || (plot.spec["theme"][String(key)] = value)
@@ -731,7 +731,7 @@ page_facet_refusal(operator::AbstractString) = throw(GogError(
 # page. The engine holds the same list in `check_page_theme`; this copy is what
 # puts the refusal on the line that wrote it.
 const PANEL_THEME = (:preset, :grid, :ratio, :tick_angle, :font_size,
-                     :background, :strip, :strip_text, :frame)
+                     :background, :strip, :strip_text, :frame, :axis_label)
 
 # An atom belongs to a plot, not to the page — with the one exception whose
 # subject is the figure rather than a panel. `theme(height = 310)` says how big

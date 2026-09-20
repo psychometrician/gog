@@ -110,7 +110,7 @@ from .tables import gog_table
 # upgrade in a venv reported the old number back. `test_basic.R`'s drift guard
 # now covers this file too; it did not at first, because the guard enumerated
 # manifests and this is source.
-__version__ = "0.2.0"
+__version__ = "0.3.0"
 
 __all__ = [
     # the table

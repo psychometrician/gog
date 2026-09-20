@@ -1773,3 +1773,56 @@ end
                            globe(turn = 178, tilt = -18))
     @test occursin("<line ", spike_svg)
 end
+
+# Julia keeps its own copy of `pattern`'s values, so a vocabulary grown in the
+# engine and not here fails silently. Each value is drawn rather than compared to
+# a second list.
+@testset "the grown which-one vocabularies all draw" begin
+    tbl = (a = [1.0, 2.0, 3.0], b = [4.0, 5.0, 6.0])
+    for s in ("circle", "square", "triangle", "diamond", "cross", "star", "wye")
+        @test occursin("<svg", render_svg(data(tbl) + point + x(:a) + y(:b) + style(shape = s)))
+    end
+    for d in ("solid", "dashed", "dotted", "dotdash", "longdash")
+        @test occursin("<svg", render_svg(data(tbl) + line + x(:a) + y(:b) + style(pattern = d)))
+    end
+    for f in ("solid", "hatch", "crosshatch", "stripes", "grid", "dots")
+        @test occursin("<svg", render_svg(data(tbl) + bar + x(:a) + y(:b) + style(pattern = f)))
+    end
+end
+
+# `theme(axis_label = )` states one convention for both axis names.
+@testset "axis_label places both axis names by one rule" begin
+    tbl = (a = [1.0, 2.0, 3.0], b = [4.0, 5.0, 6.0])
+    base = data(tbl) + point + x(:a) + y(:b) + x_label("A") + y_label("B")
+    @test occursin("rotate(-90", render_svg(base))
+    @test !occursin("rotate(-90", render_svg(base + theme(axis_label = "end")))
+    @refuses theme(axis_label = "sideways") "beside"
+end
+
+# Two plots in one document may not share an id: a notebook is one document, and
+# a second plot borrowing the first's <pattern> draws nothing once a host
+# detaches the owning cell.
+@testset "two plots in one document mint no id in common" begin
+    draw(v) = render_svg(data((g = ["a", "b", "c"], v = v)) + bar + x(:g) + y(:v) +
+                         style(pattern = "hatch"))
+    a, b = draw([1.0, 2.0, 3.0]), draw([3.0, 1.0, 2.0])
+    ids(s) = Set(m.captures[1] for m in eachmatch(r"id=\"([^\"]+)\"", s))
+    ia, ib = ids(a), ids(b)
+    @test !isempty(ia) && !isempty(ib)
+    @test isempty(intersect(ia, ib))
+    for s in (a, b)
+        refs = Set(m.captures[1] for m in eachmatch(r"url\(#([^)]+)\)", s))
+        @test issubset(refs, ids(s))
+    end
+end
+
+# A refusal must not print its own template. `"\$v"` escapes the dollar, so Julia
+# emits a literal `$v` and a reader is told the choices are `"$v", "$v", "$v"`.
+# It reached a notebook cell before anything here could see it: every test that
+# read the message asserted on a substring that happened to sit before the
+# template. Source-level, because the defect is in what is written, not in what
+# a particular call happens to raise.
+@testset "no refusal prints its own template" begin
+    src = read(joinpath(@__DIR__, "..", "src", "atoms.jl"), String)
+    @test !occursin("\\\$", src)
+end

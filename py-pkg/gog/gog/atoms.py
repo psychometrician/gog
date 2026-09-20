@@ -707,14 +707,26 @@ def _degrees(value, atom: str, name: str) -> float:
     GogError` missed — the one class every other refusal in the package
     arrives as. Julia and JavaScript run the same check in the same words.
     """
+    # The four atoms that take an angle, each with its own call to show.
+    # JavaScript has carried these since it was written and the other three did
+    # not, which is four copies of one rule drifting rather than four idioms.
     if (
         isinstance(value, bool)
         or not isinstance(value, (int, float))
         or value != value
         or value in (float("inf"), float("-inf"))
     ):
-        raise GogError(f"gog: `{atom}({name}=)` needs a single number of degrees.")
+        raise GogError(
+            f"gog: `{atom}({name}=)` needs a single number of degrees, "
+            f"e.g. `{_DEGREE_EXAMPLES[atom]}`."
+        )
     return float(value)
+
+
+_DEGREE_EXAMPLES = {
+    "space": "space(45, 20)", "polar": "polar(90)",
+    "globe": "globe(178, -18)", "network": "network(30, 25)",
+}
 
 
 class _Space(CallableAtom):
@@ -1026,7 +1038,8 @@ _STYLE_NUMBERS = ("opacity", "size", "border_size")
 _STYLE_FLAGS = ("caps", "center")
 _STYLE_VALUES: Dict[str, Sequence[str]] = {
     "nudge": ("up", "down", "left", "right"),
-    "pattern": ("solid", "dashed", "dotted", "hatch", "crosshatch", "grid", "dots"),
+    "pattern": ("solid", "dashed", "dotted", "dotdash", "longdash",
+                "hatch", "crosshatch", "stripes", "grid", "dots"),
     "arrow": ("end", "start", "both"),
     "reach": ("panel", "edge"),
 }
@@ -1055,7 +1068,7 @@ def style(**props: Any) -> Atom:
     if not props:
         raise GogError(
             "gog: `style()` sets nothing. Name at least one property, e.g. "
-            "`style(color='tomato')`."
+            "`style(color=\"tomato\")`."
         )
 
     for name, value in props.items():
@@ -1087,7 +1100,7 @@ def style(**props: Any) -> Atom:
         if name in _STYLE_STRINGS and not isinstance(value, str):
             raise GogError(
                 f"gog: `style({name}=)` needs a single string, e.g. "
-                f"`style({name}='tomato')`."
+                f"`style({name}=\"tomato\")`."
             )
         if name in _STYLE_NUMBERS and (
             isinstance(value, bool) or not isinstance(value, (int, float))
@@ -1100,6 +1113,17 @@ def style(**props: Any) -> Atom:
                 f"gog: `style({name}=)` needs True or False."
             )
         if name in _STYLE_VALUES and value not in _STYLE_VALUES[name]:
+            # `pattern` is the one setting whose values split by geometry: five
+            # are a stroke's dash and five a fill's texture, and the engine
+            # refuses each on the other. A flat list of ten hides that, so a
+            # reader learns the split only by being refused twice.
+            if name == "pattern":
+                raise GogError(
+                    'gog: `style(pattern=)` needs a stroke\'s dash '
+                    '("solid", "dashed", "dotted", "dotdash", "longdash") '
+                    'or a fill\'s texture '
+                    '("hatch", "crosshatch", "stripes", "grid", "dots").'
+                )
             allowed = ", ".join(f'"{v}"' for v in _STYLE_VALUES[name])
             raise GogError(f"gog: `style({name}=)` needs one of {allowed}.")
 
@@ -1174,6 +1198,7 @@ def theme(
     strip: Optional[str] = None,
     strip_text: Optional[str] = None,
     frame: Optional[str] = None,
+    axis_label: Optional[str] = None,
     width: Optional[float] = None,
     height: Optional[float] = None,
 ) -> Atom:
@@ -1213,23 +1238,23 @@ def theme(
     """
     if (preset is None and grid is None and ratio is None and tick_angle is None
             and font_size is None and background is None and strip is None
-            and strip_text is None and frame is None and width is None
-            and height is None):
+            and strip_text is None and frame is None and axis_label is None
+            and width is None and height is None):
         raise GogError(
             "gog: `theme()` sets nothing. Name a preset or a property, e.g. "
-            "`theme('minimal')` or `theme(grid='none', ratio=1)`."
+            "`theme(\"minimal\")` or `theme(grid=\"none\", ratio=1)`."
         )
     if preset is not None and not isinstance(preset, str):
         raise GogError(
-            "gog: `theme()` takes a preset name first — `theme('minimal')` — and "
-            "everything else by name: `theme(grid='none')`."
+            "gog: `theme()` takes a preset name first — `theme(\"minimal\")` — and "
+            "everything else by name: `theme(grid=\"none\")`."
         )
     # Checked in the engine too (`check_theme`), which is what makes the rule the
     # grammar's rather than this binding's. Checking here as well is what puts
     # the error on the line that wrote it.
     if grid is not None and grid not in _GRID_VALUES:
         raise GogError(
-            "gog: `theme(grid=)` is one of " + ", ".join(f"'{v}'" for v in _GRID_VALUES) + "."
+            "gog: `theme(grid=)` is one of " + ", ".join(f'"{v}"' for v in _GRID_VALUES) + "."
         )
     if ratio is not None and (
         isinstance(ratio, bool) or not isinstance(ratio, (int, float)) or ratio <= 0
@@ -1257,20 +1282,25 @@ def theme(
             "multiplier, so it needs one number of at least 4. The default is 11, "
             "and the axis names and the title are derived from it."
         )
+    if axis_label is not None and axis_label not in ("end", "beside"):
+        raise GogError(
+            "gog: `theme(axis_label=)` is \"end\" or \"beside\" \u2014 where each axis's "
+            "name sits: at the axis's far end, or centered along it."
+        )
     if frame is not None and frame not in _FRAME_VALUES:
         raise GogError(
-            "gog: `theme(frame=)` is one of 'full' (a rectangle round the panel), "
-            "'axes' (bottom and left only) or 'none'."
+            "gog: `theme(frame=)` is one of \"full\" (a rectangle round the panel), "
+            "\"axes\" (bottom and left only) or \"none\"."
         )
     if background is not None and not isinstance(background, str):
         raise GogError(
             "gog: `theme(background=)` needs a single color, e.g. "
-            "`theme(background='white')` or `'transparent'`."
+            "`theme(background=\"white\")` or `\"transparent\"`."
         )
     if strip is not None and not isinstance(strip, str):
         raise GogError(
             "gog: `theme(strip=)` needs a single color for the band above each "
-            "panel, e.g. `theme(strip='white')`."
+            "panel, e.g. `theme(strip=\"white\")`."
         )
     if strip_text is not None and not isinstance(strip_text, str):
         raise GogError(
@@ -1299,6 +1329,7 @@ def theme(
         strip=strip,
         strip_text=strip_text,
         frame=frame,
+        axis_label=axis_label,
         width=None if width is None else float(width),
         height=None if height is None else float(height),
     )

@@ -146,6 +146,11 @@ impl PanelGrid {
         ratio: Option<f64>,
         // `theme(tick_angle = )` — degrees the x tick labels are turned through.
         tick_angle: Option<f64>,
+        // `theme(axis_label = "beside")` — the y name turns and moves into the
+        // left margin, so the band it costs moves from the top to the side. The
+        // x name stays in the same band either way and only its anchor changes,
+        // which is why one bool carries the whole property here.
+        y_label_beside: bool,
         // Is `play` bound? A frame sequence earns a strip the way a facet does,
         // and it costs the same band of height whatever the frame count is.
         has_play: bool,
@@ -178,9 +183,10 @@ impl PanelGrid {
             .map(|l| estimate_text_width(l, font_sm))
             .fold(0.0_f64, f64::max);
 
+        let y_label_band = !y_label.is_empty();
         let pad_top = 16.0
             + if has_title { title_h + 12.0 } else { 0.0 }
-            + if !y_label.is_empty() { label_h + 6.0 } else { 0.0 };
+            + if y_label_band && !y_label_beside { label_h + 6.0 } else { 0.0 };
 
         // A turned x label is taller than an upright one by as much of its own
         // *width* as the angle borrows: height = w·sin θ + h·cos θ, the bounding
@@ -213,7 +219,8 @@ impl PanelGrid {
             + if !x_label.is_empty() { label_h + 8.0 } else { 0.0 }
             + 10.0;
 
-        let pad_left = y_tick_w + 24.0;
+        let pad_left = y_tick_w + 24.0
+            + if y_label_band && y_label_beside { label_h + 8.0 } else { 0.0 };
 
         // A turned label hangs *left* of its tick rather than straddling it (it
         // is anchored at its end), so the right margin no longer has to hold half
@@ -484,6 +491,7 @@ mod tests {
             rows.into_iter().map(String::from).collect(),
             ratio,
             tick_angle,
+            false,
             has_play,
             wrap,
             free,
@@ -508,8 +516,8 @@ mod tests {
         let ticked = nice_ticks(0.0, 10.0, 5);
         let bare = |xt: &TickSpec, yt: &TickSpec, xl: &str, yl: &str| {
             PanelGrid::compute(800.0, 600.0, (12.0, 14.0, 18.0), xt, yt, xl, yl,
-                               false, 0.0, vec![], vec![], None, None, false, None,
-                               (false, false), (0.0, 0.0), Fit::free())
+                               false, 0.0, vec![], vec![], None, None, false, false,
+                               None, (false, false), (0.0, 0.0), Fit::free())
         };
         let cube = bare(&empty, &empty, "", "");
         let flat = bare(&ticked, &ticked, "X", "Y");

@@ -116,7 +116,8 @@ const SET_ONLY: Rule = CANNOT.settable();
 /// dash values instead (`solid`/`dashed`/`dotted`), one realization per geometry
 /// (spec §4, the settable rule). Small and plain on the `shape` precedent: five
 /// glyphs, five textures.
-pub(crate) const FILL_TEXTURES: [&str; 5] = ["solid", "hatch", "crosshatch", "grid", "dots"];
+pub(crate) const FILL_TEXTURES: [&str; 6] =
+    ["solid", "hatch", "crosshatch", "stripes", "grid", "dots"];
 
 // ---------------------------------------------------------------------------
 // The table
@@ -2037,7 +2038,8 @@ fn actual_type(df: &DataFrame, field: &str) -> Option<VarType> {
 // ---------------------------------------------------------------------------
 
 /// The glyphs `point` can draw, in the order `shape` assigns them.
-pub const SHAPE_NAMES: &[&str] = &["circle", "square", "triangle", "diamond", "cross"];
+pub const SHAPE_NAMES: &[&str] =
+    &["circle", "square", "triangle", "diamond", "cross", "star", "wye"];
 
 
 
@@ -5898,7 +5900,7 @@ fn check_page_fits(out: &mut Vec<Diagnostic>, figure: &Figure, canvas: (f64, f64
 /// is the double meaning §13 exists to catch.
 fn check_page_theme(out: &mut Vec<Diagnostic>, page: &PageSpec) {
     let t = &page.theme;
-    let panel_properties: [(&str, bool); 9] = [
+    let panel_properties: [(&str, bool); 10] = [
         ("preset", t.preset.is_some()),
         ("grid", t.grid.is_some()),
         ("ratio", t.ratio.is_some()),
@@ -5908,6 +5910,7 @@ fn check_page_theme(out: &mut Vec<Diagnostic>, page: &PageSpec) {
         ("strip", t.strip.is_some()),
         ("strip_text", t.strip_text.is_some()),
         ("frame", t.frame.is_some()),
+        ("axis_label", t.axis_label.is_some()),
     ];
     for (name, stated) in panel_properties {
         if !stated {
@@ -6095,6 +6098,9 @@ pub fn check(spec: &PlotSpec, data: &HashMap<String, DataFrame>) -> Vec<Diagnost
         if let Some(df) = df {
             check_slot_shape(&mut out, spec, df, layer);
             check_area_overlap(&mut out, spec, df, layer);
+            // A `shape` or `pattern` column with more categories than the
+            // vocabulary has kinds draws two groups alike — legal, and said.
+            check_which_one_cycles(&mut out, df, mark, layer);
             // `jitter` is point-only and legal only when a position axis is
             // categorical — a data-aware check, so it sits with the others (§5).
             check_jitter(&mut out, spec, df, layer);
@@ -6186,19 +6192,44 @@ pub fn check(spec: &PlotSpec, data: &HashMap<String, DataFrame>) -> Vec<Diagnost
             if r.obligation == Obligation::Cannot {
                 out.push(Diagnostic {
                     kind: DiagnosticKind::Illegal,
-                    message: format!(
-                        // **The direction names the column, never a call.** The engine
-                        // is not told which binding built the request — the wire spec
-                        // carries no field naming the caller — so a spelled call here
-                        // reaches a Python reader in R's idiom, telling them to remove
-                        // `opacity(life)` when they wrote `opacity(col.life)`. Naming the
-                        // channel and the column separately is idiom-free and reads
-                        // correctly in all four. A refusal a *binding* raises may still
-                        // spell a call, because a binding knows its own reader.
-                        "gog: `{c}` cannot be bound to `{m}` — {} {m} has no {c} feature. \
-                         Remove the `{field}` mapping from `{c}`, or use a mark that has one.",
-                        article(m)
-                    ),
+                    // **Two refusals, because `Cannot` covers two different facts.**
+                    // `SET_ONLY` is `Cannot` *with* `settable`: the mark has the feature
+                    // and cannot vary it row by row. Telling that reader the mark "has no
+                    // {c} feature" is false, and it sends them looking for another mark
+                    // when the value they wanted is one `style()` away.
+                    //
+                    // **The direction is safe by construction, which is rare here.** §12
+                    // records that "is the direction itself legal?" is the property
+                    // nothing checks — a `surface` refusal once recommended a sentence the
+                    // engine also refused. This one is gated on `settable`, the same flag
+                    // `mark_takes_setting` reads and the Mark × Setting grid is generated
+                    // from, so it can only name a setting the mark actually takes.
+                    message: if r.settable {
+                        format!(
+                            "gog: `{c}` cannot be bound to `{m}` — {} {m} takes one {c} for \
+                             the whole layer, not one per row. Drop the `{field}` mapping and \
+                             set it with `style({c} = )`, or use a mark that maps `{c}`.",
+                            article(m)
+                        )
+                    } else {
+                        format!(
+                            // **The direction names the column, never a call.** The engine
+                            // is not told which binding built the request — the wire spec
+                            // carries no field naming the caller — so a spelled call here
+                            // reaches a Python reader in R's idiom, telling them to remove
+                            // `opacity(life)` when they wrote `opacity(col.life)`. Naming the
+                            // channel and the column separately is idiom-free and reads
+                            // correctly in all four. A refusal a *binding* raises may still
+                            // spell a call, because a binding knows its own reader.
+                            //
+                            // `style({c} = )` in the branch above is not a counter-example:
+                            // it is a setting rather than a call the four bindings spell
+                            // differently, and `check_style` already writes it that way.
+                            "gog: `{c}` cannot be bound to `{m}` — {} {m} has no {c} feature. \
+                             Remove the `{field}` mapping from `{c}`, or use a mark that has one.",
+                            article(m)
+                        )
+                    },
                 });
                 continue;
             }
@@ -6581,6 +6612,22 @@ fn check_theme(out: &mut Vec<Diagnostic>, spec: &PlotSpec) {
                      — named by the *axis* whose ticks they mark, so `\"x\"` keeps the \
                      lines that run up from the x axis and drops the rest.",
                     or_list(&GRID.iter().map(|s| format!("`{s}`")).collect::<Vec<_>>())
+                ),
+            });
+        }
+    }
+
+    if let Some(place) = spec.theme.axis_label.as_deref() {
+        const PLACE: &[&str] = &["end", "beside"];
+        if !PLACE.contains(&place) {
+            out.push(Diagnostic {
+                kind: DiagnosticKind::Illegal,
+                message: format!(
+                    "gog: `theme(axis_label = \"{place}\")` is not a place for an axis's \
+                     name. gog has {} — `\"end\"` puts each name at its axis's far end, \
+                     horizontal, and `\"beside\"` centers it along the axis, turning the \
+                     y name through 90 degrees.",
+                    or_list(&PLACE.iter().map(|s| format!("`{s}`")).collect::<Vec<_>>())
                 ),
             });
         }
@@ -10228,6 +10275,75 @@ fn check_plot_scope(out: &mut Vec<Diagnostic>, spec: &PlotSpec) {
 
 /// Check one layer's constant settings against the same `(mark, channel)` table
 /// the mapped channels use.
+/// What a *which one?* vocabulary hands out, singular and plural, for the
+/// warning's words. Read off the same `texture_of` split that decides which
+/// vocabulary applies, so a `line` is never told it draws textures.
+fn which_one_kinds(mark: &Mark, ch: &Channel) -> (&'static str, &'static str) {
+    match (ch, texture_of(mark)) {
+        (Channel::Shape, _) => ("glyph", "glyphs"),
+        (Channel::Pattern, Some(Texture::Dash)) => ("dash", "dashes"),
+        (Channel::Pattern, Some(Texture::Hatch)) => ("texture", "textures"),
+        _ => ("kind", "kinds"),
+    }
+}
+
+/// A *which one?* channel hands out a fixed vocabulary and then starts over, so a
+/// column with more categories than kinds draws two groups the same way.
+///
+/// That plot is legal and it draws, so this is an **Assumption** rather than a
+/// refusal (Law 8 — never forbid the ugly-but-legal). Saying nothing is the part
+/// §12 forbids: a distinction the reader wrote down is silently gone from the
+/// picture, and unlike a dropped row it leaves no gap to notice.
+///
+/// **The threshold is `setting_values`**, the one function the refusal message and
+/// the generated settings tables also read. The vocabulary's size, the renderer's
+/// modulus and this limit are therefore one number, which is the whole reason
+/// growing a set and warning past it are a single piece of work: split them and
+/// the number is written twice and drifts once.
+fn check_which_one_cycles(out: &mut Vec<Diagnostic>, df: &DataFrame, mark: &Mark, layer: &Layer) {
+    for ch in [Channel::Shape, Channel::Pattern] {
+        let Some(field) = layer.encodings.get(&ch).map(|c| c.field.clone()) else {
+            continue;
+        };
+        let kinds = setting_values(mark, channel_name(&ch)).len();
+        // A mark with no vocabulary for this channel has a refusal of its own;
+        // adding a second message about counting would bury it.
+        if kinds == 0 {
+            continue;
+        }
+        // The renderer indexes the same list, from the same function, so the
+        // count this warns about is the count that draws.
+        let n = crate::data::categories_across(&[df], &field).len();
+        if n <= kinds {
+            continue;
+        }
+        let (one, many) = which_one_kinds(mark, &ch);
+        let over = n - kinds;
+        // A count of one takes a singular verb. Worth the branch: the commonest
+        // case is a column one past the limit, so the ungrammatical reading is
+        // the one most readers would have met.
+        let (subject, verb) = match over {
+            1 => ("1 category", "shares"),
+            _ => ("categories", "share"),
+        };
+        let subject = match over {
+            1 => subject.to_string(),
+            _ => format!("{over} {subject}"),
+        };
+        out.push(Diagnostic {
+            kind: DiagnosticKind::Assumption,
+            message: format!(
+                "gog: `{c}({field})` has {n} categories and `{m}` draws {kinds} \
+                 {many}, so the set starts over: {subject} {verb} a {one} with an \
+                 earlier one. Use `color({field})`, whose default palette has \
+                 twenty, or give each category its own panel with `facet({field})`.",
+                c = channel_name(&ch),
+                m = mark_name(mark),
+            ),
+        });
+    }
+}
+
 fn check_style(
     out: &mut Vec<Diagnostic>,
     mark: &Mark,
@@ -10505,8 +10621,27 @@ fn marks_with_texture(t: Texture) -> String {
     names.join("/")
 }
 
+/// A vocabulary written out for a refusal: `"solid" (the default), "dashed", …`.
+///
+/// **Read from the array rather than typed beside it.** `shape`'s refusal has
+/// always joined `SHAPE_NAMES`, and the two `pattern` refusals spelled their
+/// lists out instead — so growing the vocabularies left both advising the
+/// previous release's values while the engine drew the new ones. A reader who
+/// wrote `"stripes"` wrongly was told the five that existed before it did.
+fn advise(values: &[&str]) -> String {
+    values.iter()
+        .enumerate()
+        .map(|(i, v)| match i {
+            0 => format!("\"{v}\" (the default)"),
+            _ => format!("\"{v}\""),
+        })
+        .collect::<Vec<_>>()
+        .join(", ")
+}
+
 /// The legal dash values for a stroke, the counterpart of [`FILL_TEXTURES`].
-pub(crate) const STROKE_DASHES: [&str; 3] = ["solid", "dashed", "dotted"];
+pub(crate) const STROKE_DASHES: [&str; 5] =
+    ["solid", "dashed", "dotted", "dotdash", "longdash"];
 
 /// The directions `style(nudge = )` accepts. Named here beside the other closed
 /// vocabularies rather than only inside its own refusal message, so
@@ -10523,8 +10658,8 @@ fn check_pattern(out: &mut Vec<Diagnostic>, mark: &Mark, style: &StyleSpec) {
                 out.push(Diagnostic {
                     kind: DiagnosticKind::Illegal,
                     message: format!(
-                        "gog: `style(pattern = \"{p}\")` is not a stroke pattern. Use \"solid\" (the \
-                         default), \"dashed\", or \"dotted\"."
+                        "gog: `style(pattern = \"{p}\")` is not a stroke pattern. Use {}.",
+                        advise(&STROKE_DASHES)
                     ),
                 });
             }
@@ -10543,9 +10678,9 @@ fn check_pattern(out: &mut Vec<Diagnostic>, mark: &Mark, style: &StyleSpec) {
                 out.push(Diagnostic {
                     kind: DiagnosticKind::Illegal,
                     message: format!(
-                        "gog: `style(pattern = )` on {} `{m}`: {lead} Use \"solid\" (the default), \
-                         \"hatch\", \"crosshatch\", \"grid\", or \"dots\".",
-                        article(m)
+                        "gog: `style(pattern = )` on {} `{m}`: {lead} Use {}.",
+                        article(m),
+                        advise(&FILL_TEXTURES)
                     ),
                 });
             }
@@ -13399,6 +13534,69 @@ mod tests {
     }
 
     #[test]
+    fn a_set_only_refusal_names_the_setting_a_plain_one_does_not() {
+        // The two halves of `Cannot`, told apart by what the reader is handed.
+        // `size` on a line is `SET_ONLY`, so the refusal has somewhere to send
+        // them; `size` on a bar is `CANNOT`, and inventing a `style()` there
+        // would be the second wall §12 warns about — a direction the engine
+        // itself refuses.
+        let set_only = check(
+            &base().layer(Layer::new(Mark::Line).encode(Channel::Size, "gdp")),
+            &data(),
+        );
+        let msg = &set_only[0].message;
+        assert!(msg.contains("style(size = )"), "must hand over the setting: {msg}");
+        assert!(msg.contains("not one per row"), "must say why mapping fails: {msg}");
+        assert!(!msg.contains("has no size feature"), "a line does have a size: {msg}");
+
+        let none = check(
+            &base().layer(Layer::new(Mark::Bar).encode(Channel::Size, "gdp")),
+            &data(),
+        );
+        let msg = &none[0].message;
+        assert!(msg.contains("has no size feature"), "a bar has none: {msg}");
+        assert!(!msg.contains("style("), "nothing to set on a bar either: {msg}");
+    }
+
+    #[test]
+    fn every_set_only_refusal_offers_its_setting() {
+        // The whole class rather than one example, generated from the rule table
+        // so a mark added later joins the check by existing. Sixteen pairs today,
+        // every one of them `size` or `opacity` on a mark drawn as one stroke or
+        // one region.
+        let mut seen = 0;
+        for m in ALL_MARKS.iter() {
+            for c in ALL_CHANNELS.iter() {
+                let r = rule_for(m, c);
+                if r.obligation != Obligation::Cannot || !r.settable {
+                    continue;
+                }
+                seen += 1;
+                let name = channel_name(c);
+                let d = check(
+                    &base().layer(Layer::new(m.clone()).encode(c.clone(), "gdp")),
+                    &data(),
+                );
+                // Match on the channel under test: a mark can refuse more than
+                // one binding at a time, and `edge` refuses the base spec's `x`
+                // before it ever reaches `size`.
+                let wanted = format!("`{name}` cannot be bound");
+                let msg = d
+                    .iter()
+                    .find(|d| d.message.contains(&wanted))
+                    .map(|d| d.message.clone())
+                    .unwrap_or_else(|| panic!("{name} on {} must refuse", mark_name(m)));
+                assert!(
+                    msg.contains(&format!("style({name} = )")),
+                    "{name} on {}: {msg}",
+                    mark_name(m)
+                );
+            }
+        }
+        assert!(seen >= 16, "expected the set-only class, found {seen}");
+    }
+
+    #[test]
     fn setting_a_feature_the_mark_does_not_have_is_illegal() {
         // `shape` on bar is Cannot for a different reason than `opacity` on
         // line: a bar has no glyph at all, so there is nothing to set either.
@@ -13425,13 +13623,61 @@ mod tests {
         assert!(d[0].message.contains("one layer cannot do both"));
     }
 
+    /// Growing a *which one?* vocabulary and warning past it are one piece of
+    /// work, so the test asserts them together: the limit the warning names is
+    /// the length of the array the renderer cycles over, never a literal.
+    #[test]
+    fn a_which_one_channel_says_when_its_vocabulary_starts_over() {
+        let n = SHAPE_NAMES.len();
+        let many: Vec<String> = (0..n + 3).map(|i| format!("c{i}")).collect();
+        let df = DataFrame::new()
+            .with_float("gdp", (0..many.len()).map(|i| i as f64).collect())
+            .with_float("life", (0..many.len()).map(|i| i as f64).collect())
+            .with_str("many", many);
+        let mut data = HashMap::new();
+        data.insert("t".to_string(), df);
+
+        let spec = PlotSpec::new().data("t").x("gdp").y("life")
+            .layer(Layer::new(Mark::Point))
+            .channel(Channel::Shape, "many");
+        let d = check(&spec, &data);
+        let hit = d.iter().find(|d| d.message.contains("starts over"))
+            .expect("a column past the vocabulary should be reported");
+        assert_eq!(hit.kind, DiagnosticKind::Assumption, "legal, and it draws");
+        assert!(hit.message.contains(&format!("{} glyphs", n)), "{}", hit.message);
+        assert!(hit.message.contains(&format!("{} categories", n + 3)), "{}", hit.message);
+        // §12: a diagnostic says what to do, not only what happened.
+        assert!(hit.message.contains("color(many)"), "{}", hit.message);
+    }
+
+    /// The silent half of the same rule. A column that fits draws every category
+    /// its own kind, so there is nothing to say and nothing is said.
+    #[test]
+    fn a_which_one_channel_is_silent_while_its_vocabulary_lasts() {
+        let n = SHAPE_NAMES.len();
+        let fits: Vec<String> = (0..n).map(|i| format!("c{i}")).collect();
+        let df = DataFrame::new()
+            .with_float("gdp", (0..n).map(|i| i as f64).collect())
+            .with_float("life", (0..n).map(|i| i as f64).collect())
+            .with_str("fits", fits);
+        let mut data = HashMap::new();
+        data.insert("t".to_string(), df);
+        let spec = PlotSpec::new().data("t").x("gdp").y("life")
+            .layer(Layer::new(Mark::Point))
+            .channel(Channel::Shape, "fits");
+        let d = check(&spec, &data);
+        assert!(!d.iter().any(|d| d.message.contains("starts over")), "{:?}", msgs(&d));
+    }
+
     #[test]
     fn a_set_value_is_checked_because_no_data_can_check_it() {
         let cases: Vec<(Layer, &str)> = vec![
             (Layer::new(Mark::Point).style_color("stelblue"), "steelblue"),
             (Layer::new(Mark::Point).style_opacity(3.0), "outside 0–1"),
             (Layer::new(Mark::Point).style_size(0.0), "positive"),
-            (Layer::new(Mark::Point).style_shape("star"), "circle, square"),
+            // `star` joined the vocabulary, so the unknown-name case needs a
+            // name that is still absent — a plausible glyph, not a typo.
+            (Layer::new(Mark::Point).style_shape("hexagon"), "circle, square"),
         ];
         for (layer, expect) in cases {
             let d = check(&base().layer(layer), &data());

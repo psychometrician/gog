@@ -1868,6 +1868,7 @@ impl SvgRenderer {
             col_values.clone(), row_values.clone(),
             map_ratio.or(spec.theme.resolved().ratio),
             spec.theme.resolved().tick_angle,
+            Self::axis_label_beside_theme(&spec.theme.resolved()),
             play_def.is_some(),
             facet_wrap,
             (free_x, free_y),
@@ -2413,7 +2414,7 @@ impl SvgRenderer {
         let mut seen = std::collections::HashSet::new();
         remarks.retain(|d| seen.insert(d.message.clone()));
         Drawn {
-            svg,
+            svg: namespace_ids(&svg),
             panel: area,
             x: facts(x_field, xs, cat_x.as_ref(), x_log, x_base),
             y: facts(y_field, ys, cat_y.as_ref(), y_log, y_base),
@@ -3208,16 +3209,32 @@ impl SvgRenderer {
     /// inside the panel and is handed an empty tick list, like the cube and the
     /// packing, and those two suppress their outer names for other reasons and so
     /// never showed it.
+    /// `theme(axis_label = )` resolved to the one question the layout asks.
+    /// **`beside` is the default**, so an unset theme draws the conventional
+    /// arrangement and `"end"` is the thing a reader opts into.
+    fn axis_label_beside_theme(theme: &crate::ir::ThemeSpec) -> bool {
+        !matches!(theme.axis_label.as_deref(), Some("end"))
+    }
+
     fn write_labels(
         &self, svg: &mut String, l: &Layout,
         x_label: &str, y_label: &str, spec: &PlotSpec, drew_x_ticks: bool,
     ) {
         let plot_cx = (l.x0 + l.x1) / 2.0;
         let label_h = estimate_cap_height(self.font_md);
+        // `theme(axis_label = )`. One convention for both axes: `beside` centers
+        // each name along its own axis, turning the y name through 90 degrees,
+        // and `end` puts both at their axis's far end, horizontal. `beside` is
+        // the default, so there is no third, unnamed arrangement.
+        let x_at_end = spec.theme.resolved().axis_label.as_deref() == Some("end");
+        let y_beside = !x_at_end;
 
         // Title
         if let Some(title) = &spec.title {
-            let y_label_offset = if !y_label.is_empty() { label_h + 6.0 } else { 0.0 };
+            // A y name that has moved beside its axis is no longer above the
+            // panel, so the title stops making room for it.
+            let y_label_offset =
+                if !y_label.is_empty() && !y_beside { label_h + 6.0 } else { 0.0 };
             let ty = l.y0 - y_label_offset - estimate_cap_height(self.font_lg) * 0.3 - 8.0;
             // **Centered on the panel, then held inside the canvas.** The panel is
             // the thing the title names, so it centers there and not over the
@@ -3241,13 +3258,26 @@ impl SvgRenderer {
             ).unwrap();
         }
 
-        // Y-axis label (horizontal, above the plot area — modern FT style)
+        // The y-axis name: at the axis's end, horizontal above the panel, or
+        // turned and centered along the axis in the left margin.
         if !y_label.is_empty() {
-            let ty = l.y0 - 6.0;
-            writeln!(svg,
-                r##"  <text x="{x:.2}" y="{ty:.2}" font-family="system-ui,sans-serif" font-size="{fs}" fill="#28283a" text-anchor="start">{y_label}</text>"##,
-                x = l.x0, fs = self.font_md, y_label = esc(y_label)
-            ).unwrap();
+            if y_beside {
+                // `rotate(-90)` sends ascenders to the pivot's left, so the pivot
+                // sits one cap height in from the canvas edge and the text stays
+                // on the page. `layout` reserved exactly that band.
+                let lx = label_h + 2.0;
+                let ly = (l.y0 + l.y1) / 2.0;
+                writeln!(svg,
+                    r##"  <text transform="rotate(-90 {lx:.2} {ly:.2})" x="{lx:.2}" y="{ly:.2}" font-family="system-ui,sans-serif" font-size="{fs}" fill="#28283a" text-anchor="middle">{y_label}</text>"##,
+                    fs = self.font_md, y_label = esc(y_label)
+                ).unwrap();
+            } else {
+                let ty = l.y0 - 6.0;
+                writeln!(svg,
+                    r##"  <text x="{x:.2}" y="{ty:.2}" font-family="system-ui,sans-serif" font-size="{fs}" fill="#28283a" text-anchor="start">{y_label}</text>"##,
+                    x = l.x0, fs = self.font_md, y_label = esc(y_label)
+                ).unwrap();
+            }
         }
 
         // X-axis label (centered below ticks)
@@ -3257,9 +3287,15 @@ impl SvgRenderer {
                 false => 0.0,
             };
             let ty = l.y1 + tick_row + 8.0 + label_h;
+            // At its end the x name sits under the axis's far end, right-aligned,
+            // which is the same rule the y name follows at the top left.
+            let (cx, anchor) = match x_at_end {
+                true => (l.x1, "end"),
+                false => (plot_cx, "middle"),
+            };
             writeln!(svg,
-                r##"  <text x="{cx:.2}" y="{ty:.2}" font-family="system-ui,sans-serif" font-size="{fs}" fill="#28283a" text-anchor="middle">{x_label}</text>"##,
-                cx = plot_cx, fs = self.font_md, x_label = esc(x_label)
+                r##"  <text x="{cx:.2}" y="{ty:.2}" font-family="system-ui,sans-serif" font-size="{fs}" fill="#28283a" text-anchor="{anchor}">{x_label}</text>"##,
+                fs = self.font_md, x_label = esc(x_label)
             ).unwrap();
         }
     }
@@ -4643,6 +4679,60 @@ fn bar_x_ticks_eff(
     (ticks_at(vals), (scale_min, scale_max))
 }
 
+/// Give every id this render minted a prefix of its own.
+///
+/// **An id is resolved against the whole document, and a plot is not the whole
+/// document.** Ids here are hashed from the *element's* content, on the
+/// reasoning that two elements sharing an id are byte-identical and so cannot
+/// mislead. That is true of a `clipPath` — a dangling `clip-path` simply does
+/// not clip — and it is false of a `<pattern>`, whose dangling
+/// `fill="url(#…)"` falls back to **no fill** and empties the shape.
+///
+/// A notebook is where this bites: every plot is one document, so two plots
+/// using the same texture in the same color are handed the same id and the
+/// second borrows the first's definition. It draws correctly until a host
+/// detaches the owning cell — JupyterLab's default windowing does exactly that
+/// to anything scrolled out of view — and then a correct plot renders as
+/// nothing. Latent since patterns were built; it could not show in a suite that
+/// writes one picture per file.
+///
+/// **The prefix is hashed from the finished picture**, so it is deterministic
+/// (four bindings must agree byte for byte) and two renders share a prefix only
+/// when the whole SVG is identical — in which case either copy serves, and
+/// whichever survives in the document is the right one.
+fn namespace_ids(svg: &str) -> String {
+    // Nothing to rename, and the common case: no defs, no references.
+    if !svg.contains("id=\"") {
+        return svg.to_string();
+    }
+    // **Hashed from the ink, not from the file.** Anything that draws nothing
+    // must not move the prefix, because moving it moves every id and so every
+    // byte — and two invariants in this module say exactly that. A brush nobody
+    // has dragged adds panel metadata and not one mark
+    // (`a_resting_brush_draws_exactly_the_same_ink`), and two moments of one
+    // played plot differ only in which is shown
+    // (`two_stills_of_one_plot_differ_only_in_which_moment_shows`). Both would
+    // fail if the attribute they turn on reached this hash.
+    //
+    // So this list *is* the definition of "draws nothing", and an attribute of
+    // that kind added later belongs in it.
+    let ink = svg
+        .replace(r#" display="inline""#, "")
+        .replace(r#" display="none""#, "");
+    let mut h: u64 = 0xcbf2_9ce4_8422_2325;
+    for line in ink.lines().filter(|l| !l.contains("data-gog-panel")) {
+        for b in line.bytes() {
+            h = (h ^ b as u64).wrapping_mul(0x0100_0000_01b3);
+        }
+        h = (h ^ 0x0a).wrapping_mul(0x0100_0000_01b3);
+    }
+    let prefix = format!("g{h:016x}-");
+    // Only two forms reach the output, and a test pins that: `id="…"` where a
+    // definition is minted, and `url(#…)` where one is used.
+    svg.replace("id=\"", &format!("id=\"{prefix}"))
+        .replace("url(#", &format!("url(#{prefix}"))
+}
+
 /// A clip id derived from the rectangle it clips.
 ///
 /// The book inlines many SVGs into one HTML page, where ids are global and the
@@ -5282,6 +5372,67 @@ mod tests {
             .collect();
         assert_eq!(fills.len(), 2);
         assert_ne!(fills[0], fills[1], "the enclave took its container's color");
+    }
+
+    /// **Two plots in one document may not share an id.**
+    ///
+    /// An id is resolved against the whole document, and a notebook puts every
+    /// plot in one. Ids used to be hashed per element, so two plots using the
+    /// same texture in the same color were handed the same id and the browser
+    /// bound the second's `fill` to the first's definition — correct until a
+    /// host detached the owning cell, and then a correct plot drew nothing.
+    ///
+    /// The suite could never have caught it: it writes one picture per file.
+    #[test]
+    fn two_different_plots_mint_no_id_in_common() {
+        let ids = |svg: &str| -> std::collections::HashSet<String> {
+            svg.match_indices("id=\"")
+                .filter_map(|(i, _)| svg[i + 4..].split('"').next().map(str::to_string))
+                .collect()
+        };
+        let (spec, data) = brush_spec_and_data_for_ids();
+        let a = SvgRenderer::default().render(&spec.0, &data);
+        let b = SvgRenderer::default().render(&spec.1, &data);
+        let (ia, ib) = (ids(&a), ids(&b));
+        assert!(!ia.is_empty() && !ib.is_empty(), "both plots must mint ids to compare");
+        assert!(ia.is_disjoint(&ib),
+            "two different plots share an id: {:?}", ia.intersection(&ib).collect::<Vec<_>>());
+        // And every reference resolves inside the plot that made it.
+        for svg in [&a, &b] {
+            for (i, _) in svg.match_indices("url(#") {
+                let r = svg[i + 5..].split(')').next().unwrap();
+                assert!(svg.contains(&format!("id=\"{r}\"")),
+                    "a reference points outside its own plot: {r}");
+            }
+        }
+    }
+
+    /// The same spec twice is still byte-identical, which is what four bindings
+    /// are held to. Namespacing ids may not cost that.
+    #[test]
+    fn the_same_plot_rendered_twice_is_byte_identical() {
+        let (spec, data) = brush_spec_and_data_for_ids();
+        assert_eq!(
+            SvgRenderer::default().render(&spec.0, &data),
+            SvgRenderer::default().render(&spec.0, &data),
+        );
+    }
+
+    /// Two plots that differ only in their table, both drawing a texture — the
+    /// shape the bed hit.
+    fn brush_spec_and_data_for_ids() -> ((PlotSpec, PlotSpec), HashMap<String, DataFrame>) {
+        let mut data = HashMap::new();
+        data.insert("t".to_string(), DataFrame::new()
+            .with_str("g", vec!["a".into(), "b".into(), "c".into()])
+            .with_float("v", vec![1.0, 2.0, 3.0]));
+        data.insert("u".to_string(), DataFrame::new()
+            .with_str("g", vec!["a".into(), "b".into(), "c".into()])
+            .with_float("v", vec![3.0, 1.0, 2.0]));
+        let one = PlotSpec::new().data("t").x("g").y("v")
+            .layer(Layer::new(Mark::Bar).style_pattern("hatch"));
+        let two = PlotSpec::new().data("u").x("g").y("v")
+            .layer(Layer::new(Mark::Bar).style_pattern("hatch"));
+        ((one, two), data)
     }
 
     /// **A plot that names no brush carries none of the machinery.** Neither the
@@ -9887,7 +10038,7 @@ mod tests {
         }
         // …but drawn as one continuous strip, not three sampled swatches.
         assert!(svg.contains("<linearGradient"), "continuous color needs a gradient strip");
-        assert!(svg.contains("fill=\"url(#ramp"), "the strip should use the gradient");
+        assert!(svg.contains("-ramp"), "the strip should use the gradient");
         // and exactly one legend box, not a categorical one as well
         assert_eq!(svg.matches(r#"rx="4""#).count(), 1, "expected a single legend box");
     }
@@ -9946,7 +10097,7 @@ mod tests {
 
         let strip_h = svg.lines()
             .find_map(|l| {
-                if !l.contains("url(#ramp") { return None }
+                if !l.contains("-ramp") { return None }
                 l.split(r#" height=""#).nth(1)?.split('"').next()?.parse::<f64>().ok()
             })
             .expect("no gradient strip drawn");

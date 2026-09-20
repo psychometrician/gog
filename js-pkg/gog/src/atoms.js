@@ -939,7 +939,8 @@ const STYLE_NUMBERS = ["opacity", "size", "border_size"];
 const STYLE_FLAGS = ["caps", "center"];
 const STYLE_VALUES = {
   nudge: ["up", "down", "left", "right"],
-  pattern: ["solid", "dashed", "dotted", "hatch", "crosshatch", "grid", "dots"],
+  pattern: ["solid", "dashed", "dotted", "dotdash", "longdash",
+            "hatch", "crosshatch", "stripes", "grid", "dots"],
   arrow: ["end", "start", "both"],
   reach: ["panel", "edge"],
 };
@@ -1018,6 +1019,17 @@ export function style(props) {
       throw new GogError(`gog: \`style({ ${name}: … })\` needs true or false.`);
     }
     if (STYLE_VALUES[name] && !STYLE_VALUES[name].includes(value)) {
+      // `pattern` is the one setting whose values split by geometry: five are a
+      // stroke's dash and five a fill's texture, and the engine refuses each on
+      // the other. A flat list of ten hides that.
+      if (name === "pattern") {
+        throw new GogError(
+          'gog: `style({ pattern: … })` needs a stroke\'s dash ' +
+            '("solid", "dashed", "dotted", "dotdash", "longdash") ' +
+            'or a fill\'s texture ' +
+            '("hatch", "crosshatch", "stripes", "grid", "dots").'
+        );
+      }
       const allowed = STYLE_VALUES[name].map((v) => `"${v}"`).join(", ");
       throw new GogError(`gog: \`style({ ${name}: … })\` needs one of ${allowed}.`);
     }
@@ -1088,6 +1100,7 @@ const FRAME_VALUES = ["full", "axes", "none"];
 export function theme(...raw) {
   const {
     preset, grid, ratio, tick_angle, font_size, background, strip, strip_text,
+    axis_label,
     frame, width, height,
   } = readArgs(raw, "theme", [
     "preset",
@@ -1099,6 +1112,7 @@ export function theme(...raw) {
     "strip",
     "strip_text",
     "frame",
+    "axis_label",
     "width",
     "height",
   ]);
@@ -1106,7 +1120,7 @@ export function theme(...raw) {
   if (preset === undefined && grid === undefined && ratio === undefined &&
       tick_angle === undefined && font_size === undefined &&
       background === undefined && strip === undefined &&
-      strip_text === undefined && frame === undefined &&
+      strip_text === undefined && frame === undefined && axis_label === undefined &&
       width === undefined && height === undefined) {
     throw new GogError(
       "gog: `theme()` sets nothing. Name a preset or a property, e.g. " +
@@ -1151,8 +1165,8 @@ export function theme(...raw) {
   }
   if (frame !== undefined && !FRAME_VALUES.includes(frame)) {
     throw new GogError(
-      `gog: \`theme({ frame: … })\` is one of ${FRAME_VALUES.map((v) => `"${v}"`).join(", ")} ` +
-        '— "full" is a rectangle round the panel, "axes" bottom and left only.'
+      'gog: `theme({ frame: … })` is one of "full" (a rectangle round the panel), ' +
+        '"axes" (bottom and left only) or "none".'
     );
   }
   if (background !== undefined && typeof background !== "string") {
@@ -1166,6 +1180,11 @@ export function theme(...raw) {
       'gog: `theme({ strip: … })` needs a single color for the band above each ' +
         'panel, e.g. `{ strip: "white" }`.'
     );
+  }
+  if (axis_label !== undefined && !["end", "beside"].includes(axis_label)) {
+    throw new GogError(
+      'gog: `theme({ axis_label: … })` is "end" or "beside" \u2014 where each ' +
+      "axis's name sits: at the axis's far end, or centered along it.");
   }
   if (strip_text !== undefined && typeof strip_text !== "string") {
     throw new GogError(
@@ -1197,6 +1216,7 @@ export function theme(...raw) {
     strip: strip ?? null,
     strip_text: strip_text ?? null,
     frame: frame ?? null,
+    axis_label: axis_label ?? null,
     width: width ?? null,
     height: height ?? null,
   });

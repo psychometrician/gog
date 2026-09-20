@@ -1918,6 +1918,15 @@ pub struct ThemeSpec {
     /// cells, so a ratio never changes what the plot costs to place on a page.
     #[serde(default)]
     pub ratio: Option<f64>,
+    /// Where an axis's *name* sits relative to its axis: `end` (at the axis's
+    /// far end, horizontal) or `beside` (centered along it, so the y name turns
+    /// through 90 degrees).
+    ///
+    /// One property for both axes rather than one per axis, because it states a
+    /// convention rather than a position — and gog drew a *mixed* one until this
+    /// existed, y at its end and x beside its own, which no chapter could explain.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub axis_label: Option<String>,
     /// Degrees to rotate the x tick labels, counterclockwise from horizontal.
     #[serde(default)]
     pub tick_angle: Option<f64>,

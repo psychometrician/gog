@@ -49,6 +49,16 @@ fn fmt_value(v: f64) -> String {
 // ---------------------------------------------------------------------------
 
 pub(crate) const LEGEND_SWATCH_W: f64 = SIZE_MAX_R * 2.0; // swatch column width (covers all swatch kinds)
+/// The dash swatch's column, wider than the rest because a dash is the one
+/// swatch whose *repeat* is the thing being decoded.
+///
+/// A key has to show the pattern happening at least twice, or it is not a key.
+/// `longdash` is 12 on and 5 off, so a 16px run drew one dash and a stub and
+/// read as `solid` with a slightly short line — two rows of the legend
+/// indistinguishable while the plot drew them clearly apart. 32px carries
+/// dash-gap-dash for the longest of the five, and more than two repeats for
+/// every shorter one.
+pub(crate) const LEGEND_DASH_SWATCH_W: f64 = 32.0;
 pub(crate) const LEGEND_SWATCH_GAP: f64 = 6.0;
 pub(crate) const LEGEND_ROW_H: f64 = 20.0;
 /// Row height inside a gradient legend — the strip spans the label rows, so
@@ -73,6 +83,17 @@ pub(crate) enum LegendSwatch {
     PatternFill { texture: &'static str, color: String },
     /// A category's dash (mapped `pattern` on a stroke mark) — a short line.
     PatternStroke { dash: &'static str, color: String },
+}
+
+impl LegendSwatch {
+    /// The column width this swatch needs. Every kind takes the standard column
+    /// except a dash, which needs room for its pattern to repeat.
+    pub(crate) fn column_w(&self) -> f64 {
+        match self {
+            LegendSwatch::PatternStroke { .. } => LEGEND_DASH_SWATCH_W,
+            _ => LEGEND_SWATCH_W,
+        }
+    }
 }
 
 #[derive(Clone)]
@@ -109,11 +130,18 @@ impl LegendBox {
     /// beside it, so on a page of four cubes the key was taking three fifths of
     /// its panel's width.
     pub(crate) fn width(&self, font_sm: f64, font_md: f64) -> f64 {
+        let col = self.swatch_col_w();
         let widest_row = self.rows.iter()
-            .map(|r| LEGEND_SWATCH_W + LEGEND_SWATCH_GAP + estimate_text_width(&r.label, font_sm))
+            .map(|r| col + LEGEND_SWATCH_GAP + estimate_text_width(&r.label, font_sm))
             .fold(0.0_f64, f64::max);
         let title = estimate_text_width(&self.title, font_md);
         LEGEND_PADDING + widest_row.max(title) + LEGEND_PADDING
+    }
+
+    /// The swatch column for this box: the widest its rows ask for, so the
+    /// swatches stay aligned even in a legend that merges two kinds.
+    pub(crate) fn swatch_col_w(&self) -> f64 {
+        self.rows.iter().map(|r| r.swatch.column_w()).fold(LEGEND_SWATCH_W, f64::max)
     }
 
     pub(crate) fn height(&self, font_md: f64) -> f64 {
@@ -417,8 +445,9 @@ pub(crate) fn write_legends(
 
             // Rows
             let mut row_y = sep_y + 6.0;
-            let text_x = lx + LEGEND_PADDING + LEGEND_SWATCH_W + LEGEND_SWATCH_GAP;
-            let swatch_cx = lx + LEGEND_PADDING + LEGEND_SWATCH_W / 2.0; // center of swatch column
+            let swatch_col_w = lb.swatch_col_w();
+            let text_x = lx + LEGEND_PADDING + swatch_col_w + LEGEND_SWATCH_GAP;
+            let swatch_cx = lx + LEGEND_PADDING + swatch_col_w / 2.0; // center of swatch column
 
             writeln!(svg,
                 r##"  <g font-family="system-ui,sans-serif" font-size="{}" fill="#3c3c46">"##,
@@ -525,7 +554,9 @@ pub(crate) fn write_legends(
                         // A short line with the dash — round caps so `dotted` reads as
                         // dots, matching the stroke marks.
                         let dash_attr = pattern_dasharray(Some(dash));
-                        let half = 8.0;
+                        // Half the dash column, less a hair so a round cap does
+                        // not sit on the column's edge.
+                        let half = LEGEND_DASH_SWATCH_W / 2.0 - 1.0;
                         writeln!(svg,
                             r##"    <line x1="{:.2}" y1="{swatch_cy:.2}" x2="{:.2}" y2="{swatch_cy:.2}" stroke="{color}" stroke-width="2"{dash_attr} stroke-linecap="round"/>"##,
                             swatch_cx - half, swatch_cx + half

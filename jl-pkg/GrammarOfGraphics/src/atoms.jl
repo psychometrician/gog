@@ -634,9 +634,16 @@ z(field; scale = nothing, base = nothing, limits = nothing, tick_count = nothing
   free = false) =
     position_atom(:coord_z, "z", field, scale, base, limits, tick_count, free)
 
+# The four atoms that take an angle, each with its own call to show. JavaScript
+# has carried these examples since it was written and the other three did not,
+# which is four copies of one rule drifting rather than four idioms.
+const DEGREE_EXAMPLES = Dict("space" => "space(45, 20)", "polar" => "polar(90)",
+                             "globe" => "globe(178, -18)", "network" => "network(30, 25)")
+
 degrees(value, atom::AbstractString, name::AbstractString) = begin
     (value isa Real && !(value isa Bool) && isfinite(value)) ||
-        throw(GogError("gog: `$atom($name = )` needs a single number of degrees."))
+        throw(GogError("gog: `$atom($name = )` needs a single number of degrees, " *
+                       "e.g. `$(DEGREE_EXAMPLES[atom])`."))
     Float64(value)
 end
 
@@ -860,7 +867,8 @@ const STYLE_NUMBERS = ["opacity", "size", "border_size"]
 const STYLE_FLAGS = ["caps", "center"]
 const STYLE_VALUES = Dict(
     "nudge" => ["up", "down", "left", "right"],
-    "pattern" => ["solid", "dashed", "dotted", "hatch", "crosshatch", "grid", "dots"],
+    "pattern" => ["solid", "dashed", "dotted", "dotdash", "longdash",
+                  "hatch", "crosshatch", "stripes", "grid", "dots"],
     "arrow" => ["end", "start", "both"],
     "reach" => ["panel", "edge"])
 const STYLE_PROPS = vcat(STYLE_STRINGS, STYLE_NUMBERS, STYLE_FLAGS, collect(keys(STYLE_VALUES)))
@@ -924,6 +932,16 @@ function style(; props...)
             throw(GogError("gog: `style($name = )` needs true or false."))
         end
         if haskey(STYLE_VALUES, name) && !(value in STYLE_VALUES[name])
+            # `pattern` is the one setting whose values split by geometry: five
+            # are a stroke's dash and five a fill's texture, and the engine
+            # refuses each on the other. A flat list of ten hides that.
+            if name == "pattern"
+                throw(GogError("gog: `style(pattern = )` needs a stroke's dash " *
+                               "(\"solid\", \"dashed\", \"dotted\", \"dotdash\", " *
+                               "\"longdash\") or a fill's texture " *
+                               "(\"hatch\", \"crosshatch\", \"stripes\", \"grid\", " *
+                               "\"dots\")."))
+            end
             throw(GogError("gog: `style($name = )` needs one of " *
                            join(["\"$v\"" for v in STYLE_VALUES[name]], ", ") * "."))
         end
@@ -1011,8 +1029,8 @@ given.
 """
 function theme(args...; grid = nothing, ratio = nothing, tick_angle = nothing,
                font_size = nothing, background = nothing, strip = nothing,
-               strip_text = nothing, frame = nothing, width = nothing,
-               height = nothing)
+               strip_text = nothing, frame = nothing, axis_label = nothing,
+               width = nothing, height = nothing)
     preset = length(args) > 1 ?
         throw(GogError("gog: `theme()` takes a preset name first — " *
                        "`theme(\"minimal\")` — and everything else by name: " *
@@ -1022,7 +1040,8 @@ function theme(args...; grid = nothing, ratio = nothing, tick_angle = nothing,
     if preset === nothing && grid === nothing && ratio === nothing &&
        tick_angle === nothing && font_size === nothing &&
        background === nothing && strip === nothing && strip_text === nothing &&
-       frame === nothing && width === nothing && height === nothing
+       frame === nothing && axis_label === nothing &&
+       width === nothing && height === nothing
         throw(GogError("gog: `theme()` sets nothing. Name a preset or a property, " *
                        "e.g. `theme(\"minimal\")` or `theme(grid = \"none\", ratio = 1)`."))
     end
@@ -1055,16 +1074,19 @@ function theme(args...; grid = nothing, ratio = nothing, tick_angle = nothing,
     end
 
     frame === nothing || frame in FRAME_VALUES ||
-        throw(GogError("gog: `theme(frame = )` is one of " *
-                       join(["\"\$v\"" for v in FRAME_VALUES], ", ") *
-                       " — \"full\" is a rectangle round the panel, \"axes\" bottom " *
-                       "and left only."))
+        throw(GogError("gog: `theme(frame = )` is one of \"full\" (a rectangle " *
+                       "round the panel), \"axes\" (bottom and left only) or " *
+                       "\"none\"."))
     background === nothing || background isa AbstractString ||
         throw(GogError("gog: `theme(background = )` needs a single color, e.g. " *
                        "`theme(background = \"white\")` or `\"transparent\"`."))
     strip === nothing || strip isa AbstractString ||
         throw(GogError("gog: `theme(strip = )` needs a single color for the band " *
                        "above each panel, e.g. `theme(strip = \"white\")`."))
+    axis_label === nothing || axis_label in ("end", "beside") ||
+        throw(GogError("gog: `theme(axis_label = )` is \"end\" or \"beside\" — " *
+                       "where each axis's name sits: at the axis's far end, or " *
+                       "centered along it."))
     strip_text === nothing || strip_text isa AbstractString ||
         throw(GogError("gog: `theme(strip_text = )` needs a single color for the " *
                        "strip's label. Leave it out and gog picks the one that " *
@@ -1092,6 +1114,7 @@ function theme(args...; grid = nothing, ratio = nothing, tick_angle = nothing,
         :strip => strip === nothing ? nothing : String(strip),
         :strip_text => strip_text === nothing ? nothing : String(strip_text),
         :frame => frame === nothing ? nothing : String(frame),
+        :axis_label => axis_label === nothing ? nothing : String(axis_label),
         :width => width === nothing ? nothing : Float64(width),
         :height => height === nothing ? nothing : Float64(height)))
 end

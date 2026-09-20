@@ -2133,3 +2133,46 @@ _spike_svg = render_svg(
 )
 assert "<line " in _spike_svg, "a spike drew no stroke"
 ok("a bar with z is a spike on the globe")
+
+
+# --- the grown *which one?* vocabularies -------------------------------------
+# Python keeps its own copy of `pattern`'s values, so a vocabulary grown in the
+# engine and not here fails silently. Each value is drawn rather than asserted
+# against a second list.
+_vocab = dict(a=[1.0, 2.0, 3.0], b=[4.0, 5.0, 6.0])
+for _s in ("circle", "square", "triangle", "diamond", "cross", "star", "wye"):
+    render_svg(data(_vocab) + point + x(col.a) + y(col.b) + style(shape=_s))
+ok("Python draws all seven glyphs")
+for _d in ("solid", "dashed", "dotted", "dotdash", "longdash"):
+    render_svg(data(_vocab) + line + x(col.a) + y(col.b) + style(pattern=_d))
+ok("Python draws all five stroke dashes")
+for _f in ("solid", "hatch", "crosshatch", "stripes", "grid", "dots"):
+    render_svg(data(_vocab) + bar + x(col.a) + y(col.b) + style(pattern=_f))
+ok("Python draws all six fill textures")
+
+
+# --- `theme(axis_label=)`: one convention for both axis names ----------------
+_al = dict(a=[1.0, 2.0, 3.0], b=[4.0, 5.0, 6.0])
+_base = data(_al) + point + x(col.a) + y(col.b) + x_label("A") + y_label("B")
+assert "rotate(-90" in render_svg(_base), "the default should turn the y name"
+assert "rotate(-90" not in render_svg(_base + theme(axis_label="end")), \
+    "`end` should leave every name horizontal"
+ok("Python places both axis names by one rule")
+refuses("an axis_label placement that does not exist",
+        lambda: theme(axis_label="sideways"))
+
+
+# --- two plots in one document may not share an id ---------------------------
+import re as _re
+_p1 = render_svg(data(dict(g=["a", "b", "c"], v=[1.0, 2.0, 3.0]))
+                 + bar + x(col.g) + y(col.v) + style(pattern="hatch"))
+_p2 = render_svg(data(dict(g=["a", "b", "c"], v=[3.0, 1.0, 2.0]))
+                 + bar + x(col.g) + y(col.v) + style(pattern="hatch"))
+_ids = lambda s: set(_re.findall(r'id="([^"]+)"', s))
+assert _ids(_p1) and _ids(_p2), "both plots must mint ids to compare"
+assert not (_ids(_p1) & _ids(_p2)), \
+    f"two different plots share an id: {_ids(_p1) & _ids(_p2)}"
+for _s in (_p1, _p2):
+    assert set(_re.findall(r"url\(#([^)]+)\)", _s)) <= _ids(_s), \
+        "a reference points outside its own plot"
+ok("two plots in one document mint no id in common")

@@ -30,8 +30,13 @@ use std::fmt::Write;
 /// (This is the *stroke* realization of `pattern`; a fill texture is [`FillTexture`].)
 pub(crate) fn pattern_dasharray(pattern: Option<&str>) -> &'static str {
     match pattern {
-        Some("dashed") => r#" stroke-dasharray="6,4""#,
-        Some("dotted") => r#" stroke-dasharray="1,4""#,
+        Some("dashed")   => r#" stroke-dasharray="6,4""#,
+        Some("dotted")   => r#" stroke-dasharray="1,4""#,
+        // A composite, so it reads as its own thing rather than as a length
+        // ratio; `longdash` differs from `dashed` only by that ratio, which is
+        // why the two sit last and why the family stops here (§10).
+        Some("dotdash")  => r#" stroke-dasharray="1,3,6,3""#,
+        Some("longdash") => r#" stroke-dasharray="12,5""#,
         _ => "",
     }
 }
@@ -79,7 +84,7 @@ impl FillTexture {
     /// same texture every call — and the mapped `pattern()` *channel* — a different
     /// texture per category (`PatternMap::fill_texture`).
     pub(crate) fn fill(&mut self, svg: &mut String, texture: Option<&str>, color: &str) -> String {
-        let Some(t) = texture.filter(|t| matches!(*t, "hatch" | "crosshatch" | "grid" | "dots")) else {
+        let Some(t) = texture.filter(|t| matches!(*t, "hatch" | "crosshatch" | "stripes" | "grid" | "dots")) else {
             return color.to_string();
         };
         let id = tile_id(t, color);
@@ -146,11 +151,12 @@ impl PatternMap {
 /// line in a set is solid — the most legible, and it leaves `solid` meaning the
 /// same "no texture" it does as a setting.
 pub(crate) fn fill_texture_for_index(i: usize) -> &'static str {
-    match i % 5 {
+    match i % 6 {
         0 => "solid",
         1 => "hatch",
         2 => "crosshatch",
-        3 => "grid",
+        3 => "stripes",
+        4 => "grid",
         _ => "dots",
     }
 }
@@ -158,10 +164,12 @@ pub(crate) fn fill_texture_for_index(i: usize) -> &'static str {
 /// A stroke mark maps a category index → dash: `solid`, `dashed`, `dotted`, cycling
 /// at three — a stroke carries fewer distinguishable textures than a fill.
 pub(crate) fn dash_for_index(i: usize) -> &'static str {
-    match i % 3 {
+    match i % 5 {
         0 => "solid",
         1 => "dashed",
-        _ => "dotted",
+        2 => "dotted",
+        3 => "dotdash",
+        _ => "longdash",
     }
 }
 
@@ -189,8 +197,24 @@ fn tile_body(texture: &str, color: &str) -> String {
         "crosshatch" => format!(
             r#"<path d="M0,{t} L{t},0 M0,0 L{t},{t}" stroke="{color}" stroke-width="{LINE_W}" fill="none"/>"#
         ),
+        // The single-orthogonal texture, one rule down the tile's **middle**,
+        // which repeats into vertical rules. `grid` draws this *and* the
+        // horizontal, so the pair completes the orientation x count family (§10).
+        //
+        // **Down the middle, not along the edge, and that is not cosmetic.** A
+        // `<pattern>` clips to its own box, so a rule centered on x=0 loses the
+        // half of its width that falls outside and paints at half weight. The
+        // two orthogonal textures drew at 38% of the diagonal twins they are
+        // supposed to match — `stripes` reading as a paler shade of the fill
+        // rather than as a texture — while the diagonals, which run corner to
+        // corner through the interior, kept their full width.
+        "stripes" => format!(
+            r#"<path d="M{h},0 L{h},{t}" stroke="{color}" stroke-width="{LINE_W}" fill="none"/>"#,
+            h = t / 2.0
+        ),
         "grid" => format!(
-            r#"<path d="M0,0 L0,{t} M0,0 L{t},0" stroke="{color}" stroke-width="{LINE_W}" fill="none"/>"#
+            r#"<path d="M{h},0 L{h},{t} M0,{h} L{t},{h}" stroke="{color}" stroke-width="{LINE_W}" fill="none"/>"#,
+            h = t / 2.0
         ),
         "dots" => format!(
             r#"<circle cx="{c:.1}" cy="{c:.1}" r="{DOT_R}" fill="{color}"/>"#,
@@ -255,13 +279,20 @@ mod tests {
         // hatch one diagonal, crosshatch two, grid the orthogonal edges, dots a
         // circle — each visibly different so a reader can tell series apart.
         let mut svg = String::new();
-        for t in ["hatch", "crosshatch", "grid", "dots"] {
+        for t in ["hatch", "crosshatch", "stripes", "grid", "dots"] {
             FillTexture::new().fill(&mut svg, Some(t), "#000");
         }
         assert_eq!(svg.matches("M0,8 L8,0").count(), 2, "hatch + crosshatch share the forward diagonal");
         assert!(svg.contains("M0,0 L8,8"), "crosshatch adds the back diagonal");
-        assert!(svg.contains("M0,0 L0,8 M0,0 L8,0"), "grid draws the orthogonal edges");
         assert!(svg.contains("<circle"), "dots draws a stipple circle");
+        // **The orthogonals run down the middle, never along the tile's edge.** A
+        // `<pattern>` clips to its own box, so an edge rule loses the half of its
+        // width that falls outside and paints at half the weight of the diagonal
+        // it is supposed to match. Pinned here because the difference is a shade
+        // rather than a shape, which is how it survived being looked at.
+        assert!(svg.contains("M4,0 L4,8"), "stripes rules the tile's middle");
+        assert!(svg.contains("M4,0 L4,8 M0,4 L8,4"), "grid rules both middles");
+        assert!(!svg.contains("M0,0 L0,8"), "no texture may rule the tile's edge");
     }
 
     #[test]
@@ -300,12 +331,16 @@ mod tests {
         // "no texture"; the rest are distinct up to the palette size, then cycle.
         assert_eq!(fill_texture_for_index(0), "solid");
         assert_eq!(dash_for_index(0), "solid");
-        let fills: Vec<_> = (0..5).map(fill_texture_for_index).collect();
-        assert_eq!(fills, ["solid", "hatch", "crosshatch", "grid", "dots"]);
-        assert_eq!(fill_texture_for_index(5), "solid", "the five fill textures cycle");
-        let dashes: Vec<_> = (0..3).map(dash_for_index).collect();
-        assert_eq!(dashes, ["solid", "dashed", "dotted"]);
-        assert_eq!(dash_for_index(3), "solid", "the three dashes cycle");
+        let fills: Vec<_> = (0..6).map(fill_texture_for_index).collect();
+        assert_eq!(fills, ["solid", "hatch", "crosshatch", "stripes", "grid", "dots"]);
+        assert_eq!(fill_texture_for_index(6), "solid", "the six fill textures cycle");
+        let dashes: Vec<_> = (0..5).map(dash_for_index).collect();
+        assert_eq!(dashes, ["solid", "dashed", "dotted", "dotdash", "longdash"]);
+        assert_eq!(dash_for_index(5), "solid", "the five dashes cycle");
+        // The modulus and the vocabulary are one number, and this is where a
+        // grown set would be caught drifting from the array it cycles over.
+        assert_eq!(fills.len(), crate::legality::FILL_TEXTURES.len());
+        assert_eq!(dashes.len(), crate::legality::STROKE_DASHES.len());
     }
 
     #[test]

@@ -88,6 +88,7 @@ import {
   x,
   x_label,
   y,
+  y_label,
   z,
   zone,
   surface,
@@ -2326,4 +2327,58 @@ test("the turnable block is reachable from the package's front door", async () =
   const block = front.html_block(p);
   assert.ok(block.includes("<svg"), "the block carries no picture");
   assert.ok(block.includes("gog-plot"), "the block is not the page's container");
+});
+
+// JavaScript keeps its own copy of `pattern`'s values, so a vocabulary grown in
+// the engine and not here fails silently. Each value is drawn, not compared to a
+// second list.
+test("the grown which-one vocabularies all draw", () => {
+  const d = data({ a: [1, 2, 3], b: [4, 5, 6] });
+  for (const s of ["circle", "square", "triangle", "diamond", "cross", "star", "wye"])
+    assert.ok(render_svg(plot(d, point, x(col.a), y(col.b), style({ shape: s }))).includes("<svg"),
+      `the glyph ${s} did not draw`);
+  for (const p of ["solid", "dashed", "dotted", "dotdash", "longdash"])
+    assert.ok(render_svg(plot(d, line, x(col.a), y(col.b), style({ pattern: p }))).includes("<svg"),
+      `the dash ${p} did not draw`);
+  for (const f of ["solid", "hatch", "crosshatch", "stripes", "grid", "dots"])
+    assert.ok(render_svg(plot(d, bar, x(col.a), y(col.b), style({ pattern: f }))).includes("<svg"),
+      `the fill texture ${f} did not draw`);
+});
+
+// `theme({ axis_label })` states one convention for both axis names.
+test("axis_label places both axis names by one rule", () => {
+  const d = data({ a: [1, 2, 3], b: [4, 5, 6] });
+  const base = [d, point, x(col.a), y(col.b), x_label("A"), y_label("B")];
+  assert.ok(render_svg(plot(...base)).includes("rotate(-90"),
+    "the default should turn the y name through 90 degrees");
+  assert.ok(!render_svg(plot(...base, theme({ axis_label: "end" }))).includes("rotate(-90"),
+    "`end` should leave every name horizontal");
+  assert.throws(() => theme({ axis_label: "sideways" }), /end|beside/);
+});
+
+// Two plots in one document may not share an id: a notebook is one document, and
+// a second plot borrowing the first's <pattern> draws nothing once a host
+// detaches the owning cell.
+test("two plots in one document mint no id in common", () => {
+  const draw = (v) => render_svg(plot(data({ g: ["a", "b", "c"], v }), bar,
+    x(col.g), y(col.v), style({ pattern: "hatch" })));
+  const a = draw([1, 2, 3]), b = draw([3, 1, 2]);
+  const ids = (s) => new Set([...s.matchAll(/id="([^"]+)"/g)].map((m) => m[1]));
+  const [ia, ib] = [ids(a), ids(b)];
+  assert.ok(ia.size && ib.size, "both plots must mint ids to compare");
+  for (const i of ia) assert.ok(!ib.has(i), `two different plots share an id: ${i}`);
+  for (const s of [a, b])
+    for (const m of s.matchAll(/url\(#([^)]+)\)/g))
+      assert.ok(ids(s).has(m[1]), `a reference points outside its own plot: ${m[1]}`);
+});
+
+// The same class one language over: `${…}` inside a single-quoted string is a
+// literal, so a refusal would print its own template. Source-level for the same
+// reason — a substring assertion sits before the template and passes.
+test("no refusal prints its own template", () => {
+  const src = fs.readFileSync(new URL("../src/atoms.js", import.meta.url), "utf8");
+  for (const line of src.split("\n")) {
+    if (line.includes("${") && /'[^']*\$\{/.test(line))
+      assert.fail(`a single-quoted string carries a template: ${line.trim()}`);
+  }
 });
