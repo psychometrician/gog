@@ -98,19 +98,46 @@ Move all eight together or not at all.
 
 ## The four registries
 
-### r-universe (R) — the only one a plain push reaches
+### r-universe (R) — fed by the `release` branch, and by a button
+
+**This section said "the only one a plain push reaches" until 2026‑09‑20, and that
+had been false since 2026‑08‑28** — the day after this file was last edited. The
+registry entry gained `"branch": "release"`, so a push to `main` now reaches
+r-universe not at all. Anyone following the old text would push, see nothing move,
+and have no reason to suspect the document.
 
 The registry is a separate repository, `psychometrician/psychometrician.r-universe.dev`,
-whose `packages.json` names this repository and the subdirectory to build:
+whose `packages.json` names this repository, the subdirectory, and the branch:
 
 ```json
-[{ "package": "gog", "url": "https://github.com/psychometrician/gog", "subdir": "r-pkg/gog" }]
+[{ "package": "gog", "url": "https://github.com/psychometrician/gog",
+   "subdir": "r-pkg/gog", "branch": "release" }]
 ```
 
-r-universe polls for new commits and rebuilds. It publishes at **exactly** the
-version in `DESCRIPTION`, records the commit it built in `RemoteSha`, and replaces
-the previous build at the same number. There is no review, no gate, and no
-increment.
+**So a release pushes the branch and then asks for a sync:**
+
+```bash
+git push origin main:release
+curl -s -X PATCH https://psychometrician.r-universe.dev/api/sync
+```
+
+The second line is what the ♻️ in the universe page's sidebar does
+(`fetch('/api/sync', {method: "PATCH"})`), it needs no login, and it returns the
+`html_url` of the run it starts. **Do not wait for the scheduled cycle.** A
+universe's `sync.yml` has no schedule of its own; it is dispatched by a metajob at
+`r-universe-org/control-room` that is meant to run hourly and does not. Measured on
+2026‑09‑20, with nothing wrong and the job running normally, its four previous runs
+were 5h13m, 4h37m, 2h38m and 2h45m apart. An earlier release lost days to this.
+
+If you go looking for that button rather than using the endpoint: it is **not
+labeled sync**. Its tooltip reads "Check for package updates", it sits in the
+**Owner information** panel of the left sidebar beside the green *Last sync was OK*
+check, and it is hidden until the sidebar's status call returns. Searching the page
+for the word "sync" finds nothing.
+
+It publishes at **exactly** the version in `DESCRIPTION`, records the commit it
+built in `RemoteSha`, and replaces the previous build at the same number. There is
+no review, no gate, and no increment.
 
 **The consequence worth knowing before you rely on it:** because the number does not
 move, an R user who has already installed `0.0.1` will not get your new commits from
@@ -151,6 +178,29 @@ So "r-universe builds binaries for macOS, Windows and Linux, so nothing needs
 Rust" is false as written. It was published in three files for weeks, and it was
 a user on Ubuntu who found it. Verify a claim about installing by installing, on
 the platform the claim names.
+
+#### The failure that kept recurring, and the job that now catches it
+
+**Four releases failed on r-universe after publishing** — 0.0.3 and 0.0.4 on an
+unrendered `man/` page, 0.2.0 on a literal em dash in a diagnostic, 0.3.0 on a test
+that reached for `target/release/gog-cli`. Every one was found on the build page
+with the version already shipped, and every one had the same signature: **`source`
+passes and every binary target fails.**
+
+The cause was structural rather than careless. `tests.yml` ran the R suite from the
+checkout, where the engine sits in `target/` and `GOG_CLI_PATH` points at it.
+r-universe checks an *installed* package, which has neither, because `configure`
+bundles the engine into `inst/bin/`. Anything that reaches for a build path, and
+every check that reads installed files, was invisible here until too late.
+
+`tests.yml`'s **`installed`** job now reproduces exactly those conditions: stage the
+crates with `.prepare`, `R CMD build`, then `R CMD check` from a directory with no
+`target/` above it and **`GOG_CLI_PATH` unset**. Unset rather than merely absent,
+because a pre-flight script that exported it is what hid the last one — a local
+`R CMD check` that sets the variable cannot fail the way r-universe fails, so it
+reports clean and means nothing. It asserts on the status line rather than the exit
+code, since `R CMD check` exits 0 on a WARNING. All four failures above would have
+been caught at push time.
 
 ### Reading a check result
 
@@ -389,9 +439,24 @@ do them by hand.
    - `git tag js-v0.0.2 && git push origin js-v0.0.2` → npm. Approve the `npm`
      environment. It publishes the five engines before the binding, because npm omits
      an optional dependency it cannot resolve and reports the gap as nothing.
-   - comment `@JuliaRegistrator register subdir=jl-pkg/GrammarOfGraphics` on the
-     release commit → Julia.
-   - R needs nothing: r-universe rebuilds from `DESCRIPTION` on its own.
+   - Julia takes **two** steps now, and the order cannot be swapped. First build
+     the engines and bind them, because `Artifacts.toml` names URLs that have to
+     exist before it is written and must be committed before the package is
+     registered:
+
+     ```bash
+     gh workflow run julia-artifacts.yml -f version=<version>
+     git pull                      # the workflow commits Artifacts.toml to main
+     ```
+
+     Then comment `@JuliaRegistrator register subdir=jl-pkg/GrammarOfGraphics` on
+     that commit, so the registered tree carries its own `Artifacts.toml`. The
+     `subdir=` is not optional: the package is not at the repository root, and
+     without it the bot looks for a `Project.toml` beside the README and fails.
+   - R needs the branch pushed and the sync asked for, which is two commands and
+     not nothing: `git push origin main:release`, then
+     `curl -s -X PATCH https://psychometrician.r-universe.dev/api/sync`. This line
+     read "R needs nothing" for three weeks after that stopped being true.
 8. **Verify each one by installing it.** A green workflow proves an upload happened,
    not that the result works. The bar is the same one each binding was held to at
    `0.0.1`: install from the registry into a clean environment and draw from a

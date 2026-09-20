@@ -9,6 +9,8 @@
 #     .github/release <version>     bump, regenerate, test, dispatch — then stop
 #     .github/release --tag py      push py-v<version> → PyPI, after approval
 #     .github/release --tag js      push js-v<version> → npm, after approval
+#     .github/release --r           push main:release → r-universe, and sync it
+#     .github/release --engines     build the Julia engines, before --julia
 #     .github/release --julia       trigger the Julia registration
 #
 # `<version>` is the number you are moving *to*. The tree's current one is
@@ -214,11 +216,64 @@ push_tag() {
   esac
 }
 
+# r-universe tracks the `release` branch, not `main`, since 2026-08-28. A push to
+# `main` reaches it not at all, and the failure is silent: it keeps serving the
+# previous version with nothing to say why. Then ask for a sync rather than waiting
+# — the dispatching metajob is meant to run hourly and measurably does not, with
+# gaps of two to five hours observed on a day when nothing was wrong.
+release_r() {
+  local version out
+  version="$(declared_version)"
+  check_versions_agree "$version"
+  step "Releasing gog $version to r-universe"
+  git push origin main:release || die "could not push main:release"
+  ok "release branch now at $(git rev-parse --short HEAD)"
+  out="$(curl -s -X PATCH https://psychometrician.r-universe.dev/api/sync)" ||
+    die "sync request failed; press the button in the universe sidebar"
+  case "$out" in
+    *html_url*) ok "sync started" ;;
+    *) die "sync did not start: $out" ;;
+  esac
+  note "nine targets, each compiling the engine; about ten minutes"
+  note "read every target when it lands, not the summary:"
+  note "  curl -s https://psychometrician.r-universe.dev/api/packages/gog |"
+  note "    python3 -c 'import sys,json;[print(j[\"config\"],j[\"check\"]) for j in json.load(sys.stdin)[\"_jobs\"]]'"
+  note "wasm-release FAILs by design: webR has no Rust toolchain"
+}
+
+# The engines must exist before `Artifacts.toml` can name their URLs, and that file
+# must be committed before the package is registered. Hanging the tarballs off the
+# package's own release tag would make each need the other first.
+build_engines() {
+  local version
+  version="$(declared_version)"
+  check_versions_agree "$version"
+  command -v gh >/dev/null || die "gh is needed to dispatch the workflow"
+  step "Building the Julia engine artifacts for $version"
+  gh workflow run julia-artifacts.yml -f version="$version" ||
+    die "could not dispatch julia-artifacts.yml"
+  ok "dispatched: five platforms, then a bind job that commits Artifacts.toml"
+  note "when it finishes:  git pull    then  .github/release --julia"
+}
+
 trigger_julia() {
   local version sha
   version="$(declared_version)"
   sha="$(git rev-parse HEAD)"
   check_versions_agree "$version"
+
+  # **The engines have to be there first, and nothing else would notice.** A
+  # registration is permanent, and a registered tree with no `Artifacts.toml` — or
+  # one naming a previous release's engines — gives every Julia reader a package
+  # that installs, loads, and refuses on their first plot. That was the state of
+  # this binding for its whole life before 0.3.0, so it is worth one grep.
+  local toml="jl-pkg/GrammarOfGraphics/Artifacts.toml"
+  [ -f "$toml" ] ||
+    die "$toml is missing — run .github/release --engines, then git pull"
+  grep -q "engine-v$version/" "$toml" ||
+    die "$toml does not name engine-v$version; it has $(sed -n 's|.*/download/\(engine-v[^/]*\)/.*|\1|p' "$toml" | sort -u | tr '\n' ' ')— run --engines, then git pull"
+  ok "$toml names engine-v$version on $(grep -c '^\[\[gog_cli\]\]' "$toml") platforms"
+
   step "Registering GrammarOfGraphics $version from $(git rev-parse --short HEAD)"
   note "an existing package auto-merges with no three-day hold"
   command -v gh >/dev/null || die "gh is needed to post the comment"
@@ -239,8 +294,10 @@ case "${1:-}" in
     check_versions_agree "$(declared_version)"
     ok "tree reads $(declared_version)"
     ;;
-  --tag)   push_tag "${2:-}" ;;
-  --julia) trigger_julia ;;
+  --tag)     push_tag "${2:-}" ;;
+  --r)       release_r ;;
+  --engines) build_engines ;;
+  --julia)   trigger_julia ;;
   "" | -h | --help)
     sed -n '2,25p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'
     ;;
@@ -254,13 +311,15 @@ case "${1:-}" in
     parity
     dispatch
     printf '\n%sReady at %s. Nothing is published yet.%s\n\n' "$bold" "$want" "$off"
-    note "review the diff, commit it, and push — R releases itself from DESCRIPTION"
+    note "review the diff, commit it, and push — a push to main does NOT release R"
     note "read both packaging runs before spending a number:"
     note "  gh run list --workflow=python-wheels.yml --limit 1"
     note "  gh run list --workflow=js-packages.yml   --limit 1"
     printf '\n  then, in order:\n'
     printf '    .github/release --tag py     %s→ PyPI, approve the pypi environment%s\n' "$dim" "$off"
     printf '    .github/release --tag js     %s→ npm, approve the npm environment%s\n' "$dim" "$off"
+    printf '    .github/release --r          %s→ r-universe: push release, then sync%s\n' "$dim" "$off"
+    printf '    .github/release --engines    %s→ the Julia engines; git pull after%s\n' "$dim" "$off"
     printf '    .github/release --julia      %s→ General, auto-merges%s\n\n' "$dim" "$off"
     ;;
 esac
