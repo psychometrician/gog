@@ -1,0 +1,150 @@
+# The engine, packaged the way Julia distributes a binary.
+#
+# **Why this workflow exists.** Julia was the one binding of four that did not
+# ship an engine: `Pkg.add("GrammarOfGraphics")` gave a reader a package that
+# loaded and then refused on their first plot, with a README telling them to
+# install Rust and build it. The other three each solve this — R's `configure`
+# bundles the binary, Python ships a platform wheel, JavaScript resolves a
+# per-platform optional dependency — and `Artifacts.toml` is Julia's answer.
+#
+# **Why it is separate from registration, and must be.** `Artifacts.toml` has to
+# be committed *before* the package is registered, and it names URLs that have to
+# exist *before* it is written. So the binaries get a release of their own,
+# `engine-v<version>`, which nothing else depends on and which can be cut whenever.
+# Registration then happens against a repository that already has a working
+# `Artifacts.toml`. Hanging the tarballs off the package's own release tag would
+# make each need the other first.
+#
+# The matrix is `js-packages.yml`'s, deliberately: the same five engines already
+# go to npm, so a Julia reader and a JavaScript reader run identical bytes, and a
+# target added for one is added for both.
+
+name: julia artifacts
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Version the engines belong to, e.g. 0.2.1"
+        required: true
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    name: ${{ matrix.target }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: macos-14
+            target: darwin-arm64
+          - os: macos-14
+            target: darwin-x64
+            rust_target: x86_64-apple-darwin
+            macos_target: "10.12"
+          - os: ubuntu-latest
+            target: linux-x64
+            rust_target: x86_64-unknown-linux-musl
+          - os: ubuntu-24.04-arm
+            target: linux-arm64
+            rust_target: aarch64-unknown-linux-musl
+          - os: windows-latest
+            target: win32-x64
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+
+      # Pure Rust needs no C toolchain, but the musl targets still link through a
+      # `musl-gcc` the runner images do not carry.
+      - name: Install the musl toolchain
+        if: ${{ contains(matrix.rust_target, 'musl') }}
+        run: sudo apt-get update && sudo apt-get install -y musl-tools
+
+      - name: Add the target
+        if: ${{ matrix.rust_target }}
+        run: rustup target add ${{ matrix.rust_target }}
+
+      - name: Build the engine
+        shell: bash
+        run: |
+          # Exported here rather than in `env:`, and only when the matrix entry
+          # names one: an `env:` value read from an undefined matrix key is the
+          # empty string rather than absent, and rustc rejects that for an Apple
+          # target. `js-packages.yml` carries the same note and the same scar.
+          if [ -n "${{ matrix.macos_target }}" ]; then
+            export MACOSX_DEPLOYMENT_TARGET="${{ matrix.macos_target }}"
+          fi
+          if [ -n "${{ matrix.rust_target }}" ]; then
+            cargo build --release -p gog-cli --target "${{ matrix.rust_target }}"
+            src="target/${{ matrix.rust_target }}/release"
+          else
+            cargo build --release -p gog-cli
+            src="target/release"
+          fi
+          mkdir -p "dist/${{ matrix.target }}"
+          if [ "${{ matrix.target }}" = "win32-x64" ]; then
+            cp "$src/gog-cli.exe" "dist/${{ matrix.target }}/gog-cli.exe"
+          else
+            cp "$src/gog-cli" "dist/${{ matrix.target }}/gog-cli"
+          fi
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: engine-${{ matrix.target }}
+          path: dist/${{ matrix.target }}/*
+
+  bind:
+    name: tarballs, release, Artifacts.toml
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/download-artifact@v4
+        with:
+          path: dist
+          pattern: engine-*
+
+      # `download-artifact` names each directory after the artifact, so
+      # `engine-darwin-arm64/` has to become `darwin-arm64/` — the generator
+      # reads the target name from the directory.
+      - name: Name the directories after their targets
+        run: |
+          cd dist
+          for d in engine-*; do mv "$d" "${d#engine-}"; done
+          ls -R
+
+      - uses: julia-actions/setup-julia@v2
+        with:
+          version: "1"
+
+      # Writes `jl-pkg/GrammarOfGraphics/Artifacts.toml` and the five tarballs.
+      # Both hashes come back out of Julia: the `git-tree-sha1` is of the
+      # *unpacked* tree and cannot be written by hand.
+      - name: Build the artifacts and bind them
+        run: julia .github/make-julia-artifacts.jl engine-v${{ inputs.version }} dist
+
+      - name: Publish the engines
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          tag="engine-v${{ inputs.version }}"
+          gh release view "$tag" >/dev/null 2>&1 \
+            || gh release create "$tag" --title "Engines $tag" --notes \
+                 "The \`gog-cli\` engine, one build per platform, for Julia's Artifacts.toml. Not a package release."
+          gh release upload "$tag" dist/*.tar.gz --clobber
+
+      # Committed rather than uploaded: a registered package must carry its own
+      # `Artifacts.toml`, and the release above is what it points at.
+      - name: Commit Artifacts.toml
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add jl-pkg/GrammarOfGraphics/Artifacts.toml
+          git diff --cached --quiet && echo "no change" && exit 0
+          git commit -m "The Julia engine artifacts for ${{ inputs.version }}"
+          git push

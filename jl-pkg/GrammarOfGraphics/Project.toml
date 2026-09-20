@@ -1,7 +1,7 @@
 name = "GrammarOfGraphics"
 uuid = "c00c8485-9aac-4319-bba4-e242535f49e2"
 authors = ["psychometrician"]
-version = "0.2.0"
+version = "0.3.0"
 
 # Five dependencies, all of them standard libraries, so a user still installs
 # nothing extra. Dates is the oldest: Julia is the only binding whose language
@@ -24,6 +24,12 @@ version = "0.2.0"
 # engine answers with SVG, not with a document to parse — so `src/json.jl` is a
 # small writer rather than a dependency the package would owe compat bounds for.
 [deps]
+# Artifacts is how a Julia package ships a binary, and it is the newest of these
+# for the oldest reason: this binding was the only one of the four that did not
+# ship the engine, so `Pkg.add` left a reader with a package that loaded and
+# then refused to draw. It is a standard library, so the fix still costs a user
+# nothing to install.
+Artifacts = "56f22d72-fd6d-98f1-02f0-08ddc0907c33"
 Dates = "ade2ca70-3891-5945-98fb-dc099432e06a"
 Base64 = "2a0f44e3-6c83-55bd-87e4-b1978d98bd5f"
 Random = "9a3f8284-a2c9-5f02-9a11-845980a1fd5c"

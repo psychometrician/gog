@@ -38,6 +38,7 @@ and each language has its own way of saying so.
 module GrammarOfGraphics
 
 using Dates
+using Artifacts: artifact_hash, artifact_path
 using Base64: base64encode
 using Random: randstring
 

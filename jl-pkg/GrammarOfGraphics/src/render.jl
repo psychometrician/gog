@@ -13,6 +13,32 @@ const EXE = Sys.iswindows() ? "gog-cli.exe" : "gog-cli"
 # Find the gog-cli binary
 # ---------------------------------------------------------------------------
 
+"""
+The engine Julia's own artifact system fetched at install time.
+
+`Artifacts.toml` is **not lazy**, so `Pkg.add` downloads the right binary for
+the platform before a reader ever calls this — there is nothing to install on
+demand and nothing to ask them to do. A development checkout has no
+`Artifacts.toml` and falls through, as does a platform the release does not
+build for, and both land on the routes below rather than on an error.
+"""
+function artifact_cli()
+    toml = joinpath(dirname(@__DIR__), "Artifacts.toml")
+    isfile(toml) || return nothing
+    try
+        hash = artifact_hash("gog_cli", toml)
+        hash === nothing && return nothing
+        candidate = joinpath(artifact_path(hash), EXE)
+        isfile(candidate) || return nothing
+        Sys.iswindows() || chmod(candidate, filemode(candidate) | 0o111)
+        candidate
+    catch
+        # An artifact store that cannot be read is a reason to keep looking,
+        # never a reason to fail: the routes below may still find an engine.
+        nothing
+    end
+end
+
 function bundled_cli()
     # The engine shipped inside this package, if this is a released copy. A
     # development checkout has no `bin/` and falls through to the build below.
@@ -46,12 +72,18 @@ The same order the other bindings use (R's chain adds a fifth source — it can
 build the engine from staged sources at install time), and step two keeps their
 reason: the binary that shipped with a package is the one whose wire format
 matches it, so an unrelated `gog-cli` earlier on `PATH` must not silently
-answer for it. Today no registered version of this package bundles an engine,
-so step two finds one only when a future artifact provides it.
+answer for it. A released version fetches the engine as an artifact
+at install time, and step two finds a copy staged by hand beside it.
 """
 function find_gog_cli()
     override = get(ENV, "GOG_CLI_PATH", "")
     isempty(override) || !isfile(override) || return override
+
+    # The artifact comes before the bundled copy because it is what a released
+    # install actually has; `bin/` predates it and stays for anyone staging one
+    # by hand.
+    artifact = artifact_cli()
+    artifact === nothing || return artifact
 
     bundled = bundled_cli()
     bundled === nothing || return bundled
@@ -76,13 +108,16 @@ function find_gog_cli()
         isfile(candidate) && return candidate
     end
 
-    # The truth for *this* binding, not R's: no registered version of the Julia
-    # package ships an engine yet, so a fresh `Pkg.add` install has none and
-    # this is the expected first stop, not a sign the install went wrong.
+    # A released install fetches the engine as an artifact, so reaching here
+    # means either a development checkout with nothing built, or a platform the
+    # release does not build for. Both are real and the message names both,
+    # rather than telling a reader with a working install that their install is
+    # broken.
     throw(GogError(
         "gog: cannot find the `gog-cli` binary — the engine that draws the plot.\n" *
-        "This binding does not ship the engine yet, so an installed copy has\n" *
-        "none until you provide one.\n" *
+        "An installed copy fetches one for your platform, so this is either a\n" *
+        "checkout with nothing built yet, or a platform the release does not\n" *
+        "cover.\n" *
         "  Build it once:  cargo build --release -p gog-cli  (in a gog checkout)\n" *
         "  Then point at it:  ENV[\"GOG_CLI_PATH\"] = \"/path/to/gog-cli\""))
 end
