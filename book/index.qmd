@@ -357,7 +357,7 @@ grammar in a morning; write it fluently within ten days. Part I is built
 to be finished in one sitting. The rest of the book deepens what the
 morning introduced; it never replaces it.
 
-Five rules govern every page, and you can hold the book to them:
+Six rules govern every page, and you can hold the book to them:
 
 - **Every plot is live.** Each is drawn by the engine as the page builds;
   no plot in this book is a screenshot. The only static images in this book
@@ -365,6 +365,9 @@ Five rules govern every page, and you can hold the book to them:
   the web edition the cover and the DOI badge) and none of them is a plot.
 - **Questions first.** Every teaching chapter opens with a question about
   data, never with a feature name.
+- **An ending, not a stop.** Every teaching chapter closes by saying what its
+  subject cannot do, and which chapter answers that. It is not a summary of
+  what you have read.
 - **A small cast.** Eight families of table carry more than two out of three
   plots in this book. A chapter that needs a frame of its own introduces it
   where it is drawn. New columns cost the reader attention, so the variety
@@ -377,7 +380,7 @@ Five rules govern every page, and you can hold the book to them:
   engine's *no*, always with a direction, is half of what it teaches.
 
 One thing to be clear about before you start: this package is young. The
-version number is 0.1.0, and it means what it says. The grammar is settled
+version number is 0.3.0, and it means what it says. The grammar is settled
 enough to build on, and the implementation is not finished. What exists is a first
 working version, so do not expect everything to work the first time. If you use
 it for an experiment or a paper, you are taking a risk. This warning is here so
@@ -588,10 +591,10 @@ out instead, each in its own style: `GrammarOfGraphics` in Julia, and
 `grammar-of-graphics` on npm, which does not allow capital letters.
 
 The Python and JavaScript packages carry the engine inside them, already built
-for your computer, and the R package carries it on macOS and Windows. For those
-you do not need a Rust [@klabnik2023rust] toolchain, and nothing has to be added
-to your `PATH`. Two of the four commands have a note to read before you run
-them: the R command and the Julia command.
+for your computer; Julia fetches it as it installs; and the R package carries it
+on macOS and Windows. So you do not need a Rust [@klabnik2023rust] toolchain,
+and nothing has to be added to your `PATH`. One of the four commands has a note
+to read before you run it, and it is the R one.
 
 The R package is not on CRAN yet. It is published on
 [r-universe](https://psychometrician.r-universe.dev/gog) instead, which is why the
@@ -600,17 +603,12 @@ mirror, and it is there so your other packages still install as usual. On Linux
 the command builds the engine from source, which needs Rust and a network
 connection. The [R](bindings/r.qmd) chapter gives the command that installs Rust.
 
-The Julia package is the one binding that does not carry the engine yet: it
-installs and loads, but it cannot draw until you add the engine. One more
-command installs an engine, and the
-[Julia](bindings/julia.qmd) chapter gives it.
-
 Each binding has its own chapter at the end of this book, and each of those
 chapters closes with the longer version of this section: [R](bindings/r.qmd),
 [Python](bindings/python.qmd), [Julia](bindings/julia.qmd) and
 [JavaScript](bindings/javascript.qmd).
 
-Every one of these packages is at version 0.1.0. The grammar is settled and the
+Every one of these packages is at version 0.3.0. The grammar is settled and the
 engine draws this whole book, but the packaging is new, so releases will be
 frequent, and most of them will not change the vocabulary. One promise holds at every version:
 every page shows what the engine actually did. If a page shows a sentence, the
@@ -729,7 +727,7 @@ this package was never part of that job. It was built late at night, on
 weekends, and on vacation days. That time belonged to my wife and daughter, and
 I spent it talking to the five Claude models on the cover instead. I am not
 going to call that devotion to the craft. To my wife and daughter: sorry.
-I would like to end by saying it is finished. It is not. The version is 0.1.0,
+I would like to end by saying it is finished. It is not. The version is 0.3.0,
 and what comes next will cost the same nights, weekends and vacation days.
 
 ## Thanks to Posit
@@ -752,7 +750,7 @@ Python in one window. The two are not the same program under different names: RS
 still here and still maintained, and Positron sits beside it.
 
 [Quarto](https://quarto.org/) is the third, and it belongs here rather than in a
-colophon, because the first of the five rules above rests entirely on it. *Every
+colophon, because the first of the six rules above rests entirely on it. *Every
 plot is live* is a claim about honesty rather than convenience. Every code block
 on these pages ran while the page was being built. One that draws a plot really
 drew it, and one that shows a refusal was really refused. Quarto is what

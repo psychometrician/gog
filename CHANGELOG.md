@@ -4,6 +4,98 @@ All four packages share one version number and are released together: `gog` on
 CRAN-style repositories and PyPI, `GrammarOfGraphics` on Julia's General, and
 `grammar-of-graphics` on npm. A version means the same grammar in every one.
 
+## 0.3.0 (unreleased)
+
+### Changed
+
+- **Axis names follow one convention now, and it is the conventional one.** gog
+  drew two at once: the y name sat horizontally at the top of its axis while the
+  x name sat centered beside its own. Every plot now centers each name along its
+  own axis, so the y name is turned through 90 degrees and the panel gets back
+  the band the horizontal one used. `theme(axis_label = "end")` asks for the
+  other convention, both names at their axis's far end and horizontal, so
+  nothing on the plot is read sideways. **Every plot with a y label looks
+  different**, which is the point: one rule a chapter can state, instead of two
+  that cancelled out.
+
+### Fixed
+
+- **`style(pattern = )` tells every reader which five values are a stroke's and
+  which five are a fill's.** Three of the four packages listed all ten flat, so
+  a reader learned the split only by being refused a second time — and the split
+  is real, since a dash on a fill and a hatch on a stroke are both refused.
+
+- **The four angle atoms show an example in every language.** `space`, `polar`,
+  `globe` and `network` each refuse a non-number with a call you can copy;
+  JavaScript had carried those examples and the other three had not.
+
+- **A Julia refusal printed its own template.** `theme(frame = )` told a reader
+  the three choices were `"$v"`, `"$v"`, `"$v"`, because an escaped dollar left
+  the list uninterpolated. It reached a notebook cell, not only a console.
+
+- **The four packages word the `frame` refusal the same way.** Each had written
+  its own sentence for the same rule. How a call is spelled is still each
+  language's own; what the sentence says is the grammar's.
+
+- **Two plots on one page no longer borrow each other's ink.** An SVG id is
+  resolved against the whole document, and every plot in a notebook is in one
+  document. gog minted ids by hashing the element, so two plots using the same
+  texture in the same color were handed the same id and the second bound to the
+  first's definition. It drew correctly until the host put the owning cell out
+  of view, and then a correct plot drew nothing at all. Every id a plot mints is
+  now its own.
+
+- **`stripes` and `grid` draw at their full weight.** Both put their rules on
+  the edge of the repeating tile, where a pattern clips away the half of each
+  rule that falls outside, so they drew at about a third of the weight of the
+  diagonal textures they are meant to match and read as a paler shade of the
+  fill. The rules now run down the middle of the tile.
+
+- **A refusal names the values that exist.** `style(pattern = )` advised three
+  dashes and five textures after the vocabularies grew to five and six, so a
+  reader who wrote one wrongly was told the previous release's list. Both
+  refusals now read the vocabulary rather than restating it.
+
+- **Python's refusals quote gog's vocabulary the way the other three do.** A
+  value like `"end"` is the grammar's, identical in every language, and Python
+  alone wrote it as `'end'`. How a call is spelled is still each language's own.
+
+- **A dashed line's key is readable again.** The legend drew each dash in a 16
+  pixel run, which is shorter than one `longdash` repeat, so `solid` and
+  `longdash` came out as the same line with one slightly longer than the other
+  while the plot drew them clearly apart. A dash swatch now gets a wider column
+  than the other swatch kinds, enough to show the pattern repeating, because a
+  key that cannot show the repeat is not decoding anything.
+
+### Added
+
+- **Two more glyphs, two more dashes and one more fill texture.** `shape` now
+  draws seven kinds rather than five, gaining `star` and `wye`, which completes
+  d3's symbol family. A stroke's `pattern` gains `dotdash` and `longdash` for
+  five, and a fill's gains `stripes` for six. `stripes` fills the hole in the
+  family the other five already made: `hatch` is one diagonal, `crosshatch`
+  both, `grid` both orthogonals, and nothing drew a single orthogonal until now.
+  The counts differ on purpose. A glyph shows its whole silhouette at ten
+  pixels, a fill is the largest thing on the panel, and a dash reads only where
+  enough uninterrupted line is visible, so each geometry stops where its own
+  room runs out.
+
+- **A `shape` or `pattern` column with more categories than kinds now says so.**
+  The vocabulary starts over once it runs out, so two categories drew the same
+  glyph and looked like one group, silently. gog now names the count, the limit
+  and two ways out. The plot still draws: it is legal, and the grammar does not
+  forbid it.
+
+### Fixed
+
+- **A refusal that ends in `style()` now says so.** Mapping a column to `size`
+  or `opacity` on a mark drawn as one stroke or one region was refused with "a
+  line has no size feature", which is not true: a line has a width, it cannot
+  vary it row by row, and `style(size = 2.5)` is the value the reader was
+  after. Those sixteen refusals now say the mark takes one for the whole layer
+  rather than one per row, and hand over the setting. A mark that genuinely has
+  no such feature, a `bar`'s `size` or a `text`'s `shape`, still says so.
+
 ## 0.2.0 (2026-08-27)
 
 ### Added

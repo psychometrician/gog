@@ -1,3 +1,38 @@
+# gog 0.3.0 (2026-09-20)
+
+Every plot with a y axis name looks different, and that is the headline rather
+than a side effect. gog had been drawing two conventions at once: the y name sat
+horizontally above the panel while the x name sat centered beside its own axis,
+so there was no rule a chapter could state. Now one property states it for both.
+By default each name is centered along its own axis, which turns the y name
+through ninety degrees and gives the panel back the band the horizontal one
+used. `theme(axis_label = "end")` asks for the other convention, both names at
+their axis's far end and horizontal, so nothing on the plot is read sideways.
+
+The three vocabularies that answer *which one?* grew, and each stopped where its
+own geometry runs out. `shape` draws seven glyphs rather than five, gaining a
+star and a wye, which completes the symbol family it had been drawing part of. A
+stroke's `pattern` gains `dotdash` and `longdash` for five, and a fill's gains
+`stripes` for six. `stripes` fills the hole the other five already made: one
+diagonal is a hatch, both are a crosshatch, both orthogonals are a grid, and
+nothing drew a single orthogonal until now. A glyph shows its whole silhouette
+at ten pixels, a fill is the largest thing on the panel, and a dash reads only
+where enough uninterrupted line is visible, which is why the three counts
+differ.
+
+A vocabulary that runs out now says so. Map a column with more categories than
+there are kinds and the set starts over, so two categories draw the same glyph
+and look like one group. gog names the count, the limit and two ways out, and
+draws the plot anyway, because it is legal and the grammar does not forbid what
+it can draw.
+
+Julia installs an engine. A plot is drawn by a compiled binary, and the Julia
+package was the one of four that shipped none, so `Pkg.add` used to give a
+reader a package that loaded and then refused on their first plot with
+instructions to install Rust. It now arrives as an artifact, which is how a
+Julia package distributes a binary, so the install is one command and there is
+nothing to build.
+
 # gog 0.1.0 (2026-08-18)
 
 The version leaves 0.0.x because the vocabulary grew rather than the count of
