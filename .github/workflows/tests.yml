@@ -303,6 +303,14 @@ jobs:
         with:
           working-directory: r-pkg/gog
 
+      # `R CMD check` builds the reference manual as a PDF, and a runner has no
+      # LaTeX, so without this the job reports `pdflatex is not available` as an
+      # ERROR while every check about the package passes. Installed rather than
+      # skipped with `--no-manual`: an Rd file that cannot be typeset is a real
+      # defect, it is one r-universe would report, and dropping the check to make
+      # a job green is how it would ship.
+      - uses: r-lib/actions/setup-tinytex@v2
+
       # `.prepare` stages the crate sources into `tools/rust/`, which is how a
       # subdirectory build reaches them. r-universe runs it the same way, and it
       # is generated output that is never committed.
