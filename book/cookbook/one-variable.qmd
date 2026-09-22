@@ -5,15 +5,16 @@
 source("../R/setup.R")
 ```
 
-You have one column. What can it tell you? The answer depends on the column's
-type. A categorical column asks how many of each; a continuous column asks how
-the values spread.
+You have one column. What can it tell you? The column's type decides the
+question. A categorical column asks how many of each; a continuous column asks
+how the values spread.
 
 ## How many of each?
 
-Your column is categorical, one continent per country. The first question is
-how many countries each continent holds. Counting rows is a derivation, not a
-different kind of chart, so the sentence is `bar` with `* count`:
+In `gapminder_2007` the `continent` column is categorical, one continent per
+country. The first question is how many countries each continent holds.
+Counting rows is a derivation, not a different kind of chart. The sentence is
+`bar` with `* count`:
 
 ```{r}
 #| echo: false
@@ -25,11 +26,11 @@ data(gapminder_2007) + bar * count + x(continent)
 ```
 
 *"Given gapminder 2007: bars derived by count, x is continent."* No `y()` is
-bound because the
-count is invented, and the engine labels the axis for you.
+bound, because `count` invents the y column itself. The engine labels that axis
+for you.
 
-**One atom away.** Long category names? Move the categories to `y` and the bars
-lie down. The sentence is otherwise the same.
+**One atom away.** When the category names are long, put them on `y` instead.
+The bars are then horizontal, and the sentence is otherwise the same.
 
 ```{r}
 data(gapminder_2007) + bar * count + y(continent)
@@ -37,15 +38,15 @@ data(gapminder_2007) + bar * count + y(continent)
 
 *"Given gapminder 2007: bars derived by count, y is continent."*
 
-The count still measures along the invented axis, which is now x.
+The invented count axis has moved to x, so the bars are read from left to right.
 Owning chapters: [Bar](../marks/bar.qmd), [Transforms](../transforms.qmd).
 
 ## What share of the whole is each?
 
-The count above shows 52 countries in Africa. That number means little until
-you know it is 52 out of 142. When the question is each continent's share of
-the whole, swap `count` for `proportion`. The counts become fractions that sum
-to one:
+The count above shows 52 countries in Africa. A count alone cannot say whether
+that is many or few, and the table holds 142 countries in all. When the question
+is each continent's share of the whole, swap `count` for `proportion`. The
+counts become fractions that sum to one:
 
 ```{r}
 data(gapminder_2007) + bar * proportion + x(continent)
@@ -53,16 +54,19 @@ data(gapminder_2007) + bar * proportion + x(continent)
 
 *"Given gapminder 2007: bars derived by proportion, x is continent."*
 
-**One atom away.** Back to raw counts: `* count`. [`order()`](../data.qmd)
-reorders the categories by a column the table holds, never by the invented
-share.
+**One atom away.** Swap `proportion` back to `count` for the counts themselves.
+To change which order the categories appear in, name the category column in
+[`order()`](../data.qmd): here `order(continent)` sorts them alphabetically. The
+share is invented by the transform, so `order()` has no column to read it from.
 
 ## How is a measurement distributed?
 
-Your column is continuous, one petal length per flower. The first question is
-where the values cluster and how far they spread. `bin` cuts the axis into
-equal-width bins and counts the rows in each; `bar` draws them touching, so a
-gap means a bin with no rows. The result is the **histogram**:
+The two recipes above counted categories. A continuous column asks a different
+question, so the table changes: in the iris flowers, `petal_length` is
+continuous, one measurement per flower. The first question is where the values
+cluster and how far they spread. `bin` cuts the axis into equal-width bins and
+counts the rows in each. `bar` draws those counts as touching rectangles, so a
+gap is a bin with no rows. The result is the **histogram**:
 
 ```{r}
 #| echo: false
@@ -73,11 +77,13 @@ peek(iris_flowers)
 data(iris_flowers) + bar * bin + x(petal_length)
 ```
 
-*"Given the iris flowers: bars derived by bin, x is petal length."*
+*"Given the iris flowers: bars derived by bin, x is petal length."* The gap near
+2.5 cm is one of those empty bins. No flower in the table has a petal length
+between 1.9 and 3.0 cm, because one species is separated from the other two.
 
-**One atom away.** `bin` takes a count or a width when the default does not suit
-the data. `bin(30)` asks for thirty bins; `bin(width = 0.5)` asks for bins half
-a unit wide:
+**One atom away.** `bin` takes a number of bins or a bin width when the
+automatic choice hides the shape. `bin(30)` asks for thirty bins;
+`bin(width = 0.5)` asks for bins 0.5 cm wide:
 
 ```{r}
 data(iris_flowers) + bar * bin(width = 0.5) + x(petal_length)
@@ -92,25 +98,30 @@ centers. Owning chapters: [Bar](../marks/bar.qmd),
 ## What is its smooth shape?
 
 A histogram's shape depends on where its bin edges fall. A reader can mistake
-that choice for a feature of the data. When the shape of the distribution
-itself is the answer, the density estimate removes that decision:
+that choice for a feature of the data. When the shape of the distribution itself
+is the answer, `density` draws a curve with no bin edges at all. Back to the
+gapminder countries, and their life expectancies:
 
 ```{r}
 data(gapminder_2007) + line * density + x(life)
 ```
 
-*"Given gapminder 2007: a line derived by density, x is life."* The same
+*"Given gapminder 2007: a line derived by density, x is life."* This answers the
 question the histogram answered, with one derivation changed. Draw both when the
-number of peaks is the thing you want to show. One atom tunes the smoothing:
-`density(0.5)` sharpens the peaks, `density(2)` flattens them, and
-`density(bandwidth = 1)` fixes the kernel width in years. Owning chapters:
+number of peaks matters, because a histogram and a density curve can disagree
+about it.
+
+One argument controls the smoothing. `density(0.5)` is half as smooth as the
+default and `density(2)` is twice as smooth. `density(bandwidth = 1)` sets the
+bandwidth to one year instead, in the column's own units. Owning chapters:
 [Line](../marks/line.qmd), [Transforms](../transforms.qmd).
 
 ## How does the distribution look in steps?
 
-A third mark on the same `bin`: a staircase outline, tracing the bin tops
-with no fill. It is most useful when several distributions share an axis, as in
-[Many groups](groups.qmd), and it reads well alone:
+A third mark can draw the same `bin`. `step` traces the bin tops as a staircase
+outline, with no fill. It is most useful when several distributions share one
+axis, as in [Many groups](groups.qmd), because unfilled outlines cannot hide
+each other:
 
 ```{r}
 data(gapminder_2007) + step * bin + x(life)
@@ -118,17 +129,20 @@ data(gapminder_2007) + step * bin + x(life)
 
 *"Given gapminder 2007: a step outline derived by bin, x is life."*
 
-Two marks (`bar`, `step`) and one `bin`, with `line * bin` above making three.
-The transform never changed. Only the geometry that draws its output changed.
-That is the [No Exceptions law](../design-laws.qmd) doing its job. Owning
-chapters: [Step](../marks/step.qmd), [Transforms](../transforms.qmd).
+`bar` and `step` have now drawn the same `bin`, and the `line * bin` named above
+would make three. The transform never changed. Only the geometry that draws its
+output changed. That is the [No Exceptions law](../design-laws.qmd): a transform
+behaves the same on every mark. Owning chapters: [Step](../marks/step.qmd),
+[Transforms](../transforms.qmd).
 
 ## When there are only thirty rows
 
-Every answer above summarizes: `bin` needs a bin width, `density` needs a
-bandwidth, and both choices matter more when there are fewer rows to
-average over. With thirty numbers the bins can stay and every row still
-shows. Add `stack` and a `point` piles one dot per observation:
+Every answer above replaces the rows with a summary. `bin` needs a bin width,
+and `density` needs a bandwidth. With few rows, either choice can suggest
+structure the data does not have. The `gm_europe` table holds the thirty
+European countries of 2007, and thirty rows are few enough to draw one by one.
+`bin` still cuts the axis, and adding `stack` piles one `point` per row. The
+result is the **dot plot**:
 
 ```{r}
 #| echo: false
@@ -141,10 +155,10 @@ data(gm_europe) + point * bin * stack + x(life) +
 ```
 
 *"Given gapminder Europe: points derived by bin and stack, x is life."* The
-pile's height is a count, so the tallest pile can be read off the axis or
-counted dot by dot. No row has been averaged into anything. Compare the same
-thirty as bars, where each pile becomes one length and the rows disappear into
-it:
+pile's height is a count. You can read the tallest pile off the axis, or count
+its dots one by one. No row has been replaced by a summary. Compare the same
+thirty countries as bars, where each pile becomes one bar and the individual
+rows are no longer drawn:
 
 ```{r}
 data(gm_europe) + bar * bin + x(life) +
@@ -160,8 +174,8 @@ piles one dot per row in each category. Owning chapter:
 ## What this section refuses
 
 A distribution question needs a continuous column. Give `density` a category and
-the refusal names the column type it needs. The categorical version of this
-question is the share recipe above:
+it refuses. The message names the kind of column `density` needs, and the
+categorical version of this question is the share recipe above:
 
 ```{r}
 #| error: true

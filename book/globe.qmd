@@ -6,11 +6,11 @@ source("R/setup.R")
 ```
 
 What does the data look like on the earth itself? The map chapter flattened
-the sphere to fit a page. This chapter keeps it round, and turns it toward
-you.
+the sphere to fit a page. This chapter keeps the sphere round, and turns it
+toward you.
 
 Here is the map chapter's first sentence, and beside it the same sentence with
-the space swapped:
+`globe()` in place of `map()`:
 
 ```{r}
 #| echo: false
@@ -24,28 +24,32 @@ peek(quakes_fiji)
      globe(turn = 178, tilt = -18) + title("globe(turn = 178, tilt = -18)"))
 ```
 
-*"Given quakes Fiji: points, x is east, y is north, on the globe."*
+*"Given quakes Fiji: points, x is east, y is north, in the map space, beside the
+same on the globe."*
 
-`x` is longitude and `y` is latitude, exactly as on the map. What changed is
-what a position means on the page. Each point now stands at its place on the
-sphere, and the sphere is drawn as the disk you would see looking at it.
+`x` is longitude and `y` is latitude, exactly as on the map. What changed is the
+meaning of a position on the page. Each point now stands at its place on the
+sphere, and the sphere is drawn as the disk you see when you look at one.
 
 ## The view
 
-A globe shows one half of the earth, so which half matters. `turn` and `tilt`
-name the place the view faces, in the words `space()` already uses: `turn` is
-the longitude at the center of the disk, and `tilt` is the latitude. The plot
-above faces Fiji. Leave them out and the view faces zero and zero, where the
-equator crosses the prime meridian.
+A globe shows one half of the earth, so the choice of half matters. `turn` and
+`tilt` name the place the view faces, and they are the same two arguments
+`space()` takes. `turn` is the longitude at the center of the disk, and `tilt`
+is the latitude. The chapter's first plot faces Fiji. Leave both out and the
+view faces longitude zero and latitude zero, where the equator crosses the prime
+meridian.
 
-`turn` is a bearing, so any number is a view: 190 and -170 face the same
-place. `tilt` is a latitude, and it stops at the poles.
+`turn` is a bearing, so it wraps: 190 and -170 name the same view. `tilt` is a
+latitude, so it runs from -90 to 90 and no further.
 
-In the web edition the written angle is only where the globe starts. Drag it and
-it turns, the way the cube in [Space](space.qmd) turns, and the far half of the
-earth comes around; *reset* returns to the view the sentence asked for. On paper
-a plot keeps its one view, which is why this chapter also draws some data at a
-second angle.
+In the web edition the angle you write is only the view the globe opens at. Drag
+it and it turns, the way the cube in [Space](space.qmd) turns, and the far half
+of the earth turns into view. The *reset* button returns to the view the
+sentence asked for. On paper a plot keeps its one view, which is why this
+chapter also draws some data at a second angle.
+
+## What a view hides
 
 Half the earth faces away, and data on that half is hidden behind the sphere.
 gog counts what a view hides rather than dropping it in silence:
@@ -67,9 +71,9 @@ data(world_borders) + path + x(lon) + y(lat) + group(piece) +
 *"Given the world borders: paths, x is lon, y is lat, grouped by piece; then
 given quakes Fiji: points, x is east, y is north, on the globe."*
 
-Read the message above the plot. The coastline table covers the whole earth,
-so most of its rows face away from any one view, while every earthquake faces
-this one. Turning the globe brings the hidden rows around:
+Read the message above the plot. The coastline table covers the whole earth, so
+any one view hides some of it. From this view most of its rows face away, while
+every earthquake faces you. A second angle brings the hidden rows into view:
 
 ```{r}
 data(world_borders) + path + x(lon) + y(lat) + group(piece) +
@@ -81,10 +85,11 @@ data(world_borders) + path + x(lon) + y(lat) + group(piece) +
 
 The gray lines on the sphere are the **graticule**: a meridian every thirty
 degrees of longitude, and a parallel every thirty degrees of latitude. They
-are this space's gridlines, the same lines every panel draws, bent onto the
-sphere the way polar bends them into rings and spokes. There are no axes
-beside the disk, because a sphere has no edge to write one on; the graticule
-is the reference instead. `theme(grid = )` reaches it like any other grid:
+are this space's gridlines. A flat panel draws gridlines too, and here the same
+lines are bent onto the sphere, the way the [polar](polar.qmd) space bends them
+into rings and spokes. There are no axes beside the disk, because a sphere
+has no edge to write one on, and the graticule is the reference instead.
+`theme(grid = )` reaches it like any other grid:
 
 ```{r}
 data(quakes_fiji) + point + x(east) + y(north) +
@@ -92,11 +97,17 @@ data(quakes_fiji) + point + x(east) + y(north) +
   title("No graticule")
 ```
 
+With the graticule off, nothing inside the disk says which part of the earth you
+are looking at.
+
 ## A route bends with the sphere
 
-On the map, `path` joins places with straight strokes. On the globe a straight
-route does not exist. The shortest way between two places bends with the
-surface, along a great circle, and a `path` here follows it:
+The graticule bends with the sphere, and so does everything else drawn on it. A
+route is the clearest case. On the map, `path` joins places with straight
+strokes. On the globe a straight route does not exist. The shortest way between
+two places bends with the surface, along a **great circle**: the line a tight
+string would take if you pulled it across the sphere between the two places. A
+`path` here follows it:
 
 ```{r}
 #| echo: false
@@ -111,18 +122,22 @@ data(world_borders) + path + x(lon) + y(lat) + group(piece) +
   globe(turn = 178, tilt = -18) + title("Tokyo to Los Angeles")
 ```
 
-Two rows describe that route, and the sphere sets the curve between them. The
-arc bends toward the pole because the shortest way across an ocean bends there
-too.
+*"Given the world borders: paths, x is lon, y is lat, grouped by piece; then
+given the flight: a path, x is lon, y is lat, on the globe."*
+
+Two rows describe that route, and the curve between them comes from the sphere.
+The arc bends toward the pole because a route that swings north really is
+shorter. A route that keeps to one latitude is the longer way.
 
 ## Many routes are a network
 
-One table can hold every route at once. Give each route a name, give each of
-its two rows a place, and `group()` splits the table into one arc per route,
-exactly as it split the coastline into pieces. A `point` layer marks the
-cities and a `text` layer names them. The picture this draws is a route
-network, and it needs no new word, because every position in it is a place
-the data already knows:
+That table held one route. One table can hold every route at once, and the
+sentence barely changes. Give each route a name, and give each of its two rows
+a longitude and a latitude. `group()` then splits the table into one arc per
+route, exactly as it split the coastline into pieces. A `point` layer marks the
+cities and a `text` layer names them. The picture this draws is a route network,
+and it needs no new word, because every position in it is a place the table
+already holds:
 
 ```{r}
 #| echo: false
@@ -146,21 +161,23 @@ given the routes: paths, x is lon, y is lat, grouped by route; then given the
 cities: points, x is lon, y is lat; then given the cities: text, x is lon, y is
 lat, label by city, on the globe."*
 
-Looking up each city's longitude and latitude is the host language's job, the
-same join a later section does for country centers. What the sentence adds is
-only the layers: the routes, then the cities, then their names.
-
-Every arc bends with the surface. The count above the plot reports what this
-view hides: the coastlines on the far side, and no city. Dragging the globe in
-the web edition brings those coastlines around. A network between places asks
-nothing new of the grammar. The places carry the positions, `group()` carries
+Every arc bends with the surface. The count above the plot names one table, the
+coastlines, because a table is counted only when the view hides some of its
+rows. Every city and every arc faces this view. Dragging the globe in the web
+edition turns those coastlines into view. A network between places needs
+nothing new from the grammar. The places carry the positions, `group()` carries
 the connections, and the sphere carries the shortest ways between them.
+
+Looking up each city's longitude and latitude is the host language's job. The
+spikes later in this chapter need the same kind of join, for each country's
+center. What the sentence adds is only the layers: the routes, then the cities,
+then their names.
 
 ## Meridians and parallels
 
 A `rule` draws a line at one position and spans the axis it does not name. On
-the map that drew the equator as a straight line. Here the same sentence bends
-it around the sphere:
+the map, a rule on latitude drew the equator as a straight line. Here the same
+sentence bends it around the sphere:
 
 ```{r}
 #| echo: false
@@ -175,16 +192,17 @@ data(world_borders) + path + x(lon) + y(lat) + group(piece) +
 ```
 
 *"Given the world borders: paths, x is lon, y is lat, grouped by piece; then
-given the lines of table: a rule, y is lat, on the globe."*
+given the equator: a rule, y is lat, on the globe."*
 
 A rule on `y` is a parallel, a circle of constant latitude. A rule on `x` is a
 meridian, and it runs pole to pole.
 
 ## The choropleth, kept round
 
-Filling countries is the map's most familiar use, and the edge of the disk is
-the hard case for a fill. The map chapter filled each country by its
-continent. The same sentence fills the countries on the sphere:
+A rule and a path draw lines on the sphere. A fill has to cover a whole region
+instead, and the edge of the disk is where a fill is hardest to draw. The map
+chapter filled each country by its continent, and the same sentence fills the
+countries on the sphere:
 
 ```{r}
 data(world_borders) + zone + x(lon) + y(lat) + group(country) +
@@ -195,16 +213,18 @@ data(world_borders) + zone + x(lon) + y(lat) + group(country) +
 *"Given the world borders: zones, x is lon, y is lat, grouped by country, color
 by continent, on the globe."*
 
-Look at the countries the edge of the disk cuts through. gog closes each cut
-shape along that edge, so a half-visible country is still a filled region rather
-than an open outline.
+Look at the countries that the edge of the disk cuts through. gog closes each
+cut shape along that edge, so a half-visible country is still a filled region
+rather than an open outline.
 
 ## A measure stands on the radius
 
-The flattened map has no axis to spare. The sphere has exactly one: the radius,
-which runs straight out from the surface at every place. A `bar` here stands at
-its place and measures outward along it, a spike from the surface, and `z` names
-its measure:
+On a flat map a quantity has to go on a channel, `size` or `color`, because both
+positions carry the place. The sphere has a direction to spare: the radius,
+which runs straight out from the surface. Every place on the sphere has its own
+radius. A `bar` here stands at its place
+and measures outward along that radius. It draws as a spike rising from the
+surface, and `z` names the measure:
 
 ```{r}
 #| echo: false
@@ -223,24 +243,27 @@ data(world_borders) + path + x(lon) + y(lat) + group(piece) +
 given the spikes: bars, x is lon, y is lat, z is reach, color by continent, on
 the globe."*
 
-Finding a country's center and joining the population are the host language's
-job, as the join was on the map. Shaping the measure is its job too. The square
-root keeps China's spike from making the rest look tiny, and a scale parameter
-would only be a second way of writing that one line.
-
-Look at the edge of the disk. The sphere itself clips a spike, so one standing
-just behind that edge still shows its top when it is tall enough. The tallest
-spikes there are seen from the side. A spike facing you
+Look at the edge of the disk. The sphere itself clips a spike. A spike just
+behind that edge has its base hidden, so only the part that rises clear of the
+edge is drawn. One too short to clear it is not drawn at all. At the edge you
+see a spike from the side, along its whole length. A spike facing you
 foreshortens toward a point, which is why a plot like this is read by turning
 it.
+
+Finding a country's center and joining the population are the host language's
+job, as the join was on the map. Shaping the measure belongs there too. The
+`reach` column is the square root of the population, which keeps China's spike
+from making every other spike too small to see. A scale parameter would only be
+a second way of writing that one column.
 
 ## The depth goes to the cube
 
 Each earthquake here carries a third number: `elevation`, its depth below the
-surface. That is not a length to raise from the surface but a third place
-coordinate, and on the globe `z` belongs to the spike alone. So gog refuses the
-sentence below rather than guessing at it. The refusal names three ways forward:
-add a `bar` layer, drop `z()`, or draw the same table in the cube.
+surface. That number is not a length to raise from the surface. It is a third
+coordinate of the place itself, and on the globe `z` belongs to the spike alone.
+So gog refuses the sentence below rather than guessing at it. The refusal names
+three ways forward: add a `bar` layer, drop `z()`, or draw the same table in the
+cube.
 
 ```{r}
 #| error: true
@@ -249,7 +272,7 @@ data(quakes_fiji) + point + x(east) + y(north) + z(elevation) +
 ```
 
 A place with a depth belongs in the cube, the space with a third position.
-`space()` names the view with the words `globe()` uses:
+`space()` takes the same two arguments `globe()` does:
 
 ```{r}
 data(quakes_fiji) + point + x(east) + y(north) + z(elevation) +
@@ -260,16 +283,18 @@ data(quakes_fiji) + point + x(east) + y(north) + z(elevation) +
 *"Given quakes Fiji: points, x is east, y is north, z is elevation, color by
 slab."*
 
-Drag this one too: the globe turns the earth, and the cube turns the cloud, one
-gesture for both. `slab` names the depth band each quake falls in. The earlier
-plots looked straight down on these quakes; this one shows the sinking sheet of
-ocean floor they sit on.
+`slab` names the depth band each quake falls in. The globe plots looked straight
+down on these quakes, so a deep one and a shallow one landed in almost the same
+place. Turned, they line up along the sinking sheet of ocean floor beneath them.
+Drag this one too: the globe turns the earth, and the cube turns the cloud of
+points, one gesture for both.
 
 ## What a globe refuses
 
-You may try a `line` through the earthquakes, as you would on a flat page. Both
-positions carry the place, exactly as on the map, so a mark that measures along
-an axis has no axis left:
+The globe takes the same marks the map takes, and refuses the same ones for the
+same reason. Suppose you try a `line` through the earthquakes, as you would on a
+flat page. Both positions carry the place, exactly as on the map, so a mark that
+measures along an axis has no axis left:
 
 ```{r}
 #| error: true
@@ -277,7 +302,8 @@ data(quakes_fiji) + line + x(east) + y(north) + globe()
 ```
 
 The quantity moves to a channel instead, `size()` or `color()`, or it stands on
-the radius as a spike, the way the population spikes above do.
+the radius as a spike, the way the population spikes earlier in this chapter
+already do.
 
 A latitude past a pole names no place, so a view cannot face that latitude:
 
@@ -286,20 +312,20 @@ A latitude past a pole names no place, so a view cannot face that latitude:
 data(quakes_fiji) + point + x(east) + y(north) + globe(tilt = 100)
 ```
 
-And a globe draws no axes at all, so naming one is refused rather than
-accepted and dropped:
+And a globe draws no axes at all. So gog refuses an axis label rather than
+accepting it and drawing nothing:
 
 ```{r}
 #| error: true
 data(quakes_fiji) + point + x(east) + y(north) + globe() + x_label("Longitude")
 ```
 
-The map and the globe are one meaning with two pictures of it. The map trades
-the sphere for a page a reader sees whole. The globe keeps the sphere and
-trades away the far half. Moving between them costs one word.
+The map and the globe draw one meaning as two pictures. The map flattens the
+sphere so a reader sees all of it at once. The globe keeps the sphere and hides
+the far half. One word moves you between them.
 
 ## What comes next
 
-A globe places a row by two numbers that mean a place on the earth.
-[Network](network.qmd) draws the tables that hold no place at all, rows saying
-one thing is connected to another, positioned by a layout rather than an axis.
+A globe puts each row at the place its two numbers name. [Network](network.qmd)
+draws the tables that hold no place at all, rows saying one thing is connected
+to another, positioned by a layout rather than an axis.

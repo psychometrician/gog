@@ -31,9 +31,11 @@ latitude, and `map()` is the whole of what makes it a map. The axes are labeled
 in degrees, because that is what the columns hold.
 
 In the web edition, `+` magnifies a crowded part, `−` makes the picture smaller,
-and *fit* shows the whole map. A map needs that more than most plots do, because
-places stay crowded however far you zoom in. Zooming is a **view**: it magnifies
-the picture and changes nothing the plot claims.
+and *fit* shows the whole map. Once you have magnified it, dragging moves the
+map around inside the panel, and *fit* undoes both. A map needs those controls
+more than most plots do, because real places are crowded at every scale, from an
+ocean to a street. Zooming is a **view**: it magnifies the picture and changes
+nothing the plot claims.
 
 ## Flattening the sphere loses something
 
@@ -62,27 +64,25 @@ map space preserving area, above the same preserving angle."*
 Look at Greenland, at the top left of each map, and compare it with Africa. In
 the first, Greenland is small, which is correct: Africa is about fourteen times
 larger. In the second, Greenland has grown until it looks as large as Africa.
-The second map keeps every small shape's true form and gets the sizes wrong.
+The second map keeps every small shape's true form, and the areas it draws are
+wrong.
 
 Both plots name `lon` on `x`, so `/` gives them one axis and one width. The
 projection sets each height, and the two heights differ. Keeping every small
 shape's form is what stretches the second one north and south.
 
 `preserve = "area"` is the default, because a map is usually read by comparing
-how much space something takes. A projection that inflates the far north tells
-the reader something false about every number placed there.
+how much space something takes. A projection that draws the far north too large
+tells the reader something false about every number placed there.
 
-The world map above is a table like any other, and the next section reads it
-column by column.
+The world map above is a table like any other, and the next section says what
+shape that table has.
 
 ## Drawing the outlines
 
 To draw a boundary of your own, you need to know what shape of table the engine
-reads. The table has one row for every point along a coastline or a border:
-
-```{r}
-knitr::kable(head(world_borders, 4))
-```
+reads. `world_borders` holds one row for every point along a coastline or a
+border, and it repeats the country and the continent on each of those rows.
 
 `path` connects rows in the order the table gives them, which is exactly what
 tracing a coastline needs. `group(piece)` says where one outline ends and the
@@ -92,15 +92,16 @@ its own, and a country that encloses another needs a second ring for the hole.
 So `piece` counts rings rather than countries.
 
 Without that split, `path` would join the last point of one country to the first
-point of the next, and draw a line across the ocean between them.
+point of the next. That would draw a line straight across the ocean between
+them.
 
 ## The second layer is the data
 
-The chapter's first plot drew the earthquakes with no coastline, so nothing
-said where on the earth they were. An outline on its own is only a background.
-It becomes a plot when something is drawn on top of it, and that is ordinary
-layering. The outline is one `data()`
-and one mark, and the earthquakes are another.
+The chapter's first plot drew the earthquakes with no coastline, so nothing said
+where on the earth they were. The outline supplies that, and here it is the
+background rather than the subject. Your own data goes on top of it, which is
+ordinary layering. The outline is one `data()` and one mark, and the earthquakes
+are another.
 
 ```{r}
 data(world_borders) + path + x(lon) + y(lat) + group(piece) +
@@ -120,9 +121,9 @@ are. Nothing in the sentence is new: two tables, two marks, and the second
 ## A quantity goes on a channel
 
 The earthquakes differ in magnitude, and the picture so far shows only where
-they were. A flat plot, a cube and a polar plot all leave you an axis to
+they were. A flat plot, a cube and a polar plot all keep one axis free to
 measure along. A bar stands on one axis and measures its length along the
-other. A map has no axis left, because longitude and latitude use both.
+other. A map has no free axis, because longitude and latitude use both.
 
 So a quantity moves to a **channel**. Size each place by it:
 
@@ -141,7 +142,8 @@ space."*
 That plot has a name, the **proportional-symbol map**, and no single atom draws
 it. It is `point` with `size` bound, in this space.
 
-Color works the same way, and takes a category rather than a quantity:
+Color works the same way. Here the column bound to it is a category, so each
+continent is given its own hue:
 
 ```{r}
 data(world_borders) + path + x(lon) + y(lat) + group(piece) +
@@ -173,7 +175,7 @@ data(world_borders) + path + x(lon) + y(lat) + group(piece) +
 ```
 
 *"Given the world borders: paths, x is lon, y is lat, grouped by piece; then
-given the lines of table: a rule, y is lat, in the map space."*
+given the equator: a rule, y is lat, in the map space."*
 
 A `rule` takes its position from a column, like every other mark, so the line
 above comes from a one-row table. That is the same way a reference line is drawn
@@ -222,7 +224,7 @@ data(quakes_fiji) + bar * count + x(east) + map()
 The message names the marks that do draw, and it says what to do instead. Put
 the quantity on `size`, as the magnitude map above does, or on `color`.
 
-A position on a map is a place, so a category cannot be one:
+And a position on a map is a place, so a category cannot be one:
 
 ```{r}
 #| echo: false
@@ -247,10 +249,11 @@ engine refuses it instead of accepting the number and ignoring it.
 
 ## Where Mercator stops
 
-`preserve = "angle"` is the **Mercator** projection, the one most web maps use.
-It sends the poles infinitely far away, so it has to stop before it reaches
-them. It stops at 85.05 degrees. A row beyond that is drawn at the edge, and gog
-reports how many:
+The angle-preserving projection from earlier in this chapter has a limit that
+the area-preserving one does not. `preserve = "angle"` is the **Mercator**
+projection, the one most web maps use. It sends the poles infinitely far away,
+so it has to stop before it reaches them. It stops at 85.05 degrees. A row
+beyond that is drawn at the edge, and gog reports how many:
 
 ```{r}
 #| echo: false
@@ -258,6 +261,7 @@ peek(far_north)
 ```
 
 ```{r}
+#| message: true
 data(far_north) + point + x(lon) + y(lat) + map(preserve = "angle")
 ```
 
@@ -325,9 +329,9 @@ Here is the same column, and the map answers a question the scatter cannot:
 
 ## Rings, and the country inside another country
 
-A region is made of rings, and the rings are found by a rule rather than by a
-column: a ring ends where it returns to the point it started from. Boundary
-data is written that way, so nothing extra has to be said.
+A region is made of rings, and no column says where one ring ends. A rule finds
+them instead: a ring ends where it returns to the point it started from.
+Boundary data is written that way, so nothing extra has to be said.
 
 That rule is what lets a country contain a hole. Lesotho lies entirely inside
 South Africa, and South Africa's boundary has a second ring around Lesotho:
@@ -344,14 +348,15 @@ data(enclave) + zone + x(lon) + y(lat) + group(country) + color(life) +
 
 Lesotho is a hole in South Africa, not a patch laid over it. The difference
 matters because the two countries have different values. A patch is correct only
-when it is drawn second, and nothing fixes the drawing order.
+when it is drawn second, and nothing in the sentence decides which region that
+is.
 
-If a ring in your data does not close, gog cannot tell where one ring ends and
-the next begins. It draws the region, warns you that the ring ends had to be
-guessed, and names what to fix.
+Real boundary data is not always this clean. If a ring in your data does not
+close, gog cannot tell where one ring ends and the next begins. It draws the
+region, warns you that the ring ends had to be guessed, and names what to fix.
 
 ## What comes next
 
-A map flattens the sphere so a page can hold it, and every sentence in this
-chapter also draws on the sphere itself. That is [Globe](globe.qmd): the same
-marks at the same places, seen from one side.
+A map flattens the sphere so a page can hold it. Every sentence in this chapter
+also draws on the sphere itself, and that is [Globe](globe.qmd): the same marks
+at the same places, seen from one side.

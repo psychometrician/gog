@@ -1,42 +1,50 @@
 # Afterword {.unnumbered}
 
-The 1446 book closed with a postface making two claims for its little alphabet:
-that a wise man could learn it before the morning was over, and a slow one
-within ten days, and that it could write down any sound at all: wind, crane,
-cock, dog. This book closes by restating both, because they are its own measures
-of success.
+The 1446 book closed with a postface, and it made two claims for its little
+alphabet. The first was that a wise man could learn it before the morning was
+over, and a slow one within ten days. The second was that it could write down
+any sound at all: the wind, the cry of a crane, the crowing of a cock, the
+barking of a dog. This book closes by restating both, because they are its own
+measures of success.
 
 ## The ten-day challenge
 
-You have finished the morning; here is the rest of the promise. For the next
-ten days, bring one question a day from *your own data*, not the cast's, and
-answer it in one sentence. Start where the [cookbook](parts/cookbook.qmd)
-starts: what shape is the data, and what do you want to know? By day three the
-recipes will feel like spellings of things you already say. By day ten you
-should be writing sentences this book never showed you, which is the only
-outcome that would prove the grammar, rather than the examples, is what you
-learned.
+The first claim was about speed, and you have finished its morning. Here is the
+rest of the promise. For the next ten days, bring one question a day from *your
+own data*, not from the book's cast of tables, and answer it in one sentence.
+Start where the [cookbook](parts/cookbook.qmd) starts: what shape is your data,
+and what do you want to know? By day three the recipes will read as ordinary
+sentences, because you will already know every word in them. By day ten you
+should be writing sentences this book never showed you. That is the one outcome
+that proves you learned the grammar and not the examples.
 
-If a sentence surprises you (renders when you expected a refusal, or
-refuses with a direction you disagree with), that is worth reporting. A
-grammar this small stays correct only when readers argue with it.
+Two things count as a surprise. A sentence renders when you expected a refusal,
+or it refuses and gives you a direction you disagree with. Either is worth
+reporting, because a grammar this small stays correct only when its readers say
+where it is wrong.
 
 ## Growth without new words
 
-The kernel you learned is the whole vocabulary, and nothing in it is waiting to
-be drawn. Every word draws. Every mark, every space, every channel, and the one
-selection.
+The second claim was about reach: any sound at all. A grammar of graphics
+answers it in pictures, and the kernel you learned is the whole vocabulary it
+has. The engine draws every word in it: every mark, every channel, every
+transform, every space, and the one selection. Not every *pairing* of words is
+drawn yet, and [Combinations](combinations.qmd) is the page that lists the ones
+the engine still refuses. No word is waiting.
 
 Growth arrives as new pictures rather than new words. The **choropleth** is the
-pattern: no atom was added for it. It shades each country by a value, and what
-it needed was geometry. `zone` finds its sides five ways, and a **boundary** is
-one of them, drawn by the data itself. It cost no new word, because `group`
-already says which rows belong together. [Map](map.qmd) draws it with the words
-the kernel already had.
+pattern, and no atom was added for it. It shades each country by a value. What
+it needed was not a new word but a new shape of table: one row for every point
+along a country's border. A `zone` is a filled region, and five different things
+can fix where its edges are. A **boundary** is the fifth, and `group` already
+says which rows belong to one country. [Map](map.qmd) shows the choropleth drawn
+with the words the kernel already had.
 
-The same sentence you write becomes a small, engine-neutral specification inside
-the package. Every binding speaks it, with the same words and its own way of
-naming a column. Each has a short chapter of its own, a difference list:
+The vocabulary does not grow across languages either. Whatever sentence you
+write becomes one small specification inside the package, and all four bindings
+build the same one from the same words. What differs is how each one names a
+column, and JavaScript spells the operators as words as well, because it cannot
+overload them. Each binding has a short chapter of its own, a difference list:
 [R](bindings/r.qmd), [Python](bindings/python.qmd), [Julia](bindings/julia.qmd),
 [JavaScript](bindings/javascript.qmd).
 
@@ -52,46 +60,46 @@ data(gapminder_2007) + point + x(:gdp) + y(:life) + color(:continent)
 ```
 
 ```js
-// JavaScript, the one binding that cannot overload the operators
+// JavaScript
 plot(data(gapminder_2007), point, x(col.gdp), y(col.life), color(col.continent))
 ```
 
 ## One goal left
 
-One goal is bigger than the rest, and half of it is already here. The engine
-runs inside the page:
-that is how a 3-D plot turns under your mouse in the web edition. What is
-left is the other half, written down here so you can check later whether the
-project did it: every example in this book editable in place. Change
-`color(continent)` to `shape(continent)` and watch the plot redraw. The book you
-are reading is already ready for that change, because every example in it is a
-live specification.
+Those four spellings are finished work. One thing this project set out to do is
+not, and it is written down here so you can check later whether the project did
+it. Half of it already works: the engine itself runs inside the page, which is
+how a 3-D plot turns when you drag it in the web edition. The other half is
+every example in this book, editable in place. Change `color(continent)` to
+`shape(continent)`, and watch the plot redraw. The book you are reading is ready
+for that change today, because it holds no saved pictures: every plot in it
+comes from a specification the engine reads.
 
 ## Writing quickly is not writing well
 
 I think Hangeul (한글) is a perfect writing system. I should admit that I may be
-biased, because it is the alphabet I write with. What cannot be argued is that
+biased, because it is the alphabet I write with. What nobody disputes is that
 it is fast to read and fast to write.
 
-Writing quickly is not the same as writing well. There is no shortcut to good
-writing: you read good writing, and you practice. Visualization is no
+Writing quickly is not the same as writing well. There is no quick route to
+good writing: you read good writing, and you practice. Visualization is no
 different. This tool is new and it has problems, and what I hope it can be for
-now is something worth practicing on.
+now is a good tool to practice with.
 
-King Sejong made the alphabet. He did not write the books that were written
-with it. I am not a great
-author of plots either. What I do have is twenty years in this field as a user,
-watching and listening and reading. That is what I built from: a tool that is
-easy to learn and easy to use.
+The same division sits in the 1446 story. King Sejong made the alphabet. He did
+not write the books that were written with it. I am not a great author of plots
+either. What I do have is twenty years in this field as a user, watching and
+listening and reading. I built from that experience, and what came out is a tool
+that is easy to learn and easy to use.
 
 I hope good work comes out of it.
 
 ## The gap
 
-A specification is a sentence said before the picture exists. Everyone who uses
-this grammar lives in the moment between declaring what they want to see and
+A specification is a sentence said before the picture exists. Everyone who
+writes one waits in that gap, between declaring what they want to see and
 finding out whether the engine agrees. The package is `gog`. The state of
-working with it is *agog*. We hope the book kept you there.
+working with it is *agog*. I hope the book kept you there.
 
 :::: {.content-visible when-format="html"}
 ::: {.gog-slogan .gog-slogan-close}

@@ -22,13 +22,22 @@
 #   4. built from ../../       — the crate sources that traveled with the repo
 #   5. built from tools/rust/  — the crate sources staged *inside* the package
 #
-# Step 4 is what makes `remotes::install_github()` work. A GitHub tarball carries
-# `gog-core/`, `gog-cli/`, `Cargo.toml` and `Cargo.lock` but not `target/` (it is
-# gitignored), so before this step a GitHub install failed at step 3 — measured,
-# not assumed. Building takes about ten seconds, which is why it is last: any
-# engine already present is preferred over compiling one.
+# Step 4 is what makes `remotes::install_github(…, build = FALSE)` work. A GitHub
+# tarball carries `gog-core/`, `gog-cli/`, `Cargo.toml` and `Cargo.lock` but not
+# `target/` (it is gitignored), so before this step a GitHub install failed at
+# step 3 — measured, not assumed. Building takes about ten seconds, which is why
+# it is last: any engine already present is preferred over compiling one.
 #
-# Failing loudly when none of the four holds is the point. Installing a package
+# `build = FALSE` is not optional there, and that too was measured (2026-09-21)
+# rather than assumed. `remotes` defaults to `build = TRUE`, which runs
+# `R CMD build` on the *subdirectory* before installing, and that tarball has the
+# r-universe shape: no `../../`, and no `tools/rust/` either, because nothing ran
+# `.prepare`. Steps 4 and 5 both miss and this script refuses. The refusal at the
+# bottom recognizes that case from the `Remote*` fields `remotes` writes into
+# DESCRIPTION before it builds, and names the argument — the fix is one word
+# away and nothing in the generic message would lead a reader to it.
+#
+# Failing loudly when none of the five holds is the point. Installing a package
 # that is guaranteed not to draw is the silent drop this project refuses
 # everywhere else; §12 says a diagnostic must give direction, so this one does.
 #
@@ -188,7 +197,8 @@ else
 fi
 
 # 4. Build it from the crate sources that came along with the repo — a
-#    `remotes::install_github()` install, where the tarball carries the whole tree.
+#    `remotes::install_github(…, build = FALSE)` install, where the tarball
+#    carries the whole tree.
 if [ -z "${FOUND}" ] && [ -f "${WORKSPACE}/Cargo.toml" ] && [ -f "${WORKSPACE}/gog-cli/Cargo.toml" ]; then
   FOUND="$(build_engine "${WORKSPACE}")"
 fi
@@ -215,6 +225,22 @@ if [ -z "${FOUND}" ]; then
   echo "  Or point at one: GOG_CLI_PATH=/path/to/gog-cli R CMD INSTALL ..." >&2
   echo "  No Rust?         install it from https://rustup.rs/" >&2
   echo "" >&2
+  # `remotes` writes these fields into DESCRIPTION before it builds, so they are
+  # the one trace of how this tarball was made. With them present *and* no
+  # workspace beside us, the tarball was packed from the package directory
+  # alone, which is remotes' default (`build = TRUE`) and the case where the
+  # generic message above would send a reader to install Rust they already have.
+  if grep -q '^RemoteType: github' DESCRIPTION 2>/dev/null && [ ! -f "${WORKSPACE}/Cargo.toml" ]; then
+    echo "This copy came through remotes::install_github(), and that is the cause." >&2
+    echo "By default remotes packs the package directory alone into a tarball" >&2
+    echo "before installing it, and the engine's sources sit beside that" >&2
+    echo "directory, so they were left behind. Pass build = FALSE and remotes" >&2
+    echo "installs from the whole tree instead:" >&2
+    echo "" >&2
+    echo "  remotes::install_github(\"psychometrician/gog\", subdir = \"r-pkg/gog\"," >&2
+    echo "                          build = FALSE)" >&2
+    echo "" >&2
+  fi
   echo "If this is a subdirectory build (r-universe, or a CRAN-style tarball)," >&2
   echo "the likely cause is that .prepare did not run or did not finish: the" >&2
   echo "farm invokes it as \`|| true\`, so its failure is swallowed and surfaces" >&2

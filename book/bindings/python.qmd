@@ -8,11 +8,12 @@ source("../R/python.R")
 
 The grammar does not change when the language does. One engine reads one
 specification, so a sentence means the same thing no matter who wrote it.
-Everything in this book up to here is as true in Python as it is in R, and what
+Everything in this book up to here is as true in Python as it is in R. What
 differs is short enough to state in one chapter.
 
-Every Python block with a plot under it was executed, through the same engine
-every other chapter uses.
+Every Python block on this page was run when the page was built, through the
+same engine every other chapter uses. The database and install commands at the
+end are shown, not run.
 
 ## A column is written `col.gdp`
 
@@ -33,25 +34,27 @@ py_plot("data(gapminder_2007) + point + x(col.gdp, scale='log') + y(col.life) + 
 continent."*
 
 The R form of that sentence is the one from [A first plot](../first-plot.qmd),
-with `col.` in front of each column. Those four characters are not decoration,
-and the next paragraph says what they do. In R a bare `gdp` cannot be anything
-except a name; Python has no bare names, and in this grammar a plain string is
-how you spell a *value*: `style(color="tomato")`, `title("…")`,
+with `col.` in front of each column. Those four characters are not decoration.
+In R a bare `gdp` cannot be anything except a name. Python has no bare names,
+and in this grammar a plain string is how you spell a *value*:
+`style(color="tomato")`, `title("…")`,
 `palette("okabe")`. Without the accessor a column and a value would look
 identical, and the rule that a channel takes a column, never a value, would be
 invisible in Python.
 
-So a string where a column belongs is refused, and told what to write:
+So a string where a column belongs is refused, and the message says what to
+write:
 
 ```{r}
 #| echo: false
 py_error("data(gapminder_2007) + point + x('gdp') + y(col.life)")
 ```
 
-The message names the column spelling, `x(col.gdp)`. On a channel you could also
-set, it names both, because one *maps* a column and earns a legend while the
-other *sets* one value and earns none ([Setting vs mapping](../style.qmd)). The
-mistake in the other direction is refused the same way:
+The message names the column spelling, `x(col.gdp)`. Where one name is both a
+channel and a setting, the message gives both spellings, because the two do
+different things: a channel *maps* a column and earns a legend, and a setting
+*sets* one value and earns none ([Setting vs mapping](../style.qmd)). The mistake in the other direction is
+refused the same way:
 
 ```{r}
 #| echo: false
@@ -76,8 +79,9 @@ py_plot("(data(gapminder_2007) + point + x(col.gdp, scale='log') + y(col.life)\n
 *"Given gapminder 2007: points, x is gdp on a log scale, y is life, color by
 continent, size by population."*
 
-That is Python's rule about lines rather than anything of gog's. With the
-accessor, it covers almost everything you will type differently.
+That is Python's rule about lines, not a rule of gog's. Those parentheses and
+the accessor are almost everything you will type differently from the R in this
+book.
 
 ## The table
 
@@ -90,31 +94,43 @@ py_plot("data({'level': ['Low', 'Medium', 'High'], 'count': [30.0, 20.0, 10.0]},
 
 *"Given the small table: bars, x is level, y is count."*
 
-Anything carrying `.columns` and `df[name]` is also a table, which covers pandas
-and polars. Neither is imported, so neither is a dependency of the binding, and
-you read a file the way you already do. `GAPMINDER_CSV` here is the path to the
-book's `gapminder_2007.csv`, which [The book's data](../book-data.qmd) says
-where to get:
+Any object with a `.columns` attribute that you can index by column name is also
+a table, which covers pandas and polars. The binding imports neither one, so
+neither is a dependency. You read a file the way you already do.
+`GAPMINDER_CSV` here is the path to the book's `gapminder_2007.csv`, and [The
+book's data](../book-data.qmd) says where to get that file:
 
 ```{r}
 #| echo: false
 py_show("import pandas as pd\n\ngapminder_2007 = pd.read_csv(GAPMINDER_CSV)\nprint(gapminder_2007.shape, list(gapminder_2007.columns))")
 ```
 
-Every plot on this page reads that table. Types convert the way you would
-expect. Numbers become positions, text becomes categories, and `datetime64`,
-`date` and `datetime` all become a calendar axis. `NaN` and `None` are missing
-values: the engine leaves out the whole row and says how many it left out. A
-pandas `Categorical` carries its declared order across, which is the counterpart
-of R's `factor(x, levels = …)`. A plain dict of lists declares the same order
-with `ordered(values, levels)`, which [Data](../data.qmd) describes.
+Every plot on this page reads that table, apart from the small table written in
+place above.
+
+The column kinds follow the Python types. A column of numbers is read as
+continuous, and a column of text as categorical. A column of `datetime64`,
+`date` or `datetime` values is drawn on a calendar axis. `NaN` and `None` are
+missing values: the engine leaves out the whole row and says how many it left
+out. A pandas `Categorical` keeps its declared order when the engine reads it,
+which is the counterpart of R's `factor(x, levels = …)`. A plain dict of lists
+declares the same order with `ordered(values, levels)`, which
+[Data](../data.qmd) describes.
 
 ## Computing a column first
 
-A channel takes a column name and never an expression. This is true in all four
-languages, and pandas is where a Python reader meets it. There is no
-`x(log(col.gdp))`, and gog has no small language for deriving values, because
-Python is already one: compute the column, then bind it by name.
+A channel takes a column name and never an expression. That rule is the same in
+all four languages. There is no `x(log(col.gdp))`, and gog has no language of
+its own for deriving values, because Python already has one. So compute the
+column first, then bind it by name.
+
+Dividing a column inside the channel is the obvious thing to try. gog refuses
+it, and says where the computation belongs:
+
+```{r}
+#| echo: false
+py_error("data(gapminder_2007) + point + x(col.gdp / 1000) + y(col.life)")
+```
 
 ```{r}
 #| include: false
@@ -134,61 +150,67 @@ europe <- paste0(
 py_show(paste0(europe, "print(europe[['country', 'gdp_thousands', 'life']].head(3).to_string(index=False))"))
 ```
 
-That result is a table like any other, and the sentence over it is the sentence
-you already know:
+That result is a table like any other, and the sentence that draws from it is
+one you already know:
 
 ```{r}
 #| echo: false
 py_plot("(data(europe) + point + x(col.gdp_thousands) + y(col.life)\n + size(col.population) + style(color='steelblue')\n + x_label('GDP per capita (thousands)')\n + title('Europe, 2007'))", setup = europe)
 ```
 
-The division stayed in pandas, where you can see it, and the plot names a column
-that exists. That split is deliberate rather than a missing feature. A plot is a
-mapping from a table ([Data](../data.qmd)), so a channel names one of its
-columns, and anything you would rather compute is computed first.
+You did the division in pandas, where you can see it. The plot then names a
+column that exists. Keeping the two apart is deliberate rather than a missing
+feature. A plot is a mapping from a table ([Data](../data.qmd)), so a channel
+names one of its columns. Anything you would rather compute is computed first.
 
 ## Showing the plot
 
+In your own session, where a plot appears depends on how you are running Python.
 In a Jupyter notebook a plot displays itself, as it does in the R console. A
-script displays nothing on its own, so say where the plot goes:
+script displays nothing on its own, so you print the plot or save it:
 
 ```{r}
 #| echo: false
 py_show("plot = data(gapminder_2007) + point + x(col.gdp) + y(col.life)\nprint(plot)\nprint(plot.save('/tmp/life.svg'))")
 ```
 
-Printing a plot gives one line naming its mark and its table, not the picture.
-`save()` writes the SVG, `show()` opens it in a browser, and `render()` returns
-it as a string. R's `print()` opens the viewer without being asked; Python waits
-to be told, which is the convention each language already has.
+Printing a plot gives one line, naming its mark and its table. It does not give
+the picture. `save()` writes the SVG, `show()` opens it in a browser, and
+`render()` returns it as a string. R's `print()` opens the viewer on its own,
+and Python draws only when you ask it to. Each language is following the
+convention it already has.
 
 ## Six names Python already uses
 
-`bin`, `map`, `max`, `min`, `range` and `sum` are gog's words here and builtins
-there, so `from gog import *` puts gog's over Python's for the rest of the file.
-The R package does the same to base R, with `max`, `min`, `range` and `sum`
-among them: a grammar keeps its own vocabulary. Calling five of the six says so,
-and names the fix. Only `bin` is silent: `bin(5)` returns a transform where
-Python would have returned a string.
+`bin`, `map`, `max`, `min`, `range` and `sum` are words in gog's grammar and
+also builtins in Python. After `from gog import *`, those six names carry gog's
+meaning for the rest of the file. The R package does the same to base R, with
+`max`, `min`, `range` and `sum` among them: a grammar keeps its own vocabulary.
+Call four of the six and gog says the name is its own, and how to reach
+Python's:
 
 ```{r}
 #| echo: false
 py_show("try:\n    range(10)\nexcept GogError as error:\n    print(error)")
 ```
 
-The worst of the six is `map`, because it is the only one whose error does not
-mention gog. Python reports the wrong number of arguments and names nothing you
+That is `range`'s message, and `sum`, `min` and `max` read the same way.
+
+The other two say nothing useful. `bin(5)` returns a transform where Python
+would have returned a string, so nothing is reported at all. `map` is the harder
+one. Python's `map` takes a function and a sequence, and gog's takes at most one
+argument. So Python reports the wrong number of arguments, and names nothing you
 can act on.
 
-A module that needs both can `import gog` and write `gog.point`, or take the
-builtin back with `from builtins import sum`.
+A module that needs both can `import gog` and write `gog.point`, or import the
+builtin again with `from builtins import sum`.
 
 ## What does not change
 
-The four operators, including how tightly they bind. `*` groups before `+`, `+`
-before `|`, and `/` sits beside `*`. Those are Python's own precedences and R's
-alike, so a derived layer and a crossed facet group exactly as they do in
-[Operators](../operators.qmd):
+The four operators do not change, and neither does how tightly they bind. `*`
+groups before `+`, `+` before `|`, and `/` has the same precedence as `*`. Those
+are Python's own precedences, and R's are the same, so a derived layer and a
+crossed facet are grouped exactly as they are in [Operators](../operators.qmd):
 
 ```{r}
 #| echo: false
@@ -200,32 +222,34 @@ by life, largest first."*
 
 The vocabulary does not change either: every mark, transform, channel, setting
 and plot-level atom in [the kernel card](../kernel-card.qmd) exists in Python
-under the same name. Neither does an engine refusal, which reaches you word for
-word. A refusal the binding raises is the one that differs, because it teaches
-Python's own spelling:
+under the same name. Neither does an engine refusal. The engine does not know
+which binding asked, so its message reaches you in the same words R gets:
 
 ```{r}
 #| echo: false
 py_error("data(gapminder_2007) + bar + x(col.continent)")
 ```
 
-The distance between the two spellings is measured rather than argued. Every
-sentence in this book was translated by rule and run through the Python binding:
-632 drew a *byte-identical* plot, 166 earned a word-identical refusal, and 19
-differed only in the example inside the message, where each binding teaches its
-own syntax. Eleven sentences do not carry over at all. Nine are in [R](r.qmd),
-about R-only spellings, and two are the GIF exports in [Play](../play.qmd). Two
-rewrites account for nearly all the rest: the accessor, 812 times, and the
-parentheses, 554.
+The refusals that differ are the binding's own, like the two about the accessor,
+because each of those teaches its caller's spelling.
+
+How far the two spellings differ was measured, sentence by sentence. Of the
+book's 849 sentences, eleven have no Python spelling at all: nine are in
+[R](r.qmd), about R-only spellings, and two are the GIF exports in
+[Play](../play.qmd). Every one of the rest was translated by rule and run
+through the Python binding. Of those, 651 drew a *byte-identical* plot, 167
+earned a word-identical refusal, and 20 differed only in the example inside the
+message, where each binding teaches its own syntax. Two rewrites do almost all
+the translating: the accessor, 832 times, and the parentheses, 573.
 
 ## Reading from a database
 
-Python has a database standard, and `query()` speaks it. It also speaks Spark,
-because that is where a large share of Python's data is stored.
+Python's database standard is DB-API, also called PEP 249, and `query()` reads
+any connection that follows it. It reads a Spark session too, because that is
+where much of the data a Python user works with is stored.
 
-The standard is DB-API, also called PEP 249. Anything with a `.cursor()`
-method works: the built-in `sqlite3`, DuckDB, `psycopg`, `pyodbc`, Snowflake's
-connector, and the Databricks SQL connector.
+Anything with a `.cursor()` method works: the built-in `sqlite3`, DuckDB,
+`psycopg`, `pyodbc`, Snowflake's connector, and the Databricks SQL connector.
 
 ```python
 import sqlite3
@@ -236,19 +260,18 @@ plot = query(con, "SELECT status, revenue FROM orders") + bar + x(col.status) + 
 plot.save("orders.svg")
 ```
 
-A Spark session works too. Hand `query()` the session itself, and the table
-name is whatever your catalog calls it. This is the route to a Databricks table:
+Hand `query()` the Spark session itself, and the table name is whatever your
+catalog calls it. This is the route to a Databricks table:
 
 ```python
 plot = query(spark, "SELECT status, revenue FROM main.sales.orders") + bar + x(col.status) + y(col.revenue)
 ```
 
-In a Databricks notebook the session is already there, under the name `spark`.
-`gog` installs from PyPI with its engine included, so `%pip install gog` is the
-only setup step.
+In a Databricks notebook the session is already there, under the name `spark`,
+and `%pip install gog` is the only setup step.
 
-Neither route adds a dependency to `gog`. You bring the connection; `gog` reads
-rows from it.
+Neither route adds a dependency to gog. You open the connection, and gog only
+reads rows from it.
 
 ## Getting it
 
@@ -261,9 +284,9 @@ no Rust toolchain.
 pip install gog
 ```
 
-That command works today. `gog` is on [PyPI](https://pypi.org/project/gog/).
-Five wheels cover macOS and Linux on both common processor families, and Windows
-on Intel. The other three bindings install from their own registries, and the
+That command works today. gog is on [PyPI](https://pypi.org/project/gog/).
+There are five wheels. They cover macOS and Linux on both Intel and ARM
+processors, and Windows on Intel. The other three bindings install from their own registries, and the
 [preface](../index.qmd) lists all four commands.
 
 To work from a checkout instead, build the engine once and import the package
@@ -282,12 +305,13 @@ from gog import *
 
 The engine is looked for in four places, in this order: the `GOG_CLI_PATH`
 environment variable, the copy inside the installed package, `gog-cli` on your
-`PATH`, and a local `target/release` build. The first three are how an installed
-copy works. This page was rendered through the first: the book points
+`PATH`, and a local `target/release` build. The first three are the places an
+installed copy looks, and the fourth is for a checkout. This page was rendered
+through the first: the book points
 `GOG_CLI_PATH` at a local build before any Python runs.
 
 ## What comes next
 
 Python's differences are spelling rather than grammar. [Julia](julia.qmd) has
-its own three: a symbol for a column, keyword arguments the language already
-had, and a package name of its own.
+three differences of its own: a symbol for a column, keyword arguments the
+language already had, and a package under a different name.

@@ -6,12 +6,14 @@ source("../R/setup.R")
 ```
 
 How far does each group reach, from its lowest value to its highest? `interval`
-draws a span from a low value to a high one at each position: a whisker, capped
-at both ends. It is the mark that draws error bars and min–max ranges. A `bar`
-measures from a baseline up to a value. An `interval` has no baseline. It spans
-from a low value to a high value, and it needs both of them before it can draw.
-Whiskers are vertical when the categories are on `x` and horizontal when they
-are on `y`; see [Horizontal whiskers](#horizontal-whiskers).
+draws a **whisker** at each position: a span from a low value to a high one,
+with a short line across each end, a cap. When the statistic has a center,
+such as a mean, a dot marks it. It is the mark that draws error bars and
+min–max ranges. A `bar` measures from a baseline up to a value. An `interval`
+has no baseline. It spans from a low value to a high value, and it needs both
+of them before it can draw. Whiskers are vertical when the categories are on
+`x` and horizontal when they are on `y`; see [Horizontal
+whiskers](#horizontal-whiskers).
 
 Almost everyone calls this an **error bar**, and that name does not say what the
 whisker measures. Three different quantities are drawn as the same picture: a
@@ -221,16 +223,19 @@ cm on either side"* describes the right one. Reporting one and meaning the other
 is the mistake the name *error bar* allows, and the reason gog asks you to name
 the statistic.
 
-Which band is wider is not fixed, either. `confidence` narrows as the group gets
-larger. On fifty flowers it is under a third of the spread; on three flowers it
-is the wider of the two.
+Which band is shorter also depends on the group size. With fifty flowers per
+species the confidence band is much shorter, as the plot shows. With only a
+few flowers per species it can be the longer one, because a t-interval widens
+when the group is small.
 
 Whether a center exists is decided by the statistic, not by a setting.
 `confidence` and `deviation` compute a mean and `range` does not. So the shape
 follows from the statistic: a bare error bar for `range`, a pointrange for the
-other two. A setting can
-*hide* an existing center, as [Hiding the center dot](#hiding-the-center-dot)
-shows, but no setting adds one to `range`. See
+other two. A setting can *hide* an existing center, as [Hiding the center
+dot](#hiding-the-center-dot) shows, but no setting adds one to `range`. A
+second layer does. `point * mean` over `interval * range` draws the same
+pointrange, as [Three layers instead of one
+mark](#three-layers-instead-of-one-mark) shows with the median. See
 [Transforms](../transforms.qmd) for the whole range family.
 
 ## Why `interval` needs a transform
@@ -252,7 +257,7 @@ invents the extents, exactly as `bin` invents a count, so the channel set never
 grows. [`box`](box.qmd) and [`ribbon`](ribbon.qmd) read the same low and high
 values. The pair transform
 [`bounds(lower, upper)`](../transforms.qmd#bounds-a-pre-computed-lowhigh-pair)
-takes extents you already hold, and
+takes a low and a high you already have as two columns of the table, and
 [Horizontal whiskers](#horizontal-whiskers) draws a coefficient plot with it.
 
 ## Horizontal whiskers
@@ -269,10 +274,12 @@ data(iris_flowers) + interval * confidence(0.95) + x(petal_length) + y(species) 
   title("The same 95% CI, horizontal")
 ```
 
-The caps turn with the whisker, since a cap always crosses the span at its end.
+The caps turn too, since a cap always crosses the span at its end.
 The center dot stays at the center. Everything else in this chapter is
 unchanged: `pattern`, `color` and `dodge` behave the same whichever axis carries
-the categories, and so do `caps` and `center`.
+the categories, and so do `caps` and `center`, the two settings that [Caps, or
+a linerange](#caps-or-a-linerange) and [Hiding the center
+dot](#hiding-the-center-dot) explain.
 
 This is the usual shape for a **coefficient plot**, where each row is a named
 estimate and the reader reads down the list of intervals. Estimates like these
@@ -342,6 +349,12 @@ data(gm_eras) + interval * range * dodge + x(continent) + y(life) + color(era) +
 *"Given the gapminder eras: intervals derived by range and dodge, x is
 continent, y is life, color by era."*
 
+Oceania's 1957 whisker looks like a single cap. The table has only two
+countries there, Australia and New Zealand. In 1957 their life expectancies
+were within a tenth of a year of each other. That span is shorter than a pixel,
+so the two caps draw on top of each other. In 2007 the two countries were a
+year apart, and the caps separate.
+
 Width and opacity stay *settings*. A channel needs one value per row, and one
 whisker is a single stroke drawn from a whole group, so `size` and `opacity`
 have no rows to follow. `style()` sets them once for the layer:
@@ -356,14 +369,15 @@ data(iris_flowers) + interval * range + x(species) + y(petal_length) +
 *"Given the iris flowers: intervals derived by range, x is species, y is petal
 length, colored tomato, with size 2.5."*
 
-## Caps, or a bare linerange
+## Caps, or a linerange
 
-The end caps are the short crossbars at each end of a whisker. They are
+The caps are the short lines across each end of a whisker. They are
 decoration rather than data, because they only emphasize where a whisker stops,
 and a crowded plot often reads more cleanly without them. So whether to draw
-them is a *setting*. `style(caps = FALSE)` drops them for a bare **linerange**,
-a whisker with no crossbars at its ends. `caps = TRUE`, the default, keeps the
-capped error bar.
+them is a *setting*. `style(caps = FALSE)` drops them for a **linerange**, a
+whisker with no caps. `caps = TRUE`, the default, keeps the capped error bar.
+Here is the CI from [Splitting by color](#splitting-by-color) with its caps
+off:
 
 ```{r}
 data(iris_flowers) + interval * confidence(0.95) + x(species) + y(petal_length) +
@@ -377,14 +391,14 @@ y is petal length, color by species, with caps off."*
 
 No other mark has caps. On any other mark `style(caps = )` is refused with
 direction, the same way a bar's `border_size` is refused on a `line`. `caps`
-combines with `range`, `confidence` and `deviation`, and with the `color` split.
-So the error bar, the linerange, the pointrange and their colored versions are
-all the same mark. Only the transform and one setting change.
+combines with `range`, `confidence` and `deviation`. So the error bar, the
+linerange and the pointrange are all the same mark. Only the transform and one
+setting change.
 
 ## Hiding the center dot
 
 A pointrange's dot is the mean. Sometimes you want the whiskers without it,
-which is a plain error bar. `style(center = FALSE)` drops the dot, and
+which is a bare error bar. `style(center = FALSE)` drops the dot, and
 `center = TRUE` (the default) keeps it. Like `caps`, it only *hides*: it cannot
 add a center to `range`, which has none to draw.
 
@@ -402,7 +416,7 @@ y is petal length, color by species, with center off."*
 one for its ends. Each takes two values, so a confidence interval draws four
 ways. A capped pointrange is
 the default. A capped bare error bar is `center = FALSE`. A linerange with a dot
-is `caps = FALSE`, and a plain linerange is both `FALSE`. Like `style(caps = )`,
+is `caps = FALSE`, and a bare linerange is both `FALSE`. Like `style(caps = )`,
 `style(center = )` belongs to `interval` alone; on any other mark it is refused
 with direction.
 
@@ -414,7 +428,7 @@ separates them when the plot is printed in black and white. A whisker is a
 does. This is the [settable rule](../design-laws.qmd#the-settable-rule): a dash
 patterns every path-stroke mark (`line`, `step`, `interval`, `path`, `rule`).
 The dash is drawn on the whisker span only. The caps and the center dot stay
-solid, since a dashed crossbar is hard to read as a cap:
+solid, since a dashed cap no longer looks like a cap:
 
 ```{r}
 data(iris_flowers) + interval * confidence(0.95) + x(species) + y(petal_length) +
@@ -451,11 +465,12 @@ number. Both read the same column and report different things, and the sentence
 says which is which. The dot is turned off because the top of the bar already
 marks the mean, and the engine draws the two at exactly the same height.
 
-The opening of this chapter named three quantities that all draw as the same
-whisker. A published figure of this shape has to say in its caption which one it
-used, because the drawing cannot show it. Here the sentence carries it:
-`confidence(0.95)` sits beside the plot, and `deviation` would be a different
-sentence and a different picture.
+A bar with an error bar is the figure where the three quantities from the
+opening are most often confused. The whisker looks the same whether it is a
+standard deviation, a standard error or a confidence interval. A caption has
+to say which one it is, because the drawing cannot. In gog the sentence has
+already said it. This one names `confidence(0.95)`, and `deviation` in its
+place would give a different sentence and a much longer whisker.
 
 A second category goes side by side, with the same `dodge` that separates
 grouped bars. Bind `color` to the bars and `group` to the whiskers. Both layers
@@ -474,6 +489,13 @@ data(gm_eras) +
 *"Given the gapminder eras: bars derived by mean and dodge, color by era, and
 also intervals derived by confidence at 95% and dodge, grouped by era, with
 center off, colored black, x is continent, y is life."*
+
+Oceania has both the shortest whisker and the longest, from the same two
+countries. A confidence interval from two values is wide, because two values
+say little about the spread. In 2007 Australia and New Zealand were a year
+apart, and the interval is thirteen years wide. In 1957 they were a tenth of a
+year apart, and the interval is still nine tenths of a year, more than twelve
+times the range that drew as a single cap above.
 
 What this plot does not show is the data. Two groups can have the same mean and
 the same interval and still hold very different values, and a bar reports only
@@ -509,7 +531,7 @@ peek(gm_continents)
 ```{r}
 data(gm_continents) + interval * confidence(0.99) + x(continent) + y(life) +
   style(caps = FALSE, size = 3, color = "darkslateblue", pattern = "dotted") +
-  y_label("Life expectancy") + title("A bare, thick, dotted 99% interval")
+  y_label("Life expectancy") + title("A thick, dotted 99% linerange")
 ```
 
 The confidence level is not in that table, because it is not a setting. It is

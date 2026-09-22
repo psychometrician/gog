@@ -5,16 +5,17 @@
 source("R/setup.R")
 ```
 
-Which things are most alike? A table of numbers holds the answer, but a
-reader cannot see it in the rows. The `cluster` transform computes it. It
-treats each category of an axis as a **leaf** of a tree. It joins the two
-closest leaves, then the next two, and keeps joining until one tree holds
-them all. The world calls the picture a dendrogram, and as with the pie
-there is no atom that spells the name.
+Which categories in a table are most alike? A table of numbers holds the answer,
+but a reader cannot see it in the rows. The `cluster` transform computes it. It
+treats each category of an axis as a **leaf** of a tree. It finds the two
+closest leaves and joins them into one branch. Then it looks again, treating
+that new branch as a single thing, and joins the closest two again. It repeats
+until one tree holds every leaf. The world calls the picture a dendrogram, and
+as with the pie there is no atom that spells the name.
 
 This chapter builds the tree, then uses it to order a tile plot. `nutrients`
-holds one row per pair of food and nutrient: eight everyday foods, each
-measured on five nutrients:
+holds one row per pair of food and nutrient. There are eight everyday foods, and
+each one is measured on five nutrients:
 
 ```{r}
 #| echo: false
@@ -23,12 +24,14 @@ peek(nutrients)
 
 ## The tree
 
-Which two of the eight foods are most alike, and which one is least like all
-the rest? To answer that, the engine needs to know what to compare. Each
-leaf is described by a **profile**. `cluster(amount, over = nutrient)` says
-that one leaf's profile is its `amount` in every category of `nutrient`. The
-distance between two leaves is the straight-line distance between their two
-profiles. Two branches join at the average distance between their leaves.
+Which two of the eight foods are most alike, and which one is least like all the
+rest? To answer that, the engine needs to know what to compare. Each leaf is
+described by a **profile**. `cluster(amount, over = nutrient)` says that one
+leaf's profile is its `amount` in every category of `nutrient`. So each food's
+profile is five numbers, and those five numbers give the position of one point.
+The distance between two leaves is the straight-line distance between their two
+points. Two branches join at an average distance. Measure from every leaf on one
+branch to every leaf on the other, and average all of those distances.
 
 ```{r}
 data(nutrients) + path * cluster(amount, over = nutrient) + x(food) +
@@ -38,15 +41,19 @@ data(nutrients) + path * cluster(amount, over = nutrient) + x(food) +
 *"Given nutrients: paths derived by cluster on amount, over nutrient, x is
 food."*
 
-`path` draws the tree. A tree is a set of corners joined in a fixed order, and
-`path` joins rows in the order the table gives them. The bound position is the
-leaf axis. The other position stays unbound: the tree computes the distance at
-which two branches join, and names that axis Distance. The place where two
-branches meet is a **join**, and its height says how different they are. Beans
-and lentils join lowest, rice and oats join just above them, and almonds join
-last of all.
+`path` draws the tree. A tree is a set of points that only make the right shape
+when they are joined in a fixed order. `path` is the mark that keeps that order,
+because it strokes the rows as the table gives them. Here `x(food)` is the bound
+position, so `x` carries the leaves, and this chapter calls it the leaf axis.
+You bind nothing to the other position, and `cluster` supplies it. The transform
+computes the distance at which each pair of branches joins, and it names that
+axis Distance. The place where two branches meet is a **join**. The further a
+join is drawn from the leaf axis, the more different the two branches are. Beans
+and lentils join lowest, and rice and oats join just above them. Almonds join
+highest of all, which makes almonds the food least like the rest.
 
-Bind `y` instead of `x`, and the same tree lies on its side:
+Bind `y` instead of `x`, and the same tree is drawn sideways, with the leaves
+down the left edge:
 
 ```{r}
 data(nutrients) + path * cluster(amount, over = nutrient) + y(food)
@@ -56,19 +63,20 @@ data(nutrients) + path * cluster(amount, over = nutrient) + y(food)
 food."*
 
 Three things about how `cluster` builds the tree cannot be changed. Distance is
-straight-line distance on the values as given, so a nutrient with large values
-changes the distance more than one with small values. Rescale where your data
-lives if that is not what you mean. Branches join at their average distance, so
-every join stands further from the leaves than the joins inside it. And two
-leaves with identical profiles join at zero, drawn as a join resting on the leaf
-axis.
+measured on the values as they are, with no rescaling first. Fat runs from 0.3
+to 49.9 and iron from 0.5 to 3.7, so fat has far more effect on the distance
+than iron does. If you want every nutrient to count equally, rescale the columns
+where your data lives. Branches join at their average distance, so every join is
+further from the leaf axis than the joins it holds. And two leaves with
+identical profiles join at zero, so their join is drawn on the leaf axis itself.
 
 ## The order
 
-Similar foods should stand next to each other on a tile plot, or the pattern in
-the tiles is hard to see. The tree can also be read as an order. A tile plot of
-the same table draws its slots in the order the rows arrived, and nothing chose
-that order:
+Reading the finished tree along the leaf axis also gives an order, with similar
+foods next to each other. That order is worth having on a tile plot, because a
+pattern in the tiles is hard to see when similar foods are far apart. A tile
+plot of the same table draws its slots in the order the rows arrived. Nothing
+chose that order:
 
 ```{r}
 data(nutrients) + zone + x(food) + y(nutrient) + color(amount) +
@@ -77,9 +85,9 @@ data(nutrients) + zone + x(food) + y(nutrient) + color(amount) +
 
 *"Given nutrients: zones, x is food, y is nutrient, color by amount."*
 
-`zone * cluster` draws the same tiles with the leaf axis in the tree's order.
-Chicken and salmon now stand together on the left, and the four foods that are
-mostly carbohydrate stand together between spinach and almonds:
+`zone * cluster` draws the same tiles. The leaf axis now runs in the tree's
+order. Chicken and salmon are next to each other on the left, and the four foods
+that are mostly carbohydrate are together between spinach and almonds:
 
 ```{r}
 data(nutrients) + zone * cluster(over = nutrient) +
@@ -91,19 +99,21 @@ data(nutrients) + zone * cluster(over = nutrient) +
 nutrient, color by amount."*
 
 On a tile plot the values are already bound to `color`, so `cluster` need not
-name them again. `over` names the profile column, and the other categorical axis
-is the leaf axis the tree reorders.
+name them again. `over` names the profile column. The other categorical axis
+holds the leaves, and that is the axis the tree reorders.
 
 ## The clustered heatmap
 
-The full figure puts a tree on two sides of the tiles, so you can see where each
-order came from. The world calls it a clustered heatmap. It is three plots and
-two operators: a tree above, the tile plot, and a second tree on the right,
-beyond the legend. The alignment comes from one rule in
+So far one tree has ordered one axis. Put a tree on both sides of the tiles, and
+both axes take an order, so you can see where each one came from. The world
+calls the result a clustered heatmap. It is three plots joined by two operators:
+a tree above, the tile plot below it, and a second tree to the right of the
+legend. The alignment comes from one rule in
 [Composition](composition.qmd#a-clustered-panel-decides-the-order): a shared
 categorical axis takes the order a clustered panel computed for it. The tile
-plot itself stays plain. Its column order arrives from the tree above, and its
-row order from the tree on the right.
+plot in the middle carries no `cluster` of its own. It is the same plain tile
+plot drawn earlier in this chapter. Its column order arrives from the tree
+above, and its row order from the tree on the right.
 
 ```{r}
 (data(nutrients) + path * cluster(amount, over = nutrient) + x(food) +
@@ -117,15 +127,16 @@ row order from the tree on the right.
 above zones, x is food, y is nutrient, color by amount, beside paths derived by
 cluster on amount, over food, y is nutrient."*
 
-Follow a column of tiles up into the tree, and the tree says which columns that
-food was joined with. The trees are not decoration: they decide which column
-stands next to which.
+Each column of tiles is one food. Read the tree directly above a column, and it
+shows which foods that one joined first. The trees are not decoration. They
+decide which foods end up next to each other.
 
 ## What cluster refuses
 
-Having learned `order()` on a bar chart, you may write it on the tree as well.
-An axis holds one order. `order()` sorts by a column, `cluster` derives an
-order from the tree, and saying both is a contradiction:
+You met `order()` on a bar chart, where it sorted the categories along an axis.
+You may want to write it here as well. An axis holds one order. `order()` sorts
+by a column, `cluster` derives an order from the tree, and writing both is a
+contradiction:
 
 ```{r}
 #| error: true
@@ -134,7 +145,7 @@ data(nutrients) + path * cluster(amount, over = nutrient) + x(food) +
 ```
 
 A profile holds one value for every category of the profile column, so that
-column must hold categories. A continuous column has none:
+column must hold categories. A continuous column has no categories:
 
 ```{r}
 #| echo: false
@@ -146,9 +157,12 @@ peek(gm_all)
 data(gm_all) + path * cluster(life, over = year) + x(continent)
 ```
 
-A profile's entry is one value, so a pair that holds several rows is refused,
-and the message names the pair. In `gm_eras` every continent holds one row per
-country in each era. Aggregate to one row per pair first, where your data lives:
+Each entry of a profile is one value. If one leaf and one profile category
+together match more than one row, gog refuses rather than choosing between them,
+and the message names the pair it found. `gm_eras` records the same two years as
+categories, so `over = era` passes the previous rule. It breaks this one: every
+continent holds one row per country in each era. Aggregate to one row per pair
+first, where your data lives:
 
 ```{r}
 #| echo: false
@@ -162,9 +176,10 @@ data(gm_eras) + path * cluster(life, over = era) + x(continent)
 
 ## Where the limits are
 
-Trees are often drawn in a circle, with the leaves around the rim, so you may
-write `polar()` here. A circular tree is valid grammar that this engine does
-not draw. Adding `polar()` says exactly that:
+Trees are often drawn in a circle, with the leaves around the rim, so asking for
+a circular tree is a reasonable thing to do. That bend is
+[`polar()`](polar.qmd), and a tree inside it is valid grammar that this engine
+does not draw. Write `polar()`, and the engine says exactly that:
 
 ```{r}
 #| error: true
@@ -180,10 +195,11 @@ data(nutrients) + path * cluster(amount, over = nutrient) + x(food) +
   color(food)
 ```
 
-And one plot clusters one axis. The heatmap above orders both, because it
+And one plot clusters one axis. The clustered heatmap orders both, because it
 composes two clustered plots, one for each axis.
 
 ## What comes next
 
-A cluster reorders an axis and leaves the plot flat. [Space](space.qmd) adds the
-third position, `z`, and stands the whole plane up into a cube you can turn.
+A cluster reorders an axis, and the plot still uses two positions.
+[Space](space.qmd) adds the third position, `z`, which lifts the marks off the
+page into a cube you can turn.

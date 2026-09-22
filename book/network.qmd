@@ -8,11 +8,11 @@ source("R/setup.R")
 What is connected to what? Some tables record relations rather than
 measurements: each row says that one thing is related to another. A network
 diagram draws those relations. Each thing becomes a **node**, one marked place
-in the picture, and each relation becomes a stroke between two nodes. Nodes with
-many relations are drawn near the middle.
+in the picture, and each relation becomes an **edge**, a stroke between two
+nodes.
 
-Nothing in such a table says where any node should sit. That is the whole
-difficulty, and this chapter shows how gog answers it. The engine computes a
+Nothing in such a table says where any node should sit. Choosing those positions
+is the problem, and this chapter shows how gog solves it. The engine computes a
 position for every node. A space named `network()` draws the result, with no
 axes at all.
 
@@ -26,9 +26,9 @@ peek(trade_partners)
 
 ## One row is one edge
 
-The first question of the trade table is who trades with whom, and one stroke
-per row draws exactly that. Write the `edge` mark derived by `layout()`, name
-the two endpoint columns in order, and say the space:
+The first question this table raises is who trades with whom. One stroke per row
+answers exactly that. Write the `edge` mark derived by `layout()`, name the two
+endpoint columns in order, and add the space:
 
 ```{r}
 data(trade_partners) + edge * layout(exporter, importer) + network()
@@ -38,28 +38,29 @@ data(trade_partners) + edge * layout(exporter, importer) + network()
 the network."*
 
 Each stroke is one row of the table. The `layout` reads both columns and
-finds every distinct name. All nodes push apart, and nodes that share a row
-also pull together, so the connected ones settle near each other. The engine
-computes every position itself, and computes it the same way everywhere, so
-this sentence draws the same picture in R, Python, Julia and JavaScript, to
-the byte.
+finds every distinct name. The engine then pushes every node away from every
+other one, and pulls back together each pair that shares a row, so two
+countries that trade sit near each other. The engine computes every position
+itself, and computes it the same way everywhere, so this sentence draws the
+same picture in R, Python, Julia and JavaScript, to the byte.
 
 The panel has no axes, no ticks and no grid, because `network()` draws none. A
 layout's positions mean nothing as quantities. Flip the picture left to right
 and it means the same, so a number on an axis would state nothing about the
-data. A `layout` therefore draws in `network()` and in no other space.
+data. A `layout` is therefore read inside `network()` and in no other space.
 
 ## The nodes and their names
 
 The strokes alone do not say which node is which country, or which countries
 trade the most. Two more layers finish the diagram. A `point` layer draws the
-nodes, and a `text` layer names them. Each one writes the same `layout`, and
-the engine computes it once per layer. Every computation lands on the same
-positions, because the placement is deterministic. The layout publishes two
-columns about each node: its `name`, and its `degree`, the count of its
-relations. `size(degree)` draws the nodes with the most relations largest. The
-`text` layer also composes `repel`, the modifier that moves labels off each
-other, so a name rests beside its dot instead of covering it:
+nodes, and a `text` layer names them. Each one carries the same `layout`, and
+the engine computes it once per layer. Every computation gives the same
+positions, because the placement is deterministic.
+
+The layout computes two columns about each node: its `name`, and its `degree`,
+the count of its relations. `size(degree)` then draws a node larger when it has
+more relations. The `text` layer also composes `repel`, the modifier that moves
+labels off each other, so a name rests beside its dot instead of covering it:
 
 ```{r}
 data(trade_partners) +
@@ -76,15 +77,16 @@ also text derived by layout from exporter to importer and repel, label by name,
 in the network."*
 
 The nodes with the most relations sit near the middle. No row of the table says
-that the United States, China and Germany are centers of trade; saying it is
-what the layout is for.
+that China, the United States and Germany have the most trade relations. The
+layout is what shows it.
 
 ## An edge carries its own columns
 
 Every stroke so far is drawn alike, whether the trade is 500 billion dollars or
-50 billion. An edge is one row, so its color and its opacity can follow any
-column of the table. `opacity(billions)` maps each stroke's opacity to its
-value, so the heavier relations draw darker:
+50 billion. An edge is one row, so its color and its opacity can come from that
+row's own columns. `color` needs a categorical column, and `opacity` needs a
+continuous one. `opacity(billions)` maps each stroke's opacity to that row's
+`billions`, so the heavier trades draw darker:
 
 ```{r}
 data(trade_partners) +
@@ -106,11 +108,11 @@ belongs on the `edge` layer, where one row carries one value.
 
 ## An angle asks for the cube
 
-A plane gives the layout two directions to spread its nodes, and a cube gives
-it three, in a picture you can turn. Bare `network()` computes the layout in
-the plane. State a viewing angle and the same edges are laid out in a cube
-instead. Every node takes a new position, and
-the picture is drawn from the angle you asked for:
+Every picture so far is flat. A plane gives the layout two directions to place
+its nodes in. A cube gives it three, and a cube can be turned. Bare `network()`
+computes the layout in the plane. State a viewing angle and the same edges are
+laid out in a cube instead. Every node takes a new position, and the picture is
+drawn from the angle you asked for:
 
 ```{r}
 data(trade_partners) +
@@ -126,15 +128,16 @@ importer, size by degree, in the network, turned 35, tilted 20."*
 
 Nothing in the table gives a node a third position, so there is nothing to bind
 to `z`. The third dimension belongs to the space, exactly as the viewing angle
-does, so asking for the angle is asking for the cube. The box is drawn for depth
-and carries no numbers, for the same reason the flat form has no axes.
+does. State the angle, and you have stated the cube. The box shows where the
+depth is. It carries no numbers, because a layout's positions are not
+measurements, which is the same reason the flat form has no axes.
 
 In the web edition the cube turns with a drag, the way the cube in
 [Space](space.qmd) turns, and *reset* returns to the angle the sentence asked
 for. On paper it keeps the view it was given.
 
-Naming a node in the cube is valid grammar. This engine does not draw those
-names:
+Naming a node in the cube is valid grammar that this engine does not draw. The
+refusal says so, and it names the flat form as the place for the labels:
 
 ```{r}
 #| error: true
@@ -146,9 +149,10 @@ data(trade_partners) +
 
 ## What the network refuses
 
-The likeliest mistake is to leave `network()` off, since a flat plot needs no
-word for its space. A `layout` outside its space would draw axes, and the
-numbers along them would mean nothing:
+That refusal is a gap in this engine. The rest are mistakes in the sentence, and
+the likeliest is to leave `network()` off, because a flat plot names no space at
+all. Without it the plot would draw axes under the layout, and the numbers along
+them would mean nothing:
 
 ```{r}
 #| error: true
@@ -180,19 +184,25 @@ data(trade_partners) + point + network()
 
 ## Where the limits are
 
-A row from a node to itself is refused. Such a stroke would have no length,
-and a fact about one node belongs on the node. A row missing an endpoint is
-left out, and the engine says how many it left out.
+A sentence can be right and the table still hold rows a layout cannot use. A row
+from a node to itself is refused. Such a stroke would have no length, and a fact
+about one node belongs on the node. A row missing an endpoint is left out, and
+the engine says how many it left out.
 
 gog does not read a second table of node facts. A node shows only what the edges
 give it: its name and its degree. Joining more columns onto the nodes is a table
-operation, so do it in the host language, before the plot. A `brush` is refused
-too, and its answer is also upstream: a brush names a range on the data's axes,
-and a network has none. Select the rows in your table first, then color the
-edges they make.
+operation, so do it in the host language, before the plot.
+
+A `brush` is refused, and its answer is in the table too. A brush names a range
+on the data's axes, and a network has none. Select the rows in your table first,
+then color the edges they make.
+
+A network cannot be played either. Every frame would lay the graph out again, so
+the movement would come from the layout rather than from a change in the data.
+Draw the frames as separate plots beside each other with `|`.
 
 ## What comes next
 
-A network is one picture of one table, however its nodes are laid out.
-[Play](play.qmd) adds time to any of them: the same sentence cut into frames and
-run in order, so the reader watches the picture change.
+A network draws one table at one moment, and nothing in the picture moves.
+[Play](play.qmd) adds time to a plot: the same sentence cut into frames and run
+in order, so the reader watches the picture change.

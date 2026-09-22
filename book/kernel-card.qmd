@@ -1,16 +1,16 @@
 # The kernel card
 
-The whole grammar, on one page. The functions around it are in [Functions around
-the grammar](utilities.qmd). This card is extracted live from [The
-kernel](grammar.qmd) as the book builds, so it cannot disagree with the chapter
-it comes from.
+The whole grammar, on one page. The table below is extracted from [The
+kernel](grammar.qmd#the-kernel) each time the book builds. It cannot disagree
+with the chapter it comes from. Functions that act on a plot instead of joining
+a sentence are in [Functions around the grammar](utilities.qmd).
 
 ```{r}
 #| echo: false
 #| results: asis
-# The kernel is a table as of 2026-07-28, not a monospace listing, so the rows
-# are emitted as markdown rather than wrapped in a code fence. Wrapping a table
-# in ``` would print its pipes and asterisks at the reader.
+# The kernel is a table, not a monospace listing, so the rows are emitted as
+# markdown rather than wrapped in a code fence. Wrapping a table in ``` would
+# print its pipes and asterisks at the reader.
 g <- readLines("grammar.qmd")
 start <- grep("^## The kernel", g)[1]
 rest  <- g[start:length(g)]
@@ -18,28 +18,43 @@ end   <- which(!grepl("^\\|", rest) & nzchar(trimws(rest)) & seq_along(rest) > 2
 cat(rest[seq_len(end)][grepl("^\\|", rest[seq_len(end)])], sep = "\n")
 ```
 
-**The minimum sentence** is a source, a mark, and the mark's required
-position channels:
+**The minimum sentence** is a source, a mark, and the position channels that
+mark needs:
 
 ```
 data(table) + mark + x(column) + y(column)
 ```
 
-**The order of `+`** is a convention, not a rule: every sentence in this book
-reads left to right as *data, mark, positions, refinements*. A channel written
-before any mark is shared by every layer that can accept it; written after a
-mark, it belongs to that mark alone. Each later `data()` applies to the next
-mark.
+**The order of `+`** is mostly free: every sentence in this book reads left to
+right as *data, mark, positions, refinements*. Inside one layer the mark and its
+channels may be written in any order. `data()` comes first, and `style()` comes
+after the mark it styles. What the order does change is scope and layering. A
+channel written before any mark applies to every layer that can accept it. A
+channel written after a mark belongs to that mark alone. Each later `data()`
+applies to the mark written directly after it. Two marks draw in the order you
+wrote them, so the second sits on top of the first. [Which orders
+matter](operators.qmd#which-orders-matter) has all of it in one place.
 
 **Deriving** is what `*` does: it puts a transform on a mark, and the mark is
-always on the left. Two transforms are written in the order they happen:
-`bar * bin * mean` cuts the axis into bands, then averages inside each.
+always on the left. Two transforms can follow one mark: `bar * bin * mean` cuts
+the axis into bands, then averages inside each. They have to divide the work,
+and each job is filled once, so the order you write them in does not change the
+picture. Writing them in the order they happen is the convention.
 
-**Precedence** decides what groups first: `*`, then `/`, then `+`, then `|`. A
-single plot then needs no parentheses; a page of plots does. `data(t) + bar *
-bin + x(a) | facet(g)` derives the mark, builds the plot, then splits it.
+**Precedence** decides what groups first: `*` and `/`, then `+`, then `|`. In
+`data(table) + bar * bin + x(a) | facet(g)`, the transform joins its mark first.
+The atoms join the plot next, and the facet splits the finished plot last. So a
+single plot needs no parentheses. A page of plots takes one pair of parentheses
+around each plot. Julia gives `+` and `|` the same precedence, so there the
+parentheses are what keep each plot whole.
 
-**When gog refuses**, the message names the rule and the fix. **Illegal** means
-the grammar forbids it: rewrite. **Unsupported** means the engine does not draw
-it: write it another way. A warning means gog drew the plot and something is
-worth checking: read it and decide.
+**When gog refuses**, the message names the rule, and says what to write
+instead. **Illegal** means the grammar forbids the sentence you wrote: rewrite
+it. **Unsupported** means the grammar allows it and this engine does not draw
+it: use another atom that renders. [Illegal is not the same as
+unsupported](design-laws.qmd#illegal-is-not-the-same-as-unsupported) has the
+rule, and a live refusal of each kind.
+
+**When gog assumes** instead of refusing, the plot still draws. The message is
+an assumption: it says what gog decided for you. Read it, and check that the
+decision was what you meant.

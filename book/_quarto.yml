@@ -351,6 +351,12 @@ format:
     documentclass: scrreprt
     number-sections: true
     pdf-engine: lualatex
+    # Without this the cover prints the published date as the raw `2026-07-28`
+    # while the line below it reads "Updated September 20, 2026", which is two
+    # registers in two adjacent lines. The web edition already writes the long
+    # form, so this is the two editions of one book agreeing rather than a
+    # preference.
+    date-format: long
     # The PDF's half of the color rule. The HTML edition colors a specification
     # in the browser, which keeps Quarto's panel and copy button intact; a PDF
     # has neither, so the filter rewrites the block outright. It reads the
@@ -371,6 +377,28 @@ format:
         \usepackage{fvextra}
         \DefineVerbatimEnvironment{Highlighting}{Verbatim}{breaklines,breakanywhere,commandchars=\\\{\}}
         \DefineVerbatimEnvironment{verbatim}{Verbatim}{breaklines,breakanywhere}
+        % **The cover says when this copy was made, not only when the book first
+        % appeared.** A PDF is downloaded and kept, so a reader months later has
+        % no way to tell how old theirs is; the web edition answers that in its
+        % title block and the PDF had no equivalent. `\today` is the build date,
+        % which is exactly the question, and it needs no metadata plumbing and no
+        % second copy of the published date. KOMA prints `\publishers` under the
+        % date on the title page, which is where a reader is already looking.
+        \publishers{\normalsize Updated \today}
+        % **A running head, so a reader knows which chapter they are in.** Fifty
+        % five chapters and no page furniture at all: every page below the first
+        % of a chapter was unlabeled, which a screen never is, because the sidebar
+        % is always there. The chapter goes to the inner corner and the page
+        % number to the outer one, and `\cfoot[\pagemark]{}` sets the *plain*
+        % style alone, so a chapter's opening page keeps its number while staying
+        % free of a head that would repeat the title printed directly below it.
+        \usepackage[headsepline]{scrlayer-scrpage}
+        \clearpairofpagestyles
+        \automark[section]{chapter}
+        \ihead{\headmark}
+        \ohead{\pagemark}
+        \cfoot[\pagemark]{}
+        \pagestyle{scrheadings}
         % Hangeul, and this is not cosmetic: the book's central analogy *is* the
         % letters. Latin Modern has no Korean coverage, so ㄱ, ㅋ, 하 and 꿲 came out
         % as replacement glyphs — the 하 law and the 꿲 law printed with their

@@ -1,27 +1,33 @@
 # The ggplot2 phrasebook
 
 ggplot2 proved that a grammar of graphics could be a working tool and not only a
-theory. Most readers of this book arrive from it. gog makes its own choices
-inside that same idea, and this appendix translates between the two: which word
-to use, and what will feel different.
+theory. Most readers of this book already know it. gog follows the same grammar
+and decides the details differently. This appendix covers both: which word to
+write, and what behaves differently.
 
-It assumes the plot you want can be drawn. To find out whether it can, read
-[Coverage](coverage.qmd). That appendix reads ggplot2's whole reference index
-against the kernel and says what gog refuses and what it does not draw.
+The translations assume gog can draw the plot you want. To find out whether it
+can, read [Coverage](coverage.qmd). That appendix reads ggplot2's whole
+reference index against the kernel, in both directions: what gog draws that
+ggplot2 does not, and what ggplot2 draws that gog does not.
 
 ## Side by side
 
+This first table compares the two systems as a whole, rather than word for word.
+
 | | ggplot2 | gog |
 |---|---|---|
-| Languages | R | R, Python, Julia and JavaScript, one engine under all of them |
+| Languages | R | R, Python, Julia and JavaScript, all four calling one engine |
 | Naming | `geom_point`, `aes`, `alpha` | `point`, channels by plain name, `opacity` |
-| Where `x`/`y` are written | `aes()` at the plot or the layer, and a layer may override the plot's `aes()` | resolved by where the channel is written in the sentence |
+| Where `x`/`y` are written | `aes()` at the plot or the layer, and a layer may override the plot's `aes()` | a mark takes every atom written after it, and none written before it |
 | The histogram | `geom_histogram()` *or* `stat_bin(geom = "bar")` | `bar * bin` |
 | Log axis | `scale_x_log10()` | `x(gdp, scale = "log")`, written on the binding |
 | 3-D | external packages | one more position: `z` |
 | Animation | gganimate, a separate package | `play` is a channel of the kernel: `+ play(year)` |
 
 ## Translations
+
+This table is term for term. Find the ggplot2 call on the left, and the gog
+sentence that draws the same plot is on the right.
 
 | You write in ggplot2 | You write in gog |
 |---|---|
@@ -45,39 +51,43 @@ against the kernel and says what gog refuses and what it does not draw.
 | `scale_x_log10()` | `x(v, scale = "log")` |
 | `scale_color_viridis_c()` | `color(v) + palette("viridis")` |
 | `facet_grid(r ~ c)` | `\| facet(c) / facet(r)` |
-| `facet_wrap(~ g, ncol = 4)` | `\| facet(g, wrap = 4)`; `/` runs the same line down instead, so one number replaces `nrow` *and* `ncol` |
-| `facet_*(scales = "free_y")` | `y(v, free = TRUE)`, written on the axis it frees, so there is no `free_x`/`free_y`/`free` to choose between |
-| patchwork's <code>p1 &#124; p2</code>, `p1 / p2` | <code>plot_a &#124; plot_b</code>, `plot_a / plot_b`: the same two operators, and the operand decides which |
-| patchwork's `plot_spacer()`, `plot_layout(widths =)` | `theme(width =, height =)` on the plot that needs more room; the blank corner of a marginal plot is the space a shared axis does not use |
+| `facet_wrap(~ g, ncol = 4)` | `\| facet(g, wrap = 4)`. `/` runs the same line of panels down the page instead. The operator says the direction, so one number replaces both `nrow` and `ncol`. |
+| `facet_*(scales = "free_y")` | `y(v, free = TRUE)`, written on the axis you are freeing. Nothing has to be chosen, because the binding already says which axis. |
+| patchwork's <code>p1 &#124; p2</code>, `p1 / p2` | <code>plot_a &#124; plot_b</code>, `plot_a / plot_b`: the same two operators. What stands on the right decides the job: a plot composes, a `facet()` splits panels. |
+| patchwork's `plot_spacer()`, `plot_layout(widths =)` | `theme(width =, height =)` on the plot that needs more room. No spacer is needed: both marginals stop where the main panel stops, and the corner is the room left over. |
 | ggrepel's `geom_text_repel()` | `text * repel`, the collision modifier for overlapping labels, beside `dodge`, `stack` and `jitter` |
 | ggExtra's `ggMarginal()` | <code>top / (main &#124; right)</code>, three ordinary plots ([Composition](composition.qmd)) |
-| `coord_flip()` | swap the `x` and `y` bindings: orientation is read, not switched |
+| `coord_flip()` | swap the `x` and `y` bindings: orientation is read off whichever axis carries the categories, so there is nothing to switch |
 | `labs(title = , x = , y = )` | `title()`, `x_label()`, `y_label()`, `z_label()` |
 | `color = "red"`, `alpha = 0.5` inside a `geom_*()` | `style(color = "red", opacity = 0.5)` |
-| `theme(…)` | `theme()` sets the page; `style()` sets a layer's constants |
-| `ggsave("plot.svg")` | the rendered plot *is* SVG; `render_svg()` returns it as text to write to a file, spelled the same way in all four languages |
+| `theme(…)` | `theme()` is the page, and there is one of it; `style()` belongs to one layer |
+| `ggsave("plot.svg")` | the rendered plot *is* SVG; `render_svg()`, spelled the same way in all four languages, returns it as text you can write to a file |
 
 ## Six differences to expect
 
+The words translate, but six things behave differently once they are in place.
+
 - **`+` is still `+`, and on purpose.** ggplot2's author has said the pipe would
-  have been the better interface [@wickham2018pipe], so it is fair to ask why
-  gog kept `+`. The short answer has two parts. Python has no pipe operator of
-  its own, so a pipe could not spell one syntax in all four languages, and a
-  pipe makes every atom a function, which would leave `bar * bin` meaning
-  nothing. [Operators](operators.qmd) has the long version, including what
-  commutes in gog that did not commute in ggplot2.e.
-- **Nothing is computed unless you name it.** `bar` draws your numbers as they
-  arrive; if you want counting, you write `count`Where a geom counts for you,
-  gog computes nothing until you write the word.d.
+  have been the better interface [@wickham2018pipe]. gog kept `+` for two
+  reasons. Python has no pipe operator of its own, so a pipe could not spell one
+  syntax in all four languages. A pipe also makes every atom a function, and
+  `bar * bin` has no meaning once both sides are functions.
+  [Operators](operators.qmd) covers this in full, including which atoms commute
+  in gog and did not commute in ggplot2.
+- **Nothing is computed unless you name it.** `bar` draws your numbers
+  unchanged. `geom_bar()` counts rows on its own, and gog counts only when you
+  write `bar * count`.
 - **There is one spelling.** No geom/stat pairs, and no choice of which function
-  to use. If you can say a plot two ways here, one of them is a bug. Use "Report
-  an issue" in the margin.
+  to use. If you can spell one plot two ways here, one of them is a bug.
+  Report it as an issue on the book's repository.
 - **The scale belongs to the binding.** You name a channel once, and its scale
-  is a property of that binding, not a second sentence about it.
-- **Setting is not mapping.** A constant maps no column, gets no legend, and
-  belongs in `style()`. The quoted-string ambiguity (`color("red")`) does not
-  exist here: it is refused, with the fix named.
-- **Refusals give direction.** A sentence gog cannot draw is refused, and the
-  message names the sentence it would accept. If you are used to a warning and a
-  plot, expect a stop instead. The errors are part of the book, and it renders
-  them on purpose.
+  is a property of that binding. There is no second atom that names the channel
+  again.
+- **Setting is not mapping.** A constant maps no column, so it earns no legend.
+  Write it in `style()`. In ggplot2 `aes(color = "red")` is legal and draws a
+  legend with one entry called "red". Here `color("red")` asks for a column
+  called `red`, so gog refuses it and names `style(color = "red")` as the fix.
+- **Refusals name the fix.** A sentence gog cannot draw is refused, and the
+  message names the sentence it would accept. Where you are used to a warning
+  and a plot, gog stops and draws nothing. This book shows refusals on purpose:
+  it runs the refused sentence and prints the message you would see.

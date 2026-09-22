@@ -10,28 +10,30 @@ channel, `bin` is a transform, and none of them means anything on its own. They
 are words, and a word needs a sentence.
 
 The functions in this appendix are not words. They take a plot you have already
-written and act on it, or they hand you a table to write a sentence about. None of
-them joins a sentence with `+` or `*`, and none of them is part of the grammar.
+written and act on it, or they hand you a table to write a sentence about. None
+of them can be written into a sentence with `+` or `*`, and none of them is part
+of the grammar.
 
-The name alone will not tell you which is which. `x_label` is a word of the
-grammar and joins two words with an underscore, exactly as `render_svg` does.
-What separates them is where each one can stand. A word of the grammar stands
-inside a sentence, and these three never do. That is why none of them appears
-in [The kernel card](kernel-card.qmd).
+The name alone will not tell you whether a function is a word of the grammar.
+`x_label` is a word and joins two words with an underscore, exactly as
+`render_svg` does. What separates them is where each one can stand. A word of
+the grammar stands inside a sentence. The three functions below never do, which
+is why none of them appears in [The kernel card](kernel-card.qmd).
 
 | | What it gives you |
 |---|---|
 | `render_svg(plot)` | The plot as text, in one string |
-| `save_gif(plot, path)` | A played plot as a file that moves |
+| `save_gif(plot, path)` | A played plot as a GIF file |
 | `gog_table(name)` | One of this book's example tables |
 
-The list is short. Everything on it follows the same rule: it acts on a finished
-plot, or it hands you a table, and it has no place in a sentence.
+The list is short, and each function has a section below, in the order of the
+table. The first turns a finished plot into text.
 
 ## `render_svg()`
 
-A plot is a specification until something draws it. `render_svg()` draws it and
-gives you the result as ordinary text:
+A plot is a specification until something draws it. `render_svg()` takes the
+plot as its one argument, and it has the same name in all four languages. It
+draws the plot and gives you the result as ordinary text:
 
 ```{r}
 #| echo: false
@@ -50,11 +52,8 @@ characters that starts `<svg` and states a width. After that it names every
 point, every tick and every label.
 
 That text is the whole plot. It is what every notebook, every web page and this
-book itself receives. Writing it to a file with a `.svg` name gives you a
+book itself shows you. Writing it to a file with a `.svg` name gives you a
 picture that any browser opens and a vector drawing program edits.
-
-The function has the same name in all four languages, and takes the plot as its
-one argument.
 
 ### What the file carries
 
@@ -80,47 +79,52 @@ Every search returns `FALSE`. The sentence maps one column, so the drawing used
 one column. Even the weights are gone, because `bin` counts rows into intervals
 and the bars show the counts.
 
-The missing weights come from the transform rather than from a general rule. A
-mark that summarizes draws no individual row. A mark that does not summarize
-draws one glyph per row, and each position is computed from one value:
+The weights are absent because of the transform, not because a plot never
+carries values. A mark that summarizes draws no individual row. A mark that does
+not summarize draws one glyph per row, and each glyph is placed from one value:
 
 ```{r}
 picture <- render_svg(data(private) + point + x(weight) + y(patient))
 lengths(gregexpr("<circle", picture))
 ```
 
-Four rows, four circles, and the four names printed along the axis. Every
-plotting tool works this way, and it is what you asked for. A scatter plot draws
-each value you gave it.
+The four rows drew four circles, and the four patient names are printed along
+the axis. Every plotting tool works this way, and it is what you asked for. A
+scatter plot draws each value you gave it.
 
-So the rule is not that the file is safe. It is narrower and more useful. What
-you map is what you publish. A column you never map cannot be recovered from the
-file, and a private column that stays out of the sentence stays private.
+The number itself is not written in the file. Each circle sits where that number
+puts it, so a reader who measures the drawing can recover the value.
+
+So the rule is not that the file is safe. The real rule is narrower and more
+useful. What you map is what you publish. A column you never map cannot be
+recovered from the file, and a private column the sentence never names stays
+private.
 
 ### Plots that carry the table
 
 One case works differently, and you should know it before you publish.
 
-Four kinds of plot are drawn twice: one that binds [`brush()`](selection.qmd),
-one in the [cube](space.qmd), one on the [globe](globe.qmd), and a
-[network](network.qmd) given an angle. Once when you write it, and once again in
-the reader's browser, because the reader can move a selection or turn the view.
-The second drawing needs the numbers, so the page carries the table beside the
-picture.
+Some plots are drawn twice. You make the first drawing. The reader's browser
+makes the second, because the reader can move a selection or turn the view. Four
+kinds of plot do this: one that binds [`brush()`](selection.qmd), one in the
+[cube](space.qmd), one on the [globe](globe.qmd), and a
+[network](network.qmd) given an angle. The second drawing needs the numbers, so
+the page carries the table beside the picture.
 
-It carries the whole table, including columns the sentence never maps. The
-table that `show rows` (a button under the plot, explained in
-[Selection](selection.qmd)) opens lists only the mapped columns, and the page
-itself carries every column.
+It carries the whole table, including columns the sentence never maps. `show
+rows` is a button under the plot, explained in [Selection](selection.qmd). The
+table it opens lists only the mapped columns. The page itself carries every
+column.
 
-An SVG file never carries the table, even when its sentence names a brush.
-`render_svg()` gives you the picture and stops.
-
-One line of code keeps a private column out of the page. Bind the columns you
-plot and drop the rest:
+The remedy is to bind a table that holds only the columns you plot. Here is
+`private` again with the email column left out:
 
 ```{r}
-shown <- private[, c("patient", "weight")]
+shown <- data.frame(
+  patient = c("A. Kim", "B. Lee", "C. Park", "D. Choi"),
+  weight  = c(61.2, 74.8, 55.4, 68.0)
+)
+
 data(shown) + point + x(weight) + y(patient) + brush(weight)
 ```
 
@@ -128,35 +132,41 @@ data(shown) + point + x(weight) + y(patient) + brush(weight)
 select weight."*
 
 That sentence names a brush, so this page carries a table. The table it carries
-is `shown`, which has two columns. Bind `private` instead and `email` would be
-in this page too.
+is `shown`, which has two columns. If you bound `private` instead, `email` would
+be on this page too. Each language has its own way to drop a column from a table
+before you bind it, and that work belongs to the language rather than to the
+grammar.
+
+An SVG file never carries the table, even when its sentence names a brush.
+`render_svg()` gives you the picture and stops.
 
 ### What "byte for byte" means
 
 This book says in several places that the four languages draw the same picture
-byte for byte. `render_svg()` is the function that claim is about, and the idea
-behind it is simpler than the phrase sounds.
+byte for byte. That claim is about `render_svg()`, and the idea is simple.
 
-A plot looks like a picture on your screen. Underneath, it is the text you just
-saw. Two plots are the same when that text is the same, byte for byte. Not
-similar. Not close enough to look the same. The same.
+A plot looks like a picture on your screen. Underneath, it is the text that
+`render_svg()` returns. Two plots are the same when that text is the same, byte
+for byte. Not similar. Not close enough to look the same. The same.
 
-That is how the four languages are kept in step. Nearly every sentence in this
+That is how the four languages are kept the same. Nearly every sentence in this
 book is written in R, in Python, in Julia and in JavaScript. Each one that draws
-is turned into its text, and the four texts are compared byte by byte. One wrong
-byte counts as a disagreement and has to be explained.
+is turned into its text, and the four texts are compared one byte at a time. One
+wrong byte counts as a disagreement and has to be explained.
 
-The reason for such a strict test is that a loose one would miss things. Nobody
-looks at four pictures and decides whether they match. A person cannot see a bar
-that is half a pixel too wide, or a color one step away from the right one.
-This check sees both, and it compares the four texts the same way every time.
+A test that allowed small differences would accept pictures that are not the
+same. Nobody looks at four pictures and decides whether they match. A person
+cannot see a bar that is half a pixel too wide, or a color that is slightly
+wrong. Comparing the text finds both differences, and it works the same way
+every time.
 
 ## `save_gif()`
 
-A plot that binds `play()` moves in a browser, because the SVG carries its own
-timing. A message, a slide in a talk and a post on a social site cannot play
-that timing. [`save_gif()`](play.qmd#taking-the-sequence-with-you) writes the
-same sequence as a file that they do play:
+A plot that binds `play()` is a sequence of pictures rather than one. It moves
+in a browser, because the SVG carries its own timing. A message, a slide in a
+talk and a post on a social site cannot play that timing.
+[`save_gif()`](play.qmd#taking-the-sequence-with-you) writes the same sequence
+as a file that those places do play:
 
 ```{r}
 #| echo: false
@@ -171,8 +181,11 @@ save_gif(data(gm_all) + bar * mean + x(continent) + y(life) + polar() +
 cat(basename(ring), round(file.size(ring) / 1024), "KB\n")
 ```
 
-Nothing has to be installed. `scale` multiplies the canvas, which is 800 by 600
-pixels unless the plot's theme says otherwise.
+The output names the file that was written and its size. Nothing has to be
+installed to write it.
+
+`scale` multiplies the canvas. A plot is 800 by 600 pixels unless its theme says
+otherwise, so `scale = 2` doubles both numbers.
 
 Three of the four languages take `scale` as a named argument. JavaScript has no
 named arguments, so it takes the same setting in the options object it uses
@@ -186,13 +199,14 @@ everywhere else:
 | JavaScript | `save_gif(p, "ring.gif", { scale: 2 })` |
 
 A plot with no `play()` is refused rather than written as a file of one frame.
-The [Play](play.qmd) chapter has that refusal, and the reason there is no video
-version.
+The [Play](play.qmd) chapter shows that refusal. It also explains why gog writes
+no video.
 
 ## `gog_table()`
 
-Every shared table this book plots is available to you by name, so you can run
-any example here without writing a data reader first:
+`render_svg()` and `save_gif()` act on a finished plot. This one comes before
+the plot. Every shared table this book plots is available to you by name, so you
+can run any example here without downloading a file first:
 
 ```r
 gapminder_2007 <- gog_table("gapminder_2007")
@@ -200,11 +214,11 @@ data(gapminder_2007) + point + x(gdp) + y(life)
 ```
 
 That block does not run on this page, and the reason is worth one line. The call
-reads the table over the network. A page that fetched on every build would leave
-the book unable to render without a working connection.
+reads the table over the network. If the book did that on every build, it could
+not render without a connection.
+
+`gog_table()` exists for reading this book rather than for your own work. When
+the data is yours, bind it with `data()` and skip `gog_table()` entirely.
 
 [The book's data](book-data.qmd) is the chapter for this function. It lists
 every table in the book and shows the call in each of the four languages.
-
-`gog_table()` exists for reading this book rather than for your own work. When
-the data is yours, bind it with `data()` and skip this entirely.

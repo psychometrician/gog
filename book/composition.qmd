@@ -7,18 +7,19 @@ source("R/setup.R")
 
 How do you put two different plots on one page? Faceting splits one plot into
 panels. Composition does the opposite: it takes plots that were never one plot
-and arranges them on a page. Wilkinson keeps the two apart, noting that "some
-tabled graphics are really two or more graphics glued together". gog keeps them
-apart in the operators you have already learned. `|` and `/` place things side
-by side and one above the other, whatever those things are:
+and arranges them on a page. Wilkinson separates the two, noting that "some
+tabled graphics are really two or more graphics glued together". gog
+separates them too, with the operators you have already learned. `|` places two
+things side by side, and `/` places one above the other, whether those things
+are panels or whole plots:
 
 * `plot | facet(continent)`: one plot, split by a column, panels side by side
 * `plot_a | plot_b`: two plots, arranged side by side
 * `plot_a / plot_b`: two plots, one above the other
 
-A facet splits one plot by a column of its data. A page arranges finished
-plots, and says nothing about any plot's data. Which one you get is decided by
-what you write on the right of the operator, and by nothing else.
+A facet splits one plot by a column of its data. A **page** arranges finished
+plots, and says nothing about any plot's data. What you write on the right
+of the operator decides which one you get, and nothing else does.
 
 ## Two plots, one page
 
@@ -38,12 +39,15 @@ peek(gapminder_2007)
 *"Given gapminder 2007: points, x is gdp, y is life, beside bars derived by
 count, x is continent."*
 
-Two entirely different measurements: a country's income against its life
-expectancy, and how many countries each continent holds. They share nothing,
-not a scale, not an axis, not a legend, because there is nothing to share. The
-page divides evenly between them.
+The two plots measure entirely different things: a country's income against its
+life expectancy, and how many countries each continent holds. They share
+nothing, not a scale, not an axis, not a legend, because there is nothing to
+share. The page divides evenly between them, so each plot keeps half the width.
+That is why the bar plot turns its continent names with
+`theme(tick_angle = 45)`.
 
-`/` places the same two one above the other:
+`/` places the same two plots one above the other. Each one now has the full
+width of the page, so the continent names fit without turning:
 
 ```{r}
 (data(gapminder_2007) + point + x(gdp) + y(life)) /
@@ -54,17 +58,22 @@ page divides evenly between them.
 count, x is continent."*
 
 Both operators take pages as well as plots, so a page can hold another page. `(a
-| b) / c` is a row of two plots above a third. In R, Python and Julia, `/` is
-applied before `|`, so `a | b / c` reads as `a | (b / c)`. Add parentheses when
-the reading matters. JavaScript spells the operators as words, so there is no
-order to remember. Its chapter shows the spelling.
+| b) / c` is a row of two plots above a third, and the marginal plot later in
+this chapter is built that way.
+
+In R, Python and Julia, `/` is applied before `|`, so `a | b / c` reads as `a |
+(b / c)`. Add parentheses whenever the order changes the picture. JavaScript
+spells the operators as words, so there is no order to remember. The
+[JavaScript](bindings/javascript.qmd) chapter shows those words.
 
 ## A shared column is a shared axis
 
-Two composed plots are unrelated until they name the same column on the axis the
-arrangement lines up: `x` for plots one above the other, and `y` for plots side
-by side. When they do, that is not two axes that happen to look alike; it is one
-axis, and gog treats it as one:
+The two plots in that figure share no column. One shared column changes what
+the page draws. Two composed plots stay unrelated until both name the same
+column on the same axis. The arrangement decides which axis: `x` when one plot
+is above the other, and `y` when the two sit side by side. When both
+name it, that is not two axes that happen to look alike; it is one axis, and gog
+treats it as one:
 
 > The same column on the aligned axis of two composed plots is one axis: one
 > scale, one panel extent, drawn once.
@@ -81,14 +90,14 @@ first asks for 150 pixels of the page's height:
 is life."*
 
 Look at what the rule did. The histogram's panel is exactly as wide as the
-scatter's, so a bar stands over the points it counts. Both plots measure `gdp`
-over the same range, so equal distances across the two panels stand for equal
-amounts of `gdp`. And the `gdp` axis is written once, along the bottom, because
-there is one axis: the same decision faceting makes when it puts tick labels
-only under the bottom row of panels.
+scatter's, so each bar is drawn directly above the points it counts. Both plots
+measure `gdp` over the same range, so equal distances across the two panels
+stand for equal amounts of `gdp`. And the `gdp` axis is written once, along the
+bottom, because there is only one axis to write. Faceting makes the same
+decision when it puts tick labels only under the bottom row of panels.
 
-That is why the histogram touches the scatter instead of standing a tick
-label's height above it. A plot that draws no axis reserves no margin for one.
+A plot that draws no axis reserves no margin for one. That is why the histogram
+sits close to the scatter, with no strip of tick labels between the two panels.
 
 ### One axis, but not one legend
 
@@ -109,16 +118,17 @@ Look at what that figure draws once, and what it draws twice. Both plots read
 Both color by `continent` as well, and there you get *two* legends, saying
 exactly the same thing.
 
-The asymmetry is deliberate. Axes merge because there is an exact test: the same
-column on the same axis means one scale is provably right for both plots. A
-legend has no such test. These two agree, but two composed plots are two plots,
-and nothing in the grammar makes them agree. The next pair may split by
-different columns, or map one column onto two scales. A single legend over that
-is wrong for one of them. Nothing in the picture shows the error, because it
-still looks like a legend.
+Axes merge and legends do not, and that difference is deliberate. Axes merge
+because there is an exact test: the same column on the same axis means one scale
+must be right for both plots. A legend has no such test. These two plots do
+agree, because both split by `continent`. But nothing in the grammar makes any
+two composed plots agree. The next pair may split by different columns, or map
+one column onto two scales. One legend over those two would be wrong for one of
+them. Nothing in the picture shows the error, because it still looks like a
+legend.
 
-gog merges no legend, because it cannot prove that one legend is right for both
-plots. Two identical legends side by side show two plots that agree.
+So gog merges no legend. Two identical legends side by side tell you that the
+two plots split by the same column.
 
 When you want one legend over several panels, use [faceting](faceting.qmd)
 instead. A facet is *one* plot split by a column, so every panel is colored by
@@ -127,7 +137,8 @@ is the choice between two plots and one.
 
 ## The marginal plot
 
-The histogram above the scatter is a **marginal**: one column's distribution,
+The histogram sharing the scatter's `gdp` axis is a **marginal**: one column's
+distribution,
 drawn along the edge of the plot that uses it. Put a second marginal on the
 right and the picture is the marginal plot, which most tools offer as a named
 chart type:
@@ -141,17 +152,18 @@ chart type:
 *"Given gapminder 2007: bars derived by bin, x is gdp, above points, x is gdp, y
 is life, beside bars derived by bin, y is life."*
 
-Three ordinary plots and two operators. The top histogram shares `gdp` with the
-scatter, so it is drawn exactly as wide as the scatter's panel. The right-hand
-one shares `life`, so its panel is exactly as tall, and the `life` axis is drawn
-once on the left. The empty top-right corner has no atom of its own. It is the
-room left over once both shared axes have taken their width and height.
+That figure is three ordinary plots and two operators. The top histogram shares
+`gdp` with the scatter, so its panel is drawn exactly as wide as the scatter's.
+The right-hand one shares `life`, so its panel is exactly as tall as the
+scatter's, and the `life` axis is drawn once, on the left. The empty top-right
+corner has no atom of its own. Both marginals stop where the scatter's panel
+stops, and the corner is the room left over.
 
 The marginals follow no special rule. `bar * bin + y(life)` is the histogram you
-already know, with its bars running left to right, because that is what binding
-the measure to `y` means. And the shared column need not be continuous: two
-plots reading the same *category* on x share its slots, so a box plot's summary
-stands over the points it summarizes, one category at a time:
+already know. Its bars run left to right, because `y` now carries the bins and
+the count goes on `x`. The shared column need not be continuous either. Two
+plots reading the same *category* on x share its slots, so each category keeps
+the same place in both:
 
 ```{r}
 (data(gapminder_2007) + box + x(continent) + y(life) + theme(height = 150)) /
@@ -160,6 +172,9 @@ stands over the points it summarizes, one category at a time:
 
 *"Given gapminder 2007: boxes, x is continent, y is life, above points, x is
 continent, y is gdp, color by continent."*
+
+The five continents take the same slots in both panels, so each box is drawn
+directly above the countries it summarizes.
 
 ## A clustered panel decides the order
 
@@ -181,25 +196,27 @@ with a tree on two of its sides, each tree deciding one axis.
 ## How thin is the marginal histogram? `theme(width =, height =)`
 
 A plot states how much room it wants in pixels, and the plots that ask for
-nothing split what is left. A page that says nothing is 800 by 600, which is
-what a plot drawn alone takes. That is the whole of the sizing above: the
-marginal histogram, for example, asks for 130 pixels of height, the scatter
+nothing split what is left. A page that states no size is 800 by 600 pixels,
+which is what a plot drawn alone takes. That is the whole of the sizing in the
+marginal plot: the top histogram asks for 130 pixels of height, and the scatter
 asks for nothing and takes the rest.
 
-The same two words also size a plot drawn on its own, where the room being
+The same two arguments also size a plot drawn on its own, where the room being
 divided is the whole image:
 
 ```{r}
 data(gapminder_2007) + point + x(gdp) + y(life) + theme(width = 420, height = 320)
 ```
 
-One meaning in two places, which is Compositional Invariance: the sentence that
-says a plot is 130 pixels tall says it whether or not anything is composed with
-it. Do not confuse it with `theme(ratio = )`, which shapes the *panel* inside
-whatever room the plot was given and never resizes the image.
+That is Compositional Invariance, the sixth of the
+[nine laws](design-laws.qmd): one meaning in two places. A sentence that says a
+plot is 130 pixels tall says the same thing whether or not you compose it with
+another plot. Do not confuse `theme(width =, height =)` with `theme(ratio = )`.
+The second one shapes the *panel* inside the room the plot was given, and it
+never resizes the image.
 
 Plots that ask for more height than the page has are refused, and the message
-shows the arithmetic:
+gives both numbers:
 
 ```{r}
 #| error: true
@@ -209,31 +226,32 @@ shows the arithmetic:
 
 ## How big is the page itself?
 
-Two plots set side by side divide the page's width, and each keeps the whole
-of its height. So a height written into one of them changes nothing. Each plot
-sits in a cell of the page, and a cell in a side-by-side page is already as
-tall as the page. The height belongs to the page, so the page is
-where it is written:
+That refusal compared both plots with the page's own height, so a page has a
+size of its own. Two plots set side by side divide the page's width, and each
+one keeps the full height of the page. Each plot sits in a cell, and a cell in a
+side-by-side page is already as tall as the page. So a height written into one
+of those plots changes nothing. The height belongs to the page, so write it on
+the page:
 
 ```{r}
 ((data(gapminder_2007) + point + x(gdp) + y(life)) |
    (data(gapminder_2007) + bar * count + x(continent))) + theme(height = 260)
 ```
 
-The same two words, now written on the page instead of the plot. A plot states
-how much room it wants, and so does a page. Composed, the first is a cell of the
-second.
+Here the same two arguments are written on the page instead of on a plot. A page
+states how much room it wants, exactly as a plot does. When you compose them,
+the plot becomes one cell of the page.
 
 This matters most where a mark cannot be stretched to fill its panel. A
 [cube](space.qmd) is drawn with one scale in both screen directions, so its
-shape is never stretched. A tall, narrow cell therefore leaves it small, with
-empty bands above and below. The figure is the wrong shape, and the page is
-where you fix it.
+shape is never stretched. A tall, narrow cell therefore draws the cube small,
+with empty bands above it and below it. The figure is then the wrong shape, and
+you correct it by sizing the page.
 
 Size is the only thing a page can say. Every other property `theme()` sets
 describes a panel: its gridlines, its frame, its background, the angle its tick
 labels are read at. A page has no panel, so each of those properties is refused,
-and the refusal names the plot it belongs to:
+and the refusal says to write it into the plot it describes:
 
 ```{r}
 #| error: true
@@ -244,9 +262,10 @@ and the refusal names the plot it belongs to:
 ## What a page is not
 
 A title over two plots seems to belong to the page rather than to either plot,
-so you may write it there. A page is plots arranged, so anything belonging to
-*one* plot is written into that plot before it is composed. Apart from the size
-above, an atom added to a page refuses and says so:
+so you might try writing it there. A page is plots arranged, so anything
+belonging to *one* plot is written into that plot before it is composed. Apart
+from `width` and `height`, any atom added to a page is refused, and the message
+names where it belongs:
 
 ```{r}
 #| error: true
@@ -264,36 +283,37 @@ page is not one plot:
 ```
 
 Facet first, then compose: `(plot | facet(g)) | other_plot` is a faceted plot
-beside another plot, and it is perfectly legal.
+beside another plot, and it is legal.
 
 ## Where these operators come from
 
 Neither reading of `|` is this grammar's invention, and the two were borrowed
 from different places.
 
-The **facet** reading is the older. Trellis display wrote a conditioned plot as
-`y ~ x | g` [@becker1996trellis], and lattice writes it that way still; the bar
-means "given", which is the bar written in conditional probability. That is
-exactly what `plot | facet(continent)` says.
+The **facet** reading is the older of the two. Trellis display wrote a
+conditioned plot as `y ~ x | g` [@becker1996trellis], and lattice writes it that
+way still. There the bar means "given", the same meaning it has in conditional
+probability. That is exactly what `plot | facet(continent)` says.
 
 The **composition** reading comes from patchwork [@pedersen2019patchwork]. That
 package writes `p1 | p2` for side by side and `p1 / p2` for one above the other.
-gog spells composition the same way on purpose: a reader who knows that package
-already knows this chapter, and a third spelling of a settled idea would help
-nobody.
+gog spells composition the same way on purpose: a reader who already uses that
+package has little new to learn here, and a third spelling of a settled idea
+would only add work.
 
-Composing pictures with operators is older than either. Henderson's *Functional
-Geometry* [@henderson1982] describes an algebra of pictures, and its two
-combining operations are `beside` and `above`. *Structure and Interpretation of
-Computer Programs* (SICP) teaches the same picture language, and Haskell's
-diagrams library spells the two operations `|||` and `===`. The JavaScript
-binding has no operators to overload, so it names its two functions `beside()`
-and `below()` after that older algebra.
+Composing pictures with operators is older than both of them. Henderson's
+*Functional Geometry* [@henderson1982] describes an algebra of pictures, and its
+two combining operations are `beside` and `above`. *Structure and
+Interpretation of Computer Programs* (SICP) teaches the same picture language,
+and Haskell's diagrams library spells the two operations `|||` and `===`. The
+JavaScript binding has no operators to overload, so it spells the two
+operations as words: `beside()`, and `below()` for what Henderson called
+`above`.
 
 One divergence is worth naming, since Wilkinson settles most questions in this
 project. His graph algebra also has a `/`, and it means **nest** (`a/b`, "a
-within b"), not "below". gog's facet operators take his *crossing* and do not
-use his nesting, so `/` here can mean the page.
+within b"), not "below". gog's facet operators use his *crossing* and not his
+nesting, so `/` is free to mean the page here.
 
 ## Layering, faceting, or composition?
 
@@ -301,10 +321,10 @@ The three answer different questions, so your data decides which one you want:
 
 * **Layering** when the marks are *different tables on the same measurement*.
   One coordinate space, one pair of axes, and the second table annotates the
-  first: a threshold, a band, a callout, a forecast. [Data](data.qmd) explains
+  first: a threshold, a band, a label, a forecast. [Data](data.qmd) explains
   multi-table plots.
 * **Faceting** when the panels are *the same measurement* on different subsets.
-  One scale, one legend, and the comparison between panels is what you gain.
+  One scale, one legend, and you can compare the panels directly.
 * **Composition** when the plots are *different measurements* that belong on one
   page. Each keeps its own space, and the only thing they may share is a column.
 
@@ -317,18 +337,19 @@ instead of layering one onto the other.
 
 A marginal plot is composition because the histogram and the scatter measure
 different things: one counts countries, the other puts each country at its own
-position. They share `gdp`, and that shared column is exactly what the rule
-above matches.
+position. They share `gdp`, and that one shared column is what the shared-axis
+rule turns into a single axis.
 
 ## In short
 
-`|` and `/` mean faceting when a column cuts the panels, and composition when
-their operands are whole plots. A shared column becomes a shared axis, and plots
-that share nothing keep their own scales. The page is arranged rather than
-recomputed.
+`|` and `/` mean faceting when a column splits one plot into panels, and
+composition when both sides are whole plots. A shared column becomes a shared
+axis, and plots that share nothing keep their own scales. A page arranges the
+plots it is given, and computes nothing of its own.
 
 ## What comes next
 
 Composition arranges finished plots, and each one still draws the rows it was
-given. [Flow](flow.qmd) computes a picture instead: a magnitude carried through
-its stages, with the stages worked out from the table.
+given. [Flow](flow.qmd) computes a picture instead. It carries one amount
+through a series of stages, and it reads those stages from the table's own
+columns.

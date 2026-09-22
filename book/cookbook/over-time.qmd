@@ -5,14 +5,14 @@
 source("../R/setup.R")
 ```
 
-How did it change over time? Time is not a chart type in this grammar; it is a
-column, and you choose which channel carries it. On `x` it makes the familiar
-time series, and every recipe below puts it there.
+How did a measurement change over time? Time is not a chart type in this
+grammar. It is a column, and you choose which channel carries it. Time on `x`
+gives the familiar time series, and every recipe below puts it there.
 
 ## How did it change?
 
 The `actuals` table holds one sales figure per year. The question is whether
-sales rose or fell, and a `line` with `year` on `x` answers it:
+sales rose or fell. A `line` with `year` on `x` answers it:
 
 ```{r}
 #| echo: false
@@ -23,19 +23,21 @@ peek(actuals)
 data(actuals) + line + x(year) + y(sales)
 ```
 
-*"Given the actuals: a line, x is year, y is sales."* A `line` connects
-the rows in x order; with years on x, that order is time.
+*"Given the actuals: a line, x is year, y is sales."* A `line` connects the
+rows in x order. With years on `x`, the stroke runs from the earliest year to
+the latest.
 
-**One atom away.** If the amount matters more than the rise and fall, swap
-`line` for [`area`](../marks/area.qmd): it fills to zero, so the filled area is
-the amount.
+**One atom away.** If the quantity matters more than the rise and fall, swap
+`line` for [`area`](../marks/area.qmd). The fill is the quantity, so it starts
+from zero. [Two variables](two-variables.qmd) draws that plot on this table.
 
 ## How did several things change?
 
-The `gapminder_asia` table holds five countries across the same years. One
-`line` over all of them would join the five into a single stroke. A categorical
-`color` splits the rows into one line per category and colors them at the same
-time:
+The recipe above draws one line, because `actuals` holds one row per year. The
+`gapminder_asia` table holds five countries, and each has a row for every year.
+One `line` reads every row, so all five countries would join into a single
+stroke. A categorical `color` does two things, and you write it once. It first
+*splits* the rows into one line per category, then colors them:
 
 ```{r}
 #| echo: false
@@ -48,15 +50,15 @@ data(gapminder_asia) + line + x(year) + y(life) + color(country)
 
 *"Given gapminder Asia: lines, x is year, y is life, color by country."*
 
-**One atom away.** Too many categories for a legend to stay readable?
-`group` splits without coloring; see [Many groups](groups.qmd).
+**One atom away.** When too many categories make the legend unreadable, `group`
+splits the rows without coloring them; see [Many groups](groups.qmd).
 
 ## What about a date column?
 
-The `six_weeks` table records orders by day, and its `day` column holds
-calendar dates. The `year` above is a plain number. A column of calendar dates
-*is* temporal, so you get a calendar axis without asking for one. Ticks land on
-calendar boundaries, and weekly steps land on Mondays:
+The recipes above put a plain number on `x`. The `six_weeks` table holds one
+order count per day, and its `day` column holds calendar dates instead. A
+column of dates *is* temporal, so you get a calendar axis without asking for
+one. Ticks land on calendar boundaries, and weekly steps land on Mondays:
 
 ```{r}
 #| echo: false
@@ -69,16 +71,17 @@ data(six_weeks) + line + x(day) + y(orders)
 
 *"Given the six weeks table: a line, x is day, y is orders."*
 
-You never have to write `scale = "time"`: the column's type already says it.
-[Scales](../scales.qmd) owns the calendar's rules: three-month steps that read
-as quarters, and a midnight tick labeled with the day's name.
+You never have to write `scale = "time"`. The column holds dates, and gog reads
+the calendar from its type. [Scales](../scales.qmd) owns the calendar's rules.
+Over a longer span a three-month step marks each quarter. Over a span of hours
+the tick at midnight is labeled with its date, not `00:00`.
 
 ## What happened, and what comes next?
 
-The `actuals` table ends in 2023, and the `forecast` table holds the three
-years after it. The two belong on one plot, with the actuals and the forecast
-drawn as different marks. The first `data()` is the plot's table; a later one
-applies to the mark written after it.
+The sales line in the first recipe stops at 2023, and the `forecast` table
+holds the three years after it. Both go on one plot, and a different mark for
+each keeps them apart. The first `data()` names the table for the whole plot. A
+later `data()` names the table for the mark written after it.
 
 ```{r}
 #| echo: false
@@ -92,15 +95,16 @@ data(actuals) + x(year) + y(sales) +
 ```
 
 *"Given the actuals: x is year, y is sales, a line; then given the forecast:
-points."* The line ends at 2023, the dots start at 2024, and each layer reads
-its own rows. [Data](../data.qmd) owns multi-table plots.
+points."* The line stops one year before the points start. Each layer reads
+only the table named for it. [Data](../data.qmd) owns multi-table plots.
 
 ## What this section refuses
 
-You may want a scatter of wealth against life expectancy for each year, to
-compare the years side by side. One panel per year is faceting, but a facet
-variable *names* its panels, and `year` here is a number. The refusal says what
-to do with a year you mean as a label:
+Every recipe so far carried time on `x`. Suppose instead you want one scatter
+of wealth against life expectancy per year, so the years sit side by side. One
+panel per year is faceting. A facet variable *names* its panels, and `year`
+here is a number rather than a name. The refusal names the fix, and [Many
+groups](groups.qmd) draws it:
 
 ```{r}
 #| error: true

@@ -7,11 +7,11 @@ source("R/setup.R")
 
 Every mark down the side, every channel across the top: the whole of what the
 grammar lets you combine, on one page. This page holds four crossings. The first
-is what a mark lets you *map* (the channels); the second is what a mark lets you
-*derive* (the transforms); the third is which two transforms can *stand
-together* on one mark; the fourth is where a mark can be *drawn* (the coordinate
-spaces). Not only what a mark takes, but what it does not, and the
-surprising-but-legal pairings you would never think to try.
+is what a mark lets you *map*, which is the channels. The second is what a mark
+lets you *derive*, which is the transforms. The third is which two transforms
+can *stand together* on one mark. The fourth is where a mark can be *drawn*,
+which is the coordinate spaces. Each one shows what a mark takes, what it does
+not, and the surprising pairings that are legal anyway.
 
 These grids are the orthogonality law made visible. [Law 1](design-laws.qmd)
 says every compatible atom combines with every other; a table is that promise
@@ -19,13 +19,13 @@ enumerated, one cell at a time. It is the direct analog of the letter chart a
 Hangeul (한글) learner reads, with the consonants down one side and the vowels
 across the top. A syllable block is what those letters assemble into. This book
 has used that pairing from the start: a mark is a consonant and a position is a
-vowel, and neither draws alone. The whole syllable space appears in the
-crossing.
+vowel, and neither draws alone. Every syllable the grammar can form appears
+somewhere in the crossing.
 
 Legal is not the same as useful. [Law 8](design-laws.qmd), Pronounceable ≠
 Usable, guarantees only that the engine draws what a cell allows. Whether it
 should be drawn is your judgment. A cell the engine refuses teaches as much as
-one it draws. It marks a real limit of the geometry, not an oversight.
+one it draws. It records a real limit of the geometry, not an oversight.
 
 Every grid here is generated live from the engine's own rule table, each time
 the book builds. That is the same table the engine consults to accept or refuse
@@ -35,8 +35,8 @@ and these pages widen by themselves.
 
 ## Marks and channels
 
-Down the side, the marks; across the top, the channels. A cell says whether you
-may map a column to that channel on that mark.
+Take the channels first. Each cell says whether you may map a column to that
+channel on that mark.
 
 ```{r}
 #| echo: false
@@ -83,59 +83,62 @@ Reading the five glyphs:
 
 - **● must**: a required position. The mark does not render without it. A
   `point` needs an `x` and a `y`; a `text` needs its `label`.
-- **✅ maps**: bind a column here and the engine draws it today. The ordinary
-  case, a channel doing its job.
+- **✅ maps**: bind a column here and the engine draws it today. This is the
+  ordinary case, a channel doing its job.
 - **○ set**: the mark has this feature, but not row by row. A `line` is one
   stroke, so its `size` and `opacity` are a single value for the whole layer,
   fixed with [`style()`](style.qmd) rather than mapped. Those constants have
-  their own [Mark × Setting grid](style.qmd), and seven of those never appear
-  on this grid at all: `border_color`, `border_size`, `caps`, `center`,
-  `nudge`, `arrow` and `reach` are settings and nothing else. [Two questions,
+  their own [Mark × Setting grid](style.qmd). Seven of them never appear on this
+  grid at all: `border_color`, `border_size`, `caps`, `center`, `nudge`,
+  `arrow` and `reach` are settings and nothing else. [Two questions,
   not one](style.qmd#two-questions-not-one) puts both halves in one table.
-- **◌ not drawn**: legal grammar the engine refuses today, with a direction
-  rather than a wrong picture. One glyph, three verdicts, and the refusal
-  message tells you which you have. **Owed**: a mapped `size` or `opacity` on
-  `text`, `z` on `text`, and `pattern` on `edge`. **Blocked** on infrastructure:
-  `z` on `rule` and on `zone`, whose 3-D forms are a plane and a slab with no
-  footprint to sort by, so they need an engine that can tell what hides what.
-  **Decided**: `z` on `line`, `step`, `area` and `ribbon`, which read a domain
-  left to right where a cube has none, and which name `path` as the direction.
-  The Mark × Space grid below is the same three readings on its own blanks.
-- **— none**: the mark has no such feature. A `bar` has no glyph to `shape`, a
-  `point` nothing to `group` into a line. Binding it means nothing, and the
+- **◌ not drawn**: legal grammar the engine refuses today. It gives you a
+  direction instead of a wrong picture. One glyph, three verdicts, and the
+  refusal message tells you which you have. **Owed**: a mapped `size` or
+  `opacity` on `text`, `z` on `text`, and `pattern` on `edge`. **Blocked** on
+  infrastructure: `z` on `rule` and on `zone`. Their 3-D forms are a plane and a
+  slab with no footprint to sort by, so they need an engine that can tell what
+  hides what. **Decided**: `z` on `line`, `step`, `area` and `ribbon`. These
+  marks read a domain from left to right, and a cube has no left to right, so
+  the refusal points to `path` instead. The Mark × Space grid below is the same
+  three readings on its own blanks.
+- **— none**: the mark has no such feature. A `bar` has no glyph to `shape`, and
+  a `point` has no line to `group` into. Binding it means nothing, and the
   engine says so.
 
 Five things the grid shows that prose has to say one at a time:
 
-- **`group` splits a `line`, not a `bar`.** Run down the `group` column: `—` on
-  the marks that draw one shape per row (`point`, `bar`, `text`, `rule`,
-  `edge`), ✅ on every mark made of a connected run. A bar is split into groups
-  by `color`, then piled or set side by side with `stack` / `dodge`; a bare
-  `group` has no line to divide.
+- **`group` splits a `line`, not a `bar`.** Read down the `group` column: `—` on
+  the five marks that draw one shape per row (`point`, `bar`, `text`, `rule`,
+  `edge`), ✅ on every mark that builds one shape out of many rows. A bar is
+  split into groups by `color`, then piled or set side by side with `stack` /
+  `dodge`. A bare `group` has no line to divide.
 - **`label` belongs to `text` alone.** Its column is ● on `text` and `—`
   everywhere else. A labeled scatter is the superposition `point + text`, never
   a `label` hung on the `point`.
-- **Categories on `x` and on `y`.** A category on `x` reaches every mark but
-  `surface`, and on `y` it reaches far fewer. Read the `x` and `y` columns
-  against each other; which types each accepts is in [Channels](channels.qmd),
-  and the split divides the marks with positions in two. The glyph marks
-  (`point`, `text`) and the marks whose slot width does the measuring (`bar`,
-  `interval`, `box`) take either type on *both* positions, which is why a strip
-  plot, a horizontal bar and a categorical box all follow from one rule. So do
-  `path`, which sorts nothing and therefore has no domain, `rule`, which
-  measures nothing on either axis, and `zone`. A `zone` measures nothing by
-  length, which is what makes a heatmap cell a zone rather than a second kind of
-  bar. The path and region marks (`line`, `step`, `area`, `ribbon`) take either
-  type on `x` alone: their `x` is the domain the path is read along and their
-  `y` is the quantity it traces, and those are not the same kind of axis. A
-  glyph's two axes are. `surface` stands outside the split: both of its
-  positions measure, because a sheet is a height read at a place.
+- **Categories on `x` and on `y`.** A category on `x` reaches every mark that
+  has positions except `surface`, and on `y` it reaches fewer of them. Read the
+  `x` and `y` columns against each other. Which types each accepts is in
+  [Channels](channels.qmd), and the split divides the marks with positions in
+  two. The glyph marks (`point`, `text`) and the marks whose slot width does the
+  measuring (`bar`, `interval`, `box`) take either type on *both* positions.
+  That one rule is where a strip plot, a horizontal bar and a categorical box
+  all come from. Three more marks do the same. A `path` sorts nothing, so it has
+  no domain. A `rule` measures nothing on either axis. A `zone` measures nothing
+  by length, and that is what makes a heatmap cell a zone rather than a second
+  kind of bar. The path and region marks (`line`, `step`, `area`, `ribbon`) take
+  either type on `x` alone. Their `x` is the domain the path is read along, and
+  their `y` is the quantity it traces. Those are two different kinds of axis. A
+  glyph's two axes are the same kind, which is why a `point` and a `text` take
+  either type on both. `surface` stands outside the split, because both of its
+  positions measure. A sheet is a height, and the two positions say where that
+  height is read.
 - **Three rows have no ● at all.** `rule` and `zone` show ✅ on both positions
   and ● on neither, because each needs *one* of the two and no per-channel cell
   can say "either, but not both". `edge` is the third, and it takes no position
-  at all. Those obligations are stated once in the engine instead. Two ✅s and no
-  ● means the mark needs one position, and the panel supplies the other
-  ([Rule](marks/rule.qmd), [Zone](marks/zone.qmd)).
+  at all. Those obligations are stated once in the engine instead. Two ✅s on the
+  positions and no ● means the mark needs one of them, and the panel supplies
+  the other ([Rule](marks/rule.qmd), [Zone](marks/zone.qmd)).
 - **`zone` and `surface` take either type on `color`.** They are the two fills
   that do: every other region's fill takes a category, and these two take a
   number as well, reading the ramp.
@@ -150,11 +153,12 @@ transform's kind. There are three kinds, and each has its own grid below.
 Three glyphs read every cell:
 
 - **✅ combines**: the transform applies to this mark and renders.
-- **● required**: the transform's *kind* is the mark's minimum syllable. An
-  `interval` and a `ribbon` float between a low and a high, so they will not
-  draw until *one* transform of that kind supplies the pair. The `●` cells in a
-  row are a choice, not a list: pick one. A `zone` shows ● wherever a transform
-  is one of the ways it gets its sides.
+- **● required**: the mark will not draw until a transform of this kind is
+  present, so that kind is part of its minimum syllable. An `interval` and a
+  `ribbon` span a low value and a high one, so neither draws until *one*
+  transform of that kind supplies the pair. The `●` cells in a row are a choice,
+  not a list: pick one. A `zone` shows ● wherever a transform is one of the ways
+  it gets its sides.
 - **— none**: the mark has no use for this kind of transform, and the engine
   refuses it with a direction toward the transform its geometry does want.
 
@@ -181,12 +185,12 @@ tf_block <- function(cls) {
 
 ### Statistics: a value per group
 
-Most summarizing transforms reduce the data to one value at each x: a bin's
-count, a group's `mean`, a smoothed height. Any mark that draws a value at each
-x can draw that summary, so the whole block moves together. That is why a
-distribution has three spellings rather than one histogram with a shape option:
-`bar * bin` fills it, `line * bin` is the frequency polygon, `step * bin` the
-staircase.
+The first of the three kinds is also the largest. Most summarizing transforms
+reduce the data to one value at each x: a bin's count, a group's `mean`, a
+smoothed height. Any mark that draws a value at each x can draw that summary, so
+those marks are ✅ under every summary. That is why a distribution has three
+spellings rather than one histogram with a shape option: `bar * bin` fills it,
+`line * bin` is the frequency polygon, `step * bin` the staircase.
 
 ```{r}
 #| echo: false
@@ -195,10 +199,10 @@ tf_block("statistic")
 ```
 
 Five marks (`point`, `line`, `area`, `bar`, `step`) take the whole family of
-summaries. `interval`, `box` and `rule` take none, and each for a reason the
-next two grids give. A span mark needs a *pair*, not a single value. A `box`
-carries its own summary: the five numbers are injected by the mark rather than
-composed, so no statistic column applies to it. A `rule` handed a whole axis to
+summaries. `interval`, `box` and `rule` take none, and each has its own reason.
+A span mark needs a *pair*, not a single value. A `box` carries its own summary:
+the five numbers come from the mark itself rather than from a transform you
+compose, so no statistic column applies to it. A `rule` hands a whole axis to
 the panel, so there is no measure to compute.
 
 Four more transforms build a *shape* rather than a summary, and they fill most
@@ -209,14 +213,15 @@ network (`edge`, `point`, `text`), and `cluster` orders leaves by similarity
 
 ### Ranges and bands
 
-Four transforms produce a *pair* of values, a low boundary and a high one, per
-group. [`range`](transforms.qmd#range-a-lowhigh-pair),
+The second kind answers with two numbers instead of one. Four transforms produce
+a *pair* of values, a low boundary and a high one, per group.
+[`range`](transforms.qmd#range-a-lowhigh-pair),
 [`confidence`](transforms.qmd#confidence-the-interval-of-the-mean) and
-[`deviation`](transforms.qmd#deviation-the-spread-of-the-data) compute the pair from your
-data; [`bounds`](transforms.qmd#bounds-a-pre-computed-lowhigh-pair) reshapes a pair you
-computed already. Five marks draw such a pair:
-`interval` shows it as a whisker, `ribbon` fills it, `line` and `step` trace its
-two boundaries, and `zone` reads it as two sides.
+[`deviation`](transforms.qmd#deviation-the-spread-of-the-data) compute the pair
+from your data; [`bounds`](transforms.qmd#bounds-a-pre-computed-lowhigh-pair)
+reshapes a pair you computed already. Five marks draw such a pair: `interval`
+shows it as a whisker, `ribbon` fills it, `line` and `step` trace its two
+boundaries, and `zone` reads it as two sides.
 
 ```{r}
 #| echo: false
@@ -226,26 +231,27 @@ tf_block("pair")
 
 The `●` cells on `interval`, `ribbon` and `zone` are a requirement, not a
 permission. An `interval` and a `ribbon` have no baseline to start from, so
-neither renders until a pair transform gives it a low and a high: `interval *
-range` is the whole minimum syllable, a bare `interval` is refused. A `line` or
-a `step` already draws fine on its own, so the same transform is optional there,
-a second way to use the mark. Everywhere else the pair has nowhere to go: on a
-`point` or a `bar` it is refused toward the whisker, on an `area` toward the
-`ribbon` that is its filled twin.
+neither renders until a pair transform gives it a low and a high. `interval *
+range` is the whole minimum syllable, and a bare `interval` is refused. A `line`
+or a `step` already draws fine on its own, so the same transform is optional
+there, a second way to use the mark. Everywhere else there is nothing for the
+pair to draw. On a `point` or a `bar` it is refused toward the whisker, and on
+an `area` toward the `ribbon`, which is the `area` with two boundaries instead
+of a baseline.
 
 ### Collision modifiers: an offset, not a statistic
 
-When marks collide at one position, four offsets pull them apart, and which one
-a mark takes is decided by its geometry and by the *axis* the collision is on.
+When marks collide at one position, four offsets separate them, and which one a
+mark takes is decided by its geometry and by the *axis* the collision is on.
 `dodge` subdivides a *width*, so it serves the marks that have one (`bar`,
 `box`, `interval`). `stack` accumulates along the *measure* axis, so it serves
-the marks that can spend a span: `bar` and `area` fill it with length, and a
-`point` has no length to stretch, so it uses the span to count dots, which is
-the dot plot. `jitter` spreads a mark with *no* width along a *categorical*
-axis, which is `point` alone. `repel` divides on a different question: not what
-geometry a mark has, but what it is made of. A label is as wide as the word it
-draws, so two labels overlap where their points do not, and `text` is the only
-mark made of words.
+the marks that can spend a span. `bar` and `area` fill that span with length. A
+`point` has no length of its own, so it spends the span on counting dots
+instead, which is the dot plot. `jitter` spreads a mark with *no* width along a
+*categorical* axis, which is `point` alone. `repel` divides on a different
+question: not what geometry a mark has, but what it is made of. A label is as
+wide as the word it draws, so two labels overlap where their points do not, and
+`text` is the only mark made of words.
 
 ```{r}
 #| echo: false
@@ -254,16 +260,17 @@ tf_block("collision")
 ```
 
 Six marks take an offset, and two of them take two. `bar` has both a width and a
-measure axis, so it takes `dodge` and `stack`; `point` has neither, so it takes
-`stack` and `jitter`. `stack` answers its overlap along the measure axis (a pile
-of dots, which can be counted); `jitter` answers the same mark's overlap along a
-categorical one (a nudge, because a category has no magnitude to spend).
-Everywhere else the division is exclusive, which is why the engine can always
-name the right transform when you ask for the wrong one. Ask for `point * dodge`
-and it names `jitter`; ask for `area * dodge` and it names `stack`. A `box`
-shows the split cleanly: it takes no statistic (its own is built in) yet still
-takes `dodge`, because setting grouped boxes side by side is a question about
-position, orthogonal to the summary each box already carries.
+measure axis, so it takes `dodge` and `stack`. A `point` has no width, so
+`dodge` is out, and it takes `stack` and `jitter` instead. For a `point`,
+`stack` answers an overlap along the measure axis, which is a pile of dots you
+can count. `jitter` answers the same overlap along a categorical axis, which is
+a nudge, because a categorical axis carries no magnitude. Everywhere else the
+division is exclusive, which is why the engine can always name the right
+transform when you ask for the wrong one. Ask for `point * dodge` and it names
+`jitter`; ask for `area * dodge` and it names `stack`. A `box` shows the split
+at its clearest. It takes no statistic, because its own is built in, yet it
+still takes `dodge`. Setting grouped boxes side by side is a question about
+position, and that is orthogonal to the summary each box already carries.
 
 ## Transforms and transforms
 
@@ -283,23 +290,27 @@ fills at least one, except `repel`:
 | **position** | where do the marks sit? | `dodge`, `stack`, `jitter` |
 
 `repel` fills no job at all. It moves a label after every job has run, so it
-contradicts nothing and chains with all three offsets. That is the whole `repel`
-row in the grid below. `flow`, `layout` and `cluster` fill all four jobs at
-once. Each computes the whole picture, so only `repel` chains with one.
+contradicts nothing. Its row in the grid below is the only one that is ✅ from
+end to end, and that includes the other three offsets. `flow`, `layout` and
+`cluster` fill all four jobs at once. Each computes the whole picture, so
+`repel` is the only transform that can follow one.
 
 Two transforms compose when they do different jobs, and contradict when they do
-the same one. A cell holds one extent, one measure, one scale and one
-position. So a second transform doing a job the first already did leaves the
+the same one. Each of those cells holds one extent, one measure, one scale and
+one position. So a second transform doing a job the first already did leaves the
 engine no reading that keeps both, and it refuses rather than drawing one and
 discarding the other.
 
 One transform is the exception, and it is the exception that makes chaining
 useful. `bin` does two jobs: it cuts the axis, and it counts what lands in each
-band. The count is a by-product of the cut, so `bin` can give it up, and it
-gives it up to a transform you handed a *column*. That is why `bar * bin * mean`
-composes: `bin` supplies the cells and `mean` supplies their value. And it is
-why `bar * bin * count` does not, since `count` was never handed a column to
-reduce.
+band. The count is a by-product of the cut, so `bin` does not have to keep it.
+It hands the measure job to any transform you gave a *column*. The other extent
+transforms do two jobs as well, and none of them can do the same. A `density` or
+a `smooth` cell is a point on an estimated curve, which sits *between* the rows
+rather than holding any of them, so there is nothing inside it to reduce. That
+is why `bar * bin * mean` composes: `bin` supplies the cells and `mean` supplies
+their value. And it is why `bar * bin * count` does not, since `count` was never
+handed a column to reduce.
 
 ```{r}
 #| echo: false
@@ -318,16 +329,17 @@ cat(paste0("| | ", paste0("`", cols, "`", collapse = " | "), " |"),
     sep = "\n")
 ```
 
-The grid is symmetric, and that is the rule showing rather than being claimed.
-Whether two transforms contradict is a fact about their jobs. It has nothing to
-do with which one you typed first. So order is yours to choose: write them in
-the order they happen, and the sentence reads the way it runs.
+The grid is symmetric, and the reason is in the rule rather than in the drawing.
+Whether two transforms contradict is a fact about their jobs, and it has nothing
+to do with which one you typed first. So the order is yours to choose. Write the
+transforms in the order they run, and the sentence reads in that order too.
 
-Read the block of `—` in the middle. Eleven transforms measure, so no two of
-them combine, and that block is the whole reason `bar * count * mean` is
-refused, and `bar * mean * sum`, and `interval * range * confidence`. `bin` is
-the only extent transform with a `✅` where `smooth` and `density` have `—`. That
-is the exception above, in one cell.
+Read the block of `—` in the middle of the grid. Eleven transforms measure, so
+no two of them combine. That block is the whole reason `bar * count * mean` is
+refused, and `bar * mean * sum`, and `interval * range * confidence`. Now
+compare `bin`'s row with `smooth`'s and `density`'s. Those two chain with no
+measure transform at all, and `bin` chains with ten. That is the exception
+above, written out in the grid.
 
 Two collisions the grid cannot show, because both depend on something outside
 the pair. `stack(share = TRUE)` divides each pile by its own total, which is a
@@ -337,18 +349,19 @@ it does the *extent* job, so it contradicts `bin`. On every other mark it names
 the low and the high on the measure axis. The engine reads both cases correctly,
 and the grid above shows the reading that applies everywhere else.
 
-Chaining stops at four, and nobody chose the number. Four jobs, one transform
-each, so a fifth has to repeat a job on the same mark, and repeating one is the
-contradiction this whole section is about.
+Chaining stops at four, and nobody chose the number. There are four jobs and one
+transform fills each of them, so a fifth transform has to repeat a job on the
+same mark. Repeating one is the contradiction this whole section is about.
 
 ### The shapes a long chain can take
 
-Three and four transforms sound like a large space, and they are not. Once each
-job is filled at most once, and the marks are asked which transforms they take,
-every chain of three or four takes one of the shapes below, and there are not
-many. Two slots stand for a family rather than a transform: `<aggregation>` is
-any of `sum`, `mean`, `median`, `max`, `min`, `quantile`, and `<collision
-modifier>` is `dodge`, `stack` or `jitter`, whichever the mark takes.
+The rule above allows chains of three and four, so it is fair to ask how many
+there are. The answer is a short list. Once each job is filled at most once, and
+the marks are asked which transforms they take, every chain of three or four
+takes one of the shapes below. Two slots stand for a family rather than a
+transform: `<aggregation>` is any of `sum`, `mean`, `median`, `max`, `min`,
+`quantile`, and `<collision modifier>` is `dodge`, `stack` or `jitter`,
+whichever the mark takes.
 
 ```{r}
 #| echo: false
@@ -401,11 +414,11 @@ cat("| how many | the shape | the jobs it fills |",
 ```
 
 Read the four-transform row first, because it is the longest chain there is. It
-fills each job exactly once, and only one of its slots has any real choice in
-it. `bin` is the only extent transform that hands its measurement over.
-`proportion` is the only one that rescales. The family in the last slot is
-picked by the mark. So the aggregation is the only free decision, which is why
-four is reachable and rare.
+fills each job exactly once, and two of its four slots are decided before you
+choose anything. `bin` is the only extent transform that gives its measurement
+to another, and `proportion` is the only one that rescales. That leaves two
+choices: the aggregation, which is free among six, and the offset, which the
+mark narrows to one or two. Four is reachable, and this is why it is rare.
 
 The shapes say what the *transforms* allow. A mark can still refuse one of them
 for a reason about its own geometry, and the grids earlier in this chapter are
@@ -416,8 +429,8 @@ the chain is refused on `point` and drawn on `bar`.
 ## Marks and spaces
 
 The fourth crossing is not a channel of the mark at all. It is the coordinate
-space the whole plot sits in, and it asks a different question of every mark:
-once the plane is bent, or stood up into a cube, can this geometry still be
+space the whole plot sits in, and it asks a different question of every mark.
+Once the plane is bent, or turned into a cube, can this geometry still be
 drawn? A `polar()` bar is a wedge, a `polar()` line is a closed curve, and a `z`
 scatter is a projected cloud, all from the same sentences that draw them flat.
 
@@ -426,8 +439,8 @@ today, or it does not and says so:
 
 - **✅ drawn**: the mark renders in this space.
 - **— not drawn**: legal to write and refused with direction, never half-drawn.
-  As on the channel grid, one glyph covers owed, blocked and decided alike;
-  which one a blank is, is the subject of the paragraphs under the table.
+  As on the channel grid, one glyph stands for owed, blocked and decided alike.
+  The paragraphs under the table say which one each blank is.
 
 ```{r}
 #| echo: false
@@ -446,14 +459,16 @@ cat(header, divider, rows, sep = "\n")
 
 `flat` is full but for `surface` and `edge`, and `surface` is the one to read
 first: it does not draw in the plane at all. Every other mark draws there, and
-some also stand up in the cube, while a surface is a sheet through three
-positions and there is no such thing without the third, so its minimum syllable
-includes the cube. It is the only mark that draws in the cube and not in the
-plane ([Surface](marks/surface.qmd)). An `edge` is the other kind of blank: it
-takes no position at all, and the space that places its nodes is the last column
-of this grid.
+some also draw in the cube. A surface is a sheet through three positions, and
+there is no such thing without the third, so its minimum syllable includes the
+cube. It is the only mark that draws in the cube and not in the plane
+([Surface](marks/surface.qmd)). An `edge` is the other kind of blank, and it is
+blank in every column but the last. It takes no position at all, so the only
+space that can draw it is the one that places its nodes. Read the columns that
+follow with `edge` set aside.
 
-`space` holds six marks, and which six is a reading rather than a list. A
+`space` holds six marks, and the six follow from one reading rather than from a
+list. A
 `point` is a place, a `path` is an order, a `surface` is a sheet. `bar`,
 `interval` and `box` are the three marks that stand in a slot and measure along
 the other axis: a length, a span and a summary, which the grammar treats as one
@@ -461,32 +476,32 @@ family. Each means in a cube exactly what it meant on the page.
 
 The blanks in that column are not one kind of thing, and the refusal message
 says which each is. `line`, `step`, `area` and `ribbon` read a *domain* left to
-right, and a cube has no left to right, so they are **decided**, a ruling rather
-than work still owed, with `path` as the direction. `rule` and `zone` are
-**blocked**: their 3-D forms are a plane and a slab, neither of which has a
-footprint to sort by, so placing them among the data needs an engine that can
-tell what hides what ([Space](space.qmd)). `text` is **owed**: a label in the
-cube is not built yet, and the message says so rather than drawing one flat
-([Space](space.qmd)).
+right, and a cube has no left to right. So they are **decided**, a ruling rather
+than work still owed, and the refusal points to `path` instead. `rule` and
+`zone` are **blocked**, the same reading their `z` cells carry. A plane and a
+slab have no footprint to sort by, so placing them among the data needs an
+engine that can tell what hides what ([Space](space.qmd)). `text` is **owed**: a
+label in the cube is not built yet, and the message says so rather than drawing
+one flat ([Space](space.qmd)).
 
 `polar` matches `flat`: the same twelve marks draw, and the same two do not.
-Every mark that draws on the page draws in the circle, because every mark whose
-edges could be curved draws there, a band's boundaries being the same chords a
-`line` draws. The two blanks are `surface` and `edge`, and neither is a polar
-refusal: a sheet needs the cube, and an edge needs the space that places its
-nodes ([Polar](polar.qmd)).
+Every mark that draws on the page also draws in the circle. Bending the plane
+only curves a mark's edges, and every flat mark has edges that can curve. A
+band's boundaries are the same chords a `line` draws. The two blanks are
+`surface` and `edge`, and neither is a polar refusal: a sheet needs the cube,
+and an edge needs the space that places its nodes ([Polar](polar.qmd)).
 
 `nest` is a column of the opposite shape: two cells filled and the rest blank.
 Those blanks are not work waiting to be done. This space asks a different
 question from the other five. Everywhere else a mark bends because its geometry
-survives a transformation of the plane; a nesting is not a transformation of the
-plane at all, so what it can draw is whatever it can hand *a rectangle* to.
-`bar` can take one, because a bar is a measure and this space is the third thing
-a measure can become, after a length and an angle. `text` can too, and it is the
-only mark here that names a region rather than filling one: the rectangle is
-already computed, so a label goes to its center, which is what a published
-treemap has and what a legend cannot do once the split runs past a hundred
-regions ([Nest](nest.qmd)).
+survives a transformation of the plane. A nesting is not a transformation of the
+plane at all, so it can draw any mark that accepts *a rectangle*. A `bar`
+accepts one, because a bar is a measure. A measure has been a length on the page
+and an angle in the circle, and here it becomes the size of a rectangle. `text`
+can take one too, and it is the only mark here that names a region rather than
+filling one. The rectangle is already computed, so the label goes to its center.
+That is what a published treemap has, and what a legend cannot do once the split
+runs past a hundred regions ([Nest](nest.qmd)).
 
 The blanks share one reason, and it is not that the space is unfinished. They
 are the marks placed by a *position*. `point` needs somewhere to sit. `line`,
@@ -494,29 +509,31 @@ are the marks placed by a *position*. `point` needs somewhere to sit. `line`,
 touching regions here are not near each other in the data. `rule` and `zone`
 span an axis that is not there, and `box`, `interval` and `surface` measure
 along one. `edge` is placed by a layout that this space does not compute. `text`
-is not among them because it is not placed by a position here either; it is
-placed by the region, which is the same thing that places the bar.
+is missing from that list because no position places it here. The region places
+it, and the region is what places the bar too.
 
 `map`, the sixth column, fills five cells, and the shape of its column comes
 from one fact: longitude and latitude spend both positions on the place. The
 marks that draw are the ones that place something. A `point` is a place, a
-`path` is a route, a `text` is a name at a place, a `rule` at one position spans
-the other and becomes a meridian or a parallel, and a `zone` takes its sides
-from a boundary, which is the choropleth ([Map](map.qmd)). The blanks share one
-reason: they measure along an axis, and a map has no axis to spare. The quantity
+`path` is a route, and a `text` is a name at a place. A `rule` at one position
+spans the other, which makes it a meridian or a parallel. A `zone` takes its
+sides from a boundary, which is the choropleth ([Map](map.qmd)). The blanks
+share one reason: each of them needs an axis of its own, either to measure along
+or to read a domain along, and a map has neither to give. The quantity
 moves to `size` or `color` instead, which is what cartography does with a
 measure once both positions are gone.
 
-`globe`, the column before it, fills six cells: `map`'s five, and one the
-flattening cannot have. The sphere and its flattening answer one question: where
-does a place go. So the marks that place something stand on both, and only the
-reader's view changes. The far half of the earth is hidden behind the sphere, a
-route bends along a great circle, and a rule becomes the whole meridian or
-parallel it holds. The sixth cell is `bar`, because the sphere alone has a
-direction to spare: the radius, which runs straight out from the surface at
-every place, where a bar stands as a spike with `z` naming its measure
-([Globe](globe.qmd)). The blanks read a domain along an axis, and a sphere has
-none to read.
+`globe`, the column before it, fills six cells. Five of them are `map`'s five,
+and the sixth is one a flat map cannot have. The sphere and its flattening
+answer one question: where does a place go. So the marks that place something
+stand on both, and only the reader's view changes. The far half of the earth is
+hidden behind the sphere, a route bends along a great circle, and a rule becomes
+the whole meridian or parallel it holds. The sixth cell is `bar`, because the
+sphere alone has a direction to spare: the radius, which runs straight out from
+the surface at every place. A bar drawn along it is a spike, with `z` naming its
+measure ([Globe](globe.qmd)). The blanks are `map`'s, minus that `bar`, and they
+are blank for the same reason. A sphere has no axis of its own to give them
+either.
 
 `network` holds three cells, and one of its marks draws in no other space.
 `edge` draws nowhere else, because an edge is placed by neither position: the
@@ -524,16 +541,17 @@ space computes where every node sits and the edge follows the two it joins
 ([Network](network.qmd)). `point` and `text` join it there, as the nodes and
 their names.
 
-Three of the four crossings have a mark on every row, and reading one mark
-across them is worth doing. A path takes nearly every channel on Mark × Channel
+Three of the four crossings have a mark on every row, so one mark can be read
+across all three at once. A path takes nearly every channel on Mark × Channel
 and almost nothing on Mark × Transform, because a path *is* its rows in order
 and every statistic replaces them. `rule` reads the same way on the transform
-grid, for a related reason. It hands a whole axis to the panel, so there is no
-measure to compute. And `surface` has a row of the transforms that cover a
-plane: `density`, which estimates a value at every node, and `bin`, which cuts
-adjacent cells, with `sum`, `mean`, `median`, `max` and `min` naming the column
-each cell holds. `path` derives two things. With `density` it draws as a contour
-the field a `surface` lifts into a sheet, and with `cluster` it draws the tree.
+grid, and for the reason the statistics grid already gave: it hands a whole axis
+to the panel, so it has no measure to compute. And `surface` has a row of the
+transforms that cover a plane. `density` estimates a value at every node and
+`bin` cuts adjacent cells, while `sum`, `mean`, `median`, `max` and `min` name
+the column each cell holds. `path` derives two things. With `density` it draws
+the contour of a field, the same field a `surface` lifts into a sheet. With
+`cluster` it draws the tree.
 
 With these grids the orthogonality law is stated in full: what each mark maps,
 what it sets ([the Mark × Setting grid](style.qmd)), what it derives, and where
