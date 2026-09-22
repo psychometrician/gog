@@ -4,21 +4,7 @@ All four packages share one version number and are released together: `gog` on
 CRAN-style repositories and PyPI, `GrammarOfGraphics` on Julia's General, and
 `grammar-of-graphics` on npm. A version means the same grammar in every one.
 
-## Unreleased
-
-### Fixed
-
-- **Installing from GitHub needs `build = FALSE`, and the refusal now says so.**
-  `remotes::install_github("psychometrician/gog", subdir = "r-pkg/gog")` never
-  installed: by default `remotes` packs the package directory alone into a
-  tarball before installing it, and the engine's Rust sources sit beside that
-  directory, so `configure` found nothing to build and refused. With
-  `build = FALSE` remotes installs from the whole tree and the engine builds
-  during the install. A copy that arrives the default way is recognized from
-  the fields remotes writes into DESCRIPTION, and the refusal now names the
-  argument and the exact call.
-
-## 0.3.0 (2026-09-20)
+## 0.3.0 (unreleased)
 
 ### Changed
 
@@ -33,6 +19,16 @@ CRAN-style repositories and PyPI, `GrammarOfGraphics` on Julia's General, and
   that cancelled out.
 
 ### Fixed
+
+- **Installing from GitHub needs `build = FALSE`, and the refusal now says so.**
+  `remotes::install_github("psychometrician/gog", subdir = "r-pkg/gog")` never
+  installed: by default `remotes` packs the package directory alone into a
+  tarball before installing it, and the engine's Rust sources sit beside that
+  directory, so `configure` found nothing to build and refused. With
+  `build = FALSE` remotes installs from the whole tree and the engine builds
+  during the install. A copy that arrives the default way is recognized from
+  the fields remotes writes into DESCRIPTION, and the refusal now names the
+  argument and the exact call.
 
 - **`style(pattern = )` tells every reader which five values are a stroke's and
   which five are a fill's.** Three of the four packages listed all ten flat, so
