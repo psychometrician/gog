@@ -78,6 +78,7 @@ book:
     - "Claude Sonnet 4.6"
     - "Claude Opus 4.8"
     - "Claude Opus 5"
+    - "Claude Opus 5.5"
     - "Claude Fable 5"
     - "Claude Fable 5.1"
   # Two dates, and only one of them moves. `date` is the day the book first went
