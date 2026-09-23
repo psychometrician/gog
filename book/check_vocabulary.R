@@ -32,11 +32,14 @@ check_vocabulary <- function(book = "book", namespace = "r-pkg/gog/NAMESPACE") {
   # row per kind: `| **Marks** | `point` `line` … |`. Reading the atoms out of
   # backticks rather than by splitting on whitespace is the more robust half of
   # the change — an atom is now delimited rather than inferred, so a stray note
-  # in a cell cannot be mistaken for a name.
-  block <- grammar[start:length(grammar)]
-  block <- block[seq_len(which(!grepl("^\\|", block) & nzchar(trimws(block)) &
-                               seq_along(block) > 2)[1])]
-  block <- block[grepl("^\\|", block)]
+  # in a cell cannot be mistaken for a name. The table is the first one in the
+  # section, and a sentence may introduce it, so the rows are read from the
+  # first one to the end of their unbroken run.
+  block <- grammar[(start + 1):length(grammar)]
+  block <- block[seq_len(c(grep("^## ", block) - 1, length(block))[1])]
+  first <- which(grepl("^\\|", block))[1]
+  block <- if (is.na(first)) character() else block[first:length(block)]
+  block <- block[cumprod(grepl("^\\|", block)) == 1]
 
   # A word may carry the ⬜ marker — `map`⬜ — meaning designed but not drawn.
   # It sits *outside* the backticks on purpose, so the name reads the same to

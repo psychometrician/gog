@@ -141,10 +141,12 @@ check_promises <- function(book = "book") {
   # them rather than kept as a second copy here.
   g <- read_chapter("grammar.qmd")
   kstart <- grep("^## The kernel", g)[1]
-  kblock <- g[kstart:length(g)]
-  kblock <- kblock[seq_len(which(!grepl("^\\|", kblock) & nzchar(trimws(kblock)) &
-                                 seq_along(kblock) > 2)[1])]
-  kblock <- kblock[grepl("^\\|", kblock)]
+  # The first table in the section, which a sentence may introduce.
+  kblock <- g[(kstart + 1):length(g)]
+  kblock <- kblock[seq_len(c(grep("^## ", kblock) - 1, length(kblock))[1])]
+  kfirst <- which(grepl("^\\|", kblock))[1]
+  kblock <- if (is.na(kfirst)) character() else kblock[kfirst:length(kblock)]
+  kblock <- kblock[cumprod(grepl("^\\|", kblock)) == 1]
   atoms <- gsub("`", "", unlist(regmatches(kblock, gregexpr("`[^`]+`", kblock))))
   atoms <- unique(atoms[grepl("^[a-z][a-z_0-9]*$", atoms)])
   atom_re <- paste0("`(", paste(atoms, collapse = "|"), ")`")

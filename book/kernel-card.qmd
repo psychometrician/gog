@@ -11,11 +11,16 @@ a sentence are in [Functions around the grammar](utilities.qmd).
 # The kernel is a table, not a monospace listing, so the rows are emitted as
 # markdown rather than wrapped in a code fence. Wrapping a table in ``` would
 # print its pipes and asterisks at the reader.
+#
+# The table is the first one in the section, and a sentence may introduce it,
+# so its rows are read from the first one to the end of their unbroken run.
 g <- readLines("grammar.qmd")
 start <- grep("^## The kernel", g)[1]
-rest  <- g[start:length(g)]
-end   <- which(!grepl("^\\|", rest) & nzchar(trimws(rest)) & seq_along(rest) > 2)[1]
-cat(rest[seq_len(end)][grepl("^\\|", rest[seq_len(end)])], sep = "\n")
+rest  <- g[(start + 1):length(g)]
+rest  <- rest[seq_len(c(grep("^## ", rest) - 1, length(rest))[1])]
+first <- which(grepl("^\\|", rest))[1]
+rest  <- if (is.na(first)) character() else rest[first:length(rest)]
+cat(rest[cumprod(grepl("^\\|", rest)) == 1], sep = "\n")
 ```
 
 **The minimum sentence** is a source, a mark, and the position channels that

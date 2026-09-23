@@ -67,10 +67,13 @@ local({
   book <- readLines(grammar, warn = FALSE)
   start <- grep("^## The kernel", book)
   if (!length(start)) fail("grammar.qmd has no '## The kernel' section")
-  block <- book[start:length(book)]
-  block <- block[seq_len(which(!grepl("^\\|", block) & nzchar(trimws(block)) &
-                               seq_along(block) > 2)[1])]
-  block <- block[grepl("^\\|", block)]
+  # The first table in the section, which a sentence may introduce: its rows
+  # are read from the first one to the end of their unbroken run.
+  block <- book[(start + 1):length(book)]
+  block <- block[seq_len(c(grep("^## ", block) - 1, length(block))[1])]
+  first <- which(grepl("^\\|", block))[1]
+  block <- if (is.na(first)) character() else block[first:length(block)]
+  block <- block[cumprod(grepl("^\\|", block)) == 1]
 
   declared <- list()
   for (ln in block) {
