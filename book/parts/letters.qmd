@@ -5,31 +5,42 @@ class at a time: the initial consonants, the vowels, the final consonants.
 Each class was explained by the same method.
 
 This part does the same for gog's letters. The marks are the initial consonants:
-visible forms that draw nothing until a position says where they go. The
-positions are the vowels: `x`, `y`, and `z`, plus the scales that decide how a
-number, a category, or a date becomes a place on an axis. The refining channels
-are the finals: `color`, `size`, `shape`, `pattern`, `opacity`. Each is
-optional, and each earns the legend that decodes it. `group` and `label` are
-neither. `group` splits a mark without encoding anything, so it earns no legend,
-and it works like the space between words. `label` supplies a `text` mark's
-words rather than refining them. `play` stands outside the syllable, the way
-faceting does: it cuts the plot into frames and plays them in order, and its
-chapter waits in the next part. Around the letters sit the chapters that finish
-a plot. [Data](../data.qmd), the table you bind once, opens this part, because
-nothing can be drawn until a table is named. [The book's data](../book-data.qmd)
-follows, saying where this book's own tables come from and how to read one in
-your language. [Setting vs mapping](../style.qmd) separates a column you *map*
-from a constant you *set*, and [Transforms](../transforms.qmd), which derives
-new values from your columns, closes the part.
+the visible forms, such as a dot, a bar or a line. A mark draws nothing until a
+position says where it goes. The positions are the vowels: `x`, `y` and `z`.
+Only `edge` takes none of them: a `layout` transform computes its positions
+instead. Each position has a scale, which decides how a number, a category or a
+date becomes a place on its axis. The refining channels are the final
+consonants: `color`, `size`, `shape`, `pattern`, `opacity`. Each is optional,
+and each earns the legend that decodes it.
 
-[Choosing a mark](../marks/index.qmd) opens the letters themselves, and then
-each mark has a chapter of its own, fourteen in a row from
-[point](../marks/point.qmd) to [edge](../marks/edge.qmd). Every one follows the
-same template: what it draws, what it requires, what refines it, what derives
-from it, what you can set on it, what it refuses, and what comes next. Those
-three are always the last three, under those names, and thirteen of the fourteen
-put a short summary of the mark's rules in front of them. That sameness is deliberate:
-it is the [No Exceptions](../design-laws.qmd) law applied to a book's
-structure. Learning the
-second mark is faster than the first, and by the fifth you already know the
-shape.
+Three channels belong to none of these classes: `group`, `label` and `play`. On
+a `line`, `group` makes the same split as `color`: one line per category. But
+every line is drawn alike, so `group` earns no legend. It works like the space
+between words: it separates, but it shows nothing. `label` supplies a `text`
+mark's content rather than refining the mark. Like faceting, `play` acts on the
+whole plot rather than on one mark: it cuts the plot into frames and plays them
+in order. Its chapter is in the next part.
+
+The [Data](../data.qmd) chapter opens this part with the table every sentence
+starts from, because nothing can be drawn until a table is named. [The book's
+data](../book-data.qmd) follows, saying where this book's own tables come from
+and how to read one in any of the four languages. Then come the letters
+themselves. [Choosing a mark](../marks/index.qmd) opens them, and then each mark
+has a chapter of its own, fourteen in a row from [point](../marks/point.qmd) to
+[edge](../marks/edge.qmd). After the marks, the [Scales](../scales.qmd) chapter
+covers the scales that come with the vowels, and the [Channels and
+legends](../channels.qmd) chapter covers the final consonants and their
+legends. The [Setting vs mapping](../style.qmd) chapter shows the difference
+between a column you *map* and a constant you *set*. The
+[Transforms](../transforms.qmd) chapter closes the part: a transform derives new
+values from your columns.
+
+Every mark chapter follows the same template, just as the 1446 book explained
+each letter class by the same method. It says what the mark draws, what it
+requires, what refines it and which transforms it takes. It then closes with
+three sections that have the same names in every chapter: *What you can set*,
+*What it refuses* and *What comes next*. A short summary, *In short*, may come
+between the last two. That sameness is deliberate: it is the [No
+Exceptions](../design-laws.qmd) law applied to this book's structure. Learning
+the second mark is faster than learning the first. By the fifth you know which
+section answers which question, and you can read only the one you need.

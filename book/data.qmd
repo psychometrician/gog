@@ -33,18 +33,19 @@ This is the **Bind-Once Law**: name the table once, then use columns freely.
 
 `gapminder_2007` here is an ordinary table in your session, whatever your
 language calls one: a data frame in R, a dict of columns or a pandas DataFrame
-in Python, a named tuple of columns or a DataFrame in Julia, an object of
-columns in JavaScript. No registration step, no special wrapping required. Each
-chapter in the bindings part shows its own. The [R](bindings/r.qmd) chapter
-also lists the ten names that loading gog masks in R, with the qualified form
-of each.
+in Python. In Julia it is a named tuple of columns or a DataFrame, and in
+JavaScript an object of columns. You do not register the table or convert it
+to a special type first. The bindings part shows how each language builds one.
+The [R](bindings/r.qmd) chapter also lists the twenty names that gog and base R
+both use. For the eleven that are functions, it shows how to call base R's
+version, such as `base::order()`.
 
 Writing `data()` does more than supply the numbers. When you write
 `data(gapminder_2007)`, gog keeps the name `gapminder_2007`, not only the
-numbers inside it. The name matters as soon as a plot has more than one table,
-because each layer looks up its bare column names in the nearest table by name.
-Leave `data()` out and the table arrives with no name, so the plot refuses and
-tells you what to write:
+numbers inside it. The name matters as soon as a plot has more than one table.
+Each layer looks up its bare column names in one of those tables, and gog finds
+that table by its name. Leave `data()` out and the table arrives with
+no name, so gog refuses and tells you what to write:
 
 ```{r}
 #| error: true
@@ -52,8 +53,8 @@ gapminder_2007 + point + x(gdp) + y(life)
 ```
 
 gog gives the same advice for a sentence with no data at all, `point + x(gdp)`
-with nothing before it. Each binding words the advice for its own spelling of a
-column, so this refusal is shown in R alone.
+with nothing before it. The message above is R's. Each binding writes this advice
+with its own way of naming a column.
 
 ## The table has to be tidy
 
@@ -84,8 +85,9 @@ Now ask for one line per region:
 data(wide) + line + x(year) + y(sales) + color(region)
 ```
 
-The message names two problems. There is no column called `sales`, and no column
-called `region`. Your two regions are column *names*, and a name is not a
+The message names two problems: there is no column called `sales`, and no
+column called `region`. It asks you to check the spelling, but the spelling is
+not the problem. Your two regions are column *names*, and a name is not a
 column. Your sales numbers sit in two columns instead of one. The sentence asks
 for columns the table does not have, so gog draws nothing.
 
@@ -118,15 +120,15 @@ R has `tidyr::pivot_longer()`. Python has `pandas.melt()`. Julia has
 `DataFrames.stack()`. JavaScript has no standard table library, so you write a
 short loop instead.
 
-gog is stricter than ggplot2 here, but not about the shape. ggplot2 does not
-reshape tables either, and it refuses the wide table above just as gog does. The
-real difference is narrower. ggplot2 lets you calculate a value while you map
-it, so `aes(x = log(gdp))` works there. gog does not allow that, because a
-channel takes a column name and nothing else. Some of those calculations are
-already part of the grammar. A log axis is one of them, written
-`x(gdp, scale = "log")`. For anything else, add the column to your table first.
-So tidy is not quite enough on its own. Every column your sentence names has to
-be in the table already.
+gog is stricter than ggplot2, but not about the shape of the table. ggplot2 does
+not reshape tables either, and it refuses the wide table above just as gog does.
+What differs is one thing: ggplot2 lets you calculate a value while you map it,
+so `aes(x = log(gdp))` works there. gog does not allow that, because a channel
+takes a column name and nothing else. Some of those calculations are already
+part of the grammar. A log axis is one of them, written `x(gdp, scale = "log")`.
+For anything else, add the column to your table first. So a tidy table is not
+enough on its own. Every column your sentence names has to be in the
+table already.
 
 This book does not teach you how to tidy data, and it should not, because there
 is a better book for it. Read *R for Data Science* by Hadley Wickham, Mine
@@ -135,31 +137,30 @@ at <https://r4ds.hadley.nz/>. Its chapter on data tidying is the one that
 matters here. If the shape of your data is not settled yet, read that chapter
 before you read this one.
 
-## Plot-level vs. layer-level data
+## The plot's table and a layer's table
 
 A line and the points it passes through come from one table. You should not
-have to name it twice. `data()` at the start of the expression is the
-**plot-level default**: it applies to all layers that don't declare their own
-table.
-
-```{r}
-# Both layers read from "gapminder_2007"
-data(gapminder_2007) + x(gdp) + y(life) +
-  line +
-  point
-```
-
-*"Given gapminder 2007: x is gdp, y is life, a line and also points."*
-
-A forecast continues a history of past values, and the two usually arrive as
-separate tables. You want both on one pair of axes. `actuals` holds the sales
-of five years that have passed, and `forecast` holds the three years still to
-come:
+have to name it twice. `data()` at the start of the sentence names the
+**plot's table**: it applies to every layer that does not name its own
+table. The `actuals` table holds the sales of five years that have passed:
 
 ```{r}
 #| echo: false
 peek(actuals)
 ```
+
+```{r}
+# Both layers read from "actuals"
+data(actuals) + x(year) + y(sales) +
+  line +
+  point
+```
+
+*"Given the actuals: x is year, y is sales, a line and also points."*
+
+A forecast continues a history of past values, and the two usually arrive as
+separate tables. You want both on one pair of axes. `forecast` holds the three
+years still to come:
 
 ```{r}
 #| echo: false
@@ -184,7 +185,7 @@ applies to the mark written directly after it. A mark with no `data()` of
 its own reads the plot's table. The refusal at the start of this chapter
 holds for the second table too: write `+ data(forecast)`, not `+ forecast`.
 
-Two things follow from that rule, and both are easy to miss.
+Two things follow from the rule for a later `data()`, and neither is obvious.
 
 A `data()` at the end of a sentence applies to nothing, because no mark comes
 after it. The plot is the same as it would be without that line:
@@ -198,7 +199,7 @@ data(actuals) + x(year) + y(sales) +
 ```
 
 A `data()` also stops after that one mark. The mark after it reads the
-plot-level table again:
+plot's table again:
 
 ```{r}
 # line reads actuals. point reads forecast. area reads actuals again.
@@ -213,19 +214,20 @@ points; then given the actuals again: an area."*
 
 The two tables cover different years, which makes the change easy to see.
 `actuals` runs from 2019 to 2023, and `forecast` from 2024 to 2026. The area
-and the line both sit on the left. The points sit alone on the right.
+and the line both sit on the left. The points sit alone on the right. To draw
+two marks from the second table, write `data()` before each of them.
 
-That rule fits what a second table is usually for. The first table builds the
-frame, and a later one annotates it: a threshold, a band, a note, a forecast. An
-annotation is one mark, so a `data()` that reaches one mark is enough.
-Every second table in this book is one of those.
+The one-mark rule fits what a second table is usually for. The axes come from
+the first table, and a later table adds an annotation: a threshold, a band, a
+note, a forecast. An annotation is one mark, so a `data()` that reaches one mark
+is enough. In this book, every table added after the first one is an annotation
+of this kind.
 
-To draw two marks from the second table, write `data()` before each of them.
-
-The specification above is correct, and it still reads badly. `area` sits on the line
-below `data(forecast)`, so it looks like part of the forecast. Only the rule
-says otherwise. The same plot reads better with the marks grouped by the table
-they read. Drawn again, it is the same picture:
+The specification above is correct, and it still reads badly. `area` is written on
+the line of code just below `data(forecast)`, so it looks like part of the
+forecast. Only the rule tells you that `area` draws from `actuals`. The same
+specification is easier to read when each mark is written next to the table it
+draws from. Drawn again, it is the same picture:
 
 ```{r}
 data(actuals) + x(year) + y(sales) +
@@ -245,14 +247,14 @@ very different to read. That difference is yours to control.
 
 So group the marks by the table they read. Keep each extra `data()` on the
 same line as the mark it applies to, and keep the marks that read the
-plot-level table together. Every line is then one table and the marks that
+plot's table together. Every line is then one table and the marks that
 read it, and no mark sits under a table it does not read. The rest of this
 book follows that layout.
 
 The first `data()` is the one exception. It applies to every mark below it,
-so it takes a line of its own. A later `data()` applies to one mark only. On a
-line of its own, it would look like it applies to every mark below it, as the
-first one does. That is why `data(actuals)` stands alone above and
+so it takes a line of its own. A later `data()` applies to one mark only, so it
+shares that mark's line of code. Alone on a line, it would seem to apply to every
+mark below it. That is why `data(actuals)` stands alone above and
 `data(forecast)` shares its line with `point`.
 
 ## When the second table names its columns differently
@@ -290,15 +292,16 @@ different reasons.
 What is shared is the **measurement**, and that is what an axis is. `at` holds
 income and `value` holds years of life, the same two quantities `gdp` and `life`
 hold. A table whose numbers mean something else does not belong on these axes,
-however its columns are spelled: put sales figures on an income axis and the
-plot is drawn correctly and reads as nonsense. Matching names are not the test.
-Matching meanings are.
+whatever its columns are called. If you put sales figures on an income axis, gog
+draws the plot without an error, but nothing it shows is true. Matching names are
+not the test. Matching meanings are.
 
 The same test says when a second table does not belong in the plot at all. A
-layer is drawn on the axes the first table set, so its values must measure
-what those axes measure. Values that measure something else need axes of their
-own, and axes of their own means a plot of its own. Put that plot beside the
-first one instead. [Composition](composition.qmd) shows how, with `|` and `/`.
+layer is drawn on the axes that come from the first table, so its values must
+measure what those axes measure. Values that measure something else need their
+own axes, and a second pair of axes means a second plot. Put that plot beside
+the first one instead. [Composition](composition.qmd) shows how, with `|` and
+`/`.
 
 A layer that names no position of its own reads the axis that is already
 there. That is why the earlier plot worked with the positions written once at
@@ -306,10 +309,13 @@ the front.
 
 ## A table in a database
 
-Not every table fits on one computer. Most working data sits in a database,
-and a **warehouse** (a database built to hold a company's whole history) can
-hold billions of rows. gog reaches those tables with one
-word, **`query`**, and it stands exactly where `data` stands.
+`data()` is the first of the two ways to name a table. This section shows the
+second, for a table kept in a database.
+
+Not every table fits on one computer. Most of the data used at work is kept in a
+database. A **warehouse**, a database built to keep all of a company's records,
+can hold billions of rows. gog reads those tables with one word, **`query()`**,
+written where `data()` would be.
 
 Nothing else in the sentence changes:
 
@@ -340,29 +346,26 @@ query(con, "SELECT gdp, life, continent FROM countries WHERE gdp > 5000") +
 
 *"Given the query: points, x is gdp, y is life, color by continent."*
 
-The plot is an ordinary scatter plot, because the grammar did an ordinary thing.
+The plot is an ordinary scatterplot. gog never saw the database. It received a
+table of rows, as it does for every other sentence in this book.
 The database chose which rows to send. gog drew what arrived.
 
 A query and a loaded table produce
 *the same picture, byte for byte*, when they hold the same rows. Every binding
-tests exactly that. So `query` is never a different way of drawing; it is a
+tests exactly that. So `query()` is never a different way of drawing; it is a
 different way of finding the rows to draw.
 
 ### Three things to know
 
-The connection is yours. gog never opens one, and it never stores a password.
-You connect with whatever your language already uses, and hand the open
-connection to `query`. That also means gog adds no database driver to your
+You open the connection yourself. gog never opens one, and it never stores a
+password. You connect with whatever your language already uses, and hand the
+open connection to `query()`. That also means gog adds no database driver to your
 install. A reader who never writes SQL never installs one.
 
 The query runs when the plot is drawn, not when the sentence is written.
 Writing `query(con, "...")` asks the database nothing. The sentence is a
 specification, exactly like every other sentence in this book, and the engine
-draws it later. The delay is not only neatness; it makes something else
-possible. A specification the engine can read *before* the database runs is
-one where the engine could rewrite the question, and ask for a summary
-instead of the rows. Counting is a job a database does well, and the design
-allows for that later.
+draws it later. gog sends your SQL exactly as you wrote it.
 
 Every language reaches a different set of databases. The word is the same in
 all four. What differs is the connection you hand it, because each language has
@@ -381,9 +384,9 @@ write the simple query and stop there. Selecting the columns you
 need and letting gog do the rest is the normal case, and the example above is
 exactly that.
 
-It starts to matter somewhere around a hundred thousand rows. Past that, moving
-the rows costs more than drawing them. A warehouse table can hold billions, and
-`SELECT * FROM that_table` would try to bring all of them to you.
+The number of rows starts to matter at about a hundred thousand. Above that,
+moving the rows costs more time than drawing them. A warehouse table can hold
+billions, and `SELECT * FROM that_table` would try to bring all of them to you.
 
 The way to avoid it is already familiar to anyone who works with a warehouse:
 *summarize in SQL, then draw the summary*. This works because a plot is nearly
@@ -398,14 +401,17 @@ query(con, "SELECT continent, COUNT(*) AS countries
 
 *"Given the query: bars, x is continent, y is countries."*
 
-Five rows crossed the connection, not 142. The plot is the same
+The database did the counting and sent back five rows. Without the count,
+`SELECT continent FROM countries` would have sent all 142. The plot is the same
 one you would get by counting locally.
 
 ### Two directions, and which one suits you
 
-There is another way to give SQL users a grammar of graphics. Posit's **ggsql**
-[@posit2026ggsql] adds visual clauses to SQL itself: you write `VISUALIZE`,
-`DRAW` and `SCALE` inside the query, and the database returns a picture.
+If you write the summary in SQL, you may ask whether the whole plot could be
+written in SQL too. There is another way to give SQL users a grammar of graphics.
+Posit's **ggsql** [@posit2026ggsql] adds visual clauses to SQL itself: you write
+`VISUALIZE`, `DRAW` and `SCALE` inside the query, and the database returns a
+picture.
 
 It has two strengths. Its clauses read like SQL, so someone who
 writes SQL all day stays in the language they already think in, and no host
@@ -415,16 +421,16 @@ On that second point ggsql does something gog does not. gog brings the rows to
 you, so on a large table you write the summary in SQL yourself, as the count
 above did.
 
-If SQL is where you work, ggsql is probably the better fit. gog would first
+If you write only SQL, ggsql is probably the better choice. gog would first
 ask you to learn R, Python, Julia or JavaScript, which is a real cost for
 someone who uses none of them.
 
 gog is built in the opposite direction. The grammar stays in one place and
 the data comes to it, so one sentence draws a loaded table, a table in
-Postgres, and a table in a warehouse, in any of four languages. One syntax,
-in as many languages and places as we can reach.
+Postgres, and a table in a warehouse, in any of four languages. The sentence
+stays the same in every language and for every kind of table.
 
-| You work | The lower cost is |
+| You work | The smaller cost |
 |---|---|
 | Only in SQL | **ggsql**: nothing to install, and the syntax is the one you use |
 | Across several languages | **gog**: one grammar covers all of them, and the database too |
@@ -436,10 +442,11 @@ DBI::dbDisconnect(con)
 
 ## Declaring the order of categories
 
-Low, Medium and High have an order every reader knows. A plot that draws them
-in any other order makes the reader sort them. A column of plain text
-has no order of its own, so gog draws its categories in the order the rows
-happen to arrive:
+Wherever the table comes from, some of its categories have an order that a
+column of plain text does not record. Low, Medium and High have an order every
+reader knows. A plot that draws them in any other order makes the reader sort
+them. A column of plain text has no order of its own, so gog draws its
+categories in the order the rows happen to arrive:
 
 ```{r}
 severity <- data.frame(
@@ -451,11 +458,11 @@ data(severity) + bar + x(level) + y(count) +
   title("Text column: the order the rows came in")
 ```
 
-That is rarely what you want here. Declare the order you mean, where you build
-the table. In R the declaration is a **factor**. Python, Julia and JavaScript
-have no factor type, so gog supplies the declaration itself, under one name:
-`ordered()`. It takes the column's values and the order its categories go in,
-and everything after it reads the same in all four languages:
+That order is almost never the one you mean. Declare the order you mean, where
+you build the table. In R the declaration is a **factor**. Python, Julia and
+JavaScript have no factor type, so gog supplies the declaration itself, under
+one name: `ordered()`. It takes the column's values and the order its categories
+go in, and everything after it reads the same in all four languages:
 
 ```{r}
 severity <- data.frame(
@@ -468,17 +475,19 @@ data(severity) + bar + x(level) + y(count) +
 ```
 
 The order goes with the column, so *every part of the plot agrees*: the axis,
-the color assignment, and the legend all read in the same order.
+the color assignment, and the legend all read in the same order. The next plot
+is there only to show the legend. Its `x` and `y` are both `count`, so the
+points form a diagonal line.
 
 ```{r}
 data(severity) + point + x(count) + y(count) + color(level) +
   title("The legend follows the same order")
 ```
 
-The order holds even when gog does the counting for you. These tickets arrive
-`High` first, but `bar * count` still reads Low, Medium, High. A summary carries
-the declared order onto its axis. It does not return to the order the rows
-arrived in: 
+The declared order stays even when gog does the counting for you. The first of
+the eight tickets below is `High`, but the axis of `bar * count` still shows Low,
+Medium, High. `count` makes one row per level, and the levels belong to the
+column, so the axis keeps their order, not the order of the rows:
 
 ```{r}
 tickets <- data.frame(
@@ -505,13 +514,15 @@ column, and gog reads its categories, in their order, as the levels.
 `ordered()` is for a plain dictionary of lists, so that you can declare an
 order without pandas installed.
 
-Two rules worth knowing:
+Two rules apply:
 
 - **Levels set the order.** The data sets which categories appear. A level
   with no rows in the data gets no bar and no slot on the axis, because an
   empty labeled gap is harder to read than a shorter axis. A value in the data
   that the levels do not mention is not dropped. It is drawn after the listed
-  ones.
+  ones. R is the exception, because of a rule in R itself. There, `factor()`
+  turns a value you did not list into a missing value before gog sees it, so
+  the row is dropped. In R, list every value you want drawn.
 - **`order()` in the plot wins.** The levels came with the table, so they apply
   to every plot drawn from it. `order()` is written in this one plot, so it
   applies here, and the more specific instruction wins. Name a different column
@@ -536,9 +547,11 @@ belongs to the table, and so does the change.
 
 ## Missing values
 
-Real data has gaps, and survey tables are usually missing many values. A row
-with no value where the plot needs one cannot be placed, so gog drops it and
-*says how many*, rather than changing the count without telling you:
+A declared order is something you choose. Missing values are something you do
+not choose. Real data has gaps, and survey tables are usually missing many
+values. A row with no value where the plot needs one cannot be placed, so gog
+drops it and *says how many*, rather than changing the count without telling
+you:
 
 ```{r}
 #| message: true
@@ -575,8 +588,9 @@ which column.
 
 The people who built a table chose its names, and a plot has to print them
 unchanged. Category names, titles, and axis labels are drawn
-exactly as you wrote them. Three characters have a special meaning inside an
-SVG file: `&`, `<` and `>`.
+exactly as you wrote them. A plot is drawn as an SVG file, which is a picture
+written as text. Three characters have a special meaning inside one: `&`, `<`
+and `>`.
 gog writes them in the form the file needs, so they print as themselves, and a
 name like `R&D` needs no special handling. The plot below puts all three into
 its names and its title:
@@ -609,14 +623,14 @@ A label's width is measured from its characters, and a Korean or Chinese
 character is about twice as wide as a Latin one, so these labels get the margin
 they need and no more.
 
-That is everything a sentence needs from its table.
-
 ## In short
 
-A table is named once, and the nearest one wins. A sentence naming columns the
-table does not have is refused rather than pivoted. A declared order travels
-with the column onto the axis and the legend; `order()` overrides it for one
-plot, and only the levels change it everywhere.
+A table is named once, and the nearest one wins. gog refuses a sentence that
+names columns the table does not have; it never reshapes the table. `query()` is
+written where `data()` would be. A missing value drops its row only when the
+plot maps that column. A declared order goes with the column onto the axis and
+the legend; `order()` changes it for one plot, and the levels change it for
+every plot.
 
 ## What comes next
 

@@ -24,15 +24,19 @@ data(gapminder_2007) + point + x(gdp) + y(life)
 
 Read it aloud: *"Given gapminder 2007: points, x is gdp, y is life."*
 
-That sentence is the entire program. You named a table, a mark, and two
-positions; the engine chose the axes, the ticks, the margins, and drew one
-point per row. You never call a drawing function, because a plot here is a
-*specification*: a sentence about the picture, not a claim about the data.
-Rendering it is the engine's job, not yours.
+The plot answers the opening question: yes, people in richer countries live
+longer. It also shows a pattern: life expectancy climbs steeply across the
+poorer countries and then flattens among the richest.
 
-None of those four words is yours to define. They arrive with the package, so
-loading gog is what makes `data`, `point`, `x` and `y` available. A word is written bare
-when it has nothing to take, which is why `point` has no parentheses.
+That one line of code is a complete gog sentence. You named a table, a mark,
+and two positions; the engine chose the axes, the ticks, the margins, and drew
+one point per row. You never call a drawing function, because a plot here is a
+*specification*: a statement of what the picture should show. Rendering it is
+the engine's job, not yours.
+
+You do not define `data`, `point`, `x` and `y`. They are part of the package,
+and loading gog makes them available. A word that takes no column and no value
+is written without parentheses, like `point`.
 Parentheses appear when there is something to put in them, like the column in
 `x(gdp)`.
 
@@ -40,14 +44,15 @@ Parentheses appear when there is something to put in them, like the column in
 
 ## The boxes under every plot
 
-Look under the plot above. A row of small boxes sits there, and every plot in
-this book has them. The two magnifiers zoom in and out. The frame returns
+Before you learn the next word of the grammar, look at something on the page
+that is not part of the grammar. A row of small boxes sits under the plot above, and under every
+plot in this book. The two magnifiers zoom in and out. The frame returns
 you to the whole picture. The camera saves what you are looking at as a picture
-file, large enough for a slide or a journal figure. A box is dimmed when it can
-do nothing.
+file, large enough for a slide or a journal figure. A box is dimmed when using it
+would change nothing.
 
-Once you have zoomed in, dragging the plot moves it. There is no box for it;
-the pointer shows it instead, becoming a hand over a plot you can move.
+Once you have zoomed in, dragging the plot moves it. No box does this. When the
+plot can be moved, the pointer changes to a hand.
 
 Move the pointer over any box and a small label appears, saying what that box
 does. A symbol means nothing to a reader who has not seen it before. That is
@@ -61,40 +66,43 @@ write [`limits`](scales.qmd) in the sentence.
 :::
 
 ::: {.content-visible when-format="pdf"}
-That sentence has four spellings, and this edition prints all of them under every
-example: the R above, then Python, Julia and JavaScript. They are not translations
-of each other. Each is its own language writing the same specification, which
-one engine then draws, so the plot below is rendered once, and any of the four
-would produce the same file. Read whichever is yours and ignore the rest;
-nothing else in this book is language-specific.
+The gog sentence at the top of this chapter has four spellings, and this
+edition prints them under nearly every example: the R above, then Python, Julia
+and JavaScript. None of the four depends on another. Each is a full way to write
+the same specification, and one engine draws it. The plot is drawn once, and any
+of the four would produce the same file. Read whichever is yours and skip the
+others; the text around them is the same for all four.
 
-They are in that order because the first three are very nearly one sentence. The
+They are in that order because the first three are spelled almost identically. The
 operators are the same and only the way a column is named changes: a bare
 `gdp` in R, `col.gdp` in Python, `:gdp` in Julia. JavaScript is the one that
 reads differently, because it cannot give `+ * | /` new meanings and spells
 them as words instead. It comes last, so the pattern the other three share is
 seen first. Each language
-also has a chapter of its own at the end, a difference list about a page long:
+also has a chapter of its own at the end, listing what differs:
 [R](bindings/r.qmd), [Python](bindings/python.qmd), [Julia](bindings/julia.qmd),
 [JavaScript](bindings/javascript.qmd).
 :::
 
 ## Three steps to run any example
 
-Everything in this book runs on your own computer, and it takes three steps:
+So far you have only looked at the first plot. Running its sentence yourself,
+on your own computer, takes three steps:
 
 1. **Install.** The command for your language is in
    [Installing gog](index.qmd#installing-gog).
 2. **Load it.** `library(gog)` in R, `from gog import *` in Python,
    `using GrammarOfGraphics` in Julia, and an `import` from
    `grammar-of-graphics` in JavaScript.
-3. **Read a table.** `gog_table("gapminder_2007")` fetches the one above;
-   assign it that name, and `data()` takes it. It comes with the package, and
-   [Reading a table](book-data.qmd#reading-a-table) shows the line in all
-   four languages.
+3. **Read a table.** `gog_table()` comes with the package and downloads any
+   of the book's tables over the internet. `gog_table("gapminder_2007")` reads
+   the table shown above; store the result under the name `gapminder_2007`, and
+   `data(gapminder_2007)` takes it. [Reading a table](book-data.qmd#reading-a-table)
+   shows the line in all four languages.
 
-Every example after this one works from those three steps, and the table each
-needs is named in the sentence itself.
+Every example that reads one of the book's tables needs only those three
+steps, and names its table inside `data()`. Where an example builds its own
+table, the chapter shows the lines that build it.
 
 ## Add a word, ask a richer question
 
@@ -112,28 +120,29 @@ decode.
 
 ## An incomplete sentence is refused
 
-What happens if you forget a position? An incomplete sentence is refused the
-way a syllable missing its vowel cannot be pronounced, and the refusal tells
-you what is missing:
+What happens if you forget a position? An incomplete sentence is refused, just
+as a syllable with no vowel cannot be spoken. The refusal names what is
+missing:
 
 ```{r}
 #| error: true
 data(gapminder_2007) + point + x(gdp)
 ```
 
-You meet this on your first page because refusals are half of what makes gog
-learnable; the small vocabulary in the next chapter is the other half. A
-**binding** is a channel with a column in it, like `x(gdp)`.
-The engine never accepts a binding only to silently drop it,
-and every *no* comes with a direction. The errors here do the teaching; the
-[writing practice](writing.qmd) chapter collects the ones you will meet
-first.
+You meet a refusal this early because refusals and the small vocabulary of the
+next chapter are the two things that make gog easy to learn. A **binding** is a
+channel with a column in it, like `x(gdp)`. The engine never ignores a binding
+without telling you, and every refusal also says what to do instead. In gog, the
+error messages are part of the teaching; the [writing practice](writing.qmd)
+chapter collects the ones you will meet first.
 
-## Refine, don't rebuild
+## Refine rather than rebuild
 
 The `gdp` axis is crowded on the left: most countries have far lower incomes
-than the richest few. A logarithmic view is a property of *how x is
-read*, so it is written on the binding, and nothing else changes:
+than the richest few. A log scale gives every tenfold step,
+such as 1,000 to 10,000, the same width on the axis. It changes how the axis is
+spaced, not what is plotted, so it is written on the `x` binding. The only other
+change is a title at the end:
 
 ```{r}
 data(gapminder_2007) + point + x(gdp, scale = "log") + y(life) +
@@ -142,35 +151,38 @@ data(gapminder_2007) + point + x(gdp, scale = "log") + y(life) +
 ```
 
 *"Given gapminder 2007: points, x is gdp on a log scale, y is life, color by
-continent."* Three refinements later, the sentence still reads left to right,
-and the four words you learned first are unchanged. The last word, `title()`,
-puts a title above the plot. It is a label: a word that names the plot or an
-axis instead of binding a column, and the
-[Grammar](grammar.qmd#labels-the-words-on-the-plot) chapter lists the four of
-them.
+continent."* After three changes, the sentence still reads left to right,
+and the four words you learned first are all still there, in the same order. The
+last word, `title()`, puts a title above the plot. It is a label: a word that
+names the plot or an axis instead of binding a column. There are four labels,
+and the [Grammar](grammar.qmd#labels-the-words-on-the-plot) chapter lists them.
 
 ## The shape of every sentence
 
-Every plot in this book, through the globes, networks and brushed plots at
-the end, is this same shape:
+The three plots in this chapter were each built by adding to the one before,
+never by starting again. They share one shape, and so does every other plot in
+this book, including the globes, networks and brushed plots at the end:
 
 ```
 data(table) + mark + positions + refinements
 ```
 
-A table bound once, so columns are bare names. A mark, the visible form.
-Positions, where the marks stand. Then any number of optional refinements:
-channels like `color()`, and labels like `title()`.
+The table comes first, named once; a database query can be used instead, as
+[Data](data.qmd#a-table-in-a-database) shows. The mark is the shape drawn for
+each row, and the positions are where it is drawn. Then come any number of
+optional refinements: channels like `color()`, and labels like `title()`.
 
-Two words describe putting a column into a channel, and the book uses both. A column is **bound** to a
-channel, and the binding is where a scale gets written. The same act is called
-**mapping** to emphasize that a channel received a column rather than a fixed
-value.
-The difference shows on the page: a mapped column earns a **guide** to decode
-it, and a value you merely set earns none. A table is bound too, by `data()`,
-which is the Bind-Once law: name it once, and its columns stay bare names.
+Putting a column into a channel has two names, and you will meet both. A
+column is **bound** to a channel, and the binding is where a scale is written.
+The same act is called **mapping** to stress that the channel received a
+column, not a fixed value.
+The difference between a column and a fixed value shows on the page: a mapped
+column usually earns a **guide**, a legend or an axis that lets a reader decode
+it. A fixed value you set yourself earns none. A table is bound too, by
+`data()`. That is the Bind-Once law: name the table once, and no column needs
+the table's name in front of it.
 
-Two more parts join with an operator of their own. A transform attaches to
+Two more parts join with operators of their own. A transform attaches to
 its mark with [`*`](operators.qmd#derive), which is how the preface's
 `bar * bin` made a histogram. A [facet](faceting.qmd) splits the finished plot
 into panels with `|` or `/`. A scale is not
@@ -182,20 +194,20 @@ data(table) + mark * transform + positions + refinements | facet(column)
 ```
 
 The transform and the facet are optional, and so are the refinements. Delete
-every one of them and a legal plot remains. What cannot go is the table, the
-mark, and the positions that mark needs. That is the sentence you wrote at the
+every one of them and a legal plot remains. What cannot be removed is the table,
+the mark, and the positions that mark needs. That is the sentence you wrote at the
 top of this chapter.
 
-Written grammar works the same way, which is why this one is called a grammar at
-all. "Birds sing" is already a complete sentence in English. "The small birds
+English grammar works the same way, which is why gog is called a grammar.
+"Birds sing" is already a complete sentence in English. "The small birds
 sing loudly in the morning" says much more, and every word added to it can be
 taken out again. Remove the verb instead and there is no sentence left to
-refine. A plot is not a different kind of object. Some of its parts are
+refine. A plot is built like an English sentence. Some of its parts are
 required, and the rest refine it. That division is the same in every plot in
-this book, so you learn it one time.
+this book, so you learn it once.
 
 ## What comes next
 
-One plot needs four words, and this chapter never said how many there are in
-all. [The grammar](grammar.qmd) states the whole kernel in one table, then takes
-each kind of word in turn.
+Your first plot needed four words, and this chapter has not said how many
+words there are in total. [The grammar](grammar.qmd) states gog's whole
+vocabulary in one table, then gives each kind of word its own section.

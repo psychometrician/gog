@@ -13,18 +13,18 @@ The bar chart exists because William Playfair had too little data. His
 *Commercial and Political Atlas* of 1786 drew England's imports and exports as
 two curves across thirty years [@playfair1786]. For Scotland he had a single
 year, and no curve can show one year. So he drew a bar for each of Scotland's
-trading partners instead, and wrote that the result was the weaker picture for
-having no time in it. The form he apologized for became the one everyone knows.
+trading partners instead, and wrote that the result was the weaker picture,
+because it showed no change over time. The form he apologized for became the
+one everyone knows.
 
 Two names for it are still in use, and they name opposite orientations. Much of
 the business world, Excel included, calls this a **column chart** when the bars
-are vertical, and keeps **bar chart** for when they are horizontal. gog has one
-`bar`, and its direction comes from the sentence rather than from a choice.
-Whichever axis carries the category decides it, which is what [Horizontal
-bars](#horizontal-bars) is about. A **histogram** is a third name, and it is a
-genuinely different plot drawn with the same mark. Karl Pearson coined the word
-in the 1890s [@pearson1895] for the picture of a *distribution*, where the bars are cut
-from a continuous axis and touch; that is `bar * bin`, in
+are vertical, and uses **bar chart** only when they are horizontal. gog has one
+`bar`, and its direction comes from whichever axis carries the category. A
+third name, **histogram**, belongs to a different plot drawn with the same
+mark. Karl Pearson introduced the word in the 1890s [@pearson1895] for the
+picture of a *distribution*. Its bars cover intervals cut from a continuous
+axis, and neighboring bars touch. In gog that plot is `bar * bin`, shown in
 [Histogram](#histogram) below.
 
 ## Basic usage
@@ -49,10 +49,10 @@ zero unless you state your own `limits`, so a bar's length is its value.
 
 ## Color
 
-Every bar is the same color until a column separates them. A color of its own
-lets a reader find one country quickly, and match it to the same country in
-another plot. Bind `color` to the column that already sits on `x`. `color`
-fills each bar with a distinct color:
+Every bar is the same color until you map a column to `color`. With a color for
+each bar, a reader can find one country quickly and match it to the same
+country in another plot. Bind `color` to the column that already sits on `x`.
+`color` fills each bar with a distinct color:
 
 ```{r}
 data(medals) + bar + x(country) + y(gold) +
@@ -61,16 +61,21 @@ data(medals) + bar + x(country) + y(gold) +
 
 *"Given the medals: bars, x is country, y is gold, color by country."*
 
+The legend repeats the names on the x axis, because the same column sits on
+both.
+
 ## Ordering bars
 
 In what order should the bars appear? A reader looking for the largest value
 wants it first. A reader looking for one name wants the names in alphabetical
 order. `order()` controls the sequence of categories along whichever axis
 carries them: `x` on a vertical plot, `y` on a horizontal one. You can sort on
-any column in the table: the categorical column itself, the measured column, or
-a third column entirely. Naming the categorical column asks for that column's
-own order. Here that is alphabetical, because `country` is plain text. A column
-with a [declared order](../data.qmd) uses that order instead.
+the categorical column itself, on the measured column, or on a third column of
+numbers. Naming the categorical column asks for that column's own order. Here
+that is alphabetical, because `order()` sorts plain text such as `country` from
+A to Z. A column with a
+[declared order](../data.qmd#declaring-the-order-of-categories) uses that order
+instead.
 
 **Default, data order** (rows as they appear in the table):
 
@@ -91,11 +96,11 @@ data(medals) + bar + x(country) + y(gold) +
 *"Given the medals: bars, x is country, y is gold, ordered by gold, largest
 first."*
 
-These bars are in the same order as the bars in the data order plot above. The
-medals arrive with the leader at the top, so ordering by gold changes nothing
-here. Writing the order anyway is still worth it. The plot then stays sorted
-even if next year's rows arrive differently. The plots below each put the bars
-in a different order.
+These bars are in the same order as the plot titled *Gold medals: data order*.
+The medals table already lists the largest count first, so ordering by gold
+changes nothing here. Writing the order anyway is still safer, because the plot
+then stays sorted even if next year's rows arrive in a different order. The
+plots below each put the bars in a different order.
 
 **By value, ascending**, smallest first, useful when scanning for the lowest
 values:
@@ -138,7 +143,7 @@ data(medals) + bar + x(country) + y(gold) +
 | `order(gold, desc = TRUE)` | Descending by gold (largest first) |
 | `order(country)` | A → Z by country name |
 | `order(country, desc = TRUE)` | Z → A by country name |
-| `order(silver, desc = TRUE)` | By any other column in the table |
+| `order(silver, desc = TRUE)` | By another column of numbers |
 
 ## Duplicate categories
 
@@ -157,9 +162,10 @@ data(medals_dup) + bar + x(country) + y(gold) +
 ```
 
 Every bar grows from zero, so the shorter ones sit inside the tallest. USA has
-rows of 10 and 5, and its bar reads 10 rather than 15. The darker band ends at
-5, which is the row hidden inside. That band is the only sign that a category
-has extra rows.
+rows of 10 and 5, and its bar reads 10 rather than 15. Each bar is drawn
+slightly translucent, so the color is darker where two bars overlap. For USA,
+that darker band ends at 5, where the shorter bar stops. That band is the only
+sign that a category has extra rows.
 
 Use the `sum` transform to total the values per category first:
 
@@ -176,8 +182,12 @@ category and totals them. USA's 10 and 5 become 15, and GBR's 8 and 4 become
 12. Five rows become three bars, one for each country, and the darker band is
 gone.
 
-A negative value needs no special treatment. The bar extends from zero in
-whichever direction the value lies, so it reaches down instead of up.
+## Negative values
+
+A bar can also point the other way, when a value is below zero, such as the
+profit of a quarter that lost money. Every bar starts at zero. That rule made
+the duplicate bars overlap, and it is also why a negative bar points down. So a
+negative value needs no special treatment:
 
 ```{r}
 balance <- data.frame(quarter = c("Q1", "Q2", "Q3", "Q4"),
@@ -186,13 +196,14 @@ data(balance) + bar + x(quarter) + y(profit) +
   title("Negative values grow downward from zero")
 ```
 
-To color the losses and the gains differently, start from what `color` requires:
-it maps a column, so that column has to exist. "Is this negative" is a fact
-about the data, not about the rectangle. So put it in a column, map that
-column, and let [`palette()`](../style.qmd#palette-choosing-the-colors-a-mapping-uses)
-say which colors the mapping uses. The table below types the column's values
-in by hand. In practice you compute it from `profit` with one condition. Above
-zero is a profit, and anything else is a loss.
+To color the losses and the profits differently, you need a column that says
+which is which. `color` maps a column, so that column has to exist. "Is this
+negative" is a fact about the data, not about the rectangle. So put it in a
+column, map that column, and let
+[`palette()`](../style.qmd#palette-choosing-the-colors-a-mapping-uses) say
+which colors the mapping uses. The table below sets the column's values by
+hand. In practice you compute it from `profit` with one condition. Above zero
+is a profit, and anything else is a loss.
 
 ```{r}
 balance <- data.frame(
@@ -210,43 +221,45 @@ data(balance) + bar + x(quarter) + y(profit) + color(result) +
 with a palette of firebrick and seagreen."*
 
 `palette()` assigns its colors in **category order**, and that is why `result`
-carries a declared order here instead of being plain text. A column of plain text
-takes the order its values first appear in. The first row here is a profit, so
-the palette would give firebrick to the gains. Declaring the order as loss,
-then profit, sets it, and the legend reads in it too. The plot then cannot
-silently invert if next quarter's numbers start with a loss. R spells that
-with a factor's levels, and the other three with `ordered()`. This is the same
-mechanism as [Declaring the order of categories](../data.qmd).
+carries a declared order here instead of being plain text. `palette()` does not
+sort plain text, and `order()` does not move its colors: it assigns them in the
+order the values first appear in the table. The first row here is a profit, so
+the palette would give firebrick to the profits. Declaring the order as loss,
+then profit, gives firebrick to the losses, and the legend lists them in that
+order. The colors then stay with their results, even if next year's table
+starts with a loss. R spells that with a factor's levels, and the other three
+bindings with `ordered()`. This is the same mechanism as [Declaring the order
+of categories](../data.qmd#declaring-the-order-of-categories).
 
-Red for loss and green for gain is one common convention. It is also the hardest
-pair to separate for red-green color blindness, the most common kind. Texture
-solves that and keeps the colors, by giving each result its own hatch as well as
-its own color: see [Texture](#texture) below, and [Will it survive a
-photocopier?](../cookbook/three-or-more.qmd) in the cookbook.
+Red for loss and green for profit is one common convention. It is also the
+hardest pair to separate for red-green color blindness, the most common kind.
+Texture solves that and keeps the colors, by giving each result its own texture
+as well as its own color: see [Texture](#texture) below, and [Will it read in
+gray?](../cookbook/three-or-more.qmd#will-it-read-in-gray) in the cookbook.
 
 ## Horizontal bars
 
 Sometimes the bars should be horizontal. The category names may be too long for
-the
-bottom axis. Or there may be many categories, and a list of rows reads more
-easily than a row of columns. Swap the bindings. If you know ggplot2's
-`coord_flip()` or matplotlib's `barh()`, there is no such word here, because it
-would be a second way to say one thing. Put the categories on `y` and the
-measure on `x`:
+the bottom axis. Or there may be many categories, and a tall list of horizontal
+bars reads more easily than a crowded row of vertical ones. Swap the bindings,
+and put the categories on `y` and the measure on `x`:
 
 ```{r}
 data(medals) + bar + x(gold) + y(country) +
   title("Categories on y: horizontal bars")
 ```
 
-gog takes the orientation from the bindings. The axis with the number is the
-one the bars grow along, so their length is read on it. The axis with the
+If you know ggplot2's `coord_flip()` or matplotlib's `barh()`, gog has no such
+word, because it would be a second way to say one thing. gog takes the
+orientation from the bindings. The axis with the number is the one the bars
+grow along, so their length is read on it. The axis with the
 category is the one the bars are placed on, one slot each. Nothing else
 changes: `order`, transforms such as `sum` and `bin`, `color` and `style()` all
 behave identically.
 
-This is what you want whenever the category names are long, because a vertical
-axis gives each label a whole line instead of a cramped slot:
+Horizontal bars help most when the category names are long. On a vertical axis
+each label is written across the page, so it does not have to fit inside one
+slot:
 
 ```{r}
 #| echo: false
@@ -261,21 +274,31 @@ data(departments) + bar + x(headcount) + y(department) +
 ```
 
 `order` means the same thing in both orientations: the first category in sort
-order is drawn first. Descending puts the largest bar leftmost on a vertical
-plot and topmost on a horizontal one.
+order takes the first slot. Descending puts the largest bar leftmost on a
+vertical plot and topmost on a horizontal one.
 
 Orientation is only ambiguous if neither axis is categorical. In that case gog
-draws vertically, so `x(year) + y(sales)` is a column chart. To lay that out
-horizontally, name the measure on `x`.
+draws vertically, so `x(year) + y(sales)` gives vertical bars. Swapping the two
+does not make them horizontal. With two continuous columns, gog always
+measures the one on `y`. So `x(sales) + y(year)` still draws vertical bars, and
+each bar's length is a year, such as 2019. For horizontal bars, make the year a
+category and put it on `y`: store the years as text, such as `"2019"`, and each
+year gets a slot of its own.
 
 A bar needs something to measure, so two categorical axes are refused.
 [What it refuses](#what-it-refuses) shows that refusal.
 
 ## Texture
 
-A bar's fill can carry a **texture** as well as a color: a hatch instead of a
-solid block of paint, set with [`style(pattern = )`](../style.qmd). A texture
-reads without color, so a hatched bar chart stays legible in grayscale or a
+The profit and loss bars in [Negative values](#negative-values) are red and
+green, the pair hardest to distinguish for a reader with red-green color
+blindness. Give each result its own texture as well, and that reader can
+separate the bars without seeing color at all.
+
+A bar's fill can carry a **texture** instead of one solid color. On a fill, a
+texture is a **hatch**: a repeated pattern of lines or dots, drawn in the bar's
+color. You set it with [`style(pattern = )`](../style.qmd). A texture does not
+need color, so a hatched bar chart stays legible in grayscale or in a
 black-and-white print:
 
 ```{r}
@@ -286,8 +309,12 @@ data(medals) + bar + x(country) + y(gold) +
 
 *"Given the medals: bars, x is country, y is gold, with pattern hatch."*
 
-The six fill textures are `"solid"` (the default), `"hatch"`, `"crosshatch"`,
-`"stripes"`, `"grid"`, and `"dots"`, drawn here in that order:
+`style(pattern = )` gives every bar in the layer the same texture. To give each
+category its own texture, map a column with the [`pattern()`
+channel](../channels.qmd#pattern), which does for texture what `shape()` does
+for glyphs. The plot below maps the `texture` column with `pattern()`. Each bar
+then shows one of the six fill textures, in this order: `"solid"` (the default,
+a plain fill), `"hatch"`, `"crosshatch"`, `"stripes"`, `"grid"` and `"dots"`:
 
 ```{r}
 texture_order <- c("solid", "hatch", "crosshatch", "stripes", "grid", "dots")
@@ -301,18 +328,18 @@ data(textures) + bar + x(texture) + y(height) + pattern(texture) +
 texture."*
 
 The [style chapter](../style.qmd) shows them beside the dashes a stroke takes,
-because `style(pattern = )` is one name with one meaning per shape. One texture covers the whole layer; to give each color category its
-*own* hatch, map a column with the [`pattern()`
-channel](../channels.qmd#pattern), which does for texture what `shape()` does
-for glyphs.
+because `style(pattern = )` is one name whose meaning depends on the shape: a
+hatch on a fill, a dash on a stroke. For the profit and loss bars, write
+`pattern(result)` beside `color(result)`. The losses then stay solid and the
+profits are hatched, so each result has its own color and its own texture.
 
 ## Histogram
 
 How are the world's life expectancies spread out, and where do most countries
 fall? That is a question about one continuous column, and a bar needs a
-category to stand on. Combine `bar` with the `bin` transform to create a
-histogram. `bin` groups
-continuous `x` values into equal-width bins and counts the rows in each:
+category to sit in. The `bin` transform makes those categories: it cuts the
+`x` axis into equal-width intervals, called bins, and counts the rows in each.
+Combine `bar` with `bin` to create a histogram:
 
 ```{r}
 #| echo: false
@@ -328,16 +355,17 @@ data(gapminder_2007) + bar * bin + x(life) + y(count) +
 *"Given gapminder 2007: bars derived by bin, x is life, y is count."*
 
 Thickness is automatic, and it is the clearest way a histogram and a bar chart
-differ on the page. A **categorical** bar fills 80% of the slot its category
-owns, and the empty fifth is what reads as "separate categories". A histogram
-cuts a continuous axis into adjacent intervals, so nothing sits between one bin
-and the next and the bars **touch**, with a thin line in the panel's background
-color to keep them readable. You set nothing in either plot. The bar chart at
-the top of this chapter and this histogram both take their thickness from the
-axis the bars sit on.
+differ on the page. A categorical bar fills 80% of its slot, which leaves a gap
+between neighboring bars. That gap is what reads as separate categories. A
+histogram cuts a continuous axis into adjacent intervals, so nothing sits
+between one bin and the next and the bars *touch*. A thin line in the panel's
+background color is drawn between neighboring bars, so each one can still be
+seen. You set nothing in either plot. The gold medal chart in
+[Basic usage](#basic-usage) and this histogram both take their thickness from
+the axis the bars sit on.
 
-`bin` is not the bar's own transform. Four other marks cut the same bins, and
-only the shape changes:
+`bin` is not the bar's own transform. Four other marks can draw the same bins,
+and only the shape changes:
 
 | Mark derived by `bin` | Shape |
 |---|---|
@@ -347,12 +375,13 @@ only the shape changes:
 | `step * bin` | the staircase outline, drawn in [Step](step.qmd) |
 | `bar * bin` | filled bars, the histogram above |
 
-`zone * bin` cuts two axes instead of one, which is the heatmap in
-[Zone](zone.qmd).
+`zone * bin` and `surface * bin` cut two axes instead of one: the heatmap in
+[Zone](zone.qmd) and the sheet in [Surface](surface.qmd).
 
-How fine the cut is decides what the histogram shows. Left alone, `bin` picks
-the number of bins from the number of rows, by Sturges' rule. Name a width to
-cut the axis in the data's own units, here five years:
+The width of each bin decides what the histogram shows. With no argument, `bin`
+picks the number of bins from the number of rows, by Sturges' rule
+[@sturges1926]. The 142 countries here get 9 bins. Name a width to cut the axis
+in the data's own units, here five years:
 
 ```{r}
 data(gapminder_2007) + bar * bin(width = 5) + x(life) + y(count) +
@@ -362,12 +391,15 @@ data(gapminder_2007) + bar * bin(width = 5) + x(life) + y(count) +
 
 *"Given gapminder 2007: bars derived by bin at width 5, x is life, y is count."*
 
-`bin(30)` sets a count instead. Both belong to the transform, and [Choosing the
-bin count](../transforms.qmd#choosing-the-bin-count) shows what each does to
-the picture.
+`bin(30)` sets the number of bins instead. Both belong to the transform, and
+[Choosing the bin count](../transforms.qmd#choosing-the-bin-count) shows what
+each does to the picture.
 
-A histogram turns on its side by the same rule. Bind the measured column to `y`
-and the count is drawn along `x`:
+A histogram can also be horizontal, by the rule in
+[Horizontal bars](#horizontal-bars). Bind the column you are binning to `y`,
+and the count is drawn along `x`. The sentence does not have to name the
+count: `bin` computes it and draws it on the other axis, so `y(count)` in the
+first histogram was optional:
 
 ```{r}
 data(gapminder_2007) + bar * bin + y(life) +
@@ -377,10 +409,11 @@ data(gapminder_2007) + bar * bin + y(life) +
 
 ### Overlaid histograms: one distribution per group {#overlaid-histograms}
 
-Add `color` and the histogram **splits**: one histogram per category, cut on the
-same bins and drawn in the same panel. This answers the question a single
-combined histogram cannot: not "how is petal length distributed?" but "how is it
-distributed *for each species?*"
+The iris flowers table holds measurements of 150 flowers from three species. A
+single histogram of all the flowers answers "how is petal length distributed?"
+It cannot answer "how is it distributed *for each species*?" Add `color` and
+the histogram *splits*: one histogram per category, cut on the same bins and
+drawn in the same panel.
 
 ```{r}
 #| echo: false
@@ -395,16 +428,16 @@ data(iris_flowers) + bar * bin + x(petal_length) + color(species) +
 *"Given the iris flowers: bars derived by bin, x is petal length, color by
 species."*
 
-The three histograms **overlay**: each drawn in place, measured from the shared
-baseline. If the fills were opaque, the last species drawn would hide the
-others. So each bar is a translucent fill under a solid outline in its own
-color. The outline is what keeps the shape readable where the fills overlap.
-`setosa` sits alone on the left and reads clearly. `versicolor` and `virginica`
-overlap in the middle, and their outlines still separate them. The bins are
-shared across the groups, so the bars align and the overlap is real rather than
-an artifact of three different binnings.
+The three histograms overlay. None of them is moved aside, and all three
+measure from the same baseline. If the fills were opaque, the species drawn
+last would hide the others wherever they overlap. So each bar is a translucent
+fill under a solid outline in its own color. The outline is what keeps the
+shape readable where the fills overlap. `setosa` sits alone on the left and
+reads clearly. `versicolor` and `virginica` overlap in the middle, and their
+outlines still separate them. The groups share the same bins, so their bars
+align, and an overlap in the plot is an overlap in the data.
 
-The fill is faint by default so the series underneath show through.
+The fill is faint by default so the groups underneath show through.
 `style(opacity = )` sets how faint; the outline stays solid whatever you choose:
 
 ```{r}
@@ -416,11 +449,11 @@ data(iris_flowers) + bar * bin + x(petal_length) + color(species) +
 *"Given the iris flowers: bars derived by bin, x is petal length, color by
 species, with opacity 0.6."*
 
-The outline is the series color by default, but you can recolor it:
+The outline is the group's color by default, but you can recolor it:
 `style(border_color = )` sets the border, `style(border_size = )` its width. A
 black border separates the overlapping fills, the way many overlaid histograms
 are drawn. It also stays visible against the light panel, where a white one
-fades:
+disappears:
 
 ```{r}
 data(iris_flowers) + bar * bin + x(petal_length) + color(species) +
@@ -448,23 +481,22 @@ data(iris_flowers) + bar * bin + x(petal_length) + color(species) +
 *"Given the iris flowers: bars derived by bin, x is petal length, color by
 species, with border size 0."*
 
-When the groups overlap so much that the outlines run together, give each
-species its own panel instead. Adding [`| facet(species)`](../faceting.qmd) to
-the sentence draws the same three histograms side by side, on one shared scale.
-
-See [Transforms](../transforms.qmd) for details on `bin` and other transforms.
+When the groups overlap so much that the outlines are hard to distinguish, give
+each species its own panel instead. Adding
+[`| facet(species)`](../faceting.qmd) to the sentence draws the same three
+histograms side by side, on one shared scale.
 
 ## Grouped bars: side by side
 
 How did each continent's life expectancy change between 1957 and 2007? That is a
 comparison inside each category, so each continent needs two bars, one per era.
 A color split alone draws both bars in one slot, the shorter inside the taller.
-To set them **side by side** as a grouped bar chart, add
+To set them side by side as a **grouped bar chart**, add
 [`dodge`](../transforms.qmd). Each group's bar narrows to share the slot, and
 the split reads as a comparison within each category. The `gm_eras` table holds
 two years, 1957 and 2007, with one row per country in each. `mean` averages
-those rows down to one value per continent, and `era` is the column that splits
-them.
+the countries into one value for each continent and era. `era` is the column
+that splits each continent into two bars.
 
 ```{r}
 #| echo: false
@@ -482,10 +514,11 @@ life, color by era."*
 
 `dodge` is a collision modifier: it moves the bars rather than summarizing them,
 so it composes with the statistic (`bar * mean * dodge` here, `bar * count *
-dodge` for tallies). See [Transforms](../transforms.qmd) for the whole family.
+dodge` for tallies). See [Transforms](../transforms.qmd) for all four collision
+modifiers.
 
 `mean` is the right statistic here, and gog will not choose it for you. Write
-`sum` in its place and the sentence still draws:
+`sum` in its place and gog still draws it:
 
 ```{r}
 data(gm_eras) + bar * sum * dodge + x(continent) + y(life) + color(era) +
@@ -496,19 +529,19 @@ data(gm_eras) + bar * sum * dodge + x(continent) + y(life) + color(era) +
 *"Given the gapminder eras: bars derived by sum and dodge, x is continent, y is
 life, color by era."*
 
-Africa's fifty-two life expectancies are added into one bar of 2,850 years.
-Life expectancies do not add. The grammar writes either; the data decides which
-is honest, and [Law 8](../design-laws.qmd#law-8-pronounceable-usable) says why
-gog refuses to decide for you.
+Africa's fifty-two life expectancies for 2007 are added into one bar of 2,850
+years. A sum of life expectancies has no meaning. You may write either
+statistic. Only the data says which one is meaningful, and
+[Law 8](../design-laws.qmd#law-8-pronounceable-usable) says why gog leaves
+that choice to you.
 
 ## Stacked bars: piled up
 
 Sometimes the question is the total as well as the parts: how much is there
-altogether, and how much of it does each group hold? The other way to place a
-color split: instead of side by side, pile the groups
-**on top of each other** with [`stack`](../transforms.qmd). Each bar's height
-becomes the category's total across the groups, and the segments read as parts
-of a whole:
+altogether, and how much of it does each group hold? A color split can be
+placed a second way. Instead of side by side, [`stack`](../transforms.qmd) piles
+the groups on top of each other. Each bar's height becomes the category's total
+across the groups, and the segments read as parts of a whole:
 
 ```{r}
 data(gm_eras) + bar * sum * stack + x(continent) + y(population) + color(era) +
@@ -519,15 +552,15 @@ data(gm_eras) + bar * sum * stack + x(continent) + y(population) + color(era) +
 *"Given the gapminder eras: bars derived by sum and stack, x is continent, y is
 population, color by era."*
 
-`dodge` compares the groups (equal baselines, side by side); `stack` sums them
-(one bar, segments piled). Use `stack` when the parts add to a meaningful total
-(populations, counts, revenue), and `dodge` when you are comparing the groups.
-Note which statistic each one takes: you stack `sum` of population, because
-quantities add, while the dodge example compared `mean` of life, because averages
-do not.
+`dodge` sets the groups side by side, all on one baseline; `stack` piles them
+into one bar, whose height is their total. Use `stack` when the parts add to a
+meaningful total (populations, counts, revenue), and `dodge` when you are
+comparing the groups. The two examples also use different statistics. You stack
+the `sum` of population, because quantities add, and you dodge the `mean` of
+life, because averages do not.
 
-The grouped bars above have a mirror here. `mean` in place of `sum` draws too,
-and piles two averages into a bar that reads as their total:
+A stack accepts the wrong statistic as well. gog draws `mean` in place of
+`sum`, and piles two averages into a bar that reads as their total:
 
 ```{r}
 data(gm_eras) + bar * mean * stack + x(continent) + y(life) + color(era) +
@@ -538,21 +571,21 @@ data(gm_eras) + bar * mean * stack + x(continent) + y(life) + color(era) +
 *"Given the gapminder eras: bars derived by mean and stack, x is continent, y is
 life, color by era."*
 
-Oceania's pile reaches 150 years. A stack reads as parts of a total, so it
-wants a quantity that has one, which is why this section sums `population` and
-the grouped bars averaged `life`.
+Oceania's pile reaches 150 years. A stack reads as parts of a total, so its
+values must be quantities that add up. That is why this section sums
+`population`, while the grouped bars show the `mean` of `life`.
 
 ### The 100% stacked bar
 
 The population stack answers two questions at once: how large each total is,
-and how it splits. The first answer makes the second too small to read. Asia's
-two eras total 5.4 billion and Oceania's total 0.04 billion,
-so the axis is scaled for Asia and the *split* inside the small continents
-cannot be read. When the split is the question and the total is not, ask for shares.
-`stack(share = TRUE)` divides each segment by its own bar's total. A segment
-then reads as the share of its bar that its group holds, a number from 0 to 1.
-Every bar reaches 1, so all the splits sit on one scale and can be compared
-across continents:
+and how it splits. The totals differ so much that the small continents' splits
+are hard to read. Together, Asia's two eras hold 5.4 billion people, and
+Oceania's hold 0.04 billion. The axis is scaled for Asia, so Oceania's bar is
+too short to show its split at all. When the split is the question and the
+total is not, ask for shares. `stack(share = TRUE)` divides each segment by its
+own bar's total. Each segment then shows its group's share of the bar, a number
+from 0 to 1. Every bar reaches 1, so all the splits sit on one scale and can be
+compared across continents:
 
 ```{r}
 data(gm_eras) + bar * sum * stack(share = TRUE) + x(continent) + y(population) +
@@ -565,25 +598,23 @@ continent, y is population, color by era."*
 With every bar at 1, the question changes. The population stack compared the
 two eras inside one continent, and only for the large ones. This plot compares
 the splits across continents: which population grew the most between the two
-eras. Africa's did: 78% of its two-era total falls in 2007, so its population
-more than tripled. Europe's grew the least: 57%, the closest any continent
-comes to an even split. Neither number can be read from the population stack
-above. This plot, in turn, no longer shows the totals at all, which is why
-Oceania's bar is now as tall as Asia's. The two plots are complementary, each
-answering half of one question. `stack` says how much each continent has, and
-`stack(share = TRUE)` says how it splits. When you need both answers, draw
-both plots.
+eras. Africa's population grew the most. Of its two-era total, 78% falls in
+2007 and 22% in 1957, so it more than tripled. Europe's grew the least: 57% of
+its total falls in 2007, the closest any continent comes to an even split.
+Neither number can be read from the population stack above. This plot does not
+show the totals at all, which is why Oceania's bar is now as tall as Asia's.
+The two plots are complementary, each answering half of one question. `stack`
+says how much each continent has, and `stack(share = TRUE)` says how it splits.
+When you need both answers, draw both plots.
 
-The axis says `Share`, because the numbers are fractions of one now, whatever
-they were before. That is true even though `y(population)` names a column:
-`stack(share = TRUE)` rescales an axis you already named. `Share` alone does
-not say a share of what, so name it yourself with
-`y_label("Share of two-era population")`. It is not
+The axis is labeled `Share` rather than `Population`, because every value is
+now a fraction of its bar's total. `Share` alone does not say a share of what,
+so name it yourself with `y_label("Share of two-era population")`.
+`stack(share = TRUE)` is not
 [`proportion`](../transforms.qmd#proportion-relative-frequency) under another
 name. The two divide by different totals. `proportion` divides by the whole
 plot's total, so its bars still show how large each category is. This one
-divides by the bar's own total. And only this one works on a `sum` of a column,
-which `proportion` has no way to say.
+divides by the bar's own total.
 
 ## What you can set
 
@@ -597,9 +628,10 @@ cat("| Setting | Value |\n|---|---|\n")
 mark_options("bar")
 ```
 
-A bar has no `size`, and that is deliberate. Its position and its value already
-fix how large it is, so a width setting would be a second, conflicting answer.
-What it does have, being a shape with an inside and an outline, is a border.
+A bar has no `size`, and that is deliberate. Its slot and its value already
+decide how large it is, so a thickness setting would be a second, conflicting
+answer.
+A bar is a shape with an inside and an outline, so it does have a border.
 
 A fill, a texture and a border compose, so one layer can carry all three:
 
@@ -613,15 +645,15 @@ data(medals) + bar * sum + x(country) + y(gold) +
 *"Given the medals: bars derived by sum, x is country, y is gold, colored
 goldenrod, with pattern crosshatch, border color black and border size 1."*
 
-The `pattern` values here are the six **fill textures**, not the five dashes a
-`line` takes. The setting has one name, and each mark draws it the way its
-shape allows. A fill takes a hatch, and a stroke takes a dash. Texture survives
-a grayscale printer, where color does not. A plot that will be printed in black
-and white can separate its bars by texture instead of color.
+The `pattern` values here are the six fill textures. A `line` takes five values
+of its own, and only `"solid"` is in both lists. The setting has one name, and
+each mark draws it the way its shape allows. A fill takes a hatch, and a stroke
+takes a dash.
 
 The histogram's bins are not a setting. `bin(30)` and `bin(width = 5)` belong
 to the transform, because they change what is counted, not how a bar is drawn.
-[Histogram](#histogram) shows both.
+[Histogram](#histogram) shows `bin(width = 5)`, and [Choosing the bin
+count](../transforms.qmd#choosing-the-bin-count) shows both.
 
 The [grid of every mark and every setting](../style.qmd#what-you-can-set) shows
 which other marks share this list. What a mark *maps* rather than sets is its
@@ -642,8 +674,8 @@ on a categorical one:
 data(gapminder_2007) + bar * bin + x(continent)
 ```
 
-A category is already one slot per value, which is what `count` is for. The
-refusal says so rather than drawing empty bins.
+To count the rows in each category's slot, use `count`. The refusal names
+`bar * count` rather than drawing empty bins.
 
 Texture is the second refusal. A bar is a fill, so it takes a fill's textures,
 and a dash is a stroke's:
@@ -656,28 +688,30 @@ data(medals) + bar + x(country) + y(gold) + style(pattern = "dashed")
 A bar's outline takes a color and a width, never a dash. `border_color` and
 `border_size` are the only two settings the outline has.
 
-Two categorical positions are the third refusal. The category decides which
-axis the bars stand on, and the number decides how far they reach, as
-[Horizontal bars](#horizontal-bars) explained. With a category on both, there
-is no length left to draw:
+Two categorical positions are the third refusal. The axis with the category
+places the bars, one slot each, and the axis with the number measures how far
+they reach, as [Horizontal bars](#horizontal-bars) explained. With a category
+on both, there is no length left to draw:
 
 ```{r}
 #| error: true
 data(medals) + bar + x(country) + y(country)
 ```
 
-The message names both ways forward: put a number on one axis, or count the
-rows per category with `bar * count`.
+The message names two fixes: put a number on one axis, or count the rows per
+category with `bar * count`.
 
 ## In short
 
-A bar's length is its value, and the measured axis reaches zero unless you state
-your own `limits`. Without a transform one bar is drawn per row, and rows
-sharing a category overlap in one slot. Thickness is never yours to set: 80% of
-the slot for a category, edge to edge for a bin.
+The axis with the category places the bars, and the axis with the number
+measures them. A bar's length is its value, and that axis reaches
+zero unless you state your own `limits`. Without a transform one bar is drawn
+per row, and rows sharing a category overlap in one slot. Thickness is not a
+setting. A categorical bar fills 80% of its slot. A histogram bar fills its
+whole bin, and `bin()` decides how wide a bin is.
 
 ## What comes next
 
-The gap on each side of a bar is what says the categories are separate. Close
-it and you have an [area](area.qmd), filling the region under a boundary for a
-measure that runs without breaks.
+The gap on each side of a bar says that the categories are separate. When the
+positions are continuous, such as the years of a sales series, [Area](area.qmd)
+joins each value to the next and fills the region below them, with no gaps.

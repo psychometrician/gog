@@ -6,26 +6,26 @@ source("R/setup.R")
 ```
 
 How does a question about your data turn into a specification? Reading was
-recognition; writing is recall. Psychologists use those two words for two
-kinds of remembering. Recognition starts from something in front of you, and
-asks only whether you have seen it before. That is what the last chapter did:
-it gave you finished sentences and asked what they say. Recall starts from
-nothing in front of you: you produce the answer yourself. It is the
-harder of the two, and it is what writing a specification asks of you.
+recognition; writing is recall. Psychologists use those two words for two kinds
+of remembering. Recognition starts from something in front of you, and asks only
+whether you have seen it before. That is what [Reading practice](reading.qmd)
+did: it gave you finished sentences and asked what they say. Recall starts from
+nothing in front of you: you produce the answer yourself. It is the harder of
+the two, and it is what writing a specification asks of you.
 
-This chapter works in the recall direction from here on. Three worked examples
-come first, showing the method you will use: start with the minimum sentence,
-look, refine. Five questions follow with nothing in front of you, each answered
-by a sentence you met in the last chapter: write yours before
-you scroll, then check it against the printed one. Last comes the other half
-of writing: what happens when a sentence is wrong, and how quickly a refusal
-teaches the rule.
+From here on, this chapter asks you to recall. Three worked examples come first.
+The first two show the method you will use: start with the minimum sentence,
+look, refine. The third asks you to write the whole sentence at once. Five
+questions follow with nothing in front of you, each answered by a sentence you
+met in Reading practice: write yours before you read on, then check it against
+the printed one. Last comes the other half of writing: what happens when a
+sentence is wrong, and what a refusal tells you to do next.
 
 ## Which continents live longest?
 
-Before reading on, try to write the sentence that will answer it: which mark,
-which transform, which positions? Then build it the way this chapter always
-will. Start with the
+This is the first of the three worked examples. Before reading on, try to
+write the sentence that answers the question above: which mark, which
+transform, which positions? Then build it one step at a time. Start with the
 minimum sentence, the smallest one that shows the data:
 
 ```{r}
@@ -37,20 +37,24 @@ peek(gapminder_2007)
 data(gapminder_2007) + point + x(continent) + y(life)
 ```
 
-*"Given gapminder 2007: points, x is continent, y is life."* Informative, but
-the question asked for a comparison of *typical* values, and this shows every
-country. Swap the mark and give it a derivation; everything else stays:
+*"Given gapminder 2007: points, x is continent, y is life."* The plot is
+informative, but the question asked for a comparison of *typical* values, and
+this one shows every country. Swap the mark and give it a derivation; everything
+else stays:
 
 ```{r}
 data(gapminder_2007) + bar * mean + x(continent) + y(life)
 ```
 
-*"Given gapminder 2007: bars derived by mean, x is continent, y is life."*
+*"Given gapminder 2007: bars derived by mean, x is continent, y is life."* Now
+there is one bar per continent, as tall as the mean life expectancy of its
+countries.
 
-A comparison reads best in order. A categorical column can carry a fixed
-order, declared where the data is made. The order wanted here depends on the
-means this plot just computed, so only the sentence can ask for it: `order()`
-sorts the axis by the column you name:
+Bars are easiest to compare when they are sorted, with the largest first. A
+categorical column can carry a fixed order, declared when the table is built.
+The order you want here depends on the means the plot has just computed, so the
+table cannot carry it. The sentence has to ask for it: `order()` sorts the axis
+by the column you name, and `desc = TRUE` puts the largest first:
 
 ```{r}
 data(gapminder_2007) + bar * mean + x(continent) + y(life) +
@@ -60,14 +64,15 @@ data(gapminder_2007) + bar * mean + x(continent) + y(life) +
 *"Given gapminder 2007: bars derived by mean, x is continent, y is life, ordered
 by life, largest first."*
 
-Three steps, and no step rewrote the sentence: words were added or swapped,
-never restructured. That is what composition gives you: each step keeps every
-word you already wrote.
+That took two changes, and neither rewrote the sentence. Each added or swapped
+words and left the rest in place, which is what composition gives you:
+every word you keep still means the same thing.
 
 ## How do petal lengths differ by species?
 
-The last chapter drew both of these. Write the two sentences from memory: the
-one-variable question first, then the same question split by species.
+Reading practice drew the first two plots below. Write the two sentences from
+memory: the one-variable question first, then the same question split by
+species.
 
 ```{r}
 #| echo: false
@@ -78,7 +83,8 @@ peek(iris_flowers)
 data(iris_flowers) + bar * bin + x(petal_length)
 ```
 
-*"Given the iris flowers: bars derived by bin, x is petal length."*
+*"Given the iris flowers: bars derived by bin, x is petal length."* Now split
+the same bars by species, with one word.
 
 ```{r}
 data(iris_flowers) + bar * bin + x(petal_length) + color(species)
@@ -88,7 +94,7 @@ data(iris_flowers) + bar * bin + x(petal_length) + color(species)
 species."*
 
 If the overlapping bars are hard to compare, one mark changes that: `step`
-draws each bin's height as an unfilled line, so the three species never cover
+draws each bin's height as an outline with no fill, so the three species never cover
 each other:
 
 ```{r}
@@ -98,15 +104,17 @@ data(iris_flowers) + step * bin + x(petal_length) + color(species)
 *"Given the iris flowers: step outlines derived by bin, x is petal length, color by
 species."*
 
-The transform never changed. `bin` cut the same intervals all three times;
-only the mark drawing them changed. A derivation you learn once works with
-every mark that can take it.
+The transform never changed. `bin` cut the same intervals all three times; what
+changed was the color split, and then the mark drawing them. A transform you
+learn once works with every mark that can take it.
 
 ## Where is the world's wealth, and its health?
 
-Income and life expectancy fill both positions. A reader also wants to know how
-many people each dot stands for. Chapter one built this sentence step by step.
-Write it in one pass now, adding `size` for population, then check:
+The first two questions were each about one measurement. This one is about two,
+income and life expectancy, and they fill both positions. A reader also wants to
+know how many people each dot stands for. [A first plot](first-plot.qmd) built
+this sentence step by step. Write the whole sentence now, adding `size` for
+population, then check:
 
 ```{r}
 data(gapminder_2007) + point +
@@ -116,17 +124,17 @@ data(gapminder_2007) + point +
 ```
 
 *"Given gapminder 2007: points, x is gdp on a log scale, y is life, color by
-continent, size by population."* Three atoms added to the minimum
-sentence (`color`, `size` and `title`; the log scale is written inside `x`
-rather than counting as a word), and still no new grammar in it.
+continent, size by population."* Three atoms were added to the minimum
+sentence: `color`, `size` and `title`. The log scale is written inside `x`, so it
+adds no word, and the sentence still uses no new grammar.
 
 ## Five questions, nothing in front of you
 
-Each question below matches one plot from the last chapter. Write your
+Each question below matches one plot from Reading practice. Write your
 sentence first; the printed one is there to check against, not to read first.
 
 Which countries won the most gold? Every country name has to stay readable,
-so lay the bars down.
+so the bars should be horizontal.
 
 ```{r}
 #| echo: false
@@ -137,8 +145,9 @@ peek(medals)
 data(medals) + bar + x(gold) + y(country)
 ```
 
-*"Given the medals: bars, x is gold, y is country."* One swap of the two
-bindings lays the bars down, and no new word was needed.
+*"Given the medals: bars, x is gold, y is country."* The two bindings
+were swapped: `gold` on `x`, `country` on `y`. That makes the bars horizontal,
+and no new word was needed.
 
 How is life expectancy distributed, drawn as a smooth curve rather than
 counted into bins?
@@ -147,8 +156,9 @@ counted into bins?
 data(gapminder_2007) + line * density + x(life)
 ```
 
-*"Given gapminder 2007: a line derived by density, x is life."* The
-histogram's sibling: one atom swapped, same question.
+*"Given gapminder 2007: a line derived by density, x is life."* A histogram
+answers the same question; here `line` replaces `bar`, and `density` replaces
+`bin`.
 
 How did life expectancy move across the decades in the five Asian countries,
 one line per country?
@@ -163,19 +173,20 @@ data(gapminder_asia) + line + x(year) + y(life) + color(country)
 ```
 
 *"Given gapminder Asia: lines, x is year, y is life, color by country."*
-`color` splits first and colors second, exactly as it did in the last
-chapter.
+`color` does two things here. It splits the rows into one line per country,
+then gives each line its own color, exactly as it did in Reading practice.
 
-Does the wealth and health relationship hold inside each continent, one
-panel per continent?
+Do richer countries also live longer inside each continent, one panel per
+continent?
 
 ```{r}
 data(gapminder_2007) + point + x(gdp, scale = "log") + y(life) | facet(continent)
 ```
 
 *"Given gapminder 2007: points, x is gdp on a log scale, y is life, split
-into panel columns by continent."* The `|` and its facet, with scales shared
-across panels.
+into panel columns by continent."* The `|` operator and `facet` split the
+plot into panels. All the panels share one pair of scales, so they can be
+compared.
 
 Do the three iris measurements separate the species when seen together?
 
@@ -189,11 +200,14 @@ data(iris_flowers) + point +
 petal length, color by species."* The cube again, and you wrote it yourself
 this time.
 
-## When the engine says no
+## When gog says no
 
-You will write wrong sentences. Everyone does. gog's design promise is
-that a wrong sentence is refused *with a direction*, never drawn with the
-wrong part quietly left out. Here are the refusals you are most likely to see
+Every sentence so far was correct. The other half of writing is what happens
+when one is not.
+
+You will write wrong sentences. Everyone does. gog promises that a wrong
+sentence is refused *with a direction*, never drawn with the wrong part quietly
+removed. Here are the refusals you are most likely to see
 first.
 
 Forgetting to bind the table. The sentence must start with the data:
@@ -203,8 +217,8 @@ Forgetting to bind the table. The sentence must start with the data:
 gapminder_2007 + point + x(gdp) + y(life)
 ```
 
-Each binding words that advice for its own spelling of a column, so this one
-refusal is shown in R alone.
+The message above is R's. Each binding writes this advice with its own way of
+naming a column.
 
 Quoting a column name, a habit from other packages. The refusal names the
 fix:
@@ -214,6 +228,9 @@ fix:
 data(gapminder_2007) + point + x("gdp") + y("life")
 ```
 
+That message is R's too. Python and JavaScript name the fix `x(col.gdp)`, and
+Julia names it `x(:gdp)`.
+
 Mapping a channel to a column that cannot answer its question. `size`
 encodes magnitude, and a category has none:
 
@@ -222,37 +239,37 @@ encodes magnitude, and a category has none:
 data(gapminder_2007) + point + x(gdp) + y(life) + size(continent)
 ```
 
-Forgetting the column a summary reads. The refusal names the missing `y`
-first, because the bar cannot stand without it:
+Forgetting the column a summary reads. The refusal names the missing `y`,
+because `mean` must be told which column to average:
 
 ```{r}
 #| error: true
 data(gapminder_2007) + bar * mean + x(continent)
 ```
 
-Binning a category. `bin` cuts a continuous axis, and the refusal points
-at the atom that does count categories:
+Binning a category. `bin` cuts a continuous axis, and the refusal names
+`count`, the transform that tallies rows per category:
 
 ```{r}
 #| error: true
 data(gapminder_2007) + bar * bin + x(continent)
 ```
 
-Each message names the rule and the fix. Nothing was drawn without telling
-you, and no binding was dropped to complete the plot. Read any refusal outside
-this list the same way: it names the law the sentence broke, and it names the
-fix.
+Each message names the rule and the fix. No wrong plot was drawn, and no binding
+was dropped to complete one. Read any refusal outside this list the same way.
 
-The last three refusals close with a second offer: set `GOG_STRICT=0` and draw
+The last three refusals end with a second option: set `GOG_STRICT=0` and draw
 the plot anyway. The first two never reach the engine, so there is nothing to
 draw. `GOG_STRICT` is an environment variable, and [Drawing it
-anyway](design-laws.qmd#drawing-it-anyway) shows what it does to each kind of
-refusal, with the one line that sets it in each language. For now, make the
+anyway](design-laws.qmd#drawing-it-anyway) shows which refusals `GOG_STRICT`
+affects, with the one line that sets it in each language. For now, make the
 fix the message asks for: at this stage the refusals are the lesson.
 
 ## The morning checkpoint
 
-If you started this part in one sitting, check yourself against its promise:
+That is the whole method: start with the minimum sentence, look, refine, and read
+the refusal when one comes. If you have read this part from the start, check
+yourself against what it promised:
 
 - Read any sentence in this book aloud before looking at its plot.
 - Given a question (*distribution? comparison? relationship? change over
@@ -260,12 +277,14 @@ If you started this part in one sitting, check yourself against its promise:
 - Predict whether a sentence will render or refuse, and roughly what the
   refusal will say.
 
-If that mostly works, the morning worked. Or go straight to [the
-cookbook](cookbook/one-variable.qmd) and answer your own questions, following a
-link back whenever a recipe uses a word you want explained.
+If you can do most of that, the morning has reached its goal. You can read the
+next part in order, or go directly to [the cookbook](cookbook/one-variable.qmd)
+and answer your own questions, following a link back whenever a recipe uses a
+word you want explained.
 
 ## What comes next
 
-A morning teaches the shape of a sentence, not the range of any one word.
+A morning teaches the shape of a sentence. It does not show everything one word
+can do.
 [Data](data.qmd) opens the letters with the table every sentence starts from:
 the shape gog needs, and what gog does with the columns it finds.

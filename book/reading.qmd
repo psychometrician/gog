@@ -5,11 +5,11 @@
 source("R/setup.R")
 ```
 
-Can you tell what a plot shows before you see it? You have the vocabulary; now
-read with it. Ten plots follow, ending in a cube. For each one: read the
-specification aloud before looking at the picture, then check the picture
-against what you said. The English sentence is given under each plot. Try to
-say it yourself first.
+Can you say what a plot will look like from its specification alone? You have
+the vocabulary; now read with it. Ten plots follow, ending in a cube. For each
+one: read the specification aloud before looking at the picture, then check the
+picture against what you said. The English sentence is given under each plot.
+Try to say it yourself first.
 
 ## Gold medals by country
 
@@ -26,11 +26,11 @@ data(medals) + bar + x(country) + y(gold)
 ```
 
 *"Given the medals: bars, x is country, y is gold."* A bar measures an
-amount from zero, so the categories sit on x and the number on y. No
-transform anywhere: `bar` draws the numbers exactly as they arrive in the
-table.
+amount from zero, so the amount needs a continuous axis and the category takes
+the other one. The bindings put countries on `x` and gold on `y`. There is
+no transform here. `bar` draws the numbers exactly as the table gives them.
 
-## The same bars, lying down
+## The same bars, horizontal
 
 A medal table is usually printed as a list, with the leader at the top. The
 same five counts can be read that way.
@@ -40,16 +40,19 @@ data(medals) + bar + x(gold) + y(country)
 ```
 
 *"Given the medals: bars, x is gold, y is country."* Swap which axis carries
-the category and the bars lie down. There is no "horizontal bar" atom, and no argument that
-flips one: orientation is read off the bindings, because the sentence
-already says which axis holds the category.
+the category and the bars become horizontal. There is no "horizontal bar" atom,
+and no argument that turns the bars. The sentence already says which axis holds
+the category, so the orientation follows from the bindings.
 
 ## One measurement's shape
 
-Do petal lengths gather around one typical value, or do they fall into groups?
-One measurement answers that, and it comes from a new table. `iris_flowers`
-holds one row per flower: four measurements, and the species the flower
-belongs to.
+The first two plots drew five counts that were already in the table. Often a
+table holds only measurements, and no counts.
+
+Do petal lengths gather around one typical value, or do they separate into
+groups? One measurement answers that, and it comes from a new table.
+`iris_flowers` holds one row per flower: three measurements, and the species
+the flower belongs to.
 
 ```{r}
 #| echo: false
@@ -61,15 +64,16 @@ data(iris_flowers) + bar * bin + x(petal_length)
 ```
 
 *"Given the iris flowers: bars derived by bin, x is petal length."* The `*`
-derives: `bin` cuts the axis into intervals and counts rows into them, and
-`bar` draws the counts. You did not bind `y`; `bin` invents the count, and
-the axis says `Count`. Note the two peaks. Plot eight explains them.
+derives the counts: `bin` cuts the axis into bins and counts the rows in each,
+and `bar` draws them. You did not bind `y`. `bin` invents the count itself, so
+the `y` axis is labeled `Count`. Note the two
+peaks. Plot eight explains them.
 
 ## The same question, smoothly
 
-Bars jump from one bin to the next, and sometimes you want a distribution as
-one smooth curve instead. The measurement this time is life expectancy, across
-the 142 countries.
+A histogram draws the shape as flat steps, one per bin, and sometimes you want
+one smooth curve instead. The measurement this time is life
+expectancy, across the 142 countries.
 
 ```{r}
 #| echo: false
@@ -80,41 +84,45 @@ peek(gapminder_2007)
 data(gapminder_2007) + line * density + x(life)
 ```
 
-*"Given gapminder 2007: a line derived by density, x is life."* Same question
-as the histogram (*how is this measurement distributed?*), different
-derivation. Swapping one atom gives the smooth estimate instead of the binned
-one.
+*"Given gapminder 2007: a line derived by density, x is life."* The question is
+the same as the histogram's: how is this measurement distributed? The answer is
+drawn differently. `density` replaces `bin`, and `line` replaces `bar`, because
+a smooth estimate is one curve, not many bars.
 
-## One dot per country, grouped by continent
+## One strip of dots per continent
 
-Do the continents differ in life expectancy, and how widely do the countries
+The density curve in plot four reduced 142 countries to one shape. Do the
+continents differ in life expectancy, and how widely do the countries
 inside each one vary? Both answers are visible when every country is shown.
 
 ```{r}
 data(gapminder_2007) + point + x(continent) + y(life)
 ```
 
-*"Given gapminder 2007: points, x is continent, y is life."* A categorical x
-gives each category a slot, and the points for that category sit in a strip
-above it. That is the rule that placed bars on country slots in plot one,
-working here on a different mark. A plot shaped like this one has a name: the
+*"Given gapminder 2007: points, x is continent, y is life."* A categorical `x`
+gives each category a slot on the axis, and that category's points sit in a
+strip above the slot. The same rule placed bars on country slots in plot one.
+Here it applies to a different mark. A plot shaped like this one has a name: the
 **strip plot**.
 
 ## The typical value per continent
 
-You often want one number per continent, its average, rather than the spread
-of every country.
+You often want one number per continent, its average, instead of 142 separate
+values.
 
 ```{r}
 data(gapminder_2007) + bar * mean + x(continent) + y(life)
 ```
 
 *"Given gapminder 2007: bars derived by mean, x is continent, y is life."*
-The strip plot above showed every country; `* mean` reduces each continent to
-one value, its average. Here `y(life)` names the column the mean *reads*: a
-transform that reads a column makes you say which one.
+Each bar is one continent's average. Here `y(life)` names
+the column that `mean` averages, because a transform that reads a column must
+be told which column.
 
 ## Five countries across the decades
+
+Plots four to six show only 2007. A question about change needs many years,
+so the next plot uses another table.
 
 How has life expectancy changed since 1952, and did five Asian countries
 change at the same rate? `gapminder_asia` holds one row per country *and
@@ -144,30 +152,34 @@ data(iris_flowers) + bar * bin + x(petal_length) + color(species)
 ```
 
 *"Given the iris flowers: bars derived by bin, x is petal length, color by
-species."* The two peaks from plot three now sit in separate histograms, one
-per species. All three use the same bin edges, and each is drawn where its own
-values fall. Each fill is translucent under a solid outline, so every
-histogram stays visible. `color` does the splitting here, the way
-it split the lines in plot seven: same word, same rule.
+species."* The left peak is setosa alone. The right peak is versicolor and
+virginica together, because their petal lengths overlap. All three histograms
+use the same bin edges, and each one is drawn where its own species' values
+fall. Each fill is translucent under a solid outline, so every histogram stays
+visible. `color` splits the rows here into one histogram per species,
+by the same rule as in plot seven.
 
 ## One panel per continent
 
-Richer countries live longer across the world as a whole. Does the same
-pattern hold inside each continent?
+Richer countries live longer across the world as a whole, as the first chapter
+showed. Is that also true inside each continent?
 
 ```{r}
 data(gapminder_2007) + point + x(gdp, scale = "log") + y(life) | facet(continent)
 ```
 
 *"Given gapminder 2007: points, x is gdp on a log scale, y is life, split into
-panel columns by continent."* The `|` operator splits the plot into panel
+panel columns by continent."* Inside each continent, life expectancy also rises
+with income. The rise is clearest in Europe and Asia and least clear in Africa,
+where the points are most scattered. The `|` operator splits the plot into panel
 columns, one panel per category. All the panels share one pair of scales, so
-they can be compared.
+they can be compared. As in the first chapter, `scale = "log"` spreads out the
+countries that would otherwise crowd against the left edge.
 
 ## Three measurements on three axes
 
 Petal length alone left two species overlapping in plot eight. Two more
-measurements might separate them, if all three can be seen at once.
+measurements might separate them, if all three measurements can be seen at once.
 
 ```{r}
 data(iris_flowers) + point +
@@ -177,20 +189,22 @@ data(iris_flowers) + point +
 
 *"Given the iris flowers: points, x is sepal length, y is sepal width, z is petal
 length, color by species."* The third dimension is not a different package, and not a
-different mark. It is one more position channel, and the sentence grew by one
-word. In the web edition the cube turns with a drag: drag right and the side
-facing you moves right, drag down and it tips. Each angle shows what another
-hides, so try a few.
+different mark. It is one more position channel, and the same specification
+without `z(petal_length)` would draw a flat scatter. In the web edition the cube
+turns with a drag: drag right and the side facing you moves right, drag down and
+it tilts. Every angle hides some points and shows others, so turn the cube more
+than once.
 
 ## What you just did
 
-Ten plots, and twelve distinct words. Every one read left to right
-as *data, mark, positions, refinements*. Nothing you learned for one plot had
-to be unlearned for the next. The same `color` split the bars and lines, and
-colored the points. The same `*` derived counts, means and densities. Now
-you write.
+Those ten plots used twelve distinct words, and every plot reads left to right:
+*data, mark, positions, refinements*. A transform joined the mark and a facet
+came last, exactly where the first chapter put them. The same `color` split the bars
+and lines, and colored the points. The same `*` derived counts, means and
+densities. Each word meant the same thing in every plot that used it.
 
 ## What comes next
 
 Every sentence here was already written, so nothing asked you to choose a mark.
-[Writing practice](writing.qmd) gives you the question and nothing else.
+[Writing practice](writing.qmd) reverses that: it starts from a question and asks
+you to write the sentence.

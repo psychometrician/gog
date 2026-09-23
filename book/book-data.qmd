@@ -8,23 +8,23 @@ source("R/setup.R")
 Where do `gapminder_2007`, `medals` and `winds` come from, and how do you get
 them?
 
-Every chapter of this book uses the same shared tables, listed in full at the
-end of this page. They are published beside the book as CSV files, one per
-table, so you can run any example in this book yourself. Each file has a fixed
-address:
+[Data](data.qmd) was about a table of your own. This chapter is about the shared
+tables that the book's examples draw from, listed in full under
+[The tables](#the-tables). They are published
+beside the book as CSV files, one per table, so you can run any example in this
+book yourself. Each file has a fixed address:
 
 ```
 https://psychometrician.github.io/gog-book/data/<name>.csv
 ```
 
-`gapminder_2007.csv` holds the 142 countries the first chapter plots.
-`medals.csv` holds the medal counts the reading chapter draws, and `winds.csv`
-holds the wind observations the polar chapter draws.
+`gapminder_2007.csv` holds the 142 countries drawn in the chapter
+[A first plot](first-plot.qmd). `medals.csv` holds the medal counts drawn in
+[Reading practice](reading.qmd), and `winds.csv` holds the wind observations
+drawn in [Polar](polar.qmd).
 
 Reading one takes a single call, `gog_table()`, which comes with the package in
-all four languages. Nothing else needs installing. You do not have to use it.
-The files are ordinary CSVs at a fixed address, and any reader that
-takes a web address reads them.
+all four languages. Nothing else needs to be installed.
 
 ## Reading a table
 
@@ -53,47 +53,51 @@ plot(data(gapminder_2007), point, x(col.gdp), y(col.life));)"
 Those four calls draw the same picture, because the table is the same file and
 the engine is the same program.
 
-`gog_table()` also gives each column the right type. A CSV is text, so numbers arrive as
-text and have to be converted. A column becomes numbers when every value in it
-is a number, and stays text otherwise. The `text` argument forces a column to
-stay text. Three columns in these tables need that, and
-[Labels that look like numbers](#labels-that-look-like-numbers), below, explains
-which and why.
+`gog_table()` also decides each column's type. It is right for most columns, but
+not for a label written as a number, or for a date. A CSV is text, so numbers
+arrive as text and have to be converted. A column becomes numbers when every
+value in it is a number, and stays text otherwise. The `text` argument forces a
+column to stay text. Three columns in these tables need that, and [Labels that
+look like numbers](#labels-that-look-like-numbers), below, explains which and
+why.
 
 Why does a graphics package carry a table reader at all? R reads a CSV in one
 call, and Python and Julia in a few. JavaScript has no CSV reader in its
-standard library, so the same work there takes dozens of lines. One country in
-`gapminder_2007.csv` is `"Congo, Dem. Rep."`, and its name holds a comma, so
-splitting each line on commas gives that row seven fields where the header has
-six. Nobody should have to paste dozens of lines of parsing before drawing, so
-each package carries `gog_table()` instead.
+standard library, so the same work there takes dozens of lines. A CSV reader
+cannot simply split each line on commas. Six countries in `gapminder_2007.csv`
+have a comma in the name, `"Congo, Dem. Rep."` among them, so that split gives
+those rows seven fields, while the header has six. Nobody should have to paste
+dozens of lines of parsing before drawing, so each package carries `gog_table()`
+instead.
 
-R's `read.csv()`, `urllib` in Python, `Downloads` in Julia and `fetch` in
-JavaScript are all standard, so `gog_table()` needs nothing beyond the package
-you already installed.
+Each package fetches the file with what its language already has: R's
+`read.csv()`, `urllib` in Python, `Downloads` in Julia and `fetch` in
+JavaScript.
 
-Read a file with a reader of your own, and the rest of this page still applies,
-because `data()` takes any table your session holds. You then do two things
-yourself. Your reader decides each column's type. The three columns named below
-then need whatever it offers for keeping a column as text. And a declared order
-is never in the file, so you declare it after reading, whichever reader you
-use. [Two things a CSV cannot record](#two-things-a-csv-cannot-record) covers
-both.
+Read a file with a CSV reader of your own, and the rest of this page still
+applies, because `data()` takes any table your session holds. You then do two
+things yourself. First, check each column's type: your CSV reader decides it,
+so the three columns named below need whatever that reader offers for keeping a
+column as text. Second, declare the category order, because a CSV never records
+one. You do this after `gog_table()` too.
+[Three things a CSV cannot record](#three-things-a-csv-cannot-record) covers
+both, and dates as well.
 
 Reading a different table is the same call with a different name:
 `gog_table("winds")`, `gog_table("medals")`. A misspelled name is refused, and
-the refusal suggests the nearest published name, or points to the list at the
-end of this page.
+the refusal suggests the nearest published name, or points to the list under
+[The tables](#the-tables).
 
-## Two things a CSV cannot record
+## Three things a CSV cannot record
 
-A CSV records what a value is, and never what kind of thing it is. Two kinds of
-information are therefore lost when the file is written. You restore them when
-you read the file back. Both change the plot, and this page takes each in turn.
+A CSV records the values in a column, and never says what kind of column it is.
+Three kinds of information are therefore lost when the file is written. You
+restore them when you read the file back. Each one changes the plot, and this
+page explains each one.
 
 ### A declared order
 
-The eight compass directions have a fixed order, and a plot of them is correct
+The eight compass points have a fixed order, and a plot of them is correct
 only when it keeps that order. The `winds` table records one wind
 observation per row:
 
@@ -103,7 +107,7 @@ winds <- read.csv("data/winds.csv")
 peek(winds)
 ```
 
-The `direction` column of `winds` holds the eight points of the compass. Their
+The `direction` column of `winds` holds the eight compass points. Their
 order is N, NE, E, SE, S, SW, W, NW, clockwise from north. The
 [Data](data.qmd#declaring-the-order-of-categories) chapter shows how a declared
 order sets the axis, the color assignment and the legend. A CSV cannot record
@@ -111,14 +115,14 @@ that declaration. `gog_table("winds")` therefore returns `direction` as plain
 text, and the declaration is yours to make after reading.
 
 Until you declare it, only the file's own row order keeps the plot correct. The
-winds file lists its rows in compass order, so a plot made without the
-declaration reads correctly. Sort the rows by `speed`, and the same plot
-changes. The directions now follow the sorted rows, and that order has nothing
-to do with the compass. The plot still draws, and nothing on it shows that the
+winds file lists its rows in compass order, so a plot of `direction` made
+without the declaration reads correctly. Sort the rows by `speed`, and the same
+plot changes. The compass points now follow the sorted rows, and that order is not
+the compass order. The plot still draws, and nothing on it shows that the
 compass is in the wrong order.
 
-The example below reads the table, sorts it by `speed`, and then declares the
-compass order:
+The example below reads the table, sorts it by `speed` so that the rows are no
+longer in compass order, and then declares the compass order:
 
 ```{r}
 #| echo: false
@@ -171,10 +175,10 @@ data(winds) + bar * count + x(direction)
 *"Given the winds: bars derived by count, x is direction."*
 
 The rows are in speed order, and the axis still reads N to NW. The declared
-order decides the axis, not the order of the rows. The [polar](polar.qmd)
-chapter draws this same count as a wind rose, and the change is one word. Add
-`polar()`, and the axis bends into a circle, with N at the top and the rest
-clockwise from it. The declared order goes with it:
+order decides the axis, not the order of the rows. A declared order is kept when
+the space changes. The [polar](polar.qmd) chapter draws this same count as a
+wind rose, and the change is one word. Add `polar()`, and the axis bends into a
+circle, with N at the top and the rest clockwise from it:
 
 ```{r}
 data(winds) + bar * count + x(direction) + polar()
@@ -182,13 +186,16 @@ data(winds) + bar * count + x(direction) + polar()
 
 *"Given the winds: bars derived by count, x is direction, in polar."*
 
-The polar chapter explains that plot. Here it shows that a declared order
-survives a change of space. The circle starts at the first category and runs
-clockwise through the rest, so the compass reads correctly in both.
+The polar chapter explains that plot. The circle starts at the first
+category and runs clockwise through the rest, so the compass reads correctly in
+the flat plot and in the circle.
 
-The sort exists only to undo the file's compass order. The declaration is the
-part you keep. Declare it once after each `gog_table("winds")`, and every plot
-drawn from `winds` in the rest of the book reads the compass in order.
+The sort exists only to undo the file's compass order. Keep the declaration in
+your own code, and drop the sort. `winds` needs a second declaration, for `season`:
+the book's plots show Summer before Winter, and the file lists Winter first.
+Three other tables need one too: `survived` in `titanic` (Yes, then No), `slab`
+in `quakes_fiji` (shallowest band first) and `weekday` in `six_weeks` (Monday
+first).
 
 ### Labels that look like numbers
 
@@ -219,9 +226,11 @@ const gm_eras = await gog_table("gm_eras", ["era"]);)"
 )
 ```
 
-Without it, `age` becomes numbers, and an axis that should show one slot per
-age band is drawn as a numeric scale from 0 to 85. The plot looks reasonable,
-so nothing tells you the axis is wrong.
+Without the `text` argument, `age` becomes numbers. A `point` or a `line` then
+places the bands along a continuous axis from 0 to 85. The plot looks
+reasonable, so nothing tells you the axis is wrong. The population pyramid in
+[Many groups](cookbook/groups.qmd) is refused, because it sorts the bands with
+`order()`, and `order()` needs a categorical axis.
 
 Each call above names one column, and a `text` argument can name more than
 one. `gm_eras` holds the same values in two columns: `year` as a number, `era`
@@ -240,19 +249,33 @@ spellings(
 
 Each language writes more than one name in its own way. R puts them inside
 `c()`, Python inside parentheses, and Julia and JavaScript inside square
-brackets. Only R's spelling changes from the block above. The other three
-already put one name inside parentheses or brackets, so a second name joins it
-there.
+brackets. Python no longer needs the comma that follows a single name. Julia
+and JavaScript only add the second name inside the brackets.
+
+Only `census`, `sessions` and `gm_eras` need a `text` argument; no other shared
+table does.
+
+### A date
+
+The third thing a CSV cannot record is which columns are dates. `six_weeks`,
+`revenue` and `monitoring` each have a column of dates, and `gog_table()`
+returns it as text, so the axis gets one slot per date instead of a calendar
+axis. After reading, convert the column to your language's date or timestamp
+type: in R, `as.Date()` for `six_weeks` and `revenue`, and `as.POSIXct()` for
+`monitoring`, which also records the hour.
+[Scales](scales.qmd#time-a-date-column-gets-a-calendar-axis) shows the calendar
+axis you get.
 
 ## The tables
 
-Those three tables need a column named in a `text` argument, and no other
-shared table does. The list below names every shared table this book reads,
-with its rows and columns. The [preface](index.qmd#the-cast) introduces the
-eight families of table that most plots read. A family can cover more than one
-name below, so the list is longer than eight. Every other table is introduced
-on the page that first draws it. Each name goes in place of `<name>` in the
-address at the top of this page. The same name is what you give `gog_table()`:
+The list below names every shared table this book reads, and how many rows and
+columns each one has. The [preface](index.qmd#the-cast) introduces the eight
+families of table that most plots read. A family can cover more than one name
+below, so the list is longer than eight.
+
+Tables outside those families are introduced on the page that first draws them.
+Each name goes in place of `<name>` in the address at the top of this page. The
+same name is what you give `gog_table()`:
 
 ```{r}
 #| echo: false
@@ -266,17 +289,17 @@ knitr::kable(info, row.names = FALSE)
 ```
 
 Not every table here holds real data. The tables whose names begin with
-`gapminder` or `gm` hold real figures from the Gapminder Foundation, released
-into the public domain. `iris_flowers`, `maunga_whau`, `quakes_fiji` and
-`titanic` are reshaped from tables included with R, and carry R's own
-license. `world_borders` is Natural Earth's public-domain outline of the
-countries. Everything else was written for this book, each table to show one
-thing; `census` is two plausible city profiles, not a real census. The terms
-for each are in [`data/LICENSE.md`](data/LICENSE.md).
+`gapminder` or `gm` hold figures from the Gapminder Foundation, which released
+them into the public domain. `healthy_band`, `world_median` and
+`population_spikes` are computed from those figures. `iris_flowers`,
+`maunga_whau`, `quakes_fiji` and `titanic` are reshaped from tables included
+with R, and carry R's own license. `world_borders` is Natural Earth's
+public-domain outline of the countries. Everything else was written for this
+book, each table to show one thing; `census` is two plausible city profiles, not
+a real census. The terms for each are in [`data/LICENSE.md`](data/LICENSE.md).
 
 ## What comes next
 
-A table names the rows, and names nothing you can see on the page.
-[Choosing a mark](marks/index.qmd) picks the shape that draws them, one of
-fourteen, by the question you are asking and the columns you have to answer it
-with.
+A table holds the rows, and says nothing about how they look on the page.
+[Choosing a mark](marks/index.qmd) shows how to pick the mark that draws them.
+There are fourteen, and your question and your columns decide which one fits.

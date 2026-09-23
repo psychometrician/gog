@@ -58,30 +58,31 @@ This preface is unusually long. It explains where the grammar comes from, and
 why it refuses what it refuses. You do not need any of it to draw a plot. If
 you would rather start now, take the install command for your language from
 [Installing gog](#installing-gog). Then go straight to [Part I, A
-morning](parts/morning.qmd), which teaches the whole grammar in one sitting.
+morning](parts/morning.qmd), which teaches the whole grammar in a single reading.
 Nothing in it depends on this page, and you can come back here later.
 
 ## *A* grammar, not *the* grammar
 
-Wilkinson opens his book by defending the definite article in his title, the
-word *The*. His grammar is a formal system: a fixed set of rules that states
+The two titles differ in one small word: Wilkinson's says *The*, and this
+book's says *A*. Wilkinson opens his book by defending the definite article in
+his title. His grammar is a formal system: a fixed set of rules that states
 what it can build and where it stops. Those stated limits are what make the
 claim testable. A looser approach, such as a list of chart types, has no such
 boundary. Nothing says where that list ends, so there is nothing to measure it
 against. A rival cannot even claim to cover more than such a list, because
-the list can always grow. Wilkinson wrote his limits down, and that is why
-*the* is a claim he earned.
+the list can always grow. Wilkinson wrote down where his grammar stops, and
+that is why he may call it *the* grammar.
 
 This book takes the indefinite article on purpose. gog is not a restatement of
 Wilkinson's system, and it is not a subset of it either. His grammar rests on an
-algebra of variable sets, in which `*` crosses, `/` nests and `+` blends, and the
-four operators you will meet in this book mean none of those things. What gog
+algebra of variable sets, in which `*` crosses, `/` nests and `+` blends.
+gog's four operators carry none of those meanings. What gog
 took from him is the inventory rather than the algebra. Most of the names in
 its vocabulary come from his chapters on statistics, geometry, coordinates and
-aesthetics. That is a real debt, and a large one. What gog is instead is a
-deliberately small **kernel** of sources, marks, channels, transforms and
+aesthetics. That is a real debt, and a large one. gog itself is a
+deliberately small **kernel**: sources, marks, channels, transforms and
 operators, with a few more kinds that refine a plot. It grew one decision at a
-time, and it answers to [nine laws](design-laws.qmd) of its own. The kernel is
+time, and it follows [nine laws](design-laws.qmd) of its own. The kernel is
 that whole vocabulary: every name the grammar has, and nothing outside it. The
 five kinds that build a plot are spelled out
 [later in this preface](#the-same-problem-in-graphics), and the rest
@@ -98,23 +99,23 @@ specification, not drawing code: you never place a stroke yourself. You declare
 what you want to see, and then there is a gap (brief, but real, and felt every
 time) before the engine shows you what you said.
 
-Everyone who writes a specification in gog waits in that gap. Reading this
-book, you arrive after the waiting is done. Every plot on these pages was drawn by the engine while the
-page was being built, not pasted in as a screenshot. That waiting is over by the
-time the page reaches you: the plot is already sitting under the code. Run one
-of these code blocks on your own computer, and you do the waiting yourself. An analyst
-stands in it while exploring data, after swapping one channel and before the
-picture changes. The people who build gog stand in it too, for whole sessions,
-waiting to see what a new mark or transform will draw. The package is `gog`;
-the state of working with it is *agog*.
+Everyone who writes a specification in gog waits in that gap. In this
+book the waiting is already over, because the engine drew each plot when the
+page was built. Run one of these code blocks on your own computer, and you do
+the waiting yourself. An analyst exploring data waits there too, after changing
+one part of a specification and before the new plot appears. The people who
+build gog wait there as well, sometimes for hours, to see what a new mark or
+transform will draw. The package is `gog`; the state of working with it is
+*agog*.
 
-gog's hexagonal sticker says that without a sentence. What sits
-inside it is a face. Its eyes are `+` and `*`. Its nose is `/` and `|`, and
+gog's hexagonal sticker shows that state as a picture. What sits inside it is
+a face. Its eyes are `+` and `*`. Its nose is `/` and `|`, and
 its mouth is the package name. Those four symbols are every operator gog has.
 
-The two pairs sit where they do for a reason. `+` and `*` build a single plot,
+Each pair has its own place on the face because the two pairs do different
+jobs. `+` and `*` build a single plot,
 and read as *"…and also…"* and *"…derived by…"*. `/` and `|` arrange finished
-plots, and the panels one plot is split into, and read as *"…below…"* and
+plots, and the panels one plot is split into, and read as *"…above…"* and
 *"…beside…"*. One pair composes inside a picture, the other between pictures.
 The face is the state this
 section has been describing: someone who has written a specification and is
@@ -135,7 +136,7 @@ the *Hunminjeongeum* ("The Correct Sounds for the Instruction of the People"),
 opens by saying why
 [@hunminjeongeum1446]. The spoken language differed from written Chinese, so
 ordinary people "who have something they wish to say are, in the end, unable
-to express their feelings." Therefore, new
+to express their feelings." So Sejong made new
 letters, few and simple, "wishing only that everyone may learn them with
 ease and use them daily, with convenience."
 
@@ -154,7 +155,7 @@ of the cock and the barking of dogs can all be written down.
 
 ## What made the letters learnable
 
-The letters earned those claims through design. The consonants draw the
+The design of the letters is what made those claims true. The consonants draw the
 mouth making the sound. The vowels build from three shapes: ㆍ (*araea*, a vowel
 modern Korean no longer writes), a dot for heaven; ㅡ (*eu*), a flat stroke for
 earth; and ㅣ (*i*), an upright stroke for the human standing between them.
@@ -168,7 +169,8 @@ letter shows a property of the sound it makes.
 
 Twenty-four of Sejong's twenty-eight letters are still in use today. That small number is the usual
 explanation for how quickly Hangeul is learned. English has a small alphabet
-too, and takes years, because its composition is full of exceptions. The
+too, and still takes years to learn, because its spelling is full of
+exceptions. The
 same four letters, *ough*, are pronounced six different ways, and none of the
 six is a rare word:
 
@@ -186,7 +188,8 @@ because its composition has **no exceptions**. An **atom** is a piece
 that nothing divides further, here a single letter. The power is not the atoms.
 It is the regularity with which they combine.
 
-The opposition understood exactly what would be lost. In 1444 a senior scholar of
+Not everyone at the royal court wanted the new letters, and the people who opposed them
+understood exactly what would be lost. In 1444 a senior scholar of
 the court academy petitioned against the new script. Civilized writing meant
 Chinese characters. The clerks already had a workaround, 이두 (*idu*), and it
 served everyone who had trained in it. And if letters were easy, people would
@@ -198,28 +201,27 @@ has already spent the time to learn that.
 Sejong overruled it. The script outlived a royal ban in 1504 and survived five
 centuries in private letters and popular novels. It was named *Hangeul* around
 1912, and it is today the alphabet of one of the most literate countries on
-earth. Systems that are well defined and easy to use win, in the end, because
-every new learner is one more person choosing them.
+earth. Systems that are well defined and easy to use survive, because every new
+learner is one more person choosing them.
 
 ## The same problem, in graphics
 
-Now look at the tools we draw data with. Most are logographies, writing systems
-in which each symbol stands for a whole word. They are a pile of
-chart types, each memorized as a whole. A histogram function here, a pie
+Now look at the tools used to draw data. Most work like logographies, writing
+systems in which each symbol stands for a whole word. They are lists of chart
+types, each memorized as a whole. A histogram function here, a pie
 function there, each with its own arguments in its own order. That is the
-logographic problem of graphics: not a grammar but a stockpile of
+logographic problem of graphics: not a grammar but a list of
 special cases, usable only after long training.
 
-That problem already had its reformers. Wilkinson found the grammar
-underneath the pile, and ggplot2 carried it into the daily work of hundreds of
-thousands [@wickham2008thesis; @wickham2016ggplot2]. The two of them did for
-graphics what Sejong did for writing. They traded a stack of memorized charts
+That problem already had its reformers. Wilkinson found the grammar that
+those chart types share, and ggplot2 carried it into the daily work of hundreds
+of thousands of people [@wickham2008thesis; @wickham2016ggplot2]. The two of them did for
+graphics what Sejong did for writing. They traded a list of memorized charts
 for a real, generative language, and a better one than anything built before
 it. gog is built on that achievement and in its debt. It adds a single
 ambition of its own, the one Hangeul is famous for: no exceptions in how the
-pieces compose. That is the standard gog holds itself to, and the aim is to
-shorten the distance between the plot you have in mind and the words that
-draw it.
+pieces compose. That is the standard gog sets for itself, and the aim is that
+any plot you can picture is easy to describe in a sentence.
 
 That debt is made of specific things, and naming them is better than a vague
 mention. The `+`
@@ -242,8 +244,9 @@ sentence in this book. That is on purpose. After years of ggplot2, its grammar
 is how I think about visualization, so it is the shape this one took.
 
 What changed is narrower, and it is why this package exists at all. ggplot2
-already derives a histogram, from its bar geom and its binning statistic
-[@wickham2016ggplot2, sec. 3.13]. What it adds is a shortcut name for that
+already derives a histogram, from its bar geom (the shape it draws, which gog
+calls a mark) and its binning statistic (the counting step, which gog calls a
+transform) [@wickham2016ggplot2, sec. 3.13]. What it adds is a shortcut name for that
 pair. gog adds no such name, so writing the pair is the only way to draw a
 histogram. One engine answers four languages, so the sentence you learn in R is
 the sentence you write in Python. And the rules for combining the pieces hold
@@ -257,8 +260,8 @@ letters, and the most regular rule of composition, from which every chart can
 be derived?* Wilkinson's grammar answers what can be drawn
 [@wilkinson2005]. ggplot2 found the shape that made that answer usable, and
 most of how a sentence here is assembled is ggplot2's idea. Hangeul
-disciplines how the pieces compose. Marks are the consonants, silent until placed. Positions are the
-vowels that give them somewhere to stand. A mark and its positions together are
+disciplines how the pieces compose. Marks are the consonants, silent until placed. Positions (channels
+such as `x` and `y`) are the vowels that give them somewhere to stand. A mark and its positions together are
 a syllable, and nothing smaller draws. A histogram is nothing to memorize:
 it is `bar * bin`, a bar mark derived by binning, the way ㅋ (*k*) is derived
 from ㄱ (*g*) rather than invented fresh.
@@ -272,8 +275,9 @@ peek(gapminder_2007)
 data(gapminder_2007) + bar * bin + x(life)
 ```
 
-*"Given gapminder 2007: bars derived by bin, x is life."* That is the whole
-program, and the plot above was drawn from those words as this page built.
+*"Given gapminder 2007: bars derived by bin, x is life."* The code above
+is the whole specification, and the engine drew the plot from it when this
+page was built.
 There is no histogram function in this package and no argument that turns bars
 into one. `data(gapminder_2007)` is the source: it names the table (142
 countries, one year) that supplies the rows and the columns. `bar` is the mark, the shape
@@ -283,13 +287,13 @@ transform, which derives new values from the columns you named: here it cuts a
 continuous column into intervals and counts the rows falling into each. `x` is
 the channel, the visual property a column is mapped to. And `*` is the operator
 that puts a transform on a mark. It is the *derived by* in the sentence above.
-Read `*` as a spinning wheel rather than as a multiplication sign. Its spokes
-show one thing being turned into another.
+Do not read `*` as a multiplication sign, because nothing is multiplied.
 
 Nothing there is memorized. The names are
 ordinary English words, and the rule that joins them never changes. Knowing
-those five parts is knowing this plot, and every other statistical chart in
-this book is the same five kinds of part in a different arrangement.
+those five parts is knowing this plot. Every other statistical chart in this
+book uses some of these same kinds of part, and many need no transform at
+all.
 
 And one law stands over the whole package: *no exceptions*. A rule you learn
 on one mark holds on every mark, or the package has failed you.
@@ -302,18 +306,19 @@ more.
 
 Hangeul can write the crowing of a cock. Hangeul cannot write ㄱㄴ (*g* then
 *n*). A
-syllable is not a pile of letters; it is a set of slots, an initial consonant,
-then a vowel, then an optional final consonant, and each class of letter belongs
-to one of them. Two consonants with no vowel between them fill nothing. ㄱ on
+syllable is not a pile of letters. It is a set of three slots: an initial
+consonant, then a vowel, then an optional final consonant. Consonants fill the
+first and last slots, and a vowel fills the middle one. Two consonants with no vowel between them do not make a syllable,
+because the middle slot is empty. ㄱ on
 its own is silent, and ㅏ (*a*) cannot stand alone either. To write that bare
-sound you supply a carrier for the empty initial slot, and what you write
-is 아 (*a*). The script that
-boasts it can capture the barking of a dog refuses most of the arrangements
-you could make of its own letters.
+sound you supply ㅇ, a silent carrier letter, for the empty initial slot, and
+what you write is 아 (*a*). The same script
+that can write the barking of a dog refuses most arrangements of its own
+letters.
 
 Those are not two facts. They are one. If the slots were removed, and any
 letters could stack in any order, the script would not become more expressive.
-It would become unreadable. A block would no longer tell you how to say it, and
+It would become unreadable. A written syllable would no longer tell you how to say it, and
 you would return to memorizing whole shapes, which is how writing began. The refusals are
 what make the script readable at first sight. A reader meeting a word for the
 first time still knows which part is the consonant, because nothing else could
@@ -330,7 +335,7 @@ loud, and every no points to what you meant instead. That is why this book
 renders its refusals live, on the page, beside the plots that work.
 
 The goal is that one small set of atoms draws every plot, the way one small
-set of letters writes every Korean sound. Neither is a claim of completeness.
+set of letters writes every Korean sound. Neither set claims to be complete.
 
 Hangeul does not write everything. It does not mark tone, and it does not mark
 how fast a syllable is said. Some sounds it cannot spell at all. Those gaps
@@ -347,14 +352,14 @@ breaks no rule of Korean, and no one has ever needed to write it. Its graphics
 equivalent is a color scale (the rule that turns a column's values into
 colors) stretched over three hundred categories. That plot is legal here,
 because well-formedness and usefulness are different judgments, made by
-different judges. The engine guarantees well-formedness, always. Usefulness
-is yours, and it is what most of this book is about.
+different judges. The engine guarantees well-formedness, always. Deciding
+whether a plot is useful is your job, and most of this book is about that.
 
 ## The promise, and the book's rules
 
 This book inherits the 1446 promise, restated for graphics: read the whole
 grammar in a morning; write it fluently within ten days. Part I is built
-to be finished in one sitting. The rest of the book deepens what the
+to be finished in a single reading. The rest of the book deepens what the
 morning introduced; it never replaces it.
 
 Six rules govern every page, and you can hold the book to them:
@@ -364,12 +369,13 @@ Six rules govern every page, and you can hold the book to them:
   sit in this preface (the *Hunminjeongeum* page, the mouth saying ㄱ, and in
   the web edition the cover and the DOI badge) and none of them is a plot.
 - **Questions first.** Every teaching chapter opens with a question about
-  data, never with a feature name.
-- **An ending, not a stop.** Every teaching chapter closes by saying what its
-  subject cannot do, and which chapter answers that. It is not a summary of
+  data, never with a feature name. The teaching chapters are those in
+  [Parts I to IV](#how-this-book-runs).
+- **An ending, not a stop.** Every teaching chapter outside the cookbook closes
+  by saying what its subject cannot do, and which chapter answers that. It is not a summary of
   what you have read.
 - **A small cast.** Eight families of table carry more than two out of three
-  plots in this book. A chapter that needs a frame of its own introduces it
+  plots in this book. A chapter that needs a table of its own introduces it
   where it is drawn. New columns cost the reader attention, so the variety
   stays in the questions.
 - **Read it aloud.** The first specification in every teaching chapter is
@@ -380,18 +386,19 @@ Six rules govern every page, and you can hold the book to them:
   engine's *no*, always with a direction, is half of what it teaches.
 
 One thing to be clear about before you start: this package is young. The
-version number is 0.3.0, and it means what it says. The grammar is settled
+version number is 0.3.0. A leading zero means the package has not reached its
+first stable release. The grammar is settled
 enough to build on, and the implementation is not finished. What exists is a first
 working version, so do not expect everything to work the first time. If you use
 it for an experiment or a paper, you are taking a risk. This warning is here so
 that the risk is one you chose, and not one you found out about later.
 
 Expect it to move quickly. New features will arrive often. New atoms will not:
-the kernel is meant to stay small, and it grows one decision at a time. A plot
-you write today may have a shorter way to say it next month. What I will try hard not to do is take anything away. A sentence that
+the kernel is meant to stay small, and it grows one decision at a time. A
+plot you describe today may have a shorter sentence next month. What I will try hard not to do is take anything away. A sentence that
 draws today should still draw a year from now. If that ever has to break, I will
 say why rather than let it break quietly. I cannot promise it, though, and
-below version 1.0 nobody honestly could.
+before version 1.0 nobody honestly could.
 
 This book moves with the package. Because every plot here is live, a change to
 the engine reaches these pages the next time they are built. The text is rewritten
@@ -399,12 +406,12 @@ whenever it stops matching. Expect the book to change as often as the package
 does. What each release changed is recorded in the package's
 [changelog](https://github.com/psychometrician/gog/blob/main/CHANGELOG.md).
 
-One consequence matters before a sentence refuses on your machine. These pages are built from the newest source, and a released package
-is not. So the book can describe something your copy does not have yet. R is
-the closest, because its builds follow every change and a fresh install has
-them. Python, JavaScript and Julia move only when a new version is
-published. If a sentence here refuses for you, and the message does not know a
-word this page uses, check your version before you doubt the page.
+A book that changes this often has one consequence, and it matters when a
+sentence refuses on your computer. These pages are built from the newest source, and a released package
+is not. So the book can describe something your copy does not have yet. All
+four packages change only when a new version is published. If a sentence here
+refuses for you, and the message does not recognize a word this page uses,
+check your version before you doubt the page.
 
 Please [report the bugs](https://github.com/psychometrician/gog/issues) you
 find. A package this young improves mainly by being used, and that is what I
@@ -437,8 +444,9 @@ correct.
 
 A difference is not automatically a defect, and it is fair to know that before
 you spend the time. Some differences are decisions. A gog box spans the
-quartiles, as most software does; Tukey's original spans the hinges, and the
-two agree on most samples. The [box](marks/box.qmd) chapter says so and says
+quartiles, as most software does. Tukey's original spans the hinges, the median
+of each half of the data. The two agree whenever a group holds an odd number of
+values. The [box](marks/box.qmd) chapter says so and says
 why. So a comparison gets one of
 two answers: this is a bug and thank you, or this is a choice and here is the
 reasoning behind it. Both are worth the message.
@@ -455,7 +463,7 @@ of people better than me.
 
 ## The cast
 
-The third rule promised a small cast: eight families of table. Meet them
+The fourth rule promised a small cast: eight families of table. Meet them
 once, here:
 
 - **`gapminder_2007`**, 142 countries in 2007: `gdp` (per capita),
@@ -488,15 +496,16 @@ once, here:
   billions of dollars, rounded. The book's one table of relations, and every
   network diagram reads it.
 
-Those eight families answer most of the questions asked here. A handful of
-chapters need a shape none of them has, and each brings its own small frame,
-introduced on the page that first draws it rather than in this list. A
-mountain's elevation grid for [surface](marks/surface.qmd). Two gliders'
-coiling flight paths for the third dimension in [space](space.qmd). Country
-boundaries for [map](map.qmd), and earthquakes under the Pacific for
-[globe](globe.qmd). Foods and their nutrients for the
-[cluster](cluster.qmd) transform. Thresholds for [rule](marks/rule.qmd), and
-shaded spans for [zone](marks/zone.qmd). None of
+Those eight families answer most of the questions asked here. A few
+chapters need a shape none of them has, and each has its own small table,
+introduced on the page that first draws it rather than in this list. The
+[surface](marks/surface.qmd) chapter uses a mountain's elevation grid, and the
+[space](space.qmd) chapter follows two gliders' spiral flight paths through the
+third dimension. The [map](map.qmd) chapter draws country boundaries, and the
+[globe](globe.qmd) chapter draws earthquakes under the Pacific. The
+[cluster](cluster.qmd) transform reads foods and their nutrients. The
+[rule](marks/rule.qmd) chapter reads thresholds, and the [zone](marks/zone.qmd)
+chapter reads the spans it shades. None of
 them arrives to add variety. A new column costs the reader attention, so the
 variety in this book stays in the questions.
 
@@ -506,17 +515,16 @@ The shape of the book borrows from the *Hunminjeongeum* itself. That book
 stated its whole system in a few pages, then explained each letter class,
 then showed assembly, then ended with ninety-four ordinary words in use:
 
-1. **A morning**, the whole grammar, fast: a first plot, the kernel on
-   one page, reading practice, writing practice.
+1. **A morning**, the whole grammar, fast: a first plot, the kernel in
+   one table, reading practice, writing practice.
 2. **The letters**, each atom family in depth: the data you bind once,
    the marks, the scales, the refining channels, setting vs mapping, and
    the transforms.
-3. **Sentences**, composition: layering, deriving, scope, faceting, whole
-   plots arranged on a page, movement traced from place to place, likeness
-   computed into a tree, the third dimension, the plane bent into a circle,
-   the panel packed into regions, the earth flattened, the earth kept round,
-   relations drawn as a network, a plot played in time, and the reader's own
-   selections.
+3. **Sentences**, composition: layering, deriving, scope, faceting, and whole
+   plots arranged on a page. Then one chapter for each of these: movement
+   from place to place, similarity drawn as a tree, the third dimension,
+   polar coordinates, packed regions, the flat map, the globe, networks, a plot
+   played in time, and the reader's own selections.
 4. **The cookbook**, recipes organized by your data's shape and your
    question, never by chart name; each recipe differs from the next by a
    single atom.
@@ -555,7 +563,7 @@ four.
 
 ## Installing gog
 
-You have watched the engine draw every plot on this page. All four bindings
+You have seen the plot the engine drew on this page. All four bindings
 work. Copy the command for your language, and read the notes that follow.
 
 **R**
@@ -590,11 +598,12 @@ capitalized words, and npm already had a package called `gog`. So those two spel
 out instead, each in its own style: `GrammarOfGraphics` in Julia, and
 `grammar-of-graphics` on npm, which does not allow capital letters.
 
-The Python and JavaScript packages carry the engine inside them, already built
-for your computer; Julia fetches it as it installs; and the R package carries it
-on macOS and Windows. So you do not need a Rust [@klabnik2023rust] toolchain,
-and nothing has to be added to your `PATH`. One of the four commands has a note
-to read before you run it, and it is the R one.
+The Python package carries the engine inside it, already built for your
+computer; the Julia and JavaScript packages download it when you install them;
+and the R package carries it on macOS and Windows. So, except for R on Linux,
+you do not need a Rust [@klabnik2023rust] toolchain, and nothing has to be added
+to your `PATH`. The R command has one note to read before you run it. The other
+three commands can be run as they are.
 
 The R package is not on CRAN yet. It is published on
 [r-universe](https://psychometrician.r-universe.dev/gog) instead, which is why the
@@ -604,7 +613,7 @@ the command builds the engine from source, which needs Rust and a network
 connection. The [R](bindings/r.qmd) chapter gives the command that installs Rust.
 
 Each binding has its own chapter at the end of this book, and each of those
-chapters closes with the longer version of this section: [R](bindings/r.qmd),
+chapters carries the longer version of this section: [R](bindings/r.qmd),
 [Python](bindings/python.qmd), [Julia](bindings/julia.qmd) and
 [JavaScript](bindings/javascript.qmd).
 
@@ -732,6 +741,9 @@ and what comes next will cost the same nights, weekends and vacation days.
 
 ## Thanks to Posit
 
+Two acknowledgments close this preface. The first is to a company whose tools
+this book is built on.
+
 [Posit PBC](https://posit.co/), called RStudio PBC until 2022, builds a large
 part of what a working R user touches in a day. The parts I depend on are free,
 and there are three of them.
@@ -739,8 +751,9 @@ and there are three of them.
 The [tidyverse](https://www.tidyverse.org/) [@wickham2019tidyverse] is the one I
 would miss first. It is the vocabulary I think in
 when I handle data, and has been since long before this project. You will not
-find it in this book, whose tables are built in base R because `gog` imports
-only `jsonlite` [@ooms2014jsonlite] and I want it to install anywhere. That is a
+find it in this book, whose tables are built in base R. I want gog to install
+anywhere, so it needs only one package beyond R itself, `jsonlite`
+[@ooms2014jsonlite]. That is a
 rule for the package. It is not how I work the rest of the day.
 
 Their editors are the second. I worked in
