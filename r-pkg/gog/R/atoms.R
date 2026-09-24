@@ -1052,22 +1052,25 @@ stack <- function(share = NULL, baseline = NULL) {
 # every other mark is refused with direction (the width marks -> `dodge`).
 #
 # `amount` scales the spread: a dimensionless multiple of the slot-derived
-# default, like `density`'s `adjust` — `jitter(0.5)` half, `jitter(2)` double,
-# bare `jitter` = `jitter(1)`.  It takes a knob (where `dodge` does not) because
+# default, like `density`'s `adjust` — `jitter(0.5)` half, bare `jitter` =
+# `jitter(1)`, and at most `jitter(1.25)`, where a point reaches its slot's edge
+# (the engine refuses more, since a point past it reads as the next category).  It takes a knob (where `dodge` does not) because
 # the spread is a free legibility choice with no single right value, unlike
 # `dodge`'s width, which the group count determines.  It masks `base::jitter`
 # (the numeric-vector jitterer), the way `stack`/`range` mask their base-R
 # namesakes — a DSL keeps its own vocabulary.
 #' Spread a strip plot's coincident points apart, along the categorical axis only.
 #'
-#' @param amount Spread as a multiple of the default, one non-negative number;
-#'   default 1.  Positional: `jitter(0.5)` for half the spread.
+#' @param amount Spread as a multiple of the default, one number from 0 to 1.25;
+#'   default 1.  Positional: `jitter(0.5)` for half the spread. At 1.25 a point
+#'   reaches the edge of its category's slot, and more is refused.
 #' @export
 jitter <- function(amount = NULL) {
   if (!is.null(amount)) {
     if (!is.numeric(amount) || length(amount) != 1L || is.na(amount) || amount < 0) {
       stop("gog: `jitter(amount = )` needs one non-negative number \u2014 the spread as a ",
-           "multiple of the default, e.g. `jitter(0.5)` for half or `jitter(2)` for double.",
+           "multiple of the default, e.g. `jitter(0.5)` for half, up to `jitter(1.25)`, the widest ",
+           "spread that keeps every point in its own category.",
            masked_hint(amount, "base::jitter"), call. = FALSE)
     }
     amount <- as.numeric(amount)

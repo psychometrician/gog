@@ -104,7 +104,7 @@ impl SvgRenderer {
             None => slot_px,
             Some(_) => slot_px * pos_span / pos_px,
         };
-        let dodge = Dodge::resolve(layer, df);
+        let dodge = Dodge::resolve(layer, df, pos_field);
         let box_w = slot * dodge.as_ref().map_or(1.0, Dodge::width_frac) * BOX_WIDTH_FRAC;
         let half = box_w / 2.0;
         // Whisker end caps, narrower than the box (convention).

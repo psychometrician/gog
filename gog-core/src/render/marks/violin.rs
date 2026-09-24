@@ -110,7 +110,7 @@ impl SvgRenderer {
         let pos_span = (pos_scale.1 - pos_scale.0).max(1e-12);
         let slot_px = bar_thickness_svg(&pos_vals, n, pos_px, pos_scale, false);
         let slot_units = slot_px * pos_span / pos_px;
-        let dodge = Dodge::resolve(layer, df);
+        let dodge = Dodge::resolve(layer, df, pos_field);
         // How far the widest shape reaches **from** the slot's line, in slots — one
         // way for an `area` or a stroke, both ways for a `ribbon`. Measured one-way
         // rather than as a total so the number means the same thing to every shape,
@@ -142,7 +142,13 @@ impl SvgRenderer {
         // contiguously and in ascending order of the measure, so a run is exactly the
         // block between changes of (slot, group) — no sort, and the outline is traced
         // in the order the estimate was sampled.
-        let key_at = |i: usize| (pos_vals[i].to_bits(), group_vals.as_ref().map(|g| g[i]));
+        //
+        // The group is the whole combination of split channels, the partition the
+        // statistic ran in (`legality::split_fields_of`). Keyed by the one column
+        // `group_field` names, two groups sharing a color but not a pattern ran
+        // together into one outline once the statistic learned to split by both.
+        let split = crate::transform::split_rank(df, &crate::legality::split_fields_of(layer));
+        let key_at = |i: usize| (pos_vals[i].to_bits(), split.as_ref().and_then(|r| r.get(i).copied()));
         let mut runs: Vec<Vec<usize>> = Vec::new();
         for i in 0..n {
             if !(pos_vals[i].is_finite() && ext_vals[i].is_finite() && widths[i].is_finite()) { continue }

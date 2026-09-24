@@ -256,7 +256,17 @@ export function to_wire(table, name) {
     // column and nothing that is both. Deciding by majority, or by the first
     // row, would be the silent drop §12 forbids one level down, so a mixed
     // column is refused here where the caller can still see which column it was.
-    if (present.length && present.every((value) => value instanceof Date)) {
+    //
+    // A **declared order** is asked first, because it says what the column is
+    // whatever its values look like: categories, in that order. Asked after the
+    // numbers, it was lost whenever the categories were numbers —
+    // `ordered([2019, 2020, 2021], ...)` crossed as a column of years to measure.
+    // R sends a factor's labels plus its levels, so each value is written with
+    // the same `String` the levels were.
+    if (Array.isArray(values.levels)) {
+      strings[column] = values.map((value) => (isMissing(value) ? null : String(value)));
+      levels[column] = [...values.levels];
+    } else if (present.length && present.every((value) => value instanceof Date)) {
       for (const value of present) {
         if (Number.isNaN(value.getTime())) {
           throw new GogError(
@@ -286,7 +296,6 @@ export function to_wire(table, name) {
       floats[column] = values.map((value) => (isMissing(value) ? null : value));
     } else if (values.every((value) => isMissing(value) || typeof value !== "number")) {
       strings[column] = values.map((value) => (isMissing(value) ? null : String(value)));
-      if (Array.isArray(values.levels)) levels[column] = [...values.levels];
     } else {
       const kinds = [
         ...new Set(present.map((value) => (value instanceof Date ? "Date" : typeof value))),

@@ -4054,3 +4054,72 @@ local({
     stop("FAIL: a spike drew no stroke")
   cat("PASS: a bar with z is a spike on the globe\n")
 })
+
+# ---------------------------------------------------------------------------
+# Accepted and dropped. Each of these sentences drew something other than what
+# it said, and said nothing: each is now refused with direction, or draws what
+# it says. The same block runs in all four bindings, on the same table.
+# ---------------------------------------------------------------------------
+local({
+  strip <- data.frame(g = rep(c("A", "B"), each = 4), k = rep(c("p", "q"), 4),
+                      n = c(3, 1, 4, 2, 3, 1, 4, 2), v = 1:8)
+  count_refusals <- function(expr) {
+    msg <- tryCatch({ force(expr); "" }, error = function(e) conditionMessage(e))
+    lengths(regmatches(msg, gregexpr("gog: `", msg, fixed = TRUE)))
+  }
+
+  refuses("jitter past the edge of its slot",
+          render_svg(data(strip) + point * jitter(2) + x(g) + y(v)), "`jitter(1.25)`")
+  render_svg(data(strip) + point * jitter(1.25) + x(g) + y(v))
+  refuses("order() by a column of text",
+          render_svg(data(strip) + bar * sum + x(g) + y(v) + order(k)), "holds text")
+  refuses("a rule naming both positions",
+          render_svg(data(strip) + point + x(n) + y(v) + rule + x(n) + y(v)),
+          "`rule + x(n) + rule + y(v)`")
+  refuses("opacity on a point with no fill",
+          render_svg(data(strip) + point + x(n) + y(v) +
+                       style(color = "none", border_color = "steelblue", opacity = 0.3)),
+          "#4682b44d")
+  if (count_refusals(render_svg(data(strip) + path * mean + x(g) + y(v))) != 1L)
+    stop("FAIL: `path * mean` should be refused once")
+  if (count_refusals(render_svg(data(strip) + zone * bin + x(g) + y(k))) != 1L)
+    stop("FAIL: a two-axis refusal should be printed once")
+  refuses("zone * bin over two categories",
+          render_svg(data(strip) + zone * bin + x(g) + y(k)), "are both categorical")
+  cat("PASS: the refusals of 2026-09-23 refuse once, with direction\n")
+
+  summed <- render_svg(data(strip) + zone * sum + x(g) + y(k) + color(v))
+  shared <- render_svg(data(strip) + zone * sum * proportion + x(g) + y(k) + color(v))
+  if (identical(summed, shared)) stop("FAIL: `proportion` was dropped on a zone")
+  lines <- render_svg(data(strip) + line * mean + x(n) + y(v) + color(g) + group(k))
+  if (lengths(regmatches(lines, gregexpr("<polyline", lines, fixed = TRUE))) != 4L)
+    stop("FAIL: `line * mean` split by color and group should draw four lines")
+  dashed <- render_svg(data(strip) + interval * range + x(g) + y(v) + pattern(k))
+  grouped <- render_svg(data(strip) + interval * range + x(g) + y(v) + pattern(k) + group(k))
+  if (!identical(dashed, grouped)) stop("FAIL: `pattern` alone should split a statistic")
+  cat("PASS: a statistic splits by every channel, and a zone takes a share\n")
+
+  as_numbers <- data.frame(year = factor(c(2019, 2020, 2021)), sales = c(3, 5, 4))
+  as_text <- data.frame(year = factor(c("2019", "2020", "2021")), sales = c(3, 5, 4))
+  if (!identical(render_svg(data(as_numbers) + bar + x(sales) + y(year)),
+                 render_svg(data(as_text) + bar + x(sales) + y(year))))
+    stop("FAIL: a declared order over numbers should draw as categories")
+  cat("PASS: a declared order over numbers draws as categories\n")
+})
+
+# A tally draws its own number, so a column named on the axis it draws on is read
+# by nothing, and a box refused a statistic is not refused again for the chain.
+local({
+  strip <- data.frame(g = rep(c("A", "B"), each = 4), k = rep(c("p", "q"), 4),
+                      n = c(3, 1, 4, 2, 3, 1, 4, 2), v = 1:8)
+  refuses("a tally with a column on its axis",
+          render_svg(data(strip) + bar * count + x(g) + y(v)), "names a column it never reads")
+  refuses("a dot plot with a category on its axis",
+          render_svg(data(strip) + point * bin * stack + x(n) + y(g)), "`color(g)`")
+  render_svg(data(strip) + bar * count + x(g) + y(count))
+  msg <- tryCatch(render_svg(data(strip) + box * mean + x(g) + y(v)),
+                  error = function(e) conditionMessage(e))
+  if (lengths(regmatches(msg, gregexpr("gog: `", msg, fixed = TRUE))) != 1L)
+    stop("FAIL: `box * mean` should be refused once")
+  cat("PASS: a tally's axis names no column, and a box's refusal is said once\n")
+})

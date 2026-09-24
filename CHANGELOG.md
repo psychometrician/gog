@@ -4,6 +4,61 @@ All four packages share one version number and are released together: `gog` on
 CRAN-style repositories and PyPI, `GrammarOfGraphics` on Julia's General, and
 `grammar-of-graphics` on npm. A version means the same grammar in every one.
 
+## Unreleased
+
+### Changed
+
+- **A statistic splits by every channel that splits, as a line always did.**
+  `color`, `group`, `pattern` and `shape` each split the rows a summary is
+  computed in, together. Before, only `color` (or else `group`) did, and the
+  rest were merged away: `pattern` under `interval * range` drew solid
+  whiskers under a legend of dashes, `shape` under `point * mean` drew circles
+  only, and `color` beside `group` under `line * mean` drew an empty panel.
+  `dodge` and `stack` split the same way, so `pattern` alone is enough to
+  dodge, and a dodge leaves out the column its slots already come from.
+
+- **`proportion` after a summary works on a `zone`.** `zone * sum * proportion`
+  gives each cell's sum as a share of the total over all cells, as
+  `bar * sum * proportion` does. It drew exactly `zone * sum` before.
+
+- **A declared order over numbers draws as categories in Python, JavaScript
+  and Julia.** `ordered([2019, 2020, 2021], ...)` and a pandas `Categorical` of
+  numbers crossed to the engine as numbers, so a year column drew as bars as
+  long as the year. They now draw one slot per year, as `factor()` does in R.
+
+### Fixed
+
+Each of these sentences was accepted and drew something other than it said.
+Each is now refused, with what to write instead.
+
+- **`jitter(amount)` above 1.25.** At 1.25 a point reaches the edge of its
+  category's slot, and past it some points land in the next category.
+
+- **`order()` by a column of text, or by a column the table does not have.**
+  The axis stayed in row order. `order()` by another column sorts by its
+  numbers.
+
+- **A `rule` layer naming both `x` and `y`.** Only the first was drawn. A rug
+  on both axes is two layers, `rule + x(gdp) + rule + y(life)`.
+
+- **`opacity` on a mark whose `color` is `"none"`.** `opacity` fades what
+  `color` paints, so a hollow point stayed fully opaque. The refusal gives the
+  border color that carries the transparency, such as `"#4682b44d"`.
+
+- **A column named on the axis that `bin`, `count`, `density` or `proportion`
+  draws on.** Each draws a number of its own there, so the column was never
+  read and only titled the axis: `bar * count + x(continent) + y(life)` drew
+  counts under "Life", and `point * bin * stack + x(life) + y(continent)` a dot
+  plot under "Continent". The refusal names the statistic that reads the column,
+  such as `bar * mean`. A name the table does not hold, such as `y(count)`,
+  still titles the axis.
+
+- **Some refusals are reworded.** A `zone` with no sides now lists all five
+  ways to give it some, a boundary on a map included. A refusal about both
+  axes is printed once and names both, not once per axis. `path * mean`,
+  `box * mean` and `zone * density * proportion` print one refusal each, where
+  each also printed a second that did not apply.
+
 ## 0.3.0 (unreleased)
 
 ### Changed

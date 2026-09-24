@@ -380,7 +380,8 @@ export const jitter = callableAtom(
     ) {
       throw new GogError(
         "gog: `jitter({ amount: … })` needs one non-negative number — the spread as a " +
-          "multiple of the default, e.g. `jitter(0.5)` for half or `jitter(2)` for double."
+          "multiple of the default, e.g. `jitter(0.5)` for half, up to `jitter(1.25)`, the " +
+          "widest spread that keeps every point in its own category."
       );
     }
     return new Atom("transform", {

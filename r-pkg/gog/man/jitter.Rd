@@ -7,8 +7,9 @@
 jitter(amount = NULL)
 }
 \arguments{
-\item{amount}{Spread as a multiple of the default, one non-negative number;
-default 1.  Positional: \code{jitter(0.5)} for half the spread.}
+\item{amount}{Spread as a multiple of the default, one number from 0 to 1.25;
+default 1.  Positional: \code{jitter(0.5)} for half the spread. At 1.25 a point
+reaches the edge of its category's slot, and more is refused.}
 }
 \description{
 Spread a strip plot's coincident points apart, along the categorical axis only.

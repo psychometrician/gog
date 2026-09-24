@@ -44,18 +44,31 @@ pub fn apply(
     box_spec: Option<&BoxSpec>,
     bounds_spec: Option<&BoundsSpec>,
     stack_spec: Option<&StackSpec>,
-    group_field: Option<&str>,
+    group_fields: &[&str],
 ) -> DataFrame {
-    // A statistic runs *within* each color/group when one is bound: a histogram
-    // split by species is three histograms, not one combined bar with the split
-    // silently dropped (the bug this closes). Every output row carries its group
-    // label, so the renderer can color it and the legend agrees. No group means
-    // one group — the whole frame — which is the same code, degenerate.
-    let result = match group_field {
-        Some(g) if df.str_col(g).is_some_and(|c| !c.is_empty()) => {
-            apply_grouped(df, transforms, key_field, out_field, bin_spec, cut, density_spec, range_spec, conf_spec, dev_spec, q_spec, box_spec, bounds_spec, g)
-        }
-        _ => apply_seq(df, transforms, key_field, out_field, bin_spec, density_spec, range_spec, conf_spec, dev_spec, q_spec, box_spec, bounds_spec, cut),
+    // A statistic runs *within* each group when anything splits the mark: a
+    // histogram split by species is three histograms, not one combined bar with the
+    // split silently dropped (the bug this closes). Every output row carries each of
+    // its split columns, so the renderer can color, dash or shape it and the legend
+    // agrees. No split means one group — the whole frame — which is the same code,
+    // degenerate.
+    //
+    // **Every column that splits, splits**, the rule `marks::split_series` states for
+    // drawing, and the caller hands them all (`legality::split_fields_of`). This took
+    // one column until 2026-09-23, `color` else `group`, so every other split was
+    // merged away before the mark saw it: `pattern(era)` under `interval * range`
+    // drew one solid whisker per continent beneath a legend keyed by era, `shape` under
+    // `point * mean` drew circles only, and `color` beside `group` under `line * mean`
+    // drew an **empty panel**, since the output carried no `group` column for the line
+    // to split by. Only a column of text splits: a numeric `color` is a ramp, which is
+    // measured rather than partitioned.
+    let fields: Vec<&str> = group_fields.iter().copied()
+        .filter(|g| df.str_col(g).is_some_and(|c| !c.is_empty()))
+        .collect();
+    let result = if fields.is_empty() {
+        apply_seq(df, transforms, key_field, out_field, bin_spec, density_spec, range_spec, conf_spec, dev_spec, q_spec, box_spec, bounds_spec, cut)
+    } else {
+        apply_grouped(df, transforms, key_field, out_field, bin_spec, cut, density_spec, range_spec, conf_spec, dev_spec, q_spec, box_spec, bounds_spec, &fields)
     };
 
     // **`proportion` normalizes here, always** — the one pass that makes it a
@@ -83,10 +96,45 @@ pub fn apply(
     // statistic before it partitioned the frame; stack re-reads the whole thing.
     // A no-op when the modifier is absent (the common case) or nothing splits.
     if transforms.contains(&Transform::Stack) {
-        stack_frame(&result, key_field, out_field, group_field, stack_spec)
+        stack_frame(&result, key_field, out_field, &fields, stack_spec)
     } else {
         result
     }
+}
+
+/// Each row's place in the order its split's combinations pile and dodge in, or
+/// `None` when nothing splits.
+///
+/// The order is each column's own category order with the first column outermost, so
+/// under `color(a) + pattern(b)` every pattern of the first color comes before any row
+/// of the second. That is the order [`by_groups`] emits its parts in, which is what
+/// keeps a pile, a dodge and the frame they were built from agreeing about which group
+/// is first. The ranks are dense over the combinations present, so a single column
+/// ranks exactly as its categories do and the one-column case is unchanged.
+///
+/// Only a column of text takes part; a numeric one is a ramp and splits nothing.
+pub fn split_rank(df: &DataFrame, fields: &[&str]) -> Option<Vec<usize>> {
+    let cols: Vec<(&Vec<String>, HashMap<String, usize>)> = fields.iter()
+        .filter_map(|f| {
+            let col = df.str_col(f).filter(|c| !c.is_empty())?;
+            let at = crate::data::categories_across(&[df], f).into_iter()
+                .enumerate()
+                .map(|(i, v)| (v, i))
+                .collect();
+            Some((col, at))
+        })
+        .collect();
+    if cols.is_empty() {
+        return None;
+    }
+    let n = cols.iter().map(|(c, _)| c.len()).min().unwrap_or(0);
+    let keys: Vec<Vec<usize>> = (0..n)
+        .map(|i| cols.iter().map(|(c, at)| at.get(&c[i]).copied().unwrap_or(usize::MAX)).collect())
+        .collect();
+    let mut distinct = keys.clone();
+    distinct.sort();
+    distinct.dedup();
+    Some(keys.iter().map(|k| distinct.binary_search(k).unwrap_or(0)).collect())
 }
 
 /// `proportion`, in two dimensions — the same normalizer over a cell frame.
@@ -105,7 +153,13 @@ pub fn apply(
 ///
 /// Runs **after** the group split recombines, never inside it, which is the whole
 /// frame rule [`apply`] follows and for the same reason.
-pub fn share_cells(df: &DataFrame, transforms: &[Transform]) -> DataFrame {
+///
+/// `reduced` names the column a reduction wrote its answer into, when one measured
+/// the cells. It has to be handed in because this frame cannot tell a reduced column
+/// from any other number it carries. Until 2026-09-23 it was not, so everything above
+/// about the reduction was true of `bar` and false of `zone`: `zone * sum *
+/// proportion` drew exactly `zone * sum`, legend and all, and said nothing (§12).
+pub fn share_cells(df: &DataFrame, transforms: &[Transform], reduced: Option<&str>) -> DataFrame {
     if !transforms.contains(&Transform::Proportion) { return df.clone() }
     // `count2d` already divided — it is handed `share` directly, being the one
     // reading where the tally and the normalization are one pass over one frame.
@@ -117,7 +171,10 @@ pub fn share_cells(df: &DataFrame, transforms: &[Transform]) -> DataFrame {
         let shares: Vec<f64> = counts.iter().map(|c| c / total).collect();
         return df.clone().without_col(CELL_COUNT).with_float(CELL_SHARE, shares);
     }
-    df.clone()
+    match reduced {
+        Some(field) => normalize_shares(df, field),
+        None => df.clone(),
+    }
 }
 
 /// Divide `out_field` by its own total, so the column reads as shares of one.
@@ -160,7 +217,7 @@ fn normalize_shares(df: &DataFrame, out_field: &str) -> DataFrame {
 ///
 /// A pile summing to zero is left alone rather than divided — with nothing in the
 /// slot there is no composition to show, and the alternative is a column of NaN.
-fn stack_frame(df: &DataFrame, key_field: &str, out_field: &str, group_field: Option<&str>, spec: Option<&StackSpec>) -> DataFrame {
+fn stack_frame(df: &DataFrame, key_field: &str, out_field: &str, group_fields: &[&str], spec: Option<&StackSpec>) -> DataFrame {
     let Some(outs) = df.float_col(out_field) else { return df.clone() };
     let n = outs.len();
     let share = spec.is_some_and(|s| s.share.unwrap_or(false));
@@ -168,11 +225,12 @@ fn stack_frame(df: &DataFrame, key_field: &str, out_field: &str, group_field: Op
     // With no split there is nothing to pile: every element sits on zero, which is
     // exactly what an un-stacked bar/area already does. Emit a zero baseline so the
     // renderer's stacked path is a no-op rather than a special case.
-    let Some(gf) = group_field.and_then(|g| df.str_col(g)) else {
+    //
+    // A pile's order is its split's combination order (`split_rank`), so a pile split
+    // by `color` and `pattern` stacks every pattern of one color before the next.
+    let Some(ranks) = split_rank(df, group_fields) else {
         return df.clone().with_float(STACK_BASE, vec![0.0; n]);
     };
-    let order = crate::data::categories_across(&[df], group_field.unwrap());
-    let rank = |g: &str| order.iter().position(|o| o == g).unwrap_or(usize::MAX);
 
     // Two elements share a position when their key columns match — string equality
     // for a categorical axis, a tolerance compare for a numeric one.
@@ -212,13 +270,16 @@ fn stack_frame(df: &DataFrame, key_field: &str, out_field: &str, group_field: Op
         outs
     };
 
+    if ranks.len() < n {
+        return df.clone().with_float(STACK_BASE, vec![0.0; n]);
+    }
     let mut base = vec![0.0; n];
     let mut top = vec![0.0; n];
     for i in 0..n {
-        let ri = rank(&gf[i]);
+        let ri = ranks[i];
         // The foot: everything at this position that stacks below this group.
         let below: f64 = (0..n)
-            .filter(|&j| j != i && same_pos(i, j) && rank(&gf[j]) < ri)
+            .filter(|&j| j != i && same_pos(i, j) && ranks[j] < ri)
             .map(|j| outs[j])
             .sum();
         base[i] = below;
@@ -230,7 +291,6 @@ fn stack_frame(df: &DataFrame, key_field: &str, out_field: &str, group_field: Op
     // *both* the foot and the top, which is the whole of it: displacing a pile moves
     // it bodily and never changes a band's thickness, so every reading the plot
     // supports is untouched and only the origin is spent.
-    let ranks: Vec<usize> = (0..n).map(|i| rank(&gf[i])).collect();
     let mut piles = positions_in_order(df, key_field, n);
     // Sorted bottom band first, so a pile can be read as a stack and — the part that
     // matters for `"wiggle"` — the same group can be found at the next position by its
@@ -422,7 +482,7 @@ fn apply_grouped(
     q_spec: Option<&QuantileSpec>,
     box_spec: Option<&BoxSpec>,
     bounds_spec: Option<&BoundsSpec>,
-    group_field: &str,
+    group_fields: &[&str],
 ) -> DataFrame {
     // Bin edges are shared across the groups, or overlaid histograms would not
     // line up — the layout is computed once from every row, then each group
@@ -441,25 +501,9 @@ fn apply_grouped(
         None
     };
 
-    // Group order follows a declared factor when there is one, so colors and
-    // the legend read in the same order the axis would.
-    let levels = df.levels(group_field).map(<[String]>::to_vec);
-    let groups = crate::data::categories_across(&[df], group_field);
-
-    let parts: Vec<DataFrame> = groups.iter().filter_map(|gv| {
-        let sub = df.filter_str_eq(group_field, gv);
-        if sub.is_empty() { return None; }
-        let res = apply_seq(&sub, transforms, key_field, out_field, bin_spec, density_spec, range_spec, conf_spec, dev_spec, q_spec, box_spec, bounds_spec, shared.as_ref());
-        let n = res.len();
-        if n == 0 { return None; }
-        let tag = vec![gv.clone(); n];
-        Some(match &levels {
-            Some(lv) => res.with_levels(group_field, tag, lv.clone()),
-            None     => res.with_str(group_field, tag),
-        })
-    }).collect();
-
-    DataFrame::vconcat(&parts)
+    by_groups(df, group_fields, &|sub: &DataFrame| {
+        apply_seq(sub, transforms, key_field, out_field, bin_spec, density_spec, range_spec, conf_spec, dev_spec, q_spec, box_spec, bounds_spec, shared.as_ref())
+    })
 }
 
 #[allow(clippy::too_many_arguments)]
@@ -2053,9 +2097,25 @@ pub fn by_group(
     group_field: Option<&str>,
     f: impl Fn(&DataFrame) -> DataFrame,
 ) -> DataFrame {
-    let Some(g) = group_field.filter(|g| df.str_col(g).is_some_and(|c| !c.is_empty())) else {
+    by_groups(df, group_field.as_slice(), &f)
+}
+
+/// [`by_group`] over any number of columns: run `f` inside every combination of
+/// their values, and tag each result with every column it was split by.
+///
+/// The first column is outermost, so the parts come out in [`split_rank`]'s order.
+/// Each column contributes its own category order, a declared factor's included,
+/// and each tag carries that column's levels onto the output, so a legend keyed by
+/// the second column reads in the order it would have alone. A column that is
+/// absent or holds no text splits nothing and is passed over, which keeps a numeric
+/// `color`, a ramp, out of the partition.
+pub fn by_groups<F: Fn(&DataFrame) -> DataFrame>(df: &DataFrame, fields: &[&str], f: &F) -> DataFrame {
+    let Some((&g, rest)) = fields.split_first() else {
         return f(df);
     };
+    if !df.str_col(g).is_some_and(|c| !c.is_empty()) {
+        return by_groups(df, rest, f);
+    }
     // A declared factor's order carries onto the output, as everywhere else.
     let levels = df.levels(g).map(<[String]>::to_vec);
     let parts: Vec<DataFrame> = crate::data::categories_across(&[df], g)
@@ -2063,7 +2123,7 @@ pub fn by_group(
         .filter_map(|gv| {
             let sub = df.filter_str_eq(g, gv);
             if sub.is_empty() { return None; }
-            let res = f(&sub);
+            let res = by_groups(&sub, rest, f);
             let n = res.len();
             if n == 0 { return None; }
             let tag = vec![gv.clone(); n];
@@ -4778,7 +4838,7 @@ mod tests {
     ) -> DataFrame {
         super::apply(df, transforms, key_field, out_field, bin_spec, None,
                      density_spec, None, conf_spec, None, None, box_spec, bounds_spec,
-                     stack_spec, group_field)
+                     stack_spec, group_field.as_slice())
     }
     fn bin2d(df: &DataFrame, x_field: &str, y_field: &str, spec: Option<&BinSpec>) -> DataFrame {
         super::bin2d(df, x_field, y_field, spec, BinCut::default())
@@ -6964,5 +7024,31 @@ mod tests {
         }
         assert!((area - 8.0).abs() < 1e-9, "the cells tile 8 wide by 1 high, got {area}");
     }
-}
 
+    /// A pile split by two columns stacks every combination, the first column
+    /// outermost, and each part keeps both columns for the mark to read.
+    #[test]
+    fn a_pile_split_by_two_columns_stacks_every_combination_in_order() {
+        let s = |v: &[&str]| v.iter().map(|x| x.to_string()).collect::<Vec<_>>();
+        let df = DataFrame::new()
+            .with_str("k", s(&["A", "A", "A", "A"]))
+            .with_str("c", s(&["q", "p", "q", "p"]))
+            .with_str("g", s(&["b", "a", "a", "b"]))
+            .with_float("v", vec![4.0, 1.0, 3.0, 2.0]);
+        let out = super::apply(&df, &[Transform::Sum, Transform::Stack], "k", "v",
+                               None, None, None, None, None, None, None, None, None, None,
+                               &["c", "g"]);
+        let (c, g) = (out.str_col("c").unwrap(), out.str_col("g").unwrap());
+        let (top, base) = (out.float_col("v").unwrap(), out.float_col(STACK_BASE).unwrap());
+        let row = |cv: &str, gv: &str| (0..out.len()).find(|&i| c[i] == cv && g[i] == gv).unwrap();
+        // First appearance orders each column (q before p, b before a), so the
+        // pile from the bottom is (q,b) 4, (q,a) 3, (p,b) 2, (p,a) 1.
+        for ((cv, gv), (b, t)) in [(("q", "b"), (0.0, 4.0)), (("q", "a"), (4.0, 7.0)),
+                                   (("p", "b"), (7.0, 9.0)), (("p", "a"), (9.0, 10.0))] {
+            let i = row(cv, gv);
+            assert_eq!((base[i], top[i]), (b, t), "({cv},{gv})");
+        }
+        assert_eq!(split_rank(&out, &["c", "g"]).map(|r| r.len()), Some(4));
+        assert_eq!(split_rank(&out, &[]), None, "nothing splits: no ranks");
+    }
+}

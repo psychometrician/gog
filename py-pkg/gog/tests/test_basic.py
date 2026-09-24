@@ -2176,3 +2176,78 @@ for _s in (_p1, _p2):
     assert set(_re.findall(r"url\(#([^)]+)\)", _s)) <= _ids(_s), \
         "a reference points outside its own plot"
 ok("two plots in one document mint no id in common")
+
+
+# --- accepted and dropped: each drew something other than it said -----------
+# The same block runs in all four bindings, on the same table.
+_strip = dict(g=["A"] * 4 + ["B"] * 4, k=["p", "q"] * 4,
+              n=[3.0, 1.0, 4.0, 2.0, 3.0, 1.0, 4.0, 2.0],
+              v=[1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0])
+
+
+def _refusal(thunk) -> str:
+    try:
+        thunk()
+    except GogError as error:
+        return str(error)
+    raise AssertionError("FAIL: the sentence was accepted, and should have been refused")
+
+
+for _what, _thunk, _fragment in [
+    ("jitter past the edge of its slot",
+     lambda: render_svg(data(_strip) + point * jitter(2) + x(col.g) + y(col.v)),
+     "`jitter(1.25)`"),
+    ("order() by a column of text",
+     lambda: render_svg(data(_strip) + bar * sum + x(col.g) + y(col.v) + order(col.k)),
+     "holds text"),
+    ("a rule naming both positions",
+     lambda: render_svg(data(_strip) + point + x(col.n) + y(col.v)
+                        + rule + x(col.n) + y(col.v)),
+     "`rule + x(n) + rule + y(v)`"),
+    ("opacity on a point with no fill",
+     lambda: render_svg(data(_strip) + point + x(col.n) + y(col.v)
+                        + style(color="none", border_color="steelblue", opacity=0.3)),
+     "#4682b44d"),
+    ("zone * bin over two categories",
+     lambda: render_svg(data(_strip) + zone * bin + x(col.g) + y(col.k)),
+     "are both categorical"),
+]:
+    _text = _refusal(_thunk)
+    assert _fragment in _text, f"{_what}: wanted {_fragment!r} in {_text}"
+    ok(f"{_what} refused")
+render_svg(data(_strip) + point * jitter(1.25) + x(col.g) + y(col.v))
+for _thunk in (lambda: render_svg(data(_strip) + path * mean + x(col.g) + y(col.v)),
+               lambda: render_svg(data(_strip) + zone * bin + x(col.g) + y(col.k))):
+    assert _refusal(_thunk).count("gog: `") == 1, "a mistake should be refused once"
+ok("the refusals of 2026-09-23 refuse once, with direction")
+
+_summed = render_svg(data(_strip) + zone * sum + x(col.g) + y(col.k) + color(col.v))
+_shared = render_svg(data(_strip) + zone * sum * proportion + x(col.g) + y(col.k)
+                     + color(col.v))
+assert _summed != _shared, "`proportion` was dropped on a zone"
+_lines = render_svg(data(_strip) + line * mean + x(col.n) + y(col.v)
+                    + color(col.g) + group(col.k))
+assert _lines.count("<polyline") == 4, "color and group should split a mean into four lines"
+assert render_svg(data(_strip) + interval * range + x(col.g) + y(col.v) + pattern(col.k)) \
+    == render_svg(data(_strip) + interval * range + x(col.g) + y(col.v) + pattern(col.k)
+                  + group(col.k)), "`pattern` alone should split a statistic"
+ok("a statistic splits by every channel, and a zone takes a share")
+
+_numbers = dict(year=ordered([2019, 2020, 2021], [2019, 2020, 2021]), sales=[3.0, 5.0, 4.0])
+_text_years = dict(year=ordered(["2019", "2020", "2021"], ["2019", "2020", "2021"]),
+                   sales=[3.0, 5.0, 4.0])
+assert render_svg(data(_numbers, name="as_numbers") + bar + x(col.sales) + y(col.year)) \
+    == render_svg(data(_text_years, name="as_numbers") + bar + x(col.sales) + y(col.year)), \
+    "a declared order over numbers should draw as categories"
+ok("a declared order over numbers draws as categories")
+
+
+# --- a tally's axis names no column; a box's refusal is said once -------------
+_text = _refusal(lambda: render_svg(data(_strip) + bar * count + x(col.g) + y(col.v)))
+assert "names a column it never reads" in _text, _text
+_text = _refusal(lambda: render_svg(data(_strip) + point * bin * stack + x(col.n) + y(col.g)))
+assert "`color(g)`" in _text, _text
+render_svg(data(_strip) + bar * count + x(col.g) + y(col.count))
+assert _refusal(lambda: render_svg(data(_strip) + box * mean + x(col.g) + y(col.v))) \
+    .count("gog: `") == 1, "`box * mean` should be refused once"
+ok("a tally's axis names no column, and a box's refusal is said once")

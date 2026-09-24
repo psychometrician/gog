@@ -103,7 +103,7 @@ impl SvgRenderer {
         // shrink to the sub-slot so adjacent groups' caps do not run together.
         // The slot is measured along whichever axis carries it.
         let (pos_px, pos_scale) = if horizontal { (l.h(), ys) } else { (l.w(), xs) };
-        let dodge = Dodge::resolve(layer, df);
+        let dodge = Dodge::resolve(layer, df, pos_field);
         // `bar`'s rule: pixels flat, a fraction of the turn bent, with the dodge
         // offsets inheriting whichever it is.
         let pos_span = (pos_scale.1 - pos_scale.0).max(1e-12);

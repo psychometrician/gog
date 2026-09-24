@@ -53,7 +53,10 @@ import {
   mean,
   sum,
   ordered,
+  order,
   palette,
+  pattern,
+  jitter,
   path,
   play,
   brush,
@@ -2381,4 +2384,78 @@ test("no refusal prints its own template", () => {
     if (line.includes("${") && /'[^']*\$\{/.test(line))
       assert.fail(`a single-quoted string carries a template: ${line.trim()}`);
   }
+});
+
+// ---------------------------------------------------------------------------
+// Accepted and dropped: each of these sentences drew something other than what
+// it said, and said nothing. The same block runs in all four bindings.
+// ---------------------------------------------------------------------------
+
+const strip = {
+  g: ["A", "A", "A", "A", "B", "B", "B", "B"],
+  k: ["p", "q", "p", "q", "p", "q", "p", "q"],
+  n: [3, 1, 4, 2, 3, 1, 4, 2],
+  v: [1, 2, 3, 4, 5, 6, 7, 8],
+};
+const refusalOf = (thunk) => {
+  try {
+    thunk();
+  } catch (error) {
+    assert.ok(error instanceof GogError, `not a GogError: ${error}`);
+    return error.message;
+  }
+  assert.fail("the sentence was accepted, and should have been refused");
+};
+
+test("the refusals of 2026-09-23 refuse once, with direction", () => {
+  refuses(() => render_svg(plot(data(strip), layer(point, jitter(2)), x(col.g), y(col.v))),
+    /`jitter\(1\.25\)`/);
+  render_svg(plot(data(strip), layer(point, jitter(1.25)), x(col.g), y(col.v)));
+  refuses(() => render_svg(plot(data(strip), layer(bar, sum), x(col.g), y(col.v), order(col.k))),
+    /holds text/);
+  refuses(() => render_svg(plot(data(strip), point, x(col.n), y(col.v), rule, x(col.n), y(col.v))),
+    /`rule \+ x\(n\) \+ rule \+ y\(v\)`/);
+  refuses(() => render_svg(plot(data(strip), point, x(col.n), y(col.v),
+    style({ color: "none", border_color: "steelblue", opacity: 0.3 }))), /#4682b44d/);
+  refuses(() => render_svg(plot(data(strip), layer(zone, bin), x(col.g), y(col.k))),
+    /are both categorical/);
+  for (const thunk of [
+    () => render_svg(plot(data(strip), layer(path, mean), x(col.g), y(col.v))),
+    () => render_svg(plot(data(strip), layer(zone, bin), x(col.g), y(col.k))),
+  ]) {
+    assert.equal(refusalOf(thunk).split("gog: `").length - 1, 1, "a mistake is refused once");
+  }
+});
+
+test("a statistic splits by every channel, and a zone takes a share", () => {
+  const summed = render_svg(plot(data(strip), layer(zone, sum), x(col.g), y(col.k), color(col.v)));
+  const shared = render_svg(
+    plot(data(strip), layer(zone, sum, proportion), x(col.g), y(col.k), color(col.v)));
+  assert.notEqual(summed, shared, "`proportion` was dropped on a zone");
+  const lines = render_svg(
+    plot(data(strip), layer(line, mean), x(col.n), y(col.v), color(col.g), group(col.k)));
+  assert.equal(lines.split("<polyline").length - 1, 4, "color and group split a mean four ways");
+  assert.equal(
+    render_svg(plot(data(strip), layer(interval, range), x(col.g), y(col.v), pattern(col.k))),
+    render_svg(plot(data(strip), layer(interval, range), x(col.g), y(col.v), pattern(col.k),
+      group(col.k))),
+    "`pattern` alone should split a statistic");
+});
+
+test("a declared order over numbers draws as categories", () => {
+  const numbers = { year: ordered([2019, 2020, 2021], [2019, 2020, 2021]), sales: [3, 5, 4] };
+  const text = { year: ordered(["2019", "2020", "2021"], ["2019", "2020", "2021"]), sales: [3, 5, 4] };
+  assert.equal(
+    render_svg(plot(data(numbers, { name: "years" }), bar, x(col.sales), y(col.year))),
+    render_svg(plot(data(text, { name: "years" }), bar, x(col.sales), y(col.year))));
+});
+
+test("a tally's axis names no column, and a box's refusal is said once", () => {
+  refuses(() => render_svg(plot(data(strip), layer(bar, count), x(col.g), y(col.v))),
+    /names a column it never reads/);
+  refuses(() => render_svg(plot(data(strip), layer(point, bin, stack), x(col.n), y(col.g))),
+    /`color\(g\)`/);
+  render_svg(plot(data(strip), layer(bar, count), x(col.g), y(col.count)));
+  const text = refusalOf(() => render_svg(plot(data(strip), layer(box, mean), x(col.g), y(col.v))));
+  assert.equal(text.split("gog: `").length - 1, 1, "`box * mean` should be refused once");
 });

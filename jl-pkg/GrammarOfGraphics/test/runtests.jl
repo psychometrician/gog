@@ -1826,3 +1826,58 @@ end
     src = read(joinpath(@__DIR__, "..", "src", "atoms.jl"), String)
     @test !occursin("\\\$", src)
 end
+
+# Accepted and dropped: each of these sentences drew something other than what it
+# said, and said nothing. The same block runs in all four bindings.
+const strip = (g = ["A", "A", "A", "A", "B", "B", "B", "B"],
+               k = ["p", "q", "p", "q", "p", "q", "p", "q"],
+               n = [3.0, 1.0, 4.0, 2.0, 3.0, 1.0, 4.0, 2.0],
+               v = [1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0])
+function refusal_of(thunk)
+    try
+        thunk()
+    catch error
+        error isa GogError && return error.msg
+        rethrow()
+    end
+    error("the sentence was accepted, and should have been refused")
+end
+
+@testset "the refusals of 2026-09-23 refuse once, with direction" begin
+    @refuses render_svg(data(strip) + point * jitter(2) + x(:g) + y(:v)) "`jitter(1.25)`"
+    @test startswith(render_svg(data(strip) + point * jitter(1.25) + x(:g) + y(:v)), "<svg")
+    @refuses render_svg(data(strip) + bar * sum + x(:g) + y(:v) + order(:k)) "holds text"
+    @refuses render_svg(data(strip) + point + x(:n) + y(:v) + rule + x(:n) + y(:v)) "`rule + x(n) + rule + y(v)`"
+    @refuses render_svg(data(strip) + point + x(:n) + y(:v) +
+                        style(color = "none", border_color = "steelblue", opacity = 0.3)) "#4682b44d"
+    @refuses render_svg(data(strip) + zone * bin + x(:g) + y(:k)) "are both categorical"
+    for thunk in (() -> render_svg(data(strip) + path * mean + x(:g) + y(:v)),
+                  () -> render_svg(data(strip) + zone * bin + x(:g) + y(:k)))
+        @test Base.count("gog: `", refusal_of(thunk)) == 1
+    end
+end
+
+@testset "a statistic splits by every channel, and a zone takes a share" begin
+    summed = render_svg(data(strip) + zone * sum + x(:g) + y(:k) + color(:v))
+    shared = render_svg(data(strip) + zone * sum * proportion + x(:g) + y(:k) + color(:v))
+    @test summed != shared
+    lines = render_svg(data(strip) + line * mean + x(:n) + y(:v) + color(:g) + group(:k))
+    @test Base.count("<polyline", lines) == 4
+    @test render_svg(data(strip) + interval * range + x(:g) + y(:v) + pattern(:k)) ==
+          render_svg(data(strip) + interval * range + x(:g) + y(:v) + pattern(:k) + group(:k))
+end
+
+@testset "a declared order over numbers draws as categories" begin
+    numbers = (year = ordered([2019, 2020, 2021], [2019, 2020, 2021]), sales = [3.0, 5.0, 4.0])
+    text = (year = ordered(["2019", "2020", "2021"], ["2019", "2020", "2021"]),
+            sales = [3.0, 5.0, 4.0])
+    @test render_svg(data(numbers) + bar + x(:sales) + y(:year)) ==
+          render_svg(data(text) + bar + x(:sales) + y(:year))
+end
+
+@testset "a tally's axis names no column, and a box's refusal is said once" begin
+    @refuses render_svg(data(strip) + bar * count + x(:g) + y(:v)) "names a column it never reads"
+    @refuses render_svg(data(strip) + point * bin * stack + x(:n) + y(:g)) "`color(g)`"
+    @test startswith(render_svg(data(strip) + bar * count + x(:g) + y(:count)), "<svg")
+    @test Base.count("gog: `", refusal_of(() -> render_svg(data(strip) + box * mean + x(:g) + y(:v)))) == 1
+end

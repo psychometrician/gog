@@ -355,36 +355,43 @@ fn bar_thickness_svg(pos_vals: &[f64], n: usize, pos_px: f64, pos_scale: (f64, f
 /// least two groups; otherwise the mark draws un-dodged, and a lone group is the
 /// identity rather than a needless narrowing.
 struct Dodge {
-    /// The split values in canonical (legend) order — the offset index.
-    groups: Vec<String>,
-    /// Each original row's split value, so a writer iterating rows (or low/high
-    /// pairs) looks its offset up by index.
-    values: Vec<String>,
+    /// Each original row's place among the split's combinations — the offset
+    /// index, looked up by row so a writer iterating rows (or low/high pairs)
+    /// finds its offset without a second pass.
+    ranks: Vec<usize>,
+    /// How many combinations share the slot.
+    groups: usize,
 }
 
 impl Dodge {
     /// Resolve a layer's dodge, or `None` when it is not dodged / has nothing to
-    /// separate. Keys off `color`, else `group` — the precedence the statistics
-    /// and the legend already use, so the offset order matches the swatch order.
-    fn resolve(layer: &Layer, df: &DataFrame) -> Option<Dodge> {
+    /// separate. Keys off every channel that splits (`legality::split_fields_of`),
+    /// in the order the statistics split and the legend lists them, so the offset
+    /// order matches the swatch order. It keyed off `color`, else `group`, until
+    /// the statistics learned to split by all of them; a `pattern(era)` dodge was
+    /// refused for having no groups while the legend showed two.
+    ///
+    /// `slot_field` is the column the slots themselves come from, and it is left out:
+    /// inside one slot it holds one value, so it has nothing to set side by side.
+    /// Counted in, `color(continent) + pattern(era)` over `x(continent)` cut every slot
+    /// into ten lanes, one per continent and era, and filled two of them.
+    fn resolve(layer: &Layer, df: &DataFrame, slot_field: &str) -> Option<Dodge> {
         if !layer.transforms.iter().any(|t| matches!(t, Transform::Dodge)) {
             return None;
         }
-        let field = layer
-            .encodings
-            .get(&Channel::Color)
-            .or_else(|| layer.encodings.get(&Channel::Group))
-            .map(|c| c.field.as_str())?;
-        let values = df.str_col(field)?.to_vec();
-        let groups = crate::data::categories_across(&[df], field);
-        if groups.len() < 2 {
+        let fields: Vec<&str> = crate::legality::split_fields_of(layer).into_iter()
+            .filter(|f| *f != slot_field)
+            .collect();
+        let ranks = crate::transform::split_rank(df, &fields)?;
+        let groups = ranks.iter().max().map_or(0, |m| m + 1);
+        if groups < 2 {
             return None; // one group: nothing to set beside anything
         }
-        Some(Dodge { groups, values })
+        Some(Dodge { ranks, groups })
     }
 
     fn count(&self) -> f64 {
-        self.groups.len() as f64
+        self.groups as f64
     }
 
     /// Each dodged mark is this fraction of the full slot width.
@@ -395,9 +402,8 @@ impl Dodge {
     /// The position-axis offset (same units as `slot`) for the mark on `row`. An
     /// unknown group sits at the slot center rather than off the end.
     fn offset_at(&self, row: usize, slot: f64) -> f64 {
-        let g = self.values.get(row).map(String::as_str).unwrap_or("");
-        match self.groups.iter().position(|x| x == g) {
-            Some(i) => (i as f64 - (self.count() - 1.0) / 2.0) * (slot / self.count()),
+        match self.ranks.get(row) {
+            Some(&i) => (i as f64 - (self.count() - 1.0) / 2.0) * (slot / self.count()),
             None => 0.0,
         }
     }

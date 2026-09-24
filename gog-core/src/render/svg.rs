@@ -897,15 +897,19 @@ impl SvgRenderer {
                         if x_log { input = scale::log_column(&input, x_field, x_base); }
                         if y_log { input = scale::log_column(&input, y_field, y_base); }
                         let d = layer.density.as_ref();
-                        // A `group` split runs the whole reading once per group, the
-                        // way every statistic in `transform::apply` already does — a
-                        // contour per species, on shared axes. `color` cannot be the
-                        // split here (it carries the measurement, and `check_field`
-                        // refuses any other field), so `group` is the only one to ask
-                        // for. A `zone` refuses `group` outright in `rule_for`, so this
-                        // is the contour's case in practice and the degenerate
-                        // whole-frame one everywhere else.
-                        let split = layer.encodings.get(&Channel::Group).map(|e| e.field.as_str());
+                        // A split runs the whole reading once per group, the way every
+                        // statistic in `transform::apply` already does — a contour per
+                        // species, on shared axes. Every channel that splits takes part
+                        // (`legality::split_fields_of`) except the one that carries the
+                        // measurement: on a mark with no measure axis that is `color`,
+                        // and `check_field` refuses any other field there. In the cube
+                        // a `bar` measures along `z`, so its categorical `color` is a
+                        // split like any other.
+                        let measured_by_color = crate::legality::has_no_measure_axis(&layer.mark);
+                        let color_field = layer.encodings.get(&Channel::Color).map(|e| e.field.as_str());
+                        let split: Vec<&str> = crate::legality::split_fields_of(layer).into_iter()
+                            .filter(|f| !(measured_by_color && color_field == Some(*f)))
+                            .collect();
                         //
                         // Which geometry comes out is `field_geometry`'s answer, not a
                         // second opinion formed here: **rings** are the traced level
@@ -973,7 +977,7 @@ impl SvgRenderer {
                                 None => Cut::Tally(ts.contains(&Transform::Proportion)),
                             },
                         };
-                        let cells = crate::transform::by_group(&input, split, |sub| match which {
+                        let cells = crate::transform::by_groups(&input, &split, &|sub: &DataFrame| match which {
                             Cut::Rings => {
                                 crate::transform::density2d_contour(sub, x_field, y_field, d)
                             }
@@ -1021,8 +1025,14 @@ impl SvgRenderer {
                         // the cells by its total. Outside `by_group` because a share
                         // is a fraction of the whole frame however many groups split
                         // it — the plane's copy of the rule `apply` follows one
-                        // dimension down (spec §5).
-                        crate::transform::share_cells(&cells, ts)
+                        // dimension down (spec §5). A reduction's answer sits in the
+                        // user's own column, so that column is named here: the cell
+                        // frame alone cannot say which of its numbers was measured.
+                        let reduced = match which {
+                            Cut::Reduce(field, _) | Cut::CutReduce(field, _) => Some(field),
+                            _ => None,
+                        };
+                        crate::transform::share_cells(&cells, ts, reduced)
                     } else if layer.mark == Mark::Zone {
                         let mut out = base;
                         if let Some(b) = layer.bounds.as_ref() {
@@ -1065,16 +1075,15 @@ impl SvgRenderer {
                             ((y_field, y_log, y_base), (x_field, x_log, x_base))
                         };
                         let input = if key_log { scale::log_column(&base, key, key_base) } else { base };
-                        // A color or group binding splits the statistic: the
-                        // transform runs within each group and tags every output
-                        // row with it, so a histogram split by species is three
-                        // histograms and the renderer can color them. `color`
-                        // wins over `group`, the same precedence `write_line` uses
-                        // — and the precedence is `legality`'s to state, because a
-                        // check that counts rows per group has to count the groups
-                        // this draw actually makes.
-                        let group_field = crate::legality::group_field_of(layer);
-                        let done = crate::transform::apply(&input, &layer.transforms, key, out, layer.bin.as_ref(), cut.axis(on_x), layer.density.as_ref(), layer.range.as_ref(), layer.confidence.as_ref(), layer.deviation.as_ref(), layer.quantile.as_ref(), layer.r#box.as_ref(), layer.bounds.as_ref(), layer.stack.as_ref(), group_field);
+                        // Every channel that splits splits the statistic: the
+                        // transform runs within each combination and tags every
+                        // output row with each column, so a histogram split by
+                        // species is three histograms and the renderer can color,
+                        // dash or shape them. Which channels split is `legality`'s
+                        // to state, because a check that counts rows per group has
+                        // to count the groups this draw actually makes.
+                        let group_fields = crate::legality::split_fields_of(layer);
+                        let done = crate::transform::apply(&input, &layer.transforms, key, out, layer.bin.as_ref(), cut.axis(on_x), layer.density.as_ref(), layer.range.as_ref(), layer.confidence.as_ref(), layer.deviation.as_ref(), layer.quantile.as_ref(), layer.r#box.as_ref(), layer.bounds.as_ref(), layer.stack.as_ref(), &group_fields);
                         // The dot plot: a stacking `point` spends its span on glyphs
                         // rather than on length, so the tally becomes one row per
                         // observation (`transform::pile`, spec §5). Decided here for
@@ -12569,7 +12578,7 @@ mod tests {
             let spec = PlotSpec::new().data("t").x("v").layer(layer);
             let eff = vec![vec![crate::transform::pile(
                 &crate::transform::apply(
-                    &data["t"], &spec.layers[0].transforms, "v", "", None, None, None, None, None, None, None, None, None, None, None),
+                    &data["t"], &spec.layers[0].transforms, "v", "", None, None, None, None, None, None, None, None, None, None, &[]),
                 "")]];
             let warn = pile_overlap_warning(&spec, &eff, "", (0.0, n as f64), 400.0,
                                             SvgRenderer::default().point_radius);
@@ -13265,5 +13274,143 @@ mod tests {
         let svg = SvgRenderer::default().render(&spec, &data);
         assert!(svg.contains("seagreen"), "the play strip must take theme(strip = ) too");
         assert!(!svg.contains(STRIP_BG), "no band may keep the default when one was asked for");
+    }
+
+    // -----------------------------------------------------------------------
+    // Accepted and dropped: the 2026-09-23 round, drawn
+    // -----------------------------------------------------------------------
+
+    /// `legality::JITTER_MAX` is derived from the band this renderer draws, so it is
+    /// held to that band here: at the widest legal amount no point leaves its own
+    /// slot, over enough rows that the spread reaches close to both edges.
+    #[test]
+    fn the_widest_legal_jitter_keeps_every_point_in_its_own_slot() {
+        let n = 400;
+        let data: HashMap<String, DataFrame> = HashMap::from([(
+            "t".to_string(),
+            DataFrame::new()
+                .with_str("g", (0..n).map(|i| if i % 2 == 0 { "A" } else { "B" }.to_string()).collect())
+                .with_float("v", (0..n).map(|i| i as f64).collect()),
+        )]);
+        let cxs = |amount: Option<f64>| -> Vec<f64> {
+            let mut layer = Layer::new(Mark::Point);
+            if let Some(a) = amount { layer = layer.transform(Transform::Jitter).jitter_amount(a); }
+            let spec = PlotSpec::new().data("t").x("g").y("v").layer(layer);
+            SvgRenderer::default().render(&spec, &data).lines()
+                .filter(|l| l.contains("<circle"))
+                .filter_map(|l| l.split(r#"cx=""#).nth(1)?.split('"').next()?.parse::<f64>().ok())
+                .collect()
+        };
+        let plain = cxs(None);
+        let wide = cxs(Some(crate::legality::JITTER_MAX));
+        assert_eq!((plain.len(), wide.len()), (n, n));
+        let slot = (plain[1] - plain[0]).abs();
+        let furthest = (0..n).map(|i| (wide[i] - plain[i]).abs()).fold(0.0, f64::max);
+        assert!(furthest <= slot / 2.0 + 0.01,
+                "a point moved {furthest}px from its center, past half the {slot}px slot");
+        assert!(furthest > slot * 0.45,
+                "the spread should reach close to the edge at the widest amount: {furthest} of {slot}");
+    }
+
+    fn split_frame() -> HashMap<String, DataFrame> {
+        let s = |v: &[&str]| v.iter().map(|x| x.to_string()).collect::<Vec<_>>();
+        HashMap::from([(
+            "t".to_string(),
+            DataFrame::new()
+                .with_str("c", s(&["p", "p", "p", "p", "q", "q", "q", "q"]))
+                .with_str("g", s(&["a", "a", "b", "b", "a", "a", "b", "b"]))
+                .with_str("k", s(&["K1", "K2", "K1", "K2", "K1", "K2", "K1", "K2"]))
+                .with_float("x", vec![1.0, 2.0, 1.0, 2.0, 1.0, 2.0, 1.0, 2.0])
+                .with_float("y", vec![1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0]),
+        )])
+    }
+
+    /// **Every channel that splits splits a statistic** (`legality::split_fields_of`).
+    /// A statistic split by `color` alone, else `group`, merged every other split
+    /// before the mark saw it, and `color` beside `group` drew nothing at all.
+    #[test]
+    fn a_statistic_splits_by_every_channel_that_splits() {
+        let data = split_frame();
+        let line = |encode: &dyn Fn(Layer) -> Layer| {
+            let layer = encode(Layer::new(Mark::Line).transform(Transform::Mean));
+            SvgRenderer::default().render(&PlotSpec::new().data("t").x("x").y("y").layer(layer), &data)
+        };
+        // `color` beside `group`: one line per combination, where there were none.
+        let svg = line(&|l| l.encode(Channel::Color, "c").encode(Channel::Group, "g"));
+        assert_eq!(svg.matches("<polyline").count(), 4, "{svg}");
+        // `pattern` on its own: one line per category, each with its own dash.
+        let svg = line(&|l| l.encode(Channel::Pattern, "g"));
+        let strokes: Vec<&str> = svg.lines().filter(|l| l.contains("<polyline")).collect();
+        assert_eq!(strokes.len(), 2, "{svg}");
+        assert_eq!(strokes.iter().filter(|l| l.contains("stroke-dasharray")).count(), 1,
+                   "one of the two means should be dashed: {strokes:?}");
+        // `shape` under a summary: each mean takes its category's glyph.
+        let spec = PlotSpec::new().data("t").x("x").y("y").layer(
+            Layer::new(Mark::Point).transform(Transform::Mean).encode(Channel::Shape, "g"));
+        let svg = SvgRenderer::default().render(&spec, &data);
+        let circles = svg.matches("<circle").count();
+        assert_eq!(circles, 2 + 1, "two circle means and one legend key: {svg}");
+    }
+
+    /// A dodge sets the split side by side **inside** a slot, so the column the slots
+    /// come from has nothing to separate there and is left out of it.
+    #[test]
+    fn a_dodge_leaves_out_the_column_its_slots_come_from() {
+        let data = split_frame();
+        let spec = PlotSpec::new().data("t").x("k").y("y").layer(
+            Layer::new(Mark::Bar).transform(Transform::Mean).transform(Transform::Dodge)
+                .encode(Channel::Color, "k").encode(Channel::Pattern, "g"));
+        let rects = bar_rects(&SvgRenderer::default().render(&spec, &data));
+        assert_eq!(rects.len(), 4, "two slots, two patterns each: {rects:?}");
+        let centers: std::collections::BTreeSet<i64> =
+            rects.iter().map(|r| ((r.0 + r.2 / 2.0) * 100.0).round() as i64).collect();
+        assert_eq!(centers.len(), 4, "every bar in its own lane: {rects:?}");
+        // Two lanes per slot, not four: each bar is half of what one undodged bar is.
+        let undodged = PlotSpec::new().data("t").x("k").y("y").layer(
+            Layer::new(Mark::Bar).transform(Transform::Mean).encode(Channel::Color, "k"));
+        let full = bar_rects(&SvgRenderer::default().render(&undodged, &data))[0].2;
+        assert!(rects.iter().all(|r| (r.2 - full / 2.0).abs() < 0.01),
+                "each dodged bar should be half the slot: {rects:?} against {full}");
+    }
+
+    /// `zone * sum * proportion` divides each cell's sum by the total over all cells,
+    /// as `bar` does, and the legend keeps the column's own name.
+    #[test]
+    fn a_zone_share_of_a_summary_is_a_share() {
+        let data = split_frame();
+        let spec = |share: bool| {
+            let mut layer = Layer::new(Mark::Zone).transform(Transform::Sum)
+                .encode(Channel::Color, "y");
+            if share { layer = layer.transform(Transform::Proportion); }
+            PlotSpec::new().data("t").x("c").y("g").layer(layer)
+        };
+        let summed = SvgRenderer::default().render(&spec(false), &data);
+        let shared = SvgRenderer::default().render(&spec(true), &data);
+        assert_ne!(summed, shared, "`proportion` must change what the cells carry");
+        // The four sums are 3, 7, 11 and 15 of 36, so the ramp ends at 15/36.
+        assert!(shared.contains(">0.42<"), "the legend should read shares: {shared}");
+        assert!(shared.contains(">Y<"), "and keep the column's name: {shared}");
+    }
+
+    /// A violin is one slot in one group, and the group is the whole combination
+    /// the statistic split by. Keyed by one column, two groups sharing a color ran
+    /// together into a single outline.
+    #[test]
+    fn a_violin_is_drawn_once_per_combination_of_its_splits() {
+        let s = |v: &[&str]| v.iter().map(|x| x.to_string()).collect::<Vec<_>>();
+        let n = 40;
+        let data: HashMap<String, DataFrame> = HashMap::from([(
+            "t".to_string(),
+            DataFrame::new()
+                .with_str("k", s(&vec!["K"; n]))
+                .with_str("c", (0..n).map(|i| if i % 2 == 0 { "p" } else { "q" }.to_string()).collect())
+                .with_str("g", (0..n).map(|i| if i % 4 < 2 { "a" } else { "b" }.to_string()).collect())
+                .with_float("y", (0..n).map(|i| (i % 7) as f64 + (i / 7) as f64 * 0.5).collect()),
+        )]);
+        let spec = PlotSpec::new().data("t").x("k").y("y").layer(
+            Layer::new(Mark::Ribbon).transform(Transform::Density)
+                .encode(Channel::Color, "c").encode(Channel::Pattern, "g"));
+        let svg = SvgRenderer::default().render(&spec, &data);
+        assert_eq!(svg.matches("<polygon").count(), 4, "two colors by two patterns: {svg}");
     }
 }

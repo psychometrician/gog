@@ -88,7 +88,7 @@ impl SvgRenderer {
         };
         // Dodge sets a color split side by side within each slot (§5): the
         // position center shifts and the bar narrows to `1/G` of the slot.
-        let dodge = Dodge::resolve(layer, df);
+        let dodge = Dodge::resolve(layer, df, pos_field);
         // Stack piles that split along the *measure* axis instead (§5): each bar's
         // foot is the cumulative height of the groups below it, carried per row in
         // `stack_base` by the transform. Full-width and, like a dodged bar, solid —

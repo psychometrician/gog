@@ -241,7 +241,18 @@ function to_wire(table, name::AbstractString)
         # Julia is the only binding after R that has both a `Date` and a
         # `DateTime`, so the temporal unit is read off the *type* rather than
         # inferred; JavaScript has one `Date` and must read it off the values.
-        if !isempty(present) && all(v -> v isa Dates.DateTime, present)
+        #
+        # A **declared order** is asked first, because it says what the column is
+        # whatever its values look like: categories, in that order. Asked after
+        # the numbers, it was lost whenever the categories were numbers —
+        # `ordered([2019, 2020, 2021], ...)` crossed as a column of years to
+        # measure. R sends a factor's labels plus its levels, so each value is
+        # written with the same `string` the levels were.
+        declared = column_levels(values)
+        if declared !== nothing
+            strings[column] = Any[is_missing(v) ? nothing : string(v) for v in values]
+            levels[column] = String[string(l) for l in declared]
+        elseif !isempty(present) && all(v -> v isa Dates.DateTime, present)
             floats[column] = Any[is_missing(v) ? nothing : Dates.datetime2unix(v) for v in values]
             dates[column] = "second"
         elseif !isempty(present) && all(v -> v isa Dates.Date, present)
@@ -255,8 +266,6 @@ function to_wire(table, name::AbstractString)
             # FALSE and a logical column is a category in every binding — two
             # colors and a two-row legend, not an axis running 0 to 1.
             strings[column] = Any[is_missing(v) ? nothing : string(v) for v in values]
-            declared = column_levels(values)
-            declared === nothing || (levels[column] = String[string(l) for l in declared])
         else
             kinds = sort(unique([string(typeof(v)) for v in present]))
             throw(GogError(

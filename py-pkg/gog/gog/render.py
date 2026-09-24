@@ -340,7 +340,18 @@ def to_wire(frame: Any, table: str) -> Dict[str, Any]:
         # first row, would be the silent drop §12 forbids one level down, so a
         # mixed column is refused here where the caller can still see which
         # column it was.
-        if present and all(isinstance(v, datetime) for v in present):
+        #
+        # A **declared order** is asked first, because it says what the column
+        # is whatever its values look like: categories, in that order. Asked
+        # after the numbers, it was lost whenever the categories were numbers —
+        # `ordered([2019, 2020, 2021], ...)` crossed as a column of years to
+        # measure, and a horizontal bar per year came out as vertical bars as
+        # long as the year. R sends a factor's labels plus its levels, so each
+        # value is written with the same `str` the levels were.
+        if categories is not None:
+            strings[name] = [None if _is_missing(v) else str(v) for v in values]
+            levels[name] = categories
+        elif present and all(isinstance(v, datetime) for v in present):
             floats[name] = [None if _is_missing(v) else _epoch_seconds(v) for v in values]
             dates[name] = "second"
         elif present and all(isinstance(v, date) for v in present):
@@ -350,8 +361,6 @@ def to_wire(frame: Any, table: str) -> Dict[str, Any]:
             floats[name] = [None if _is_missing(v) else _as_number(v) for v in values]
         elif all(_is_missing(v) or _as_number(v) is None for v in values):
             strings[name] = [None if _is_missing(v) else str(v) for v in values]
-            if categories:
-                levels[name] = categories
         else:
             kinds = sorted({type(v).__name__ for v in present})
             raise GogError(

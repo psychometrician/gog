@@ -870,8 +870,9 @@ pub const DEFAULT_LEVELS: usize = 6;
 /// Parameters for the `jitter` collision modifier, carried on the layer like
 /// [`BinSpec`]/[`DensitySpec`]. `amount` scales the automatic spread — the
 /// slot-derived default band — exactly as `density`'s `adjust` scales the
-/// automatic bandwidth: `jitter(0.5)` is half the spread, `jitter(2)` twice,
-/// and a bare `jitter` (`None`) is `jitter(1)`. It is a dimensionless multiplier
+/// automatic bandwidth: `jitter(0.5)` is half the spread, a bare `jitter`
+/// (`None`) is `jitter(1)`, and `legality::JITTER_MAX`, 1.25, is the most, where
+/// a point reaches the edge of its slot. It is a dimensionless multiplier
 /// on purpose: jitter only ever applies to a categorical axis, whose slot is the
 /// natural unit, so there is no absolute-units knob to pair with it (unlike
 /// `bin`/`density`, whose second knob measures in the data's own units).
