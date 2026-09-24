@@ -525,9 +525,9 @@ Two rules apply:
   the row is dropped. In R, list every value you want drawn.
 - **`order()` in the plot wins.** The levels came with the table, so they apply
   to every plot drawn from it. `order()` is written in this one plot, so it
-  applies here, and the more specific instruction wins. Name a different column
-  in `order()`, and the categories follow that column's values instead. That is
-  how you sort by value:
+  applies here, and the more specific instruction wins. Name another column in
+  `order()`, one that holds numbers, and the categories are ordered by its values
+  instead. That is how you sort by value:
 
 ```{r}
 data(severity) + bar + x(level) + y(count) + order(count, desc = TRUE) +
@@ -603,13 +603,12 @@ special <- data.frame(
 data(special) + bar + x(firm) + y(spend) + title("Q3 <spend> & forecast")
 ```
 
-Many tables are not written in Latin letters at all. Their column names should
-be drawn as they are, with no renaming first. A name in another writing system
-is also drawn as written, and it can be a bare column name as well as a label.
-The table below is in Korean. Its name, 지역별 (*jiyeokbyeol*), means by region.
-Its two columns are 지역 (*jiyeok*), region, and 값 (*gap*), value. The three rows
-are the cities 서울 (*Seoul*), 부산 (*Busan*) and 대구 (*Daegu*). The plot title 한국
-지역별 값 (*Hanguk jiyeokbyeol gap*) reads *value by region, Korea*.
+Many tables are not written in Latin letters at all. gog draws their column
+names as written, with no renaming first. A name in another writing system can
+be a bare column name as well as a label. The table below is in Korean. Its
+name, `지역별`, means *by region*. Its two columns are `지역` (*region*) and `값`
+(*value*). The three rows are the cities 서울 (*Seoul*), 부산 (*Busan*) and 대구
+(*Daegu*). The plot title, 한국 지역별 값, means *value by region, Korea*.
 
 ```{r}
 지역별 <- data.frame(

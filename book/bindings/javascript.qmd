@@ -168,8 +168,8 @@ js_error("plot(data(gapminder_2007), point, x(col.gdp), y(col.life), style({ col
 
 A column name with a space or a dot in it is not a JavaScript identifier. Write
 it in the bracket form instead: `col["life exp"]`. A name in another writing
-system needs no such thing: `col.지역` (*jiyeok*, region) is an ordinary
-identifier.
+system needs no such thing: `지역` (*region*) is an ordinary identifier, so
+`col.지역` works.
 
 ## A named argument is one trailing object
 

@@ -67,7 +67,9 @@ the transform invents the y column and labels it ("Count", "Proportion",
 "Density"). `bar * bin + x(life)` and `line * density + x(life)` are the same
 grammatical shape: one name in, a new axis out. The engine is not failing to
 notice a missing `y()`. There is exactly one sensible y here, the count or the
-density, so it fills that in.
+density, so it fills that in. If you name a column of the table on that axis, as
+in `bar * count + x(continent) + y(life)`, gog refuses it, because the transform
+would never read that column.
 
 **Reading** transforms (`smooth`, `sum`, `mean`, `median`, `max`, `min`,
 `quantile`, `range`, `confidence`, `deviation`) read *two* columns and reshape
@@ -85,7 +87,8 @@ family a transform belongs to decides it. This is one instance of [Explicit Over
 Implicit](design-laws.qmd): the short form is allowed exactly when it cannot be
 misread, and refused when it could.
 
-A statistic runs *within each group* when `color` (or `group`) is bound.
+A statistic runs *within each group* when a channel that splits the rows into
+groups is bound: `color`, `group`, `pattern` or `shape`.
 `bar * bin + color(species)` draws one histogram *per species*, not one combined
 bar that has discarded the split (see [overlaid
 histograms](marks/bar.qmd#overlaid-histograms)). The same rule gives a density
@@ -1578,10 +1581,11 @@ collision modifier that fits. That is the discipline the rest of the kernel
 follows: an atom combines with the marks it was defined for, and the refusal
 names the atom that fits rather than drawing something wrong.
 
-`dodge` also needs a split to separate: a `color` (or `group`) binding. Without
-one there is a single mark per slot and nothing to set beside anything, so
-`bar * dodge` on its own is refused toward adding the color, never accepted as a
-word that quietly does nothing.
+`dodge` also needs a split to separate: a channel that splits the rows into
+groups, such as `color` or `group`. Without one there is a single mark per slot
+and nothing to set beside anything, so `bar * dodge` on its own is refused, and
+the message asks for the split. It is never accepted as a word that quietly does
+nothing.
 
 ## `stack`: piled up, not side by side
 
@@ -1690,8 +1694,9 @@ neighbors rather than piled, which is `dodge`. An unfilled `line` has nothing to
 fill and pile, so use `area`. A `ribbon` already spans a low to a high, so it
 measures no height from a baseline. Ask for `stack` on one of those and gog
 refuses, naming the collision modifier that fits. For `bar` and `area` it also
-needs a `color` (or `group`) split to pile: `bar * stack` alone is refused
-toward adding the color, never accepted as a word that quietly does nothing.
+needs a channel that splits the rows into groups to pile, such as `color` or
+`group`. `bar * stack` alone is refused, and the message asks for the split. It
+is never accepted as a word that quietly does nothing.
 
 ### `stack(baseline = )`: where the pile sits
 
@@ -1900,6 +1905,10 @@ height to the tallest pile, and no setting does that. The count axis is real
 either way, and that choice is deliberate: the alternative is to draw the dots
 touching and leave the axis with no meaning.
 
+Each pile's height is the count, drawn on `y`, so a dot plot names no column
+there. Name one, such as `y(continent)`, and gog refuses it. The message
+suggests `color(continent)` or a facet instead.
+
 ### How many rows is too many
 
 One dot per country works at 142 rows. A table twelve times that size is where
@@ -2028,11 +2037,10 @@ pixel-for-pixel the same picture. A specification always means one plot.
 The default spread is one guess at what reads well, and on your figure it may be
 too wide or too narrow.
 
-The default spread fills a fraction of each category's slot: wide enough to show
-the pile, narrow enough to leave a gap between categories so no point strays
-into a neighbor. When you want more or less, `jitter(amount)` scales it: a plain
-number multiplying the default, so `jitter(0.5)` is half the spread and
-`jitter(2)` twice it (a bare `jitter` is `jitter(1)`).
+By default a point moves at most 0.4 of a slot from its category's center: far
+enough to show the pile, and near enough to leave a gap between categories. For
+a wider or narrower spread, `jitter(amount)` multiplies the default by a plain
+number, so `jitter(0.5)` is half as wide (a bare `jitter` is `jitter(1)`).
 
 ```{r}
 data(gapminder_2007) + point * jitter(0.5) + x(continent) + y(life) +
@@ -2042,6 +2050,19 @@ data(gapminder_2007) + point * jitter(0.5) + x(continent) + y(life) +
 
 *"Given gapminder 2007: points derived by jitter at 0.5, x is continent, y is
 life."*
+
+The widest spread is `jitter(1.25)`, which moves a point up to half a slot, to
+the edge of its slot. gog refuses a larger amount, because it would move some
+points into a neighboring category, where they would be read as that category's
+rows:
+
+```{r}
+#| error: true
+data(gapminder_2007) + point * jitter(2) + x(continent) + y(life)
+```
+
+The message names 1.25 as the widest amount, and `style(opacity = )` as a way to
+show where points overlap without moving any of them.
 
 The parameter has the same shape as `density`'s `adjust`, a dimensionless
 multiple of an automatic value. It is there for the same reason `density` and
@@ -2151,8 +2172,8 @@ mark is made of words.
 ## In short
 
 `bin`, `count` and `density` read one column and write the measured axis
-themselves, so they need no `y`. The ones that read two columns refuse without
-it. A statistic runs inside each group, so binding `color` changes what it
+themselves, so they need no column on that axis, and refuse one if named. The
+ones that read two columns refuse without a `y`. A statistic runs inside each group, so binding `color` changes what it
 computes. Two transforms compose when their jobs differ and contradict when
 they do not.
 

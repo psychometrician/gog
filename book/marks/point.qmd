@@ -406,9 +406,10 @@ glyph.
 
 A border can also be the whole point. Set the fill color to `"none"` and give
 the border a color, and each point is drawn hollow: an outline with no fill. A
-hollow point can be partly transparent as well. `opacity` fades a point's fill,
-and a hollow point has none, so the transparency goes in the border's color
-instead. In `"#4682b44d"`, the first six hex digits are steelblue, and the last
+hollow point can be partly transparent as well. `opacity` fades what `color`
+paints, and `color = "none"` paints nothing, so gog refuses `opacity` on a
+hollow point. Put the transparency in the border's color instead. In
+`"#4682b44d"`, the first six hex digits are steelblue, and the last
 two, `4d`, make the outline 30% opaque. Here are all 1,704 rows of `gm_all`
 again, the table the [Opacity](#opacity) section drew at one opacity:
 
@@ -437,8 +438,8 @@ row on the [companion grid](../combinations.qmd#marks-and-channels).
 
 ## What it refuses
 
-A point refuses three things: a category on `size`, any pattern, and `jitter` on
-a scatterplot.
+Four refusals follow, each with its reason: a category on `size`, any pattern,
+`jitter` on a scatterplot, and `opacity` on a hollow point.
 
 `size` shows an amount, so it needs a column of amounts:
 
@@ -483,6 +484,19 @@ scatterplot, keep every point at its value and change how it is drawn.
 area, as in the plot of every gapminder year under [Opacity](#opacity). A
 hollow point, an outline with no fill, keeps every point visible where points
 overlap, as the same table shows under [What you can set](#what-you-can-set).
+
+The fourth refusal is `opacity` on a hollow point. `opacity` fades what `color`
+paints, and `color = "none"` paints nothing, so there is nothing for it to fade:
+
+```{r}
+#| error: true
+data(gapminder_2007) + point + x(gdp) + y(life) +
+  style(color = "none", border_color = "steelblue", opacity = 0.3)
+```
+
+The message suggests `border_color = "#4682b44d"` instead. In `"#4682b44d"` the
+transparency is part of the border's own color, as in the hollow points under
+[What you can set](#what-you-can-set).
 
 ## In short
 

@@ -445,9 +445,11 @@ data(iris_flowers) + interval * confidence(0.95) + x(species) + y(petal_length) 
 *"Given the iris flowers: intervals derived by confidence at 95%, x is species,
 y is petal length, color by species, with pattern dashed."*
 
-`pattern` can also be mapped to a column, but it does not split the whiskers by
-itself. Map the same column to `color` or `group` as well, and each group's
-whisker gets its own dash.
+`pattern` can also be mapped to a column. Like `color`, it splits an interval
+into one whisker per group, and each group's whisker gets its own dash. Mapped
+to a second category, `pattern` puts several whiskers on one category of `x`,
+where they overlap. `dodge` sets them side by side, as it does for [a split by
+color](#splitting-by-color).
 
 ## A bar with its error bar
 
@@ -600,8 +602,8 @@ Two categories leave the mark nothing to span.
 
 An interval computes nothing. Its transform decides which two numbers it spans,
 and whether there is a center to draw. `caps` and `center` are settings, so
-neither reads a column. A dash can be set for the whole layer, or mapped to the
-same column as `color` or `group`.
+neither reads a column. A dash can be set for the whole layer, or mapped to a
+column, which splits the whiskers the way `color` does.
 
 ## What comes next
 

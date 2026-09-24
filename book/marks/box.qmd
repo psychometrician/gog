@@ -334,9 +334,8 @@ gave the reason:
 data(iris_flowers) + box * mean + x(species) + y(petal_length)
 ```
 
-The first message names the fix: drop the transform, and the box draws its own
-summary. The second message counts the box's own summary as a second statistic,
-and its suggestions, such as `box * box`, do not apply to a box.
+The message names the fix: drop the transform, and the box draws its own
+summary.
 
 ## In short
 

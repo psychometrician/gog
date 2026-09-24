@@ -152,7 +152,10 @@ data(gapminder_2007) + point + x(gdp) + y(life) + style(opacity = 0.45) +
   title("Both margins, from two layers")
 ```
 
-Each rug names one axis, and both read the scatter's table.
+Each rug names one axis, and both read the scatter's table. A single `rule`
+layer that names both is refused, because a rule draws one line per row, placed
+by one column. The message suggests the two layers above, as [What it
+refuses](#what-it-refuses) shows.
 
 The left edge shows a different distribution from the bottom edge. The ticks
 are dense above 70, thinnest between 60 and 70, and a little denser again from
@@ -380,6 +383,19 @@ categories on both axes. The rule had a column for both axes. The bar has the
 reverse problem: neither axis holds a number, so the bar has nothing to
 measure, and gog will not guess.
 
+The opposite, one layer that names both positions, is refused too. A rule draws
+one line per row, placed by one column, so only one of the two columns could be
+drawn:
+
+```{r}
+#| error: true
+data(gapminder_2007) + point + x(gdp) + y(life) +
+  rule + x(gdp) + y(life) + style(reach = "edge")
+```
+
+The message suggests two layers, one per axis, as in the plot under [The other
+axis](#the-other-axis).
+
 A rule takes no transform either. It is placed by one column and spans the
 whole panel on the other axis. A statistic such as `mean` summarizes one axis
 for each value of the other, and a rule reads only one position:
@@ -412,8 +428,9 @@ geometry.
 A rule's position is a column and never a number, so three thresholds are three
 rows. With its column on `x` the line is vertical, and on `y` horizontal.
 `style(reach = "edge")` makes it a rug tick, and in polar it is a ring or a
-spoke. A rule on the plot's own table must name its axis, or gog refuses it. It
-takes no transform: compute the value yourself and give the rule that column.
+spoke. A rule on the plot's own table must name exactly one axis, or gog
+refuses it. It takes no transform: compute the value yourself and give the rule
+that column.
 
 ## What comes next
 

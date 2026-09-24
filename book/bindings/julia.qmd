@@ -67,10 +67,9 @@ reason ([Setting vs mapping](../style.qmd)):
 jl_error("data(gapminder_2007) + point + x(:gdp) + y(:life) + style(color = :continent)")
 ```
 
-A column name Julia cannot read as an identifier, because it holds a space or a
-dot, is written `Symbol("life exp")`. A
-name in another writing system needs no such thing: `:지역` (*jiyeok*, region) is
-an ordinary symbol, because Julia identifiers are Unicode.
+A column name with a space or a dot in it is written `Symbol("life exp")`. A
+name in another writing system needs no such thing: `:지역` (*region*) is an
+ordinary symbol. Julia accepts letters from any writing system in a name.
 
 ## A sentence over several lines
 

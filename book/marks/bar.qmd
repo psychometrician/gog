@@ -281,9 +281,10 @@ Orientation is only ambiguous if neither axis is categorical. In that case gog
 draws vertically, so `x(year) + y(sales)` gives vertical bars. Swapping the two
 does not make them horizontal. With two continuous columns, gog always
 measures the one on `y`. So `x(sales) + y(year)` still draws vertical bars, and
-each bar's length is a year, such as 2019. For horizontal bars, make the year a
-category and put it on `y`: store the years as text, such as `"2019"`, and each
-year gets a slot of its own.
+each bar's length is a year, such as 2019. For horizontal bars, make the year
+categorical and put it on `y`. A column of numbers becomes categorical when you
+[declare the order](../data.qmd#declaring-the-order-of-categories) of its
+values, and each year then gets a slot of its own.
 
 A bar needs something to measure, so two categorical axes are refused.
 [What it refuses](#what-it-refuses) shows that refusal.
@@ -661,10 +662,10 @@ row on the [companion grid](../combinations.qmd#marks-and-channels).
 
 ## What it refuses
 
-The three refusals below come from different facts. The first belongs to the
-transform rather than the mark: `bin` needs a continuous axis to cut. The other
-two belong to the mark: a bar is a fill rather than a stroke, and a bar needs a
-number to measure.
+The four refusals below have different causes. The first two belong to the
+transform rather than the mark: `bin` needs a continuous axis to cut, and `count`
+computes the number it draws. The other two belong to the mark: a bar is a fill
+rather than a stroke, and a bar needs a number to measure.
 
 Binning cuts a continuous axis into intervals, so there is nothing for it to cut
 on a categorical one:
@@ -677,7 +678,20 @@ data(gapminder_2007) + bar * bin + x(continent)
 To count the rows in each category's slot, use `count`. The refusal names
 `bar * count` rather than drawing empty bins.
 
-Texture is the second refusal. A bar is a fill, so it takes a fill's textures,
+The second refusal comes from `count` itself. On `y`, `count` draws the number
+of rows in each slot, so a column named on `y` would never be read. gog refuses
+it, because the axis would be titled `life` while its numbers are counts:
+
+```{r}
+#| error: true
+data(gapminder_2007) + bar * count + x(continent) + y(life)
+```
+
+To summarize `life` in each slot, use a statistic that reads it, such as
+`bar * mean`. The first histogram's `y(count)` is accepted, because the table
+has no column named `count` for the transform to ignore.
+
+Texture is the third refusal. A bar is a fill, so it takes a fill's textures,
 and a dash is a stroke's:
 
 ```{r}
@@ -688,7 +702,7 @@ data(medals) + bar + x(country) + y(gold) + style(pattern = "dashed")
 A bar's outline takes a color and a width, never a dash. `border_color` and
 `border_size` are the only two settings the outline has.
 
-Two categorical positions are the third refusal. The axis with the category
+Two categorical positions are the fourth refusal. The axis with the category
 places the bars, one slot each, and the axis with the number measures how far
 they reach, as [Horizontal bars](#horizontal-bars) explained. With a category
 on both, there is no length left to draw:

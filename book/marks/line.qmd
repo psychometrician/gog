@@ -485,11 +485,11 @@ which is what Multiple series showed above.
 
 ## In short
 
-Without `color` or `group`, every row joins one stroke; either one splits the
-rows into one line per series. A line always sorts along `x`, so row order
-means nothing to it. Swap the two bindings and the line re-sorts: you get a
-different plot, not the same one on its side. Width and opacity belong to the
-whole stroke, and only `color` varies along it.
+A categorical `color`, a `group` or a mapped `pattern` splits the rows into one
+line per category. Without them, one stroke joins every row. A line always sorts
+along `x`, so row order means nothing to it. Swap the two bindings and the line
+re-sorts: you get a different plot, not the same one on its side. Width and
+opacity belong to the whole stroke, and only `color` varies along it.
 
 ## What comes next
 

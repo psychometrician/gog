@@ -764,6 +764,30 @@ position that does not carry it. A bar measures with `y`, so it groups by `x`.
 A zone measures with nothing positional, so it groups by both. In [the
 cube](../space.qmd) a bar measures with `z`, so it groups by the pair as well.
 
+A summary composes with `proportion` too: each cell's summary becomes a share of
+the total over all cells. The `titanic` table already holds counts: each row is a
+group of people aboard, and `n` is the size of the group. So `sum` adds up the
+people in each cell, and `proportion` turns each sum into a share of everyone
+aboard. Counting rows would be wrong here: `zone * proportion` gives every cell
+0.125, because each cell holds 4 of the table's 32 rows.
+
+```{r}
+#| echo: false
+peek(titanic)
+```
+
+```{r}
+data(titanic) + zone * sum * proportion + x(class) + y(survived) + color(n) +
+  title("Everyone aboard, as shares: class by survival")
+```
+
+*"Given titanic: zones derived by sum and proportion, x is class, y is
+survived, color by n."*
+
+The legend is still titled N, after the column that `sum` added up, but its
+numbers are now shares. The darkest cell holds the crew who did not survive:
+0.31, about three in ten of everyone aboard.
+
 Say `mean` with nothing for it to reduce and the engine asks for the column
 rather than guessing, as [What it refuses](#what-it-refuses) shows.
 

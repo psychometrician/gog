@@ -178,6 +178,11 @@ data(gapminder_2007) + point + x(gdp) + y(life) +
 *"Given gapminder 2007: points, x is gdp, y is life, colored steelblue, with
 opacity 0.7, size 5, border color white and border size 1."*
 
+`opacity` fades what `color` paints, which here is the fill. The white outline
+stays fully opaque. To make an outline partly transparent, put the transparency
+in `border_color`: in `"#4682b44d"`, the last two hex digits make steelblue 30%
+opaque.
+
 A **curve fill** (`area`, `ribbon`) takes no border. Its edge is a data curve,
 so you draw it as a `line` layer (`area + line`, `line * bounds`), which can do
 more than a border setting. And a `cross` point has no fill to outline, so a
