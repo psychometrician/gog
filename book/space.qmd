@@ -488,8 +488,8 @@ whole dimension in the cube.
 ## What the cube blocks
 
 The second reason is **blocked**, and it is a different kind of refusal. A
-`rule` marks a value on one axis and spans the ones it does not name: in a cube
-that is *two* axes, so a rule here is a **plane**:
+`rule` marks a value on one axis and spans the others: in a cube that is *two*
+axes, so a rule here is a **plane**:
 
 ```{r}
 #| error: true

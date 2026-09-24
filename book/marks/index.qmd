@@ -299,10 +299,10 @@ only unwise; whether a profile suits your categories is your judgment
 ([Law 8](../design-laws.qmd)).
 
 `line` is not the only mark that draws a profile. [`area`](area.qmd) fills
-under the same boundary, [`step`](step.qmd) holds it flat across each slot, and
-[`ribbon * range`](ribbon.qmd) fills the spread as a band. Drawn around a
-circle, the same `line * mean` profile is the **radar chart**, in
-[Polar](../polar.qmd).
+under the same boundary, [`step`](step.qmd) holds each value flat until the
+next category, and [`ribbon * range`](ribbon.qmd) fills the spread as a band.
+Drawn around a circle, the same `line * mean` profile is the **radar chart**,
+in [Polar](../polar.qmd).
 
 ---
 

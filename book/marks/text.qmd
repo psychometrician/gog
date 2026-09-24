@@ -5,15 +5,18 @@
 source("../R/setup.R")
 ```
 
-Which point is which? `text` draws a string at each `(x, y)` position. It is
-`point`'s sibling: both place one glyph per row. A point's glyph is a dot. A
-text mark's glyph is a **string**, and that string comes from a column, through
-the `label` channel.
+Which point is which? `text` draws a **string**, a piece of text such as a name
+or a number, at each `(x, y)` position. It is `point`'s sibling: both place one
+glyph per row. A point's glyph is a dot by default. A text mark's glyph is a
+string, and that string comes from a column, through the `label` channel. This
+chapter uses it three ways: to name the points of a scatter, to print a value on
+a bar, and to write a note on a plot.
 
 ## The mark and its content
 
-A point tells you *where* a row sits; it cannot tell you *which* row. Five medal
-counts drawn as dots are five points with nothing to say which is which:
+A point tells you *where* a row sits; it cannot tell you *which* row. Five
+countries drawn as dots are five points with nothing to say which country is
+which:
 
 ```{r}
 #| echo: false
@@ -28,8 +31,8 @@ data(medals) + point + x(gold) + y(silver) +
 
 *"Given the medals: points, x is gold, y is silver."*
 
-Bind `label` and draw the names themselves at those positions, and each mark
-now shows which row it is:
+Replace `point` with `text` and bind `label` to `country`, and each row's name
+is drawn at its position:
 
 ```{r}
 data(medals) + text + x(gold) + y(silver) + label(country) +
@@ -44,14 +47,17 @@ at every row's position. `text` draws one of the row's own values there instead.
 
 ## Both at once: the labeled scatter
 
-A dot marks one spot on the panel. A word is much wider than a dot, so a name
-on its own only shows roughly where its row sits.
-The two marks compose. Layer a `point` and a `text` over one `(x, y)`.
-The dot gives the exact position and the string gives the name. That is a
-labeled scatter, built from two marks rather than a third mark of its own.
+A dot marks one position on the panel. A word is much wider than a dot, so a
+name on its own only shows roughly where its row sits. The two marks can be
+drawn together: layer a `point` mark and a `text` mark on the same `x` and `y`,
+with the `+` [operator](../operators.qmd). The dot gives the exact position and
+the string gives the name. That is a labeled scatter, built from two marks
+rather than a third mark of its own.
+
 Each `style()` applies to the mark written before it, so
-`style(size = 5, color = "#9e9e9e")` colors the dots and not the words. A label
-would otherwise sit on top of its dot, so `style(nudge = "up")` moves it off:
+`style(size = 5, color = "#9e9e9e")` colors the dots and not the words. Without
+a nudge, each label is drawn centered on its dot, so `style(nudge = "up")` moves
+every label above its dot:
 
 ```{r}
 data(medals) + point + style(size = 5, color = "#9e9e9e") +
@@ -62,16 +68,6 @@ data(medals) + point + style(size = 5, color = "#9e9e9e") +
 
 *"Given the medals: points and also text, x is gold, y is silver, label by
 country, with nudge up."*
-
-There is no "labeled point" mark to learn: a labeled scatter is just
-`point + text`, layered with the `+` [operator](../operators.qmd).
-
-Five names fit here. Fifty would not, and choosing which few to keep is the
-hardest part of a labeled scatter. A plot that carries `brush()` lets you try a
-few in the web edition before you write any down. Clicking a mark there prints
-its values on the plot, which [Selection](../selection.qmd#stamping-a-point)
-calls a stamp. A stamp disappears when the page reloads. A `text` label is part
-of the specification, so it is drawn every time.
 
 ### Nudging the label off its point
 
@@ -88,13 +84,14 @@ data(medals) + point + style(size = 5, color = "#9e9e9e") +
   title("The same, nudged right")
 ```
 
-You do not give a distance. The engine takes it from the font size, far enough
-to clear a default dot, so `nudge` asks only for a direction. A nudge is one
-*fixed* shift, the same for every label, and nothing in the data changes it.
-`jitter` and `dodge` work the other way: they compute their offsets from the
-data, so every mark moves by its own amount. Only `text` accepts a nudge. A
-`point` or a `bar` has no label to move, so the engine refuses the setting there
-and names the mark that does.
+You do not give a distance. The engine sets it from the font size, far enough
+that the word does not touch a dot of the default size. That is why `nudge` asks
+only for a direction. A nudge is one *fixed* shift, the same for every label,
+and nothing in the data changes it. `jitter` and `dodge` work differently: they
+compute each mark's offset from the data, so marks can move by different
+amounts. Only `text`
+accepts a nudge. A `point` or a `bar` has no label to move, so the engine
+refuses the setting there and names the mark that does.
 
 ### `repel`: moving labels off each other
 
@@ -115,9 +112,14 @@ data(gm_europe) + point + style(color = "#9e9e9e") +
   title("Thirty countries, named")
 ```
 
-`repel` solves that, and it is a *collision modifier* rather than a setting. It
-measures where the labels and the dots actually are, then moves each label off
-the words around it:
+Every name is drawn on its own dot, and where the countries crowd together the
+words overlap. A nudge would move all thirty words the same distance in the same
+direction, so the same words would still overlap.
+
+`repel` solves that. It is one of the four collision modifiers, with `jitter`,
+`dodge` and `stack`, so it is written after the mark with `*`, not inside
+`style()`. It measures where the labels and the dots actually are, then moves
+each label off the words around it:
 
 ```{r}
 data(gm_europe) + point + style(color = "#9e9e9e") +
@@ -129,33 +131,46 @@ data(gm_europe) + point + style(color = "#9e9e9e") +
 *"Given gapminder Europe: points and also text derived by repel, x is gdp, y is
 life, label by country."*
 
-Three things in that picture are worth naming. Every label comes to rest just
-outside its dot, so no word covers the point it names. A label in a crowd slides
-to whichever side has room. A label with space around it stays directly above
-its dot. All three follow from one rule: `repel` pulls a label toward its own
-dot and pushes it away from every word and every other dot.
+Notice three things in this plot. Every label is drawn just outside its dot, so
+no word covers the dot it names. A label with other words near it moves to
+whichever side has room. A label with space around it stays where it started,
+directly above its dot. The first two follow from one rule: `repel` pulls each
+label toward its own dot, and pushes it away from every other word and every
+dot, its own included.
 
-A label sometimes has to travel much further than any of these did. Once it ends
-up more than one line of text from its point, gog draws a thin line from the
-point to the word. That line is what tells you which point the name belongs to.
-None of the thirty labels moves that far, so `repel` draws no line here.
+In a more crowded plot, `repel` can move a label much further from its dot. Once
+the gap is larger than the height of one line of text, gog draws a thin line
+from the dot to the word, so you can still see which dot the name belongs to. No
+label in this plot moved that far, so none has a line.
 
-The placement is **deterministic**. It uses no random-number generator and no
-system time, so the same specification draws the same picture every time.
+The placement is **deterministic**. It uses no random-number generator and does
+not read the computer's clock, so the same specification draws the same picture
+every time. It does depend on the order of the rows, though. `repel` settles the
+overlaps pair by pair, in the order of the rows, so the same rows in a different
+order can end with some labels in different places.
 
-When no arrangement fits, `repel` still draws every label and reports how
-many still overlap. It never drops a label without saying so. A plot missing
-the names it could not fit would look like a plot of fewer countries, so gog
-reports the count instead. Thirty countries all fit, so no report appears here.
+Sometimes no arrangement keeps every label apart. `repel` then still draws every
+label, and gog prints a message saying how many still overlap. Which names to
+leave out is your decision, so `repel` never removes one. In this plot all
+thirty fit, so gog prints no message.
+
 Three things give crowded labels more room: fewer rows, a smaller
 `style(size = )`, and a larger plot. `theme(width =, height =)` sets the plot's
 size in pixels, and the
 [Composition](../composition.qmd#how-thin-is-the-marginal-histogram-themewidth-height)
-chapter covers it.
+chapter explains it.
 
-The setting and the collision modifier compose, and each does one thing.
-`style(nudge = )` says which side a label prefers, and `repel` resolves the
-overlaps that remain:
+Fewer rows is often the right choice. On a large table you usually name only the
+few rows that matter: give the `text` layer its own table that holds just those
+rows, as [A note is a layer](#a-note-is-a-layer) does with one row. In the web
+edition, clicking a dot on a plot with `brush()` shows its values beside it,
+which [Selection](../selection.qmd#stamping-a-point) calls a stamp. Stamps help
+you choose those rows. A stamp is gone when the page reloads, while a `text`
+label is part of the specification and is drawn every time.
+
+The setting and the collision modifier can be used together, and each does one
+job. `style(nudge = )` chooses the side each label is pulled toward, and `repel`
+then moves the labels that still overlap:
 
 ```{r}
 data(gm_europe) + point + style(color = "#9e9e9e") +
@@ -167,14 +182,19 @@ data(gm_europe) + point + style(color = "#9e9e9e") +
 *"Given gapminder Europe: points and also text derived by repel, x is gdp, y is
 life, label by country, with nudge right."*
 
-## Numeric labels: the value on each mark
+With every label pulled to the right of its dot, four labels run into their
+neighbors there, and `repel` moves those four far enough to need a thin line.
+Norway's dot is at the right edge of the panel, so its label has no room on its
+right and ends up over its own dot.
+
+## Number labels: the value on each mark
 
 A label does not have to be a name, and it does not have to sit on a scatter. A
-bar shows which country won more. To read by how much, a reader has to measure
-each bar against the axis, and that is an estimate. Sometimes the number itself
-is the answer. Bind a column that holds numbers and each row's value is drawn. A
-whole number is printed without a decimal point. Layer `text` over `bar` to
-print each bar's height at its top:
+bar shows which country won more. To read how much more, a reader has to measure
+each bar against the axis, and that measurement is only an estimate. Sometimes
+the number itself is the answer. Bind a column that holds numbers and each row's
+value is drawn. A whole number is printed without a decimal point. Layer `text`
+over `bar` to print each bar's height at its top:
 
 ```{r}
 data(medals) + bar + style(color = "steelblue") +
@@ -186,13 +206,18 @@ data(medals) + bar + style(color = "steelblue") +
 *"Given the medals: bars and also text, x is country, y is gold, label by
 gold."*
 
+Each bar now carries its count, so the gap between the USA's 46 and China's 38
+can be read without the axis.
+
 ## Color
 
-By default every label is printed in one color. You see a hue faster than you
-can read a word. A color split therefore shows the grouping before the name.
-Map a column to `color` and the labels split by that column. The mapping earns
-a legend to name the groups, and it is the same categorical color scale `bar`
-uses. Here each country's name takes its own hue:
+You see a hue faster than you can read a word, so a color split shows you the
+groups before you read a single name. Every label so far has been printed in one
+color, which is the default. Map a categorical column to `color` and the labels
+split by that column; a column of numbers is refused on a text mark. The mapping
+earns a legend to name the groups, and the colors come from the same palette
+points and bars use. In the plot below each country is its own group, so the hue
+repeats the name:
 
 ```{r}
 data(medals) + text + x(gold) + y(silver) + label(country) + color(country) +
@@ -203,15 +228,18 @@ data(medals) + text + x(gold) + y(silver) + label(country) + color(country) +
 *"Given the medals: text, x is gold, y is silver, label by country, color by
 country."*
 
+The legend names the five hues. With a column that several rows share, such as
+a continent, one hue would mark every name in a group before you read any of
+them.
+
 ## Styling: one color, one size
 
-A `color` channel takes its hues from a column. A color you choose yourself is
-a different thing: a setting rather than a mapping. When the labels are the plot
-rather than notes beside it, the default font is often too small to read
-comfortably. A larger size is a setting too. Neither comes from a column,
-and that is what makes them settings. `style(color = )` sets the color of the
-words. `style(size = )` sets the font size in pixels. Each applies to every
-label in the layer:
+The `color` channel takes its hues from a column. When the words are the whole
+plot, with no dots or bars beside them, you may want one color of your own and a
+larger font, because the default is often too small to read comfortably.
+Neither comes from a column, so both are settings rather than mappings.
+`style(color = )` sets the color of the words, and `style(size = )` sets the
+font size in pixels. Each applies to every label in the layer:
 
 ```{r}
 data(medals) + text + x(gold) + y(silver) + label(country) +
@@ -223,36 +251,35 @@ data(medals) + text + x(gold) + y(silver) + label(country) +
 *"Given the medals: text, x is gold, y is silver, label by country, colored
 seagreen, with size 17."*
 
-`style(size = )` gives every label in the layer one font size. A word cloud is
-the plot this rules out. It sizes each word by its frequency, so it needs a size
-per row. [What you can set](#what-you-can-set) shows what the engine answers
-when you ask for one.
+gog refuses a `size` mapped to a column on a text mark, so every label in a
+layer has one font size. A word cloud sizes each word by how often it occurs,
+so it needs a size per row, and that is one reason gog draws no word cloud.
 
 ## Why `label` is a channel
 
-A setting is a value you type into the sentence. You might expect a label to
-work the same way, the way a title is typed. A label is not a title: it is one
-value per row, and that makes it data.
-`text` *requires* a `label`: it is the mark's minimum syllable, the way `x` and
-`y` are. Ask for a `text` mark with no `label` and the engine refuses, and says
-what to write instead, as [What it refuses](#what-it-refuses) shows.
+A setting is a value you type into the sentence. You might expect to type a
+label into the sentence in the same way, like a title. A label is not a title:
+it is one value per row, and that makes it data. One rule of the grammar decides
+whether a label is a setting or a channel: data reaches a mark only through a
+channel. That makes `label` a channel, so no mark takes the words themselves as
+an argument. A fixed note is therefore a table with one row, given to `data()`,
+and never a value given to `style()`.
 
-The grammar's own rule decides this. A label's string is *data*, and data
-reaches a mark only through a channel. That makes `label` a channel, so no mark
-takes the words themselves as an argument. A fixed note is therefore a table
-with one row, handed to `data()`, and never a value handed to `style()`. Only
-`text` accepts `label`; every other mark refuses it, which is why a labeled
-scatter is `point + text` and never a `label` on `point`. `text` is the mark,
+Only `text` accepts `label`; every other mark refuses it, which is why a labeled
+scatter is `point + text` and never a `label` on `point`. `text` *requires* a
+`label`: the label is part of the mark's minimum syllable, as `x` and `y` are.
+Ask for a text mark with no `label` and the engine refuses, and says what to
+write instead, as [What it refuses](#what-it-refuses) shows. `text` is the mark,
 and `label` is the channel that carries the column it draws.
 
 ## A note is a layer
 
-A plot often needs one remark written on it, at a place you choose. It may say
+A plot often needs one note written on it, at a place you choose. It may say
 what a region of the scatter means, or why a point sits where it does. If you
 have used ggplot2, a note there is a separate function, `annotate()`. In gog it
-is a table with one row, and that table is worth seeing drawn. A second `data()`
-opens a second layer over its own table (the [Data](../data.qmd) chapter's
-rule), and a table with one row in it puts one string on the plot:
+is a table with one row, and the plot below draws it. A second `data()` gives
+the next layer its own table (the [Data](../data.qmd) chapter's rule), and a
+table with one row in it puts one string on the plot:
 
 ```{r}
 #| echo: false
@@ -271,34 +298,37 @@ data(gapminder_2007) + point + x(gdp) + y(life) +
 ```
 
 *"Given gapminder 2007: points, x is gdp, y is life, and also text from the
-notes, label by what."*
+income note, label by what."*
 
-Nothing was added to the grammar to reach that. `data()` already binds the
-nearest table, `text` already draws one string per row, and a note is simply a
-table with one row in it. The note is data like any other, so it is scaled like
-any other. Give it an `x` far from the points and the axes stretch to cover it,
-which is worth checking before you settle on a position.
+The note sits in an empty corner of the scatter: no country in 2007 has an
+income that high with lives that short.
 
-One rule applies while writing a note. `x` and `y` belong to the whole plot,
-so the note's table needs a column for each. The `income_note` table reuses the
-plot's own column names, `gdp` and `life`. A note with its own names writes its
-positions after `text`: `+ text + x(at) + y(value) + label(what)`. Anything
-else `annotate()` places by data values can be written this way too. A dot on
-the plot is a `point` over the same one-row table, and several notes are several
-rows.
+That plot needed nothing new in the grammar. Each layer already reads the
+nearest `data()` written before it, and `text` already draws one string per
+row. The note is data like any other, so it is scaled like any other. Give the
+note an `x` far from the points, and the axes stretch to cover it, so check the
+axes each time you place a note.
+
+One rule applies while writing a note. The `text` layer names no position of its
+own, so it reads the columns the axes use, `gdp` and `life`, from its own table.
+That is why `income_note` has a column with each of those names. A note with its
+own names writes its positions after `text`: `+ text + x(at) + y(value) +
+label(what)`. Any other mark at a place you choose is written the same way: a
+small table, and a layer over it. A dot on the plot is a `point` over the same
+one-row table, and several notes are several rows.
 
 ## Text that a transform places
 
-A note names a place you chose. A transform can choose the place
-instead, and then the text names whatever that transform built. Each of these
-sentences has a sibling that draws the shape the text is labeling:
+You choose where a note goes. A transform can choose the place instead, and then
+the text names whatever that transform built. In the first three rows, a second
+layer with the same transform draws the shape the text labels:
 
 | Text derived by | What it labels |
 |---|---|
 | `text * layout` | the nodes of a network, beside `point * layout` and `edge * layout` |
-| `text * flow` | the blocks of a flow, beside `ribbon * flow` and `zone * flow` |
-| `text * partition` | the boxes of a packing, beside `zone * partition` |
-| `text * repel` | the scatter labels of [`repel`](#repel-moving-labels-off-each-other), moved apart until they fit |
+| `text * flow` | each stage's slots in a flow, beside `ribbon * flow` and `zone * flow` |
+| `text * partition` | the regions of a hierarchy, beside `zone * partition` |
+| `text * repel` | the scatter labels of [`repel`](#repel-moving-labels-off-each-other), moved off each other |
 
 The chapters that draw them are [Network](../network.qmd), [Flow](../flow.qmd)
 and [Transforms](../transforms.qmd#partition-a-whole-among-nested-parts). In each one the text is a layer over the mark that
@@ -306,11 +336,11 @@ drew the shape, and both layers read the same transform.
 
 ## What you can set
 
-The [Styling](#styling-one-color-one-size) section set a color and a size.
-Those are two entries in a longer list, and the rest of it is here: which size,
-which color, and which side of the dot. None of that is in a column, so it is set rather than
-mapped, and each mark takes its own settings. These are a text mark's, with the
-values each accepts:
+The [Styling](#styling-one-color-one-size) section set a color and a size. Those
+are two entries in a longer list, and the whole of it is here: which color, how
+transparent, which size, and which way to shift the label. None of that is in a
+column, so it is set rather than mapped, and each mark takes its own settings.
+These are a text mark's, with the values each accepts:
 
 ```{r}
 #| echo: false
@@ -329,12 +359,13 @@ data(medals) + x(country) + y(gold) +
   y_label("Gold medals") + title("Labels nudged off their points")
 ```
 
-The four directions and the fixed offset are under [Nudging the label off its
+Each count sits just above its dot, and neither covers the other. The four
+directions and the fixed offset are under [Nudging the label off its
 point](#nudging-the-label-off-its-point), with `repel` for labels that collide
 with each other.
 
 A mapped `size` on `text` is legal grammar that this engine does not draw.
-`size(population)` is therefore refused as **Unsupported**, rather than accepted
+`size(gold)` is therefore refused as **Unsupported**, rather than accepted
 and quietly ignored. Set the font size with `style(size = )` instead.
 
 The [grid of every mark and every setting](../style.qmd#what-you-can-set) shows
@@ -344,29 +375,29 @@ sets, read its row on the
 
 ## What it refuses
 
-A `text` with no `label` is refused first. The label is the mark's minimum
-syllable, the way `x` and `y` are, for the reason [Why `label` is a
-channel](#why-label-is-a-channel) gave. The engine refuses and names the
-channel to add:
+A text mark refuses three things: a missing `label`, the `shape` channel, and
+any `pattern`. The label is part of the mark's minimum syllable, as `x` and `y`
+are: with no string, a text mark has nothing to draw. The engine refuses and
+names the channel to add:
 
 ```{r}
 #| error: true
 data(medals) + text + x(gold) + y(silver)
 ```
 
-A reader who knows `point` will try its channels on `text`, and one of them
-cannot do anything to a string. A point's glyph can change shape because the dot
-itself says nothing. A text mark's glyph is the word, so there is nothing for
-`shape` to change:
+A reader who knows `point` will try its channels on `text`. `color` draws with a
+categorical column, and `size` and `opacity` are legal but not drawn. `shape` is
+refused outright, because it cannot change a string. A point's glyph can change
+shape because the dot itself says nothing. A text mark's glyph is the string
+itself, so there is nothing for `shape` to change:
 
 ```{r}
 #| error: true
 data(medals) + text + x(gold) + y(silver) + label(country) + shape(country)
 ```
 
-A text mark's form comes from `label`, for the reason [Why `label` is a
-channel](#why-label-is-a-channel) gave. A string takes no texture either.
-`pattern` dashes a stroke or hatches a filled region, and a word is neither:
+A string takes no texture either. `pattern` dashes a stroke or hatches a filled
+region, and a word is neither:
 
 ```{r}
 #| error: true
@@ -376,14 +407,13 @@ data(medals) + text + x(gold) + y(silver) + label(country) +
 
 ## In short
 
-A `text` will not draw without a `label`, and no other mark accepts one. Its
-words come from a column, so a fixed note is a one-row table. `repel` reports
-how many labels it could not place, because a label removed without a word would
-leave a picture the reader cannot check.
+A text mark will not draw without a `label`, and no other mark accepts one. Its
+words come from a column, so a fixed note is a table with one row. `repel`
+draws every label and reports how many still overlap, because which names to
+leave out is your decision.
 
 ## What comes next
 
-Row order means nothing to a text mark. Each word is drawn at the position its
-own row gives it, whatever order the rows are in. Row order decides everything
-for a [path](path.qmd), the mark that joins the rows in the order the table
-holds them.
+Without `repel`, row order never moves a word: each one is drawn at the position
+its own row gives it. For a [path](path.qmd), row order decides which rows are
+joined: the mark joins each row to the next, in the order the table holds them.

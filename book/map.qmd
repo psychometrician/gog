@@ -157,7 +157,7 @@ continent, in the map space."*
 ## Meridians and parallels
 
 A map often needs a reference line, and the most common one is the equator. A
-`rule` draws a line at one position and spans the axis it does not name. In a
+`rule` draws a line at one position and spans the other axis. In a
 flat space that is a reference line. Here, a rule at one latitude is a
 **parallel**, and a rule at one longitude is a **meridian**. The plot below
 draws one parallel, the equator:

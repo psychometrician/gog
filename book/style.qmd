@@ -187,7 +187,7 @@ The last five rows each control one piece of a single mark's drawing. `caps`
 and `center` show or hide an [`interval`](marks/interval.qmd)'s
 caps and center dot. `nudge` moves a [`text`](marks/text.qmd) label off its
 point. `arrow` puts a head on a [`path`](marks/path.qmd)'s end. And `reach` says
-how far a [`rule`](marks/rule.qmd) crosses the axis it does not name. Each one
+how far a [`rule`](marks/rule.qmd) reaches across the panel. Each one
 belongs to a single mark, because only that mark's geometry has the part it
 names. Only a whisker has a cap, and only a path has a direction. That is why
 their rows carry a single check.

@@ -8,29 +8,32 @@ source("../R/setup.R")
 How do you draw a value that holds until it jumps? `step` draws it as a
 staircase. A `line` slopes straight from one point to the next. A `step`
 **holds** each value until it changes, then jumps. The **flat part** runs from
-one measurement to the next, and the **jump** is where the value changes. That
+one observation to the next, and the **jump** is where the value changes. That
 is the right shape for anything that does not change between observations: a
 cumulative count, a survival probability, an interest rate. `step` takes the
 same channels as `line`, and only the path drawn between two points differs.
 
-Several subjects have their own name for this shape, and one mark draws them
-all. Statisticians draw the **empirical cumulative distribution function** (the
-empirical CDF) with it. Doctors draw the **survival curve**, the Kaplan–Meier
-estimate [@kaplan1958], which steps down at each observed death. Reliability
-engineers draw the same staircase for parts rather than patients, and call it a
-failure plot. Analysts in finance draw the **step chart** of a rate that holds
-until someone changes it. A cumulative count rises and a survival probability
-falls, and `step` draws both as this one staircase.
+Several professions draw this shape, each under its own name, and `step` draws
+all of these plots. Statisticians draw the **empirical cumulative distribution
+function** (the empirical CDF) with it. Medical researchers draw the **survival
+curve**, the Kaplan–Meier estimate [@kaplan1958], which drops at each observed
+death. Reliability engineers draw the same staircase for parts rather than
+patients, and call it a failure plot. Analysts in finance draw the **step
+chart** of a rate that holds until someone changes it. A cumulative count rises
+and a survival probability falls, and `step` draws both as this one staircase.
 
 ## A step function
 
 What share of European countries have a life expectancy at or below 75 years,
-or 80, or any value you choose? The empirical CDF answers all of those at once,
-and it is the plainest step function there is. The `gm_europe_cdf` table holds
-one row per European country in 2007: its life expectancy, and the share of
-countries at or below it. Give `step` an `x` and a `y` with no transform, and it
-draws one. With *n* observations the curve rises by 1/*n* at each observation,
-and stays flat between them:
+or 80, or any value you choose? The empirical CDF answers all of those questions
+at once. It is a **step function**: flat between observations, with a jump at
+each one. The `gm_europe_cdf` table holds one row per European country in 2007:
+its life expectancy, and the share of countries at or below it. gog has no
+transform that computes these shares. Sort a table by the value, and each row's
+share is its position divided by the number of rows. The table already holds
+the shares, so `step` needs no transform: give it an `x` and a `y`, and it
+draws the curve. With *n* observations, each observation adds 1/*n* to the
+share:
 
 ```{r}
 #| echo: false
@@ -46,20 +49,22 @@ data(gm_europe_cdf) + step + x(life) + y(share) +
 *"Given the gm europe cdf table: a step outline, x is life, y is share."*
 
 A `line` on this same table would slope between points, so it would show
-cumulative shares at life expectancies no country has. The step is exact: the
-share stayed at that value until the next observation.
+cumulative shares at life expectancies no country has. The step is exact:
+between two observations no country is added, so the share does not change.
 
-The size of *n* decides whether you can see that. Thirty countries make each
-jump a thirtieth of the axis, and the flat parts between them are plain. The
-same plot over all 142 countries in the world gives each jump a fifth of that
-height, and the staircase reads as a slightly rough line.
+Whether you can see the flat parts depends on how many observations there are.
+Thirty countries make each jump a thirtieth of the axis, and most of the flat
+parts between them are easy to see. Draw the same plot over all 142 countries
+in the `gapminder_2007` table, and each jump is about a fifth as tall as here.
+The staircase then reads as a slightly rough line.
 
 ## A value that holds until it changes
 
 The same exactness matters for anything that jumps rather than changing
-gradually: a policy rate, a price, an inventory level. Each holds its value,
-then jumps on a single day. A straight line would draw a gradual change that
-never happened:
+gradually: a policy rate (the interest rate a central bank sets), a price, an
+inventory level. Each holds its value, then jumps on a single day. A straight
+line would draw a gradual change that never happened. The `policy_rates` table
+holds one interest rate for each year from 2018 to 2023, and a step draws it:
 
 ```{r}
 #| echo: false
@@ -69,20 +74,20 @@ peek(policy_rates)
 ```{r}
 data(policy_rates) + step + x(year) + y(rate) +
   x_label("Year") + y_label("Policy rate (%)") +
-  title("A rate holds, falls, then rises")
+  title("A rate rises, falls, holds two years, then rises twice")
 ```
 
 The rate fell to 0.25 in 2020 and held there for two full years, then rose
-twice. A line would have sloped into and out of that flat run, showing rates
+twice. A line would have sloped into and out of that flat part, showing rates
 that were never set.
 
 ## Multiple series
 
-One rate held and jumped on its own. Each of two sites keeps a stock of units,
-and only a delivery or a sale changes it. To compare them week by week, you
-want both on one plot. `color` and `group` split a `step` exactly as they split
-a `line`: one staircase per category. Here two series hold and jump
-independently:
+The policy rate was a single series, and often you need to compare two. Each of
+two sites keeps a stock of units, and only a delivery or a sale changes it. To
+compare them week by week, you want both on one plot. `color` and `group` split
+a `step` exactly as they split a `line`: one staircase per category. Here two
+series hold and jump independently:
 
 ```{r}
 #| echo: false
@@ -98,15 +103,18 @@ data(inventory) + step + x(week) + y(units) + color(site) +
 *"Given the inventory: step outlines, x is week, y is units, color by site."*
 
 North holds at 40 for two weeks, then falls twice before jumping to 55. South
-starts lower, passes North in week 5, and ends below it again. Neither series
-slopes between its changes.
+starts lower, rises above North in week 5, and falls below it again in week 7.
+Neither series slopes between its changes.
 
 ## A category on the domain
 
-How do the continents compare on one summary value, and should a staircase be
-the mark that shows it? A category works on the domain here exactly as it does
-in [Line](line.qmd), and the staircase holds each category's value across its
-own slot:
+Every `x` so far has been a number. How do the continents compare on one
+summary value? A step will draw that plot, but a bar is the better mark for it,
+as the step drawn below shows. A step reads `x` as its **domain**, the axis it
+runs along, and `y` as its **measure**, the quantity it traces. A category on
+the domain gets one slot per value, as in
+[Line](line.qmd#a-category-on-the-domain-the-profile). The staircase holds each
+continent's mean from the center of its slot to the center of the next one:
 
 ```{r}
 #| echo: false
@@ -116,30 +124,30 @@ peek(gapminder_2007)
 ```{r}
 data(gapminder_2007) + step * mean + x(continent) + y(life) +
   y_label("Mean life expectancy") +
-  title("step * mean + x(continent): one value per category, held")
+  title("step * mean + x(continent): the five means as a staircase")
 ```
 
 *"Given gapminder 2007: a step outline derived by mean, x is continent, y is
 life."*
 
-Africa sits lowest at 54.8 years and Oceania highest at 80.7. The five slots
-run in alphabetical order, so the rise and fall across them is not a trend.
+Africa sits lowest at 54.8 years and Oceania highest at 80.7. Oceania, the last
+slot, has no next slot, so its mean is only the top of the last jump. The five
+slots run in the order the continents first appear in the table. That order
+means nothing, so the rise and fall across the slots is not a trend.
 
 A step draws only the values that were measured. A `line` slopes from one
 category to the next, and nothing was measured between them. A step holds flat
-and jumps at the edge of each slot, so it claims no change between two
-continents.
+and then jumps, so every height it draws is one of the five means.
 
-That does not make it the right mark for this plot. A flat part claims the
-value held across that stretch of the axis. A policy rate does hold between
-two dates, as [A value that holds until it
-changes](#a-value-that-holds-until-it-changes) showed. A continent is a slot
-rather than a stretch, so the flat part says nothing about the data. One
-summary value per category is what a [bar](bar.qmd) draws: keep the `mean` and
-change the mark. Each bar stands in its own slot, joined to nothing.
+That does not make it the right mark for this plot. A flat part claims that the
+value held across the part of the axis under it. A policy rate does hold
+between two dates, as [A value that holds until it
+changes](#a-value-that-holds-until-it-changes) showed. Between two continents
+there is no value to hold, so the flat part there says nothing about the data.
+One summary value per category is what a [bar](bar.qmd) draws: keep the `mean`
+and change the mark. Each bar stands in its own slot, joined to nothing.
 
-Every mark that reads one measure takes the same `mean`, and only the shape
-changes:
+Other marks take the same `mean`, and only the shape changes:
 
 | Mark derived by `mean` | Shape |
 |---|---|
@@ -147,20 +155,22 @@ changes:
 | `point * mean` | one dot at each mean |
 | `line * mean` | the means joined into a profile |
 | `area * mean` | the same profile, filled to the baseline |
-| `step * mean` | each mean held flat across its slot, the plot above |
+| `step * mean` | each mean held flat until the next category, the plot above |
 
 Legal is not the same as useful. gog draws this step and prints no warning.
-[Law 8](../design-laws.qmd) guarantees a legal plot, never a useful one, so the
-choice of mark is yours.
+[Law 8](../design-laws.qmd#law-8-pronounceable-usable) says the grammar
+guarantees a legal plot, never a useful one, so the choice of mark is yours.
 
 ## Histogram outline
 
-How do three distributions compare in one panel? Three filled histograms
-overlap in the middle of the panel, and gog fades those fills so the shapes
-underneath still show. A step has no fill at all, so nothing needs fading.
-`step * bin` draws a histogram as an **outline** rather than as bars: one
-stepped line tracing the top of each bin. Add `color` and the outline splits,
-one staircase per group, cut on the same bins:
+`mean` is not the only transform a step takes. With `bin`, the staircase
+answers a question that filled bars make harder to read: how do three
+distributions compare in one panel? Filled histograms overlap wherever two
+groups share a bin. gog fades those fills so the shapes underneath still show,
+but the faded colors mix where they overlap. A step has no fill at all, so
+nothing needs fading. `step * bin` draws a histogram as an **outline** rather
+than as bars: one staircase along the tops of the bins. Add `color` and the
+outline splits, one staircase per group, cut on the same bins:
 
 ```{r}
 #| echo: false
@@ -176,24 +186,23 @@ data(iris_flowers) + step * bin + x(petal_length) + color(species) +
 by species."*
 
 `bin` cuts all three species into the same bins, so their outlines share the
-same edges. An outline goes to zero in any bin where its species has no rows. A
-step is a single stroke with no fill, so where two outlines cross neither hides
-the other.
+same edges. An outline goes to zero in any bin where its species has no rows.
 
-The same `bin` works under other marks, and only the mark changes:
+The same `bin` works with other marks, and only the mark changes:
 
 | Mark derived by `bin` | Shape |
 |---|---|
 | `bar * bin` | filled bars |
-| `line * bin` | frequency polygon: straight lines through the bin centers |
+| `line * bin` | frequency polygon: one stroke of straight pieces through the bin centers |
 | `area * bin` | the same polygon, filled to the baseline |
 | `step * bin` | the staircase outline above |
 
 ## Stroke width and opacity
 
-The three outlines above are thin, and thin strokes are hard to follow where
-they cross. A thicker stroke is easier to see, and a little transparency keeps
-each one visible where it passes over another. Like `line`, a `step` is a
+The three outlines above are thin, and where two of them run along the same bin
+edge, the one drawn last covers the other. A thicker stroke is easier to see,
+and a little transparency lets the covered stroke show through. Like `line`, a
+`step` is a
 single stroke per series, so `size` and `opacity` are not channels; they are
 settings on the whole stroke:
 
@@ -207,8 +216,8 @@ data(iris_flowers) + step * bin + x(petal_length) + color(species) +
 by species, with size 2.5 and opacity 0.7."*
 
 `size` sets the stroke width. `opacity` makes the whole staircase more
-transparent. Both follow the same *setting vs mapping* rule as `line`; see
-[Setting vs mapping](../style.qmd).
+transparent. Both are set, never mapped, exactly as on a `line`;
+[Setting vs mapping](../style.qmd) explains the difference.
 
 ## What you can set
 
@@ -223,13 +232,13 @@ mark_options("step")
 ```
 
 A step is a stroke, so it takes exactly what `line` takes: one color, one width,
-one opacity and one dash for the whole staircase. Of the four, `color` is the
-one that can also vary *along* the staircase, and the plot at the end of this
-chapter shows that.
+one opacity and one dash for the whole staircase. Mapped to a column instead of
+set, `color` alone can change *along* the staircase, as the last plot in
+[What it refuses](#what-it-refuses) shows.
 
-Set three of them at once and the staircase changes color, weight and dash
-together. The six weeks table holds 42 consecutive days of `orders`, with `day`
-a real date:
+Set three of them at once and the staircase changes color, width and dash
+together. The six weeks table holds 42 consecutive days of `orders`, and `day`
+is a date column, so the axis shows calendar days:
 
 ```{r}
 #| echo: false
@@ -248,7 +257,7 @@ purple, with size 2.5 and pattern dotted."*
 The staircase and the dash change different things. The staircase is *geometry*:
 it sets where the path goes, and puts a corner where the value changes. The dash
 is *paint*: it changes how the path looks, never where it goes. That is why
-`step` is a mark and `pattern` is a setting.
+`step` is a mark, while a dash only changes how a mark is drawn.
 
 The [grid of every mark and every setting](../style.qmd#what-you-can-set) shows
 which other marks share this list. What a mark *maps* rather than sets is its
@@ -259,8 +268,8 @@ row on the [companion grid](../combinations.qmd#marks-and-channels).
 A step is one connected stroke with no filled interior, and the first two
 refusals follow from that. The third comes from the axes.
 
-One stroke has one width. Point anywhere on the staircase and there is no width
-for that place alone. So a width cannot vary along it:
+One stroke has one width, the same at every place along it. So no column can
+make the staircase wider in one place than in another:
 
 ```{r}
 #| echo: false
@@ -276,29 +285,29 @@ The stroke still *has* a width, and `style(size = )` sets it. `size(column)`
 asks for a width per row, which one stroke cannot give. That distinction is the
 subject of [Setting vs mapping](../style.qmd).
 
-The second refusal is about which patterns a stroke accepts. A hatch fills an
-area, and a staircase is a stroke with no area to fill:
+The second refusal is about which patterns a stroke accepts. A hatch is a
+texture that fills an area, and a staircase is a stroke with no area to fill:
 
 ```{r}
 #| error: true
 data(gapminder_asia) + step + x(year) + y(life) + style(pattern = "hatch")
 ```
 
-The third is the one `line`, `area` and `ribbon` also give. A step reads `x` as
-its domain and `y` as its measure, so a category on `y` has nothing to measure:
+The third refusal is one that `line`, `area` and `ribbon` give too. A step reads
+`y` as its measure, and a category is not a quantity, so gog refuses it there:
 
 ```{r}
 #| error: true
 data(gapminder_2007) + step * mean + x(life) + y(continent)
 ```
 
-`color` is the exception, and it is not a refusal at all. This is the plot
-[What you can set](#what-you-can-set) promised. A stroke has one width the whole
-way along it, so asking what its width is at one point means nothing, and a dash
-is the same. A color is not like that. Every point along the staircase is drawn
-in some color, so the color can change from one end to the other, and a column
-can decide where. Each flat part takes its row's color, and each jump blends the
-colors of the two rows it joins:
+`color` is not refused: it is the one property that can change along a single
+staircase. This is the plot promised in [What you can set](#what-you-can-set).
+A width and a dash belong to the whole stroke. A dash can still change from one
+series to the next, as it does for a `line`, but never along one series. A
+color belongs to each place on the stroke instead, so a column can change it
+from one row to the next. Each flat part takes its row's color, and each jump
+blends the colors of the two rows it joins:
 
 ```{r}
 data(gapminder_asia) + step + x(year) + y(life) + group(country) +
@@ -311,17 +320,18 @@ color by gdp on a log scale, with the viridis palette."*
 
 Read one country's staircase from left to right and you see two variables. The
 height is how long people live, and the color is how rich the country was then.
-The flat part and the jump are the whole mark: a value held, then the change to
-the next one.
+The color stays the same along each flat part and changes only at the jumps,
+where the value changes too.
 
 ## In short
 
-A step holds each value until it changes, so nothing between two measurements is
-claimed. It takes the same channels as a `line`: width and opacity are settings,
-and only `color` varies along the stroke. Each jump is 1/*n* of the axis, so a
-large *n* reads as a rough line.
+A step holds each value until it changes, so it invents no value between two
+observations. It takes the same channels and settings as a `line`: width and
+opacity belong to the whole stroke, and only `color` varies along it. With
+`color` or `group` it draws one staircase per category, and with `bin` it draws
+a histogram as an outline instead of as bars.
 
 ## What comes next
 
-A step shows one value at each `x`, never a pair. [Interval](interval.qmd)
-draws the pair instead, a low value and a high one at every position.
+Each staircase follows one value at each `x`. [Interval](interval.qmd) spans
+two values at every position instead, from a low one to a high one.

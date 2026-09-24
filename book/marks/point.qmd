@@ -125,7 +125,7 @@ the same means in its own way:
 | `point * mean` | one dot at each mean |
 | `line * mean` | the means joined into a profile |
 | `area * mean` | the same profile, filled to the baseline |
-| `step * mean` | each mean held flat across its slot |
+| `step * mean` | each mean held flat until the next category |
 | `bar * mean` | one bar per category, the plot above |
 
 `median`, `sum`, `min` and `max` can replace `mean` in every row of that table.

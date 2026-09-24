@@ -103,10 +103,8 @@ Everyone who writes a specification in gog waits in that gap. In this
 book the waiting is already over, because the engine drew each plot when the
 page was built. Run one of these code blocks on your own computer, and you do
 the waiting yourself. An analyst exploring data waits there too, after changing
-one part of a specification and before the new plot appears. The people who
-build gog wait there as well, sometimes for hours, to see what a new mark or
-transform will draw. The package is `gog`; the state of working with it is
-*agog*.
+one part of a specification and before the new plot appears. The package is
+`gog`; the state of working with it is *agog*.
 
 gog's hexagonal sticker shows that state as a picture. What sits inside it is
 a face. Its eyes are `+` and `*`. Its nose is `/` and `|`, and

@@ -175,8 +175,7 @@ then their names.
 
 ## Meridians and parallels
 
-A `rule` draws a line at one position and spans the axis it does not name. On
-the map, a rule on latitude drew the equator as a straight line. Here the same
+A `rule` draws a line at one position and spans the other axis. On the map, a rule on latitude drew the equator as a straight line. Here the same
 sentence bends it around the sphere:
 
 ```{r}

@@ -605,8 +605,7 @@ On a grid it does; in a cloud it does not.
 
 No column says whether the mesh lines show, or how far you can see through a
 sheet. A setting decides that without reading one, and each mark takes its own.
-These are a surface's, generated from the engine's own legality table, so this
-page cannot differ from what `style()` accepts:
+These are a surface's, with the values each accepts:
 
 ```{r}
 #| echo: false

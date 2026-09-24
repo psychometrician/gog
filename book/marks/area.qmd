@@ -8,12 +8,13 @@ source("../R/setup.R")
 How large was the quantity at each date? `area` fills the
 region between the data and a baseline at zero. Its top edge is the boundary a
 `line` would draw. The fill below that edge is what makes the plot read as a
-quantity rather than as a path.
+quantity rather than as a stroke.
 
 ## Basic usage
 
-How did sales change over five years? Everything in this chapter is added to
-one sentence: a source, the mark, and its two positions.
+How large were sales in each of five years? Everything in this chapter is added
+to one sentence, the smallest that draws an area: a source, the mark, and its
+two positions.
 
 ```{r}
 #| echo: false
@@ -27,7 +28,7 @@ data(actuals) + area + x(year) + y(sales) +
 
 *"Given the actuals: an area, x is year, y is sales."*
 
-Notice the fill reaches the left and right edges of the panel. With `point`,
+Notice that the fill reaches the left and right edges of the panel. With `point`,
 the axis ends a little past the data. A dot drawn at the last value would
 otherwise be cut in half by the panel edge. An area has no dots. Its
 edge is the data itself, so nothing can be cut off, and the axis ends exactly
@@ -36,13 +37,13 @@ states the rule in full.
 
 An area's two axes are not interchangeable, and the rest of this chapter
 follows from that. `x` is the **domain**, the axis the area is read along. `y`
-is the **measure**, the quantity it fills to. A `line` has the same two axes,
-and [the profile](line.qmd#a-category-on-the-domain-the-profile) section of
-the Line chapter states the rule. A bar draws horizontally when you swap its
-bindings. A line does not, because its measure is always `y`. An area follows
-the same rule, so it has no horizontal form either. The one exception is
-`density`, whose curve spreads along whichever axis is continuous;
-[With transforms](#with-transforms) shows both of its forms.
+is the **measure**, the quantity it fills to. A `line` has the same two axes. A
+bar draws horizontally when you swap its bindings. A line does not, because its
+measure is always `y`, as [the
+profile](line.qmd#a-category-on-the-domain-the-profile) section of the Line
+chapter explains. An area follows the same rule, so it has no horizontal form
+either. The one exception is `density`, whose curve runs along whichever axis
+is continuous; [With transforms](#with-transforms) shows both of its forms.
 
 ## The baseline has to be zero
 
@@ -51,22 +52,23 @@ fill is the quantity, so it has to start from zero. An area drawn from any
 other baseline would show a height that measures nothing. gog does not stop
 you from starting the axis somewhere else. `y(sales, limits = c(100, NA))`
 starts it at 100, the fill starts there too, and no warning is printed. That
-decision is yours to make: the fill then measures from 100 rather than from
-zero, and the reader of your plot has to know it.
+decision is yours to make: the fill then shows sales minus 100 rather than the
+sales, and the reader of your plot has to know it.
 [Scales](../scales.qmd#limits-when-your-data-is-not-the-authority) explains
 `limits`.
 
-So the choice of mark is about the data, not the appearance. Sales have a true
-zero, so the first plot is correct: the fill is the sales. Life expectancy in
-years has a true zero too, and several plots below fill to it. A quantity whose
-zero is only a convention has no amount for a fill to show. A temperature in
-degrees Celsius is one, and so is a calendar year. Draw those with `line`.
+So the choice of mark is about the data, not the appearance. Sales have a
+**true zero**, where zero means none at all, so the first plot is correct: the
+fill is the sales. Life expectancy in years has a true zero too, and several
+plots below fill to it. A quantity whose zero is only a convention has no
+amount for a fill to show. A temperature in degrees Celsius is one, and so is a
+calendar year. Draw those with `line`.
 
-Because life expectancy has a true zero, either mark suits it, and the choice
-depends on what the reader should compare. An area and a line draw the same
-top edge. Drawn with `line`, split by `color` as the [Line](line.qmd) chapter
-showed, that edge says where each country's value was, and nothing about how
-much:
+Life expectancy has a true zero, so the data allows either mark, and the
+question you are asking decides between them. An area and a line draw the same
+top edge. Here is that edge drawn with `line` and split by `color`, as in the
+[Line](line.qmd) chapter. It shows where each country's value was, and nothing
+about how much:
 
 ```{r}
 #| echo: false
@@ -82,10 +84,12 @@ data(gapminder_asia) + line + x(year) + y(life) + color(country) +
 
 ## Multiple series
 
-The table holds five countries, and the sentence has to name the split.
-Without a split, the boundary runs through all sixty rows as one region.
-`color` splits the mark into one region per category and names each one in a
-legend. It is the same split that gives `line` one stroke per category:
+The table holds five countries, so the sentence has to name the column that
+splits them. Without a split, the boundary runs through all sixty rows as one
+region. `color` splits the mark into one region per category and names each
+one in a legend. It is the same split that gives `line` one stroke per
+category. The sentence also sets a low opacity, so the regions drawn first
+show through the ones drawn over them:
 
 ```{r}
 data(gapminder_asia) + area + x(year) + y(life) + color(country) +
@@ -103,17 +107,18 @@ opacity, and gog prints a warning before it draws:
 ```{r}
 #| message: true
 data(gapminder_asia) + area + x(year) + y(life) + color(country) +
-  title("Five regions, no opacity set: the last one drawn covers the rest")
+  title("Five regions, no opacity set: each one covers the ones before it")
 ```
 
-Compare the legend with the plot. Every country is named there, but you cannot
-see five regions. Each one covers the ones drawn before it, and only the part
-of a region that rises above every later one is left to read. The warning is
-advice rather than a refusal: the sentence is legal, so gog draws it.
+Compare the legend with the plot. Every country is named there, but five
+regions cannot be distinguished. Each region covers the ones drawn before it,
+so you can read a region only where it rises above every region drawn after
+it. The warning is advice rather than a refusal: the sentence is legal, so gog
+draws it.
 
 The other way to draw it is to stack the regions instead of overlaying them.
-That is written `area * stack`. `stack` is a collision modifier: it computes
-nothing, and it moves marks that would otherwise be drawn in the same place.
+That is written `area * stack`. `stack` is a collision modifier: it moves marks
+that would otherwise be drawn in the same place, rather than summarizing them.
 Its sibling `dodge` subdivides a *width*, and an area has no width. So of the
 two, only `stack` applies to an area. Each region starts at the top of the ones
 below it, so the five form one band and none is covered:
@@ -131,9 +136,10 @@ Each country's region is as thick as its population, and the band's top edge is
 the five-country total. This plot measures `population` instead of `life` on
 purpose. You stack quantities that *add*: populations add up to a total that
 means something, and life expectancies do not. gog does not stop you from
-stacking them. `area * stack + y(life)` draws five bands to a top edge near
-370 years, with no warning, and that number means nothing. So use `stack`
-with care: you always get a plot, and only you know whether the parts add up.
+stacking them. Put `y(life)` in place of `y(population)` in the sentence above,
+and gog draws five bands to a top edge near 370 years, with no warning. That
+number means nothing. So use `stack` with care: you always get a plot, and only
+you know whether the sum of the parts means something.
 
 Which country's share of the five grew? The stacked plot cannot say, because
 every region's baseline moves with the ones below it. `stack(share = TRUE)`
@@ -150,19 +156,19 @@ data(gapminder_asia) + area * stack(share = TRUE) + x(year) + y(population) +
 *"Given gapminder Asia: areas derived by stack as shares, x is year, y is
 population, color by country."*
 
-India's share rose from 0.33 to 0.39, and Japan's fell from 0.08 to 0.05. The
-total is gone from this plot: every year reaches 1, so it answers the share
-question and not the size question. Draw both when you need both answers. The
+Between 1952 and 2007, India's share rose from 0.33 to 0.39, and Japan's fell
+from 0.08 to 0.05. The total is gone from this plot: every year reaches 1, so it
+shows which shares grew and no longer how large the total was. Draw both when
+you need both answers. The
 [Transforms](../transforms.qmd#stacked-areas-the-case-stack-was-built-for)
 chapter covers `stack` in full, with a section on stacked areas.
 
 ## Giving an area an edge
 
-A low opacity, like the one on the split regions above, leaves a faint top
-edge, and the top edge is where the data is. A stroke along it makes the
-boundary easy to read. An area takes no
-border of its own. The edge on top of a filled region is a `line`, so you layer
-one over the other:
+A low opacity, like the 0.45 in [Multiple series](#multiple-series), leaves a
+faint top edge, and the top edge is where the data is. A stroke along it makes
+the boundary easy to read. An area takes no border of its own. The edge on top
+of a filled region is a `line`, so you layer one over the other:
 
 ```{r}
 data(actuals) + x(year) + y(sales) +
@@ -173,15 +179,16 @@ data(actuals) + x(year) + y(sales) +
 
 *"Given the actuals: x is year, y is sales, an area and also a line."*
 
-There is no border setting on `area` to use instead. Layering a `line` gives
-the edge its own color, width and opacity, which one border setting could not.
+There is no border setting on `area` to use instead. A layered `line` gives the
+edge its own color, width, opacity and dash. A bar's border settings,
+`border_color` and `border_size`, give only a color and a width.
 
 ## One region, one fill
 
-Can you map a column to an area's opacity, the way the plot above set one? No,
-and the reason is the shape. An area is a single filled region, so `opacity` is
-a *setting* here and not a channel.
-Each row of the table is one corner of the top edge, not a piece of the fill.
+The plot above set one opacity for the whole area. Can you map a column to an
+area's opacity instead? No, and the reason is the shape. An area is a single
+filled region, so `opacity` is a *setting* here and not a channel. Each row of
+the table is one vertex, a corner of the top edge, not a piece of the fill.
 No part of the region belongs to one row, so a column cannot make one row
 lighter or darker than another. `opacity` is a setting on `line` for the same
 reason.
@@ -189,8 +196,8 @@ reason.
 `size` is refused both ways: `area` neither maps it nor sets it. A stroke has a
 width, so `line` lets you set one. An area's extent comes from its x, its y and
 its baseline, so there is no size to choose. Both marks take `style(color = )`
-and `style(opacity = )`, and [What it refuses](#what-it-refuses) shows the
-refusals for `opacity` and `size`, after the two that come from an axis.
+and `style(opacity = )`. [What it refuses](#what-it-refuses) shows the refusals
+for `opacity` and `size`.
 
 ## With transforms
 
@@ -198,11 +205,12 @@ Apart from the stack, every plot so far filled to values already in the table.
 A transform computes new values first, and the area fills to what it computed.
 A distribution, for example, can be drawn as a filled shape. The question is
 the one a histogram answers: how many rows fall in each interval? `bin`,
-`density` and the aggregation family mean the same thing on an area as on a
-bar. `bin` counts the rows in each interval.
-The boundary then runs through the bin centers, and the region below it is
-filled. That shape is the frequency polygon `line * bin` draws, with its inside
-filled:
+`density` and the
+[aggregation family](../transforms.qmd#aggregation-family-sum-mean-median-max-min-quantile)
+mean the same thing on an area as on a bar. `bin` counts the rows in each
+interval. The boundary then runs through the bin centers, and the region below
+it is filled. That shape is the frequency polygon `line * bin` draws, with its
+inside filled:
 
 ```{r}
 #| echo: false
@@ -239,9 +247,9 @@ curve, and only the shape changes:
 |---|---|
 | `line * density` | the curve as a stroke |
 | `step * density` | the curve as a staircase |
-| `point * density` | one dot at each point the curve was estimated |
+| `point * density` | one dot at each point where the curve was estimated |
 | `bar * density` | one thin bar at each of those points |
-| `ribbon * density` | the curve mirrored, which is the violin |
+| `ribbon * density` | with a category, the curve mirrored: the violin |
 | `area * density` | the curve filled to the baseline, the plot above |
 
 Put `line`, `step`, `point` or `bar` in place of `area` in the sentence above,
@@ -249,13 +257,9 @@ and each one draws. `ribbon` refuses it, because a ribbon spans between two
 boundaries and one curve gives only one. With a category,
 `ribbon * density + x(<category>) + y(<number>)` draws the violin.
 
-Give that same sentence a category on `x` and a number on `y`, and the curve
-turns. Life now runs along `y`, and the estimate is drawn across each
-category's slot. The domain takes a category as well as a number, and [A
-category on the domain](#a-category-on-the-domain) uses that in full.
-[`ribbon * density`](ribbon.qmd#the-violin-a-distribution-per-category) draws
-the mirrored form, and that section says what the width of a violin can mean.
-This plot is the half violin:
+Give the `area * density` sentence a category on `x` and a number on `y`, and
+the curve runs along `y` instead of `x`. One estimate is drawn across each
+category's slot. This plot is the **half violin**:
 
 ```{r}
 data(gapminder_2007) + area * density + x(continent) + y(life) +
@@ -269,14 +273,15 @@ color by continent."*
 
 The two sentences differ in three places: `x` moved from `life` to
 `continent`, `y(life)` was added, and so was `color(continent)`. With only
-`x(life)`, life runs along `x` and `y` is free, so `y` carries the density
-estimate, as it carried the count for `bin`. With a category on `x` and a
-number on `y`, no axis is free, so each estimate is drawn across its
-category's slot, one distribution per group. `color` does what it did in
+`x(life)`, life runs along `x` and `y` holds no column, so `y` carries the
+density estimate, as it carried the count for `bin`. With a category on `x` and
+a number on `y`, both axes hold a column, so each estimate is drawn across its
+category's slot, one distribution per continent. `color` does what it did in
 [Multiple series](#multiple-series): a categorical column gives each region
 its own fill and a legend. On a `line` the same channel colors the stroke; on
 an area it colors the fill. The slots already keep the continents apart, so
-here `color` changes only the fill of each one.
+here `color` splits nothing; it gives each slot its own fill and a legend
+entry.
 
 Can the two bindings be swapped? For `density`, yes. Put life on `x` and the
 category on `y`, and each curve runs along life, rising from its own
@@ -292,12 +297,14 @@ data(gapminder_2007) + area * density + x(life) + y(continent) +
 *"Given gapminder 2007: areas derived by density, x is life, y is continent,
 color by continent."*
 
-[Ribbon](ribbon.qmd#sideways-and-halved) draws all four forms together: one
-side or two, and the category on either axis.
+[Ribbon](ribbon.qmd#sideways-and-halved) shows all four forms in one section:
+one side or two, and the category on either axis. Its
+[violin section](ribbon.qmd#the-violin-a-distribution-per-category) says what
+the width of a violin can mean.
 
-After `bin` and `density`, the third kind is the aggregation family. An
-aggregation runs before the fill: it leaves one value per year, and the area
-fills to those values, exactly as a bar would:
+After `bin` and `density`, the third kind of transform is the aggregation
+family: `sum`, `mean`, `median`, `max`, `min` and `quantile`. Each leaves one
+value per year, and the area fills to those values, exactly as a bar would:
 
 ```{r}
 data(gapminder_asia) + area * mean + x(year) + y(life) +
@@ -309,12 +316,12 @@ data(gapminder_asia) + area * mean + x(year) + y(life) +
 
 ## A category on the domain
 
-That mean ran over years, a continuous domain. Put a category there, and one
-summary per continent is usually drawn as bars. An area draws the five
-continent means as one connected shape instead. Use it when the reader should
-compare the shape rather than five heights. Each category gets one slot, the
-boundary runs from slot to slot in axis order, and the region still fills down
-to zero:
+That mean was computed for each year, and year is a continuous domain. Put a
+category there, and one summary per continent is usually drawn as bars. An
+area draws the five continent means as one connected shape instead. Use it when
+the reader should see one overall shape rather than compare five heights. Each
+category gets one slot, the boundary runs from slot to slot in axis order, and
+the region still fills down to zero:
 
 ```{r}
 data(gapminder_2007) + area * mean + x(continent) + y(life) +
@@ -323,20 +330,21 @@ data(gapminder_2007) + area * mean + x(continent) + y(life) +
 ```
 
 gog draws that sentence. The boundary runs from Asia to Oceania in axis order,
-and the fill reaches from each mean down to zero. Whether the plot claims more
-than was measured depends on the segments between the categories. Nothing was
-measured between Africa and the Americas, and a
-straight segment is drawn there anyway. A line across that gap claims a change.
+and the fill reaches from each mean down to zero. The segments between the
+categories are where the plot can claim more than was measured. Nothing was
+measured between Africa and the Americas, and a straight segment is drawn there
+anyway. A line across that gap claims a change.
 A fill claims a quantity as well, at every point between the two categories. If
 you read only the vertices, the segments help you compare the five heights. If
 you read the segments themselves, they claim what was never measured. To
 compare the five means and nothing else, swap `area` for `bar`: one atom away,
 and no segments to read.
 
-Keep the fill when the shape itself is what the reader should compare. A shape
-can also be drawn on a circular axis. Add
-[`polar()`](../polar.qmd#the-radar-a-categorical-angle) and the same sentence
-draws the filled radar:
+Keep the fill when the overall shape is what the reader should see. Continents
+have no order, but a straight axis still puts one of them first and another
+last. A circle has no first or last place. Add
+[`polar()`](../polar.qmd#the-radar-a-categorical-angle), and the same sentence
+draws the filled **radar chart**:
 
 ```{r}
 data(gapminder_2007) + area * mean + x(continent) + y(life) + polar() +
@@ -360,10 +368,11 @@ mark_options("area")
 
 That is the shortest settings list in the book, shared with `ribbon`. `line`
 has one more, `size`, and `bar` has two, `border_color` and `border_size`.
-Neither gap is an omission: [One region, one fill](#one-region-one-fill)
+Both are left out on purpose: [One region, one fill](#one-region-one-fill)
 explains `size`, and [Giving an area an edge](#giving-an-area-an-edge) explains
 the border. The one setting this chapter has not shown yet is `pattern`, a
-texture on the fill. The edge is still a `line`:
+texture on the fill. The plot below hatches the fill and draws the edge with a
+layered `line`, as before:
 
 ```{r}
 data(actuals) + x(year) + y(sales) +
@@ -375,9 +384,8 @@ data(actuals) + x(year) + y(sales) +
 *"Given the actuals: x is year, y is sales, an area colored seagreen, with
 pattern hatch and opacity 0.5, and also a line colored seagreen, with size 2."*
 
-That layered line can be dashed, colored differently, or smoothed, and it traces
-only the data boundary. A border would also draw a line along the two sides and
-the baseline.
+That layered line traces only the top boundary. A border would also draw a line
+along the two sides and the baseline.
 
 The [grid of every mark and every setting](../style.qmd#what-you-can-set) shows
 which other marks share this list. What a mark *maps* rather than sets is its
@@ -385,35 +393,36 @@ row on the [companion grid](../combinations.qmd#marks-and-channels).
 
 ## What it refuses
 
-The first two refusals come from an axis. The first is the measure. A
-region fills to a baseline at zero, and a category has none. So a categorical
-`y` is refused, and the message asks for the category on `x` instead:
+The first two refusals come from an axis. The first comes from the measure. A
+region fills to a baseline at zero, and a category has no zero. So a
+categorical `y` is refused, and the message asks for the category on `x`
+instead:
 
 ```{r}
 #| error: true
 data(gapminder_2007) + area * mean + x(life) + y(continent)
 ```
 
-`density` is the exception, because its curve spreads along the continuous
-axis instead of filling to a baseline. With `y(continent)` it draws the
-ridgeline in [With transforms](#with-transforms).
+`density` is the exception. Its curve runs along the continuous axis, and each
+category's place on `y` is the baseline its curve fills to. With `y(continent)`
+it draws the ridgeline in [With transforms](#with-transforms).
 
 The second comes from the domain. `bin` cuts a continuous axis into intervals,
-and a category is one slot with no width to cut. `density` needs a continuous
-axis too, and either `x` or `y` can be that axis, so it refuses only when
-neither is continuous. The message names the transform that works on
-categories: `count` in place of `bin`:
+and a category is one slot with no width to cut. The message names `count`, the
+transform that tallies the rows in each category:
 
 ```{r}
 #| error: true
 data(gapminder_2007) + area * bin + x(continent)
 ```
 
-The message for a `density` on a category names `proportion` in the same way.
+`density` needs a continuous axis too, but either `x` or `y` can be that axis,
+so it refuses only when neither is continuous. Its message names `proportion`
+in the same way.
 
-The last two come from the fill. A mapped `opacity` is the third.
-Each row is one corner of the top edge, so no part of the region belongs to a
-single row, as [One region, one fill](#one-region-one-fill) explained.
+The last two come from the fill. A mapped `opacity` is the third. Each row is
+one vertex of the top edge, so no part of the region belongs to a single row,
+as [One region, one fill](#one-region-one-fill) explained.
 
 ```{r}
 #| error: true
@@ -433,14 +442,14 @@ A `line` accepts a size, because a stroke has a width to choose.
 
 ## In short
 
-An area measures on `y`, and never draws horizontally the way a bar does.
-`density` is the one exception, and its curve follows whichever axis is
-continuous. Its interior belongs to no single row, so `opacity` can only be
-set. Its extent comes from its x, its y and its baseline, so `size` is refused
-both ways.
+An area measures on `y`, so it does not draw horizontally the way a bar does.
+The one exception is `density`, whose curve runs along whichever axis is
+continuous. An area's interior belongs to no single row, so `opacity` can only
+be set. Its extent comes from its x, its y and its baseline, so `size` is
+refused both ways.
 
 ## What comes next
 
-An area slopes from one measurement to the next, and that slope claims values
-nobody recorded. [Step](step.qmd) holds each value until the next measurement,
-and jumps where it changes.
+An area slopes from one measurement to the next, and that slope claims the value
+changed steadily in between. [Step](step.qmd) claims instead that each value
+held until the next measurement, and then jumped.

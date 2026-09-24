@@ -103,8 +103,7 @@ network."*
 
 Whether the strokes are thin or thick, solid or dashed, is not in any column of
 the table. The value comes from the sentence rather than from the table, and
-each mark takes its own settings. These are an edge's, generated from the
-engine's own legality table, so this page cannot differ from what `style()`
+each mark takes its own settings. These are an edge's, with the values each
 accepts:
 
 ```{r}

@@ -842,8 +842,13 @@ scrambled <- data.frame(year = c(1992, 1962, 2002, 1972, 1982),
 botswana_arrow <- data.frame(gdp = c(20000, 13100), life = c(45.5, 50.2))
 botswana_label <- data.frame(gdp = 20500, life = 44.8, what = "Botswana")
 
-spiral <- data.frame(a = seq(0, 6.2, length.out = 90),
-                     r = seq(0.1, 4, length.out = 90))
+# Two days, a reading every 15 minutes: `a` is the hour of the day, so the angle
+# repeats, and `r` grows the whole time. A path joins the rows in time order and
+# goes around twice; a line sorts by `a`, pairs each moment with the same moment
+# of the other day, and goes around once. An angle that only grew drew the same
+# spiral under both marks, which is what this table replaced.
+spiral <- data.frame(a = rep(seq(0, 23.75, by = 0.25), 2),
+                     r = seq(0.1, 4, length.out = 192))
 
 healthy_band <- data.frame(gdp = base::range(gapminder_2007$gdp),
                            lo = 65.0, hi = 75.0)
