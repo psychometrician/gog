@@ -238,9 +238,8 @@ On a box, `size` and `opacity` are settings rather than channels. `color` can
 split one group into several boxes, but `size` and `opacity` cannot. A single
 box is one shape, so it cannot show two sizes or two opacities inside itself.
 `style(size = )` sets the width of every line a box draws, for the whole layer.
-That covers the outline, the whiskers and the caps, the short crossbars at the
-whisker ends; the median is one pixel thicker. A box always draws its caps:
-`caps` is a setting of `interval` alone.
+That covers the outline, the whiskers and the caps (the short lines across the
+whisker ends). The median is one pixel thicker.
 
 ## What you can set
 
@@ -260,6 +259,15 @@ and the median. `border_color` gives them a color of their own; without it,
 they take the fill's color, so the median barely shows against the fill. A pale
 fill with a dark border keeps the median easy to see. `border_size` sets the
 same width as `size`, and when both are given, the box uses `border_size`.
+`style(caps = FALSE)` draws the whiskers without caps, as on an
+[`interval`](interval.qmd):
+
+```{r}
+data(gapminder_2007) + box + x(continent) + y(life) + style(caps = FALSE) +
+  title("Whiskers without caps")
+```
+
+*"Given gapminder 2007: boxes, x is continent, y is life, with caps off."*
 
 A box is also the one mark in the kernel that takes a parameter. The other
 parameters you have met belong to a transform, such as `bin(width = )`, or to a

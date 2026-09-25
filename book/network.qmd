@@ -83,9 +83,9 @@ layout is what shows it.
 ## An edge carries its own columns
 
 Every stroke so far is drawn alike, whether the trade is 500 billion dollars or
-50 billion. An edge is one row, so its color and its opacity can come from that
-row's own columns. `color` needs a categorical column, and `opacity` needs a
-continuous one. `opacity(billions)` maps each stroke's opacity to that row's
+50 billion. An edge is one row, so its color, its dash and its opacity can come
+from that row's own columns. `color` and `pattern` need a categorical column, and
+`opacity` needs a continuous one. `opacity(billions)` maps each stroke's opacity to that row's
 `billions`, so the heavier trades draw darker:
 
 ```{r}
@@ -94,7 +94,7 @@ data(trade_partners) +
   point * layout(exporter, importer) + size(degree) +
   text * layout(exporter, importer) * repel + label(name) +
   network() +
-  title("Heavier trade, darker stroke")
+  title("More trade, darker stroke")
 ```
 
 *"Given trade partners: edges derived by layout from exporter to importer,

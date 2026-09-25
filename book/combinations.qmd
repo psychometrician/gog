@@ -95,7 +95,7 @@ Reading the five glyphs:
 - **◌ not drawn**: legal grammar the engine refuses today. It gives you a
   direction instead of a wrong picture. One glyph, three verdicts, and the
   refusal message tells you which you have. **Owed**: a mapped `size` or
-  `opacity` on `text`, `z` on `text`, and `pattern` on `edge`. **Blocked** on
+  `opacity` on `text`, and `z` on `text`. **Blocked** on
   infrastructure: `z` on `rule` and on `zone`. Their 3-D forms are a plane and a
   slab with no footprint to sort by, so they need an engine that can tell what
   hides what. **Decided**: `z` on `line`, `step`, `area` and `ribbon`. These

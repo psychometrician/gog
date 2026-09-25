@@ -9,7 +9,7 @@ What shape does a landscape have, sampled on a grid? `surface` draws a sheet
 through your samples. It is a sheet through *three* positions, x, y and z.
 Without the third position there is no sheet at all. That makes it the only mark
 that *must* be drawn in the cube. Every other mark draws in the plane, and
-several of them also draw in space once you bind a `z`.
+several of them also draw in the cube once you bind a `z`.
 
 It is not [`area`](area.qmd) with a `z`. An area fills the space between a curve
 and a baseline. A surface has no baseline. Both are fills, and that is all they
@@ -20,9 +20,9 @@ share.
 A grid of elevations is a table of numbers, 1364 of them here. Nobody can see a
 hill in a column of numbers. Draw the same numbers as a sheet and the hill
 appears. Here is Maunga Whau, a volcano in Auckland. The book's copy keeps every
-second row and column, a 20 m grid. Ross Ihaka digitized the elevations from a
-topographic map, and R's `datasets` package is where the book reads them
-[@rcore2026]:
+second row and every second column of the original grid, so these samples are
+20 m apart. Ross Ihaka digitized the elevations from a topographic map, and R's
+`datasets` package is where the book reads them [@rcore2026]:
 
 ```{r}
 #| echo: false
@@ -40,28 +40,32 @@ data(maunga_whau) + surface +
 Three positions and a mark. There is no `space()` in that sentence and none is
 needed: binding `z` is what puts a plot in the cube, exactly as it is for a [3-D
 scatter](../space.qmd). `space(turn =, tilt =)` still sets the angle when you
-want a different one.
+want a different one. `z_label()` names the third axis, the way `x_label()`
+names the first, and [Space](../space.qmd#z_label-naming-the-third-axis)
+explains it.
 
 ## One row per crossing
 
 What shape must a table have before a surface can draw it? A scatter's table
 does not have that shape, and knowing why tells you which of your tables can
 become a sheet. Given two position columns and no transform, a surface reads its
-rows as **nodes**, and the sheet is the faces between them. You never declare
-which nodes are neighbors. gog recovers that from your two position columns: the
-distinct `east` values become the mesh's vertical grid lines and the distinct
-`north` values its horizontal ones. A face is drawn wherever all four corners of
-a cell are present.
+rows as **nodes**, and the sheet is the faces between them. The grid those faces
+make is the sheet's **mesh**. You never declare which nodes are neighbors. gog
+recovers that from your two position columns: the distinct `east` values and
+the distinct `north` values become the **mesh lines**, one set in each
+direction. A face is drawn wherever all four corners of a cell are present.
 
 So this reading needs a table with one row per (x, y) crossing: every `x` value
 paired with every `y` value.
 
 Maunga Whau has that shape. It holds 1364 rows, 31 distinct `east` values and 44
 distinct `north` values: 31 × 44 = 1364, so the grid is full, and 30 × 43 = 1290
-faces get drawn. That arithmetic is the rule, and it is why a scatter cannot be
-a surface. Each of the 142 countries has its own `gdp` and its own `life`. That
-makes a grid 142 wide and 142 deep holding only 142 nodes, so no cell has all
-four corners. The sheet would be empty:
+faces get drawn.
+
+The same count shows why a scatter cannot be a surface. The gapminder 2007
+table below holds 142 countries, and no two of them share a `gdp` value or a
+`life` value. That makes a grid 142 wide and 142 deep holding only 142 nodes, so
+no cell has all four corners. The sheet would be empty:
 
 ```{r}
 #| echo: false
@@ -73,8 +77,11 @@ peek(gapminder_2007)
 data(gapminder_2007) + surface + x(gdp) + y(life) + z(population)
 ```
 
-That refusal names the two sentences that *do* draw. [The third geometry of one
-field](#the-third-geometry-of-one-field) draws the second one.
+That refusal names the two sentences that *do* draw: a `point` with a `z` for
+the cloud itself, and `surface * density` for a **field** estimated from it. A
+field is one value at every place on the plane. [The third geometry of one
+field](#the-third-geometry-of-one-field) draws `surface * density` for the iris
+flowers.
 
 Because a face needs all four of its corners, a gap in the grid is an
 **opening** in the sheet rather than a face drawn across it. Drop the crossings
@@ -90,42 +97,46 @@ data(peak) + surface + x(east) + y(north) + z(elevation) +
 ```
 
 The note above the plot counts the crossings gog did find: 1322 of 1364, so 42
-crossings are missing. Each missing crossing opens every face that needed it, so
-the hole is wider than 42 faces: 1234 faces are drawn here where the full grid
+crossings are missing. Each missing crossing removes every face that needed it,
+so more than 42 faces are missing: 1234 are drawn here, where the full grid
 draws 1290. The note is advice rather than a refusal, because a grid with gaps
-is a legitimate thing to have and a torn sheet is a true picture of one. What
-would not be legitimate is quietly spanning a gap, which claims a height nobody
-measured. The note also tells you when the gaps were an accident. If the two
-position columns hold rounded values instead of exact repeats, the lattice fills
-with holes nobody designed.
+is a legitimate thing to have and a sheet with openings is a true picture of
+one. What would not be legitimate is quietly spanning a gap, which claims a
+height nobody measured. The note also says what to check if you expected a whole
+sheet: each position value must repeat exactly. If one row holds 1.2 and another
+1.2000001, gog makes two mesh lines where you meant one, and the sheet gets
+openings you did not intend.
 
 ## A continuous floor
 
 A continent in one column and a year in another looks like a grid too, and a
-sheet over it is a reasonable thing to ask for. Both position columns have to be
-numbers. A face spans the gap between two samples and so claims every height
-*inside* that gap, and between one category and the next there is no inside to
-claim anything about. So a category on either position is refused, and [What it
-refuses](#what-it-refuses) names the mark that draws one.
-
-That mark is the [3-D bar](bar.qmd). A category owns a slot with air on
-either side of it, and a 3-D bar stands *in* its slot, claiming
-nothing about the space between cells. So `bar * count + x(a) + y(b) + space()`
-stands one bar over each pair of categories, and a surface cannot: tiles with
-air between them are not a sheet.
+sheet over it is a reasonable thing to ask for. The two position columns make
+the sheet's **floor**, the plane under it, and both have to be continuous. A face
+stretches from one sample to the next and so claims every height *between* them,
+and between one category and the next there is nothing to claim. So a category
+on either position is refused.
 
 Numbers cut into cells are different, and a surface takes those, as [When each
-cell holds one value](#when-each-cell-holds-one-value) shows. So the two marks
-differ over the *slot*, not over the cut. That is the same distinction the
-flat marks make between a category and a cut number, one dimension higher.
+cell holds one value](#when-each-cell-holds-one-value) shows. Cut cells meet
+edge to edge. A category instead owns a **slot**: a place on the axis with empty
+space on either side. So a surface refuses the slot, not the cut. The flat marks
+show the same difference: bars over categories stand apart, and the bars of a
+histogram touch.
+
+The refusal, shown in [What it refuses](#what-it-refuses), names the mark that
+does take a category on both positions: the [3-D bar](bar.qmd). A 3-D bar
+stands *in* its slot and claims nothing about the space between slots. So
+`bar * count + x(a) + y(b) + space()` stands one bar over each pair of
+categories. A surface cannot draw that grid, because tiles with empty space
+between them are not a sheet.
 
 ## The third geometry of one field
 
-Which of the two iris clusters is denser, and by how much? The heatmap and the
-contour show where each cluster is. To find how dense it is, you have to read a
-legend or a contour level. A surface takes two transforms, and `density` is the
-one that makes it the third way gog draws a field. The same estimate over the
-same two columns, three times:
+Which of the two iris clusters is denser, and by how much? A heatmap and a
+contour plot, the first two plots below, show where each cluster is. To find how
+dense it is, you have to read a legend or a contour level. A surface takes two
+transforms that tile a floor, and `density` is the one that makes it the third
+way gog draws a field. The same estimate over the same two columns, three times:
 
 ```{r}
 #| echo: false
@@ -157,27 +168,25 @@ data(iris_flowers) + surface * density +
 *"Given the iris flowers: a surface derived by density, x is petal length, y is
 sepal length, in the cube, turned 120."*
 
-The sheet is turned to 120 degrees, and the reason is worth knowing early. The
-two peaks sit on a diagonal of the floor. At the default angle the near peak
-stands directly in front of the far one and hides it, so the sheet would show one
-peak where the data has two. [One sheet, four
-angles](#one-sheet-four-angles) returns to that, because it is the cube's
-standing hazard rather than this plot's.
+The sheet is turned to 120 degrees because of where the two peaks are. They sit
+on a diagonal of the floor. At the default angle the near peak stands directly
+in front of the far one and hides it, so the sheet would show one peak where the
+data has two. [One sheet, four angles](#one-sheet-four-angles) returns to that,
+because every 3-D view has this problem, not only this one.
 
-All three plots say the same thing about these two clusters: they are equally
-dense at their centers, to within about one percent. What each one asks of the
-reader is different. In the cells you compare two shades against a legend. In
-the contours you count rings. On the sheet you compare two heights, and that
-needs no key at all. Which of the three you want depends on what you are asking,
-not on which mark is better.
+All three plots say the same thing about these two clusters: they are nearly
+equally dense at their centers. The cluster with long petals is the denser one,
+by about four percent. What each plot asks of the reader is different. In the
+cells you compare two shades against a legend. In the contours you count rings.
+On the sheet you compare two heights, and that needs no legend at all. Which of
+the three you want depends on what you are asking, not on which mark is better.
 
 One transform, three marks, and the estimate itself is the same in all three.
-What differs is where the measurement goes: each mark puts it where its own
-geometry measures. A `zone` measures by color. A `path` measures by the level
-the contour was cut at. A surface measures by *height*. That is why the third
-sentence never binds `z()` and still gets a third axis, labeled Density. The
-transform supplies the measurement, and the mark puts it on the height. A flat
-`bar * bin` does the same for `y`.
+What differs is where each mark puts the measurement. A `zone` puts it in color.
+A `path` puts it in the level each contour was cut at. A surface puts it in
+*height*. That is why the third sentence never binds `z()` and still gets a
+third axis, labeled Density. The transform supplies the measurement, and the
+mark puts it on the height. A flat `bar * bin` does the same for `y`.
 
 | Mark derived by `density`, over two positions | Where the measurement goes |
 |---|---|
@@ -197,10 +206,13 @@ layer has a measure of its own*. `density` invents one in the plane too, so
 
 ## When each cell holds one value
 
-Does the ground rise smoothly between your samples, or does each cell hold one
-value that says nothing about its neighbors? `bin` is the other transform, and
-it draws a different sheet: flat across each cell, stepping at the boundary.
-Here is the same volcano, read as a coarse grid rather than a fine one:
+The volcano's sheet joins its samples with sloping faces. Does the ground rise
+smoothly between your samples, or does each cell hold one value that says
+nothing about its neighbors? `bin` is the other transform that tiles a floor. It
+cuts the floor into cells, and `mean` gives each cell the average elevation of
+the rows inside it. The surface is then flat across each cell, with a step at
+each boundary. The density sheet above is drawn the same way, from much smaller
+cells. Here is the same volcano, read as a coarse grid rather than a fine one:
 
 ```{r}
 data(maunga_whau) + surface * bin(12) * mean +
@@ -211,18 +223,17 @@ data(maunga_whau) + surface * bin(12) * mean +
 *"Given Maunga Whau: a surface derived by bin into 12 and mean, x is east, y is
 north, z is elevation."*
 
-Nothing about the mountain changed. What changed is the **claim**. The sheet at
-the top of this chapter says the ground rises smoothly between its samples; this
-one says each cell has a single elevation and nothing is claimed about the
-ground inside it. Each claim is right for a different kind of data, and which
-one you want is a question about how yours was measured.
+Nothing about the volcano changed. What changed is the **claim**. The sheet at
+the top of this chapter says the ground rises smoothly between its samples. This
+one gives each cell one elevation, the mean of its samples, and says nothing
+about how the ground varies inside the cell. Each claim is right for a different
+kind of data, and which one you want is a question about how yours was measured.
 
-That question has a clear answer whenever a design produces exactly one value
-per cell. That is the ordinary case in an experiment or a simulation: a grid of
-conditions, with one number in each. Read as nodes, such a table draws a sheet
-smaller than the grid it describes. Nine values on a 3 × 3 grid make 2 × 2
-blocks of four corners, so the sheet is four faces. It stops at the outer
-samples instead of covering their cells:
+That question has a clear answer in an experiment or a simulation, where the
+conditions form a grid with exactly one number in each cell. Read as nodes, such
+a table gives fewer faces than it has values. Nine values make a 3 × 3 grid of
+nodes. A face needs four nodes at its corners, so the sheet has 2 × 2 = 4 faces,
+and no face stands for any one value:
 
 ```{r}
 cells <- data.frame(
@@ -234,9 +245,9 @@ cells <- data.frame(
 data(cells) + surface + x(a) + y(b) + z(v) + title("Nine values, four faces")
 ```
 
-Nine numbers became four faces, and each face is a sheet stretched over the four
-corners around it. Cut the x-y plane into cells instead, and each cell gets a
-flat top of its own, a **plateau**:
+Nine numbers became four faces, and each face slopes between the four values at
+its corners. Cut the floor into cells instead, and each cell gets a flat top of
+its own, a **plateau**:
 
 ```{r}
 data(cells) + surface * bin(3) * mean + x(a) + y(b) + z(v) +
@@ -248,15 +259,15 @@ is v, color by v, with the plasma palette."*
 
 Nine plateaus, and three colors. The nine values make a symmetric bowl: the four
 corner cells share the highest value, the four edge cells share the middle one,
-and the center cell holds the lowest. The ramp is what makes that symmetry
-visible, where the sheet above left it to be read from the axis.
+and the center cell holds the lowest. The ramp makes that symmetry visible. In
+the plain sheet above, you had to read the symmetry from the axis.
 
-`bin` cuts the `x` and `y` axes into cells, and `mean` averages the column named
-on `z` inside each one. That is the same sentence a 3-D bar uses. The transforms
-mean the same thing on both marks, and only the geometry laid on the cell
-differs. Where a table holds one row per cell, as this one does, the mean of a
-single value is that value, and the transform is doing nothing but naming the
-column.
+A 3-D bar uses the same sentence: `bin` cuts the `x` and `y` axes into cells, and
+`mean` averages the column named on `z` inside each one. The transforms mean the
+same thing on both marks, and only the geometry laid on the cell differs. Here
+`mean` does no averaging, because this table holds one row per cell. It is still
+needed: without it, `bin` counts the rows in each cell and draws that count as
+the height.
 
 The step between two plateaus is drawn, as a **vertical face** standing on the
 line the two cells share. That line has no width, so the vertical face claims
@@ -264,13 +275,12 @@ nothing about any area: it is simply what a jump looks like. Without it the
 mark would draw disconnected tiles floating at their own heights, and a reader
 could not tell a step from a missing cell.
 
-A vertical face spans the *difference* between two neighbors, and that
-separates this from standing a [3-D bar](bar.qmd) on every cell. A bar runs
-the whole way down to the baseline, so a field of bars hides its own back rows
-as soon as you turn it. A vertical face is only as tall as its own step. Both
-are turned by 60 degrees below, so you can see which one is still legible.
-Both are set to one color, so the only thing that differs between them is the
-shape:
+A vertical face spans the *difference* between two neighbors, and a [3-D
+bar](bar.qmd) on every cell does not. A bar always reaches down to the baseline,
+so a grid of bars hides its own back rows as soon as you turn it. A vertical
+face is only as tall as its own step. The next plot turns both to 60 degrees, so
+you can see which one is still legible. Both are set to one color, so the only
+thing that differs between them is the shape:
 
 ```{r}
 ((data(cells) + bar * bin(3) * mean + x(a) + y(b) + z(v) +
@@ -287,29 +297,28 @@ beside a surface derived by bin into 3 and mean, x is a, y is b, z is v."*
 figure and turn together. That is what makes this a fair comparison, rather
 than two pictures the reader has to match angle by angle.
 
-The `theme(height = )` above sets the whole figure's height in pixels, and two
-cubes side by side are why it is set. They share the page's width, and each one
-keeps the full height. A cube is fitted with one scale on both axes, so it never
-stretches to fill a tall panel. Without the setting, blank space would be left
-above and below each cube.
+`theme(height = )` sets the whole figure's height in pixels. It is set here
+because two cubes side by side each get half the page's width but the full
+height, so each panel is tall and narrow. A cube keeps its proportions on the
+page, so it never stretches to fill a tall panel. Without the setting, blank
+space would be left above and below each cube.
 
 Empty cells need no special rule and get none. `bin` leaves them out, because a
 cell with no rows is not a measurement of zero. A plateau claims only its own
 cell, so a cell with nothing in it is simply a cell with no top. It is the same
 opening a missing crossing makes in a node mesh, for a different reason.
 
-What a surface refuses is a grid of **slots**. `count` and `proportion` count
-rows into the cells two categories make, and categories have gaps between them.
-[What it refuses](#what-it-refuses) shows that refusal.
+What a surface refuses is a grid of slots, the cells two categories make. [What
+it refuses](#what-it-refuses) shows that refusal.
 
 ## The mesh, and what the shading means
 
 A smooth sheet hides where its samples were, the way a line hides its rows.
-Drawing the mesh puts the grid back, so a reader can see how fine the sampling
-was. `border_color` and `border_size` draw the **mesh lines**. A face is a
-closed fill like a bar's or a box's, so the [settable
-rule](../design-laws.qmd#the-settable-rule) gives it a border. On a mesh those
-borders draw the grid itself:
+Drawing the mesh lines shows the grid again, so a reader can see how fine the
+sampling was. `border_color` and `border_size` draw them. A face is a closed
+fill like a bar's or a box's, so the [settable
+rule](../design-laws.qmd#the-settable-rule) gives it a border. On a surface,
+those borders are the mesh lines:
 
 ```{r}
 data(maunga_whau) + surface +
@@ -321,12 +330,13 @@ data(maunga_whau) + surface +
 *"Given Maunga Whau: a surface, x is east, y is north, z is elevation, with
 border color white and border size 0.4."*
 
-The mesh adds no shapes to the picture, because every face is already stroked in
-its own shade. That thin stroke covers the pale seam that would otherwise show
-between neighboring faces. `border_color` replaces the stroke's color. Set
-`border_size = 0` for a seamless sheet.
+The mesh lines add no shapes to the picture, because every face is already
+stroked in its own shade. That thin stroke covers the pale seam that would
+otherwise show between neighboring faces. `border_color` replaces the stroke's
+color, and `border_size` its width. Leave both out for a seamless sheet. A
+`border_size` of 0 removes the stroke, and the pale seams appear.
 
-Notice what the shading is doing in both plots, and what it is *not*. The faces
+Look at the shading on the sheet above, and on the turned one below it. The faces
 are shaded by their **slope**: a steep one is darker, a level one keeps its full
 color. That is a fact about the terrain, not about where a light is, so turning
 the scene rearranges the faces on the page and repaints none of them:
@@ -335,26 +345,25 @@ the scene rearranges the faces on the page and repaints none of them:
 data(maunga_whau) + surface +
   x(east) + y(north) + z(elevation) +
   space(turn = 130, tilt = 35) +
-  z_label("Elevation (m)") + title("Turned, not relit")
+  z_label("Elevation (m)") + title("Turned, with the same shades")
 ```
 
 *"Given Maunga Whau: a surface, x is east, y is north, z is elevation, turned
 130, tilted 35."*
 
 Compare the crater walls here with the first plot. Same faces, same shades, seen
-from the other side. A lamp fixed to the page would have repainted every one of
-them. A color that changed while the data did not would mislead a reader, with
-no way to notice.
+from the other side. A light that stayed in one place on the screen would have
+changed the shade of every face. A color that changed while the data did not
+would mislead a reader, with no way to notice.
 
 ## Color by height, per face
 
 Slope shading says how steep a face is, not how high it stands. How high is the
-summit, and how deep is the crater? `color` maps on a surface,
-and a **measured** column colors it face by face along a ramp.
+summit, and how deep is the crater? `color` maps on a surface, and a
+*continuous* column colors it face by face along a ramp.
 [`palette()`](../style.qmd#palette-choosing-the-colors-a-mapping-uses) chooses
-which ramp. `"viridis"` suits a topographic sheet, because it gets lighter the
-whole way, so you can judge the height from the color even where a face is
-turned away:
+which ramp. `"viridis"` suits a topographic sheet, because it gets steadily
+lighter from its lowest color to its highest:
 
 ```{r}
 data(maunga_whau) + surface +
@@ -367,19 +376,17 @@ Compare that with the first plot in this chapter. The summit and the crater rim
 are in that plot too. With slope shading alone you have to infer them from which
 faces are dark. The ramp states the heights, and the legend decodes them.
 
-Mapping the height to color when it is already the height is redundant on
-purpose. It is what a reader of a topographic map expects, so the ramp is worth
-drawing. It also marks a real boundary. An [`area`](area.qmd) refuses a measured
-color, because a region has one interior. Coloring an interior by a measure
-would make a gradient fill, which is a different and much larger job. A mesh has
-*faces*, and a face is already small enough to hold one value. So the rule is
-not about regions and strokes. It is whether a mark has parts small enough to
-each hold one value, and a stroke has segments where a surface has faces.
+Mapping the height to color when `z` already shows it is redundant on purpose.
+It is what a reader of a topographic map expects. It also shows why a surface
+can take a continuous color when an [`area`](area.qmd) cannot. An area has one
+interior, and coloring it by a measure would make a gradient fill, which is a
+different and much larger job. A surface has *faces*, and a face is small enough
+to hold one value.
 
-A face has four corners and one color. What it reads is the field at its center,
-the mean of those four corners. So the ramp describes the mesh you have, not
-only the field you sampled from. Sample the same bowl twice and see where the
-shape appears:
+A face has four corners and one color. Its color is the mean of its four corner
+values, which stands for the field at its center. So the ramp describes the mesh
+you have, not only the field you sampled from. Here is one bowl-shaped field,
+sampled coarsely and then finely:
 
 ```{r}
 bowl <- function(n) {
@@ -390,9 +397,9 @@ bowl <- function(n) {
 coarse <- bowl(3)
 fine   <- bowl(7)
 
-((data(coarse, name = "coarse") + surface + x(a) + y(b) + z(v) +
+((data(coarse) + surface + x(a) + y(b) + z(v) +
     color(v) + palette("plasma") + title("Sampled 3 by 3: four faces")) |
-   (data(fine, name = "fine") + surface + x(a) + y(b) + z(v) +
+   (data(fine) + surface + x(a) + y(b) + z(v) +
       color(v) + palette("plasma") + title("Sampled 7 by 7: thirty-six faces"))) +
   theme(height = 320)
 ```
@@ -400,30 +407,30 @@ fine   <- bowl(7)
 *"Given coarse: a surface, x is a, y is b, z is v, color by v, with the plasma
 palette, beside the same given fine."*
 
-Two tables on one page, so each is named. A layer finds its columns in the
-nearest table by that name, and two tables with the same name would leave
-the second one unreachable ([Data](../data.qmd)).
+Two tables share this page, and `data()` keeps each table's name, `coarse` or
+`fine`. gog finds each layer's table by that name, so it refuses two different
+tables under one name ([Data](../data.qmd)).
 
-The left sheet is one flat color, and that is correct rather than broken. Every
-face has one high corner, one low corner and two middle ones, so all four
-average to the same number. The mesh is too coarse to hold the shape, and the
+The left sheet is one uniform color, and that is correct rather than broken.
+Every face has one high corner, one low corner and two middle ones, so all four
+faces get the same average. The mesh is too coarse to hold the shape, and the
 ramp says so instead of inventing a gradient across it. The right sheet has the
 same field under it and enough faces to resolve it, so the bowl appears.
 
 This is the reading that makes the legend trustworthy. A color is the height at
-one named place on the sheet, so two faces of one color really are at one
-height, and a sheet of one color really is flat on average.
+one stated place, the center of a face, so two faces of one color really are at
+one height there, and a sheet of one color has all its face centers at one
+height.
 
 The slope shading is still underneath the ramp, and the two combine rather than
 cancel: a face takes its color from the ramp and is then darkened by how steep
-it is. Viridis stays readable because only the *low* ground reaches its dark
-colors, and on a terrain the low ground is also the flattest. The two darkenings
-therefore do not add together, and the darkest face on this sheet is lighter
-than a fully-shaded viridis floor would have been.
+it is. Viridis stays readable because only the *low* ground takes its dark
+colors, and low ground is usually flat. A flat face is barely darkened by its
+slope, so few faces are darkened by both the ramp and the slope.
 
-An **estimated** height takes a ramp the same way, and you name it the same way.
-`density` writes its estimate into a column called `density`, so that is the
-word `color` takes, exactly as it does on a [`zone`](zone.qmd) or a
+An estimated height takes a ramp the same way, and you name it the same way.
+`density` writes its estimate into a column called `density`, so `density` is
+the name you give `color`, exactly as on a [`zone`](zone.qmd) or a
 [`path`](path.qmd):
 
 ```{r}
@@ -438,15 +445,15 @@ an estimate is only a difference in source. It does not change what you may say
 about it.
 
 Whether you *want* the color as well as the height is a separate question. The
-plain sheet in [A sheet through the samples](#a-sheet-through-the-samples) is
-the one that makes the argument about height. Use the ramp when the low ground
+plain sheet in [A sheet through the samples](#a-sheet-through-the-samples)
+already shows the height by position alone. Use the ramp when the low ground
 matters. Slope shading darkens a steep face and leaves a level one alone, so a
-broad, shallow mound and the flat floor around it are drawn the same color. The
+broad, shallow mound and the flat ground around it are drawn the same color. The
 ramp is what separates them.
 
-A **categorical** color splits the mark instead, one sheet per group. gog puts
-every face of both sheets into one depth order rather than drawing one sheet and
-then the other:
+A *categorical* color splits the mark instead, one sheet per group. gog puts
+every face of both sheets into one depth order, the back-to-front order in which
+faces are drawn, rather than drawing one sheet and then the other:
 
 ```{r}
 band <- maunga_whau
@@ -457,18 +464,20 @@ data(band) + surface + x(east) + y(north) + z(elevation) + color(side) +
 ```
 
 The two sheets meet along the line where `side` changes. Depth order runs across
-that line rather than stopping at it. A low face of the near sheet is drawn
-before a high face of the far one, so the join is correct wherever the two
-overlap on the page. Drawing one whole sheet and then the other would put every
-face of the second in front, and the seam would be wrong.
+that line rather than stopping at it. Each face is placed by its own distance
+from you, whichever sheet it belongs to, so the two sheets are correct wherever
+they overlap. Drawing one whole sheet and then the other would put every face of
+the second in front, and the line where they meet would be drawn wrong.
 
 ## Opacity by a measure, per face
 
-Part of a sheet is often not the subject. The flat ground around a hill only
-hides what is behind it, and fading those faces leaves the hill.
-`opacity` maps on a surface, and it maps for the reason `color` does. A face is
-small enough to hold one value, so it can hold an opacity too. Every face takes
-its own opacity, and a face fades where its measure is small:
+A color decides what a face says. An opacity decides whether you can see
+through it. Part of a sheet is often not the subject. The flat ground around a
+hill only hides what is behind it, and fading those faces makes the hill the
+solid part of the picture. `opacity` maps on a surface, and it maps for the
+reason `color` does. A face is small enough to hold one value, so it can hold an
+opacity too. Every face takes its own opacity, and a face fades where its
+measure is small:
 
 ```{r}
 data(maunga_whau) + surface +
@@ -481,23 +490,21 @@ by elevation."*
 
 Over the low ground the fill fades to almost nothing and each face keeps its
 outline, so that part of the sheet shows as mesh lines alone. A ramp cannot do
-that; an opacity can. A color changes what a face says. An opacity changes
-whether the face hides what is behind it. The legend beside the plot reads the
-same way `color`'s does, with the smallest, middle and largest values of the
-column.
+that; an opacity can. The legend beside the plot reads the same way `color`'s
+does, with the smallest, middle and largest values of the column.
 
 No face disappears completely. A mapped `opacity` runs from 0.15 to 0.95, so the
 faintest face here is still drawn, which is the rule every mapped `opacity`
 follows ([Channels](../channels.qmd)).
 
-A face reads its opacity where it reads its color, at its own center, which is
-the mean of its four corners. A plateau and a vertical face each own one cell,
-so each reads its own row. Either way one face has one reading, whichever
-channel asks for it.
+A face reads its opacity the way it reads its color, from the mean of its four
+corners. A plateau reads its own cell's row. A vertical face stands between two
+cells and reads the taller one's row, the way a bar's side takes the bar's
+color. Either way one face has one reading, whichever channel asks for it.
 
-In the plot above, the height is said twice: once as a position and once as an
-opacity. A second column is the more useful case: the shape stays in `z`, and
-another measure decides which faces fade.
+The sentence behind the first plot in this section binds `elevation` twice: once
+to `z` and once to `opacity`. A second column is the more useful case: the shape
+stays in `z`, and another measure decides which faces fade.
 
 ```{r}
 relief <- maunga_whau
@@ -515,11 +522,10 @@ next east value and one toward the next north value. The steep sides of the hill
 stay solid, and the flat ground around them fades away. The sheet is the same
 shape as the one above it, and a different part of it is solid.
 
-An [`area`](area.qmd) refuses a mapped opacity for the reason it refuses a
-measured color. A region has one interior and one fill, so a row there is a
-corner of the outline rather than a part that can carry a value. A mesh has
-faces, so it has parts. Both channels ask the same question of a mark, so a mark
-that refuses one refuses the other.
+An [`area`](area.qmd) refuses a mapped opacity for the same reason it refuses a
+continuous color. A region has one interior and one fill, so a row there is a
+corner of the outline rather than a part that can carry a value. A surface has
+faces, and each face can carry both.
 
 One value for the whole sheet is still [`style(opacity = )`](../style.qmd). Set
 it when you want to see one sheet through another, and map it when you want each
@@ -528,9 +534,8 @@ face to fade by its own value.
 ## One sheet, four angles
 
 A still 3-D plot hides something at every angle, and which thing it hides
-depends on the angle you pick. So it is worth turning the same sheet rather than
-trusting one view of it. Each of these changes exactly *one* of `turn`/`tilt`
-from the first:
+depends on the angle you pick. So turn the same sheet rather than trust one view
+of it. Each of these changes exactly *one* of `turn`/`tilt` from the first:
 
 ```{r}
 ((data(maunga_whau) + surface + x(east) + y(north) + z(elevation) +
@@ -544,7 +549,7 @@ from the first:
     z_label("Elevation (m)") + title("Tilted up: the crater appears")) |
  (data(maunga_whau) + surface + x(east) + y(north) + z(elevation) +
     color(elevation) + palette("viridis") + space(turn = 30, tilt = 5) +
-    z_label("Elevation (m)") + title("Tilted down: the skyline")))
+    z_label("Elevation (m)") + title("Tilted down: the view from the side")))
 ```
 
 *"Given Maunga Whau: a surface, x is east, y is north, z is elevation, color by
@@ -553,59 +558,56 @@ turned 140; above the same tilted 70, beside the same tilted 5."*
 
 Read them as a set and you can see what each angle hides. The crater is the most
 interesting thing about this hill, and the first two plots do not show it. The
-summit stands in front of the hollow, so no amount of turning at a low tilt
-reveals it. Tilt up and the hollow opens, because you are now looking down on
-the hill from above. The same tilt flattens the heights, until the sheet is a
-colored map of itself. Tilt down instead and you get the opposite: the side view
-is exact, the view from above is gone, and the sheet shows as an outline against
-the sky. One or the other, never both.
+rim nearest you stands in front of the crater, so turning alone does not show it
+while the tilt is low. Tilt up and you can see into the crater, because you are
+now looking down from above. The same tilt flattens the heights, until the sheet
+looks like a flat colored map. Tilt down instead and you get the opposite: the
+heights read clearly, the view from above is gone, and the sheet shows as an
+outline. One or the other, never both.
 
-These four plots are the argument for a plot you can turn, and they make it
-rather than state it. Here you need both the view from above and the view from
-the side, and no single still view shows this hill whole. So turn the four with
-the mouse. Raise the tilt until the crater opens, and watch the heights flatten
-as it does. The four still views make the argument; dragging them is how you
-check it.
+These four plots show why you would want to turn a plot. Here you need both the
+view from above and the view from the side, and no single still view shows this
+hill whole. So turn the four with the mouse. Raise the tilt until the crater
+opens, and watch the heights flatten as it does. The four still views show the
+problem; dragging them lets you check it yourself.
 
-All four turn together, because `|` and `/` composed them into one figure,
-and a composition turns as one. Each panel keeps the angle its own sentence
-asked for, and the drag adds the same change to every one. They turn as a
-set, and *reset* returns each to where it began. To turn one alone, write it
-alone.
+All four turn together, because `|` and `/` composed them into one figure. Each
+panel keeps the angle its own sentence asked for, and the drag adds the same
+change to every one. *Reset* returns each to where it began. To turn one alone,
+write it alone.
 
 That is composition rather than faceting, and the two share the same pair of
-operators. A facet names a **column** ([Faceting](../faceting.qmd)), and a
-viewing angle is not a column: it is a property of the coordinate space, the way
-a `polar()` start angle is. gog does build small multiples of cubes, and these
-four panels are not one ([Space](../space.qmd) has that example).
+operators. A facet names a *column* ([Faceting](../faceting.qmd)), and a viewing
+angle is not a column: it is a property of the coordinate space, the way a
+`polar()` start angle is. gog does build small multiples of cubes, one cube for
+each value of a column, but these four panels are not small multiples.
+[Space](../space.qmd#faceting-one-cube-per-panel) has that example.
 
 One limit shows in these four plots, and it belongs to the cube rather than to
-the mark. Notice the vertical axis in the tilted-up panel. Its numbers sit tight
-against each other, because that axis is projecting at about a third of its
-length and they are still all being drawn. They still do not touch, and tilting
-further makes gog drop some numbers rather than overlap them. Numbers packed
-close together are simply what a foreshortened axis looks like.
-[Space](../space.qmd) says which numbers a crowded axis drops, and why the scale
-itself never changes.
+the mark. Notice the Elevation axis in the tilted-up panel. You are looking down
+along it, so it is drawn at about a third of its full length. gog labels three
+heights there where the reference view labels five, because it drops numbers
+rather than let them overlap. [Space](../space.qmd) says which numbers a crowded
+axis drops, and why the scale itself never changes.
 
 ## What a surface is for
 
-Anything that is a *height over a plane*. Terrain, and the sea floor. A response
-surface from a designed experiment. A model's fit measured over two of its
-parameters. A model's predictions over a grid of two predictors. And, through
-`density`, the shape of a two-dimensional distribution.
+A surface is for anything that is a *height over a plane*. Terrain, and the sea
+floor. A response surface from a designed experiment. A model's fit measured
+over two of its parameters. A model's predictions over a grid of two predictors.
+And, through `density`, the shape of a two-dimensional distribution.
 
 What it is not for is data that merely *has* three numbers per row. That is a
 [3-D scatter](../space.qmd), and the refusal in [One row per
-crossing](#one-row-per-crossing) names it for you. The
-question to ask is whether the space between two of your samples means anything.
-On a grid it does; in a cloud it does not.
+crossing](#one-row-per-crossing) names it for you. The question to ask is
+whether the space between two of your samples means anything. On a grid it
+does; in a cloud it does not.
 
 ## What you can set
 
 No column says whether the mesh lines show, or how far you can see through a
-sheet. A setting decides that without reading one, and each mark takes its own.
-These are a surface's, with the values each accepts:
+sheet. A setting decides both without reading any column, and each mark takes
+its own settings. These are a surface's, with the values each accepts:
 
 ```{r}
 #| echo: false
@@ -616,8 +618,8 @@ mark_options("surface")
 
 A surface is a closed fill, so it takes what a [`bar`](bar.qmd) and a
 [`box`](box.qmd) take: a color, an opacity, and a border. `pattern` is the one
-fill setting it refuses, and the next section says why. No fill mark has a
-`size`, and that section says why a surface has none either.
+fill setting it refuses, and like a `bar` it has no `size`. The next section
+says why for both.
 
 The [grid of every mark and every setting](../style.qmd#what-you-can-set) shows
 which other marks share this list. What a mark *maps* rather than sets is its
@@ -625,10 +627,11 @@ row on the [companion grid](../combinations.qmd#marks-and-channels).
 
 ## What it refuses
 
-The flat marks take no `z`, so a surface with only `x` and `y` is the first
-sentence to try. A surface with no height is the same mistake as a surface in
-the plane. So it is one refusal rather than two. It names both routes into the
-cube, and it names the two marks that draw a field in the plane instead:
+Every flat mark is written with only `x` and `y` as positions, so it is easy to
+write a surface that way by mistake. Leaving out the height and leaving the plot
+in the plane are one mistake, not two, so there is one refusal. It names both
+ways into the cube, and it names the two marks that draw a field in the plane
+instead:
 
 ```{r}
 #| error: true
@@ -636,8 +639,8 @@ data(maunga_whau) + surface + x(east) + y(north)
 ```
 
 A category on either position is the second refusal, for the reason [A
-continuous floor](#a-continuous-floor) gave. A face spans the gap between two
-samples, and between two categories there is no gap to span:
+continuous floor](#a-continuous-floor) gave. A face stretches from one sample to
+the next, and between two categories there is nothing for it to cross:
 
 ```{r}
 #| echo: false
@@ -649,9 +652,10 @@ peek(gm_eras)
 data(gm_eras) + surface + x(continent) + y(year) + z(life)
 ```
 
-The message names the mark that stands in its slot instead, the [3-D
-bar](bar.qmd). The transforms that tally into slots are refused by the same
-rule. `count` and `proportion` count rows into the cells two categories make:
+The message names the mark that stands one bar in each category's slot instead,
+the [3-D bar](bar.qmd). The transforms that tally into slots are refused by the
+same rule. `count` and `proportion` count rows into the cells two categories
+make:
 
 ```{r}
 #| error: true
@@ -663,8 +667,8 @@ That refusal lists the two transforms that do tile a floor, `bin` and
 
 `density(levels = )` cuts a field into level *sets*, and a level set is a region
 in the plane. A surface has already given the third axis to the measurement, so
-a band drawn on it could only be a color, which is [`zone`](zone.qmd)'s reading
-of that same request:
+a band drawn on it could only be a color. [`zone`](zone.qmd) already draws
+those bands in the plane, as colored regions, so the sentence is refused:
 
 ```{r}
 #| error: true
@@ -673,8 +677,8 @@ data(iris_flowers) + surface * density(levels = 5) +
 ```
 
 A stepped sheet can be cut on either of two axes, and only one of the two draws.
-Cutting the **floor** into cells is `surface * bin`, which [When each cell holds
-one value](#when-each-cell-holds-one-value) draws. Cutting the **height** into
+Cutting the *floor* into cells is `surface * bin`, which [When each cell holds
+one value](#when-each-cell-holds-one-value) draws. Cutting the *height* into
 bands is what `levels` asks for, and that one is refused. It would cut the
 measurement rather than the grid, so the plateaus would be contours of equal
 height rather than one per cell.
@@ -686,8 +690,8 @@ Use `density(adjust = )`, which is dimensionless and scales both.
 
 There is no `size` on a surface. Its extent is the grid it is drawn on, so a
 size would be a second and contradictory answer to how big it is.
-[`area`](area.qmd) refuses a size for the same reason. And `pattern` is refused,
-which is the one place a fill does not take a texture:
+[`area`](area.qmd) refuses a size for the same reason. And a surface is the one
+fill mark that refuses `pattern`:
 
 ```{r}
 #| error: true
@@ -696,18 +700,18 @@ data(maunga_whau) + surface + x(east) + y(north) + z(elevation) +
 ```
 
 A hatch tile is a texture in *screen* space, and every face of a projected mesh
-is foreshortened differently, so one tile size would read as a different density
-on every face. The texture would then follow the viewing angle rather than the
-data, which is the one thing this mark's shading is built to avoid.
+is foreshortened differently, so one tile size would read as a different line
+spacing on every face. The texture would then follow the viewing angle rather
+than the data, which is the one thing this mark's shading is built to avoid.
 
 ## In short
 
-A surface spans the gaps between its samples, so it needs a floor whose cells
-tile. A scatter cannot be one. A face needs all four of its corners, so a gap in
-the grid is a hole rather than a guess.
+A surface stretches between neighboring samples, so it needs a floor whose cells
+tile. A scatter's table does not give it one. A face needs all four of its
+corners, so a missing crossing leaves an opening rather than a guessed height.
 
 ## What comes next
 
-Two positions whose cells tile without gaps are what a surface needs under it.
-[Edge](edge.qmd) draws the tables that have no positions at all: rows naming two
-things and saying they are connected.
+A surface needs two continuous positions under it. [Edge](edge.qmd) is the mark
+for tables with no positions at all: rows naming two things and saying they are
+connected.

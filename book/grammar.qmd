@@ -186,7 +186,7 @@ one *earns*:
 | `color` | Fill or stroke color, from a continuous or categorical column | a legend |
 | `size` | Radius, on `point` | a legend |
 | `shape` | Glyph, one of seven (circle, square, triangle, diamond, cross, star, and wye, a Y shape), on `point` | a legend |
-| `pattern` | Texture: a fill's hatch, a stroke's dash. Every mark but `point`, `text`, `surface` and `edge`; an `edge` takes `style(pattern = )` instead | a legend |
+| `pattern` | Texture: a fill's hatch, a stroke's dash. Every mark but `point`, `text` and `surface` | a legend |
 | `opacity` | Transparency, on `point`, `bar`, `edge` and `surface` | a legend |
 | `group` | Splits a mark into one line per category, without encoding it. On `line`, `area`, `step`, `interval`, `box`, `ribbon`, `path`, `zone` and `surface` | nothing |
 | `label` | The string a `text` mark draws, its content | nothing |
@@ -417,7 +417,7 @@ covers the four of them.
 |-------|-------------|
 | `linear` | Equal steps for equal differences. The default |
 | `log` | Equal steps for equal ratios, on `x`, `y`, `color`, `size` and `opacity`, with any `base` |
-| `time` | Positions dates and times, chosen from the column type: `Date` and `POSIXct` |
+| `time` | Positions dates and times, chosen from the column type: dates and date-times |
 | `category` | One slot per distinct value, chosen from the column type: columns of text, and columns with a declared order |
 | `order` | The order of the categories along an axis. You can also [declare the order on the column](data.qmd): a factor in R, `ordered()` in the other three |
 

@@ -54,7 +54,7 @@ you from starting the axis somewhere else. `y(sales, limits = c(100, NA))`
 starts it at 100, the fill starts there too, and no warning is printed. That
 decision is yours to make: the fill then shows sales minus 100 rather than the
 sales, and the reader of your plot has to know it.
-[Scales](../scales.qmd#limits-when-your-data-is-not-the-authority) explains
+[Scales](../scales.qmd#limits-stating-the-range-yourself) explains
 `limits`.
 
 So the choice of mark is about the data, not the appearance. Sales have a

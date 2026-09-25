@@ -1355,6 +1355,23 @@ data's own units, 3,790 people. The vertical axis runs from `0` to `1` and can
 do nothing else, because what a height means is a share of its own column and
 the grand total is not the thing being divided.
 
+Compose the partition with [`proportion`](#proportion-relative-frequency) and
+the horizontal axis reads shares of everyone surveyed instead:
+
+```{r}
+data(commutes) + zone * partition(city, mode, cross = TRUE) * proportion +
+  x(people) + color(mode) + style(border_color = "white", border_size = 2) +
+  x_label("Share of people surveyed") +
+  title("The same mosaic, its width in shares")
+```
+
+*"Given the commutes: zones derived by partition through city and mode, crossed,
+and proportion, x is people, color by mode."*
+
+The columns keep their widths, and the axis under them now runs from 0 to 1.
+Ashford's column ends near 0.41, its share of the 3,790 people. The heights do
+not change, because each was already a share of its own column.
+
 `partition` writes a `name` column holding each node's own label, and a
 [`text`](marks/text.qmd) layer reads it. The sunburst uses the same kind of
 layer. A shallower partition of the same table puts its nodes in exactly the
@@ -1766,10 +1783,11 @@ option exists [@byron2008].
 Notice also that these two plots have no numbers on the measure axis. Once a
 pile has moved off zero, no value on that axis means anything. A band drawn from
 12 to 20 says "this group is 8 here", and the 12 and the 20 only record where
-the pile was placed. So gog draws no ticks and no axis label, for the same reason
-it leaves an empty heatmap cell unpainted. The *scale* is unchanged, so
-thicknesses stay comparable everywhere in the plot, and thickness is what a
-streamgraph asks you to read.
+the pile was placed. So gog draws no ticks and no axis label of its own, for the
+same reason it leaves an empty heatmap cell unpainted. A label you write with
+`y_label()` is still drawn, because it names the quantity and not a position.
+The *scale* is unchanged, so thicknesses stay comparable everywhere in the plot,
+and thickness is what a streamgraph asks you to read.
 
 `baseline` is not an area-only parameter. A `bar` has a pile too, so it is
 placed the same way:
@@ -2081,7 +2099,8 @@ multiple of an automatic value. It is there for the same reason `density` and
 *legibility choice* with no single right value, whereas `dodge`'s width is
 *determined* by the group count. A value you must choose takes a parameter; a
 value gog can compute does not. (`jitter(0)` is legal and draws the plain strip
-plot, un-spread: gog never forbids the harmless.)
+plot, un-spread, with a note that it moves no point: gog never forbids the
+harmless, and never lets a word do nothing without saying so.)
 
 Two things set `jitter` apart from its siblings. It needs *no `color` split*:
 `dodge` and `stack` separate groups, but `jitter` separates a mark's own

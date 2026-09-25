@@ -386,8 +386,9 @@ data(iris_flowers) + interval * confidence(0.95) + x(species) + y(petal_length) 
 *"Given the iris flowers: intervals derived by confidence at 95%, x is species,
 y is petal length, color by species, with caps off."*
 
-`caps` belongs to `interval` alone. On any other mark, `style(caps = )` is
-refused, and the message says what to use instead. A bar's `border_size` is
+`caps` belongs to the two marks that draw whiskers, `interval` and
+[`box`](box.qmd). On any other mark, `style(caps = )` is refused, and the
+message says what to use instead. A bar's `border_size` is
 refused on a `line` the same way. `caps` combines with all four pair
 transforms. So the error bar, the linerange and the pointrange are all the same
 mark. Only the transform and one setting change.
@@ -416,13 +417,13 @@ data(iris_flowers) + interval * confidence(0.95) + x(species) + y(petal_length) 
 *"Given the iris flowers: intervals derived by confidence at 95%, x is species,
 y is petal length, color by species, with center off."*
 
-`center` and `caps` are the interval's own two settings. One is for its middle
-and one for its ends. Each takes two values, so a confidence interval can be
+`center` and `caps` each show or hide one part of an interval: `center` its
+middle dot, `caps` its ends. Each takes two values, so a confidence interval can be
 drawn in four ways. A capped pointrange is the default. A capped bare error bar
 is `center = FALSE`. A linerange with a dot is `caps = FALSE`. Setting both to
-`FALSE` gives a bare linerange. Like `style(caps = )`, `style(center = )`
-belongs to `interval` alone; on any other mark it is refused, and the message
-says what to use instead.
+`FALSE` gives a bare linerange. `style(center = )` belongs to `interval` alone,
+because a box has no center dot: its middle is the median line. On any other mark
+it is refused, and the message says what to use instead.
 
 ## A dashed whisker
 
@@ -529,7 +530,7 @@ mark_options("interval")
 ```
 
 An interval takes the four settings of a [`line`](line.qmd), because a whisker
-is a stroke, and two of its own, `caps` and `center`. The plot below gives
+is a stroke. It also takes two more, `caps` and `center`. The plot below gives
 several settings at once. It reads `gm_continents`: the Americas, Asia and
 Europe, measured every five years from 1952 to 2007, so each interval is
 computed from every country in that continent, across all twelve years.

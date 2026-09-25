@@ -207,6 +207,14 @@ resolves its columns against the nearest table by that name
 enough to tell two tables in one sentence apart. Write `data(df, { name:
 "notes" })` when a message should say `notes` rather than `data2`.
 
+A column of `Date` values is drawn on a calendar axis. gog reads each `Date` in
+local time, the time your computer's clock shows. So `new Date(2024, 0, 1, 12)`,
+noon on January 1, is drawn at 12:00 whatever your time zone. A date written
+without a time is different. JavaScript reads `new Date("2024-01-01")` as
+midnight in UTC, which west of UTC is the evening before in local time. So when
+every value in a column is a UTC midnight, gog reads the values as calendar days,
+and that date is drawn on January 1.
+
 ## A sub-expression is a value
 
 Writing a sentence as plain function calls makes one law easy to see. A piece

@@ -113,7 +113,13 @@ check_prose <- function(dirs = "book") {
     # distinct*, *the operand decides which*. Matching is `fixed = TRUE`, so each
     # form has to be written out; there is no stem to catch them all.
     "tells apart", "tell apart", "told apart", "telling apart",
-    "tells them apart", "tell them apart"
+    "tells them apart", "tell them apart",
+    # Found in the `surface` chapter by a reader-review, after a whole-book review
+    # had read past them. "No amount of turning" for *turning alone does not*,
+    # "the whole way" for *steadily* or *all of it*, "see past" for *see through*
+    # (it also means *ignore*), "a standing hazard" for *a problem every view
+    # has*. Each has a plain replacement a translator can carry.
+    "no amount of", "the whole way", "see past", "standing hazard"
   )
 
   # `index.qmd` quotes an imagined fluent expert saying "the difficulty earns its

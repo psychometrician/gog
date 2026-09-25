@@ -421,7 +421,7 @@ Each property takes its value from one source: a column, or you. Here `color`
 reads a column, and `size` and `pattern` are set, so no property is given a
 value twice. Ask for both on one property and gog refuses, rather than dropping
 one in silence.
-[Setting vs mapping](../style.qmd#you-cannot-map-and-set-the-same-property)
+[Setting vs mapping](../style.qmd#mapping-and-setting-the-same-property)
 shows the refusal.
 
 A transform's own arguments are neither a mapping nor a setting. They change

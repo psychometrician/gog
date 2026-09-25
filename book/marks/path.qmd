@@ -106,10 +106,11 @@ Now each route points at its last row. `arrow` takes `"end"`, `"start"`, or
 `"both"`: an arrowhead (a *head*, for short) at the last row, at the first row,
 or at both ends.
 
-It belongs to `path` alone, and every other mark refuses it. A line's last
-vertex is the row with the largest `x`, so a head there would point at the end
-of the sort, not at the last row. Only a path has an end that comes from the
-data. [What it refuses](#what-it-refuses) shows a line refusing an arrowhead.
+Two marks take it: `path`, and [`edge`](edge.qmd), whose direction comes from
+the two columns of its layout. Every other mark refuses it. A line's last vertex
+is the row with the largest `x`, so a head there would point at the end of the
+sort, not at the last row. A path's end comes from the data. [What it
+refuses](#what-it-refuses) shows a line refusing an arrowhead.
 
 ## An arrow is a layer
 
@@ -487,8 +488,8 @@ cat("| Setting | Value |\n|---|---|\n")
 mark_options("path")
 ```
 
-`arrow` belongs to `path` alone, for the reason [Which end is the last
-row?](#which-end-is-the-last-row) gave.
+`arrow` belongs to `path` and [`edge`](edge.qmd) only, for the reason [Which
+end is the last row?](#which-end-is-the-last-row) gave.
 
 A route can carry the heads, a width and a dash together:
 
@@ -591,7 +592,8 @@ no field to cut into levels.
 
 A path joins the rows in the order the table holds them, so sorting the table
 changes the picture. That order is the mark's meaning. The arrowhead belongs to
-`path` alone, and the two transforms it takes are `density` and `cluster`.
+`path` and `edge` only, and the two transforms a path takes are `density` and
+`cluster`.
 
 ## What comes next
 
