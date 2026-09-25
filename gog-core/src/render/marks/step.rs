@@ -230,6 +230,7 @@ impl SvgRenderer {
         // low-then-high per x, so each group splits into a low locus and a high one.
         let is_pair = layer.transforms.iter().any(|t| matches!(
             t, Transform::Range | Transform::Confidence | Transform::Deviation
+               | Transform::SmoothBand
                | Transform::Bounds));
         let boundaries = |ordered: Vec<usize>| -> Vec<Vec<usize>> {
             if is_pair {

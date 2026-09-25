@@ -105,6 +105,24 @@ fn main() {
         std::process::exit(1);
     }
 
+    // `gog-cli --prune` reads a request and writes it back holding only the columns
+    // its spec names (`wire::prune`), for a binding about to put the request into a
+    // page: a plot that needs the engine in the browser carries its tables there,
+    // and a column the sentence never mapped has no business being published. The
+    // binding asks rather than deciding, so the list lives in one place.
+    if std::env::args().skip(1).any(|a| a == "--prune") {
+        match serde_json::from_str::<serde_json::Value>(&input) {
+            Ok(request) => {
+                println!("{}", wire::prune(&request));
+                std::process::exit(0);
+            }
+            Err(e) => {
+                eprintln!("gog-cli: JSON parse error: {e}");
+                std::process::exit(1);
+            }
+        }
+    }
+
     let request: RenderRequest = match serde_json::from_str(&input) {
         Ok(r) => r,
         Err(e) => {

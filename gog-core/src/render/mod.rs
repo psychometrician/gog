@@ -149,6 +149,13 @@ pub(crate) struct AxisFacts {
     /// `check_limit_rows` — the check that refuses this exact mistake, in those
     /// words, when a reader makes it by hand.
     pub(crate) projected: bool,
+    /// What the ticks were chosen over, in the scale's units: the data's span,
+    /// stretched to a bar's baseline where there is one. Narrower than `range`
+    /// by the breathing margin, and the page needs both: two plots sharing an
+    /// axis share the range, and choose their ticks over the union of these, so
+    /// a shared axis is ticked as each plot alone would tick it rather than as
+    /// the wider range rounds.
+    pub(crate) ticks_over: (f64, f64),
 }
 
 impl Layout {

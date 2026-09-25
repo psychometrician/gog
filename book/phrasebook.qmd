@@ -41,7 +41,8 @@ sentence that draws the same plot is on the right.
 | `geom_histogram(bins = 30)` | `bar * bin(30)` |
 | `geom_freqpoly()` | `line * bin` |
 | `geom_density()` | `line * density` |
-| `geom_smooth()` | `line * smooth` |
+| `geom_smooth()` | `ribbon * smooth_band + line * smooth`: the band and the curve are two layers |
+| `geom_smooth(se = FALSE)` | `line * smooth` |
 | `stat_summary(fun = mean, geom = "bar")` | `bar * mean` |
 | `aes(color = g)` | `color(g)` |
 | `aes(size = v)` | `size(v)` |

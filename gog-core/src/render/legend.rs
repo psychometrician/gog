@@ -14,7 +14,7 @@ use std::collections::HashMap;
 use std::fmt::Write;
 
 use crate::data::{categories_across, DataFrame};
-use crate::ir::{Channel, Mark};
+use crate::ir::Channel;
 use crate::legality::{Diagnostic, DiagnosticKind};
 use crate::render::palette::{ramp_at, resolve_ramp, PALETTE_GOG};
 use crate::render::pattern::{dash_for_index, fill_texture_for_index, pattern_dasharray, FillTexture};
@@ -75,7 +75,9 @@ pub(crate) const LEGEND_BOX_GAP: f64 = 12.0;
 #[derive(Clone)]
 pub(crate) enum LegendSwatch {
     ColorRect(String),
-    ShapeMark(ShapeKind),
+    /// A category's glyph, in the category's color when `color` maps the same
+    /// column (the redundant encoding), else in the neutral ink.
+    ShapeMark(ShapeKind, Option<String>),
     SizeCircle(f64),  // pixel radius
     OpacityRect(f64), // fill-opacity 0..1
     /// A category's fill texture (spec §5's mapped `pattern` on a fill mark) — a
@@ -184,13 +186,16 @@ pub(crate) fn collect_legends(
         let Some(def) = layer.encodings.get(&Channel::Color) else { continue };
         let Some(df)  = ctx.resolve_data(&layer.data)        else { continue };
         if df.str_col(&def.field).is_none() { continue }
-        // If `pattern` maps the same column, its legend already shows each category's
-        // hue *and* its texture — a complete key — so a separate color legend would
-        // just repeat it. Suppress the duplicate (the redundant-encoding merge): the
-        // pattern legend becomes the one key, which is exactly what a colorblind
-        // reader needs.
-        if ctx.spec.layers.iter().any(|l|
-            l.encodings.get(&Channel::Pattern).is_some_and(|p| p.field == def.field))
+        // If `pattern` or `shape` maps the same column, its legend already shows each
+        // category's hue *and* its texture or glyph — a complete key — so a separate
+        // color legend would just repeat it. Suppress the duplicate (the redundant-
+        // encoding merge): the other legend becomes the one key, which is exactly
+        // what a colorblind reader needs. `shape` joined `pattern` here late: the
+        // engine calls a mapped `pattern` `shape`'s twin, and the twin merged while
+        // `shape` drew a key of colored squares above a second one of gray glyphs,
+        // both titled with the one column.
+        if ctx.spec.layers.iter().any(|l| [Channel::Pattern, Channel::Shape].iter()
+            .any(|ch| l.encodings.get(ch).is_some_and(|p| p.field == def.field)))
         {
             break 'color;
         }
@@ -278,9 +283,17 @@ pub(crate) fn collect_legends(
         let Some(def) = layer.encodings.get(&Channel::Shape) else { continue };
         let Some(df)  = ctx.resolve_data(&layer.data)        else { continue };
         if df.str_col(&def.field).is_none() { continue }
+        // Colored to match the mark when `color` maps the same column, the way the
+        // pattern legend below is: then this is the one key for both channels.
+        let colored = ctx.spec.layers.iter().any(|l|
+            l.encodings.get(&Channel::Color).is_some_and(|c| c.field == def.field));
         let rows: Vec<LegendRow> = categories_across(&[df], &def.field).into_iter()
             .enumerate()
-            .map(|(i, label)| LegendRow { label, swatch: LegendSwatch::ShapeMark(shape_at_index(i)) })
+            .map(|(i, label)| {
+                let color = colored.then(|| color_map.get(&label).cloned()
+                    .unwrap_or_else(|| PALETTE_GOG[0].to_string()));
+                LegendRow { label, swatch: LegendSwatch::ShapeMark(shape_at_index(i), color) }
+            })
             .collect();
         if !rows.is_empty() { boxes.push(LegendBox { title: auto_label(&def.field), rows, gradient: None }); break 'shape; }
     }
@@ -295,7 +308,12 @@ pub(crate) fn collect_legends(
         let Some(def) = layer.encodings.get(&Channel::Pattern) else { continue };
         let Some(df)  = ctx.resolve_data(&layer.data)          else { continue };
         if df.str_col(&def.field).is_none() { continue }
-        let stroke = matches!(layer.mark, Mark::Line | Mark::Step | Mark::Interval);
+        // A dash on every stroke, read off the one statement of which marks are
+        // strokes (`legality::texture_of`). A hand-typed list here named three of
+        // the six, so a mapped `pattern` on a `path` or a `rule` was decoded by
+        // hatched squares under lines drawn dashed.
+        let stroke = crate::legality::texture_of(&layer.mark)
+            == Some(crate::legality::Texture::Dash);
         let rows: Vec<LegendRow> = categories_across(&[df], &def.field).into_iter()
             .enumerate()
             .map(|(i, label)| {
@@ -370,7 +388,11 @@ pub(crate) fn collect_legends(
 /// would drop legends that fit the image perfectly well.
 pub(crate) fn write_legends(
     svg: &mut String, l: &Layout, boxes: &[LegendBox], fonts: (f64, f64),
-    bottom: f64, remarks: &mut Vec<Diagnostic>,
+    bottom: f64,
+    // The figure paints nothing behind itself (a `transparent` background), so
+    // the card each key sits on paints nothing either and keeps only its outline.
+    see_through: bool,
+    remarks: &mut Vec<Diagnostic>,
 ) {
     let (font_sm, font_md) = fonts;
         let panel_w = boxes.iter()
@@ -425,8 +447,9 @@ pub(crate) fn write_legends(
             let box_h = overhead + natural_rows * squeeze;
 
             // Box background + border
+            let card = if see_through { "none" } else { "white" };
             writeln!(svg,
-                r##"  <rect x="{lx:.2}" y="{cur_y:.2}" width="{panel_w:.2}" height="{box_h:.2}" fill="white" stroke="#d2d2da" stroke-width="1" rx="4"/>"##,
+                r##"  <rect x="{lx:.2}" y="{cur_y:.2}" width="{panel_w:.2}" height="{box_h:.2}" fill="{card}" stroke="#d2d2da" stroke-width="1" rx="4"/>"##,
             ).unwrap();
 
             // Title
@@ -524,8 +547,9 @@ pub(crate) fn write_legends(
                             x = swatch_cx - s, y = swatch_cy - s, w = s * 2.0
                         ).unwrap();
                     }
-                    LegendSwatch::ShapeMark(kind) => {
-                        write_shape(svg, kind, swatch_cx, swatch_cy, 5.5, "#3c3c46", OPACITY_DEFAULT, None);
+                    LegendSwatch::ShapeMark(kind, ref color) => {
+                        let ink = color.as_deref().unwrap_or("#3c3c46");
+                        write_shape(svg, kind, swatch_cx, swatch_cy, 5.5, ink, OPACITY_DEFAULT, None);
                     }
                     LegendSwatch::OpacityRect(o) => {
                         let s = 6.0;

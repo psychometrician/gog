@@ -263,6 +263,14 @@ interval <- structure(list(type = "mark", mark = "interval"), class = "gog_atom"
 # invokes it with the default, so bare `box` and `box(whiskers = "range")` reach
 # the same code path.  Masks `graphics::box` (a frame around a base plot); load gog
 # after graphics -- the default -- so its name wins, or qualify `gog::box`.
+#
+# Being a function costs it one thing the other marks have, and the class below
+# gives it back. `*` dispatches on a class, and a bare function has none, so with
+# a function on *both* sides -- `box * jitter`, since most transforms are
+# functions for the reason `box` is -- R never reached gog's operator and ran its
+# own arithmetic instead: "non-numeric argument to binary operator", where the
+# other three bindings refuse with the collision modifier that fits. The class
+# shares `*.gog_atom` (see `*.gog_callable`), so the sentence reaches the engine.
 #' Box-and-whisker mark.
 #'
 #' @param whiskers  `"tukey"` (default) runs the whiskers to the most extreme
@@ -270,7 +278,7 @@ interval <- structure(list(type = "mark", mark = "interval"), class = "gog_atom"
 #'   the standard box plot.  `"range"` runs them to the true minimum and maximum
 #'   with no outliers (the plain five-number summary).
 #' @export
-box <- function(whiskers = NULL) {
+box <- structure(function(whiskers = NULL) {
   if (!is.null(whiskers) && (!is.character(whiskers) || length(whiskers) != 1 ||
                              !whiskers %in% c("tukey", "range"))) {
     stop("gog: `box(whiskers = )` is either \"tukey\" (the default \u2014 whiskers to ",
@@ -282,7 +290,7 @@ box <- function(whiskers = NULL) {
          box = if (is.null(whiskers)) NULL else list(whiskers = whiskers)),
     class = "gog_atom"
   )
-}
+}, class = c("gog_callable", "function"))
 
 # `ribbon` draws a filled band from a low boundary to a high one across x -- the
 # confidence / spread band.  It is `area`'s fill (one region, no stroke, `opacity`
@@ -715,6 +723,30 @@ confidence <- function(level = NULL) {
   }
   structure(
     list(type = "transform", transform = "confidence", level = level),
+    class = "gog_atom"
+  )
+}
+
+#' The band around a `smooth` line: the fit's confidence band.
+#'
+#' `smooth`'s pair form, as `confidence` is `mean`'s. At each point of the
+#' LOESS curve it gives the fit's low and high ends, so
+#' `ribbon * smooth_band + line * smooth` draws the trend with its band.
+#'
+#' @param level Confidence level, one number strictly between 0 and 1; default
+#'   0.95.  Positional: `smooth_band(0.99)`.
+#' @export
+smooth_band <- function(level = NULL) {
+  if (!is.null(level)) {
+    if (!is.numeric(level) || length(level) != 1L || is.na(level) ||
+        level <= 0 || level >= 1) {
+      stop("gog: `smooth_band(level = )` needs one number strictly between 0 and 1, ",
+           "e.g. `smooth_band(0.95)`.", call. = FALSE)
+    }
+    level <- as.numeric(level)
+  }
+  structure(
+    list(type = "transform", transform = "smooth_band", level = level),
     class = "gog_atom"
   )
 }
@@ -1627,10 +1659,8 @@ pattern <- function(field) {
 #' @inheritParams x
 #' @param limits  The two ends of the scale, as `c(low, high)`. `NA` on either
 #'   end leaves that end fitted to the data.
-#' @param tick_count  How many ticks the legend should aim for. A target, not
-#'   a promise: the chosen values are rounded to readable numbers.
 #' @export
-opacity <- function(field, scale = NULL, base = NULL, limits = NULL, tick_count = NULL) {
+opacity <- function(field, scale = NULL, base = NULL, limits = NULL) {
   structure(list(type = "opacity", field = column_name(substitute(field), "opacity", settable = TRUE),
                  scale = check_scale(scale), base = check_base(base),
                  limits = check_limits(limits)),

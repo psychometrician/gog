@@ -80,6 +80,7 @@ from .atoms import (
     shape,
     size,
     smooth,
+    smooth_band,
     space,
     stack,
     step,
@@ -136,6 +137,7 @@ __all__ = [
     # transforms
     "bin",
     "smooth",
+    "smooth_band",
     "count",
     "density",
     "deviation",

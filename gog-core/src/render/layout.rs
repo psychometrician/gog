@@ -55,6 +55,13 @@ pub(crate) struct Fit {
     /// through this struct and never enters the wire (Law 9).
     pub(crate) cats_x: Option<Vec<String>>,
     pub(crate) cats_y: Option<Vec<String>>,
+    /// What a shared axis chooses its ticks over: the union of the spans each
+    /// plot on it chose its own ticks over alone. `Some` only beside a domain the
+    /// page stated, which is a range with margins in it; the ticks are chosen over
+    /// this and the range stays the stated one (`svg::build_axis`). Page state like
+    /// the rest of this struct, never on the wire.
+    pub(crate) ticks_x: Option<(f64, f64)>,
+    pub(crate) ticks_y: Option<(f64, f64)>,
 }
 
 impl Fit {
@@ -64,6 +71,7 @@ impl Fit {
             panel_x: None, panel_y: None,
             draw_x_axis: true, draw_y_axis: true,
             cats_x: None, cats_y: None,
+            ticks_x: None, ticks_y: None,
         }
     }
 }
@@ -120,6 +128,15 @@ pub(crate) struct PanelGrid {
     /// [`PanelGrid::labels_x`] and [`PanelGrid::labels_y`], which is the whole of
     /// what the layout does with it: a freed axis is ticked in every panel.
     pub(crate) free: (bool, bool),
+    /// How far `theme(ratio = )` moved each panel inside its cell, `(x, y)`, on
+    /// each side: the slack of the axis the ratio shortened, halved, because the
+    /// panel centers. `(0, 0)` for every plot without a ratio.
+    ///
+    /// The axis names and the legend are placed against `outer`, and the panels
+    /// move by this much inside it, so the renderer shrinks `outer` by it before
+    /// placing them. Without that a square panel in a wide image kept its y name
+    /// at the image's edge, 135px from its own tick labels.
+    pub(crate) inset: (f64, f64),
 }
 
 impl PanelGrid {
@@ -405,6 +422,7 @@ impl PanelGrid {
         }
 
         PanelGrid { outer, panels, nrows, ncols, col_values, row_values, wrap_values,
+                    inset: (inset_x, inset_y),
                     play_strip, free }
     }
 
@@ -512,7 +530,7 @@ mod tests {
     /// how the second one came to be missed.
     #[test]
     fn an_axis_with_no_tick_labels_reserves_neither_margin() {
-        let empty = TickSpec { values: Vec::new(), labels: Vec::new(), step: 1.0 };
+        let empty = TickSpec::empty();
         let ticked = nice_ticks(0.0, 10.0, 5);
         let bare = |xt: &TickSpec, yt: &TickSpec, xl: &str, yl: &str| {
             PanelGrid::compute(800.0, 600.0, (12.0, 14.0, 18.0), xt, yt, xl, yl,

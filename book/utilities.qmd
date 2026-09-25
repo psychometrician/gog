@@ -65,13 +65,13 @@ A plot draws the columns you map. Columns you never map are absent from the
 file, and so are their names:
 
 ```{r}
-private <- data.frame(
+patients <- data.frame(
   patient = c("A. Kim", "B. Lee", "C. Park", "D. Choi"),
   email   = c("ak@ex.com", "bl@ex.com", "cp@ex.com", "dc@ex.com"),
   weight  = c(61.2, 74.8, 55.4, 68.0)
 )
 
-picture <- render_svg(data(private) + bar * bin + x(weight))
+picture <- render_svg(data(patients) + bar * bin + x(weight))
 sapply(c("A. Kim", "email", "ex.com", "61.2"), grepl, x = picture, fixed = TRUE)
 ```
 
@@ -84,7 +84,7 @@ carries values. A mark that summarizes draws no individual row. A mark that does
 not summarize draws one glyph per row, and each glyph is placed from one value:
 
 ```{r}
-picture <- render_svg(data(private) + point + x(weight) + y(patient))
+picture <- render_svg(data(patients) + point + x(weight) + y(patient))
 lengths(gregexpr("<circle", picture))
 ```
 
@@ -111,31 +111,24 @@ kinds of plot do this: one that binds [`brush()`](selection.qmd), one in the
 [network](network.qmd) given an angle. The second drawing needs the numbers, so
 the page carries the table beside the picture.
 
-It carries the whole table, including columns the sentence never maps. `show
-rows` is a button under the plot, explained in [Selection](selection.qmd). The
-table it opens lists only the mapped columns. The page itself carries every
-column.
-
-The remedy is to bind a table that holds only the columns you plot. Here is
-`private` again with the email column left out:
+It carries every row of the table, but only the columns the sentence names. The
+file's rule for columns applies here too: a column the sentence never names is
+not in the page. What differs is the values. The page holds each row's exact
+numbers, where the file holds only a drawing of them. Here is `patients` again,
+with a brush:
 
 ```{r}
-shown <- data.frame(
-  patient = c("A. Kim", "B. Lee", "C. Park", "D. Choi"),
-  weight  = c(61.2, 74.8, 55.4, 68.0)
-)
-
-data(shown) + point + x(weight) + y(patient) + brush(weight)
+data(patients) + point + x(weight) + y(patient) + brush(weight)
 ```
 
-*"Given the shown table: points, x is weight, y is patient, and let the reader
-select weight."*
+*"Given the patients: points, x is weight, y is patient, and let the reader select
+weight."*
 
-That sentence names a brush, so this page carries a table. The table it carries
-is `shown`, which has two columns. If you bound `private` instead, `email` would
-be on this page too. Each language has its own way to drop a column from a table
-before you bind it, and that work belongs to the language rather than to the
-grammar.
+That sentence names a brush, so the web page carries a table. The copy in the
+page has two columns, `weight` and `patient`, because the sentence names those
+two. The `email` column is not in the page at all. On a page that can run the
+engine, `show rows` is a button under the plot, explained in
+[Selection](selection.qmd), and the table it opens lists the same two columns.
 
 An SVG file never carries the table, even when its sentence names a brush.
 `render_svg()` gives you the picture and stops.

@@ -14,6 +14,15 @@
 
 /// The 148 CSS Color Level 4 named colors, with their RGB values.
 ///
+/// **CSS's values, not X11's.** Five names mean a different color in the X11 list
+/// that R and many tools inherit: `gray`/`grey` (X11 `#BEBEBE`), `green` (`#00FF00`,
+/// which CSS calls `lime`), `maroon` and `purple`. This table carried the X11 five
+/// until 2026-09-24, and it mattered because a set color reaches the SVG as its name,
+/// which the browser reads as CSS, while a ramp stop is mixed from this table: so
+/// `style(color = "green")` and `palette(c("white", "green"))` drew two different
+/// greens (Law 6). `the_basic_sixteen_are_css_values` pins every name where the two
+/// lists could part.
+///
 /// The values are here, not just the names, because a ramp stop has to be
 /// *interpolated*: `palette(c("white", "navy"))` needs numbers. Storing only
 /// names would make color names work everywhere except as ramp stops, which
@@ -38,8 +47,8 @@ pub const CSS_COLORS: &[(&str, u32)] = &[
     ("dimgray", 0x696969), ("dimgrey", 0x696969), ("dodgerblue", 0x1E90FF),
     ("firebrick", 0xB22222), ("floralwhite", 0xFFFAF0), ("forestgreen", 0x228B22),
     ("fuchsia", 0xFF00FF), ("gainsboro", 0xDCDCDC), ("ghostwhite", 0xF8F8FF),
-    ("gold", 0xFFD700), ("goldenrod", 0xDAA520), ("gray", 0xBEBEBE),
-    ("green", 0x00FF00), ("greenyellow", 0xADFF2F), ("grey", 0xBEBEBE),
+    ("gold", 0xFFD700), ("goldenrod", 0xDAA520), ("gray", 0x808080),
+    ("green", 0x008000), ("greenyellow", 0xADFF2F), ("grey", 0x808080),
     ("honeydew", 0xF0FFF0), ("hotpink", 0xFF69B4), ("indianred", 0xCD5C5C),
     ("indigo", 0x4B0082), ("ivory", 0xFFFFF0), ("khaki", 0xF0E68C),
     ("lavender", 0xE6E6FA), ("lavenderblush", 0xFFF0F5), ("lawngreen", 0x7CFC00),
@@ -49,7 +58,7 @@ pub const CSS_COLORS: &[(&str, u32)] = &[
     ("lightsalmon", 0xFFA07A), ("lightseagreen", 0x20B2AA), ("lightskyblue", 0x87CEFA),
     ("lightslategray", 0x778899), ("lightslategrey", 0x778899), ("lightsteelblue", 0xB0C4DE),
     ("lightyellow", 0xFFFFE0), ("lime", 0x00FF00), ("limegreen", 0x32CD32),
-    ("linen", 0xFAF0E6), ("magenta", 0xFF00FF), ("maroon", 0xB03060),
+    ("linen", 0xFAF0E6), ("magenta", 0xFF00FF), ("maroon", 0x800000),
     ("mediumaquamarine", 0x66CDAA), ("mediumblue", 0x0000CD), ("mediumorchid", 0xBA55D3),
     ("mediumpurple", 0x9370DB), ("mediumseagreen", 0x3CB371), ("mediumslateblue", 0x7B68EE),
     ("mediumspringgreen", 0x00FA9A), ("mediumturquoise", 0x48D1CC), ("mediumvioletred", 0xC71585),
@@ -60,7 +69,7 @@ pub const CSS_COLORS: &[(&str, u32)] = &[
     ("palegoldenrod", 0xEEE8AA), ("palegreen", 0x98FB98), ("paleturquoise", 0xAFEEEE),
     ("palevioletred", 0xDB7093), ("papayawhip", 0xFFEFD5), ("peachpuff", 0xFFDAB9),
     ("peru", 0xCD853F), ("pink", 0xFFC0CB), ("plum", 0xDDA0DD),
-    ("powderblue", 0xB0E0E6), ("purple", 0xA020F0), ("rebeccapurple", 0x663399),
+    ("powderblue", 0xB0E0E6), ("purple", 0x800080), ("rebeccapurple", 0x663399),
     ("red", 0xFF0000), ("rosybrown", 0xBC8F8F), ("royalblue", 0x4169E1),
     ("saddlebrown", 0x8B4513), ("salmon", 0xFA8072), ("sandybrown", 0xF4A460),
     ("seagreen", 0x2E8B57), ("seashell", 0xFFF5EE), ("sienna", 0xA0522D),
@@ -72,6 +81,16 @@ pub const CSS_COLORS: &[(&str, u32)] = &[
     ("white", 0xFFFFFF), ("whitesmoke", 0xF5F5F5), ("yellow", 0xFFFF00),
     ("yellowgreen", 0x9ACD32),
 ];
+
+/// Does `s` name no paint at all — `transparent` or `none`?
+///
+/// The two words the color vocabulary accepts that leave whatever is behind the
+/// shape showing. A theme's background asks the question, because a figure that
+/// paints nothing behind its panel has to paint nothing behind the rest of it
+/// too, or the page never shows through.
+pub fn paints_nothing(s: &str) -> bool {
+    matches!(s.trim().to_ascii_lowercase().as_str(), "transparent" | "none")
+}
 
 /// Is `s` a color SVG will actually paint?
 ///
@@ -270,6 +289,24 @@ mod tests {
 
         // No luminance to read → no opinion, and the caller keeps its default.
         assert_eq!(better_ink("transparent", DARK, LIGHT), None);
+    }
+
+    /// CSS's sixteen basic colors, the names where CSS and X11 part; the table held
+    /// X11's gray, green, maroon and purple until 2026-09-24, so a set color and a
+    /// ramp stop of the same name were two colors.
+    #[test]
+    fn the_basic_sixteen_are_css_values() {
+        for (name, css) in [
+            ("black", 0x000000), ("silver", 0xC0C0C0), ("gray", 0x808080),
+            ("grey", 0x808080), ("white", 0xFFFFFF), ("maroon", 0x800000),
+            ("red", 0xFF0000), ("purple", 0x800080), ("fuchsia", 0xFF00FF),
+            ("green", 0x008000), ("lime", 0x00FF00), ("olive", 0x808000),
+            ("yellow", 0xFFFF00), ("navy", 0x000080), ("blue", 0x0000FF),
+            ("teal", 0x008080), ("aqua", 0x00FFFF),
+        ] {
+            let got = CSS_COLORS.iter().find(|(n, _)| *n == name).map(|(_, v)| *v);
+            assert_eq!(got, Some(css), "`{name}` is not CSS's {css:06X}");
+        }
     }
 
     #[test]

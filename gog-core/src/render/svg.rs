@@ -10,7 +10,7 @@ use std::fmt::Write;
 use crate::data::DataFrame;
 use crate::ir::{Channel, CoordSpace, Layer, Mark, PlotSpec, SpaceView, ThemeSpec, Transform};
 use crate::legality::Diagnostic;
-use crate::render::ticks::{auto_label, log_ticks, nice_ticks, ticks_at, ticks_with_labels, time_ticks, TickSpec};
+use crate::render::ticks::{auto_label, log_ticks, log_ticks_counted, nice_ticks_within, ticks_at, ticks_with_labels, time_ticks, time_ticks_counted, TickSpec};
 use crate::scale;
 use crate::render::layout::{Fit, PanelGrid};
 use crate::render::nest::Nest;
@@ -445,6 +445,19 @@ impl SvgRenderer {
             ("", true) => crate::transform::NODE_DEPTH,
             _ => y_field,
         };
+        // The **measure** axis of a partition falls back too, to the tally's name,
+        // since an unbound `x` means every leaf weighs 1. Nested, the ring above
+        // already parted the two names; crossed, there is no ring, and the second
+        // axis holds each cell's height under the name `y` reads. With neither
+        // position bound that name was the measure's as well, so the heights were
+        // overwritten by the widths: the cells were drawn off the panel and every
+        // label ran along a diagonal.
+        let partitions = spec.layers.iter()
+            .any(|l| l.transforms.contains(&Transform::Partition));
+        let x_field = match (x_field, partitions) {
+            ("", true) => crate::transform::CELL_COUNT,
+            _ => x_field,
+        };
 
         // A **flow**'s two axes fall back the same way, and for the same reason:
         // the transform places its own marks, so a sentence with nothing bound is
@@ -767,8 +780,14 @@ impl SvgRenderer {
                         let measure = layer.encodings.get(&Channel::X)
                             .or(spec.x.as_ref())
                             .map(|e| e.field.as_str());
-                        return crate::transform::partition(
+                        let nodes = crate::transform::partition(
                             &base, &levels, measure, x_field, y_field, cross);
+                        // `* proportion` divides the measure axis by its total,
+                        // which is what it does to every measurement (spec §5).
+                        return match layer.transforms.contains(&Transform::Proportion) {
+                            true => crate::transform::partition_shares(&nodes, x_field),
+                            false => nodes,
+                        };
                     }
                     // A **flow** takes the same door, for the same reason: its
                     // stages are columns named in the atom, and the bound `y` is
@@ -1083,7 +1102,7 @@ impl SvgRenderer {
                         // to state, because a check that counts rows per group has
                         // to count the groups this draw actually makes.
                         let group_fields = crate::legality::split_fields_of(layer);
-                        let done = crate::transform::apply(&input, &layer.transforms, key, out, layer.bin.as_ref(), cut.axis(on_x), layer.density.as_ref(), layer.range.as_ref(), layer.confidence.as_ref(), layer.deviation.as_ref(), layer.quantile.as_ref(), layer.r#box.as_ref(), layer.bounds.as_ref(), layer.stack.as_ref(), &group_fields);
+                        let done = crate::transform::apply(&input, &layer.transforms, key, out, layer.bin.as_ref(), cut.axis(on_x), layer.density.as_ref(), layer.range.as_ref(), layer.level_spec(), layer.deviation.as_ref(), layer.quantile.as_ref(), layer.r#box.as_ref(), layer.bounds.as_ref(), layer.stack.as_ref(), &group_fields);
                         // The dot plot: a stacking `point` spends its span on glyphs
                         // rather than on length, so the tally becomes one row per
                         // observation (`transform::pile`, spec §5). Decided here for
@@ -1409,13 +1428,17 @@ impl SvgRenderer {
         if horizontal { x_sides.extend(stack_sides) } else { y_sides.extend(stack_sides) }
 
         // Tick density is deliberately NOT thinned for narrow panels. It was
-        // tried: a smaller target coarsens the step, and the scale ceiling —
-        // the step's next multiple above the data — climbs with it, which
-        // traded a label-crowding problem for panels half full of dead space.
-        // Crowding is instead answered by anchoring edge labels inward (see
-        // `write_ticks`); panels too narrow even for that are the many-level
-        // case that facet wrapping exists to solve, and it is listed as such.
-        let (x_ticks, xs) = build_axis(
+        // tried while the range still followed the ticks: a smaller target
+        // coarsened the step, and the scale ceiling — the step's next multiple
+        // above the data — climbed with it, which traded a label-crowding
+        // problem for panels half full of dead space. (`fit_axis` pins the range
+        // to the data now, so that cost is gone; the rule has not been measured
+        // again since.) Crowding is instead answered by anchoring edge labels
+        // inward (see `write_ticks`); panels too narrow even for that are the
+        // many-level case that facet wrapping exists to solve, and it is listed
+        // as such. The one coarsening is `ticks::MAX_TICKS`, a ceiling on the
+        // count whatever the panel's width, and it is said out loud below.
+        let (x_ticks, xs, x_extent) = build_axis(
             &eff, &bar_frames, &x_sides, x_field, cat_x.as_deref(),
             has_plain_bar && !horizontal,
             has_any_bar && horizontal,
@@ -1424,8 +1447,9 @@ impl SvgRenderer {
             x_log, x_base, x_time,
             scale::domain_of(spec.axis_def(&Channel::X)),
             crate::legality::slot_reach(spec, data, Channel::X),
+            self.fit.ticks_x,
         );
-        let (y_ticks, ys) = build_axis(
+        let (y_ticks, ys, y_extent) = build_axis(
             &eff, &bar_frames, &y_sides, y_field, cat_y.as_deref(),
             has_plain_bar && horizontal,
             (has_any_bar && !horizontal) || has_any_area || has_step_hist,
@@ -1442,6 +1466,7 @@ impl SvgRenderer {
             y_log, y_base, y_time,
             scale::domain_of(spec.axis_def(&Channel::Y)),
             crate::legality::slot_reach(spec, data, Channel::Y),
+            self.fit.ticks_y,
         );
 
         // A **cut** tiling *is* the panel, so the panel is fitted to it rather than to
@@ -1476,14 +1501,26 @@ impl SvgRenderer {
                 || crate::legality::publishes_cells(&l.mark, &l.transforms, cell_space))
             .flat_map(|(i, _)| panels.iter().map(move |p| &p[i]))
             .collect();
+        // Only a plain numeric axis may choose its ticks again over the cells, with
+        // the count `build_axis` chose with (5 unless stated). A partition's axes
+        // always do, and every other mesh only when the center-chosen ticks miss.
+        let retick = |ch: Channel, cats: bool, log: bool, time: bool| {
+            match (!cats && !log && !time, partitions) {
+                (false, _) => Retick::Never,
+                (true, true) => Retick::Always(scale::tick_count_of(spec.axis_def(&ch)).unwrap_or(5)),
+                (true, false) => Retick::WhenMissed(scale::tick_count_of(spec.axis_def(&ch)).unwrap_or(5)),
+            }
+        };
         let (x_ticks, xs) = fit_to_cells(
             &cell_frames, crate::transform::CELL_START, crate::transform::CELL_END,
             crate::transform::CELL_X, crate::transform::CELL_DX, x_ticks, xs,
-            stated_domain(scale::domain_of(spec.axis_def(&Channel::X)), x_log, x_base));
+            stated_domain(scale::domain_of(spec.axis_def(&Channel::X)), x_log, x_base),
+            retick(Channel::X, cat_x.is_some(), x_log, x_time.is_some()));
         let (y_ticks, ys) = fit_to_cells(
             &cell_frames, crate::transform::CELL_LOWER, crate::transform::CELL_UPPER,
             crate::transform::CELL_Y, crate::transform::CELL_DY, y_ticks, ys,
-            stated_domain(scale::domain_of(spec.axis_def(&Channel::Y)), y_log, y_base));
+            stated_domain(scale::domain_of(spec.axis_def(&Channel::Y)), y_log, y_base),
+            retick(Channel::Y, cat_y.is_some(), y_log, y_time.is_some()));
 
         // A **network** is fitted to the unit square by statement, not from its
         // columns: the layout normalizes to [0, 1], the margin keeps a glyph at
@@ -1542,7 +1579,7 @@ impl SvgRenderer {
         let one_slot = x_field.is_empty()
             && spec.layers.iter().any(crate::legality::bar_divides_one_slot);
         let (x_ticks, xs) = if one_slot {
-            (TickSpec { values: Vec::new(), labels: Vec::new(), step: 1.0 }, (-0.5, 0.5))
+            (TickSpec::empty(), (-0.5, 0.5))
         } else {
             (x_ticks, xs)
         };
@@ -1551,8 +1588,9 @@ impl SvgRenderer {
         // a plain continuous axis (no bars stand on z, none measure it, and it
         // never carries a baseline), so most of `build_axis`'s cases fall away.
         // `zs` normalizes the third coordinate into the unit cube; `z_ticks`
-        // labels the frame. Log/time on z are refused with direction in
-        // `legality` rather than half-drawn here, so this stays linear.
+        // labels the frame. A log `z` is refused with direction in `legality`
+        // rather than half-drawn here, so this stays linear; a date on `z` is
+        // read off its column, as it is for `x` and `y`.
         //
         // The tick count is read here too, and it was not before: this call passed
         // a hard `None` while `z_axis.tick_count` existed in the IR, so the third
@@ -1565,21 +1603,30 @@ impl SvgRenderer {
         let (z_ticks, zs) = if network_cube.is_some() {
             // The cube form: the layout filled [0, 1], stated for `x`/`y`'s
             // reason, with no ticks to select.
-            (TickSpec { values: Vec::new(), labels: Vec::new(), step: 1.0 }, (-0.06, 1.06))
+            (TickSpec::empty(), (-0.06, 1.06))
         } else if is_3d || (is_globe && !z_field.is_empty()) {
             // No `sides`: a `zone` is refused in the cube (`mark_draws_in_space`),
             // so nothing places itself on `z` other than through the column.
-            build_axis(&eff, &[], &[], z_field, None, false, false, false,
+            // A date on `z` is ticked on the calendar, as it is on `x` and `y`: it
+            // passed no unit here and drew its moments as epoch seconds, `1710M`
+            // where the same column on `x` reads `Mar 4`.
+            let (t, range, _) = build_axis(&eff, &[], &[], z_field, None, false, false, false,
                        scale::tick_count_of(spec.axis_def(&Channel::Z)),
-                       false, 10.0, None,
+                       false, 10.0, detect_time(&ctx, z_field),
                        scale::domain_of(spec.axis_def(&Channel::Z)),
                        // A violin stands on a *flat* slot axis; the cube has none.
-                       (0.0, 0.0))
+                       (0.0, 0.0),
+                       // A page shares `x` and `y`; the cube's third axis is its own.
+                       None);
+            (t, range)
         } else {
-            (TickSpec { values: Vec::new(), labels: Vec::new(), step: 1.0 }, (0.0, 1.0))
+            (TickSpec::empty(), (0.0, 1.0))
         };
 
-            PanelAxes { x_ticks, xs, y_ticks, ys, z_ticks, zs, cat_x, cat_y, inner_edge }
+            PanelAxes {
+                x_ticks, xs, y_ticks, ys, z_ticks, zs, cat_x, cat_y, inner_edge,
+                x_extent, y_extent,
+            }
         };
 
         // The shared fit: every panel at once, which is what makes the panels
@@ -1587,7 +1634,7 @@ impl SvgRenderer {
         let every_panel: Vec<&Vec<DataFrame>> = panel_eff.iter().collect();
         let shared = fit_axes(&every_panel);
         let PanelAxes {
-            x_ticks, xs, y_ticks, ys, z_ticks, zs, cat_x, cat_y, inner_edge,
+            x_ticks, xs, y_ticks, ys, z_ticks, zs, cat_x, cat_y, inner_edge, ..
         } = shared.clone();
 
         // **A map's axes are labeled in degrees and placed by the projection.**
@@ -1607,10 +1654,17 @@ impl SvgRenderer {
         // translation decision rather than a cartographic one: those suffixes are
         // English initials, and this book is written to survive being translated.
         // A degree sign is read everywhere; a `W` is not.
+        //
+        // **The count is the caller's here too.** These are the degree ticks, chosen
+        // after the fit, so a `tick_count` on `x` or `y` has to reach them or it
+        // reaches nothing: the map drew 7 and 5 whatever was written, and
+        // `x(east, tick_count = 40)` rendered byte for byte as the default did, with
+        // no message. It is counted over the degrees the map shows, and a count past
+        // the ceiling widens as every other axis's does, and says so.
         let (x_ticks, y_ticks) = match &map_degrees {
             Some((geo, (lon, lat))) => {
                 let degrees = |(lo, hi): (f64, f64), n: usize, at: &dyn Fn(f64) -> f64| {
-                    let picked = crate::render::ticks::nice_ticks(lo, hi, n);
+                    let picked = crate::render::ticks::nice_ticks_within(lo, hi, n, Some((lo, hi)));
                     let (values, labels) = picked
                         .values
                         .iter()
@@ -1618,11 +1672,20 @@ impl SvgRenderer {
                         .filter(|(v, _)| **v >= lo && **v <= hi)
                         .map(|(v, l)| (at(*v), format!("{l}°")))
                         .unzip();
-                    crate::render::ticks::ticks_with_labels(values, labels)
+                    TickSpec {
+                        widened: picked.widened.clone().map(|w| crate::render::ticks::Widening {
+                            asked: format!("{}°", w.asked),
+                            drawn: format!("{}°", w.drawn),
+                        }),
+                        ..crate::render::ticks::ticks_with_labels(values, labels)
+                    }
+                };
+                let count = |c: Channel, default: usize| {
+                    scale::tick_count_of(spec.axis_def(&c)).unwrap_or(default)
                 };
                 (
-                    degrees(*lon, 7, &|v| geo.project(v, lat.0).0),
-                    degrees(*lat, 5, &|v| geo.project(lon.0, v).1),
+                    degrees(*lon, count(Channel::X, 7), &|v| geo.project(v, lat.0).0),
+                    degrees(*lat, count(Channel::Y, 5), &|v| geo.project(lon.0, v).1),
                 )
             }
             None => (x_ticks, y_ticks),
@@ -1662,6 +1725,8 @@ impl SvgRenderer {
                         // The spokes' start is read off the cells against `ys`, so
                         // it follows whichever fit produced it.
                         inner_edge: if free_y { own.inner_edge } else { shared.inner_edge },
+                        x_extent: if free_x { own.x_extent } else { shared.x_extent },
+                        y_extent: if free_y { own.y_extent } else { shared.y_extent },
                         z_ticks: if free_z { own.z_ticks } else { shared.z_ticks.clone() },
                         zs: if free_z { own.zs } else { shared.zs },
                     }
@@ -1738,9 +1803,17 @@ impl SvgRenderer {
         // numbers and the name go together and no writer has to ask again. The
         // *scale* is untouched: `ys` still spans the stated domain, which is what
         // holds the hole open.
+        //
+        // **A name the reader wrote is kept**, on this axis and on a displaced pile's
+        // below. What earns silence is what gog would *derive*: numbers nobody looks
+        // up, and the column's own name under them. A written name is the reader's
+        // word for the quantity, chosen knowing all this, the rule `axis_label`
+        // follows for a filled pile's `Share`; dropping it was accepted and silent,
+        // the one thing §12 forbids. An axis that does not exist at all (`nest`, a
+        // network, a globe) is different, and refuses the name instead.
         let (y_ticks, y_label) = match depth_is_the_radius {
-            true => (TickSpec { values: Vec::new(), labels: Vec::new(), step: 1.0 },
-                     String::new()),
+            true => (TickSpec::empty(),
+                     spec.y_axis.label.clone().unwrap_or_default()),
             false => (y_ticks, y_label),
         };
 
@@ -1757,20 +1830,47 @@ impl SvgRenderer {
         //
         // The *scale* is untouched, exactly as the ring index leaves it: thicknesses
         // are still to scale and still comparable across the plot, which is the whole
-        // of what a streamgraph asks a reader to do.
+        // of what a streamgraph asks a reader to do. And a name the reader wrote stays,
+        // as it does on the ring: it names the quantity a thickness is read in, which
+        // is still true of every band.
         let displaced = spec.layers.iter().any(|l| {
             l.transforms.contains(&Transform::Stack)
                 && l.stack.as_ref().and_then(|s| s.baseline.as_deref())
                     .is_some_and(|b| b != "zero")
         });
+        let written = |label: &Option<String>| label.clone().unwrap_or_default();
         let (x_ticks, x_label, y_ticks, y_label) = match (displaced, horizontal) {
-            (true, true) => (TickSpec { values: Vec::new(), labels: Vec::new(), step: 1.0 },
-                             String::new(), y_ticks, y_label),
+            (true, true) => (TickSpec::empty(),
+                             written(&spec.x_axis.label), y_ticks, y_label),
             (true, false) => (x_ticks, x_label,
-                              TickSpec { values: Vec::new(), labels: Vec::new(), step: 1.0 },
-                              String::new()),
+                              TickSpec::empty(),
+                              written(&spec.y_axis.label)),
             (false, _) => (x_ticks, x_label, y_ticks, y_label),
         };
+
+        // **A stated count past `ticks::MAX_TICKS` is said out loud** (spec §12).
+        // The step widened until the ticks fit, which keeps the axis labeled end to
+        // end, but the count the caller wrote is not the count drawn. Read off the
+        // ticks each axis actually draws, a freed axis's per panel, so an axis whose
+        // ticks were replaced above (a map's degrees, a displaced pile) says
+        // nothing. The cube's thinned labels are the other half of this rule: that
+        // one is about labels that do not fit, this one is about the step.
+        for (c, channel, free, shared) in [
+            ("x", Channel::X, free_x, &x_ticks),
+            ("y", Channel::Y, free_y, &y_ticks),
+            ("z", Channel::Z, free_z, &z_ticks),
+        ] {
+            let def = spec.axis_def(&channel);
+            let Some(asked) = scale::tick_count_of(def) else { continue };
+            let drawn: Vec<&TickSpec> = match free {
+                true => per_panel.iter().map(|a| a.ticks(&channel)).collect(),
+                false => vec![shared],
+            };
+            if let Some(t) = drawn.into_iter().find(|t| t.widened.is_some()) {
+                let field = def.map_or("", |d| d.field.as_str());
+                remarks.extend(widened_ticks(c, field, asked, t));
+            }
+        }
 
         // Build color map before legends so both use the same color assignments.
         // The ramp is the continuous counterpart, resolved once for the plot.
@@ -1802,7 +1902,7 @@ impl SvgRenderer {
         // its axes live on the cube's edges, inside the panel — so the layout is
         // fed empty ones and the cube takes the whole panel. The ranges above
         // are still needed to normalize coordinates; only the layout hints change.
-        let no_ticks = TickSpec { values: Vec::new(), labels: Vec::new(), step: 1.0 };
+        let no_ticks = TickSpec::empty();
         // A polar plot reserves no tick-label margin either — its angular labels
         // ring the circle and its radial ones run up the spoke, both *inside* the
         // panel. It keeps the axis names, though, unlike 3-D: they still say what
@@ -1898,8 +1998,20 @@ impl SvgRenderer {
         }
 
         let mut svg = String::with_capacity(64 * 1024);
-        self.write_header(&mut svg);
-        self.write_canvas(&mut svg);
+        self.write_header(&mut svg, &accessible_name(spec));
+        // **A background that paints nothing paints nothing anywhere.** The theme's
+        // `background` is the panel's fill, and the canvas behind the whole figure
+        // was white whatever it said, so `transparent` made the panel show the
+        // canvas, which is white: the figure stayed white everywhere and the page it
+        // was placed on never showed through. The one reason to ask for it is that
+        // page, so the canvas goes with the panel, and the legend's card with them
+        // (`write_legends`). Any other color keeps the white canvas around the
+        // panel it paints, as it always has.
+        let see_through = spec.theme.resolved().background.as_deref()
+            .is_some_and(crate::color::paints_nothing);
+        if !see_through {
+            self.write_canvas(&mut svg);
+        }
 
         for panel in &grid.panels {
             let l = &panel.rect;
@@ -2155,7 +2267,7 @@ impl SvgRenderer {
                             // ever reached inside a `network()` with a stated
                             // view, depth-sorted per stroke inside the writer.
                             Mark::Edge => self.write_edge_3d(&mut svg, layer, df, xs, ys, zs,
-                                &color_map, &clip, &scene),
+                                &color_map, &clip, &scene, &self.node_radii(spec, eff)),
                             // The column standing on the cube's floor — the 3-D
                             // histogram, and the first *slot* mark in space. It takes no
                             // `Layout`: a flat bar's thickness is pixels on the panel,
@@ -2314,7 +2426,8 @@ impl SvgRenderer {
                         // The stroke between two layout-supplied endpoints —
                         // only ever reached inside `network()`, where the
                         // legality gate has already admitted it.
-                        Mark::Edge => self.write_edge(&mut svg, layer, df, l, xs, ys, &color_map, &clip, None),
+                        Mark::Edge => self.write_edge(&mut svg, layer, df, l, xs, ys, &color_map, &clip, None,
+                                                      &self.node_radii(spec, eff)),
                         Mark::Path => self.write_path(&mut svg, layer, df, l, xs, ys, x_field, y_field, cat_x.as_deref(), cat_y.as_deref(), &color_map, &ramp, &clip, zs, z_field, None, pol_ref, None),
                         // The one mark handed the whole spec rather than the two
                         // resolved field names: which axis places it is read off
@@ -2381,18 +2494,43 @@ impl SvgRenderer {
             if self.fit.draw_x_axis { outer_xl } else { "" },
             if self.fit.draw_y_axis { outer_yl } else { "" },
         );
+        // **Where the panel actually is, inside the rectangle the margins left.**
+        // `theme(ratio = )` shrinks the panel inside its cell and centers it, and a
+        // circle sits centered inside a panel wider or taller than it is; either way
+        // the plot drawn is inset from `outer`, and the names and the legend were
+        // placed against `outer` regardless. A square panel in a wide image kept its
+        // y name at the image's edge, 135px from its tick labels, and a rose's
+        // radial name sat 150px from the circle it names. So both are placed against
+        // the plot as drawn: the names beside it, the legend beside it and level
+        // with its top. The title is not moved: a facet's column strips stay at the
+        // top of the grid, and a title moved down with the panel would land on them.
+        let inset = {
+            let (gx, gy) = grid.inset;
+            let (px, py) = match (is_polar, grid.panels.first()) {
+                (true, Some(p)) => crate::render::polar::inset(
+                    &p.rect, POLAR_RIM_GAP + estimate_cap_height(self.font_sm) + 4.0,
+                    measure_on_angle),
+                _ => (0.0, 0.0),
+            };
+            (gx + px, gy + py)
+        };
         // The band the *margin* reserved, which is `grid_xt` rather than `x_ticks`:
         // polar draws real angular labels and hands the layout an empty list,
         // because those labels go inside the circle.
-        self.write_labels(&mut svg, &grid.outer, outer_xl, outer_yl, spec,
+        self.write_labels(&mut svg, &grid.outer, inset, outer_xl, outer_yl, spec,
                           !grid_xt.labels.is_empty());
         if !legends.is_empty() {
             // The canvas is the floor, not the panel — a legend has always been
             // allowed to run past the panel's bottom edge into the margin beside
             // the x tick labels, and bounding it at `grid.outer.y1` would drop
             // legends that fit the image.
-            write_legends(&mut svg, &grid.outer, &legends, (self.font_sm, self.font_md),
-                          self.height - LEGEND_PADDING, &mut remarks);
+            let beside = Layout {
+                x1: grid.outer.x1 - inset.0,
+                y0: grid.outer.y0 + inset.1,
+                ..grid.outer
+            };
+            write_legends(&mut svg, &beside, &legends, (self.font_sm, self.font_md),
+                          self.height - LEGEND_PADDING, see_through, &mut remarks);
         }
         self.write_footer(&mut svg);
 
@@ -2413,20 +2551,21 @@ impl SvgRenderer {
         // scales at all, so no stated domain could reach them.
         let projected = map_degrees.is_some() || is_globe;
         let facts = |field: &str, range: (f64, f64), cats: Option<&Vec<String>>, log: bool,
-                     base: f64| AxisFacts {
+                     base: f64, ticks_over: (f64, f64)| AxisFacts {
             field: field.to_string(),
             range,
             cats: cats.cloned(),
             log_base: log.then_some(base),
             projected,
+            ticks_over,
         };
         let mut seen = std::collections::HashSet::new();
         remarks.retain(|d| seen.insert(d.message.clone()));
         Drawn {
             svg: namespace_ids(&svg),
             panel: area,
-            x: facts(x_field, xs, cat_x.as_ref(), x_log, x_base),
-            y: facts(y_field, ys, cat_y.as_ref(), y_log, y_base),
+            x: facts(x_field, xs, cat_x.as_ref(), x_log, x_base, shared.x_extent),
+            y: facts(y_field, ys, cat_y.as_ref(), y_log, y_base, shared.y_extent),
             remarks,
         }
     }
@@ -2435,10 +2574,10 @@ impl SvgRenderer {
     // SVG structure
     // -----------------------------------------------------------------------
 
-    fn write_header(&self, svg: &mut String) {
+    fn write_header(&self, svg: &mut String, name: &str) {
         writeln!(svg,
-            r#"<svg xmlns="http://www.w3.org/2000/svg" width="{w}" height="{h}" viewBox="0 0 {w} {h}">"#,
-            w = self.width, h = self.height
+            r#"<svg xmlns="http://www.w3.org/2000/svg" width="{w}" height="{h}" viewBox="0 0 {w} {h}" role="img" aria-label="{name}">"#,
+            w = self.width, h = self.height, name = esc(name)
         ).unwrap();
     }
 
@@ -3225,8 +3364,13 @@ impl SvgRenderer {
         !matches!(theme.axis_label.as_deref(), Some("end"))
     }
 
+    #[allow(clippy::too_many_arguments)]
     fn write_labels(
         &self, svg: &mut String, l: &Layout,
+        // How far the plot drawn sits inside `l` on each side, `(x, y)`: a panel a
+        // `ratio` narrowed, or a circle in a wider panel. The names are placed
+        // beside the plot, so they move in by this much.
+        inset: (f64, f64),
         x_label: &str, y_label: &str, spec: &PlotSpec, drew_x_ticks: bool,
     ) {
         let plot_cx = (l.x0 + l.x1) / 2.0;
@@ -3273,8 +3417,9 @@ impl SvgRenderer {
             if y_beside {
                 // `rotate(-90)` sends ascenders to the pivot's left, so the pivot
                 // sits one cap height in from the canvas edge and the text stays
-                // on the page. `layout` reserved exactly that band.
-                let lx = label_h + 2.0;
+                // on the page. `layout` reserved exactly that band, and it moves
+                // in with the plot when the plot is inset.
+                let lx = label_h + 2.0 + inset.0;
                 let ly = (l.y0 + l.y1) / 2.0;
                 writeln!(svg,
                     r##"  <text transform="rotate(-90 {lx:.2} {ly:.2})" x="{lx:.2}" y="{ly:.2}" font-family="system-ui,sans-serif" font-size="{fs}" fill="#28283a" text-anchor="middle">{y_label}</text>"##,
@@ -3284,7 +3429,7 @@ impl SvgRenderer {
                 let ty = l.y0 - 6.0;
                 writeln!(svg,
                     r##"  <text x="{x:.2}" y="{ty:.2}" font-family="system-ui,sans-serif" font-size="{fs}" fill="#28283a" text-anchor="start">{y_label}</text>"##,
-                    x = l.x0, fs = self.font_md, y_label = esc(y_label)
+                    x = l.x0 + inset.0, fs = self.font_md, y_label = esc(y_label)
                 ).unwrap();
             }
         }
@@ -3295,11 +3440,11 @@ impl SvgRenderer {
                 true => 5.0 + estimate_cap_height(self.font_sm),
                 false => 0.0,
             };
-            let ty = l.y1 + tick_row + 8.0 + label_h;
+            let ty = l.y1 - inset.1 + tick_row + 8.0 + label_h;
             // At its end the x name sits under the axis's far end, right-aligned,
             // which is the same rule the y name follows at the top left.
             let (cx, anchor) = match x_at_end {
-                true => (l.x1, "end"),
+                true => (l.x1 - inset.0, "end"),
                 false => (plot_cx, "middle"),
             };
             writeln!(svg,
@@ -4033,7 +4178,11 @@ fn fit_to_cells(
     center: &str, half: &str,
     t: TickSpec, range: (f64, f64),
     stated: (Option<f64>, Option<f64>),
+    // Whether to choose the ticks again over the cells themselves, and with what
+    // count ([`Retick`]).
+    retick: Retick,
 ) -> (TickSpec, (f64, f64)) {
+    let fresh = |n: usize, lo: f64, hi: f64| nice_ticks_within(lo, hi, n, Some((lo, hi)));
     let reduce = |field: &str, pick: fn(f64, f64) -> f64, seed: f64| -> Option<f64> {
         let v = frames.iter()
             .filter_map(|d| d.float_col(field))
@@ -4063,13 +4212,123 @@ fn fit_to_cells(
                 // `clip_ticks`'s give-up guard is for a range gog *derived* on the
                 // caller's behalf; a range the caller had a hand in is `adopt_range`'s,
                 // which is the same distinction those two functions already draw.
-                (true, true) => adopt_range(t, lo, hi),
-                (true, false) => clip_ticks(t, lo, hi),
+                (true, true) => match retick {
+                    Retick::Always(n) => adopt_range(fresh(n, lo, hi), lo, hi),
+                    _ => adopt_range(t, lo, hi),
+                },
+                // `t` was chosen over the cell *centers*, and those can miss the
+                // cells: every center of a one-level crossed partition sits at 0.5,
+                // so the ticks were the degenerate triple −0.5, 0.5 and 1.5, one of
+                // them fell inside `0 .. 1`, and `clip_ticks` gave the fit up. The
+                // spine plot drew its bands across the middle half of the panel,
+                // under an axis reading `-0`, `0` and `2`. The cells are where the
+                // data is, so the ticks are chosen again over them.
+                (true, false) => match retick {
+                    Retick::Always(n) => clip_ticks(fresh(n, lo, hi), lo, hi),
+                    Retick::WhenMissed(n) if ticks_inside(&t, lo, hi).1 < 2 =>
+                        clip_ticks(fresh(n, lo, hi), lo, hi),
+                    _ => clip_ticks(t, lo, hi),
+                },
                 _ => (t, range),
             }
         }
         None => (t, range),
     }
+}
+
+/// A plot's **accessible name**, the words a screen reader says for the image: its
+/// `title()`, or with none, what it draws and what its positions read, in the book's
+/// read-aloud words ("Bars derived by count, x is continent"). A written
+/// axis name stands for its column there, as it does under the axis.
+///
+/// Every plot was an anonymous image until 2026-09-24, in the book and in every
+/// binding. It rides on an `aria-label` rather than a `<title>` element, because a
+/// browser shows a `<title>` as a tooltip whenever the pointer rests on the plot, and
+/// a name for a listener should change nothing a reader sees.
+fn accessible_name(spec: &PlotSpec) -> String {
+    if let Some(title) = spec.title.as_deref().filter(|t| !t.trim().is_empty()) {
+        return title.to_string();
+    }
+    let noun = |m: &Mark| match m {
+        Mark::Point => "points", Mark::Line => "lines", Mark::Area => "areas",
+        Mark::Bar => "bars", Mark::Step => "steps", Mark::Interval => "intervals",
+        Mark::Box => "boxes", Mark::Ribbon => "ribbons", Mark::Text => "text",
+        Mark::Path => "paths", Mark::Rule => "rules", Mark::Zone => "zones",
+        Mark::Surface => "a surface", Mark::Edge => "edges",
+    };
+    // Each layer as the book reads it aloud: "bars derived by sum and stack". A
+    // `box` carries its own summary and says only "boxes". The transforms are named
+    // in the order they run, whatever order they were written in (a cut, then what
+    // measures, then what rescales, then what moves), which is the order the book
+    // asks a reader to write them in, and it keeps the name, like the picture, the
+    // same for every spelling of one chain.
+    let runs = |t: &Transform| {
+        let j = crate::transform::jobs(t, crate::transform::JobContext::default());
+        [j.extent, j.measure, j.scale, j.position].iter().position(|b| *b).unwrap_or(4)
+    };
+    let mut marks: Vec<String> = Vec::new();
+    for layer in &spec.layers {
+        let mut ordered: Vec<&Transform> = layer.transforms.iter()
+            .filter(|t| **t != Transform::Box)
+            .collect();
+        ordered.sort_by_key(|t| runs(t));
+        let derived: Vec<&str> = ordered.into_iter()
+            .map(crate::legality::transform_name)
+            .collect();
+        let n = match derived.is_empty() {
+            true => noun(&layer.mark).to_string(),
+            false => format!("{} derived by {}", noun(&layer.mark), derived.join(" and ")),
+        };
+        if !marks.contains(&n) {
+            marks.push(n);
+        }
+    }
+    let bound = |ch: Channel| -> Option<String> {
+        spec.axis_def(&ch).map(|d| d.field.clone())
+            .or_else(|| spec.channels.get(&ch).map(|d| d.field.clone()))
+            .or_else(|| spec.layers.iter().find_map(|l| l.encodings.get(&ch).map(|d| d.field.clone())))
+    };
+    let mut parts = vec![marks.join(" and ")];
+    for (c, ch, written) in [
+        ("x", Channel::X, &spec.x_axis.label),
+        ("y", Channel::Y, &spec.y_axis.label),
+        ("z", Channel::Z, &spec.z_axis.label),
+    ] {
+        let name = written.clone().filter(|w| !w.trim().is_empty()).or_else(|| bound(ch));
+        if let Some(n) = name {
+            parts.push(format!("{c} is {n}"));
+        }
+    }
+    if let Some(c) = bound(Channel::Color) {
+        parts.push(format!("color by {c}"));
+    }
+    let text = parts.into_iter().filter(|p| !p.is_empty()).collect::<Vec<_>>().join(", ");
+    let mut chars = text.chars();
+    match chars.next() {
+        Some(first) => first.to_uppercase().chain(chars).collect(),
+        None => String::from("A plot"),
+    }
+}
+
+/// When [`fit_to_cells`] may choose an axis's ticks again, over the cells.
+///
+/// **A partition's axes always are** (spec §15, ruled 2026-09-24). Its cells are
+/// laid end to end from 0, so its measure axis runs from 0 to the total and its
+/// share axis from 0 to 1, and those ends are what the axis means; ticked over
+/// the cells' centers instead, a mosaic's shares read 0.2 to 0.8 and a donut's
+/// amounts started at 1000, wherever the centers fell, where every other measure
+/// axis labels its zero. A sunburst's angle then ticks 0 and its total on one
+/// spoke, and `polar_angles` keeps the first. Every other mesh keeps the ticks it
+/// chose over its centers unless they miss the cells, which is the spine plot's
+/// rescue and moves nothing that drew.
+#[derive(Clone, Copy)]
+enum Retick {
+    /// A log, calendar or categorical axis keeps the ticks it chose.
+    Never,
+    /// Choose again only when fewer than two of the ticks land on the cells.
+    WhenMissed(usize),
+    /// Choose again over the cells, always: a partition's axes.
+    Always(usize),
 }
 
 /// A stated domain (spec §10) in the **axis's own units**.
@@ -4130,6 +4389,21 @@ struct PanelAxes {
     /// Where a polar plot's spokes start, as a fraction of the radial range —
     /// read off the cells' inner edge, so it follows whichever fit produced `ys`.
     inner_edge: f64,
+    /// What `x`'s and `y`'s ticks were chosen over, which a page reads back to
+    /// choose a shared axis's ticks (`build_axis`'s third value).
+    x_extent: (f64, f64),
+    y_extent: (f64, f64),
+}
+
+impl PanelAxes {
+    /// One position's ticks, for the questions asked of all three alike.
+    fn ticks(&self, channel: &Channel) -> &TickSpec {
+        match channel {
+            Channel::X => &self.x_ticks,
+            Channel::Y => &self.y_ticks,
+            _ => &self.z_ticks,
+        }
+    }
 }
 
 fn build_axis(
@@ -4158,7 +4432,12 @@ fn build_axis(
     // first category and above the last (`legality::slot_reach`). `(0.0, 0.0)` for
     // every axis nothing overhangs, which is every axis but a violin's.
     slot_reach: (f64, f64),
-) -> (TickSpec, (f64, f64)) {
+    // The span a **page** chose this axis's ticks over, when it shares the axis
+    // with another plot (`render::page`): the union of what each plot's ticks were
+    // chosen over alone. `None` for every plot drawn by itself, which then chooses
+    // over its own data. See the third value returned.
+    tick_extent: Option<(f64, f64)>,
+) -> (TickSpec, (f64, f64), (f64, f64)) {
     if let Some(cats) = cats {
         let vals: Vec<f64> = (0..cats.len()).map(|i| i as f64).collect();
         // Half a slot each side is exactly right for everything that *stands in* its
@@ -4173,10 +4452,9 @@ fn build_axis(
         // reaches one way, so the other keeps its half slot rather than opening a
         // matching band of nothing.
         let (lo, hi) = slot_reach;
-        return (
-            ticks_with_labels(vals, cats.to_vec()),
-            ((-0.5f64).min(-lo), (cats.len() as f64 - 0.5).max(cats.len() as f64 - 1.0 + hi)),
-        );
+        let range =
+            ((-0.5f64).min(-lo), (cats.len() as f64 - 0.5).max(cats.len() as f64 - 1.0 + hi));
+        return (ticks_with_labels(vals, cats.to_vec()), range, range);
     }
 
     // The axis spans everything placed on it: the values of its own column, and
@@ -4216,6 +4494,19 @@ fn build_axis(
         adopt_range(t, stated.0.unwrap_or(range.0), stated.1.unwrap_or(range.1))
     };
 
+    // **What the ticks are chosen over, which on a page is not the range.** A page
+    // shares an axis by stating the union of its plots' *fitted* ranges as their
+    // domain, margins included, and a tick step chosen over that is chosen over a
+    // wider span than any of the plots has: gdp alone spans 49K, which rounds to
+    // 50K and gives a step of 5K at `tick_count = 12`; the shared range spans 54K,
+    // which rounds to 100K and doubles the step to 10K. So every composed page drew
+    // coarser ticks than its plots drew alone, and a chapter putting 3 ticks beside
+    // 12 drew 2 beside 6. The page therefore also hands down the span the plots'
+    // ticks were chosen over alone, and the ticks are chosen over that while the
+    // range stays the shared one. A plot by itself has no such span and chooses
+    // over its own data, exactly as it always did.
+    let over = |mn: f64, mx: f64| tick_extent.unwrap_or((mn, mx));
+
     // A temporal axis ticks at calendar boundaries, whatever else is going on.
     // Deliberately ahead of the bar paths: bars at dates get calendar
     // gridlines, not a tick per bar — daily bars would label every one — and
@@ -4230,7 +4521,6 @@ fn build_axis(
     // Feb 26 and the first at or after Apr 11 is Apr 15. An axis is allowed to
     // end between ticks; that is the whole point of fitting.
     if let Some(unit) = time {
-        let t = time_ticks(mn, mx, unit);
         // A bar owns a slot, so the range has to hold the half-slot beyond the
         // first and last one or the end bars are sliced by the frame. Everything
         // else fits with the ordinary free-end breathing, and an `area` fills
@@ -4241,7 +4531,17 @@ fn build_axis(
         } else {
             fitted_range(mn, mx, false, flush)
         };
-        return close(clip_ticks(t, lo, hi));
+        // A stated count picks among the calendar's strides, counted over what
+        // the axis shows; the default keeps its own rule, so no plot that did not
+        // ask moves.
+        let (tlo, thi) = over(mn, mx);
+        let t = match tick_count {
+            Some(n) => time_ticks_counted(
+                tlo, thi, unit, n, (stated.0.unwrap_or(lo), stated.1.unwrap_or(hi))),
+            None => time_ticks(tlo, thi, unit),
+        };
+        let (t, range) = close(clip_ticks(t, lo, hi));
+        return (t, range, (tlo, thi));
     }
 
     // The column already holds log positions, so the range is in decades and the
@@ -4262,7 +4562,6 @@ fn build_axis(
     // asymmetry is why it read as two: bracketing outward is invisible below the
     // data and fatal above it.
     if is_log {
-        let t = log_ticks(mn, mx, base);
         // A bar owns a slot, so the range has to hold the half-slot beyond the
         // first and last one or the end bars are sliced by the frame. Everything
         // else fits with the ordinary free-end breathing, and an `area` fills
@@ -4273,7 +4572,16 @@ fn build_axis(
         } else {
             fitted_range(mn, mx, false, flush)
         };
-        return close(clip_ticks(t, lo, hi));
+        // A stated count picks among the powers and the 1-2-5 fill, counted over
+        // what the axis shows; the default keeps its own rule.
+        let (tlo, thi) = over(mn, mx);
+        let t = match tick_count {
+            Some(n) => log_ticks_counted(
+                tlo, thi, base, n, (stated.0.unwrap_or(lo), stated.1.unwrap_or(hi))),
+            None => log_ticks(tlo, thi, base),
+        };
+        let (t, range) = close(clip_ticks(t, lo, hi));
+        return (t, range, (tlo, thi));
     }
 
     // A stated end is a real coordinate, so the stretch-to-baseline does not
@@ -4287,7 +4595,14 @@ fn build_axis(
     }
 
     if bar_position {
-        return close(bar_x_ticks_eff(bar_frames, field, mn, mx, tick_count));
+        // What the axis will show, which is where the ceiling on the count is
+        // counted: the fit `bar_x_ticks_eff` makes, with a stated end put back.
+        let (lo, hi) = fitted_range(mn, mx, false, false);
+        let shown = (stated.0.unwrap_or(lo), stated.1.unwrap_or(hi));
+        let chosen_over = over(mn, mx);
+        let (t, range) = close(bar_x_ticks_eff(
+            bar_frames, field, mn, mx, chosen_over, tick_count, shown));
+        return (t, range, chosen_over);
     }
     // Nice numbers for the *ticks*; the data for the *range*. `nice_ticks`
     // brackets the data outward with round numbers — that is the right set of
@@ -4312,19 +4627,24 @@ fn build_axis(
     // derived path is deliberately untouched, which is also why no existing plot
     // moves.
     let default_target = 5;
-    let mut t = nice_ticks(mn, mx, tick_count.unwrap_or(default_target));
+    // The ceiling on the count (`ticks::MAX_TICKS`) is counted over what the axis
+    // will show: this fit, with a stated end put back by `close`.
+    let (lo, hi) = fitted_range(mn, mx, bar_extent, flush);
+    let shown = Some((stated.0.unwrap_or(lo), stated.1.unwrap_or(hi)));
+    let (tlo, thi) = over(mn, mx);
+    let mut t = nice_ticks_within(tlo, thi, tick_count.unwrap_or(default_target), shown);
     if tick_count.is_some() {
-        let (lo, hi) = fitted_range(mn, mx, bar_extent, flush);
         let mut target = tick_count.unwrap_or(default_target);
         // Bounded: each step is at least a factor 2 finer, so a handful of tries
         // covers any range a nice number can straddle.
         for _ in 0..8 {
             if ticks_inside(&t, lo, hi).1 >= 2 { break }
             target += 1;
-            t = nice_ticks(mn, mx, target);
+            t = nice_ticks_within(tlo, thi, target, shown);
         }
     }
-    close(fit_axis(t, mn, mx, bar_extent, flush))
+    let (t, range) = close(fit_axis(t, mn, mx, bar_extent, flush));
+    (t, range, (tlo, thi))
 }
 
 /// The display range for a linear axis: fit the data closely, with a small
@@ -4408,7 +4728,7 @@ fn ticks_inside(t: &TickSpec, lo: f64, hi: f64) -> (TickSpec, usize) {
         .collect();
     let values = keep.iter().map(|&i| t.values[i]).collect();
     let labels = keep.iter().map(|&i| t.labels[i].clone()).collect();
-    (TickSpec { values, labels, step: t.step }, keep.len())
+    (TickSpec { values, labels, step: t.step, widened: t.widened.clone() }, keep.len())
 }
 
 /// The declared time resolution of this field, wherever it is bound.
@@ -4421,6 +4741,33 @@ fn detect_time(ctx: &RenderContext<'_>, field: &str) -> Option<crate::time::Time
     ctx.spec.layers.iter()
         .filter_map(|layer| ctx.resolve_data(&layer.data))
         .find_map(|df| df.time_unit(field))
+}
+
+/// Say that a stated tick count put more ticks on an axis than it carries, when
+/// it did (spec §12).
+///
+/// The spacing the count asked for and the spacing drawn are the generator's own
+/// words ([`crate::render::ticks::Widening`]), written the way the axis writes its
+/// ticks, so the message and a linear axis say `2K` alike, and a calendar axis
+/// says days. The direction is the two ways to a finer spacing: fewer ticks asked
+/// for, or a shorter axis, since `limits` narrows the range the same number of
+/// ticks has to cover.
+fn widened_ticks(c: &str, field: &str, asked: usize, ticks: &TickSpec) -> Option<Diagnostic> {
+    let w = ticks.widened.as_ref()?;
+    let field = if field.is_empty() { "<column>" } else { field };
+    Some(Diagnostic {
+        kind: crate::legality::DiagnosticKind::Assumption,
+        message: format!(
+            "gog: `{c}({field}, tick_count = {asked})` rounds to {from}, which puts more \
+             than {max} ticks on this axis, the most one axis draws. The axis draws {to} \
+             instead, the finest spacing that fits, so it is still labeled from end to end. \
+             Ask for fewer ticks, or leave `tick_count` off; for {from}, narrow the axis \
+             with `limits`.",
+            from = w.asked,
+            to = w.drawn,
+            max = crate::render::ticks::MAX_TICKS,
+        ),
+    })
 }
 
 /// Say how many rows a log axis could not place, when any survive to this point.
@@ -4552,7 +4899,13 @@ fn share_stacked(spec: &PlotSpec) -> bool {
 }
 
 fn synth_y_label(spec: &PlotSpec) -> Option<String> {
-    if spec.layers.iter().any(|l| l.transforms.contains(&Transform::Proportion)) {
+    // A partition's `proportion` divides the partition's own measure axis, which
+    // is `x` (`transform::partition_shares`), so it has nothing to say about this
+    // one: the axis a partition synthesizes here is its ring or its column share,
+    // and it keeps that name below.
+    if spec.layers.iter().any(|l| l.transforms.contains(&Transform::Proportion)
+        && !l.transforms.contains(&Transform::Partition))
+    {
         return Some("Proportion".into());
     }
     for layer in &spec.layers {
@@ -4650,11 +5003,17 @@ fn alias_column(df: DataFrame, from: &str, to: &str) -> DataFrame {
 // knows, forever, and it is wrong in the window before it is. So it is gone rather
 // than corrected a fourth time: one question, one answer, in `legality.rs`.
 
+#[allow(clippy::too_many_arguments)]
 fn bar_x_ticks_eff(
     bar_frames: &[&DataFrame],
     x_field: &str,
     data_min: f64, data_max: f64,
+    // What a continuous-looking axis chooses its ticks over: the data's own span,
+    // or the one a page shares (`build_axis`).
+    ticks_over: (f64, f64),
     target_count: Option<usize>,
+    // What the axis will show, for the ceiling on the count (`build_axis`).
+    shown: (f64, f64),
 ) -> (TickSpec, (f64, f64)) {
     let mut vals: Vec<f64> = Vec::new();
     for df in bar_frames {
@@ -4669,7 +5028,7 @@ fn bar_x_ticks_eff(
         // Too many distinct positions to tick one-per-bar; this axis behaves
         // like a continuous one, so it fits its data the same way (no baseline —
         // it carries positions, not amounts).
-        let t = nice_ticks(data_min, data_max, target_count.unwrap_or(5));
+        let t = nice_ticks_within(ticks_over.0, ticks_over.1, target_count.unwrap_or(5), Some(shown));
         return fit_axis(t, data_min, data_max, false, false);
     }
 
@@ -4709,6 +5068,20 @@ fn bar_x_ticks_eff(
 /// (four bindings must agree byte for byte) and two renders share a prefix only
 /// when the whole SVG is identical — in which case either copy serves, and
 /// whichever survives in the document is the right one.
+/// The SVG without its accessible name, which reads the plot aloud and draws
+/// nothing: `namespace_ids` hashes ink, so the name stays out of the hash, and
+/// naming a plot moves no id and no byte of what it draws. The name's value is
+/// escaped, so its closing quote is the first one after it.
+fn without_accessible_name(svg: &str) -> String {
+    const NAME: &str = r#" role="img" aria-label=""#;
+    let Some(at) = svg.find(NAME) else { return svg.to_string() };
+    let rest = &svg[at + NAME.len()..];
+    match rest.find('"') {
+        Some(end) => format!("{}{}", &svg[..at], &rest[end + 1..]),
+        None => svg.to_string(),
+    }
+}
+
 fn namespace_ids(svg: &str) -> String {
     // Nothing to rename, and the common case: no defs, no references.
     if !svg.contains("id=\"") {
@@ -4725,7 +5098,7 @@ fn namespace_ids(svg: &str) -> String {
     //
     // So this list *is* the definition of "draws nothing", and an attribute of
     // that kind added later belongs in it.
-    let ink = svg
+    let ink = without_accessible_name(svg)
         .replace(r#" display="inline""#, "")
         .replace(r#" display="none""#, "");
     let mut h: u64 = 0xcbf2_9ce4_8422_2325;
@@ -4772,6 +5145,7 @@ mod tests {
     use crate::ir::{Layer, ScaleType};
     use crate::render::palette::{PALETTE_GOG, RAMP_BLUE};
     use crate::render::text::estimate_text_width;
+    use crate::render::ticks::nice_ticks;
 
     // -----------------------------------------------------------------------
     // Flow — the three readers of one layout (spec §15, the flow entry)
@@ -6475,6 +6849,128 @@ mod tests {
                 numbers(&tallied), numbers(&measured));
     }
 
+    fn render_crossed(levels: &[&str], measure: bool, proportion: bool, label: bool) -> String {
+        let mut s = PlotSpec::new().data("t");
+        if measure {
+            s = s.x("v");
+        }
+        let with = |mark: Mark, levels: &[&str]| {
+            let l = Layer::new(mark).partition_crossed(levels);
+            if proportion { l.transform(Transform::Proportion) } else { l }
+        };
+        s = s.layer(with(Mark::Zone, levels).encode(Channel::Color, "g"));
+        if label {
+            s = s.layer(with(Mark::Text, &levels[..1]).encode(Channel::Label, "name"));
+        }
+        SvgRenderer::default().render(&s, &tree_data())
+    }
+
+    /// **The spine plot ticks its share axis over the cells.** Every cell of a
+    /// one-level crossed partition is centered at 0.5, so the ticks chosen over the
+    /// centers were −0.5, 0.5 and 1.5; one landed inside the cells, the fit to them
+    /// gave up, and the bands filled the middle half of a panel labeled `-0`, `0`
+    /// and `2`.
+    #[test]
+    fn a_spine_plot_ticks_its_share_axis_over_the_cells() {
+        let svg = render_crossed(&["g"], true, false, false);
+        let labels = text_of(&svg);
+        assert!(!labels.iter().any(|l| l == "-0"), "tick `-0` in {labels:?}");
+        for tick in ["0.2", "0.4", "0.6", "0.8", "1.0"] {
+            assert!(labels.iter().any(|l| l == tick), "no tick `{tick}` in {labels:?}");
+        }
+        let (_, py, _, ph) = panel_rect(&svg);
+        for (_, y, _, h) in zone_rects(&svg) {
+            assert!((y - py).abs() < 0.5 && (h - ph).abs() < 0.5,
+                "a band fills the panel's height ({py}, {ph}), got ({y}, {h})");
+        }
+    }
+
+    /// **Every plot is a named image.** The root `<svg>` carries `role="img"` and an
+    /// `aria-label`: the title when there is one, escaped, and otherwise what the plot
+    /// draws in the book's read-aloud words, a written axis name standing for its
+    /// column. No `<title>` element, which a browser would show as a tooltip.
+    #[test]
+    fn every_plot_carries_an_accessible_name() {
+        let root = |svg: &str| svg.lines().next().unwrap_or("").to_string();
+        let data = tree_data();
+        let plain = PlotSpec::new().data("t").x("v").y("v")
+            .layer(Layer::new(Mark::Point).encode(Channel::Color, "g"));
+        let head = root(&SvgRenderer::default().render(&plain, &data));
+        assert!(head.contains(r#"role="img" aria-label="Points, x is v, y is v, color by g""#), "{head}");
+        let titled = plain.clone().title("Rich & \"long\" lives");
+        let head = root(&SvgRenderer::default().render(&titled, &data));
+        assert!(head.contains(r#"aria-label="Rich &amp; &quot;long&quot; lives""#), "{head}");
+        let counted = PlotSpec::new().data("t").x("g").x_label("Group")
+            .layer(Layer::new(Mark::Bar).transform(Transform::Count));
+        let svg = SvgRenderer::default().render(&counted, &data);
+        assert!(root(&svg).contains(r#"aria-label="Bars derived by count, x is Group""#), "{}", root(&svg));
+        assert!(!svg.contains("<title>"), "no tooltip");
+    }
+
+    /// **A partition's axes run from 0** (spec §15, ruled 2026-09-24): they are
+    /// ticked over the cells rather than over the cells' centers, so a mosaic's
+    /// share axis reads 0.0 to 1.0 and its measure axis starts at 0, as every other
+    /// measure axis does. A sunburst's angle labels 0 once, at the top, and not its
+    /// total, which falls on the same spoke.
+    #[test]
+    fn a_partition_axis_is_ticked_from_zero_over_its_cells() {
+        let mosaic = text_of(&render_crossed(&["g", "i"], true, false, false));
+        for tick in ["0", "0.0", "1.0"] {
+            assert!(mosaic.iter().any(|l| l == tick), "no tick `{tick}` in {mosaic:?}");
+        }
+        let sunburst = text_of(&render_tree(true, true, None));
+        assert_eq!(sunburst.iter().filter(|l| *l == "0").count(), 1, "{sunburst:?}");
+        assert!(!sunburst.iter().any(|l| l == "8"),
+            "the total, 8, is on 0's spoke and is not labeled: {sunburst:?}");
+    }
+
+    /// **A crossed partition with nothing bound draws on its panel.** With neither
+    /// position bound, the widths and the heights were handed one column name, the
+    /// heights were overwritten by the widths, and the cells were drawn off the panel
+    /// with every label on a diagonal. The measure axis now reads the tally's name.
+    #[test]
+    fn a_crossed_partition_with_nothing_bound_draws_on_its_panel() {
+        let svg = render_crossed(&["g", "i"], false, false, true);
+        let (px, py, pw, ph) = panel_rect(&svg);
+        let cells = zone_rects(&svg);
+        assert_eq!(cells.len(), 4, "four leaves: {cells:?}");
+        for (x, y, w, h) in cells {
+            assert!(x >= px - 0.5 && y >= py - 0.5 && x + w <= px + pw + 0.5
+                && y + h <= py + ph + 0.5,
+                "a cell ({x}, {y}, {w}, {h}) left the panel ({px}, {py}, {pw}, {ph})");
+        }
+        // The column names sit side by side, at one height. (The legend names the
+        // same two, in its own unpainted text, so the node labels are the painted
+        // ones.)
+        let heights: Vec<&str> = svg.split("<text").skip(1)
+            .filter_map(|t| t.split_once('>'))
+            .filter(|(attrs, rest)| attrs.contains("fill-opacity")
+                && (rest.starts_with("a</text>") || rest.starts_with("b</text>")))
+            .filter_map(|(attrs, _)| attrs.split(r#" y=""#).nth(1)?.split('"').next())
+            .collect();
+        assert_eq!(heights.len(), 2, "both columns are named: {heights:?}");
+        assert_eq!(heights[0], heights[1], "on one row, not a diagonal");
+    }
+
+    /// **`partition * proportion` reads its measure axis as shares.** The widths
+    /// are divided by the total, so the measure axis runs `0 .. 1`, and the other
+    /// axis keeps its own name: a partition's `proportion` rescales the widths and
+    /// not the column shares, so it does not rename them `Proportion`.
+    #[test]
+    fn a_partition_read_as_proportion_ticks_its_measure_axis_in_shares() {
+        let svg = render_crossed(&["g", "i"], true, true, true);
+        let labels = text_of(&svg);
+        let numbers: Vec<f64> = labels.iter().filter_map(|l| l.parse().ok()).collect();
+        assert!(!numbers.is_empty() && numbers.iter().all(|v| *v <= 1.0),
+            "every tick is a share: {labels:?}");
+        assert!(labels.iter().any(|l| l == "Share of column")
+            && !labels.iter().any(|l| l == "Proportion"), "{labels:?}");
+        let (px, _, pw, _) = panel_rect(&svg);
+        let cells = zone_rects(&svg);
+        let right = cells.iter().map(|(x, _, w, _)| x + w).fold(0.0, f64::max);
+        assert!((right - (px + pw)).abs() < 0.5, "the cells still fill the width");
+    }
+
     // -- the pie: one position, so the position is the angle -----------------
 
     fn pie_data() -> HashMap<String, DataFrame> {
@@ -6957,6 +7453,315 @@ mod tests {
             "the dropped-rows report must ride in remarks: {:?}",
             drawn.remarks.iter().map(|d| &d.message).collect::<Vec<_>>()
         );
+    }
+
+    /// A stated count past the ceiling is drawn with a wider step, labeled to the
+    /// far end, and said out loud; one that fits says nothing. The case that
+    /// reported it: 40 ticks on gdp labeled 0K to 25K on an axis that runs to 49K.
+    #[test]
+    fn a_count_past_the_ceiling_is_labeled_to_the_far_end_and_said() {
+        let data: HashMap<String, DataFrame> = HashMap::from([(
+            "t".to_string(),
+            DataFrame::new()
+                .with_float("gdp", vec![277.55, 12000.0, 49357.19])
+                .with_float("life", vec![40.0, 60.0, 82.0]),
+        )]);
+        let drawn_at = |n: usize| {
+            let mut spec = PlotSpec::new().data("t").x("gdp").y("life")
+                .layer(Layer::new(Mark::Point));
+            spec.x = Some(crate::ir::ChannelDef::field("gdp").with_tick_count(n));
+            SvgRenderer::default().draw(&spec, &data)
+        };
+        let wide = drawn_at(40);
+        assert!(wide.svg.contains(">48K</text>"), "the far end of the axis is bare");
+        assert!(!wide.svg.contains(">25K</text>"), "the step did not widen");
+        let said: Vec<&str> = wide.remarks.iter().map(|d| d.message.as_str()).collect();
+        assert!(said.iter().any(|m| m.contains("tick_count = 40") && m.contains("draws a tick every 2K instead")),
+            "a widened step must ride in remarks: {said:?}");
+
+        let fits = drawn_at(26);
+        assert!(fits.remarks.is_empty(), "a count that fits said something: {:?}",
+            fits.remarks.iter().map(|d| &d.message).collect::<Vec<_>>());
+    }
+
+    /// Every label a drawing wrote, in order.
+    fn text_of(svg: &str) -> Vec<String> {
+        svg.split("<text").skip(1)
+            .filter_map(|t| t.split_once('>').map(|(_, rest)| rest))
+            .filter_map(|rest| rest.split_once("</text>").map(|(label, _)| label.to_string()))
+            .collect()
+    }
+
+    /// **A stated count reaches a log axis and a calendar axis.** Both drew the
+    /// default whatever was written, byte for byte, and said nothing: the log and
+    /// calendar branches chose their ticks with no count to read.
+    #[test]
+    fn a_stated_count_reaches_a_log_axis_and_a_calendar_axis() {
+        let gdp: HashMap<String, DataFrame> = HashMap::from([(
+            "t".to_string(),
+            DataFrame::new()
+                .with_float("gdp", vec![277.55, 2000.0, 12000.0, 49357.19])
+                .with_float("life", vec![40.0, 55.0, 70.0, 82.0]),
+        )]);
+        let log = |n: Option<usize>| {
+            let mut spec = PlotSpec::new().data("t").y("life").layer(Layer::new(Mark::Point));
+            let def = crate::ir::ChannelDef::field("gdp").with_scale(ScaleType::Log);
+            spec.x = Some(match n { Some(n) => def.with_tick_count(n), None => def });
+            text_of(&SvgRenderer::default().render(&spec, &gdp))
+        };
+        assert!(!log(None).contains(&"2K".to_string()), "{:?}", log(None));
+        let twelve = log(Some(12));
+        for fill in ["500", "2K", "5K", "20K", "50K"] {
+            assert!(twelve.contains(&fill.to_string()), "no {fill} at twelve: {twelve:?}");
+        }
+
+        let days = |n: Option<usize>| {
+            let mut spec = PlotSpec::new().data("t").y("orders").layer(Layer::new(Mark::Line));
+            let def = crate::ir::ChannelDef::field("day");
+            spec.x = Some(match n { Some(n) => def.with_tick_count(n), None => def });
+            text_of(&SvgRenderer::default().render(&spec, &six_weeks(42)))
+        };
+        let dated = |labels: Vec<String>| labels.into_iter()
+            .filter(|l| l.starts_with("Mar") || l.starts_with("Apr") || l.starts_with("Feb"))
+            .count();
+        assert_eq!(dated(days(None)), 6, "the weekly default moved");
+        assert_eq!(dated(days(Some(3))), 3, "{:?}", days(Some(3)));
+        assert_eq!(dated(days(Some(20))), 22, "{:?}", days(Some(20)));
+    }
+
+    /// **A date on `z` is ticked on the calendar.** The cube passed no unit to its
+    /// third axis, so the same column read `Mar 4` on `x` and `1710M` on `z`.
+    #[test]
+    fn a_date_on_z_is_ticked_on_the_calendar() {
+        let spec = PlotSpec::new().data("t").x("orders").y("orders").z("day")
+            .coord(CoordSpace::Space(SpaceView::default()))
+            .layer(Layer::new(Mark::Point));
+        let labels = text_of(&SvgRenderer::default().render(&spec, &six_weeks(42)));
+        assert!(labels.iter().any(|l| l == "Mar 4"), "no calendar tick on z: {labels:?}");
+        assert!(!labels.iter().any(|l| l.ends_with('M')), "epoch seconds on z: {labels:?}");
+    }
+
+    /// **A map's degree ticks take the stated count**, which reached nothing: the
+    /// map chose 7 and 5 whatever was written.
+    #[test]
+    fn a_maps_degree_ticks_take_the_stated_count() {
+        let degrees = |n: Option<usize>| {
+            let mut spec = world_map(crate::ir::Preserve::Area);
+            if let Some(n) = n {
+                spec.x = Some(crate::ir::ChannelDef::field("lon").with_tick_count(n));
+            }
+            text_of(&SvgRenderer::default().render(&spec, &world()))
+                .into_iter().filter(|l| l.ends_with('°')).count()
+        };
+        assert!(degrees(Some(20)) > degrees(None) + 5,
+            "20 drew {} degree labels, the default {}", degrees(Some(20)), degrees(None));
+    }
+
+    /// **`color` and `shape` on one column are one key**, as `color` and `pattern`
+    /// are: colored glyphs under one title, where two keys both carried the
+    /// column's name, one of colored squares and one of gray glyphs.
+    #[test]
+    fn color_and_shape_on_one_column_draw_one_key_of_colored_glyphs() {
+        let data: HashMap<String, DataFrame> = HashMap::from([(
+            "t".to_string(),
+            DataFrame::new()
+                .with_float("x", vec![1.0, 2.0, 3.0])
+                .with_float("y", vec![1.0, 2.0, 3.0])
+                .with_str("kind", vec!["a".into(), "b".into(), "c".into()]),
+        )]);
+        let spec = PlotSpec::new().data("t").x("x").y("y")
+            .layer(Layer::new(Mark::Point)
+                .encode(Channel::Color, "kind")
+                .encode(Channel::Shape, "kind"));
+        let svg = SvgRenderer::default().render(&spec, &data);
+        assert_eq!(text_of(&svg).iter().filter(|l| *l == "Kind").count(), 1, "two keys: {svg}");
+        // The key's glyphs carry the category colors, not the neutral ink the
+        // shape-only key draws them in.
+        let gray = |svg: &str| svg.matches(r##"fill="#3c3c46""##).count();
+        let shape_only = PlotSpec::new().data("t").x("x").y("y")
+            .layer(Layer::new(Mark::Point).encode(Channel::Shape, "kind"));
+        let neutral = gray(&SvgRenderer::default().render(&shape_only, &data));
+        assert!(neutral >= 3, "the shape-only key draws gray glyphs: {neutral}");
+        assert_eq!(gray(&svg), neutral - 3, "a gray glyph in a merged key");
+    }
+
+    /// **A background that paints nothing paints nothing anywhere.** The canvas
+    /// was white whatever the theme said, so `transparent` showed white.
+    #[test]
+    fn a_transparent_background_leaves_the_canvas_and_the_key_unpainted() {
+        let data: HashMap<String, DataFrame> = HashMap::from([(
+            "t".to_string(),
+            DataFrame::new()
+                .with_float("x", vec![1.0, 2.0, 3.0])
+                .with_float("y", vec![1.0, 2.0, 3.0])
+                .with_str("kind", vec!["a".into(), "b".into(), "c".into()]),
+        )]);
+        let mut spec = PlotSpec::new().data("t").x("x").y("y")
+            .layer(Layer::new(Mark::Point).encode(Channel::Color, "kind"));
+        let canvas = r#"<rect width="800" height="600" fill="white"/>"#;
+        let plain = SvgRenderer::default().render(&spec, &data);
+        assert!(plain.contains(canvas) && plain.contains(r##"fill="white" stroke="#d2d2da""##));
+        spec.theme = ThemeSpec { background: Some("transparent".into()), ..Default::default() };
+        let clear = SvgRenderer::default().render(&spec, &data);
+        assert!(!clear.contains(canvas), "the canvas is still white");
+        assert!(clear.contains(r##"fill="none" stroke="#d2d2da""##), "the key's card is still white");
+        // A color keeps the white canvas around the panel it paints.
+        spec.theme = ThemeSpec { background: Some("lavender".into()), ..Default::default() };
+        assert!(SvgRenderer::default().render(&spec, &data).contains(canvas));
+    }
+
+    /// Where the rotated y name was drawn: the pivot of its `rotate(-90 …)`.
+    fn y_name_x(svg: &str) -> f64 {
+        let at = svg.find("rotate(-90 ").expect("a turned y name") + "rotate(-90 ".len();
+        svg[at..].split_whitespace().next().unwrap().parse().unwrap()
+    }
+
+    /// **The names sit beside the plot drawn, not beside the room it was given.**
+    /// A `ratio` insets the panel and a circle sits inside a wider panel, and the
+    /// y name stayed at the image's edge either way: 135px from a square panel's
+    /// tick labels, and 150px from a rose.
+    #[test]
+    fn the_y_name_follows_a_panel_a_ratio_narrowed_and_a_circle() {
+        let data: HashMap<String, DataFrame> = HashMap::from([(
+            "t".to_string(),
+            DataFrame::new()
+                .with_float("x", vec![1.0, 2.0, 3.0])
+                .with_float("y", vec![1.0, 2.0, 3.0])
+                .with_str("dir", vec!["N".into(), "E".into(), "S".into()]),
+        )]);
+        let mut square = PlotSpec::new().data("t").x("x").y("y").layer(Layer::new(Mark::Point));
+        let free = y_name_x(&SvgRenderer::default().render(&square, &data));
+        square.theme = ThemeSpec { ratio: Some(1.0), ..Default::default() };
+        let svg = SvgRenderer::default().render(&square, &data);
+        let panel_x = panel_rect(&svg).0;
+        let named = y_name_x(&svg);
+        assert!(named > free + 50.0, "the name stayed at {named}, the panel moved to {panel_x}");
+        assert!(panel_x - named < 60.0, "the name sits {} px from its panel", panel_x - named);
+
+        let rose = PlotSpec::new().data("t").x("dir")
+            .coord(CoordSpace::Polar(crate::ir::PolarView { start: 0.0 }))
+            .layer(Layer::new(Mark::Bar).transform(Transform::Count));
+        let named = y_name_x(&SvgRenderer::default().render(&rose, &data));
+        assert!(named > free + 50.0, "the radial name stayed at the image's edge: {named}");
+    }
+
+    /// **A `color` of numbers is mapped, so the one-stroke warning says so.** It
+    /// said "no group or color channel" over `color(<numbers>)`, which ramps along
+    /// the stroke rather than splitting it; with no `color` the wording is kept.
+    #[test]
+    fn a_ramped_line_is_told_its_color_does_not_split_it() {
+        let data: HashMap<String, DataFrame> = HashMap::from([(
+            "t".to_string(),
+            DataFrame::new()
+                .with_float("x", (0..8).map(f64::from).collect())
+                .with_float("y", vec![1.0, 3.0, 2.0, 4.0, 3.0, 5.0, 4.0, 6.0])
+                .with_float("v", (0..8).map(f64::from).collect()),
+        )]);
+        let said = |color: bool| {
+            let mut l = Layer::new(Mark::Line);
+            if color {
+                l = l.encode(Channel::Color, "v");
+            }
+            SvgRenderer::default()
+                .draw(&PlotSpec::new().data("t").x("x").y("y").layer(l), &data)
+                .remarks.iter().map(|d| d.message.clone()).collect::<Vec<_>>().join(" ")
+        };
+        let ramped = said(true);
+        assert!(ramped.contains("`color(v)` holds numbers")
+            && !ramped.contains("no group or color channel"), "{ramped}");
+        assert!(said(false).contains("no group or color channel"), "{}", said(false));
+    }
+
+    /// **`caps` reaches a `box`**: the crossbars at its whiskers' ends are the
+    /// same strokes as an `interval`'s, so `style(caps = FALSE)` leaves them off.
+    #[test]
+    fn a_box_without_caps_draws_its_whiskers_bare() {
+        let data: HashMap<String, DataFrame> = HashMap::from([(
+            "t".to_string(),
+            DataFrame::new()
+                .with_str("g", ["a", "a", "a", "a", "a", "b", "b", "b", "b", "b"]
+                    .map(String::from).to_vec())
+                .with_float("v", vec![1.0, 2.0, 3.0, 4.0, 5.0, 2.0, 4.0, 6.0, 8.0, 10.0]),
+        )]);
+        let drawn = |caps: Option<bool>| {
+            let mut l = Layer::new(Mark::Box);
+            l.style.caps = caps;
+            let svg = SvgRenderer::default()
+                .render(&PlotSpec::new().data("t").x("g").y("v").layer(l), &data);
+            svg.matches(r#"stroke-linecap="round"/>"#).count()
+        };
+        assert_eq!(drawn(None), 4, "two boxes, two capped whiskers each");
+        assert_eq!(drawn(Some(true)), 4);
+        assert_eq!(drawn(Some(false)), 0, "the caps stayed on");
+    }
+
+    /// **An `edge` takes `style(arrow = )`**, the direction `layout(from, to)`
+    /// states, and a head stops short of the dot its node is drawn with, so the
+    /// dot drawn above it does not hide the head.
+    #[test]
+    fn an_edge_arrow_points_at_its_to_node_and_stops_short_of_the_dot() {
+        let data: HashMap<String, DataFrame> = HashMap::from([(
+            "t".to_string(),
+            DataFrame::new()
+                .with_str("a", vec!["p".into()])
+                .with_str("b", vec!["q".into()]),
+        )]);
+        let drawn = |arrow: &str| {
+            let mut edge = Layer::new(Mark::Edge).layout("a", "b");
+            edge.style.arrow = Some(arrow.into());
+            let spec = PlotSpec::new().data("t")
+                .layer(edge)
+                .layer(Layer::new(Mark::Point).layout("a", "b"))
+                .coord(CoordSpace::Network(crate::ir::NetworkView::default()));
+            SvgRenderer::default().render(&spec, &data)
+        };
+        let svg = drawn("end");
+        assert_eq!(svg.matches("<polygon").count(), 1, "one head: {svg}");
+        assert_eq!(drawn("both").matches("<polygon").count(), 2);
+        // The tip is the polygon's first point; the dots are the two circles.
+        let tip: Vec<f64> = svg.split("<polygon points=\"").nth(1).unwrap()
+            .split_whitespace().next().unwrap()
+            .split(',').map(|n| n.parse().unwrap()).collect();
+        let dots: Vec<(f64, f64)> = svg.split("<circle ").skip(1).map(|c| {
+            let grab = |k: &str| -> f64 {
+                let at = c.find(k).unwrap() + k.len();
+                c[at..].split('"').next().unwrap().parse().unwrap()
+            };
+            (grab("cx=\""), grab("cy=\""))
+        }).collect();
+        let nearest = dots.iter()
+            .map(|d| ((d.0 - tip[0]).powi(2) + (d.1 - tip[1]).powi(2)).sqrt())
+            .fold(f64::INFINITY, f64::min);
+        let r = SvgRenderer::default().point_radius;
+        assert!((nearest - (r + crate::render::marks::HEAD_GAP)).abs() < 0.05,
+            "the tip sits {nearest:.2} px from the dot's center, not {} px", r + crate::render::marks::HEAD_GAP);
+    }
+
+    /// **A mapped `pattern` dashes an `edge`**, one dash per category, where it
+    /// was refused as not drawn; and the key reads a stroke's dash for every
+    /// stroke mark, where a hand-typed list of three gave `path` hatched squares.
+    #[test]
+    fn a_mapped_pattern_dashes_an_edge_and_every_stroke_keys_with_dashes() {
+        let spec = PlotSpec::new().data("t")
+            .layer(Layer::new(Mark::Edge).layout("a", "b").encode(Channel::Pattern, "a"))
+            .coord(CoordSpace::Network(crate::ir::NetworkView::default()));
+        let svg = SvgRenderer::default().render(&spec, &net_table());
+        // p, q and r take solid, dashed and dotted; a solid stroke writes no array.
+        assert!(svg.contains(r#"stroke-dasharray="6,4""#) && svg.contains(r#"stroke-dasharray="1,4""#),
+            "no dashes on the edges: {svg}");
+        assert!(!svg.contains("<pattern"), "a stroke's key was hatched");
+
+        let data: HashMap<String, DataFrame> = HashMap::from([(
+            "t".to_string(),
+            DataFrame::new()
+                .with_float("x", vec![1.0, 2.0, 3.0, 1.0, 2.0, 3.0])
+                .with_float("y", vec![1.0, 2.0, 3.0, 3.0, 2.0, 1.0])
+                .with_str("g", vec!["a".into(), "a".into(), "a".into(), "b".into(), "b".into(), "b".into()]),
+        )]);
+        let path = PlotSpec::new().data("t").x("x").y("y")
+            .layer(Layer::new(Mark::Path).encode(Channel::Pattern, "g"));
+        let svg = SvgRenderer::default().render(&path, &data);
+        assert!(!svg.contains("<pattern"), "a path's key was hatched: {svg}");
     }
 
     /// The custom-palette count mismatch is a remark for the same reason.
@@ -8246,12 +9051,13 @@ mod tests {
             let eff: Vec<DataFrame> = vec![df.clone()];
             let refs: Vec<&DataFrame> = eff.iter().collect();
             let bars: Vec<&DataFrame> = if mark == Mark::Bar { refs.clone() } else { Vec::new() };
-            let (_, xs) = build_axis(
+            let (_, xs, _) = build_axis(
                 &refs, &bars, &[], "day", None,
                 mark == Mark::Bar,                    // bar_position
                 false,                                // bar_extent (that is y's job)
                 mark == Mark::Area,                   // flush
-                None, false, 10.0, Some(crate::time::TimeUnit::Day), (None, None), (0.0, 0.0));
+                None, false, 10.0, Some(crate::time::TimeUnit::Day), (None, None), (0.0, 0.0),
+                None);
             (xs.1 - xs.0) / SECS_PER_DAY
         };
 
@@ -9392,6 +10198,7 @@ mod tests {
             values: vec![0.0, 100.0],
             labels: vec!["0".into(), "100".into()],
             step: 100.0,
+            widened: None,
         };
         let (kept, range) = fit_axis(t, 40.0, 41.0, false, false);
         assert_eq!(kept.values, vec![0.0, 100.0], "ticks kept, not dropped to nothing");
@@ -9451,10 +10258,10 @@ mod tests {
             .collect();
         let df = DataFrame::new().with_float("gdp", centers.clone());
 
-        let (_, range) = build_axis(
+        let (_, range, _) = build_axis(
             &[&df], &[&df], &[], "gdp", None,
             /* bar_position */ true, false, false, None,
-            /* is_log */ true, 10.0, None, (None, None), (0.0, 0.0),
+            /* is_log */ true, 10.0, None, (None, None), (0.0, 0.0), None,
         );
         // The half-slot beyond the end bars is inside the axis, both ends.
         assert!(range.0 <= lo_c - slot / 2.0 + 1e-6,
@@ -9477,6 +10284,7 @@ mod tests {
             values: vec![0.0, 100.0],
             labels: vec!["0".into(), "100".into()],
             step: 100.0,
+            widened: None,
         };
         let (kept, range) = clip_ticks(t(), 40.0, 41.0);
         assert_eq!(range, (0.0, 100.0), "derived: the guard keeps the loose range");
@@ -9593,8 +10401,8 @@ mod tests {
         let df = data.get("t").unwrap();
         let eff: Vec<DataFrame> = spec.layers.iter().map(|_| df.clone()).collect();
         let refs: Vec<&DataFrame> = eff.iter().collect();
-        let (_, ys) = build_axis(&refs, &[], &[], "v", None, false, true, false, None, false, 10.0, None,
-                                 crate::scale::domain_of(spec.axis_def(&Channel::Y)), (0.0, 0.0));
+        let (_, ys, _) = build_axis(&refs, &[], &[], "v", None, false, true, false, None, false, 10.0, None,
+                                 crate::scale::domain_of(spec.axis_def(&Channel::Y)), (0.0, 0.0), None);
         assert_eq!(ys.0, 20.0, "the stated end holds against the stretch-to-zero");
     }
 
@@ -9877,9 +10685,10 @@ mod tests {
         // field itself silently answers about an absent column, and every
         // assertion then passes against the (0, 1) fallback.
         let field = spec.axis_def(&Channel::X).map(|d| d.field.clone()).unwrap_or_default();
-        build_axis(&refs, &[], &[], &field, None, false, false, has_area && !has_point,
-                   None, false, 10.0, None,
-                   crate::scale::domain_of(spec.axis_def(&Channel::X)), (0.0, 0.0))
+        let (t, range, _) = build_axis(&refs, &[], &[], &field, None, false, false,
+                   has_area && !has_point, None, false, 10.0, None,
+                   crate::scale::domain_of(spec.axis_def(&Channel::X)), (0.0, 0.0), None);
+        (t, range)
     }
 
     #[test]
@@ -10328,6 +11137,47 @@ mod tests {
         assert_eq!(stacked.len(), 2, "one band per group");
         assert!(stacked.iter().all(|&v| v == 6),
             "a stacked band retraces its floor: 3 top + 3 floor = 6, got {stacked:?}");
+    }
+
+    /// **A name the reader wrote survives an axis that draws no numbers.** A moved
+    /// pile and a partition's ring index both drop their ticks and the name gog
+    /// would derive, and both dropped a written `y_label()` as well, accepted and
+    /// silent. The written one is drawn now; the derived one still is not.
+    #[test]
+    fn a_written_axis_name_is_drawn_where_the_axis_draws_no_numbers() {
+        let df = DataFrame::new()
+            .with_float("x", vec![0.0, 1.0, 2.0, 0.0, 1.0, 2.0])
+            .with_float("y", vec![1.0, 2.0, 1.0, 3.0, 1.0, 2.0])
+            .with_str("g", ["a", "a", "a", "b", "b", "b"].into_iter().map(String::from).collect());
+        let data = HashMap::from([("t".to_string(), df)]);
+        for baseline in ["wiggle", "center"] {
+            let draw = |written: Option<&str>| {
+                let mut layer = Layer::new(Mark::Area).encode(Channel::Color, "g")
+                    .transform(Transform::Stack);
+                layer.stack = Some(crate::ir::StackSpec {
+                    share: None, baseline: Some(baseline.to_string()),
+                });
+                let spec = PlotSpec::new().data("t").x("x").y("y").layer(layer);
+                let spec = match written { Some(w) => spec.y_label(w), None => spec };
+                text_of(&SvgRenderer::default().render(&spec, &data))
+            };
+            let labels = draw(Some("Plays per week"));
+            assert!(labels.iter().any(|l| l == "Plays per week"), "{baseline}: {labels:?}");
+            assert!(!labels.iter().any(|l| l == "Y"),
+                "{baseline}: the derived name stays off: {labels:?}");
+            assert!(!draw(None).iter().any(|l| l == "Y"), "{baseline}: nothing written, no name");
+        }
+        // The ring index, flat and bent: the name is drawn, no ring number is.
+        for polar in [false, true] {
+            let mut s = PlotSpec::new().data("t").x("v").y_label("Level");
+            if polar {
+                s = s.coord(CoordSpace::Polar(crate::ir::PolarView::default()));
+            }
+            let s = s.layer(Layer::new(Mark::Zone).partition(&["g", "i"]));
+            let labels = text_of(&SvgRenderer::default().render(&s, &tree_data()));
+            assert!(labels.iter().any(|l| l == "Level"), "polar = {polar}: {labels:?}");
+            assert!(!labels.iter().any(|l| l == "Depth"), "polar = {polar}: {labels:?}");
+        }
     }
 
     fn medals_data() -> HashMap<String, DataFrame> {

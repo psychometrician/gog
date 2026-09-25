@@ -227,6 +227,35 @@ class _Confidence(CallableAtom):
 confidence = _Confidence("transform", transform="confidence")
 
 
+class _SmoothBand(CallableAtom):
+    """`smooth_band` — the band around a `smooth` line, 0.95 unless told otherwise.
+
+    `smooth`'s pair form, as `confidence` is `mean`'s: `ribbon * smooth_band +
+    line * smooth` draws the trend with its band.
+    """
+
+    __slots__ = ()
+
+    def __call__(self, level: Optional[float] = None) -> Atom:
+        if level is not None and (
+            isinstance(level, bool)
+            or not isinstance(level, (int, float))
+            or not 0 < level < 1
+        ):
+            raise GogError(
+                "gog: `smooth_band(level=)` needs one number strictly between 0 and 1, "
+                "e.g. `smooth_band(0.95)`."
+            )
+        return Atom(
+            "transform",
+            transform="smooth_band",
+            level=None if level is None else float(level),
+        )
+
+
+smooth_band = _SmoothBand("transform", transform="smooth_band")
+
+
 class _Deviation(CallableAtom):
     """`deviation` — the spread band per group, one standard deviation unless told."""
 

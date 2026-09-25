@@ -224,8 +224,20 @@ is the order it runs in, and there is no other order it could run in.
 
 The reason is what `mean` needs. A statistic reduces a **group** to one number,
 and a continuous column has no groups: every value stands alone, so its mean is
-itself. `bin` is what makes the groups, by turning many distinct numbers into
-one band. So the cut comes first: without it, the mean has nothing to average.
+itself. Ask for the mean of `life` at each value of `gdp`, and each group holds
+one country:
+
+```{r}
+#| message: true
+data(gapminder_2007) + point * mean + x(gdp) + y(life)
+```
+
+*"Given gapminder 2007: points derived by mean, x is gdp, y is life."*
+
+The picture is the plain scatterplot, and the note printed with it says why:
+each mean is one row's own value. `bin` is what makes the groups, by turning
+many distinct numbers into one band. So the cut comes first: without it, the
+mean has nothing to average.
 
 So two transforms work together only when they do different jobs. There are four
 jobs: making the groups, measuring inside them, rescaling the result, and

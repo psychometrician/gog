@@ -11,6 +11,8 @@ a user's first plot would.
 """
 
 import builtins
+import contextlib
+import io
 import json
 import re
 import subprocess
@@ -722,6 +724,21 @@ refuses("tick_count on a categorical axis",
 refuses("a layer stating its own tick count",
         lambda: render_svg(data(grid5, name="g5") + x(col.a, tick_count=4) + y(col.b) +
                            point + x(col.a, tick_count=9)))
+
+# A count past the most one axis draws (26) widens the step rather than cutting
+# the axis short. The cut kept the first 26 ticks: 40 on gdp labeled 0K to 25K on
+# an axis that runs to 49K, and said nothing.
+wide = {"gdp": [277.55, 12000.0, 49357.19], "life": [40.0, 60.0, 82.0]}
+with contextlib.redirect_stderr(io.StringIO()) as said:
+    svg = render_svg(data(wide, name="wide") + point + x(col.gdp, tick_count=40) + y(col.life))
+labels = re.findall(r">([^<>]*)</text>", svg)
+assert "48K" in labels and "25K" not in labels, \
+    f"a count past the maximum should widen the step to the far end: {labels}"
+assert "a tick every 2K instead" in said.getvalue(), f"a widened step went unreported: {said.getvalue()!r}"
+with contextlib.redirect_stderr(io.StringIO()) as quiet:
+    render_svg(data(wide, name="wide") + point + x(col.gdp, tick_count=26) + y(col.life))
+assert "ticks on this axis" not in quiet.getvalue(), f"a count that fits said: {quiet.getvalue()!r}"
+ok("a count past the maximum widens the step to the far end, and says so")
 
 # ---------------------------------------------------------------------------
 # Polar — every mark that draws flat draws bent (spec §15)
@@ -2251,3 +2268,257 @@ render_svg(data(_strip) + bar * count + x(col.g) + y(col.count))
 assert _refusal(lambda: render_svg(data(_strip) + box * mean + x(col.g) + y(col.v))) \
     .count("gog: `") == 1, "`box * mean` should be refused once"
 ok("a tally's axis names no column, and a box's refusal is said once")
+
+
+# --- each of these drew something other than the sentence said ------------------
+# A count a log, calendar or map axis never read, a date on `z` in epoch seconds,
+# a page coarsening its plots' ticks, two keys for one column, a transparent
+# figure painted white, a name far from its axis, a dash an `edge` refused, a
+# label the layout had nowhere to read from.
+from datetime import timedelta as _timedelta  # noqa: E402
+
+
+def _labels(svg: str) -> list:
+    return re.findall(r">([^<>]*)</text>", svg)
+
+
+_big = {"i": list(builtins.range(25)), "v": [10.0 ** k for k in builtins.range(25)]}
+_lab = _labels(render_svg(data(_big) + point + x(col.i) + y(col.v, scale="log")))
+assert "10¹²" in _lab and not any("000B" in l for l in _lab), _lab
+
+_wide = {"gdp": [277.55, 2000.0, 12000.0, 49357.19], "life": [40.0, 55.0, 70.0, 82.0]}
+
+
+def _logged(**kw):
+    return _labels(render_svg(data(_wide, name="wide") + point
+                              + x(col.gdp, scale="log", **kw) + y(col.life)))
+
+
+assert "2K" not in _logged() and {"2K", "5K"} <= set(_logged(tick_count=12)), _logged(tick_count=12)
+_days = {"day": [date(2024, 3, 1) + _timedelta(days=i) for i in builtins.range(42)],
+         "orders": [20.0, 22.0, 24.0, 26.0, 28.0, 30.0, 32.0] * 6}
+
+
+def _dated(**kw):
+    return builtins.sum(bool(re.match(r"(Feb|Mar|Apr) ", l)) for l in _labels(
+        render_svg(data(_days, name="days") + line + x(col.day, **kw) + y(col.orders))))
+
+
+assert (_dated(), _dated(tick_count=3), _dated(tick_count=20)) == (6, 3, 22), \
+    (_dated(), _dated(tick_count=3), _dated(tick_count=20))
+assert "Mar 4" in _labels(render_svg(data(_days, name="days") + point + x(col.orders)
+                                     + y(col.orders) + z(col.day)))
+
+_quakes = {"east": [165.0, 170.0, 175.0, 180.0, 185.0], "north": [-35.0, -30.0, -25.0, -20.0, -15.0]}
+
+
+def _degrees(**kw):
+    return builtins.sum(l.endswith("°") for l in _labels(render_svg(
+        data(_quakes, name="quakes") + point + x(col.east, **kw) + y(col.north) + map())))
+
+
+assert _degrees(tick_count=20) > _degrees() + 5, (_degrees(tick_count=20), _degrees())
+
+_page = ((data(_wide, name="wide") + point + x(col.gdp, tick_count=3) + y(col.life))
+         | (data(_wide, name="wide") + point + x(col.gdp, tick_count=12) + y(col.life)))
+assert {"5K", "15K", "45K"} <= set(_labels(render_svg(_page))), "a page coarsened its ticks"
+
+_kinds = {"x": [1.0, 2.0, 3.0], "y": [1.0, 2.0, 3.0], "kind": ["a", "b", "c"]}
+_merged = render_svg(data(_kinds, name="kinds") + point + x(col.x) + y(col.y)
+                     + color(col.kind) + shape(col.kind))
+assert _labels(_merged).count("Kind") == 1, "color and shape on one column drew two keys"
+assert "`shape(<column>)`" in _refusal(lambda: render_svg(
+    data(_kinds, name="kinds") + point + x(col.x) + y(col.y) + color(col.kind) + palette("gray")))
+_clear = render_svg(data(_kinds, name="kinds") + point + x(col.x) + y(col.y)
+                    + theme(background="transparent"))
+assert '<rect width="800" height="600" fill="white"/>' not in _clear, "a transparent figure is white"
+_squared = render_svg(data(_kinds, name="kinds") + point + x(col.x) + y(col.y) + theme(ratio=1))
+assert float(re.search(r"rotate\(-90 ([0-9.]+) ", _squared).group(1)) > 50, \
+    "the y name stayed at the image's edge"
+
+assert "a `cross` is two strokes with no fill" in _refusal(lambda: render_svg(
+    data(_kinds, name="kinds") + point + x(col.x) + y(col.y)
+    + style(shape="cross", border_color="red", border_size=2)))
+
+_links = {"src": ["a", "a", "b"], "dst": ["b", "c", "c"]}
+assert "`label(name)`" in _refusal(lambda: render_svg(
+    data(_links, name="links") + text * layout(col.src, col.dst) + label(col.src) + network()))
+assert "stroke-dasharray" in render_svg(
+    data(_links, name="links") + edge * layout(col.src, col.dst) + pattern(col.src) + network())
+_boxes = {"g": ["a"] * 5 + ["b"] * 5, "v": [1.0, 2.0, 3.0, 4.0, 5.0, 2.0, 4.0, 6.0, 8.0, 10.0]}
+
+
+def _caps(on):
+    return render_svg(data(_boxes, name="boxes") + box + x(col.g) + y(col.v)
+                      + style(caps=on)).count('stroke-linecap="round"/>')
+
+
+assert (_caps(True), _caps(False)) == (4, 0), "style(caps=False) should leave a box's whiskers bare"
+assert render_svg(data(_links, name="links") + edge * layout(col.src, col.dst)
+                  + style(arrow="end") + network()).count("<polygon") == 3, \
+    "style(arrow='end') should put a head on each edge"
+_ramp = {"x": [0.0, 1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0],
+         "y": [1.0, 3.0, 2.0, 4.0, 3.0, 5.0, 4.0, 6.0],
+         "v": [0.0, 1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0]}
+with contextlib.redirect_stderr(io.StringIO()) as _said:
+    render_svg(data(_ramp, name="ramp") + line + x(col.x) + y(col.y) + color(col.v))
+assert "`color(v)` holds numbers" in _said.getvalue(), _said.getvalue()
+ok("counts on every axis, calendar z, shared ticks, one key, transparent, names beside "
+   "the panel, dashed edges, node labels")
+
+
+# --- a partition read as proportion, the spine plot's axis, the filled pile ------
+# A partition read as proportion divides its measure axis by the total and keeps
+# its other axis's name; a spine plot's share axis runs 0 to 1 instead of -0 to 2;
+# the refusal of a proportion beside a filled pile names `stack(share = TRUE)` and a
+# way out that draws; and `box * jitter` is refused toward `dodge`.
+_trips = {"city": ["A", "A", "B", "B"], "mode": ["car", "bus", "car", "bus"],
+          "people": [30.0, 10.0, 20.0, 40.0]}
+_lab = _labels(render_svg(data(_trips, name="trips") + x(col.people)
+                          + zone * partition(col.city, col.mode, cross=True) * proportion
+                          + color(col.mode)))
+_nums = [float(l) for l in _lab if re.fullmatch(r"-?[0-9.]+", l)]
+assert "Share of column" in _lab and "Proportion" not in _lab and _nums \
+    and builtins.max(_nums) <= 1.0, f"partition * proportion should tick in shares: {_lab}"
+_lab = _labels(render_svg(data(_trips, name="trips") + x(col.people)
+                          + text * partition(col.city, col.mode) * proportion + label(col.name)))
+assert {"A", "car"} <= set(_lab), f"text * partition * proportion should name the nodes: {_lab}"
+_spine = _labels(render_svg(data(_trips, name="trips") + zone * partition(col.city, cross=True)
+                            + x(col.people) + color(col.city)))
+assert "-0" not in _spine and {"0.2", "1.0"} <= set(_spine), \
+    f"a spine plot's share axis should run 0 to 1: {_spine}"
+for _what, _thunk, _fragment in [
+    ("proportion beside a filled pile",
+     lambda: render_svg(data(_trips, name="trips") + bar * stack(share=True) * proportion
+                        + x(col.city) + color(col.mode)),
+     "`bar * count * stack(share = TRUE)` for shares within each pile"),
+    ("jitter on a box",
+     lambda: render_svg(data(_trips, name="trips") + box * jitter + x(col.city) + y(col.people)),
+     "`dodge` sets them side by side"),
+]:
+    assert _fragment in _refusal(_thunk), f"{_what}: {_refusal(_thunk)}"
+ok("partition * proportion in shares, the spine plot's axis, the filled-pile refusal, "
+   "and box * jitter refused")
+
+
+# --- a written name on an axis with no numbers, jitter(0), bounds on a bar -------
+# A name written with `y_label()` is drawn where an axis draws no numbers (a moved
+# pile, a partition's ring), where it used to be dropped in silence; `jitter(0)`
+# draws with a note that it moved nothing; and the `bounds` refusal names `zone`,
+# the fifth mark that takes the pair.
+_weeks = {"week": [1.0, 2.0, 3.0, 4.0] * 2, "plays": [3.0, 4.0, 5.0, 4.0, 2.0, 3.0, 2.0, 4.0],
+          "genre": ["folk"] * 4 + ["jazz"] * 4}
+_lab = _labels(render_svg(data(_weeks, name="weeks") + area * stack(baseline="wiggle")
+                          + x(col.week) + y(col.plays) + color(col.genre)
+                          + y_label("Plays per week")))
+assert "Plays per week" in _lab, f"a written y_label should be drawn on a moved pile: {_lab}"
+_strip3 = {"g": ["a", "a", "a", "b", "b", "b"], "v": [1.0, 2.0, 3.0, 2.0, 3.0, 4.0]}
+with contextlib.redirect_stderr(io.StringIO()) as _said:
+    render_svg(data(_strip3, name="strip3") + point * jitter(0) + x(col.g) + y(col.v))
+assert "`jitter(0)` moves no point" in _said.getvalue(), _said.getvalue()
+assert "`zone` shades the region between them" in _refusal(
+    lambda: render_svg(data(_strip3, name="strip3") + bar * bounds(col.v, col.v) + x(col.g)))
+ok("a written name on an axis with no numbers, jitter(0)'s note, and zone in the bounds refusal")
+
+
+# --- a partition's axes run from 0 ------------------------------------------------
+# They are ticked over the cells, not over the cells' centers, so a mosaic's share
+# axis reads 0.0 to 1.0, and a sunburst's angle labels 0 once, at the top, where its
+# total would share the spoke.
+_lab = _labels(render_svg(data(_trips, name="trips") + zone * partition(col.city, col.mode, cross=True)
+                          + x(col.people) + color(col.mode)))
+assert {"0", "0.0", "1.0"} <= set(_lab), f"a mosaic's axes should run from 0: {_lab}"
+_lab = _labels(render_svg(data(_trips, name="trips") + zone * partition(col.city, col.mode)
+                          + x(col.people) + color(col.city) + polar()))
+assert _lab.count("0") == 1 and "100" not in _lab, f"a sunburst labels 0 once: {_lab}"
+ok("a partition's axes are ticked from 0 over its cells")
+
+
+# --- a summary of one-row groups says so ------------------------------------------
+_spread = {"gdp": [1.5, 2.5, 3.5, 4.5], "life": [50.0, 60.0, 70.0, 80.0]}
+with contextlib.redirect_stderr(io.StringIO()) as _said:
+    render_svg(data(_spread, name="spread") + bar * mean + x(col.gdp) + y(col.life))
+assert "every group holds a single row" in _said.getvalue() \
+    and "`bar * bin * mean`" in _said.getvalue(), _said.getvalue()
+_twice = {"gdp": [1.0, 1.0, 2.0, 2.0], "life": [50.0, 60.0, 70.0, 80.0]}
+with contextlib.redirect_stderr(io.StringIO()) as _said:
+    render_svg(data(_twice, name="twice") + bar * mean + x(col.gdp) + y(col.life))
+assert "every group holds a single row" not in _said.getvalue(), _said.getvalue()
+ok("a summary of one-row groups says so, and a real summary does not")
+
+
+# --- every plot is a named image ----------------------------------------------------
+_pts = {"gdp": [1.0, 2.0, 3.0], "life": [50.0, 60.0, 70.0]}
+_svg = render_svg(data(_pts, name="pts") + point + x(col.gdp) + y(col.life))
+assert 'role="img" aria-label="Points, x is gdp, y is life"' in _svg, _svg[:200]
+assert 'aria-label="Longer lives"' in render_svg(
+    data(_pts, name="pts") + point + x(col.gdp) + y(col.life) + title("Longer lives"))
+ok("every plot carries an accessible name")
+
+
+# --- a color name means one color -------------------------------------------------
+_d5 = {"a": [1.0, 2.0, 3.0, 4.0, 5.0], "b": [1.0, 2.0, 3.0, 4.0, 5.0], "v": [1.0, 2.0, 3.0, 4.0, 5.0]}
+_svg = render_svg(data(_d5, name="d5") + point + x(col.a) + y(col.b) + color(col.v)
+                  + palette(["white", "green"]))
+assert "#008000" in _svg and "#00ff00" not in _svg.lower(), "a ramp through green ends at CSS green"
+ok("a palette's green is CSS's green")
+
+
+# --- a page carries only the columns its plot names --------------------------------
+_people = {"gdp": [1000.0, 20000.0, 40000.0], "life": [50.0, 70.0, 80.0],
+           "email": ["a@x.org", "b@x.org", "c@x.org"]}
+_bp = (data(_people, name="people") + point + x(col.gdp) + y(col.life)
+       + brush(col.gdp, at=(2000, 30000)))
+_block = _R.svg_block(render_svg(_bp), _bp)
+if "<script" in _block:
+    assert "a@x.org" not in _block and '"email"' not in _block, "an unmapped column was published"
+    assert '"gdp"' in _block and '"life"' in _block, "a mapped column was dropped"
+    ok("a page carries only the columns its plot names")
+else:
+    print("SKIP: browser engine not built, so the payload cannot be checked")
+
+
+# --- smooth_band: the band around a smooth line ------------------------------------
+_pts = {"g": [float(i) for i in builtins.range(1, 31)],
+        "v": [__import__("math").sin(i / 5) * 3 + (i % 4) for i in builtins.range(1, 31)]}
+
+
+def _band(*args):
+    return render_svg(data(_pts, name="pts") + ribbon * smooth_band(*args) + x(col.g) + y(col.v)
+                      + line * smooth + x(col.g) + y(col.v))
+
+
+assert "<polygon" in _band() and "Ribbons derived by smooth_band" in _band(), "the band did not draw"
+assert _band(0.5) != _band(0.99), "smooth_band's level did not reach the engine"
+refuses("a smooth_band level outside (0, 1)", lambda: smooth_band(1.5))
+# The band needs five rows where its curve needs three: below five every local fit
+# passes through its own points and leaves nothing to measure a width from.
+try:
+    render_svg(data({"g": _pts["g"][:4], "v": _pts["v"][:4]}, name="four")
+               + ribbon * smooth_band + x(col.g) + y(col.v))
+    raise AssertionError("FAIL: smooth_band on four rows should be refused")
+except GogError as _e:
+    assert "`smooth_band`" in str(_e) and "at least 5" in str(_e), str(_e)
+    assert "`line * smooth`" in str(_e), str(_e)
+ok("smooth_band draws the band around smooth, at its level")
+
+
+# --- the parentheses refusal, and a bar split by what it takes ---------------------
+_a = {"g": [1.0, 2.0, 3.0], "v": [1.0, 2.0, 3.0]}
+_lines = {"at": [1.5, 2.5]}
+try:
+    data(_a, name="a") + x(col.g) + y(col.v) + point + (data(_lines, name="lines") + rule + x(col.at))
+    raise AssertionError("FAIL: marks in parentheses were accepted")
+except GogError as _e:
+    assert "`+ data(lines) + rule`" in str(_e) and "area" not in str(_e), str(_e)
+try:
+    data(_a, name="a") + x(col.g) + y(col.v) + point + (data(_lines, name="lines") + x(col.at))
+    raise AssertionError("FAIL: a group with no mark was accepted")
+except GogError as _e:
+    assert "do not group the parts of a plot" in str(_e), str(_e)
+_eras = {"continent": ["Asia", "Asia", "Europe", "Europe"], "era": ["1957", "2007"] * 2,
+         "life": [50.0, 60.0, 65.0, 75.0]}
+assert "Add `color(<field>)` or `pattern(<field>)`" in _refusal(
+    lambda: render_svg(data(_eras, name="eras") + bar * mean * dodge + x(col.continent) + y(col.life)))
+assert "<rect" in render_svg(data(_eras, name="eras") + bar * count * stack + pattern(col.era))
+ok("the parentheses refusal names the reader's marks; a bar is split by what it takes")

@@ -316,7 +316,7 @@ end
 # and `bounds`' column names ride the *layer* on the wire (`layer.bin`, …), not
 # the transform list — the transform list is names only. Absent parameters attach
 # nothing, so a bare `bar * bin` stays on Sturges' rule.
-const CARRIED = Set([:bin, :density, :range, :confidence, :deviation, :quantile, :jitter, :stack, :bounds, :partition, :flow, :layout, :cluster])
+const CARRIED = Set([:bin, :density, :range, :confidence, :smooth_band, :deviation, :quantile, :jitter, :stack, :bounds, :partition, :flow, :layout, :cluster])
 
 function carry!(layer::Atom, transform::Atom)
     name = transform.fields[:transform]
@@ -375,12 +375,22 @@ function Base.:+(left::Plot, right::Plot)
     skeleton["data"] = right.spec["data"]
     if right.spec != skeleton || right.current_layer !== nothing ||
        right.pending_data !== nothing
-        nm = something(right.spec["data"], "df")
+        # An unnamed table is called `data`, as `data()` names it everywhere else.
+        nm = something(right.spec["data"], "data")
+        # The example is built from the marks inside the parentheses, so it reads
+        # as the reader's own sentence rather than one about `point` and `area`.
+        marks = [layer["mark"] for layer in right.spec["layers"]]
+        right.current_layer === nothing || push!(marks, right.current_layer["mark"])
+        isempty(marks) && throw(GogError(
+            "gog: parentheses do not group the parts of a plot, so everything " *
+            "inside these would be dropped. Write them in sequence instead, each " *
+            "after its own `+`, beginning with `+ data($nm)`. " *
+            "Parentheses compose whole plots, with `|` and `/`."))
+        example = join(["+ data($nm) + $m" for m in marks], " ")
         throw(GogError(
             "gog: parentheses do not group marks, so everything inside these would " *
             "be dropped. Write the marks in sequence instead, and repeat `data()` " *
-            "before each one that reads that table: " *
-            "`+ data($nm) + point + data($nm) + area`. " *
+            "before each one that reads that table: `$example`. " *
             "Parentheses compose whole plots, with `|` and `/`."))
     end
 
@@ -412,7 +422,7 @@ function Base.:+(left::Plot, right::Atom)
             "encodings" => deepcopy(right.fields[:encodings]),
             "transforms" => copy(right.fields[:transforms]),
             "data" => plot.pending_data)
-        for param in (:bin, :density, :range, :confidence, :deviation, :quantile, :jitter, :stack, :bounds, :partition, :flow, :layout, :cluster, :box)
+        for param in (:bin, :density, :range, :confidence, :smooth_band, :deviation, :quantile, :jitter, :stack, :bounds, :partition, :flow, :layout, :cluster, :box)
             haskey(right.fields, param) &&
                 (layer[String(param)] = deepcopy(right.fields[param]))
         end

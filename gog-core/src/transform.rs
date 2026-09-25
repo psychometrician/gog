@@ -711,7 +711,7 @@ pub fn jobs(t: &Transform, ctx: JobContext) -> Jobs {
         // Fits a curve through the rows. The window it fits over is its own extent,
         // and the fit is its own measurement, and it can give up neither: a curve
         // sampled at somebody else's cells is not the curve.
-        Transform::Smooth | Transform::Density => Jobs {
+        Transform::Smooth | Transform::SmoothBand | Transform::Density => Jobs {
             extent: true, measure: true, ..Jobs::default()
         },
         // Carves one rectangle into a hierarchy of them, and measures each node.
@@ -845,6 +845,7 @@ fn apply_one(df: &DataFrame, t: &Transform, key_field: &str, out_field: &str, bi
         Transform::Proportion => proportion(df, key_field, out_field),
         Transform::Range      => range(df, key_field, out_field, range_spec),
         Transform::Confidence => confidence(df, key_field, out_field, conf_spec),
+        Transform::SmoothBand => smooth_band(df, key_field, out_field, conf_spec),
         Transform::Deviation  => deviation(df, key_field, out_field, dev_spec),
         Transform::Box        => box_summary(df, key_field, out_field, box_spec),
         Transform::Bounds     => bounds(df, key_field, out_field, bounds_spec),
@@ -2047,8 +2048,19 @@ const GRID: usize = 64;
 /// `zone * bin * mean` route to the counting branch and paint a tally under a legend
 /// titled for a column nobody had reduced. The other three cannot be composed at all
 /// (`legality::check_chain_jobs`), so they need no such reading.
+///
+/// **A partition measures nodes, not cells**, so it answers `None` whatever rides
+/// with it. Its measurement is each node's extent along the measure axis, and a
+/// `proportion` beside it divides those extents by the total ([`partition_shares`]);
+/// it tallies no rows into the cells two categories make. Read as a tally, `zone *
+/// partition(…) * proportion` was refused as a tile plot with no `y()`, in a message
+/// that never named `partition`. The three whole-picture layouts answer `None` for
+/// the same reason: each places and measures its own marks, so a statistic beside one
+/// is refused for colliding with it, and not a second time as a tile plot.
 pub fn cell_measure(transforms: &[Transform]) -> Option<&'static str> {
-    if transforms.contains(&Transform::Bin) && measures_a_column(transforms) {
+    let lays_out = transforms.iter().any(|t| matches!(t,
+        Transform::Partition | Transform::Flow | Transform::Layout | Transform::Cluster));
+    if lays_out || (transforms.contains(&Transform::Bin) && measures_a_column(transforms)) {
         None
     // `proportion` is asked **first**, because it is a normalizer and so has the last
     // word on what the number is: composed with a `bin` or a `count` the cells hold
@@ -2526,6 +2538,22 @@ fn proportion(df: &DataFrame, x_field: &str, y_field: &str) -> DataFrame {
 // smooth — LOESS (locally weighted scatter-plot smoother)
 // ---------------------------------------------------------------------------
 
+/// The fewest rows a fit is drawn from, read by the transform and by the legality
+/// check alike, so the refusal and the `GOG_STRICT=0` fallback agree about which fits
+/// exist. Two points are a line and one is a point; three is where a *local*
+/// regression has a neighborhood to weight.
+///
+/// The band needs five. Each local fit weights the nearest three-quarters of the rows
+/// and gives the farthest of those no weight, so below five every fit rests on two
+/// points and passes through both. No residual is left to measure the band's width
+/// from, and it was drawn at zero width: a curve claiming to be known exactly.
+pub fn fit_min_rows(t: &Transform) -> usize {
+    match t {
+        Transform::SmoothBand => 5,
+        _ => 3,
+    }
+}
+
 /// Fit a LOESS curve through `(x_field, y_field)` with span = 0.75 and
 /// evaluate it at 100 evenly spaced x points.  Uses a tricube kernel and
 /// local linear regression at each evaluation point.
@@ -2540,7 +2568,7 @@ fn smooth(df: &DataFrame, x_field: &str, y_field: &str) -> DataFrame {
     let Some(xs) = df.float_col(x_field) else { return df.clone() };
     let Some(ys) = df.float_col(y_field) else { return df.clone() };
     let n = xs.len().min(ys.len());
-    if n < 3 { return df.clone(); }
+    if n < fit_min_rows(&Transform::Smooth) { return df.clone(); }
 
     // Sort by x
     let mut pts: Vec<(f64, f64)> = xs[..n].iter()
@@ -2595,6 +2623,118 @@ fn smooth(df: &DataFrame, x_field: &str, y_field: &str) -> DataFrame {
     DataFrame::new()
         .with_float(x_field, smooth_x)
         .with_float(y_field, smooth_y)
+}
+
+/// `smooth_band` — the LOESS fit's **confidence band**, `smooth`'s pair form as
+/// `confidence` is `mean`'s.
+///
+/// At each of `smooth`'s 100 evaluation points the fit is the same local linear
+/// regression, computed with `smooth`'s own arithmetic in the same order, so the band's
+/// center is `smooth`'s line to the bit and `ribbon * smooth_band + line * smooth` is
+/// one trend with its band. The fit is linear in the data, `ŷ(x) = Σ lᵢ(x)·yᵢ`, so its
+/// standard error is `σ̂·√Σ lᵢ(x)²`, and σ̂ comes from the residuals at the data points
+/// divided by the smoother's residual degrees of freedom, `δ₁ = n − 2·tr L + tr LᵀL`
+/// (Cleveland's estimate). The band is the fit ± t·se, t from Student's t at the
+/// layer's level (0.95 default) and δ₁ degrees of freedom, `confidence`'s interval
+/// read along a curve. Emitted as `confidence` emits: two rows per point, the low then
+/// the high, and a `center` column holding the fit.
+///
+/// The residual pass visits every data point once over a window of its nearest
+/// neighbors, found by sliding along the sorted x, so it costs n × window and no sort
+/// per point.
+fn smooth_band(df: &DataFrame, x_field: &str, y_field: &str,
+               spec: Option<&ConfidenceSpec>) -> DataFrame {
+    if df.str_col(x_field).is_some() || df.str_col(y_field).is_some() {
+        return df.clone();
+    }
+    let Some(xs) = df.float_col(x_field) else { return df.clone() };
+    let Some(ys) = df.float_col(y_field) else { return df.clone() };
+    let n = xs.len().min(ys.len());
+    if n < fit_min_rows(&Transform::SmoothBand) { return df.clone(); }
+    let level = spec.and_then(|s| s.level).unwrap_or(0.95);
+
+    let mut pts: Vec<(f64, f64)> = xs[..n].iter()
+        .zip(ys[..n].iter())
+        .map(|(&x, &y)| (x, y))
+        .collect();
+    pts.sort_by(|a, b| a.0.partial_cmp(&b.0).unwrap_or(std::cmp::Ordering::Equal));
+
+    let span   = 0.75_f64;
+    let window = ((n as f64 * span).ceil() as usize).max(2).min(n);
+    let x_lo   = pts[0].0;
+    let x_hi   = pts[n - 1].0;
+    let m      = 100_usize;
+
+    // One point's local fit over a given set of neighbors: the fit, and the sum of
+    // the squared weights `lᵢ` it gives the data (the variance factor), and each
+    // neighbor's own weight, for the residual pass.
+    let local = |xi: f64, idx: &mut dyn Iterator<Item = usize>, h: f64|
+        -> (f64, Vec<(usize, f64)>) {
+        let (mut sw, mut swx, mut swy, mut swxx, mut swxy) = (0.0, 0.0, 0.0, 0.0, 0.0);
+        let mut ws: Vec<(usize, f64)> = Vec::new();
+        for i in idx {
+            let u = (pts[i].0 - xi).abs() / h;
+            let w = (1.0 - u.powi(3)).powi(3).max(0.0);
+            let (px, py) = pts[i];
+            sw   += w;
+            swx  += w * px;
+            swy  += w * py;
+            swxx += w * px * px;
+            swxy += w * px * py;
+            ws.push((i, w));
+        }
+        let denom = sw * swxx - swx * swx;
+        if denom.abs() < 1e-12 {
+            let fit = swy / sw.max(1e-12);
+            let ls = ws.iter().map(|&(i, w)| (i, w / sw.max(1e-12))).collect();
+            (fit, ls)
+        } else {
+            let b = (sw * swxy - swx * swy) / denom;
+            let a = (swy - b * swx) / sw;
+            let ls = ws.iter()
+                .map(|&(i, w)| (i, w / denom * (swxx - swx * (pts[i].0 + xi) + sw * xi * pts[i].0)))
+                .collect();
+            (a + b * xi, ls)
+        }
+    };
+
+    // The residual pass: every data point's fit over its own `window` nearest
+    // neighbors, which in sorted order are one contiguous run that only moves right.
+    let (mut rss, mut tr_l, mut tr_ltl) = (0.0, 0.0, 0.0);
+    let mut lo = 0_usize;
+    for j in 0..n {
+        let xj = pts[j].0;
+        while lo + window < n && (pts[lo + window].0 - xj) < (xj - pts[lo].0) {
+            lo += 1;
+        }
+        let h = (xj - pts[lo].0).max(pts[lo + window - 1].0 - xj).max(1e-12);
+        let (fit, ls) = local(xj, &mut (lo..lo + window), h);
+        rss += (pts[j].1 - fit).powi(2);
+        tr_l += ls.iter().find(|(i, _)| *i == j).map(|(_, l)| *l).unwrap_or(0.0);
+        tr_ltl += ls.iter().map(|(_, l)| l * l).sum::<f64>();
+    }
+    let delta1 = n as f64 - 2.0 * tr_l + tr_ltl;
+    let sigma = if delta1 > 0.0 { (rss / delta1).sqrt() } else { 0.0 };
+    let t = t_quantile(1.0 - level, delta1.max(1.0));
+
+    let mut kx = Vec::with_capacity(2 * m);
+    let mut vals = Vec::with_capacity(2 * m);
+    let mut ctr = Vec::with_capacity(2 * m);
+    for i in 0..m {
+        let xi = x_lo + (i as f64 / (m - 1) as f64) * (x_hi - x_lo);
+        // `smooth`'s own neighbors and bandwidth, so the center is its line.
+        let mut dists: Vec<(f64, usize)> = pts.iter()
+            .enumerate()
+            .map(|(i, (px, _))| ((px - xi).abs(), i))
+            .collect();
+        dists.sort_by(|a, b| a.0.partial_cmp(&b.0).unwrap_or(std::cmp::Ordering::Equal));
+        let h = dists[window - 1].0.max(1e-12);
+        let (fit, ls) = local(xi, &mut dists[..window].iter().map(|&(_, i)| i), h);
+        let se = sigma * ls.iter().map(|(_, l)| l * l).sum::<f64>().sqrt();
+        kx.push(xi); vals.push(fit - t * se); ctr.push(fit);
+        kx.push(xi); vals.push(fit + t * se); ctr.push(fit);
+    }
+    DataFrame::new().with_float(x_field, kx).with_float(y_field, vals).with_float("center", ctr)
 }
 
 // ---------------------------------------------------------------------------
@@ -3767,6 +3907,30 @@ pub fn partition(
     out
 }
 
+/// `partition * proportion`: the measure axis divided by its total, so it runs
+/// `0 .. 1` and each node's extent along it is its share of the whole.
+///
+/// This is `proportion`'s one meaning, read on a partition's output. The leaves lie
+/// end to end on the measure axis, so the total is where the last one ends, and
+/// dividing the two edges and the center by it turns amounts into shares. Nothing
+/// else moves: a crossed partition's other axis is already each cell's share of its
+/// own column, and a nested one's is the ring.
+pub fn partition_shares(df: &DataFrame, measure_out: &str) -> DataFrame {
+    let total = df.float_col(CELL_END)
+        .map(|c| c.iter().copied().filter(|v| v.is_finite()).fold(0.0, f64::max))
+        .unwrap_or(0.0);
+    if total <= 0.0 {
+        return df.clone();
+    }
+    let mut out = df.clone();
+    for field in [CELL_START, CELL_END, measure_out] {
+        if let Some(c) = df.float_col(field) {
+            out = out.with_float(field, c.iter().map(|v| v / total).collect());
+        }
+    }
+    out
+}
+
 /// The flow diagram's shared layout — one computation, projected per reading
 /// mark exactly as `partition` feeds a rectangle and a name (spec §15, the flow
 /// entry). One input row is one path through every stage; rows sharing a path
@@ -4697,12 +4861,12 @@ mod tests {
     /// Every transform the kernel has, named here on purpose. `every_transform_has_a_job`
     /// and the table below both walk it, so a twentieth variant fails to compile
     /// against this array before it can reach either rule.
-    const EVERY_TRANSFORM: [Transform; 19] = [
+    const EVERY_TRANSFORM: [Transform; 20] = [
         Transform::Bin, Transform::Smooth, Transform::Count, Transform::Density,
         Transform::Sum, Transform::Mean, Transform::Median, Transform::Max,
         Transform::Min, Transform::Proportion, Transform::Range, Transform::Confidence,
-        Transform::Box, Transform::Bounds, Transform::Dodge, Transform::Stack,
-        Transform::Jitter, Transform::Partition, Transform::Cluster,
+        Transform::SmoothBand, Transform::Box, Transform::Bounds, Transform::Dodge,
+        Transform::Stack, Transform::Jitter, Transform::Partition, Transform::Cluster,
     ];
 
     /// **A transform with no job composes silently with everything, so there is no
@@ -7023,6 +7187,79 @@ mod tests {
             area += (e[i] - s[i]) * (hi[i] - lo[i]);
         }
         assert!((area - 8.0).abs() < 1e-9, "the cells tile 8 wide by 1 high, got {area}");
+    }
+
+    /// `smooth_band` is `smooth`'s line with a band around it: two rows at each of
+    /// `smooth`'s points, the low then the high, with the fit as their center, and
+    /// the center is `smooth`'s own value to the bit. A higher level is a wider band.
+    #[test]
+    fn a_smooth_band_is_smooths_line_with_a_band_that_widens_with_its_level() {
+        let xs: Vec<f64> = (0..40).map(|i| i as f64).collect();
+        let ys: Vec<f64> = xs.iter().map(|x| (x / 6.0).sin() * 3.0 + (x * 7.0 % 5.0)).collect();
+        let df = DataFrame::new().with_float("x", xs).with_float("y", ys);
+        let line = smooth(&df, "x", "y");
+        let band = smooth_band(&df, "x", "y", None);
+        let (lx, ly) = (col(&line, "x"), col(&line, "y"));
+        let (bx, by, bc) = (col(&band, "x"), col(&band, "y"), col(&band, "center"));
+        assert_eq!(bx.len(), 2 * lx.len(), "two rows per point");
+        for i in 0..lx.len() {
+            assert_eq!(bx[2 * i], lx[i]);
+            assert_eq!(bc[2 * i].to_bits(), ly[i].to_bits(), "the center is smooth's line");
+            assert!(by[2 * i] < bc[2 * i] && bc[2 * i] < by[2 * i + 1],
+                "low < fit < high at point {i}");
+        }
+        let wide = smooth_band(&df, "x", "y", Some(&ConfidenceSpec { level: Some(0.99) }));
+        let wy = col(&wide, "y");
+        for i in 0..lx.len() {
+            assert!(wy[2 * i + 1] - wy[2 * i] > by[2 * i + 1] - by[2 * i], "99% is wider");
+        }
+    }
+
+    /// Below five rows every local fit passes through its own two points, so the band
+    /// had no residual to measure and was drawn at zero width. It now returns the frame
+    /// unchanged there, as `smooth` does below three, and from five it has a width.
+    #[test]
+    fn a_band_is_drawn_from_five_rows_and_has_a_width_there() {
+        let frame = |n: usize| {
+            let xs: Vec<f64> = (0..n).map(|i| i as f64).collect();
+            let ys: Vec<f64> = xs.iter().map(|x| x + if (*x as usize) % 2 == 0 { 0.8 } else { -0.8 }).collect();
+            DataFrame::new().with_float("x", xs).with_float("y", ys)
+        };
+        for n in [3, 4] {
+            let out = smooth_band(&frame(n), "x", "y", None);
+            assert!(out.float_col("center").is_none(), "{n} rows: the frame, unchanged");
+            assert_eq!(out.len(), n);
+        }
+        let out = smooth_band(&frame(5), "x", "y", None);
+        let y = col(&out, "y");
+        assert!(y.chunks(2).all(|p| p[1] - p[0] > 0.0), "every point has a width");
+    }
+
+    #[test]
+    fn a_partition_read_as_proportion_is_its_measure_axis_over_the_total() {
+        // `partition * proportion` divides the measure axis and nothing else: the
+        // widths become shares of the whole, in both readings, and a crossed cell's
+        // height was already a share of its column and does not move.
+        let df = crossed_table();
+        for cross in [false, true] {
+            let nodes = partition(&df, &names(2), Some("amount"), "amount", "depth", cross);
+            let shares = partition_shares(&nodes, "amount");
+            for field in [CELL_START, CELL_END, "amount"] {
+                let (before, after) = (col(&nodes, field), col(&shares, field));
+                for i in 0..before.len() {
+                    assert!((after[i] - before[i] / 90.0).abs() < 1e-12,
+                        "cross = {cross}: `{field}` row {i} is {} of 90, got {}",
+                        before[i], after[i]);
+                }
+            }
+            assert_eq!(col(&nodes, CELL_LOWER), col(&shares, CELL_LOWER), "cross = {cross}");
+            assert_eq!(col(&nodes, CELL_UPPER), col(&shares, CELL_UPPER), "cross = {cross}");
+        }
+        // And the partition measures no cells, so nothing reads the pair as a tile
+        // plot, and neither does any whole-picture layout.
+        for t in [Transform::Partition, Transform::Flow, Transform::Layout, Transform::Cluster] {
+            assert_eq!(cell_measure(&[t.clone(), Transform::Proportion]), None, "{t:?}");
+        }
     }
 
     /// A pile split by two columns stacks every combination, the first column

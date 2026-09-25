@@ -68,10 +68,10 @@ and high values, and only the shape changes:
 | `step * range` | the same two boundaries, as staircases |
 | `interval * range` | one whisker per group |
 
-`range` is one of four **pair transforms**. A pair transform supplies a low
+`range` is one of five **pair transforms**. A pair transform supplies a low
 value and a high value, where most transforms supply a single number. The other
-three are `confidence`, `deviation` and `bounds`, and every mark in that table
-takes all four.
+four are `confidence`, `deviation`, `smooth_band` and `bounds`, and every mark in
+that table takes all five.
 
 ## The middle half of each group
 
@@ -389,21 +389,22 @@ y is petal length, color by species, with caps off."*
 `caps` belongs to the two marks that draw whiskers, `interval` and
 [`box`](box.qmd). On any other mark, `style(caps = )` is refused, and the
 message says what to use instead. A bar's `border_size` is
-refused on a `line` the same way. `caps` combines with all four pair
+refused on a `line` the same way. `caps` combines with all five pair
 transforms. So the error bar, the linerange and the pointrange are all the same
 mark. Only the transform and one setting change.
 
 ## Hiding the center dot
 
 Whether a center exists is decided by the statistic, not by a setting.
-`confidence` and `deviation` compute a mean, and `range` and `bounds` do not.
-So `confidence` and `deviation` draw a pointrange, and `range` and `bounds`
-draw a bare error bar. A second layer can add a center where the statistic has
-none. `point * mean` over `interval * range` draws a pointrange from two
-layers, as [Three layers instead of one
-mark](#three-layers-instead-of-one-mark) shows with the median.
+`confidence` and `deviation` compute a mean as their center, and `smooth_band`
+computes the fitted value. `range` and `bounds` compute none. So the first three
+draw a pointrange, and `range` and `bounds` draw a bare error bar. A second
+layer can add a center where the statistic has none. `point * mean` over
+`interval * range` draws a pointrange from two layers, as [Three layers instead
+of one mark](#three-layers-instead-of-one-mark) shows with the median.
 
-A setting can only hide a center that exists. A pointrange's dot is the mean.
+A setting can only hide a center that exists. A pointrange's dot is the center
+the statistic computed.
 Sometimes you want the whisker without it. `style(center = FALSE)` drops the
 dot and leaves a bare error bar. `center = TRUE`, the default, keeps it:
 

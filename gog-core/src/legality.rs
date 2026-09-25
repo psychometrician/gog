@@ -649,8 +649,9 @@ pub fn rule_for(mark: &Mark, channel: &Channel) -> Rule {
             Size => SET_ONLY,    // stroke width; the linewidth question, whole
             Shape => CANNOT,     // a stroke has no glyph
             // The settable dash arrives with the stroke class (the settable
-            // rule); a *mapped* dash is grammar this engine has not drawn yet.
-            Pattern => rule(Can, Discrete, None).settable(),
+            // rule), and a *mapped* one draws per row, as `color` does: each row
+            // is its own stroke, so each can carry its category's dash.
+            Pattern => rule(Can, Discrete, Some(Discrete)).settable(),
             Group => CANNOT,     // one row is one edge already
             Label => CANNOT,     // names belong to `text * layout + label(name)`
             Play => rule(Can, Either, Some(Either)), // a frame is a subset of rows
@@ -804,10 +805,11 @@ fn mark_name(mark: &Mark) -> &'static str {
     }
 }
 
-fn transform_name(t: &Transform) -> &'static str {
+pub(crate) fn transform_name(t: &Transform) -> &'static str {
     match t {
         Transform::Bin => "bin",
         Transform::Smooth => "smooth",
+        Transform::SmoothBand => "smooth_band",
         Transform::Count => "count",
         Transform::Density => "density",
         Transform::Sum => "sum",
@@ -948,17 +950,26 @@ fn mark_takes_setting(mark: &Mark, setting: Setting) -> bool {
         // four `rule`s per cell and there are as many cells as the data has.
         BorderColor | BorderSize =>
             matches!(mark, Mark::Bar | Mark::Box | Mark::Point | Mark::Surface | Mark::Zone),
-        // Interval's own display toggles.
-        Caps | Center => matches!(mark, Mark::Interval),
+        // The crossbars at a whisker's ends, on both marks that draw whiskers: a
+        // `box`'s are the same strokes as an `interval`'s, so the settable rule
+        // spans them (spec §4). It was `interval`-only until 2026-09-24, and the
+        // refusal on a `box` said "a `box` has none" over a box drawing caps.
+        Caps => matches!(mark, Mark::Interval | Mark::Box),
+        // The center dot a confidence interval draws: `interval`'s alone, since a
+        // box's middle is its median bar, which is the box.
+        Center => matches!(mark, Mark::Interval),
         // A text label's offset.
         Nudge => matches!(mark, Mark::Text),
-        // A head on the one mark that has a direction to point in. Not the
+        // A head on the marks that have a direction to point in. Not the
         // narrowness it looks like: the settable rule (spec §4) spans a
         // setting across its *geometry class*, and the geometry here is "a
-        // stroke whose vertex order is the data's". `line`/`step` sort by x,
-        // so their last vertex is an artifact of the sort rather than an end
-        // the data chose; `interval` already decorates its ends with `caps`.
-        Arrow => matches!(mark, Mark::Path),
+        // stroke whose ends the data chose". A `path` runs from its first row to
+        // its last, and an `edge` from its `from` column to its `to` column, the
+        // order `layout(from, to)` states; `edge` joined 2026-09-24, when its
+        // refusal was found saying the mark had no direction. `line`/`step` sort
+        // by x, so their last vertex is an artifact of the sort rather than an
+        // end the data chose; `interval` already decorates its ends with `caps`.
+        Arrow => matches!(mark, Mark::Path | Mark::Edge),
         // How far the one-position mark reaches across the axis it does not name.
         // Narrow for the same reason `arrow` is: the geometry class is "a mark
         // whose extent the panel supplies", and `rule` is its only member. Every
@@ -1041,7 +1052,7 @@ use crate::transform::is_value_statistic;
 /// but is injected by the `box` mark, never composed, so it is not one of these.)
 fn is_pair_transform(t: &Transform) -> bool {
     matches!(t, Transform::Range | Transform::Confidence | Transform::Deviation
-                | Transform::Bounds)
+                | Transform::Bounds | Transform::SmoothBand)
 }
 
 /// A collision modifier (Wilkinson §8): an *offset*, not a statistic. They divide
@@ -1121,14 +1132,20 @@ pub fn mark_takes_transform(mark: &Mark, transform: &Transform) -> TransformLega
     // give it one. That is the whole rule, and it replaced a narrower one that read
     // `density` as the only answer (2026-07-28, spec §15).
     //
-    // *The two ways to tile, and they draw different geometry.* `density` estimates a
-    // value at every **node** of the mesh it cut, so the field is defined everywhere
-    // and the sheet interpolates between samples — the founding reading. `bin` **cuts**
-    // the floor into adjacent cells, and a cut cell asserts one value across its whole
-    // extent, so the honest geometry is flat across the cell with a *step* at the
-    // boundary: a plateau per cell, the terraced sheet. One mark, one question asked of
-    // the floor it was handed — *does this geometry claim anything between its
-    // samples?* — and the answer is read off the floor rather than declared.
+    // *The two ways to tile, and they draw the same geometry.* `bin` **cuts** the floor
+    // into adjacent cells, and a cut cell asserts one value across its whole extent,
+    // so the honest geometry is flat across the cell with a *step* at the boundary: a
+    // plateau per cell, the terraced sheet. `density` estimates the field on a grid
+    // and publishes it the same way, one cell per block of four grid points with their
+    // mean as its value (`transform::density2d_cells`), so its sheet is terraced too,
+    // on cells fine enough that the steps read as a slope. The node reading, a face
+    // spanning four samples and asserting every value between them, belongs to a bare
+    // `surface` over a lattice of rows, which publishes no cells. One mark, one
+    // question asked of the floor it was handed — *does this geometry claim anything
+    // between its samples?* — and the answer is read off the floor rather than
+    // declared. (This paragraph said `density` took the node reading until
+    // 2026-09-24; the refusal that repeated it sent readers to an interpolated sheet
+    // the engine does not draw.)
     //
     // *Why the old refusal was wrong, and it was wrong on its own terms.* It argued
     // that `bin` emits only non-empty cells, so "a sheet over it would carry holes
@@ -1379,15 +1396,16 @@ pub fn mark_takes_transform(mark: &Mark, transform: &Transform) -> TransformLega
 }
 
 /// Every transform a user composes with `*`, in the grid's teaching order —
-/// the eleven value statistics, the four pair transforms, `partition`, then the
-/// four collision modifiers: twenty. `Transform::Box` is excluded: the `box`
-/// mark injects it, it is never typed, so it is not a column of the
-/// Mark × Transform grid.
-pub const USER_TRANSFORMS: [Transform; 23] = [
+/// the eleven value statistics, the five pair transforms, the four whole-picture
+/// transforms (`partition`, `flow`, `layout`, `cluster`), then the four collision
+/// modifiers: twenty-four. `Transform::Box` is excluded: the `box` mark injects it,
+/// it is never typed, so it is not a column of the Mark × Transform grid.
+pub const USER_TRANSFORMS: [Transform; 24] = [
     Transform::Bin, Transform::Smooth, Transform::Count, Transform::Density, Transform::Proportion,
     Transform::Sum, Transform::Mean, Transform::Median, Transform::Max, Transform::Min,
     Transform::Quantile,
-    Transform::Range, Transform::Confidence, Transform::Deviation, Transform::Bounds,
+    Transform::Range, Transform::Confidence, Transform::Deviation, Transform::SmoothBand,
+    Transform::Bounds,
     Transform::Partition, Transform::Flow, Transform::Layout, Transform::Cluster,
     Transform::Dodge, Transform::Stack, Transform::Jitter, Transform::Repel,
 ];
@@ -1826,7 +1844,8 @@ pub struct RulesMatrix {
 fn normalizer_conflict(a: &Transform, b: &Transform) -> bool {
     let pair = |t: &Transform| matches!(t,
         Transform::Density | Transform::Smooth | Transform::Range
-            | Transform::Confidence | Transform::Box | Transform::Bounds);
+            | Transform::Confidence | Transform::Box | Transform::Bounds
+            | Transform::SmoothBand);
     (a == &Transform::Proportion && pair(b)) || (b == &Transform::Proportion && pair(a))
 }
 
@@ -2170,7 +2189,7 @@ fn synth_axis_names_a_column(
     // A statistic that reads a column makes the name on the measure axis its input:
     // the five reductions and the pairs by their jobs, and `smooth`, which fits that
     // column against the other position.
-    if ts.iter().any(|t| reads_a_column(t) || *t == Transform::Smooth) {
+    if ts.iter().any(|t| reads_a_column(t) || matches!(t, Transform::Smooth | Transform::SmoothBand)) {
         return None;
     }
     // A chain that contradicts itself is refused by `check_chain_jobs`, and which
@@ -3438,7 +3457,7 @@ fn check_chain_jobs(out: &mut Vec<Diagnostic>, spec: &PlotSpec, layer: &Layer, m
         .map(|ch| format!(" + {}(<column>)", channel_name(&ch)))
         .unwrap_or_default();
 
-    let message = chain_message(&layer.mark, m, job, (&a, an), (&b, bn), &bind);
+    let message = chain_message(&layer.mark, m, job, (&a, an), (&b, bn), &bind, ts);
     out.push(Diagnostic { kind: DiagnosticKind::Illegal, message });
 }
 
@@ -3456,11 +3475,37 @@ fn chain_message(
     (ta, a): (&Transform, &str),
     (tb, b): (&Transform, &str),
     bind: &str,
+    // The layer's whole chain, for the one message that has to offer a sentence
+    // with a transform it does not name in its head (`Job::Scale`, below).
+    ts: &[Transform],
 ) -> String {
     use crate::transform::is_reduction;
     let has = |t: &Transform| ta == t || tb == t;
     // The transform that is *not* the one a bespoke message names.
     let other = |t: &Transform| if ta == t { b } else { a };
+
+    // **The three whole-picture layouts are refused in their own terms.** Each
+    // claims every job (`transform::jobs`), so a second transform collides with it
+    // on whichever job that one fills, and the per-job sentences below then
+    // describe cells and piles a layout does not have: `flow * proportion` was told
+    // that `flow` divides the measurement into shares of the whole plot, `flow *
+    // mean` that its cells are the slots the positions own, `layout * jitter` that
+    // it decides where colliding groups go.
+    if let Some(t) = [Transform::Flow, Transform::Layout, Transform::Cluster]
+        .iter()
+        .find(|t| has(t))
+    {
+        let l = transform_name(t);
+        let o = other(t);
+        return format!(
+            "gog: `{m} * {a} * {b}` gives `{l}` a second transform, and `{l}` takes none \
+             — it places every mark in the picture and measures what it places, so there \
+             is nothing left for `{o}` to compute or move, and one of the two would be \
+             discarded. Keep `{m} * {l}(...)` on its own. To show a value computed from \
+             the same rows, compute it where your data lives and give it a layer of its \
+             own."
+        );
+    }
 
     // `smooth` fits a curve of one column against another, and LOESS already averages
     // locally along that curve — so cutting the domain into cells first buys it
@@ -3469,18 +3514,20 @@ fn chain_message(
     // no left to right; here there is a domain, and the redundancy is what rules.)
     // `smooth * proportion` is refused too but not here: a normalizer asks no second
     // question, so its reason is its own and `check_share_composition` gives it.
-    if has(&Transform::Smooth) {
-        let o = other(&Transform::Smooth);
-        let did = if is_reduction(if ta == &Transform::Smooth { tb } else { ta }) {
+    // `smooth_band` is `smooth`'s fit with its band, and collides for the same reason.
+    if let Some(sm) = [Transform::Smooth, Transform::SmoothBand].iter().find(|t| has(t)) {
+        let s = transform_name(sm);
+        let o = other(sm);
+        let did = if is_reduction(if ta == sm { tb } else { ta }) {
             format!("reducing them with `{o}` as well")
         } else {
             "cutting them into cells first".to_string()
         };
         return format!(
-            "gog: `{m} * {a} * {b}` asks one question twice — `smooth` fits a \
+            "gog: `{m} * {a} * {b}` asks one question twice — `{s}` fits a \
              curve through the rows and already averages locally as it goes, so \
              {did} changes nothing it was not doing. Keep \
-             whichever you meant: `{m} * smooth + x(<a>) + y(<b>)` for the fitted \
+             whichever you meant: `{m} * {s} + x(<a>) + y(<b>)` for the fitted \
              curve, or `{m} * {o}` for the shape `{o}` measures. For a summary per \
              cell rather than a fitted curve, name the statistic: \
              `{m} * bin * mean + x(<a>) + y(<b>)`."
@@ -3591,12 +3638,40 @@ fn chain_message(
              `{m} * {a}` or `{m} * {b}`. To measure something inside cells one of them \
              cuts, name a statistic instead: `{m} * {a} * mean{bind}`."
         ),
-        Job::Scale => format!(
-            "gog: `{m} * {a} * {b}` rescales the measurement twice — `{a}` and `{b}` \
-             each divide it into shares, and dividing twice does not read as shares of \
-             anything. Keep whichever you meant: `{a}` for shares of the whole plot, \
-             `{b}` for shares within each pile."
-        ),
+        // Two transforms fill this job, `proportion` and `stack(share = TRUE)`, and
+        // each divides by a different total, so each is named by what it divides by
+        // rather than by where it sits in the sentence: read by position, `bar *
+        // stack(share = TRUE) * proportion` gave the whole plot to `stack`. `stack`
+        // is named with its argument in all three places, because it fills this job
+        // only when filling piles; plain `stack` divides nothing, and a reader who
+        // kept `stack` as told drew counts. Each way out is a sentence that draws:
+        // `proportion` was also the tally when nothing else measured, so the pile's
+        // share has to count in its place.
+        Job::Scale => {
+            let spell = |t: &Transform, n: &str| match t {
+                Transform::Stack => "stack(share = TRUE)".to_string(),
+                _ => n.to_string(),
+            };
+            let (a, b) = (spell(ta, a), spell(tb, b));
+            // What made the measurement, kept in both sentences in the order written:
+            // `bin * mean` as much as `sum`.
+            let before: String = ts.iter()
+                .filter(|t| {
+                    let j = crate::transform::jobs(t, crate::transform::JobContext::default());
+                    j.measure || j.extent
+                })
+                .map(|t| format!(" * {}", transform_name(t)))
+                .collect();
+            let tally = if before.is_empty() { " * count" } else { before.as_str() };
+            format!(
+                "gog: `{m} * {a} * {b}` rescales the measurement twice — `proportion` \
+                 divides it into shares of the whole plot and `stack(share = TRUE)` into \
+                 shares of each pile, and dividing twice does not read as shares of \
+                 anything. Keep whichever you meant: `{m}{before} * proportion * stack` \
+                 for shares of the whole plot, piled, or \
+                 `{m}{tally} * stack(share = TRUE)` for shares within each pile."
+            )
+        }
         Job::Position => format!(
             "gog: `{m} * {a} * {b}` arranges the same marks twice — `{a}` and `{b}` \
              each decide where colliding groups go, and a mark sits in one place, so \
@@ -3691,24 +3766,26 @@ fn check_share_composition(out: &mut Vec<Diagnostic>, layer: &Layer) {
 
 /// `bounds` supplies a *pre-computed* low/high pair (`bounds(lower, upper)`), so it
 /// belongs to the marks that draw such a pair: `ribbon` fills it, `interval` draws a
-/// whisker across it, and `line`/`step` trace its two boundaries (the unfilled band).
-/// On any other mark it names nothing to draw. And because it *reshapes* rather than
+/// whisker across it, `line`/`step` trace its two boundaries (the unfilled band), and
+/// `zone` shades the region between them. On any other mark it names nothing to draw.
+/// The refusal names all five, and a test holds it to the shared table. And because it *reshapes* rather than
 /// computes, its two columns must actually exist and be numeric — a data-aware check,
 /// so it sits in the df-gated block beside `check_jitter`.
 fn check_bounds(out: &mut Vec<Diagnostic>, df: &DataFrame, layer: &Layer) {
     if !layer.transforms.contains(&Transform::Bounds) {
         return;
     }
-    // 1. A mark that draws a low/high pair — the four band marks, read off the
-    //    shared table (bounds is a pair transform, so `None` marks the rest).
+    // 1. A mark that draws a low/high pair — the four band marks and `zone`, read off
+    //    the shared table (bounds is a pair transform, so `None` marks the rest).
     if mark_takes_transform(&layer.mark, &Transform::Bounds) == TransformLegality::None {
         out.push(Diagnostic {
             kind: DiagnosticKind::Illegal,
             message: format!(
-                "gog: `bounds` supplies a pre-computed low/high pair, which the band marks draw — \
-                 `ribbon` fills it, `interval` whiskers it, `line`/`step` trace its two boundaries \
-                 — but `{}` is none of those. For a single value per group, a summary like `mean` \
-                 is the transform you want.",
+                "gog: `bounds` supplies a pre-computed low/high pair, which five marks draw — \
+                 `ribbon` fills it, `interval` whiskers it, `line`/`step` trace its two \
+                 boundaries, `zone` shades the region between them — but `{}` is none of \
+                 those. For a single value per group, a summary like `mean` is the transform \
+                 you want.",
                 mark_name(&layer.mark),
             ),
         });
@@ -3824,6 +3901,19 @@ fn check_bounds(out: &mut Vec<Diagnostic>, df: &DataFrame, layer: &Layer) {
 /// under `point * mean` drew circles only, and `color` beside `group` under
 /// `line * mean` drew an empty panel. Only a column of text splits in the end; the
 /// transform stage passes over a numeric one, which is a ramp.
+/// The channels that split a mark's rows into groups **and that this mark takes**:
+/// [`split_fields_of`]'s four, less the ones `rule_for` refuses here. A `bar` takes
+/// `color` and `pattern` and refuses `group` and `shape`, so advice or a relaxation
+/// that named `group` for a bar named a channel the same sentence would then refuse.
+/// Read off the rule table, so a mark that gains a splitting channel is advised it
+/// without anyone coming here.
+pub(crate) fn splitting_channels(mark: &Mark) -> Vec<Channel> {
+    [Channel::Color, Channel::Pattern, Channel::Group, Channel::Shape]
+        .into_iter()
+        .filter(|ch| rule_for(mark, ch).obligation != Obligation::Cannot)
+        .collect()
+}
+
 pub(crate) fn split_fields_of(layer: &Layer) -> Vec<&str> {
     let mut fields: Vec<&str> = Vec::new();
     for ch in [Channel::Color, Channel::Group, Channel::Pattern, Channel::Shape] {
@@ -3858,7 +3948,7 @@ fn check_smooth_rows(
     df: &DataFrame,
     layer: &Layer,
 ) {
-    if !layer.transforms.contains(&Transform::Smooth) {
+    if !layer.transforms.iter().any(|t| matches!(t, Transform::Smooth | Transform::SmoothBand)) {
         return;
     }
     // A categorical axis is `check_distribution_axis`'s refusal, and it has just
@@ -3903,25 +3993,47 @@ fn check_smooth_rows(
         *counts.entry(cell).or_insert(0) += 1;
     }
 
-    // The same threshold the transform uses, so the refusal and the `GOG_STRICT=0`
-    // fallback agree about which fits exist. Two points are a line and one is a
-    // point; three is where a *local* regression has a neighborhood to weight.
-    const MIN_ROWS: usize = 3;
+    // The same threshold the transform uses (`transform::fit_min_rows`), so the
+    // refusal and the `GOG_STRICT=0` fallback agree about which fits exist. It is
+    // read from the transform the reader wrote, which also names it in the message:
+    // the band needs more rows than its curve.
+    let fit = layer.transforms.iter()
+        .find(|t| matches!(t, Transform::Smooth | Transform::SmoothBand))
+        .cloned()
+        .unwrap_or(Transform::Smooth);
+    let min_rows = crate::transform::fit_min_rows(&fit);
     let smallest = counts.values().copied().min().unwrap_or(rows);
-    if smallest >= MIN_ROWS {
+    if smallest >= min_rows {
         return;
     }
+    let name = transform_name(&fit);
+    let reads = if fit == Transform::SmoothBand {
+        "fits a curve through the rows and measures how far they fall from it, \
+         which needs at least"
+    } else {
+        "fits a curve through the rows and needs at least"
+    };
 
     // Two sentences rather than one clause, so the count never has to agree with a
     // verb: *needs at least 3* and *has 2* are both true of any number. And name the
     // split that is too thin, because the fix depends on it — a reader with both a
     // facet and a color would otherwise have to guess which one to give up.
+    //
+    // Between the two minimums the curve can still be drawn without its band, which
+    // is the nearer fix, so it is the one offered there.
+    let curve_min = crate::transform::fit_min_rows(&Transform::Smooth);
+    let curve_alone = fit == Transform::SmoothBand && smallest >= curve_min;
     let (found, fix) = if keys.is_empty() {
         (
             format!("This data has {smallest}."),
-            "Plot what you have with `point` and no transform, which draws the rows \
-             as rows rather than as a curve through them."
-                .to_string(),
+            if curve_alone {
+                format!("`line * smooth` draws the curve without its band, and needs only \
+                         {curve_min}.")
+            } else {
+                "Plot what you have with `point` and no transform, which draws the rows \
+                 as rows rather than as a curve through them."
+                    .to_string()
+            },
         )
     } else {
         (
@@ -3929,18 +4041,21 @@ fn check_smooth_rows(
                 "Split by {}, the smallest group has {smallest}.",
                 or_list(&keys.iter().map(|k| format!("`{k}`")).collect::<Vec<_>>())
             ),
-            "Drop the split so the fit reads the rows together, or plot what you have \
-             with `point` and no transform, which draws the rows as rows rather than \
-             as a curve through them."
-                .to_string(),
+            if curve_alone {
+                format!("Drop the split so the fit reads the rows together, or draw the \
+                         curve without its band with `line * smooth`, which needs only \
+                         {curve_min}.")
+            } else {
+                "Drop the split so the fit reads the rows together, or plot what you have \
+                 with `point` and no transform, which draws the rows as rows rather than \
+                 as a curve through them."
+                    .to_string()
+            },
         )
     };
     out.push(Diagnostic {
         kind: DiagnosticKind::Illegal,
-        message: format!(
-            "gog: `smooth` fits a curve through the rows and needs at least \
-             {MIN_ROWS} of them. {found} {fix}"
-        ),
+        message: format!("gog: `{name}` {reads} {min_rows} of them. {found} {fix}"),
     });
 }
 
@@ -4004,7 +4119,7 @@ fn check_distribution_axis(
         // question, opposite answers — and stating the polarity here keeps both in the
         // one function that asks a position's type.
         let (required, refuses): (&[Channel], VarType) = match t {
-            Transform::Smooth => (&[Channel::X, Channel::Y], VarType::Discrete),
+            Transform::Smooth | Transform::SmoothBand => (&[Channel::X, Channel::Y], VarType::Discrete),
             // A **field** is a quantity that exists between the data points, so it
             // needs two axes with somewhere to spread and refuses a category on
             // either. Asked of `has_no_measure_axis` rather than of a mark name, so
@@ -4129,6 +4244,15 @@ fn check_distribution_axis(
                 "gog: `density` estimates a continuous distribution, and `{binding}` {is} \
                  categorical — there is no number line for the curve to spread along. For \
                  the share of rows in each category, that is `bar * proportion`."
+            ),
+            // The band's direction is the band per category, as the line's is the
+            // value per category: `smooth_band` is to `smooth` what `confidence` is
+            // to `mean`, so the pair answers the pair.
+            Transform::SmoothBand => format!(
+                "gog: `smooth_band` fits a curve of `y` against `x`, and `{binding}` {is} \
+                 categorical — a fit needs a number line to run along. For a typical value \
+                 per category and how precisely it is known, `interval * confidence` says \
+                 it directly."
             ),
             _ => format!(
                 "gog: `smooth` fits a curve of `y` against `x`, and `{binding}` {is} \
@@ -4683,9 +4807,31 @@ fn check_layout(
     // 6. On the node readers, a mapped aesthetic must name what a node has: the
     //    two columns the layout publishes. An edge is 1:1 with its input row,
     //    so its columns are checked like anyone's.
+    //
+    //    `label` is asked too, and it once was not: a node's text is the
+    //    commonest thing to write, and a column of the edge table there drew a
+    //    `text` layer with nothing in it, silently (§12). The layout's output has
+    //    no such column to read the strings from.
     if matches!(layer.mark, Mark::Point | Mark::Text) {
         for (ch, def) in &layer.encodings {
-            if matches!(ch, Channel::Label | Channel::Play) {
+            if matches!(ch, Channel::Play) {
+                continue;
+            }
+            if *ch == Channel::Label
+                && def.field != crate::transform::NODE_NAME
+                && def.field != crate::transform::NODE_DEGREE
+            {
+                out.push(Diagnostic {
+                    kind: DiagnosticKind::Illegal,
+                    message: format!(
+                        "gog: `label({})` under `layout` must name something a node \
+                         has, and a node has two things: its `name`, and its \
+                         `degree`, the count of its relations. A column of the edge \
+                         table belongs to the edges, not to the nodes this `{}` \
+                         layer draws. Name each node with `label(name)`.",
+                        def.field, mark_name(&layer.mark),
+                    ),
+                });
                 continue;
             }
             if def.field != crate::transform::NODE_NAME
@@ -5309,6 +5455,12 @@ fn check_marks_that_take_no_transform(out: &mut Vec<Diagnostic>, layer: &Layer) 
         // fired on a plot the grid advertised as legal. Same failure as the polar
         // fallback's, which is why that one is generated now too.
         .filter(|t| mark_takes_transform(&layer.mark, t) == TransformLegality::None)
+        // `proportion` beside a `partition` divides the partition's measure axis by
+        // its total and replaces no rows, so the label a node carries is still
+        // there to draw. Refused here, `text * partition(…) * proportion` could not
+        // name the nodes its own `zone` layer drew as shares.
+        .filter(|t| !(**t == Transform::Proportion
+            && layer.transforms.contains(&Transform::Partition)))
         .map(transform_name)
         .collect();
     if names.is_empty() {
@@ -5341,8 +5493,8 @@ fn check_marks_that_take_no_transform(out: &mut Vec<Diagnostic>, layer: &Layer) 
              where a cell has room for a single number. A zone takes the four that invent \
              their own measurement — `count` and `proportion` tally rows into the cells \
              your categories make, `bin` cuts cells out of two continuous axes and counts \
-             them, `density` estimates a value at each — and the five that reduce a column \
-             color names: `zone * mean + x(<a>) + y(<b>) + color(<column>)` averages it \
+             them, `density` estimates a value at each — and the six that reduce a column \
+             color names (`sum`, `mean`, `median`, `max`, `min`, `quantile`): `zone * mean + x(<a>) + y(<b>) + color(<column>)` averages it \
              within every cell. To shade a band the data computed, `ribbon * range` is the \
              mark that spans a statistic."
         ),
@@ -5357,12 +5509,12 @@ fn check_marks_that_take_no_transform(out: &mut Vec<Diagnostic>, layer: &Layer) 
              holds one height, and `count`/`proportion` tally into the cells two *categories* \
              make, which a surface refuses because slots leave air between them and \
              disconnected tiles are not a sheet. A surface takes the two transforms that do \
-             tile: `bin` cuts the floor into adjacent cells and lays a flat lid on each — \
+             tile, and both lay a flat lid on each cell with a step up or down to the next: \
+             `bin` cuts the floor into adjacent cells — \
              `surface * bin * mean + x(<a>) + y(<b>) + z(<column>)` reduces the column you \
-             name inside every cell — and `density` estimates a value at every node, which \
-             the sheet then interpolates between: \
-             `surface * density + x(<a>) + y(<b>) + space()`. Over categories, `bar` is the \
-             mark, where the column under each tile says which cell it belongs to."
+             name inside every cell — and `density` estimates the field over a fine grid of \
+             cells: `surface * density + x(<a>) + y(<b>) + space()`. Over categories, `bar` \
+             is the mark, where the column under each tile says which cell it belongs to."
         ),
         _ => format!(
             "gog: `text` draws one string per row, taken from `label`, and `{listed}` \
@@ -5453,11 +5605,16 @@ fn check_dodge(out: &mut Vec<Diagnostic>, layer: &Layer) {
     //    split by (`split_fields_of`). `pattern` alone counts, since 2026-09-23: it
     //    splits a mark, so its groups are groups to set side by side.
     if split_fields_of(layer).is_empty() {
+        // The channels this mark takes that split it, and no other: advising
+        // `group` on a `bar`, which refuses it, sent the reader to a second refusal.
+        let add = or_list(&splitting_channels(&layer.mark).iter()
+            .map(|ch| format!("`{}(<field>)`", channel_name(ch)))
+            .collect::<Vec<_>>());
         out.push(Diagnostic {
             kind: DiagnosticKind::Illegal,
             message: format!(
                 "gog: `{name} * dodge` has no groups to set side by side — nothing splits the \
-                 mark. Add `color(<field>)` (or `group(<field>)`) so there are groups to dodge."
+                 mark. Add {add} so there are groups to dodge."
             ),
         });
     }
@@ -5604,6 +5761,122 @@ fn check_baseline(out: &mut Vec<Diagnostic>, spec: &PlotSpec, layer: &Layer) {
     }
 }
 
+/// **A summary over groups of one row summarizes nothing**, and the rows are the only
+/// place that can say so: the data-dependent half of §12's standing rule, a proven
+/// redundancy warns and draws.
+///
+/// A statistic groups the rows by the exact value of its key column, within each split,
+/// facet panel and frame, which is the partition the renderer makes. A key of numbers
+/// whose values never repeat gives one group per row, and the summary of one number is
+/// that number: `bar * mean + x(gdp) + y(life)` on the book's 142 countries drew 142
+/// bars, each a country's own `life`, under an axis titled `Life`, and nothing on the
+/// page said the means were the rows. Legal on the sentence, so no refusal can see it,
+/// and drawn, because the same sentence over rows whose values repeat does summarize.
+/// Silent as soon as any group holds two rows, since then the statistic does work.
+///
+/// **Numbers only, and not dates.** A category with one row each is a table that was
+/// summarized already, and it draws exactly; a daily series with one row a day is
+/// grouped by the day it means. What misleads is a measured column read as groups.
+fn check_one_row_groups(
+    out: &mut Vec<Diagnostic>, spec: &PlotSpec, df: &DataFrame, layer: &Layer, horizontal: bool,
+) {
+    use crate::transform::is_reduction;
+    // The statistics that group by the key's exact values. The rest cut or fit along
+    // the axis (`bin`, `density`, `smooth`), reshape (`bounds`), or place their own
+    // marks (the four layouts), and none of those has a group to be one row.
+    let groups = |t: &Transform| is_reduction(t) || matches!(t,
+        Transform::Count | Transform::Proportion | Transform::Range
+            | Transform::Confidence | Transform::Deviation | Transform::Box);
+    let along = |t: &Transform| matches!(t,
+        Transform::Bin | Transform::Density | Transform::Smooth | Transform::SmoothBand
+            | Transform::Bounds | Transform::Partition | Transform::Flow | Transform::Layout
+            | Transform::Cluster);
+    let Some(stat) = layer.transforms.iter().find(|t| groups(t)) else { return };
+    if layer.transforms.iter().any(along)
+        || reads_two_dimensions(&layer.mark, &layer.transforms, space_of(spec))
+    {
+        return;
+    }
+
+    // The key, read off the bindings as the renderer reads it (`key_is_x`): a slot
+    // mark on its side groups by `y`, and every other layer by `x`.
+    let key_ch = if horizontal && is_slot_mark(&layer.mark) { Channel::Y } else { Channel::X };
+    let Some(key) = spec.position_for(layer, &key_ch).map(|e| e.field.clone()) else { return };
+    if actual_type(df, &key) != Some(VarType::Continuous) || df.time_unit(&key).is_some() {
+        return;
+    }
+    let Some(keys) = df.float_col(&key) else { return };
+
+    let splits: Vec<&str> = split_fields_of(layer).into_iter()
+        .filter(|f| df.str_col(f).is_some())
+        .collect();
+    let frame = layer.encodings.get(&Channel::Play).or(spec.channels.get(&Channel::Play))
+        .map(|e| e.field.as_str());
+    let panels: Vec<&str> = spec.facet.as_ref().into_iter()
+        .flat_map(|f| [f.col.as_deref(), f.row.as_deref()])
+        .flatten()
+        .chain(frame)
+        .filter(|k| df.str_col(k).is_some() || df.float_col(k).is_some())
+        .collect();
+    let at = |f: &str, r: usize| -> String {
+        match (df.str_col(f), df.float_col(f)) {
+            (Some(c), _) => c.get(r).cloned().unwrap_or_default(),
+            (None, Some(c)) => c.get(r).map(|v| v.to_bits().to_string()).unwrap_or_default(),
+            _ => String::new(),
+        }
+    };
+    let mut seen: std::collections::HashSet<Vec<String>> = std::collections::HashSet::new();
+    for (r, v) in keys.iter().enumerate() {
+        if !v.is_finite() {
+            continue;
+        }
+        let mut cell = vec![v.to_bits().to_string()];
+        cell.extend(splits.iter().chain(panels.iter()).map(|f| at(f, r)));
+        if !seen.insert(cell) {
+            return; // two rows in one group: the statistic summarizes something
+        }
+    }
+    if seen.len() < 2 {
+        return;
+    }
+
+    let m = mark_name(&layer.mark);
+    let t = transform_name(stat);
+    let c = channel_name(&key_ch);
+    let head = match stat {
+        Transform::Box => "`box`".to_string(),
+        _ => format!("`{m} * {t}`"),
+    };
+    let within = match splits.is_empty() {
+        true => String::new(),
+        false => format!(" within each {}",
+            splits.iter().map(|s| format!("`{s}`")).collect::<Vec<_>>().join(" and ")),
+    };
+    let (what, fix) = match stat {
+        Transform::Count => ("every count is 1".to_string(),
+            format!("`{m} * bin + {c}({key})` counts the rows in ranges of `{key}` instead")),
+        Transform::Proportion => ("every share is one row's".to_string(),
+            format!("`{m} * bin * proportion + {c}({key})` reads ranges of `{key}` as \
+                     shares instead")),
+        Transform::Box => ("every box is a single value".to_string(),
+            "group by a column whose values repeat".to_string()),
+        Transform::Range | Transform::Confidence | Transform::Deviation => (
+            format!("each `{t}` is one row's own value"),
+            "group by a column whose values repeat".to_string()),
+        _ => (format!("each `{t}` is one row's own value"),
+            format!("cut `{key}` into ranges first, `{m} * bin * {t}`, or group by a \
+                     column whose values repeat")),
+    };
+    out.push(Diagnostic {
+        kind: DiagnosticKind::Assumption,
+        message: format!(
+            "gog: {head} groups the rows by their value of `{key}`{within}, and here \
+             every group holds a single row, so {what}. Drawn as asked. To summarize, \
+             {fix}."
+        ),
+    });
+}
+
 /// **A pile has one direction** — the third condition on `stack`, and the only one
 /// of the three that has to read the numbers (spec §5, §12).
 ///
@@ -5667,7 +5940,7 @@ fn check_stack_signs(out: &mut Vec<Diagnostic>, spec: &PlotSpec, df: &DataFrame,
         &layer.transforms.iter().filter(|t| **t != Transform::Stack).cloned().collect::<Vec<_>>(),
         key_field, out_field,
         layer.bin.as_ref(), None, layer.density.as_ref(), layer.range.as_ref(),
-        layer.confidence.as_ref(), layer.deviation.as_ref(), layer.quantile.as_ref(),
+        layer.level_spec(), layer.deviation.as_ref(), layer.quantile.as_ref(),
         layer.r#box.as_ref(), layer.bounds.as_ref(), None, &group_fields,
     );
     let Some(vals) = piled.float_col(out_field) else { return };
@@ -5811,6 +6084,23 @@ fn check_jitter(out: &mut Vec<Diagnostic>, spec: &PlotSpec, df: &DataFrame, laye
                  category. Use an amount of {JITTER_MAX} or less; to show where many points \
                  overlap, `style(opacity = )` or a smaller `style(size = )` does it without \
                  moving any point."
+            ),
+        });
+    }
+    // 4. A spread of nothing. `jitter(0)` moves no point, so the plot is the one drawn
+    //    without it: a proven redundancy, which draws and says so (§12's standing
+    //    rule, `quantile(0.5)`'s precedent). Legal, because it harms nothing (Law 8);
+    //    said, because a transform that changes nothing is a transform nobody read.
+    //    The bindings refuse a negative amount, so zero is the only one that is a
+    //    no-op.
+    if layer.jitter.as_ref().and_then(|j| j.amount) == Some(0.0) {
+        let m = mark_name(&layer.mark);
+        out.push(Diagnostic {
+            kind: DiagnosticKind::Assumption,
+            message: format!(
+                "gog: `jitter(0)` moves no point, so this draws the same plot as `{m}` \
+                 without it. Drop `jitter`, or give it a spread: `jitter` alone spreads by \
+                 the default, `jitter(0.5)` by half of it. Drawn as asked."
             ),
         });
     }
@@ -6181,6 +6471,9 @@ pub fn check(spec: &PlotSpec, data: &HashMap<String, DataFrame>) -> Vec<Diagnost
     for layer in &spec.layers {
         let mark = &layer.mark;
         let m = mark_name(mark);
+        // Where this layer's diagnostics start, so a check that should not speak on
+        // a refused layer can ask whether it was refused.
+        let layer_from = out.len();
 
         // A mark this engine cannot draw makes every later question about the
         // layer moot — and answering them anyway produces advice that does not
@@ -6311,6 +6604,7 @@ pub fn check(spec: &PlotSpec, data: &HashMap<String, DataFrame>) -> Vec<Diagnost
             // A `shape` or `pattern` column with more categories than the
             // vocabulary has kinds draws two groups alike — legal, and said.
             check_which_one_cycles(&mut out, df, mark, layer);
+            check_border_on_crosses(&mut out, df, mark, layer);
             // `jitter` is point-only and legal only when a position axis is
             // categorical — a data-aware check, so it sits with the others (§5).
             check_jitter(&mut out, spec, df, layer);
@@ -6584,11 +6878,15 @@ pub fn check(spec: &PlotSpec, data: &HashMap<String, DataFrame>) -> Vec<Diagnost
                     // categories already are. The book's copy of this sentence had
                     // been corrected earlier the same day and the engine's had not,
                     // which is the drift a message duplicated in prose always risks.
+                    // *It said "for a mesh over categories" until 2026-09-24*, and a
+                    // mesh is what a surface's faces make, the one thing a column plot
+                    // is not; the direction is the columns, named as columns.
                     (Mark::Surface, Channel::X | Channel::Y, VarType::Discrete) => {
                         " A face spans the gap between two samples, and between two \
-                         categories there is nothing to span. For a mesh over categories \
-                         use `bar * count + x(<a>) + y(<b>) + space()` — a column stands \
-                         in its own cell and claims nothing in between."
+                         categories there is nothing to span. Over two categories, stand \
+                         a column in each cell instead: `bar * count + x(<a>) + y(<b>) + \
+                         space()` — a column stands in its own cell and claims nothing in \
+                         between."
                     }
                     // **The path family's measure axis**, and this arm exists because
                     // these four were documented as "refused with direction" while
@@ -6770,6 +7068,16 @@ pub fn check(spec: &PlotSpec, data: &HashMap<String, DataFrame>) -> Vec<Diagnost
             });
         } else {
             check_pattern(&mut out, mark, &layer.style);
+        }
+
+        // A summary whose every group is one row summarizes nothing. Legal on the
+        // sentence, so only the rows can say it; and last, on a layer nothing
+        // refused, since a refused layer already has the one message it needs.
+        if let Some(df) = df {
+            if !out[layer_from..].iter().any(Diagnostic::is_fatal) {
+                check_one_row_groups(&mut out, spec, df, layer,
+                    plot_orient(spec, data) == Orient::Horizontal);
+            }
         }
     }
 
@@ -7585,19 +7893,23 @@ fn check_space(out: &mut Vec<Diagnostic>, spec: &PlotSpec) {
             if !cuts_both_positions(&layer.mark, SpaceKind::Space) {
                 continue;
             }
-            if !layer.transforms.contains(&Transform::Smooth) {
+            let Some(sm) = layer.transforms.iter()
+                .find(|t| matches!(t, Transform::Smooth | Transform::SmoothBand))
+            else {
                 continue;
-            }
+            };
             let m = mark_name(&layer.mark);
+            let s = transform_name(sm);
             out.push(Diagnostic {
                 kind: DiagnosticKind::Illegal,
                 message: format!(
-                    "gog: `{m} * smooth` fits a curve of one column against another, and a \
+                    "gog: `{m} * {s}` fits a curve of one column against another, and a \
                      curve needs a domain to run along — the cube's floor is a *pair* of \
                      positions with no left to right, which is why `line` and `area` cannot \
                      stand here either. Smooth on the plane, where there is a domain: \
                      `line * smooth + x(<a>) + y(<b>)`. To summarize a column within each \
-                     pair of categories instead, the five reductions do read a floor: \
+                     pair of categories instead, the six reductions (`sum`, `mean`, `median`, \
+                     `max`, `min`, `quantile`) do read a floor: \
                      `{m} * mean + x(<a>) + y(<b>) + z(<column>) + space()`."
                 ),
             });
@@ -7643,8 +7955,9 @@ fn check_space(out: &mut Vec<Diagnostic>, spec: &PlotSpec) {
 // The bar with no position axis — one slot, divided by its split
 //
 // Law 7 says a visual is a mark plus its *required* positions, and `bar` requires
-// an `x`. There is exactly one shape where it does not: when a `color`/`group`
-// split supplies the segmentation, the bar has one slot and the split divides it.
+// an `x`. There is exactly one shape where it does not: when a split the bar takes
+// (`color` or `pattern`) supplies the segmentation, the bar has one slot and the
+// split divides it.
 // Flat, that draws the share-of-total column (one bar, segmented). In `polar` it
 // is the pie, because a plot with one bound position reads that position as the
 // angle (Wilkinson's one-argument `polar.theta`, §9.1.6.1).
@@ -7656,9 +7969,12 @@ fn check_space(out: &mut Vec<Diagnostic>, spec: &PlotSpec) {
 // ---------------------------------------------------------------------------
 
 pub fn bar_divides_one_slot(layer: &Layer) -> bool {
+    // Any channel that splits a bar, which is `color` and `pattern`: the same
+    // split that piles and dodges a bar everywhere else divides its one slot here
+    // (Law 2). This asked for `group`, which a bar refuses, and not `pattern`, so
+    // a hatched one-slot pile was refused while a colored one drew.
     layer.mark == Mark::Bar
-        && (layer.encodings.contains_key(&Channel::Color)
-            || layer.encodings.contains_key(&Channel::Group))
+        && splitting_channels(&Mark::Bar).iter().any(|ch| layer.encodings.contains_key(ch))
 }
 
 /// Is a missing `x` well formed on this layer? **The one answer**, read by the
@@ -8467,7 +8783,8 @@ fn check_keyless_statistic(out: &mut Vec<Diagnostic>, spec: &PlotSpec, layer: &L
         return;
     }
     for t in &layer.transforms {
-        let needs_axis = matches!(t, Transform::Bin | Transform::Density | Transform::Smooth);
+        let needs_axis = matches!(t, Transform::Bin | Transform::Density | Transform::Smooth
+            | Transform::SmoothBand);
         if !needs_axis {
             continue;
         }
@@ -10568,6 +10885,53 @@ fn which_one_kinds(mark: &Mark, ch: &Channel) -> (&'static str, &'static str) {
 /// modulus and this limit are therefore one number, which is the whole reason
 /// growing a set and warning past it are a single piece of work: split them and
 /// the number is written twice and drifts once.
+/// A border beside a *mapped* `shape` whose categories include the `cross`.
+///
+/// The border draws on every glyph with a fill and on no cross, because a cross is
+/// two strokes with nothing inside to outline. `check_border` refuses the cross as a
+/// *setting*, where nothing at all would draw; here the rest of the points do get
+/// their outline, so the plot is legal and this is an **Assumption** (Law 8), but
+/// the categories that lost theirs are named, since a border missing from one
+/// category leaves nothing on the page to notice (§12). The categories come from
+/// `categories_across`, the order the renderer and the legend hand glyphs out in.
+fn check_border_on_crosses(out: &mut Vec<Diagnostic>, df: &DataFrame, mark: &Mark, layer: &Layer) {
+    let style = &layer.style;
+    if *mark != Mark::Point
+        || (style.border_color.is_none() && style.border_size.is_none())
+        || style.border_size == Some(0.0)
+    {
+        return;
+    }
+    let Some(field) = layer.encodings.get(&Channel::Shape).map(|c| c.field.as_str()) else {
+        return;
+    };
+    let Some(cross) = SHAPE_NAMES.iter().position(|&s| s == "cross") else { return };
+    let crossed: Vec<String> = crate::data::categories_across(&[df], field)
+        .into_iter()
+        .enumerate()
+        .filter(|(i, _)| i % SHAPE_NAMES.len() == cross)
+        .map(|(_, c)| format!("`{c}`"))
+        .collect();
+    if crossed.is_empty() {
+        return;
+    }
+    let names = match crossed.as_slice() {
+        [one] => one.clone(),
+        [rest @ .., last] => format!("{} and {last}", rest.join(", ")),
+        [] => return,
+    };
+    out.push(Diagnostic {
+        kind: DiagnosticKind::Assumption,
+        message: format!(
+            "gog: `shape({field})` draws {names} as a `cross`, and a cross is two strokes \
+             with no fill, so `border_color` and `border_size` outline every other point \
+             and not those. The glyphs follow the column's order: the fifth category, and \
+             every seventh after it, is a cross, so a column of four categories or fewer \
+             draws none."
+        ),
+    });
+}
+
 fn check_which_one_cycles(out: &mut Vec<Diagnostic>, df: &DataFrame, mark: &Mark, layer: &Layer) {
     for ch in [Channel::Shape, Channel::Pattern] {
         let Some(field) = layer.encodings.get(&ch).map(|c| c.field.clone()) else {
@@ -10777,9 +11141,9 @@ fn check_nothing_to_fade(out: &mut Vec<Diagnostic>, mark: &Mark, layer: &Layer) 
 /// direction rather than draw nothing: a `line`/`step` *is* a stroke (its
 /// `style(color)`/`style(size)` are its outline), an `area`'s edge is a layer
 /// (`area + line`), and a `point` border is designed but not built yet.
-/// `caps` — the short crossbars at an interval whisker's ends — is an
-/// interval-only setting, the way `border_*` is bar-only. On any other mark it
-/// names nothing; refuse with direction rather than silently ignore it.
+/// `caps` — the short crossbars at a whisker's ends — belongs to the two marks
+/// that draw whiskers, `interval` and `box`. On any other mark it names nothing;
+/// refuse with direction rather than silently ignore it.
 fn check_caps(out: &mut Vec<Diagnostic>, mark: &Mark, style: &StyleSpec) {
     if style.caps.is_none() || mark_takes_setting(mark, Setting::Caps) {
         return;
@@ -10788,8 +11152,9 @@ fn check_caps(out: &mut Vec<Diagnostic>, mark: &Mark, style: &StyleSpec) {
     out.push(Diagnostic {
         kind: DiagnosticKind::Illegal,
         message: format!(
-            "gog: `style(caps = )` is an `interval` setting — the crossbars at a whisker's \
-             ends — and {} `{m}` has none. Remove it, or use `interval`.",
+            "gog: `style(caps = )` is a whisker setting — the crossbars at a whisker's \
+             ends, on an `interval` or a `box` — and {} `{m}` has no whiskers. Remove it, \
+             or use `interval`.",
             article(m)
         ),
     });
@@ -11062,9 +11427,29 @@ fn check_border(out: &mut Vec<Diagnostic>, mark: &Mark, style: &StyleSpec) {
     let m = mark_name(mark);
     // Which marks carry a border is `mark_takes_setting` (the closed-glyph fills —
     // spec §4, the settable rule), shared with the generated grid so the two agree.
-    // On a mark that does, only the value needs checking: a valid color, a
-    // non-negative width. `point`'s border draws on the fillable glyphs and no-ops
-    // on a `cross` (no fill to rim); the renderer handles that, not this check.
+    // On a mark that does, the value needs checking: a valid color, a non-negative
+    // width. And one glyph: `point`'s border draws on the glyphs with a fill, and a
+    // `cross` is two strokes with none, so it has no outline to draw. This comment
+    // used to leave that to the renderer, which drew nothing and said nothing: set
+    // on every point, the border was dropped from every point and the plot came out
+    // byte for byte the one without it (§12). A size of 0 asks for no border and
+    // drops nothing, so it passes. A cross that only some categories draw with is
+    // `check_border_on_crosses`'s, since the rest still get their border.
+    if *mark == Mark::Point
+        && style.shape.as_deref().is_some_and(|s| s.eq_ignore_ascii_case("cross"))
+        && style.border_size != Some(0.0)
+    {
+        out.push(Diagnostic {
+            kind: DiagnosticKind::Illegal,
+            message: "gog: a `cross` is two strokes with no fill, so it has no outline for \
+                      `border_color` or `border_size` to draw, and the plot would come out \
+                      the same without them. Color the cross with `style(color = )`, and \
+                      draw it larger and thicker with `style(size = )`; or choose a glyph \
+                      with a fill, such as `style(shape = \"circle\")`, to give each point \
+                      an outline."
+                .to_string(),
+        });
+    }
     if mark_takes_setting(mark, Setting::BorderColor) {
         if let Some(c) = &style.border_color {
             if !is_valid_color(c) {
@@ -11218,6 +11603,62 @@ fn check_palette_is_used(out: &mut Vec<Diagnostic>, spec: &PlotSpec) {
     }
 }
 
+/// The channel that tells categories apart without color on this mark, if it has
+/// one: a glyph's `shape`, else the dash or hatch `pattern` draws. Read off
+/// [`rule_for`], so a mark that gains either channel is advised it without an
+/// edit here.
+fn colorless_split(mark: &Mark) -> Option<&'static str> {
+    let draws = |ch: Channel| {
+        let r = rule_for(mark, &ch);
+        r.obligation != Obligation::Cannot && r.renders == Some(VarType::Discrete)
+    };
+    if draws(Channel::Shape) {
+        Some("shape")
+    } else if draws(Channel::Pattern) {
+        Some("pattern")
+    } else {
+        None
+    }
+}
+
+/// The print-figure sentence of the gray-ramp refusal: which channel to reach for
+/// instead of a grayer palette, named for the marks that carry `color` here. One
+/// channel reads as one instruction; two marks wanting two channels are each
+/// named, since advice for one would be wrong for the other. Empty when no mark
+/// carrying `color` has either.
+fn colorless_split_advice(spec: &PlotSpec) -> String {
+    let mut wants: Vec<(&'static str, &'static str)> = Vec::new();
+    for layer in &spec.layers {
+        let colored = layer.encodings.contains_key(&Channel::Color)
+            || spec.channels.contains_key(&Channel::Color);
+        let Some(ch) = colored.then(|| colorless_split(&layer.mark)).flatten() else { continue };
+        let pair = (ch, mark_name(&layer.mark));
+        if !wants.contains(&pair) {
+            wants.push(pair);
+        }
+    }
+    let mut channels: Vec<&str> = wants.iter().map(|(c, _)| *c).collect();
+    channels.sort_unstable();
+    channels.dedup();
+    match channels.as_slice() {
+        [] => String::new(),
+        [one] => format!(
+            " For categories in a figure that has to print in black and white, reach \
+             for `{one}(<column>)` instead — it tells them apart without spending color."
+        ),
+        _ => {
+            let each: Vec<String> = wants.iter()
+                .map(|(c, m)| format!("`{c}(<column>)` on the `{m}` layer"))
+                .collect();
+            format!(
+                " For categories in a figure that has to print in black and white, reach \
+                 for {} instead — each tells them apart without spending color.",
+                each.join(" and "),
+            )
+        }
+    }
+}
+
 fn check_palette_value(
     out: &mut Vec<Diagnostic>, spec: &PlotSpec, data: &HashMap<String, DataFrame>,
 ) {
@@ -11261,14 +11702,16 @@ fn check_palette_value(
                     // A gray ramp on a text column is almost always a print
                     // figure, and the grammar's answer there is not a grayer
                     // palette — four grays is the most anyone can tell apart.
-                    // It is `pattern`, which separates categories without
-                    // spending color at all.
-                    let print = if n == "gray" {
-                        " For categories in a figure that has to print in black \
-                         and white, reach for `pattern(<column>)` instead — it \
-                         tells them apart without spending color."
-                    } else {
-                        ""
+                    // It is the channel that separates categories without
+                    // spending color at all, and **which one is the mark's**:
+                    // a glyph's `shape`, a stroke's dash or a fill's hatch
+                    // through `pattern`. This named `pattern` whatever the mark,
+                    // so on a point plot it sent the reader to a channel a point
+                    // refuses. A mark with neither (a `text`, a `surface`) is
+                    // given no such sentence rather than a wrong one.
+                    let print = match n == "gray" {
+                        true => colorless_split_advice(spec),
+                        false => String::new(),
                     };
                     out.push(Diagnostic {
                         kind: DiagnosticKind::Illegal,
@@ -11845,7 +12288,7 @@ mod tests {
         // is about the numbers rather than about the band being unsayable.
         let spec = base().layer(
             Layer::new(Mark::Interval).transform(Transform::Range).band(0.25, 0.75));
-        let out = check(&spec, &data());
+        let out = about_the_sentence(check(&spec, &data()));
         assert!(out.is_empty(), "the interquartile band was refused: {:?}", msgs(&out));
     }
 
@@ -11884,11 +12327,52 @@ mod tests {
     // deviation and quantile — the family's two newest members (spec §5)
     // -----------------------------------------------------------------------
 
+    /// `smooth_band` is a pair transform that fits along a numeric domain: a ribbon
+    /// fills it and a line traces its two edges; a bar has no pair to draw, a category
+    /// has no domain to fit along, and it composes with no second measurement or a
+    /// share. Its wire name keeps its underscore (Law 3).
+    #[test]
+    fn a_smooth_band_is_a_pair_that_fits_along_a_numeric_domain() {
+        let with = |mark: Mark, ts: &[Transform]| {
+            ts.iter().fold(Layer::new(mark), |l, t| l.transform(t.clone()))
+        };
+        // Five rows, the band's minimum: the shared table's three are too few for it.
+        let mut five = HashMap::new();
+        five.insert("t".to_string(), DataFrame::new()
+            .with_float("gdp", vec![1.0, 2.0, 3.0, 4.0, 5.0])
+            .with_float("life", vec![4.0, 6.0, 5.0, 7.0, 6.0]));
+        for mark in [Mark::Ribbon, Mark::Line] {
+            let d = check(&base().layer(with(mark.clone(), &[Transform::SmoothBand])), &five);
+            assert!(!d.iter().any(|x| x.is_fatal()), "{mark:?} * smooth_band: {:?}", msgs(&d));
+        }
+        let refused = |spec: PlotSpec| check(&spec, &data()).iter().any(|x| x.is_fatal());
+        assert!(refused(base().layer(with(Mark::Bar, &[Transform::SmoothBand]))), "a bar");
+        assert!(refused(PlotSpec::new().data("t").x("continent").y("life")
+            .layer(with(Mark::Ribbon, &[Transform::SmoothBand]))), "a category");
+        // Both of the fit's refusals name the transform the reader wrote, and the
+        // category one points at the band per category rather than the value.
+        let category = msgs(&check(&PlotSpec::new().data("t").x("continent").y("life")
+            .layer(with(Mark::Ribbon, &[Transform::SmoothBand])), &data()));
+        assert!(category.iter().any(|m| m.contains("`smooth_band` fits a curve of `y` against `x`")
+            && m.contains("`interval * confidence`")), "{category:?}");
+        let thin = msgs(&check(&base()
+            .layer(with(Mark::Ribbon, &[Transform::SmoothBand]).encode(Channel::Color, "region")),
+            &data()));
+        assert!(thin.iter().any(|m| m.contains("`smooth_band` fits a curve through the rows")),
+            "{thin:?}");
+        assert!(!thin.iter().chain(&category).any(|m| m.contains("`smooth` fits")), "{thin:?}");
+        let chain = check(&base().layer(with(Mark::Ribbon, &[Transform::SmoothBand, Transform::Mean])), &data());
+        assert!(msgs(&chain).iter().any(|m| m.contains("`smooth_band` fits a curve")), "{:?}", msgs(&chain));
+        assert!(refused(base().layer(with(Mark::Ribbon, &[Transform::SmoothBand, Transform::Proportion]))),
+            "a share");
+        assert_eq!(serde_json::to_string(&Transform::SmoothBand).unwrap(), r#""smooth_band""#);
+    }
+
     #[test]
     fn a_spread_band_is_accepted() {
         let spec = base().layer(
             Layer::new(Mark::Interval).transform(Transform::Deviation).spread(2.0));
-        let out = check(&spec, &data());
+        let out = about_the_sentence(check(&spec, &data()));
         assert!(out.is_empty(), "a spread band was refused: {:?}", msgs(&out));
     }
 
@@ -11926,7 +12410,7 @@ mod tests {
     fn a_quantile_away_from_the_plain_points_says_nothing() {
         let spec = base().layer(
             Layer::new(Mark::Bar).transform(Transform::Quantile).at_quantile(0.9));
-        let out = check(&spec, &data());
+        let out = about_the_sentence(check(&spec, &data()));
         assert!(out.is_empty(), "the 90th percentile earned a remark: {:?}", msgs(&out));
     }
 
@@ -12257,6 +12741,42 @@ mod tests {
         let neg = base().layer(Layer::new(Mark::Bar).style_border("white", -1.0));
         assert_eq!(kinds(&check(&neg, &data())), vec![DiagnosticKind::Illegal],
             "a negative border width is refused");
+    }
+
+    #[test]
+    fn a_border_on_a_cross_is_refused_and_a_crossed_category_is_named() {
+        // A cross is two strokes with no fill. Set on every point, the border drew
+        // nothing and the plot was byte for byte the one without it, silently.
+        let crossed = |w: f64| {
+            let mut l = Layer::new(Mark::Point).style_border("red", w);
+            l.style.shape = Some("cross".into());
+            check(&base().layer(l), &data())
+        };
+        let d = crossed(2.0);
+        assert_eq!(kinds(&d), vec![DiagnosticKind::Illegal], "{:?}", msgs(&d));
+        assert!(d[0].message.contains("`style(shape = \"circle\")`"), "{}", d[0].message);
+        assert!(crossed(0.0).is_empty(), "a size of 0 asks for no border: {:?}", msgs(&crossed(0.0)));
+        let mut circle = Layer::new(Mark::Point).style_border("red", 2.0);
+        circle.style.shape = Some("circle".into());
+        assert!(check(&base().layer(circle), &data()).is_empty());
+
+        // Mapped, the fifth category draws as a cross and loses its border while the
+        // rest keep theirs: legal, and said, naming the category.
+        let five = HashMap::from([("t".to_string(), DataFrame::new()
+            .with_float("gdp", vec![1.0, 2.0, 3.0, 4.0, 5.0])
+            .with_float("life", vec![4.0, 5.0, 6.0, 7.0, 8.0])
+            .with_str("continent", ["Asia", "Europe", "Africa", "Americas", "Oceania"]
+                .map(String::from).to_vec()))]);
+        let mapped = base().layer(Layer::new(Mark::Point)
+            .encode(Channel::Shape, "continent").style_border("red", 2.0));
+        let d = check(&mapped, &five);
+        assert!(d.iter().any(|x| x.kind == DiagnosticKind::Assumption
+            && x.message.contains("draws `Oceania` as a `cross`")), "{:?}", msgs(&d));
+        assert!(d.iter().all(|x| !x.is_fatal()), "{:?}", msgs(&d));
+        // Four categories draw no cross, and say nothing.
+        let four = base().layer(Layer::new(Mark::Point)
+            .encode(Channel::Shape, "continent").style_border("red", 2.0));
+        assert!(check(&four, &data()).iter().all(|x| !x.message.contains("cross")));
     }
 
     #[test]
@@ -12899,7 +13419,10 @@ mod tests {
     }
 
     #[test]
-    fn arrow_is_a_path_setting_and_every_other_mark_refuses_it_with_direction() {
+    fn arrow_is_a_path_and_edge_setting_and_every_other_mark_refuses_it_with_direction() {
+        // The two strokes whose ends the data chose: a `path` runs from its first
+        // row to its last, an `edge` from `layout(from, to)`'s first column to its
+        // second (`edge` joined 2026-09-24).
         for m in &ALL_MARKS {
             if !is_drawable(m) { continue }
             let style = StyleSpec { arrow: Some("end".into()), ..Default::default() };
@@ -12914,8 +13437,8 @@ mod tests {
             };
             let d = check(&base().layer(layer), &data());
             let refused = d.iter().any(|x| x.message.contains("`style(arrow = )`"));
-            assert_eq!(refused, *m != Mark::Path,
-                "{m:?} arrow: refused={refused}, but only path should take it: {:?}", msgs(&d));
+            assert_eq!(refused, !matches!(m, Mark::Path | Mark::Edge),
+                "{m:?} arrow: refused={refused}, but only path and edge take it: {:?}", msgs(&d));
             if refused {
                 assert!(d.iter().any(|x| x.message.contains("Use `path`")),
                     "{m:?}: the refusal must give direction: {:?}", msgs(&d));
@@ -13452,7 +13975,7 @@ mod tests {
             .data("t")
             .x("gdp")
             .layer(Layer::new(Mark::Bar).transform(Transform::Count));
-        assert!(check(&spec, &data()).is_empty());
+        assert!(about_the_sentence(check(&spec, &data())).is_empty());
     }
 
     #[test]
@@ -13573,6 +14096,36 @@ mod tests {
         let d = check(&spec, &data());
         assert_eq!(kinds(&d), vec![DiagnosticKind::Illegal]);
         assert!(d[0].message.contains("sequential ramp"), "got: {}", d[0].message);
+    }
+
+    #[test]
+    fn the_gray_refusal_names_the_channel_the_mark_takes() {
+        // `gray` on categories is a print figure, and the refusal names the channel
+        // that separates them without color. It named `pattern` on a point plot,
+        // which a point refuses; the point's own answer is `shape`.
+        let gray = |layers: Vec<Layer>| {
+            let mut spec = base();
+            for l in layers {
+                spec = spec.layer(l.encode(Channel::Color, "continent"));
+            }
+            spec.palette = PaletteDef::Named("gray".into());
+            let d = check(&spec, &data());
+            d.iter().find(|x| x.kind == DiagnosticKind::Illegal
+                    && x.message.contains("`palette(\"gray\")` is a sequential ramp"))
+                .unwrap_or_else(|| panic!("the gray refusal: {:?}", msgs(&d)))
+                .message.clone()
+        };
+        let point = gray(vec![Layer::new(Mark::Point)]);
+        assert!(point.contains("`shape(<column>)`") && !point.contains("pattern("), "{point}");
+        let line = gray(vec![Layer::new(Mark::Line)]);
+        assert!(line.contains("`pattern(<column>)`") && !line.contains("shape("), "{line}");
+        // Two marks wanting two channels are each named.
+        let both = gray(vec![Layer::new(Mark::Line), Layer::new(Mark::Point)]);
+        assert!(both.contains("`pattern(<column>)` on the `line` layer")
+            && both.contains("`shape(<column>)` on the `point` layer"), "{both}");
+        // A mark with neither gets no print sentence rather than a wrong one.
+        let text = gray(vec![Layer::new(Mark::Text).encode(Channel::Label, "continent")]);
+        assert!(!text.contains("black and white"), "{text}");
     }
 
     #[test]
@@ -14278,6 +14831,36 @@ mod tests {
         let d = check(&fit(), &worded);
         assert_eq!(d.iter().filter(|x| x.message.contains("at least 3")).count(), 0,
                    "one mistake, one refusal: {:?}", msgs(&d));
+    }
+
+    /// The band needs five rows where its curve needs three, because below five every
+    /// local fit passes through its own two points and leaves no residual to measure
+    /// the band's width from. Between the two minimums the refusal offers the curve
+    /// alone, which is the nearer fix; below both it offers the rows as rows.
+    #[test]
+    fn a_band_needs_five_rows_where_its_curve_needs_three() {
+        let frame = |n: usize| {
+            let mut m = HashMap::new();
+            let xs: Vec<f64> = (0..n).map(|i| i as f64).collect();
+            m.insert("t".to_string(), DataFrame::new()
+                .with_float("gdp", xs.clone())
+                .with_float("life", xs));
+            m
+        };
+        let band = || base().layer(Layer::new(Mark::Ribbon).transform(Transform::SmoothBand));
+        for n in [3, 4] {
+            let d = check(&band(), &frame(n));
+            assert_eq!(kinds(&d), [DiagnosticKind::Illegal], "{n} rows: {:?}", msgs(&d));
+            let m = &d[0].message;
+            assert!(m.starts_with("gog: `smooth_band` fits a curve") && m.contains("at least 5")
+                && m.contains(&format!("has {n}.")) && m.contains("`line * smooth`"), "{m}");
+            assert!(check(&base().layer(Layer::new(Mark::Line).transform(Transform::Smooth)),
+                &frame(n)).is_empty(), "the curve alone draws from {n}");
+        }
+        let d = check(&band(), &frame(2));
+        assert!(d[0].message.contains("with `point` and no transform")
+            && !d[0].message.contains("`line * smooth`"), "{}", d[0].message);
+        assert!(check(&band(), &frame(5)).is_empty(), "5 rows is a band");
     }
 
     #[test]
@@ -15430,7 +16013,8 @@ mod tests {
 
         // With `range` or `confidence` it is the whole legal expression.
         for t in [Transform::Range, Transform::Confidence, Transform::Deviation] {
-            let d = check(&base().layer(Layer::new(Mark::Ribbon).transform(t.clone())), &data());
+            let d = about_the_sentence(
+                check(&base().layer(Layer::new(Mark::Ribbon).transform(t.clone())), &data()));
             assert!(d.is_empty(), "ribbon * {t:?} + x + y should be legal: {:?}", msgs(&d));
         }
 
@@ -15467,11 +16051,19 @@ mod tests {
         }
 
         // Any other mark draws no low/high pair, so `bounds` is refused there —
-        // toward the two marks that do.
+        // toward every mark that does, read off the shared table: the message
+        // named four of the five until `zone` was found missing from it.
         let d = check(&spec(Mark::Bar), &data);
-        assert!(d.iter().any(|x| x.kind == DiagnosticKind::Illegal
-            && x.message.contains("interval") && x.message.contains("ribbon")),
-            "bar * bounds should be refused toward the span marks: {:?}", msgs(&d));
+        let refusal = d.iter().find(|x| x.kind == DiagnosticKind::Illegal)
+            .map(|x| x.message.clone()).unwrap_or_default();
+        for m in &ALL_MARKS {
+            if mark_takes_transform(m, &Transform::Bounds) != TransformLegality::None {
+                assert!(refusal.contains(&format!("`{}`", mark_name(m)))
+                    || refusal.contains(&format!("/`{}`", mark_name(m)))
+                    || refusal.contains(&format!("`{}`/", mark_name(m))),
+                    "the refusal leaves out `{}`: {refusal}", mark_name(m));
+            }
+        }
 
         // It reshapes, never computes, so a named column that is not in the data is
         // refused with direction rather than silently drawing nothing.
@@ -17036,6 +17628,24 @@ mod tests {
                 && x.message.contains("`name`") && x.message.contains("`degree`")),
                 "a node maps only what a node has: {:?}", msgs(&d));
 
+            // And so must its text: an edge column drew an empty `text` layer,
+            // silently, because `label` was left out of the question.
+            let named = |field: &str| {
+                let mut l = Layer::new(Mark::Text).layout("continent", "region");
+                l.encodings.insert(Channel::Label, ChannelDef::field(field));
+                check(&PlotSpec::new().data("t").coord(net()).layer(l), &data())
+            };
+            let d = named("continent");
+            assert!(d.iter().any(|x| x.kind == DiagnosticKind::Illegal
+                && x.message.contains("`label(continent)`")
+                && x.message.contains("`label(name)`")),
+                "a label naming an edge column is refused toward `name`: {:?}", msgs(&d));
+            for ok in [crate::transform::NODE_NAME, crate::transform::NODE_DEGREE] {
+                let d = named(ok);
+                assert!(d.iter().all(|x| x.kind != DiagnosticKind::Illegal),
+                    "`label({ok})` names what a node has: {:?}", msgs(&d));
+            }
+
             // A self-loop is refused with its count and its direction.
             let looped = HashMap::from([("t".to_string(), DataFrame::new()
                 .with_str("continent", vec!["Asia".into(), "Asia".into()])
@@ -17134,6 +17744,168 @@ mod tests {
             .layer(part(Mark::Text).encode(Channel::Label, "name")), &tree_data());
         assert!(!d.iter().any(|x| x.is_fatal()),
             "`text * partition + label(name)` names an output column: {:?}", msgs(&d));
+    }
+
+    /// `partition * proportion` is legal wherever `--rules` says it is: on both
+    /// readers, nested and crossed, measured or tallied. It divides the measure axis
+    /// by its total, so neither mark's rules may read it as a tally of cells, which
+    /// is what refused it as a tile plot with no `y()` and `text` as a summary.
+    #[test]
+    fn a_partition_takes_proportion_on_both_of_its_readers() {
+        let levels = ["group", "item", "detail"];
+        for cross in [false, true] {
+            for measured in [true, false] {
+                let with = |mark: Mark| {
+                    let l = Layer::new(mark);
+                    let l = if cross { l.partition_crossed(&levels) } else { l.partition(&levels) };
+                    l.transform(Transform::Proportion)
+                };
+                let spec = PlotSpec::new().data("t");
+                let spec = if measured { spec.x("amount") } else { spec };
+                let d = check(&spec
+                    .layer(with(Mark::Zone).encode(Channel::Color, "group"))
+                    .layer(with(Mark::Text).encode(Channel::Label, "name")), &tree_data());
+                assert!(!d.iter().any(|x| x.is_fatal()),
+                    "cross = {cross}, measured = {measured}: {:?}", msgs(&d));
+            }
+        }
+    }
+
+    /// The two transforms that fill the scale job divide by different totals, so
+    /// the refusal names each by what it divides by, whichever is written first,
+    /// and spells `stack(share = TRUE)` out, since plain `stack` divides nothing.
+    /// Each way out is a sentence that draws: with nothing else measuring, the
+    /// pile's share has to count.
+    #[test]
+    fn proportion_beside_a_filled_pile_is_refused_toward_two_sentences_that_draw() {
+        let share = |l: Layer| Layer {
+            stack: Some(crate::ir::StackSpec { share: Some(true), baseline: None }),
+            ..l
+        };
+        for (ts, head) in [
+            (vec![Transform::Proportion, Transform::Stack], "`bar * proportion * stack(share = TRUE)`"),
+            (vec![Transform::Stack, Transform::Proportion], "`bar * stack(share = TRUE) * proportion`"),
+        ] {
+            let layer = ts.iter().fold(Layer::new(Mark::Bar), |l, t| l.transform(t.clone()));
+            let d = check(&PlotSpec::new().data("t").x("group")
+                .layer(share(layer).encode(Channel::Color, "item")), &tree_data());
+            let m = msgs(&d).join("\n");
+            assert!(m.contains(head), "the head names the filled pile: {m}");
+            assert!(m.contains("`proportion` divides it into shares of the whole plot \
+                and `stack(share = TRUE)` into shares of each pile"), "{m}");
+            assert!(m.contains("`bar * proportion * stack` for shares of the whole plot")
+                && m.contains("`bar * count * stack(share = TRUE)` for shares within each pile"),
+                "the ways out draw: {m}");
+        }
+        // With a measurement of its own, both ways out keep it.
+        let layer = Layer::new(Mark::Bar).transform(Transform::Sum)
+            .transform(Transform::Proportion).transform(Transform::Stack);
+        let d = check(&PlotSpec::new().data("t").x("group").y("amount")
+            .layer(share(layer).encode(Channel::Color, "item")), &tree_data());
+        let m = msgs(&d).join("\n");
+        assert!(m.contains("`bar * sum * proportion * stack`")
+            && m.contains("`bar * sum * stack(share = TRUE)`"), "{m}");
+        // A cut and the summary inside it are both kept, in the order written.
+        let layer = Layer::new(Mark::Bar).transform(Transform::Bin).transform(Transform::Mean)
+            .transform(Transform::Proportion).transform(Transform::Stack);
+        let d = check(&PlotSpec::new().data("t").x("amount").y("gdp")
+            .layer(share(layer).encode(Channel::Color, "item")), &tree_data());
+        let m = msgs(&d).join("\n");
+        assert!(m.contains("`bar * bin * mean * proportion * stack`")
+            && m.contains("`bar * bin * mean * stack(share = TRUE)`"), "{m}");
+    }
+
+    /// What a check says about the *sentence*, leaving out the one note that reads the
+    /// rows: the shared test table's `gdp` holds 1, 2 and 3, each once, so any summary
+    /// grouped by it is truthfully told its groups are single rows. The tests that
+    /// pin a sentence as legal and unremarked are about the sentence, not that table.
+    fn about_the_sentence(d: Vec<Diagnostic>) -> Vec<Diagnostic> {
+        d.into_iter().filter(|x| !x.message.contains("every group holds a single row")).collect()
+    }
+
+    /// The splitting channels a mark is advised and relaxed by are the ones it takes:
+    /// a bar's are `color` and `pattern`, never `group`, which it refuses. So the
+    /// `dodge` refusal names those two, and `pattern` alone divides a one-slot bar
+    /// as `color` does (Law 2), where it was refused and `group` was counted.
+    #[test]
+    fn a_bar_is_split_and_advised_by_the_channels_it_takes() {
+        assert_eq!(splitting_channels(&Mark::Bar), vec![Channel::Color, Channel::Pattern]);
+        let d = check(&PlotSpec::new().data("t").x("continent").y("life")
+            .layer(Layer::new(Mark::Bar).transform(Transform::Mean).transform(Transform::Dodge)), &data());
+        let m = msgs(&d).join("\n");
+        assert!(m.contains("Add `color(<field>)` or `pattern(<field>)`") && !m.contains("group("), "{m}");
+        let one_slot = |ch: Channel| Layer::new(Mark::Bar).transform(Transform::Count)
+            .transform(Transform::Stack).encode(ch, "region");
+        assert!(bar_divides_one_slot(&one_slot(Channel::Pattern)), "a hatched pile has one slot");
+        assert!(bar_divides_one_slot(&one_slot(Channel::Color)));
+        let d = check(&PlotSpec::new().data("t").layer(one_slot(Channel::Pattern)), &data());
+        assert!(!d.iter().any(|x| x.is_fatal()), "{:?}", msgs(&d));
+    }
+
+    /// A summary whose every group is one row draws the rows themselves and says
+    /// so, drawn as asked (§12's standing rule, read off the rows). It stays quiet
+    /// on a category, on a key whose values repeat, after a `bin`, and on a date.
+    #[test]
+    fn a_summary_of_one_row_groups_draws_the_rows_and_says_so() {
+        let note = |spec: PlotSpec, d: &HashMap<String, DataFrame>| -> Vec<String> {
+            check(&spec, d).into_iter()
+                .filter(|x| x.kind == DiagnosticKind::Assumption
+                    && x.message.contains("every group holds a single row"))
+                .map(|x| x.message)
+                .collect()
+        };
+        let d = data(); // `gdp` holds 1, 2 and 3, each once
+        let on = |key: &str, t: Transform| PlotSpec::new().data("t").x(key).y("life")
+            .layer(Layer::new(Mark::Bar).transform(t));
+        let m = note(on("gdp", Transform::Mean), &d);
+        assert_eq!(m.len(), 1, "{m:?}");
+        assert!(m[0].contains("`bar * mean` groups the rows by their value of `gdp`")
+            && m[0].contains("`bar * bin * mean`") && m[0].contains("Drawn as asked."), "{m:?}");
+        let c = note(PlotSpec::new().data("t").x("gdp")
+            .layer(Layer::new(Mark::Bar).transform(Transform::Count)), &d);
+        assert!(c.len() == 1 && c[0].contains("every count is 1")
+            && c[0].contains("`bar * bin + x(gdp)`"), "{c:?}");
+
+        assert!(note(on("continent", Transform::Mean), &d).is_empty(), "a category");
+        let repeats = HashMap::from([("t".to_string(), DataFrame::new()
+            .with_float("gdp", vec![1.0, 1.0, 2.0]).with_float("life", vec![4.0, 5.0, 6.0]))]);
+        assert!(note(on("gdp", Transform::Mean), &repeats).is_empty(), "a key that repeats");
+        let cut = PlotSpec::new().data("t").x("gdp").y("life")
+            .layer(Layer::new(Mark::Bar).transform(Transform::Bin).transform(Transform::Mean));
+        assert!(note(cut, &d).is_empty(), "a cut");
+        let days = HashMap::from([("t".to_string(), DataFrame::new()
+            .with_time("gdp", vec![0.0, 86_400.0, 172_800.0], crate::time::TimeUnit::Day)
+            .with_float("life", vec![4.0, 5.0, 6.0]))]);
+        assert!(note(on("gdp", Transform::Mean), &days).is_empty(), "a date");
+        // A layer refused for something else has one message, the refusal.
+        let refused = PlotSpec::new().data("t").x("gdp").y("continent")
+            .layer(Layer::new(Mark::Line).transform(Transform::Mean));
+        let all = check(&refused, &d);
+        assert!(all.iter().any(|x| x.is_fatal()), "the premise: {:?}", msgs(&all));
+        assert!(note(refused, &d).is_empty(), "a refused layer");
+    }
+
+    /// A whole-picture layout takes no second transform, and it is told so in its
+    /// own terms rather than in the per-job sentences, which describe cells and
+    /// piles a layout does not have.
+    #[test]
+    fn a_layout_beside_another_transform_is_refused_in_its_own_terms() {
+        let s = |v: &[&str]| v.iter().map(|x| x.to_string()).collect::<Vec<_>>();
+        let d = HashMap::from([(
+            "t".to_string(),
+            DataFrame::new()
+                .with_str("a", s(&["p", "q"]))
+                .with_str("b", s(&["u", "v"]))
+                .with_float("n", vec![1.0, 2.0]),
+        )]);
+        for t in [Transform::Proportion, Transform::Mean] {
+            let out = check(&PlotSpec::new().data("t").y("n")
+                .layer(Layer::new(Mark::Ribbon).flow(&["a", "b"]).transform(t.clone())), &d);
+            let m = msgs(&out).join("\n");
+            assert!(m.contains("gives `flow` a second transform, and `flow` takes none")
+                && !m.contains("shares of the whole plot") && !m.contains("measures each cell twice"),
+                "{t:?}: {m}");
+        }
     }
 
     /// The one genuine ambiguity, refused rather than defaulted — Law 5, and the
@@ -17918,9 +18690,16 @@ mod tests {
     /// with the amount that fits. A renderer test holds the number to the band.
     #[test]
     fn a_jitter_wide_enough_to_cross_into_the_next_category_is_refused() {
-        for ok in [0.0, 0.5, 1.0, JITTER_MAX] {
+        for ok in [0.5, 1.0, JITTER_MAX] {
             assert!(check(&jittered(ok), &data()).is_empty(), "jitter({ok}) was refused");
         }
+        // Zero moves nothing: drawn, with a note naming the ways to mean something.
+        let d = check(&jittered(0.0), &data());
+        assert_eq!(d.len(), 1, "{:?}", msgs(&d));
+        assert_eq!(d[0].kind, DiagnosticKind::Assumption, "{:?}", msgs(&d));
+        assert!(d[0].message.contains("`jitter(0)` moves no point")
+            && d[0].message.contains("Drop `jitter`")
+            && d[0].message.contains("Drawn as asked."), "{:?}", msgs(&d));
         for wide in [1.3, 2.0, 3.0] {
             let d = check(&jittered(wide), &data());
             assert_eq!(d.len(), 1, "one refusal for jitter({wide}): {:?}", msgs(&d));

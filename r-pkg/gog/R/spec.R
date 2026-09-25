@@ -83,6 +83,10 @@ carry_confidence_params <- function(layer, tr) {
   if (identical(tr$transform, "confidence") && !is.null(tr$level)) {
     layer$confidence <- list(level = tr$level)
   }
+  # `smooth_band` takes a level of the same shape, on a field of its own.
+  if (identical(tr$transform, "smooth_band") && !is.null(tr$level)) {
+    layer$smooth_band <- list(level = tr$level)
+  }
   layer
 }
 
@@ -229,6 +233,15 @@ carry_partition_params <- function(layer, tr) {
   stop("gog: `*` not defined for ", e1$type, " * ", e2$type,
        ".\nUse `*` to combine a mark with a transform, e.g. bar * bin.")
 }
+
+# The same method for a mark R binds to a function (`box`, which takes
+# `whiskers`), so that `box * jitter` dispatches with a function on both sides.
+# It has to be the *same function object*: when both operands carry a class, R
+# uses the method only if the two resolve to the identical function, and `box *
+# dodge` has `*.gog_atom` on its right.
+#' @rdname times-.gog_atom
+#' @export
+`*.gog_callable` <- `*.gog_atom`
 
 
 # Did the caller's expression lose the table's name on the way in?
@@ -567,10 +580,20 @@ resolve_query <- function(q, table) {
     # Compositional Invariance (Law 6).
     if (!identical(rhs$spec, new_spec(new_name)) ||
         !is.null(rhs$current_layer) || !is.null(rhs$pending_data)) {
-      stop("gog: parentheses do not group marks, so everything inside these ",
-           "would be dropped. Write the marks in sequence instead, and repeat ",
-           "`data()` before each one that reads that table: ",
-           "`+ data(", new_name, ") + point + data(", new_name, ") + area`. ",
+      # The example is built from the marks inside the parentheses, so it reads
+      # as the reader's own sentence rather than one about `point` and `area`.
+      marks <- c(vapply(rhs$spec$layers, function(l) l$mark, character(1)),
+                 rhs$current_layer$mark)
+      if (length(marks)) {
+        stop("gog: parentheses do not group marks, so everything inside these ",
+             "would be dropped. Write the marks in sequence instead, and repeat ",
+             "`data()` before each one that reads that table: `",
+             paste0("+ data(", new_name, ") + ", marks, collapse = " "), "`. ",
+             "Parentheses compose whole plots, with `|` and `/`.", call. = FALSE)
+      }
+      stop("gog: parentheses do not group the parts of a plot, so everything ",
+           "inside these would be dropped. Write them in sequence instead, each ",
+           "after its own `+`, beginning with `+ data(", new_name, ")`. ",
            "Parentheses compose whole plots, with `|` and `/`.", call. = FALSE)
     }
 
@@ -652,6 +675,7 @@ resolve_query <- function(q, table) {
       lhs$current_layer$density <- rhs$density
       lhs$current_layer$range <- rhs$range
       lhs$current_layer$confidence <- rhs$confidence
+      lhs$current_layer$smooth_band <- rhs$smooth_band
       lhs$current_layer$deviation <- rhs$deviation
       lhs$current_layer$quantile <- rhs$quantile
       lhs$current_layer$jitter <- rhs$jitter

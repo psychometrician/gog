@@ -67,6 +67,7 @@ impl SvgRenderer {
         // in one zigzag.
         let is_pair = layer.transforms.iter().any(|t| matches!(
             t, Transform::Range | Transform::Confidence | Transform::Deviation
+               | Transform::SmoothBand
                | Transform::Bounds));
 
         // Warn when a line has many ungrouped rows and no synthesizing transform —
@@ -95,15 +96,28 @@ impl SvgRenderer {
         let has_clean_transform = is_pair
             || layer.transforms.iter().any(crate::transform::is_value_statistic);
         if group_field.is_none() && !has_clean_transform && n > 5 {
-            remarks.push(Diagnostic {
-                kind: DiagnosticKind::Assumption,
-                message: format!(
+            // A `color` of numbers was mapped, and it ramps along the one stroke
+            // rather than splitting it. The message said "no group or color
+            // channel" over it, which is false of the sentence; that case names the
+            // mapping and the one channel that would split the rows.
+            let ramped = ramp_color.as_ref()
+                .and(layer.encodings.get(&Channel::Color))
+                .map(|c| c.field.as_str());
+            let message = match ramped {
+                Some(field) => format!(
+                    "gog: `line` has {n} rows in one stroke. `color({field})` holds numbers, \
+                     so it colors along the stroke instead of splitting it, and all points \
+                     will be connected in x order. If you have multiple series, add \
+                     `group(<field>)` to draw one line per category (e.g. `+ group(country)`)."
+                ),
+                None => format!(
                     "gog: `line` has {n} rows and no group or color channel — all points \
                      will be connected in x order. If you have multiple series, add \
                      `color(<field>)` or `group(<field>)` to draw one line per category \
                      (e.g. `+ color(country)`)."
                 ),
-            });
+            };
+            remarks.push(Diagnostic { kind: DiagnosticKind::Assumption, message });
         }
 
         // A polyline is one stroke, which is exactly why `size` and `opacity`

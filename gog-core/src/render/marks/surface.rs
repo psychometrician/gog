@@ -217,7 +217,10 @@ impl SvgRenderer {
         let o = st.opacity.unwrap_or(1.0);
         // The mesh lines, and the reading that made `border_*` worth spanning to this
         // mark (spec §4/§15): the seam hairline each face already carried, handed to
-        // the caller. `border_size = 0` draws a seamless sheet.
+        // the caller. By default the hairline is the face's own fill, which is what
+        // makes the sheet seamless; `border_size = 0` removes it and lets the pale
+        // antialiasing gaps between faces show, and a `border_color` turns it into
+        // visible mesh lines.
         let mesh_color = st.border_color.as_deref().map(esc);
         let mesh_width = st.border_size.unwrap_or(SEAM);
 

@@ -29,7 +29,7 @@
 
 import { Column, columnName, describe } from "./columns.js";
 import { GogError } from "./errors.js";
-import { epochSeconds } from "./render.js";
+import { dateSeconds } from "./render.js";
 import { Atom, asAtom, bareAtom, callableAtom } from "./spec.js";
 
 // ---------------------------------------------------------------------------
@@ -369,6 +369,29 @@ export const confidence = callableAtom(
   }
 );
 
+// `smooth_band` — the band around a `smooth` line, 0.95 unless told otherwise.
+// `smooth`'s pair form, as `confidence` is `mean`'s: `layer(ribbon, smooth_band)`
+// beside `layer(line, smooth)` draws the trend with its band.
+export const smooth_band = callableAtom(
+  new Atom("transform", { transform: "smooth_band" }),
+  (...raw) => {
+    const { level } = readArgs(raw, "smooth_band", ["level"]);
+    if (
+      level !== undefined &&
+      (typeof level !== "number" || !Number.isFinite(level) || level <= 0 || level >= 1)
+    ) {
+      throw new GogError(
+        "gog: `smooth_band({ level: … })` needs one number strictly between 0 and 1, " +
+          "e.g. `smooth_band(0.95)`."
+      );
+    }
+    return new Atom("transform", {
+      transform: "smooth_band",
+      level: level ?? null,
+    });
+  }
+);
+
 // `jitter` — the categorical-axis spread, a multiple of the default.
 export const jitter = callableAtom(
   new Atom("transform", { transform: "jitter" }),
@@ -610,11 +633,16 @@ function checkLimits(limits) {
         "Use `null` for an end the data should decide: `[0, null]`."
     );
   }
+  // A domain on a temporal axis is written in dates, not epoch arithmetic:
+  // `{ limits: [new Date("2024-01-01"), new Date("2024-12-31")] }`. The two ends
+  // are read together, by the rule a column is (`dateSeconds`), so an end and the
+  // column it bounds agree about which clock a date is on.
+  const dated = limits.filter((end) => end instanceof Date);
+  const read = dated.length ? dateSeconds(dated).seconds : [];
+  let next = 0;
   const out = limits.map((end) => {
     if (end === null || end === undefined) return null;
-    // A domain on a temporal axis is written in dates, not epoch arithmetic:
-    // `{ limits: [new Date("2024-01-01"), new Date("2024-12-31")] }`.
-    if (end instanceof Date) return epochSeconds(end);
+    if (end instanceof Date) return read[next++];
     if (typeof end !== "number" || !Number.isFinite(end)) {
       throw new GogError(
         "gog: `limits` needs two numbers, e.g. `x(col.hour, { limits: [0, 24] })`. " +

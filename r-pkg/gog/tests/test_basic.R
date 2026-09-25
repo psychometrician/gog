@@ -1583,12 +1583,13 @@ for (want in c("parentheses do not group marks", "repeat", "group_note", "`|` an
 cat("PASS: the refusal names the table and gives the sequence to write\n")
 
 # Not only marks: a position or a title inside the parentheses was dropped too.
+# With no mark inside, the refusal names none.
 refuses("(data(note) + x(x)) on the right of `+`",
         data(group_df) + x(x) + y(y) + line + (data(group_note) + x(x)),
-        "parentheses do not group marks")
+        "parentheses do not group the parts of a plot")
 refuses("(data(note) + title()) on the right of `+`",
         data(group_df) + x(x) + y(y) + line + (data(group_note) + title("hi")),
-        "parentheses do not group marks")
+        "parentheses do not group the parts of a plot")
 
 # A bare `data()` carries nothing, so it still joins mid-sentence.
 p_seq <- data(group_df) + x(x) + y(y) + line + data(group_note) + point
@@ -1965,7 +1966,11 @@ q50 <- withCallingHandlers(
   message = function(m) { said <<- c(said, conditionMessage(m)); invokeRestart("muffleMessage") })
 if (!any(grepl("is the median", said)))
   stop("FAIL: quantile(0.5) should say `median` is the plain name")
-if (!identical(q50, render_svg(data(spread_df) + bar * median + x(g) + y(v))))
+# What a plot *draws*, without its accessible name: that name reads the sentence
+# aloud ("Bars derived by quantile"), so two sentences that draw the same ink are
+# still named for what each says.
+ink <- function(svg) sub(' role="img" aria-label="[^"]*"', "", svg)
+if (!identical(ink(q50), ink(render_svg(data(spread_df) + bar * median + x(g) + y(v)))))
   stop("FAIL: quantile(0.5) does not draw what median draws, so the message is wrong")
 cat("PASS: quantile() needs its probability, and names the plain atom at three points\n")
 
@@ -2217,6 +2222,26 @@ if (any(grepl("asked for", quiet)))
   stop("FAIL: the default count should thin silently, got ",
        paste(quiet, collapse = " | "))
 cat("PASS: a thinned tick count is reported, and the default is not\n")
+
+# A count past the most one axis draws (26) widens the step rather than cutting
+# the axis short. The cut kept the first 26 ticks: 40 on gdp labeled 0K to 25K on
+# an axis that runs to 49K, and said nothing.
+wide <- data.frame(gdp = c(277.55, 12000, 49357.19), life = c(40, 60, 82))
+said <- capture.output(
+  svg <- render_svg(data(wide) + point + x(gdp, tick_count = 40) + y(life)),
+  type = "message")
+lab <- tick_labels(svg)
+if (!("48K" %in% lab) || "25K" %in% lab)
+  stop("FAIL: a count past the maximum should widen the step to the far end, got ",
+       paste(lab, collapse = " "))
+if (!any(grepl("a tick every 2K instead", said)))
+  stop("FAIL: a widened step should be reported, got ", paste(said, collapse = " | "))
+quiet <- capture.output(
+  render_svg(data(wide) + point + x(gdp, tick_count = 26) + y(life)),
+  type = "message")
+if (any(grepl("ticks on this axis", quiet)))
+  stop("FAIL: a count that fits should draw silently, got ", paste(quiet, collapse = " | "))
+cat("PASS: a count past the maximum widens the step to the far end, and says so\n")
 
 # A domain on a temporal axis is written in dates, and the binding converts them
 # the way it converts the column. Without that the two disagree by a factor of
@@ -4122,4 +4147,267 @@ local({
   if (lengths(regmatches(msg, gregexpr("gog: `", msg, fixed = TRUE))) != 1L)
     stop("FAIL: `box * mean` should be refused once")
   cat("PASS: a tally's axis names no column, and a box's refusal is said once\n")
+})
+
+# Each of these drew something other than the sentence said, or said nothing where
+# it should have spoken: a count a log, calendar or map axis never read, a date on
+# `z` in epoch seconds, a page coarsening its plots' ticks, two keys for one
+# column, a transparent figure painted white, a name far from its axis, a dash an
+# `edge` refused, a label the layout had nowhere to read from.
+local({
+  big <- data.frame(i = 0:24, v = 10^(0:24))
+  lab <- tick_labels(render_svg(data(big) + point + x(i) + y(v, scale = "log")))
+  if (!("10¹²" %in% lab) || any(grepl("000B", lab)))
+    stop("FAIL: a log axis past a trillion should name the power, got ",
+         paste(lab, collapse = " "))
+
+  wide <- data.frame(gdp = c(277.55, 2000, 12000, 49357.19), life = c(40, 55, 70, 82))
+  logged <- function(...) tick_labels(render_svg(
+    data(wide) + point + x(gdp, scale = "log", ...) + y(life)))
+  if ("2K" %in% logged() || !all(c("2K", "5K") %in% logged(tick_count = 12)))
+    stop("FAIL: a stated count should reach a log axis")
+  days <- data.frame(day = seq(as.Date("2024-03-01"), by = "day", length.out = 42),
+                     orders = rep(c(20, 22, 24, 26, 28, 30, 32), 6))
+  dated <- function(...) sum(grepl("^(Feb|Mar|Apr) ", tick_labels(render_svg(
+    data(days) + line + x(day, ...) + y(orders)))))
+  if (dated() != 6 || dated(tick_count = 3) != 3 || dated(tick_count = 20) != 22)
+    stop("FAIL: a stated count should reach a calendar axis")
+  lab <- tick_labels(render_svg(data(days) + point + x(orders) + y(orders) + z(day)))
+  if (!("Mar 4" %in% lab)) stop("FAIL: a date on z should be ticked on the calendar")
+
+  quakes <- data.frame(east = c(165, 170, 175, 180, 185), north = c(-35, -30, -25, -20, -15))
+  degrees <- function(...) sum(grepl("°$", tick_labels(render_svg(
+    data(quakes) + point + x(east, ...) + y(north) + map()))))
+  if (degrees(tick_count = 20) <= degrees() + 5)
+    stop("FAIL: a stated count should reach a map's degree ticks")
+
+  page <- (data(wide) + point + x(gdp, tick_count = 3) + y(life)) |
+    (data(wide) + point + x(gdp, tick_count = 12) + y(life))
+  if (!all(c("5K", "15K", "45K") %in% tick_labels(render_svg(page))))
+    stop("FAIL: a shared axis should be ticked as each plot alone ticks it")
+
+  kinds <- data.frame(x = 1:3, y = 1:3, kind = c("a", "b", "c"))
+  merged <- render_svg(data(kinds) + point + x(x) + y(y) + color(kind) + shape(kind))
+  if (sum(tick_labels(merged) == "Kind") != 1)
+    stop("FAIL: color and shape on one column should draw one key")
+  refuses("a gray palette on points",
+          render_svg(data(kinds) + point + x(x) + y(y) + color(kind) + palette("gray")),
+          "`shape(<column>)`")
+  clear <- render_svg(data(kinds) + point + x(x) + y(y) +
+                        theme(background = "transparent"))
+  if (grepl('<rect width="800" height="600" fill="white"/>', clear, fixed = TRUE))
+    stop("FAIL: a transparent background should paint no canvas")
+  squared <- render_svg(data(kinds) + point + x(x) + y(y) + theme(ratio = 1))
+  at <- as.numeric(sub(".*rotate\\(-90 ([0-9.]+) .*", "\\1", squared))
+  if (!(at > 50)) stop("FAIL: the y name should sit beside a panel a ratio narrowed")
+
+  links <- data.frame(src = c("a", "a", "b"), dst = c("b", "c", "c"))
+  refuses("a label naming an edge column",
+          render_svg(data(links) + text * layout(src, dst) + label(src) + network()),
+          "`label(name)`")
+  dashed <- render_svg(data(links) + edge * layout(src, dst) + pattern(src) + network())
+  if (!grepl("stroke-dasharray", dashed, fixed = TRUE))
+    stop("FAIL: a mapped pattern should dash an edge")
+
+  refuses("a border on a cross",
+          render_svg(data(kinds) + point + x(x) + y(y) +
+                       style(shape = "cross", border_color = "red", border_size = 2)),
+          "a `cross` is two strokes with no fill")
+  boxes <- data.frame(g = rep(c("a", "b"), each = 5), v = c(1:5, 2 * (1:5)))
+  caps <- function(...) lengths(regmatches(
+    s <- render_svg(data(boxes) + box + x(g) + y(v) + style(...)),
+    gregexpr('stroke-linecap="round"/>', s, fixed = TRUE)))
+  if (caps(caps = TRUE) != 4 || caps(caps = FALSE) != 0)
+    stop("FAIL: style(caps = FALSE) should leave a box's whiskers bare")
+  heads <- render_svg(data(links) + edge * layout(src, dst) + style(arrow = "end") + network())
+  if (lengths(regmatches(heads, gregexpr("<polygon", heads, fixed = TRUE))) != 3)
+    stop("FAIL: style(arrow = 'end') should put a head on each edge")
+  ramp <- data.frame(x = 0:7, y = c(1, 3, 2, 4, 3, 5, 4, 6), v = 0:7)
+  said <- capture.output(invisible(render_svg(data(ramp) + line + x(x) + y(y) + color(v))),
+                         type = "message")
+  if (!any(grepl("`color(v)` holds numbers", said, fixed = TRUE)))
+    stop("FAIL: a ramped line's warning should name its color, got ", paste(said, collapse = " | "))
+  msg <- tryCatch(opacity(life, tick_count = 3), error = conditionMessage)
+  if (!grepl("unused argument", msg, fixed = TRUE))
+    stop("FAIL: opacity() should take no tick_count, as color() and size() take none")
+  cat("PASS: counts on every axis, calendar z, shared ticks, one key, transparent,",
+      "names beside the panel, dashed edges, node labels\n")
+})
+
+# A partition read as proportion divides its measure axis by the total and keeps
+# its other axis's name; a spine plot's share axis runs 0 to 1 instead of -0 to 2;
+# the refusal of a proportion beside a filled pile names `stack(share = TRUE)` and
+# a way out that draws; and `box * jitter` reaches gog's operator, where R's own
+# arithmetic used to answer "non-numeric argument to binary operator".
+local({
+  trips <- data.frame(city = rep(c("A", "B"), each = 2), mode = rep(c("car", "bus"), 2),
+                      people = c(30, 10, 20, 40))
+  lab <- tick_labels(render_svg(data(trips) + x(people) +
+    zone * partition(city, mode, cross = TRUE) * proportion + color(mode)))
+  nums <- suppressWarnings(as.numeric(lab))
+  if (!("Share of column" %in% lab) || "Proportion" %in% lab || any(nums[!is.na(nums)] > 1))
+    stop("FAIL: partition * proportion should tick its measure axis in shares, got ",
+         paste(lab, collapse = " "))
+  lab <- tick_labels(render_svg(data(trips) + x(people) +
+    text * partition(city, mode) * proportion + label(name)))
+  if (!all(c("A", "car") %in% lab))
+    stop("FAIL: text * partition * proportion should name the nodes")
+  spine <- tick_labels(render_svg(data(trips) + zone * partition(city, cross = TRUE) +
+                                    x(people) + color(city)))
+  if ("-0" %in% spine || !all(c("0.2", "1.0") %in% spine))
+    stop("FAIL: a spine plot's share axis should run 0 to 1, got ", paste(spine, collapse = " "))
+  refuses("proportion beside a filled pile",
+          render_svg(data(trips) + bar * stack(share = TRUE) * proportion + x(city) + color(mode)),
+          "`bar * count * stack(share = TRUE)` for shares within each pile")
+  refuses("jitter on a box", render_svg(data(trips) + box * jitter + x(city) + y(people)),
+          "`dodge` sets them side by side")
+  refuses("stack on a box", render_svg(data(trips) + box * stack + x(city) + y(people)),
+          "that is `dodge`, not `stack`")
+  cat("PASS: partition * proportion in shares, the spine plot's axis, the filled-pile",
+      "refusal, and box * jitter refused by gog\n")
+})
+
+# A name written with `y_label()` is drawn where an axis draws no numbers (a moved
+# pile, a partition's ring), where it used to be dropped in silence; `jitter(0)`
+# draws with a note that it moved nothing; and the `bounds` refusal names `zone`,
+# the fifth mark that takes the pair.
+local({
+  weeks <- data.frame(week = rep(1:4, 2), plays = c(3, 4, 5, 4, 2, 3, 2, 4),
+                      genre = rep(c("folk", "jazz"), each = 4))
+  lab <- tick_labels(render_svg(data(weeks) + area * stack(baseline = "wiggle") +
+                                  x(week) + y(plays) + color(genre) + y_label("Plays per week")))
+  if (!("Plays per week" %in% lab))
+    stop("FAIL: a written y_label should be drawn on a moved pile, got ", paste(lab, collapse = " "))
+  strip <- data.frame(g = rep(c("a", "b"), each = 3), v = c(1, 2, 3, 2, 3, 4))
+  said <- capture.output(invisible(render_svg(data(strip) + point * jitter(0) + x(g) + y(v))),
+                         type = "message")
+  if (!any(grepl("`jitter(0)` moves no point", said, fixed = TRUE)))
+    stop("FAIL: jitter(0) should draw with a note, got ", paste(said, collapse = " | "))
+  refuses("bounds on a bar", render_svg(data(strip) + bar * bounds(v, v) + x(g)),
+          "`zone` shades the region between them")
+  cat("PASS: a written name on an axis with no numbers, jitter(0)'s note, and zone in",
+      "the bounds refusal\n")
+})
+
+# A partition's axes run from 0: they are ticked over the cells, not over the
+# cells' centers, so a mosaic's share axis reads 0.0 to 1.0, and a sunburst's
+# angle labels 0 once, at the top, where its total would share the spoke.
+local({
+  trips <- data.frame(city = rep(c("A", "B"), each = 2), mode = rep(c("car", "bus"), 2),
+                      people = c(30, 10, 20, 40))
+  lab <- tick_labels(render_svg(data(trips) + zone * partition(city, mode, cross = TRUE) +
+                                  x(people) + color(mode)))
+  if (!all(c("0", "0.0", "1.0") %in% lab))
+    stop("FAIL: a mosaic's axes should run from 0, got ", paste(lab, collapse = " "))
+  lab <- tick_labels(render_svg(data(trips) + zone * partition(city, mode) + x(people) +
+                                  color(city) + polar()))
+  if (sum(lab == "0") != 1 || "100" %in% lab)
+    stop("FAIL: a sunburst should label 0 once and not its total, got ", paste(lab, collapse = " "))
+  cat("PASS: a partition's axes are ticked from 0 over its cells\n")
+})
+
+# A summary whose every group is one row draws the rows themselves, and now says
+# so: a key of numbers that never repeat gives one group per row.
+local({
+  spread <- data.frame(gdp = c(1.5, 2.5, 3.5, 4.5), life = c(50, 60, 70, 80))
+  said <- capture.output(invisible(render_svg(data(spread) + bar * mean + x(gdp) + y(life))),
+                         type = "message")
+  if (!any(grepl("every group holds a single row", said, fixed = TRUE)) ||
+      !any(grepl("`bar * bin * mean`", said, fixed = TRUE)))
+    stop("FAIL: a summary of one-row groups should say so, got ", paste(said, collapse = " | "))
+  twice <- data.frame(gdp = c(1, 1, 2, 2), life = c(50, 60, 70, 80))
+  quiet <- capture.output(invisible(render_svg(data(twice) + bar * mean + x(gdp) + y(life))),
+                          type = "message")
+  if (any(grepl("every group holds a single row", quiet, fixed = TRUE)))
+    stop("FAIL: a key whose values repeat should draw with no note")
+  cat("PASS: a summary of one-row groups says so, and a real summary does not\n")
+})
+
+# Every plot is a named image for a screen reader: `role="img"` and an
+# `aria-label`, the title when there is one, else what the plot draws.
+local({
+  pts <- data.frame(gdp = c(1, 2, 3), life = c(50, 60, 70))
+  svg <- render_svg(data(pts) + point + x(gdp) + y(life))
+  if (!grepl('role="img" aria-label="Points, x is gdp, y is life"', svg, fixed = TRUE))
+    stop("FAIL: a plot should carry its accessible name, got ", substr(svg, 1, 200))
+  svg <- render_svg(data(pts) + point + x(gdp) + y(life) + title("Longer lives"))
+  if (!grepl('aria-label="Longer lives"', svg, fixed = TRUE))
+    stop("FAIL: a titled plot should be named by its title")
+  cat("PASS: every plot carries an accessible name\n")
+})
+
+# A color name means one color: a palette ramp through "green" ends at CSS's
+# green, the one a set `style(color = "green")` shows, not X11's #00FF00.
+local({
+  d <- data.frame(a = 1:5, b = 1:5, v = 1:5)
+  svg <- render_svg(data(d) + point + x(a) + y(b) + color(v) + palette(c("white", "green")))
+  if (!grepl("#008000", svg, fixed = TRUE) || grepl("#00ff00", svg, ignore.case = TRUE))
+    stop("FAIL: a ramp through green should end at CSS green, #008000")
+  cat("PASS: a palette's green is CSS's green\n")
+})
+
+# A page carries only the columns its plot names: the engine prunes the request
+# a brushed plot embeds, so an unmapped column never reaches the page.
+local({
+  people <- data.frame(gdp = c(1000, 20000, 40000), life = c(50, 70, 80),
+                       email = c("a@x.org", "b@x.org", "c@x.org"))
+  p <- data(people) + point + x(gdp) + y(life) + brush(gdp, at = c(2000, 30000))
+  block <- gog:::svg_block(gog:::render_svg(p), p)
+  if (grepl("<script", block, fixed = TRUE)) {
+    if (grepl("a@x.org", block, fixed = TRUE) || grepl("\"email\"", block, fixed = TRUE))
+      stop("FAIL: a page should not carry a column its plot never names")
+    if (!grepl("\"gdp\"", block, fixed = TRUE) || !grepl("\"life\"", block, fixed = TRUE))
+      stop("FAIL: a page must carry the columns its plot names")
+    cat("PASS: a page carries only the columns its plot names\n")
+  } else {
+    cat("SKIP: browser engine not built, so the payload cannot be checked\n")
+  }
+})
+
+# `smooth_band` is the band around a `smooth` line: a ribbon fills it, its level
+# reaches the engine, and a level outside (0, 1) is refused.
+local({
+  pts <- data.frame(g = 1:30, v = sin((1:30) / 5) * 3 + (1:30 %% 4))
+  band <- function(...) render_svg(data(pts) + ribbon * smooth_band(...) + x(g) + y(v) +
+                                     line * smooth + x(g) + y(v))
+  svg <- band()
+  if (!grepl("<polygon", svg, fixed = TRUE) ||
+      !grepl("Ribbons derived by smooth_band", svg, fixed = TRUE))
+    stop("FAIL: ribbon * smooth_band should draw the band")
+  if (identical(band(0.5), band(0.99)))
+    stop("FAIL: smooth_band's level should reach the engine")
+  refuses("a level outside (0, 1)", smooth_band(1.5), "strictly between 0 and 1")
+  # The band needs five rows where its curve needs three: below five every local
+  # fit passes through its own points and leaves nothing to measure a width from.
+  four <- pts[1:4, ]
+  m <- refuses("smooth_band on four rows",
+               render_svg(data(four) + ribbon * smooth_band + x(g) + y(v)), "at least 5")
+  if (!grepl("`smooth_band`", m, fixed = TRUE) || !grepl("`line * smooth`", m, fixed = TRUE))
+    stop("FAIL: the band's refusal should name it, and offer the curve alone: ", m)
+  cat("PASS: smooth_band draws the band around smooth, at its level\n")
+})
+
+# The parentheses refusal is built from the marks inside them, and a group with no
+# mark gets advice naming none; the `bar * dodge` refusal names the channels a bar
+# takes; and `pattern` divides a one-slot bar as `color` does.
+local({
+  a <- data.frame(g = c(1, 2, 3), v = c(1, 2, 3))
+  lines <- data.frame(at = c(1.5, 2.5))
+  msg <- tryCatch({ data(a) + x(g) + y(v) + point + (data(lines) + rule + x(at)); "" },
+                  error = conditionMessage)
+  if (!grepl("`+ data(lines) + rule`", msg, fixed = TRUE) || grepl("area", msg, fixed = TRUE))
+    stop("FAIL: the parentheses refusal should name the marks inside them, got ", msg)
+  msg <- tryCatch({ data(a) + x(g) + y(v) + point + (data(lines) + x(at)); "" },
+                  error = conditionMessage)
+  if (!grepl("do not group the parts of a plot", msg, fixed = TRUE))
+    stop("FAIL: a group with no mark should be told so, got ", msg)
+  eras <- data.frame(continent = rep(c("Asia", "Europe"), each = 2),
+                     era = rep(c("1957", "2007"), 2), life = c(50, 60, 65, 75))
+  refuses("dodge with nothing to split",
+          render_svg(data(eras) + bar * mean * dodge + x(continent) + y(life)),
+          "Add `color(<field>)` or `pattern(<field>)`")
+  svg <- render_svg(data(eras) + bar * count * stack + pattern(era))
+  if (!grepl("<rect", svg, fixed = TRUE))
+    stop("FAIL: pattern should divide a one-slot bar")
+  cat("PASS: the parentheses refusal names the reader's marks; a bar is split by what it takes\n")
 })

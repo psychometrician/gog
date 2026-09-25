@@ -57,6 +57,30 @@ pub(crate) struct Polar {
 /// Half a typical label's width, so the widest names still clear the panel.
 const RIM_LABEL_REACH: f64 = 24.0;
 
+/// The circle's radius in `l`, and the room its ring of names takes beyond it
+/// across and down: the one sizing both [`Polar::new`] and [`inset`] read, so the
+/// circle drawn and the space it is said to take cannot disagree.
+fn inscribe(l: &Layout, label_room: f64, measure_on_angle: bool) -> (f64, f64, f64) {
+    // A pie carries no ring of angular names (its key is the legend, and its
+    // slice labels are a `text` layer, not a guide — Wilkinson §9.1.6.1), so it
+    // keeps the room those names would have taken and draws bigger.
+    let room = if measure_on_angle { 0.0 } else { label_room };
+    let reach = if measure_on_angle { 0.0 } else { RIM_LABEL_REACH };
+    let r = (l.w() / 2.0 - room - reach).min(l.h() / 2.0 - room);
+    (r, room + reach, room)
+}
+
+/// How far inside `l` the circle and its ring of names sit, `(x, y)`, on each
+/// side. The circle is bounded by the panel's shorter side, so a wide panel
+/// leaves room beside it and a tall one above and below; the axis names and the
+/// legend are placed beside the circle rather than across that room, as they
+/// are beside a panel a `ratio` has narrowed (`layout::PanelGrid::inset`).
+pub(crate) fn inset(l: &Layout, label_room: f64, measure_on_angle: bool) -> (f64, f64) {
+    let (r, across, down) = inscribe(l, label_room, measure_on_angle);
+    let r = r.max(1.0);
+    ((l.w() / 2.0 - r - across).max(0.0), (l.h() / 2.0 - r - down).max(0.0))
+}
+
 impl Polar {
     /// Inscribe the circle in a panel rectangle, leaving `label_room` pixels
     /// outside it for the ring of angular names.
@@ -86,12 +110,7 @@ impl Polar {
         measure_on_angle: bool,
         angle_slots: Option<usize>,
     ) -> Self {
-        // A pie carries no ring of angular names (its key is the legend, and its
-        // slice labels are a `text` layer, not a guide — Wilkinson §9.1.6.1), so it
-        // keeps the room those names would have taken and draws bigger.
-        let room = if measure_on_angle { 0.0 } else { label_room };
-        let reach = if measure_on_angle { 0.0 } else { RIM_LABEL_REACH };
-        let r = (l.w() / 2.0 - room - reach).min(l.h() / 2.0 - room);
+        let (r, _, _) = inscribe(l, label_room, measure_on_angle);
         // Half a slot back, so `start` lands on the first category rather than on
         // the padding before it. Everything rides on this one number: the wedges,
         // the spokes and the rim labels all rotate together, and the scale's origin

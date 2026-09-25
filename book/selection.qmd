@@ -670,15 +670,15 @@ the bound the sentence named.
 
 ### Your data on the page
 
-The browser answers a brush, so the table has to be in the page. It is the whole
-table, including columns the sentence never maps. The table that `show rows`
-opens lists only the mapped columns, and the page carries every column.
+The browser answers a brush, so the table has to be in the page. The page
+carries every row of the table, but only the columns the sentence names. A
+column the sentence never names is not in the page.
 
-This matters when a table has a column you would not publish. Drop the columns
-you do not plot before you draw, the way you would check any file before sharing
-it.
-[What the file carries](utilities.qmd#what-the-file-carries) states the rule for
-both kinds of plot, with the one line that applies it.
+The rows are all there, though, each with its exact values in the columns the
+page carries. So check those values before you publish, the way you would check
+any file before sharing it.
+[Plots that carry the table](utilities.qmd#plots-that-carry-the-table) states
+the rule for both kinds of plot.
 
 ## In short
 
@@ -686,8 +686,8 @@ A selection runs after the picture is composed: it dims rows, removes none, and
 leaves the axes where they were. The column decides the reading, a range for
 numbers and a set for categories. A bound tests a column's values rather than a
 panel, so plots that share a column share the selection. Everything a brush
-needs is already inside the web page, the whole table included, so check what
-that table carries before you publish one.
+needs is already inside the web page: every row of the table, but only the
+columns the sentence names.
 
 ## What comes next
 

@@ -534,6 +534,25 @@ wasm_expression <- function(path) {
   paste0('Uint8Array.from(atob("', b64, '"), c => c.charCodeAt(0))')
 }
 
+# The request holding only the columns its spec names, for a page to carry. A
+# plot that needs the engine in the browser carries its request into the page, and
+# a column the sentence never maps has no business being published there. Which
+# columns the plot reads is the engine's to say (`gog-cli --prune`), so the list
+# lives in one place rather than in four bindings. An engine too old to answer
+# writes back something that is not a request, and then the whole request is
+# carried, as it always was, rather than a page that cannot draw.
+pruned_request <- function(request) {
+  out <- tryCatch(
+    suppressWarnings(system2(find_gog_cli(), "--prune", stdout = TRUE, stderr = FALSE,
+                             input = as.character(request))),
+    error = function(e) NULL)
+  text <- trimws(paste(out, collapse = "\n"))
+  if (is.null(out) || !is.null(attr(out, "status")) || !startsWith(text, "{")) {
+    return(request)
+  }
+  text
+}
+
 interactive_block <- function(gog) {
   spec <- if (inherits(gog, "gog_page")) gog$page else finalize_spec(gog)$spec
 
@@ -587,10 +606,10 @@ interactive_block <- function(gog) {
 
   frames <- mapply(resolve_query, gog$data_frames, names(gog$data_frames),
                    SIMPLIFY = FALSE)
-  request <- jsonlite::toJSON(
+  request <- pruned_request(jsonlite::toJSON(
     list(spec = spec, data = lapply(frames, df_to_wire)),
     auto_unbox = TRUE, null = "null", na = "null", force = TRUE, digits = NA
-  )
+  ))
 
   id <- paste0("gog-", paste(sample(c(letters, 0:9), 10, replace = TRUE), collapse = ""))
   block <- paste0(

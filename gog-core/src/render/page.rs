@@ -107,13 +107,28 @@ pub(crate) fn render(
 
     // Pass two: each plot draws again, knowing what the page decided.
     let mut svg = String::with_capacity(96 * 1024);
+    // A page is a group of images rather than one: each cell's own `<svg>` carries
+    // its accessible name (`svg::accessible_name`), and a root role of `img` would
+    // hide them all from a screen reader behind one name for the lot.
+    let count = cells.len();
     svg.push_str(&format!(
         "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"{width}\" height=\"{height}\" \
-         viewBox=\"0 0 {width} {height}\">\n"
+         viewBox=\"0 0 {width} {height}\" role=\"group\" aria-label=\"A page of {count} plots\">\n"
     ));
-    svg.push_str(&format!(
-        "  <rect width=\"{width}\" height=\"{height}\" fill=\"white\"/>\n"
-    ));
+    // The page's own canvas fills the gaps between its cells, and it goes when
+    // every cell's background paints nothing, for the reason a plot's does
+    // (`svg::render`): a figure asked to be transparent is placed on a page whose
+    // color it cannot know, and a white floor under it would hide that page. One
+    // cell with a background of its own keeps the page white, since a floor is
+    // one color and that cell has already said what it sits on.
+    let see_through = cells.iter().all(|c| {
+        c.spec.theme.resolved().background.as_deref().is_some_and(crate::color::paints_nothing)
+    });
+    if !see_through {
+        svg.push_str(&format!(
+            "  <rect width=\"{width}\" height=\"{height}\" fill=\"white\"/>\n"
+        ));
+    }
     for (i, cell) in cells.iter().enumerate() {
         let drawn = SvgRenderer {
             fit: fits[i].clone(),
@@ -316,6 +331,17 @@ fn share(
         let projected = facts.iter().any(|f| f.projected);
         let lo = facts.iter().map(|f| f.range.0).fold(f64::INFINITY, f64::min);
         let hi = facts.iter().map(|f| f.range.1).fold(f64::NEG_INFINITY, f64::max);
+        // **And the span the ticks are chosen over**, which is not that range. The
+        // range carries each plot's breathing margin, and a tick step rounded from
+        // a span that includes margins can double: gdp's 49K rounds to a step of
+        // 5K at twelve ticks, the shared range's 54K to 10K, so every composed page
+        // drew coarser ticks than its plots alone. Each plot reported what its ticks
+        // were chosen over; the union of those is what they are chosen over here,
+        // so the shared axis is ticked the way either plot alone would tick it.
+        let over = (
+            facts.iter().map(|f| f.ticks_over.0).fold(f64::INFINITY, f64::min),
+            facts.iter().map(|f| f.ticks_over.1).fold(f64::NEG_INFINITY, f64::max),
+        );
         if !projected && lo.is_finite() && hi.is_finite() && hi > lo {
             for &i in group {
                 // The range is in the units the *scale* works in; a stated
@@ -326,7 +352,16 @@ fn share(
                     Some(b) => b.powf(v),
                     None => v,
                 };
-                set_limits(&mut specs[i], channel, out(lo), out(hi));
+                // Only beside a domain the page stated: a plot whose caller stated
+                // one keeps its own, ticks and all (spec §10).
+                if set_limits(&mut specs[i], channel, out(lo), out(hi))
+                    && over.0.is_finite() && over.1.is_finite() && over.1 >= over.0
+                {
+                    match horizontal {
+                        true => fits[i].ticks_x = Some(over),
+                        false => fits[i].ticks_y = Some(over),
+                    }
+                }
             }
         }
     }
@@ -383,8 +418,12 @@ fn share(
 /// first layer that names its own. Every layer that binds the channel gets it,
 /// so a two-table plot cannot end up with one layer on the page's scale and
 /// another on its own.
-fn set_limits(spec: &mut PlotSpec, channel: &Channel, lo: f64, hi: f64) {
+///
+/// Returns whether the page stated anything: `false` when every binding already
+/// carried a domain of the caller's own, which the page does not overrule.
+fn set_limits(spec: &mut PlotSpec, channel: &Channel, lo: f64, hi: f64) -> bool {
     let limits = Some([Some(lo), Some(hi)]);
+    let mut stated = false;
     let plot_level = match channel {
         Channel::X => spec.x.as_mut(),
         Channel::Y => spec.y.as_mut(),
@@ -395,15 +434,18 @@ fn set_limits(spec: &mut PlotSpec, channel: &Channel, lo: f64, hi: f64) {
         // to overrule (spec §10).
         if def.limits.is_none() {
             def.limits = limits;
+            stated = true;
         }
     }
     for layer in spec.layers.iter_mut() {
         if let Some(def) = layer.encodings.get_mut(channel) {
             if def.limits.is_none() {
                 def.limits = limits;
+                stated = true;
             }
         }
     }
+    stated
 }
 
 // ---------------------------------------------------------------------------
@@ -671,7 +713,90 @@ mod tests {
         assert!(specs[0].x.as_ref().unwrap().limits.is_some(), "and both are on one scale");
     }
 
+    /// **A shared axis is ticked the way each plot alone ticks it.** The page
+    /// states the union of the plots' fitted ranges, margins included, and a step
+    /// chosen over that span rounds up: gdp's 49K gives a step of 5K at twelve
+    /// ticks and the shared range's 54K gave 10K, so a page putting three ticks
+    /// beside twelve drew two beside six. The ticks are now chosen over what each
+    /// plot chose its own over, and only the range is the page's.
+    #[test]
+    fn a_shared_axis_is_ticked_the_way_each_plot_alone_ticks_it() {
+        let gdp = HashMap::from([("t".to_string(), DataFrame::new()
+            .with_float("gdp", vec![277.55, 12000.0, 49357.19])
+            .with_float("life", vec![40.0, 60.0, 82.0]))]);
+        let plot = |n: usize| {
+            let mut p = PlotSpec::new().data("t").x("gdp").y("life")
+                .layer(Layer::new(Mark::Point));
+            p.x = Some(crate::ir::ChannelDef::field("gdp").with_tick_count(n));
+            p
+        };
+        let labels = |svg: &str| -> Vec<String> {
+            svg.split("<text").skip(1)
+                .filter_map(|t| t.split_once('>').and_then(|(_, r)| r.split_once("</text>")))
+                .map(|(l, _)| l.to_string())
+                .filter(|l| l.ends_with('K'))
+                .collect()
+        };
+        let page = PageSpec {
+            arrange: Arrange::Beside,
+            cells: vec![plot(3).into(), plot(12).into()],
+            theme: ThemeSpec::default(),
+        };
+        let (svg, _) = render(&page, &gdp, 800.0, 600.0);
+        // The page nests one `<svg>` per cell, in order.
+        let cells: Vec<&str> = svg.split("<svg x=").skip(1).collect();
+        assert_eq!(cells.len(), 2);
+        for (cell, n) in cells.iter().zip([3, 12]) {
+            let alone = SvgRenderer::for_theme(&ThemeSpec::default(), 390.0, 600.0)
+                .render(&plot(n), &gdp);
+            assert_eq!(labels(cell), labels(&alone), "tick_count = {n} on the page");
+        }
+        assert_eq!(labels(cells[1]).len(), 11, "{:?}", labels(cells[1]));
+    }
+
+    /// A page of transparent plots paints no floor under them, or the page it is
+    /// placed on still never shows through; one plot with a background of its own
+    /// keeps the white floor.
+    #[test]
+    fn a_page_of_transparent_plots_paints_no_floor() {
+        let clear = |p: PlotSpec| PlotSpec {
+            theme: ThemeSpec { background: Some("transparent".into()), ..Default::default() },
+            ..p
+        };
+        let floor = r#"<rect width="800" height="600" fill="white"/>"#;
+        let page = |cells: Vec<PlotSpec>| PageSpec {
+            arrange: Arrange::Beside,
+            cells: cells.into_iter().map(Into::into).collect(),
+            theme: ThemeSpec::default(),
+        };
+        let (svg, _) = render(&page(vec![clear(scatter()), clear(scatter())]), &data(), 800.0, 600.0);
+        assert!(!svg.contains(floor), "the page painted a floor under transparent plots");
+        assert!(!svg.contains(r#"fill="white"/>"#), "a cell painted its own canvas");
+        let (svg, _) = render(&page(vec![clear(scatter()), scatter()]), &data(), 800.0, 600.0);
+        assert!(svg.contains(floor), "a plot with a background keeps the floor");
+    }
+
     /// Two plots that share *nothing* are only arranged. This is the property
+    /// A page is a group of named images: the root says how many plots it holds, and
+    /// each cell's own `<svg>` carries that plot's name, which a root role of `img`
+    /// would hide from a screen reader.
+    #[test]
+    fn a_page_is_a_group_of_named_plots() {
+        let other = PlotSpec::new().data("cars").x("dist").y("speed").layer(Layer::new(Mark::Point));
+        let page = PageSpec {
+            arrange: Arrange::Beside,
+            cells: vec![scatter().into(), other.into()],
+            theme: ThemeSpec::default(),
+        };
+        let (svg, _) = render(&page, &data(), 800.0, 600.0);
+        let root = svg.lines().next().unwrap_or("");
+        assert!(root.contains(r#"role="group" aria-label="A page of 2 plots""#), "{root}");
+        let cells: Vec<&str> = svg.lines().skip(1).filter(|l| l.trim_start().starts_with("<svg ")).collect();
+        assert_eq!(cells.len(), 2, "{cells:?}");
+        assert!(cells[0].contains(r#"role="img" aria-label="Points, x is speed, y is dist""#), "{cells:?}");
+        assert!(cells[1].contains(r#"aria-label="Points, x is dist, y is speed""#), "{cells:?}");
+    }
+
     /// that keeps composition presentational: no scale, no extent, no axis of
     /// one plot is decided by the other.
     #[test]

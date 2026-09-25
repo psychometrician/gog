@@ -308,10 +308,11 @@ highest, or the spread around a mean. Most transforms give a
 `line` one value per `x`. A **pair** transform gives it two, a low and a high. A
 `line` then draws *both boundaries* as two separate lines, not one zigzag
 joining them. A [`ribbon`](ribbon.qmd) takes the same pair and fills the band
-between the two boundaries; a line draws only the boundaries. There are four
+between the two boundaries; a line draws only the boundaries. There are five
 pair transforms: [`range`](../transforms.qmd#range-a-lowhigh-pair),
 [`confidence`](../transforms.qmd#confidence-the-interval-of-the-mean),
-[`deviation`](../transforms.qmd#deviation-the-spread-of-the-data) and
+[`deviation`](../transforms.qmd#deviation-the-spread-of-the-data),
+[`smooth_band`](../transforms.qmd#smooth_band-the-band-around-the-curve) and
 [`bounds`](../transforms.qmd#bounds-a-pre-computed-lowhigh-pair). Here are the
 lowest and the highest life expectancy among the five countries in each year,
 drawn as two lines:

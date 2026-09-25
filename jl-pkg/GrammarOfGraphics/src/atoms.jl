@@ -195,6 +195,25 @@ const confidence = Atom(:transform, Dict{Symbol,Any}(:transform => "confidence")
             :level => level === nothing ? nothing : Float64(level)))
     end)
 
+"""`smooth_band` — the band around a `smooth` line, 0.95 unless told otherwise.
+
+`smooth`'s pair form, as `confidence` is `mean`'s: `ribbon * smooth_band +
+line * smooth` draws the trend with its band.
+"""
+const smooth_band = Atom(:transform, Dict{Symbol,Any}(:transform => "smooth_band"),
+    function (args...; level = nothing)
+        level = one_of(args, level, "smooth_band", "level")
+        if level !== nothing && (!(level isa Real) || level isa Bool ||
+                                 !isfinite(level) || !(0 < level < 1))
+            throw(GogError(
+                "gog: `smooth_band(level = )` needs one number strictly between 0 and " *
+                "1, e.g. `smooth_band(0.95)`."))
+        end
+        Atom(:transform, Dict{Symbol,Any}(
+            :transform => "smooth_band",
+            :level => level === nothing ? nothing : Float64(level)))
+    end)
+
 """`range` — the band per group, the whole group unless told otherwise.
 
 The only atom with *two* positional arguments, because a band has two ends and

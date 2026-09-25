@@ -2,9 +2,12 @@
 % Please edit documentation in R/spec.R
 \name{*.gog_atom}
 \alias{*.gog_atom}
+\alias{*.gog_callable}
 \title{Derive a compound layer atom from a mark and a transform.}
 \usage{
 \method{*}{gog_atom}(e1, e2)
+
+\method{*}{gog_callable}(e1, e2)
 }
 \arguments{
 \item{e1}{The mark, or a layer already carrying one transform.}

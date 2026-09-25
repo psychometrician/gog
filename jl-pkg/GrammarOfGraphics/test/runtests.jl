@@ -703,6 +703,26 @@ end
                         point + x(:a, tick_count = 9)) "its own tick count"
 end
 
+@testset "a count past the most one axis draws widens the step, and says so" begin
+    # The cut kept the first 26 ticks: 40 on gdp labeled 0K to 25K on an axis
+    # that runs to 49K, and said nothing.
+    wide = Dict("gdp" => [277.55, 12000.0, 49357.19], "life" => [40.0, 60.0, 82.0])
+    function drawn(n)
+        path, io = mktemp()
+        svg = redirect_stderr(io) do
+            render_svg(data(wide) + point + x(:gdp, tick_count = n) + y(:life))
+        end
+        close(io)
+        (svg, read(path, String))
+    end
+    svg, said = drawn(40)
+    labels = [m.captures[1] for m in eachmatch(r">([^<>]*)</text>", svg)]
+    @test "48K" in labels
+    @test !("25K" in labels)
+    @test occursin("a tick every 2K instead", said)
+    @test !occursin("ticks on this axis", drawn(26)[2])
+end
+
 # ---------------------------------------------------------------------------
 # surface — the sheet through the samples (spec §15)
 #
@@ -1432,8 +1452,9 @@ end
     @refuses base() + (data(note, name = "note") + point + area) "`|` and `/`"
 
     # Not only marks: a position or a title inside the parentheses was dropped too.
-    @refuses base() + (data(note, name = "note") + x(:x)) "parentheses do not group marks"
-    @refuses base() + (data(note, name = "note") + title("hi")) "parentheses do not group marks"
+    # With no mark inside, the refusal names none.
+    @refuses base() + (data(note, name = "note") + x(:x)) "parentheses do not group the parts of a plot"
+    @refuses base() + (data(note, name = "note") + title("hi")) "parentheses do not group the parts of a plot"
 
     # A bare `data()` carries nothing, so it still joins mid-sentence.
     seq = base() + data(note, name = "note") + point
@@ -1880,4 +1901,233 @@ end
     @refuses render_svg(data(strip) + point * bin * stack + x(:n) + y(:g)) "`color(g)`"
     @test startswith(render_svg(data(strip) + bar * count + x(:g) + y(:count)), "<svg")
     @test Base.count("gog: `", refusal_of(() -> render_svg(data(strip) + box * mean + x(:g) + y(:v)))) == 1
+end
+
+# Each of these drew something other than the sentence said, or said nothing where
+# it should have spoken: a count a log, calendar or map axis never read, a date on
+# `z` in epoch seconds, a page coarsening its plots' ticks, two keys for one
+# column, a transparent figure painted white, a name far from its axis, a dash an
+# `edge` refused, a label the layout had nowhere to read from.
+@testset "counts on every axis, calendar z, shared ticks, one key, and the rest" begin
+    labels(svg) = [m.captures[1] for m in eachmatch(r">([^<>]*)</text>", svg)]
+    big = (i = collect(0:24), v = [10.0^k for k in 0:24])
+    lab = labels(render_svg(data(big) + point + x(:i) + y(:v, scale = "log")))
+    @test "10¹²" in lab
+    @test !any(l -> occursin("000B", l), lab)
+
+    wide = (gdp = [277.55, 2000.0, 12000.0, 49357.19], life = [40.0, 55.0, 70.0, 82.0])
+    logged(; kw...) = labels(render_svg(data(wide) + point + x(:gdp; scale = "log", kw...) + y(:life)))
+    @test !("2K" in logged())
+    @test all(l -> l in logged(tick_count = 12), ["2K", "5K"])
+    days = (day = [Date(2024, 3, 1) + Day(i) for i in 0:41],
+            orders = repeat([20.0, 22.0, 24.0, 26.0, 28.0, 30.0, 32.0], 6))
+    dated(; kw...) = Base.count(l -> occursin(r"^(Feb|Mar|Apr) ", l),
+                                labels(render_svg(data(days) + line + x(:day; kw...) + y(:orders))))
+    @test (dated(), dated(tick_count = 3), dated(tick_count = 20)) == (6, 3, 22)
+    @test "Mar 4" in labels(render_svg(data(days) + point + x(:orders) + y(:orders) + z(:day)))
+
+    quakes = (east = [165.0, 170.0, 175.0, 180.0, 185.0], north = [-35.0, -30.0, -25.0, -20.0, -15.0])
+    degrees(; kw...) = Base.count(l -> endswith(l, "°"),
+                                  labels(render_svg(data(quakes) + point + x(:east; kw...) + y(:north) + map())))
+    @test degrees(tick_count = 20) > degrees() + 5
+
+    page = (data(wide) + point + x(:gdp, tick_count = 3) + y(:life)) |
+           (data(wide) + point + x(:gdp, tick_count = 12) + y(:life))
+    @test all(l -> l in labels(render_svg(page)), ["5K", "15K", "45K"])
+
+    kinds = (x = [1.0, 2.0, 3.0], y = [1.0, 2.0, 3.0], kind = ["a", "b", "c"])
+    merged = render_svg(data(kinds) + point + x(:x) + y(:y) + color(:kind) + shape(:kind))
+    @test Base.count(==("Kind"), labels(merged)) == 1
+    @refuses render_svg(data(kinds) + point + x(:x) + y(:y) + color(:kind) + palette("gray")) "`shape(<column>)`"
+    clear = render_svg(data(kinds) + point + x(:x) + y(:y) + theme(background = "transparent"))
+    @test !occursin("<rect width=\"800\" height=\"600\" fill=\"white\"/>", clear)
+    squared = render_svg(data(kinds) + point + x(:x) + y(:y) + theme(ratio = 1))
+    @test parse(Float64, match(r"rotate\(-90 ([0-9.]+) ", squared).captures[1]) > 50
+
+    @refuses render_svg(data(kinds) + point + x(:x) + y(:y) +
+                        style(shape = "cross", border_color = "red", border_size = 2)) "a `cross` is two strokes with no fill"
+
+    links = (src = ["a", "a", "b"], dst = ["b", "c", "c"])
+    @refuses render_svg(data(links) + text * layout(:src, :dst) + label(:src) + network()) "`label(name)`"
+    @test occursin("stroke-dasharray",
+                   render_svg(data(links) + edge * layout(:src, :dst) + pattern(:src) + network()))
+
+    ramp = (x = collect(0.0:7.0), y = [1.0, 3.0, 2.0, 4.0, 3.0, 5.0, 4.0, 6.0], v = collect(0.0:7.0))
+    path, io = mktemp()
+    redirect_stderr(io) do
+        render_svg(data(ramp) + line + x(:x) + y(:y) + color(:v))
+    end
+    close(io)
+    @test occursin("`color(v)` holds numbers", read(path, String))
+
+    boxes = (g = [fill("a", 5); fill("b", 5)], v = [1.0, 2.0, 3.0, 4.0, 5.0, 2.0, 4.0, 6.0, 8.0, 10.0])
+    caps(on) = Base.count("stroke-linecap=\"round\"/>",
+                          render_svg(data(boxes) + box + x(:g) + y(:v) + style(caps = on)))
+    @test (caps(true), caps(false)) == (4, 0)
+    @test Base.count("<polygon", render_svg(data(links) + edge * layout(:src, :dst) +
+                                           style(arrow = "end") + network())) == 3
+end
+
+# A checkout carries `Artifacts.toml` too, and the artifact is the last release's
+# engine, so a test run here drew with that and never with the code beside it.
+# The checkout's own build comes first now, as it does in R.
+@testset "a checkout draws with its own engine, not the published one" begin
+    workspace = GrammarOfGraphics.workspace_cli()
+    if workspace === nothing
+        @info "no engine built in this checkout; skipping the lookup-order test"
+    else
+        @test occursin(joinpath("target", ""), workspace)
+        if isempty(get(ENV, "GOG_CLI_PATH", ""))
+            @test find_gog_cli() == workspace
+        end
+    end
+end
+
+# A partition read as proportion divides its measure axis by the total and keeps
+# its other axis's name; a spine plot's share axis runs 0 to 1 instead of -0 to 2;
+# the refusal of a proportion beside a filled pile names `stack(share = TRUE)` and a
+# way out that draws; and `box * jitter` is refused toward `dodge`.
+@testset "partition * proportion in shares, the spine plot's axis, and the filled pile" begin
+    labels(svg) = [m.captures[1] for m in eachmatch(r">([^<>]*)</text>", svg)]
+    trips = (city = ["A", "A", "B", "B"], mode = ["car", "bus", "car", "bus"],
+             people = [30.0, 10.0, 20.0, 40.0])
+    lab = labels(render_svg(data(trips) + x(:people) +
+                            zone * partition(:city, :mode, cross = true) * proportion + color(:mode)))
+    nums = [parse(Float64, l) for l in lab if occursin(r"^-?[0-9.]+$", l)]
+    @test "Share of column" in lab
+    @test !("Proportion" in lab)
+    @test !isempty(nums) && maximum(nums) <= 1.0
+    lab = labels(render_svg(data(trips) + x(:people) +
+                            text * partition(:city, :mode) * proportion + label(:name)))
+    @test "A" in lab && "car" in lab
+    spine = labels(render_svg(data(trips) + zone * partition(:city, cross = true) +
+                              x(:people) + color(:city)))
+    @test !("-0" in spine)
+    @test "0.2" in spine && "1.0" in spine
+    @refuses render_svg(data(trips) + bar * stack(share = true) * proportion + x(:city) +
+                        color(:mode)) "`bar * count * stack(share = TRUE)` for shares within each pile"
+    @refuses render_svg(data(trips) + box * jitter + x(:city) + y(:people)) "`dodge` sets them side by side"
+end
+
+# A name written with `y_label()` is drawn where an axis draws no numbers (a moved
+# pile, a partition's ring), where it used to be dropped in silence; `jitter(0)`
+# draws with a note that it moved nothing; and the `bounds` refusal names `zone`,
+# the fifth mark that takes the pair.
+@testset "a written name on an axis with no numbers, jitter(0)'s note, and bounds on a bar" begin
+    labels(svg) = [m.captures[1] for m in eachmatch(r">([^<>]*)</text>", svg)]
+    weeks = (week = [1.0, 2.0, 3.0, 4.0, 1.0, 2.0, 3.0, 4.0],
+             plays = [3.0, 4.0, 5.0, 4.0, 2.0, 3.0, 2.0, 4.0],
+             genre = ["folk", "folk", "folk", "folk", "jazz", "jazz", "jazz", "jazz"])
+    @test "Plays per week" in labels(render_svg(data(weeks) + area * stack(baseline = "wiggle") +
+                                                x(:week) + y(:plays) + color(:genre) +
+                                                y_label("Plays per week")))
+    strip = (g = ["a", "a", "a", "b", "b", "b"], v = [1.0, 2.0, 3.0, 2.0, 3.0, 4.0])
+    path, io = mktemp()
+    redirect_stderr(io) do
+        render_svg(data(strip) + point * jitter(0) + x(:g) + y(:v))
+    end
+    close(io)
+    @test occursin("`jitter(0)` moves no point", read(path, String))
+    @refuses render_svg(data(strip) + bar * bounds(:v, :v) + x(:g)) "`zone` shades the region between them"
+end
+
+# A partition's axes run from 0: they are ticked over the cells, not over the
+# cells' centers, so a mosaic's share axis reads 0.0 to 1.0, and a sunburst's
+# angle labels 0 once, at the top, where its total would share the spoke.
+@testset "a partition's axes are ticked from 0 over its cells" begin
+    labels(svg) = [m.captures[1] for m in eachmatch(r">([^<>]*)</text>", svg)]
+    trips = (city = ["A", "A", "B", "B"], mode = ["car", "bus", "car", "bus"],
+             people = [30.0, 10.0, 20.0, 40.0])
+    mosaic = labels(render_svg(data(trips) + zone * partition(:city, :mode, cross = true) +
+                               x(:people) + color(:mode)))
+    @test all(t -> t in mosaic, ["0", "0.0", "1.0"])
+    sunburst = labels(render_svg(data(trips) + zone * partition(:city, :mode) + x(:people) +
+                                 color(:city) + polar()))
+    @test Base.count(==("0"), sunburst) == 1
+    @test !("100" in sunburst)
+end
+
+# A summary whose every group is one row draws the rows themselves, and now says
+# so: a key of numbers that never repeat gives one group per row.
+@testset "a summary of one-row groups says so, and a real summary does not" begin
+    function said(table)
+        path, io = mktemp()
+        redirect_stderr(io) do
+            render_svg(data(table) + bar * mean + x(:gdp) + y(:life))
+        end
+        close(io)
+        read(path, String)
+    end
+    spread = said((gdp = [1.5, 2.5, 3.5, 4.5], life = [50.0, 60.0, 70.0, 80.0]))
+    @test occursin("every group holds a single row", spread)
+    @test occursin("`bar * bin * mean`", spread)
+    @test !occursin("every group holds a single row",
+                    said((gdp = [1.0, 1.0, 2.0, 2.0], life = [50.0, 60.0, 70.0, 80.0])))
+end
+
+# Every plot is a named image for a screen reader: `role="img"` and an
+# `aria-label`, the title when there is one, else what the plot draws.
+@testset "every plot carries an accessible name" begin
+    pts = (gdp = [1.0, 2.0, 3.0], life = [50.0, 60.0, 70.0])
+    @test occursin("role=\"img\" aria-label=\"Points, x is gdp, y is life\"",
+                   render_svg(data(pts) + point + x(:gdp) + y(:life)))
+    @test occursin("aria-label=\"Longer lives\"",
+                   render_svg(data(pts) + point + x(:gdp) + y(:life) + title("Longer lives")))
+end
+
+# A color name means one color: a palette ramp through "green" ends at CSS's
+# green, the one a set `style(color = "green")` shows, not X11's #00FF00.
+@testset "a palette's green is CSS's green" begin
+    d = (a = [1.0, 2.0, 3.0, 4.0, 5.0], b = [1.0, 2.0, 3.0, 4.0, 5.0], v = [1.0, 2.0, 3.0, 4.0, 5.0])
+    svg = render_svg(data(d) + point + x(:a) + y(:b) + color(:v) + palette(["white", "green"]))
+    @test occursin("#008000", svg)
+    @test !occursin("#00ff00", lowercase(svg))
+end
+
+# A page carries only the columns its plot names: the engine prunes the request
+# a brushed plot embeds, so an unmapped column never reaches the page.
+@testset "a page carries only the columns its plot names" begin
+    people = Dict("gdp" => [1000.0, 20000.0, 40000.0], "life" => [50.0, 70.0, 80.0],
+                  "email" => ["a@x.org", "b@x.org", "c@x.org"])
+    p = data(people; name = "people") + point + x(:gdp) + y(:life) +
+        brush(:gdp, at = [2000, 30000])
+    block = svg_block(render_svg(p), p)
+    if !occursin("<script", block)
+        @info "SKIP: browser engine not built, so the payload cannot be checked"
+    else
+        @test !occursin("a@x.org", block) && !occursin("\"email\"", block)
+        @test occursin("\"gdp\"", block) && occursin("\"life\"", block)
+    end
+end
+
+# `smooth_band` is the band around a `smooth` line: a ribbon fills it, its level
+# reaches the engine, and a level outside (0, 1) is refused.
+@testset "smooth_band draws the band around smooth, at its level" begin
+    pts = (g = collect(1.0:30.0), v = [sin(i / 5) * 3 + (i % 4) for i in 1:30])
+    band(args...) = render_svg(data(pts) + ribbon * smooth_band(args...) + x(:g) + y(:v) +
+                               line * smooth + x(:g) + y(:v))
+    @test occursin("<polygon", band()) && occursin("Ribbons derived by smooth_band", band())
+    @test band(0.5) != band(0.99)
+    @refuses smooth_band(1.5) "strictly between 0 and 1"
+    # The band needs five rows where its curve needs three: below five every local
+    # fit passes through its own points and leaves nothing to measure a width from.
+    four = (g = pts.g[1:4], v = pts.v[1:4])
+    @refuses render_svg(data(four) + ribbon * smooth_band + x(:g) + y(:v)) "at least 5"
+    @refuses render_svg(data(four) + ribbon * smooth_band + x(:g) + y(:v)) "`line * smooth`"
+end
+
+# The parentheses refusal is built from the marks inside them, and a group with no
+# mark gets advice naming none; the `bar * dodge` refusal names the channels a bar
+# takes; and `pattern` divides a one-slot bar as `color` does.
+@testset "the parentheses refusal names the reader's marks; a bar is split by what it takes" begin
+    a = (g = [1.0, 2.0, 3.0], v = [1.0, 2.0, 3.0])
+    lines = (at = [1.5, 2.5],)
+    @refuses (data(a; name = "a") + x(:g) + y(:v) + point +
+              (data(lines; name = "lines") + rule + x(:at))) "`+ data(lines) + rule`"
+    @refuses (data(a; name = "a") + x(:g) + y(:v) + point +
+              (data(lines; name = "lines") + x(:at))) "do not group the parts of a plot"
+    eras = (continent = ["Asia", "Asia", "Europe", "Europe"], era = ["1957", "2007", "1957", "2007"],
+            life = [50.0, 60.0, 65.0, 75.0])
+    @refuses render_svg(data(eras) + bar * mean * dodge + x(:continent) + y(:life)) "Add `color(<field>)` or `pattern(<field>)`"
+    @test occursin("<rect", render_svg(data(eras) + bar * count * stack + pattern(:era)))
 end

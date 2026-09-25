@@ -126,13 +126,13 @@ alternative would add `ymin` and `ymax` as two more channels, useful to only a
 few marks. A box plot would then need five such channels, one for each number
 it summarizes. With a transform instead, the same low and high values can be
 drawn as a whisker, as two lines, or as a filled band. See
-[Transforms](../transforms.qmd) for the `range`, `confidence` and `deviation`
-statistics.
+[Transforms](../transforms.qmd) for the `range`, `confidence`, `deviation` and
+`smooth_band` statistics.
 
-Usually that transform is one of the four pair transforms: `range`,
-`confidence`, `deviation` and `bounds`. `density` over a category also works.
-It gives one curve per category, and the ribbon draws that curve and its
-**mirror image** as the two boundaries. That is [the
+Usually that transform is one of the five pair transforms: `range`,
+`confidence`, `deviation`, `smooth_band` and `bounds`. `density` over a category
+also works. It gives one curve per category, and the ribbon draws that curve and
+its **mirror image** as the two boundaries. That is [the
 violin](#the-violin-a-distribution-per-category), later in this chapter.
 
 ## A confidence band
@@ -167,16 +167,17 @@ exactly as it does for [`interval`](interval.qmd).
 
 ## A pre-computed band
 
-`range`, `confidence` and `deviation` compute the band from the raw values in
-the table, at the moment gog draws the plot. Many bands are computed earlier, by
-the analysis itself. A model's standard error, a standard error of measurement,
-a bootstrap interval: each of these is computed *before the plot*. Each gives a
-low value and a high one, and those two become two columns in the table. gog
-draws what you computed, and it does not re-fit the model. The `score_band`
-table holds one row per raw score on a test scored from 0 to 20. Each row also
-holds the **expected true score** for that raw score, the score a model
-predicts, and the two ends of a 95% band around it. In this table the expected
-true score equals the raw score, so a line through it is a diagonal:
+`range`, `confidence`, `deviation` and `smooth_band` compute the band from the
+raw values in the table, at the moment gog draws the plot. Many bands are
+computed earlier, by the analysis itself. A model's standard error, a standard
+error of measurement, a bootstrap interval: each of these is computed *before
+the plot*. Each gives a low value and a high one, and those two become two
+columns in the table. gog draws what you computed, and it does not re-fit the
+model. The `score_band` table holds one row per raw score on a test scored from
+0 to 20. Each row also holds the **expected true score** for that raw score, the
+score a model predicts, and the two ends of a 95% band around it. In this table
+the expected true score equals the raw score, so a line through it is a
+diagonal:
 
 ```{r}
 #| echo: false
@@ -196,8 +197,8 @@ data(score_band) + ribbon * bounds(lower, upper) + x(score) +
 `bounds` is the pair transform that computes nothing. It reshapes the two
 columns you give it into the same low and high pair `range` produces. The band
 needs no `y()`, because the two columns *are* the boundaries. This is the one
-case `range`, `confidence` and `deviation` cannot cover: a band that was
-computed outside the plot, before gog ever read the table.
+case `range`, `confidence`, `deviation` and `smooth_band` cannot produce: a band
+that was computed outside the plot, before gog ever read the table.
 
 A band like this is usually drawn together with the values it surrounds. Here
 those values are the expected true scores. A dashed [`line`](line.qmd) draws
@@ -260,8 +261,8 @@ option added to the band.
 
 Four marks draw a low and high pair: [`interval`](interval.qmd) draws it as a
 whisker at each x, `line` and `step` trace its two boundaries, and `ribbon`
-fills between them. One `range` draws as four marks, and so do
-`confidence`, `deviation` and `bounds`.
+fills between them. All four marks draw `range`, `confidence`, `deviation`,
+`smooth_band` and `bounds`.
 
 ## One band per group
 

@@ -105,7 +105,7 @@ function clone(value) {
 // and `bounds`' column names ride the *layer* on the wire (`layer.bin`, …), not
 // the transform list — the transform list is names only. Absent parameters
 // attach nothing, so a bare `layer(bar, bin)` stays on Sturges' rule.
-const CARRIED = new Set(["bin", "density", "range", "confidence", "deviation", "quantile", "jitter", "stack", "bounds",
+const CARRIED = new Set(["bin", "density", "range", "confidence", "smooth_band", "deviation", "quantile", "jitter", "stack", "bounds",
   "partition", "flow", "layout", "cluster"]);
 
 function carry(layer, transform) {
@@ -692,7 +692,7 @@ class Builder {
           transforms: [...atom.fields.transforms],
           data: this.pendingData,
         };
-        for (const param of ["bin", "density", "range", "confidence", "deviation", "quantile", "jitter", "stack", "bounds",
+        for (const param of ["bin", "density", "range", "confidence", "smooth_band", "deviation", "quantile", "jitter", "stack", "bounds",
           "partition", "flow", "layout", "cluster", "box"]) {
           if (atom.fields[param] !== undefined) layer[param] = clone(atom.fields[param]);
         }

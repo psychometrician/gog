@@ -484,6 +484,15 @@ pub enum Transform {
     /// center dot (a pointrange). Uses the t-interval, mean ± t·se; the level
     /// (0.95 default) rides on the layer as [`ConfidenceSpec`]. Reading: needs `y()`.
     Confidence,
+    /// **`smooth`'s pair form**, as `confidence` is `mean`'s: the LOESS fit's
+    /// confidence band, a *(low, high)* pair plus a `center` (the fit itself) at each
+    /// of `smooth`'s evaluation points, so `ribbon * smooth_band + line * smooth` is
+    /// the trend with its band, the center on `smooth`'s own line to the bit. The
+    /// level (0.95 default) rides on the layer as a [`ConfidenceSpec`] of its own,
+    /// `Layer::smooth_band`. Named with its underscore on the wire (Law 3), where
+    /// the rest are one word.
+    #[serde(rename = "smooth_band")]
+    SmoothBand,
     /// Per-group **spread band**, mean ± k·sd, emitted as a *(low, high)* pair
     /// plus a `center` (the mean) — [`Transform::Confidence`]'s shape exactly, so
     /// the span marks need no new reading. The multiplier (1 by default) rides on
@@ -1553,6 +1562,12 @@ pub struct Layer {
     /// `None` means the default 0.95 level. Absent from the wire when unset.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub confidence: Option<ConfidenceSpec>,
+    /// Parameters for the `smooth_band` transform, when the layer carries one: the
+    /// band's level, the shape `confidence`'s takes. `None` means 0.95. Absent from
+    /// the wire when unset. A binding carries a transform's arguments onto the field
+    /// named for it, which is why this is a field of its own.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub smooth_band: Option<ConfidenceSpec>,
     /// Parameters for the `deviation` transform, when the layer carries one.
     /// `None` means one standard deviation. Absent from the wire when unset.
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -1612,6 +1627,13 @@ pub struct Layer {
 }
 
 impl Layer {
+    /// The level the layer's band is drawn at: `confidence`'s or `smooth_band`'s,
+    /// whichever it carries. A layer never carries both, since both measure and the
+    /// pair is refused, so the one the transform stage reads is never ambiguous.
+    pub fn level_spec(&self) -> Option<&ConfidenceSpec> {
+        self.confidence.as_ref().or(self.smooth_band.as_ref())
+    }
+
     pub fn new(mark: Mark) -> Self {
         Self {
             mark,
@@ -1621,6 +1643,7 @@ impl Layer {
             density: None,
             range: None,
             confidence: None,
+            smooth_band: None,
             deviation: None,
             quantile: None,
             r#box: None,
@@ -2462,6 +2485,44 @@ impl PlotSpec {
         }
         if let Some(f) = &self.facet {
             fields.extend(f.col.iter().chain(f.row.iter()).cloned());
+        }
+        fields
+    }
+
+    /// **Every column the engine can read for this plot**: `mapped_fields` and the
+    /// columns it leaves out on purpose (`order`, `brush`, a lasso's `region`), and the
+    /// columns a transform names in its own arguments (`bounds`, `partition`, `flow`,
+    /// `layout`, `cluster`). Read off the typed spec, so a word the spec uses for
+    /// something else (a key such as `label` or `title`, a mark's name, a title's text)
+    /// is never taken for a column. This is the set a page may carry
+    /// (`wire::prune`), and a column the engine reads must be in it, or the browser
+    /// draws a different plot; `prune_draws_every_book_plot_unchanged`'s sweep and
+    /// the tests beside `prune` hold it to that.
+    pub fn columns_read(&self) -> std::collections::HashSet<String> {
+        let mut fields = self.mapped_fields();
+        fields.extend(self.order.iter().map(|o| o.field.clone()));
+        fields.extend(self.brush.iter().map(|b| b.field.clone()));
+        if let Some(r) = &self.region {
+            fields.insert(r.x.clone());
+            fields.insert(r.y.clone());
+        }
+        for layer in &self.layers {
+            if let Some(b) = &layer.bounds {
+                fields.extend([&b.lower, &b.upper, &b.start, &b.end].into_iter().flatten().cloned());
+            }
+            if let Some(p) = &layer.partition {
+                fields.extend(p.levels.iter().cloned());
+            }
+            if let Some(f) = &layer.flow {
+                fields.extend(f.stages.iter().cloned());
+            }
+            if let Some(l) = &layer.layout {
+                fields.insert(l.from.clone());
+                fields.insert(l.to.clone());
+            }
+            if let Some(c) = &layer.cluster {
+                fields.extend([&c.value, &c.over].into_iter().flatten().cloned());
+            }
         }
         fields
     }

@@ -4,7 +4,7 @@
 \alias{opacity}
 \title{Map opacity to a numeric column.}
 \usage{
-opacity(field, scale = NULL, base = NULL, limits = NULL, tick_count = NULL)
+opacity(field, scale = NULL, base = NULL, limits = NULL)
 }
 \arguments{
 \item{field}{Column to bind (bare name).}
@@ -23,9 +23,6 @@ gridlines fall and how they are labeled.}
 
 \item{limits}{The two ends of the scale, as \code{c(low, high)}. \code{NA} on either
 end leaves that end fitted to the data.}
-
-\item{tick_count}{How many ticks the legend should aim for. A target, not
-a promise: the chosen values are rounded to readable numbers.}
 }
 \description{
 Map opacity to a numeric column.

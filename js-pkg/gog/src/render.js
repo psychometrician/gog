@@ -214,14 +214,43 @@ function isMissing(value) {
   return value === null || value === undefined || (typeof value === "number" && Number.isNaN(value));
 }
 
-// Exported since scale limits shipped: a domain on a temporal axis is written
-// in dates, and it has to be converted by the same function the *column* is, or
-// the two disagree silently (spec §10). Representation is the binding's job.
-export function epochSeconds(value) {
-  // A `Date` already carries an epoch, which is the engine's one temporal unit,
-  // so this is exact rather than reconstructed from a calendar the way Python's
-  // naive `datetime` has to be.
-  return value.getTime() / 1000;
+// Dates as the engine's one temporal unit: seconds on a clock with no zone.
+// Exported since scale limits shipped: a domain on a temporal axis is written in
+// dates, and it has to be read by the same rule the *column* is, or the two
+// disagree silently (spec §10). Representation is the binding's job.
+//
+// **Which clock.** The engine draws the clock time the reader gave it, with no
+// zone: R reads a `POSIXct` on the column's own clock, and Python a `datetime`'s
+// own fields. A `Date` is an instant with no zone of its own, and the session
+// shows it on the local clock, so the local clock is the reading that matches
+// what the reader sees: `new Date(2024, 0, 1, 12)` is 12:00 on the axis in every
+// zone. Sending the instant (`getTime()`) drew the UTC clock instead, 03:00 in
+// Seoul, and JavaScript alone drew a different time from the other three.
+//
+// **One exception, and it is JavaScript's own.** An ISO date written without a
+// time, `new Date("2024-01-01")`, is parsed as *UTC* midnight, which on the local
+// clock is the evening before anywhere west of Greenwich. A run of values that
+// all sit at UTC midnight is therefore read as the calendar dates they spell, on
+// the UTC clock, which is what an ISO date means. The rule is decided once for
+// all the values given together, never value by value, so one timestamp that
+// happens to fall on UTC midnight cannot land a zone away from its neighbors.
+//
+// Returns the seconds, and whether every one of them is a midnight: a column of
+// days, which the engine ticks by the calendar and never at 06:00.
+export function dateSeconds(dates) {
+  const isoDates = dates.every((d) => d.getTime() % 86400000 === 0);
+  const seconds = dates.map((d) => (isoDates ? d.getTime() / 1000 : wallClock(d)));
+  return { seconds, days: seconds.every((s) => s % 86400 === 0) };
+}
+
+// The local clock's reading of `d`, as seconds on a clock with no zone. Set field
+// by field rather than through `Date.UTC(...)`, which reads a year below 100 as
+// 1900 plus that year.
+function wallClock(d) {
+  const t = new Date(0);
+  t.setUTCFullYear(d.getFullYear(), d.getMonth(), d.getDate());
+  t.setUTCHours(d.getHours(), d.getMinutes(), d.getSeconds(), d.getMilliseconds());
+  return t.getTime() / 1000;
 }
 
 function columnValues(table, name) {
@@ -275,15 +304,17 @@ export function to_wire(table, name) {
           );
         }
       }
-      floats[column] = values.map((value) => (isMissing(value) ? null : epochSeconds(value)));
+      const { seconds, days } = dateSeconds(present);
+      let next = 0;
+      floats[column] = values.map((value) => (isMissing(value) ? null : seconds[next++]));
       // JavaScript has one `Date` where R has `Date` and `POSIXct`, so the unit
       // is read off the values rather than off a class: a column that lands
       // exactly on midnight everywhere is a run of days, and anything else keeps
       // its clock. That is the right answer rather than a guess at one — a
-      // reader of all-midnight timestamps wants day ticks.
-      dates[column] = present.every((value) => value.getTime() % 86400000 === 0)
-        ? "day"
-        : "second";
+      // reader of all-midnight timestamps wants day ticks. The midnight is the
+      // one the values are read on (`dateSeconds`), so `new Date(2024, 0, 1)` is
+      // a day in every zone, where the UTC test made it one only in London.
+      dates[column] = days ? "day" : "second";
     } else if (values.every((value) => isMissing(value) || typeof value === "number")) {
       for (const value of values) {
         if (!isMissing(value) && !Number.isFinite(value)) {
@@ -657,6 +688,28 @@ function specIsSpatial(spec) {
  * `svg_block(render_svg(p))` was the only thing a reader could put in a page,
  * and that it draws a picture nobody can turn.
  */
+// The request holding only the columns its spec names, for a page to carry. A
+// plot that needs the engine in the browser carries its request into the page,
+// and a column the sentence never maps has no business being published there.
+// Which columns the plot reads is the engine's to say (`gog-cli --prune`), so the
+// list lives in one place rather than in four bindings. An engine too old to
+// answer writes back something that is not a request, and then the whole request
+// is carried, as it always was, rather than a page that cannot draw.
+function pruned(request) {
+  let result;
+  try {
+    result = spawnSync(find_gog_cli(), ["--prune"], {
+      input: request,
+      encoding: "utf8",
+      maxBuffer: 256 * 1024 * 1024,
+    });
+  } catch {
+    return request;
+  }
+  const out = (result.stdout || "").trim();
+  return !result.error && result.status === 0 && out.startsWith("{") ? out : request;
+}
+
 export function html_block(plot) {
   const svg = render_svg(plot).replace(...FIT);
   const spec = plot.spec ?? plot;
@@ -698,7 +751,7 @@ export function html_block(plot) {
     ? `import { mount } from "${moduleSpecifier(assetUrls.js)}";\n`
     : inlineModules([path.join(path.dirname(assets[1]), "view.js"), assets[1]]) + "\n";
   const id = "gog-" + Math.abs(hashOf(svg)).toString(36).padStart(10, "0").slice(0, 10);
-  const request = JSON.stringify(wireRequest(plot));
+  const request = pruned(JSON.stringify(wireRequest(plot)));
 
   return (
     `<div class="gog-plot" id="${id}" style="text-align:center;">\n${svg}\n` +

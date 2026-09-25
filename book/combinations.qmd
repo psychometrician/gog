@@ -213,15 +213,17 @@ network (`edge`, `point`, `text`), and `cluster` orders leaves by similarity
 
 ### Ranges and bands
 
-The second kind answers with two numbers instead of one. Four transforms produce
-a *pair* of values, a low boundary and a high one, per group.
+The second kind answers with two numbers instead of one. Five transforms produce
+a *pair* of values, a low boundary and a high one. Most give one pair per group;
+`smooth_band` gives one at each x position along its curve.
 [`range`](transforms.qmd#range-a-lowhigh-pair),
-[`confidence`](transforms.qmd#confidence-the-interval-of-the-mean) and
-[`deviation`](transforms.qmd#deviation-the-spread-of-the-data) compute the pair
-from your data; [`bounds`](transforms.qmd#bounds-a-pre-computed-lowhigh-pair)
-reshapes a pair you computed already. Five marks draw such a pair: `interval`
-shows it as a whisker, `ribbon` fills it, `line` and `step` trace its two
-boundaries, and `zone` reads it as two sides.
+[`confidence`](transforms.qmd#confidence-the-interval-of-the-mean),
+[`deviation`](transforms.qmd#deviation-the-spread-of-the-data) and
+[`smooth_band`](transforms.qmd#smooth_band-the-band-around-the-curve) compute the
+pair from your data; [`bounds`](transforms.qmd#bounds-a-pre-computed-lowhigh-pair)
+reshapes a pair you computed already. Four marks draw any such pair: `interval`
+shows it as a whisker, `ribbon` fills it, and `line` and `step` trace its two
+boundaries. A fifth, `zone`, reads a `bounds` pair as two sides.
 
 ```{r}
 #| echo: false
@@ -284,7 +286,7 @@ fills at least one, except `repel`:
 
 | job | the question it answers | the transforms that answer it |
 |:--|:--|:--|
-| **extent** | where are the cells? | `bin`, `density`, `smooth`, `partition`, and `bounds` on a `zone` |
+| **extent** | where are the cells? | `bin`, `density`, `smooth`, `smooth_band`, `partition`, and `bounds` on a `zone` |
 | **measure** | what is in them? | `count`, `sum`, `mean`, `median`, `max`, `min`, `quantile`, `range`, `confidence`, `deviation`, `bounds` |
 | **scale** | what scale is the answer read on? | `proportion`, and `stack(share = TRUE)` |
 | **position** | where do the marks sit? | `dodge`, `stack`, `jitter` |

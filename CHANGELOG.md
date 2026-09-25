@@ -6,6 +6,16 @@ CRAN-style repositories and PyPI, `GrammarOfGraphics` on Julia's General, and
 
 ## Unreleased
 
+### Added
+
+- **`smooth_band`, the band around a `smooth` line.** It is `smooth`'s pair
+  transform, as `confidence` is `mean`'s: at each point of the LOESS curve it
+  gives the confidence band of the fit, a low and a high, with the fit as its
+  center. `ribbon * smooth_band + line * smooth` draws the trend with its band.
+  The level is 0.95 unless you name another, as in `smooth_band(0.99)`. It
+  needs five rows in each group, where `smooth` needs three: with fewer, the
+  curve passes through every row and nothing is left to measure the band from.
+
 ### Changed
 
 - **A statistic splits by every channel that splits, as a line always did.**
@@ -17,6 +27,11 @@ CRAN-style repositories and PyPI, `GrammarOfGraphics` on Julia's General, and
   `dodge` and `stack` split the same way, so `pattern` alone is enough to
   dodge, and a dodge leaves out the column its slots already come from.
 
+- **`pattern` divides a bar that has no `x()`, as `color` does.**
+  `bar * count * stack + pattern(era)` draws one bar divided by era. It was
+  refused as a bar with no `x()`, while the same sentence with `color(era)`
+  drew.
+
 - **`proportion` after a summary works on a `zone`.** `zone * sum * proportion`
   gives each cell's sum as a share of the total over all cells, as
   `bar * sum * proportion` does. It drew exactly `zone * sum` before.
@@ -25,6 +40,77 @@ CRAN-style repositories and PyPI, `GrammarOfGraphics` on Julia's General, and
   and Julia.** `ordered([2019, 2020, 2021], ...)` and a pandas `Categorical` of
   numbers crossed to the engine as numbers, so a year column drew as bars as
   long as the year. They now draw one slot per year, as `factor()` does in R.
+
+- **`tick_count` works on a log axis, a date axis and a map.** On a log axis the
+  count picks among a tick at every power, every second or third power and so
+  on, or at 1, 2 and 5 times each power; on a date axis among the calendar's
+  steps (a day, two days, a week, two weeks, a month and so on). The engine
+  takes the spacing whose number of ticks is closest to the count. A map's
+  degree ticks take the count too. All three drew their default whatever the
+  count said, and said nothing.
+
+- **`pattern` maps on an `edge`**, one dash per category, one per row, as
+  `color` does. It was refused as not drawn.
+
+- **`style(arrow = )` works on an `edge`.** `"end"` puts a head at the node in
+  the second column of `layout(from, to)`, `"start"` at the first, `"both"` at
+  each, and a head stops short of the node's dot. It was refused with a reason
+  that said an edge has no direction.
+
+- **`style(caps = )` works on a `box`.** `caps = FALSE` draws the whiskers
+  without their crossbars, as on an `interval`. It was refused with a message
+  that said a box has none, while every box drew them.
+
+- **`color` and `shape` on one column draw one legend**, each glyph in its
+  category's color, as `color` and `pattern` already did. They drew two legends
+  with the same title.
+
+- **The axis names and the legend sit beside the plot.** With
+  `theme(ratio = )`, on a map, and around a polar circle, the plot is smaller
+  than the room it was given, and the y axis name stayed at the image's edge,
+  up to 150 pixels from its axis. The names now move in with the plot, and the
+  legend's top stays level with the panel's.
+
+- **A composed page ticks a shared axis the way each plot ticks it alone.** The
+  page chose the step over a range that included each plot's margin, which can
+  double it: `x(gdp, tick_count = 3)` beside `x(gdp, tick_count = 12)` drew 2
+  and 6 ticks on the page and draws 3 and 11 now, as each does by itself.
+
+- **JavaScript reads a `Date` on the session's clock**, as the other three
+  bindings read a date-time's own clock. `new Date(2024, 0, 1, 12)` is 12:00 on
+  the axis in every time zone; it drew the UTC clock, 03:00 in Seoul. A column
+  of dates written without a time, `new Date("2024-01-01")`, which JavaScript
+  reads as midnight in UTC, is drawn as the days it names.
+
+- **R's `opacity()` no longer takes `tick_count`.** It accepted the argument and
+  dropped it. A legend takes no tick count, and `color()`, `size()` and the
+  other three bindings' `opacity()` never took one.
+
+- **A page carries only the columns its plot names.** A plot that the reader's
+  browser redraws, one with `brush()`, in the cube, on the globe, or a network
+  given an angle, puts its table into the page. It carried every column of the
+  table, including columns the sentence never maps. It now carries every row
+  but only the columns the sentence names, so a column you never map stays off
+  the page as it stays out of the SVG.
+
+- **Every plot is named for a screen reader.** The `<svg>` carries
+  `role="img"` and an `aria-label`: the plot's title, or with none, what it
+  draws, such as "Points, x is gdp, y is life". Nothing on the page changes, and
+  no tooltip appears. A page of several plots is a group, each plot named.
+
+- **A partition's axes start at 0.** The mosaic, the icicle, the sunburst and
+  the donut were ticked across their cells' centers, so a share axis read 0.2
+  to 0.8 and a measure axis started at 500 or 1000, wherever the centers fell.
+  They are now ticked across the cells: from 0 to the total, or from 0 to 1 for
+  shares, as every other measure axis is. A sunburst shows 0 once, at the top,
+  where its total would fall on the same line.
+
+- **`proportion` works on a `partition`.** `zone * partition(...) * proportion`
+  divides the measurement by its total, so the measure axis runs from 0 to 1.
+  Each node's width, or each sector's angle in `polar()`, is its share of the
+  total. `text * partition(...) * proportion` places the names on the same axis.
+  Before, both were refused: the `zone` layer as a tile plot with no `y()`, the
+  `text` layer as a summary with no label to draw.
 
 ### Fixed
 
@@ -58,6 +144,128 @@ Each is now refused, with what to write instead.
   axes is printed once and names both, not once per axis. `path * mean`,
   `box * mean` and `zone * density * proportion` print one refusal each, where
   each also printed a second that did not apply.
+
+These still draw, and now say what they drew.
+
+- **A `tick_count` that asks for more ticks than an axis draws.** An axis
+  draws at most 26 ticks, and a count whose step gave more kept the first 26
+  and left the rest of the axis bare, with no message:
+  `x(gdp, tick_count = 40)` labeled 0K to 25K on an axis that runs to 49K. The
+  step is now made larger until the ticks fit, so the axis is labeled from end
+  to end, and a message names the step the count asked for and the step drawn.
+
+- **`jitter(0)`.** It moves no point, so it draws the plot that `point` draws
+  without `jitter`. A message now says so and names the ways to spread the
+  points.
+
+- **A summary whose every group is a single row.** `bar * mean + x(gdp) +
+  y(life)` over a column whose values never repeat drew each row's own value,
+  one bar per row, under an axis named for the column, with nothing to say the
+  means were the rows. A message now says so and names the ways to summarize:
+  cut the column into ranges with `bin`, or group by a column whose values
+  repeat.
+
+These drew something other than the sentence said, and now draw what it says.
+
+- **A date on `z`.** The cube's third axis labeled it in epoch seconds,
+  `1710M`, where the same column on `x` reads `Mar 4`. It is ticked on the
+  calendar now.
+
+- **A log axis past a trillion.** A base-10 label grew a digit every power,
+  `1000B` at 10^12 and `1000000B` at 10^15. From a trillion up it names the
+  power, `10¹²`. A tick at 2 or 5 times a power with no short decimal, such as
+  2×10¹² or 2×10⁻⁵, printed thirteen digits or `0.000`, and reads `2×10¹²` and
+  `2×10⁻⁵` now.
+
+- **`theme(background = "transparent")`.** Only the panel was transparent: the
+  image behind it was painted white, so the whole figure stayed white. Now
+  nothing is painted behind the panel, the legend's box is unfilled, and the
+  page the figure is placed on shows through. A page of transparent plots
+  paints no background either.
+
+- **The spine plot's vertical axis.** `zone * partition(city, cross = TRUE) +
+  x(people)` labeled it `-0`, `0` and `2`, and its columns filled only the
+  middle half of the panel. The axis now runs from 0 to 1, and the columns fill
+  the panel.
+
+- **Five color names in a palette ramp.** `gray`, `grey`, `green`, `maroon`
+  and `purple` were mixed from the values an older color list (X11) gives them,
+  so `palette(c("white", "green"))` ended at a bright `#00FF00` while
+  `style(color = "green")` drew CSS's `#008000`. A ramp now uses the CSS values,
+  the same color the name gives everywhere else.
+
+- **A crossed `partition` with no `x()`.** Its cells were drawn outside the
+  panel, and its labels along one diagonal line. It now draws inside the panel,
+  and each leaf counts as 1.
+
+- **A name written with `y_label()` on an axis that draws no numbers.** A pile
+  moved off zero by `stack(baseline = "wiggle")` or `"center"`, and the ring
+  axis of a `partition`, draw no numbers and no name of their own. They dropped
+  a name written with `y_label()` too, with no message. A written name is now
+  drawn.
+
+And these are now refused, with what to write instead.
+
+- **`label()` naming a column of the edge table under `layout`.**
+  `text * layout(exporter, importer) + label(exporter)` drew a text layer with
+  nothing in it. A node has two columns, `name` and `degree`, and the refusal
+  names `label(name)`.
+
+- **`box * jitter`, `box * stack`, `box * bin` and `box * range` in R.** R
+  answered with its own error, "non-numeric argument to binary operator". The
+  refusal now reaches R as it reaches the other three bindings, naming `dodge`
+  or the transform to drop.
+
+- **A border on a `cross` point.** A cross is two strokes with no fill, so
+  `style(shape = "cross", border_color = …)` drew the plot without the border,
+  byte for byte. The refusal names the glyphs that have a fill. When a mapped
+  `shape` draws some categories as crosses, the plot still draws, and a message
+  names the categories that go without a border.
+
+These were refused or noted before, and the message now says something
+different.
+
+- **More refusals are reworded.** The gray palette refused on categories names
+  the channel the plot's mark takes, `shape` for a `point`, where it named
+  `pattern`, which a point refuses. Two `surface` refusals describe what the
+  sheet draws: `density` lays flat cells with steps between them, as `bin`
+  does, and over two categories the direction is a column in each cell. The
+  refusals that list the reductions name all six, `quantile` included.
+
+- **A `line` warning is reworded.** With a `color` of numbers and nothing that
+  splits the rows, the warning said the line had "no group or color channel".
+  It now names the `color`, says that a color of numbers colors along the one
+  stroke instead of splitting it, and points to `group()`.
+
+- **The refusal of `proportion` with `stack(share = TRUE)` is reworded.** It
+  named plain `stack`, which divides nothing, so following its advice drew
+  counts. For `bar * stack(share = TRUE) * proportion`, it also gave each
+  transform the other's total. It now names `stack(share = TRUE)` and gives
+  two sentences that draw: `bar * proportion * stack` for shares of the whole
+  plot, piled, and `bar * count * stack(share = TRUE)` for shares within each
+  pile.
+
+- **`flow`, `layout` and `cluster` with a second transform have a refusal of
+  their own.** Each sets the position and the size of every mark in its
+  picture, so it takes no other transform. The old refusals spoke of cells and
+  piles, which these three do not have. One advised "`flow` for shares of the
+  whole plot".
+
+- **The refusal of `bounds` on a mark that draws no low and high pair names
+  `zone`**, the fifth mark that takes one, with `ribbon`, `interval`, `line`
+  and `step`.
+
+- **The refusal of `bar * dodge` with nothing to split names `color` or
+  `pattern`**, the channels that split a bar. It named `group`, which a bar
+  refuses.
+
+- **The refusal of parentheses inside a plot names the marks you wrote.** In R,
+  Python and Julia, `+ (data(life_bands) + rule)` is refused because
+  parentheses do not group marks, and the example it gave named `point` and
+  `area` whatever the parentheses held. It now writes out the marks inside
+  them, `+ data(life_bands) + rule`. A group with no mark in it, such as
+  `(data(life_bands) + x(level))`, is told to write its parts one after
+  another.
 
 ## 0.3.0 (unreleased)
 

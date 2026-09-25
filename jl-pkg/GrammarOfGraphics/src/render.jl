@@ -14,13 +14,45 @@ const EXE = Sys.iswindows() ? "gog-cli.exe" : "gog-cli"
 # ---------------------------------------------------------------------------
 
 """
+The engine a development checkout built, when this package is sitting in one.
+
+Walked up from this file for a directory holding both a `Cargo.toml` and
+`target/{release,debug}/gog-cli`, R's `walk_up_for_engine` rule: the
+`Cargo.toml` is what tells a checkout from an installed copy, since a registered
+package has no Cargo workspace above it. So this can outrank the artifact
+safely; it only ever answers inside a checkout.
+
+**It has to outrank the artifact.** A checkout carries `Artifacts.toml` as well
+(it is how the release ships the engine), and the artifact is the *published*
+engine, so a test run or a parity run in the checkout drew with the last release
+and never with the code beside it: a test of a change measured the old engine,
+and a number recorded that way described the release rather than the tree.
+"""
+function workspace_cli()
+    here = abspath(@__DIR__)
+    for _ in 1:7
+        if isfile(joinpath(here, "Cargo.toml"))
+            for build in ("release", "debug")
+                candidate = joinpath(here, "target", build, EXE)
+                isfile(candidate) && return candidate
+            end
+        end
+        parent = dirname(here)
+        parent == here && break
+        here = parent
+    end
+    nothing
+end
+
+"""
 The engine Julia's own artifact system fetched at install time.
 
 `Artifacts.toml` is **not lazy**, so `Pkg.add` downloads the right binary for
 the platform before a reader ever calls this — there is nothing to install on
-demand and nothing to ask them to do. A development checkout has no
-`Artifacts.toml` and falls through, as does a platform the release does not
-build for, and both land on the routes below rather than on an error.
+demand and nothing to ask them to do. A platform the release does not build for
+falls through to the routes below rather than to an error. A development
+checkout carries `Artifacts.toml` too, which is why `workspace_cli` is asked
+first.
 """
 function artifact_cli()
     toml = joinpath(dirname(@__DIR__), "Artifacts.toml")
@@ -66,18 +98,23 @@ end
 """
     find_gog_cli()
 
-Locate the engine: an override, a bundled copy, PATH, then a local build.
+Locate the engine: an override, a checkout's own build, the shipped one, PATH,
+then a build found from the working directory.
 
-The same order the other bindings use (R's chain adds a fifth source — it can
-build the engine from staged sources at install time), and step two keeps their
-reason: the binary that shipped with a package is the one whose wire format
-matches it, so an unrelated `gog-cli` earlier on `PATH` must not silently
-answer for it. A released version fetches the engine as an artifact
-at install time, and step two finds a copy staged by hand beside it.
+The same order R uses. The checkout's build comes second, ahead of the
+artifact, because inside a checkout the artifact is the last release's engine
+(`workspace_cli`). The shipped one then keeps the other bindings' reason: the
+binary that shipped with a package is the one whose wire format matches it, so
+an unrelated `gog-cli` earlier on `PATH` must not silently answer for it. A
+released version fetches the engine as an artifact at install time, and a copy
+staged by hand in `bin/` is found after it.
 """
 function find_gog_cli()
     override = get(ENV, "GOG_CLI_PATH", "")
     isempty(override) || !isfile(override) || return override
+
+    workspace = workspace_cli()
+    workspace === nothing || return workspace
 
     # The artifact comes before the bundled copy because it is what a released
     # install actually has; `bin/` predates it and stays for anyone staging one
@@ -311,6 +348,28 @@ function wire_payload(plot::Union{Plot,Page})
     to_json(Dict{String,Any}("spec" => spec, "data" => data))
 end
 
+"""The request holding only the columns its spec names, for a page to carry.
+
+A plot that needs the engine in the browser carries its request into the page, and
+a column the sentence never maps has no business being published there. Which
+columns the plot reads is the engine's to say (`gog-cli --prune`), so the list lives
+in one place rather than in four bindings. An engine too old to answer writes back
+something that is not a request, and then the whole request is carried, as it
+always was, rather than a page that cannot draw.
+"""
+function pruned(request::AbstractString)
+    out = IOBuffer()
+    process = try
+        run(pipeline(Cmd([find_gog_cli(), "--prune"]); stdin = IOBuffer(request),
+                     stdout = out, stderr = devnull), wait = false)
+    catch
+        return String(request)
+    end
+    wait(process)
+    text = strip(String(take!(out)))
+    process.exitcode == 0 && startswith(text, "{") ? String(text) : String(request)
+end
+
 function render_svg(plot::Union{Plot,Page})
     payload = wire_payload(plot)
 
@@ -471,7 +530,7 @@ function interactive_block(plot::Union{Plot,Page}, id::AbstractString)
     for (name, table) in frames
         data[name] = to_wire(resolve_query(table, name), name)
     end
-    request = to_json(Dict{String,Any}("spec" => spec, "data" => data))
+    request = pruned(to_json(Dict{String,Any}("spec" => spec, "data" => data)))
 
     "\n<script type=\"module\">\n" * head *
     "mount(\"" * id * "\", " * request *

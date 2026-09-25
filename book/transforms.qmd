@@ -44,19 +44,21 @@ The result is the same mark drawing derived values, not a new atom to memorize.
 | `range` | a band of `y` per group, as a pair; the whole group, or two quantiles you name |
 | `confidence` | the mean's confidence interval per group: low, high and center |
 | `deviation` | the spread of `y` per group: the mean plus and minus a standard deviation |
+| `smooth_band` | the confidence band of `smooth`'s curve: low, high and center along it |
 
 The middle six (`sum`, `mean`, `median`, `max`, `min`, `quantile`) form the
 **aggregation family**. All share the same pattern: group by x, reduce y to one
 value. `range`, `confidence` and `deviation` group the same way but write a low
-and a high, the extents an [`interval`](marks/interval.qmd) spans. With
-`bounds`, which comes later in this chapter, they are the **pair transforms**.
+and a high, the extents an [`interval`](marks/interval.qmd) spans.
+`smooth_band` writes the same pair along `smooth`'s curve. These four and
+`bounds`, which comes later in this chapter, are the **pair transforms**.
 
 ## One variable, or two?
 
 Grouping the transforms by what they compute is not the only useful way to sort
-them. Fourteen of them also fall into two families by how many columns they
+them. Fifteen of them also fall into two families by how many columns they
 *read*, and reading one column or two is what decides whether you write `y()`.
-The other nine of the kernel's twenty-three transforms come later in this
+The other nine of the kernel's twenty-four transforms come later in this
 chapter. `bounds` reshapes rather than computes. `partition`, `flow`, `layout`
 and `cluster` each compute a whole picture, such as a mosaic or a network.
 `dodge`, `stack`, `jitter` and `repel` move marks that would otherwise overlap.
@@ -74,14 +76,15 @@ supplies it. If you name a column of the table on that axis, as in
 would never read that column.
 
 **Reading** transforms (`smooth`, `sum`, `mean`, `median`, `max`, `min`,
-`quantile`, `range`, `confidence`, `deviation`) read *two* columns and summarize
-the second as it varies with the first. They fit or aggregate an existing `y`,
-so you must bind one: without `y(gold)`, `bar * mean + x(country)` has no way to
-guess which column to average. Leave `y()` off and the engine invents nothing:
-only you know which column was meant, so it stops and names what is missing
-(`add y(<column>)`). `range`, `confidence` and `deviation` are the three that
-read a `y` like the others but *write more than one*: `range` a low and a high,
-the other two a low, high and center.
+`quantile`, `range`, `confidence`, `deviation`, `smooth_band`) read *two*
+columns and summarize the second as it varies with the first. They fit or
+aggregate an existing `y`, so you must bind one: without `y(gold)`,
+`bar * mean + x(country)` has no way to guess which column to average. Leave
+`y()` off and the engine invents nothing: only you know which column was meant,
+so it stops and names what is missing (`add y(<column>)`). `range`,
+`confidence`, `deviation` and `smooth_band` are the four that read a `y` like
+the others but *write more than one*: `range` a low and a high, the other three
+a low, high and center.
 
 So whether you write `y()` is not an arbitrary rule to memorize for each
 transform. The family a transform belongs to decides it. This is one instance of
@@ -852,11 +855,44 @@ and only the shape changes:
 
 **Span** is fixed at 0.75: each local regression uses the nearest 75% of the
 data. A larger span would give a smoother curve, but `smooth` takes no argument,
-so the span cannot be changed. `smooth` requires both `x` and `y` to be
-continuous columns, and at least three rows in each group it fits; both refusals
-are earlier in this chapter, under [What `bin`, `density` and `smooth`
+so the span cannot be changed. `smooth` needs continuous columns on `x` and
+`y`, and at least three rows in each group. Both refusals are earlier in this
+chapter, under [What `bin`, `density` and `smooth`
 refuse](#what-bin-density-and-smooth-refuse). It writes its fitted values under
 the same `x` and `y` names, so the axes keep their labels.
+
+### `smooth_band`: the band around the curve
+
+A curve through a cloud says where the trend lies. A band around it says how
+precisely the trend is known. `confidence` adds a low and a high around a mean;
+`smooth_band` adds them around `smooth`'s curve. At the 100 x positions `smooth`
+uses, `smooth_band` writes the curve's confidence band as a low and a high, with
+the fitted value as the center. A [`ribbon`](marks/ribbon.qmd) fills the band,
+and `line * smooth` draws the curve inside it:
+
+```{r}
+data(gapminder_2007) + x(gdp) + y(life) +
+  point +
+  ribbon * smooth_band + style(opacity = 0.3) +
+  line * smooth +
+  title("The trend, and how precisely it is known")
+```
+
+*"Given gapminder 2007: x is gdp, y is life, points, and also a ribbon derived
+by smooth_band, and also a line derived by smooth."*
+
+The band widens at the right, where only a few rich countries lie. Where fewer
+rows lie near an x position, the trend there is known less precisely. The band
+shows the uncertainty of the curve, not the spread of the countries, so three
+countries in four lie outside it. Its center is `smooth`'s curve exactly. The
+confidence level is 0.95 unless you name another, and `smooth_band(0.99)` draws
+a wider band.
+
+Like `smooth`, `smooth_band` needs two continuous columns, but it needs five
+rows in each group, not three. The band's width is computed from how far the
+rows lie from the curve. With three or four rows, the curve passes through every
+row, so no width can be computed. `line * smooth_band` draws the band's two
+edges instead of filling it.
 
 ---
 
@@ -2207,7 +2243,7 @@ mark is made of words.
 
 ## Output columns
 
-The fourteen transforms in the table at the start of this chapter each write
+The fifteen transforms in the table at the start of this chapter each write
 their answer into a named column. This table lists the column each one reads and
 the column it writes.
 
@@ -2222,6 +2258,7 @@ the column it writes.
 | `range` | `x(column)`, `y(column)` | `x(column)` (each group twice), `y(column)` (low, then high) |
 | `confidence` | `x(column)`, `y(column)` | `x(column)` (each group twice), `y(column)` (low, then high), `center` (the mean) |
 | `deviation` | `x(column)`, `y(column)` | `x(column)` (each group twice), `y(column)` (low, then high), `center` (the mean) |
+| `smooth_band` | `x(column)`, `y(column)` | `x(column)` (100 positions along the curve, each twice), `y(column)` (low, then high), `center` (the fitted value) |
 
 For `bin`, `count`, `proportion` and `density`, the new y column takes the name
 you bind with `y()`, as long as that name is not a column of your table. With no

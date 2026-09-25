@@ -41,6 +41,7 @@ a second word, it follows the sentence in the same cell.
 | Min–max envelope, as two lines | `line * range + x(a) + y(b)`, the unfilled counterpart to `ribbon * range` |
 | Dashed / dotted line | any `line`/`step` `+ style(pattern = "dashed")` (or `"dotted"`) |
 | Trend line / smoother / LOESS | `line * smooth + x(a) + y(b)` |
+| Trend line with a confidence band | `x(a) + y(b) + ribbon * smooth_band + line * smooth` |
 | Summary bars (mean per group) | `bar * mean + x(category) + y(measure)`, also `sum`, `median`, `max`, `min` |
 | Grouped bars (side by side) | `bar * mean * dodge + x(category) + y(measure) + color(group)`, where `* dodge` gives each group its own bar side by side inside the category's slot |
 | Colorblind-safe grouped bars | add `+ pattern(group)` to the grouped bars: one column drives both the color and the hatch, so the two share one merged legend |

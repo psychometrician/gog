@@ -28,48 +28,6 @@ use crate::render::svg::{unit_norm, SvgRenderer};
 use crate::render::text::esc;
 use crate::render::Layout;
 
-/// Half the angle at the arrowhead's tip. 22.5° gives a head that reads as an
-/// arrow at a glance without the needle look a narrower one has.
-const HEAD_HALF_ANGLE: f64 = 22.5_f64 * std::f64::consts::PI / 180.0;
-
-/// How long a head is, in multiples of the stroke width, and the floor it will
-/// not go below. Tied to the stroke so a thick path gets a head in proportion,
-/// clamped so a hairline path still shows one.
-const HEAD_LEN_PER_WIDTH: f64 = 4.0;
-const HEAD_LEN_MIN: f64 = 7.0;
-
-/// The arrowhead at `tip`, aimed along the direction from `from` to `tip`.
-///
-/// Returns the three points of a filled triangle. Working in *page* coordinates
-/// rather than data ones is deliberate and is not the page-space drawing §18
-/// refuses: the head's two data-space facts (where it sits, which way it points)
-/// both come from the path's own vertices, and only its *size* is in pixels —
-/// the same footing as a stroke width or a point radius.
-fn head_points(from: (f64, f64), tip: (f64, f64), stroke_w: f64) -> Option<String> {
-    let (dx, dy) = (tip.0 - from.0, tip.1 - from.1);
-    let len = (dx * dx + dy * dy).sqrt();
-    // A zero-length last segment has no direction to point along. Walking further
-    // back down the path to find one would be guessing at intent; drawing nothing
-    // is the honest answer, and the stroke itself is unaffected.
-    if !len.is_finite() || len < 1e-9 {
-        return None;
-    }
-    let head = (stroke_w * HEAD_LEN_PER_WIDTH).max(HEAD_LEN_MIN);
-    let (ux, uy) = (dx / len, dy / len);
-    let (sin, cos) = (HEAD_HALF_ANGLE.sin(), HEAD_HALF_ANGLE.cos());
-    // The two barbs are the reversed unit vector rotated by ±the half-angle,
-    // scaled to the head length and hung off the tip.
-    let barb = |s: f64| {
-        (
-            tip.0 - head * (ux * cos - s * uy * sin),
-            tip.1 - head * (uy * cos + s * ux * sin),
-        )
-    };
-    let (ax, ay) = barb(1.0);
-    let (bx, by) = barb(-1.0);
-    Some(format!("{:.2},{:.2} {ax:.2},{ay:.2} {bx:.2},{by:.2}", tip.0, tip.1))
-}
-
 impl SvgRenderer {
     // -----------------------------------------------------------------------
     // Mark: path
@@ -315,7 +273,7 @@ impl SvgRenderer {
                     _ => vec![],
                 };
                 for &(from, tip, tip_row) in ends {
-                    if let Some(tri) = head_points((from.0, from.1), (tip.0, tip.1), stroke_w) {
+                    if let Some(tri) = super::head_points((from.0, from.1), (tip.0, tip.1), stroke_w) {
                         let c = match &ramp_color {
                             Some(rc) => rc.segment(idxs[tip_row], idxs[tip_row]),
                             None => stroke.clone(),
@@ -424,7 +382,7 @@ impl SvgRenderer {
                     }
                 }
                 for (from, tip, tip_row) in heads {
-                    if let Some(tri) = head_points((from.0, from.1), (tip.0, tip.1), stroke_w) {
+                    if let Some(tri) = super::head_points((from.0, from.1), (tip.0, tip.1), stroke_w) {
                         let c = match &ramp_color {
                             Some(rc) => rc.segment(idxs[tip_row], idxs[tip_row]),
                             None => stroke.clone(),
@@ -476,7 +434,7 @@ impl SvgRenderer {
                 _ => vec![],
             };
             for &(from, tip, tip_row) in ends {
-                if let Some(tri) = head_points(from, tip, stroke_w) {
+                if let Some(tri) = super::head_points(from, tip, stroke_w) {
                     // A ramped route's head takes the color of the value it ends
                     // at, so the arrow agrees with the stroke it caps.
                     let c = match &ramp_color {
@@ -496,7 +454,7 @@ impl SvgRenderer {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
+    use crate::render::marks::head_points;
 
     #[test]
     fn a_head_points_along_the_last_segment_not_along_the_axes() {

@@ -617,7 +617,7 @@ def _interactive_block(plot: Any, container_id: str) -> str:
         else _inline_modules([view_path, js_path]) + "\n"
     )
 
-    request = json.dumps({"spec": spec, "data": data})
+    request = _pruned(json.dumps({"spec": spec, "data": data}))
     return (
         '\n<script type="module">\n'
         f"{head}"
@@ -625,6 +625,30 @@ def _interactive_block(plot: Any, container_id: str) -> str:
         f"{{ wasm: {_wasm_expression(wasm_path)} }});\n"
         "</script>\n"
     )
+
+
+def _pruned(request: str) -> str:
+    """The request holding only the columns its spec names, for a page to carry.
+
+    A plot that needs the engine in the browser carries its request into the page,
+    and a column the sentence never maps has no business being published there.
+    Which columns the plot reads is the engine's to say (`gog-cli --prune`), so the
+    list lives in one place rather than in four bindings. An engine too old to
+    answer writes back something that is not a request, and then the whole request
+    is carried, as it always was, rather than a page that cannot draw.
+    """
+    try:
+        result = subprocess.run(
+            [find_gog_cli(), "--prune"],
+            input=request,
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+        )
+    except (OSError, GogError):
+        return request
+    out = result.stdout.strip()
+    return out if result.returncode == 0 and out.startswith("{") else request
 
 
 def refusal_block(message: str) -> str:

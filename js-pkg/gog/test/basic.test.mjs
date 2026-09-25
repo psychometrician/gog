@@ -50,6 +50,7 @@ import {
   interval,
   layer,
   line,
+  map,
   mean,
   sum,
   ordered,
@@ -974,6 +975,29 @@ test("tick_count states how many ticks an axis aims for", () => {
                           point, x(col.a, { tick_count: 9 }))),
     /its own tick count/
   );
+});
+
+test("a count past the most one axis draws widens the step, and says so", () => {
+  // The cut kept the first 26 ticks: 40 on gdp labeled 0K to 25K on an axis
+  // that runs to 49K, and said nothing.
+  const wide = { gdp: [277.55, 12000, 49357.19], life: [40, 60, 82] };
+  const drawn = (n) => {
+    const write = process.stderr.write;
+    let said = "";
+    process.stderr.write = (chunk) => { said += chunk; return true; };
+    try {
+      const svg = render_svg(plot(data(wide), point, x(col.gdp, { tick_count: n }), y(col.life)));
+      return { svg, said };
+    } finally {
+      process.stderr.write = write;
+    }
+  };
+  const widened = drawn(40);
+  const labels = [...widened.svg.matchAll(/>([^<>]*)<\/text>/g)].map((m) => m[1]);
+  assert.ok(labels.includes("48K") && !labels.includes("25K"),
+    `a count past the maximum should widen the step to the far end: ${labels}`);
+  assert.match(widened.said, /a tick every 2K instead/);
+  assert.doesNotMatch(drawn(26).said, /ticks on this axis/);
 });
 
 // ---------------------------------------------------------------------------
@@ -2458,4 +2482,257 @@ test("a tally's axis names no column, and a box's refusal is said once", () => {
   render_svg(plot(data(strip), layer(bar, count), x(col.g), y(col.count)));
   const text = refusalOf(() => render_svg(plot(data(strip), layer(box, mean), x(col.g), y(col.v))));
   assert.equal(text.split("gog: `").length - 1, 1, "`box * mean` should be refused once");
+});
+
+// Each of these drew something other than the sentence said, or said nothing
+// where it should have spoken: a count a log, calendar or map axis never read, a
+// date on `z` in epoch seconds, a page coarsening its plots' ticks, two keys for
+// one column, a transparent figure painted white, a name far from its axis, a
+// dash an `edge` refused, a label the layout had nowhere to read from.
+test("counts on every axis, calendar z, shared ticks, one key, and the rest", () => {
+  const labels = (svg) => [...svg.matchAll(/>([^<>]*)<\/text>/g)].map((m) => m[1]);
+  const powers = [...Array(25).keys()];
+  const big = { i: powers, v: powers.map((k) => 10 ** k) };
+  const lab = labels(render_svg(plot(data(big), point, x(col.i), y(col.v, { scale: "log" }))));
+  assert.ok(lab.includes("10\u00b9\u00b2") && !lab.some((l) => l.includes("000B")), `${lab}`);
+
+  const wide = { gdp: [277.55, 2000, 12000, 49357.19], life: [40, 55, 70, 82] };
+  const logged = (opts = {}) => labels(render_svg(
+    plot(data(wide), point, x(col.gdp, { scale: "log", ...opts }), y(col.life))));
+  assert.ok(!logged().includes("2K"), `${logged()}`);
+  assert.ok(["2K", "5K"].every((l) => logged({ tick_count: 12 }).includes(l)), `${logged({ tick_count: 12 })}`);
+  // Days at UTC midnight, so the table reads the same in every zone.
+  const days = {
+    day: [...Array(42).keys()].map((i) => new Date(Date.UTC(2024, 2, 1 + i))),
+    orders: [...Array(42).keys()].map((i) => 20 + (i % 7) * 2),
+  };
+  const dated = (opts = {}) => labels(render_svg(
+    plot(data(days), line, x(col.day, opts), y(col.orders)))).filter((l) => /^(Feb|Mar|Apr) /.test(l)).length;
+  assert.deepEqual([dated(), dated({ tick_count: 3 }), dated({ tick_count: 20 })], [6, 3, 22]);
+  assert.ok(labels(render_svg(plot(data(days), point, x(col.orders), y(col.orders), z(col.day))))
+    .includes("Mar 4"), "a date on z is ticked on the calendar");
+
+  const quakes = { east: [165, 170, 175, 180, 185], north: [-35, -30, -25, -20, -15] };
+  const degrees = (opts = {}) => labels(render_svg(
+    plot(data(quakes), point, x(col.east, opts), y(col.north), map()))).filter((l) => l.endsWith("\u00b0")).length;
+  assert.ok(degrees({ tick_count: 20 }) > degrees() + 5, `${degrees({ tick_count: 20 })} vs ${degrees()}`);
+
+  const page = beside(
+    plot(data(wide), point, x(col.gdp, { tick_count: 3 }), y(col.life)),
+    plot(data(wide), point, x(col.gdp, { tick_count: 12 }), y(col.life)));
+  assert.ok(["5K", "15K", "45K"].every((l) => labels(render_svg(page)).includes(l)),
+    "a page coarsened its plots' ticks");
+
+  const kinds = { x: [1, 2, 3], y: [1, 2, 3], kind: ["a", "b", "c"] };
+  const merged = render_svg(plot(data(kinds), point, x(col.x), y(col.y), color(col.kind), shape(col.kind)));
+  assert.equal(labels(merged).filter((l) => l === "Kind").length, 1, "two keys for one column");
+  refuses(() => render_svg(plot(data(kinds), point, x(col.x), y(col.y), color(col.kind), palette("gray"))),
+    /`shape\(<column>\)`/);
+  const clear = render_svg(plot(data(kinds), point, x(col.x), y(col.y), theme({ background: "transparent" })));
+  assert.ok(!clear.includes('<rect width="800" height="600" fill="white"/>'), "a transparent figure is white");
+  const squared = render_svg(plot(data(kinds), point, x(col.x), y(col.y), theme({ ratio: 1 })));
+  assert.ok(Number(/rotate\(-90 ([0-9.]+) /.exec(squared)[1]) > 50, "the y name stayed at the edge");
+
+  refuses(() => render_svg(plot(data(kinds), point, x(col.x), y(col.y),
+    style({ shape: "cross", border_color: "red", border_size: 2 }))), /a `cross` is two strokes with no fill/);
+
+  const links = { src: ["a", "a", "b"], dst: ["b", "c", "c"] };
+  refuses(() => render_svg(plot(data(links), layer(text, layout(col.src, col.dst)), label(col.src), network())),
+    /`label\(name\)`/);
+  assert.match(render_svg(plot(data(links), layer(edge, layout(col.src, col.dst)), pattern(col.src), network())),
+    /stroke-dasharray/);
+
+  const boxes = { g: ["a", "a", "a", "a", "a", "b", "b", "b", "b", "b"], v: [1, 2, 3, 4, 5, 2, 4, 6, 8, 10] };
+  const caps = (on) => render_svg(plot(data(boxes), box, x(col.g), y(col.v), style({ caps: on })))
+    .split('stroke-linecap="round"/>').length - 1;
+  assert.deepEqual([caps(true), caps(false)], [4, 0], "style({ caps: false }) should leave a box's whiskers bare");
+  const ramp = { x: [0, 1, 2, 3, 4, 5, 6, 7], y: [1, 3, 2, 4, 3, 5, 4, 6], v: [0, 1, 2, 3, 4, 5, 6, 7] };
+  const write = process.stderr.write;
+  let said = "";
+  process.stderr.write = (chunk) => { said += chunk; return true; };
+  try {
+    render_svg(plot(data(ramp), line, x(col.x), y(col.y), color(col.v)));
+  } finally {
+    process.stderr.write = write;
+  }
+  assert.match(said, /`color\(v\)` holds numbers/);
+  const heads = render_svg(plot(data(links), layer(edge, layout(col.src, col.dst)), style({ arrow: "end" }), network()));
+  assert.equal(heads.split("<polygon").length - 1, 3, "style({ arrow: 'end' }) should put a head on each edge");
+});
+
+// A `Date` is an instant with no zone of its own, and the engine draws a clock
+// with none. JavaScript sent the instant, so the axis showed the UTC clock: noon
+// in Seoul drew as 03:00, where the other three bindings draw the clock time the
+// reader wrote. It is now read on the session's clock, except a run of ISO dates,
+// which JavaScript parses as UTC midnight and which mean the calendar days they
+// spell. Asserted in three zones, each in a process of its own.
+test("a Date is drawn on the clock the session shows it on, in every zone", () => {
+  const index = new URL("../src/index.js", import.meta.url).href;
+  const code = `
+    import { render_svg, plot, data, line, x, y, col } from ${JSON.stringify(index)};
+    const labels = (s) => [...s.matchAll(/>([^<>]*)<\\/text>/g)].map((m) => m[1]);
+    const draw = (t) => labels(render_svg(plot(data(t), line, x(col.when), y(col.v))));
+    const clock = { when: [new Date(2024, 0, 1, 12), new Date(2024, 0, 1, 16)], v: [1, 2] };
+    const iso = { when: [new Date("2024-01-01"), new Date("2024-01-08")], v: [1, 2] };
+    console.log(JSON.stringify([draw(clock), draw(iso)]));
+  `;
+  for (const tz of ["Asia/Seoul", "America/Chicago", "UTC"]) {
+    const run = spawnSync(process.execPath, ["--input-type=module", "-e", code],
+      { env: { ...process.env, TZ: tz }, encoding: "utf8" });
+    assert.equal(run.status, 0, run.stderr);
+    const [clock, iso] = JSON.parse(run.stdout);
+    assert.ok(clock.includes("12:00") && clock.includes("16:00"), `${tz}: ${clock}`);
+    assert.ok(iso.includes("Jan 1") && !iso.some((l) => l.includes(":")), `${tz}: ${iso}`);
+  }
+});
+
+// A partition read as proportion divides its measure axis by the total and keeps
+// its other axis's name; a spine plot's share axis runs 0 to 1 instead of -0 to 2;
+// the refusal of a proportion beside a filled pile names `stack(share = TRUE)` and a
+// way out that draws; and `box * jitter` is refused toward `dodge`.
+test("partition * proportion in shares, the spine plot's axis, and the filled pile", () => {
+  const labels = (svg) => [...svg.matchAll(/>([^<>]*)<\/text>/g)].map((m) => m[1]);
+  const trips = { city: ["A", "A", "B", "B"], mode: ["car", "bus", "car", "bus"],
+    people: [30, 10, 20, 40] };
+  let lab = labels(render_svg(plot(data(trips), x(col.people),
+    layer(zone, partition(col.city, col.mode, { cross: true }), proportion), color(col.mode))));
+  const nums = lab.filter((l) => /^-?[0-9.]+$/.test(l)).map(Number);
+  assert.ok(lab.includes("Share of column") && !lab.includes("Proportion")
+    && nums.length > 0 && Math.max(...nums) <= 1, `${lab}`);
+  lab = labels(render_svg(plot(data(trips), x(col.people),
+    layer(text, partition(col.city, col.mode), proportion), label(col.name))));
+  assert.ok(lab.includes("A") && lab.includes("car"), `${lab}`);
+  const spine = labels(render_svg(plot(data(trips),
+    layer(zone, partition(col.city, { cross: true })), x(col.people), color(col.city))));
+  assert.ok(!spine.includes("-0") && spine.includes("0.2") && spine.includes("1.0"), `${spine}`);
+  assert.match(refusalOf(() => render_svg(plot(data(trips),
+    layer(bar, stack({ share: true }), proportion), x(col.city), color(col.mode)))),
+    /`bar \* count \* stack\(share = TRUE\)` for shares within each pile/);
+  assert.match(refusalOf(() => render_svg(plot(data(trips),
+    layer(box, jitter), x(col.city), y(col.people)))), /`dodge` sets them side by side/);
+});
+
+// A name written with `y_label()` is drawn where an axis draws no numbers (a moved
+// pile, a partition's ring), where it used to be dropped in silence; `jitter(0)`
+// draws with a note that it moved nothing; and the `bounds` refusal names `zone`,
+// the fifth mark that takes the pair.
+test("a written name on an axis with no numbers, jitter(0)'s note, and bounds on a bar", () => {
+  const labels = (svg) => [...svg.matchAll(/>([^<>]*)<\/text>/g)].map((m) => m[1]);
+  const weeks = { week: [1, 2, 3, 4, 1, 2, 3, 4], plays: [3, 4, 5, 4, 2, 3, 2, 4],
+    genre: ["folk", "folk", "folk", "folk", "jazz", "jazz", "jazz", "jazz"] };
+  const lab = labels(render_svg(plot(data(weeks), layer(area, stack({ baseline: "wiggle" })),
+    x(col.week), y(col.plays), color(col.genre), y_label("Plays per week"))));
+  assert.ok(lab.includes("Plays per week"), `${lab}`);
+  const strip = { g: ["a", "a", "a", "b", "b", "b"], v: [1, 2, 3, 2, 3, 4] };
+  const write = process.stderr.write;
+  let said = "";
+  process.stderr.write = (chunk) => { said += chunk; return true; };
+  try {
+    render_svg(plot(data(strip), layer(point, jitter(0)), x(col.g), y(col.v)));
+  } finally {
+    process.stderr.write = write;
+  }
+  assert.match(said, /`jitter\(0\)` moves no point/);
+  assert.match(refusalOf(() => render_svg(plot(data(strip), layer(bar, bounds(col.v, col.v)),
+    x(col.g)))), /`zone` shades the region between them/);
+});
+
+// A partition's axes run from 0: they are ticked over the cells, not over the
+// cells' centers, so a mosaic's share axis reads 0.0 to 1.0, and a sunburst's
+// angle labels 0 once, at the top, where its total would share the spoke.
+test("a partition's axes are ticked from 0 over its cells", () => {
+  const labels = (svg) => [...svg.matchAll(/>([^<>]*)<\/text>/g)].map((m) => m[1]);
+  const trips = { city: ["A", "A", "B", "B"], mode: ["car", "bus", "car", "bus"],
+    people: [30, 10, 20, 40] };
+  const mosaic = labels(render_svg(plot(data(trips),
+    layer(zone, partition(col.city, col.mode, { cross: true })), x(col.people), color(col.mode))));
+  for (const t of ["0", "0.0", "1.0"]) assert.ok(mosaic.includes(t), `${t}: ${mosaic}`);
+  const sunburst = labels(render_svg(plot(data(trips),
+    layer(zone, partition(col.city, col.mode)), x(col.people), color(col.city), polar())));
+  assert.equal(sunburst.filter((l) => l === "0").length, 1, `${sunburst}`);
+  assert.ok(!sunburst.includes("100"), `${sunburst}`);
+});
+
+// A summary whose every group is one row draws the rows themselves, and now says
+// so: a key of numbers that never repeat gives one group per row.
+test("a summary of one-row groups says so, and a real summary does not", () => {
+  const said = (table) => {
+    const write = process.stderr.write;
+    let text = "";
+    process.stderr.write = (chunk) => { text += chunk; return true; };
+    try {
+      render_svg(plot(data(table), layer(bar, mean), x(col.gdp), y(col.life)));
+    } finally {
+      process.stderr.write = write;
+    }
+    return text;
+  };
+  const spread = said({ gdp: [1.5, 2.5, 3.5, 4.5], life: [50, 60, 70, 80] });
+  assert.match(spread, /every group holds a single row/);
+  assert.match(spread, /`bar \* bin \* mean`/);
+  assert.doesNotMatch(said({ gdp: [1, 1, 2, 2], life: [50, 60, 70, 80] }),
+    /every group holds a single row/);
+});
+
+// Every plot is a named image for a screen reader: `role="img"` and an
+// `aria-label`, the title when there is one, else what the plot draws.
+test("every plot carries an accessible name", () => {
+  const pts = { gdp: [1, 2, 3], life: [50, 60, 70] };
+  assert.ok(render_svg(plot(data(pts), point, x(col.gdp), y(col.life)))
+    .includes('role="img" aria-label="Points, x is gdp, y is life"'));
+  assert.ok(render_svg(plot(data(pts), point, x(col.gdp), y(col.life), title("Longer lives")))
+    .includes('aria-label="Longer lives"'));
+});
+
+// A color name means one color: a palette ramp through "green" ends at CSS's
+// green, the one a set `style({ color: "green" })` shows, not X11's #00FF00.
+test("a palette's green is CSS's green", () => {
+  const d = { a: [1, 2, 3, 4, 5], b: [1, 2, 3, 4, 5], v: [1, 2, 3, 4, 5] };
+  const svg = render_svg(plot(data(d), point, x(col.a), y(col.b), color(col.v),
+    palette(["white", "green"])));
+  assert.ok(svg.includes("#008000") && !svg.toLowerCase().includes("#00ff00"));
+});
+
+// A page carries only the columns its plot names: the engine prunes the request
+// a brushed plot embeds, so an unmapped column never reaches the page.
+test("a page carries only the columns its plot names", () => {
+  const people = { gdp: [1000, 20000, 40000], life: [50, 70, 80],
+    email: ["a@x.org", "b@x.org", "c@x.org"] };
+  const block = html_block(plot(data(people), point, x(col.gdp), y(col.life),
+    brush(col.gdp, { at: [2000, 30000] })));
+  if (!block.includes("<script")) return; // the browser engine is not built here
+  assert.ok(!block.includes("a@x.org") && !block.includes('"email"'), "an unmapped column was published");
+  assert.ok(block.includes('"gdp"') && block.includes('"life"'), "a mapped column was dropped");
+});
+
+// `smooth_band` is the band around a `smooth` line: a ribbon fills it, its level
+// reaches the engine, and a level outside (0, 1) is refused.
+test("smooth_band draws the band around smooth, at its level", async () => {
+  const { smooth_band, smooth, ribbon: rb } = await import("../src/index.js");
+  const g = Array.from({ length: 30 }, (_, i) => i + 1);
+  const pts = { g, v: g.map((i) => Math.sin(i / 5) * 3 + (i % 4)) };
+  const band = (...args) => render_svg(plot(data(pts),
+    layer(rb, smooth_band(...args)), x(col.g), y(col.v),
+    layer(line, smooth), x(col.g), y(col.v)));
+  assert.ok(band().includes("<polygon") && band().includes("Ribbons derived by smooth_band"));
+  assert.notEqual(band(0.5), band(0.99), "the level did not reach the engine");
+  refuses(() => smooth_band(1.5), /strictly between 0 and 1/);
+  // The band needs five rows where its curve needs three: below five every local
+  // fit passes through its own points and leaves nothing to measure a width from.
+  const four = { g: g.slice(0, 4), v: pts.v.slice(0, 4) };
+  const thin = () => render_svg(plot(data(four), layer(rb, smooth_band()), x(col.g), y(col.v)));
+  refuses(thin, /`smooth_band` fits a curve/);
+  refuses(thin, /at least 5/);
+  refuses(thin, /`line \* smooth`/);
+});
+
+// The `bar * dodge` refusal names the channels a bar takes, and `pattern`
+// divides a one-slot bar as `color` does.
+test("a bar is split, and advised, by the channels it takes", async () => {
+  const { dodge } = await import("../src/index.js");
+  const eras = { continent: ["Asia", "Asia", "Europe", "Europe"], era: ["1957", "2007", "1957", "2007"],
+    life: [50, 60, 65, 75] };
+  assert.match(refusalOf(() => render_svg(plot(data(eras), layer(bar, mean, dodge),
+    x(col.continent), y(col.life)))), /Add `color\(<field>\)` or `pattern\(<field>\)`/);
+  assert.ok(render_svg(plot(data(eras), layer(bar, count, stack), pattern(col.era))).includes("<rect"));
 });

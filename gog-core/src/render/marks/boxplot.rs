@@ -107,8 +107,11 @@ impl SvgRenderer {
         let dodge = Dodge::resolve(layer, df, pos_field);
         let box_w = slot * dodge.as_ref().map_or(1.0, Dodge::width_frac) * BOX_WIDTH_FRAC;
         let half = box_w / 2.0;
-        // Whisker end caps, narrower than the box (convention).
+        // Whisker end caps, narrower than the box (convention), and
+        // `style(caps = FALSE)` leaves them off, as it does on an `interval`: a
+        // whisker is the same stroke on both marks (spec §4, the settable rule).
         let cap = half * 0.5;
+        let draw_caps = layer.style.caps.unwrap_or(true);
 
         let st = &layer.style;
         // `pattern` hatches the box *body* fill (spec §4/§5) — setting or channel;
@@ -264,6 +267,9 @@ impl SvgRenderer {
                     writeln!(svg,
                         r##"    <path d="{whisker}" fill="none" stroke="{line}" stroke-width="{line_w}" stroke-linecap="butt"/>"##
                     ).unwrap();
+                    if !draw_caps {
+                        continue;
+                    }
                     let cap_u = if horizontal { cap_px / p.r_max } else { p.px_as_turns(to_e, cap_px) };
                     let capd = held(p, (s_c - cap_u, to_e), (s_c + cap_u, to_e));
                     writeln!(svg,
@@ -289,6 +295,9 @@ impl SvgRenderer {
                     r##"    <line x1="{:.2}" y1="{:.2}" x2="{:.2}" y2="{:.2}" stroke="{line}" stroke-width="{line_w}" stroke-linecap="butt"/>"##,
                     from.0, from.1, to.0, to.1
                 ).unwrap();
+                if !draw_caps {
+                    continue;
+                }
                 let (ca, cb) = across(to, cap);
                 writeln!(svg,
                     r##"    <line x1="{:.2}" y1="{:.2}" x2="{:.2}" y2="{:.2}" stroke="{line}" stroke-width="{line_w}" stroke-linecap="round"/>"##,
@@ -422,6 +431,10 @@ impl SvgRenderer {
                 ).unwrap();
                 // The cap is a cross, for `write_interval_3d`'s reason: a cube leaves
                 // two directions across the span and choosing one would be arbitrary.
+                // `style(caps = FALSE)` leaves it off, as flat.
+                if !layer.style.caps.unwrap_or(true) {
+                    continue;
+                }
                 let nz = unit_norm(to, zs);
                 for (p, q) in [
                     (scene.to_screen(nx0, cy, nz), scene.to_screen(nx1, cy, nz)),

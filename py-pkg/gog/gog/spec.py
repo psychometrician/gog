@@ -177,7 +177,7 @@ def _carry(layer: Atom, transform: Atom) -> None:
     extremes.
     """
     name = transform.fields["transform"]
-    if name not in ("bin", "density", "range", "confidence", "deviation",
+    if name not in ("bin", "density", "range", "confidence", "smooth_band", "deviation",
                     "quantile", "jitter", "stack", "bounds", "partition", "flow", "layout",
                     "cluster"):
         return
@@ -405,11 +405,24 @@ class Plot:
                 or other.current_layer is not None
                 or other.pending_data is not None
             ):
+                # The example is built from the marks inside the parentheses, so
+                # it reads as the reader's own sentence rather than one about
+                # `point` and `area`.
+                marks = [layer["mark"] for layer in other.spec.get("layers", [])]
+                if other.current_layer is not None:
+                    marks.append(other.current_layer["mark"])
+                if marks:
+                    example = " ".join(f"+ data({new_name}) + {m}" for m in marks)
+                    raise GogError(
+                        f"gog: parentheses do not group marks, so everything inside these "
+                        f"would be dropped. Write the marks in sequence instead, and repeat "
+                        f"`data()` before each one that reads that table: `{example}`. "
+                        f"Parentheses compose whole plots, with `|` and `/`."
+                    )
                 raise GogError(
-                    f"gog: parentheses do not group marks, so everything inside these "
-                    f"would be dropped. Write the marks in sequence instead, and repeat "
-                    f"`data()` before each one that reads that table: "
-                    f"`+ data({new_name}) + point + data({new_name}) + area`. "
+                    f"gog: parentheses do not group the parts of a plot, so everything "
+                    f"inside these would be dropped. Write them in sequence instead, each "
+                    f"after its own `+`, beginning with `+ data({new_name})`. "
                     f"Parentheses compose whole plots, with `|` and `/`."
                 )
 
@@ -469,7 +482,7 @@ class Plot:
                 "transforms": list(other.fields["transforms"]),
                 "data": plot.pending_data,
             }
-            for param in ("bin", "density", "range", "confidence", "deviation",
+            for param in ("bin", "density", "range", "confidence", "smooth_band", "deviation",
                           "quantile", "jitter", "stack", "bounds", "partition", "flow", "layout",
                           "cluster", "box"):
                 if other.fields.get(param) is not None:

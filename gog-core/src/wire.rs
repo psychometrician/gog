@@ -165,6 +165,74 @@ pub fn decode(request: RenderRequest) -> (HashMap<String, DataFrame>, Vec<String
     (data, remarks)
 }
 
+/// The name of the column a table keeps when the spec names none of its own: all
+/// zeros, so the table still has as many rows as it had (a bare `bar * count`
+/// counts them) and discloses nothing.
+pub const ROW_KEEPER: &str = "gog.rows";
+
+/// **The request cut down to the columns the plot reads**, for a page to carry.
+///
+/// A plot that needs the engine in the browser (a brush, a cube) carries its
+/// request into the page, and a binding used to send every column of every table,
+/// so a published page held columns its sentence never mapped, an email address
+/// beside the two numbers drawn. This keeps a column only if some plot on the page
+/// reads it ([`crate::ir::PlotSpec::columns_read`]), which is asked of the *typed*
+/// spec: a first version kept any column whose name appeared anywhere in the spec's
+/// JSON, and so kept a column called `title` or `label` because the spec uses those
+/// words as keys. The engine decides it, in one place, and the bindings ask
+/// (`gog-cli --prune`) rather than each keeping a list that grows every time an atom
+/// names a column. A spec that does not parse is returned whole: it cannot draw, and
+/// a prune that guessed could make it draw wrong.
+///
+/// A table none of whose columns is read keeps [`ROW_KEEPER`] instead, so its row
+/// count survives. Rows are never dropped: what is mapped is what is published.
+pub fn prune(request: &serde_json::Value) -> serde_json::Value {
+    use serde_json::Value;
+    let Some(figure) = request.get("spec")
+        .and_then(|s| serde_json::from_value::<Figure>(s.clone()).ok())
+    else {
+        return request.clone();
+    };
+    let named: BTreeSet<String> = figure.plots().iter()
+        .flat_map(|p| p.columns_read())
+        .collect();
+    let mut out = request.clone();
+    let Some(tables) = out.get_mut("data").and_then(Value::as_object_mut) else {
+        return out;
+    };
+    for table in tables.values_mut() {
+        let Some(table) = table.as_object_mut() else { continue };
+        let rows = ["floats", "strings"].iter()
+            .filter_map(|kind| table.get(*kind).and_then(Value::as_object))
+            .flat_map(|cols| cols.values())
+            .filter_map(Value::as_array)
+            .map(Vec::len)
+            .max()
+            .unwrap_or(0);
+        for kind in ["floats", "strings", "levels", "dates"] {
+            if let Some(cols) = table.get_mut(kind).and_then(Value::as_object_mut) {
+                cols.retain(|col, _| named.contains(col));
+            }
+        }
+        let kept = ["floats", "strings"].iter()
+            .filter_map(|kind| table.get(*kind).and_then(Value::as_object))
+            .any(|cols| !cols.is_empty());
+        if !kept && rows > 0 {
+            let zeros = Value::Array(vec![Value::from(0.0); rows]);
+            match table.get_mut("floats").and_then(Value::as_object_mut) {
+                Some(floats) => {
+                    floats.insert(ROW_KEEPER.to_string(), zeros);
+                }
+                None => {
+                    table.insert("floats".to_string(),
+                        serde_json::json!({ ROW_KEEPER: zeros }));
+                }
+            }
+        }
+    }
+    out
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -199,5 +267,53 @@ mod tests {
         }"#));
         assert_eq!(data["t"].len(), 3, "no row is lost for a column nothing reads");
         assert!(remarks.is_empty(), "and nothing is reported: {remarks:?}");
+    }
+
+    /// A column whose name is a word the spec uses for something else, a key such
+    /// as `title` or `label`, a mark's name, a table's name, is not taken for a
+    /// column the plot reads.
+    #[test]
+    fn prune_reads_the_spec_not_its_words() {
+        let request: serde_json::Value = serde_json::from_str(r#"{
+            "spec": {"data":"t","title":"white","layers":[{"mark":"point","encodings":{
+                "x":{"field":"a"},"label":{"field":"b"}},"transforms":[]}]},
+            "data": {"t": {"floats": {"a": [1.0], "x": [2.0]},
+                           "strings": {"b": ["p"], "title": ["Dr."], "label": ["HIV+"],
+                                       "point": ["q"], "white": ["w"], "t": ["s"]}}}
+        }"#).unwrap();
+        let out = super::prune(&request);
+        let t = &out["data"]["t"];
+        assert_eq!(t["floats"].as_object().unwrap().keys().collect::<Vec<_>>(), vec!["a"]);
+        assert_eq!(t["strings"].as_object().unwrap().keys().collect::<Vec<_>>(), vec!["b"]);
+    }
+
+    /// A page carries the columns its plot names and no others, with each kept
+    /// column's declarations, and a table whose columns are all unnamed keeps its
+    /// row count in a column of zeros.
+    #[test]
+    fn prune_keeps_the_named_columns_and_the_row_count() {
+        let request: serde_json::Value = serde_json::from_str(r#"{
+            "spec": {"data":"t","layers":[{"mark":"point","encodings":{
+                "x":{"field":"a"},"color":{"field":"k"}},"transforms":[]},
+                {"mark":"bar","data":"u","encodings":{},"transforms":["count"]}]},
+            "data": {
+                "t": {"floats": {"a": [1.0, 2.0], "email_score": [9.0, 8.0]},
+                      "strings": {"k": ["p", "q"], "email": ["x@y", "z@w"]},
+                      "levels": {"k": ["q", "p"], "email": ["x@y", "z@w"]},
+                      "dates": {"when": "day"}},
+                "u": {"strings": {"secret": ["s", "t", "u"]}}
+            }
+        }"#).unwrap();
+        let out = super::prune(&request);
+        let t = &out["data"]["t"];
+        assert_eq!(t["floats"].as_object().unwrap().keys().collect::<Vec<_>>(), vec!["a"]);
+        assert_eq!(t["strings"].as_object().unwrap().keys().collect::<Vec<_>>(), vec!["k"]);
+        assert_eq!(t["levels"].as_object().unwrap().keys().collect::<Vec<_>>(), vec!["k"]);
+        assert!(t["dates"].as_object().unwrap().is_empty());
+        let u = &out["data"]["u"];
+        assert!(u["strings"].as_object().unwrap().is_empty(), "the unnamed column is gone");
+        assert_eq!(u["floats"][super::ROW_KEEPER].as_array().map(Vec::len), Some(3),
+            "and the three rows are still counted");
+        assert_eq!(out["spec"], request["spec"], "the spec is untouched");
     }
 }

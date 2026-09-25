@@ -64,6 +64,7 @@ export {
   // transforms
   bin,
   smooth,
+  smooth_band,
   count,
   density,
   deviation,
