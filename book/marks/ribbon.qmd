@@ -568,7 +568,7 @@ The `color(continent)` is written *after* the area, so it belongs to that layer
 alone. Written before both marks it would color the `line` too. A layer cannot
 both map `color` and set it, so the sentence would be refused. Where a channel
 sits in the sentence is what decides its scope, and [Encoding
-scope](../encoding-scope.qmd#channels-plot-scoped-or-layer-scoped-by-position)
+scope](../encoding-scope.qmd#channels-plot-scoped-or-layer-scoped)
 explains that in full.
 
 ## What you can set
