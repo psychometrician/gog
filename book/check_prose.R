@@ -119,7 +119,12 @@ check_prose <- function(dirs = "book") {
     # "the whole way" for *steadily* or *all of it*, "see past" for *see through*
     # (it also means *ignore*), "a standing hazard" for *a problem every view
     # has*. Each has a plain replacement a translator can carry.
-    "no amount of", "the whole way", "see past", "standing hazard"
+    "no amount of", "the whole way", "see past", "standing hazard",
+    # Found in the `operators` chapter by a reader-review: "written the other way
+    # round" for *written in the reverse order*. Both spellings, since matching
+    # is `fixed = TRUE`. "The other way" alone stays legal, because the book
+    # uses it literally, for a direction.
+    "the other way round", "the other way around"
   )
 
   # `index.qmd` quotes an imagined fluent expert saying "the difficulty earns its

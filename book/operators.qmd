@@ -5,50 +5,51 @@
 source("R/setup.R")
 ```
 
-How do you put two things in one picture? gog has exactly **four operators**.
-They are not atoms. They are the assembly rules: how atoms combine.
+How do you put two things in one picture? You join them with an **operator**,
+and gog has exactly four. They are not atoms. They are the assembly rules: how
+atoms combine.
 
-Think of them the way Hangeul (한글) works: consonants and vowels are the atoms;
-the rule "initial + vowel + optional final = syllable block" is the operator.
-The rule never changes, and a small set of letters builds every syllable the
-language needs.
+Hangeul (한글) works the same way. Its consonants and vowels are the atoms. Its
+operator is one rule: an initial consonant, a vowel and an optional final
+consonant make a syllable block. The rule never changes, and a small set of
+letters builds every syllable the language needs.
 
 ```
-+   compose   (add a layer, a channel, or a label to a specification)
++   layer     (add a layer, a channel, or a label to a specification)
 *   derive    (combine a mark with a transform into a compound mark)
 |   facet ↔   (small multiples, arranged in columns)
 /   facet ↕   (small multiples, arranged in rows)
 ```
 
-`|` and `/` also arrange whole plots on a page. That second use has a section
-of its own.
+`|` and `/` also arrange whole plots on a page. That second use has a chapter
+of its own ([Composition](composition.qmd)).
 
 ---
 
-## `+`: compose
+## `+`: layer
 
-Every sentence you have written so far holds several atoms, and one operator
-joins them. `+` is the general assembly operator, and every atom enters a
-specification through it:
+Every sentence you have written so far holds several atoms, and `+` joins most
+of them. Each mark, channel, label and setting enters a specification through
+it:
 
 ```r
 data(my_table) + point + x(height) + y(weight) + color(species) + title("My plot")
 ```
 
-Adding a **mark** (`point`, `line`, `bar`, …) starts a new layer.
-Adding a **channel** (`x()`, `color()`, …) or a **label atom** (`title()`,
-`x_label()`) attaches to the appropriate scope, which is the plot or the nearest
-preceding mark (see [Encoding scope](encoding-scope.qmd)).
+Adding a **mark** (`point`, `line`, `bar`, …) starts a new layer. A
+**channel** (`x()`, `color()`, …) written before any mark belongs to the plot,
+and one written after a mark belongs to that mark. A **label atom** (`title()`,
+`x_label()`) belongs to the plot wherever you write it ([Encoding
+scope](encoding-scope.qmd)).
 
 ### Layering with `+`
 
-Video editing works the same way, and the comparison is worth making. A video is
-a stack of tracks: the picture, the sound, the captions. Each track is separate,
-they play at the same time, and you see one finished video. A plot layers the
-same way.
+A second mark draws a second layer over the first, and video editing works the
+same way. A video is a stack of tracks: the picture, the sound, the captions.
+Each track is separate, they play at the same time, and you see one finished
+video.
 
-Multiple marks in the same expression produce multiple layers, rendered in
-order:
+Here the points are the first layer and the reference lines the second:
 
 ```{r}
 #| echo: false
@@ -57,26 +58,25 @@ peek(life_bands)
 ```
 
 ```{r}
-# Scatter plot: points, and a horizontal reference line at each band
+# Scatterplot: points, and a horizontal reference line at each band
 data(gapminder_2007) + x(gdp) + y(life) +
   point + color(continent) +
   data(life_bands) + rule + style(color = "darkgray", pattern = "dashed") +
-  title("GDP vs Life Expectancy, 2007")
+  title("GDP vs life expectancy, 2007")
 ```
 
 *"Given gapminder 2007: x is gdp, y is life, points colored by continent, and
 also rules from the life bands."*
 
-Layers draw in the order they are written: the first mark sits at the
-bottom. Add a `line` after `point` to draw the line on top of the points.
+The rules come after `point` in the sentence, so they are drawn over the
+points.
 
 ### The order of `+`: data, mark, positions, refinements
 
-Every sentence in this book is written in one order, and you may wonder
-whether the engine requires it. Inside a single layer the channels **commute**,
-and the mark commutes among them. Write the mark, `x` and `color` in any order
-and the plot is the same. Three things can be arranged six ways, so here are
-all six.
+This book writes its sentences in one order, and you may wonder whether the
+engine requires it. Inside a single layer the mark and the channels
+**commute**, which means that any order of them draws the same plot. The mark,
+`x` and `color` can be arranged six ways, so here are all six.
 
 ```{r}
 #| echo: false
@@ -95,38 +95,39 @@ peek(iris_flowers)
 *"Given the iris flowers: bars derived by bin, x is petal length, color by
 species."*
 
-Six sentences, and the same histogram six times. These are not six plots that
-merely look alike. The engine produces one identical file for each of the six.
+Six sentences, and the same histogram six times. The six are not plots that
+merely look alike. The engine writes six files, identical byte for byte.
 
-So if the order does not change the picture, why does every plot in this book
-follow the same one: *data, mark, positions, refinements*? Because a fixed order
-lets a plot read like a sentence, and the sentence has a natural, subject-first
-shape:
+So if the order does not change the picture, why does this book use one order:
+*data, mark, positions, refinements*? Because a fixed order lets the code read
+like an English sentence, with a natural, subject-first shape:
 
 - **`data(...)` first.** It names the table the columns come from. A bare name
   like `petal_length` means nothing until a table is bound (Bind-Once), so the
   table is named first. The sentence must start here.
-- **The mark and its `*`-chain second.** This is the subject. A visual is a mark
-  before it is anything else (Minimum Syllable): `bar * mean * dodge` says *what
-  you are drawing* and *what was done to it*, as one unbroken word. It is the
-  initial consonant of the block; everything after is said about it.
+- **The mark and its `*`-chain second.** This is the subject. Nothing is drawn
+  without a mark (Minimum Syllable): `bar * mean * dodge` says *what you are
+  drawing* and *what was done to it*, as one compound word. It is the initial
+  consonant of the block; everything after is said about it.
 - **The positions third.** `x` and `y` say *where* the subject stands, and a
-  mark cannot render without them (the vowel to the mark's consonant), so they
+  mark cannot be drawn without them (the vowel to the mark's consonant), so they
   follow immediately.
 - **The refinements last.** `color`, `size`, `order`, labels, `title`:
   everything optional. Delete every refinement and a legal plot remains; delete
-  the mark or a position and nothing renders. Writing the removable parts last
+  the mark or a position and nothing is drawn. Writing the removable parts last
   is also how you *build* a plot: the minimum sentence first, then refine
   ([First plot](first-plot.qmd)).
 
-The order is a reading convention, not a grammar rule: the engine accepts any
-permutation that scopes the same way. Where position genuinely *does* matter (a
-channel written before or after a mark across two or more layers) is the subject
-of [Encoding scope](encoding-scope.qmd). One order everywhere is worth learning:
-every plot in the book, and every plot you write, then reads the same way.
+Only two parts of the order are rules: the sentence starts with `data()`, and
+`style()` follows its mark. The rest is a reading convention: inside one layer,
+any arrangement draws the same plot. Where you write a channel *does* matter once
+a plot has two layers, because a channel written before a mark and one written
+after it bind differently. [Encoding scope](encoding-scope.qmd) gives the rule.
+Learn one order and use it everywhere. Then your plots and the plots in this
+book read the same way.
 
-[Which orders matter](#which-orders-matter) sets out what the engine enforces
-under `+` and `*`, and what you are free to arrange.
+[Which orders matter](#which-orders-matter) lists what the engine enforces under
+`+` and `*`, and what you are free to arrange.
 
 #### A refinement far from what it refines
 
@@ -151,26 +152,25 @@ life, color by era."*
 side until a channel such as `color` names the groups. So why not write them
 together? Because the grammar deliberately gives them different operators.
 `dodge` belongs to `*`, because it modifies the mark. The same modifier works on
-`box * dodge` and `interval * range * dodge`, and neither of those involves
-color. `color` belongs to `+`: it binds a column to a channel. `color * dodge`
-cannot be written: `*` needs a mark on its left. Joining the two would make
-`dodge` depend on which channel splits the groups, and a modifier must not
-depend on that.
+`box * dodge` and `interval * range * dodge`, where `group` can make the split
+instead of `color`. `color` belongs to `+`: it binds a column to a channel.
+`color * dodge` cannot be written: `*` needs a mark on its left. Joining the two
+would make `dodge` depend on which channel splits the groups, and a modifier
+must not depend on that.
 
 The order is not a compromise. It follows from what `dodge` does. `dodge`
-subdivides the **x** slot: each continent's space is cut into one sub-bar per
-era. So it needs both of them: `x(continent)` says
-*which slot* to divide, `color(era)` says *into how many pieces*. The sentence
-lists them in the order `dodge` uses them: the axis it splits along, then the
-groups it splits into. The positions do not separate `dodge` from what it needs;
-one of them is the slot `dodge` divides.
+subdivides the `x` slot: each continent's slot is cut into one bar per era. So
+`dodge` uses both atoms: `x(continent)` says *which slot* to divide,
+`color(era)` says *into how many pieces*. The sentence lists them in the order
+`dodge` uses them: the axis it splits along, then the groups it splits into. The
+positions do not separate `dodge` from what it needs; one of them is the slot
+`dodge` divides.
 
 You also never have to read back through the sentence to check that the split is
 there. If no channel splits the mark, `bar * mean * dodge` is refused rather
-than drawn as one bar per slot. The message names the channel to add, such as
-`color` or `group`. The legality check
-requires both, so writing `color` far from `dodge` is safe. The two are bound
-whether or not they sit side by side on the page.
+than drawn as one bar per slot. The message tells you to add a channel that
+splits it, such as `color`. So `color` can stand far from `dodge` in the
+sentence and still work with it.
 
 ---
 
@@ -188,15 +188,14 @@ line * density # kernel density curve
 ```
 
 `*` has one rule and one freedom. The mark goes on the left and the transforms
-go on the right. Among the transforms themselves the order you write does not
-matter, and any order draws the same plot. The rest of this section explains
-both.
+go on the right. Among the transforms themselves, any order draws the same plot.
+The rest of this section explains both.
 
 ### Why the order is fixed
 
-In Hangeul, a syllable is always *initial consonant + vowel*, never the reverse.
-gog's `*` works the same way: the mark is the subject; the transform is
-what is done to it.
+Start with the rule. In Hangeul, a syllable is always *initial consonant +
+vowel*, never the reverse. gog's `*` works the same way: the mark is the
+subject; the transform is what is done to it.
 
 `bin * bar` is refused, just as ㅏ (*a*) + ㄱ (*g*) is not a valid Hangeul
 syllable.
@@ -205,18 +204,18 @@ syllable.
 bar * bin   # a bar mark, derived by binning
 ```
 
-Written the other way round, the engine refuses the sentence and names the fix:
+The refusal names the fix:
 
 ```{r}
 #| error: true
 bin * bar
 ```
 
-### The one fixed position under `*`
+### One fixed place, and one free order
 
-The rule that matters is the one just stated: the mark is on the left, always,
-and no transform may stand there. That is what makes `bar * bin` a compound mark
-rather than a function call, and it is why the atoms can be nouns.
+The mark stands on the left, always, and no transform may stand there. That is
+what makes `bar * bin` a compound mark rather than a function call. [Why `+`,
+and not a pipe](#why-and-not-a-pipe) explains why it lets the atoms stay nouns.
 
 Write the transforms in the order they happen. This is a reading convention: any
 order draws the same plot, and this one lets you follow the steps as you read.
@@ -226,14 +225,13 @@ is the order it runs in, and there is no other order it could run in.
 The reason is what `mean` needs. A statistic reduces a **group** to one number,
 and a continuous column has no groups: every value stands alone, so its mean is
 itself. `bin` is what makes the groups, by turning many distinct numbers into
-one band. So the cut comes first because otherwise the mean has nothing to
-average.
+one band. So the cut comes first: without it, the mean has nothing to average.
 
-So two transforms work together only when they do different jobs. One makes the
-groups, and the other measures inside them or rescales the result. A pair that
-answers the same question twice is refused rather than sequenced. `bin` and
-`count` are both tallies with groups of their own, so they cannot both be in one
-layer:
+So two transforms work together only when they do different jobs. There are four
+jobs: making the groups, measuring inside them, rescaling the result, and
+arranging the marks. A pair that does the same job twice is refused rather than
+run in sequence. `bin` and `count` both count the rows, so each cell would be
+measured twice:
 
 ```{r}
 #| error: true
@@ -242,30 +240,31 @@ data(gapminder_2007) + bar * bin(12) * count + x(life)
 
 The engine decides the running order from the transforms themselves, not from
 where you typed them. The order you type can never be the wrong order, although
-the pair itself can still be refused, as the chunk above shows. Write the
-transforms in the order that reads best to you, and the sentence will read in
-the order it runs. [Chaining transforms](transforms.qmd#chaining-transforms)
-lists the legal transform pairs, one pair at a time.
+the pair itself can still be refused, as the refusal above shows.
+[Chaining transforms](transforms.qmd#chaining-transforms) shows why a pair is
+refused, one refusal at a time, and
+[Combinations](combinations.qmd#transforms-and-transforms) has the whole grid of
+pairs.
 
 ### Live examples
 
-The three compound marks named at the top of this section appear in the
-sentences you will write most often. Here each one is drawn, so you can see
-what the transform did to the rows before the mark drew them.
+The three compound marks named when `*` was introduced appear in the sentences
+you will write most often. Here each one is drawn, so you can see what the
+transform did to the rows before the mark drew them.
 
 ```{r}
 # Histogram: life expectancy across all countries in 2007
 data(gapminder_2007) + bar * bin + x(life) + y(count) +
   x_label("Life expectancy (years)") + y_label("Count") +
-  title("Distribution of Life Expectancy, 2007")
+  title("Distribution of life expectancy, 2007")
 ```
 
 ```{r}
-# Scatter + LOESS smooth layer on top
+# Scatterplot, with a LOESS smooth on top
 data(gapminder_2007) + x(gdp) + y(life) +
   point + color(continent) +
   line * smooth +
-  title("GDP vs Life Expectancy with LOESS Smooth")
+  title("GDP vs life expectancy, with a LOESS smooth")
 ```
 
 *"Given gapminder 2007: x is gdp, y is life, points colored by continent, and
@@ -275,10 +274,14 @@ also a line derived by smooth."*
 # Kernel density estimate
 data(gapminder_2007) + line * density + x(life) + y(density) +
   x_label("Life expectancy (years)") + y_label("Density") +
-  title("Kernel Density: Life Expectancy 2007")
+  title("Kernel density: life expectancy, 2007")
 ```
 
 *"Given gapminder 2007: a line derived by density, x is life, y is density."*
+
+In each plot, the compound mark draws what its transform computed rather than
+the rows. The bars are counts of countries in bands of life expectancy. The line
+through the points is a fitted curve, and the last line is an estimated density.
 
 ---
 
@@ -286,9 +289,9 @@ data(gapminder_2007) + line * density + x(life) + y(density) +
 
 Two questions lead to the last two operators: how the same plot looks for each
 group, and how two different plots fit on one page. `|` puts things side by
-side and `/` puts one above the other. What is written on the right decides
-which. A `facet()` splits one plot into panels, and a second plot is placed
-beside or below the first.
+side and `/` puts one above the other. What you write on the right decides the
+job: a `facet()` splits one plot into panels, and a second plot is placed beside
+or below the first.
 
 With `facet()`, `|` produces small multiples arranged in columns, one panel per
 category of the column it names.
@@ -300,7 +303,8 @@ data(gapminder_2007) + point + x(gdp) + y(life) | facet(continent)
 *"Given gapminder 2007: points, x is gdp, y is life, split into panel columns by
 continent."*
 
-`/` produces small multiples stacked in rows:
+`/` stacks the panels in rows. Five rows would make each panel too short, so
+this example uses two continents:
 
 ```{r}
 gm_two <- gapminder_2007[gapminder_2007$continent %in% c("Africa", "Europe"), ]
@@ -310,14 +314,13 @@ data(gm_two) + point + x(gdp) + y(life) / facet(continent)
 *"Given the gm two table: points, x is gdp, y is life, split into panel rows by
 continent."*
 
-Write both to combine them into a grid. Each operator applies to the facet
-written after it, read from left to right. See [Faceting](faceting.qmd) for the
-grid, what the panels share, and why the facet column must be a category.
+Write `|` and `/` in one sentence to combine them into a grid. Each operator
+applies to the facet written after it, read from left to right. See
+[Faceting](faceting.qmd) for the grid, what the panels share, and why the facet
+column must be categorical.
 
 With a plot on the right, the same two operators arrange separate plots on one
-page. Each plot keeps its own coordinate space. Two plots side by side share
-the vertical axis when they name the same column on it. Two plots one above the
-other share the horizontal axis the same way:
+page, and each plot keeps its own axes:
 
 ```{r}
 (data(gapminder_2007) + point + x(gdp) + y(life)) |
@@ -327,43 +330,46 @@ other share the horizontal axis the same way:
 *"Given gapminder 2007: points, x is gdp, y is life, beside bars derived by
 count, x is continent."*
 
-One pair of operators, two meanings, and what you write on the right decides
-which one you get. See [Composition](composition.qmd).
+These two measure different things on `y`, life expectancy and a count, so each
+draws its own vertical axis. When two plots side by side name the same column
+on `y`, that axis is shared and drawn once. Two plots one above the other share
+`x` the same way.
+
+One pair of operators, two jobs. [Composition](composition.qmd) covers the
+second.
 
 ---
 
 ## Which orders matter
 
-This book writes every sentence the same way: data, mark, positions,
-refinements. That is a preference rather than a rule, and the engine enforces
-only part of it. The difference is worth knowing, because it tells you where to
-be careful. There are three kinds of ordering, and only one of them needs your
-attention.
+Most of the order *data, mark, positions, refinements* is a reading convention,
+and the engine enforces the rest. The difference tells you where to be careful.
+There are three kinds of ordering, and only one of them needs your attention.
 
 | Kind | What it means | Under `+` | Under `*` |
 |---|---|---|---|
-| **Free** | Either way draws exactly the same picture. | Inside one layer, everything: the mark, its positions and its refinements, in any arrangement. | Two transforms after one mark. Write them in the order they happen; the engine works that order out either way. |
-| **Refused** | The engine stops and names what to move. | Atoms with no table behind them: `point + x(gdp)`. A `style()` written before any mark. | A transform on the left: `bin * bar`. |
+| **Free** | Either way draws exactly the same picture. | Inside one layer: the mark, its positions and its other channels, in any arrangement. Labels go anywhere. Only `style()` must follow its mark. | Two transforms after one mark. Write them in the order they happen; the engine runs them in that order either way. |
+| **Refused** | The engine stops and names what to move. | Atoms with no table named before them: `point + x(gdp)`. A `style()` written before any mark. | A transform on the left: `bin * bar`. |
 | **Meaningful** | No error, and a different picture. | A channel before the marks, or after one of them, once a plot has two. Two marks swapped: the second draws on top. | Nothing. No order under `*` changes the picture. |
 
-Start with the last cell, `*` under Meaningful. `*` fixes one thing only, which
-is that the mark stands on its left. Once the mark is there, no arrangement of
-what follows changes what you get.
+Start with the cell where `*` meets **Meaningful**. `*` fixes one thing only,
+which is that the mark stands on its left. Once the mark is there, no
+arrangement of what follows changes what you get.
 
-**Free** is most of it. Every one of these draws the identical plot, and the
-book writes the first only because a fixed order is easier to read:
+**Free** covers most arrangements. The two sentences below draw the identical
+plot, and the book writes the first because a fixed order is easier to read:
 
 ```{r}
 (data(gapminder_2007) + point + x(gdp) + y(life)) |
   (data(gapminder_2007) + x(gdp) + point + y(life))
 ```
 
-Both name `life` on `y`, so the two panels share that axis and it is drawn once,
-on the left. Each panel still draws its own `gdp` axis underneath it.
+Both name `life` on `y`, so the two plots share that axis and it is drawn once,
+on the left. Each plot still draws its own `gdp` axis underneath it.
 
-**Refused** is the engine telling you the sentence has no subject yet. A setting
-needs a mark to attach to, and a plot needs its table first. `+` has to have a
-plot on its left before it can add anything:
+**Refused** means an atom comes before the thing it needs. A plot needs its
+table first, so `+` must have a plot on its left. A setting needs a mark, so a
+`style()` before any mark is refused:
 
 ```{r}
 #| error: true
@@ -385,8 +391,8 @@ first.
 ### What groups first
 
 Those three kinds are about where you may put a word. Precedence is a
-different question: how the words you did write get grouped. It is what lets a
-sentence like this one carry no parentheses at all.
+different question: how the words you did write get grouped. It is what lets
+the sentence below carry no parentheses at all:
 
 ```{r}
 data(gapminder_2007) + bar * bin + x(life) | facet(continent)
@@ -394,24 +400,27 @@ data(gapminder_2007) + bar * bin + x(life) | facet(continent)
 
 `*` and `/` group first, then `+`, then `|`. So the transform joins its mark
 first, the atoms join the plot next, and the facet splits the finished plot
-last. `/` sits in the tighter tier with `*`, which is why a row facet reads as
-one piece with the atom beside it. [What parentheses may
-group](#what-parentheses-may-group) has the rule.
+last. `/` has the same precedence as `*`, so in the row facet drawn earlier,
+`y(life) / facet(continent)` groups first. The engine still splits the whole
+plot: that sentence draws the same file as the one with the plot in parentheses.
+[What parentheses may group](#what-parentheses-may-group) has the rule.
 
 Those are R's own precedences, and Python's. Julia puts `|` in the addition
 tier, beside `+` rather than below it. A sentence that writes `+` after a `|`
 therefore groups differently there, which is why a composed page is
-parenthesized. [Julia](bindings/julia.qmd) measures the four shapes side by
-side. JavaScript can give no operator a meaning of its own, so it spells the
-four as words, which makes the grouping something you see instead of something
-you remember ([JavaScript](bindings/javascript.qmd)).
+parenthesized. [Julia](bindings/julia.qmd) compares four expressions in both
+languages, and only one of them groups differently. JavaScript can give no
+operator a meaning of its own, so it spells the four as words, which makes the
+grouping something you see instead of something you remember
+([JavaScript](bindings/javascript.qmd)).
 
 ### What parentheses may group
 
-Parentheses change which operator runs first, and that is the whole of what they
-do. They group **plots**, which is why a composed page uses them. `/` is
-applied before `|`, so `a | b / c` reads as `a | (b / c)` unless you say
-otherwise ([Composition](composition.qmd)).
+Precedence decides the grouping when you write no parentheses, and parentheses
+are how you change it. That is the whole of what they do. They group **plots**,
+which is why a composed page uses them. `/` is applied before `|`, so
+`a | b / c` reads as `a | (b / c)` unless you say otherwise
+([Composition](composition.qmd)).
 
 They do not group **marks**. A second `data()` applies to the mark written
 directly after it ([Data](data.qmd)). Parentheses around several marks do not
@@ -431,10 +440,10 @@ data(actuals) + x(year) + y(sales) +
 ```
 
 gog refuses that instead of drawing it. The refusal is better than the
-alternative. The engine cannot give both marks inside the parentheses the second
-table. Its only other choice is to discard both marks and draw a plot with two
-layers missing, without saying so. To put two marks on the
-second table, write `data()` before each of them.
+alternative. The engine cannot give the second table to both marks inside the
+parentheses. Its only other choice is to discard both marks and draw a plot with
+two layers missing, without saying so. To put two marks on the second table,
+write `data()` before each of them.
 
 The same refusal covers a position or a title inside the parentheses, for the
 same reason. In JavaScript, where the operators are words, the same mistake is
@@ -444,84 +453,88 @@ a `plot()` handed to another `plot()`, and it is refused there too.
 
 ## Why `+`, and not a pipe
 
-Readers who know R's tidyverse packages ask why gog does not use a pipe. Hadley
-Wickham, ggplot2's author, has said publicly that the pipe would have been the
-better interface [@wickham2018pipe]. ggplot, ggplot2's predecessor, was written
-as function composition, and it would have used a pipe if one had existed.
-ggplot2 used `+` instead.
+Readers who know R's tidyverse packages ask why gog does not use a pipe. A pipe
+passes a value into a function: `a |> f` means `f(a)`. Hadley Wickham,
+ggplot2's author, has said publicly that the pipe would have been the better
+interface [@wickham2018pipe]. ggplot, ggplot2's predecessor, was written as
+function composition, and it could have used a pipe if one had existed. ggplot2
+used `+` instead.
 
-He also answers the question a reader asks next. ggplot2 cannot change now: its
-functions take the mapping and the data first, while a pipe needs the plot. And
-he judges that a new package built only to make this change would cost more than
-it returns. For ggplot2 the answer therefore comes from its history rather than
-from a fresh choice, and a grammar designed today has to answer it from the
-beginning. He gives two reasons for preferring the pipe, and neither applies to
-gog. A third consideration settles it the other way, and that one is gog's
-rather than his.
+He also answers the question a reader asks next: why not change ggplot2 now?
+It cannot change: its functions take the mapping and the data first, while a
+pipe needs the plot as the first argument. And he judges that a new package
+built only to make this change would cost more work than the change would be
+worth. So ggplot2's `+` comes from its history, not a fresh choice, and a
+grammar designed today has to make that choice for itself. He gives two reasons
+for preferring the pipe, and neither applies to gog. A third consideration is
+gog's rather than his, and it is the one that decides the question.
 
-The first is about one language. A pipe is a single idea that works everywhere
-in R, so a grammar spelling composition differently is one more thing to learn.
-Switching between the two spellings is a frequent source of errors, his own
-included. That is true, and it is an argument about R and its packages. gog is
-one syntax written in four languages, and that changes the answer. `+` can be
-given a meaning in R, Python and Julia. The pipe cannot be given a gog meaning.
-Julia's `|>` and R's two pipes already mean something gog must not change.
-Python has no pipe operator at all, and no way to add one: you can give new
-meanings only to the operators it already has. Piping would work in R and Julia
-and need some other spelling in Python. The languages would then have two
-different grammars, and this project exists to avoid that. JavaScript decides
-nothing here, because it cannot overload any operator at all, which is why it
-spells all four as words ([JavaScript](bindings/javascript.qmd)).
+His first reason is about one language. A pipe is a single idea that works
+everywhere in R, so a grammar that spells function composition differently is
+one more thing to learn. Switching between the two spellings is a frequent
+source of errors, his own included. That is true, and it is an argument about R
+and its packages. gog is one syntax written in four languages, and that changes
+the answer. `+` can be given a meaning in R, Python and Julia. The pipe cannot
+be given a gog meaning. Julia's `|>` and R's two pipes already mean something
+gog must not change. Python has no pipe operator at all, and no way to add one:
+you can give new meanings only to the operators it already has. In R and Julia
+a pipe would work with the meaning it already has. Python would need another
+spelling, and the languages would then have two different grammars. This
+project exists to avoid that. JavaScript decides nothing here, because it cannot
+overload any operator at all, which is why it spells all four as words
+([JavaScript](bindings/javascript.qmd)).
 
-The second is about arithmetic, and it is the strongest. You expect `x + y` to
-equal `y + x`, and ggplot2's `+` does not always do that. That objection is
-answered by the six permutations drawn earlier in this chapter. Here the
-channels commute, and so does the mark among them. Move `color` ahead of `x`,
-or write the positions before the mark, and the engine produces the identical
-file. One thing does depend on order: two marks swapped. There the order is the
-drawing order you asked for, and the second mark draws on top.
+The second is about arithmetic, and it is the stronger of the two. You expect
+`a + b` to equal `b + a`, and ggplot2's `+` does not always do that. That
+objection is answered by the six permutations drawn earlier in this chapter.
+Here the mark and the channels commute. Move `color` ahead of `x`, or write the
+positions before the mark, and the engine produces the identical file. One
+thing does depend on order: two marks swapped. There the order is the drawing
+order you asked for, and the second mark draws on top.
 
-The other half of that objection is grouping, whether `x + (y + z)` means what
-`(x + y) + z` means. The question cannot arise here, because `x + (y + z)`
+The other half of that objection is grouping, whether `a + (b + c)` means what
+`(a + b) + c` means. The question cannot arise here, because `a + (b + c)`
 cannot be written at all. `+` always takes a plot on its left, so two atoms with
-no table behind them never form a smaller expression to group. They are refused:
+no table named before them never form a smaller expression to group. They are
+refused:
 
 ```{r}
 #| error: true
 point + x(gdp)
 ```
 
-Atoms never collect on their own, so there is no grouping to get wrong.
-
 The third point is gog's own, and it is what decides the question. It is not an
 argument against the pipe. It is a statement of what a pipe would remove. A
-pipe applies functions: `x |> f` means `f(x)`, so every atom would have to
-become a function taking a plot and returning one. Make `bar` a function, then
-ask what `bar * bin` could mean. It could mean nothing: you cannot multiply two
-functions and get a histogram. The derive operator exists only because marks
-and transforms are *things* rather than actions. They are values, and they
+pipe applies functions, so every atom would have to become a function taking a
+plot and returning one. Make `bar` a function, then ask what `bar * bin` could
+mean. There is no answer: you cannot multiply two functions and get a histogram.
+The derive operator exists only because marks and transforms are *things*
+rather than actions. They are values, and they
 combine with each other before either one is joined to a plot.
 
-That is the same decision this book opens with, arriving a second time. ㄱ is a
-letter, not an instruction. You put it in a slot next to other letters, and the
-block is assembled from its pieces rather than performed in sequence. Hangeul's
-atoms are nouns, which is exactly why they compose, and gog's are nouns for the
-same reason. A grammar built on the pipe is a grammar of verbs: it can layer,
-because layering really is a sequence of additions, but it cannot derive.
-Wickham's own pre-ggplot2 experiment was function composition, and it had no `*`
-either.
+This is the decision the book opens with: a plot is a specification, not drawing
+code. ㄱ is a letter, not an instruction. You put it in a slot next to other
+letters, and the block is assembled from its pieces rather than performed in
+sequence. Hangeul's atoms are nouns, which is exactly why they combine, and
+gog's are nouns for the same reason. A grammar built on the pipe is a grammar of
+verbs: it can layer, because layering really is a sequence of additions, but it
+cannot derive. ggplot, ggplot2's predecessor, was written as function
+composition, and it had no `*` either.
 
-So `+` here is a choice rather than something inherited. It is the one operator
-that can be given a meaning in R, Python and Julia. It commutes wherever order
-should not matter, and it leaves the atoms as nouns so that `*` can exist.
+So `+` here is a choice rather than something inherited. Unlike the pipe, it can
+be given a meaning in R, Python and Julia. It commutes wherever order should not
+matter, and it leaves the atoms as nouns so that `*` can exist.
 
 ---
 
 ## Summary
 
+Each operator reads as a phrase when a plot is read aloud, and `|` and `/` have
+two readings each:
+
 | Operator | Reads as | Example |
 |----------|----------|---------|
-| `+` | "…and also…" | `point + color(continent)` |
+| `+` | "…and also…" | `point + line` |
 | `*` | "…derived by…" | `bar * bin` |
 | <code>&#124;</code> | "…split into panel columns by…" | <code>(data(gm) + point + x(gdp) + y(life)) &#124; facet(continent)</code> |
 | `/` | "…split into panel rows by…" | `(data(gm) + point + x(gdp) + y(life)) / facet(era)` |
@@ -532,6 +545,6 @@ A finite set of rules, and more plots than you will ever need to draw.
 
 ## What comes next
 
-The operators say how sentences combine, and not which layer a channel belongs
-to once there are two. [Encoding scope](encoding-scope.qmd) gives the rule:
-where you write an atom decides what it binds to.
+The operators say how atoms combine into a sentence. Where you write each atom
+decides what it binds to, and [Encoding scope](encoding-scope.qmd) gives that
+rule in full.
