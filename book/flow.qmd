@@ -5,33 +5,36 @@
 source("R/setup.R")
 ```
 
-Where did each part go? Some tables record movement: each row says that some
-amount started in one place and finished in another. A flow diagram draws that
-movement. The places are sorted into stages, drawn side by side, and bands
-carry each amount from stage to stage. The wider the band, the larger the amount
-it carries. The world calls this picture a Sankey diagram, or an alluvial
-diagram, and as with the pie there is no atom that spells either name.
+Where did each part of a total go? Some tables record movement: each row says
+that some amount started in one place and finished in another. A flow diagram
+draws that movement. The places are grouped into stages, and the stages are
+drawn side by side. Bands carry each amount from stage to stage. The thicker the
+band, the larger the amount it carries. This picture is an **alluvial diagram**,
+one kind of **Sankey diagram**. The last section of this chapter says which
+Sankey diagrams gog does not draw. No atom spells either name, just as there is
+no `pie()` atom.
 
-A **stage** is one of the table's categorical columns. Its distinct values are
-the possible places at that step, and each row sits in one of them. The `flow`
-transform computes the whole diagram from one table of such columns. This
-chapter builds the diagram one layer at a time, using the passengers and crew of
-the Titanic. `titanic` holds one row per group of people. The columns are
-`class`, `sex`, `age` (child or adult) and `survived`. The last column, `n`, is
-how many people the group held. The table has one row for every combination of
-those four columns, so some rows count zero people:
+gog builds that picture out of the table's own columns. A **stage** is one of
+the table's categorical columns. Its distinct values are the possible places at
+that stage, and each row sits in one of them. The `flow` transform computes the
+whole diagram from one table of such columns. This chapter builds the diagram
+one layer at a time, using the passengers and crew of the Titanic. `titanic`
+holds one row per group of people. Four columns describe each group: `class`,
+`sex`, `age` (child or adult) and `survived`. A fifth, `n`, counts the people in
+that group. The table has one row for every combination of those four columns,
+so some rows count zero people:
 
 ```{r}
 #| echo: false
 peek(titanic)
 ```
 
-## One row is one path
+## From rows to bands
 
-The first question of the Titanic table is who survived, and whether a
-passenger's class changed how likely that was. That is a movement from a class
-to an outcome, which is a flow with two stages. Name the stages in the atom, left to right, and bind the
-count to `y`:
+The first question to ask of `titanic` is who survived, and whether a person's
+class changed their chance of survival. Class is one stage and the outcome is
+another, so this is a flow with two stages. Name the stages in the atom, left to
+right, and bind the count to `y`:
 
 ```{r}
 data(titanic) + ribbon * flow(class, survived) + y(n) +
@@ -40,26 +43,39 @@ data(titanic) + ribbon * flow(class, survived) + y(n) +
 
 *"Given titanic: ribbons derived by flow through class and survived, y is n."*
 
-Each band is one path through the stages. No slot carries a name yet, so find a
-path by its position. The slots stack from the bottom in each column's order, so
-the lowest band leaves the `1st` slot and arrives at the `Yes` slot. It carries
-the 203 first-class passengers who survived, and it holds that thickness at both
-ends. Rows that share a path are added together. The four `1st` rows that end in
-`Yes` differ only in `sex` and `age`, and the atom names neither, so the four
-become one band.
+Each band is one **path**: one place at each stage, here a class and then an
+outcome. Each place takes a **slot**, the part of its stage that its bands fill.
+This plot neither draws nor names the slots, so find a path by its position.
+Inside each stage the slots stack from the bottom, in the order the column
+declares: `1st` to `Crew`, and `Yes` before `No`. So the lowest band leaves the
+`1st` slot and arrives at the `Yes` slot. It carries the 203 first-class
+passengers who survived, and it keeps that thickness at both ends. Rows that
+share a path become one band: their counts are added, and the band carries the
+total. The four `1st` rows that end in `Yes` differ only in `sex` and `age`, and
+the atom names neither, so the four become one band.
 
-The stages are drawn along the horizontal axis, each named by its column. `x()`
-has nothing left to set: the atom's argument order is the order the stages are
-drawn in. The vertical axis is the count, with the same ticks any other plot
-would get. The bands at each stage stack from zero with no gaps, so the top edge of
-any band gives the total of that band and every band under it.
+The plot answers the question. The lowest band fills most of the `1st` slot: 203
+of the 325 people in first class survived. In third class only 178 of 706 did,
+so class did change the chance of survival.
+
+`flow()` also sets both axes. The stages are drawn along the horizontal axis,
+each named by its column, in the order you name them inside `flow()`. The
+vertical axis is a continuous axis for the count. The bands at each stage stack
+from zero with no gaps. So the top edge of any band is the total of that band and
+every band below it.
+
+The count on `y` is optional. Bind nothing and every row counts as 1, and the
+diagram counts rows instead of summing a column. `partition` uses that default
+too, and `count` tallies rows the same way. This table needs `y(n)`: it holds
+one row per combination, so counting its rows would count combinations rather
+than people.
 
 ## Adding a stage
 
 The next question is whether women survived more often than men. The two-stage
 diagram cannot answer it, because nothing in it records a person's sex. Add a
-stage by adding a column. Each path now crosses three stages, and each band
-still carries one path's count at both of its ends:
+stage by naming one more column inside `flow()`. Each path now passes through
+three stages, and each band is as thick as its count at every one:
 
 ```{r}
 data(titanic) + ribbon * flow(class, sex, survived) + y(n) +
@@ -69,17 +85,20 @@ data(titanic) + ribbon * flow(class, sex, survived) + y(n) +
 *"Given titanic: ribbons derived by flow through class, sex and survived, y is
 n."*
 
-Each band is now one group of people, and it reports three things about them:
-their class, whether they were male or female, and whether they survived. The
-band from `1st` through `Female` to `Yes` carries 141 people. That is how many
-women in first class survived.
+Each band is now a group of people with one class, one sex and one outcome.
+`sex` declares no order, so its slots follow the order its values first appear
+in the table: `Male` at the bottom, then `Female`. The band from `1st` through
+`Female` to `Yes` carries 141 people, the women and girls in first class who
+survived. Most people in the `Female` slot arrive at `Yes`, and most in the
+`Male` slot arrive at `No`. Of 470 women and girls, 344 survived. Of 1,731 men
+and boys, 367 did.
 
-## Color comes from a stage
+## Color from a stage
 
-With three stages the bands cross one another, and a path is hard to follow
-through a crossing unless something marks it. A band runs through every stage,
-so any stage can color it. Write `color()` after the `ribbon` layer and name
-the stage whose value gives each band its color:
+With three stages the bands cross one another, and when every band has the same
+color, one band is hard to follow through a crossing. A band runs through every
+stage, so any stage can color it. Write `color()` after the `ribbon` layer and
+name the stage whose value gives each band its color:
 
 ```{r}
 data(titanic) + ribbon * flow(class, sex, survived) + y(n) + color(class) +
@@ -89,19 +108,19 @@ data(titanic) + ribbon * flow(class, sex, survived) + y(n) + color(class) +
 *"Given titanic: ribbons derived by flow through class, sex and survived, y is
 n, color by class."*
 
-Coloring by `class` gives each band the color of the slot it starts from. You
-can then see which classes meet in each later slot. Coloring by `survived` would
-instead color every band by how its path ends. Only a stage can color a band,
-because a band is a whole path, and only a stage holds a value every path
-carries.
+Coloring by `class` gives each band the color of its class, the slot it starts
+from. You can then see which classes arrive in each later slot. Coloring by
+`survived` would instead give each band the color of its outcome, the slot it
+arrives at. Only a stage can color a band. The rows in one band can differ in
+any other column, but they share one value at each stage.
 
 ## The slots and their names
 
-So far you have found a path by its position, because no slot carries a name.
-Two more layers finish the diagram. A `zone` layer draws each stage's slots, the
-stacked blocks the bands leave and arrive at. A `text` layer names them. The
-three layers name the same computation, so they always agree about where
-everything sits:
+So far you have found a path by its position, because no slot has a name. Two
+more layers finish the diagram. A `zone` layer draws each stage's slots, which
+are the stacked blocks where the bands meet each stage. A `text` layer names
+them. All three layers repeat the same `flow(...)`, so they compute the same
+positions for the bands, slots and names:
 
 ```{r}
 data(titanic) + y(n) +
@@ -116,15 +135,9 @@ survived, color by class, and also zones derived by flow through class, sex and
 survived, and text derived by flow through class, sex and survived, label by
 name."*
 
-The slots take their color from `style()`, gray here so that only the bands
-carry color. The names come from `label(name)`: the transform writes each slot's
-name into a column called `name`, exactly as `partition` does.
-
-The count on `y` is optional. Bind nothing and every row counts as 1, so the
-diagram counts rows instead of summing a column. `partition` uses that default
-too, and `count` tallies rows the same way. This table needs `y(n)`. It holds
-one row per combination, so counting its rows would count combinations rather
-than people.
+The slots take their color from `style()`, which makes them gray so that only
+the bands are colored. The names come from `label(name)`: the transform writes
+each slot's name into a column called `name`, exactly as `partition` does.
 
 ## What flow refuses
 
@@ -136,52 +149,55 @@ a place to finish:
 data(titanic) + y(n) + ribbon * flow(class)
 ```
 
-The stage axis is drawn from the atom's own columns, so a bound `x` has
-nothing left to set:
+The stage axis is drawn from the atom's own columns, so gog refuses an `x()`
+you write:
 
 ```{r}
 #| error: true
-data(titanic) + x(n) + ribbon * flow(class, survived)
+data(titanic) + x(class) + ribbon * flow(class, survived)
 ```
 
-Only three marks can read what `flow` computes, and the refusal lists all three
-when another mark is used:
+Only `ribbon`, `zone` and `text` can read what `flow` computes. Any other mark
+is refused, and the message names the three:
 
 ```{r}
 #| error: true
 data(titanic) + y(n) + bar * flow(class, survived)
 ```
 
-And the column that colors a band must be one of the stages. A column outside
-the stages holds no value a whole path shares:
+And the column that colors a band must be one of the stages. `age` is in the
+table, but the rows inside one band can differ in `age`:
 
 ```{r}
 #| error: true
-data(titanic) + y(n) + ribbon * flow(class, survived) + color(n)
+data(titanic) + y(n) + ribbon * flow(class, survived) + color(age)
 ```
 
 ## Where the limits are
 
-Every mark that draws on the page also bends into a circle, so asking for a
-bent flow is a reasonable thing to do. That bend is [`polar()`](polar.qmd), and
-a flow inside it is valid grammar. The bands bent around a circle are the chord
-diagram, which this engine does not draw:
+The two limits below are not mistakes in your sentence. The engine does not
+draw the first, and it does not read the second.
+
+Every mark that draws on the page also bends into a circle, so you would expect
+a flow's ribbons to bend as well. [`polar()`](polar.qmd) is what bends a plot,
+and a flow in `polar()` is valid grammar. The bands bent around a circle make a
+**chord diagram**, which this engine does not draw:
 
 ```{r}
 #| error: true
 data(titanic) + y(n) + ribbon * flow(class, survived) + polar()
 ```
 
-The input has a limit too. A flow reads its stages as columns of one table, and
-each row names the place it holds at every stage. Some tools accept a different
-shape: a list of nodes, which are these slots, and a list of links between them.
-That shape can also describe flows that merge, skip a stage, or return to a
-stage they already visited. gog does not read it. The stage-column shape decides
-three things by itself. Every path passes through every stage, the totals match
-at each one, and no path can return to a stage it already visited.
+The input has a limit too. A flow reads its stages as columns of one table, so
+each row has one place at every stage. Some tools accept a different shape. They
+take a list of nodes, which are the slots, and a list of links between those
+nodes. That shape can also describe flows that begin partway, skip a stage, or
+return to a stage they already visited. A flow does not read it. In the
+stage-column shape, every path passes through every stage, so every stage has
+the same total. No path can return to a stage it already visited.
 
 ## What comes next
 
-A flow needs its stages named, in the order you want them read.
-[Cluster](cluster.qmd) works the order out instead, joining the closest
-categories first and putting an axis in the tree's order.
+A flow draws its stages in the order you name them, and it never computes an
+order itself. [Cluster](cluster.qmd) computes one from the data: it joins the
+most alike categories into a tree, and puts an axis in the tree's order.
