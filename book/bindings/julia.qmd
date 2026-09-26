@@ -10,11 +10,11 @@ The grammar does not change when the language does. One engine reads one
 specification, so a sentence means the same thing no matter who wrote it.
 Everything in this book up to here is as true in Julia as it is in R.
 
-Of the four languages, Julia asks for the fewest changes to the sentence you
-already know. Like R and Python, it gives `+`, `*`, `|` and `/` a meaning of
-their own. Like R, it also keeps a column apart from a value in the syntax
-itself. So a sentence differs from the R version only by a colon in front of
-each column:
+Of the three languages that are not R, Julia asks for the fewest changes to the
+sentence you already know. Like R and Python, it lets a package give `+`, `*`,
+`|` and `/` new meanings. Like R, it also keeps a column apart from a value in
+the syntax itself. So the sentence below differs from the R version only by a
+colon in front of each column:
 
 ```r
 data(gm) + bar * bin + x(life) | facet(era)
@@ -24,13 +24,23 @@ data(gm) + bar * bin + x(life) | facet(era)
 data(gm) + bar * bin + x(:life) | facet(:era)
 ```
 
-Every Julia block with a plot under it was executed, through the same engine
-every other chapter uses.
+The sections below cover how a column is written, how to break a sentence
+across lines, where Julia's precedence differs from R's, and the nine names gog
+shares with `Base`. Then come the tables Julia accepts, showing a plot, reading
+from a database, and installing the package.
+
+Every Julia block on this page that shows a plot, a refusal or printed output
+ran when the page was built, through the same engine every other chapter uses.
+The other blocks are shown but not run. Each block ran after two `using` lines,
+which [Nine names Julia already uses](#nine-names-julia-already-uses) explains,
+and after `gapminder_2007` was defined. [The table](#the-table) shows how to
+fetch it.
 
 ## A column is a symbol
 
-R writes a column as a bare name, Python through a small accessor, Julia as a
-symbol:
+The colon is the main change to the sentence, so this section shows it in a
+plot. R writes a column as a bare name, Python as `col.gdp`, and Julia as a
+symbol, a name written after a colon, such as `:gdp`:
 
 ```{r}
 #| echo: false
@@ -45,22 +55,24 @@ jl_plot("data(gapminder_2007) + point + x(:gdp, scale = \"log\") + y(:life) + co
 *"Given gapminder 2007: points, x is gdp on a log scale, y is life, color by
 continent."*
 
-That is the sentence from [A first plot](../first-plot.qmd), with a colon in
-front of each column. In this grammar a plain string spells a *value*, as in
-`style(color = "tomato")` or `palette("okabe")`. A symbol is visibly not a
-string, so the colon does the same work as R's bare name and Python's `col.`
-accessor. The grammar's oldest rule is that a channel takes a column and never a value. In
-Julia the syntax itself enforces it, so no check has to.
+That is the sentence from [A first plot](../first-plot.qmd), without its title
+and with a colon in front of each column. In this grammar a plain string spells
+a *value*, as in `style(color = "tomato")` or `palette("okabe")`. A symbol is
+visibly not a string, so the colon does the same work as R's bare name and
+Python's `col.` accessor. A channel takes a column and never a value. Because a
+symbol and a string look different, both you and the package can see when a
+value is written where a column belongs.
 
-So a string where a column belongs is refused, and told what to write:
+So a string where a column belongs is refused, and the message says what to
+write:
 
 ```{r}
 #| echo: false
 jl_error("data(gapminder_2007) + point + x(\"gdp\") + y(:life)")
 ```
 
-The mistake in the other direction is refused the same way, and for the same
-reason ([Setting vs mapping](../style.qmd)):
+The opposite mistake, a column where a value belongs, is refused the same way
+and for the same reason ([Setting vs mapping](../style.qmd)):
 
 ```{r}
 #| echo: false
@@ -68,7 +80,7 @@ jl_error("data(gapminder_2007) + point + x(:gdp) + y(:life) + style(color = :con
 ```
 
 A column name with a space or a dot in it is written `Symbol("life exp")`. A
-name in another writing system needs no such thing: `:지역` (*region*) is an
+name in another writing system needs no `Symbol()`: `:지역` (*region*) is an
 ordinary symbol. Julia accepts letters from any writing system in a name.
 
 ## A sentence over several lines
@@ -86,16 +98,17 @@ continent, size by population."*
 
 What does not work is the opposite arrangement, where a line *starts* with the
 operator. Julia ends the statement at the line break and reads the next line on
-its own, so it reports an error about `+` instead of drawing. To write a sentence
-that way, wrap the whole of it in parentheses. That is what Python requires for
-every multi-line sentence ([Python](python.qmd)), and inside parentheses a line
-may begin with `+` in Julia too.
+its own, so it reports an error about `+` instead of drawing. To write a
+sentence that way, put the whole sentence inside parentheses. The Python chapter
+writes every multi-line sentence this way ([Python](python.qmd)), and inside
+parentheses a line may begin with `+` in Julia too.
 
 ## The operators, and their precedence
 
-Julia's precedence table is not R's. R puts `|` below `+`; Julia puts it in the
-*addition* tier, alongside `+`. That could have broken every faceted sentence in
-this book, so it was measured rather than assumed:
+A sentence can use up to four operators, so it matters which one Julia groups
+first. Julia's precedence table is not R's. R puts `|` below `+`; Julia gives
+`|` the same precedence as `+`. That difference could change how a sentence
+groups, so the table compares four expressions in both languages:
 
 | Written | Julia builds | R builds |
 |---|---|---|
@@ -104,13 +117,14 @@ this book, so it was measured rather than assumed:
 | `a * b + c` | `(a * b) + c` | the same |
 | `a \| b + c` | `(a \| b) + c` | `a \| (b + c)` |
 
-Only the last row differs, and it is the row where an atom is written *after* a
-`|`. A facet sentence never does that, and R refuses it anyway. A composed page
-comes closer, because the plot on the right names its own table and then adds
-atoms to it. So every composed page in this book is written in parentheses, and
-they close the right-hand plot before the `|` is read. The first row is safe for
-a different reason: Julia reads operators of one tier from left to right, so
-everything left of the `|` is joined first.
+Only the last row differs: it is the only one with a `+` after the `|`. No facet
+sentence in this book has a `+` after its facet, and R refuses one that does.
+Julia draws that form, and adds the atom to the whole plot. A composed page can
+have a `+` after the `|`, because the plot on the right starts with its own
+table and adds atoms to it. So every composed page in this book puts each plot
+in its own parentheses, and each plot is complete before `|` joins them. The
+first row is safe for a different reason: Julia groups operators of equal
+precedence from left to right, so everything left of the `|` is joined first.
 
 Faceting therefore reads exactly as it does in R:
 
@@ -122,7 +136,8 @@ jl_plot("data(gapminder_2007) + point + x(:gdp, scale = \"log\") + y(:life) | fa
 *"Given gapminder 2007: points, x is gdp on a log scale, y is life, split into
 panel columns by continent."*
 
-A transform reads the same way, because `*` binds tighter than `+`:
+A transform groups as it does in R, because `*` groups before `+` in both
+languages:
 
 ```{r}
 #| echo: false
@@ -133,70 +148,93 @@ jl_plot("data(gapminder_2007) + bar * mean + x(:continent) + y(:life)")
 
 ## Nine names Julia already uses
 
-Nine of the kernel's words are also names in `Base`: `count`, `sum`, `min`,
-`max`, `range`, `size`, `step`, `stack` and `map`. Julia will not choose between
-two modules that export the same name, and the rule is the language's own.
-Writing one of these nine without an import gives an `UndefVarError` with a
-hint, rather than the wrong function. That is the safe outcome, and it means one
-more import line:
+Every plot above ran after two lines that its block leaves out, and this section
+explains them. Nine of the kernel's words are also names in `Base`: `count`,
+`sum`, `min`, `max`, `range`, `size`, `step`, `stack` and `map`. Julia will not
+choose between two modules that export the same name, and the rule is the
+language's own. Writing one of these nine without an import stops with an
+`UndefVarError` and a hint, rather than quietly calling the wrong function. The
+fix is one more import line:
 
 ```julia
 using GrammarOfGraphics
 using GrammarOfGraphics: count, sum, min, max, range, size, step, stack, map
 ```
 
-Those two lines open every block on this page that drew a plot. With them in
-place, a gog sentence builds and `Base.sum` still answers:
+With them, a bare `sum` is gog's transform, and `Base.sum` still adds numbers:
 
 ```{r}
 #| echo: false
-jl_show("println(bar * bin)\nprintln(Base.sum([1, 2, 3]))")
+jl_show("println(sum)\nprintln(Base.sum([1, 2, 3]))")
 ```
 
 `bin` is not in the import line, because `Base.bin` is not exported, so there is
 no second `bin` to choose between.
 
-The import line treats the nine names alike, but their effect on code you
-already wrote is not equal, and `map` is where that shows. `Base.map` appears in
-ordinary Julia code constantly, while `Base.step` and `Base.stack` appear far
-less often. Code you already wrote that calls `map` now reaches gog's `map`
-instead, and the error names a line you did not change. Write `Base.map` there,
-and the same prefix works for any of the nine.
+The import line treats the nine names alike, but your existing code does not
+use them equally. `map` and `size` appear in ordinary Julia code constantly.
+After the import, a call such as `map(f, xs)` or `size(A)` in that code reaches
+gog's word instead, and the error appears on a line you did not change. Write
+`Base.map` or `Base.size` there, and the same prefix works for any of the
+nine.
 
-Every language meets this problem, and each one asks you to solve it
-differently. R's `range`, `sum` and `min` belong to base R, Python's `bin`,
+R, Python and Julia all have this problem, and each one solves it in its own
+way. R's `range`, `sum` and `min` belong to base R, Python's `bin`,
 `sum` and `max` are builtins, and Julia's belong to `Base`. A grammar keeps its
 own vocabulary; what changes is how each language asks you to say which one you
 meant.
 
 ## The table
 
-A table is a named tuple of columns, so a first plot needs nothing installed:
+Every sentence starts from a table. The simplest table in Julia is a named tuple
+of columns, which the language provides, so a first plot needs nothing
+installed:
 
 ```{r}
 #| echo: false
 jl_plot("data((person = [\"Ada\", \"Alan\", \"Grace\"], cm = [160.0, 172.0, 181.0]),\n     name = \"heights\") + bar + x(:person) + y(:cm)")
 ```
 
-A `Dict` works too, and so does anything that implements `names` and `[!, col]`,
-which is what a DataFrame does. The package never imports DataFrames, so a
-reader who does not use one installs nothing extra.
-`gog_table("gapminder_2007")` fetches any of the book's shared tables, as it
-does in the other three languages ([The book's data](../book-data.qmd)).
+The table holds three people and their heights, written directly inside the
+call. A `Dict` of columns works too. So does any object that supports
+`names(table)` and `table[!, col]`, as a DataFrame does. The package never
+imports DataFrames, so if you do not use one, you install nothing extra.
 
-Julia has both a `Date` and a `DateTime`, as R and Python do. A `Date` column
-gets day ticks, and a `DateTime` column keeps its hours and minutes. The engine
-reads the unit off the type, so nothing is guessed.
+The plots above use `gapminder_2007`, one of the book's shared tables, and
+`gapminder_2007 = gog_table("gapminder_2007")` fetches it. `gog_table()` fetches
+any of the shared tables by name, as it does in the other three languages
+([The book's data](../book-data.qmd)).
 
-R reads a table's name off the expression you wrote, and Julia cannot. An
-unnamed table gets a generated name instead, such as `data2`. A warning or a
-refusal names the table it is about, so write `data(df, name = "notes")` when
-you want that message to say `notes` ([Data](../data.qmd)).
+Julia has both a `Date` and a `DateTime`. R and Python each have the same pair
+of types under their own names. A `Date` column never gets clock ticks, and a
+`DateTime` column can, because it stores a time of day
+([Scales](../scales.qmd)). The package tells the two apart by type, so nothing
+is guessed.
+
+In R, `data()` reads a table's name from the expression you wrote. In Julia,
+`data()` receives only the table itself, so an unnamed table gets a generated
+name instead: `data`, then `data2`. Some messages name the table they are about,
+such as the warning about missing values, so write `data(df, name = "notes")`
+when you want that message to say `notes` ([Data](../data.qmd)).
+
+## Showing the plot
+
+The plots on this page appear under their code. In your own session, where a
+plot appears depends on where you run it. In a notebook, such as Jupyter or
+Pluto, the notebook asks the package for a picture, and the plot is drawn under
+the cell. At the REPL, Julia's prompt in a terminal, a plot prints as one line
+of text, such as `<gog plot: bar on heights>` for the heights plot in [The
+table](#the-table). To see the picture, assign the plot to a variable such as
+`p`, write it to a file with `save(p, "plot.svg")`, and open that file in a web
+browser. [`render_svg(p)`](../utilities.qmd#render_svg) returns the same drawing
+as text.
 
 ## Reading from a database
 
-`query()` takes a **DBInterface.jl** connection. That is Julia's database
-standard, and it covers SQLite.jl, LibPQ.jl, MySQL.jl and DuckDB.jl.
+Your table may be stored in a database rather than in your session. `query()`
+runs a SQL query on that database, and it takes a **DBInterface.jl** connection.
+DBInterface.jl is Julia's database standard, and SQLite.jl, LibPQ.jl, MySQL.jl
+and DuckDB.jl all implement it.
 
 ```julia
 using DBInterface, SQLite, GrammarOfGraphics
@@ -205,36 +243,41 @@ con = SQLite.DB("sales.db")
 query(con, "SELECT status, revenue FROM orders") + bar + x(:status) + y(:revenue)
 ```
 
-One detail is specific to this binding. `GrammarOfGraphics` does not depend on
-DBInterface. Every dependency the package declares is a Julia standard library,
-and a database package would be the first exception. Every reader would install
-it, and many never write SQL. So the package finds DBInterface in your session
-instead.
+`GrammarOfGraphics` does not depend on DBInterface. Every dependency the package
+declares is a Julia standard library, and many readers never write SQL, so none
+of them should have to install a database package. Instead, the package uses the
+DBInterface that your driver loads. If no driver is loaded, drawing the plot
+stops with a message that names DBInterface and the line that loads it.
 
-In practice this means one extra line: you must write `using DBInterface`
-yourself. Without it, `query()` names the missing package and the line that
-fixes it, rather than failing later with a message about something else.
-
-## Getting it
+## Installing gog
 
 The Julia package is named `GrammarOfGraphics`. The name is longer than the one
 R and Python use, and the registry is the reason. Julia's registry checks a new
-name automatically, and that check asks for at least five letters in capitalized
-words. A lowercase `gog` fails on both counts.
+name automatically. The name must be at least five letters long and must start
+with a capital. A lowercase `gog` is too short and has no capital.
 
-Installing takes one command. A plot is drawn by the engine, which is a compiled
-Rust binary, and every one of the four packages carries one. Python and
-JavaScript ship it, and R builds or bundles it. Julia fetches it as an
-**artifact**, which is how a Julia package distributes a binary. `Pkg` downloads
-the build for your computer along with the package, so there is nothing else to
-install.
+Every plot is drawn by the engine, a separate program written in Rust, so the
+Julia package has to be able to find it. Python and JavaScript each publish the
+engine built for every common platform, and the install picks the one for your
+computer. R builds it during the install, or installs one already built. Julia
+fetches it as an **artifact**, which is how a Julia package distributes a
+program it needs. `Pkg` downloads the copy of the engine built for your computer
+along with the package, so one call to `Pkg.add` installs everything:
 
 ```julia
 using Pkg
 Pkg.add("GrammarOfGraphics")
 ```
 
-To work from a checkout instead, add the package from the path where it sits:
+To work from a checkout, a copy of gog's source repository on your own
+computer, first build the engine once from the checkout's top folder (this
+needs Rust):
+
+```bash
+cargo build --release -p gog-cli
+```
+
+Then run `Pkg.develop` from the same folder:
 
 ```julia
 using Pkg
@@ -243,19 +286,18 @@ Pkg.develop(path = "jl-pkg/GrammarOfGraphics")
 using GrammarOfGraphics
 ```
 
-The engine is looked for in five places, in this order: the `GOG_CLI_PATH`
-environment variable, the artifact the install fetched, a copy you placed inside
-the package yourself, `gog-cli` on your `PATH`, and a local `target/release` build.
-The search stops at the first place that holds the engine. An installed copy
-finds the artifact and never looks further. A checkout has no artifact, so the
-search runs to the end of the list and uses the build you compiled yourself.
-
-`render_svg(plot)` returns the SVG as a string, and a plot displays itself in a
-notebook, because the binding hands the notebook a picture when it asks for
-one.
+The Julia package looks for the engine in six places. In order: the
+`GOG_CLI_PATH` environment variable, a build in the checkout the package sits
+in, the artifact the install fetched, a copy you placed inside the package
+yourself, `gog-cli` on your `PATH`, and last a build found by searching upward
+from the working directory. The search stops at the first place that holds the
+engine. An installed copy is not inside a checkout, so it uses the artifact.
+Inside a checkout, your own build is searched before the artifact on purpose.
+The artifact is the engine of the last release, and using it would draw with an
+old engine while you are changing the engine's source.
 
 ## What comes next
 
-The first three languages write one sentence three ways, differing only in how a
-column is named. [JavaScript](javascript.qmd) is the one that reads differently,
-because it cannot overload `+ * | /` and spells them as four words.
+R, Python and Julia write one sentence three ways, and the main difference is
+how a column is named. [JavaScript](javascript.qmd) reads differently, because
+it cannot give `+ * | /` new meanings, so it spells them as words.
