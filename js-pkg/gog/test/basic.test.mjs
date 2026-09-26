@@ -2794,3 +2794,16 @@ test("a flow stage named twice is refused", () => {
     layer(ribbon, flow(col.class, col.fate, col.class))))), /Name each column once/);
   assert.ok(render_svg(plot(data(voyage), layer(zone, flow(col.class, col.fate)))).includes("<svg"));
 });
+
+// A bar with a split and no `x` drew its counts under an axis titled after a `y`
+// column it never read. Refused now, as it is when the bar has an `x`. The same
+// block runs in all four bindings.
+test("a tally's one pile refuses a column on its measure axis", () => {
+  const winds = { dir: ["N", "S", "N", "S"], season: ["win", "win", "sum", "sum"], speed: [3, 5, 2, 8] };
+  assert.match(refusalOf(() => render_svg(plot(data(winds), layer(bar, count, stack),
+    y(col.speed), color(col.dir)))), /so `y\(speed\)` names a column it never reads/);
+  assert.match(refusalOf(() => render_svg(plot(data(winds), layer(bar, count, stack),
+    y(col.season), color(col.dir)))), /name it as the slot: `x\(season\)`/);
+  assert.ok(render_svg(plot(data(winds), layer(bar, count, stack), x(col.season), color(col.dir))).includes("<rect"));
+  assert.ok(render_svg(plot(data(winds), layer(bar, sum, stack), y(col.speed), color(col.dir))).includes("<rect"));
+});

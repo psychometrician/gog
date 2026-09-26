@@ -137,7 +137,10 @@ Each is now refused, with what to write instead.
   counts under "Life", and `point * bin * stack + x(life) + y(continent)` a dot
   plot under "Continent". The refusal names the statistic that reads the column,
   such as `bar * mean`. A name the table does not hold, such as `y(count)`,
-  still titles the axis.
+  still titles the axis. The same holds for a bar drawn as one pile with no `x`,
+  such as `bar * count * stack + y(speed) + color(dir)`, which drew the counts
+  under "Speed"; a category there is sent to `x()`, which gives each of its
+  values a pile of its own.
 
 - **A plot with no mark.** `data(gapminder_2007) + x(gdp)` drew an empty panel
   with both axes marked 0 to 1, and so did a table, a `color()` or a `title()`

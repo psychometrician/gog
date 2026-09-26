@@ -2237,6 +2237,13 @@ fn synth_axis_names_a_column(
     }
     let maker = ts.iter().find(|t| matches!(
         t, Transform::Bin | Transform::Count | Transform::Density | Transform::Proportion))?;
+    // A bar with one slot has no axis for `bin` or `density` to spread along, and
+    // `check_keyless_statistic` refuses them for that, with its own direction, so
+    // the sentence hears one refusal rather than two that point different ways.
+    let one_slot = spec.position_for(layer, &Channel::X).is_none() && bar_divides_one_slot(layer);
+    if one_slot && ts.iter().any(|t| matches!(t, Transform::Bin | Transform::Density)) {
+        return None;
+    }
     let kind = actual_type(df, field)?;
     let m = mark_name(&layer.mark);
     let c = channel_name(channel);
@@ -2257,7 +2264,13 @@ fn synth_axis_names_a_column(
         Channel::Y => spec.position_for(layer, &Channel::X),
         _ => None,
     }.map(|d| d.field.as_str());
+    // A bar with one slot and a category on its measure axis most likely wanted a
+    // pile per category, which is that category named as the slot.
     let direction = match (kind, maker) {
+        (VarType::Discrete, _) if one_slot => format!(
+            "To give each value of `{field}` a pile of its own, name it as the slot: \
+             `x({field})`."
+        ),
         (VarType::Discrete, _) => format!(
             "To split the rows by `{field}`, `color({field})` colors each group, and \
              `/ facet({field})` draws one panel per category."
@@ -10363,6 +10376,15 @@ pub fn synth_axis(spec: &PlotSpec, layer: &Layer, df: Option<&DataFrame>) -> Cha
             }
         }
         (m, _) if cuts_both_positions(m, space_of(spec)) && !has_no_measure_axis(m) => Channel::Z,
+        // A bar whose split divides its one slot has no key axis, so its measure is
+        // on `y` whatever `y` names: the rule the plot's orientation states first
+        // (`bar_divides_one_slot`), asked here too. This arm was missing, so a lone
+        // `y` went to `slot_orient`, which read it as the key of a bar on its side,
+        // and the column was never checked while the renderer drew the one pile:
+        // `bar * count * stack + y(speed) + color(dir)` drew the counts under an
+        // axis titled "Speed", and `y(season)` did the same, in silence.
+        (Mark::Bar, _) if spec.position_for(layer, &Channel::X).is_none()
+            && bar_divides_one_slot(layer) => Channel::Y,
         (m, Some(df)) if is_slot_mark(m) => {
             let xt = spec.position_for(layer, &Channel::X).and_then(|c| actual_type(df, &c.field));
             let yt = spec.position_for(layer, &Channel::Y).and_then(|c| actual_type(df, &c.field));
@@ -17411,7 +17433,7 @@ mod tests {
             DataFrame::new().with_float("lo", vec![1.0]).with_float("hi", vec![2.0]));
         for spec in [
             PlotSpec::new().data("t").y("life").layer(
-                Layer::new(Mark::Bar).transform(Transform::Count).encode(Channel::Color, "continent")),
+                Layer::new(Mark::Bar).transform(Transform::Sum).encode(Channel::Color, "continent")),
             PlotSpec::new().data("t").y("life").layer(Layer::new(Mark::Rule)),
             PlotSpec::new().data("t").y("life").layer(
                 Layer::new(Mark::Zone).data("z").bounds("lo", "hi")),
@@ -18575,6 +18597,34 @@ mod tests {
         }
     }
 
+    /// A tally's one pile drew its counts under an axis titled after a column it
+    /// never read: `synth_axis` took a lone `y` for a sideways bar's key while the
+    /// renderer drew the pile. Refused now, a number toward a statistic that reads it
+    /// and a category toward a pile of its own, and said once beside `bin`.
+    #[test]
+    fn a_one_slot_tally_refuses_a_column_on_its_measure_axis() {
+        let pile = |t: Transform, y: &str| PlotSpec::new().data("t").y(y).layer(
+            Layer::new(Mark::Bar).transform(t).transform(Transform::Stack)
+                .encode(Channel::Color, "region"));
+        for t in [Transform::Count, Transform::Proportion] {
+            let d = check(&pile(t.clone(), "life"), &data());
+            assert!(d.iter().any(|x| x.kind == DiagnosticKind::Illegal
+                && x.message.contains("so `y(life)` names a column it never reads")),
+                "{t:?}: {:?}", msgs(&d));
+            let d = check(&pile(t.clone(), "continent"), &data());
+            assert!(d.iter().any(|x| x.kind == DiagnosticKind::Illegal
+                && x.message.contains("a pile of its own, name it as the slot: `x(continent)`")),
+                "{t:?} over a category: {:?}", msgs(&d));
+        }
+        // A name the table does not hold still titles the axis, and a statistic that
+        // reads the column is the share column it always was.
+        assert!(!check(&pile(Transform::Count, "count"), &data()).iter().any(Diagnostic::is_fatal));
+        assert!(!check(&pile(Transform::Sum, "life"), &data()).iter().any(Diagnostic::is_fatal));
+        // `bin` has no axis here at all, and says so once.
+        let d = check(&pile(Transform::Bin, "life"), &data());
+        assert_eq!(d.iter().filter(|x| x.is_fatal()).count(), 1, "{:?}", msgs(&d));
+    }
+
     #[test]
     fn a_positionless_bar_refuses_the_statistics_that_need_an_axis() {
         // `count`/`sum` answer "one value for these rows", which means something
@@ -18584,9 +18634,15 @@ mod tests {
         let fatal = |d: &[Diagnostic]| d.iter().any(|x| x.is_fatal());
         let with = |t: Transform| PlotSpec::new().data("t").y("life").layer(
             Layer::new(Mark::Bar).transform(t).encode(Channel::Color, "continent"));
+        // A tally reads no column, so its one pile is written with no `y`: a column
+        // named there is one it never reads, refused (the test below).
+        let tally = |t: Transform| PlotSpec::new().data("t").layer(
+            Layer::new(Mark::Bar).transform(t).encode(Channel::Color, "continent"));
 
-        for t in [Transform::Count, Transform::Sum, Transform::Mean, Transform::Proportion] {
-            assert!(!fatal(&check(&with(t.clone()), &data())), "{t:?} should be legal with no x");
+        for spec in [tally(Transform::Count), with(Transform::Sum), with(Transform::Mean),
+                     tally(Transform::Proportion)] {
+            assert!(!fatal(&check(&spec, &data())),
+                    "{:?} should be legal with no x", spec.layers[0].transforms);
         }
         for t in [Transform::Bin, Transform::Density, Transform::Smooth] {
             let d = check(&with(t.clone()), &data());
