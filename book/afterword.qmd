@@ -9,44 +9,55 @@ measures of success.
 
 ## The ten-day challenge
 
-The first claim was about speed, and you have finished its morning. Here is the
-rest of the promise. For the next ten days, bring one question a day from *your
-own data*, not from the book's cast of tables, and answer it in one sentence.
-Start where the [cookbook](parts/cookbook.qmd) starts: what shape is your data,
-and what do you want to know? By day three the recipes will read as ordinary
-sentences, because you will already know every word in them. By day ten you
-should be writing sentences this book never showed you. That is the one outcome
-that proves you learned the grammar and not the examples.
+The first claim was about speed, and [the
+preface](index.qmd#the-promise-and-the-books-rules) restated it for this book:
+read the whole grammar in a morning, and write it fluently within ten days. You
+have done the reading. Here is the rest of the promise. For the next ten days,
+ask one question a day of *your own data*, not of the book's cast of tables,
+and answer it in one sentence. Start where the [cookbook](parts/cookbook.qmd)
+starts: with your columns and your question. By day three the recipes will read
+as ordinary sentences, because you will have written sentences like them
+yourself. By day ten you should be writing sentences this book never showed
+you. That is the one outcome that proves you learned the grammar and not the
+examples.
 
-Two things count as a surprise. A sentence renders when you expected a refusal,
-or it refuses and gives you a direction you disagree with. Either is worth
-reporting, because a grammar this small stays correct only when its readers say
-where it is wrong.
+During those ten days,
+[report](https://github.com/psychometrician/gog/issues) two kinds of result: a
+sentence that renders when you expected a refusal, and a refusal whose
+direction you disagree with. Reports like these are how the grammar's mistakes
+are found.
 
 ## Growth without new words
 
-The second claim was about reach: any sound at all. A grammar of graphics
-answers it in pictures, and the kernel you learned is the whole vocabulary it
-has. The engine draws every word in it: every mark, every channel, every
-transform, every space, and the one selection. Not every *pairing* of words is
-drawn yet, and [Combinations](combinations.qmd) is the page that lists the ones
-the engine still refuses. No word is waiting.
+The second claim was about what the letters could write: any sound at all. gog
+has the same goal for plots, but it does not promise that every plot is
+possible. The kernel you learned is its whole vocabulary. The engine draws every
+word in it, though not every *pairing* of words.
+[Combinations](combinations.qmd) shows which pairs it draws and which it
+refuses.
 
-Growth arrives as new pictures rather than new words. The **choropleth** is the
-pattern, and no atom was added for it. It shades each country by a value. What
-it needed was not a new word but a new shape of table: one row for every point
-along a country's border. A `zone` is a filled region, and five different things
-can fix where its edges are. A **boundary** is the fifth, and `group` already
-says which rows belong to one country. [Map](map.qmd) shows the choropleth drawn
-with the words the kernel already had.
+A new kind of plot does not need a new word. The **choropleth** is an example
+of that. It is a map that shades each country by a value, and no atom was added
+for it. What it needed was a different kind of table: one row for every point
+along a country's border, so that many rows make up one country. A `zone` is a
+filled region, and several things can decide its sides. One of them is a
+**boundary**, the outline those rows trace, and `group` already says which rows
+belong to one country. [Map](map.qmd) shows the choropleth drawn with the words
+the kernel already had.
 
-The vocabulary does not grow across languages either. Whatever sentence you
-write becomes one small specification inside the package, and all four bindings
-build the same one from the same words. What differs is how each one names a
-column, and JavaScript spells the operators as words as well, because it cannot
-overload them. Each binding has a short chapter of its own, a difference list:
-[R](bindings/r.qmd), [Python](bindings/python.qmd), [Julia](bindings/julia.qmd),
-[JavaScript](bindings/javascript.qmd).
+The vocabulary is also the same in all four languages. Whatever sentence you
+write, all four bindings build the same specification from its words. The main
+difference is how each binding names a column. JavaScript also cannot give the
+operators new meanings, so it spells them as words. Each language has a chapter
+of its own, listing what differs: [R](bindings/r.qmd),
+[Python](bindings/python.qmd), [Julia](bindings/julia.qmd),
+[JavaScript](bindings/javascript.qmd). Here is one sentence from [A first
+plot](first-plot.qmd) in all four:
+
+```r
+# R
+data(gapminder_2007) + point + x(gdp) + y(life) + color(continent)
+```
 
 ```python
 # Python
@@ -64,42 +75,49 @@ data(gapminder_2007) + point + x(:gdp) + y(:life) + color(:continent)
 plot(data(gapminder_2007), point, x(col.gdp), y(col.life), color(col.continent))
 ```
 
+All four draw the same plot, byte for byte.
+
 ## One goal left
 
-Those four spellings are finished work. One thing this project set out to do is
-not, and it is written down here so you can check later whether the project did
-it. Half of it already works: the engine itself runs inside the page, which is
-how a 3-D plot turns when you drag it in the web edition. The other half is
-every example in this book, editable in place. Change `color(continent)` to
-`shape(continent)`, and watch the plot redraw. The book you are reading is ready
-for that change today, because it holds no saved pictures: every plot in it
-comes from a specification the engine reads.
+Those four spellings are finished work. One thing this project planned to do is
+not finished, and it is written down here so you can check later whether the
+project did it. Half of it already works: the engine itself runs inside the
+page, which is how a 3-D plot turns when you drag it in the web edition. The
+other half is making every example in this book editable on the page. You could
+then change `color(continent)` to `shape(continent)` and watch the plot redraw.
+This book is ready for editable examples, because no plot in it is a
+screenshot: the engine draws every one from its specification.
 
 ## Writing quickly is not writing well
 
-I think Hangeul (한글) is a perfect writing system. I should admit that I may be
-biased, because it is the alphabet I write with. What nobody disputes is that
-it is fast to read and fast to write.
+Both claims of 1446 are about the letters: how fast they can be learned, and
+what they can write. Neither says how well anyone will write with them.
 
-Writing quickly is not the same as writing well. There is no quick route to
-good writing: you read good writing, and you practice. Visualization is no
-different. This tool is new and it has problems, and what I hope it can be for
-now is a good tool to practice with.
+I think Hangeul (한글) is the best writing system in the world. I should admit
+that I may be biased, because it is the alphabet I write with. Most people
+agree that it is quick to learn, to read and to write.
 
-The same division sits in the 1446 story. King Sejong made the alphabet. He did
-not write the books that were written with it. I am not a great author of plots
-either. What I do have is twenty years in this field as a user, watching and
-listening and reading. I built from that experience, and what came out is a tool
-that is easy to learn and easy to use.
+Writing quickly is not the same as writing well. Good writing cannot be learned
+quickly: you read good writing, and you practice. Visualization is no
+different. This tool is new and still has problems, but I hope it is already a
+good tool to practice with.
 
-I hope good work comes out of it.
+The 1446 story makes the same distinction, between making a writing system and
+writing with it. King Sejong made the alphabet. Other people wrote most of the
+books that used it. I designed gog, but I am not a great author of plots. What
+I do have is twenty years as a user of visualization tools, watching and
+listening and reading. The design comes from that experience, and the result is
+a tool that is easy to learn and easy to use.
+
+I hope you do good work with it.
 
 ## The gap
 
-A specification is a sentence said before the picture exists. Everyone who
-writes one waits in that gap, between declaring what they want to see and
-finding out whether the engine agrees. The package is `gog`. The state of
-working with it is *agog*. I hope the book kept you there.
+A specification is a sentence written before the picture exists. Between
+writing it and the moment the engine shows you what you said, there is a gap,
+and everyone who writes a specification waits in it. The package is `gog`. The
+state you are in while you wait is *agog*: eager to see what comes next. I hope
+the book kept you agog.
 
 :::: {.content-visible when-format="html"}
 ::: {.gog-slogan .gog-slogan-close}
