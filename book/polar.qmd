@@ -7,33 +7,35 @@ source("R/setup.R")
 
 Which way does the wind blow most often? Some questions do not fit a flat page.
 Every plot so far has been drawn on one: an `x` running across, a `y` running
-up. That is one coordinate space, `flat`, and the kernel names six more. It is
-also the wrong shape for a whole class of variables. Compass direction, the hour
-of the day, the month of the year: in each of them the last value is the
-neighbor of the first. A straight axis has no way to show that.
+up. That is one coordinate space, `flat`, and the kernel names six more. The
+flat space is also the wrong shape for a whole class of variables. Compass
+direction, the hour of the day, the month of the year: in each of them the last
+value is the neighbor of the first. A straight axis has no way to show that.
 
-Two of the oldest statistical graphics were already drawn in this space.
+Two of the oldest statistical graphics were drawn in a circle instead, in the
+space gog calls `polar`.
 Playfair's *Statistical Breviary* of 1801 cut a circle into sectors to show the
 Turkish empire's territory, and that is the first pie chart [@playfair1801].
 Florence Nightingale's 1858 diagram of what killed British soldiers in the
 Crimea [@nightingale1858] is a bar chart in polar coordinates. It has three
 names: a **coxcomb**, a **rose**, or, most precisely, a **polar area diagram**.
 That third name is the only one that says what the wedges mean. Her wedges put
-each month's death count into the sector's *area*, so their radius grows as the
-square root of the number. A polar bar here maps the value straight to the
-radius. Both are honest drawings and they are not the same drawing, which is
-worth knowing before you set one beside the other.
+each month's death count into the wedge's *area*, so their radius grows as the
+square root of the number. In gog, a polar bar maps the value directly to the
+radius. Both are honest drawings, but they are not the same drawing, so check
+which one you have before you compare them.
 
 The line version has even more names: **radar** plot, **spider** plot, **star**
 plot, and **Kiviat** diagram in engineering. As with the rose and the pie, none
 of them is an atom. Each is a mark and a channel or two with `polar()` at the
 end, which is what the rest of this chapter is about.
 
-## The axis that breaks a circle
+## A circular variable on a straight axis
 
 How often the wind blew from each direction is a count per compass point, so
-start with the plot you know. It shows what a straight axis loses. Here is a
-season of wind observations as an ordinary bar chart, one bar per compass point:
+start with the plot you know. It shows what a straight axis loses. Here are wind
+observations from two seasons, summer and winter, drawn as an ordinary bar chart
+with one bar per compass point:
 
 ```{r}
 #| echo: false
@@ -47,10 +49,11 @@ data(winds) + bar * count + x(direction)
 *"Given the winds: bars derived by count, x is direction."*
 
 Read the two ends. North is at the far left and north-west at the far right,
-with the whole compass between them, when the two directions are 45 degrees
+with the whole compass between them, although the two directions are 45 degrees
 apart in the world. The chart has cut the circle open and flattened it, and the
 cut is invisible: nothing in the picture says that the two ends belong together.
-A reader who did not already know the compass could not recover it from this.
+A reader who did not already know the compass could not tell from this chart
+that north-west is next to north.
 
 Now add one atom to the same sentence:
 
@@ -62,33 +65,33 @@ data(winds) + bar * count + x(direction) + polar()
 
 Same mark, same transform, same binding, same data. The only thing that changed
 is the space the plot is drawn in, and north-west is beside north because on the
-compass it is beside north. The common west wind is now a long wedge pointing
-west, rather than a tall bar you find by reading the labels.
+compass it is beside north. The west wind, which blew most often, is now a long
+wedge pointing west, rather than a tall bar you find by reading the labels.
 
 This is what a coordinate space is for, and it is why a pie chart, a rose and a
 radar plot are not chart types in this grammar. They are marks you already know,
 read in a circle.
 
-## What `polar()` changes, and what it leaves alone
+## What `polar()` changes and what it keeps
 
 One word changed the whole picture, so the next thing to settle is which of the
 two positions became the angle. `x` becomes the **angle** and `y` becomes the
-**radius**. That order is Wilkinson's [@wilkinson2005], and his reason is that
-the first dimension of a plot is its domain: what you search in, which in a
-circle is a bearing. The second is the range, the amount, which becomes how far
-out from the center the mark reaches. (That is the rule when both positions are
+**radius**. That order is Wilkinson's [@wilkinson2005]. His reason is that the
+first position says where a mark stands, and in a circle that is an angle. The
+second says how much, and that becomes how far out from the center the mark
+reaches. (That is the rule when both positions are
 bound. Bind only one and there is nothing to choose, so the one you have becomes
 the angle: that is the pie, and it has its own section below.)
 
 So `x(direction)` still says what it always said, that direction is the position
-each bar stands at. `polar()` changes one thing only: a position is now read as
-a bearing rather than as a place along a straight line. A bar still runs from
-its baseline to its value. The baseline is the center of the circle, so the
-count sets how far out each wedge reaches.
+each bar stands at. `polar()` changes one thing only: how positions are read.
+`x` now gives a direction around the circle, and `y` a distance from the center.
+A bar still runs from its baseline to its value. The baseline is the center of
+the circle, so the count sets how far out each wedge reaches.
 
 The next question is whether the rest of the grammar still works in a circle: a
-split by season, say, with the two seasons side by side. Nothing else in the
-grammar knows the space changed, so nothing else has to be rewritten for it:
+split by season, for example, with the two seasons side by side. Nothing else in
+the grammar knows the space changed, so nothing else has to be rewritten for it:
 
 ```{r}
 data(winds) + bar * count * dodge + x(direction) + color(season) + polar()
@@ -97,20 +100,13 @@ data(winds) + bar * count * dodge + x(direction) + color(season) + polar()
 *"Given the winds: bars derived by count and dodge, x is direction, color by
 season, in polar."*
 
-`color` splits the count by season, and `dodge` sets the two halves side by side
-inside each slot instead of on top of each other. The legend decodes the colors.
-Every one of those works in a circle exactly as it works on a page, because none
-of them was ever written in terms of pixels.
-
-[`play`](play.qmd) works in a circle too, and it is the one to name here,
-because a rose that advances through time needs no new atom. Each moment of the
-animation chooses the rows, and the space bends whatever it chose, so neither
-one changes the other. That chapter's "Frames in polar" runs a rose and two pies
-through half a century, and it reads the pie's full turn as a measure axis
-shared across every moment of the sequence.
+`color` splits the count by season, and `dodge` sets the two seasons' bars side
+by side inside each slot instead of on top of each other. The legend decodes the
+colors. Every one of those works in a circle exactly as it works on a flat page,
+because none of them was ever written in terms of pixels.
 
 Change `dodge` to `stack` and the seasons pile outward from the center instead,
-one ring on top of another:
+one season outside the other:
 
 ```{r}
 data(winds) + bar * count * stack + x(direction) + color(season) + polar()
@@ -120,33 +116,30 @@ data(winds) + bar * count * stack + x(direction) + color(season) + polar()
 season, in polar."*
 
 Summer sits against the center and winter is stacked outside it, so each wedge
-now reaches the season total. West runs out to 63. The dodged rose above stopped
-at 38, the taller of its two halves. The radial axis was rescaled to reach 63
-rather than 38, and that is why `stack` is a transform rather than a drawing
-option. The scale has to read the totals `stack` accumulates.
+now reaches the total of both seasons. West runs out to 63. In the dodged rose
+above, west stopped at 38, the longer of its two bars. The radial axis now
+reaches 63 rather than 38. That is why `stack` is a transform and not a drawing
+option: a transform runs before the scale is set, so the scale can read the
+totals `stack` adds up.
 
-Read the pair together, because each hides what the other shows. Stacked, the
-compass reads by total wind, and west is plainly the prevailing direction.
-Dodged, the seasons stand side by side, and you can see that the south-west
-blows in summer (30 against 17) while the west blows in winter (38 against 25).
-Neither is the correct rose. The rose is not a chart with its own options at
-all. It is `bar`, with its axis bent.
+Read the pair together, because each hides what the other shows. Stacked, each
+wedge shows the total wind from its direction, and west is plainly the most
+common direction. Dodged, the seasons stand side by side, and you can see that
+the south-west wind comes mostly in summer (30 against 17), and the west wind
+mostly in winter (38 against 25). Neither is the correct rose. The rose is not a
+chart with its own options at all. It is `bar`, with its axis bent.
+
+[`play`](play.qmd) also works in a circle, with no new atom. The animation
+chooses the rows for each frame, and `polar()` bends those rows into a circle,
+so neither step changes the other. The Play chapter's "Frames in polar"
+animates a rose and two pies across half a century.
 
 ## Where the circle starts
 
 The angular axis begins at the top and runs clockwise, which is how a clock and
-a compass are both read. The first category sits *on* the top of the circle
-rather than beside it. That is why the rose above needed no `start` value: north
-points straight up, because north is the first of the eight directions and the
-axis starts at the top.
-
-The starting angle needed a decision, and the reason is in how a categorical
-scale is built. A categorical scale runs from half a slot before the first
-category to half a slot after the last, so the scale's own origin is padding
-rather than any place in the data. A start angle aimed at the padding would put
-north at 22.5 degrees, leaving you to write `-180/8` to correct it. A flat
-categorical axis already puts its tick at the category's center, so the circle
-agrees with it: `start` points at the category, not at the gap before it.
+a compass are both read. The middle of the first category's slot sits at the
+top, not the edge of the slot. That is why north points straight up in the rose
+above: north is the first of the eight directions.
 
 The `day_cycle` table holds one day of trips, hour by hour:
 
@@ -168,33 +161,42 @@ data(day_cycle) + line + x(hour) + y(trips) + polar(start = -180)
 
 Those are the same trips, turned half a circle. Noon is at the top now and
 midnight at the bottom, which is the arrangement you want if you are reading the
-working day rather than the calendar one. `start` is a property of the space
-rather than of the data, the polar counterpart of the `space(turn =, tilt =)`
-that sets the angle a 3-D plot is viewed from (see [Space](space.qmd)). It
-changes how you look, never what is drawn.
+working day rather than the day from midnight to midnight. `start` is a property
+of the space rather than of the data, the polar counterpart of the
+`space(turn =, tilt =)` that sets the angle a 3-D plot is viewed from (see
+[Space](space.qmd)). It changes how you look at the plot, never what is drawn.
+
+On a categorical angle, `start` points at the first category rather than at the
+scale's origin, and the reason is in how a categorical scale is built. A
+categorical scale runs from half a slot before the first category to half a slot
+after the last, so the scale's own origin is padding rather than any place in
+the data. A start angle aimed at the padding would put north at 22.5 degrees, so
+you would have to write `-180/8` to correct it. A flat categorical axis already
+puts its tick at the category's center, so the circle agrees with it: `start`
+points at the category, not at the gap before it.
 
 ## One turn, whatever the data spans
 
 The angular axis is **periodic**: one full turn is the whole of the axis, so its
-first value and its last value land on the same spoke. That is what closes the
-circle with no seam and no empty wedge, and it has one consequence worth stating
-plainly. The circle needs the whole cycle, or the two ends will meet in the
-wrong place.
+first value and its last value land on the same spoke, the same line out from
+the center. That is what closes the circle without a gap or an empty wedge, and
+it has one consequence: the circle needs the whole cycle, or the two ends will
+meet in the wrong place.
 
-The trips you just turned close cleanly, and the reason is in the table's first
-and last rows. It runs from hour 0 to hour 24 with *both* endpoints present,
-because midnight is where the day ends and also where it begins:
+The day of trips, turned half a circle above, closes, and the reason is in the
+table's first and last rows. It runs from hour 0 to hour 24 with *both*
+endpoints present, because midnight is where the day ends and also where it
+begins:
 
 ```{r}
 data(day_cycle) + line + x(hour) + y(trips) + polar()
 ```
 
 The curve closes at the top because the reading at 24 is the reading at 0, and
-the two sit on the same spoke. That is the first of three cases, and the circle
-does not close in all of them. Most periodic data does not include both ends. A
+the two sit on the same spoke. That is the first of three cases, and in one of
+them the circle does not close. Most periodic data does not include both ends. A
 tide gauge reads every three hours and misses both ends of the day, hour 0 and
-hour 24. The axis it gets spans 1 to 22, and the failure that causes is easy to
-see:
+hour 24. Its axis spans 1 to 22, and the failure is easy to see:
 
 ```{r}
 #| echo: false
@@ -210,8 +212,8 @@ first and last readings are drawn on top of each other, three hours apart in the
 world and zero degrees apart on the page. Every reading between them sits at the
 wrong angle too, spread over 21 hours instead of 24.
 
-A periodic axis cannot tell that your variable is periodic; nothing in a column
-of hours says the day wraps. So say it:
+The axis cannot know how long your cycle is: nothing in a column of hours says
+that a day has 24 of them. So say it:
 
 ```{r}
 data(tide) + line + x(hour, limits = c(0, 24)) + y(height) + polar()
@@ -219,28 +221,28 @@ data(tide) + line + x(hour, limits = c(0, 24)) + y(height) + polar()
 
 *"Given the tide: a line, x is hour from 0 to 24, y is height, in polar."*
 
-Now each reading sits where a clock would put it. Hour 1 is a twenty-fourth of a
-turn past midnight, and hour 22 is a twelfth of a turn short of it. The two are
-45 degrees apart, which is the three hours they really are.
+Now each reading sits where a 24-hour clock would put it. Hour 1 is a
+twenty-fourth of a turn past midnight, and hour 22 is a twelfth of a turn before
+it. The two are 45 degrees apart, which matches the three hours between them.
 
 The curve still does not close, which is the second case, and that is the
 correct picture. The gauge took no reading at midnight, and `limits` states a
 domain; it does not invent an observation. The gap you can see between hour 22
 and hour 1 *is* the three-hour gap in the data, drawn at the size it is.
 Contrast the trips above, which close because a reading at 24 genuinely exists.
-A categorical angle is the third case, and it closes for a third reason. Every
-slot is filled there, so the last category is next to the first whatever the
-data holds.
+A categorical angle is the third case, and it closes for a different reason.
+Every slot is filled there, so the last category is next to the first whatever
+the data holds.
 
 `limits` states the domain the axis runs over rather than deriving it from the
-data. That is the general fix and not a polar one. The same words keep one color
-ramp fixed across plots built from different tables, which [Scales](scales.qmd)
-explains in full. Note what `limits` did not do. No reading was dropped, because
-1 through 22 all lie inside 0 through 24. Stating a domain widens an axis as
-readily as it narrows one.
+data. That is the general fix and not a polar one. The same argument, `limits`,
+keeps one color ramp fixed across plots built from different tables, which
+[Scales](scales.qmd) explains in full. Note what `limits` did not do. No reading
+was dropped, because 1 through 22 all lie inside 0 through 24. Stating a domain
+widens an axis as easily as it narrows one.
 
-Fill the same cycle with `area`. It closes on the baseline ring rather than on a
-straight line under the curve:
+Fill the day of trips with `area`. Its baseline is zero, which in a circle is
+the center, so the area fills everything between the curve and the center:
 
 ```{r}
 data(day_cycle) + area + x(hour) + y(trips) + polar()
@@ -250,13 +252,12 @@ data(day_cycle) + area + x(hour) + y(trips) + polar()
 
 ## The radar: a categorical angle
 
-A named angle closes differently, and the difference is worth following. What
-closes it is the shape of the data, not a rule in the renderer. An hour axis
-closes because *you* gave it both ends of the cycle, 0 and 24, and the scale put
-them on one spoke. Categories cannot do that: each appears exactly once, by
-definition, so there is no repeated endpoint to land on. Instead the categories
-together fill the whole turn, which makes the last one genuinely next to the
-first. So a path across categories closes:
+A categorical angle closes differently. An hour axis closes only when the table
+holds both ends of the cycle, 0 and 24, which the scale puts on one spoke.
+Categories cannot do that: each appears exactly once, by definition, so there is
+no repeated endpoint to land on. Instead the categories together fill the whole
+turn, which makes the last one genuinely next to the first. So the engine joins
+the last category back to the first, and a line across categories closes:
 
 ```{r}
 #| echo: false
@@ -271,18 +272,19 @@ data(gapminder_2007) + line * mean + x(continent) + y(life) + polar() +
 *"Given gapminder 2007: a line derived by mean, x is continent, y is life, in
 polar."*
 
-That is a radar plot, and there is no `radar` atom in this grammar: the same
-sentence flat is the profile from the [Line](marks/line.qmd) chapter, with a
-straight axis and therefore two ends. Bending the space is what joins them.
-Filled, it is the shape people usually mean by the name:
+That is a radar plot, and there is no `radar` atom in this grammar. The same
+sentence without `polar()` is the profile from the [Line](marks/line.qmd)
+chapter, minus its point layer. There the axis is straight, so the line has two
+ends. Bending the space is what joins them. Filled, it is the shape people
+usually mean by the name:
 
 ```{r}
 data(gapminder_2007) + area * mean + x(continent) + y(life) + polar() +
   title("area * mean: the filled radar")
 ```
 
-Split it and each group is its own outline, and the split reads exactly as it
-does on a flat profile:
+Split it with `color` and each group is its own outline, and the split reads
+exactly as it does on a flat profile:
 
 ```{r}
 #| echo: false
@@ -294,13 +296,17 @@ data(gm_eras) + line * mean + x(continent) + y(life) + color(era) + polar() +
   title("half a century apart, two rings")
 ```
 
-The same criticism applies to the radar as to the rose. A category's value is
-drawn as a radius, so the area it sweeps grows as the square of that value. The
-shape the outline encloses is an area no number in the table states. Use it when
-the categories really are a closed set with no first or last member, which is
-the case a straight axis misreports by having to pick an order. When the
-question is which continent is highest, the flat bar chart of the same sentence
-answers it precisely, and is two atoms away.
+The 2007 outline lies outside the 1957 one for every continent, and the gap is
+widest at Asia, about 21 years.
+
+The radar shares a problem with the rose, explained under
+[What a circle makes harder to read](#what-a-circle-makes-harder-to-read): the
+eye reads the area the outline encloses, and no number in the table states that
+area. That area also changes when the categories are put in a different order.
+Use it when the categories really are a closed set with no first or last member,
+which is the case a straight axis misreports by having to pick an order. When
+the question is which continent is highest, the flat bar chart of the same
+sentence answers it precisely, and is two atoms away.
 
 ## An angle that is measured, not named
 
@@ -319,8 +325,8 @@ polar."*
 Each dot sits at its own bearing. Its distance from the center is its speed. No
 two readings share a bearing, so the dots fill the circle rather than standing
 in eight slots. They crowd on the western side, where most of the wind came
-from. The rings carry speed and are read outward from the center. A dot near the
-rim is a fast wind, whichever way it was blowing.
+from. The gridline circles mark speed, read outward from the center. A dot near
+the rim is a fast wind, whichever way it was blowing.
 
 `bin` cuts a measured angle into wedges the same way it cuts a flat axis into
 bars:
@@ -331,31 +337,22 @@ data(winds) + bar * bin + x(bearing) + polar()
 
 *"Given the winds: bars derived by bin, x is bearing, in polar."*
 
-That is the *rosa ventorum*, Latin for wind rose, which cartographers drew by
-hand from the 13th century. It is one atom different from a histogram: `bar *
-bin` in both cases, read on a line or read in a circle. The bins touch here as
-they touch there, because a histogram cuts a continuous axis into adjacent
-intervals, and that is true whichever shape the axis has been bent into.
+That is a wind rose, one atom different from a histogram: `bar * bin` in both
+cases, read on a line or read in a circle. The name comes from the *rosa
+ventorum*, Latin for wind rose, which cartographers drew on maps from the 13th
+century to mark the directions of the winds. The bins touch here as they touch
+there, because a histogram cuts a continuous axis into adjacent intervals, and
+that is true whichever shape the axis has been bent into.
 
-A compass is a cycle, though, and the periodic axis cannot know that, just as
-with the hours. The range is fitted to what was observed, so the turn is the
-span of the *bins* rather than the 360 degrees a bearing actually runs over. The
-join between the two ends sits a little away from north. Stating the domain is
-the same move that fixed the tide:
-
-```{r}
-data(winds) + bar * bin + x(bearing, limits = c(0, 360)) + polar()
-```
-
-The axis now runs over the whole compass. The wedges do not fill the turn,
-though: they cover 325 degrees and leave a gap of one wedge at the seam. A bar
-axis is padded by half a bin at each end so that no bar meets the panel edge,
-and bending that axis into a circle turns the padding into a gap. The 0 tick
-lands a little clockwise of the top, so north on the plot is still not north.
+A compass turn is 360 degrees, but the axis cannot know that, just as it could
+not know the length of a day. The axis is fitted to what was observed, so the
+turn is the span of the *bins*, from 2.6 to 359.7 degrees. The readings here
+cover nearly the whole compass, so north lands only 2.6 degrees counterclockwise
+of the top.
 
 ## The pie: where you put the category
 
-Everything so far put the category on a *position*: `x(direction)` gave each
+The roses so far put the direction on a *position*: `x(direction)` gave each
 compass point its own slot, and the count decided how far out the wedge reached.
 A pie does the opposite. Its categories are not positions at all; they are a
 split, and what goes around the circle is the measure itself.
@@ -372,7 +369,7 @@ one word of it is about pies. The slices are the segments of a stacked bar, and
 the angles are their shares. The legend says which direction each slice is.
 
 The flat form is the same sentence without the last atom, and it is a real chart
-in its own right, the one column that shows how a total divides:
+of its own, the one column that shows how a total divides:
 
 ```{r}
 data(winds) + bar * count * stack + color(direction)
@@ -385,16 +382,16 @@ segment's share of the height is its slice's share of the circle.
 
 Nothing new was added to the grammar to reach it. There is no `pie()` atom, no
 `type = "pie"`, and no argument anywhere that says which chart to draw. Two
-things happen on their own. First, a bar divided only by its color split has one
-slot to stand in, so it needs no position axis, and dropping `x` is what says
-so. Second, a plot with one position bound has nothing to choose between: that
-position becomes the angle, and the radius is left as the constant that sets the
-pie's size. Both were in Wilkinson's book, where the one-argument polar function
-is a separate tool from the two-argument one.
+things happen on their own. First, a bar split only by color stands in one
+slot, so it needs no position axis. Dropping `x` is how you say that. Second, a
+plot with one position bound has nothing to choose between: that position
+becomes the angle, and the radius is left as the constant that sets the pie's
+size. Wilkinson's book has both rules: its one-argument polar function is a
+separate tool from the two-argument one.
 
-The measure can be anything a group can be reduced to, not just a count. Swap
-`count` for `sum`, name the column it should total, and the same eight
-directions are weighted by how hard the wind blew rather than by how often:
+The measure can be any single number that summarizes a group, not just a count.
+Swap `count` for `sum`, name the column it should total, and the same eight
+directions are weighted by wind speed rather than by how often the wind blew:
 
 ```{r}
 data(winds) + bar * sum * stack + y(speed) + color(direction) + polar()
@@ -410,14 +407,19 @@ gentlest, so theirs shrink by roughly two fifths, even though exactly the same
 observations went into them. Swapping one atom changed which question the circle
 answers.
 
-And `proportion` puts the shares on the axis rather than leaving them implied:
+Swap `count` for `proportion` instead, and the angles stay the same, because in
+a pie each slice's angle is already its share of the whole. In the pie, only the
+axis name changes. The flat stacked bar is where the change shows, because its
+axis now runs from 0 to 1:
 
 ```{r}
-data(winds) + bar * proportion * stack + color(season) + polar()
+data(winds) + bar * proportion * stack + color(direction)
 ```
 
-*"Given the winds: bars derived by proportion and stack, color by season, in
-polar."*
+*"Given the winds: bars derived by proportion and stack, color by direction."*
+
+Each segment's height is now its share. West runs from 0.66 to 0.90, a share of
+0.24, which is the quarter of the circle its slice takes in the count pie.
 
 The split has to be there. A stack with nothing to pile, or a bar with neither a
 position nor a split, is refused rather than guessed at. So is a statistic that
@@ -432,32 +434,33 @@ data(winds) + bar * bin * stack + color(season) + polar()
 
 The grammar draws every rose in this chapter, and drawing one is not the same as
 recommending it. A wedge's *area* grows with the square of its radius, so a
-count that doubles does not draw twice as much; it draws four times as much.
-Wilkinson says it plainly of the rose: the polar bar chart confounds area with
-radius, and growing the radius as the square root only partly repairs it. A
-reader who judges these by area, and most readers judge filled shapes by area,
-will read a stronger west wind than the numbers support.
+count that doubles gets four times the area, not twice. Wilkinson says it
+plainly of the rose: the polar bar chart confounds area with
+radius, and growing the radius as the square root only partly repairs it. Most
+readers judge filled shapes by area. A reader who does that will read a stronger
+west wind than the numbers support.
 
-[Law 8](design-laws.qmd) says it plainly: the engine guarantees a plot is well
-formed, never that it is well chosen. Use a circle when the variable really is a
-circle, which is the case a flat axis misreports. Use the flat bar chart when
-the comparison must be precise.
+[Law 8](design-laws.qmd#law-8-pronounceable-usable) states the limit: the engine
+guarantees a plot is well formed, never that it is well chosen. Use a circle
+when the variable really is a cycle, which is the case a flat axis misreports.
+Use the flat bar chart when the comparison must be precise.
 
 The pie avoids that criticism and has one of its own. Its slices are angles
 rather than radii, so a share of the total really is the same share of the
-circle, and readers judge that share well. What angles do poorly is *ranking*:
-two slices of 22% and 19% are hard to order in a circle and easy to order in a
-column. Since both come from the same sentence, when ranking is the question,
-drop the last atom and read the bar.
+circle, and readers judge that share well. Angles are poor for *ranking*: the
+east and south-west slices of the count pie, 16% and 18%, are hard to order in
+the circle and easier to order as lengths in the stacked bar. When ranking is
+the question, drop the last atom and read the bar. Both pictures come from the
+same sentence.
 
 ## The marks in a circle
 
 The rose counted observations per direction. How fast the wind blew from each
-direction, and how much that varied, is a question for the summary marks. Every
-mark that draws on a flat page also draws in a circle. The summary marks read
-here exactly as they read flat: a box is still a five-number summary, a whisker
-still shows how far the values reach, a band is still a spread. Only the
-geometry changed.
+direction, and how much that varied, is a question for the marks that
+summarize: `box`, `interval` and `ribbon`. Every mark that draws on a flat page
+also draws in a circle. These three read here exactly as they read flat: a box
+is still a five-number summary, a whisker still shows how far the values reach,
+a band is still a spread. Only the geometry changed.
 
 ```{r}
 data(winds) + box + x(direction) + y(speed) + polar()
@@ -465,12 +468,13 @@ data(winds) + box + x(direction) + y(speed) + polar()
 
 *"Given the winds: boxes, x is direction, y is speed, in polar."*
 
-Each box is a wedge of the ring between its quartiles, its median an arc across
-it, its whiskers running straight out from the center. Compare it with the same
-sentence flat and nothing has been added or taken away.
+Each box is a piece of a ring, from the lower quartile out to the upper. Its
+median is an arc across it, and its whiskers lie along lines through the center.
+Drawn flat, the same sentence gives boxes with the same parts.
 
-The whisker alone shows less, and it is the one to use when the quartiles are
-more detail than the question needs:
+An `interval` shows less: one line from the lowest to the highest value, with no
+box. It is the one to use when the quartiles are more detail than the question
+needs:
 
 ```{r}
 data(winds) + interval * range + x(direction) + y(speed) + polar()
@@ -479,9 +483,9 @@ data(winds) + interval * range + x(direction) + y(speed) + polar()
 *"Given the winds: intervals derived by range, x is direction, y is speed, in
 polar."*
 
-A ribbon works the same way. Give each compass point a low and a high value, and
-`polar()` turns the ribbon into a **radar band**, the filled counterpart of the
-radar that `line` drew.
+A ribbon works the same way. `range` gives each compass point a low and a high
+value, and `polar()` turns the ribbon into a **radar band**, the filled
+counterpart of the radar that `line` drew.
 
 ```{r}
 data(winds) + ribbon * range + x(direction) + y(speed) + polar()
@@ -490,10 +494,10 @@ data(winds) + ribbon * range + x(direction) + y(speed) + polar()
 *"Given the winds: a ribbon derived by range, x is direction, y is speed, in
 polar."*
 
-A staircase holds each value from its own category round to the next rather than
-sloping between them, so in a circle it is a ring of arcs joined by radial
-jumps. And because the categories exhaust the turn, the last arc carries all the
-way around to the spoke the first one started from:
+A staircase holds each value from its own category around to the next rather
+than sloping between them, so in a circle it is a series of arcs joined by
+straight jumps. And because the categories fill the whole turn, the last arc
+carries all the way around to the spoke the first one started from:
 
 ```{r}
 data(winds) + step * mean + x(direction) + y(speed) + polar()
@@ -504,18 +508,13 @@ in polar."*
 
 Look at where the value changes. Every jump is a straight line out from the
 center, and every held value is a genuine arc rather than a chord cutting across
-it. That distinction is the only thing these marks needed in order to bend. A
-segment that *holds* a value across a span has to follow the ring. A straight
-line between the same two points falls inside the circle, and every point along
-it would be at a radius no reading has.
-
-The ring is open at the top, on the one spoke where the last arc meets the
-first. North-west averages 12.5 and north averages 9.3, and no jump is drawn
-between those two radii. The radar's line closed on itself; this outline does
-not.
+it. That distinction is the only thing the marks in this section needed in order
+to bend. A segment that *holds* a value across a span has to follow the circle
+at its radius. A straight line between the same two points falls inside the
+circle, and every point along it would be at a radius no reading has.
 
 A `zone` shades a region, and in this space a region is a wedge. Put a category
-on each axis and the tile plot bends into a disc, with one cell for every pair:
+on each axis and a tile plot bends into a disc, with one cell for every pair:
 
 ```{r}
 data(winds) + zone * count + x(direction) + y(season) + polar()
@@ -524,13 +523,15 @@ data(winds) + zone * count + x(direction) + y(season) + polar()
 *"Given the winds: zones derived by count, x is direction, y is season, in
 polar."*
 
-Two marks do not bend, and neither refusal belongs to the circle. A `surface` is
-a sheet through three positions, so it needs the cube, which is why it does not
-draw on a flat page either. An `edge` needs the space that places its nodes. A
-plot is also drawn in one space and not two, so asking for `polar()` and `z()`
+Two marks do not draw in a circle, and in neither case is the circle the reason.
+A `surface` needs three positions, so it needs the cube, the 3-D space that
+[Space](space.qmd) describes; it does not draw on a flat page either. An `edge`
+needs the [network](network.qmd) space, which places its nodes. A plot is also
+drawn in one space and not two, so asking for `polar()` and `z()`
 together is refused rather than one of the two being ignored.
 
-One sentence is refused here, and its reason is the third form of one rule:
+One sentence is refused here, because a hexagon needs a plane where the same
+step is the same distance everywhere:
 
 ```{r}
 #| echo: false
@@ -542,14 +543,14 @@ peek(gm_all)
 data(gm_all) + zone * bin(tiling = "hex") + x(gdp) + y(life) + polar()
 ```
 
-`bin(tiling = )` says how to partition a *plane*. It is refused on a
+`bin(tiling = )` says how to divide a *plane* into cells. It is refused on a
 one-dimensional bin because an interval is not a plane, and on a categorical
-axis because slots are an order rather than a distance. Here it is refused for
-the third form of the same problem. A hexagon exists to keep every cell the same
-size and shape. A bent plane has no fixed distance to measure that against,
-because a step of angle at the rim is longer than the same step near the center.
-A rectangle survives the bend, because a bent rectangle is a sector and that is
-a shape the engine draws.
+axis because slots are an order rather than a distance. Here it is refused
+because a bent plane is not such a plane either. A hexagon exists to keep every
+cell the same size and shape. A bent plane has no fixed distance to measure that
+against, because a step of angle at the rim is longer than the same step near
+the center. A rectangle still works after the bend, because a bent rectangle is
+a sector and that is a shape the engine draws.
 
 Which marks draw in which coordinate space is stated in full, on one page, by
 the Mark × Space grid in [Combinations](combinations.qmd). It is generated from
@@ -557,25 +558,30 @@ the engine's own table, so it cannot promise a plot the engine will not draw.
 
 ## The sunburst: depth is the radius
 
-Where does a household's money go, and inside each group, which items cost the
-most? That is a tree of shares, one level inside another. A **sunburst** draws a
-tree: one ring per level, each arc as wide as its share of the whole and sitting
-inside its parent's. It has no mark of its own and needs none. An arc of a ring
-is a rectangle in angle and radius. `zone` is the mark bounded by a pair of
-values on each axis. This space is what bends that rectangle into a sector.
-`partition` is what turns a hierarchy into those four edges, one set per node.
+A pie divides one whole into parts. The rest of this chapter is about dividing
+each part again. Where does a household's money go, and inside each group, which
+items cost the most? That is a tree of shares, one level inside another. A
+**sunburst** draws a tree: one ring per level, and each piece is as wide as its
+share of the whole. A child sits one ring further out, within its parent's
+angle. The sunburst has no mark of its own and needs none. A piece of a ring is
+a rectangle in angle and radius. `zone` is the mark bounded by a pair of values
+on each axis. This space is what bends that rectangle into a sector.
+[`partition`](transforms.qmd#partition-a-whole-among-nested-parts) is what turns
+a hierarchy into those two pairs of values, one rectangle per node, meaning
+every group, item and detail in the tree.
 
-The hierarchy arrives as **columns**. `spending` is a household budget with one
-row per leaf, meaning the last level of a branch, and the first three columns
-spell the path down to it:
+The hierarchy is stored as **columns**. `spending` is a household budget with
+one row per leaf, meaning the last level of a branch, and the first three
+columns hold the path down to it:
 
 ```{r}
 #| echo: false
 peek(spending, n = 6)
 ```
 
-A missing value is not missing data there. It says the branch stops: rent has no
-sub-parts worth naming, so it reaches the second level and no further.
+In this table, a missing value does not mean an unknown value. It means the
+branch stops: Rent has no sub-parts, so it reaches the second level and no
+further.
 
 ```{r}
 data(spending) + zone * partition(group, item, detail) + x(amount) +
@@ -586,51 +592,54 @@ data(spending) + zone * partition(group, item, detail) + x(amount) +
 detail, x is amount, color by group, in polar."*
 
 `partition(group, item, detail)` names the levels from the top of the tree down,
-so `group` is the innermost ring and `detail` the rim. `x(amount)` is what each
-branch is weighted by. Nothing in the sentence is about drawing, and nothing in
-it is about circles.
+so `group` is the innermost ring and `detail` the rim. `x(amount)` is the column
+that weights each branch: a branch's share of the circle is its share of the
+total amount. Apart from `polar()`, nothing in the sentence is about circles,
+and nothing in it names a sunburst.
 
-Bind nothing to `x` and every leaf weighs 1. That is the same tally `count`
-reports when nothing else is measured. The rings then divide by how many leaves
-each branch has rather than by what they cost:
+Bind nothing to `x` and every leaf weighs 1, the same weight `count` gives every
+row. The rings are then split by how many leaves each branch has rather than by
+what they cost:
 
 ```{r}
 data(spending) + zone * partition(group, item, detail) + color(group) + polar()
 ```
 
-Housing fills half the circle above and a third of it here, because it is 1,275
-of the 2,490 spent and 4 of the 12 leaves that spend it. That is the same swap
-the pie made between `count` and `sum`, this time on a tree.
+Housing fills half the circle above and a third of it here, because it holds
+1,275 of the 2,490 spent, and 4 of the 12 leaves. That is the same swap the pie
+made between `count` and `sum`, this time on a tree.
 
 Read the outer rim. It is solid outside Utilities and Car and blank outside
 every other item, because those two are the only items with a third level. A
 ragged rim is what a real hierarchy looks like, and it comes from the missing
-values rather than from anything the plot was told.
+values rather than from anything in the sentence.
 
-The radial axis carries **depth**, which is the level a node sits at: 1 for the
-groups on the inner ring, 2 for the items outside them, 3 for the details on the
-rim. The transform computes it and gives it that name. It is a column you can
-bind like any other, even though it is not in your table: `partition` is what
-put it there. Naming it is how you say what the radius runs over, and stating a
-domain that starts below the first ring is what hollows out the middle:
+The radial axis carries **depth**, which says which ring a node sits on. The
+groups fill the ring from 1 to 2, the items the ring from 2 to 3, and the
+details the ring from 3 to 4. `partition` computes depth and writes it under
+that name, so it is a column you can bind like any other, even though your
+table never held it. Binding it to `y` is how you say what the radius runs over,
+and stating a domain that starts below the first ring is what hollows out the
+middle:
 
 ```{r}
 data(spending) + zone * partition(group, item, detail) + x(amount) +
   y(depth, limits = c(0, 4)) + color(group) + polar()
 ```
 
-That is not a setting, and the reason matters. A hole is a stretch of the radial
-axis with nothing standing on it: the innermost ring starts at 1, and saying the
-axis runs from 0 leaves the first unit of radius empty. Widen the stretch and
-the hole widens with it, because `limits` states a domain and the rings keep the
-places they always had. With `c(-1, 4)` the hole takes two fifths of the radius
-rather than a quarter.
+The hole is not a setting, and the reason matters. A hole is a stretch of the
+radial axis with nothing standing on it: the innermost ring starts at 1, and
+saying the axis runs from 0 leaves the first unit of radius empty. Widen the
+stretch and the hole widens with it, because `limits` states a domain and the
+rings keep the places they always had. With `c(-1, 4)` the hole takes two fifths
+of the radius rather than a quarter.
 
 ## The donut: one level is still a tree
 
 A hierarchy one level deep is still a hierarchy, and everything above is true of
-it as well. One level is one ring, that ring is at depth 1, and an axis running
-from 0 to 2 leaves the first of its two units empty, which is a **donut**:
+it as well. A **donut** is the hollow sunburst with one level. One level is one
+ring, that ring runs from 1 to 2, and an axis running from 0 to 2 leaves the
+first of its two units empty:
 
 ```{r}
 data(spending) + zone * partition(group) + x(amount) +
@@ -639,11 +648,11 @@ data(spending) + zone * partition(group) + x(amount) +
 
 There is no `donut` atom, no `hole =` setting, and nothing in that sentence
 about donuts. It is the sunburst's sentence with one level named instead of
-three, drawn on a radial axis with one empty unit at the bottom of it.
+three, drawn on a radial axis whose first unit is empty.
 
 The donut you usually see published writes its names in the ring, and that is
-the `text` layer from [Naming the nodes](#naming-the-nodes) (just below) with
-one level instead of two:
+the `text` layer explained under [Naming the nodes](#naming-the-nodes), two
+sections later, with one level instead of two:
 
 ```{r}
 data(spending) + x(amount) + y(depth, limits = c(0, 2)) +
@@ -663,14 +672,15 @@ of decoding a wedge stand side by side.
 The pie is the one plot in this space that cannot have a hole, and that follows
 from what a pie binds. A [pie](#the-pie-where-you-put-the-category) puts its
 measurement on the angle and leaves the radius constant, so it has no radial
-domain to widen. There is no setting that would add one. A hole appears only
-where the radial axis runs below the innermost ring, so bind something to the
-radius and the hole becomes sayable again. That is one atom away.
+domain to widen. No setting adds a hole to a pie. A hole appears only
+where the radial axis runs below the innermost ring, so only a plot that binds
+the radius can have one. The donut binds it with `y(depth, limits = c(0, 2))`.
 
-## The same sentence, unbent
+## The same sentence on a flat page
 
-If the circle really is one word, taking the word away should leave a readable
-plot. Take `polar()` off the three-level sunburst and change nothing else:
+This chapter has said that the circle is one word, `polar()`. If that is true,
+taking the word away should leave a readable plot. Take `polar()` off the
+three-level sunburst and change nothing else:
 
 ```{r}
 data(spending) + zone * partition(group, item, detail) + x(amount) +
@@ -680,19 +690,20 @@ data(spending) + zone * partition(group, item, detail) + x(amount) +
 That is an **icicle chart**: depth going up instead of outward, share going
 across instead of around. The two pictures are one coordinate space apart, and
 that space is the only difference between two charts with two names. A rose and
-a bar chart are the same pair, and so are a pie and a stacked bar.
+a bar chart differ in the same way, and so do a pie and a stacked bar.
 
-The empty band along the bottom is the hole, and seeing it flat is the clearest
-statement of what a hole is. A hole is not a shape. It is a stretch of the depth
+The empty band along the bottom is the hole, and seeing it flat shows most
+clearly what a hole is. A hole is not a shape. It is a stretch of the depth
 axis with nothing on it, and bending the picture wraps that stretch into a disc
 at the center.
 
 ## Naming the nodes
 
-The legend decodes the groups and nothing inside them, so the items on the
-middle ring are unnamed. `partition` publishes each node's **center** as well as
-its four edges, which is why a second mark can read the same computation. `text`
-takes the center and labels the node:
+Go back to the three-level sunburst. The legend decodes the groups and nothing
+inside them, so the items on the middle ring are unnamed. `partition` writes the
+**center** of each node, the middle of its own region, as well as its four
+edges. That is why a second mark can read the same computation. `text` takes
+that center and labels the node:
 
 ```{r}
 data(spending) + x(amount) + y(depth, limits = c(0, 4)) +
@@ -701,33 +712,34 @@ data(spending) + x(amount) + y(depth, limits = c(0, 4)) +
   polar() + x_label("")
 ```
 
-`label(name)` reads a column the transform wrote, the way `color(count)` reads a
-binned tally. The text layer names *two* levels where the zone names three. The
-third level gets no label, which is why the rim is bare. A shallower partition
-of the same table puts its nodes in exactly the same places, because the arcs
-are decided by the leaves underneath them, and those did not change.
+`label(name)` reads a column the transform wrote. The text layer names *two*
+levels where the zone draws three. The third level gets no label, which is why
+the rim is bare. A shallower partition of the same table puts its nodes in
+exactly the same places, because each node's width is decided by the leaves
+underneath it, and those did not change.
 
-One thing about that plot is a limit of the engine rather than a choice. The
-names sit upright where a published sunburst runs them along their arcs, because
-`text` places a label at a point in this space and has no rotation to follow one
-with.
+One thing about that plot is a limit of the engine rather than a choice. A
+published sunburst runs its names along their arcs. Here they sit upright,
+because `text` places a label at a point and cannot turn it to follow an arc.
 
-That sentence carries an `x_label("")` and no `y_label("")` beside it, and the
-reason is that only one of the two axes has a label to remove. The radial axis
-carries the depth the transform computed, and nobody reads a level off a scale,
-so it draws no ticks, no rings and no name of its own. Nothing in the sentence
-asks for that. The engine reads what the axis carries and draws no guide for a
-level, the same way it recognizes a pie from its bindings. The measure keeps its
-guide, because an amount around a circle is a quantity in the data's own units,
-and the empty string is what removes *that* label.
+That sentence carries an `x_label("")` and no `y_label("")` beside it, because
+only one of the two axes has a label to remove. The radial axis carries the
+depth the transform computed. Nobody needs a scale to tell the first ring from
+the second, so that axis draws no ticks, no gridlines and no name of its own,
+and nothing in the sentence has to ask for that. The engine reads what the axis
+carries. It never knows that the plot is a sunburst, in the same way that it
+never knows a pie is a pie: in both, what is drawn follows from what the
+sentence binds. The amount around the circle keeps its ticks and its name,
+because it is a quantity in the data's own units. `x_label("")` removes the name
+and leaves the ticks.
 
 ## What a tree lets the grammar check
 
-A hierarchy has a rule that rectangles do not: every child lies inside its
+A hierarchy has two rules that rectangles do not: every child lies inside its
 parent, and children of one parent do not overlap. Give the engine four edge
 numbers per node and it cannot check either rule. It will draw a wrong sunburst
-and say nothing. Give it the *tree* and it can check both, and one case is worth
-looking at because it is a real ambiguity rather than a mistake:
+and say nothing. Give it the *tree* and it can check both. One case is shown
+here because it is a real ambiguity rather than a mistake:
 
 ```{r}
 #| error: true
@@ -737,32 +749,37 @@ mixed <- data.frame(group = c("Housing", "Housing"),
 data(mixed) + x(amount) + zone * partition(group, item) + polar()
 ```
 
-Housing has a number of its own *and* a child with a number. Those two readings
-draw different pictures: either its arc is the child's total, or its own 50 sits
-beside the 980 and widens it. Plotly answers it with a setting called
-`branchvalues`. gog does not choose for you, because that arithmetic belongs to
-your table rather than to the grammar. Put every number on a leaf and let the
-parents be the sums, which is what a partition computes.
+Housing has a number of its own *and* a child with a number. That can be read
+two ways, and the two draw different pictures: either Housing is as wide as its
+child's 980, or Housing's own 50 is added to the 980 and Housing is wider.
+Plotly answers it with a setting called `branchvalues`. gog does not choose for
+you, because that sum is a decision about your data, not about the plot. Put
+every number on a leaf and let the parents be the sums, which is what a
+partition computes.
 
-The other refusals are the same rule in smaller cases. A level must be a
-**name** that a branch shares, so a continuous column is refused and sent to
-`x()`, where a measurement belongs. A branch may stop early but may not skip a
-level, since nothing below a stop can be reached. And a mark with no reading for
-a region is sent to `zone` or `text`.
+Three other refusals are smaller. A level must be a **name** that a branch
+shares, so a continuous column is refused and sent to `x()`, where a
+measurement belongs. A branch may stop early but may not skip a level: a row
+with a detail and no item is refused, because the detail has no item to sit
+inside. And a mark that cannot read a region, such as `point` or `bar`, is
+refused. The message sends you to `zone`, which draws the region, or to `text`,
+which labels its center.
 
-One shape of input is deliberately not `partition`'s to read. A hierarchy
-written as columns, one level or several, is what `partition` reads and what
-faceting reads too. A tree of arbitrary depth arriving as a parent column and a
-child column is the shape a *network* has. [Network](network.qmd) is where that
-shape is read: `layout(parent, child)` places it, in a space with its own rules.
-Each family answers the question it is built for.
+`partition` deliberately does not read a tree stored as a parent column and a
+child column. It reads a hierarchy written as columns, one per level, which is
+what faceting reads too. A parent column and a child column can describe a tree
+of any depth, and that is the shape a *network* has. [Network](network.qmd) is
+where that shape is read: `layout(parent, child)` places it, in a space with its
+own rules. Each transform reads the shape it is built for.
 
 ## In short
 
-`x` becomes the angle and `y` the radius, because the first position is what you
-search in. Bind only one position and it becomes the angle, which is what lets a
-stacked bar draw a pie. A categorical angle wraps, so the last category sits
-beside the first.
+`x` becomes the angle and `y` the radius, because the first position says where
+and the second says how much. Bind only one position and it becomes the angle: a
+stacked bar then draws a pie. A categorical angle closes, so the last category
+sits beside the first. A cycle whose table lacks its ends needs `limits` to fill
+the turn. `partition` draws a hierarchy as rings of depth, and a domain below
+the first ring makes the hole.
 
 ## What comes next
 
