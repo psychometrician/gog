@@ -4544,3 +4544,22 @@ local({
   if (!identical(a, b)) stop("FAIL: a parallel from one column should be placed as from two")
   cat("PASS: a one-column rule on a map is projected\n")
 })
+
+# A plot splits once across and once down, so a second facet in one direction
+# replaced the first, in silence. And a pair of facets with no plot reached the
+# engine as an empty request, which failed as a JSON parse error. Both are refused
+# with direction now. The same block runs in all four bindings.
+local({
+  split <- data.frame(a = c(1, 2, 3, 4), b = c(1, 2, 3, 4),
+                      g = c("p", "q", "p", "q"), h = c("u", "u", "v", "v"))
+  refuses("a second facet across",
+          data(split) + point + x(a) + y(b) | facet(g) | facet(h),
+          "already split into panel columns by `g`")
+  refuses("a second facet down",
+          data(split) + point + x(a) + y(b) / facet(g) / facet(h),
+          "already split into panel rows by `g`")
+  refuses("a pair of facets with no plot", render_svg(facet(g) | facet(g)),
+          "`facet()` with no plot to split")
+  render_svg(data(split) + point + x(a) + y(b) | facet(g) / facet(h))
+  cat("PASS: a second facet in one direction, and facets with no plot, are refused\n")
+})

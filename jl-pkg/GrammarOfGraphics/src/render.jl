@@ -370,6 +370,23 @@ function pruned(request::AbstractString)
     process.exitcode == 0 && startswith(text, "{") ? String(text) : String(request)
 end
 
+# What to say when something that is not a plot is asked to draw. A facet with no
+# plot is the likely one, reached by `facet(:g) | facet(:g)`, and it failed with a
+# raw `MethodError`. The direction is the sentence that facets a plot.
+function not_a_plot(atom::Atom)
+    if atom.kind in (:facet, :facet_pair, :atom_then_facet)
+        return "gog: this is `facet()` with no plot to split. A facet splits a plot by " *
+               "a column, so build the plot first and facet it: " *
+               "`data(df) + point + x(:a) + y(:b) | facet(:g)`."
+    end
+    "gog: this is not a plot, so there is nothing to draw. A plot starts with " *
+    "`data()`: `data(df) + point + x(:a) + y(:b)`."
+end
+
+render_svg(atom::Atom) = throw(GogError(not_a_plot(atom)))
+save(atom::Atom, ::AbstractString) = throw(GogError(not_a_plot(atom)))
+save_gif(atom::Atom, ::AbstractString; scale::Real = 1) = throw(GogError(not_a_plot(atom)))
+
 function render_svg(plot::Union{Plot,Page})
     payload = wire_payload(plot)
 

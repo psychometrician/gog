@@ -164,6 +164,17 @@ Each is now refused, with what to write instead.
   name, so `zone * flow(class, class)` drew every slot at the first stage, and
   `flow(class, survived, class)` drew its third stage on top of its first.
 
+- **A second facet in one direction.** `plot | facet(continent) | facet(era)`
+  kept only `era`, and two `/ facet()` did the same. A plot splits once across
+  and once down, so the second is refused, and the refusal gives the crossing
+  that keeps both, `plot | facet(a) / facet(b)`. In JavaScript the same holds
+  for `across()` or `down()` written twice.
+
+- **`facet()` with no plot.** `facet(g) | facet(g)` built a pair of facets
+  with nothing to split, and failed as a JSON parse error in R, an
+  `AttributeError` in Python and a `MethodError` in Julia. It is refused with
+  the sentence that facets a plot.
+
 - **Some refusals are reworded.** A `zone` with no sides now lists all five
   ways to give it some, a boundary on a map included. A refusal about both
   axes is printed once and names both, not once per axis. `path * mean`,

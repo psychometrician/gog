@@ -377,6 +377,27 @@ def to_wire(frame: Any, table: str) -> Dict[str, Any]:
 # ---------------------------------------------------------------------------
 
 
+def _not_a_plot(obj: Any) -> str:
+    """What to say when something that is not a plot is asked to draw.
+
+    A facet with no plot is the likely one, reached by `facet(g) | facet(g)`: it
+    raised `AttributeError: 'Atom' object has no attribute '_wire'`. The direction
+    is the sentence that facets a plot.
+    """
+    from .spec import Atom  # spec imports this module, so it is reached here
+
+    if isinstance(obj, Atom) and obj.kind in ("facet", "facet_pair", "atom_then_facet"):
+        return (
+            "gog: this is `facet()` with no plot to split. A facet splits a plot by a "
+            "column, so build the plot first and facet it: "
+            "`data(df) + point + x(col.a) + y(col.b) | facet(col.g)`."
+        )
+    return (
+        "gog: this is not a plot, so there is nothing to draw. A plot starts with "
+        "`data()`: `data(df) + point + x(col.a) + y(col.b)`."
+    )
+
+
 def _payload(plot: Any) -> str:
     """The engine's input for a plot or a page, as JSON.
 
@@ -385,6 +406,8 @@ def _payload(plot: Any) -> str:
     number's precision or about what a missing value crosses as, and that
     disagreement would surface as a GIF that does not match the plot beside it.
     """
+    if not hasattr(plot, "_wire"):
+        raise GogError(_not_a_plot(plot))
     spec, frames = plot._wire()
     # A `query()` table is resolved here and nowhere else — one place, at render,
     # which is what leaves room for the planner to rewrite the sentence before

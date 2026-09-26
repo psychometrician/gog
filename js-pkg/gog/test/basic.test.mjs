@@ -2840,3 +2840,15 @@ test("a one-column rule on a map is projected", () => {
     data(t, { name: "par" }), rule, y(col.lat), map()));
   assert.equal(par({ lat: [45] }), par({ lon: [0], lat: [45] }));
 });
+
+// A plot splits once across and once down, so a second split in one direction
+// replaced the first, in silence. The same block runs in all four bindings;
+// JavaScript cannot spell a pair of facets with no plot.
+test("a second facet in one direction is refused", () => {
+  const split = { a: [1, 2, 3, 4], b: [1, 2, 3, 4], g: ["p", "q", "p", "q"], h: ["u", "u", "v", "v"] };
+  assert.match(refusalOf(() => plot(data(split), point, x(col.a), y(col.b), across(col.g), across(col.h))),
+    /already split into panel columns by `g`/);
+  assert.match(refusalOf(() => plot(data(split), point, x(col.a), y(col.b), down(col.g), down(col.h))),
+    /already split into panel rows by `g`/);
+  assert.ok(render_svg(plot(data(split), point, x(col.a), y(col.b), across(col.g), down(col.h))).includes("<svg"));
+});

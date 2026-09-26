@@ -582,6 +582,7 @@ class Plot:
             # facet — left to right, as written.
             plot = plot + other.fields["atom"]
             plot.spec.setdefault("facet", {"col": None, "row": None})
+            _facet_slot_free(plot, other.fields["slot"])
             plot.spec["facet"][other.fields["slot"]] = other.fields["facet"]
             if other.fields.get("wrap") is not None:
                 plot.spec["facet"]["wrap"] = other.fields["wrap"]
@@ -923,6 +924,22 @@ def _channel_def(atom: Atom) -> Dict[str, Any]:
 # ---------------------------------------------------------------------------
 
 
+def _facet_slot_free(plot: "Plot", slot: str) -> None:
+    """A plot splits once across and once down, so a second facet in a direction
+    already split would replace the first. It did, in silence:
+    `plot | facet(col.continent) | facet(col.era)` kept only `era`. Refused, with
+    the crossing that keeps both."""
+    field = plot.spec["facet"].get(slot)
+    if field is None:
+        return
+    way, op = ("panel columns", "|") if slot == "col" else ("panel rows", "/")
+    raise GogError(
+        f"gog: this plot is already split into {way} by `{field}`, and a second "
+        f"`{op} facet()` would replace it. A plot splits once across and once down: "
+        f"cross two columns with `plot | facet(col.a) / facet(col.b)`, or split by one."
+    )
+
+
 def _facet_join(left: Any, right: Any, slot: str, operator: str) -> Any:
     other = "row" if slot == "col" else "col"
 
@@ -984,6 +1001,8 @@ def _facet_join(left: Any, right: Any, slot: str, operator: str) -> Any:
 
     plot = left._copy()
     plot.spec.setdefault("facet", {"col": None, "row": None})
+    for taken in ([slot] if right.kind == "facet" else [slot, other]):
+        _facet_slot_free(plot, taken)
     if right.kind == "facet":
         plot.spec["facet"][slot] = right.fields["field"]
     else:

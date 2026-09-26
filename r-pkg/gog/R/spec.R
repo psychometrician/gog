@@ -785,6 +785,7 @@ resolve_query <- function(q, table) {
     atom_then_facet = {
       lhs <- lhs + rhs$atom
       if (is.null(lhs$spec$facet)) lhs$spec$facet <- list(col = NULL, row = NULL)
+      facet_slot_free(lhs, rhs$slot)
       lhs$spec$facet[[rhs$slot]] <- rhs$facet
       if (!is.null(rhs$wrap)) lhs$spec$facet$wrap <- rhs$wrap
     },
@@ -1074,6 +1075,7 @@ facet_join <- function(lhs, rhs, slot, op) {
   }
 
   if (is.null(lhs$spec$facet)) lhs$spec$facet <- list(col = NULL, row = NULL)
+  for (s in if (rhs$type == "facet") slot else c(slot, other)) facet_slot_free(lhs, s)
   if (rhs$type == "facet") {
     lhs$spec$facet[[slot]] <- rhs$field
     # The count rides with the column it was written on. Which *way* the line
@@ -1091,6 +1093,21 @@ facet_join <- function(lhs, rhs, slot, op) {
     if (!is.null(rhs$wrap)) lhs$spec$facet$wrap <- rhs$wrap
   }
   lhs
+}
+
+# A plot splits once across and once down, so a second facet in a direction
+# already split would replace the first. It did, in silence:
+# `plot | facet(continent) | facet(era)` kept only `era`. Refused, with the
+# crossing that keeps both.
+facet_slot_free <- function(lhs, slot) {
+  field <- lhs$spec$facet[[slot]]
+  if (is.null(field)) return(invisible(TRUE))
+  way <- if (slot == "col") "panel columns" else "panel rows"
+  op <- if (slot == "col") "|" else "/"
+  stop("gog: this plot is already split into ", way, " by `", field, "`, and a ",
+       "second `", op, " facet()` would replace it. A plot splits once across and ",
+       "once down: cross two columns with `plot | facet(a) / facet(b)`, or split by ",
+       "one.", call. = FALSE)
 }
 
 # ---------------------------------------------------------------------------

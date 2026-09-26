@@ -212,7 +212,27 @@ df_to_wire <- function(df) {
 # number's precision or about what a missing value crosses as, and that
 # disagreement would surface as a GIF that does not match the plot beside it in
 # the book — the one difference no amount of comparing SVG could catch.
+# What to say when something that is not a plot is asked to draw. A facet with no
+# plot is the likely one, reached by `facet(g) | facet(g)`; the direction is the
+# sentence that facets a plot.
+not_a_plot <- function(x) {
+  if (inherits(x, "gog_atom") &&
+      isTRUE(x$type %in% c("facet", "facet_pair", "atom_then_facet"))) {
+    return(paste0("gog: this is `facet()` with no plot to split. A facet splits a ",
+                  "plot by a column, so build the plot first and facet it: ",
+                  "`data(df) + point + x(a) + y(b) | facet(g)`."))
+  }
+  paste0("gog: this is not a plot, so there is nothing to draw. A plot starts with ",
+         "`data()`: `data(df) + point + x(a) + y(b)`.")
+}
+
 wire_json <- function(gog) {
+  # Only a plot or a page draws. `facet(g) | facet(g)` builds a pair of facets
+  # still waiting for a plot, and it reached the engine as an empty request,
+  # which failed as a JSON parse error with exit 1 rather than as a refusal.
+  if (!inherits(gog, "gog_spec") && !inherits(gog, "gog_page")) {
+    stop(not_a_plot(gog), call. = FALSE)
+  }
   # A page and a plot are one wire format (`ir::Figure`): the engine tells them
   # apart by their own required fields, so this is the only line that has to
   # know which it was handed.

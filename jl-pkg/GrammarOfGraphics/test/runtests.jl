@@ -2231,3 +2231,15 @@ end
                         data(t; name = "par") + rule + y(:lat) + map())
     @test par((lat = [45.0],)) == par((lon = [0.0], lat = [45.0]))
 end
+
+# A plot splits once across and once down, so a second facet in one direction
+# replaced the first, in silence; and a pair of facets with no plot was a raw
+# MethodError. The same block runs in all four bindings.
+@testset "a second facet in one direction, and facets with no plot, are refused" begin
+    split = (a = [1.0, 2.0, 3.0, 4.0], b = [1.0, 2.0, 3.0, 4.0],
+             g = ["p", "q", "p", "q"], h = ["u", "u", "v", "v"])
+    @refuses (data(split) + point + x(:a) + y(:b) | facet(:g) | facet(:h)) "already split into panel columns by `g`"
+    @refuses (data(split) + point + x(:a) + y(:b) / facet(:g) / facet(:h)) "already split into panel rows by `g`"
+    @refuses render_svg(facet(:g) | facet(:g)) "`facet()` with no plot to split"
+    @test occursin("<svg", render_svg(data(split) + point + x(:a) + y(:b) | facet(:g) / facet(:h)))
+end

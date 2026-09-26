@@ -518,6 +518,7 @@ function Base.:+(left::Plot, right::Atom)
         plot = plot + right.fields[:atom]
         haskey(plot.spec, "facet") ||
             (plot.spec["facet"] = Dict{String,Any}("col" => nothing, "row" => nothing))
+        facet_slot_free(plot, right.fields[:slot])
         plot.spec["facet"][right.fields[:slot]] = right.fields[:facet]
         let w = get(right.fields, :wrap, nothing)
             w === nothing || (plot.spec["facet"]["wrap"] = w)
@@ -777,6 +778,20 @@ function Base.:+(left::Page, right::Atom)
     page
 end
 
+# A plot splits once across and once down, so a second facet in a direction
+# already split would replace the first. It did, in silence:
+# `plot | facet(:continent) | facet(:era)` kept only `era`. Refused, with the
+# crossing that keeps both.
+function facet_slot_free(plot, slot::AbstractString)
+    field = get(plot.spec["facet"], slot, nothing)
+    field === nothing && return nothing
+    way, op = slot == "col" ? ("panel columns", "|") : ("panel rows", "/")
+    throw(GogError("gog: this plot is already split into $way by `$field`, and a " *
+                   "second `$op facet()` would replace it. A plot splits once across " *
+                   "and once down: cross two columns with `plot | facet(:a) / facet(:b)`, " *
+                   "or split by one."))
+end
+
 function facet_join(left, right, slot::AbstractString, operator::AbstractString)
     other = slot == "col" ? "row" : "col"
 
@@ -813,6 +828,9 @@ function facet_join(left, right, slot::AbstractString, operator::AbstractString)
     plot = copy_plot(left)
     haskey(plot.spec, "facet") ||
         (plot.spec["facet"] = Dict{String,Any}("col" => nothing, "row" => nothing))
+    for taken in (right.kind === :facet ? (slot,) : (slot, other))
+        facet_slot_free(plot, taken)
+    end
     if right.kind === :facet
         plot.spec["facet"][slot] = right.fields[:field]
     else

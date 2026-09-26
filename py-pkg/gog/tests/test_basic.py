@@ -2650,3 +2650,19 @@ _par = lambda t: render_svg(data(_pts, name="pts") + point + x(col.lon) + y(col.
 assert _par({"lat": [45.0]}) == _par({"lon": [0.0], "lat": [45.0]}), \
     "a parallel from one column should be placed as from two"
 ok("a one-column rule on a map is projected")
+
+
+# --- a second facet in one direction, and facets with no plot ----------------
+# A plot splits once across and once down, so a second facet in one direction
+# replaced the first, in silence; and a pair of facets with no plot raised an
+# AttributeError. The same block runs in all four bindings.
+_split = {"a": [1.0, 2.0, 3.0, 4.0], "b": [1.0, 2.0, 3.0, 4.0],
+          "g": ["p", "q", "p", "q"], "h": ["u", "u", "v", "v"]}
+assert "already split into panel columns by `g`" in _refusal(
+    lambda: data(_split) + point + x(col.a) + y(col.b) | facet(col.g) | facet(col.h))
+assert "already split into panel rows by `g`" in _refusal(
+    lambda: data(_split) + point + x(col.a) + y(col.b) / facet(col.g) / facet(col.h))
+assert "`facet()` with no plot to split" in _refusal(
+    lambda: render_svg(facet(col.g) | facet(col.g)))
+render_svg(data(_split) + point + x(col.a) + y(col.b) | facet(col.g) / facet(col.h))
+ok("a second facet in one direction, and facets with no plot, are refused")

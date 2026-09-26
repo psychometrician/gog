@@ -810,6 +810,18 @@ class Builder {
       case "facet_row": {
         if (!this.spec.facet) this.spec.facet = { col: null, row: null };
         const slot = atom.kind === "facet_col" ? "col" : "row";
+        // A plot splits once across and once down, so a second split in one
+        // direction would replace the first. It did, in silence:
+        // `across(col.continent), across(col.era)` kept only `era`.
+        const taken = this.spec.facet[slot];
+        if (taken !== null && taken !== undefined) {
+          const [way, word] = slot === "col" ? ["panel columns", "across"] : ["panel rows", "down"];
+          throw new GogError(
+            `gog: this plot is already split into ${way} by \`${taken}\`, and a second ` +
+              `\`${word}()\` would replace it. A plot splits once across and once down: ` +
+              `cross two columns with \`across(col.a), down(col.b)\`, or split by one.`
+          );
+        }
         this.spec.facet[slot] = atom.fields.field;
         // The count rides with the column it was written on; which way the line
         // runs is the word's, already settled. Carried even onto a crossing,
