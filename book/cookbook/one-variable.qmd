@@ -5,9 +5,10 @@
 source("../R/setup.R")
 ```
 
-You have one column. What can it tell you? The column's type decides the
-question. A categorical column asks how many of each; a continuous column asks
-how the values spread.
+You have one column. What can it tell you? Which question you can ask depends on
+the column's type. With a categorical column you ask how many rows fall in each
+category. With a continuous column you ask how the values spread. When the table
+is small, there is a third question: whether to summarize the rows at all.
 
 ## How many of each?
 
@@ -38,15 +39,17 @@ data(gapminder_2007) + bar * count + y(continent)
 
 *"Given gapminder 2007: bars derived by count, y is continent."*
 
-The invented count axis has moved to x, so the bars are read from left to right.
-Owning chapters: [Bar](../marks/bar.qmd), [Transforms](../transforms.qmd).
+The invented count axis has moved to x, so each bar's length is read from left
+to right. Owning chapters: [Bar](../marks/bar.qmd),
+[Transforms](../transforms.qmd).
 
 ## What share of the whole is each?
 
-The count above shows 52 countries in Africa. A count alone cannot say whether
-that is many or few, and the table holds 142 countries in all. When the question
-is each continent's share of the whole, swap `count` for `proportion`. The
-counts become fractions that sum to one:
+In both count plots above, Africa has the longest bar: 52 countries. A count
+alone cannot say whether 52 is many or few. The table holds 142 countries in
+all, so Africa holds 52 of the 142, a share of about 0.37. When the question is
+each continent's share of the whole, swap `count` for `proportion`. The counts
+become fractions that sum to one:
 
 ```{r}
 data(gapminder_2007) + bar * proportion + x(continent)
@@ -55,15 +58,19 @@ data(gapminder_2007) + bar * proportion + x(continent)
 *"Given gapminder 2007: bars derived by proportion, x is continent."*
 
 **One atom away.** Swap `proportion` back to `count` for the counts themselves.
-To change which order the categories appear in, name the category column in
-[`order()`](../data.qmd): here `order(continent)` sorts them alphabetically. The
-share is invented by the transform, so `order()` has no column to read it from.
+The bars above follow the order the continents first appear in the table. To
+draw them in another order, use
+[`order()`](../data.qmd#declaring-the-order-of-categories), which sorts them by
+the values in a column of the table: `order(continent)` sorts them
+alphabetically, by their own names. The transform invents the share,
+so the table has no column of shares, and gog refuses `order(proportion)`.
+Owning chapters: [Bar](../marks/bar.qmd), [Transforms](../transforms.qmd).
 
 ## How is a measurement distributed?
 
-The two recipes above counted categories. A continuous column asks a different
-question, so the table changes: in the iris flowers, `petal_length` is
-continuous, one measurement per flower. The first question is where the values
+The two recipes above counted categories. With a continuous column you ask a
+different question. In the `iris_flowers` table, `petal_length` is continuous,
+one measurement per flower. The first question is where the values
 cluster and how far they spread. `bin` cuts the axis into equal-width bins and
 counts the rows in each. `bar` draws those counts as touching rectangles, so a
 gap is a bin with no rows. The result is the **histogram**:
@@ -78,11 +85,12 @@ data(iris_flowers) + bar * bin + x(petal_length)
 ```
 
 *"Given the iris flowers: bars derived by bin, x is petal length."* The gap near
-2.5 cm is one of those empty bins. No flower in the table has a petal length
-between 1.9 and 3.0 cm, because one species is separated from the other two.
+2.5 cm is an empty bin. No flower in the table has a petal length between 1.9
+and 3.0 cm. One species has much shorter petals than the other two, and the
+empty bin is part of the space between them.
 
-**One atom away.** `bin` takes a number of bins or a bin width when the
-automatic choice hides the shape. `bin(30)` asks for thirty bins;
+**One atom away.** When the automatic choice makes the shape hard to read, give
+`bin` a number of bins or a bin width. `bin(30)` asks for thirty bins;
 `bin(width = 0.5)` asks for bins 0.5 cm wide:
 
 ```{r}
@@ -91,48 +99,60 @@ data(iris_flowers) + bar * bin(width = 0.5) + x(petal_length)
 
 *"Given the iris flowers: bars derived by bin at width 0.5, x is petal length."*
 
-A `line * bin` is the frequency polygon: the same counts, joined through the bin
-centers. Owning chapters: [Bar](../marks/bar.qmd),
+A `line * bin` is the **frequency polygon**: a line through the same counts,
+placed at the center of each bin. Owning chapters: [Bar](../marks/bar.qmd),
 [Transforms](../transforms.qmd).
 
 ## What is its smooth shape?
 
-A histogram's shape depends on where its bin edges fall. A reader can mistake
+A histogram's shape depends on the choice of bin edges. A reader can mistake
 that choice for a feature of the data. When the shape of the distribution itself
-is the answer, `density` draws a curve with no bin edges at all. Back to the
-gapminder countries, and their life expectancies:
+is the answer, `density` draws a curve with no bin edges at all. Here is the
+histogram's own column again, the petal lengths:
 
 ```{r}
-data(gapminder_2007) + line * density + x(life)
+data(iris_flowers) + line * density + x(petal_length)
 ```
 
-*"Given gapminder 2007: a line derived by density, x is life."* This answers the
-question the histogram answered, with one derivation changed. Draw both when the
-number of peaks matters, because a histogram and a density curve can disagree
-about it.
+*"Given the iris flowers: a line derived by density, x is petal length."* This
+answers the question the histogram answered, for the same column, with
+`density` in place of `bin` and a `line` to draw it. The two groups of petals
+are now two peaks, and the valley between them lies over the empty bin. Draw
+both when the number of peaks matters, because a histogram and a density curve
+can show a different number of peaks.
 
-One argument controls the smoothing. `density(0.5)` is half as smooth as the
-default and `density(2)` is twice as smooth. `density(bandwidth = 1)` sets the
-bandwidth to one year instead, in the column's own units. Owning chapters:
+The curve starts below zero, although no petal is shorter than 1 cm. A density
+spreads each row into a small smooth bump, and the bumps of the shortest petals
+reach past zero.
+
+The width of each bump is the **bandwidth**, and it sets how smooth the curve
+is. A number written alone multiplies the default bandwidth: `density(0.5)` is
+half as smooth as the default and `density(2)` is twice as smooth.
+`density(bandwidth = 0.5)` sets the bandwidth itself instead, in the column's
+own unit, so here it is half a centimeter. Write one of the two forms, never
+both. Owning chapters:
 [Line](../marks/line.qmd), [Transforms](../transforms.qmd).
 
-## How does the distribution look in steps?
+## How does the distribution look as a staircase?
 
-A third mark can draw the same `bin`. `step` traces the bin tops as a staircase
-outline, with no fill. It is most useful when several distributions share one
-axis, as in [Many groups](groups.qmd), because unfilled outlines cannot hide
-each other:
+The histogram drew `bin` with `bar`. `step` can draw it too, tracing the bin
+tops as a staircase outline with no fill. It is most useful when several
+distributions share one axis, as in [Many groups](groups.qmd), because unfilled
+outlines do not cover each other. This plot draws the histogram's distribution
+again, so you can compare the two marks directly:
 
 ```{r}
-data(gapminder_2007) + step * bin + x(life)
+data(iris_flowers) + step * bin + x(petal_length)
 ```
 
-*"Given gapminder 2007: a step outline derived by bin, x is life."*
+*"Given the iris flowers: a step outline derived by bin, x is petal length."*
 
-`bar` and `step` have now drawn the same `bin`, and the `line * bin` named above
-would make three. The transform never changed. Only the geometry that draws its
-output changed. That is the [No Exceptions law](../design-laws.qmd): a transform
-behaves the same on every mark. Owning chapters: [Step](../marks/step.qmd),
+This is the histogram's sentence with one atom changed, `step` in place of
+`bar`. The bins are the same, the empty one included, and only the mark that
+draws them changed. With the `line * bin` named earlier, that is three marks on
+one transform. That is the [No Exceptions
+law](../design-laws.qmd#law-2-no-exceptions): a transform behaves the same on
+every mark. Owning chapters: [Step](../marks/step.qmd),
 [Transforms](../transforms.qmd).
 
 ## When there are only thirty rows
@@ -154,28 +174,31 @@ data(gm_europe) + point * bin * stack + x(life) +
   x_label("Life expectancy (years)") + title("Thirty countries, thirty dots")
 ```
 
-*"Given gapminder Europe: points derived by bin and stack, x is life."* The
-pile's height is a count. You can read the tallest pile off the axis, or count
-its dots one by one. No row has been replaced by a summary. Compare the same
-thirty countries as bars, where each pile becomes one bar and the individual
+*"Given gapminder Europe: points derived by bin and stack, x is life."* Each
+pile's height is a count. You can read the tallest pile's height from the axis,
+or count its dots one by one. No row has been replaced by a summary. Compare the
+same thirty countries as bars, where each pile becomes one bar and the individual
 rows are no longer drawn:
 
 ```{r}
-data(gm_europe) + bar * bin + x(life) +
-  x_label("Life expectancy (years)") + title("The same thirty, summarized")
+data(gm_europe) + bar * bin + x(life) + x_label("Life expectancy (years)") +
+  title("The same thirty countries, summarized")
 ```
 
 *"Given gapminder Europe: bars derived by bin, x is life."*
 
-**One atom away.** A categorical column instead: `point * count * stack`
-piles one dot per row in each category. Owning chapter:
+**One atom away.** For a categorical column, `point * count * stack` piles one
+dot per row in each category. Owning chapter:
 [Transforms](../transforms.qmd).
 
 ## What this section refuses
 
-A distribution question needs a continuous column. Give `density` a category and
-it refuses. The message names the kind of column `density` needs, and the
-categorical version of this question is the share recipe above:
+Every recipe above that used `density` or `bin` gave it a continuous column.
+Suppose you give `density` the `continent` column instead. `density` estimates
+a continuous distribution, so gog refuses the sentence. For a categorical
+column, use the share recipe in [What share of the whole is
+each?](#what-share-of-the-whole-is-each). The message says which kind of column
+`density` needs, and it names the same fix, `bar * proportion`:
 
 ```{r}
 #| error: true

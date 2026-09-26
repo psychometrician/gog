@@ -523,9 +523,8 @@ then showed assembly, then ended with ninety-four ordinary words in use:
    from place to place, similarity drawn as a tree, the third dimension,
    polar coordinates, packed regions, the flat map, the globe, networks, a plot
    played in time, and the reader's own selections.
-4. **The cookbook**, recipes organized by your data's shape and your
-   question, never by chart name; each recipe differs from the next by a
-   single atom.
+4. **The cookbook**, recipes organized by your columns and your question,
+   never by chart name. Many of them also show the sentence one atom away.
 5. **The reasons**, the nine laws the package never breaks, and why.
 6. **The host language**, one short chapter apiece for [R](bindings/r.qmd),
    [Python](bindings/python.qmd), [Julia](bindings/julia.qmd) and
