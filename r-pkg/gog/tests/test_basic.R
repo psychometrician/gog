@@ -4517,3 +4517,16 @@ local({
     stop("FAIL: a row left out for a missing end should add no node")
   cat("PASS: a network row left out adds no node\n")
 })
+
+# After a `bar`, a second table's points past the last bar were placed beyond the
+# panel and clipped away, in silence. The axis holds every layer's positions now.
+# The same block runs in all four bindings.
+local({
+  actuals <- data.frame(year = 2019:2023, sales = c(3, 4, 5, 4, 6))
+  forecast <- data.frame(year = 2024:2026, sales = c(6.5, 7, 7.4))
+  svg <- render_svg(data(actuals) + x(year) + y(sales) + bar + data(forecast) + point)
+  cx <- as.numeric(sub("cx=\"", "", regmatches(svg, gregexpr("cx=\"[0-9.]+", svg))[[1]]))
+  if (length(cx) != 3L || any(cx > 800)) stop("FAIL: a forecast point is off the canvas: ", toString(cx))
+  if (!grepl(">2026<", svg, fixed = TRUE)) stop("FAIL: the axis should reach 2026")
+  cat("PASS: a second table's points after a bar are drawn inside the panel\n")
+})

@@ -5042,9 +5042,33 @@ fn bar_x_ticks_eff(
     };
     let step = if step.is_infinite() { 1.0 } else { step };
     let padding   = step * 0.5;
-    let scale_min = vals[0] - padding;
-    let scale_max = vals[vals.len() - 1] + padding;
-    (ticks_at(vals), (scale_min, scale_max))
+    // **The axis holds every layer's positions, not only the bars'.** It was built
+    // from the bar slots alone, so a second table's points past the last bar were
+    // placed beyond the panel and clipped away, in silence: `bar` over 2019 to
+    // 2023 with a forecast `point` at 2024 to 2026 drew the points at cx 847 to
+    // 1133 on an 800-wide canvas. The span of every layer (`data_min`/`data_max`)
+    // now widens the range, with the same half slot of breathing as a bar. Where
+    // the bars stand at an even step, a year each, the ticks go on at that step
+    // into the added span, so the forecast years are labeled as the bars' are.
+    let (first, last) = (vals[0], vals[vals.len() - 1]);
+    let (lo, hi) = (first.min(data_min), last.max(data_max));
+    let mut ticks = vals.clone();
+    let even = vals.len() > 1
+        && vals.windows(2).all(|w| ((w[1] - w[0]) - step).abs() <= 1e-9 * step.abs().max(1.0));
+    if even {
+        let slack = 1e-9 * step.abs().max(1.0);
+        let mut t = first - step;
+        while t >= lo - slack && ticks.len() < 20 {
+            ticks.insert(0, t);
+            t -= step;
+        }
+        let mut t = last + step;
+        while t <= hi + slack && ticks.len() < 20 {
+            ticks.push(t);
+            t += step;
+        }
+    }
+    (ticks_at(ticks), (lo - padding, hi + padding))
 }
 
 /// Give every id this render minted a prefix of its own.

@@ -2624,3 +2624,17 @@ def _network(t):
 
 assert _network(_links) == _network(_extra), "a row left out should add no node"
 ok("a network row left out adds no node")
+
+
+# --- a second table's points after a bar are drawn inside the panel ---------
+# They were placed beyond the panel and clipped away, in silence. The same block
+# runs in all four bindings.
+import re as _re2  # noqa: E402
+_actuals = {"year": [2019.0, 2020.0, 2021.0, 2022.0, 2023.0], "sales": [3.0, 4.0, 5.0, 4.0, 6.0]}
+_forecast = {"year": [2024.0, 2025.0, 2026.0], "sales": [6.5, 7.0, 7.4]}
+_svg = render_svg(data(_actuals, name="actuals") + x(col.year) + y(col.sales) + bar
+                  + data(_forecast, name="forecast") + point)
+_cx = [float(v) for v in _re2.findall(r'cx="([0-9.]+)', _svg)]
+assert len(_cx) == 3 and all(v <= 800 for v in _cx), f"a forecast point is off the canvas: {_cx}"
+assert ">2026<" in _svg, "the axis should reach 2026"
+ok("a second table's points after a bar are drawn inside the panel")

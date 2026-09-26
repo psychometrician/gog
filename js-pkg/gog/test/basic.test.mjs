@@ -2817,3 +2817,16 @@ test("a network row left out adds no node", () => {
     layer(point, layout(col.from, col.to)), network()));
   assert.equal(draw(extra), draw(links));
 });
+
+// After a `bar`, a second table's points past the last bar were placed beyond the
+// panel and clipped away, in silence. The same block runs in all four bindings.
+test("a second table's points after a bar are drawn inside the panel", () => {
+  const actuals = { year: [2019, 2020, 2021, 2022, 2023], sales: [3, 4, 5, 4, 6] };
+  const forecast = { year: [2024, 2025, 2026], sales: [6.5, 7, 7.4] };
+  const svg = render_svg(plot(data(actuals, { name: "actuals" }), x(col.year), y(col.sales), bar,
+    data(forecast, { name: "forecast" }), point));
+  const cx = [...svg.matchAll(/cx="([0-9.]+)/g)].map((m) => Number(m[1]));
+  assert.equal(cx.length, 3);
+  assert.ok(cx.every((v) => v <= 800), `a forecast point is off the canvas: ${cx}`);
+  assert.ok(svg.includes(">2026<"), "the axis should reach 2026");
+});

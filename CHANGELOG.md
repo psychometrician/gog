@@ -204,6 +204,12 @@ These drew something other than the sentence said, and now draw what it says.
   every other node moved to make room. A row that draws no edge now adds no
   node.
 
+- **Another table's points past the last `bar`.** The axis was built from the
+  bars' positions alone, so a forecast drawn after actual values, such as
+  points at 2024 to 2026 beside bars at 2019 to 2023, was placed beyond the
+  panel and cut off. The axis now holds every layer, and where the bars stand
+  at an even step, a year each, the labels go on at that step.
+
 - **A date on `z`.** The cube's third axis labeled it in epoch seconds,
   `1710M`, where the same column on `x` reads `Mar 4`. It is ticked on the
   calendar now.

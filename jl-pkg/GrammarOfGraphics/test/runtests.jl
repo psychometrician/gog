@@ -2208,3 +2208,16 @@ end
     end
     @test draw(extra) == draw(links)
 end
+
+# After a `bar`, a second table's points past the last bar were placed beyond the
+# panel and clipped away, in silence. The same block runs in all four bindings.
+@testset "a second table's points after a bar are drawn inside the panel" begin
+    actuals = (year = [2019.0, 2020.0, 2021.0, 2022.0, 2023.0], sales = [3.0, 4.0, 5.0, 4.0, 6.0])
+    forecast = (year = [2024.0, 2025.0, 2026.0], sales = [6.5, 7.0, 7.4])
+    svg = render_svg(data(actuals; name = "actuals") + x(:year) + y(:sales) + bar +
+                     data(forecast; name = "forecast") + point)
+    cx = [parse(Float64, m.captures[1]) for m in eachmatch(r"cx=\"([0-9.]+)", svg)]
+    @test length(cx) == 3
+    @test all(<=(800), cx)
+    @test occursin(">2026<", svg)
+end
