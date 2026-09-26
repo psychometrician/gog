@@ -124,7 +124,12 @@ check_prose <- function(dirs = "book") {
     # round" for *written in the reverse order*. Both spellings, since matching
     # is `fixed = TRUE`. "The other way" alone stays legal, because the book
     # uses it literally, for a direction.
-    "the other way round", "the other way around"
+    "the other way round", "the other way around",
+    # Found in the `network` chapter by a reader-review: "to the byte" for
+    # *exactly*, a compressed form the book also wrote as "byte for byte". One
+    # phrase for one claim, and the one kept is the one a translator knows from
+    # computing, with `utilities.qmd`'s section of that name explaining it.
+    "to the byte"
   )
 
   # `index.qmd` quotes an imagined fluent expert saying "the difficulty earns its

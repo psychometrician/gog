@@ -433,7 +433,7 @@ everybody.
 
 Here is why that comparison is worth so much. This package tests itself
 thoroughly, but in one direction only. Every sentence in this book is drawn in
-all four languages, and the four files have to match to the byte. Every refusal
+all four languages, and the four files have to match byte for byte. Every refusal
 on these pages is run again on every build. All of that proves gog agrees with
 itself. None of it proves the picture is right. A box whose whiskers reached
 the wrong value would pass every test this project has, four times over, in
@@ -682,7 +682,7 @@ sticker but an unmistakable one. The Rust
 engine was written entirely by the five Claude models on the cover, as were all
 four language bindings and the test suites. They also did the work nobody is
 ever thanked for, which is running every sentence in this book through four
-languages, again and again, until all four agreed to the byte.
+languages, again and again, until all four agreed byte for byte.
 
 The text is a third case, and the honest comparison is a ghostwritten
 autobiography. The public figure whose name is on the cover usually did not
