@@ -459,8 +459,8 @@ The rose counted observations per direction. How fast the wind blew from each
 direction, and how much that varied, is a question for the marks that
 summarize: `box`, `interval` and `ribbon`. Every mark that draws on a flat page
 also draws in a circle. These three read here exactly as they read flat: a box
-is still a five-number summary, a whisker still shows how far the values reach,
-a band is still a spread. Only the geometry changed.
+still shows the quartiles and the median, a whisker still shows how far the
+values reach, a band is still a spread. Only the geometry changed.
 
 ```{r}
 data(winds) + box + x(direction) + y(speed) + polar()

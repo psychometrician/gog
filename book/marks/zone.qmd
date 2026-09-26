@@ -619,9 +619,9 @@ denser region usually lies *inside* a less dense one, so gog paints the
 outermost band first and lets each inner one cover it; nothing has to be cut
 out. The exception is a cluster shaped like a ring: points scattered around a
 circle, with an empty middle. There the empty middle really is a hole, and
-painting the band over it fills it in. gog has no mark for a shape with a hole,
-so a ring-shaped cluster is the one field `zone * density` draws wrongly, and
-gog prints no warning. `path * density` traces it correctly.
+painting the band over it fills it in. `zone * density` cuts nothing out of a
+band, so a ring-shaped cluster is the one field it draws wrongly, and gog
+prints no warning. `path * density` traces it correctly.
 
 ## Cells the axes already made: the tile plot
 

@@ -405,8 +405,8 @@ data(gm_eras) + interval * confidence + x(continent) + y(era) + z(life) +
 *"Given the gapminder eras: intervals derived by confidence, x is continent, y
 is era, z is life."*
 
-The five-number summary stands in the cube the same way. Its box is a solid
-between the two quartiles, and its whiskers reach beyond the box:
+The box plot stands in the cube the same way. Its box is a solid between the
+two quartiles, and its whiskers reach beyond the box:
 
 ```{r}
 data(gm_eras) + box + x(continent) + y(era) + z(life) + space() + style(color = "#2a9d8f")

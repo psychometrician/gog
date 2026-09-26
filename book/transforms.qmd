@@ -1157,7 +1157,7 @@ two columns.
 needs a `y()` and works the same whether x is continuous or categorical. What
 differs is the *output*: two rows per group instead of one. This low/high-rows
 shape is reused elsewhere. The [`box`](marks/box.qmd) mark encodes its own
-five-number summary the same way, with the two whisker ends as the pair of rows
+summary the same way, with the two whisker ends as the pair of rows
 and the quartiles alongside. The [`ribbon`](marks/ribbon.qmd) mark fills between
 the same pair as a continuous band. See [Interval](marks/interval.qmd) for the
 whisker, and for why its extents are invented here rather than bound to two
