@@ -8003,13 +8003,24 @@ fn check_space(out: &mut Vec<Diagnostic>, spec: &PlotSpec) {
     }
 
     // A viewing angle without a third dimension: legal, but it projects nothing.
+    //
+    // **Every direction here draws, whatever the plot's marks are.** It said "Add
+    // `z(<column>)`" as if the plot's own mark took one, and `line`, `step`, `area`,
+    // `ribbon` and a cluster tree refuse it, while `rule`, `zone` and `text` do not
+    // draw it yet, so a reader following it could hit a second wall; and its one
+    // example, `bar * bin`, is refused over two categories. So the message offers the
+    // flat plot first, since that is what was drawn, then `z` on a mark that takes
+    // one, which a floor summary on a `bar` needs, and the transform that stands a
+    // count up on each kind of floor.
     if matches!(spec.coord, CoordSpace::Space(_)) && !projects {
         out.push(Diagnostic {
             kind: DiagnosticKind::Assumption,
-            message: "gog: `space(...)` sets a 3-D viewing angle, but nothing is bound to `z`, \
-                      so there is no third dimension to project — drawn flat. Add `z(<column>)`, \
-                      or a transform that invents one: `bar * bin + x(<a>) + y(<b>) + space()` \
-                      cuts the floor into cells and stands the count up on `z`."
+            message: "gog: `space(...)` sets a 3-D viewing angle, but nothing in this plot has \
+                      a third dimension, so it is drawn flat. To draw it flat on purpose, drop \
+                      `space()`. To stand it in the cube, add `z(<column>)` to a mark that \
+                      takes one, such as `point` or `bar`, or use a transform that stands a \
+                      count up on `z`: `bar * bin` over two numbers, `bar * count` over two \
+                      categories."
                 .to_string(),
         });
     }
@@ -12904,9 +12915,20 @@ mod tests {
             assert_eq!(space_of(&spec), SpaceKind::Flat, "{:?}", spec.layers[0].transforms);
             let d = check(&spec, &data());
             assert!(d.iter().any(|x| x.kind == DiagnosticKind::Assumption
-                && x.message.contains("drawn flat")),
+                && x.message.contains("drawn flat") && x.message.contains("drop `space()`")
+                && x.message.contains("to a mark that takes one")),
                 "a bare space() over {:?} should be drawn flat, and said: {:?}",
                 spec.layers[0].transforms, msgs(&d));
+        }
+        // Each way into the cube the note names draws.
+        for spec in [
+            base().z("value").layer(Layer::new(Mark::Point)),
+            base().coord(cube()).layer(Layer::new(Mark::Bar).transform(Transform::Bin)),
+            PlotSpec::new().data("t").x("continent").y("region").coord(cube())
+                .layer(Layer::new(Mark::Bar).transform(Transform::Count)),
+        ] {
+            let d = check(&spec, &data());
+            assert!(!d.iter().any(Diagnostic::is_fatal), "a direction is refused: {:?}", msgs(&d));
         }
         for spec in [
             PlotSpec::new().data("t").x("gdp").y("life").coord(cube())

@@ -4591,3 +4591,21 @@ local({
                (data(wealth) + point + x(gdp, scale = "log") + y(life)))
   cat("PASS: a page refuses one column read through two scales\n")
 })
+
+# A cluster tree under a bare `space()` is drawn flat, as every plot with no third
+# dimension is, and the note says to drop `space()` rather than to add a `z` the
+# tree would refuse. The same block runs in all four bindings.
+local({
+  menu <- data.frame(food = rep(c("a", "b", "c"), each = 2), nutrient = rep(c("p", "q"), 3),
+                     amount = c(1, 2, 1.5, 2.5, 5, 1))
+  said <- character()
+  cube <- withCallingHandlers(
+    render_svg(data(menu) + path * cluster(amount, over = nutrient) + x(food) + space()),
+    message = function(m) { said <<- c(said, conditionMessage(m)); invokeRestart("muffleMessage") },
+    warning = function(w) { said <<- c(said, conditionMessage(w)); invokeRestart("muffleWarning") })
+  if (!identical(cube, render_svg(data(menu) + path * cluster(amount, over = nutrient) + x(food))))
+    stop("FAIL: a tree under a bare space() should draw the flat tree")
+  if (!any(grepl("drop `space()`", said, fixed = TRUE)))
+    stop("FAIL: the note should say to drop space()")
+  cat("PASS: a tree under a bare space() is drawn flat, and told to drop it\n")
+})

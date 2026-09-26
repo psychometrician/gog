@@ -2263,3 +2263,15 @@ end
     @test occursin("<svg", render_svg((data(wealth) + bar * bin + x(:gdp, scale = "log")) /
                                       (data(wealth) + point + x(:gdp, scale = "log") + y(:life))))
 end
+
+# A cluster tree under a bare `space()` is drawn flat, as every plot with no third
+# dimension is. The same block runs in all four bindings.
+@testset "a tree under a bare space() is drawn flat" begin
+    menu = (food = ["a", "a", "b", "b", "c", "c"], nutrient = ["p", "q", "p", "q", "p", "q"],
+            amount = [1.0, 2.0, 1.5, 2.5, 5.0, 1.0])
+    flat = render_svg(data(menu) + path * cluster(:amount, over = :nutrient) + x(:food))
+    cube = redirect_stderr(devnull) do
+        render_svg(data(menu) + path * cluster(:amount, over = :nutrient) + x(:food) + space())
+    end
+    @test cube == flat
+end

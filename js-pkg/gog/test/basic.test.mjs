@@ -2875,3 +2875,13 @@ test("a page refuses one column read through two scales", () => {
   assert.ok(render_svg(below(plot(data(wealth), layer(bar, bin), x(col.gdp, { scale: "log" })),
     plot(data(wealth), point, x(col.gdp, { scale: "log" }), y(col.life)))).includes("<svg"));
 });
+
+// A cluster tree under a bare `space()` is drawn flat, as every plot with no third
+// dimension is. The same block runs in all four bindings.
+test("a tree under a bare space() is drawn flat", () => {
+  const menu = { food: ["a", "a", "b", "b", "c", "c"], nutrient: ["p", "q", "p", "q", "p", "q"],
+    amount: [1, 2, 1.5, 2.5, 5, 1] };
+  const tree = (...extra) => render_svg(plot(data(menu),
+    layer(path, cluster(col.amount, { over: col.nutrient })), x(col.food), ...extra));
+  assert.equal(tree(space()), tree());
+});

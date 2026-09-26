@@ -194,6 +194,13 @@ Each is now refused, with what to write instead.
 
 These still draw, and now say what they drew.
 
+- **The message under a bare `space()`.** A plot with no third dimension under
+  `space()` is drawn flat, and the message told every reader to add `z()`,
+  which a `line`, `step`, `area`, `ribbon` or cluster tree refuses. It now says
+  to drop `space()` to draw flat on purpose, or to add `z()` to a mark that
+  takes one, such as `point` or `bar`. For a floor of two categories it names
+  `bar * count`, where it named only `bar * bin`, which needs numbers.
+
 - **A `tick_count` that asks for more ticks than an axis draws.** An axis
   draws at most 26 ticks, and a count whose step gave more kept the first 26
   and left the rest of the axis bare, with no message:

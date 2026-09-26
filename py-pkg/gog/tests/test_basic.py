@@ -2691,3 +2691,17 @@ assert "`gdp` is on the x axis of two plots on this page" in _refusal(
 render_svg((data(_wealth) + bar * bin + x(col.gdp, scale="log"))
            / (data(_wealth) + point + x(col.gdp, scale="log") + y(col.life)))
 ok("a page refuses one column read through two scales")
+
+
+# --- a tree under a bare space() is drawn flat ---------------------------------
+# As every plot with no third dimension is; the note says to drop `space()` rather
+# than to add a `z` the tree would refuse. The same block runs in all four bindings.
+_menu = {"food": ["a", "a", "b", "b", "c", "c"], "nutrient": ["p", "q"] * 3,
+         "amount": [1.0, 2.0, 1.5, 2.5, 5.0, 1.0]}
+with _warnings.catch_warnings():
+    _warnings.simplefilter("ignore")
+    _cube = render_svg(data(_menu) + path * cluster(col.amount, over=col.nutrient)
+                       + x(col.food) + space())
+assert _cube == render_svg(data(_menu) + path * cluster(col.amount, over=col.nutrient)
+                           + x(col.food)), "a tree under a bare space() should draw the flat tree"
+ok("a tree under a bare space() is drawn flat")
