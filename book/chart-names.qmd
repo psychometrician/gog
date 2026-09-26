@@ -2,125 +2,147 @@
 
 gog has no chart-type atoms: a histogram is a sentence, not a word. But people
 look for plots by name, so this appendix is the index of names. It is the one
-place organized by chart name. The [cookbook](cookbook/one-variable.qmd) covers
+place organized by chart name. The [cookbook](parts/cookbook.qmd) covers
 the same plots organized by question, which is usually the better place to
 start.
 
-Column names here are placeholders. Replace them with your own.
+The column names in these sentences are placeholders, such as `a`, `b`,
+`category` and `measure`. Replace them with columns from your own table. Three
+names are not placeholders, because gog computes those columns for you:
+`depth`, `degree`, and `name` after `partition`, `flow` or `layout`.
 
 ## Names with a one-line answer
 
-Each of these names is one gog sentence. The left column is the name you
-know, and the right column is the sentence that draws it. Where a name needs
-a second word, it follows the sentence in the same cell.
+Each of these names is answered by one gog sentence. The left column is the
+name you know, and the right column is the sentence that draws it. Where a name
+needs a note as well, the note follows the sentence in the same cell.
 
 | The name you know | The sentence |
 |---|---|
-| Scatter plot | `point + x(a) + y(b)` |
+| Scatterplot | `point + x(a) + y(b)` |
 | Bubble chart | `point + x(a) + y(b) + size(c)` |
+| Labeled scatter, names not overlapping | `point + text * repel + x(a) + y(b) + label(name)`, where the `repel` collision modifier moves each label off the other labels and off the dots. When a label has moved far, `repel` draws a thin line back to its point |
 | Strip plot | `point + x(category) + y(measure)`, or swap the axes to draw it sideways |
-| Bar chart | `bar + x(category) + y(measure)` |
+| Jittered strip plot | `point * jitter + x(category) + y(measure)`, the strip plot with each point moved a little along the category axis, so that points with the same value stop covering each other. The measured value does not move |
+| Dot plot | `point * bin * stack + x(measure)`, one dot per row, piled above the bin it falls in ([Transforms](transforms.qmd#the-dot-plot)) |
+| Bar chart / column chart | `bar + x(category) + y(measure)` |
 | Horizontal bar chart | `bar + x(measure) + y(category)` |
 | Hatched (print-safe) bars | `bar + x(category) + y(measure) + style(pattern = "hatch")`, also `"crosshatch"`/`"stripes"`/`"grid"`/`"dots"` |
 | Count (frequency) chart | `bar * count + x(category)` |
 | Proportion chart | `bar * proportion + x(category)` |
 | Histogram | `bar * bin + x(measure)`; `bin(30)` sets the number of bins and `bin(width = 5)` sets their width |
+| Relative-frequency histogram | `bar * bin * proportion + x(measure)`, the histogram with each bar's count divided by the number of rows, so the bars add up to 1. The bins stay where `bar * bin` puts them |
 | Frequency polygon | `line * bin + x(measure)` |
 | Outline (step) histogram | `step * bin + x(measure)` |
 | Overlaid histograms | `bar * bin + x(measure) + color(group)` |
 | Density plot | `line * density + x(measure)` |
+| Box plot / box-and-whisker plot / schematic plot | `box + x(category) + y(measure)`, Tukey's box plot per category: quartiles, median, whiskers, and each outlier drawn as a dot ([Box](marks/box.qmd)) |
+| Range bar | `box(whiskers = "range") + x(category) + y(measure)`, the whole five-number summary per category: whiskers to the smallest and largest values, with no value drawn as a separate dot. Mary Eleanor Spear drew the box this way in 1952 ([Box](marks/box.qmd#whiskers-to-the-extremes)) |
+| Violin plot | `ribbon * density + x(category) + y(measure)`, the whole distribution that a box plot reduces to a few numbers. By default each violin's area follows its category's row count; `density(compare = "shape")` gives every violin the same area |
+| Half violin | `area * density + x(category) + y(measure)`: the same estimate, closed on the slot's center line instead of on its own mirror image, so it draws one half of the violin |
 | Line chart / time series | `line + x(time) + y(measure)` |
 | Multi-series lines by dash (no color) | `line + x(time) + y(measure) + pattern(series)`, add `color(series)` for redundant encoding |
 | Step chart | `step + x(a) + y(b)` |
-| Empirical CDF | `step` over cumulative shares, worked example in [Step](marks/step.qmd) |
+| Empirical CDF | `step + x(measure) + y(share)`, over a table sorted by `measure`, where `share` is each row's position divided by the number of rows, computed in your host language ([Step](marks/step.qmd#a-step-function)) |
+| Survival curve (Kaplan–Meier) / failure plot | `step + x(time) + y(survival)`, over survival probabilities you computed in your host language: the curve holds its value between events and drops at each one. Start the table with a row at time 0 and survival 1, or the first drop is not drawn ([Step](marks/step.qmd)) |
 | Area chart | `area + x(a) + y(b)` |
 | Spread / range band | `ribbon * range + x(a) + y(b)`, split by group with `color(group)` |
+| Fan chart | `x(a) + y(b) + ribbon * range(0.1, 0.9) + ribbon * range(0.25, 0.75) + line * median`, two bands of quantiles nested around the median. Give each layer its own `style(color = , opacity = )`, as the worked example does ([Ribbon](marks/ribbon.qmd#a-fan-chart-of-nested-bands)) |
 | Confidence band (computed) | `ribbon * confidence(0.95) + x(a) + y(b)`, often under a `line * mean` trend |
-| Confidence band (pre-computed) | `ribbon * bounds(lower, upper) + x(a)`, bounds you already have (a model's standard error, a standard error of measurement) |
+| Confidence band (pre-computed) | `ribbon * bounds(lower, upper) + x(a)`, two ends you already hold as columns, such as an estimate plus and minus 1.96 standard errors |
 | Unfilled (dashed) error band | `line * bounds(lower, upper) + x(a) + style(pattern = "dashed")`, the upper and lower edges drawn as two lines, with nothing filled between them |
 | Min–max envelope, as two lines | `line * range + x(a) + y(b)`, the unfilled counterpart to `ribbon * range` |
+| Error bar | `interval * confidence(0.95) + x(category) + y(measure)`, one whisker per category, with a dot at each category's mean. The transform says what the whisker measures. `confidence` gives a confidence interval, `deviation` one standard deviation each side of the mean, `range` the extremes, and `bounds(lower, upper)` two ends you computed yourself ([Interval](marks/interval.qmd)) |
+| Pointrange | the error bar above as it stands: `confidence` and `deviation` compute a mean, and `interval` draws a dot there. `range` and `bounds` compute no center, so they draw no dot ([Interval](marks/interval.qmd#hiding-the-center-dot)) |
+| Linerange | any `interval` sentence `+ style(caps = FALSE)`, the whisker without the short lines across its ends. With `confidence` or `deviation`, write `style(caps = FALSE, center = FALSE)` to remove the dot too |
+| Coefficient plot | `interval * bounds(lo, hi) + y(term)`, one whisker for each model term, with its two ends read from two columns you already have ([Interval](marks/interval.qmd#horizontal-whiskers)) |
 | Dashed / dotted line | any `line`/`step` `+ style(pattern = "dashed")` (or `"dotted"`) |
 | Trend line / smoother / LOESS | `line * smooth + x(a) + y(b)` |
 | Trend line with a confidence band | `x(a) + y(b) + ribbon * smooth_band + line * smooth` |
+| Reference line / threshold line | `+ data(thresholds) + rule`, layered over the plot. `thresholds` has one column with the same name as the plot's `x` or `y` column, and each row draws one line across the panel ([Rule](marks/rule.qmd)) |
+| Rug | `+ rule + x(measure) + style(reach = "edge")`, layered over the plot: one short tick per row, at its value, along the bottom edge of the panel. `y(measure)` puts the ticks up the left edge instead ([Rule](marks/rule.qmd#a-rug-of-ticks)) |
 | Summary bars (mean per group) | `bar * mean + x(category) + y(measure)`, also `sum`, `median`, `max`, `min` |
 | Grouped bars (side by side) | `bar * mean * dodge + x(category) + y(measure) + color(group)`, where `* dodge` gives each group its own bar side by side inside the category's slot |
-| Colorblind-safe grouped bars | add `+ pattern(group)` to the grouped bars: one column drives both the color and the hatch, so the two share one merged legend |
+| Colorblind-safe grouped bars | add `+ pattern(group)` to the grouped bars: one column sets both the color and the hatch, so the two share one merged legend |
+| Stacked bars / areas | `bar * sum * stack + x(category) + y(measure) + color(group)`, the groups piled on top of each other inside each category's slot. `area` in place of `bar` stacks areas, and grouped bars write `dodge` in place of `stack` |
 | Ranked bars | add `+ order(measure, desc = TRUE)` |
-| Small multiples / trellis / conditioning plot / facets | `plot \| facet(category)`, `plot / facet(category)`, or both for a grid |
-| Small multiples of 3-D plots | any cube sentence `\| facet(category)`: each panel holds its own cube, all drawn from the same angle |
+| Small multiples / trellis / conditioning plot / facets | <code>plot &#124; facet(category)</code> puts the panels side by side, `plot / facet(category)` puts them one above another, and both together make a grid |
+| Animated (time-lapse) chart | any sentence `+ play(year)`: one frame for each value of `year`, shown one after another, where a facet would show them side by side |
+| Small multiples of 3-D plots | any 3-D sentence <code>&#124; facet(category)</code>: each panel holds its own cube, all drawn from the same angle |
 | 3-D scatter | `point + x(a) + y(b) + z(c)`, view angle via `space(turn = , tilt = )` |
 | 3-D trajectory / space curve | `path + x(a) + y(b) + z(c)`, the rows joined in table order, in the cube |
-| Surface plot / wireframe | `surface + x(a) + y(b) + z(c)` over a table with one row per (x, y) crossing, every `a` value paired with every `b` value; `style(border_color = "white")` draws the mesh lines, `color(c)` shades it by height |
+| Surface plot / wireframe | `surface + x(a) + y(b) + z(c)` over a table with one row per (x, y) crossing, so every `a` value is paired with every `b` value. `style(border_color = "white")` draws the mesh lines, and `color(c)` shades the sheet by height |
 | Terrain / elevation / bathymetry | the same sentence: a height over a plane is a `surface`, whatever the height means |
-| Response surface | `surface + x(factor1) + y(factor2) + z(response)` over the design grid; from a fitted model, predict onto a grid first and name that table in the sentence |
-| 3-D density surface | `surface * density + x(a) + y(b) + space()`, the estimate raised as height. That is the third geometry of one field, which `zone * density` paints and `path * density` traces |
-| Profile plot (categories joined) | `line * mean + x(category) + y(measure)`, one summary per category with the path across them; `step` stays flat between categories instead of sloping |
+| Response surface | `surface + x(a) + y(b) + z(response)` over the design grid, with `a` and `b` stored as numbers, because a surface refuses a categorical column. From a fitted model, predict onto a grid first and name that table in the sentence |
+| 3-D density surface | `surface * density + x(a) + y(b) + space()`, the estimate raised as height. `zone * density` paints the same estimate as colored cells, and `path * density` traces it as contour lines |
+| Profile plot (categories joined) | `line * mean + x(category) + y(measure)`, one mean per category, joined by a line; `step` stays flat between categories instead of sloping |
 | Filled profile | `area * mean + x(category) + y(measure)`, the same boundary filled to the baseline |
 | Connected scatterplot | `path + x(a) + y(b)`, the rows joined in the table's order rather than sorted by x; `style(arrow = "end")` says which end is last |
-| Trajectory / route / hysteresis loop | the same sentence: any reading whose *order* is the data's is `path`, not `line` |
+| Trajectory / route / hysteresis loop | the same sentence: when the row order in the table is the reading order, the mark is `path`, not `line` |
 | Annotation arrow / callout | `data(two_rows) + path + style(arrow = "end")`, layered over the plot; the note itself is `data(one_row) + text + label(note)` |
-| Rose / coxcomb / wind rose | `bar * count + x(direction) + polar()`, the bar chart read in a circle |
-| Radar / spider plot | `line * mean + x(category) + y(measure) + polar()`, the profile bent into a circle; `area` fills it |
+| Rose / coxcomb / polar area diagram / wind rose | `bar * count + x(direction) + polar()`, the bar chart read in a circle. The count sets each wedge's radius, so a count twice as large gets four times the area; Nightingale's polar area diagram put the count in the area instead ([Polar](polar.qmd#what-a-circle-makes-harder-to-read)) |
+| Radar / spider / star plot / Kiviat diagram | `line * mean + x(category) + y(measure) + polar()`, the profile bent into a circle; `area` fills it |
+| Radar band | `ribbon * range + x(category) + y(measure) + polar()`, a band around the circle from each category's lowest value to its highest ([Polar](polar.qmd#the-marks-in-a-circle)) |
 | Pie chart | `bar * count * stack + color(category) + polar()`, a stacked bar in polar coordinates; the category is a *split*, not a position |
-| Sunburst | `zone * partition(a, b, c) + x(measure) + polar()`, worked example in [Polar](polar.qmd). One ring per level of a tree, each arc as wide as its share. The hierarchy is **columns**, outermost first. A blank level ends that branch early, so the branch stops short of the outer ring. That is what makes the rim ragged. `y(depth, limits = c(0, n))` puts the hole in the middle, and `text * partition(…) + label(name)` names the nodes, reading the same centers the zone computed |
-| Icicle / partition chart | the sunburst's sentence with `polar()` taken off, which is the whole difference: depth up the y axis, share across the x. The two names are one coordinate space apart, exactly as a rose and a bar chart are, or a pie and a stacked bar |
-| Treemap | `bar * sum + y(value) + color(category) + nest()`, the same shares carried by area rather than by angle ([Nest](nest.qmd)) |
-| Nested treemap | the same, plus `x(group)`: one region per group, its rows packed inside |
-| Labeled treemap | the same, plus a `text` layer: `+ text + label(name)` writes each region's name at its center, which is what a packing needs once the split has too many levels for a legend. A name wider than its own region is left out, and the plot reports how many names it dropped ([Nest](nest.qmd)) |
-| Pie of a measure | `bar * sum * stack + y(amount) + color(category) + polar()`, also `proportion` for shares on the axis |
+| Pie of a measure | `bar * sum * stack + y(amount) + color(category) + polar()`; write `sum * proportion` in place of `sum` for shares on the axis |
 | Share-of-total column | the same sentence without `polar()`, one segmented bar |
+| Treemap | `bar * sum + y(value) + color(category) + nest()`, the pie of a measure's shares, carried by area rather than by angle ([Nest](nest.qmd)) |
+| Nested treemap | the same, plus `x(group)`: one region per group, its rows packed inside |
 | Polar histogram | `bar * bin + x(bearing) + polar()`, bins as wedges of a measured angle |
-| Circular (cyclical) line | `line + x(hour) + y(measure) + polar()`, both ends of the cycle in the data |
+| Circular (cyclical) line | `line + x(hour) + y(measure) + polar()`. The line closes into a loop only when the table holds both ends of the cycle, such as hour 0 and hour 24 |
 | Polar scatter | `point + x(bearing) + y(measure) + polar()` |
-| Contour plot / density contours | `path * density + x(a) + y(b)`, the contours of a density estimated over the plane; `density(levels = )` says how many, `group(category)` estimates one field per group. `zone * density(levels = )` fills one band per level, on the levels the contours trace. The filled reading draws one field wrongly: a **crater**, which is a ring-shaped cluster with a hollow middle. A band around a hollow is a shape with a hole, and gog has no mark for one |
+| Contour plot / density contours | `path * density + x(a) + y(b)`, the contours of a density estimated over the plane; `density(levels = )` says how many contour lines, and `group(category)` estimates one field per group |
 | 2-D density heatmap | `zone * density + x(a) + y(b)`, the same field painted as cells instead of traced as lines |
-| Filled contour / filled density | `zone * density(levels = 8) + x(a) + y(b)`, eight bands, one per level; the same `levels` a `path` traces |
+| Filled contour / filled density | `zone * density(levels = 8) + x(a) + y(b)`, eight bands on the levels a `path` traces. A ring-shaped cluster is drawn wrongly: each band is painted as a solid shape, so the band around the empty middle covers the middle too. `path * density` traces that field correctly |
 | Binned heatmap | `zone * bin + x(a) + y(b)`, cells colored by how many rows fell in each |
-| Hexbin | `zone * bin(tiling = "hex") + x(a) + y(b)`, a staggered mesh, whose cells form no straight rows or columns for a reader to mistake for structure in the data |
-| Heat strip / binned distribution per group | `zone * bin + x(number) + y(category)`, the mixed mesh: the continuous axis cut into cells, one row of cells per category. Every row is cut on the same edges, so the cells line up down the plot |
+| Hexbin | `zone * bin(tiling = "hex") + x(a) + y(b)`, the binned heatmap with hexagons for cells. Hexagons form no straight rows or columns, so the grid itself cannot be mistaken for a pattern in the data |
+| Heat strip / binned distribution per group | `zone * bin + x(measure) + y(category)`, the mixed mesh: the continuous axis cut into cells, one row of cells per category. Every row is cut on the same edges, so the cells line up down the plot |
+| Tile plot / calendar heatmap | `zone + x(a) + y(b) + color(value)`, one cell per pair of categories, each cell as wide and as tall as its two categories' slots |
+| Mosaic plot | `zone * partition(a, b, cross = TRUE) + x(measure) + color(b) + style(border_color = "white")`: `a` divides the width, and `b` divides the height inside each of those columns. The white border keeps neighboring cells of the same color apart ([Transforms](transforms.qmd#the-mosaic)) |
+| Spine plot | `zone * partition(a, cross = TRUE) + x(measure) + style(border_color = "white")`, the mosaic with one level: one column per category, as wide as its share, with nothing dividing it ([Transforms](transforms.qmd#the-mosaic)) |
 | Choropleth | `zone` with `group(country)` and `map()`: `group` says which rows belong to one region, and the region's own boundary becomes the zone's sides ([Map](map.qmd)) |
-| Candlestick / OHLC chart | two layers over one table, worked example in [Zone](marks/zone.qmd): `interval * bounds(low, high) + color(dir)` is the whisker and `zone * bounds(body_lo, body_hi, start = left, end = right) + color(dir) + style(opacity = 1)` the body, over `x(session)`. Four numbers a session, and no new channel for them. `bounds` reads a low value and a high value, and a rectangle's bottom and top are the same two numbers. The `opacity` and the named sides both replace a zone default meant for highlighting: here the rectangle *is* the data |
-| Waterfall / bridge chart | `zone * bounds(base, top, start = left, end = right) + x(step) + color(dir) + style(opacity = 1)`, worked example in [Zone](marks/zone.qmd). `stack` accumulates *within* a position and a waterfall accumulates *across* positions, so the running total is arithmetic that belongs with the data, in the host language. The subtotal bars start at 0. `left` and `right` sit just inside each slot's edges, which is what leaves a gap between the bars |
-| Funnel chart | `zone * bounds(lo, hi) + y(stage) + style(opacity = 1)`, worked example in [Zone](marks/zone.qmd), with `text + label(n) + x(mid)` for the numbers inside. The columns `lo` and `hi` hold `-n/2` and `n/2`, computed in the host, which is the same arithmetic the waterfall uses for its running total. A funnel is a bar chart whose blocks are centered on zero. Centering is arithmetic on two columns, so a funnel is not a chart type. The measure goes on `x` because `y(stage)` is a category. Nothing in the sentence has to ask for that, because the kinds of the columns settle it. gog draws no sloped connectors between the stages, on purpose. A connector spans the gap between two categories. That gap carries no values, so no scale can give its width a meaning |
+| Proportional-symbol map | `point + x(lon) + y(lat) + size(measure) + map()`, the bubble chart's sentence in the map space, usually drawn over a boundary table with `path` ([Map](map.qmd)) |
 
 ## Names that need more
 
-These names need a paragraph rather than a line. All but one of them draw, and
-the entry gives the sentence. Where one does not, the entry says so first, and
-then says what the closest sentence leaves out.
+These names need a paragraph rather than a line. Most of them draw, and the
+entry gives the sentence. Two do not: the Sankey diagram in its general form,
+and the chord diagram. Their entries say so first, and then give the closest
+sentence that gog does draw.
 
-| The name | The sentence, and what to know |
+| The name you know | The sentence, and what to know |
 |---|---|
-| Box plot | `box + x(group) + y(value)`, the five-number summary per group |
-| Violin plot | `ribbon * density + x(group) + y(value)`, the shape the box plot's five numbers summarize. `density(compare = )` says whether the widths carry each group's row count (the default) or draw every violin to the same area |
-| Half violin | `area * density + x(group) + y(value)`: the same estimate, closed on the slot's center line instead of on its own mirror image. That is what separates `area` from `ribbon` everywhere in the book |
-| Ridgeline plot / joyplot | `area * density(reach = 2.5) + x(value) + y(group)`, the half violin with its axes exchanged, one density per category, each on its own line, sharing one measure axis. `reach` is in **slots**, so past `0.5` the ridges leave their own slots, which is what makes a joyplot. To outline it, add a layer: `line * density + style(color = "black")` reads the same estimate and traces the top of the fill |
-| Jittered strip plot | `point * jitter + x(group) + y(value)`, the `jitter` collision modifier spreads coincident points along the category axis |
-| Labeled scatter, names not overlapping | `point + text * repel + x(a) + y(b) + label(name)`, where the `repel` collision modifier moves each word off the other words and off the dots. When a label has moved far, `repel` draws a thin line back to its point |
-| Stacked bars / areas | `bar * sum * stack` / `area * sum * stack` with a `color` split, the `stack` collision modifier (grouped bars are its sibling `dodge`) |
-| 100% stacked bar / filled area | `bar * count * stack(share = TRUE) + x(a) + color(b)`, every pile is divided by its own slot's total. Each pile then reaches 1, so the plot shows composition and no longer shows size. Any measurement fills the same way, `sum` included |
-| Streamgraph | `area * stack(baseline = "wiggle") + x(t) + y(v) + color(g)`, worked example in [Transforms](transforms.qmd). The foot of each pile is placed to keep the bands as flat as possible, so a band's shape is its own rather than the sum of everything below it. `share` and `baseline` are the pile's two independent choices, and you can use them together |
-| ThemeRiver | `area * stack(baseline = "center")`, the same sentence with the *symmetric* layout instead [@havre2000]. Often confused with the streamgraph and not the same plot: this one centers every pile, and the streamgraph keeps its bands as flat as possible. The streamgraph's designers argue that readers compare values more accurately on it [@byron2008] |
-| Alluvial diagram | `ribbon * flow(a, b, c) + y(count)`, with `zone * flow(...)` for the stage slots and `text * flow(...) + label(name)` for their names, worked example in [Flow](flow.qmd). One row of the table is one path through the stages. Between each pair of neighboring stages, one band carries that path's size |
-| Sankey diagram | Not drawn in the general form. The alluvial draws the same merged bands. Reduce the table to one pair of stages at a time, and each band is the flow between that pair. The general many-source form, given as a list of nodes and a list of links, is a different input shape and is not read ([Flow](flow.qmd) says where the limits are) |
-| Network diagram / node-link graph | `edge * layout(from, to) + network()`, with `point * layout(...)` for the nodes, `size(degree)` sizing each node by its relations, and `text * layout(...) + label(name)` for their names, worked example in [Network](network.qmd). The engine computes every position, so the picture is the same in all four languages. State an angle, `network(turn = 35, tilt = 20)`, and the same layout becomes a cube the reader can drag in the web edition |
-| Relative-frequency histogram | `bar * bin * proportion + x(number)`, the histogram's own counts read as fractions of n, on the mesh `bar * bin` cuts |
-| Heatmap | A heatmap is drawn on two continuous axes, on two categorical axes, or on one of each. The transform you need depends on which kinds you have. A *continuous* axis needs cutting, so `zone * bin` counts the rows per cell: both axes for the classic heatmap, one for the mixed mesh. A *categorical* axis arrives cut, so on two of them `zone * count` tallies into the slots, and `zone + color(value)` draws a table you already have. `zone * density` is the third route, and it estimates a value at each cell of a plane rather than counting rows |
-| Summary heatmap / matrix of means | `zone * mean + x(a) + y(b) + color(column)` reduces the named column within every cell two categories cross, and `sum`/`median`/`max`/`min` read the same mesh. The column is named on `color` because that is the channel a zone measures with. A summary reduces in place, so the channel that names the column also receives the result, exactly as `y` does on `bar * mean + x + y` |
-| Tile plot / calendar heatmap | `zone + x(a) + y(b) + color(value)`, one cell per pair of categories, filling the slot each one owns |
-| Confusion matrix | `zone * count + x(actual) + y(predicted)` tallies the raw rows; `zone * proportion` reads them as shares of the whole. Normalizing per *true class*, a share within each row of the grid, is not one of these: `stack(share = )` divides a pile by its slot's total, and a grid has no pile to divide |
-| Correlation matrix / corrplot | Drawn as a tile plot, once the correlations are a table. Compute them where your data lives, then reshape the result so that each row holds one pair of variables and their correlation. `zone + x(var1) + y(var2) + color(r)` draws that table. gog computes no correlations, and that is the host language's job. A channel names a column; it does not compute one |
-| Donut chart | `zone * partition(category) + x(measure) + y(depth, limits = c(0, 2)) + polar()`, worked example in [Polar](polar.qmd). A donut is a [sunburst](polar.qmd) of a tree one level deep. The hole is not a shape that gog draws. It is a stretch of the radial axis with nothing standing on it, which is what the stated `limits` leave empty. The plain *pie* (`bar * count * stack`) is the one reading that cannot ask for a hole. It measures with the angle, so its radius is a constant and has no domain to widen. That is a fact about the reading rather than a gap, so there is no `polar(hole = )` and no plan for one |
-| Animated (time-lapse) chart | any sentence `+ play(year)`: faceting read in time |
-| Marginal / joint plot (scatter with histograms in its margins) | <code>top / (main &#124; right)</code>: three ordinary plots and the two composition operators. There is no chart type and no `ggMarginal()`. The marginals align and share their scale because both name the same column on the same axis. That shared scale is the one thing composition adds ([Composition](composition.qmd)). Any mark can be the marginal: a histogram, a box, a violin, a dot plot |
-| Dendrogram / cluster tree | `path * cluster(value, over = profile) + x(item)` joins the closest leaves one pair at a time, and each join's distance goes on an axis of its own. `item` is the column that names the leaves, and binding it to `y` instead lays the tree on its side ([Cluster](cluster.qmd)). *Dendrogram* is Greek for tree drawing, which is what *cluster tree* says in English |
-| Clustered heatmap | `zone * cluster(over = profile)` reorders a tile plot's slots into the tree's leaf order. The full figure is the marginal plot, with one tree over the tiles and one beside them, and each shared axis takes its tree's order ([Cluster](cluster.qmd#the-clustered-heatmap)) |
-| 3-D surface | The same sentence as **Surface plot / wireframe** in the first table, `surface + x(a) + y(b) + z(c)` over a grid table, or `surface * density + x(a) + y(b) + space()` to raise an estimated field. A *scatter* cannot be one. It is refused toward `point` rather than drawn as an empty sheet, because a surface's faces span the gaps between its samples. A surface needs its samples on a grid |
-| Terraced / stepped surface (one value per cell) | `surface * bin * mean + x(a) + y(b) + z(v)` cuts the floor into cells and lays a flat plateau on each, with a vertical face at every step. This is the sentence for a design that measures one number per condition. An interpolated sheet would claim a gradient nobody observed ([Surface](marks/surface.qmd)) |
+| Ridgeline plot / joyplot | `area * density(reach = 2.5) + x(measure) + y(category)`, the half violin with its axes exchanged: one density per category, each rising from its own category's place on the `y` axis, all sharing one measure axis. `reach` is measured in slots, from a category's line to the top of the tallest ridge. Above `0.5` that ridge reaches into the next category's slot, and at `2.5`, as here, the ridges overlap, which is what makes a joyplot. To outline it, add a layer: `line * density(reach = 2.5) + style(color = "black")` reads the same estimate, with the same reach, and traces the top of the fill |
+| 100% stacked bar / filled area | `bar * count * stack(share = TRUE) + x(a) + color(b)`, every pile is divided by its own slot's total. Each pile then reaches 1, so the plot shows composition and no longer shows size. Other summaries work the same way: `bar * sum * stack(share = TRUE)` with a `y` column, and `area * sum * stack(share = TRUE)` for the filled area |
+| Streamgraph | `area * stack(baseline = "wiggle") + x(t) + y(v) + color(g)`, worked example in [Transforms](transforms.qmd#stackbaseline-where-the-pile-sits). The foot of each pile is placed so that the bands move as little as possible, the thickest bands least of all. A thick band's shape then shows its own values rather than the movement of the bands under it. `share` and `baseline` are the pile's two independent choices, and you can use them together |
+| ThemeRiver | `area * stack(baseline = "center")`, the same sentence with the *symmetric* layout instead [@havre2000]. Readers often confuse it with the streamgraph, and it is a different plot. This one centers every pile, while the streamgraph keeps its bands as flat as possible. The streamgraph's designers argue that readers compare values more accurately on it [@byron2008] |
+| Alluvial diagram | `ribbon * flow(a, b, c) + y(amount)`, with `zone * flow(...)` for the stage slots and `text * flow(...) + label(name)` for their names, worked example in [Flow](flow.qmd). Each row follows one path through the stages, and rows on the same path are merged into one band, as wide as their total |
+| Sankey diagram | Not drawn in its general form, where flows begin partway, skip a stage, or return to an earlier stage. That form usually arrives as a list of nodes and a list of links, and gog does not read that shape. When every path passes through every stage in order, the alluvial sentence above draws the diagram ([Flow](flow.qmd#where-the-limits-are)) |
+| Chord diagram | Not drawn. The bands of a flow bent around a circle make a chord diagram, and `ribbon * flow(a, b) + y(amount) + polar()` is valid grammar, but gog refuses it with a message ([Flow](flow.qmd#where-the-limits-are)). The same flow drawn flat is the alluvial diagram |
+| Network diagram / node-link graph | `edge * layout(from, to) + network()` draws the edges, worked example in [Network](network.qmd). `point * layout(...)` adds the nodes, `size(degree)` draws a node larger when it appears in more rows, and `text * layout(...) + label(name)` writes their names. State an angle, `network(turn = 35, tilt = 20)`, and gog lays the nodes out again in a cube, which the reader can turn with a drag in the web edition. gog refuses names in the cube, so leave out the `text` layer there ([Network](network.qmd#an-angle-asks-for-the-cube)) |
+| Heatmap | A heatmap is drawn on two continuous axes, on two categorical axes, or on one of each. The transform you need depends on which kinds you have. A *continuous* axis needs cutting, so `zone * bin` counts the rows per cell: both axes for the classic heatmap, one for the mixed mesh. A *categorical* axis is already divided into slots. On two categorical axes, `zone * count` tallies the rows into those slots, and `zone + color(value)` draws a table you already have. `zone * density` is one more route, for two continuous axes: it estimates a value at each cell of the plane rather than counting rows |
+| Summary heatmap / matrix of means | `zone * mean + x(a) + y(b) + color(column)` reduces the named column inside every cell where two categories cross, and `sum`/`median`/`max`/`min` read the same mesh. The column is named on `color` because a zone shows its measurement as color, and the mean is drawn on that same channel. On two continuous axes, cut them into cells first: `zone * bin * mean` |
+| Confusion matrix | `zone * count + x(actual) + y(predicted)` tallies the raw rows; `zone * proportion` reads them as shares of the whole. Normalizing per *true class* means a share within each column of this grid, one column per `actual` class, and neither transform does that. Compute those shares in your host language and draw them as a tile plot: `zone + x(actual) + y(predicted) + color(share)` |
+| Correlation matrix / corrplot | Drawn as a tile plot, once the correlations are a table. Compute them in your host language, then reshape the result so that each row holds one pair of variables and their correlation. `zone + x(var1) + y(var2) + color(r)` draws that table |
+| Sunburst | `zone * partition(a, b, c) + x(measure) + color(a) + style(border_color = "white") + polar()`, worked example in [Polar](polar.qmd). One ring per level of a tree, each arc as wide as its share. The hierarchy is *columns*, named from the top of the tree down, so the first column is the innermost ring. A missing value in a level ends that branch early, so the branch does not reach the outer ring. The outer edge of the plot is then uneven. `y(depth, limits = c(0, k + 1))`, for a tree `k` levels deep, puts the hole in the middle, and `text * partition(a, b) + label(name)` names the nodes, reading the same centers the zone computed |
+| Icicle / partition chart | the sunburst's sentence with `polar()` taken off, which is the only difference: depth up the `y` axis, share across the `x`. One `polar()` separates the two names, exactly as it separates a rose from a bar chart, or a pie from a stacked bar |
+| Donut chart | `zone * partition(category) + x(measure) + y(depth, limits = c(0, 2)) + color(category) + polar()`, worked example in [Polar](polar.qmd#the-donut-one-level-is-still-a-tree). A donut is a sunburst of a tree one level deep. Its one ring sits between 1 and 2 on `depth`, so `limits = c(0, 2)` leaves the inner half of the radius empty, and that empty part is the hole. The plain *pie* (`bar * count * stack`) cannot have a hole, because it binds nothing to the radius |
+| Labeled treemap | `bar + y(value) + color(category) + text + label(name) + nest()`, over a table with one row per region. Each name is written at the center of its own region, which helps when there are too many regions for a legend. The `text` layer does not follow a `sum` in the bar layer, so with `bar * sum` the names land in the wrong regions. To name summed regions, sum the table in your host language first. A name that does not fit inside its region is left out, and a message says how many names were drawn ([Nest](nest.qmd#naming-the-regions)) |
+| Population pyramid | `bar + y(age) + x(population) + color(group) + order(age, desc = TRUE)`, over a table where one group's populations were made negative in your host language, so its bars run left of zero. `age` needs its declared order, youngest first, and `desc = TRUE` puts the youngest band at the bottom ([Many groups](cookbook/groups.qmd#where-does-a-population-pyramid-come-from)) |
+| Candlestick / OHLC chart | two layers over one table, worked example in [Zone](marks/zone.qmd): `interval * bounds(low, high) + color(dir)` is the whisker and `zone * bounds(body_lo, body_hi, start = left, end = right) + color(dir) + style(opacity = 1)` the body, over `x(session)`. Compute `body_lo`, `body_hi`, `dir`, `left` and `right` in your host language, as the worked example does. One session gives four numbers, and gog needs no new channel to carry them. `bounds` reads a low value and a high value, and a rectangle's bottom and top are the same two numbers. A zone whose sides you name is translucent, because a rectangle you chose is usually a highlight. Here the rectangle *is* the data, so `style(opacity = 1)` draws it solid, and `left` and `right` make each body narrower than its slot |
+| Waterfall / bridge chart | `zone * bounds(base, top, start = left, end = right) + x(step) + color(dir) + style(opacity = 1)`, worked example in [Zone](marks/zone.qmd). `stack` accumulates *within* one position, and a waterfall accumulates *across* positions. So compute the running total in your host language, as new columns of the table. The subtotal blocks start at 0. `left` and `right` sit just inside each slot's edges, which is what leaves a gap between the blocks |
+| Funnel chart | `zone * bounds(lo, hi) + y(stage) + style(opacity = 1)`, with `text + label(n) + x(mid)` for the numbers inside, worked example in [Zone](marks/zone.qmd#which-axis-the-pair-bounds-the-funnel). A funnel is a bar chart whose blocks are centered on zero. Compute `lo` and `hi` as `-n/2` and `n/2` in your host language, and `mid` as a column of zeros. The blocks lie across the page because `y(stage)` is a category, so the measure goes on `x`. gog draws no sloped connectors between the stages, because the space between two categories holds no data |
+| Marginal / joint plot (scatter with histograms in its margins) | <code>top / (main &#124; right)</code>: three ordinary plots and the two composition operators ([Composition](composition.qmd#the-marginal-plot)). Each marginal lines up with the main plot because it names the same column on the same axis. The top plot names the main plot's `x` column, and the right plot names its `y` column. Along the top, a marginal can be a histogram, a density curve or a dot plot. Down the side, a histogram works (`bar * bin + y(b)`), and a density curve or a dot plot is refused. A box or a violin needs a category on its other axis, and then draws one per category |
+| Dendrogram / cluster tree | `path * cluster(value, over = profile) + x(item)` joins the closest leaves one pair at a time. Each join is drawn at its distance on the other axis, which `cluster` fills and titles Distance. `item` is the column that names the leaves, and binding it to `y` instead lays the tree on its side ([Cluster](cluster.qmd)). *Dendrogram* comes from the Greek words for *tree* and *drawing* |
+| Clustered heatmap | `zone * cluster(over = profile)` reorders a tile plot's slots into the tree's leaf order. The full figure is built like the marginal plot, with one tree over the tiles and one beside them, and each shared axis takes its tree's order ([Cluster](cluster.qmd#the-clustered-heatmap)) |
+| 3-D surface | The same sentence as *Surface plot / wireframe* in the first table, `surface + x(a) + y(b) + z(c)` over a grid table, or `surface * density + x(a) + y(b) + space()` to raise an estimated field. A *scatter* cannot be one. gog refuses it and names `point` instead of drawing an empty sheet, because a surface's faces span the gaps between its samples. A surface needs its samples on a grid |
+| Terraced / stepped surface (one value per cell) | `surface * bin(3) * mean + x(a) + y(b) + z(v)` cuts the floor into a 3 × 3 grid of cells and lays a flat plateau on each, with a vertical face at every step. This is the sentence for a design that measures one number per condition, here three levels on each axis. Give `bin` that number of levels: with more cells than conditions, the plateaus stand apart with empty cells between them. An interpolated sheet would show a slope nobody observed ([Surface](marks/surface.qmd#when-each-cell-holds-one-value)) |
 
 If the name you are looking for is in neither table, it is usually one of the
-listed plots drawn with different settings. Ask what question the chart answers,
-and start from the [cookbook](cookbook/one-variable.qmd). If the name is one of
-ggplot2's function names, [Coverage](coverage.qmd) lists the same plots, indexed
-that way. It sorts each name into four: refused, the host language's job,
-missing with the direction settled, and not decided either way.
+listed plots with a different mark, transform or setting. Ask what question the
+chart answers, and start from the [cookbook](parts/cookbook.qmd). If the name
+is one of ggplot2's function names, the [phrasebook](phrasebook.qmd) gives the
+gog sentence for each call, and [Coverage](coverage.qmd) says which of those
+plots gog draws at all. Each plot that gog does not draw is in one of four
+groups there: refused, the host language's job, missing with the direction
+settled, and not decided either way.
