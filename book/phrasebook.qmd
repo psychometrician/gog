@@ -2,23 +2,25 @@
 
 ggplot2 proved that a grammar of graphics could be a working tool and not only a
 theory. Most readers of this book already know it. gog follows the same grammar
-and decides the details differently. This appendix covers both: which word to
-write, and what behaves differently.
+and decides the details differently. This appendix answers two questions: what to
+write in gog, and what behaves differently. The ggplot2 calls on this page
+are those of ggplot2 4.0.3 [@wickham2026ggplot2pkg].
 
 The translations assume gog can draw the plot you want. To find out whether it
-can, read [Coverage](coverage.qmd). That appendix reads ggplot2's whole
-reference index against the kernel, in both directions: what gog draws that
-ggplot2 does not, and what ggplot2 draws that gog does not.
+can, read [Coverage](coverage.qmd). That appendix compares ggplot2's whole
+reference index with gog's [kernel](grammar.qmd#the-kernel), in both
+directions: what gog draws that ggplot2 does not, and what ggplot2 draws that
+gog does not.
 
 ## Side by side
 
-This first table compares the two systems as a whole, rather than word for word.
+This first table compares the two systems as a whole, rather than term by term.
 
 | | ggplot2 | gog |
 |---|---|---|
 | Languages | R | R, Python, Julia and JavaScript, all four calling one engine |
 | Naming | `geom_point`, `aes`, `alpha` | `point`, channels by plain name, `opacity` |
-| Where `x`/`y` are written | `aes()` at the plot or the layer, and a layer may override the plot's `aes()` | a mark takes every atom written after it, and none written before it |
+| Where `x`/`y` are written | `aes()` at the plot or the layer, and a layer may override the plot's `aes()` | before any mark, for every layer; after a mark, for that mark. A layer with no column of its own reads the first column written for that axis. |
 | The histogram | `geom_histogram()` *or* `stat_bin(geom = "bar")` | `bar * bin` |
 | Log axis | `scale_x_log10()` | `x(gdp, scale = "log")`, written on the binding |
 | 3-D | external packages | one more position: `z` |
@@ -26,8 +28,8 @@ This first table compares the two systems as a whole, rather than word for word.
 
 ## Translations
 
-This table is term for term. Find the ggplot2 call on the left, and the gog
-sentence that draws the same plot is on the right.
+This table is term by term. Find the ggplot2 call on the left; the gog spelling
+that does the same job is beside it on the right.
 
 | You write in ggplot2 | You write in gog |
 |---|---|
@@ -36,59 +38,78 @@ sentence that draws the same plot is on the right.
 | `geom_line()` | `line` |
 | `geom_step()` | `step` |
 | `geom_area()` | `area` |
-| `geom_col()` | `bar` |
-| `geom_bar()`, which counts the rows for you | `bar * count`, where the count is a word in the sentence |
+| `geom_col()` | `bar`, one bar per row; with several rows per category, `bar * sum` gives their total |
+| `geom_bar()`, which counts the rows for you | `bar * count`, because `bar` alone counts nothing |
 | `geom_histogram(bins = 30)` | `bar * bin(30)` |
 | `geom_freqpoly()` | `line * bin` |
 | `geom_density()` | `line * density` |
 | `geom_smooth()` | `ribbon * smooth_band + line * smooth`: the band and the curve are two layers |
 | `geom_smooth(se = FALSE)` | `line * smooth` |
 | `stat_summary(fun = mean, geom = "bar")` | `bar * mean` |
+| `geom_boxplot()` | `box`, which computes its own summary, as `geom_boxplot()` does |
+| `geom_violin()` | `ribbon * density`, with the categories on `x` |
+| `geom_jitter()` | `point * jitter`, on a categorical axis. On two continuous axes gog refuses it and suggests `style(opacity = )` instead. |
+| `geom_errorbar()`, `geom_linerange()` | `interval * bounds(lower, upper)` for ends you already have, or `interval * confidence` to compute them; `style(caps = FALSE)` removes the caps, which gives a linerange |
+| `geom_ribbon()` | `ribbon * bounds(lower, upper)` |
+| `geom_tile()` | `zone + x(a) + y(b) + color(v)`, with `a` and `b` categorical: each category gets its own slot |
+| `geom_hline()`, `geom_vline()` | `data(t) + rule + y(v)` for horizontal lines, and `x(v)` for vertical ones, where the table `t` holds the positions |
+| `geom_text()` | `text + label(g)` |
+| `geom_path()` | `path`, which joins the rows in the table's order |
 | `aes(color = g)` | `color(g)` |
+| `aes(fill = g)` | `color(g)`: one channel colors a bar's fill and a line's stroke, and there is no `fill` |
 | `aes(size = v)` | `size(v)` |
 | `aes(shape = g)` | `shape(g)` |
 | `aes(alpha = v)` | `opacity(v)` |
+| `aes(linetype = g)` | `pattern(g)`: a dash on a line, a hatch on a filled region |
 | `aes(group = g)` | `group(g)` |
 | `scale_x_log10()` | `x(v, scale = "log")` |
 | `scale_color_viridis_c()` | `color(v) + palette("viridis")` |
 | `facet_grid(r ~ c)` | `\| facet(c) / facet(r)` |
-| `facet_wrap(~ g, ncol = 4)` | `\| facet(g, wrap = 4)`. `/` runs the same line of panels down the page instead. The operator says the direction, so one number replaces both `nrow` and `ncol`. |
-| `facet_*(scales = "free_y")` | `y(v, free = TRUE)`, written on the axis you are freeing. Nothing has to be chosen, because the binding already says which axis. |
-| patchwork's <code>p1 &#124; p2</code>, `p1 / p2` | <code>plot_a &#124; plot_b</code>, `plot_a / plot_b`: the same two operators. What stands on the right decides the job: a plot composes, a `facet()` splits panels. |
-| patchwork's `plot_spacer()`, `plot_layout(widths =)` | `theme(width =, height =)` on the plot that needs more room. No spacer is needed: both marginals stop where the main panel stops, and the corner is the room left over. |
-| ggrepel's `geom_text_repel()` | `text * repel`, the collision modifier for overlapping labels, beside `dodge`, `stack` and `jitter` |
+| `facet_wrap(~ g, ncol = 4)` | `\| facet(g, wrap = 4)` puts four panels in each row, and `/ facet(g, wrap = 4)` puts four in each column. The operator says the direction, so one number replaces both `nrow` and `ncol`. |
+| `facet_*(scales = "free_y")` | `y(v, free = TRUE)`, written on the axis you are freeing. You do not choose the axis a second time, because the binding already says which one. |
+| patchwork's <code>p1 &#124; p2</code>, `p1 / p2` | <code>plot_a &#124; plot_b</code>, `plot_a / plot_b`: the same two operators. What is written on the right decides what happens: a plot is placed beside or below, and a `facet()` splits the plot into panels. |
+| ggrepel's `geom_text_repel()` | `text * repel`, one of the four collision modifiers, with `dodge`, `stack` and `jitter` |
 | ggExtra's `ggMarginal()` | <code>top / (main &#124; right)</code>, three ordinary plots ([Composition](composition.qmd)) |
-| `coord_flip()` | swap the `x` and `y` bindings: orientation is read off whichever axis carries the categories, so there is nothing to switch |
+| patchwork's `plot_spacer()`, `plot_layout(widths =)` | `theme(width =)` on a plot placed beside others, or `theme(height =)` on one stacked above or below, in pixels; the plots that ask for nothing share what is left. In the marginal layout above, the empty corner needs no spacer. |
+| `coord_flip()` | swap the `x` and `y` bindings: orientation is taken from whichever axis carries the categories, so there is nothing to switch |
+| `coord_polar()` | `polar()` |
 | `labs(title = , x = , y = )` | `title()`, `x_label()`, `y_label()`, `z_label()` |
 | `color = "red"`, `alpha = 0.5` inside a `geom_*()` | `style(color = "red", opacity = 0.5)` |
-| `theme(…)` | `theme()` is the page, and there is one of it; `style()` belongs to one layer |
-| `ggsave("plot.svg")` | the rendered plot *is* SVG; `render_svg()`, spelled the same way in all four languages, returns it as text you can write to a file |
+| `theme(…)` | `theme()`, for what belongs to the whole plot rather than one layer, such as its size, gridlines and background; `style()` belongs to one layer |
+| `ggsave("plot.svg")` | `cat(render_svg(p), file = "plot.svg")`. The rendered plot *is* SVG, and `render_svg()` returns it as text. [Functions around the grammar](utilities.qmd#render_svg) gives the line for each language. |
 
 ## Six differences to expect
 
-The words translate, but six things behave differently once they are in place.
+The words translate, but six things work differently in gog.
 
 - **`+` is still `+`, and on purpose.** ggplot2's author has said the pipe would
-  have been the better interface [@wickham2018pipe]. gog kept `+` for two
-  reasons. Python has no pipe operator of its own, so a pipe could not spell one
-  syntax in all four languages. A pipe also makes every atom a function, and
-  `bar * bin` has no meaning once both sides are functions.
-  [Operators](operators.qmd) covers this in full, including which atoms commute
-  in gog and did not commute in ggplot2.
-- **Nothing is computed unless you name it.** `bar` draws your numbers
-  unchanged. `geom_bar()` counts rows on its own, and gog counts only when you
-  write `bar * count`.
-- **There is one spelling.** No geom/stat pairs, and no choice of which function
-  to use. If you can spell one plot two ways here, one of them is a bug.
-  Report it as an issue on the book's repository.
-- **The scale belongs to the binding.** You name a channel once, and its scale
-  is a property of that binding. There is no second atom that names the channel
-  again.
+  have been the better interface [@wickham2018pipe]. gog chose `+` for two
+  reasons. A pipe cannot be given a gog meaning: Python has no pipe operator,
+  and the pipes of R and Julia already mean something else. A pipe also makes
+  every atom a function, and `bar * bin` has no meaning once both sides are
+  functions. [Operators](operators.qmd) covers this in full, including which
+  atoms give the same plot in any order.
+- **A count is a word you write.** `bar` draws your numbers unchanged.
+  `geom_bar()` counts rows on its own, and gog counts only when you write a
+  counting transform, such as `count` or `bin`. The one mark that computes by itself is `box`, because a box
+  plot *is* a summary.
+- **There is one spelling.** There are no geom/stat pairs, so you never choose
+  between two functions. If two different atoms in gog do the same job, that
+  is a bug: [report it](https://github.com/psychometrician/gog/issues) on the
+  project's repository.
+- **The scale belongs to the binding.** Options such as `scale`, `limits` and
+  `free` are arguments of the binding, as in `x(gdp, scale = "log")`, and there
+  is no `scale_*()` function. The colors of a color scale come from
+  `palette()`, which belongs to the whole plot.
 - **Setting is not mapping.** A constant maps no column, so it earns no legend.
   Write it in `style()`. In ggplot2 `aes(color = "red")` is legal and draws a
-  legend with one entry called "red". Here `color("red")` asks for a column
-  called `red`, so gog refuses it and names `style(color = "red")` as the fix.
+  legend with one entry called "red". Here a channel takes a column, not a
+  value, so gog refuses `color("red")` and names `style(color = "red")` as the
+  fix.
 - **Refusals name the fix.** A sentence gog cannot draw is refused, and the
-  message names the sentence it would accept. Where you are used to a warning
-  and a plot, gog stops and draws nothing. This book shows refusals on purpose:
-  it runs the refused sentence and prints the message you would see.
+  message says what to change. Where ggplot2 warns about an unknown
+  argument and draws anyway, gog stops and draws nothing. This book shows refusals on purpose: it
+  runs the refused sentence and prints the message you would see.
+
+If a call you use is in neither table, [Coverage](coverage.qmd) says whether
+gog draws that plot at all.
