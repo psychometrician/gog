@@ -151,6 +151,12 @@ Each is now refused, with what to write instead.
   edge was left out. The refusal gives the sentence that draws it,
   `edge * layout(<from>, <to>) + network()`.
 
+- **`point * smooth` with a `z`.** Every point lost its third position, and
+  the plot was an empty cube with an axis marked 0 to 1. It is refused as
+  `smooth` is on every other mark in the cube, because a curve needs a domain
+  and the cube's floor has none. The refusal points to `line * smooth` on the
+  plane, or to `bar * mean` for a summary over the floor.
+
 - **Some refusals are reworded.** A `zone` with no sides now lists all five
   ways to give it some, a boundary on a map included. A refusal about both
   axes is printed once and names both, not once per axis. `path * mean`,

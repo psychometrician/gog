@@ -2773,3 +2773,13 @@ test("a bare space() over a transform in the plane is drawn flat", () => {
   const cube = render_svg(plot(data(spans), layer(zone, bounds(col.lo, col.hi)), x(col.t), space()));
   assert.equal(cube, flat);
 });
+
+// A smoothed point in the cube lost its third position and drew an empty cube,
+// in silence. It is refused as every smooth in the cube is. The same block runs
+// in all four bindings.
+test("a smoothed point in the cube is refused toward the plane", () => {
+  const drift = { g: [1.5, 2.5, 3.1, 4.2, 5.3, 6.1], h: [3, 1, 4, 1, 5, 9], n: [1, 2, 3, 4, 5, 6] };
+  assert.match(refusalOf(() => render_svg(plot(data(drift), layer(point, smooth),
+    x(col.g), y(col.h), z(col.n)))), /`bar \* mean \+ x\(<a>\) \+ y\(<b>\) \+ z\(<column>\) \+ space\(\)`/);
+  assert.ok(render_svg(plot(data(drift), layer(point, smooth), x(col.g), y(col.h))).includes("<svg"));
+});

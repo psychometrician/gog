@@ -2568,3 +2568,14 @@ with _warnings.catch_warnings():
 assert _cube == render_svg(data(_spans) + zone * bounds(col.lo, col.hi) + x(col.t)), \
     "a bare space() over bounds should draw the flat plot"
 ok("a bare space() over a transform in the plane is drawn flat")
+
+
+# --- a smoothed point in the cube --------------------------------------------
+# It lost its third position and drew an empty cube, in silence. It is refused
+# as every smooth in the cube is. The same block runs in all four bindings.
+_drift = {"g": [1.5, 2.5, 3.1, 4.2, 5.3, 6.1], "h": [3.0, 1.0, 4.0, 1.0, 5.0, 9.0],
+          "n": [1.0, 2.0, 3.0, 4.0, 5.0, 6.0]}
+assert "`bar * mean + x(<a>) + y(<b>) + z(<column>) + space()`" in _refusal(
+    lambda: render_svg(data(_drift) + point * smooth + x(col.g) + y(col.h) + z(col.n)))
+render_svg(data(_drift) + point * smooth + x(col.g) + y(col.h))
+ok("a smoothed point in the cube is refused toward the plane")

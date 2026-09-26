@@ -7946,18 +7946,31 @@ fn check_space(out: &mut Vec<Diagnostic>, spec: &PlotSpec) {
     // does *not* measure with, which on a floor is the pair, and reduce the column
     // named on the one it does — `z`. `check_pair_summary` owns them: it asks that `z`
     // named a column, rather than asking the plot to give up.
+    //
+    // **`point` is asked too, though it cuts no floor.** A smoothed point is the
+    // fitted curve drawn as dots, and in the cube it has the same want of a domain:
+    // the fit came back with `x` and `y` and no `z`, so every dot lost its third
+    // position and the plot was an empty cube with a 0 to 1 axis, in silence. Its
+    // way to summarize a floor is the bar's, since a point was never given the
+    // pairwise group-by (`cuts_both_positions`), so the direction names `bar`.
     if projects {
         for layer in &spec.layers {
-            if !cuts_both_positions(&layer.mark, SpaceKind::Space) {
+            let cuts = cuts_both_positions(&layer.mark, SpaceKind::Space);
+            if !cuts && layer.mark != Mark::Point {
                 continue;
             }
-            let Some(sm) = layer.transforms.iter()
-                .find(|t| matches!(t, Transform::Smooth | Transform::SmoothBand))
-            else {
+            let Some(sm) = layer.transforms.iter().find(|t| match t {
+                Transform::Smooth => true,
+                // A band on a point is refused wherever it stands, since a point
+                // draws one value and a band is a span, so it is said there, once.
+                Transform::SmoothBand => cuts,
+                _ => false,
+            }) else {
                 continue;
             };
-            let m = mark_name(&layer.mark);
             let s = transform_name(sm);
+            let reducer = if cuts { mark_name(&layer.mark) } else { "bar" };
+            let m = mark_name(&layer.mark);
             out.push(Diagnostic {
                 kind: DiagnosticKind::Illegal,
                 message: format!(
@@ -7968,7 +7981,7 @@ fn check_space(out: &mut Vec<Diagnostic>, spec: &PlotSpec) {
                      `line * smooth + x(<a>) + y(<b>)`. To summarize a column within each \
                      pair of categories instead, the six reductions (`sum`, `mean`, `median`, \
                      `max`, `min`, `quantile`) do read a floor: \
-                     `{m} * mean + x(<a>) + y(<b>) + z(<column>) + space()`."
+                     `{reducer} * mean + x(<a>) + y(<b>) + z(<column>) + space()`."
                 ),
             });
         }
@@ -12783,6 +12796,27 @@ mod tests {
             assert_eq!(space_of(&spec), SpaceKind::Space,
                        "a tally stands on z: {:?}", spec.layers[0].transforms);
         }
+    }
+
+    /// A smoothed point in the cube lost its third position and drew an empty cube,
+    /// in silence. It is refused as every smooth in the cube is, and pointed at the
+    /// bar for a floor summary, since a point was never given the pairwise group-by.
+    #[test]
+    fn a_smoothed_point_in_the_cube_is_refused_toward_the_plane() {
+        let d = check(&base().z("value")
+            .layer(Layer::new(Mark::Point).transform(Transform::Smooth)), &data());
+        assert!(d.iter().any(|x| x.kind == DiagnosticKind::Illegal
+            && x.message.contains("`point * smooth` fits a curve")
+            && x.message.contains("`bar * mean + x(<a>) + y(<b>) + z(<column>) + space()`")),
+            "point * smooth with z: {:?}", msgs(&d));
+        let flat = check(&base().layer(Layer::new(Mark::Point).transform(Transform::Smooth)), &data());
+        assert!(!flat.iter().any(Diagnostic::is_fatal), "flat point * smooth: {:?}", msgs(&flat));
+        // A band on a point is refused for being a span, and not again for the cube.
+        let band = check(&base().z("value")
+            .layer(Layer::new(Mark::Point).transform(Transform::SmoothBand)), &data());
+        assert!(band.iter().any(|x| x.message.contains("not a span"))
+                && !band.iter().any(|x| x.message.contains("fits a curve of one column")),
+                "point * smooth_band with z is refused as a span, once: {:?}", msgs(&band));
     }
 
     /// Law 7's second half: positions with no mark are refused, as a mark with no

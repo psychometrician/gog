@@ -4461,3 +4461,16 @@ local({
     stop("FAIL: a bare space() over bounds should say it was drawn flat")
   cat("PASS: a bare space() over a transform in the plane is drawn flat, and said\n")
 })
+
+# A smoothed point in the cube lost its third position and drew an empty cube,
+# in silence. It is refused as every smooth in the cube is. The same block runs
+# in all four bindings.
+local({
+  drift <- data.frame(g = c(1.5, 2.5, 3.1, 4.2, 5.3, 6.1), h = c(3, 1, 4, 1, 5, 9),
+                      n = c(1, 2, 3, 4, 5, 6))
+  refuses("a smoothed point in the cube",
+          render_svg(data(drift) + point * smooth + x(g) + y(h) + z(n)),
+          "`bar * mean + x(<a>) + y(<b>) + z(<column>) + space()`")
+  render_svg(data(drift) + point * smooth + x(g) + y(h))
+  cat("PASS: a smoothed point in the cube is refused toward the plane\n")
+})
