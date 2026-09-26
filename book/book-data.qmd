@@ -193,9 +193,11 @@ the flat plot and in the circle.
 The sort exists only to undo the file's compass order. Keep the declaration in
 your own code, and drop the sort. `winds` needs a second declaration, for `season`:
 the book's plots show Summer before Winter, and the file lists Winter first.
-Three other tables need one too: `survived` in `titanic` (Yes, then No), `slab`
-in `quakes_fiji` (shallowest band first) and `weekday` in `six_weeks` (Monday
-first).
+Three other tables need a declared order too: `survived` in `titanic` (Yes, then
+No), `slab` in `quakes_fiji` (shallowest band first) and `weekday` in
+`six_weeks` (Monday first). `age` in `census` needs a declared order as well,
+youngest band first, although `census.csv` already lists its bands in that
+order. The next section explains why.
 
 ### Labels that look like numbers
 
@@ -230,7 +232,10 @@ Without the `text` argument, `age` becomes numbers. A `point` or a `line` then
 places the bands along a continuous axis from 0 to 85. The plot looks
 reasonable, so nothing tells you the axis is wrong. The population pyramid in
 [Many groups](cookbook/groups.qmd) is refused, because it sorts the bands with
-`order()`, and `order()` needs a categorical axis.
+`order()`, and `order()` needs a categorical axis. When `age` is read as text,
+it still needs its declared order. Without the declaration, `order()` sorts the
+bands alphabetically, one character at a time. The band 5 is then drawn between
+50 and 45.
 
 Each call above names one column, and a `text` argument can name more than
 one. `gm_eras` holds the same values in two columns: `year` as a number, `era`
