@@ -1,34 +1,40 @@
 # The host language
 
 The 1446 book had no host language to explain: its letters were the whole
-system. gog's letters live inside four programming languages, and this part is
-what each language adds.
+system. gog's letters are typed in four programming languages, and this part
+says what each language adds.
 
-Everything so far has been the grammar, and the grammar is the same
-wherever you write it. One engine reads one specification, so the same
-sentence draws the same plot in every language.
+Everything so far has been the same in every language, because the grammar does
+not change with the language you type it in. One engine reads one specification,
+so the same sentence draws the same plot in every language.
 
-This part holds what the grammar chapters could not say. Some things belong to
-the language you type in rather than to the grammar, and they cannot be stated
-once for everybody. A table has to reach `data()`. A plot has to display in a
-notebook. And gog's `+` has to work beside the operators the language already
-has. Those are real questions, and answering them in the grammar chapters would
-answer them wrongly for three readers out of four.
+Some things belong to the language you type in rather than to the grammar, and
+they cannot be stated once for everybody. How does a table reach `data()`? How
+does a plot display where you work? How does gog's `+` work beside the operators
+the language already has? Those are real questions. One answer in the grammar
+chapters would be wrong for readers of the other three languages.
 
-Each of the four has a chapter here [@rcore2026; @vanrossum2009python;
-@bezanson2017julia; @ecma2025javascript]. The grammar chapters say nothing about
-any one language, which is what keeps this part separate.
+Each of the four languages has a chapter here [@rcore2026;
+@vanrossum2009python; @bezanson2017julia; @ecma2025javascript]. A language's gog
+package is called a *binding*. The same word also names a channel with its
+column, such as `x(gdp)`; in this part, *binding* means the package. The grammar
+chapters mention a language only where something belongs to that language
+alone, such as R's `factor()`, and this part holds the rest.
 
-They are ordered R, Python, Julia, JavaScript, and the order has a reason. The
-first three write the same sentence three times. The operators are identical,
-and only the column name moves: a bare `gdp`, then `col.gdp`, then `:gdp`. If
-you have read the R in this book you can read the Python and the Julia already.
-JavaScript is the one that genuinely reads differently. It is the only one of
-the four that cannot give `+`, `*`, `|` and `/` new meanings, so it spells them
-as words. It is last for that reason, so the pattern the other three share is
-read first.
+The four chapters are ordered R, Python, Julia, JavaScript, and the order has a
+reason. You write the same sentence in the first three. The operators are
+identical, and the main change is the column name: a bare `gdp`, then `col.gdp`,
+then `:gdp`. Values such as `TRUE` and `c("a", "b")` also take each language's
+own spelling. If you have read the R in this book you can read the Python and
+the Julia already. JavaScript is the one that genuinely reads differently. It is
+the only one of the four that cannot give `+`, `*`, `|` and `/` new meanings, so
+it spells them as words. It is last for that reason, so the pattern the other
+three share is read first.
 
-The four chapters are also the proof. Every sentence in this book was
-translated and drawn by every binding. The four produce byte-identical
-plots and refuse the same sentences in the same words. They differ only
-where a chapter is about the host language itself.
+The claim that one sentence draws one plot in every language is tested. Every
+sentence in this book that describes a plot was translated into each language
+and drawn by its binding, and the four plots match byte for byte. The four
+bindings refuse the same sentences: in the engine's own words where the engine
+refuses, and in each language's own spelling where the binding refuses. The test
+skips only the sentences about a host language itself, and two that write a file
+rather than draw a plot.
