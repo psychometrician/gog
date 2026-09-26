@@ -4430,3 +4430,16 @@ local({
   render_svg(data(quiet) + bar * bin + x(gdp))
   cat("PASS: a plot with no mark is refused, with the mark to add\n")
 })
+
+# An `edge` with no `layout` has nothing to draw: its geometry is the two nodes a
+# layout places. It drew an empty panel with made-up axes, in silence, on the
+# plane and in the cube. The same block runs in all four bindings.
+local({
+  links <- data.frame(from = c("a", "b", "c"), to = c("b", "c", "a"))
+  refuses("an edge with no layout", render_svg(data(links) + edge),
+          "an `edge` with no `layout` has nothing to draw")
+  refuses("an edge with no layout, colored", render_svg(data(links) + edge + color(from)),
+          "`edge * layout(<from>, <to>) + network()`")
+  render_svg(data(links) + edge * layout(from, to) + network())
+  cat("PASS: an edge with no layout is refused, with the sentence that draws it\n")
+})

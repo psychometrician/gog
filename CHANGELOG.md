@@ -145,6 +145,12 @@ Each is now refused, with what to write instead.
   wrote: `point` for two, `bar * bin` for one number, `bar * count` for one
   category.
 
+- **An `edge` with no `layout`.** `data(trade_partners) + edge` drew an empty
+  panel with axes marked 0 to 1, flat and in the cube, and with a `color()` a
+  legend for nothing. Beside a `layout` on another layer in `network()`, the
+  edge was left out. The refusal gives the sentence that draws it,
+  `edge * layout(<from>, <to>) + network()`.
+
 - **Some refusals are reworded.** A `zone` with no sides now lists all five
   ways to give it some, a boundary on a map included. A refusal about both
   axes is printed once and names both, not once per axis. `path * mean`,

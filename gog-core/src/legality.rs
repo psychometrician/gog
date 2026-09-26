@@ -4737,6 +4737,27 @@ fn check_layout(
     out: &mut Vec<Diagnostic>, spec: &PlotSpec, df: Option<&DataFrame>, layer: &Layer,
 ) {
     if !layer.transforms.contains(&Transform::Layout) {
+        // 0. An `edge` with no `layout`. Its whole geometry is the two nodes a
+        //    layout places, so without one it has nothing to draw, and it drew
+        //    nothing, in silence: an empty panel with made-up 0 to 1 axes on the
+        //    plane and in the cube, and a legend keying nothing beside a `color`.
+        //    The rule table has always called `layout` required on `edge`; nothing
+        //    asked, because the rest of this function starts from the layout.
+        //    In a `network()` that no layer feeds, `check_network` already says
+        //    this for the whole plot, so it is said once, there. A network another
+        //    layer does feed leaves this `edge` to this check alone.
+        let network_says_it = matches!(spec.coord, CoordSpace::Network(_))
+            && !spec.layers.iter().any(|l| l.transforms.contains(&Transform::Layout));
+        if layer.mark == Mark::Edge && !network_says_it {
+            out.push(Diagnostic {
+                kind: DiagnosticKind::Illegal,
+                message: "gog: an `edge` connects two nodes, and only `layout` places \
+                          them, so an `edge` with no `layout` has nothing to draw. Name \
+                          the two endpoint columns and draw it in the network: `edge * \
+                          layout(<from>, <to>) + network()`."
+                    .to_string(),
+            });
+        }
         return;
     }
 
@@ -15454,7 +15475,7 @@ mod tests {
         // deliberately short: if it grows past a glance it wants generating, which
         // is `CONTRIBUTING.md`'s rule about a hand-written list beside a generated
         // one, and this is the list that would lose.
-        known.extend(["space", "polar", "nest", "flat", "globe", "map",
+        known.extend(["space", "polar", "nest", "flat", "globe", "map", "network",
                       "data", "facet", "style", "palette", "theme", "title",
                       "x_label", "y_label", "z_label", "render_svg"]
                      .iter().map(|s| s.to_string()));
@@ -17722,6 +17743,33 @@ mod tests {
             assert!(d.iter().any(|x| x.kind == DiagnosticKind::Illegal
                 && x.message.contains("+ network()")),
                 "a layout outside the space is sent to network(): {:?}", msgs(&d));
+
+            // An edge with no layout has nothing to draw, in every space. It drew
+            // an empty panel with made-up axes and said nothing.
+            let bare = "an `edge` with no `layout` has nothing to draw";
+            let cube = CoordSpace::Space(crate::ir::SpaceView::default());
+            for coord in [CoordSpace::default(), cube] {
+                let d = check(&PlotSpec::new().data("t").coord(coord.clone())
+                    .channel(Channel::Color, "continent")
+                    .layer(Layer::new(Mark::Edge)), &data());
+                assert!(d.iter().any(|x| x.kind == DiagnosticKind::Illegal
+                    && x.message.contains(bare)
+                    && x.message.contains("edge * layout(<from>, <to>) + network()")),
+                    "a bare edge in {coord:?} was not refused: {:?}", msgs(&d));
+            }
+            // In a network no layer feeds, the network's own refusal says it, once.
+            let d = check(&PlotSpec::new().data("t").coord(net())
+                .layer(Layer::new(Mark::Edge)), &data());
+            assert!(d.iter().any(|x| x.message.contains("nothing here carries one"))
+                    && !d.iter().any(|x| x.message.contains(bare)),
+                    "a bare edge in an unfed network is refused once: {:?}", msgs(&d));
+            // In a network another layer feeds, the bare edge is still refused.
+            let d = check(&PlotSpec::new().data("t").coord(net())
+                .layer(Layer::new(Mark::Point).layout("continent", "region"))
+                .layer(Layer::new(Mark::Edge)), &data());
+            assert!(d.iter().any(|x| x.kind == DiagnosticKind::Illegal
+                && x.message.contains(bare)),
+                "a bare edge beside a fed network was not refused: {:?}", msgs(&d));
 
             // A bound position has nothing left to say; the cube is the space's.
             let d = check(&PlotSpec::new().data("t").coord(net()).x("gdp")

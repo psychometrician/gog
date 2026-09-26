@@ -2543,3 +2543,15 @@ for _what, _thunk, _fragment in [
     assert _fragment in _text, f"{_what}: wanted {_fragment!r} in {_text}"
 render_svg(data(_quiet) + bar * bin + x(col.gdp))
 ok("a plot with no mark is refused, with the mark to add")
+
+
+# --- an edge with no layout has nothing to draw ------------------------------
+# Its geometry is the two nodes a layout places. It drew an empty panel with
+# made-up axes, in silence. The same block runs in all four bindings.
+_links = {"from": ["a", "b", "c"], "to": ["b", "c", "a"]}
+assert "an `edge` with no `layout` has nothing to draw" in _refusal(
+    lambda: render_svg(data(_links) + edge))
+assert "`edge * layout(<from>, <to>) + network()`" in _refusal(
+    lambda: render_svg(data(_links) + edge + color(col["from"])))
+render_svg(data(_links) + edge * layout(col["from"], col.to) + network())
+ok("an edge with no layout is refused, with the sentence that draws it")

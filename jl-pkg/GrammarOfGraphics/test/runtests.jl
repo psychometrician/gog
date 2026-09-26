@@ -2144,3 +2144,13 @@ end
     @refuses render_svg(data(quiet)) "this plot has no mark"
     @test occursin("<rect", render_svg(data(quiet) + bar * bin + x(:gdp)))
 end
+
+# An `edge` with no `layout` has nothing to draw: its geometry is the two nodes a
+# layout places. It drew an empty panel with made-up axes, in silence. The same
+# block runs in all four bindings.
+@testset "an edge with no layout is refused, with the sentence that draws it" begin
+    links = (from = ["a", "b", "c"], to = ["b", "c", "a"])
+    @refuses render_svg(data(links) + edge) "an `edge` with no `layout` has nothing to draw"
+    @refuses render_svg(data(links) + edge + color(:from)) "`edge * layout(<from>, <to>) + network()`"
+    @test occursin("<svg", render_svg(data(links) + edge * layout(:from, :to) + network()))
+end

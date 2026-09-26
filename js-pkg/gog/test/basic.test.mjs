@@ -2751,3 +2751,15 @@ test("a plot with no mark is refused, with the mark to add", () => {
   assert.match(refusalOf(() => render_svg(plot(data(quiet)))), /this plot has no mark/);
   assert.ok(render_svg(plot(data(quiet), layer(bar, bin), x(col.gdp))).includes("<rect"));
 });
+
+// An `edge` with no `layout` has nothing to draw: its geometry is the two nodes a
+// layout places. It drew an empty panel with made-up axes, in silence. The same
+// block runs in all four bindings.
+test("an edge with no layout is refused, with the sentence that draws it", () => {
+  const links = { from: ["a", "b", "c"], to: ["b", "c", "a"] };
+  assert.match(refusalOf(() => render_svg(plot(data(links), edge))),
+    /an `edge` with no `layout` has nothing to draw/);
+  assert.match(refusalOf(() => render_svg(plot(data(links), edge, color(col.from)))),
+    /`edge \* layout\(<from>, <to>\) \+ network\(\)`/);
+  assert.ok(render_svg(plot(data(links), layer(edge, layout(col.from, col.to)), network())).includes("<svg"));
+});
