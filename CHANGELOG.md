@@ -24,6 +24,12 @@ CRAN-style repositories and PyPI, `GrammarOfGraphics` on Julia's General, and
 
 ### Changed
 
+- **`repel` steps around every dot drawn in the panel.** A label now clears
+  the dots of every `point` layer, each at the size it is drawn. So labels from a
+  small table of chosen rows no longer land on the dots they do not name, and a
+  big bubble's name no longer sits across its own bubble. A dot that no label
+  names pushes a label only while the label is next to its own point.
+
 - **An alluvial diagram crosses less.** Where bands share a slot, each stage
   now orders them by the nearest stages, before and after, instead of by the
   first stage. On the Titanic counts the crossing between stages falls by 13%

@@ -2190,9 +2190,19 @@ impl SvgRenderer {
                                 Mark::Point => self.write_points(&mut svg, layer, df, l, xs, ys,
                                     x_field, y_field, cat_x.as_deref(), cat_y.as_deref(),
                                     &color_map, &ramp, &clip, zs, z_field, None, None, Some(g)),
-                                Mark::Text => self.write_text(&mut svg, layer, df, l, xs, ys,
-                                    x_field, y_field, cat_x.as_deref(), cat_y.as_deref(),
-                                    &color_map, &clip, &ground, None, None, Some(g), None, &mut remarks),
+                                Mark::Text => {
+                                    // The facing hemisphere's dots, as the flat
+                                    // branch reads its panel's (below).
+                                    let dots = if layer.transforms.contains(&Transform::Repel) {
+                                        self.panel_dots(spec, eff, l, xs, ys, x_field, y_field,
+                                            cat_x.as_deref(), cat_y.as_deref(), None, Some(g))
+                                    } else {
+                                        Vec::new()
+                                    };
+                                    self.write_text(&mut svg, layer, df, l, xs, ys,
+                                        x_field, y_field, cat_x.as_deref(), cat_y.as_deref(),
+                                        &color_map, &clip, &ground, None, None, Some(g), &dots, &mut remarks)
+                                }
                                 Mark::Path => self.write_path(&mut svg, layer, df, l, xs, ys,
                                     x_field, y_field, cat_x.as_deref(), cat_y.as_deref(),
                                     &color_map, &ramp, &clip, zs, z_field, None, None, Some(g)),
@@ -2401,30 +2411,20 @@ impl SvgRenderer {
                             self.write_flow_bands(&mut svg, layer, df, l, xs, ys, cat_x.as_deref(), &color_map, &clip),
                         Mark::Ribbon => self.write_ribbon(&mut svg, layer, df, l, xs, ys, x_field, y_field, cat_x.as_deref(), &color_map, &clip, pol_ref),
                         Mark::Text => {
-                            // A network's dots are sized by `degree`, and a
-                            // repelled name must clear the dot it actually
-                            // has. The text layer's own frame carries the same
-                            // `degree` the sibling `point` sized by — the
-                            // layout's determinism is what lines the rows up —
-                            // so the radii are recomputed here rather than
-                            // plumbed across layers.
-                            let anchor_radii: Option<Vec<f64>> =
-                                if layer.transforms.contains(&Transform::Layout)
-                                    && layer.transforms.contains(&Transform::Repel) {
-                                    spec.layers.iter()
-                                        .find(|p| p.mark == Mark::Point
-                                            && p.transforms.contains(&Transform::Layout))
-                                        .and_then(|p| p.encodings.get(&Channel::Size).cloned())
-                                        .and_then(|def| df.float_col(&def.field).map(|c| {
-                                            let sc = scale::ChannelScale::of(c, Some(&def));
-                                            c.iter()
-                                                .map(|&v| crate::render::encode::radius_at(sc.fraction(v)))
-                                                .collect()
-                                        }))
-                                } else {
-                                    None
-                                };
-                            self.write_text(&mut svg, layer, df, l, xs, ys, x_field, y_field, cat_x.as_deref(), cat_y.as_deref(), &color_map, &clip, &ground, pol_ref, nst.as_ref(), None, anchor_radii.as_deref(), &mut remarks)
+                            // A repelled label steps around every dot drawn in
+                            // this panel at this moment, at the size it is
+                            // drawn: a network's hubs sized by `degree`, a
+                            // bubble sized by `size`, and the unnamed rows of a
+                            // point layer fuller than the label table. Each
+                            // point layer is read from its own frame, the way
+                            // `node_radii` reads the dots an arrowhead stops at.
+                            let dots = if layer.transforms.contains(&Transform::Repel) && nst.is_none() {
+                                self.panel_dots(spec, eff, l, xs, ys, x_field, y_field,
+                                    cat_x.as_deref(), cat_y.as_deref(), pol_ref, None)
+                            } else {
+                                Vec::new()
+                            };
+                            self.write_text(&mut svg, layer, df, l, xs, ys, x_field, y_field, cat_x.as_deref(), cat_y.as_deref(), &color_map, &clip, &ground, pol_ref, nst.as_ref(), None, &dots, &mut remarks)
                         }
                         // The stroke between two layout-supplied endpoints —
                         // only ever reached inside `network()`, where the
@@ -14336,5 +14336,57 @@ mod tests {
 
         let none = draw(Layer::new(Mark::Text).style_border("white", 0.0));
         assert!(!none.contains(halo_group), "a width of 0 draws no halo: {none}");
+    }
+
+    /// **A repelled label clears its own dot at the size it is drawn, in the
+    /// plane too.** With `size(pop)` on the sibling `point`, the big row's dot is
+    /// the largest radius a mapped size draws, and its label must rest off that
+    /// radius rather than the default one. Before a label read every drawn dot,
+    /// only a network recomputed its sibling's radii, and a bubble chart's big
+    /// name sat across its own bubble. Asserted geometrically: no label's center
+    /// is inside its own dot.
+    #[test]
+    fn a_repelled_label_clears_its_own_sized_dot_in_the_plane() {
+        let data = HashMap::from([("t".to_string(), DataFrame::new()
+            .with_float("x", vec![1.0, 3.0, 5.0])
+            .with_float("y", vec![1.0, 2.0, 1.0])
+            .with_float("pop", vec![100.0, 1.0, 1.0])
+            .with_str("name", vec!["Big".into(), "b".into(), "c".into()]))]);
+        let mut point = Layer::new(Mark::Point);
+        point.encodings.insert(Channel::Size, crate::ir::ChannelDef::field("pop"));
+        let mut text = Layer::new(Mark::Text);
+        text.transforms.push(Transform::Repel);
+        text.encodings.insert(Channel::Label, crate::ir::ChannelDef::field("name"));
+        let spec = PlotSpec::new().data("t").x("x").y("y").layer(point).layer(text);
+        let svg = SvgRenderer::default().render(&spec, &data);
+        let grab = |rest: &str, key: &str| -> f64 {
+            let s = rest.find(key).unwrap() + key.len();
+            rest[s..].split('"').next().unwrap().parse().unwrap()
+        };
+        let circles: Vec<(f64, f64, f64)> = svg.match_indices("<circle cx=\"")
+            .map(|(at, _)| (grab(&svg[at..], "cx=\""), grab(&svg[at..], "cy=\""), grab(&svg[at..], "r=\"")))
+            .collect();
+        let labels: Vec<(f64, f64)> = svg.match_indices("<text x=\"")
+            .filter(|(at, _)| {
+                let rest = &svg[*at..];
+                let body = &rest[rest.find('>').unwrap() + 1..rest.find("</text>").unwrap()];
+                ["Big", "b", "c"].contains(&body)
+            })
+            .map(|(at, _)| (grab(&svg[at..], "x=\""), grab(&svg[at..], "y=\"")))
+            .collect();
+        assert_eq!(labels.len(), 3, "each name is drawn once: {svg}");
+        let big = circles.iter().cloned().fold((0.0, 0.0, 0.0), |m, c| if c.2 > m.2 { c } else { m });
+        assert!(big.2 >= 11.0, "the big row draws a big dot: {big:?}");
+        for &(tx, ty) in &labels {
+            let &(cx, cy, r) = circles.iter()
+                .min_by(|p, q| {
+                    let dp = (p.0 - tx).powi(2) + (p.1 - ty).powi(2);
+                    let dq = (q.0 - tx).powi(2) + (q.1 - ty).powi(2);
+                    dp.partial_cmp(&dq).unwrap()
+                })
+                .unwrap();
+            let dist = ((cx - tx).powi(2) + (cy - ty).powi(2)).sqrt();
+            assert!(dist > r, "a label's center at ({tx}, {ty}) sits inside the dot at ({cx}, {cy}) of radius {r}");
+        }
     }
 }

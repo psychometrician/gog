@@ -52,10 +52,12 @@ impl SvgRenderer {
         // skipped here and counted by the caller; the far half of the earth is
         // what a globe is, not a drop.
         globe: Option<&crate::render::globe::Globe>,
-        // Per-anchor dot radii, when the caller knows the dots are not the
-        // default — a network's nodes sized by `degree`. `None` keeps the
-        // default point radius for every anchor, which is every other plot.
-        anchor_radii: Option<&[f64]>,
+        // Every dot drawn in this panel, as `(x, y, radius)` on the page — each
+        // `point` layer's own rows at the size it draws them (`panel_dots`).
+        // Read only under `repel`: they are what a label steps around besides
+        // the other labels. Empty where no point layer draws, and then each
+        // label clears its own anchor at the default dot radius, as before.
+        dots: &[(f64, f64, f64)],
         // Where a label that could not be drawn is reported. A packing of many
         // shares has more regions than legible ones, so leaving the unfitted ones
         // out in silence would let a reader take the labeled cells for all of them
@@ -141,14 +143,32 @@ impl SvgRenderer {
         // label's is its *ink*, so this is the one offset that cannot be computed
         // before the glyphs have a size — and this is where they get one.
         let repelled = layer.transforms.contains(&Transform::Repel).then(|| {
-            // One clearance per anchor: the sized dot's own radius where the
-            // caller supplied one, the default everywhere else.
-            let dots: Vec<f64> = rows.iter()
-                .map(|&(i, _, _)| anchor_radii
-                    .and_then(|r| r.get(i).copied())
+            // The dots, sorted into two kinds by where they sit. A dot drawn at
+            // a label's own anchor is *its* dot: it sets how far that label rests
+            // off its point, at the largest radius drawn there, and a sized dot
+            // is cleared at the size it has. An anchor with no dot under it (a
+            // line's end, a text-only plot) keeps the default radius, which is
+            // what every label cleared before any dot was read. Every other dot
+            // is an obstacle the label layer did not bring — an unnamed row of a
+            // fuller table — and is kept once per place, at its largest radius.
+            let key = |x: f64, y: f64| ((x + 0.0).to_bits(), (y + 0.0).to_bits());
+            let mut widest: HashMap<(u64, u64), f64> = HashMap::new();
+            for &(x, y, r) in dots {
+                let at = widest.entry(key(x, y)).or_insert(r);
+                *at = at.max(r);
+            }
+            let anchored: std::collections::HashSet<(u64, u64)> =
+                rows.iter().map(|&(_, bx, by)| key(bx, by)).collect();
+            let own: Vec<f64> = rows.iter()
+                .map(|&(_, bx, by)| widest.get(&key(bx, by)).copied()
                     .unwrap_or(self.point_radius) + 1.0)
                 .collect();
-            place_repelled(&rows, labels, fs, st.nudge.as_deref(), l, &dots, remarks)
+            let mut seen: std::collections::HashSet<(u64, u64)> = std::collections::HashSet::new();
+            let others: Vec<(f64, f64, f64)> = dots.iter()
+                .filter(|&&(x, y, _)| !anchored.contains(&key(x, y)) && seen.insert(key(x, y)))
+                .map(|&(x, y, _)| (x, y, widest[&key(x, y)] + 1.0))
+                .collect();
+            place_repelled(&rows, labels, fs, st.nudge.as_deref(), l, &own, &others, remarks)
         });
 
         let fill_for = |i: usize| -> String {
@@ -481,10 +501,12 @@ fn parting_dir(dx: f64, dy: f64, i: usize, j: usize, a: f64, b: f64) -> (f64, f6
 
 /// Move the labels that overlap until they do not — `text * repel`, whole.
 ///
-/// **What it moves them off.** Two things: the other labels' ink, and the points.
-/// The second is what makes the ordinary `point + text` sentence work with no
-/// plumbing between the two layers — the labels share `x` and `y` with the dots, so
-/// a label that clears every anchor has cleared every dot the point layer drew.
+/// **What it moves them off.** Two things: the other labels' ink, and every dot
+/// drawn in the panel, each at the radius it is drawn at. In the ordinary
+/// `point + text` sentence the labels share `x`, `y` and the table with the dots,
+/// so every dot is some label's anchor and `others` is empty. It is not empty when
+/// the label layer names only a few rows of a fuller table, and those unnamed dots
+/// are the ones a label would otherwise land on.
 ///
 /// **How.** Each pass nudges every overlapping pair apart along the line between
 /// their centers ([`parting_dir`]), by the least the overlap requires. Half the
@@ -519,6 +541,10 @@ fn place_repelled(
     // found by a network whose hub labels struck through their `size(degree)`
     // dots while every small node's name rested clear.
     dots: &[f64],
+    // The dots no label names, as `(x, y, clearance)`: the rest of a fuller
+    // table under a label layer that names only a few of its rows. A label
+    // steps off them exactly as it steps off another label's anchor.
+    others: &[(f64, f64, f64)],
     remarks: &mut Vec<Diagnostic>,
 ) -> Vec<LabelBox> {
     let mut bs: Vec<LabelBox> = rows
@@ -563,12 +589,16 @@ fn place_repelled(
         .collect();
 
     let n = bs.len();
+    let unnamed = others.len();
     // The placement is quadratic in the labels and iterative, so it is given a
     // budget rather than a fixed number of passes: a panel of twenty names is
     // solved thoroughly, and one of two thousand is not allowed to cost a reader a
     // second of waiting. The budget can only cost quality, never honesty — what it
-    // leaves touching is reported below exactly as an impossible packing is.
-    let iters = if n < 2 { 0 } else { (40_000_000.0 / (n * n) as f64) as usize };
+    // leaves touching is reported below exactly as an impossible packing is. The
+    // unnamed dots are paid for the same way: each pass checks every label against
+    // every one of them, so a few names over a hundred thousand dots is given
+    // fewer passes rather than a longer wait.
+    let iters = if n < 2 { 0 } else { (40_000_000.0 / (n * (n + unnamed)) as f64) as usize };
     let iters = iters.clamp(if n < 2 { 0 } else { 24 }, 240);
     let anneal = (iters * 3 / 5).max(1);
 
@@ -636,11 +666,26 @@ fn place_repelled(
         // When it comes to a choice the words win, since a word over a dot is
         // readable and two words over each other are not.
         for i in 0..(if it < anneal { n } else { 0 }) {
-            for k in 0..n {
-                let (ax, ay) = (bs[k].ax, bs[k].ay);
+            // The named dots first, in row order, then the unnamed ones: with no
+            // unnamed dot this is the loop it always was, pass for pass.
+            //
+            // **An unnamed dot moves a label only while the label is beside its
+            // own point.** Once a label is a line of text away, where it would
+            // earn a leader, the dots nobody named stop pushing it. Without this
+            // a solid cloud has no free room anywhere inside it, so every label
+            // over it was pushed out to the cloud's edge, with a leader across
+            // the whole cloud; a word over a dot it does not name is still
+            // readable, which is the reason words already beat dots above.
+            let reach = if unnamed > 0 && bs[i].leader(fs).is_some() { n } else { n + unnamed };
+            for k in 0..reach {
+                let (ax, ay, clear) = if k < n {
+                    (bs[k].ax, bs[k].ay, dots[k])
+                } else {
+                    others[k - n]
+                };
                 let (dx, dy) = (bs[i].cx - ax, bs[i].cy - ay);
-                let ox = (bs[i].hw + dots[k]) - dx.abs();
-                let oy = (bs[i].hh + dots[k]) - dy.abs();
+                let ox = (bs[i].hw + clear) - dx.abs();
+                let oy = (bs[i].hh + clear) - dy.abs();
                 if ox <= 0.0 || oy <= 0.0 {
                     continue;
                 }

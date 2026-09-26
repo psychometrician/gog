@@ -46,13 +46,11 @@ impl SvgRenderer {
         // ever `Some`.
         globe: Option<&crate::render::globe::Globe>,
     ) {
-        // A point places against either axis the same way, so both positions go
-        // through the one resolution (`super::positions`): a numeric column as it
-        // stands, a string column as its category index. A category on x is a
-        // strip plot, on y a horizontal one — no per-mark and no per-axis
-        // exception, which is exactly what sharing the resolver enforces.
-        let Some(x_vals) = super::positions(df, x_field, cat_x) else { return };
-        let Some(y_vals) = super::positions(df, y_field, cat_y) else { return };
+        // Where each dot sits and how large it is: one routine, shared with the
+        // repelled labels that have to clear these dots (`panel_dots`), so the
+        // dot a label steps around is the dot this writer draws.
+        let Some((coords, radii)) = self.dot_geometry(layer, df, l, xs, ys, x_field, y_field,
+            cat_x, cat_y, zs, z_field, scene, polar, globe) else { return };
 
         let color_labels = layer.encodings.get(&Channel::Color).and_then(|c| df.str_col(&c.field));
         // A numeric color column takes the sequential ramp instead of the
@@ -60,7 +58,6 @@ impl SvgRenderer {
         // by a second atom.
         let color_vals   = layer.encodings.get(&Channel::Color).and_then(|c| df.float_col(&c.field));
         let shape_labels = layer.encodings.get(&Channel::Shape).and_then(|c| df.str_col(&c.field));
-        let size_vals    = layer.encodings.get(&Channel::Size).and_then(|c| df.float_col(&c.field));
         let opacity_vals = layer.encodings.get(&Channel::Opacity).and_then(|c| df.float_col(&c.field));
 
         // One scale object per continuous channel. Each knows whether it runs
@@ -77,7 +74,6 @@ impl SvgRenderer {
         // two is present here.
         let st = &layer.style;
         let default_color = st.color.as_deref().map(esc).unwrap_or_else(|| PALETTE_GOG[0].to_string());
-        let default_radius = st.size.unwrap_or(self.point_radius);
         let default_opacity = st.opacity.unwrap_or(OPACITY_DEFAULT);
         let default_shape = st.shape.as_deref().map(shape_by_name).unwrap_or(ShapeKind::Circle);
 
@@ -92,16 +88,96 @@ impl SvgRenderer {
             .map(|(i, s)| (s.as_str(), shape_at_index(i)))
             .collect();
 
-        // Size scale: data range → [SIZE_MIN_R, SIZE_MAX_R].
-        let size_scale = match size_vals {
-            Some(c) => scale::ChannelScale::of(c, layer.encodings.get(&Channel::Size)),
-            None => scale::ChannelScale::unbound(),
-        };
         // Opacity scale: data range → [OPACITY_MIN, OPACITY_MAX].
         let op_scale = match opacity_vals {
             Some(c) => scale::ChannelScale::of(c, layer.encodings.get(&Channel::Opacity)),
             None => scale::ChannelScale::unbound(),
         };
+
+        let n = coords.len();
+        let mut order: Vec<usize> = (0..n).collect();
+        // Depth-sorted wherever there is a depth: the cube's, or the sphere's
+        // facing hemisphere, where a nearer place paints over a farther one.
+        if scene.is_some() || globe.is_some() {
+            order.sort_by(|&a, &b| {
+                coords[b].2.partial_cmp(&coords[a].2).unwrap_or(std::cmp::Ordering::Equal)
+            });
+        }
+
+        writeln!(svg, r##"  <g clip-path="url(#{clip})">"##).unwrap();
+        // The optional rim (spec §4, the settable rule): `border_color`/`border_size`
+        // stroke each filled glyph's perimeter. A bare `border_size` takes a dark
+        // default color so it still shows; a bare `border_color` a 1px default width.
+        // `write_shape` draws it on the fillable glyphs and skips a `cross`.
+        let border: Option<(&str, f64)> = match (layer.style.border_color.as_deref(), layer.style.border_size) {
+            (None, None) => None,
+            (bc, bw) => Some((bc.unwrap_or("#3c3c46"), bw.unwrap_or(1.0).max(0.0))),
+        };
+
+        for &i in &order {
+            let (cx, cy, _) = coords[i];
+            // A value a log scale cannot place has no coordinate. Skipping is
+            // reported once by `warn_unplaceable`; emitting `cx="NaN"` would
+            // produce SVG no renderer accepts.
+            if !cx.is_finite() || !cy.is_finite() { continue }
+
+            let ramped: String;
+            let color: &str = if let Some(labels) = color_labels {
+                let lbl = labels.get(i).map(String::as_str).unwrap_or("");
+                color_map.get(lbl).map(String::as_str).unwrap_or(&default_color)
+            } else if let Some(vals) = color_vals {
+                let f = color_scale.fraction(vals.get(i).copied().unwrap_or(f64::NAN));
+                ramped = ramp_at(&ramp.iter().map(String::as_str).collect::<Vec<_>>(), f);
+                &ramped
+            } else {
+                &default_color
+            };
+
+            let shape = if let Some(labels) = shape_labels {
+                let lbl = labels.get(i).map(String::as_str).unwrap_or("");
+                shape_map.iter().find(|(s, _)| *s == lbl).map(|(_, k)| *k).unwrap_or(ShapeKind::Circle)
+            } else {
+                default_shape
+            };
+
+            let radius = radii[i];
+
+            let opacity = match opacity_vals {
+                Some(col) => opacity_at(op_scale.fraction(col.get(i).copied().unwrap_or(f64::NAN))),
+                None => default_opacity,
+            };
+
+            write_shape(svg, shape, cx, cy, radius, color, opacity, border);
+        }
+        writeln!(svg, "  </g>").unwrap();
+    }
+
+    /// Where each row's dot sits on the page (with a depth, for the spaces that
+    /// have one) and the radius it is drawn at: a mapped `size`, a set one, or the
+    /// default. `None` when a position column cannot be read, and nothing draws.
+    ///
+    /// Split out of [`write_points`](Self::write_points) because a repelled label
+    /// has to know the same two facts about every dot in its panel, and a second
+    /// copy of this reading is a second answer to *where is that dot* that could
+    /// drift from the one the reader sees.
+    #[allow(clippy::too_many_arguments)]
+    pub(crate) fn dot_geometry(
+        &self, layer: &Layer, df: &DataFrame,
+        l: &Layout, xs: (f64, f64), ys: (f64, f64),
+        x_field: &str, y_field: &str,
+        cat_x: Option<&[String]>, cat_y: Option<&[String]>,
+        zs: (f64, f64), z_field: &str,
+        scene: Option<&project::Scene>,
+        polar: Option<&Polar>,
+        globe: Option<&crate::render::globe::Globe>,
+    ) -> Option<(Vec<(f64, f64, f64)>, Vec<f64>)> {
+        // A point places against either axis the same way, so both positions go
+        // through the one resolution (`super::positions`): a numeric column as it
+        // stands, a string column as its category index. A category on x is a
+        // strip plot, on y a horizontal one — no per-mark and no per-axis
+        // exception, which is exactly what sharing the resolver enforces.
+        let x_vals = super::positions(df, x_field, cat_x)?;
+        let y_vals = super::positions(df, y_field, cat_y)?;
 
         // Resolve z the same way x and y were resolved above — a numeric column
         // directly, or a category mapped to its index. Read only in 3-D.
@@ -193,65 +269,50 @@ impl SvgRenderer {
                 (p.x, p.y, p.depth)
             }
         }}).collect();
-        let mut order: Vec<usize> = (0..n).collect();
-        // Depth-sorted wherever there is a depth: the cube's, or the sphere's
-        // facing hemisphere, where a nearer place paints over a farther one.
-        if scene.is_some() || globe.is_some() {
-            order.sort_by(|&a, &b| {
-                coords[b].2.partial_cmp(&coords[a].2).unwrap_or(std::cmp::Ordering::Equal)
-            });
-        }
-
-        writeln!(svg, r##"  <g clip-path="url(#{clip})">"##).unwrap();
-        // The optional rim (spec §4, the settable rule): `border_color`/`border_size`
-        // stroke each filled glyph's perimeter. A bare `border_size` takes a dark
-        // default color so it still shows; a bare `border_color` a 1px default width.
-        // `write_shape` draws it on the fillable glyphs and skips a `cross`.
-        let border: Option<(&str, f64)> = match (layer.style.border_color.as_deref(), layer.style.border_size) {
-            (None, None) => None,
-            (bc, bw) => Some((bc.unwrap_or("#3c3c46"), bw.unwrap_or(1.0).max(0.0))),
+        // Size scale: data range → [SIZE_MIN_R, SIZE_MAX_R]. A set value replaces
+        // the renderer's built-in default; `legality::check_style` refuses a layer
+        // that both maps and sets it, so at most one of the two is present here.
+        let size_vals = layer.encodings.get(&Channel::Size).and_then(|c| df.float_col(&c.field));
+        let size_scale = match size_vals {
+            Some(c) => scale::ChannelScale::of(c, layer.encodings.get(&Channel::Size)),
+            None => scale::ChannelScale::unbound(),
         };
+        let default_radius = layer.style.size.unwrap_or(self.point_radius);
+        let radii: Vec<f64> = (0..n).map(|i| match size_vals {
+            Some(col) => radius_at(size_scale.fraction(col.get(i).copied().unwrap_or(f64::NAN))),
+            None => default_radius,
+        }).collect();
+        Some((coords, radii))
+    }
 
-        for &i in &order {
-            let (cx, cy, _) = coords[i];
-            // A value a log scale cannot place has no coordinate. Skipping is
-            // reported once by `warn_unplaceable`; emitting `cx="NaN"` would
-            // produce SVG no renderer accepts.
-            if !cx.is_finite() || !cy.is_finite() { continue }
-
-            let ramped: String;
-            let color: &str = if let Some(labels) = color_labels {
-                let lbl = labels.get(i).map(String::as_str).unwrap_or("");
-                color_map.get(lbl).map(String::as_str).unwrap_or(&default_color)
-            } else if let Some(vals) = color_vals {
-                let f = color_scale.fraction(vals.get(i).copied().unwrap_or(f64::NAN));
-                ramped = ramp_at(&ramp.iter().map(String::as_str).collect::<Vec<_>>(), f);
-                &ramped
-            } else {
-                &default_color
-            };
-
-            let shape = if let Some(labels) = shape_labels {
-                let lbl = labels.get(i).map(String::as_str).unwrap_or("");
-                shape_map.iter().find(|(s, _)| *s == lbl).map(|(_, k)| *k).unwrap_or(ShapeKind::Circle)
-            } else {
-                default_shape
-            };
-
-            let radius = if let Some(col) = size_vals {
-                radius_at(size_scale.fraction(col.get(i).copied().unwrap_or(f64::NAN)))
-            } else {
-                default_radius
-            };
-
-            let opacity = match opacity_vals {
-                Some(col) => opacity_at(op_scale.fraction(col.get(i).copied().unwrap_or(f64::NAN))),
-                None => default_opacity,
-            };
-
-            write_shape(svg, shape, cx, cy, radius, color, opacity, border);
+    /// Every dot the `point` layers draw in one panel at one moment, as
+    /// `(x, y, radius)` on the page: what a repelled label steps around.
+    ///
+    /// Read from each point layer's **own** frame, not the label layer's. A label
+    /// layer given its own small table (the few rows worth naming) sits over a
+    /// point layer holding every row, and the unnamed dots are exactly the ones
+    /// the label table cannot tell it about. Each is read whole, whatever the
+    /// selection: a dimmed dot is still drawn, and still under a word that lands
+    /// on it.
+    #[allow(clippy::too_many_arguments)]
+    pub(crate) fn panel_dots(
+        &self, spec: &crate::ir::PlotSpec, eff: &[DataFrame],
+        l: &Layout, xs: (f64, f64), ys: (f64, f64),
+        x_field: &str, y_field: &str,
+        cat_x: Option<&[String]>, cat_y: Option<&[String]>,
+        polar: Option<&Polar>,
+        globe: Option<&crate::render::globe::Globe>,
+    ) -> Vec<(f64, f64, f64)> {
+        let mut out = Vec::new();
+        for (layer, df) in spec.layers.iter().zip(eff) {
+            if layer.mark != crate::ir::Mark::Point || df.is_empty() { continue }
+            let Some((coords, radii)) = self.dot_geometry(layer, df, l, xs, ys, x_field, y_field,
+                cat_x, cat_y, (0.0, 1.0), "", None, polar, globe) else { continue };
+            for (&(x, y, _), &r) in coords.iter().zip(&radii) {
+                if x.is_finite() && y.is_finite() { out.push((x, y, r)); }
+            }
         }
-        writeln!(svg, "  </g>").unwrap();
+        out
     }
 }
 
