@@ -2197,3 +2197,14 @@ end
     @test occursin("<rect", render_svg(data(winds) + bar * count * stack + x(:season) + color(:dir)))
     @test occursin("<rect", render_svg(data(winds) + bar * sum * stack + y(:speed) + color(:dir)))
 end
+
+# A network row with a missing end is left out, and said so, but its named end was
+# still added as a node, standing alone. The same block runs in all four bindings.
+@testset "a network row left out adds no node" begin
+    links = (from = ["a", "a", "b", "c"], to = ["b", "c", "c", "d"])
+    extra = (from = ["a", "a", "b", "c", "e"], to = Union{String,Missing}["b", "c", "c", "d", missing])
+    draw(t) = redirect_stderr(devnull) do
+        render_svg(data(t; name = "links") + edge * layout(:from, :to) + point * layout(:from, :to) + network())
+    end
+    @test draw(extra) == draw(links)
+end

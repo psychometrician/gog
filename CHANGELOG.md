@@ -199,6 +199,11 @@ These drew something other than the sentence said, and now draw what it says.
   `flow` under a bare `space()` draw the same way; each was refused before,
   `interval` as missing a `y`.
 
+- **A network row with a missing end.** The row was left out, and a message
+  said so, but its named end was still added as a node. It stood alone, and
+  every other node moved to make room. A row that draws no edge now adds no
+  node.
+
 - **A date on `z`.** The cube's third axis labeled it in epoch seconds,
   `1710M`, where the same column on `x` reads `Mar 4`. It is ticked on the
   calendar now.

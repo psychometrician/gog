@@ -2807,3 +2807,13 @@ test("a tally's one pile refuses a column on its measure axis", () => {
   assert.ok(render_svg(plot(data(winds), layer(bar, count, stack), x(col.season), color(col.dir))).includes("<rect"));
   assert.ok(render_svg(plot(data(winds), layer(bar, sum, stack), y(col.speed), color(col.dir))).includes("<rect"));
 });
+
+// A network row with a missing end is left out, and said so, but its named end was
+// still added as a node, standing alone. The same block runs in all four bindings.
+test("a network row left out adds no node", () => {
+  const links = { from: ["a", "a", "b", "c"], to: ["b", "c", "c", "d"] };
+  const extra = { from: ["a", "a", "b", "c", "e"], to: ["b", "c", "c", "d", null] };
+  const draw = (t) => render_svg(plot(data(t, { name: "links" }), layer(edge, layout(col.from, col.to)),
+    layer(point, layout(col.from, col.to)), network()));
+  assert.equal(draw(extra), draw(links));
+});

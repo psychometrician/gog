@@ -2606,3 +2606,21 @@ assert "name it as the slot: `x(season)`" in _refusal(
 render_svg(data(_winds) + bar * count * stack + x(col.season) + color(col.dir))
 render_svg(data(_winds) + bar * sum * stack + y(col.speed) + color(col.dir))
 ok("a tally's one pile refuses a column on its measure axis")
+
+
+# --- a network row left out adds no node -------------------------------------
+# A row with a missing end is left out, and said so, but its named end was still
+# added as a node, standing alone. The same block runs in all four bindings.
+_links = {"from": ["a", "a", "b", "c"], "to": ["b", "c", "c", "d"]}
+_extra = {"from": ["a", "a", "b", "c", "e"], "to": ["b", "c", "c", "d", None]}
+
+
+def _network(t):
+    with _warnings.catch_warnings():
+        _warnings.simplefilter("ignore")
+        return render_svg(data(t, name="links") + edge * layout(col["from"], col.to)
+                          + point * layout(col["from"], col.to) + network())
+
+
+assert _network(_links) == _network(_extra), "a row left out should add no node"
+ok("a network row left out adds no node")

@@ -4504,3 +4504,16 @@ local({
   render_svg(data(winds) + bar * sum * stack + y(speed) + color(dir))
   cat("PASS: a tally's one pile refuses a column on its measure axis\n")
 })
+
+# A network row with a missing end is left out, and said so, but its named end was
+# still added as a node: it stood alone and moved every other node. A row that
+# draws no edge now adds no node. The same block runs in all four bindings.
+local({
+  links <- data.frame(from = c("a", "a", "b", "c"), to = c("b", "c", "c", "d"))
+  extra <- rbind(links, data.frame(from = "e", to = NA))
+  draw <- function(t) suppressMessages(suppressWarnings(
+    render_svg(data(t) + edge * layout(from, to) + point * layout(from, to) + network())))
+  if (!identical(draw(links), draw(extra)))
+    stop("FAIL: a row left out for a missing end should add no node")
+  cat("PASS: a network row left out adds no node\n")
+})

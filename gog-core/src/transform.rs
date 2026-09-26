@@ -4188,12 +4188,18 @@ fn graph_layout(df: &DataFrame, from: &str, to: &str, dims: usize) -> Option<Gra
     };
     let mut edges: Vec<(usize, usize, usize)> = Vec::new();
     for r in 0..n_rows {
+        // A row that draws no edge adds no node. Both ends are asked before either
+        // is indexed: indexing them in one tuple added the named end of a row whose
+        // other end was missing, so a row reported "left out" still stood its node
+        // alone on the page and moved every other one, and a self-loop did the same
+        // under `GOG_STRICT=0`.
+        if a[r].is_empty() || b[r].is_empty() || a[r] == b[r] {
+            continue;
+        }
         let (Some(i), Some(j)) = (index(&a[r], &mut nodes), index(&b[r], &mut nodes)) else {
             continue;
         };
-        if i != j {
-            edges.push((i, j, r));
-        }
+        edges.push((i, j, r));
     }
     let n = nodes.len();
     if n < 2 || edges.is_empty() {
@@ -4729,6 +4735,25 @@ mod tests {
         assert_eq!(nodes.str_col(NODE_NAME).unwrap(),
             &["p".to_string(), "q".into(), "r".into(), "s".into()]);
         assert_eq!(nodes.float_col(NODE_DEGREE).unwrap(), &[2.0, 2.0, 3.0, 1.0]);
+    }
+
+    /// **A row that draws no edge adds no node.** A row with a missing end is left
+    /// out and said so; its named end stood alone before, and a self-loop's node did
+    /// too. Both leave the graph exactly as if the row were not in the table.
+    #[test]
+    fn a_row_left_out_adds_no_node() {
+        let without = layout_nodes(&edge_frame(), "a", "b", 2);
+        for (from, to) in [("t", ""), ("", "t"), ("t", "t")] {
+            let with = DataFrame::vconcat(&[
+                edge_frame(),
+                DataFrame::new().with_str("a", vec![from.into()]).with_str("b", vec![to.into()]),
+            ]);
+            let nodes = layout_nodes(&with, "a", "b", 2);
+            assert_eq!(nodes.str_col(NODE_NAME), without.str_col(NODE_NAME),
+                "the row {from:?} -> {to:?} added a node");
+            assert_eq!(nodes.float_col(LAYOUT_X), without.float_col(LAYOUT_X),
+                "the row {from:?} -> {to:?} moved the graph");
+        }
     }
 
     /// **An edge row is 1:1 with its input row**, both endpoints synthesized and
