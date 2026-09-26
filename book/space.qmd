@@ -5,16 +5,16 @@
 source("R/setup.R")
 ```
 
-What do you do when a third measurement matters as much as the first two? Every
-plot so far has been drawn on a plane: a mark, an `x`, a `y`. The grammar has a
+What do you do when a third measurement matters as much as the first two? Most
+plots so far have been drawn on a plane: a mark, an `x`, a `y`. The grammar has a
 third position channel, `z`. Binding it is enough to lift the mark off the
 page.
 
 ## `z`: one more vowel
 
 Here are three flower measurements. Two of them make an ordinary scatter, and
-the species already begin to separate, but *versicolor* and *virginica* still
-blur together along the diagonal:
+the species already separate, although *versicolor* and *virginica* overlap a
+little where they meet along the diagonal:
 
 ```{r}
 #| echo: false
@@ -29,9 +29,9 @@ data(iris_flowers) + point +
 *"Given the iris flowers: points, x is petal length, y is sepal length, color by
 species."*
 
-Now add the third measurement as `z`. Nothing else about the sentence changes
-(the same `point`, the same `x` and `y`, one more vowel), and the plot lifts
-into space:
+Now add the third measurement as `z`. Nothing else about the sentence changes:
+the same `point`, the same `x` and `y`, and one more position, which the
+[Grammar](grammar.qmd) chapter calls a *vowel*. The plot lifts into space:
 
 ```{r}
 data(iris_flowers) + point +
@@ -43,29 +43,34 @@ sepal width, color by species."*
 
 That is the whole idea. A 3-D scatter is not a different chart with a different
 name; it is `point` with its third position bound, the same way a horizontal bar
-is just `bar` with its categories on `y`. A flat plot is a spatial one with `z`
-held constant, so the same rules that place a mark on the page place it in the
-cube. Every flat plot you have read so far was the special case.
+is just `bar` with its categories on `y`. A flat plot is a 3-D plot with `z`
+held constant. So every flat plot you have read so far was a special case of
+the cube, and the same rules place a mark in both.
 
-Drawing a 3-D plot on a flat page takes two steps, and neither one is new.
-First the engine turns the three coordinates of every point to match the angle
-you are looking from. Then it draws the turned points on the page, the way it
-draws any flat plot. Points nearer to you are drawn last, so they sit on top of
-the ones behind them. The fill is translucent, so a point behind still shows
-through the one in front. The drawing order is what gives a flat picture its
-depth.
+Drawing a 3-D plot on a flat page takes two steps, and the second is the one
+every flat plot already uses. First the engine turns the three coordinates of
+every point to match the angle you are looking from. Then it draws the turned
+points on the page, the way it draws any flat plot. Points nearer to you are
+drawn last, so they cover the ones behind them. The fill is translucent, so a
+point behind still shows through the one in front. The drawing order is what
+gives a flat picture its depth.
 
 The faint box behind the cloud of points is a guide rather than part of the
 data. A bare cloud of points gives you no way to tell which direction is `x`,
 which is `y` and which is `z`. The box draws the edges of the space the points
 stand in, and each of the three axes puts its numbers along one of those edges.
 
-On a screen you can turn this cube yourself. Drag it in any direction and watch
-*versicolor* and *virginica*. Some angles separate the two colors, and others
-leave them mixed together. When you find an angle that separates them, read the
-two numbers under the plot. They are called `turn` and `tilt`, and they describe
-the view you are looking at. The next section shows how to write those two
-numbers into the sentence, so the plot opens at the angle you found.
+Now look at the flowers. At this opening angle *setosa* sits apart from the
+other two, as it did on the flat page, but *versicolor* and *virginica* overlap
+much more than they did there. The data has not changed, so the extra overlap
+comes from the angle you are looking from.
+
+In the web edition you can turn this cube yourself. Drag it in any direction and
+watch *versicolor* and *virginica*. Some angles separate the two colors, and
+others leave them mixed together. When you find an angle that separates them,
+read the two numbers under the plot. They are called `turn` and `tilt`, and they
+describe the view you are looking at. The next section shows how to write those
+two numbers into the sentence, so the plot opens at the angle you found.
 
 ## The viewing angle
 
@@ -84,32 +89,41 @@ data(iris_flowers) + point +
 *"Given the iris flowers: points, x is petal length, y is sepal length, z is
 sepal width, color by species, turned -50, tilted 15."*
 
-Same data, same bindings: turned around and seen from lower down. The choice
-matters. A low tilt stands the `z` axis up the page and flattens the floor, so
-this view reads sepal width well and the two lengths poorly. *Setosa* stands
-clear on sepal width, but *versicolor* and *virginica* overlap on it almost
-completely, so this is the wrong view for telling those two apart. A higher tilt
-does the reverse: the floor opens out and the heights compress. Turning the plot
-changes *how you look*, never *what is drawn*, which
-is exactly why it belongs to the coordinate space and not to the grammar of the
-plot itself. Omit `space()` and the plot opens at a default angle; use `space()`
-when that default hides what you came to see.
+Same data and same bindings, turned 80 degrees from the default and seen from a
+little lower down. The choice matters. From this side both lengths grow toward
+the right of the page, and *virginica* is the longer flower on both, so it sits
+to the right of *versicolor*. At the default angle the two lengths ran in
+opposite directions across the page, so most of the difference between the two
+flowers was lost. They still overlap in the middle, because this side spreads
+the flowers by sepal length more than by petal length, and the two overlap far
+more on sepal length. A low tilt stands the `z` axis up the page and flattens
+the floor, so in this view you can read sepal width easily and the two lengths
+less easily. A higher tilt does the reverse: the floor takes up more of the page
+and the heights grow shorter.
+
+Turning the plot changes *how you look* at the data, never *what the plot
+claims* about it. That is why the angle is set in `space()`, and not by a
+channel or a mark. Omit `space()` and the plot opens at a default angle; use
+`space()` when that default hides what you want to see.
 
 Both angles are given in degrees, and both move your eye rather than the data.
 
 `turn` says which side of the cube you look at. It moves your eye around the
-plot, the way you walk around an object to see another side of it. A positive
-turn moves you one way around, a negative turn moves you the other way, and a
-full circle is 360 degrees.
+plot, the way you walk around an object to see another side of it. At
+`turn = 0` you look straight along the `x` axis, so `x` runs into the page. As
+`turn` grows from 0, the direction you look moves from the `x` axis toward the
+`y` axis. At `turn = 90` you look straight along `y`, so `y` runs into the page.
+A negative turn moves your eye around the other way, and a full circle is 360
+degrees.
 
 `tilt` says how high your eye is. At `tilt = 0` you are level with the floor and
-see the cube from the side. Raise it and you look down from further up. At
+see the cube from the side. Raise it and you look down from higher up. At
 `tilt = 90` you are directly above the cube, looking straight down. The floor
 fills the picture. The `z` axis now points straight at you, so it has no length
-left on the page and even its name disappears. A negative tilt puts your eye
+left on the page and even its label disappears. A negative tilt puts your eye
 below the floor, looking up, as far as `tilt = -90` from directly underneath.
-Dragging stops at `tilt = 90` and at `tilt = -90`. Those are the same two ends a
-written angle stops at, so the mouse reaches every angle you can name.
+Dragging stops at `tilt = 90` and at `tilt = -90`. A written tilt must also stay
+between -90 and 90, so dragging reaches every tilt you can write.
 
 A plot with no `space()` opens at `turn = 30, tilt = 25`. That is far enough
 around and high enough up to show all three axes at once, which is why it is the
@@ -121,36 +135,34 @@ angles *azimuth* and *elevation*, and the plain words say the same thing.)
 
 ## Turning the plot yourself
 
-You turned the first cube in this chapter with the mouse, and every cube in the
-book turns the same way. The cube follows your pointer. Drag right and the side
-facing you moves right; drag down and it tips down to show you the top. A line
-under each plot names the two angles of the view it is showing, and the numbers
-change as you drag. So you can find an angle by hand, then write it into the
-sentence as `space(turn = , tilt = )`.
+In the web edition you turn every cube in this book the same way, by dragging
+it. The cube follows your pointer. Drag right and the side facing you moves
+right; drag down and it tips down to show you the top. A row under each cube
+shows the two angles of the current view, and the numbers change as you drag.
+So you can find an angle by hand, then write it into the sentence as
+`space(turn = , tilt = )`.
 
 A *reset* button sits beside those numbers. It returns the plot to the view it
 opened at, which is the angle the sentence asked for, or the default angle if
 the sentence named none. It is dimmed until you turn the plot, because until
 then there is nothing to undo.
 
-Beside it sit the same boxes that
-[every plot in this book](first-plot.qmd#the-boxes-under-every-plot) has.
-They mean here what they mean everywhere. The camera saves the picture as you
-are looking at it, so the angle you turned the cube to is saved with it.
+The same [boxes under every plot](first-plot.qmd#the-boxes-under-every-plot)
+sit in a row of their own, between the plot and the angles, and each box does
+the same work here as on a flat plot. The camera saves the picture as you are
+looking at it, so the angle you turned the cube to is saved with it.
 
 The cube differs from a flat plot in two ways, and both follow from one fact:
-dragging turns the scene rather than moving the picture. So a zoomed cube cannot
-be dragged to one side, and the magnifiers are the only way to look closer.
+dragging turns the cube and everything in it, rather than moving the picture
+across the page. So a zoomed cube cannot be dragged to one side, and the cube
+has a second control that undoes something: *reset*. The two undo different
+things: the frame undoes the zoom, and *reset* undoes the angle. So zooming in
+never loses the angle you found, and going back to the opening angle keeps the
+zoom you set. A flat plot has no angle to restore, so it has no *reset*.
 
-And the cube is the one plot with *two* boxes that undo something. There are
-two because they undo different things: the frame undoes the zoom, and *reset*
-undoes the angle. So zooming in never loses the angle you found, and
-straightening the angle keeps the zoom you set. A flat plot has no
-angle to return, so it has the frame alone.
-
-This changes nothing about the sentence. `space()` chooses where a plot opens,
-and the mouse takes you anywhere else from there. The data, the marks and the
-scales are the same at every angle.
+Turning a cube with the mouse changes nothing in its sentence. `space()` sets
+the angle the plot opens at, and dragging moves the view to any other angle from
+there. The data, the marks and the scales are the same at every angle.
 
 Dragging needs a web page to run in. On paper, and in the PDF edition, each plot
 is the still image its sentence asks for. That is the reason to name the angle
@@ -179,7 +191,7 @@ data(thermals) + path + x(east) + y(north) + z(altitude) + color(glider)
 glider."*
 
 Nothing in that sentence asks for a spiral. `path` was told to join the rows in
-order, and the gliders went round while they went up. The coil is what that
+order, and the gliders circled while they climbed. The spiral is what that
 looks like when it is drawn. The same three bindings would draw a straight line
 for an aircraft flying level, and a tangle for a tumbling one, because the route
 is only the order of the rows.
@@ -196,12 +208,11 @@ climb.
 `path` is the only mark that draws a route through the cube. The reason is the
 one that already separates it from `line` on the flat page: the order of the
 rows. An order belongs to no axis, so it means the same thing when the plane
-becomes a cube. A `line` sorts
-by `x` and
-draws one `y` for each, read left to right along a domain. The cube has no left
-to right. `x` is one of three equal positions, and at some angles it runs
-straight into the page and becomes depth. A line in space would be sorted by an
-axis you cannot see, so the engine refuses it instead:
+becomes a cube. A `line` sorts by `x` and draws one `y` for each, read left to
+right along a domain. The cube has no left to right. `x` is one of three equal
+positions, and at some angles it runs straight into the page and becomes depth.
+A line in the cube would be sorted by an axis you cannot see, so the engine
+refuses it instead:
 
 ```{r}
 #| error: true
@@ -213,10 +224,10 @@ data(thermals) + line + x(east) + y(north) + z(altitude)
 Every cube so far bound a column to each of the three axes. The third axis can
 also carry something the data does not hold. The [heatmap](marks/zone.qmd) cuts
 a plane into cells and colors each one by how many rows fell in it. Those cells
-already cover a plane, which is the cube's floor once the plot lifts, and the
-color represents a quantity. Two shades of one
-color are hard to compare exactly, and two heights are easy. Bind that quantity
-to a height instead and the same counts are drawn as standing bars:
+already cover a plane, and in the cube that plane is the floor. The color on
+each cell shows its count. Two shades of one color are hard to compare exactly,
+and two heights are easy. Here is the heatmap first, and then the same counts
+drawn as heights:
 
 ```{r}
 #| echo: false
@@ -240,19 +251,20 @@ scale, y is life, in the cube."*
 
 The mark changed from `zone` to `bar`, and `space()` asks for the cube. The
 transform is the same `bin`, cutting the same two axes into the same cells, and
-the count it invents is the same count. What differs is the mark the count was
-handed to. The mark decides which visual attribute carries it. A `zone` measures
+the count it invents is the same count. What differs is the mark that receives
+the count. The mark decides which visual attribute carries it. A `zone` measures
 nothing by length, so its count has to become a color. A `bar` *is* a length
-from a baseline, so its count becomes a height.
+from a baseline, so its count becomes a height. The bar's color then carries
+nothing, so every bar has the same color, and `style()` only chooses which one.
 
 Nothing was added to the grammar to do that, and the rule that decided it was
 written for the flat page. How many axes a transform cuts is decided by the
-mark. `bar * bin` cuts one: a bar spends an axis on the domain and keeps the
+mark. `bar * bin` cuts one: a bar uses one axis for the domain and keeps the
 other to measure along. `zone * bin` cuts two, because a zone keeps none. A cube
-hands the bar a third axis. It can spend two on the floor and still have one to
-measure along, so the same sentence that cuts one axis on the page cuts two
-here. Read that way the 3-D histogram is not a feature. It is what the flat rule
-already said, applied to three axes.
+gives the bar a third axis. It can use two for the floor and still have one to
+measure along, so the same `bar * bin` that cuts one axis on the page cuts two
+here. Read that way, the 3-D histogram needs no feature of its own. It is what
+the flat rule already said, applied to three axes.
 
 Note also what you did *not* have to write. There is no `z()` in that sentence,
 for the same reason a flat histogram has no `y()`: the count is invented rather
@@ -261,11 +273,12 @@ than bound, so naming it would be naming an output.
 ## Transforms in the cube
 
 That floor was cut from two continuous axes. A floor is made of cells, so the
-question is where the cells come from. The [zone](marks/zone.qmd) chapter asked
-it of a plane, and the answers here are the same two. A continuous axis has to
-be **cut** into cells before anything can be counted in them; a categorical axis
-arrives already cut, because a category *is* a cell. So which transform you want
-depends on which kind of axis you have. Two categorical axes arrive already cut:
+question is where the cells come from. The [zone](marks/zone.qmd) chapter
+answered it for a plane, and the same two answers hold here. A continuous axis
+has to be **cut** into cells before anything can be counted in them; a
+categorical axis arrives already cut, because a category *is* a cell. So which
+transform you want depends on which kind of axis you have. Two categorical axes
+arrive already cut:
 
 ```{r}
 #| echo: false
@@ -279,8 +292,9 @@ data(gm_eras) + bar * count + x(continent) + y(era) + space() + style(color = "#
 *"Given the gapminder eras: bars derived by count, x is continent, y is era, in
 the cube."*
 
-That one counts into slots on both axes: a table of counts, standing up. And a
-floor with one axis of each kind is a distribution per category, drawn as bars:
+That sentence counts the rows for every pair of categories, and each count is
+drawn as a bar's height. A floor with one axis of each kind is a distribution
+per category, drawn as bars:
 
 ```{r}
 data(gm_all) + bar * bin(12) + x(life) + y(continent) + space() + style(color = "#2a9d8f")
@@ -295,7 +309,8 @@ fill them and meet. A category is one slot, and its neighbors are separate slots
 rather than adjacent intervals. A bar fills four fifths of its slot and leaves
 one fifth empty, and that gap is what says the categories are separate. So a
 floor cut on one axis and slotted on the other has no gaps one way and gaps the
-other. Each axis follows its own kind, and neither looks at the other.
+other. Each axis follows the rule for its own kind of column, and neither
+depends on the other.
 
 Ask for a cut where there is nothing to cut and the engine names the other
 transform, exactly as it does on the plane:
@@ -318,25 +333,28 @@ data(gm_eras) + bar * mean + x(continent) + y(era) + z(life) + space() +
 *"Given the gapminder eras: bars derived by mean, x is continent, y is era, z is
 life."*
 
-Read that beside the flat `bar * mean + x(continent) + y(life)`. The rule is the
+Each bar sits on the cell of one continent and one era, and its height is that
+group's mean life expectancy. Read that beside the flat
+`bar * mean + x(continent) + y(life)`. The rule is the
 same in both. A summary reduces the column on the axis the mark measures along,
 and groups by the other positions. On the flat page, a bar measures with `y`, so
 it groups by `x` and averages `y`. In the cube it measures with `z`, so it
 groups by the *pair* and averages `z`. Nothing about `mean` changed. The mark
 simply has one more position to group by.
 
-That is the same rule the histogram used, read a second time: take the positions
-the space offers, and set aside the one the mark measures along. The first
-reading says how many axes `bin` cuts. This one says how many columns `mean`
-groups by. One rule, two questions, and the answer to both is read off the mark.
+That is the same rule the histogram used, applied a second time: take the
+positions the space offers, and set aside the one the mark measures along.
+Applied to `bin`, it says how many axes are cut. Applied to `mean`, it says how
+many columns the rows are grouped by. One rule answers both questions, and in
+both the answer depends on the mark.
 
-The two families differ in what you give them, not in what they can draw.
-`count` and `bin` invent a measurement, so they need no column, and color or
-height carries the answer. `mean`, `sum`, `median`, `max`, `min` and `quantile`
-reduce a column you name, so the sentence has to name it. Leave `z()` off and
-the engine says so rather than guessing.
+The two kinds of statistic differ in what you give them, not in what they can
+draw. `count` and `bin` invent a measurement, so they need no column, and a
+color or a height shows the count. `mean`, `sum`, `median`, `max`, `min` and
+`quantile` reduce a column you name, so the sentence has to name it. Leave `z()`
+off and the engine says so rather than guessing.
 
-One statistic really does stay on the plane. It is `smooth`, which fits a curve
+One statistic does stay on the plane. It is `smooth`, which fits a curve
 instead of reducing a column:
 
 ```{r}
@@ -344,20 +362,22 @@ instead of reducing a column:
 data(gm_eras) + bar * smooth + x(continent) + y(era) + z(life) + space()
 ```
 
-A smoother traces a curve of one column against another, and a curve needs a
-domain to run along. The cube's floor is a pair of positions with no left to
-right. That is why `line` and `area` cannot stand here either. It is the same
-reason, stated by a transform this time instead of by a mark.
+The engine gives two reasons, and only the second belongs to the cube. The first
+would refuse the same sentence on the flat page, because both floor columns are
+categories. The second holds on any floor: a smoother traces a curve of one
+column against another, and a curve needs a domain to run along. The cube's
+floor is a pair of positions with no left to right. That is why `line` and
+`area` cannot stand here either. It is the same reason, stated by a transform
+this time instead of by a mark.
 
 ## `interval` and `box` in the cube
 
 A mean per cell hides how far the values in that cell spread, and the spread is
 often the question. A bar is not the only mark that stands in a slot and
-measures along the other axis. A whisker spans a range from end to end. A box
-summarizes a range with its quartiles and its median. `bar`, `interval` and
-`box` ask the same question of the same pair of axes, so all three take the
-third dimension. Give the pair a cube and each stands on a *cell* of the floor,
-measuring along `z`:
+measures along the other axis. An `interval` does the same with a whisker, which
+spans a range from end to end, and a `box` does it with its quartiles and its
+median. So all three can be drawn in the cube. There each one stands on a
+*cell* of the floor and measures along `z`:
 
 ```{r}
 data(gm_eras) + interval * range + x(continent) + y(era) + z(life) + space() +
@@ -367,14 +387,15 @@ data(gm_eras) + interval * range + x(continent) + y(era) + z(life) + space() +
 *"Given the gapminder eras: intervals derived by range, x is continent, y is
 era, z is life."*
 
-Every cell's whisker spans that cell's own low and high. The caps are a
-**cross** rather than a single tick, and that is not decoration. On the flat
-page a cap runs across the slot, in the one direction the plot has left over. A
-cube leaves two directions over. Picking one of them would be arbitrary, and a
-reader would look for a meaning that is not there. So the cap runs in both.
+Every cell's whisker spans that cell's own low and high. The caps (the short
+lines across each end of a whisker) are a **cross** rather than a single tick,
+and that is not decoration. On the flat page a cap runs across the slot, in the
+one direction the whisker does not use. A cube has two such directions. Picking
+one of them would be arbitrary, and a reader would look for a meaning that is
+not there. So the cap runs in both.
 
-Ask for the interval that carries a center and gog draws the **pointrange**: a
-dot at the center with a whisker on each side.
+Ask for `confidence`, which carries a center as well as two ends, and gog draws
+the **pointrange**: a dot at the center with a whisker on each side.
 
 ```{r}
 data(gm_eras) + interval * confidence + x(continent) + y(era) + z(life) +
@@ -384,8 +405,8 @@ data(gm_eras) + interval * confidence + x(continent) + y(era) + z(life) +
 *"Given the gapminder eras: intervals derived by confidence, x is continent, y
 is era, z is life."*
 
-And the five-number summary stands the same way, its box a solid between the
-quartiles with the whiskers reaching past it:
+The five-number summary stands in the cube the same way. Its box is a solid
+between the two quartiles, and its whiskers reach beyond the box:
 
 ```{r}
 data(gm_eras) + box + x(continent) + y(era) + z(life) + space() + style(color = "#2a9d8f")
@@ -396,22 +417,22 @@ data(gm_eras) + box + x(continent) + y(era) + z(life) + space() + style(color = 
 Look at the median on each box. It is drawn only where the box's own sides face
 you. The median is a plane *inside* an opaque solid, so the far half of it is
 behind the box. That is the back-face rule (a face turned away is not drawn),
-the same rule the solid's own six faces follow. One case escapes the rule. When
-every value in a group is the same, its two quartiles are equal, so the box has
-no height and no sides to turn toward you. The whole median is drawn instead,
-and you see the plane face-on. A box of no height collapses to the same flat
-line on the page.
+the same rule the solid's own six faces follow. One case is handled differently.
+When every value in a group is the same, its two quartiles are equal, so the box
+has no height and no sides to turn toward you. The whole median is drawn
+instead, as a flat rectangle. On the flat page, a box of no height becomes a
+single line in the same way.
 
-The small dots standing clear of the whiskers are outliers, each drawn at the
+The small dots beyond the whiskers are outliers, each drawn at the
 center of its cell. [Interval](marks/interval.qmd) and [Box](marks/box.qmd) are
 the chapters for these two marks on the flat page.
 
 ## `z_label()`: naming the third axis
 
 Those three marks all stood on the same two axes and measured along the third.
-Whatever stands in the cube, that third axis still needs its name. The cube's
-three axes take their names from the columns bound to them, and you can replace
-any of the three. Each position has its own label function, and `z_label()` is
+Whatever stands in the cube, the third axis still needs a label. Each axis takes
+its label from the name of the column bound to it, and you can replace any of
+the three. Each position has its own label function, and `z_label()` is
 the third. Units are the usual reason to set all three at once:
 
 ```{r}
@@ -429,24 +450,32 @@ gliders appear in the [third-variable cookbook](cookbook/three-or-more.qmd).
 
 ## What the cube refuses
 
-Every sentence so far in this chapter draws. What follows is the other half:
-what the cube will not do, and why. Two of those limits come from the guide box,
-so start with how the box is drawn. The box is drawn *behind* the marks, so the
-points are always in front of it. That is a fixed order rather than a
-calculation, and it
-means no point disappears behind the far face of the box. Its *labels* go on
-afterwards, over the marks. A guide is an annotation about the scene rather than
-a member of it, so no mark can cover the numbers that say what it measures.
+Three sentences in this chapter have been refused already, each with a message
+that says why. What follows is what the cube itself will not do, and why. The
+first two are not refusals but fixed drawing orders, and the engine draws the
+plot without a message. The first concerns the guide box: the engine does not
+sort it by depth with the marks. The box is drawn *behind* the marks and its
+labels are drawn over them, whatever the angle. So an edge of the box never
+passes in front of a point, even where the edge is nearer to you. And no mark
+can cover the numbers that say what it measures, because a guide describes the
+scene rather than being part of it.
 
-Turning the plot is what makes a 3-D plot readable at all, and the mouse does
-it. Deciding what hides what, piece by piece, is a separate and harder job. It
-takes far more computing than turning does, and the renderer decides it rather
-than the grammar. So the box stays behind the marks however far you turn the
-scene.
+Turning the whole cube is cheap, and the engine does it every time you drag.
+Working out, piece by piece, which part of the box hides which point costs far
+more computing, and the renderer does not do it. That is a limit of the
+renderer, not a rule of the grammar, so the box stays behind the marks however
+far you turn the scene.
 
-A tilt past straight up or straight down is refused, and a turn past a full
-circle is not. One of the two angles has an end and the other does not, and that
-is the whole reason:
+Layers keep a fixed order as well. The depth sort runs *within* a layer, and
+layers are painted in the order you wrote them, exactly as they are on the flat
+page. So a `point` cloud layered over a `path` sits in front of the whole route
+rather than passing through it. That is the ordinary layering rule applied in
+the cube, not a new exception, so read a layered 3-D plot as layers, not as one
+depth-sorted scene.
+
+A tilt beyond 90 or -90 is refused, and a turn beyond a full circle is not. One
+of the two angles has an end and the other does not, and that is the whole
+reason:
 
 ```{r}
 #| error: true
@@ -454,58 +483,63 @@ data(thermals) + point + x(east) + y(north) + z(altitude) + space(tilt = 95)
 ```
 
 `tilt` is how high your eye is, and there is a highest point. At 90 you are
-directly
-above the cube and at -90 directly underneath, so there is nothing past either
-end to look from. Past either end the scene turns over, and an upside-down cube
-shows nothing the sentence asked for. Dragging stops at both ends, and writing
-an angle stops there too.
+directly above the cube, and at -90 directly underneath. Going past either end
+would turn the scene upside down, and an upside-down cube shows nothing the
+sentence asked for. So dragging stops at both ends, and a written tilt must stay
+between them.
 
-`turn` is which side you stand on, and you can keep walking. A full circle
-brings you back, so 390 is the same view as 30 and gog draws it without
-comment:
+`turn` is which side you stand on, and it has no end. A full circle brings you
+back, so 390 is the same view as 30 and gog draws it without comment:
 
 ```{r}
 data(thermals) + point + x(east) + y(north) + z(altitude) + space(turn = 390)
 ```
 
-The same picture as `space(turn = 30)`, to the byte. Two angles and two rules.
-One of them has ends to stop at and the other comes back around, so the
-difference is in the angles and not in a preference.
+That is `space(turn = 30)` drawn a second time: 390 is 30 plus a full circle, so
+the two sentences produce exactly the same file. `tilt` has two ends and `turn`
+has none, so the two rules come from the angles themselves, not from a choice
+gog made.
 
-A mark the cube does not draw has three possible reasons, and the engine says
-which one you have. It was **decided** against, it is **blocked** on work the
-renderer cannot do yet, or it is simply **not built**.
+When the cube does not draw a mark, there are three possible reasons, and the
+engine's message says which one you have. It was **decided** against, or it is
+**blocked**, or it is simply **not built**. A blocked mark would need the
+renderer to work out, piece by piece, what hides what; a mark that is not built
+only lacks its own drawing code.
 
 Some are **decided**. `line`, `step`, `area` and `ribbon` read a *domain* left
 to right. They sort by `x` and draw one value for each, which is what makes a
 line a function rather than a route. A cube has no left to right, so all four
-are refused in space. The `path` section showed that refusal for `line`. It is
-a rule rather than a gap, and the refusal says so: the route through three
-dimensions is [`path`](marks/path.qmd), which is `line` with exactly that sort
-removed. Two marks that differ by one rule on the page turn out to differ by a
-whole dimension in the cube.
+are refused there. The `path` section showed that refusal for `line`. It is a
+rule rather than a missing feature, and the refusal says so: the route through
+three dimensions is [`path`](marks/path.qmd), which is `line` with exactly that
+sort removed. On the page `line` and `path` differ by one rule: whether the rows
+are sorted by `x`. In the cube that one rule decides which of the two can be
+drawn at all.
 
 ## What the cube blocks
 
 The second reason is **blocked**, and it is a different kind of refusal. A
-`rule` marks a value on one axis and spans the others: in a cube that is *two*
-axes, so a rule here is a **plane**:
+`rule` in a cube is a **plane**. It marks a value on one axis and spans the
+other two. Here `x(east)` places the rule, and `z(altitude)` is what puts the
+plot in the cube, since a plot with no `z` is drawn flat:
 
 ```{r}
 #| error: true
 data(thermals) + rule + x(east) + z(altitude) + space()
 ```
 
-Marks in space are painted far-to-near and sorted by the area they cover, and a
-plane covers the whole floor. It could only be drawn wholly in front of or
-wholly behind the data, but cutting *through* the data is the whole job of a
-reference plane. A `zone` is the same problem one dimension wider. Neither is
-drawn, because the engine places each mark by its whole footprint rather than
-piece by piece.
+Marks in the cube are painted far to near, and the engine decides when to paint
+a solid by where it stands on the floor. A plane stands across the whole floor,
+so part of it is nearer to you than a given point and part is farther away. It
+could only be drawn wholly in front of the data or wholly behind it, but cutting
+*through* the data is what a reference plane is for. A `zone` in a cube is a
+slab, a plane with thickness, and it fails for the same reason. Neither is
+drawn, because drawing one means working out, piece by piece, what hides what,
+and the renderer does not do that.
 
-The third reason is the shortest, and `text` is where you meet it. A label at a
-third position is legal grammar, and no rule stands against it. The engine does
-not draw it yet, and says exactly that:
+The third reason is the simplest, and `text` is the example. A label at a third
+position is legal grammar, and no part of the grammar forbids it. The engine
+does not draw it, and says exactly that:
 
 ```{r}
 #| error: true
@@ -514,9 +548,9 @@ data(iris_flowers) + text + x(petal_length) + y(sepal_length) + z(sepal_width) +
 ```
 
 The third reason covers a scale as well. The `z` axis is linear, so a log `z` is
-refused, and the message says to put the log channel on `x` or `y` instead.
+refused, and the message says to use a log scale on `x` or `y` instead.
 
-In every case the engine tells you what it will not do. Silence would be worse
+Every refusal above comes with a message that says why. Silence would be worse
 than a refusal, because a plot that quietly dropped a dimension would still look
 finished and would answer a question you never asked.
 
@@ -541,7 +575,8 @@ data(gapminder_2007) + point + x(gdp) + y(life) + z(population) +
 continent, split into panel columns by continent."*
 
 The scales are shared, exactly as they are on the flat page, so the five cubes
-are the same cube five times and a height in one is a height in another. Oceania
+share one set of axes, and a given height means the same population in every
+panel. Oceania
 holds two countries, so its cube is nearly empty, and that is the correct
 reading. The shared scale is what makes the difference visible.
 
@@ -553,12 +588,13 @@ data(thermals) + path + x(east) + y(north) + z(altitude) + color(glider) |
 ```
 
 The guides are the one thing that needs explaining. Each cube draws its own tick
-numbers and its own three axis names. A faceted flat plot writes each axis once,
+numbers and its own three axis labels. A faceted flat plot writes each axis once,
 along an edge of the page. That is a rule rather than an oversight. A guide
 drawn on the panel's boundary is drawn once, because the panels share that
 boundary. A guide drawn inside the panel appears in every panel, because there
-is no boundary to share it on. A faceted polar plot already works this way, with
-a category ring inside every panel. A cube's three axes are edges of the cube,
+is no boundary to share it on. A faceted polar plot works the same way: each
+panel draws the category names around its own circle. A cube's three axes are
+edges of the cube,
 and the cube sits inside the panel. A shared column of numbers beside the page
 would have nothing to point at. The tick reading -200 lands in a different place
 in every panel, because each panel projects from its own rectangle.
@@ -571,13 +607,14 @@ outline. All three lie outside the data, so nothing drawn inside the cube can be
 in front of them. The same choice is visible in
 [Surface](marks/surface.qmd#one-sheet-four-angles): the vertical edge on the
 outline still carries its heights while the surface fills the rest of the
-picture. The labels are then measured against each other before any of them is
-drawn. So two axes cannot print their numbers in the same
-place where their edges meet, and an axis name cannot land on its own last tick.
+picture. Before any text is drawn, the engine checks the numbers and axis labels
+against each other for overlap. So two axes cannot print their numbers in the
+same place where their edges meet, and an axis label cannot land on its own last
+tick.
 
 One case is left: an axis that is drawn very short. Tilt the eye up and the
-measure axis is drawn shorter, until its numbers have nowhere to sit. The same
-summary at two tilts, and the second one is seen from almost straight above:
+measure axis is drawn shorter, until its numbers no longer fit. Here is the same
+summary at two tilts; the second is seen from almost straight above:
 
 ```{r}
 ((data(gm_eras) + bar * mean + x(continent) + y(era) + z(life) + space() +
@@ -593,29 +630,25 @@ summary at two tilts, and the second one is seen from almost straight above:
 life, beside the same tilted 85."*
 
 The right-hand plot draws fewer numbers up its measure axis, and that is all it
-does about the crowding: it drops *labels* and never changes the scale. The
-A coarser tick step would also clear the crowding, and gog does not use it. The
+does about the crowding: it drops *numbers* and never changes the scale. A
+coarser tick step would also clear the crowding, and gog does not use it. The
 step decides where the axis stops, so a bigger step pushes the top of the axis
-above the tallest bar and wastes the space above the bars. The numbers that
-remain are always a subset of the
-ones the left-hand plot shows. Each one sits at the same height in both, so a
-height read off either panel is the same height.
-
-One more case, and it is about layers rather than marks. The depth sort runs
-*within* a layer, and layers are painted in the order you wrote them, exactly as
-they are on the flat page. So a `point` cloud layered over a `path` sits in
-front of the whole route rather than passing through it. That is the ordinary
-layering rule applied in space, not a new exception, so read a layered 3-D plot
-as layers, not as one depth-sorted scene.
+above the tallest bar and leaves empty space above the bars. The numbers that
+remain are always a subset of the ones the left-hand plot shows. Each one sits
+at the same height in both, so a value read from either panel is the same value.
 
 A second kind of split lays the panels out in time instead of across the page.
-[`play`](play.qmd) is that chapter, and it is where the two are combined.
+[`play`](play.qmd) is that chapter, and it also shows the two kinds of split
+used together.
 
 ## In short
 
-Binding `z` is the whole of it. The mark lifts, and nothing else in the sentence
-is rewritten. Turning the plot changes how you look and never what is drawn,
-which is why the angle belongs to the space.
+Binding `z` lifts a mark into the cube, and nothing else in the sentence
+changes. A transform cuts or groups by each position the mark does not measure
+along, so `bin` cuts two axes in the cube and one on the page. Only `path` draws
+a route through the cube: it follows the order of the rows, and an order belongs
+to no axis. Turning the plot changes how you look, never what the plot claims
+about the data.
 
 ## What comes next
 
