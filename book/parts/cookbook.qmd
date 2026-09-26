@@ -13,9 +13,10 @@ it into a sentence.)
 
 Almost every recipe has the same shape: the question, the sentence that answers
 it, the plot, and a line or two on why it works. Many then show what is one atom
-away, and that is the real lesson. A cookbook of finished charts teaches you
-charts. This one teaches you that the recipes are connected: swap one atom in a
-recipe and you have another.
+away: the same sentence with one small change, such as an atom swapped or one
+of its arguments changed. That is the real lesson. A cookbook of finished charts
+teaches you charts. This one teaches you that the recipes are connected: swap
+one atom in a recipe and you have another.
 
 The recipes use the book's shared tables, which you can download from [The
 book's data](../book-data.qmd). Each recipe chapter shows the first rows of every

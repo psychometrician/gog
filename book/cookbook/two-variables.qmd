@@ -7,15 +7,16 @@ source("../R/setup.R")
 
 You have two columns. What can they tell you together? The two kinds of column,
 continuous and categorical, decide which question you can ask. Two measurements
-ask about *relationship*: when one is high, is the other high too? A category
-and a measurement ask about *comparison*: is the measurement larger in some
-groups than in others?
+ask about *relationship*: when one is high, is the other high too? When one
+measurement is a time, the question can be *quantity*: how large was the value
+in each year? A category and a measurement ask about *comparison*: is the
+measurement larger in some groups than in others?
 
 ## Are two measurements related?
 
-The `gapminder_2007` table measures each country's wealth and its life
-expectancy. The question is whether the richer countries also live longer. Two
-measurements, one on each position, and nothing else:
+The `gapminder_2007` table records each country's GDP per capita, in dollars,
+and its life expectancy. The question is whether the richer countries also live
+longer. The sentence needs only the two measurements, one on each position:
 
 ```{r}
 #| echo: false
@@ -26,12 +27,13 @@ peek(gapminder_2007)
 data(gapminder_2007) + point + x(gdp) + y(life)
 ```
 
-*"Given gapminder 2007: points, x is gdp, y is life."* The scatter is the
-plainest sentence in the grammar: a mark and its two positions.
+*"Given gapminder 2007: points, x is gdp, y is life."* The dots rise from left
+to right: in general, the richer countries live longer. The sentence for this
+plot holds nothing but a mark and its two positions.
 
-**One atom away.** When one column is spread across orders of magnitude, put its
-axis on a log scale. The scale is an argument inside the binding, written beside
-the column name:
+**One atom away.** When one column spans several orders of magnitude, as `gdp`
+does from about $300 to about $49,000, put its axis on a log scale. The scale is
+an argument written inside `x()`, beside the column name:
 
 ```{r}
 data(gapminder_2007) + point + x(gdp, scale = "log") + y(life)
@@ -39,16 +41,18 @@ data(gapminder_2007) + point + x(gdp, scale = "log") + y(life)
 
 *"Given gapminder 2007: points, x is gdp on a log scale, y is life."*
 
-Owning chapters: [Point](../marks/point.qmd), [Scales](../scales.qmd).
+The poorer countries are no longer crowded at the left edge, and the dots now
+rise in a band that is close to straight. Owning chapters:
+[Point](../marks/point.qmd), [Scales](../scales.qmd).
 
 ## What is the trend through the points?
 
-The first scatter in this chapter draws 142 countries as a cloud. Its direction
-is hard to judge from the dots alone. You want the trend, and you still want
-every country on the page. Layering a derived line over the points gives you
-both. `+` puts both marks in one panel, and `* smooth` fits one trend curve
-through all the points. `color` is written on the points alone, so the
-continents show without splitting the curve:
+The first scatter in this chapter draws one dot for each of 142 countries. The
+dots show that life expectancy rises with GDP per capita. Below $5,000, though,
+they spread from 40 to 74 years, so the typical value is hard to see. You want
+the trend, and you still want every country on the page. Layering a derived
+line over the points gives you both. `+` puts both marks in one panel, and
+`* smooth` fits one trend curve through all the points:
 
 ```{r}
 data(gapminder_2007) + x(gdp) + y(life) +
@@ -59,17 +63,24 @@ data(gapminder_2007) + x(gdp) + y(life) +
 *"Given gapminder 2007: x is gdp, y is life, points colored by continent, and
 also a line derived by smooth."*
 
+The curve climbs steeply on the left and much more slowly on the right. Most of
+its rise happens below $10,000 of GDP per capita. At the far right the curve
+runs above the dots of the five richest countries. A smooth curve is least
+reliable at the edge of the data, where there are few points.
+
 The positions are written before any mark, so both layers share them. `color` is
 written after `point`, so only the points are split into one group per
-continent. Owning chapters: [Transforms](../transforms.qmd) for `smooth`,
+continent. The curve is fitted to all 142 countries, not to any one continent.
+Owning chapters: [Transforms](../transforms.qmd) for `smooth`,
 [Encoding scope](../encoding-scope.qmd) for that rule.
 
 ## How much was there at each time?
 
-Two columns can also be a time and an amount. The `actuals` table holds one
-sales figure per year. Sometimes the question is not whether sales rose but how
-large they were in each year. A `line` says *where* the value was; an `area`
-says *how much* there was. The fill is the quantity, so it starts from zero:
+The second question in the opening was quantity, which pairs a time with an
+amount. The `actuals` table holds one sales figure per year. Sometimes the
+question is not whether sales rose but how large they were in each year. A
+`line` says *where* the value was; an `area` says *how much* there was. The fill
+is the quantity, so it starts from zero:
 
 ```{r}
 #| echo: false
@@ -82,19 +93,25 @@ data(actuals) + area + x(year) + y(sales)
 
 *"Given the actuals: an area, x is year, y is sales."*
 
-**One atom away.** If your column has no meaningful zero, you want
-[`line`](../marks/line.qmd), not `area`. Owning chapters:
+Sales stay between 120 and 168 in every year. Measured from zero, the fall in
+2021, from 135 to 128, is small.
+
+**One atom away.** Some quantities have no true zero, where zero means none at
+all, such as a temperature in degrees Celsius. For those, write
+[`line`](../marks/line.qmd) instead of `area`. Owning chapters:
 [Line](../marks/line.qmd), [Area](../marks/area.qmd).
 
 ## What is the typical value per group?
 
-The second question this chapter opened with was comparison, a category against
-a measurement. Each continent holds many countries, and each country has its own
+The last question in the opening was comparison, which pairs a category with a
+measurement. Each continent holds many countries, and each country has its own
 life expectancy. To compare the continents you need one number for each, so you
-summarize the measurement within each category. The aggregation family is
-`sum`, `mean`, `median`, `max`, `min` and `quantile`. Each one groups the rows
-by `x` and reduces `y` to a single value per group. `quantile` also needs a
-probability, written `quantile(0.9)`:
+summarize the measurement within each category. The transforms that summarize
+this way are the aggregation family: `sum`, `mean`, `median`, `max`, `min` and
+`quantile`. Each one groups the rows by the category and reduces the
+measurement to one value per group. Only `quantile` needs a number of its own,
+the probability: `quantile(0.9)` gives the 90th percentile of each group. Here
+is `mean`, the average life expectancy in each continent:
 
 ```{r}
 data(gapminder_2007) + bar * mean + x(continent) + y(life)
@@ -102,24 +119,32 @@ data(gapminder_2007) + bar * mean + x(continent) + y(life)
 
 *"Given gapminder 2007: bars derived by mean, x is continent, y is life."*
 
-**One atom away.** A few unusual countries pull a mean toward themselves. A
-median barely moves. When that matters, swap `mean` for `median`:
+Oceania's countries average 81 years and Europe's 78, while Africa's average 55.
+
+**One atom away.** A few very high or very low values can change a mean
+noticeably. They change a median much less. When that matters, swap `mean` for
+`median`:
 
 ```{r}
 data(gapminder_2007) + bar * median + x(continent) + y(life)
 ```
 
 *"Given gapminder 2007: bars derived by median, x is continent, y is life."*
-Owning chapters: [Bar](../marks/bar.qmd), [Transforms](../transforms.qmd).
+
+Africa's bar falls by about two years and Asia's rises by about the same. The
+other three change by less than a year. Where the two bars differ, a few very
+high or very low values have moved the mean. In Africa, seven countries live 71
+to 76 years, well above the other 45. Owning chapters: [Bar](../marks/bar.qmd),
+[Transforms](../transforms.qmd).
 
 ## What does *every* value per group look like?
 
-A `bar * mean` gives each continent one number. That number hides how far the
-continent's countries spread, and sometimes you want to see every country
-rather than the mean. The plot that shows every row is the **strip plot**. It
-makes two changes: it removes the derivation, and it writes `point` where
-`bar * mean` was. Each row is one dot, at its own height in its category's
-slot:
+A `bar * mean` gives each continent one number. That number hides how much life
+expectancy differs among the continent's countries. Sometimes you want to see
+every country, not the mean. The plot that shows every row is the **strip
+plot**. Its sentence differs from the `bar * mean` sentence in two places:
+`* mean` is gone, and `point` is written where `bar` was. Each row is one dot, at
+its own height in its category's slot:
 
 ```{r}
 data(gapminder_2007) + point + x(continent) + y(life)
@@ -127,9 +152,11 @@ data(gapminder_2007) + point + x(continent) + y(life)
 
 *"Given gapminder 2007: points, x is continent, y is life."*
 
-When the dots pile onto one vertical line, `* jitter` spreads them sideways. It
-moves them along the category axis only, so every dot keeps its exact height.
-The lowered `opacity` lets you see where the dots overlap:
+On each vertical line, dots with nearly the same value cover each other, and
+`* jitter` spreads them sideways. It moves them along the category axis only, so
+every dot keeps its exact height. `style()` sets a value instead of mapping a
+column. Here it sets `opacity` to 0.6, below the default, so you can see where
+the dots overlap:
 
 ```{r}
 data(gapminder_2007) + point * jitter + x(continent) + y(life) + style(opacity = 0.6)
@@ -139,13 +166,15 @@ data(gapminder_2007) + point * jitter + x(continent) + y(life) + style(opacity =
 
 **One atom away.** Swap the positions and the strips run horizontally, which
 helps when the category names are long. Owning chapters:
-[Point](../marks/point.qmd), [Transforms](../transforms.qmd).
+[Point](../marks/point.qmd), [Transforms](../transforms.qmd),
+[Setting vs mapping](../style.qmd).
 
-## What if the table already has the answer?
+## What if the table already holds the count?
 
-The `medals` table holds one row per country, and the question is how many
-bronze medals each one won. That count is already in the table, so no transform
-is needed. `bar` draws the numbers exactly as they arrive in the table:
+The `mean` and `median` recipes derived a number that was not in the table. The
+`medals` table holds one row per country, and the question is how many bronze
+medals each one won. That count is already a column, `bronze`, so no transform
+is needed. `bar` draws the numbers exactly as the table gives them:
 
 ```{r}
 #| echo: false
@@ -159,8 +188,9 @@ data(medals) + bar + x(country) + y(bronze)
 *"Given the medals: bars, x is country, y is bronze."*
 
 **One atom away.** `order()` sorts the categories by a column you name, and
-`desc = TRUE` puts the largest first. Only Germany and Russia move here, because
-the table already lists the countries by their gold medals:
+`desc = TRUE` puts the largest first. The table already lists the countries by
+gold medals, and their bronze counts are in nearly the same order. Only Germany
+and Russia change places:
 
 ```{r}
 data(medals) + bar + x(country) + y(bronze) + order(bronze, desc = TRUE)
@@ -170,19 +200,26 @@ data(medals) + bar + x(country) + y(bronze) + order(bronze, desc = TRUE)
 first."*
 
 The engine counts nothing on its own. If you want a computation, you write its
-name, which is why this recipe and
-[How many of each?](one-variable.qmd#how-many-of-each) are different sentences.
-Owning chapters: [Bar](../marks/bar.qmd), [Data](../data.qmd).
+name. That is why [How many of each?](one-variable.qmd#how-many-of-each) writes
+`* count` and this recipe does not. Owning chapters: [Bar](../marks/bar.qmd),
+[Data](../data.qmd).
 
 ## What this section refuses
 
-Every recipe in this chapter has had at least one continuous column. Suppose
-both of your columns are categorical, a country and its continent. You write
-`bar`, with one column on each axis. A bar needs at least one continuous axis,
-because the value on that axis is what sets the length of the bar. Two
-categories leave it nothing to measure, so the refusal names `count`:
+Every recipe in this chapter used at least one continuous column. Suppose both
+of your columns are categorical, a country and its continent. You write `bar`,
+with one column on each axis. A bar needs at least one continuous axis, because
+the value on that axis is what sets the length of the bar. Two categories give
+the bar nothing to measure. The one number you can still make from them is a
+count of rows, so the refusal names `count`:
 
 ```{r}
 #| error: true
 data(gapminder_2007) + bar + x(country) + y(continent)
 ```
+
+Adding `* count` to this sentence still refuses. `bar * count` draws its count
+along the axis that has no column, so one axis must stay empty. To count the
+countries in each continent, remove `country` and write
+`bar * count + x(continent)`, the sentence of
+[How many of each?](one-variable.qmd#how-many-of-each).
