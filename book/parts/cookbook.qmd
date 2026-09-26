@@ -4,12 +4,19 @@ The 1446 book ends its explanations with a list: ninety-four everyday
 words, written out in the new letters. Persimmon, ice, tiger, star. It shows
 usage, not rules: the new letters could spell the words of daily life.
 
-This part is gog's version of that list. It is organized by your columns and
-your question, because you know those before you know a chart's name. You will
-not find a chapter called "Histograms". You will find a recipe called *How is a
-measurement distributed?*, and the sentence that answers it. (If you already
-know the chart's name, the [chart names appendix](../chart-names.qmd) translates
-it into a sentence.)
+You have now met every word of gog, and every way of joining them into a
+sentence. What is left is practice on real questions. This part is gog's
+version of the 1446 list. It is organized by your columns and your question, because you know
+those before you know a chart's name. You will not find a chapter called
+"Histograms". You will find a recipe called *How is a measurement
+distributed?*, and the sentence that answers it. (If you already know the
+chart's name, the [chart names appendix](../chart-names.qmd) translates it into
+a sentence.)
+
+The recipes use the book's shared tables, which you can download from [The
+book's data](../book-data.qmd). Each recipe chapter shows the first rows of every
+shared table before drawing from it. The recipes use only atoms taught in Parts
+I to III, and most link back to the chapters that own their atoms.
 
 Almost every recipe has the same shape: the question, the sentence that answers
 it, the plot, and a line or two on why it works. Many then show what is one atom
@@ -17,8 +24,3 @@ away: the same sentence with one small change, such as an atom swapped or one
 of its arguments changed. That is the real lesson. A cookbook of finished charts
 teaches you charts. This one teaches you that the recipes are connected: swap
 one atom in a recipe and you have another.
-
-The recipes use the book's shared tables, which you can download from [The
-book's data](../book-data.qmd). Each recipe chapter shows the first rows of every
-shared table before drawing from it. The recipes use only atoms taught in Parts
-I to III, and most link back to the chapters that own their atoms.

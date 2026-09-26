@@ -1,30 +1,34 @@
 # The sentences
 
-Letters are not yet writing. The 1446 book, after explaining each letter
-class, devoted a chapter to assembly: how letters pack into syllable
-blocks, blocks into words, words into sentences.
+Knowing the letters is not the same as writing with them. The 1446 book, after
+explaining each letter class, devoted a chapter to assembly: how letters pack
+into syllable blocks.
 
-This part is gog's assembly chapter, and it moves through six groups.
+This part is gog's version of that chapter. It moves through six groups, from
+how words join into a sentence to what a reader does with the finished plot.
 
 First the mechanics. The `+` operator layers marks in one panel, and the `*`
-operator derives a new statement from a mark and a transform. Position in the
-sentence then decides which layer a channel binds to. Second, one pair of
-operators with two uses. `|` and `/` split one plot into a grid of panels, and
-the same pair arranges separate plots on a page. Third, two of the
-picture-computing transforms: `flow` carries a magnitude through its stages, and
-`cluster` builds the tree that puts an axis in order.
+operator derives a compound mark from a mark and a transform. Where you write a
+channel then decides whether it binds to the whole plot or to one layer.
+Second, one pair of operators with two uses. `|` and `/` split one plot into a
+grid of panels, and the same pair arranges separate plots on a page. Third, two
+of the transforms that compute a whole picture: `flow` carries a magnitude
+through its stages, and `cluster` builds the tree that puts an axis in order.
 
-Fourth come the coordinate spaces. `space` stands a flat plot up by adding a
-single vowel, `z`. `polar` bends the same plane into a circle. `nest` packs a
-panel into regions. `map` flattens the earth onto the page, and `globe` keeps it
-round. Those five ask nothing new of the sentence. `network` does ask something
-new: it places a graph with no axes at all, from a transform that lays out its
-nodes. Fifth is time, where `play` cuts the plot into frames and runs them in
-order. Last is your own choice: `brush` selects rows with the mouse, and the
-plot dims what you did not select.
+Fourth come the coordinate spaces, each a different surface to draw the plot
+on. `space` needs only one more vowel, `z`, to turn a flat plot into a cube.
+`polar` bends the same plane into a circle. `nest` divides a panel into
+regions, each sized by its measure, that fill it with no gaps. `map` flattens
+the earth onto the page, and `globe` draws it as a sphere. Each of those five
+takes a sentence you can already write and draws it on a new surface. `network`
+is different: its table holds relations, not positions, so a transform,
+`layout`, computes where each node goes. Fifth is time, where `play` cuts the
+plot into frames and shows them one after another. Last comes selection: with
+`brush`, the plot's reader selects rows with the pointer, and the plot dims the
+rest.
 
-One law holds this part together, [Compositional
-Invariance](../design-laws.qmd): a composed expression means the same thing
-wherever it appears. What you
-build in one chapter can be carried into the next, and it still means the
-same thing. That is what makes sentences worth building.
+Every chapter in this part depends on one law, [Compositional
+Invariance](../design-laws.qmd#law-6-compositional-invariance): a composed
+expression means the same thing wherever it appears. What you build in one
+chapter keeps its meaning when you use it in the next. That is what lets you
+build a larger sentence from parts you learned in different chapters.
