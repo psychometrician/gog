@@ -2102,6 +2102,16 @@ fn or_list(items: &[String]) -> String {
     }
 }
 
+/// `a`, `a and b`, `a, b, and c` — `or_list`'s twin, for things that all hold.
+fn and_list(items: &[String]) -> String {
+    match items {
+        [] => String::new(),
+        [a] => a.clone(),
+        [a, b] => format!("{a} and {b}"),
+        [rest @ .., last] => format!("{}, and {last}", rest.join(", ")),
+    }
+}
+
 
 /// Transforms that invent the measured column, so the user need not bind it.
 ///
@@ -6465,6 +6475,9 @@ fn check_theme_size(out: &mut Vec<Diagnostic>, theme: &ThemeSpec, asker: &str, t
 pub fn check(spec: &PlotSpec, data: &HashMap<String, DataFrame>) -> Vec<Diagnostic> {
     let mut out = Vec::new();
 
+    // A plot with no mark has no layer for any check below to ask, so the one
+    // question that applies is asked here: Law 7's second half.
+    check_has_a_mark(&mut out, spec, data);
     check_plot_scope(&mut out, spec);
     let spec = &resolve_scopes(spec);
 
@@ -10804,6 +10817,76 @@ fn check_limit_rows(out: &mut Vec<Diagnostic>, spec: &PlotSpec, df: &DataFrame, 
     }
 }
 
+/// A plot with no mark draws nothing, whatever else it names.
+///
+/// **Law 7's second half** (spec §4): a visual is a mark plus its required
+/// positions, and neither renders alone. The first half has always been enforced,
+/// per layer: `data(t) + point` is refused and names both positions it lacks. This
+/// half had no check at all, because every check here is asked of a layer and a
+/// plot with no mark has none to ask. So `data(t) + x(gdp)` drew a full grid with
+/// both axes ticked 0.0 to 1.0 under the name "Gdp" and said nothing: made-up axes
+/// for a column the engine never read, the empty panel §12 forbids. A `color()`
+/// alone, a `title()` alone and `data(t)` alone drew the same empty panel.
+///
+/// The direction is read from the positions the plot does name, so it is always a
+/// sentence that draws: `point` for two positions or three, and for one a
+/// transform that invents the other, `bar * count` for a category and `bar * bin`
+/// for a number. It names columns, never calls (§12).
+fn check_has_a_mark(
+    out: &mut Vec<Diagnostic>,
+    spec: &PlotSpec,
+    data: &HashMap<String, DataFrame>,
+) {
+    if !spec.layers.is_empty() {
+        return;
+    }
+    let named: Vec<(&str, &str)> = [("x", &spec.x), ("y", &spec.y), ("z", &spec.z)]
+        .into_iter()
+        .filter_map(|(c, def)| def.as_ref().map(|d| (c, d.field.as_str())))
+        .collect();
+    let names = named.iter().map(|(c, f)| format!("`{c}` names `{f}`")).collect::<Vec<_>>();
+    let has = |c: &str| named.iter().any(|(n, _)| *n == c);
+    let empty = "so the plot would be an empty panel";
+    let message = match named.as_slice() {
+        [] => "gog: this plot has no mark, so it would be an empty panel. Add a mark and the \
+               positions it needs, such as `point` with an `x` and a `y` column."
+            .to_string(),
+        [(c @ ("x" | "y"), field)] => {
+            let table = spec.data.as_ref().and_then(|name| data.get(name));
+            let (mark, what) = match table.and_then(|d| actual_type(d, field)) {
+                Some(VarType::Discrete) => {
+                    ("bar * count", format!("counts the rows for each value of `{field}`"))
+                }
+                _ => ("bar * bin", format!("shows how the values of `{field}` are spread")),
+            };
+            format!(
+                "gog: `{c}` names `{field}`, but no mark draws it, {empty}. Add a mark to \
+                 carry it: `{mark}` {what}."
+            )
+        }
+        _ if has("x") && has("y") => format!(
+            "gog: {}, but no mark draws them, {empty}. Add a mark to carry them: `point` \
+             draws a dot for each row.",
+            and_list(&names)
+        ),
+        _ => {
+            let lacking: Vec<String> = ["x", "y"]
+                .into_iter()
+                .filter(|c| !has(c))
+                .map(|c| format!("`{c}`"))
+                .collect();
+            format!(
+                "gog: {}, but no mark draws {}, {empty}. Add a mark such as `point`, and \
+                 the {} it needs.",
+                and_list(&names),
+                if named.len() == 1 { "it" } else { "them" },
+                and_list(&lacking),
+            )
+        }
+    };
+    out.push(Diagnostic { kind: DiagnosticKind::Illegal, message });
+}
+
 /// Report where a plot-scoped channel lands, when it does not land everywhere.
 ///
 /// Plot scope reaches only the marks that have the feature, which is what makes
@@ -12618,6 +12701,40 @@ mod tests {
     fn clean_scatter_has_no_diagnostics() {
         let spec = base().layer(Layer::new(Mark::Point));
         assert!(check(&spec, &data()).is_empty());
+    }
+
+    /// Law 7's second half: positions with no mark are refused, as a mark with no
+    /// positions always was. Each direction is read from the positions named, and
+    /// each is a sentence the engine draws, which the last loop proves.
+    #[test]
+    fn a_plot_with_no_mark_is_refused_and_told_which_mark_to_add() {
+        let refused = |spec: PlotSpec, wanted: &str| {
+            let out = check(&spec, &data());
+            assert!(out.iter().any(|d| d.kind == DiagnosticKind::Illegal
+                        && d.message.contains("no mark") && d.message.contains(wanted)),
+                    "wanted a refusal naming {wanted:?}: {:?}", msgs(&out));
+        };
+        refused(PlotSpec::new().data("t"), "such as `point` with an `x` and a `y`");
+        refused(PlotSpec::new().data("t").title("Nothing"), "such as `point`");
+        refused(PlotSpec::new().data("t").channel(Channel::Color, "continent"), "such as `point`");
+        refused(PlotSpec::new().data("t").x("gdp"), "`bar * bin` shows how the values of `gdp`");
+        refused(PlotSpec::new().data("t").y("continent"),
+                "`bar * count` counts the rows for each value of `continent`");
+        refused(base(), "`x` names `gdp` and `y` names `life`, but no mark draws them");
+        refused(base().z("value"), "`point` draws a dot for each row");
+        refused(PlotSpec::new().data("t").z("value"), "and the `x` and `y` it needs");
+
+        // Every direction given above draws.
+        for spec in [
+            base().layer(Layer::new(Mark::Point)),
+            base().z("value").layer(Layer::new(Mark::Point)),
+            PlotSpec::new().data("t").x("gdp").layer(Layer::new(Mark::Bar).transform(Transform::Bin)),
+            PlotSpec::new().data("t").y("continent")
+                .layer(Layer::new(Mark::Bar).transform(Transform::Count)),
+        ] {
+            let out = check(&spec, &data());
+            assert!(!out.iter().any(Diagnostic::is_fatal), "a direction is refused: {:?}", msgs(&out));
+        }
     }
 
     // -- the area mark ------------------------------------------------------

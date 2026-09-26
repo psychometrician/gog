@@ -2522,3 +2522,24 @@ assert "Add `color(<field>)` or `pattern(<field>)`" in _refusal(
     lambda: render_svg(data(_eras, name="eras") + bar * mean * dodge + x(col.continent) + y(col.life)))
 assert "<rect" in render_svg(data(_eras, name="eras") + bar * count * stack + pattern(col.era))
 ok("the parentheses refusal names the reader's marks; a bar is split by what it takes")
+
+
+# --- Law 7's second half: positions with no mark ----------------------------
+# Refused, as a mark with no positions always was, and told which mark to add.
+# Each drew an empty panel with made-up axes. The same block runs in all four.
+_quiet = {"gdp": [1.0, 2.0, 3.0], "life": [4.0, 5.0, 6.0],
+          "continent": ["Asia", "Europe", "Africa"]}
+for _what, _thunk, _fragment in [
+    ("two positions and no mark",
+     lambda: render_svg(data(_quiet) + x(col.gdp) + y(col.life)),
+     "`point` draws a dot for each row"),
+    ("a number and no mark", lambda: render_svg(data(_quiet) + x(col.gdp)),
+     "`bar * bin` shows how the values of `gdp` are spread"),
+    ("a category and no mark", lambda: render_svg(data(_quiet) + y(col.continent)),
+     "`bar * count` counts the rows for each value of `continent`"),
+    ("a table and no mark", lambda: render_svg(data(_quiet)), "this plot has no mark"),
+]:
+    _text = _refusal(_thunk)
+    assert _fragment in _text, f"{_what}: wanted {_fragment!r} in {_text}"
+render_svg(data(_quiet) + bar * bin + x(col.gdp))
+ok("a plot with no mark is refused, with the mark to add")

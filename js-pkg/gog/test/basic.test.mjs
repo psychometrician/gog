@@ -2736,3 +2736,18 @@ test("a bar is split, and advised, by the channels it takes", async () => {
     x(col.continent), y(col.life)))), /Add `color\(<field>\)` or `pattern\(<field>\)`/);
   assert.ok(render_svg(plot(data(eras), layer(bar, count, stack), pattern(col.era))).includes("<rect"));
 });
+
+// Law 7's second half: positions with no mark are refused, as a mark with no
+// positions always was, and told which mark to add. Each drew an empty panel with
+// made-up axes. The same block runs in all four bindings.
+test("a plot with no mark is refused, with the mark to add", () => {
+  const quiet = { gdp: [1, 2, 3], life: [4, 5, 6], continent: ["Asia", "Europe", "Africa"] };
+  assert.match(refusalOf(() => render_svg(plot(data(quiet), x(col.gdp), y(col.life)))),
+    /`point` draws a dot for each row/);
+  assert.match(refusalOf(() => render_svg(plot(data(quiet), x(col.gdp)))),
+    /`bar \* bin` shows how the values of `gdp` are spread/);
+  assert.match(refusalOf(() => render_svg(plot(data(quiet), y(col.continent)))),
+    /`bar \* count` counts the rows for each value of `continent`/);
+  assert.match(refusalOf(() => render_svg(plot(data(quiet)))), /this plot has no mark/);
+  assert.ok(render_svg(plot(data(quiet), layer(bar, bin), x(col.gdp))).includes("<rect"));
+});

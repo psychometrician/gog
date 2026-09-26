@@ -2131,3 +2131,16 @@ end
     @refuses render_svg(data(eras) + bar * mean * dodge + x(:continent) + y(:life)) "Add `color(<field>)` or `pattern(<field>)`"
     @test occursin("<rect", render_svg(data(eras) + bar * count * stack + pattern(:era)))
 end
+
+# Law 7's second half: positions with no mark are refused, as a mark with no
+# positions always was, and told which mark to add. Each drew an empty panel with
+# made-up axes. The same block runs in all four bindings.
+@testset "a plot with no mark is refused, with the mark to add" begin
+    quiet = (gdp = [1.0, 2.0, 3.0], life = [4.0, 5.0, 6.0],
+             continent = ["Asia", "Europe", "Africa"])
+    @refuses render_svg(data(quiet) + x(:gdp) + y(:life)) "`point` draws a dot for each row"
+    @refuses render_svg(data(quiet) + x(:gdp)) "`bar * bin` shows how the values of `gdp` are spread"
+    @refuses render_svg(data(quiet) + y(:continent)) "`bar * count` counts the rows for each value of `continent`"
+    @refuses render_svg(data(quiet)) "this plot has no mark"
+    @test occursin("<rect", render_svg(data(quiet) + bar * bin + x(:gdp)))
+end

@@ -4411,3 +4411,22 @@ local({
     stop("FAIL: pattern should divide a one-slot bar")
   cat("PASS: the parentheses refusal names the reader's marks; a bar is split by what it takes\n")
 })
+
+# ---------------------------------------------------------------------------
+# Law 7's second half: positions with no mark are refused, as a mark with no
+# positions always was, and told which mark to add. Each drew an empty panel
+# with made-up axes and said nothing. The same block runs in all four bindings.
+# ---------------------------------------------------------------------------
+local({
+  quiet <- data.frame(gdp = c(1, 2, 3), life = c(4, 5, 6),
+                      continent = c("Asia", "Europe", "Africa"))
+  refuses("two positions and no mark", render_svg(data(quiet) + x(gdp) + y(life)),
+          "`point` draws a dot for each row")
+  refuses("a number and no mark", render_svg(data(quiet) + x(gdp)),
+          "`bar * bin` shows how the values of `gdp` are spread")
+  refuses("a category and no mark", render_svg(data(quiet) + y(continent)),
+          "`bar * count` counts the rows for each value of `continent`")
+  refuses("a table and no mark", render_svg(data(quiet)), "this plot has no mark")
+  render_svg(data(quiet) + bar * bin + x(gdp))
+  cat("PASS: a plot with no mark is refused, with the mark to add\n")
+})

@@ -139,6 +139,12 @@ Each is now refused, with what to write instead.
   such as `bar * mean`. A name the table does not hold, such as `y(count)`,
   still titles the axis.
 
+- **A plot with no mark.** `data(gapminder_2007) + x(gdp)` drew an empty panel
+  with both axes marked 0 to 1, and so did a table, a `color()` or a `title()`
+  with no mark. The refusal names a mark to add, chosen from the positions you
+  wrote: `point` for two, `bar * bin` for one number, `bar * count` for one
+  category.
+
 - **Some refusals are reworded.** A `zone` with no sides now lists all five
   ways to give it some, a boundary on a map included. A refusal about both
   axes is printed once and names both, not once per axis. `path * mean`,
