@@ -239,7 +239,7 @@ because each one asks something different of you:
 | Refusal | Meaning | What to do |
 |---|---|---|
 | **Illegal** | The grammar forbids it. It will never work. | Rewrite the expression. |
-| **Unsupported** | The grammar allows it; this engine does not draw it. | Use another atom that renders. |
+| **Unsupported** | The grammar allows it; this engine does not draw it. | Remove the atom the message names, or use one this engine draws. |
 
 Calling a valid combination "illegal" would teach you a rule that does not
 exist. So an Unsupported refusal says that the grammar allows the sentence and

@@ -118,11 +118,12 @@ like an English sentence, with a natural, subject-first shape:
   is also how you *build* a plot: the minimum sentence first, then refine
   ([First plot](first-plot.qmd)).
 
-Only two parts of the order are rules: the sentence starts with `data()`, and
-`style()` follows its mark. The rest is a reading convention: inside one layer,
-any arrangement draws the same plot. Where you write a channel *does* matter once
-a plot has two layers, because a channel written before a mark and one written
-after it bind differently. [Encoding scope](encoding-scope.qmd) gives the rule.
+Only two parts of the order are rules: the sentence starts with a source
+(`data()` or `query()`), and `style()` follows its mark. The rest is a reading
+convention: inside one layer, any arrangement draws the same plot. Where you
+write a channel *does* matter once a plot has two layers, because a channel
+written before a mark and one written after it bind differently. [Encoding
+scope](encoding-scope.qmd) gives the rule.
 Learn one order and use it everywhere. Then your plots and the plots in this
 book read the same way.
 
@@ -360,7 +361,7 @@ There are three kinds of ordering, and only one of them needs your attention.
 
 | Kind | What it means | Under `+` | Under `*` |
 |---|---|---|---|
-| **Free** | Either way draws exactly the same picture. | Inside one layer: the mark, its positions and its other channels, in any arrangement. Labels go anywhere. Only `style()` must follow its mark. | Two transforms after one mark. Write them in the order they happen; the engine runs them in that order either way. |
+| **Free** | Either way draws exactly the same picture. | In a plot with one mark: the mark, its positions and its other channels, in any arrangement. Labels go anywhere. Only `style()` must follow its mark. | Two transforms after one mark. Write them in the order they happen; the engine runs them in that order either way. |
 | **Refused** | The engine stops and names what to move. | Atoms with no table named before them: `point + x(gdp)`. A `style()` written before any mark. | A transform on the left: `bin * bar`. |
 | **Meaningful** | No error, and a different picture. | A channel before the marks, or after one of them, once a plot has two. Two marks swapped: the second draws on top. | Nothing. No order under `*` changes the picture. |
 

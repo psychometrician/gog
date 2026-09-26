@@ -1,16 +1,18 @@
 # The kernel card
 
-The whole grammar, on one page. The table below is extracted from [The
-kernel](grammar.qmd#the-kernel) each time the book builds. It cannot disagree
-with the chapter it comes from. Functions that act on a plot instead of joining
-a sentence are in [Functions around the grammar](utilities.qmd).
+The whole grammar, on one page. The table below is the kernel, the list of
+every word in the grammar. Each word is an **atom**, and the operators join
+atoms into a **sentence** that describes a plot. The table is copied from [The
+kernel](grammar.qmd#the-kernel) each time the book is built, so it always
+matches that chapter. Functions you never write into a sentence, such as
+`render_svg()`, are in [Functions around the grammar](utilities.qmd).
 
 ```{r}
 #| echo: false
 #| results: asis
 # The kernel is a table, not a monospace listing, so the rows are emitted as
-# markdown rather than wrapped in a code fence. Wrapping a table in ``` would
-# print its pipes and asterisks at the reader.
+# markdown rather than wrapped in a code fence, which would print their pipes
+# and asterisks at the reader.
 #
 # The table is the first one in the section, and a sentence may introduce it,
 # so its rows are read from the first one to the end of their unbroken run.
@@ -30,36 +32,54 @@ mark needs:
 data(table) + mark + x(column) + y(column)
 ```
 
-**The order of `+`** is mostly free: every sentence in this book reads left to
-right as *data, mark, positions, refinements*. Inside one layer the mark and its
-channels may be written in any order. `data()` comes first, and `style()` comes
-after the mark it styles. What the order does change is scope and layering. A
-channel written before any mark applies to every layer that can accept it. A
-channel written after a mark belongs to that mark alone. Each later `data()`
-applies to the mark written directly after it. Two marks draw in the order you
-wrote them, so the second sits on top of the first. [Which orders
-matter](operators.qmd#which-orders-matter) has all of it in one place.
+**The order of `+`** matters in a few places only. Each mark starts a
+**layer**: the mark, and the channels and settings that apply to it. In a plot
+with one mark, the mark and its channels may be written in any order. This book
+usually writes a sentence as *data, mark, positions, refinements*, where the
+refinements are the optional parts, such as `color` and `title`. Only two parts
+of the order are rules. A sentence must start with a source (`data()` or
+`query()`), and a `style()` needs a mark before it. The engine refuses a sentence
+that breaks either rule.
 
-**Deriving** is what `*` does: it puts a transform on a mark, and the mark is
-always on the left. Two transforms can follow one mark: `bar * bin * mean` cuts
-the axis into bands, then averages inside each. They have to divide the work,
-and each job is filled once, so the order you write them in does not change the
-picture. Writing them in the order they happen is the convention.
+What the order does change is which marks each channel or table applies to, and
+which mark is drawn on top. A channel written before any mark applies to every
+layer that can accept it, and this book writes a channel there when every layer
+should use it. A channel such as `color`, written after a mark, belongs to that
+mark alone. Positions are the exception: a mark with no `x` or `y` of its own
+reads the first ones written. Each later `data()` applies to the mark written
+directly after it, and a `style()` styles the nearest mark before it. Two marks
+draw in the order you wrote them, so the second sits on top of the first.
+[Which orders matter](operators.qmd#which-orders-matter) and [Encoding
+scope](encoding-scope.qmd) have the rules in full.
 
-**Precedence** decides what groups first: `*` and `/`, then `+`, then `|`. In
-`data(table) + bar * bin + x(a) | facet(g)`, the transform joins its mark first.
-The atoms join the plot next, and the facet splits the finished plot last. So a
-single plot needs no parentheses. A page of plots takes one pair of parentheses
-around each plot. Julia gives `+` and `|` the same precedence, so there the
-parentheses are what keep each plot whole.
+**Deriving** is what `*` does: it joins a transform to a mark, and the mark is
+always on the left. More than one transform can follow one mark: `bar * bin *
+mean` cuts the `x` axis into bands, then averages `y` inside each band.
+Transforms on one mark must each do a different job, and each job is done at
+its own step. So the order you write them in does not change the picture, and
+writing them in the order they happen is the convention. [Chaining
+transforms](transforms.qmd#chaining-transforms) names the four jobs.
+
+**Precedence** decides which operator is applied first. In R and Python, `*`
+and `/` come first, then `+`, then `|`. In `data(table) + bar * bin + x(a) |
+facet(g)`, the transform joins its mark first. Then `+` joins `data(table)`,
+`bar * bin` and `x(a)` into one plot, and the facet splits that plot into panels
+last. So a single plot needs no parentheses, as long as the facet is written
+last.
+
+Two whole plots joined by `|` or `/` make a **page**, and this book writes each
+plot on a page inside its own parentheses. `/` is applied before `+`, so a page
+built with `/` is refused without them. Julia gives `+` and `|` the same
+precedence, so in Julia a page built with `|` needs them too. JavaScript spells
+the operators as words, so it has no precedence to remember.
 
 **When gog refuses**, the message names the rule, and says what to write
 instead. **Illegal** means the grammar forbids the sentence you wrote: rewrite
 it. **Unsupported** means the grammar allows it and this engine does not draw
-it: use another atom that renders. [Illegal is not the same as
+it: remove the atom the message names, or use one this engine draws. [Illegal is not the same as
 unsupported](design-laws.qmd#illegal-is-not-the-same-as-unsupported) has the
-rule, and a live refusal of each kind.
+rule, and a refusal of each kind, printed by the engine when the book is built.
 
 **When gog assumes** instead of refusing, the plot still draws. The message is
-an assumption: it says what gog decided for you. Read it, and check that the
+an **assumption**: it says what gog decided for you. Read it, and check that the
 decision was what you meant.
