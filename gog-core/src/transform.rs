@@ -3939,11 +3939,12 @@ pub fn partition_shares(df: &DataFrame, measure_out: &str) -> DataFrame {
 ///
 /// Everything here is deterministic by construction: slot order per stage is
 /// the declared level order, first appearance otherwise; paths at a stage sort
-/// node-first and then by their full path, so a node's paths are contiguous and
-/// two layers reading one table land on identical numbers. The stacks are
-/// **contiguous** — no padding row is invented between nodes — so the measure
-/// axis reads true cumulative magnitude and keeps its ticks, which is half of
-/// what parts this mark's ink from the funnel connector §18 refuses.
+/// node-first and then by their slots at the nearest stages, outward, so a
+/// node's paths are contiguous and two layers reading one table land on
+/// identical numbers. The stacks are **contiguous** — no padding row is
+/// invented between nodes — so the measure axis reads true cumulative
+/// magnitude and keeps its ticks, which is half of what parts this mark's ink
+/// from the funnel connector §18 refuses.
 struct FlowLayout {
     /// The stage columns, in the atom's order.
     stages: Vec<String>,
@@ -4024,12 +4025,20 @@ fn flow_layout(df: &DataFrame, stages: &[String], measure: Option<&str>) -> Opti
     }
 
     // Stack each stage: paths sort node-first (so a node's interval is one
-    // contiguous run) and then by their whole path, one total order for the
-    // tie so the bands leave a node in the order they will arrive at the next.
+    // contiguous run), then by their slots at the nearest stages — the one
+    // before, the one after, then outward. Two bands sharing a slot take the
+    // order of the nearest stage where they part, so a pair changes order only
+    // where two stages put it in opposite orders, and only once: no other
+    // node-first stacking crosses less in total, counting each crossing pair
+    // by the product of its two weights. Breaking the tie by the whole path
+    // from stage 0 let the first stage order the bands at every later one.
+    // Every stage enters the key, so it is one total order.
     for k in 0..stages.len() {
+        let key = nearest_stages_first(k, stages.len());
         let mut order: Vec<usize> = (0..paths.len()).collect();
         order.sort_by(|&a, &b| {
-            (paths[a].ranks[k], &paths[a].ranks).cmp(&(paths[b].ranks[k], &paths[b].ranks))
+            key.iter().map(|&s| paths[a].ranks[s])
+                .cmp(key.iter().map(|&s| paths[b].ranks[s]))
         });
         // Each path is visited exactly once per stage, so `offsets[k]` lands on
         // the right index by construction.
@@ -4041,6 +4050,24 @@ fn flow_layout(df: &DataFrame, stages: &[String], measure: Option<&str>) -> Opti
     }
 
     Some(FlowLayout { stages: stages.to_vec(), paths, cats })
+}
+
+/// The order in which stage `k` consults the stages when it stacks its bands:
+/// itself first (the node), then outward by distance, the earlier neighbor
+/// before the later one — `k, k−1, k+1, k−2, k+2, …` over `0..n`. Which
+/// neighbor goes first decides only in which gap a pair's one unavoidable
+/// crossing lands, never how much crosses in total.
+fn nearest_stages_first(k: usize, n: usize) -> Vec<usize> {
+    let mut out = vec![k];
+    for d in 1..n {
+        if d <= k {
+            out.push(k - d);
+        }
+        if k + d < n {
+            out.push(k + d);
+        }
+    }
+    out
 }
 
 /// The node projection: one row per (stage, category), read by `zone` (the
@@ -4683,6 +4710,33 @@ mod tests {
         }
         assert_eq!(bands.str_col("a"), again.str_col("a"));
         assert_eq!(bands.str_col(FLOW_PATH), again.str_col(FLOW_PATH));
+    }
+
+    /// **Bands sharing a slot keep the order of the nearest stage where they
+    /// part.** The two paths meet in `x` at the last stage; at `b` the q-path
+    /// sits in `u`, below the p-path in `v`. Ordered by the nearest stage, the
+    /// q-path stays below at `x`, so the pair does not cross between `b` and
+    /// `c`. The tie used to be broken by the whole path from the first stage,
+    /// where `p` comes before `q`, which put the p-path first at `x` and crossed
+    /// the two for no reason the diagram shows.
+    #[test]
+    fn a_flow_orders_a_shared_slot_by_the_nearest_stage() {
+        let df = DataFrame::new()
+            .with_levels("a", vec!["p".into(), "q".into()], vec!["p".into(), "q".into()])
+            .with_levels("b", vec!["v".into(), "u".into()], vec!["u".into(), "v".into()])
+            .with_levels("c", vec!["x".into(), "x".into()], vec!["x".into()])
+            .with_float("n", vec![1.0, 1.0]);
+        let stages = vec!["a".to_string(), "b".to_string(), "c".to_string()];
+        let bands = flow_bands(&df, &stages, Some("n"), "count");
+        let stage = bands.str_col(FLOW_STAGE).unwrap();
+        let a = bands.str_col("a").unwrap();
+        let lo = bands.float_col(CELL_LOWER).unwrap();
+        let at = |s: &str, from: &str| (0..stage.len())
+            .find(|&r| stage[r] == s && a[r] == from)
+            .map(|r| lo[r])
+            .unwrap();
+        assert!(at("b", "q") < at("b", "p"), "at `b` the band in `u` is below the band in `v`");
+        assert!(at("c", "q") < at("c", "p"), "at `c` the nearest stage keeps that order, so they do not cross");
     }
 
     /// **A row missing a stage value is not a path** and is left out here; the

@@ -24,6 +24,11 @@ CRAN-style repositories and PyPI, `GrammarOfGraphics` on Julia's General, and
 
 ### Changed
 
+- **An alluvial diagram crosses less.** Where bands share a slot, each stage
+  now orders them by the nearest stages, before and after, instead of by the
+  first stage. On the Titanic counts the crossing between stages falls by 13%
+  on three stages and 16% on four, to the same totals ggalluvial reaches.
+
 - **A treemap packs the rows inside each region largest first.** The regions
   keep the order of their categories, and `order()` still sorts them. Inside a
   region the rows used to keep the table's order, which turned a long tail into
