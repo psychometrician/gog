@@ -219,11 +219,11 @@ glyph to change, so it needs a different answer, and that answer is texture.
 
 `pattern(field)` maps a categorical column to a **texture**, the way `shape`
 maps one to a glyph. The mark's geometry decides which one: a **hatch**, a
-repeated pattern of lines or dots, on the fills (`bar`, `box`, `area`, `ribbon`,
-`zone`), and a **dash** on the strokes (`line`, `step`, `interval`, `path`,
-`rule`, `edge`). Textures do not
-depend on color, so they work in grayscale and for a color-blind reader. The
-first category is always the plain one (solid), the rest textured:
+repeated pattern of lines or dots, on the filled regions (`bar`, `box`, `area`,
+`ribbon`, `zone`), and a **dash** on the strokes (`line`, `step`, `interval`,
+`path`, `rule`, `edge`). Textures do not depend on color, so they work in
+grayscale and for a color-blind reader. The first category is always the plain
+one (solid), the rest textured:
 
 ```{r}
 #| echo: false

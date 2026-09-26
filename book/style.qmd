@@ -112,8 +112,8 @@ differently by each geometry, the way `color` is a fill on a bar and a stroke on
 a line. On the six stroke marks (`line`, `step`, `path`, `interval`, `rule`,
 `edge`) it is the **dash**:
 `"solid"`/`"dashed"`/`"dotted"`/`"dotdash"`/`"longdash"`, so an error bar can be
-dashed too. On the five fills (`bar`, `box`, `area`, `ribbon`, `zone`) it is a
-**fill texture**: `"solid"`/`"hatch"`/`"crosshatch"`/`"stripes"`/
+dashed too. On the five filled regions (`bar`, `box`, `area`, `ribbon`, `zone`)
+it is a **fill texture**: `"solid"`/`"hatch"`/`"crosshatch"`/`"stripes"`/
 `"grid"`/`"dots"`. A `surface` takes no hatch: the hatch is drawn flat on the
 screen, so on a tilted sheet it would look denser on some faces than on others.
 Those hatchings keep a plot readable in grayscale or in black-and-white print.
