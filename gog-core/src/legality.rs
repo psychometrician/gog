@@ -6353,7 +6353,80 @@ pub fn check_figure(figure: &Figure, data: &HashMap<String, DataFrame>) -> Vec<D
     }
     check_page_fits(&mut out, figure, crate::render::svg::CANVAS);
     check_page_orders(&mut out, figure, data);
+    check_page_scales(&mut out, figure);
     out
+}
+
+/// One column on one axis of a page is one axis, so two plots that read it through
+/// different scale options contradict each other.
+///
+/// The page shares an axis by column (`render::page`): it unions the plots' ranges
+/// and maps the union back through each plot's own options, and nothing compared
+/// the options first. So a linear histogram of `gdp` stacked over a log scatter of
+/// `gdp` drew an axis from 10⁵⁸³¹ and put every point at the panel's left edge,
+/// beside as well as stacked, on `y` as on `x`, and with `base` and `limits` too
+/// (a limit is not merged but the axis is still drawn once, so the other plot is
+/// read against it), all in silence. What changes where a value lands is compared:
+/// the scale (log, with its base, or category, against the column's own reading)
+/// and the limits. Only flat plots share an axis this way, so only they are asked.
+fn check_page_scales(out: &mut Vec<Diagnostic>, figure: &Figure) {
+    if !figure.is_page() {
+        return;
+    }
+    #[derive(PartialEq)]
+    enum Reading { Own, Log(f64), Category }
+    let reading = |def: &ChannelDef| -> (Reading, Option<[Option<f64>; 2]>) {
+        let scale = match def.scale {
+            Some(ScaleType::Log) => Reading::Log(def.base.unwrap_or(10.0)),
+            Some(ScaleType::Category) => Reading::Category,
+            _ => Reading::Own,
+        };
+        (scale, def.limits.filter(|l| l[0].is_some() || l[1].is_some()))
+    };
+    let describe = |def: &ChannelDef| -> String {
+        let (scale, limits) = reading(def);
+        let s = match scale {
+            Reading::Log(b) if b == 10.0 => "a log scale".to_string(),
+            Reading::Log(b) => format!("a log scale of base {b}"),
+            Reading::Category => "a category scale".to_string(),
+            Reading::Own => "the default scale".to_string(),
+        };
+        match limits {
+            Some([lo, hi]) => {
+                let end = |v: Option<f64>| v.map_or("open".to_string(), |x| x.to_string());
+                format!("{s} and limits from {} to {}", end(lo), end(hi))
+            }
+            None => s,
+        }
+    };
+    let mut seen: Vec<(Channel, &ChannelDef)> = Vec::new();
+    let mut said: Vec<(Channel, String)> = Vec::new();
+    for spec in figure.plots() {
+        if space_of(spec) != SpaceKind::Flat {
+            continue;
+        }
+        for ch in [Channel::X, Channel::Y] {
+            let Some(def) = spec.axis_def(&ch) else { continue };
+            let Some((_, first)) = seen.iter().find(|(c, d)| *c == ch && d.field == def.field) else {
+                seen.push((ch, def));
+                continue;
+            };
+            if reading(first) == reading(def) || said.contains(&(ch.clone(), def.field.clone())) {
+                continue;
+            }
+            said.push((ch.clone(), def.field.clone()));
+            out.push(Diagnostic {
+                kind: DiagnosticKind::Illegal,
+                message: format!(
+                    "gog: `{f}` is on the {c} axis of two plots on this page, one read with \
+                     {a} and one with {b}. A page draws one axis for a column, so both plots \
+                     have to read it the same way. Write the same scale and limits in both, or \
+                     give the column another name in one of them.",
+                    f = def.field, c = channel_name(&ch), a = describe(first), b = describe(def),
+                ),
+            });
+        }
+    }
 }
 
 /// Two composed panels each deriving an order for one shared categorical axis,
@@ -12835,6 +12908,41 @@ mod tests {
         ] {
             assert_eq!(space_of(&spec), SpaceKind::Space,
                        "a tally stands on z: {:?}", spec.layers[0].transforms);
+        }
+    }
+
+    /// One column on one axis of a page is one axis, so two plots reading it through
+    /// different scales, or different limits, contradict each other. Each drew one of
+    /// the two plots wrong, in silence; each is refused now, and one reading shared by
+    /// both still draws.
+    #[test]
+    fn a_page_refuses_one_column_read_through_two_scales() {
+        let page = |arrange: crate::ir::Arrange, a: &PlotSpec, b: &PlotSpec| {
+            Figure::Page(crate::ir::PageSpec {
+                arrange, cells: vec![a.clone().into(), b.clone().into()],
+                theme: crate::ir::ThemeSpec::default(),
+            })
+        };
+        let point = || Layer::new(Mark::Point);
+        let lin = base().layer(point());
+        let log = PlotSpec::new().data("t").x_scaled("gdp", ScaleType::Log).y("life").layer(point());
+        let ylog = PlotSpec::new().data("t").x("value").y_scaled("life", ScaleType::Log).layer(point());
+        let lim = PlotSpec::new().data("t").x_limited("gdp", Some(0.0), Some(2.0)).y("life").layer(point());
+        let two = "is on the {} axis of two plots on this page";
+        for (arrange, a, b, axis) in [
+            (crate::ir::Arrange::Below, &lin, &log, "x"),
+            (crate::ir::Arrange::Beside, &log, &lin, "x"),
+            (crate::ir::Arrange::Beside, &ylog, &lin, "y"),
+            (crate::ir::Arrange::Below, &lim, &lin, "x"),
+        ] {
+            let d = check_figure(&page(arrange.clone(), a, b), &data());
+            assert!(d.iter().any(|x| x.kind == DiagnosticKind::Illegal
+                && x.message.contains(&two.replace("{}", axis))),
+                "{arrange:?}: {:?}", msgs(&d));
+        }
+        for (a, b) in [(&log, &log), (&lin, &lin)] {
+            let d = check_figure(&page(crate::ir::Arrange::Below, a, b), &data());
+            assert!(!d.iter().any(|x| x.message.contains("two plots on this page")), "{:?}", msgs(&d));
         }
     }
 

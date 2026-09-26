@@ -170,6 +170,13 @@ Each is now refused, with what to write instead.
   that keeps both, `plot | facet(a) / facet(b)`. In JavaScript the same holds
   for `across()` or `down()` written twice.
 
+- **Two plots on a page that read one column through different scales.** A
+  page draws one axis for a column, so a log scatter of `gdp` under a histogram
+  of `gdp` put every point at the panel's edge, under an axis marked from
+  10⁵⁸³¹, and `limits` on one of the two was read against the other's axis.
+  It is refused, and the refusal asks for the same scale and limits in both,
+  or another name for the column in one.
+
 - **A second coordinate space.** Each space replaced the one before it, so
   `space() + polar()` drew polar, `polar() + space()` drew flat axes, and
   `map() + polar()` drew polar, with no message. A plot is drawn in one space,

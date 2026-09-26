@@ -2681,3 +2681,15 @@ assert "already drawn in `map()`" in _refusal(
     lambda: data(_view) + point + x(col.a) + y(col.b) + map() + polar())
 render_svg(data(_view) + point + x(col.a) + y(col.b) + z(col.c) + space() + space(turn=60))
 ok("a second coordinate space is refused, and a restated one re-angles")
+
+
+# --- a page refuses one column read through two scales ------------------------
+# A page shares an axis by column, and it merged two plots that read the column
+# through different scales, in silence. The same block runs in all four bindings.
+_wealth = {"gdp": [1000.0, 2000.0, 5000.0, 20000.0, 40000.0], "life": [50.0, 60.0, 65.0, 72.0, 80.0]}
+assert "`gdp` is on the x axis of two plots on this page" in _refusal(
+    lambda: render_svg((data(_wealth) + bar * bin + x(col.gdp))
+                       / (data(_wealth) + point + x(col.gdp, scale="log") + y(col.life))))
+render_svg((data(_wealth) + bar * bin + x(col.gdp, scale="log"))
+           / (data(_wealth) + point + x(col.gdp, scale="log") + y(col.life)))
+ok("a page refuses one column read through two scales")
