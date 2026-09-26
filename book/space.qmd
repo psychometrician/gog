@@ -7,8 +7,8 @@ source("R/setup.R")
 
 What do you do when a third measurement matters as much as the first two? Most
 plots so far have been drawn on a plane: a mark, an `x`, a `y`. The grammar has a
-third position channel, `z`. Binding it is enough to lift the mark off the
-page.
+third position channel, `z`. Binding it is enough to draw the mark in three
+dimensions.
 
 ## `z`: one more vowel
 
@@ -31,7 +31,7 @@ species."*
 
 Now add the third measurement as `z`. Nothing else about the sentence changes:
 the same `point`, the same `x` and `y`, and one more position, which the
-[Grammar](grammar.qmd) chapter calls a *vowel*. The plot lifts into space:
+[Grammar](grammar.qmd) chapter calls a *vowel*. The flat plot becomes a cube:
 
 ```{r}
 data(iris_flowers) + point +
@@ -643,7 +643,7 @@ used together.
 
 ## In short
 
-Binding `z` lifts a mark into the cube, and nothing else in the sentence
+Binding `z` places a mark in the cube, and nothing else in the sentence
 changes. A transform cuts or groups by each position the mark does not measure
 along, so `bin` cuts two axes in the cube and one on the page. Only `path` draws
 a route through the cube: it follows the order of the rows, and an order belongs
