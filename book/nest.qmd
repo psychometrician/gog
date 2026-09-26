@@ -199,8 +199,8 @@ and the packing places it.
 
 The plot shows far fewer than 142 names. A name that does not fit its region is
 not drawn. Most regions are too narrow for their country's name, and some are
-not tall enough for the letters. Some large countries lose their names too, such
-as Ethiopia and Germany, whose regions are tall and narrow.
+not tall enough for the letters. The largest countries come first inside each
+continent, so their regions are close to square and their names fit.
 
 A message above the plot says how many names were drawn, and you can count the
 names in the picture to check it. Without that message, a treemap that printed
@@ -265,9 +265,11 @@ can be. A simpler method divides one direction at a time, which makes long thin
 regions, and a long thin area is the hardest kind to judge. gog uses the
 squarified method for every packing.
 
-Squarified packing gives the squarest regions when the categories arrive sorted
-by size, which is why published treemaps usually sort largest first. gog does
-not sort the regions for you. They follow the order in which the continents
+Squarified packing gives the squarest regions when the rows arrive sorted by
+size, which is why published treemaps sort largest first. Inside a region, the
+rows stand on no position, so nothing else gives them an order, and gog packs
+them largest first. The regions themselves are different. They are the
+categories of a position, and they follow the order in which the continents
 first appear in the table, or a declared order if the column has one. To sort
 them, you add `order()`:
 

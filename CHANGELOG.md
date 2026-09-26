@@ -24,6 +24,12 @@ CRAN-style repositories and PyPI, `GrammarOfGraphics` on Julia's General, and
 
 ### Changed
 
+- **A treemap packs the rows inside each region largest first.** The regions
+  keep the order of their categories, and `order()` still sorts them. Inside a
+  region the rows used to keep the table's order, which turned a long tail into
+  thin slivers; packed largest first, the tiles come out close to square and the
+  large countries have room for their names.
+
 - **A statistic splits by every channel that splits, as a line always did.**
   `color`, `group`, `pattern` and `shape` each split the rows a summary is
   computed in, together. Before, only `color` (or else `group`) did, and the

@@ -24,13 +24,17 @@
 //! square as the run allows, which is the *measured* defect that earns the
 //! algorithm its place, exactly as `hex` earned its own.
 //!
-//! **The order is the axis's, not the algorithm's.** Published squarified
-//! treemaps sort descending by value first, and this one does not: the order is
-//! whatever the categorical axis already has (spec §10's ordering rule), so
-//! `order(revenue, desc = TRUE)` produces the classic look and says so out loud.
-//! Sorting silently would make `order()` a word with no effect in this space,
-//! which is the silent drop §12 forbids — and it would be the algorithm deciding
-//! what the grammar already has an atom for.
+//! **The outer order is the axis's; the inner order is the algorithm's.** The
+//! regions of the domain axis keep whatever order that axis already has (spec
+//! §10's ordering rule), so `order(revenue, desc = TRUE)` still moves them and
+//! says so out loud; sorting them silently would make `order()` a word with no
+//! effect in this space, the silent drop §12 forbids. The rows *inside* a region
+//! stand on no axis, so no atom names their order, and they are packed largest
+//! first, the way squarified treemaps are published and the input the algorithm
+//! is measured on. Kept in table order until 2026-09-26, they turned the book's
+//! own treemap into stacks of slivers: a mean tile aspect of 3.07 against 1.52
+//! sorted, with the large countries unnamed. Ties keep table order, so the
+//! packing stays deterministic.
 
 use crate::render::Layout;
 
@@ -91,7 +95,7 @@ impl Nest {
     pub(crate) fn regions(&self, slots: &[f64], weights: &[f64]) -> (Vec<Cell>, Vec<Cell>) {
         let n = slots.len().min(weights.len());
         // A category sits at its own index, so ascending slot order *is* the axis
-        // order — which is what keeps `order()` meaningful in this space rather
+        // order — which is what keeps `order()` meaningful for the regions rather
         // than the packing choosing for itself.
         let slot_of = |i: usize| (slots[i] * 1e6).round() as i64;
         let weight = |i: usize| weights[i].max(0.0);
@@ -106,7 +110,10 @@ impl Nest {
 
         let mut cells = vec![Cell { x: 0.0, y: 0.0, w: 0.0, h: 0.0 }; n];
         for (ki, k) in keys.iter().enumerate() {
-            let members: Vec<usize> = (0..n).filter(|&i| slot_of(i) == *k).collect();
+            // Largest first inside the region (the module note says why); a
+            // stable sort, so rows of equal weight keep their table order.
+            let mut members: Vec<usize> = (0..n).filter(|&i| slot_of(i) == *k).collect();
+            members.sort_by(|&a, &b| weight(b).partial_cmp(&weight(a)).unwrap_or(std::cmp::Ordering::Equal));
             let inner: Vec<f64> = members.iter().map(|&i| weight(i)).collect();
             for (mi, c) in Nest::pack(regions[ki], &inner).into_iter().enumerate() {
                 cells[members[mi]] = c;
@@ -254,6 +261,21 @@ mod tests {
     /// Squarifying is the whole reason the algorithm was chosen over cutting one
     /// direction at a time, so the test is against slice-and-dice rather than
     /// against a constant: the same run, cut naively, has a far worse worst cell.
+    #[test]
+    fn rows_inside_a_region_are_packed_largest_first() {
+        // One slot: the whole panel is the region, so the rows' order is the
+        // packing's own. The largest row takes the first strip, from the corner.
+        let l = Layout { x0: 0.0, y0: 0.0, x1: 400.0, y1: 300.0 };
+        let nest = Nest::new(&l);
+        let (cells, _) = nest.regions(&[0.0, 0.0, 0.0, 0.0], &[1.0, 8.0, 3.0, 3.0]);
+        let area = |c: &Cell| c.w * c.h;
+        assert!((cells[1].x, cells[1].y) == (0.0, 0.0), "the largest row starts at the corner: {cells:?}");
+        assert!(area(&cells[1]) > area(&cells[2]) && area(&cells[2]) > area(&cells[0]));
+        // Equal weights keep table order: row 2 is packed before row 3.
+        let (again, _) = nest.regions(&[0.0, 0.0, 0.0, 0.0], &[1.0, 8.0, 3.0, 3.0]);
+        assert_eq!(format!("{cells:?}"), format!("{again:?}"), "deterministic");
+    }
+
     #[test]
     fn squarifying_beats_slicing_on_the_worst_cell() {
         let w: Vec<f64> = (1..=24).map(|k| k as f64).collect();
