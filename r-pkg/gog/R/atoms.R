@@ -1827,8 +1827,10 @@ reject_setting <- function(name) {
 #' data(df) + x(a) + y(b) + point + style(color = "tomato", opacity = 0.3)
 #' data(df) + x(a) + y(b) + line + style(color = "gray70", size = 1)
 #' }
-#' @param border_color  Outline color for a closed glyph.
-#' @param border_size   Outline width for a closed glyph.
+#' @param border_color  Outline color for a closed glyph; on `text`, the color
+#'   of the halo around each label (the panel's background color when unset).
+#' @param border_size   Outline width for a closed glyph; on `text`, the width
+#'   of the halo (3 when unset).
 #' @param caps    `TRUE` (default) draws the end caps on an interval; `FALSE`
 #'   leaves it bare.
 #' @param center  `TRUE` (default) draws a box plot's median line.

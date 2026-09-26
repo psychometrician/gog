@@ -2705,3 +2705,16 @@ with _warnings.catch_warnings():
 assert _cube == render_svg(data(_menu) + path * cluster(col.amount, over=col.nutrient)
                            + x(col.food)), "a tree under a bare space() should draw the flat tree"
 ok("a tree under a bare space() is drawn flat")
+
+# A border on `text` is a halo under its letters: the glyph's outline stroked
+# beneath its fill, so a name written over a line reads clearly. It was refused
+# until 2026-09-26 ("a `text` mark draws glyphs, not a filled shape").
+_halo_t = {"x": [1.0, 2.0, 3.0], "y": [1.0, 3.0, 2.0], "name": ["a", "b", "c"]}
+_haloed = render_svg(data(_halo_t, name="halo_t") + x(col.x) + y(col.y) + line + text
+                     + label(col.name) + style(border_color="white", border_size=5))
+assert 'fill="none" stroke="white" stroke-width="5"' in _haloed, \
+    "style(border_color=, border_size=) on text should draw a halo"
+assert 'text-anchor="middle" fill="none" stroke="' not in render_svg(data(_halo_t, name="halo_t") + x(col.x) + y(col.y)
+                                       + line + text + label(col.name)), \
+    "a label with no border must have no halo"
+ok("a border on `text` is a halo under its letters")

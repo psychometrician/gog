@@ -4609,3 +4609,18 @@ local({
     stop("FAIL: the note should say to drop space()")
   cat("PASS: a tree under a bare space() is drawn flat, and told to drop it\n")
 })
+
+# A border on `text` is a halo under its letters: the glyph's outline stroked
+# beneath its fill, so a name written over a line reads clearly. It was refused
+# until 2026-09-26 ("a `text` mark draws glyphs, not a filled shape").
+local({
+  halo_t <- data.frame(x = c(1, 2, 3), y = c(1, 3, 2), name = c("a", "b", "c"))
+  haloed <- render_svg(data(halo_t) + x(x) + y(y) + line + text + label(name) +
+                         style(border_color = "white", border_size = 5))
+  if (!grepl('fill="none" stroke="white" stroke-width="5"', haloed, fixed = TRUE))
+    stop("FAIL: style(border_color =, border_size =) on text should draw a halo")
+  plain <- render_svg(data(halo_t) + x(x) + y(y) + line + text + label(name))
+  if (grepl('text-anchor="middle" fill="none" stroke="', plain, fixed = TRUE))
+    stop("FAIL: a label with no border must have no halo")
+  cat("PASS: a border on `text` is a halo under its letters\n")
+})

@@ -3,7 +3,7 @@
 use std::collections::HashMap;
 use std::fmt::Write;
 use crate::data::DataFrame;
-use crate::ir::{Channel, Layer, Transform};
+use crate::ir::{Channel, Layer, StyleSpec, Transform};
 use crate::legality::{Diagnostic, DiagnosticKind};
 use crate::render::nest::Nest;
 use crate::render::polar::Polar;
@@ -33,6 +33,9 @@ impl SvgRenderer {
         cat_x: Option<&[String]>, cat_y: Option<&[String]>,
         color_map: &HashMap<String, String>,
         clip: &str,
+        // The panel's background color, which a halo takes when `border_color` is unset:
+        // the ground the label sits on, so the letters read as cut out of it.
+        ground: &str,
         // Polar: the label sits at an angle and a radius. `style(nudge = )` still
         // moves it in page directions ("up" is up the page, not outward from the
         // center) — a nudge is a constant offset on the finished glyph, and the
@@ -78,7 +81,7 @@ impl SvgRenderer {
         // case answers itself and returns.
         if let Some(nst) = nest {
             self.write_text_nest(svg, layer, df, x_field, y_field, cat_x, labels,
-                                 color_map, clip, nst, remarks);
+                                 color_map, clip, ground, nst, remarks);
             return;
         }
 
@@ -183,18 +186,26 @@ impl SvgRenderer {
         // moved, so the group's anchor is `middle` whatever the nudge asked for —
         // the nudge is already spent, as the offset the placement started from.
         let anchor = if repelled.is_some() { "middle" } else { anchor };
+        // Each label's place, found once and written twice when a halo is set:
+        // every halo first, then every letter (`write_halos`).
+        let placed: Vec<(f64, f64, String, &String)> = rows.iter().enumerate()
+            .map(|(k, &(i, bx, by))| {
+                let (px, py) = match &repelled {
+                    Some(boxes) => (boxes[k].cx, boxes[k].cy + dy),
+                    None => (bx + ndx, by + dy + ndy),
+                };
+                (px, py, fill_for(i).to_string(), &labels[i])
+            })
+            .collect();
+        write_halos(svg, st, ground, clip, fs, anchor,
+                    placed.iter().map(|(x, y, _, l)| (*x, *y, l.as_str())));
         writeln!(svg,
             r##"  <g clip-path="url(#{clip})" font-family="system-ui,sans-serif" font-size="{fs}" text-anchor="{anchor}">"##
         ).unwrap();
-        for (k, &(i, bx, by)) in rows.iter().enumerate() {
-            let fill = fill_for(i);
-            let (px, py) = match &repelled {
-                Some(boxes) => (boxes[k].cx, boxes[k].cy + dy),
-                None => (bx + ndx, by + dy + ndy),
-            };
+        for (px, py, fill, label) in &placed {
             writeln!(svg,
                 r#"    <text x="{px:.2}" y="{py:.2}" fill="{fill}" fill-opacity="{opacity:.3}">{}</text>"#,
-                esc(&labels[i])
+                esc(label)
             ).unwrap();
         }
         writeln!(svg, "  </g>").unwrap();
@@ -230,6 +241,7 @@ impl SvgRenderer {
         labels: &[String],
         color_map: &HashMap<String, String>,
         clip: &str,
+        ground: &str,
         nest: &Nest,
         remarks: &mut Vec<Diagnostic>,
     ) {
@@ -264,12 +276,9 @@ impl SvgRenderer {
         // its own border for no reason. It is **refused** in `check_nest` rather
         // than ignored here, which is what keeps this line from being the
         // accept-and-drop §12 forbids: nothing reaches this function carrying one.
-        writeln!(svg,
-            r##"  <g clip-path="url(#{clip})" font-family="system-ui,sans-serif" font-size="{fs}" text-anchor="middle">"##
-        ).unwrap();
         let mut unfitted = 0usize;
         let mut no_room = 0usize;
-        let mut drawn = 0usize;
+        let mut placed: Vec<(f64, f64, String, &String)> = Vec::new();
         for i in 0..n {
             let c = cells[i];
             let label = &labels[i];
@@ -296,11 +305,19 @@ impl SvgRenderer {
             } else {
                 TEXT_FILL.to_string()
             };
+            placed.push((c.x + c.w / 2.0, c.y + c.h / 2.0 + dy, fill, label));
+        }
+        let drawn = placed.len();
+        write_halos(svg, st, ground, clip, fs, "middle",
+                    placed.iter().map(|(x, y, _, l)| (*x, *y, l.as_str())));
+        writeln!(svg,
+            r##"  <g clip-path="url(#{clip})" font-family="system-ui,sans-serif" font-size="{fs}" text-anchor="middle">"##
+        ).unwrap();
+        for (x, y, fill, label) in &placed {
             writeln!(svg,
-                r#"    <text x="{:.2}" y="{:.2}" fill="{fill}" fill-opacity="{opacity:.3}">{}</text>"#,
-                c.x + c.w / 2.0, c.y + c.h / 2.0 + dy, esc(label)
+                r#"    <text x="{x:.2}" y="{y:.2}" fill="{fill}" fill-opacity="{opacity:.3}">{}</text>"#,
+                esc(label)
             ).unwrap();
-            drawn += 1;
         }
         writeln!(svg, "  </g>").unwrap();
 
@@ -673,4 +690,38 @@ fn clamp_into_panel(bs: &mut [LabelBox], l: &Layout) {
         let (lo, hi) = (l.y0 + b.hh, l.y1 - b.hh);
         b.cy = if lo <= hi { b.cy.clamp(lo, hi) } else { (l.y0 + l.y1) / 2.0 };
     }
+}
+
+/// `style(border_color =, border_size =)` on `text` — the halo: each label's
+/// outline stroked around its letters, so a name reads clearly over lines,
+/// contours or dense points. **Every halo is drawn before any letter**, as one
+/// group beneath the letters' group. A stroke painted under each label on its
+/// own (`paint-order`, as the cube's frame labels do) lets a later label's halo
+/// erase an earlier neighbor's letters wherever two overlap, which drops a name
+/// with no message (§12); drawn as one layer under all the letters, a halo
+/// clears the marks beneath the text and never another label. The inner half
+/// of each stroke lies under its own letter, so half the width shows. Either
+/// setting alone works, as on every mark that takes a border: an unset color is
+/// the panel's background color (`ground`, the halo the cube's frame labels wear), an unset
+/// width 3. A width of 0 draws none, and a set border draws solid, as a bar's
+/// does, so `opacity` fades the letters and not the ground cleared around them.
+fn write_halos<'a>(
+    svg: &mut String, st: &StyleSpec, ground: &str, clip: &str, fs: f64, anchor: &str,
+    labels: impl Iterator<Item = (f64, f64, &'a str)>,
+) {
+    if st.border_color.is_none() && st.border_size.is_none() {
+        return;
+    }
+    let w = st.border_size.unwrap_or(3.0);
+    if w <= 0.0 {
+        return;
+    }
+    let c = st.border_color.as_deref().map(esc).unwrap_or_else(|| ground.to_string());
+    writeln!(svg,
+        r##"  <g clip-path="url(#{clip})" font-family="system-ui,sans-serif" font-size="{fs}" text-anchor="{anchor}" fill="none" stroke="{c}" stroke-width="{w}" stroke-linejoin="round">"##
+    ).unwrap();
+    for (x, y, label) in labels {
+        writeln!(svg, r#"    <text x="{x:.2}" y="{y:.2}">{}</text>"#, esc(label)).unwrap();
+    }
+    writeln!(svg, "  </g>").unwrap();
 }

@@ -383,7 +383,7 @@ mark_options("point")
 
 A point takes more settings than most marks. It is the only mark that can set
 `shape`. Six of its seven glyphs are filled with color, so a point is also one
-of the five marks that draw a border. `size` is the radius in pixels, and
+of the marks that draw a border. `size` is the radius in pixels, and
 `border_color` and `border_size` give that border its own color and width.
 
 A point layer can carry several settings at once:

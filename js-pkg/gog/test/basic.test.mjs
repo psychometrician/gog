@@ -2885,3 +2885,15 @@ test("a tree under a bare space() is drawn flat", () => {
     layer(path, cluster(col.amount, { over: col.nutrient })), x(col.food), ...extra));
   assert.equal(tree(space()), tree());
 });
+
+// A border on `text` is a halo under its letters: the glyph's outline stroked
+// beneath its fill, so a name written over a line reads clearly. It was refused
+// until 2026-09-26 ("a `text` mark draws glyphs, not a filled shape").
+test("a border on `text` is a halo under its letters", () => {
+  const haloT = { x: [1, 2, 3], y: [1, 3, 2], name: ["a", "b", "c"] };
+  const draw = (...extra) => render_svg(plot(data(haloT, { name: "halo_t" }), x(col.x), y(col.y),
+    line, text, label(col.name), ...extra));
+  assert.match(draw(style({ border_color: "white", border_size: 5 })),
+    /fill="none" stroke="white" stroke-width="5"/, "a set border draws a halo");
+  assert.doesNotMatch(draw(), /text-anchor="middle" fill="none" stroke="/, "a label with no border has no halo");
+});

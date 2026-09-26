@@ -8,6 +8,12 @@ CRAN-style repositories and PyPI, `GrammarOfGraphics` on Julia's General, and
 
 ### Added
 
+- **A halo for `text`.** `style(border_color =, border_size =)` now draws on
+  `text` as well: a band of color under each label's letters, so a name drawn
+  over lines, contours or dense points stays readable. Either setting works
+  alone. The color defaults to the panel's background and the width to 3; over
+  a transparent panel, name the color. A border on `text` used to be refused.
+
 - **`smooth_band`, the band around a `smooth` line.** It is `smooth`'s pair
   transform, as `confidence` is `mean`'s: at each point of the LOESS curve it
   gives the confidence band of the fit, a low and a high, with the fit as its

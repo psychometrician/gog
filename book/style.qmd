@@ -190,6 +190,9 @@ stays fully opaque. To make an outline partly transparent, put the transparency
 in `border_color`: in `"#4682b44d"`, the last two hex digits make steelblue 30%
 opaque.
 
+On `text`, the same two settings draw a **halo**, a band of color under the
+letters. The [Text](marks/text.qmd#a-halo-around-each-label) chapter shows one.
+
 A **curve fill** (`area`, `ribbon`) takes no border. Its edge is a data curve,
 so you draw it as a `line` layer (`area + line`, `line * bounds`), and a line
 can be dashed, which a border cannot. And a `cross` point has no fill to

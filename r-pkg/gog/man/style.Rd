@@ -32,9 +32,11 @@ channel there is no data range to rescale from.}
 \item{shape}{One of \code{"circle"}, \code{"square"}, \code{"triangle"},
 \code{"diamond"}, \code{"cross"}, \code{"star"}, \code{"wye"}.}
 
-\item{border_color}{Outline color for a closed glyph.}
+\item{border_color}{Outline color for a closed glyph; on \code{text}, the color
+of the halo around each label (the panel's background color when unset).}
 
-\item{border_size}{Outline width for a closed glyph.}
+\item{border_size}{Outline width for a closed glyph; on \code{text}, the width
+of the halo (3 when unset).}
 
 \item{caps}{\code{TRUE} (default) draws the end caps on an interval; \code{FALSE}
 leaves it bare.}

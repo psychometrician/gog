@@ -545,8 +545,10 @@ better, and that absence follows Law 1's second line: no atom is redundant.
 
 `style(border_color =, border_size =)` draws an outline distinct from the fill.
 It is available on all five closed-glyph fills: `bar`, `box`, `point`, `zone`
-and `surface`. Their perimeter is a shape you cannot trace by composition, so a
-setting is the only way to draw it.
+and `surface`. No second layer can draw their perimeter, so a setting is the
+only way to draw it. The letters of a label are filled shapes too, so `text`
+takes both settings, and there they draw a **halo**, a band of color under the
+letters. One setting takes one form in each class, as `pattern` does below.
 
 `style(pattern =)` gives a mark's paint a **texture**, and each class of
 geometry shows that texture its own way. On the six path strokes (`line`,

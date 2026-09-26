@@ -255,6 +255,36 @@ gog refuses a `size` mapped to a column on a text mark, so every label in a
 layer has one font size. A word cloud sizes each word by how often it occurs,
 so it needs a size per row, and that is one reason gog draws no word cloud.
 
+## A halo around each label
+
+A label drawn over a dot or a line can be hard to read, because the mark shows
+around its letters. `style(border_size = )` draws a **halo**: a band of the
+panel's background color around each letter, drawn under the text. It hides the
+mark next to each letter and does not change the letters:
+
+```{r}
+data(medals) + point + style(color = "#9e9e9e", size = 9) +
+  text + x(gold) + y(silver) + label(country) +
+  style(size = 12, border_size = 3) +
+  x_label("Gold") + y_label("Silver") +
+  title("Names with a halo")
+```
+
+*"Given the medals: points and also text, x is gold, y is silver, label by
+country, with size 12 and border size 3."*
+
+A thin band of the panel's color now separates each name from the gray dot
+behind it. `border_size` sets the width of the stroke in pixels. Half of it lies
+under the letters, so a width of 3 shows as a band 1.5 pixels wide.
+`border_color` sets its color, if you want one other than the background. Either
+setting alone draws a halo: an unset width is 3 pixels, and an unset color is the
+panel's background color. With neither, a label has no halo.
+
+A halo hides the marks it covers, so use it where the words matter more than
+those marks. It never hides another label's letters, because every halo in a
+layer is drawn before any letter. It does not move overlapping labels apart.
+That is the job of [`repel`](#repel-moving-labels-off-each-other).
+
 ## Why `label` is a channel
 
 A setting is a value you type into the sentence. You might expect to type a
@@ -338,7 +368,8 @@ drew the shape, and both layers read the same transform.
 
 The [Styling](#styling-one-color-one-size) section set a color and a size. Those
 are two entries in a longer list, and the whole of it is here: which color, how
-transparent, which size, and which way to shift the label. None of that is in a
+transparent, which size, which way to shift the label, and the color and width
+of its halo. None of that is in a
 column, so it is set rather than mapped, and each mark takes its own settings.
 These are a text mark's, with the values each accepts:
 

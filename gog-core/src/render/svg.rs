@@ -2010,6 +2010,8 @@ impl SvgRenderer {
         // panel it paints, as it always has.
         let see_through = spec.theme.resolved().background.as_deref()
             .is_some_and(crate::color::paints_nothing);
+        // The ground a `text` halo takes when its color is unset: the panel's background.
+        let ground = spec.theme.resolved().background_or(PANEL_BG);
         if !see_through {
             self.write_canvas(&mut svg);
         }
@@ -2190,7 +2192,7 @@ impl SvgRenderer {
                                     &color_map, &ramp, &clip, zs, z_field, None, None, Some(g)),
                                 Mark::Text => self.write_text(&mut svg, layer, df, l, xs, ys,
                                     x_field, y_field, cat_x.as_deref(), cat_y.as_deref(),
-                                    &color_map, &clip, None, None, Some(g), None, &mut remarks),
+                                    &color_map, &clip, &ground, None, None, Some(g), None, &mut remarks),
                                 Mark::Path => self.write_path(&mut svg, layer, df, l, xs, ys,
                                     x_field, y_field, cat_x.as_deref(), cat_y.as_deref(),
                                     &color_map, &ramp, &clip, zs, z_field, None, None, Some(g)),
@@ -2422,7 +2424,7 @@ impl SvgRenderer {
                                 } else {
                                     None
                                 };
-                            self.write_text(&mut svg, layer, df, l, xs, ys, x_field, y_field, cat_x.as_deref(), cat_y.as_deref(), &color_map, &clip, pol_ref, nst.as_ref(), None, anchor_radii.as_deref(), &mut remarks)
+                            self.write_text(&mut svg, layer, df, l, xs, ys, x_field, y_field, cat_x.as_deref(), cat_y.as_deref(), &color_map, &clip, &ground, pol_ref, nst.as_ref(), None, anchor_radii.as_deref(), &mut remarks)
                         }
                         // The stroke between two layout-supplied endpoints —
                         // only ever reached inside `network()`, where the
@@ -14287,5 +14289,52 @@ mod tests {
                 .encode(Channel::Color, "c").encode(Channel::Pattern, "g"));
         let svg = SvgRenderer::default().render(&spec, &data);
         assert_eq!(svg.matches("<polygon").count(), 4, "two colors by two patterns: {svg}");
+    }
+
+    /// **A border on `text` is a halo under its letters.** `style(border_color =,
+    /// border_size =)` strokes each label's outline, and every halo is drawn in
+    /// one group *before* the letters' group, so a halo clears the marks under
+    /// the text and can never erase a neighboring label's letters where two
+    /// overlap. Either setting alone works: an unset color is the panel's background
+    /// (the halo the cube's frame labels wear), an unset width is 3, and a width
+    /// of 0 draws none.
+    #[test]
+    fn a_text_border_is_a_halo_under_its_letters() {
+        let data = HashMap::from([("t".to_string(), DataFrame::new()
+            .with_float("x", vec![1.0, 2.0, 3.0])
+            .with_float("y", vec![1.0, 3.0, 2.0])
+            .with_str("name", vec!["a".into(), "b".into(), "c".into()]))]);
+        let draw = |text: Layer| SvgRenderer::default().render(
+            &PlotSpec::new().data("t").x("x").y("y")
+                .layer(Layer::new(Mark::Line))
+                .layer(text.encode(Channel::Label, "name")),
+            &data);
+        let halo_group = r#"text-anchor="middle" fill="none" stroke=""#;
+        let plain = draw(Layer::new(Mark::Text));
+        assert!(!plain.contains(halo_group), "no border, no halo: {plain}");
+
+        let mut sized = Layer::new(Mark::Text);
+        sized.style.border_size = Some(3.0);
+        let panel = draw(sized);
+        assert!(panel.contains(&format!(
+            r#"fill="none" stroke="{PANEL_BG}" stroke-width="3" stroke-linejoin="round""#)),
+            "an unset color is the panel's background: {panel}");
+
+        let white = draw(Layer::new(Mark::Text).style_border("white", 5.0));
+        assert!(white.contains(r#"fill="none" stroke="white" stroke-width="5""#),
+            "a set color and width are drawn as given: {white}");
+        let halos_at = white.find(halo_group).expect("the halo group");
+        let letters_at = white.find(r#"text-anchor="middle">"#).expect("the letters group");
+        assert!(halos_at < letters_at, "every halo is drawn before any letter: {white}");
+        assert_eq!(white.matches(">a</text>").count(), 2, "each label once as halo, once as letters");
+
+        let mut colored = Layer::new(Mark::Text);
+        colored.style.border_color = Some("white".into());
+        let unset_width = draw(colored);
+        assert!(unset_width.contains(r#"stroke="white" stroke-width="3""#),
+            "an unset width is 3: {unset_width}");
+
+        let none = draw(Layer::new(Mark::Text).style_border("white", 0.0));
+        assert!(!none.contains(halo_group), "a width of 0 draws no halo: {none}");
     }
 }

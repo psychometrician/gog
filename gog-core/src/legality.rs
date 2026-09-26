@@ -948,8 +948,16 @@ fn mark_takes_setting(mark: &Mark, setting: Setting) -> bool {
         // `area`/`ribbon` stay out because one boundary curve is genuinely drawn
         // better by composition (`area + line`), where a region's four sides would be
         // four `rule`s per cell and there are as many cells as the data has.
+        //
+        // `text` joined 2026-09-26, reversing its "glyphs, not a filled shape — it has
+        // no border" refusal. A letter *is* a filled glyph with a perimeter, and its
+        // border is realized the way a glyph can carry one: stroked under the fill,
+        // so it clears ground around the letters without thinning them (the halo).
+        // The engine already drew exactly that for the cube's frame labels, and a
+        // label over lines, contours or dense points had no way to ask for it.
         BorderColor | BorderSize =>
-            matches!(mark, Mark::Bar | Mark::Box | Mark::Point | Mark::Surface | Mark::Zone),
+            matches!(mark, Mark::Bar | Mark::Box | Mark::Point | Mark::Surface | Mark::Zone
+                           | Mark::Text),
         // The crossbars at a whisker's ends, on both marks that draw whiskers: a
         // `box`'s are the same strokes as an `interval`'s, so the settable rule
         // spans them (spec §4). It was `interval`-only until 2026-09-24, and the
@@ -7191,6 +7199,7 @@ pub fn check(spec: &PlotSpec, data: &HashMap<String, DataFrame>) -> Vec<Diagnost
         check_style(&mut out, mark, &layer.style, &bound);
         check_nothing_to_fade(&mut out, mark, layer);
         check_border(&mut out, mark, &layer.style);
+        check_halo_ground(&mut out, mark, &layer.style, spec);
         check_caps(&mut out, mark, &layer.style);
         check_arrow(&mut out, mark, &layer.style);
         check_center(&mut out, mark, &layer.style);
@@ -11693,6 +11702,28 @@ fn check_pattern(out: &mut Vec<Diagnostic>, mark: &Mark, style: &StyleSpec) {
     }
 }
 
+/// A halo on `text` whose color is left to the panel, over a panel that paints
+/// nothing. An unset `border_color` is the panel's background (`write_halos`),
+/// and a `transparent` or `none` background would stroke the halo in no color at
+/// all: the setting accepted and nothing drawn, which §12 forbids. The fix is one
+/// word, so the refusal names it.
+fn check_halo_ground(out: &mut Vec<Diagnostic>, mark: &Mark, style: &StyleSpec, spec: &PlotSpec) {
+    let asks_for_panel_color = *mark == Mark::Text
+        && style.border_color.is_none()
+        && style.border_size.is_some_and(|w| w > 0.0);
+    let see_through = spec.theme.resolved().background.as_deref()
+        .is_some_and(crate::color::paints_nothing);
+    if asks_for_panel_color && see_through {
+        out.push(Diagnostic {
+            kind: DiagnosticKind::Illegal,
+            message: "gog: a halo on `text` takes the panel's background color when \
+                      `border_color` is not set, and this panel's background is transparent, \
+                      so the halo would hide nothing. Name the halo's color, for example \
+                      `style(border_color = \"white\")`.".to_string(),
+        });
+    }
+}
+
 fn check_border(out: &mut Vec<Diagnostic>, mark: &Mark, style: &StyleSpec) {
     if style.border_color.is_none() && style.border_size.is_none() {
         return;
@@ -11769,21 +11800,16 @@ fn check_border(out: &mut Vec<Diagnostic>, mark: &Mark, style: &StyleSpec) {
             message: "gog: a `ribbon` is a filled band with no border of its own — layer a `line` \
                       for a visible edge along one of its boundaries.".to_string(),
         }),
-        Mark::Text => out.push(Diagnostic {
-            kind: DiagnosticKind::Illegal,
-            message: "gog: a `text` mark draws glyphs, not a filled shape — it has no border. \
-                      `style(color = )` sets the text color.".to_string(),
-        }),
         Mark::Path => out.push(Diagnostic {
             kind: DiagnosticKind::Illegal,
             message: "gog: a `path` is a stroke, and a stroke has no separate border — \
                       `style(color = )` sets the line itself, `style(size = )` its width. \
                       (The same answer `line` gives.)".to_string(),
         }),
-        // All five carry a border and are handled above, so none reaches here — a
+        // All six carry a border and are handled above, so none reaches here — a
         // `surface`'s being its mesh lines (spec §15), a `zone`'s the frame round
-        // each region it fills.
-        Mark::Bar | Mark::Box | Mark::Point | Mark::Surface | Mark::Zone => {}
+        // each region it fills, a `text` label's the halo around its letters.
+        Mark::Bar | Mark::Box | Mark::Point | Mark::Surface | Mark::Zone | Mark::Text => {}
     }
 }
 
@@ -18803,24 +18829,50 @@ mod tests {
     // `every_mark_channel_pair_has_a_rule`.
 
     #[test]
+    fn a_halo_over_a_transparent_panel_names_its_color() {
+        // An unset halo color is the panel's background, and a transparent one
+        // would draw a halo of no color: accepted and invisible. Refused toward
+        // `border_color`, which is the one word that fixes it.
+        let data = HashMap::from([("t".to_string(), DataFrame::new()
+            .with_float("x", vec![1.0, 2.0])
+            .with_float("y", vec![1.0, 2.0])
+            .with_str("name", vec!["a".into(), "b".into()]))]);
+        let spec_with = |text: Layer| {
+            let mut spec = PlotSpec::new().data("t").x("x").y("y")
+                .layer(text.encode(Channel::Label, "name"));
+            spec.theme = ThemeSpec { background: Some("transparent".into()), ..Default::default() };
+            spec
+        };
+        let halo_refusals = |spec: &PlotSpec| check(spec, &data).into_iter()
+            .filter(|d| d.kind == DiagnosticKind::Illegal && d.message.contains("halo"))
+            .count();
+        let mut sized = Layer::new(Mark::Text);
+        sized.style.border_size = Some(3.0);
+        assert_eq!(halo_refusals(&spec_with(sized)), 1, "a halo left to a transparent panel is refused");
+        let named = Layer::new(Mark::Text).style_border("white", 3.0);
+        assert_eq!(halo_refusals(&spec_with(named)), 0, "a halo with its color named draws");
+    }
+
+    #[test]
     fn border_spans_the_closed_glyph_fills() {
         // A border rims a filled glyph — available on the closed-glyph fills (bar,
-        // box, point, and since 2026-07-27 `zone`, the region mark the mosaic could
-        // not be read without), refused on the curve fills (edge is a layered line),
-        // the strokes, and text. None answers `Unsupported`: the class is built, not
-        // "designed but not drawn."
+        // box, point, since 2026-07-27 `zone`, the region mark the mosaic could not
+        // be read without, and since 2026-09-26 `text`, whose letters are filled
+        // glyphs and take it as a halo), refused on the curve fills (edge is a
+        // layered line) and the strokes. None answers `Unsupported`: the class is
+        // built, not "designed but not drawn."
         //
         // `zone` was the gap this test could not see: it sat in *neither* list, so
         // moving it from one side of the class to the other left the assertion green
         // either way. Naming every mark is what makes a class membership testable —
         // the same lesson `pattern_spans_*` below records one paragraph down.
         let style = StyleSpec { border_color: Some("black".into()), border_size: Some(1.0), ..Default::default() };
-        for m in [Mark::Bar, Mark::Box, Mark::Point, Mark::Zone] {
+        for m in [Mark::Bar, Mark::Box, Mark::Point, Mark::Zone, Mark::Text] {
             let mut out = Vec::new();
             check_border(&mut out, &m, &style);
             assert!(out.is_empty(), "{m:?} accepts a border with no complaint: {out:?}");
         }
-        for m in [Mark::Area, Mark::Ribbon, Mark::Line, Mark::Step, Mark::Interval, Mark::Text] {
+        for m in [Mark::Area, Mark::Ribbon, Mark::Line, Mark::Step, Mark::Interval] {
             let mut out = Vec::new();
             check_border(&mut out, &m, &style);
             assert!(out.iter().any(|d| d.kind == DiagnosticKind::Illegal),

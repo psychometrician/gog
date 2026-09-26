@@ -2275,3 +2275,15 @@ end
     end
     @test cube == flat
 end
+
+# A border on `text` is a halo under its letters: the glyph's outline stroked
+# beneath its fill, so a name written over a line reads clearly. It was refused
+# until 2026-09-26 ("a `text` mark draws glyphs, not a filled shape").
+@testset "a border on `text` is a halo under its letters" begin
+    halo_t = (x = [1.0, 2.0, 3.0], y = [1.0, 3.0, 2.0], name = ["a", "b", "c"])
+    haloed = render_svg(data(halo_t, name = "halo_t") + x(:x) + y(:y) + line + text +
+                        label(:name) + style(border_color = "white", border_size = 5))
+    @test occursin("fill=\"none\" stroke=\"white\" stroke-width=\"5\"", haloed)
+    plain = render_svg(data(halo_t, name = "halo_t") + x(:x) + y(:y) + line + text + label(:name))
+    @test !occursin("text-anchor=\"middle\" fill=\"none\" stroke=\"", plain)
+end
