@@ -2593,19 +2593,17 @@ render_svg(data(_voyage) + zone * flow(col["class"], col.fate))
 ok("a flow stage named twice is refused")
 
 
-# --- a tally's one pile with a column on y -----------------------------------
-# A bar with a split and no `x` drew its counts under an axis titled after a `y`
-# column it never read. Refused now, as it is when the bar has an `x`. The same
-# block runs in all four bindings.
+# --- a split tally with a key on y lies on its side ---------------------------
+# A tally's `y`, split and stacked with no `x`, is the key of a bar on its side, as
+# it is unsplit. The one-pile rule swallowed it, and the counts were drawn in one
+# pile under an axis titled after the column. The same block runs in all four.
 _winds = {"dir": ["N", "S", "N", "S"], "season": ["win", "win", "sum", "sum"],
           "speed": [3.0, 5.0, 2.0, 8.0]}
-assert "so `y(speed)` names a column it never reads" in _refusal(
-    lambda: render_svg(data(_winds) + bar * count * stack + y(col.speed) + color(col.dir)))
-assert "name it as the slot: `x(season)`" in _refusal(
-    lambda: render_svg(data(_winds) + bar * count * stack + y(col.season) + color(col.dir)))
-render_svg(data(_winds) + bar * count * stack + x(col.season) + color(col.dir))
+_sideways = render_svg(data(_winds) + bar * count * stack + y(col.season) + color(col.dir))
+assert ">win<" in _sideways and ">Count<" in _sideways, \
+    "a stacked tally with a category on y should lie on its side"
 render_svg(data(_winds) + bar * sum * stack + y(col.speed) + color(col.dir))
-ok("a tally's one pile refuses a column on its measure axis")
+ok("a split tally with a key on y lies on its side")
 
 
 # --- a network row left out adds no node -------------------------------------

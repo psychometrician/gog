@@ -2237,13 +2237,6 @@ fn synth_axis_names_a_column(
     }
     let maker = ts.iter().find(|t| matches!(
         t, Transform::Bin | Transform::Count | Transform::Density | Transform::Proportion))?;
-    // A bar with one slot has no axis for `bin` or `density` to spread along, and
-    // `check_keyless_statistic` refuses them for that, with its own direction, so
-    // the sentence hears one refusal rather than two that point different ways.
-    let one_slot = spec.position_for(layer, &Channel::X).is_none() && bar_divides_one_slot(layer);
-    if one_slot && ts.iter().any(|t| matches!(t, Transform::Bin | Transform::Density)) {
-        return None;
-    }
     let kind = actual_type(df, field)?;
     let m = mark_name(&layer.mark);
     let c = channel_name(channel);
@@ -2264,13 +2257,7 @@ fn synth_axis_names_a_column(
         Channel::Y => spec.position_for(layer, &Channel::X),
         _ => None,
     }.map(|d| d.field.as_str());
-    // A bar with one slot and a category on its measure axis most likely wanted a
-    // pile per category, which is that category named as the slot.
     let direction = match (kind, maker) {
-        (VarType::Discrete, _) if one_slot => format!(
-            "To give each value of `{field}` a pile of its own, name it as the slot: \
-             `x({field})`."
-        ),
         (VarType::Discrete, _) => format!(
             "To split the rows by `{field}`, `color({field})` colors each group, and \
              `/ facet({field})` draws one panel per category."
@@ -2865,15 +2852,11 @@ pub fn plot_orient(spec: &PlotSpec, data: &HashMap<String, DataFrame>) -> Orient
         // going to fill it — and reading it as horizontal made the measure the
         // *key*, so the statistic found no column to summarize and the pie came out
         // empty.
-        if spec.position_for(layer, &Channel::X).is_none() && bar_divides_one_slot(layer) {
+        let df = layer.data.as_ref().or(spec.data.as_ref()).and_then(|name| data.get(name));
+        if bar_is_one_pile(spec, layer, df) {
             return Orient::Vertical;
         }
-        let Some(df) = layer
-            .data
-            .as_ref()
-            .or(spec.data.as_ref())
-            .and_then(|name| data.get(name))
-        else {
+        let Some(df) = df else {
             continue;
         };
         return slot_orient(actual_type(df, x_field), actual_type(df, y_field));
@@ -6698,7 +6681,7 @@ pub fn check(spec: &PlotSpec, data: &HashMap<String, DataFrame>) -> Vec<Diagnost
 
         // A bar with no position axis takes only the statistics that mean something
         // without one (spec §15) — `count`/`sum`, not `bin`/`density`/`smooth`.
-        check_keyless_statistic(&mut out, spec, layer);
+        check_keyless_statistic(&mut out, spec, df, layer);
 
         // Two transforms that do the same job contradict (spec §5). Mark-agnostic and
         // dimension-agnostic, so it sits out here rather than in `check_pair_summary`,
@@ -7170,7 +7153,7 @@ pub fn check(spec: &PlotSpec, data: &HashMap<String, DataFrame>) -> Vec<Diagnost
             // reads `Must` because flat a glyph has to be put *somewhere*. In a
             // packing nothing is put anywhere — a row gets a **region**, and `x` is
             // what subdivides the panel when it is bound at all.
-            if channel == Channel::X && x_needs_no_binding(spec, layer) {
+            if channel == Channel::X && x_needs_no_binding(spec, layer, df) {
                 continue;
             }
             // `y` relaxes for a partition alone, and never for the packing: there
@@ -8152,6 +8135,30 @@ pub fn bar_divides_one_slot(layer: &Layer) -> bool {
         && splitting_channels(&Mark::Bar).iter().any(|ch| layer.encodings.contains_key(ch))
 }
 
+/// Is this bar **one pile** the split divides, with no key axis at all? Law 7's
+/// relaxation (spec §4) is for a bar that needs no position axis, and
+/// `bar_divides_one_slot` says only that the split is there.
+///
+/// A `y` naming a column that a tally does not read *is* a position axis: a tally
+/// makes its measure itself, so that column can only be the key, as `slot_orient`
+/// reads it, and `bar * count + y(season)` lies on its side. Adding `* stack +
+/// color(dir)` must not change what `y(season)` means (Law 6). Asked only whether
+/// `x` was missing, the relaxation swallowed that key: it drew one pile and used
+/// the column to title the axis. The pile stands where nothing names a key: no
+/// `y`, a `y` a statistic reads as its measure (`bar * sum * stack + y(population)`,
+/// the share column and the pie), or a `y` naming no column, which titles the
+/// tally's own axis (`y(count)`).
+pub fn bar_is_one_pile(spec: &PlotSpec, layer: &Layer, df: Option<&DataFrame>) -> bool {
+    if !bar_divides_one_slot(layer) || spec.position_for(layer, &Channel::X).is_some() {
+        return false;
+    }
+    let keyed = spec.position_for(layer, &Channel::Y).is_some_and(|y| {
+        synthesizes_measure(&layer.mark, &layer.transforms)
+            && df.is_some_and(|d| actual_type(d, &y.field).is_some())
+    });
+    !keyed
+}
+
 /// Is a missing `x` well formed on this layer? **The one answer**, read by the
 /// check that refuses and by the warning that advises.
 ///
@@ -8173,8 +8180,8 @@ pub fn bar_divides_one_slot(layer: &Layer) -> bool {
 ///   subdivides the panel when it is bound at all. *Constitutive*, and the only
 ///   one of the three that is a property of the **space** rather than of the
 ///   layer — which is why it is asked of `spec` and not of `layer` alone.
-pub fn x_needs_no_binding(spec: &PlotSpec, layer: &Layer) -> bool {
-    bar_divides_one_slot(layer)
+pub fn x_needs_no_binding(spec: &PlotSpec, layer: &Layer, df: Option<&DataFrame>) -> bool {
+    bar_is_one_pile(spec, layer, df)
         || layer.transforms.contains(&Transform::Partition)
         || layer.transforms.contains(&Transform::Flow)
         // A sideways cluster tree: leaves on `y`, and `x` carries the merge
@@ -8953,8 +8960,10 @@ fn check_reach(out: &mut Vec<Diagnostic>, mark: &Mark, style: &StyleSpec) {
 /// meaningful with nothing to group by; `bin`, `density` and `smooth` describe how
 /// values are *distributed along* an axis, so with no axis there is nothing for
 /// them to say. Refused with direction rather than quietly returning the input.
-fn check_keyless_statistic(out: &mut Vec<Diagnostic>, spec: &PlotSpec, layer: &Layer) {
-    if spec.position_for(layer, &Channel::X).is_some() || !bar_divides_one_slot(layer) {
+fn check_keyless_statistic(
+    out: &mut Vec<Diagnostic>, spec: &PlotSpec, df: Option<&DataFrame>, layer: &Layer,
+) {
+    if !bar_is_one_pile(spec, layer, df) {
         return;
     }
     for t in &layer.transforms {
@@ -10449,15 +10458,14 @@ pub fn synth_axis(spec: &PlotSpec, layer: &Layer, df: Option<&DataFrame>) -> Cha
             }
         }
         (m, _) if cuts_both_positions(m, space_of(spec)) && !has_no_measure_axis(m) => Channel::Z,
-        // A bar whose split divides its one slot has no key axis, so its measure is
-        // on `y` whatever `y` names: the rule the plot's orientation states first
-        // (`bar_divides_one_slot`), asked here too. This arm was missing, so a lone
-        // `y` went to `slot_orient`, which read it as the key of a bar on its side,
-        // and the column was never checked while the renderer drew the one pile:
-        // `bar * count * stack + y(speed) + color(dir)` drew the counts under an
-        // axis titled "Speed", and `y(season)` did the same, in silence.
-        (Mark::Bar, _) if spec.position_for(layer, &Channel::X).is_none()
-            && bar_divides_one_slot(layer) => Channel::Y,
+        // A bar that is one pile has no key axis, so its measure is on `y`: the rule
+        // the plot's orientation states first (`bar_is_one_pile`), asked here too so
+        // the two cannot disagree about which axis the tally writes. They did, for a
+        // `y` naming a column under a tally: the orientation drew one pile while this
+        // sent the column to `slot_orient` as a key, so it was never checked and only
+        // titled the pile's axis. That `y` is a key now in both, and the bar lies on
+        // its side.
+        (Mark::Bar, _) if bar_is_one_pile(spec, layer, df) => Channel::Y,
         (m, Some(df)) if is_slot_mark(m) => {
             let xt = spec.position_for(layer, &Channel::X).and_then(|c| actual_type(df, &c.field));
             let yt = spec.position_for(layer, &Channel::Y).and_then(|c| actual_type(df, &c.field));
@@ -18705,32 +18713,37 @@ mod tests {
         }
     }
 
-    /// A tally's one pile drew its counts under an axis titled after a column it
-    /// never read: `synth_axis` took a lone `y` for a sideways bar's key while the
-    /// renderer drew the pile. Refused now, a number toward a statistic that reads it
-    /// and a category toward a pile of its own, and said once beside `bin`.
+    /// A tally's `y`, split and stacked with no `x`, is the key of a bar on its side,
+    /// as it is unsplit: `bar * count + y(season)` lies on its side, and adding
+    /// `* stack + color(dir)` does not change what `y(season)` means (Law 6). The
+    /// one-pile relaxation used to swallow that key and title the pile's axis with it.
+    /// No `y`, a `y` a statistic reads, or a name the table does not hold still leaves
+    /// one pile.
     #[test]
-    fn a_one_slot_tally_refuses_a_column_on_its_measure_axis() {
-        let pile = |t: Transform, y: &str| PlotSpec::new().data("t").y(y).layer(
-            Layer::new(Mark::Bar).transform(t).transform(Transform::Stack)
-                .encode(Channel::Color, "region"));
-        for t in [Transform::Count, Transform::Proportion] {
-            let d = check(&pile(t.clone(), "life"), &data());
-            assert!(d.iter().any(|x| x.kind == DiagnosticKind::Illegal
-                && x.message.contains("so `y(life)` names a column it never reads")),
-                "{t:?}: {:?}", msgs(&d));
-            let d = check(&pile(t.clone(), "continent"), &data());
-            assert!(d.iter().any(|x| x.kind == DiagnosticKind::Illegal
-                && x.message.contains("a pile of its own, name it as the slot: `x(continent)`")),
-                "{t:?} over a category: {:?}", msgs(&d));
+    fn a_split_tally_with_a_key_on_y_lies_on_its_side() {
+        let pile = |t: Transform, y: Option<&str>| {
+            let spec = PlotSpec::new().data("t");
+            let spec = match y { Some(y) => spec.y(y), None => spec };
+            spec.layer(Layer::new(Mark::Bar).transform(t).transform(Transform::Stack)
+                .encode(Channel::Color, "region"))
+        };
+        let d = data();
+        let df = d.get("t");
+        for (t, y) in [(Transform::Count, "continent"), (Transform::Count, "life"),
+                       (Transform::Proportion, "continent"), (Transform::Bin, "life")] {
+            let spec = pile(t.clone(), Some(y));
+            assert!(!bar_is_one_pile(&spec, &spec.layers[0], df), "{t:?} + y({y}) is a key");
+            assert_eq!(synth_axis(&spec, &spec.layers[0], df), Channel::X,
+                       "{t:?} + y({y}) is counted along x");
+            let out = check(&spec, &d);
+            assert!(!out.iter().any(Diagnostic::is_fatal), "{t:?} + y({y}): {:?}", msgs(&out));
         }
-        // A name the table does not hold still titles the axis, and a statistic that
-        // reads the column is the share column it always was.
-        assert!(!check(&pile(Transform::Count, "count"), &data()).iter().any(Diagnostic::is_fatal));
-        assert!(!check(&pile(Transform::Sum, "life"), &data()).iter().any(Diagnostic::is_fatal));
-        // `bin` has no axis here at all, and says so once.
-        let d = check(&pile(Transform::Bin, "life"), &data());
-        assert_eq!(d.iter().filter(|x| x.is_fatal()).count(), 1, "{:?}", msgs(&d));
+        for spec in [pile(Transform::Count, None), pile(Transform::Sum, Some("life")),
+                     pile(Transform::Count, Some("count"))] {
+            assert!(bar_is_one_pile(&spec, &spec.layers[0], df), "{:?}", spec.layers[0].transforms);
+            let out = check(&spec, &d);
+            assert!(!out.iter().any(Diagnostic::is_fatal), "{:?}", msgs(&out));
+        }
     }
 
     #[test]
@@ -18743,7 +18756,7 @@ mod tests {
         let with = |t: Transform| PlotSpec::new().data("t").y("life").layer(
             Layer::new(Mark::Bar).transform(t).encode(Channel::Color, "continent"));
         // A tally reads no column, so its one pile is written with no `y`: a column
-        // named there is one it never reads, refused (the test below).
+        // named there is the key of a bar on its side (the test above).
         let tally = |t: Transform| PlotSpec::new().data("t").layer(
             Layer::new(Mark::Bar).transform(t).encode(Channel::Color, "continent"));
 
@@ -18752,12 +18765,12 @@ mod tests {
             assert!(!fatal(&check(&spec, &data())),
                     "{:?} should be legal with no x", spec.layers[0].transforms);
         }
-        for t in [Transform::Bin, Transform::Density, Transform::Smooth] {
-            let d = check(&with(t.clone()), &data());
+        for spec in [tally(Transform::Bin), tally(Transform::Density), with(Transform::Smooth)] {
+            let d = check(&spec, &data());
             assert!(
                 d.iter().any(|x| x.kind == DiagnosticKind::Illegal && x.message.contains("Add `x(<column>)`")),
-                "{t:?} with no x should be refused with direction: {:?}",
-                d.iter().map(|x| x.message.clone()).collect::<Vec<_>>()
+                "{:?} with no x should be refused with direction: {:?}",
+                spec.layers[0].transforms, d.iter().map(|x| x.message.clone()).collect::<Vec<_>>()
             );
         }
     }

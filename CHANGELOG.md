@@ -137,10 +137,7 @@ Each is now refused, with what to write instead.
   counts under "Life", and `point * bin * stack + x(life) + y(continent)` a dot
   plot under "Continent". The refusal names the statistic that reads the column,
   such as `bar * mean`. A name the table does not hold, such as `y(count)`,
-  still titles the axis. The same holds for a bar drawn as one pile with no `x`,
-  such as `bar * count * stack + y(speed) + color(dir)`, which drew the counts
-  under "Speed"; a category there is sent to `x()`, which gives each of its
-  values a pile of its own.
+  still titles the axis.
 
 - **A plot with no mark.** `data(gapminder_2007) + x(gdp)` drew an empty panel
   with both axes marked 0 to 1, and so did a table, a `color()` or a `title()`
@@ -228,6 +225,14 @@ These drew something other than the sentence said, and now draw what it says.
   said so, but its named end was still added as a node. It stood alone, and
   every other node moved to make room. A row that draws no edge now adds no
   node.
+
+- **A stacked tally with a column on `y` and no `x`.** `bar * count * stack +
+  y(season) + color(dir)` drew one pile of counts and used `season` only to
+  title its axis. The column is the key of a bar on its side, as it is in
+  `bar * count + y(season)`, so the bars now lie on their side, one per season,
+  stacked by `dir`. The same holds for a number on `y` under `count`, `bin` or
+  `proportion`. A `y` that a statistic reads, as in `bar * sum * stack +
+  y(population)`, still draws one pile.
 
 - **Another table's points past the last `bar`.** The axis was built from the
   bars' positions alone, so a forecast drawn after actual values, such as

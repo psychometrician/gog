@@ -4488,21 +4488,17 @@ local({
   cat("PASS: a flow stage named twice is refused\n")
 })
 
-# A tally's one pile, a bar with a split and no `x`, drew its counts under an axis
-# titled after a `y` column it never read. Refused now, as it is when the bar has an
-# `x`. The same block runs in all four bindings.
+# A tally's `y`, split and stacked with no `x`, is the key of a bar on its side, as
+# it is unsplit. The one-pile rule swallowed it: the counts were drawn in one pile
+# under an axis titled after the column. The same block runs in all four bindings.
 local({
   winds <- data.frame(dir = c("N", "S", "N", "S"), season = c("win", "win", "sum", "sum"),
                       speed = c(3, 5, 2, 8))
-  refuses("a tally's one pile with a number on y",
-          render_svg(data(winds) + bar * count * stack + y(speed) + color(dir)),
-          "so `y(speed)` names a column it never reads")
-  refuses("a tally's one pile with a category on y",
-          render_svg(data(winds) + bar * count * stack + y(season) + color(dir)),
-          "name it as the slot: `x(season)`")
-  render_svg(data(winds) + bar * count * stack + x(season) + color(dir))
+  sideways <- render_svg(data(winds) + bar * count * stack + y(season) + color(dir))
+  if (!grepl(">win<", sideways, fixed = TRUE) || !grepl(">Count<", sideways, fixed = TRUE))
+    stop("FAIL: a stacked tally with a category on y should lie on its side")
   render_svg(data(winds) + bar * sum * stack + y(speed) + color(dir))
-  cat("PASS: a tally's one pile refuses a column on its measure axis\n")
+  cat("PASS: a split tally with a key on y lies on its side\n")
 })
 
 # A network row with a missing end is left out, and said so, but its named end was

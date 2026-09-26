@@ -1577,7 +1577,8 @@ impl SvgRenderer {
         // on zero, which is what `write_bars` places every element at, and an empty
         // tick list so no axis is drawn under a chart that has none.
         let one_slot = x_field.is_empty()
-            && spec.layers.iter().any(crate::legality::bar_divides_one_slot);
+            && spec.layers.iter()
+                .any(|l| crate::legality::bar_is_one_pile(spec, l, ctx.resolve_data(&l.data)));
         let (x_ticks, xs) = if one_slot {
             (TickSpec::empty(), (-0.5, 0.5))
         } else {

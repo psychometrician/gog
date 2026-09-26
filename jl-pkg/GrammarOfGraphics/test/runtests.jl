@@ -2186,15 +2186,14 @@ end
     @test occursin("<svg", render_svg(data(voyage) + zone * flow(:class, :fate)))
 end
 
-# A bar with a split and no `x` drew its counts under an axis titled after a `y`
-# column it never read. Refused now, as it is when the bar has an `x`. The same
-# block runs in all four bindings.
-@testset "a tally's one pile refuses a column on its measure axis" begin
+# A tally's `y`, split and stacked with no `x`, is the key of a bar on its side, as
+# it is unsplit. The one-pile rule swallowed it, and the counts were drawn in one
+# pile under an axis titled after the column. The same block runs in all four.
+@testset "a split tally with a key on y lies on its side" begin
     winds = (dir = ["N", "S", "N", "S"], season = ["win", "win", "sum", "sum"],
              speed = [3.0, 5.0, 2.0, 8.0])
-    @refuses render_svg(data(winds) + bar * count * stack + y(:speed) + color(:dir)) "so `y(speed)` names a column it never reads"
-    @refuses render_svg(data(winds) + bar * count * stack + y(:season) + color(:dir)) "name it as the slot: `x(season)`"
-    @test occursin("<rect", render_svg(data(winds) + bar * count * stack + x(:season) + color(:dir)))
+    sideways = render_svg(data(winds) + bar * count * stack + y(:season) + color(:dir))
+    @test occursin(">win<", sideways) && occursin(">Count<", sideways)
     @test occursin("<rect", render_svg(data(winds) + bar * sum * stack + y(:speed) + color(:dir)))
 end
 
