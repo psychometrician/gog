@@ -2638,3 +2638,15 @@ _cx = [float(v) for v in _re2.findall(r'cx="([0-9.]+)', _svg)]
 assert len(_cx) == 3 and all(v <= 800 for v in _cx), f"a forecast point is off the canvas: {_cx}"
 assert ">2026<" in _svg, "the axis should reach 2026"
 ok("a second table's points after a bar are drawn inside the panel")
+
+
+# --- a one-column rule on a map is projected ---------------------------------
+# It kept its raw degrees, and a parallel at 45 collapsed the map to a sliver. It
+# is placed now exactly as the same rule with both columns. The same block runs
+# in all four bindings.
+_pts = {"lon": [-10.0, 0.0, 10.0, 5.0], "lat": [30.0, 50.0, 60.0, 40.0]}
+_par = lambda t: render_svg(data(_pts, name="pts") + point + x(col.lon) + y(col.lat)  # noqa: E731
+                            + data(t, name="par") + rule + y(col.lat) + map())
+assert _par({"lat": [45.0]}) == _par({"lon": [0.0], "lat": [45.0]}), \
+    "a parallel from one column should be placed as from two"
+ok("a one-column rule on a map is projected")

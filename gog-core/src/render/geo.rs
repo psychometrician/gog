@@ -152,17 +152,34 @@ fn mercator(lon: f64, lat: f64) -> (f64, f64) {
 /// has no projected value of its own. Any pseudocylindrical projection is coupled
 /// this way, which is why the two columns are read and written as one step.
 ///
-/// A frame missing either column is returned unchanged. That is not a silent
-/// drop — a position that is not a number is refused in `legality` before the
-/// renderer is reached, because a category has no longitude.
+/// **A frame with one of the two columns is a `rule`'s, and it is projected on the
+/// axis it names.** It was returned unchanged, so a rule's raw degrees landed in a
+/// projected panel: `rule + y(lat)` over a table holding only `lat = 45` stretched
+/// the panel to 45 and collapsed the map to a 58-pixel sliver, in silence. Latitude
+/// 0 was the one value that worked, because it projects to 0. Both projections set
+/// a height from latitude alone, so a latitude alone is a parallel, placed exactly.
+/// A longitude alone is read at the equator, which is where a two-column rule at
+/// that longitude is placed too; under `preserve = "area"` a meridian curves, and
+/// drawing it straight is one gap for both forms. A frame with neither column is
+/// returned unchanged: a position that is not a number is refused in `legality`
+/// before the renderer is reached, because a category has no longitude.
 pub(crate) fn project_frame(
     df: &crate::data::DataFrame,
     geo: &Geo,
     x_field: &str,
     y_field: &str,
 ) -> crate::data::DataFrame {
-    let (Some(lon), Some(lat)) = (df.float_col(x_field), df.float_col(y_field)) else {
-        return df.clone();
+    let (lon, lat) = match (df.float_col(x_field), df.float_col(y_field)) {
+        (Some(lon), Some(lat)) => (lon, lat),
+        (None, Some(lat)) => {
+            let ys = lat.iter().map(|&l| geo.project(0.0, l).1).collect();
+            return df.clone().with_float(y_field, ys);
+        }
+        (Some(lon), None) => {
+            let xs = lon.iter().map(|&l| geo.project(l, 0.0).0).collect();
+            return df.clone().with_float(x_field, xs);
+        }
+        (None, None) => return df.clone(),
     };
     let n = lon.len().min(lat.len());
     let mut xs = Vec::with_capacity(n);
@@ -193,6 +210,26 @@ mod tests {
         for g in [area(), angle()] {
             let (x, y) = g.project(0.0, 0.0);
             assert!(x.abs() < 1e-12 && y.abs() < 1e-12, "{x} {y}");
+        }
+    }
+
+    /// A frame with one position column is a rule's, and it is projected on the axis
+    /// it names: a latitude to the height its parallel has at any longitude, and a
+    /// longitude to where the equator crosses it. It kept its raw degrees before.
+    #[test]
+    fn a_rule_frame_with_one_column_is_projected_on_its_axis() {
+        use crate::data::DataFrame;
+        for g in [area(), angle()] {
+            let lats = DataFrame::new().with_float("lat", vec![45.0, -30.0]);
+            let out = project_frame(&lats, &g, "lon", "lat");
+            let ys = out.float_col("lat").unwrap();
+            for (i, &l) in [45.0, -30.0].iter().enumerate() {
+                assert_eq!(ys[i], g.project(0.0, l).1);
+                assert_eq!(ys[i], g.project(120.0, l).1, "a parallel's height is the same at every longitude");
+            }
+            let lons = DataFrame::new().with_float("lon", vec![90.0]);
+            let out = project_frame(&lons, &g, "lon", "lat");
+            assert_eq!(out.float_col("lon").unwrap()[0], g.project(90.0, 0.0).0);
         }
     }
 

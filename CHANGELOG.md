@@ -210,6 +210,12 @@ These drew something other than the sentence said, and now draw what it says.
   panel and cut off. The axis now holds every layer, and where the bars stand
   at an even step, a year each, the labels go on at that step.
 
+- **A `rule` on a map from a table with one column.** A parallel at any
+  latitude but 0 kept its raw degrees in the projected panel, which stretched
+  the map into a thin strip, and a longitude did the same across. The rule is
+  projected on the axis it names now: a parallel is placed exactly where the
+  same rule with both columns is.
+
 - **A date on `z`.** The cube's third axis labeled it in epoch seconds,
   `1710M`, where the same column on `x` reads `Mar 4`. It is ticked on the
   calendar now.

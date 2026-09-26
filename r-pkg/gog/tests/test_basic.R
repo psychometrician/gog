@@ -4530,3 +4530,17 @@ local({
   if (!grepl(">2026<", svg, fixed = TRUE)) stop("FAIL: the axis should reach 2026")
   cat("PASS: a second table's points after a bar are drawn inside the panel\n")
 })
+
+# A one-column `rule` table on a map kept its raw degrees: a parallel at 45 stretched
+# the panel to 45 and collapsed the map to a sliver, in silence. It is projected on
+# the axis it names now, exactly as the same rule with both columns. The same block
+# runs in all four bindings.
+local({
+  pts <- data.frame(lon = c(-10, 0, 10, 5), lat = c(30, 50, 60, 40))
+  one <- data.frame(lat = 45)
+  two <- data.frame(lon = 0, lat = 45)
+  a <- render_svg(data(pts) + point + x(lon) + y(lat) + data(one, name = "par") + rule + y(lat) + map())
+  b <- render_svg(data(pts) + point + x(lon) + y(lat) + data(two, name = "par") + rule + y(lat) + map())
+  if (!identical(a, b)) stop("FAIL: a parallel from one column should be placed as from two")
+  cat("PASS: a one-column rule on a map is projected\n")
+})

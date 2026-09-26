@@ -2221,3 +2221,13 @@ end
     @test all(<=(800), cx)
     @test occursin(">2026<", svg)
 end
+
+# A one-column `rule` table on a map kept its raw degrees, and a parallel at 45
+# collapsed the map to a sliver. It is placed now exactly as the same rule with both
+# columns. The same block runs in all four bindings.
+@testset "a one-column rule on a map is projected" begin
+    pts = (lon = [-10.0, 0.0, 10.0, 5.0], lat = [30.0, 50.0, 60.0, 40.0])
+    par(t) = render_svg(data(pts; name = "pts") + point + x(:lon) + y(:lat) +
+                        data(t; name = "par") + rule + y(:lat) + map())
+    @test par((lat = [45.0],)) == par((lon = [0.0], lat = [45.0]))
+end

@@ -2830,3 +2830,13 @@ test("a second table's points after a bar are drawn inside the panel", () => {
   assert.ok(cx.every((v) => v <= 800), `a forecast point is off the canvas: ${cx}`);
   assert.ok(svg.includes(">2026<"), "the axis should reach 2026");
 });
+
+// A one-column `rule` table on a map kept its raw degrees, and a parallel at 45
+// collapsed the map to a sliver. It is placed now exactly as the same rule with both
+// columns. The same block runs in all four bindings.
+test("a one-column rule on a map is projected", () => {
+  const pts = { lon: [-10, 0, 10, 5], lat: [30, 50, 60, 40] };
+  const par = (t) => render_svg(plot(data(pts, { name: "pts" }), point, x(col.lon), y(col.lat),
+    data(t, { name: "par" }), rule, y(col.lat), map()));
+  assert.equal(par({ lat: [45] }), par({ lon: [0], lat: [45] }));
+});
