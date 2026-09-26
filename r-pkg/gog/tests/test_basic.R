@@ -4443,3 +4443,21 @@ local({
   render_svg(data(links) + edge * layout(from, to) + network())
   cat("PASS: an edge with no layout is refused, with the sentence that draws it\n")
 })
+
+# A transform that places things in the plane is not a height for the cube, so a
+# bare `space()` over it is drawn flat, and said, as over every other flat plot.
+# `bounds`, `partition` and a cluster tree each drew an empty cube instead. The
+# same block runs in all four bindings.
+local({
+  spans <- data.frame(t = c(1, 2, 3, 4), lo = c(1, 2, 3, 4), hi = c(2, 3, 5, 6))
+  said <- character()
+  cube <- withCallingHandlers(
+    render_svg(data(spans) + zone * bounds(lo, hi) + x(t) + space()),
+    message = function(m) { said <<- c(said, conditionMessage(m)); invokeRestart("muffleMessage") },
+    warning = function(w) { said <<- c(said, conditionMessage(w)); invokeRestart("muffleWarning") })
+  if (!identical(cube, render_svg(data(spans) + zone * bounds(lo, hi) + x(t))))
+    stop("FAIL: a bare space() over bounds should draw the flat plot")
+  if (!any(grepl("drawn flat", said, fixed = TRUE)))
+    stop("FAIL: a bare space() over bounds should say it was drawn flat")
+  cat("PASS: a bare space() over a transform in the plane is drawn flat, and said\n")
+})

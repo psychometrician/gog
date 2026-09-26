@@ -179,6 +179,13 @@ These still draw, and now say what they drew.
 
 These drew something other than the sentence said, and now draw what it says.
 
+- **A bare `space()` over `bounds`, `partition` or a cluster tree.** Each drew
+  an empty cube with a made-up 0 to 1 vertical axis and none of its marks. None
+  of them has a height to stand up in the cube, so the plot is drawn flat with a
+  message, as `space()` is over every plot with no `z`. `interval * bounds` and
+  `flow` under a bare `space()` draw the same way; each was refused before,
+  `interval` as missing a `y`.
+
 - **A date on `z`.** The cube's third axis labeled it in epoch seconds,
   `1710M`, where the same column on `x` reads `Mar 4`. It is ticked on the
   calendar now.

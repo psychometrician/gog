@@ -2154,3 +2154,15 @@ end
     @refuses render_svg(data(links) + edge + color(:from)) "`edge * layout(<from>, <to>) + network()`"
     @test occursin("<svg", render_svg(data(links) + edge * layout(:from, :to) + network()))
 end
+
+# `bounds`, `partition` and a cluster tree place things in the plane, and each
+# stood a bare `space()` in an empty cube. It is drawn flat now, and said, as over
+# every other flat plot. The same block runs in all four bindings.
+@testset "a bare space() over a transform in the plane is drawn flat" begin
+    spans = (t = [1.0, 2.0, 3.0, 4.0], lo = [1.0, 2.0, 3.0, 4.0], hi = [2.0, 3.0, 5.0, 6.0])
+    flat = render_svg(data(spans) + zone * bounds(:lo, :hi) + x(:t))
+    cube = redirect_stderr(devnull) do
+        render_svg(data(spans) + zone * bounds(:lo, :hi) + x(:t) + space())
+    end
+    @test cube == flat
+end

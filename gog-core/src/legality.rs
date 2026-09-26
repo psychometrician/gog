@@ -1487,7 +1487,7 @@ pub fn space_of(spec: &PlotSpec) -> SpaceKind {
     // layer invents a measure*, and it takes the coordinate to say where it goes.
     let bound_z = spec.axis_def(&Channel::Z).is_some();
     let synthesized_z = matches!(spec.coord, CoordSpace::Space(_))
-        && spec.layers.iter().any(|l| synthesizes_measure(&l.mark, &l.transforms));
+        && spec.layers.iter().any(|l| stands_a_measure_on_z(&l.mark, &l.transforms));
     match &spec.coord {
         // Polar wins over a stray `z`: the two are mutually exclusive and
         // `check_polar` refuses the pair, so this only orders the report.
@@ -1507,6 +1507,30 @@ pub fn space_of(spec: &PlotSpec) -> SpaceKind {
         _ if bound_z || synthesized_z => SpaceKind::Space,
         _ => SpaceKind::Flat,
     }
+}
+
+/// Does this layer stand a measure up on `z` in the cube? Only a tally or an
+/// estimate over the floor's cells does: `bin`, `count`, `density` and a tallying
+/// `proportion`, which make the 3-D histogram and its kin.
+///
+/// `synthesizes_measure` answers a wider question, whether a transform invents the
+/// value along the mark's measure axis, and four of its answers invent a
+/// **position in the plane** rather than a height: `bounds` its two extents,
+/// `partition` a ring, `flow` a stacked interval and `cluster` a merge distance.
+/// `space_of` once read all of them as heights, so each put a plot with a bare
+/// `space()` in a cube it had nothing to stand in. `zone * bounds(lo, hi) + x(t) +
+/// space()` drew an empty turned cube with a made-up 0 to 1 vertical axis and no
+/// zone, and a cluster tree and a partition did the same, all in silence. Asked
+/// this narrower question, each is flat, and `check_space` says a viewing angle
+/// with no third dimension is drawn flat, as it says for every other mark. A `flow`
+/// was refused rather than drawn empty, but only because the same misreading sent
+/// it to the cube: under a bare `space()` it now follows the same rule.
+fn stands_a_measure_on_z(mark: &Mark, transforms: &[Transform]) -> bool {
+    synthesizes_measure(mark, transforms)
+        && transforms.iter().any(|t| {
+            matches!(t, Transform::Bin | Transform::Count | Transform::Density
+                | Transform::Proportion)
+        })
 }
 
 /// Does the engine draw this mark in this space today? The **one** answer the
@@ -12722,6 +12746,43 @@ mod tests {
     fn clean_scatter_has_no_diagnostics() {
         let spec = base().layer(Layer::new(Mark::Point));
         assert!(check(&spec, &data()).is_empty());
+    }
+
+    /// A transform that invents a position in the plane is not a height for the
+    /// cube. Each of these stood a bare `space()` in an empty cube and said nothing;
+    /// each is flat now, with `check_space`'s note, while the 3-D histogram and the
+    /// counted floor still project.
+    #[test]
+    fn a_bare_space_is_flat_unless_a_tally_stands_on_z() {
+        let cube = || CoordSpace::Space(crate::ir::SpaceView::default());
+        for spec in [
+            PlotSpec::new().data("t").x("gdp").coord(cube())
+                .layer(Layer::new(Mark::Zone).bounds("life", "value")),
+            PlotSpec::new().data("t").x("gdp").coord(cube())
+                .layer(Layer::new(Mark::Ribbon).bounds("life", "value")),
+            PlotSpec::new().data("t").x("continent").coord(cube())
+                .layer(Layer::new(Mark::Path).cluster(Some("gdp"), Some("region"))),
+            PlotSpec::new().data("t").x("gdp").coord(cube())
+                .layer(Layer::new(Mark::Zone).partition(&["continent", "region"])),
+            PlotSpec::new().data("t").coord(cube())
+                .layer(Layer::new(Mark::Ribbon).flow(&["continent", "region"])),
+        ] {
+            assert_eq!(space_of(&spec), SpaceKind::Flat, "{:?}", spec.layers[0].transforms);
+            let d = check(&spec, &data());
+            assert!(d.iter().any(|x| x.kind == DiagnosticKind::Assumption
+                && x.message.contains("drawn flat")),
+                "a bare space() over {:?} should be drawn flat, and said: {:?}",
+                spec.layers[0].transforms, msgs(&d));
+        }
+        for spec in [
+            PlotSpec::new().data("t").x("gdp").y("life").coord(cube())
+                .layer(Layer::new(Mark::Bar).transform(Transform::Bin)),
+            PlotSpec::new().data("t").x("continent").y("region").coord(cube())
+                .layer(Layer::new(Mark::Bar).transform(Transform::Count)),
+        ] {
+            assert_eq!(space_of(&spec), SpaceKind::Space,
+                       "a tally stands on z: {:?}", spec.layers[0].transforms);
+        }
     }
 
     /// Law 7's second half: positions with no mark are refused, as a mark with no

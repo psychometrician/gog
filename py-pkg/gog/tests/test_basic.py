@@ -2555,3 +2555,16 @@ assert "`edge * layout(<from>, <to>) + network()`" in _refusal(
     lambda: render_svg(data(_links) + edge + color(col["from"])))
 render_svg(data(_links) + edge * layout(col["from"], col.to) + network())
 ok("an edge with no layout is refused, with the sentence that draws it")
+
+
+# --- a bare space() over a transform in the plane is drawn flat --------------
+# `bounds`, `partition` and a cluster tree place things in the plane, and each
+# stood a bare `space()` in an empty cube. The same block runs in all four.
+import warnings as _warnings  # noqa: E402
+_spans = {"t": [1.0, 2.0, 3.0, 4.0], "lo": [1.0, 2.0, 3.0, 4.0], "hi": [2.0, 3.0, 5.0, 6.0]}
+with _warnings.catch_warnings():
+    _warnings.simplefilter("ignore")
+    _cube = render_svg(data(_spans) + zone * bounds(col.lo, col.hi) + x(col.t) + space())
+assert _cube == render_svg(data(_spans) + zone * bounds(col.lo, col.hi) + x(col.t)), \
+    "a bare space() over bounds should draw the flat plot"
+ok("a bare space() over a transform in the plane is drawn flat")

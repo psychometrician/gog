@@ -2763,3 +2763,13 @@ test("an edge with no layout is refused, with the sentence that draws it", () =>
     /`edge \* layout\(<from>, <to>\) \+ network\(\)`/);
   assert.ok(render_svg(plot(data(links), layer(edge, layout(col.from, col.to)), network())).includes("<svg"));
 });
+
+// `bounds`, `partition` and a cluster tree place things in the plane, and each
+// stood a bare `space()` in an empty cube. It is drawn flat now, and said, as over
+// every other flat plot. The same block runs in all four bindings.
+test("a bare space() over a transform in the plane is drawn flat", () => {
+  const spans = { t: [1, 2, 3, 4], lo: [1, 2, 3, 4], hi: [2, 3, 5, 6] };
+  const flat = render_svg(plot(data(spans), layer(zone, bounds(col.lo, col.hi)), x(col.t)));
+  const cube = render_svg(plot(data(spans), layer(zone, bounds(col.lo, col.hi)), x(col.t), space()));
+  assert.equal(cube, flat);
+});
