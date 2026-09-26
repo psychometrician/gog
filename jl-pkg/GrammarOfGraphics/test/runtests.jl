@@ -2176,3 +2176,12 @@ end
     @refuses render_svg(data(drift) + point * smooth + x(:g) + y(:h) + z(:n)) "`bar * mean + x(<a>) + y(<b>) + z(<column>) + space()`"
     @test occursin("<svg", render_svg(data(drift) + point * smooth + x(:g) + y(:h)))
 end
+
+# Stages are placed by their column's name, so a second `class` fell on the first,
+# with no message. The same block runs in all four bindings.
+@testset "a flow stage named twice is refused" begin
+    voyage = (class = ["1st", "2nd", "3rd", "1st"], fate = ["lived", "died", "died", "lived"])
+    @refuses render_svg(data(voyage) + zone * flow(:class, :class)) "`class` is named twice in `flow()`"
+    @refuses render_svg(data(voyage) + ribbon * flow(:class, :fate, :class)) "Name each column once"
+    @test occursin("<svg", render_svg(data(voyage) + zone * flow(:class, :fate)))
+end

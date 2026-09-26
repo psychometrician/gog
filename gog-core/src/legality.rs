@@ -4590,6 +4590,24 @@ fn check_flow(
         }
     };
 
+    // 2b. A stage named twice. The layout places each stage by its column's name,
+    //     so a second `class` fell on the first: `zone * flow(class, class)` drew
+    //     every slot at the first stage, a ribbon one strip and nothing after it,
+    //     and `flow(class, survived, class)` stacked its third stage on its first,
+    //     all with no message.
+    let mut named = std::collections::HashSet::new();
+    if let Some(twice) = stages.iter().find(|s| !named.insert(s.as_str())) {
+        out.push(Diagnostic {
+            kind: DiagnosticKind::Illegal,
+            message: format!(
+                "gog: `{twice}` is named twice in `flow()`. Each stage of a flow is a \
+                 column of its own, placed by its name, so the two would fall in one \
+                 place. Name each column once, in reading order."
+            ),
+        });
+        return;
+    }
+
     // 3. The space. A flow reads its stages along one axis and its magnitude up
     //    the other, which only the flat plane offers today. Polar is the one
     //    future: the same geometry bent round a rim is the chord diagram, so that
@@ -17817,6 +17835,17 @@ mod tests {
             assert!(d.iter().all(|x| x.kind != DiagnosticKind::Illegal
                 && x.kind != DiagnosticKind::Unsupported),
                 "a bare ribbon * flow is a complete syllable: {:?}", msgs(&d));
+
+            // A stage named twice fell on the first, adjacent or not, in silence.
+            for stages in [["continent", "continent", "region"], ["continent", "region", "continent"]] {
+                for mark in [Mark::Zone, Mark::Ribbon, Mark::Text] {
+                    let d = check(&PlotSpec::new().data("t")
+                        .layer(Layer::new(mark.clone()).flow(&stages)), &data());
+                    assert!(d.iter().any(|x| x.kind == DiagnosticKind::Illegal
+                        && x.message.contains("`continent` is named twice in `flow()`")),
+                        "{mark:?} * flow{stages:?} was not refused: {:?}", msgs(&d));
+                }
+            }
         }
 
         // The network family's refusals, each with its direction (spec §15, the

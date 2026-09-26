@@ -2579,3 +2579,15 @@ assert "`bar * mean + x(<a>) + y(<b>) + z(<column>) + space()`" in _refusal(
     lambda: render_svg(data(_drift) + point * smooth + x(col.g) + y(col.h) + z(col.n)))
 render_svg(data(_drift) + point * smooth + x(col.g) + y(col.h))
 ok("a smoothed point in the cube is refused toward the plane")
+
+
+# --- a flow stage named twice ------------------------------------------------
+# Stages are placed by their column's name, so a second `class` fell on the
+# first, with no message. The same block runs in all four bindings.
+_voyage = {"class": ["1st", "2nd", "3rd", "1st"], "fate": ["lived", "died", "died", "lived"]}
+assert "`class` is named twice in `flow()`" in _refusal(
+    lambda: render_svg(data(_voyage) + zone * flow(col["class"], col["class"])))
+assert "Name each column once" in _refusal(
+    lambda: render_svg(data(_voyage) + ribbon * flow(col["class"], col.fate, col["class"])))
+render_svg(data(_voyage) + zone * flow(col["class"], col.fate))
+ok("a flow stage named twice is refused")

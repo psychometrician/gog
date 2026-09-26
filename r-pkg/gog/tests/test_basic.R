@@ -4474,3 +4474,16 @@ local({
   render_svg(data(drift) + point * smooth + x(g) + y(h))
   cat("PASS: a smoothed point in the cube is refused toward the plane\n")
 })
+
+# A stage named twice in `flow()` fell on the first, since stages are placed by
+# their column's name: every slot drew at the first stage, with no message. The
+# same block runs in all four bindings.
+local({
+  voyage <- data.frame(class = c("1st", "2nd", "3rd", "1st"), fate = c("lived", "died", "died", "lived"))
+  refuses("a stage named twice", render_svg(data(voyage) + zone * flow(class, class)),
+          "`class` is named twice in `flow()`")
+  refuses("a stage named again later", render_svg(data(voyage) + ribbon * flow(class, fate, class)),
+          "Name each column once")
+  render_svg(data(voyage) + zone * flow(class, fate))
+  cat("PASS: a flow stage named twice is refused\n")
+})

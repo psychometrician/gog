@@ -2783,3 +2783,14 @@ test("a smoothed point in the cube is refused toward the plane", () => {
     x(col.g), y(col.h), z(col.n)))), /`bar \* mean \+ x\(<a>\) \+ y\(<b>\) \+ z\(<column>\) \+ space\(\)`/);
   assert.ok(render_svg(plot(data(drift), layer(point, smooth), x(col.g), y(col.h))).includes("<svg"));
 });
+
+// Stages are placed by their column's name, so a second `class` fell on the first,
+// with no message. The same block runs in all four bindings.
+test("a flow stage named twice is refused", () => {
+  const voyage = { class: ["1st", "2nd", "3rd", "1st"], fate: ["lived", "died", "died", "lived"] };
+  assert.match(refusalOf(() => render_svg(plot(data(voyage), layer(zone, flow(col.class, col.class))))),
+    /`class` is named twice in `flow\(\)`/);
+  assert.match(refusalOf(() => render_svg(plot(data(voyage),
+    layer(ribbon, flow(col.class, col.fate, col.class))))), /Name each column once/);
+  assert.ok(render_svg(plot(data(voyage), layer(zone, flow(col.class, col.fate)))).includes("<svg"));
+});

@@ -157,6 +157,10 @@ Each is now refused, with what to write instead.
   and the cube's floor has none. The refusal points to `line * smooth` on the
   plane, or to `bar * mean` for a summary over the floor.
 
+- **A stage named twice in `flow()`.** Stages are placed by their column's
+  name, so `zone * flow(class, class)` drew every slot at the first stage, and
+  `flow(class, survived, class)` drew its third stage on top of its first.
+
 - **Some refusals are reworded.** A `zone` with no sides now lists all five
   ways to give it some, a boundary on a map included. A refusal about both
   axes is printed once and names both, not once per axis. `path * mean`,
