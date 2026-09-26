@@ -170,6 +170,13 @@ Each is now refused, with what to write instead.
   that keeps both, `plot | facet(a) / facet(b)`. In JavaScript the same holds
   for `across()` or `down()` written twice.
 
+- **A second coordinate space.** Each space replaced the one before it, so
+  `space() + polar()` drew polar, `polar() + space()` drew flat axes, and
+  `map() + polar()` drew polar, with no message. A plot is drawn in one space,
+  so the second is refused, and the refusal shows how to see both: the plot
+  twice, side by side. Writing the same space again, as in `space() +
+  space(turn = 60)`, still changes its angle.
+
 - **`facet()` with no plot.** `facet(g) | facet(g)` built a pair of facets
   with nothing to split, and failed as a JSON parse error in R, an
   `AttributeError` in Python and a `MethodError` in Julia. It is refused with

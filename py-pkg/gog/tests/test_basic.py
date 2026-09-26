@@ -2666,3 +2666,18 @@ assert "`facet()` with no plot to split" in _refusal(
     lambda: render_svg(facet(col.g) | facet(col.g)))
 render_svg(data(_split) + point + x(col.a) + y(col.b) | facet(col.g) / facet(col.h))
 ok("a second facet in one direction, and facets with no plot, are refused")
+
+
+# --- a second coordinate space -------------------------------------------------
+# Each space atom replaced the one before it, so the engine saw only the last:
+# `space() + polar()` drew polar, in silence. A second, different space is refused
+# now; restating one re-angles it. The same block runs in all four bindings.
+_view = {"a": [1.0, 2.0, 3.0, 4.0], "b": [2.0, 3.0, 1.0, 4.0], "c": [1.0, 2.0, 3.0, 4.0]}
+assert "already drawn in `space()`, and `polar()` asks for a second space" in _refusal(
+    lambda: data(_view) + point + x(col.a) + y(col.b) + space() + polar())
+assert "already drawn in `polar()`, and `space()` asks for a second space" in _refusal(
+    lambda: data(_view) + point + x(col.a) + y(col.b) + polar() + space() + z(col.c))
+assert "already drawn in `map()`" in _refusal(
+    lambda: data(_view) + point + x(col.a) + y(col.b) + map() + polar())
+render_svg(data(_view) + point + x(col.a) + y(col.b) + z(col.c) + space() + space(turn=60))
+ok("a second coordinate space is refused, and a restated one re-angles")

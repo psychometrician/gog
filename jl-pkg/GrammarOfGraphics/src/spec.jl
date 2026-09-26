@@ -432,28 +432,33 @@ function Base.:+(left::Plot, right::Atom)
         set_position!(plot, String(kind)[end:end], right)
 
     elseif kind === :coord_space
+        space_free(plot, "space")
         plot.spec["coord"] = Dict{String,Any}("space" => Dict{String,Any}(
             "turn" => right.fields[:turn], "tilt" => right.fields[:tilt]))
 
     elseif kind === :coord_polar
+        space_free(plot, "polar")
         plot.spec["coord"] = Dict{String,Any}("polar" =>
             Dict{String,Any}("start" => right.fields[:start]))
 
     # Nest carries no view parameter, so it crosses as the bare string "nest" —
     # the one unit variant left in `CoordSpace`.
     elseif kind === :coord_nest
+        space_free(plot, "nest")
         plot.spec["coord"] = "nest"
 
     # A globe carries the place its view faces, in space's own two words:
     # {"globe":{"turn":0,"tilt":0}} matches `CoordSpace::Globe(GlobeView)`, and
     # a bare "globe" is not a legal form.
     elseif kind === :coord_network
+        space_free(plot, "network")
         view = Dict{String,Any}()
         haskey(right.fields, :turn) && (view["turn"] = right.fields[:turn])
         haskey(right.fields, :tilt) && (view["tilt"] = right.fields[:tilt])
         plot.spec["coord"] = Dict{String,Any}("network" => view)
 
     elseif kind === :coord_globe
+        space_free(plot, "globe")
         plot.spec["coord"] = Dict{String,Any}("globe" => Dict{String,Any}(
             "turn" => right.fields[:turn], "tilt" => right.fields[:tilt]))
 
@@ -461,6 +466,7 @@ function Base.:+(left::Plot, right::Atom)
     # polar carry theirs: {"map":{"preserve":"area"}} matches
     # `CoordSpace::Map(MapView)`, and a bare "map" is not a legal form.
     elseif kind === :coord_map
+        space_free(plot, "map")
         plot.spec["coord"] = Dict{String,Any}("map" =>
             Dict{String,Any}("preserve" => right.fields[:preserve]))
 
@@ -776,6 +782,21 @@ function Base.:+(left::Page, right::Atom)
         value === nothing || (theme[String(key)] = value)
     end
     page
+end
+
+# A plot is drawn in one coordinate space. Each space atom wrote its own and
+# replaced whatever was there, so the engine only ever saw the last one written:
+# `space() + polar()` drew polar and dropped the cube, and `map() + polar()` drew
+# polar, in silence. Restating the same space replaces its view, which is how an
+# angle is changed.
+function space_free(plot, kind::AbstractString)
+    coord = get(plot.spec, "coord", nothing)
+    was = coord isa AbstractString ? String(coord) :
+          coord isa AbstractDict && !isempty(coord) ? String(first(keys(coord))) : "flat"
+    (was == "flat" || was == kind) && return nothing
+    throw(GogError("gog: this plot is already drawn in `$was()`, and `$kind()` asks for " *
+                   "a second space. A plot is drawn in one coordinate space: keep one, or " *
+                   "draw the plot twice side by side, `(p + $was()) | (p + $kind())`."))
 end
 
 # A plot splits once across and once down, so a second facet in a direction

@@ -695,27 +695,40 @@ resolve_query <- function(q, table) {
     # The viewing angle rides on the coordinate space: `{"space":{turn,tilt}}`
     # matches the Rust `CoordSpace::Space(SpaceView)`, while a plain 2-D plot keeps
     # sending `coord = "flat"`.
-    coord_space = { lhs$spec$coord <- list(space = list(turn = rhs$turn, tilt = rhs$tilt)) },
+    coord_space = {
+      space_free(lhs, "space")
+      lhs$spec$coord <- list(space = list(turn = rhs$turn, tilt = rhs$tilt))
+    },
 
     # Polar carries its one view parameter the same way `space` carries its two:
     # `{"polar":{"start":0}}` matches `CoordSpace::Polar(PolarView)`.
-    coord_polar = { lhs$spec$coord <- list(polar = list(start = rhs$start)) },
+    coord_polar = {
+      space_free(lhs, "polar")
+      lhs$spec$coord <- list(polar = list(start = rhs$start))
+    },
 
     # Nest carries no view parameter at all, so it crosses as the bare string
     # `"nest"` — the one unit variant left in `CoordSpace`. There is no
     # angle to send because there is nothing underneath to view from an angle: a
     # packing is not a map of the plane.
-    coord_nest = { lhs$spec$coord <- "nest" },
+    coord_nest = {
+      space_free(lhs, "nest")
+      lhs$spec$coord <- "nest"
+    },
 
     # A globe carries the place its view faces, in `space`'s own two words:
     # `{"globe":{"turn":0,"tilt":0}}` matches `CoordSpace::Globe(GlobeView)`,
     # and a bare `"globe"` is not a legal form.
-    coord_globe = { lhs$spec$coord <- list(globe = list(turn = rhs$turn, tilt = rhs$tilt)) },
+    coord_globe = {
+      space_free(lhs, "globe")
+      lhs$spec$coord <- list(globe = list(turn = rhs$turn, tilt = rhs$tilt))
+    },
 
     # A network sends its angles only when they were stated: bare `network()` is
     # the flat form and crosses as `{"network":{}}`, a stated angle is the cube.
     # The named-empty structure is what makes jsonlite write `{}` rather than `[]`.
     coord_network = {
+      space_free(lhs, "network")
       nv <- structure(list(), names = character(0))
       if (!is.null(rhs$turn)) nv$turn <- rhs$turn
       if (!is.null(rhs$tilt)) nv$tilt <- rhs$tilt
@@ -725,7 +738,10 @@ resolve_query <- function(q, table) {
     # A map carries what the flattening must preserve, the same way `space` and
     # `polar` carry theirs: `{"map":{"preserve":"area"}}` matches
     # `CoordSpace::Map(MapView)`, and a bare `"map"` is not a legal form.
-    coord_map = { lhs$spec$coord <- list(map = list(preserve = rhs$preserve)) },
+    coord_map = {
+      space_free(lhs, "map")
+      lhs$spec$coord <- list(map = list(preserve = rhs$preserve))
+    },
 
     color   = { lhs <- set_channel(lhs, "color",   rhs$field, rhs$scale, rhs$base, rhs$limits) },
     group   = { lhs <- set_channel(lhs, "group",   rhs$field) },
@@ -1099,6 +1115,26 @@ facet_join <- function(lhs, rhs, slot, op) {
 # already split would replace the first. It did, in silence:
 # `plot | facet(continent) | facet(era)` kept only `era`. Refused, with the
 # crossing that keeps both.
+# A plot is drawn in one coordinate space. Each space atom wrote its own and
+# replaced whatever was there, so the engine only ever saw the last one written:
+# `space() + polar()` drew polar and dropped the cube, `polar() + space() + z(speed)`
+# drew the cube, and `map() + polar()` drew polar, all in silence. Restating the
+# same space replaces its view, which is how an angle is changed.
+coord_kind <- function(coord) {
+  if (is.null(coord)) return("flat")
+  if (is.character(coord)) return(coord[[1]])
+  names(coord)[[1]]
+}
+
+space_free <- function(lhs, kind) {
+  was <- coord_kind(lhs$spec$coord)
+  if (was %in% c("flat", kind)) return(invisible(TRUE))
+  stop("gog: this plot is already drawn in `", was, "()`, and `", kind, "()` asks ",
+       "for a second space. A plot is drawn in one coordinate space: keep one, or ",
+       "draw the plot twice side by side, `(p + ", was, "()) | (p + ", kind, "())`.",
+       call. = FALSE)
+}
+
 facet_slot_free <- function(lhs, slot) {
   field <- lhs$spec$facet[[slot]]
   if (is.null(field)) return(invisible(TRUE))

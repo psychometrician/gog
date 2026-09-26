@@ -493,22 +493,26 @@ class Plot:
             plot._set_position(kind[-1], other)
 
         elif kind == "coord_space":
+            _space_free(plot, "space")
             plot.spec["coord"] = {
                 "space": {"turn": other.fields["turn"], "tilt": other.fields["tilt"]}
             }
 
         elif kind == "coord_polar":
+            _space_free(plot, "polar")
             plot.spec["coord"] = {"polar": {"start": other.fields["start"]}}
 
         # Nest carries no view parameter, so it crosses as the bare string
         # "nest" — the one unit variant left in `CoordSpace`.
         elif kind == "coord_nest":
+            _space_free(plot, "nest")
             plot.spec["coord"] = "nest"
 
         # A globe carries the place its view faces, in space's own two words:
         # {"globe": {"turn": 0, "tilt": 0}} matches `CoordSpace::Globe(GlobeView)`,
         # and a bare "globe" is not a legal form.
         elif kind == "coord_network":
+            _space_free(plot, "network")
             view = {
                 key: other.fields[key]
                 for key in ("turn", "tilt")
@@ -517,6 +521,7 @@ class Plot:
             plot.spec["coord"] = {"network": view}
 
         elif kind == "coord_globe":
+            _space_free(plot, "globe")
             plot.spec["coord"] = {
                 "globe": {"turn": other.fields["turn"], "tilt": other.fields["tilt"]}
             }
@@ -525,6 +530,7 @@ class Plot:
         # polar carry theirs: {"map": {"preserve": "area"}} matches
         # `CoordSpace::Map(MapView)`, and a bare "map" is not a legal form.
         elif kind == "coord_map":
+            _space_free(plot, "map")
             plot.spec["coord"] = {"map": {"preserve": other.fields["preserve"]}}
 
         elif kind in ("color", "group", "size", "shape", "opacity", "label", "pattern",
@@ -922,6 +928,23 @@ def _channel_def(atom: Atom) -> Dict[str, Any]:
 # ---------------------------------------------------------------------------
 # facet — `|` puts panels side by side, `/` stacks them
 # ---------------------------------------------------------------------------
+
+
+def _space_free(plot: "Plot", kind: str) -> None:
+    """A plot is drawn in one coordinate space. Each space atom wrote its own and
+    replaced whatever was there, so the engine only ever saw the last one written:
+    `space() + polar()` drew polar and dropped the cube, and `map() + polar()` drew
+    polar, in silence. Restating the same space replaces its view, which is how an
+    angle is changed."""
+    coord = plot.spec.get("coord")
+    was = coord if isinstance(coord, str) else (next(iter(coord)) if coord else "flat")
+    if was in ("flat", kind):
+        return
+    raise GogError(
+        f"gog: this plot is already drawn in `{was}()`, and `{kind}()` asks for a "
+        f"second space. A plot is drawn in one coordinate space: keep one, or draw the "
+        f"plot twice side by side, `(p + {was}()) | (p + {kind}())`."
+    )
 
 
 def _facet_slot_free(plot: "Plot", slot: str) -> None:

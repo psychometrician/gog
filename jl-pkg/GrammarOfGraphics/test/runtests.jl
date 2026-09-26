@@ -2243,3 +2243,14 @@ end
     @refuses render_svg(facet(:g) | facet(:g)) "`facet()` with no plot to split"
     @test occursin("<svg", render_svg(data(split) + point + x(:a) + y(:b) | facet(:g) / facet(:h)))
 end
+
+# Each space atom replaced the one before it, so the engine saw only the last:
+# `space() + polar()` drew polar, in silence. A second, different space is refused
+# now; restating one re-angles it. The same block runs in all four bindings.
+@testset "a second coordinate space is refused, and a restated one re-angles" begin
+    view = (a = [1.0, 2.0, 3.0, 4.0], b = [2.0, 3.0, 1.0, 4.0], c = [1.0, 2.0, 3.0, 4.0])
+    @refuses (data(view) + point + x(:a) + y(:b) + space() + polar()) "already drawn in `space()`, and `polar()` asks for a second space"
+    @refuses (data(view) + point + x(:a) + y(:b) + polar() + space() + z(:c)) "already drawn in `polar()`, and `space()` asks for a second space"
+    @refuses (data(view) + point + x(:a) + y(:b) + map() + polar()) "already drawn in `map()`"
+    @test occursin("<svg", render_svg(data(view) + point + x(:a) + y(:b) + z(:c) + space() + space(turn = 60)))
+end

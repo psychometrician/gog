@@ -707,18 +707,21 @@ class Builder {
         return;
 
       case "coord_space":
+        this.spaceFree("space");
         this.spec.coord = {
           space: { turn: atom.fields.turn, tilt: atom.fields.tilt },
         };
         return;
 
       case "coord_polar":
+        this.spaceFree("polar");
         this.spec.coord = { polar: { start: atom.fields.start } };
         return;
 
       // Nest carries no view parameter, so it crosses as the bare string
       // "nest" — the one unit variant left in `CoordSpace`.
       case "coord_nest":
+        this.spaceFree("nest");
         this.spec.coord = "nest";
         return;
 
@@ -726,6 +729,7 @@ class Builder {
       // {"globe":{"turn":0,"tilt":0}} matches `CoordSpace::Globe(GlobeView)`,
       // and a bare "globe" is not a legal form.
       case "coord_network": {
+        this.spaceFree("network");
         const view = {};
         if (atom.fields.turn !== undefined) view.turn = atom.fields.turn;
         if (atom.fields.tilt !== undefined) view.tilt = atom.fields.tilt;
@@ -733,6 +737,7 @@ class Builder {
         return;
       }
       case "coord_globe":
+        this.spaceFree("globe");
         this.spec.coord = {
           globe: { turn: atom.fields.turn, tilt: atom.fields.tilt },
         };
@@ -742,6 +747,7 @@ class Builder {
       // polar carry theirs: {"map":{"preserve":"area"}} matches
       // `CoordSpace::Map(MapView)`, and a bare "map" is not a legal form.
       case "coord_map":
+        this.spaceFree("map");
         this.spec.coord = { map: { preserve: atom.fields.preserve } };
         return;
 
@@ -836,6 +842,21 @@ class Builder {
       default:
         throw new GogError(`gog: unknown atom \`${atom.kind}\`.`);
     }
+  }
+
+  // A plot is drawn in one coordinate space. Each space word wrote its own and
+  // replaced whatever was there, so the engine only ever saw the last one:
+  // `space(), polar()` drew polar and dropped the cube, in silence. Restating the
+  // same space replaces its view, which is how an angle is changed.
+  spaceFree(kind) {
+    const coord = this.spec.coord;
+    const was = typeof coord === "string" ? coord : coord ? Object.keys(coord)[0] : "flat";
+    if (was === "flat" || was === kind) return;
+    throw new GogError(
+      `gog: this plot is already drawn in \`${was}()\`, and \`${kind}()\` asks for a ` +
+        `second space. A plot is drawn in one coordinate space: keep one, or draw the ` +
+        `plot twice side by side, \`beside(plot(..., ${was}()), plot(..., ${kind}()))\`.`
+    );
   }
 
   openLayer(layer) {

@@ -2852,3 +2852,17 @@ test("a second facet in one direction is refused", () => {
     /already split into panel rows by `g`/);
   assert.ok(render_svg(plot(data(split), point, x(col.a), y(col.b), across(col.g), down(col.h))).includes("<svg"));
 });
+
+// Each space word replaced the one before it, so the engine saw only the last:
+// `space(), polar()` drew polar, in silence. A second, different space is refused
+// now; restating one re-angles it. The same block runs in all four bindings.
+test("a second coordinate space is refused, and a restated one re-angles", () => {
+  const view = { a: [1, 2, 3, 4], b: [2, 3, 1, 4], c: [1, 2, 3, 4] };
+  assert.match(refusalOf(() => plot(data(view), point, x(col.a), y(col.b), space(), polar())),
+    /already drawn in `space\(\)`, and `polar\(\)` asks for a second space/);
+  assert.match(refusalOf(() => plot(data(view), point, x(col.a), y(col.b), polar(), space(), z(col.c))),
+    /already drawn in `polar\(\)`, and `space\(\)` asks for a second space/);
+  assert.match(refusalOf(() => plot(data(view), point, x(col.a), y(col.b), map(), polar())),
+    /already drawn in `map\(\)`/);
+  assert.ok(render_svg(plot(data(view), point, x(col.a), y(col.b), z(col.c), space(), space({ turn: 60 }))).includes("<svg"));
+});
