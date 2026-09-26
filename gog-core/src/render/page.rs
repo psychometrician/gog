@@ -15,6 +15,19 @@
 //! The blank top-right corner is not a spacer anyone asked for — it is the room
 //! the shared extent left over.
 //!
+//! **Panels in one row or column line up** (2026-09-26, ruled by the author from
+//! before-and-after renders). After sharing, `align` moves each panel edge on a
+//! common page line inward to the widest margin on that line, so a row shares a
+//! top and a bottom and a column a left and a right, whether or not the plots
+//! share a column. It is part of arranging, not a second kind of sharing: no
+//! scale and no axis passes between the plots. Three kinds of edge are left
+//! alone: an edge fixed by a shared column (unless every plot sharing it is on
+//! the line), the side a plot gives up to a neighbor (which keeps a marginal
+//! flush), and a plot whose measured panel `Fit` cannot hand back (a stated
+//! `ratio`, a freed axis, a folded facet). The cost is room: the plot with the
+//! narrower margin gives up the difference, up to a legend's width above or
+//! below a neighbor with a key.
+//!
 //! **Why the axis is drawn once.** Two plots that share an axis would otherwise
 //! draw it twice, identically, one above the other. A facet already answers this
 //! for its panels (`layout::PanelGrid::labels_x`: tick labels only under the
@@ -104,6 +117,8 @@ pub(crate) fn render(
             share(&group, &cells, &measured, &channel, &mut fits, &mut specs, &mut diagnostics);
         }
     }
+    // Then the arrangement's own rule, for the plots that share nothing.
+    align(&cells, &measured, &mut fits);
 
     // Pass two: each plot draws again, knowing what the page decided.
     let mut svg = String::with_capacity(96 * 1024);
@@ -409,6 +424,135 @@ fn share(
             fits[i].draw_y_axis = draws;
         }
     }
+}
+
+// ---------------------------------------------------------------------------
+// Alignment — one row, one top and bottom; one column, one left and right
+// ---------------------------------------------------------------------------
+
+/// How near two cell edges have to be to count as one line of the page, in px.
+const SAME_LINE: f64 = 0.5;
+
+/// Line up the panels of cells that begin or end on the same line of the page.
+///
+/// Sharing lines up the plots that read one column, and only them. Two plots
+/// that share nothing were placed and then left alone, so a stack whose y tick
+/// labels differ in width had its panels' left edges wherever each plot's
+/// labels put them. This is the arrangement's own rule: cells that begin on one
+/// line put their panels' near edges on one line, and cells that end on one
+/// line put their far edges on one, whether or not they share a column. A row
+/// shares its top and bottom, a column its left and right, and a nested page
+/// lines up along its outside edges. Each edge moves inward to the widest margin
+/// on its line, so, like sharing, it only ever takes room away.
+///
+/// Three kinds of edge stay where they are. An edge a shared column fixed, unless
+/// every plot sharing that extent stands on the line, in which case they move
+/// together and stay one extent. An edge on the side of an axis the plot gives up
+/// to a page-mate, since an axis a plot does not draw costs it no margin. And
+/// every edge of a plot whose measured panels cannot be handed back as a fitted
+/// extent ([`measured_is_fitted`]).
+fn align(cells: &[Cell], measured: &[Drawn], fits: &mut [Fit]) {
+    for channel in [Channel::X, Channel::Y] {
+        let horizontal = channel == Channel::X;
+        // The groups a shared column gave one extent on this axis.
+        let fixed: Vec<Vec<usize>> = groups(measured, &channel)
+            .into_iter()
+            .filter(|g| extent(&fits[g[0]], horizontal).is_some())
+            .collect();
+        let origin = |i: usize| if horizontal { cells[i].rect.x0 } else { cells[i].rect.y0 };
+        // Each panel's two edges on this axis, in page coordinates.
+        let mut edges: Vec<(f64, f64)> = (0..cells.len())
+            .map(|i| {
+                let p = &measured[i].panel;
+                let (a, b) = extent(&fits[i], horizontal)
+                    .unwrap_or(if horizontal { (p.x0, p.x1) } else { (p.y0, p.y1) });
+                (origin(i) + a, origin(i) + b)
+            })
+            .collect();
+        let before = edges.clone();
+
+        for far in [false, true] {
+            let line = |i: usize| {
+                let r = &cells[i].rect;
+                match (horizontal, far) {
+                    (true, false) => r.x0,
+                    (true, true) => r.x1,
+                    (false, false) => r.y0,
+                    (false, true) => r.y1,
+                }
+            };
+            // y is ticked down the left, x along the bottom.
+            let own = |i: usize| {
+                let gives_up = match (horizontal, far) {
+                    (true, false) => !fits[i].draw_y_axis,
+                    (false, true) => !fits[i].draw_x_axis,
+                    _ => false,
+                };
+                !gives_up && measured_is_fitted(cells[i].spec)
+            };
+            let movable = |i: usize| {
+                own(i)
+                    && match fixed.iter().find(|g| g.contains(&i)) {
+                        Some(g) => g.iter().all(|&j| own(j) && (line(j) - line(i)).abs() <= SAME_LINE),
+                        None => true,
+                    }
+            };
+            let mut lines: Vec<(f64, Vec<usize>)> = Vec::new();
+            for i in (0..cells.len()).filter(|&i| movable(i)) {
+                let at = line(i);
+                match lines.iter_mut().find(|(l, _)| (*l - at).abs() <= SAME_LINE) {
+                    Some((_, members)) => members.push(i),
+                    None => lines.push((at, vec![i])),
+                }
+            }
+            for (_, members) in lines.into_iter().filter(|(_, m)| m.len() > 1) {
+                let to = if far {
+                    members.iter().map(|&i| edges[i].1).fold(f64::INFINITY, f64::min)
+                } else {
+                    members.iter().map(|&i| edges[i].0).fold(f64::NEG_INFINITY, f64::max)
+                };
+                for &i in &members {
+                    let (lo, hi) = if far { (edges[i].0, to) } else { (to, edges[i].1) };
+                    // A panel too narrow to reach the line keeps its own edge
+                    // rather than collapsing onto it.
+                    if hi - lo >= ALIGNABLE {
+                        edges[i] = (lo, hi);
+                    }
+                }
+            }
+        }
+
+        for i in 0..cells.len() {
+            if edges[i] != before[i] {
+                let fitted = Some((edges[i].0 - origin(i), edges[i].1 - origin(i)));
+                if horizontal {
+                    fits[i].panel_x = fitted;
+                } else {
+                    fits[i].panel_y = fitted;
+                }
+            }
+        }
+    }
+}
+
+fn extent(fit: &Fit, horizontal: bool) -> Option<(f64, f64)> {
+    if horizontal { fit.panel_x } else { fit.panel_y }
+}
+
+/// Is the rectangle this plot measured the one a fitted extent would hand back?
+///
+/// `Drawn::panel` runs from the first panel's corner to the last panel's, and a
+/// fitted extent is read as the area the grid divides. The two agree for every
+/// plot but three. A stated `ratio` insets its panel in the cell. A freed axis
+/// puts each facet cell's own tick labels beside its panel, inside the area. A
+/// folded ribbon puts a strip above each panel, and when its last row is short,
+/// its last panel ends before the last column. Handing any of those measurements
+/// back would shift or squeeze the grid, so those plots are left where they are.
+fn measured_is_fitted(spec: &PlotSpec) -> bool {
+    let freed = spec.x.iter().chain(spec.y.iter()).any(|d| d.free)
+        || spec.layers.iter().any(|l| l.encodings.values().any(|d| d.free));
+    let folded = spec.facet.as_ref().is_some_and(|f| f.wrap.is_some());
+    spec.theme.resolved().ratio.is_none() && !freed && !folded
 }
 
 /// State the domain of `channel` on the binding the axis is read from.
@@ -797,8 +941,9 @@ mod tests {
         assert!(cells[1].contains(r#"aria-label="Points, x is dist, y is speed""#), "{cells:?}");
     }
 
-    /// that keeps composition presentational: no scale, no extent, no axis of
-    /// one plot is decided by the other.
+    /// Unrelated plots share no scale and no axis: neither decides the other's.
+    /// Their panel edges still line up in the row (`align`), which is arranging,
+    /// not a shared extent.
     #[test]
     fn unrelated_plots_are_only_arranged() {
         let other = PlotSpec::new().data("cars").x("dist").y("speed").layer(Layer::new(Mark::Point));
@@ -816,6 +961,57 @@ mod tests {
             .collect();
         assert!(groups(&measured, &Channel::X).is_empty(), "different columns, different axes");
         assert!(groups(&measured, &Channel::Y).is_empty());
+    }
+
+    /// Plots that share no column still line up: a stack shares its left and
+    /// right panel edges, a row its top and bottom, whatever each plot's tick
+    /// labels asked for.
+    #[test]
+    fn plots_that_share_nothing_line_up_in_their_row_and_column() {
+        let df = DataFrame::new()
+            .with_float("speed", vec![4.0, 7.0, 8.0, 12.0])
+            .with_float("dist", vec![2.0, 4.0, 16.0, 24.0])
+            .with_float("big", vec![0.0012, 0.0031, 0.0054, 0.0087]);
+        let data = HashMap::from([("cars".to_string(), df)]);
+        let narrow = PlotSpec::new().data("cars").x("speed").y("dist").layer(Layer::new(Mark::Point));
+        let wide = PlotSpec::new().data("cars").x("dist").y("big").layer(Layer::new(Mark::Point));
+        let mut turned = wide.clone();
+        turned.theme = ThemeSpec { tick_angle: Some(60.0), ..ThemeSpec::default() };
+
+        // Where each panel's edges end up on the page: (left, right, top, bottom).
+        let decide = |arrange: Arrange, a: &PlotSpec, b: &PlotSpec| {
+            let root = Figure::Page(PageSpec {
+                arrange,
+                cells: vec![a.clone().into(), b.clone().into()],
+                theme: ThemeSpec::default(),
+            });
+            let mut cells = Vec::new();
+            place(&root, Layout { x0: 0.0, y0: 0.0, x1: 800.0, y1: 600.0 }, &mut cells);
+            let measured: Vec<Drawn> = cells.iter()
+                .map(|c| SvgRenderer::for_theme(&c.spec.theme.resolved(), c.rect.w(), c.rect.h())
+                    .draw(c.spec, &data))
+                .collect();
+            let mut fits = vec![Fit::free(); 2];
+            align(&cells, &measured, &mut fits);
+            let edges = |i: usize, fitted: bool| {
+                let (c, p) = (&cells[i].rect, &measured[i].panel);
+                let (x0, x1) = fits[i].panel_x.filter(|_| fitted).unwrap_or((p.x0, p.x1));
+                let (y0, y1) = fits[i].panel_y.filter(|_| fitted).unwrap_or((p.y0, p.y1));
+                [c.x0 + x0, c.x0 + x1, c.y0 + y0, c.y0 + y1]
+            };
+            ([edges(0, false), edges(1, false)], [edges(0, true), edges(1, true)])
+        };
+
+        let (alone, page) = decide(Arrange::Below, &narrow, &wide);
+        assert!((alone[0][0] - alone[1][0]).abs() > 1.0, "the premise: the y labels differ in width");
+        assert!((page[0][0] - page[1][0]).abs() < 1e-9, "one left edge down the column");
+        assert!((page[0][1] - page[1][1]).abs() < 1e-9, "and one right edge");
+        assert!(page[0][0] >= alone[0][0] && page[1][0] >= alone[1][0], "an edge only moves inward");
+
+        let (alone, page) = decide(Arrange::Beside, &narrow, &turned);
+        assert!((alone[0][3] - alone[1][3]).abs() > 1.0, "the premise: the x labels differ in height");
+        assert!((page[0][3] - page[1][3]).abs() < 1e-9, "one bottom edge along the row");
+        assert!((page[0][2] - page[1][2]).abs() < 1e-9, "and one top edge");
     }
 
     /// A page is one document, and each cell is a viewport inside it.

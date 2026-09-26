@@ -24,6 +24,11 @@ CRAN-style repositories and PyPI, `GrammarOfGraphics` on Julia's General, and
 
 ### Changed
 
+- **Composed plots line up.** In a row, the panels now share their top and
+  bottom edges, and in a column their left and right edges, even when the plots
+  share no column. The plot with the narrower margin gives up the difference, so
+  above or below a plot with a legend, the other panel is just as narrow.
+
 - **`repel` steps around every dot drawn in the panel.** A label now clears
   the dots of every `point` layer, each at the size it is drawn. So labels from a
   small table of chosen rows no longer land on the dots they do not name, and a

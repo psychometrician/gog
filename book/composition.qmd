@@ -42,8 +42,10 @@ count, x is continent."*
 The two plots measure entirely different things: a country's income against its
 life expectancy, and how many countries each continent holds. They share
 nothing, not a scale, not an axis, not a legend, because there is nothing to
-share. Each plot sits in a **cell**, its own share of the page. The two cells are
+share. Each plot sits in a **cell**, its own part of the page. The two cells are
 equal, and a narrow gap between them leaves each a little under half the width.
+Inside each cell, a panel holds the marks, and the axes and their labels take the
+rest. The page does align the two panels at the top and the bottom.
 
 `/` places the same two plots one above the other. Each one now has the full
 width of the page:
@@ -55,6 +57,9 @@ width of the page:
 
 *"Given gapminder 2007: points, x is gdp, y is life, above bars derived by
 count, x is continent."*
+
+One above the other, the two panels align at the left and the right, even when
+one plot's tick labels are wider.
 
 Both operators take pages as well as plots, so a page can hold another page.
 `(a | b) / c` is a row of two plots above a third. The marginal plot later in
@@ -92,10 +97,8 @@ first asks for 150 pixels of the page's height:
 *"Given gapminder 2007: bars derived by bin, x is gdp, above points, x is gdp, y
 is life."*
 
-Look at what the rule did. The histogram's panel is exactly as wide as the
-scatter's, so each bar is drawn directly above the points it counts. Both plots
-measure `gdp` over the same range, so equal distances across the two panels
-stand for equal amounts of `gdp`. And the `gdp` axis is drawn once, along the
+Look at what the rule did. Both plots measure `gdp` over the same range, so each
+bar is drawn directly above the points it counts. And the `gdp` axis is drawn once, along the
 bottom, because there is only one axis to draw. Faceting makes the same
 decision when it draws the tick labels only under the panels with nothing below
 them.
@@ -235,7 +238,8 @@ tall when it sits above another plot. Beside another plot the page decides the
 height, as the next section explains. Do not confuse `theme(width =, height =)`
 with [`theme(ratio = )`](style.qmd#theme-settings-that-belong-to-no-mark). The
 second one shapes the *panel* inside the room the plot was given, and it never
-resizes the image.
+resizes the image. A plot with a stated `ratio` keeps its own panel, and the page
+does not align it.
 
 Plots stacked with `/` that ask for more height than the page has are refused,
 and the message gives both numbers:
