@@ -57,6 +57,13 @@ CRAN-style repositories and PyPI, `GrammarOfGraphics` on Julia's General, and
   gave its texture to the second. Each is now fitted once, over every row the
   layer draws, and that is the scale its legend decodes.
 
+- **A legend too wide for its plot is left out, and said.** A plot narrower
+  than its legend drew its panel at a negative width, with no message: a scatter
+  colored by continent at `theme(width = 150)`, or a thin marginal plot given a
+  `color`. A legend that would leave the panel narrower than itself is now left
+  out with a note, as a legend too tall already was, and the panel takes its
+  room.
+
 - **A `size` or `opacity` legend under a summary reads the summaries.** In
   `point * mean + x(continent) + y(life) + size(life)`, each dot is sized by its
   continent's mean, but the legend ran over every country's value, so Africa's

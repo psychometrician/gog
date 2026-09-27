@@ -2649,3 +2649,20 @@ end
     @test occursin(">20.00</text>", svg) && occursin(">60.00</text>", svg)
     @test !occursin(">10.00</text>", svg)
 end
+
+# A legend that would leave its panel narrower than itself is left out and said,
+# where the panel of a thin plot went to a negative width in silence. The same
+# block runs in all four bindings.
+@testset "a legend too wide for its plot is left out and said" begin
+    lw = (x = [1.0, 2.0, 3.0, 4.0], y = [1.0, 2.0, 3.0, 4.0],
+          g = ["a long category", "another long one", "a", "b"])
+    page = (data(lw) + point + x(:x) + y(:y)) |
+           (data(lw) + point + x(:x) + y(:y) + color(:g) + theme(width = 150))
+    path, io = mktemp()
+    svg = redirect_stderr(io) do
+        render_svg(page)
+    end
+    close(io)
+    @test occursin("`G` legend needs", read(path, String))
+    @test !occursin(">G</text>", svg)
+end

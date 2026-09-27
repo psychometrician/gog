@@ -3096,3 +3096,17 @@ _sk = render_svg(data({"g": ["a", "a", "b", "b"], "v": [10.0, 30.0, 50.0, 70.0]}
                  + point * mean + x(col.g) + y(col.v) + size(col.v))
 assert ">20.00</text>" in _sk and ">60.00</text>" in _sk and ">10.00</text>" not in _sk
 ok("a size key under a summary reads the summaries")
+
+
+# --- A legend too wide for its plot --------------------------------------------
+# Left out and said, where the panel of a thin plot went to a negative width in
+# silence. The same block runs in all four bindings.
+_lw = {"x": [1.0, 2.0, 3.0, 4.0], "y": [1.0, 2.0, 3.0, 4.0],
+       "g": ["a long category", "another long one", "a", "b"]}
+_said = io.StringIO()
+with contextlib.redirect_stderr(_said):
+    _svg = render_svg((data(_lw, name="lw") + point + x(col.x) + y(col.y))
+                      | (data(_lw, name="lw") + point + x(col.x) + y(col.y) + color(col.g)
+                         + theme(width=150)))
+assert "`G` legend needs" in _said.getvalue() and ">G</text>" not in _svg, _said.getvalue()
+ok("a legend too wide for its plot is left out and said")

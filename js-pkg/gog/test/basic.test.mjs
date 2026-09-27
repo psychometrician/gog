@@ -3292,3 +3292,20 @@ test("a size key under a summary reads the summaries", () => {
   assert.ok(svg.includes(">20.00</text>") && svg.includes(">60.00</text>"));
   assert.ok(!svg.includes(">10.00</text>"));
 });
+
+// A legend that would leave its panel narrower than itself is left out and said,
+// where the panel of a thin plot went to a negative width in silence. The same
+// block runs in all four bindings.
+test("a legend too wide for its plot is left out and said", () => {
+  const lw = { x: [1, 2, 3, 4], y: [1, 2, 3, 4], g: ["a long category", "another long one", "a", "b"] };
+  const write = process.stderr.write;
+  let said = "";
+  process.stderr.write = (chunk) => { said += chunk; return true; };
+  let svg;
+  try {
+    svg = render_svg(beside(plot(data(lw), point, x(col.x), y(col.y)),
+      plot(data(lw), point, x(col.x), y(col.y), color(col.g), theme({ width: 150 }))));
+  } finally { process.stderr.write = write; }
+  assert.ok(said.includes("`G` legend needs"), said);
+  assert.ok(!svg.includes(">G</text>"));
+});

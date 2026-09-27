@@ -5088,3 +5088,19 @@ local({
     stop("FAIL: a size key under a summary should read the means")
   cat("PASS: a size key under a summary reads the summaries\n")
 })
+
+# ---------------------------------------------------------------------------
+# A legend that would leave its panel narrower than itself is left out and said,
+# where the panel of a thin plot went to a negative width in silence. The same
+# block runs in all four bindings.
+# ---------------------------------------------------------------------------
+local({
+  t <- data.frame(x = c(1, 2, 3, 4), y = c(1, 2, 3, 4),
+                  g = c("a long category", "another long one", "a", "b"))
+  page <- (data(t) + point + x(x) + y(y)) |
+    (data(t) + point + x(x) + y(y) + color(g) + theme(width = 150))
+  out <- capture_msgs(render_svg(page))
+  if (!grepl("`G` legend needs", out$msgs, fixed = TRUE) || grepl(">G</text>", out$value, fixed = TRUE))
+    stop("FAIL: a legend too wide for its plot should be left out and said: ", out$msgs)
+  cat("PASS: a legend too wide for its plot is left out and said\n")
+})

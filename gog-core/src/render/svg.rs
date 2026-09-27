@@ -2134,27 +2134,58 @@ impl SvgRenderer {
 
         // A closure because crowded category names can ask for the layout twice
         // more (below): once turned, once thinned. Everything but the two tick
-        // lists and the angle is the same question every time.
-        let compute_grid = |xt: &TickSpec, yt: &TickSpec, angle: Option<f64>| PanelGrid::compute(
-            self.width, self.height,
-            (self.font_sm, self.font_md, self.font_lg),
-            xt, yt, grid_xl, grid_yl,
-            spec.title.is_some(),
-            legend_panel_w,
-            // Cloned because `panel_levels` borrows both, and each panel now
-            // states its own level when it writes itself out, which is after
-            // this. One short list of level names per facet, copied once.
-            col_values.clone(), row_values.clone(),
-            map_ratio.or(spec.theme.resolved().ratio),
-            angle,
-            Self::axis_label_beside_theme(&spec.theme.resolved()),
-            play_def.is_some(),
-            facet_wrap,
-            (free_x, free_y),
-            cell_axis,
-            self.fit.clone(),
-        );
+        // lists and the angle is the same question every time. The legend's
+        // width and the page's fit are open as well, for the one question asked
+        // before the layout is settled: whether the legend fits at all (below).
+        let grid_with = |xt: &TickSpec, yt: &TickSpec, angle: Option<f64>, legend_w: f64, fit: Fit|
+            PanelGrid::compute(
+                self.width, self.height,
+                (self.font_sm, self.font_md, self.font_lg),
+                xt, yt, grid_xl, grid_yl,
+                spec.title.is_some(),
+                legend_w,
+                // Cloned because `panel_levels` borrows both, and each panel now
+                // states its own level when it writes itself out, which is after
+                // this. One short list of level names per facet, copied once.
+                col_values.clone(), row_values.clone(),
+                map_ratio.or(spec.theme.resolved().ratio),
+                angle,
+                Self::axis_label_beside_theme(&spec.theme.resolved()),
+                play_def.is_some(),
+                facet_wrap,
+                (free_x, free_y),
+                cell_axis,
+                fit,
+            );
         let stated_angle = spec.theme.resolved().tick_angle;
+
+        // **A legend never takes the panels' room.** Its width is set aside
+        // beside the panels before they are laid out, so a plot too narrow for
+        // it drew a panel of negative width, in silence: -47px for a scatter
+        // keyed by continent at 150px wide, -34px as a marginal plot's right
+        // cell. A legend that would leave the panels narrower than itself is left
+        // out and said so, which is the height check's rule (`write_legends`) for
+        // a legend too tall to fit, read across instead of down.
+        //
+        // Decided on the plot laid out alone, as a page's first pass lays it out,
+        // so a page's two passes reach one answer: the second may drop a shared
+        // axis and gain room, and a legend kept there but not in the measuring
+        // pass would be drawn beside a panel the page had already placed.
+        let (legends, legend_panel_w) = match legends.is_empty() {
+            true => (legends, legend_panel_w),
+            false => {
+                let widest = legend_panel_w - LEGEND_PLOT_GAP;
+                let alone = grid_with(grid_xt, grid_yt, stated_angle, legend_panel_w, Fit::free());
+                if alone.outer.w() >= widest {
+                    (legends, legend_panel_w)
+                } else {
+                    remarks.push(legend_too_wide(&legends, widest, self.width));
+                    (Vec::new(), 0.0)
+                }
+            }
+        };
+        let compute_grid = |xt: &TickSpec, yt: &TickSpec, angle: Option<f64>|
+            grid_with(xt, yt, angle, legend_panel_w, self.fit.clone());
         let grid = compute_grid(grid_xt, grid_yt, stated_angle);
 
         // **Crowded category names: turn them, then thin them, never print one
@@ -5138,6 +5169,27 @@ fn thin_numbers(t: &TickSpec, stride: usize, linear: bool) -> TickSpec {
 /// and why. Only a written count is answered: the ticks gog chose itself are a
 /// guide, and drawing fewer of them hides no data, while a count the caller
 /// wrote is a request the drawing now departs from (Law 5).
+/// The note for a legend left out because the plot is too narrow for it: the
+/// height check's sentence (`legend::write_legends`), read across.
+fn legend_too_wide(legends: &[crate::render::legend::LegendBox], widest: f64, width: f64) -> Diagnostic {
+    let names: Vec<String> = legends.iter().map(|b| format!("`{}`", b.title)).collect();
+    let (which, verb, it) = match names.as_slice() {
+        [one] => (format!("{one} legend"), "needs", "it was"),
+        [init @ .., last] => (format!("{} and {last} legends", init.join(", ")), "need", "they were"),
+        [] => (String::from("legend"), "needs", "it was"),
+    };
+    Diagnostic {
+        kind: crate::legality::DiagnosticKind::Assumption,
+        message: format!(
+            "gog: the {which} {verb} {widest:.0}px of width, and beside {} the {width:.0}px plot \
+             would leave its panel narrower than that, so {it} left out and the panel takes \
+             the room. Give the plot more room with `theme(width = )` — on a composed page \
+             that is a share of the page, so the other plots have to give some up.",
+            if names.len() == 1 { "it" } else { "them" },
+        ),
+    }
+}
+
 fn thinned_numbers(axis: char, field: &str, asked: usize, chosen: usize, kept: usize) -> Diagnostic {
     let field = if field.is_empty() { "<column>" } else { field };
     let (room, bigger) = match axis {
@@ -8076,6 +8128,37 @@ mod tests {
         assert!(lines.iter().filter(|l| l.contains(second)).count() == 1
                 && lines.iter().any(|l| !l.contains("stroke-dasharray")),
                 "`a` is solid and `b` takes the second dash in its own panel: {lines:?}");
+    }
+
+    /// A legend is set aside beside the panels before they are laid out, so a plot
+    /// too narrow for it drew a panel of negative width with no message. A legend
+    /// that would leave the panel narrower than itself is left out and said so.
+    #[test]
+    fn a_legend_too_wide_for_its_plot_is_left_out_and_said() {
+        let s = |v: &[&str]| v.iter().map(|x| x.to_string()).collect::<Vec<_>>();
+        let t: HashMap<String, DataFrame> = HashMap::from([(
+            "t".to_string(),
+            DataFrame::new()
+                .with_float("x", vec![1.0, 2.0, 3.0, 4.0])
+                .with_float("y", vec![1.0, 2.0, 3.0, 4.0])
+                .with_str("g", s(&["a long category", "another long one", "a", "b"])),
+        )]);
+        let spec = PlotSpec::new().data("t").x("x").y("y")
+            .layer(Layer::new(Mark::Point).encode(Channel::Color, "g"));
+        let clip_w = |svg: &str| -> f64 {
+            let rect = svg.split("<clipPath").nth(1).expect("a clipped panel");
+            rect.split(" width=\"").nth(1).and_then(|w| w.split('"').next())
+                .and_then(|w| w.parse().ok()).expect("a clip width")
+        };
+        let narrow = SvgRenderer::for_theme(&spec.theme.resolved(), 150.0, 400.0).draw(&spec, &t);
+        assert!(clip_w(&narrow.svg) > 0.0, "the panel keeps a width: {}", clip_w(&narrow.svg));
+        assert!(!narrow.svg.contains(">G</text>"), "no legend is drawn over the panel's room");
+        assert!(narrow.remarks.iter().any(|d| d.kind == crate::legality::DiagnosticKind::Assumption
+                && d.message.contains("`G` legend needs") && d.message.contains("theme(width = )")),
+                "the legend left out is said: {:?}", narrow.remarks);
+        // Where there is room, nothing changes and nothing is said.
+        let wide = SvgRenderer::for_theme(&spec.theme.resolved(), 600.0, 400.0).draw(&spec, &t);
+        assert!(wide.svg.contains(">G</text>") && wide.remarks.is_empty(), "{:?}", wide.remarks);
     }
 
     /// Under a summary a dot is sized by its group's mean, so the key decodes the
