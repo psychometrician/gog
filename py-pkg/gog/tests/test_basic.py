@@ -3170,3 +3170,22 @@ except GogError as refusal:
     assert "`point` maps `size(life)`" in str(refusal) and "reaches none of them" in str(refusal), \
         refusal
 ok("a plot-wide channel every mark overrides is refused")
+
+
+# --- A nest refuses the settings of an axis ------------------------------------------
+# It has no axes, where each setting was accepted and drew the same bytes as the
+# sentence without it. The same block runs in all four bindings.
+_nt = {"g": ["a", "b", "c"], "v": [3.0, 2.0, 1.0]}
+def _nest_said(p):
+    try:
+        render_svg(p)
+        return ""
+    except GogError as refusal:
+        return str(refusal)
+assert "`theme(grid = )`" in _nest_said(
+    data(_nt, name="nt") + bar * sum + y(col.v) + color(col.g) + nest() + theme(grid="both"))
+assert "`y(v, tick_count = 3)`" in _nest_said(
+    data(_nt, name="nt") + bar * sum + y(col.v, tick_count=3) + color(col.g) + nest())
+assert "under `bar * sum`" in _nest_said(
+    data(_nt, name="nt") + bar * sum + y(col.v, limits=(0, 10)) + color(col.g) + nest())
+ok("a nest refuses the settings of an axis")

@@ -10435,6 +10435,80 @@ fn check_nest(out: &mut Vec<Diagnostic>, spec: &PlotSpec, data: &HashMap<String,
         }
     }
 
+    // **Nor would the furniture of an axis.** Gridlines, turned tick labels, the
+    // place an axis's name goes and the lines that bound a panel all belong to
+    // axes, and a packing has none, so each of these was accepted and drew the
+    // same bytes as the sentence without it: `x_label()`'s case, one level down.
+    // Read off what was written rather than the resolved theme, so a preset that
+    // fills one in (`theme("minimal")` sets `grid`) is not refused for it.
+    for (name, stated, what) in [
+        ("grid", spec.theme.grid.is_some(), "draws lines across the panel at an axis's ticks"),
+        ("tick_angle", spec.theme.tick_angle.is_some(), "turns an axis's tick labels"),
+        ("axis_label", spec.theme.axis_label.is_some(), "places an axis's name"),
+        ("frame", spec.theme.frame.is_some(), "draws the lines that bound the panel"),
+    ] {
+        if stated {
+            out.push(Diagnostic {
+                kind: DiagnosticKind::Illegal,
+                message: format!(
+                    "gog: `theme({name} = )` {what}, and a `nest()` plot has no axes — its two \
+                     directions carry no variable and can be reordered without changing what \
+                     the plot says. Drop it; the packing is drawn the same without it."
+                ),
+            });
+        }
+    }
+
+    // A count of ticks asks for ticks, which the same absence rules out.
+    let positions = |ch: Channel| -> Vec<&ChannelDef> {
+        let plot = if ch == Channel::X { spec.x.as_ref() } else { spec.y.as_ref() };
+        plot.into_iter().chain(spec.layers.iter().filter_map(move |l| l.encodings.get(&ch))).collect()
+    };
+    for ch in [Channel::X, Channel::Y] {
+        let c = channel_name(&ch);
+        for def in positions(ch.clone()) {
+            if let Some(n) = def.tick_count {
+                out.push(Diagnostic {
+                    kind: DiagnosticKind::Illegal,
+                    message: format!(
+                        "gog: `{c}({}, tick_count = {n})` asks for ticks along an axis, and a \
+                         `nest()` plot has no axes — its regions are read by their areas, not \
+                         against a scale. Drop `tick_count`.",
+                        def.field
+                    ),
+                });
+            }
+        }
+    }
+
+    // **A domain under a summary bounds nothing.** Without one, `limits` leaves out
+    // the rows it excludes, and says so. Under `bar * sum` a region's size is its
+    // group's total as a share of the whole, so no axis is fitted for a domain to
+    // bound and no row is left out: the plot was byte for byte the one without it,
+    // for every range tried.
+    for layer in &spec.layers {
+        let Some(reduced) = layer.transforms.iter().find(|t| crate::transform::is_reduction(t)) else {
+            continue;
+        };
+        for ch in [Channel::X, Channel::Y] {
+            let Some(def) = spec.position_for(layer, &ch) else { continue };
+            if def.limits.is_none() {
+                continue;
+            }
+            let (c, m, r) = (channel_name(&ch), mark_name(&layer.mark), transform_name(reduced));
+            out.push(Diagnostic {
+                kind: DiagnosticKind::Illegal,
+                message: format!(
+                    "gog: `{c}({}, limits = …)` states the domain of an axis, and under `{m} * \
+                     {r}` in a `nest()` there is none to bound — each region's size is its \
+                     group's {r} as a share of the whole. Drop `limits`, or leave rows out of \
+                     the table before `data()`.",
+                    def.field
+                ),
+            });
+        }
+    }
+
     // **An area cannot be negative**, and unlike the rulings above this one is
     // about the data rather than the sentence, so it is asked here where the
     // frames are in hand. A length can run below a baseline and read as a loss; an
@@ -13701,6 +13775,42 @@ mod tests {
             .layer(Layer::new(Mark::Bar).transform(Transform::Sum).encode(Channel::Color, "continent"));
         let out = check(&spec, &data());
         assert!(out.is_empty(), "a plain treemap was refused: {:?}", msgs(&out));
+    }
+
+    /// Five settings describe an axis, and a packing has none: each was accepted
+    /// and drew the same bytes as the sentence without it. A preset that fills one
+    /// in is not the reader's statement and is not refused.
+    #[test]
+    fn a_nest_refuses_the_settings_of_an_axis() {
+        let treemap = || nest_base()
+            .layer(Layer::new(Mark::Bar).transform(Transform::Sum).encode(Channel::Color, "continent"));
+        let refused = |spec: PlotSpec, said: &str| {
+            let out = check(&spec, &data());
+            assert!(out.iter().any(|d| d.kind == DiagnosticKind::Illegal && d.message.contains(said)),
+                    "{said}: {:?}", msgs(&out));
+        };
+        let themed = |f: &dyn Fn(&mut ThemeSpec)| {
+            let mut spec = treemap();
+            f(&mut spec.theme);
+            spec
+        };
+        refused(themed(&|t| t.grid = Some("both".into())), "`theme(grid = )`");
+        refused(themed(&|t| t.tick_angle = Some(45.0)), "`theme(tick_angle = )`");
+        refused(themed(&|t| t.axis_label = Some("end".into())), "`theme(axis_label = )`");
+        refused(themed(&|t| t.frame = Some("full".into())), "`theme(frame = )`");
+        let mut counted = treemap();
+        counted.y = Some(ChannelDef { tick_count: Some(3), ..ChannelDef::field("gdp") });
+        refused(counted, "`y(gdp, tick_count = 3)`");
+        let mut bounded = treemap();
+        bounded.y = Some(ChannelDef { limits: Some([Some(0.0), Some(10.0)]), ..ChannelDef::field("gdp") });
+        refused(bounded, "under `bar * sum`");
+
+        let preset = themed(&|t| t.preset = Some("minimal".into()));
+        assert!(check(&preset, &data()).is_empty(), "a preset is not the reader's `grid`");
+        // Without a summary a domain leaves rows out, which is not ignoring it.
+        let mut identity = nest_base().layer(Layer::new(Mark::Bar).encode(Channel::Color, "continent"));
+        identity.y = Some(ChannelDef { limits: Some([Some(0.0), Some(10.0)]), ..ChannelDef::field("gdp") });
+        assert!(check(&identity, &data()).iter().all(|d| !d.message.contains("under `bar")));
     }
 
     /// A label needs no `x` here — Law 7's third relaxation, and the one this

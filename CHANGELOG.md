@@ -48,6 +48,12 @@ CRAN-style repositories and PyPI, `GrammarOfGraphics` on Julia's General, and
 
 ### Changed
 
+- **A `nest()` plot refuses the settings of an axis.** A packing has no axes,
+  so `theme(grid =)`, `theme(tick_angle =)`, `theme(axis_label =)`,
+  `theme(frame =)`, a position's `tick_count`, and `limits` on the measure under
+  a summary such as `bar * sum` changed nothing and were accepted anyway. Each
+  is now refused, as `x_label()` already was.
+
 - **A channel written for the whole plot that every mark replaces is refused.**
   In `size(population) + point + size(life)`, the points take their own
   `size(life)`, so `size(population)` reached no mark and the plot drew as

@@ -5170,3 +5170,23 @@ local({
     stop("FAIL: a plot-wide channel every mark overrides should be refused: ", said)
   cat("PASS: a plot-wide channel every mark overrides is refused\n")
 })
+
+# ---------------------------------------------------------------------------
+# A `nest()` plot has no axes, so the settings that describe one are refused,
+# where each was accepted and drew the same bytes as the sentence without it.
+# The same block runs in all four bindings.
+# ---------------------------------------------------------------------------
+local({
+  t <- data.frame(g = c("a", "b", "c"), v = c(3, 2, 1))
+  base <- data(t) + bar * sum + y(v) + color(g) + nest()
+  said <- function(p) tryCatch({ render_svg(p); "" }, error = function(e) conditionMessage(e))
+  if (!grepl("`theme(grid = )`", said(base + theme(grid = "both")), fixed = TRUE))
+    stop("FAIL: a nest should refuse theme(grid = )")
+  if (!grepl("`y(v, tick_count = 3)`",
+             said(data(t) + bar * sum + y(v, tick_count = 3) + color(g) + nest()), fixed = TRUE))
+    stop("FAIL: a nest should refuse tick_count")
+  if (!grepl("under `bar * sum`",
+             said(data(t) + bar * sum + y(v, limits = c(0, 10)) + color(g) + nest()), fixed = TRUE))
+    stop("FAIL: a nest should refuse limits under a summary")
+  cat("PASS: a nest refuses the settings of an axis\n")
+})

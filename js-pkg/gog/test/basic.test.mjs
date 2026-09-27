@@ -3364,3 +3364,16 @@ test("a plot-wide channel every mark overrides is refused", () => {
     /`point` maps `size\(life\)`.*reaches none of them/s
   );
 });
+
+// A `nest()` plot has no axes, so the settings that describe one are refused,
+// where each was accepted and drew the same bytes as the sentence without it. The
+// same block runs in all four bindings.
+test("a nest refuses the settings of an axis", () => {
+  const nt = { g: ["a", "b", "c"], v: [3, 2, 1] };
+  assert.throws(() => render_svg(plot(data(nt), layer(bar, sum), y(col.v), color(col.g), nest(),
+    theme({ grid: "both" }))), /`theme\(grid = \)`/);
+  assert.throws(() => render_svg(plot(data(nt), layer(bar, sum), y(col.v, { tick_count: 3 }),
+    color(col.g), nest())), /`y\(v, tick_count = 3\)`/);
+  assert.throws(() => render_svg(plot(data(nt), layer(bar, sum), y(col.v, { limits: [0, 10] }),
+    color(col.g), nest())), /under `bar \* sum`/);
+});

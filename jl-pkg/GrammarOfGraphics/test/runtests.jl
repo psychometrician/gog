@@ -2725,3 +2725,21 @@ end
     @test occursin("`point` maps `size(life)`", said)
     @test occursin("reaches none of them", said)
 end
+
+# A `nest()` plot has no axes, so the settings that describe one are refused,
+# where each was accepted and drew the same bytes as the sentence without it. The
+# same block runs in all four bindings.
+@testset "a nest refuses the settings of an axis" begin
+    nt = (g = ["a", "b", "c"], v = [3.0, 2.0, 1.0])
+    said(p) = try
+        render_svg(p); ""
+    catch e
+        sprint(showerror, e)
+    end
+    @test occursin("`theme(grid = )`",
+                   said(data(nt) + bar * sum + y(:v) + color(:g) + nest() + theme(grid = "both")))
+    @test occursin("`y(v, tick_count = 3)`",
+                   said(data(nt) + bar * sum + y(:v, tick_count = 3) + color(:g) + nest()))
+    @test occursin("under `bar * sum`",
+                   said(data(nt) + bar * sum + y(:v, limits = (0, 10)) + color(:g) + nest()))
+end
