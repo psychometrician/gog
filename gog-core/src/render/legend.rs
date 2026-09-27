@@ -131,6 +131,12 @@ pub(crate) struct LegendBox {
     /// The `rows` are still built, and still carry the min/mid/max labels and
     /// the widths the box is sized from; only the swatch column is replaced.
     pub(crate) gradient: Option<Vec<String>>,
+    /// The opacity the decoded layer was set to (`style(opacity = )`), which its
+    /// swatches take so a key matches its marks. `None` keeps each swatch's own
+    /// default. A set opacity was ignored here: areas drawn at 1.0 or at 0.3 were
+    /// both keyed at 0.82, so a horizon chart's darkest key read paler than its
+    /// band.
+    pub(crate) opacity: Option<f64>,
 }
 
 impl LegendBox {
@@ -255,7 +261,10 @@ pub(crate) fn collect_legends(
                 Some(LegendRow { label, swatch: LegendSwatch::ColorRect(color) })
             })
             .collect();
-        if !rows.is_empty() { boxes.push(LegendBox { title: auto_label(&def.field), rows, gradient: None }); break 'color; }
+        if !rows.is_empty() {
+            boxes.push(LegendBox { title: auto_label(&def.field), rows, gradient: None, opacity: layer.style.opacity });
+            break 'color;
+        }
     }
 
     // Color legend (numeric column — a continuous strip, labeled min/mid/max)
@@ -326,6 +335,7 @@ pub(crate) fn collect_legends(
             title: auto_label(field),
             rows,
             gradient: Some(ramp.clone()),
+            opacity: None,
         });
         break 'color_ramp;
     }
@@ -353,7 +363,10 @@ pub(crate) fn collect_legends(
                 LegendRow { label, swatch: LegendSwatch::ShapeMark(shape_at_index(i), color) }
             })
             .collect();
-        if !rows.is_empty() { boxes.push(LegendBox { title: auto_label(&def.field), rows, gradient: None }); break 'shape; }
+        if !rows.is_empty() {
+            boxes.push(LegendBox { title: auto_label(&def.field), rows, gradient: None, opacity: layer.style.opacity });
+            break 'shape;
+        }
     }
 
     // Pattern legend (categorical) — the mapped `pattern` channel (spec §5),
@@ -403,7 +416,10 @@ pub(crate) fn collect_legends(
                 LegendRow { label, swatch }
             })
             .collect();
-        if !rows.is_empty() { boxes.push(LegendBox { title: auto_label(&def.field), rows, gradient: None }); break 'pattern; }
+        if !rows.is_empty() {
+            boxes.push(LegendBox { title: auto_label(&def.field), rows, gradient: None, opacity: layer.style.opacity });
+            break 'pattern;
+        }
     }
 
     // Size legend (numeric column — show min / mid / max)
@@ -415,7 +431,7 @@ pub(crate) fn collect_legends(
             label:  continuous_label(df, &def.field, sc.value_at(f)),
             swatch: LegendSwatch::SizeCircle(radius_at(f)),
         }).collect();
-        boxes.push(LegendBox { title: auto_label(&def.field), rows, gradient: None });
+        boxes.push(LegendBox { title: auto_label(&def.field), rows, gradient: None, opacity: None });
         break 'size;
     }
 
@@ -428,7 +444,7 @@ pub(crate) fn collect_legends(
             label:  continuous_label(df, &def.field, sc.value_at(f)),
             swatch: LegendSwatch::OpacityRect(opacity_at(f)),
         }).collect();
-        boxes.push(LegendBox { title: auto_label(&def.field), rows, gradient: None });
+        boxes.push(LegendBox { title: auto_label(&def.field), rows, gradient: None, opacity: None });
         break 'opacity;
     }
 
@@ -444,6 +460,12 @@ fn drawn_scale(
         Some(w) if w.has_numbers(field) => w.scale(field, def),
         _ => ChannelScale::of(col, def),
     }
+}
+
+/// A filled swatch's opacity as written: the decoded layer's set opacity, or the
+/// swatch's own 0.82, written as it always was so an unset key keeps its bytes.
+fn swatch_opacity(set: Option<f64>) -> String {
+    set.map(|o| format!("{o:.3}")).unwrap_or_else(|| "0.82".to_string())
 }
 
 /// The frame a numeric key reads its column from, for the labels' format: the
@@ -652,13 +674,14 @@ pub(crate) fn write_legends(
                     LegendSwatch::ColorRect(ref color) => {
                         let s = 6.0;
                         writeln!(svg,
-                            r#"    <rect x="{x:.2}" y="{y:.2}" width="{w:.2}" height="{w:.2}" fill="{color}" fill-opacity="0.82" rx="2"/>"#,
-                            x = swatch_cx - s, y = swatch_cy - s, w = s * 2.0
+                            r#"    <rect x="{x:.2}" y="{y:.2}" width="{w:.2}" height="{w:.2}" fill="{color}" fill-opacity="{o}" rx="2"/>"#,
+                            x = swatch_cx - s, y = swatch_cy - s, w = s * 2.0, o = swatch_opacity(lb.opacity)
                         ).unwrap();
                     }
                     LegendSwatch::ShapeMark(kind, ref color) => {
                         let ink = color.as_deref().unwrap_or("#3c3c46");
-                        write_shape(svg, kind, swatch_cx, swatch_cy, 5.5, ink, OPACITY_DEFAULT, None);
+                        write_shape(svg, kind, swatch_cx, swatch_cy, 5.5, ink,
+                                    lb.opacity.unwrap_or(OPACITY_DEFAULT), None);
                     }
                     LegendSwatch::OpacityRect(o) => {
                         let s = 6.0;
@@ -679,8 +702,8 @@ pub(crate) fn write_legends(
                         let s = 6.0;
                         let fill = swatch_tex.fill(svg, Some(texture), color);
                         writeln!(svg,
-                            r#"    <rect x="{x:.2}" y="{y:.2}" width="{w:.2}" height="{w:.2}" fill="{fill}" fill-opacity="0.82" stroke="{color}" stroke-width="0.6" rx="2"/>"#,
-                            x = swatch_cx - s, y = swatch_cy - s, w = s * 2.0
+                            r#"    <rect x="{x:.2}" y="{y:.2}" width="{w:.2}" height="{w:.2}" fill="{fill}" fill-opacity="{o}" stroke="{color}" stroke-width="0.6" rx="2"/>"#,
+                            x = swatch_cx - s, y = swatch_cy - s, w = s * 2.0, o = swatch_opacity(lb.opacity)
                         ).unwrap();
                     }
                     LegendSwatch::PatternStroke { dash, ref color } => {
@@ -690,8 +713,9 @@ pub(crate) fn write_legends(
                         // Half the dash column, less a hair so a round cap does
                         // not sit on the column's edge.
                         let half = LEGEND_DASH_SWATCH_W / 2.0 - 1.0;
+                        let faded = lb.opacity.map(|o| format!(r#" stroke-opacity="{o:.3}""#)).unwrap_or_default();
                         writeln!(svg,
-                            r##"    <line x1="{:.2}" y1="{swatch_cy:.2}" x2="{:.2}" y2="{swatch_cy:.2}" stroke="{color}" stroke-width="2"{dash_attr} stroke-linecap="round"/>"##,
+                            r##"    <line x1="{:.2}" y1="{swatch_cy:.2}" x2="{:.2}" y2="{swatch_cy:.2}" stroke="{color}" stroke-width="2"{dash_attr}{faded} stroke-linecap="round"/>"##,
                             swatch_cx - half, swatch_cx + half
                         ).unwrap();
                     }

@@ -48,6 +48,11 @@ CRAN-style repositories and PyPI, `GrammarOfGraphics` on Julia's General, and
 
 ### Changed
 
+- **A legend takes the opacity its marks were set to.** With
+  `style(opacity = 1)` or `style(opacity = 0.3)`, the marks changed and their
+  key stayed at its default, so a horizon chart's darkest key read paler than its
+  band. The color, shape and pattern keys now use the layer's set opacity.
+
 - **Legend numbers drop their trailing zeros.** A count key read
   38.00 / 22.00 / 6.00 and a year key 2007.0 / 1979.5 / 1952.0; they read
   38 / 22 / 6 and 2007 / 1979.5 / 1952. Numbers below 1 keep three significant

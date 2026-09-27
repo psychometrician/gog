@@ -3239,3 +3239,12 @@ _hub = {"a": ["Hub"] * 4, "b": ["p", "q", "r", "s"]}
 assert ">Degree</text>" in render_svg(data(_hub, name="hub") + edge * layout(col.a, col.b)
                                       + point * layout(col.a, col.b) + size(col.degree) + network())
 ok("a size on a layout's degree draws its key")
+
+
+# --- A key takes its layer's set opacity -------------------------------------------
+# Areas drawn at 1.0 were keyed at 0.82, paler than the bands they name. The same
+# block runs in all four bindings.
+_op = {"x": [1.0, 2.0, 1.0, 2.0], "y": [1.0, 2.0, 2.0, 3.0], "g": ["a", "a", "b", "b"]}
+_svg = render_svg(data(_op, name="op") + area + x(col.x) + y(col.y) + color(col.g) + style(opacity=1))
+assert 'fill-opacity="1.000"' in _svg.split(">G</text>")[1]
+ok("a key takes its layer's set opacity")

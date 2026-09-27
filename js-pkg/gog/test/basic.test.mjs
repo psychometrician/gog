@@ -3414,3 +3414,11 @@ test("a size on a layout's degree draws its key", () => {
     layer(point, layout(col.a, col.b)), size(col.degree), network()));
   assert.ok(svg.includes(">Degree</text>"));
 });
+
+// A key takes the opacity its layer was set to: areas drawn at 1.0 were keyed at
+// 0.82, paler than the bands they name. The same block runs in all four bindings.
+test("a key takes its layer's set opacity", () => {
+  const op = { x: [1, 2, 1, 2], y: [1, 2, 2, 3], g: ["a", "a", "b", "b"] };
+  const svg = render_svg(plot(data(op), area, x(col.x), y(col.y), color(col.g), style({ opacity: 1 })));
+  assert.ok(svg.split(">G</text>")[1].includes('fill-opacity="1.000"'));
+});

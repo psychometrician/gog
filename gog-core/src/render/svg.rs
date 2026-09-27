@@ -8131,6 +8131,30 @@ mod tests {
                 "`a` is solid and `b` takes the second dash in its own panel: {lines:?}");
     }
 
+    /// A key takes the opacity its layer was set to: areas drawn at 1.0 or at 0.3
+    /// were both keyed at 0.82. Unset, the key keeps its own.
+    #[test]
+    fn a_key_takes_its_layers_set_opacity() {
+        let s = |v: &[&str]| v.iter().map(|x| x.to_string()).collect::<Vec<_>>();
+        let t: HashMap<String, DataFrame> = HashMap::from([(
+            "t".to_string(),
+            DataFrame::new()
+                .with_float("x", vec![1.0, 2.0, 1.0, 2.0])
+                .with_float("y", vec![1.0, 2.0, 2.0, 3.0])
+                .with_str("g", s(&["a", "a", "b", "b"])),
+        )]);
+        let keyed = |opacity: Option<f64>| {
+            let mut layer = Layer::new(Mark::Area).encode(Channel::Color, "g");
+            layer.style.opacity = opacity;
+            let svg = SvgRenderer::default().render(&PlotSpec::new().data("t").x("x").y("y").layer(layer), &t);
+            let key = svg.split(">G</text>").nth(1).expect("a key titled G").to_string();
+            key.split("fill-opacity=\"").nth(1).and_then(|r| r.split('"').next()).unwrap_or("").to_string()
+        };
+        assert_eq!(keyed(Some(1.0)), "1.000");
+        assert_eq!(keyed(Some(0.3)), "0.300");
+        assert_eq!(keyed(None), "0.82");
+    }
+
     /// A layout makes its `degree` column, so the table a key used to read it from
     /// does not hold it, and nodes sized by their degree drew no key. The key reads
     /// the frame the nodes were drawn from.

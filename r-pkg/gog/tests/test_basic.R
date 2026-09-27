@@ -5243,3 +5243,16 @@ local({
     stop("FAIL: a size on a layout's degree should draw its key")
   cat("PASS: a size on a layout's degree draws its key\n")
 })
+
+# ---------------------------------------------------------------------------
+# A key takes the opacity its layer was set to: areas drawn at 1.0 were keyed at
+# 0.82, paler than the bands they name. The same block runs in all four bindings.
+# ---------------------------------------------------------------------------
+local({
+  t <- data.frame(x = c(1, 2, 1, 2), y = c(1, 2, 2, 3), g = c("a", "a", "b", "b"))
+  svg <- render_svg(data(t) + area + x(x) + y(y) + color(g) + style(opacity = 1))
+  key <- strsplit(svg, ">G</text>", fixed = TRUE)[[1]][2]
+  if (is.na(key) || !grepl('fill-opacity="1.000"', key, fixed = TRUE))
+    stop("FAIL: a key should take its layer's set opacity")
+  cat("PASS: a key takes its layer's set opacity\n")
+})

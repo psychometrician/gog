@@ -2788,3 +2788,11 @@ end
                      size(:degree) + network())
     @test occursin(">Degree</text>", svg)
 end
+
+# A key takes the opacity its layer was set to: areas drawn at 1.0 were keyed at
+# 0.82, paler than the bands they name. The same block runs in all four bindings.
+@testset "a key takes its layer's set opacity" begin
+    op = (x = [1.0, 2.0, 1.0, 2.0], y = [1.0, 2.0, 2.0, 3.0], g = ["a", "a", "b", "b"])
+    svg = render_svg(data(op) + area + x(:x) + y(:y) + color(:g) + style(opacity = 1))
+    @test occursin("fill-opacity=\"1.000\"", split(svg, ">G</text>")[2])
+end
