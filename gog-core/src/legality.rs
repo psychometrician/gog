@@ -7953,6 +7953,41 @@ fn check_brush(out: &mut Vec<Diagnostic>, spec: &PlotSpec, data: &HashMap<String
         return;
     }
 
+    // **A map is not brushed (ruled 2026-09-27).** A map projects longitude and
+    // latitude before it draws, and the page and the picture then measured a
+    // bound in different units. A written bound was tested against projected
+    // units, so the page counted the right rows while the picture dimmed the
+    // wrong ones; a dragged bound was projected, so the picture was right and the
+    // page counted none; and a drag over a choropleth sliced countries into
+    // polygons nobody drew. (Under Equal Earth a range of degrees is not even a
+    // rectangle on the page; under Mercator it is, and the disagreement stands.)
+    // Three answers, none of them the reader's selection, so the pair is refused
+    // and pointed at the same columns without `map()`, where the axes are the
+    // degrees themselves.
+    if matches!(spec.coord, CoordSpace::Map(_)) {
+        // The columns as the layers read them: written after a mark, a position
+        // sits on the layer rather than on the plot.
+        let read = |ch: Channel| spec.layers.iter()
+            .find_map(|l| spec.position_for(l, &ch))
+            .map(|c| c.field.as_str());
+        let lon = read(Channel::X).unwrap_or("<longitude>");
+        let lat = read(Channel::Y).unwrap_or("<latitude>");
+        let brushed = spec.brush.iter().find(|b| !b.is_positions())
+            .map_or(String::new(), |b| b.field.clone());
+        let brushed = if brushed.is_empty() { lon.to_string() } else { brushed };
+        out.push(Diagnostic {
+            kind: DiagnosticKind::Illegal,
+            message: format!(
+                "gog: `brush` cannot select on a `map()`. A map projects longitude and \
+                 latitude before it draws, and a brush on it would count one set of rows \
+                 while it dims another. Drop `brush()`, or brush the same columns without \
+                 `map()`, where the axes are the degrees themselves: \
+                 `point + x({lon}) + y({lat}) + brush({brushed})`."
+            ),
+        });
+        return;
+    }
+
     for b in &spec.brush {
         // Bare `brush` says *both positions are selectable*, so there is no
         // single axis for a stated bound to belong to. Naming a column is how
@@ -13008,6 +13043,33 @@ mod tests {
         assert!(out.iter().any(|d| d.kind == DiagnosticKind::Illegal
             && d.message.contains("scrub bar")
             && d.message.contains("Brush a column")), "{:?}", msgs(&out));
+    }
+
+    /// A map is not brushed: its degrees are projected before anything is drawn,
+    /// so a range in degrees is no rectangle on the page. Refused, written bound,
+    /// bare `brush` or traced outline alike, and pointed at a flat plot of the same
+    /// columns, which draws.
+    #[test]
+    fn a_map_is_not_brushed_and_the_direction_draws() {
+        let map = || base().layer(Layer::new(Mark::Point))
+            .coord(CoordSpace::Map(crate::ir::MapView::default()));
+        for spec in [
+            map().brush(crate::ir::BrushDef::new("gdp").at(1.0, 2.0)),
+            map().brush(crate::ir::BrushDef::new("continent").levels(vec!["Asia".into()])),
+        ] {
+            let out = check(&spec, &data());
+            let d = out.iter().find(|d| d.message.contains("cannot select on a `map()`"))
+                .unwrap_or_else(|| panic!("no refusal: {:?}", msgs(&out)));
+            assert_eq!(d.kind, DiagnosticKind::Illegal);
+            assert!(d.message.contains("`point + x(gdp) + y(life) + brush("), "{}", d.message);
+            // One sentence: the brush's own questions are moot on a map.
+            assert_eq!(out.iter().filter(|d| d.message.contains("brush")).count(), 1,
+                       "{:?}", msgs(&out));
+        }
+        let flat = base().layer(Layer::new(Mark::Point))
+            .brush(crate::ir::BrushDef::new("gdp").at(1.0, 2.0));
+        let out = check(&flat, &data());
+        assert!(!out.iter().any(Diagnostic::is_fatal), "the direction is refused: {:?}", msgs(&out));
     }
 
     /// A mark whose rows are vertices has no single row to select, and the

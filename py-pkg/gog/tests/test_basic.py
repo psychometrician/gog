@@ -2905,3 +2905,20 @@ assert "the `x` axis is read two ways" in _text, _text
 assert ">bee</text>" in render_svg(data(_cats, name="cats") + bar + x(col.g) + y(col.v)
                                    + data(_lab, name="lab") + text + label(col.t))
 ok("an axis holds one kind of value, whichever table a layer reads")
+
+
+# --- A map is not brushed ----------------------------------------------------
+# A map projects longitude and latitude before it draws, so a range in degrees
+# is no rectangle on the page, and a selection counted one set of rows while it
+# dimmed another. The refusal points at a flat plot of the same columns, which
+# draws. The same block runs in all four bindings.
+_places = {"lon": [-10.0, 0.0, 20.0], "lat": [40.0, 50.0, 60.0]}
+assert "`brush` cannot select on a `map()`" in _refusal(
+    lambda: render_svg(data(_places, name="places") + point + x(col.lon) + y(col.lat) + map()
+                       + brush(col.lon, at=(-5, 25))))
+assert "`point + x(lon) + y(lat) + brush(lon)`" in _refusal(
+    lambda: render_svg(data(_places, name="places") + point + x(col.lon) + y(col.lat) + map()
+                       + brush))
+assert "<circle" in render_svg(data(_places, name="places") + point + x(col.lon) + y(col.lat)
+                               + brush(col.lon, at=(-5, 25)))
+ok("a map is not brushed, and the flat plot it points to draws")

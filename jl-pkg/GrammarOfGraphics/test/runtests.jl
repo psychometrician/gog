@@ -2473,3 +2473,17 @@ end
     @test occursin(">bee</text>", render_svg(data(cats; name = "cats") + bar + x(:g) + y(:v) +
                                              data(lab; name = "lab") + text + label(:t)))
 end
+
+# A map is not brushed: it projects longitude and latitude before it draws, so a
+# range in degrees is no rectangle on the page, and a selection counted one set
+# of rows while it dimmed another. The refusal points at a flat plot of the same
+# columns, which draws. The same block runs in all four bindings.
+@testset "a map is not brushed, and the flat plot it points to draws" begin
+    places = (lon = [-10.0, 0.0, 20.0], lat = [40.0, 50.0, 60.0])
+    @refuses render_svg(data(places) + point + x(:lon) + y(:lat) + map() +
+                        brush(:lon, at = (-5, 25))) "`brush` cannot select on a `map()`"
+    @refuses render_svg(data(places) + point + x(:lon) + y(:lat) + map() +
+                        brush) "`point + x(lon) + y(lat) + brush(lon)`"
+    @test occursin("<circle", render_svg(data(places) + point + x(:lon) + y(:lat) +
+                                         brush(:lon, at = (-5, 25))))
+end

@@ -3100,3 +3100,17 @@ test("an axis holds one kind of value, whichever table a layer reads", () => {
   assert.ok(render_svg(plot(data(cats, { name: "cats" }), bar, x(col.g), y(col.v),
     data(lab, { name: "lab" }), text, label(col.t))).includes(">bee</text>"));
 });
+
+// A map is not brushed: it projects longitude and latitude before it draws, so a
+// range in degrees is no rectangle on the page, and a selection counted one set
+// of rows while it dimmed another. The refusal points at a flat plot of the same
+// columns, which draws. The same block runs in all four bindings.
+test("a map is not brushed, and the flat plot it points to draws", () => {
+  const places = { lon: [-10, 0, 20], lat: [40, 50, 60] };
+  assert.match(refusalOf(() => render_svg(plot(data(places), point, x(col.lon), y(col.lat), map(),
+    brush(col.lon, { at: [-5, 25] })))), /`brush` cannot select on a `map\(\)`/);
+  assert.match(refusalOf(() => render_svg(plot(data(places), point, x(col.lon), y(col.lat), map(),
+    brush))), /`point \+ x\(lon\) \+ y\(lat\) \+ brush\(lon\)`/);
+  assert.ok(render_svg(plot(data(places), point, x(col.lon), y(col.lat),
+    brush(col.lon, { at: [-5, 25] }))).includes("<circle"));
+});

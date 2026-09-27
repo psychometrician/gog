@@ -241,6 +241,13 @@ Each is now refused, with what to write instead.
   against one of numbers went wrong the same way. The refusal names each table
   and what it holds.
 
+- **`brush` on a `map()`.** A map moves longitude and latitude to projected
+  positions before it draws, and a brush on it could not agree with itself: a
+  written range counted the right rows and dimmed the wrong ones, a dragged
+  range dimmed the right ones and counted none, and a drag over a choropleth
+  cut countries into shapes nobody drew. The refusal points to the same
+  columns without `map()`, `point + x(lon) + y(lat) + brush(lon)`.
+
 - **An `edge` with no `layout`.** `data(trade_partners) + edge` drew an empty
   panel with axes marked 0 to 1, flat and in the cube, and with a `color()` a
   legend for nothing. Beside a `layout` on another layer in `network()`, the

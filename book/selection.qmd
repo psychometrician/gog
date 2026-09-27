@@ -325,8 +325,14 @@ data(gapminder_2007) + point + x(gdp) + y(life) +
   brush(gdp, at = c(60000, 20000))
 ```
 
-Apart from the backward range and the `edge`, every refusal in this section
-comes from two questions. Can the engine say which rows your selection holds?
+A map cannot be brushed at all. It projects longitude and latitude to new
+positions before it draws anything, and a brush on it would count one set of
+places while it dims another. So gog refuses any sentence with both `brush` and
+`map()`. To select places by longitude and latitude, brush the same two columns
+without `map()`.
+
+Apart from the backward range, the `edge` and the map, every refusal in this
+section comes from two questions. Can the engine say which rows your selection holds?
 And can it dim them while every mark keeps its place and its size? A played
 plot raises the first question again, because it draws only some of its rows at
 a time. The next section answers it.
@@ -636,18 +642,16 @@ labels down to keep the plot itself.
 
 ### Where pointing cannot answer
 
-On a brushed polar plot or map, the pointer shows no values. The reason is how
-the page finds a row. It computes where each row was drawn, from the row's own
+On a brushed polar plot, the pointer shows no values. The reason is how the
+page finds a row. It computes where each row was drawn, from the row's own
 value and the two ends of the axis the panel records. That is exact wherever a
-mark stands at its value, and these two spaces put every mark somewhere else on
-purpose.
+mark stands at its value. A polar plot puts every mark somewhere else on
+purpose: it turns `x` into an angle and `y` into a distance from the center.
 
-A polar plot turns `x` into an angle and `y` into a distance from the center,
-and a map projects longitude and latitude to new positions before it draws
-anything. So the pointer says nothing rather than naming a row that is not
-there, and a line under the plot gives the reason. Nothing can be stamped
-either. The page computes a position rather than reading one, so it stays silent
-wherever it cannot compute one.
+So the pointer says nothing rather than naming a row that is not there, and a
+line under the plot gives the reason. Nothing can be stamped either. The page
+computes a position rather than reading one, so it stays silent wherever it
+cannot compute one.
 
 A layer whose marks do not stand at their rows' values does not silence the
 pointer. `jitter` sets each point beside its value, `repel` moves each label

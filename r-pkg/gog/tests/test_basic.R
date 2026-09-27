@@ -4847,3 +4847,23 @@ local({
     stop("FAIL: one kind in both tables should draw")
   cat("PASS: an axis holds one kind of value, whichever table a layer reads\n")
 })
+
+# ---------------------------------------------------------------------------
+# A map is not brushed: it projects longitude and latitude before it draws, so a
+# range in degrees is no rectangle on the page, and a selection counted one set
+# of rows while it dimmed another. The refusal points at a flat plot of the same
+# columns, which draws. The same block runs in all four bindings.
+# ---------------------------------------------------------------------------
+local({
+  places <- data.frame(lon = c(-10, 0, 20), lat = c(40, 50, 60))
+  refuses("a brushed map",
+          render_svg(data(places) + point + x(lon) + y(lat) + map() + brush(lon, at = c(-5, 25))),
+          "`brush` cannot select on a `map()`")
+  refuses("a map brushed by both positions",
+          render_svg(data(places) + point + x(lon) + y(lat) + map() + brush),
+          "`point + x(lon) + y(lat) + brush(lon)`")
+  svg <- render_svg(data(places) + point + x(lon) + y(lat) + brush(lon, at = c(-5, 25)))
+  if (!grepl("<circle", svg, fixed = TRUE))
+    stop("FAIL: the flat plot the refusal points to should draw")
+  cat("PASS: a map is not brushed, and the flat plot it points to draws\n")
+})
