@@ -4542,6 +4542,28 @@ fn graph_layout(df: &DataFrame, from: &str, to: &str, dims: usize) -> Option<Gra
         };
         edges.push((i, j, r));
     }
+
+    // **Row order cannot move a node.** The seed below is each node's name, but
+    // the relaxation sums its forces in node and edge order, and a sum of floats
+    // rounds differently in a different order: the book's 22 trade rows,
+    // shuffled, sorted or reversed, moved nodes by 0.12 to 0.31 px. So the nodes
+    // are put in name order and the edges in the order of their end pairs before
+    // anything is summed, and the order of the rows no longer reaches a position.
+    // Two rows naming one pair stay in row order, which is harmless: their forces
+    // are equal, and equal terms sum alike in either order.
+    let mut order: Vec<usize> = (0..nodes.len()).collect();
+    order.sort_by(|&x, &y| nodes[x].cmp(&nodes[y]));
+    let mut rank = vec![0usize; nodes.len()];
+    for (sorted, &first_seen) in order.iter().enumerate() {
+        rank[first_seen] = sorted;
+    }
+    let nodes: Vec<String> = order.iter().map(|&k| nodes[k].clone()).collect();
+    for edge in edges.iter_mut() {
+        edge.0 = rank[edge.0];
+        edge.1 = rank[edge.1];
+    }
+    edges.sort_by_key(|&(i, j, r)| (i.min(j), i.max(j), i, j, r));
+
     let n = nodes.len();
     if n < 2 || edges.is_empty() {
         return None;
@@ -5163,6 +5185,41 @@ mod tests {
             }
             assert_eq!(one.float_col(LAYOUT_Z).is_some(), dims == 3,
                 "the third coordinate exists exactly in the cube");
+        }
+    }
+
+    /// **Row order cannot move a node.** The seed is each node's name, but the
+    /// relaxation sums forces in node and edge order, so the same rows in another
+    /// order used to move nodes by a fraction of a pixel (0.12 to 0.31 px on the
+    /// book's 22 trade rows). Every node lands on the same bits in any row order.
+    #[test]
+    fn row_order_cannot_move_a_node() {
+        let pairs = [
+            ("USA", "CAN"), ("USA", "MEX"), ("CAN", "MEX"), ("CHN", "USA"), ("CHN", "JPN"),
+            ("JPN", "KOR"), ("KOR", "CHN"), ("DEU", "FRA"), ("FRA", "ITA"), ("ITA", "DEU"),
+            ("DEU", "CHN"), ("GBR", "DEU"), ("GBR", "USA"), ("BRA", "USA"), ("BRA", "CHN"),
+            ("IND", "USA"), ("IND", "CHN"), ("AUS", "CHN"), ("AUS", "JPN"), ("MEX", "CHN"),
+        ];
+        let frame = |order: &[usize]| {
+            DataFrame::new()
+                .with_str("a", order.iter().map(|&k| pairs[k].0.to_string()).collect())
+                .with_str("b", order.iter().map(|&k| pairs[k].1.to_string()).collect())
+        };
+        let forward: Vec<usize> = (0..pairs.len()).collect();
+        let reversed: Vec<usize> = forward.iter().rev().copied().collect();
+        let shuffled: Vec<usize> = (0..pairs.len()).map(|k| (k * 7 + 3) % pairs.len()).collect();
+        for dims in [2usize, 3] {
+            let place = |order: &[usize]| {
+                let p = layout_places(&frame(order), "a", "b", dims).expect("a graph");
+                let mut named: Vec<(String, Vec<f64>)> =
+                    p.at.iter().map(|(n, &i)| (n.clone(), p.pos[i].clone())).collect();
+                named.sort_by(|x, y| x.0.cmp(&y.0));
+                named
+            };
+            let base = place(&forward);
+            for other in [&reversed, &shuffled] {
+                assert_eq!(place(other), base, "the same rows in another order moved a node ({dims}-D)");
+            }
         }
     }
 

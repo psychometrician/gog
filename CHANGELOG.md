@@ -67,6 +67,11 @@ CRAN-style repositories and PyPI, `GrammarOfGraphics` on Julia's General, and
   times. A GIF also keeps a `speed` written on a `play` before the marks, which
   it used to ignore.
 
+- **A network's layout no longer depends on the order of its rows.** The same
+  rows in another order used to move nodes by a fraction of a pixel. Every node
+  now lands in the same place whatever order the table's rows are in, which
+  moves the network figures by about a pixel once.
+
 - **A network keeps its layout across panels, and packs its separate parts.**
   Under `| facet()` every panel now places each node where the others do, and
   draws only the edges its own rows state, so panels can be compared node by
