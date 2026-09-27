@@ -168,9 +168,39 @@ which [Selection](../selection.qmd#stamping-a-point) calls a stamp. Stamps help
 you choose those rows. A stamp is gone when the page reloads, while a `text`
 label is part of the specification and is drawn every time.
 
-The setting and the collision modifier can be used together, and each does one
-job. `style(nudge = )` chooses the side each label is pulled toward, and `repel`
-then moves the labels that still overlap:
+In the next plot, the dots come from `gapminder_2007`, which holds all 142
+countries. The names come from `gm_populous`, the ten countries with the most
+people in 2007. `gm_populous` has the same columns, so the `text` layer reads
+`gdp` and `life` from it:
+
+```{r}
+#| echo: false
+peek(gapminder_2007)
+peek(gm_populous)
+```
+
+```{r}
+data(gapminder_2007) + point + style(color = "#9e9e9e") +
+  x(gdp, scale = "log") + y(life) +
+  data(gm_populous) + text * repel + label(country) +
+  x_label("GDP per capita") + y_label("Life expectancy") +
+  title("The ten most populous of 142 countries, named")
+```
+
+*"Given gapminder 2007: points, x is gdp on a log scale, y is life, and also
+text from the ten most populous countries, derived by repel, label by
+country."*
+
+The `gdp` axis uses a log scale ([Scales](../scales.qmd)), which gives the many
+poorer countries more room. `repel` moves the names off the 132 unnamed dots
+too, though they come from another table. It moves a name off those dots only a
+little, never far enough for gog to draw a thin line. So a name can still cover
+some of them: United States covers several at the top right, and Bangladesh
+covers two. A [halo](#a-halo-around-each-label) keeps such a name readable.
+
+A nudge and `repel` can be used together, and each does one job.
+`style(nudge = )` chooses the side each label is pulled toward, and `repel` then
+moves the labels that still overlap:
 
 ```{r}
 data(gm_europe) + point + style(color = "#9e9e9e") +
@@ -185,7 +215,7 @@ life, label by country, with nudge right."*
 With every label pulled to the right of its dot, four labels run into their
 neighbors there, and `repel` moves those four far enough to need a thin line.
 Norway's dot is at the right edge of the panel, so its label has no room on its
-right and ends up over its own dot.
+right and is drawn over its own dot.
 
 ## Number labels: the value on each mark
 
@@ -313,11 +343,6 @@ table with one row in it puts one string on the plot:
 
 ```{r}
 #| echo: false
-peek(gapminder_2007)
-```
-
-```{r}
-#| echo: false
 peek(income_note)
 ```
 
@@ -333,11 +358,11 @@ income note, label by what."*
 The note sits in an empty corner of the scatter: no country in 2007 has an
 income that high with lives that short.
 
-That plot needed nothing new in the grammar. Each layer already reads the
-nearest `data()` written before it, and `text` already draws one string per
-row. The note is data like any other, so it is scaled like any other. Give the
-note an `x` far from the points, and the axes stretch to cover it, so check the
-axes each time you place a note.
+That plot needed nothing new in the grammar. A mark written directly after a
+`data()` already reads that table, and `text` already draws one string per row.
+The note is data like any other, so it is scaled like any other. Give the note
+an `x` far from the points, and the axes stretch to cover it, so check the axes
+each time you place a note.
 
 One rule applies while writing a note. The `text` layer names no position of its
 own, so it reads the columns the axes use, `gdp` and `life`, from its own table.

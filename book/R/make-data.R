@@ -56,6 +56,14 @@ gm_continents <- gm_all[gm_all$continent %in% c("Americas", "Europe", "Asia"), ]
 gm_europe <- gapminder_2007[gapminder_2007$continent == "Europe", ]
 stopifnot(nrow(gm_europe) == 30)
 
+# -- The ten most populous countries of 2007 (naming a few rows) ------------
+# A label layer over a fuller table: `text * repel` names these ten over the
+# 142 dots of `gapminder_2007`, the usual way to label a large scatter. Chosen
+# by a rule the prose can state, not by hand, and ordered by that rule, since
+# `repel` settles overlaps in row order.
+gm_populous <- gapminder_2007[order(-gapminder_2007$population), ][1:10, ]
+stopifnot(nrow(gm_populous) == 10)
+
 # -- Five Asian countries over time (line chart examples) -------------------
 # gapminder spells it "Korea, Rep."; asking for "South Korea" matched nothing
 # and this frame quietly held four countries while claiming five.
@@ -944,11 +952,26 @@ dir.create(.gog_out, showWarnings = FALSE, recursive = TRUE)
 .gog_env <- environment()
 .gog_frames <- sort(Filter(function(n) is.data.frame(get(n, envir = .gog_env)),
                            ls(envir = .gog_env)))
+# A frame whose bytes did not change is left alone rather than rewritten.
+# `data/` is one of the book's `resources:`, and a running `quarto preview` reads
+# a new timestamp there as a changed project, so rewriting all of them to add
+# one table re-rendered every chapter on its next visit.
+.gog_changed <- character()
 for (.n in .gog_frames) {
   .d <- get(.n, envir = .gog_env)
   .flat <- as.data.frame(lapply(.d, .gog_as_csv), stringsAsFactors = FALSE,
                          check.names = FALSE)
-  write.csv(.flat, file.path(.gog_out, paste0(.n, ".csv")),
-            row.names = FALSE, quote = TRUE, na = "")
+  .path <- file.path(.gog_out, paste0(.n, ".csv"))
+  .tmp <- tempfile(fileext = ".csv")
+  write.csv(.flat, .tmp, row.names = FALSE, quote = TRUE, na = "")
+  .same <- file.exists(.path) && file.size(.path) == file.size(.tmp) &&
+    identical(readBin(.path, "raw", file.size(.path)), readBin(.tmp, "raw", file.size(.tmp)))
+  if (!.same) {
+    file.copy(.tmp, .path, overwrite = TRUE)
+    .gog_changed <- c(.gog_changed, .n)
+  }
+  unlink(.tmp)
 }
-cat("wrote", length(.gog_frames), "CSVs to", .gog_out, "\n")
+cat("wrote", length(.gog_changed), "of", length(.gog_frames), "CSVs to", .gog_out,
+    if (length(.gog_changed)) paste0("(", paste(.gog_changed, collapse = ", "), ")"),
+    "\n")

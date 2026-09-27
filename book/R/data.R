@@ -60,6 +60,7 @@ gapminder_2007 <- .gog_read("gapminder_2007")
 gapminder_asia <- .gog_read("gapminder_asia")
 gm_continents  <- .gog_read("gm_continents")
 gm_europe      <- .gog_read("gm_europe")
+gm_populous    <- .gog_read("gm_populous")
 gm_europe_cdf  <- .gog_read("gm_europe_cdf")
 
 gm_eras <- .gog_read("gm_eras", chr = "era")
@@ -192,6 +193,7 @@ monitoring$at <- as.POSIXct(monitoring$at, tz = "UTC")
 # truncated or mis-parsed CSV fails here rather than in a plot.
 stopifnot(
   nrow(gm_europe) == 30,
+  nrow(gm_populous) == 10,
   length(unique(gapminder_asia$country)) == 5,
   nrow(quakes_fiji) == 1000,
   !anyNA(quakes_fiji$slab),
