@@ -5026,3 +5026,17 @@ local({
     stop("FAIL: the legend should key only the categories the flow drew")
   cat("PASS: a legend keys only the categories the plot colored\n")
 })
+
+# ---------------------------------------------------------------------------
+# Under `repel` an empty label names nothing: no text and no leader line, where
+# it drew a leader to nothing. The same block runs in all four bindings.
+# ---------------------------------------------------------------------------
+local({
+  t <- data.frame(x = rep(0:3, 3), y = rep(c(0, 0.2, 0.4), each = 4),
+                  lab = c("named", rep("", 11)))
+  svg <- render_svg(data(t) + point + x(x) + y(y) + text * repel + label(lab))
+  if (lengths(regmatches(svg, gregexpr('stroke-width="0.7"', svg, fixed = TRUE))) > 1 ||
+      grepl("></text>", svg, fixed = TRUE))
+    stop("FAIL: an empty label under repel should draw no text and no leader")
+  cat("PASS: an empty label under repel draws no text and no leader\n")
+})

@@ -3248,3 +3248,13 @@ test("a legend keys only the categories the plot colored", () => {
   }
   assert.ok(!svg.includes(">gone</text>") && svg.includes(">q</text>"));
 });
+
+// Under `repel` an empty label names nothing: no text and no leader line, where
+// it drew a leader to nothing. The same block runs in all four bindings.
+test("an empty label under repel draws no text and no leader", () => {
+  const emp = { x: [...Array(12).keys()].map((i) => i % 4),
+    y: [...Array(12).keys()].map((i) => Math.floor(i / 4) * 0.2),
+    lab: ["named", ...Array(11).fill("")] };
+  const svg = render_svg(plot(data(emp), point, x(col.x), y(col.y), layer(text, repel), label(col.lab)));
+  assert.ok((svg.match(/stroke-width="0.7"/g) || []).length <= 1 && !svg.includes("></text>"));
+});

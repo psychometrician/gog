@@ -3051,3 +3051,14 @@ with contextlib.redirect_stderr(io.StringIO()):
     _svg = render_svg(data(_gone, name="gone") + ribbon * flow(col.a, col.b) + y(col.n) + color(col.a))
 assert ">gone</text>" not in _svg and ">q</text>" in _svg
 ok("a legend keys only the categories the plot colored")
+
+
+# --- An empty label under `repel` ---------------------------------------------
+# It names nothing: no text and no leader line, where it drew a leader to
+# nothing. The same block runs in all four bindings.
+_emp = {"x": [float(i % 4) for i in builtins.range(12)],
+        "y": [(i // 4) * 0.2 for i in builtins.range(12)],
+        "lab": ["named"] + [""] * 11}
+_svg = render_svg(data(_emp, name="emp") + point + x(col.x) + y(col.y) + text * repel + label(col.lab))
+assert _svg.count('stroke-width="0.7"') <= 1 and "></text>" not in _svg
+ok("an empty label under repel draws no text and no leader")

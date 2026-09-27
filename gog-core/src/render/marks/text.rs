@@ -124,8 +124,16 @@ impl SvgRenderer {
         // *against one another*, so it has to see all of them before it can place
         // the first (spec §5). Without it this list is just the loop's filter.
         let mut rows: Vec<(usize, f64, f64)> = Vec::with_capacity(n);
+        let repel = layer.transforms.contains(&Transform::Repel);
         for i in 0..n {
             if !(x_vals[i].is_finite() && y_vals[i].is_finite()) {
+                continue;
+            }
+            // An empty label names nothing, so under `repel` it is not placed and
+            // earns no leader: ggrepel's `label = ""` idiom, which keeps a point as
+            // an obstacle without naming it. Its dot, drawn by its own layer, stays
+            // an obstacle for the named labels. It drew a leader line to nothing.
+            if repel && labels[i].trim().is_empty() {
                 continue;
             }
             let (bx, by) = match globe {
@@ -142,7 +150,7 @@ impl SvgRenderer {
         // The fourth collision modifier. A dot's overlap is its position and a
         // label's is its *ink*, so this is the one offset that cannot be computed
         // before the glyphs have a size — and this is where they get one.
-        let repelled = layer.transforms.contains(&Transform::Repel).then(|| {
+        let repelled = repel.then(|| {
             // The dots, sorted into two kinds by where they sit. A dot drawn at
             // a label's own anchor is *its* dot: it sets how far that label rests
             // off its point, at the largest radius drawn there, and a sized dot

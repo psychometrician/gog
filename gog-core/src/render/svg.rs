@@ -7987,6 +7987,30 @@ mod tests {
         assert_eq!(dated(text_of(&wide.render(&spec, &six_weeks(42)))), 22);
     }
 
+    /// Under `repel` an empty label names nothing, so it is not placed and earns no
+    /// leader: ggrepel's `label = ""` idiom. It drew a leader line to nothing.
+    #[test]
+    fn an_empty_label_under_repel_draws_no_text_and_no_leader() {
+        let s = |v: &[&str]| v.iter().map(|x| x.to_string()).collect::<Vec<_>>();
+        let n = 12;
+        let xs: Vec<f64> = (0..n).map(|i| (i % 4) as f64).collect();
+        let ys: Vec<f64> = (0..n).map(|i| (i / 4) as f64 * 0.2).collect();
+        let mut labs = vec![""; n];
+        labs[0] = "named";
+        let t: HashMap<String, DataFrame> = HashMap::from([(
+            "t".to_string(),
+            DataFrame::new().with_float("x", xs).with_float("y", ys).with_str("lab", s(&labs)),
+        )]);
+        let spec = PlotSpec::new().data("t").x("x").y("y")
+            .layer(Layer::new(Mark::Point))
+            .layer(Layer::new(Mark::Text).transform(Transform::Repel).encode(Channel::Label, "lab"));
+        let svg = SvgRenderer::default().render(&spec, &t);
+        assert!(svg.contains(">named</text>"), "the one name is drawn");
+        assert!(svg.matches("stroke-width=\"0.7\"").count() <= 1,
+                "no leader for an empty label:\n{svg}");
+        assert!(!svg.contains("></text>"), "no empty label is written");
+    }
+
     /// A flow that leaves a category's rows out for a missing stage draws no band
     /// for it, so its legend lists no key for it either: "Crew" was keyed in the
     /// first category's color over bands that never drew it.

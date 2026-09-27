@@ -2608,3 +2608,12 @@ end
     end
     @test !occursin(">gone</text>", svg) && occursin(">q</text>", svg)
 end
+
+# Under `repel` an empty label names nothing: no text and no leader line, where
+# it drew a leader to nothing. The same block runs in all four bindings.
+@testset "an empty label under repel draws no text and no leader" begin
+    emp = (x = [Float64(i % 4) for i in 0:11], y = [div(i, 4) * 0.2 for i in 0:11],
+           lab = vcat(["named"], fill("", 11)))
+    svg = render_svg(data(emp) + point + x(:x) + y(:y) + text * repel + label(:lab))
+    @test Base.count("stroke-width=\"0.7\"", svg) <= 1 && !occursin("></text>", svg)
+end

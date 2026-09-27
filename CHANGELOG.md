@@ -48,6 +48,11 @@ CRAN-style repositories and PyPI, `GrammarOfGraphics` on Julia's General, and
 
 ### Changed
 
+- **An empty label under `repel` draws nothing.** A label of `""` under
+  `text * repel` still drew a leader line from its point to nothing. An empty
+  label now draws no text and no leader, so `label = ""` keeps a point as
+  something the other labels move around without naming it.
+
 - **A legend keys only the categories the plot colored.** A `flow` that left
   out Crew's rows for a missing stage drew no Crew band, and its legend still
   listed Crew, in 1st class's color. A category left out of the drawing is now
