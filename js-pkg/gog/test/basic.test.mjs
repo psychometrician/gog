@@ -3294,8 +3294,10 @@ test("a facet panel reads the whole layer's size scale", () => {
 test("a size key under a summary reads the summaries", () => {
   const svg = render_svg(plot(data({ g: ["a", "a", "b", "b"], v: [10, 30, 50, 70] }),
     layer(point, mean), x(col.g), y(col.v), size(col.v)));
-  assert.ok(svg.includes(">20.00</text>") && svg.includes(">60.00</text>"));
-  assert.ok(!svg.includes(">10.00</text>"));
+  // The key's top row and the axis's top tick both read 60; the raw column's ends,
+  // 10 and 70, appear nowhere.
+  assert.equal(svg.split(">60</text>").length - 1, 2);
+  assert.ok(!svg.includes(">10</text>") && !svg.includes(">70</text>"));
 });
 
 // A legend that would leave its panel narrower than itself is left out and said,

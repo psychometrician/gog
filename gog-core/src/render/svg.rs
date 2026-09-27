@@ -8199,7 +8199,7 @@ mod tests {
             let labels = text_of(&SvgRenderer::default().render(&spec, &t));
             // The key is drawn last: its title, then its three rows.
             let key = &labels[labels.len().saturating_sub(3)..];
-            assert_eq!(key, ["20.00", "40.00", "60.00"],
+            assert_eq!(key, ["20", "40", "60"],
                        "{ch:?}'s key runs from the lowest mean to the highest: {labels:?}");
         }
     }
@@ -12108,7 +12108,7 @@ mod tests {
             .layer(Layer::new(Mark::Point).encode(Channel::Color, "v"));
         let svg = SvgRenderer::default().render(&spec, &data);
         // Labeled at min / mid / max…
-        for want in [">10.00<", ">20.00<", ">30.00<"] {
+        for want in [">10<", ">20<", ">30<"] {
             assert!(svg.contains(want), "legend should show {want}");
         }
         // …but drawn as one continuous strip, not three sampled swatches.
@@ -12203,7 +12203,7 @@ mod tests {
             let svg = SvgRenderer::default()
                 .render(&base.clone().layer(Layer::new(Mark::Point).encode(ch.clone(), "v")), &data);
             assert!(!svg.contains("<linearGradient"), "{ch:?} should be sampled, not a strip");
-            assert!(svg.contains(">20.00<"), "{ch:?} should still label its midpoint");
+            assert!(svg.contains(">20<"), "{ch:?} should still label its midpoint");
         }
     }
 
@@ -12227,8 +12227,8 @@ mod tests {
         assert_eq!(first_stop.to_lowercase(), RAMP_BLUE[0], "offset 0 should be the light end");
 
         // And the max label precedes the min label in document order (top row first).
-        let max_at = svg.find(">30.00<").unwrap();
-        let min_at = svg.find(">10.00<").unwrap();
+        let max_at = svg.find(">30<").unwrap();
+        let min_at = svg.find(">10<").unwrap();
         assert!(max_at < min_at, "the largest value should be labeled at the top");
     }
 
@@ -14049,7 +14049,7 @@ mod tests {
             .filter_map(|l| l.rsplit('>').nth(1)?.split('<').next())
             .filter(|s| s.parse::<f64>().is_ok())
             .map(str::to_string).collect();
-        assert_eq!(labels, ["10.00", "6.50", "3.00"],
+        assert_eq!(labels, ["10", "6.5", "3"],
             "the key spans the reduced values, not the raw column's 1..10");
     }
 
@@ -15495,7 +15495,7 @@ mod tests {
         let shared = SvgRenderer::default().render(&spec(true), &data);
         assert_ne!(summed, shared, "`proportion` must change what the cells carry");
         // The four sums are 3, 7, 11 and 15 of 36, so the ramp ends at 15/36.
-        assert!(shared.contains(">0.42<"), "the legend should read shares: {shared}");
+        assert!(shared.contains(">0.417<"), "the legend should read shares: {shared}");
         assert!(shared.contains(">Y<"), "and keep the column's name: {shared}");
     }
 

@@ -2652,8 +2652,10 @@ end
 @testset "a size key under a summary reads the summaries" begin
     svg = render_svg(data((g = ["a", "a", "b", "b"], v = [10.0, 30.0, 50.0, 70.0])) +
                      point * mean + x(:g) + y(:v) + size(:v))
-    @test occursin(">20.00</text>", svg) && occursin(">60.00</text>", svg)
-    @test !occursin(">10.00</text>", svg)
+    # The key's top row and the axis's top tick both read 60; the raw column's
+    # ends, 10 and 70, appear nowhere.
+    @test Base.count(">60</text>", svg) == 2
+    @test !occursin(">10</text>", svg) && !occursin(">70</text>", svg)
 end
 
 # A legend that would leave its panel narrower than itself is left out and said,

@@ -30,18 +30,32 @@ use crate::scale::ChannelScale;
 /// Large magnitudes get a suffix. A log ramp over population runs from about
 /// 200 thousand to 1.3 billion, and "1318683096" under a swatch is a number
 /// nobody reads — it is measured, not read.
+///
+/// **Each tier keeps its precision and drops the zeros it leaves.** A count key
+/// read 38.00 / 22.00 / 6.00 and a year key 2007.0 / 1979.5 / 1952.0; they read
+/// 38 / 22 / 6 and 2007 / 1979.5 / 1952. The middle row is the value halfway
+/// along the scale, so a half is printed when that is where the middle is.
+/// Below one the precision is three significant digits rather than two
+/// decimals, which printed a share of 0.004 as 0.00, the same as zero.
 fn fmt_value(v: f64) -> String {
     let abs = v.abs();
-    let trim = |x: f64, suffix: &str| {
-        let s = format!("{x:.1}");
-        format!("{}{suffix}", s.strip_suffix(".0").unwrap_or(&s))
+    let bare = |s: String| -> String {
+        match s.contains('.') {
+            true => s.trim_end_matches('0').trim_end_matches('.').to_string(),
+            false => s,
+        }
     };
+    let trim = |x: f64, suffix: &str| format!("{}{suffix}", bare(format!("{x:.1}")));
     if abs == 0.0           { "0".into() }
     else if abs >= 1e9      { trim(v / 1e9, "B") }
     else if abs >= 1e6      { trim(v / 1e6, "M") }
     else if abs >= 10_000.0 { trim(v / 1e3, "K") }
-    else if abs >= 100.0    { format!("{v:.1}") }
-    else                    { format!("{v:.2}") }
+    else if abs >= 100.0    { bare(format!("{v:.1}")) }
+    else if abs >= 1.0      { bare(format!("{v:.2}")) }
+    else {
+        let decimals = (2 - abs.log10().floor() as i32).max(2) as usize;
+        bare(format!("{v:.decimals$}"))
+    }
 }
 
 // ---------------------------------------------------------------------------
@@ -691,3 +705,21 @@ pub(crate) fn write_legends(
             cur_y += box_h + LEGEND_BOX_GAP;
         }
     }
+
+#[cfg(test)]
+mod tests {
+    use super::fmt_value;
+
+    /// A key prints each tier's precision without the zeros it leaves: a count
+    /// read 38.00, a year 2007.0, and a share of 0.004 read 0.00, as zero did.
+    #[test]
+    fn a_key_prints_its_numbers_without_trailing_zeros() {
+        let printed = |vals: &[f64]| vals.iter().map(|&v| fmt_value(v)).collect::<Vec<_>>();
+        assert_eq!(printed(&[38.0, 22.0, 6.0]), ["38", "22", "6"]);
+        assert_eq!(printed(&[2007.0, 1979.5, 1952.0]), ["2007", "1979.5", "1952"]);
+        assert_eq!(printed(&[500.0, 275.0, 50.0]), ["500", "275", "50"]);
+        assert_eq!(printed(&[54.81, 5.5, -3.0]), ["54.81", "5.5", "-3"]);
+        assert_eq!(printed(&[0.03, 0.015, 0.004, 0.0]), ["0.03", "0.015", "0.004", "0"]);
+        assert_eq!(printed(&[20_000.0, 1.25e6, 1.3e9]), ["20K", "1.2M", "1.3B"]);
+    }
+}

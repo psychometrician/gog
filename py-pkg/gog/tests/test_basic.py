@@ -3106,7 +3106,9 @@ ok("a facet panel reads the whole layer's size scale")
 # raw column. The same block runs in all four bindings.
 _sk = render_svg(data({"g": ["a", "a", "b", "b"], "v": [10.0, 30.0, 50.0, 70.0]}, name="sk")
                  + point * mean + x(col.g) + y(col.v) + size(col.v))
-assert ">20.00</text>" in _sk and ">60.00</text>" in _sk and ">10.00</text>" not in _sk
+# The key's top row and the axis's top tick both read 60; the raw column's ends,
+# 10 and 70, appear nowhere.
+assert _sk.count(">60</text>") == 2 and ">10</text>" not in _sk and ">70</text>" not in _sk
 ok("a size key under a summary reads the summaries")
 
 

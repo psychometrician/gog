@@ -5090,8 +5090,10 @@ local({
 local({
   t <- data.frame(g = c("a", "a", "b", "b"), v = c(10, 30, 50, 70))
   svg <- render_svg(data(t) + point * mean + x(g) + y(v) + size(v))
-  if (!grepl(">20.00</text>", svg, fixed = TRUE) || !grepl(">60.00</text>", svg, fixed = TRUE) ||
-      grepl(">10.00</text>", svg, fixed = TRUE))
+  # The key's top row and the axis's top tick both read 60; the raw column's
+  # ends, 10 and 70, appear nowhere.
+  if (lengths(regmatches(svg, gregexpr(">60</text>", svg, fixed = TRUE))) != 2 ||
+      grepl(">10</text>", svg, fixed = TRUE) || grepl(">70</text>", svg, fixed = TRUE))
     stop("FAIL: a size key under a summary should read the means")
   cat("PASS: a size key under a summary reads the summaries\n")
 })

@@ -48,6 +48,11 @@ CRAN-style repositories and PyPI, `GrammarOfGraphics` on Julia's General, and
 
 ### Changed
 
+- **Legend numbers drop their trailing zeros.** A count key read
+  38.00 / 22.00 / 6.00 and a year key 2007.0 / 1979.5 / 1952.0; they read
+  38 / 22 / 6 and 2007 / 1979.5 / 1952. Numbers below 1 keep three significant
+  digits, where two decimals printed a share of 0.004 as 0.00.
+
 - **Nodes sized by their `degree` draw a key.** A layout makes the `degree`
   column, so the table does not hold it, and `point * layout(from, to) +
   size(degree)` sized its nodes with no legend to read them by. The key now
