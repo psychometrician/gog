@@ -2776,3 +2776,13 @@ end
     end
     @test occursin("`bar * sum` packs one region per group", said)
 end
+
+# A layout makes `degree`, so the table does not hold it, and nodes sized by it
+# drew no key. The key reads the frame the nodes were drawn from. The same block
+# runs in all four bindings.
+@testset "a size on a layout's degree draws its key" begin
+    hub = (a = fill("Hub", 4), b = ["p", "q", "r", "s"])
+    svg = render_svg(data(hub) + edge * layout(:a, :b) + point * layout(:a, :b) +
+                     size(:degree) + network())
+    @test occursin(">Degree</text>", svg)
+end

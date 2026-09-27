@@ -8131,6 +8131,25 @@ mod tests {
                 "`a` is solid and `b` takes the second dash in its own panel: {lines:?}");
     }
 
+    /// A layout makes its `degree` column, so the table a key used to read it from
+    /// does not hold it, and nodes sized by their degree drew no key. The key reads
+    /// the frame the nodes were drawn from.
+    #[test]
+    fn a_size_on_a_layouts_degree_draws_its_key() {
+        let hub = DataFrame::new()
+            .with_str("a", vec!["Hub".into(); 4])
+            .with_str("b", vec!["p".into(), "q".into(), "r".into(), "s".into()]);
+        let data = HashMap::from([("t".to_string(), hub)]);
+        let mut point = Layer::new(Mark::Point).layout("a", "b");
+        point.encodings.insert(Channel::Size, crate::ir::ChannelDef::field("degree"));
+        let spec = PlotSpec::new().data("t")
+            .layer(Layer::new(Mark::Edge).layout("a", "b"))
+            .layer(point)
+            .coord(CoordSpace::Network(crate::ir::NetworkView::default()));
+        let labels = text_of(&SvgRenderer::default().render(&spec, &data));
+        assert!(labels.iter().any(|l| l == "Degree"), "a key titled Degree: {labels:?}");
+    }
+
     /// A legend is set aside beside the panels before they are laid out, so a plot
     /// too narrow for it drew a panel of negative width with no message. A legend
     /// that would leave the panel narrower than itself is left out and said so.

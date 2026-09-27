@@ -3228,3 +3228,12 @@ try:
 except GogError as refusal:
     assert "`bar * sum` packs one region per group" in str(refusal), refusal
 ok("a nest refuses layers that pack different rows")
+
+
+# --- A size on a layout's degree draws its key -------------------------------------
+# A layout makes `degree`, so the table does not hold it, and nodes sized by it drew
+# no key. The same block runs in all four bindings.
+_hub = {"a": ["Hub"] * 4, "b": ["p", "q", "r", "s"]}
+assert ">Degree</text>" in render_svg(data(_hub, name="hub") + edge * layout(col.a, col.b)
+                                      + point * layout(col.a, col.b) + size(col.degree) + network())
+ok("a size on a layout's degree draws its key")

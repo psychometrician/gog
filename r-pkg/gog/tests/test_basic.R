@@ -5228,3 +5228,16 @@ local({
     stop("FAIL: a summed layer beside a plain one in a nest should be refused: ", said)
   cat("PASS: a nest refuses layers that pack different rows\n")
 })
+
+# ---------------------------------------------------------------------------
+# A layout makes `degree`, so the table does not hold it, and nodes sized by it
+# drew no key. The key reads the frame the nodes were drawn from. The same block
+# runs in all four bindings.
+# ---------------------------------------------------------------------------
+local({
+  hub <- data.frame(a = rep("Hub", 4), b = c("p", "q", "r", "s"))
+  svg <- render_svg(data(hub) + edge * layout(a, b) + point * layout(a, b) + size(degree) + network())
+  if (!grepl(">Degree</text>", svg, fixed = TRUE))
+    stop("FAIL: a size on a layout's degree should draw its key")
+  cat("PASS: a size on a layout's degree draws its key\n")
+})

@@ -14,7 +14,7 @@ use std::collections::HashMap;
 use std::fmt::Write;
 
 use crate::data::{categories_across, DataFrame};
-use crate::ir::{Channel, ChannelDef, PlotSpec};
+use crate::ir::{Channel, ChannelDef, Layer, PlotSpec};
 use crate::legality::{Diagnostic, DiagnosticKind};
 use crate::render::palette::{ramp_at, resolve_ramp, PALETTE_GOG};
 use crate::render::pattern::{dash_for_index, fill_texture_for_index, pattern_dasharray, FillTexture};
@@ -395,8 +395,7 @@ pub(crate) fn collect_legends(
     // Size legend (numeric column — show min / mid / max)
     'size: for (i, layer) in spec.layers.iter().enumerate().filter(|_| keyed(spec, &Channel::Size)) {
         let Some(def) = layer.encodings.get(&Channel::Size) else { continue };
-        let Some(df)  = ctx.resolve_data(&layer.data)       else { continue };
-        let Some(col) = df.float_col(&def.field)            else { continue };
+        let Some((df, col)) = key_source(ctx, layer, wholes.get(i), &def.field) else { continue };
         let sc = drawn_scale(wholes.get(i), col, &def.field, Some(def));
         let rows = [0.0, 0.5, 1.0].iter().map(|&f| LegendRow {
             label:  continuous_label(df, &def.field, sc.value_at(f)),
@@ -409,8 +408,7 @@ pub(crate) fn collect_legends(
     // Opacity legend (numeric column — show min / mid / max), mirroring size.
     'opacity: for (i, layer) in spec.layers.iter().enumerate().filter(|_| keyed(spec, &Channel::Opacity)) {
         let Some(def) = layer.encodings.get(&Channel::Opacity) else { continue };
-        let Some(df)  = ctx.resolve_data(&layer.data)          else { continue };
-        let Some(col) = df.float_col(&def.field)               else { continue };
+        let Some((df, col)) = key_source(ctx, layer, wholes.get(i), &def.field) else { continue };
         let sc = drawn_scale(wholes.get(i), col, &def.field, Some(def));
         let rows = [0.0, 0.5, 1.0].iter().map(|&f| LegendRow {
             label:  continuous_label(df, &def.field, sc.value_at(f)),
@@ -432,6 +430,20 @@ fn drawn_scale(
         Some(w) if w.has_numbers(field) => w.scale(field, def),
         _ => ChannelScale::of(col, def),
     }
+}
+
+/// The frame a numeric key reads its column from, for the labels' format: the
+/// layer's table, or the frame its marks were drawn from when the table does not
+/// hold the column. A layout's `degree` is made by the transform, so
+/// `point * layout(from, to) + size(degree)` sized its nodes and drew no key.
+fn key_source<'a>(
+    ctx: &'a RenderContext<'a>, layer: &Layer, whole: Option<&'a Whole<'a>>, field: &str,
+) -> Option<(&'a DataFrame, &'a [f64])> {
+    ctx.resolve_data(&layer.data)
+        .and_then(|df| df.float_col(field).map(|col| (df, col.as_slice())))
+        .or_else(|| whole.and_then(|w| {
+            w.unsplit.float_col(field).map(|col| (w.unsplit, col.as_slice()))
+        }))
 }
 
 /// The categories a key lists, in the order its layer's marks were assigned

@@ -48,6 +48,11 @@ CRAN-style repositories and PyPI, `GrammarOfGraphics` on Julia's General, and
 
 ### Changed
 
+- **Nodes sized by their `degree` draw a key.** A layout makes the `degree`
+  column, so the table does not hold it, and `point * layout(from, to) +
+  size(degree)` sized its nodes with no legend to read them by. The key now
+  reads the frame the nodes were drawn from, and so does an `opacity` key.
+
 - **A line is told it zigzags only when it does.** Every `line` of more than
   five rows with no `group` or `color` was told its points would be joined in x
   order, so each single series heard it, and so did each panel of

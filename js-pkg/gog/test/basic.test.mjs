@@ -3402,3 +3402,13 @@ test("a nest refuses layers that pack different rows", () => {
     /`bar \* sum` packs one region per group/
   );
 });
+
+// A layout makes `degree`, so the table does not hold it, and nodes sized by it
+// drew no key. The key reads the frame the nodes were drawn from. The same block
+// runs in all four bindings.
+test("a size on a layout's degree draws its key", () => {
+  const hub = { a: ["Hub", "Hub", "Hub", "Hub"], b: ["p", "q", "r", "s"] };
+  const svg = render_svg(plot(data(hub), layer(edge, layout(col.a, col.b)),
+    layer(point, layout(col.a, col.b)), size(col.degree), network()));
+  assert.ok(svg.includes(">Degree</text>"));
+});
