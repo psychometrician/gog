@@ -229,8 +229,17 @@ and `opacity`, the other channels that draw a legend.
 Suppose the lines above stay colored by country, and the points are colored by
 population instead of sized by it. The one legend would name `country`, the
 first column written, and nothing would explain the colors of the points. So gog
-refuses the plot. The message names another channel for `population` that draws
-a legend of its own: `size` on the points, which is the plot above. Writing
+refuses the plot:
+
+```{r}
+#| error: true
+data(gapminder_asia) + x(year) + y(life) +
+  line  + color(country) +
+  point + color(population)
+```
+
+The message names two other channels for `population`, each with its own
+legend: `size` or `opacity` on the points. The plot above uses `size`. Writing
 [`legend = FALSE`](channels.qmd#leaving-a-legend-out) on either `color` lets the
 plot draw, with no color legend at all.
 
