@@ -64,6 +64,8 @@ that does the same job is beside it on the right.
 | `aes(group = g)` | `group(g)` |
 | `scale_x_log10()` | `x(v, scale = "log")` |
 | `scale_color_viridis_c()` | `color(v) + palette("viridis")` |
+| `scale_color_manual(values = c(a = "red", b = "blue"))` | `color(g) + palette(c(a = "red", b = "blue"))`: each color is written beside its category's name, so sorting the rows cannot change it. gog refuses a name the column does not hold and a category left without a name ([Colors by name](channels.qmd#colors-by-name)) |
+| `guides(color = "none")`, `show.legend = FALSE` | `color(g, legend = FALSE)`, written on the channel whose legend you leave out |
 | `facet_grid(r ~ c)` | `\| facet(c) / facet(r)` |
 | `facet_wrap(~ g, ncol = 4)` | `\| facet(g, wrap = 4)` puts four panels in each row, and `/ facet(g, wrap = 4)` puts four in each column. The operator says the direction, so one number replaces both `nrow` and `ncol`. |
 | `facet_*(scales = "free_y")` | `y(v, free = TRUE)`, written on the axis you are freeing. You do not choose the axis a second time, because the binding already says which one. |
@@ -97,10 +99,11 @@ The words translate, but six things work differently in gog.
   between two functions. If two different atoms in gog do the same job, that
   is a bug: [report it](https://github.com/psychometrician/gog/issues) on the
   project's repository.
-- **The scale belongs to the binding.** Options such as `scale`, `limits` and
-  `free` are arguments of the binding, as in `x(gdp, scale = "log")`, and there
-  is no `scale_*()` function. The colors of a color scale come from
-  `palette()`, which belongs to the whole plot.
+- **The scale belongs to the binding.** Options such as `scale`, `limits`,
+  `free` and `legend` are arguments of the binding, as in
+  `x(gdp, scale = "log")` or `color(g, legend = FALSE)`, and there is no
+  `scale_*()` function. The colors of a color scale come from `palette()`, which
+  belongs to the whole plot.
 - **Setting is not mapping.** A constant maps no column, so it earns no legend.
   Write it in `style()`. In ggplot2 `aes(color = "red")` is legal and draws a
   legend with one entry called "red". Here a channel takes a column, not a

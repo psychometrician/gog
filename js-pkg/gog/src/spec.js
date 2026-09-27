@@ -549,6 +549,8 @@ function channelDef(atom) {
     tick_count: atom.fields.tick_count ?? null,
     speed: atom.fields.speed ?? null,
     free: atom.fields.free ?? false,
+    // Whether the channel's legend is drawn; `null` is the default, which draws it.
+    legend: atom.fields.legend ?? null,
   };
 }
 

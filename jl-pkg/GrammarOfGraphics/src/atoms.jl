@@ -630,29 +630,50 @@ function check_free(free, name::AbstractString)
     true
 end
 
+"""
+`legend = false` — leave this channel's legend out of the plot (spec §10).
+
+Every channel takes it and forwards it, positions included, and the engine
+decides where it means something: a legend is drawn for `color`, `size`, `shape`,
+`pattern` and `opacity`, and on any other channel the engine refuses it with that
+direction. Deciding here would be a rule the other three bindings get wrong, and
+leaving it out of `x()` would answer `x(:gdp; legend = false)` with a
+`MethodError` that names no fix. Only the shape is checked here, so the error
+lands on the line that wrote it.
+"""
+function check_legend(legend)
+    legend === nothing && return nothing
+    legend isa Bool || throw(GogError(
+        "gog: `legend = ` is true or false — false leaves this channel's legend out of " *
+        "the plot, e.g. `color(:continent, legend = false)` when the names are " *
+        "written on the plot instead."))
+    legend
+end
+
 position_atom(kind::Symbol, name::AbstractString, field, scale, base, limits,
-              tick_count, free) =
+              tick_count, free, legend = nothing) =
     Atom(kind, Dict{Symbol,Any}(:field => column_name(field, name),
                                 :scale => check_scale(scale),
                                 :base => check_base(base),
                                 :limits => check_limits(limits),
                                 :tick_count => check_tick_count(tick_count),
-                                :free => check_free(free, name)))
+                                :free => check_free(free, name),
+                                :legend => check_legend(legend)))
 
 """Bind the x axis to a column."""
 x(field; scale = nothing, base = nothing, limits = nothing, tick_count = nothing,
-  free = false) =
-    position_atom(:coord_x, "x", field, scale, base, limits, tick_count, free)
+  free = false, legend = nothing) =
+    position_atom(:coord_x, "x", field, scale, base, limits, tick_count, free, legend)
 
 """Bind the y axis to a column."""
 y(field; scale = nothing, base = nothing, limits = nothing, tick_count = nothing,
-  free = false) =
-    position_atom(:coord_y, "y", field, scale, base, limits, tick_count, free)
+  free = false, legend = nothing) =
+    position_atom(:coord_y, "y", field, scale, base, limits, tick_count, free, legend)
 
 """Bind the z axis to a column — one more vowel, not a chart type."""
 z(field; scale = nothing, base = nothing, limits = nothing, tick_count = nothing,
-  free = false) =
-    position_atom(:coord_z, "z", field, scale, base, limits, tick_count, free)
+  free = false, legend = nothing) =
+    position_atom(:coord_z, "z", field, scale, base, limits, tick_count, free, legend)
 
 # The four atoms that take an angle, each with its own call to show. JavaScript
 # has carried these examples since it was written and the other three did not,
@@ -766,14 +787,17 @@ const map = Atom(:coord_map, Dict{Symbol,Any}(:preserve => "area"),
 # ---------------------------------------------------------------------------
 
 scaled_channel(kind::Symbol, name::AbstractString) =
-    (field; scale = nothing, base = nothing, limits = nothing) ->
+    (field; scale = nothing, base = nothing, limits = nothing, legend = nothing) ->
         Atom(kind, Dict{Symbol,Any}(:field => column_name(field, name),
                                     :scale => check_scale(scale),
                                     :base => check_base(base),
-                                    :limits => check_limits(limits)))
+                                    :limits => check_limits(limits),
+                                    :legend => check_legend(legend)))
 
 plain_channel(kind::Symbol, name::AbstractString) =
-    field -> Atom(kind, Dict{Symbol,Any}(:field => column_name(field, name)))
+    (field; legend = nothing) ->
+        Atom(kind, Dict{Symbol,Any}(:field => column_name(field, name),
+                                    :legend => check_legend(legend)))
 
 """Map fill/stroke color to a column."""
 const color = scaled_channel(:color, "color")
@@ -832,9 +856,10 @@ stands still behind the marks that move.
 
 Unlike `facet`, a number is welcome: panels compete for page area, frames compete
 for time. A static image made from the plot shows the first frame."""
-play(field; speed = nothing) =
+play(field; speed = nothing, legend = nothing) =
     Atom(:play, Dict{Symbol,Any}(:field => column_name(field, "play"),
-                                 :speed => check_speed(speed)))
+                                 :speed => check_speed(speed),
+                                 :legend => check_legend(legend)))
 
 # What `at` was given, and which of the two readings it is. One keyword rather
 # than two, because the *value* answers the question the way a column answers it
@@ -995,16 +1020,51 @@ function facet(field; wrap::Union{Integer,Nothing} = nothing)
                                   :wrap => wrap))
 end
 
-"""Set the categorical palette — a name, or a list of hex colors."""
-function palette(pal)
+"""
+    palette(name)
+    palette(colors)
+    palette("Asia" => "tomato", "Europe" => "steelblue")
+
+Set the categorical palette — a name, a vector of hex colors, or a color bound to
+each level by name. The named form takes pairs, or a `Dict` of them, and gives each
+level the color beside it whatever order the rows arrive in. Every name must be a
+level of the column mapped to `color`, and every level drawn must have a name; the
+engine refuses either mismatch and lists what is missing.
+"""
+function palette(pal, more...)
+    # Pairs, written out or collected: `palette("Asia" => "tomato", ...)`,
+    # `palette(["Asia" => "tomato"])` or `palette(Dict("Asia" => "tomato"))`.
+    pairs = if pal isa Pair
+        Any[pal, more...]
+    elseif isempty(more) && (pal isa AbstractDict ||
+                             (pal isa AbstractVector && !isempty(pal) && all(p -> p isa Pair, pal)))
+        collect(pal)
+    else
+        nothing
+    end
+    if pairs !== nothing
+        # Which names are levels is the engine's question, since only the table
+        # can answer it; this checks the shape of what was written. A name may be
+        # a `Symbol` as well as a string, the way a column is.
+        all(p -> p isa Pair && p.first isa Union{AbstractString,Symbol} &&
+                 p.second isa AbstractString, pairs) ||
+            throw(GogError("gog: `palette()` with names binds a color to each level, " *
+                           "e.g. `palette(\"Asia\" => \"tomato\", \"Europe\" => \"steelblue\")`."))
+        return Atom(:palette, Dict{Symbol,Any}(:value => Dict{String,Any}(
+            "levels" => LevelColors([String(p.first) => String(p.second) for p in pairs]))))
+    end
+    isempty(more) || throw(GogError(
+        "gog: `palette()` takes one palette: a name, a vector of colors, or pairs " *
+        "naming a color for each level, e.g. `palette(\"Asia\" => \"tomato\")`."))
     pal isa AbstractString &&
         return Atom(:palette, Dict{Symbol,Any}(:value => Dict{String,Any}("named" => String(pal))))
     if pal isa AbstractVector && all(c -> c isa AbstractString, pal)
         return Atom(:palette, Dict{Symbol,Any}(
             :value => Dict{String,Any}("custom" => String[String(c) for c in pal])))
     end
-    throw(GogError("gog: `palette()` takes a palette name (\"gog\", \"okabe\") or a " *
-                   "vector of hex colors."))
+    throw(GogError("gog: `palette()` takes a palette name (\"gog\", \"okabe\"), a " *
+                   "vector of hex colors, or pairs naming a color for each level, e.g. " *
+                   "`palette(\"Asia\" => \"tomato\")`."))
 end
 
 const THEME_PRESETS = ("gog", "minimal", "bw")

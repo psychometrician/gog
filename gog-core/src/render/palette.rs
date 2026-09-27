@@ -311,6 +311,10 @@ pub(crate) fn resolve_ramp(pal: &PaletteDef) -> Vec<String> {
         // A caller-supplied ramp: the same vector that names one color per
         // category when the column is text becomes the stops when it is numeric.
         PaletteDef::Custom(c) => return c.iter().map(|s| esc(s)).collect(),
+        // Names bind a color to a *level*, and a number has none, so `check_palette`
+        // refuses this on a numeric column. Reached only under `GOG_STRICT=0`,
+        // where the default ramp is the safe thing to draw.
+        PaletteDef::Levels(_) => RAMP_BLUE.to_vec(),
     };
     stops.into_iter().map(str::to_string).collect()
 }
@@ -352,6 +356,11 @@ pub(crate) fn resolve_palette(pal: &PaletteDef) -> Vec<String> {
         // Custom colors are user-supplied and land in `fill=`/`stroke=`
         // attributes, so escape them once here rather than at every use site.
         PaletteDef::Custom(colors) => colors.iter().map(|c| esc(c)).collect(),
+        // A named palette is not a sequence, so it has no positions to hand
+        // out: `build_color_map` looks each level up by name instead. The
+        // default is what a level left unnamed falls back to, which only
+        // `GOG_STRICT=0` reaches.
+        PaletteDef::Levels(_) => PALETTE_GOG.iter().map(|s| s.to_string()).collect(),
     }
 }
 
@@ -384,6 +393,21 @@ pub(crate) fn build_color_map(
                 }
             }
         }
+    }
+
+    // **A named palette is looked up, not handed out.** Each level takes the
+    // color written beside its name, so the order above decides only which row
+    // of the legend it lands on, never which color it gets — which is the whole
+    // point of naming them. `check_palette` has already refused a drawn level
+    // with no name, so the fallback is reached only under `GOG_STRICT=0`, and it
+    // is the overflow wheel's, the one rule this module already has for a level
+    // the palette did not provide for.
+    if let PaletteDef::Levels(named) = &spec.palette {
+        let total = order.len();
+        return order.into_iter().enumerate().map(|(i, label)| {
+            let color = named.get(&label).map(esc).unwrap_or_else(|| hsl_color(i, total));
+            (label, color)
+        }).collect();
     }
 
     let n_categories = order.len();

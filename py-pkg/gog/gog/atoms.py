@@ -20,7 +20,7 @@
 # stays in `legality.rs`, where every binding inherits it.
 
 from datetime import date, datetime
-from typing import Any, Dict, List, Optional, Sequence, Union
+from typing import Any, Dict, List, Mapping, Optional, Sequence, Union
 
 from .columns import Column, column_name
 from .errors import GogError
@@ -695,8 +695,30 @@ def _check_free(free: Any, name: str) -> bool:
     return True
 
 
+def _check_legend(legend: Any) -> Optional[bool]:
+    """`legend=False` — leave this channel's legend out of the plot (spec §10).
+
+    Every channel takes it and forwards it, positions included, and the engine
+    decides where it means something: a legend is drawn for `color`, `size`,
+    `shape`, `pattern` and `opacity`, and on any other channel the engine
+    refuses it with that direction. Deciding here would be a rule the other
+    three bindings get wrong, and leaving it out of `x()` would answer
+    `x(col.gdp, legend=False)` with a bare `TypeError` that names no fix. Only
+    the shape is checked here, so the error lands on the line that wrote it.
+    """
+    if legend is None:
+        return None
+    if legend is not True and legend is not False:
+        raise GogError(
+            "gog: `legend=` is True or False — False leaves this channel's legend out "
+            "of the plot, e.g. `color(col.continent, legend=False)` when the names "
+            "are written on the plot instead."
+        )
+    return legend
+
+
 def _position(kind: str, name: str, field: Any, scale: Any, base: Any, limits: Any = None,
-              tick_count: Any = None, free: Any = None) -> Atom:
+              tick_count: Any = None, free: Any = None, legend: Any = None) -> Atom:
     return Atom(
         kind,
         field=column_name(field, name),
@@ -705,28 +727,29 @@ def _position(kind: str, name: str, field: Any, scale: Any, base: Any, limits: A
         limits=_check_limits(limits),
         tick_count=_check_tick_count(tick_count),
         free=_check_free(free, name),
+        legend=_check_legend(legend),
     )
 
 
 def x(field: Column, scale: Optional[str] = None, base: Optional[float] = None,
       limits: Limits = None, tick_count: Optional[int] = None,
-      free: bool = False) -> Atom:
+      free: bool = False, legend: Optional[bool] = None) -> Atom:
     """Bind the x axis to a column."""
-    return _position("coord_x", "x", field, scale, base, limits, tick_count, free)
+    return _position("coord_x", "x", field, scale, base, limits, tick_count, free, legend)
 
 
 def y(field: Column, scale: Optional[str] = None, base: Optional[float] = None,
       limits: Limits = None, tick_count: Optional[int] = None,
-      free: bool = False) -> Atom:
+      free: bool = False, legend: Optional[bool] = None) -> Atom:
     """Bind the y axis to a column."""
-    return _position("coord_y", "y", field, scale, base, limits, tick_count, free)
+    return _position("coord_y", "y", field, scale, base, limits, tick_count, free, legend)
 
 
 def z(field: Column, scale: Optional[str] = None, base: Optional[float] = None,
       limits: Limits = None, tick_count: Optional[int] = None,
-      free: bool = False) -> Atom:
+      free: bool = False, legend: Optional[bool] = None) -> Atom:
     """Bind the z axis to a column — one more vowel, not a chart type."""
-    return _position("coord_z", "z", field, scale, base, limits, tick_count, free)
+    return _position("coord_z", "z", field, scale, base, limits, tick_count, free, legend)
 
 
 def _degrees(value, atom: str, name: str) -> float:
@@ -894,14 +917,15 @@ map = _Map("coord_map", preserve="area")
 
 
 def color(field: Column, scale: Optional[str] = None, base: Optional[float] = None,
-          limits: Limits = None) -> Atom:
-    """Map fill/stroke color to a column."""
+          limits: Limits = None, legend: Optional[bool] = None) -> Atom:
+    """Map fill/stroke color to a column. `legend=False` leaves its legend out."""
     return Atom(
         "color",
         field=column_name(field, "color"),
         scale=_check_scale(scale),
         base=_check_base(base),
         limits=_check_limits(limits),
+        legend=_check_legend(legend),
     )
 
 
@@ -923,47 +947,58 @@ def colour(*args: Any, **kwargs: Any) -> Atom:
 
 
 def size(field: Column, scale: Optional[str] = None, base: Optional[float] = None,
-          limits: Limits = None) -> Atom:
-    """Map size to a numeric column."""
+          limits: Limits = None, legend: Optional[bool] = None) -> Atom:
+    """Map size to a numeric column. `legend=False` leaves its legend out."""
     return Atom(
         "size",
         field=column_name(field, "size"),
         scale=_check_scale(scale),
         base=_check_base(base),
         limits=_check_limits(limits),
+        legend=_check_legend(legend),
     )
 
 
 def opacity(field: Column, scale: Optional[str] = None, base: Optional[float] = None,
-          limits: Limits = None) -> Atom:
-    """Map opacity to a numeric column."""
+          limits: Limits = None, legend: Optional[bool] = None) -> Atom:
+    """Map opacity to a numeric column. `legend=False` leaves its legend out."""
     return Atom(
         "opacity",
         field=column_name(field, "opacity"),
         scale=_check_scale(scale),
         base=_check_base(base),
         limits=_check_limits(limits),
+        legend=_check_legend(legend),
     )
 
 
-def group(field: Column) -> Atom:
-    """Group a line/path by a column, without giving each group a color."""
-    return Atom("group", field=column_name(field, "group"))
+def group(field: Column, legend: Optional[bool] = None) -> Atom:
+    """Group a line/path by a column, without giving each group a color.
+
+    `legend=` is taken only to be refused by the engine with direction: a group
+    encodes nothing, so it draws no legend to leave out.
+    """
+    return Atom("group", field=column_name(field, "group"), legend=_check_legend(legend))
 
 
-def shape(field: Column) -> Atom:
-    """Map glyph shape to a categorical column."""
-    return Atom("shape", field=column_name(field, "shape"))
+def shape(field: Column, legend: Optional[bool] = None) -> Atom:
+    """Map glyph shape to a categorical column. `legend=False` leaves its legend out."""
+    return Atom("shape", field=column_name(field, "shape"), legend=_check_legend(legend))
 
 
-def pattern(field: Column) -> Atom:
-    """Map paint texture to a categorical column — `shape`'s twin."""
-    return Atom("pattern", field=column_name(field, "pattern"))
+def pattern(field: Column, legend: Optional[bool] = None) -> Atom:
+    """Map paint texture to a categorical column — `shape`'s twin. `legend=False`
+    leaves its legend out."""
+    return Atom("pattern", field=column_name(field, "pattern"), legend=_check_legend(legend))
 
 
-def label(field: Column) -> Atom:
-    """Draw a column's values as text — the `text` mark's content."""
-    return Atom("label", field=column_name(field, "label"))
+def label(field: Column, legend: Optional[bool] = None) -> Atom:
+    """Draw a column's values as text — the `text` mark's content.
+
+    `legend=` is taken only to be refused by the engine with direction: a label
+    is read where it is written, so it draws no legend.
+    """
+    return Atom("label", field=column_name(field, "label"), legend=_check_legend(legend))
 
 
 def _check_speed(speed: Optional[float]) -> Optional[float]:
@@ -982,7 +1017,7 @@ def _check_speed(speed: Optional[float]) -> Optional[float]:
     return float(speed)
 
 
-def play(field: Column, speed: Optional[float] = None) -> Atom:
+def play(field: Column, speed: Optional[float] = None, legend: Optional[bool] = None) -> Atom:
     """Cut the plot into frames and play them — the time dimension.
 
     `play` is `facet` read in time. Both split the rows by a column's distinct
@@ -997,8 +1032,12 @@ def play(field: Column, speed: Optional[float] = None) -> Atom:
     Unlike `facet`, a number is welcome: panels compete for page area, frames
     compete for time. `speed` is how many times faster than normal the frames
     run. A static image made from the plot shows the first frame.
+
+    `legend=` is taken only to be refused by the engine with direction: each
+    frame is named in the strip above the panel, so `play` draws no legend.
     """
-    return Atom("play", field=column_name(field, "play"), speed=_check_speed(speed))
+    return Atom("play", field=column_name(field, "play"), speed=_check_speed(speed),
+                legend=_check_legend(legend))
 
 
 def _check_brush_at(at):
@@ -1189,10 +1228,31 @@ def facet(field: Column, wrap: Optional[int] = None) -> Atom:
     return Atom("facet", field=column_name(field, "facet"), wrap=wrap)
 
 
-def palette(pal: Union[str, Sequence[str]]) -> Atom:
-    """Set the categorical palette — a name, or a list of hex colors."""
+def palette(pal: Union[str, Sequence[str], Mapping[str, str]]) -> Atom:
+    """Set the categorical palette — a name, a list of hex colors, or a dict
+    that binds a color to each level by name.
+
+    `palette({"Asia": "tomato", "Europe": "steelblue"})` gives each level the
+    color written beside it, whatever order the rows arrive in. Every name must
+    be a level of the column mapped to `color`, and every level drawn must have
+    a name; the engine refuses either mismatch and lists what is missing.
+    """
     if isinstance(pal, str):
         value: Dict[str, Any] = {"named": pal}
+    elif isinstance(pal, Mapping):
+        # Which names are levels is the engine's question, since only the table
+        # can answer it; this checks the shape of what was written. A dict keeps
+        # its insertion order, so a refusal quotes the names back as typed.
+        levels: Dict[str, str] = {}
+        for level, color in pal.items():
+            if not isinstance(level, str) or not isinstance(color, str):
+                raise GogError(
+                    "gog: `palette()` with names binds a color to each level, both "
+                    'written as text, e.g. `palette({"Asia": "tomato", '
+                    '"Europe": "steelblue"})`.'
+                )
+            levels[level] = color
+        value = {"levels": levels}
     else:
         try:
             colors: List[str] = [str(c) for c in pal]

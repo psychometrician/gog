@@ -4,7 +4,7 @@
 \alias{size}
 \title{Map point radius to a numeric column.}
 \usage{
-size(field, scale = NULL, base = NULL, limits = NULL)
+size(field, scale = NULL, base = NULL, limits = NULL, legend = NULL)
 }
 \arguments{
 \item{field}{Column to bind (bare name).}
@@ -23,6 +23,11 @@ gridlines fall and how they are labeled.}
 
 \item{limits}{The two ends of the size scale, as \code{c(low, high)}. \code{NA} on
 either end leaves that end fitted to the data.}
+
+\item{legend}{\code{FALSE} leaves this channel's legend out of the plot. The column
+is still mapped; only the legend that decodes it is not drawn, for a plot that
+says the same thing another way, such as names written at the ends of the
+lines.}
 }
 \description{
 Map point radius to a numeric column.

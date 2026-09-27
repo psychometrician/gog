@@ -266,10 +266,8 @@ record of them.
 | In ggplot2 | What is missing here |
 |---|---|
 | `scale_*_continuous(breaks =, labels =)` | tick *positions* and tick *text*. `tick_count` asks for a number of ticks and the engine chooses them, so "tick at 0, 50 and 100" and relabeling a category cannot be written. |
-| `scale_*_manual(values = c(setosa = "red"))` | binding a color to a level *by name*, shown below |
 | `scale_y_reverse()` | a reversed continuous axis. `order(desc = TRUE)` reverses a categorical one. |
 | `scale_x_sqrt()`, `coord_trans()` | a power scale. The `log10`-style *naming* is refused; the capability never was. |
-| `guides(color = "none")`, `show.legend = FALSE` | turning a legend off. Every mapped channel earns one, always. |
 | `linewidth` as an aesthetic | a column mapped to stroke width. `size` can be set on a stroke for the whole layer, not mapped per row. |
 | `labs(alt = )`, `get_alt_text()` | alt text on the rendered plot |
 | `geom_label()` | text in a box, rather than bare `text` |
@@ -278,36 +276,6 @@ record of them.
 | `geom_contour()` over a supplied `z` | iso-lines of a field you computed. `path * density` traces a field gog estimated. |
 | `geom_text(angle = )`, and ggplot2's polar text generally | a rotated label. `text` places a name at a point in every space, upright, so a [sunburst](polar.qmd) cannot run its labels along their arcs and small wedges collide. The gap is general to `polar` rather than belonging to that one plot. |
 | `theme(axis.text = element_blank())` and friends | asking for a plot with no axis text. `theme(grid = )` removes gridlines and `tick_count = 0` is refused, so silence has to follow from what an axis carries rather than being asked for. A pie is recognized from its bindings. A packing has no axes at all. A partition's radial axis carries the depth the transform invented, so it draws no ticks, no rings and no name. Three recognitions do one general job. What is left over is the reader who wants a *real* quantity's axis silent: the measure around a sunburst takes `x_label("")` and keeps its numbers. |
-
-The color one is worth seeing, because it is not a missing setting so much as a
-missing *kind* of statement. Three species, three colors:
-
-```{r}
-data(iris_flowers) + point + x(petal_length) + y(sepal_length) +
-  color(species) + palette(c("tomato", "steelblue", "seagreen")) +
-  title("Rows in the order the table has them")
-```
-
-*"Given the iris flowers: points, x is petal length, y is sepal length, color by
-species, with a palette of tomato, steelblue and seagreen."*
-
-Now the same sentence and the same palette, over the same rows sorted the other
-way. Watch the legend:
-
-```{r}
-by_species <- iris_flowers[base::order(iris_flowers$species, decreasing = TRUE), ]
-data(by_species) + point + x(petal_length) + y(sepal_length) +
-  color(species) + palette(c("tomato", "steelblue", "seagreen")) +
-  title("The same three colors, the rows reversed")
-```
-
-Nothing is wrong here. A palette gives out its colors in the categories' order,
-and that order is the axis's order. For a column of text, the axis order is the
-order in which the values first appear. A declared order is honored when you
-supply one. It is consistent and it is documented. There is no way to say
-*setosa is tomato*. So a category cannot keep its color across two plots whose
-category order differs, and a report that puts two such plots side by side
-usually wants exactly that.
 
 ## If your plot is not here
 

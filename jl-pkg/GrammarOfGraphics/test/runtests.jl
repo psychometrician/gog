@@ -664,6 +664,77 @@ end
 end
 
 # ---------------------------------------------------------------------------
+# A color bound to a level by name, and a legend turned off (spec §10)
+# ---------------------------------------------------------------------------
+
+# The column meets its levels Asia, Europe, Africa; the names are written in
+# another order, which is the reason to write them at all.
+const lvl = Dict("a" => [1.0, 2, 3, 4, 5, 6], "b" => [3.0, 1, 4, 1, 5, 9],
+                 "g" => ["Asia", "Europe", "Africa", "Asia", "Europe", "Africa"])
+
+"""The last color written before a legend row's name is that row's swatch."""
+function swatch(svg, level)
+    before = svg[1:first(findfirst(">$(level)</text>", svg))]
+    last(collect(eachmatch(r"fill=\"([^\"]+)\"", before))).captures[1]
+end
+
+@testset "palette(\"Asia\" => …) gives each level the color beside its name" begin
+    named = palette("Africa" => "seagreen", "Europe" => "steelblue", "Asia" => "tomato")
+    # One level → color object on the wire, in the order written.
+    @test GrammarOfGraphics.to_json(named.fields[:value]) ==
+          "{\"levels\":{\"Africa\":\"seagreen\",\"Europe\":\"steelblue\",\"Asia\":\"tomato\"}}"
+    # A Dict and a vector of pairs read the same way, and a name may be a Symbol.
+    @test occursin("\"Asia\":\"tomato\"",
+                   GrammarOfGraphics.to_json(palette(Dict("Asia" => "tomato")).fields[:value]))
+    @test occursin("\"Asia\":\"tomato\"",
+                   GrammarOfGraphics.to_json(palette([:Asia => "tomato"]).fields[:value]))
+
+    svg = render_svg(data(lvl) + point + x(:a) + y(:b) + color(:g) + named)
+    for (level, want) in [("Asia", "tomato"), ("Europe", "steelblue"), ("Africa", "seagreen")]
+        @test swatch(svg, level) == want
+    end
+    @test first(findfirst(">Asia</text>", svg)) < first(findfirst(">Africa</text>", svg))
+end
+
+@testset "a named palette refuses a name that is no level, and a level with no name" begin
+    draw(pal, bind = color(:g)) = render_svg(data(lvl) + point + x(:a) + y(:b) + bind + pal)
+    typo = palette("Africa" => "seagreen", "Europe" => "steelblue", "Asai" => "tomato")
+    @refuses draw(typo) "names \"Asai\", and `g` has no level called that"
+    @refuses draw(typo) "Did you mean \"Asia\"?"
+    @refuses draw(typo) "\"Asia\", \"Europe\", and \"Africa\""
+    @refuses draw(palette("Asia" => "tomato", "Europe" => "steelblue")) "leaves out \"Africa\""
+    @refuses draw(palette("Asia" => "tomato"), color(:b)) "numbers have no levels to name"
+    # A name given twice reaches the engine as two entries, and is refused there.
+    @refuses draw(palette("Asia" => "tomato", "Europe" => "steelblue", "Africa" => "seagreen",
+                          "Asia" => "red")) "names \"Asia\" twice"
+    @refuses palette("Asia" => 3) "binds a color to each level"
+end
+
+@testset "legend = false leaves the key out, keeps the mapping, and says nothing" begin
+    keyed = render_svg(data(lvl) + point + x(:a) + y(:b) + color(:g))
+    path, io = mktemp()
+    off = redirect_stderr(io) do
+        render_svg(data(lvl) + point + x(:a) + y(:b) + color(:g, legend = false))
+    end
+    close(io)
+    @test read(path, String) == ""
+    @test occursin(">Asia</text>", keyed) && !occursin(">Asia</text>", off)
+    @test occursin("#4e79a7", off) && occursin("#f28e2b", off)
+    for atom in (size(:a, legend = false), opacity(:a, legend = false), shape(:g, legend = false))
+        @test !occursin("rx=\"4\"", render_svg(data(lvl) + point + x(:a) + y(:b) + atom))
+    end
+    @test !occursin("rx=\"4\"", render_svg(data(lvl) + bar * count + x(:g) +
+                                           pattern(:g, legend = false)))
+end
+
+@testset "legend on a channel with no key is refused with direction" begin
+    @refuses render_svg(data(lvl) + point + x(:a, legend = false) + y(:b)) "`x(a, legend = FALSE)` — `x` is read off its axis"
+    @refuses render_svg(data(lvl) + line + x(:a) + y(:b) + group(:g, legend = false)) "`group` splits the rows without encoding anything"
+    @refuses render_svg(data(lvl) + text + x(:a) + y(:b) + label(:g, legend = false)) "`label` is the text a `text` mark writes"
+    @refuses color(:g, legend = "no") "true or false"
+end
+
+# ---------------------------------------------------------------------------
 # tick_count — how many ticks an axis aims for (spec §10)
 #
 # The last property that was real in the IR, read by the renderer, and reachable

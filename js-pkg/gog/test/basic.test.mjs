@@ -928,6 +928,86 @@ test("the named ramps render as themselves, and limits center a diverging one", 
 });
 
 // ---------------------------------------------------------------------------
+// A color bound to a level by name, and a legend turned off (spec §10)
+// ---------------------------------------------------------------------------
+
+// The column meets its levels Asia, Europe, Africa; the names are written in
+// another order, which is the reason to write them at all.
+const lvl = {
+  a: [1, 2, 3, 4, 5, 6],
+  b: [3, 1, 4, 1, 5, 9],
+  g: ["Asia", "Europe", "Africa", "Asia", "Europe", "Africa"],
+};
+
+// The last color written before a legend row's name is that row's swatch.
+function swatch(svg, level) {
+  const before = svg.slice(0, svg.indexOf(`>${level}</text>`));
+  return [...before.matchAll(/fill="([^"]+)"/g)].at(-1)[1];
+}
+
+test("palette({ Asia: … }) gives each level the color beside its name", () => {
+  const named = palette({ Africa: "seagreen", Europe: "steelblue", Asia: "tomato" });
+  assert.deepEqual(named.fields.value,
+    { levels: { Africa: "seagreen", Europe: "steelblue", Asia: "tomato" } });
+  // A Map reads the same way; `JSON.stringify` would otherwise send it as `{}`.
+  assert.deepEqual(palette(new Map([["Asia", "tomato"]])).fields.value,
+    { levels: { Asia: "tomato" } });
+
+  const svg = render_svg(plot(data(lvl), point, x(col.a), y(col.b), color(col.g), named));
+  for (const [level, want] of [["Asia", "tomato"], ["Europe", "steelblue"], ["Africa", "seagreen"]]) {
+    assert.equal(swatch(svg, level), want, level);
+  }
+  assert.ok(svg.indexOf(">Asia</text>") < svg.indexOf(">Africa</text>"),
+    "the key should run in the column's order");
+});
+
+test("a named palette refuses a name that is no level, and a level with no name", () => {
+  const draw = (pal, bind = color(col.g)) =>
+    () => render_svg(plot(data(lvl), point, x(col.a), y(col.b), bind, pal));
+  refuses(draw(palette({ Africa: "seagreen", Europe: "steelblue", Asai: "tomato" })),
+    /names "Asai", and `g` has no level called that.*Did you mean "Asia"\?.*"Asia", "Europe", and "Africa"/s);
+  refuses(draw(palette({ Asia: "tomato", Europe: "steelblue" })), /leaves out "Africa"/);
+  refuses(draw(palette({ Asia: "tomato" }), color(col.b)), /numbers have no levels to name/);
+  refuses(() => palette({ Asia: 3 }), /both written as text/);
+});
+
+test("legend: false leaves the key out, keeps the mapping, and says nothing", () => {
+  const keyed = render_svg(plot(data(lvl), point, x(col.a), y(col.b), color(col.g)));
+  const write = process.stderr.write;
+  let said = "";
+  process.stderr.write = (chunk) => { said += chunk; return true; };
+  let off;
+  try {
+    off = render_svg(plot(data(lvl), point, x(col.a), y(col.b), color(col.g, { legend: false })));
+  } finally {
+    process.stderr.write = write;
+  }
+  assert.equal(said, "", "legend: false should print nothing");
+  assert.ok(keyed.includes(">Asia</text>") && !off.includes(">Asia</text>"),
+    "legend: false drew the key");
+  assert.ok(off.includes("#4e79a7") && off.includes("#f28e2b"),
+    "legend: false must not drop the mapping");
+  for (const atom of [size(col.a, { legend: false }), opacity(col.a, { legend: false }),
+                      shape(col.g, { legend: false })]) {
+    const svg = render_svg(plot(data(lvl), point, x(col.a), y(col.b), atom));
+    assert.ok(!svg.includes('rx="4"'), `${atom.kind}({ legend: false }) drew a key`);
+  }
+  const hatched = render_svg(plot(data(lvl), layer(bar, count), x(col.g),
+    pattern(col.g, { legend: false })));
+  assert.ok(!hatched.includes('rx="4"'), "pattern({ legend: false }) drew a key");
+});
+
+test("legend on a channel with no key is refused with direction", () => {
+  refuses(() => render_svg(plot(data(lvl), point, x(col.a, { legend: false }), y(col.b))),
+    /`x\(a, legend = FALSE\)` — `x` is read off its axis/);
+  refuses(() => render_svg(plot(data(lvl), line, x(col.a), y(col.b),
+    group(col.g, { legend: false }))), /`group` splits the rows without encoding anything/);
+  refuses(() => render_svg(plot(data(lvl), text, x(col.a), y(col.b),
+    label(col.g, { legend: false }))), /`label` is the text a `text` mark writes/);
+  refuses(() => color(col.g, { legend: "no" }), /true or false/);
+});
+
+// ---------------------------------------------------------------------------
 // tick_count — how many ticks an axis aims for (spec §10)
 //
 // The last property that was real in the IR, read by the renderer, and reachable

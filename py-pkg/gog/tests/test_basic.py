@@ -565,6 +565,85 @@ assert "#66c2a5" in bars, "palette('soft') did not reach the bars"
 assert "#4e79a7" not in bars, "palette('soft') fell back to the default palette"
 ok("palette('soft') paints the fills")
 
+# --- a color bound to a level by name, and a legend turned off (spec §10) ----
+# The column meets its levels Asia, Europe, Africa; the names are written in
+# another order, which is the reason to write them at all.
+lvl = {"a": [1.0, 2, 3, 4, 5, 6], "b": [3.0, 1, 4, 1, 5, 9],
+       "g": ["Asia", "Europe", "Africa", "Asia", "Europe", "Africa"]}
+named_pal = palette({"Africa": "seagreen", "Europe": "steelblue", "Asia": "tomato"})
+assert named_pal.fields["value"] == {"levels": {"Africa": "seagreen", "Europe": "steelblue",
+                                                "Asia": "tomato"}}, named_pal.fields
+
+
+def _refusal(thunk) -> str:
+    """The refusal's text, for a test that checks what it says."""
+    try:
+        thunk()
+    except GogError as error:
+        return str(error)
+    raise AssertionError("FAIL: accepted, and should have been refused")
+
+
+def _swatch(svg: str, level: str) -> str:
+    """The last color written before a legend row's name is that row's swatch."""
+    before = svg[:svg.index(f">{level}</text>")]
+    return re.findall(r'fill="([^"]+)"', before)[-1]
+
+
+_named = render_svg(data(lvl, name="lvl") + point + x(col.a) + y(col.b) + color(col.g) + named_pal)
+for level, want in [("Asia", "tomato"), ("Europe", "steelblue"), ("Africa", "seagreen")]:
+    assert _swatch(_named, level) == want, f"{level}: {_swatch(_named, level)}"
+assert _named.index(">Asia</text>") < _named.index(">Africa</text>"), \
+    "the key should run in the column's order"
+ok("palette({'Asia': ...}) gives each level the color beside its name")
+
+_m = _refusal(lambda: render_svg(data(lvl, name="lvl") + point + x(col.a) + y(col.b)
+                                 + color(col.g) + palette({"Africa": "seagreen",
+                                                           "Europe": "steelblue",
+                                                           "Asai": "tomato"})))
+for want in ['names "Asai", and `g` has no level called that', 'Did you mean "Asia"?',
+             '"Asia", "Europe", and "Africa"']:
+    assert want in _m, f"the misspelling refusal should say {want!r}: {_m}"
+_m = _refusal(lambda: render_svg(data(lvl, name="lvl") + point + x(col.a) + y(col.b)
+                                 + color(col.g) + palette({"Asia": "tomato",
+                                                           "Europe": "steelblue"})))
+assert 'leaves out "Africa"' in _m, _m
+_m = _refusal(lambda: render_svg(data(lvl, name="lvl") + point + x(col.a) + y(col.b)
+                                 + color(col.b) + palette({"Asia": "tomato"})))
+assert "numbers have no levels to name" in _m, _m
+refuses("a named palette whose name is not text", lambda: palette({1: "tomato"}))
+ok("a named palette refuses a name that is no level, and a level with no name")
+
+# `legend=False`: the channel still maps, its key is not drawn, and nothing is said.
+_keyed = render_svg(data(lvl, name="lvl") + point + x(col.a) + y(col.b) + color(col.g))
+with warnings.catch_warnings(record=True) as _said:
+    warnings.simplefilter("always")
+    _err = io.StringIO()
+    with contextlib.redirect_stderr(_err):
+        _off = render_svg(data(lvl, name="lvl") + point + x(col.a) + y(col.b)
+                          + color(col.g, legend=False))
+assert not _said and not _err.getvalue(), f"legend=False should print nothing: {_said} {_err.getvalue()}"
+assert ">Asia</text>" in _keyed and ">Asia</text>" not in _off, "legend=False drew the key"
+assert "#4e79a7" in _off and "#f28e2b" in _off, "legend=False must not drop the mapping"
+for _atom in (size(col.a, legend=False), opacity(col.a, legend=False), shape(col.g, legend=False)):
+    _s = render_svg(data(lvl, name="lvl") + point + x(col.a) + y(col.b) + _atom)
+    assert 'rx="4"' not in _s, f"{_atom.kind}(legend=False) drew a key"
+_s = render_svg(data(lvl, name="lvl") + bar * count + x(col.g) + pattern(col.g, legend=False))
+assert 'rx="4"' not in _s, "pattern(legend=False) drew a key"
+ok("legend=False leaves the key out of all five channels and keeps the mapping")
+
+_m = _refusal(lambda: render_svg(data(lvl, name="lvl") + point + x(col.a, legend=False)
+                                 + y(col.b)))
+assert "`x(a, legend = FALSE)` — `x` is read off its axis" in _m, _m
+_m = _refusal(lambda: render_svg(data(lvl, name="lvl") + line + x(col.a) + y(col.b)
+                                 + group(col.g, legend=False)))
+assert "`group` splits the rows without encoding anything" in _m, _m
+_m = _refusal(lambda: render_svg(data(lvl, name="lvl") + text + x(col.a) + y(col.b)
+                                 + label(col.g, legend=False)))
+assert "`label` is the text a `text` mark writes" in _m, _m
+refuses("legend= that is not True or False", lambda: color(col.g, legend="no"))
+ok("legend= on a channel with no key is refused with direction")
+
 # Caught in the binding, at the line that wrote it.
 refuses("a backwards domain", lambda: x(col.hour, limits=(20, 5)))
 refuses("one number as a domain", lambda: x(col.hour, limits=5))

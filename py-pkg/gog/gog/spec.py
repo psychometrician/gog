@@ -922,6 +922,8 @@ def _channel_def(atom: Atom) -> Dict[str, Any]:
         "tick_count": atom.fields.get("tick_count"),
         "speed": atom.fields.get("speed"),
         "free": atom.fields.get("free", False),
+        # Whether the channel's legend is drawn; `None` is the default, which draws it.
+        "legend": atom.fields.get("legend"),
     }
 
 

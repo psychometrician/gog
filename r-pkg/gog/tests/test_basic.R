@@ -1837,6 +1837,103 @@ cat("PASS: an unset palette suits either column kind\n")
 cat("\ncontinuous color tests passed.\n")
 
 # ---------------------------------------------------------------------------
+# A color bound to a level by name, and a legend turned off (spec §10)
+# ---------------------------------------------------------------------------
+
+# The column meets its levels Asia, Europe, Africa; the names are written in
+# another order, which is the reason to write them at all.
+lvl <- data.frame(a = 1:6, b = c(3, 1, 4, 1, 5, 9),
+                  g = c("Asia", "Europe", "Africa", "Asia", "Europe", "Africa"))
+named_pal <- palette(c(Africa = "seagreen", Europe = "steelblue", Asia = "tomato"))
+if (!identical(named_pal$value,
+               list(levels = list(Africa = "seagreen", Europe = "steelblue", Asia = "tomato"))))
+  stop("FAIL: palette() with names should carry one level -> color object, in order")
+# A named vector of one is a level and its color, never a palette called "tomato".
+if (!identical(names(palette(c(Asia = "tomato"))$value), "levels"))
+  stop("FAIL: palette(c(Asia = \"tomato\")) was read as a palette name")
+
+# Each legend row is its swatch and then its name, so the last color written
+# before a name is that level's.
+swatch <- function(svg, level) {
+  at <- regexpr(paste0(">", level, "</text>"), svg, fixed = TRUE)
+  before <- substr(svg, 1, at)
+  hits <- regmatches(before, gregexpr('fill="[^"]+"', before))[[1]]
+  sub('fill="([^"]+)"', "\\1", hits[[length(hits)]])
+}
+svg_named <- render_svg(data(lvl) + point + x(a) + y(b) + color(g) + named_pal)
+for (pair in list(c("Asia", "tomato"), c("Europe", "steelblue"), c("Africa", "seagreen")))
+  if (swatch(svg_named, pair[[1]]) != pair[[2]])
+    stop("FAIL: ", pair[[1]], " should be ", pair[[2]], ", got ", swatch(svg_named, pair[[1]]))
+# The key runs in the column's order, not the palette's.
+if (!(regexpr(">Asia</text>", svg_named, fixed = TRUE) <
+      regexpr(">Africa</text>", svg_named, fixed = TRUE)))
+  stop("FAIL: the key should list the levels in the column's order")
+cat("PASS: `palette(c(Asia = ...))` gives each level the color beside its name\n")
+
+m <- refuses("a named palette with a misspelled level",
+             render_svg(data(lvl) + point + x(a) + y(b) + color(g) +
+                          palette(c(Africa = "seagreen", Europe = "steelblue",
+                                    Asai = "tomato"))),
+             "names \"Asai\", and `g` has no level called that")
+for (want in c("Did you mean \"Asia\"?", "\"Asia\", \"Europe\", and \"Africa\""))
+  if (!grepl(want, m, fixed = TRUE)) stop("FAIL: the misspelling refusal should say ", want, ": ", m)
+refuses("a named palette leaving a drawn level out",
+        render_svg(data(lvl) + point + x(a) + y(b) + color(g) +
+                     palette(c(Asia = "tomato", Europe = "steelblue"))),
+        "leaves out \"Africa\"")
+refuses("a named palette on a numeric color",
+        render_svg(data(lvl) + point + x(a) + y(b) + color(b) + palette(c(Asia = "tomato"))),
+        "numbers have no levels to name")
+refuses("a named palette with a color that is not one",
+        render_svg(data(lvl) + point + x(a) + y(b) + color(g) +
+                     palette(c(Asia = "tomatoe", Europe = "steelblue", Africa = "seagreen"))),
+        "gives \"Asia\" the color \"tomatoe\"")
+refuses("a palette naming some colors and not others",
+        palette(c(Asia = "tomato", "steelblue")), "names some colors and not others")
+# Caught in the binding: jsonlite would send the second `Asia` as `Asia.1`.
+refuses("a palette naming a level twice",
+        palette(c(Asia = "tomato", Europe = "steelblue", Asia = "red")),
+        "names \"Asia\" twice, as \"tomato\" or \"red\"")
+cat("PASS: a named palette refuses a name that is no level, and a level with no name\n")
+
+# `legend = FALSE`: the channel still maps, its key is not drawn, and nothing is said.
+quiet_svg <- function(expr) {
+  said <- character()
+  svg <- withCallingHandlers(expr, message = function(m) {
+    said <<- c(said, conditionMessage(m)); invokeRestart("muffleMessage")
+  })
+  if (length(said)) stop("FAIL: legend = FALSE should print nothing, got: ", said)
+  svg
+}
+keyed <- render_svg(data(lvl) + point + x(a) + y(b) + color(g))
+off <- quiet_svg(render_svg(data(lvl) + point + x(a) + y(b) + color(g, legend = FALSE)))
+if (!grepl(">Asia</text>", keyed, fixed = TRUE)) stop("FAIL: color(g) should draw its key")
+if (grepl(">Asia</text>", off, fixed = TRUE)) stop("FAIL: legend = FALSE drew the key")
+if (!grepl("#4e79a7", off, fixed = TRUE) || !grepl("#f28e2b", off, fixed = TRUE))
+  stop("FAIL: legend = FALSE must not drop the mapping")
+for (e in list(size(a, legend = FALSE), opacity(a, legend = FALSE), shape(g, legend = FALSE))) {
+  s <- quiet_svg(render_svg(data(lvl) + point + x(a) + y(b) + e))
+  if (grepl('rx="4"', s, fixed = TRUE)) stop("FAIL: `", e$type, "(legend = FALSE)` drew a key")
+}
+s <- quiet_svg(render_svg(data(lvl) + bar * count + x(g) + pattern(g, legend = FALSE)))
+if (grepl('rx="4"', s, fixed = TRUE)) stop("FAIL: `pattern(legend = FALSE)` drew a key")
+cat("PASS: `legend = FALSE` leaves the key out of all five channels and keeps the mapping\n")
+
+refuses("legend on a position",
+        render_svg(data(lvl) + point + x(a, legend = FALSE) + y(b)),
+        "`x(a, legend = FALSE)` \u2014 `x` is read off its axis")
+refuses("legend on group",
+        render_svg(data(lvl) + line + x(a) + y(b) + group(g, legend = FALSE)),
+        "`group` splits the rows without encoding anything")
+refuses("legend on label",
+        render_svg(data(lvl) + text + x(a) + y(b) + label(g, legend = FALSE)),
+        "`label` is the text a `text` mark writes")
+refuses("legend that is not TRUE or FALSE", color(g, legend = "no"), "TRUE or FALSE")
+cat("PASS: `legend = ` on a channel with no key is refused with direction\n")
+
+cat("\nnamed palette and legend tests passed.\n")
+
+# ---------------------------------------------------------------------------
 # Scales — a log axis, and where it sits relative to a transform
 # ---------------------------------------------------------------------------
 

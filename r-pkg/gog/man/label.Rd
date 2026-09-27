@@ -4,10 +4,13 @@
 \alias{label}
 \title{Draw a column's values as text labels — the \code{text} mark's content.}
 \usage{
-label(field)
+label(field, legend = NULL)
 }
 \arguments{
 \item{field}{Column whose values are drawn as the text, as a bare name.}
+
+\item{legend}{Not taken: a label is read where it is written, so it draws
+no legend. gog refuses it here and names the five channels that do.}
 }
 \value{
 A \code{gog_atom} added to a plot with \code{+}.

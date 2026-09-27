@@ -14,7 +14,7 @@ use std::collections::HashMap;
 use std::fmt::Write;
 
 use crate::data::{categories_across, DataFrame};
-use crate::ir::Channel;
+use crate::ir::{Channel, ChannelDef, PlotSpec};
 use crate::legality::{Diagnostic, DiagnosticKind};
 use crate::render::palette::{ramp_at, resolve_ramp, PALETTE_GOG};
 use crate::render::pattern::{dash_for_index, fill_texture_for_index, pattern_dasharray, FillTexture};
@@ -169,6 +169,21 @@ fn continuous_label(df: &DataFrame, field: &str, v: f64) -> String {
     }
 }
 
+/// Whether the plot draws `channel`'s key at all.
+///
+/// A key belongs to the channel, not to one layer's binding of it: every layer
+/// that colors by a column reads the one color scale, and one key decodes it. So
+/// a single `legend = FALSE` on any binding of the channel leaves the key out,
+/// and the other bindings saying nothing do not bring it back — the direct-label
+/// sentence colors its lines and its labels by one column and should need to say
+/// so once. A binding that says `legend = TRUE` beside one that says `FALSE` is
+/// the contradiction `legality::check_legend` refuses, so it never reaches here.
+fn keyed(spec: &PlotSpec, channel: &Channel) -> bool {
+    !spec.channels.get(channel).into_iter()
+        .chain(spec.layers.iter().filter_map(|l| l.encodings.get(channel)))
+        .any(ChannelDef::hides_legend)
+}
+
 /// Collect one LegendBox per active channel (color → shape → size), in that order.
 ///
 /// `eff` is the per-layer frame *after* transforms, parallel to `spec.layers`. Every
@@ -176,13 +191,21 @@ fn continuous_label(df: &DataFrame, field: &str, v: f64) -> String {
 /// the user has — and wrong for the one channel whose column the engine invents. A
 /// 2-D `bin` measures each cell by its count and puts that measurement on `color`, so
 /// its legend can only be built from the transformed frame.
+///
+/// A channel whose key was turned off (`legend = FALSE`, see [`keyed`]) is skipped
+/// here and nowhere else: it still maps, so the marks and the color map are
+/// untouched, and with no box to hold the panel gives the room back to the data.
 pub(crate) fn collect_legends(
     ctx: &RenderContext<'_>, color_map: &HashMap<String, String>, eff: &[DataFrame],
 ) -> Vec<LegendBox> {
     let mut boxes = Vec::new();
+    let spec = ctx.spec;
+    let color_keyed = keyed(spec, &Channel::Color);
+    let shape_keyed = keyed(spec, &Channel::Shape);
+    let pattern_keyed = keyed(spec, &Channel::Pattern);
 
     // Color legend (categorical string column)
-    'color: for layer in &ctx.spec.layers {
+    'color: for layer in spec.layers.iter().filter(|_| color_keyed) {
         let Some(def) = layer.encodings.get(&Channel::Color) else { continue };
         let Some(df)  = ctx.resolve_data(&layer.data)        else { continue };
         if df.str_col(&def.field).is_none() { continue }
@@ -194,8 +217,13 @@ pub(crate) fn collect_legends(
         // engine calls a mapped `pattern` `shape`'s twin, and the twin merged while
         // `shape` drew a key of colored squares above a second one of gray glyphs,
         // both titled with the one column.
-        if ctx.spec.layers.iter().any(|l| [Channel::Pattern, Channel::Shape].iter()
-            .any(|ch| l.encodings.get(ch).is_some_and(|p| p.field == def.field)))
+        //
+        // Only a key that is drawn can absorb this one. With `shape(g, legend =
+        // FALSE)` there is no glyph key to carry the hues, so the color key stands
+        // on its own again rather than vanishing with the key it was merged into.
+        if spec.layers.iter().any(|l| [(Channel::Pattern, pattern_keyed), (Channel::Shape, shape_keyed)]
+            .iter()
+            .any(|(ch, drawn)| *drawn && l.encodings.get(ch).is_some_and(|p| p.field == def.field)))
         {
             break 'color;
         }
@@ -218,9 +246,13 @@ pub(crate) fn collect_legends(
     // because there is no way to draw a continuum of circles — same rule,
     // different shapes. Three swatches also under-describe a multi-hue ramp
     // like viridis, where the reader cannot guess what sits between the stops.
-    'color_ramp: for (i, layer) in ctx.spec.layers.iter().enumerate() {
-        // Only when no categorical color legend was produced above.
-        if boxes.iter().any(|b| b.rows.iter().any(|r| matches!(r.swatch, LegendSwatch::ColorRect(_)))) {
+    'color_ramp: for (i, layer) in spec.layers.iter().enumerate() {
+        // Only when no categorical color legend was produced above — and not at
+        // all when the color key was turned off, which the check above cannot
+        // tell apart from "there was no categorical color".
+        if !color_keyed
+            || boxes.iter().any(|b| b.rows.iter().any(|r| matches!(r.swatch, LegendSwatch::ColorRect(_))))
+        {
             break 'color_ramp;
         }
         // A two-dimensional reading measures itself by a column no binding named —
@@ -251,7 +283,7 @@ pub(crate) fn collect_legends(
         // domain there drew a heatmap of cell means beside a key spanning the raw
         // column's range, fills self-consistent under a legend that decoded them
         // wrongly. `color_is_the_measurement` covers both halves (spec §5).
-        let src = if crate::legality::color_is_the_measurement(ctx.spec, layer) {
+        let src = if crate::legality::color_is_the_measurement(spec, layer) {
             eff.get(i)
         } else {
             ctx.resolve_data(&layer.data)
@@ -259,7 +291,7 @@ pub(crate) fn collect_legends(
         let Some(df)  = src                  else { continue };
         let Some(col) = df.float_col(field)  else { continue };
         let sc = ChannelScale::of(col, def);
-        let ramp = resolve_ramp(&ctx.spec.palette);
+        let ramp = resolve_ramp(&spec.palette);
         let stops: Vec<&str> = ramp.iter().map(String::as_str).collect();
         // Largest at the top, so the strip runs the way the axis does.
         //
@@ -279,13 +311,19 @@ pub(crate) fn collect_legends(
     }
 
     // Shape legend (categorical string column)
-    'shape: for layer in &ctx.spec.layers {
+    'shape: for layer in spec.layers.iter().filter(|_| shape_keyed) {
         let Some(def) = layer.encodings.get(&Channel::Shape) else { continue };
         let Some(df)  = ctx.resolve_data(&layer.data)        else { continue };
         if df.str_col(&def.field).is_none() { continue }
         // Colored to match the mark when `color` maps the same column, the way the
         // pattern legend below is: then this is the one key for both channels.
-        let colored = ctx.spec.layers.iter().any(|l|
+        //
+        // Not when the color key was turned off. The merged key *is* the color key
+        // as well as this one, so leaving its hues in would decode the channel the
+        // author asked not to have decoded, and `color(g, legend = FALSE)` beside a
+        // `shape(g)` would change nothing on the page. The glyphs go back to the
+        // neutral ink a shape key has when color maps nothing.
+        let colored = color_keyed && spec.layers.iter().any(|l|
             l.encodings.get(&Channel::Color).is_some_and(|c| c.field == def.field));
         let rows: Vec<LegendRow> = categories_across(&[df], &def.field).into_iter()
             .enumerate()
@@ -304,7 +342,10 @@ pub(crate) fn collect_legends(
     // category's hue when `color` maps the same column (the redundant, colorblind-
     // safe encoding), else the default. This legend is what lets a texture-mapped
     // plot be read without relying on hue.
-    'pattern: for layer in &ctx.spec.layers {
+    //
+    // With the color key turned off the swatches take the default, as if `color`
+    // mapped nothing: the reason is the shape key's, one geometry class over.
+    'pattern: for layer in spec.layers.iter().filter(|_| pattern_keyed) {
         let Some(def) = layer.encodings.get(&Channel::Pattern) else { continue };
         let Some(df)  = ctx.resolve_data(&layer.data)          else { continue };
         if df.str_col(&def.field).is_none() { continue }
@@ -317,7 +358,8 @@ pub(crate) fn collect_legends(
         let rows: Vec<LegendRow> = categories_across(&[df], &def.field).into_iter()
             .enumerate()
             .map(|(i, label)| {
-                let color = color_map.get(&label).cloned().unwrap_or_else(|| PALETTE_GOG[0].to_string());
+                let color = color_map.get(&label).filter(|_| color_keyed).cloned()
+                    .unwrap_or_else(|| PALETTE_GOG[0].to_string());
                 let swatch = if stroke {
                     LegendSwatch::PatternStroke { dash: dash_for_index(i), color }
                 } else {
@@ -330,7 +372,7 @@ pub(crate) fn collect_legends(
     }
 
     // Size legend (numeric column — show min / mid / max)
-    'size: for layer in &ctx.spec.layers {
+    'size: for layer in spec.layers.iter().filter(|_| keyed(spec, &Channel::Size)) {
         let Some(def) = layer.encodings.get(&Channel::Size) else { continue };
         let Some(df)  = ctx.resolve_data(&layer.data)       else { continue };
         let Some(col) = df.float_col(&def.field)            else { continue };
@@ -344,7 +386,7 @@ pub(crate) fn collect_legends(
     }
 
     // Opacity legend (numeric column — show min / mid / max), mirroring size.
-    'opacity: for layer in &ctx.spec.layers {
+    'opacity: for layer in spec.layers.iter().filter(|_| keyed(spec, &Channel::Opacity)) {
         let Some(def) = layer.encodings.get(&Channel::Opacity) else { continue };
         let Some(df)  = ctx.resolve_data(&layer.data)          else { continue };
         let Some(col) = df.float_col(&def.field)               else { continue };

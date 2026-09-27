@@ -10,7 +10,8 @@ y(
   base = NULL,
   limits = NULL,
   tick_count = NULL,
-  free = FALSE
+  free = FALSE,
+  legend = NULL
 )
 }
 \arguments{
@@ -36,6 +37,10 @@ promise: the chosen values are rounded to readable numbers.}
 
 \item{free}{When the plot is faceted, \code{TRUE} lets each panel fit this axis
 to its own rows instead of sharing one scale across all of them.}
+
+\item{legend}{Not taken by a position, which is read off its axis rather
+than from a legend; gog refuses it here and names the five channels that draw
+a legend: \code{color}, \code{size}, \code{shape}, \code{pattern} and \code{opacity}.}
 }
 \description{
 Bind the y-axis to a column.

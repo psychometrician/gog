@@ -1297,6 +1297,28 @@ pub struct ChannelDef {
     #[serde(default, deserialize_with = "null_is_false",
             skip_serializing_if = "std::ops::Not::not")]
     pub free: bool,
+    /// Whether this channel's key is drawn — `color(continent, legend = FALSE)`
+    /// leaves it out (spec §10, "A legend turned off").
+    ///
+    /// `None` is the default and the overwhelmingly common case: every channel
+    /// that earns a key gets one. `Some(false)` is the author saying the key is
+    /// not wanted, because the plot decodes the channel some other way — the
+    /// names written at the ends of the lines, a table beside the figure. The
+    /// channel **still maps**; only its key is left out, and nothing is printed
+    /// about it, because a stated choice is not §12's silent assumption.
+    ///
+    /// **An `Option` rather than a `bool` defaulting to `true`**, for the reason
+    /// [`PaletteDef::Auto`] is its own variant: *said nothing* and *said `TRUE`*
+    /// are different statements once two bindings of one channel disagree, and
+    /// `legality::check_legend` refuses the pair that says `TRUE` and `FALSE`
+    /// about the one key rather than ranking them in silence.
+    ///
+    /// Only the five channels that earn a key accept it — `color`, `size`,
+    /// `shape`, `pattern`, `opacity`. A position is read from an axis, and
+    /// `group`, `label` and `play` draw no key at all, so on those it is refused
+    /// with that direction rather than accepted and ignored.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub legend: Option<bool>,
 }
 
 /// Read `null` as `false` for a flag on the wire.
@@ -1324,6 +1346,7 @@ impl ChannelDef {
             tick_count: None,
             speed: None,
             free: false,
+            legend: None,
         }
     }
 
@@ -1331,6 +1354,18 @@ impl ChannelDef {
     pub fn with_free(mut self) -> Self {
         self.free = true;
         self
+    }
+
+    /// Draw this channel's key, or leave it out — `color(g, legend = FALSE)`.
+    pub fn with_legend(mut self, shown: bool) -> Self {
+        self.legend = Some(shown);
+        self
+    }
+
+    /// Whether this binding leaves its channel's key out. Only an explicit
+    /// `legend = FALSE` does; saying nothing keeps the key.
+    pub fn hides_legend(&self) -> bool {
+        self.legend == Some(false)
     }
 
     pub fn with_scale(mut self, scale: ScaleType) -> Self {
@@ -1893,10 +1928,82 @@ pub enum PaletteDef {
     Auto,
     Named(String),
     Custom(Vec<String>),
+    /// A color bound to each level **by name** — `palette(c(Asia = "tomato",
+    /// Europe = "steelblue"))` (spec §10, "A color bound to a level by name").
+    ///
+    /// `Custom` hands its colors out in the categories' order, which is the
+    /// axis's order, so the same list colors a category differently in two plots
+    /// whose rows arrive in a different order. Names fix that: a level keeps its
+    /// color whatever order the data brings it in, which is what a report placing
+    /// two plots side by side needs. It is the same parameter with one more
+    /// meaning of its values, so it derives rather than enumerates (§5).
+    ///
+    /// On the wire it is one object from level to color, `{"levels": {"Asia":
+    /// "tomato"}}`: R's named vector, Python's dict, Julia's pairs and
+    /// JavaScript's object all arrive as that. `legality` refuses a name that is
+    /// not a level of the mapped column and a drawn level left without a name,
+    /// so the renderer never has to guess a color for one.
+    Levels(LevelColors),
 }
 
 impl Default for PaletteDef {
     fn default() -> Self { PaletteDef::Auto }
+}
+
+/// The level → color pairs of a named palette, **in the order they were
+/// written**.
+///
+/// A JSON object rather than a list of pairs on the wire, because that is what
+/// each binding's own spelling is — a named vector, a dict, an object — and it
+/// is what reads back when a person looks at a request. The order is kept even
+/// though the legend does not use it (the legend runs in the column's order):
+/// a refusal quotes the names back in the order the reader typed them, and a
+/// name written twice, which R's named vectors and Julia's pairs can both
+/// carry, is visible here as two entries rather than silently collapsed into
+/// whichever came last. So this reads the object entry by entry instead of
+/// into a map.
+#[derive(Debug, Clone, Default, PartialEq)]
+pub struct LevelColors(pub Vec<(String, String)>);
+
+impl LevelColors {
+    /// The color named for `level`, if one was. The first entry wins, which only
+    /// matters under `GOG_STRICT=0`: a name given twice is refused otherwise.
+    pub fn get(&self, level: &str) -> Option<&str> {
+        self.0.iter().find(|(l, _)| l == level).map(|(_, c)| c.as_str())
+    }
+}
+
+impl Serialize for LevelColors {
+    fn serialize<S: serde::Serializer>(&self, s: S) -> Result<S::Ok, S::Error> {
+        use serde::ser::SerializeMap;
+        let mut map = s.serialize_map(Some(self.0.len()))?;
+        for (level, color) in &self.0 {
+            map.serialize_entry(level, color)?;
+        }
+        map.end()
+    }
+}
+
+impl<'de> Deserialize<'de> for LevelColors {
+    fn deserialize<D: serde::Deserializer<'de>>(d: D) -> Result<Self, D::Error> {
+        struct Pairs;
+        impl<'de> serde::de::Visitor<'de> for Pairs {
+            type Value = LevelColors;
+            fn expecting(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+                write!(f, "an object from level to color")
+            }
+            fn visit_map<M: serde::de::MapAccess<'de>>(self, mut access: M)
+                -> Result<LevelColors, M::Error>
+            {
+                let mut pairs = Vec::new();
+                while let Some((level, color)) = access.next_entry::<String, String>()? {
+                    pairs.push((level, color));
+                }
+                Ok(LevelColors(pairs))
+            }
+        }
+        d.deserialize_map(Pairs)
+    }
 }
 
 // ---------------------------------------------------------------------------

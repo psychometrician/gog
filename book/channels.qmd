@@ -702,7 +702,7 @@ data(gapminder_2007) + point + x(gdp) + y(life) +
 Colors are assigned in **first-appearance order**: the first unique value gets
 the first palette color, the second gets the second, and so on. If the column
 [declares its order](data.qmd), that order is used instead. Either way, the same
-table always gets the same colors.
+rows in the same order always get the same colors.
 
 One mistake to know about: a single color is not a palette. `palette()` reads a
 single word as a palette name, and `"red"` is not one. What `palette("red")`
@@ -714,25 +714,87 @@ data(gapminder_2007) + point + x(gdp) + y(life) +
   color(continent) + palette("red")
 ```
 
+### Colors by name
+
+Colors passed without names are assigned in first-appearance order, so a
+category's color depends on where it falls in that order. Sorting the rows can
+change a category's color, and so can another table that lists the categories
+in a different order. Two plots placed side by side in a report then disagree
+about which color a continent is. To assign a color to a category, write the
+category's name beside the color:
+
+```{r}
+data(gapminder_2007) + point + x(gdp) + y(life) + color(continent) +
+  palette(c(Africa = "seagreen", Americas = "goldenrod", Asia = "tomato",
+            Europe = "steelblue", Oceania = "orchid"))
+```
+
+*"Given gapminder 2007: points, x is gdp, y is life, color by continent, with a
+palette naming Africa seagreen, Americas goldenrod, Asia tomato, Europe
+steelblue and Oceania orchid."*
+
+Each continent now takes the color written beside its name, whatever order the
+rows arrive in. The legend still lists the continents in first-appearance order,
+with Asia first. Once colors are named, the names and the categories must match.
+A name that is not a category would color nothing. A category without a name
+would get a color nobody chose. gog refuses both. So a palette that names all
+five continents is refused on a table that holds only three, unless the column's
+declared order includes all five. Usually a mismatch is a misspelled name, and
+the message suggests the category you probably meant:
+
+```{r}
+#| error: true
+data(gapminder_2007) + point + x(gdp) + y(life) + color(continent) +
+  palette(c(Africa = "seagreen", Americas = "goldenrod", Asai = "tomato",
+            Europe = "steelblue", Oceania = "orchid"))
+```
+
 ---
 
 ## Legend placement
 
 Every plot above that maps a refining channel drew a legend automatically, and
 gog also decides where the legend goes: to the right of the plot area. The plot
-area shrinks by itself to make room, so there is no margin to set. There is also
-no position to choose and no way to hide a legend. A legend too tall for the
-plot is left out rather than drawn past the edge. gog says so, and names
-`theme(height = )` as the way to give it room.
+area shrinks by itself to make room, so there is no margin to set and no
+position to choose. A legend too tall for the plot is left out rather than drawn
+past the edge. gog says so, and names `theme(height = )` as the way to give it
+room.
+
+### Leaving a legend out
+
+A legend decodes a channel, and sometimes an axis already decodes the same
+channel. Here `color` and `x` map the same column, so the axis already names the
+continent under every bar. A legend would repeat those names. Write
+`legend = FALSE` on the channel and the legend is left out:
+
+```{r}
+data(gapminder_2007) + bar * count + x(continent) +
+  color(continent, legend = FALSE)
+```
+
+*"Given gapminder 2007: bars derived by count, x is continent, color by
+continent, without a legend."*
+
+The bars keep their colors, because the channel still maps the column. Only the
+legend is gone, and the plot area takes the legend's space. `legend` belongs to
+the five refining channels, the ones that draw a legend. `x`, `y` and `z` are
+read from their axes, and `group`, `label` and `play` draw no legend. gog
+refuses `legend` on all six:
+
+```{r}
+#| error: true
+data(gapminder_2007) + bar * count + x(continent, legend = FALSE)
+```
 
 ## In short
 
-A channel takes a column and never a value, so `color("red")` is refused and the
-refusal points you to `style()`. The five refining channels earn a legend, and
-`x`, `y` and `z` earn an axis. `group` and `label` earn neither, and `play`
-earns a strip that names the frame. Which channels a mark accepts follows from
-its geometry. `palette()` chooses the colors: a categorical palette for a
-categorical column, and a ramp for a continuous one.
+A channel takes a column and never a value, so gog refuses `color("red")` and
+points you to `style()`. The five refining channels earn a legend unless
+`legend = FALSE` leaves it out; `x`, `y` and `z` earn an axis. `group` and
+`label` earn neither, and `play` earns a strip that names the frame. Which
+channels a mark accepts follows from its geometry. `palette()` chooses the
+colors: a categorical palette for a categorical column, and a ramp for a
+continuous one.
 
 ## What comes next
 

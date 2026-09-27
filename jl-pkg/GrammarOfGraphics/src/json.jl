@@ -77,6 +77,30 @@ function to_json(io::IO, mapping::AbstractDict)
     print(io, '}')
 end
 
+"""
+The level → color pairs of a named palette, written as one JSON object **in the
+order they were given**.
+
+A `Dict` would do for the engine, which reads the legend's order off the column
+rather than the palette; the order is kept for the refusals, which quote the names
+back as typed, and so that a name given twice reaches the engine as two entries
+and is refused there instead of collapsing into whichever came last.
+"""
+struct LevelColors
+    pairs::Vector{Pair{String,String}}
+end
+
+function to_json(io::IO, colors::LevelColors)
+    print(io, '{')
+    for (i, (level, color)) in enumerate(colors.pairs)
+        i == 1 || print(io, ',')
+        json_escape(io, level)
+        print(io, ':')
+        json_escape(io, color)
+    end
+    print(io, '}')
+end
+
 to_json(io::IO, value::Dates.Date) = to_json(io, Dates.datetime2unix(Dates.DateTime(value)))
 to_json(io::IO, value::Dates.DateTime) = to_json(io, Dates.datetime2unix(value))
 

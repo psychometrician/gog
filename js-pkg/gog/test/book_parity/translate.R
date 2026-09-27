@@ -82,6 +82,22 @@ js_value <- function(v, multiline = FALSE) {
     if (fn == "c") {
       items <- vapply(parts, js_value, "")
       if (any(is.na(items))) return(NA_character_)
+      # A **named** vector is a lookup rather than a sequence:
+      # `palette(c(Asia = "tomato"))` binds each color to its level, and
+      # JavaScript spells that as an object, which is what the binding reads.
+      # Emitted as an array, the names were dropped and the colors handed out in
+      # order, a tab that ran and drew another plot. A vector naming only some
+      # elements is declined, since the R binding refuses it too.
+      nms <- names(parts)
+      if (!is.null(nms) && any(nzchar(nms))) {
+        if (!all(nzchar(nms))) {
+          js_note_gap("a vector naming some elements and not others")
+          return(NA_character_)
+        }
+        keys <- vapply(nms, function(k)
+          if (grepl("^[\\p{L}_$][\\p{L}\\p{N}_$]*$", k, perl = TRUE)) k else js_quote(k), "")
+        return(paste0("{ ", paste(keys, items, sep = ": ", collapse = ", "), " }"))
+      }
       return(paste0("[", paste(items, collapse = ", "), "]"))
     }
     if (fn == "-" && length(parts) == 1)

@@ -47,7 +47,9 @@ is a property of the coordinate space.
 
 A practical test gives the same answer: a mapping to color, size, shape, pattern
 or opacity draws a legend, and a setting draws none. If the plot needs a legend
-to be read, it was a mapping.
+to be read, it was a mapping. A mapping written with `legend = FALSE` [leaves
+its legend out](channels.qmd#leaving-a-legend-out), so a plot with no legend can
+still use a mapping.
 
 ## What you can set
 
@@ -822,7 +824,8 @@ the other is a property of the plot, so neither can replace the other.
 ## In short
 
 A mapping to color, size, shape, pattern or opacity earns a legend, and a
-setting earns none. That is the quickest test for which one you wrote. Five
+setting earns none. That is the quickest test for which one you wrote; a
+mapping with `legend = FALSE` also has none. Five
 names are a channel and a setting at once: `color`, `size`, `shape`, `pattern`
 and `opacity`. Which call you write decides which you get.
 

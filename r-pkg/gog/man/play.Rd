@@ -4,12 +4,16 @@
 \alias{play}
 \title{Cut the plot into frames and play them — the time dimension.}
 \usage{
-play(field, speed = NULL)
+play(field, speed = NULL, legend = NULL)
 }
 \arguments{
 \item{field}{Column whose distinct values become the frames, as a bare name.}
 
 \item{speed}{A multiple of the normal pace: \code{2} is twice as fast.}
+
+\item{legend}{Not taken: each frame is named in the strip above the panel
+as it is shown, so \code{play} draws no legend. gog refuses it here and names the
+five channels that do.}
 }
 \value{
 A \code{gog_atom} added to a plot with \code{+}.

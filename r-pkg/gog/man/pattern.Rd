@@ -4,10 +4,15 @@
 \alias{pattern}
 \title{Map paint texture to a categorical column --- \code{shape}'s twin.}
 \usage{
-pattern(field)
+pattern(field, legend = NULL)
 }
 \arguments{
 \item{field}{Column to bind to the texture, as a bare name.}
+
+\item{legend}{\code{FALSE} leaves this channel's legend out of the plot. The column
+is still mapped; only the legend that decodes it is not drawn, for a plot that
+says the same thing another way, such as names written at the ends of the
+lines.}
 }
 \value{
 A \code{gog_atom} added to a plot with \code{+}.

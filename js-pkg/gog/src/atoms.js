@@ -706,9 +706,30 @@ function checkFree(free, name) {
   return true;
 }
 
+// `legend: false` — leave this channel's legend out of the plot (spec §10).
+//
+// Every channel takes it and forwards it, positions included, and the engine
+// decides where it means something: a legend is drawn for `color`, `size`,
+// `shape`, `pattern` and `opacity`, and on any other channel the engine refuses
+// it with that direction. Deciding here would be a rule the other three bindings
+// get wrong, and leaving it out of `x()` would answer `x(col.gdp, { legend:
+// false })` with "has no `legend`", which names no fix. Only the shape is
+// checked here, so the error lands on the line that wrote it.
+function checkLegend(legend) {
+  if (legend === undefined || legend === null) return null;
+  if (legend !== true && legend !== false) {
+    throw new GogError(
+      "gog: `legend` is true or false — false leaves this channel's legend out of " +
+        "the plot, e.g. `color(col.continent, { legend: false })` when the names " +
+        "are written on the plot instead."
+    );
+  }
+  return legend;
+}
+
 function positionAtom(kind, name, raw) {
-  const { field, scale, base, limits, tick_count: tickCount, free } =
-    readArgs(raw, name, ["field", "scale", "base", "limits", "tick_count", "free"]);
+  const { field, scale, base, limits, tick_count: tickCount, free, legend } =
+    readArgs(raw, name, ["field", "scale", "base", "limits", "tick_count", "free", "legend"]);
   return new Atom(kind, {
     field: columnName(field, name),
     scale: checkScale(scale),
@@ -716,6 +737,7 @@ function positionAtom(kind, name, raw) {
     limits: checkLimits(limits),
     tick_count: checkTickCount(tickCount),
     free: checkFree(free, name),
+    legend: checkLegend(legend),
   });
 }
 
@@ -854,21 +876,22 @@ export const map = callableAtom(new Atom("coord_map", { preserve: "area" }), (..
 
 function scaledChannel(kind) {
   return (...raw) => {
-    const { field, scale, base, limits } =
-      readArgs(raw, kind, ["field", "scale", "base", "limits"]);
+    const { field, scale, base, limits, legend } =
+      readArgs(raw, kind, ["field", "scale", "base", "limits", "legend"]);
     return new Atom(kind, {
       field: columnName(field, kind),
       scale: checkScale(scale),
       base: checkBase(base),
       limits: checkLimits(limits),
+      legend: checkLegend(legend),
     });
   };
 }
 
 function plainChannel(kind) {
   return (...raw) => {
-    const { field } = readArgs(raw, kind, ["field"]);
-    return new Atom(kind, { field: columnName(field, kind) });
+    const { field, legend } = readArgs(raw, kind, ["field", "legend"]);
+    return new Atom(kind, { field: columnName(field, kind), legend: checkLegend(legend) });
   };
 }
 
@@ -925,8 +948,12 @@ export const label = plainChannel("label");
 // axes hold still and only the data moves; a layer that does not bind `play` is
 // drawn in every frame. A static image made from the plot shows the first frame.
 export const play = (...raw) => {
-  const { field, speed } = readArgs(raw, "play", ["field", "speed"]);
-  return new Atom("play", { field: columnName(field, "play"), speed: checkSpeed(speed) });
+  const { field, speed, legend } = readArgs(raw, "play", ["field", "speed", "legend"]);
+  return new Atom("play", {
+    field: columnName(field, "play"),
+    speed: checkSpeed(speed),
+    legend: checkLegend(legend),
+  });
 };
 
 // What `at` was given, and which of the two readings it is. One option rather
@@ -1080,7 +1107,12 @@ export function order(...raw) {
   });
 }
 
-// Set the categorical palette — a name, or a list of hex colors.
+// Set the categorical palette — a name, a list of hex colors, or an object that
+// binds a color to each level by name: `palette({ Asia: "tomato", Europe:
+// "steelblue" })` gives each level the color beside it, whatever order the rows
+// arrive in. Which names are levels is the engine's question, since only the
+// table can answer it; this checks the shape of what was written. A `Map` is
+// read the same way, because `JSON.stringify` would otherwise send it as `{}`.
 export function palette(pal) {
   if (typeof pal === "string") {
     return new Atom("palette", { value: { named: pal } });
@@ -1088,9 +1120,23 @@ export function palette(pal) {
   if (Array.isArray(pal) && pal.every((c) => typeof c === "string")) {
     return new Atom("palette", { value: { custom: [...pal] } });
   }
+  const entries = pal instanceof Map ? [...pal.entries()]
+    : pal !== null && typeof pal === "object" && !Array.isArray(pal)
+      && [Object.prototype, null].includes(Object.getPrototypeOf(pal)) ? Object.entries(pal)
+    : null;
+  if (entries !== null) {
+    if (!entries.every(([level, color]) => typeof level === "string" && typeof color === "string")) {
+      throw new GogError(
+        "gog: `palette()` with names binds a color to each level, both written as " +
+          'text, e.g. `palette({ Asia: "tomato", Europe: "steelblue" })`.'
+      );
+    }
+    return new Atom("palette", { value: { levels: Object.fromEntries(entries) } });
+  }
   throw new GogError(
-    'gog: `palette()` takes a palette name ("gog", "okabe") or an array of hex ' +
-      `colors. Got ${describe(pal)}.`
+    'gog: `palette()` takes a palette name ("gog", "okabe"), an array of hex ' +
+      'colors, or an object naming a color for each level, e.g. `{ Asia: "tomato" }`. ' +
+      `Got ${describe(pal)}.`
   );
 }
 

@@ -5276,7 +5276,7 @@ fn clip_id(l: &Layout) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::ir::{Layer, ScaleType};
+    use crate::ir::{ChannelDef, Layer, ScaleType};
     use crate::render::palette::{PALETTE_GOG, RAMP_BLUE};
     use crate::render::text::estimate_text_width;
     use crate::render::ticks::nice_ticks;
@@ -11117,6 +11117,147 @@ mod tests {
         assert!(!set.contains(">x<"), "a set color must not produce a legend");
         // A legend also reserves right-hand margin, so the panel must be wider.
         assert!(set.len() < mapped.len());
+    }
+
+    // -- a legend turned off (spec §10) ------------------------------------
+
+    /// The panel's width, read off the rectangle painted behind the data.
+    fn panel_width(svg: &str) -> f64 {
+        svg.lines()
+            .find(|l| l.contains(r##"fill="#f5f5f8""##))
+            .and_then(|l| l.split(r#" width=""#).nth(1)?.split('"').next()?.parse().ok())
+            .unwrap_or_else(|| panic!("no panel rectangle:\n{svg}"))
+    }
+
+    #[test]
+    fn a_legend_turned_off_keeps_the_mapping_and_gives_its_room_to_the_panel() {
+        let keyed = render_styled(Layer::new(Mark::Point).encode(Channel::Color, "g"));
+        let off = render_styled(Layer::new(Mark::Point)
+            .encode_def(Channel::Color, ChannelDef::field("g").with_legend(false)));
+        // The key is gone: its title and both rows.
+        assert!(keyed.contains(">G<") && keyed.contains(">x<"), "the default draws the key:\n{keyed}");
+        assert!(!off.contains(">G<") && !off.contains(">x<") && !off.contains(">y<"),
+            "legend = FALSE must not draw the key:\n{off}");
+        // The channel still maps: both categories keep their own color.
+        for c in [PALETTE_GOG[0], PALETTE_GOG[1]] {
+            assert!(off.contains(&format!(r#"fill="{c}""#)), "{c} missing — the mapping was dropped:\n{off}");
+        }
+        // And the room the key would have taken goes to the data.
+        assert!(panel_width(&off) > panel_width(&keyed) + 20.0,
+            "{} vs {}", panel_width(&off), panel_width(&keyed));
+        // `legend = TRUE` is the default, said out loud: nothing changes.
+        let on = render_styled(Layer::new(Mark::Point)
+            .encode_def(Channel::Color, ChannelDef::field("g").with_legend(true)));
+        assert_eq!(on, keyed);
+    }
+
+    #[test]
+    fn every_channel_that_earns_a_key_can_turn_it_off() {
+        // Size and opacity sample three rows; shape draws glyphs. Each loses its
+        // own box and only its own box. (Counted by the box's rounded corner: the
+        // numeric keys' titles are the axes' names too, so a title proves nothing.)
+        for (channel, field) in [(Channel::Size, "a"), (Channel::Opacity, "a"), (Channel::Shape, "g")] {
+            let keyed = render_styled(Layer::new(Mark::Point).encode(channel.clone(), field));
+            let off = render_styled(Layer::new(Mark::Point)
+                .encode_def(channel.clone(), ChannelDef::field(field).with_legend(false)));
+            assert_eq!(keyed.matches(r#"rx="4""#).count(), 1, "{channel:?} draws a key by default");
+            assert_eq!(off.matches(r#"rx="4""#).count(), 0,
+                "{channel:?}: legend = FALSE left the key in:\n{off}");
+            assert!(panel_width(&off) > panel_width(&keyed), "{channel:?}: the room goes to the panel");
+        }
+        // Two keys, one turned off: the other stays, and it is the right one.
+        let two = render_styled(Layer::new(Mark::Point)
+            .encode_def(Channel::Size, ChannelDef::field("a").with_legend(false))
+            .encode(Channel::Color, "g"));
+        assert_eq!(two.matches(r#"rx="4""#).count(), 1, "{two}");
+        assert!(two.contains(">G<") && two.contains(">x<"), "the color key stays:\n{two}");
+    }
+
+    #[test]
+    fn a_legend_off_on_one_binding_leaves_the_key_out_for_the_plot() {
+        // The key is the channel's. Lines colored by a column and labels colored by
+        // the same column read one color scale, so one `legend = FALSE` is enough
+        // and the second binding saying nothing does not bring the key back.
+        let df = DataFrame::new()
+            .with_float("a", vec![1.0, 2.0, 3.0, 4.0])
+            .with_float("b", vec![4.0, 5.0, 6.0, 7.0])
+            .with_str("g", vec!["x".into(), "x".into(), "y".into(), "y".into()]);
+        let data: HashMap<String, DataFrame> = [("t".to_string(), df)].into_iter().collect();
+        let spec = PlotSpec::new().data("t").x("a").y("b")
+            .layer(Layer::new(Mark::Line)
+                .encode_def(Channel::Color, ChannelDef::field("g").with_legend(false)))
+            .layer(Layer::new(Mark::Text).encode(Channel::Label, "g").encode(Channel::Color, "g"));
+        let svg = SvgRenderer::default().render(&spec, &data);
+        assert!(!svg.contains(">G<"), "{svg}");
+        assert_eq!(svg.matches(r#"rx="4""#).count(), 0, "{svg}");
+    }
+
+    #[test]
+    fn turning_off_one_half_of_a_merged_key_leaves_the_other_half_standing() {
+        // `color(g) + shape(g)` share one key: glyphs in the categories' colors.
+        let merged = render_styled(Layer::new(Mark::Point)
+            .encode(Channel::Color, "g").encode(Channel::Shape, "g"));
+        assert_eq!(merged.matches(r#"rx="4""#).count(), 1, "one merged key:\n{merged}");
+
+        // Shape's key off: there is no glyph key left to carry the hues, so the
+        // color key stands on its own again rather than vanishing with it.
+        let color_only = render_styled(Layer::new(Mark::Point)
+            .encode(Channel::Color, "g")
+            .encode_def(Channel::Shape, ChannelDef::field("g").with_legend(false)));
+        assert_eq!(color_only.matches(r#"rx="4""#).count(), 1, "{color_only}");
+        assert!(color_only.contains(r#"fill-opacity="0.82" rx="2""#),
+            "the color key's square swatches:\n{color_only}");
+
+        // Color's key off: the glyph key stays and goes back to the neutral ink,
+        // or the hues would still be decoded and the request would change nothing.
+        let shape_only = render_styled(Layer::new(Mark::Point)
+            .encode_def(Channel::Color, ChannelDef::field("g").with_legend(false))
+            .encode(Channel::Shape, "g"));
+        assert_eq!(shape_only.matches(r#"rx="4""#).count(), 1, "{shape_only}");
+        assert_ne!(shape_only, merged, "legend = FALSE on color changed nothing");
+        let key = &shape_only[shape_only.find(r#"rx="4""#).unwrap()..];
+        assert!(key.contains("#3c3c46") && !key.contains(PALETTE_GOG[1]),
+            "the glyph key decodes shape alone:\n{key}");
+    }
+
+    // -- a color bound to a level by name (spec §10) ---------------------
+
+    #[test]
+    fn a_named_palette_gives_each_level_its_own_color_whatever_the_row_order() {
+        // The coverage chapter's demonstration: the same palette over the same
+        // rows in two orders gave the categories different colors, because an
+        // unnamed palette is handed out in the column's order. Named, it cannot.
+        let palette = crate::ir::PaletteDef::Levels(crate::ir::LevelColors(vec![
+            ("y".into(), "tomato".into()),
+            ("x".into(), "steelblue".into()),
+        ]));
+        let draw = |g: Vec<String>| {
+            let df = DataFrame::new()
+                .with_float("a", vec![1.0, 2.0, 3.0])
+                .with_float("b", vec![4.0, 5.0, 6.0])
+                .with_str("g", g);
+            let data: HashMap<String, DataFrame> = [("t".to_string(), df)].into_iter().collect();
+            let mut spec = PlotSpec::new().data("t").x("a").y("b")
+                .layer(Layer::new(Mark::Point).encode(Channel::Color, "g"));
+            spec.palette = palette.clone();
+            SvgRenderer::default().render(&spec, &data)
+        };
+        for rows in [vec!["x", "y", "x"], vec!["y", "x", "y"]] {
+            let svg = draw(rows.iter().map(|s| s.to_string()).collect());
+            // Each legend row is its swatch then its name, so the color written
+            // just before a name is that level's.
+            let swatch_of = |level: &str| {
+                let at = svg.find(&format!(">{level}</text>")).expect("legend row");
+                let before = &svg[..at];
+                let fill = before.rfind(r#"fill=""#).unwrap();
+                before[fill + 6..].split('"').next().unwrap().to_string()
+            };
+            assert_eq!(swatch_of("x"), "steelblue", "rows {rows:?}:\n{svg}");
+            assert_eq!(swatch_of("y"), "tomato", "rows {rows:?}:\n{svg}");
+            // The legend runs in the column's order, not the palette's.
+            let (x, y) = (svg.find(">x</text>").unwrap(), svg.find(">y</text>").unwrap());
+            assert_eq!(x < y, rows[0] == "x", "rows {rows:?}: legend order");
+        }
     }
 
     // -- continuous color ------------------------------------------------

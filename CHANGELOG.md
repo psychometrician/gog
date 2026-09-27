@@ -8,6 +8,22 @@ CRAN-style repositories and PyPI, `GrammarOfGraphics` on Julia's General, and
 
 ### Added
 
+- **Colors by name.** `palette(c(Asia = "tomato", Europe = "steelblue"))` gives
+  each category the color written beside its name, so a category keeps its
+  color whatever order the rows arrive in. Python passes a dict, JavaScript an
+  object, and Julia pairs. A name that is not a category, a drawn category left
+  without a name, a name given twice, and names on a numeric column are
+  refused; a misspelled name is answered with the category it was probably
+  meant to be.
+
+- **Leaving a legend out.** `legend = FALSE` on `color`, `size`, `shape`,
+  `pattern` or `opacity`, as in `color(continent, legend = FALSE)`, keeps the
+  channel mapped and leaves its legend out, and the plot takes the room. It is
+  for a plot that already names the categories, on an axis or beside the marks.
+  On a position, `group`, `label` or `play`, which draw no legend, it is
+  refused. When `color` and `shape` share one legend, turning `color`'s off keeps
+  the shapes and draws them in gray.
+
 - **A halo for `text`.** `style(border_color =, border_size =)` now draws on
   `text` as well: a band of color under each label's letters, so a name drawn
   over lines, contours or dense points stays readable. Either setting works

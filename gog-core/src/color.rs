@@ -205,7 +205,11 @@ pub fn nearest_color(s: &str) -> Option<&'static str> {
         .map(|(c, _)| c)
 }
 /// Levenshtein distance, two-row variant.
-fn edit_distance(a: &str, b: &str) -> usize {
+///
+/// `pub(crate)` for one other reader: a named palette's refusal suggests the
+/// level a misspelled name was reaching for (`legality::check_named_palette`),
+/// under the same two-edit ceiling `nearest_color` keeps here.
+pub(crate) fn edit_distance(a: &str, b: &str) -> usize {
     let (a, b): (Vec<char>, Vec<char>) = (a.chars().collect(), b.chars().collect());
     let mut prev: Vec<usize> = (0..=b.len()).collect();
     let mut curr = vec![0usize; b.len() + 1];

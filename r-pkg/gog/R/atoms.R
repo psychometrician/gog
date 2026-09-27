@@ -1248,6 +1248,25 @@ check_free <- function(free) {
   TRUE
 }
 
+# `legend = FALSE` — leave this channel's legend out of the plot (spec §10).
+#
+# Every binding takes it and forwards it, positions included, and the engine
+# decides where it means something: a legend is drawn for `color`, `size`, `shape`,
+# `pattern` and `opacity`, and on any other channel the engine refuses it with
+# that direction. Deciding here would be a rule the other three bindings get
+# wrong, and without the argument `x(gdp, legend = FALSE)` would meet R's
+# "unused argument", which names no fix. Only the shape is checked here, so the
+# error lands on the line that wrote it.
+check_legend <- function(legend) {
+  if (is.null(legend)) return(NULL)
+  if (!isTRUE(legend) && !isFALSE(legend)) {
+    stop("gog: `legend = ` is TRUE or FALSE \u2014 FALSE leaves this channel's legend out ",
+         "of the plot, e.g. `color(continent, legend = FALSE)` when the names are ",
+         "written on the plot instead.", call. = FALSE)
+  }
+  legend
+}
+
 check_tick_count <- function(tick_count) {
   if (is.null(tick_count)) return(NULL)
   if (!is.numeric(tick_count) || length(tick_count) != 1L || is.na(tick_count)) {
@@ -1313,14 +1332,17 @@ check_speed <- function(speed) {
 #'   promise: the chosen values are rounded to readable numbers.
 #' @param free  When the plot is faceted, `TRUE` lets each panel fit this axis
 #'   to its own rows instead of sharing one scale across all of them.
+#' @param legend  Not taken by a position, which is read off its axis rather
+#'   than from a legend; gog refuses it here and names the five channels that draw
+#'   a legend: `color`, `size`, `shape`, `pattern` and `opacity`.
 #' @export
 x <- function(field, scale = NULL, base = NULL, limits = NULL, tick_count = NULL,
-              free = FALSE) {
+              free = FALSE, legend = NULL) {
   structure(list(type = "coord_x", field = column_name(substitute(field), "x"),
                  scale = check_scale(scale), base = check_base(base),
                  limits = check_limits(limits),
                  tick_count = check_tick_count(tick_count),
-                 free = check_free(free)),
+                 free = check_free(free), legend = check_legend(legend)),
             class = "gog_atom")
 }
 
@@ -1333,14 +1355,17 @@ x <- function(field, scale = NULL, base = NULL, limits = NULL, tick_count = NULL
 #'   promise: the chosen values are rounded to readable numbers.
 #' @param free  When the plot is faceted, `TRUE` lets each panel fit this axis
 #'   to its own rows instead of sharing one scale across all of them.
+#' @param legend  Not taken by a position, which is read off its axis rather
+#'   than from a legend; gog refuses it here and names the five channels that draw
+#'   a legend: `color`, `size`, `shape`, `pattern` and `opacity`.
 #' @export
 y <- function(field, scale = NULL, base = NULL, limits = NULL, tick_count = NULL,
-              free = FALSE) {
+              free = FALSE, legend = NULL) {
   structure(list(type = "coord_y", field = column_name(substitute(field), "y"),
                  scale = check_scale(scale), base = check_base(base),
                  limits = check_limits(limits),
                  tick_count = check_tick_count(tick_count),
-                 free = check_free(free)),
+                 free = check_free(free), legend = check_legend(legend)),
             class = "gog_atom")
 }
 
@@ -1353,14 +1378,17 @@ y <- function(field, scale = NULL, base = NULL, limits = NULL, tick_count = NULL
 #'   promise: the chosen values are rounded to readable numbers.
 #' @param free  When the plot is faceted, `TRUE` lets each panel fit this axis
 #'   to its own rows instead of sharing one scale across all of them.
+#' @param legend  Not taken by a position, which is read off its axis rather
+#'   than from a legend; gog refuses it here and names the five channels that draw
+#'   a legend: `color`, `size`, `shape`, `pattern` and `opacity`.
 #' @export
 z <- function(field, scale = NULL, base = NULL, limits = NULL, tick_count = NULL,
-              free = FALSE) {
+              free = FALSE, legend = NULL) {
   structure(list(type = "coord_z", field = column_name(substitute(field), "z"),
                  scale = check_scale(scale), base = check_base(base),
                  limits = check_limits(limits),
                  tick_count = check_tick_count(tick_count),
-                 free = check_free(free)),
+                 free = check_free(free), legend = check_legend(legend)),
             class = "gog_atom")
 }
 
@@ -1572,11 +1600,15 @@ map <- function(preserve = "area") {
 #' @param field  Column to bind (bare name).  Text picks colors from the
 #'   palette; a number runs along a sequential ramp.
 #' @inheritParams x
+#' @param legend  `FALSE` leaves this channel's legend out of the plot. The column
+#'   is still mapped; only the legend that decodes it is not drawn, for a plot that
+#'   says the same thing another way, such as names written at the ends of the
+#'   lines.
 #' @export
-color <- function(field, scale = NULL, base = NULL, limits = NULL) {
+color <- function(field, scale = NULL, base = NULL, limits = NULL, legend = NULL) {
   structure(list(type = "color", field = column_name(substitute(field), "color", settable = TRUE),
                  scale = check_scale(scale), base = check_base(base),
-                 limits = check_limits(limits)),
+                 limits = check_limits(limits), legend = check_legend(legend)),
             class = "gog_atom")
 }
 
@@ -1602,10 +1634,13 @@ colour <- function(...) {
 #' Group line/path marks by a column (connects points within the same group).
 #' Use color(field) when you also want color distinction — it implies grouping.
 #' @param field  Column to group by, as a bare name.
+#' @param legend  Not taken: `group` splits without encoding anything, so it
+#'   draws no legend. gog refuses it here and names the five channels that do.
 #' @return A `gog_atom` added to a plot with `+`.
 #' @export
-group <- function(field) {
-  structure(list(type = "group", field = column_name(substitute(field), "group")),
+group <- function(field, legend = NULL) {
+  structure(list(type = "group", field = column_name(substitute(field), "group"),
+                 legend = check_legend(legend)),
             class = "gog_atom")
 }
 
@@ -1614,11 +1649,15 @@ group <- function(field) {
 #' @inheritParams x
 #' @param limits  The two ends of the size scale, as `c(low, high)`. `NA` on
 #'   either end leaves that end fitted to the data.
+#' @param legend  `FALSE` leaves this channel's legend out of the plot. The column
+#'   is still mapped; only the legend that decodes it is not drawn, for a plot that
+#'   says the same thing another way, such as names written at the ends of the
+#'   lines.
 #' @export
-size <- function(field, scale = NULL, base = NULL, limits = NULL) {
+size <- function(field, scale = NULL, base = NULL, limits = NULL, legend = NULL) {
   structure(list(type = "size", field = column_name(substitute(field), "size", settable = TRUE),
                  scale = check_scale(scale), base = check_base(base),
-                 limits = check_limits(limits)),
+                 limits = check_limits(limits), legend = check_legend(legend)),
             class = "gog_atom")
 }
 
@@ -1627,10 +1666,15 @@ size <- function(field, scale = NULL, base = NULL, limits = NULL) {
 #' No \code{scale} argument: \code{shape} answers "which one?", and there is no
 #' distance between circle and square for a scale to run along.
 #' @param field  Column to bind to the glyph shape, as a bare name.
+#' @param legend  `FALSE` leaves this channel's legend out of the plot. The column
+#'   is still mapped; only the legend that decodes it is not drawn, for a plot that
+#'   says the same thing another way, such as names written at the ends of the
+#'   lines.
 #' @return A `gog_atom` added to a plot with `+`.
 #' @export
-shape <- function(field) {
-  structure(list(type = "shape", field = column_name(substitute(field), "shape", settable = TRUE)),
+shape <- function(field, legend = NULL) {
+  structure(list(type = "shape", field = column_name(substitute(field), "shape", settable = TRUE),
+                 legend = check_legend(legend)),
             class = "gog_atom")
 }
 
@@ -1647,10 +1691,15 @@ shape <- function(field) {
 #' Distinct from the \code{style(pattern = )} \emph{setting}, which fixes one
 #' texture for the whole layer; \code{pattern()} \emph{maps} a column to several.
 #' @param field  Column to bind to the texture, as a bare name.
+#' @param legend  `FALSE` leaves this channel's legend out of the plot. The column
+#'   is still mapped; only the legend that decodes it is not drawn, for a plot that
+#'   says the same thing another way, such as names written at the ends of the
+#'   lines.
 #' @return A `gog_atom` added to a plot with `+`.
 #' @export
-pattern <- function(field) {
-  structure(list(type = "pattern", field = column_name(substitute(field), "pattern", settable = TRUE)),
+pattern <- function(field, legend = NULL) {
+  structure(list(type = "pattern", field = column_name(substitute(field), "pattern", settable = TRUE),
+                 legend = check_legend(legend)),
             class = "gog_atom")
 }
 
@@ -1659,11 +1708,15 @@ pattern <- function(field) {
 #' @inheritParams x
 #' @param limits  The two ends of the scale, as `c(low, high)`. `NA` on either
 #'   end leaves that end fitted to the data.
+#' @param legend  `FALSE` leaves this channel's legend out of the plot. The column
+#'   is still mapped; only the legend that decodes it is not drawn, for a plot that
+#'   says the same thing another way, such as names written at the ends of the
+#'   lines.
 #' @export
-opacity <- function(field, scale = NULL, base = NULL, limits = NULL) {
+opacity <- function(field, scale = NULL, base = NULL, limits = NULL, legend = NULL) {
   structure(list(type = "opacity", field = column_name(substitute(field), "opacity", settable = TRUE),
                  scale = check_scale(scale), base = check_base(base),
-                 limits = check_limits(limits)),
+                 limits = check_limits(limits), legend = check_legend(legend)),
             class = "gog_atom")
 }
 
@@ -1676,10 +1729,13 @@ opacity <- function(field, scale = NULL, base = NULL, limits = NULL) {
 #' superposition \code{point + text}.  No \code{scale}: a label is content, like
 #' \code{shape}, not a magnitude to run a scale along.
 #' @param field  Column whose values are drawn as the text, as a bare name.
+#' @param legend  Not taken: a label is read where it is written, so it draws
+#'   no legend. gog refuses it here and names the five channels that do.
 #' @return A `gog_atom` added to a plot with `+`.
 #' @export
-label <- function(field) {
-  structure(list(type = "label", field = column_name(substitute(field), "label")),
+label <- function(field, legend = NULL) {
+  structure(list(type = "label", field = column_name(substitute(field), "label"),
+                 legend = check_legend(legend)),
             class = "gog_atom")
 }
 
@@ -1706,11 +1762,14 @@ label <- function(field) {
 #' of this book, or any SVG converter) the first frame is what it shows.
 #' @param field  Column whose distinct values become the frames, as a bare name.
 #' @param speed  A multiple of the normal pace: `2` is twice as fast.
+#' @param legend  Not taken: each frame is named in the strip above the panel
+#'   as it is shown, so `play` draws no legend. gog refuses it here and names the
+#'   five channels that do.
 #' @return A `gog_atom` added to a plot with `+`.
 #' @export
-play <- function(field, speed = NULL) {
+play <- function(field, speed = NULL, legend = NULL) {
   structure(list(type = "play", field = column_name(substitute(field), "play"),
-                 speed = check_speed(speed)),
+                 speed = check_speed(speed), legend = check_legend(legend)),
             class = "gog_atom")
 }
 
@@ -2065,6 +2124,10 @@ facet <- function(field, wrap = NULL) {
 #'   of hex colors. The palette is used in first-appearance order; if there
 #'   are more categories than palette entries, additional colors are generated
 #'   automatically via the HSL color wheel so no two categories share a color.
+#'   Name the colors to bind each one to a level instead, as in
+#'   `palette(c(Asia = "tomato", Europe = "steelblue"))`: a level then keeps its
+#'   color whatever order the rows arrive in. Every name must be a level of the
+#'   column mapped to `color`, and every level drawn must have a name.
 #' @export
 palette <- function(pal) {
   # A no-argument call is `grDevices::palette()`, which reads the current base
@@ -2075,6 +2138,47 @@ palette <- function(pal) {
          "`palette(c(\"#1b9e77\", \"#d95f02\"))`. To read base R's own palette, ",
          "that is `grDevices::palette()`, the function this atom's name masks.",
          call. = FALSE)
+  }
+  # Names bind a color to a level (spec §10). Checked first, because a named
+  # vector of one is also a character vector of one, which would otherwise be
+  # read as a palette *name*: `palette(c(Asia = "tomato"))` asking for a palette
+  # called "tomato". Which names are levels is the engine's question, since only
+  # the table can answer it; this checks the shape of what was written.
+  if (!is.null(names(pal))) {
+    level_names <- names(pal)
+    if (anyNA(level_names) || !all(nzchar(level_names))) {
+      stop("gog: `palette()` names some colors and not others. Name every color ",
+           "with the level it belongs to, e.g. `palette(c(Asia = \"tomato\", ",
+           "Europe = \"steelblue\"))`, or name none to hand the colors out in order.",
+           call. = FALSE)
+    }
+    if (is.list(pal) && !all(lengths(pal) == 1L)) {
+      stop("gog: `palette()` takes one color for each name, e.g. ",
+           "`palette(c(Asia = \"tomato\", Europe = \"steelblue\"))`.", call. = FALSE)
+    }
+    colors <- as.character(unlist(pal, use.names = FALSE))
+    if (anyNA(colors)) {
+      stop("gog: `palette()` gives `", level_names[is.na(colors)][[1]], "` no color. ",
+           "Every name takes one, e.g. `palette(c(Asia = \"tomato\"))`.", call. = FALSE)
+    }
+    # A name given twice has to be refused here rather than by the engine, which
+    # refuses it for the other bindings: jsonlite makes an object's keys unique on
+    # the way out, so the second `Asia` would arrive as `Asia.1` and be refused as
+    # a level that does not exist. Same words as the engine's refusal.
+    if (anyDuplicated(level_names)) {
+      twice <- level_names[duplicated(level_names)][[1]]
+      given <- paste0("\"", colors[level_names == twice], "\"")
+      n <- length(given)
+      as_list <- if (n == 2) paste(given, collapse = " or ")
+                 else paste0(paste(given[-n], collapse = ", "), ", or ", given[[n]])
+      stop("gog: `palette()` names \"", twice, "\" ",
+           if (n == 2) "twice" else paste(n, "times"), ", as ", as_list,
+           ". A level has one color, so keep one of them.", call. = FALSE)
+    }
+    by_level <- as.list(colors)
+    names(by_level) <- level_names
+    return(structure(list(type = "palette", value = list(levels = by_level)),
+                     class = "gog_atom"))
   }
   value <- if (is.character(pal) && length(pal) == 1) {
     list(named = pal)

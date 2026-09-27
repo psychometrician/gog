@@ -24,6 +24,7 @@
 # language-specific rather than silently mangled.
 
 import ast
+import json
 import re
 from typing import List, Optional, Tuple
 
@@ -208,11 +209,35 @@ def _literals(text: str, fired: List[str]) -> str:
     return body
 
 
+# One element of a named vector: `Asia = "tomato"`, with the name bare, quoted or
+# backticked, the three ways R lets a name be written. `=` but never `==`.
+_NAMED_ELEMENT = re.compile(
+    r'^\s*(?:((?:[^\W\d]|\.)[\w.]*)|"([^"]*)"|`([^`]*)`)\s*=(?!=)\s*(.*?)\s*$', re.S)
+
+
 def _vectors(text: str, fired: List[str]) -> str:
-    """Rule 3 — `c(a, b)` is a list."""
+    """Rule 3 — `c(a, b)` is a list, and `c(a = x, b = y)` is a dict.
+
+    A **named** vector is a lookup rather than a sequence: `palette(c(Asia =
+    "tomato"))` binds each color to its level, and Python spells that as a dict,
+    which is what the binding reads. Bracketing it as a list kept `Asia =` inside
+    the brackets, which is not Python. A vector naming only some elements stays
+    a list and so fails to compile, and its tab is dropped: the R binding refuses
+    that vector, so no chunk says it as a sentence.
+    """
     for start, open_index, close in reversed(_calls(text, {"c"})):
-        text = text[:start] + "[" + text[open_index + 1:close] + "]" + text[close + 1:]
-        fired.append("vector to list")
+        inner = text[open_index + 1:close]
+        elements = [_NAMED_ELEMENT.match(arg) for arg in _split_args(inner)]
+        if inner.strip() and all(elements):
+            pairs = ", ".join(
+                json.dumps(m.group(1) or m.group(2) or m.group(3), ensure_ascii=False)
+                + ": " + m.group(4)
+                for m in elements)
+            text = text[:start] + "{" + pairs + "}" + text[close + 1:]
+            fired.append("named vector to dict")
+        else:
+            text = text[:start] + "[" + inner + "]" + text[close + 1:]
+            fired.append("vector to list")
     return text
 
 

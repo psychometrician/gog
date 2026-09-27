@@ -743,14 +743,14 @@ resolve_query <- function(q, table) {
       lhs$spec$coord <- list(map = list(preserve = rhs$preserve))
     },
 
-    color   = { lhs <- set_channel(lhs, "color",   rhs$field, rhs$scale, rhs$base, rhs$limits) },
-    group   = { lhs <- set_channel(lhs, "group",   rhs$field) },
-    size    = { lhs <- set_channel(lhs, "size",    rhs$field, rhs$scale, rhs$base, rhs$limits) },
-    shape   = { lhs <- set_channel(lhs, "shape",   rhs$field) },
-    opacity = { lhs <- set_channel(lhs, "opacity", rhs$field, rhs$scale, rhs$base, rhs$limits) },
-    label   = { lhs <- set_channel(lhs, "label",   rhs$field) },
-    pattern = { lhs <- set_channel(lhs, "pattern", rhs$field) },
-    play    = { lhs <- set_channel(lhs, "play",    rhs$field, speed = rhs$speed) },
+    color   = { lhs <- set_channel(lhs, "color",   rhs$field, rhs$scale, rhs$base, rhs$limits, legend = rhs$legend) },
+    group   = { lhs <- set_channel(lhs, "group",   rhs$field, legend = rhs$legend) },
+    size    = { lhs <- set_channel(lhs, "size",    rhs$field, rhs$scale, rhs$base, rhs$limits, legend = rhs$legend) },
+    shape   = { lhs <- set_channel(lhs, "shape",   rhs$field, legend = rhs$legend) },
+    opacity = { lhs <- set_channel(lhs, "opacity", rhs$field, rhs$scale, rhs$base, rhs$limits, legend = rhs$legend) },
+    label   = { lhs <- set_channel(lhs, "label",   rhs$field, legend = rhs$legend) },
+    pattern = { lhs <- set_channel(lhs, "pattern", rhs$field, legend = rhs$legend) },
+    play    = { lhs <- set_channel(lhs, "play",    rhs$field, speed = rhs$speed, legend = rhs$legend) },
 
     # Plot-scoped, like `palette`: a predicate over rows is a fact about the
     # data, so every layer reading that column answers to it. `I()` keeps a
@@ -1170,12 +1170,13 @@ print.gog_page <- print.gog_spec
 # authority (spec §10). Two numbers with `NA` for an end the data should decide;
 # `na = "null"` in `toJSON` turns that into the engine's `[0, null]` without a
 # special case here. `I()` keeps it an array at length two — the same guard the
-# data columns need, for the same reason.
+# data columns need, for the same reason. `legend` is whether the channel's legend
+# is drawn; `NULL` (sent as `null`) is the default, which draws it.
 channel_def <- function(field, scale = NULL, base = NULL, limits = NULL,
-                        tick_count = NULL, speed = NULL, free = NULL) {
+                        tick_count = NULL, speed = NULL, free = NULL, legend = NULL) {
   list(field = field, scale = scale, base = base,
        limits = if (is.null(limits)) NULL else I(limits),
-       tick_count = tick_count, speed = speed, free = free)
+       tick_count = tick_count, speed = speed, free = free, legend = legend)
 }
 
 # A position binding, scoped by position like every other channel.
@@ -1196,7 +1197,7 @@ channel_def <- function(field, scale = NULL, base = NULL, limits = NULL,
 # not run.
 set_position <- function(gog, ch, rhs) {
   cd <- channel_def(rhs$field, rhs$scale, rhs$base, rhs$limits, rhs$tick_count,
-                    free = rhs$free)
+                    free = rhs$free, legend = rhs$legend)
   if (is.null(gog$current_layer)) {
     gog$spec[[ch]] <- cd                    # written before any mark → the plot's
   } else {
@@ -1218,8 +1219,8 @@ set_position <- function(gog, ch, rhs) {
 # render. Reaching forward from the plot level covers the useful case without
 # either problem, and matches how x/y/z have always worked.
 set_channel <- function(gog, ch, field, scale = NULL, base = NULL, limits = NULL,
-                        speed = NULL) {
-  cd <- channel_def(field, scale, base, limits, speed = speed)
+                        speed = NULL, legend = NULL) {
+  cd <- channel_def(field, scale, base, limits, speed = speed, legend = legend)
   if (is.null(gog$current_layer)) {
     gog$spec$channels[[ch]] <- cd   # written before any mark → plot-scoped
   } else {

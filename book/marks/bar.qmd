@@ -51,7 +51,8 @@ zero unless you state your own `limits`, so a bar's length is its value.
 
 Every bar is the same color until you map a column to `color`. With a color for
 each bar, a reader can find one country quickly and match it to the same
-country in another plot. Bind `color` to the column that already sits on `x`.
+country in another plot of the same table. Bind `color` to the column that
+already sits on `x`.
 `color` fills each bar with a distinct color:
 
 ```{r}
@@ -62,7 +63,8 @@ data(medals) + bar + x(country) + y(gold) +
 *"Given the medals: bars, x is country, y is gold, color by country."*
 
 The legend repeats the names on the x axis, because the same column sits on
-both.
+both. `color(country, legend = FALSE)` keeps the colors and [leaves the legend
+out](../channels.qmd#leaving-a-legend-out).
 
 ## Ordering bars
 

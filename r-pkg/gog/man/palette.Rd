@@ -10,7 +10,11 @@ palette(pal)
 \item{pal}{Either a palette name ("gog", "okabe") or a character vector
 of hex colors. The palette is used in first-appearance order; if there
 are more categories than palette entries, additional colors are generated
-automatically via the HSL color wheel so no two categories share a color.}
+automatically via the HSL color wheel so no two categories share a color.
+Name the colors to bind each one to a level instead, as in
+\code{palette(c(Asia = "tomato", Europe = "steelblue"))}: a level then keeps its
+color whatever order the rows arrive in. Every name must be a level of the
+column mapped to \code{color}, and every level drawn must have a name.}
 }
 \description{
 Set the categorical color palette.

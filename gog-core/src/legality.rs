@@ -23,11 +23,11 @@
 //! Keeping `Illegal` and `Unsupported` distinct matters: telling someone a
 //! valid combination is "illegal" teaches them a rule that isn't real.
 
-use crate::color::{css_rgb, is_valid_color, nearest_color, numbered_shade};
+use crate::color::{css_rgb, edit_distance, is_valid_color, nearest_color, numbered_shade};
 use crate::data::DataFrame;
 use crate::ir::{
-    Channel, ChannelDef, CoordSpace, Figure, Layer, Mark, PageSpec, PaletteDef, PlotSpec,
-    RangeSpec, ScaleType, StyleSpec, ThemeSpec, Transform,
+    Channel, ChannelDef, CoordSpace, Figure, Layer, LevelColors, Mark, PageSpec, PaletteDef,
+    PlotSpec, RangeSpec, ScaleType, StyleSpec, ThemeSpec, Transform,
 };
 use crate::transform::Job;
 use std::collections::HashMap;
@@ -6619,6 +6619,9 @@ pub fn check(spec: &PlotSpec, data: &HashMap<String, DataFrame>) -> Vec<Diagnost
     // question that applies is asked here: Law 7's second half.
     check_has_a_mark(&mut out, spec, data);
     check_plot_scope(&mut out, spec);
+    // Before scopes resolve, for the reason `check_plot_scope` is: one binding
+    // written for the whole plot is one statement, however many layers it reaches.
+    check_legend(&mut out, spec);
     let spec = &resolve_scopes(spec);
 
     for layer in &spec.layers {
@@ -11093,6 +11096,95 @@ fn check_has_a_mark(
 /// applies to some layers and not others is exactly the kind of silence the
 /// grammar refuses, so the skip is said out loud: an Assumption when it still
 /// reaches something, and Illegal when it reaches nothing.
+/// Does this channel earn a key? The five that `render::legend` draws one for,
+/// and only those: the line §2 draws between an aesthetic channel and `group`.
+fn earns_a_key(channel: &Channel) -> bool {
+    matches!(
+        channel,
+        Channel::Color | Channel::Size | Channel::Shape | Channel::Pattern | Channel::Opacity
+    )
+}
+
+/// `legend = ` — whether a channel's key is drawn (spec §10, "A legend turned off").
+///
+/// Two refusals, and neither needs a table, so this reads the sentence as written,
+/// before scopes are resolved: a plot-scoped binding copied into three layers is
+/// one statement and is answered once.
+///
+/// **On a channel with no key there is nothing to turn off**, and accepting the
+/// word there would be accepting it and dropping it. A position is read from its
+/// axis; `group` splits without encoding, which is exactly what makes it earn no
+/// key; `label` is read where it is written; and a `play` sequence names each
+/// frame in its strip. Each gets its own reason, and all four the same direction.
+///
+/// **Two bindings of one channel that disagree are refused rather than ranked.**
+/// The key is the channel's, one for the plot, so `legend = FALSE` on one binding
+/// already leaves it out and saying nothing elsewhere does not bring it back. An
+/// explicit `legend = TRUE` beside it is the one case where the sentence says two
+/// things about one key, and picking either would silently overrule the other.
+fn check_legend(out: &mut Vec<Diagnostic>, spec: &PlotSpec) {
+    let mut written: Vec<(&Channel, &ChannelDef)> = Vec::new();
+    for (channel, def) in [(&Channel::X, &spec.x), (&Channel::Y, &spec.y), (&Channel::Z, &spec.z)] {
+        if let Some(def) = def {
+            written.push((channel, def));
+        }
+    }
+    written.extend(spec.channels.iter());
+    for layer in &spec.layers {
+        written.extend(layer.encodings.iter());
+    }
+    let said = |v: bool| if v { "TRUE" } else { "FALSE" };
+
+    // Collected and sorted before they are pushed: the bindings sit in hash maps,
+    // and two runs of one sentence must print one message in one order.
+    let mut messages: Vec<String> = Vec::new();
+    for (channel, def) in &written {
+        let Some(shown) = def.legend else { continue };
+        if earns_a_key(channel) {
+            continue;
+        }
+        let c = channel_name(channel);
+        let field = &def.field;
+        let why = match channel {
+            Channel::X | Channel::Y | Channel::Z => format!(
+                "`{c}` is read off its axis, so there is no legend to show or leave out."
+            ),
+            Channel::Group => "`group` splits the rows without encoding anything, which is \
+                 why it never draws a legend."
+                .to_string(),
+            Channel::Label => "`label` is the text a `text` mark writes, read where it is \
+                 written, so it draws no legend."
+                .to_string(),
+            Channel::Play => "`play` names each frame in the strip above the panel as it \
+                 shows it, so it draws no legend."
+                .to_string(),
+            _ => format!("`{c}` draws no legend."),
+        };
+        messages.push(format!(
+            "gog: `{c}({field}, legend = {})` — {why} `legend` belongs on the five channels \
+             that draw one: `color`, `size`, `shape`, `pattern` and `opacity`.",
+            said(shown),
+        ));
+    }
+
+    for channel in [Channel::Color, Channel::Size, Channel::Shape, Channel::Pattern, Channel::Opacity] {
+        let hidden = written.iter().find(|(c, d)| **c == channel && d.legend == Some(false));
+        let shown = written.iter().find(|(c, d)| **c == channel && d.legend == Some(true));
+        if let (Some((_, off)), Some((_, on))) = (hidden, shown) {
+            let c = channel_name(&channel);
+            messages.push(format!(
+                "gog: `{c}({}, legend = FALSE)` and `{c}({}, legend = TRUE)` ask for opposite \
+                 things, and a plot draws one `{c}` legend. Keep one of them.",
+                off.field, on.field,
+            ));
+        }
+    }
+
+    messages.sort();
+    messages.dedup();
+    out.extend(messages.into_iter().map(|message| Diagnostic { kind: DiagnosticKind::Illegal, message }));
+}
+
 fn check_plot_scope(out: &mut Vec<Diagnostic>, spec: &PlotSpec) {
     for (channel, def) in &spec.channels {
         let c = channel_name(channel);
@@ -12083,6 +12175,253 @@ fn check_palette_value(
                 });
             }
         }
+        PaletteDef::Levels(named) => check_named_palette(out, spec, data, named),
+    }
+}
+
+/// What `color` is bound to on one layer, as far as a named palette cares: a
+/// column of numbers, or a column of categories and its levels.
+enum ColoredBy {
+    /// A number has no levels to name — a numeric column, a date, or a cell's
+    /// measurement (`zone * count`), which is a number the engine computed.
+    Numbers(String),
+    /// A category column. `drawn` is what the legend and the color map will
+    /// hold, in their order (a declared order, else first appearance);
+    /// `declared` adds the levels a factor states and no row carries, which are
+    /// real levels of the column even though nothing draws them.
+    Levels { field: String, drawn: Vec<String>, declared: Vec<String> },
+}
+
+/// Every layer's answer to *what does `color` split this layer by*, for the
+/// named palette's checks.
+///
+/// The categories are read where the color map will read them, so the two
+/// cannot disagree about which levels exist: the layer's own table, and for the
+/// one categorical color a transform invents — a network's node `name` — the
+/// endpoint columns the layout draws its nodes from, in the order it meets them.
+/// A layer whose color column neither the table nor that rule can see is left
+/// out; the missing-column refusal elsewhere is its report.
+fn colored_by(spec: &PlotSpec, data: &HashMap<String, DataFrame>) -> Vec<ColoredBy> {
+    let mut out = Vec::new();
+    for layer in &spec.layers {
+        let def = layer.encodings.get(&Channel::Color);
+        if color_is_the_measurement(spec, layer) || (def.is_none() && field_measure(layer).is_some()) {
+            let field = def.map(|d| d.field.clone())
+                .or_else(|| measurement_column(spec, layer).map(str::to_string))
+                .unwrap_or_default();
+            out.push(ColoredBy::Numbers(field));
+            continue;
+        }
+        let Some(def) = def else { continue };
+        let Some(df) = layer.data.as_ref().or(spec.data.as_ref()).and_then(|n| data.get(n))
+        else { continue };
+        match actual_type(df, &def.field) {
+            Some(VarType::Continuous) => out.push(ColoredBy::Numbers(def.field.clone())),
+            Some(_) => out.push(ColoredBy::Levels {
+                field: def.field.clone(),
+                drawn: crate::data::categories_across(&[df], &def.field),
+                declared: df.levels(&def.field).map(<[String]>::to_vec).unwrap_or_default(),
+            }),
+            None => {
+                let Some(ls) = layer.layout.as_ref()
+                    .filter(|_| layer.transforms.contains(&Transform::Layout))
+                    .filter(|_| def.field == crate::transform::NODE_NAME)
+                else { continue };
+                let (Some(a), Some(b)) = (df.str_col(&ls.from), df.str_col(&ls.to)) else { continue };
+                // The layout's own rule for which rows stand a node: both ends named
+                // and different (`transform::graph_layout`).
+                let mut nodes: Vec<String> = Vec::new();
+                for (from, to) in a.iter().zip(b) {
+                    if from.is_empty() || to.is_empty() || from == to {
+                        continue;
+                    }
+                    for name in [from, to] {
+                        if !nodes.contains(name) {
+                            nodes.push(name.clone());
+                        }
+                    }
+                }
+                out.push(ColoredBy::Levels { field: def.field.clone(), drawn: nodes, declared: Vec::new() });
+            }
+        }
+    }
+    out
+}
+
+/// A level list for a refusal: each level quoted, since a level can hold a
+/// comma (`"Korea, Rep."`), and cut off past thirty with a count of the rest,
+/// since a column of every country would otherwise be a paragraph of names.
+fn quoted_levels(levels: &[String]) -> String {
+    const SHOWN: usize = 30;
+    let mut items: Vec<String> = levels.iter().take(SHOWN).map(|l| format!("\"{l}\"")).collect();
+    if levels.len() > SHOWN {
+        items.push(format!("{} more", levels.len() - SHOWN));
+    }
+    and_list(&items)
+}
+
+/// Check a palette that binds a color to each level by name (spec §10, "A color
+/// bound to a level by name").
+///
+/// **Refused in both directions, and that is the rule the author ruled in.** A
+/// name that is no level would color nothing, and a typo is exactly how that
+/// happens: `Asai = "tomato"` beside a column holding `Asia` used to draw Asia in
+/// some other color with nothing said. A drawn level with no name would have to
+/// be given a color nobody chose, which is the silent default §12 forbids. So
+/// the names and the drawn levels must match, and each refusal lists what the
+/// reader needs to make them match.
+///
+/// **Validity first, then the match.** A bad color or a name given twice is a
+/// mistake about the palette itself and is reported on its own terms. Among the
+/// match refusals the unknown name comes first and a missing level is said only
+/// when every name is a level: a single misspelling produces both — `Asai`
+/// unknown and `Asia` left out — and the one sentence that fixes it is the
+/// first.
+fn check_named_palette(
+    out: &mut Vec<Diagnostic>,
+    spec: &PlotSpec,
+    data: &HashMap<String, DataFrame>,
+    named: &LevelColors,
+) {
+    if named.0.is_empty() {
+        out.push(Diagnostic {
+            kind: DiagnosticKind::Illegal,
+            message: "gog: `palette()` was given no colors. Pass at least one, e.g. \
+                      `palette(c(Asia = \"tomato\", Europe = \"steelblue\"))`."
+                .into(),
+        });
+        return;
+    }
+
+    let before = out.len();
+    // A name written twice. R's named vectors and Julia's pairs can both carry
+    // one, and whichever came last would otherwise win without a word.
+    let mut seen: Vec<&str> = Vec::new();
+    for (level, _) in &named.0 {
+        if seen.contains(&level.as_str()) {
+            continue;
+        }
+        seen.push(level);
+        let given: Vec<String> = named.0.iter()
+            .filter(|(l, _)| l == level)
+            .map(|(_, c)| format!("\"{c}\""))
+            .collect();
+        if given.len() > 1 {
+            let times = if given.len() == 2 { "twice".to_string() } else { format!("{} times", given.len()) };
+            out.push(Diagnostic {
+                kind: DiagnosticKind::Illegal,
+                message: format!(
+                    "gog: `palette()` names \"{level}\" {times}, as {}. A level has one \
+                     color, so keep one of them.",
+                    or_list(&given),
+                ),
+            });
+        }
+    }
+    for (level, color) in &named.0 {
+        if !is_valid_color(color) {
+            out.push(Diagnostic {
+                kind: DiagnosticKind::Illegal,
+                message: format!(
+                    "gog: `palette()` gives \"{level}\" the color \"{color}\", which is not a \
+                     color.{}",
+                    color_advice(color)
+                ),
+            });
+        }
+    }
+    if out.len() > before {
+        return;
+    }
+
+    let colored = colored_by(spec, data);
+    if let Some(ColoredBy::Numbers(field)) =
+        colored.iter().find(|c| matches!(c, ColoredBy::Numbers(_)))
+    {
+        out.push(Diagnostic {
+            kind: DiagnosticKind::Illegal,
+            message: format!(
+                "gog: `palette()` names levels, but `color` is bound to `{field}`, a column of \
+                 numbers, and numbers have no levels to name. For a ramp, give its stops \
+                 without names — `palette(c(\"white\", \"navy\"))` — or name a ramp, such as \
+                 `palette(\"viridis\")`."
+            ),
+        });
+        return;
+    }
+
+    // The levels across every colored layer, merged in order the way the color
+    // map merges them, and the columns they come from for the message.
+    let (mut fields, mut drawn, mut known): (Vec<String>, Vec<String>, Vec<String>) =
+        (Vec::new(), Vec::new(), Vec::new());
+    for c in &colored {
+        let ColoredBy::Levels { field, drawn: d, declared } = c else { continue };
+        if !fields.contains(field) {
+            fields.push(field.clone());
+        }
+        for level in d.iter().chain(declared) {
+            if !known.contains(level) {
+                known.push(level.clone());
+            }
+        }
+        for level in d {
+            if !drawn.contains(level) {
+                drawn.push(level.clone());
+            }
+        }
+    }
+    // Nothing is colored: `check_palette_is_used` says so, in the words that
+    // apply to every palette, once this function has found nothing wrong.
+    if fields.is_empty() {
+        return;
+    }
+    let cols = or_list(&fields.iter().map(|f| format!("`{f}`")).collect::<Vec<_>>());
+    let listed = if known.len() > drawn.len() { &known } else { &drawn };
+
+    let mut unknown = false;
+    for level in seen.iter().filter(|l| !known.iter().any(|k| k == *l)) {
+        unknown = true;
+        // A near miss, and only one no other name already claims — suggesting a
+        // level that already has its color would send the reader to write it twice.
+        let near = drawn.iter()
+            .filter(|d| !seen.contains(&d.as_str()))
+            .map(|d| (d, edit_distance(&level.to_lowercase(), &d.to_lowercase())))
+            .filter(|(d, dist)| *dist <= 2 && *dist < d.chars().count())
+            .min_by_key(|(_, dist)| *dist)
+            .map(|(d, _)| format!(" Did you mean \"{d}\"?"))
+            .unwrap_or_default();
+        out.push(Diagnostic {
+            kind: DiagnosticKind::Illegal,
+            message: format!(
+                "gog: `palette()` names \"{level}\", and {cols} has no level called that, so \
+                 its color would go to nothing.{near} The levels of {cols} are {}.",
+                quoted_levels(listed),
+            ),
+        });
+    }
+    if unknown {
+        return;
+    }
+
+    let missing: Vec<String> = drawn.iter()
+        .filter(|d| named.get(d).is_none())
+        .map(|d| format!("\"{d}\""))
+        .collect();
+    if !missing.is_empty() {
+        let (drawn_in, fix) = match missing.len() {
+            1 => ("it would be drawn in a color", "Give it a color too"),
+            _ => ("they would be drawn in colors", "Give each of them a color too"),
+        };
+        out.push(Diagnostic {
+            kind: DiagnosticKind::Illegal,
+            message: format!(
+                "gog: `palette()` names colors for levels of {cols} and leaves out {}. Once \
+                 colors are named, every level drawn needs one, or {drawn_in} nobody chose. \
+                 {fix}, or pass the colors without names to hand them out in the column's \
+                 order.",
+                and_list(&missing),
+            ),
+        });
     }
 }
 
@@ -14583,6 +14922,236 @@ mod tests {
             assert!(matches!(spec.palette, PaletteDef::Auto));
             assert!(check(&spec, &data()).is_empty(), "auto should suit {field}");
         }
+    }
+
+    // -- a color bound to a level by name (spec §10) ---------------------
+
+    fn named(pairs: &[(&str, &str)]) -> PaletteDef {
+        PaletteDef::Levels(LevelColors(
+            pairs.iter().map(|(l, c)| (l.to_string(), c.to_string())).collect(),
+        ))
+    }
+
+    fn palette_on(field: &str, palette: PaletteDef) -> Vec<Diagnostic> {
+        let mut spec = base().layer(Layer::new(Mark::Point).encode(Channel::Color, field));
+        spec.palette = palette;
+        check(&spec, &data())
+    }
+
+    #[test]
+    fn a_named_palette_that_names_every_level_is_accepted_in_any_order() {
+        // The column meets them Asia, Europe, Africa; the names arrive in another
+        // order, which is the whole reason to write them.
+        let d = palette_on("continent", named(&[
+            ("Africa", "seagreen"), ("Europe", "steelblue"), ("Asia", "tomato"),
+        ]));
+        assert!(d.is_empty(), "{:?}", msgs(&d));
+    }
+
+    #[test]
+    fn a_name_that_is_no_level_is_refused_with_the_levels_and_the_near_miss() {
+        // The typo this rule exists for: it used to color Asia with some other
+        // color and say nothing.
+        let d = palette_on("continent", named(&[
+            ("Asai", "tomato"), ("Europe", "steelblue"), ("Africa", "seagreen"),
+        ]));
+        // One refusal, not two: the misspelling also leaves Asia without a name,
+        // and saying so as well would send the reader to add a second entry.
+        assert_eq!(kinds(&d), vec![DiagnosticKind::Illegal], "{:?}", msgs(&d));
+        let m = &d[0].message;
+        assert!(m.contains("names \"Asai\"") && m.contains("`continent` has no level called that"), "{m}");
+        assert!(m.contains("Did you mean \"Asia\"?"), "the near miss is named: {m}");
+        assert!(m.contains("\"Asia\", \"Europe\", and \"Africa\""), "the levels, in the column's order: {m}");
+
+        // A name nowhere near a level gets the list and no guess.
+        let d = palette_on("continent", named(&[
+            ("Antarctica", "white"), ("Asia", "tomato"), ("Europe", "steelblue"), ("Africa", "seagreen"),
+        ]));
+        assert_eq!(kinds(&d), vec![DiagnosticKind::Illegal], "{:?}", msgs(&d));
+        assert!(!d[0].message.contains("Did you mean"), "{}", d[0].message);
+
+        // And a near miss is only suggested when that level is still unnamed:
+        // pointing at a level that already has its color would have the reader
+        // write it twice.
+        let d = palette_on("continent", named(&[
+            ("Asia", "tomato"), ("Asai", "red"), ("Europe", "steelblue"), ("Africa", "seagreen"),
+        ]));
+        assert!(!d[0].message.contains("Did you mean"), "{}", d[0].message);
+    }
+
+    #[test]
+    fn a_drawn_level_left_unnamed_is_refused_by_name() {
+        let d = palette_on("continent", named(&[("Asia", "tomato"), ("Europe", "steelblue")]));
+        assert_eq!(kinds(&d), vec![DiagnosticKind::Illegal], "{:?}", msgs(&d));
+        let m = &d[0].message;
+        assert!(m.contains("leaves out \"Africa\""), "{m}");
+        assert!(m.contains("without names"), "the other way out is named too: {m}");
+
+        let d = palette_on("continent", named(&[("Asia", "tomato")]));
+        assert!(d[0].message.contains("leaves out \"Europe\" and \"Africa\""), "{}", d[0].message);
+    }
+
+    #[test]
+    fn a_declared_level_with_no_rows_may_be_named_and_need_not_be() {
+        // A factor's levels are the column's levels whether or not a row carries
+        // one, so naming Oceania is not a typo; and an undrawn level needs no
+        // color, since nothing is drawn in it.
+        let df = DataFrame::new()
+            .with_float("gdp", vec![1.0, 2.0])
+            .with_float("life", vec![3.0, 4.0])
+            .with_levels(
+                "continent",
+                vec!["Asia".into(), "Europe".into()],
+                vec!["Europe".into(), "Asia".into(), "Oceania".into()],
+            );
+        let tables: HashMap<String, DataFrame> = [("t".to_string(), df)].into_iter().collect();
+        for pairs in [
+            &[("Asia", "tomato"), ("Europe", "steelblue"), ("Oceania", "orchid")][..],
+            &[("Asia", "tomato"), ("Europe", "steelblue")][..],
+        ] {
+            let mut spec = base().layer(Layer::new(Mark::Point).encode(Channel::Color, "continent"));
+            spec.palette = named(pairs);
+            let d = check(&spec, &tables);
+            assert!(d.is_empty(), "{pairs:?}: {:?}", msgs(&d));
+        }
+    }
+
+    #[test]
+    fn a_named_palette_on_a_number_is_refused_toward_a_ramp() {
+        let d = palette_on("gdp", named(&[("Asia", "tomato")]));
+        assert_eq!(kinds(&d), vec![DiagnosticKind::Illegal], "{:?}", msgs(&d));
+        let m = &d[0].message;
+        assert!(m.contains("`gdp`") && m.contains("numbers have no levels"), "{m}");
+        assert!(m.contains("palette(c(\"white\", \"navy\"))") && m.contains("viridis"), "{m}");
+    }
+
+    #[test]
+    fn a_named_palette_refuses_a_name_given_twice_and_a_color_that_is_not_one() {
+        let d = palette_on("continent", named(&[
+            ("Asia", "tomato"), ("Europe", "steelblue"), ("Africa", "seagreen"), ("Asia", "red"),
+        ]));
+        assert_eq!(kinds(&d), vec![DiagnosticKind::Illegal], "{:?}", msgs(&d));
+        assert!(d[0].message.contains("names \"Asia\" twice, as \"tomato\" or \"red\""),
+            "{}", d[0].message);
+
+        let d = palette_on("continent", named(&[
+            ("Asia", "tomatoe"), ("Europe", "steelblue"), ("Africa", "seagreen"),
+        ]));
+        assert_eq!(kinds(&d), vec![DiagnosticKind::Illegal], "{:?}", msgs(&d));
+        let m = &d[0].message;
+        assert!(m.contains("gives \"Asia\" the color \"tomatoe\"") && m.contains("\"tomato\""), "{m}");
+
+        let d = palette_on("continent", PaletteDef::Levels(LevelColors::default()));
+        assert!(d[0].message.contains("was given no colors"), "{:?}", msgs(&d));
+    }
+
+    #[test]
+    fn a_named_palette_with_nothing_to_color_says_so_like_any_palette() {
+        let mut spec = base().layer(Layer::new(Mark::Point));
+        spec.palette = named(&[("Asia", "tomato")]);
+        let d = check(&spec, &data());
+        assert_eq!(kinds(&d), vec![DiagnosticKind::Illegal], "{:?}", msgs(&d));
+        assert!(d[0].message.contains("nothing here maps `color`"), "{}", d[0].message);
+    }
+
+    #[test]
+    fn a_named_palette_reads_a_network_s_node_names() {
+        // `color(name)` under `layout` colors each node by a name the layout
+        // invents from the two endpoint columns, so the table has no `name`
+        // column for the levels to be read from. The nodes of this one are Asia,
+        // North, Europe, South and Africa.
+        let net = CoordSpace::Network(crate::ir::NetworkView::default());
+        let check_with = |pairs: &[(&str, &str)]| {
+            let mut l = Layer::new(Mark::Point).layout("continent", "region");
+            l.encodings.insert(Channel::Color, ChannelDef::field("name"));
+            let mut spec = PlotSpec::new().data("t").coord(net.clone()).layer(l);
+            spec.palette = named(pairs);
+            check(&spec, &data())
+        };
+        let all = [("Asia", "tomato"), ("North", "gray"), ("Europe", "steelblue"),
+                   ("South", "gray"), ("Africa", "seagreen")];
+        assert!(check_with(&all).is_empty(), "{:?}", msgs(&check_with(&all)));
+        let d = check_with(&all[..4]);
+        assert!(d.iter().any(|x| x.message.contains("leaves out \"Africa\"")), "{:?}", msgs(&d));
+        let d = check_with(&[("Nroth", "gray")]);
+        assert!(d.iter().any(|x| x.message.contains("Did you mean \"North\"?")), "{:?}", msgs(&d));
+    }
+
+    // -- a legend turned off (spec §10) ------------------------------------
+
+    #[test]
+    fn a_key_channel_takes_legend_and_says_nothing_about_it() {
+        // The author's statement, not an assumption the engine made, so no
+        // diagnostic of any kind — Assumption included.
+        for (channel, field) in [
+            (Channel::Color, "continent"), (Channel::Size, "gdp"), (Channel::Shape, "continent"),
+            (Channel::Opacity, "gdp"),
+        ] {
+            let layer = Layer::new(Mark::Point)
+                .encode_def(channel.clone(), ChannelDef::field(field).with_legend(false));
+            let d = check(&base().layer(layer), &data());
+            assert!(d.is_empty(), "{channel:?}: {:?}", msgs(&d));
+        }
+        let layer = Layer::new(Mark::Bar).transform(Transform::Count)
+            .encode_def(Channel::Pattern, ChannelDef::field("continent").with_legend(false));
+        let d = check(&PlotSpec::new().data("t").x("continent").layer(layer), &data());
+        assert!(d.is_empty(), "pattern: {:?}", msgs(&d));
+    }
+
+    #[test]
+    fn legend_on_a_channel_that_draws_no_key_is_refused_with_direction() {
+        let tail = "`legend` belongs on the five channels that draw one: `color`, `size`, \
+                    `shape`, `pattern` and `opacity`.";
+        let refused = |spec: PlotSpec, why: &str| {
+            let d = check(&spec, &data());
+            let hit = d.iter().find(|x| x.kind == DiagnosticKind::Illegal && x.message.contains(tail))
+                .unwrap_or_else(|| panic!("no legend refusal: {:?}", msgs(&d)));
+            assert!(hit.message.contains(why), "{}", hit.message);
+        };
+        let off = |f: &str| ChannelDef::field(f).with_legend(false);
+
+        let mut spec = base().layer(Layer::new(Mark::Point));
+        spec.x = Some(off("gdp"));
+        refused(spec, "`x(gdp, legend = FALSE)` — `x` is read off its axis");
+        let mut spec = base().layer(Layer::new(Mark::Point));
+        spec.y = Some(ChannelDef::field("life").with_legend(true));
+        refused(spec, "`y(life, legend = TRUE)`");
+        refused(base().layer(Layer::new(Mark::Line).encode_def(Channel::Group, off("continent"))),
+            "`group` splits the rows without encoding anything");
+        refused(base().layer(Layer::new(Mark::Text).encode_def(Channel::Label, off("continent"))),
+            "`label` is the text a `text` mark writes");
+        refused(base().layer(Layer::new(Mark::Point).encode_def(Channel::Play, off("continent"))),
+            "`play` names each frame");
+    }
+
+    #[test]
+    fn a_plot_scoped_refusal_is_said_once_however_many_layers_it_reaches() {
+        let mut spec = base().layer(Layer::new(Mark::Point)).layer(Layer::new(Mark::Line));
+        spec.x = Some(ChannelDef::field("gdp").with_legend(false));
+        let d = check(&spec, &data());
+        assert_eq!(d.iter().filter(|x| x.message.contains("legend = FALSE")).count(), 1,
+            "{:?}", msgs(&d));
+    }
+
+    #[test]
+    fn two_bindings_that_disagree_about_one_key_are_refused() {
+        let on = ChannelDef::field("continent").with_legend(true);
+        let off = ChannelDef::field("continent").with_legend(false);
+        let spec = base()
+            .layer(Layer::new(Mark::Point).encode_def(Channel::Color, off.clone()))
+            .layer(Layer::new(Mark::Line).encode_def(Channel::Color, on));
+        let d = check(&spec, &data());
+        assert!(d.iter().any(|x| x.kind == DiagnosticKind::Illegal
+            && x.message.contains("ask for opposite things")
+            && x.message.contains("one `color` legend")), "{:?}", msgs(&d));
+
+        // Saying nothing beside `FALSE` is not a disagreement: the key is the
+        // channel's, and one binding has said what to do with it.
+        let spec = base()
+            .layer(Layer::new(Mark::Point).encode_def(Channel::Color, off))
+            .layer(Layer::new(Mark::Line).encode(Channel::Color, "continent"));
+        let d = check(&spec, &data());
+        assert!(d.is_empty(), "{:?}", msgs(&d));
     }
 
     // -- orientation -----------------------------------------------------
