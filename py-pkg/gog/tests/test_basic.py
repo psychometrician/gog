@@ -3032,3 +3032,12 @@ _side = {"life": [40.0, 50.0, 60.0, 45.0, 55.0, 65.0], "year": ["a", "a", "a", "
 assert render_svg(data(_side, name="side") + point * median + x(col.life)
                   + y(col.year)).count("<circle") == 2
 ok("a summarized point lies on its side as a bar does")
+
+
+# --- A flow band draws the pattern its legend shows --------------------------
+# The legend drew the hatch while every band stayed solid. The same block runs
+# in all four bindings.
+_fl = {"a": ["p", "p", "q", "q"], "b": ["u", "v", "u", "v"], "n": [3.0, 2.0, 4.0, 1.0]}
+_svg = render_svg(data(_fl, name="fl") + ribbon * flow(col.a, col.b) + y(col.n) + pattern(col.a))
+assert re.search(r'<path d="M [^"]*" fill="url\(#', _svg), "no band takes a hatch"
+ok("a flow band draws the pattern its legend shows")

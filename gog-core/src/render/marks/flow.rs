@@ -17,6 +17,7 @@ use std::fmt::Write;
 use crate::data::DataFrame;
 use crate::ir::{Channel, Layer};
 use crate::render::palette::PALETTE_GOG;
+use crate::render::pattern::{FillTexture, PatternMap};
 use crate::render::svg::SvgRenderer;
 use crate::render::text::esc;
 use crate::render::Layout;
@@ -101,6 +102,11 @@ impl SvgRenderer {
         let opacity = st.opacity.unwrap_or(BAND_OPACITY);
         let hue_col = layer.encodings.get(&Channel::Color)
             .and_then(|def| df.str_col(&def.field));
+        // A band is a fill, so `pattern` hatches it as it hatches every other fill
+        // (the settable rule). The legend drew the hatch and the bands were solid:
+        // `check_flow` took the channel and this writer had no texture code.
+        let pattern_map = PatternMap::resolve(layer, df);
+        let mut tex = FillTexture::new();
         writeln!(svg, r#"  <g clip-path="url(#{clip})">"#).unwrap();
         for r in 0..path.len().saturating_sub(1) {
             if path[r + 1] != path[r] {
@@ -125,10 +131,13 @@ impl SvgRenderer {
                 .map(|s| s.as_str())
                 .or(st.color.as_deref())
                 .unwrap_or(PALETTE_GOG[0]);
+            let texture = pattern_map.as_ref().map(|pm| pm.fill_texture(pm.cat_at(r)))
+                .or(st.pattern.as_deref());
+            let fill = tex.fill(svg, texture, fill);
             writeln!(
                 svg,
                 r#"    <path d="M {x0:.2},{a_hi:.2} C {mx:.2},{a_hi:.2} {mx:.2},{b_hi:.2} {x1:.2},{b_hi:.2} L {x1:.2},{b_lo:.2} C {mx:.2},{b_lo:.2} {mx:.2},{a_lo:.2} {x0:.2},{a_lo:.2} Z" fill="{}" fill-opacity="{opacity:.3}"/>"#,
-                esc(fill),
+                esc(&fill),
             ).unwrap();
         }
         writeln!(svg, "  </g>").unwrap();

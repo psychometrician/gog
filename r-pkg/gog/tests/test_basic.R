@@ -5002,3 +5002,15 @@ local({
     stop("FAIL: a median point per category, on its side")
   cat("PASS: a summarized point lies on its side as a bar does\n")
 })
+
+# ---------------------------------------------------------------------------
+# A flow's bands are fills, so `pattern` hatches them; the legend drew the hatch
+# while every band stayed solid. The same block runs in all four bindings.
+# ---------------------------------------------------------------------------
+local({
+  t <- data.frame(a = c("p", "p", "q", "q"), b = c("u", "v", "u", "v"), n = c(3, 2, 4, 1))
+  svg <- render_svg(data(t) + ribbon * flow(a, b) + y(n) + pattern(a))
+  if (!grepl('<path d="M [^"]*" fill="url\\(#', svg))
+    stop("FAIL: a flow's bands should take the hatch its legend shows")
+  cat("PASS: a flow band draws the pattern its legend shows\n")
+})

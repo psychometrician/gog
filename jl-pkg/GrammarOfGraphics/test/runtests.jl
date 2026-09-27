@@ -2590,3 +2590,11 @@ end
     side = (life = [40.0, 50.0, 60.0, 45.0, 55.0, 65.0], year = ["a", "a", "a", "b", "b", "b"])
     @test Base.count("<circle", render_svg(data(side) + point * median + x(:life) + y(:year))) == 2
 end
+
+# A flow's bands are fills, so `pattern` hatches them; the legend drew the hatch
+# while every band stayed solid. The same block runs in all four bindings.
+@testset "a flow band draws the pattern its legend shows" begin
+    fl = (a = ["p", "p", "q", "q"], b = ["u", "v", "u", "v"], n = [3.0, 2.0, 4.0, 1.0])
+    svg = render_svg(data(fl) + ribbon * flow(:a, :b) + y(:n) + pattern(:a))
+    @test occursin(r"<path d=\"M [^\"]*\" fill=\"url\(#", svg)
+end

@@ -3225,3 +3225,11 @@ test("a summarized point lies on its side as a bar does", () => {
   const svg = render_svg(plot(data(side), layer(point, median), x(col.life), y(col.year)));
   assert.equal((svg.match(/<circle/g) || []).length, 2);
 });
+
+// A flow's bands are fills, so `pattern` hatches them; the legend drew the hatch
+// while every band stayed solid. The same block runs in all four bindings.
+test("a flow band draws the pattern its legend shows", () => {
+  const fl = { a: ["p", "p", "q", "q"], b: ["u", "v", "u", "v"], n: [3, 2, 4, 1] };
+  const svg = render_svg(plot(data(fl), layer(ribbon, flow(col.a, col.b)), y(col.n), pattern(col.a)));
+  assert.match(svg, /<path d="M [^"]*" fill="url\(#/);
+});

@@ -48,6 +48,10 @@ CRAN-style repositories and PyPI, `GrammarOfGraphics` on Julia's General, and
 
 ### Changed
 
+- **A flow's bands draw the pattern their legend shows.** `ribbon * flow(…) +
+  pattern(class)` drew a hatched legend over solid bands. The bands now take
+  the hatch, as every other filled mark does.
+
 - **A summarized point lies on its side as a bar does.** `point * median +
   x(life) + y(year)`, the category on `y`, drew every row of the table rather
   than one dot per year, while `bar * median` on the same sentence drew one bar

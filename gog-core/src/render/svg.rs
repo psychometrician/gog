@@ -7987,6 +7987,27 @@ mod tests {
         assert_eq!(dated(text_of(&wide.render(&spec, &six_weeks(42)))), 22);
     }
 
+    /// A flow's bands are fills, so a mapped `pattern` hatches them: the legend drew
+    /// the hatch while every band stayed solid.
+    #[test]
+    fn a_flow_band_draws_the_pattern_its_legend_shows() {
+        let s = |v: &[&str]| v.iter().map(|x| x.to_string()).collect::<Vec<_>>();
+        let t: HashMap<String, DataFrame> = HashMap::from([(
+            "t".to_string(),
+            DataFrame::new()
+                .with_str("a", s(&["p", "p", "q", "q"]))
+                .with_str("b", s(&["u", "v", "u", "v"]))
+                .with_float("n", vec![3.0, 2.0, 4.0, 1.0]),
+        )]);
+        let spec = PlotSpec::new().data("t").y("n")
+            .layer(Layer::new(Mark::Ribbon).flow(&["a", "b"]).encode(Channel::Pattern, "a"));
+        let svg = SvgRenderer::default().render(&spec, &t);
+        let hatched_bands = svg.lines()
+            .filter(|l| l.trim_start().starts_with("<path d=\"M ") && l.contains("fill=\"url(#"))
+            .count();
+        assert!(hatched_bands >= 1, "no band takes a hatch:\n{svg}");
+    }
+
     /// A summarized point reads its orientation as a bar does: with the category
     /// on `y` it summarizes along `x`, one dot per category. Read as vertical it
     /// grouped by the numeric `x`, every row its own group, and drew every row.
