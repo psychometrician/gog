@@ -3041,3 +3041,13 @@ _fl = {"a": ["p", "p", "q", "q"], "b": ["u", "v", "u", "v"], "n": [3.0, 2.0, 4.0
 _svg = render_svg(data(_fl, name="fl") + ribbon * flow(col.a, col.b) + y(col.n) + pattern(col.a))
 assert re.search(r'<path d="M [^"]*" fill="url\(#', _svg), "no band takes a hatch"
 ok("a flow band draws the pattern its legend shows")
+
+
+# --- A legend keys only the categories the plot colored ----------------------
+# A flow that left a category's rows out drew no band for it, and keyed it
+# anyway. The same block runs in all four bindings.
+_gone = {"a": ["p", "p", "q", "gone"], "b": ["u", "v", "u", None], "n": [3.0, 2.0, 4.0, 5.0]}
+with contextlib.redirect_stderr(io.StringIO()):
+    _svg = render_svg(data(_gone, name="gone") + ribbon * flow(col.a, col.b) + y(col.n) + color(col.a))
+assert ">gone</text>" not in _svg and ">q</text>" in _svg
+ok("a legend keys only the categories the plot colored")

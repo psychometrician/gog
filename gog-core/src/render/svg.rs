@@ -7987,6 +7987,26 @@ mod tests {
         assert_eq!(dated(text_of(&wide.render(&spec, &six_weeks(42)))), 22);
     }
 
+    /// A flow that leaves a category's rows out for a missing stage draws no band
+    /// for it, so its legend lists no key for it either: "Crew" was keyed in the
+    /// first category's color over bands that never drew it.
+    #[test]
+    fn a_legend_keys_only_the_categories_the_plot_colored() {
+        let s = |v: &[&str]| v.iter().map(|x| x.to_string()).collect::<Vec<_>>();
+        let t: HashMap<String, DataFrame> = HashMap::from([(
+            "t".to_string(),
+            DataFrame::new()
+                .with_str("a", s(&["p", "p", "q", "gone"]))
+                .with_str("b", s(&["u", "v", "u", ""]))
+                .with_float("n", vec![3.0, 2.0, 4.0, 5.0]),
+        )]);
+        let spec = PlotSpec::new().data("t").y("n")
+            .layer(Layer::new(Mark::Ribbon).flow(&["a", "b"]).encode(Channel::Color, "a"));
+        let labels = text_of(&SvgRenderer::default().render(&spec, &t));
+        assert!(labels.iter().any(|l| l == "p") && labels.iter().any(|l| l == "q"), "{labels:?}");
+        assert!(!labels.iter().any(|l| l == "gone"), "a category drawn nowhere is keyed: {labels:?}");
+    }
+
     /// A flow's bands are fills, so a mapped `pattern` hatches them: the legend drew
     /// the hatch while every band stayed solid.
     #[test]

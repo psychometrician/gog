@@ -5014,3 +5014,15 @@ local({
     stop("FAIL: a flow's bands should take the hatch its legend shows")
   cat("PASS: a flow band draws the pattern its legend shows\n")
 })
+
+# ---------------------------------------------------------------------------
+# A flow that leaves a category's rows out for a missing stage draws no band for
+# it, so the legend keys it no more. The same block runs in all four bindings.
+# ---------------------------------------------------------------------------
+local({
+  t <- data.frame(a = c("p", "p", "q", "gone"), b = c("u", "v", "u", NA), n = c(3, 2, 4, 5))
+  svg <- suppressMessages(render_svg(data(t) + ribbon * flow(a, b) + y(n) + color(a)))
+  if (grepl(">gone</text>", svg, fixed = TRUE) || !grepl(">q</text>", svg, fixed = TRUE))
+    stop("FAIL: the legend should key only the categories the flow drew")
+  cat("PASS: a legend keys only the categories the plot colored\n")
+})

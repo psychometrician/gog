@@ -48,6 +48,11 @@ CRAN-style repositories and PyPI, `GrammarOfGraphics` on Julia's General, and
 
 ### Changed
 
+- **A legend keys only the categories the plot colored.** A `flow` that left
+  out Crew's rows for a missing stage drew no Crew band, and its legend still
+  listed Crew, in 1st class's color. A category left out of the drawing is now
+  left out of the legend too.
+
 - **A flow's bands draw the pattern their legend shows.** `ribbon * flow(…) +
   pattern(class)` drew a hatched legend over solid bands. The bands now take
   the hatch, as every other filled mark does.

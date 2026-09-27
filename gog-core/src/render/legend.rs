@@ -227,12 +227,15 @@ pub(crate) fn collect_legends(
         {
             break 'color;
         }
+        // Only the categories the plot colored. The map is built from the drawn
+        // frames, so a category whose rows a transform dropped has no color, and
+        // the key used to list it anyway in the first palette color: a `flow` that
+        // left out Crew's rows for a missing stage keyed "Crew" in 1st class's blue
+        // over bands that never drew it.
         let rows: Vec<LegendRow> = categories_across(&[df], &def.field).into_iter()
-            .map(|label| {
-                let color = color_map.get(label.as_str())
-                    .cloned()
-                    .unwrap_or_else(|| PALETTE_GOG[0].to_string());
-                LegendRow { label, swatch: LegendSwatch::ColorRect(color) }
+            .filter_map(|label| {
+                let color = color_map.get(label.as_str())?.clone();
+                Some(LegendRow { label, swatch: LegendSwatch::ColorRect(color) })
             })
             .collect();
         if !rows.is_empty() { boxes.push(LegendBox { title: auto_label(&def.field), rows, gradient: None }); break 'color; }

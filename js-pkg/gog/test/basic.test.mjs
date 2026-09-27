@@ -3233,3 +3233,18 @@ test("a flow band draws the pattern its legend shows", () => {
   const svg = render_svg(plot(data(fl), layer(ribbon, flow(col.a, col.b)), y(col.n), pattern(col.a)));
   assert.match(svg, /<path d="M [^"]*" fill="url\(#/);
 });
+
+// A flow that leaves a category's rows out for a missing stage draws no band for
+// it, so the legend keys it no more. The same block runs in all four bindings.
+test("a legend keys only the categories the plot colored", () => {
+  const gone = { a: ["p", "p", "q", "gone"], b: ["u", "v", "u", null], n: [3, 2, 4, 5] };
+  const write = process.stderr.write;
+  process.stderr.write = () => true;
+  let svg;
+  try {
+    svg = render_svg(plot(data(gone), layer(ribbon, flow(col.a, col.b)), y(col.n), color(col.a)));
+  } finally {
+    process.stderr.write = write;
+  }
+  assert.ok(!svg.includes(">gone</text>") && svg.includes(">q</text>"));
+});

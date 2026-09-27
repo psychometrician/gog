@@ -2598,3 +2598,13 @@ end
     svg = render_svg(data(fl) + ribbon * flow(:a, :b) + y(:n) + pattern(:a))
     @test occursin(r"<path d=\"M [^\"]*\" fill=\"url\(#", svg)
 end
+
+# A flow that leaves a category's rows out for a missing stage draws no band for
+# it, so the legend keys it no more. The same block runs in all four bindings.
+@testset "a legend keys only the categories the plot colored" begin
+    gone = (a = ["p", "p", "q", "gone"], b = ["u", "v", "u", missing], n = [3.0, 2.0, 4.0, 5.0])
+    svg = redirect_stderr(devnull) do
+        render_svg(data(gone) + ribbon * flow(:a, :b) + y(:n) + color(:a))
+    end
+    @test !occursin(">gone</text>", svg) && occursin(">q</text>", svg)
+end
