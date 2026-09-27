@@ -246,6 +246,12 @@ Each is now refused, with what to write instead.
   wrote: `point` for two, `bar * bin` for one number, `bar * count` for one
   category.
 
+- **A shared axis split into panels differently on one page.** A histogram
+  stacked over a scatter faceted by continent stretched across every panel, lost
+  its tick labels and lined up with none of them. Two plots that share an axis
+  on a page must now be split the same way along it; faceting both by the same
+  column lines up one panel over each.
+
 - **A `y` under `partition`, other than `depth`.** It was not read: the mosaic
   was drawn unweighted, and the column's name was printed as the axis title. A
   partition reads its weight from `x`, and the refusal says so. `y(depth)`, the

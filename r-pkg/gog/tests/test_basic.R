@@ -4942,3 +4942,22 @@ local({
           "`y(people)` has no reading under `partition`")
   cat("PASS: a y under a partition is refused toward x\n")
 })
+
+# ---------------------------------------------------------------------------
+# A shared axis lines up across a page, so two plots sharing it are split into
+# panels the same way along it: a histogram over a faceted scatter spanned every
+# panel and lined up with none. Both split the same way still draw. The same
+# block runs in all four bindings.
+# ---------------------------------------------------------------------------
+local({
+  g <- data.frame(gdp = c(1, 2, 3, 4, 5, 6), life = c(50, 55, 60, 65, 70, 75),
+                  continent = c("A", "A", "B", "B", "C", "C"))
+  refuses("a histogram over a faceted scatter",
+          render_svg((data(g) + bar * bin + x(gdp)) /
+                       (data(g) + point + x(gdp) + y(life) | facet(continent))),
+          "split into panels differently")
+  svg <- render_svg((data(g) + bar * bin + x(gdp) | facet(continent)) /
+                      (data(g) + point + x(gdp) + y(life) | facet(continent)))
+  if (!grepl("<circle", svg, fixed = TRUE)) stop("FAIL: both split the same way should draw")
+  cat("PASS: a shared axis is split into panels the same way on a page\n")
+})

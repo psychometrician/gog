@@ -3177,3 +3177,17 @@ test("a y under a partition is refused toward x", () => {
   assert.match(refusalOf(() => render_svg(plot(data(trips), layer(zone, partition(col.city, col.mode)),
     y(col.people)))), /`y\(people\)` has no reading under `partition`/);
 });
+
+// A shared axis lines up across a page, so two plots sharing it are split into
+// panels the same way along it: a histogram over a faceted scatter spanned every
+// panel and lined up with none. Both split the same way still draw. The same
+// block runs in all four bindings.
+test("a shared axis is split into panels the same way on a page", () => {
+  const g = { gdp: [1, 2, 3, 4, 5, 6], life: [50, 55, 60, 65, 70, 75],
+    continent: ["A", "A", "B", "B", "C", "C"] };
+  assert.match(refusalOf(() => render_svg(below(plot(data(g), layer(bar, bin), x(col.gdp)),
+    plot(data(g), point, x(col.gdp), y(col.life), across(col.continent))))),
+    /split into panels differently/);
+  assert.ok(render_svg(below(plot(data(g), layer(bar, bin), x(col.gdp), across(col.continent)),
+    plot(data(g), point, x(col.gdp), y(col.life), across(col.continent)))).includes("<circle"));
+});

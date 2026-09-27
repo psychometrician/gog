@@ -2544,3 +2544,16 @@ end
     trips = (city = ["A", "A", "B"], mode = ["car", "bus", "car"], people = [3.0, 2.0, 4.0])
     @refuses render_svg(data(trips) + zone * partition(:city, :mode) + y(:people)) "`y(people)` has no reading under `partition`"
 end
+
+# A shared axis lines up across a page, so two plots sharing it are split into
+# panels the same way along it: a histogram over a faceted scatter spanned every
+# panel and lined up with none. Both split the same way still draw. The same
+# block runs in all four bindings.
+@testset "a shared axis is split into panels the same way on a page" begin
+    g = (gdp = [1.0, 2.0, 3.0, 4.0, 5.0, 6.0], life = [50.0, 55.0, 60.0, 65.0, 70.0, 75.0],
+         continent = ["A", "A", "B", "B", "C", "C"])
+    @refuses render_svg((data(g) + bar * bin + x(:gdp)) /
+                        (data(g) + point + x(:gdp) + y(:life) | facet(:continent))) "split into panels differently"
+    @test occursin("<circle", render_svg((data(g) + bar * bin + x(:gdp) | facet(:continent)) /
+                                         (data(g) + point + x(:gdp) + y(:life) | facet(:continent))))
+end

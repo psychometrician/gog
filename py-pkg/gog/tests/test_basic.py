@@ -2983,3 +2983,17 @@ assert "`y(people)` has no reading under `partition`" in _refusal(
     lambda: render_svg(data(_trips, name="trips") + zone * partition(col.city, col.mode)
                        + y(col.people)))
 ok("a y under a partition is refused toward x")
+
+
+# --- A shared axis split into panels differently on a page --------------------
+# A histogram over a faceted scatter spanned every panel and lined up with none;
+# refused. Both split the same way still draw. The same block runs in all four.
+_g = {"gdp": [1.0, 2.0, 3.0, 4.0, 5.0, 6.0], "life": [50.0, 55.0, 60.0, 65.0, 70.0, 75.0],
+      "continent": ["A", "A", "B", "B", "C", "C"]}
+assert "split into panels differently" in _refusal(
+    lambda: render_svg((data(_g, name="g") + bar * bin + x(col.gdp))
+                       / (data(_g, name="g") + point + x(col.gdp) + y(col.life) | facet(col.continent))))
+assert "<circle" in render_svg((data(_g, name="g") + bar * bin + x(col.gdp) | facet(col.continent))
+                               / (data(_g, name="g") + point + x(col.gdp) + y(col.life)
+                                  | facet(col.continent)))
+ok("a shared axis is split into panels the same way on a page")

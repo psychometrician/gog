@@ -6506,7 +6506,80 @@ pub fn check_figure(figure: &Figure, data: &HashMap<String, DataFrame>) -> Vec<D
     check_page_fits(&mut out, figure, crate::render::svg::CANVAS);
     check_page_orders(&mut out, figure, data);
     check_page_scales(&mut out, figure);
+    check_page_facets(&mut out, figure);
     out
+}
+
+/// A shared axis lines up across a page, so the plots sharing it have to be
+/// split into panels the same way along it.
+///
+/// The page shares an axis by column and lines it up by each plot's panel box,
+/// and a faceted plot's box is its whole grid. So a histogram stacked over a
+/// scatter faceted by continent spanned all five panels, lost its tick labels and
+/// lined up with none of them, in silence; a wrapped facet under a plot did the
+/// same with a third of the page left empty. Refused, and pointed at the sentence
+/// that draws: both plots faceted by the same column, which lines up one panel
+/// over each. Along `x` the plots must agree on their panel columns (a column
+/// facet and its wrap); along `y` on their panel rows (a row facet, or a column
+/// facet that wraps into rows).
+fn check_page_facets(out: &mut Vec<Diagnostic>, figure: &Figure) {
+    if !figure.is_page() {
+        return;
+    }
+    type Split = Option<(String, Option<usize>)>;
+    let along = |spec: &PlotSpec, ch: &Channel| -> Split {
+        let f = spec.facet.as_ref()?;
+        match ch {
+            Channel::X => f.col.clone().map(|c| (c, f.wrap)),
+            _ => match (&f.row, &f.col, f.wrap) {
+                (Some(r), _, _) => Some((r.clone(), None)),
+                (None, Some(c), Some(w)) => Some((c.clone(), Some(w))),
+                _ => None,
+            },
+        }
+    };
+    let describe = |split: &Split| -> String {
+        match split {
+            None => "not split into panels".to_string(),
+            Some((c, None)) => format!("split into panels by `{c}`"),
+            Some((c, Some(w))) => format!("split into panels by `{c}`, wrapped at {w}"),
+        }
+    };
+    let mut seen: Vec<(Channel, String, Split)> = Vec::new();
+    let mut said: Vec<(Channel, String)> = Vec::new();
+    for spec in figure.plots() {
+        if space_of(spec) != SpaceKind::Flat {
+            continue;
+        }
+        for ch in [Channel::X, Channel::Y] {
+            let Some(def) = spec.axis_def(&ch) else { continue };
+            let split = along(spec, &ch);
+            let Some((_, _, first)) = seen.iter().find(|(c, f, _)| *c == ch && *f == def.field) else {
+                seen.push((ch, def.field.clone(), split));
+                continue;
+            };
+            if *first == split || said.contains(&(ch.clone(), def.field.clone())) {
+                continue;
+            }
+            said.push((ch.clone(), def.field.clone()));
+            let by = first.as_ref().or(split.as_ref()).map_or("<column>".to_string(), |(c, _)| c.clone());
+            let each = match ch {
+                Channel::X => format!("`| facet({by})`"),
+                _ => format!("`/ facet({by})`"),
+            };
+            out.push(Diagnostic {
+                kind: DiagnosticKind::Illegal,
+                message: format!(
+                    "gog: `{f}` is on the {c} axis of two plots on this page, and they are \
+                     split into panels differently: one is {a}, the other {b}. A page lines a \
+                     shared axis up across its plots, and one panel cannot line up with a \
+                     row of them. Split both plots the same way, with {each} on each, or give \
+                     the column another name in one of them.",
+                    f = def.field, c = channel_name(&ch), a = describe(first), b = describe(&split),
+                ),
+            });
+        }
+    }
 }
 
 /// One column on one axis of a page is one axis, so two plots that read it through
@@ -13743,6 +13816,37 @@ mod tests {
             assert_eq!(space_of(&spec), SpaceKind::Space,
                        "a tally stands on z: {:?}", spec.layers[0].transforms);
         }
+    }
+
+    /// A shared axis lines up across a page, so a plot split into panels along it
+    /// and one that is not cannot share it: the histogram over a faceted scatter
+    /// spanned every panel and lined up with none. Both split the same way draw.
+    #[test]
+    fn a_page_refuses_a_shared_axis_split_into_panels_differently() {
+        let page = |arrange: crate::ir::Arrange, a: &PlotSpec, b: &PlotSpec| {
+            Figure::Page(crate::ir::PageSpec {
+                arrange, cells: vec![a.clone().into(), b.clone().into()],
+                theme: crate::ir::ThemeSpec::default(),
+            })
+        };
+        let hist = PlotSpec::new().data("t").x("gdp")
+            .layer(Layer::new(Mark::Bar).transform(Transform::Bin));
+        let scatter = base().layer(Layer::new(Mark::Point));
+        let faceted = scatter.clone().facet_col("continent");
+        let d = check_figure(&page(crate::ir::Arrange::Below, &hist, &faceted), &data());
+        let said = d.iter().find(|x| x.message.contains("split into panels differently"))
+            .unwrap_or_else(|| panic!("no refusal: {:?}", msgs(&d)));
+        assert_eq!(said.kind, DiagnosticKind::Illegal);
+        assert!(said.message.contains("one is not split into panels, the other split into \
+                                       panels by `continent`")
+                && said.message.contains("`| facet(continent)` on each"), "{}", said.message);
+        // Both split the same way line up one panel over each, and draw.
+        let both = page(crate::ir::Arrange::Below, &hist.clone().facet_col("continent"), &faceted);
+        assert!(!check_figure(&both, &data()).iter().any(|x| x.message.contains("differently")));
+        // A plot beside a one-row facet shares `y` across one row, which lines up.
+        let beside = page(crate::ir::Arrange::Beside, &faceted, &scatter);
+        assert!(!check_figure(&beside, &data()).iter()
+            .any(|x| x.message.contains("differently") && x.message.contains("the y axis")));
     }
 
     /// One column on one axis of a page is one axis, so two plots reading it through
