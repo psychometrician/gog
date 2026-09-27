@@ -241,6 +241,16 @@ Each is now refused, with what to write instead.
   against one of numbers went wrong the same way. The refusal names each table
   and what it holds.
 
+- **Two layers that map one channel from two columns.** With `color(country)`
+  on one layer and `color(continent)` on another, the second column's colors
+  went through the first column's scale, or through a ramp of their own, and
+  the one legend named only the first column, so nothing decoded the second.
+  `size`, `opacity`, `shape` and `pattern` did the same. The refusal names
+  another channel for the second column that draws a legend of its own, such as
+  `shape(continent)` on a point or `pattern(continent)` on a line, or a
+  `facet()`. The same column on every layer still draws, and so does a plot
+  that turns the legend off with `legend = FALSE`.
+
 - **`brush` on a `map()`.** A map moves longitude and latitude to projected
   positions before it draws, and a brush on it could not agree with itself: a
   written range counted the right rows and dimmed the wrong ones, a dragged

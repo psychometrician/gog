@@ -4867,3 +4867,28 @@ local({
     stop("FAIL: the flat plot the refusal points to should draw")
   cat("PASS: a map is not brushed, and the flat plot it points to draws\n")
 })
+
+# ---------------------------------------------------------------------------
+# A plot draws one color legend, so its layers map `color` from one column. A
+# second column's colors reached the reader with no key; it is refused, with a
+# channel of its own that draws a key. The same column on every layer, and a
+# legend turned off on purpose, still draw. The same block runs in all four
+# bindings.
+# ---------------------------------------------------------------------------
+local({
+  asia <- data.frame(year = c(2000, 2001, 2000, 2001), life = c(60, 61, 70, 71),
+                     country = c("A", "A", "B", "B"), continent = "Asia")
+  refuses("two category columns on color",
+          render_svg(data(asia) + x(year) + y(life) + point + color(country) + line +
+                       color(continent)),
+          "`pattern(continent)` on the `line`")
+  svg <- render_svg(data(asia) + x(year) + y(life) + point + color(country) + line +
+                      color(country))
+  if (!grepl("<circle", svg, fixed = TRUE))
+    stop("FAIL: one color column on every layer should draw")
+  svg <- render_svg(data(asia) + x(year) + y(life) + point + color(country) + line +
+                      color(continent, legend = FALSE))
+  if (!grepl("<circle", svg, fixed = TRUE))
+    stop("FAIL: a legend turned off on purpose should draw")
+  cat("PASS: a second color column is refused, with a channel of its own\n")
+})

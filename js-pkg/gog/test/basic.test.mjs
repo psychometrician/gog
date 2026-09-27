@@ -3114,3 +3114,19 @@ test("a map is not brushed, and the flat plot it points to draws", () => {
   assert.ok(render_svg(plot(data(places), point, x(col.lon), y(col.lat),
     brush(col.lon, { at: [-5, 25] }))).includes("<circle"));
 });
+
+// A plot draws one color legend, so its layers map `color` from one column. A
+// second column's colors reached the reader with no key; it is refused, with a
+// channel of its own that draws a key. The same column on every layer, and a
+// legend turned off on purpose, still draw. The same block runs in all four
+// bindings.
+test("a second color column is refused, with a channel of its own", () => {
+  const asia = { year: [2000, 2001, 2000, 2001], life: [60, 61, 70, 71],
+    country: ["A", "A", "B", "B"], continent: ["Asia", "Asia", "Asia", "Asia"] };
+  assert.match(refusalOf(() => render_svg(plot(data(asia), x(col.year), y(col.life), point,
+    color(col.country), line, color(col.continent)))), /`pattern\(continent\)` on the `line`/);
+  assert.ok(render_svg(plot(data(asia), x(col.year), y(col.life), point, color(col.country),
+    line, color(col.country))).includes("<circle"));
+  assert.ok(render_svg(plot(data(asia), x(col.year), y(col.life), point, color(col.country),
+    line, color(col.continent, { legend: false }))).includes("<circle"));
+});

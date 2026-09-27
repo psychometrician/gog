@@ -219,6 +219,21 @@ bound to the earlier `line`, gog would refuse the whole plot: a line takes one
 size for the whole layer, not one per row. There would then be no way to
 describe the plot you wanted.
 
+### One column per legend
+
+Binding a channel to one mark has one limit. A plot draws one legend for
+`color`, and that legend names one column. So when two layers both map `color`,
+they must name the same column. The same is true of `size`, `shape`, `pattern`
+and `opacity`, the other channels that draw a legend.
+
+Suppose the lines above stay colored by country, and the points are colored by
+population instead of sized by it. The one legend would name `country`, the
+first column written, and nothing would explain the colors of the points. So gog
+refuses the plot. The message names another channel for `population` that draws
+a legend of its own: `size` on the points, which is the plot above. Writing
+[`legend = FALSE`](channels.qmd#leaving-a-legend-out) on either `color` lets the
+plot draw, with no color legend at all.
+
 ### A plot-scoped channel and the marks left unchanged
 
 A channel bound to one mark must be one that mark can accept, or gog refuses

@@ -2487,3 +2487,19 @@ end
     @test occursin("<circle", render_svg(data(places) + point + x(:lon) + y(:lat) +
                                          brush(:lon, at = (-5, 25))))
 end
+
+# A plot draws one color legend, so its layers map `color` from one column. A
+# second column's colors reached the reader with no key; it is refused, with a
+# channel of its own that draws a key. The same column on every layer, and a
+# legend turned off on purpose, still draw. The same block runs in all four
+# bindings.
+@testset "a second color column is refused, with a channel of its own" begin
+    asia = (year = [2000.0, 2001.0, 2000.0, 2001.0], life = [60.0, 61.0, 70.0, 71.0],
+            country = ["A", "A", "B", "B"], continent = fill("Asia", 4))
+    @refuses render_svg(data(asia) + x(:year) + y(:life) + point + color(:country) + line +
+                        color(:continent)) "`pattern(continent)` on the `line`"
+    @test occursin("<circle", render_svg(data(asia) + x(:year) + y(:life) + point +
+                                         color(:country) + line + color(:country)))
+    @test occursin("<circle", render_svg(data(asia) + x(:year) + y(:life) + point +
+                                         color(:country) + line + color(:continent, legend = false)))
+end

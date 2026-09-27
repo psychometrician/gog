@@ -6783,6 +6783,114 @@ fn check_axis_kinds(out: &mut Vec<Diagnostic>, spec: &PlotSpec, data: &HashMap<S
     }
 }
 
+/// A plot draws one legend for each channel that draws one, so its layers map
+/// such a channel from one column.
+///
+/// A second layer's `color` column was drawn through the first layer's scale when
+/// it held categories, and through a ramp of its own when it held numbers. Either
+/// way the one legend named the first column only, so the second column's colors
+/// reached the reader with no legend: §12's silent assumption, in the commonest real
+/// form a heatmap's ramp under points colored by a category. `size`, `opacity`,
+/// `shape` and `pattern` did the same, each with a legend for its first column alone.
+/// Refused (ruled 2026-09-27, R2, for `color`; the four siblings by Law 2, since
+/// the reason is word for word the same), and pointed at another channel for the
+/// second column, one that draws a legend of its own, or at a facet. A plot that
+/// writes `legend = FALSE` on a channel has chosen to go without its legend, and is
+/// let through. One legend per column is the later feature this leaves room for;
+/// merging both columns into one legend was the third reading, set aside.
+fn check_legend_columns(out: &mut Vec<Diagnostic>, spec: &PlotSpec, data: &HashMap<String, DataFrame>) {
+    const WITH_LEGEND: [Channel; 5] =
+        [Channel::Color, Channel::Size, Channel::Opacity, Channel::Shape, Channel::Pattern];
+    'channels: for ch in &WITH_LEGEND {
+        // (column, kind, table, marks) for each distinct reading of this channel.
+        let mut readings: Vec<(String, &'static str, String, Vec<Mark>)> = Vec::new();
+        for layer in &spec.layers {
+            let Some(cd) = layer.encodings.get(ch) else { continue };
+            if cd.legend == Some(false) {
+                continue 'channels;
+            }
+            let Some(name) = layer.data.as_ref().or(spec.data.as_ref()) else { continue };
+            let Some(df) = data.get(name) else { continue };
+            let kind = if df.time_unit(&cd.field).is_some() {
+                "dates"
+            } else {
+                match actual_type(df, &cd.field) {
+                    Some(VarType::Continuous) => "numbers",
+                    Some(VarType::Discrete) => "text",
+                    _ => continue,
+                }
+            };
+            match readings.iter_mut().find(|r| r.0 == cd.field && r.1 == kind) {
+                Some(r) => {
+                    if !r.3.contains(&layer.mark) {
+                        r.3.push(layer.mark.clone());
+                    }
+                }
+                None => readings.push((cd.field.clone(), kind, name.clone(), vec![layer.mark.clone()])),
+            }
+        }
+        if readings.len() < 2 {
+            continue;
+        }
+        let c = channel_name(ch);
+        // A column name read twice, as two kinds, needs its table to tell them apart.
+        let named_twice = |f: &str| readings.iter().filter(|r| r.0 == f).count() > 1;
+        let parts: Vec<String> = readings
+            .iter()
+            .map(|(field, _, table, marks)| {
+                let marks = marks.iter().map(|m| format!("`{}`", mark_name(m))).collect::<Vec<_>>().join(", ");
+                if named_twice(field) {
+                    format!("`{field}` in `{table}` (on {marks})")
+                } else {
+                    format!("`{field}` (on {marks})")
+                }
+            })
+            .collect();
+        let (first, _, _, _) = &readings[0];
+        let (second, kind, _, marks) = &readings[1];
+        // Ways to show the second column that draw a legend of their own: another
+        // channel with a legend that its marks take for its kind, one the plot does not map
+        // already, and a facet for a column of categories.
+        let wanted = if *kind == "text" { VarType::Discrete } else { VarType::Continuous };
+        let others: &[Channel] = if *kind == "text" {
+            &[Channel::Color, Channel::Shape, Channel::Pattern]
+        } else {
+            &[Channel::Color, Channel::Size, Channel::Opacity]
+        };
+        let mapped = |o: &Channel| spec.layers.iter().any(|l| l.encodings.contains_key(o));
+        let mut ways: Vec<String> = Vec::new();
+        for m in marks {
+            for o in others.iter().filter(|o| *o != ch && !mapped(o)) {
+                let rule = rule_for(m, o);
+                if rule.obligation != Obligation::Cannot && rule.renders.is_some_and(|t| t.accepts(wanted)) {
+                    ways.push(format!("`{}({second})` on the `{}`", channel_name(o), mark_name(m)));
+                }
+            }
+        }
+        ways.truncate(2);
+        if *kind == "text" {
+            ways.push(format!("`facet({second})` for a panel each"));
+        }
+        if ways.is_empty() {
+            ways.push("a second plot beside this one, with `|`".to_string());
+        }
+        let ways = match ways.len() {
+            1 => ways[0].clone(),
+            n => format!("{}, or {}", ways[..n - 1].join(", "), ways[n - 1]),
+        };
+        out.push(Diagnostic {
+            kind: DiagnosticKind::Illegal,
+            message: format!(
+                "gog: `{c}` maps {} columns in one plot: {}. A plot draws one legend for \
+                 `{c}`, and it names `{first}`, so `{second}` would be drawn with no legend \
+                 to read it by. Keep one column on `{c}` and show `{second}` another way: {ways}.",
+                readings.len(),
+                parts.join(", and ")
+            ),
+        });
+    }
+}
+
 /// Check every layer of `spec` against the table.
 ///
 /// Returns diagnostics in spec order. An empty vector means the plot is
@@ -6801,6 +6909,8 @@ pub fn check(spec: &PlotSpec, data: &HashMap<String, DataFrame>) -> Vec<Diagnost
     // Across layers, before any one layer is asked: an axis read as text by one
     // table and as numbers by another has no single reading to check against.
     check_axis_kinds(&mut out, spec, data);
+    // The same question for each channel that draws a legend, which names one column.
+    check_legend_columns(&mut out, spec, data);
 
     for layer in &spec.layers {
         let mark = &layer.mark;
@@ -13714,6 +13824,73 @@ mod tests {
             .layer(Layer::new(Mark::Text).data("lab").encode(Channel::Label, "t"));
         let out = check(&one_kind, &tables);
         assert!(!out.iter().any(|d| d.message.contains("axis is read")), "{:?}", msgs(&out));
+    }
+
+    /// A plot draws one color legend, so a second `color` column reached the
+    /// reader with no key: through the first column's scale when it held
+    /// categories, through a ramp of its own when it held numbers. Refused, with
+    /// a channel of the second column's own; the same column, or a legend turned
+    /// off on purpose, still draws.
+    #[test]
+    fn a_second_column_on_a_legend_channel_is_refused_with_a_channel_of_its_own() {
+        let s = |v: &[&str]| v.iter().map(|x| x.to_string()).collect::<Vec<_>>();
+        let tables: HashMap<String, DataFrame> = HashMap::from([(
+            "t".to_string(),
+            DataFrame::new()
+                .with_float("year", vec![2000.0, 2001.0, 2000.0, 2001.0])
+                .with_float("life", vec![60.0, 61.0, 70.0, 71.0])
+                .with_str("country", s(&["A", "A", "B", "B"]))
+                .with_str("continent", s(&["Asia", "Asia", "Asia", "Asia"])),
+        )]);
+        let base = || PlotSpec::new().data("t").x("year").y("life");
+        let refusal = |spec: PlotSpec| {
+            let out = check(&spec, &tables);
+            out.into_iter().find(|d| d.message.contains("A plot draws one legend for"))
+        };
+        // A category on the second layer: shown by its own texture, or a facet.
+        let d = refusal(base()
+            .layer(Layer::new(Mark::Point).encode(Channel::Color, "country"))
+            .layer(Layer::new(Mark::Line).encode(Channel::Color, "continent")))
+            .expect("two category columns on `color`");
+        assert_eq!(d.kind, DiagnosticKind::Illegal);
+        for w in ["`color` maps 2 columns in one plot: `country` (on `point`), and \
+                   `continent` (on `line`)", "it names `country`",
+                  "`pattern(continent)` on the `line`", "`facet(continent)` for a panel each"] {
+            assert!(d.message.contains(w), "wanted {w:?} in {}", d.message);
+        }
+        // Numbers on the second layer: size or opacity, which draw their own keys.
+        let d = refusal(base()
+            .layer(Layer::new(Mark::Line).encode(Channel::Color, "country"))
+            .layer(Layer::new(Mark::Point).encode(Channel::Color, "year")))
+            .expect("a number column after a category column");
+        assert!(d.message.contains("`size(year)` on the `point`"), "{}", d.message);
+        assert!(!d.message.contains("facet(year)"), "a facet of numbers is refused: {}", d.message);
+        // The heatmap under colored points: the points' category takes a shape.
+        let d = refusal(base()
+            .layer(Layer::new(Mark::Zone).encode(Channel::Color, "life"))
+            .layer(Layer::new(Mark::Point).encode(Channel::Color, "country")))
+            .expect("a ramp and a category on `color`");
+        assert!(d.message.contains("`shape(country)` on the `point`"), "{}", d.message);
+        // A sibling channel keys one column the same way, and is refused the same way.
+        let d = refusal(base()
+            .layer(Layer::new(Mark::Point).encode(Channel::Size, "life"))
+            .layer(Layer::new(Mark::Point).encode(Channel::Size, "year")))
+            .expect("two columns on `size`");
+        assert!(d.message.contains("A plot draws one legend for `size`, and it names `life`"),
+                "{}", d.message);
+        assert!(d.message.contains("`color(year)` on the `point`"), "{}", d.message);
+        // One column on every layer is one legend, and draws.
+        assert!(refusal(base()
+            .layer(Layer::new(Mark::Point).encode(Channel::Color, "country"))
+            .layer(Layer::new(Mark::Line).encode(Channel::Color, "country"))).is_none());
+        // A legend turned off on purpose is the author's choice, and draws.
+        let mut quiet = crate::ir::ChannelDef::field("continent");
+        quiet.legend = Some(false);
+        let mut line = Layer::new(Mark::Line);
+        line.encodings.insert(Channel::Color, quiet);
+        assert!(refusal(base()
+            .layer(Layer::new(Mark::Point).encode(Channel::Color, "country"))
+            .layer(line)).is_none());
     }
 
     // -- the area mark ------------------------------------------------------

@@ -2922,3 +2922,20 @@ assert "`point + x(lon) + y(lat) + brush(lon)`" in _refusal(
 assert "<circle" in render_svg(data(_places, name="places") + point + x(col.lon) + y(col.lat)
                                + brush(col.lon, at=(-5, 25)))
 ok("a map is not brushed, and the flat plot it points to draws")
+
+
+# --- One color column per plot -----------------------------------------------
+# A plot draws one color legend, so its layers map `color` from one column. A
+# second column's colors reached the reader with no key; it is refused, with a
+# channel of its own that draws a key. The same column on every layer, and a
+# legend turned off on purpose, still draw. The same block runs in all four.
+_asia = {"year": [2000.0, 2001.0, 2000.0, 2001.0], "life": [60.0, 61.0, 70.0, 71.0],
+         "country": ["A", "A", "B", "B"], "continent": ["Asia"] * 4}
+assert "`pattern(continent)` on the `line`" in _refusal(
+    lambda: render_svg(data(_asia, name="asia") + x(col.year) + y(col.life) + point
+                       + color(col.country) + line + color(col.continent)))
+assert "<circle" in render_svg(data(_asia, name="asia") + x(col.year) + y(col.life) + point
+                               + color(col.country) + line + color(col.country))
+assert "<circle" in render_svg(data(_asia, name="asia") + x(col.year) + y(col.life) + point
+                               + color(col.country) + line + color(col.continent, legend=False))
+ok("a second color column is refused, with a channel of its own")
