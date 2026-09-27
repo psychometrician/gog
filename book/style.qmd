@@ -79,13 +79,8 @@ marks  <- rules$marks$name[rules$marks$drawable]
 setts  <- rules$settings
 lookup <- setNames(rules$setting_cells$settable,
                    paste(rules$setting_cells$setting, rules$setting_cells$mark))
-header  <- paste0("| Setting | ", paste0("`", marks, "`", collapse = " | "), " |")
-divider <- paste0("|:--|", paste(rep(":--:", length(marks)), collapse = "|"), "|")
-rows <- vapply(setts, function(s) {
-  gs <- vapply(marks, function(m) if (isTRUE(lookup[[paste(s, m)]])) "✅" else "—", character(1))
-  paste0("| `", s, "` | ", paste(gs, collapse = " | "), " |")
-}, character(1))
-cat(header, divider, rows, sep = "\n")
+glyph_grid("Setting", setts, marks,
+           function(s, m) if (isTRUE(lookup[[paste(s, m)]])) "✅" else "—")
 ```
 
 (✅ the setting is available · `—` the mark's geometry cannot carry it. Generated

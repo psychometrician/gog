@@ -322,6 +322,7 @@ format:
     # syntax filter instead of inheriting it.
     filters:
       - package-names.lua
+      - check-mark.lua
     # Colors a gog specification by kind, which nothing ships a rule for. It runs
     # in the browser rather than at render time so that it adds to Pandoc's
     # tokens instead of replacing them, which is what keeps the panel, the copy
@@ -366,6 +367,7 @@ format:
     filters:
       - gog-syntax.lua
       - package-names.lua
+      - check-mark.lua
     include-in-header:
       text: |
         % Long lines wrap instead of running off the page. Both environments are
@@ -412,7 +414,13 @@ format:
         % without a system font install, where "Apple SD Gothic Neo" — which also
         % works, and was what proved the fallback — would make the book buildable
         % on one operating system.
-        \directlua{luaotfload.add_fallback("goghangeul", { "batang.ttf:mode=harf;" })}
+        %
+        % STIX, also TeX Live's own, is the second fallback, for the glyphs the
+        % combination grids are made of: ◌ and ✓ are in neither face above, and
+        % each printed as an empty cell, which on those grids reads as a verdict.
+        % ✅ is an emoji that no TeX Live font carries, so `check-mark.lua` sets
+        % it as a ✓ in both editions.
+        \directlua{luaotfload.add_fallback("goghangeul", { "batang.ttf:mode=harf;", "STIX-Regular.otf:mode=harf;" })}
         \setmainfont{Latin Modern Roman}[RawFeature={fallback=goghangeul}]
         \setsansfont{Latin Modern Sans}[RawFeature={fallback=goghangeul}]
         \setmonofont{Latin Modern Mono}[RawFeature={fallback=goghangeul}]

@@ -640,3 +640,16 @@ body.quarto-dark .quarto-color-scheme-toggle::before {
 .sidebar-navigation .sidebar-tools-main .quarto-navigation-tool:hover {
   opacity: 1;
 }
+
+/* -------------------------------------------------------------------------
+ * The check mark on the combination grids.
+ *
+ * The source writes ✅, a color emoji that the PDF has no font for, so
+ * `check-mark.lua` sets it as a ✓ in this class in both editions. It keeps the
+ * ink of the text rather than a green, so no reader needs to tell hues apart to
+ * read a grid, and the weight is what the PDF's glyph already has.
+ * ------------------------------------------------------------------------- */
+
+.gog-check {
+  font-weight: 700;
+}

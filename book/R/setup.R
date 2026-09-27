@@ -175,6 +175,54 @@ peek <- function(x, n = 5) {
 }
 
 # ---------------------------------------------------------------------------
+# The glyph grids
+#
+# Five tables in the book are a grid of one-glyph cells under a row of atom
+# names: four in `combinations.qmd` and the settings grid in `style.qmd`. The
+# web edition fits them as they are, because a browser sizes each column to its
+# content. The PDF does not. Pandoc turns any pipe table with a line longer than
+# 72 characters into fixed columns of equal width, and a code-font name such as
+# `opacity` is wider than its share of the page. On the 24-column chain grid
+# every name ran into its neighbors and nothing could be read.
+#
+# So the PDF gets the layout a printed matrix uses: the column names turned on
+# their side, the padding narrowed, and the first column given the width of its
+# longest label, which is the only text in a row. The HTML table is the same
+# Markdown as before, byte for byte.
+#
+# `glyph(row, col)` returns the glyph for one cell.
+# ---------------------------------------------------------------------------
+
+glyph_grid <- function(corner, rows, cols, glyph) {
+  pdf  <- knitr::is_latex_output()
+  head <- if (pdf) {
+    sprintf("\\rotatebox{90}{\\texttt{%s}}", gsub("_", "\\\\_", cols))
+  } else {
+    paste0("`", cols, "`")
+  }
+  # A column's share of the PDF page follows the length of its divider. A glyph
+  # column gets the shortest one pandoc allows, and the label column two dashes
+  # per character, which is what a code-font letter costs against a glyph.
+  first <- if (pdf) strrep("-", 2 * max(nchar(c(corner, rows)))) else "--"
+  cell  <- if (pdf) ":-:" else ":--:"
+  lines <- c(
+    paste0("| ", if (nzchar(corner)) paste0(corner, " ") else "",
+           "| ", paste(head, collapse = " | "), " |"),
+    paste0("|:", first, "|", paste(rep(cell, length(cols)), collapse = "|"), "|"),
+    vapply(rows, function(r) {
+      gs <- vapply(cols, function(c) glyph(r, c), character(1))
+      paste0("| `", r, "` | ", paste(gs, collapse = " | "), " |")
+    }, character(1))
+  )
+  if (pdf) {
+    lines <- c("```{=latex}", "\\begingroup\\setlength{\\tabcolsep}{2pt}", "```", "",
+               lines, "",
+               "```{=latex}", "\\endgroup", "```")
+  }
+  cat(lines, sep = "\n")
+}
+
+# ---------------------------------------------------------------------------
 # The per-mark options table
 #
 # Every mark chapter ends with "what you can set", and hand-typing that in a

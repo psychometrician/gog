@@ -72,13 +72,7 @@ lookup <- setNames(
   paste(cells$mark, cells$channel)
 )
 
-header  <- paste0("| Mark | ", paste0("`", chans, "`", collapse = " | "), " |")
-divider <- paste0("|:--|", paste(rep(":--:", length(chans)), collapse = "|"), "|")
-rows <- vapply(marks, function(m) {
-  gs <- vapply(chans, function(c) lookup[[paste(m, c)]], character(1))
-  paste0("| `", m, "` | ", paste(gs, collapse = " | "), " |")
-}, character(1))
-cat(header, divider, rows, sep = "\n")
+glyph_grid("Mark", marks, chans, function(m, c) lookup[[paste(m, c)]])
 ```
 
 Reading the five glyphs:
@@ -178,14 +172,8 @@ tcells <- rules$transform_cells     # transform, mark, state
 tglyph <- c(required = "●", combines = "✅", none = "—")
 tlook  <- setNames(unname(tglyph[tcells$state]), paste(tcells$transform, tcells$mark))
 tf_block <- function(cls) {
-  cols    <- tf$name[tf$class == cls]
-  header  <- paste0("| Mark | ", paste0("`", cols, "`", collapse = " | "), " |")
-  divider <- paste0("|:--|", paste(rep(":--:", length(cols)), collapse = "|"), "|")
-  rows <- vapply(tmarks, function(m) {
-    gs <- vapply(cols, function(t) tlook[[paste(t, m)]], character(1))
-    paste0("| `", m, "` | ", paste(gs, collapse = " | "), " |")
-  }, character(1))
-  cat(header, divider, rows, sep = "\n")
+  cols <- tf$name[tf$class == cls]
+  glyph_grid("Mark", tmarks, cols, function(m, t) tlook[[paste(t, m)]])
 }
 ```
 
@@ -337,13 +325,7 @@ handed a column to reduce.
 cc   <- rules$chain_cells
 look <- setNames(ifelse(cc$legal, "✅", "—"), paste(cc$a, cc$b))
 cols <- rules$transforms$name
-cat(paste0("| | ", paste0("`", cols, "`", collapse = " | "), " |"),
-    paste0("|:--|", paste(rep(":--:", length(cols)), collapse = "|"), "|"),
-    vapply(cols, function(a) {
-      gs <- vapply(cols, function(b) if (a == b) "·" else look[[paste(a, b)]], character(1))
-      paste0("| `", a, "` | ", paste(gs, collapse = " | "), " |")
-    }, character(1)),
-    sep = "\n")
+glyph_grid("", cols, cols, function(a, b) if (a == b) "·" else look[[paste(a, b)]])
 ```
 
 The grid is symmetric, and the rule is the reason. Whether two transforms
@@ -472,13 +454,7 @@ or it does not and says so:
 spaces <- rules$spaces
 scells <- rules$space_cells
 slook  <- setNames(ifelse(scells$drawn, "✅", "—"), paste(scells$space, scells$mark))
-header  <- paste0("| Mark | ", paste0("`", spaces, "`", collapse = " | "), " |")
-divider <- paste0("|:--|", paste(rep(":--:", length(spaces)), collapse = "|"), "|")
-rows <- vapply(marks, function(m) {
-  gs <- vapply(spaces, function(s) slook[[paste(s, m)]], character(1))
-  paste0("| `", m, "` | ", paste(gs, collapse = " | "), " |")
-}, character(1))
-cat(header, divider, rows, sep = "\n")
+glyph_grid("Mark", marks, spaces, function(m, s) slook[[paste(s, m)]])
 ```
 
 `flat` holds every mark except `surface` and `edge`. Read `surface` first: it
