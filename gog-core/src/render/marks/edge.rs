@@ -30,8 +30,7 @@ use crate::render::pattern::{pattern_dasharray, PatternMap};
 use crate::render::project::Scene;
 use crate::render::svg::{unit_norm, SvgRenderer};
 use crate::render::text::esc;
-use crate::render::Layout;
-use crate::scale;
+use crate::render::{Layout, Whole};
 use crate::transform::{EDGE_X, EDGE_Y, EDGE_Z, LAYOUT_X, LAYOUT_Y, LAYOUT_Z, NODE_NAME};
 
 /// A stroke's default width, matched to `line`'s hairline weight so a network
@@ -62,19 +61,17 @@ impl SvgRenderer {
     /// `point * layout` layer draws there, the largest when two do, read the way
     /// the point writer reads it (a mapped `size`, a set one, or the default).
     /// A node no layer draws is only a place, and a head reaches its center.
-    pub(crate) fn node_radii(&self, spec: &PlotSpec, eff: &[DataFrame]) -> HashMap<String, f64> {
+    pub(crate) fn node_radii(
+        &self, spec: &PlotSpec, eff: &[DataFrame], wholes: &[Whole<'_>],
+    ) -> HashMap<String, f64> {
         let mut out: HashMap<String, f64> = HashMap::new();
-        for (layer, df) in spec.layers.iter().zip(eff) {
+        for ((layer, df), whole) in spec.layers.iter().zip(eff).zip(wholes) {
             if layer.mark != Mark::Point || !layer.transforms.contains(&Transform::Layout) {
                 continue;
             }
             let Some(names) = df.str_col(NODE_NAME) else { continue };
-            let size_def = layer.encodings.get(&Channel::Size);
-            let sizes = size_def.and_then(|c| df.float_col(&c.field));
-            let size_scale = match sizes {
-                Some(c) => scale::ChannelScale::of(c, size_def),
-                None => scale::ChannelScale::unbound(),
-            };
+            let sizes = layer.encodings.get(&Channel::Size).and_then(|c| df.float_col(&c.field));
+            let size_scale = whole.channel_scale(layer, &Channel::Size);
             let set = layer.style.size.unwrap_or(self.point_radius);
             for (i, name) in names.iter().enumerate() {
                 let r = match sizes {
@@ -129,6 +126,7 @@ impl SvgRenderer {
         &self,
         layer: &Layer,
         df: &DataFrame,
+        whole: &Whole<'_>,
         color_map: &HashMap<String, String>,
     ) -> (Vec<(String, f64, &'static str)>, f64) {
         let st = &layer.style;
@@ -136,15 +134,12 @@ impl SvgRenderer {
             .and_then(|def| df.str_col(&def.field));
         let opacity_vals = layer.encodings.get(&Channel::Opacity)
             .and_then(|c| df.float_col(&c.field));
-        let op_scale = match opacity_vals {
-            Some(c) => scale::ChannelScale::of(c, layer.encodings.get(&Channel::Opacity)),
-            None => scale::ChannelScale::unbound(),
-        };
+        let op_scale = whole.channel_scale(layer, &Channel::Opacity);
         // A mapped dash, read as `line` reads it: the category's index in the
         // column's order picks one of the five, and the legend decodes the same
         // order. It was grammar the engine did not draw, refused as Unsupported
         // after the dash-recycling note had already been printed for it.
-        let dashes = PatternMap::resolve(layer, df);
+        let dashes = PatternMap::resolve(layer, df, whole);
         let set_dash = pattern_dasharray(st.pattern.as_deref());
         let n = df.len();
         let mut paint = Vec::with_capacity(n);
@@ -176,6 +171,7 @@ impl SvgRenderer {
         svg: &mut String,
         layer: &Layer,
         df: &DataFrame,
+        whole: &Whole<'_>,
         l: &Layout,
         xs: (f64, f64),
         ys: (f64, f64),
@@ -190,7 +186,7 @@ impl SvgRenderer {
         ) else {
             return;
         };
-        let (paint, width) = self.edge_strokes(layer, df, color_map);
+        let (paint, width) = self.edge_strokes(layer, df, whole, color_map);
         writeln!(svg, r#"  <g clip-path="url(#{clip})">"#).unwrap();
         for r in 0..x0.len() {
             let a = (l.map_x(x0[r], xs.0, xs.1), l.map_y(y0[r], ys.0, ys.1));
@@ -212,6 +208,7 @@ impl SvgRenderer {
         svg: &mut String,
         layer: &Layer,
         df: &DataFrame,
+        whole: &Whole<'_>,
         xs: (f64, f64),
         ys: (f64, f64),
         zs: (f64, f64),
@@ -226,7 +223,7 @@ impl SvgRenderer {
         ) else {
             return;
         };
-        let (paint, width) = self.edge_strokes(layer, df, color_map);
+        let (paint, width) = self.edge_strokes(layer, df, whole, color_map);
         let mut pieces: Vec<(f64, String)> = Vec::with_capacity(x0.len());
         for r in 0..x0.len() {
             let a = scene.to_screen(

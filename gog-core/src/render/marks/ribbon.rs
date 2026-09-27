@@ -9,7 +9,7 @@ use crate::render::pattern::{FillTexture, PatternMap};
 use crate::render::polar::Polar;
 use crate::render::svg::{SvgRenderer, OVERLAY_FILL};
 use crate::render::text::esc;
-use crate::render::Layout;
+use crate::render::{Layout, Whole};
 
 impl SvgRenderer {
     // -----------------------------------------------------------------------
@@ -45,7 +45,7 @@ impl SvgRenderer {
     /// since it was written. So bending it is `place` plus the wrap.
     #[allow(clippy::too_many_arguments)]
     pub(crate) fn write_ribbon(
-        &self, svg: &mut String, layer: &Layer, df: &DataFrame,
+        &self, svg: &mut String, layer: &Layer, df: &DataFrame, whole: &Whole<'_>,
         l: &Layout, xs: (f64, f64), ys: (f64, f64),
         x_field: &str, y_field: &str,
         // The domain's categories — a band across them is the spread profile, the
@@ -70,7 +70,7 @@ impl SvgRenderer {
         // layer, the channel maps one per category. A band draws per group, so a
         // bound `pattern` joins the split precedence below.
         let mut tex = FillTexture::new();
-        let pattern_map = PatternMap::resolve(layer, df);
+        let pattern_map = PatternMap::resolve(layer, df, whole);
         let color_field = layer.encodings.get(&Channel::Color).map(|c| c.field.as_str());
         let group_field = color_field
             .or_else(|| layer.encodings.get(&Channel::Group).map(|c| c.field.as_str()))

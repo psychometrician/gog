@@ -3073,3 +3073,17 @@ _svg = render_svg(data(_pk, name="pk") + bar * sum * dodge + x(col.c) + y(col.n)
                   + pattern(col.kept))
 assert "#3c3c46" in _svg.split("Kept")[1]
 ok("a pattern key beside another color column takes neutral ink")
+
+
+# --- A facet panel reads the whole layer's size scale ----------------------------
+# The one the legend decodes, so the low panel's largest dot is not drawn at the
+# largest size. The same block runs in all four bindings.
+_sh = {"x": [1.0, 2.0, 3.0, 1.0, 2.0, 3.0], "y": [1.0, 2.0, 3.0, 2.0, 3.0, 4.0],
+       "n": [1.0, 2.0, 3.0, 10.0, 20.0, 30.0], "g": ["low"] * 3 + ["high"] * 3}
+def _radii(svg):
+    return sorted(re.findall(r'<circle[^>]* r="([^"]*)"', svg))
+_whole = _radii(render_svg(data(_sh, name="sh") + point + x(col.x) + y(col.y) + size(col.n)))
+_faceted = _radii(render_svg(data(_sh, name="sh") + point + x(col.x) + y(col.y) + size(col.n)
+                             | facet(col.g)))
+assert len(_whole) == 9 and _whole == _faceted, (_whole, _faceted)
+ok("a facet panel reads the whole layer's size scale")

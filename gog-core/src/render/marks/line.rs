@@ -9,7 +9,7 @@ use crate::render::pattern::{pattern_dasharray, PatternMap};
 use crate::render::polar::Polar;
 use crate::render::svg::SvgRenderer;
 use crate::render::text::esc;
-use crate::render::Layout;
+use crate::render::{Layout, Whole};
 
 impl SvgRenderer {
     // -----------------------------------------------------------------------
@@ -18,7 +18,7 @@ impl SvgRenderer {
 
     #[allow(clippy::too_many_arguments)]
     pub(crate) fn write_line(
-        &self, svg: &mut String, layer: &Layer, df: &DataFrame,
+        &self, svg: &mut String, layer: &Layer, df: &DataFrame, whole: &Whole<'_>,
         l: &Layout, xs: (f64, f64), ys: (f64, f64),
         x_field: &str, y_field: &str,
         // The domain's categories, when x carries them. A line is read along x,
@@ -48,11 +48,11 @@ impl SvgRenderer {
         // Grouping: color takes priority (it also colors the lines), then group,
         // then a mapped `pattern` — so `pattern(g)` on its own draws one dashed line
         // per category (spec §5), a color-free way to tell series apart.
-        let pattern_map = PatternMap::resolve(layer, df);
+        let pattern_map = PatternMap::resolve(layer, df, whole);
         // A *measured* color varies along the stroke and so does not split it
         // into series; only a categorical one does. `group` still splits either
         // way, which is what lets a ramped route be drawn once per group.
-        let ramp_color = super::StrokeRamp::resolve(layer, df, ramp);
+        let ramp_color = super::StrokeRamp::resolve(layer, df, whole, ramp);
         let color_field = layer.encodings.get(&Channel::Color)
             .map(|c| c.field.as_str())
             .filter(|_| ramp_color.is_none());

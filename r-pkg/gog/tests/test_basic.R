@@ -5055,3 +5055,22 @@ local({
     stop("FAIL: the pattern key should be in neutral ink")
   cat("PASS: a pattern key beside another color column takes neutral ink\n")
 })
+
+# ---------------------------------------------------------------------------
+# A facet panel draws its share of a layer on the whole layer's size scale, the
+# one the legend decodes, so the low panel's largest dot is not drawn at the
+# largest size. The same block runs in all four bindings.
+# ---------------------------------------------------------------------------
+local({
+  t <- data.frame(x = c(1, 2, 3, 1, 2, 3), y = c(1, 2, 3, 2, 3, 4),
+                  n = c(1, 2, 3, 10, 20, 30), g = rep(c("low", "high"), each = 3))
+  radii <- function(svg) {
+    ln <- strsplit(svg, "\n", fixed = TRUE)[[1]]
+    sort(sub('.* r="([^"]*)".*', "\\1", ln[grepl("^\\s*<circle", ln)]))
+  }
+  whole <- radii(render_svg(data(t) + point + x(x) + y(y) + size(n)))
+  faceted <- radii(render_svg(data(t) + point + x(x) + y(y) + size(n) | facet(g)))
+  if (length(whole) != 9 || !identical(whole, faceted))
+    stop("FAIL: a facet panel should draw its sizes on the whole layer's scale")
+  cat("PASS: a facet panel reads the whole layer's size scale\n")
+})

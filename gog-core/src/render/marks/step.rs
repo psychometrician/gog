@@ -8,7 +8,7 @@ use crate::render::pattern::{pattern_dasharray, PatternMap};
 use crate::render::polar::Polar;
 use crate::render::svg::{unit_norm, SvgRenderer};
 use crate::render::text::esc;
-use crate::render::Layout;
+use crate::render::{Layout, Whole};
 
 impl SvgRenderer {
     // -----------------------------------------------------------------------
@@ -27,7 +27,7 @@ impl SvgRenderer {
     ///   to the next, then jumps — no baseline; the value steps where it changes.
     #[allow(clippy::too_many_arguments)]
     pub(crate) fn write_step(
-        &self, svg: &mut String, layer: &Layer, df: &DataFrame,
+        &self, svg: &mut String, layer: &Layer, df: &DataFrame, whole: &Whole<'_>,
         l: &Layout, xs: (f64, f64), ys: (f64, f64),
         x_field: &str, y_field: &str,
         // The domain's categories — `line`'s row, so `step`'s too (Law 2). A
@@ -60,10 +60,10 @@ impl SvgRenderer {
         // Same grouping precedence as `write_line`: `color` splits and colors;
         // a bare `group` splits without coloring; a mapped `pattern` splits and
         // dashes (spec §5), so `pattern(g)` alone draws one staircase per category.
-        let pattern_map = PatternMap::resolve(layer, df);
+        let pattern_map = PatternMap::resolve(layer, df, whole);
         // `line`'s split, unchanged: a measured color varies along the staircase
         // and does not group it; only a categorical one does.
-        let ramp_color = super::StrokeRamp::resolve(layer, df, ramp);
+        let ramp_color = super::StrokeRamp::resolve(layer, df, whole, ramp);
         let color_field = layer.encodings.get(&Channel::Color)
             .map(|c| c.field.as_str())
             .filter(|_| ramp_color.is_none());

@@ -12,8 +12,7 @@ use crate::render::shape::{shape_at_index, shape_by_name, write_shape, ShapeKind
 use crate::render::encode::{opacity_at, radius_at, OPACITY_DEFAULT};
 use crate::render::svg::{unit_norm, SvgRenderer};
 use crate::render::text::esc;
-use crate::render::{hash01, Layout};
-use crate::scale;
+use crate::render::{hash01, Layout, Whole};
 use super::{bar_thickness_svg, Dodge};
 
 impl SvgRenderer {
@@ -23,7 +22,7 @@ impl SvgRenderer {
 
     #[allow(clippy::too_many_arguments)]
     pub(crate) fn write_points(
-        &self, svg: &mut String, layer: &Layer, df: &DataFrame,
+        &self, svg: &mut String, layer: &Layer, df: &DataFrame, whole: &Whole<'_>,
         l: &Layout, xs: (f64, f64), ys: (f64, f64),
         x_field: &str, y_field: &str,
         cat_x: Option<&[String]>, cat_y: Option<&[String]>,
@@ -51,8 +50,8 @@ impl SvgRenderer {
         // Where each dot sits and how large it is: one routine, shared with the
         // repelled labels that have to clear these dots (`panel_dots`), so the
         // dot a label steps around is the dot this writer draws.
-        let Some((coords, radii, swarm)) = self.dot_geometry(layer, df, l, xs, ys, x_field, y_field,
-            cat_x, cat_y, zs, z_field, scene, polar, globe) else { return SwarmTally::default() };
+        let Some((coords, radii, swarm)) = self.dot_geometry(layer, df, whole, l, xs, ys, x_field,
+            y_field, cat_x, cat_y, zs, z_field, scene, polar, globe) else { return SwarmTally::default() };
 
         let color_labels = layer.encodings.get(&Channel::Color).and_then(|c| df.str_col(&c.field));
         // A numeric color column takes the sequential ramp instead of the
@@ -64,11 +63,10 @@ impl SvgRenderer {
 
         // One scale object per continuous channel. Each knows whether it runs
         // logarithmically, so `color`, `size` and `opacity` all inherit the log
-        // scale from the same place instead of three parallel copies.
-        let color_scale = match color_vals {
-            Some(c) => scale::ChannelScale::of(c, layer.encodings.get(&Channel::Color)),
-            None => scale::ChannelScale::unbound(),
-        };
+        // scale from the same place instead of three parallel copies. Each is the
+        // whole layer's, so a dot in one panel, moment or pass reads the same
+        // legend as a dot in another.
+        let color_scale = whole.channel_scale(layer, &Channel::Color);
 
         // A set value replaces the renderer's built-in default. It never
         // competes with a mapped channel — `legality::check_style` refuses a
@@ -80,10 +78,10 @@ impl SvgRenderer {
         let default_shape = st.shape.as_deref().map(shape_by_name).unwrap_or(ShapeKind::Circle);
 
         // Build shape lookup: unique string → ShapeKind (in first-appearance order).
-        // Same ordering as the shape legend, from the same function — a glyph
-        // assigned in one order and decoded in another is worse than either.
+        // Same ordering as the shape legend, from the same fit of the whole layer —
+        // a glyph assigned in one order and decoded in another is worse than either.
         let shape_order: Vec<String> = match layer.encodings.get(&Channel::Shape) {
-            Some(cd) => crate::data::categories_across(&[df], &cd.field),
+            Some(cd) => whole.categories(&cd.field),
             None => Vec::new(),
         };
         let shape_map: Vec<(&str, ShapeKind)> = shape_order.iter().enumerate()
@@ -91,10 +89,7 @@ impl SvgRenderer {
             .collect();
 
         // Opacity scale: data range → [OPACITY_MIN, OPACITY_MAX].
-        let op_scale = match opacity_vals {
-            Some(c) => scale::ChannelScale::of(c, layer.encodings.get(&Channel::Opacity)),
-            None => scale::ChannelScale::unbound(),
-        };
+        let op_scale = whole.channel_scale(layer, &Channel::Opacity);
 
         let n = coords.len();
         let mut order: Vec<usize> = (0..n).collect();
@@ -167,7 +162,7 @@ impl SvgRenderer {
     /// value is what the swarm could not clear, for the caller to report.
     #[allow(clippy::too_many_arguments)]
     pub(crate) fn dot_geometry(
-        &self, layer: &Layer, df: &DataFrame,
+        &self, layer: &Layer, df: &DataFrame, whole: &Whole<'_>,
         l: &Layout, xs: (f64, f64), ys: (f64, f64),
         x_field: &str, y_field: &str,
         cat_x: Option<&[String]>, cat_y: Option<&[String]>,
@@ -192,7 +187,7 @@ impl SvgRenderer {
         } else if let Some(vals) = df.float_col(z_field) {
             vals
         } else {
-            let cats = crate::data::categories_across(&[df], z_field);
+            let cats = whole.categories(z_field);
             match df.str_col(z_field) {
                 Some(str_vals) => {
                     owned_z = str_vals.iter()
@@ -278,10 +273,7 @@ impl SvgRenderer {
         // the renderer's built-in default; `legality::check_style` refuses a layer
         // that both maps and sets it, so at most one of the two is present here.
         let size_vals = layer.encodings.get(&Channel::Size).and_then(|c| df.float_col(&c.field));
-        let size_scale = match size_vals {
-            Some(c) => scale::ChannelScale::of(c, layer.encodings.get(&Channel::Size)),
-            None => scale::ChannelScale::unbound(),
-        };
+        let size_scale = whole.channel_scale(layer, &Channel::Size);
         let default_radius = layer.style.size.unwrap_or(self.point_radius);
         let radii: Vec<f64> = (0..n).map(|i| match size_vals {
             Some(col) => radius_at(size_scale.fraction(col.get(i).copied().unwrap_or(f64::NAN))),
@@ -317,7 +309,7 @@ impl SvgRenderer {
     /// on it.
     #[allow(clippy::too_many_arguments)]
     pub(crate) fn panel_dots(
-        &self, spec: &crate::ir::PlotSpec, eff: &[DataFrame],
+        &self, spec: &crate::ir::PlotSpec, eff: &[DataFrame], wholes: &[Whole<'_>],
         l: &Layout, xs: (f64, f64), ys: (f64, f64),
         x_field: &str, y_field: &str,
         cat_x: Option<&[String]>, cat_y: Option<&[String]>,
@@ -325,10 +317,10 @@ impl SvgRenderer {
         globe: Option<&crate::render::globe::Globe>,
     ) -> Vec<(f64, f64, f64)> {
         let mut out = Vec::new();
-        for (layer, df) in spec.layers.iter().zip(eff) {
+        for ((layer, df), whole) in spec.layers.iter().zip(eff).zip(wholes) {
             if layer.mark != crate::ir::Mark::Point || df.is_empty() { continue }
-            let Some((coords, radii, _)) = self.dot_geometry(layer, df, l, xs, ys, x_field, y_field,
-                cat_x, cat_y, (0.0, 1.0), "", None, polar, globe) else { continue };
+            let Some((coords, radii, _)) = self.dot_geometry(layer, df, whole, l, xs, ys, x_field,
+                y_field, cat_x, cat_y, (0.0, 1.0), "", None, polar, globe) else { continue };
             for (&(x, y, _), &r) in coords.iter().zip(&radii) {
                 if x.is_finite() && y.is_finite() { out.push((x, y, r)); }
             }

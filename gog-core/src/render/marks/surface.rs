@@ -21,6 +21,7 @@ use crate::render::project;
 use crate::render::svg::{unit_norm, SvgRenderer};
 use crate::render::text::esc;
 use crate::scale;
+use crate::render::Whole;
 
 /// How dark a vertical face gets, with a level one left alone.
 ///
@@ -180,7 +181,7 @@ impl SvgRenderer {
     /// the only mark writer with no second coordinate to carry.
     #[allow(clippy::too_many_arguments)]
     pub(crate) fn write_surface(
-        &self, svg: &mut String, layer: &Layer, df: &DataFrame,
+        &self, svg: &mut String, layer: &Layer, df: &DataFrame, whole: &Whole<'_>,
         xs: (f64, f64), ys: (f64, f64), zs: (f64, f64),
         x_field: &str, y_field: &str, z_field: &str,
         color_map: &HashMap<String, String>,
@@ -196,16 +197,10 @@ impl SvgRenderer {
 
         let color_labels = layer.encodings.get(&Channel::Color).and_then(|c| df.str_col(&c.field));
         let color_vals = layer.encodings.get(&Channel::Color).and_then(|c| df.float_col(&c.field));
-        let color_scale = match color_vals {
-            Some(c) => scale::ChannelScale::of(c, layer.encodings.get(&Channel::Color)),
-            None => scale::ChannelScale::unbound(),
-        };
+        let color_scale = whole.channel_scale(layer, &Channel::Color);
         // The fade, read exactly as the ramp is — `bar`'s two lines, one mark over.
         let fade_vals = layer.encodings.get(&Channel::Opacity).and_then(|c| df.float_col(&c.field));
-        let fade_scale = match fade_vals {
-            Some(c) => scale::ChannelScale::of(c, layer.encodings.get(&Channel::Opacity)),
-            None => scale::ChannelScale::unbound(),
-        };
+        let fade_scale = whole.channel_scale(layer, &Channel::Opacity);
         // A `group` split colors nothing and is not read here at all: it separates
         // one sheet's faces from another's, and the depth sort already interleaves
         // every face of every series. Two sheets therefore thread through each other

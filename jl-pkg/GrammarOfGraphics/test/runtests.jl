@@ -2627,3 +2627,16 @@ end
     svg = render_svg(data(pk) + bar * sum * dodge + x(:c) + y(:n) + color(:sex) + pattern(:kept))
     @test occursin("#3c3c46", split(svg, "Kept")[2])
 end
+
+# A facet panel draws its share of a layer on the whole layer's size scale, the
+# one the legend decodes, so the low panel's largest dot is not drawn at the
+# largest size. The same block runs in all four bindings.
+@testset "a facet panel reads the whole layer's size scale" begin
+    sh = (x = [1.0, 2.0, 3.0, 1.0, 2.0, 3.0], y = [1.0, 2.0, 3.0, 2.0, 3.0, 4.0],
+          n = [1.0, 2.0, 3.0, 10.0, 20.0, 30.0], g = ["low", "low", "low", "high", "high", "high"])
+    radii(svg) = sort([m.captures[1] for m in eachmatch(r"<circle[^>]* r=\"([^\"]*)\"", svg)])
+    whole = radii(render_svg(data(sh) + point + x(:x) + y(:y) + size(:n)))
+    faceted = radii(render_svg(data(sh) + point + x(:x) + y(:y) + size(:n) | facet(:g)))
+    @test length(whole) == 9
+    @test faceted == whole
+end

@@ -21,7 +21,7 @@ use crate::render::pattern::{pattern_dasharray, PatternMap};
 use crate::render::polar::Polar;
 use crate::render::svg::{unit_norm, SvgRenderer};
 use crate::render::text::esc;
-use crate::render::Layout;
+use crate::render::{Layout, Whole};
 
 /// How far an `"edge"` rule reaches across the axis it does not name, as a
 /// fraction of that axis's own length, and the pixel bounds it is held between.
@@ -49,7 +49,7 @@ impl SvgRenderer {
 
     #[allow(clippy::too_many_arguments)]
     pub(crate) fn write_rule(
-        &self, svg: &mut String, layer: &Layer, df: &DataFrame,
+        &self, svg: &mut String, layer: &Layer, df: &DataFrame, whole: &Whole<'_>,
         l: &Layout, xs: (f64, f64), ys: (f64, f64),
         // The whole plot spec's positions: which of the two this layer's table
         // answers is what places the rule, so the axis cannot be decided here.
@@ -95,7 +95,7 @@ impl SvgRenderer {
         // to connect, so each row is already its own segment and needs no
         // grouping pass at all. That absence is the mark's shape showing through
         // — `write_line` and `write_path` both open with one.
-        let pattern_map = PatternMap::resolve(layer, df);
+        let pattern_map = PatternMap::resolve(layer, df, whole);
         let color_field = layer.encodings.get(&Channel::Color).map(|c| c.field.as_str());
         let color_vals = color_field.and_then(|f| df.str_col(f));
         let cat_order = color_field.map(|f| crate::data::categories_across(&[df], f));

@@ -49,6 +49,77 @@ impl<'a> RenderContext<'a> {
     }
 }
 
+/// Every row one layer draws, for fitting the scales its channels are read by.
+///
+/// A writer is handed a **share** of its layer: one panel of a facet, one moment
+/// of a `play` sequence, one pass of a selection. A scale fitted over the share is
+/// a different scale in every share, and the plot has one legend. That drew
+/// Australia at China's size in the Oceania panel of a faceted bubble chart,
+/// drew each year's most populous country at the largest size in a played one,
+/// and gave a dash to a different category in a panel that lacked the first.
+/// So the scale is fitted here, over every share at once, and a writer reads its
+/// share's rows against it. The legend reads the same fit.
+///
+/// The categorical color map already worked this way, for the reason given where
+/// it is built: a reader tracks a mark by what it looks like, and nothing on the
+/// page would say the mapping had changed under them.
+pub(crate) struct Whole<'a> {
+    /// The layer's frame before a facet, a moment or a selection took a share of
+    /// it, in the table's own order. A category's place comes from here, as a
+    /// color does, so splitting the rows into panels cannot reorder them.
+    pub(crate) unsplit: &'a DataFrame,
+    /// Each panel's frame at each moment: the rows the layer actually draws. A
+    /// range is fitted over these rather than over `unsplit`, because a
+    /// transform run per panel yields values the unsplit frame never holds.
+    pub(crate) shares: Vec<&'a DataFrame>,
+}
+
+impl<'a> Whole<'a> {
+    /// A frame drawn in one piece, which is its own whole.
+    #[cfg(test)]
+    pub(crate) fn of(df: &'a DataFrame) -> Self {
+        Whole { unsplit: df, shares: vec![df] }
+    }
+
+    /// The scale `field` is read by: its range over every share, with the
+    /// binding's stated ends laid over it.
+    pub(crate) fn scale(
+        &self, field: &str, def: Option<&crate::ir::ChannelDef>,
+    ) -> crate::scale::ChannelScale {
+        let vals: Vec<f64> = self.shares.iter()
+            .filter_map(|df| df.float_col(field))
+            .flat_map(|col| col.iter().copied())
+            .collect();
+        crate::scale::ChannelScale::of(&vals, def)
+    }
+
+    /// Whether any share holds a number in `field`, which is when
+    /// [`scale`](Self::scale) has a range to fit.
+    pub(crate) fn has_numbers(&self, field: &str) -> bool {
+        self.shares.iter().any(|df| df.float_col(field).is_some_and(|col| !col.is_empty()))
+    }
+
+    /// The scale a channel `layer` binds is read by, or an unbound one when the
+    /// layer maps no numbers to it.
+    pub(crate) fn channel_scale(
+        &self, layer: &crate::ir::Layer, channel: &Channel,
+    ) -> crate::scale::ChannelScale {
+        match layer.encodings.get(channel) {
+            Some(def) if self.has_numbers(&def.field) => self.scale(&def.field, Some(def)),
+            _ => crate::scale::ChannelScale::unbound(),
+        }
+    }
+
+    /// The order `field`'s categories take: the unsplit table's, then any a
+    /// transform made that the table does not hold.
+    pub(crate) fn categories(&self, field: &str) -> Vec<String> {
+        let frames: Vec<&DataFrame> = std::iter::once(self.unsplit)
+            .chain(self.shares.iter().copied())
+            .collect();
+        crate::data::categories_across(&frames, field)
+    }
+}
+
 /// A deterministic `u64 → [0, 1)` hash (SplitMix64's finalizer). Pure and
 /// dependency-free — the seeded-from-data rule the whole engine follows for
 /// anything that must look arbitrary yet render identically every run.

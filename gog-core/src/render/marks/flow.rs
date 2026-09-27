@@ -20,7 +20,7 @@ use crate::render::palette::PALETTE_GOG;
 use crate::render::pattern::{FillTexture, PatternMap};
 use crate::render::svg::SvgRenderer;
 use crate::render::text::esc;
-use crate::render::Layout;
+use crate::render::{Layout, Whole};
 use crate::transform::{CELL_LOWER, CELL_UPPER, FLOW_PATH, FLOW_STAGE};
 
 /// Half a slot's thickness, in category units — a stage sits at integer `k` and
@@ -84,6 +84,7 @@ impl SvgRenderer {
         svg: &mut String,
         layer: &Layer,
         df: &DataFrame,
+        whole: &Whole<'_>,
         l: &Layout,
         xs: (f64, f64),
         ys: (f64, f64),
@@ -105,7 +106,7 @@ impl SvgRenderer {
         // A band is a fill, so `pattern` hatches it as it hatches every other fill
         // (the settable rule). The legend drew the hatch and the bands were solid:
         // `check_flow` took the channel and this writer had no texture code.
-        let pattern_map = PatternMap::resolve(layer, df);
+        let pattern_map = PatternMap::resolve(layer, df, whole);
         let mut tex = FillTexture::new();
         writeln!(svg, r#"  <g clip-path="url(#{clip})">"#).unwrap();
         for r in 0..path.len().saturating_sub(1) {

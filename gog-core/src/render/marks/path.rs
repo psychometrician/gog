@@ -26,7 +26,7 @@ use crate::render::polar::Polar;
 use crate::render::project;
 use crate::render::svg::{unit_norm, SvgRenderer};
 use crate::render::text::esc;
-use crate::render::Layout;
+use crate::render::{Layout, Whole};
 
 impl SvgRenderer {
     // -----------------------------------------------------------------------
@@ -35,7 +35,7 @@ impl SvgRenderer {
 
     #[allow(clippy::too_many_arguments)]
     pub(crate) fn write_path(
-        &self, svg: &mut String, layer: &Layer, df: &DataFrame,
+        &self, svg: &mut String, layer: &Layer, df: &DataFrame, whole: &Whole<'_>,
         l: &Layout, xs: (f64, f64), ys: (f64, f64),
         x_field: &str, y_field: &str,
         // Either axis may carry categories — a path's two positions are the same
@@ -107,7 +107,7 @@ impl SvgRenderer {
         // Grouping: color first (it also colors the strokes), then `group`, then
         // a mapped `pattern` — `write_line`'s precedence, unchanged, so a split
         // path and a split line separate on the same rule.
-        let pattern_map = PatternMap::resolve(layer, df);
+        let pattern_map = PatternMap::resolve(layer, df, whole);
         // A *measured* color varies along the route and so does not split it
         // into series; only a categorical one does. `group` still splits either
         // way, so one ramped route per glider is `color(altitude) + group(glider)`.
@@ -115,9 +115,9 @@ impl SvgRenderer {
         // — the same courtesy `zone * bin` does for `color` and `bar * bin` for `y`.
         // So an unbound `path * density` reads its own synthesized column off the
         // ramp, which is what makes the color bar beside it true.
-        let ramp_color = super::StrokeRamp::resolve(layer, df, ramp).or_else(|| {
+        let ramp_color = super::StrokeRamp::resolve(layer, df, whole, ramp).or_else(|| {
             layer.encodings.get(&Channel::Color).is_none().then(|| {
-                super::StrokeRamp::of(df, crate::transform::FIELD_LEVEL, ramp, None)
+                super::StrokeRamp::of(df, whole, crate::transform::FIELD_LEVEL, ramp, None)
             }).flatten()
         });
         let color_field = layer.encodings.get(&Channel::Color)

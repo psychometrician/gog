@@ -21,7 +21,7 @@ use crate::scale;
 use crate::render::polar::Polar;
 use crate::render::svg::{unit_norm, SvgRenderer};
 use crate::render::text::esc;
-use crate::render::Layout;
+use crate::render::{Layout, Whole};
 
 /// A zone is background: it is drawn under the data, so it defaults translucent
 /// rather than making the caller remember to say so. Matched to the overlaid-fill
@@ -37,7 +37,7 @@ impl SvgRenderer {
 
     #[allow(clippy::too_many_arguments)]
     pub(crate) fn write_zone(
-        &self, svg: &mut String, layer: &Layer, df: &DataFrame,
+        &self, svg: &mut String, layer: &Layer, df: &DataFrame, whole: &Whole<'_>,
         l: &Layout, xs: (f64, f64), ys: (f64, f64),
         // The plot's own position columns. A *bounded* zone never reads them — its
         // sides are its own four columns — but a **level set** publishes its boundary
@@ -116,12 +116,13 @@ impl SvgRenderer {
         // cannot be read — so reaching here means the sides really are a coastline.
         if let Some(g) = layer.encodings.get(&Channel::Group).map(|d| d.field.clone()) {
             self.write_zone_regions(
-                svg, layer, df, l, xs, ys, x_field, y_field, &g, color_map, ramp, clip, polar,
-                globe);
+                svg, layer, df, whole, l, xs, ys, x_field, y_field, &g, color_map, ramp, clip,
+                polar, globe);
             return;
         }
         if let Some(rings) = cut.then(|| df.float_col(crate::transform::FIELD_RING)).flatten() {
-            self.write_zone_bands(svg, layer, df, l, xs, ys, x_field, y_field, rings, ramp, clip, polar);
+            self.write_zone_bands(svg, layer, df, whole, l, xs, ys, x_field, y_field, rings, ramp,
+                clip, polar);
             return;
         }
 
@@ -264,7 +265,7 @@ impl SvgRenderer {
         // the white gutter a mosaic and a treemap are both read by. `border_size = 0`
         // is how you say *no* edge after asking for one.
         let edge = border_edge(st);
-        let pattern_map = PatternMap::resolve(layer, df);
+        let pattern_map = PatternMap::resolve(layer, df, whole);
         // The cells' measure is what the transform just made — a count or a density —
         // so `color` needs no binding, the same courtesy `bar * bin` does for `y`.
         // Naming it out loud (`color(count)`, `color(density)`) resolves to the
@@ -274,9 +275,9 @@ impl SvgRenderer {
         let color_vals = color_field.and_then(|f| df.str_col(f));
         let color_nums = color_field.and_then(|f| df.float_col(f));
         let cat_order = color_field.map(|f| crate::data::categories_across(&[df], f));
-        let color_scale = match color_nums {
-            Some(c) => scale::ChannelScale::of(c, layer.encodings.get(&Channel::Color)),
-            None => scale::ChannelScale::unbound(),
+        let color_scale = match (color_field, color_nums) {
+            (Some(f), Some(_)) => whole.scale(f, layer.encodings.get(&Channel::Color)),
+            _ => scale::ChannelScale::unbound(),
         };
         let mut tex = FillTexture::new();
 
@@ -435,7 +436,7 @@ impl SvgRenderer {
     /// site for why nesting makes that sound, and for the one topology it cannot draw.
     #[allow(clippy::too_many_arguments)]
     fn write_zone_bands(
-        &self, svg: &mut String, layer: &Layer, df: &DataFrame,
+        &self, svg: &mut String, layer: &Layer, df: &DataFrame, whole: &Whole<'_>,
         l: &Layout, xs: (f64, f64), ys: (f64, f64),
         x_field: &str, y_field: &str,
         rings: &[f64],
@@ -462,7 +463,7 @@ impl SvgRenderer {
         // the cells read — unbound, the courtesy every two-dimensional reading does
         // for `color` (`check_field` refuses any other field).
         let scale = match levels {
-            Some(v) => scale::ChannelScale::of(v, layer.encodings.get(&Channel::Color)),
+            Some(_) => whole.scale(crate::transform::FIELD_LEVEL, layer.encodings.get(&Channel::Color)),
             None => scale::ChannelScale::unbound(),
         };
         let stops: Vec<&str> = ramp.iter().map(String::as_str).collect();
@@ -532,7 +533,7 @@ impl SvgRenderer {
     /// arrowhead being an explicit polygon rather than an SVG `<marker>`.
     #[allow(clippy::too_many_arguments)]
     fn write_zone_regions(
-        &self, svg: &mut String, layer: &Layer, df: &DataFrame,
+        &self, svg: &mut String, layer: &Layer, df: &DataFrame, whole: &Whole<'_>,
         l: &Layout, xs: (f64, f64), ys: (f64, f64),
         x_field: &str, y_field: &str,
         group_field: &str,
@@ -563,10 +564,7 @@ impl SvgRenderer {
         let color_field = layer.encodings.get(&Channel::Color).map(|d| d.field.as_str());
         let color_vals = color_field.and_then(|f| df.str_col(f));
         let color_nums = color_field.and_then(|f| df.float_col(f));
-        let color_scale = match color_nums {
-            Some(c) => scale::ChannelScale::of(c, layer.encodings.get(&Channel::Color)),
-            None => scale::ChannelScale::unbound(),
-        };
+        let color_scale = whole.channel_scale(layer, &Channel::Color);
         let stops: Vec<&str> = ramp.iter().map(String::as_str).collect();
 
         writeln!(svg, r##"  <g clip-path="url(#{clip})">"##).unwrap();

@@ -9,7 +9,7 @@ use crate::render::polar::Polar;
 use crate::render::project::Scene;
 use crate::render::svg::{unit_norm, SvgRenderer};
 use crate::render::text::esc;
-use crate::render::Layout;
+use crate::render::{Layout, Whole};
 use super::{bar_thickness_svg, Dodge};
 
 impl SvgRenderer {
@@ -36,7 +36,7 @@ impl SvgRenderer {
     /// why `rule_for` keeps `color` set-only here.
     #[allow(clippy::too_many_arguments)]
     pub(crate) fn write_interval(
-        &self, svg: &mut String, layer: &Layer, df: &DataFrame,
+        &self, svg: &mut String, layer: &Layer, df: &DataFrame, whole: &Whole<'_>,
         l: &Layout, xs: (f64, f64), ys: (f64, f64),
         x_field: &str, y_field: &str,
         cat_x: Option<&[String]>, cat_y: Option<&[String]>,
@@ -93,7 +93,7 @@ impl SvgRenderer {
         let dash_attr = pattern_dasharray(st.pattern.as_deref());
         // A mapped `pattern` dashes each whisker by its category (spec §5) — the
         // per-pair analog of the split `line`/`bar` make; else the setting's dash.
-        let pattern_map = PatternMap::resolve(layer, df);
+        let pattern_map = PatternMap::resolve(layer, df, whole);
         let draw_caps = st.caps.unwrap_or(true); // false → a bare linerange
         let draw_center = st.center.unwrap_or(true); // false → suppress the pointrange dot
         const CAP: f64 = 4.0; // half-width of the end caps, in px

@@ -10,7 +10,7 @@ use crate::render::polar::Polar;
 use crate::render::project::Scene;
 use crate::render::svg::{unit_norm, SvgRenderer, OVERLAY_FILL};
 use crate::render::text::esc;
-use crate::render::Layout;
+use crate::render::{Layout, Whole};
 use super::{bar_thickness_svg, Dodge};
 
 impl SvgRenderer {
@@ -43,7 +43,7 @@ impl SvgRenderer {
     /// *extent*; only the closures that reach the page know which of those is x.
     #[allow(clippy::too_many_arguments)]
     pub(crate) fn write_box(
-        &self, svg: &mut String, layer: &Layer, df: &DataFrame,
+        &self, svg: &mut String, layer: &Layer, df: &DataFrame, whole: &Whole<'_>,
         l: &Layout, xs: (f64, f64), ys: (f64, f64),
         x_field: &str, y_field: &str,
         cat_x: Option<&[String]>, cat_y: Option<&[String]>,
@@ -118,7 +118,7 @@ impl SvgRenderer {
         // the line-work (outline, whiskers, median, caps) is drawn solid below, so a
         // box reads as a box. `solid`/unset is the identity.
         let mut tex = FillTexture::new();
-        let pattern_map = PatternMap::resolve(layer, df);
+        let pattern_map = PatternMap::resolve(layer, df, whole);
         let set_color = st.color.as_deref().map(esc);
         let color_field = layer.encodings.get(&Channel::Color).map(|c| c.field.as_str());
         let group_vals: Option<Vec<&str>> = color_field

@@ -21,7 +21,7 @@ use crate::render::pattern::{dash_for_index, fill_texture_for_index, pattern_das
 use crate::render::shape::{shape_at_index, write_shape, ShapeKind};
 use crate::render::text::{esc, estimate_cap_height, estimate_text_width};
 use crate::render::ticks::auto_label;
-use crate::render::{Layout, RenderContext};
+use crate::render::{Layout, RenderContext, Whole};
 use crate::render::encode::{opacity_at, radius_at, OPACITY_DEFAULT, SIZE_MAX_R};
 use crate::scale::ChannelScale;
 
@@ -197,6 +197,9 @@ fn keyed(spec: &PlotSpec, channel: &Channel) -> bool {
 /// untouched, and with no box to hold the panel gives the room back to the data.
 pub(crate) fn collect_legends(
     ctx: &RenderContext<'_>, color_map: &HashMap<String, String>, eff: &[DataFrame],
+    // What each layer's marks were drawn by (`Whole`): a key decodes the fit
+    // its marks used, not a second fit of its own over a different frame.
+    wholes: &[Whole<'_>],
 ) -> Vec<LegendBox> {
     let mut boxes = Vec::new();
     let spec = ctx.spec;
@@ -293,7 +296,7 @@ pub(crate) fn collect_legends(
         };
         let Some(df)  = src                  else { continue };
         let Some(col) = df.float_col(field)  else { continue };
-        let sc = ChannelScale::of(col, def);
+        let sc = drawn_scale(wholes.get(i), col, field, def);
         let ramp = resolve_ramp(&spec.palette);
         let stops: Vec<&str> = ramp.iter().map(String::as_str).collect();
         // Largest at the top, so the strip runs the way the axis does.
@@ -314,7 +317,7 @@ pub(crate) fn collect_legends(
     }
 
     // Shape legend (categorical string column)
-    'shape: for layer in spec.layers.iter().filter(|_| shape_keyed) {
+    'shape: for (i, layer) in spec.layers.iter().enumerate().filter(|_| shape_keyed) {
         let Some(def) = layer.encodings.get(&Channel::Shape) else { continue };
         let Some(df)  = ctx.resolve_data(&layer.data)        else { continue };
         if df.str_col(&def.field).is_none() { continue }
@@ -328,7 +331,7 @@ pub(crate) fn collect_legends(
         // neutral ink a shape key has when color maps nothing.
         let colored = color_keyed && spec.layers.iter().any(|l|
             l.encodings.get(&Channel::Color).is_some_and(|c| c.field == def.field));
-        let rows: Vec<LegendRow> = categories_across(&[df], &def.field).into_iter()
+        let rows: Vec<LegendRow> = drawn_categories(wholes.get(i), df, &def.field).into_iter()
             .enumerate()
             .map(|(i, label)| {
                 let color = colored.then(|| color_map.get(&label).cloned()
@@ -348,7 +351,7 @@ pub(crate) fn collect_legends(
     //
     // With the color key turned off the swatches take the default, as if `color`
     // mapped nothing: the reason is the shape key's, one geometry class over.
-    'pattern: for layer in spec.layers.iter().filter(|_| pattern_keyed) {
+    'pattern: for (i, layer) in spec.layers.iter().enumerate().filter(|_| pattern_keyed) {
         let Some(def) = layer.encodings.get(&Channel::Pattern) else { continue };
         let Some(df)  = ctx.resolve_data(&layer.data)          else { continue };
         if df.str_col(&def.field).is_none() { continue }
@@ -369,7 +372,7 @@ pub(crate) fn collect_legends(
             l.encodings.get(&Channel::Color).is_some_and(|c| c.field == def.field));
         let other = spec.layers.iter().any(|l|
             l.encodings.get(&Channel::Color).is_some_and(|c| c.field != def.field));
-        let rows: Vec<LegendRow> = categories_across(&[df], &def.field).into_iter()
+        let rows: Vec<LegendRow> = drawn_categories(wholes.get(i), df, &def.field).into_iter()
             .enumerate()
             .map(|(i, label)| {
                 let color = match (same, other) {
@@ -390,11 +393,11 @@ pub(crate) fn collect_legends(
     }
 
     // Size legend (numeric column — show min / mid / max)
-    'size: for layer in spec.layers.iter().filter(|_| keyed(spec, &Channel::Size)) {
+    'size: for (i, layer) in spec.layers.iter().enumerate().filter(|_| keyed(spec, &Channel::Size)) {
         let Some(def) = layer.encodings.get(&Channel::Size) else { continue };
         let Some(df)  = ctx.resolve_data(&layer.data)       else { continue };
         let Some(col) = df.float_col(&def.field)            else { continue };
-        let sc = ChannelScale::of(col, Some(def));
+        let sc = drawn_scale(wholes.get(i), col, &def.field, Some(def));
         let rows = [0.0, 0.5, 1.0].iter().map(|&f| LegendRow {
             label:  continuous_label(df, &def.field, sc.value_at(f)),
             swatch: LegendSwatch::SizeCircle(radius_at(f)),
@@ -404,11 +407,11 @@ pub(crate) fn collect_legends(
     }
 
     // Opacity legend (numeric column — show min / mid / max), mirroring size.
-    'opacity: for layer in spec.layers.iter().filter(|_| keyed(spec, &Channel::Opacity)) {
+    'opacity: for (i, layer) in spec.layers.iter().enumerate().filter(|_| keyed(spec, &Channel::Opacity)) {
         let Some(def) = layer.encodings.get(&Channel::Opacity) else { continue };
         let Some(df)  = ctx.resolve_data(&layer.data)          else { continue };
         let Some(col) = df.float_col(&def.field)               else { continue };
-        let sc = ChannelScale::of(col, Some(def));
+        let sc = drawn_scale(wholes.get(i), col, &def.field, Some(def));
         let rows = [0.0, 0.5, 1.0].iter().map(|&f| LegendRow {
             label:  continuous_label(df, &def.field, sc.value_at(f)),
             swatch: LegendSwatch::OpacityRect(opacity_at(f)),
@@ -418,6 +421,26 @@ pub(crate) fn collect_legends(
     }
 
     boxes
+}
+
+/// The scale a key decodes: the one its layer's marks were drawn by, or the
+/// table's own column when the layer drew no rows to fit one over.
+fn drawn_scale(
+    whole: Option<&Whole<'_>>, col: &[f64], field: &str, def: Option<&ChannelDef>,
+) -> ChannelScale {
+    match whole {
+        Some(w) if w.has_numbers(field) => w.scale(field, def),
+        _ => ChannelScale::of(col, def),
+    }
+}
+
+/// The categories a key lists, in the order its layer's marks were assigned
+/// them, or the table's own order when the layer's frames hold none.
+fn drawn_categories(whole: Option<&Whole<'_>>, df: &DataFrame, field: &str) -> Vec<String> {
+    match whole.map(|w| w.categories(field)) {
+        Some(cats) if !cats.is_empty() => cats,
+        _ => categories_across(&[df], field),
+    }
 }
 
 /// Draw the legend panel to the right of the plot area.

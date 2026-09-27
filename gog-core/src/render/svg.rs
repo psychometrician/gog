@@ -16,7 +16,7 @@ use crate::render::layout::{Fit, PanelGrid};
 use crate::render::nest::Nest;
 use crate::render::polar::Polar;
 use crate::render::project::{self, Screen};
-use crate::render::{AxisFacts, Drawn, Layout, RenderContext};
+use crate::render::{AxisFacts, Drawn, Layout, RenderContext, Whole};
 use crate::render::legend::{collect_legends, write_legends, LEGEND_PADDING, LEGEND_PLOT_GAP};
 use crate::render::palette::{build_color_map, resolve_ramp};
 use crate::render::text::{esc, estimate_cap_height, estimate_text_width};
@@ -2045,8 +2045,20 @@ impl SvgRenderer {
         };
         let color_map = build_color_map(spec, color_frames, &mut remarks);
         let ramp = resolve_ramp(&spec.palette);
+        // The other channels are fitted once too, per layer: every range over
+        // every panel at every moment, and every category in the unsplit frame's
+        // order (`Whole`). A writer draws one share of its layer and reads it
+        // against these; the legend decodes them. Fitted per share, they drew a
+        // played bubble chart with each year's largest country at the largest
+        // size, whatever its population.
+        let wholes: Vec<Whole> = (0..spec.layers.len())
+            .map(|li| Whole {
+                unsplit: &color_frames[li],
+                shares: panel_eff.iter().map(|frames| &frames[li]).collect(),
+            })
+            .collect();
 
-        let legends = collect_legends(&ctx, &color_map, color_frames);
+        let legends = collect_legends(&ctx, &color_map, color_frames, &wholes);
         let legend_panel_w = if legends.is_empty() { 0.0 } else {
             LEGEND_PLOT_GAP + legends.iter()
                 .map(|b| b.width(self.font_sm, self.font_md))
@@ -2456,19 +2468,19 @@ impl SvgRenderer {
                     self.open_frame(&mut svg, fi, nframes);
                     for &dim in self.selection_passes(spec) {
                         self.open_pass(&mut svg, dim);
-                        for (layer, df) in spec.layers.iter().zip(eff.iter()) {
+                        for ((layer, df), whole) in spec.layers.iter().zip(eff.iter()).zip(&wholes) {
                             let Some(df) = self.pass_rows(spec, layer, df, dim) else { continue };
                             let df = &*df;
                             if df.is_empty() { continue }
                             match layer.mark {
-                                Mark::Point => { self.write_points(&mut svg, layer, df, l, xs, ys,
+                                Mark::Point => { self.write_points(&mut svg, layer, df, whole, l, xs, ys,
                                     x_field, y_field, cat_x.as_deref(), cat_y.as_deref(),
                                     &color_map, &ramp, &clip, zs, z_field, None, None, Some(g)); }
                                 Mark::Text => {
                                     // The facing hemisphere's dots, as the flat
                                     // branch reads its panel's (below).
                                     let dots = if layer.transforms.contains(&Transform::Repel) {
-                                        self.panel_dots(spec, eff, l, xs, ys, x_field, y_field,
+                                        self.panel_dots(spec, eff, &wholes, l, xs, ys, x_field, y_field,
                                             cat_x.as_deref(), cat_y.as_deref(), None, Some(g))
                                     } else {
                                         Vec::new()
@@ -2477,19 +2489,19 @@ impl SvgRenderer {
                                         x_field, y_field, cat_x.as_deref(), cat_y.as_deref(),
                                         &color_map, &clip, &ground, None, None, Some(g), &dots, &mut remarks)
                                 }
-                                Mark::Path => self.write_path(&mut svg, layer, df, l, xs, ys,
+                                Mark::Path => self.write_path(&mut svg, layer, df, whole, l, xs, ys,
                                     x_field, y_field, cat_x.as_deref(), cat_y.as_deref(),
                                     &color_map, &ramp, &clip, zs, z_field, None, None, Some(g)),
-                                Mark::Rule => self.write_rule(&mut svg, layer, df, l, xs, ys,
+                                Mark::Rule => self.write_rule(&mut svg, layer, df, whole, l, xs, ys,
                                     spec, cat_x.as_deref(), cat_y.as_deref(), &color_map,
                                     &clip, None, Some(g)),
-                                Mark::Zone => self.write_zone(&mut svg, layer, df, l, xs, ys,
+                                Mark::Zone => self.write_zone(&mut svg, layer, df, whole, l, xs, ys,
                                     x_field, y_field, cat_x.as_deref(), cat_y.as_deref(),
                                     &color_map, &ramp, &clip, None, Some(g)),
                                 // The spike: the measure standing on the radius,
                                 // the one direction the sphere has that its
                                 // flattening does not.
-                                Mark::Bar => self.write_bars_globe(&mut svg, layer, df,
+                                Mark::Bar => self.write_bars_globe(&mut svg, layer, df, whole,
                                     x_field, y_field, z_field, zs, &color_map, &ramp,
                                     &clip, g),
                                 _ => {}
@@ -2539,22 +2551,22 @@ impl SvgRenderer {
                     self.open_frame(&mut svg, fi, nframes);
                     for &dim in self.selection_passes(spec) {
                       self.open_pass(&mut svg, dim);
-                      for (layer, df) in spec.layers.iter().zip(eff.iter()) {
+                      for ((layer, df), whole) in spec.layers.iter().zip(eff.iter()).zip(&wholes) {
                         let Some(df) = self.pass_rows(spec, layer, df, dim) else { continue };
                         let df = &*df;
                         if df.is_empty() { continue }
                         match layer.mark {
-                            Mark::Point => { self.write_points(&mut svg, layer, df, l, xs, ys,
+                            Mark::Point => { self.write_points(&mut svg, layer, df, whole, l, xs, ys,
                                 x_field, y_field, cat_x.as_deref(), cat_y.as_deref(),
                                 &color_map, &ramp, &clip, zs, z_field, Some(&scene), None, None); }
-                            Mark::Path => self.write_path(&mut svg, layer, df, l, xs, ys,
+                            Mark::Path => self.write_path(&mut svg, layer, df, whole, l, xs, ys,
                                 x_field, y_field, cat_x.as_deref(), cat_y.as_deref(),
                                 &color_map, &ramp, &clip, zs, z_field, Some(&scene), None, None),
                             // The layout's endpoint pairs in the cube — only
                             // ever reached inside a `network()` with a stated
                             // view, depth-sorted per stroke inside the writer.
-                            Mark::Edge => self.write_edge_3d(&mut svg, layer, df, xs, ys, zs,
-                                &color_map, &clip, &scene, &self.node_radii(spec, eff)),
+                            Mark::Edge => self.write_edge_3d(&mut svg, layer, df, whole, xs, ys, zs,
+                                &color_map, &clip, &scene, &self.node_radii(spec, eff, &wholes)),
                             // The column standing on the cube's floor — the 3-D
                             // histogram, and the first *slot* mark in space. It takes no
                             // `Layout`: a flat bar's thickness is pixels on the panel,
@@ -2577,7 +2589,7 @@ impl SvgRenderer {
                             Mark::Box => self.write_box_3d(&mut svg, layer, df, xs, ys, zs,
                                 x_field, y_field, z_field, cat_x.as_deref(), cat_y.as_deref(),
                                 &color_map, &clip, &scene),
-                            Mark::Surface => self.write_surface(&mut svg, layer, df, xs, ys, zs,
+                            Mark::Surface => self.write_surface(&mut svg, layer, df, whole, xs, ys, zs,
                                 x_field, y_field, z_field, &color_map, &ramp, &clip, &scene),
                             _ => {}
                         }
@@ -2650,7 +2662,7 @@ impl SvgRenderer {
                 // the unselected rows are drawn first and pushed back.
                 for &dim in self.selection_passes(spec) {
                   self.open_pass(&mut svg, dim);
-                  for (layer, df) in spec.layers.iter().zip(eff.iter()) {
+                  for ((layer, df), whole) in spec.layers.iter().zip(eff.iter()).zip(&wholes) {
                     let Some(df) = self.pass_rows(spec, layer, df, dim) else { continue };
                     let df = &*df;
                     if df.is_empty() { continue }
@@ -2671,26 +2683,26 @@ impl SvgRenderer {
                             Mark::Area => Slot::Halved,
                             _ => Slot::Traced,
                         };
-                        self.write_violin(&mut svg, layer, df, l, xs, ys, x_field, y_field,
+                        self.write_violin(&mut svg, layer, df, whole, l, xs, ys, x_field, y_field,
                             cat_x.as_deref(), cat_y.as_deref(),
                             orient == crate::legality::Orient::Horizontal,
                             shape, &color_map, &clip, pol_ref);
                         continue;
                     }
                     match layer.mark {
-                        Mark::Point => swarm.absorb(self.write_points(&mut svg, layer, df, l, xs, ys, x_field, y_field, cat_x.as_deref(), cat_y.as_deref(), &color_map, &ramp, &clip, zs, z_field, None, pol_ref, None)),
-                        Mark::Line  => self.write_line(&mut svg, layer, df, l, xs, ys, x_field, y_field, cat_x.as_deref(), &color_map, &ramp, &clip, pol_ref, &mut remarks),
-                        Mark::Area  => self.write_area(&mut svg, layer, df, l, xs, ys, x_field, y_field, cat_x.as_deref(), area_base, &color_map, &clip, pol_ref),
-                        Mark::Bar   => self.write_bars(&mut svg, layer, df, l, xs, ys, x_field, y_field, cat_x.as_deref(), cat_y.as_deref(), horizontal, ext_base, &color_map, &clip, pol_ref, nst.as_ref()),
-                        Mark::Step  => self.write_step(&mut svg, layer, df, l, xs, ys, x_field, y_field, cat_x.as_deref(), area_base, &color_map, &ramp, &clip, pol_ref),
-                        Mark::Interval => self.write_interval(&mut svg, layer, df, l, xs, ys, x_field, y_field, cat_x.as_deref(), cat_y.as_deref(), horizontal, &color_map, &clip, pol_ref),
-                        Mark::Box => self.write_box(&mut svg, layer, df, l, xs, ys, x_field, y_field, cat_x.as_deref(), cat_y.as_deref(), horizontal, &color_map, &clip, pol_ref),
+                        Mark::Point => swarm.absorb(self.write_points(&mut svg, layer, df, whole, l, xs, ys, x_field, y_field, cat_x.as_deref(), cat_y.as_deref(), &color_map, &ramp, &clip, zs, z_field, None, pol_ref, None)),
+                        Mark::Line  => self.write_line(&mut svg, layer, df, whole, l, xs, ys, x_field, y_field, cat_x.as_deref(), &color_map, &ramp, &clip, pol_ref, &mut remarks),
+                        Mark::Area  => self.write_area(&mut svg, layer, df, whole, l, xs, ys, x_field, y_field, cat_x.as_deref(), area_base, &color_map, &clip, pol_ref),
+                        Mark::Bar   => self.write_bars(&mut svg, layer, df, whole, l, xs, ys, x_field, y_field, cat_x.as_deref(), cat_y.as_deref(), horizontal, ext_base, &color_map, &clip, pol_ref, nst.as_ref()),
+                        Mark::Step  => self.write_step(&mut svg, layer, df, whole, l, xs, ys, x_field, y_field, cat_x.as_deref(), area_base, &color_map, &ramp, &clip, pol_ref),
+                        Mark::Interval => self.write_interval(&mut svg, layer, df, whole, l, xs, ys, x_field, y_field, cat_x.as_deref(), cat_y.as_deref(), horizontal, &color_map, &clip, pol_ref),
+                        Mark::Box => self.write_box(&mut svg, layer, df, whole, l, xs, ys, x_field, y_field, cat_x.as_deref(), cat_y.as_deref(), horizontal, &color_map, &clip, pol_ref),
                         // The flow's band reading arrives here on the ribbon, the
                         // violin's dispatch shape one transform over: the mark is
                         // the reader's name, the writer is the reading's.
                         Mark::Ribbon if layer.transforms.contains(&Transform::Flow) =>
-                            self.write_flow_bands(&mut svg, layer, df, l, xs, ys, cat_x.as_deref(), &color_map, &clip),
-                        Mark::Ribbon => self.write_ribbon(&mut svg, layer, df, l, xs, ys, x_field, y_field, cat_x.as_deref(), &color_map, &clip, pol_ref),
+                            self.write_flow_bands(&mut svg, layer, df, whole, l, xs, ys, cat_x.as_deref(), &color_map, &clip),
+                        Mark::Ribbon => self.write_ribbon(&mut svg, layer, df, whole, l, xs, ys, x_field, y_field, cat_x.as_deref(), &color_map, &clip, pol_ref),
                         Mark::Text => {
                             // A repelled label steps around every dot drawn in
                             // this panel at this moment, at the size it is
@@ -2700,7 +2712,7 @@ impl SvgRenderer {
                             // point layer is read from its own frame, the way
                             // `node_radii` reads the dots an arrowhead stops at.
                             let dots = if layer.transforms.contains(&Transform::Repel) && nst.is_none() {
-                                self.panel_dots(spec, eff, l, xs, ys, x_field, y_field,
+                                self.panel_dots(spec, eff, &wholes, l, xs, ys, x_field, y_field,
                                     cat_x.as_deref(), cat_y.as_deref(), pol_ref, None)
                             } else {
                                 Vec::new()
@@ -2710,14 +2722,14 @@ impl SvgRenderer {
                         // The stroke between two layout-supplied endpoints —
                         // only ever reached inside `network()`, where the
                         // legality gate has already admitted it.
-                        Mark::Edge => self.write_edge(&mut svg, layer, df, l, xs, ys, &color_map, &clip, None,
-                                                      &self.node_radii(spec, eff)),
-                        Mark::Path => self.write_path(&mut svg, layer, df, l, xs, ys, x_field, y_field, cat_x.as_deref(), cat_y.as_deref(), &color_map, &ramp, &clip, zs, z_field, None, pol_ref, None),
+                        Mark::Edge => self.write_edge(&mut svg, layer, df, whole, l, xs, ys, &color_map, &clip, None,
+                                                      &self.node_radii(spec, eff, &wholes)),
+                        Mark::Path => self.write_path(&mut svg, layer, df, whole, l, xs, ys, x_field, y_field, cat_x.as_deref(), cat_y.as_deref(), &color_map, &ramp, &clip, zs, z_field, None, pol_ref, None),
                         // The one mark handed the whole spec rather than the two
                         // resolved field names: which axis places it is read off
                         // *both* positions against this layer's own table
                         // (`legality::rule_axis`), so a pair of `&str` cannot say it.
-                        Mark::Rule => self.write_rule(&mut svg, layer, df, l, xs, ys, spec, cat_x.as_deref(), cat_y.as_deref(), &color_map, &clip, pol_ref, None),
+                        Mark::Rule => self.write_rule(&mut svg, layer, df, whole, l, xs, ys, spec, cat_x.as_deref(), cat_y.as_deref(), &color_map, &clip, pol_ref, None),
                         // Drawn like any other mark, but its frame reached here
                         // untransformed — a zone's `bounds` names four columns rather
                         // than reshaping rows into pairs (see the effective-frame
@@ -2725,7 +2737,7 @@ impl SvgRenderer {
                         // The flow's slot reading, the band's twin above.
                         Mark::Zone if layer.transforms.contains(&Transform::Flow) =>
                             self.write_flow_nodes(&mut svg, layer, df, l, xs, ys, cat_x.as_deref(), &clip),
-                        Mark::Zone => self.write_zone(&mut svg, layer, df, l, xs, ys, x_field, y_field, cat_x.as_deref(), cat_y.as_deref(), &color_map, &ramp, &clip, pol_ref, None),
+                        Mark::Zone => self.write_zone(&mut svg, layer, df, whole, l, xs, ys, x_field, y_field, cat_x.as_deref(), cat_y.as_deref(), &color_map, &ramp, &clip, pol_ref, None),
                         // A surface draws in the cube and nowhere else, so it is handled
                         // in the 3-D branch above and a *flat* one never arrives — it is
                         // the one mark `mark_draws_in_space` refuses in `flat`, and
@@ -8006,6 +8018,64 @@ mod tests {
         let svg = SvgRenderer::default().render(&spec, &t);
         let key = svg.split("Kept").nth(1).expect("a pattern key titled Kept");
         assert!(key.contains("#3c3c46"), "the pattern key's swatches are in neutral ink");
+    }
+
+    /// A writer draws one share of its layer, a panel, a moment or a selection
+    /// pass, and reads it against the whole layer's scales, which the one legend
+    /// decodes. Fitted per share, the low panel's largest dot was drawn at the
+    /// largest size, a selected dot changed size on being selected, and a panel
+    /// without the first category gave its dash to the second.
+    #[test]
+    fn a_share_of_a_layer_reads_the_whole_layers_scales() {
+        let s = |v: &[&str]| v.iter().map(|x| x.to_string()).collect::<Vec<_>>();
+        let t: HashMap<String, DataFrame> = HashMap::from([(
+            "t".to_string(),
+            DataFrame::new()
+                .with_float("x", vec![1.0, 2.0, 3.0, 1.0, 2.0, 3.0])
+                .with_float("y", vec![1.0, 2.0, 3.0, 2.0, 3.0, 4.0])
+                .with_float("n", vec![1.0, 2.0, 3.0, 10.0, 20.0, 30.0])
+                .with_str("g", s(&["low", "low", "low", "high", "high", "high"]))
+                .with_str("k", s(&["a", "a", "a", "b", "b", "b"])),
+        )]);
+        // Every radius drawn, the legend's three included, in one sorted list.
+        let radii = |svg: &str| {
+            let mut r: Vec<String> = svg.lines()
+                .filter(|l| l.trim_start().starts_with("<circle"))
+                .filter_map(|l| l.split(" r=\"").nth(1))
+                .map(|r| r.split('"').next().unwrap_or("").to_string())
+                .collect();
+            r.sort();
+            r
+        };
+        let sized = || PlotSpec::new().data("t").x("x").y("y")
+            .layer(Layer::new(Mark::Point).encode(Channel::Size, "n"));
+        let whole = radii(&SvgRenderer::default().render(&sized(), &t));
+        assert_eq!(whole.len(), 9, "six dots and a legend of three: {whole:?}");
+
+        let mut faceted = sized();
+        faceted.facet = Some(crate::ir::FacetSpec { col: Some("g".into()), ..Default::default() });
+        assert_eq!(radii(&SvgRenderer::default().render(&faceted, &t)), whole, "per panel");
+
+        let played = PlotSpec::new().data("t").x("x").y("y")
+            .layer(Layer::new(Mark::Point).encode(Channel::Size, "n").encode(Channel::Play, "g"));
+        assert_eq!(radii(&SvgRenderer::default().render(&played, &t)), whole, "per moment");
+
+        let brushed = sized().brush(crate::ir::BrushDef::new("x").at(1.5, 3.5));
+        assert_eq!(radii(&SvgRenderer::default().render(&brushed, &t)), whole, "per pass");
+
+        // `b` is the second category, so it takes the second dash in the panel
+        // that has no `a` as well as in the legend.
+        let mut dashed = PlotSpec::new().data("t").x("x").y("y")
+            .layer(Layer::new(Mark::Line).encode(Channel::Pattern, "k"));
+        dashed.facet = Some(crate::ir::FacetSpec { col: Some("g".into()), ..Default::default() });
+        let svg = SvgRenderer::default().render(&dashed, &t);
+        let second = crate::render::pattern::pattern_dasharray(Some(crate::render::pattern::dash_for_index(1)));
+        assert!(!second.is_empty(), "the second dash is drawn as a dash");
+        let lines: Vec<&str> = svg.lines().filter(|l| l.trim_start().starts_with("<polyline")).collect();
+        assert_eq!(lines.len(), 2, "one line per panel: {lines:?}");
+        assert!(lines.iter().filter(|l| l.contains(second)).count() == 1
+                && lines.iter().any(|l| !l.contains("stroke-dasharray")),
+                "`a` is solid and `b` takes the second dash in its own panel: {lines:?}");
     }
 
     /// Under `repel` an empty label names nothing, so it is not placed and earns no

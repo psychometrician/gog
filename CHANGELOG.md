@@ -48,6 +48,15 @@ CRAN-style repositories and PyPI, `GrammarOfGraphics` on Julia's General, and
 
 ### Changed
 
+- **Every panel, moment and selection reads one scale.** `size`, `opacity`, a
+  numeric `color`, and the order of the `shape` and `pattern` categories were
+  fitted again for each facet panel, each moment of a `play` sequence, and each
+  pass of a selection. In `size(population) | facet(continent)`, Australia was
+  drawn as large as China; a played bubble chart drew each year's most populous
+  country at the largest size; and a panel without the first `pattern` category
+  gave its texture to the second. Each is now fitted once, over every row the
+  layer draws, and that is the scale its legend decodes.
+
 - **A pattern key beside another color column is drawn in neutral ink.** With
   `color(sex)` and `pattern(survived)`, the "Survived" key was drawn in the
   first sex's color, as if the two were related. It is now drawn in the neutral

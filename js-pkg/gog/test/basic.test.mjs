@@ -3269,3 +3269,17 @@ test("a pattern key beside another color column takes neutral ink", () => {
     pattern(col.kept)));
   assert.ok(svg.split("Kept")[1].includes("#3c3c46"));
 });
+
+// A facet panel draws its share of a layer on the whole layer's size scale, the
+// one the legend decodes, so the low panel's largest dot is not drawn at the
+// largest size. The same block runs in all four bindings.
+test("a facet panel reads the whole layer's size scale", () => {
+  const sh = { x: [1, 2, 3, 1, 2, 3], y: [1, 2, 3, 2, 3, 4], n: [1, 2, 3, 10, 20, 30],
+    g: ["low", "low", "low", "high", "high", "high"] };
+  const radii = (svg) => [...svg.matchAll(/<circle[^>]* r="([^"]*)"/g)].map((m) => m[1]).sort();
+  const whole = radii(render_svg(plot(data(sh), point, x(col.x), y(col.y), size(col.n))));
+  const faceted = radii(render_svg(plot(data(sh), point, x(col.x), y(col.y), size(col.n),
+    across(col.g))));
+  assert.equal(whole.length, 9);
+  assert.deepEqual(faceted, whole);
+});

@@ -11,6 +11,7 @@
 //! before `pattern` grew a fill arm — no `<defs>`, no `url(#…)`.
 use crate::data::DataFrame;
 use crate::ir::{Channel, Layer};
+use crate::render::Whole;
 use std::collections::{HashMap, HashSet};
 use std::fmt::Write;
 
@@ -113,10 +114,14 @@ pub(crate) struct PatternMap {
 
 impl PatternMap {
     /// `Some` iff `Channel::Pattern` is bound and names a string column.
-    pub(crate) fn resolve(layer: &Layer, df: &DataFrame) -> Option<PatternMap> {
+    ///
+    /// The rows are `df`'s, the share being drawn; the order is the whole
+    /// layer's, so a panel lacking the first category still draws the second
+    /// one in the texture the legend gives it.
+    pub(crate) fn resolve(layer: &Layer, df: &DataFrame, whole: &Whole<'_>) -> Option<PatternMap> {
         let field = layer.encodings.get(&Channel::Pattern)?.field.clone();
         let col = df.str_col(&field)?;
-        let index = crate::data::categories_across(&[df], &field)
+        let index = whole.categories(&field)
             .into_iter().enumerate().map(|(i, c)| (c, i)).collect();
         Some(PatternMap { field, index, row_cat: col.to_vec() })
     }
@@ -351,7 +356,7 @@ mod tests {
             "g", vec!["b".into(), "a".into(), "b".into(), "c".into()],
         );
         let layer = Layer::new(Mark::Bar).encode(Channel::Pattern, "g");
-        let pm = PatternMap::resolve(&layer, &df).expect("pattern is bound to a string column");
+        let pm = PatternMap::resolve(&layer, &df, &Whole::of(&df)).expect("pattern is bound to a string column");
         // First-seen order: b, a, c → 0, 1, 2.
         assert_eq!(pm.index_of("b"), 0);
         assert_eq!(pm.index_of("a"), 1);
@@ -365,6 +370,6 @@ mod tests {
         assert_eq!(pm.field(), "g");
         // Unbound → None.
         let plain = Layer::new(Mark::Bar);
-        assert!(PatternMap::resolve(&plain, &df).is_none());
+        assert!(PatternMap::resolve(&plain, &df, &Whole::of(&df)).is_none());
     }
 }

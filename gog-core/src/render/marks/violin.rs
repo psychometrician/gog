@@ -17,7 +17,7 @@ use crate::render::pattern::{pattern_dasharray, FillTexture, PatternMap};
 use crate::render::polar::Polar;
 use crate::render::svg::{SvgRenderer, OVERLAY_FILL};
 use crate::render::text::esc;
-use crate::render::Layout;
+use crate::render::{Layout, Whole};
 use crate::transform::SLOT_WIDTH;
 use super::{bar_thickness_svg, Dodge};
 
@@ -62,7 +62,7 @@ impl SvgRenderer {
     /// below is written in terms of *slot* and *extent*; only `at` knows which is x.
     #[allow(clippy::too_many_arguments)]
     pub(crate) fn write_violin(
-        &self, svg: &mut String, layer: &Layer, df: &DataFrame,
+        &self, svg: &mut String, layer: &Layer, df: &DataFrame, whole: &Whole<'_>,
         l: &Layout, xs: (f64, f64), ys: (f64, f64),
         x_field: &str, y_field: &str,
         cat_x: Option<&[String]>, cat_y: Option<&[String]>,
@@ -92,7 +92,7 @@ impl SvgRenderer {
         let st = &layer.style;
         let set_color = st.color.as_deref().map(esc);
         let mut tex = FillTexture::new();
-        let pattern_map = PatternMap::resolve(layer, df);
+        let pattern_map = PatternMap::resolve(layer, df, whole);
         let color_field = layer.encodings.get(&Channel::Color).map(|c| c.field.as_str());
         // The split that makes two violins share one slot. `color` wins over `group`,
         // the precedence every other mark uses.

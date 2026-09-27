@@ -11,8 +11,7 @@ use crate::render::polar::Polar;
 use crate::render::project::Scene;
 use crate::render::svg::{unit_norm, SvgRenderer, OVERLAY_FILL, OVERLAY_OUTLINE_W, PANEL_BG};
 use crate::render::text::esc;
-use crate::render::Layout;
-use crate::scale;
+use crate::render::{Layout, Whole};
 use super::{bar_thickness_svg, Dodge};
 
 impl SvgRenderer {
@@ -22,7 +21,7 @@ impl SvgRenderer {
 
     #[allow(clippy::too_many_arguments)]
     pub(crate) fn write_bars(
-        &self, svg: &mut String, layer: &Layer, df: &DataFrame,
+        &self, svg: &mut String, layer: &Layer, df: &DataFrame, whole: &Whole<'_>,
         l: &Layout, xs: (f64, f64), ys: (f64, f64),
         x_field: &str, y_field: &str,
         cat_x: Option<&[String]>, cat_y: Option<&[String]>,
@@ -97,10 +96,7 @@ impl SvgRenderer {
         let base_col = if stacked { df.float_col(crate::transform::STACK_BASE) } else { None };
         let color_labels = layer.encodings.get(&Channel::Color).and_then(|c| df.str_col(&c.field));
         let opacity_vals = layer.encodings.get(&Channel::Opacity).and_then(|c| df.float_col(&c.field));
-        let op_scale = match opacity_vals {
-            Some(c) => scale::ChannelScale::of(c, layer.encodings.get(&Channel::Opacity)),
-            None => scale::ChannelScale::unbound(),
-        };
+        let op_scale = whole.channel_scale(layer, &Channel::Opacity);
 
         let st = &layer.style;
         let default_color = st.color.as_deref().map(esc).unwrap_or_else(|| PALETTE_GOG[0].to_string());
@@ -110,7 +106,7 @@ impl SvgRenderer {
         // ordinary bar is byte-for-byte unchanged. The legality check refuses map
         // and set together, so at most one is present per bar.
         let mut tex = FillTexture::new();
-        let pattern_map = PatternMap::resolve(layer, df);
+        let pattern_map = PatternMap::resolve(layer, df, whole);
 
         // Bars *overlay* when two of them share a position. Every bar of a
         // color-split histogram does, because the groups bin on shared edges: it
@@ -446,7 +442,7 @@ impl SvgRenderer {
     /// spikes sort by their footprint, the cube's rule.
     #[allow(clippy::too_many_arguments)]
     pub(crate) fn write_bars_globe(
-        &self, svg: &mut String, layer: &Layer, df: &DataFrame,
+        &self, svg: &mut String, layer: &Layer, df: &DataFrame, whole: &Whole<'_>,
         x_field: &str, y_field: &str, z_field: &str, zs: (f64, f64),
         color_map: &HashMap<String, String>,
         ramp: &[String],
@@ -475,10 +471,7 @@ impl SvgRenderer {
         let set_color = st.color.as_deref().map(esc);
         let color_labels = layer.encodings.get(&Channel::Color).and_then(|c| df.str_col(&c.field));
         let color_vals = layer.encodings.get(&Channel::Color).and_then(|c| df.float_col(&c.field));
-        let color_scale = match color_vals {
-            Some(c) => scale::ChannelScale::of(c, layer.encodings.get(&Channel::Color)),
-            None => scale::ChannelScale::unbound(),
-        };
+        let color_scale = whole.channel_scale(layer, &Channel::Color);
         let stops: Vec<&str> = ramp.iter().map(String::as_str).collect();
 
         // Every visible spike, far foot first.

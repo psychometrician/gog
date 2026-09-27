@@ -8,7 +8,7 @@ use crate::data::DataFrame;
 use crate::ir::{Channel, Layer, Transform};
 use crate::render::polar::Polar;
 use crate::render::svg::unit_norm;
-use crate::render::Layout;
+use crate::render::{Layout, Whole};
 
 mod area;
 mod bar;
@@ -446,12 +446,14 @@ impl<'a> StrokeRamp<'a> {
     /// Present only when `color` maps a **numeric** column. A categorical one is
     /// the series split, which the caller already does, so returning `None` here
     /// leaves that path exactly as it was.
-    pub(crate) fn resolve(layer: &Layer, df: &'a DataFrame, ramp: &'a [String]) -> Option<Self> {
+    pub(crate) fn resolve(
+        layer: &Layer, df: &'a DataFrame, whole: &Whole<'_>, ramp: &'a [String],
+    ) -> Option<Self> {
         let def = layer.encodings.get(&Channel::Color)?;
         // A set color wins over the channel everywhere else; `check_style`
         // refuses a layer that both maps and sets one, so there is nothing to
         // arbitrate here.
-        Self::of(df, &def.field, ramp, Some(def))
+        Self::of(df, whole, &def.field, ramp, Some(def))
     }
 
     /// The same ramp over a column named directly rather than bound.
@@ -462,14 +464,18 @@ impl<'a> StrokeRamp<'a> {
     /// whether or not anybody said so. Without this the rings drew in one color
     /// while a color-bar legend claimed they decoded the level, which is a key for
     /// an encoding that was not drawn.
+    ///
+    /// The values are the share's and the scale is the whole layer's, so a
+    /// panel holding only high readings draws them at the top of the ramp rather
+    /// than spreading them across all of it.
     pub(crate) fn of(
-        df: &'a DataFrame, field: &str, ramp: &'a [String],
+        df: &'a DataFrame, whole: &Whole<'_>, field: &str, ramp: &'a [String],
         def: Option<&crate::ir::ChannelDef>,
     ) -> Option<Self> {
         let vals = df.float_col(field)?;
         Some(StrokeRamp {
             vals,
-            scale: crate::scale::ChannelScale::of(vals, def),
+            scale: whole.scale(field, def),
             stops: ramp.iter().map(String::as_str).collect(),
         })
     }
