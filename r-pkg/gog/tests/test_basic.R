@@ -3689,14 +3689,13 @@ masked("palette()",         palette(),                 "grDevices::palette()")
 masked("title()",           title(),                   "graphics::title(main = )")
 masked("layout(<matrix>)",  layout(matrix(1:4, 2)),    "graphics::layout()")
 
-# And the two spellings that must keep working, because a guard that refuses a
-# legal sentence is worse than the collision it was written for. `order()` takes
-# an optional field: with none, it reverses a categorical axis.
+# And the spelling that must keep working, because a guard that refuses a legal
+# sentence is worse than the collision it was written for. `order()` takes a
+# column; named as the category column itself, it runs that axis backward.
+# (`order(desc = TRUE)` alone is refused by name, below.)
 if (!inherits(order(gold, desc = TRUE), "gog_atom"))
   stop("FAIL: order(<bare name>, desc = TRUE) must still build an atom")
-if (!identical(unclass(order(desc = TRUE))$order_field, ""))
-  stop("FAIL: order(desc = TRUE) must stay legal, with no field")
-cat("PASS: order(<column>, desc =) and order(desc =) both still build\n")
+cat("PASS: order(<column>, desc =) still builds\n")
 
 # --- the license travels with every package that ships ----------------------
 # Apache 2.0 §4(a) makes whoever hands out a copy hand out the License with it,
@@ -5189,4 +5188,20 @@ local({
              said(data(t) + bar * sum + y(v, limits = c(0, 10)) + color(g) + nest()), fixed = TRUE))
     stop("FAIL: a nest should refuse limits under a summary")
   cat("PASS: a nest refuses the settings of an axis\n")
+})
+
+# ---------------------------------------------------------------------------
+# `order()` needs a column: `order(desc = TRUE)` alone sent an empty one, which
+# the engine reported as a column named nothing. The refusal names the spelling
+# that runs a category axis backward. The same block runs in all four bindings.
+# ---------------------------------------------------------------------------
+local({
+  said <- tryCatch({ order(desc = TRUE); "" }, error = function(e) conditionMessage(e))
+  if (!grepl("`order(desc = TRUE)` names no column", said, fixed = TRUE) ||
+      !grepl("`order(<category>, desc = TRUE)`", said, fixed = TRUE))
+    stop("FAIL: order(desc = TRUE) should be refused by name: ", said)
+  if (!grepl("`order()` names no column", tryCatch({ order(); "" },
+             error = function(e) conditionMessage(e)), fixed = TRUE))
+    stop("FAIL: order() should be refused by name")
+  cat("PASS: order() with no column is refused by name\n")
 })

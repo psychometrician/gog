@@ -1207,8 +1207,21 @@ def style(**props: Any) -> Atom:
 # ---------------------------------------------------------------------------
 
 
-def order(field: Column, desc: bool = False) -> Atom:
-    """Order the categorical axis by a column."""
+def order(field: Optional[Column] = None, desc: bool = False) -> Atom:
+    """Order the categorical axis by a column.
+
+    The column is required. `order(desc=True)` alone reads as a way to run a
+    category axis backward, and it never was; naming the category column itself
+    is, so the refusal says that rather than Python's missing-argument error.
+    """
+    if field is None:
+        written = "order(desc=True)" if desc else "order()"
+        tail = ", desc=True" if desc else ""
+        raise GogError(
+            f"gog: `{written}` names no column to order by. Name the category column "
+            f"itself to sort the axis by its own categories, `order(col.<category>{tail})`, "
+            f"or a column of values to sort them by, `order(col.<value>{tail})`."
+        )
     return Atom("order", field=column_name(field, "order"), descending=bool(desc))
 
 

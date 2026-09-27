@@ -48,6 +48,12 @@ CRAN-style repositories and PyPI, `GrammarOfGraphics` on Julia's General, and
 
 ### Changed
 
+- **`order()` with no column is refused, by name.** `order(desc = TRUE)` alone
+  sent an empty column in R and raised a language error in the other three. It
+  now says it names no column, and gives the two that work: the category column
+  itself, as in `order(continent, desc = TRUE)`, sorts the axis from Z to A, and
+  a column of values sorts the categories by value.
+
 - **A `nest()` plot refuses the settings of an axis.** A packing has no axes,
   so `theme(grid =)`, `theme(tick_angle =)`, `theme(axis_label =)`,
   `theme(frame =)`, a position's `tick_count`, and `limits` on the measure under

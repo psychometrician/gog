@@ -2743,3 +2743,17 @@ end
     @test occursin("under `bar * sum`",
                    said(data(nt) + bar * sum + y(:v, limits = (0, 10)) + color(:g) + nest()))
 end
+
+# `order()` needs a column: `order(desc = true)` alone raised Julia's
+# `MethodError`. The refusal names the spelling that runs a category axis
+# backward. The same block runs in all four bindings.
+@testset "order() with no column is refused by name" begin
+    said(f) = try
+        f(); ""
+    catch e
+        sprint(showerror, e)
+    end
+    @test occursin("`order(desc = true)` names no column", said(() -> order(desc = true)))
+    @test occursin("`order(:<category>, desc = true)`", said(() -> order(desc = true)))
+    @test occursin("`order()` names no column", said(() -> order()))
+end

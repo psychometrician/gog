@@ -3377,3 +3377,12 @@ test("a nest refuses the settings of an axis", () => {
   assert.throws(() => render_svg(plot(data(nt), layer(bar, sum), y(col.v, { limits: [0, 10] }),
     color(col.g), nest())), /under `bar \* sum`/);
 });
+
+// `order()` needs a column: `order({ desc: true })` alone was refused without
+// saying what a column is for. The refusal names the spelling that runs a category
+// axis backward. The same block runs in all four bindings.
+test("order() with no column is refused by name", () => {
+  assert.throws(() => order({ desc: true }),
+    /`order\(\{ desc: true \}\)` names no column.*col\.<category>/s);
+  assert.throws(() => order(), /`order\(\)` names no column/);
+});

@@ -1099,8 +1099,20 @@ export function style(props) {
 // ---------------------------------------------------------------------------
 
 // Order the categorical axis by a column.
+// The column is required. `order({ desc: true })` alone reads as a way to run a
+// category axis backward, and it never was; naming the category column itself
+// is, so the refusal says that.
 export function order(...raw) {
   const { field, desc = false } = readArgs(raw, "order", ["field", "desc"]);
+  if (field === undefined) {
+    const written = desc ? "order({ desc: true })" : "order()";
+    const tail = desc ? ", { desc: true }" : "";
+    throw new GogError(
+      `gog: \`${written}\` names no column to order by. Name the category column ` +
+        `itself to sort the axis by its own categories, \`order(col.<category>${tail})\`, ` +
+        `or a column of values to sort them by, \`order(col.<value>${tail})\`.`
+    );
+  }
   return new Atom("order", {
     field: columnName(field, "order"),
     descending: Boolean(desc),

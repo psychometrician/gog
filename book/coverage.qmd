@@ -268,7 +268,7 @@ record of them.
 | In ggplot2 | What is missing here |
 |---|---|
 | `scale_*_continuous(breaks =, labels =)` | tick *positions* and tick *text*. `tick_count` asks for a number of ticks and the engine chooses them, so "tick at 0, 50 and 100" and relabeling a category cannot be written. |
-| `scale_y_reverse()` | a reversed continuous axis. `order(desc = TRUE)` reverses a categorical one. |
+| `scale_y_reverse()` | a reversed continuous axis. `x(continent) + order(continent, desc = TRUE)` sorts a categorical axis from Z to A, or a [declared order](data.qmd#declaring-the-order-of-categories) from last to first. |
 | `scale_x_sqrt()`, `coord_trans()` | a power scale. The `log10`-style *naming* is refused; the capability never was. |
 | `linewidth` as an aesthetic | a column mapped to stroke width. `size` can be set on a stroke for the whole layer, not mapped per row. |
 | `labs(alt = )`, `get_alt_text()` | alt text on the rendered plot |

@@ -3189,3 +3189,17 @@ assert "`y(v, tick_count = 3)`" in _nest_said(
 assert "under `bar * sum`" in _nest_said(
     data(_nt, name="nt") + bar * sum + y(col.v, limits=(0, 10)) + color(col.g) + nest())
 ok("a nest refuses the settings of an axis")
+
+
+# --- order() with no column is refused by name -------------------------------------
+# `order(desc=True)` alone raised Python's missing-argument error. The refusal names
+# the spelling that runs a category axis backward. The same block runs in all four
+# bindings.
+for _call, _said in [(lambda: order(desc=True), "`order(desc=True)` names no column"),
+                     (lambda: order(), "`order()` names no column")]:
+    try:
+        _call()
+        raise AssertionError("order() with no column built")
+    except GogError as refusal:
+        assert _said in str(refusal) and "col.<category>" in str(refusal), refusal
+ok("order() with no column is refused by name")

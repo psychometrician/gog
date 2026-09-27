@@ -2056,10 +2056,22 @@ order <- function(field, desc = FALSE) {
   # this atom, and dies at `invalid subscript type 'list'` inside `[.data.frame` —
   # a message naming neither `order` nor gog, several frames from the line that
   # wrote it. This atom names a *column*, so an operand that is not a bare name is
-  # that mistake, refused here where the fix can still be said. `order(desc =
-  # TRUE)` keeps working: the field is optional, and that spelling is how a
-  # categorical axis is reversed.
-  if (!missing(field) && !is.name(substitute(field))) {
+  # that mistake, refused here where the fix can still be said.
+  #
+  # **A column is required.** `order(desc = TRUE)` alone was read as a way to run
+  # a category axis backward, and it never was: it sent an empty column, which
+  # the engine then reported as a column named nothing. The spelling that does it
+  # names the category column itself, so the refusal says that.
+  if (missing(field)) {
+    written <- if (missing(desc)) "order()" else
+      paste0("order(desc = ", if (isTRUE(desc)) "TRUE" else "FALSE", ")")
+    tail <- if (isTRUE(desc)) ", desc = TRUE" else ""
+    stop("gog: `", written, "` names no column to order by. Name the category ",
+         "column itself to sort the axis by its own categories, `order(<category>",
+         tail, ")`, or a column of values to sort them by, `order(<value>", tail, ")`.",
+         call. = FALSE)
+  }
+  if (!is.name(substitute(field))) {
     expr <- substitute(field)
     bad  <- paste(deparse(expr), collapse = " ")
     minus <- is.call(expr) && identical(expr[[1L]], as.name("-"))

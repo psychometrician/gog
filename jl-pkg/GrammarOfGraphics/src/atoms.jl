@@ -1004,6 +1004,18 @@ order(field; desc::Bool = false) =
     Atom(:order, Dict{Symbol,Any}(:field => column_name(field, "order"),
                                   :descending => desc))
 
+# The column is required. `order(desc = true)` alone reads as a way to run a
+# category axis backward, and it never was; naming the category column itself is,
+# so the refusal says that rather than Julia's `MethodError`.
+function order(; desc::Bool = false)
+    written = desc ? "order(desc = true)" : "order()"
+    tail = desc ? ", desc = true" : ""
+    throw(GogError(
+        "gog: `$written` names no column to order by. Name the category column itself " *
+        "to sort the axis by its own categories, `order(:<category>$tail)`, or a column " *
+        "of values to sort them by, `order(:<value>$tail)`."))
+end
+
 """
 Name the column that splits the plot into panels. Joins with `|` or `/`.
 
