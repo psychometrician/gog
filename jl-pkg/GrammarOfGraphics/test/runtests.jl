@@ -2456,3 +2456,20 @@ end
     @test occursin("one share is too small to have a region at all", lost)
     @test !occursin("drew every share", lost)
 end
+
+# An axis holds one kind of value: two tables that give one position column two
+# kinds are refused, and the message names each table. Each drew its numbers as
+# categories' places, off the plot, with nothing said. The same block runs in
+# all four bindings.
+@testset "an axis holds one kind of value, whichever table a layer reads" begin
+    cats = (g = ["a", "b", "c"], v = [1.0, 2.0, 3.0])
+    nums = (g = [10.0], v = [2.0], t = ["ten"])
+    pts = (g = [1.0, 2.0, 3.0], v = [1.0, 2.0, 3.0])
+    lab = (g = ["b"], v = [2.0], t = ["bee"])
+    @refuses render_svg(data(cats; name = "cats") + bar + x(:g) + y(:v) +
+                        data(nums; name = "nums") + text + label(:t)) "`g` holds text in `cats` (read by `bar`), and `g` holds numbers in `nums` (read by `text`)"
+    @refuses render_svg(data(pts; name = "pts") + point + x(:g) + y(:v) +
+                        data(lab; name = "lab") + text + label(:t)) "the `x` axis is read two ways"
+    @test occursin(">bee</text>", render_svg(data(cats; name = "cats") + bar + x(:g) + y(:v) +
+                                             data(lab; name = "lab") + text + label(:t)))
+end

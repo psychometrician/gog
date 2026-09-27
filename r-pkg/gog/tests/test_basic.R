@@ -4824,3 +4824,26 @@ local({
     stop("FAIL: a packing that lost a share must not be called whole: ", said)
   cat("PASS: a treemap's label report agrees in number, and calls the packing whole only when it is\n")
 })
+
+# ---------------------------------------------------------------------------
+# An axis holds one kind of value: two tables that give one position column two
+# kinds are refused, and the message names each table. Each drew its numbers as
+# categories' places, off the plot, with nothing said. The same block runs in
+# all four bindings.
+# ---------------------------------------------------------------------------
+local({
+  cats <- data.frame(g = c("a", "b", "c"), v = c(1, 2, 3))
+  nums <- data.frame(g = 10, v = 2, t = "ten")
+  pts  <- data.frame(g = c(1, 2, 3), v = c(1, 2, 3))
+  lab  <- data.frame(g = "b", v = 2, t = "bee")
+  refuses("a label at a number over text bars",
+          render_svg(data(cats) + bar + x(g) + y(v) + data(nums) + text + label(t)),
+          "`g` holds text in `cats` (read by `bar`), and `g` holds numbers in `nums` (read by `text`)")
+  refuses("points at numbers under a text label",
+          render_svg(data(pts) + point + x(g) + y(v) + data(lab) + text + label(t)),
+          "the `x` axis is read two ways")
+  svg <- render_svg(data(cats) + bar + x(g) + y(v) + data(lab) + text + label(t))
+  if (!grepl(">bee</text>", svg, fixed = TRUE))
+    stop("FAIL: one kind in both tables should draw")
+  cat("PASS: an axis holds one kind of value, whichever table a layer reads\n")
+})

@@ -3082,3 +3082,21 @@ test("a treemap's label report agrees in number, and calls the packing whole onl
   assert.ok(lost.includes("one share is too small to have a region at all"), lost);
   assert.ok(!lost.includes("drew every share"), lost);
 });
+
+// An axis holds one kind of value: two tables that give one position column two
+// kinds are refused, and the message names each table. Each drew its numbers as
+// categories' places, off the plot, with nothing said. The same block runs in
+// all four bindings.
+test("an axis holds one kind of value, whichever table a layer reads", () => {
+  const cats = { g: ["a", "b", "c"], v: [1, 2, 3] };
+  const nums = { g: [10], v: [2], t: ["ten"] };
+  const pts = { g: [1, 2, 3], v: [1, 2, 3] };
+  const lab = { g: ["b"], v: [2], t: ["bee"] };
+  assert.match(refusalOf(() => render_svg(plot(data(cats, { name: "cats" }), bar, x(col.g), y(col.v),
+    data(nums, { name: "nums" }), text, label(col.t)))),
+    /`g` holds text in `cats` \(read by `bar`\), and `g` holds numbers in `nums` \(read by `text`\)/);
+  assert.match(refusalOf(() => render_svg(plot(data(pts, { name: "pts" }), point, x(col.g), y(col.v),
+    data(lab, { name: "lab" }), text, label(col.t)))), /the `x` axis is read two ways/);
+  assert.ok(render_svg(plot(data(cats, { name: "cats" }), bar, x(col.g), y(col.v),
+    data(lab, { name: "lab" }), text, label(col.t))).includes(">bee</text>"));
+});

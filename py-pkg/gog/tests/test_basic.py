@@ -2885,3 +2885,23 @@ with contextlib.redirect_stderr(_said):
 assert "one share is too small to have a region at all" in _said.getvalue(), _said.getvalue()
 assert "drew every share" not in _said.getvalue(), _said.getvalue()
 ok("a treemap's label report agrees in number, and calls the packing whole only when it is")
+
+
+# --- An axis holds one kind of value -----------------------------------------
+# Two tables that give one position column two kinds are refused, and the
+# message names each table. Each drew its numbers as categories' places, off the
+# plot, with nothing said. The same block runs in all four bindings.
+_cats = {"g": ["a", "b", "c"], "v": [1.0, 2.0, 3.0]}
+_nums = {"g": [10.0], "v": [2.0], "t": ["ten"]}
+_pts = {"g": [1.0, 2.0, 3.0], "v": [1.0, 2.0, 3.0]}
+_lab = {"g": ["b"], "v": [2.0], "t": ["bee"]}
+_text = _refusal(lambda: render_svg(data(_cats, name="cats") + bar + x(col.g) + y(col.v)
+                                    + data(_nums, name="nums") + text + label(col.t)))
+assert ("`g` holds text in `cats` (read by `bar`), and `g` holds numbers in `nums` "
+        "(read by `text`)") in _text, _text
+_text = _refusal(lambda: render_svg(data(_pts, name="pts") + point + x(col.g) + y(col.v)
+                                    + data(_lab, name="lab") + text + label(col.t)))
+assert "the `x` axis is read two ways" in _text, _text
+assert ">bee</text>" in render_svg(data(_cats, name="cats") + bar + x(col.g) + y(col.v)
+                                   + data(_lab, name="lab") + text + label(col.t))
+ok("an axis holds one kind of value, whichever table a layer reads")

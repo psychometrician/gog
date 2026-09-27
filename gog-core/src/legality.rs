@@ -6708,6 +6708,81 @@ fn check_theme_size(out: &mut Vec<Diagnostic>, theme: &ThemeSpec, asker: &str, t
     }
 }
 
+/// An axis holds one kind of value, whichever table each layer reads it from.
+///
+/// Two layers can draw from two tables, and a column of one name can be text in
+/// one and numbers in the other. The axis then took the categorical reading and
+/// read every number as a category's place, counting from 0: a label meant for
+/// `g = 10` over three categories was drawn far past the right edge, and points at
+/// 1, 2 and 3 under one text label left the canvas. Nothing was said. A date read
+/// against a plain number is the same contradiction, since the number is taken as
+/// seconds from 1970. So a disagreement is refused, and the message names each
+/// table and what it holds. Reading a number as a place between categories is a
+/// possible later feature; refusing now keeps that door open.
+///
+/// Only a column the layer's own table holds is asked. One it does not hold is
+/// the missing-column refusal's business, or an axis the mark spans rather than
+/// reads (a `rule`'s other axis, a `zone`'s sides from `bounds`).
+fn check_axis_kinds(out: &mut Vec<Diagnostic>, spec: &PlotSpec, data: &HashMap<String, DataFrame>) {
+    for ch in [Channel::X, Channel::Y, Channel::Z] {
+        // (kind, table, column, marks) for each distinct reading of this axis.
+        let mut readings: Vec<(&'static str, String, String, Vec<&'static str>)> = Vec::new();
+        for layer in &spec.layers {
+            let Some(cd) = spec.position_for(layer, &ch) else { continue };
+            let Some(name) = layer.data.as_ref().or(spec.data.as_ref()) else { continue };
+            let Some(df) = data.get(name) else { continue };
+            let kind = if df.time_unit(&cd.field).is_some() {
+                "dates"
+            } else {
+                match actual_type(df, &cd.field) {
+                    Some(VarType::Continuous) => "numbers",
+                    Some(VarType::Discrete) => "text",
+                    _ => continue,
+                }
+            };
+            let m = mark_name(&layer.mark);
+            match readings.iter_mut().find(|r| r.0 == kind && r.1 == *name && r.2 == cd.field) {
+                Some(r) => {
+                    if !r.3.contains(&m) {
+                        r.3.push(m);
+                    }
+                }
+                None => readings.push((kind, name.clone(), cd.field.clone(), vec![m])),
+            }
+        }
+        let mut kinds: Vec<&str> = readings.iter().map(|r| r.0).collect();
+        kinds.sort_unstable();
+        kinds.dedup();
+        if kinds.len() < 2 {
+            continue;
+        }
+        let ways = if kinds.len() == 2 { "two" } else { "three" };
+        let axis = match ch {
+            Channel::X => "x",
+            Channel::Y => "y",
+            _ => "z",
+        };
+        let parts: Vec<String> = readings
+            .iter()
+            .map(|(kind, table, field, marks)| {
+                let marks = marks.iter().map(|m| format!("`{m}`")).collect::<Vec<_>>().join(", ");
+                format!("`{field}` holds {kind} in `{table}` (read by {marks})")
+            })
+            .collect();
+        out.push(Diagnostic {
+            kind: DiagnosticKind::Illegal,
+            message: format!(
+                "gog: the `{axis}` axis is read {ways} ways: {}. An axis holds one kind of \
+                 value, and a number on an axis of categories would be taken as a \
+                 category's place, counting from 0, so it lands on the wrong category \
+                 or off the plot. Give the column one kind in every table the plot \
+                 reads: the category names as text, or numbers on a numeric axis.",
+                parts.join(", and ")
+            ),
+        });
+    }
+}
+
 /// Check every layer of `spec` against the table.
 ///
 /// Returns diagnostics in spec order. An empty vector means the plot is
@@ -6723,6 +6798,9 @@ pub fn check(spec: &PlotSpec, data: &HashMap<String, DataFrame>) -> Vec<Diagnost
     // written for the whole plot is one statement, however many layers it reaches.
     check_legend(&mut out, spec);
     let spec = &resolve_scopes(spec);
+    // Across layers, before any one layer is asked: an axis read as text by one
+    // table and as numbers by another has no single reading to check against.
+    check_axis_kinds(&mut out, spec, data);
 
     for layer in &spec.layers {
         let mark = &layer.mark;
@@ -13522,6 +13600,58 @@ mod tests {
             let out = check(&spec, &data());
             assert!(!out.iter().any(Diagnostic::is_fatal), "a direction is refused: {:?}", msgs(&out));
         }
+    }
+
+    /// An axis holds one kind of value. Two tables that gave one position column
+    /// two kinds drew the numbers as categories' places, counting from 0 and off
+    /// the plot, with nothing said; dates read against numbers the same way.
+    #[test]
+    fn layers_that_disagree_about_an_axis_kind_are_refused() {
+        let s = |v: &[&str]| v.iter().map(|x| x.to_string()).collect::<Vec<_>>();
+        let tables: HashMap<String, DataFrame> = HashMap::from([
+            ("cats".to_string(), DataFrame::new().with_str("g", s(&["a", "b", "c"]))
+                .with_float("v", vec![1.0, 2.0, 3.0])),
+            ("nums".to_string(), DataFrame::new().with_float("g", vec![10.0])
+                .with_float("v", vec![2.0]).with_str("t", s(&["ten"]))),
+            ("pts".to_string(), DataFrame::new().with_float("g", vec![1.0, 2.0, 3.0])
+                .with_float("v", vec![1.0, 2.0, 3.0])),
+            ("lab".to_string(), DataFrame::new().with_str("g", s(&["b"]))
+                .with_float("v", vec![2.0]).with_str("t", s(&["bee"]))),
+            ("days".to_string(), DataFrame::new()
+                .with_time("g", vec![0.0, 86_400.0], crate::time::TimeUnit::Day)
+                .with_float("v", vec![1.0, 2.0])),
+        ]);
+        let refused = |spec: PlotSpec, wanted: &[&str]| {
+            let out = check(&spec, &tables);
+            let d = out.iter().find(|d| d.message.contains("axis is read two ways"))
+                .unwrap_or_else(|| panic!("no refusal: {:?}", msgs(&out)));
+            assert_eq!(d.kind, DiagnosticKind::Illegal);
+            for w in wanted {
+                assert!(d.message.contains(w), "wanted {w:?} in {}", d.message);
+            }
+        };
+        // Bars over text, and a label placed at a number.
+        refused(PlotSpec::new().data("cats").x("g").y("v")
+                    .layer(Layer::new(Mark::Bar))
+                    .layer(Layer::new(Mark::Text).data("nums").encode(Channel::Label, "t")),
+                &["the `x` axis", "`g` holds text in `cats` (read by `bar`)",
+                  "`g` holds numbers in `nums` (read by `text`)"]);
+        // The reverse, which sent every point off the canvas.
+        refused(PlotSpec::new().data("pts").x("g").y("v")
+                    .layer(Layer::new(Mark::Point))
+                    .layer(Layer::new(Mark::Text).data("lab").encode(Channel::Label, "t")),
+                &["`g` holds numbers in `pts`", "`g` holds text in `lab`"]);
+        // A date read against a plain number.
+        refused(PlotSpec::new().data("days").x("g").y("v")
+                    .layer(Layer::new(Mark::Line))
+                    .layer(Layer::new(Mark::Point).data("pts")),
+                &["`g` holds dates in `days`", "`g` holds numbers in `pts`"]);
+        // One kind in every table is one axis, and draws.
+        let one_kind = PlotSpec::new().data("cats").x("g").y("v")
+            .layer(Layer::new(Mark::Bar))
+            .layer(Layer::new(Mark::Text).data("lab").encode(Channel::Label, "t"));
+        let out = check(&one_kind, &tables);
+        assert!(!out.iter().any(|d| d.message.contains("axis is read")), "{:?}", msgs(&out));
     }
 
     // -- the area mark ------------------------------------------------------

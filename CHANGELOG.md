@@ -233,6 +233,14 @@ Each is now refused, with what to write instead.
   wrote: `point` for two, `bar * bin` for one number, `bar * count` for one
   category.
 
+- **Two tables that read one axis as different kinds of value.** When one
+  layer's table held a position column as text and another layer's held a
+  column of the same name as numbers, the numbers were read as the places of
+  the categories, counting from 0: a label at `g = 10` over three bars was drawn
+  off the plot, and points under one text label left it too. A column of dates
+  against one of numbers went wrong the same way. The refusal names each table
+  and what it holds.
+
 - **An `edge` with no `layout`.** `data(trade_partners) + edge` drew an empty
   panel with axes marked 0 to 1, flat and in the cube, and with a `color()` a
   legend for nothing. Beside a `layout` on another layer in `network()`, the
