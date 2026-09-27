@@ -2617,3 +2617,13 @@ end
     svg = render_svg(data(emp) + point + x(:x) + y(:y) + text * repel + label(:lab))
     @test Base.count("stroke-width=\"0.7\"", svg) <= 1 && !occursin("></text>", svg)
 end
+
+# A pattern key over a different `color` column takes neutral ink, not the color
+# map's first hue, which read as an association with that category. The same
+# block runs in all four bindings.
+@testset "a pattern key beside another color column takes neutral ink" begin
+    pk = (c = ["a", "a", "b", "b"], sex = ["m", "f", "m", "f"], kept = ["yes", "no", "no", "yes"],
+          n = [3.0, 2.0, 4.0, 1.0])
+    svg = render_svg(data(pk) + bar * sum * dodge + x(:c) + y(:n) + color(:sex) + pattern(:kept))
+    @test occursin("#3c3c46", split(svg, "Kept")[2])
+end

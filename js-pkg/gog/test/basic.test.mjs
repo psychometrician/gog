@@ -3258,3 +3258,14 @@ test("an empty label under repel draws no text and no leader", () => {
   const svg = render_svg(plot(data(emp), point, x(col.x), y(col.y), layer(text, repel), label(col.lab)));
   assert.ok((svg.match(/stroke-width="0.7"/g) || []).length <= 1 && !svg.includes("></text>"));
 });
+
+// A pattern key over a different `color` column takes neutral ink, not the color
+// map's first hue, which read as an association with that category. The same
+// block runs in all four bindings.
+test("a pattern key beside another color column takes neutral ink", () => {
+  const pk = { c: ["a", "a", "b", "b"], sex: ["m", "f", "m", "f"], kept: ["yes", "no", "no", "yes"],
+    n: [3, 2, 4, 1] };
+  const svg = render_svg(plot(data(pk), layer(bar, sum, dodge), x(col.c), y(col.n), color(col.sex),
+    pattern(col.kept)));
+  assert.ok(svg.split("Kept")[1].includes("#3c3c46"));
+});

@@ -48,6 +48,12 @@ CRAN-style repositories and PyPI, `GrammarOfGraphics` on Julia's General, and
 
 ### Changed
 
+- **A pattern key beside another color column is drawn in neutral ink.** With
+  `color(sex)` and `pattern(survived)`, the "Survived" key was drawn in the
+  first sex's color, as if the two were related. It is now drawn in the neutral
+  ink the shape key uses. When `color` maps the same column, the key keeps each
+  category's hue.
+
 - **An empty label under `repel` draws nothing.** A label of `""` under
   `text * repel` still drew a leader line from its point to nothing. An empty
   label now draws no text and no leader, so `label = ""` keeps a point as

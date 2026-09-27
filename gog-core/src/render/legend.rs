@@ -358,11 +358,26 @@ pub(crate) fn collect_legends(
         // hatched squares under lines drawn dashed.
         let stroke = crate::legality::texture_of(&layer.mark)
             == Some(crate::legality::Texture::Dash);
+        // The hue a swatch takes. When `color` maps this same column, the category's
+        // own hue (the redundant encoding). When it maps another column, neutral
+        // ink, the shape key's: a textured key in one of the other column's hues
+        // claims an association that is not there, and `color(sex) +
+        // pattern(survived)` keyed "Survived" in Male's blue, the first hue, since
+        // the map knew no "No" or "Yes". When `color` maps nothing, the marks'
+        // own default, which the key then matches.
+        let same = color_keyed && spec.layers.iter().any(|l|
+            l.encodings.get(&Channel::Color).is_some_and(|c| c.field == def.field));
+        let other = spec.layers.iter().any(|l|
+            l.encodings.get(&Channel::Color).is_some_and(|c| c.field != def.field));
         let rows: Vec<LegendRow> = categories_across(&[df], &def.field).into_iter()
             .enumerate()
             .map(|(i, label)| {
-                let color = color_map.get(&label).filter(|_| color_keyed).cloned()
-                    .unwrap_or_else(|| PALETTE_GOG[0].to_string());
+                let color = match (same, other) {
+                    (true, _) => color_map.get(&label).cloned()
+                        .unwrap_or_else(|| PALETTE_GOG[0].to_string()),
+                    (false, true) => "#3c3c46".to_string(),
+                    (false, false) => PALETTE_GOG[0].to_string(),
+                };
                 let swatch = if stroke {
                     LegendSwatch::PatternStroke { dash: dash_for_index(i), color }
                 } else {

@@ -3062,3 +3062,14 @@ _emp = {"x": [float(i % 4) for i in builtins.range(12)],
 _svg = render_svg(data(_emp, name="emp") + point + x(col.x) + y(col.y) + text * repel + label(col.lab))
 assert _svg.count('stroke-width="0.7"') <= 1 and "></text>" not in _svg
 ok("an empty label under repel draws no text and no leader")
+
+
+# --- A pattern key beside another color column --------------------------------
+# It takes neutral ink, not the color map's first hue. The same block runs in
+# all four bindings.
+_pk = {"c": ["a", "a", "b", "b"], "sex": ["m", "f", "m", "f"], "kept": ["yes", "no", "no", "yes"],
+       "n": [3.0, 2.0, 4.0, 1.0]}
+_svg = render_svg(data(_pk, name="pk") + bar * sum * dodge + x(col.c) + y(col.n) + color(col.sex)
+                  + pattern(col.kept))
+assert "#3c3c46" in _svg.split("Kept")[1]
+ok("a pattern key beside another color column takes neutral ink")

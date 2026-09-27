@@ -5040,3 +5040,18 @@ local({
     stop("FAIL: an empty label under repel should draw no text and no leader")
   cat("PASS: an empty label under repel draws no text and no leader\n")
 })
+
+# ---------------------------------------------------------------------------
+# A pattern key over a different `color` column takes neutral ink, not the color
+# map's first hue, which read as an association with that category. The same
+# block runs in all four bindings.
+# ---------------------------------------------------------------------------
+local({
+  t <- data.frame(c = c("a", "a", "b", "b"), sex = c("m", "f", "m", "f"),
+                  kept = c("yes", "no", "no", "yes"), n = c(3, 2, 4, 1))
+  svg <- render_svg(data(t) + bar * sum * dodge + x(c) + y(n) + color(sex) + pattern(kept))
+  key <- strsplit(svg, "Kept", fixed = TRUE)[[1]][2]
+  if (is.na(key) || !grepl("#3c3c46", key, fixed = TRUE))
+    stop("FAIL: the pattern key should be in neutral ink")
+  cat("PASS: a pattern key beside another color column takes neutral ink\n")
+})

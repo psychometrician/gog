@@ -7987,6 +7987,27 @@ mod tests {
         assert_eq!(dated(text_of(&wide.render(&spec, &six_weeks(42)))), 22);
     }
 
+    /// A pattern key over a different `color` column takes neutral ink: keyed in
+    /// the color map's first hue, "Survived" read as Male's.
+    #[test]
+    fn a_pattern_key_beside_another_color_column_takes_neutral_ink() {
+        let s = |v: &[&str]| v.iter().map(|x| x.to_string()).collect::<Vec<_>>();
+        let t: HashMap<String, DataFrame> = HashMap::from([(
+            "t".to_string(),
+            DataFrame::new()
+                .with_str("c", s(&["a", "a", "b", "b"]))
+                .with_str("sex", s(&["m", "f", "m", "f"]))
+                .with_str("kept", s(&["yes", "no", "no", "yes"]))
+                .with_float("n", vec![3.0, 2.0, 4.0, 1.0]),
+        )]);
+        let spec = PlotSpec::new().data("t").x("c").y("n")
+            .layer(Layer::new(Mark::Bar).transform(Transform::Sum).transform(Transform::Dodge)
+                .encode(Channel::Color, "sex").encode(Channel::Pattern, "kept"));
+        let svg = SvgRenderer::default().render(&spec, &t);
+        let key = svg.split("Kept").nth(1).expect("a pattern key titled Kept");
+        assert!(key.contains("#3c3c46"), "the pattern key's swatches are in neutral ink");
+    }
+
     /// Under `repel` an empty label names nothing, so it is not placed and earns no
     /// leader: ggrepel's `label = ""` idiom. It drew a leader line to nothing.
     #[test]
