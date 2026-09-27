@@ -57,6 +57,11 @@ CRAN-style repositories and PyPI, `GrammarOfGraphics` on Julia's General, and
   gave its texture to the second. Each is now fitted once, over every row the
   layer draws, and that is the scale its legend decodes.
 
+- **Folded facets on a page keep their width.** Two plots folded with
+  `facet(g, wrap = 2)` and stacked on a shared column were each squeezed into
+  the width of one column, with the rest of the cell left empty. Each now keeps
+  its own width, and the shared column still gives them one scale.
+
 - **A y axis's name stays beside its panel on a page.** In `(a | b) / c`, where
   `c` shares a column with `b`, the page moves `c`'s panel to run under `b`, and
   the name of `c`'s y axis stayed at the left edge, 450px from its panel. It now

@@ -5119,3 +5119,22 @@ local({
   if (is.na(at) || at < 300) stop("FAIL: the Count name should follow its panel, at ", at)
   cat("PASS: a y name follows a panel a shared column moved\n")
 })
+
+# ---------------------------------------------------------------------------
+# Two folded facets stacked on a shared column keep their own width: each was
+# squeezed into one column's width, the rest of its cell empty. The same block
+# runs in all four bindings.
+# ---------------------------------------------------------------------------
+local({
+  t <- data.frame(speed = c(4, 7, 8, 12, 15, 18), dist = c(2, 4, 16, 24, 36, 56),
+                  g = c("a", "b", "c", "a", "b", "c"))
+  svg <- render_svg((data(t) + point + x(speed) + y(dist) | facet(g, wrap = 2)) /
+                    (data(t) + point + x(speed) + y(speed) | facet(g, wrap = 2)))
+  reach <- vapply(strsplit(svg, "<svg ", fixed = TRUE)[[1]][-(1:2)], function(cell) {
+    r <- regmatches(cell, gregexpr('<clipPath id="[^"]*"><rect x="[^"]*" y="[^"]*" width="[^"]*"', cell))[[1]]
+    max(as.numeric(sub('.*x="([^"]*)".*', "\\1", r)) + as.numeric(sub('.*width="([^"]*)"', "\\1", r)))
+  }, numeric(1))
+  if (length(reach) != 2 || any(reach < 600))
+    stop("FAIL: a folded facet on a page should keep its width: ", paste(reach, collapse = ", "))
+  cat("PASS: a folded facet sharing a column keeps its width\n")
+})

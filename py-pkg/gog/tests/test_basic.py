@@ -3124,3 +3124,18 @@ _svg = render_svg(((data(_yn, name="yn") + point + x(col.dist) + y(col.speed))
 _at = re.search(r'rotate\(-90 ([0-9.]+) [^)]*\)[^>]*>Count</text>', _svg)
 assert _at and float(_at.group(1)) > 300, _at
 ok("a y name follows a panel a shared column moved")
+
+
+# --- A folded facet sharing a column keeps its width ----------------------------
+# Two of them stacked on a shared column were each squeezed into one column's
+# width, the rest of the cell empty. The same block runs in all four bindings.
+_fw = {"speed": [4.0, 7.0, 8.0, 12.0, 15.0, 18.0], "dist": [2.0, 4.0, 16.0, 24.0, 36.0, 56.0],
+       "g": ["a", "b", "c", "a", "b", "c"]}
+_svg = render_svg((data(_fw, name="fw") + point + x(col.speed) + y(col.dist) | facet(col.g, wrap=2))
+                  / (data(_fw, name="fw") + point + x(col.speed) + y(col.speed)
+                     | facet(col.g, wrap=2)))
+_reach = [builtins.max(float(a) + float(w) for a, w in re.findall(
+              r'<clipPath id="[^"]*"><rect x="([^"]*)" y="[^"]*" width="([^"]*)"', cell))
+          for cell in _svg.split("<svg ")[2:]]
+assert len(_reach) == 2 and builtins.min(_reach) > 600, _reach
+ok("a folded facet sharing a column keeps its width")

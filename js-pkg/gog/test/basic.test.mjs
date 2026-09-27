@@ -3322,3 +3322,17 @@ test("a y name follows a panel a shared column moved", () => {
   const at = svg.match(/rotate\(-90 ([0-9.]+) [^)]*\)[^>]*>Count<\/text>/);
   assert.ok(at && Number(at[1]) > 300, String(at && at[1]));
 });
+
+// Two folded facets stacked on a shared column keep their own width: each was
+// squeezed into one column's width, the rest of its cell empty. The same block
+// runs in all four bindings.
+test("a folded facet sharing a column keeps its width", () => {
+  const fw = { speed: [4, 7, 8, 12, 15, 18], dist: [2, 4, 16, 24, 36, 56], g: ["a", "b", "c", "a", "b", "c"] };
+  const svg = render_svg(below(
+    plot(data(fw), point, x(col.speed), y(col.dist), across(col.g, { wrap: 2 })),
+    plot(data(fw), point, x(col.speed), y(col.speed), across(col.g, { wrap: 2 }))));
+  const reach = svg.split("<svg ").slice(2).map((cell) => Math.max(...[...cell.matchAll(
+    /<clipPath id="[^"]*"><rect x="([^"]*)" y="[^"]*" width="([^"]*)"/g)].map((m) => Number(m[1]) + Number(m[2]))));
+  assert.equal(reach.length, 2);
+  assert.ok(reach.every((r) => r > 600), String(reach));
+});

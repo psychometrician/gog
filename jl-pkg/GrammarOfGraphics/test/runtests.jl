@@ -2679,3 +2679,19 @@ end
     at = match(r"rotate\(-90 ([0-9.]+) [^)]*\)[^>]*>Count</text>", svg)
     @test at !== nothing && parse(Float64, at.captures[1]) > 300
 end
+
+# Two folded facets stacked on a shared column keep their own width: each was
+# squeezed into one column's width, the rest of its cell empty. The same block
+# runs in all four bindings.
+@testset "a folded facet sharing a column keeps its width" begin
+    fw = (speed = [4.0, 7.0, 8.0, 12.0, 15.0, 18.0], dist = [2.0, 4.0, 16.0, 24.0, 36.0, 56.0],
+          g = ["a", "b", "c", "a", "b", "c"])
+    svg = render_svg((data(fw) + point + x(:speed) + y(:dist) | facet(:g, wrap = 2)) /
+                     (data(fw) + point + x(:speed) + y(:speed) | facet(:g, wrap = 2)))
+    cells = split(svg, "<svg ")[3:end]
+    reach = [maximum(parse(Float64, m.captures[1]) + parse(Float64, m.captures[2]) for m in
+                 eachmatch(r"<clipPath id=\"[^\"]*\"><rect x=\"([^\"]*)\" y=\"[^\"]*\" width=\"([^\"]*)\"", c))
+             for c in cells]
+    @test length(reach) == 2
+    @test all(>(600), reach)
+end

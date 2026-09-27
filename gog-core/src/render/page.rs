@@ -386,6 +386,16 @@ fn share(
     // cells. The intersection is what every plot in the group can reach, so
     // fitting to it only ever takes room away — no tick label is squeezed out of
     // a margin that was measured for it.
+    //
+    // Only for plots whose measured panel a fitted extent hands back on this
+    // axis. A folded facet whose last row is short measured its panels as ending
+    // in the first column, and two of them stacked on a shared column were each
+    // squeezed into one column's width, the rest of the cell empty. Such a group
+    // keeps the one scale above and each plot its own extent and axis, as two
+    // plots side by side do.
+    if group.iter().any(|&i| !measured_fits_on(cells[i].spec, horizontal)) {
+        return;
+    }
     let (mut lo, mut hi) = (f64::NEG_INFINITY, f64::INFINITY);
     for &i in group {
         let (c, p) = (&cells[i].rect, &measured[i].panel);
@@ -577,6 +587,25 @@ fn measured_is_fitted(spec: &PlotSpec) -> bool {
     spec.theme.resolved().ratio.is_none() && !freed && !folded
 }
 
+/// [`measured_is_fitted`], asked of one direction, for `share`.
+///
+/// A freed axis moves its tick labels inside the grid only across the other
+/// direction: a freed `y` puts each panel's numbers to its left, which changes
+/// where the panels start horizontally, and a freed `x` puts them underneath,
+/// which changes where they end vertically. So two facets freed on `x` still
+/// hand back their horizontal extent, and a shared `x` still lines them up.
+/// A ratio and a fold disagree in both directions.
+fn measured_fits_on(spec: &PlotSpec, horizontal: bool) -> bool {
+    let freed = |channel: Channel| {
+        let axis = if channel == Channel::X { &spec.x } else { &spec.y };
+        axis.as_ref().is_some_and(|d| d.free)
+            || spec.layers.iter().any(|l| l.encodings.get(&channel).is_some_and(|d| d.free))
+    };
+    let folded = spec.facet.as_ref().is_some_and(|f| f.wrap.is_some());
+    let across = if horizontal { Channel::Y } else { Channel::X };
+    spec.theme.resolved().ratio.is_none() && !folded && !freed(across)
+}
+
 /// State the domain of `channel` on the binding the axis is read from.
 ///
 /// The same search [`PlotSpec::axis_def`] makes, because that is the definition
@@ -621,7 +650,7 @@ fn set_limits(spec: &mut PlotSpec, channel: &Channel, lo: f64, hi: f64) -> bool 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::ir::{Layer, Mark, PageSpec, ThemeSpec, Transform};
+    use crate::ir::{FacetSpec, Layer, Mark, PageSpec, ThemeSpec, Transform};
 
     fn data() -> HashMap<String, DataFrame> {
         let df = DataFrame::new()
@@ -1074,6 +1103,54 @@ mod tests {
         let cells = names(&two(Arrange::Below, plot("speed", "dist").into(), histogram.into()));
         assert!((cells[0].0 - cells[1].0).abs() < 1e-9, "the panels are lined up: {cells:?}");
         assert_eq!(cells[0].1, cells[1].1, "and so are their names: {cells:?}");
+    }
+
+    /// A shared column gives its plots one extent only where each measured panel
+    /// is the extent a fit hands back. Two folded facets stacked on one column
+    /// measured their panels as ending in the first column, and each was squeezed
+    /// into one column's width; two facets freed on `x` still line up on it.
+    #[test]
+    fn a_shared_column_leaves_a_folded_facet_its_own_width() {
+        let df = DataFrame::new()
+            .with_float("speed", vec![4.0, 7.0, 8.0, 12.0, 15.0, 18.0])
+            .with_float("dist", vec![2.0, 4.0, 16.0, 24.0, 36.0, 56.0])
+            .with_float("big", vec![0.0012, 0.0031, 0.0054, 0.0087, 0.0102, 0.0140])
+            .with_str("g", ["a", "b", "c", "a", "b", "c"].iter().map(|s| s.to_string()).collect());
+        let data = HashMap::from([("cars".to_string(), df)]);
+        let faceted = |y: &str, facet: FacetSpec| {
+            let mut spec = PlotSpec::new().data("cars").x("speed").y(y).layer(Layer::new(Mark::Point));
+            spec.facet = Some(facet);
+            spec
+        };
+        // Each cell's rightmost panel edge, in the cell's own terms.
+        let right_edges = |page: PageSpec| -> Vec<f64> {
+            let (svg, _) = render(&page, &data, 800.0, 600.0);
+            svg.split("<svg ").skip(2).map(|cell| {
+                cell.split("<clipPath").skip(1).filter_map(|c| {
+                    let num = |key: &str| c.split(key).nth(1)?.split('"').next()?.parse::<f64>().ok();
+                    Some(num(" x=\"")? + num(" width=\"")?)
+                }).fold(f64::NEG_INFINITY, f64::max)
+            }).collect()
+        };
+        let stack = |a: PlotSpec, b: PlotSpec| PageSpec {
+            arrange: Arrange::Below, cells: vec![a.into(), b.into()], theme: ThemeSpec::default(),
+        };
+
+        let folded = FacetSpec { col: Some("g".into()), wrap: Some(2), ..Default::default() };
+        let edges = right_edges(stack(faceted("dist", folded.clone()), faceted("speed", folded)));
+        assert!(edges.iter().all(|&e| e > 600.0), "each folded facet keeps its width: {edges:?}");
+
+        let mut free_x = faceted("dist", FacetSpec { col: Some("g".into()), ..Default::default() });
+        free_x.x = Some(crate::ir::ChannelDef { free: true, ..crate::ir::ChannelDef::field("speed") });
+        // Tick labels of another width, so the two only line up if the page does it.
+        let mut other = free_x.clone();
+        other.y = Some(crate::ir::ChannelDef::field("big"));
+        let (svg, _) = render(&stack(free_x, other), &data, 800.0, 600.0);
+        let lefts: Vec<&str> = svg.split("<svg ").skip(2)
+            .filter_map(|cell| cell.split("<clipPath").nth(1)?.split(" x=\"").nth(1)?.split('"').next())
+            .collect();
+        assert_eq!(lefts.len(), 2);
+        assert_eq!(lefts[0], lefts[1], "two facets freed on x still line up on it");
     }
 
     /// A page is one document, and each cell is a viewport inside it.
