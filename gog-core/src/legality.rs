@@ -7054,32 +7054,51 @@ fn check_legend_columns(out: &mut Vec<Diagnostic>, spec: &PlotSpec, data: &HashM
     }
 }
 
-/// `area` and `step` join their rows in x order, as `line` does, and rows that
-/// share one `x` value make the outline zigzag inside it.
+/// `line`, `area` and `step` join their rows in x order, and rows that share one
+/// `x` value make the stroke or the outline zigzag inside it.
 ///
 /// `area + x(continent) + y(life)` over a year's countries drew a 145-vertex
 /// outline running up and down inside each continent's slot, and `step` did the
-/// same, while `line` on the same rows said the points would be connected in x
-/// order. Said the same way here, as an Assumption, and only when it happens:
-/// some `x` value holds more than one row and nothing splits or summarizes them.
-/// `line`'s own note fires on its row count instead (a known over-report), so
-/// this asks the question that note should.
+/// same. Said as an Assumption, and only when it happens: some `x` value holds
+/// more than one row within one panel at one moment, and nothing splits or
+/// summarizes them. `line` said it from the renderer on its row count, so every
+/// single series of more than five points heard it, 23 of the 26 sentences in
+/// the book that printed it, and so did one country's rows under
+/// `facet(country)`; it asks this question now. Rows are counted within a panel
+/// and a moment because that is where they are joined.
 fn check_joined_rows(out: &mut Vec<Diagnostic>, spec: &PlotSpec, df: &DataFrame, layer: &Layer) {
-    if !matches!(layer.mark, Mark::Area | Mark::Step) || !layer.transforms.is_empty() {
+    if !matches!(layer.mark, Mark::Line | Mark::Area | Mark::Step) || !layer.transforms.is_empty() {
         return;
     }
-    if [Channel::Color, Channel::Group, Channel::Pattern].iter().any(|c| layer.encodings.contains_key(c)) {
+    // What splits the rows into series: a group, a pattern, or a color of
+    // categories. A color of numbers ramps along the one stroke instead.
+    let ramped = layer.encodings.get(&Channel::Color).filter(|c| df.float_col(&c.field).is_some());
+    if layer.encodings.contains_key(&Channel::Group)
+        || layer.encodings.contains_key(&Channel::Pattern)
+        || (layer.encodings.contains_key(&Channel::Color) && ramped.is_none())
+    {
         return;
     }
     let Some(x) = spec.position_for(layer, &Channel::X) else { return };
-    let mut counts: HashMap<String, usize> = HashMap::new();
-    if let Some(vals) = df.str_col(&x.field) {
-        for v in vals {
-            *counts.entry(v.clone()).or_default() += 1;
+    let facet = spec.facet.as_ref();
+    let apart: Vec<&str> = [
+        facet.and_then(|f| f.col.as_deref()),
+        facet.and_then(|f| f.row.as_deref()),
+        layer.encodings.get(&Channel::Play).map(|c| c.field.as_str()),
+        Some(x.field.as_str()),
+    ].into_iter().flatten().collect();
+    let cell = |field: &str, i: usize| -> Option<String> {
+        match (df.str_col(field), df.float_col(field)) {
+            (Some(vals), _) => vals.get(i).cloned(),
+            (_, Some(vals)) => vals.get(i).filter(|v| v.is_finite()).map(|v| v.to_bits().to_string()),
+            _ => None,
         }
-    } else if let Some(vals) = df.float_col(&x.field) {
-        for v in vals.iter().filter(|v| v.is_finite()) {
-            *counts.entry(v.to_bits().to_string()).or_default() += 1;
+    };
+    let mut counts: HashMap<Vec<String>, usize> = HashMap::new();
+    for i in 0..df.len() {
+        let key: Option<Vec<String>> = apart.iter().map(|f| cell(f, i)).collect();
+        if let Some(key) = key {
+            *counts.entry(key).or_default() += 1;
         }
     }
     let most = counts.values().copied().max().unwrap_or(0);
@@ -7087,13 +7106,21 @@ fn check_joined_rows(out: &mut Vec<Diagnostic>, spec: &PlotSpec, df: &DataFrame,
         return;
     }
     let m = mark_name(&layer.mark);
+    let (what, ramp) = match (&layer.mark, ramped) {
+        (Mark::Line, Some(c)) => ("the stroke", format!(
+            " `color({})` holds numbers, so it colors along the stroke rather than \
+             splitting it.", c.field)),
+        (Mark::Line, None) => ("the stroke", String::new()),
+        _ => ("the outline", String::new()),
+    };
+    let split = if ramped.is_some() { "`group(<field>)`" } else { "`color(<field>)` or `group(<field>)`" };
     out.push(Diagnostic {
         kind: DiagnosticKind::Assumption,
         message: format!(
             "gog: up to {most} rows of `{m}` share one value of `x({f})`, and nothing splits \
-             them, so they are joined in x order and the outline zigzags inside that value. \
-             If you have several series, add `color(<field>)` or `group(<field>)`; for one \
-             value per `x`, summarize them with `{m} * mean`.",
+             them, so they are joined in x order and {what} zigzags inside that value.{ramp} \
+             If you have several series, add {split}; for one value per `x`, summarize them \
+             with `{m} * mean`.",
             f = x.field,
         ),
     });
@@ -7733,9 +7760,6 @@ pub fn check(spec: &PlotSpec, data: &HashMap<String, DataFrame>) -> Vec<Diagnost
             if !out[layer_from..].iter().any(Diagnostic::is_fatal) {
                 check_one_row_groups(&mut out, spec, df, layer,
                     plot_orient(spec, data) == Orient::Horizontal);
-                // An outline through several rows at one `x`, joined in x order: a
-                // note about how the layer draws, so only for a layer that draws.
-                check_joined_rows(&mut out, spec, df, layer);
             }
         }
     }
@@ -7757,6 +7781,19 @@ pub fn check(spec: &PlotSpec, data: &HashMap<String, DataFrame>) -> Vec<Diagnost
     check_nest(&mut out, spec, data);
     check_network(&mut out, spec);
     check_theme(&mut out, spec);
+
+    // A stroke or an outline through several rows at one `x`, joined in x order:
+    // a note about how a layer draws, so only when the plot draws at all. Asked
+    // after every gate, because the ones that refuse a whole space come last, and
+    // `line` on a `globe()` printed this note above its own refusal.
+    if !out.iter().any(Diagnostic::is_fatal) {
+        for layer in &spec.layers {
+            let table = layer.data.as_ref().or(spec.data.as_ref()).and_then(|name| data.get(name));
+            if let Some(df) = table {
+                check_joined_rows(&mut out, spec, df, layer);
+            }
+        }
+    }
 
     out
 }
@@ -19809,13 +19846,50 @@ mod tests {
         )]);
         let said = |layer: Layer| check(&PlotSpec::new().data("t").x("c").y("v").layer(layer), &tables)
             .into_iter().find(|d| d.message.contains("zigzags inside that value"));
-        for mark in [Mark::Area, Mark::Step] {
+        for mark in [Mark::Line, Mark::Area, Mark::Step] {
             let d = said(Layer::new(mark.clone())).expect("rows at one x, joined");
             assert_eq!(d.kind, DiagnosticKind::Assumption);
             assert!(d.message.contains("up to 3 rows"), "{}", d.message);
             assert!(said(Layer::new(mark.clone()).encode(Channel::Color, "k")).is_none());
             assert!(said(Layer::new(mark).transform(Transform::Mean)).is_none());
         }
+    }
+
+    /// One series says nothing, however many rows it has, and neither does one
+    /// series per panel: the rows are counted where they are joined. `line` said it
+    /// on every series of more than five points, and once per panel under
+    /// `facet(country)`. A color of numbers ramps rather than splits, and is said.
+    #[test]
+    fn a_line_is_told_it_zigzags_only_where_rows_share_an_x() {
+        let s = |v: &[&str]| v.iter().map(|x| x.to_string()).collect::<Vec<_>>();
+        let tables: HashMap<String, DataFrame> = HashMap::from([(
+            "t".to_string(),
+            DataFrame::new()
+                .with_float("year", vec![1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 1.0, 2.0, 3.0, 4.0, 5.0, 6.0])
+                .with_float("v", vec![1.0, 3.0, 2.0, 4.0, 3.0, 5.0, 2.0, 1.0, 4.0, 3.0, 5.0, 4.0])
+                .with_float("w", (0..12).map(f64::from).collect())
+                .with_str("country", s(&["a", "a", "a", "a", "a", "a", "b", "b", "b", "b", "b", "b"])),
+        )]);
+        let said = |spec: PlotSpec| check(&spec, &tables).into_iter()
+            .find(|d| d.message.contains("zigzags inside that value"));
+        let line = || PlotSpec::new().data("t").x("year").y("v");
+        let one = PlotSpec::new().data("t").x("year").y("v")
+            .layer(Layer::new(Mark::Line)).layer(Layer::new(Mark::Point));
+        assert!(said(one.clone()).is_some(), "two countries' rows at each year are joined");
+        let mut faceted = one;
+        faceted.facet = Some(crate::ir::FacetSpec { col: Some("country".into()), ..Default::default() });
+        assert!(said(faceted).is_none(), "one country per panel is one series");
+        let ramped = said(line().layer(Layer::new(Mark::Line).encode(Channel::Color, "w")))
+            .expect("a ramp does not split the rows");
+        assert!(ramped.message.contains("`color(w)` holds numbers")
+                && ramped.message.contains("add `group(<field>)`"), "{}", ramped.message);
+        let single: HashMap<String, DataFrame> = HashMap::from([(
+            "t".to_string(),
+            DataFrame::new().with_float("year", (0..40).map(f64::from).collect())
+                .with_float("v", (0..40).map(|i| f64::from(i % 7)).collect()),
+        )]);
+        assert!(check(&line().layer(Layer::new(Mark::Line)), &single).iter()
+                .all(|d| !d.message.contains("zigzags")), "forty years of one series");
     }
 
     /// `bounds` draws its axis from its own two columns, so a category named on it

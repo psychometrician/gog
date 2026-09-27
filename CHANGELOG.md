@@ -48,6 +48,13 @@ CRAN-style repositories and PyPI, `GrammarOfGraphics` on Julia's General, and
 
 ### Changed
 
+- **A line is told it zigzags only when it does.** Every `line` of more than
+  five rows with no `group` or `color` was told its points would be joined in x
+  order, so each single series heard it, and so did each panel of
+  `facet(country)`. The note is now said only when several rows share one `x`
+  in a panel at one moment, as it is for `area` and `step`, and never above a
+  refusal.
+
 - **A `nest()` plot refuses a summed layer beside a plain one.** In
   `bar * sum + color(continent) + text + label(continent) + nest()`, the text
   packed its own rows over the summed regions, and most names landed in another

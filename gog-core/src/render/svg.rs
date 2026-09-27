@@ -2722,7 +2722,7 @@ impl SvgRenderer {
                     }
                     match layer.mark {
                         Mark::Point => swarm.absorb(self.write_points(&mut svg, layer, df, whole, l, xs, ys, x_field, y_field, cat_x.as_deref(), cat_y.as_deref(), &color_map, &ramp, &clip, zs, z_field, None, pol_ref, None)),
-                        Mark::Line  => self.write_line(&mut svg, layer, df, whole, l, xs, ys, x_field, y_field, cat_x.as_deref(), &color_map, &ramp, &clip, pol_ref, &mut remarks),
+                        Mark::Line  => self.write_line(&mut svg, layer, df, whole, l, xs, ys, x_field, y_field, cat_x.as_deref(), &color_map, &ramp, &clip, pol_ref),
                         Mark::Area  => self.write_area(&mut svg, layer, df, whole, l, xs, ys, x_field, y_field, cat_x.as_deref(), area_base, &color_map, &clip, pol_ref),
                         Mark::Bar   => self.write_bars(&mut svg, layer, df, whole, l, xs, ys, x_field, y_field, cat_x.as_deref(), cat_y.as_deref(), horizontal, ext_base, &color_map, &clip, pol_ref, nst.as_ref()),
                         Mark::Step  => self.write_step(&mut svg, layer, df, whole, l, xs, ys, x_field, y_field, cat_x.as_deref(), area_base, &color_map, &ramp, &clip, pol_ref),
@@ -8412,33 +8412,6 @@ mod tests {
         assert!(named > free + 50.0, "the radial name stayed at the image's edge: {named}");
     }
 
-    /// **A `color` of numbers is mapped, so the one-stroke warning says so.** It
-    /// said "no group or color channel" over `color(<numbers>)`, which ramps along
-    /// the stroke rather than splitting it; with no `color` the wording is kept.
-    #[test]
-    fn a_ramped_line_is_told_its_color_does_not_split_it() {
-        let data: HashMap<String, DataFrame> = HashMap::from([(
-            "t".to_string(),
-            DataFrame::new()
-                .with_float("x", (0..8).map(f64::from).collect())
-                .with_float("y", vec![1.0, 3.0, 2.0, 4.0, 3.0, 5.0, 4.0, 6.0])
-                .with_float("v", (0..8).map(f64::from).collect()),
-        )]);
-        let said = |color: bool| {
-            let mut l = Layer::new(Mark::Line);
-            if color {
-                l = l.encode(Channel::Color, "v");
-            }
-            SvgRenderer::default()
-                .draw(&PlotSpec::new().data("t").x("x").y("y").layer(l), &data)
-                .remarks.iter().map(|d| d.message.clone()).collect::<Vec<_>>().join(" ")
-        };
-        let ramped = said(true);
-        assert!(ramped.contains("`color(v)` holds numbers")
-            && !ramped.contains("no group or color channel"), "{ramped}");
-        assert!(said(false).contains("no group or color channel"), "{}", said(false));
-    }
-
     /// **`caps` reaches a `box`**: the crossbars at its whiskers' ends are the
     /// same strokes as an `interval`'s, so `style(caps = FALSE)` leaves them off.
     #[test]
@@ -8548,26 +8521,6 @@ mod tests {
         assert!(
             drawn.remarks.iter().any(|d| d.message.contains("generated automatically")),
             "the palette mismatch must ride in remarks: {:?}",
-            drawn.remarks.iter().map(|d| &d.message).collect::<Vec<_>>()
-        );
-    }
-
-    /// And the many-rows-one-line warning, which was the last mark-side
-    /// `eprintln!` left.
-    #[test]
-    fn an_ungrouped_many_row_line_is_a_remark_rather_than_stderr() {
-        let data: HashMap<String, DataFrame> = HashMap::from([(
-            "t".to_string(),
-            DataFrame::new()
-                .with_float("x", vec![1.0, 2.0, 3.0, 4.0, 5.0, 6.0])
-                .with_float("y", vec![2.0, 1.0, 3.0, 2.0, 4.0, 3.0]),
-        )]);
-        let spec = PlotSpec::new().data("t").x("x").y("y")
-            .layer(Layer::new(Mark::Line));
-        let drawn = SvgRenderer::default().draw(&spec, &data);
-        assert!(
-            drawn.remarks.iter().any(|d| d.message.contains("connected in x order")),
-            "the multi-series hint must ride in remarks: {:?}",
             drawn.remarks.iter().map(|d| &d.message).collect::<Vec<_>>()
         );
     }

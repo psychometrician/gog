@@ -2026,7 +2026,9 @@ end
     @test occursin("stroke-dasharray",
                    render_svg(data(links) + edge * layout(:src, :dst) + pattern(:src) + network()))
 
-    ramp = (x = collect(0.0:7.0), y = [1.0, 3.0, 2.0, 4.0, 3.0, 5.0, 4.0, 6.0], v = collect(0.0:7.0))
+    # Two rows at every x, which is when a stroke zigzags and the note is said.
+    ramp = (x = [0.0, 1.0, 2.0, 3.0, 0.0, 1.0, 2.0, 3.0], y = [1.0, 3.0, 2.0, 4.0, 3.0, 5.0, 4.0, 6.0],
+            v = collect(0.0:7.0))
     path, io = mktemp()
     redirect_stderr(io) do
         render_svg(data(ramp) + line + x(:x) + y(:y) + color(:v))
@@ -2581,6 +2583,10 @@ end
     end
     @test occursin("zigzags inside that value", said_by(data(zig) + area + x(:c) + y(:v)))
     @test !occursin("zigzags", said_by(data(zig) + area * mean + x(:c) + y(:v)))
+    # `line` asks the same question, and one long series is not a zigzag.
+    @test occursin("zigzags inside that value", said_by(data(zig) + line + x(:c) + y(:v)))
+    one = (day = collect(0.0:39.0), v = [Float64(i % 7) for i in 0:39])
+    @test said_by(data(one) + line + x(:day) + y(:v)) == ""
 end
 
 # A summarized point reads its orientation as a bar does: with the category on

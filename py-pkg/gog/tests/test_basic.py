@@ -2440,7 +2440,8 @@ assert (_caps(True), _caps(False)) == (4, 0), "style(caps=False) should leave a 
 assert render_svg(data(_links, name="links") + edge * layout(col.src, col.dst)
                   + style(arrow="end") + network()).count("<polygon") == 3, \
     "style(arrow='end') should put a head on each edge"
-_ramp = {"x": [0.0, 1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0],
+# Two rows at every x, which is when a stroke zigzags and the note is said.
+_ramp = {"x": [0.0, 1.0, 2.0, 3.0, 0.0, 1.0, 2.0, 3.0],
          "y": [1.0, 3.0, 2.0, 4.0, 3.0, 5.0, 4.0, 6.0],
          "v": [0.0, 1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0]}
 with contextlib.redirect_stderr(io.StringIO()) as _said:
@@ -3022,6 +3023,17 @@ _said = io.StringIO()
 with contextlib.redirect_stderr(_said):
     render_svg(data(_zig, name="zig") + area * mean + x(col.c) + y(col.v))
 assert "zigzags" not in _said.getvalue(), _said.getvalue()
+# `line` asks the same question, and one long series is not a zigzag.
+_said = io.StringIO()
+with contextlib.redirect_stderr(_said):
+    render_svg(data(_zig, name="zig") + line + x(col.c) + y(col.v))
+assert "zigzags inside that value" in _said.getvalue(), _said.getvalue()
+_said = io.StringIO()
+with contextlib.redirect_stderr(_said):
+    render_svg(data({"day": [float(i) for i in builtins.range(40)],
+                     "v": [float(i % 7) for i in builtins.range(40)]}, name="one")
+               + line + x(col.day) + y(col.v))
+assert _said.getvalue() == "", _said.getvalue()
 ok("an area through rows at one x says it zigzags")
 
 

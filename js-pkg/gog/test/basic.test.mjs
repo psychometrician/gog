@@ -2631,7 +2631,8 @@ test("counts on every axis, calendar z, shared ticks, one key, and the rest", ()
   const caps = (on) => render_svg(plot(data(boxes), box, x(col.g), y(col.v), style({ caps: on })))
     .split('stroke-linecap="round"/>').length - 1;
   assert.deepEqual([caps(true), caps(false)], [4, 0], "style({ caps: false }) should leave a box's whiskers bare");
-  const ramp = { x: [0, 1, 2, 3, 4, 5, 6, 7], y: [1, 3, 2, 4, 3, 5, 4, 6], v: [0, 1, 2, 3, 4, 5, 6, 7] };
+  // Two rows at every x, which is when a stroke zigzags and the note is said.
+  const ramp = { x: [0, 1, 2, 3, 0, 1, 2, 3], y: [1, 3, 2, 4, 3, 5, 4, 6], v: [0, 1, 2, 3, 4, 5, 6, 7] };
   const write = process.stderr.write;
   let said = "";
   process.stderr.write = (chunk) => { said += chunk; return true; };
@@ -3215,6 +3216,10 @@ test("an area through rows at one x says it zigzags", () => {
   };
   assert.ok(saidBy(plot(data(zig), area, x(col.c), y(col.v))).includes("zigzags inside that value"));
   assert.ok(!saidBy(plot(data(zig), layer(area, mean), x(col.c), y(col.v))).includes("zigzags"));
+  // `line` asks the same question, and one long series is not a zigzag.
+  assert.ok(saidBy(plot(data(zig), line, x(col.c), y(col.v))).includes("zigzags inside that value"));
+  const one = { day: [...Array(40).keys()], v: [...Array(40).keys()].map((i) => i % 7) };
+  assert.equal(saidBy(plot(data(one), line, x(col.day), y(col.v))), "");
 });
 
 // A summarized point reads its orientation as a bar does: with the category on

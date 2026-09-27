@@ -4321,7 +4321,8 @@ local({
   heads <- render_svg(data(links) + edge * layout(src, dst) + style(arrow = "end") + network())
   if (lengths(regmatches(heads, gregexpr("<polygon", heads, fixed = TRUE))) != 3)
     stop("FAIL: style(arrow = 'end') should put a head on each edge")
-  ramp <- data.frame(x = 0:7, y = c(1, 3, 2, 4, 3, 5, 4, 6), v = 0:7)
+  # Two rows at every x, which is when a stroke zigzags and the note is said.
+  ramp <- data.frame(x = c(0:3, 0:3), y = c(1, 3, 2, 4, 3, 5, 4, 6), v = 0:7)
   said <- capture.output(invisible(render_svg(data(ramp) + line + x(x) + y(y) + color(v))),
                          type = "message")
   if (!any(grepl("`color(v)` holds numbers", said, fixed = TRUE)))
@@ -4986,6 +4987,13 @@ local({
     stop("FAIL: an area through rows at one x should say it zigzags: ", said)
   said <- capture_msgs(render_svg(data(t) + area * mean + x(c) + y(v)))$msgs
   if (grepl("zigzags", said, fixed = TRUE)) stop("FAIL: a mean has one value per x: ", said)
+  # `line` asks the same question, and one long series is not a zigzag.
+  said <- capture_msgs(render_svg(data(t) + line + x(c) + y(v)))$msgs
+  if (!grepl("zigzags inside that value", said, fixed = TRUE))
+    stop("FAIL: a line through rows at one x should say it zigzags: ", said)
+  one <- data.frame(day = 1:40, v = (1:40) %% 7)
+  said <- capture_msgs(render_svg(data(one) + line + x(day) + y(v)))$msgs
+  if (nzchar(said)) stop("FAIL: one series of 40 rows should say nothing: ", said)
   cat("PASS: an area through rows at one x says it zigzags\n")
 })
 

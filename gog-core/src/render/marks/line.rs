@@ -3,7 +3,6 @@ use std::collections::HashMap;
 use std::fmt::Write;
 use crate::data::DataFrame;
 use crate::ir::{Channel, Layer, Transform};
-use crate::legality::{Diagnostic, DiagnosticKind};
 use crate::render::palette::PALETTE_GOG;
 use crate::render::pattern::{pattern_dasharray, PatternMap};
 use crate::render::polar::Polar;
@@ -34,9 +33,6 @@ impl SvgRenderer {
         // page — Wilkinson's polar time series (§9.1.6.4). The vertices move; the
         // grouping, the colors and the dash do not.
         polar: Option<&Polar>,
-        // The multi-series warning below lands here rather than on stderr, so
-        // the browser hears it too — a browser has no stderr.
-        remarks: &mut Vec<Diagnostic>,
     ) {
         let Some(x_vals) = super::positions(df, x_field, cat_x) else { return };
         // y is the measure and stays numeric — `rule_for` keeps it continuous,
@@ -70,55 +66,10 @@ impl SvgRenderer {
                | Transform::SmoothBand
                | Transform::Bounds));
 
-        // Warn when a line has many ungrouped rows and no synthesizing transform —
-        // connecting all points in x order is rarely the user's intention. A
-        // transform that reduces each x-group to a single value makes the connected
-        // line *intentional* (a trend, a summary curve) and silences the warning:
-        // the smoothers (`smooth`/`density`) and the whole aggregation family
-        // (`mean`/`sum`/…, `count`, `proportion`) all leave one point per x, so no
-        // accidental zigzag is possible — the exact false positive the canonical
-        // `ribbon * range + line * mean` band-and-trend plot would otherwise hit.
-        // A pair transform draws two clean boundaries, not a zigzag, so it is exempt
-        // too.
-        //
-        // **The class is asked for by name, not listed here.** This was a
-        // written-out list, and it had fallen two members behind the class it was
-        // copying. `quantile` joined the aggregation family and never joined the
-        // list, so `line * quantile(0.9)` warned about a zigzag it cannot draw
-        // while `line * mean` on the same rows said nothing. `bin` had never been
-        // on it at all, so the **frequency polygon** — `line * bin`, a plot this
-        // book documents — carried the same false warning for the project's life.
-        //
-        // Both are the one question this predicate exists to ask: *does anything
-        // here leave one value per x?* That is `is_value_statistic`, which the
-        // Mark × Transform grid already asked, so the two now agree by
-        // construction and the next member joins without anyone coming here.
-        let has_clean_transform = is_pair
-            || layer.transforms.iter().any(crate::transform::is_value_statistic);
-        if group_field.is_none() && !has_clean_transform && n > 5 {
-            // A `color` of numbers was mapped, and it ramps along the one stroke
-            // rather than splitting it. The message said "no group or color
-            // channel" over it, which is false of the sentence; that case names the
-            // mapping and the one channel that would split the rows.
-            let ramped = ramp_color.as_ref()
-                .and(layer.encodings.get(&Channel::Color))
-                .map(|c| c.field.as_str());
-            let message = match ramped {
-                Some(field) => format!(
-                    "gog: `line` has {n} rows in one stroke. `color({field})` holds numbers, \
-                     so it colors along the stroke instead of splitting it, and all points \
-                     will be connected in x order. If you have multiple series, add \
-                     `group(<field>)` to draw one line per category (e.g. `+ group(country)`)."
-                ),
-                None => format!(
-                    "gog: `line` has {n} rows and no group or color channel — all points \
-                     will be connected in x order. If you have multiple series, add \
-                     `color(<field>)` or `group(<field>)` to draw one line per category \
-                     (e.g. `+ color(country)`)."
-                ),
-            };
-            remarks.push(Diagnostic { kind: DiagnosticKind::Assumption, message });
-        }
+        // Rows that share an `x` and are joined into one stroke are said by
+        // `legality::check_joined_rows`, once, before anything draws: it counts the
+        // rows at one `x` within a panel and a moment, where this counted every row
+        // of a panel and so warned on each single series of more than five points.
 
         // A polyline is one stroke, which is exactly why `size` and `opacity`
         // are refused as *channels* here and accepted as *settings*: one stroke
