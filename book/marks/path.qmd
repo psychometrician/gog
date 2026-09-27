@@ -292,7 +292,10 @@ data(petals) + path * density(levels = 4) +
 is petal length, grouped by species."*
 
 Each species has its own set of rings. Both sets take their colors from the
-levels, so the lower set, with the shorter petals, is versicolor.
+levels, so the lower set, with the shorter petals, is versicolor. The two fields
+are smoothed alike. On each axis, the two species share the same bandwidth: the
+average of the bandwidths each species would get alone. A difference between the
+two sets of rings therefore comes from the flowers and not from the smoothing.
 
 ### One field, two marks
 

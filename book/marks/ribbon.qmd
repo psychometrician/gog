@@ -451,9 +451,9 @@ continent, y is life."*
 
 Oceania is now the widest violin and Africa the thinnest, so two countries are
 drawn wider than fifty-two. Oceania's two values are one year apart, so its
-equal share of area has to fit into a very short stretch of the axis. To hold
-that area in so little height, the shape has to be very wide. The widest shape
-in a panel sets the scale, so every other violin is drawn in proportion to it.
+shape covers the shortest stretch of the axis. To hold the same area as the
+others in that short stretch, it has to be the widest. The widest shape in a
+panel sets the scale, so every other violin is drawn in proportion to it.
 Each plot answers a different question, so gog draws the weighted width unless
 you write `compare = "shape"`.
 

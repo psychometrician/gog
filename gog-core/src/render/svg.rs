@@ -108,6 +108,34 @@ enum Slice<'a> {
     Float(&'a str, f64),
 }
 
+/// The filter that cuts one moment out of a layer's rows, or `None` for a layer that
+/// does not bind `play`. The frame filter is per layer where a facet's are the
+/// plot's: a layer without `play` is handed every row it ever had and so stands still
+/// behind the ones that move (§8's nearest-wins rule, read on the clock).
+fn moment_filter<'a>(layer: &'a Layer, frame: Option<&'a crate::data::FrameLevel>) -> Option<Slice<'a>> {
+    let (fr, def) = (frame?, layer.encodings.get(&Channel::Play)?);
+    Some(match &fr.key {
+        crate::data::FrameKey::Str(s) => Slice::Str(&def.field, s),
+        crate::data::FrameKey::Float(v) => Slice::Float(&def.field, *v),
+    })
+}
+
+/// The columns that split a **two-dimensional reading** into one field per group.
+///
+/// A split runs the whole reading once per group, the way every statistic in
+/// `transform::apply` already does: a contour per species, on shared axes. Every
+/// channel that splits takes part (`legality::split_fields_of`) except the one that
+/// carries the measurement: on a mark with no measure axis that is `color`, and
+/// `check_field` refuses any other field there. In the cube a `bar` measures along
+/// `z`, so its categorical `color` is a split like any other.
+fn field_split(layer: &Layer) -> Vec<&str> {
+    let measured_by_color = crate::legality::has_no_measure_axis(&layer.mark);
+    let color_field = layer.encodings.get(&Channel::Color).map(|e| e.field.as_str());
+    crate::legality::split_fields_of(layer).into_iter()
+        .filter(|f| !(measured_by_color && color_field == Some(*f)))
+        .collect()
+}
+
 /// What a panel tells a browser about the rows it drew, beyond its two domains.
 ///
 /// All three answer one question: *given a row in the table, did this panel draw
@@ -719,6 +747,108 @@ impl SvgRenderer {
         let layer_cuts: Vec<crate::transform::BinCut> =
             spec.layers.iter().map(|layer| cut_of(layer, &[])).collect();
 
+        // Which levels each panel shows, in the order the layout will place them.
+        // A crossing is the cross product, row-major; a folded ribbon is one entry
+        // per level, and the layout decides where in the rectangle each lands.
+        // Building the list here rather than indexing by `(row, col)` is what lets
+        // the ragged tail exist: the panel count is the *level* count, so there is
+        // nothing to filter for a cell no level maps to.
+        let panel_levels: Vec<(Option<&str>, Option<&str>)> = if facet_wrap.is_some() {
+            let levels = if col_values.is_empty() { &row_values } else { &col_values };
+            let along_cols = !col_values.is_empty();
+            levels.iter()
+                .map(|v| if along_cols { (Some(v.as_str()), None) } else { (None, Some(v.as_str())) })
+                .collect()
+        } else {
+            let mut keys = Vec::with_capacity(nrows * ncols);
+            for r in 0..nrows {
+                for c in 0..ncols {
+                    keys.push((
+                        col_values.get(c).map(String::as_str),
+                        row_values.get(r).map(String::as_str),
+                    ));
+                }
+            }
+            keys
+        };
+        // Each panel's rows, as the facet filters that cut them out.
+        let panel_sets: Vec<Vec<Slice<'_>>> = panel_levels.iter()
+            .map(|(cv, rv)| {
+                let mut filters: Vec<Slice<'_>> = Vec::new();
+                if let (Some(f), Some(v)) = (col_field.as_deref(), *cv) {
+                    filters.push(Slice::Str(f, v));
+                }
+                if let (Some(f), Some(v)) = (row_field.as_deref(), *rv) {
+                    filters.push(Slice::Str(f, v));
+                }
+                filters
+            })
+            .collect();
+
+        // **One smoothing length per `density` layer** (spec §5; the rule and its
+        // reasons are `transform::Smoothing`'s): the mean of the bandwidths the
+        // layer's groups would each choose alone, where a group is every estimate the
+        // layer draws, in every panel and every moment. Resolved here, beside the cut,
+        // for the cut's reason: the statistic is the panel's, and how smooth it is
+        // drawn is the plot's. `eff_for` then hands the answer down as a stated
+        // bandwidth, so every group reads it through the one path a stated bandwidth
+        // already takes.
+        //
+        // The rows each group is asked about are the rows it will be estimated from:
+        // `prepared`, the moment's filter, and the log on the axis the estimate reads,
+        // exactly as `eff_for` builds them below.
+        let own_bandwidths = |layer: &Layer, filters: &[Slice<'_>]| -> (Vec<f64>, Vec<f64>) {
+            let Some(base) = prepared(layer, filters) else { return Default::default() };
+            if crate::legality::reads_two_dimensions(
+                &layer.mark, &layer.transforms, crate::legality::space_of(spec)) {
+                let mut input = base;
+                if x_log { input = scale::log_column(&input, x_field, x_base); }
+                if y_log { input = scale::log_column(&input, y_field, y_base); }
+                crate::transform::density2d_own_bandwidths(&input, x_field, y_field, &field_split(layer))
+            } else if layer.mark == Mark::Zone {
+                Default::default()
+            } else {
+                let on_x = key_is_x(layer, &base);
+                let (key, key_log, key_base, out) =
+                    if on_x { (x_field, x_log, x_base, y_field) } else { (y_field, y_log, y_base, x_field) };
+                let input = if key_log { scale::log_column(&base, key, key_base) } else { base };
+                let own = crate::transform::density_own_bandwidths(
+                    &input, key, out, &crate::legality::split_fields_of(layer));
+                // A curve spreads along its key, a violin along its measure.
+                if on_x != input.str_col(key).is_some() { (own, Vec::new()) } else { (Vec::new(), own) }
+            }
+        };
+        let smoothing_over = |layer: &Layer, panels: &[Vec<Slice<'_>>]| -> crate::transform::Smoothing {
+            let d = layer.density.as_ref();
+            // A stated bandwidth is already one length for every group.
+            if !layer.transforms.contains(&Transform::Density) || d.is_some_and(|s| s.bandwidth.is_some()) {
+                return crate::transform::Smoothing::default();
+            }
+            let moments: Vec<Option<&crate::data::FrameLevel>> =
+                if layer.encodings.contains_key(&Channel::Play) && !play_levels.is_empty() {
+                    play_levels.iter().map(Some).collect()
+                } else {
+                    vec![None]
+                };
+            let (mut along_x, mut along_y) = (Vec::new(), Vec::new());
+            for panel in panels {
+                for &frame in &moments {
+                    let mut filters = panel.clone();
+                    filters.extend(moment_filter(layer, frame));
+                    let (x, y) = own_bandwidths(layer, &filters);
+                    along_x.extend(x);
+                    along_y.extend(y);
+                }
+            }
+            let adjust = d.and_then(|s| s.adjust);
+            crate::transform::Smoothing {
+                x: crate::transform::shared_bandwidth(&along_x, adjust),
+                y: crate::transform::shared_bandwidth(&along_y, adjust),
+            }
+        };
+        let layer_smoothing: Vec<crate::transform::Smoothing> =
+            spec.layers.iter().map(|layer| smoothing_over(layer, &panel_sets)).collect();
+
         let eff_for = |filters: &[Slice<'_>], frame: Option<&crate::data::FrameLevel>| -> Vec<DataFrame> {
             spec.layers.iter().enumerate()
                 .map(|(li, layer)| {
@@ -736,12 +866,7 @@ impl SvgRenderer {
                     // backdrop reading, and the exact counterpart of a layer whose
                     // table lacks the facet column being drawn in every panel.
                     let mut filters: Vec<Slice<'_>> = filters.to_vec();
-                    if let (Some(fr), Some(def)) = (frame, layer.encodings.get(&Channel::Play)) {
-                        filters.push(match &fr.key {
-                            crate::data::FrameKey::Str(s) => Slice::Str(&def.field, s),
-                            crate::data::FrameKey::Float(v) => Slice::Float(&def.field, *v),
-                        });
-                    }
+                    filters.extend(moment_filter(layer, frame));
                     let Some(base) = prepared(layer, &filters) else {
                         return DataFrame::new();
                     };
@@ -757,6 +882,18 @@ impl SvgRenderer {
                         }
                     } else {
                         layer_cuts[li]
+                    };
+                    // The smoothing follows the cut: a freed axis takes the mean of
+                    // this panel's groups, across its moments, and a shared one keeps
+                    // the plot's.
+                    let smoothing = if any_free && layer.transforms.contains(&Transform::Density) {
+                        let own = smoothing_over(layer, &[panel_rows.to_vec()]);
+                        crate::transform::Smoothing {
+                            x: if free_x { own.x } else { layer_smoothing[li].x },
+                            y: if free_y { own.y } else { layer_smoothing[li].y },
+                        }
+                    } else {
+                        layer_smoothing[li]
                     };
                     // **A partition is read before anything else**, because it is
                     // the one transform whose input is neither of the plot's
@@ -916,19 +1053,8 @@ impl SvgRenderer {
                         if x_log { input = scale::log_column(&input, x_field, x_base); }
                         if y_log { input = scale::log_column(&input, y_field, y_base); }
                         let d = layer.density.as_ref();
-                        // A split runs the whole reading once per group, the way every
-                        // statistic in `transform::apply` already does — a contour per
-                        // species, on shared axes. Every channel that splits takes part
-                        // (`legality::split_fields_of`) except the one that carries the
-                        // measurement: on a mark with no measure axis that is `color`,
-                        // and `check_field` refuses any other field there. In the cube
-                        // a `bar` measures along `z`, so its categorical `color` is a
-                        // split like any other.
-                        let measured_by_color = crate::legality::has_no_measure_axis(&layer.mark);
-                        let color_field = layer.encodings.get(&Channel::Color).map(|e| e.field.as_str());
-                        let split: Vec<&str> = crate::legality::split_fields_of(layer).into_iter()
-                            .filter(|f| !(measured_by_color && color_field == Some(*f)))
-                            .collect();
+                        // One field per group, every group at the layer's smoothing.
+                        let split = field_split(layer);
                         //
                         // Which geometry comes out is `field_geometry`'s answer, not a
                         // second opinion formed here: **rings** are the traced level
@@ -998,7 +1124,7 @@ impl SvgRenderer {
                         };
                         let cells = crate::transform::by_groups(&input, &split, &|sub: &DataFrame| match which {
                             Cut::Rings => {
-                                crate::transform::density2d_contour(sub, x_field, y_field, d)
+                                crate::transform::density2d_contour(sub, x_field, y_field, d, smoothing)
                             }
                             // The heatmap, counted: one row per non-empty cell.
                             Cut::Cells if ts.contains(&Transform::Bin) => {
@@ -1006,7 +1132,7 @@ impl SvgRenderer {
                             }
                             // The heatmap, estimated: one row per cell of the field.
                             Cut::Cells => {
-                                crate::transform::density2d_cells(sub, x_field, y_field, d)
+                                crate::transform::density2d_cells(sub, x_field, y_field, d, smoothing)
                             }
                             // The tile plot, tallied: one row per non-empty pair of
                             // categories, as a count or as a share of the whole.
@@ -1102,7 +1228,19 @@ impl SvgRenderer {
                         // to state, because a check that counts rows per group has
                         // to count the groups this draw actually makes.
                         let group_fields = crate::legality::split_fields_of(layer);
-                        let done = crate::transform::apply(&input, &layer.transforms, key, out, layer.bin.as_ref(), cut.axis(on_x), layer.density.as_ref(), layer.range.as_ref(), layer.level_spec(), layer.deviation.as_ref(), layer.quantile.as_ref(), layer.r#box.as_ref(), layer.bounds.as_ref(), layer.stack.as_ref(), &group_fields);
+                        // The layer's one smoothing length, along the axis the
+                        // estimate spreads over: the key's for a curve, the measure's
+                        // for a violin, told apart by the key column's type as
+                        // `density` tells them apart. Handed down as a stated
+                        // bandwidth, so `adjust` is already inside it.
+                        let smoothed = smoothing.along(on_x != input.str_col(key).is_some())
+                            .map(|h| crate::ir::DensitySpec {
+                                bandwidth: Some(h),
+                                adjust: None,
+                                ..layer.density.clone().unwrap_or_default()
+                            });
+                        let density = smoothed.as_ref().or(layer.density.as_ref());
+                        let done = crate::transform::apply(&input, &layer.transforms, key, out, layer.bin.as_ref(), cut.axis(on_x), density, layer.range.as_ref(), layer.level_spec(), layer.deviation.as_ref(), layer.quantile.as_ref(), layer.r#box.as_ref(), layer.bounds.as_ref(), layer.stack.as_ref(), &group_fields);
                         // The dot plot: a stacking `point` spends its span on glyphs
                         // rather than on length, so the tally becomes one row per
                         // observation (`transform::pile`, spec §5). Decided here for
@@ -1128,45 +1266,14 @@ impl SvgRenderer {
         // crossing numbers them row-major. The unfaceted, unplayed plot is one
         // moment and one panel with no filters — the degenerate case, not a
         // separate path, and at `nframes == 1` the indexing is arithmetically what
-        // it was before there were moments at all.
-        //
-        // Which levels each panel shows, in the order the layout will place them.
-        // A crossing is the cross product, row-major; a folded ribbon is one entry
-        // per level, and the layout decides where in the rectangle each lands.
-        // Building the list here rather than indexing by `(row, col)` is what lets
-        // the ragged tail exist: the panel count is the *level* count, so there is
-        // nothing to filter for a cell no level maps to.
-        let panel_levels: Vec<(Option<&str>, Option<&str>)> = if facet_wrap.is_some() {
-            let levels = if col_values.is_empty() { &row_values } else { &col_values };
-            let along_cols = !col_values.is_empty();
-            levels.iter()
-                .map(|v| if along_cols { (Some(v.as_str()), None) } else { (None, Some(v.as_str())) })
-                .collect()
-        } else {
-            let mut keys = Vec::with_capacity(nrows * ncols);
-            for r in 0..nrows {
-                for c in 0..ncols {
-                    keys.push((
-                        col_values.get(c).map(String::as_str),
-                        row_values.get(r).map(String::as_str),
-                    ));
-                }
-            }
-            keys
-        };
+        // it was before there were moments at all. Which levels each panel shows is
+        // `panel_levels`, above, where the smoothing needed it first.
         let npanels = panel_levels.len();
         let mut panel_eff: Vec<Vec<DataFrame>> = Vec::with_capacity(nframes * npanels);
         for f in 0..nframes {
             let frame = play_levels.get(f);
-            for (cv, rv) in &panel_levels {
-                let mut filters: Vec<Slice<'_>> = Vec::new();
-                if let (Some(f), Some(v)) = (col_field.as_deref(), *cv) {
-                    filters.push(Slice::Str(f, v));
-                }
-                if let (Some(f), Some(v)) = (row_field.as_deref(), *rv) {
-                    filters.push(Slice::Str(f, v));
-                }
-                panel_eff.push(eff_for(&filters, frame));
+            for filters in &panel_sets {
+                panel_eff.push(eff_for(filters, frame));
             }
         }
 
@@ -10532,6 +10639,158 @@ mod tests {
                 .fold((f64::INFINITY, f64::NEG_INFINITY), |(a, b), y| (a.min(y), b.max(y)));
             assert!(hi - lo > 1.0, "a sideways violin has its width on y");
         }
+    }
+
+    // -- one smoothing per `density` layer (`transform::Smoothing`) ------------
+
+    /// Three groups that would each choose a different bandwidth alone (thirty rows
+    /// over thirty units, eight over two, three over half a unit), in a table that
+    /// also carries a facet column and a moment.
+    fn smoothing_data() -> HashMap<String, DataFrame> {
+        let (mut g, mut v) = (Vec::new(), Vec::new());
+        let rows = (0..30).map(|i| ("a", i as f64))
+            .chain((0..8).map(|i| ("b", 10.0 + i as f64 * 0.3)))
+            .chain([("c", 12.0), ("c", 12.2), ("c", 12.5)]);
+        for (k, x) in rows { g.push(k.to_string()); v.push(x); }
+        let t: Vec<f64> = (0..v.len()).map(|i| (i % 3) as f64).collect();
+        HashMap::from([("t".to_string(),
+            DataFrame::new().with_str("g", g).with_float("v", v).with_float("when", t))])
+    }
+
+    fn at_bandwidth(mut layer: Layer, h: f64) -> Layer {
+        layer.density = Some(crate::ir::DensitySpec { bandwidth: Some(h), ..Default::default() });
+        layer
+    }
+
+    /// **The automatic bandwidth of a layer is the mean of its groups' own**, so the
+    /// sentence draws exactly what it draws with that mean stated: for violins, for
+    /// curves split by `color`, for panels and for moments. Asserted against the
+    /// stated render byte for byte, which is what "one smoothing length for the
+    /// whole layer" means on the page.
+    #[test]
+    fn a_density_layer_draws_every_group_at_one_shared_bandwidth() {
+        let data = smoothing_data();
+        let df = &data["t"];
+        let render = |spec: &PlotSpec| SvgRenderer::default().render(spec, &data);
+        let shared = |own: Vec<f64>| {
+            assert!(own.windows(2).any(|w| (w[0] - w[1]).abs() > 1e-6), "the groups must disagree: {own:?}");
+            crate::transform::shared_bandwidth(&own, None).unwrap()
+        };
+        let density = || Layer::new(Mark::Ribbon).transform(Transform::Density);
+        let curve = || Layer::new(Mark::Line).transform(Transform::Density);
+
+        // Violins: one estimate per category.
+        let h = shared(crate::transform::density_own_bandwidths(df, "g", "v", &[]));
+        let violins = |l: Layer| PlotSpec::new().data("t").x("g").y("v").layer(l);
+        assert_eq!(render(&violins(density())), render(&violins(at_bandwidth(density(), h))));
+
+        // Curves split by `color`: one estimate per color.
+        let h = shared(crate::transform::density_own_bandwidths(df, "v", "", &["g"]));
+        let split = |l: Layer| PlotSpec::new().data("t").x("v").layer(l.encode(Channel::Color, "g"));
+        assert_eq!(render(&split(curve())), render(&split(at_bandwidth(curve(), h))));
+
+        // Panels: one estimate per panel, and the same length in all of them.
+        let panels = |l: Layer| PlotSpec::new().data("t").x("v").layer(l).facet_col("g");
+        assert_eq!(render(&panels(curve())), render(&panels(at_bandwidth(curve(), h))));
+
+        // Moments: one estimate per frame, and the same length on the whole clock.
+        let own: Vec<f64> = [0.0, 1.0, 2.0].iter()
+            .flat_map(|&t| crate::transform::density_own_bandwidths(&df.filter_float_eq("when", t), "v", "", &[]))
+            .collect();
+        let h = shared(own);
+        let played = |l: Layer| PlotSpec::new().data("t").x("v").layer(l.encode(Channel::Play, "when"));
+        assert_eq!(render(&played(curve())), render(&played(at_bandwidth(curve(), h))));
+    }
+
+    /// A freed axis takes its own smoothing per panel, as it takes its own bin edges:
+    /// the panel has its own scale, so a length fitted to the other panels' spreads
+    /// would over-smooth a narrow one. On the axis the estimate does not spread
+    /// along, freeing changes nothing.
+    #[test]
+    fn a_freed_axis_smooths_each_panel_at_its_own_bandwidth() {
+        // Violins of `a`, of `b` (a three times as spread) and of `c` (eight times).
+        // Panel one holds a and b, so its own mean is 2h for a's bandwidth h; panel
+        // two holds all three, a mean of 4h; the layer's is 3.2h.
+        let a: Vec<f64> = (0..20).map(|i| 1.0 + (i as f64 * 0.9).sin() * 4.0 + i as f64 * 0.3).collect();
+        let times = |k: f64| a.iter().map(|v| v * k).collect::<Vec<f64>>();
+        let n = a.len();
+        let tag = |s: &str, k: usize| vec![s.to_string(); k * n];
+        let one = DataFrame::new()
+            .with_str("g", [tag("a", 1), tag("b", 1)].concat())
+            .with_float("v", [a.clone(), times(3.0)].concat());
+        let data = HashMap::from([("t".to_string(), DataFrame::new()
+            .with_str("p", [tag("one", 2), tag("two", 3)].concat())
+            .with_str("g", [tag("a", 1), tag("b", 1), tag("a", 1), tag("b", 1), tag("c", 1)].concat())
+            .with_float("v", [a.clone(), times(3.0), a.clone(), times(3.0), times(8.0)].concat()))]);
+        let panel_one = crate::transform::shared_bandwidth(
+            &crate::transform::density_own_bandwidths(&one, "g", "v", &[]), None).unwrap();
+
+        let render = |layer: Layer| {
+            let mut spec = PlotSpec::new().data("t").x("g").layer(layer).facet_col("p");
+            spec.y = Some(crate::ir::ChannelDef::field("v").with_free());
+            SvgRenderer::default().render(&spec, &data)
+        };
+        let violins = || Layer::new(Mark::Ribbon).transform(Transform::Density);
+        // Each violin's outline down the measure axis. Only `y` is compared: panel
+        // two's freed tick labels change width between the two renders, which moves
+        // every panel sideways, while the heights are the panel's own.
+        let outlines = |svg: &str| -> Vec<String> {
+            svg.split("<polygon points=\"").skip(1)
+                .map(|c| c.split('"').next().unwrap_or("").split_whitespace()
+                    .filter_map(|p| p.split_once(',').map(|(_, y)| y))
+                    .collect::<Vec<_>>().join(" "))
+                .collect()
+        };
+        let freed = outlines(&render(violins()));
+        let stated = outlines(&render(at_bandwidth(violins(), panel_one)));
+        assert_eq!((freed.len(), stated.len()), (5, 5), "two violins in panel one, three in panel two");
+
+        // With y freed, a panel's heights are its own. The widest violin in each
+        // panel spans that panel's whole range and so reads the same at any length;
+        // the one that tells is panel one's `a`, drawn first. It runs identically at
+        // 2h in both renders, where at its own h or at the layer's 3.2h it would not,
+        // and panel two's `a` does not (4h against 2h).
+        assert_eq!(freed[0], stated[0], "panel one is smoothed at the mean of its own groups");
+        assert_ne!(freed[2], stated[2], "panel two is smoothed at the mean of its own");
+    }
+
+    /// Two groups with one shape draw one field whatever their row counts, which is
+    /// what sharing the smoothing buys a contour plot split by `group`: alone, a
+    /// group with every row written twice would choose a bandwidth 2^(−1/6) as long
+    /// and trace tighter rings. (`color` is the level's on a contour, so `group` is
+    /// the split.)
+    #[test]
+    fn a_contour_split_by_group_traces_the_same_rings_for_the_same_shape() {
+        let (mut xs, mut ys) = (Vec::new(), Vec::new());
+        for i in 0..40 {
+            let t = i as f64;
+            xs.push(2.0 + (t * 0.7).sin());
+            ys.push(2.0 + (t * 1.3).cos());
+        }
+        let n = xs.len();
+        let twice = |v: &[f64]| [v, v].concat();
+        let data = HashMap::from([("t".to_string(), DataFrame::new()
+            .with_float("x", [xs.clone(), twice(&xs)].concat())
+            .with_float("y", [ys.clone(), twice(&ys)].concat())
+            .with_str("g", [vec!["once".to_string(); n], vec!["twice".to_string(); 2 * n]].concat()))]);
+        let spec = PlotSpec::new().data("t").x("x").y("y")
+            .layer(Layer::new(Mark::Path).transform(Transform::Density).encode(Channel::Group, "g"));
+        assert!(crate::legality::check(&spec, &data).iter().all(|d| !d.is_fatal()));
+        let svg = SvgRenderer::default().render(&spec, &data);
+
+        // A ring colored by its level is drawn segment by segment, each a round-capped
+        // `<line>`; counted, every segment must be traced once by each group.
+        let mut segments: std::collections::BTreeMap<&str, usize> = Default::default();
+        for chunk in svg.split("<line ").skip(1) {
+            let element = chunk.split("/>").next().unwrap_or("");
+            if element.contains("stroke-linecap=\"round\"") {
+                *segments.entry(element).or_default() += 1;
+            }
+        }
+        assert!(segments.len() >= 100, "the field traces rings: {} segments", segments.len());
+        let odd = segments.values().filter(|&&n| n != 2).count();
+        assert_eq!(odd, 0, "the two groups must trace the same rings: {odd} of {} segments differ",
+                   segments.len());
     }
 
     /// `reach` is measured **from** the slot line, so past 0.5 a shape leaves its

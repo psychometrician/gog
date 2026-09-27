@@ -2184,7 +2184,11 @@ impl Field {
 /// summing over every row: past four bandwidths a Gaussian contributes less than a
 /// ten-thousandth of its peak, so the window is where the arithmetic is, and the
 /// cost stops being *grid × rows*.
-fn kde2d(xs: &[f64], ys: &[f64], spec: Option<&DensitySpec>) -> Option<Field> {
+///
+/// **An axis `smoothing` names is smoothed at that length**, the layer's shared one
+/// ([`Smoothing`]), already scaled by `adjust`; an axis it leaves `None` takes this
+/// group's own.
+fn kde2d(xs: &[f64], ys: &[f64], spec: Option<&DensitySpec>, smoothing: Smoothing) -> Option<Field> {
     let rows: Vec<(f64, f64)> = xs.iter().zip(ys.iter())
         .filter(|(a, b)| a.is_finite() && b.is_finite())
         .map(|(&a, &b)| (a, b))
@@ -2193,7 +2197,8 @@ fn kde2d(xs: &[f64], ys: &[f64], spec: Option<&DensitySpec>) -> Option<Field> {
 
     let col = |f: fn(&(f64, f64)) -> f64| -> Vec<f64> { rows.iter().map(f).collect() };
     let (cx, cy) = (col(|r| r.0), col(|r| r.1));
-    let (hx, hy) = (bandwidth(&cx, 2, spec), bandwidth(&cy, 2, spec));
+    let hx = smoothing.x.unwrap_or_else(|| bandwidth(&cx, 2, spec));
+    let hy = smoothing.y.unwrap_or_else(|| bandwidth(&cy, 2, spec));
 
     let span = |v: &[f64], h: f64| -> (f64, f64) {
         let mn = v.iter().copied().fold(f64::INFINITY, f64::min) - 3.0 * h;
@@ -2361,7 +2366,7 @@ fn chain(segs: &[Seg]) -> Vec<Vec<(f64, f64)>> {
 /// column exactly as a 2-D bin's count does, unbound by default and namable out
 /// loud as `color(level)`.
 pub fn density2d_contour(
-    df: &DataFrame, x_field: &str, y_field: &str, spec: Option<&DensitySpec>,
+    df: &DataFrame, x_field: &str, y_field: &str, spec: Option<&DensitySpec>, smoothing: Smoothing,
 ) -> DataFrame {
     // A categorical axis is refused fatally by `legality::check_distribution_axis`
     // before this runs; saying it again here would only double a message the user
@@ -2369,7 +2374,7 @@ pub fn density2d_contour(
     let (Some(xs), Some(ys)) = (df.float_col(x_field), df.float_col(y_field)) else {
         return DataFrame::new();
     };
-    let Some(field) = kde2d(xs, ys, spec) else { return DataFrame::new() };
+    let Some(field) = kde2d(xs, ys, spec, smoothing) else { return DataFrame::new() };
 
     let count = spec.and_then(|s| s.levels).unwrap_or(crate::ir::DEFAULT_LEVELS);
     let levels = contour_levels(field.max(), count);
@@ -2417,12 +2422,12 @@ pub fn density2d_contour(
 /// point of the plane — there is no such thing as a cell the estimator had no
 /// opinion about, so leaving one out would be the omission rather than the honesty.
 pub fn density2d_cells(
-    df: &DataFrame, x_field: &str, y_field: &str, spec: Option<&DensitySpec>,
+    df: &DataFrame, x_field: &str, y_field: &str, spec: Option<&DensitySpec>, smoothing: Smoothing,
 ) -> DataFrame {
     let (Some(xs), Some(ys)) = (df.float_col(x_field), df.float_col(y_field)) else {
         return DataFrame::new();
     };
-    let Some(f) = kde2d(xs, ys, spec) else { return DataFrame::new() };
+    let Some(f) = kde2d(xs, ys, spec, smoothing) else { return DataFrame::new() };
 
     let n = (f.nx - 1) * (f.ny - 1);
     let mut cx = Vec::with_capacity(n);
@@ -3432,6 +3437,133 @@ fn bandwidth(vals: &[f64], dims: u32, spec: Option<&DensitySpec>) -> f64 {
     }
 }
 
+/// How smooth a `density` layer is drawn: **one automatic bandwidth per axis the
+/// estimate spreads along, shared by every group the layer draws** (spec §5).
+///
+/// Each group once chose its own Silverman bandwidth, so every violin, every ridge
+/// and every curve split by `color` was smoothed at a different length, and the
+/// shapes could not be compared: a sharp peak beside a broad hump said as much about
+/// two bandwidths as about two distributions. It was worst where it was least
+/// visible as a choice. Two rows that happen to sit close together have a tiny
+/// spread, so their group chose a tiny bandwidth and drew a needle (Oceania in 1952:
+/// two countries 0.27 years apart, a bandwidth of 0.1 years). One smoothing length
+/// for the whole layer is what `density(bandwidth = )` already gave, and this makes
+/// the automatic default mean the same thing.
+///
+/// **The rule is the mean of the bandwidths each drawn group would choose alone**
+/// ([`shared_bandwidth`]), and three properties decided it:
+///
+/// - *It depends on each group's own spread and size and on nothing between the
+///   groups.* Silverman's rule on the pooled rows fails this both ways: the spread
+///   between groups inflates its scale (4.0 years for the 2007 continents, twice the
+///   typical group's), and the pooled row count shrinks it for rows no single
+///   estimate uses (2.6 for twelve years of 142 countries, below every year's own
+///   3.5 to 4.1).
+/// - *It leaves one group exactly as it was.* A lone curve, violin or field keeps
+///   the bandwidth it had, to the bit.
+/// - *It is the joint bandwidth the ggridges package draws ridgelines with.* Each
+///   group counts once, whatever its size, which also keeps the largest group's
+///   smaller bandwidth (Silverman's scales as *n*^(−1/5)) from setting everyone's.
+///
+/// **A group is whatever the layer draws one estimate for**: a category of the slot
+/// reading, crossed with every column that splits the layer, and each panel and
+/// each frame of it, so the smoothing is the *plot's* the way a `bin`'s cut is
+/// (spec §11). ggridges resolves its joint bandwidth per panel; here a facet and a
+/// `play` sequence share one, because a curve smoothed differently in two panels
+/// cannot be compared across them, and one smoothed differently from frame to frame
+/// would change shape on the clock for no reason in the data. A **freed** axis
+/// takes its own per panel, as its cut does.
+///
+/// `None` on an axis leaves each group to its own, which is the fallback for a
+/// layer with nothing to share: a stated bandwidth (already one length), or no
+/// group with a spread to read.
+#[derive(Clone, Copy, Debug, Default, PartialEq)]
+pub struct Smoothing {
+    pub x: Option<f64>,
+    pub y: Option<f64>,
+}
+
+impl Smoothing {
+    /// The bandwidth along the axis a one-dimensional estimate spreads over.
+    pub fn along(&self, x: bool) -> Option<f64> {
+        if x { self.x } else { self.y }
+    }
+}
+
+/// A group's own automatic bandwidth, or `None` when it has no spread to smooth by.
+///
+/// One row, or rows all at one value, give Silverman's rule nothing to read, and it
+/// answers its floor, 10⁻¹²: a mean with that in it would pull every group toward
+/// the needle the sharing exists to prevent. Such a group contributes nothing and is
+/// drawn at the shared length, as a stated bandwidth would draw it.
+fn own_bandwidth(vals: &[f64], dims: u32) -> Option<f64> {
+    let v: Vec<f64> = vals.iter().copied().filter(|x| x.is_finite()).collect();
+    if v.len() < 2 || v.iter().all(|&x| x == v[0]) { return None }
+    Some(bandwidth(&v, dims, None))
+}
+
+/// The one bandwidth every group shares: the mean of their own ([`Smoothing`]),
+/// scaled by `adjust`. `None` when no group had one to give.
+pub fn shared_bandwidth(own: &[f64], adjust: Option<f64>) -> Option<f64> {
+    if own.is_empty() { return None }
+    let mean = own.iter().sum::<f64>() / own.len() as f64;
+    Some((mean * adjust.unwrap_or(1.0)).max(1e-12))
+}
+
+/// Each group's own bandwidth for a one-dimensional `density`, grouped exactly as
+/// [`apply`] will estimate them: by every column in `split_fields`, then, in the
+/// slot reading, by the category on `key_field`.
+///
+/// Which reading applies is asked the way `density` asks it, off the columns'
+/// types, so the two cannot disagree about which rows make a group.
+pub fn density_own_bandwidths(
+    df: &DataFrame, key_field: &str, out_field: &str, split_fields: &[&str],
+) -> Vec<f64> {
+    let own = std::cell::RefCell::new(Vec::new());
+    by_groups(df, split_fields, &|sub: &DataFrame| {
+        match (sub.str_col(key_field), sub.float_col(out_field)) {
+            // The slot reading: one estimate per category, in `slot_density`'s groups.
+            (Some(keys), Some(vals)) => {
+                let mut groups: Vec<(&str, Vec<f64>)> = Vec::new();
+                for (k, &v) in keys.iter().zip(vals.iter()) {
+                    match groups.iter_mut().find(|(g, _)| *g == k.as_str()) {
+                        Some(g) => g.1.push(v),
+                        None => groups.push((k.as_str(), vec![v])),
+                    }
+                }
+                own.borrow_mut().extend(groups.iter().filter_map(|(_, v)| own_bandwidth(v, 1)));
+            }
+            (Some(_), None) => {}
+            // The curve: one estimate over the group's rows.
+            (None, _) => own.borrow_mut().extend(
+                sub.float_col(key_field).and_then(|xs| own_bandwidth(xs, 1))),
+        }
+        DataFrame::new()
+    });
+    own.into_inner()
+}
+
+/// Each group's own bandwidth on each axis for the two-dimensional reading, from the
+/// rows [`kde2d`] estimates with: those finite on both axes.
+pub fn density2d_own_bandwidths(
+    df: &DataFrame, x_field: &str, y_field: &str, split_fields: &[&str],
+) -> (Vec<f64>, Vec<f64>) {
+    let own = std::cell::RefCell::new((Vec::new(), Vec::new()));
+    by_groups(df, split_fields, &|sub: &DataFrame| {
+        if let (Some(xs), Some(ys)) = (sub.float_col(x_field), sub.float_col(y_field)) {
+            let (cx, cy): (Vec<f64>, Vec<f64>) = xs.iter().zip(ys.iter())
+                .filter(|(a, b)| a.is_finite() && b.is_finite())
+                .map(|(&a, &b)| (a, b))
+                .unzip();
+            let mut own = own.borrow_mut();
+            own.0.extend(own_bandwidth(&cx, 2));
+            own.1.extend(own_bandwidth(&cy, 2));
+        }
+        DataFrame::new()
+    });
+    own.into_inner()
+}
+
 /// The column a violin's half-extent rides in — the density, per slot, **unscaled**.
 ///
 /// Not normalized here, and that is the division of labor rather than an omission:
@@ -3450,7 +3582,9 @@ pub const SLOT_WIDTH: &str = "width";
 /// estimate as a width across the category's slot. It is the same estimator as the
 /// curve (Law 2 — same Gaussian kernel, same Silverman bandwidth, same three-
 /// bandwidth extension past the extremes), read per group; only what the answer is
-/// drawn *as* differs, which is the mark's business and not the transform's.
+/// drawn *as* differs, which is the mark's business and not the transform's. The
+/// bandwidth is the layer's, one for every slot ([`Smoothing`]), and the renderer
+/// hands it in as a stated one; called without it, each group takes its own.
 ///
 /// Every group is estimated on **its own** evaluation grid, because a violin is a
 /// conditional distribution and a shared grid would draw each group's estimate
@@ -5092,6 +5226,15 @@ mod tests {
     ) -> DataFrame {
         super::bin2d_agg(df, x_field, y_field, val_field, agg, spec, BinCut::default())
     }
+    // The field's two shadows answer the same way for the smoothing: a unit test's
+    // rows are one group, so its own bandwidth is the shared one. The shared path is
+    // covered in `a_density_layer_*` below and in `svg.rs`.
+    fn density2d_contour(df: &DataFrame, x_field: &str, y_field: &str, spec: Option<&DensitySpec>) -> DataFrame {
+        super::density2d_contour(df, x_field, y_field, spec, Smoothing::default())
+    }
+    fn density2d_cells(df: &DataFrame, x_field: &str, y_field: &str, spec: Option<&DensitySpec>) -> DataFrame {
+        super::density2d_cells(df, x_field, y_field, spec, Smoothing::default())
+    }
 
     fn num(name: &str, vals: &[f64]) -> DataFrame {
         DataFrame::new().with_float(name, vals.to_vec())
@@ -6619,6 +6762,99 @@ mod tests {
         let narrower = span(Some(&DensitySpec { adjust: Some(0.5), bandwidth: None, levels: None , compare: None, reach: None }));
         assert!(wider > auto,    "adjust = 2 widens the grid ({wider} vs {auto})");
         assert!(narrower < auto, "adjust = 0.5 narrows the grid ({narrower} vs {auto})");
+    }
+
+    // -- one smoothing per layer (`Smoothing`, spec §5) ------------------------
+
+    /// Each group's own bandwidth is asked of exactly the rows it will be estimated
+    /// from, in both one-dimensional readings, and the shared one is their mean.
+    #[test]
+    fn a_density_layer_shares_the_mean_of_its_groups_own_bandwidths() {
+        let own = |n: usize| bandwidth(&(0..n).map(|i| i as f64).collect::<Vec<_>>(), 1, None);
+        let expected = vec![own(40), own(10), own(4)];
+        assert!(expected[0] > expected[1] && expected[1] > expected[2], "the groups must disagree");
+
+        // The slot reading, a: 0..40, b: 0..10, c: 0..4: one estimate per category,
+        // and a `color` on the same column splits nothing further.
+        let df = violin_frame();
+        assert_eq!(density_own_bandwidths(&df, "g", "v", &[]), expected);
+        assert_eq!(density_own_bandwidths(&df, "g", "v", &["g"]), expected);
+
+        // The curve reading split by a column: one estimate per group.
+        let curve = DataFrame::new()
+            .with_float("x", col(&df, "v").clone())
+            .with_str("k", df.str_col("g").unwrap().clone());
+        assert_eq!(density_own_bandwidths(&curve, "x", "d", &["k"]), expected);
+        assert_eq!(density_own_bandwidths(&curve, "x", "d", &[]), vec![bandwidth(col(&df, "v"), 1, None)],
+                   "unsplit, the curve is one group");
+
+        // The mean, scaled by `adjust`.
+        let mean = expected.iter().sum::<f64>() / 3.0;
+        assert_eq!(shared_bandwidth(&expected, None), Some(mean));
+        assert_eq!(shared_bandwidth(&expected, Some(2.0)), Some(2.0 * mean));
+        assert_eq!(shared_bandwidth(&[], None), None, "no group, nothing to share");
+    }
+
+    /// A group with no spread has no bandwidth to give: one row, or rows all at one
+    /// value. Counting Silverman's floor would pull the shared length toward the
+    /// needle the sharing exists to prevent.
+    #[test]
+    fn a_group_with_no_spread_gives_no_bandwidth_to_the_mean() {
+        let df = DataFrame::new()
+            .with_str("g", ["a", "a", "a", "a", "b", "c", "c", "c"].iter().map(|s| s.to_string()).collect())
+            .with_float("v", vec![1.0, 2.0, 4.0, 8.0, 5.0, 3.0, 3.0, 3.0]);
+        assert_eq!(density_own_bandwidths(&df, "g", "v", &[]),
+                   vec![bandwidth(&[1.0, 2.0, 4.0, 8.0], 1, None)]);
+    }
+
+    /// One group keeps the bandwidth it chose alone to the bit, so a plot that
+    /// splits nothing draws exactly what it drew before any sharing existed: the
+    /// shared length handed down as a stated bandwidth, `adjust` inside it, lands
+    /// where the automatic path lands.
+    #[test]
+    fn a_lone_group_draws_at_its_own_bandwidth_to_the_bit() {
+        let xs: Vec<f64> = (0..60).map(|i| (i as f64 * 0.5).cos() * 8.0 + 25.0).collect();
+        let df = num("x", &xs);
+        for adjust in [None, Some(2.0), Some(0.5)] {
+            let h = shared_bandwidth(&density_own_bandwidths(&df, "x", "d", &[]), adjust).unwrap();
+            let automatic = density(&df, "x", "d", Some(&DensitySpec { adjust, ..Default::default() }));
+            let shared = density(&df, "x", "d", Some(&DensitySpec { bandwidth: Some(h), ..Default::default() }));
+            assert_eq!(col(&automatic, "x"), col(&shared, "x"), "adjust {adjust:?}");
+            assert_eq!(col(&automatic, "d"), col(&shared, "d"), "adjust {adjust:?}");
+        }
+
+        // The field, on both axes.
+        let (hx, hy) = density2d_own_bandwidths(&two_modes(), "x", "y", &[]);
+        let smoothing = Smoothing { x: shared_bandwidth(&hx, None), y: shared_bandwidth(&hy, None) };
+        let automatic = density2d_cells(&two_modes(), "x", "y", None);
+        let shared = super::density2d_cells(&two_modes(), "x", "y", None, smoothing);
+        assert_eq!(col(&automatic, FIELD_DENSITY), col(&shared, FIELD_DENSITY));
+    }
+
+    /// The field's groups share one length on each axis, so two groups with the same
+    /// shape draw the same field whatever their row counts: here the second group is
+    /// the first with every row written twice, which on its own would choose a
+    /// bandwidth 2^(−1/6) as long, and a sharper field.
+    #[test]
+    fn a_field_split_by_a_column_is_smoothed_alike_in_every_group() {
+        let one = two_modes();
+        let (xs, ys) = (col(&one, "x").clone(), col(&one, "y").clone());
+        let twice = |v: &[f64]| [v, v].concat();
+        let df = DataFrame::new()
+            .with_float("x", [xs.clone(), twice(&xs)].concat())
+            .with_float("y", [ys.clone(), twice(&ys)].concat())
+            .with_str("g", [vec!["once".to_string(); xs.len()], vec!["twice".to_string(); 2 * xs.len()]].concat());
+
+        let (hx, hy) = density2d_own_bandwidths(&df, "x", "y", &["g"]);
+        assert_eq!((hx.len(), hy.len()), (2, 2), "one bandwidth per group on each axis");
+        assert!(hx[1] < hx[0] && hy[1] < hy[0], "alone, the doubled group would smooth less");
+
+        let smoothing = Smoothing { x: shared_bandwidth(&hx, None), y: shared_bandwidth(&hy, None) };
+        let field = |g: &str| super::density2d_cells(&df.filter_str_eq("g", g), "x", "y", None, smoothing);
+        let (a, b) = (field("once"), field("twice"));
+        for (p, q) in col(&a, FIELD_DENSITY).iter().zip(col(&b, FIELD_DENSITY)) {
+            assert!((p - q).abs() <= 1e-12 * p.abs().max(1.0), "the two fields must agree: {p} vs {q}");
+        }
     }
 
     // -- range -------------------------------------------------------------

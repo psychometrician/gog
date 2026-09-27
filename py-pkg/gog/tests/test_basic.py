@@ -2718,3 +2718,17 @@ assert 'text-anchor="middle" fill="none" stroke="' not in render_svg(data(_halo_
                                        + line + text + label(col.name)), \
     "a label with no border must have no halo"
 ok("a border on `text` is a halo under its letters")
+
+# One density layer is smoothed by one bandwidth: the mean of the bandwidths its
+# groups would each choose alone. So two groups of one shape draw one violin,
+# whatever their row counts. Until 2026-09-26 each group took its own, and a
+# group with every row written twice was drawn sharper than its twin.
+_v = [1.0, 2.0, 2.5, 4.0, 4.2, 5.0, 7.0, 7.5, 9.0, 12.0]
+_same_shape = {"g": ["once"] * 10 + ["twice"] * 20, "v": _v * 3}
+_svg = render_svg(data(_same_shape, name="same_shape") + ribbon * density(compare="shape")
+                  + x(col.g) + y(col.v))
+_heights = [[p.split(",")[1] for p in pts.split()]
+            for pts in re.findall(r'<polygon points="([^"]*)"', _svg)]
+assert len(_heights) == 2 and _heights[0] == _heights[1], \
+    "two groups of one shape should draw one violin, whatever their row counts"
+ok("a density layer smooths every group by one bandwidth")

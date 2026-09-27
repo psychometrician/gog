@@ -102,6 +102,13 @@ countries for each year of its width, and the European bar nearly five: more
 than three times as many. The panels are still aligned and the axis still looks
 correct, and yet a reader cannot compare the three distributions.
 
+Like `bin`, [`density`](transforms.qmd#density-kernel-density-estimate) is not
+only a statistic. Its bandwidth, which sets how smooth each curve is, belongs to
+the whole plot, as the cut does: it is the average of the bandwidths each curve
+would get from its own rows. Each panel estimates its curve from its own rows
+with that bandwidth. A difference in shape between panels then comes from the
+data and not from the smoothing.
+
 ## Crossing into a grid
 
 Every plot so far has split on one column. Two columns can matter at once. Here
@@ -317,6 +324,11 @@ Africa's spread rather than bins sized for the richest countries in the data.
 gog does not offer a free scale with a shared cut. The bin edges would span
 every panel's range while each axis spans only its own, so some bars would
 extend past the end of their axis.
+
+Freeing an axis changes a `density` in the same way. On a freed axis, each
+panel's curves are smoothed with a bandwidth chosen from that panel's rows alone.
+A shared bandwidth is there so that panels can be compared, and freed panels
+cannot be. Here it would only flatten the curve of a panel with a narrow spread.
 
 Freeing also has limits. A free scale belongs to a panel, never to an animation
 frame. `play`, which turns a plot into an animation ([Play](play.qmd)), splits

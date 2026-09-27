@@ -2897,3 +2897,18 @@ test("a border on `text` is a halo under its letters", () => {
     /fill="none" stroke="white" stroke-width="5"/, "a set border draws a halo");
   assert.doesNotMatch(draw(), /text-anchor="middle" fill="none" stroke="/, "a label with no border has no halo");
 });
+
+// One density layer is smoothed by one bandwidth: the mean of the bandwidths its
+// groups would each choose alone. So two groups of one shape draw one violin,
+// whatever their row counts. Until 2026-09-26 each group took its own, and a
+// group with every row written twice was drawn sharper than its twin.
+test("a density layer smooths every group by one bandwidth", () => {
+  const v = [1, 2, 2.5, 4, 4.2, 5, 7, 7.5, 9, 12];
+  const sameShape = { g: [...Array(10).fill("once"), ...Array(20).fill("twice")], v: [...v, ...v, ...v] };
+  const svg = render_svg(plot(data(sameShape, { name: "same_shape" }),
+    layer(ribbon, density({ compare: "shape" })), x(col.g), y(col.v)));
+  const heights = [...svg.matchAll(/<polygon points="([^"]*)"/g)]
+    .map((m) => m[1].split(" ").map((p) => p.split(",")[1]));
+  assert.equal(heights.length, 2, "one violin per group");
+  assert.deepEqual(heights[0], heights[1], "two groups of one shape draw one violin, whatever their row counts");
+});

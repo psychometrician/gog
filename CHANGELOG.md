@@ -24,6 +24,15 @@ CRAN-style repositories and PyPI, `GrammarOfGraphics` on Julia's General, and
 
 ### Changed
 
+- **A `density` layer smooths all its groups alike.** Where one layer draws
+  several estimates (a violin or a ridge per category, a curve per `color`, a
+  contour per `group`, one per panel or per animation frame), they now share one
+  bandwidth: the average of the bandwidths Silverman's rule gives each group on
+  its own. A small group is no longer drawn as a needle beside a smooth large
+  one, and shapes can be compared. A freed axis takes one per panel. `adjust`
+  multiplies the shared bandwidth, a stated `bandwidth` still replaces it, and
+  a plot with one group draws exactly as before.
+
 - **Composed plots line up.** In a row, the panels now share their top and
   bottom edges, and in a column their left and right edges, even when the plots
   share no column. The plot with the narrower margin gives up the difference, so

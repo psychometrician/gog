@@ -4624,3 +4624,21 @@ local({
     stop("FAIL: a label with no border must have no halo")
   cat("PASS: a border on `text` is a halo under its letters\n")
 })
+
+# One density layer is smoothed by one bandwidth: the mean of the bandwidths its
+# groups would each choose alone. So two groups of one shape draw one violin,
+# whatever their row counts. Until 2026-09-26 each group took its own, and a
+# group with every row written twice was drawn sharper than its twin.
+local({
+  v <- c(1, 2, 2.5, 4, 4.2, 5, 7, 7.5, 9, 12)
+  same_shape <- data.frame(g = c(rep("once", 10), rep("twice", 20)), v = c(v, v, v))
+  svg <- render_svg(data(same_shape) + ribbon * density(compare = "shape") + x(g) + y(v))
+  outlines <- regmatches(svg, gregexpr('<polygon points="[^"]*"', svg))[[1]]
+  heights <- lapply(outlines, function(p) {
+    points <- strsplit(sub('^<polygon points="([^"]*)"$', "\\1", p), " ")[[1]]
+    vapply(strsplit(points, ","), `[`, "", 2)
+  })
+  if (length(heights) != 2 || !identical(heights[[1]], heights[[2]]))
+    stop("FAIL: two groups of one shape should draw one violin, whatever their row counts")
+  cat("PASS: a density layer smooths every group by one bandwidth\n")
+})

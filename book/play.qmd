@@ -272,6 +272,11 @@ year."*
 The distribution moves right across half a century. Every frame uses the same
 bins, and that is what makes the movement readable.
 
+A `density` shares one thing across the frames too: its bandwidth, which sets
+how smooth the curve is. It is the average of the bandwidths each frame's rows
+would get alone. A change in the curve's shape from frame to frame therefore
+comes from the data and not from the smoothing.
+
 ## A layer with no frames
 
 So far every layer in a plot has been cut into the same frames. A layer does not

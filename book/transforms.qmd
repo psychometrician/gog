@@ -548,7 +548,18 @@ data(gapminder_2007) + ribbon * density + x(continent) + y(life) +
 
 *"Given gapminder 2007: ribbons derived by density, x is continent, y is life."*
 
-Each of `density`'s parameters belongs to one of those readings, and gog refuses
+This plot draws five estimates, one per continent, and all five are smoothed by
+the same bandwidth. By default it is the average of the bandwidths Silverman's
+rule gives each continent on its own. If each continent kept its own bandwidth,
+Oceania's two countries would get one about a ninth of Africa's, and the two
+shapes would differ partly because of that. With one bandwidth, a difference in
+shape comes from the data and not from the smoothing. The same sharing applies
+whenever one layer draws several estimates: curves split by `color`, the panels
+of a [facet](faceting.qmd) whose axes are shared, and the frames of an animation
+made with [`play`](play.qmd). `adjust` multiplies the shared bandwidth, and a
+stated `bandwidth` replaces it.
+
+Each of `density`'s parameters belongs to one of the four readings, and gog refuses
 a parameter in a reading where it has no meaning, rather than ignoring it.
 `bandwidth` is a length in one column's units, so it means nothing to a field,
 whose two axes measure different quantities. `levels` counts lines of equal

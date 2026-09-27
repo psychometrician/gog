@@ -2287,3 +2287,18 @@ end
     plain = render_svg(data(halo_t, name = "halo_t") + x(:x) + y(:y) + line + text + label(:name))
     @test !occursin("text-anchor=\"middle\" fill=\"none\" stroke=\"", plain)
 end
+
+# One density layer is smoothed by one bandwidth: the mean of the bandwidths its
+# groups would each choose alone. So two groups of one shape draw one violin,
+# whatever their row counts. Until 2026-09-26 each group took its own, and a
+# group with every row written twice was drawn sharper than its twin.
+@testset "a density layer smooths every group by one bandwidth" begin
+    v = [1.0, 2.0, 2.5, 4.0, 4.2, 5.0, 7.0, 7.5, 9.0, 12.0]
+    same_shape = (g = vcat(fill("once", 10), fill("twice", 20)), v = vcat(v, v, v))
+    svg = render_svg(data(same_shape, name = "same_shape") + ribbon * density(compare = "shape") +
+                     x(:g) + y(:v))
+    heights = [[split(p, ",")[2] for p in split(m.captures[1])]
+               for m in eachmatch(r"<polygon points=\"([^\"]*)\"", svg)]
+    @test length(heights) == 2
+    @test heights[1] == heights[2]
+end
