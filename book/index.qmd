@@ -366,8 +366,8 @@ Six rules govern every page, and you can hold the book to them:
   no plot in this book is a screenshot. The only static images in this book
   sit in this preface (the *Hunminjeongeum* page, the mouth saying ㄱ, and in
   the web edition the cover and the DOI badge) and none of them is a plot.
-- **Questions first.** Every teaching chapter opens with a question about
-  data, never with a feature name. The teaching chapters are those in
+- **Questions first.** Every teaching chapter opens with a question, never
+  with a feature name. The teaching chapters are those in
   [Parts I to IV](#how-this-book-runs).
 - **An ending, not a stop.** Every teaching chapter outside the cookbook closes
   by saying what its subject cannot do, and which chapter answers that. It is not a summary of
@@ -495,7 +495,7 @@ once, here:
   network diagram reads it.
 
 Those eight families answer most of the questions asked here. A few
-chapters need a shape none of them has, and each has its own small table,
+questions need a shape none of them has, and each of those tables is
 introduced on the page that first draws it rather than in this list. The
 [surface](marks/surface.qmd) chapter uses a mountain's elevation grid, and the
 [space](space.qmd) chapter follows two gliders' spiral flight paths through the
@@ -503,8 +503,9 @@ third dimension. The [map](map.qmd) chapter draws country boundaries, and the
 [globe](globe.qmd) chapter draws earthquakes under the Pacific. The
 [cluster](cluster.qmd) transform reads foods and their nutrients. The
 [rule](marks/rule.qmd) chapter reads thresholds, and the [zone](marks/zone.qmd)
-chapter reads the spans it shades. None of
-them arrives to add variety. A new column costs the reader attention, so the
+chapter reads the spans it shades. Some of them return in later chapters when
+the same shape is needed again, and each is shown again where it returns. None
+of them arrives to add variety. A new column costs the reader attention, so the
 variety in this book stays in the questions.
 
 ## How this book runs
@@ -599,15 +600,15 @@ The Python package carries the engine inside it, already built for your
 computer; the Julia and JavaScript packages download it when you install them;
 and the R package carries it on macOS and Windows. So, except for R on Linux,
 you do not need a Rust [@klabnik2023rust] toolchain, and nothing has to be added
-to your `PATH`. The R command has one note to read before you run it. The other
-three commands can be run as they are.
+to your `PATH`. The R command needs one thing checked first: on Linux it builds
+the engine from source, so Rust must be installed and a network connection
+available. The [R](bindings/r.qmd) chapter gives the command that installs
+Rust. The other three commands can be run as they are.
 
 The R package is not on CRAN yet. It is published on
 [r-universe](https://psychometrician.r-universe.dev/gog) instead, which is why the
 `repos` argument names two addresses. The second address is an ordinary CRAN
-mirror, and it is there so your other packages still install as usual. On Linux
-the command builds the engine from source, which needs Rust and a network
-connection. The [R](bindings/r.qmd) chapter gives the command that installs Rust.
+mirror, and it is there so your other packages still install as usual.
 
 Each binding has its own chapter at the end of this book, and each of those
 chapters carries the longer version of this section: [R](bindings/r.qmd),
@@ -632,10 +633,11 @@ available even if this site does not.
 
 ## Who wrote this
 
-This book carries six names, and the division of labor behind them is worth
-stating plainly rather than leaving in a footnote.
+The cover names one person and the Claude models that worked with me. The
+division of labor behind those names is worth stating plainly rather than
+leaving in a footnote.
 
-One of the six is not a name. I publish as **psychometrician**. I learned what
+The first name on the cover is not a name. I publish as **psychometrician**. I learned what
 a pen name was in 1992, when I took introductory statistics in the psychology
 department. That is where I met *Student*. Student was [William Sealy
 Gosset](https://en.wikipedia.org/wiki/William_Sealy_Gosset), an English chemist
@@ -679,7 +681,7 @@ become: those are the parts I am answerable for. The hex sticker is mine as
 well. I designed it myself in [Canva](https://www.canva.com), with no sticker
 package. I am not an artist, and what I wanted was not a beautiful
 sticker but an unmistakable one. The Rust
-engine was written entirely by the five Claude models on the cover, as were all
+engine was written entirely by the Claude models on the cover, as were all
 four language bindings and the test suites. They also did the work nobody is
 ever thanked for, which is running every sentence in this book through four
 languages, again and again, until all four agreed byte for byte.
@@ -694,8 +696,9 @@ it or reject it. Claude Code put all of it into English. The sentences are not
 mine; the decisions behind all of them are.
 
 Naming them as co-authors is meant literally. A line reading "with assistance
-from" would understate the work many times over. This whole book teaches you to
-say exactly what you mean, and the cover follows the same rule.
+from" would understate the work many times over. This whole book asks you to
+describe a plot exactly, with nothing left implied. The cover is held to the
+same rule: it says who did the work.
 
 They were not one kind of collaborator, and it would be a poor tribute to
 pretend they were. On some days they were assistants: fast, tireless, and so
@@ -731,7 +734,7 @@ project and I maintain it. The credit is shared; the fault is not.
 One last item belongs in an honest accounting. I work as a psychometrician, and
 this package was never part of that job. It was built late at night, on
 weekends, and on vacation days. That time belonged to my wife and daughter, and
-I spent it talking to the five Claude models on the cover instead. I am not
+I spent it talking to the Claude models on the cover instead. I am not
 going to call that devotion to the craft. To my wife and daughter: sorry.
 I would like to end by saying it is finished. It is not. The version is 0.3.0,
 and what comes next will cost the same nights, weekends and vacation days.
@@ -841,7 +844,7 @@ willing to play with this tool, you are already there. Much bigger things than
 this package will come out of that.
 
 So, thank you to the people at [Anthropic](https://www.anthropic.com/) who built
-Claude Code, and to the five models named on this book's cover. I do not know
+Claude Code, and to the models named on this book's cover. I do not know
 most of your names. I know two of them from YouTube:
 [Boris Cherny](https://x.com/bcherny) and [Cat Wu](https://x.com/_catwu). You
 built the thing that let a psychometrician write a graphics engine in Rust. How

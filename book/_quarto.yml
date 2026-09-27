@@ -66,9 +66,11 @@ book:
     built from the package's four operators: a plus and an asterisk as its two
     eyes, a slash and a vertical bar as its nose, and the package name as its
     mouth.
-  # Six names, and the division of labor behind them is stated in the
-  # preface ("Who wrote this") rather than left to a reader to guess. The
-  # five models wrote the engine, the four bindings and the test suites, and
+  # The human first, then every Claude model that worked on the book, each by
+  # its exact version. The preface never counts them, so adding a model is an
+  # edit to this list and nothing else. The division of labor behind the names
+  # is stated in the preface ("Who wrote this") rather than left to a reader to
+  # guess. The models wrote the engine, the four bindings and the test suites, and
   # put the text into English; the thinking the text expresses is the human's,
   # the way a ghostwritten autobiography is its subject's. The copyright
   # holder and sole package author is the human, because a model cannot hold
