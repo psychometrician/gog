@@ -2587,9 +2587,13 @@ test("counts on every axis, calendar z, shared ticks, one key, and the rest", ()
     day: [...Array(42).keys()].map((i) => new Date(Date.UTC(2024, 2, 1 + i))),
     orders: [...Array(42).keys()].map((i) => 20 + (i % 7) * 2),
   };
-  const dated = (opts = {}) => labels(render_svg(
-    plot(data(days), line, x(col.day, opts), y(col.orders)))).filter((l) => /^(Feb|Mar|Apr) /.test(l)).length;
-  assert.deepEqual([dated(), dated({ tick_count: 3 }), dated({ tick_count: 20 })], [6, 3, 22]);
+  const dated = (opts = {}, width = 800) => labels(render_svg(
+    plot(data(days), line, x(col.day, opts), y(col.orders), theme({ width }))))
+    .filter((l) => /^(Feb|Mar|Apr) /.test(l)).length;
+  // Twenty asks the calendar for 22 dates: at 800 pixels they do not fit side by
+  // side, so one in every two is drawn; at 1600 all 22 are.
+  assert.deepEqual([dated(), dated({ tick_count: 3 }), dated({ tick_count: 20 }),
+    dated({ tick_count: 20 }, 1600)], [6, 3, 11, 22]);
   assert.ok(labels(render_svg(plot(data(days), point, x(col.orders), y(col.orders), z(col.day))))
     .includes("Mar 4"), "a date on z is ticked on the calendar");
 
@@ -3129,4 +3133,26 @@ test("a second color column is refused, with a channel of its own", () => {
     line, color(col.country))).includes("<circle"));
   assert.ok(render_svg(plot(data(asia), x(col.year), y(col.life), point, color(col.country),
     line, color(col.continent, { legend: false }))).includes("<circle"));
+});
+
+// Crowded numbers thin as names do: five narrow panels printed 0K to 50K through
+// each other, and now keep every other number, the ones a coarser step would
+// choose, with nothing said. A `tick_count` the caller wrote that is thinned is
+// said out loud. The same block runs in all four bindings.
+test("crowded numbers thin, and a written tick_count says so", () => {
+  const labels = (svg) => [...svg.matchAll(/>([^<>]*)<\/text>/g)].map((m) => m[1]);
+  const crowd = { gdp: [300, 12000, 25000, 49000, 900, 30000],
+    life: [45, 60, 70, 80, 50, 75], g: ["a", "b", "c", "d", "e", "a"] };
+  const lab = labels(render_svg(plot(data(crowd), point, x(col.gdp), y(col.life), across(col.g))));
+  assert.ok(["20K", "40K"].every((l) => lab.includes(l)) && !lab.includes("10K") && !lab.includes("30K"),
+    lab.join(" "));
+  const write = process.stderr.write;
+  let said = "";
+  process.stderr.write = (chunk) => { said += chunk; return true; };
+  try {
+    render_svg(plot(data(crowd), point, x(col.gdp, { tick_count: 12 }), y(col.life), across(col.g)));
+  } finally {
+    process.stderr.write = write;
+  }
+  assert.ok(said.includes("tick_count = 12") && said.includes("so 3 of them are drawn"), said);
 });

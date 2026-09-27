@@ -758,20 +758,24 @@ describe.
 
 ### Crowding in the plane and in the cube
 
-A flat panel and a cube handle crowded numbers differently, and both ways are
-correct. A flat continuous axis draws *every* tick it chose, however close
-together the ticks get. The panel's width is already fixed, and the labels sit in a margin
-reserved for them. A label at either end that would reach past the panel is
-moved inward. Nothing is dropped, so every tick the axis chose is drawn with its
-label.
+A flat panel and a cube follow one rule for crowded numbers: no number may be
+printed over another. A flat continuous axis draws every tick it chose, as long
+as no two numbers overlap. Where panels are side by side, an end number that
+would reach past its panel is moved inward. In narrow panels, such as the five
+panels of a plot faceted by continent ([Faceting](faceting.qmd)), the numbers
+can still overlap. The axis then draws fewer numbers, and the ticks and
+gridlines of the others are left out too. The numbers it keeps are the ones a
+larger round step would choose, so 0K, 10K, 20K, 30K and 40K become 0K, 20K and
+40K. A number left out can be read from the numbers on either side, so no
+message is printed. If you stated a `tick_count`, a message says how many ticks
+were drawn. A polar plot, a map, and an axis freed with `free = TRUE` still draw
+every number they chose.
 
-A cube cannot do that. In a 3-D plot ([Space](space.qmd)), each axis is longer
-or shorter depending on the viewing angle. Turning the cube lengthens one axis
-and shortens another, so an axis can be left with no room for its numbers. The
-cube then draws as many as fit and leaves the rest out. Both follow one rule: no
-number may be printed over another. They differ only in how much room each has,
-because the plane can reserve room in advance and the cube cannot. When a count
-you stated cannot fit, the engine says so rather than quietly drawing fewer.
+A cube can also have too little room for its numbers. In a 3-D plot
+([Space](space.qmd)), each axis is longer or shorter depending on the viewing
+angle. Turning the cube lengthens one axis and shortens another. The cube then
+draws as many numbers as fit and leaves the rest out. When a count you stated
+cannot fit, the engine says so rather than quietly drawing fewer.
 
 Names on a categorical axis follow the same rule: no name may be printed over
 another. The axis tries to name every category, and a name is usually much wider
@@ -795,8 +799,8 @@ the y axis in a taller plot, or draw fewer rows.
 
 A scale changes where a number lands on the axis. It never changes the number
 itself. `limits` states the domain: narrowing it removes rows and reports how
-many, while a brush removes none. In a flat panel `tick_count` is a target, not
-an exact number, and a cube drops the ticks that will not fit. A crowded
+many, while a brush removes none. `tick_count` is a target, not an exact
+number. A crowded continuous axis, flat or in a cube, draws fewer numbers. A crowded
 categorical axis turns its names, then leaves some out and says so.
 
 ## What comes next

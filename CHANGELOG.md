@@ -48,6 +48,14 @@ CRAN-style repositories and PyPI, `GrammarOfGraphics` on Julia's General, and
 
 ### Changed
 
+- **Crowded numbers no longer print over each other.** In narrow panels, such
+  as five facet columns, the numbers on a continuous axis used to run into one
+  another at the panel edges. The axis now draws fewer numbers, leaving out the
+  ticks and gridlines of the rest, and keeps the ones a larger round step would
+  choose, so 0K to 40K by 10K becomes 0K, 20K and 40K. No message is printed,
+  unless you stated a `tick_count`; then a message says how many ticks were
+  drawn. A map's degree axes keep every tick.
+
 - **Crowded category names no longer print over each other.** When the names
   on a categorical axis do not fit side by side, gog turns them 90 degrees to
   read upward. When even turned names are too close, it draws one name in every

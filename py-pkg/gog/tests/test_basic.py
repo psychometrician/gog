@@ -2378,12 +2378,16 @@ _days = {"day": [date(2024, 3, 1) + _timedelta(days=i) for i in builtins.range(4
          "orders": [20.0, 22.0, 24.0, 26.0, 28.0, 30.0, 32.0] * 6}
 
 
-def _dated(**kw):
+def _dated(width=800, **kw):
     return builtins.sum(bool(re.match(r"(Feb|Mar|Apr) ", l)) for l in _labels(
-        render_svg(data(_days, name="days") + line + x(col.day, **kw) + y(col.orders))))
+        render_svg(data(_days, name="days") + line + x(col.day, **kw) + y(col.orders)
+                   + theme(width=width))))
 
 
-assert (_dated(), _dated(tick_count=3), _dated(tick_count=20)) == (6, 3, 22), \
+# Twenty asks the calendar for 22 dates: at 800 pixels they do not fit side by
+# side, so one in every two is drawn; at 1600 all 22 are.
+assert (_dated(), _dated(tick_count=3), _dated(tick_count=20),
+        _dated(tick_count=20, width=1600)) == (6, 3, 11, 22), \
     (_dated(), _dated(tick_count=3), _dated(tick_count=20))
 assert "Mar 4" in _labels(render_svg(data(_days, name="days") + point + x(col.orders)
                                      + y(col.orders) + z(col.day)))
@@ -2939,3 +2943,21 @@ assert "<circle" in render_svg(data(_asia, name="asia") + x(col.year) + y(col.li
 assert "<circle" in render_svg(data(_asia, name="asia") + x(col.year) + y(col.life) + point
                                + color(col.country) + line + color(col.continent, legend=False))
 ok("a second color column is refused, with a channel of its own")
+
+
+# --- Crowded numbers thin as names do ----------------------------------------
+# Five narrow panels printed 0K to 50K through each other, and now keep every
+# other number, the ones a coarser step would choose, with nothing said. A
+# `tick_count` the caller wrote that is thinned is said out loud. The same block
+# runs in all four bindings.
+_crowd = {"gdp": [300.0, 12000.0, 25000.0, 49000.0, 900.0, 30000.0],
+          "life": [45.0, 60.0, 70.0, 80.0, 50.0, 75.0], "g": ["a", "b", "c", "d", "e", "a"]}
+_lab = _labels(render_svg(data(_crowd, name="crowd") + point + x(col.gdp) + y(col.life)
+                          | facet(col.g)))
+assert {"20K", "40K"} <= set(_lab) and not {"10K", "30K"} & set(_lab), _lab
+_said = io.StringIO()
+with contextlib.redirect_stderr(_said):
+    render_svg(data(_crowd, name="crowd") + point + x(col.gdp, tick_count=12) + y(col.life)
+               | facet(col.g))
+assert "tick_count = 12" in _said.getvalue() and "so 3 of them are drawn" in _said.getvalue(), _said.getvalue()
+ok("crowded numbers thin, and a written tick_count says so")

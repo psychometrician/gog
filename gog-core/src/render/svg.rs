@@ -1582,17 +1582,16 @@ impl SvgRenderer {
             .collect();
         if horizontal { x_sides.extend(stack_sides) } else { y_sides.extend(stack_sides) }
 
-        // Tick density is deliberately NOT thinned for narrow panels. It was
-        // tried while the range still followed the ticks: a smaller target
-        // coarsened the step, and the scale ceiling — the step's next multiple
-        // above the data — climbed with it, which traded a label-crowding
-        // problem for panels half full of dead space. (`fit_axis` pins the range
-        // to the data now, so that cost is gone; the rule has not been measured
-        // again since.) Crowding is instead answered by anchoring edge labels
-        // inward (see `write_ticks`); panels too narrow even for that are the
-        // many-level case that facet wrapping exists to solve, and it is listed
-        // as such. The one coarsening is `ticks::MAX_TICKS`, a ceiling on the
-        // count whatever the panel's width, and it is said out loud below.
+        // The ticks are chosen here without the panel's width, which only the
+        // layout knows. Where their labels then collide, in a narrow panel or a
+        // short one, the crowded-labels block after `PanelGrid::compute` draws one
+        // in every `stride` (ruled 2026-09-27; the rule before it drew every tick
+        // and let the labels overprint). Coarsening the step here instead was
+        // tried while the range still followed the ticks, and the ceiling climbed
+        // with the step; `fit_axis` pins the range to the data now, but thinning
+        // after the layout needs no guess at the width. The one coarsening here is
+        // `ticks::MAX_TICKS`, a ceiling on the count whatever the width, and it is
+        // said out loud below.
         let (x_ticks, xs, x_extent) = build_axis(
             &eff, &bar_frames, &x_sides, x_field, cat_x.as_deref(),
             has_plain_bar && !horizontal,
@@ -2159,10 +2158,24 @@ impl SvgRenderer {
         // turned they collide, every `stride`-th one is drawn, and that is said
         // out loud with the fix, because a name not printed is information the
         // binding carried (§12).
+        //
+        // **Crowded numbers thin by the same rule** (ruled 2026-09-27). Numbers do
+        // not turn, but a panel narrow or short enough still printed them through
+        // each other. They are measured as names are, side by side on `x` and one
+        // above another on `y`, and every `stride`-th is kept, starting where an
+        // even axis lands on the wider step. A number not printed hides no data,
+        // since the axis still carries the rest, so this is said only when the
+        // caller wrote the count (`tick_count`), which the drawing then departs from.
         let x_labeled = !grid_xt.labels.is_empty();
         let y_labeled = !grid_yt.labels.is_empty();
         let x_names = !is_polar && !free_x && cat_x.is_some() && x_labeled;
         let y_names = !is_polar && !free_y && cat_y.is_some() && y_labeled;
+        // A map's degrees are placed by its projection, not along a straight
+        // axis, so the straight measure above does not hold there; its axes keep
+        // every tick, as a polar plot's do.
+        let projected = matches!(spec.coord, CoordSpace::Map(_));
+        let x_numbers = !is_polar && !projected && !free_x && cat_x.is_none() && x_labeled;
+        let y_numbers = !is_polar && !projected && !free_y && cat_y.is_none() && y_labeled;
         let across = crate::render::layout::name_pitch(self.font_sm);
         let widths = |t: &TickSpec| -> Vec<f64> {
             t.labels.iter().map(|s| estimate_text_width(s, self.font_sm)).collect()
@@ -2181,15 +2194,25 @@ impl SvgRenderer {
             false => stated_angle,
         };
         let grid = if tick_angle != stated_angle { compute_grid(grid_xt, grid_yt, tick_angle) } else { grid };
-        let x_stride = match x_names {
-            true => crate::render::layout::names_stride(
-                &x_at(&grid, grid_xt), &widths(grid_xt), across, tick_angle.unwrap_or(0.0)),
-            false => 1,
+        let x_linear = !x_log && x_time.is_none();
+        let y_linear = !y_log && y_time.is_none();
+        let x_stride = match (x_names, x_numbers, tick_angle) {
+            (true, _, a) | (_, true, a @ Some(_)) => crate::render::layout::names_stride(
+                &x_at(&grid, grid_xt), &widths(grid_xt), across, a.unwrap_or(0.0)),
+            // Upright numbers, placed as they are drawn: in a grid of several
+            // columns an edge number is drawn inward from its tick.
+            (_, true, None) => grid.panels.first().map_or(1, |p|
+                crate::render::layout::numbers_stride(
+                    &grid_xt.values, &x_at(&grid, grid_xt), &widths(grid_xt),
+                    p.rect.x0, p.rect.x1, grid.ncols > 1, x_linear)),
+            _ => 1,
         };
-        let y_stride = match y_names {
-            true => crate::render::layout::names_stride(
+        let y_stride = match (y_names, y_numbers) {
+            (true, _) => crate::render::layout::names_stride(
                 &y_at(&grid, grid_yt), &widths(grid_yt), across, 90.0),
-            false => 1,
+            (_, true) => crate::render::layout::numbers_stride_stacked(
+                &grid_yt.values, &y_at(&grid, grid_yt), &widths(grid_yt), across, y_linear),
+            _ => 1,
         };
         // The height that would name every one: the frame around the panels as an
         // upright axis leaves it, plus a pitch per slot in every row.
@@ -2202,16 +2225,33 @@ impl SvgRenderer {
         let nearest = |at: Vec<f64>| -> f64 {
             at.windows(2).map(|w| (w[1] - w[0]).abs()).fold(f64::INFINITY, f64::min)
         };
-        if x_stride > 1 {
+        if x_stride > 1 && x_names {
             remarks.push(thinned_names('x', x_field, x_ticks.labels.len(), x_stride,
                 nearest(x_at(&grid, grid_xt)), across, tick_angle, taller(xs.1 - xs.0)));
         }
-        if y_stride > 1 {
+        if y_stride > 1 && y_names {
             remarks.push(thinned_names('y', y_field, y_ticks.labels.len(), y_stride,
                 nearest(y_at(&grid, grid_yt)), across, None, taller(ys.1 - ys.0)));
         }
-        let x_ticks = if x_stride > 1 { thin_names(&x_ticks, x_stride) } else { x_ticks };
-        let y_ticks = if y_stride > 1 { thin_names(&y_ticks, y_stride) } else { y_ticks };
+        let x_asked = scale::tick_count_of(spec.axis_def(&Channel::X));
+        let y_asked = scale::tick_count_of(spec.axis_def(&Channel::Y));
+        let (x_chosen, y_chosen) = (x_ticks.labels.len(), y_ticks.labels.len());
+        let x_ticks = match (x_stride > 1, x_names) {
+            (true, true) => thin_names(&x_ticks, x_stride),
+            (true, false) => thin_numbers(&x_ticks, x_stride, x_linear),
+            _ => x_ticks,
+        };
+        let y_ticks = match (y_stride > 1, y_names) {
+            (true, true) => thin_names(&y_ticks, y_stride),
+            (true, false) => thin_numbers(&y_ticks, y_stride, y_linear),
+            _ => y_ticks,
+        };
+        if let (true, true, Some(n)) = (x_stride > 1, x_numbers, x_asked) {
+            remarks.push(thinned_numbers('x', x_field, n, x_chosen, x_ticks.labels.len()));
+        }
+        if let (true, true, Some(n)) = (y_stride > 1, y_numbers, y_asked) {
+            remarks.push(thinned_numbers('y', y_field, n, y_chosen, y_ticks.labels.len()));
+        }
         let grid_xt: &TickSpec = if x_labeled { &x_ticks } else { &no_ticks };
         let grid_yt: &TickSpec = if y_labeled { &y_ticks } else { &no_ticks };
         let grid = if x_stride > 1 || y_stride > 1 { compute_grid(grid_xt, grid_yt, tick_angle) } else { grid };
@@ -5066,6 +5106,42 @@ fn thin_names(t: &TickSpec, stride: usize) -> TickSpec {
     ticks_with_labels(values, labels)
 }
 
+/// A numeric axis's ticks with every `stride`-th kept, labels, marks and
+/// gridlines together, as [`thin_names`] keeps names. On an evenly spaced linear
+/// axis the kept ticks start where one lands on a multiple of the wider step, so a
+/// thinned 10, 20, 30, 40, 50 reads 20, 40 rather than 10, 30, 50: the numbers a
+/// coarser step would have chosen. Elsewhere (a log axis, a calendar, an uneven
+/// set) they start at the first, as names do.
+fn thin_numbers(t: &TickSpec, stride: usize, linear: bool) -> TickSpec {
+    let from = crate::render::layout::numbers_from(&t.values, stride, linear);
+    let (values, labels) = t.values.iter().zip(&t.labels)
+        .skip(from)
+        .step_by(stride.max(1))
+        .map(|(v, l)| (*v, l.clone()))
+        .unzip();
+    ticks_with_labels(values, labels)
+}
+
+/// Say that an axis draws fewer ticks than the `tick_count` its caller wrote,
+/// and why. Only a written count is answered: the ticks gog chose itself are a
+/// guide, and drawing fewer of them hides no data, while a count the caller
+/// wrote is a request the drawing now departs from (Law 5).
+fn thinned_numbers(axis: char, field: &str, asked: usize, chosen: usize, kept: usize) -> Diagnostic {
+    let field = if field.is_empty() { "<column>" } else { field };
+    let (room, bigger) = match axis {
+        'x' => ("side by side", "a wider plot (`theme(width = )`)"),
+        _ => ("one above another", "a taller plot (`theme(height = )`)"),
+    };
+    Diagnostic {
+        kind: crate::legality::DiagnosticKind::Assumption,
+        message: format!(
+            "gog: `{axis}({field}, tick_count = {asked})` asks for about {asked} ticks, and \
+             the {chosen} ticks it chose do not fit {room} at this size, so {kept} of them are \
+             drawn. A smaller `tick_count`, or {bigger}, draws them all."
+        ),
+    }
+}
+
 /// Say that a category axis draws one name in every `stride`, and how to name
 /// them all (spec §12): the names that were not printed are information the
 /// binding carried, so thinning them is an Assumption, never silent.
@@ -7898,7 +7974,44 @@ mod tests {
             .count();
         assert_eq!(dated(days(None)), 6, "the weekly default moved");
         assert_eq!(dated(days(Some(3))), 3, "{:?}", days(Some(3)));
-        assert_eq!(dated(days(Some(20))), 22, "{:?}", days(Some(20)));
+        // Twenty asks the calendar for 22 dates. At the default width they do not
+        // fit side by side, so one in every two is drawn and the note says so; in a
+        // plot twice as wide all 22 are drawn, which is the count reaching the axis.
+        assert_eq!(dated(days(Some(20))), 11, "{:?}", days(Some(20)));
+        let mut spec = PlotSpec::new().data("t").y("orders").layer(Layer::new(Mark::Line));
+        spec.x = Some(crate::ir::ChannelDef::field("day").with_tick_count(20));
+        let narrow = SvgRenderer::default().draw(&spec, &six_weeks(42));
+        assert!(narrow.remarks.iter().any(|d| d.message.contains("so 11 of them are drawn")),
+                "{:?}", narrow.remarks.iter().map(|d| &d.message).collect::<Vec<_>>());
+        let wide = SvgRenderer { width: 1600.0, ..SvgRenderer::default() };
+        assert_eq!(dated(text_of(&wide.render(&spec, &six_weeks(42)))), 22);
+    }
+
+    /// **Crowded numbers thin as names do** (ruled 2026-09-27). Five panels of a
+    /// gdp scatter printed 0K to 50K through each other at the panel edges, where
+    /// an edge number is drawn inward from its tick; they now keep every other
+    /// number, the ones a coarser step would choose, with no note, since the
+    /// numbers left out hide no data.
+    #[test]
+    fn crowded_numbers_thin_and_keep_the_coarser_steps() {
+        let t: HashMap<String, DataFrame> = HashMap::from([(
+            "t".to_string(),
+            DataFrame::new()
+                .with_float("gdp", vec![300.0, 12_000.0, 25_000.0, 49_000.0, 900.0, 30_000.0])
+                .with_float("life", vec![45.0, 60.0, 70.0, 80.0, 50.0, 75.0])
+                .with_str("g", ["a", "b", "c", "d", "e", "a"].map(String::from).to_vec()),
+        )]);
+        let spec = PlotSpec::new().data("t").x("gdp").y("life")
+            .layer(Layer::new(Mark::Point)).facet_col("g");
+        let drawn = SvgRenderer::default().draw(&spec, &t);
+        let labels = text_of(&drawn.svg);
+        assert!(labels.iter().any(|l| l == "20K") && labels.iter().any(|l| l == "40K"), "{labels:?}");
+        assert!(!labels.iter().any(|l| l == "10K" || l == "30K"), "{labels:?}");
+        assert!(!drawn.remarks.iter().any(|d| d.message.contains("tick_count")),
+                "an unstated count thins in silence");
+        // One plot alone keeps every number: the margins give them room.
+        let alone = PlotSpec::new().data("t").x("gdp").y("life").layer(Layer::new(Mark::Point));
+        assert!(text_of(&SvgRenderer::default().render(&alone, &t)).iter().any(|l| l == "10K"));
     }
 
     /// **A date on `z` is ticked on the calendar.** The cube passed no unit to its

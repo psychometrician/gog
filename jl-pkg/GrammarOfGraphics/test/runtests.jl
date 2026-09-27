@@ -1992,9 +1992,12 @@ end
     @test all(l -> l in logged(tick_count = 12), ["2K", "5K"])
     days = (day = [Date(2024, 3, 1) + Day(i) for i in 0:41],
             orders = repeat([20.0, 22.0, 24.0, 26.0, 28.0, 30.0, 32.0], 6))
-    dated(; kw...) = Base.count(l -> occursin(r"^(Feb|Mar|Apr) ", l),
-                                labels(render_svg(data(days) + line + x(:day; kw...) + y(:orders))))
-    @test (dated(), dated(tick_count = 3), dated(tick_count = 20)) == (6, 3, 22)
+    dated(; width = 800, kw...) = Base.count(l -> occursin(r"^(Feb|Mar|Apr) ", l),
+        labels(render_svg(data(days) + line + x(:day; kw...) + y(:orders) + theme(width = width))))
+    # Twenty asks the calendar for 22 dates: at 800 pixels they do not fit side
+    # by side, so one in every two is drawn; at 1600 all 22 are.
+    @test (dated(), dated(tick_count = 3), dated(tick_count = 20),
+           dated(tick_count = 20, width = 1600)) == (6, 3, 11, 22)
     @test "Mar 4" in labels(render_svg(data(days) + point + x(:orders) + y(:orders) + z(:day)))
 
     quakes = (east = [165.0, 170.0, 175.0, 180.0, 185.0], north = [-35.0, -30.0, -25.0, -20.0, -15.0])
@@ -2502,4 +2505,24 @@ end
                                          color(:country) + line + color(:country)))
     @test occursin("<circle", render_svg(data(asia) + x(:year) + y(:life) + point +
                                          color(:country) + line + color(:continent, legend = false)))
+end
+
+# Crowded numbers thin as names do: five narrow panels printed 0K to 50K through
+# each other, and now keep every other number, the ones a coarser step would
+# choose, with nothing said. A `tick_count` the caller wrote that is thinned is
+# said out loud. The same block runs in all four bindings.
+@testset "crowded numbers thin, and a written tick_count says so" begin
+    labels(svg) = [m.captures[1] for m in eachmatch(r">([^<>]*)</text>", svg)]
+    crowd = (gdp = [300.0, 12000.0, 25000.0, 49000.0, 900.0, 30000.0],
+             life = [45.0, 60.0, 70.0, 80.0, 50.0, 75.0], g = ["a", "b", "c", "d", "e", "a"])
+    lab = labels(render_svg(data(crowd) + point + x(:gdp) + y(:life) | facet(:g)))
+    @test "20K" in lab && "40K" in lab
+    @test !("10K" in lab) && !("30K" in lab)
+    path, io = mktemp()
+    redirect_stderr(io) do
+        render_svg(data(crowd) + point + x(:gdp, tick_count = 12) + y(:life) | facet(:g))
+    end
+    close(io)
+    said = read(path, String)
+    @test occursin("tick_count = 12", said) && occursin("so 3 of them are drawn", said)
 end

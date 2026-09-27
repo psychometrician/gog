@@ -4265,9 +4265,12 @@ local({
     stop("FAIL: a stated count should reach a log axis")
   days <- data.frame(day = seq(as.Date("2024-03-01"), by = "day", length.out = 42),
                      orders = rep(c(20, 22, 24, 26, 28, 30, 32), 6))
-  dated <- function(...) sum(grepl("^(Feb|Mar|Apr) ", tick_labels(render_svg(
-    data(days) + line + x(day, ...) + y(orders)))))
-  if (dated() != 6 || dated(tick_count = 3) != 3 || dated(tick_count = 20) != 22)
+  dated <- function(..., width = 800) sum(grepl("^(Feb|Mar|Apr) ", tick_labels(render_svg(
+    data(days) + line + x(day, ...) + y(orders) + theme(width = width)))))
+  # Twenty asks the calendar for 22 dates: at 800 pixels they do not fit side by
+  # side, so one in every two is drawn; at 1600 all 22 are.
+  if (dated() != 6 || dated(tick_count = 3) != 3 || dated(tick_count = 20) != 11 ||
+      dated(tick_count = 20, width = 1600) != 22)
     stop("FAIL: a stated count should reach a calendar axis")
   lab <- tick_labels(render_svg(data(days) + point + x(orders) + y(orders) + z(day)))
   if (!("Mar 4" %in% lab)) stop("FAIL: a date on z should be ticked on the calendar")
@@ -4891,4 +4894,23 @@ local({
   if (!grepl("<circle", svg, fixed = TRUE))
     stop("FAIL: a legend turned off on purpose should draw")
   cat("PASS: a second color column is refused, with a channel of its own\n")
+})
+
+# ---------------------------------------------------------------------------
+# Crowded numbers thin as names do: five narrow panels printed 0K to 50K through
+# each other, and now keep every other number, the ones a coarser step would
+# choose, with nothing said. A `tick_count` the caller wrote that is thinned is
+# said out loud. The same block runs in all four bindings.
+# ---------------------------------------------------------------------------
+local({
+  t <- data.frame(gdp = c(300, 12000, 25000, 49000, 900, 30000),
+                  life = c(45, 60, 70, 80, 50, 75), g = c("a", "b", "c", "d", "e", "a"))
+  lab <- tick_labels(render_svg(data(t) + point + x(gdp) + y(life) | facet(g)))
+  if (!all(c("20K", "40K") %in% lab) || any(c("10K", "30K") %in% lab))
+    stop("FAIL: crowded numbers should keep every other one: ", paste(lab, collapse = " "))
+  said <- capture_msgs(render_svg(data(t) + point + x(gdp, tick_count = 12) + y(life) |
+                                    facet(g)))$msgs
+  if (!grepl("tick_count = 12", said, fixed = TRUE) || !grepl("so 3 of them are drawn", said, fixed = TRUE))
+    stop("FAIL: a written tick_count that is thinned should say so: ", said)
+  cat("PASS: crowded numbers thin, and a written tick_count says so\n")
 })

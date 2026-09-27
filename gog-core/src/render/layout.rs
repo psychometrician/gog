@@ -528,6 +528,128 @@ pub(crate) fn names_stride(at: &[f64], widths: &[f64], across: f64, angle: f64) 
     (1..=n).find(|&k| names_clear(at, widths, across, angle, k)).unwrap_or(n)
 }
 
+/// Is this an evenly spaced run, and what is its step?
+fn even_step(values: &[f64]) -> Option<f64> {
+    if values.len() < 2 {
+        return None;
+    }
+    let step = values[1] - values[0];
+    let even = values.windows(2).all(|w| ((w[1] - w[0]) - step).abs() <= step.abs() * 1e-9);
+    (even && step > 0.0).then_some(step)
+}
+
+/// How round a number is: the largest power of ten it is a multiple of, and zero
+/// the roundest of all.
+fn roundness(v: f64) -> f64 {
+    if v == 0.0 {
+        return f64::INFINITY;
+    }
+    let mut p = 10f64.powf(v.abs().log10().floor());
+    while p >= 1e-12 {
+        let q = v / p;
+        if (q - q.round()).abs() < 1e-6 {
+            return p;
+        }
+        p /= 10.0;
+    }
+    0.0
+}
+
+/// The strides worth trying on a run of numbers, smallest first. On an evenly
+/// spaced linear axis whose step is round (1, 2 or 5 times a power of ten), only
+/// the strides that land on a larger round step, so the numbers kept are the ones
+/// that step would have chosen: a step of 5 thins to 10, 20 and 50, a step of 2 to
+/// 10 and 20, a step of 1 to 2, 5 and 10. Elsewhere (a log axis, a calendar, an
+/// uneven run) every stride in turn, as for names.
+pub(crate) fn number_strides(values: &[f64], linear: bool) -> Vec<usize> {
+    let n = values.len().max(1);
+    let Some(step) = even_step(values).filter(|_| linear) else {
+        return (1..=n).collect();
+    };
+    let p = 10f64.powf(step.log10().floor());
+    let m = step / p;
+    if ![1.0, 2.0, 5.0].iter().any(|r| (m - r).abs() < 1e-9) {
+        return (1..=n).collect();
+    }
+    let mut strides = vec![1];
+    for power in 0..12 {
+        for mantissa in [1.0, 2.0, 5.0] {
+            let wider = mantissa * p * 10f64.powi(power);
+            let k = wider / step;
+            if wider > step && (k - k.round()).abs() < 1e-9 && (k.round() as usize) < n {
+                strides.push(k.round() as usize);
+            }
+        }
+    }
+    strides.dedup();
+    strides
+}
+
+/// Where a thinned run of numbers starts. On an evenly spaced linear axis it is
+/// the first tick that lands on a multiple of the wider step, so a thinned 10,
+/// 20, 30, 40, 50 keeps 20 and 40. When one number is all that fits, it is the
+/// roundest, 2000 of 1960, 1980 and 2000, or 0 wherever 0 is drawn. Elsewhere
+/// (a log axis, a calendar, an uneven run), the first, as for names.
+pub(crate) fn numbers_from(values: &[f64], stride: usize, linear: bool) -> usize {
+    let k = stride.max(1);
+    let Some(step) = even_step(values).filter(|_| linear) else {
+        return 0;
+    };
+    if k >= values.len() {
+        return (0..values.len())
+            .fold(0, |best, i| if roundness(values[i]) > roundness(values[best]) { i } else { best });
+    }
+    let wide = step * k as f64;
+    (0..k.min(values.len()))
+        .find(|&o| { let q = values[o] / wide; (q - q.round()).abs() < 1e-6 })
+        .unwrap_or(0)
+}
+
+/// Do these upright numbers clear each other when every `stride`-th one from
+/// `from` is drawn? Each is placed where `write_ticks` puts it: centered on its
+/// tick, or, where `snap` is set and a centered label would cross the panel's
+/// edge `lo`..`hi`, drawn inward from its tick. Two neighbors clear when one ends
+/// where the next begins, or before, since the width estimate already allows a
+/// letter's room ([`name_pitch`] says why no gap is added). Names are measured
+/// centered by [`names_clear`]; numbers sit at the panel's edges often enough
+/// that the inward ones have to be placed as drawn.
+pub(crate) fn numbers_clear(at: &[f64], widths: &[f64], lo: f64, hi: f64, snap: bool,
+                            stride: usize, from: usize) -> bool {
+    let extent = |i: usize| -> (f64, f64) {
+        let (x, w) = (at[i], widths[i]);
+        let half = w / 2.0;
+        if snap && x - half < lo {
+            (x, x + w)
+        } else if snap && x + half > hi {
+            (x - w, x)
+        } else {
+            (x - half, x + half)
+        }
+    };
+    let kept: Vec<usize> = (from..at.len()).step_by(stride.max(1)).collect();
+    kept.windows(2).all(|w| extent(w[0]).1 <= extent(w[1]).0)
+}
+
+/// How many upright numbers to step over so that the drawn ones clear each
+/// other: 1 when every one fits, otherwise the smallest stride that does.
+pub(crate) fn numbers_stride(values: &[f64], at: &[f64], widths: &[f64], lo: f64, hi: f64,
+                             snap: bool, linear: bool) -> usize {
+    let n = at.len().max(1);
+    number_strides(values, linear).into_iter()
+        .find(|&k| numbers_clear(at, widths, lo, hi, snap, k, numbers_from(values, k, linear)))
+        .unwrap_or(n)
+}
+
+/// The same question for numbers one above another down a `y` axis, which clear
+/// when they stand a line's height apart ([`names_clear`] at 90 degrees).
+pub(crate) fn numbers_stride_stacked(values: &[f64], at: &[f64], widths: &[f64], across: f64,
+                                     linear: bool) -> usize {
+    let n = at.len().max(1);
+    number_strides(values, linear).into_iter()
+        .find(|&k| names_clear(at, widths, across, 90.0, k))
+        .unwrap_or(n)
+}
+
 // ---------------------------------------------------------------------------
 // Tests
 // ---------------------------------------------------------------------------
@@ -536,6 +658,40 @@ pub(crate) fn names_stride(at: &[f64], widths: &[f64], across: f64, angle: f64) 
 mod tests {
     use super::*;
     use crate::render::ticks::nice_ticks;
+
+    /// A thinned even run starts on the wider step: 10 to 50 keeps 20 and 40,
+    /// and 0 to 50 keeps 0, 20 and 40. A log or calendar run starts at the first.
+    #[test]
+    fn thinned_numbers_start_on_the_wider_step() {
+        assert_eq!(numbers_from(&[10.0, 20.0, 30.0, 40.0, 50.0], 2, true), 1);
+        assert_eq!(numbers_from(&[0.0, 10.0, 20.0, 30.0, 40.0, 50.0], 2, true), 0);
+        assert_eq!(numbers_from(&[10.0, 20.0, 30.0, 40.0, 50.0], 2, false), 0);
+        assert_eq!(numbers_from(&[1.0, 2.0, 5.0, 10.0], 2, true), 0, "uneven: the first");
+        assert_eq!(numbers_from(&[1960.0, 1980.0, 2000.0], 3, true), 2, "one kept: the roundest");
+        assert_eq!(numbers_from(&[-2000.0, 0.0, 2000.0], 3, true), 1, "one kept: zero");
+    }
+
+    /// The strides tried on a round step land on larger round steps only, so a
+    /// 5K step thins to 10K, 20K or 50K and never to 15K.
+    #[test]
+    fn numbers_thin_to_larger_round_steps() {
+        let five: Vec<f64> = (0..11).map(|i| i as f64 * 5_000.0).collect();
+        assert_eq!(number_strides(&five, true), vec![1, 2, 4, 10]);
+        let two: Vec<f64> = (0..11).map(|i| i as f64 * 2.0).collect();
+        assert_eq!(number_strides(&two, true), vec![1, 5, 10]);
+        assert_eq!(number_strides(&five, false), (1..=11).collect::<Vec<_>>(), "not linear");
+    }
+
+    /// An edge number drawn inward takes its width toward the middle, so two
+    /// that clear when centered can meet once placed as drawn.
+    #[test]
+    fn numbers_are_measured_where_they_are_drawn() {
+        let (at, w) = ([10.0, 60.0], [30.0, 30.0]);
+        assert!(numbers_clear(&at, &w, 0.0, 70.0, false, 1, 0), "centered, 30 apart clears");
+        assert!(!numbers_clear(&at, &w, 20.0, 50.0, true, 1, 0),
+                "drawn inward from both edges, the two meet");
+        assert_eq!(numbers_stride(&[0.0, 1.0], &at, &w, 20.0, 50.0, true, true), 2);
+    }
 
     fn grid(cols: Vec<&str>, rows: Vec<&str>) -> PanelGrid {
         grid_with(cols, rows, None, None)
