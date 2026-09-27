@@ -2386,3 +2386,19 @@ end
     @test length(unique(first.(dots))) == 6
     @test length(unique(last.(dots))) == 1
 end
+
+# A network draws its separate parts at one scale: a pair's one edge is about as
+# long as the edges of a large ring beside it. Until 2026-09-26 each part was
+# stretched to fill a cell sized by its node count, which drew a pair as a long
+# stroke beside short ring edges.
+@testset "a network draws its separate parts at one scale" begin
+    ring = ["r" * lpad(string(i), 2, '0') for i in 0:23]
+    parts = (a = vcat(ring, ["a0", "a1", "a2", "a3"]), b = vcat(ring[2:end], ring[1:1], ["b0", "b1", "b2", "b3"]))
+    svg = render_svg(data(parts, name = "parts") + edge * layout(:a, :b) + network())
+    ends = [parse.(Float64, m.captures) for m in
+            eachmatch(r"<line x1=\"([0-9.]+)\" y1=\"([0-9.]+)\" x2=\"([0-9.]+)\" y2=\"([0-9.]+)\"", svg)]
+    len = [hypot(e[3] - e[1], e[4] - e[2]) for e in ends]
+    @test length(len) == 28
+    ring_mean = Base.sum(len[1:24]) / 24
+    @test all(l -> 0.5 < l / ring_mean < 2, len[25:28])
+end

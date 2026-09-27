@@ -3006,3 +3006,20 @@ test("point * dodge sets tied points apart across the slot only", () => {
   assert.equal(new Set(dots.map((m) => m[1])).size, 6, "six tied points at six places");
   assert.equal(new Set(dots.map((m) => m[2])).size, 1, "no point moves along the measure axis");
 });
+
+// A network draws its separate parts at one scale: a pair's one edge is about as
+// long as the edges of a large ring beside it. Until 2026-09-26 each part was
+// stretched to fill a cell sized by its node count, which drew a pair as a long
+// stroke beside short ring edges.
+test("a network draws its separate parts at one scale", () => {
+  const ring = Array.from({ length: 24 }, (_, i) => `r${String(i).padStart(2, "0")}`);
+  const parts = { a: [...ring, "a0", "a1", "a2", "a3"], b: [...ring.slice(1), ring[0], "b0", "b1", "b2", "b3"] };
+  const svg = render_svg(plot(data(parts, { name: "parts" }), layer(edge, layout(col.a, col.b)), network()));
+  const len = [...svg.matchAll(/<line x1="([0-9.]+)" y1="([0-9.]+)" x2="([0-9.]+)" y2="([0-9.]+)"/g)]
+    .map((m) => Math.hypot(m[3] - m[1], m[4] - m[2]));
+  assert.equal(len.length, 28, "24 ring edges and 4 pairs");
+  const mean = len.slice(0, 24).reduce((s, v) => s + v, 0) / 24;
+  for (const l of len.slice(24)) {
+    assert.ok(l / mean > 0.5 && l / mean < 2, `a pair's edge is drawn ${(l / mean).toFixed(2)} times the ring's`);
+  }
+});

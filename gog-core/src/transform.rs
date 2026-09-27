@@ -4306,6 +4306,182 @@ pub fn flow_bands(
     out
 }
 
+/// The graph's connected parts, each a list of node indices in first-appearance
+/// order, largest part first. Parts of one size are ordered by their
+/// alphabetically first node name, so the order is the graph's and not the
+/// table's: reordering the rows cannot swap two parts across the panel.
+fn connected_parts(nodes: &[String], edges: &[(usize, usize, usize)]) -> Vec<Vec<usize>> {
+    fn find(root: &mut [usize], mut i: usize) -> usize {
+        while root[i] != i {
+            root[i] = root[root[i]];
+            i = root[i];
+        }
+        i
+    }
+    let n = nodes.len();
+    let mut root: Vec<usize> = (0..n).collect();
+    for &(i, j, _) in edges {
+        let (ri, rj) = (find(&mut root, i), find(&mut root, j));
+        if ri != rj {
+            root[ri.max(rj)] = ri.min(rj);
+        }
+    }
+    let mut parts: Vec<Vec<usize>> = Vec::new();
+    let mut part_of: Vec<Option<usize>> = vec![None; n];
+    for i in 0..n {
+        let r = find(&mut root, i);
+        match part_of[r] {
+            Some(p) => parts[p].push(i),
+            None => {
+                part_of[r] = Some(parts.len());
+                parts.push(vec![i]);
+            }
+        }
+    }
+    let first_name = |p: &[usize]| p.iter().map(|&i| nodes[i].as_str()).min().unwrap_or("");
+    parts.sort_by(|a, b| b.len().cmp(&a.len()).then_with(|| first_name(a).cmp(first_name(b))));
+    parts
+}
+
+/// Fruchterman-Reingold springs over one connected part, under repel's budget
+/// for the part's own size. `k` is the ideal spring length in the unit volume;
+/// the step cap `t` cools by ×0.97, which keeps every operation inside the
+/// bit-deterministic subset. `members` are indices into `pos`; the edges of
+/// other parts are skipped.
+fn relax_part(pos: &mut [Vec<f64>], members: &[usize], edges: &[(usize, usize, usize)], dims: usize) {
+    let n = members.len();
+    let mut local = vec![usize::MAX; pos.len()];
+    for (li, &gi) in members.iter().enumerate() {
+        local[gi] = li;
+    }
+    let own: Vec<(usize, usize)> = edges.iter()
+        .filter(|&&(i, _, _)| local[i] != usize::MAX)
+        .map(|&(i, j, _)| (local[i], local[j]))
+        .collect();
+    let k = (1.0 / n as f64).sqrt();
+    let iters = (40_000_000_usize / (n * n)).clamp(24, 240);
+    let mut t = 0.10;
+    for _ in 0..iters {
+        let mut disp = vec![vec![0.0; dims]; n];
+        for i in 0..n {
+            for j in (i + 1)..n {
+                let (pi, pj) = (&pos[members[i]], &pos[members[j]]);
+                let d: Vec<f64> = (0..dims).map(|c| pi[c] - pj[c]).collect();
+                let dist2: f64 = d.iter().map(|v| v * v).sum::<f64>() + 1e-9;
+                let push = k * k / dist2;
+                for c in 0..dims {
+                    disp[i][c] += d[c] * push;
+                    disp[j][c] -= d[c] * push;
+                }
+            }
+        }
+        for &(i, j) in &own {
+            let (pi, pj) = (&pos[members[i]], &pos[members[j]]);
+            let d: Vec<f64> = (0..dims).map(|c| pi[c] - pj[c]).collect();
+            let dist = (d.iter().map(|v| v * v).sum::<f64>() + 1e-9).sqrt();
+            let pull = dist / k;
+            for c in 0..dims {
+                disp[i][c] -= d[c] * pull;
+                disp[j][c] += d[c] * pull;
+            }
+        }
+        for i in 0..n {
+            let dist = (disp[i].iter().map(|v| v * v).sum::<f64>() + 1e-9).sqrt();
+            let step = if dist < t { dist } else { t };
+            for c in 0..dims {
+                pos[members[i]][c] += disp[i][c] / dist * step;
+            }
+        }
+        t *= 0.97;
+    }
+}
+
+/// Stretch the positions of `members` to fill the unit range in each
+/// dimension; a degenerate spread centers.
+fn to_unit_range(pos: &mut [Vec<f64>], members: &[usize], dims: usize) {
+    for c in 0..dims {
+        let lo = members.iter().map(|&i| pos[i][c]).fold(f64::INFINITY, f64::min);
+        let hi = members.iter().map(|&i| pos[i][c]).fold(f64::NEG_INFINITY, f64::max);
+        for &i in members {
+            pos[i][c] = if hi > lo { (pos[i][c] - lo) / (hi - lo) } else { 0.5 };
+        }
+    }
+}
+
+/// The gap between two packed parts, in edge lengths: wide enough that no edge
+/// seems to join them, so two parts never read as one.
+const PART_GAP: f64 = 1.0;
+
+/// Pack relaxed parts side by side, **every part drawn at one scale**. Each part
+/// is measured in its own mean edge length, so an edge is about as long in a pair
+/// as in the largest part, and a small part stays small. The parts are laid in
+/// rows, largest first, each row as wide as the square root of the parts' total
+/// area, so the whole is about square, as one connected graph is; the caller then
+/// fits it to the panel exactly as it fits one graph.
+///
+/// The first build gave each part a cell of the treemap's packing, sized by its
+/// node count, and scaled the part to fill the cell. A pair's one edge then ran
+/// across its whole cell, a long stroke beside a star whose edges were short, so
+/// the same relation was drawn at different lengths in different parts. Measured
+/// in edge lengths, the parts need no cells: each takes the room its own shape
+/// takes. A third dimension is centered and scaled by the same unit.
+fn pack_parts(pos: &mut [Vec<f64>], parts: &[Vec<usize>], edges: &[(usize, usize, usize)], dims: usize) {
+    let mut part_of = vec![usize::MAX; pos.len()];
+    for (p, part) in parts.iter().enumerate() {
+        for &i in part {
+            part_of[i] = p;
+        }
+    }
+    // Each part's unit: the mean length of its own edges.
+    let (mut total, mut count) = (vec![0.0; parts.len()], vec![0usize; parts.len()]);
+    for &(i, j, _) in edges {
+        let p = part_of[i];
+        let d2: f64 = (0..dims).map(|c| (pos[i][c] - pos[j][c]) * (pos[i][c] - pos[j][c])).sum();
+        total[p] += d2.sqrt();
+        count[p] += 1;
+    }
+    let unit: Vec<f64> = (0..parts.len())
+        .map(|p| {
+            let u = if count[p] > 0 { total[p] / count[p] as f64 } else { 0.0 };
+            if u > 1e-12 { u } else { 1.0 }
+        })
+        .collect();
+    let spans: Vec<Vec<(f64, f64)>> = parts.iter()
+        .map(|part| (0..dims).map(|c| {
+            let lo = part.iter().map(|&i| pos[i][c]).fold(f64::INFINITY, f64::min);
+            let hi = part.iter().map(|&i| pos[i][c]).fold(f64::NEG_INFINITY, f64::max);
+            (lo, hi)
+        }).collect())
+        .collect();
+    let size = |p: usize, c: usize| (spans[p][c].1 - spans[p][c].0) / unit[p];
+
+    let area: f64 = (0..parts.len()).map(|p| (size(p, 0) + PART_GAP) * (size(p, 1) + PART_GAP)).sum();
+    let widest = (0..parts.len()).map(|p| size(p, 0)).fold(0.0, f64::max);
+    let row_width = area.sqrt().max(widest);
+    let (mut x, mut y, mut row_height) = (0.0, 0.0, 0.0_f64);
+    for (p, part) in parts.iter().enumerate() {
+        let (w, h) = (size(p, 0), size(p, 1));
+        if x > 0.0 && x + w > row_width {
+            x = 0.0;
+            y += row_height + PART_GAP;
+            row_height = 0.0;
+        }
+        for &i in part {
+            let across = (pos[i][0] - spans[p][0].0) / unit[p];
+            // Rows are laid downward from the top; the layout's `y` runs up.
+            let down = (spans[p][1].1 - pos[i][1]) / unit[p];
+            pos[i][0] = x + across;
+            pos[i][1] = -(y + down);
+            if dims > 2 {
+                let mid = (spans[p][2].0 + spans[p][2].1) / 2.0;
+                pos[i][2] = (pos[i][2] - mid) / unit[p];
+            }
+        }
+        x += w + PART_GAP;
+        row_height = row_height.max(h);
+    }
+}
+
 /// The graph layout's shared computation — one deterministic placement,
 /// projected per reading mark exactly as `flow`'s is (spec §15, the network
 /// entry). Nodes derive from the endpoint union of an edge table; positions
@@ -4322,12 +4498,16 @@ pub fn flow_bands(
 struct GraphLayout {
     /// Node names, first-appearance order across (from, to).
     nodes: Vec<String>,
-    /// Neighbor count per node, parallel to `nodes`.
+    /// Neighbor count per node, parallel to `nodes`. Read by nothing since the
+    /// placement moved out of the panels: each panel counts its own (see
+    /// [`panel_graph`]), and the two walks are one walk a build folds together.
+    #[allow(dead_code)]
     degree: Vec<f64>,
     /// Positions per node, `dims` values each, normalized to the unit range.
     pos: Vec<Vec<f64>>,
     /// Edge endpoint indices per surviving input row, with the row's index in
     /// the input frame so carried columns can be read back.
+    #[allow(dead_code)]
     edges: Vec<(usize, usize, usize)>,
 }
 
@@ -4391,54 +4571,97 @@ fn graph_layout(df: &DataFrame, from: &str, to: &str, dims: usize) -> Option<Gra
         })
         .collect();
 
-    // Fruchterman-Reingold springs under repel's budget. `k` is the ideal
-    // spring length in the unit volume; the step cap `t` cools by ×0.97, which
-    // keeps every operation inside the bit-deterministic subset.
-    let k = (1.0 / n as f64).sqrt();
-    let iters = (40_000_000_usize / (n * n)).clamp(24, 240);
-    let mut t = 0.10;
-    for _ in 0..iters {
-        let mut disp = vec![vec![0.0; dims]; n];
-        for i in 0..n {
-            for j in (i + 1)..n {
-                let d: Vec<f64> = (0..dims).map(|c| pos[i][c] - pos[j][c]).collect();
-                let dist2: f64 = d.iter().map(|v| v * v).sum::<f64>() + 1e-9;
-                let push = k * k / dist2;
-                for c in 0..dims {
-                    disp[i][c] += d[c] * push;
-                    disp[j][c] -= d[c] * push;
-                }
-            }
-        }
-        for &(i, j, _) in &edges {
-            let d: Vec<f64> = (0..dims).map(|c| pos[i][c] - pos[j][c]).collect();
-            let dist = (d.iter().map(|v| v * v).sum::<f64>() + 1e-9).sqrt();
-            let pull = dist / k;
-            for c in 0..dims {
-                disp[i][c] -= d[c] * pull;
-                disp[j][c] += d[c] * pull;
-            }
-        }
-        for i in 0..n {
-            let dist = (disp[i].iter().map(|v| v * v).sum::<f64>() + 1e-9).sqrt();
-            let step = if dist < t { dist } else { t };
-            for c in 0..dims {
-                pos[i][c] += disp[i][c] / dist * step;
-            }
-        }
-        t *= 0.97;
+    // **Each connected part is relaxed on its own, and the parts are packed side
+    // by side, largest first.** Relaxed together, nothing holds two parts near
+    // each other: every node pushes every other away and only an edge pulls
+    // back, so separate parts drift to the corners, and the unit-range
+    // normalization then shrinks each into its own (an 11-node star drew in 78
+    // by 61 px of a 764 by 550 panel). A part is relaxed exactly as the whole
+    // graph was, so a connected graph, one part, is placed as before, bit for bit.
+    let parts = connected_parts(&nodes, &edges);
+    for part in &parts {
+        relax_part(&mut pos, part, &edges, dims);
+    }
+    if parts.len() > 1 {
+        pack_parts(&mut pos, &parts, &edges, dims);
     }
 
     // Normalize each dimension to the unit range; a degenerate spread centers.
-    for c in 0..dims {
-        let lo = pos.iter().map(|p| p[c]).fold(f64::INFINITY, f64::min);
-        let hi = pos.iter().map(|p| p[c]).fold(f64::NEG_INFINITY, f64::max);
-        for p in pos.iter_mut() {
-            p[c] = if hi > lo { (p[c] - lo) / (hi - lo) } else { 0.5 };
-        }
-    }
+    let everyone: Vec<usize> = (0..n).collect();
+    to_unit_range(&mut pos, &everyone, dims);
 
     Some(GraphLayout { nodes, degree, pos, edges })
+}
+
+/// A graph's node positions, computed once over every row a layer holds and
+/// read back by name — the layout's half of the `layer_cuts` hoist (spec §15,
+/// the network entry), which is `bin`'s rule applied to a graph. A bin's edges
+/// are the plot's and its tally is the panel's; here a node's **position** is
+/// the plot's, while which edges a panel draws, and a node's `degree` there,
+/// stay the panel's. So a node stands in one place in every panel and every
+/// frame, and a panel draws only the relations its own rows state.
+pub struct NodePlaces {
+    /// Each node's index into `pos`. A map read by lookup only, never iterated,
+    /// so the determinism rule is not at stake.
+    at: HashMap<String, usize>,
+    /// Positions per node, `dims` values each, in the unit range.
+    pos: Vec<Vec<f64>>,
+}
+
+/// Place every node of the graph `df`'s rows describe, once. `None` where
+/// [`graph_layout`] draws nothing: fewer than two nodes, or no edge.
+pub fn layout_places(df: &DataFrame, from: &str, to: &str, dims: usize) -> Option<NodePlaces> {
+    let g = graph_layout(df, from, to, dims)?;
+    let at = g.nodes.iter().enumerate().map(|(i, n)| (n.clone(), i)).collect();
+    Some(NodePlaces { at, pos: g.pos })
+}
+
+/// One panel's rows read as a graph, without placing it: the nodes its rows
+/// name in first-appearance order, each one's degree within the panel, and the
+/// surviving rows as endpoint pairs. The same walk [`graph_layout`] starts
+/// with, so a row that draws no edge adds no node here either.
+struct PanelGraph {
+    nodes: Vec<String>,
+    degree: Vec<f64>,
+    edges: Vec<(usize, usize, usize)>,
+}
+
+fn panel_graph(df: &DataFrame, from: &str, to: &str) -> Option<PanelGraph> {
+    let (a, b) = (df.str_col(from)?, df.str_col(to)?);
+    let mut nodes: Vec<String> = Vec::new();
+    let mut at: HashMap<String, usize> = HashMap::new();
+    let mut index = |name: &str, nodes: &mut Vec<String>| -> usize {
+        *at.entry(name.to_string()).or_insert_with(|| {
+            nodes.push(name.to_string());
+            nodes.len() - 1
+        })
+    };
+    let mut edges: Vec<(usize, usize, usize)> = Vec::new();
+    for r in 0..df.len() {
+        if a[r].is_empty() || b[r].is_empty() || a[r] == b[r] {
+            continue;
+        }
+        let i = index(&a[r], &mut nodes);
+        let j = index(&b[r], &mut nodes);
+        edges.push((i, j, r));
+    }
+    if nodes.len() < 2 || edges.is_empty() {
+        return None;
+    }
+    let mut degree = vec![0.0; nodes.len()];
+    for &(i, j, _) in &edges {
+        degree[i] += 1.0;
+        degree[j] += 1.0;
+    }
+    Some(PanelGraph { nodes, degree, edges })
+}
+
+/// Where one panel's nodes stand, parallel to its node list. Every node a
+/// panel names is one the layer's rows named, since a panel's rows are a
+/// subset of the layer's; a node somehow missing is treated as no graph
+/// rather than drawn at an invented place.
+fn places_of(places: &NodePlaces, g: &PanelGraph) -> Option<Vec<Vec<f64>>> {
+    g.nodes.iter().map(|n| places.at.get(n).map(|&i| places.pos[i].clone())).collect()
 }
 
 /// The node projection: one row per node — its `name`, its `degree`, and its
@@ -4446,16 +4669,30 @@ fn graph_layout(df: &DataFrame, from: &str, to: &str, dims: usize) -> Option<Gra
 /// Read by `point` and by `text + label(name)` through the ordinary writers,
 /// which is the leak test the design set: no writer learns a network reading.
 pub fn layout_nodes(df: &DataFrame, from: &str, to: &str, dims: usize) -> DataFrame {
-    let Some(g) = graph_layout(df, from, to, dims) else {
+    match layout_places(df, from, to, dims) {
+        Some(places) => layout_nodes_at(&places, df, from, to, dims),
+        None => DataFrame::new(),
+    }
+}
+
+/// [`layout_nodes`] for one panel of a layer placed once: the panel's own
+/// nodes and degrees, at the positions [`layout_places`] gave the whole layer.
+pub fn layout_nodes_at(
+    places: &NodePlaces, df: &DataFrame, from: &str, to: &str, dims: usize,
+) -> DataFrame {
+    let Some(g) = panel_graph(df, from, to) else {
+        return DataFrame::new();
+    };
+    let Some(pos) = places_of(places, &g) else {
         return DataFrame::new();
     };
     let mut out = DataFrame::new()
         .with_str(NODE_NAME, g.nodes.clone())
         .with_float(NODE_DEGREE, g.degree.clone())
-        .with_float(LAYOUT_X, g.pos.iter().map(|p| p[0]).collect())
-        .with_float(LAYOUT_Y, g.pos.iter().map(|p| p[1]).collect());
+        .with_float(LAYOUT_X, pos.iter().map(|p| p[0]).collect())
+        .with_float(LAYOUT_Y, pos.iter().map(|p| p[1]).collect());
     if dims > 2 {
-        out = out.with_float(LAYOUT_Z, g.pos.iter().map(|p| p[2]).collect());
+        out = out.with_float(LAYOUT_Z, pos.iter().map(|p| p[2]).collect());
     }
     out
 }
@@ -4464,19 +4701,33 @@ pub fn layout_nodes(df: &DataFrame, from: &str, to: &str, dims: usize) -> DataFr
 /// synthesized columns, every input column carried through — an edge is 1:1
 /// with its row, so `color(<any edge column>)` needs no rule of its own.
 pub fn layout_edges(df: &DataFrame, from: &str, to: &str, dims: usize) -> DataFrame {
-    let Some(g) = graph_layout(df, from, to, dims) else {
+    match layout_places(df, from, to, dims) {
+        Some(places) => layout_edges_at(&places, df, from, to, dims),
+        None => DataFrame::new(),
+    }
+}
+
+/// [`layout_edges`] for one panel of a layer placed once: the panel's own rows,
+/// each drawn between the positions [`layout_places`] gave the whole layer.
+pub fn layout_edges_at(
+    places: &NodePlaces, df: &DataFrame, from: &str, to: &str, dims: usize,
+) -> DataFrame {
+    let Some(g) = panel_graph(df, from, to) else {
+        return DataFrame::new();
+    };
+    let Some(pos) = places_of(places, &g) else {
         return DataFrame::new();
     };
     let rows: Vec<usize> = g.edges.iter().map(|&(_, _, r)| r).collect();
     let mut out = DataFrame::new()
-        .with_float(LAYOUT_X, g.edges.iter().map(|&(i, _, _)| g.pos[i][0]).collect())
-        .with_float(LAYOUT_Y, g.edges.iter().map(|&(i, _, _)| g.pos[i][1]).collect())
-        .with_float(EDGE_X, g.edges.iter().map(|&(_, j, _)| g.pos[j][0]).collect())
-        .with_float(EDGE_Y, g.edges.iter().map(|&(_, j, _)| g.pos[j][1]).collect());
+        .with_float(LAYOUT_X, g.edges.iter().map(|&(i, _, _)| pos[i][0]).collect())
+        .with_float(LAYOUT_Y, g.edges.iter().map(|&(i, _, _)| pos[i][1]).collect())
+        .with_float(EDGE_X, g.edges.iter().map(|&(_, j, _)| pos[j][0]).collect())
+        .with_float(EDGE_Y, g.edges.iter().map(|&(_, j, _)| pos[j][1]).collect());
     if dims > 2 {
         out = out
-            .with_float(LAYOUT_Z, g.edges.iter().map(|&(i, _, _)| g.pos[i][2]).collect())
-            .with_float(EDGE_Z, g.edges.iter().map(|&(_, j, _)| g.pos[j][2]).collect());
+            .with_float(LAYOUT_Z, g.edges.iter().map(|&(i, _, _)| pos[i][2]).collect())
+            .with_float(EDGE_Z, g.edges.iter().map(|&(_, j, _)| pos[j][2]).collect());
     }
     // Sorted, not iterated: the column map has no order, and while nothing
     // downstream reads columns positionally, the determinism rule is cheaper
@@ -4944,6 +5195,91 @@ mod tests {
         }
     }
 
+    /// **Separate parts are packed side by side, not pushed to the corners.**
+    /// Relaxed together, nothing held a star near a ring, so each drifted to a
+    /// corner and the star drew in about a tenth of the panel's width. Relaxed
+    /// alone and packed, the parts' boxes do not overlap, the larger part takes
+    /// the larger box, and reversing the rows swaps no part: parts of one size
+    /// are ordered by name, not by where the table first names them.
+    #[test]
+    fn separate_parts_are_packed_side_by_side() {
+        let mut from: Vec<String> = vec!["hub".to_string(); 10];
+        let mut to: Vec<String> = (1..=10).map(|i| format!("s{i:02}")).collect();
+        for i in 1..=6 {
+            from.push(format!("r{i}"));
+            to.push(format!("r{}", i % 6 + 1));
+        }
+        for (a, b) in [("p1", "p2"), ("p3", "p4")] {
+            from.push(a.into());
+            to.push(b.into());
+        }
+        let place = |f: Vec<String>, t: Vec<String>| {
+            layout_nodes(&DataFrame::new().with_str("a", f).with_str("b", t), "a", "b", 2)
+        };
+        let nodes = place(from.clone(), to.clone());
+        let names = nodes.str_col(NODE_NAME).unwrap();
+        let (xs, ys) = (nodes.float_col(LAYOUT_X).unwrap(), nodes.float_col(LAYOUT_Y).unwrap());
+        let part_of = |n: &str| match n.chars().next() {
+            Some('h') | Some('s') => 0,
+            Some('r') => 1,
+            _ => if n == "p1" || n == "p2" { 2 } else { 3 },
+        };
+        let mut boxes = [[f64::INFINITY, f64::NEG_INFINITY, f64::INFINITY, f64::NEG_INFINITY]; 4];
+        for (i, n) in names.iter().enumerate() {
+            let b = &mut boxes[part_of(n)];
+            b[0] = b[0].min(xs[i]);
+            b[1] = b[1].max(xs[i]);
+            b[2] = b[2].min(ys[i]);
+            b[3] = b[3].max(ys[i]);
+        }
+        for p in 0..4 {
+            for q in (p + 1)..4 {
+                let apart = boxes[p][1] < boxes[q][0] || boxes[q][1] < boxes[p][0]
+                    || boxes[p][3] < boxes[q][2] || boxes[q][3] < boxes[p][2];
+                assert!(apart, "parts {p} and {q} overlap: {:?} {:?}", boxes[p], boxes[q]);
+            }
+        }
+        assert!(boxes[0][1] - boxes[0][0] > 0.2 && boxes[0][3] - boxes[0][2] > 0.2,
+            "the star is still crowded into a corner: {:?}", boxes[0]);
+        let again = place(from.iter().rev().cloned().collect(), to.iter().rev().cloned().collect());
+        let again_names = again.str_col(NODE_NAME).unwrap();
+        let (ax, ay) = (again.float_col(LAYOUT_X).unwrap(), again.float_col(LAYOUT_Y).unwrap());
+        for (i, n) in names.iter().enumerate() {
+            let j = again_names.iter().position(|m| m == n).unwrap();
+            assert!((xs[i] - ax[j]).abs() < 1e-3 && (ys[i] - ay[j]).abs() < 1e-3,
+                "reversing the rows moved `{n}` from ({}, {}) to ({}, {})", xs[i], ys[i], ax[j], ay[j]);
+        }
+    }
+
+    /// **Every part is drawn at one scale**, so an edge is about as long in a pair
+    /// as in the largest part. Sizing each part's cell by its node count and
+    /// filling the cell drew each pair's one edge as a long stroke across its cell,
+    /// several times the length of the big ring's edges. Stretched to the panel, x
+    /// and y may scale apart, so the lengths agree to within a ratio.
+    #[test]
+    fn a_small_part_is_drawn_at_the_scale_of_the_large_one() {
+        let mut from: Vec<String> = (0..24).map(|i| format!("r{i:02}")).collect();
+        let mut to: Vec<String> = (0..24).map(|i| format!("r{:02}", (i + 1) % 24)).collect();
+        for k in 0..4 {
+            from.push(format!("a{k}"));
+            to.push(format!("b{k}"));
+        }
+        let nodes = layout_nodes(&DataFrame::new().with_str("a", from).with_str("b", to), "a", "b", 2);
+        let names = nodes.str_col(NODE_NAME).unwrap();
+        let (xs, ys) = (nodes.float_col(LAYOUT_X).unwrap(), nodes.float_col(LAYOUT_Y).unwrap());
+        let edge = |a: &str, b: &str| {
+            let at = |n: &str| names.iter().position(|m| m == n).unwrap();
+            let (i, j) = (at(a), at(b));
+            ((xs[i] - xs[j]).powi(2) + (ys[i] - ys[j]).powi(2)).sqrt()
+        };
+        let ring = (0..24).map(|i| edge(&format!("r{i:02}"), &format!("r{:02}", (i + 1) % 24))).sum::<f64>() / 24.0;
+        for k in 0..4 {
+            let ratio = edge(&format!("a{k}"), &format!("b{k}")) / ring;
+            assert!((0.5..2.0).contains(&ratio),
+                "pair {k}'s edge is drawn {ratio:.2} times the ring's edges");
+        }
+    }
+
     /// **An edge row is 1:1 with its input row**, both endpoints synthesized and
     /// every input column carried — which is what lets `color`/`opacity` map any
     /// edge column with no rule of their own. The two projections agree on every
@@ -4962,6 +5298,35 @@ mod tests {
             let i = names.iter().position(|n| n == &from[r]).unwrap();
             assert_eq!(ex[r], nx[i], "edge {r} starts where its node stands");
         }
+    }
+
+    /// **One placement per layer, read by every panel.** Two panels of one table
+    /// put a node they share at one position, the position the whole table gave
+    /// it; each draws only the nodes its own rows name, and counts its own
+    /// degree — `bin`'s split of the plot's cut and the panel's tally, applied
+    /// to a graph.
+    #[test]
+    fn panels_of_one_layer_share_its_placement() {
+        let whole = edge_frame()
+            .with_str("era", vec!["x".into(), "x".into(), "y".into(), "y".into()]);
+        let places = layout_places(&whole, "a", "b", 2).unwrap();
+        let all = layout_nodes(&whole, "a", "b", 2);
+        let one = layout_nodes_at(&places, &whole.filter_str_eq("era", "x"), "a", "b", 2);
+        let two = layout_nodes_at(&places, &whole.filter_str_eq("era", "y"), "a", "b", 2);
+        let at = |df: &DataFrame, name: &str| -> (f64, f64, f64) {
+            let i = df.str_col(NODE_NAME).unwrap().iter().position(|n| n == name).unwrap();
+            (df.float_col(LAYOUT_X).unwrap()[i], df.float_col(LAYOUT_Y).unwrap()[i],
+             df.float_col(NODE_DEGREE).unwrap()[i])
+        };
+        assert_eq!(one.str_col(NODE_NAME).unwrap(), &["p".to_string(), "q".into(), "r".into()]);
+        assert_eq!(two.str_col(NODE_NAME).unwrap(), &["q".to_string(), "r".into(), "s".into()]);
+        for name in ["q", "r"] {
+            let (w, a, b) = (at(&all, name), at(&one, name), at(&two, name));
+            assert_eq!((a.0, a.1), (w.0, w.1), "`{name}` moved in the first panel");
+            assert_eq!((b.0, b.1), (w.0, w.1), "`{name}` moved in the second panel");
+        }
+        assert_eq!(one.float_col(NODE_DEGREE).unwrap(), &[2.0, 1.0, 1.0]);
+        assert_eq!(two.float_col(NODE_DEGREE).unwrap(), &[1.0, 2.0, 1.0]);
     }
 
     /// **The aggregation family is one list, named in two places, and they must agree.**

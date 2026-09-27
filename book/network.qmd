@@ -217,20 +217,19 @@ covers. A `brush` is refused. A brush selects a range of values on the plot's
 axes, and a network has no axes. The fix is again in your table: add a column
 that marks the rows you want, and map it with `color()` on the `edge` layer.
 
-You may also want to show how the trade changes from one year to the next. For
-most plots, `play` does that: it draws one frame per year and shows the frames
-in order. In a network, `play` is valid grammar that this engine does not draw,
-like names in the cube. Every frame would compute the layout again, so the nodes
-would move because the layout moved them, not because the data changed.
+If your table also has a year column, you may want to show how trade changes.
+For most plots, `play` does that: it draws one frame per year and shows the
+frames in order. In a network, `play` is valid grammar that this engine does not
+draw, like names in the cube.
 
-Put the frames beside each other instead, with `| facet()` on the column you
-would have played. Each panel computes its own layout, so a country can sit in a
-different place in each panel. Nothing moves between panels, so read each panel
-for who trades with whom, not for where a country sits.
+Instead, split the plot by year with `| facet(year)`, which draws one panel per
+year. All panels share one layout, so a country sits in the same place in every
+panel where it appears. Each panel draws only the edges from its own rows. An
+edge missing from a later panel is a trade relation that ended.
 
 ## What comes next
 
-A network draws one table at one moment, and the section above explained why
-this engine does not play a network. Most other plots can be played.
-[Play](play.qmd) adds time to a plot: the same sentence cut into frames and run
-in order, so the reader watches the picture change.
+A network draws one table at one moment. The section above suggested panels for
+comparing years, because this engine does not play a network. Most other plots
+can be played. [Play](play.qmd) adds time to a plot: it cuts the plot into
+frames and runs them in order, so the reader watches the picture change.

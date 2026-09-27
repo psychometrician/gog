@@ -2823,3 +2823,19 @@ assert len(_dots) == 6 and len({cx for cx, _ in _dots}) == 6, \
     "point * dodge should set six tied points at six places"
 assert len({cy for _, cy in _dots}) == 1, "point * dodge must not move a point along the measure axis"
 ok("point * dodge sets tied points apart across the slot only")
+
+# A network draws its separate parts at one scale: a pair's one edge is about as
+# long as the edges of a large ring beside it. Until 2026-09-26 each part was
+# stretched to fill a cell sized by its node count, which drew a pair as a long
+# stroke beside short ring edges.
+_ring_names = [f"r{i:02d}" for i in builtins.range(24)]
+_parts = {"a": _ring_names + ["a0", "a1", "a2", "a3"],
+          "b": _ring_names[1:] + _ring_names[:1] + ["b0", "b1", "b2", "b3"]}
+_svg = render_svg(data(_parts, name="parts") + edge * layout(col.a, col.b) + network())
+_ends = [tuple(builtins.map(float, m)) for m in
+         re.findall(r'<line x1="([0-9.]+)" y1="([0-9.]+)" x2="([0-9.]+)" y2="([0-9.]+)"', _svg)]
+_len = [math.hypot(x2 - x1, y2 - y1) for x1, y1, x2, y2 in _ends]
+_ring = builtins.sum(_len[:24]) / 24
+assert len(_len) == 28 and all(0.5 < l / _ring < 2 for l in _len[24:]), \
+    "a pair's edge should be drawn about as long as the ring's edges"
+ok("a network draws its separate parts at one scale")

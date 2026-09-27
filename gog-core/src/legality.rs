@@ -4875,16 +4875,19 @@ fn check_layout(
         }
     }
 
-    // 5. A played layout would re-place every node per frame: the motion would
-    //    be the layout's, not the data's, so the cell waits rather than lies.
+    // 5. A played layout is not built. Its old reason is gone: the placement is
+    //    made once per layer across every panel and frame, so a node would stand
+    //    still. What stays is that nobody has drawn and tested the frames yet, so
+    //    the cell waits, and the direction is the facet, where the same shared
+    //    placement already holds.
     if layer.encodings.contains_key(&Channel::Play) {
         out.push(Diagnostic {
             kind: DiagnosticKind::Unsupported,
             message: "gog: `play` under `layout` is valid grammar this engine does \
-                      not draw yet — each frame would lay the graph out afresh, and \
-                      nodes would move by the layout's choice rather than the \
-                      data's. Draw the frames as separate plots beside each other \
-                      with `|`, or wait for the feature."
+                      not draw yet. Draw the frames as panels beside each other with \
+                      `| facet()` on the column you would have played: every panel \
+                      shares one layout, so each node keeps its place. Or wait for \
+                      the feature."
                 .to_string(),
         });
     }

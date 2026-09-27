@@ -849,6 +849,27 @@ impl SvgRenderer {
         let layer_smoothing: Vec<crate::transform::Smoothing> =
             spec.layers.iter().map(|layer| smoothing_over(layer, &panel_sets)).collect();
 
+        // One placement per layer, resolved from every panel's and every
+        // moment's rows at once — the cut's rule applied to a graph (spec §15,
+        // the network entry). A node's position is the plot's, as a bin's edges
+        // are; the edges a panel draws, and a node's degree there, stay the
+        // panel's, as a bin's tally does. So a node stands in one place in every
+        // panel, and a panel draws only the relations its own rows state.
+        let layout_dims = match &spec.coord {
+            crate::ir::CoordSpace::Network(v) if v.cube() => 3,
+            _ => 2,
+        };
+        let layer_places: Vec<Option<crate::transform::NodePlaces>> = spec.layers.iter()
+            .map(|layer| {
+                if !layer.transforms.contains(&Transform::Layout) {
+                    return None;
+                }
+                let lay = layer.layout.as_ref()?;
+                let base = prepared(layer, &[])?;
+                crate::transform::layout_places(&base, &lay.from, &lay.to, layout_dims)
+            })
+            .collect();
+
         let eff_for = |filters: &[Slice<'_>], frame: Option<&crate::data::FrameLevel>| -> Vec<DataFrame> {
             spec.layers.iter().enumerate()
                 .map(|(li, layer)| {
@@ -953,20 +974,21 @@ impl SvgRenderer {
                     // list for `point` and `text`. Determinism *is* the
                     // cross-layer agreement: three layers over one table land
                     // on identical positions, the guarantee two-layer
-                    // partition sentences already stand on.
+                    // partition sentences already stand on. The placement was
+                    // made once above, from all of the layer's rows; this
+                    // panel reads its own rows at those positions.
                     if layer.transforms.contains(&crate::ir::Transform::Layout) {
                         let (from, to) = layer.layout.as_ref()
                             .map(|sp| (sp.from.clone(), sp.to.clone()))
                             .unwrap_or_default();
-                        let dims = match &spec.coord {
-                            crate::ir::CoordSpace::Network(v) if v.cube() => 3,
-                            _ => 2,
+                        let Some(places) = layer_places[li].as_ref() else {
+                            return DataFrame::new();
                         };
                         return match layer.mark {
-                            Mark::Edge => crate::transform::layout_edges(
-                                &base, &from, &to, dims),
-                            _ => crate::transform::layout_nodes(
-                                &base, &from, &to, dims),
+                            Mark::Edge => crate::transform::layout_edges_at(
+                                places, &base, &from, &to, layout_dims),
+                            _ => crate::transform::layout_nodes_at(
+                                places, &base, &from, &to, layout_dims),
                         };
                     }
                     // A **cluster** takes the same door a fourth time: its value

@@ -48,6 +48,14 @@ CRAN-style repositories and PyPI, `GrammarOfGraphics` on Julia's General, and
 
 ### Changed
 
+- **A network keeps its layout across panels, and packs its separate parts.**
+  Under `| facet()` every panel now places each node where the others do, and
+  draws only the edges its own rows state, so panels can be compared node by
+  node. A graph in several separate parts draws them side by side, each at the
+  same scale, where they used to drift to the panel's corners. A connected graph
+  draws as before. `play` on a network is still refused; the message now points
+  to the facet.
+
 - **A `density` layer smooths all its groups alike.** Where one layer draws
   several estimates (a violin or a ridge per category, a curve per `color`, a
   contour per `group`, one per panel or per animation frame), they now share one

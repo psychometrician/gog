@@ -4755,3 +4755,22 @@ local({
     stop("FAIL: point * dodge must not move a point along the measure axis")
   cat("PASS: point * dodge sets tied points apart across the slot only\n")
 })
+
+# A network draws its separate parts at one scale: a pair's one edge is about as
+# long as the edges of a large ring beside it. Until 2026-09-26 each part was
+# stretched to fill a cell sized by its node count, which drew a pair as a long
+# stroke beside short ring edges.
+local({
+  r <- sprintf("r%02d", 0:23)
+  parts <- data.frame(a = c(r, "a0", "a1", "a2", "a3"),
+                      b = c(r[c(2:24, 1)], "b0", "b1", "b2", "b3"))
+  svg <- render_svg(data(parts) + edge * layout(a, b) + network())
+  ends <- regmatches(svg, gregexpr('<line x1="[0-9.]+" y1="[0-9.]+" x2="[0-9.]+" y2="[0-9.]+"', svg))[[1]]
+  xy <- t(vapply(regmatches(ends, gregexpr('"[0-9.]+"', ends)),
+                 function(z) as.numeric(gsub('"', "", z)), numeric(4)))
+  len <- sqrt((xy[, 3] - xy[, 1])^2 + (xy[, 4] - xy[, 2])^2)
+  ratio <- len[25:28] / mean(len[1:24])
+  if (length(len) != 28 || any(ratio < 0.5 | ratio > 2))
+    stop("FAIL: a pair's edge should be drawn about as long as the ring's edges")
+  cat("PASS: a network draws its separate parts at one scale\n")
+})
