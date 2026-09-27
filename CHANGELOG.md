@@ -48,6 +48,12 @@ CRAN-style repositories and PyPI, `GrammarOfGraphics` on Julia's General, and
 
 ### Changed
 
+- **A summarized point lies on its side as a bar does.** `point * median +
+  x(life) + y(year)`, the category on `y`, drew every row of the table rather
+  than one dot per year, while `bar * median` on the same sentence drew one bar
+  per year. `point` with `mean`, `median`, `sum`, `min`, `max` or `quantile` now
+  reads its orientation from which axis holds the category, as `bar` does.
+
 - **Crowded numbers no longer print over each other.** In narrow panels, such
   as five facet columns, the numbers on a continuous axis used to run into one
   another at the panel edges. The axis now draws fewer numbers, leaving out the

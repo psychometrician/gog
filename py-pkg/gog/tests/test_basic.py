@@ -3023,3 +3023,12 @@ with contextlib.redirect_stderr(_said):
     render_svg(data(_zig, name="zig") + area * mean + x(col.c) + y(col.v))
 assert "zigzags" not in _said.getvalue(), _said.getvalue()
 ok("an area through rows at one x says it zigzags")
+
+
+# --- A summarized point on its side ------------------------------------------
+# With the category on `y` it summarizes along `x`, one dot per category, where
+# it drew every row. The same block runs in all four bindings.
+_side = {"life": [40.0, 50.0, 60.0, 45.0, 55.0, 65.0], "year": ["a", "a", "a", "b", "b", "b"]}
+assert render_svg(data(_side, name="side") + point * median + x(col.life)
+                  + y(col.year)).count("<circle") == 2
+ok("a summarized point lies on its side as a bar does")

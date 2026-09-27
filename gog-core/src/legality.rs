@@ -2680,6 +2680,18 @@ pub fn is_slot_mark(mark: &Mark) -> bool {
     matches!(mark, Mark::Bar | Mark::Box | Mark::Interval)
 }
 
+/// Does this layer read its orientation off the types of its two positions?
+///
+/// The three slot marks always do. A `point` that reduces does too, since a
+/// summary dot is a bar's end drawn as a dot (Law 2): `point * median + x(life) +
+/// y(year)` summarizes along `x`, one dot per year, as `bar * median` draws one bar
+/// per year. Read as vertical, it grouped by the numeric `x`, every row its own
+/// group, and drew all 1,704 raw rows as if summarized.
+pub fn reads_orientation(layer: &Layer) -> bool {
+    is_slot_mark(&layer.mark)
+        || (layer.mark == Mark::Point && crate::transform::has_reduction(&layer.transforms))
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Orient {
     /// The marks stand on the x axis and measure along y. The default.
@@ -2868,7 +2880,7 @@ pub fn plot_orient(spec: &PlotSpec, data: &HashMap<String, DataFrame>) -> Orient
         }
     }
     for layer in &spec.layers {
-        if !is_slot_mark(&layer.mark) {
+        if !reads_orientation(layer) {
             continue;
         }
         // Read against the columns *this* layer reads, since it may name its own
@@ -11039,7 +11051,7 @@ pub fn synth_axis(spec: &PlotSpec, layer: &Layer, df: Option<&DataFrame>) -> Cha
         // titled the pile's axis. That `y` is a key now in both, and the bar lies on
         // its side.
         (Mark::Bar, _) if bar_is_one_pile(spec, layer, df) => Channel::Y,
-        (m, Some(df)) if is_slot_mark(m) => {
+        (_, Some(df)) if reads_orientation(layer) => {
             let xt = spec.position_for(layer, &Channel::X).and_then(|c| actual_type(df, &c.field));
             let yt = spec.position_for(layer, &Channel::Y).and_then(|c| actual_type(df, &c.field));
             match slot_orient(xt, yt) {

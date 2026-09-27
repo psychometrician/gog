@@ -4989,3 +4989,16 @@ local({
   if (grepl("zigzags", said, fixed = TRUE)) stop("FAIL: a mean has one value per x: ", said)
   cat("PASS: an area through rows at one x says it zigzags\n")
 })
+
+# ---------------------------------------------------------------------------
+# A summarized point reads its orientation as a bar does: with the category on
+# `y` it summarizes along `x`, one dot per category, where it drew every row.
+# The same block runs in all four bindings.
+# ---------------------------------------------------------------------------
+local({
+  t <- data.frame(life = c(40, 50, 60, 45, 55, 65), year = rep(c("a", "b"), each = 3))
+  svg <- render_svg(data(t) + point * median + x(life) + y(year))
+  if (lengths(regmatches(svg, gregexpr("<circle", svg))) != 2)
+    stop("FAIL: a median point per category, on its side")
+  cat("PASS: a summarized point lies on its side as a bar does\n")
+})

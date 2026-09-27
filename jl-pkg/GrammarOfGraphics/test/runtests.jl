@@ -2582,3 +2582,11 @@ end
     @test occursin("zigzags inside that value", said_by(data(zig) + area + x(:c) + y(:v)))
     @test !occursin("zigzags", said_by(data(zig) + area * mean + x(:c) + y(:v)))
 end
+
+# A summarized point reads its orientation as a bar does: with the category on
+# `y` it summarizes along `x`, one dot per category, where it drew every row.
+# The same block runs in all four bindings.
+@testset "a summarized point lies on its side as a bar does" begin
+    side = (life = [40.0, 50.0, 60.0, 45.0, 55.0, 65.0], year = ["a", "a", "a", "b", "b", "b"])
+    @test Base.count("<circle", render_svg(data(side) + point * median + x(:life) + y(:year))) == 2
+end

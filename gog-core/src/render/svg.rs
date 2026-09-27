@@ -721,7 +721,7 @@ impl SvgRenderer {
         // to disagree about a sideways violin.
         let key_is_x = |layer: &Layer, base: &DataFrame| -> bool {
             let violin = crate::legality::slot_density(spec, layer, Some(base));
-            !((horizontal && crate::legality::is_slot_mark(&layer.mark))
+            !((horizontal && crate::legality::reads_orientation(layer))
                 || violin == Some(crate::legality::Orient::Horizontal))
         };
 
@@ -7985,6 +7985,25 @@ mod tests {
                 "{:?}", narrow.remarks.iter().map(|d| &d.message).collect::<Vec<_>>());
         let wide = SvgRenderer { width: 1600.0, ..SvgRenderer::default() };
         assert_eq!(dated(text_of(&wide.render(&spec, &six_weeks(42)))), 22);
+    }
+
+    /// A summarized point reads its orientation as a bar does: with the category
+    /// on `y` it summarizes along `x`, one dot per category. Read as vertical it
+    /// grouped by the numeric `x`, every row its own group, and drew every row.
+    #[test]
+    fn a_summarized_point_lies_on_its_side_as_a_bar_does() {
+        let t: HashMap<String, DataFrame> = HashMap::from([(
+            "t".to_string(),
+            DataFrame::new()
+                .with_float("life", vec![40.0, 50.0, 60.0, 45.0, 55.0, 65.0])
+                .with_str("year", ["a", "a", "a", "b", "b", "b"].map(String::from).to_vec()),
+        )]);
+        for reduce in [Transform::Median, Transform::Mean] {
+            let spec = PlotSpec::new().data("t").x("life").y("year")
+                .layer(Layer::new(Mark::Point).transform(reduce.clone()));
+            let svg = SvgRenderer::default().render(&spec, &t);
+            assert_eq!(svg.matches("<circle").count(), 2, "{reduce:?}: one dot per category");
+        }
     }
 
     /// **Crowded numbers thin as names do** (ruled 2026-09-27). Five panels of a

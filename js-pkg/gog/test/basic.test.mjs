@@ -3216,3 +3216,12 @@ test("an area through rows at one x says it zigzags", () => {
   assert.ok(saidBy(plot(data(zig), area, x(col.c), y(col.v))).includes("zigzags inside that value"));
   assert.ok(!saidBy(plot(data(zig), layer(area, mean), x(col.c), y(col.v))).includes("zigzags"));
 });
+
+// A summarized point reads its orientation as a bar does: with the category on
+// `y` it summarizes along `x`, one dot per category, where it drew every row.
+// The same block runs in all four bindings.
+test("a summarized point lies on its side as a bar does", () => {
+  const side = { life: [40, 50, 60, 45, 55, 65], year: ["a", "a", "a", "b", "b", "b"] };
+  const svg = render_svg(plot(data(side), layer(point, median), x(col.life), y(col.year)));
+  assert.equal((svg.match(/<circle/g) || []).length, 2);
+});
