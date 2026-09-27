@@ -10178,7 +10178,9 @@ fn check_facet(out: &mut Vec<Diagnostic>, spec: &PlotSpec, data: &HashMap<String
 // `facet` refuses one is recorded at `data::frames_across`.
 // ---------------------------------------------------------------------------
 
-/// Above this many frames, say how long the loop will run before drawing it.
+/// Above this many frames, say how long the loop will run before drawing it —
+/// counted in default holds, which is the frame count for an even sequence and
+/// more or fewer for an uneven one (`data::frame_holds`).
 ///
 /// Under it the default is unambiguous and §12 says use it silently: a dozen
 /// frames at the default pace is ten seconds, which is what anyone writing
@@ -10288,8 +10290,14 @@ fn check_play(out: &mut Vec<Diagnostic>, spec: &PlotSpec, data: &HashMap<String,
     // the ugly-but-legal — but the loop length is a default the caller did not
     // choose and cannot see, which is exactly §12's Assumption: it renders, and
     // the chosen default is said out loud so it can be confirmed.
-    if n > FRAMES_WORTH_MENTIONING {
-        let secs = n as f64 * def.frame_seconds();
+    //
+    // The loop is counted in default holds, not frames: a frame holds in
+    // proportion to the gap it stands for (`data::frame_holds`), so an uneven
+    // sequence can loop for longer than its frame count says. Even, the two are
+    // the same number and nothing below changes.
+    let beats = crate::data::frame_holds(&levels).iter().fold(0.0, |a, h| a + h);
+    if beats > FRAMES_WORTH_MENTIONING as f64 {
+        let secs = beats * def.frame_seconds();
 
         // The pace that brings this loop back under the length that would not
         // have been worth mentioning at all, which is `FRAMES_WORTH_MENTIONING`
@@ -10303,7 +10311,7 @@ fn check_play(out: &mut Vec<Diagnostic>, spec: &PlotSpec, data: &HashMap<String,
         // printed "Run it faster with `play(second, speed = 4)`" underneath a
         // plot whose author had taken the advice once. A direction that points
         // backwards is worse than no direction, and §12 asks for a direction.
-        let enough = (n as f64 / FRAMES_WORTH_MENTIONING as f64).ceil();
+        let enough = (beats / FRAMES_WORTH_MENTIONING as f64).ceil();
         let direction = if enough > def.speed.unwrap_or(1.0) {
             format!(
                 " Run it faster with `play({field}, speed = {enough:.0})`, or bind a \
@@ -10313,10 +10321,17 @@ fn check_play(out: &mut Vec<Diagnostic>, spec: &PlotSpec, data: &HashMap<String,
             " Bind a coarser column to cut fewer frames.".to_string()
         };
 
+        // Said only when the holds differ, since only then is the loop not the
+        // frame count times one hold.
+        let held = if beats == n as f64 {
+            ","
+        } else {
+            ", each held in proportion to the gap to the next,"
+        };
         out.push(Diagnostic {
             kind: DiagnosticKind::Assumption,
             message: format!(
-                "gog: `play({field})` cuts {n} frames, so the animation loops every \
+                "gog: `play({field})` cuts {n} frames{held} so the animation loops every \
                  {secs:.0} seconds.{direction}"
             ),
         });

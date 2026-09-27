@@ -38,24 +38,6 @@ fn flag_value(name: &str) -> Option<String> {
     args.iter().position(|a| a == name).and_then(|i| args.get(i + 1).cloned())
 }
 
-/// How long one moment holds, in seconds — the same number the SMIL `begin`
-/// attributes are spaced by, read from the same place.
-///
-/// One source, so a GIF and the SVG it came from run at the same pace. Reading
-/// it off the spec rather than passing it out of the renderer keeps
-/// `render_frames` returning frames and nothing else.
-fn frame_seconds(figure: &gog_core::ir::Figure) -> f64 {
-    figure
-        .plots()
-        .iter()
-        .find_map(|p| {
-            p.layers
-                .iter()
-                .find_map(|l| l.encodings.get(&gog_core::ir::Channel::Play))
-        })
-        .map_or(gog_core::ir::FRAME_SECONDS, |d| d.frame_seconds())
-}
-
 // ---------------------------------------------------------------------------
 // Main
 // ---------------------------------------------------------------------------
@@ -171,9 +153,15 @@ fn main() {
                 }
                 // Hundredths of a second is the resolution GIF has, and a moment
                 // that rounds to nothing would run the sequence as fast as the
-                // reader's browser felt like. One hundredth is the floor.
-                let delay = ((frame_seconds(&spec) * 100.0).round() as u16).max(1);
-                match gif::write(&drawn.frames, &path, scale, delay) {
+                // reader's browser felt like. One hundredth is the floor. The
+                // holds are the engine's, one per moment, so the file keeps the
+                // SVG's pace frame by frame, uneven gaps included.
+                let delays: Vec<u16> = drawn
+                    .holds
+                    .iter()
+                    .map(|s| ((s * 100.0).round() as u16).max(1))
+                    .collect();
+                match gif::write(&drawn.frames, &path, scale, &delays) {
                     Ok((w, h)) => {
                         eprintln!(
                             "gog: wrote {} moments at {w}x{h} to {path}",

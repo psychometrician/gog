@@ -4774,3 +4774,16 @@ local({
     stop("FAIL: a pair's edge should be drawn about as long as the ring's edges")
   cat("PASS: a network draws its separate parts at one scale\n")
 })
+
+# A played column's frames are held in proportion to the gap to the next value:
+# 2002 stands for 18 years before 2020 and is held four times the usual 0.8s,
+# the longest a frame is held. Until 2026-09-26 every frame held 0.8s.
+local({
+  uneven <- data.frame(a = 1:4, b = 4:1, t = c(2000, 2001, 2002, 2020))
+  svg <- render_svg(data(uneven) + point + x(a) + y(b) + play(t))
+  begins <- sort(unique(as.numeric(sub('s"$', "", sub('^begin="', "",
+    regmatches(svg, gregexpr('begin="[0-9.]+s"', svg))[[1]])))))
+  if (!isTRUE(all.equal(begins, c(0, 0.8, 1.6, 4.8))))
+    stop("FAIL: frames of an uneven column should begin at 0, 0.8, 1.6 and 4.8 seconds")
+  cat("PASS: a played column's frames are held in proportion to its gaps\n")
+})

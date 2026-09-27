@@ -151,8 +151,8 @@ struct PanelFacts<'a> {
     /// The facet column this panel holds, as (column, level).
     facet_col: Option<(&'a str, &'a str)>,
     facet_row: Option<(&'a str, &'a str)>,
-    /// The played column, its moments in order, and how long each one shows.
-    play: Option<(&'a str, &'a [crate::data::FrameLevel], f64)>,
+    /// The played column, its moments in order, and when each one shows.
+    play: Option<(&'a str, &'a [crate::data::FrameLevel], Clock<'a>)>,
     /// `None` when a value can be turned back into a position; otherwise the one
     /// word for what stops it.
     place: Option<&'static str>,
@@ -206,6 +206,28 @@ pub(crate) fn play_levels_of(
         .find_map(|l| l.encodings.get(&Channel::Play))
         .map(|d| crate::data::frames_across(source_frames, &d.field))
         .unwrap_or_default()
+}
+
+/// When each moment of a played plot shows: its hold, in default holds
+/// (`data::frame_holds`), and the seconds one default hold lasts at this `speed`.
+#[derive(Clone, Copy)]
+struct Clock<'a> {
+    holds: &'a [f64],
+    pace: f64,
+}
+
+impl Clock<'_> {
+    /// Moment `fi`'s start and hold, and the whole loop, all in seconds.
+    ///
+    /// Summed in default holds and scaled once, so an even sequence — every hold
+    /// exactly 1.0 — computes `fi × pace` and `n × pace` exactly as it always did.
+    fn window(&self, fi: usize) -> (f64, f64, f64) {
+        // Folded from `0.0` rather than `sum()`, whose empty sum is `-0.0` and
+        // would write the first moment's `begin` as "-0.000".
+        let before = self.holds[..fi].iter().fold(0.0, |a, h| a + h);
+        let total = self.holds.iter().fold(0.0, |a, h| a + h);
+        (before * self.pace, self.holds[fi] / total, total * self.pace)
+    }
 }
 
 /// [`play_levels_of`] for a caller holding only the spec and its tables — the
@@ -626,6 +648,10 @@ impl SvgRenderer {
         // sequence that never advances.
         let nframes = play_levels.len().max(1);
         let frame_seconds = play_def.map(|d| d.frame_seconds()).unwrap_or(crate::ir::FRAME_SECONDS);
+        // Each moment's hold in proportion to the gap it stands for (§15), and the
+        // pace those holds are counted in, so `speed` divides every hold alike.
+        let play_holds = crate::data::frame_holds(&play_levels);
+        let clock = Clock { holds: &play_holds, pace: frame_seconds };
 
         // Pre-compute effective (transformed, scaled) DataFrames for each layer,
         // so that range computation and rendering both see the same values.
@@ -2228,7 +2254,7 @@ impl SvgRenderer {
                 facet_col: col_field.as_deref().zip(cv),
                 facet_row: row_field.as_deref().zip(rv),
                 play: (nframes >= 2).then(|| play_def
-                    .map(|d| (d.field.as_str(), play_levels.as_slice(), frame_seconds)))
+                    .map(|d| (d.field.as_str(), play_levels.as_slice(), clock)))
                     .flatten(),
                 place,
             };
@@ -2356,7 +2382,7 @@ impl SvgRenderer {
                         }
                         self.close_pass(&mut svg, dim);
                     }
-                    self.close_frame(&mut svg, fi, nframes, frame_seconds);
+                    self.close_frame(&mut svg, fi, nframes, clock);
                 }
                 continue;
             }
@@ -2443,7 +2469,7 @@ impl SvgRenderer {
                       }
                       self.close_pass(&mut svg, dim);
                     }
-                    self.close_frame(&mut svg, fi, nframes, frame_seconds);
+                    self.close_frame(&mut svg, fi, nframes, clock);
                 }
                 // The frame's labels go on last, the same rule the flat and polar
                 // frames follow below: a guide is an annotation *about* the scene,
@@ -2591,7 +2617,7 @@ impl SvgRenderer {
                   }
                   self.close_pass(&mut svg, dim);
                 }
-                self.close_frame(&mut svg, fi, nframes, frame_seconds);
+                self.close_frame(&mut svg, fi, nframes, clock);
             }
 
             // The tick labels go on last in both spaces, so they stay readable over
@@ -2619,7 +2645,7 @@ impl SvgRenderer {
         }
 
         self.write_strips(&mut svg, &grid, &spec.theme.resolved());
-        self.write_play_strip(&mut svg, &grid, &play_levels, frame_seconds,
+        self.write_play_strip(&mut svg, &grid, &play_levels, clock,
                               &spec.theme.resolved());
         // In 3-D the axis names sit on the cube's edges, so the outer margin
         // carries only the title — the 2-D x/y labels would float against no axis.
@@ -2952,7 +2978,7 @@ impl SvgRenderer {
         // is, given the time. The **keys** rather than the labels, because the
         // browser compares them against the column and a year is `1957` there
         // and "1957" on the strip.
-        let play = facts.play.map(|(field, levels, seconds)| {
+        let play = facts.play.map(|(field, levels, clock)| {
             let keys = levels.iter().map(|lv| match &lv.key {
                 crate::data::FrameKey::Str(s) => crate::render::text::esc(s),
                 crate::data::FrameKey::Float(v) => format!("{v}"),
@@ -2960,9 +2986,21 @@ impl SvgRenderer {
             // The same precision the animation's own `begin` and `dur` are
             // written at, or the frame the browser computes drifts from the
             // frame the reader sees wherever `speed` makes this repeat.
-            format!(concat!(r#" data-play-field="{f}" data-play-levels="{k}""#,
-                            r#" data-play-seconds="{s:.3}""#),
-                    f = crate::render::text::esc(field), k = keys, s = seconds)
+            let even = format!(concat!(r#" data-play-field="{f}" data-play-levels="{k}""#,
+                                       r#" data-play-seconds="{s:.3}""#),
+                               f = crate::render::text::esc(field), k = keys, s = clock.pace);
+            // Frames held unevenly (a gap in the played column) are placed by their
+            // own starts, not by one length: each start written exactly as that
+            // frame's `<animate begin>` is, so the browser's clock and the
+            // picture's cannot disagree about which moment is on show. Written only
+            // when uneven, so an evenly played plot keeps its bytes.
+            if clock.holds.iter().all(|&h| h == 1.0) {
+                return even;
+            }
+            let begins = (0..levels.len()).map(|fi| format!("{:.3}", clock.window(fi).0))
+                .collect::<Vec<_>>().join("|");
+            let lap = clock.window(0).2;
+            format!(r#"{even} data-play-begins="{begins}" data-play-loop="{lap:.3}""#)
         }).unwrap_or_default();
         // `row` is the promise that a value can be turned back into the place it
         // was drawn. Anything else names what broke it, so the page can say so
@@ -3062,7 +3100,7 @@ impl SvgRenderer {
     /// grows with the number of frames and not with its square. Before its
     /// `begin` an element falls back to the `display` written on it, which is
     /// exactly the state [`open_frame`](Self::open_frame) set.
-    fn close_frame(&self, svg: &mut String, fi: usize, nframes: usize, frame_seconds: f64) {
+    fn close_frame(&self, svg: &mut String, fi: usize, nframes: usize, clock: Clock<'_>) {
         if nframes < 2 {
             return;
         }
@@ -3073,15 +3111,18 @@ impl SvgRenderer {
             writeln!(svg, "  </g>").unwrap();
             return;
         }
+        // Shown from `begin` for its share of the loop, then hidden until the
+        // loop comes round: a hold in proportion to the gap it stands for.
+        let (begin, share, dur) = clock.window(fi);
         writeln!(svg,
             concat!(
                 r#"    <animate attributeName="display" values="inline;none" "#,
                 r#"keyTimes="0;{k:.6}" dur="{dur:.3}s" begin="{begin:.3}s" "#,
                 r#"calcMode="discrete" repeatCount="indefinite"/>"#,
             ),
-            k = 1.0 / nframes as f64,
-            dur = nframes as f64 * frame_seconds,
-            begin = fi as f64 * frame_seconds,
+            k = share,
+            dur = dur,
+            begin = begin,
         ).unwrap();
         writeln!(svg, "  </g>").unwrap();
     }
@@ -3105,7 +3146,7 @@ impl SvgRenderer {
         svg: &mut String,
         grid: &PanelGrid,
         levels: &[crate::data::FrameLevel],
-        frame_seconds: f64,
+        clock: Clock<'_>,
         theme: &ThemeSpec,
     ) {
         let Some(band) = grid.play_strip.as_ref() else { return };
@@ -3136,7 +3177,7 @@ impl SvgRenderer {
                 r#"    <text x="{cx:.2}" y="{ty:.2}">{v}</text>"#,
                 v = esc(&level.label)
             ).unwrap();
-            self.close_frame(svg, fi, levels.len(), frame_seconds);
+            self.close_frame(svg, fi, levels.len(), clock);
         }
         writeln!(svg, "  </g>").unwrap();
     }

@@ -529,32 +529,51 @@ export function addTransport(bar, container, view = null) {
   const svg = clock();
   if (!svg || typeof svg.pauseAnimations !== "function") return null;
 
-  // **The frame count is read off `keyTimes`, never counted.** Each frame group
-  // carries one `<animate>`, and a played plot has more than one group per
-  // frame: the marks are one and the strip naming the moment is another. So
-  // counting elements overcounts by however many guides the plot happens to
-  // draw. `keyTimes="0;1/nframes"` states the number outright, and `dur` is
-  // `nframes` frames long, which gives the length of one.
-  const first = svg.querySelector('animate[attributeName="display"]');
-  if (!first) return null;
-  const share = Number.parseFloat((first.getAttribute("keyTimes") || "").split(";")[1]);
-  const span = Number.parseFloat(first.getAttribute("dur"));
-  if (!(share > 0) || !(span > 0)) return null;
-  const frames = Math.round(1 / share);
+  // **Each frame's window is read off its own `<animate>`, never inferred.** A
+  // frame holds from its `begin` for its share of the loop (`keyTimes="0;share"`
+  // of `dur`), and frames need not be even: a played column with uneven gaps
+  // holds each frame in proportion to the gap it stands for. A played plot has
+  // more than one group per frame (the marks are one, the strip naming the
+  // moment another), and they share a `begin`, so the windows are collected by
+  // their start, which also counts the frames without counting elements.
+  const animates = [...svg.querySelectorAll('animate[attributeName="display"]')];
+  if (!animates.length) return null;
+  const span = Number.parseFloat(animates[0].getAttribute("dur"));
+  if (!(span > 0)) return null;
+  const windows = new Map();
+  for (const a of animates) {
+    const begin = Number.parseFloat(a.getAttribute("begin"));
+    const share = Number.parseFloat((a.getAttribute("keyTimes") || "").split(";")[1]);
+    if (!(begin >= 0) || !(share > 0)) continue;
+    const key = begin.toFixed(3);
+    if (!windows.has(key)) windows.set(key, { begin, hold: share * span });
+  }
+  const moments = [...windows.values()].sort((p, q) => p.begin - q.begin);
+  const frames = moments.length;
   if (frames < 2) return null;
-  const seconds = span / frames;
 
   // Which frame is on screen. The clock runs past `dur` and wraps, so the
-  // remainder is the position within one pass, and the floor of it is the frame.
+  // remainder is the position within one pass, and the frame is the last one
+  // begun by then.
   const at = () => {
     const svgNow = clock();
     if (!svgNow) return 0;
     const t = svgNow.getCurrentTime() % span;
-    return Math.min(frames - 1, Math.max(0, Math.floor(t / seconds)));
+    let i = 0;
+    for (let k = 1; k < frames; k++) if (moments[k].begin <= t) i = k;
+    return i;
   };
   // Land in the *middle* of a frame's window rather than on its leading edge,
   // which is a boundary two frames can both claim to a rounding error.
-  const show = (i) => clock()?.setCurrentTime(((((i % frames) + frames) % frames) + 0.5) * seconds);
+  const show = (i) => {
+    const m = moments[((i % frames) + frames) % frames];
+    clock()?.setCurrentTime(m.begin + m.hold / 2);
+  };
+  // Which frame an `<animate>` belongs to, by its start.
+  const frameOf = (a) => {
+    const begin = Number.parseFloat(a.getAttribute("begin"));
+    return Number.isFinite(begin) ? moments.findIndex((m) => Math.abs(m.begin - begin) < 5e-4) : -1;
+  };
 
   const solid = (body) =>
     `<svg width="13" height="13" viewBox="0 0 16 16" aria-hidden="true" ` +
@@ -619,9 +638,7 @@ export function addTransport(bar, container, view = null) {
     const now = at();
     for (const a of [...clone.querySelectorAll('animate[attributeName="display"]')]) {
       const group = a.parentNode;
-      const begin = Number.parseFloat(a.getAttribute("begin"));
-      const which = Number.isFinite(begin) ? Math.round(begin / seconds) : -1;
-      group?.setAttribute?.("display", which === now ? "inline" : "none");
+      group?.setAttribute?.("display", frameOf(a) === now ? "inline" : "none");
       a.remove();
     }
   });

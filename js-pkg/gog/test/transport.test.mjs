@@ -280,3 +280,46 @@ test("the camera photographs the frame on show, not the first", { skip: !have },
   // And no clock survives, or the saved picture would start moving again.
   assert.ok(svg.anims.every((a) => a.removed), "the copy must carry no animation");
 });
+
+// A played column with uneven gaps holds each frame in proportion to its gap, so
+// frames are not one length. The transport reads every frame's own window off its
+// `<animate>`; inferring one length from the first frame stepped onto the wrong
+// frame and skipped the long one.
+const uneven = () => ({
+  spec: {
+    data: "t",
+    layers: [
+      {
+        mark: "point",
+        encodings: { x: { field: "a" }, y: { field: "b" }, play: { field: "t" } },
+        transforms: [],
+      },
+    ],
+  },
+  data: { t: { floats: { a: [1, 2, 3, 4], b: [4, 3, 2, 1], t: [2000, 2001, 2002, 2020] } } },
+});
+
+test("stepping visits every frame once when the frames are held unevenly", { skip: !have }, () => {
+  installDom();
+  const rendered = draw(uneven());
+  const svg = fakeSvg(rendered);
+  // The frames' own windows, as the SVG states them: begin and share of the loop.
+  const windows = [...new Map(svg.anims.map((a) => {
+    const begin = Number(a.getAttribute("begin").replace("s", ""));
+    const share = Number(a.getAttribute("keyTimes").split(";")[1]);
+    return [begin.toFixed(3), { begin, hold: share * Number(a.getAttribute("dur").replace("s", "")) }];
+  })).values()].sort((p, q) => p.begin - q.begin);
+  assert.equal(windows.length, 4, "four frames");
+  assert.ok(windows[2].hold > 3 * windows[0].hold, "2002 stands for an 18-year gap and holds longer");
+
+  const bar = controlBar("view");
+  addTransport(bar, { querySelector: () => svg });
+  const [, , forward] = bar.children[0].children;
+  const frame = () => windows.findIndex((w) => svg.time >= w.begin && svg.time < w.begin + w.hold);
+  const seen = [];
+  for (let i = 0; i < 4; i += 1) {
+    forward.on.click();
+    seen.push(frame());
+  }
+  assert.deepEqual(seen, [1, 2, 3, 0], "each frame once, in order, then round to the first");
+});

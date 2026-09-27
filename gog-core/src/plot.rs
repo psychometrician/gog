@@ -202,6 +202,11 @@ pub fn render_frames(
 #[derive(Debug)]
 pub struct Frames {
     pub frames: Vec<String>,
+    /// How long each frame holds, in seconds, in the same order — the holds the
+    /// SVG's own timing uses, so a file and the plot it came from keep one pace.
+    /// Computed here, from the scope-resolved spec and the data, because a hold
+    /// depends on the gap each frame stands for, which only the data knows.
+    pub holds: Vec<f64>,
     /// Every diagnostic the check produced, plus the first frame's render
     /// remarks. One frame's worth: the remarks are the same sentence every
     /// moment, and twelve copies of it is noise.
@@ -258,7 +263,16 @@ pub fn render_frames_with(
         }
         frames.push(drawn.svg);
     }
-    Ok(Frames { frames, diagnostics })
+    // The pace comes off the *resolved* layers: a `play` written before any mark
+    // lives on the plot until `resolve_scopes` hands it down, and reading the
+    // unresolved layers missed its `speed`.
+    let pace = crate::legality::resolve_scopes(spec)
+        .layers
+        .iter()
+        .find_map(|l| l.encodings.get(&crate::ir::Channel::Play))
+        .map_or(crate::ir::FRAME_SECONDS, |d| d.frame_seconds());
+    let holds = crate::data::frame_holds(&levels).iter().map(|h| h * pace).collect();
+    Ok(Frames { frames, holds, diagnostics })
 }
 
 #[cfg(test)]

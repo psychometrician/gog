@@ -2839,3 +2839,12 @@ _ring = builtins.sum(_len[:24]) / 24
 assert len(_len) == 28 and all(0.5 < l / _ring < 2 for l in _len[24:]), \
     "a pair's edge should be drawn about as long as the ring's edges"
 ok("a network draws its separate parts at one scale")
+
+# A played column's frames are held in proportion to the gap to the next value:
+# 2002 stands for 18 years before 2020 and is held four times the usual 0.8s,
+# the longest a frame is held. Until 2026-09-26 every frame held 0.8s.
+_uneven = {"a": [1.0, 2.0, 3.0, 4.0], "b": [4.0, 3.0, 2.0, 1.0], "t": [2000.0, 2001.0, 2002.0, 2020.0]}
+_svg = render_svg(data(_uneven, name="uneven") + point + x(col.a) + y(col.b) + play(col.t))
+_begins = sorted({float(b) for b in re.findall(r'begin="([0-9.]+)s"', _svg)})
+assert _begins == [0.0, 0.8, 1.6, 4.8], f"frames of an uneven column should begin at 0, 0.8, 1.6, 4.8: {_begins}"
+ok("a played column's frames are held in proportion to its gaps")

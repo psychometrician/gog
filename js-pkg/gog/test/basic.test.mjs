@@ -3023,3 +3023,13 @@ test("a network draws its separate parts at one scale", () => {
     assert.ok(l / mean > 0.5 && l / mean < 2, `a pair's edge is drawn ${(l / mean).toFixed(2)} times the ring's`);
   }
 });
+
+// A played column's frames are held in proportion to the gap to the next value:
+// 2002 stands for 18 years before 2020 and is held four times the usual 0.8s,
+// the longest a frame is held. Until 2026-09-26 every frame held 0.8s.
+test("a played column's frames are held in proportion to its gaps", () => {
+  const uneven = { a: [1, 2, 3, 4], b: [4, 3, 2, 1], t: [2000, 2001, 2002, 2020] };
+  const svg = render_svg(plot(data(uneven, { name: "uneven" }), point, x(col.a), y(col.b), play(col.t)));
+  const begins = [...new Set([...svg.matchAll(/begin="([0-9.]+)s"/g)].map((m) => Number(m[1])))].sort((p, q) => p - q);
+  assert.deepEqual(begins, [0, 0.8, 1.6, 4.8]);
+});

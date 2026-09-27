@@ -497,10 +497,18 @@ export function attachBrush(engine, container, request, options = {}) {
         return field === null || level === null ? null : { field, level };
       };
       const playField = g.getAttribute("data-play-field");
+      const levels = (g.getAttribute("data-play-levels") ?? "").split("|");
+      // Frames held unevenly carry their own starts, written exactly as each
+      // frame's `<animate begin>` is; evenly held ones carry one length only.
+      const begins = (g.getAttribute("data-play-begins") ?? "").split("|").map(Number);
+      const loop = Number(g.getAttribute("data-play-loop"));
       const play = playField === null ? null : {
         field: playField,
-        levels: (g.getAttribute("data-play-levels") ?? "").split("|"),
+        levels,
         seconds: Number(g.getAttribute("data-play-seconds")),
+        begins: begins.length === levels.length && begins.every(Number.isFinite) && loop > 0
+          ? begins : null,
+        loop,
       };
       // y runs down the page and up the axis, so its two ends are swapped
       // against x's. That is the one asymmetry here.
@@ -759,14 +767,23 @@ export function attachBrush(engine, container, request, options = {}) {
   // The moment showing now. Every frame is in the document and the clock chooses
   // between them: frame `i` is displayed over `[i*s, i*s + s)` and the sequence
   // repeats, so the index is the elapsed time divided by one frame's length.
+  // Frames held in proportion to uneven gaps are found by their own starts
+  // instead: the last one begun by this point of the loop is the one on show.
   // Read off the same `<svg>` a redraw reads and writes, so there is one
   // timeline even on a page of nested cells.
   const moment = (panel) => {
     if (!panel.play || !(panel.play.seconds > 0)) return null;
     const svg = container.querySelector("svg");
     const t = typeof svg?.getCurrentTime === "function" ? svg.getCurrentTime() : 0;
-    const n = panel.play.levels.length;
-    return panel.play.levels[((Math.floor(t / panel.play.seconds) % n) + n) % n];
+    const { levels, begins, loop } = panel.play;
+    const n = levels.length;
+    if (begins) {
+      const u = ((t % loop) + loop) % loop;
+      let at = 0;
+      for (let i = 1; i < n; i++) if (begins[i] <= u) at = i;
+      return levels[at];
+    }
+    return levels[((Math.floor(t / panel.play.seconds) % n) + n) % n];
   };
 
   const nearest = (panel, at) => {

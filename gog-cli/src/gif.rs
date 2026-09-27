@@ -26,16 +26,23 @@ use resvg::{tiny_skia, usvg};
 ///
 /// `scale` multiplies the plot's own canvas: a plot is 800 by 600 unless its
 /// theme says otherwise, which is small for a post, and `scale = 2` is the
-/// cheapest way to a sharp one. `delay_cs` is hundredths of a second per frame,
-/// which is the resolution the format has.
+/// cheapest way to a sharp one. `delays_cs` is each frame's hold in hundredths
+/// of a second, which is the resolution the format has.
 ///
 /// Returns the pixel size written, for the caller to report.
 pub fn write(
     frames: &[String],
     path: &str,
     scale: f32,
-    delay_cs: u16,
+    delays_cs: &[u16],
 ) -> Result<(u32, u32), String> {
+    if delays_cs.len() != frames.len() {
+        return Err(format!(
+            "{} frames were drawn but {} holds were given",
+            frames.len(),
+            delays_cs.len()
+        ));
+    }
     // The system fonts are loaded **once**, not per frame. Twelve loads of a
     // font database costs more than the twelve rasterizations it would serve,
     // and every frame of one sequence resolves the same families anyway.
@@ -87,7 +94,7 @@ pub fn write(
         // like `plasma` spends most of 256 colors on itself, and a shared palette
         // would band the very gradient the plot exists to show.
         let mut frame = gif::Frame::from_rgba_speed(w as u16, h as u16, &mut rgba, 10);
-        frame.delay = delay_cs;
+        frame.delay = delays_cs[i];
         encoder
             .write_frame(&frame)
             .map_err(|e| format!("frame {i} could not be written: {e}"))?;

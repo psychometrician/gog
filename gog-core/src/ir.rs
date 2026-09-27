@@ -1397,7 +1397,9 @@ impl ChannelDef {
         self
     }
 
-    /// How long one frame of this binding holds, in seconds.
+    /// How long one default hold of this binding lasts, in seconds — what a frame
+    /// of the sequence's usual step holds. A frame standing for a longer or
+    /// shorter gap holds a multiple of it (`data::frame_holds`).
     ///
     /// `None` and a nonsense speed both fall back to [`FRAME_SECONDS`]; a speed
     /// that made no sense has already been refused by `legality::check_speed`, and
@@ -1411,7 +1413,9 @@ impl ChannelDef {
     }
 }
 
-/// How long one frame of a `play` sequence holds at `speed = 1`, in seconds.
+/// How long one frame of a `play` sequence holds at `speed = 1`, in seconds, when
+/// it stands for the sequence's usual step: every frame of an evenly spaced or
+/// categorical sequence, and the typical frame of an uneven one.
 ///
 /// Lives here rather than in the renderer because it is what `speed` is a
 /// multiplier *on*: the number is half of a two-part contract whose other half is

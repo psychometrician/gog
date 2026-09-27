@@ -1211,6 +1211,35 @@ test("a faceted panel answers with its own rows and no others", async () => {
   }
 });
 
+// Frames held unevenly (the played column has a gap) are not one length, so the
+// moment on show is found by each frame's own start. 2002 stands for an 18-year
+// gap and holds 3.2s, from 1.6s to 4.8s; dividing the clock by one frame's 0.8s
+// named 2001 there, so the readout answered with a row from another year.
+test("a played plot with uneven gaps answers for the frame showing", async () => {
+  const undo = stubDom();
+  try {
+    const { handle, container, panels } = await hoverFixture(
+      { data: "t",
+        x: { field: "g" }, y: { field: "v" },
+        layers: [{ mark: "point", encodings: { play: { field: "yr" } }, transforms: [] }],
+        brush: [{ field: "g" }] },
+      { t: { floats: { g: [10, 35, 60, 90], v: [10, 35, 60, 90], yr: [2000, 2001, 2002, 2020] } } });
+    const p = panels[0];
+    const at = (v) => [placeOn(p.x, v), placeOn(p.y, v)];
+
+    CLOCK.t = 4.0;
+    container.send("pointermove", ...at(60));
+    assert.equal(onPage("gog-tip").length, 1, "2002's row, late in its long frame");
+    container.send("pointermove", ...at(35));
+    assert.equal(onPage("gog-tip").length, 0, "and not 2001's, which a single frame length would name");
+    handle.destroy();
+    CLOCK.t = 0;
+  } finally {
+    CLOCK.t = 0;
+    undo();
+  }
+});
+
 // Every moment is in the document at once and the clock chooses which one is
 // displayed, so the table on the page is always larger than the picture in front
 // of the reader. This shape ships in the manual.

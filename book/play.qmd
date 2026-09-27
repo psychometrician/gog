@@ -343,7 +343,7 @@ have run 170 frames instead of 17.
 
 Two sequences in this chapter have already carried `speed = 3`. A slow loop
 makes a reader wait for a pattern they have already seen. `speed` is a multiple
-of the normal pace, which shows each frame for 0.8 seconds. It is written inside
+of the normal pace, which shows a frame for 0.8 seconds. It is written inside
 the binding, the way `scale` and `limits` are written inside theirs, because it
 belongs to `play` and to nothing else:
 
@@ -355,8 +355,29 @@ data(gm_all) + point + x(gdp, scale = "log") + y(life) + color(continent) +
 These are the same twelve frames the chapter opened with, running three times as
 fast. `speed = 0.5` would run them at half pace. `speed` exists for long
 sequences. The length of a loop is a default you did not choose, and the
-sentence does not show it, so past thirty frames gog reports how many seconds
-one loop takes.
+sentence does not show it. So when a sequence runs past thirty frames at the
+normal pace, gog reports how many seconds one loop takes.
+
+When the played column holds numbers or dates, gog shows each frame for a time
+in proportion to the gap between its value and the next. Each sequence is timed
+against its own gaps: a frame whose gap is the middle one, when the gaps are put
+in order, shows for the normal 0.8 seconds. The gapminder years are all five
+years apart, so their frames all show for the same time. Here are the four
+years [drawn as panels earlier](#the-same-sentence-as-panels), played by the
+number `year` instead of the category `period`:
+
+```{r}
+data(gm_four) + point + x(gdp, scale = "log") + y(life) + color(continent) +
+  play(year)
+```
+
+Twenty years separate 1952 from 1972 and 1972 from 1992, so 1952 and 1972 show
+for 0.8 seconds. Only fifteen separate 1992 from 2007, so 1992 shows for 0.6.
+The last frame has no next value and shows for 0.8. Categories have an order but
+no distance between them, so the earlier `play(period)` shows every frame for
+the same time. A frame shows for at most four times the normal 0.8 seconds, so
+one long gap cannot make the sequence seem to stop. It shows for at least a
+quarter of 0.8 seconds, however short its gap.
 
 ## The column that cannot do both jobs
 
@@ -471,8 +492,9 @@ requirement as separating them once shading has removed a third of the light.
 What the frames do not touch is the viewing angle. `space(turn = , tilt = )` is
 a property of the space rather than of the data, so one angle serves the whole
 sequence and every frame is seen from the same place. That is a design choice,
-not a gap. A viewing angle that swung while the sequence played would add motion
-that no column asked for, and a reader would then have to separate it from the
+not something missing. A viewing angle that swung while the sequence played
+would add motion that no column asked for, and a reader would then have to
+separate it from the
 motion a column does explain. `play` moves the data, and the viewing angle stays
 fixed.
 
@@ -727,7 +749,7 @@ little to the right of them, and they control the clock:
 | the right arrow | Goes forward one frame, and stops the clock |
 
 Stepping stops the clock, and it has to. A running clock would move past the
-frame you just asked for, in less than a second. So the arrows stop it, and
+frame you just asked for, often in less than a second. So the arrows stop it, and
 the middle button is how you start it again.
 
 The two ends are connected. Go back from the first frame and you arrive at the

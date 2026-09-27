@@ -48,6 +48,15 @@ CRAN-style repositories and PyPI, `GrammarOfGraphics` on Julia's General, and
 
 ### Changed
 
+- **An animation keeps time with its column.** When `play` runs through numbers
+  or dates that are not evenly spaced, each frame now shows in proportion to the
+  gap to the next value, between a quarter of the usual time and four times it,
+  so 2000, 2001, 2002, 2020 holds 2002 longest. Evenly spaced and categorical
+  columns play exactly as before. The play buttons on the page and the pointer's
+  readout follow the uneven frames, and a GIF saved from the plot keeps the same
+  times. A GIF also keeps a `speed` written on a `play` before the marks, which
+  it used to ignore.
+
 - **A network keeps its layout across panels, and packs its separate parts.**
   Under `| facet()` every panel now places each node where the others do, and
   draws only the edges its own rows state, so panels can be compared node by

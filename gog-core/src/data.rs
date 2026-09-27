@@ -406,6 +406,66 @@ pub fn frames_across(frames: &[&DataFrame], field: &str) -> Vec<FrameLevel> {
         .collect()
 }
 
+/// The shortest a frame may hold, in default holds: a quarter, 0.2 s at the
+/// normal pace, which is about one fixation. A gap far smaller than the
+/// sequence's usual step would otherwise flash a frame too briefly to see, and a
+/// frame nobody can see is a frame dropped in silence.
+const HOLD_SHORTEST: f64 = 0.25;
+
+/// The longest a frame may hold, in default holds: four, 3.2 s at the normal
+/// pace. Nothing moves while a frame holds, since frames do not tween, so a hold
+/// much longer than this reads as a sequence that has stopped rather than as a
+/// long stretch of time. Past it a gap reads as "long", not as how long.
+const HOLD_LONGEST: f64 = 4.0;
+
+/// How long each frame of a `play` sequence holds, in **default holds**, in
+/// frame order — so a hold is this times `ChannelDef::frame_seconds`, and `speed`
+/// divides every hold alike without touching their proportions.
+///
+/// A frame of a numeric or date column stands for the stretch from its value to
+/// the next, so it holds in proportion to that gap: 2000, 2001, 2002 and 2020
+/// hold 1, 1, 4 and 1 rather than 1 each, and eighteen years no longer pass as
+/// fast as one. Four rules finish it:
+///
+/// - **The typical step holds one default hold.** The reference is the median
+///   gap (the lower one of an even count, so it is a gap the data has), which is
+///   what keeps an evenly spaced sequence exactly as it was, and keeps the usual
+///   pace of an uneven one at the pace an even one reads at.
+/// - **The last frame holds one default hold.** It has no next value, so it gets
+///   the typical step. The loop back to the first frame is not a stretch of time.
+/// - **Holds run from a quarter to four**, for the reasons on the two bounds.
+/// - **Holds are rounded to the nearest quarter.** A few percent in a hold is not
+///   something a reader can see, and without the rounding months of 28 to 31 days
+///   and years of 365 or 366 would each hold a slightly different time.
+///
+/// A category has no gaps, only an order, so every frame of one holds one default
+/// hold, as every frame of every sequence did before this rule.
+pub fn frame_holds(levels: &[FrameLevel]) -> Vec<f64> {
+    let values: Option<Vec<f64>> = levels
+        .iter()
+        .map(|l| match l.key {
+            FrameKey::Float(v) => Some(v),
+            FrameKey::Str(_) => None,
+        })
+        .collect();
+    let Some(values) = values.filter(|v| v.len() >= 2) else {
+        return vec![1.0; levels.len()];
+    };
+    // Sorted ascending and distinct already (`frames_across`), so every gap is
+    // positive and finite.
+    let gaps: Vec<f64> = values.windows(2).map(|w| w[1] - w[0]).collect();
+    let mut sorted = gaps.clone();
+    sorted.sort_by(|a, b| a.partial_cmp(b).unwrap_or(std::cmp::Ordering::Equal));
+    let step = sorted[(sorted.len() - 1) / 2];
+    // In quarters, rounded, then bounded: a quarter is a power of two, so every
+    // hold and every sum of holds below is exact, and an even sequence gets
+    // exactly 1.0 per frame — the arithmetic every played plot had before.
+    let quarters = |g: f64| {
+        (g / step * 4.0).round().clamp(HOLD_SHORTEST * 4.0, HOLD_LONGEST * 4.0) / 4.0
+    };
+    gaps.iter().map(|&g| quarters(g)).chain(std::iter::once(1.0)).collect()
+}
+
 /// The grid two numeric columns describe — [`categories_across`]'s numeric
 /// sibling, and what a `surface` reads instead of a footprint (spec §15).
 ///
@@ -690,6 +750,33 @@ mod tests {
         let frames = frames_across(&[&df], "size");
         let labels: Vec<&str> = frames.iter().map(|f| f.label.as_str()).collect();
         assert_eq!(labels, ["Low", "Medium", "High"]);
+    }
+
+    /// A frame holds in proportion to the gap to the next value, bounded and
+    /// rounded — and an even sequence holds exactly what it always did.
+    #[test]
+    fn a_frame_holds_in_proportion_to_the_gap_it_stands_for() {
+        let holds = |years: Vec<f64>| {
+            let df = DataFrame::new().with_float("t", years);
+            frame_holds(&frames_across(&[&df], "t"))
+        };
+        // Even: exactly 1.0 each, so the SMIL is byte-for-byte the old one.
+        assert_eq!(holds(vec![1952.0, 1957.0, 1962.0, 1967.0]), [1.0; 4]);
+        // 18 years is capped at four steps; the last frame holds one.
+        assert_eq!(holds(vec![2000.0, 2001.0, 2002.0, 2020.0]), [1.0, 1.0, 4.0, 1.0]);
+        // A near-duplicate is floored at a quarter, not flashed.
+        assert_eq!(holds(vec![2000.0, 2001.0, 2001.01, 2002.0, 2003.0]),
+                   [1.0, 0.25, 1.0, 1.0, 1.0]);
+        // Rounded to quarters: 15 years against a 20-year step is 0.75.
+        assert_eq!(holds(vec![1952.0, 1972.0, 1992.0, 2007.0]), [1.0, 1.0, 0.75, 1.0]);
+        // Months of 28 to 31 days hold alike.
+        let day = crate::time::SECS_PER_DAY;
+        let months: Vec<f64> = [0.0, 31.0, 59.0, 90.0, 120.0].iter().map(|d| d * day).collect();
+        let df = DataFrame::new().with_time("m", months, crate::time::TimeUnit::Day);
+        assert_eq!(frame_holds(&frames_across(&[&df], "m")), [1.0; 5]);
+        // A category has an order and no gaps.
+        let df = DataFrame::new().with_str("c", vec!["b".into(), "a".into(), "c".into()]);
+        assert_eq!(frame_holds(&frames_across(&[&df], "c")), [1.0; 3]);
     }
 
     /// A date column plays as dates. Without the `TimeUnit` branch a `Date` frame

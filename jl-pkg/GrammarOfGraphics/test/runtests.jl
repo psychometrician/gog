@@ -2402,3 +2402,13 @@ end
     ring_mean = Base.sum(len[1:24]) / 24
     @test all(l -> 0.5 < l / ring_mean < 2, len[25:28])
 end
+
+# A played column's frames are held in proportion to the gap to the next value:
+# 2002 stands for 18 years before 2020 and is held four times the usual 0.8s,
+# the longest a frame is held. Until 2026-09-26 every frame held 0.8s.
+@testset "a played column's frames are held in proportion to its gaps" begin
+    uneven = (a = [1.0, 2.0, 3.0, 4.0], b = [4.0, 3.0, 2.0, 1.0], t = [2000.0, 2001.0, 2002.0, 2020.0])
+    svg = render_svg(data(uneven, name = "uneven") + point + x(:a) + y(:b) + play(:t))
+    begins = sort(unique([parse(Float64, m.captures[1]) for m in eachmatch(r"begin=\"([0-9.]+)s\"", svg)]))
+    @test begins == [0.0, 0.8, 1.6, 4.8]
+end
