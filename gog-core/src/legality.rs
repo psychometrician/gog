@@ -7042,6 +7042,51 @@ fn check_legend_columns(out: &mut Vec<Diagnostic>, spec: &PlotSpec, data: &HashM
     }
 }
 
+/// `area` and `step` join their rows in x order, as `line` does, and rows that
+/// share one `x` value make the outline zigzag inside it.
+///
+/// `area + x(continent) + y(life)` over a year's countries drew a 145-vertex
+/// outline running up and down inside each continent's slot, and `step` did the
+/// same, while `line` on the same rows said the points would be connected in x
+/// order. Said the same way here, as an Assumption, and only when it happens:
+/// some `x` value holds more than one row and nothing splits or summarizes them.
+/// `line`'s own note fires on its row count instead (a known over-report), so
+/// this asks the question that note should.
+fn check_joined_rows(out: &mut Vec<Diagnostic>, spec: &PlotSpec, df: &DataFrame, layer: &Layer) {
+    if !matches!(layer.mark, Mark::Area | Mark::Step) || !layer.transforms.is_empty() {
+        return;
+    }
+    if [Channel::Color, Channel::Group, Channel::Pattern].iter().any(|c| layer.encodings.contains_key(c)) {
+        return;
+    }
+    let Some(x) = spec.position_for(layer, &Channel::X) else { return };
+    let mut counts: HashMap<String, usize> = HashMap::new();
+    if let Some(vals) = df.str_col(&x.field) {
+        for v in vals {
+            *counts.entry(v.clone()).or_default() += 1;
+        }
+    } else if let Some(vals) = df.float_col(&x.field) {
+        for v in vals.iter().filter(|v| v.is_finite()) {
+            *counts.entry(v.to_bits().to_string()).or_default() += 1;
+        }
+    }
+    let most = counts.values().copied().max().unwrap_or(0);
+    if most < 2 {
+        return;
+    }
+    let m = mark_name(&layer.mark);
+    out.push(Diagnostic {
+        kind: DiagnosticKind::Assumption,
+        message: format!(
+            "gog: up to {most} rows of `{m}` share one value of `x({f})`, and nothing splits \
+             them, so they are joined in x order and the outline zigzags inside that value. \
+             If you have several series, add `color(<field>)` or `group(<field>)`; for one \
+             value per `x`, summarize them with `{m} * mean`.",
+            f = x.field,
+        ),
+    });
+}
+
 /// Check every layer of `spec` against the table.
 ///
 /// Returns diagnostics in spec order. An empty vector means the plot is
@@ -7676,6 +7721,9 @@ pub fn check(spec: &PlotSpec, data: &HashMap<String, DataFrame>) -> Vec<Diagnost
             if !out[layer_from..].iter().any(Diagnostic::is_fatal) {
                 check_one_row_groups(&mut out, spec, df, layer,
                     plot_orient(spec, data) == Orient::Horizontal);
+                // An outline through several rows at one `x`, joined in x order: a
+                // note about how the layer draws, so only for a layer that draws.
+                check_joined_rows(&mut out, spec, df, layer);
             }
         }
     }
@@ -19530,6 +19578,29 @@ mod tests {
                 "`x(w)` weighs each branch");
         refused(PlotSpec::new().data("t").y("w").layer(Layer::new(Mark::Ribbon).flow(&["a", "b"])),
                 "`y(w)` weighs each path");
+    }
+
+    /// Rows that share an `x` are joined in x order and zigzag inside it; `area`
+    /// and `step` say so as `line` does, and only when it happens.
+    #[test]
+    fn an_area_or_step_through_rows_at_one_x_says_it_zigzags() {
+        let s = |v: &[&str]| v.iter().map(|x| x.to_string()).collect::<Vec<_>>();
+        let tables: HashMap<String, DataFrame> = HashMap::from([(
+            "t".to_string(),
+            DataFrame::new()
+                .with_str("c", s(&["a", "a", "a", "b", "b"]))
+                .with_float("v", vec![1.0, 3.0, 2.0, 4.0, 1.0])
+                .with_str("k", s(&["p", "q", "r", "p", "q"])),
+        )]);
+        let said = |layer: Layer| check(&PlotSpec::new().data("t").x("c").y("v").layer(layer), &tables)
+            .into_iter().find(|d| d.message.contains("zigzags inside that value"));
+        for mark in [Mark::Area, Mark::Step] {
+            let d = said(Layer::new(mark.clone())).expect("rows at one x, joined");
+            assert_eq!(d.kind, DiagnosticKind::Assumption);
+            assert!(d.message.contains("up to 3 rows"), "{}", d.message);
+            assert!(said(Layer::new(mark.clone()).encode(Channel::Color, "k")).is_none());
+            assert!(said(Layer::new(mark).transform(Transform::Mean)).is_none());
+        }
     }
 
     /// `bounds` draws its axis from its own two columns, so a category named on it

@@ -3200,3 +3200,19 @@ test("a category on the axis bounds draws is refused", () => {
   assert.match(refusalOf(() => render_svg(plot(data(rid), layer(ribbon, bounds(col.zero, col.height)),
     x(col.at), y(col.g)))), /`ribbon \* bounds` draws its band/);
 });
+
+// `area` and `step` join their rows in x order, as `line` does, and rows that
+// share one `x` zigzag inside it; that is now said, and only when it happens.
+// The same block runs in all four bindings.
+test("an area through rows at one x says it zigzags", () => {
+  const zig = { c: ["a", "a", "a", "b", "b"], v: [1, 3, 2, 4, 1] };
+  const saidBy = (p) => {
+    const write = process.stderr.write;
+    let said = "";
+    process.stderr.write = (chunk) => { said += chunk; return true; };
+    try { render_svg(p); } finally { process.stderr.write = write; }
+    return said;
+  };
+  assert.ok(saidBy(plot(data(zig), area, x(col.c), y(col.v))).includes("zigzags inside that value"));
+  assert.ok(!saidBy(plot(data(zig), layer(area, mean), x(col.c), y(col.v))).includes("zigzags"));
+});

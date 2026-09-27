@@ -2565,3 +2565,20 @@ end
     rid = (at = [1.0, 2.0, 1.0, 2.0], zero = zeros(4), height = [1.0, 3.0, 2.0, 1.0], g = ["a", "a", "b", "b"])
     @refuses render_svg(data(rid) + ribbon * bounds(:zero, :height) + x(:at) + y(:g)) "`ribbon * bounds` draws its band"
 end
+
+# `area` and `step` join their rows in x order, as `line` does, and rows that
+# share one `x` zigzag inside it; that is now said, and only when it happens.
+# The same block runs in all four bindings.
+@testset "an area through rows at one x says it zigzags" begin
+    zig = (c = ["a", "a", "a", "b", "b"], v = [1.0, 3.0, 2.0, 4.0, 1.0])
+    function said_by(p)
+        path, io = mktemp()
+        redirect_stderr(io) do
+            render_svg(p)
+        end
+        close(io)
+        read(path, String)
+    end
+    @test occursin("zigzags inside that value", said_by(data(zig) + area + x(:c) + y(:v)))
+    @test !occursin("zigzags", said_by(data(zig) + area * mean + x(:c) + y(:v)))
+end

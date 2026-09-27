@@ -3008,3 +3008,18 @@ assert "`ribbon * bounds` draws its band" in _refusal(
     lambda: render_svg(data(_rid, name="rid") + ribbon * bounds(col.zero, col.height)
                        + x(col.at) + y(col.g)))
 ok("a category on the axis bounds draws is refused")
+
+
+# --- `area` through rows at one `x` -------------------------------------------
+# Joined in x order, as `line` is, so it zigzags inside the value; now said, and
+# only when it happens. The same block runs in all four bindings.
+_zig = {"c": ["a", "a", "a", "b", "b"], "v": [1.0, 3.0, 2.0, 4.0, 1.0]}
+_said = io.StringIO()
+with contextlib.redirect_stderr(_said):
+    render_svg(data(_zig, name="zig") + area + x(col.c) + y(col.v))
+assert "zigzags inside that value" in _said.getvalue(), _said.getvalue()
+_said = io.StringIO()
+with contextlib.redirect_stderr(_said):
+    render_svg(data(_zig, name="zig") + area * mean + x(col.c) + y(col.v))
+assert "zigzags" not in _said.getvalue(), _said.getvalue()
+ok("an area through rows at one x says it zigzags")

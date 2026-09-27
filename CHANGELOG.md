@@ -342,6 +342,12 @@ Each is now refused, with what to write instead.
 
 These still draw, and now say what they drew.
 
+- **An `area` or `step` through rows that share one `x`.** The outline was
+  joined in x order and zigzagged inside each value, with nothing said, while
+  `line` on the same rows said the points would be connected in x order. Now a
+  note says so, and names `color()`, `group()` or a summary such as
+  `area * mean`.
+
 - **The message under a bare `space()`.** A plot with no third dimension under
   `space()` is drawn flat, and the message told every reader to add `z()`,
   which a `line`, `step`, `area`, `ribbon` or cluster tree refuses. It now says

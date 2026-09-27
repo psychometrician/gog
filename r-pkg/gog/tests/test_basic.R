@@ -4974,3 +4974,18 @@ local({
           "`ribbon * bounds` draws its band")
   cat("PASS: a category on the axis bounds draws is refused\n")
 })
+
+# ---------------------------------------------------------------------------
+# `area` and `step` join their rows in x order, as `line` does, and rows that
+# share one `x` zigzag inside it; that is now said, and only when it happens.
+# The same block runs in all four bindings.
+# ---------------------------------------------------------------------------
+local({
+  t <- data.frame(c = c("a", "a", "a", "b", "b"), v = c(1, 3, 2, 4, 1))
+  said <- capture_msgs(render_svg(data(t) + area + x(c) + y(v)))$msgs
+  if (!grepl("zigzags inside that value", said, fixed = TRUE))
+    stop("FAIL: an area through rows at one x should say it zigzags: ", said)
+  said <- capture_msgs(render_svg(data(t) + area * mean + x(c) + y(v)))$msgs
+  if (grepl("zigzags", said, fixed = TRUE)) stop("FAIL: a mean has one value per x: ", said)
+  cat("PASS: an area through rows at one x says it zigzags\n")
+})
