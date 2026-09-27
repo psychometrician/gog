@@ -3062,3 +3062,23 @@ test("crowded category names turn, then thin, and say so", () => {
   assert.ok(drawn < 300, "three hundred names are thinned");
   assert.ok(many.said.includes(`(${drawn} of 300)`), many.said);
 });
+
+// A treemap's label report says "do not fit", since a name can fail on height as
+// well as width; it agrees in number; and it calls the packing whole only when
+// every share has a region. The same block runs in all four bindings.
+test("a treemap's label report agrees in number, and calls the packing whole only when it is", () => {
+  const saidBy = (p) => {
+    const write = process.stderr.write;
+    let said = "";
+    process.stderr.write = (chunk) => { said += chunk; return true; };
+    try { render_svg(p); } finally { process.stderr.write = write; }
+    return said;
+  };
+  const one = { g: ["roomy", "cramped"], v: [240, 1] };
+  const tiny = { g: ["big", "mid", "gone"], v: [1e9, 5e8, 1] };
+  const once = saidBy(plot(data(one), bar, y(col.v), color(col.g), text, label(col.g), nest()));
+  assert.ok(once.includes("1 of 2 labels are drawn — one does not fit inside the region it names"), once);
+  const lost = saidBy(plot(data(tiny), bar, y(col.v), color(col.g), text, label(col.g), nest()));
+  assert.ok(lost.includes("one share is too small to have a region at all"), lost);
+  assert.ok(!lost.includes("drew every share"), lost);
+});

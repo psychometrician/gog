@@ -4806,3 +4806,21 @@ local({
     stop("FAIL: three hundred names should be thinned, and the message should count the ones drawn")
   cat("PASS: crowded category names turn, then thin, and say so\n")
 })
+
+# ---------------------------------------------------------------------------
+# A treemap's label report says "do not fit", since a name can fail on height as
+# well as width; it agrees in number; and it calls the packing whole only when
+# every share has a region. The same block runs in all four bindings.
+# ---------------------------------------------------------------------------
+local({
+  one  <- data.frame(g = c("roomy", "cramped"), v = c(240, 1))
+  tiny <- data.frame(g = c("big", "mid", "gone"), v = c(1e9, 5e8, 1))
+  said <- capture_msgs(render_svg(data(one) + bar + y(v) + color(g) + text + label(g) + nest()))$msgs
+  if (!grepl("1 of 2 labels are drawn — one does not fit inside the region it names", said, fixed = TRUE))
+    stop("FAIL: one name left out should read in the singular: ", said)
+  said <- capture_msgs(render_svg(data(tiny) + bar + y(v) + color(g) + text + label(g) + nest()))$msgs
+  if (!grepl("one share is too small to have a region at all", said, fixed = TRUE) ||
+      grepl("drew every share", said, fixed = TRUE))
+    stop("FAIL: a packing that lost a share must not be called whole: ", said)
+  cat("PASS: a treemap's label report agrees in number, and calls the packing whole only when it is\n")
+})

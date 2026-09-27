@@ -2866,3 +2866,22 @@ _drawn = len(re.findall(r">name [0-9]{3}</text>", _svg))
 assert _drawn < 300 and f"({_drawn} of 300)" in _said.getvalue(), \
     "three hundred names should be thinned, and the message should count the ones drawn"
 ok("crowded category names turn, then thin, and say so")
+
+
+# --- A treemap's label report ------------------------------------------------
+# It says "do not fit", since a name can fail on height as well as width; it
+# agrees in number; and it calls the packing whole only when every share has a
+# region. The same block runs in all four bindings.
+_one = {"g": ["roomy", "cramped"], "v": [240.0, 1.0]}
+_tiny = {"g": ["big", "mid", "gone"], "v": [1e9, 5e8, 1.0]}
+_said = io.StringIO()
+with contextlib.redirect_stderr(_said):
+    render_svg(data(_one) + bar + y(col.v) + color(col.g) + text + label(col.g) + nest())
+assert "1 of 2 labels are drawn — one does not fit inside the region it names" in _said.getvalue(), \
+    _said.getvalue()
+_said = io.StringIO()
+with contextlib.redirect_stderr(_said):
+    render_svg(data(_tiny) + bar + y(col.v) + color(col.g) + text + label(col.g) + nest())
+assert "one share is too small to have a region at all" in _said.getvalue(), _said.getvalue()
+assert "drew every share" not in _said.getvalue(), _said.getvalue()
+ok("a treemap's label report agrees in number, and calls the packing whole only when it is")

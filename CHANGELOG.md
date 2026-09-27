@@ -399,6 +399,12 @@ And these are now refused, with what to write instead.
 These were refused or noted before, and the message now says something
 different.
 
+- **A treemap's note about the names it leaves out is reworded.** It called
+  every name left out "wider" than its region, even a name that was too tall,
+  and it said "1 are". It now says how many "do not fit", in the singular for
+  one. When a share is too small to have a region at all, the note no longer
+  also says that the packing drew every share.
+
 - **More refusals are reworded.** The gray palette refused on categories names
   the channel the plot's mark takes, `shape` for a `point`, where it named
   `pattern`, which a point refuses. Two `surface` refusals describe what the

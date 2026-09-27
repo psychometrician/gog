@@ -7735,7 +7735,7 @@ mod tests {
         }
     }
 
-    /// A label wider than the region it names is **not drawn and is counted**. The
+    /// A label that does not fit the region it names is **not drawn and is counted**. The
     /// count is the point: a packing has more shares than legible ones, so printing
     /// the ones that fit and saying nothing would let a reader take the labeled
     /// cells for all of them (§12).
@@ -7765,7 +7765,7 @@ mod tests {
                 "the plot drew, so this is a remark and not a refusal");
         assert!(said[0].contains("1 of 4 labels are drawn"),
                 "the remark must say how many names the reader can see: {said:?}");
-        assert!(said[0].contains("3 are wider than the region they name"),
+        assert!(said[0].contains("3 do not fit inside the regions they name"),
                 "and why the rest are missing: {said:?}");
     }
 
@@ -7802,6 +7802,8 @@ mod tests {
         // And the row with no region is named rather than left out of both counts.
         assert!(said.contains("too small to have a region at all"),
                 "the vanishing share has to be accounted for: {said}");
+        // And the packing is not called whole beside a share it could not draw.
+        assert!(!said.contains("drew every share"), "{said}");
     }
 
     /// The dropped-rows report rides in `remarks`, not on stderr: a browser has

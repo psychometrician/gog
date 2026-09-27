@@ -2435,3 +2435,24 @@ end
     @test drawn < 300
     @test occursin("($drawn of 300)", said)
 end
+
+# A treemap's label report says "do not fit", since a name can fail on height as
+# well as width; it agrees in number; and it calls the packing whole only when
+# every share has a region. The same block runs in all four bindings.
+@testset "a treemap's label report agrees in number, and calls the packing whole only when it is" begin
+    function said_by(p)
+        path, io = mktemp()
+        redirect_stderr(io) do
+            render_svg(p)
+        end
+        close(io)
+        read(path, String)
+    end
+    one = (g = ["roomy", "cramped"], v = [240.0, 1.0])
+    tiny = (g = ["big", "mid", "gone"], v = [1e9, 5e8, 1.0])
+    once = said_by(data(one) + bar + y(:v) + color(:g) + text + label(:g) + nest())
+    @test occursin("1 of 2 labels are drawn — one does not fit inside the region it names", once)
+    lost = said_by(data(tiny) + bar + y(:v) + color(:g) + text + label(:g) + nest())
+    @test occursin("one share is too small to have a region at all", lost)
+    @test !occursin("drew every share", lost)
+end

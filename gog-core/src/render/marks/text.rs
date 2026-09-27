@@ -347,30 +347,49 @@ impl SvgRenderer {
         // region: the book's own treemap said *116 of 142 were left out* over a
         // plot carrying 25 names, because the 142nd was in neither number. Naming
         // what was drawn leaves nothing to work out, and each reason is printed
-        // only when it happened, so no clause ever reads "0 are wider".
-        let mut why: Vec<String> = Vec::new();
-        if unfitted > 0 {
-            why.push(format!("{unfitted} are wider than the region they name"));
-        }
-        if no_room > 0 {
-            why.push(match no_room {
-                1 => "one share is too small to have a region at all".to_string(),
-                k => format!("{k} shares are too small to have a region at all"),
-            });
-        }
-        if !why.is_empty() {
-            let why = why.join(", and ");
-            remarks.push(Diagnostic {
-                kind: DiagnosticKind::Assumption,
-                message: format!(
-                    "gog: {drawn} of {n} labels are drawn — {why}. The packing drew every \
-                     share, so the names are what is missing. Fewer categories, a larger \
-                     plot (`theme(width =, height =)`) or a smaller `style(size = )` fits \
-                     more of them in."
-                ),
-            });
+        // only when it happened, so no clause ever reads "0 do not fit".
+        if let Some(message) = label_report(drawn, n, unfitted, no_room) {
+            remarks.push(Diagnostic { kind: DiagnosticKind::Assumption, message });
         }
     }
+}
+
+/// The sentence that accounts for a packing's names, or `None` when all were drawn.
+///
+/// `unfitted` names had a region and did not fit in it; `no_room` shares were too
+/// small to have a region at all. "Do not fit", not "are wider": the fit test asks
+/// the height as well as the width, and a name in a short, wide region fails on
+/// height alone. And the packing is called whole only when no share lost its
+/// region, since beside a share too small to have one the claim would contradict
+/// the clause before it.
+fn label_report(drawn: usize, n: usize, unfitted: usize, no_room: usize) -> Option<String> {
+    let mut why: Vec<String> = Vec::new();
+    if unfitted > 0 {
+        why.push(match unfitted {
+            1 => "one does not fit inside the region it names".to_string(),
+            k => format!("{k} do not fit inside the regions they name"),
+        });
+    }
+    if no_room > 0 {
+        why.push(match no_room {
+            1 => "one share is too small to have a region at all".to_string(),
+            k => format!("{k} shares are too small to have a region at all"),
+        });
+    }
+    if why.is_empty() {
+        return None;
+    }
+    let why = why.join(", and ");
+    let whole = if no_room == 0 {
+        " The packing drew every share, so the names are what is missing."
+    } else {
+        ""
+    };
+    Some(format!(
+        "gog: {drawn} of {n} labels are drawn — {why}.{whole} Fewer categories, a larger \
+         plot (`theme(width =, height =)`) or a smaller `style(size = )` fits more of \
+         them in."
+    ))
 }
 
 // ---------------------------------------------------------------------------
@@ -769,4 +788,41 @@ fn write_halos<'a>(
         writeln!(svg, r#"    <text x="{x:.2}" y="{y:.2}">{}</text>"#, esc(label)).unwrap();
     }
     writeln!(svg, "  </g>").unwrap();
+}
+
+#[cfg(test)]
+mod tests {
+    use super::label_report;
+
+    /// Every name drawn: nothing to say.
+    #[test]
+    fn a_packing_with_every_name_drawn_says_nothing() {
+        assert_eq!(label_report(5, 5, 0, 0), None);
+    }
+
+    /// One left out reads as one, in the singular, and the verb says what the
+    /// fit test measured: a name can fail on height as well as width.
+    #[test]
+    fn the_label_report_agrees_in_number_and_says_fit() {
+        let one = label_report(4, 5, 1, 0).unwrap();
+        assert!(one.contains("4 of 5 labels are drawn — one does not fit inside the region it names."),
+                "{one}");
+        let many = label_report(25, 142, 117, 0).unwrap();
+        assert!(many.contains("117 do not fit inside the regions they name."), "{many}");
+        for said in [&one, &many] {
+            assert!(!said.contains("wider"), "a name can fail on height alone: {said}");
+        }
+    }
+
+    /// The packing is called whole only when it is: beside a share too small to
+    /// have a region, "drew every share" would contradict the clause before it.
+    #[test]
+    fn the_packing_is_called_whole_only_when_every_share_has_a_region() {
+        let whole = label_report(25, 142, 117, 0).unwrap();
+        assert!(whole.contains("The packing drew every share"), "{whole}");
+        for said in [label_report(2, 3, 0, 1).unwrap(), label_report(1, 4, 2, 1).unwrap()] {
+            assert!(said.contains("too small to have a region at all"), "{said}");
+            assert!(!said.contains("drew every share"), "{said}");
+        }
+    }
 }
