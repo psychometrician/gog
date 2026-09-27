@@ -2711,3 +2711,17 @@ end
     @test occursin("`data(forecast)` ends the sentence", said)
     @test occursin("line + point", sprint(show, p))
 end
+
+# A plot-wide channel that every mark overrides reaches nothing, so it is refused,
+# where it drew as though it had never been written. The same block runs in all
+# four bindings.
+@testset "a plot-wide channel every mark overrides is refused" begin
+    ov = (gdp = [1.0, 2.0, 3.0], life = [4.0, 5.0, 6.0], pop = [7.0, 8.0, 9.0])
+    said = try
+        render_svg(data(ov) + x(:gdp) + y(:life) + size(:pop) + point + size(:life)); ""
+    catch e
+        sprint(showerror, e)
+    end
+    @test occursin("`point` maps `size(life)`", said)
+    @test occursin("reaches none of them", said)
+end

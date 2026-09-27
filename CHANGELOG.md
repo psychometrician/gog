@@ -48,6 +48,11 @@ CRAN-style repositories and PyPI, `GrammarOfGraphics` on Julia's General, and
 
 ### Changed
 
+- **A channel written for the whole plot that every mark replaces is refused.**
+  In `size(population) + point + size(life)`, the points take their own
+  `size(life)`, so `size(population)` reached no mark and the plot drew as
+  though it had never been written. The message names each mark's own column.
+
 - **A `data()` at the end of a sentence is refused.** It has no mark after it
   to read its table, and the plot drew as though it had never been written.
   The message names the table and says to write a mark after it, or remove it.

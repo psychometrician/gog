@@ -5155,3 +5155,18 @@ local({
     stop("FAIL: a plot with a trailing data() should still describe itself")
   cat("PASS: a trailing data() is refused\n")
 })
+
+# ---------------------------------------------------------------------------
+# A plot-wide channel that every mark overrides reaches nothing, so it is
+# refused, where it drew as though it had never been written. The same block
+# runs in all four bindings.
+# ---------------------------------------------------------------------------
+local({
+  t <- data.frame(gdp = c(1, 2, 3), life = c(4, 5, 6), pop = c(7, 8, 9))
+  said <- tryCatch({ render_svg(data(t) + x(gdp) + y(life) + size(pop) + point + size(life)); "" },
+                   error = function(e) conditionMessage(e))
+  if (!grepl("`point` maps `size(life)`", said, fixed = TRUE) ||
+      !grepl("reaches none of them", said, fixed = TRUE))
+    stop("FAIL: a plot-wide channel every mark overrides should be refused: ", said)
+  cat("PASS: a plot-wide channel every mark overrides is refused\n")
+})

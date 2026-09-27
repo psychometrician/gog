@@ -3156,3 +3156,17 @@ except GogError as refusal:
     assert "`data(forecast)` ends the sentence" in str(refusal), refusal
 assert "line + point" in repr(_trailing)
 ok("a trailing data() is refused")
+
+
+# --- A plot-wide channel every mark overrides is refused ---------------------------
+# It reaches nothing, where it drew as though it had never been written. The same
+# block runs in all four bindings.
+_ov = {"gdp": [1.0, 2.0, 3.0], "life": [4.0, 5.0, 6.0], "pop": [7.0, 8.0, 9.0]}
+try:
+    render_svg(data(_ov, name="ov") + x(col.gdp) + y(col.life) + size(col.pop) + point
+               + size(col.life))
+    raise AssertionError("a plot-wide channel every mark overrides drew")
+except GogError as refusal:
+    assert "`point` maps `size(life)`" in str(refusal) and "reaches none of them" in str(refusal), \
+        refusal
+ok("a plot-wide channel every mark overrides is refused")

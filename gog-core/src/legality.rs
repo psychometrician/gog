@@ -11752,16 +11752,38 @@ fn check_plot_scope(out: &mut Vec<Diagnostic>, spec: &PlotSpec) {
         let c = channel_name(channel);
         let field = &def.field;
 
-        let (mut taken, mut skipped) = (Vec::new(), Vec::new());
+        // A mark that takes the channel either reads the plot's column or names
+        // its own after it, and only the first is reached. When every one names
+        // its own, the plot's binding changes nothing: `size(population) + point +
+        // size(life)` drew the points by `life` and was byte for byte the sentence
+        // without `size(population)`, and with a `line` beside them the note below
+        // said the plot's binding applied to the points.
+        let (mut taken, mut own, mut skipped) = (Vec::new(), Vec::new(), Vec::new());
         for layer in &spec.layers {
             let m = mark_name(&layer.mark);
-            if accepts_binding(&layer.mark, channel) {
-                taken.push(m);
-            } else {
+            if !accepts_binding(&layer.mark, channel) {
                 skipped.push(m);
+            } else if let Some(mine) = layer.encodings.get(channel) {
+                own.push(format!("`{m}` maps `{c}({})`", mine.field));
+            } else {
+                taken.push(m);
             }
         }
         skipped.dedup();
+        own.dedup();
+        if taken.is_empty() && !own.is_empty() {
+            out.push(Diagnostic {
+                kind: DiagnosticKind::Illegal,
+                message: format!(
+                    "gog: `{c}({field})` is written for the whole plot, but every mark here \
+                     with a {c} feature names its own ({}), so it reaches none of them and \
+                     would change nothing. Remove `{c}({field})`, or remove a mark's own \
+                     `{c}()` to let the plot's apply to it.",
+                    own.join(", ")
+                ),
+            });
+            continue;
+        }
         if skipped.is_empty() {
             continue;
         }
@@ -16095,6 +16117,29 @@ mod tests {
         let d = check(&spec, &data());
         assert_eq!(kinds(&d), vec![DiagnosticKind::Illegal]);
         assert!(d[0].message.contains("no mark here has a size feature"));
+    }
+
+    /// A plot-wide channel every mark overrides reaches nothing: it drew byte for
+    /// byte as the sentence without it, and beside a `line` the note said it
+    /// applied to the points, which were sized by their own column.
+    #[test]
+    fn a_plot_scoped_channel_every_mark_overrides_is_illegal() {
+        for lead in [None, Some(Mark::Line)] {
+            let mut spec = base().channel(Channel::Size, "gdp");
+            if let Some(m) = lead {
+                spec = spec.layer(Layer::new(m));
+            }
+            let spec = spec.layer(Layer::new(Mark::Point).encode(Channel::Size, "life"));
+            let d = check(&spec, &data());
+            assert_eq!(kinds(&d), vec![DiagnosticKind::Illegal], "{d:?}");
+            assert!(d[0].message.contains("`point` maps `size(life)`")
+                    && d[0].message.contains("reaches none of them"), "{}", d[0].message);
+        }
+        // One mark that keeps the plot's column is enough for it to apply.
+        let spec = base().channel(Channel::Size, "gdp")
+            .layer(Layer::new(Mark::Point).encode(Channel::Size, "gdp"))
+            .layer(Layer::new(Mark::Point));
+        assert!(check(&spec, &data()).iter().all(|d| !d.message.contains("reaches none")));
     }
 
     #[test]

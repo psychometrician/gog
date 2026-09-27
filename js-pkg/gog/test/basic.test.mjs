@@ -3353,3 +3353,14 @@ test("a trailing data() is refused", () => {
     /the last `data\(\)` ends the plot/
   );
 });
+
+// A plot-wide channel that every mark overrides reaches nothing, so it is refused,
+// where it drew as though it had never been written. The same block runs in all
+// four bindings.
+test("a plot-wide channel every mark overrides is refused", () => {
+  const ov = { gdp: [1, 2, 3], life: [4, 5, 6], pop: [7, 8, 9] };
+  assert.throws(
+    () => render_svg(plot(data(ov), x(col.gdp), y(col.life), size(col.pop), point, size(col.life))),
+    /`point` maps `size\(life\)`.*reaches none of them/s
+  );
+});
