@@ -61,6 +61,17 @@ gapminder_asia <- .gog_read("gapminder_asia")
 gm_continents  <- .gog_read("gm_continents")
 gm_europe      <- .gog_read("gm_europe")
 gm_populous    <- .gog_read("gm_populous")
+asia_2007      <- .gog_read("asia_2007")
+
+# -- What the extensions compute (coverage.qmd) ------------------------------
+petal_brackets <- .gog_read("petal_brackets")
+petal_stars    <- .gog_read("petal_stars")
+lung_survival  <- .gog_read("lung_survival")
+lung_at_risk   <- .gog_read("lung_at_risk")
+news_counts    <- .gog_read("news_counts")
+news_members   <- .gog_read("news_members")
+news_links     <- .gog_read("news_links")
+nyc_horizon    <- .gog_read("nyc_horizon")
 gm_europe_cdf  <- .gog_read("gm_europe_cdf")
 
 gm_eras <- .gog_read("gm_eras", chr = "era")

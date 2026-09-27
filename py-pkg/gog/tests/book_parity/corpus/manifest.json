@@ -16,7 +16,7 @@
   "cookbook/over-time": "2c18e5c7201d56a39d049f8fd5346ac7637bc98fbd457b2b87146134ea490fd7",
   "cookbook/three-or-more": "b45d0c82626cbe0e6d67f4c58f2052b60afcdd2aa66b8053449e68e959cb84bb",
   "cookbook/two-variables": "2cfef76a8870ea92986d5a1aa1c2c2ed2a82306e5b61c7c2445079c39eef2a65",
-  "coverage": "88cca1db91ecaf01d6fa78df0428f78b4913f322b289c359052cf772143b0dd8",
+  "coverage": "efae78119d96f6acb2a2e65f0d0bf34a90f2d0ccccad9df95e6128690999d4a2",
   "data": "8fdd1c467e2a8c87c7d11728b515300c5bd345a35e669feb0d3413aaabe4ff30",
   "design-laws": "70b4184289504a507b1e6a381f0549338914d60920ee6af3a8b31dd3b53b5aae",
   "encoding-scope": "d8755af2528f9aa8e1347e129a37a8d0b277ab754848336708a63eb2850ae327",
@@ -66,5 +66,5 @@
   "writing": "a7c1675fa4f0026e4d0e4fbb5c4c68bfbab2cfd3debbf22378ae07a3935ef676"
  },
  "engine": "7f9c12d3bee45d79d0b4575e4f45532233fb1550bfc234be3d217f30a6f8d8fb",
- "sentences": 876
+ "sentences": 881
 }

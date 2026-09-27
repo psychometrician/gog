@@ -935,6 +935,88 @@ mixed_signs <- data.frame(
   amount  = c(5, 5, 5, 2, -3, 2),
   kind    = rep(c("sales", "returns"), each = 3))
 
+# -- What the extensions compute (coverage.qmd) -----------------------------
+# Plots people install a ggplot2 extension for that are a computation followed
+# by an ordinary drawing: the host computes a small table, and gog draws it with
+# the words it already has. These are those tables, computed here the way a
+# reader's host would. None needs a declared order: each is written in the
+# order its plot reads, and a category's axis place is where it first appears.
+
+# Significance against a reference: a t-test of each species' petal length
+# against setosa's, and each bracket as four corners for `path` to join in row
+# order: up from setosa, across, and down to the species compared.
+.petal_p <- function(b) stats::t.test(
+  iris_flowers$petal_length[iris_flowers$species == "setosa"],
+  iris_flowers$petal_length[iris_flowers$species == b])$p.value
+.stars <- function(p) {
+  if (p < 0.001) "***" else if (p < 0.01) "**" else if (p < 0.05) "*" else "ns"
+}
+petal_brackets <- data.frame(
+  pair         = rep(c("versicolor", "virginica"), each = 4),
+  species      = c("setosa", "setosa", "versicolor", "versicolor",
+                   "setosa", "setosa", "virginica", "virginica"),
+  petal_length = c(5.5, 5.7, 5.7, 5.5, 7.2, 7.4, 7.4, 7.2))
+petal_stars <- data.frame(
+  species      = c("versicolor", "virginica"),
+  petal_length = c(5.7, 7.4),
+  stars        = c(.stars(.petal_p("versicolor")), .stars(.petal_p("virginica"))))
+
+# A survival curve with the numbers at risk: the Kaplan-Meier estimate for the
+# 228 patients with advanced lung cancer in the `survival` package's `lung`
+# data, by sex, and the patients still at risk every 200 days. `survival` is a
+# recommended package, so every R installation carries it.
+.fit <- survival::survfit(survival::Surv(time, status) ~ sex, data = survival::lung)
+.sex <- function(strata) ifelse(sub("sex=", "", as.character(strata)) == "1", "Male", "Female")
+.km  <- summary(.fit, censored = TRUE)
+lung_survival <- rbind(
+  data.frame(days = 0, surviving = 1, sex = c("Female", "Male")),
+  data.frame(days = .km$time, surviving = round(.km$surv, 4), sex = .sex(.km$strata)))
+lung_survival <- lung_survival[order(lung_survival$sex, lung_survival$days), ]
+.risk <- summary(.fit, times = seq(0, 1000, by = 200), extend = TRUE)
+lung_at_risk <- data.frame(days = .risk$time, sex = .sex(.risk$strata),
+                           at_risk = .risk$n.risk)
+lung_at_risk <- lung_at_risk[order(lung_at_risk$sex, lung_at_risk$days), ]
+
+# Names at the ends of the lines: each of the five Asian countries in its last
+# year, one row per line.
+asia_2007 <- gapminder_asia[gapminder_asia$year == 2007, ]
+
+# How sets overlap, as an UpSet plot: where 85 people get their news (invented
+# counts). One row per combination, largest first, which is the order the bars
+# stand in; one row per combination and source for the grid of dots; and the
+# sources each combination joins, for `path`. Sources run Web, Paper, Radio,
+# largest set first, so the grid lists them in that order from the top.
+.combinations <- c("Web", "Paper", "Paper and web", "Radio", "Radio and web",
+                   "Paper and radio", "All three")
+.sources <- c("Web", "Paper", "Radio")
+news_counts <- data.frame(combination = .combinations,
+                          people = c(40, 12, 10, 8, 7, 5, 3))
+.grid <- expand.grid(combination = .combinations, source = .sources,
+                     stringsAsFactors = FALSE)
+.in   <- .grid$combination == "All three" |
+  mapply(grepl, tolower(.grid$source), tolower(.grid$combination), fixed = TRUE)
+news_members <- data.frame(combination = .grid$combination, source = .grid$source,
+                           member = ifelse(.in, "yes", "no"))
+news_links <- news_members[news_members$member == "yes", c("combination", "source")]
+news_links <- news_links[order(match(news_links$combination, .combinations),
+                               match(news_links$source, .sources)), ]
+stopifnot(sum(news_counts$people) == 85)
+
+# A horizon chart: New York's daily high temperature from May to September
+# 1973 (R's `airquality`), in degrees Fahrenheit, as the distance above or below
+# the mean of those months, cut into three bands each way. The warm bands come
+# first and the cool ones after, each lighter band before the darker one drawn
+# over it, since a band is drawn in the order it first appears.
+.aq  <- datasets::airquality
+.dev <- .aq$Temp - mean(.aq$Temp)
+.fold <- max(abs(.dev)) / 3
+.band <- function(name, v, b) data.frame(
+  month = month.name[.aq$Month], day = .aq$Day, band = name,
+  degrees = round(pmin(pmax(v - (b - 1) * .fold, 0), .fold), 3))
+nyc_horizon <- rbind(
+  .band("warm", .dev, 1), .band("warmer", .dev, 2), .band("warmest", .dev, 3),
+  .band("cool", -.dev, 1), .band("cooler", -.dev, 2), .band("coolest", -.dev, 3))
+
 # The same `gog-cli/` marker `data.R` and `setup.R` walk up for, so all three
 # agree about where the repository is regardless of the working directory.
 .gog_out <- local({

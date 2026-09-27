@@ -19,7 +19,9 @@ out of date.
 
 The short list is the one people expect to be long, so it goes first. The long
 list is the interesting one, because every item on it is one of four things, and
-three of the four were decided on purpose.
+three of the four were decided on purpose. A last section turns to ggplot2's
+extension packages, which the reading of the index did not include, and draws
+five of their plots from tables the host language computes.
 
 ## What gog does that ggplot2 does not
 
@@ -277,15 +279,206 @@ record of them.
 | `geom_text(angle = )`, and ggplot2's polar text generally | a rotated label. `text` places a name at a point in every space, upright, so a [sunburst](polar.qmd) cannot run its labels along their arcs and small wedges collide. The gap is general to `polar` rather than belonging to that one plot. |
 | `theme(axis.text = element_blank())` and friends | asking for a plot with no axis text. `theme(grid = )` removes gridlines and `tick_count = 0` is refused, so silence has to follow from what an axis carries rather than being asked for. A pie is recognized from its bindings. A packing has no axes at all. A partition's radial axis carries the depth the transform invented, so it draws no ticks, no rings and no name. Three recognitions do one general job. What is left over is the reader who wants a *real* quantity's axis silent: the measure around a sunburst takes `x_label("")` and keeps its numbers. |
 
+## What the extensions add
+
+Every table above compares gog with ggplot2 itself. Many plots drawn with
+ggplot2 come instead from its extension packages: separate packages that add new
+plots to ggplot2. gog already draws several of these plots: the node-link
+diagram in [Network](network.qmd), the alluvial diagram in [Flow](flow.qmd), the
+[beeswarm](marks/point.qmd#a-categorical-x-the-strip-plot),
+[ridgelines](marks/ribbon.qmd#letting-the-ridges-overlap), a
+[halo](marks/text.qmd#a-halo-around-each-label) behind a label, and animation
+with [`play`](play.qmd). Other extension plots need a computation first, then an
+ordinary drawing. The host language computes the tables, and gog draws them with
+words it already has. Five of these plots follow.
+
+### Stars from a significance test
+
+Packages such as ggsignif and ggpubr mark a plot with the result of a
+statistical test. The test is a computation, so it belongs to the host language,
+which builds two small tables from its result. One holds the corners of each
+bracket: a line that joins the two groups compared, with a short leg down at
+each end. The other holds the stars that stand for each p-value. Here a t-test
+compares the petal length of versicolor, and then of virginica, with that of
+setosa, the group the other two are compared with:
+
+```{r}
+#| echo: false
+peek(petal_brackets)
+peek(petal_stars)
+```
+
+```{r}
+data(iris_flowers) + box + x(species) + y(petal_length) +
+  data(petal_brackets) + path + group(pair) +
+  data(petal_stars) + text + label(stars) + style(nudge = "up") +
+  y_label("Petal length") + title("Each species against setosa")
+```
+
+*"Given the iris flowers: boxes, x is species, y is petal length, and also paths
+from the petal brackets, grouped by pair, and also text from the petal stars,
+label by stars."*
+
+Each bracket is four rows, which `path` joins in order: up from setosa, across,
+and down to the species compared. `group(pair)` keeps the two brackets apart.
+The stars sit above the species compared, and three stars mean a p-value below
+0.001.
+
+### A survival curve with the numbers at risk
+
+A Kaplan–Meier curve estimates, for each day, the share of patients still
+alive: the survival probability that [Step](marks/step.qmd) draws. Packages such
+as survminer add a table beneath the curve. It gives the number at risk every
+200 days: the patients still alive and still followed by the study. The host
+language fits the curve and counts those at risk. These two tables were computed
+with R's survival package, from its data on 228 patients with advanced lung
+cancer:
+
+```{r}
+#| echo: false
+peek(lung_survival)
+peek(lung_at_risk)
+```
+
+gog draws the curve as a `step` and the counts as `text`, in a second plot below
+the first. The two plots share the `days` axis, and both ask for 8 ticks, so a
+tick stands above each count:
+
+```{r}
+(data(lung_survival) + step + x(days, tick_count = 8) + y(surviving) +
+   color(sex) + palette(c(Female = "#e15759", Male = "#4e79a7")) +
+   y_label("Share surviving") +
+   title("Survival of 228 patients with advanced lung cancer, by sex")) /
+  (data(lung_at_risk) + text + x(days, tick_count = 8) + y(sex) +
+     label(at_risk) + color(sex, legend = FALSE) +
+     palette(c(Female = "#e15759", Male = "#4e79a7")) +
+     theme(height = 110) + y_label("At risk"))
+```
+
+*"Given the lung survival table: step outlines, x is days with 8 ticks, y is
+surviving, color by sex; above text from the lung at risk table, x is days with
+8 ticks, y is sex, label by at risk, color by sex, without a legend."*
+
+Each plot chooses its own colors, so the palette is written in both plots. It
+ties each sex to one color, whatever the order of the rows, and `legend = FALSE`
+leaves the second legend out. Women lived longer in this study: at 400 days the
+curve shows about half of them alive, against under a third of the men. The
+counts fall faster than the curves, because 63 patients left the study alive,
+and a patient counts as at risk only while the study still follows them.
+
+### Names at the ends of the lines
+
+Packages such as directlabels write each line's name at its end, so a reader
+does not have to match colors against a legend. The lines come from
+`gapminder_asia`. The names come from a second table, with one row for each
+line, at its last year, 2007:
+
+```{r}
+#| echo: false
+peek(gapminder_asia)
+peek(asia_2007)
+```
+
+```{r}
+data(gapminder_asia) + line + x(year, limits = c(1952, 2016)) + y(life) +
+  color(country, legend = FALSE) +
+  data(asia_2007) + text + label(country) + color(country) +
+  style(nudge = "right") +
+  y_label("Life expectancy") + title("Each line named at its end")
+```
+
+*"Given gapminder Asia: lines, x is year from 1952 to 2016, y is life, color by
+country, without a legend, and also text from the Asia 2007 table, label by
+country, color by country."*
+
+The names replace the legend, so `legend = FALSE` leaves the legend out.
+`color(country)` is written again after `text`, because a channel written after
+one mark reaches that mark alone ([Encoding scope](encoding-scope.qmd)). The
+`limits` on `year` extend the axis to 2016, past the last year of data, so the
+names fit inside the panel.
+
+### How sets overlap
+
+When a person can give several answers, the question is how many gave each
+combination. An UpSet plot shows this. Packages such as UpSetR and ComplexUpset
+draw one bar for each combination of sets. Under the bars, a grid of dots shows
+which sets belong to each combination. Suppose 85 people were asked where they
+get their news: from a printed newspaper, the radio or the web. The host
+language counts each combination of answers and writes three tables.
+`news_counts` holds the count for each combination, largest first, which is the
+order the bars stand in. `news_members` holds one row for each combination and
+source, saying whether the source is in it. `news_links` keeps only the sources
+that are, for the line that joins them:
+
+```{r}
+#| echo: false
+peek(news_counts)
+peek(news_members)
+peek(news_links)
+```
+
+```{r}
+(data(news_counts) + bar + x(combination) + y(people) + x_label("") +
+   y_label("People") + title("Where 85 people get their news")) /
+  (data(news_links) + path + x(combination) + y(source) + group(combination) +
+     style(size = 2, color = "#333333") +
+     data(news_members) + point + color(member, legend = FALSE) +
+     palette(c(yes = "#333333", no = "#d6d6d6")) + style(size = 7) +
+     x_label("") + y_label(""))
+```
+
+The two plots share the `combination` axis, so each bar stands above its column
+of dots. A dark dot marks a source in the combination, and a line joins the dark
+dots of one combination.
+
+### A horizon chart
+
+A horizon chart draws a long time series in a panel of small height. Each value
+is measured from one chosen value, here the mean. Differences above it rise from
+the baseline in shades of one color. Differences below it are turned upward too,
+in shades of a second color. Each band holds a slice of fixed height, and the
+part of a difference that does not fit is drawn again from the baseline, in a
+darker shade, over the lighter band. Packages such as ggHoriPlot draw it.
+Cutting each difference into slices is simple arithmetic, so the host language
+does it. This table holds New York's daily high temperature from May to
+September 1973, in degrees Fahrenheit, from R's airquality data. Each row holds
+one day and one band: the part of that day's distance from the mean that falls
+in the band, with three bands above the mean and three below:
+
+```{r}
+#| echo: false
+peek(nyc_horizon)
+```
+
+The first rows are 0 because the first days of May were cooler than the mean,
+so those days have nothing in the warm bands.
+
+```{r}
+(data(nyc_horizon) + area + x(day) + y(degrees) + color(band) +
+   palette(c(warm = "#fcbba1", warmer = "#fb6a4a", warmest = "#a50f15",
+             cool = "#c6dbef", cooler = "#6baed6", coolest = "#08519c")) +
+   style(opacity = 1) + y_label("") +
+   title("New York's daily highs, May to September 1973")) / facet(month)
+```
+
+*"Given the nyc horizon table: areas, x is day, y is degrees, color by band,
+split into panel rows by month."*
+
+Each month is one panel. Red shows the days warmer than the mean, blue the
+cooler days, and a darker band a larger difference. `style(opacity = 1)` draws
+each band solid, so a darker band hides the lighter one beneath it. The bands
+are drawn in the order they first appear in the table, so the table lists each
+lighter band before the darker one drawn over it.
+
 ## If your plot is not here
 
-The sweep was of ggplot2's reference index, so a plot that lives in one of its
-extensions may be missing from both columns. Networks are the largest such
-family, and gog draws them: [Network](network.qmd) is the node-link diagram, and
-[Flow](flow.qmd) is the alluvial. One family has no drawing here: a filled band
-around a hollow, which is what a ring-shaped density needs. `path * density`
-traces that field correctly; `zone * density`, which fills the bands between the
-same lines, cannot.
+This chapter compares gog with ggplot2's reference index, not with its
+extensions. A plot from an extension may therefore be missing, unless the
+section above draws it. One plot is not drawn correctly: filled density bands
+around an empty center, as a ring of points produces. `path * density` draws the
+contour lines correctly, and `zone * density` paints the field cell by cell,
+with the center empty. `zone * density(levels = 8)`, which fills the bands
+between the lines, fills the center as well.
 
 For a plot you can name, [Chart names](chart-names.qmd) is the dictionary and
 says which ones are drawn. For a question rather than a name, start at the
