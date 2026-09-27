@@ -2236,6 +2236,23 @@ fn synth_axis_names_a_column(
     spec: &PlotSpec, layer: &Layer, df: &DataFrame, channel: &Channel, field: &str,
 ) -> Option<String> {
     let ts = &layer.transforms;
+    // **`bounds` draws the axis from its own two columns**, so a category named on
+    // it is never read: `ribbon * bounds(zero, height) + x(at) + y(group)` drew one
+    // comb through every group, under a `y` axis titled with the category over the
+    // band's numbers. Asked first, because `bounds` reads its two columns and the
+    // arm below would take it for a statistic reading this one.
+    if ts.contains(&Transform::Bounds) && actual_type(df, field) == Some(VarType::Discrete) {
+        let m = mark_name(&layer.mark);
+        let c = channel_name(channel);
+        return Some(format!(
+            "gog: `{m} * bounds` draws its band between the two columns `bounds` names, on \
+             `{c}`, so `{c}({field})` is never read, and `{field}` holds categories: every \
+             group would be drawn as one band. For a band for each value of `{field}`, \
+             split them with `group({field})` or `color({field})`, or give each its own \
+             panel with `/ facet({field})`. For one ridge per category, \
+             `area * density + x(<measure>) + y({field})` estimates each."
+        ));
+    }
     // A statistic that reads a column makes the name on the measure axis its input:
     // the five reductions and the pairs by their jobs, and `smooth`, which fits that
     // column against the other position.
@@ -19513,6 +19530,33 @@ mod tests {
                 "`x(w)` weighs each branch");
         refused(PlotSpec::new().data("t").y("w").layer(Layer::new(Mark::Ribbon).flow(&["a", "b"])),
                 "`y(w)` weighs each path");
+    }
+
+    /// `bounds` draws its axis from its own two columns, so a category named on it
+    /// was never read, and the band drew one comb through every group. Refused, with
+    /// the splits that draw a band per group.
+    #[test]
+    fn a_category_on_the_axis_bounds_draws_is_refused() {
+        let s = |v: &[&str]| v.iter().map(|x| x.to_string()).collect::<Vec<_>>();
+        let tables: HashMap<String, DataFrame> = HashMap::from([(
+            "t".to_string(),
+            DataFrame::new()
+                .with_float("at", vec![1.0, 2.0, 1.0, 2.0])
+                .with_float("zero", vec![0.0; 4])
+                .with_float("height", vec![1.0, 3.0, 2.0, 1.0])
+                .with_str("g", s(&["a", "a", "b", "b"])),
+        )]);
+        let ridge = |y: Option<&str>| {
+            let mut spec = PlotSpec::new().data("t").x("at")
+                .layer(Layer::new(Mark::Ribbon).bounds("zero", "height"));
+            if let Some(y) = y { spec = spec.y(y); }
+            check(&spec, &tables)
+        };
+        let out = ridge(Some("g"));
+        assert!(out.iter().any(|d| d.kind == DiagnosticKind::Illegal
+            && d.message.contains("`ribbon * bounds` draws its band")
+            && d.message.contains("`group(g)`")), "{:?}", msgs(&out));
+        assert!(!ridge(None).iter().any(Diagnostic::is_fatal), "{:?}", msgs(&ridge(None)));
     }
 
     /// A partition reads its weight from `x` and places its levels itself, so a

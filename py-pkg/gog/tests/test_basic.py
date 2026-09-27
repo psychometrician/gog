@@ -2997,3 +2997,14 @@ assert "<circle" in render_svg((data(_g, name="g") + bar * bin + x(col.gdp) | fa
                                / (data(_g, name="g") + point + x(col.gdp) + y(col.life)
                                   | facet(col.continent)))
 ok("a shared axis is split into panels the same way on a page")
+
+
+# --- A category on the axis `bounds` draws ------------------------------------
+# Never read, so one band combed through every group; refused, with the splits
+# that draw a band per group. The same block runs in all four bindings.
+_rid = {"at": [1.0, 2.0, 1.0, 2.0], "zero": [0.0] * 4, "height": [1.0, 3.0, 2.0, 1.0],
+        "g": ["a", "a", "b", "b"]}
+assert "`ribbon * bounds` draws its band" in _refusal(
+    lambda: render_svg(data(_rid, name="rid") + ribbon * bounds(col.zero, col.height)
+                       + x(col.at) + y(col.g)))
+ok("a category on the axis bounds draws is refused")

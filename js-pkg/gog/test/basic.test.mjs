@@ -3191,3 +3191,12 @@ test("a shared axis is split into panels the same way on a page", () => {
   assert.ok(render_svg(below(plot(data(g), layer(bar, bin), x(col.gdp), across(col.continent)),
     plot(data(g), point, x(col.gdp), y(col.life), across(col.continent)))).includes("<circle"));
 });
+
+// `bounds` draws its axis from its own two columns, so a category named on it
+// was never read and one band combed through every group; refused, with the
+// splits that draw a band per group. The same block runs in all four bindings.
+test("a category on the axis bounds draws is refused", () => {
+  const rid = { at: [1, 2, 1, 2], zero: [0, 0, 0, 0], height: [1, 3, 2, 1], g: ["a", "a", "b", "b"] };
+  assert.match(refusalOf(() => render_svg(plot(data(rid), layer(ribbon, bounds(col.zero, col.height)),
+    x(col.at), y(col.g)))), /`ribbon \* bounds` draws its band/);
+});

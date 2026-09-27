@@ -2557,3 +2557,11 @@ end
     @test occursin("<circle", render_svg((data(g) + bar * bin + x(:gdp) | facet(:continent)) /
                                          (data(g) + point + x(:gdp) + y(:life) | facet(:continent))))
 end
+
+# `bounds` draws its axis from its own two columns, so a category named on it
+# was never read and one band combed through every group; refused, with the
+# splits that draw a band per group. The same block runs in all four bindings.
+@testset "a category on the axis bounds draws is refused" begin
+    rid = (at = [1.0, 2.0, 1.0, 2.0], zero = zeros(4), height = [1.0, 3.0, 2.0, 1.0], g = ["a", "a", "b", "b"])
+    @refuses render_svg(data(rid) + ribbon * bounds(:zero, :height) + x(:at) + y(:g)) "`ribbon * bounds` draws its band"
+end

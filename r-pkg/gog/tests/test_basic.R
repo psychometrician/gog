@@ -4961,3 +4961,16 @@ local({
   if (!grepl("<circle", svg, fixed = TRUE)) stop("FAIL: both split the same way should draw")
   cat("PASS: a shared axis is split into panels the same way on a page\n")
 })
+
+# ---------------------------------------------------------------------------
+# `bounds` draws its axis from its own two columns, so a category named on it
+# was never read and one band combed through every group; refused, with the
+# splits that draw a band per group. The same block runs in all four bindings.
+# ---------------------------------------------------------------------------
+local({
+  t <- data.frame(at = c(1, 2, 1, 2), zero = 0, height = c(1, 3, 2, 1), g = c("a", "a", "b", "b"))
+  refuses("a category on the axis bounds draws",
+          render_svg(data(t) + ribbon * bounds(zero, height) + x(at) + y(g)),
+          "`ribbon * bounds` draws its band")
+  cat("PASS: a category on the axis bounds draws is refused\n")
+})

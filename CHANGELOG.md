@@ -246,6 +246,12 @@ Each is now refused, with what to write instead.
   wrote: `point` for two, `bar * bin` for one number, `bar * count` for one
   category.
 
+- **A category on the axis `bounds` draws.** `ribbon * bounds(zero, height) +
+  y(group)` drew one band through every group, with the category as the axis
+  title. `bounds` draws that axis from its own two columns, so the category was
+  never read. The refusal names the splits that draw a band per group:
+  `group()`, `color()` or a facet.
+
 - **A shared axis split into panels differently on one page.** A histogram
   stacked over a scatter faceted by continent stretched across every panel, lost
   its tick labels and lined up with none of them. Two plots that share an axis
