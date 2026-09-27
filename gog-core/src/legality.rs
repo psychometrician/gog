@@ -10435,6 +10435,35 @@ fn check_nest(out: &mut Vec<Diagnostic>, spec: &PlotSpec, data: &HashMap<String,
         }
     }
 
+    // **One packing for every layer.** Each layer packs its own rows, so a summed
+    // layer and a plain one beside it pack two different sets of regions over the
+    // same rectangle: `bar * sum + color(continent) + text + label(continent)`
+    // drew five continent regions and packed the text's 142 rows on its own, and
+    // 26 of the 37 names that fit sat inside another continent's region, with only
+    // a note that some names were too wide. The host language sums the table, and
+    // both layers then pack one row per region, which is how a treemap is labeled.
+    let packs = |l: &&Layer| is_drawable(&l.mark) && mark_draws_in_space(&l.mark, SpaceKind::Nest);
+    let summed: Vec<&Layer> = spec.layers.iter().filter(packs)
+        .filter(|l| crate::transform::has_reduction(&l.transforms)).collect();
+    let plain: Vec<&Layer> = spec.layers.iter().filter(packs)
+        .filter(|l| !crate::transform::has_reduction(&l.transforms)).collect();
+    if let (Some(s), Some(p)) = (summed.first(), plain.first()) {
+        let reduction = s.transforms.iter().find(|t| crate::transform::is_reduction(t))
+            .map(transform_name).unwrap_or("sum");
+        let (sm, pm) = (mark_name(&s.mark), mark_name(&p.mark));
+        out.push(Diagnostic {
+            kind: DiagnosticKind::Illegal,
+            message: format!(
+                "gog: in a `nest()` plot every layer packs its own rows, and here `{sm} * \
+                 {reduction}` packs one region per group while `{pm}` packs every row of its \
+                 table, so the two lay out different regions over the same rectangle and the \
+                 `{pm}` pieces land in regions of the other packing. Summarize the table in \
+                 the host language first and draw both layers from it without `{reduction}`, \
+                 so both pack one row per region."
+            ),
+        });
+    }
+
     // **Nor would the furniture of an axis.** Gridlines, turned tick labels, the
     // place an axis's name goes and the lines that bound a panel all belong to
     // axes, and a packing has none, so each of these was accepted and drew the
@@ -13775,6 +13804,25 @@ mod tests {
             .layer(Layer::new(Mark::Bar).transform(Transform::Sum).encode(Channel::Color, "continent"));
         let out = check(&spec, &data());
         assert!(out.is_empty(), "a plain treemap was refused: {:?}", msgs(&out));
+    }
+
+    /// Every layer of a packing packs its own rows, so a summed layer beside a
+    /// plain one lays out two sets of regions over one rectangle, and the labels
+    /// landed in other groups' regions. Without the summary both pack one row
+    /// per region, which is how a treemap is labeled.
+    #[test]
+    fn a_nest_refuses_layers_that_pack_different_rows() {
+        let spec = nest_base()
+            .layer(Layer::new(Mark::Bar).transform(Transform::Sum).encode(Channel::Color, "continent"))
+            .layer(Layer::new(Mark::Text).encode(Channel::Label, "continent"));
+        let out = check(&spec, &data());
+        assert!(out.iter().any(|d| d.kind == DiagnosticKind::Illegal
+                && d.message.contains("`bar * sum` packs one region per group")
+                && d.message.contains("`text` packs every row")), "{:?}", msgs(&out));
+        let labeled = nest_base()
+            .layer(Layer::new(Mark::Bar).encode(Channel::Color, "continent"))
+            .layer(Layer::new(Mark::Text).encode(Channel::Label, "continent"));
+        assert!(check(&labeled, &data()).is_empty(), "{:?}", msgs(&check(&labeled, &data())));
     }
 
     /// Five settings describe an axis, and a packing has none: each was accepted

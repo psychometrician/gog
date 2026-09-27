@@ -48,6 +48,13 @@ CRAN-style repositories and PyPI, `GrammarOfGraphics` on Julia's General, and
 
 ### Changed
 
+- **A `nest()` plot refuses a summed layer beside a plain one.** In
+  `bar * sum + color(continent) + text + label(continent) + nest()`, the text
+  packed its own rows over the summed regions, and most names landed in another
+  continent's region. Each layer packs its own rows, so gog now refuses the
+  sentence and says to sum the table in the host language first, so both layers
+  pack one row per region.
+
 - **`order()` with no column is refused, by name.** `order(desc = TRUE)` alone
   sent an empty column in R and raised a language error in the other three. It
   now says it names no column, and gives the two that work: the category column

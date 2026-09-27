@@ -3386,3 +3386,14 @@ test("order() with no column is refused by name", () => {
     /`order\(\{ desc: true \}\)` names no column.*col\.<category>/s);
   assert.throws(() => order(), /`order\(\)` names no column/);
 });
+
+// In a `nest()` every layer packs its own rows, so a summed layer beside a plain
+// one lays out two sets of regions, and the names landed in other groups'
+// regions. The same block runs in all four bindings.
+test("a nest refuses layers that pack different rows", () => {
+  const pk2 = { g: ["a", "a", "b", "c"], v: [3, 1, 2, 1] };
+  assert.throws(
+    () => render_svg(plot(data(pk2), layer(bar, sum), y(col.v), color(col.g), text, label(col.g), nest())),
+    /`bar \* sum` packs one region per group/
+  );
+});

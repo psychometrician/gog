@@ -5205,3 +5205,18 @@ local({
     stop("FAIL: order() should be refused by name")
   cat("PASS: order() with no column is refused by name\n")
 })
+
+# ---------------------------------------------------------------------------
+# In a `nest()` every layer packs its own rows, so a summed layer beside a plain
+# one lays out two sets of regions, and the names landed in other groups'
+# regions. Refused, toward summing in the host. The same block runs in all four
+# bindings.
+# ---------------------------------------------------------------------------
+local({
+  t <- data.frame(g = c("a", "a", "b", "c"), v = c(3, 1, 2, 1))
+  said <- tryCatch({ render_svg(data(t) + bar * sum + y(v) + color(g) + text + label(g) + nest()); "" },
+                   error = function(e) conditionMessage(e))
+  if (!grepl("`bar * sum` packs one region per group", said, fixed = TRUE))
+    stop("FAIL: a summed layer beside a plain one in a nest should be refused: ", said)
+  cat("PASS: a nest refuses layers that pack different rows\n")
+})

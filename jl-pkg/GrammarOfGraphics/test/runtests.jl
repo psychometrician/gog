@@ -2757,3 +2757,16 @@ end
     @test occursin("`order(:<category>, desc = true)`", said(() -> order(desc = true)))
     @test occursin("`order()` names no column", said(() -> order()))
 end
+
+# In a `nest()` every layer packs its own rows, so a summed layer beside a plain
+# one lays out two sets of regions, and the names landed in other groups'
+# regions. The same block runs in all four bindings.
+@testset "a nest refuses layers that pack different rows" begin
+    pk2 = (g = ["a", "a", "b", "c"], v = [3.0, 1.0, 2.0, 1.0])
+    said = try
+        render_svg(data(pk2) + bar * sum + y(:v) + color(:g) + text + label(:g) + nest()); ""
+    catch e
+        sprint(showerror, e)
+    end
+    @test occursin("`bar * sum` packs one region per group", said)
+end

@@ -3203,3 +3203,16 @@ for _call, _said in [(lambda: order(desc=True), "`order(desc=True)` names no col
     except GogError as refusal:
         assert _said in str(refusal) and "col.<category>" in str(refusal), refusal
 ok("order() with no column is refused by name")
+
+
+# --- A nest refuses layers that pack different rows --------------------------------
+# A summed layer beside a plain one lays out two sets of regions, and the names
+# landed in other groups' regions. The same block runs in all four bindings.
+_pk2 = {"g": ["a", "a", "b", "c"], "v": [3.0, 1.0, 2.0, 1.0]}
+try:
+    render_svg(data(_pk2, name="pk2") + bar * sum + y(col.v) + color(col.g) + text
+               + label(col.g) + nest())
+    raise AssertionError("a summed layer beside a plain one drew")
+except GogError as refusal:
+    assert "`bar * sum` packs one region per group" in str(refusal), refusal
+ok("a nest refuses layers that pack different rows")
