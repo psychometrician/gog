@@ -3139,3 +3139,20 @@ _reach = [builtins.max(float(a) + float(w) for a, w in re.findall(
           for cell in _svg.split("<svg ")[2:]]
 assert len(_reach) == 2 and builtins.min(_reach) > 600, _reach
 ok("a folded facet sharing a column keeps its width")
+
+
+# --- A trailing data() is refused --------------------------------------------------
+# No mark comes after it to read its table, where the plot drew as though it had
+# never been written. A description of the plot still prints. The same block runs
+# in all four bindings.
+_actuals = {"year": [2019.0, 2020.0, 2021.0], "sales": [1.0, 2.0, 3.0]}
+_forecast = {"year": [2024.0, 2025.0], "sales": [6.0, 7.0]}
+_trailing = (data(_actuals, name="actuals") + x(col.year) + y(col.sales) + line + point
+             + data(_forecast, name="forecast"))
+try:
+    render_svg(_trailing)
+    raise AssertionError("a trailing data() drew")
+except GogError as refusal:
+    assert "`data(forecast)` ends the sentence" in str(refusal), refusal
+assert "line + point" in repr(_trailing)
+ok("a trailing data() is refused")

@@ -5138,3 +5138,20 @@ local({
     stop("FAIL: a folded facet on a page should keep its width: ", paste(reach, collapse = ", "))
   cat("PASS: a folded facet sharing a column keeps its width\n")
 })
+
+# ---------------------------------------------------------------------------
+# A `data()` at the end of a sentence has no mark after it to read its table, so
+# it is refused, where the plot drew as though it had never been written. A
+# description of the plot still prints. The same block runs in all four bindings.
+# ---------------------------------------------------------------------------
+local({
+  actuals <- data.frame(year = c(2019, 2020, 2021), sales = c(1, 2, 3))
+  forecast <- data.frame(year = c(2024, 2025), sales = c(6, 7))
+  p <- data(actuals) + x(year) + y(sales) + line + point + data(forecast)
+  said <- tryCatch({ render_svg(p); "" }, error = function(e) conditionMessage(e))
+  if (!grepl("`data(forecast)` ends the sentence", said, fixed = TRUE))
+    stop("FAIL: a trailing data() should be refused: ", said)
+  if (!grepl("line + point", gog:::repr_text.gog_spec(p), fixed = TRUE))
+    stop("FAIL: a plot with a trailing data() should still describe itself")
+  cat("PASS: a trailing data() is refused\n")
+})

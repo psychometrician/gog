@@ -894,7 +894,23 @@ class Builder {
     Object.assign(this.currentLayer.style, props);
   }
 
+  // A table still waiting for its mark is refused rather than dropped: a later
+  // `data()` gives its table to the mark written after it, and at the end of the
+  // plot there is none, so the plot drew as though the table had never been
+  // written, and said nothing.
   finish() {
+    if (this.pendingData !== null) {
+      // Named as the author wrote it, or not at all: a name this builder invented
+      // for an unnamed table is one they never wrote and would not recognize.
+      const name = this.generated.has(this.pendingData) ? null : this.pendingData;
+      const said = name === null ? "the last `data()`" : `\`data(${name})\``;
+      throw new GogError(
+        `gog: ${said} ends the plot, so no mark comes after it to read its table. ` +
+          `A later \`data()\` gives its table to the mark written directly after it: ` +
+          `write that mark next, as in \`plot(..., data(${name ?? "..."}), point)\`, or ` +
+          `remove ${name === null ? "that `data()`" : said}.`
+      );
+    }
     if (this.currentLayer !== null) {
       this.spec.layers.push(this.currentLayer);
       this.currentLayer = null;

@@ -650,11 +650,25 @@ class Plot:
         self.current_layer.setdefault("style", {}).update(props)
 
     def _wire(self) -> Tuple[Dict[str, Any], Dict[str, Any]]:
-        """The sealed spec and its tables, ready for the bridge."""
+        """The sealed spec and its tables, ready for the bridge.
+
+        A table still waiting for its mark is refused rather than dropped: a later
+        `data()` gives its table to the mark written after it, and at the end of
+        the sentence there is none, so the plot drew as though the table had never
+        been written, and said nothing.
+        """
+        if self.pending_data is not None:
+            name = self.pending_data
+            raise GogError(_trailing_data(None if name in self.anonymous else name))
+        return self._layers_closed(), self.frames
+
+    def _layers_closed(self) -> Dict[str, Any]:
+        """The spec with its last open layer closed, and nothing refused: what a
+        one-line description of the plot reads, which must not stop to object."""
         spec = copy.deepcopy(self.spec)
         if self.current_layer is not None:
             spec["layers"].append(copy.deepcopy(self.current_layer))
-        return spec, self.frames
+        return spec
 
     # -- display -------------------------------------------------------------
 
@@ -684,7 +698,7 @@ class Plot:
             return refusal_block(str(refusal))
 
     def __repr__(self) -> str:
-        spec, _ = self._wire()
+        spec = self._layers_closed()
         marks = " + ".join(layer["mark"] for layer in spec["layers"])
         return f"<gog plot: {marks or 'no mark'} on {spec['data']}>"
 
@@ -826,6 +840,19 @@ def _figure_cells(figure: Any, arrange: str) -> List[Dict[str, Any]]:
         return list(figure.cells)
     wire, _ = figure._wire()
     return [wire]
+
+
+def _trailing_data(name: Optional[str]) -> str:
+    """Named as the author wrote it, or not at all: a name the binding invented
+    for an unnamed table is one they never wrote and would not recognize."""
+    said = "the last `data()`" if name is None else f"`data({name})`"
+    shown = "..." if name is None else name
+    return (
+        f"gog: {said} ends the sentence, so no mark comes after it to read its table. "
+        f"A later `data()` gives its table to the mark written directly after it: "
+        f"write that mark next, as in `+ data({shown}) + point`, or remove "
+        f"{'that `data()`' if name is None else said}."
+    )
 
 
 def _free_name(taken: Any) -> str:

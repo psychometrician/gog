@@ -1249,10 +1249,36 @@ set_style <- function(gog, props) {
 }
 
 # Push the last open layer into spec$layers and return the sealed spec.
+#
+# A table still waiting for its mark is refused here rather than dropped. A later
+# `data()` gives its table to the mark written after it, and at the end of the
+# sentence there is none, so the plot drew as though the table had never been
+# written, and said nothing.
 finalize_spec <- function(gog) {
+  if (!is.null(gog$pending_data)) {
+    name <- gog$pending_data
+    stop(trailing_data(if (name %in% invented(gog)) NULL else name), call. = FALSE)
+  }
+  close_layer(gog)
+}
+
+# The last open layer pushed into spec$layers, and nothing refused: what a
+# one-line description of the plot reads, which must not stop to object.
+close_layer <- function(gog) {
   if (!is.null(gog$current_layer)) {
     gog$spec$layers   <- c(gog$spec$layers, list(gog$current_layer))
     gog$current_layer <- NULL
   }
   gog
+}
+
+# Named as the author wrote it, or not at all: a name the binding invented for
+# an unnamed table is one they never wrote and would not recognize.
+trailing_data <- function(name) {
+  said <- if (is.null(name)) "the last `data()`" else paste0("`data(", name, ")`")
+  shown <- if (is.null(name)) "..." else name
+  paste0("gog: ", said, " ends the sentence, so no mark comes after it to read its ",
+         "table. A later `data()` gives its table to the mark written directly after ",
+         "it: write that mark next, as in `+ data(", shown, ") + point`, or remove ",
+         if (is.null(name)) "that `data()`" else said, ".")
 }

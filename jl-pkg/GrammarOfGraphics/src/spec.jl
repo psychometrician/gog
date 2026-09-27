@@ -82,7 +82,7 @@ mutable struct Plot
 end
 
 function Base.show(io::IO, p::Plot)
-    spec, _ = wire(p)
+    spec = layers_closed(p)
     marks = join([l["mark"] for l in spec["layers"]], " + ")
     print(io, "<gog plot: $(isempty(marks) ? "no mark" : marks) on $(spec["data"])>")
 end
@@ -93,13 +93,38 @@ function copy_plot(p::Plot)
          p.pending_data, p.anonymous, copy(p.generated))
 end
 
-"""The sealed spec and its tables, ready for the bridge."""
+"""The sealed spec and its tables, ready for the bridge.
+
+A table still waiting for its mark is refused rather than dropped: a later `data()`
+gives its table to the mark written after it, and at the end of the sentence there
+is none, so the plot drew as though the table had never been written, and said
+nothing.
+"""
 function wire(p::Plot)
+    p.pending_data === nothing || throw(GogError(trailing_data(
+        p.pending_data in p.generated ? nothing : p.pending_data)))
+    (layers_closed(p), p.frames)
+end
+
+# Named as the author wrote it, or not at all: a name the binding invented for an
+# unnamed table is one they never wrote and would not recognize.
+function trailing_data(name)
+    said = name === nothing ? "the last `data()`" : "`data($name)`"
+    shown = name === nothing ? "..." : name
+    "gog: $said ends the sentence, so no mark comes after it to read its table. " *
+    "A later `data()` gives its table to the mark written directly after it: write " *
+    "that mark next, as in `+ data($shown) + point`, or remove " *
+    (name === nothing ? "that `data()`" : said) * "."
+end
+
+# The spec with its last open layer closed, and nothing refused: what a one-line
+# description of the plot reads, which must not stop to object.
+function layers_closed(p::Plot)
     spec = deepcopy(p.spec)
     if p.current_layer !== nothing
         push!(spec["layers"], deepcopy(p.current_layer))
     end
-    (spec, p.frames)
+    spec
 end
 
 # ---------------------------------------------------------------------------

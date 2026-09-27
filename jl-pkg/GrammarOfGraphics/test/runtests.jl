@@ -2695,3 +2695,19 @@ end
     @test length(reach) == 2
     @test all(>(600), reach)
 end
+
+# A `data()` at the end of a sentence has no mark after it to read its table, so
+# it is refused, where the plot drew as though it had never been written. A
+# description of the plot still prints. The same block runs in all four bindings.
+@testset "a trailing data() is refused" begin
+    actuals = (year = [2019.0, 2020.0, 2021.0], sales = [1.0, 2.0, 3.0])
+    forecast = (year = [2024.0, 2025.0], sales = [6.0, 7.0])
+    p = data(actuals) + x(:year) + y(:sales) + line + point + data(forecast; name = "forecast")
+    said = try
+        render_svg(p); ""
+    catch e
+        sprint(showerror, e)
+    end
+    @test occursin("`data(forecast)` ends the sentence", said)
+    @test occursin("line + point", sprint(show, p))
+end

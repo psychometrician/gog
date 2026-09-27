@@ -185,21 +185,26 @@ applies to the mark written directly after it. A mark with no `data()` of
 its own reads the plot's table. The refusal at the start of this chapter
 holds for the second table too: write `+ data(forecast)`, not `+ forecast`.
 
-Two things follow from the rule for a later `data()`, and neither is obvious.
+Two things follow from the rule for a later `data()`. gog tells you about the
+first, but not about the second.
 
-A `data()` at the end of a sentence applies to nothing, because no mark comes
-after it. The plot is the same as it would be without that line:
+A `data()` at the end of a sentence has no mark after it, so its table would
+never be drawn. gog refuses the sentence rather than leave that table out of the
+plot without telling you:
 
 ```{r}
-# `forecast` is never drawn, because no mark comes after it
+#| error: true
 data(actuals) + x(year) + y(sales) +
   line +
   point +
   data(forecast)
 ```
 
-A `data()` also stops after that one mark. The mark after it reads the
-plot's table again:
+The message names the table and gives two ways to fix the sentence: write a
+mark after the `data()`, or remove the `data()`.
+
+Second, a later `data()` applies only to the one mark written directly after
+it. The mark after that one reads the plot's table again:
 
 ```{r}
 # line reads actuals. point reads forecast. area reads actuals again.

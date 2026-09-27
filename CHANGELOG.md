@@ -48,6 +48,10 @@ CRAN-style repositories and PyPI, `GrammarOfGraphics` on Julia's General, and
 
 ### Changed
 
+- **A `data()` at the end of a sentence is refused.** It has no mark after it
+  to read its table, and the plot drew as though it had never been written.
+  The message names the table and says to write a mark after it, or remove it.
+
 - **Every panel, moment and selection reads one scale.** `size`, `opacity`, a
   numeric `color`, and the order of the `shape` and `pattern` categories were
   fitted again for each facet panel, each moment of a `play` sequence, and each

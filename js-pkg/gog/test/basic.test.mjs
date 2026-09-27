@@ -3336,3 +3336,20 @@ test("a folded facet sharing a column keeps its width", () => {
   assert.equal(reach.length, 2);
   assert.ok(reach.every((r) => r > 600), String(reach));
 });
+
+// A `data()` at the end of a plot has no mark after it to read its table, so it
+// is refused, where the plot drew as though it had never been written. The same
+// block runs in all four bindings.
+test("a trailing data() is refused", () => {
+  const actuals = { year: [2019, 2020, 2021], sales: [1, 2, 3] };
+  const forecast = { year: [2024, 2025], sales: [6, 7] };
+  assert.throws(
+    () => plot(data(actuals), x(col.year), y(col.sales), line, point,
+      data(forecast, { name: "forecast" })),
+    /`data\(forecast\)` ends the plot/
+  );
+  assert.throws(
+    () => plot(data(actuals), x(col.year), y(col.sales), line, point, data(forecast)),
+    /the last `data\(\)` ends the plot/
+  );
+});

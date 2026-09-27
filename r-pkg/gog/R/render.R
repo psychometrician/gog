@@ -854,7 +854,7 @@ repr_text.gog_page <- function(obj, ...) {
 #' @param obj The plot or page being displayed.
 #' @param ... Passed on by the display host; unused.
 repr_text.gog_spec <- function(obj, ...) {
-  obj   <- finalize_spec(obj)
+  obj   <- close_layer(obj)
   marks <- unlist(lapply(obj$spec$layers, function(l) l$mark))
   paste0("<gog plot: ",
          if (length(marks)) paste(marks, collapse = " + ") else "no mark",
