@@ -57,6 +57,11 @@ CRAN-style repositories and PyPI, `GrammarOfGraphics` on Julia's General, and
   gave its texture to the second. Each is now fitted once, over every row the
   layer draws, and that is the scale its legend decodes.
 
+- **A `size` or `opacity` legend under a summary reads the summaries.** In
+  `point * mean + x(continent) + y(life) + size(life)`, each dot is sized by its
+  continent's mean, but the legend ran over every country's value, so Africa's
+  mean of 54.8 read as 39.6. The legend now decodes the means.
+
 - **A pattern key beside another color column is drawn in neutral ink.** With
   `color(sex)` and `pattern(survived)`, the "Survived" key was drawn in the
   first sex's color, as if the two were related. It is now drawn in the neutral

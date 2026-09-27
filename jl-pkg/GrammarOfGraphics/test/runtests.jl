@@ -2640,3 +2640,12 @@ end
     @test length(whole) == 9
     @test faceted == whole
 end
+
+# A dot under a summary is sized by its group's mean, so the size key decodes the
+# means rather than the raw column. The same block runs in all four bindings.
+@testset "a size key under a summary reads the summaries" begin
+    svg = render_svg(data((g = ["a", "a", "b", "b"], v = [10.0, 30.0, 50.0, 70.0])) +
+                     point * mean + x(:g) + y(:v) + size(:v))
+    @test occursin(">20.00</text>", svg) && occursin(">60.00</text>", svg)
+    @test !occursin(">10.00</text>", svg)
+end

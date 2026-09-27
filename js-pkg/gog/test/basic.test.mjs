@@ -3283,3 +3283,12 @@ test("a facet panel reads the whole layer's size scale", () => {
   assert.equal(whole.length, 9);
   assert.deepEqual(faceted, whole);
 });
+
+// A dot under a summary is sized by its group's mean, so the size key decodes the
+// means rather than the raw column. The same block runs in all four bindings.
+test("a size key under a summary reads the summaries", () => {
+  const svg = render_svg(plot(data({ g: ["a", "a", "b", "b"], v: [10, 30, 50, 70] }),
+    layer(point, mean), x(col.g), y(col.v), size(col.v)));
+  assert.ok(svg.includes(">20.00</text>") && svg.includes(">60.00</text>"));
+  assert.ok(!svg.includes(">10.00</text>"));
+});

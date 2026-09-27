@@ -8078,6 +8078,29 @@ mod tests {
                 "`a` is solid and `b` takes the second dash in its own panel: {lines:?}");
     }
 
+    /// Under a summary a dot is sized by its group's mean, so the key decodes the
+    /// means: it read the raw column's range, and the smallest mean read as the
+    /// smallest raw value.
+    #[test]
+    fn a_size_or_opacity_key_under_a_summary_reads_the_summaries() {
+        let s = |v: &[&str]| v.iter().map(|x| x.to_string()).collect::<Vec<_>>();
+        let t: HashMap<String, DataFrame> = HashMap::from([(
+            "t".to_string(),
+            DataFrame::new()
+                .with_str("g", s(&["a", "a", "b", "b"]))
+                .with_float("v", vec![10.0, 30.0, 50.0, 70.0]),
+        )]);
+        for ch in [Channel::Size, Channel::Opacity] {
+            let spec = PlotSpec::new().data("t").x("g").y("v")
+                .layer(Layer::new(Mark::Point).transform(Transform::Mean).encode(ch.clone(), "v"));
+            let labels = text_of(&SvgRenderer::default().render(&spec, &t));
+            // The key is drawn last: its title, then its three rows.
+            let key = &labels[labels.len().saturating_sub(3)..];
+            assert_eq!(key, ["20.00", "40.00", "60.00"],
+                       "{ch:?}'s key runs from the lowest mean to the highest: {labels:?}");
+        }
+    }
+
     /// Under `repel` an empty label names nothing, so it is not placed and earns no
     /// leader: ggrepel's `label = ""` idiom. It drew a leader line to nothing.
     #[test]

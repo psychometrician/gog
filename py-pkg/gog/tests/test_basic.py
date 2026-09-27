@@ -3087,3 +3087,12 @@ _faceted = _radii(render_svg(data(_sh, name="sh") + point + x(col.x) + y(col.y) 
                              | facet(col.g)))
 assert len(_whole) == 9 and _whole == _faceted, (_whole, _faceted)
 ok("a facet panel reads the whole layer's size scale")
+
+
+# --- A size key under a summary reads the summaries -----------------------------
+# A dot is sized by its group's mean, so the key decodes the means rather than the
+# raw column. The same block runs in all four bindings.
+_sk = render_svg(data({"g": ["a", "a", "b", "b"], "v": [10.0, 30.0, 50.0, 70.0]}, name="sk")
+                 + point * mean + x(col.g) + y(col.v) + size(col.v))
+assert ">20.00</text>" in _sk and ">60.00</text>" in _sk and ">10.00</text>" not in _sk
+ok("a size key under a summary reads the summaries")

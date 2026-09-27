@@ -5074,3 +5074,17 @@ local({
     stop("FAIL: a facet panel should draw its sizes on the whole layer's scale")
   cat("PASS: a facet panel reads the whole layer's size scale\n")
 })
+
+# ---------------------------------------------------------------------------
+# Under a summary a dot is sized by its group's mean, so the size key decodes
+# the means rather than the raw column. The same block runs in all four
+# bindings.
+# ---------------------------------------------------------------------------
+local({
+  t <- data.frame(g = c("a", "a", "b", "b"), v = c(10, 30, 50, 70))
+  svg <- render_svg(data(t) + point * mean + x(g) + y(v) + size(v))
+  if (!grepl(">20.00</text>", svg, fixed = TRUE) || !grepl(">60.00</text>", svg, fixed = TRUE) ||
+      grepl(">10.00</text>", svg, fixed = TRUE))
+    stop("FAIL: a size key under a summary should read the means")
+  cat("PASS: a size key under a summary reads the summaries\n")
+})
