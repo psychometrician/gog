@@ -738,7 +738,7 @@ data(six_weeks) + line + x(day, tick_count = 3) + y(orders) +
 By default these six weeks get a tick every Monday, six in all. Asked for three,
 the axis steps two weeks at a time, still on Mondays.
 
-A categorical axis has one tick per category, so the data sets the count and
+A categorical axis has one place per category, so the data sets the count and
 you do not. The refusal names the same two fixes the `limits` refusal named:
 
 ```{r}
@@ -758,9 +758,9 @@ describe.
 
 ### Crowding in the plane and in the cube
 
-A flat panel and a cube handle crowded ticks differently, and both ways are
-correct. A flat axis draws *every* tick it chose, however close together the
-ticks get. The panel's width is already fixed, and the labels sit in a margin
+A flat panel and a cube handle crowded numbers differently, and both ways are
+correct. A flat continuous axis draws *every* tick it chose, however close
+together the ticks get. The panel's width is already fixed, and the labels sit in a margin
 reserved for them. A label at either end that would reach past the panel is
 moved inward. Nothing is dropped, so every tick the axis chose is drawn with its
 label.
@@ -773,12 +773,31 @@ number may be printed over another. They differ only in how much room each has,
 because the plane can reserve room in advance and the cube cannot. When a count
 you stated cannot fit, the engine says so rather than quietly drawing fewer.
 
+Names on a categorical axis follow the same rule: no name may be printed over
+another. The axis tries to name every category, and a name is usually much wider
+than a number. When names do not fit side by side, a flat axis first turns them
+90 degrees, to read upward. A turned name needs room along the axis only for its
+height, not its width. When even turned names are too close, the flat axis
+leaves some out, as the cube does. It draws one name in every two or three, each
+with its tick, and prints a message. The 142 countries of 2007 do not fit, even
+turned:
+
+```{r}
+#| message: true
+data(gapminder_2007) + bar + x(country) + y(life)
+```
+
+Every bar is still drawn, and a bar without a name keeps its place between two
+named ones. The message gives two ways to name every country: put `country` on
+the y axis in a taller plot, or draw fewer rows.
+
 ## In short
 
 A scale changes where a number lands on the axis. It never changes the number
 itself. `limits` states the domain: narrowing it removes rows and reports how
 many, while a brush removes none. In a flat panel `tick_count` is a target, not
-an exact number, and a cube drops the ticks that will not fit.
+an exact number, and a cube drops the ticks that will not fit. A crowded
+categorical axis turns its names, then leaves some out and says so.
 
 ## What comes next
 

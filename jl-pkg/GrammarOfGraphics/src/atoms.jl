@@ -1141,8 +1141,9 @@ function theme(args...; grid = nothing, ratio = nothing, tick_angle = nothing,
     if tick_angle !== nothing && (!(tick_angle isa Real) || tick_angle isa Bool ||
                                   !isfinite(tick_angle) || abs(tick_angle) > 90)
         throw(GogError("gog: `theme(tick_angle = )` turns the x tick labels between " *
-                       "-90 and 90 degrees. `tick_angle = 45` is the usual answer to " *
-                       "names that overlap."))
+                       "-90 and 90 degrees. Names that do not fit side by side are " *
+                       "turned without it, so state an angle only to choose one, such " *
+                       "as `tick_angle = 45`."))
     end
 
     if font_size !== nothing && (!(font_size isa Real) || font_size isa Bool ||

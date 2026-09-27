@@ -31,7 +31,9 @@ survive \code{polar()}, where the y axis's gridlines are rings.}
 \item{ratio}{The panel's width divided by its height. \code{1} is a square.}
 
 \item{tick_angle}{Degrees to turn the x tick labels through, between -90 and
-90. \code{45} is the usual answer to category names that overlap.}
+90. Category names that do not fit side by side are turned to 90 without
+it, and thinned when even that is not enough, so state an angle only to
+choose one.}
 
 \item{font_size}{How many pixels a tick label is — and, through it, the size
 of every other piece of text the plot draws. One number rather than three,

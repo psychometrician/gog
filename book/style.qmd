@@ -528,8 +528,8 @@ Making everything one color is *setting*, not choosing a palette, so use
 
 ## `theme`: settings that belong to no mark
 
-The gridlines distract on a slide. The category names overlap along the bottom.
-Neither problem belongs to any mark.
+The gridlines distract on a slide. You want the category names along the
+bottom at 45 degrees.
 
 `style()` sets a mark's own appearance. The gridlines, the shape of the panel
 and the angle of the tick labels belong to no mark, so they have a word of their
@@ -571,8 +571,15 @@ room on a page:
 data(gapminder_2007) + point + x(gdp, scale = "log") + y(life) + theme(ratio = 1)
 ```
 
-And `tick_angle` rotates the x tick labels, which is the answer to category
-names that overlap. The bottom margin grows to hold them:
+`tick_angle` turns the x tick labels to the angle you give, in degrees. You do
+not need it to keep names apart. When category names do not fit side by side,
+gog turns them 90 degrees by itself, to read upward.
+[Scales](scales.qmd#crowding-in-the-plane-and-in-the-cube) shows what gog does
+when even turned names do not fit. `tick_angle` is for choosing the angle
+yourself. gog keeps the angle you choose, even when fewer names fit at it, and
+says so.
+The bottom margin grows to hold the turned labels, and the axis name sits below
+them:
 
 ```{r}
 data(gapminder_2007) + bar * mean + x(continent) + y(life) +

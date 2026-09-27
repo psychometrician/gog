@@ -2848,3 +2848,21 @@ _svg = render_svg(data(_uneven, name="uneven") + point + x(col.a) + y(col.b) + p
 _begins = sorted({float(b) for b in re.findall(r'begin="([0-9.]+)s"', _svg)})
 assert _begins == [0.0, 0.8, 1.6, 4.8], f"frames of an uneven column should begin at 0, 0.8, 1.6, 4.8: {_begins}"
 ok("a played column's frames are held in proportion to its gaps")
+
+# Category names that do not fit side by side are turned to read upward, and when
+# even turned they are too close, one in every few is drawn and the engine says
+# how many. Until 2026-09-26 forty names printed over each other, and so did
+# three hundred.
+def _crowd(n):
+    return {"g": [f"name {i:03d}" for i in builtins.range(1, n + 1)],
+            "v": [float(i) for i in builtins.range(1, n + 1)]}
+with contextlib.redirect_stderr(io.StringIO()) as _said:
+    _svg = render_svg(data(_crowd(40), name="forty") + bar + x(col.g) + y(col.v))
+assert _svg.count("rotate(-90.00 ") == 40 and _said.getvalue() == "", \
+    "forty crowded names should all be drawn, turned to read upward, in silence"
+with contextlib.redirect_stderr(io.StringIO()) as _said:
+    _svg = render_svg(data(_crowd(300), name="many") + bar + x(col.g) + y(col.v))
+_drawn = len(re.findall(r">name [0-9]{3}</text>", _svg))
+assert _drawn < 300 and f"({_drawn} of 300)" in _said.getvalue(), \
+    "three hundred names should be thinned, and the message should count the ones drawn"
+ok("crowded category names turn, then thin, and say so")

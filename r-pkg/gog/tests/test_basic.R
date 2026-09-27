@@ -768,7 +768,7 @@ wide <- render_svg(data(theme_df) + bar + x(g) + y(v) + theme("minimal"))
 if (identical(sq, wide)) stop("FAIL: a preset could not be adjusted")
 cat("PASS: a preset can be adjusted\n")
 
-# Turned labels are the answer to names that overlap, and they earn their room.
+# A stated angle turns the x labels, and the turned labels earn their room.
 if (!grepl("rotate", render_svg(data(theme_df) + bar + x(g) + y(v) + theme(tick_angle = 45))))
   stop("FAIL: theme(tick_angle) did not turn the labels")
 cat("PASS: theme(tick_angle) turns the x labels\n")
@@ -4786,4 +4786,23 @@ local({
   if (!isTRUE(all.equal(begins, c(0, 0.8, 1.6, 4.8))))
     stop("FAIL: frames of an uneven column should begin at 0, 0.8, 1.6 and 4.8 seconds")
   cat("PASS: a played column's frames are held in proportion to its gaps\n")
+})
+
+# Category names that do not fit side by side are turned to read upward, and when
+# even turned they are too close, one in every few is drawn and the engine says
+# how many. Until 2026-09-26 forty names printed over each other, and so did
+# three hundred.
+local({
+  crowd <- function(n) data.frame(g = sprintf("name %03d", seq_len(n)), v = seq_len(n))
+  forty <- crowd(40)
+  res <- capture_msgs(render_svg(data(forty) + bar + x(g) + y(v)))
+  turned <- lengths(regmatches(res$value, gregexpr("rotate\\(-90\\.00 ", res$value)))
+  if (turned != 40 || nzchar(res$msgs))
+    stop("FAIL: forty crowded names should all be drawn, turned to read upward, in silence")
+  many <- crowd(300)
+  res <- capture_msgs(render_svg(data(many) + bar + x(g) + y(v)))
+  drawn <- lengths(regmatches(res$value, gregexpr(">name [0-9]{3}</text>", res$value)))
+  if (drawn >= 300 || !grepl(sprintf("(%d of 300)", drawn), res$msgs, fixed = TRUE))
+    stop("FAIL: three hundred names should be thinned, and the message should count the ones drawn")
+  cat("PASS: crowded category names turn, then thin, and say so\n")
 })

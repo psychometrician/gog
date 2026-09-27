@@ -2121,10 +2121,13 @@ impl SvgRenderer {
             _ => None,
         };
 
-        let grid = PanelGrid::compute(
+        // A closure because crowded category names can ask for the layout twice
+        // more (below): once turned, once thinned. Everything but the two tick
+        // lists and the angle is the same question every time.
+        let compute_grid = |xt: &TickSpec, yt: &TickSpec, angle: Option<f64>| PanelGrid::compute(
             self.width, self.height,
             (self.font_sm, self.font_md, self.font_lg),
-            grid_xt, grid_yt, grid_xl, grid_yl,
+            xt, yt, grid_xl, grid_yl,
             spec.title.is_some(),
             legend_panel_w,
             // Cloned because `panel_levels` borrows both, and each panel now
@@ -2132,7 +2135,7 @@ impl SvgRenderer {
             // this. One short list of level names per facet, copied once.
             col_values.clone(), row_values.clone(),
             map_ratio.or(spec.theme.resolved().ratio),
-            spec.theme.resolved().tick_angle,
+            angle,
             Self::axis_label_beside_theme(&spec.theme.resolved()),
             play_def.is_some(),
             facet_wrap,
@@ -2140,6 +2143,78 @@ impl SvgRenderer {
             cell_axis,
             self.fit.clone(),
         );
+        let stated_angle = spec.theme.resolved().tick_angle;
+        let grid = compute_grid(grid_xt, grid_yt, stated_angle);
+
+        // **Crowded category names: turn them, then thin them, never print one
+        // through another** (spec §10's rule for labels, which the cube already
+        // keeps). Measured against the panel the layout just made, since only it
+        // knows how far apart two slots are. A category axis only: numbers are
+        // short and never turn, and how many a narrow panel draws is a question
+        // about the step. A freed axis is left alone, since its names differ per
+        // panel and every cell sized its band before any of this.
+        //
+        // Names that fit side by side are untouched. Names that do not turn to
+        // 90 degrees, unless the caller stated an angle, which is kept. If even
+        // turned they collide, every `stride`-th one is drawn, and that is said
+        // out loud with the fix, because a name not printed is information the
+        // binding carried (§12).
+        let x_labeled = !grid_xt.labels.is_empty();
+        let y_labeled = !grid_yt.labels.is_empty();
+        let x_names = !is_polar && !free_x && cat_x.is_some() && x_labeled;
+        let y_names = !is_polar && !free_y && cat_y.is_some() && y_labeled;
+        let across = crate::render::layout::name_pitch(self.font_sm);
+        let widths = |t: &TickSpec| -> Vec<f64> {
+            t.labels.iter().map(|s| estimate_text_width(s, self.font_sm)).collect()
+        };
+        let x_at = |g: &PanelGrid, t: &TickSpec| -> Vec<f64> {
+            g.panels.first().map_or_else(Vec::new, |p|
+                t.values.iter().map(|&v| p.rect.map_x(v, xs.0, xs.1)).collect())
+        };
+        let y_at = |g: &PanelGrid, t: &TickSpec| -> Vec<f64> {
+            g.panels.first().map_or_else(Vec::new, |p|
+                t.values.iter().map(|&v| p.rect.map_y(v, ys.0, ys.1)).collect())
+        };
+        let tick_angle = match x_names {
+            true => crate::render::layout::names_angle(
+                &x_at(&grid, grid_xt), &widths(grid_xt), stated_angle),
+            false => stated_angle,
+        };
+        let grid = if tick_angle != stated_angle { compute_grid(grid_xt, grid_yt, tick_angle) } else { grid };
+        let x_stride = match x_names {
+            true => crate::render::layout::names_stride(
+                &x_at(&grid, grid_xt), &widths(grid_xt), across, tick_angle.unwrap_or(0.0)),
+            false => 1,
+        };
+        let y_stride = match y_names {
+            true => crate::render::layout::names_stride(
+                &y_at(&grid, grid_yt), &widths(grid_yt), across, 90.0),
+            false => 1,
+        };
+        // The height that would name every one: the frame around the panels as an
+        // upright axis leaves it, plus a pitch per slot in every row.
+        let taller = |span: f64| -> f64 {
+            let rows = grid.nrows as f64;
+            let frame = compute_grid(grid_xt, grid_yt, None).panels.first()
+                .map_or(0.0, |p| self.height - rows * p.rect.h());
+            ((frame + rows * span * across) / 10.0).ceil() * 10.0
+        };
+        let nearest = |at: Vec<f64>| -> f64 {
+            at.windows(2).map(|w| (w[1] - w[0]).abs()).fold(f64::INFINITY, f64::min)
+        };
+        if x_stride > 1 {
+            remarks.push(thinned_names('x', x_field, x_ticks.labels.len(), x_stride,
+                nearest(x_at(&grid, grid_xt)), across, tick_angle, taller(xs.1 - xs.0)));
+        }
+        if y_stride > 1 {
+            remarks.push(thinned_names('y', y_field, y_ticks.labels.len(), y_stride,
+                nearest(y_at(&grid, grid_yt)), across, None, taller(ys.1 - ys.0)));
+        }
+        let x_ticks = if x_stride > 1 { thin_names(&x_ticks, x_stride) } else { x_ticks };
+        let y_ticks = if y_stride > 1 { thin_names(&y_ticks, y_stride) } else { y_ticks };
+        let grid_xt: &TickSpec = if x_labeled { &x_ticks } else { &no_ticks };
+        let grid_yt: &TickSpec = if y_labeled { &y_ticks } else { &no_ticks };
+        let grid = if x_stride > 1 || y_stride > 1 { compute_grid(grid_xt, grid_yt, tick_angle) } else { grid };
 
         // A dot plot whose piles have outgrown their dots is still drawn, and said
         // out loud (spec §12) — the panel's height and the tallest pile are both
@@ -2500,11 +2575,18 @@ impl SvgRenderer {
             // A gridline is a reading aid for an axis, so a packed panel has none
             // to draw — and the cells cover the panel anyway, so drawing them would
             // be ink under paint that reappears wherever a region is translucent.
+            //
+            // A tree's leaf axis has none either, by the bar rule's reasoning: each
+            // leaf is already a line standing at its slot, so a gridline there only
+            // continues it past its join to the top of the panel, one per leaf. The
+            // distance axis keeps its lines; they are how a join's height is read.
             if pol.is_none() && !is_nest && !is_network {
                 let theme = spec.theme.resolved();
                 self.write_grid(&mut svg, l, &x_ticks, xs, &y_ticks, ys,
-                                (has_plain_bar && !horizontal) || !theme.grid_x(),
-                                (has_plain_bar && horizontal) || !theme.grid_y());
+                                (has_plain_bar && !horizontal) || !theme.grid_x()
+                                    || (clusters_a_tree && cat_x.is_some()),
+                                (has_plain_bar && horizontal) || !theme.grid_y()
+                                    || (clusters_a_tree && cat_y.is_some()));
             }
 
             // The packing frame for this panel, built once and shared, on the same
@@ -2639,7 +2721,7 @@ impl SvgRenderer {
                                      grid.labels_x(panel) && self.fit.draw_x_axis,
                                      grid.labels_y(panel) && self.fit.draw_y_axis,
                                      grid.ncols > 1,
-                                     spec.theme.resolved().tick_angle);
+                                     tick_angle);
                 }
             }
         }
@@ -2679,8 +2761,23 @@ impl SvgRenderer {
         // The band the *margin* reserved, which is `grid_xt` rather than `x_ticks`:
         // polar draws real angular labels and hands the layout an empty list,
         // because those labels go inside the circle.
+        // The height of the x names' row as drawn: upright, one cap height; turned,
+        // w·sin θ + h·cos θ, the band `layout` reserves for them. The axis name
+        // is set below this row, so it sits under the names it titles; measured
+        // as one upright row whatever the angle, it was drawn across the turned
+        // names (`theme(tick_angle = 45)` on the continents put "Continent" over
+        // "Africa"). The angle is the one drawn, stated or turned for crowding.
+        let x_band = match tick_angle.filter(|d| *d != 0.0) {
+            Some(deg) => {
+                let t = deg.abs().to_radians();
+                grid_xt.labels.iter().map(|l| estimate_text_width(l, self.font_sm))
+                    .fold(0.0_f64, f64::max) * t.sin()
+                    + estimate_cap_height(self.font_sm) * t.cos()
+            }
+            None => estimate_cap_height(self.font_sm),
+        };
         self.write_labels(&mut svg, &grid.outer, inset, outer_xl, outer_yl, spec,
-                          !grid_xt.labels.is_empty());
+                          !grid_xt.labels.is_empty(), x_band);
         if !legends.is_empty() {
             // The canvas is the floor, not the panel — a legend has always been
             // allowed to run past the panel's bottom edge into the margin beside
@@ -3489,13 +3586,21 @@ impl SvgRenderer {
             for (v, label) in x_ticks.values.iter().zip(&x_ticks.labels) {
                 let sx = l.map_x(*v, xs.0, xs.1);
                 if let Some(deg) = turn {
-                    // Anchored at its *end* and turned about the tick, so the
-                    // label hangs down-left from the mark it belongs to and the
-                    // end nearest the axis is the end that names it. The negative
+                    // Anchored at its *end*, one gap past the tick, and turned
+                    // about that point, so the label hangs down-left from the mark
+                    // it belongs to and the end nearest the axis is the end that
+                    // names it. Centered across its line on the tick (`dy`, half a
+                    // cap height), so in a crowded row each name points at its own
+                    // tick rather than leaning into its neighbor's slot. The
+                    // upright row's cap height is not added: a turned label has no
+                    // cap above its anchor, and adding it hung the row one cap
+                    // height below the band `layout` reserves for it. The negative
                     // angle is SVG's: its rotation is clockwise, because y is down.
+                    let ty = l.y1 + TICK_LEN + TICK_GAP;
                     writeln!(svg,
-                        r#"    <text x="{sx:.2}" y="{label_y:.2}" text-anchor="end" transform="rotate({a:.2} {sx:.2} {label_y:.2})">{}</text>"#,
-                        esc(label), a = -deg).unwrap();
+                        r#"    <text x="{sx:.2}" y="{ty:.2}" dy="{dy:.2}" text-anchor="end" transform="rotate({a:.2} {sx:.2} {ty:.2})">{}</text>"#,
+                        esc(label), a = -deg,
+                        dy = estimate_cap_height(self.font_sm) / 2.0).unwrap();
                     continue;
                 }
                 let half = crate::render::text::estimate_text_width(label, self.font_sm) / 2.0;
@@ -3550,6 +3655,8 @@ impl SvgRenderer {
         // beside the plot, so they move in by this much.
         inset: (f64, f64),
         x_label: &str, y_label: &str, spec: &PlotSpec, drew_x_ticks: bool,
+        // The height of the x tick-label row as drawn, turned or upright.
+        x_band: f64,
     ) {
         let plot_cx = (l.x0 + l.x1) / 2.0;
         let label_h = estimate_cap_height(self.font_md);
@@ -3615,7 +3722,7 @@ impl SvgRenderer {
         // X-axis label (centered below ticks)
         if !x_label.is_empty() {
             let tick_row = match drew_x_ticks {
-                true => 5.0 + estimate_cap_height(self.font_sm),
+                true => 5.0 + x_band,
                 false => 0.0,
             };
             let ty = l.y1 - inset.1 + tick_row + 8.0 + label_h;
@@ -4946,6 +5053,67 @@ fn widened_ticks(c: &str, field: &str, asked: usize, ticks: &TickSpec) -> Option
             max = crate::render::ticks::MAX_TICKS,
         ),
     })
+}
+
+/// A category axis's ticks with every `stride`-th name kept, the first included.
+/// Its tick marks and gridlines go with the names, since a mark at a place the
+/// axis does not name points at nothing a reader can look up.
+fn thin_names(t: &TickSpec, stride: usize) -> TickSpec {
+    let (values, labels) = t.values.iter().zip(&t.labels)
+        .step_by(stride.max(1))
+        .map(|(v, l)| (*v, l.clone()))
+        .unzip();
+    ticks_with_labels(values, labels)
+}
+
+/// Say that a category axis draws one name in every `stride`, and how to name
+/// them all (spec §12): the names that were not printed are information the
+/// binding carried, so thinning them is an Assumption, never silent.
+///
+/// The direction names the column rather than a call (§12), and it is the one
+/// that works for both readings of a crowded axis: a row of names across the
+/// bottom gets its room by running down the side instead, where a taller plot
+/// buys every name a line; a column of names already down the side just needs
+/// the taller plot.
+#[allow(clippy::too_many_arguments)]
+fn thinned_names(axis: char, field: &str, n: usize, stride: usize, pitch: f64, across: f64,
+                 angle: Option<f64>, height: f64) -> Diagnostic {
+    let field = if field.is_empty() { "<column>" } else { field };
+    let kept = n.div_ceil(stride.max(1));
+    // One decimal, unless that would print the two numbers equal (8.87 against
+    // 8.92 is "8.9px apart, and a name needs 8.9px"), which reads as no reason.
+    let digits = if format!("{pitch:.1}") == format!("{across:.1}") { 2 } else { 1 };
+    // Upright names side by side need their width, not a line's height.
+    let need = match axis == 'x' && angle.unwrap_or(0.0) == 0.0 {
+        true => "less than the names are wide".to_string(),
+        false => format!("and a name needs {across:.digits$}px"),
+    };
+    let (how, fix) = match (axis, angle) {
+        ('x', Some(a)) if (a - 90.0).abs() < 1e-9 => (
+            "do not fit side by side, even turned to read upward".to_string(),
+            format!("swap the two axes so `{field}` runs down the y axis, in a taller plot \
+                     (`theme(height = {height})`)"),
+        ),
+        ('x', a) => (
+            format!("do not fit side by side at `tick_angle = {}`", a.unwrap_or(0.0)),
+            format!("turn them with `theme(tick_angle = 90)`, or swap the two axes so \
+                     `{field}` runs down the y axis, in a taller plot \
+                     (`theme(height = {height})`)"),
+        ),
+        _ => (
+            "do not fit one above another".to_string(),
+            format!("make the plot taller (`theme(height = {height})`)"),
+        ),
+    };
+    Diagnostic {
+        kind: crate::legality::DiagnosticKind::Assumption,
+        message: format!(
+            "gog: the {n} names of `{field}` on the {axis} axis {how}: they are {pitch:.digits$}px \
+             apart, {need}. One in every {stride} is drawn ({kept} of {n}), with its tick; \
+             the rest keep their places, unnamed. To name every one, {fix}, or draw fewer \
+             rows."
+        ),
+    }
 }
 
 /// Say how many rows a log axis could not place, when any survive to this point.
@@ -10894,6 +11062,44 @@ mod tests {
                 .fold((f64::INFINITY, f64::NEG_INFINITY), |(a, b), y| (a.min(y), b.max(y)));
             assert!(hi - lo > 1.0, "a sideways violin has its width on y");
         }
+    }
+
+    /// **The x axis's name sits below its turned names.** Turned, a name hangs
+    /// from its tick by its width times the sine of the angle, and the axis name
+    /// used to be set one upright row below the panel whatever the angle, so at
+    /// `tick_angle = 45` it was drawn across the names it titles. Asserted
+    /// against the lowest point any turned name reaches, measured with the same
+    /// text metrics the renderer uses.
+    #[test]
+    fn the_axis_name_sits_below_its_turned_names() {
+        let names = ["Alpha region", "Beta region", "Gamma region"];
+        let data = HashMap::from([("t".to_string(), DataFrame::new()
+            .with_str("g", names.iter().map(|s| s.to_string()).collect())
+            .with_float("v", vec![3.0, 5.0, 2.0]))]);
+        let mut spec = PlotSpec::new().data("t").x("g").y("v")
+            .layer(Layer::new(Mark::Bar).transform(Transform::Mean));
+        spec.theme.tick_angle = Some(45.0);
+        let r = SvgRenderer::default();
+        let svg = r.render(&spec, &data);
+
+        // The turned names' anchor row, and how far below it the longest reaches.
+        let anchor_y: f64 = svg.split("transform=\"rotate(-45.00 ").nth(1)
+            .and_then(|t| t.split(')').next())
+            .and_then(|xy| xy.split_whitespace().nth(1))
+            .and_then(|y| y.parse().ok())
+            .expect("a turned name");
+        let widest = names.iter().map(|n| estimate_text_width(n, r.font_sm)).fold(0.0, f64::max);
+        let lowest = anchor_y + widest * std::f64::consts::FRAC_1_SQRT_2;
+
+        // The axis name: the one text element reading "G".
+        let name_y: f64 = svg.split("<text ").find(|t| t.contains(">G</text>"))
+            .and_then(|t| t.split("y=\"").nth(1))
+            .and_then(|y| y.split('"').next())
+            .and_then(|y| y.parse().ok())
+            .expect("the axis name");
+        let name_top = name_y - estimate_cap_height(r.font_md);
+        assert!(name_top > lowest,
+            "the axis name's top ({name_top:.1}) must be below the turned names ({lowest:.1})");
     }
 
     // -- one smoothing per `density` layer (`transform::Smoothing`) ------------

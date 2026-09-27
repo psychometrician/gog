@@ -48,6 +48,16 @@ CRAN-style repositories and PyPI, `GrammarOfGraphics` on Julia's General, and
 
 ### Changed
 
+- **Crowded category names no longer print over each other.** When the names
+  on a categorical axis do not fit side by side, gog turns them 90 degrees to
+  read upward. When even turned names are too close, it draws one name in every
+  two or three, each with its tick, and says how to fit them all. Names down a
+  `y` axis thin the same way. A `tick_angle` you state is kept, and names are
+  thinned at that angle if they need it. The refusal of an angle outside -90 to
+  90 now says this, where it recommended 45 for names that overlap. The axis
+  name sits below turned names, where it used to be drawn across them. A
+  dendrogram's leaf axis no longer draws a gridline for each leaf.
+
 - **An animation keeps time with its column.** When `play` runs through numbers
   or dates that are not evenly spaced, each frame now shows in proportion to the
   gap to the next value, between a quarter of the usual time and four times it,

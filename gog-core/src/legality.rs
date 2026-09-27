@@ -7498,7 +7498,8 @@ fn check_theme(out: &mut Vec<Diagnostic>, spec: &PlotSpec) {
                 message: format!(
                     "gog: `theme(tick_angle = {angle})` is not an angle a tick label can \
                      be read at — it turns the x labels between -90 and 90 degrees. \
-                     `tick_angle = 45` is the usual answer to names that overlap."
+                     Names that do not fit side by side are turned without it, so state \
+                     an angle only to choose one, such as `tick_angle = 45`."
                 ),
             });
         }

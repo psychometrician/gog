@@ -3033,3 +3033,32 @@ test("a played column's frames are held in proportion to its gaps", () => {
   const begins = [...new Set([...svg.matchAll(/begin="([0-9.]+)s"/g)].map((m) => Number(m[1])))].sort((p, q) => p - q);
   assert.deepEqual(begins, [0, 0.8, 1.6, 4.8]);
 });
+
+// Category names that do not fit side by side are turned to read upward, and when
+// even turned they are too close, one in every few is drawn and the engine says
+// how many. Until 2026-09-26 forty names printed over each other, and so did
+// three hundred.
+test("crowded category names turn, then thin, and say so", () => {
+  const crowd = (n) => ({
+    g: Array.from({ length: n }, (_, i) => `name ${String(i + 1).padStart(3, "0")}`),
+    v: Array.from({ length: n }, (_, i) => i + 1),
+  });
+  const draw = (n) => {
+    const write = process.stderr.write;
+    let said = "";
+    process.stderr.write = (chunk) => { said += chunk; return true; };
+    try {
+      const svg = render_svg(plot(data(crowd(n), { name: "crowd" }), bar, x(col.g), y(col.v)));
+      return { svg, said };
+    } finally {
+      process.stderr.write = write;
+    }
+  };
+  const forty = draw(40);
+  assert.equal(forty.svg.split("rotate(-90.00 ").length - 1, 40, "forty names, every one turned");
+  assert.equal(forty.said, "", "turning names that fit is silent");
+  const many = draw(300);
+  const drawn = [...many.svg.matchAll(/>name [0-9]{3}<\/text>/g)].length;
+  assert.ok(drawn < 300, "three hundred names are thinned");
+  assert.ok(many.said.includes(`(${drawn} of 300)`), many.said);
+});

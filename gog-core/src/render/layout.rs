@@ -455,6 +455,80 @@ impl PanelGrid {
 }
 
 // ---------------------------------------------------------------------------
+// Crowded category names
+// ---------------------------------------------------------------------------
+
+/// How far apart two names have to be, measured *across* their lines, to be
+/// read: a cap height and one pixel. That is tight leading (0.81 em at the
+/// default size), and deliberately so: 142 names down a 1400px axis sit 9.4px
+/// apart and read cleanly, and a rule that thinned them would thin a plot that
+/// works. Upright names side by side are measured along their lines instead,
+/// by their widths.
+///
+/// **Along a line the clearance is the width estimate's own generosity**, and
+/// no gap is added to it. `estimate_text_width` allows 0.58 em a letter, and the
+/// tick font sets about 0.50 to 0.55, so two names whose estimates just meet
+/// stand a letter or so apart when drawn: about a word space, which is the gap
+/// that keeps two neighbors from reading as one name. Adding 4px on top turned
+/// ten country names that read cleanly upright (`United States` beside
+/// `Indonesia`, 71px apart).
+pub(crate) fn name_pitch(font_sm: f64) -> f64 {
+    estimate_cap_height(font_sm) + 1.0
+}
+
+/// Do these names clear each other when every `stride`-th one is drawn?
+///
+/// `at` is each name's tick in pixels along its axis, `widths` its estimated
+/// width, `across` the pitch [`name_pitch`] asks for, and `angle` the degrees
+/// the names are turned through (0 upright, 90 reading upward; names stacked
+/// down a y axis are the 90 case, since they are lines side by side too).
+///
+/// Upright names are centered on their ticks, so two neighbors clear when half
+/// of each fits between the ticks. Turned names are parallel lines anchored at
+/// their ends, so two neighbors clear when the lines are far enough apart across
+/// (`d·sin θ`), or when the longer one ends before the other begins along
+/// (`d·cos θ`), which is what lets a few short names at a shallow angle keep
+/// every one.
+pub(crate) fn names_clear(at: &[f64], widths: &[f64], across: f64, angle: f64,
+                          stride: usize) -> bool {
+    let t = angle.abs().to_radians();
+    let kept: Vec<usize> = (0..at.len()).step_by(stride.max(1)).collect();
+    kept.windows(2).all(|w| {
+        let (i, j) = (w[0], w[1]);
+        let d = (at[j] - at[i]).abs();
+        if angle == 0.0 {
+            (widths[i] + widths[j]) / 2.0 <= d
+        } else {
+            d * t.sin() >= across || d * t.cos() >= widths[i].max(widths[j])
+        }
+    })
+}
+
+/// The angle a row of x names is drawn at. A stated `tick_angle` is the
+/// caller's and is kept whatever it costs; an unstated one stays upright while
+/// every name fits side by side and turns to 90 when any two collide. Ninety
+/// rather than 45 because it is the angle that fits the most names: a name
+/// turned upright takes one line's height of the axis whatever its length, and
+/// it is the reading ggdendro and `guide_axis(angle = 90)` give a crowded axis.
+pub(crate) fn names_angle(at: &[f64], widths: &[f64], stated: Option<f64>) -> Option<f64> {
+    match stated {
+        Some(a) => Some(a),
+        None if !names_clear(at, widths, 0.0, 0.0, 1) => Some(90.0),
+        None => None,
+    }
+}
+
+/// How many names to step over so that the drawn ones clear each other: 1 when
+/// every name fits, otherwise the smallest stride that does. The names kept are
+/// the first and every `stride`-th after it, so the ones drawn are always a
+/// subset of a roomier axis's, at even spacing, which is the cube's rule for a
+/// foreshortened axis applied to a row of names.
+pub(crate) fn names_stride(at: &[f64], widths: &[f64], across: f64, angle: f64) -> usize {
+    let n = at.len().max(1);
+    (1..=n).find(|&k| names_clear(at, widths, across, angle, k)).unwrap_or(n)
+}
+
+// ---------------------------------------------------------------------------
 // Tests
 // ---------------------------------------------------------------------------
 
@@ -613,6 +687,39 @@ mod tests {
         let turned = grid_with(vec![], vec![], None, Some(45.0));
         assert!(turned.panels[0].rect.h() < upright.panels[0].rect.h(),
                 "a turned label is taller, so the panel gives up the height");
+    }
+
+    /// Names that fit side by side stay upright and all drawn; names that do not
+    /// turn to 90 and stay all drawn while a line's height fits between ticks;
+    /// past that, every `stride`-th one. A stated angle is never overridden.
+    #[test]
+    fn crowded_names_turn_then_thin() {
+        let across = name_pitch(11.0);
+        let ticks = |n: usize, pitch: f64| (0..n).map(|i| i as f64 * pitch).collect::<Vec<_>>();
+        let words = |n: usize, w: f64| vec![w; n];
+
+        // Five 40px names 150px apart: upright, every one.
+        let (at, w) = (ticks(5, 150.0), words(5, 40.0));
+        assert_eq!(names_angle(&at, &w, None), None);
+        assert_eq!(names_stride(&at, &w, across, 0.0), 1);
+
+        // Forty 50px names 17.5px apart: turned, every one.
+        let (at, w) = (ticks(40, 17.5), words(40, 50.0));
+        assert_eq!(names_angle(&at, &w, None), Some(90.0));
+        assert_eq!(names_stride(&at, &w, across, 90.0), 1);
+
+        // 142 names 5.1px apart: turned, and 1 in 2, since two slots are 10.2px.
+        let (at, w) = (ticks(142, 5.1), words(142, 50.0));
+        assert_eq!(names_angle(&at, &w, None), Some(90.0));
+        assert_eq!(names_stride(&at, &w, across, 90.0), 2);
+
+        // A stated angle is kept, and thinned at that angle: 45 degrees needs
+        // √2 times the pitch 90 does.
+        assert_eq!(names_angle(&at, &w, Some(45.0)), Some(45.0));
+        assert_eq!(names_stride(&at, &w, across, 45.0), 3);
+        // Stated upright is kept upright, and thinned by the names' widths.
+        assert_eq!(names_angle(&at, &w, Some(0.0)), Some(0.0));
+        assert_eq!(names_stride(&at, &w, across, 0.0), 10);
     }
 
     #[test]

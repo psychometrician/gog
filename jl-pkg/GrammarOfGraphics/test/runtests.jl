@@ -2412,3 +2412,26 @@ end
     begins = sort(unique([parse(Float64, m.captures[1]) for m in eachmatch(r"begin=\"([0-9.]+)s\"", svg)]))
     @test begins == [0.0, 0.8, 1.6, 4.8]
 end
+
+# Category names that do not fit side by side are turned to read upward, and when
+# even turned they are too close, one in every few is drawn and the engine says
+# how many. Until 2026-09-26 forty names printed over each other, and so did
+# three hundred.
+@testset "crowded category names turn, then thin, and say so" begin
+    crowd(n) = (g = ["name " * lpad(string(i), 3, '0') for i in 1:n], v = Float64.(1:n))
+    function draw(n)
+        path, io = mktemp()
+        svg = redirect_stderr(io) do
+            render_svg(data(crowd(n), name = "crowd") + bar + x(:g) + y(:v))
+        end
+        close(io)
+        (svg, read(path, String))
+    end
+    svg, said = draw(40)
+    @test Base.count("rotate(-90.00 ", svg) == 40
+    @test said == ""
+    svg, said = draw(300)
+    drawn = length(collect(eachmatch(r">name [0-9]{3}</text>", svg)))
+    @test drawn < 300
+    @test occursin("($drawn of 300)", said)
+end

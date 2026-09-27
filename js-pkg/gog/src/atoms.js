@@ -1226,7 +1226,8 @@ export function theme(...raw) {
       (typeof tick_angle !== "number" || !Number.isFinite(tick_angle) || Math.abs(tick_angle) > 90)) {
     throw new GogError(
       "gog: `theme({ tick_angle: … })` turns the x tick labels between -90 and 90 " +
-        "degrees. `tick_angle: 45` is the usual answer to names that overlap."
+        "degrees. Names that do not fit side by side are turned without it, so " +
+        "state an angle only to choose one, such as `tick_angle: 45`."
     );
   }
 

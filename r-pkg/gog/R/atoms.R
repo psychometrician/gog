@@ -2212,7 +2212,9 @@ palette <- function(pal) {
 #'   survive `polar()`, where the y axis's gridlines are rings.
 #' @param ratio The panel's width divided by its height. `1` is a square.
 #' @param tick_angle Degrees to turn the x tick labels through, between -90 and
-#'   90. `45` is the usual answer to category names that overlap.
+#'   90. Category names that do not fit side by side are turned to 90 without
+#'   it, and thinned when even that is not enough, so state an angle only to
+#'   choose one.
 #' @param font_size How many pixels a tick label is — and, through it, the size
 #'   of every other piece of text the plot draws. One number rather than three,
 #'   because the axis names and the title are a fixed step above it: `11` (the
@@ -2275,7 +2277,8 @@ theme <- function(preset = NULL, grid = NULL, ratio = NULL, tick_angle = NULL,
   if (!is.null(tick_angle) && !(is.numeric(tick_angle) && length(tick_angle) == 1 &&
                                 is.finite(tick_angle) && abs(tick_angle) <= 90)) {
     stop("gog: `theme(tick_angle = )` turns the x tick labels between -90 and 90 ",
-         "degrees. `tick_angle = 45` is the usual answer to names that overlap.",
+         "degrees. Names that do not fit side by side are turned without it, so ",
+         "state an angle only to choose one, such as `tick_angle = 45`.",
          call. = FALSE)
   }
   if (!is.null(font_size) && !(is.numeric(font_size) && length(font_size) == 1 &&
