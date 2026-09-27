@@ -4537,6 +4537,29 @@ fn check_partition(
         return;
     }
 
+    // **A `y` other than `depth` has no reading here.** A partition places its
+    // levels itself, one depth per level, and weighs its branches by `x`. The one
+    // column `y` can name is the `depth` the transform computes, which is how a
+    // sunburst states its radial domain (`y(depth, limits = c(0, 4))` hollows the
+    // middle). Any other `y` was accepted, ignored as data and printed as the axis
+    // title: `y(people)` drew an unweighted mosaic whose share axis read "People".
+    // So it is refused, and pointed at `x`, where the weight is read.
+    if let Some(y) = spec.position_for(layer, &Channel::Y)
+        .filter(|y| y.field != crate::transform::NODE_DEPTH)
+    {
+        out.push(Diagnostic {
+            kind: DiagnosticKind::Illegal,
+            message: format!(
+                "gog: `y({0})` has no reading under `partition`: a partition places its \
+                 levels itself and reads its weight from `x`. Write `x({0})` to weigh the \
+                 branches by it, or drop `y({0})`. The one column `y` can name here is \
+                 `depth`, which `partition` computes, to state its domain with `limits`.",
+                y.field,
+            ),
+        });
+        return;
+    }
+
     // The measure is the bound `x`, so it has to be a number. Refused here rather
     // than by `check_distribution_axis`, whose message is about cutting an axis and
     // would send the caller looking for a bin.
@@ -19386,6 +19409,24 @@ mod tests {
                 "`x(w)` weighs each branch");
         refused(PlotSpec::new().data("t").y("w").layer(Layer::new(Mark::Ribbon).flow(&["a", "b"])),
                 "`y(w)` weighs each path");
+    }
+
+    /// A partition reads its weight from `x` and places its levels itself, so a
+    /// bound `y` is refused: it was ignored as data and printed as the axis title.
+    #[test]
+    fn a_y_under_a_partition_is_refused_toward_x() {
+        let spec = PlotSpec::new().data("t").y("amount").layer(part(Mark::Zone));
+        let out = check(&spec, &tree_data());
+        assert!(out.iter().any(|d| d.kind == DiagnosticKind::Illegal
+            && d.message.contains("`y(amount)` has no reading under `partition`")
+            && d.message.contains("Write `x(amount)`")), "{:?}", msgs(&out));
+        let weighed = PlotSpec::new().data("t").x("amount").layer(part(Mark::Zone));
+        assert!(!check(&weighed, &tree_data()).iter().any(Diagnostic::is_fatal));
+        // The depth the partition computes is the one `y` it reads: a sunburst
+        // states its radial domain there.
+        let depth = PlotSpec::new().data("t").x("amount").y("depth").layer(part(Mark::Zone));
+        assert!(!check(&depth, &tree_data()).iter().any(Diagnostic::is_fatal),
+                "{:?}", msgs(&check(&depth, &tree_data())));
     }
 
     /// A partition places its own nodes, so neither position has to be named —

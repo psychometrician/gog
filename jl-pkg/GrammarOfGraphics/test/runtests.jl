@@ -2536,3 +2536,11 @@ end
     @refuses render_svg(data(neg) + zone * partition(:a, :b) + x(:w)) "`x(w)` weighs each branch"
     @refuses render_svg(data(neg) + ribbon * flow(:a, :b) + y(:w)) "`y(w)` weighs each path"
 end
+
+# A `y` under `partition` was ignored as data and printed as the axis title; a
+# partition reads its weight from `x`, so `y` is refused toward it. The same
+# block runs in all four bindings.
+@testset "a y under a partition is refused toward x" begin
+    trips = (city = ["A", "A", "B"], mode = ["car", "bus", "car"], people = [3.0, 2.0, 4.0])
+    @refuses render_svg(data(trips) + zone * partition(:city, :mode) + y(:people)) "`y(people)` has no reading under `partition`"
+end

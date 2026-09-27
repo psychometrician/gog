@@ -2973,3 +2973,13 @@ assert "`x(w)` weighs each branch" in _refusal(
 assert "`y(w)` weighs each path" in _refusal(
     lambda: render_svg(data(_neg, name="neg") + ribbon * flow(col.a, col.b) + y(col.w)))
 ok("a negative weight is refused by a partition and a flow")
+
+
+# --- A `y` under a partition --------------------------------------------------
+# It was ignored as data and printed as the axis title; a partition reads its
+# weight from `x`, so `y` is refused toward it. The same block runs in all four.
+_trips = {"city": ["A", "A", "B"], "mode": ["car", "bus", "car"], "people": [3.0, 2.0, 4.0]}
+assert "`y(people)` has no reading under `partition`" in _refusal(
+    lambda: render_svg(data(_trips, name="trips") + zone * partition(col.city, col.mode)
+                       + y(col.people)))
+ok("a y under a partition is refused toward x")

@@ -4929,3 +4929,16 @@ local({
           render_svg(data(t) + ribbon * flow(a, b) + y(w)), "`y(w)` weighs each path")
   cat("PASS: a negative weight is refused by a partition and a flow\n")
 })
+
+# ---------------------------------------------------------------------------
+# A `y` under `partition` was ignored as data and printed as the axis title; a
+# partition reads its weight from `x`, so `y` is refused toward it. The same
+# block runs in all four bindings.
+# ---------------------------------------------------------------------------
+local({
+  trips <- data.frame(city = c("A", "A", "B"), mode = c("car", "bus", "car"), people = c(3, 2, 4))
+  refuses("a y under a partition",
+          render_svg(data(trips) + zone * partition(city, mode) + y(people)),
+          "`y(people)` has no reading under `partition`")
+  cat("PASS: a y under a partition is refused toward x\n")
+})

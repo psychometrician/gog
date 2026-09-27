@@ -3168,3 +3168,12 @@ test("a negative weight is refused by a partition and a flow", () => {
   assert.match(refusalOf(() => render_svg(plot(data(neg), layer(ribbon, flow(col.a, col.b)),
     y(col.w)))), /`y\(w\)` weighs each path/);
 });
+
+// A `y` under `partition` was ignored as data and printed as the axis title; a
+// partition reads its weight from `x`, so `y` is refused toward it. The same
+// block runs in all four bindings.
+test("a y under a partition is refused toward x", () => {
+  const trips = { city: ["A", "A", "B"], mode: ["car", "bus", "car"], people: [3, 2, 4] };
+  assert.match(refusalOf(() => render_svg(plot(data(trips), layer(zone, partition(col.city, col.mode)),
+    y(col.people)))), /`y\(people\)` has no reading under `partition`/);
+});
