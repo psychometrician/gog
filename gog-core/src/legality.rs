@@ -4552,8 +4552,30 @@ fn check_partition(
                     x.field,
                 ),
             });
+        } else if has_negative(df, &x.field) {
+            // `nest()`'s refusal, for the same reason one family over: a branch's
+            // share of the whole cannot be negative, and the transform clamped a
+            // negative weight to 0, which drew that leaf with no width and shrank
+            // the whole it was a share of, in silence.
+            out.push(Diagnostic {
+                kind: DiagnosticKind::Illegal,
+                message: format!(
+                    "gog: `x({0})` weighs each branch, and `{0}` has negative values. A \
+                     partition turns a weight into a share of the whole, and a share cannot \
+                     be negative: those rows would be drawn with no width, and the whole \
+                     would shrink. Filter or offset the column, or draw it flat, where a \
+                     bar below the baseline reads as a loss.",
+                    x.field,
+                ),
+            });
         }
     }
+}
+
+/// Does this column hold a negative number? A weight read as a share, a region
+/// or a band's thickness has no reading below zero.
+fn has_negative(df: &DataFrame, field: &str) -> bool {
+    df.float_col(field).is_some_and(|c| c.iter().any(|v| v.is_finite() && *v < 0.0))
 }
 
 /// Every way a flow can be malformed, `check_partition`'s shape one family over.
@@ -4755,6 +4777,22 @@ fn check_flow(
                      categories rather than numbers. Name the column that carries the \
                      amount — `y(<amount>)` — or bind nothing at all, in which case \
                      every path weighs 1 and the flow tallies them.",
+                    y.field,
+                ),
+            });
+            return;
+        }
+        // A band's thickness cannot be negative; the layout clamped a negative
+        // weight to 0 and dropped the path, so the stages no longer summed to
+        // the table, in silence. `nest()`'s refusal, one family over.
+        if has_negative(df, &y.field) {
+            out.push(Diagnostic {
+                kind: DiagnosticKind::Illegal,
+                message: format!(
+                    "gog: `y({0})` weighs each path, and `{0}` has negative values. A flow \
+                     draws a weight as the thickness of a band, and a thickness cannot be \
+                     negative: those paths would be dropped, and every stage would sum to \
+                     less than the table. Filter or offset the column.",
                     y.field,
                 ),
             });
@@ -19323,6 +19361,31 @@ mod tests {
             && x.message.contains("region")
             && x.message.contains("zone") && x.message.contains("text")),
             "a mark with no region reading is sent to the two that have one: {:?}", msgs(&d));
+    }
+
+    /// A negative weight has no share, region or thickness, so `partition` and
+    /// `flow` refuse it as `nest()` does. Both transforms clamped it to 0 and drew
+    /// a plot whose parts no longer summed to the table, with nothing said.
+    #[test]
+    fn a_negative_weight_is_refused_by_a_partition_and_a_flow() {
+        let s = |v: &[&str]| v.iter().map(|x| x.to_string()).collect::<Vec<_>>();
+        let tables: HashMap<String, DataFrame> = HashMap::from([(
+            "t".to_string(),
+            DataFrame::new()
+                .with_str("a", s(&["p", "p", "q"]))
+                .with_str("b", s(&["u", "v", "u"]))
+                .with_float("w", vec![3.0, -2.0, 4.0]),
+        )]);
+        let refused = |spec: PlotSpec, wanted: &str| {
+            let out = check(&spec, &tables);
+            assert!(out.iter().any(|d| d.kind == DiagnosticKind::Illegal
+                && d.message.contains(wanted) && d.message.contains("has negative values")),
+                "wanted {wanted:?}: {:?}", msgs(&out));
+        };
+        refused(PlotSpec::new().data("t").x("w").layer(Layer::new(Mark::Zone).partition(&["a", "b"])),
+                "`x(w)` weighs each branch");
+        refused(PlotSpec::new().data("t").y("w").layer(Layer::new(Mark::Ribbon).flow(&["a", "b"])),
+                "`y(w)` weighs each path");
     }
 
     /// A partition places its own nodes, so neither position has to be named —

@@ -246,6 +246,11 @@ Each is now refused, with what to write instead.
   wrote: `point` for two, `bar * bin` for one number, `bar * count` for one
   category.
 
+- **A negative weight in a `partition` or a `flow`.** It was counted as 0: its
+  leaf was drawn with no width, or its path was left out, and the whole no
+  longer summed to the table. `nest()` already refused the same data, and now
+  both do, naming the column.
+
 - **Two tables that read one axis as different kinds of value.** When one
   layer's table held a position column as text and another layer's held a
   column of the same name as numbers, the numbers were read as the places of

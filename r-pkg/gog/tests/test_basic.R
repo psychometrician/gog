@@ -4914,3 +4914,18 @@ local({
     stop("FAIL: a written tick_count that is thinned should say so: ", said)
   cat("PASS: crowded numbers thin, and a written tick_count says so\n")
 })
+
+# ---------------------------------------------------------------------------
+# A negative weight has no share and no thickness, so `partition` and `flow`
+# refuse it as `nest()` does. Both clamped it to 0 and drew parts that no longer
+# summed to the table, with nothing said. The same block runs in all four
+# bindings.
+# ---------------------------------------------------------------------------
+local({
+  t <- data.frame(a = c("p", "p", "q"), b = c("u", "v", "u"), w = c(3, -2, 4))
+  refuses("a negative weight in a partition",
+          render_svg(data(t) + zone * partition(a, b) + x(w)), "`x(w)` weighs each branch")
+  refuses("a negative weight in a flow",
+          render_svg(data(t) + ribbon * flow(a, b) + y(w)), "`y(w)` weighs each path")
+  cat("PASS: a negative weight is refused by a partition and a flow\n")
+})

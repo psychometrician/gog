@@ -3156,3 +3156,15 @@ test("crowded numbers thin, and a written tick_count says so", () => {
   }
   assert.ok(said.includes("tick_count = 12") && said.includes("so 3 of them are drawn"), said);
 });
+
+// A negative weight has no share and no thickness, so `partition` and `flow`
+// refuse it as `nest()` does. Both clamped it to 0 and drew parts that no longer
+// summed to the table, with nothing said. The same block runs in all four
+// bindings.
+test("a negative weight is refused by a partition and a flow", () => {
+  const neg = { a: ["p", "p", "q"], b: ["u", "v", "u"], w: [3, -2, 4] };
+  assert.match(refusalOf(() => render_svg(plot(data(neg), layer(zone, partition(col.a, col.b)),
+    x(col.w)))), /`x\(w\)` weighs each branch/);
+  assert.match(refusalOf(() => render_svg(plot(data(neg), layer(ribbon, flow(col.a, col.b)),
+    y(col.w)))), /`y\(w\)` weighs each path/);
+});

@@ -2961,3 +2961,15 @@ with contextlib.redirect_stderr(_said):
                | facet(col.g))
 assert "tick_count = 12" in _said.getvalue() and "so 3 of them are drawn" in _said.getvalue(), _said.getvalue()
 ok("crowded numbers thin, and a written tick_count says so")
+
+
+# --- A negative weight in a partition or a flow ------------------------------
+# It has no share and no thickness, so both refuse it as `nest()` does. Both
+# clamped it to 0 and drew parts that no longer summed to the table, with
+# nothing said. The same block runs in all four bindings.
+_neg = {"a": ["p", "p", "q"], "b": ["u", "v", "u"], "w": [3.0, -2.0, 4.0]}
+assert "`x(w)` weighs each branch" in _refusal(
+    lambda: render_svg(data(_neg, name="neg") + zone * partition(col.a, col.b) + x(col.w)))
+assert "`y(w)` weighs each path" in _refusal(
+    lambda: render_svg(data(_neg, name="neg") + ribbon * flow(col.a, col.b) + y(col.w)))
+ok("a negative weight is refused by a partition and a flow")
