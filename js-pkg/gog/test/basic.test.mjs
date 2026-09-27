@@ -3309,3 +3309,16 @@ test("a legend too wide for its plot is left out and said", () => {
   assert.ok(said.includes("`G` legend needs"), said);
   assert.ok(!svg.includes(">G</text>"));
 });
+
+// A y name goes where its panel went: in `(a | b) / c` with `c` sharing a column
+// with `b`, the page moves `c`'s panel to run under `b`, and its name stayed at the
+// cell's edge, 450px away. The same block runs in all four bindings.
+test("a y name follows a panel a shared column moved", () => {
+  const yn = { speed: [4, 7, 8, 12, 15, 18, 20, 24], dist: [2, 4, 16, 24, 36, 56, 64, 120] };
+  const svg = render_svg(below(
+    beside(plot(data(yn), point, x(col.dist), y(col.speed)),
+      plot(data(yn), point, x(col.speed), y(col.dist))),
+    plot(data(yn), layer(bar, bin), x(col.speed))));
+  const at = svg.match(/rotate\(-90 ([0-9.]+) [^)]*\)[^>]*>Count<\/text>/);
+  assert.ok(at && Number(at[1]) > 300, String(at && at[1]));
+});

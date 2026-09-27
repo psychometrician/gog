@@ -57,6 +57,12 @@ CRAN-style repositories and PyPI, `GrammarOfGraphics` on Julia's General, and
   gave its texture to the second. Each is now fitted once, over every row the
   layer draws, and that is the scale its legend decodes.
 
+- **A y axis's name stays beside its panel on a page.** In `(a | b) / c`, where
+  `c` shares a column with `b`, the page moves `c`'s panel to run under `b`, and
+  the name of `c`'s y axis stayed at the left edge, 450px from its panel. It now
+  moves with the panel. Plots stacked in one column keep their names in one
+  column, as before.
+
 - **A legend too wide for its plot is left out, and said.** A plot narrower
   than its legend drew its panel at a negative width, with no message: a scatter
   colored by continent at `theme(width = 150)`, or a thin marginal plot given a

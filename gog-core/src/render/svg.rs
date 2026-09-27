@@ -3786,8 +3786,9 @@ impl SvgRenderer {
                 // `rotate(-90)` sends ascenders to the pivot's left, so the pivot
                 // sits one cap height in from the canvas edge and the text stays
                 // on the page. `layout` reserved exactly that band, and it moves
-                // in with the plot when the plot is inset.
-                let lx = label_h + 2.0 + inset.0;
+                // in with the plot when the plot is inset, or when a page moved
+                // the panel to run under a plot on another line (`Fit`).
+                let lx = label_h + 2.0 + inset.0 + self.fit.y_name_shift;
                 let ly = (l.y0 + l.y1) / 2.0;
                 writeln!(svg,
                     r##"  <text transform="rotate(-90 {lx:.2} {ly:.2})" x="{lx:.2}" y="{ly:.2}" font-family="system-ui,sans-serif" font-size="{fs}" fill="#28283a" text-anchor="middle">{y_label}</text>"##,

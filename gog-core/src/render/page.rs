@@ -470,6 +470,9 @@ fn align(cells: &[Cell], measured: &[Drawn], fits: &mut [Fit]) {
             })
             .collect();
         let before = edges.clone();
+        // The cells whose panels this lines up on the edge the y axis lives on,
+        // for their names below.
+        let mut lined_up: Vec<usize> = Vec::new();
 
         for far in [false, true] {
             let line = |i: usize| {
@@ -506,6 +509,9 @@ fn align(cells: &[Cell], measured: &[Drawn], fits: &mut [Fit]) {
                 }
             }
             for (_, members) in lines.into_iter().filter(|(_, m)| m.len() > 1) {
+                if horizontal && !far {
+                    lined_up.extend(members.iter().copied());
+                }
                 let to = if far {
                     members.iter().map(|&i| edges[i].1).fold(f64::INFINITY, f64::min)
                 } else {
@@ -529,6 +535,22 @@ fn align(cells: &[Cell], measured: &[Drawn], fits: &mut [Fit]) {
                     fits[i].panel_x = fitted;
                 } else {
                     fits[i].panel_y = fitted;
+                }
+            }
+        }
+
+        // **A y name goes where its panel went**, unless the panel was lined up
+        // with others that start on its line. Those keep one column of names at
+        // the edge, which is what makes an aligned stack read as one figure. Any
+        // other panel the page moved was moved to run under a plot on another
+        // line, by as much as a column of the page, and its name moves with it.
+        if horizontal {
+            for i in 0..cells.len() {
+                if lined_up.contains(&i) {
+                    continue;
+                }
+                if let Some((x0, _)) = fits[i].panel_x {
+                    fits[i].y_name_shift = (x0 - measured[i].panel.x0).max(0.0);
                 }
             }
         }
@@ -1012,6 +1034,46 @@ mod tests {
         assert!((alone[0][3] - alone[1][3]).abs() > 1.0, "the premise: the x labels differ in height");
         assert!((page[0][3] - page[1][3]).abs() < 1e-9, "one bottom edge along the row");
         assert!((page[0][2] - page[1][2]).abs() < 1e-9, "and one top edge");
+    }
+
+    /// A y name goes where its panel went. A panel moved to run under a plot on
+    /// another line keeps its name beside it, where the name stayed at the cell's
+    /// edge, 450px away; panels lined up on one line keep one column of names.
+    #[test]
+    fn a_y_name_follows_its_panel_unless_the_panels_are_lined_up() {
+        // Each cell's panel left edge and its y name's x, in the cell's own terms.
+        let names = |page: &PageSpec| -> Vec<(f64, Option<f64>)> {
+            let (svg, _) = render(page, &data(), 800.0, 600.0);
+            let first_number = |text: &str, after: &str, until: char| -> Option<f64> {
+                text.split(after).nth(1)?.split(until).next()?.parse().ok()
+            };
+            svg.split("<svg ").skip(2).map(|cell| {
+                let clip = cell.split("<clipPath").nth(1).expect("a clipped panel");
+                let panel = first_number(clip, "<rect x=\"", '"').expect("a panel edge");
+                (panel, first_number(cell, "<text transform=\"rotate(-90 ", ' '))
+            }).collect()
+        };
+        let plot = |x: &str, y: &str| {
+            PlotSpec::new().data("cars").x(x).y(y).layer(Layer::new(Mark::Point))
+        };
+        let histogram = PlotSpec::new().data("cars").x("speed")
+            .layer(Layer::new(Mark::Bar).transform(Transform::Bin));
+        let two = |arrange: Arrange, a: Figure, b: Figure| PageSpec {
+            arrange, cells: vec![a, b], theme: ThemeSpec::default(),
+        };
+
+        // `(a | b) / c`, with `c` sharing `speed` with `b` alone.
+        let top = two(Arrange::Beside, plot("dist", "speed").into(), plot("speed", "dist").into());
+        let cells = names(&two(Arrange::Below, Figure::Page(top), histogram.clone().into()));
+        let (panel, name) = cells[2];
+        let name = name.expect("the histogram names its y axis");
+        assert!(panel > 300.0, "the premise: the shared column moved the panel: {cells:?}");
+        assert!(panel - name < 80.0, "the name sits beside its panel: {cells:?}");
+
+        // Two stacked plots whose tick labels differ keep one column of names.
+        let cells = names(&two(Arrange::Below, plot("speed", "dist").into(), histogram.into()));
+        assert!((cells[0].0 - cells[1].0).abs() < 1e-9, "the panels are lined up: {cells:?}");
+        assert_eq!(cells[0].1, cells[1].1, "and so are their names: {cells:?}");
     }
 
     /// A page is one document, and each cell is a viewport inside it.

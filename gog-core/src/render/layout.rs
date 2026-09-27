@@ -62,6 +62,16 @@ pub(crate) struct Fit {
     /// the rest of this struct, never on the wire.
     pub(crate) ticks_x: Option<(f64, f64)>,
     pub(crate) ticks_y: Option<(f64, f64)>,
+    /// How far the y axis's name moves in from the cell's left edge, in pixels.
+    ///
+    /// The name sits one band in from the edge, which is beside its tick labels
+    /// wherever the plot's own margin put the panel. A shared column can move the
+    /// panel much further, to run under a plot on another line of the page, and
+    /// the name stayed at the edge: 453px from its panel in `(a | b) / c`. The
+    /// page moves it by as far as it moved the panel, except where it lined up
+    /// panels that start on one line, whose names stay in one column at the edge
+    /// (`render::page::align`). Page state, never on the wire.
+    pub(crate) y_name_shift: f64,
 }
 
 impl Fit {
@@ -72,6 +82,7 @@ impl Fit {
             draw_x_axis: true, draw_y_axis: true,
             cats_x: None, cats_y: None,
             ticks_x: None, ticks_y: None,
+            y_name_shift: 0.0,
         }
     }
 }

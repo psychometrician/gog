@@ -2666,3 +2666,16 @@ end
     @test occursin("`G` legend needs", read(path, String))
     @test !occursin(">G</text>", svg)
 end
+
+# A y name goes where its panel went: in `(a | b) / c` with `c` sharing a column
+# with `b`, the page moves `c`'s panel to run under `b`, and its name stayed at the
+# cell's edge, 450px away. The same block runs in all four bindings.
+@testset "a y name follows a panel a shared column moved" begin
+    yn = (speed = [4.0, 7.0, 8.0, 12.0, 15.0, 18.0, 20.0, 24.0],
+          dist = [2.0, 4.0, 16.0, 24.0, 36.0, 56.0, 64.0, 120.0])
+    svg = render_svg(((data(yn) + point + x(:dist) + y(:speed)) |
+                      (data(yn) + point + x(:speed) + y(:dist))) /
+                     (data(yn) + bar * bin + x(:speed)))
+    at = match(r"rotate\(-90 ([0-9.]+) [^)]*\)[^>]*>Count</text>", svg)
+    @test at !== nothing && parse(Float64, at.captures[1]) > 300
+end

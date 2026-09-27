@@ -3110,3 +3110,17 @@ with contextlib.redirect_stderr(_said):
                          + theme(width=150)))
 assert "`G` legend needs" in _said.getvalue() and ">G</text>" not in _svg, _said.getvalue()
 ok("a legend too wide for its plot is left out and said")
+
+
+# --- A y name follows a panel a shared column moved ------------------------------
+# In `(a | b) / c` with `c` sharing a column with `b`, the page moves `c`'s panel
+# to run under `b`; its name stayed at the cell's edge, 450px away. The same block
+# runs in all four bindings.
+_yn = {"speed": [4.0, 7.0, 8.0, 12.0, 15.0, 18.0, 20.0, 24.0],
+       "dist": [2.0, 4.0, 16.0, 24.0, 36.0, 56.0, 64.0, 120.0]}
+_svg = render_svg(((data(_yn, name="yn") + point + x(col.dist) + y(col.speed))
+                   | (data(_yn, name="yn") + point + x(col.speed) + y(col.dist)))
+                  / (data(_yn, name="yn") + bar * bin + x(col.speed)))
+_at = re.search(r'rotate\(-90 ([0-9.]+) [^)]*\)[^>]*>Count</text>', _svg)
+assert _at and float(_at.group(1)) > 300, _at
+ok("a y name follows a panel a shared column moved")

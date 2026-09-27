@@ -5104,3 +5104,18 @@ local({
     stop("FAIL: a legend too wide for its plot should be left out and said: ", out$msgs)
   cat("PASS: a legend too wide for its plot is left out and said\n")
 })
+
+# ---------------------------------------------------------------------------
+# A y name goes where its panel went: in `(a | b) / c` with `c` sharing a column
+# with `b`, the page moves `c`'s panel to run under `b`, and its name stayed at
+# the cell's edge, 450px away. The same block runs in all four bindings.
+# ---------------------------------------------------------------------------
+local({
+  t <- data.frame(speed = c(4, 7, 8, 12, 15, 18, 20, 24), dist = c(2, 4, 16, 24, 36, 56, 64, 120))
+  page <- ((data(t) + point + x(dist) + y(speed)) | (data(t) + point + x(speed) + y(dist))) /
+    (data(t) + bar * bin + x(speed))
+  svg <- render_svg(page)
+  at <- as.numeric(sub(".*rotate\\(-90 ([0-9.]+) [^)]*\\)[^>]*>Count</text>.*", "\\1", svg))
+  if (is.na(at) || at < 300) stop("FAIL: the Count name should follow its panel, at ", at)
+  cat("PASS: a y name follows a panel a shared column moved\n")
+})
