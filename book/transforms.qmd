@@ -559,6 +559,23 @@ of a [facet](faceting.qmd) whose axes are shared, and the frames of an animation
 made with [`play`](play.qmd). `adjust` multiplies the shared bandwidth, and a
 stated `bandwidth` replaces it.
 
+Split the curve by `color`, and each continent gets its own curve, smoothed by
+the same shared bandwidth:
+
+```{r}
+data(gapminder_2007) + line * density + x(life) + color(continent) +
+  x_label("Life expectancy") + title("line * density + color: one curve per continent")
+```
+
+*"Given gapminder 2007: lines derived by density, x is life, color by
+continent."*
+
+Each curve encloses the same area, so a continent whose countries sit close
+together draws a tall, narrow curve. Oceania's two countries are one year apart,
+so its curve is the tallest. With its own, much smaller bandwidth, it would be
+nearly three times as tall, and the other four curves would be pressed down
+against the axis.
+
 Each of `density`'s parameters belongs to one of the four readings, and gog refuses
 a parameter in a reading where it has no meaning, rather than ignoring it.
 `bandwidth` is a length in one column's units, so it means nothing to a field,
@@ -1582,8 +1599,8 @@ fits among the transforms.
 Every transform above answers a question about the data. The four that remain
 answer none. They change where a mark sits rather than what was measured.
 `dodge` is a different kind of transform: a **collision modifier**. It writes no
-new values; it *moves* the marks that a color split would otherwise draw at one
-position, and sets them side by side instead.
+new values; it *moves* marks that would otherwise be drawn at one position, and
+sets them side by side instead.
 
 When `color` splits a `bar`, a `box` or an `interval` into groups, the groups
 share their category's slot and are drawn on top of one another. A histogram
@@ -1605,12 +1622,14 @@ data(gm_eras) + bar * mean * dodge + x(continent) + y(life) + color(era) +
 *"Given the gapminder eras: bars derived by mean and dodge, x is continent, y is
 life, color by era."*
 
-Three marks subdivide a slot, since a slot has to have a width to share:
+Four marks take `dodge`. Three share out the slot's width among their groups,
+and a `point` moves sideways within the slot instead:
 
 | Mark derived by `dodge` | Shape |
 |---|---|
 | `box * dodge` | one box per group, side by side in the slot |
 | `interval * dodge` | one whisker per group, side by side |
+| `point * dodge` | each point moved across the slot until none touch: the [beeswarm](marks/point.qmd#a-categorical-x-the-strip-plot) |
 | `bar * dodge` | one bar per group, the plot above |
 
 The two eras sit next to each other in every continent, each bar half as wide,
@@ -1635,21 +1654,37 @@ data(gm_eras) + box * dodge + x(continent) + y(life) + color(era) +
 *"Given the gapminder eras: boxes derived by dodge, x is continent, y is life,
 color by era."*
 
-Which marks `dodge` serves is decided by what a mark *is*. It subdivides a
-*width* (a bar's thickness, a box's body, a whisker's slot) so it is defined for
-`bar`, `box` and `interval`. A `point` has no width to subdivide, and its
-overlap answer is [`jitter`](#jitter-spread-sideways-along-the-category); a
-`line` or `area` is offset by *accumulating* rather than subdividing (that is
-`stack`, next). Ask for `dodge` on one of those and gog refuses, naming the
-collision modifier that fits. The rest of the kernel follows the same rule: an
+Which marks `dodge` serves is decided by what a mark *is*. On `bar`, `box` and
+`interval` it subdivides a *width* (a bar's thickness, a box's body, a whisker's
+slot). A `point` has no width, so `dodge` moves it instead. Each point moves
+sideways within its slot, only as far as it must to touch no other point, and
+never along the measure axis. A `line` or `area` is offset by *accumulating*
+rather than subdividing (that is `stack`, next). Ask for `dodge`
+on one of those and gog refuses, naming the collision modifier that fits. The rest of the kernel follows the same rule: an
 atom combines with the marks it was defined for, and the refusal names the atom
 that fits rather than drawing something wrong.
 
-`dodge` also needs a split to separate: a channel that splits the rows into
-groups, such as `color` or `group`. Without one there is a single mark per slot
-and nothing to set beside anything, so `bar * dodge` on its own is refused, and
-the message asks for the split. It is never accepted as a word that quietly does
-nothing.
+On a `bar`, `box` or `interval`, `dodge` also needs a split to separate: a
+channel that splits the rows into groups, such as `color` or `group`. Without one
+there is a single mark per slot and nothing to set beside anything, so
+`bar * dodge` on its own is refused, and the message asks for the split. It is
+never accepted as a word that quietly does nothing. A `point` needs no split,
+because points in one slot can already land on one another. With a split, each
+group takes its own part of the slot, as a dodged bar does, and its points are
+moved apart inside that part:
+
+```{r}
+data(gm_eras) + point * dodge + x(continent) + y(life) + color(era) +
+  style(size = 2.5) + y_label("Life expectancy") +
+  title("Each era swarms in its half of the slot")
+```
+
+*"Given the gapminder eras: points derived by dodge, x is continent, y is life,
+color by era."*
+
+The dots are drawn smaller here, with `style(size = 2.5)`. Each era has half a
+slot, and at the default size Europe's 2007 countries sit too close together to
+fit in it, so gog would draw some of them at the edge and say how many.
 
 ---
 
@@ -2069,8 +2104,9 @@ which spreads points within a category, and `repel`, which moves labels apart.
 ## `jitter`: spread sideways, along the category
 
 `dodge` and `stack` resolve the overlap of *grouped* marks. The third collision
-modifier resolves a different overlap: not groups colliding, but a mark's *own*
-points landing on top of each other. A [strip
+modifier resolves a mark's *own* points landing on top of each other, as `dodge`
+also does on a point. `jitter` does it another way: it moves each point sideways
+by a small amount that varies from point to point. A [strip
 plot](marks/point.qmd), every country as a dot above its continent, draws its
 points in a single vertical line, and heavy overlap hides how many there are:
 
@@ -2143,17 +2179,17 @@ show where points overlap without moving any of them.
 The parameter has the same shape as `density`'s `adjust`, a dimensionless
 multiple of an automatic value. It is there for the same reason `density` and
 `bin` take a parameter while `dodge` does not. The jitter amount is a
-*legibility choice* with no single right value, whereas `dodge`'s width is
-*determined* by the group count. A value you must choose takes a parameter; a
+*legibility choice* with no single right value, whereas gog computes `dodge`'s
+offsets itself: from the group count on a bar, and from the other points in the
+slot on a point. A value you must choose takes a parameter; a
 value gog can compute does not. (`jitter(0)` is legal and draws the plain strip
 plot, un-spread, with a note that it moves no point: gog never forbids the
 harmless, and never lets a word do nothing without saying so.)
 
-Two things set `jitter` apart from its siblings. It needs *no `color` split*:
-`dodge` and `stack` separate groups, but `jitter` separates a mark's own
-coincident points, so a plain `point * jitter` with nothing but `x` and `y` is
-the whole expression. And it needs a *categorical position axis* to spread
-within. Ask for `jitter` when both `x` and `y` are continuous and gog refuses.
+Like `dodge` on a point, `jitter` needs *no `color` split*. It separates a
+mark's own points where they land on one another, so `point * jitter` with only
+`x` and `y` is a whole sentence. It also needs a *categorical position axis* to
+spread within. Ask for `jitter` when both `x` and `y` are continuous and gog refuses.
 There is no slot to spread across, and no axis it could move a point along
 without misplacing its value. The answer for overplotting on two continuous axes
 is `style(opacity = )`, which shows where points are crowded without moving any
@@ -2167,13 +2203,14 @@ a cloud of points. Ask for `jitter` on any of those and gog refuses, naming the
 collision modifier that fits.
 
 Three of the four collision modifiers divide the marks by geometry *and by
-axis*: `dodge` subdivides a width, `stack` accumulates along the *measure* axis,
-`jitter` spreads along the *categorical* one. Each mark that `dodge`, `stack` or
-`jitter` serves has an answer to overlap that moves nothing off its value, and
-`point` has two, because it is the one mark that can collide on either axis. It
-is piled into a countable stack of dots along a measure, and nudged apart within
-a slot along a category. The modifier follows the axis, so these two uses of
-`point` need no new atom.
+axis*: `dodge` sets marks side by side within a slot, `stack` accumulates along
+the *measure* axis, `jitter` spreads along the *categorical* one. Each mark that
+`dodge`, `stack` or `jitter` serves has an answer to overlap that moves nothing
+off its value, and `point` has three. It is the one mark that can collide on
+either axis. Along a measure, it is piled into a countable stack of dots. Along a
+category, it is moved sideways within its slot, by `jitter` or by `dodge`. All
+three are modifiers the kernel already has, so these uses of `point` need no new
+atom.
 
 ---
 

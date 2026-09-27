@@ -2123,6 +2123,10 @@ impl SvgRenderer {
             self.write_canvas(&mut svg);
         }
 
+        // What every `point * dodge` swarm could not clear, over all panels and
+        // moments, so a crowded plot says it once rather than once per panel.
+        let mut swarm = crate::render::marks::SwarmTally::default();
+
         for panel in &grid.panels {
             let l = &panel.rect;
             let clip = clip_id(l);
@@ -2294,9 +2298,9 @@ impl SvgRenderer {
                             let df = &*df;
                             if df.is_empty() { continue }
                             match layer.mark {
-                                Mark::Point => self.write_points(&mut svg, layer, df, l, xs, ys,
+                                Mark::Point => { self.write_points(&mut svg, layer, df, l, xs, ys,
                                     x_field, y_field, cat_x.as_deref(), cat_y.as_deref(),
-                                    &color_map, &ramp, &clip, zs, z_field, None, None, Some(g)),
+                                    &color_map, &ramp, &clip, zs, z_field, None, None, Some(g)); }
                                 Mark::Text => {
                                     // The facing hemisphere's dots, as the flat
                                     // branch reads its panel's (below).
@@ -2377,9 +2381,9 @@ impl SvgRenderer {
                         let df = &*df;
                         if df.is_empty() { continue }
                         match layer.mark {
-                            Mark::Point => self.write_points(&mut svg, layer, df, l, xs, ys,
+                            Mark::Point => { self.write_points(&mut svg, layer, df, l, xs, ys,
                                 x_field, y_field, cat_x.as_deref(), cat_y.as_deref(),
-                                &color_map, &ramp, &clip, zs, z_field, Some(&scene), None, None),
+                                &color_map, &ramp, &clip, zs, z_field, Some(&scene), None, None); }
                             Mark::Path => self.write_path(&mut svg, layer, df, l, xs, ys,
                                 x_field, y_field, cat_x.as_deref(), cat_y.as_deref(),
                                 &color_map, &ramp, &clip, zs, z_field, Some(&scene), None, None),
@@ -2504,7 +2508,7 @@ impl SvgRenderer {
                         continue;
                     }
                     match layer.mark {
-                        Mark::Point => self.write_points(&mut svg, layer, df, l, xs, ys, x_field, y_field, cat_x.as_deref(), cat_y.as_deref(), &color_map, &ramp, &clip, zs, z_field, None, pol_ref, None),
+                        Mark::Point => swarm.absorb(self.write_points(&mut svg, layer, df, l, xs, ys, x_field, y_field, cat_x.as_deref(), cat_y.as_deref(), &color_map, &ramp, &clip, zs, z_field, None, pol_ref, None)),
                         Mark::Line  => self.write_line(&mut svg, layer, df, l, xs, ys, x_field, y_field, cat_x.as_deref(), &color_map, &ramp, &clip, pol_ref, &mut remarks),
                         Mark::Area  => self.write_area(&mut svg, layer, df, l, xs, ys, x_field, y_field, cat_x.as_deref(), area_base, &color_map, &clip, pol_ref),
                         Mark::Bar   => self.write_bars(&mut svg, layer, df, l, xs, ys, x_field, y_field, cat_x.as_deref(), cat_y.as_deref(), horizontal, ext_base, &color_map, &clip, pol_ref, nst.as_ref()),
@@ -2669,6 +2673,7 @@ impl SvgRenderer {
             projected,
             ticks_over,
         };
+        remarks.extend(swarm.remark());
         let mut seen = std::collections::HashSet::new();
         remarks.retain(|d| seen.insert(d.message.clone()));
         Drawn {
@@ -8656,6 +8661,193 @@ mod tests {
             if full_off.abs() > 0.5 { moved += 1; }
         }
         assert!(moved >= 6, "most points should visibly move under a full jitter (moved {moved}/8)");
+    }
+
+    // -----------------------------------------------------------------------
+    // `point * dodge` — the beeswarm (spec §5)
+    // -----------------------------------------------------------------------
+
+    /// Every dot a plot draws, as (cx, cy, r, fill), in the order drawn.
+    fn swarm_dots(svg: &str) -> Vec<(f64, f64, f64, String)> {
+        let attr = |l: &str, a: &str| -> Option<String> {
+            Some(l.split(&format!(r#" {a}=""#)).nth(1)?.split('"').next()?.to_string())
+        };
+        svg.lines().filter(|l| l.contains("<circle")).filter_map(|l| Some((
+            attr(l, "cx")?.parse().ok()?,
+            attr(l, "cy")?.parse().ok()?,
+            attr(l, "r")?.parse().ok()?,
+            attr(l, "fill")?,
+        ))).collect()
+    }
+
+    /// A strip that has to swarm: sixty rows in `A` packed into a sliver of the
+    /// measure axis (one far row stretches it), and a few in `B`.
+    fn swarm_frame() -> HashMap<String, DataFrame> {
+        let mut g: Vec<String> = Vec::new();
+        let mut v: Vec<f64> = Vec::new();
+        for i in 0..60 {
+            g.push("A".into());
+            v.push((i % 20) as f64 * 0.05);
+        }
+        for i in 0..6 {
+            g.push("B".into());
+            v.push(1.0 + i as f64 * 0.02);
+        }
+        g.push("A".into());
+        v.push(20.0);
+        HashMap::from([("t".to_string(), DataFrame::new().with_str("g", g).with_float("v", v))])
+    }
+
+    /// The design's three claims, drawn (spec §5): a swarm moves a point across
+    /// its category's slot and never along the measure, clears every neighbor
+    /// when the slot has room, and stays inside the band a bar would fill.
+    #[test]
+    fn a_swarm_moves_points_across_the_slot_and_never_along_the_measure() {
+        let data = swarm_frame();
+        let dots = |swarm: bool| {
+            let mut layer = Layer::new(Mark::Point);
+            if swarm { layer = layer.transform(Transform::Dodge); }
+            swarm_dots(&SvgRenderer::default().render(&PlotSpec::new().data("t").x("g").y("v").layer(layer), &data))
+        };
+        let (plain, swarm) = (dots(false), dots(true));
+        assert_eq!(plain.len(), 67);
+        assert_eq!(swarm.len(), 67);
+        let (a, b) = (plain[0].0, plain[60].0);
+        let band = 0.8 * (b - a).abs();
+        for i in 0..67 {
+            // The measure is exact: not one pixel along it.
+            assert!((swarm[i].1 - plain[i].1).abs() < 1e-9, "row {i} moved along the measure");
+            // Inside the band a bar in this slot would fill, glyph and all.
+            assert!((swarm[i].0 - plain[i].0).abs() <= band / 2.0 - swarm[i].2 + 0.01,
+                    "row {i} left its band: {} from its center", (swarm[i].0 - plain[i].0).abs());
+        }
+        // No two dots in one slot overlap: the slot has room for all of them.
+        for i in 0..67 {
+            for j in i + 1..67 {
+                if (plain[i].0 - plain[j].0).abs() > 1e-9 { continue }
+                let d = ((swarm[i].0 - swarm[j].0).powi(2) + (swarm[i].1 - swarm[j].1).powi(2)).sqrt();
+                assert!(d >= swarm[i].2 + swarm[j].2 - 0.01, "rows {i} and {j} overlap: {d}");
+            }
+        }
+        // It is a swarm and not a column: points went both ways, about evenly.
+        let off: Vec<f64> = (0..60).map(|i| swarm[i].0 - plain[i].0).collect();
+        let (left, right) = (off.iter().filter(|o| **o < -0.5).count(), off.iter().filter(|o| **o > 0.5).count());
+        assert!(left > 10 && right > 10 && left.abs_diff(right) <= 3, "left {left}, right {right}");
+    }
+
+    /// One sentence, one picture, whatever order the table arrived in: the swarm
+    /// is placed by value, so reversing the rows moves no dot.
+    #[test]
+    fn a_swarm_is_the_same_picture_in_any_row_order() {
+        let data = swarm_frame();
+        let df = &data["t"];
+        let n = df.float_col("v").unwrap().len();
+        let rev: HashMap<String, DataFrame> = HashMap::from([("t".to_string(), DataFrame::new()
+            .with_str("g", df.str_col("g").unwrap().iter().rev().cloned().collect())
+            .with_float("v", df.float_col("v").unwrap().iter().rev().copied().collect()))]);
+        let spec = PlotSpec::new().data("t").x("g").y("v")
+            .layer(Layer::new(Mark::Point).transform(Transform::Dodge));
+        let sorted = |d: &HashMap<String, DataFrame>| {
+            let mut p: Vec<(i64, i64)> = swarm_dots(&SvgRenderer::default().render(&spec, d)).iter()
+                .map(|t| ((t.0 * 100.0).round() as i64, (t.1 * 100.0).round() as i64)).collect();
+            p.sort();
+            p
+        };
+        let (fwd, back) = (sorted(&data), sorted(&rev));
+        assert_eq!(fwd.len(), n);
+        assert_eq!(fwd, back, "reversing the table moved a dot");
+        assert_eq!(SvgRenderer::default().render(&spec, &data), SvgRenderer::default().render(&spec, &data));
+    }
+
+    /// The horizontal strip is the same rule turned: the category is on `y`, so
+    /// the swarm moves points up and down and leaves every `x` exact.
+    #[test]
+    fn a_swarm_on_a_horizontal_strip_moves_vertically() {
+        let data = swarm_frame();
+        let dots = |swarm: bool| {
+            let mut layer = Layer::new(Mark::Point);
+            if swarm { layer = layer.transform(Transform::Dodge); }
+            swarm_dots(&SvgRenderer::default().render(&PlotSpec::new().data("t").x("v").y("g").layer(layer), &data))
+        };
+        let (plain, swarm) = (dots(false), dots(true));
+        assert!((0..67).all(|i| (swarm[i].0 - plain[i].0).abs() < 1e-9), "a horizontal swarm moved a value");
+        assert!((0..60).filter(|&i| (swarm[i].1 - plain[i].1).abs() > 0.5).count() > 20,
+                "a horizontal swarm should move points across its slot");
+    }
+
+    /// A split tiles each slot as `bar * dodge` tiles it, the first group on the
+    /// left, and each tile swarms on its own: no dot leaves its group's tile.
+    #[test]
+    fn a_split_swarm_tiles_the_slot_as_a_dodged_bar_does() {
+        let data = swarm_frame();
+        let df = &data["t"];
+        let k: Vec<String> = (0..df.float_col("v").unwrap().len())
+            .map(|i| if i % 2 == 0 { "p" } else { "q" }.to_string()).collect();
+        let data: HashMap<String, DataFrame> = HashMap::from([("t".to_string(), df.clone().with_str("k", k.clone()))]);
+        // The same sentence without `dodge` draws every dot on its category's
+        // center, on the same panel: the color legend narrows both alike.
+        let colored = |layer: Layer| swarm_dots(&SvgRenderer::default().render(
+            &PlotSpec::new().data("t").x("g").y("v").layer(layer.encode(Channel::Color, "k")), &data));
+        let mut centers: Vec<f64> = colored(Layer::new(Mark::Point)).iter().map(|d| d.0).collect();
+        centers.sort_by(|a, b| a.partial_cmp(b).unwrap());
+        centers.dedup_by(|a, b| (*a - *b).abs() < 1e-9);
+        assert_eq!(centers.len(), 2);
+        let (ca, cb) = (centers[0], centers[1]);
+        // A split frame is recombined group by group, so the dots are matched by
+        // what they show rather than by row: the slot by its center, the group by
+        // its color (`p` takes the palette's first, `q` its second).
+        let swarm = colored(Layer::new(Mark::Point).transform(Transform::Dodge));
+        assert_eq!(swarm.len(), k.len());
+        let band = 0.8 * (cb - ca).abs();
+        let quarter = band / 4.0; // two tiles: each `band/2` wide, centered `band/4` off
+        let mut in_a = 0;
+        for d in &swarm {
+            let center = if (d.0 - ca).abs() < (d.0 - cb).abs() { in_a += 1; ca } else { cb };
+            let side = match d.3.as_str() {
+                "#4e79a7" => -1.0,
+                "#f28e2b" => 1.0,
+                other => panic!("a dot in an unexpected color {other}"),
+            };
+            let tile = center + side * quarter;
+            assert!((d.0 - tile).abs() <= quarter - d.2 + 0.01,
+                    "a {} dot left its tile: {} from its center", d.3, (d.0 - tile).abs());
+        }
+        assert_eq!(in_a, 61, "every `A` row stays in `A`'s slot");
+    }
+
+    /// A swarm wider than its slot is never spilled into the next category and
+    /// never dropped (§12): every point is drawn inside its band, and the plot
+    /// says how many overlap and where.
+    #[test]
+    fn a_crowded_swarm_stays_in_its_slot_and_says_so() {
+        let n = 300;
+        let mut g = vec!["A".to_string(); n - 1];
+        g.push("B".into());
+        let mut v = vec![1.0; n - 1];
+        v.push(2.0);
+        let data: HashMap<String, DataFrame> =
+            HashMap::from([("t".to_string(), DataFrame::new().with_str("g", g).with_float("v", v))]);
+        let plain = swarm_dots(&SvgRenderer::default().render(
+            &PlotSpec::new().data("t").x("g").y("v").layer(Layer::new(Mark::Point)), &data));
+        let spec = PlotSpec::new().data("t").x("g").y("v")
+            .layer(Layer::new(Mark::Point).transform(Transform::Dodge));
+        let drawn = SvgRenderer::default().draw(&spec, &data);
+        let swarm = swarm_dots(&drawn.svg);
+        assert_eq!(swarm.len(), n, "a crowded swarm dropped a point");
+        let band = 0.8 * (plain[n - 1].0 - plain[0].0).abs();
+        for i in 0..n {
+            assert!((swarm[i].0 - plain[i].0).abs() <= band / 2.0 - swarm[i].2 + 0.01,
+                    "row {i} spilled out of its slot");
+        }
+        let said: Vec<&str> = drawn.remarks.iter().map(|d| d.message.as_str()).collect();
+        assert!(said.iter().any(|m| m.contains("`point * dodge` has no room")
+                                   && m.contains(&format!("of {n} points"))
+                                   && m.contains("in `A`")),
+                "a crowded swarm must say so: {said:?}");
+        // A swarm with room says nothing.
+        let roomy = SvgRenderer::default().draw(&spec, &swarm_frame());
+        assert!(roomy.remarks.iter().all(|d| !d.message.contains("point * dodge")),
+                "a swarm with room reported crowding: {:?}", roomy.remarks);
     }
 
     /// Five labels on one spot, and the panel they have to be arranged inside.

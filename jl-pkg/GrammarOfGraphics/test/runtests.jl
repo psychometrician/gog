@@ -2373,3 +2373,16 @@ end
     @test length(heights) == 2
     @test heights[1] == heights[2]
 end
+
+# `point * dodge` is the beeswarm: each point in a category moves across its slot
+# only as far as it must to clear the others, and never along the measure axis.
+# Six rows at one value must land at six places. It was refused toward `jitter`
+# until 2026-09-26.
+@testset "point * dodge sets tied points apart across the slot only" begin
+    tied = (g = fill("a", 6), v = fill(1.0, 6))
+    svg = render_svg(data(tied, name = "tied") + point * dodge + x(:g) + y(:v))
+    dots = [(m.captures[1], m.captures[2]) for m in eachmatch(r"<circle cx=\"([0-9.]+)\" cy=\"([0-9.]+)\"", svg)]
+    @test length(dots) == 6
+    @test length(unique(first.(dots))) == 6
+    @test length(unique(last.(dots))) == 1
+end

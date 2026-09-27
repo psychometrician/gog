@@ -17,6 +17,7 @@ mod interval;
 mod line;
 mod path;
 mod point;
+pub(crate) use point::SwarmTally;
 mod ribbon;
 mod rule;
 mod step;
@@ -397,6 +398,12 @@ impl Dodge {
     /// Each dodged mark is this fraction of the full slot width.
     fn width_frac(&self) -> f64 {
         1.0 / self.count()
+    }
+
+    /// Which tile of the slot the mark on `row` stands in — the swarm's key for
+    /// which points share a tile and so can collide (`point.rs`).
+    fn rank(&self, row: usize) -> Option<usize> {
+        self.ranks.get(row).copied()
     }
 
     /// The position-axis offset (same units as `slot`) for the mark on `row`. An

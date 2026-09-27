@@ -1,8 +1,10 @@
-//! The `point` mark — a glyph at each (x, y); the `jitter` spread lives here too.
-use std::collections::HashMap;
+//! The `point` mark — a glyph at each (x, y); the `jitter` spread and the `dodge`
+//! swarm live here too.
+use std::collections::{BTreeMap, HashMap};
 use std::fmt::Write;
 use crate::data::DataFrame;
 use crate::ir::{Channel, Layer, Transform};
+use crate::legality::{Diagnostic, DiagnosticKind};
 use crate::render::palette::{ramp_at, PALETTE_GOG};
 use crate::render::polar::Polar;
 use crate::render::project;
@@ -12,7 +14,7 @@ use crate::render::svg::{unit_norm, SvgRenderer};
 use crate::render::text::esc;
 use crate::render::{hash01, Layout};
 use crate::scale;
-use super::bar_thickness_svg;
+use super::{bar_thickness_svg, Dodge};
 
 impl SvgRenderer {
     // -----------------------------------------------------------------------
@@ -45,12 +47,12 @@ impl SvgRenderer {
         // (`check_globe` refuses the pairs), so at most one of the three is
         // ever `Some`.
         globe: Option<&crate::render::globe::Globe>,
-    ) {
+    ) -> SwarmTally {
         // Where each dot sits and how large it is: one routine, shared with the
         // repelled labels that have to clear these dots (`panel_dots`), so the
         // dot a label steps around is the dot this writer draws.
-        let Some((coords, radii)) = self.dot_geometry(layer, df, l, xs, ys, x_field, y_field,
-            cat_x, cat_y, zs, z_field, scene, polar, globe) else { return };
+        let Some((coords, radii, swarm)) = self.dot_geometry(layer, df, l, xs, ys, x_field, y_field,
+            cat_x, cat_y, zs, z_field, scene, polar, globe) else { return SwarmTally::default() };
 
         let color_labels = layer.encodings.get(&Channel::Color).and_then(|c| df.str_col(&c.field));
         // A numeric color column takes the sequential ramp instead of the
@@ -150,6 +152,7 @@ impl SvgRenderer {
             write_shape(svg, shape, cx, cy, radius, color, opacity, border);
         }
         writeln!(svg, "  </g>").unwrap();
+        swarm
     }
 
     /// Where each row's dot sits on the page (with a depth, for the spaces that
@@ -159,7 +162,9 @@ impl SvgRenderer {
     /// Split out of [`write_points`](Self::write_points) because a repelled label
     /// has to know the same two facts about every dot in its panel, and a second
     /// copy of this reading is a second answer to *where is that dot* that could
-    /// drift from the one the reader sees.
+    /// drift from the one the reader sees. The swarm is placed here for the same
+    /// reason: a label steps around the dot where the swarm put it. The third
+    /// value is what the swarm could not clear, for the caller to report.
     #[allow(clippy::too_many_arguments)]
     pub(crate) fn dot_geometry(
         &self, layer: &Layer, df: &DataFrame,
@@ -170,7 +175,7 @@ impl SvgRenderer {
         scene: Option<&project::Scene>,
         polar: Option<&Polar>,
         globe: Option<&crate::render::globe::Globe>,
-    ) -> Option<(Vec<(f64, f64, f64)>, Vec<f64>)> {
+    ) -> Option<(Vec<(f64, f64, f64)>, Vec<f64>, SwarmTally)> {
         // A point places against either axis the same way, so both positions go
         // through the one resolution (`super::positions`): a numeric column as it
         // stands, a string column as its category index. A category on x is a
@@ -237,7 +242,7 @@ impl SvgRenderer {
             (0.0, 0.0)
         };
 
-        let coords: Vec<(f64, f64, f64)> = (0..n).map(|i| {
+        let mut coords: Vec<(f64, f64, f64)> = (0..n).map(|i| {
             if let Some(g) = globe {
                 return match g.place(x_vals[i], y_vals[i]) {
                     Some(s) => (s.x, s.y, s.depth),
@@ -282,7 +287,23 @@ impl SvgRenderer {
             Some(col) => radius_at(size_scale.fraction(col.get(i).copied().unwrap_or(f64::NAN))),
             None => default_radius,
         }).collect();
-        Some((coords, radii))
+
+        // `point * dodge` — the swarm (spec §5). Placed last, from the radii the
+        // dots are drawn at, and only on the flat path: `legality::check_swarm`
+        // refuses the cube and the disc, so neither ever carries one here.
+        let mut swarm = SwarmTally::default();
+        if scene.is_none() && polar.is_none() && globe.is_none() {
+            if let Some(s) = Swarm::resolve(layer, df, x_field, y_field) {
+                // A rim is ink too: a set border widens every glyph by half its stroke.
+                let rim = match (layer.style.border_color.as_ref(), layer.style.border_size) {
+                    (None, None) => 0.0,
+                    (_, w) => w.unwrap_or(1.0).max(0.0) / 2.0,
+                };
+                let cats = if s.along_x { cat_x } else { cat_y };
+                swarm = s.place(&mut coords, &radii, rim, &x_vals, &y_vals, n, l, xs, ys, cats);
+            }
+        }
+        Some((coords, radii, swarm))
     }
 
     /// Every dot the `point` layers draw in one panel at one moment, as
@@ -306,7 +327,7 @@ impl SvgRenderer {
         let mut out = Vec::new();
         for (layer, df) in spec.layers.iter().zip(eff) {
             if layer.mark != crate::ir::Mark::Point || df.is_empty() { continue }
-            let Some((coords, radii)) = self.dot_geometry(layer, df, l, xs, ys, x_field, y_field,
+            let Some((coords, radii, _)) = self.dot_geometry(layer, df, l, xs, ys, x_field, y_field,
                 cat_x, cat_y, (0.0, 1.0), "", None, polar, globe) else { continue };
             for (&(x, y, _), &r) in coords.iter().zip(&radii) {
                 if x.is_finite() && y.is_finite() { out.push((x, y, r)); }
@@ -359,5 +380,265 @@ impl Jitter {
             ^ y.to_bits().rotate_left(43)
             ^ salt;
         (hash01(seed) - 0.5) * band
+    }
+}
+
+/// The air left between two swarmed glyphs, in pixels, beyond their radii: the
+/// hairline that keeps two touching dots reading as two rather than as one
+/// figure eight once antialiasing has softened their edges.
+const SWARM_AIR: f64 = 0.5;
+
+/// `point * dodge` — the beeswarm (spec §5), and `dodge` read on a glyph.
+///
+/// **One rule for every mark `dodge` takes.** A split tiles each slot exactly as
+/// it tiles a bar's (`Dodge`, unchanged), and the marks that still collide inside
+/// a tile move apart along the slot by the least amount that clears them. A bar
+/// never collides inside its tile, so the rule draws it as it always has; points
+/// do, and they swarm. Wilkinson's `point.dodge.symmetric`, his Figure 8.26.
+///
+/// **The measure axis stays true.** A point moves along the category axis only,
+/// the way `jitter` does, so every value is read where it was drawn. Where
+/// `jitter` moves a point by a seeded amount, the swarm moves it by the least
+/// amount its neighbors force, a determined value, so it takes no knob.
+///
+/// Placed at the render stage from the drawn glyph sizes, as `jitter` and `repel`
+/// are, because what collides is ink on the page and not a value in the table.
+struct Swarm {
+    /// The categories run along `x`, so points move horizontally; `false` is the
+    /// horizontal strip, where the categories run along `y`.
+    along_x: bool,
+    /// The tiles a split cuts each slot into — the bar's tiling. `None` when
+    /// nothing splits the points, and the whole slot is one tile.
+    tiles: Option<Dodge>,
+}
+
+impl Swarm {
+    fn resolve(layer: &Layer, df: &DataFrame, x_field: &str, y_field: &str) -> Option<Swarm> {
+        if !layer.transforms.contains(&Transform::Dodge) {
+            return None;
+        }
+        let along_x = match (df.str_col(x_field).is_some(), df.str_col(y_field).is_some()) {
+            (true, false) => true,
+            (false, true) => false,
+            // Two categories or none: `legality::check_swarm` refused the sentence,
+            // and under `GOG_STRICT=0` the points are drawn where they stand.
+            _ => return None,
+        };
+        let slot_field = if along_x { x_field } else { y_field };
+        Some(Swarm { along_x, tiles: Dodge::resolve(layer, df, slot_field) })
+    }
+
+    /// Move every point to its place in its tile's swarm, and say what could not
+    /// be cleared.
+    #[allow(clippy::too_many_arguments)]
+    fn place(
+        &self, coords: &mut [(f64, f64, f64)], radii: &[f64], rim: f64,
+        x_vals: &[f64], y_vals: &[f64], n: usize,
+        l: &Layout, xs: (f64, f64), ys: (f64, f64), cats: Option<&[String]>,
+    ) -> SwarmTally {
+        let (slot_vals, values, slot_px, slot_scale) = if self.along_x {
+            (x_vals, y_vals, l.w(), xs)
+        } else {
+            (y_vals, x_vals, l.h(), ys)
+        };
+        // The band a bar in this slot would fill, measured the way `bar` measures
+        // it, and never wider than one category's: a frame holding only every other
+        // category would hand each one two slots' worth, and a swarm grown into it
+        // would stand in the empty neighbor's place.
+        let band = bar_thickness_svg(slot_vals, n, slot_px, slot_scale, false)
+            .min(bar_thickness_svg(&[0.0, 1.0], 2, slot_px, slot_scale, false));
+        let tiles = self.tiles.as_ref().map_or(1.0, Dodge::count);
+        let half = band / tiles / 2.0;
+
+        // The points that can collide are the ones in one tile of one slot. Keyed
+        // in slot order, so a report names the crowded slots in axis order.
+        let mut by_tile: BTreeMap<(i64, usize), Vec<usize>> = BTreeMap::new();
+        for i in 0..n {
+            let (cx, cy, _) = coords[i];
+            if !(cx.is_finite() && cy.is_finite() && values[i].is_finite() && slot_vals[i].is_finite()) {
+                continue;
+            }
+            let tile = self.tiles.as_ref().and_then(|d| d.rank(i)).unwrap_or(0);
+            by_tile.entry((slot_vals[i].round() as i64, tile)).or_default().push(i);
+        }
+
+        let mut tally = SwarmTally::default();
+        for ((slot, _), mut rows) in by_tile {
+            // Placement order: by value, then by row. Deterministic, so one
+            // sentence is one picture whatever order the table arrived in.
+            rows.sort_by(|&a, &b| values[a].partial_cmp(&values[b])
+                .unwrap_or(std::cmp::Ordering::Equal)
+                .then(a.cmp(&b)));
+            let measure_px = |c: (f64, f64, f64)| if self.along_x { c.1 } else { c.0 };
+            let v: Vec<f64> = rows.iter().map(|&i| measure_px(coords[i])).collect();
+            let r: Vec<f64> = rows.iter().map(|&i| radii[i] + rim).collect();
+            let (off, crowded) = swarm_offsets(&v, &r, half);
+            for (k, &i) in rows.iter().enumerate() {
+                let shift = self.tiles.as_ref().map_or(0.0, |d| d.offset_at(i, band)) + off[k];
+                if self.along_x { coords[i].0 += shift } else { coords[i].1 += shift }
+            }
+            tally.points += rows.len();
+            if crowded > 0 {
+                tally.crowded += crowded;
+                let name = cats
+                    .and_then(|c| usize::try_from(slot).ok().and_then(|s| c.get(s)))
+                    .cloned()
+                    .unwrap_or_default();
+                if !name.is_empty() && !tally.slots.contains(&name) {
+                    tally.slots.push(name);
+                }
+            }
+        }
+        tally
+    }
+}
+
+/// The swarm inside one tile: how far along the slot each point moves, and how
+/// many still overlap another once all of them are placed.
+///
+/// `v` is each point's page position along the **measure** axis and `r` its
+/// radius, both in placement order (by value, then by row). Each point in turn
+/// takes the offset nearest the tile's center at which it touches nothing placed
+/// before it: 0 when nothing is in the way, otherwise a position just touching one
+/// of its placed neighbors, which is where the nearest clear offset always lies.
+/// When the two sides are equally near, the side holding fewer points wins, so the
+/// swarm grows symmetrically about the center.
+///
+/// **A point never leaves its tile.** One whose nearest clear offset lies past the
+/// edge is held at the edge instead, on the side with fewer points held there,
+/// and it overlaps its neighbors in plain sight. It is not an obstacle to the
+/// points after it, which keeps the search local however many are held.
+fn swarm_offsets(v: &[f64], r: &[f64], half: f64) -> (Vec<f64>, usize) {
+    let n = v.len();
+    let r_max = r.iter().copied().fold(0.0f64, f64::max);
+    // Farther apart than this along the measure axis, two points cannot touch.
+    let reach = 2.0 * r_max + SWARM_AIR;
+    let mut off = vec![0.0; n];
+    let mut placed: Vec<usize> = Vec::new();
+    let mut first = 0usize;
+    let (mut right, mut left) = (0usize, 0usize);
+    let (mut held_right, mut held_left) = (0usize, 0usize);
+    let mut cands: Vec<f64> = Vec::new();
+    for i in 0..n {
+        // The placed points near enough to touch this one. Placement runs in value
+        // order, so they are always a tail of `placed`.
+        while first < placed.len() && (v[i] - v[placed[first]]).abs() >= reach {
+            first += 1;
+        }
+        let near = &placed[first..];
+        cands.clear();
+        cands.push(0.0);
+        for &j in near {
+            let d = r[i] + r[j] + SWARM_AIR;
+            let dv = v[i] - v[j];
+            if dv.abs() < d {
+                let h = (d * d - dv * dv).sqrt();
+                cands.push(off[j] + h);
+                cands.push(off[j] - h);
+            }
+        }
+        let prefer = if right <= left { 1.0 } else { -1.0 };
+        cands.sort_by(|a, b| {
+            let (aa, bb) = (a.abs(), b.abs());
+            if (aa - bb).abs() > 1e-9 {
+                aa.partial_cmp(&bb).unwrap_or(std::cmp::Ordering::Equal)
+            } else {
+                (b * prefer).partial_cmp(&(a * prefer)).unwrap_or(std::cmp::Ordering::Equal)
+            }
+        });
+        let clear = |c: f64| near.iter().all(|&j| {
+            let d = r[i] + r[j] + SWARM_AIR;
+            let (dx, dv) = (c - off[j], v[i] - v[j]);
+            dx * dx + dv * dv >= d * d - 1e-6
+        });
+        // The farthest touching offset always clears, so a clear one is always found.
+        let best = cands.iter().copied().find(|&c| clear(c)).unwrap_or(0.0);
+        let limit = (half - r[i]).max(0.0);
+        if best.abs() <= limit + 1e-9 {
+            off[i] = best;
+            placed.push(i);
+            if best > 1e-9 {
+                right += 1;
+            } else if best < -1e-9 {
+                left += 1;
+            }
+        } else {
+            let side = if held_right < held_left {
+                1.0
+            } else if held_left < held_right {
+                -1.0
+            } else if best >= 0.0 {
+                1.0
+            } else {
+                -1.0
+            };
+            if side > 0.0 { held_right += 1 } else { held_left += 1 }
+            off[i] = side * limit;
+        }
+    }
+    // What still overlaps, counted on the ink with the air taken back off, so the
+    // number names points a reader can see covering one another (`repel`'s rule).
+    let hits = |i: usize, j: usize| {
+        let d = (r[i] + r[j] - 0.01).max(0.0);
+        let (dx, dv) = (off[i] - off[j], v[i] - v[j]);
+        dx * dx + dv * dv < d * d
+    };
+    let crowded = (0..n).filter(|&i| {
+        let before = (0..i).rev().take_while(|&j| (v[i] - v[j]).abs() < reach).any(|j| hits(i, j));
+        before || (i + 1..n).take_while(|&j| (v[i] - v[j]).abs() < reach).any(|j| hits(i, j))
+    }).count();
+    (off, crowded)
+}
+
+/// What a swarm could not clear, summed over every panel and moment it is drawn
+/// in, so the plot says it once.
+#[derive(Debug, Default, Clone)]
+pub(crate) struct SwarmTally {
+    /// Points the swarm placed.
+    pub(crate) points: usize,
+    /// Of those, how many still overlap another point's ink.
+    pub(crate) crowded: usize,
+    /// The categories whose slots ran out of room, in axis order.
+    pub(crate) slots: Vec<String>,
+}
+
+impl SwarmTally {
+    pub(crate) fn absorb(&mut self, other: SwarmTally) {
+        self.points += other.points;
+        self.crowded += other.crowded;
+        for s in other.slots {
+            if !self.slots.contains(&s) {
+                self.slots.push(s);
+            }
+        }
+    }
+
+    /// The Assumption a crowded swarm owes its reader (spec §12): the plot drew,
+    /// every point is on it, here is where they overlap and what gives them room.
+    /// Never spilled instead: a point pushed into the next slot would be read as
+    /// the next category's row, which is `JITTER_MAX`'s ruling for the same edge.
+    pub(crate) fn remark(&self) -> Option<Diagnostic> {
+        if self.crowded == 0 {
+            return None;
+        }
+        let (crowded, points) = (self.crowded, self.points);
+        let place = match self.slots.as_slice() {
+            [] => String::new(),
+            [a] => format!(" in `{a}`"),
+            [a, b] => format!(" in `{a}` and `{b}`"),
+            [a, b, rest @ ..] => format!(" in `{a}`, `{b}` and {} more", rest.len()),
+        };
+        Some(Diagnostic {
+            kind: DiagnosticKind::Assumption,
+            message: format!(
+                "gog: `point * dodge` has no room to set {crowded} of {points} points clear of \
+                 the others{place}: the swarm there is wider than its slot, and a point moved any \
+                 further would sit in the next category's. They are drawn against the edge of \
+                 their own slot, over their neighbors, so every point is still on the plot. A \
+                 larger plot (`theme(width =, height =)`) or a smaller `style(size = )` gives each \
+                 point room. With this many rows, `ribbon * density` draws each category's \
+                 distribution as a violin instead."
+            ),
+        })
     }
 }

@@ -119,8 +119,9 @@ draws it.
 The other way to draw it is to stack the regions instead of overlaying them.
 That is written `area * stack`. `stack` is a collision modifier: it moves marks
 that would otherwise be drawn in the same place, rather than summarizing them.
-Its sibling `dodge` subdivides a *width*, and an area has no width. So of the
-two, only `stack` applies to an area. Each region starts at the top of the ones
+Its sibling `dodge` sets marks beside each other within a slot, and an area is
+one connected shape across the axis, not a mark in a slot. So of the two, only
+`stack` applies to an area. Each region starts at the top of the ones
 below it, so the five form one band and none is covered:
 
 ```{r}

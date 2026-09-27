@@ -24,6 +24,7 @@ needs a note as well, the note follows the sentence in the same cell.
 | Labeled scatter, names not overlapping | `point + text * repel + x(a) + y(b) + label(name)`, where the `repel` collision modifier moves each label off the other labels and off the dots. When a label has moved far, `repel` draws a thin line back to its point |
 | Strip plot | `point + x(category) + y(measure)`, or swap the axes to draw it sideways |
 | Jittered strip plot | `point * jitter + x(category) + y(measure)`, the strip plot with each point moved a little along the category axis, so that points with the same value stop covering each other. The measured value does not move |
+| Beeswarm | `point * dodge + x(category) + y(measure)`, the strip plot with each point moved sideways only as far as it must to touch no other point, so the outline of each group shows its distribution. The measured value does not move ([Point](marks/point.qmd#a-categorical-x-the-strip-plot)) |
 | Dot plot | `point * bin * stack + x(measure)`, one dot per row, piled above the bin it falls in ([Transforms](transforms.qmd#the-dot-plot)) |
 | Bar chart / column chart | `bar + x(category) + y(measure)` |
 | Horizontal bar chart | `bar + x(measure) + y(category)` |

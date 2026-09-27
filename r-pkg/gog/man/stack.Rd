@@ -32,12 +32,15 @@ move marks that would otherwise cover each other. Like transforms they ride the
 \item{\code{stack}}{Piles the marks of each group end to end, so the total is the
 height of the pile.}
 \item{\code{dodge}}{Places them side by side instead, so each is measured from the
-same baseline and they can be compared directly.}
+same baseline and they can be compared directly. On \code{point} it moves each
+point across its category only as far as it must to clear its neighbors,
+so no two touch: the beeswarm.}
 }
 
-Both need something to separate: a \code{color} or \code{group} binding that says which
-mark belongs to which group. Without one there is nothing to stack or dodge,
-and the engine says so.
+On bars, boxes and whiskers both need something to separate: a \code{color} or
+\code{group} binding that says which mark belongs to which group. Without one there
+is nothing to stack or dodge, and the engine says so. \code{point * dodge} needs
+none, since the points in one category already collide.
 }
 \examples{
 # Piled: the height of the pile is the total.

@@ -1064,11 +1064,12 @@ fn is_pair_transform(t: &Transform) -> bool {
 }
 
 /// A collision modifier (Wilkinson §8): an *offset*, not a statistic. They divide
-/// by geometry **and by axis** — `dodge` subdivides a width, `stack` accumulates
-/// along a *measure* axis, `jitter` spreads along a *categorical* one — so a mark
-/// takes each offset whose precondition it can meet. `point` meets two of them, on
-/// different axes, which is why the dot plot is `stack` and the strip plot is
-/// `jitter` (spec §5).
+/// by geometry **and by axis** — `dodge` sets marks apart across a slot, `stack`
+/// accumulates along a *measure* axis, `jitter` spreads along a *categorical* one —
+/// so a mark takes each offset whose precondition it can meet. `point` meets all
+/// three: the dot plot is `stack`, the strip plot `jitter`, and the beeswarm
+/// `dodge`, which moves each point the least amount that clears its neighbors where
+/// `jitter` moves it a seeded amount (spec §5).
 ///
 /// `repel` is the fourth, and it divides on a different question. The first three
 /// resolve marks that share a *position*; a label's ink is wider than its position,
@@ -1374,6 +1375,13 @@ pub fn mark_takes_transform(mark: &Mark, transform: &Transform) -> TransformLega
         Transform::Dodge => match mark {
             // A width to subdivide.
             Mark::Bar | Mark::Box | Mark::Interval => Combines,
+            // Glyphs to set apart — the beeswarm (spec §5). A split tiles the slot
+            // exactly as it does for a bar, and the points still colliding inside a
+            // tile move apart along the slot by the least amount that clears them:
+            // Wilkinson's `point.dodge.symmetric`, his Figure 8.26. A bar never
+            // collides inside its tile, so the one rule draws bars unchanged and
+            // makes points swarm.
+            Mark::Point => Combines,
             _ => None,
         },
         Transform::Stack => match mark {
@@ -5638,32 +5646,37 @@ fn check_box(out: &mut Vec<Diagnostic>, layer: &Layer) {
     }
 }
 
-/// `dodge` is a **collision modifier** (spec §5): it sets side by side the groups a
-/// `color`/`group` split would otherwise stack at one shared position. Two things
-/// make it well-formed, each refused with direction otherwise:
+/// `dodge` is a **collision modifier** (spec §5): it sets side by side what would
+/// otherwise land on one shared position. Two things make it well-formed, each
+/// refused with direction otherwise:
 ///
-/// 1. **A width to subdivide.** The three offsets divide the mark set by geometry —
-///    `dodge` narrows a mark's *width* (bar, box, interval), `stack` accumulates
-///    along the measure axis (bar, area, and `point` as a pile of dots), `jitter`
-///    spreads a mark with no width along a category (point). So `dodge` is legal
-///    only on the width-bearing marks; elsewhere the
-///    refusal names the offset that fits (point → jitter, line/area → stack). This
-///    is Law 1 read correctly — a modifier combines with the marks whose geometry
-///    it was defined for.
-/// 2. **A split to separate.** With nothing that splits the mark (any channel in
-///    `split_fields_of`: `color`, `group`, `pattern`, `shape`) there is one mark per
-///    slot and nothing to set beside anything, so `dodge` is refused toward adding
-///    the split rather than accepted as a silent no-op (spec §12).
+/// 1. **Something to set apart across a slot.** The three offsets divide the mark
+///    set by geometry — `dodge` tiles a slot (bar, box, interval, point), `stack`
+///    accumulates along the measure axis (bar, area, and `point` as a pile of
+///    dots), `jitter` spreads a point along a category by a seeded amount. So
+///    `dodge` is legal on the slot marks and on `point`; elsewhere the refusal
+///    names the offset that fits (line/area → stack, text → repel). This is Law 1
+///    read correctly — a modifier combines with the marks whose geometry it was
+///    defined for.
+/// 2. **A split to separate — for the width marks.** With nothing that splits a
+///    bar, box or whisker (any channel in `split_fields_of`: `color`, `group`,
+///    `pattern`, `shape`) there is one mark per slot and nothing to set beside
+///    anything, so `dodge` is refused toward adding the split rather than accepted
+///    as a silent no-op (spec §12). A `point` needs none: its own rows collide in
+///    the slot, and the swarm is what sets them apart. A split on a point tiles the
+///    slot first, exactly as it tiles a bar's, and each tile swarms on its own.
+///
+/// Whether the points have a slot to swarm in at all is data-aware, so it is asked
+/// by [`check_swarm`] with the axis types in hand.
 fn check_dodge(out: &mut Vec<Diagnostic>, layer: &Layer) {
     if !layer.transforms.contains(&Transform::Dodge) {
         return;
     }
     let name = mark_name(&layer.mark);
-    // 1. A width for dodge to subdivide — read off the shared table so the grid
+    // 1. Something for dodge to set apart — read off the shared table so the grid
     //    and this refusal name the same mark set.
     if mark_takes_transform(&layer.mark, &Transform::Dodge) == TransformLegality::None {
         let fix = match layer.mark {
-            Mark::Point => "A point has no width to subdivide — to spread overlapping points, `jitter` is the tool",
             Mark::Line | Mark::Area => "A connected path is offset by *accumulating* (`stack`), not by subdividing a width",
             Mark::Ribbon => "A filled band has no width to subdivide — overlapping bands are told apart by transparency (`style(opacity = )`)",
             Mark::Text => "A label's width is its word, not a slot to divide — to move labels off one another, `repel` is the tool",
@@ -5672,10 +5685,14 @@ fn check_dodge(out: &mut Vec<Diagnostic>, layer: &Layer) {
         out.push(Diagnostic {
             kind: DiagnosticKind::Illegal,
             message: format!(
-                "gog: `dodge` sets side by side the bars, boxes or whiskers that a `color` split \
-                 stacks at one position — but `{name}` is not one of those. {fix}."
+                "gog: `dodge` sets side by side the bars, boxes, whiskers or points that would \
+                 land on one position — but `{name}` is not one of those. {fix}."
             ),
         });
+        return;
+    }
+    // A point's own rows are what collide, so it swarms with no split at all.
+    if layer.mark == Mark::Point {
         return;
     }
     // 2. A split to separate: any channel that splits, the same list the statistics
@@ -6196,6 +6213,86 @@ fn check_jitter(out: &mut Vec<Diagnostic>, spec: &PlotSpec, df: &DataFrame, laye
 /// so the number here cannot drift away from the band it is derived from.
 pub const JITTER_MAX: f64 = 1.25;
 
+/// `point * dodge` — the beeswarm (spec §5) — and the one question about it the
+/// sentence alone cannot answer: **is there a slot to swarm in, and an axis that
+/// stays true?** Data-aware for `check_jitter`'s reason, so it sits beside it.
+///
+/// A swarm sets colliding points apart across a category's slot and moves each
+/// one along the category axis only, never along the other, which carries the
+/// measurement. So exactly one position must be a category:
+///
+/// - **Both continuous** (or a position with no column behind it): there is no
+///   slot to set points apart in, and moving either value would misplace it.
+///   Refused toward `style(opacity = )`, `check_jitter`'s direction for the same
+///   geometry.
+/// - **Both categories**: no axis holds a measurement, so nothing says which way a
+///   swarm may move and which way it must not. Refused toward the two sentences
+///   that already answer a crowded cell: `point * jitter` spreads within it,
+///   `zone * count` colors it by how many rows it holds.
+///
+/// Two spaces are named here because the swarm is a flat placement in page units
+/// and neither draws it yet. A **polar** slot is a wedge whose width grows with the
+/// radius, so "the least amount that clears" is a different sum at every ring; in
+/// the **cube** a slot is a strip of floor seen at an angle. Both are Unsupported
+/// rather than Illegal: the sentence is well formed and the reading is clear, and
+/// only the drawing is missing. `nest` refuses every collision modifier in its own
+/// check, so this one stays quiet there rather than refusing twice.
+fn check_swarm(out: &mut Vec<Diagnostic>, spec: &PlotSpec, df: &DataFrame, layer: &Layer) {
+    if layer.mark != Mark::Point || !layer.transforms.contains(&Transform::Dodge) {
+        return;
+    }
+    match space_of(spec) {
+        SpaceKind::Nest => return,
+        SpaceKind::Polar => {
+            out.push(Diagnostic {
+                kind: DiagnosticKind::Unsupported,
+                message: "gog: `point * dodge` sets points apart by the least distance that clears \
+                          them across a straight slot, and a `polar()` slot is a wedge that widens \
+                          with the radius, which the swarm does not draw yet. Drawn flat, drop \
+                          `polar()`; inside the wedges, `point * jitter` spreads the points by a \
+                          seeded amount instead."
+                    .to_string(),
+            });
+            return;
+        }
+        SpaceKind::Space => {
+            out.push(Diagnostic {
+                kind: DiagnosticKind::Unsupported,
+                message: "gog: `point * dodge` sets points apart across a category's slot on the \
+                          page, and in a cube that slot is a strip of floor seen at an angle, \
+                          which the swarm does not draw yet. Drop `z()` to draw the swarm flat."
+                    .to_string(),
+            });
+            return;
+        }
+        _ => {}
+    }
+    let xt = spec.position_for(layer, &Channel::X).and_then(|c| actual_type(df, &c.field));
+    let yt = spec.position_for(layer, &Channel::Y).and_then(|c| actual_type(df, &c.field));
+    let x_cat = xt == Some(VarType::Discrete);
+    let y_cat = yt == Some(VarType::Discrete);
+    if x_cat && y_cat {
+        out.push(Diagnostic {
+            kind: DiagnosticKind::Illegal,
+            message: "gog: `point * dodge` keeps one axis true and sets points apart along the \
+                      other, and here both `x` and `y` are categories, so neither holds a \
+                      measurement to keep. To show a crowded cell, `point * jitter` spreads its \
+                      points inside it, and `zone * count` colors it by how many rows it holds."
+                .to_string(),
+        });
+    } else if !x_cat && !y_cat {
+        out.push(Diagnostic {
+            kind: DiagnosticKind::Illegal,
+            message: "gog: `point * dodge` sets points apart inside a category's slot and moves \
+                      them along the category axis only, but here neither `x` nor `y` is a \
+                      category — there is no slot to swarm in, and moving a measured value would \
+                      misplace it. For overplotting on two continuous axes, `style(opacity = )` \
+                      reveals density without moving any point off its value."
+                .to_string(),
+        });
+    }
+}
+
 /// `repel` is the fourth collision modifier (spec §5), and the only one whose
 /// collision is made of **ink**. The other three answer *two marks landed on one
 /// position*; a label is as wide as the word it draws, so two labels overlap at
@@ -6667,8 +6764,8 @@ pub fn check(spec: &PlotSpec, data: &HashMap<String, DataFrame>) -> Vec<Diagnost
         check_box(&mut out, layer);
         check_marks_that_take_no_transform(&mut out, layer);
 
-        // `dodge` is legal only on the width-bearing marks, and only with a group
-        // split to separate — refused with direction otherwise (spec §5).
+        // `dodge` is legal on the slot marks, with a group split to separate, and on
+        // `point`, whose own rows collide — refused with direction otherwise (spec §5).
         check_dodge(&mut out, layer);
 
         // `stack` is `dodge`'s sibling: legal only on the accumulating marks
@@ -6764,6 +6861,9 @@ pub fn check(spec: &PlotSpec, data: &HashMap<String, DataFrame>) -> Vec<Diagnost
             // `jitter` is point-only and legal only when a position axis is
             // categorical — a data-aware check, so it sits with the others (§5).
             check_jitter(&mut out, spec, df, layer);
+            // `point * dodge` swarms across a category's slot and keeps the other
+            // axis true, so exactly one position must be a category (§5).
+            check_swarm(&mut out, spec, df, layer);
             // `bounds` is legal only on the span marks, and its two columns must
             // exist — a data-aware check, so it sits here too.
             check_bounds(&mut out, df, layer);
@@ -7589,6 +7689,15 @@ fn selection_draws(layer: &Layer) -> Option<&'static str> {
         return Some(
             "a repelled label is placed by what the other labels in the frame are \
              doing, so every label would move when the selection changed",
+        );
+    }
+    // The swarm is repel's case for points: where one lands depends on every point
+    // placed before it in its slot, so a pass holding half of them is a different
+    // swarm.
+    if layer.mark == Mark::Point && layer.transforms.contains(&Transform::Dodge) {
+        return Some(
+            "a swarmed point is placed by where the other points in its slot sit, so \
+             every point would move when the selection changed",
         );
     }
     None
@@ -16552,19 +16661,21 @@ mod tests {
     #[test]
     fn dodge_needs_a_width_bearing_mark_and_refuses_the_rest_with_direction() {
         // A collision modifier combines with the marks whose geometry it was
-        // defined for (Law 1 read correctly). `dodge` subdivides a *width*, so a
-        // widthless or continuous mark is refused — with the offset that *does*
-        // fit named in the message.
+        // defined for (Law 1 read correctly). `dodge` subdivides a *width*, and on a
+        // point it sets the points apart across their slot, the beeswarm; a
+        // continuous mark is refused, with the offset that *does* fit named in the
+        // message.
         let split = |m: Mark, x: &str| {
             PlotSpec::new().data("t").x(x).y("life")
                 .layer(Layer::new(m).transform(Transform::Dodge).encode(Channel::Color, "continent"))
         };
 
-        // A point has no width — the refusal points at jitter.
+        // A point swarms: `point * dodge` over a category is the beeswarm, drawn,
+        // not refused toward `jitter` as it was before the author's ruling.
         let d = check(&split(Mark::Point, "continent"), &data());
         assert!(
-            d.iter().any(|x| x.kind == DiagnosticKind::Illegal && x.message.contains("jitter")),
-            "point * dodge should be refused toward jitter: {:?}",
+            !d.iter().any(|x| x.is_fatal()),
+            "point * dodge over a category should draw the beeswarm: {:?}",
             d.iter().map(|x| &x.message).collect::<Vec<_>>()
         );
 
@@ -16586,6 +16697,57 @@ mod tests {
             "ribbon * dodge should be refused toward opacity: {:?}",
             d.iter().map(|x| &x.message).collect::<Vec<_>>()
         );
+    }
+
+    /// `point * dodge` — the beeswarm (spec §5). Legal with no split, because a
+    /// point's own rows are what collide, and data-aware about its axes: the swarm
+    /// moves along a category and keeps the other axis true, so exactly one of the
+    /// two positions must be a category.
+    #[test]
+    fn a_swarm_needs_exactly_one_category_axis() {
+        let swarm = |x: &str, y: &str| PlotSpec::new().data("t").x(x).y(y)
+            .layer(Layer::new(Mark::Point).transform(Transform::Dodge));
+        let fatal = |spec: &PlotSpec| check(spec, &data()).into_iter()
+            .filter(Diagnostic::is_fatal).map(|d| d.message).collect::<Vec<_>>();
+        // One category, on either axis: drawn, with no split asked for.
+        for (x, y) in [("continent", "life"), ("life", "continent")] {
+            assert!(fatal(&swarm(x, y)).is_empty(), "x({x}) + y({y}): {:?}", fatal(&swarm(x, y)));
+        }
+        // Two numbers: no slot to swarm in, and the direction is opacity.
+        let d = fatal(&swarm("gdp", "life"));
+        assert!(d.iter().any(|m| m.contains("no slot to swarm in") && m.contains("opacity")), "{d:?}");
+        // Two categories: no measurement to keep true.
+        let d = fatal(&swarm("continent", "region"));
+        assert!(d.iter().any(|m| m.contains("both `x` and `y` are categories")), "{d:?}");
+    }
+
+    /// Where the swarm is not drawn yet it says so, as Unsupported, rather than
+    /// drawing the points unmoved: accepted and dropped is §12's forbidden case.
+    #[test]
+    fn a_swarm_is_unsupported_in_the_disc_and_the_cube() {
+        let layer = || Layer::new(Mark::Point).transform(Transform::Dodge);
+        let polar = PlotSpec::new().data("t").x("continent").y("life")
+            .coord(CoordSpace::Polar(crate::ir::PolarView::default())).layer(layer());
+        let cube = PlotSpec::new().data("t").x("continent").y("life").z("value")
+            .coord(CoordSpace::Space(crate::ir::SpaceView::default())).layer(layer());
+        for (name, spec) in [("polar", polar), ("space", cube)] {
+            let d = check(&spec, &data());
+            assert!(d.iter().any(|x| x.kind == DiagnosticKind::Unsupported
+                                    && x.message.contains("point * dodge")),
+                    "{name}: {:?}", d.iter().map(|x| &x.message).collect::<Vec<_>>());
+        }
+    }
+
+    /// A swarm is placed by its neighbors, so a pass holding half of them would
+    /// be a different swarm: under a brush it is drawn whole, as `jitter` is.
+    #[test]
+    fn a_swarm_does_not_answer_a_selection() {
+        let swarm = Layer::new(Mark::Point).transform(Transform::Dodge);
+        assert!(selection_draws(&swarm).is_some_and(|why| why.contains("swarmed")));
+        assert!(!layer_answers_selection(&swarm));
+        // The bars `dodge` has always served keep their own reason, unchanged.
+        assert!(selection_draws(&Layer::new(Mark::Bar).transform(Transform::Dodge))
+            .is_some_and(|why| why.contains("thickness")));
     }
 
     /// **Two reductions in one layer are refused, on every mark and for every pair.**
@@ -17339,8 +17501,9 @@ mod tests {
         // Corners: a value statistic on a locus mark vs a span mark; the pair
         // transform required on interval/ribbon, optional on line, and the closed gap
         // on bar; and the collision trio's partition — which divides by geometry *and
-        // axis*, so `point` appears under two of the three (`stack` for the dot
-        // plot's measure axis, `jitter` for the strip plot's categorical one).
+        // axis*, so `point` appears under all three: `stack` for the dot plot's
+        // measure axis, `jitter` for the strip plot's categorical one, and `dodge`
+        // for the beeswarm's, the least distance that clears the others.
         assert_eq!(tc("bin", "bar"), "combines");
         assert_eq!(tc("bin", "interval"), "none");
         assert_eq!(tc("range", "interval"), "required");
@@ -17348,7 +17511,7 @@ mod tests {
         assert_eq!(tc("range", "line"), "combines");
         assert_eq!(tc("range", "bar"), "none");
         assert_eq!(tc("dodge", "bar"), "combines");
-        assert_eq!(tc("dodge", "point"), "none");
+        assert_eq!(tc("dodge", "point"), "combines");
         assert_eq!(tc("stack", "area"), "combines");
         assert_eq!(tc("stack", "point"), "combines");
         assert_eq!(tc("stack", "box"), "none");

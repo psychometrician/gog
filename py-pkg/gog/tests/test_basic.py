@@ -2811,3 +2811,15 @@ _heights = [[p.split(",")[1] for p in pts.split()]
 assert len(_heights) == 2 and _heights[0] == _heights[1], \
     "two groups of one shape should draw one violin, whatever their row counts"
 ok("a density layer smooths every group by one bandwidth")
+
+# `point * dodge` is the beeswarm: each point in a category moves across its slot
+# only as far as it must to clear the others, and never along the measure axis.
+# Six rows at one value must land at six places. It was refused toward `jitter`
+# until 2026-09-26.
+_tied = {"g": ["a"] * 6, "v": [1.0] * 6}
+_svg = render_svg(data(_tied, name="tied") + point * dodge + x(col.g) + y(col.v))
+_dots = re.findall(r'<circle cx="([0-9.]+)" cy="([0-9.]+)"', _svg)
+assert len(_dots) == 6 and len({cx for cx, _ in _dots}) == 6, \
+    "point * dodge should set six tied points at six places"
+assert len({cy for _, cy in _dots}) == 1, "point * dodge must not move a point along the measure axis"
+ok("point * dodge sets tied points apart across the slot only")

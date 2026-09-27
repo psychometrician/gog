@@ -8,6 +8,14 @@ CRAN-style repositories and PyPI, `GrammarOfGraphics` on Julia's General, and
 
 ### Added
 
+- **The beeswarm, `point * dodge`.** Over a category, `dodge` now moves each
+  point across its slot only as far as it must to clear the points beside it, so
+  no two touch and the swarm's outline shows each group's distribution. Values
+  never move along the measure axis. A `color` split gives each group its part of
+  the slot first, as it does for bars. When a slot is too crowded, the points
+  that do not fit are drawn against its edge, never in the next category, and gog
+  says how many. `point * dodge` used to be refused.
+
 - **Colors by name.** `palette(c(Asia = "tomato", Europe = "steelblue"))` gives
   each category the color written beside its name, so a category keeps its
   color whatever order the rows arrive in. Python passes a dict, JavaScript an

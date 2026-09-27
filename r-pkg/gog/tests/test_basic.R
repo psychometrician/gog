@@ -4739,3 +4739,19 @@ local({
     stop("FAIL: two groups of one shape should draw one violin, whatever their row counts")
   cat("PASS: a density layer smooths every group by one bandwidth\n")
 })
+
+# `point * dodge` is the beeswarm: each point in a category moves across its slot
+# only as far as it must to clear the others, and never along the measure axis.
+# Six rows at one value must land at six places. It was refused toward `jitter`
+# until 2026-09-26.
+local({
+  tied <- data.frame(g = rep("a", 6), v = rep(1, 6))
+  svg <- render_svg(data(tied) + point * dodge + x(g) + y(v))
+  cx <- regmatches(svg, gregexpr('<circle cx="[0-9.]+"', svg))[[1]]
+  cy <- regmatches(svg, gregexpr('<circle cx="[0-9.]+" cy="[0-9.]+"', svg))[[1]]
+  if (length(cx) != 6 || length(unique(cx)) != 6)
+    stop("FAIL: point * dodge should set six tied points at six places")
+  if (length(unique(sub('.* cy="', "", cy))) != 1)
+    stop("FAIL: point * dodge must not move a point along the measure axis")
+  cat("PASS: point * dodge sets tied points apart across the slot only\n")
+})

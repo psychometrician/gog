@@ -149,8 +149,8 @@ data(gm_eras) + bar * mean * dodge + x(continent) + y(life) + color(era) +
 *"Given the gapminder eras: bars derived by mean and dodge, x is continent, y is
 life, color by era."*
 
-`dodge` and `color(era)` are plainly related: `dodge` has nothing to set side by
-side until a channel such as `color` names the groups. So why not write them
+`dodge` and `color(era)` are plainly related: on a bar, `dodge` has nothing to set
+side by side until a channel such as `color` names the groups. So why not write them
 together? Because the grammar deliberately gives them different operators.
 `dodge` belongs to `*`, because it modifies the mark. The same modifier works on
 `box * dodge` and `interval * range * dodge`, where `group` can make the split

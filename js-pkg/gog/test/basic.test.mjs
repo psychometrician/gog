@@ -40,6 +40,7 @@ import {
   confidence,
   count,
   data,
+  dodge,
   median,
   quantile,
   deviation,
@@ -2991,4 +2992,17 @@ test("a density layer smooths every group by one bandwidth", () => {
     .map((m) => m[1].split(" ").map((p) => p.split(",")[1]));
   assert.equal(heights.length, 2, "one violin per group");
   assert.deepEqual(heights[0], heights[1], "two groups of one shape draw one violin, whatever their row counts");
+});
+
+// `point * dodge` is the beeswarm: each point in a category moves across its slot
+// only as far as it must to clear the others, and never along the measure axis.
+// Six rows at one value must land at six places. It was refused toward `jitter`
+// until 2026-09-26.
+test("point * dodge sets tied points apart across the slot only", () => {
+  const tied = { g: Array(6).fill("a"), v: Array(6).fill(1) };
+  const svg = render_svg(plot(data(tied, { name: "tied" }), layer(point, dodge), x(col.g), y(col.v)));
+  const dots = [...svg.matchAll(/<circle cx="([0-9.]+)" cy="([0-9.]+)"/g)];
+  assert.equal(dots.length, 6, "six points");
+  assert.equal(new Set(dots.map((m) => m[1])).size, 6, "six tied points at six places");
+  assert.equal(new Set(dots.map((m) => m[2])).size, 1, "no point moves along the measure axis");
 });

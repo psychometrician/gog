@@ -257,11 +257,14 @@ baseline.
 
 When marks collide at one position, four offsets separate them, and which one a
 mark takes is decided by its geometry and by the *axis* the collision is on.
-`dodge` subdivides a *width*, so it serves the marks that have one (`bar`,
-`box`, `interval`). `stack` piles marks along the *measure* axis. A `bar` or an
-`area` piles as lengths. A `point` has no length of its own, so it piles as dots,
-which is the dot plot. `jitter` spreads a mark with *no* width along a
-*categorical* axis, which is `point` alone. Which marks take `repel` is decided by a
+On the marks that have a *width* (`bar`, `box`, `interval`), `dodge` subdivides
+it. A `point` has no width, so `dodge` moves each point sideways
+within its category's slot, only as far as it must to touch no other point: the
+[beeswarm](marks/point.qmd#a-categorical-x-the-strip-plot). `stack`
+piles marks along the *measure* axis. A `bar` or an `area` piles as lengths. A
+`point` has no length of its own, so it piles as dots, which is the dot plot.
+`jitter` also moves a point along a *categorical* axis, by a small amount that
+varies from point to point, and it serves `point` alone. Which marks take `repel` is decided by a
 different question: not what geometry a mark has, but what it is made of. A label is as
 wide as the word it draws, so two labels overlap where their points do not, and
 `text` is the only mark made of words.
@@ -272,16 +275,15 @@ wide as the word it draws, so two labels overlap where their points do not, and
 tf_block("collision")
 ```
 
-Six marks take an offset. `bar` and `point` take two each, and the other four
-take one. `bar` has both a width and a measure axis, so it takes `dodge` and
-`stack`. A `point` has no width, so it cannot take `dodge`, and it takes `stack`
-and `jitter` instead. For a `point`, `stack` answers an overlap along the
-measure axis, which is a pile of dots you can count. `jitter` answers the same
-overlap along a categorical axis with a small sideways shift, which changes no
-value, because a categorical axis carries no magnitude. Each of the six takes a
-known offset, so when you ask one of them for an offset it does not take, the
-engine can name one it does: `point * dodge` names `jitter`, and `area * dodge`
-names `stack`. A `box` shows most clearly that an offset is not a statistic. It takes no statistic, because its own is built in, yet it
+Six marks take an offset. `bar` takes two, `point` takes three, and the other
+four take one. `bar` has both a width and a measure axis, so it takes `dodge` and
+`stack`. For a `point`, `stack` answers an overlap along the measure axis, which
+is a pile of dots you can count. `jitter` and `dodge` answer the same overlap by
+moving points along a categorical axis, which carries no magnitude, so no value
+changes. `jitter` moves each point a small amount that varies from point to
+point; `dodge` moves each only as far as it must to touch no other point. Each of the six
+takes a known offset, so when you ask one of them for an offset it does not take,
+the engine can name one it does: `area * dodge` names `stack`. A `box` shows most clearly that an offset is not a statistic. It takes no statistic, because its own is built in, yet it
 still takes `dodge`. Setting grouped boxes side by side is a question about
 position, and that is orthogonal to the summary each box already carries.
 

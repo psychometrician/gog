@@ -965,9 +965,10 @@ cluster <- function(value, over) {
 # `dodge` is the first *collision modifier* (not a statistic): where a `color`
 # split would stack several marks at one shared position, it sets them side by
 # side within that position's slot.  Legal on the width-bearing marks it can
-# subdivide — `bar`, `box`, `interval` — and refused with direction elsewhere
-# (`point` -> `jitter`, `line`/`area` -> `stack`).  It carries no parameter (the
-# width comes from the slot), so like `count`/`smooth` it is a bare atom, and it
+# subdivide — `bar`, `box`, `interval` — and on `point`, where it moves each point
+# across its slot by the least distance that clears its neighbors (the beeswarm);
+# refused with direction on `line`/`area` (-> `stack`).  It carries no parameter
+# (the width comes from the slot), so like `count`/`smooth` it is a bare atom, and it
 # rides the `*` slot uniformly: `bar * count * dodge`, `box * dodge`,
 # `interval * range * dodge`.  A common English word, masking nothing in base R.
 #' Resolving overlap -- `stack`, `dodge` and `jitter`
@@ -982,12 +983,15 @@ cluster <- function(value, over) {
 #'   \item{`stack`}{Piles the marks of each group end to end, so the total is the
 #'     height of the pile.}
 #'   \item{`dodge`}{Places them side by side instead, so each is measured from the
-#'     same baseline and they can be compared directly.}
+#'     same baseline and they can be compared directly. On `point` it moves each
+#'     point across its category only as far as it must to clear its neighbors,
+#'     so no two touch: the beeswarm.}
 #' }
 #'
-#' Both need something to separate: a `color` or `group` binding that says which
-#' mark belongs to which group. Without one there is nothing to stack or dodge,
-#' and the engine says so.
+#' On bars, boxes and whiskers both need something to separate: a `color` or
+#' `group` binding that says which mark belongs to which group. Without one there
+#' is nothing to stack or dodge, and the engine says so. `point * dodge` needs
+#' none, since the points in one category already collide.
 #'
 #' @param share `TRUE` fills every pile to the same height, so the plot shows each
 #'   group's share rather than its amount. Defaults to `FALSE`.
@@ -1077,7 +1081,8 @@ stack <- function(share = NULL, baseline = NULL) {
 # width to subdivide (`dodge`), along an axis with no magnitude to spend: `point`
 # on a *category*.  (Along a *measure* axis the same mark takes `stack` instead,
 # which piles its points into countable dots.)  A strip plot's coincident points
-# land on one line; `jitter` spreads them apart.
+# land on one line; `jitter` spreads them apart at random, where `point * dodge`
+# moves each only as far as it must to clear its neighbors (the beeswarm).
 # It nudges *only* a categorical position axis, never one carrying a measured
 # value (moving that would falsify it), and it needs no `color` split — it
 # resolves same-position overlap of individual points.  Legal on `point` alone;

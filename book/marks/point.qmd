@@ -156,16 +156,36 @@ value. In a scatterplot both axes are measurements, so a moved dot would show a
 value the data does not hold. gog therefore refuses `point * jitter` when `x`
 and `y` are both continuous, as [What it refuses](#what-it-refuses) shows.
 
-A third answer is to count the overlapping points instead of separating them.
+A third answer,
+[`point * dodge`](../transforms.qmd#dodge-side-by-side-instead-of-on-top), also
+moves points sideways within their slot. Unlike `jitter`, it moves each point
+only as far as it must to touch no other point:
+
+```{r}
+data(gapminder_2007) + point * dodge + x(continent) + y(life) +
+  y_label("Life expectancy") + title("The same dots, set apart until none touch")
+```
+
+*"Given gapminder 2007: points derived by dodge, x is continent, y is life."*
+
+No dot covers another, and every dot keeps its life expectancy. Where many
+countries have close values, the dots spread wide, so the outline of each group
+shows the shape of its distribution, one dot per country. This plot is the
+**beeswarm**. When a slot is too crowded to hold its dots, gog draws the extra
+ones at the slot's edge, on top of one another, and a warning says how many
+overlap. It never moves them into the next continent's slot.
+
+A fourth answer is to count the overlapping points instead of separating them.
 [`point * bin * stack`](../transforms.qmd#the-dot-plot) cuts the measured
 column into bins and piles one dot per row above each bin, which is the
 **dot plot**. It shows one distribution, with the measure on `x`;
 `| facet(continent)` draws one for each continent. The cookbook draws it with [thirty
 rows](../cookbook/one-variable.qmd#when-there-are-only-thirty-rows), where every
-row is still visible. Choose between `jitter` and `bin * stack` by what you want
-the reader to see. `jitter` keeps the spread: every value sits where it was
-measured. `bin * stack` gives the count: how many rows fall in each bin. The
-result looks like a bar chart, but each row is still its own dot.
+row is still visible. Choose among `jitter`, `dodge` and `bin * stack` by what
+you want the reader to see. `jitter` and `dodge` keep the spread: every value
+sits where it was measured, and with `dodge` no dot covers another unless its
+slot is full. `bin * stack` gives the count: how many rows fall in each bin. The result looks like a bar chart, but
+each row is still its own dot.
 
 ### Either axis: a horizontal strip
 
@@ -423,9 +443,9 @@ Where hollow points overlap, every outline stays visible, and where many pile
 up, the outlines add up to a darker area. The plot shows each point and the
 crowding at once. Neither this nor opacity moves a point off its measured value,
 which is why they, and not `jitter`, are the answers for a crowded scatterplot. On a categorical axis,
-`jitter`, one of the four collision modifiers, moves points apart instead:
-`point * jitter(0.4)` spreads them 0.4 times as wide as a plain `jitter`, which
-the [strip plot](#a-categorical-x-the-strip-plot) showed.
+`jitter` and `dodge` move points apart instead, as the [strip
+plot](#a-categorical-x-the-strip-plot) showed. `point * jitter(0.4)` spreads them
+0.4 times as wide as a plain `jitter`.
 
 `pattern` is not on the list. A hatch needs a large area and a dash needs a
 long stroke, and a glyph is too small for either. To separate groups by glyph,
@@ -439,7 +459,7 @@ row on the [companion grid](../combinations.qmd#marks-and-channels).
 ## What it refuses
 
 Four refusals follow, each with its reason: a category on `size`, any pattern,
-`jitter` on a scatterplot, and `opacity` on a hollow point.
+`jitter` or `dodge` on a scatterplot, and `opacity` on a hollow point.
 
 `size` shows an amount, so it needs a column of amounts:
 
@@ -484,6 +504,14 @@ scatterplot, keep every point at its value and change how it is drawn.
 area, as in the plot of every gapminder year under [Opacity](#opacity). A
 hollow point, an outline with no fill, keeps every point visible where points
 overlap, as the same table shows under [What you can set](#what-you-can-set).
+
+`point * dodge` is refused on a scatterplot for the same reason. It moves a dot
+only across a category's slot, and a scatterplot has no slot:
+
+```{r}
+#| error: true
+data(gapminder_2007) + point * dodge + x(gdp) + y(life)
+```
 
 The fourth refusal is `opacity` on a hollow point. `opacity` fades what `color`
 paints, and `color = "none"` paints nothing, so there is nothing for it to fade:
