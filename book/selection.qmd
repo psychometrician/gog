@@ -470,6 +470,10 @@ own would declare a region that no drag could draw. The rule is the one behind
 every plot in this chapter: a drag does one thing at a time, and in the cube
 that one thing is turning.
 
+So in the cube you cannot change the selection, but you can still read it. The
+count and `show rows` sit on their own line under the plot, and you can read the
+selected rows while you turn it.
+
 ## Changing the bound yourself
 
 After the first one, every brushed plot in this chapter states where its
@@ -495,8 +499,9 @@ A flat brushed plot on a web page carries two lines of controls under it. None
 of them are in the sentence, and that is the rule rather than an omission. They
 report a selection, or they change how you look at one. Not one of them changes
 what the plot claims about the data, so none of them needs a word in the
-grammar. A plot in the cube works the same way: it also carries two lines of
-controls, and `space()` has no word for the pointer.
+grammar. A plot in the cube follows the same rule: `space()` names the angle
+the plot starts at, and turning it needs no word. It carries two lines of
+controls, or three when it is brushed.
 
 The first line is [the one every plot
 carries](first-plot.qmd#the-boxes-under-every-plot):
@@ -525,6 +530,9 @@ The second line is what a brush adds:
 | `show rows` | Opens a table of those rows; while the table is open the button reads `hide rows`. A long selection arrives ten at a time, with `‹` and `›` under the table |
 | `clear` | Puts the selection back to what the sentence asked for |
 | `unstamp` | Removes every stamp at once ([Stamping a point](#stamping-a-point) explains stamps). With two or more, the button shows how many. Absent until you have made one |
+
+In the cube, this line holds only the count and `show rows`. It comes third,
+under the line that shows the angle.
 
 A control drawn as an icon names itself when the pointer rests on it. So do
 `clear` and `unstamp`, which say what they undo.
@@ -574,8 +582,8 @@ because no sentence can state a drawn shape.
 
 ### Reading what you selected
 
-The dimming shows where a group sits, but not which rows are in it. On a flat
-plot the count is always there. `show rows` opens the row table under the plot.
+The dimming shows where a group sits, but not which rows are in it. The count
+says how many rows are selected, and `show rows` opens the row table.
 It lists the columns the sentence maps, not every column of your data, because
 the columns you did not plot are not what you are looking at.
 
@@ -676,6 +684,10 @@ So the pointer says nothing rather than naming a row that is not there, and a
 line under the plot gives the reason. Nothing can be stamped either. The page
 computes a position rather than reading one, so it stays silent wherever it
 cannot compute one.
+
+In the cube, the pointer shows no values either, and nothing can be stamped.
+There the viewing angle moves every mark, so the page cannot compute where each
+row was drawn.
 
 A layer whose marks do not stand at their rows' values does not silence the
 pointer. `jitter` sets each point beside its value, `repel` moves each label

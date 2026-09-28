@@ -50,7 +50,7 @@ export const DEFAULT_TILT = 25;
  */
 export { attachView, mountView } from "./view.js";
 
-export const BUILD = "2026-08-05";
+export const BUILD = "2026-09-28";
 
 /**
  * Engines already loaded, keyed by where they came from.
@@ -1779,6 +1779,123 @@ export const UNPLACED = {
   map: "a map projects longitude and latitude to new positions before drawing, so a mark no longer stands at its row's values.",
 };
 
+/** The outlined text button: `show rows`, `clear` and `unstamp`. */
+const TEXT_BUTTON =
+  "font:inherit;color:inherit;background:none;border:1px solid currentColor;border-color:color-mix(in srgb, currentColor 34%, transparent);" +
+  "border-radius:3px;padding:0 .5em;cursor:pointer;";
+
+/**
+ * What a selection caught: the count, `show rows`, and the table it opens, a
+ * page at a time.
+ *
+ * Shared by the two places a selection is reported, the bar under a flat
+ * brushed plot and the line under a turnable one. One copy, because the count
+ * and the table make the same promise in both, and two hand-kept copies of a
+ * table is how one of them quietly stops matching the other.
+ *
+ * @param {(offset: number) => object} selection one window of the selection,
+ *   as `selectedRows` returns it
+ * @returns {{readout: Element, toggle: Element, table: Element, pager: Element,
+ *   show: () => object, first: () => void}} the pieces for the caller to place;
+ *   `show` brings them up to date and returns the window it drew, and `first`
+ *   goes back to the first page
+ */
+function caughtRows(selection) {
+  const readout = document.createElement("span");
+  readout.style.cssText = "font-variant-numeric:tabular-nums;";
+
+  const toggle = document.createElement("button");
+  toggle.type = "button";
+  toggle.style.cssText = TEXT_BUTTON;
+
+  const table = document.createElement("div");
+  table.style.cssText =
+    "display:none;overflow-x:auto;margin:-8px auto 12px;max-width:100%;" +
+    "font:12px/1.5 ui-monospace,SFMono-Regular,Menlo,monospace;";
+
+  // A page at a time, with a way to the next one. The table used to stop at a
+  // dozen rows and say how many it had left out, which is honest but leaves the
+  // reader with a count they cannot open. Selecting a group in order to read it
+  // is the whole point of `show rows`, so the rest of the group has to be
+  // reachable.
+  //
+  // Ten to a page rather than a dozen: the reader is counting rows against a
+  // total, and tens are what a person adds up without stopping to think.
+  //
+  // Paging rather than a scrolling box, deliberately: a selection has no upper
+  // size, and a table with one row per selected datum would grow without bound
+  // in a page that also has to hold the plot.
+  const pager = document.createElement("div");
+  pager.style.cssText =
+    "display:none;margin:-8px 0 12px;gap:.5em;align-items:center;" +
+    "justify-content:center;color:inherit;" +
+    "font:12px/1.6 ui-monospace,SFMono-Regular,Menlo,monospace;";
+  // An arrow head is a glyph rather than a word, so it earns a label on the same
+  // test the icons do: a reader can see which way it points without being told
+  // what it moves. The padding and the line box are the only two things a text
+  // control needs differently from an icon, so they are stated after the shared
+  // rule rather than in place of it.
+  const step = (glyph, says) => {
+    const b = document.createElement("button");
+    b.type = "button";
+    b.textContent = glyph;
+    b.style.cssText = BUTTON_STYLE + "padding:0 .45em;line-height:1.6;";
+    hoverLabel(b, says);
+    return b;
+  };
+  const back = step("‹", "the rows before these");
+  const forth = step("›", "the rows after these");
+  const place = document.createElement("span");
+  place.style.cssText = "font-variant-numeric:tabular-nums;";
+  pager.append(back, place, forth);
+
+  let open = false;
+  let page = 0;
+  const show = () => {
+    const s = selection(page * PAGE_ROWS);
+    readout.textContent = `${s.kept} of ${s.total} selected`;
+    // Nothing to show when nothing is selected, or when everything is. The
+    // button goes quiet rather than disappearing, so the line does not jump.
+    const idle = s.kept === 0 || s.kept === s.total;
+    toggle.disabled = idle;
+    toggle.textContent = open ? "hide rows" : "show rows";
+    if (!open || idle) {
+      table.style.display = "none";
+      pager.style.display = "none";
+      return s;
+    }
+    const cell = (v) =>
+      `<td style="padding:.1em .6em;text-align:${typeof v === "number" ? "right" : "left"}">` +
+      `${v === null || v === undefined ? "" : String(v)}</td>`;
+    table.innerHTML =
+      `<table style="margin:0 auto;border-collapse:collapse"><thead><tr>` +
+      s.columns.map((c) => `<th style="padding:.1em .6em;text-align:left;` +
+        `border-bottom:1px solid color-mix(in srgb, currentColor 22%, transparent);color:inherit">${c}</th>`).join("") +
+      `</tr></thead><tbody>` +
+      s.rows.map((r) => `<tr>${r.map(cell).join("")}</tr>`).join("") +
+      `</tbody></table>`;
+    table.style.display = "block";
+    // The line under the table says where you are in the selection rather than
+    // only what was left out, and the two arrows are how you leave. It appears
+    // only when there is more than one page, so a short selection reads exactly
+    // as it did before.
+    pager.style.display = s.capped ? "flex" : "none";
+    place.textContent = `${s.from}–${s.to} of ${s.kept}`;
+    back.disabled = page === 0;
+    forth.disabled = s.to >= s.kept;
+    return s;
+  };
+
+  const turn = (by) => {
+    page = Math.max(0, page + by);
+    show();
+  };
+  back.addEventListener("click", () => turn(-1));
+  forth.addEventListener("click", () => turn(1));
+  toggle.addEventListener("click", () => { open = !open; show(); });
+  return { readout, toggle, table, pager, show, first: () => { page = 0; } };
+}
+
 /**
  * The bar under a brushed plot: how many rows were caught, the rows themselves
  * on demand, and a way back to nothing selected.
@@ -1837,23 +1954,16 @@ function addSelectionBar(container, handle, view) {
     return [name, b];
   });
 
-  const readout = document.createElement("span");
-  readout.style.cssText = "font-variant-numeric:tabular-nums;";
+  const rows = caughtRows(handle.selection);
 
   const note = document.createElement("span");
   note.style.cssText = "opacity:.72;";
-
-  const toggle = document.createElement("button");
-  toggle.type = "button";
-  toggle.style.cssText =
-    "font:inherit;color:inherit;background:none;border:1px solid currentColor;border-color:color-mix(in srgb, currentColor 34%, transparent);" +
-    "border-radius:3px;padding:0 .5em;cursor:pointer;";
 
   const reset = document.createElement("button");
   reset.type = "button";
   reset.title = "clear the selection";
   reset.textContent = "clear";
-  reset.style.cssText = toggle.style.cssText;
+  reset.style.cssText = TEXT_BUTTON;
 
   // Stamps are undone by their own control, not by `clear`. The two act on
   // different things, which is the rule the pair beside them already follows:
@@ -1864,52 +1974,11 @@ function addSelectionBar(container, handle, view) {
   unstamp.type = "button";
   unstamp.title = "take the stamps off the plot";
   unstamp.textContent = "unstamp";
-  unstamp.style.cssText = toggle.style.cssText;
+  unstamp.style.cssText = TEXT_BUTTON;
   unstamp.addEventListener("click", () => {
     handle.clearStamps?.();
     render();
   });
-
-  const table = document.createElement("div");
-  table.style.cssText =
-    "display:none;overflow-x:auto;margin:-8px auto 12px;max-width:100%;" +
-    "font:12px/1.5 ui-monospace,SFMono-Regular,Menlo,monospace;";
-
-  // A page at a time, with a way to the next one. The table used to stop at a
-  // dozen rows and say how many it had left out, which is honest but leaves the
-  // reader with a count they cannot open. Selecting a group in order to read it
-  // is the whole point of `show rows`, so the rest of the group has to be
-  // reachable.
-  //
-  // Ten to a page rather than a dozen: the reader is counting rows against a
-  // total, and tens are what a person adds up without stopping to think.
-  //
-  // Paging rather than a scrolling box, deliberately: a selection has no upper
-  // size, and a table with one row per selected datum would grow without bound
-  // in a page that also has to hold the plot.
-  const pager = document.createElement("div");
-  pager.style.cssText =
-    "display:none;margin:-8px 0 12px;gap:.5em;align-items:center;" +
-    "justify-content:center;color:inherit;" +
-    "font:12px/1.6 ui-monospace,SFMono-Regular,Menlo,monospace;";
-  // An arrow head is a glyph rather than a word, so it earns a label on the same
-  // test the icons do: a reader can see which way it points without being told
-  // what it moves. The padding and the line box are the only two things a text
-  // control needs differently from an icon, so they are stated after the shared
-  // rule rather than in place of it.
-  const step = (glyph, says) => {
-    const b = document.createElement("button");
-    b.type = "button";
-    b.textContent = glyph;
-    b.style.cssText = BUTTON_STYLE + "padding:0 .45em;line-height:1.6;";
-    hoverLabel(b, says);
-    return b;
-  };
-  const back = step("‹", "the rows before these");
-  const forth = step("›", "the rows after these");
-  const place = document.createElement("span");
-  place.style.cssText = "font-variant-numeric:tabular-nums;";
-  pager.append(back, place, forth);
 
   // The word and its icons are one control, so they sit together rather than
   // spread across the bar's gap like three unrelated buttons.
@@ -1937,25 +2006,23 @@ function addSelectionBar(container, handle, view) {
   // readout instead of through the middle of the button strip.
   const controls = document.createElement("span");
   controls.style.cssText = "display:inline-flex;gap:.75em;align-items:center;";
-  controls.append(toggle, reset, unstamp);
-  bar.append(group, readout, controls);
+  controls.append(rows.toggle, reset, unstamp);
+  bar.append(group, rows.readout, controls);
   placeBar(container, viewRow, bar);
   // Under the bar rather than in it. It is a sentence and the bar is a line of
   // labels, so putting it inline would push the buttons about the moment it
   // appeared, on a plot the reader had only pointed at.
   bar.after(note);
-  note.after(table);
-  table.after(pager);
+  note.after(rows.table);
+  rows.table.after(rows.pager);
 
-  let open = false;
-  let page = 0;
   const render = () => {
     // This function brings the whole control line up to date, so the transport's
     // button belongs in it. A selection redraws the picture, which replaces the
     // element the clock lives in, and a button still drawn from the old one would
     // tell the reader the plot was stopped while it ran.
     transport?.refresh();
-    const s = handle.selection(page * PAGE_ROWS);
+    rows.show();
     for (const [name, b] of picks) {
       const on = handle.mode() === name;
       b.style.borderColor = on ? "#666" : "#ccc";
@@ -1963,19 +2030,14 @@ function addSelectionBar(container, handle, view) {
       b.style.color = on ? "#222" : "#777";
       b.setAttribute("aria-pressed", on ? "true" : "false");
     }
-    readout.textContent = `${s.kept} of ${s.total} selected`;
     const why = handle.unplaced?.();
     note.textContent = why ? `Pointing reads no row here: ${UNPLACED[why] ?? ""}` : "";
     note.style.display = why ? "block" : "none";
-    // Nothing to show when nothing is selected, or when everything is. The
-    // buttons go quiet rather than disappearing, so the line does not jump.
-    const idle = s.kept === 0 || s.kept === s.total;
-    toggle.disabled = idle;
-    // `clear` asks a different question: is there a bound of the sentence's to
-    // go back to? It used to ask the count, and the count cannot see it. A
-    // click on empty space reads `0 of 0` and a drag over the whole panel reads
-    // every row, and after either one the sentence's bound is gone while the
-    // button that restores it was switched off.
+    // `clear` asks a different question from `show rows`: is there a bound of
+    // the sentence's to go back to? It used to ask the count, and the count
+    // cannot see it. A click on empty space reads `0 of 0` and a drag over the
+    // whole panel reads every row, and after either one the sentence's bound is
+    // gone while the button that restores it was switched off.
     reset.disabled = !handle.changed();
     // Absent rather than dimmed while there is nothing stamped. `clear` and the
     // view buttons go quiet in place because a reader who has selected once will
@@ -1984,48 +2046,16 @@ function addSelectionBar(container, handle, view) {
     const stamped = handle.stamps?.() ?? 0;
     unstamp.style.display = stamped ? "" : "none";
     unstamp.textContent = stamped === 1 ? "unstamp" : `unstamp ${stamped}`;
-    toggle.textContent = open ? "hide rows" : "show rows";
-    if (!open || idle) {
-      table.style.display = "none";
-      pager.style.display = "none";
-      return;
-    }
-    const cell = (v) =>
-      `<td style="padding:.1em .6em;text-align:${typeof v === "number" ? "right" : "left"}">` +
-      `${v === null || v === undefined ? "" : String(v)}</td>`;
-    table.innerHTML =
-      `<table style="margin:0 auto;border-collapse:collapse"><thead><tr>` +
-      s.columns.map((c) => `<th style="padding:.1em .6em;text-align:left;` +
-        `border-bottom:1px solid color-mix(in srgb, currentColor 22%, transparent);color:inherit">${c}</th>`).join("") +
-      `</tr></thead><tbody>` +
-      s.rows.map((r) => `<tr>${r.map(cell).join("")}</tr>`).join("") +
-      `</tbody></table>`;
-    table.style.display = "block";
-    // The line under the table says where you are in the selection rather than
-    // only what was left out, and the two arrows are how you leave. It appears
-    // only when there is more than one page, so a short selection reads exactly
-    // as it did before.
-    pager.style.display = s.capped ? "flex" : "none";
-    place.textContent = `${s.from}–${s.to} of ${s.kept}`;
-    back.disabled = page === 0;
-    forth.disabled = s.to >= s.kept;
   };
 
-  const turn = (by) => {
-    page = Math.max(0, page + by);
-    render();
-  };
-  back.addEventListener("click", () => turn(-1));
-  forth.addEventListener("click", () => turn(1));
-  toggle.addEventListener("click", () => { open = !open; render(); });
   reset.addEventListener("click", () => { handle.reset(); render(); });
   render();
   // **The selection moving is not the same event as the reader turning a page.**
   // This is what a redraw calls, so it goes back to the first page: a new
   // selection has new rows, and page four of the last one means nothing. The
-  // arrows call `render` directly and keep their place.
+  // arrows keep their place, since they only re-show the rows.
   return () => {
-    page = 0;
+    rows.first();
     render();
   };
 }
@@ -2217,8 +2247,12 @@ export function attachDrag(engine, container, request, options = {}) {
  * It is inserted **after** the plot's container, never inside it. Every redraw
  * replaces the container's `innerHTML`, so controls placed within would be
  * destroyed by the first drag they caused.
+ *
+ * A turnable plot whose sentence names a brush also reports what the brush
+ * caught, on a line of its own: `selection` is how to read it, and `null` on a
+ * plot with no brush.
  */
-function addControls(container, handle, view = null) {
+function addControls(container, handle, view = null, selection = null) {
   const bar = controlBar("view");
 
   const hint = document.createElement("span");
@@ -2289,7 +2323,24 @@ function addControls(container, handle, view = null) {
   // while four icons sat above it. A set of controls that acts together is one
   // child of its row, not five.
   bar.append(reset);
-  placeBar(container, viewRow, bar);
+
+  // **A turnable plot reports its selection too** (spec §15). The drag is the
+  // turn's, so none of the selection's gestures come with it: no `drag:`
+  // switcher, no `clear`, since no gesture here can move the bound off the
+  // sentence's, and no pointer readout or stamps, since the page cannot compute
+  // where a projected row was drawn. What needs no gesture is the count and
+  // `show rows`, and those are the same pieces the flat bar uses. They read the
+  // sentence's bound across every frame of a played plot, as the flat count
+  // does, so they are drawn once: turning the plot moves no row in or out.
+  const caught = selection ? caughtRows(selection) : null;
+  const line = caught ? controlBar("selection") : null;
+  placeBar(container, viewRow, bar, ...(line ? [line] : []));
+  if (caught) {
+    line.append(caught.readout, caught.toggle);
+    line.after(caught.table);
+    caught.table.after(caught.pager);
+    caught.show();
+  }
   return show;
 }
 
@@ -2383,7 +2434,10 @@ export async function mount(target, request, options = {}) {
         show(angles);
       },
     });
-    if (options.controls !== false) show = addControls(container, handle, view);
+    // A turnable plot that names a brush draws its selection and keeps the drag
+    // for the turn; the line under the angle says what the bound caught.
+    const caught = brushed ? (offset) => selectedRows(request, PAGE_ROWS, offset) : null;
+    if (options.controls !== false) show = addControls(container, handle, view, caught);
     show(handle.view());
     container.style.cursor = "grab";
     container.dataset.gogInteractive = "true";

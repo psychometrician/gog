@@ -1186,6 +1186,15 @@ async function hoverFixture(spec, data, options = {}) {
   return { handle, container, panels: container.querySelectorAll("[data-gog-panel]").map(axesOf) };
 }
 
+/** Every element under `node`, depth first, in the order the page holds them. */
+function everythingUnder(node, out = []) {
+  for (const c of node.children ?? []) {
+    out.push(c);
+    everythingUnder(c, out);
+  }
+  return out;
+}
+
 /**
  * A plot mounted the way a page mounts it, bars and all, with its controls
  * found by what they say.
@@ -1213,16 +1222,9 @@ async function mountFixture(spec, data) {
   };
   container.querySelector = (sel) => (sel === "svg" ? picture : null);
   const handle = await mount(container, { spec, data }, { wasm: fs.readFileSync(WASM) });
-  const under = (node, out = []) => {
-    for (const c of node.children ?? []) {
-      out.push(c);
-      under(c, out);
-    }
-    return out;
-  };
-  const everything = () => under(host);
+  const everything = () => everythingUnder(host);
   return {
-    handle, container,
+    handle, container, host,
     panels: container.querySelectorAll("[data-gog-panel]").map(axesOf),
     button: (says) => everything().find((n) => n.tag === "button" && n.textContent === says),
     count: () => everything().find((n) => / selected$/.test(n.textContent ?? ""))?.textContent,
@@ -1665,6 +1667,52 @@ test("a click on a brush that named no bound leaves nothing for clear to do", as
     press(clear);
     assert.equal(count(), "0 of 0 selected", "back to the declaration");
     assert.equal(clear.disabled, true);
+  } finally {
+    undo();
+  }
+});
+
+// In the cube the drag turns the plot, so a brush there is written in the
+// sentence. The page used to ask only whether a plot could turn and never whether
+// it was brushed, so a turnable plot's selection was drawn and never counted: no
+// count, no `show rows`. The count and the table need no gesture, so they come
+// back on a line of their own; the gestures a drag would need stay away.
+test("a turnable plot that names a brush says what it caught", async () => {
+  const undo = stubDom();
+  try {
+    const { spec, data } = cube();
+    spec.brush = [{ field: "a", at: [2, 3.5] }];
+    const { button, count, press, host } = await mountFixture(spec, data);
+    assert.equal(count(), "2 of 6 selected", "the sentence's bound, counted");
+    const show = button("show rows");
+    assert.ok(show && !show.disabled, "and the rows it caught can be opened");
+    press(show);
+    const table = everythingUnder(host).find((n) => /<table/.test(n.innerHTML ?? ""));
+    const body = table?.innerHTML.split("<tbody>")[1] ?? "";
+    assert.equal((body.match(/<tr>/g) ?? []).length, 2, "one row per caught row");
+
+    // The drag is the turn's, so nothing here moves the bound or reads a point.
+    assert.equal(button("clear"), undefined, "no gesture here can move the bound, so nothing to clear");
+    assert.ok(!everythingUnder(host).some((n) => n.textContent === "drag:"), "and no drag switcher");
+
+    // Under the angle, not in place of it.
+    const wrap = everythingUnder(host).find((n) => n.className === "gog-plot-with-controls");
+    const lines = wrap.children.map((c) => c.className).filter((c) => /-controls$/.test(c ?? ""));
+    assert.deepEqual(lines, ["gog-view-controls", "gog-view-controls", "gog-selection-controls"]);
+    assert.ok(everythingUnder(host).some((n) => /^turn \d+° · tilt \d+°$/.test(n.textContent ?? "")),
+      "the angle readout is still there");
+  } finally {
+    undo();
+  }
+});
+
+test("a turnable plot with no brush has no count to give", async () => {
+  const undo = stubDom();
+  try {
+    const { spec, data } = cube();
+    const { count, button } = await mountFixture(spec, data);
+    assert.equal(count(), undefined);
+    assert.equal(button("show rows"), undefined);
   } finally {
     undo();
   }

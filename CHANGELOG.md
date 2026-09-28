@@ -56,6 +56,12 @@ CRAN-style repositories and PyPI, `GrammarOfGraphics` on Julia's General, and
 
 ### Changed
 
+- **A brushed plot in the cube or on the globe reports its selection on a web
+  page.** It drew the selection but gave no count and no way to list the rows.
+  A line under the plot now gives the count and `show rows`, as under a flat
+  brushed plot. The drag still turns the plot, so that line has no `drag:`
+  switcher and no `clear`, and pointing at a mark there names no row.
+
 - **The pointer's readout on a brushed plot names only rows the panel drew.**
   On a page of two plots, pointing into the second could name the first plot's
   columns: a panel whose x is `population` read out the row's `gdp`. It could
