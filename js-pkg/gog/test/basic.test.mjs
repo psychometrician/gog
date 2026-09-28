@@ -3463,3 +3463,14 @@ test("a map's meridians are the curves its projection makes", () => {
   assert.match(render_svg(plot(data(mt), point, x(col.lon), y(col.lat), map())), curve);
   assert.doesNotMatch(render_svg(plot(data(mt), point, x(col.lon), y(col.lat), map({ preserve: "angle" }))), curve);
 });
+
+// A globe's labels are clipped by the panel, not by the disk: a name beside a place
+// near the limb lost its last letters. The same block runs in all four bindings.
+test("a globe's labels are clipped by the panel, not the disk", () => {
+  const gl = { lon: [-150, 10], lat: [61, 50], name: ["Anchorage", "Frankfurt"] };
+  const svg = render_svg(plot(data(gl), point, x(col.lon), y(col.lat), text, label(col.name), globe()));
+  // Frankfurt faces the default view; Anchorage is behind the sphere.
+  assert.ok(svg.includes(">Frankfurt</text>"));
+  const groups = [...svg.split(">Frankfurt</text>")[0].matchAll(/<g clip-path="url\(#[^)]*\)/g)];
+  assert.ok(groups.length && groups[groups.length - 1][0].includes("-labels)"));
+});

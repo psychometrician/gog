@@ -3288,3 +3288,16 @@ assert _curve.search(render_svg(data(_mt, name="mt") + point + x(col.lon) + y(co
 assert not _curve.search(render_svg(data(_mt, name="mt") + point + x(col.lon) + y(col.lat)
                                     + map(preserve="angle")))
 ok("a map's meridians are the curves its projection makes")
+
+
+# --- A globe's labels are clipped by the panel, not the disk --------------------------
+# A name beside a place near the limb lost its last letters. The same block runs in
+# all four bindings.
+_gl = {"lon": [-150.0, 10.0], "lat": [61.0, 50.0], "name": ["Anchorage", "Frankfurt"]}
+_svg = render_svg(data(_gl, name="gl") + point + x(col.lon) + y(col.lat) + text + label(col.name)
+                  + globe())
+# Frankfurt faces the default view; Anchorage is behind the sphere.
+assert ">Frankfurt</text>" in _svg
+_groups = re.findall(r'<g clip-path="url\(#[^)]*\)', _svg.split(">Frankfurt</text>")[0])
+assert _groups and "-labels)" in _groups[-1], _groups[-1:]
+ok("a globe's labels are clipped by the panel, not the disk")

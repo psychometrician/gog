@@ -2837,3 +2837,14 @@ end
     @test occursin(curve, render_svg(data(mt) + point + x(:lon) + y(:lat) + map()))
     @test !occursin(curve, render_svg(data(mt) + point + x(:lon) + y(:lat) + map(preserve = "angle")))
 end
+
+# A globe's labels are clipped by the panel, not by the disk: a name beside a place
+# near the limb lost its last letters. The same block runs in all four bindings.
+@testset "a globe's labels are clipped by the panel, not the disk" begin
+    gl = (lon = [-150.0, 10.0], lat = [61.0, 50.0], name = ["Anchorage", "Frankfurt"])
+    svg = render_svg(data(gl) + point + x(:lon) + y(:lat) + text + label(:name) + globe())
+    # Frankfurt faces the default view; Anchorage is behind the sphere.
+    @test occursin(">Frankfurt</text>", svg)
+    groups = collect(eachmatch(r"<g clip-path=\"url\(#[^)]*\)", split(svg, ">Frankfurt</text>")[1]))
+    @test !isempty(groups) && occursin("-labels)", groups[end].match)
+end

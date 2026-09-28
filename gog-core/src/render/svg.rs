@@ -2542,6 +2542,16 @@ impl SvgRenderer {
                         });
                     }
                 }
+                // **A label is clipped by the panel, not the disk.** It names a place
+                // on the facing hemisphere, and a name set beside a place near the
+                // limb runs past it: clipped 8 px outside the disk, "Anchorage" lost
+                // its last three letters. The panel's rectangle is its own edge.
+                let label_clip = format!("{clip}-labels");
+                if spec.layers.iter().any(|ly| ly.mark == Mark::Text) {
+                    writeln!(svg,
+                        r#"  <clipPath id="{label_clip}"><rect x="{x0:.2}" y="{y0:.2}" width="{w:.2}" height="{h:.2}"/></clipPath>"#,
+                        x0 = l.x0, y0 = l.y0, w = l.w(), h = l.h()).unwrap();
+                }
                 for fi in 0..nframes {
                     let eff = eff_at(fi);
                     self.open_frame(&mut svg, fi, nframes);
@@ -2566,7 +2576,7 @@ impl SvgRenderer {
                                     };
                                     self.write_text(&mut svg, layer, df, l, xs, ys,
                                         x_field, y_field, cat_x.as_deref(), cat_y.as_deref(),
-                                        &color_map, &clip, &ground, None, None, Some(g), &dots, &mut remarks)
+                                        &color_map, &label_clip, &ground, None, None, Some(g), &dots, &mut remarks)
                                 }
                                 Mark::Path => self.write_path(&mut svg, layer, df, whole, l, xs, ys,
                                     x_field, y_field, cat_x.as_deref(), cat_y.as_deref(),
@@ -8262,6 +8272,33 @@ mod tests {
         assert!(lines.iter().filter(|l| l.contains(second)).count() == 1
                 && lines.iter().any(|l| !l.contains("stroke-dasharray")),
                 "`a` is solid and `b` takes the second dash in its own panel: {lines:?}");
+    }
+
+    /// A globe's labels are clipped by the panel, not by the disk: a name beside a
+    /// place near the limb runs past it, and "Anchorage" lost its last letters.
+    #[test]
+    fn a_globes_labels_are_clipped_by_the_panel_not_the_disk() {
+        let s = |v: &[&str]| v.iter().map(|x| x.to_string()).collect::<Vec<_>>();
+        let t: HashMap<String, DataFrame> = HashMap::from([(
+            "t".to_string(),
+            DataFrame::new()
+                .with_float("lon", vec![-150.0, 10.0])
+                .with_float("lat", vec![61.0, 50.0])
+                .with_str("name", s(&["Anchorage", "Frankfurt"])),
+        )]);
+        let spec = PlotSpec::new().data("t").x("lon").y("lat")
+            .layer(Layer::new(Mark::Point))
+            .layer(Layer::new(Mark::Text).encode(Channel::Label, "name"))
+            .coord(CoordSpace::Globe(Default::default()));
+        let svg = SvgRenderer::default().render(&spec, &t);
+        // Frankfurt faces the default view; Anchorage is behind the sphere.
+        let labels = svg.split(">Frankfurt</text>").next().unwrap();
+        assert!(labels.len() < svg.len(), "the facing label is drawn");
+        let group = labels.rsplit("<g clip-path=\"url(#").next().unwrap();
+        let id = group.split(')').next().unwrap();
+        assert!(id.ends_with("-labels"), "the labels' clip is the panel's: {id}");
+        let rect = svg.split(&format!("<clipPath id=\"{id}\">")).nth(1).expect("the label clip");
+        assert!(rect.starts_with("<rect"), "a rectangle, not the disk: {}", &rect[..40.min(rect.len())]);
     }
 
     /// A map's meridian is the curve its projection makes, ticked where it meets

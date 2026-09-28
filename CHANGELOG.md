@@ -48,6 +48,11 @@ CRAN-style repositories and PyPI, `GrammarOfGraphics` on Julia's General, and
 
 ### Changed
 
+- **A globe's labels are no longer cut at the edge of the sphere.** Labels were
+  clipped with everything else a few pixels past the sphere, so a name beside a
+  place near the edge lost letters: "Anchorage" read "Anchora". A label may now
+  run past the sphere to the edge of its panel.
+
 - **A map's longitude lines follow the projection.** Under the default
   equal-area projection every longitude gridline was drawn straight up from the
   data's southernmost latitude, so it was off by up to 20° elsewhere, and a

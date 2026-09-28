@@ -5314,3 +5314,20 @@ local({
     stop("FAIL: Equal Earth's meridians should curve and Mercator's stay straight")
   cat("PASS: a map's meridians are the curves its projection makes\n")
 })
+
+# ---------------------------------------------------------------------------
+# A globe's labels are clipped by the panel, not by the disk: a name beside a
+# place near the limb lost its last letters. The same block runs in all four
+# bindings.
+# ---------------------------------------------------------------------------
+local({
+  t <- data.frame(lon = c(-150, 10), lat = c(61, 50), name = c("Anchorage", "Frankfurt"))
+  svg <- render_svg(data(t) + point + x(lon) + y(lat) + text + label(name) + globe())
+  # Frankfurt faces the default view; Anchorage is behind the sphere.
+  before <- strsplit(svg, ">Frankfurt</text>", fixed = TRUE)[[1]][1]
+  groups <- regmatches(before, gregexpr('<g clip-path="url\\(#[^)]*\\)', before))[[1]]
+  if (nchar(before) == nchar(svg) || !length(groups) ||
+      !grepl("-labels)", groups[length(groups)], fixed = TRUE))
+    stop("FAIL: a globe's labels should be clipped by the panel")
+  cat("PASS: a globe's labels are clipped by the panel, not the disk\n")
+})
