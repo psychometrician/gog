@@ -100,7 +100,7 @@ pub(crate) fn render(
 
     // Pass one: every plot draws itself alone, to say where its panel would go
     // and what its axes measure.
-    let measured: Vec<Drawn> = cells
+    let mut measured: Vec<Drawn> = cells
         .iter()
         .map(|c| {
             SvgRenderer::for_theme(&c.spec.theme.resolved(), c.rect.w(), c.rect.h())
@@ -108,15 +108,39 @@ pub(crate) fn render(
         })
         .collect();
 
-    let mut diagnostics = Vec::new();
-    let mut fits: Vec<Fit> = vec![Fit::free(); cells.len()];
-    let mut specs: Vec<PlotSpec> = cells.iter().map(|c| c.spec.clone()).collect();
-
-    for channel in [Channel::X, Channel::Y] {
-        for group in groups(&measured, &channel) {
-            share(&group, &cells, &measured, &channel, &mut fits, &mut specs, &mut diagnostics);
+    let sharing = |measured: &[Drawn], diagnostics: &mut Vec<Diagnostic>| {
+        let mut fits: Vec<Fit> = vec![Fit::free(); cells.len()];
+        let mut specs: Vec<PlotSpec> = cells.iter().map(|c| c.spec.clone()).collect();
+        for channel in [Channel::X, Channel::Y] {
+            for group in groups(measured, &channel) {
+                share(&group, &cells, measured, &channel, &mut fits, &mut specs, diagnostics);
+            }
         }
+        (fits, specs)
+    };
+
+    // **An axis a plot gives up costs it no margin, so it is measured without
+    // one.** Who draws a shared axis is decided by where the cells sit, not by
+    // their panels, so it is known before any extent is fixed; a plot that gives
+    // an axis up is measured again without its margin, and the extents are fixed
+    // from that. Measured with it, the right plot of `a / (b | c)`, whose y axis
+    // `b` draws, kept a 73 px blank strip once the shared x pinned its panel to
+    // where it sat when measured alone.
+    let (decided, _) = sharing(&measured, &mut Vec::new());
+    for (i, cell) in cells.iter().enumerate() {
+        let (draw_x, draw_y) = (decided[i].draw_x_axis, decided[i].draw_y_axis);
+        if draw_x && draw_y {
+            continue;
+        }
+        measured[i] = SvgRenderer {
+            fit: Fit { draw_x_axis: draw_x, draw_y_axis: draw_y, ..Fit::free() },
+            ..SvgRenderer::for_theme(&cell.spec.theme.resolved(), cell.rect.w(), cell.rect.h())
+        }
+        .draw(cell.spec, data);
     }
+
+    let mut diagnostics = Vec::new();
+    let (mut fits, specs) = sharing(&measured, &mut diagnostics);
     // Then the arrangement's own rule, for the plots that share nothing.
     align(&cells, &measured, &mut fits);
 
@@ -1106,6 +1130,37 @@ mod tests {
         let cells = names(&two(Arrange::Below, plot("speed", "dist").into(), histogram.into()));
         assert!((cells[0].0 - cells[1].0).abs() < 1e-9, "the panels are lined up: {cells:?}");
         assert_eq!(cells[0].1, cells[1].1, "and so are their names: {cells:?}");
+    }
+
+    /// **An axis a plot gives up costs it no margin, under a shared extent too.**
+    /// In `hist / (a | b)`, `b` shares its `y` with `a`, which draws it, and its `x`
+    /// with the histogram above. The shared `x` pinned `b`'s panel to where it sat
+    /// when measured alone, y margin included, so a blank strip stood where the
+    /// axis it gave up would have been. It now sits where the pair alone puts it.
+    #[test]
+    fn a_plot_that_gives_up_its_y_axis_keeps_no_margin_under_a_shared_x() {
+        let panels = |page: &PageSpec| -> Vec<f64> {
+            let (svg, _) = render(page, &data(), 800.0, 600.0);
+            svg.split("<svg ").skip(2).map(|cell| {
+                let clip = cell.split("<clipPath").nth(1).expect("a clipped panel");
+                clip.split("<rect x=\"").nth(1).and_then(|r| r.split('"').next())
+                    .and_then(|v| v.parse().ok()).expect("a panel edge")
+            }).collect()
+        };
+        let plot = |x: &str, y: &str| {
+            PlotSpec::new().data("cars").x(x).y(y).layer(Layer::new(Mark::Point))
+        };
+        let histogram = PlotSpec::new().data("cars").x("speed")
+            .layer(Layer::new(Mark::Bar).transform(Transform::Bin));
+        let two = |arrange: Arrange, a: Figure, b: Figure| PageSpec {
+            arrange, cells: vec![a, b], theme: ThemeSpec::default(),
+        };
+        let pair = two(Arrange::Beside, plot("dist", "big").into(), plot("speed", "big").into());
+        let alone = panels(&pair);
+        let nested = panels(&two(Arrange::Below, histogram.into(), Figure::Page(pair)));
+        assert!(alone[1] < alone[0], "the premise: the right plot draws no y axis: {alone:?}");
+        assert!((nested[2] - alone[1]).abs() < 1e-9,
+            "the right plot sits where it does alone: {nested:?} against {alone:?}");
     }
 
     /// A page shares an axis by writing its range into each plot as a domain,

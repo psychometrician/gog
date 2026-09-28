@@ -5448,3 +5448,27 @@ local({
     stop("FAIL: a zone * density with a missing column should be refused: ", said)
   cat("PASS: a zone that reads its positions checks their columns\n")
 })
+
+# ---------------------------------------------------------------------------
+# An axis a plot gives up costs it no margin, under a shared extent too: in
+# `h / (l | r)`, `r` gives its y axis to `l` and shares its x with `h`, and it
+# kept a blank strip where the axis would have been. It sits where the pair
+# alone puts it. The same block runs in all four bindings.
+# ---------------------------------------------------------------------------
+local({
+  t <- data.frame(u = c(1, 2, 3, 4, 5, 6), v = c(0.0012, 0.0031, 0.0054, 0.0087, 0.0102, 0.014),
+                  w = c(3, 1, 4, 1, 5, 9))
+  left <- data(t) + point + x(w) + y(v)
+  right <- data(t) + point + x(u) + y(v)
+  top <- data(t) + bar * bin + x(u)
+  last_panel <- function(svg) {
+    cells <- strsplit(svg, "<svg ", fixed = TRUE)[[1]]
+    cell <- cells[length(cells)]
+    sub('.*<rect x="([^"]*)".*', "\\1", regmatches(cell, regexpr('<clipPath[^>]*><rect x="[^"]*"', cell)))
+  }
+  alone <- last_panel(render_svg(left | right))
+  nested <- last_panel(render_svg(top / (left | right)))
+  if (!identical(alone, nested))
+    stop("FAIL: the right plot should sit where the pair alone puts it: ", nested, " against ", alone)
+  cat("PASS: a plot that gives up its y axis keeps no margin under a shared x\n")
+})

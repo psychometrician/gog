@@ -3551,3 +3551,16 @@ test("a zone that reads its positions checks their columns", () => {
     /`y\(bb\)` refers to a column that is not in the data/
   );
 });
+
+// A plot that gives up its y axis keeps no margin under a shared x: in
+// `below(top, beside(left, right))`, `right` gives its y axis to `left` and shares its
+// x with `top`, and it kept a blank strip where the axis would have been. The same
+// block runs in all four bindings.
+test("a plot that gives up its y axis keeps no margin under a shared x", () => {
+  const gt = { u: [1, 2, 3, 4, 5, 6], v: [0.0012, 0.0031, 0.0054, 0.0087, 0.0102, 0.014], w: [3, 1, 4, 1, 5, 9] };
+  const left = plot(data(gt), point, x(col.w), y(col.v));
+  const right = plot(data(gt), point, x(col.u), y(col.v));
+  const top = plot(data(gt), layer(bar, bin), x(col.u));
+  const lastPanel = (svg) => svg.split("<svg ").at(-1).match(/<clipPath[^>]*><rect x="([^"]*)"/)[1];
+  assert.equal(lastPanel(render_svg(below(top, beside(left, right)))), lastPanel(render_svg(beside(left, right))));
+});

@@ -3388,3 +3388,18 @@ try:
 except GogError as refusal:
     assert "`y(bb)` refers to a column that is not in the data" in str(refusal), refusal
 ok("a zone that reads its positions checks their columns")
+
+
+# --- A plot that gives up its y axis keeps no margin under a shared x ------------------
+# In `top / (left | right)`, `right` gives its y axis to `left` and shares its x with
+# `top`, and it kept a blank strip where the axis would have been. The same block runs
+# in all four bindings.
+_gt = {"u": [1.0, 2.0, 3.0, 4.0, 5.0, 6.0], "v": [0.0012, 0.0031, 0.0054, 0.0087, 0.0102, 0.014],
+       "w": [3.0, 1.0, 4.0, 1.0, 5.0, 9.0]}
+_left = data(_gt, name="gt") + point + x(col.w) + y(col.v)
+_right = data(_gt, name="gt") + point + x(col.u) + y(col.v)
+_top = data(_gt, name="gt") + bar * bin + x(col.u)
+def _last_panel(svg):
+    return re.search(r'<clipPath[^>]*><rect x="([^"]*)"', svg.split("<svg ")[-1]).group(1)
+assert _last_panel(render_svg(_top / (_left | _right))) == _last_panel(render_svg(_left | _right))
+ok("a plot that gives up its y axis keeps no margin under a shared x")

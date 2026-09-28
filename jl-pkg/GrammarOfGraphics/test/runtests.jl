@@ -2923,3 +2923,17 @@ end
     end
     @test occursin("`y(bb)` refers to a column that is not in the data", said)
 end
+
+# A plot that gives up its y axis keeps no margin under a shared x: in
+# `top / (left | right)`, `right` gives its y axis to `left` and shares its x with
+# `top`, and it kept a blank strip where the axis would have been. The same block
+# runs in all four bindings.
+@testset "a plot that gives up its y axis keeps no margin under a shared x" begin
+    gt = (u = [1.0, 2.0, 3.0, 4.0, 5.0, 6.0], v = [0.0012, 0.0031, 0.0054, 0.0087, 0.0102, 0.014],
+          w = [3.0, 1.0, 4.0, 1.0, 5.0, 9.0])
+    left = data(gt) + point + x(:w) + y(:v)
+    right = data(gt) + point + x(:u) + y(:v)
+    top = data(gt) + bar * bin + x(:u)
+    last_panel(svg) = match(r"<clipPath[^>]*><rect x=\"([^\"]*)\"", last(split(svg, "<svg "))).captures[1]
+    @test last_panel(render_svg(top / (left | right))) == last_panel(render_svg(left | right))
+end

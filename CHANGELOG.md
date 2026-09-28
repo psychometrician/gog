@@ -48,6 +48,12 @@ CRAN-style repositories and PyPI, `GrammarOfGraphics` on Julia's General, and
 
 ### Changed
 
+- **On a page, an axis a plot gives up costs it no margin.** In `a / (b | c)`,
+  where `c` shares its y axis with `b` and its x axis with `a`, `c` kept a blank
+  strip where the y axis it gives up would have been; it now sits where it does
+  beside `b` alone. A plot whose x axis a plot below draws no longer keeps room
+  for tick labels it does not draw, so such panels are a little wider.
+
 - **A misspelled column on a `zone` that reads its positions is refused.**
   `zone * density`, `zone * bin`, a tally or a partition whose `x` or `y` named
   a column the table does not hold drew an empty panel with no message. It now
