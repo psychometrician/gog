@@ -2194,8 +2194,8 @@ impl SvgRenderer {
                 (&no_ticks, &no_ticks, "", "")
             } else if is_globe {
                 // A globe draws no axes at all — the first space with none. The
-                // sphere has no edge to write one on, so no margin is reserved
-                // and no axis names are kept: `check_globe` refuses
+                // sphere has no straight side to write one along, so no margin is
+                // reserved and no axis names are kept: `check_globe` refuses
                 // `x_label()`/`y_label()` rather than letting one be set and
                 // dropped (`nest`'s own rule), and the graticule is the panel
                 // grid's reading here, drawn inside the disk.

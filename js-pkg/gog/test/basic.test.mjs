@@ -3746,3 +3746,23 @@ test("a globe's hidden rows are said once per table, and name it", () => {
   }
   assert.ok(said.includes("row(s) of `cities` face away") && said.includes("row(s) of `copy` face away"), said);
 });
+
+// A span mark on a map is refused by the map alone, not first told to add a range
+// transform the map refuses too. On a globe: a sphere has no straight side for an axis
+// label, a `z` with no spike keeps the marks drawn on the sphere, and `turn` is a
+// longitude. The same block runs in all four bindings.
+test("the globe and map refusals use the globe chapter's words", () => {
+  const t = { lon: [1, 2, 3], lat: [4, 5, 6], v: [1, 2, 3] };
+  const said = (p) => {
+    try { render_svg(p); } catch (e) { return e.message; }
+    throw new Error("drew");
+  };
+  const spanned = said(plot(data(t), interval, x(col.lon), y(col.lat), map()));
+  assert.ok(!spanned.includes("produces those extents") && spanned.includes("map()"), spanned);
+  assert.ok(said(plot(data(t), point, x(col.lon), y(col.lat), x_label("Longitude"), globe()))
+    .includes("no straight side to write one along"));
+  assert.ok(said(plot(data(t), point, x(col.lon), y(col.lat), z(col.v), globe()))
+    .includes("to keep the marks drawn on the sphere"));
+  assert.ok(said(plot(data(t), point, x(col.lon), y(col.lat), globe({ tilt: 100 })))
+    .includes("a longitude wraps and a latitude does not"));
+});

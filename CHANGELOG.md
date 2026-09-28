@@ -56,6 +56,14 @@ CRAN-style repositories and PyPI, `GrammarOfGraphics` on Julia's General, and
 
 ### Changed
 
+- **An `interval` or a `ribbon` in a space that never draws it hears only the
+  space.** On `map()`, `globe()` and the other spaces that refuse them, they
+  were first told to add a range transform, and `interval * range` was then
+  refused by the space. Three globe refusals also use the globe chapter's
+  words: a sphere has "no straight side" to write an axis label along, a `z`
+  with no spike keeps "the marks drawn on the sphere" rather than "the surface
+  marks", and `turn` is a longitude, not a bearing.
+
 - **What a globe hides is said once per table, and names it.** The note that
   rows face away from the view, and the one for spikes below zero, now name the
   layer's table, as in "3192 of 4150 row(s) of `world_borders`". Two tables with

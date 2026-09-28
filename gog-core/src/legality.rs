@@ -3076,6 +3076,13 @@ fn check_span_needs_range(out: &mut Vec<Diagnostic>, spec: &PlotSpec, df: Option
         // and one of them is the axis itself, which cannot be seen without the data.
         return;
     }
+    // **A space that never draws the mark refuses it in its own words.** On a
+    // `map()` or a `globe()` an `interval` was told to add a range transform, and
+    // `interval * range` was then refused by the space: the direction led to a
+    // second refusal. The space's refusal stands alone.
+    if !mark_draws_in_space(&layer.mark, space_of(spec)) {
+        return;
+    }
     let example = match layer.mark {
         Mark::Interval => "`interval * range + x(group) + y(value)` draws the min–max range per group, or `interval * bounds(lo, hi)` a pre-computed one",
         Mark::Ribbon => "`ribbon * range + x(t) + y(value)` draws a band between the min and max at each x, or `ribbon * bounds(lo, hi)` a pre-computed one",
@@ -10155,8 +10162,9 @@ fn check_globe(out: &mut Vec<Diagnostic>, spec: &PlotSpec, data: &HashMap<String
             kind: DiagnosticKind::Unsupported,
             message: "gog: `z(...)` on a globe is the radius, and only a `bar` reads it — a \
                       spike standing at its place, measuring outward from the surface. Add a \
-                      `bar` layer to raise spikes, drop `z(...)` to keep the surface marks, \
-                      or drop `globe()` for the cube, where every position mark reads `z`."
+                      `bar` layer to raise spikes, drop `z(...)` to keep the marks drawn on \
+                      the sphere, or drop `globe()` for the cube, where every position mark \
+                      reads `z`."
                 .to_string(),
         });
     }
@@ -10221,7 +10229,7 @@ fn check_globe(out: &mut Vec<Diagnostic>, spec: &PlotSpec, data: &HashMap<String
 
     // **`tilt` is a latitude, and latitude has ends** — `check_space`'s
     // elevation ruling, one space over, with the same asymmetry: `turn` is a
-    // bearing and wraps at any value, so only `tilt` refuses.
+    // longitude and wraps at any value, so only `tilt` refuses.
     let t = view.tilt;
     if !t.is_finite() || t.abs() > 90.0 {
         let nearest = if t.is_finite() {
@@ -10236,7 +10244,7 @@ fn check_globe(out: &mut Vec<Diagnostic>, spec: &PlotSpec, data: &HashMap<String
                  lives. At 90 the view faces straight down on the north pole and at -90 on \
                  the south; there is no place past either. Use `globe(tilt = {nearest})` for \
                  the nearest view, or `globe(turn = )` to swing around the earth instead — a \
-                 bearing wraps and a latitude does not."
+                 longitude wraps and a latitude does not."
             ),
         });
     }
@@ -10337,8 +10345,8 @@ fn check_globe(out: &mut Vec<Diagnostic>, spec: &PlotSpec, data: &HashMap<String
         out.push(Diagnostic {
             kind: DiagnosticKind::Illegal,
             message: "gog: an axis label names an axis, and a `globe()` plot draws none — a \
-                      sphere has no edge to write one on, and the graticule is the reference \
-                      instead. Drop it; `title()` still names the plot."
+                      sphere has no straight side to write one along, and the graticule is the \
+                      reference instead. Drop it; `title()` still names the plot."
                 .to_string(),
         });
     }
@@ -17516,6 +17524,54 @@ mod tests {
         // §12: an Assumption renders. A refusal here would take the book's own
         // teaching plot off the page.
         assert!(!d.iter().any(|x| x.is_fatal()), "must still draw: {:?}", msgs(&d));
+    }
+
+    /// **A span mark in a space that never draws it hears only the space.** On a
+    /// `map()` or a `globe()` an `interval` or a `ribbon` was told first to add a
+    /// range transform, and `interval * range` was then refused by the space.
+    #[test]
+    fn a_span_mark_in_a_space_that_never_draws_it_hears_only_the_space() {
+        for coord in [
+            CoordSpace::Polar(crate::ir::PolarView::default()),
+            CoordSpace::Nest,
+            CoordSpace::Map(crate::ir::MapView::default()),
+            CoordSpace::Globe(crate::ir::GlobeView::default()),
+            CoordSpace::Network(crate::ir::NetworkView::default()),
+        ] {
+            for mark in [Mark::Interval, Mark::Ribbon] {
+                let spec = PlotSpec::new().data("t").x("gdp").y("life").coord(coord.clone())
+                    .layer(Layer::new(mark.clone()));
+                let d = check(&spec, &data());
+                assert!(d.iter().any(Diagnostic::is_fatal), "{coord:?} {mark:?} drew");
+                let drawn_there = mark_draws_in_space(&mark, space_of(&spec));
+                let asked = d.iter().any(|x| x.message.contains("produces those extents"));
+                assert_eq!(asked, drawn_there, "{coord:?} {mark:?}: {:?}", msgs(&d));
+            }
+        }
+    }
+
+    /// **Three globe refusals say what the globe chapter says.** An axis label: a
+    /// sphere has no straight side, where "no edge" contradicted the disk's edge. A
+    /// `z` with no spike: the marks drawn on the sphere, where "the surface marks"
+    /// read as the `surface` mark. A `tilt` past a pole: `turn` is a longitude,
+    /// where "a bearing" was the chapter's one use of the word.
+    #[test]
+    fn the_globe_refusals_use_the_globe_chapters_words() {
+        let globe = || PlotSpec::new().data("t").x("gdp").y("life")
+            .coord(CoordSpace::Globe(crate::ir::GlobeView::default()))
+            .layer(Layer::new(Mark::Point));
+        let said = |spec: PlotSpec| msgs(&check(&spec, &data())).join("\n");
+        let labeled = said(globe().x_label("GDP"));
+        assert!(labeled.contains("no straight side to write one along")
+            && !labeled.contains("no edge"), "{labeled}");
+        let raised = said(globe().z("value"));
+        assert!(raised.contains("to keep the marks drawn on the sphere")
+            && !raised.contains("surface marks"), "{raised}");
+        let tilted = said(PlotSpec::new().data("t").x("gdp").y("life")
+            .coord(CoordSpace::Globe(crate::ir::GlobeView { tilt: 100.0, ..Default::default() }))
+            .layer(Layer::new(Mark::Point)));
+        assert!(tilted.contains("a longitude wraps and a latitude does not")
+            && !tilted.contains("bearing"), "{tilted}");
     }
 
     /// **The cube's log-`z` refusal speaks only in the cube.** Every other space

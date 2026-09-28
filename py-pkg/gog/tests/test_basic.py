@@ -3595,3 +3595,26 @@ with contextlib.redirect_stderr(io.StringIO()) as _said:
 assert "row(s) of `cities` face away" in _said.getvalue() and \
     "row(s) of `copy` face away" in _said.getvalue(), _said.getvalue()
 ok("a globe's hidden rows are said once per table, and name it")
+
+
+# --- The globe and map refusals use the globe chapter's words ---------------------------
+# A span mark on a map is refused by the map alone, not first told to add a range
+# transform the map refuses too. On a globe: a sphere has no straight side for an axis
+# label, a `z` with no spike keeps the marks drawn on the sphere, and `turn` is a
+# longitude. The same block runs in all four bindings.
+_g = data({"lon": [1.0, 2.0, 3.0], "lat": [4.0, 5.0, 6.0], "v": [1.0, 2.0, 3.0]}, name="t")
+def _refusal(p):
+    try:
+        render_svg(p)
+    except GogError as refusal:
+        return str(refusal)
+    raise AssertionError("drew")
+_spanned = _refusal(_g + interval + x(col.lon) + y(col.lat) + map())
+assert "produces those extents" not in _spanned and "map()" in _spanned, _spanned
+assert "no straight side to write one along" in _refusal(
+    _g + point + x(col.lon) + y(col.lat) + x_label("Longitude") + globe())
+assert "to keep the marks drawn on the sphere" in _refusal(
+    _g + point + x(col.lon) + y(col.lat) + z(col.v) + globe())
+assert "a longitude wraps and a latitude does not" in _refusal(
+    _g + point + x(col.lon) + y(col.lat) + globe(tilt=100))
+ok("the globe and map refusals use the globe chapter's words")

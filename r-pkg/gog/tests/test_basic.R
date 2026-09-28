@@ -5695,3 +5695,26 @@ local({
     stop("FAIL: a globe's hidden rows should be said per table: ", said)
   cat("PASS: a globe's hidden rows are said once per table, and name it\n")
 })
+
+# ---------------------------------------------------------------------------
+# Four globe and map refusals. A span mark on a map is refused by the map alone,
+# not first told to add a range transform the map refuses too. On a globe: a
+# sphere has no straight side for an axis label, a `z` with no spike keeps the
+# marks drawn on the sphere, and `turn` is a longitude. The same block runs in
+# all four bindings.
+# ---------------------------------------------------------------------------
+local({
+  t <- data.frame(lon = c(1, 2, 3), lat = c(4, 5, 6), v = c(1, 2, 3))
+  said <- function(p) tryCatch({ render_svg(p); "" }, error = function(e) conditionMessage(e))
+  spanned <- said(data(t) + interval + x(lon) + y(lat) + map())
+  labeled <- said(data(t) + point + x(lon) + y(lat) + x_label("Longitude") + globe())
+  raised <- said(data(t) + point + x(lon) + y(lat) + z(v) + globe())
+  tilted <- said(data(t) + point + x(lon) + y(lat) + globe(tilt = 100))
+  if (grepl("produces those extents", spanned, fixed = TRUE) || !grepl("map()", spanned, fixed = TRUE) ||
+      !grepl("no straight side to write one along", labeled, fixed = TRUE) ||
+      !grepl("to keep the marks drawn on the sphere", raised, fixed = TRUE) ||
+      !grepl("a longitude wraps and a latitude does not", tilted, fixed = TRUE))
+    stop("FAIL: a globe or map refusal is worded as before: ",
+         paste(spanned, labeled, raised, tilted, sep = "\n"))
+  cat("PASS: the globe and map refusals use the globe chapter's words\n")
+})

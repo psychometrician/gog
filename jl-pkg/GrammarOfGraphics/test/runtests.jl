@@ -3137,3 +3137,24 @@ end
     said = read(path, String)
     @test occursin("row(s) of `cities` face away", said) && occursin("row(s) of `copy` face away", said)
 end
+
+# A span mark on a map is refused by the map alone, not first told to add a range
+# transform the map refuses too. On a globe: a sphere has no straight side for an axis
+# label, a `z` with no spike keeps the marks drawn on the sphere, and `turn` is a
+# longitude. The same block runs in all four bindings.
+@testset "the globe and map refusals use the globe chapter's words" begin
+    t = (lon = [1.0, 2.0, 3.0], lat = [4.0, 5.0, 6.0], v = [1.0, 2.0, 3.0])
+    said(p) = try
+        render_svg(p); ""
+    catch e
+        sprint(showerror, e)
+    end
+    spanned = said(data(t) + interval + x(:lon) + y(:lat) + map())
+    @test !occursin("produces those extents", spanned) && occursin("map()", spanned)
+    @test occursin("no straight side to write one along",
+                   said(data(t) + point + x(:lon) + y(:lat) + x_label("Longitude") + globe()))
+    @test occursin("to keep the marks drawn on the sphere",
+                   said(data(t) + point + x(:lon) + y(:lat) + z(:v) + globe()))
+    @test occursin("a longitude wraps and a latitude does not",
+                   said(data(t) + point + x(:lon) + y(:lat) + globe(tilt = 100)))
+end
