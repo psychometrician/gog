@@ -3514,3 +3514,25 @@ for _p in (_net + edge + polar(), _net + edge + map(), _net + point * layout(col
         _s = str(refusal)
         assert "network()" in _s and "Drop `" not in _s and "but none is set" not in _s, _s
 ok("a layer the graph places is refused once outside the network")
+
+
+# --- A bar over two categories is sent to the cube, not to count ------------------------
+# `bar * count + x(a) + y(b)` was told there was nothing to measure and to use
+# `bar * count`; its own refusal now offers `space()`. A floor summary with no `z` is
+# asked for `z`, not told to count, and is not also told it "is drawn flat". The same
+# block runs in all four bindings.
+_floor = data({"g": ["a", "a", "b", "b"], "k": ["u", "v", "u", "v"], "v": [1.0, 2.0, 3.0, 4.0]},
+              name="t")
+try:
+    render_svg(_floor + bar * count + x(col.g) + y(col.k))
+    raise AssertionError("bar * count over two categories drew")
+except GogError as refusal:
+    _s = str(refusal)
+    assert "`+ space()` stands one bar on each pair" in _s and "nothing for it to measure" not in _s, _s
+try:
+    render_svg(_floor + bar * mean + x(col.g) + y(col.k) + space())
+    raise AssertionError("a floor summary with no z drew")
+except GogError as refusal:
+    _s = str(refusal)
+    assert "add `z(<column>)`" in _s and "drawn flat" not in _s and "bar * count" not in _s, _s
+ok("a bar over two categories is sent to the cube, not to count")

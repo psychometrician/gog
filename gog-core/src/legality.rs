@@ -2298,7 +2298,20 @@ fn synth_axis_names_a_column(
         Channel::Y => spec.position_for(layer, &Channel::X),
         _ => None,
     }.map(|d| d.field.as_str());
+    // **Two categories are a floor**, and a `bar` counted over one stands up in the
+    // cube, which keeps both columns where they were written. The one slot mark a
+    // tally gives a length to: a `box` takes no transform and an `interval` needs a
+    // range, so for them `space()` reaches another refusal, and a `point` does not
+    // stand a count on `z`.
+    let floor = layer.mark == Mark::Bar
+        && matches!(maker, Transform::Count | Transform::Proportion)
+        && key.is_some_and(|k| actual_type(df, k) == Some(VarType::Discrete));
     let direction = match (kind, maker) {
+        (VarType::Discrete, _) if floor => format!(
+            "To split the rows by `{field}`, `color({field})` colors each group, \
+             `/ facet({field})` draws one panel per category, and `+ space()` stands one \
+             bar on each pair of categories in the cube."
+        ),
         (VarType::Discrete, _) => format!(
             "To split the rows by `{field}`, `color({field})` colors each group, and \
              `/ facet({field})` draws one panel per category."
@@ -2979,29 +2992,66 @@ fn check_slot_shape(out: &mut Vec<Diagnostic>, spec: &PlotSpec, df: &DataFrame, 
     {
         return;
     }
+    // **A tally or an estimate is not short of a measure: it makes one.** What is
+    // wrong is the category named on the axis it draws along, and
+    // `synth_axis_names_a_column` says so, with the splits that keep that column.
+    // Refused here as well, `bar * count + x(<a>) + y(<b>)` was told there was
+    // nothing to measure and to use `bar * count`, the sentence it was.
+    if synthesizes_measure(&layer.mark, &layer.transforms) {
+        return;
+    }
     // What the measure would have *been* — named per mark, so the direction
     // points at the thing that mark draws rather than at a generic "a number".
-    let (what, fix) = match layer.mark {
-        Mark::Box => (
-            "summarize",
-            "One axis must be a number: that is the column the five-number summary reduces.",
-        ),
-        Mark::Interval => (
-            "span",
-            "One axis must be a number: that is the column the low and high extents come from.",
-        ),
-        _ => (
-            "measure",
-            "One axis must be a number: that is the length of the bar. To count rows per \
-             category instead, use `bar * count`.",
-        ),
+    let (what, measure) = match layer.mark {
+        Mark::Box => ("summarize", "the column the five-number summary reduces"),
+        Mark::Interval => ("span", "the column the low and high extents come from"),
+        _ => ("measure", "the length of the bar"),
+    };
+    let (a, b) = (&x.field, &y.field);
+    // **A written `space()` with no `z` has a floor and nothing standing on it.** In
+    // the cube `x` and `y` are the footprint, not a slot and a measure, so neither
+    // has to be a number: `z` is the one missing. Told "one axis must be a number"
+    // and to count instead, a floor summary (`bar * mean + x(<a>) + y(<b>) + space()`)
+    // was sent away from the plot it was one position short of.
+    let fix = if matches!(spec.coord, CoordSpace::Space(_))
+        && mark_draws_in_space(&layer.mark, SpaceKind::Space)
+    {
+        let count = if layer.mark == Mark::Bar && layer.transforms.is_empty() {
+            " To count the rows on each pair of categories instead, `bar * count` stands \
+             the count up on `z`."
+        } else {
+            ""
+        };
+        format!(
+            "In the cube, `x` and `y` are the floor and `z` is {measure}: add \
+             `z(<column>)`.{count}"
+        )
+    } else if layer.mark == Mark::Bar && a == b {
+        // One column twice has no pairs to split or stand on: the count is of it.
+        format!(
+            "One axis must be a number: that is {measure}. To count the rows instead, \
+             `bar * count + x({a})` draws one bar for each `{a}`."
+        )
+    } else if layer.mark == Mark::Bar {
+        // Every count offered draws. "Use `bar * count`" kept `y({b})` and was refused
+        // for it, since a count draws on `y`. Either column can be the one counted,
+        // and which one the reader wants is not in the sentence: a country's
+        // continent groups it, never the other way round, and nothing here says so.
+        format!(
+            "One axis must be a number: that is {measure}. To count the rows instead, \
+             count one column, `bar * count + x({a})` or `bar * count + x({b})`, and \
+             `color()` splits each bar by the other. To keep both, \
+             `bar * count + x({a}) + y({b}) + space()` stands one bar on each pair in the \
+             cube."
+        )
+    } else {
+        format!("One axis must be a number: that is {measure}.")
     };
     out.push(Diagnostic {
         kind: DiagnosticKind::Illegal,
         message: format!(
-            "gog: `{m}` has categorical columns on both axes — `x({})` and `y({})` — so there \
-             is nothing for it to {what}. {fix}",
-            x.field, y.field
+            "gog: `{m}` has categorical columns on both axes — `x({a})` and `y({b})` — so \
+             there is nothing for it to {what}. {fix}"
         ),
     });
 }
@@ -7933,6 +7983,11 @@ pub fn check(spec: &PlotSpec, data: &HashMap<String, DataFrame>) -> Vec<Diagnost
                 check_joined_rows(&mut out, spec, df, layer);
             }
         }
+        // "So it is drawn flat" is a note about how the plot draws too, and it stood
+        // beside refusals that draw nothing: `bar * mean + x(<a>) + y(<b>) + space()`,
+        // whose refusal already asks for `z`, and a `surface` refused for having no
+        // cube to stand in.
+        note_space_drawn_flat(&mut out, spec);
     }
 
     out
@@ -8691,6 +8746,36 @@ fn check_brush(out: &mut Vec<Diagnostic>, spec: &PlotSpec, data: &HashMap<String
 // partition, two answers: the Law 2 break was the gate, not the drawing.
 // ---------------------------------------------------------------------------
 
+/// A viewing angle without a third dimension: legal, but it projects nothing.
+///
+/// **Every direction here draws, whatever the plot's marks are.** It said "Add
+/// `z(<column>)`" as if the plot's own mark took one, and `line`, `step`, `area`,
+/// `ribbon` and a cluster tree refuse it, while `rule`, `zone` and `text` do not
+/// draw it yet, so a reader following it could hit a second wall; and its one
+/// example, `bar * bin`, is refused over two categories. So the message offers the
+/// flat plot first, since that is what was drawn, then `z` on a mark that takes
+/// one, which a floor summary on a `bar` needs, and the transform that stands a
+/// count up on each kind of floor.
+///
+/// **Asked only of a plot that draws** (`check` calls it after every gate, and only
+/// when nothing was refused), since "so it is drawn flat" is otherwise false.
+fn note_space_drawn_flat(out: &mut Vec<Diagnostic>, spec: &PlotSpec) {
+    if matches!(spec.coord, CoordSpace::Space(_)) && space_of(spec) != SpaceKind::Space
+        && !spec.layers.iter().any(placed_by_the_graph)
+    {
+        out.push(Diagnostic {
+            kind: DiagnosticKind::Assumption,
+            message: "gog: `space(...)` sets a 3-D viewing angle, but nothing in this plot has \
+                      a third dimension, so it is drawn flat. To draw it flat on purpose, drop \
+                      `space()`. To stand it in the cube, add `z(<column>)` to a mark that \
+                      takes one, such as `point` or `bar`, or use a transform that stands a \
+                      count up on `z`: `bar * bin` over two numbers, `bar * count` over two \
+                      categories."
+                .to_string(),
+        });
+    }
+}
+
 fn check_space(out: &mut Vec<Diagnostic>, spec: &PlotSpec) {
     // Whether this plot has a third dimension at all — asked of `space_of`, the one
     // source the renderer's own `is_3d` reads, so the report and the picture cannot
@@ -8736,31 +8821,6 @@ fn check_space(out: &mut Vec<Diagnostic>, spec: &PlotSpec) {
                 ),
             });
         }
-    }
-
-    // A viewing angle without a third dimension: legal, but it projects nothing.
-    //
-    // **Every direction here draws, whatever the plot's marks are.** It said "Add
-    // `z(<column>)`" as if the plot's own mark took one, and `line`, `step`, `area`,
-    // `ribbon` and a cluster tree refuse it, while `rule`, `zone` and `text` do not
-    // draw it yet, so a reader following it could hit a second wall; and its one
-    // example, `bar * bin`, is refused over two categories. So the message offers the
-    // flat plot first, since that is what was drawn, then `z` on a mark that takes
-    // one, which a floor summary on a `bar` needs, and the transform that stands a
-    // count up on each kind of floor.
-    if matches!(spec.coord, CoordSpace::Space(_)) && !projects
-        && !spec.layers.iter().any(placed_by_the_graph)
-    {
-        out.push(Diagnostic {
-            kind: DiagnosticKind::Assumption,
-            message: "gog: `space(...)` sets a 3-D viewing angle, but nothing in this plot has \
-                      a third dimension, so it is drawn flat. To draw it flat on purpose, drop \
-                      `space()`. To stand it in the cube, add `z(<column>)` to a mark that \
-                      takes one, such as `point` or `bar`, or use a transform that stands a \
-                      count up on `z`: `bar * bin` over two numbers, `bar * count` over two \
-                      categories."
-                .to_string(),
-        });
     }
 
     // **`smooth` has no two-dimensional form, so it is refused in the cube rather
@@ -14241,25 +14301,26 @@ mod tests {
 
     /// A transform that invents a position in the plane is not a height for the
     /// cube. Each of these stood a bare `space()` in an empty cube and said nothing;
-    /// each is flat now, with `check_space`'s note, while the 3-D histogram and the
-    /// counted floor still project.
+    /// each is flat now, with the drawn-flat note, while the 3-D histogram and the
+    /// counted floor still project. Each is a plot that draws, since the note is not
+    /// given beside a refusal: the cluster tree is on the complete table.
     #[test]
     fn a_bare_space_is_flat_unless_a_tally_stands_on_z() {
         let cube = || CoordSpace::Space(crate::ir::SpaceView::default());
-        for spec in [
-            PlotSpec::new().data("t").x("gdp").coord(cube())
-                .layer(Layer::new(Mark::Zone).bounds("life", "value")),
-            PlotSpec::new().data("t").x("gdp").coord(cube())
-                .layer(Layer::new(Mark::Ribbon).bounds("life", "value")),
-            PlotSpec::new().data("t").x("continent").coord(cube())
-                .layer(Layer::new(Mark::Path).cluster(Some("gdp"), Some("region"))),
-            PlotSpec::new().data("t").x("gdp").coord(cube())
-                .layer(Layer::new(Mark::Zone).partition(&["continent", "region"])),
-            PlotSpec::new().data("t").coord(cube())
-                .layer(Layer::new(Mark::Ribbon).flow(&["continent", "region"])),
+        for (spec, tables) in [
+            (PlotSpec::new().data("t").x("gdp").coord(cube())
+                .layer(Layer::new(Mark::Zone).bounds("life", "value")), data()),
+            (PlotSpec::new().data("t").x("gdp").coord(cube())
+                .layer(Layer::new(Mark::Ribbon).bounds("life", "value")), data()),
+            (tree_spec().coord(cube()), cluster_table()),
+            (PlotSpec::new().data("t").x("gdp").coord(cube())
+                .layer(Layer::new(Mark::Zone).partition(&["continent", "region"])), data()),
+            (PlotSpec::new().data("t").coord(cube())
+                .layer(Layer::new(Mark::Ribbon).flow(&["continent", "region"])), data()),
         ] {
             assert_eq!(space_of(&spec), SpaceKind::Flat, "{:?}", spec.layers[0].transforms);
-            let d = check(&spec, &data());
+            let d = check(&spec, &tables);
+            assert!(!d.iter().any(Diagnostic::is_fatal), "{:?}", msgs(&d));
             assert!(d.iter().any(|x| x.kind == DiagnosticKind::Assumption
                 && x.message.contains("drawn flat") && x.message.contains("drop `space()`")
                 && x.message.contains("to a mark that takes one")),
@@ -16352,6 +16413,104 @@ mod tests {
                 d.iter().map(|x| &x.message).collect::<Vec<_>>()
             );
         }
+    }
+
+    /// **Every way to count two categories that the refusal offers draws.** It said
+    /// "use `bar * count`", which kept the second category on `y`, where a count
+    /// draws, and was refused for it. Each sentence it names now is checked here.
+    #[test]
+    fn a_bar_over_two_categories_is_offered_counts_that_draw() {
+        let d = check(&PlotSpec::new().data("t").x("continent").y("region")
+            .layer(Layer::new(Mark::Bar)), &data());
+        let said = &d.iter().find(|x| x.message.contains("categorical columns on both axes"))
+            .expect("refused").message;
+        assert!(said.contains("`bar * count + x(continent)`")
+            && said.contains("`bar * count + x(region)`")
+            && said.contains("`bar * count + x(continent) + y(region) + space()`"), "{said}");
+        let cube = || CoordSpace::Space(crate::ir::SpaceView::default());
+        let count = || Layer::new(Mark::Bar).transform(Transform::Count);
+        for spec in [
+            PlotSpec::new().data("t").x("continent").layer(count()),
+            PlotSpec::new().data("t").x("region").layer(count()),
+            PlotSpec::new().data("t").x("continent")
+                .layer(count().encode(Channel::Color, "region")),
+            PlotSpec::new().data("t").x("continent").y("region").coord(cube()).layer(count()),
+        ] {
+            let d = check(&spec, &data());
+            assert!(!d.iter().any(Diagnostic::is_fatal), "a direction is refused: {:?}", msgs(&d));
+        }
+        // One column on both axes has no pairs: the count is of that column alone.
+        let d = check(&PlotSpec::new().data("t").x("continent").y("continent")
+            .layer(Layer::new(Mark::Bar)), &data());
+        assert!(d[0].message.contains("`bar * count + x(continent)` draws one bar for each")
+            && !d[0].message.contains("space()"), "{:?}", d[0]);
+    }
+
+    /// **A tally is not short of a measure**, so two categories under one are refused
+    /// by the column named where it draws, not as a bar with nothing to measure: that
+    /// refusal told `bar * count` to use `bar * count`. Over every slot mark and every
+    /// transform that makes the measure, something still refuses.
+    #[test]
+    fn a_tally_over_two_categories_is_not_told_it_measures_nothing() {
+        for mark in [Mark::Bar, Mark::Box, Mark::Interval] {
+            for layer in [
+                Layer::new(mark.clone()).transform(Transform::Count),
+                Layer::new(mark.clone()).transform(Transform::Proportion),
+                Layer::new(mark.clone()).transform(Transform::Bin),
+                Layer::new(mark.clone()).transform(Transform::Density),
+                Layer::new(mark.clone()).bounds("life", "value"),
+                Layer::new(mark.clone()).partition(&["continent", "region"]),
+                Layer::new(mark.clone()).flow(&["continent", "region"]),
+            ] {
+                let spec = PlotSpec::new().data("t").x("continent").y("region").layer(layer.clone());
+                let d = check(&spec, &data());
+                assert!(d.iter().any(Diagnostic::is_fatal), "{mark:?} {:?} drew", layer.transforms);
+                assert!(d.iter().all(|x| !x.message.contains("nothing for it to")),
+                    "{mark:?} {:?}: {:?}", layer.transforms, msgs(&d));
+            }
+        }
+        // The count's own refusal offers the cube, where both columns stay put.
+        for t in [Transform::Count, Transform::Proportion] {
+            let d = check(&PlotSpec::new().data("t").x("continent").y("region")
+                .layer(Layer::new(Mark::Bar).transform(t.clone())), &data());
+            assert_eq!(d.len(), 1, "{t:?}: {:?}", msgs(&d));
+            assert!(d[0].message.contains("`+ space()` stands one bar on each pair"), "{:?}", d[0]);
+        }
+    }
+
+    /// **A floor summary with no `z` is asked for `z`.** In a written `space()` the two
+    /// categories are the floor, so the refusal names the one position missing; told
+    /// that one axis must be a number and to count instead, `bar * mean` was sent
+    /// away from the plot it was one word short of. The note that the plot "is drawn
+    /// flat" is not printed beside it, since nothing is drawn.
+    #[test]
+    fn a_floor_summary_with_no_z_is_asked_for_z() {
+        let cube = || CoordSpace::Space(crate::ir::SpaceView::default());
+        for layer in [
+            Layer::new(Mark::Bar).transform(Transform::Mean),
+            Layer::new(Mark::Bar),
+            Layer::new(Mark::Box),
+            Layer::new(Mark::Interval).transform(Transform::Range),
+        ] {
+            let spec = PlotSpec::new().data("t").x("continent").y("region").coord(cube())
+                .layer(layer.clone());
+            let d = check(&spec, &data());
+            assert_eq!(d.len(), 1, "{:?}: {:?}", layer.mark, msgs(&d));
+            assert!(d[0].message.contains("add `z(<column>)`")
+                && !d[0].message.contains("One axis must be a number"), "{:?}", d[0]);
+            // What it asks for draws.
+            let asked = PlotSpec::new().data("t").x("continent").y("region").z("value")
+                .coord(cube()).layer(layer.clone());
+            assert!(!check(&asked, &data()).iter().any(Diagnostic::is_fatal),
+                "{:?}: {:?}", layer.mark, msgs(&check(&asked, &data())));
+        }
+        // Only a bare bar is offered the count, which draws too; a summary keeps its own.
+        let bare = check(&PlotSpec::new().data("t").x("continent").y("region").coord(cube())
+            .layer(Layer::new(Mark::Bar)), &data());
+        assert!(bare[0].message.contains("`bar * count` stands the count up on `z`"), "{bare:?}");
+        let mean = check(&PlotSpec::new().data("t").x("continent").y("region").coord(cube())
+            .layer(Layer::new(Mark::Bar).transform(Transform::Mean)), &data());
+        assert!(!mean[0].message.contains("bar * count"), "{mean:?}");
     }
 
     /// The Law-2 parity the horizontal box/interval work closed: a slot mark's two

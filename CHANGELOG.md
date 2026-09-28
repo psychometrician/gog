@@ -56,6 +56,17 @@ CRAN-style repositories and PyPI, `GrammarOfGraphics` on Julia's General, and
 
 ### Changed
 
+- **A bar over two categories is refused toward counts that draw.** `bar +
+  x(country) + y(continent)` was told to use `bar * count`, which keeps
+  `y(continent)` and is refused as well. The refusal now names counting either
+  column, `bar * count + x(country)` or `bar * count + x(continent)`, and
+  `bar * count + x(country) + y(continent) + space()`, which stands a bar on
+  each pair. `bar * count` over two categories is no longer told there is
+  nothing to measure, and its own refusal offers `+ space()`. Inside `space()`
+  with no `z`, a `bar`, `box` or `interval` over two categories is asked for
+  `z(<column>)`, not told to count. The note that a `space()` plot "is drawn
+  flat" is no longer printed beside a refusal, since nothing is drawn.
+
 - **An `edge` or a `layout` outside `network()` is refused once.** Its own
   refusal already names `network()`. A second one was printed beside it and
   offered a fix that was refused as well: `edge + polar()` was also told to

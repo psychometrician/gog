@@ -5603,3 +5603,24 @@ local({
   }
   cat("PASS: a layer the graph places is refused once outside the network\n")
 })
+
+# ---------------------------------------------------------------------------
+# Two categories under a bar are a floor. `bar * count + x(a) + y(b)` was told
+# there was nothing to measure and to use `bar * count`; its own refusal now
+# offers `space()`. A floor summary with no `z` is asked for `z`, not told to
+# count, and is not also told it "is drawn flat". The same block runs in all
+# four bindings.
+# ---------------------------------------------------------------------------
+local({
+  t <- data.frame(g = c("a", "a", "b", "b"), k = c("u", "v", "u", "v"), v = c(1, 2, 3, 4))
+  said <- function(p) tryCatch({ render_svg(p); "" }, error = function(e) conditionMessage(e))
+  counted <- said(data(t) + bar * count + x(g) + y(k))
+  if (!grepl("`+ space()` stands one bar on each pair", counted, fixed = TRUE) ||
+      grepl("nothing for it to measure", counted, fixed = TRUE))
+    stop("FAIL: a count over two categories should be offered the cube: ", counted)
+  floor <- said(data(t) + bar * mean + x(g) + y(k) + space())
+  if (!grepl("add `z(<column>)`", floor, fixed = TRUE) ||
+      grepl("drawn flat", floor, fixed = TRUE) || grepl("bar * count", floor, fixed = TRUE))
+    stop("FAIL: a floor summary with no z should be asked for z: ", floor)
+  cat("PASS: a bar over two categories is sent to the cube, not to count\n")
+})

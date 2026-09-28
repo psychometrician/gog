@@ -3054,3 +3054,22 @@ end
         @test occursin("network()", s) && !occursin("Drop `", s) && !occursin("but none is set", s)
     end
 end
+
+# Two categories under a bar are a floor. `bar * count + x(a) + y(b)` was told there
+# was nothing to measure and to use `bar * count`; its own refusal now offers
+# `space()`. A floor summary with no `z` is asked for `z`, not told to count, and is not
+# also told it "is drawn flat". The same block runs in all four bindings.
+@testset "a bar over two categories is sent to the cube, not to count" begin
+    t = (g = ["a", "a", "b", "b"], k = ["u", "v", "u", "v"], v = [1.0, 2.0, 3.0, 4.0])
+    said(p) = try
+        render_svg(p); ""
+    catch e
+        sprint(showerror, e)
+    end
+    counted = said(data(t) + bar * count + x(:g) + y(:k))
+    @test occursin("`+ space()` stands one bar on each pair", counted) &&
+          !occursin("nothing for it to measure", counted)
+    floor = said(data(t) + bar * mean + x(:g) + y(:k) + space())
+    @test occursin("add `z(<column>)`", floor) && !occursin("drawn flat", floor) &&
+          !occursin("bar * count", floor)
+end
