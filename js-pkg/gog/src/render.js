@@ -265,10 +265,11 @@ function columnValues(table, name) {
 }
 
 export function to_wire(table, name) {
+  if (Array.isArray(table) && table.length) table = rowsToColumns(table);
   if (table === null || typeof table !== "object" || Array.isArray(table)) {
     throw new GogError(
       "gog: `data()` takes a table — an object of columns, " +
-        "`{ x: [1, 2], y: [3, 4] }`."
+        "`{ x: [1, 2], y: [3, 4] }`, or an array of rows, `[{ x: 1, y: 3 }, …]`."
     );
   }
 
@@ -370,6 +371,20 @@ export class Query {
 // await the rows yourself and pass them to `data()`, which is a table like any
 // other. That is a real limit, named out loud rather than left to fail as
 // `[object Promise]` reaching the wire.
+// The refusal for a driver whose query must be awaited, with the one line that
+// awaits it for each of the two such drivers in common use: `pg` hands back
+// `{ rows }`, `mysql2` hands back `[rows, fields]`. The line was `pg`'s alone, and
+// followed with `mysql2` it handed `data()` `undefined`.
+function asynchronous(table) {
+  return new GogError(
+    `gog: the connection for \`${table}\` looks asynchronous (\`pg\`, ` +
+      "`mysql2`), and `render_svg()` is synchronous, so its rows cannot be " +
+      "awaited here. Await them yourself and hand them over as a table: " +
+      "`const { rows } = await con.query(sql)` with `pg`, " +
+      "`const [rows] = await con.query(sql)` with `mysql2`, then `data(rows)`."
+  );
+}
+
 export function resolveQuery(query, table) {
   const con = query.connection;
   let rows;
@@ -377,7 +392,13 @@ export function resolveQuery(query, table) {
   if (con && typeof con.prepare === "function") {
     // better-sqlite3, and node:sqlite (Node 22+) — both synchronous.
     const statement = con.prepare(query.sql);
-    if (typeof statement.all !== "function") {
+    // A `mysql2` connection has a `prepare()` too, and it is asynchronous: it
+    // returns a Promise, or takes a callback. Told only that the result "has no
+    // `.all()`", its reader never heard the direction the next branch gives.
+    if (typeof statement?.all !== "function" && typeof con.query === "function") {
+      throw asynchronous(table);
+    }
+    if (typeof statement?.all !== "function") {
       throw new GogError(
         `gog: the connection for \`${table}\` prepared the query but the result ` +
           "has no `.all()`, so the rows cannot be read."
@@ -387,12 +408,7 @@ export function resolveQuery(query, table) {
   } else if (con && typeof con.all === "function") {
     rows = con.all(query.sql);
   } else if (con && typeof con.query === "function") {
-    throw new GogError(
-      `gog: the connection for \`${table}\` looks asynchronous (\`pg\`, ` +
-        "`mysql2`), and `render_svg()` is synchronous, so its rows cannot be " +
-        "awaited here. Await them yourself and hand them over as a table: " +
-        "`const { rows } = await con.query(sql)`, then `data(rows)`."
-    );
+    throw asynchronous(table);
   } else {
     throw new GogError(
       "gog: `query()` takes a database connection and a SELECT — " +
@@ -416,11 +432,39 @@ export function resolveQuery(query, table) {
     );
   }
 
-  // Rows arrive as objects, one per row; the wire wants columns.
-  const columns = {};
-  for (const key of Object.keys(rows[0])) {
-    columns[key] = rows.map((row) => row[key]);
+  return rowsToColumns(rows);
+}
+
+// **Rows arrive as objects, one per row; the wire wants columns.** A query's rows
+// come this way, and so do the rows a reader awaits from an asynchronous driver,
+// which the refusals above tell them to pass as `data(rows)`: `data()` turns them
+// here too, so that direction draws. The columns are every key any row has, in
+// the order they first appear, and a row without one is missing there. The same
+// array always gives the same table, because a page compares its tables by
+// identity to tell two tables from one.
+const TURNED = new WeakMap();
+
+export function rowsToColumns(rows) {
+  const done = TURNED.get(rows);
+  if (done) return done;
+  if (!rows.every((row) => row !== null && typeof row === "object" && !Array.isArray(row))) {
+    throw new GogError(
+      "gog: `data()` takes a table — an object of columns, `{ x: [1, 2], y: [3, 4] }`, " +
+        "or an array of rows, `[{ x: 1, y: 3 }, { x: 2, y: 4 }]` — and this array " +
+        "holds something other than rows."
+    );
   }
+  const keys = [];
+  for (const row of rows) {
+    for (const key of Object.keys(row)) {
+      if (!keys.includes(key)) keys.push(key);
+    }
+  }
+  const columns = {};
+  for (const key of keys) {
+    columns[key] = rows.map((row) => (key in row ? row[key] : null));
+  }
+  TURNED.set(rows, columns);
   return columns;
 }
 

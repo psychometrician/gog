@@ -34,8 +34,9 @@ This is the **Bind-Once Law**: name the table once, then use columns freely.
 `gapminder_2007` here is an ordinary table in your session, whatever your
 language calls one: a data frame in R, a dict of columns or a pandas DataFrame
 in Python. In Julia it is a named tuple of columns or a DataFrame, and in
-JavaScript an object of columns. You do not register the table or convert it
-to a special type first. The bindings part shows how each language builds one.
+JavaScript an object of columns or an array of rows. You do not register the
+table or convert it to a special type first. The bindings part shows how each
+language builds one.
 The [R](bindings/r.qmd) chapter also lists the twenty names that gog and base R
 both use. For the eleven that are functions, it shows how to call base R's
 version, such as `base::order()`.

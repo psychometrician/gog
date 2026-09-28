@@ -3951,3 +3951,25 @@ test("an atom written after a facet draws as one written before it", () => {
   const before = render_svg(plot(data(t), point, x(col.a), y(col.b), title("t"), across(col.g)));
   assert.equal(after, before);
 });
+
+// `data(rows)` takes an array of row objects, one per row: the three asynchronous-
+// driver refusals and `query()`'s own tell the reader to pass their rows that way,
+// and the table was then refused as not an object of columns. The rows are turned
+// into the same columns, so the plot is the same bytes; a key a row lacks is missing.
+test("data(rows) takes an array of row objects, as the query refusals advise", () => {
+  const rows = [{ a: 1, b: 3 }, { a: 2, b: 4 }, { a: 3, b: 5 }];
+  const fromRows = render_svg(plot(data(rows), point, x(col.a), y(col.b)));
+  const fromColumns = render_svg(plot(data({ a: [1, 2, 3], b: [3, 4, 5] }), point, x(col.a), y(col.b)));
+  assert.equal(fromRows, fromColumns);
+  // The advice, followed: an asynchronous connection is refused toward `data(rows)`,
+  // with the line that awaits the rows for each driver. A `mysql2` connection has a
+  // `prepare()` as well, and was told only that the result "has no `.all()`".
+  const pgClient = { query: () => Promise.resolve({ rows }) };
+  const mysqlConnection = { prepare: () => Promise.resolve({}), query: () => Promise.resolve([rows, []]) };
+  for (const con of [pgClient, mysqlConnection]) {
+    refuses(() => render_svg(plot(query(con, "SELECT a, b FROM t"), point, x(col.a), y(col.b))),
+      /`const \{ rows \} = await con\.query\(sql\)` with `pg`, `const \[rows\] = await con\.query\(sql\)` with `mysql2`, then `data\(rows\)`/);
+  }
+  refuses(() => data([]), /no rows/);
+  refuses(() => data([1, 2]), /something other than rows/);
+});

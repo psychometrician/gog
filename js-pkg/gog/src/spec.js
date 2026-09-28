@@ -31,7 +31,7 @@
 
 import { Column, columnName, describe } from "./columns.js";
 import { GogError } from "./errors.js";
-import { Query } from "./render.js";
+import { Query, rowsToColumns } from "./render.js";
 
 // ---------------------------------------------------------------------------
 // Atoms
@@ -457,8 +457,19 @@ export function data(table, options = {}) {
   if (table === null || typeof table !== "object") {
     throw new GogError(
       "gog: `data()` takes a table — an object of columns, " +
-        `\`{ x: [1, 2], y: [3, 4] }\`. Got ${describe(table)}.`
+        "`{ x: [1, 2], y: [3, 4] }`, or an array of rows, `[{ x: 1, y: 3 }, …]`. " +
+        `Got ${describe(table)}.`
     );
+  }
+  // An array of rows is turned into columns here, once, so every check after this
+  // one reads the same columns the wire will carry.
+  if (Array.isArray(table)) {
+    if (!table.length) {
+      throw new GogError(
+        "gog: `data()` got an array with no rows, so there are no columns to name."
+      );
+    }
+    table = rowsToColumns(table);
   }
 
   const settings = typeof options === "string" ? { name: options } : options;

@@ -56,6 +56,15 @@ CRAN-style repositories and PyPI, `GrammarOfGraphics` on Julia's General, and
 
 ### Changed
 
+- **In JavaScript, `data()` takes an array of rows.** An asynchronous database
+  driver returns one object per row, and the refusals for `pg` and `mysql2`
+  told you to pass those rows as `data(rows)`, which was then refused because a
+  table was an object of columns. `data()` now takes an array of row objects,
+  so the advice draws; a key a row lacks is a missing value. A `mysql2`
+  connection passed to `query()` was told only that its prepared result "has
+  no `.all()`"; it now gets the asynchronous-driver refusal, which gives the
+  line that awaits the rows for `mysql2` as well as for `pg`.
+
 - **An atom written after `| facet(g)` is told where it went.** In R and
   Python `+` binds before `|`, so `plot | facet(g) + title("t")` added the
   title to the facet, and the refusal said the atoms had no plot to join. It now

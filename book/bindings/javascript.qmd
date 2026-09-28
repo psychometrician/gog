@@ -217,8 +217,8 @@ object throughout the book: `style({ color: "tomato", size: 3 })`.
 ## The table, and its name
 
 The third difference is how a table gets its name. A table is an object of
-columns, so a first plot needs no package besides gog. This one is written in
-place:
+columns, or an array of rows, one object per row. Neither needs a package
+besides gog, and this one is written in place:
 
 ```js
 const heights = { person: ["Ada", "Alan", "Grace"], cm: [160, 172, 181] };
@@ -340,7 +340,7 @@ nothing installed. Node.js prints a warning that the module is experimental, and
 the plot is drawn anyway. `better-sqlite3` has the same shape and works the same
 way.
 
-### Asynchronous drivers are refused
+### Asynchronous drivers
 
 Not every driver, the package that connects to one kind of database, returns
 its rows that way. `render_svg()` is synchronous: it returns
@@ -349,23 +349,22 @@ expression. A driver whose query returns a Promise cannot be awaited inside a
 synchronous function.
 
 So `pg` and `mysql2` do not work with `query()`, and gog says so rather than
-letting a Promise reach the engine. Fetch the rows yourself instead. A driver
-returns them as one object per row, and a table here is an object of columns, so
-convert the rows into columns once:
+letting a Promise reach the engine. Fetch the rows yourself instead. Both
+drivers return an array of rows, one object per row, and `data()` takes that
+array directly:
 
 ```javascript
 const { rows } = await con.query("SELECT status, revenue FROM orders");
-const orders = Object.fromEntries(
-  Object.keys(rows[0]).map((key) => [key, rows.map((row) => row[key])]));
-render_svg(plot(data(orders), bar, x(col.status), y(col.revenue)));
+render_svg(plot(data(rows), bar, x(col.status), y(col.revenue)));
 ```
 
-The first line is written for `pg`, and other drivers return their rows in
-their own shape. The lines after it work with any array of rows, and the
-sentence is the one you would write for any table. Everywhere else a language
-rule changes only how a sentence is spelled. This is the one place where it
-changes what a sentence can *do*: you write one `await`, and two lines that
-convert the rows into columns.
+The first line is written for `pg`. With `mysql2` it begins `const [rows] =`
+instead. The line after it is the sentence you would write for any table. The
+driver also decides each column's type: `pg` returns a count or a `numeric`
+column as text, so cast it in the SQL, as in `COUNT(*)::int` or
+`revenue::float8`. Everywhere else, a rule of JavaScript changes only how a
+sentence is spelled. Here it changes what a sentence can *do*: the query runs
+before the sentence, with one `await`.
 
 ## Installing gog
 
