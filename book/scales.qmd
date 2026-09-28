@@ -765,7 +765,7 @@ would reach past its panel is moved inward. In narrow panels, such as the five
 panels of a plot faceted by continent ([Faceting](faceting.qmd)), the numbers
 can still overlap. The axis then draws fewer numbers, and the ticks and
 gridlines of the others are left out too. The numbers it keeps are the ones a
-larger round step would choose, so 0K, 10K, 20K, 30K and 40K become 0K, 20K and
+larger round step would choose, so 0, 10K, 20K, 30K and 40K become 0, 20K and
 40K. A number left out can be read from the numbers on either side, so no
 message is printed. If you stated a `tick_count`, a message says how many ticks
 were drawn. A polar plot, a map, and an axis freed with `free = TRUE` still draw
