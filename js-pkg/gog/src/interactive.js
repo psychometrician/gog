@@ -1850,7 +1850,7 @@ function addSelectionBar(container, handle, view) {
   group.style.cssText = "display:inline-flex;gap:.25em;align-items:center;";
   group.append(label, ...picks.map(([, b]) => b));
 
-  // **Two rows, and which control goes in which is the point.** The five view
+  // **Two rows, and which control goes in which is the point.** The four view
   // buttons are the only ones a reader meets under *every* plot in the book, so
   // they get a line of their own, first, directly under the picture. On a plain
   // plot that line is the whole bar; on this one it is the same line in the same
@@ -1860,7 +1860,7 @@ function addSelectionBar(container, handle, view) {
   const viewRow = controlBar("view");
   if (view) addViewControls(viewRow, view, () => render(), handle);
   // A plot that is played *and* brushed gets its transport on this same row. It
-  // joins the five rather than the selection controls below, because it is the
+  // joins the four rather than the selection controls below, because it is the
   // medium's control like they are, and because the selection row changes width
   // as the readout counts and `unstamp` comes and goes.
   const transport = addTransport(viewRow, container, view);

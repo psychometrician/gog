@@ -502,7 +502,7 @@ export function addViewControls(bar, view, onChange = () => {}, handle = null) {
  * the markup below, wherever a played plot is mounted.
  *
  * **Three buttons rather than a slider**, and the reason is the one that gave
- * the five their own place. A slider needs two ends, and a column with no stated
+ * the four their own place. A slider needs two ends, and a column with no stated
  * order has none — the frames of `play(continent)` run in whatever order the
  * rows happened to arrive, so a labeled scale from one continent to another
  * would draw an order the data does not have, with far more authority than a
@@ -835,7 +835,7 @@ export function mountView(target, options = {}) {
   const bar = controlBar("view");
   const refresh = addViewControls(bar, view);
   // A played plot needs no engine — the frames are in the file and a clock walks
-  // them — so this is where most sequences get their transport, beside the five
+  // them — so this is where most sequences get their transport, beside the four
   // rather than under them. It returns null and costs nothing on a still plot.
   addTransport(bar, container, view);
   placeBar(container, bar);
