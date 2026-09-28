@@ -3973,3 +3973,16 @@ test("data(rows) takes an array of row objects, as the query refusals advise", (
   refuses(() => data([]), /no rows/);
   refuses(() => data([1, 2]), /something other than rows/);
 });
+
+// An invented table name gives way to one the reader wrote: an unnamed table followed
+// by `data(df, { name: "data" })` was refused as two tables with one name, while the
+// other order drew. The invented name moves, as it does on a page. The same block runs
+// in all four bindings.
+test("an invented table name gives way to one the reader wrote", () => {
+  const a = { year: [1, 2, 3], sales: [4, 5, 6] };
+  const b = { year: [4, 5], sales: [7, 8] };
+  const moved = render_svg(plot(data(a), line, x(col.year), y(col.sales), data(b, { name: "data" }), point));
+  const named = render_svg(plot(data(a, { name: "data2" }), line, x(col.year), y(col.sales),
+    data(b, { name: "data" }), point));
+  assert.equal(moved, named);
+});

@@ -439,21 +439,31 @@ class Plot:
 
             existing = plot.frames.get(new_name)
             if existing is not None and existing is not other.frames[new_name]:
-                if new_name not in other.anonymous:
-                    raise GogError(
-                        f"gog: two different tables are both called `{new_name}` — a layer "
-                        f"resolves its columns against the nearest table by name, so one of "
-                        f"these can never be reached. Give them distinct names: "
-                        f"`data(df, name='...')`."
-                    )
-                # The binding invented this name, so it can move. Nothing refers
-                # to it yet — a bare `data()` carries no layers — so giving it a
-                # free one is the whole rename.
-                fresh = _free_name(plot.frames)
-                plot.frames[fresh] = other.frames[new_name]
-                plot.anonymous.add(fresh)
-                plot.pending_data = fresh
-                return plot
+                if new_name in other.anonymous:
+                    # The binding invented this name, so it can move. Nothing refers
+                    # to it yet — a bare `data()` carries no layers — so giving it a
+                    # free one is the whole rename.
+                    fresh = _free_name(plot.frames)
+                    plot.frames[fresh] = other.frames[new_name]
+                    plot.anonymous.add(fresh)
+                    plot.pending_data = fresh
+                    return plot
+                if new_name in plot.anonymous:
+                    # The author wrote the incoming name, and the binding invented the
+                    # one already here, so that is the one that moves, as it does on a
+                    # page (`_merge_frames`). Refused instead, an unnamed table followed
+                    # by `data(df, name='data')` was two tables with one name while
+                    # the other order drew.
+                    _rename_plot_table(plot, new_name, _free_name(plot.frames))
+                    plot.frames[new_name] = other.frames[new_name]
+                    plot.pending_data = new_name
+                    return plot
+                raise GogError(
+                    f"gog: two different tables are both called `{new_name}` — a layer "
+                    f"resolves its columns against the nearest table by name, so one of "
+                    f"these can never be reached. Give them distinct names: "
+                    f"`data(df, name='...')`."
+                )
             plot.frames.update(other.frames)
             plot.anonymous |= other.anonymous
             plot.pending_data = new_name
@@ -870,6 +880,23 @@ def _atom_example(atom: Atom) -> str:
     if atom.kind in ("title", "x_label", "y_label", "z_label"):
         return f"{atom.kind}('...')"
     return f"{atom.kind.removeprefix('coord_')}(...)"
+
+
+def _rename_plot_table(plot: "Plot", old: str, new: str) -> None:
+    """Move a table the binding named, inside one plot, and every reference to it:
+    the plot's own table, each layer's, the open layer's and a pending one. A page
+    rewrites its cells the same way (`_rename_table`)."""
+    plot.frames[new] = plot.frames.pop(old)
+    if plot.spec.get("data") == old:
+        plot.spec["data"] = new
+    for layer in plot.spec.get("layers", []):
+        if layer.get("data") == old:
+            layer["data"] = new
+    if plot.current_layer is not None and plot.current_layer.get("data") == old:
+        plot.current_layer["data"] = new
+    if plot.pending_data == old:
+        plot.pending_data = new
+    plot.anonymous = {new if name == old else name for name in plot.anonymous}
 
 
 def _figure_cells(figure: Any, arrange: str) -> List[Dict[str, Any]]:

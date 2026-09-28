@@ -341,10 +341,11 @@ data <- function(df, name = NULL) {
     # as much as a different call.
     if (is_lost_name(name)) {
       # It said two tables piped this way "collide", and they do not: `+` and a
-      # page's merge rename a name gog invented, so the second is `data2`.
+      # page's merge move a name gog invented to the next free one, whether a
+      # second piped table or one the reader named `data` wants it.
       warning("gog: magrittr's `%>%` replaced this table with its placeholder ",
-              "`.` before `data()` could read the name, so the table is called ",
-              "`data`, and a second table piped this way `data2`. Either name ",
+              "`.` before `data()` could read the name, so gog calls the table ",
+              "`data`, or `data2` and on when that name is taken. Either name ",
               "it \u2014 `data(name = \"...\")` \u2014 or use R's native pipe, which ",
               "keeps the name: `df |> data()` reads as `data(df)`.",
               call. = FALSE)
@@ -397,6 +398,25 @@ new_gog_spec <- function(spec, name, frame, anonymous = character()) {
     ),
     class = "gog_spec"
   )
+}
+
+# Move a table the binding named, inside one plot, and every reference to it:
+# the plot's own table, each layer's, the open layer's and a pending one. A page
+# rewrites its cells the same way (`rename_table`).
+rename_plot_table <- function(gog, old, new) {
+  frames <- gog$data_frames
+  names(frames)[names(frames) == old] <- new
+  gog$data_frames <- frames
+  swap <- function(name) if (identical(name, old)) new else name
+  gog$spec$data <- swap(gog$spec$data)
+  gog$spec$layers <- lapply(gog$spec$layers, function(layer) {
+    if (!is.null(layer$data)) layer$data <- swap(layer$data)
+    layer
+  })
+  if (!is.null(gog$current_layer$data)) gog$current_layer$data <- swap(gog$current_layer$data)
+  if (!is.null(gog$pending_data)) gog$pending_data <- swap(gog$pending_data)
+  gog$anonymous <- vapply(invented(gog), swap, character(1))
+  gog
 }
 
 # The names a figure invented, for figures built before the field existed.
@@ -616,19 +636,29 @@ resolve_query <- function(q, table) {
     # genuine clash refuses.
     if (new_name %in% names(lhs$data_frames) &&
         !identical(lhs$data_frames[[new_name]], rhs$data_frames[[1]])) {
-      if (!(new_name %in% invented(rhs))) {
-        stop("gog: two different tables are both called `", new_name,
-             "` \u2014 a layer resolves its bare columns against the nearest table ",
-             "by name, so one of these can never be reached. Give them ",
-             "distinct names: `data(name = \"...\")`.", call. = FALSE)
+      if (new_name %in% invented(rhs)) {
+        # The binding invented this name, so it can move. Nothing refers to it yet
+        # — a bare `data()` carries no layers — so a free one is the whole rename.
+        fresh <- free_name(names(lhs$data_frames))
+        lhs$data_frames[[fresh]] <- rhs$data_frames[[1]]
+        lhs$anonymous <- c(invented(lhs), fresh)
+        lhs$pending_data <- fresh
+        return(lhs)
       }
-      # The binding invented this name, so it can move. Nothing refers to it yet
-      # — a bare `data()` carries no layers — so a free one is the whole rename.
-      fresh <- free_name(names(lhs$data_frames))
-      lhs$data_frames[[fresh]] <- rhs$data_frames[[1]]
-      lhs$anonymous <- c(invented(lhs), fresh)
-      lhs$pending_data <- fresh
-      return(lhs)
+      if (new_name %in% invented(lhs)) {
+        # The author wrote the incoming name, and the binding invented the one
+        # already here, so that is the one that moves, as it does on a page
+        # (`merge_frames`). Refused instead, `df %>% data() + ... + data(data)`
+        # was two tables with one name while the other order drew.
+        lhs <- rename_plot_table(lhs, new_name, free_name(names(lhs$data_frames)))
+        lhs$data_frames[[new_name]] <- rhs$data_frames[[1]]
+        lhs$pending_data <- new_name
+        return(lhs)
+      }
+      stop("gog: two different tables are both called `", new_name,
+           "` \u2014 a layer resolves its bare columns against the nearest table ",
+           "by name, so one of these can never be reached. Give them ",
+           "distinct names: `data(name = \"...\")`.", call. = FALSE)
     }
     lhs$data_frames <- c(lhs$data_frames, rhs$data_frames)
     lhs$anonymous <- unique(c(invented(lhs), invented(rhs)))

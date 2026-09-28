@@ -3868,3 +3868,16 @@ assert "builtins.range" in _ranged(10) and "builtins.range" in _ranged(2, 5)
 for _s in (_ranged(0.25, 75), _ranged(high=75)):
     assert "builtins.range" not in _s and "`range(high=75)` is not a probability" in _s, _s
 ok("range() points at builtins.range only for a call Python's own could be")
+
+
+# --- An invented table name gives way to one the reader wrote ---------------------------
+# An unnamed table followed by `data(df, name='data')` was refused as two tables with one
+# name, while the other order drew. The invented name moves, as it does on a page. The
+# same block runs in all four bindings.
+_ia = {"year": [1.0, 2.0, 3.0], "sales": [4.0, 5.0, 6.0]}
+_ib = {"year": [4.0, 5.0], "sales": [7.0, 8.0]}
+_moved = render_svg(data(_ia) + line + x(col.year) + y(col.sales) + data(_ib, name="data") + point)
+_as_named = render_svg(data(_ia, name="data2") + line + x(col.year) + y(col.sales)
+                       + data(_ib, name="data") + point)
+assert _moved == _as_named
+ok("an invented table name gives way to one the reader wrote")

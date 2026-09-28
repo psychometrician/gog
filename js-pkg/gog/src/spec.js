@@ -625,11 +625,18 @@ class Builder {
     if (name) {
       const existing = this.frames[name];
       if (existing !== undefined && existing !== table) {
-        throw new GogError(
-          `gog: two different tables are both called \`${name}\` — a layer resolves ` +
-            `its columns against the nearest table by name, so one of these can never ` +
-            `be reached. Give them distinct names: \`data(df, { name: "…" })\`.`
-        );
+        // The author wrote this name, and the builder invented the one already
+        // here, so that is the one that moves, as it does on a page. Refused
+        // instead, an unnamed table followed by `data(df, { name: "data" })` was
+        // two tables with one name, while the other order drew.
+        if (!this.generated.has(name)) {
+          throw new GogError(
+            `gog: two different tables are both called \`${name}\` — a layer resolves ` +
+              `its columns against the nearest table by name, so one of these can never ` +
+              `be reached. Give them distinct names: \`data(df, { name: "…" })\`.`
+          );
+        }
+        this.moveGenerated(name);
       }
       this.names.set(table, name);
       return name;
@@ -643,6 +650,27 @@ class Builder {
     this.names.set(table, generated);
     this.generated.add(generated);
     return generated;
+  }
+
+  // Move a table the builder named, and every reference to it: the plot's own
+  // table, each layer's, the open layer's and a pending one.
+  moveGenerated(old) {
+    let fresh;
+    do {
+      this.anonymous += 1;
+      fresh = `data${this.anonymous}`;
+    } while (this.frames[fresh] !== undefined);
+    const table = this.frames[old];
+    delete this.frames[old];
+    this.frames[fresh] = table;
+    this.names.set(table, fresh);
+    this.generated.delete(old);
+    this.generated.add(fresh);
+    const swap = (n) => (n === old ? fresh : n);
+    this.spec.data = swap(this.spec.data);
+    for (const layer of this.spec.layers) layer.data = swap(layer.data);
+    if (this.currentLayer) this.currentLayer.data = swap(this.currentLayer.data);
+    this.pendingData = swap(this.pendingData);
   }
 
   add(item, position) {

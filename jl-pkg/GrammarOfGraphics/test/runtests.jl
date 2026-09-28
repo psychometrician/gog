@@ -3381,3 +3381,16 @@ end
     before = render_svg(data(t) + point + x(:a) + y(:b) + title("t") | facet(:g))
     @test after == before
 end
+
+# An invented table name gives way to one the reader wrote. R, Python and JavaScript
+# refused an unnamed table followed by one named `data`, while the other order drew;
+# Julia already moved the invented name, and this holds it. The same block runs in all
+# four bindings.
+@testset "an invented table name gives way to one the reader wrote" begin
+    a = (year = [1.0, 2.0, 3.0], sales = [4.0, 5.0, 6.0])
+    b = (year = [4.0, 5.0], sales = [7.0, 8.0])
+    moved = render_svg(data(a) + line + x(:year) + y(:sales) + data(b, name = "data") + point)
+    named = render_svg(data(a, name = "data2") + line + x(:year) + y(:sales) +
+                       data(b, name = "data") + point)
+    @test moved == named
+end

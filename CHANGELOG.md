@@ -56,6 +56,13 @@ CRAN-style repositories and PyPI, `GrammarOfGraphics` on Julia's General, and
 
 ### Changed
 
+- **An invented table name gives way to one you wrote.** In R, Python and
+  JavaScript, a table gog had to name for you (piped with `%>%`, or passed
+  unnamed) followed by a table you named `data` was refused as two tables with
+  one name, while the other order drew. The invented name now moves to the next
+  free one, as it already did on a page and in Julia. The `%>%` warning says
+  the table is called `data`, or `data2` and on when that name is taken.
+
 - **Julia's README and module help count nine names shared with `Base`.** They
   said ten and told you to import `bin` too. `Base.bin` is not exported, so
   `bin` needs no import; the other nine do, as the Julia chapter already says.

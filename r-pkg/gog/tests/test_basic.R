@@ -5985,7 +5985,29 @@ local({
     warning = function(w) { said <<- c(said, conditionMessage(w)); invokeRestart("muffleWarning") },
     message = function(m) invokeRestart("muffleMessage"))
   if (!nzchar(svg) || !length(said) || any(grepl("collide", said, fixed = TRUE)) ||
-      !all(grepl("a second table piped this way `data2`", said, fixed = TRUE)))
+      !all(grepl("or `data2` and on when that name is taken", said, fixed = TRUE)))
     stop("FAIL: the %>% warning should say what happens: ", paste(said, collapse = " | "))
   cat("PASS: the %>% warning says the second piped table is data2\n")
+})
+
+# ---------------------------------------------------------------------------
+# A table named by the reader takes its name from one the binding invented: a
+# piped table followed by `data(data)` was refused as two tables with one name,
+# while the other order drew. The invented name moves, as it does on a page. The
+# same block runs in all four bindings.
+# ---------------------------------------------------------------------------
+local({
+  if (!requireNamespace("magrittr", quietly = TRUE)) {
+    cat("SKIP: magrittr not installed\n"); return(invisible())
+  }
+  `%>%` <- magrittr::`%>%`
+  actuals <- data.frame(year = c(1, 2, 3), sales = c(4, 5, 6))
+  data <- data.frame(year = c(4, 5), sales = c(7, 8))
+  piped <- suppressWarnings(render_svg(
+    actuals %>% data() + line + x(year) + y(sales) + data(data) + point))
+  named <- render_svg(data(actuals, name = "data2") + line + x(year) + y(sales) +
+                      data(data) + point)
+  if (!identical(piped, named))
+    stop("FAIL: an invented name should move for a table the reader named")
+  cat("PASS: an invented table name gives way to one the reader wrote\n")
 })
