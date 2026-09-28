@@ -5718,3 +5718,27 @@ local({
          paste(spanned, labeled, raised, tilted, sep = "\n"))
   cat("PASS: the globe and map refusals use the globe chapter's words\n")
 })
+
+# ---------------------------------------------------------------------------
+# A network's refusals are said once, name the table, and can be followed. The
+# self-loop refusal printed once per layer and offered to carry the fact as a
+# node's own column, which a node does not have; a brush was first told to use
+# `group()` on an edge, which an edge refuses. The same block runs in all four
+# bindings.
+# ---------------------------------------------------------------------------
+local({
+  t <- data.frame(a = c("u", "v", "w"), b = c("v", "v", "u"))
+  said <- function(p) tryCatch({ render_svg(p); "" }, error = function(e) conditionMessage(e))
+  looped <- said(data(t) + edge * layout(a, b) + point * layout(a, b) +
+                 text * layout(a, b) + label(name) + network())
+  times <- lengths(regmatches(looped, gregexpr("connect a node to itself", looped, fixed = TRUE)))
+  if (times != 1 || !grepl("row(s) of `t` connect", looped, fixed = TRUE) ||
+      grepl("own column", looped, fixed = TRUE))
+    stop("FAIL: a self-loop should be refused once, naming the table: ", looped)
+  u <- data.frame(a = c("u", "v", "w"), b = c("v", "w", "u"))
+  brushed <- said(data(u) + edge * layout(a, b) + point * layout(a, b) + brush + network())
+  if (!grepl("a network's positions are the layout's", brushed, fixed = TRUE) ||
+      grepl("group()", brushed, fixed = TRUE) || grepl("Give it an `x()`", brushed, fixed = TRUE))
+    stop("FAIL: a brush on a network should be refused by the network alone: ", brushed)
+  cat("PASS: a network's refusals are said once and can be followed\n")
+})

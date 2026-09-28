@@ -3158,3 +3158,25 @@ end
     @test occursin("a longitude wraps and a latitude does not",
                    said(data(t) + point + x(:lon) + y(:lat) + globe(tilt = 100)))
 end
+
+# A network's refusals are said once, name the table, and can be followed. The
+# self-loop refusal printed once per layer and offered to carry the fact as a node's
+# own column, which a node does not have; a brush was first told to use `group()` on
+# an edge, which an edge refuses. The same block runs in all four bindings.
+@testset "a network's refusals are said once and can be followed" begin
+    said(p) = try
+        render_svg(p); ""
+    catch e
+        sprint(showerror, e)
+    end
+    loop = (a = ["u", "v", "w"], b = ["v", "v", "u"])
+    looped = said(data(loop, name = "t") + edge * layout(:a, :b) + point * layout(:a, :b) +
+                  text * layout(:a, :b) + label(:name) + network())
+    @test length(findall("connect a node to itself", looped)) == 1
+    @test occursin("row(s) of `t` connect", looped) && !occursin("own column", looped)
+    ring = (a = ["u", "v", "w"], b = ["v", "w", "u"])
+    brushed = said(data(ring, name = "t") + edge * layout(:a, :b) + point * layout(:a, :b) +
+                   brush + network())
+    @test occursin("a network's positions are the layout's", brushed) &&
+          !occursin("group()", brushed) && !occursin("Give it an `x()`", brushed)
+end

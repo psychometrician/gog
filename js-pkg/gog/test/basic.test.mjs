@@ -3766,3 +3766,24 @@ test("the globe and map refusals use the globe chapter's words", () => {
   assert.ok(said(plot(data(t), point, x(col.lon), y(col.lat), globe({ tilt: 100 })))
     .includes("a longitude wraps and a latitude does not"));
 });
+
+// A network's refusals are said once, name the table, and can be followed. The
+// self-loop refusal printed once per layer and offered to carry the fact as a node's
+// own column, which a node does not have; a brush was first told to use `group()` on
+// an edge, which an edge refuses. The same block runs in all four bindings.
+test("a network's refusals are said once and can be followed", () => {
+  const said = (p) => {
+    try { render_svg(p); } catch (e) { return e.message; }
+    throw new Error("drew");
+  };
+  const loop = { a: ["u", "v", "w"], b: ["v", "v", "u"] };
+  const looped = said(plot(data(loop, { name: "t" }), layer(edge, layout(col.a, col.b)),
+    layer(point, layout(col.a, col.b)), layer(text, layout(col.a, col.b)), label(col.name), network()));
+  assert.equal(looped.split("connect a node to itself").length - 1, 1, looped);
+  assert.ok(looped.includes("row(s) of `t` connect") && !looped.includes("own column"), looped);
+  const ring = { a: ["u", "v", "w"], b: ["v", "w", "u"] };
+  const brushed = said(plot(data(ring, { name: "t" }), layer(edge, layout(col.a, col.b)),
+    layer(point, layout(col.a, col.b)), brush, network()));
+  assert.ok(brushed.includes("a network's positions are the layout's") && !brushed.includes("group()")
+    && !brushed.includes("Give it an `x()`"), brushed);
+});

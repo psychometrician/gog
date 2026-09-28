@@ -3618,3 +3618,27 @@ assert "to keep the marks drawn on the sphere" in _refusal(
 assert "a longitude wraps and a latitude does not" in _refusal(
     _g + point + x(col.lon) + y(col.lat) + globe(tilt=100))
 ok("the globe and map refusals use the globe chapter's words")
+
+
+# --- A network's refusals are said once and can be followed -----------------------------
+# The self-loop refusal printed once per layer and offered to carry the fact as a
+# node's own column, which a node does not have; a brush was first told to use
+# `group()` on an edge, which an edge refuses. The same block runs in all four bindings.
+_loop = data({"a": ["u", "v", "w"], "b": ["v", "v", "u"]}, name="t")
+try:
+    render_svg(_loop + edge * layout(col.a, col.b) + point * layout(col.a, col.b)
+               + text * layout(col.a, col.b) + label(col.name) + network())
+    raise AssertionError("a self-loop drew")
+except GogError as refusal:
+    _s = str(refusal)
+    assert _s.count("connect a node to itself") == 1 and "row(s) of `t` connect" in _s \
+        and "own column" not in _s, _s
+_ring = data({"a": ["u", "v", "w"], "b": ["v", "w", "u"]}, name="t")
+try:
+    render_svg(_ring + edge * layout(col.a, col.b) + point * layout(col.a, col.b) + brush + network())
+    raise AssertionError("a brush on a network drew")
+except GogError as refusal:
+    _s = str(refusal)
+    assert "a network's positions are the layout's" in _s and "group()" not in _s \
+        and "Give it an `x()`" not in _s, _s
+ok("a network's refusals are said once and can be followed")

@@ -5126,8 +5126,16 @@ fn check_layout(
         }
     }
 
-    // 8. A row from a node to itself is not an edge, and a fact about one node
-    //    belongs on the node — refused with the count, not dropped in silence.
+    // 8. A row from a node to itself is not an edge — refused with the count, not
+    //    dropped in silence. Both notes name the table, so the layers that draw one
+    //    graph say each once (`check` drops a repeated sentence) and two tables with
+    //    the same count are told apart.
+    //
+    //    The refusal once offered to "carry the fact as a node's own column", and
+    //    a node has no column to carry it in: it has its `name` and its `degree`,
+    //    and `color(<column>)` on a node layer is refused.
+    let table = layer.data.as_ref().or(spec.data.as_ref())
+        .map(|t| format!(" of `{t}`")).unwrap_or_default();
     if let (Some(a), Some(b)) = (df.str_col(&lay.from), df.str_col(&lay.to)) {
         let loops = (0..df.len())
             .filter(|&r| !a[r].is_empty() && a[r] == b[r])
@@ -5136,10 +5144,9 @@ fn check_layout(
             out.push(Diagnostic {
                 kind: DiagnosticKind::Illegal,
                 message: format!(
-                    "gog: {loops} row(s) connect a node to itself, and a stroke \
-                     from a point to the same point has no extent. A fact about \
-                     one node belongs on the node — remove the row, or carry the \
-                     fact as a node's own column."
+                    "gog: {loops} row(s){table} connect a node to itself, and a stroke \
+                     from a point to the same point has no extent. Remove those rows \
+                     in the host language: an edge joins two different nodes."
                 ),
             });
             return;
@@ -5151,7 +5158,7 @@ fn check_layout(
             out.push(Diagnostic {
                 kind: DiagnosticKind::Assumption,
                 message: format!(
-                    "gog: {missing} of {} row(s) are missing an endpoint and were \
+                    "gog: {missing} of {} row(s){table} are missing an endpoint and were \
                      left out — an edge needs both of its nodes named.",
                     df.len(),
                 ),
@@ -7997,6 +8004,12 @@ pub fn check(spec: &PlotSpec, data: &HashMap<String, DataFrame>) -> Vec<Diagnost
         note_space_drawn_flat(&mut out, spec);
     }
 
+    // **One sentence is said once.** A check that runs per layer repeats itself for
+    // every layer it holds for: a network drawn as edges, nodes and names printed
+    // its self-loop refusal three times. The renderer's notes were always kept to
+    // one of each by their text, and the check's now are too, first kept first.
+    let mut seen = std::collections::HashSet::new();
+    out.retain(|d| seen.insert(d.message.clone()));
     out
 }
 
@@ -8548,6 +8561,16 @@ fn check_brush(out: &mut Vec<Diagnostic>, spec: &PlotSpec, data: &HashMap<String
         return;
     }
 
+    // **A network refuses the brush itself** (`check_network`: its positions are
+    // the layout's, not the data's), so nothing below is asked of it, as nothing is
+    // of a map. Asked, a bare `brush` was told to add the `x()` or `y()` a layout
+    // refuses, an `edge` to split itself with `group()`, which an edge refuses, and
+    // a `point * layout` to brush the layer that draws the rows themselves, which a
+    // network has none of.
+    if matches!(spec.coord, CoordSpace::Network(_)) {
+        return;
+    }
+
     for b in &spec.brush {
         // Bare `brush` says *both positions are selectable*, so there is no
         // single axis for a stated bound to belong to. Naming a column is how
@@ -8649,6 +8672,11 @@ fn check_brush(out: &mut Vec<Diagnostic>, spec: &PlotSpec, data: &HashMap<String
     let mut collapsed = Vec::new();
     let mut not_elements = Vec::new();
     for layer in &spec.layers {
+        // A layer the graph places has positions only in `network()`, and outside
+        // it its own refusal says so; the brush has nothing to add.
+        if placed_by_the_graph(layer) {
+            continue;
+        }
         let m = mark_name(&layer.mark);
         if !mark_takes_selection(&layer.mark) {
             not_elements.push(m);
@@ -17524,6 +17552,54 @@ mod tests {
         // §12: an Assumption renders. A refusal here would take the book's own
         // teaching plot off the page.
         assert!(!d.iter().any(|x| x.is_fatal()), "must still draw: {:?}", msgs(&d));
+    }
+
+    /// **A network's notes about its table are said once, name it, and can be
+    /// followed.** Checked per layer, the self-loop refusal printed once for each
+    /// of a network's edges, nodes and names, and the missing-endpoint note too. The
+    /// self-loop refusal offered to carry the fact "as a node's own column", and a
+    /// node has only its `name` and its `degree`.
+    #[test]
+    fn a_networks_table_notes_are_said_once_and_name_the_table() {
+        let net = || CoordSpace::Network(crate::ir::NetworkView::default());
+        let three = || PlotSpec::new().data("t").coord(net())
+            .layer(Layer::new(Mark::Edge).layout("a", "b"))
+            .layer(Layer::new(Mark::Point).layout("a", "b"))
+            .layer(Layer::new(Mark::Text).layout("a", "b").encode(Channel::Label, "name"));
+        let table = |a: [&str; 3], b: [&str; 3]| HashMap::from([("t".to_string(), DataFrame::new()
+            .with_str("a", a.iter().map(|s| s.to_string()).collect())
+            .with_str("b", b.iter().map(|s| s.to_string()).collect()))]);
+        let looped = check(&three(), &table(["u", "v", "w"], ["v", "v", "u"]));
+        let said: Vec<_> = looped.iter().filter(|d| d.message.contains("connect a node to itself"))
+            .collect();
+        assert_eq!(said.len(), 1, "{:?}", msgs(&looped));
+        assert!(said[0].message.contains("1 row(s) of `t` connect")
+            && !said[0].message.contains("own column"), "{:?}", said[0]);
+        let gapped = check(&three(), &table(["u", "", "w"], ["v", "w", "u"]));
+        let said: Vec<_> = gapped.iter().filter(|d| d.message.contains("missing an endpoint"))
+            .collect();
+        assert_eq!(said.len(), 1, "{:?}", msgs(&gapped));
+        assert!(said[0].message.contains("1 of 3 row(s) of `t` are missing"), "{:?}", said[0]);
+    }
+
+    /// **A brush on a network is refused by the network alone.** It was first told
+    /// that an `edge` draws one shape through many rows and to split it with
+    /// `group()`, which an edge refuses, and a `point * layout` was told to brush
+    /// the layer that draws the rows themselves, which a network has none of.
+    #[test]
+    fn a_brush_on_a_network_is_refused_by_the_network_alone() {
+        let net = || CoordSpace::Network(crate::ir::NetworkView::default());
+        for brush in [crate::ir::BrushDef::positions(), crate::ir::BrushDef::new("continent")] {
+            for layers in [vec![Mark::Edge], vec![Mark::Point], vec![Mark::Edge, Mark::Point]] {
+                let mut spec = PlotSpec::new().data("t").coord(net()).brush(brush.clone());
+                for m in &layers {
+                    spec = spec.layer(Layer::new(m.clone()).layout("continent", "region"));
+                }
+                let d = check(&spec, &data());
+                assert_eq!(d.len(), 1, "{layers:?}: {:?}", msgs(&d));
+                assert!(d[0].message.contains("a network's positions are the layout's"), "{:?}", d[0]);
+            }
+        }
     }
 
     /// **A span mark in a space that never draws it hears only the space.** On a

@@ -56,6 +56,15 @@ CRAN-style repositories and PyPI, `GrammarOfGraphics` on Julia's General, and
 
 ### Changed
 
+- **A network's refusals are said once, and each can be followed.** A network
+  drawn as edges, nodes and names printed its self-loop refusal and its
+  missing-endpoint note once per layer; each is now said once and names the
+  table. The self-loop refusal no longer offers to "carry the fact as a node's
+  own column", which a node does not have: it says to remove those rows. A
+  `brush` on a network is refused by the network alone, where it was first told
+  to add an `x()` or to split an `edge` with `group()`, both refused as well.
+  Any message a plot would print twice is now printed once.
+
 - **An `interval` or a `ribbon` in a space that never draws it hears only the
   space.** On `map()`, `globe()` and the other spaces that refuse them, they
   were first told to add a range transform, and `interval * range` was then
