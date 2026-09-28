@@ -16,9 +16,9 @@
 # by every reader in every language — which is why the chapter shows them
 # rather than hiding them:
 #
-#   * **Declared category order.** Ten columns are factors whose level order is
-#     the point: the compass runs N, NE, E …, not alphabetically; the waterfall
-#     runs Opening → Closing. Order lost is a plot silently rearranged, which
+#   * **Declared category order.** Each column declared below with
+#     `.gog_ordered()` is a factor whose level order is the point: the compass
+#     runs N, NE, E …, not alphabetically; the waterfall runs Opening → Closing. Order lost is a plot silently rearranged, which
 #     this project has already been bitten by once, in the Julia binding's
 #     `Ordered` column.
 #   * **Labels that look like numbers.** `census$age` is "0", "5", "10" …,
