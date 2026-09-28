@@ -5734,6 +5734,16 @@ fn check_marks_that_take_no_transform(out: &mut Vec<Diagnostic>, layer: &Layer) 
     out.push(Diagnostic { kind: DiagnosticKind::Illegal, message });
 }
 
+/// **A layer the graph places**: an `edge`, or any mark derived by `layout`. Its
+/// positions exist only in `network()`, and outside it its own refusals already say
+/// so and name the space (`edge` with no `layout`, and a `layout` anywhere else).
+/// So the checks written for other spaces stand down for it rather than add a second
+/// remedy that fails: "Drop `polar()` to draw it flat" reached a flat `edge`, which
+/// is refused too, and a `point * layout` in `map()` was told to add `x` and `y`.
+fn placed_by_the_graph(layer: &Layer) -> bool {
+    layer.mark == Mark::Edge || layer.transforms.contains(&Transform::Layout)
+}
+
 /// `a`, `a` and `b`, `a`, `b` and `c`: each name in code, for a message.
 fn code_list(names: &[&str]) -> String {
     match names {
@@ -7827,6 +7837,11 @@ pub fn check(spec: &PlotSpec, data: &HashMap<String, DataFrame>) -> Vec<Diagnost
             if channel == Channel::Y && space_of(spec) == SpaceKind::Network {
                 continue;
             }
+            // A layer the graph places takes both positions from its `layout`,
+            // and outside `network()` its own refusal says so.
+            if matches!(channel, Channel::X | Channel::Y) && placed_by_the_graph(layer) {
+                continue;
+            }
             // A transform the mark does not take is refused on its own, with the
             // mark that does take it. A missing `y` beside that refusal sent the
             // reader to add a column the refused sentence has no use for:
@@ -8733,7 +8748,9 @@ fn check_space(out: &mut Vec<Diagnostic>, spec: &PlotSpec) {
     // flat plot first, since that is what was drawn, then `z` on a mark that takes
     // one, which a floor summary on a `bar` needs, and the transform that stands a
     // count up on each kind of floor.
-    if matches!(spec.coord, CoordSpace::Space(_)) && !projects {
+    if matches!(spec.coord, CoordSpace::Space(_)) && !projects
+        && !spec.layers.iter().any(placed_by_the_graph)
+    {
         out.push(Diagnostic {
             kind: DiagnosticKind::Assumption,
             message: "gog: `space(...)` sets a 3-D viewing angle, but nothing in this plot has \
@@ -9812,6 +9829,7 @@ fn check_polar(out: &mut Vec<Diagnostic>, spec: &PlotSpec) {
         if !is_drawable(mark)
             || matches!(mark, Mark::Surface)
             || mark_draws_in_space(mark, SpaceKind::Polar)
+            || placed_by_the_graph(layer)
         {
             continue;
         }
@@ -10146,7 +10164,9 @@ fn check_globe(out: &mut Vec<Diagnostic>, spec: &PlotSpec, data: &HashMap<String
     // yet) against ruled out (it measures along an axis neither space has).
     for layer in &spec.layers {
         let mark = &layer.mark;
-        if !is_drawable(mark) || mark_draws_in_space(mark, SpaceKind::Globe) {
+        if !is_drawable(mark) || mark_draws_in_space(mark, SpaceKind::Globe)
+            || placed_by_the_graph(layer)
+        {
             continue;
         }
         let m = mark_name(mark);
@@ -10333,7 +10353,9 @@ fn check_map(out: &mut Vec<Diagnostic>, spec: &PlotSpec, data: &HashMap<String, 
     // quantity moves to a refining channel, which is the proportional-symbol map.
     for layer in &spec.layers {
         let mark = &layer.mark;
-        if !is_drawable(mark) || mark_draws_in_space(mark, SpaceKind::Map) {
+        if !is_drawable(mark) || mark_draws_in_space(mark, SpaceKind::Map)
+            || placed_by_the_graph(layer)
+        {
             continue;
         }
         let m = mark_name(mark);
@@ -10544,7 +10566,9 @@ fn check_nest(out: &mut Vec<Diagnostic>, spec: &PlotSpec, data: &HashMap<String,
         }
 
         let mark = &layer.mark;
-        if !is_drawable(mark) || mark_draws_in_space(mark, SpaceKind::Nest) {
+        if !is_drawable(mark) || mark_draws_in_space(mark, SpaceKind::Nest)
+            || placed_by_the_graph(layer)
+        {
             continue;
         }
         let m = mark_name(mark);
@@ -10580,7 +10604,7 @@ fn check_nest(out: &mut Vec<Diagnostic>, spec: &PlotSpec, data: &HashMap<String,
     let has_measure = spec.axis_def(&Channel::X).is_some()
         || spec.axis_def(&Channel::Y).is_some()
         || spec.layers.iter().any(|l| synthesizes_measure(&l.mark, &l.transforms));
-    if !has_measure && !spec.layers.is_empty() {
+    if !has_measure && !spec.layers.is_empty() && !spec.layers.iter().any(placed_by_the_graph) {
         out.push(Diagnostic {
             kind: DiagnosticKind::Illegal,
             message: "gog: a `nest()` plot packs each row's measure into an area, and this one \
@@ -14087,6 +14111,15 @@ mod tests {
     fn only_the_marks_the_grid_lists_draw_in_a_packed_panel() {
         for m in ALL_MARKS.iter() {
             if !is_drawable(m) { continue; }
+            // `edge` is refused by its own sentence in every space but the network,
+            // which names `network()`; this loop stands down for it
+            // (`placed_by_the_graph`), and the whole check still refuses it.
+            if *m == Mark::Edge {
+                let spec = nest_base().layer(Layer::new(Mark::Edge));
+                assert!(check(&spec, &data()).iter().any(|d| d.kind == DiagnosticKind::Illegal
+                    && d.message.contains("network()")), "edge in nest must still be refused");
+                continue;
+            }
             let mut out = Vec::new();
             let spec = nest_base().layer(Layer::new(m.clone()));
             check_nest(&mut out, &spec, &data());
@@ -16564,6 +16597,31 @@ mod tests {
         }
     }
 
+    /// **A layer the graph places is refused once outside the network, and the one
+    /// refusal names it.** An `edge` or a `layout` has positions only in
+    /// `network()`, and its own refusal says so. The checks for other spaces added a
+    /// second remedy that failed: "Drop `polar()` to draw it flat", "Drop `nest()`",
+    /// the `space()` note's "drawn flat", and a `map()`'s missing `x` and `y`.
+    #[test]
+    fn a_layer_the_graph_places_is_refused_once_outside_the_network() {
+        let spaces = [
+            CoordSpace::Polar(crate::ir::PolarView::default()),
+            CoordSpace::Nest,
+            CoordSpace::Space(crate::ir::SpaceView::default()),
+            CoordSpace::Map(crate::ir::MapView::default()),
+        ];
+        for coord in spaces {
+            for layer in [Layer::new(Mark::Edge), Layer::new(Mark::Edge).layout("continent", "region"),
+                          Layer::new(Mark::Point).layout("continent", "region")] {
+                let spec = PlotSpec::new().data("t").coord(coord.clone()).layer(layer.clone());
+                let out = check(&spec, &data());
+                assert!(out.iter().any(|d| d.message.contains("network()")),
+                    "{coord:?} {:?}: the layer's own refusal: {:?}", layer.mark, msgs(&out));
+                assert_eq!(out.len(), 1, "{coord:?} {:?}: one refusal: {:?}", layer.mark, msgs(&out));
+            }
+        }
+    }
+
     #[test]
     fn order_no_longer_changes_meaning() {
         // The defect this replaced: `set_channel` reached backwards, so the same
@@ -18989,6 +19047,18 @@ mod tests {
             // saying it twice helps nobody. So it is excluded from the agreement
             // rather than silently making it fail.
             if matches!(m, Mark::Surface) {
+                continue;
+            }
+            // `edge` likewise: its own refusal names `network()`, and a polar one
+            // beside it sent the reader to a flat `edge`, refused too.
+            if *m == Mark::Edge {
+                let spec = PlotSpec::new().data("t")
+                    .coord(CoordSpace::Polar(crate::ir::PolarView::default()))
+                    .layer(Layer::new(Mark::Edge));
+                let out = check(&spec, &data());
+                assert!(out.iter().any(|d| d.kind == DiagnosticKind::Illegal
+                    && d.message.contains("network()")), "edge in polar must still be refused");
+                assert!(out.iter().all(|d| !d.message.contains("Drop `polar()`")), "{out:?}");
                 continue;
             }
             let mut out = Vec::new();

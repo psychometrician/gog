@@ -3499,3 +3499,18 @@ try:
 except GogError as refusal:
     assert "`cluster` joins the closest leaves" in str(refusal) and "but none is set" not in str(refusal), refusal
 ok("a refused transform is not followed by a missing y")
+
+
+# --- A layer the graph places is refused once outside the network -----------------------
+# `edge + polar()` also said "Drop `polar()` to draw it flat", and a flat `edge` is
+# refused too; `point * layout` in `map()` was also told to add `x`. The same block runs
+# in all four bindings.
+_net = data({"a": ["u", "v", "w"], "b": ["v", "w", "u"]}, name="t")
+for _p in (_net + edge + polar(), _net + edge + map(), _net + point * layout(col.a, col.b) + map()):
+    try:
+        render_svg(_p)
+        raise AssertionError("a layer the graph places drew outside the network")
+    except GogError as refusal:
+        _s = str(refusal)
+        assert "network()" in _s and "Drop `" not in _s and "but none is set" not in _s, _s
+ok("a layer the graph places is refused once outside the network")

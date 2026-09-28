@@ -56,6 +56,13 @@ CRAN-style repositories and PyPI, `GrammarOfGraphics` on Julia's General, and
 
 ### Changed
 
+- **An `edge` or a `layout` outside `network()` is refused once.** Its own
+  refusal already names `network()`. A second one was printed beside it and
+  offered a fix that was refused as well: `edge + polar()` was also told to
+  drop `polar()` and draw the `edge` flat, and `point * layout(from, to) + map()`
+  was also told to add `x` and `y`. The same holds in `nest()`, `space()`,
+  `map()` and `globe()`.
+
 - **A transform refused on a mark is not followed by "needs `y()`".** `line *
   cluster(...) + x(food)` was refused with the two marks that draw a cluster,
   and then told to add a `y`, which only led to another refusal. The same held

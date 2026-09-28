@@ -5585,3 +5585,21 @@ local({
     stop("FAIL: line * cluster should be refused once, without a missing y: ", said)
   cat("PASS: a refused transform is not followed by a missing y\n")
 })
+
+# ---------------------------------------------------------------------------
+# A layer the graph places is refused once outside `network()`, by the refusal
+# that names it. `edge + polar()` also said "Drop `polar()` to draw it flat",
+# and a flat `edge` is refused too; `point * layout` in `map()` was also told
+# to add `x`. The same block runs in all four bindings.
+# ---------------------------------------------------------------------------
+local({
+  t <- data.frame(a = c("u", "v", "w"), b = c("v", "w", "u"))
+  said <- function(p) tryCatch({ render_svg(p); "" }, error = function(e) conditionMessage(e))
+  for (s in list(said(data(t) + edge + polar()), said(data(t) + edge + map()),
+                 said(data(t) + point * layout(a, b) + map()))) {
+    if (!grepl("network()", s, fixed = TRUE) || grepl("Drop `", s, fixed = TRUE) ||
+        grepl("but none is set", s, fixed = TRUE))
+      stop("FAIL: a layer the graph places should be refused once, naming network(): ", s)
+  }
+  cat("PASS: a layer the graph places is refused once outside the network\n")
+})

@@ -3644,3 +3644,19 @@ test("a refused transform is not followed by a missing y", () => {
     (e) => e.message.includes("`cluster` joins the closest leaves") && !e.message.includes("but none is set")
   );
 });
+
+// A layer the graph places is refused once outside `network()`, by the refusal that
+// names it. `edge + polar()` also said "Drop `polar()` to draw it flat", and a flat
+// `edge` is refused too; `point * layout` in `map()` was also told to add `x`. The same
+// block runs in all four bindings.
+test("a layer the graph places is refused once outside the network", () => {
+  const t = { a: ["u", "v", "w"], b: ["v", "w", "u"] };
+  for (const p of [plot(data(t), edge, polar()), plot(data(t), edge, map()),
+                   plot(data(t), layer(point, layout(col.a, col.b)), map())]) {
+    assert.throws(
+      () => render_svg(p),
+      (e) => e.message.includes("network()") && !e.message.includes("Drop `")
+        && !e.message.includes("but none is set")
+    );
+  }
+});

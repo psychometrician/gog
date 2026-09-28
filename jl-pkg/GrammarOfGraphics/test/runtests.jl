@@ -3037,3 +3037,20 @@ end
     end
     @test occursin("`cluster` joins the closest leaves", said) && !occursin("but none is set", said)
 end
+
+# A layer the graph places is refused once outside `network()`, by the refusal that
+# names it. `edge + polar()` also said "Drop `polar()` to draw it flat", and a flat
+# `edge` is refused too; `point * layout` in `map()` was also told to add `x`. The same
+# block runs in all four bindings.
+@testset "a layer the graph places is refused once outside the network" begin
+    t = (a = ["u", "v", "w"], b = ["v", "w", "u"])
+    said(p) = try
+        render_svg(p); ""
+    catch e
+        sprint(showerror, e)
+    end
+    for s in (said(data(t) + edge + polar()), said(data(t) + edge + map()),
+              said(data(t) + point * layout(:a, :b) + map()))
+        @test occursin("network()", s) && !occursin("Drop `", s) && !occursin("but none is set", s)
+    end
+end
