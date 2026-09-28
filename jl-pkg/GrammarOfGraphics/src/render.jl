@@ -98,8 +98,8 @@ end
 """
     find_gog_cli()
 
-Locate the engine: an override, a checkout's own build, the shipped one, PATH,
-then a build found from the working directory.
+Locate the engine: an override, a checkout's own build, the shipped artifact, a
+copy staged in `bin/`, PATH, then a build found from the working directory.
 
 The same order R uses. The checkout's build comes second, ahead of the
 artifact, because inside a checkout the artifact is the last release's engine

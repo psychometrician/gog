@@ -3,7 +3,7 @@ uuid = "c00c8485-9aac-4319-bba4-e242535f49e2"
 authors = ["psychometrician"]
 version = "0.3.0"
 
-# Five dependencies, all of them standard libraries, so a user still installs
+# Six dependencies, all of them standard libraries, so a user still installs
 # nothing extra. Dates is the oldest: Julia is the only binding whose language
 # draws R's own `Date` / `POSIXct` distinction, which is the distinction the
 # engine's temporal unit needs; JavaScript has one `Date` and has to read the
