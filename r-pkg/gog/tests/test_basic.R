@@ -5570,3 +5570,18 @@ local({
     stop("FAIL: a one-position clustered tile plot should say it needs both: ", said)
   cat("PASS: a clustered tile plot with one position says it needs a category on each\n")
 })
+
+# ---------------------------------------------------------------------------
+# A refused transform is not followed by a missing `y`: `line * cluster` also
+# said "Add `y(<column>)`", and adding one reached only another refusal. The
+# same block runs in all four bindings.
+# ---------------------------------------------------------------------------
+local({
+  t <- data.frame(g = c("a", "a", "b", "b"), k = c("u", "v", "u", "v"), v = c(1, 2, 3, 4))
+  said <- tryCatch({ render_svg(data(t) + line * cluster(v, over = k) + x(g)); "" },
+                   error = function(e) conditionMessage(e))
+  if (!grepl("`cluster` joins the closest leaves", said, fixed = TRUE) ||
+      grepl("but none is set", said, fixed = TRUE))
+    stop("FAIL: line * cluster should be refused once, without a missing y: ", said)
+  cat("PASS: a refused transform is not followed by a missing y\n")
+})

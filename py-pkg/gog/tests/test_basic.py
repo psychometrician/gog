@@ -3487,3 +3487,15 @@ try:
 except GogError as refusal:
     assert "binds `x` but not `y`" in str(refusal) and "``" not in str(refusal), refusal
 ok("a clustered tile plot with one position says it needs a category on each")
+
+
+# --- A refused transform is not followed by a missing y ---------------------------------
+# `line * cluster` also said "Add `y(<column>)`", and adding one reached only another
+# refusal. The same block runs in all four bindings.
+try:
+    render_svg(data({"g": ["a", "a", "b", "b"], "k": ["u", "v", "u", "v"], "v": [1.0, 2.0, 3.0, 4.0]},
+                    name="rt") + line * cluster(col.v, over=col.k) + x(col.g))
+    raise AssertionError("line * cluster drew")
+except GogError as refusal:
+    assert "`cluster` joins the closest leaves" in str(refusal) and "but none is set" not in str(refusal), refusal
+ok("a refused transform is not followed by a missing y")

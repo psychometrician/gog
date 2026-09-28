@@ -3633,3 +3633,14 @@ test("a clustered tile plot with one position says it needs a category on each",
     (e) => e.message.includes("binds `x` but not `y`") && !e.message.includes("``")
   );
 });
+
+// A refused transform is not followed by a missing y: `line * cluster` also said
+// "Add `y(<column>)`", and adding one reached only another refusal. The same block
+// runs in all four bindings.
+test("a refused transform is not followed by a missing y", () => {
+  const rt = { g: ["a", "a", "b", "b"], k: ["u", "v", "u", "v"], v: [1, 2, 3, 4] };
+  assert.throws(
+    () => render_svg(plot(data(rt), layer(line, cluster(col.v, { over: col.k })), x(col.g))),
+    (e) => e.message.includes("`cluster` joins the closest leaves") && !e.message.includes("but none is set")
+  );
+});

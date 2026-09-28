@@ -56,6 +56,12 @@ CRAN-style repositories and PyPI, `GrammarOfGraphics` on Julia's General, and
 
 ### Changed
 
+- **A transform refused on a mark is not followed by "needs `y()`".** `line *
+  cluster(...) + x(food)` was refused with the two marks that draw a cluster,
+  and then told to add a `y`, which only led to another refusal. The same held
+  for `step`, `area`, `point` and `bar`, and for any transform a mark does not
+  take.
+
 - **A clustered tile plot's refusals offer only what works.** With one position
   bound, `zone * cluster(over = )` said the leaf axis named ``, a name the table
   does not have; it now says the plot binds `x` but not `y` and that a clustered

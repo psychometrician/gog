@@ -3024,3 +3024,16 @@ end
     end
     @test occursin("binds `x` but not `y`", said) && !occursin("``", said)
 end
+
+# A refused transform is not followed by a missing y: `line * cluster` also said
+# "Add `y(<column>)`", and adding one reached only another refusal. The same block
+# runs in all four bindings.
+@testset "a refused transform is not followed by a missing y" begin
+    rt = (g = ["a", "a", "b", "b"], k = ["u", "v", "u", "v"], v = [1.0, 2.0, 3.0, 4.0])
+    said = try
+        render_svg(data(rt) + line * cluster(:v, over = :k) + x(:g)); ""
+    catch e
+        sprint(showerror, e)
+    end
+    @test occursin("`cluster` joins the closest leaves", said) && !occursin("but none is set", said)
+end

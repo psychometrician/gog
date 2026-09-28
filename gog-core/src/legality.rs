@@ -7827,6 +7827,17 @@ pub fn check(spec: &PlotSpec, data: &HashMap<String, DataFrame>) -> Vec<Diagnost
             if channel == Channel::Y && space_of(spec) == SpaceKind::Network {
                 continue;
             }
+            // A transform the mark does not take is refused on its own, with the
+            // mark that does take it. A missing `y` beside that refusal sent the
+            // reader to add a column the refused sentence has no use for:
+            // `line * cluster(amount, over = nutrient) + x(food)` said "Add
+            // `y(<column>)`", and adding one reached only another refusal.
+            if channel == Channel::Y && layer.transforms.iter().any(|t| {
+                !is_collision_modifier(t)
+                    && mark_takes_transform(&layer.mark, t) == TransformLegality::None
+            }) {
+                continue;
+            }
             let c = channel_name(&channel);
             out.push(Diagnostic {
                 kind: DiagnosticKind::Illegal,
@@ -16533,6 +16544,24 @@ mod tests {
             assert!(zone.contains(&format!("`{t}`")), "a zone takes `{t}`: {zone}");
         }
         assert!(msg(Mark::Surface, Transform::Count).contains("`bin` and `density` tile a floor"));
+    }
+
+    /// **A refused transform is not followed by a missing `y`.** `cluster` on a mark
+    /// that does not take it is refused with the two marks that do; the missing-`y`
+    /// refusal beside it said "Add `y(<column>)`", and adding one only reached
+    /// another refusal. Every mark that must have a `y` printed it.
+    #[test]
+    fn a_refused_transform_is_not_followed_by_a_missing_y() {
+        for m in [Mark::Line, Mark::Step, Mark::Area, Mark::Point, Mark::Bar] {
+            let mut l = Layer::new(m.clone()).transform(Transform::Cluster);
+            l.cluster = Some(crate::ir::ClusterSpec {
+                value: Some("gdp".into()), over: Some("region".into()), ..Default::default()
+            });
+            let d = check(&PlotSpec::new().data("t").x("continent").layer(l), &data());
+            assert!(d.iter().any(|d| d.message.contains("`cluster` joins the closest leaves")),
+                "{m:?}: the transform's own refusal: {d:?}");
+            assert!(d.iter().all(|d| !d.message.contains("but none is set")), "{m:?}: {d:?}");
+        }
     }
 
     #[test]
