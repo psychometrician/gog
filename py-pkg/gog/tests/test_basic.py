@@ -3248,3 +3248,13 @@ _op = {"x": [1.0, 2.0, 1.0, 2.0], "y": [1.0, 2.0, 2.0, 3.0], "g": ["a", "a", "b"
 _svg = render_svg(data(_op, name="op") + area + x(col.x) + y(col.y) + color(col.g) + style(opacity=1))
 assert 'fill-opacity="1.000"' in _svg.split(">G</text>")[1]
 ok("a key takes its layer's set opacity")
+
+
+# --- A histogram's end bars are drawn whole -----------------------------------------
+# At three bins the first bar started at x = -78 and the panel cut 40% of it away.
+# The same block runs in all four bindings.
+_hv = {"v": [float(i % 17) * 1.3 for i in builtins.range(40)]}
+_bars = re.findall(r'<rect x="([-0-9.]+)" y="[-0-9.]+" width="([0-9.]+)" height="[0-9.]+" fill="#4e79a7"',
+                   render_svg(data(_hv, name="hv") + bar * bin(3) + x(col.v)))
+assert len(_bars) == 3 and all(float(a) >= 0 and float(a) + float(w) <= 800 for a, w in _bars), _bars
+ok("a histogram's end bars are drawn whole")

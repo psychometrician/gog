@@ -3422,3 +3422,14 @@ test("a key takes its layer's set opacity", () => {
   const svg = render_svg(plot(data(op), area, x(col.x), y(col.y), color(col.g), style({ opacity: 1 })));
   assert.ok(svg.split(">G</text>")[1].includes('fill-opacity="1.000"'));
 });
+
+// A histogram's axis reaches its bins' outer edges: at three bins the first bar
+// started at x = -78 and the panel cut 40% of it away. The same block runs in all
+// four bindings.
+test("a histogram's end bars are drawn whole", () => {
+  const hv = { v: [...Array(40).keys()].map((i) => (i % 17) * 1.3) };
+  const svg = render_svg(plot(data(hv), layer(bar, bin(3)), x(col.v)));
+  const bars = [...svg.matchAll(/<rect x="([-0-9.]+)" y="[-0-9.]+" width="([0-9.]+)" height="[0-9.]+" fill="#4e79a7"/g)];
+  assert.equal(bars.length, 3);
+  assert.ok(bars.every((m) => Number(m[1]) >= 0 && Number(m[1]) + Number(m[2]) <= 800));
+});

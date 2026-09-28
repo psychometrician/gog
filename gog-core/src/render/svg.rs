@@ -1726,6 +1726,31 @@ impl SvgRenderer {
             xs
         };
 
+        // **A flat histogram's end bins reach half a bin past their centers**, and
+        // its axis was fitted to the centers with the ordinary breathing, which is
+        // less than half a bin below eleven bins: the panel's clip sliced a quarter
+        // off each end bar of a six-bin histogram, and 40% at three bins. The bins'
+        // outer edges now join the range, the reach a plain bar's slots are given
+        // already (`bar_x_ticks_eff`). From eleven bins the breathing covers them
+        // and nothing moves.
+        let (xs, ys) = if cell_space == crate::legality::SpaceKind::Flat {
+            let binned: Vec<&DataFrame> = spec.layers.iter().enumerate()
+                .filter(|(_, l)| l.mark == Mark::Bar && l.transforms.contains(&Transform::Bin))
+                .flat_map(|(i, _)| panels.iter().map(move |p| &p[i]))
+                .collect();
+            let reach = |field: &str, range: (f64, f64)| match slot_support(&binned, field) {
+                Some((lo, hi)) => (range.0.min(lo), range.1.max(hi)),
+                None => range,
+            };
+            match (horizontal, cat_x.is_some(), cat_y.is_some()) {
+                (false, false, _) => (reach(x_field, xs), ys),
+                (true, _, false) => (xs, reach(y_field, ys)),
+                _ => (xs, ys),
+            }
+        } else {
+            (xs, ys)
+        };
+
         // A bar that divides one slot has no position axis at all (spec §15), so
         // there is no range to fit and nothing to tick. Give it a unit slot centered
         // on zero, which is what `write_bars` places every element at, and an empty
@@ -4715,6 +4740,23 @@ fn stated_domain(
         limits.0.map(to_axis).filter(|v| v.is_finite()),
         limits.1.map(to_axis).filter(|v| v.is_finite()),
     )
+}
+
+/// The slots' own support: from half a slot below the first center to half a slot
+/// above the last, where the slot is the smallest gap between centers. `None`
+/// when fewer than two centers leave no gap to read a slot from.
+fn slot_support(bar_frames: &[&DataFrame], field: &str) -> Option<(f64, f64)> {
+    let mut vals: Vec<f64> = bar_frames
+        .iter()
+        .filter_map(|d| d.float_col(field))
+        .flat_map(|c| c.iter().copied())
+        .filter(|v| v.is_finite())
+        .collect();
+    vals.sort_by(|a, b| a.partial_cmp(b).unwrap_or(std::cmp::Ordering::Equal));
+    let slot = vals.windows(2).map(|w| w[1] - w[0]).filter(|&d| d > 1e-12)
+        .fold(f64::INFINITY, f64::min);
+    (vals.len() >= 2 && slot.is_finite())
+        .then(|| (vals[0] - slot / 2.0, vals[vals.len() - 1] + slot / 2.0))
 }
 
 fn widen_to_slot_support(bar_frames: &[&DataFrame], field: &str, xs: (f64, f64)) -> (f64, f64) {
@@ -8129,6 +8171,43 @@ mod tests {
         assert!(lines.iter().filter(|l| l.contains(second)).count() == 1
                 && lines.iter().any(|l| !l.contains("stroke-dasharray")),
                 "`a` is solid and `b` takes the second dash in its own panel: {lines:?}");
+    }
+
+    /// A flat histogram's axis reaches its bins' outer edges: fitted to the centers
+    /// with the ordinary breathing, it let the panel's clip slice each end bar of a
+    /// histogram with fewer than eleven bins.
+    #[test]
+    fn a_histograms_end_bars_are_drawn_whole() {
+        let t: HashMap<String, DataFrame> = HashMap::from([(
+            "t".to_string(),
+            DataFrame::new().with_float("v", (0..40).map(|i| f64::from(i % 17) * 1.3).collect()),
+        )]);
+        for (bins, horizontal) in [(3, false), (5, false), (5, true)] {
+            let mut layer = Layer::new(Mark::Bar).transform(Transform::Bin);
+            layer.bin = Some(crate::ir::BinSpec { bins: Some(bins), width: None, tiling: None });
+            let spec = PlotSpec::new().data("t").layer(layer);
+            let spec = if horizontal { spec.y("v") } else { spec.x("v") };
+            let svg = SvgRenderer::default().render(&spec, &t);
+            let clip = svg.split("<clipPath").nth(1).expect("a clipped panel");
+            let num = |text: &str, key: &str| -> f64 {
+                text.split(key).nth(1).and_then(|r| r.split('"').next())
+                    .and_then(|v| v.parse().ok()).expect("a number")
+            };
+            let (px, py) = (num(clip, " x=\""), num(clip, " y=\""));
+            let (pw, ph) = (num(clip, " width=\""), num(clip, " height=\""));
+            let bars: Vec<(f64, f64, f64, f64)> = svg.lines()
+                .filter(|l| l.trim_start().starts_with("<rect") && l.contains("fill=\"#4e79a7\""))
+                .map(|l| (num(l, " x=\""), num(l, " y=\""), num(l, " width=\""), num(l, " height=\"")))
+                .collect();
+            assert_eq!(bars.len(), bins, "one bar per bin: {bars:?}");
+            for (x, y, w, h) in &bars {
+                if horizontal {
+                    assert!(*y >= py - 1e-6 && y + h <= py + ph + 1e-6, "{bins} bins, sideways: {bars:?}");
+                } else {
+                    assert!(*x >= px - 1e-6 && x + w <= px + pw + 1e-6, "{bins} bins: {bars:?}");
+                }
+            }
+        }
     }
 
     /// A key takes the opacity its layer was set to: areas drawn at 1.0 or at 0.3

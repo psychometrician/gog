@@ -48,6 +48,12 @@ CRAN-style repositories and PyPI, `GrammarOfGraphics` on Julia's General, and
 
 ### Changed
 
+- **A histogram's end bars are drawn whole.** Its axis was fitted to the bin
+  centers with a small margin, which below eleven bins is less than half a bin,
+  so the panel cut into the first and last bars: a quarter of each at six bins,
+  40% at three. The axis now reaches the bins' outer edges, on linear, log and
+  calendar axes alike.
+
 - **A legend takes the opacity its marks were set to.** With
   `style(opacity = 1)` or `style(opacity = 0.3)`, the marks changed and their
   key stayed at its default, so a horizon chart's darkest key read paler than its

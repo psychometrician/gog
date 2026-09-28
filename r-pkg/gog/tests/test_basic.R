@@ -5256,3 +5256,19 @@ local({
     stop("FAIL: a key should take its layer's set opacity")
   cat("PASS: a key takes its layer's set opacity\n")
 })
+
+# ---------------------------------------------------------------------------
+# A histogram's axis reaches its bins' outer edges: at three bins the first bar
+# started at x = -78 and the panel cut 40% of it away. The same block runs in
+# all four bindings.
+# ---------------------------------------------------------------------------
+local({
+  t <- data.frame(v = (0:39 %% 17) * 1.3)
+  svg <- render_svg(data(t) + bar * bin(3) + x(v))
+  bars <- regmatches(svg, gregexpr('<rect x="[-0-9.]+" y="[-0-9.]+" width="[0-9.]+" height="[0-9.]+" fill="#4e79a7"', svg))[[1]]
+  x0 <- as.numeric(sub('<rect x="([^"]*)".*', "\\1", bars))
+  w <- as.numeric(sub('.* width="([^"]*)".*', "\\1", bars))
+  if (length(bars) != 3 || any(x0 < 0) || any(x0 + w > 800))
+    stop("FAIL: a histogram's end bars should be drawn whole")
+  cat("PASS: a histogram's end bars are drawn whole\n")
+})

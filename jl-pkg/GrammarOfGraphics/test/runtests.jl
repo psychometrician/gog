@@ -2796,3 +2796,15 @@ end
     svg = render_svg(data(op) + area + x(:x) + y(:y) + color(:g) + style(opacity = 1))
     @test occursin("fill-opacity=\"1.000\"", split(svg, ">G</text>")[2])
 end
+
+# A histogram's axis reaches its bins' outer edges: at three bins the first bar
+# started at x = -78 and the panel cut 40% of it away. The same block runs in all
+# four bindings.
+@testset "a histogram's end bars are drawn whole" begin
+    hv = (v = [(i % 17) * 1.3 for i in 0:39],)
+    svg = render_svg(data(hv) + bar * bin(3) + x(:v))
+    bars = collect(eachmatch(r"<rect x=\"([-0-9.]+)\" y=\"[-0-9.]+\" width=\"([0-9.]+)\" height=\"[0-9.]+\" fill=\"#4e79a7\"", svg))
+    @test length(bars) == 3
+    @test all(parse(Float64, m.captures[1]) >= 0 &&
+              parse(Float64, m.captures[1]) + parse(Float64, m.captures[2]) <= 800 for m in bars)
+end
