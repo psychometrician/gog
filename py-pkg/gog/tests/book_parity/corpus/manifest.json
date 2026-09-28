@@ -3,7 +3,7 @@
   "afterword": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
   "bindings/javascript": "254f76fd3596e057ee63c8f703b50d4e2af0e90b0089bcc44f2b5967af484add",
   "bindings/julia": "e237d771771846d6b3998cb0b81dabe27363b6a922903ae46362c1b20f1475e6",
-  "bindings/python": "c4ddc8fbe9265f515d16f349659d294877565c9b32060b231bcec0dc40036812",
+  "bindings/python": "1563f37a12b654970f480a1f31beb3d080e9b525c0008ce9e4b7ed157dde3a9f",
   "bindings/r": "bc119818fe3ae5a3bbcde8f65e0d0437ee2a65a49ade42d0b4dac8cfcd47e437",
   "book-data": "3646f89c3ec8c2cfde7148039dd3ccdfbf12aaceba2fc139a328795438b04356",
   "channels": "0d21dcd4d554ef54c7121377090f68e19b831f9ca376e7c6ce051a8d0d76abb6",
@@ -62,7 +62,7 @@
   "space": "38a39baf75c9e097fc72f6b188acc0a1812b4db1d0119f02640ccae6a72dfdf0",
   "style": "8c33e8d98d51565ff4e7ac5bc2fe20278aab168aac7090c00c43b56794556ae8",
   "transforms": "1071fc903da8e4dd7778ff7a465f1097f9624c82321f2f7b7cf2dea0bf11b82b",
-  "utilities": "e3b3a4a1bd0bc07e06f671f8acfaf2b6a12298001c13ccc7cc2b8c7d4425b037",
+  "utilities": "167d8c831fc0cdd0c1ece7dff1cfc1d743b20d70ee4d907dab91a17b7e92ffc3",
   "writing": "a7c1675fa4f0026e4d0e4fbb5c4c68bfbab2cfd3debbf22378ae07a3935ef676"
  },
  "engine": "37e761d19d0840bf68d314aebce15cf2253d0d011bb71ae94e79fa6289662b1a",

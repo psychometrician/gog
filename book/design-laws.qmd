@@ -78,9 +78,10 @@ for every pair of a mark and a transform, even when the decision is a refusal.
 > No acronyms. No abbreviations. Two words maximum, joined by `_`.
 > The only exceptions are `x`, `y` and `z`.
 
-If a new user has to look up what a name means, it fails this law. A file
-format keeps the name people already use, so `render_svg()` and `save_gif()`
-keep `svg` and `gif`: nobody says Scalable Vector Graphics. The table pairs a
+If a new user has to look up what a name means, it fails this law. `svg` and
+`gif` are acronyms, but a new user does not have to look them up: they are the
+usual names of two file formats. So `render_svg()`, `save_svg()` and
+`save_gif()` keep them. The table pairs a
 name you may know from another library with the plain name gog uses:
 
 | The name you may know | The plain name here |

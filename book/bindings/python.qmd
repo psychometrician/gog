@@ -189,14 +189,14 @@ its own, so you ask for the picture yourself:
 
 ```{r}
 #| echo: false
-py_show("plot = data(gapminder_2007) + point + x(col.gdp) + y(col.life)\nprint(plot)\nprint(plot.save('/tmp/life.svg'))")
+py_show("plot = data(gapminder_2007) + point + x(col.gdp) + y(col.life)\nprint(plot)\nprint(save_svg(plot, '/tmp/life.svg'))")
 ```
 
 Printing a plot gives one line, naming its mark and its table. It does not give
-the picture. `save()` writes the SVG to a file and returns its path, which is the
-second line printed above. `show()` opens the SVG in a browser, and `render()`
-returns it as a string. R's `print()` draws the picture, and Python's does not.
-Each language is following the convention it already has.
+the picture. `save_svg()` writes the SVG to a file and returns its path, which
+is the second line printed above. `plot.show()` opens the SVG in a browser, and
+`render_svg(plot)` returns it as a string. R's `print()` draws the picture, and
+Python's does not. Each language is following the convention it already has.
 
 ## Six names Python already uses
 
@@ -281,11 +281,11 @@ Databricks SQL connector.
 
 ```python
 import sqlite3
-from gog import query, bar, x, y, col
+from gog import query, bar, x, y, col, save_svg
 
 con = sqlite3.connect("sales.db")
 plot = query(con, "SELECT status, revenue FROM orders") + bar + x(col.status) + y(col.revenue)
-plot.save("orders.svg")
+save_svg(plot, "orders.svg")
 ```
 
 Pass the Spark session itself to `query()`. In the SQL, write the table's full

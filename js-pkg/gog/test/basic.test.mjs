@@ -79,6 +79,7 @@ import {
   ribbon,
   rule,
   save_gif,
+  save_svg,
   shape,
   range,
   smooth,
@@ -3582,4 +3583,21 @@ test("an area refused in the cube gets its own direction", () => {
     () => render_svg(plot(data(t), x(col.a), y(col.b), area, z(col.c))),
     (e) => e.message.includes("An `area` in space") && e.message.includes("draw the area's edge with `path`")
   );
+});
+
+// save_svg writes the drawing byte for byte, returns its path, refuses a path not
+// ending in `.svg` toward the same path with that ending, and draws before it
+// writes, so a refused plot leaves the file there as it was. The same block runs in
+// all four bindings.
+test("save_svg writes the drawing byte for byte and refuses a wrong ending", () => {
+  const t = { a: [1, 2], b: [3, 4] };
+  const p = plot(data(t), point, x(col.a), y(col.b));
+  const file = `${os.tmpdir()}/gog-save-svg.svg`;
+  assert.equal(save_svg(p, file), file);
+  const bytes = fs.readFileSync(file);
+  assert.ok(bytes.equals(Buffer.from(render_svg(p), "utf8")));
+  assert.throws(() => save_svg(p, `${os.tmpdir()}/life.png`), /life\.svg"\)`/);
+  assert.throws(() => save_svg(plot(data(t), point, x(col.a), y(col.missing_col)), file));
+  assert.ok(fs.readFileSync(file).equals(bytes));
+  fs.unlinkSync(file);
 });

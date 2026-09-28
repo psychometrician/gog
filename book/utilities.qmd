@@ -9,21 +9,22 @@ Every word in the kernel belongs to a sentence. `point` is a mark, `x` is a
 channel, `bin` is a transform, and none of them means anything on its own. They
 are words, and a word needs a sentence.
 
-The functions in this appendix are not words. Two of them take a finished plot
-and act on it. The third gives you a table that your sentence can name. None of
+The functions in this appendix are not words. Three of them take a finished
+plot and act on it. The fourth gives you a table that your sentence can name. None of
 them can be written into a sentence with `+` or `*`, and none of them is part of
 the grammar.
 
 The name alone will not tell you whether a function is a word of the grammar.
 `x_label` is a word of the grammar, and its name joins two parts with an
 underscore, exactly as `render_svg` does. What separates them is where each one
-is written. A word of the grammar is written inside a sentence. The three
+is written. A word of the grammar is written inside a sentence. The four
 functions below are always written outside one, which is why none of them
 appears in [The kernel card](kernel-card.qmd).
 
 | | What it gives you |
 |---|---|
 | `render_svg(plot)` | The plot as text, in one string |
+| `save_svg(plot, path)` | The plot as an SVG file |
 | `save_gif(plot, path)` | A played plot as a GIF file |
 | `gog_table(name)` | One of this book's shared tables |
 
@@ -59,19 +60,7 @@ Write it to a file whose name ends in `.svg`, and any web browser can open that
 file as a picture. A vector drawing program, such as Inkscape, can edit it too,
 because the file describes shapes rather than a grid of colored dots.
 
-For a plot `p`, Python, Julia and JavaScript write that file with `save()`. R
-already has a `save()` of its own, which stores R objects, so in R you write
-the text yourself:
-
-| | |
-|---|---|
-| R | `cat(render_svg(p), file = "life.svg")` |
-| Python | `p.save("life.svg")` |
-| Julia | `save(p, "life.svg")` |
-| JavaScript | `save(p, "life.svg")` |
-
-Each call writes the text that `render_svg()` returns, so the four files show
-the same picture.
+[`save_svg()`](#save_svg) writes that file for you, in all four languages.
 
 ### What the file carries
 
@@ -177,6 +166,32 @@ same. The pictures are not compared by eye, because a person cannot see a bar
 that is half a pixel too wide, or a color that is slightly wrong. Comparing the
 text finds both differences, and it works the same way every time.
 
+## `save_svg()`
+
+`save_svg()` draws the plot and writes the drawing to a file. It takes the plot
+and a path that ends in `.svg`, and it has the same name in all four languages:
+
+```{r}
+path <- file.path(tempdir(), "life.svg")
+save_svg(data(gapminder_2007) + point + x(gdp) + y(life), path)
+cat(basename(path), file.size(path), "bytes\n")
+```
+
+The output names the file that was written and its size. The file holds the
+text that `render_svg()` returns, byte for byte, so the same plot gives the
+same file in every language. For a plot `p`, the call is the same in all four:
+
+| | |
+|---|---|
+| R | `save_svg(p, "life.svg")` |
+| Python | `save_svg(p, "life.svg")` |
+| Julia | `save_svg(p, "life.svg")` |
+| JavaScript | `save_svg(p, "life.svg")` |
+
+A path that does not end in `.svg` is refused, and the message repeats the path
+with the right ending. gog draws the plot before it writes anything. So when gog
+refuses the plot, a file already at that path stays unchanged.
+
 ## `save_gif()`
 
 A plot that binds `play()` is a sequence of pictures rather than one. It moves
@@ -224,8 +239,8 @@ no video.
 Every example in this book starts from a table. The examples draw from a set of
 shared tables, such as `gapminder_2007`, and each one is published with the book
 as a CSV file. `gog_table()` reads one by its name, so you can run any example
-without finding and saving the file yourself. Unlike `render_svg()` and
-`save_gif()`, this function comes before the plot rather than after it:
+without finding and saving the file yourself. Unlike the other three, this
+function comes before the plot rather than after it:
 
 ```r
 gapminder_2007 <- gog_table("gapminder_2007")

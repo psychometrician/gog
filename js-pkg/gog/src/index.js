@@ -38,6 +38,7 @@ export {
   render_svg,
   save,
   save_gif,
+  save_svg,
   show,
   svg_block,
   to_wire,

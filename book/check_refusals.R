@@ -58,7 +58,7 @@ check_refusals <- function(book = "book") {
   # spec is inert (nothing renders until knit_print), so this is cheap; the few
   # chunks that render or shell out on their own are skipped, and an earlier
   # chunk that fails is simply left out, since it is not the thing under test.
-  inert <- "render_svg\\(|save_gif\\(|(py|jl|js)_[a-z]+\\(|tab_|source\\(|find_gog_cli|system2\\(|peek\\(|mark_options\\(|kable\\(|query\\("
+  inert <- "render_svg\\(|save_gif\\(|save_svg\\(|(py|jl|js)_[a-z]+\\(|tab_|source\\(|find_gog_cli|system2\\(|peek\\(|mark_options\\(|kable\\(|query\\("
 
   for (f in qmd) {
     ln <- readLines(f, warn = FALSE)

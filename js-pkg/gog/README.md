@@ -47,27 +47,27 @@ which is what you want if you are changing the engine rather than using it.
 ## Your first plot
 
 ```js
-import { plot, data, point, x, y, color, col, render_svg }
+import { plot, data, point, x, y, color, col, save_svg }
   from "grammar-of-graphics";
-import { writeFileSync } from "node:fs";
 
 const gm = { gdp: [1000, 8000, 30000],
              life: [52, 68, 79],
              continent: ["Africa", "Asia", "Europe"] };
 
-const svg = render_svg(plot(
+const p = plot(
   data(gm), point,
-  x(col.gdp, { scale: "log" }), y(col.life), color(col.continent)));
+  x(col.gdp, { scale: "log" }), y(col.life), color(col.continent));
 
-writeFileSync("life.svg", svg);
+save_svg(p, "life.svg");
 ```
 
 Read that aloud: *"Given gm: points, x is gdp on a log scale, y is life, color
 by continent."* That is the whole idea. A plot is a sentence, and you can say it
 before you can write it.
 
-`render_svg()` returns the SVG as a string: straight into the DOM in a browser,
-straight into a response on a server. There is no viewer and no raster step.
+`save_svg()` writes the file, and `render_svg()` returns the same SVG as a
+string: straight into the DOM in a browser, straight into a response on a
+server. There is no viewer and no raster step.
 
 ## What you can draw
 

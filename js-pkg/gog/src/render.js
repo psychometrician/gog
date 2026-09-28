@@ -520,6 +520,36 @@ export function save(plot, file) {
   return file;
 }
 
+// A leading `~` means the home folder, as R's `path.expand()`, Python's and
+// Julia's `expanduser()` read it. Node's `fs` takes the path literally, so a
+// file the other three bindings write to `~/plot.svg` failed here as missing.
+function expandHome(file) {
+  return file === "~" || file.startsWith("~/") ? path.join(os.homedir(), file.slice(1)) : file;
+}
+
+// Draw the plot and write its SVG to `file`, which ends in `.svg`. Returns the path.
+//
+// The drawing `render_svg()` returns, written byte for byte, so the file is the
+// same in every binding and on every platform. Drawn first and written second, so
+// a plot gog refuses leaves a file already at `file` as it was.
+export function save_svg(plot, file) {
+  if (typeof file !== "string" || !file) {
+    throw new GogError('gog: `save_svg()` needs one path — `save_svg(p, "plot.svg")`.');
+  }
+  // The name says what the file is, as `save_gif()`'s does: a path that says
+  // otherwise is refused, and echoed whole with the extension corrected.
+  if (!file.toLowerCase().endsWith(".svg")) {
+    const stem = file.replace(/\.[^./\\]*$/, "") || file;
+    throw new GogError(
+      "gog: `save_svg()` writes an SVG, so the path ends in `.svg` — " +
+        `\`save_svg(p, "${stem}.svg")\`.`
+    );
+  }
+  const svg = render_svg(plot);
+  fs.writeFileSync(expandHome(file), svg, "utf8");
+  return file;
+}
+
 // Write a played plot to an animated GIF. Returns the path.
 //
 // A plot that binds `play()` moves in a browser, because the SVG carries its own
@@ -562,7 +592,7 @@ export function save_gif(plot, file, options = {}) {
 
   const result = spawnSync(
     find_gog_cli(),
-    ["--gif", file, "--scale", String(scale)],
+    ["--gif", expandHome(file), "--scale", String(scale)],
     { input: wirePayload(plot), encoding: "utf8", maxBuffer: 256 * 1024 * 1024 }
   );
 

@@ -431,9 +431,11 @@ translate_js <- function(source) {
   # line above, so what the extractor records is one line short of standing
   # alone. Declining costs no coverage — a parity run compares the picture a
   # sentence draws, and this call writes a file instead of returning one.
-  if (grepl("\\bsave_gif[[:space:]]*\\(", source))
+  # `save_svg()` is the same case: it writes the drawing to a file.
+  saved <- regmatches(source, regexpr("\\bsave_(gif|svg)(?=[[:space:]]*\\()", source, perl = TRUE))
+  if (length(saved))
     return(list(js = NA_character_,
-                blocked = "save_gif names a file — host bookkeeping, not a sentence"))
+                blocked = paste(saved, "names a file — host bookkeeping, not a sentence")))
 
   # R's own extractor on a table, as in `df[order(df$pop), ]`, which the R
   # chapter's masked-names section documents. That is host arithmetic rather than

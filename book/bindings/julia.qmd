@@ -225,7 +225,7 @@ Pluto, the notebook asks the package for a picture, and the plot is drawn under
 the cell. At the REPL, Julia's prompt in a terminal, a plot prints as one line
 of text, such as `<gog plot: bar on heights>` for the heights plot in [The
 table](#the-table). To see the picture, assign the plot to a variable such as
-`p`, write it to a file with `save(p, "plot.svg")`, and open that file in a web
+`p`, write it to a file with `save_svg(p, "plot.svg")`, and open that file in a web
 browser. [`render_svg(p)`](../utilities.qmd#render_svg) returns the same drawing
 as text.
 

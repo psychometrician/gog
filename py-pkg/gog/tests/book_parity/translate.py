@@ -386,8 +386,10 @@ def translate(source: str) -> Tuple[Optional[str], List[str], Optional[str]]:
     # line above, so what the extractor records is one line short of standing on
     # its own. Declining costs no coverage — a parity run compares the picture a
     # sentence draws, and this call writes a file instead of returning one.
-    if re.search(r"\bsave_gif\s*\(", body):
-        return None, fired, "save_gif names a file — host bookkeeping, not a sentence"
+    # `save_svg()` is the same case: it writes the drawing to a file.
+    saved = re.search(r"\b(save_gif|save_svg)\s*\(", body)
+    if saved:
+        return None, fired, f"{saved.group(1)} names a file — host bookkeeping, not a sentence"
 
     # R's own extractor on a table, as in `df[order(df$pop), ]`. The R chapter's
     # masked-names section says what happens when `order` is gog's rather than

@@ -744,6 +744,31 @@ def save(plot: Any, path: str) -> str:
     return path
 
 
+def save_svg(plot: Any, path: str) -> str:
+    """Write the plot's SVG to `path`, which ends in `.svg`. Returns the path.
+
+    The drawing `render_svg()` returns, written byte for byte, so the file is the
+    same in every binding and on every platform. The plot is drawn first and
+    written second, so a plot gog refuses leaves a file already at `path` as it
+    was.
+    """
+    if not isinstance(path, str) or not path:
+        raise GogError('gog: `save_svg()` needs one path — `save_svg(p, "plot.svg")`.')
+    # The name says what the file is, as `save_gif()`'s does: a path that says
+    # otherwise is refused, and echoed whole with the extension corrected.
+    if not path.lower().endswith(".svg"):
+        raise GogError(
+            "gog: `save_svg()` writes an SVG, so the path ends in `.svg` — "
+            f'`save_svg(p, "{os.path.splitext(path)[0]}.svg")`.'
+        )
+    svg = render_svg(plot)
+    # `newline=""` writes the text as it is. In text mode Windows turns each line
+    # ending into two bytes, and the four bindings' files would differ.
+    with open(os.path.expanduser(path), "w", encoding="utf-8", newline="") as handle:
+        handle.write(svg)
+    return path
+
+
 def save_gif(plot: Any, path: str, scale: float = 1.0) -> str:
     """Write a played plot to an animated GIF. Returns the path.
 

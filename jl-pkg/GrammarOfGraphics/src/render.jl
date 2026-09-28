@@ -596,6 +596,29 @@ function save(plot::Union{Plot,Page}, path::AbstractString)
     path
 end
 
+"""    save_svg(plot, path)
+
+Write the plot's SVG to `path`, which ends in `.svg`. Returns the path.
+
+The drawing `render_svg()` returns, written byte for byte, so the file is the same
+in every binding and on every platform. The plot is drawn first and written
+second, so a plot gog refuses leaves a file already at `path` as it was.
+"""
+function save_svg(plot::Union{Plot,Page}, path::AbstractString)
+    isempty(path) &&
+        throw(GogError("gog: `save_svg()` needs one path — `save_svg(p, \"plot.svg\")`."))
+    # The name says what the file is, as `save_gif()`'s does: a path that says
+    # otherwise is refused, and echoed whole with the extension corrected.
+    if !endswith(lowercase(path), ".svg")
+        stem = first(splitext(path))
+        throw(GogError("gog: `save_svg()` writes an SVG, so the path ends in " *
+                       "`.svg` — `save_svg(p, \"$(stem).svg\")`."))
+    end
+    svg = render_svg(plot)
+    write(expanduser(path), svg)
+    path
+end
+
 """    save_gif(plot, path; scale = 1)
 
 Write a played plot to an animated GIF. Returns the path.

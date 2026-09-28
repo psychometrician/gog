@@ -78,7 +78,7 @@ that does the same job is beside it on the right.
 | `labs(title = , x = , y = )` | `title()`, `x_label()`, `y_label()`, `z_label()` |
 | `color = "red"`, `alpha = 0.5` inside a `geom_*()` | `style(color = "red", opacity = 0.5)` |
 | `theme(…)` | `theme()`, for what belongs to the whole plot rather than one layer, such as its size, gridlines and background; `style()` belongs to one layer |
-| `ggsave("plot.svg")` | `cat(render_svg(p), file = "plot.svg")`. The rendered plot *is* SVG, and `render_svg()` returns it as text. [Functions around the grammar](utilities.qmd#render_svg) gives the line for each language. |
+| `ggsave("plot.svg")` | `save_svg(p, "plot.svg")`. gog draws every plot as SVG, so the file name must end in `.svg`. [Functions around the grammar](utilities.qmd#save_svg) shows the call, which is the same in every language. |
 
 ## Six differences to expect
 

@@ -71,7 +71,7 @@ gm <- data.frame(
 )
 
 p <- data(gm) + point + x(gdp, scale = "log") + y(life) + color(continent)
-writeLines(render_svg(p), "life.svg")
+save_svg(p, "life.svg")
 ```
 
 Read that aloud: *"Given gm: points, x is gdp on a log scale, y is life, color

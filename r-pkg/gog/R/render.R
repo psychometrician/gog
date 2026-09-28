@@ -327,6 +327,43 @@ render_svg <- function(gog) {
 }
 
 # ---------------------------------------------------------------------------
+# Write the drawing to a file
+# ---------------------------------------------------------------------------
+
+#' Write a plot's SVG to a file.
+#'
+#' The drawing \code{render_svg()} returns, written to \code{path} byte for
+#' byte, so the file is the same in every binding and on every platform.
+#'
+#' The plot is drawn first and written second, so a plot gog refuses leaves a
+#' file already at \code{path} as it was.
+#'
+#' @param gog  A \code{gog_spec}, or a page of them.
+#' @param path Where to write, ending in \code{.svg}.
+#' @return The path, invisibly.
+#' @export
+save_svg <- function(gog, path) {
+  if (!is.character(path) || length(path) != 1L || is.na(path) || !nzchar(path)) {
+    stop("gog: `save_svg()` needs one path \u2014 `save_svg(p, \"plot.svg\")`.",
+         call. = FALSE)
+  }
+  # The name says what the file is, as `save_gif()`'s does: a path that says
+  # otherwise is refused, and echoed whole with the extension corrected.
+  if (!grepl("\\.svg$", path, ignore.case = TRUE)) {
+    stop("gog: `save_svg()` writes an SVG, so the path ends in `.svg` \u2014 ",
+         "`save_svg(p, \"", tools::file_path_sans_ext(path), ".svg\")`.",
+         call. = FALSE)
+  }
+  # Draw first, write second: a refused plot must cost nothing already on disk.
+  svg <- render_svg(gog)
+  # Bytes, not lines. `writeLines()` ends the file with a newline the drawing
+  # already has, so R's file would be one byte longer than the other three
+  # bindings' files, and `cat()` passes the text through the session's encoding.
+  writeBin(charToRaw(enc2utf8(as.character(svg))), path.expand(path))
+  invisible(path)
+}
+
+# ---------------------------------------------------------------------------
 # Write a played plot as a file that moves
 # ---------------------------------------------------------------------------
 

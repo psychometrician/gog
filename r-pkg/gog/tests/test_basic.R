@@ -5501,3 +5501,29 @@ local({
     stop("FAIL: an area in the cube should get its own direction: ", said)
   cat("PASS: an area refused in the cube gets its own direction\n")
 })
+
+# ---------------------------------------------------------------------------
+# save_svg writes the drawing byte for byte, returns its path, refuses a path
+# not ending in `.svg` toward the same path with that ending, and draws before it
+# writes, so a refused plot leaves the file there as it was. The same block runs
+# in all four bindings.
+# ---------------------------------------------------------------------------
+local({
+  t <- data.frame(a = c(1, 2), b = c(3, 4))
+  p <- data(t) + point + x(a) + y(b)
+  path <- file.path(tempdir(), "gog-save-svg.svg")
+  back <- save_svg(p, path)
+  if (!identical(back, path)) stop("FAIL: save_svg should return its path")
+  bytes <- readBin(path, "raw", file.size(path))
+  if (!identical(rawToChar(bytes), as.character(render_svg(p))))
+    stop("FAIL: the file should hold render_svg()'s text byte for byte")
+  said <- tryCatch({ save_svg(p, file.path(tempdir(), "life.png")); "" },
+                   error = function(e) conditionMessage(e))
+  if (!grepl("life.svg\")`", said, fixed = TRUE))
+    stop("FAIL: a .png path should be refused toward .svg: ", said)
+  try(save_svg(data(t) + point + x(a) + y(missing_col), path), silent = TRUE)
+  if (!identical(readBin(path, "raw", file.size(path)), bytes))
+    stop("FAIL: a refused plot should leave the file as it was")
+  unlink(path)
+  cat("PASS: save_svg writes the drawing byte for byte and refuses a wrong ending\n")
+})

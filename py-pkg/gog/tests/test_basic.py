@@ -3424,3 +3424,29 @@ try:
 except GogError as refusal:
     assert "An `area` in space" in str(refusal) and "draw the area's edge with `path`" in str(refusal), refusal
 ok("an area refused in the cube gets its own direction")
+
+
+# --- save_svg writes the drawing byte for byte ------------------------------------------
+# It returns its path, refuses a path not ending in `.svg` toward the same path with
+# that ending, and draws before it writes, so a refused plot leaves the file there as
+# it was. The same block runs in all four bindings.
+_ss = {"a": [1.0, 2.0], "b": [3.0, 4.0]}
+_sp = data(_ss, name="ss") + point + x(col.a) + y(col.b)
+_spath = os.path.join(tempfile.gettempdir(), "gog-save-svg.svg")
+assert save_svg(_sp, _spath) == _spath
+with open(_spath, "rb") as _f:
+    _sbytes = _f.read()
+assert _sbytes == render_svg(_sp).encode("utf-8")
+try:
+    save_svg(_sp, os.path.join(tempfile.gettempdir(), "life.png"))
+    raise AssertionError("a .png path was written")
+except GogError as refusal:
+    assert 'life.svg")`' in str(refusal), refusal
+try:
+    save_svg(data(_ss, name="ss") + point + x(col.a) + y(col.missing_col), _spath)
+except GogError:
+    pass
+with open(_spath, "rb") as _f:
+    assert _f.read() == _sbytes, "a refused plot changed the file"
+os.remove(_spath)
+ok("save_svg writes the drawing byte for byte and refuses a wrong ending")

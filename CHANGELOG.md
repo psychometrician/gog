@@ -8,6 +8,14 @@ CRAN-style repositories and PyPI, `GrammarOfGraphics` on Julia's General, and
 
 ### Added
 
+- **`save_svg(plot, path)`, in all four languages.** It draws the plot and writes
+  the SVG to a file whose name ends in `.svg`, byte for byte as `render_svg()`
+  returns it, so the same plot gives the same file in R, Python, Julia and
+  JavaScript, and it returns the path. R had no way to write the file but
+  `cat()`, and the other three spelled the job three ways. A path with another
+  ending is refused, and a plot gog refuses leaves a file already at the path
+  unchanged.
+
 - **The beeswarm, `point * dodge`.** Over a category, `dodge` now moves each
   point across its slot only as far as it must to clear the points beside it, so
   no two touch and the swarm's outline shows each group's distribution. Values
@@ -47,6 +55,9 @@ CRAN-style repositories and PyPI, `GrammarOfGraphics` on Julia's General, and
   curve passes through every row and nothing is left to measure the band from.
 
 ### Changed
+
+- **In JavaScript, `save_gif()` reads a leading `~` as the home folder,** as R,
+  Python and Julia do; it took the path literally and failed on `~/wave.gif`.
 
 - **`z` on `line`, `step`, `area` and `ribbon` is listed as refused, not as
   unbuilt.** gog refuses these four pairs by rule, but `gog-cli --rules` listed

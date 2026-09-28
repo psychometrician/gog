@@ -51,8 +51,8 @@ gm = {"gdp": [1000, 8000, 30000],
       "life": [52, 68, 79],
       "continent": ["Africa", "Asia", "Europe"]}
 
-(data(gm) + point + x(col.gdp, scale="log") + y(col.life)
- + color(col.continent)).save("life.svg")
+p = data(gm) + point + x(col.gdp, scale="log") + y(col.life) + color(col.continent)
+save_svg(p, "life.svg")
 ```
 
 Read that aloud: *"Given gm: points, x is gdp on a log scale, y is life, color

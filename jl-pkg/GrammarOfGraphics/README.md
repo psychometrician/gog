@@ -62,9 +62,8 @@ gm = (gdp = [1000.0, 8000.0, 30000.0],
       life = [52.0, 68.0, 79.0],
       continent = ["Africa", "Asia", "Europe"])
 
-svg = render_svg(data(gm) + point + x(:gdp, scale = "log") + y(:life) +
-                 color(:continent))
-write("life.svg", svg)
+p = data(gm) + point + x(:gdp, scale = "log") + y(:life) + color(:continent)
+save_svg(p, "life.svg")
 ```
 
 Read that aloud: *"Given gm: points, x is gdp on a log scale, y is life, color

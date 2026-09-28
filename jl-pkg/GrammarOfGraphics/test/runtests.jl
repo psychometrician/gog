@@ -2960,3 +2960,28 @@ end
     end
     @test occursin("An `area` in space", said) && occursin("draw the area's edge with `path`", said)
 end
+
+# save_svg writes the drawing byte for byte, returns its path, refuses a path not
+# ending in `.svg` toward the same path with that ending, and draws before it writes,
+# so a refused plot leaves the file there as it was. The same block runs in all four
+# bindings.
+@testset "save_svg writes the drawing byte for byte and refuses a wrong ending" begin
+    t = (a = [1.0, 2.0], b = [3.0, 4.0])
+    p = data(t) + point + x(:a) + y(:b)
+    file = joinpath(tempdir(), "gog-save-svg.svg")
+    @test save_svg(p, file) == file
+    bytes = read(file)
+    @test bytes == Vector{UInt8}(render_svg(p))
+    said = try
+        save_svg(p, joinpath(tempdir(), "life.png")); ""
+    catch e
+        sprint(showerror, e)
+    end
+    @test occursin("life.svg\")`", said)
+    try
+        save_svg(data(t) + point + x(:a) + y(:missing_col), file)
+    catch
+    end
+    @test read(file) == bytes
+    rm(file)
+end
