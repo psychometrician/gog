@@ -3073,3 +3073,25 @@ end
     @test occursin("add `z(<column>)`", floor) && !occursin("drawn flat", floor) &&
           !occursin("bar * count", floor)
 end
+
+# A direction to declare an order names how in every language: "set the column's
+# factor levels" was R's word, printed to all four. The `order()` refusal and the
+# `play()` note now name a factor in R and `ordered()` in the other three. The same
+# block runs in all four bindings.
+@testset "asking for a declared order names all four languages" begin
+    t = (g = ["b", "a", "c"], v = [1.0, 2.0, 3.0], w = [4.0, 6.0, 5.0])
+    four = "a factor in R, `ordered()` in Python, Julia and JavaScript"
+    sorted = try
+        render_svg(data(t) + point + x(:v) + y(:w) + order(:v)); ""
+    catch e
+        sprint(showerror, e)
+    end
+    path, io = mktemp()
+    redirect_stderr(io) do
+        render_svg(data(t) + point + x(:v) + y(:w) + play(:g))
+    end
+    close(io)
+    for s in (sorted, read(path, String))
+        @test occursin(four, s) && !occursin("factor levels", s)
+    end
+end

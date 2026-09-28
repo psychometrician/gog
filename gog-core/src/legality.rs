@@ -9929,6 +9929,12 @@ fn check_polar(out: &mut Vec<Diagnostic>, spec: &PlotSpec) {
 // packing's — it is `order()`'s, and it was always true.
 // ---------------------------------------------------------------------------
 
+/// How each language **declares the order of a column's categories**, for a message
+/// that asks for one. The engine reads a declared order off the table whichever
+/// binding wrote it, so the direction names all four: "the column's factor levels"
+/// was R's word, printed to Python, Julia and JavaScript as well.
+const DECLARE_LEVELS: &str = "a factor in R, `ordered()` in Python, Julia and JavaScript";
+
 fn check_order(out: &mut Vec<Diagnostic>, spec: &PlotSpec, data: &HashMap<String, DataFrame>) {
     let Some(order) = &spec.order else { return };
     let Some(df) = spec.data.as_ref().and_then(|n| data.get(n)) else { return };
@@ -9944,8 +9950,8 @@ fn check_order(out: &mut Vec<Diagnostic>, spec: &PlotSpec, data: &HashMap<String
             message: format!(
                 "gog: `order({})` sorts a **categorical position axis**, and this plot has none — \
                  so there is nothing for it to put in order. Bind a category to `x` or `y`, or, if \
-                 what you meant was the order of a color split, set the column's factor levels \
-                 where the data lives.",
+                 what you meant was the order of a color split, declare the column's levels in \
+                 the table: {DECLARE_LEVELS}.",
                 order.field
             ),
         });
@@ -11081,8 +11087,8 @@ fn check_play(out: &mut Vec<Diagnostic>, spec: &PlotSpec, data: &HashMap<String,
             message: format!(
                 "gog: `play({field})` has no stated order, so each frame is a snapshot of one \
                  `{field}` and the frames run in the order the rows arrive: {listed}. A sequence \
-                 claims that one frame comes after another. Set the column's factor levels where \
-                 the data lives, or use `facet({field})`, which claims no order."
+                 claims that one frame comes after another. Declare the column's levels in the \
+                 table ({DECLARE_LEVELS}), or use `facet({field})`, which claims no order."
             ),
         });
     }
@@ -17495,6 +17501,25 @@ mod tests {
         // §12: an Assumption renders. A refusal here would take the book's own
         // teaching plot off the page.
         assert!(!d.iter().any(|x| x.is_fatal()), "must still draw: {:?}", msgs(&d));
+    }
+
+    /// **A direction to declare an order names how in every language.** Both
+    /// messages that ask for one said "set the column's factor levels", R's word,
+    /// printed as well to Python, Julia and JavaScript, which declare it with
+    /// `ordered()`.
+    #[test]
+    fn asking_for_a_declared_order_names_all_four_languages() {
+        let played = check(&base().layer(Layer::new(Mark::Point))
+            .channel(Channel::Play, "continent"), &data());
+        let mut sorted = Vec::new();
+        check_order(&mut sorted, &PlotSpec::new().data("t").y("gdp").order_desc("gdp"), &data());
+        for said in [msgs(&played), msgs(&sorted)] {
+            let said = said.join("\n");
+            assert!(said.contains("declare the column's levels") || said.contains("Declare the column's levels"),
+                "{said}");
+            assert!(said.contains("a factor in R, `ordered()` in Python, Julia and JavaScript")
+                && !said.contains("factor levels"), "{said}");
+        }
     }
 
     /// **The test is a stated order, not a column type**, which is the trap this

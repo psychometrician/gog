@@ -3536,3 +3536,21 @@ except GogError as refusal:
     _s = str(refusal)
     assert "add `z(<column>)`" in _s and "drawn flat" not in _s and "bar * count" not in _s, _s
 ok("a bar over two categories is sent to the cube, not to count")
+
+
+# --- Asking for a declared order names all four languages -------------------------------
+# "Set the column's factor levels" was R's word, printed to all four. The `order()`
+# refusal and the `play()` note now name a factor in R and `ordered()` in the other
+# three. The same block runs in all four bindings.
+_lv = data({"g": ["b", "a", "c"], "v": [1.0, 2.0, 3.0], "w": [4.0, 6.0, 5.0]}, name="t")
+_four = "a factor in R, `ordered()` in Python, Julia and JavaScript"
+try:
+    render_svg(_lv + point + x(col.v) + y(col.w) + order(col.v))
+    raise AssertionError("order() with no categorical axis drew")
+except GogError as refusal:
+    _sorted = str(refusal)
+with contextlib.redirect_stderr(io.StringIO()) as _said:
+    render_svg(_lv + point + x(col.v) + y(col.w) + play(col.g))
+for _s in (_sorted, _said.getvalue()):
+    assert _four in _s and "factor levels" not in _s, _s
+ok("asking for a declared order names all four languages")

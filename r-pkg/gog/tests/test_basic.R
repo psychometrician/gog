@@ -5624,3 +5624,25 @@ local({
     stop("FAIL: a floor summary with no z should be asked for z: ", floor)
   cat("PASS: a bar over two categories is sent to the cube, not to count\n")
 })
+
+# ---------------------------------------------------------------------------
+# A direction to declare an order names how in every language: "set the column's
+# factor levels" was R's word, printed to all four. The `order()` refusal and the
+# `play()` note now name a factor in R and `ordered()` in the other three. The
+# same block runs in all four bindings.
+# ---------------------------------------------------------------------------
+local({
+  t <- data.frame(g = c("b", "a", "c"), v = c(1, 2, 3), w = c(4, 6, 5))
+  four <- "a factor in R, `ordered()` in Python, Julia and JavaScript"
+  sorted <- tryCatch({ render_svg(data(t) + point + x(v) + y(w) + order(v)); "" },
+                     error = function(e) conditionMessage(e))
+  played <- character(0)
+  withCallingHandlers(render_svg(data(t) + point + x(v) + y(w) + play(g)),
+    message = function(m) { played <<- c(played, conditionMessage(m)); invokeRestart("muffleMessage") },
+    warning = function(w) { played <<- c(played, conditionMessage(w)); invokeRestart("muffleWarning") })
+  for (s in list(sorted, paste(played, collapse = "\n"))) {
+    if (!grepl(four, s, fixed = TRUE) || grepl("factor levels", s, fixed = TRUE))
+      stop("FAIL: a direction to declare an order should name all four languages: ", s)
+  }
+  cat("PASS: asking for a declared order names all four languages\n")
+})

@@ -56,6 +56,12 @@ CRAN-style repositories and PyPI, `GrammarOfGraphics` on Julia's General, and
 
 ### Changed
 
+- **Asking for a declared order names every language's way.** The `order()`
+  refusal for a plot with no categorical position, and the `play()` note for a
+  column with no stated order, said to "set the column's factor levels", R's
+  word, in all four languages. Both now say to declare the column's levels in
+  the table: a factor in R, `ordered()` in Python, Julia and JavaScript.
+
 - **A bar over two categories is refused toward counts that draw.** `bar +
   x(country) + y(continent)` was told to use `bar * count`, which keeps
   `y(continent)` and is refused as well. The refusal now names counting either

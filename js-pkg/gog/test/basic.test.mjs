@@ -3678,3 +3678,29 @@ test("a bar over two categories is sent to the cube, not to count", () => {
       && !e.message.includes("bar * count")
   );
 });
+
+// A direction to declare an order names how in every language: "set the column's
+// factor levels" was R's word, printed to all four. The `order()` refusal and the
+// `play()` note now name a factor in R and `ordered()` in the other three. The same
+// block runs in all four bindings.
+test("asking for a declared order names all four languages", () => {
+  const t = { g: ["b", "a", "c"], v: [1, 2, 3], w: [4, 6, 5] };
+  const four = "a factor in R, `ordered()` in Python, Julia and JavaScript";
+  let sorted = "";
+  try {
+    render_svg(plot(data(t), point, x(col.v), y(col.w), order(col.v)));
+  } catch (e) {
+    sorted = e.message;
+  }
+  const write = process.stderr.write;
+  let played = "";
+  process.stderr.write = (chunk) => { played += chunk; return true; };
+  try {
+    render_svg(plot(data(t), point, x(col.v), y(col.w), play(col.g)));
+  } finally {
+    process.stderr.write = write;
+  }
+  for (const s of [sorted, played]) {
+    assert.ok(s.includes(four) && !s.includes("factor levels"), s);
+  }
+});
