@@ -56,6 +56,13 @@ CRAN-style repositories and PyPI, `GrammarOfGraphics` on Julia's General, and
 
 ### Changed
 
+- **The web page's note on a brushed polar plot or map says what the plot does
+  to a position.** Pointing at either names no row, and the line under the plot
+  says why. For a polar plot it said both axes bend around a circle, where only
+  `x` does: `x` becomes an angle and `y` a distance from the center. For a map
+  it spoke of places "on the page", the web page everywhere else in that line;
+  it now says the map projects longitude and latitude to new positions.
+
 - **Python's `save()` writes the drawing's bytes on Windows too.** It wrote in
   text mode, which on Windows turns each line break into two bytes. It now
   writes the text as it is, as `save_svg()` does.

@@ -33,6 +33,7 @@ import {
   loadEngine,
   redraw,
   renderSpec,
+  UNPLACED,
 } from "../src/interactive.js";
 import { addViewControls, controlBar, pngSize } from "../src/view.js";
 
@@ -1276,9 +1277,10 @@ test("a played plot answers only for the moment showing", async () => {
   }
 });
 
-// A disc bends both axes and the readout reads a value back along straight ones,
-// so there is no answer to give. Going quiet is the honest half; the bar says why
-// once the reader has asked, which is the other half.
+// A disc turns `x` into an angle and `y` into a distance from its center, and the
+// readout reads a value back along straight axes, so there is no answer to give.
+// Going quiet is the honest half; the bar says why once the reader has asked,
+// which is the other half.
 test("a plot that cannot place a row says nothing, and says why", async () => {
   const undo = stubDom();
   try {
@@ -1294,6 +1296,29 @@ test("a plot that cannot place a row says nothing, and says why", async () => {
   } finally {
     undo();
   }
+});
+
+// The engine writes one word on a panel it cannot place rows on, and the page
+// turns it into a sentence. A word with no sentence prints the note's opening and
+// stops there, so both lists are read from their sources and held together.
+test("every word the engine can write on a brushed panel has a sentence", () => {
+  const legality = fs.readFileSync(path.join(ROOT, "gog-core/src/legality.rs"), "utf8");
+  const svg = fs.readFileSync(path.join(ROOT, "gog-core/src/render/svg.rs"), "utf8");
+  const layers = legality.split("pub fn why_not_placed")[1].split("\n}\n")[0];
+  const spaces = svg.split("let place = if is_polar")[1].split("};")[0];
+  const words = new Set([...layers.matchAll(/"([a-z]+)"/g), ...spaces.matchAll(/Some\("([a-z]+)"\)/g)]
+    .map((m) => m[1]));
+  assert.ok(words.has("jitter") && words.has("polar"), `both sources were read: ${[...words]}`);
+  // Never shown: a brush is refused in a network, and a globe turns instead.
+  words.delete("network");
+  words.delete("globe");
+  assert.deepEqual(Object.keys(UNPLACED).sort(), [...words].sort());
+
+  // A polar plot bends one axis, not two, and a map's positions are not "places
+  // on the page", the web page every other word in that bar means.
+  assert.match(UNPLACED.polar, /`x` into an angle and `y` into a distance from the center/);
+  assert.match(UNPLACED.map, /projects longitude and latitude to new positions/);
+  assert.ok(!/on the page/.test(UNPLACED.map));
 });
 
 test("nobody has asked, so there is nothing to explain", async () => {

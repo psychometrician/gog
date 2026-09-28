@@ -748,8 +748,8 @@ export function attachBrush(engine, container, request, options = {}) {
   // **What the arithmetic assumes, and who checks it.** Re-deriving a position
   // is exact only where the mark stands at the row's own value. `jitter` moves
   // it, `dodge` and `stack` move it, a summary draws one shape for many rows, a
-  // disc bends both axes, and a map projects its columns before anything is
-  // fitted. The engine says which of those happened, on the panel, because it is
+  // disc turns `x` into an angle and `y` into a distance from its center, and a
+  // map projects its columns before anything is fitted. The engine says which of those happened, on the panel, because it is
   // the only side that knows — see `data-gog-place`. Reading a value back
   // against a picture that moved it is not a near miss: the reader gets a
   // plausible row at a plausible position and no way to tell.
@@ -1693,6 +1693,35 @@ export function selectedRows(req, limit = PAGE_ROWS, offset = 0) {
 
 
 /**
+ * Why pointing at a plot names nothing, in the reader's words rather than the
+ * engine's. The engine ships one word on the panel (`data-gog-place`), because
+ * it is the only side that knows a mark was moved off its value; the sentence
+ * is written here, where the page speaks, and the selection bar shows it under
+ * the plot once a reader has pointed.
+ *
+ * Every one of these says the same thing twice over: what the plot did to the
+ * position, and therefore why a pointer cannot answer. A reader who knows the
+ * first can predict the rest, which is the point of saying it rather than going
+ * quiet.
+ *
+ * One entry for every word the engine can write on a brushed panel. A word with
+ * no sentence here would print the note's opening and then nothing, so a test
+ * holds the two lists together. `network` and `globe` are absent on purpose: a
+ * brush is refused in a network, and a globe is turned rather than pointed at.
+ */
+export const UNPLACED = {
+  jitter: "`jitter` draws each point beside its value, not on it, so pointing at one cannot say which row it is.",
+  repel: "`repel` moves each label until it is clear of the others, so a label no longer sits where its row does.",
+  dodge: "`dodge` sets each mark beside its value to clear its neighbors, so pointing at one cannot say which row it is.",
+  stack: "`stack` sets each mark on top of the one below, so where a mark sits is not where its value is.",
+  summary: "each mark here stands for many rows at once, so there is no one row under the pointer to name.",
+  bounds: "these shapes are placed by the bounds you gave them rather than by a row's value.",
+  mark: "this mark draws one shape through many rows, so no single row is under the pointer.",
+  polar: "a polar plot turns `x` into an angle and `y` into a distance from the center, and the page reads a value back along straight axes.",
+  map: "a map projects longitude and latitude to new positions before drawing, so a mark no longer stands at its row's values.",
+};
+
+/**
  * The bar under a brushed plot: how many rows were caught, the rows themselves
  * on demand, and a way back to nothing selected.
  *
@@ -1753,26 +1782,6 @@ function addSelectionBar(container, handle, view) {
   const readout = document.createElement("span");
   readout.style.cssText = "font-variant-numeric:tabular-nums;";
 
-  // Why pointing at this plot names nothing, in the reader's words rather than
-  // the engine's. The engine ships one word, because it is the only side that
-  // knows a mark was moved off its value; the sentence is written here, beside
-  // "clear" and "show rows", because this is where the page speaks.
-  //
-  // Every one of these says the same thing twice over: what the plot did to the
-  // position, and therefore why a pointer cannot answer. A reader who knows the
-  // first can predict the rest, which is the point of saying it rather than
-  // going quiet.
-  const WHY = {
-    jitter: "`jitter` draws each point beside its value, not on it, so pointing at one cannot say which row it is.",
-    repel: "`repel` moves each label until it is clear of the others, so a label no longer sits where its row does.",
-    dodge: "`dodge` sets each mark beside its value to clear its neighbors, so pointing at one cannot say which row it is.",
-    stack: "`stack` sets each mark on top of the one below, so where a mark sits is not where its value is.",
-    summary: "each mark here stands for many rows at once, so there is no one row under the pointer to name.",
-    bounds: "these shapes are placed by the bounds you gave them rather than by a row's value.",
-    mark: "this mark draws one shape through many rows, so no single row is under the pointer.",
-    polar: "a polar plot bends both axes around a circle, and the page reads a value back along straight ones.",
-    map: "a map turns longitude and latitude into places on the page before drawing, so the two do not line up.",
-  };
   const note = document.createElement("span");
   note.style.cssText = "opacity:.72;";
 
@@ -1898,7 +1907,7 @@ function addSelectionBar(container, handle, view) {
     }
     readout.textContent = `${s.kept} of ${s.total} selected`;
     const why = handle.unplaced?.();
-    note.textContent = why ? `Pointing reads no row here: ${WHY[why] ?? ""}` : "";
+    note.textContent = why ? `Pointing reads no row here: ${UNPLACED[why] ?? ""}` : "";
     note.style.display = why ? "block" : "none";
     // Nothing to show and nothing to reset when nothing is selected. The
     // buttons go quiet rather than disappearing, so the line does not jump.
