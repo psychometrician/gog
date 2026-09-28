@@ -320,19 +320,26 @@ class _Range(CallableAtom):
         # quantile, so that reading is named. A float out of 0..1 is a mistyped
         # band end and gets told about quantiles instead. Both refuse either
         # way; only the direction is chosen.
-        for name, value in (("low", low), ("high", high)):
-            if value is None:
-                continue
-            builtin_shaped = isinstance(value, bool) or not isinstance(
-                value, (int, float)
-            ) or (isinstance(value, int) and not 0 <= value <= 1)
-            if builtin_shaped:
-                raise GogError(
-                    "gog: `range()` takes the band's two ends, each one number "
-                    "between 0 and 1, e.g. `range(0.25, 0.75)`. For a sequence of "
-                    "integers, gog shadows that name: use `builtins.range` for "
-                    "Python's."
-                )
+        #
+        # The call is judged whole, not value by value. Python's own `range` takes
+        # whole numbers, passed by position, so a float anywhere in the call, or
+        # `high` named on its own, can only be meant for gog's: `range(0.25, 75)`
+        # and `range(high=75)` were pointed at `builtins.range`.
+        builtin_hint = GogError(
+            "gog: `range()` takes the band's two ends, each one number "
+            "between 0 and 1, e.g. `range(0.25, 0.75)`. For a sequence of "
+            "integers, gog shadows that name: use `builtins.range` for "
+            "Python's."
+        )
+        given = [(name, value) for name, value in (("low", low), ("high", high))
+                 if value is not None]
+        if any(isinstance(value, bool) or not isinstance(value, (int, float))
+               for _, value in given):
+            raise builtin_hint
+        if (low is not None and all(isinstance(value, int) for _, value in given)
+                and any(not 0 <= value <= 1 for _, value in given)):
+            raise builtin_hint
+        for name, value in given:
             if not 0 <= value <= 1:
                 raise GogError(
                     f"gog: `range({name}={value})` is not a probability — the "

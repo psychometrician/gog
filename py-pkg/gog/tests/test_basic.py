@@ -3850,3 +3850,21 @@ except GogError as refusal:
     assert "`title()` was added to `facet(col.g)`" in _s \
         and "`plot + title('...') | facet(col.g)`" in _s and "no plot to join" not in _s, _s
 ok("an atom written after a facet is told to come before it")
+
+
+# --- range() points at builtins.range only for a call Python's own could be -------------
+# `range(high=75)` and `range(0.25, 75)` were told to use `builtins.range`, and Python's
+# `range` takes neither a float nor `high=`. Only an all-integer call by position is
+# pointed there now; the others are told a band's ends are probabilities. (Python alone:
+# the other three have no builtin `range` for gog's to shadow.)
+from gog import range as _grange
+def _ranged(*args, **kwargs):
+    try:
+        _grange(*args, **kwargs)
+    except GogError as refusal:
+        return str(refusal)
+    raise AssertionError("range() took it")
+assert "builtins.range" in _ranged(10) and "builtins.range" in _ranged(2, 5)
+for _s in (_ranged(0.25, 75), _ranged(high=75)):
+    assert "builtins.range" not in _s and "`range(high=75)` is not a probability" in _s, _s
+ok("range() points at builtins.range only for a call Python's own could be")

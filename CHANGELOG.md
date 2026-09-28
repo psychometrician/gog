@@ -56,6 +56,12 @@ CRAN-style repositories and PyPI, `GrammarOfGraphics` on Julia's General, and
 
 ### Changed
 
+- **Python's `range()` points at `builtins.range` only when the call could be
+  Python's own.** `range(0.25, 75)` and `range(high=75)` were told to use
+  `builtins.range`, which takes neither a float nor `high=`. They are now told
+  that a band's ends are probabilities between 0 and 1. A call of whole numbers
+  by position, as in `range(10)`, still gets the builtin's name.
+
 - **The `%>%` warning says what happens to a second piped table.** In R,
   `df %>% data()` warns that the pipe hid the table's name, and it added that
   two tables piped this way collide. They do not: the second is called `data2`
