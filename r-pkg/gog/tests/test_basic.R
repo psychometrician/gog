@@ -5357,3 +5357,24 @@ local({
     stop("FAIL: zero should be written 0 on a thousands axis")
   cat("PASS: zero is written 0 on a thousands axis\n")
 })
+
+# ---------------------------------------------------------------------------
+# A layer that maps no color, beside one whose colors a legend decodes, is drawn
+# in neutral ink: in the palette's first hue it read as the legend's first
+# category. A texture legend's swatches take the ink their marks take. The same
+# block runs in all four bindings.
+# ---------------------------------------------------------------------------
+local({
+  t <- data.frame(x = c(1, 2, 3, 4), y = c(1, 3, 2, 4), g = c("a", "b", "a", "b"))
+  svg <- render_svg(data(t) + x(x) + y(y) + point + color(g) + line)
+  if (!grepl('<polyline [^>]*stroke="#3c3c46"', svg))
+    stop("FAIL: the unmapped line beside a color legend should be neutral")
+  plain <- render_svg(data(t) + x(x) + y(y) + point + line)
+  if (!grepl('<polyline [^>]*stroke="#4e79a7"', plain))
+    stop("FAIL: with no color legend the line keeps the default ink")
+  b <- data.frame(a = c("p", "q", "r"), b = c(3, 5, 4), g = c("u", "v", "w"))
+  hatched <- render_svg(data(b) + bar + x(a) + y(b) + pattern(g) + style(color = "firebrick"))
+  if (grepl("#4e79a7", hatched, fixed = TRUE))
+    stop("FAIL: a texture legend beside firebrick bars should not be blue")
+  cat("PASS: an unmapped layer beside a color legend is neutral\n")
+})

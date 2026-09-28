@@ -3321,3 +3321,19 @@ _zk = render_svg(data({"g": ["a", "b", "c"], "v": [1200.0, 2500.0, 4100.0]}, nam
                  + bar + x(col.g) + y(col.v))
 assert ">0</text>" in _zk and ">0K</text>" not in _zk
 ok("zero is written 0 on a thousands axis")
+
+
+# --- An unmapped layer beside a color legend is neutral --------------------------------
+# In the palette's first hue it read as the legend's first category. A texture
+# legend's swatches take the ink their marks take. The same block runs in all four
+# bindings.
+_nt = {"x": [1.0, 2.0, 3.0, 4.0], "y": [1.0, 3.0, 2.0, 4.0], "g": ["a", "b", "a", "b"]}
+_svg = render_svg(data(_nt, name="nt") + x(col.x) + y(col.y) + point + color(col.g) + line)
+assert re.search(r'<polyline [^>]*stroke="#3c3c46"', _svg)
+_svg = render_svg(data(_nt, name="nt") + x(col.x) + y(col.y) + point + line)
+assert re.search(r'<polyline [^>]*stroke="#4e79a7"', _svg)
+_nb = {"a": ["p", "q", "r"], "b": [3.0, 5.0, 4.0], "g": ["u", "v", "w"]}
+_svg = render_svg(data(_nb, name="nb") + bar + x(col.a) + y(col.b) + pattern(col.g)
+                  + style(color="firebrick"))
+assert "#4e79a7" not in _svg
+ok("an unmapped layer beside a color legend is neutral")

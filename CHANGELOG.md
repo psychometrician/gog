@@ -48,6 +48,13 @@ CRAN-style repositories and PyPI, `GrammarOfGraphics` on Julia's General, and
 
 ### Changed
 
+- **A layer that maps no color is drawn in dark gray beside a color legend.**
+  It was drawn in the palette's first color, which the legend gives to the first
+  category, so the `smooth` line through points colored by continent read as
+  Asia's trend. A plot with no color legend keeps the first color, and a color
+  set with `style(color = )` is kept. A texture legend's swatches now take the
+  color their marks are drawn in: bars set to firebrick were keyed in blue.
+
 - **Zero is written `0` on an axis counted in thousands or millions.** It read
   `0K` or `0M`, as if zero came in a unit.
 

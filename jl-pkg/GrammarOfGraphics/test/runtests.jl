@@ -2865,3 +2865,14 @@ end
     svg = render_svg(data((g = ["a", "b", "c"], v = [1200.0, 2500.0, 4100.0])) + bar + x(:g) + y(:v))
     @test occursin(">0</text>", svg) && !occursin(">0K</text>", svg)
 end
+
+# An unmapped layer beside a color legend is neutral: in the palette's first hue it
+# read as the legend's first category. A texture legend's swatches take the ink
+# their marks take. The same block runs in all four bindings.
+@testset "an unmapped layer beside a color legend is neutral" begin
+    nt = (x = [1.0, 2.0, 3.0, 4.0], y = [1.0, 3.0, 2.0, 4.0], g = ["a", "b", "a", "b"])
+    @test occursin(r"<polyline [^>]*stroke=\"#3c3c46\"", render_svg(data(nt) + x(:x) + y(:y) + point + color(:g) + line))
+    @test occursin(r"<polyline [^>]*stroke=\"#4e79a7\"", render_svg(data(nt) + x(:x) + y(:y) + point + line))
+    nb = (a = ["p", "q", "r"], b = [3.0, 5.0, 4.0], g = ["u", "v", "w"])
+    @test !occursin("#4e79a7", render_svg(data(nb) + bar + x(:a) + y(:b) + pattern(:g) + style(color = "firebrick")))
+end

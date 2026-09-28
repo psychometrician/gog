@@ -344,7 +344,8 @@ impl SvgRenderer {
         // below sees one complete set of per-layer encodings and no stage has to
         // know the scoping rule. Idempotent — `plot::render` has already run the
         // same resolution inside `legality::check`.
-        let resolved = crate::legality::resolve_scopes(spec);
+        let mut resolved = crate::legality::resolve_scopes(spec);
+        crate::render::legend::neutral_beside_a_color_guide(&mut resolved);
         let spec = &resolved;
         let ctx = RenderContext::new(spec, data);
 
@@ -5830,7 +5831,7 @@ fn clip_id(l: &Layout) -> String {
 mod tests {
     use super::*;
     use crate::ir::{ChannelDef, Layer, ScaleType};
-    use crate::render::palette::{PALETTE_GOG, RAMP_BLUE};
+    use crate::render::palette::{NEUTRAL_INK, PALETTE_GOG, RAMP_BLUE};
     use crate::render::text::estimate_text_width;
     use crate::render::ticks::nice_ticks;
 
@@ -8529,6 +8530,60 @@ mod tests {
             .coord(CoordSpace::Network(crate::ir::NetworkView::default()));
         let labels = text_of(&SvgRenderer::default().render(&spec, &data));
         assert!(labels.iter().any(|l| l == "Degree"), "a key titled Degree: {labels:?}");
+    }
+
+    /// A layer that maps no color, beside one whose colors a legend decodes, is
+    /// drawn in the neutral ink (spec §7): in the palette's first hue it read as
+    /// the legend's first category. With no legend it keeps the default, and a
+    /// set color is never replaced.
+    #[test]
+    fn an_unmapped_layer_beside_a_color_legend_is_drawn_in_neutral_ink() {
+        let s = |v: &[&str]| v.iter().map(|x| x.to_string()).collect::<Vec<_>>();
+        let t: HashMap<String, DataFrame> = HashMap::from([(
+            "t".to_string(),
+            DataFrame::new()
+                .with_float("x", vec![1.0, 2.0, 3.0, 4.0])
+                .with_float("y", vec![1.0, 3.0, 2.0, 4.0])
+                .with_str("g", s(&["a", "b", "a", "b"])),
+        )]);
+        let line_stroke = |point: Layer, line: Layer| {
+            let svg = SvgRenderer::default()
+                .render(&PlotSpec::new().data("t").x("x").y("y").layer(point).layer(line), &t);
+            let line = svg.split("<polyline ").nth(1).expect("the line").to_string();
+            line.split("stroke=\"").nth(1).and_then(|r| r.split('"').next()).unwrap_or("").to_string()
+        };
+        let colored = || Layer::new(Mark::Point).encode(Channel::Color, "g");
+        assert_eq!(line_stroke(colored(), Layer::new(Mark::Line)), NEUTRAL_INK);
+        // No legend, no meaning in the hue: the default ink.
+        assert_eq!(line_stroke(Layer::new(Mark::Point), Layer::new(Mark::Line)), PALETTE_GOG[0]);
+        let mut hidden = Layer::new(Mark::Point);
+        hidden.encodings.insert(Channel::Color, ChannelDef::field("g").with_legend(false));
+        assert_eq!(line_stroke(hidden, Layer::new(Mark::Line)), PALETTE_GOG[0]);
+        // A set color stays the author's.
+        let mut set = Layer::new(Mark::Line);
+        set.style.color = Some("firebrick".into());
+        assert_eq!(line_stroke(colored(), set), "firebrick");
+    }
+
+    /// A texture key's swatches take the one ink their marks take. Keyed in the
+    /// default alone, bars set to firebrick were decoded by blue swatches, and
+    /// bars drawn in the neutral ink beside a density's legend would have been.
+    #[test]
+    fn a_texture_key_takes_the_ink_its_marks_take() {
+        let s = |v: &[&str]| v.iter().map(|x| x.to_string()).collect::<Vec<_>>();
+        let t: HashMap<String, DataFrame> = HashMap::from([(
+            "t".to_string(),
+            DataFrame::new()
+                .with_str("a", s(&["p", "q", "r"]))
+                .with_float("b", vec![3.0, 5.0, 4.0])
+                .with_str("g", s(&["u", "v", "w"])),
+        )]);
+        let mut bar = Layer::new(Mark::Bar).encode(Channel::Pattern, "g");
+        bar.style.color = Some("firebrick".into());
+        let svg = SvgRenderer::default().render(&PlotSpec::new().data("t").x("a").y("b").layer(bar), &t);
+        let key = svg.split(">G</text>").nth(1).expect("a key titled G");
+        assert!(key.contains(r#"stroke="firebrick""#), "the swatches take the set color");
+        assert!(!svg.contains(PALETTE_GOG[0]), "no swatch in the default ink");
     }
 
     /// A legend is set aside beside the panels before they are laid out, so a plot

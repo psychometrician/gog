@@ -14,9 +14,9 @@ use std::collections::HashMap;
 use std::fmt::Write;
 
 use crate::data::{categories_across, DataFrame};
-use crate::ir::{Channel, ChannelDef, Layer, PlotSpec};
+use crate::ir::{Channel, ChannelDef, Layer, Mark, PlotSpec};
 use crate::legality::{Diagnostic, DiagnosticKind};
-use crate::render::palette::{ramp_at, resolve_ramp, PALETTE_GOG};
+use crate::render::palette::{ramp_at, resolve_ramp, NEUTRAL_INK, PALETTE_GOG};
 use crate::render::pattern::{dash_for_index, fill_texture_for_index, pattern_dasharray, FillTexture};
 use crate::render::shape::{shape_at_index, write_shape, ShapeKind};
 use crate::render::text::{esc, estimate_cap_height, estimate_text_width};
@@ -202,6 +202,38 @@ fn keyed(spec: &PlotSpec, channel: &Channel) -> bool {
     !spec.channels.get(channel).into_iter()
         .chain(spec.layers.iter().filter_map(|l| l.encodings.get(channel)))
         .any(ChannelDef::hides_legend)
+}
+
+/// **A layer the color legend does not describe is drawn in neutral ink** (spec
+/// §7). A plot with a color legend gives each hue a meaning, and a layer that maps
+/// no color was drawn in the palette's first one: a `smooth` curve over points
+/// colored by continent was stroked in the legend's color for Asia, and read as
+/// Asia's trend though it was fitted to every country.
+///
+/// So when some layer maps `color` and the legend is kept, or colors itself by a
+/// measure (a density's cells, a contour's levels), each layer with neither a
+/// `color` mapping nor a set color is given [`NEUTRAL_INK`] as its set color,
+/// which every mark's drawing honors. A plot with no color legend keeps the
+/// default ink, a set color is never replaced, and `text` keeps its own ink.
+/// Runs on the renderer's resolved copy of the spec, so nothing the author wrote
+/// changes.
+pub(crate) fn neutral_beside_a_color_guide(spec: &mut PlotSpec) {
+    let guided = keyed(spec, &Channel::Color)
+        && spec.layers.iter().any(|l| {
+            l.encodings.contains_key(&Channel::Color) || crate::legality::field_measure(l).is_some()
+        });
+    if !guided {
+        return;
+    }
+    for layer in spec.layers.iter_mut() {
+        let described = layer.encodings.contains_key(&Channel::Color)
+            || layer.style.color.is_some()
+            || crate::legality::field_measure(layer).is_some()
+            || layer.mark == Mark::Text;
+        if !described {
+            layer.style.color = Some(NEUTRAL_INK.to_string());
+        }
+    }
 }
 
 /// Collect one LegendBox per active channel (color → shape → size), in that order.
@@ -393,8 +425,10 @@ pub(crate) fn collect_legends(
         // ink, the shape key's: a textured key in one of the other column's hues
         // claims an association that is not there, and `color(sex) +
         // pattern(survived)` keyed "Survived" in Male's blue, the first hue, since
-        // the map knew no "No" or "Yes". When `color` maps nothing, the marks'
-        // own default, which the key then matches.
+        // the map knew no "No" or "Yes". When `color` maps nothing, the one ink
+        // the marks are drawn in: a set color, the neutral ink a layer gets beside
+        // a color legend (`neutral_beside_a_color_guide`), else the default. Keyed
+        // in the default alone, bars set to firebrick were decoded by blue swatches.
         let same = color_keyed && spec.layers.iter().any(|l|
             l.encodings.get(&Channel::Color).is_some_and(|c| c.field == def.field));
         let other = spec.layers.iter().any(|l|
@@ -405,8 +439,9 @@ pub(crate) fn collect_legends(
                 let color = match (same, other) {
                     (true, _) => color_map.get(&label).cloned()
                         .unwrap_or_else(|| PALETTE_GOG[0].to_string()),
-                    (false, true) => "#3c3c46".to_string(),
-                    (false, false) => PALETTE_GOG[0].to_string(),
+                    (false, true) => NEUTRAL_INK.to_string(),
+                    (false, false) => layer.style.color.as_deref().map(esc)
+                        .unwrap_or_else(|| PALETTE_GOG[0].to_string()),
                 };
                 let swatch = if stroke {
                     LegendSwatch::PatternStroke { dash: dash_for_index(i), color }

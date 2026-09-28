@@ -139,6 +139,16 @@ pub(crate) const RAMP_CIVIDIS: &[&str] = &[
 /// what `gog_derived_ramps_keep_their_pale_end_on_the_page` checks.
 pub(crate) const NEUTRAL: &str = "#a9a9a9";
 
+/// The ink of a mark no color scale describes: a neutral dark gray that is in
+/// no categorical palette. [`PALETTE_GOG`]'s one gray, `#bab0ac`, is light and
+/// warm, so the two stay apart.
+///
+/// A mark that maps no color is drawn in the palette's first hue while nothing
+/// on the plot gives hues a meaning. Once a color legend does, that hue is the
+/// legend's first category, so the mark is drawn in this ink instead, and the
+/// legend's glyph and texture keys use it for swatches that decode no color.
+pub(crate) const NEUTRAL_INK: &str = "#3c3c46";
+
 /// Grayscale — the ramp a printed figure keeps.
 ///
 /// Journals ask for figures that survive black-and-white reproduction;

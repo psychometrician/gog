@@ -3491,3 +3491,17 @@ test("zero is written 0 on a thousands axis", () => {
   const svg = render_svg(plot(data({ g: ["a", "b", "c"], v: [1200, 2500, 4100] }), bar, x(col.g), y(col.v)));
   assert.ok(svg.includes(">0</text>") && !svg.includes(">0K</text>"));
 });
+
+// An unmapped layer beside a color legend is neutral: in the palette's first hue it
+// read as the legend's first category. A texture legend's swatches take the ink
+// their marks take. The same block runs in all four bindings.
+test("an unmapped layer beside a color legend is neutral", () => {
+  const nt = { x: [1, 2, 3, 4], y: [1, 3, 2, 4], g: ["a", "b", "a", "b"] };
+  const keyed = render_svg(plot(data(nt), x(col.x), y(col.y), point, color(col.g), line));
+  assert.match(keyed, /<polyline [^>]*stroke="#3c3c46"/);
+  const plain = render_svg(plot(data(nt), x(col.x), y(col.y), point, line));
+  assert.match(plain, /<polyline [^>]*stroke="#4e79a7"/);
+  const nb = { a: ["p", "q", "r"], b: [3, 5, 4], g: ["u", "v", "w"] };
+  const hatched = render_svg(plot(data(nb), bar, x(col.a), y(col.b), pattern(col.g), style({ color: "firebrick" })));
+  assert.ok(!hatched.includes("#4e79a7"));
+});
