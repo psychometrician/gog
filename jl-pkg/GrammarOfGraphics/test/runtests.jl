@@ -2985,3 +2985,16 @@ end
     @test read(file) == bytes
     rm(file)
 end
+
+# A zone's transform refusal says why and lists what a zone takes: it was one fixed
+# sentence that called `bounds` refused, though `zone * bounds` draws. The same
+# block runs in all four bindings.
+@testset "a zone's transform refusal says why and lists what a zone takes" begin
+    t = (a = [1.0, 2.0, 3.0, 4.0], b = [2.0, 1.0, 4.0, 3.0])
+    said = try
+        render_svg(data(t) + zone * smooth + x(:a) + y(:b)); ""
+    catch e
+        sprint(showerror, e)
+    end
+    @test occursin("`smooth` fits a curve along a domain", said) && occursin("A zone takes `bin`", said)
+end

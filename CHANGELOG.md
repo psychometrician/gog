@@ -56,6 +56,13 @@ CRAN-style repositories and PyPI, `GrammarOfGraphics` on Julia's General, and
 
 ### Changed
 
+- **A transform refused on a `zone` or a `surface` is explained by name.** Each
+  refusal was one fixed sentence whatever was written: the zone's called
+  `bounds` refused, though `zone * bounds` draws, and listed four fewer
+  transforms than a zone takes; the surface's explained five of the thirteen
+  it refuses. The message now gives the reason for each transform written, and
+  its list of what the mark takes is the one the Combinations grid shows.
+
 - **In JavaScript, `save_gif()` reads a leading `~` as the home folder,** as R,
   Python and Julia do; it took the path literally and failed on `~/wave.gif`.
 

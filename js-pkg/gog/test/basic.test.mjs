@@ -3601,3 +3601,14 @@ test("save_svg writes the drawing byte for byte and refuses a wrong ending", () 
   assert.ok(fs.readFileSync(file).equals(bytes));
   fs.unlinkSync(file);
 });
+
+// A zone's transform refusal says why and lists what a zone takes: it was one fixed
+// sentence that called `bounds` refused, though `zone * bounds` draws. The same
+// block runs in all four bindings.
+test("a zone's transform refusal says why and lists what a zone takes", () => {
+  const t = { a: [1, 2, 3, 4], b: [2, 1, 4, 3] };
+  assert.throws(
+    () => render_svg(plot(data(t), layer(zone, smooth), x(col.a), y(col.b))),
+    (e) => e.message.includes("`smooth` fits a curve along a domain") && e.message.includes("A zone takes `bin`")
+  );
+});

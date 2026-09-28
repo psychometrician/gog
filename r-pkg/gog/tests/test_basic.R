@@ -5527,3 +5527,18 @@ local({
   unlink(path)
   cat("PASS: save_svg writes the drawing byte for byte and refuses a wrong ending\n")
 })
+
+# ---------------------------------------------------------------------------
+# A zone's transform refusal says why for the transform written and lists what a
+# zone takes from the table: it was one fixed sentence that called `bounds`
+# refused, though `zone * bounds` draws. The same block runs in all four bindings.
+# ---------------------------------------------------------------------------
+local({
+  t <- data.frame(a = c(1, 2, 3, 4), b = c(2, 1, 4, 3))
+  said <- tryCatch({ render_svg(data(t) + zone * smooth + x(a) + y(b)); "" },
+                   error = function(e) conditionMessage(e))
+  if (!grepl("`smooth` fits a curve along a domain", said, fixed = TRUE) ||
+      !grepl("A zone takes `bin`", said, fixed = TRUE))
+    stop("FAIL: a zone's transform refusal should say why and list the table: ", said)
+  cat("PASS: a zone's transform refusal says why and lists what a zone takes\n")
+})

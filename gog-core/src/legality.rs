@@ -5632,7 +5632,7 @@ fn check_marks_that_take_no_transform(out: &mut Vec<Diagnostic>, layer: &Layer) 
     ) {
         return;
     }
-    let names: Vec<&str> = layer.transforms.iter()
+    let refused: Vec<&Transform> = layer.transforms.iter()
         .filter(|t| !is_collision_modifier(t))
         // What a mark *does* take is asked of the shared table, never typed out
         // here. This filter used to name `zone`'s one transform by hand, and a
@@ -5647,8 +5647,8 @@ fn check_marks_that_take_no_transform(out: &mut Vec<Diagnostic>, layer: &Layer) 
         // name the nodes its own `zone` layer drew as shares.
         .filter(|t| !(**t == Transform::Proportion
             && layer.transforms.contains(&Transform::Partition)))
-        .map(transform_name)
         .collect();
+    let names: Vec<&str> = refused.iter().map(|t| transform_name(t)).collect();
     if names.is_empty() {
         return;
     }
@@ -5667,41 +5667,35 @@ fn check_marks_that_take_no_transform(out: &mut Vec<Diagnostic>, layer: &Layer) 
              value where your data lives and give the rule a table of the results — one row \
              per line — which is what a rule's position always is: a column."
         ),
-        // What is left on this arm once the two-dimensional group-by shipped:
-        // `smooth`, which fits along a domain a cell has none of, and the two pair
-        // transforms, which produce a low/high band rather than a value per cell.
-        // The five reductions are no longer here — a zone measures by *color*, so
-        // color is the channel that names their column (`measure_channel`, spec §5).
-        Mark::Zone => format!(
-            "gog: a `zone` measures each cell by *color*, one value at a time, and \
-             `{listed}` does not produce one — `smooth` fits a curve along a domain, which \
-             a cell has none of, and `range`/`confidence`/`bounds` produce a low and a high \
-             where a cell has room for a single number. A zone takes the four that invent \
-             their own measurement — `count` and `proportion` tally rows into the cells \
-             your categories make, `bin` cuts cells out of two continuous axes and counts \
-             them, `density` estimates a value at each — and the six that reduce a column \
-             color names (`sum`, `mean`, `median`, `max`, `min`, `quantile`): `zone * mean + x(<a>) + y(<b>) + color(<column>)` averages it \
-             within every cell. To shade a band the data computed, `ribbon * range` is the \
-             mark that spans a statistic."
-        ),
-        // What is left on this arm once the terraced sheet shipped: `smooth`, the two
-        // pair transforms, `count`/`proportion`, and the collision modifiers. `bin` is
-        // no longer here and neither are the five reductions — a surface takes both
-        // ways of tiling a floor now (spec §15).
-        Mark::Surface => format!(
-            "gog: a `surface` is a sheet over a floor whose cells tile without gaps, and \
-             `{listed}` does not give it one — `smooth` fits a curve along a domain a cell \
-             has none of, `range`/`confidence`/`bounds` give a low and a high where a cell \
-             holds one height, and `count`/`proportion` tally into the cells two *categories* \
-             make, which a surface refuses because slots leave air between them and \
-             disconnected tiles are not a sheet. A surface takes the two transforms that do \
-             tile, and both lay a flat lid on each cell with a step up or down to the next: \
-             `bin` cuts the floor into adjacent cells — \
-             `surface * bin * mean + x(<a>) + y(<b>) + z(<column>)` reduces the column you \
-             name inside every cell — and `density` estimates the field over a fine grid of \
-             cells: `surface * density + x(<a>) + y(<b>) + space()`. Over categories, `bar` \
-             is the mark, where the column under each tile says which cell it belongs to."
-        ),
+        // **A zone and a surface say why, per transform, and name what they take
+        // from the table the grid is generated from.** Both arms were one fixed
+        // sentence whatever was refused: the zone's called `bounds` refused though
+        // `zone * bounds` draws, its list of what a zone takes had drifted four
+        // transforms short, and `layout` was never named; the surface's explained
+        // five of the thirteen it refuses. `cell_refusal_reason` gives one clause
+        // per family written, and `cell_mark_takes` reads `mark_takes_transform`.
+        Mark::Zone => {
+            let (tiles, reduces) = cell_mark_takes(&layer.mark);
+            format!(
+                "gog: a `zone` fills each cell with one value, read as its color. {}. \
+                 A zone takes {tiles}, and {reduces} reduce the column `color` names in \
+                 every cell: `zone * mean + x(<a>) + y(<b>) + color(<column>)`. To shade a \
+                 band the data computed, `ribbon * range` is the mark that spans a statistic.",
+                cell_refusal_reasons(&refused),
+            )
+        }
+        Mark::Surface => {
+            let (tiles, reduces) = cell_mark_takes(&layer.mark);
+            format!(
+                "gog: a `surface` is a sheet over a floor whose cells tile without gaps. \
+                 {}. {tiles} tile a floor, and {reduces} reduce a column inside the cells \
+                 `bin` cuts: `surface * bin * mean + x(<a>) + y(<b>) + z(<column>)`, while \
+                 `surface * density + x(<a>) + y(<b>) + space()` estimates the field. Over \
+                 categories, `bar` is the mark, where the column under each tile says which \
+                 cell it belongs to.",
+                cell_refusal_reasons(&refused),
+            )
+        }
         _ => format!(
             "gog: `text` draws one string per row, taken from `label`, and `{listed}` \
              replaces those rows with one summary per key — which has no label to draw. \
@@ -5710,6 +5704,81 @@ fn check_marks_that_take_no_transform(out: &mut Vec<Diagnostic>, layer: &Layer) 
         ),
     };
     out.push(Diagnostic { kind: DiagnosticKind::Illegal, message });
+}
+
+/// `a`, `a` and `b`, `a`, `b` and `c`: each name in code, for a message.
+fn code_list(names: &[&str]) -> String {
+    match names {
+        [] => String::new(),
+        [one] => format!("`{one}`"),
+        [init @ .., last] => format!(
+            "{} and `{last}`",
+            init.iter().map(|n| format!("`{n}`")).collect::<Vec<_>>().join(", ")),
+    }
+}
+
+/// What a cell mark takes, read off `mark_takes_transform` as the grid is, split
+/// into the transforms that make or place its cells and the reductions that fill
+/// them. Returned as code lists for a message, so the list cannot drift from the
+/// table: typed out, the zone's list had fallen four transforms short.
+fn cell_mark_takes(mark: &Mark) -> (String, String) {
+    let taken = USER_TRANSFORMS.iter()
+        .filter(|t| !is_collision_modifier(t) && mark_takes_transform(mark, t) != TransformLegality::None);
+    let (reduces, tiles): (Vec<&Transform>, Vec<&Transform>) =
+        taken.partition(|t| crate::transform::is_reduction(t));
+    let names = |ts: Vec<&Transform>| code_list(&ts.into_iter().map(transform_name).collect::<Vec<_>>());
+    (names(tiles), names(reduces))
+}
+
+/// Why a zone or a surface refuses the transforms it was given, one clause per
+/// family written, so two transforms with one reason share it and a transform
+/// the author did not write is not explained.
+fn cell_refusal_reasons(refused: &[&Transform]) -> String {
+    let reason = |t: &Transform| -> (u8, &'static str, &'static str) {
+        match t {
+            Transform::Smooth | Transform::SmoothBand => (0,
+                "fits a curve along a domain, which a cell has none of",
+                "fit a curve along a domain, which a cell has none of"),
+            Transform::Range | Transform::Confidence | Transform::Deviation => (1,
+                "gives a low and a high, where a cell holds one value",
+                "give a low and a high, where a cell holds one value"),
+            Transform::Layout => (2,
+                "places the nodes of a network, which `point * layout(<from>, <to>)` draws \
+                 in `network()`",
+                "place the nodes of a network"),
+            Transform::Count | Transform::Proportion => (3,
+                "tallies into the cells two categories make, and slots leave air between \
+                 them, so the tiles would not join into a sheet",
+                "tally into the cells two categories make, and slots leave air between them, \
+                 so the tiles would not join into a sheet"),
+            Transform::Bounds => (4,
+                "gives each row two edges, a span rather than a height",
+                "give each row two edges"),
+            Transform::Partition | Transform::Flow => (5,
+                "divides the panel into regions of its own rather than a floor of cells",
+                "divide the panel into regions of their own rather than a floor of cells"),
+            Transform::Cluster => (6,
+                "orders the categories of an axis, and this floor has none",
+                "order the categories of an axis"),
+            _ => (7,
+                "is not among the transforms this mark takes",
+                "are not among the transforms this mark takes"),
+        }
+    };
+    let mut clauses: Vec<(u8, Vec<&str>, &str, &str)> = Vec::new();
+    for t in refused {
+        let (family, one, many) = reason(t);
+        match clauses.iter_mut().find(|c| c.0 == family) {
+            Some(c) => c.1.push(transform_name(t)),
+            None => clauses.push((family, vec![transform_name(t)], one, many)),
+        }
+    }
+    clauses.iter()
+        .map(|(_, names, one, many)| {
+            format!("{} {}", code_list(names), if names.len() == 1 { one } else { many })
+        })
+        .collect::<Vec<_>>()
+        .join("; ")
 }
 
 fn check_box(out: &mut Vec<Diagnostic>, layer: &Layer) {
@@ -16406,6 +16475,36 @@ mod tests {
         let spec = base().layer(Layer::new(Mark::Point)).layer(band);
         let d = check(&spec, &data);
         assert!(d.iter().all(|d| !d.message.contains("refers to a column")), "{d:?}");
+    }
+
+    /// **A zone's and a surface's transform refusals are read off the table.** The
+    /// zone's was one fixed sentence that called `bounds` refused though `zone *
+    /// bounds` draws, with a list of what a zone takes that had drifted four short;
+    /// the surface's explained five of the thirteen it refuses. Every refused
+    /// transform is named with its own reason now, `quantile` on a surface alone
+    /// falling through to the plain one, which no reason on record explains.
+    #[test]
+    fn a_cell_marks_transform_refusal_says_why_and_lists_the_table() {
+        let msg = |mark: Mark, t: Transform| {
+            let mut out = Vec::new();
+            check_marks_that_take_no_transform(&mut out, &Layer::new(mark).transform(t));
+            out.pop().map(|d| d.message).unwrap_or_default()
+        };
+        for t in USER_TRANSFORMS.iter().filter(|t| !is_collision_modifier(t)) {
+            for mark in [Mark::Zone, Mark::Surface] {
+                if mark_takes_transform(&mark, t) != TransformLegality::None { continue }
+                let m = msg(mark.clone(), t.clone());
+                assert!(m.contains(&format!("`{}`", transform_name(t))), "{mark:?} {t:?}: {m}");
+                if *t != Transform::Quantile {
+                    assert!(!m.contains("is not among"), "{mark:?} {t:?} has no reason: {m}");
+                }
+            }
+        }
+        let zone = msg(Mark::Zone, Transform::Smooth);
+        for t in ["bin", "density", "bounds", "partition", "flow", "cluster", "quantile"] {
+            assert!(zone.contains(&format!("`{t}`")), "a zone takes `{t}`: {zone}");
+        }
+        assert!(msg(Mark::Surface, Transform::Count).contains("`bin` and `density` tile a floor"));
     }
 
     #[test]

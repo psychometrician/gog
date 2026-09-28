@@ -3450,3 +3450,15 @@ with open(_spath, "rb") as _f:
     assert _f.read() == _sbytes, "a refused plot changed the file"
 os.remove(_spath)
 ok("save_svg writes the drawing byte for byte and refuses a wrong ending")
+
+
+# --- A zone's transform refusal says why and lists what a zone takes -------------------
+# It was one fixed sentence that called `bounds` refused, though `zone * bounds`
+# draws. The same block runs in all four bindings.
+try:
+    render_svg(data({"a": [1.0, 2.0, 3.0, 4.0], "b": [2.0, 1.0, 4.0, 3.0]}, name="zr")
+               + zone * smooth + x(col.a) + y(col.b))
+    raise AssertionError("a zone * smooth drew")
+except GogError as refusal:
+    assert "`smooth` fits a curve along a domain" in str(refusal) and "A zone takes `bin`" in str(refusal), refusal
+ok("a zone's transform refusal says why and lists what a zone takes")
