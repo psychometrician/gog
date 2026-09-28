@@ -100,12 +100,12 @@ instead. It never quietly ignores part of what you asked for.
 **A column is `:name`.** The colon keeps a column apart from a value, the way
 R's bare names do.
 
-**Ten words share a name with `Base`** — `bin`, `count`, `sum`, `min`, `max`,
-`range`, `size`, `step` and `stack` are statistics here, and `map` is the space a
-choropleth is drawn in, so import the ones you use:
+**Nine words share a name with `Base`** — `count`, `sum`, `min`, `max`,
+`range`, `size`, `step` and `stack` are words of the grammar here, and `map` is
+the space a choropleth is drawn in, so import the ones you use:
 
 ```julia
-using GrammarOfGraphics: bin, count, sum, min, max, range, size, step, stack, map
+using GrammarOfGraphics: count, sum, min, max, range, size, step, stack, map
 ```
 
 `mean`, `median` and `quantile` collide the same way with the `Statistics`

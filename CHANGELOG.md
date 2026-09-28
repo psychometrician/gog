@@ -56,6 +56,10 @@ CRAN-style repositories and PyPI, `GrammarOfGraphics` on Julia's General, and
 
 ### Changed
 
+- **Julia's README and module help count nine names shared with `Base`.** They
+  said ten and told you to import `bin` too. `Base.bin` is not exported, so
+  `bin` needs no import; the other nine do, as the Julia chapter already says.
+
 - **Python's `range()` points at `builtins.range` only when the call could be
   Python's own.** `range(0.25, 75)` and `range(high=75)` were told to use
   `builtins.range`, which takes neither a float nor `high=`. They are now told

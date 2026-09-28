@@ -6,7 +6,7 @@ One graphics engine written in Rust, spoken here in Julia. A plot is a
 
 ```julia
 using GrammarOfGraphics
-using GrammarOfGraphics: bin, count, sum, min, max, range, size, step, stack, map
+using GrammarOfGraphics: count, sum, min, max, range, size, step, stack, map
 
 gm = (gdp = [1000.0, 2000.0, 3000.0], life = [60.0, 70.0, 80.0])
 render_svg(data(gm) + point + x(:gdp) + y(:life))
@@ -27,10 +27,11 @@ puts `|` in the *addition* tier where R puts it below. Left associativity makes
 every sentence in the manual parse identically anyway, and the one shape that
 would differ (`a | b + c`) appears in none of them and is refused by R regardless.
 
-**The second line of that example is Julia's one wrinkle.** Ten of the kernel
-words are also Base words — `bin`, `count`, `sum`, `min`, `max`, `range`,
-`size`, `step`, `stack`, `map` — and Julia will not silently pick a winner between two
-modules exporting one name. Importing them explicitly says which you meant, and
+**The second line of that example is Julia's one wrinkle.** Nine of the kernel
+words are also Base exports — `count`, `sum`, `min`, `max`, `range`, `size`,
+`step`, `stack`, `map` — and Julia will not silently pick a winner between two
+modules exporting one name. (`Base.bin` exists but is not exported, so `bin`
+needs no import.) Importing them explicitly says which you meant, and
 `Base.sum` stays reachable. It is the third spelling of a problem R has against
 base R and Python has against its builtins; a grammar keeps its own vocabulary,
 and each language has its own way of saying so.
