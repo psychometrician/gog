@@ -2937,3 +2937,13 @@ end
     last_panel(svg) = match(r"<clipPath[^>]*><rect x=\"([^\"]*)\"", last(split(svg, "<svg "))).captures[1]
     @test last_panel(render_svg(top / (left | right))) == last_panel(render_svg(left | right))
 end
+
+# The title follows a panel a ratio shortened, as the names beside it do: left at
+# the top of the rectangle, it stood far over a map set beside a globe. The same
+# block runs in all four bindings.
+@testset "the title follows a panel a ratio shortened" begin
+    svg = render_svg(data((u = [1.0, 2.0, 3.0, 4.0], v = [1.0, 2.0, 3.0, 4.0])) + point + x(:u) + y(:v) +
+                     title("Wide") + theme(ratio = 3))
+    m = match(r"<text x=\"[^\"]*\" y=\"([^\"]*)\"[^>]*font-weight=\"600\"", svg)
+    @test parse(Float64, m.captures[1]) > 100
+end

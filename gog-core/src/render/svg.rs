@@ -2946,8 +2946,8 @@ impl SvgRenderer {
         // y name at the image's edge, 135px from its tick labels, and a rose's
         // radial name sat 150px from the circle it names. So both are placed against
         // the plot as drawn: the names beside it, the legend beside it and level
-        // with its top. The title is not moved: a facet's column strips stay at the
-        // top of the grid, and a title moved down with the panel would land on them.
+        // with its top. The title moves down with it too, except where a facet's
+        // strips stay at the top of the grid, which a title moved down would land on.
         let inset = {
             let (gx, gy) = grid.inset;
             let (px, py) = match (is_polar, grid.panels.first()) {
@@ -3916,7 +3916,14 @@ impl SvgRenderer {
             // panel, so the title stops making room for it.
             let y_label_offset =
                 if !y_label.is_empty() && !y_beside { label_h + 6.0 } else { 0.0 };
-            let ty = l.y0 - y_label_offset - estimate_cap_height(self.font_lg) * 0.3 - 8.0;
+            // **Above the plot as drawn**, as the names beside it are: a panel a
+            // `ratio` narrowed, or a circle in a taller panel, sits `inset.1` below
+            // the top of `l`, and a title left at that top stood 78 px over a map
+            // set beside a globe. Not where a facet's strips run along the top of
+            // the grid, which do not move with the panel and would be under it.
+            let strips_on_top = spec.facet.as_ref().is_some_and(|f| f.col.is_some() || f.wrap.is_some());
+            let drop = if strips_on_top { 0.0 } else { inset.1 };
+            let ty = l.y0 + drop - y_label_offset - estimate_cap_height(self.font_lg) * 0.3 - 8.0;
             // **Centered on the panel, then held inside the canvas.** The panel is
             // the thing the title names, so it centers there and not over the
             // legend beside it — but a legend pushes that center left, and a title
@@ -9074,6 +9081,37 @@ mod tests {
             .layer(Layer::new(Mark::Bar).transform(Transform::Count));
         let named = y_name_x(&SvgRenderer::default().render(&rose, &data));
         assert!(named > free + 50.0, "the radial name stayed at the image's edge: {named}");
+    }
+
+    /// **The title follows a panel a `ratio` shortened**, as the names beside it
+    /// do: left at the top of the rectangle, it stood 78 px over a map set beside
+    /// a globe. Not over a facet's column strips, which stay at the top of the
+    /// grid and would be under a title moved down.
+    #[test]
+    fn the_title_follows_a_panel_a_ratio_shortened_unless_strips_run_on_top() {
+        let data: HashMap<String, DataFrame> = HashMap::from([(
+            "t".to_string(),
+            DataFrame::new()
+                .with_float("x", vec![1.0, 2.0, 3.0, 4.0])
+                .with_float("y", vec![1.0, 2.0, 3.0, 4.0])
+                .with_str("g", vec!["a".into(), "a".into(), "b".into(), "b".into()]),
+        )]);
+        let title_y = |svg: &str| -> f64 {
+            let line = svg.lines().find(|l| l.contains(r#"font-weight="600""#)).expect("a title");
+            line.split(r#"y=""#).nth(1).and_then(|r| r.split('"').next())
+                .and_then(|v| v.parse().ok()).expect("its y")
+        };
+        let mut wide = PlotSpec::new().data("t").x("x").y("y").layer(Layer::new(Mark::Point));
+        wide.title = Some("Wide".into());
+        wide.theme = ThemeSpec { ratio: Some(3.0), ..Default::default() };
+        let svg = SvgRenderer::default().render(&wide, &data);
+        let (top, ty) = (panel_rect(&svg).1, title_y(&svg));
+        assert!(top > 100.0, "the premise: the ratio left room above the panel: {top}");
+        assert!(ty < top && top - ty < 20.0, "the title sits over its panel: title {ty}, panel {top}");
+
+        wide.facet = Some(crate::ir::FacetSpec { col: Some("g".into()), ..Default::default() });
+        let svg = SvgRenderer::default().render(&wide, &data);
+        assert!(title_y(&svg) < 40.0, "over the strips, the title stays at the top: {}", title_y(&svg));
     }
 
     /// **`caps` reaches a `box`**: the crossbars at its whiskers' ends are the

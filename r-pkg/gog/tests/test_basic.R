@@ -5472,3 +5472,17 @@ local({
     stop("FAIL: the right plot should sit where the pair alone puts it: ", nested, " against ", alone)
   cat("PASS: a plot that gives up its y axis keeps no margin under a shared x\n")
 })
+
+# ---------------------------------------------------------------------------
+# The title follows a panel a `ratio` shortened, as the names beside it do: left
+# at the top of the rectangle, it stood far over a map set beside a globe. The
+# same block runs in all four bindings.
+# ---------------------------------------------------------------------------
+local({
+  t <- data.frame(u = c(1, 2, 3, 4), v = c(1, 2, 3, 4))
+  svg <- render_svg(data(t) + point + x(u) + y(v) + title("Wide") + theme(ratio = 3))
+  ty <- as.numeric(sub('.* y="([^"]*)".*', "\\1", regmatches(svg, regexpr('<text x="[^"]*" y="[^"]*"[^>]*font-weight="600"', svg))))
+  if (!(ty > 100))
+    stop("FAIL: the title should sit over the panel a ratio shortened, not at the top: ", ty)
+  cat("PASS: the title follows a panel a ratio shortened\n")
+})

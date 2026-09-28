@@ -3564,3 +3564,11 @@ test("a plot that gives up its y axis keeps no margin under a shared x", () => {
   const lastPanel = (svg) => svg.split("<svg ").at(-1).match(/<clipPath[^>]*><rect x="([^"]*)"/)[1];
   assert.equal(lastPanel(render_svg(below(top, beside(left, right)))), lastPanel(render_svg(beside(left, right))));
 });
+
+// The title follows a panel a ratio shortened, as the names beside it do: left at
+// the top of the rectangle, it stood far over a map set beside a globe. The same
+// block runs in all four bindings.
+test("the title follows a panel a ratio shortened", () => {
+  const svg = render_svg(plot(data({ u: [1, 2, 3, 4], v: [1, 2, 3, 4] }), point, x(col.u), y(col.v), title("Wide"), theme({ ratio: 3 })));
+  assert.ok(Number(svg.match(/<text x="[^"]*" y="([^"]*)"[^>]*font-weight="600"/)[1]) > 100);
+});

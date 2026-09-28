@@ -3403,3 +3403,12 @@ def _last_panel(svg):
     return re.search(r'<clipPath[^>]*><rect x="([^"]*)"', svg.split("<svg ")[-1]).group(1)
 assert _last_panel(render_svg(_top / (_left | _right))) == _last_panel(render_svg(_left | _right))
 ok("a plot that gives up its y axis keeps no margin under a shared x")
+
+
+# --- The title follows a panel a ratio shortened ----------------------------------------
+# Left at the top of the rectangle, it stood far over a map set beside a globe. The
+# same block runs in all four bindings.
+_svg = render_svg(data({"u": [1.0, 2.0, 3.0, 4.0], "v": [1.0, 2.0, 3.0, 4.0]}, name="tw")
+                  + point + x(col.u) + y(col.v) + title("Wide") + theme(ratio=3))
+assert float(re.search(r'<text x="[^"]*" y="([^"]*)"[^>]*font-weight="600"', _svg).group(1)) > 100
+ok("the title follows a panel a ratio shortened")

@@ -48,6 +48,12 @@ CRAN-style repositories and PyPI, `GrammarOfGraphics` on Julia's General, and
 
 ### Changed
 
+- **A title sits over its map, not over the room the map leaves.** A map keeps
+  its shape by drawing a smaller panel inside its rectangle, and the title stayed
+  at the rectangle's top, as much as 120 px above the map. It now sits just above
+  the panel, as the axis names already did, and the same holds for a `ratio` that
+  shortens a panel. Over a facet's column strips it stays at the top.
+
 - **On a page, an axis a plot gives up costs it no margin.** In `a / (b | c)`,
   where `c` shares its y axis with `b` and its x axis with `a`, `c` kept a blank
   strip where the y axis it gives up would have been; it now sits where it does
