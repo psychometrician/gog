@@ -3920,3 +3920,16 @@ from gog.tables import _columns as _csv_columns
 _cols = _csv_columns([{"a": "1", "b": "x"}, {"a": "", "b": ""}, {"a": "NA", "b": "z"}, {"a": "4", "b": "w"}])
 assert _cols["a"] == [1.0, None, None, 4.0] and _cols["b"] == ["x", "", "z", "w"], _cols
 ok("an empty numeric cell is a missing value")
+
+
+# --- save() writes the drawing's bytes ---------------------------------------------------
+# It opened the file in text mode, which on Windows turns each line break into two bytes;
+# `newline=""` writes the text as it is, as `save_svg()` does. (Python alone: the other
+# three write bytes already.)
+with tempfile.TemporaryDirectory() as _folder:
+    _sv = data({"a": [1.0, 2.0], "b": [3.0, 4.0]}, name="t") + point + x(col.a) + y(col.b)
+    _path = os.path.join(_folder, "p.svg")
+    _sv.save(_path) if hasattr(_sv, "save") else save(_sv, _path)
+    with open(_path, "rb") as _fh:
+        assert _fh.read() == render_svg(_sv).encode("utf-8")
+ok("save() writes the drawing's bytes")

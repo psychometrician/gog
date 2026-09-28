@@ -746,7 +746,10 @@ def svg_block(svg: str, plot: Any = None) -> str:
 def save(plot: Any, path: str) -> str:
     """Draw the plot and write the SVG to `path`. Returns the path."""
     svg = render_svg(plot)
-    with open(path, "w", encoding="utf-8") as handle:
+    # `newline=""` writes the text as it is, as `save_svg()` does: in text mode
+    # Windows turns each line break into two bytes, and the file then differs
+    # from the drawing `render_svg()` returns.
+    with open(path, "w", encoding="utf-8", newline="") as handle:
         handle.write(svg)
     return path
 

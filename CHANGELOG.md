@@ -56,6 +56,10 @@ CRAN-style repositories and PyPI, `GrammarOfGraphics` on Julia's General, and
 
 ### Changed
 
+- **Python's `save()` writes the drawing's bytes on Windows too.** It wrote in
+  text mode, which on Windows turns each line break into two bytes. It now
+  writes the text as it is, as `save_svg()` does.
+
 - **`gog_table()` reads an empty numeric cell as a missing value in every
   language.** JavaScript read it as 0, and a cell of spaces too; Python and
   Julia turned the whole column into text, as all three did for a cell reading
