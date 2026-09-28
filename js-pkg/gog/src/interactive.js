@@ -343,8 +343,96 @@ export function placeOn(axis, value) {
   }
   if (typeof value !== "number" || !Number.isFinite(value)) return null;
   const v = axis.log ? Math.log(value) / Math.log(axis.log) : value;
+  // A zero or a negative has no place on a log axis. It came back as `-Infinity`
+  // or `NaN`, and a `NaN` met first silenced a whole panel's readout, since no
+  // distance is smaller than it. The engine refuses such a value in the column
+  // it places, so one arrives only from a table the axis does not measure.
+  if (!Number.isFinite(v)) return null;
   const f = (v - axis.from) / (axis.to - axis.from || 1);
   return axis.lo + f * (axis.hi - axis.lo);
+}
+
+/** How far from a mark the pointer may rest and still name it: about a glyph's
+ *  reach. A stamp is this answer kept, so the same reach decides a stamp. */
+const REACH = 14;
+
+/**
+ * The row drawn nearest `at` on one panel, within a glyph's reach, or `null`.
+ *
+ * `placeOn` for every row the panel drew, keeping the closest. Exported for the
+ * reason `placeOn` is: it is arithmetic over the table and the panel, so a test
+ * can watch it be wrong without a pointer or a page.
+ *
+ * The table on the page holds more than the panel drew, and each filter below
+ * removes one kind of row that is not on the picture: a row of another cell, of
+ * another facet or moment, with a gap the engine dropped, or cut by `limits`.
+ *
+ * @param {object} panel one parsed panel frame, as `attachBrush` reads it
+ * @param {{x: number, y: number}} at the pointer, in the panel's own units
+ * @param {object} req the `{spec, data}` wire object
+ * @param {string|null} now the moment a played panel is showing, or `null`
+ */
+export function nearestRow(panel, at, req, now = null) {
+  // The engine could not promise a position, so there is no honest answer to
+  // give. The bar says why the first time a reader asks.
+  if (panel.place !== "row" || !at || !panel.x || !panel.y) return null;
+  let best = null;
+  for (const plot of eachPlot(req.spec)) {
+    const df = req.data?.[plot.data];
+    if (!df) continue;
+    // **Only a plot that places this panel's two columns can have drawn it.** A
+    // page is several plots, often over one table, and each cell's rows were
+    // placed on the pointed panel's axes alike. A tie then kept the first cell's
+    // answer, with the first cell's columns: pointing into a panel whose x is
+    // `population` named the row's `gdp`. The positions are asked because the
+    // frame carries no cell number, so two cells that place the same two
+    // columns still answer as the first.
+    const positions = new Set([plot.x?.field, plot.y?.field,
+      ...(plot.layers ?? []).flatMap((l) => [l.encodings?.x?.field, l.encodings?.y?.field])]);
+    if (!positions.has(panel.x.field) || !positions.has(panel.y.field)) continue;
+    const floats = df.floats ?? {};
+    const strings = df.strings ?? {};
+    const get = (f, i) => (floats[f] ? floats[f][i] : strings[f]?.[i]);
+    const n = floats[panel.x.field]?.length ?? strings[panel.x.field]?.length ?? 0;
+    const named = [];
+    const add = (f) => { if (f && !named.includes(f) && (floats[f] || strings[f])) named.push(f); };
+    for (const c of [plot.x, plot.y]) add(c?.field);
+    for (const c of Object.values(plot.channels ?? {})) add(c?.field);
+    for (const layer of plot.layers ?? []) {
+      for (const c of Object.values(layer.encodings ?? {})) add(c?.field);
+    }
+    // Every column a position or a channel reads. The engine drops a row with
+    // a gap in any of them before it draws, so the browser has to drop it too
+    // or it names a row that is not on the page. The facet columns join the
+    // list because they decide which panel a row is in.
+    const mapped = [...named, plot.z?.field, ...panel.facets.map((f) => f.field)]
+      .filter((f) => f && (floats[f] || strings[f]));
+    // Is this row one of the ones this panel drew? Compared as strings,
+    // because a level arrives off an attribute and a moment key is written
+    // the way the column prints it.
+    const drew = (i) =>
+      panel.facets.every((f) => String(get(f.field, i)) === f.level) &&
+      (now === null || String(get(panel.play.field, i)) === now) &&
+      mapped.every((f) => get(f, i) !== null && get(f, i) !== undefined);
+    // A row placed outside the panel is not on the picture: `limits` cut it,
+    // or it lies past the axis. Without this a cut row just past the edge was
+    // named from inside the panel, within a glyph's reach of where it would
+    // have been. Half a pixel of slack keeps a mark drawn on the edge.
+    const inside = (px, py) =>
+      px >= panel.x0 - 0.5 && px <= panel.x1 + 0.5 &&
+      py >= panel.y0 - 0.5 && py <= panel.y1 + 0.5;
+    for (let i = 0; i < n; i++) {
+      if (!drew(i)) continue;
+      const px = placeOn(panel.x, get(panel.x.field, i));
+      const py = placeOn(panel.y, get(panel.y.field, i));
+      if (px === null || py === null || !inside(px, py)) continue;
+      const d = (px - at.x) ** 2 + (py - at.y) ** 2;
+      if (best === null || d < best.d) {
+        best = { d, px, py, row: named.map((f) => [f, get(f, i)]) };
+      }
+    }
+  }
+  return best && best.d <= REACH * REACH ? best : null;
 }
 
 /**
@@ -796,53 +884,8 @@ export function attachBrush(engine, container, request, options = {}) {
     return levels[((Math.floor(t / panel.play.seconds) % n) + n) % n];
   };
 
-  const nearest = (panel, at) => {
-    // The engine could not promise a position, so there is no honest answer to
-    // give. The bar says why the first time a reader asks.
-    if (panel.place !== "row") return null;
-    const now = moment(panel);
-    let best = null;
-    for (const plot of eachPlot(req.spec)) {
-      const df = req.data?.[plot.data];
-      if (!df || !panel.x || !panel.y) continue;
-      const floats = df.floats ?? {};
-      const strings = df.strings ?? {};
-      const get = (f, i) => (floats[f] ? floats[f][i] : strings[f]?.[i]);
-      const n = floats[panel.x.field]?.length ?? strings[panel.x.field]?.length ?? 0;
-      const named = [];
-      const add = (f) => { if (f && !named.includes(f) && (floats[f] || strings[f])) named.push(f); };
-      for (const c of [plot.x, plot.y]) add(c?.field);
-      for (const c of Object.values(plot.channels ?? {})) add(c?.field);
-      for (const layer of plot.layers ?? []) {
-        for (const c of Object.values(layer.encodings ?? {})) add(c?.field);
-      }
-      // Every column a position or a channel reads. The engine drops a row with
-      // a gap in any of them before it draws, so the browser has to drop it too
-      // or it names a row that is not on the page. The facet columns join the
-      // list because they decide which panel a row is in.
-      const mapped = [...named, plot.z?.field, ...panel.facets.map((f) => f.field)]
-        .filter((f) => f && (floats[f] || strings[f]));
-      // Is this row one of the ones this panel drew? Compared as strings,
-      // because a level arrives off an attribute and a moment key is written
-      // the way the column prints it.
-      const drew = (i) =>
-        panel.facets.every((f) => String(get(f.field, i)) === f.level) &&
-        (now === null || String(get(panel.play.field, i)) === now) &&
-        mapped.every((f) => get(f, i) !== null && get(f, i) !== undefined);
-      for (let i = 0; i < n; i++) {
-        if (!drew(i)) continue;
-        const px = placeOn(panel.x, get(panel.x.field, i));
-        const py = placeOn(panel.y, get(panel.y.field, i));
-        if (px === null || py === null) continue;
-        const d = (px - at.x) ** 2 + (py - at.y) ** 2;
-        if (best === null || d < best.d) {
-          best = { d, px, py, row: named.map((f) => [f, get(f, i)]) };
-        }
-      }
-    }
-    // Within about a glyph's reach, or the reader is not pointing at anything.
-    return best && best.d <= 14 * 14 ? best : null;
-  };
+  // The row under the pointer on this panel, read at the moment on show.
+  const nearest = (panel, at) => nearestRow(panel, at, req, moment(panel));
 
   const showTip = (panel, hit) => {
     const owner = panel.el.ownerSVGElement;

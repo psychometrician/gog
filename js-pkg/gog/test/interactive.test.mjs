@@ -32,6 +32,7 @@ import {
   isSpatial,
   loadEngine,
   mount,
+  nearestRow,
   redraw,
   renderSpec,
   UNPLACED,
@@ -824,9 +825,16 @@ function panelFrom(svg) {
   // *are* user coordinates and a pointer test reads as arithmetic. A test that
   // cares whether something re-reads the transform rather than merely staying
   // put moves `SHIFT` and asks again.
-  const ctm = () => {
-    const m = { a: 1, b: 0, c: 0, d: 1, e: SHIFT.x, f: SHIFT.y };
-    m.inverse = () => ({ a: 1, b: 0, c: 0, d: 1, e: -SHIFT.x, f: -SHIFT.y, inverse: () => m });
+  //
+  // A composed page nests one `<svg x= y=>` per cell, and each cell's panel is
+  // written in that cell's own units. The browser folds the nesting into every
+  // panel's screen transform, and so does this, so a pointer aimed at the
+  // second cell lands in the second cell rather than in the first one's
+  // identical rectangle.
+  const ctm = (dx, dy) => () => {
+    const [e, f] = [SHIFT.x + dx, SHIFT.y + dy];
+    const m = { a: 1, b: 0, c: 0, d: 1, e, f };
+    m.inverse = () => ({ a: 1, b: 0, c: 0, d: 1, e: -e, f: -f, inverse: () => m });
     return m;
   };
   const point = () => ({
@@ -836,15 +844,31 @@ function panelFrom(svg) {
   // One clock for the whole picture, which is what the document has. A test sets
   // it to choose a moment, the way a reader's browser advances it.
   const owner = { createSVGPoint: point, getCurrentTime: () => CLOCK.t };
-  return [...svg.matchAll(/<g data-gog-panel[^>]*\/>/g)].map((tag) => {
+  const frames = [];
+  const cells = [[0, 0]];
+  for (const [tag] of svg.matchAll(/<svg\b[^>]*>|<\/svg>|<g data-gog-panel[^>]*\/>/g)) {
+    if (tag.startsWith("</svg")) {
+      cells.pop();
+      continue;
+    }
+    const [dx, dy] = cells[cells.length - 1];
+    if (tag.startsWith("<svg")) {
+      const at = (name) => Number(new RegExp(`\\s${name}="([^"]+)"`).exec(tag)?.[1] ?? 0);
+      cells.push([dx + at("x"), dy + at("y")]);
+      continue;
+    }
     const attrs = {};
-    for (const [, k, v] of tag[0].matchAll(/([\w-]+)="([^"]*)"/g)) attrs[k] = v;
-    return {
+    for (const [, k, v] of tag.matchAll(/([\w-]+)="([^"]*)"/g)) attrs[k] = v;
+    frames.push({
+      // Where this panel's cell sits on the page, for a test that has to aim
+      // a pointer into it.
+      offset: [dx, dy],
       getAttribute: (n) => attrs[n] ?? null,
       ownerSVGElement: owner,
-      getScreenCTM: ctm,
-    };
-  });
+      getScreenCTM: ctm(dx, dy),
+    });
+  }
+  return frames;
 }
 
 /** Where the animation has got to, in seconds. */
@@ -1138,17 +1162,20 @@ function stubView() {
   };
 }
 
-/** One panel's rectangle and its two axes, read the way the page reads them. */
+/** One panel's rectangle and its two axes, read the way the page reads them,
+ *  and where its cell sits, so a pointer can be aimed at a composed page. */
 function axesOf(g) {
   const [x0, y0, x1, y1] = g.getAttribute("data-gog-panel").split(" ").map(Number);
   const num = (n) => g.getAttribute(`data-${n}`).split(" ").map(Number);
+  const log = (n) => (g.getAttribute(`data-${n}-log`) === null ? null : Number(g.getAttribute(`data-${n}-log`)));
   const [xf, xt] = num("x");
   const [yf, yt] = num("y");
   return {
     x0, y0, x1, y1,
-    x: { from: xf, to: xt, lo: x0, hi: x1, log: null, cats: null },
-    y: { from: yf, to: yt, lo: y1, hi: y0, log: null, cats: null },
+    x: { from: xf, to: xt, lo: x0, hi: x1, log: log("x"), cats: null },
+    y: { from: yf, to: yt, lo: y1, hi: y0, log: log("y"), cats: null },
     place: g.getAttribute("data-gog-place"),
+    offset: g.offset ?? [0, 0],
   };
 }
 
@@ -1339,6 +1366,89 @@ test("a played plot answers only for the moment showing", async () => {
     CLOCK.t = 0;
     undo();
   }
+});
+
+// Two cells over one table, the second placing `pop` on a log axis where the
+// first places `g`. Every cell's rows used to be placed on the pointed panel's
+// axes, so both cells found the same row at the same spot, and the tie kept the
+// first cell's answer with the first cell's columns.
+const PAIR_TABLE = {
+  t: { floats: { g: [10, 50, 90, 70], v: [10, 50, 90, 20], pop: [1e3, 1e5, 1e7, 1e4] } },
+};
+const pairCell = (x) => ({
+  data: "t", x, y: { field: "v" },
+  layers: [{ mark: "point", encodings: {}, transforms: [] }],
+  brush: [{ field: "g" }],
+});
+const tipText = () => {
+  const [tip] = onPage("gog-tip");
+  return tip ? tip.innerHTML.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim() : null;
+};
+
+test("each cell of a composed page names its own columns", async () => {
+  const undo = stubDom();
+  try {
+    const { handle, container, panels } = await hoverFixture(
+      { arrange: "beside",
+        cells: [pairCell({ field: "g" }), pairCell({ field: "pop", scale: "log" })] },
+      PAIR_TABLE);
+    assert.equal(panels.length, 2, "one panel per cell");
+    const [left, right] = panels;
+    assert.ok(right.offset[0] > 0 && right.x.log === 10, "the second cell sits to the right, on a log axis");
+
+    const aim = (p, xv, yv) =>
+      container.send("pointermove", placeOn(p.x, xv) + p.offset[0], placeOn(p.y, yv) + p.offset[1]);
+    aim(right, 1e5, 50);
+    assert.equal(tipText(), "pop 100000 v 50", "the right cell's own columns");
+    aim(left, 50, 50);
+    assert.equal(tipText(), "g 50 v 50", "and the left cell's, for the same row");
+    handle.destroy();
+  } finally {
+    undo();
+  }
+});
+
+// `limits` cuts the rows outside it, so they are not on the picture. One cut
+// just past the edge sits within a glyph's reach of a pointer inside the panel,
+// and nothing tested a row against the domain the panel states.
+test("a row `limits` cut is not named, even beside the edge", async () => {
+  const undo = stubDom();
+  try {
+    const spec = { ...pairCell({ field: "g", limits: [0, 69] }) };
+    const { handle, container, panels } = await hoverFixture(spec, PAIR_TABLE);
+    const p = panels[0];
+    assert.ok(placeOn(p.x, 70) - p.x1 < 13, "the cut row at 70 would sit within reach of the edge");
+    container.send("pointermove", p.x1 - 1, placeOn(p.y, 20));
+    assert.equal(onPage("gog-tip").length, 0, "and it is not named");
+    container.send("pointermove", placeOn(p.x, 50), placeOn(p.y, 50));
+    assert.equal(tipText(), "g 50 v 50", "while a row the panel drew still is");
+    handle.destroy();
+  } finally {
+    undo();
+  }
+});
+
+// A negative on a log axis has no place. It came back as `NaN`, and a `NaN`
+// distance met first silenced the whole panel, since nothing is smaller than
+// it. The engine refuses such a value in a column it places on a log axis, so
+// it reaches the readout only from a table the axis does not measure, which is
+// why this asks the arithmetic directly.
+test("a value with no place on a log axis does not silence the panel", () => {
+  const axis = { from: 0, to: 2, lo: 0, hi: 100, log: 10, cats: null };
+  assert.equal(placeOn(axis, 0), null);
+  assert.equal(placeOn(axis, -5), null);
+  const panel = {
+    place: "row", x0: 0, y0: 0, x1: 100, y1: 100, facets: [], play: null,
+    x: { ...axis, field: "g" },
+    y: { field: "v", from: 0, to: 100, lo: 100, hi: 0, log: null, cats: null },
+  };
+  // The first row cannot be placed; the second sits under the pointer.
+  const req = {
+    spec: { data: "t", x: { field: "g" }, y: { field: "v" },
+            layers: [{ mark: "point", encodings: {} }] },
+    data: { t: { floats: { g: [-5, 10], v: [50, 50] } } },
+  };
+  assert.deepEqual(nearestRow(panel, { x: 50, y: 50 }, req)?.row, [["g", 10], ["v", 50]]);
 });
 
 // A disc turns `x` into an angle and `y` into a distance from its center, and the

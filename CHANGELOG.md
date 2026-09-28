@@ -56,6 +56,14 @@ CRAN-style repositories and PyPI, `GrammarOfGraphics` on Julia's General, and
 
 ### Changed
 
+- **The pointer's readout on a brushed plot names only rows the panel drew.**
+  On a page of two plots, pointing into the second could name the first plot's
+  columns: a panel whose x is `population` read out the row's `gdp`. It could
+  also name a row that `limits` had cut, from just inside the panel's edge, and
+  a value with no place on a log axis could silence a whole panel. Each plot
+  now answers with its own rows and columns, and only for rows inside the
+  panel.
+
 - **`clear` is on whenever there is a bound to put back.** On a brushed plot
   in a web page, a click on empty space empties the selection, and a drag
   across the whole panel catches every row. After either one `clear` was
