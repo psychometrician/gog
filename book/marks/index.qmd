@@ -11,7 +11,7 @@ decision in every plot. The answer depends on the *types of your variables*
 and the *question you are asking*.
 
 There are fourteen marks, and they are not a list to learn before you draw.
-This chapter is a guide to the choice: it shows which mark answers which
+This chapter helps you with the choice: it shows which mark answers which
 question, draws the common cases, and stops. Each mark then has a chapter of
 its own, with examples. The tables in [Quick reference](#quick-reference) are
 for later, when you have data in front of you and want the row that fits.
@@ -92,7 +92,7 @@ same tally as a share of the whole, so the bars sum to 1:
 ```{r}
 # What share of countries per continent? → proportion bar
 data(gapminder_2007) + bar * proportion + x(continent) +
-  title("Relative frequency: bar * proportion")
+  title("Shares: bar * proportion")
 ```
 
 *"Given gapminder 2007: bars derived by proportion, x is continent."*
@@ -296,7 +296,7 @@ order, such as a rating scale or size groups from smallest to largest.
 Continents have no order, so that advice says not to draw this plot. gog draws
 it anyway. The grammar refuses a sentence that is ill-formed, never one that is
 only unwise; whether a profile suits your categories is your judgment
-([Law 8](../design-laws.qmd)).
+([Law 8](../design-laws.qmd#law-8-pronounceable-usable)).
 
 `line` is not the only mark that draws a profile. [`area`](area.qmd) fills
 under the same boundary, [`step`](step.qmd) holds each value flat until the

@@ -175,10 +175,10 @@ data(gapminder_2007) + point + x(gdp) + y(life) + color(continent)
 
 *"Given gapminder 2007: points, x is gdp, y is life, color by continent."*
 
-Channels do not all do the same work, and what separates them is what each
-one *earns*:
+Channels do not all do the same work. What separates them is the **guide** each
+one gets, the part of the plot that lets a reader decode it:
 
-| Channel | What it does | Earns |
+| Channel | What it does | Guide |
 |---------|-------------|-------|
 | `x` | Horizontal position, from a continuous or categorical column | an axis |
 | `y` | Vertical position, from a continuous or categorical column | an axis |
@@ -192,17 +192,17 @@ one *earns*:
 | `label` | The string a `text` mark draws, its content | nothing |
 | `play` | Cuts the plot into frames and plays them in sequence, from a continuous or categorical column | a strip |
 
-The **Earns** column sorts the channels into four groups, and a Korean
+The **Guide** column sorts the channels into four groups, and a Korean
 syllable shows how they fit together. It has three slots: an initial consonant,
 then a vowel, then an optional final consonant. The mark is the initial
 consonant, so the channels are the other two.
 
 `x`, `y` and `z` are the **vowels**: a mark without one of them is silent, so
-at least one is required, and each earns an axis to be read against.
+at least one is required. Each gets an axis for reading its values.
 
-The five that earn a legend are the **final consonants**, the optional ㅁ (*m*)
+The five that get a legend are the **final consonants**, the optional ㅁ (*m*)
 that turns 가 (*ga*) into 감 (*gam*). None is ever required, and each changes
-what the plot says, which is exactly why each needs a key to decode it.
+what the plot says, which is exactly why each needs a legend to decode it.
 
 `group` and `label` are neither. `group` splits without encoding: on a `line`
 it performs the very same split `color` does, one line per category, and
@@ -213,7 +213,7 @@ supplies a `text` mark's content rather than refining it.
 
 `play` is the fourth kind, and it stands outside the syllable the way faceting
 does. It does not refine one picture. It cuts the plot into frames and plays
-them in order, so what it earns is a **strip** naming the frame on screen. See
+them in order, so the guide it gets is a **strip** naming the frame on screen. See
 [Play](play.qmd).
 
 Not every channel applies to every mark. A `line` is drawn with one stroke, so
@@ -454,7 +454,7 @@ One space holds the whole plot. See [Space](space.qmd), [Polar](polar.qmd),
 ## Settings: values you *set* rather than *map*
 
 Every channel above asks a question about the data. `color(continent)` asks
-"which continent?", and earns a legend so the reader can answer it.
+"which continent?", and gets a legend so the reader can answer it.
 
 Making every point one color asks no question about the data. It maps no column, needs no scale,
 and has nothing to decode, so it is not a channel. That is `style`:

@@ -214,7 +214,7 @@ mapping, and the same words outside `aes()` are a setting. gog moves that
 boundary from a punctuation mark to a word, so the atom you write says which one
 you meant. The parentheses can fail in one way a word cannot.
 `aes(color = "red")` is legal, and it maps every row to one category whose only
-level is "red". You get a legend with one key labeled "red", and points drawn in
+level is "red". You get a legend with one entry labeled "red", and points drawn in
 the palette's first color rather than in red.
 
 ### An unknown name must not become a default
@@ -545,13 +545,15 @@ A setting is absent only where composing two marks already says the same thing
 better, and that absence follows Law 1's second line: no atom is redundant.
 
 `style(border_color =, border_size =)` draws an outline distinct from the fill.
-It is available on all five closed-glyph fills: `bar`, `box`, `point`, `zone`
+It is available on all five closed-shape fills: `bar`, `box`, `point`, `zone`
 and `surface`. No second layer can draw their perimeter, so a setting is the
-only way to draw it. The letters of a label are filled shapes too, so `text`
-takes both settings, and there they draw a **halo**, a band of color under the
-letters. One setting takes one form in each class, as `pattern` does below.
+only way to draw it. An `area` or a `ribbon` is filled too, but a layered `line`
+traces its edge, so neither takes a border. The letters of a label are filled
+shapes too, so `text` takes both settings, and there they draw a **halo**, a
+band of color under the letters. One setting takes one form in each class, as
+`pattern` does below.
 
-`style(pattern =)` gives a mark's paint a **texture**, and each class of
+`style(pattern = )` gives a mark's paint a **texture**, and each class of
 geometry shows that texture its own way. On the six path strokes (`line`,
 `step`, `interval`, `path`, `rule`, `edge`) it is a **dash**. On the five filled
 regions (`bar`, `box`, `area`, `ribbon`, `zone`) it is a **hatch**. One setting

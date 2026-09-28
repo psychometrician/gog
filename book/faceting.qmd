@@ -86,7 +86,7 @@ panels. A histogram under a facet needs two separate decisions: which rows are
 counted, and where the bins are cut. Each panel counts its own rows, because a
 statistic is computed on the panel's subset as if that subset were the whole
 table. That is true of every transform on every mark, which is the [No
-Exceptions](design-laws.qmd) law applied one panel at a time.
+Exceptions](design-laws.qmd#law-2-no-exceptions) law applied one panel at a time.
 
 But `bin` is not only a statistic. It cuts the axis into bins *and* counts the
 rows in each one. The cut is a set of positions on the x axis, so it belongs
@@ -386,8 +386,8 @@ world median, split into panel columns by continent."*
 
 The gray line, the world's median life expectancy, repeats in every panel,
 so each continent is read against the same line. The engine reports this
-as an assumption rather than doing it in silence: the table `world_median`
-has no `continent` column, so its layer is drawn everywhere.
+as an **Assumption**, a message that says what gog decided for you.
+`world_median` has no `continent` column, so its layer is drawn in every panel.
 
 ## The facet column's type
 
@@ -425,6 +425,6 @@ full in every panel.
 
 ## What comes next
 
-Faceting cuts one plot into panels that share a sentence and, by default, their
-axes. [Composition](composition.qmd) does the opposite: it arranges plots that
-were never one plot on a single page.
+Faceting splits one plot into panels that share a sentence and, by default,
+their axes. [Composition](composition.qmd) does the opposite: it arranges plots
+that were never one plot on a single page.

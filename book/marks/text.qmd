@@ -245,8 +245,8 @@ You see a hue faster than you can read a word, so a color split shows you the
 groups before you read a single name. Every label so far has been printed in one
 color, which is the default. Map a categorical column to `color` and the labels
 split by that column; a column of numbers is refused on a text mark. The mapping
-earns a legend to name the groups, and the colors come from the same palette
-points and bars use. In the plot below each country is its own group, so the hue
+gets a legend to name the groups, and the colors come from the same palette
+that points and bars use. In the plot below each country is its own group, so the hue
 repeats the name:
 
 ```{r}
@@ -420,7 +420,7 @@ directions and the fixed offset are under [Nudging the label off its
 point](#nudging-the-label-off-its-point), with `repel` for labels that collide
 with each other.
 
-A mapped `size` on `text` is legal grammar that this engine does not draw.
+A mapped `size` on `text` is valid grammar that this engine does not draw.
 `size(gold)` is therefore refused as **Unsupported**, rather than accepted
 and quietly ignored. Set the font size with `style(size = )` instead.
 

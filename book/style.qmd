@@ -115,8 +115,8 @@ it is a **fill texture**: `"solid"`/`"hatch"`/`"crosshatch"`/`"stripes"`/
 screen, so on a tilted sheet it would look denser on some faces than on others.
 Those hatchings keep a plot readable in grayscale or in black-and-white print.
 It changes the paint, never the shape: a dashed line and a solid one pass
-through the same points. A `step` is a different mark because it joins those
-points by a different route.
+through the same points. A `step` is a different mark because it holds each
+value until it changes.
 
 A trend drawn through the data is often dashed, so that it reads as a summary
 rather than as a measurement:
@@ -154,7 +154,7 @@ category to a texture), and the [`pattern()` channel](channels.qmd#pattern) does
 it for fills and strokes the way `shape()` does it for points.
 
 `border_color` and `border_size` draw an outline separate from the fill. A
-`border_size` of `0` means no border. Both belong to the five **closed-glyph
+`border_size` of `0` means no border. Both belong to the five **closed-shape
 fills** (`bar`, `box`, `point`, `zone` and `surface`). On those marks you cannot
 draw the outline as a second layer. A setting is the only way to get it. `color`
 fills the shape; `border_color` outlines it; the two are independent, so a box
@@ -398,7 +398,7 @@ same name, and this is what each mark says about them:
 # can map it can also set, so "map only" cannot occur in these five columns.
 #
 # `renders` and not `obligation` alone decides the mapping half. Two cells are
-# legal grammar the engine does not draw yet (`size` and `opacity` on `text`),
+# valid grammar the engine does not draw yet (`size` and `opacity` on `text`),
 # and a table reading them as mappable would promise a plot nobody gets. Combinations marks those with a separate glyph; here they
 # read as what you can do today, and the sentence under the table says which.
 r     <- .gog_rules()
@@ -825,8 +825,8 @@ the other is a property of the plot, so neither can replace the other.
 
 ## In short
 
-A mapping to color, size, shape, pattern or opacity earns a legend, and a
-setting earns none. That is the quickest test for which one you wrote; a
+A mapping to color, size, shape, pattern or opacity gets a legend, and a
+setting gets none. That is the quickest test for which one you wrote; a
 mapping with `legend = FALSE` also has none. Five
 names are a channel and a setting at once: `color`, `size`, `shape`, `pattern`
 and `opacity`. Which call you write decides which you get.

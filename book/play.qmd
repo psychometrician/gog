@@ -58,7 +58,7 @@ because you watch a point move right and up instead of finding the same point
 twice in two panels. The two are not different plots. They are one plot read two
 ways, which is why one grammar draws both, with one column bound differently.
 
-On paper only the first frame is printed, so the PDF shows 1952 with its strip.
+In the PDF, only the first frame is drawn: 1952, with its strip.
 There, the faceted version above is what a reader sees instead of the motion.
 
 ## The column's order
@@ -240,9 +240,8 @@ life expectancy. Asia climbs from four to thirty, Africa opens with none and
 ends with twelve, and Europe starts at twenty-three and then runs out of
 countries to add.
 
-A tally can also come out the same in every frame. That is worth seeing once,
-because a sequence that does not move is sometimes an answer rather than a
-fault:
+A tally can also be the same in every frame. Then bars that stay still are a
+correct result, not a mistake:
 
 ```{r}
 data(gm_all) + bar * count + x(continent) + play(year)
@@ -330,8 +329,8 @@ in both panels while a dot climbs it. The route shows the shape of each climb,
 and only the moving dot shows its pace: the glider with the tighter coil climbs
 faster.
 
-One detail of the second table is worth knowing, because it decides how many
-frames the plot has rather than what it means. `thermal_marks` calls its time
+One detail of the second table changes the number of frames, but not what the
+plot shows. `thermal_marks` calls its time
 column `instant` where `thermals` calls the same measurement `second`. The
 frames are gathered from every table that carries the played column, not only
 from the layer that bound `play`, on the same rule that gives the plot one scale
@@ -415,8 +414,9 @@ x axis, so the points move right as the years pass.
 
 ## Crossed with a facet
 
-Do all five continents climb at the same pace? Panels split the page and frames
-split the clock, so the two compose and every panel advances together:
+Do all five continents climb at the same pace? `facet` and `play` split the
+rows by different columns, so the two compose. The panels move through the
+years together:
 
 ```{r}
 data(gm_all) + point + x(gdp, scale = "log") + y(life) + play(year) |
@@ -504,10 +504,9 @@ theirs, and can stop it. Turning matters more in this chapter than anywhere else
 in the book, because something is moving inside a solid shape. The only way to
 see what the near edge hides is to turn the cube and look from another side.
 
-Panels and frames still compose in the cube. They split the rows the same way,
-so crossing them needs no new rule: the panels divide the page, the frames
-divide the clock, and each panel draws its cube at whatever size its own
-rectangle allows.
+Panels and frames still compose in the cube. `facet` and `play` each split the
+rows by their own column, so crossing the two needs no new rule. Each panel
+draws its cube at whatever size its own rectangle allows.
 
 ```{r}
 data(gm_all) + point + x(gdp, scale = "log") + y(life) + z(population) +
@@ -547,7 +546,7 @@ data(ripples) + surface + x(across) + y(along) + z(height) +
 height, with the plasma palette, played by instant at speed 4, split into panel
 columns by tank."*
 
-Watch one arc leave the corner and cross the floor. On paper you see the first
+Watch one arc leave the corner and cross the floor. In the PDF you see the first
 instant, with the arcs already spread across both tanks and closer together in
 the shallow one. It is the same tapping in both panels, and the panels share
 every scale, so the closer spacing in the shallow tank is a shorter wavelength,
@@ -742,8 +741,8 @@ package can carry rather than about what a plot is.
 Making a video needs a video encoder. The one nearly everybody uses is more than
 ten times the size of this whole engine, and a package would need one copy for
 every platform it supports. Its license also does not allow it to be included in
-a package licensed the way this one is. The other route is to require the reader
-to install it separately. That sounds harmless, until you count the readers who
+a package licensed the way this one is. The other choice is to require the
+reader to install the encoder separately. That sounds harmless, until you count the readers who
 cannot install a separate program. A prebuilt package cannot supply the encoder
 for them either, because the encoder cannot be included in it. The feature would
 work for some readers and refuse for others, which is a worse answer than not
@@ -813,14 +812,14 @@ an omission. Every frame is already in the file: the whole sequence is drawn
 once, and a clock decides which frame you see at each moment. Stepping moves
 that clock. It chooses no rows, hides no rows, and changes nothing the sentence
 said. So it is like turning a cube ([Space](space.qmd)), which changes how you
-look and never what is drawn. Neither one needs a word in the grammar.
+look at the plot and never what is drawn. Neither one needs a word in the grammar.
 
 Stop the clock and the camera photographs the frame you stopped on. That follows
 from the camera's own rule, not from a rule about animation: it saves what you
 are looking at, the same way it saves how far you have zoomed in.
 
-A printed sequence has no buttons, because they belong to the web page rather
-than to the plot.
+The PDF shows no buttons, because they belong to the web page rather than to
+the plot.
 
 ## Why points jump between frames
 

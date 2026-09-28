@@ -35,9 +35,9 @@ negative, because Fiji lies south of the equator. `east` keeps counting past 180
 instead of turning negative, so 185 means 175 degrees west.
 
 In the web edition, the buttons under the plot work here too: the two
-magnifiers zoom in and out, and the frame shows the whole map again. Once you
+magnifiers zoom in and out, and the frame button shows the whole map again. Once you
 have zoomed in, dragging moves the map around inside the panel, and the frame
-undoes both. A map needs those controls more than most plots do, because a map
+button undoes both. A map needs those controls more than most plots do, because a map
 is full of detail at every zoom level, from a whole ocean down to one street.
 Zooming changes only the **view**: it magnifies the picture and changes nothing
 the plot claims.

@@ -29,7 +29,8 @@ appears in [The kernel card](kernel-card.qmd).
 | `gog_table(name)` | One of this book's shared tables |
 
 Each function has a section below, in the same order as the rows above. The
-first turns a finished plot into text.
+first turns a finished plot into text. The last section lists the buttons under
+each plot in the web edition. They are neither words nor functions.
 
 ## `render_svg()`
 
@@ -264,3 +265,23 @@ names the three columns in the book's tables that need it.
 
 [The book's data](book-data.qmd) explains this function in full. It lists every
 shared table in the book and shows the call in each of the four languages.
+
+## The buttons under a plot
+
+In the web edition, a line of buttons sits under every plot. Each one changes
+how you look at the plot, or saves what you see, and none changes its sentence.
+So none of them is a word of the grammar:
+
+| Button | What it does |
+|---|---|
+| the magnifiers, `−` and `+` | Make the picture smaller or larger |
+| the frame button (four corners around a small square) | Returns to the whole picture |
+| the camera | Saves what you are looking at as a PNG file, large enough for a slide or a journal figure |
+
+A plot that plays adds three buttons to the same line: they pause the sequence
+and step through its frames ([Play](play.qmd#what-the-page-adds)). A brushed
+plot adds a line of controls for its selection
+([Selection](selection.qmd#what-the-page-adds)), and a plot in the cube adds a
+line for its viewing angle ([Space](space.qmd#turning-the-plot-yourself)).
+[The buttons under every plot](first-plot.qmd#the-boxes-under-every-plot)
+introduces this line.

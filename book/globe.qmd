@@ -49,7 +49,7 @@ further.
 In the web edition the angle you write is only the view the globe opens at. Drag
 it and it turns, the way the cube in [Space](space.qmd) turns, and the far half
 of the earth comes into view. The *reset* button returns to the view the
-sentence asked for. On paper a plot keeps its one view, which is why this
+sentence asked for. In the PDF a plot keeps its one view, which is why this
 chapter also draws some data at a second angle.
 
 ## What a view hides
@@ -293,14 +293,14 @@ later covers the tracks drawn before it. The table lists the category 5 storms
 last. Reverse the rows, and the gold tracks go to the bottom, under all the
 others.
 
-## A measure stands on the radius
+## A measure along the radius
 
 On a flat map a quantity has to go on a channel, `size` or `color`, because both
 positions carry the place. The sphere leaves one direction free: the radius,
 which runs straight out from the surface. Every place on the sphere has its own
-radius. A `bar` here stands at its place and measures outward along that radius.
-It draws as a spike rising from the surface, and `z` names the measure. Here the
-measure is `reach`, the square root of each country's population:
+radius. Here a `bar` is drawn at its place as a spike, rising outward along that
+radius, and `z` names the measure.
+Here the measure is `reach`, the square root of each country's population:
 
 ```{r}
 #| echo: false

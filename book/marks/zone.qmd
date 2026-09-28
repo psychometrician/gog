@@ -360,7 +360,7 @@ cut, which here is both of them. One transform, one
 word, readings decided by what the mark needs. There is no `bin2d`. Note the
 words *has a width to cut*: [the mixed mesh](#one-of-each-the-mixed-mesh) is
 where they matter, because a categorical axis arrives already cut, and `bin`
-leaves it alone.
+does not cut it.
 
 The count became the color, although no `color()` was written. Both positions
 were taken, so the measurement went to the one channel left that can carry a
@@ -614,19 +614,16 @@ length, y is petal length."*
 That makes three readings of one transform: `line * density` is a curve, `zone *
 density` a painted field, and `path * density` a contour.
 
-The bands nest, and that is why plain filled shapes are enough to draw them. A
-denser region usually lies *inside* a less dense one, so gog paints the
-outermost band first and lets each inner one cover it; nothing has to be cut
-out. The exception is a cluster shaped like a ring: points scattered around a
-circle, with an empty middle. There the empty middle really is a hole, and
-painting the band over it fills it in. `zone * density` cuts nothing out of a
-band, so a ring-shaped cluster is the one field it draws wrongly, and gog
-prints no warning. `path * density` traces it correctly.
+The bands lie one inside another. A denser region usually lies *inside* a less
+dense one, so gog paints the outermost band first and each inner band over it. A
+band can also have a hole. When points lie around a circle, the density in the
+middle is low, so each band has a hole there. gog cuts the hole out of the band,
+and the middle stays unpainted.
 
 ## Cells the axes already made: the tile plot
 
-So far the sides have come from three places: `bounds` named them, `bin` cut
-them, and `density` estimated them. The funnel already used a fourth without
+So far the sides have been made in three ways: `bounds` named them, `bin` cut
+them, and `density` estimated them. The funnel already used a fourth way without
 naming it: a category's slot, which needs no column at all.
 
 Six weeks of daily orders is already a grid: weeks across, weekdays down, one
@@ -838,8 +835,8 @@ How does the spread of life expectancy differ by continent? Five histograms
 answer it, in five panels the reader must compare one by one.
 Read the rule one axis at a time and it already covers the case in the middle:
 one axis continuous, one categorical. Nothing new has to be decided for it.
-`bin` cuts the axis that has a width to cut and leaves alone the one that
-arrived already cut, so the result is a row of cells per category:
+`bin` cuts the axis that has a width to cut, and not the one that arrived
+already cut, so the result is a row of cells per category:
 
 ```{r}
 data(gm_all) + zone * bin(20) + x(life) + y(continent) +
@@ -900,7 +897,7 @@ given the prevailing winds: zones, x is direction; then given the winds: points
 derived by jitter, x is direction, y is speed."*
 
 Nothing was built for that. It is the same sentence as the tile plot with one
-axis left unsaid, which shows that a slot is a general source of sides, not a
+axis left unsaid, which shows that a slot is a general way to get sides, not a
 special case for one chart.
 
 The two-row table does what [`rule`](rule.qmd)'s table does, and for the same
@@ -920,7 +917,7 @@ the data itself, and gog draws it opaque. `style(opacity = )` overrides either.
 In every section above, each drawn shape takes its sides from one row: a row of
 your table, or a row a transform made. `bounds` names the sides, `bin` cuts
 them, `density` estimates them, and a category owns a slot. There is a fifth
-source, where one shape takes its outline from many rows.
+way, where one shape takes its outline from many rows.
 
 A map with every country shaded is a plot most readers have seen, and a
 country's shape is not a rectangle.

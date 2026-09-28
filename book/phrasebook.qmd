@@ -72,7 +72,7 @@ that does the same job is beside it on the right.
 | patchwork's <code>p1 &#124; p2</code>, `p1 / p2` | <code>plot_a &#124; plot_b</code>, `plot_a / plot_b`: the same two operators. What is written on the right decides what happens: a plot is placed beside or below, and a `facet()` splits the plot into panels. |
 | ggrepel's `geom_text_repel()` | `text * repel`, one of the four collision modifiers, with `dodge`, `stack` and `jitter` |
 | ggExtra's `ggMarginal()` | <code>top / (main &#124; right)</code>, three ordinary plots ([Composition](composition.qmd)) |
-| patchwork's `plot_spacer()`, `plot_layout(widths =)` | `theme(width =)` on a plot placed beside others, or `theme(height =)` on one stacked above or below, in pixels; the plots that ask for nothing share what is left. In the marginal layout above, the empty corner needs no spacer. |
+| patchwork's `plot_spacer()`, `plot_layout(widths = )` | `theme(width = )` on a plot placed beside others, or `theme(height = )` on one stacked above or below, in pixels; the plots that ask for nothing share what is left. In the marginal layout above, the empty corner needs no spacer. |
 | `coord_flip()` | swap the `x` and `y` bindings: orientation is taken from whichever axis carries the categories, so there is nothing to switch |
 | `coord_polar()` | `polar()` |
 | `labs(title = , x = , y = )` | `title()`, `x_label()`, `y_label()`, `z_label()` |
@@ -104,7 +104,7 @@ The words translate, but six things work differently in gog.
   `x(gdp, scale = "log")` or `color(g, legend = FALSE)`, and there is no
   `scale_*()` function. The colors of a color scale come from `palette()`, which
   belongs to the whole plot.
-- **Setting is not mapping.** A constant maps no column, so it earns no legend.
+- **Setting is not mapping.** A constant maps no column, so it gets no legend.
   Write it in `style()`. In ggplot2 `aes(color = "red")` is legal and draws a
   legend with one entry called "red". Here a channel takes a column, not a
   value, so gog refuses `color("red")` and names `style(color = "red")` as the

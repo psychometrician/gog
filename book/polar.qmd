@@ -22,7 +22,7 @@ names: a **coxcomb**, a **rose**, or, most precisely, a **polar area diagram**.
 That third name is the only one that says what the wedges mean. Her wedges put
 each month's death count into the wedge's *area*, so their radius grows as the
 square root of the number. In gog, a polar bar maps the value directly to the
-radius. Both are honest drawings, but they are not the same drawing, so check
+radius. Both are correct drawings, but they are not the same drawing, so check
 which one you have before you compare them.
 
 The line version has even more names: **radar** plot, **spider** plot, **star**

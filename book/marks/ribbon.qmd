@@ -73,7 +73,7 @@ or spread drawn around it. It is two marks the grammar already has, added with
 ## A fan chart of nested bands
 
 Which values of life expectancy do most countries have in each year? `gm_all`
-is the whole gapminder table: every country, in every year, 142 countries in
+holds all the gapminder years: every country, in every year, 142 countries in
 all. A min–max band over it spans the full range of life expectancy in each
 year, but only the two extreme countries set its edges. Naming two quantiles
 instead gives a band that contains most of the countries. Layer two bands of
@@ -114,7 +114,8 @@ one.
 ## Why a ribbon needs a transform
 
 A low *and* a high are two numbers, and a plain `y()` supplies one. An `area`
-closes on zero, which the grammar supplies. A ribbon has no such second number.
+closes on zero: its region's other edge is zero, which the grammar supplies. A
+ribbon has no such second number.
 Like `interval`, a ribbon needs a transform that supplies both boundaries, and
 that transform is part of its minimum syllable. Write a ribbon without one and
 the engine refuses it, rather than drawing an empty panel. [What it

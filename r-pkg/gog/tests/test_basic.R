@@ -3010,6 +3010,49 @@ if (file.exists("book/check_sections.R")) {
 }
 
 # ---------------------------------------------------------------------------
+# A link to a section reaches the section it names
+# ---------------------------------------------------------------------------
+
+# The thirteenth guard. The render resolves a link's file and never its anchor,
+# so a link into a section that does not exist is written as it stands and the
+# build exits 0. And an anchor that reaches a section can reach the wrong one:
+# `selection.qmd` sent "What can be brushed" to the section on stamping.
+# check_links.R resolves every anchor by pandoc's own rule and fails on both.
+#
+# First on a book built here to be wrong, so the guard is seen to fail: a link
+# wrapped across two lines whose text names one section while its anchor reaches
+# another, and an anchor that reaches nothing. A link naming the *chapter* and
+# anchoring into it is how the book cites a part of a chapter, and passes.
+if (file.exists("book/check_links.R")) {
+  source("book/check_links.R")
+  local({
+    d <- file.path(tempfile("links"), "book")
+    dir.create(file.path(d, "marks"), recursive = TRUE)
+    writeLines(c("# Target", "", "## What can be brushed", "", "Text.", "",
+                 "## Stamping a point", "", "Text."), file.path(d, "target.qmd"))
+    writeLines(c("# Source", "",
+                 "As [What can",
+                 "be brushed](target.qmd#stamping-a-point) showed, and",
+                 "[the start](target.qmd#no-such-section) is gone.",
+                 "[Target](target.qmd#what-can-be-brushed) names the chapter."),
+               file.path(d, "source.qmd"))
+    writeLines(c("# Mark", "", "See [Stamping a point](../target.qmd#stamping-a-point)."),
+               file.path(d, "marks", "m.qmd"))
+    said <- capture.output(r <- tryCatch(check_links(d), error = function(e) conditionMessage(e)))
+    if (!identical(r, "check_links: 2 link(s) reach the wrong place"))
+      stop("FAIL: check_links should refuse the two wrong links, got: ", r)
+    if (!any(grepl("source.qmd:3", said, fixed = TRUE)) ||
+        !any(grepl("source.qmd:5", said, fixed = TRUE)))
+      stop("FAIL: check_links should name the wrapped link and the lost anchor by line")
+    unlink(dirname(d), recursive = TRUE)
+  })
+  check_links()
+  cat("\nlink tests passed.\n")
+} else {
+  cat("SKIP: book/ not found \u2014 run from the repo root to check the links\n")
+}
+
+# ---------------------------------------------------------------------------
 # One voice across 56 chapters
 # ---------------------------------------------------------------------------
 
@@ -3031,6 +3074,52 @@ if (file.exists("book/check_sections.R")) {
 # satisfied by cutting sentences in half rather than rewriting them.
 if (file.exists("book/check_prose.R")) {
   source("book/check_prose.R")
+  # The rules added from the September 2026 chapter passes, each on a line that
+  # must fail, since the book itself no longer holds one to test them on. The
+  # lines that must pass sit beside them: an object on the next line, the
+  # literal "on the whole plot", and the combined `(a =, b =)`.
+  local({
+    d <- tempfile("prose")
+    dir.create(d)
+    # The last three lines are the wrapped forms the chapters held: "how you" at
+    # a line's end, "leaves it" before a break, and words between "leaves" and
+    # "alone".
+    writeLines(c(
+      "# Probe", "",
+      "It goes by another name, with room to spare, and sits clear of the edge.",
+      "On the whole, it leaves alone the arrow head, part way along.",
+      "Turning changes how you look, and `theme(width =)` sets the width.",
+      "", "Turning changes how you look", "at the plot, on the whole plot.",
+      "`theme(width =, height =)` and `style(size = )` are both fine.",
+      "", "A cube changes how you", "look, and `bin` leaves it",
+      "alone, and shading leaves a level one alone.",
+      # A bold label run on with a comma fails; the two shapes a label may take
+      # pass, the period inside the bold and a glossary's colon.
+      "", "- **Continuous**, any column of measurements",
+      "- **Every plot is live.** The book is proof.",
+      "- **● must**: a required position.",
+      # An announcement fails; *worth* as a judgment passes.
+      "", "One detail is worth knowing. A frame is worth naming.",
+      # The swept merit figure fails; the idiom list keeps its own entries.
+      "A mapping earns a legend, and a setting earns none.",
+      # A retired name fails with the book's word beside it, and so does an idiom.
+      "Drag it with the mouse, and its friends, and friends of friends."),
+      file.path(d, "probe.qmd"))
+    said <- capture.output(r <- tryCatch(check_prose(d), error = function(e) conditionMessage(e)))
+    want <- c("\"goes by\"", "\"to spare\"", "\"clear of\"", "\"on the whole,\"",
+              "probe.qmd:4  \"leave ... alone\"", "\"arrow head\"", "\"part way\"",
+              "probe.qmd:5  Turning changes how you look,", "`theme(width =)`",
+              "probe.qmd:11  A cube changes how you", "probe.qmd:12  \"leave ... alone\"",
+              "probe.qmd:13  \"leave ... alone\"", "probe.qmd:15  - **Continuous**,",
+              "probe.qmd:19  \"worth knowing\"", "probe.qmd:20  \"earns a legend\"",
+              "probe.qmd:21  \"the mouse\" -> the pointer", "probe.qmd:21  \"and friends\"")
+    missing <- want[!vapply(want, function(w) any(grepl(w, said, fixed = TRUE)), TRUE)]
+    if (length(missing))
+      stop("FAIL: check_prose should flag ", paste(missing, collapse = ", "))
+    if (!identical(r, "check_prose: 17 prose inconsistency(ies)"))
+      stop("FAIL: check_prose should find exactly the seventeen probes, got: ", r)
+    unlink(d, recursive = TRUE)
+  })
   check_prose()
   cat("\nprose-style tests passed.\n")
 } else {

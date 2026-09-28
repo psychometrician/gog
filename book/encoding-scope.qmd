@@ -252,7 +252,7 @@ when some marks can accept it and others cannot? `size` written for the whole
 plot applies to the points, and not to the line. A line has one width for the
 whole layer rather than one width per row, so it has no size to map. gog
 applies `size` to every mark that has a size feature, and prints a message
-naming the marks it left unchanged. That message is an **assumption**: gog says
+naming the marks it left unchanged. That message is an **Assumption**: gog says
 what it decided instead of refusing the sentence, so the plot still draws:
 
 ```{r}

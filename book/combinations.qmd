@@ -13,7 +13,7 @@ mark can be *drawn*, which is the coordinate spaces. Three of them show what a
 mark takes, what it does not, and the surprising pairings that are legal anyway.
 The third asks the same question of two transforms.
 
-These grids are the orthogonality law made visible. [Law 1](design-laws.qmd)
+These grids are the orthogonality law made visible. [Law 1](design-laws.qmd#law-1-orthogonality)
 says every compatible atom combines with every other; a table is that promise
 enumerated, one cell at a time. It is the direct analog of the letter chart a
 Hangeul (한글) learner reads, with the consonants down one side and the vowels
@@ -22,7 +22,7 @@ has used that pairing from the start: a mark is a consonant and a position is a
 vowel, and neither draws alone. Every syllable the grammar can form appears
 somewhere in these grids.
 
-Legal is not the same as useful. [Law 8](design-laws.qmd), Pronounceable ≠
+Legal is not the same as useful. [Law 8](design-laws.qmd#law-8-pronounceable-usable), Pronounceable ≠
 Usable, guarantees only that the engine draws what a ✅ cell allows. Whether it
 should be drawn is your judgment. A cell the engine refuses teaches as much as
 one it draws. It records a real limit of the geometry, a ruling, or work the
@@ -57,7 +57,7 @@ cells <- rules$cells
 #   ●  a required position (Must)
 #   ✅ a column maps here and the engine draws it today
 #   ○  not mappable per row, but style() can set it once for the layer
-#   ◌  legal grammar the renderer refuses today: owed or blocked; the refusal
+#   ◌  valid grammar the renderer refuses today: owed or blocked; the refusal
 #      message says which, and the legend below splits them
 #   —  the mark has no such feature, or the grammar does not allow the pairing
 glyph <- function(ob, renders, settable) {
@@ -119,7 +119,7 @@ With the glyphs read, the grid itself shows five patterns:
   `x` and `y` columns against each other. Which types each accepts is in
   [Channels](channels.qmd), and the split divides the other marks with positions
   in two. The marks that sit at one place (`point`, `text`) and the marks that
-  stand in a slot and measure along the other axis (`bar`, `interval`, `box`)
+  sit in a slot and measure along the other axis (`bar`, `interval`, `box`)
   take either type on *both* positions. A point's or a label's two axes are the
   same kind, which is why it takes either type on both. That one rule is where a
   strip plot, a horizontal bar and a categorical box all come from. Three more
@@ -471,7 +471,7 @@ follow, ignore the `edge` row: every blank in it has this one reason.
 
 `space` holds six marks, and one rule explains all six: each means the same
 thing in the cube as on the page. A `point` is a place, a `path` is its rows in
-order, a `surface` is a sheet. `bar`, `interval` and `box` stand in a slot and
+order, a `surface` is a sheet. `bar`, `interval` and `box` sit in a slot and
 measure along the other axis. A bar gives a length, an interval a span, a box a
 summary, and the grammar treats the three as one family.
 

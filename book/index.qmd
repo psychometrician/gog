@@ -464,34 +464,34 @@ of people better than me.
 The fourth rule promised a small cast: eight families of table. Meet them
 once, here:
 
-- **`gapminder_2007`**, 142 countries in 2007: `gdp` (per capita),
-  `life` (expectancy in years), `population`, `continent`, `country`.
+- **`gapminder_2007`**: 142 countries in 2007, with `gdp` (per capita),
+  `life` (expectancy in years), `population`, `continent` and `country`.
   The table this book uses most, and an excerpt of the Gapminder Foundation's
   data
   [@bryan2025gapminder]. **`gapminder_asia`** is five Asian countries traced
   1952–2007, and **`gm_all`** is every country and every year.
-- **`iris_flowers`**, 150 flowers: `sepal_length`, `sepal_width`,
+- **`iris_flowers`**: 150 flowers, with `sepal_length`, `sepal_width`,
   `petal_length` (all in cm) and `species`. Three measurements on one
   scale, and a category that separates cleanly. The measurements are Edgar
   Anderson's, and they reach most software through Fisher's 1936 paper
   [@fisher1936] and R's own `datasets` package [@rcore2026].
-- **`medals`**, five countries' Olympic `gold`, `silver`, `bronze`
+- **`medals`**: five countries' Olympic `gold`, `silver`, `bronze`
   counts. Small enough to check by eye.
-- **`actuals`** and **`forecast`**, yearly `sales`: history in one
-  table, expectation in another. The two-table pair.
-- **`six_weeks`**, 42 consecutive days of `orders`, with `day` a real
-  `Date`, for calendar axes.
-- **`winds`**, 264 wind observations: `direction` (eight compass points),
+- **`actuals`** and **`forecast`**: yearly `sales`, history in one
+  table and expectation in another. The two-table pair.
+- **`six_weeks`**: 42 consecutive days of `orders`, with `day` stored as a
+  real `Date`, for calendar axes.
+- **`winds`**: 264 wind observations, with `direction` (eight compass points),
   `bearing` (in degrees), `speed` and `season`. The wind rose in
   [polar](polar.qmd) reads it, and so do the book's reference-line and band
   examples.
-- **`titanic`**, the passengers and crew of the Titanic as 32 groups:
-  `class`, `sex`, `age`, `survived`, and `n`, how many people were in the
-  group. R's own classic table [@rcore2026], reshaped to long form, and the
-  book's table of movement: every flow diagram reads it.
-- **`trade_partners`**, 22 trade relations between 15 economies:
-  `exporter`, `importer`, and `billions`, the value of the goods traded, in
-  billions of dollars, rounded. The book's one table of relations, and every
+- **`titanic`**: the passengers and crew of the Titanic as 32 groups, with
+  `class`, `sex`, `age`, `survived`, and `n` (the number of people in each
+  group). R's own classic table [@rcore2026], reshaped to long form, and the
+  book's table of movement. Every flow diagram reads it.
+- **`trade_partners`**: 22 trade relations between 15 economies, with
+  `exporter`, `importer`, and `billions` (the value of the goods traded, in
+  billions of dollars, rounded). The book's one table of relations, and every
   network diagram reads it.
 
 Those eight families answer most of the questions asked here. A few
@@ -514,20 +514,20 @@ The shape of the book borrows from the *Hunminjeongeum* itself. That book
 stated its whole system in a few pages, then explained each letter class,
 then showed assembly, then ended with ninety-four ordinary words in use:
 
-1. **A morning**, the whole grammar, fast: a first plot, the kernel in
-   one table, reading practice, writing practice.
-2. **The letters**, each atom family in depth: the data you bind once,
-   the marks, the scales, the refining channels, setting vs mapping, and
-   the transforms.
-3. **Sentences**, composition: layering, deriving, scope, faceting, and whole
-   plots arranged on a page. Then one chapter for each of these: movement
-   from place to place, similarity drawn as a tree, the third dimension,
-   polar coordinates, packed regions, the flat map, the globe, networks, a plot
-   played in time, and the reader's own selections.
-4. **The cookbook**, recipes organized by your columns and your question,
+1. **A morning**: the whole grammar, fast. This part has a first plot, the
+   kernel in one table, reading practice, and writing practice.
+2. **The letters**: each atom family in depth. This part explains the data
+   you bind once, the marks, the scales, the refining channels, setting vs
+   mapping, and the transforms.
+3. **Sentences**: composition. This part explains layering, deriving, scope,
+   faceting, and whole plots arranged on a page. Then it has one chapter each
+   on movement from place to place, similarity drawn as a tree, the third
+   dimension, polar coordinates, packed regions, the flat map, the globe,
+   networks, a plot played in time, and the reader's own selections.
+4. **The cookbook**: recipes organized by your columns and your question,
    never by chart name. Many of them also show the sentence one atom away.
-5. **The reasons**, the nine laws the package never breaks, and why.
-6. **The host language**, one short chapter apiece for [R](bindings/r.qmd),
+5. **The reasons**: the nine laws the package never breaks, and why.
+6. **The host language**: one short chapter apiece for [R](bindings/r.qmd),
    [Python](bindings/python.qmd), [Julia](bindings/julia.qmd) and
    [JavaScript](bindings/javascript.qmd). A binding is the package that lets
    one language write gog sentences and send them to the engine. These

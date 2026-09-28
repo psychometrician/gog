@@ -836,4 +836,4 @@ categorical axis turns its names, then leaves some out and says so.
 A scale decides how far along a channel a number lands. It does not decide
 which visual property shows the column.
 [Channels](channels.qmd) covers that: which property carries a column, and what
-guide it earns.
+guide it gets.

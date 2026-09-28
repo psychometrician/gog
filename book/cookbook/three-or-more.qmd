@@ -11,7 +11,7 @@ The first is a refining channel: `color`, `size`, `shape`, `pattern` or
 `opacity`. The second is the third position, `z`. The third is `play`, which
 gives the variable one frame per value, and the fourth is `facet`, which gives
 it one panel per value. This chapter uses all four. Each channel answers one
-kind of question, and a refining channel earns the legend that decodes it.
+kind of question, and a refining channel gets the legend that decodes it.
 
 ## Which group does each row belong to?
 
@@ -92,7 +92,7 @@ The recipes so far bound `color` to the continent and `size` to the population,
 one column at a time. You may need both at once, to see which continent a
 country is in and how many people live there. Channels compose: any channel a
 mark accepts works beside any other channel it accepts. That rule is
-[Orthogonality](../design-laws.qmd). GDP per capita, life expectancy,
+[Orthogonality](../design-laws.qmd#law-1-orthogonality). GDP per capita, life expectancy,
 population and continent in one sentence:
 
 ```{r}
@@ -127,7 +127,7 @@ data(gapminder_2007) + point + x(gdp, scale = "log") + y(life) +
 *"Given gapminder 2007: points, x is gdp on a log scale, y is life, color by
 population on a log scale."*
 
-The legend becomes a labeled gradient strip. The channel and its rule did not
+The legend becomes a labeled ramp. The channel and its rule did not
 change; only the kind of column did. [Scales](../scales.qmd) owns the log scale.
 
 ## What if three measurements matter equally?
@@ -290,7 +290,7 @@ through the levels of an ordered column, and whether that column measures years
 or kilometers is a fact about the column, not about `play`. The same atom that
 steps through years steps through depths here.
 
-On paper only the first frame is printed, the slice from 0 to 90 km, and the
+In the PDF, only the first frame is drawn, the slice from 0 to 90 km, and the
 panels below replace the motion. They lay the same slices out across the page
 instead of showing them one after another in time:
 

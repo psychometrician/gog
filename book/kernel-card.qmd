@@ -81,5 +81,5 @@ unsupported](design-laws.qmd#illegal-is-not-the-same-as-unsupported) has the
 rule, and a refusal of each kind, printed by the engine when the book is built.
 
 **When gog assumes** instead of refusing, the plot still draws. The message is
-an **assumption**: it says what gog decided for you. Read it, and check that the
+an **Assumption**: it says what gog decided for you. Read it, and check that the
 decision was what you meant.

@@ -8,7 +8,7 @@ source("R/setup.R")
 Which visual property should carry which column? A **channel** binds a data
 column to a visual property of a mark, and the channels do not all do the same
 work. `x`, `y` and `z` are the **vowels**: without one a mark does not render.
-Five other channels earn a legend: `color`, `size`, `shape`, `pattern` and
+Five other channels get a legend: `color`, `size`, `shape`, `pattern` and
 `opacity`. Those five are the **final consonants**, the optional ㅁ (*m*) that
 turns 가 (*ga*) into 감 (*gam*): never required, and each one changes what the
 plot says. Every channel atom has the same form:
@@ -29,7 +29,7 @@ code has nothing like it. The visualization literature chose *channel* instead,
 paired with the mark it modifies [@munzner2014], and that is the word gog uses.
 In everyday English, a channel carries a signal. Here the column is the signal,
 and color or size is the channel that carries it to the reader. Choosing an
-everyday word follows gog's [Plain Names](design-laws.qmd) law. **Encoding** is
+everyday word follows gog's [Plain Names](design-laws.qmd#law-3-plain-names) law. **Encoding** is
 the same idea named as an act rather than a thing, and this book keeps both
 words. A channel is what you write; an encoding is what it does. [Encoding
 scope](encoding-scope.qmd) is about the second.
@@ -50,7 +50,7 @@ scope](encoding-scope.qmd) is about the second.
 
 A legend is generated automatically whenever one of the five refining channels
 (`color`, `size`, `shape`, `pattern`, `opacity`) is bound to a column, with no
-configuration required. `x`, `y` and `z` earn an axis instead, and `group` earns
+configuration required. `x`, `y` and `z` get an axis instead, and `group` gets
 neither: it splits a mark without encoding anything, so there is nothing for a
 legend to decode. `label` belongs to the [`text`](marks/text.qmd) mark, and
 `play` has [a chapter of its own](play.qmd).
@@ -222,7 +222,7 @@ maps one to a glyph. The mark's geometry decides which one: a **hatch**, a
 repeated pattern of lines or dots, on the filled regions (`bar`, `box`, `area`,
 `ribbon`, `zone`), and a **dash** on the strokes (`line`, `step`, `interval`,
 `path`, `rule`, `edge`). Textures do not depend on color, so they work in
-grayscale and for a color-blind reader. The first category is always the plain
+grayscale and for a colorblind reader. The first category is always the plain
 one (solid), the rest textured:
 
 ```{r}
@@ -268,11 +268,11 @@ data(team_trend) + line + x(month) + y(sales) + color(team) + pattern(team) +
   title("Two series, by hue and dash")
 ```
 
-The set of textures is deliberately small: five hatches beside solid on a fill,
-and four dashes beside solid on a stroke. A fill covers a large area, so it can
-carry five different hatches. A dash needs enough uninterrupted line to be seen,
-so a stroke carries four. That is why the two counts differ. So `pattern` suits
-a few categories rather than dozens. A seventh category on a fill, or a sixth on
+The set of textures is deliberately small: six on a fill and five on a stroke,
+and the first of each is solid. A fill covers a large area, so a reader can
+distinguish more textures on it. A dash needs a long enough line to be seen, so
+a reader can distinguish fewer on a stroke. Because both sets are small,
+`pattern` suits a few categories rather than dozens. A seventh category on a fill, or a sixth on
 a stroke, repeats a texture, and gog says so. To set one texture for a whole
 layer instead of mapping a column, use [`style(pattern = )`](style.qmd).
 
@@ -348,8 +348,8 @@ data(gapminder_asia) + line + x(year) + y(life) + group(country) +
 by gdp on a log scale, with the viridis palette."*
 
 A category on `color` splits the mark into one stroke per group. A measure
-varies the color *along* each stroke and earns the ramp legend instead of a
-swatch, a small sample of the color, per series. One channel and one mark give
+varies the color *along* each stroke and gets a ramp legend, not one swatch (a
+small sample of the color) per series. One channel and one mark give
 two behaviors, and the column's type decides which behavior you get. `group`
 still splits the mark either way, which is why the sentence above draws one line
 per country and runs the ramp along each line. See [Setting vs
@@ -552,7 +552,7 @@ these.
 the two that stay distinct under the common forms of color blindness. The other
 four run through many more, so they separate neighboring values by hue as well
 as by lightness. `cividis` separates them mostly by lightness, and that loss is
-acceptable whenever the ramp has to stay readable for a color-blind reader.
+acceptable whenever the ramp has to stay readable for a colorblind reader.
 
 `gray` is for the figure that will be photocopied. It is a ramp only, and there
 is no categorical gray palette. Readers cannot distinguish more than about four
@@ -789,9 +789,9 @@ data(gapminder_2007) + bar * count + x(continent, legend = FALSE)
 ## In short
 
 A channel takes a column and never a value, so gog refuses `color("red")` and
-points you to `style()`. The five refining channels earn a legend unless
-`legend = FALSE` leaves it out; `x`, `y` and `z` earn an axis. `group` and
-`label` earn neither, and `play` earns a strip that names the frame. Which
+points you to `style()`. The five refining channels get a legend unless
+`legend = FALSE` leaves it out; `x`, `y` and `z` get an axis. `group` and
+`label` get neither, and `play` gets a strip that names the frame. Which
 channels a mark accepts follows from its geometry. `palette()` chooses the
 colors: a categorical palette for a categorical column, and a ramp for a
 continuous one.
@@ -800,4 +800,4 @@ continuous one.
 
 Every channel here reads a column, so every plot answers a question about the
 data. [Setting vs mapping](style.qmd) covers the opposite case: a value you choose
-yourself, which reads no column and earns no legend.
+yourself, which reads no column and gets no legend.

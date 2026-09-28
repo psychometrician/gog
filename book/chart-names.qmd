@@ -94,7 +94,7 @@ needs a note as well, the note follows the sentence in the same cell.
 | Polar scatter | `point + x(bearing) + y(measure) + polar()` |
 | Contour plot / density contours | `path * density + x(a) + y(b)`, the contours of a density estimated over the plane; `density(levels = )` says how many contour lines, and `group(category)` estimates one field per group |
 | 2-D density heatmap | `zone * density + x(a) + y(b)`, the same field painted as cells instead of traced as lines |
-| Filled contour / filled density | `zone * density(levels = 8) + x(a) + y(b)`, eight bands on the levels a `path` traces. A ring-shaped cluster is drawn wrongly: each band is painted as a solid shape, so the band around the empty middle covers the middle too. `path * density` traces that field correctly |
+| Filled contour / filled density | `zone * density(levels = 8) + x(a) + y(b)`, eight bands on the levels a `path` traces. Each band is filled with its holes cut out, so a ring of points leaves its middle unpainted |
 | Binned heatmap | `zone * bin + x(a) + y(b)`, cells colored by how many rows fell in each |
 | Hexbin | `zone * bin(tiling = "hex") + x(a) + y(b)`, the binned heatmap with hexagons for cells. Hexagons form no straight rows or columns, so the grid itself cannot be mistaken for a pattern in the data |
 | Heat strip / binned distribution per group | `zone * bin + x(measure) + y(category)`, the mixed mesh: the continuous axis cut into cells, one row of cells per category. Every row is cut on the same edges, so the cells line up down the plot |

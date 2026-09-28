@@ -96,7 +96,7 @@ to the right of *versicolor*. At the default angle the two lengths ran in
 opposite directions across the page, so most of the difference between the two
 flowers was lost. They still overlap in the middle, because this side spreads
 the flowers by sepal length more than by petal length, and the two overlap far
-more on sepal length. A low tilt stands the `z` axis up the page and flattens
+more on sepal length. A low tilt points the `z` axis up the page and flattens
 the floor, so in this view you can read sepal width easily and the two lengths
 less easily. A higher tilt does the reverse: the floor takes up more of the page
 and the heights grow shorter.
@@ -147,8 +147,8 @@ opened at, which is the angle the sentence asked for, or the default angle if
 the sentence named none. It is dimmed until you turn the plot, because until
 then there is nothing to undo.
 
-The same [boxes under every plot](first-plot.qmd#the-boxes-under-every-plot)
-sit in a row of their own, between the plot and the angles, and each box does
+The same [buttons under every plot](first-plot.qmd#the-boxes-under-every-plot)
+sit in a row of their own, between the plot and the angles, and each button does
 the same work here as on a flat plot. The camera saves the picture as you are
 looking at it, so the angle you turned the cube to is saved with it.
 
@@ -156,18 +156,17 @@ The cube differs from a flat plot in two ways, and both follow from one fact:
 dragging turns the cube and everything in it, rather than moving the picture
 across the page. So a zoomed cube cannot be dragged to one side, and the cube
 has a second control that undoes something: *reset*. The two undo different
-things: the frame undoes the zoom, and *reset* undoes the angle. So zooming in
+things: the frame button undoes the zoom, and *reset* undoes the angle. So zooming in
 never loses the angle you found, and going back to the opening angle keeps the
 zoom you set. A flat plot has no angle to restore, so it has no *reset*.
 
-Turning a cube with the mouse changes nothing in its sentence. `space()` sets
+Turning a cube with the pointer changes nothing in its sentence. `space()` sets
 the angle the plot opens at, and dragging moves the view to any other angle from
 there. The data, the marks and the scales are the same at every angle.
 
-Dragging needs a web page to run in. On paper, and in the PDF edition, each plot
-is the still image its sentence asks for. That is the reason to name the angle
-even for readers who can drag: the printed figure shows the view you chose, and
-a reader with a mouse starts from it.
+Dragging needs the web edition. In the PDF, each plot is the still image its
+sentence asks for. That is the reason to name the angle even for readers who
+can drag: the PDF shows the view you chose, and the web edition opens at it.
 
 ## `path`: the route through the cube
 
@@ -373,11 +372,11 @@ this time instead of by a mark.
 ## `interval` and `box` in the cube
 
 A mean per cell hides how far the values in that cell spread, and the spread is
-often the question. A bar is not the only mark that stands in a slot and
+often the question. A bar is not the only mark that sits in a slot and
 measures along the other axis. An `interval` does the same with a whisker, which
 spans a range from end to end, and a `box` does it with its quartiles and its
-median. So all three can be drawn in the cube. There each one stands on a
-*cell* of the floor and measures along `z`:
+median. So all three can be drawn in the cube, each on one *cell* of the floor,
+measuring along `z`:
 
 ```{r}
 data(gm_eras) + interval * range + x(continent) + y(era) + z(life) + space() +
@@ -538,7 +537,7 @@ drawn, because drawing one means working out, piece by piece, what hides what,
 and the renderer does not do that.
 
 The third reason is the simplest, and `text` is the example. A label at a third
-position is legal grammar, and no part of the grammar forbids it. The engine
+position is valid grammar, and no part of the grammar forbids it. The engine
 does not draw it, and says exactly that:
 
 ```{r}
@@ -647,7 +646,7 @@ Binding `z` places a mark in the cube, and nothing else in the sentence
 changes. A transform cuts or groups by each position the mark does not measure
 along, so `bin` cuts two axes in the cube and one on the page. Only `path` draws
 a route through the cube: it follows the order of the rows, and an order belongs
-to no axis. Turning the plot changes how you look, never what the plot claims
+to no axis. Turning the plot changes how you look at it, never what it claims
 about the data.
 
 ## What comes next

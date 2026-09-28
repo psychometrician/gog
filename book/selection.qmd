@@ -23,7 +23,7 @@ data(gapminder_2007) + point + x(gdp) + y(life) + color(continent) +
 *"Given gapminder 2007: points, x is gdp, y is life, color by continent, and let
 the reader select."*
 
-In the web edition, drag across that plot. On paper and in the PDF it is the
+In the web edition, drag across that plot. In the PDF it is the
 plain scatter, because a bare `brush` selects nothing until a reader drags.
 
 Bare `brush` means *the positions this plot binds*, so here it is a region over
@@ -36,7 +36,7 @@ rich countries sit at the top right of the whole world.
 
 ## Saying where the selection starts
 
-On paper and in the PDF nothing can be dragged, so a reader of the first plot
+In the PDF nothing can be dragged, so a reader of the first plot
 must still find the rich countries without help. Name a column and the brush
 states a **bound** on it: the low and high values the selection starts at. That
 is how you point at something rather than let a reader look for it:
@@ -56,7 +56,7 @@ and a reader can still drag across the panel to replace the bound.
 
 The two forms differ in who chooses the group. `brush` leaves the choice to the
 reader. `brush(gdp, at = ...)` makes the choice in the sentence, so the
-selection also appears on paper and in the PDF.
+selection also appears in the PDF.
 
 ## Highlighting, never removing rows
 
@@ -96,7 +96,7 @@ The `brush` plot is the whole world, with one group keeping its color. Its axes
 are the axes of all 142 countries, so the selected points are exactly where an
 unbrushed plot would have put them.
 
-The two plots do not share an axis, even though one is printed above the other.
+The two plots do not share an axis, even though one is drawn above the other.
 A country at 30,000 dollars sits a quarter of the way along the top plot's axis
 and more than halfway along the bottom one's. Read each plot against its own
 axes.
@@ -383,7 +383,7 @@ color by continent, played by year, and let the reader select gdp, starting from
 3000 to 20000."*
 
 In the web edition, watch countries cross into the selection, frame by frame.
-On paper and in the PDF, the plot shows the first frame, 1952. The bound stays
+In the PDF, the plot shows the first frame, 1952. The bound stays
 at 3,000 to 20,000 dollars while the countries move. In 1952 the selected group
 is that year's middle-income countries. By 2007 many have grown past 20,000 and
 poorer ones have grown into the range. A brush does not pause the sequence or
@@ -486,9 +486,9 @@ pointer moves it from there. `brush(gdp, at = )` chooses the bound a plot starts
 with, and the pointer replaces it from there. Drag to find a selection, read its
 two ends off the axis, and write them into the sentence.
 
-On paper and in the PDF, each plot shows the bound its sentence asked for. That
-is why naming it matters even though a web reader can replace it: the web
-reader starts from it too.
+In the PDF, each plot shows the bound its sentence asked for. That
+is why naming it matters even though a reader of the web edition can replace
+it: that reader starts from it too.
 
 A `brush` that names a column but no `at` also selects nothing until a reader
 drags.
@@ -566,8 +566,8 @@ release the pointer, and everything inside it is selected. The count and the row
 table read exactly as they do for a box, because a shape and a bound ask the
 same question: which rows do you mean.
 
-Nothing about the sentence changes. You do not type a shape, and the printed
-page still shows the bound the sentence named. Drawing one is a way of looking,
+Nothing about the sentence changes. You do not type a shape, and the PDF
+still shows the bound the sentence named. Drawing one is a way of looking,
 like turning a cube, rather than a claim about the data.
 
 That is also why the grammar has no word for it. Other tools call the gesture a
@@ -646,13 +646,13 @@ put it and each line pointing at its row. The camera saves what you are looking
 at, the same way it saves how far you have zoomed in and the angle a cube is
 turned to.
 
-You do not type a stamp, and the printed page carries none.
+You do not type a stamp, and the PDF carries none.
 
 A stamp is for deciding which points are worth naming. A plot with a name on
 every point is unreadable, and a plot with a name on the few that matter is the
 one you wanted. Stamping lets you try a few before you choose. Then put those
 rows in a small table of their own, give it to a `text` layer, and the picture
-carries the names itself, on the page and in the PDF alike.
+carries the names itself, in the web edition and the PDF alike.
 [A note is a layer](marks/text.qmd#a-note-is-a-layer) shows how.
 
 Arranging the cards by hand has a written form too. `text * repel` does the same

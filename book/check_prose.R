@@ -96,8 +96,10 @@ check_prose <- function(dirs = "book") {
     # the shape the entries above already cover: "tells a different story" for
     # differs, "fell back" for declined, "wins the lookup" for is found first,
     # "tells apart" for distinguishes.
+    # ("leaves the other alone" was here too; the pattern for "leave ... alone"
+    # below reaches it and every form like it.)
     "tells a different story", "tell a different story", "fell back",
-    "falls back", "wins the lookup", "leaves the other alone",
+    "falls back", "wins the lookup",
     # **"N times shorter"**, and its family. Not an idiom but a fixed shape, and
     # the one construction from this round worth making mechanical: it is always
     # ambiguous (does "three times shorter" mean a third, or three times as
@@ -129,8 +131,39 @@ check_prose <- function(dirs = "book") {
     # *exactly*, a compressed form the book also wrote as "byte for byte". One
     # phrase for one claim, and the one kept is the one a translator knows from
     # computing, with `utilities.qmd`'s section of that name explaining it.
-    "to the byte"
+    "to the byte",
+    # Found by the chapter passes of September 2026, each written in and
+    # removed by hand before this list held it. "Goes by" for *is called*, "to
+    # spare" for *more than enough*, "clear of" for *not touching*, and "on the
+    # whole," for *in general* (with its comma, which is the idiom: the book
+    # also writes "on the whole plot", literally). "Leave alone", for *does not
+    # change*, is a pattern below, since it takes words in its middle.
+    "goes by", "to spare", "clear of", "on the whole,", "and friends"
   )
+
+  # The announcement: a clause saying a point is worth knowing, seeing or stating,
+  # set in front of the point itself. A reader in a second language parses the
+  # clause, finds nothing in it, and then reads the point. Forty-seven were
+  # swept in September 2026 and they kept coming back, one chapter at a time.
+  # *Worth* as a value judgment stays ("worth your time", "worth naming a
+  # point"), so only the announcing verbs are listed. The preface's signed
+  # section keeps its one, in the author's own voice.
+  announcements <- c("worth knowing", "worth seeing", "worth noticing",
+                     "worth stating", "worth pointing out", "worth remembering",
+                     "worth a look")
+  announcement_exempt <- list("index.qmd" = "worth stating plainly")
+
+  # A second word for something the book names one way, each retired by a
+  # ruling of September 2026. The pointer, never the mouse (a trackpad has
+  # none); valid grammar, the engine's word; the PDF, one of the two editions'
+  # names; a closed-shape fill, since *glyph* names a point's symbol alone.
+  # Only forms that cannot be literal are listed: `style.qmd` prints gray on
+  # paper, and the preface's author drew on paper.
+  retired <- c("the mouse" = "the pointer", "legal grammar" = "valid grammar",
+               "the printed page" = "the PDF", "the printed figure" = "the PDF",
+               "printed sequence" = "the PDF", "on paper and in the pdf" = "in the PDF",
+               "picture-computing" = "a transform that computes a whole picture",
+               "closed-glyph" = "closed-shape")
 
   # `index.qmd` quotes an imagined fluent expert saying "the difficulty earns its
   # keep". That sentence is the one the preface is arguing *against*, and removing
@@ -159,7 +192,7 @@ check_prose <- function(dirs = "book") {
   # column" against 19 "categorical column", before the 2026-09-12 sweep.
   kinds <- c("numeric column", "text column", "string column", "discrete column",
              "numeric or categorical", "categorical or continuous",
-             "column of categories")
+             "column of categories", "category column")
 
   # A sentence is written; a plot is drawn. The reader writes a specification,
   # the engine draws the plot from it, and "write a plot" collapses the two
@@ -181,7 +214,10 @@ check_prose <- function(dirs = "book") {
   # absent: it is a real R export, kept so it can be refused, and the style
   # chapter writes it. `grey` is absent for the same reason, R's `grey80` being a
   # color name rather than a word.
-  spelling <- c("useable", "centre", "behaviour", "normalise", "labelled")
+  # Two closed compounds join the list, American usage writing each as one
+  # word: "arrowhead" and "partway", as the book already does everywhere else.
+  spelling <- c("useable", "centre", "behaviour", "normalise", "labelled",
+                "arrow head", "part way")
 
   # Jargon with a plain description available. A reader asked what a polyline
   # was; the answer, straight pieces laid end to end from one row's point to the
@@ -282,6 +318,11 @@ check_prose <- function(dirs = "book") {
   bad_verb <- character(0)
   bad_jargon <- character(0)
   bad_spelling <- character(0)
+  bad_look <- character(0)
+  bad_arg <- character(0)
+  bad_label <- character(0)
+  bad_announce <- character(0)
+  bad_retired <- character(0)
 
   for (f in qmds) {
     lines <- readLines(f, warn = FALSE)
@@ -379,6 +420,44 @@ check_prose <- function(dirs = "book") {
         }
       }
 
+      for (p in names(retired)) {
+        if (grepl(p, low, fixed = TRUE))
+          bad_retired <- c(bad_retired, sprintf("  %s:%d  \"%s\" -> %s", short, i, p, retired[[p]]))
+      }
+
+      for (p in announcements) {
+        if (grepl(p, low, fixed = TRUE)) {
+          ex <- announcement_exempt[[short]]
+          if (!is.null(ex) && grepl(ex, low, fixed = TRUE)) next
+          bad_announce <- c(bad_announce, sprintf("  %s:%d  \"%s\"", short, i, p))
+        }
+      }
+
+      # The two phrases below are patterns rather than fixed strings, and each is
+      # read across the line break, since prose here is hard-wrapped and both
+      # were split by one ("how you" at a line's end, "look" at the next line's
+      # start). A hit counts on the line where it starts, so the next line does
+      # not report it a second time.
+      after <- if (i < length(lines)) tolower(gsub("*", "", trimws(lines[i + 1L]), fixed = TRUE)) else ""
+      joined <- paste(low, after)
+      starts_here <- function(pat) {
+        at <- gregexpr(pat, joined, perl = TRUE)[[1]]
+        any(at > 0 & at <= nchar(low))
+      }
+
+      # "Leave alone" for *does not change*, with up to three words between the
+      # two: "leaves it alone", "leaves a level one alone". The words in the
+      # middle are what a fixed phrase cannot reach.
+      if (starts_here("\\bleav(e|es|ing)( \\S+){0,3} alone\\b"))
+        bad_idiom <- c(bad_idiom, sprintf("  %s:%d  \"%s\"", short, i, "leave ... alone"))
+
+      # "A mapping earns a legend": a merit figure for the test between mapping
+      # and setting, swept in September 2026 to "gets a legend", "gets an axis".
+      # The fixed entries above already report "earns its keep" and "earns a
+      # place", so they are left out here rather than reported twice.
+      if (starts_here("\\bearns? (a|an|no|none|the|neither|one)\\b(?! (place|shortcut))"))
+        bad_idiom <- c(bad_idiom, sprintf("  %s:%d  \"%s\"", short, i, "earns a legend"))
+
       # --- R-only wording ---------------------------------------------------
       if (!grepl("^(bindings/|index\\.qmd)", short)) {
         for (p in r_only) {
@@ -422,6 +501,35 @@ check_prose <- function(dirs = "book") {
           bad_jargon <- c(bad_jargon, sprintf("  %s:%d  \"%s\"", short, i, p))
         }
       }
+
+      # --- "How you look" with nothing to look at ----------------------------
+      # "Turning the plot changes how you look, never what the plot claims"
+      # leaves the reader to supply what is looked at, and read literally it is
+      # about the reader's appearance. The book means "how you look at the plot"
+      # and writes the object in everywhere else. Read across the line break,
+      # like the pattern above.
+      if (starts_here("how you\\s+look(?!\\s+at\\b)"))
+        bad_look <- c(bad_look, where(i))
+
+      # --- An argument named without a value is written `name = )` ----------
+      # The book names a setting without its value as `style(size = )`, with the
+      # space, a hundred times over. A span that drops it reads as a second
+      # spelling of the same thing. A span naming two, `theme(width =, height =)`,
+      # is written both ways in the book and is left alone.
+      for (span in regmatches(line, gregexpr("`[^`]*`", line))[[1]]) {
+        if (grepl("\\S =\\)", span) && !grepl("=,", span, fixed = TRUE))
+          bad_arg <- c(bad_arg, sprintf("  %s:%d  %s", short, i, span))
+      }
+
+      # --- A bold label that runs on with a comma -----------------------------
+      # A list item may open with a bold label in two shapes: `**Label.**`, the
+      # period inside the bold, or a glossary's `**term**:`. A label run on with
+      # a comma, `- **Continuous**, any numeric column`, is neither: the bold
+      # ends no sentence and introduces no definition, and a reader cannot tell
+      # whether the words after it describe the term or continue a list. The
+      # bold-length rule below cannot see it, since the label is short.
+      if (grepl("^\\s*([-*+]|[0-9]+\\.)\\s+\\*\\*[^*]+\\*\\*[,;]", line))
+        bad_label <- c(bad_label, where(i))
 
       # --- Bolded sentences -------------------------------------------------
       # A short bold run-in label may open a *list item*, with the terminal
@@ -469,7 +577,8 @@ check_prose <- function(dirs = "book") {
   total <- length(bad_bold) + length(bad_dash) + length(bad_head) +
     length(bad_case) + length(bad_call) + length(bad_idiom) + length(bad_r) +
     length(bad_kind) + length(bad_verb) + length(bad_jargon) +
-    length(bad_spelling)
+    length(bad_spelling) + length(bad_look) + length(bad_arg) + length(bad_label) +
+    length(bad_announce) + length(bad_retired)
 
   report <- function(items, headline, advice) {
     if (!length(items)) return(invisible(NULL))
@@ -498,7 +607,17 @@ check_prose <- function(dirs = "book") {
     report(bad_verb, "FAIL: a plot is drawn, a sentence is written",
            "You write a sentence, or a specification; the engine draws the plot. Say which.")
     report(bad_spelling, "FAIL: not the American spelling",
-           "The book is one spelling: usable, center, behavior, normalize, labeled.")
+           "The book is one spelling: usable, center, behavior, normalize, labeled, arrowhead, partway.")
+    report(bad_look, "FAIL: \"how you look\" with nothing to look at",
+           "Say what is looked at: \"how you look at the plot\", or \"at it\".")
+    report(bad_arg, "FAIL: an argument named without a value is written `name = )`",
+           "Keep the space the book writes everywhere else: `theme(width = )`.")
+    report(bad_label, "FAIL: a bold label opens a list item and runs on with a comma",
+           "Write `**Label.**`, the period inside the bold, or a glossary's `**term**:`.")
+    report(bad_announce, "FAIL: a clause announces the point instead of stating it",
+           "State the point itself. If the announcement carried a reason, keep the reason.")
+    report(bad_retired, "FAIL: a second name for something the book names one way",
+           "Write the book's word, shown after the arrow.")
     report(bad_jargon, "FAIL: jargon where a description would do",
            paste("A polyline is one stroke of straight pieces, from one row's point to the next.",
                  "A tread is the flat part of a staircase and a riser is the jump;",

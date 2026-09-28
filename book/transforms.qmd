@@ -88,7 +88,7 @@ a low, high and center.
 
 So whether you write `y()` is not an arbitrary rule to memorize for each
 transform. The family a transform belongs to decides it. This is one instance of
-[Explicit Over Implicit](design-laws.qmd): the short form is allowed exactly
+[Explicit Over Implicit](design-laws.qmd#law-5-explicit-over-implicit): the short form is allowed exactly
 when it cannot be misread, and refused when it could.
 
 Both families replace your rows with a summary of them, and this chapter calls
@@ -335,8 +335,8 @@ Fifty-two of the 142 countries are in Africa, and that fact reads differently as
 a count than as a share of the whole.
 
 `proportion` divides a measurement by its total, producing shares in [0, 1] that
-sum to 1. Used on its own it has nothing to divide yet, so it tallies the rows
-first exactly as `count` does:
+sum to 1. In statistics they are called relative frequencies. Used on its own it
+has nothing to divide yet, so it tallies the rows first exactly as `count` does:
 
 ```{r}
 # What share of countries belongs to each continent?
@@ -411,7 +411,7 @@ histogram**, on exactly the mesh a plain `bar * bin` cuts:
 
 ```{r}
 data(gm_all) + bar * bin(20) * proportion + x(life) +
-  title("Relative frequency, not counts")
+  title("Shares, not counts")
 ```
 
 *"Given all the gapminder years: bars derived by bin into 20 and proportion, x
@@ -1139,7 +1139,7 @@ The plot draws, and gog says that `median` is the plain name for it.
 `quantile(0)` and `quantile(1)` say the same about `min` and `max`. They are not
 refused, because a program that draws every decile in turn would then fail at
 0.5 for no good reason. They are not silent either, because
-[Orthogonality](design-laws.qmd) says no atom is redundant.
+[Orthogonality](design-laws.qmd#law-1-orthogonality) says no atom is redundant.
 
 ---
 
@@ -1332,7 +1332,7 @@ everything else you compute yourself, and `bounds` draws a band you already
 have.
 
 It is legal on the five marks that can draw a low/high pair, each a different
-geometry over the *same* pair, the [No Exceptions](design-laws.qmd) rule that
+geometry over the *same* pair, the [No Exceptions](design-laws.qmd#law-2-no-exceptions) rule that
 lets every mark in the `bin` table draw the same bins:
 
 - [`ribbon`](marks/ribbon.qmd) *fills* the pair (a filled band),
@@ -1559,8 +1559,8 @@ the rules; this section only shows where the atom fits among the transforms.
 
 ## `cluster`: the closest leaves joined first
 
-`cluster` is the fourth of the picture-computing transforms, and the question
-it answers is which things are most alike. It treats each category of an
+`cluster` is the fourth transform that computes a whole picture, and the
+question it answers is which things are most alike. It treats each category of an
 axis as a leaf of a tree, joins the two closest leaves, then the next two,
 and keeps joining until one tree holds them all. Each leaf is described by a
 profile: `cluster(amount, over = nutrient)` says that one leaf's profile is
@@ -1798,7 +1798,7 @@ statistic.
 A `bar` fills the same way, and the result is the **100% stacked bar**, worked
 through in the [bar chapter](marks/bar.qmd#the-100-stacked-bar). One parameter,
 both geometries, exactly as plain `stack` hands both marks the same span and
-lets each draw it: [No Exceptions](design-laws.qmd).
+lets each draw it: [No Exceptions](design-laws.qmd#law-2-no-exceptions).
 
 ### `stack(baseline = )`: where the pile sits
 
@@ -1883,7 +1883,7 @@ data(listening) + bar * stack(baseline = "center") + x(week) + y(plays) +
 
 One parameter, both geometries. `share` follows the same rule, and so does plain
 `stack`, which hands both marks one span and lets each draw it:
-[No Exceptions](design-laws.qmd).
+[No Exceptions](design-laws.qmd#law-2-no-exceptions).
 
 Once a pile is moved, zero on the measure axis no longer means anything. Only a
 flat plot can work without a meaningful zero, so the other spaces refuse:

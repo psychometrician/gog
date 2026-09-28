@@ -220,9 +220,9 @@ gm_eras <- gog_table("gm_eras", text = "era"))",
   python = r"(census = gog_table("census", text=("age",))
 sessions = gog_table("sessions", text=("session",))
 gm_eras = gog_table("gm_eras", text=("era",)))",
-  julia = r"(census = gog_table("census"; text = ["age"])
-sessions = gog_table("sessions"; text = ["session"])
-gm_eras = gog_table("gm_eras"; text = ["era"]))",
+  julia = r"(census = gog_table("census", text = ["age"])
+sessions = gog_table("sessions", text = ["session"])
+gm_eras = gog_table("gm_eras", text = ["era"]))",
   js = r"(const census = await gog_table("census", ["age"]);
 const sessions = await gog_table("sessions", ["session"]);
 const gm_eras = await gog_table("gm_eras", ["era"]);)"
@@ -248,7 +248,7 @@ read the year as a label too, name both columns in one `text` argument:
 spellings(
   r = r"(gm_eras <- gog_table("gm_eras", text = c("year", "era")))",
   python = r"(gm_eras = gog_table("gm_eras", text=("year", "era")))",
-  julia = r"(gm_eras = gog_table("gm_eras"; text = ["year", "era"]))",
+  julia = r"(gm_eras = gog_table("gm_eras", text = ["year", "era"]))",
   js = r"(const gm_eras = await gog_table("gm_eras", ["year", "era"]);)"
 )
 ```

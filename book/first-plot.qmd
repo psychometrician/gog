@@ -42,24 +42,24 @@ Parentheses appear when there is something to put in them, like the column in
 
 ::: {.content-visible when-format="html"}
 
-## The boxes under every plot
+## The buttons under every plot {#the-boxes-under-every-plot}
 
 Before you learn the next word of the grammar, look at something on the page
-that is not part of the grammar. A row of small boxes sits under the plot above, and under every
-plot in this book. The two magnifiers zoom in and out. The frame returns
-you to the whole picture. The camera saves what you are looking at as a picture
-file, large enough for a slide or a journal figure. A box is dimmed when using it
+that is not part of the grammar. A row of small buttons sits under the plot above, and under every
+plot in this book. The two magnifiers zoom in and out. The frame button
+returns you to the whole picture. The camera saves what you are looking at as a picture
+file, large enough for a slide or a journal figure. A button is dimmed when using it
 would change nothing.
 
-Once you have zoomed in, you can move the plot by dragging it. There is no box
+Once you have zoomed in, you can move the plot by dragging it. There is no button
 for moving; you drag the plot itself. When the plot can be moved, the pointer
 changes to a hand.
 
-Move the pointer over any box and a small label appears, saying what that box
-does. A symbol means nothing to a reader who has not seen it before. That is
+Move the pointer over any button and a small label appears, saying what that
+button does. A symbol means nothing to a reader who has not seen it before. That is
 why the words are there.
 
-Not one of these boxes has a word in the grammar, and that is deliberate. A
+Not one of these buttons has a word in the grammar, and that is deliberate. A
 word belongs in the grammar only if it changes what the plot claims about the
 data. Zooming in changes nothing: the points, the axes and the numbers stay
 the ones the engine chose. To make the plot itself cover a narrower range,
@@ -116,7 +116,7 @@ data(gapminder_2007) + point + x(gdp) + y(life) + color(continent)
 *"…and color by continent."* The `color()` channel maps a column to a
 visual property. A mapping raises a question (*which continent is this
 dot?*), so the engine draws the legend that answers it. You never
-asked for a legend. A mapped column earns one when there is something to
+asked for a legend. A mapped column gets one when there is something to
 decode.
 
 ## An incomplete sentence is refused
@@ -177,9 +177,9 @@ Putting a column into a channel has two names, and you will meet both. A
 column is **bound** to a channel, and the binding is where a scale is written.
 The same act is called **mapping** to stress that the channel received a
 column, not a fixed value.
-The difference between a column and a fixed value shows on the page: a mapped
-column usually earns a **guide**: a legend or an axis that lets a reader decode
-it. A fixed value you set yourself earns none. A table is bound too, by
+The difference between a column and a fixed value shows on the page. A mapped
+column usually gets a **guide**: a legend or an axis that lets a reader decode
+it. A fixed value you set yourself gets none. A table is bound too, by
 `data()`. That is the Bind-Once law: name the table once, and no column needs
 the table's name in front of it.
 

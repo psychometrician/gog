@@ -161,7 +161,7 @@ An [`interval`](interval.qmd) cannot draw without a transform to give it a low
 and a high. A `box` never needs one. An `interval` is only a shape, a span from
 a low value to a high one. *Which* low and high it spans is a real choice: a
 min–max range, a confidence interval, or a pre-computed pair. A `box` is a
-named statistical glyph: the summary *is* what a box plot means. A statistic
+shape with one fixed statistical meaning: the summary *is* what a box plot means. A statistic
 that is always drawn by the same mark belongs inside that mark, not in a
 separate transform. So the whole box is `box + x + y`. Adding any transform
 other than `dodge` is refused, and the message says what to write instead, as

@@ -148,7 +148,7 @@ flat form has no axes for the same reason.
 
 In the web edition the cube turns with a drag, the way the cube in
 [Space](space.qmd) turns. The *reset* button returns it to the angle the
-sentence asked for. On paper it keeps the view it was given.
+sentence asked for. In the PDF it keeps the view it was given.
 
 A `text` layer in the cube is valid grammar that this engine does not draw. The
 refusal says so, and it suggests the flat form for the labels:

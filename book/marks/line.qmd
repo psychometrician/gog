@@ -462,7 +462,7 @@ because one stroke has one width and one opacity, and no row can vary them.
 
 `color` is the exception, because a color belongs to a place on the stroke
 rather than to the whole stroke. So a continuous column mapped to `color`
-changes the color along one line, and it earns a gradient legend rather than
+changes the color along one line, and it gets a ramp legend rather than
 one color per series:
 
 ```{r}

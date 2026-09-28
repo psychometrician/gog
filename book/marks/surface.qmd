@@ -48,12 +48,13 @@ explains it.
 
 What shape must a table have before a surface can draw it? A scatter's table
 does not have that shape, and knowing why tells you which of your tables can
-become a sheet. Given two position columns and no transform, a surface reads its
-rows as **nodes**, and the sheet is the faces between them. The grid those faces
-make is the sheet's **mesh**. You never declare which nodes are neighbors. gog
-recovers that from your two position columns: the distinct `east` values and
-the distinct `north` values become the **mesh lines**, one set in each
-direction. A face is drawn wherever all four corners of a cell are present.
+become a sheet. Given two position columns and no transform, a surface reads
+each row as a **crossing**: the point where one `x` value meets one `y` value.
+The sheet is the faces between the crossings. The grid those faces make is the
+sheet's **mesh**. You never declare which crossings are neighbors. gog recovers
+that from your two position columns: the distinct `east` values and the distinct
+`north` values become the **mesh lines**, one set in each direction. A face is
+drawn wherever all four corners of a cell are present.
 
 So this reading needs a table with one row per (x, y) crossing: every `x` value
 paired with every `y` value.
@@ -62,10 +63,10 @@ Maunga Whau has that shape. It holds 1364 rows, 31 distinct `east` values and 44
 distinct `north` values: 31 × 44 = 1364, so the grid is full, and 30 × 43 = 1290
 faces get drawn.
 
-The same count shows why a scatter cannot be a surface. The gapminder 2007
-table below holds 142 countries, and no two of them share a `gdp` value or a
-`life` value. That makes a grid 142 wide and 142 deep holding only 142 nodes, so
-no cell has all four corners. The sheet would be empty:
+The same count shows why a scatter cannot be a surface. The gapminder 2007 table
+below holds 142 countries, and no two of them share a `gdp` value or a `life`
+value. That makes a grid 142 wide and 142 deep holding only 142 crossings, so no
+cell has all four corners. The sheet would be empty:
 
 ```{r}
 #| echo: false
@@ -125,8 +126,8 @@ histogram touch.
 
 The refusal, shown in [What it refuses](#what-it-refuses), names the mark that
 does take a category on both positions: the [3-D bar](bar.qmd). A 3-D bar
-stands *in* its slot and claims nothing about the space between slots. So
-`bar * count + x(a) + y(b) + space()` stands one bar over each pair of
+sits *in* its slot and claims nothing about the space between slots. So
+`bar * count + x(a) + y(b) + space()` draws one bar over each pair of
 categories. A surface cannot draw that grid, because tiles with empty space
 between them are not a sheet.
 
@@ -230,10 +231,10 @@ about how the ground varies inside the cell. Each claim is right for a different
 kind of data, and which one you want is a question about how yours was measured.
 
 That question has a clear answer in an experiment or a simulation, where the
-conditions form a grid with exactly one number in each cell. Read as nodes, such
-a table gives fewer faces than it has values. Nine values make a 3 × 3 grid of
-nodes. A face needs four nodes at its corners, so the sheet has 2 × 2 = 4 faces,
-and no face stands for any one value:
+conditions form a grid with exactly one number in each cell. Read as crossings,
+such a table gives fewer faces than it has values. Nine values make a 3 × 3 grid
+of crossings. A face needs four crossings at its corners, so the sheet has
+2 × 2 = 4 faces, and no face stands for any one value:
 
 ```{r}
 cells <- data.frame(
@@ -306,7 +307,7 @@ space would be left above and below each cube.
 Empty cells need no special rule and get none. `bin` leaves them out, because a
 cell with no rows is not a measurement of zero. A plateau claims only its own
 cell, so a cell with nothing in it is simply a cell with no top. It is the same
-opening a missing crossing makes in a node mesh, for a different reason.
+opening a missing crossing makes in the mesh, for a different reason.
 
 What a surface refuses is a grid of slots, the cells two categories make. [What
 it refuses](#what-it-refuses) shows that refusal.
@@ -337,7 +338,7 @@ color, and `border_size` its width. Leave both out for a seamless sheet. A
 `border_size` of 0 removes the stroke, and the pale seams appear.
 
 Look at the shading on the sheet above, and on the turned one below it. The faces
-are shaded by their **slope**: a steep one is darker, a level one keeps its full
+are shaded by their **slope**: a steep one is darker, a flat one keeps its full
 color. That is a fact about the terrain, not about where a light is, so turning
 the scene rearranges the faces on the page and repaints none of them:
 
@@ -447,9 +448,9 @@ about it.
 Whether you *want* the color as well as the height is a separate question. The
 plain sheet in [A sheet through the samples](#a-sheet-through-the-samples)
 already shows the height by position alone. Use the ramp when the low ground
-matters. Slope shading darkens a steep face and leaves a level one alone, so a
-broad, shallow mound and the flat ground around it are drawn the same color. The
-ramp is what separates them.
+matters. Slope shading darkens a steep face but not a flat one, so a broad, low
+mound and the flat ground around it are drawn almost the same color. The ramp is
+what separates them.
 
 A *categorical* color splits the mark instead, one sheet per group. gog puts
 every face of both sheets into one depth order, the back-to-front order in which
@@ -567,7 +568,7 @@ outline. One or the other, never both.
 
 These four plots show why you would want to turn a plot. Here you need both the
 view from above and the view from the side, and no single still view shows this
-hill whole. So turn the four with the mouse. Raise the tilt until the crater
+hill whole. So turn the four with the pointer. Raise the tilt until the crater
 opens, and watch the heights flatten as it does. The four still views show the
 problem; dragging them lets you check it yourself.
 
@@ -652,7 +653,7 @@ peek(gm_eras)
 data(gm_eras) + surface + x(continent) + y(year) + z(life)
 ```
 
-The message names the mark that stands one bar in each category's slot instead,
+The message names the mark that draws one bar in each category's slot instead,
 the [3-D bar](bar.qmd). The transforms that tally into slots are refused by the
 same rule. `count` and `proportion` count rows into the cells two categories
 make:

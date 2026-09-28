@@ -106,8 +106,8 @@ long <- data.frame(year   = rep(2019:2023, times = 2),
 peek(long, n = 10)
 ```
 
-Now `sales` is a column and `region` is a column, so the sentence draws the
-plot and earns the legend:
+Now `sales` and `region` are both columns, so gog draws the plot and its
+legend:
 
 ```{r}
 data(long) + line + x(year) + y(sales) + color(region)
@@ -248,7 +248,7 @@ This is style, not grammar. Both spellings are legal, and both draw the same
 plot. The order of `area` and `point` has changed, and here that changes
 nothing. The two tables share no year, so neither mark is drawn over the other.
 gog will never refuse either spelling, because legal is not the same as clear
-([Law 8](design-laws.qmd)). Two sentences can mean the same thing and still be
+([Law 8](design-laws.qmd#law-8-pronounceable-usable)). Two sentences can mean the same thing and still be
 very different to read. That difference is yours to control.
 
 So group the marks by the table they read. Keep each extra `data()` on the
