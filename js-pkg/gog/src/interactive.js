@@ -1687,12 +1687,26 @@ export function attachBrush(engine, container, request, options = {}) {
  * the plot off the screen — so the rows arrive a page at a time and the caller
  * turns pages. `kept` is always the whole count whatever the window shows, which
  * is what keeps the readout above the table honest.
+ *
+ * **A table is counted once, however many plots on a page read it.** Two plots
+ * that read one table ask about the same rows, so a row is one row of the count,
+ * and it is caught where every one of those plots catches it: each plot's bounds
+ * and outline are one more condition on the row, as a second `brush` in one
+ * sentence is. Plots that read different tables add their rows, which are
+ * different rows. The header is every column any of the plots names, so each
+ * value sits under its own column, and a cell whose table has no such column is
+ * left empty. The count used to add every plot's rows and take the first plot's
+ * header, so two plots of one table listed each row twice, and the second
+ * plot's values sat under the first plot's names.
  */
 export const PAGE_ROWS = 10;
 
 export function selectedRows(req, limit = PAGE_ROWS, offset = 0) {
   const result = { kept: 0, total: 0, columns: [], rows: [], capped: false,
                    from: 0, to: 0 };
+  // The plots that select, gathered by the table they read, in the order the
+  // page first reaches each table.
+  const tables = new Map();
   for (const plot of eachPlot(req.spec)) {
     const bounds = (plot.brush ?? []).filter((b) => b.at || b.levels);
     // A traced outline is the other way a reader states the same predicate, and
@@ -1701,36 +1715,46 @@ export function selectedRows(req, limit = PAGE_ROWS, offset = 0) {
     if (!bounds.length && !region) continue;
     const df = req.data?.[plot.data];
     if (!df) continue;
+    if (!tables.has(plot.data)) tables.set(plot.data, { df, tests: [] });
+    tables.get(plot.data).tests.push({ plot, bounds, region });
+  }
+
+  // The columns the sentences name, in the order they name them, without
+  // repeating one bound twice, and only the ones the named table has.
+  const columns = [];
+  const add = (df, f) => {
+    if (f && !columns.includes(f) && (df.floats?.[f] || df.strings?.[f])) columns.push(f);
+  };
+  for (const { df, tests } of tables.values()) {
+    for (const { plot, bounds, region } of tests) {
+      for (const c of [plot.x, plot.y, plot.z]) add(df, c?.field);
+      for (const c of Object.values(plot.channels ?? {})) add(df, c?.field);
+      for (const layer of plot.layers ?? []) {
+        for (const c of Object.values(layer.encodings ?? {})) add(df, c?.field);
+      }
+      for (const b of bounds) add(df, b.field);
+      if (region) {
+        add(df, region.x);
+        add(df, region.y);
+      }
+    }
+  }
+
+  for (const { df, tests } of tables.values()) {
     const floats = df.floats ?? {};
     const strings = df.strings ?? {};
     const value = (field, i) =>
       floats[field] ? floats[field][i] : strings[field]?.[i];
     const rows = Object.values(floats)[0]?.length ?? Object.values(strings)[0]?.length ?? 0;
-
-    // The columns the sentence names, in the order it names them, without
-    // repeating one bound twice.
-    const named = [];
-    const add = (f) => { if (f && !named.includes(f)) named.push(f); };
-    for (const c of [plot.x, plot.y, plot.z]) add(c?.field);
-    for (const c of Object.values(plot.channels ?? {})) add(c?.field);
-    for (const layer of plot.layers ?? []) {
-      for (const c of Object.values(layer.encodings ?? {})) add(c?.field);
-    }
-    for (const b of bounds) add(b.field);
-    if (region) {
-      add(region.x);
-      add(region.y);
-    }
-    const columns = named.filter((f) => floats[f] || strings[f]);
+    const catches = ({ bounds, region }, i) => bounds.every((b) => {
+      const v = value(b.field, i);
+      if (b.at) return typeof v === "number" && Number.isFinite(v) && v >= b.at[0] && v <= b.at[1];
+      return b.levels.includes(v);
+    }) && (!region || holdsIn(region.path, value(region.x, i), value(region.y, i)));
 
     for (let i = 0; i < rows; i++) {
-      const inside = bounds.every((b) => {
-        const v = value(b.field, i);
-        if (b.at) return typeof v === "number" && Number.isFinite(v) && v >= b.at[0] && v <= b.at[1];
-        return b.levels.includes(v);
-      }) && (!region || holdsIn(region.path, value(region.x, i), value(region.y, i)));
       result.total++;
-      if (!inside) continue;
+      if (!tests.every((t) => catches(t, i))) continue;
       // Where this row sits in the whole selection, which is what the window is
       // cut from. Counting every kept row rather than only the shown ones is
       // what lets a page be asked for by number.
@@ -1740,8 +1764,8 @@ export function selectedRows(req, limit = PAGE_ROWS, offset = 0) {
         result.rows.push(columns.map((f) => value(f, i)));
       }
     }
-    if (!result.columns.length) result.columns = columns;
   }
+  result.columns = columns;
   result.capped = result.kept > limit;
   result.from = result.rows.length ? offset + 1 : 0;
   result.to = offset + result.rows.length;

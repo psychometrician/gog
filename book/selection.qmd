@@ -528,7 +528,7 @@ The second line is what a brush adds:
 | Control | What it does |
 |---|---|
 | `drag:` and its icons | Says what dragging the plot will do, and switches it: a rectangle, a free shape, or moving the picture |
-| `40 of 142 selected` | How many rows the current bound selects. On a played plot this counts every frame, not the one on screen |
+| `40 of 142 selected` | How many rows the current bound selects. On a played plot this counts every frame, not the one on screen. Plots composed with `|` or `/` share this count. When they read the same table, each row is counted once, and only if all their bounds select it |
 | `show rows` | Opens a table of those rows; while the table is open the button reads `hide rows`. A long selection arrives ten at a time, with `‹` and `›` under the table |
 | `clear` | Puts the selection back to what the sentence asked for |
 | `unstamp` | Removes every stamp at once ([Stamping a point](#stamping-a-point) explains stamps). With two or more, the button shows how many. Absent until you have made one |

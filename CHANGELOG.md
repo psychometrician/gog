@@ -56,6 +56,13 @@ CRAN-style repositories and PyPI, `GrammarOfGraphics` on Julia's General, and
 
 ### Changed
 
+- **Plots on one page that read one table count each row once.** On a web page,
+  the count under a composed figure added every brushed plot's rows, so two plots
+  of one table read `66 of 284 selected`, `show rows` listed each row twice, and
+  the second plot's values sat under the first plot's column names. Each row
+  is now counted once, and only if the bounds of every plot reading it select
+  it. The table's header names every column the plots use.
+
 - **A brush reaches a zone or an interval placed by `bounds`.** `zone *
   bounds` and `interval * bounds` refused a brush, saying `bounds` summarizes
   many rows. Each draws one shape per row, so a brush now dims the zones and

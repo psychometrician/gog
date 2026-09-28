@@ -517,6 +517,72 @@ test("nothing selected is nothing caught, not everything caught", () => {
   assert.equal(seen.total, 0, "a resting brush has no selection to report at all");
 });
 
+// Two plots of one table on one page ask about the same rows. The count used to
+// add both plots, so the book's own pair of views read "66 of 284 selected",
+// `show rows` listed every country twice, and the second plot's values sat under
+// the first plot's column names.
+const cellOf = (y, brush) => ({
+  data: "t", x: { field: "gdp" }, y: { field: y },
+  layers: [{ mark: "point", encodings: {}, transforms: [] }],
+  brush,
+});
+const SHARED_REQ = {
+  spec: { arrange: "below", cells: [
+    cellOf("life", [{ field: "gdp", at: [2500, 5500] }]),
+    cellOf("pop", [{ field: "gdp", at: [2500, 5500] }]),
+  ] },
+  data: { t: { floats: { gdp: [1000, 3000, 4000, 5000, 9000], life: [50, 60, 70, 75, 80],
+                         pop: [7, 8, 9, 10, 11] }, strings: {} } },
+};
+
+test("two plots of one table count each row once, under every name either uses", async () => {
+  const engine = await loadEngine(fs.readFileSync(WASM));
+  const { svg } = renderSpec(engine, SHARED_REQ);
+  // Each cell dims on its own, and both hold the same bound, so each draws the
+  // same rows at full strength.
+  const drawn = (svg.match(/<circle/g) || []).length;
+  const dimmed = svg.split('<g opacity="0.150">').slice(1)
+    .reduce((n, part) => n + (part.split("</g>")[0].match(/<circle/g) || []).length, 0);
+  assert.equal(drawn, 10, "five rows in each of two cells");
+
+  const seen = selectedRows(SHARED_REQ);
+  assert.equal(seen.total, 5, "one table is five rows, however many plots read it");
+  assert.equal(seen.kept, (drawn - dimmed) / 2, "the rows each cell drew at full strength");
+  assert.deepEqual(seen.columns, ["gdp", "life", "pop"]);
+  assert.deepEqual(seen.rows, [[3000, 60, 8], [4000, 70, 9], [5000, 75, 10]],
+    "each value under its own name, and each row once");
+});
+
+test("a row of a shared table is caught where every plot reading it catches it", () => {
+  // The second plot bounds another column. Each bound is one more condition on
+  // the same rows, as a second `brush` in one sentence is.
+  const req = { ...SHARED_REQ, spec: { arrange: "below", cells: [
+    SHARED_REQ.spec.cells[0],
+    cellOf("pop", [{ field: "pop", at: [8.5, 20] }]),
+  ] } };
+  const seen = selectedRows(req);
+  assert.equal(seen.total, 5);
+  assert.deepEqual(seen.rows.map((r) => r[0]), [4000, 5000]);
+});
+
+test("plots of different tables add their rows, each value under its own name", () => {
+  const req = {
+    spec: { arrange: "beside", cells: [
+      SEL_REQ.spec,
+      { data: "u", x: { field: "year" }, y: { field: "rain" },
+        layers: [{ mark: "point", encodings: {}, transforms: [] }],
+        brush: [{ field: "year", at: [2001, 2002] }] },
+    ] },
+    data: { ...SEL_REQ.data, u: { floats: { year: [2000, 2001, 2002], rain: [5, 6, 7] }, strings: {} } },
+  };
+  const seen = selectedRows(req);
+  assert.equal(seen.total, 8, "five rows and three rows are eight different rows");
+  assert.equal(seen.kept, 5);
+  assert.deepEqual(seen.columns, ["gdp", "life", "year", "rain"]);
+  assert.deepEqual(seen.rows.slice(3), [[undefined, undefined, 2001, 6], [undefined, undefined, 2002, 7]],
+    "a table without a column leaves its cell empty rather than borrowing a name");
+});
+
 // ---------------------------------------------------------------------------
 // Zoom — the view, and the promise that it is only a view
 // ---------------------------------------------------------------------------
