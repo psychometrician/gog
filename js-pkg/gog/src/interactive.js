@@ -440,6 +440,16 @@ export function attachBrush(engine, container, request, options = {}) {
   // What the sentence asked for, so `reset` returns there rather than to
   // nothing — the same rule `attachDrag` follows for the angle a plot opens at.
   const opened = eachPlot(req.spec).map((p) => JSON.parse(JSON.stringify(p.brush ?? [])));
+  // A selection reduced to what decides which rows it keeps: every bound that
+  // holds a range or a list of levels, and a traced outline. A bare brush that
+  // the first drag split into two named ones keeps no more rows than it did, so
+  // it reads the same as the declaration it came from.
+  const selects = (brush, region) => JSON.stringify([
+    (brush ?? []).filter((b) => b.at || b.levels)
+      .map((b) => [b.field, b.at ?? null, b.levels ?? null]),
+    region ?? null,
+  ]);
+  const said = opened.map((brush) => selects(brush, null));
 
   let first = true;
   function draw() {
@@ -1567,6 +1577,11 @@ export function attachBrush(engine, container, request, options = {}) {
     opened,
     /** What the reader has caught: a count, and one page of the rows to read. */
     selection: (offset = 0) => selectedRows(req, PAGE_ROWS, offset),
+    /** Whether the selection now differs from the one the sentence opened with,
+     *  which is exactly what `reset` can undo. Asked of the bounds rather than
+     *  the count, because two gestures leave a count that looks untouched: a
+     *  click empties the selection, and a drag can catch every row. */
+    changed: () => eachPlot(req.spec).some((p, i) => selects(p.brush, p.region) !== said[i]),
     /** Why pointing at this plot cannot name a row, once someone has tried it.
      *  `null` until then, and on every plot that can answer. */
     unplaced: () => unplaced,
@@ -1909,11 +1924,16 @@ function addSelectionBar(container, handle, view) {
     const why = handle.unplaced?.();
     note.textContent = why ? `Pointing reads no row here: ${UNPLACED[why] ?? ""}` : "";
     note.style.display = why ? "block" : "none";
-    // Nothing to show and nothing to reset when nothing is selected. The
+    // Nothing to show when nothing is selected, or when everything is. The
     // buttons go quiet rather than disappearing, so the line does not jump.
     const idle = s.kept === 0 || s.kept === s.total;
     toggle.disabled = idle;
-    reset.disabled = idle;
+    // `clear` asks a different question: is there a bound of the sentence's to
+    // go back to? It used to ask the count, and the count cannot see it. A
+    // click on empty space reads `0 of 0` and a drag over the whole panel reads
+    // every row, and after either one the sentence's bound is gone while the
+    // button that restores it was switched off.
+    reset.disabled = !handle.changed();
     // Absent rather than dimmed while there is nothing stamped. `clear` and the
     // view buttons go quiet in place because a reader who has selected once will
     // select again, and a jumping line is worse than a dead button; a plot that

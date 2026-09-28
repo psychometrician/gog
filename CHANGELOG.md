@@ -56,6 +56,12 @@ CRAN-style repositories and PyPI, `GrammarOfGraphics` on Julia's General, and
 
 ### Changed
 
+- **`clear` is on whenever there is a bound to put back.** On a brushed plot
+  in a web page, a click on empty space empties the selection, and a drag
+  across the whole panel catches every row. After either one `clear` was
+  switched off, though the bound the sentence asked for was gone. It now
+  follows the bounds rather than the count.
+
 - **The web page's note on a brushed polar plot or map says what the plot does
   to a position.** Pointing at either names no row, and the line under the plot
   says why. For a polar plot it said both axes bend around a circle, where only

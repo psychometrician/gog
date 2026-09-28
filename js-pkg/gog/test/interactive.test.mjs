@@ -31,6 +31,7 @@ import {
   hasBrush,
   isSpatial,
   loadEngine,
+  mount,
   redraw,
   renderSpec,
   UNPLACED,
@@ -713,10 +714,27 @@ function stubDom() {
       removeAttribute(k) { delete node.attrs[k]; },
       addEventListener(type, fn) { node.listeners.set(type, fn); },
       removeEventListener(type) { node.listeners.delete(type); },
-      appendChild(c) { node.children.push(c); node.firstChild ??= c; return c; },
+      appendChild(c) { node.children.push(c); node.firstChild ??= c; c.parent = node; return c; },
       // Every bar fills itself with one call rather than five, so a stub that
       // only knows `appendChild` cannot build one at all.
       append(...kids) { for (const c of kids) node.appendChild(c); },
+      // How a mounted plot hangs its bars: `placeBar` wraps the container, and
+      // the selection bar puts its note, table and pager after itself.
+      insertBefore(c, ref) {
+        const at = node.children.indexOf(ref);
+        node.children.splice(at < 0 ? node.children.length : at, 0, c);
+        c.parent = node;
+        return c;
+      },
+      after(...kids) {
+        const kin = node.parent?.children;
+        if (!kin) return;
+        let at = kin.indexOf(node);
+        for (const c of kids) {
+          kin.splice(++at, 0, c);
+          c.parent = node.parent;
+        }
+      },
       // **Writing it takes the children with it**, which is what the DOM does and
       // what a plain property quietly did not. A control holds its hover label as
       // a child, so a stub that kept children through an `innerHTML` write could
@@ -1120,23 +1138,69 @@ function stubView() {
   };
 }
 
+/** One panel's rectangle and its two axes, read the way the page reads them. */
+function axesOf(g) {
+  const [x0, y0, x1, y1] = g.getAttribute("data-gog-panel").split(" ").map(Number);
+  const num = (n) => g.getAttribute(`data-${n}`).split(" ").map(Number);
+  const [xf, xt] = num("x");
+  const [yf, yt] = num("y");
+  return {
+    x0, y0, x1, y1,
+    x: { from: xf, to: xt, lo: x0, hi: x1, log: null, cats: null },
+    y: { from: yf, to: yt, lo: y1, hi: y0, log: null, cats: null },
+    place: g.getAttribute("data-gog-place"),
+  };
+}
+
 async function hoverFixture(spec, data, options = {}) {
   const engine = await loadEngine(fs.readFileSync(WASM));
   const container = stubContainer();
   const handle = attachBrush(engine, container, { spec, data }, options);
-  const on = (g) => {
-    const [x0, y0, x1, y1] = g.getAttribute("data-gog-panel").split(" ").map(Number);
-    const num = (n) => g.getAttribute(`data-${n}`).split(" ").map(Number);
-    const [xf, xt] = num("x");
-    const [yf, yt] = num("y");
-    return {
-      x0, y0, x1, y1,
-      x: { from: xf, to: xt, lo: x0, hi: x1, log: null, cats: null },
-      y: { from: yf, to: yt, lo: y1, hi: y0, log: null, cats: null },
-      place: g.getAttribute("data-gog-place"),
-    };
+  return { handle, container, panels: container.querySelectorAll("[data-gog-panel]").map(axesOf) };
+}
+
+/**
+ * A plot mounted the way a page mounts it, bars and all, with its controls
+ * found by what they say.
+ *
+ * Everything else here drives a handle, and a reader never touches one: the
+ * buttons read the handle through the bar `mount` builds, and whether a button
+ * is switched on is decided in that bar. So a handle can answer correctly while
+ * the button stays off, and only a mounted plot can show which.
+ */
+async function mountFixture(spec, data) {
+  const container = stubContainer();
+  const host = globalThis.document.createElement("div");
+  host.appendChild(container);
+  container.parentNode = host;
+  container.dataset = {};
+  // The picture the view zooms. Its `viewBox` is read off whatever was drawn
+  // last, as the browser would read it off the element.
+  const picture = {
+    style: {},
+    getCurrentTime: () => CLOCK.t,
+    getAttribute: (n) =>
+      (n === "viewBox" ? /viewBox="([^"]+)"/.exec(container.innerHTML)?.[1] ?? null : null),
+    setAttribute() {},
+    getBoundingClientRect: () => ({ left: 0, top: 0, right: 800, bottom: 600, width: 800, height: 600 }),
   };
-  return { handle, container, panels: container.querySelectorAll("[data-gog-panel]").map(on) };
+  container.querySelector = (sel) => (sel === "svg" ? picture : null);
+  const handle = await mount(container, { spec, data }, { wasm: fs.readFileSync(WASM) });
+  const under = (node, out = []) => {
+    for (const c of node.children ?? []) {
+      out.push(c);
+      under(c, out);
+    }
+    return out;
+  };
+  const everything = () => under(host);
+  return {
+    handle, container,
+    panels: container.querySelectorAll("[data-gog-panel]").map(axesOf),
+    button: (says) => everything().find((n) => n.tag === "button" && n.textContent === says),
+    count: () => everything().find((n) => / selected$/.test(n.textContent ?? ""))?.textContent,
+    press: (b) => b.listeners.get("click")(),
+  };
 }
 
 const POINTS = {
@@ -1421,6 +1485,76 @@ test("clicking empty space still clears, and stamps nothing", async () => {
     assert.equal(handle.selection().kept, 0, "the click cleared the selection");
     assert.equal(handle.stamps(), 0, "and left nothing behind");
     handle.destroy();
+  } finally {
+    undo();
+  }
+});
+
+// `clear` puts back what the sentence asked for, so it is on exactly when that
+// is gone. It used to ask the count, which cannot tell: a click on empty space
+// reads `0 of 0` and a drag over the whole panel reads every row, and after
+// either one the sentence's bound had no way back.
+test("after a click empties the selection, clear brings the sentence's bound back", async () => {
+  const undo = stubDom();
+  try {
+    const spec = { ...POINTS.spec, brush: [{ field: "g", at: [40, 100] }] };
+    const { container, panels, button, count, press } = await mountFixture(spec, POINTS.data);
+    const p = panels[0];
+    const clear = button("clear");
+    assert.equal(count(), "2 of 3 selected");
+    assert.equal(clear.disabled, true, "nothing has moved, so there is nothing to put back");
+
+    // A click on a part of the panel with no mark near it.
+    container.send("pointerdown", placeOn(p.x, 30), placeOn(p.y, 70));
+    container.send("pointerup", placeOn(p.x, 30), placeOn(p.y, 70));
+    assert.equal(count(), "0 of 0 selected", "the click emptied the selection");
+    assert.equal(clear.disabled, false, "and the sentence's bound can be brought back");
+
+    press(clear);
+    assert.equal(count(), "2 of 3 selected", "clear restored the sentence's bound");
+    assert.equal(clear.disabled, true);
+
+    // A drag across the whole panel catches every row, which the count cannot
+    // tell apart from a plot nobody has touched.
+    container.send("pointerdown", p.x0 + 1, placeOn(p.y, 50));
+    container.send("pointermove", p.x1 - 1, placeOn(p.y, 50));
+    container.send("pointerup", p.x1 - 1, placeOn(p.y, 50));
+    assert.equal(count(), "3 of 3 selected");
+    assert.equal(clear.disabled, false, "the drag replaced the sentence's bound");
+    assert.equal(button("show rows").disabled, true, "everything caught is nothing to list");
+    press(clear);
+    assert.equal(count(), "2 of 3 selected");
+  } finally {
+    undo();
+  }
+});
+
+test("a click on a brush that named no bound leaves nothing for clear to do", async () => {
+  const undo = stubDom();
+  try {
+    const spec = { ...POINTS.spec, brush: [{ field: "" }] };
+    const { container, panels, button, count, press } = await mountFixture(spec, POINTS.data);
+    const p = panels[0];
+    const clear = button("clear");
+    assert.equal(clear.disabled, true);
+
+    // The first gesture turns bare `brush` into one bound per axis. A click
+    // gives them no range, so the plot selects what it did before.
+    container.send("pointerdown", placeOn(p.x, 30), placeOn(p.y, 70));
+    container.send("pointerup", placeOn(p.x, 30), placeOn(p.y, 70));
+    assert.equal(count(), "0 of 0 selected");
+    assert.equal(clear.disabled, true, "a declaration has nothing to restore");
+
+    // From just inside the corner, so the row at 10 is not left to rounding.
+    const [cx, cy] = [(p.x0 + placeOn(p.x, 10)) / 2, (p.y1 + placeOn(p.y, 10)) / 2];
+    container.send("pointerdown", cx, cy);
+    container.send("pointermove", placeOn(p.x, 60), placeOn(p.y, 60));
+    container.send("pointerup", placeOn(p.x, 60), placeOn(p.y, 60));
+    assert.equal(count(), "2 of 3 selected");
+    assert.equal(clear.disabled, false);
+    press(clear);
+    assert.equal(count(), "0 of 0 selected", "back to the declaration");
+    assert.equal(clear.disabled, true);
   } finally {
     undo();
   }
