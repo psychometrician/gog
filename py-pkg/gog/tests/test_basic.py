@@ -3554,3 +3554,15 @@ with contextlib.redirect_stderr(io.StringIO()) as _said:
 for _s in (_sorted, _said.getvalue()):
     assert _four in _s and "factor levels" not in _s, _s
 ok("asking for a declared order names all four languages")
+
+
+# --- A flat zone with group() names every transform that gives it sides -----------------
+# The list named `bounds`, `bin` and `density` and left out `count`, `proportion`,
+# `partition` and `flow`. The same block runs in all four bindings.
+try:
+    render_svg(data({"g": ["a", "a", "b"], "v": [1.0, 2.0, 3.0], "w": [4.0, 6.0, 5.0]}, name="t")
+               + zone * bin + x(col.v) + y(col.w) + group(col.g))
+    raise AssertionError("a flat zone with group() drew")
+except GogError as refusal:
+    assert "`bin`, `count`, `density`, `proportion`, `bounds`, `partition` and `flow`" in str(refusal), refusal
+ok("a flat zone with group() names every transform that gives it sides")

@@ -10049,15 +10049,26 @@ fn check_zone_group(out: &mut Vec<Diagnostic>, spec: &PlotSpec, data: &HashMap<S
                     .to_string(),
             }),
             (true, None) => {}
-            (false, Some(g)) => out.push(Diagnostic {
-                kind: DiagnosticKind::Illegal,
-                message: format!(
-                    "gog: `group({g})` gathers many rows into one region, and a `zone` here \
-                     takes its sides from its own row — a category's slot, `bounds`, `bin` or \
-                     `density`. Drop `group({g})`, or add `map()` or `globe()` if `{g}` names \
-                     regions on a boundary."
-                ),
-            }),
+            // The transforms named are the ones the grid requires of a zone, read off
+            // `mark_takes_transform` as the grid is: typed out, the list named four of
+            // the seven and left out `count`, `proportion`, `partition` and `flow`.
+            (false, Some(g)) => {
+                let sides: Vec<&str> = USER_TRANSFORMS.iter()
+                    .filter(|t| mark_takes_transform(&Mark::Zone, t) == TransformLegality::Required)
+                    .map(transform_name)
+                    .collect();
+                out.push(Diagnostic {
+                    kind: DiagnosticKind::Illegal,
+                    message: format!(
+                        "gog: `group({g})` gathers many rows into one region, and a `zone` here \
+                         never takes its sides from a group of rows. They come from a \
+                         category's slot, or from one of the transforms that give a zone its \
+                         sides: {}. Drop `group({g})`, or add `map()` or `globe()` if `{g}` \
+                         names regions on a boundary.",
+                        code_list(&sides)
+                    ),
+                });
+            }
             // **A ring that never closes.** A boundary closes each ring on the vertex
             // it started from, and that closure is what divides a region's rows into
             // rings — so an unclosed one silently merges two shapes into a shape that
@@ -20249,6 +20260,28 @@ mod tests {
             && x.message.contains("bounds") && x.message.contains("bin")
             && x.message.contains("categorical position")),
             "a bare zone is told every way to give it sides: {:?}", msgs(&d));
+    }
+
+    /// **A flat `zone` with `group` is told every way it gets its sides**, read off
+    /// the grid: typed out, the list named `bounds`, `bin` and `density` and left out
+    /// `count`, `proportion`, `partition` and `flow`, four of the seven the grid
+    /// requires of a zone.
+    #[test]
+    fn a_flat_zone_with_group_names_every_transform_that_gives_it_sides() {
+        let d = check(&PlotSpec::new().data("t").x("gdp").y("life")
+            .layer(Layer::new(Mark::Zone).transform(Transform::Bin)
+                .encode(Channel::Group, "continent")), &data());
+        let said = d.iter().find(|x| x.message.contains("`group(continent)` gathers many rows"))
+            .map(|x| x.message.clone()).unwrap_or_else(|| panic!("not refused: {:?}", msgs(&d)));
+        let required: Vec<_> = USER_TRANSFORMS.iter()
+            .filter(|t| mark_takes_transform(&Mark::Zone, t) == TransformLegality::Required)
+            .collect();
+        assert_eq!(required.len(), 7, "the zone's required transforms moved: {required:?}");
+        for t in required {
+            assert!(said.contains(&format!("`{}`", transform_name(t))), "{} missing: {said}",
+                transform_name(t));
+        }
+        assert!(said.contains("a category's slot"), "{said}");
     }
 
     // -- partition ---------------------------------------------------------

@@ -3095,3 +3095,16 @@ end
         @test occursin(four, s) && !occursin("factor levels", s)
     end
 end
+
+# A flat `zone` with `group()` is told every transform that gives a zone its sides.
+# The list named `bounds`, `bin` and `density` and left out `count`, `proportion`,
+# `partition` and `flow`. The same block runs in all four bindings.
+@testset "a flat zone with group() names every transform that gives it sides" begin
+    t = (g = ["a", "a", "b"], v = [1.0, 2.0, 3.0], w = [4.0, 6.0, 5.0])
+    said = try
+        render_svg(data(t) + zone * bin + x(:v) + y(:w) + group(:g)); ""
+    catch e
+        sprint(showerror, e)
+    end
+    @test occursin("`bin`, `count`, `density`, `proportion`, `bounds`, `partition` and `flow`", said)
+end

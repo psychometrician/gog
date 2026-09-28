@@ -5646,3 +5646,18 @@ local({
   }
   cat("PASS: asking for a declared order names all four languages\n")
 })
+
+# ---------------------------------------------------------------------------
+# A flat `zone` with `group()` is told every transform that gives a zone its
+# sides. The list named `bounds`, `bin` and `density` and left out `count`,
+# `proportion`, `partition` and `flow`. The same block runs in all four bindings.
+# ---------------------------------------------------------------------------
+local({
+  t <- data.frame(g = c("a", "a", "b"), v = c(1, 2, 3), w = c(4, 6, 5))
+  said <- tryCatch({ render_svg(data(t) + zone * bin + x(v) + y(w) + group(g)); "" },
+                   error = function(e) conditionMessage(e))
+  sides <- "`bin`, `count`, `density`, `proportion`, `bounds`, `partition` and `flow`"
+  if (!grepl(sides, said, fixed = TRUE))
+    stop("FAIL: a flat zone with group() should name every way it gets its sides: ", said)
+  cat("PASS: a flat zone with group() names every transform that gives it sides\n")
+})

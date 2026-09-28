@@ -56,6 +56,11 @@ CRAN-style repositories and PyPI, `GrammarOfGraphics` on Julia's General, and
 
 ### Changed
 
+- **A flat `zone` with `group()` is told every way it gets its sides.** The
+  refusal named a category's slot, `bounds`, `bin` and `density`, and left
+  out `count`, `proportion`, `partition` and `flow`. It now lists all seven
+  transforms that give a zone its sides.
+
 - **Asking for a declared order names every language's way.** The `order()`
   refusal for a plot with no categorical position, and the `play()` note for a
   column with no stated order, said to "set the column's factor levels", R's

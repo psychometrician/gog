@@ -3704,3 +3704,14 @@ test("asking for a declared order names all four languages", () => {
     assert.ok(s.includes(four) && !s.includes("factor levels"), s);
   }
 });
+
+// A flat `zone` with `group()` is told every transform that gives a zone its sides.
+// The list named `bounds`, `bin` and `density` and left out `count`, `proportion`,
+// `partition` and `flow`. The same block runs in all four bindings.
+test("a flat zone with group() names every transform that gives it sides", () => {
+  const t = { g: ["a", "a", "b"], v: [1, 2, 3], w: [4, 6, 5] };
+  assert.throws(
+    () => render_svg(plot(data(t), layer(zone, bin), x(col.v), y(col.w), group(col.g))),
+    (e) => e.message.includes("`bin`, `count`, `density`, `proportion`, `bounds`, `partition` and `flow`")
+  );
+});
