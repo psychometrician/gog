@@ -575,7 +575,7 @@ test("save_gif writes a played plot where SVG motion is not read", () => {
     // to write instead rather than leaving a file nobody asked for.
     refuses(
       () => save_gif(plot(data(played), point, x(col.x), y(col.y)), `${folder}/still.gif`),
-      /does not play[\s\S]*play\(year\)/,
+      /does not play, so it has no frames to write[\s\S]*play\(year\)/,
     );
     // The name says what the file is, so a path that says otherwise is refused
     // rather than quietly corrected.

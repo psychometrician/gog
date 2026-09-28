@@ -778,7 +778,7 @@ def save_gif(plot: Any, path: str, scale: float = 1.0) -> str:
 
     The frames come out of the one renderer, so the file cannot disagree with
     the plot. Every scale, the color map and each legend are fitted across the
-    whole sequence at once, and the moments are cut from that single drawing
+    whole sequence at once, and the frames are cut from that single drawing
     rather than drawn again one at a time.
 
     Nothing needs to be installed. The engine converts and encodes on its own.

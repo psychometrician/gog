@@ -558,7 +558,7 @@ export function save_svg(plot, file) {
 //
 // The frames come out of the one renderer, so the file cannot disagree with the
 // plot. Every scale, the color map and each legend are fitted across the whole
-// sequence at once, and the moments are cut from that single drawing rather than
+// sequence at once, and the frames are cut from that single drawing rather than
 // drawn again one at a time. Nothing needs to be installed.
 //
 // `scale` multiplies the plot's canvas, which is 800 by 600 unless its theme

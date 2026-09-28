@@ -405,6 +405,8 @@ end
         @test err !== nothing
         @test occursin("does not play", err)
         @test occursin("play(year)", err)
+        # A sequence is made of frames, the word every other `play()` message uses.
+        @test occursin("no frames to write", err) && !occursin("moments", err)
 
         # The name says what the file is, so a path that says otherwise is
         # refused rather than quietly corrected.

@@ -235,7 +235,9 @@ with tempfile.TemporaryDirectory() as folder:
         raise AssertionError("save_gif() on an unplayed plot should refuse")
     except GogError as e:
         assert "does not play" in str(e) and "play(year)" in str(e), str(e)
-    ok("`save_gif()` refuses a plot with no moments, with direction")
+        # A sequence is made of frames, the word every other `play()` message uses.
+        assert "no frames to write" in str(e) and "moments" not in str(e), str(e)
+    ok("`save_gif()` refuses a plot with no frames, with direction")
 
     # The name says what the file is, so a path that says otherwise is refused
     # rather than quietly corrected.

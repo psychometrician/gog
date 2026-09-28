@@ -1472,7 +1472,10 @@ if (is.null(err_still) || !grepl("does not play", err_still))
   stop("FAIL: save_gif() on an unplayed plot should refuse")
 if (!grepl("play(year)", err_still, fixed = TRUE))
   stop("FAIL: the refusal should name what to write instead")
-cat("PASS: `save_gif()` refuses a plot with no moments, with direction\n")
+# A sequence is made of frames, the word every other `play()` message uses.
+if (!grepl("no frames to write", err_still, fixed = TRUE) || grepl("moments", err_still, fixed = TRUE))
+  stop("FAIL: the refusal should speak of frames: ", err_still)
+cat("PASS: `save_gif()` refuses a plot with no frames, with direction\n")
 
 # The name says what the file is, so a path that says otherwise is refused
 # rather than quietly corrected.

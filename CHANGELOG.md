@@ -56,6 +56,11 @@ CRAN-style repositories and PyPI, `GrammarOfGraphics` on Julia's General, and
 
 ### Changed
 
+- **A played plot is made of frames, in every message.** `save_gif()` on a plot
+  with no `play()` said it had "no moments to write", and the note after a GIF
+  is written said "wrote 12 moments". Both now say frames, the word every other
+  `play()` message and the `save_gif()` help in all four languages use.
+
 - **A network's refusals are said once, and each can be followed.** A network
   drawn as edges, nodes and names printed its self-loop refusal and its
   missing-endpoint note once per layer; each is now said once and names the

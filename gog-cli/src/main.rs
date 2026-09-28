@@ -164,7 +164,7 @@ fn main() {
                 match gif::write(&drawn.frames, &path, scale, &delays) {
                     Ok((w, h)) => {
                         eprintln!(
-                            "gog: wrote {} moments at {w}x{h} to {path}",
+                            "gog: wrote {} frames at {w}x{h} to {path}",
                             drawn.frames.len()
                         );
                         println!("{path}");

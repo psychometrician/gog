@@ -375,7 +375,7 @@ save_svg <- function(gog, path) {
 #'
 #' The frames come out of the one renderer, so the file cannot disagree with the
 #' plot. Every scale, the color map and each legend are fitted across the whole
-#' sequence at once, and the moments are cut from that single drawing rather
+#' sequence at once, and the frames are cut from that single drawing rather
 #' than drawn again one at a time.
 #'
 #' Nothing needs to be installed. The engine converts and encodes on its own.

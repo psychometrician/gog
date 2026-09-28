@@ -238,7 +238,7 @@ pub fn render_frames_with(
     if levels.len() < 2 {
         diagnostics.push(Diagnostic {
             kind: DiagnosticKind::Unsupported,
-            message: "gog: this plot does not play, so it has no moments to \
+            message: "gog: this plot does not play, so it has no frames to \
                       write. Bind a column with an order to `play` — \
                       `play(year)` — or save the still picture it already is."
                 .to_string(),
@@ -559,5 +559,18 @@ mod tests {
                 contrast(palest)
             );
         }
+    }
+
+    /// **A played plot is a sequence of frames**, which is the word `play()`'s own
+    /// messages use. The still-plot refusal said "moments", the one message that did.
+    #[test]
+    fn a_still_plot_has_no_frames_to_write() {
+        let still = Figure::Plot(Box::new(base().layer(Layer::new(Mark::Point))));
+        let refused = render_frames_with(&still, &data(), Strictness::Strict)
+            .expect_err("a plot with no play is not a sequence");
+        let said: Vec<&str> = refused.iter().map(|d| d.message.as_str()).collect();
+        assert!(said.iter().any(|m| m.contains("does not play, so it has no frames to write")),
+            "{said:?}");
+        assert!(said.iter().all(|m| !m.contains("moments")), "{said:?}");
     }
 }
