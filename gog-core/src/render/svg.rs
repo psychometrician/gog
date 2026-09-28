@@ -2703,6 +2703,7 @@ impl SvgRenderer {
                      scale::tick_count_of(spec.axis_def(&Channel::Y)),
                      scale::tick_count_of(spec.axis_def(&Channel::Z))],
                     &x_ticks, xs, &x_label, &y_ticks, ys, &y_label, &z_ticks, zs, &z_label,
+                    [cat_x.is_some(), cat_y.is_some(), false],
                     &mut remarks);
                 }
                 continue;
@@ -3982,6 +3983,10 @@ impl SvgRenderer {
         x_ticks: &TickSpec, xs: (f64, f64), x_label: &str,
         y_ticks: &TickSpec, ys: (f64, f64), y_label: &str,
         z_ticks: &TickSpec, zs: (f64, f64), z_label: &str,
+        // Which axes' labels are category names rather than numbers, `[x, y, z]`.
+        // A number that meets its own axis's neighbor is dropped, and a name is
+        // nudged instead (below).
+        named: [bool; 3],
         // Where the thinning report goes. **Not `eprintln!`**, which is what it
         // was: this routine runs once per panel, so a faceted cube said the same
         // sentence once per cube. `remarks` is the list that already dedupes by
@@ -4015,10 +4020,23 @@ impl SvgRenderer {
         // Measured first, placed second. A name's distance from its edge is read
         // off its own numbers, so the numbers are built before any of them is put
         // anywhere — which is also why this cannot be one pass per axis.
+        //
+        // **An axis seen end-on is not labeled.** Looking straight down the cube
+        // (`tilt = 90`), the vertical axis projects to a point, so every one of its
+        // numbers lands on one spot; the same-axis rule dropped all but the first,
+        // and a lone "4" stood where the axis had been. An axis whose edge spans
+        // less than a label's height on the page has no length to be read along, so
+        // it draws neither its numbers nor its name.
         let built: Vec<(FrameEdge, Vec<FrameLabel>, &str)> = axes.iter()
             .map(|(axis, ticks, range, label)| {
                 let edge = FrameEdge::choose(scene, *axis);
-                (edge, self.frame_tick_labels(scene, center, ticks, *range, edge), *label)
+                let (a, b) = (edge.at(0.0), edge.at(1.0));
+                let (pa, pb) = (scene.to_screen(a.0, a.1, a.2), scene.to_screen(b.0, b.1, b.2));
+                let span = (pb.x - pa.x).hypot(pb.y - pa.y);
+                match span < estimate_cap_height(self.font_sm) {
+                    true => (edge, Vec::new(), ""),
+                    false => (edge, self.frame_tick_labels(scene, center, ticks, *range, edge), *label),
+                }
             })
             .collect();
 
@@ -4054,7 +4072,20 @@ impl SvgRenderer {
         let offered: Vec<(FrameAxis, usize)> = built.iter()
             .map(|(edge, ticks, _)| (edge.axis, ticks.len()))
             .collect();
+        //
+        // **A category name is not a number, and is nudged like a name.** Dropping
+        // a number thins a scale the reader can still read; dropping a category
+        // loses which slot is which. The floor of `bar * bin(12) + y(continent) +
+        // space()` lost "Americas" in silence, 3.6 px from "Africa" at the default
+        // view, so an axis of names takes the nudges a free label takes, and a name
+        // that still finds no room is reported below.
+        let is_named = |axis: FrameAxis| match axis {
+            FrameAxis::X => named[0],
+            FrameAxis::Y => named[1],
+            FrameAxis::Z => named[2],
+        };
         let mut placed: Vec<FrameLabel> = Vec::new();
+        let mut unplaced: Vec<(FrameAxis, String)> = Vec::new();
         for mut cand in queue {
             let mut fits = false;
             for step in 0..=FRAME_LABEL_NUDGES {
@@ -4066,13 +4097,39 @@ impl SvgRenderer {
                     fits = true;
                     break;
                 }
-                if blockers.iter().any(|p| p.tick && cand.tick && p.axis == cand.axis) {
+                if !is_named(cand.axis)
+                    && blockers.iter().any(|p| p.tick && cand.tick && p.axis == cand.axis)
+                {
                     break;
                 }
             }
             if fits {
                 placed.push(cand);
+            } else if cand.tick && is_named(cand.axis) {
+                unplaced.push((cand.axis, cand.text.clone()));
             }
+        }
+        for axis in [FrameAxis::X, FrameAxis::Y, FrameAxis::Z] {
+            let names: Vec<String> = unplaced.iter().filter(|(a, _)| *a == axis)
+                .map(|(_, t)| format!("\"{t}\"")).collect();
+            if names.is_empty() { continue }
+            let (list, verb) = match names.as_slice() {
+                [one] => (one.clone(), "has"),
+                [init @ .., last] => (format!("{} and {last}", init.join(", ")), "have"),
+                [] => unreachable!(),
+            };
+            remarks.push(Diagnostic {
+                kind: crate::legality::DiagnosticKind::Assumption,
+                message: format!(
+                    "gog: at `turn = {turn:.0}, tilt = {tilt:.0}` the cube's `{c}` axis {verb} no room \
+                     for {list}, so {} not labeled. Turn the view to bring {} back, as in \
+                     `space(turn = {other:.0})`, or give the plot more room.",
+                    if names.len() == 1 { "it is" } else { "they are" },
+                    if names.len() == 1 { "it" } else { "them" },
+                    c = frame_channel_name(axis), turn = view.turn, tilt = view.tilt,
+                    other = (view.turn + 15.0).rem_euclid(360.0),
+                ),
+            });
         }
 
         // A count the caller *stated* and the frame could not draw is said out
@@ -8272,6 +8329,41 @@ mod tests {
         assert!(lines.iter().filter(|l| l.contains(second)).count() == 1
                 && lines.iter().any(|l| !l.contains("stroke-dasharray")),
                 "`a` is solid and `b` takes the second dash in its own panel: {lines:?}");
+    }
+
+    /// A cube's floor names every category: a name that met its own axis's
+    /// neighbor was dropped at once, as a number is, and "Americas" went missing
+    /// 3.6 px from "Africa". And an axis seen end-on draws no labels: at `tilt =
+    /// 90` a lone number stood where the vertical axis had collapsed to a point.
+    #[test]
+    fn a_cubes_floor_names_every_category_and_an_end_on_axis_none() {
+        let s = |v: &[&str]| v.iter().map(|x| x.to_string()).collect::<Vec<_>>();
+        let conts = ["Asia", "Europe", "Africa", "Americas", "Oceania"];
+        let t: HashMap<String, DataFrame> = HashMap::from([(
+            "t".to_string(),
+            DataFrame::new()
+                .with_float("life", (0..60).map(|i| 40.0 + f64::from(i % 43)).collect())
+                .with_str("continent", s(&(0..60).map(|i| conts[i % 5]).collect::<Vec<_>>())),
+        )]);
+        let mut layer = Layer::new(Mark::Bar).transform(Transform::Bin);
+        layer.bin = Some(crate::ir::BinSpec { bins: Some(12), width: None, tiling: None });
+        let spec = PlotSpec::new().data("t").x("life").y("continent").layer(layer)
+            .coord(CoordSpace::Space(Default::default()));
+        let labels = text_of(&SvgRenderer::default().render(&spec, &t));
+        for c in conts {
+            assert!(labels.iter().any(|l| l == c), "{c} is on the floor: {labels:?}");
+        }
+        let cube: HashMap<String, DataFrame> = HashMap::from([(
+            "t".to_string(),
+            DataFrame::new().with_float("a", vec![1.0, 2.0, 3.0]).with_float("b", vec![4.0, 5.0, 6.0])
+                .with_float("c", vec![7.0, 8.0, 9.0]),
+        )]);
+        let mut top = PlotSpec::new().data("t").x("a").y("b").layer(Layer::new(Mark::Point))
+            .coord(CoordSpace::Space(crate::ir::SpaceView { tilt: 90.0, ..Default::default() }));
+        top.z = Some(ChannelDef::field("c"));
+        let labels = text_of(&SvgRenderer::default().render(&top, &cube));
+        assert!(!labels.iter().any(|l| l == "C" || l.starts_with('7') || l.starts_with('9')),
+                "the end-on axis draws nothing: {labels:?}");
     }
 
     /// A globe's labels are clipped by the panel, not by the disk: a name beside a

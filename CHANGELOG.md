@@ -48,6 +48,13 @@ CRAN-style repositories and PyPI, `GrammarOfGraphics` on Julia's General, and
 
 ### Changed
 
+- **A cube names every category on its floor.** A category name that met its
+  neighbor was dropped, the way crowded numbers are, so the floor of
+  `bar * bin(12) + y(continent) + space()` lost "Americas" with no message.
+  Names are now moved aside to fit, and a name that still cannot fit is
+  reported. Looking straight down (`tilt = 90`), the axis seen end-on no longer
+  leaves one stray number behind.
+
 - **A globe's labels are no longer cut at the edge of the sphere.** Labels were
   clipped with everything else a few pixels past the sphere, so a name beside a
   place near the edge lost letters: "Anchorage" read "Anchora". A label may now

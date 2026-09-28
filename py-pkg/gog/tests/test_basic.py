@@ -3301,3 +3301,14 @@ assert ">Frankfurt</text>" in _svg
 _groups = re.findall(r'<g clip-path="url\(#[^)]*\)', _svg.split(">Frankfurt</text>")[0])
 assert _groups and "-labels)" in _groups[-1], _groups[-1:]
 ok("a globe's labels are clipped by the panel, not the disk")
+
+
+# --- A cube's floor names every category ----------------------------------------------
+# A name that met its neighbor was dropped at once, as a number is, and "Americas"
+# went missing. The same block runs in all four bindings.
+_conts = ["Asia", "Europe", "Africa", "Americas", "Oceania"]
+_cf = {"life": [40.0 + i % 43 for i in builtins.range(60)],
+       "continent": [_conts[i % 5] for i in builtins.range(60)]}
+_svg = render_svg(data(_cf, name="cf") + bar * bin(12) + x(col.life) + y(col.continent) + space())
+assert all(f">{k}</text>" in _svg for k in _conts), [k for k in _conts if f">{k}</text>" not in _svg]
+ok("a cube's floor names every category")

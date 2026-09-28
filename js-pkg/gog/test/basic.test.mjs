@@ -3474,3 +3474,13 @@ test("a globe's labels are clipped by the panel, not the disk", () => {
   const groups = [...svg.split(">Frankfurt</text>")[0].matchAll(/<g clip-path="url\(#[^)]*\)/g)];
   assert.ok(groups.length && groups[groups.length - 1][0].includes("-labels)"));
 });
+
+// A cube's floor names every category: a name that met its neighbor was dropped at
+// once, as a number is, and "Americas" went missing. The same block runs in all four
+// bindings.
+test("a cube's floor names every category", () => {
+  const conts = ["Asia", "Europe", "Africa", "Americas", "Oceania"];
+  const cf = { life: [...Array(60).keys()].map((i) => 40 + (i % 43)), continent: [...Array(60).keys()].map((i) => conts[i % 5]) };
+  const svg = render_svg(plot(data(cf), layer(bar, bin(12)), x(col.life), y(col.continent), space()));
+  assert.deepEqual(conts.filter((k) => !svg.includes(`>${k}</text>`)), []);
+});

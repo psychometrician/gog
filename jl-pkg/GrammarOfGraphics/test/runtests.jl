@@ -2848,3 +2848,13 @@ end
     groups = collect(eachmatch(r"<g clip-path=\"url\(#[^)]*\)", split(svg, ">Frankfurt</text>")[1]))
     @test !isempty(groups) && occursin("-labels)", groups[end].match)
 end
+
+# A cube's floor names every category: a name that met its neighbor was dropped at
+# once, as a number is, and "Americas" went missing. The same block runs in all four
+# bindings.
+@testset "a cube's floor names every category" begin
+    conts = ["Asia", "Europe", "Africa", "Americas", "Oceania"]
+    cf = (life = [40.0 + i % 43 for i in 0:59], continent = [conts[i % 5 + 1] for i in 0:59])
+    svg = render_svg(data(cf) + bar * bin(12) + x(:life) + y(:continent) + space())
+    @test all(occursin(">$k</text>", svg) for k in conts)
+end

@@ -5331,3 +5331,17 @@ local({
     stop("FAIL: a globe's labels should be clipped by the panel")
   cat("PASS: a globe's labels are clipped by the panel, not the disk\n")
 })
+
+# ---------------------------------------------------------------------------
+# A cube's floor names every category: a name that met its neighbor was dropped
+# at once, as a number is, and "Americas" went missing. The same block runs in
+# all four bindings.
+# ---------------------------------------------------------------------------
+local({
+  conts <- c("Asia", "Europe", "Africa", "Americas", "Oceania")
+  t <- data.frame(life = 40 + (0:59 %% 43), continent = conts[(0:59 %% 5) + 1])
+  svg <- render_svg(data(t) + bar * bin(12) + x(life) + y(continent) + space())
+  shown <- vapply(conts, function(k) grepl(paste0(">", k, "</text>"), svg, fixed = TRUE), logical(1))
+  if (!all(shown)) stop("FAIL: the cube's floor should name every category: ", paste(conts[!shown], collapse = ", "))
+  cat("PASS: a cube's floor names every category\n")
+})
