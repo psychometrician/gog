@@ -3787,3 +3787,15 @@ test("a network's refusals are said once and can be followed", () => {
   assert.ok(brushed.includes("a network's positions are the layout's") && !brushed.includes("group()")
     && !brushed.includes("Give it an `x()`"), brushed);
 });
+
+// A line cut into panels by its own `x` is refused once, for that. On a number column
+// the facet's type refusal followed, saying to make the column text, and its advice
+// led straight back to the first refusal. The same block runs in all four bindings.
+test("a line faceted by its own x is refused once", () => {
+  const t = { year: [2000, 2001, 2000, 2001], v: [1, 2, 3, 4] };
+  assert.throws(
+    () => render_svg(plot(data(t), line, x(col.year), y(col.v), across(col.year))),
+    (e) => e.message.includes("both cuts the plot into panels and supplies `x`")
+      && !e.message.includes("splits on a number column")
+  );
+});

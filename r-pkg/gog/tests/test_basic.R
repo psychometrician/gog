@@ -5745,3 +5745,19 @@ local({
     stop("FAIL: a brush on a network should be refused by the network alone: ", brushed)
   cat("PASS: a network's refusals are said once and can be followed\n")
 })
+
+# ---------------------------------------------------------------------------
+# A line cut into panels by its own `x` is refused once, for that. On a number
+# column the facet's type refusal followed, saying to make the column text, and
+# its advice led straight back to the first refusal. The same block runs in all
+# four bindings.
+# ---------------------------------------------------------------------------
+local({
+  t <- data.frame(year = c(2000, 2001, 2000, 2001), v = c(1, 2, 3, 4))
+  said <- tryCatch({ render_svg(data(t) + line + x(year) + y(v) | facet(year)); "" },
+                   error = function(e) conditionMessage(e))
+  if (!grepl("both cuts the plot into panels and supplies `x`", said, fixed = TRUE) ||
+      grepl("splits on a number column", said, fixed = TRUE))
+    stop("FAIL: a line faceted by its own x should be refused once: ", said)
+  cat("PASS: a line faceted by its own x is refused once\n")
+})

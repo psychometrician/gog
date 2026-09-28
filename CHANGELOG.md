@@ -56,6 +56,12 @@ CRAN-style repositories and PyPI, `GrammarOfGraphics` on Julia's General, and
 
 ### Changed
 
+- **A line faceted by its own `x` is refused once.** `line + x(year) |
+  facet(year)` on a number column was refused because every panel holds one
+  `year`, and then again because a facet needs a category, with the advice to
+  make `year` text. Made text, the first refusal still stood. The first
+  refusal now stands alone, for `line`, `step`, `area` and `ribbon`.
+
 - **A played plot is made of frames, in every message.** `save_gif()` on a plot
   with no `play()` said it had "no moments to write", and the note after a GIF
   is written said "wrote 12 moments". Both now say frames, the word every other

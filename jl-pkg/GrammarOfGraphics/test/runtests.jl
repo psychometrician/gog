@@ -3182,3 +3182,17 @@ end
     @test occursin("a network's positions are the layout's", brushed) &&
           !occursin("group()", brushed) && !occursin("Give it an `x()`", brushed)
 end
+
+# A line cut into panels by its own `x` is refused once, for that. On a number column
+# the facet's type refusal followed, saying to make the column text, and its advice led
+# straight back to the first refusal. The same block runs in all four bindings.
+@testset "a line faceted by its own x is refused once" begin
+    t = (year = [2000.0, 2001.0, 2000.0, 2001.0], v = [1.0, 2.0, 3.0, 4.0])
+    said = try
+        render_svg(data(t) + line + x(:year) + y(:v) | facet(:year)); ""
+    catch e
+        sprint(showerror, e)
+    end
+    @test occursin("both cuts the plot into panels and supplies `x`", said) &&
+          !occursin("splits on a number column", said)
+end

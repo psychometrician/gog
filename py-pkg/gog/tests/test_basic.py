@@ -3644,3 +3644,18 @@ except GogError as refusal:
     assert "a network's positions are the layout's" in _s and "group()" not in _s \
         and "Give it an `x()`" not in _s, _s
 ok("a network's refusals are said once and can be followed")
+
+
+# --- A line faceted by its own x is refused once ----------------------------------------
+# On a number column the facet's type refusal followed, saying to make the column text,
+# and its advice led straight back to the first refusal. The same block runs in all four
+# bindings.
+try:
+    render_svg(data({"year": [2000.0, 2001.0, 2000.0, 2001.0], "v": [1.0, 2.0, 3.0, 4.0]}, name="t")
+               + line + x(col.year) + y(col.v) | facet(col.year))
+    raise AssertionError("a line faceted by its own x drew")
+except GogError as refusal:
+    _s = str(refusal)
+    assert "both cuts the plot into panels and supplies `x`" in _s \
+        and "splits on a number column" not in _s, _s
+ok("a line faceted by its own x is refused once")

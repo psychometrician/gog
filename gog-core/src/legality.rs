@@ -10978,6 +10978,15 @@ fn check_facet(out: &mut Vec<Diagnostic>, spec: &PlotSpec, data: &HashMap<String
                 return;
             }
             match actual_type(df, field) {
+                // **A line's own `x` is refused as a facet whatever its type**
+                // (`check_domain_split`), and that refusal stands alone: "make it
+                // text" led straight back to it, since a line cut by its own `x`
+                // holds one position per panel either way.
+                Some(VarType::Continuous)
+                    if spec.layers.iter().any(|l| domain_column(spec, l) == Some(field.as_str())) =>
+                {
+                    return;
+                }
                 Some(VarType::Continuous) => {
                     out.push(Diagnostic {
                         kind: DiagnosticKind::Illegal,
@@ -11196,6 +11205,21 @@ fn check_play(out: &mut Vec<Diagnostic>, spec: &PlotSpec, data: &HashMap<String,
     }
 }
 
+/// The column a layer reads a **domain** along: `x`, for the four marks that are a
+/// function read in `x` order. `None` for every other mark, and for a violin, which
+/// reads along its slot. `check_domain_split` refuses that column cutting the plot,
+/// and `check_facet` leaves the column's type to that refusal.
+fn domain_column<'a>(spec: &'a PlotSpec, layer: &'a Layer) -> Option<&'a str> {
+    if !matches!(layer.mark, Mark::Line | Mark::Step | Mark::Area | Mark::Ribbon) {
+        return None;
+    }
+    // A violin reads along its slot, not along the plot's domain.
+    if slot_density(spec, layer, None).is_some() {
+        return None;
+    }
+    spec.position_for(layer, &Channel::X).map(|d| d.field.as_str())
+}
+
 /// A mark that reads a **domain** cannot have that domain's column also cutting
 /// the plot into subsets — whether the subsets are frames or panels.
 ///
@@ -11225,16 +11249,7 @@ fn check_play(out: &mut Vec<Diagnostic>, spec: &PlotSpec, data: &HashMap<String,
 /// honest. Nor is a violin, whose reading runs along its slot rather than along
 /// `x`.
 fn check_domain_split(out: &mut Vec<Diagnostic>, spec: &PlotSpec, layer: &Layer) {
-    if !matches!(layer.mark, Mark::Line | Mark::Step | Mark::Area | Mark::Ribbon) {
-        return;
-    }
-    // A violin reads along its slot, not along the plot's domain.
-    if slot_density(spec, layer, None).is_some() {
-        return;
-    }
-    let Some(x) = spec.position_for(layer, &Channel::X).map(|d| d.field.as_str()) else {
-        return;
-    };
+    let Some(x) = domain_column(spec, layer) else { return };
 
     // The two doors, and what each calls its subsets.
     let play = layer.encodings.get(&Channel::Play).map(|d| d.field.as_str());
@@ -17552,6 +17567,27 @@ mod tests {
         // §12: an Assumption renders. A refusal here would take the book's own
         // teaching plot off the page.
         assert!(!d.iter().any(|x| x.is_fatal()), "must still draw: {:?}", msgs(&d));
+    }
+
+    /// **A line cut into panels by its own `x` is refused once, for that.** On a
+    /// number column the facet's type refusal followed, saying to make the column
+    /// text, and a line cut by its own `x` holds one position per panel either way.
+    /// A `point`, which reads no domain, keeps the type refusal.
+    #[test]
+    fn a_line_faceted_by_its_own_x_is_refused_once() {
+        let faceted = |mark: Mark| {
+            let mut spec = PlotSpec::new().data("t").x("gdp").y("life").layer(Layer::new(mark));
+            spec.facet = Some(crate::ir::FacetSpec { col: Some("gdp".into()), ..Default::default() });
+            check(&spec, &data())
+        };
+        for mark in [Mark::Line, Mark::Step, Mark::Area] {
+            let d = faceted(mark.clone());
+            assert_eq!(d.len(), 1, "{mark:?}: {:?}", msgs(&d));
+            assert!(d[0].message.contains("both cuts the plot into panels and supplies `x`"),
+                "{mark:?}: {:?}", d[0]);
+        }
+        let d = faceted(Mark::Point);
+        assert!(d.iter().any(|x| x.message.contains("splits on a number column")), "{:?}", msgs(&d));
     }
 
     /// **A network's notes about its table are said once, name it, and can be
