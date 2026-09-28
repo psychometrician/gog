@@ -2922,9 +2922,17 @@ impl SvgRenderer {
         // stronger case of the same fact: its positions never touch the fitted
         // scales at all, so no stated domain could reach them.
         let projected = map_degrees.is_some() || is_globe;
+        // **Only a flat plot offers its axes to a page.** A cube's, a disc's, a
+        // map's and a globe's positions are placed by their space rather than along
+        // a straight axis, so a page that lined one up with a flat plot on the same
+        // column read it against the other's ticks: the equal-area map below a
+        // Mercator one was drawn to the Mercator's longitudes, and two cubes side by
+        // side labeled a floor range neither had alone. An empty column joins no
+        // share group, which is the rule for a plot with nothing bound.
+        let offers = crate::legality::space_of(spec) == crate::legality::SpaceKind::Flat;
         let facts = |field: &str, range: (f64, f64), cats: Option<&Vec<String>>, log: bool,
                      base: f64, ticks_over: (f64, f64)| AxisFacts {
-            field: field.to_string(),
+            field: if offers { field.to_string() } else { String::new() },
             range,
             cats: cats.cloned(),
             log_base: log.then_some(base),
@@ -8200,6 +8208,30 @@ mod tests {
         assert!(lines.iter().filter(|l| l.contains(second)).count() == 1
                 && lines.iter().any(|l| !l.contains("stroke-dasharray")),
                 "`a` is solid and `b` takes the second dash in its own panel: {lines:?}");
+    }
+
+    /// Only a flat plot offers its axes to a page: a map's, a globe's and a cube's
+    /// positions are placed by their space, and a page lined them up with a flat
+    /// plot's on the same column, so each was read against the other's ticks.
+    #[test]
+    fn only_a_flat_plot_offers_its_axes_to_a_page() {
+        let t: HashMap<String, DataFrame> = HashMap::from([(
+            "t".to_string(),
+            DataFrame::new()
+                .with_float("lon", vec![-150.0, -20.0, 60.0, 150.0])
+                .with_float("lat", vec![-40.0, 10.0, 30.0, 60.0])
+                .with_float("h", vec![1.0, 2.0, 3.0, 4.0]),
+        )]);
+        let spec = |coord: CoordSpace| PlotSpec::new().data("t").x("lon").y("lat")
+            .layer(Layer::new(Mark::Point)).coord(coord);
+        let flat = SvgRenderer::default().draw(&spec(CoordSpace::Flat), &t);
+        assert_eq!((flat.x.field.as_str(), flat.y.field.as_str()), ("lon", "lat"));
+        let map = SvgRenderer::default().draw(&spec(CoordSpace::Map(Default::default())), &t);
+        assert!(map.x.field.is_empty() && map.y.field.is_empty(), "a map joins no share group");
+        let mut cube = spec(CoordSpace::Flat);
+        cube.z = Some(ChannelDef::field("h"));
+        let cube = SvgRenderer::default().draw(&cube, &t);
+        assert!(cube.x.field.is_empty(), "a cube joins no share group");
     }
 
     /// A flat histogram's axis reaches its bins' outer edges: fitted to the centers

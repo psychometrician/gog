@@ -3267,3 +3267,13 @@ _ft = {"a": ["p", "p", "q", "q"], "b": ["u", "v", "u", "v"], "n": [900.0, 500.0,
 _svg = render_svg(data(_ft, name="ft") + ribbon * flow(col.a, col.b) + y(col.n))
 assert ">0K</text>" in _svg and ">2K</text>" in _svg
 ok("a flow's count axis is ticked over its whole range")
+
+
+# --- Only a flat plot offers its axes to a page ---------------------------------------
+# Two stacked map projections each label their own longitude, where the top one was
+# read against the bottom one's. The same block runs in all four bindings.
+_mp = {"lon": [-150.0, -20.0, 60.0, 150.0], "lat": [-40.0, 10.0, 30.0, 60.0]}
+_svg = render_svg((data(_mp, name="mp") + point + x(col.lon) + y(col.lat) + map(preserve="area"))
+                  / (data(_mp, name="mp") + point + x(col.lon) + y(col.lat) + map()))
+assert _svg.count(">0\u00b0</text>") == 4, _svg.count(">0\u00b0</text>")
+ok("only a flat plot offers its axes to a page")

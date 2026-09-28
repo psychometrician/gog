@@ -48,6 +48,12 @@ CRAN-style repositories and PyPI, `GrammarOfGraphics` on Julia's General, and
 
 ### Changed
 
+- **Only a flat plot shares its axes on a page.** A map, a globe, a cube or a
+  disc places its positions in its own space, but a page lined it up with any
+  plot naming the same column: an equal-area map stacked over a Mercator one was
+  drawn to the Mercator's longitudes, and two cubes side by side labeled a floor
+  range neither had alone. Such a plot now keeps its own axes.
+
 - **A flow's count axis is ticked the same way whatever stages it names.**
   `flow(class, survived)` labeled its count axis 500 / 1000 / 1500 and left out
   0 and 2000, while `flow(class, sex, survived)` over the same total labeled

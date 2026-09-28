@@ -2817,3 +2817,13 @@ end
     svg = render_svg(data(ft) + ribbon * flow(:a, :b) + y(:n))
     @test occursin(">0K</text>", svg) && occursin(">2K</text>", svg)
 end
+
+# Only a flat plot offers its axes to a page, so two stacked map projections each
+# label their own longitude, where the top one was read against the bottom one's.
+# The same block runs in all four bindings.
+@testset "only a flat plot offers its axes to a page" begin
+    mp = (lon = [-150.0, -20.0, 60.0, 150.0], lat = [-40.0, 10.0, 30.0, 60.0])
+    svg = render_svg((data(mp) + point + x(:lon) + y(:lat) + map(preserve = "area")) /
+                     (data(mp) + point + x(:lon) + y(:lat) + map()))
+    @test Base.count(">0\u00b0</text>", svg) == 4
+end

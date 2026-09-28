@@ -5285,3 +5285,17 @@ local({
     stop("FAIL: a flow's count axis should be ticked from zero")
   cat("PASS: a flow's count axis is ticked over its whole range\n")
 })
+
+# ---------------------------------------------------------------------------
+# Only a flat plot offers its axes to a page, so two stacked map projections each
+# label their own longitude, where the top one was read against the bottom one's.
+# The same block runs in all four bindings.
+# ---------------------------------------------------------------------------
+local({
+  t <- data.frame(lon = c(-150, -20, 60, 150), lat = c(-40, 10, 30, 60))
+  svg <- render_svg((data(t) + point + x(lon) + y(lat) + map(preserve = "area")) /
+                    (data(t) + point + x(lon) + y(lat) + map()))
+  if (lengths(regmatches(svg, gregexpr(">0\u00b0</text>", svg, fixed = TRUE))) != 4)
+    stop("FAIL: each stacked map should label its own longitude and latitude")
+  cat("PASS: only a flat plot offers its axes to a page\n")
+})

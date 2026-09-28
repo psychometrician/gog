@@ -3442,3 +3442,14 @@ test("a flow's count axis is ticked over its whole range", () => {
   const svg = render_svg(plot(data(ft), layer(ribbon, flow(col.a, col.b)), y(col.n)));
   assert.ok(svg.includes(">0K</text>") && svg.includes(">2K</text>"));
 });
+
+// Only a flat plot offers its axes to a page, so two stacked map projections each
+// label their own longitude, where the top one was read against the bottom one's.
+// The same block runs in all four bindings.
+test("only a flat plot offers its axes to a page", () => {
+  const mp = { lon: [-150, -20, 60, 150], lat: [-40, 10, 30, 60] };
+  const svg = render_svg(below(
+    plot(data(mp), point, x(col.lon), y(col.lat), map({ preserve: "area" })),
+    plot(data(mp), point, x(col.lon), y(col.lat), map())));
+  assert.equal(svg.split(">0\u00b0</text>").length - 1, 4);
+});
