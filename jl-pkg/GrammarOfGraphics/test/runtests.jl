@@ -3253,3 +3253,17 @@ end
     edged = said(data(t) + edge + x(:v) + y(:w) + network())
     @test !isempty(edged) && !occursin("cannot be bound to `edge`", edged)
 end
+
+# `line * dodge` is not sent to `stack`, which a line refuses too. It is told that
+# lines cross rather than cover, and that `area * stack` piles the groups. The same
+# block runs in all four bindings.
+@testset "line * dodge is not sent to stack" begin
+    t = (g = ["a", "a", "b", "b"], yr = [1.0, 2.0, 1.0, 2.0], v = [1.0, 2.0, 3.0, 4.0])
+    said = try
+        render_svg(data(t) + line * dodge + x(:yr) + y(:v) + color(:g)); ""
+    catch e
+        sprint(showerror, e)
+    end
+    @test occursin("cross rather than cover each other", said) && occursin("`area * stack`", said) &&
+          !occursin("(`stack`)", said)
+end

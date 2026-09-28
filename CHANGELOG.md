@@ -56,6 +56,13 @@ CRAN-style repositories and PyPI, `GrammarOfGraphics` on Julia's General, and
 
 ### Changed
 
+- **`line * dodge` is not sent to `stack`.** Its refusal said a connected path
+  is offset by accumulating, with `stack`, and `line * stack` is refused as
+  well. It now says a line is a thin stroke with no width to subdivide, so
+  lines that meet cross rather than cover each other, and that `area * stack`
+  piles the groups. `area * dodge` is still pointed at `stack`, which an area
+  takes.
+
 - **A channel a mark does not have is refused toward the marks that do.** `point
   + group(country)`, `bar + size(gold)`, `bar + style(size = 3)` and their like
   said to "use a mark that has one" and named none. The refusal now lists them:

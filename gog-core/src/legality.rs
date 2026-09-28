@@ -5997,8 +5997,13 @@ fn check_dodge(out: &mut Vec<Diagnostic>, layer: &Layer) {
     // 1. Something for dodge to set apart — read off the shared table so the grid
     //    and this refusal name the same mark set.
     if mark_takes_transform(&layer.mark, &Transform::Dodge) == TransformLegality::None {
+        // Each direction draws. A `line` shared `area`'s, "offset by accumulating
+        // (`stack`)", and `line * stack` is refused in turn, toward `area`.
         let fix = match layer.mark {
-            Mark::Line | Mark::Area => "A connected path is offset by *accumulating* (`stack`), not by subdividing a width",
+            Mark::Area => "A filled area is offset by *accumulating* (`stack`), not by subdividing a width",
+            Mark::Line => "A line is a thin stroke with no width to subdivide, so lines that meet \
+                           cross rather than cover each other. To pile the groups instead, \
+                           `area * stack` draws each as a filled band",
             Mark::Ribbon => "A filled band has no width to subdivide — overlapping bands are told apart by transparency (`style(opacity = )`)",
             Mark::Text => "A label's width is its word, not a slot to divide — to move labels off one another, `repel` is the tool",
             _ => "dodge subdivides a mark's width across groups, which this mark does not have",
@@ -18472,14 +18477,24 @@ mod tests {
             d.iter().map(|x| &x.message).collect::<Vec<_>>()
         );
 
-        // A connected path is offset by accumulating — the refusal points at stack.
+        // A filled area is offset by accumulating, so its refusal points at `stack`.
+        // A line refuses `stack` too, so its refusal says why a thin stroke needs
+        // neither, and points at `area * stack` for piling the groups: it had shared
+        // the area's `stack`.
+        let d = check(&split(Mark::Area, "gdp"), &data());
+        assert!(d.iter().any(|x| x.kind == DiagnosticKind::Illegal
+            && x.message.contains("accumulating* (`stack`)")), "{:?}", msgs(&d));
+        let d = check(&split(Mark::Line, "gdp"), &data());
+        assert!(d.iter().any(|x| x.kind == DiagnosticKind::Illegal
+            && x.message.contains("cross rather than cover each other")
+            && x.message.contains("`area * stack`")
+            && !x.message.contains("(`stack`)")), "{:?}", msgs(&d));
         for m in [Mark::Line, Mark::Area] {
-            let d = check(&split(m.clone(), "gdp"), &data());
-            assert!(
-                d.iter().any(|x| x.kind == DiagnosticKind::Illegal && x.message.contains("stack")),
-                "{m:?} * dodge should be refused toward stack: {:?}",
-                d.iter().map(|x| &x.message).collect::<Vec<_>>()
-            );
+            let stacked = check(&PlotSpec::new().data("t").x("gdp").y("life")
+                .layer(Layer::new(m.clone()).transform(Transform::Stack)
+                    .encode(Channel::Color, "continent")), &data());
+            assert_eq!(stacked.iter().any(Diagnostic::is_fatal), m == Mark::Line,
+                "{m:?} * stack: {:?}", msgs(&stacked));
         }
 
         // A filled band has no width to subdivide, and no baseline to stack — its

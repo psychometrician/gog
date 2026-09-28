@@ -5823,3 +5823,18 @@ local({
          "\n", edged)
   cat("PASS: a missing feature is refused toward the marks that have it\n")
 })
+
+# ---------------------------------------------------------------------------
+# `line * dodge` is not sent to `stack`, which a line refuses too. It is told
+# that lines cross rather than cover, and that `area * stack` piles the groups.
+# The same block runs in all four bindings.
+# ---------------------------------------------------------------------------
+local({
+  t <- data.frame(g = c("a", "a", "b", "b"), yr = c(1, 2, 1, 2), v = c(1, 2, 3, 4))
+  said <- tryCatch({ render_svg(data(t) + line * dodge + x(yr) + y(v) + color(g)); "" },
+                   error = function(e) conditionMessage(e))
+  if (!grepl("cross rather than cover each other", said, fixed = TRUE) ||
+      !grepl("`area * stack`", said, fixed = TRUE) || grepl("(`stack`)", said, fixed = TRUE))
+    stop("FAIL: line * dodge should not be sent to stack: ", said)
+  cat("PASS: line * dodge is not sent to stack\n")
+})

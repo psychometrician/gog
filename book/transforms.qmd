@@ -1658,11 +1658,13 @@ Which marks `dodge` serves is decided by what a mark *is*. On `bar`, `box` and
 `interval` it subdivides a *width* (a bar's thickness, a box's body, a whisker's
 slot). A `point` has no width, so `dodge` moves it instead. Each point moves
 sideways within its slot, only as far as it must to touch no other point, and
-never along the measure axis. A `line` or `area` is offset by *accumulating*
-rather than subdividing (that is `stack`, next). Ask for `dodge`
-on one of those and gog refuses, naming the collision modifier that fits. The rest of the kernel follows the same rule: an
-atom combines with the marks it was defined for, and the refusal names the atom
-that fits rather than drawing something wrong.
+never along the measure axis. An `area` is *piled* rather than subdivided (that
+is `stack`, the next section). Ask for `dodge` on an area and gog refuses, naming
+the collision modifier that fits. A `line` takes neither `dodge` nor `stack`. It
+is a thin stroke, so lines that meet cross rather than cover each other. The rest
+of the kernel follows the same rule: an atom combines with the marks it was
+defined for, and the refusal names the atom that fits rather than drawing
+something wrong.
 
 On a `bar`, `box` or `interval`, `dodge` also needs a split to separate: a
 channel that splits the rows into groups, such as `color` or `group`. Without one

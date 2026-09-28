@@ -3852,3 +3852,15 @@ test("a missing feature is refused toward the marks that have it", () => {
     (e) => !e.message.includes("cannot be bound to `edge`")
   );
 });
+
+// `line * dodge` is not sent to `stack`, which a line refuses too. It is told that
+// lines cross rather than cover, and that `area * stack` piles the groups. The same
+// block runs in all four bindings.
+test("line * dodge is not sent to stack", () => {
+  const t = { g: ["a", "a", "b", "b"], yr: [1, 2, 1, 2], v: [1, 2, 3, 4] };
+  assert.throws(
+    () => render_svg(plot(data(t), layer(line, dodge), x(col.yr), y(col.v), color(col.g))),
+    (e) => e.message.includes("cross rather than cover each other") && e.message.includes("`area * stack`")
+      && !e.message.includes("(`stack`)")
+  );
+});

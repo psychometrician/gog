@@ -3715,3 +3715,16 @@ assert "use a mark that has one: `point`, `line`" in _feature(_ft + bar + x(col.
 # An edge's positions come from the layout, and the network says so alone.
 assert "cannot be bound to `edge`" not in _feature(_ft + edge + x(col.v) + y(col.w) + network())
 ok("a missing feature is refused toward the marks that have it")
+
+
+# --- line * dodge is not sent to stack --------------------------------------------------
+# A line refuses `stack` too. It is told that lines cross rather than cover, and that
+# `area * stack` piles the groups. The same block runs in all four bindings.
+try:
+    render_svg(data({"g": ["a", "a", "b", "b"], "yr": [1.0, 2.0, 1.0, 2.0], "v": [1.0, 2.0, 3.0, 4.0]},
+                    name="t") + line * dodge + x(col.yr) + y(col.v) + color(col.g))
+    raise AssertionError("line * dodge drew")
+except GogError as refusal:
+    _s = str(refusal)
+    assert "cross rather than cover each other" in _s and "`area * stack`" in _s and "(`stack`)" not in _s, _s
+ok("line * dodge is not sent to stack")
