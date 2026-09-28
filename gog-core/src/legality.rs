@@ -7353,15 +7353,24 @@ pub fn check(spec: &PlotSpec, data: &HashMap<String, DataFrame>) -> Vec<Diagnost
         //
         // The two relaxed marks answer it differently because they read position
         // differently. A `rule` reads *one* of the plot's position columns, so
-        // only the other is skipped. A `zone` reads **neither** — its four sides
-        // are its own columns, named by `bounds` — so both are skipped and
-        // `check_bounds` owns its whole position story.
+        // only the other is skipped. A `zone` whose sides are named by `bounds`
+        // reads **neither** — its four sides are its own columns — so both are
+        // skipped and `check_bounds` owns its whole position story, and a plain
+        // zone over a slot is left to `check_zone_extent` the same way.
+        //
+        // **Any other zone reads its positions like any other mark.** A density,
+        // a bin, a tally, a reduction or a partition reads the columns its `x` and
+        // `y` name, and skipping them let `zone * density + y(petal_width)` over a
+        // table with no such column draw an empty panel in silence, where
+        // `point` and `path * density` refuse the same misspelling. A written
+        // axis (a partition's `depth`) is still spared, by the exemption below.
         let spans_axis = |channel: &Channel| {
             if !matches!(channel, Channel::X | Channel::Y) {
                 return false;
             }
             match mark {
-                Mark::Zone => true,
+                Mark::Zone => layer.transforms.contains(&Transform::Bounds)
+                    || (layer.transforms.is_empty() && !layer.encodings.contains_key(&Channel::Group)),
                 Mark::Rule => df.is_none_or(|d| rule_axis(spec, d, layer).as_ref() != Some(channel)),
                 _ => false,
             }
@@ -16335,6 +16344,43 @@ mod tests {
             .layer(Layer::new(Mark::Point).encode(Channel::Size, "gdp"))
             .layer(Layer::new(Mark::Point));
         assert!(check(&spec, &data()).iter().all(|d| !d.message.contains("reaches none")));
+    }
+
+    /// **A zone that reads its positions checks their columns.** Only a zone whose
+    /// sides are named by `bounds`, or a plain one over a slot, is spared the
+    /// missing-column check; a density, a bin, a tally or a partition reads `x` and
+    /// `y` like any other mark. Spared, `zone * density + y(petal_width)` over a
+    /// table without the column drew an empty panel in silence.
+    #[test]
+    fn a_zone_that_reads_its_positions_checks_their_columns() {
+        let refused = |spec: PlotSpec, field: &str| {
+            let d = check(&spec, &data());
+            d.iter().any(|d| d.kind == DiagnosticKind::Illegal
+                && d.message.contains(&format!("({field})` refers to a column that is not in the data")))
+        };
+        for t in [Transform::Density, Transform::Bin] {
+            let spec = PlotSpec::new().data("t").x("gdp").y("lif").layer(Layer::new(Mark::Zone).transform(t.clone()));
+            assert!(refused(spec, "lif"), "{t:?}");
+        }
+        let tally = PlotSpec::new().data("t").x("continent").y("regio")
+            .layer(Layer::new(Mark::Zone).transform(Transform::Count));
+        assert!(refused(tally, "regio"));
+        let sunburst = PlotSpec::new().data("t").x("gdpp")
+            .layer(Layer::new(Mark::Zone).transform(Transform::Partition).partition(&["continent"]));
+        assert!(refused(sunburst, "gdpp"));
+
+        // A zone named by `bounds` reads its own columns: the plot's `x` is absent
+        // from its table by design, and nothing is reported missing.
+        let mut data = data();
+        data.insert("bands".into(), DataFrame::new()
+            .with_float("start", vec![1.5]).with_float("end", vec![2.5]));
+        let mut band = Layer::new(Mark::Zone).transform(Transform::Bounds).data("bands");
+        band.bounds = Some(crate::ir::BoundsSpec {
+            start: Some("start".into()), end: Some("end".into()), ..Default::default()
+        });
+        let spec = base().layer(Layer::new(Mark::Point)).layer(band);
+        let d = check(&spec, &data);
+        assert!(d.iter().all(|d| !d.message.contains("refers to a column")), "{d:?}");
     }
 
     #[test]

@@ -2910,3 +2910,16 @@ end
     svg = render_svg(data(ring) + zone * density(levels = 6) + x(:a) + y(:b))
     @test occursin("fill-rule=\"evenodd\"", svg) && !occursin("<polygon", svg)
 end
+
+# A zone that reads its positions checks their columns: `zone * density` with a
+# misspelled `y` drew an empty panel in silence, where `point` refuses it. The same
+# block runs in all four bindings.
+@testset "a zone that reads its positions checks their columns" begin
+    zt = (a = [1.0, 2.0, 3.0, 4.0, 5.0, 6.0], b = [2.0, 1.0, 4.0, 3.0, 6.0, 5.0])
+    said = try
+        render_svg(data(zt) + zone * density + x(:a) + y(:bb)); ""
+    catch e
+        sprint(showerror, e)
+    end
+    @test occursin("`y(bb)` refers to a column that is not in the data", said)
+end

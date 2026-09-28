@@ -48,6 +48,12 @@ CRAN-style repositories and PyPI, `GrammarOfGraphics` on Julia's General, and
 
 ### Changed
 
+- **A misspelled column on a `zone` that reads its positions is refused.**
+  `zone * density`, `zone * bin`, a tally or a partition whose `x` or `y` named
+  a column the table does not hold drew an empty panel with no message. It now
+  gets the refusal every other mark gives, naming the column. A zone whose sides
+  come from `bounds` still takes the other axis from the panel.
+
 - **Filled density bands leave a hole where the density dips.** With
   `zone * density(levels = )`, points spread around a ring filled the middle
   with the ring's own color, so the dip read as the highest band. Each level is

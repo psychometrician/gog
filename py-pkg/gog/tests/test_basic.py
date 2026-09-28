@@ -3376,3 +3376,15 @@ _ring = {"a": [_r[i] * math.cos(0.37 * i) for i in builtins.range(300)],
 _svg = render_svg(data(_ring, name="ring") + zone * density(levels=6) + x(col.a) + y(col.b))
 assert 'fill-rule="evenodd"' in _svg and "<polygon" not in _svg
 ok("a banded crater leaves its middle to the bands below")
+
+
+# --- A zone that reads its positions checks their columns ------------------------------
+# `zone * density` with a misspelled `y` drew an empty panel in silence, where `point`
+# refuses it. The same block runs in all four bindings.
+_zt = {"a": [1.0, 2.0, 3.0, 4.0, 5.0, 6.0], "b": [2.0, 1.0, 4.0, 3.0, 6.0, 5.0]}
+try:
+    render_svg(data(_zt, name="zt") + zone * density + x(col.a) + y(col.bb))
+    raise AssertionError("a zone * density with a missing column drew")
+except GogError as refusal:
+    assert "`y(bb)` refers to a column that is not in the data" in str(refusal), refusal
+ok("a zone that reads its positions checks their columns")

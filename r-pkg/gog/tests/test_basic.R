@@ -5434,3 +5434,17 @@ local({
     stop("FAIL: a banded density should draw each level as one even-odd region")
   cat("PASS: a banded crater leaves its middle to the bands below\n")
 })
+
+# ---------------------------------------------------------------------------
+# A zone that reads its positions checks their columns: `zone * density` with a
+# misspelled `y` drew an empty panel in silence, where `point` refuses it. The
+# same block runs in all four bindings.
+# ---------------------------------------------------------------------------
+local({
+  t <- data.frame(a = c(1, 2, 3, 4, 5, 6), b = c(2, 1, 4, 3, 6, 5))
+  said <- tryCatch({ render_svg(data(t) + zone * density + x(a) + y(bb)); "" },
+                   error = function(e) conditionMessage(e))
+  if (!grepl("`y(bb)` refers to a column that is not in the data", said, fixed = TRUE))
+    stop("FAIL: a zone * density with a missing column should be refused: ", said)
+  cat("PASS: a zone that reads its positions checks their columns\n")
+})

@@ -3540,3 +3540,14 @@ test("a banded crater leaves its middle to the bands below", () => {
   const svg = render_svg(plot(data(ring), layer(zone, density({ levels: 6 })), x(col.a), y(col.b)));
   assert.ok(svg.includes('fill-rule="evenodd"') && !svg.includes("<polygon"));
 });
+
+// A zone that reads its positions checks their columns: `zone * density` with a
+// misspelled `y` drew an empty panel in silence, where `point` refuses it. The same
+// block runs in all four bindings.
+test("a zone that reads its positions checks their columns", () => {
+  const zt = { a: [1, 2, 3, 4, 5, 6], b: [2, 1, 4, 3, 6, 5] };
+  assert.throws(
+    () => render_svg(plot(data(zt), layer(zone, density), x(col.a), y(col.bb))),
+    /`y\(bb\)` refers to a column that is not in the data/
+  );
+});
