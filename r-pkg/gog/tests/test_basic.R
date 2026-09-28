@@ -5486,3 +5486,18 @@ local({
     stop("FAIL: the title should sit over the panel a ratio shortened, not at the top: ", ty)
   cat("PASS: the title follows a panel a ratio shortened\n")
 })
+
+# ---------------------------------------------------------------------------
+# An `area` refused in the cube gets its own direction: it said "A `area`" and
+# called `path` "`area` with that sort removed", which is `line`'s sentence. The
+# same block runs in all four bindings.
+# ---------------------------------------------------------------------------
+local({
+  t <- data.frame(a = c(1, 2, 3, 4), b = c(2, 1, 4, 3), c = c(5, 6, 7, 8))
+  said <- tryCatch({ render_svg(data(t) + x(a) + y(b) + area + z(c)); "" },
+                   error = function(e) conditionMessage(e))
+  if (!grepl("An `area` in space", said, fixed = TRUE) ||
+      !grepl("draw the area's edge with `path`", said, fixed = TRUE))
+    stop("FAIL: an area in the cube should get its own direction: ", said)
+  cat("PASS: an area refused in the cube gets its own direction\n")
+})

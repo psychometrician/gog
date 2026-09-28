@@ -3572,3 +3572,14 @@ test("the title follows a panel a ratio shortened", () => {
   const svg = render_svg(plot(data({ u: [1, 2, 3, 4], v: [1, 2, 3, 4] }), point, x(col.u), y(col.v), title("Wide"), theme({ ratio: 3 })));
   assert.ok(Number(svg.match(/<text x="[^"]*" y="([^"]*)"[^>]*font-weight="600"/)[1]) > 100);
 });
+
+// An area refused in the cube gets its own direction: it said "A `area`" and called
+// `path` "`area` with that sort removed", which is `line`'s sentence. The same block
+// runs in all four bindings.
+test("an area refused in the cube gets its own direction", () => {
+  const t = { a: [1, 2, 3, 4], b: [2, 1, 4, 3], c: [5, 6, 7, 8] };
+  assert.throws(
+    () => render_svg(plot(data(t), x(col.a), y(col.b), area, z(col.c))),
+    (e) => e.message.includes("An `area` in space") && e.message.includes("draw the area's edge with `path`")
+  );
+});

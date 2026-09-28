@@ -57,15 +57,15 @@ cells <- rules$cells
 #   ●  a required position (Must)
 #   ✅ a column maps here and the engine draws it today
 #   ○  not mappable per row, but style() can set it once for the layer
-#   ◌  legal grammar the renderer refuses today: owed, blocked, or decided
-#      against; the refusal message says which, and the legend below splits them
-#   —  the mark has no such feature at all
+#   ◌  legal grammar the renderer refuses today: owed or blocked; the refusal
+#      message says which, and the legend below splits them
+#   —  the mark has no such feature, or the grammar does not allow the pairing
 glyph <- function(ob, renders, settable) {
   if (ob == "must")         "●"  # ●
   else if (!is.na(renders)) "✅"  # ✅
   else if (ob == "can")     "◌"  # ◌  grammar-legal, not drawn yet
   else if (settable)        "○"  # ○  set-only
-  else                      "—"  # no such feature
+  else                      "—"  # no such feature, or decided
 }
 lookup <- setNames(
   mapply(glyph, cells$obligation, cells$renders, cells$settable),
@@ -90,18 +90,19 @@ Reading the five glyphs:
   questions, not one](style.qmd#two-questions-not-one) shows in one table where
   each of five properties can be mapped and where it can only be set.
 - **◌ not drawn**: the engine refuses this pairing and gives you a
-  direction instead of a wrong picture. One glyph, three verdicts, and the
+  direction instead of a wrong picture. The glyph covers two verdicts, and the
   refusal message tells you which you have. **Owed**: a mapped `size` or
   `opacity` on `text`, and `z` on `text`. **Blocked** on
   infrastructure: `z` on `rule` and on `zone`. Their 3-D forms are a plane and a
   slab with no single depth to sort by, so they need an engine that can tell what
-  hides what. **Decided**: `z` on `line`, `step`, `area` and `ribbon`. These
-  marks read a domain from left to right, and a cube has no left to right, so
-  the refusal points to `path` instead. The Mark × Space grid below uses the same
-  three verdicts on its own blanks.
-- **— none**: the mark has no such feature. A `bar` has no glyph for `shape` to change, and
-  a `point` has no line for `group` to divide. Binding it means nothing, and the
-  engine says so.
+  hides what.
+- **— none**: the mark has no such feature, or the grammar does not allow the
+  pairing. A `bar` has no glyph for `shape` to change, and a `point` has no line
+  for `group` to divide. Either binding means nothing, and the engine says so.
+  **Decided**: `z` on `line`, `step`, `area` and `ribbon`. These marks sort by
+  `x`, and in a cube `x` can point into the page, so the order cannot be seen.
+  The refusal points to `path` instead, which for an `area` or a `ribbon` draws
+  only the edge.
 
 With the glyphs read, the grid itself shows five patterns:
 
@@ -443,10 +444,11 @@ Two glyphs here, not five. Either the engine draws this mark in this space,
 or it does not and says so:
 
 - **✅ drawn**: the mark renders in this space.
-- **— not drawn**: refused with direction, never half-drawn. Here `—` means
-  what ◌ means on the channel grid, and the same three verdicts apply: owed,
-  blocked, decided. The paragraphs under the table say why each column's
-  blanks are blank.
+- **— not drawn**: refused with direction, never half-drawn. Here `—` has
+  three verdicts: owed, blocked and decided. On the channel grid, owed and
+  blocked show as ◌, and decided shows as `—`. A few blanks are simpler: the mark
+  needs what the space lacks, as a `surface` needs the cube. The paragraphs under
+  the table say why each column's blanks are blank.
 
 ```{r}
 #| echo: false

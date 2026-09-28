@@ -48,6 +48,13 @@ CRAN-style repositories and PyPI, `GrammarOfGraphics` on Julia's General, and
 
 ### Changed
 
+- **`z` on `line`, `step`, `area` and `ribbon` is listed as refused, not as
+  unbuilt.** gog refuses these four pairs by rule, but `gog-cli --rules` listed
+  them as allowed and not drawn yet, so the Combinations grid marked them ◌. They
+  are now `cannot`, drawn `—`. The refusal for `step`, `area` and `ribbon` gives
+  each its own direction, where it repeated `line`'s ("A `area`", and `path` as
+  "`area` with that sort removed").
+
 - **A title sits over its map, not over the room the map leaves.** A map keeps
   its shape by drawing a smaller panel inside its rectangle, and the title stayed
   at the rectangle's top, as much as 120 px above the map. It now sits just above

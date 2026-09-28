@@ -2947,3 +2947,16 @@ end
     m = match(r"<text x=\"[^\"]*\" y=\"([^\"]*)\"[^>]*font-weight=\"600\"", svg)
     @test parse(Float64, m.captures[1]) > 100
 end
+
+# An area refused in the cube gets its own direction: it said "A `area`" and called
+# `path` "`area` with that sort removed", which is `line`'s sentence. The same block
+# runs in all four bindings.
+@testset "an area refused in the cube gets its own direction" begin
+    t = (a = [1.0, 2.0, 3.0, 4.0], b = [2.0, 1.0, 4.0, 3.0], c = [5.0, 6.0, 7.0, 8.0])
+    said = try
+        render_svg(data(t) + x(:a) + y(:b) + area + z(:c)); ""
+    catch e
+        sprint(showerror, e)
+    end
+    @test occursin("An `area` in space", said) && occursin("draw the area's edge with `path`", said)
+end

@@ -3412,3 +3412,15 @@ _svg = render_svg(data({"u": [1.0, 2.0, 3.0, 4.0], "v": [1.0, 2.0, 3.0, 4.0]}, n
                   + point + x(col.u) + y(col.v) + title("Wide") + theme(ratio=3))
 assert float(re.search(r'<text x="[^"]*" y="([^"]*)"[^>]*font-weight="600"', _svg).group(1)) > 100
 ok("the title follows a panel a ratio shortened")
+
+
+# --- An area refused in the cube gets its own direction ---------------------------------
+# It said "A `area`" and called `path` "`area` with that sort removed", which is
+# `line`'s sentence. The same block runs in all four bindings.
+try:
+    render_svg(data({"a": [1.0, 2.0, 3.0, 4.0], "b": [2.0, 1.0, 4.0, 3.0], "c": [5.0, 6.0, 7.0, 8.0]},
+                    name="az") + x(col.a) + y(col.b) + area + z(col.c))
+    raise AssertionError("an area in the cube drew")
+except GogError as refusal:
+    assert "An `area` in space" in str(refusal) and "draw the area's edge with `path`" in str(refusal), refusal
+ok("an area refused in the cube gets its own direction")

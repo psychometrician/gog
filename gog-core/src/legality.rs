@@ -1958,10 +1958,18 @@ pub fn rules_matrix() -> RulesMatrix {
     for m in &ALL_MARKS {
         for c in &ALL_CHANNELS {
             let r = rule_for(m, c);
+            // **A ruled-out `z` is dumped as the refusal it is** (spec §15). The four
+            // path marks keep a `Can` cell with no renderer, so a plot-wide `z` still
+            // reaches them and a cube still asks them for one, and each is refused
+            // with its own direction (`z_refusal`). But the grammar has ruled the
+            // pairing out, so the table says `cannot`: dumped as legal and unbuilt,
+            // it was printed as ◌ beside the cells that are only owed.
+            let ruled_out = *c == Channel::Z && r.renders.is_none()
+                && z_refusal_kind(m) == DiagnosticKind::Illegal;
             cells.push(RuleCell {
                 mark: mark_name(m),
                 channel: channel_name(c),
-                obligation: obligation_wire(r.obligation),
+                obligation: obligation_wire(if ruled_out { Obligation::Cannot } else { r.obligation }),
                 accepts: vartype_wire(r.accepts),
                 renders: r.renders.map(vartype_wire),
                 settable: r.settable,
@@ -8951,14 +8959,31 @@ fn z_refusal(mark: &Mark, field: &str) -> String {
         // page and becomes depth (`project::Scene`'s own test pins that), so the
         // sort would be along an axis the reader cannot see. The direction is
         // `path`, which is exactly `line` with that sort removed.
-        Mark::Line | Mark::Step | Mark::Area | Mark::Ribbon => format!(
-            "gog: `{m}` reads a *domain* left to right — it sorts by `x` and draws one value \
-             for each — and a cube has no left to right: `x` is one of three equal positions, \
-             and at some viewing angles it runs into the page and becomes depth. A `{m}` in \
-             space would be sorted by an axis the reader cannot see, so this is refused rather \
-             than drawn. For a route through three dimensions use `path`, which is `{m}` with \
-             that sort removed: `path + x(<a>) + y(<b>) + z({field})`."
-        ),
+        //
+        // The direction is the mark's own. `path` is `line` with the sort removed,
+        // and a `step`'s stairs, too, are only that sort drawn square; an `area` or a
+        // `ribbon` is a fill with no plane to stand on in a cube, so what `path`
+        // gives it is its edge.
+        Mark::Line | Mark::Step | Mark::Area | Mark::Ribbon => {
+            let a = if matches!(mark, Mark::Area) { "An" } else { "A" };
+            let direction = match mark {
+                Mark::Line => format!(
+                    "For a route through three dimensions use `path`, which is `{m}` with that \
+                     sort removed"),
+                Mark::Step => "For a route through three dimensions use `path`, which joins the \
+                               rows in the order they come instead of sorting them".to_string(),
+                _ => format!(
+                    "A fill has no plane to stand on in a cube, so draw the {m}'s edge with \
+                     `path`, which joins the rows in the order they come"),
+            };
+            format!(
+                "gog: `{m}` reads a *domain* left to right — it sorts by `x` and draws one value \
+                 for each — and a cube has no left to right: `x` is one of three equal positions, \
+                 and at some viewing angles it runs into the page and becomes depth. {a} `{m}` in \
+                 space would be sorted by an axis the reader cannot see, so this is refused rather \
+                 than drawn. {direction}: `path + x(<a>) + y(<b>) + z({field})`."
+            )
+        }
         // **Blocked, and on the one thing M8a deliberately does not have.** A rule
         // spans the axes it does not name; in a cube that is *two* of them, so the
         // mark is a plane. Marks are depth-sorted by footprint, and a plane's
@@ -17510,8 +17535,15 @@ mod tests {
         // domain left to right and the cube has no left to right, so the space curve
         // is `path`'s — which makes it the right example for "grammar-legal, not
         // drawn" rather than merely the next one along.
-        assert_eq!(cell("line", "z").obligation, "can"); // grammar-legal…
-        assert!(cell("line", "z").renders.is_none()); // …but ◌ not drawn yet
+        //
+        // `line`/`z` is ruled out now, and dumped as `cannot` (spec §15), so the
+        // reserved example is `text`/`z`, which is owed: the grammar allows it and
+        // this engine does not draw it yet.
+        assert_eq!(cell("text", "z").obligation, "can"); // grammar-legal…
+        assert!(cell("text", "z").renders.is_none()); // …but ◌ not drawn yet
+        for mk in ["line", "step", "area", "ribbon"] {
+            assert_eq!(cell(mk, "z").obligation, "cannot", "{mk}: ruled out, so —");
+        }
         // And the cell that moved is pinned from the other side, so a regression
         // that quietly un-draws it fails here too.
         assert!(cell("bar", "z").renders.is_some(), "bar should draw in the cube");
