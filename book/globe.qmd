@@ -229,6 +229,70 @@ Look at the countries that the edge of the disk cuts through. gog closes each
 cut shape along that edge, so a half-visible country is still a filled region
 rather than an open outline.
 
+## Thousands of storm tracks on a dark globe
+
+The routes earlier in this chapter were a few arcs between cities. A table of
+real records can hold thousands of lines, and then the lines are hard to tell
+apart. Thin lines drawn over one another on a pale sphere merge into one gray
+mass, and the lines inside it can no longer be followed.
+
+`cyclones` is a table of that size. It holds all 2,174 storms from 1980 to 2025
+that reached hurricane strength, a wind of at least 64 knots (119 kilometers per
+hour). The US National Oceanic and Atmospheric Administration (NOAA) keeps the
+record. Hurricanes, typhoons and cyclones are one kind of storm, with a
+different name in each ocean. Scientists call all three tropical cyclones, which
+gives the table its name.
+
+Each row is one storm's position at one moment, and a storm's positions joined
+in order are its **track**. The positions are twelve hours apart. They cover
+only the time when the storm's wind was at least 34 knots, or 63 kilometers per
+hour. At that speed a storm is given a name. `category` is the storm's highest
+category on the Saffir-Simpson scale, which ranks a storm from 1 to 5 by its
+strongest wind. It holds one value for each storm, in three bands: "1 or 2",
+"3 or 4" and "5". The `month` column is not used in this chapter. The
+[Play](play.qmd) chapter uses it to show the same storms one calendar month at a
+time.
+
+```{r}
+#| echo: false
+peek(cyclones)
+```
+
+Three settings give the globe its dark look. `theme(background = )` colors the
+sphere itself, here almost black, and `grid = "none"` removes the graticule. The
+land is the same `zone` layer as in the choropleth above. `style(color = )` sets
+every country to one dark gray, so the continents stay darker than every track.
+Bright lines on a dark sphere do not merge into gray, so the thin tracks stay
+visible even where many of them cross:
+
+```{r}
+data(world_borders) + zone + x(lon) + y(lat) + group(country) +
+  style(color = "#1c2636") +
+  data(cyclones) + path + x(lon) + y(lat) + group(storm) + color(category) +
+  palette(c("mediumvioletred", "darkorange", "gold")) + style(opacity = 0.6) +
+  globe(turn = 135, tilt = 10) + theme(background = "#050a14", grid = "none") +
+  title("Every storm that reached hurricane strength, 1980 to 2025")
+```
+
+*"Given the world borders: zones, x is lon, y is lat, grouped by country; then
+given the cyclones: paths, x is lon, y is lat, grouped by storm, color by
+category, with a palette of mediumvioletred, darkorange and gold, on the
+globe."*
+
+The busiest region is the western North Pacific, on both sides of the
+Philippines. A third of the storms began there, 729 of the 2,174, and so did 125
+of the 221 storms that reached category 5. In the north, most tracks run west,
+and many then bend to the north and east. In the south, many bend to the south
+and east. The band along the equator stays empty: no position lies closer to it
+than 0.7 degrees, and only 33 of the 29,669 positions lie within 5 degrees of
+it.
+
+The gold tracks lie on top because of the table's order, not because of their
+color. gog draws the storms in the order the table lists them, and a track drawn
+later covers the tracks drawn before it. The table lists the category 5 storms
+last. Reverse the rows, and the gold tracks go to the bottom, under all the
+others.
+
 ## A measure stands on the radius
 
 On a flat map a quantity has to go on a channel, `size` or `color`, because both

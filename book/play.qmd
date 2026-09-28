@@ -625,6 +625,53 @@ by half, from 10% to 15%. The two sentences differ by one argument,
 Choosing between them belongs to the reader; the grammar only has to let you
 write both.
 
+## Frames on the globe
+
+The cube and polar each played a sequence with nothing added to the grammar.
+The [globe](globe.qmd) is a third space, and `play` works on it in the same
+way. The Globe chapter drew all of `cyclones` at once, on a dark globe. The
+table holds every storm from 1980 to 2025 that reached hurricane strength. That
+picture shows where the storms go. It does not show the time of year when they
+happen. The table's `month` column can show that: it holds the calendar month
+of each position, in a declared order from January to December. The land comes
+from `world_borders`, as it did in the Globe chapter:
+
+```{r}
+#| echo: false
+peek(cyclones)
+peek(world_borders)
+```
+
+```{r}
+data(world_borders) + zone + x(lon) + y(lat) + group(country) +
+  style(color = "#1c2636") +
+  data(cyclones) + path + x(lon) + y(lat) + group(storm) + color(category) +
+  palette(c("mediumvioletred", "darkorange", "gold")) + style(opacity = 0.6) +
+  play(month) + globe(turn = 135, tilt = 10) +
+  theme(background = "#050a14", grid = "none")
+```
+
+*"Given the world borders: zones, x is lon, y is lat, grouped by country; then
+given the cyclones: paths, x is lon, y is lat, grouped by storm, color by
+category, with a palette of mediumvioletred, darkorange and gold, played by
+month, on the globe."*
+
+Twelve frames, one for each calendar month, and each frame holds 46 years of
+that month. From June to November most storms are in the Northern Hemisphere,
+and almost half of those are in the western North Pacific. September has the
+most storms of any month: 477 in the north over the 46 years. From December to
+April most storms are south of the equator, in the southern Indian Ocean, near
+northern Australia and in the South Pacific. February is the busiest southern
+month. No storm appears south of the equator in July or August. May is the
+quietest month of the year.
+
+Two rules from earlier in this chapter make the sequence work. The frames follow
+the calendar because `month` has a declared order, as
+[The column's order](#the-columns-order) explained. The land has no `play` of
+its own, so it is drawn whole in every frame, like the reference lines in
+[A layer with no frames](#a-layer-with-no-frames). Only the storms change from
+one frame to the next.
+
 ## Taking the sequence with you
 
 You may want to send one of these sequences to someone. Every sequence on this

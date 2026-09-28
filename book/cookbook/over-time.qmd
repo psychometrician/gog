@@ -6,9 +6,10 @@ source("../R/setup.R")
 ```
 
 How did a measurement change over time? Time is not a chart type in this
-grammar. It is a column like any other, and you decide where it goes. Every
-recipe here puts it on `x`, which gives the familiar time series. The last
-section asks for one panel per year instead, which gog refuses.
+grammar. It is a column like any other, and you decide where it goes. Most
+recipes here put it on `x`, which gives the familiar time series. One gives it
+to `play` instead, to show where earthquakes happened, one week at a time. The
+last section asks for one panel per year, which gog refuses.
 
 ## How did it change?
 
@@ -126,13 +127,72 @@ has the same two columns, `year` and `sales`.
 [Data](../data.qmd#the-plots-table-and-a-layers-table) owns plots that read
 more than one table.
 
+## Where did it happen, week by week?
+
+The recipes above follow one measurement along `x`. Some questions are about
+places instead: where did something happen, and when? The `quakes_2011` table
+holds every earthquake of magnitude 5 or more that the US Geological Survey
+recorded in 2011. That was the year of the magnitude 9.1 earthquake off the
+coast of Tohoku, in Japan, on March 11.
+
+The table is shaped for a sequence of weekly frames. `week` holds the first day
+of each seven-day week, counted from January 1, so every week here starts on a
+Saturday. A frame draws only its own rows, so an earthquake with a single row
+would appear for one week and then vanish. Each earthquake therefore has four
+rows. The first is in the week it struck, with `age` "this week". The other
+three repeat it in each of the next three weeks, with `age` "1 week ago",
+"2 weeks ago" and "3 weeks ago". The land comes from `world_borders`, drawn as
+in the [Globe](../globe.qmd) chapter:
+
+```{r}
+#| echo: false
+peek(quakes_2011)
+peek(world_borders)
+```
+
+```{r}
+data(world_borders) + zone + x(lon) + y(lat) + group(country) +
+  style(color = "#1c2636") +
+  data(quakes_2011) + point + x(lon) + y(lat) + size(magnitude) + color(age) +
+  palette(c("gold", "darkorange", "orangered", "darkred")) + play(week, speed = 3) +
+  globe(turn = 150, tilt = 15) + theme(background = "#050a14", grid = "none")
+```
+
+*"Given the world borders: zones, x is lon, y is lat, grouped by country; then
+given quakes 2011: points, x is lon, y is lat, size by magnitude, color by age,
+with a palette of gold, darkorange, orangered and darkred, played by week at
+speed 3, on the globe."*
+
+Fifty-three frames: 52 full weeks, and a last one that holds only December 31.
+A typical week adds about 40 new earthquakes, most of them along the edges of
+the Pacific. The frame for the week of March 5 adds 335, and 303 of them lie off
+the coast of Japan. Twenty-six of them came in the two days before the magnitude
+9.1 earthquake. The rest are the magnitude 9.1 earthquake itself and 276
+**aftershocks**, the smaller earthquakes that follow a large one, in the 18
+hours that remained in the week. Over the next three frames that cluster turns
+from gold to dark red. Meanwhile new aftershocks keep arriving off Japan: 201 in
+the following week, then 52, then 23.
+
+The palette runs from gold to dark red in the declared order of `age`, so an
+earthquake starts bright and darkens as it ages. The four rows were in the table
+before gog read it, because `play` cannot keep a row visible for several frames
+by itself. The same preparation works for any event that should stay visible for
+several frames. Repeat its row once for each of those frames, and add a column
+that says how old each copy is. Owning chapters: [Play](../play.qmd),
+[Globe](../globe.qmd).
+
+**One atom away.** Swap `globe(turn = 150, tilt = 15)` for `map()`, and the
+whole earth shows at once, flattened. The earthquakes on the far side of this
+globe, in the Americas and along the middle of the Atlantic, then come into
+view. [Map](../map.qmd) owns the flat version.
+
 ## What this section refuses
 
-Every recipe so far put time on `x`. Suppose instead you want one scatter of GDP
-per capita and life expectancy for each year, with the years side by side. One
-panel per year is what [faceting](../faceting.qmd) does. A facet column *names*
-its panels, so it must be categorical, but `year` holds numbers. gog refuses the
-sentence, and the message names two fixes:
+The recipes so far put time on `x` or gave it to `play`. Suppose instead you
+want one scatter of GDP per capita and life expectancy for each year, with the
+years side by side. One panel per year is what [faceting](../faceting.qmd)
+does. A facet column *names* its panels, so it must be categorical, but `year`
+holds numbers. gog refuses the sentence, and the message names two fixes:
 
 ```{r}
 #| error: true

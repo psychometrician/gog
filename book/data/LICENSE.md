@@ -4,10 +4,11 @@ These CSVs are the tables every chapter of *gog: A Grammar of Graphics* draws
 from. They are published so that a reader can run the manual's examples in R,
 Python, Julia or JavaScript, rather than only read them.
 
-They are built by `book/R/make-data.R` and read by `book/R/data.R`. The ruling
-that put them here is spec §20, "The cast is fetched, not shipped".
+They are built by `book/R/make-data.R`, or downloaded from public records by
+`book/R/fetch-data.R`, and read by `book/R/data.R`. The ruling that put them
+here is spec §20, "The cast is fetched, not shipped".
 
-Three tiers, and they are not under one license.
+Five tiers, and they are not under one license.
 
 ## Original to this book — Apache License 2.0
 
@@ -98,3 +99,33 @@ Simplified at roughly a third of a degree, which is invisible at the size the
 book draws and is what keeps the file small. Antarctica is dropped because at
 this resolution its coastline is a ragged strip cut off at the bottom of the
 data rather than a shape, and a reader would fairly read that as a bug.
+
+## Public records of US government agencies — public domain
+
+Two frames are real observations, downloaded and reshaped by
+`book/R/fetch-data.R`:
+
+| Frame | From | Reshaping |
+|---|---|---|
+| `cyclones` | NOAA National Centers for Environmental Information, International Best Track Archive for Climate Stewardship (IBTrACS), version 4.01 | storms whose one-minute wind (`USA_WIND`) reached 64 knots, 1980 to 2025; a position every twelve hours while the wind was at least 34 knots; `spur` tracks dropped; each storm named by its name and first year, or by IBTrACS's identifier when it has no name of its own; `category` is its highest Saffir-Simpson category, in three bands |
+| `quakes_2011` | US Geological Survey, ANSS Comprehensive Earthquake Catalog (ComCat) | every earthquake of magnitude 5 or more in 2011, with a row in the week it struck and in each of the next three weeks; `age` says which |
+
+Works of the United States government are in the public domain in the United
+States, and both agencies publish these records for use without restriction.
+Both ask to be credited, and they are credited here:
+
+- Knapp, K. R., M. C. Kruk, D. H. Levinson, H. J. Diamond, and C. J. Neumann
+  (2010). The International Best Track Archive for Climate Stewardship
+  (IBTrACS): unifying tropical cyclone best track data. *Bulletin of the
+  American Meteorological Society* 91, 363–376.
+- Gahtan, J., K. R. Knapp, C. J. Schreck III, H. J. Diamond, J. P. Kossin, and
+  M. C. Kruk (2024). International Best Track Archive for Climate Stewardship
+  (IBTrACS) Project, Version 4.01. NOAA National Centers for Environmental
+  Information. <https://doi.org/10.25921/82ty-9e16>
+- U.S. Geological Survey, Earthquake Hazards Program. ANSS Comprehensive
+  Earthquake Catalog (ComCat). <https://earthquake.usgs.gov/data/comcat/>
+
+IBTrACS gathers each storm's record from the forecasting agencies that tracked
+it, in several countries. The wind speeds used here are the US agencies' own,
+averaged over one minute, which is the measure the Saffir-Simpson scale is
+defined on.

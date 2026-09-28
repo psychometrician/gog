@@ -195,9 +195,10 @@ your own code, and drop the sort. `winds` needs a second declaration, for `seaso
 the book's plots show Summer before Winter, and the file lists Winter first.
 Three other tables need a declared order too: `survived` in `titanic` (Yes, then
 No), `slab` in `quakes_fiji` (shallowest band first) and `weekday` in
-`six_weeks` (Monday first). `age` in `census` needs a declared order as well,
-youngest band first, although `census.csv` already lists its bands in that
-order. The next section explains why.
+`six_weeks` (Monday first). So do `age` in `quakes_2011` ("this week" first),
+and `month` and `category` in `cyclones` (January first, and the weakest
+category first). `age` in `census` needs a declared order as well, youngest band first, although `census.csv` already lists its
+bands in that order. The next section explains why.
 
 ### Labels that look like numbers
 
@@ -263,11 +264,11 @@ table does.
 ### A date
 
 The third thing a CSV cannot record is which columns are dates. `six_weeks`,
-`revenue` and `monitoring` each have a column of dates, and `gog_table()`
-returns it as text, so the axis gets one slot per date instead of a calendar
-axis. After reading, convert the column to your language's date or timestamp
-type: in R, `as.Date()` for `six_weeks` and `revenue`, and `as.POSIXct()` for
-`monitoring`, which also records the hour.
+`revenue`, `monitoring` and `quakes_2011` each have a column of dates, and
+`gog_table()` returns it as text, so the axis gets one slot per date instead of
+a calendar axis. After reading, convert the column to your language's date or
+timestamp type: in R, `as.Date()` for `six_weeks`, `revenue` and
+`quakes_2011`, and `as.POSIXct()` for `monitoring`, which also records the hour.
 [Scales](scales.qmd#time-a-date-column-gets-a-calendar-axis) shows the calendar
 axis you get.
 
@@ -299,8 +300,11 @@ them into the public domain. `healthy_band`, `world_median` and
 `population_spikes` are computed from those figures. `iris_flowers`,
 `maunga_whau`, `quakes_fiji` and `titanic` are reshaped from tables included
 with R, and carry R's own license. `world_borders` is Natural Earth's
-public-domain outline of the countries. Everything else was written for this
-book, each table to show one thing; `census` is two plausible city profiles, not
+public-domain outline of the countries. `cyclones` and `quakes_2011` are US
+government records: the National Oceanic and Atmospheric Administration's
+storms of hurricane strength, 1980 to 2025, and the US Geological Survey's
+earthquakes of magnitude 5 or more in 2011. Everything
+else was written for this book, each table to show one thing; `census` is two plausible city profiles, not
 a real census. The terms for each are in [`data/LICENSE.md`](data/LICENSE.md).
 
 ## What comes next

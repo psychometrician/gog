@@ -145,6 +145,20 @@ rm(.edges)
 world_borders <- .gog_read(
   "world_borders", chr = c("country", "continent", "piece"))
 
+# Two public records rather than tables written for the book, downloaded by
+# fetch-data.R: NOAA's positions of every storm that reached hurricane strength
+# from 1980 to 2025, and the US Geological Survey's earthquakes of 2011. The
+# months run in calendar order and the categories in the order of the scale,
+# and a CSV records neither.
+cyclones <- .gog_read("cyclones")
+cyclones$month    <- .gog_ordered(cyclones$month, month.abb)
+cyclones$category <- .gog_ordered(cyclones$category, c("1 or 2", "3 or 4", "5"))
+
+quakes_2011 <- .gog_read("quakes_2011")
+quakes_2011$week <- as.Date(quakes_2011$week)
+quakes_2011$age  <- .gog_ordered(
+  quakes_2011$age, c("this week", "1 week ago", "2 weeks ago", "3 weeks ago"))
+
 six_weeks <- .gog_read("six_weeks")
 six_weeks$day     <- as.Date(six_weeks$day)
 six_weeks$weekday <- .gog_ordered(
@@ -215,6 +229,10 @@ stopifnot(
   !anyNA(monitoring$at),
   inherits(monitoring$at, "POSIXct"),
   nrow(population_spikes) == 120,
+  length(unique(cyclones$storm)) == 2174,
+  !anyNA(cyclones$month), !anyNA(cyclones$category),
+  sum(quakes_2011$age == "this week") == 2701,
+  !anyNA(quakes_2011$week), !anyNA(quakes_2011$age),
   length(unique(world_borders$country)) == 176,
   # Every ring closes on the vertex it started from, or the outline is drawn
   # with a gap in it and the map quietly looks broken.
