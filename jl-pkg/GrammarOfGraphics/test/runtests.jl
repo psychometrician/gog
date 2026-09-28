@@ -2899,3 +2899,14 @@ end
     svg = render_svg(data((g = ["a", "a", "a", "b"],)) + bar * count + x(:g) + y(:count, limits = (0, 2)))
     @test length(collect(eachmatch(r"<rect[^>]*fill=\"#4e79a7\"", svg))) == 1
 end
+
+# A banded crater leaves its middle to the bands below: each level is one region
+# with its rings under even-odd, so a crater's middle is not painted as its highest
+# band. The same block runs in all four bindings.
+@testset "a banded crater leaves its middle to the bands below" begin
+    i = 0:299
+    r = [3 + 0.25 * sin(1.3 * k) for k in i]
+    ring = (a = [r[k + 1] * cos(0.37 * k) for k in i], b = [r[k + 1] * sin(0.37 * k) for k in i])
+    svg = render_svg(data(ring) + zone * density(levels = 6) + x(:a) + y(:b))
+    @test occursin("fill-rule=\"evenodd\"", svg) && !occursin("<polygon", svg)
+end

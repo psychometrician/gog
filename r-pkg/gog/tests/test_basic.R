@@ -5419,3 +5419,18 @@ local({
     stop("FAIL: a count outside the stated domain should be left out, got ", length(bars), " bars")
   cat("PASS: a written value outside a stated domain is left out\n")
 })
+
+# ---------------------------------------------------------------------------
+# A banded density draws each level as one region with its rings under
+# even-odd, so a crater's middle is not painted as its highest band. The same
+# block runs in all four bindings.
+# ---------------------------------------------------------------------------
+local({
+  i <- 0:299
+  r <- 3 + 0.25 * sin(1.3 * i)
+  t <- data.frame(a = r * cos(0.37 * i), b = r * sin(0.37 * i))
+  svg <- render_svg(data(t) + zone * density(levels = 6) + x(a) + y(b))
+  if (!grepl('fill-rule="evenodd"', svg, fixed = TRUE) || grepl("<polygon", svg, fixed = TRUE))
+    stop("FAIL: a banded density should draw each level as one even-odd region")
+  cat("PASS: a banded crater leaves its middle to the bands below\n")
+})

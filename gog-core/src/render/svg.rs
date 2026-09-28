@@ -11077,6 +11077,23 @@ mod tests {
             .collect()
     }
 
+    /// A banded field's regions, one per level, each the list of its rings as
+    /// "x,y x,y ..." strings: the `M`/`L`/`Z` subpaths of every band `<path>` drawn
+    /// under `fill-rule="evenodd"`, read back into `polygons`' shape.
+    fn band_regions(svg: &str) -> Vec<Vec<String>> {
+        svg.lines()
+            .filter(|l| l.contains("<path d=\"") && l.contains(r#"fill-rule="evenodd""#))
+            .filter_map(|l| l.split("d=\"").nth(1)?.split('"').next().map(str::to_string))
+            .map(|d| d.split('Z')
+                .map(|ring| ring.split_whitespace()
+                    .map(|t| t.trim_start_matches(['M', 'L']))
+                    .collect::<Vec<_>>()
+                    .join(" "))
+                .filter(|ring| !ring.is_empty())
+                .collect())
+            .collect()
+    }
+
     /// Parse "x,y x,y ..." into pairs.
     fn points_of(poly: &str) -> Vec<(f64, f64)> {
         poly.split_whitespace()
@@ -14892,9 +14909,10 @@ mod tests {
         let banded = SvgRenderer::default().render(&spec(Mark::Zone), &data);
         let traced = SvgRenderer::default().render(&spec(Mark::Path), &data);
 
-        // The bands are polygons, and there are as many as there are rings.
-        let bands = polygons(&banded);
-        assert!(bands.len() >= 4, "four levels fill at least four bands, got {}", bands.len());
+        // Each level is one region, and its rings are the region's subpaths.
+        let regions = band_regions(&banded);
+        assert!(regions.len() >= 4, "four levels fill at least four bands, got {}", regions.len());
+        let bands: Vec<String> = regions.into_iter().flatten().collect();
         // A banded zone draws no cells — it is the level sets, not the mesh.
         assert!(zone_rects(&banded).is_empty(), "a banded zone paints no cells");
 
@@ -14921,6 +14939,44 @@ mod tests {
         let shared = band_pts.iter().filter(|p| line_pts.contains(*p)).count();
         assert_eq!(shared, band_pts.len(),
             "every band vertex is a contour vertex: {shared} of {} matched", band_pts.len());
+    }
+
+    /// **A crater's middle is not painted as its highest band.** Points on a
+    /// circle make a density high on the ring and low in the middle, so a level set
+    /// high on the ring is an annulus. Filled one ring at a time, the inner ring
+    /// painted the middle in the ring's own color; drawn as one even-odd region per
+    /// level, the middle belongs to no band at a level the field does not reach
+    /// there. Asserted on containment, the question a reader's eye asks, rather
+    /// than on the markup.
+    #[test]
+    fn a_banded_crater_leaves_its_middle_to_the_bands_below() {
+        let (xs, ys): (Vec<f64>, Vec<f64>) = (0..300).map(|i| {
+            let (i, r) = (i as f64, 3.0 + 0.25 * (1.3 * i as f64).sin());
+            (r * (0.37 * i).cos(), r * (0.37 * i).sin())
+        }).unzip();
+        let data = HashMap::from([("t".to_string(), DataFrame::new().with_float("a", xs).with_float("b", ys))]);
+        let mut l = Layer::new(Mark::Zone).transform(Transform::Density);
+        l.density = Some(crate::ir::DensitySpec { adjust: None, bandwidth: None, levels: Some(6), compare: None, reach: None });
+        let svg = SvgRenderer::default().render(&PlotSpec::new().data("t").x("a").y("b").layer(l), &data);
+        let regions: Vec<Vec<Vec<(f64, f64)>>> = band_regions(&svg).iter()
+            .map(|rings| rings.iter().map(|r| points_of(r)).collect())
+            .collect();
+        assert!(regions.len() >= 4, "six levels fill several bands: {}", regions.len());
+        // The ring's center, from the lowest band's extent, which surrounds it.
+        let outer = regions[0].iter().flatten();
+        let (lo, hi) = outer.fold(((f64::INFINITY, f64::INFINITY), (f64::NEG_INFINITY, f64::NEG_INFINITY)),
+            |(lo, hi), &(x, y)| ((lo.0.min(x), lo.1.min(y)), (hi.0.max(x), hi.1.max(y))));
+        let c = ((lo.0 + hi.0) / 2.0, (lo.1 + hi.1) / 2.0);
+        // Even-odd containment: a ray to the right crosses the region's rings an odd
+        // number of times exactly when the point is inside.
+        let inside = |rings: &Vec<Vec<(f64, f64)>>| rings.iter().map(|ring| {
+            (0..ring.len()).filter(|&k| {
+                let (a, b) = (ring[k], ring[(k + 1) % ring.len()]);
+                (a.1 > c.1) != (b.1 > c.1) && c.0 < a.0 + (c.1 - a.1) * (b.0 - a.0) / (b.1 - a.1)
+            }).count()
+        }).sum::<usize>() % 2 == 1;
+        let covering = regions.iter().filter(|r| inside(r)).count();
+        assert!(covering <= 1, "the middle is painted by {covering} of {} bands", regions.len());
     }
 
     #[test]

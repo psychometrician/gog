@@ -48,6 +48,12 @@ CRAN-style repositories and PyPI, `GrammarOfGraphics` on Julia's General, and
 
 ### Changed
 
+- **Filled density bands leave a hole where the density dips.** With
+  `zone * density(levels = )`, points spread around a ring filled the middle
+  with the ring's own color, so the dip read as the highest band. Each level is
+  now filled as one region with its holes, and the lower bands show through, as
+  `path * density` draws them. A field with no holes looks the same as before.
+
 - **A computed value outside a stated domain is left out, and said.** On an
   axis a transform computes, `y(count, limits = c(0, 40))` now leaves out a
   count above 40 and says how many values fell outside, as it already did for

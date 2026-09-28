@@ -3529,3 +3529,14 @@ test("a written value outside a stated domain is left out", () => {
   const svg = render_svg(plot(data({ g: ["a", "a", "a", "b"] }), layer(bar, count), x(col.g), y(col.count, { limits: [0, 2] })));
   assert.equal((svg.match(/<rect[^>]*fill="#4e79a7"/g) || []).length, 1);
 });
+
+// A banded crater leaves its middle to the bands below: each level is one region
+// with its rings under even-odd, so a crater's middle is not painted as its highest
+// band. The same block runs in all four bindings.
+test("a banded crater leaves its middle to the bands below", () => {
+  const i = [...Array(300).keys()];
+  const r = i.map((k) => 3 + 0.25 * Math.sin(1.3 * k));
+  const ring = { a: i.map((k) => r[k] * Math.cos(0.37 * k)), b: i.map((k) => r[k] * Math.sin(0.37 * k)) };
+  const svg = render_svg(plot(data(ring), layer(zone, density({ levels: 6 })), x(col.a), y(col.b)));
+  assert.ok(svg.includes('fill-rule="evenodd"') && !svg.includes("<polygon"));
+});

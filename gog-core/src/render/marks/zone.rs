@@ -102,13 +102,12 @@ impl SvgRenderer {
         // identity (§5): `zone` is the region mark, and here the region is whatever
         // shape the density turned out to have.
         //
-        // Drawn **outermost band first**, which is what makes plain filled polygons
-        // enough where a general filled contour would need holes: a density's level
-        // sets are *nested* by construction, so each inner band simply paints over the
-        // one containing it. The exception is a crater — an annular mode, points
-        // scattered on a circle — where a level set really is a ring with a hole and
-        // this fills its middle. Recorded in §5 rather than guarded against, because
-        // the guard is the polygon-with-holes geometry the grammar has no mark for.
+        // Drawn **outermost band first**: a density's level sets are *nested* by
+        // construction, so each inner band paints over the one containing it. A
+        // level set can still have a hole — a crater, points scattered on a circle,
+        // is high on the ring and low in the middle — so each level is drawn as one
+        // region with its rings under `fill-rule="evenodd"`, the choropleth's rule,
+        // and the band below shows through the middle (`write_zone_bands`).
         // **The choropleth**, and it is asked before the mesh questions because it
         // answers them differently: a boundary is neither a cut nor a slot, it is
         // an extent the data drew. `group` is what says which rows are one region,
@@ -432,8 +431,14 @@ impl SvgRenderer {
     /// with two marks rather than two unrelated features.
     ///
     /// The rows arrive in **ascending level order**, so emitting them in order paints
-    /// the outermost band first and each inner one over it. See the note at the call
-    /// site for why nesting makes that sound, and for the one topology it cannot draw.
+    /// the outermost band first and each inner one over it.
+    ///
+    /// **One region per level, not one polygon per ring.** Every ring cut at one
+    /// level is a subpath of one `<path>` under `fill-rule="evenodd"`, which makes a
+    /// ring inside another a hole rather than a patch. Filled one ring at a time, a
+    /// crater's inner ring painted the middle in the ring's own color, so the dip
+    /// read as the highest band while `path * density` drew the field falling there.
+    /// An island inside a hole comes out filled again, as even-odd counts it.
     #[allow(clippy::too_many_arguments)]
     fn write_zone_bands(
         &self, svg: &mut String, layer: &Layer, df: &DataFrame, whole: &Whole<'_>,
@@ -470,10 +475,24 @@ impl SvgRenderer {
 
         writeln!(svg, r##"  <g clip-path="url(#{clip})">"##).unwrap();
 
-        // One polygon per run of a ring id. Runs rather than a grouping, for
+        // One ring per run of a ring id. Runs rather than a grouping, for
         // `write_path`'s reason: the transform emits each ring's vertices consecutively,
         // and a `group` split leaves each group's rows contiguous while restarting the
-        // numbering, so a run can never straddle two groups.
+        // numbering, so a run can never straddle two groups. Consecutive rings cut at
+        // one level are gathered into that level's region; without a level column,
+        // each ring is a region of its own.
+        let flush = |svg: &mut String, band: &mut String, fill: &str| {
+            if !band.is_empty() {
+                writeln!(svg,
+                    r##"    <path d="{}" fill-rule="evenodd" fill="{fill}" fill-opacity="{opacity:.3}" {edge}/>"##,
+                    band.trim_end()
+                ).unwrap();
+                band.clear();
+            }
+        };
+        let mut band = String::new();
+        let mut band_fill = String::new();
+        let mut band_level: Option<f64> = None;
         let mut start = 0usize;
         for i in 0..=n {
             let ends = i == n || (i > start && rings[i] != rings[start]);
@@ -483,26 +502,25 @@ impl SvgRenderer {
                 .map(|r| super::place(l, polar, vx[r], vy[r], xs, ys))
                 .collect();
             start = i;
-            if pts.len() < 3 { continue; }
-
-            let fill = match &set_color {
-                Some(c) => c.clone(),
-                None => {
-                    let f = levels
-                        .map(|v| scale.fraction(v.get(i.saturating_sub(1)).copied().unwrap_or(f64::NAN)))
-                        .unwrap_or(0.5);
-                    ramp_at(&stops, f)
-                }
-            };
-            let points: String = pts.iter()
-                .map(|(x, y)| format!("{x:.2},{y:.2}"))
-                .collect::<Vec<_>>()
-                .join(" ");
-            if points.contains("NaN") || points.contains("inf") { continue; }
-            writeln!(svg,
-                r##"    <polygon points="{points}" fill="{fill}" fill-opacity="{opacity:.3}" {edge}/>"##
-            ).unwrap();
+            if pts.len() < 3 || pts.iter().any(|(x, y)| !x.is_finite() || !y.is_finite()) {
+                continue;
+            }
+            let level = levels.and_then(|v| v.get(i - 1).copied());
+            if level.is_none() || level != band_level {
+                flush(svg, &mut band, &band_fill);
+                band_level = level;
+                band_fill = match &set_color {
+                    Some(c) => c.clone(),
+                    None => ramp_at(&stops, level.map_or(0.5, |v| scale.fraction(v))),
+                };
+            }
+            for (k, (x, y)) in pts.iter().enumerate() {
+                let cmd = if k == 0 { 'M' } else { 'L' };
+                write!(band, "{cmd}{x:.2},{y:.2} ").unwrap();
+            }
+            band.push_str("Z ");
         }
+        flush(svg, &mut band, &band_fill);
 
         writeln!(svg, "  </g>").unwrap();
     }

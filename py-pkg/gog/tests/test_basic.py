@@ -3365,3 +3365,14 @@ _svg = render_svg(data({"g": ["a", "a", "a", "b"]}, name="wo") + bar * count + x
                   + y(col.count, limits=(0, 2)))
 assert len(re.findall(r'<rect[^>]*fill="#4e79a7"', _svg)) == 1
 ok("a written value outside a stated domain is left out")
+
+
+# --- A banded crater leaves its middle to the bands below ------------------------------
+# Each level is one region with its rings under even-odd, so a crater's middle is not
+# painted as its highest band. The same block runs in all four bindings.
+_r = [3 + 0.25 * math.sin(1.3 * i) for i in builtins.range(300)]
+_ring = {"a": [_r[i] * math.cos(0.37 * i) for i in builtins.range(300)],
+         "b": [_r[i] * math.sin(0.37 * i) for i in builtins.range(300)]}
+_svg = render_svg(data(_ring, name="ring") + zone * density(levels=6) + x(col.a) + y(col.b))
+assert 'fill-rule="evenodd"' in _svg and "<polygon" not in _svg
+ok("a banded crater leaves its middle to the bands below")
