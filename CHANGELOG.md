@@ -56,6 +56,13 @@ CRAN-style repositories and PyPI, `GrammarOfGraphics` on Julia's General, and
 
 ### Changed
 
+- **An expression in a channel is refused with direction in R and
+  JavaScript.** R read `x(gdp / 1000)` as a column called `gdp/1000` and
+  refused it as a misspelling, and JavaScript's `x(col.gdp / 1000)` said "Got
+  number". Both now say gog has no computed channels and to compute the column
+  first, as Python already did. Julia's `:gdp / 1000` still fails in Julia
+  itself, before gog sees it.
+
 - **An invented table name gives way to one you wrote.** In R, Python and
   JavaScript, a table gog had to name for you (piped with `%>%`, or passed
   unnamed) followed by a table you named `data` was refused as two tables with

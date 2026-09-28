@@ -60,6 +60,16 @@ column_name <- function(sub, atom, settable = FALSE) {
          "takes a *column* \u2014 the bare name of one of the table's columns, ",
          "as in `", atom, "(gdp)`.", call. = FALSE)
   }
+  # An expression, `x(gdp / 1000)` or `x(log(gdp))`, is a computed channel, which
+  # gog does not have. Deparsed, it reached the engine as a column called
+  # "gdp/1000" and was refused as a misspelling. Python refuses the arithmetic
+  # itself, with this direction.
+  if (is.call(sub)) {
+    stop("gog: `", atom, "(", paste(deparse(sub), collapse = " "), ")` binds an ",
+         "expression, and `", atom, "()` takes a column name \u2014 gog has no ",
+         "computed channels. Compute the column in R first and bind the result: ",
+         "`df$ratio <- df$a / df$b`, then `", atom, "(ratio)`.", call. = FALSE)
+  }
   deparse(sub)
 }
 

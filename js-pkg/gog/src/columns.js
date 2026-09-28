@@ -47,6 +47,21 @@ export class Column {
   [Symbol.for("nodejs.util.inspect.custom")]() {
     return this.toString();
   }
+
+  // Arithmetic on a column would be a computed channel, which gog does not
+  // have. `col.gdp / 1000` asks for a number, and got `NaN`, which reached the
+  // atom as "Got number". A string is still given for the text a message
+  // builds, since `+` asks the same way for a sum and for a joined string.
+  [Symbol.toPrimitive](hint) {
+    if (hint === "number") {
+      throw new GogError(
+        "gog: a channel takes a column name, not an expression — gog has no " +
+          "computed channels. Compute the column in JavaScript first and bind the " +
+          "result: `df.ratio = df.a.map((a, i) => a / df.b[i])`, then `y(col.ratio)`."
+      );
+    }
+    return this.toString();
+  }
 }
 
 // `col` — the bare-name capture layer. `col.gdp`, or `col["life exp"]`.

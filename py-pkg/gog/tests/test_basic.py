@@ -3881,3 +3881,15 @@ _as_named = render_svg(data(_ia, name="data2") + line + x(col.year) + y(col.sale
                        + data(_ib, name="data") + point)
 assert _moved == _as_named
 ok("an invented table name gives way to one the reader wrote")
+
+
+# --- An expression in a channel is refused with direction -------------------------------
+# Python refuses the arithmetic on a column itself; R now refuses the call in the
+# channel, and JavaScript the number a column was coerced to. The same block runs in all
+# four bindings.
+try:
+    x(col.gdp / 1000)
+    raise AssertionError("an expression reached a channel")
+except GogError as refusal:
+    assert "not an expression" in str(refusal) and "Compute the column in Python first" in str(refusal)
+ok("an expression in a channel is refused with direction")

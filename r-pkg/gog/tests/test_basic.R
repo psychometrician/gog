@@ -6011,3 +6011,16 @@ local({
     stop("FAIL: an invented name should move for a table the reader named")
   cat("PASS: an invented table name gives way to one the reader wrote\n")
 })
+
+# ---------------------------------------------------------------------------
+# An expression in a channel is refused with direction. `x(gdp / 1000)` was
+# deparsed into a column called "gdp/1000" and refused as a misspelling. The same
+# block runs in all four bindings.
+# ---------------------------------------------------------------------------
+local({
+  said <- tryCatch({ x(gdp / 1000); "" }, error = function(e) conditionMessage(e))
+  if (!grepl("binds an expression, and `x()` takes a column name", said, fixed = TRUE) ||
+      !grepl("Compute the column in R first", said, fixed = TRUE))
+    stop("FAIL: an expression in a channel should be refused with direction: ", said)
+  cat("PASS: an expression in a channel is refused with direction\n")
+})

@@ -3986,3 +3986,11 @@ test("an invented table name gives way to one the reader wrote", () => {
     data(b, { name: "data" }), point));
   assert.equal(moved, named);
 });
+
+// An expression in a channel is refused with direction: `col.gdp / 1000` was `NaN`,
+// which reached the atom as "Got number". A column in a string still reads as the
+// accessor. The same block runs in all four bindings.
+test("an expression in a channel is refused with direction", () => {
+  refuses(() => x(col.gdp / 1000), /not an expression[\s\S]*Compute the column in JavaScript first/);
+  assert.equal(`${col.gdp}`, "col.gdp");
+});

@@ -3394,3 +3394,11 @@ end
                        data(b, name = "data") + point)
     @test moved == named
 end
+
+# An expression in a channel: R, Python and JavaScript refuse it with direction. In
+# Julia `:gdp / 1000` fails in Base before gog sees it, as a `MethodError`, and giving
+# it gog's message would mean defining `/` for Base's own `Symbol` (type piracy). This
+# holds that it never reaches a plot. The same block runs in all four bindings.
+@testset "an expression in a channel never reaches a plot" begin
+    @test_throws MethodError x(:gdp / 1000)
+end
