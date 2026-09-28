@@ -56,6 +56,12 @@ CRAN-style repositories and PyPI, `GrammarOfGraphics` on Julia's General, and
 
 ### Changed
 
+- **A `/` page written without parentheses is told to add them.** `/` binds
+  before `+`, so `… + y(b) / data(df) + …` joined `y()` to the next plot. R and
+  Python refused it with the advice to facet a plot, and Julia raised a raw
+  `MethodError`. The refusal now says `/` places one plot below another, names
+  the atom it caught, and shows the plots in parentheses.
+
 - **An atom added to a page is named as it is written.** `(p | q) + color(g)`
   was refused with the example `(plot + title("...")) | other_plot` whatever
   the atom, a mark was called `mark()`, and in JavaScript `beside(p, q,

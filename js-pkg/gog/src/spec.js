@@ -334,13 +334,15 @@ function atomOnPage(atom, word) {
     return "`data()` holds a table for a plot rather than a plot: " +
       `\`${word}(plot(data(df), …), other_plot)\``;
   }
+  // A position or a space is held as `coord_x` or `coord_polar`, and written `x`.
+  const kind = atom.kind.replace(/^coord_/, "");
   const shown = atom.kind === "mark" ? atom.fields.mark
     : atom.kind === "transform" ? atom.fields.transform
-    : `${atom.kind}()`;
+    : `${kind}()`;
   const example = atom.kind === "mark" ? atom.fields.mark
     : atom.kind === "transform" ? `layer(<mark>, ${atom.fields.transform})`
     : ["title", "x_label", "y_label", "z_label"].includes(atom.kind) ? `${atom.kind}("…")`
-    : `${atom.kind}(…)`;
+    : `${kind}(…)`;
   return `\`${shown}\` joins a plot rather than a page: \`plot(data(df), …, ${example})\``;
 }
 

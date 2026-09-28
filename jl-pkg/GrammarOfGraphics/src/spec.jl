@@ -757,6 +757,18 @@ Base.:/(left::Plot, right::Atom) = facet_join(left, right, "row", "/")
 Base.:|(left::Atom, right::Atom) = facet_join(left, right, "col", "|")
 Base.:/(left::Atom, right::Atom) = facet_join(left, right, "row", "/")
 
+# A plot on the right of an atom means two plots were being placed, and `/`, which
+# Julia evaluates before `+`, caught the atom written just before it. Without these
+# methods it was a raw `MethodError`.
+Base.:|(left::Atom, right::Union{Plot,Page}) = unparenthesized_page(left, "|")
+Base.:/(left::Atom, right::Union{Plot,Page}) = unparenthesized_page(left, "/")
+
+unparenthesized_page(left::Atom, operator::AbstractString) = throw(GogError(
+    "gog: `$operator` places one plot $(operator == "/" ? "below" : "beside") another, " *
+    "and it binds before `+`, so here it joined `$(atom_shown(left))` to the plot " *
+    "after it. Put each plot in parentheses: " *
+    "`(data(df) + point + ...) $operator (data(df) + bar + ...)`."))
+
 # Composition — dispatch on the *pair*, which is the whole design: a facet split
 # takes a plot and an atom, a page takes two figures.
 Base.:|(left::Union{Plot,Page}, right::Union{Plot,Page}) = compose(left, right, "beside")
@@ -780,7 +792,10 @@ const PANEL_THEME = (:preset, :grid, :ratio, :tick_angle, :font_size,
 # How an atom is named in a message: a mark and a transform are bare words
 # (`point`, `mean`), and every other atom is a call (`color()`). Every atom was
 # shown as `title("...")` in the example below, and a mark as `point()`.
-atom_shown(a::Atom) = a.kind in (:mark, :transform) ? atom_name(a) : "$(a.kind)()"
+atom_shown(a::Atom) = a.kind in (:mark, :transform) ? atom_name(a) : "$(written_kind(a))()"
+
+# A position or a space is held as `coord_x` or `coord_polar`, and written `x`.
+written_kind(a::Atom) = replace(String(a.kind), r"^coord_" => "")
 
 # The atom written into a sentence, for an example: a transform joins a mark, a
 # label holds text, and every other atom takes something.
@@ -788,7 +803,7 @@ function atom_example(a::Atom)
     a.kind === :mark && return atom_name(a)
     a.kind === :transform && return "<mark> * $(atom_name(a))"
     a.kind in (:title, :x_label, :y_label, :z_label) && return "$(a.kind)(\"...\")"
-    return "$(a.kind)(...)"
+    return "$(written_kind(a))(...)"
 end
 
 # A plot on the right is placed on the page, not added to it. Without this method

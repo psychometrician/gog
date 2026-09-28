@@ -3348,3 +3348,25 @@ end
     @test occursin("`point` belongs to a plot", said(point))
     @test occursin("`page | other_plot`", said(data(t)))
 end
+
+# A `/` page written without parentheses: `/` binds before `+`, so it joined the atom
+# written just before it to the next plot, which was a raw `MethodError`. It names the
+# atom as it is written (`y()`, not the `coord_y()` it is held as). The same block runs
+# in all four bindings.
+@testset "a page written without parentheses is told to add them" begin
+    t = (a = [1.0, 2.0], b = [3.0, 4.0])
+    p = data(t) + point + x(:a) + y(:b)
+    stacked = try
+        data(t) + point + x(:a) + y(:b) / data(t) + bar * count + x(:a); ""
+    catch e
+        sprint(showerror, e)
+    end
+    @test occursin("places one plot below another, and it binds before `+`", stacked)
+    @test occursin("joined `y()`", stacked) && !occursin("MethodError", stacked)
+    positioned = try
+        (p | p) + x(:a); ""
+    catch e
+        sprint(showerror, e)
+    end
+    @test occursin("`x()` belongs to a plot", positioned)
+end

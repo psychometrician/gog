@@ -3814,3 +3814,24 @@ assert "`color()` belongs to a plot" in _colored and "`(plot + color(...)) | oth
 assert "`point` belongs to a plot" in _paged(point)
 assert "`page | other_plot`" in _paged(_pt)
 ok("a page refusal names the atom it was given")
+
+
+# --- A page written without parentheses is told to add them -----------------------------
+# `/` binds before `+`, so it joined the atom written just before it to the next plot,
+# and the refusal sent the reader to facet a plot. It names the atom as it is written
+# (`y()`, not the `coord_y()` it is held as). The same block runs in all four bindings.
+_st = data({"a": [1.0, 2.0], "b": [3.0, 4.0]}, name="t")
+_sp = _st + point + x(col.a) + y(col.b)
+try:
+    _st + point + x(col.a) + y(col.b) / _st + bar * count + x(col.a)
+    raise AssertionError("an unparenthesized page was taken")
+except GogError as refusal:
+    _s = str(refusal)
+    assert "places one plot below another, and it binds before `+`" in _s and "joined `y()`" in _s \
+        and "facets a *plot*" not in _s, _s
+try:
+    (_sp | _sp) + x(col.a)
+    raise AssertionError("a page took x()")
+except GogError as refusal:
+    assert "`x()` belongs to a plot" in str(refusal), refusal
+ok("a page written without parentheses is told to add them")

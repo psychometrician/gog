@@ -845,7 +845,8 @@ def _atom_shown(atom: Atom) -> str:
         return atom.fields["mark"]
     if atom.kind == "transform":
         return atom.fields["transform"]
-    return f"{atom.kind}()"
+    # A position or a space is held as `coord_x` or `coord_polar`.
+    return f"{atom.kind.removeprefix('coord_')}()"
 
 
 def _atom_example(atom: Atom) -> str:
@@ -857,7 +858,7 @@ def _atom_example(atom: Atom) -> str:
         return f"<mark> * {atom.fields['transform']}"
     if atom.kind in ("title", "x_label", "y_label", "z_label"):
         return f"{atom.kind}('...')"
-    return f"{atom.kind}(...)"
+    return f"{atom.kind.removeprefix('coord_')}(...)"
 
 
 def _figure_cells(figure: Any, arrange: str) -> List[Dict[str, Any]]:
@@ -1069,6 +1070,16 @@ def _facet_join(left: Any, right: Any, slot: str, operator: str) -> Any:
                 facet=right.fields["field"],
                 slot=slot,
                 wrap=right.fields.get("wrap"),
+            )
+        # A plot on the right means two plots were being placed, and the operator,
+        # which Python evaluates before `+`, caught the atom written just before it.
+        if isinstance(right, (Plot, Page)):
+            where = "below" if operator == "/" else "beside"
+            raise GogError(
+                f"gog: `{operator}` places one plot {where} another, and it binds before "
+                f"`+`, so here it joined `{_atom_shown(left)}` to the plot after it. Put "
+                f"each plot in parentheses: `(data(df) + point + ...) {operator} "
+                f"(data(df) + bar + ...)`."
             )
         raise GogError(
             f"gog: `{operator}` facets a *plot* — build the plot first, then facet it: "

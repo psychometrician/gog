@@ -3932,3 +3932,12 @@ test("a page refusal names the atom it was given", () => {
   refuses(() => beside(p, p, point), /`point` joins a plot/);
   refuses(() => below(p, data(t)), /`data\(\)` holds a table for a plot rather than a plot: `below\(/);
 });
+
+// A position handed to `beside()` is named as it is written, `x()`, not the `coord_x()`
+// it is held as. (JavaScript spells `/` as `below()`, so the unparenthesized page that
+// R, Python and Julia test beside this has no JavaScript form.)
+test("a position atom on a page is named as it is written", () => {
+  const t = { a: [1, 2], b: [3, 4] };
+  const p = plot(data(t), point, x(col.a), y(col.b));
+  refuses(() => beside(p, p, x(col.a)), /`x\(\)` joins a plot rather than a page: `plot\(data\(df\), …, x\(…\)\)`/);
+});

@@ -871,12 +871,13 @@ PANEL_THEME <- c("preset", "grid", "ratio", "tick_angle", "font_size",
 }
 
 # How an atom is named in a message: a mark and a transform are bare words
-# (`point`, `mean`), and every other atom is a call (`color()`).
+# (`point`, `mean`), and every other atom is a call (`color()`). A position or a
+# space is held as `coord_x` or `coord_polar` and written `x()` or `polar()`.
 atom_shown <- function(atom) {
   switch(atom$type,
     mark = atom$mark,
     transform = atom$transform,
-    paste0(atom$type, "()"))
+    paste0(sub("^coord_", "", atom$type), "()"))
 }
 
 # The atom written into a sentence, for an example: a transform joins a mark,
@@ -886,7 +887,7 @@ atom_example <- function(atom) {
   if (identical(atom$type, "transform")) return(paste0("<mark> * ", atom$transform))
   if (atom$type %in% c("title", "x_label", "y_label", "z_label"))
     return(paste0(atom$type, "(\"...\")"))
-  paste0(atom$type, "(...)")
+  paste0(sub("^coord_", "", atom$type), "(...)")
 }
 
 # From R 4.3, when the two operands of a binary operator carry *different* S3
@@ -1102,6 +1103,15 @@ facet_join <- function(lhs, rhs, slot, op) {
              slot = slot, wrap = rhs$wrap),
         class = "gog_atom"
       ))
+    }
+    # A plot on the right means two plots were being placed, and the operator,
+    # which R evaluates before `+`, caught the atom written just before it. The
+    # facet advice sent that reader to split a plot they never meant to split.
+    if (inherits(rhs, "gog_spec") || inherits(rhs, "gog_page")) {
+      stop("gog: `", op, "` places one plot ", if (op == "/") "below" else "beside",
+           " another, and it binds before `+`, so here it joined `", atom_shown(lhs),
+           "` to the plot after it. Put each plot in parentheses: ",
+           "`(data(df) + point + ...) ", op, " (data(df) + bar + ...)`.", call. = FALSE)
     }
     stop("gog: `", op, "` facets a *plot* \u2014 build the plot first, then facet ",
          "it: `data(df) + point + x(a) + y(b) ", op, " facet(g)`.",

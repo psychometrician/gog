@@ -5930,3 +5930,23 @@ local({
          colored, "\n", marked, "\n", plotted)
   cat("PASS: a page refusal names the atom it was given\n")
 })
+
+# ---------------------------------------------------------------------------
+# A `/` page written without parentheses: `/` binds before `+`, so it joined the
+# atom written just before it to the next plot, and the refusal sent the reader
+# to facet a plot. It now says so, and names the atom as it is written (`y()`,
+# not the `coord_y()` it is held as). The same block runs in all four bindings.
+# ---------------------------------------------------------------------------
+local({
+  t <- data.frame(a = c(1, 2), b = c(3, 4))
+  p <- data(t) + point + x(a) + y(b)
+  said <- function(e) tryCatch({ e; "" }, error = function(err) conditionMessage(err))
+  stacked <- said(data(t) + point + x(a) + y(b) / data(t) + bar * count + x(a))
+  positioned <- said((p | p) + x(a))
+  if (!grepl("places one plot below another, and it binds before `+`", stacked, fixed = TRUE) ||
+      !grepl("joined `y()`", stacked, fixed = TRUE) ||
+      grepl("facets a *plot*", stacked, fixed = TRUE) ||
+      !grepl("`x()` belongs to a plot", positioned, fixed = TRUE))
+    stop("FAIL: an unparenthesized page should be named: ", stacked, "\n", positioned)
+  cat("PASS: a page written without parentheses is told to add them\n")
+})
