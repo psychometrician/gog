@@ -212,6 +212,13 @@ def _column_values(frame: Any, name: str, table: str) -> Tuple[List[Any], Option
         categories = [str(c) for c in cat.categories]
     elif isinstance(series, Ordered):
         categories = list(series.levels)
+    # A polars `Enum` declares its categories on its dtype, in the order they were
+    # written, and polars has no `.cat.categories`, so the declared order was lost
+    # and the bars fell into row order without a word. Read by name, as polars is
+    # not a dependency. A plain polars `Categorical` declares no order, so row
+    # order is right for it.
+    elif type(getattr(series, "dtype", None)).__name__ == "Enum":
+        categories = [str(c) for c in series.dtype.categories]
 
     if hasattr(series, "tolist"):
         values = series.tolist()

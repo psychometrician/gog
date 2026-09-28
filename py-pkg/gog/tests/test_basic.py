@@ -3893,3 +3893,20 @@ try:
 except GogError as refusal:
     assert "not an expression" in str(refusal) and "Compute the column in Python first" in str(refusal)
 ok("an expression in a channel is refused with direction")
+
+
+# --- A polars Enum keeps its declared order ---------------------------------------------
+# polars declares an Enum's categories on its dtype and has no `.cat.categories`, so the
+# order was lost and the bars fell into row order without a word. (Python alone: polars
+# is Python's; R's factor, Julia's and JavaScript's `ordered()` declare the same order.)
+try:
+    import polars as _pl
+except ImportError:
+    print("SKIP: polars not installed")
+else:
+    _lv = _pl.DataFrame({"level": ["High", "Low", "Medium", "Low"], "n": [3.0, 1.0, 2.0, 1.5]}) \
+        .with_columns(_pl.col("level").cast(_pl.Enum(["Low", "Medium", "High"])))
+    _svg = render_svg(data(_lv, name="t") + bar * sum + x(col.level) + y(col.n))
+    _order = [l for l in re.findall(r">([^<>]+)</text>", _svg) if l in ("Low", "Medium", "High")]
+    assert _order == ["Low", "Medium", "High"], _order
+    ok("a polars Enum keeps its declared order")

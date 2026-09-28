@@ -56,6 +56,10 @@ CRAN-style repositories and PyPI, `GrammarOfGraphics` on Julia's General, and
 
 ### Changed
 
+- **In Python, a polars `Enum` keeps its declared order.** Its categories were
+  lost, so the bars fell into row order without a word. They now follow the
+  order the `Enum` declares, as a pandas `Categorical` already did.
+
 - **An expression in a channel is refused with direction in R and
   JavaScript.** R read `x(gdp / 1000)` as a column called `gdp/1000` and
   refused it as a misspelling, and JavaScript's `x(col.gdp / 1000)` said "Got
