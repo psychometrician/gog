@@ -48,6 +48,11 @@ CRAN-style repositories and PyPI, `GrammarOfGraphics` on Julia's General, and
 
 ### Changed
 
+- **A step in `polar()` draws its closing jump.** On a categorical angle the
+  last value was carried round to the first spoke and stopped there, with no
+  jump back to the first category's value. `line`, `area` and `ribbon` already
+  closed there.
+
 - **A layer that maps no color is drawn in dark gray beside a color legend.**
   It was drawn in the palette's first color, which the legend gives to the first
   category, so the `smooth` line through points colored by continent read as

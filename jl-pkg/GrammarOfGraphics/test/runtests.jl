@@ -2876,3 +2876,11 @@ end
     nb = (a = ["p", "q", "r"], b = [3.0, 5.0, 4.0], g = ["u", "v", "w"])
     @test !occursin("#4e79a7", render_svg(data(nb) + bar + x(:a) + y(:b) + pattern(:g) + style(color = "firebrick")))
 end
+
+# A polar step draws its closing jump: on a wrapped angle the last category is
+# adjacent to the first, so the value changes at the first spoke as it does at
+# every other. The same block runs in all four bindings.
+@testset "a polar step draws its closing jump" begin
+    svg = render_svg(data((g = ["a", "b", "c", "d"], v = [1.0, 4.0, 2.0, 3.0])) + step + x(:g) + y(:v) + polar())
+    @test occursin("Z\" stroke=", svg)
+end

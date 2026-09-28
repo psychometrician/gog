@@ -3337,3 +3337,13 @@ _svg = render_svg(data(_nb, name="nb") + bar + x(col.a) + y(col.b) + pattern(col
                   + style(color="firebrick"))
 assert "#4e79a7" not in _svg
 ok("an unmapped layer beside a color legend is neutral")
+
+
+# --- A polar step draws its closing jump ------------------------------------------------
+# On a wrapped angle the last category is adjacent to the first, so the value
+# changes at the first spoke as it does at every other. The same block runs in all
+# four bindings.
+_svg = render_svg(data({"g": ["a", "b", "c", "d"], "v": [1.0, 4.0, 2.0, 3.0]}, name="ps")
+                  + step + x(col.g) + y(col.v) + polar())
+assert 'Z" stroke=' in _svg
+ok("a polar step draws its closing jump")

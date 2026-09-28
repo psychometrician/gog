@@ -5378,3 +5378,16 @@ local({
     stop("FAIL: a texture legend beside firebrick bars should not be blue")
   cat("PASS: an unmapped layer beside a color legend is neutral\n")
 })
+
+# ---------------------------------------------------------------------------
+# A step in polar draws its closing jump: on a wrapped angle the last category
+# is adjacent to the first, so the value changes at the first spoke as it does
+# at every other. The same block runs in all four bindings.
+# ---------------------------------------------------------------------------
+local({
+  t <- data.frame(g = c("a", "b", "c", "d"), v = c(1, 4, 2, 3))
+  svg <- render_svg(data(t) + step + x(g) + y(v) + polar())
+  if (!grepl('Z" stroke=', svg, fixed = TRUE))
+    stop("FAIL: a polar step should close with its last jump")
+  cat("PASS: a polar step draws its closing jump\n")
+})

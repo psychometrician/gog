@@ -137,10 +137,20 @@ impl SvgRenderer {
                 // there. Carrying it to `first + one period` rather than back to
                 // `first` matters: the same point, but reached forwards through the
                 // wrap instead of the long way round against the sweep.
+                //
+                // Then the closing jump, from the last value to the first, at the
+                // first spoke. The last category is adjacent to the first on a
+                // wrapped angle, so the value changes there as it does at every
+                // other category, and `line`, `area` and `ribbon` all close on it
+                // (spec §15). A staircase that stopped at the last value's radius
+                // left the one change a reader could not see.
                 if polar.is_some_and(|p| p.wraps()) && idxs.len() >= 2 {
                     let last = *idxs.last().unwrap();
-                    pts.push((x_vals[idxs[0]] + (xs.1 - xs.0), y_vals[last]));
+                    let seam = x_vals[idxs[0]] + (xs.1 - xs.0);
+                    pts.push((seam, y_vals[last]));
                     rows.push(last);
+                    pts.push((seam, y_vals[idxs[0]]));
+                    rows.push(idxs[0]);
                 }
             }
             Some((pts, rows))
@@ -195,11 +205,22 @@ impl SvgRenderer {
                 let mut d = String::new();
                 let (u_first, v_first) = norm(pts[0]);
                 p.move_to(&mut d, u_first, v_first);
-                for w in pts.windows(2) {
+                // A staircase closed on a wrapped angle ends where it began. Its
+                // closing jump is written as `Z`, which draws the same straight
+                // line and joins it to the first tread with the square corner every
+                // other jump has; two butt ends meeting there left a notch.
+                let closes = p.wraps() && pts.len() > 2 && {
+                    let (a, b) = (norm(pts[0]), norm(pts[pts.len() - 1]));
+                    let (pa, pb) = (p.at(a.0, a.1), p.at(b.0, b.1));
+                    (pa.0 - pb.0).hypot(pa.1 - pb.1) < 1e-6
+                };
+                for w in pts.windows(2).take(pts.len() - 1 - usize::from(closes)) {
                     let ((u0, v0), (u1, v1)) = (norm(w[0]), norm(w[1]));
                     if is_tread(w[0], w[1]) { p.hold_to(&mut d, u0, u1, v0); }
                     else { p.line_to(&mut d, u1, v1); }
                 }
+                // Every command above ends in a space, so the `Z` needs none.
+                if closes { d.push('Z'); }
                 writeln!(svg, r#"    <path d="{d}" stroke="{stroke}"{dash} {stroke_attrs}/>"#).unwrap();
                 return;
             }

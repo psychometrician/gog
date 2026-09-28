@@ -3505,3 +3505,11 @@ test("an unmapped layer beside a color legend is neutral", () => {
   const hatched = render_svg(plot(data(nb), bar, x(col.a), y(col.b), pattern(col.g), style({ color: "firebrick" })));
   assert.ok(!hatched.includes("#4e79a7"));
 });
+
+// A polar step draws its closing jump: on a wrapped angle the last category is
+// adjacent to the first, so the value changes at the first spoke as it does at
+// every other. The same block runs in all four bindings.
+test("a polar step draws its closing jump", () => {
+  const svg = render_svg(plot(data({ g: ["a", "b", "c", "d"], v: [1, 4, 2, 3] }), step, x(col.g), y(col.v), polar()));
+  assert.ok(svg.includes('Z" stroke='));
+});

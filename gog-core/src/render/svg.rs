@@ -11136,8 +11136,8 @@ mod tests {
     /// This is the segment the whole space was waiting on. A tread asserts one
     /// value across a span of angle, so bent it is an arc at constant radius; a
     /// riser changes the value at one angle, so it is exactly the radius and needs
-    /// no arc at all. Four categories give four treads (three between them plus
-    /// the closing one) and three risers.
+    /// no arc at all. Four categories give four treads and four risers: three of
+    /// each between them, plus the closing tread and the closing jump.
     #[test]
     fn a_stairs_treads_become_arcs_and_its_risers_stay_radial() {
         let svg = profile(Mark::Step, true);
@@ -11161,11 +11161,31 @@ mod tests {
     ///
     /// Flat, the last category's value gets no tread: there is no slot after it.
     /// Bent, the categories exhaust the turn, so the last one's slot runs round to
-    /// the first — `line` and `area` close for the same reason.
+    /// the first — `line` and `area` close for the same reason — and the value
+    /// then jumps to the first category's, as it does at every other spoke. The
+    /// jump is the path's `Z`, which also squares the corner where it began.
     #[test]
     fn a_polar_staircase_closes_and_a_flat_one_does_not() {
-        assert_eq!(arc_radii(&profile(Mark::Step, true)).len(), 4,
+        let bent = profile(Mark::Step, true);
+        assert_eq!(arc_radii(&bent).len(), 4,
             "four categories should give four treads once the turn is closed");
+        let d = bent.lines().find(|l| l.contains(r#"<path d="M"#) && l.contains(" A "))
+            .and_then(|l| l.split(r#"d=""#).nth(1)?.split('"').next().map(str::to_string))
+            .expect("the staircase's path");
+        assert!(d.trim_end().ends_with('Z'), "the staircase stops short of its closing jump: {d}");
+        // Three jumps between the categories are drawn; the fourth is the `Z`.
+        assert_eq!(d.matches(" L ").count(), 3, "{d}");
+        // A measured color draws one element per tread and per jump, so the
+        // closing jump is an element of its own: four treads and four jumps.
+        let ramped = SvgRenderer::default().render(
+            &PlotSpec::new().data("t").x("g").y("v")
+                .coord(CoordSpace::Polar(crate::ir::PolarView { start: 0.0 }))
+                .layer(Layer::new(Mark::Step).encode(Channel::Color, "v")),
+            &profile_data());
+        let pieces = ramped.lines()
+            .filter(|l| l.contains("<path d=") && l.contains(r#"stroke-linejoin="miter""#))
+            .count();
+        assert_eq!(pieces, 8, "four treads and four jumps");
         let flat = polyline_points(&profile(Mark::Step, false));
         // 4 categories → 1 start + 3×(riser + tread) = 7 vertices, and the last is
         // not the first.
