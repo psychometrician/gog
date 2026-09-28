@@ -3440,7 +3440,7 @@ test("a histogram's end bars are drawn whole", () => {
 test("a flow's count axis is ticked over its whole range", () => {
   const ft = { a: ["p", "p", "q", "q"], b: ["u", "v", "u", "v"], n: [900, 500, 300, 500] };
   const svg = render_svg(plot(data(ft), layer(ribbon, flow(col.a, col.b)), y(col.n)));
-  assert.ok(svg.includes(">0K</text>") && svg.includes(">2K</text>"));
+  assert.ok(svg.includes(">0</text>") && svg.includes(">2K</text>"));
 });
 
 // Only a flat plot offers its axes to a page, so two stacked map projections each
@@ -3483,4 +3483,11 @@ test("a cube's floor names every category", () => {
   const cf = { life: [...Array(60).keys()].map((i) => 40 + (i % 43)), continent: [...Array(60).keys()].map((i) => conts[i % 5]) };
   const svg = render_svg(plot(data(cf), layer(bar, bin(12)), x(col.life), y(col.continent), space()));
   assert.deepEqual(conts.filter((k) => !svg.includes(`>${k}</text>`)), []);
+});
+
+// Zero is written 0 on an axis counted in thousands or millions: 0K and 0M read as
+// a quantity where there is none. The same block runs in all four bindings.
+test("zero is written 0 on a thousands axis", () => {
+  const svg = render_svg(plot(data({ g: ["a", "b", "c"], v: [1200, 2500, 4100] }), bar, x(col.g), y(col.v)));
+  assert.ok(svg.includes(">0</text>") && !svg.includes(">0K</text>"));
 });

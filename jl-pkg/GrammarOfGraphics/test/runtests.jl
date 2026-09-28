@@ -2815,7 +2815,7 @@ end
 @testset "a flow's count axis is ticked over its whole range" begin
     ft = (a = ["p", "p", "q", "q"], b = ["u", "v", "u", "v"], n = [900.0, 500.0, 300.0, 500.0])
     svg = render_svg(data(ft) + ribbon * flow(:a, :b) + y(:n))
-    @test occursin(">0K</text>", svg) && occursin(">2K</text>", svg)
+    @test occursin(">0</text>", svg) && occursin(">2K</text>", svg)
 end
 
 # Only a flat plot offers its axes to a page, so two stacked map projections each
@@ -2857,4 +2857,11 @@ end
     cf = (life = [40.0 + i % 43 for i in 0:59], continent = [conts[i % 5 + 1] for i in 0:59])
     svg = render_svg(data(cf) + bar * bin(12) + x(:life) + y(:continent) + space())
     @test all(occursin(">$k</text>", svg) for k in conts)
+end
+
+# Zero is written 0 on an axis counted in thousands or millions: 0K and 0M read as
+# a quantity where there is none. The same block runs in all four bindings.
+@testset "zero is written 0 on a thousands axis" begin
+    svg = render_svg(data((g = ["a", "b", "c"], v = [1200.0, 2500.0, 4100.0])) + bar + x(:g) + y(:v))
+    @test occursin(">0</text>", svg) && !occursin(">0K</text>", svg)
 end

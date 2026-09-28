@@ -5281,7 +5281,7 @@ local({
 local({
   ft <- data.frame(a = c("p", "p", "q", "q"), b = c("u", "v", "u", "v"), n = c(900, 500, 300, 500))
   svg <- render_svg(data(ft) + ribbon * flow(a, b) + y(n))
-  if (!grepl(">0K</text>", svg, fixed = TRUE) || !grepl(">2K</text>", svg, fixed = TRUE))
+  if (!grepl(">0</text>", svg, fixed = TRUE) || !grepl(">2K</text>", svg, fixed = TRUE))
     stop("FAIL: a flow's count axis should be ticked from zero")
   cat("PASS: a flow's count axis is ticked over its whole range\n")
 })
@@ -5344,4 +5344,16 @@ local({
   shown <- vapply(conts, function(k) grepl(paste0(">", k, "</text>"), svg, fixed = TRUE), logical(1))
   if (!all(shown)) stop("FAIL: the cube's floor should name every category: ", paste(conts[!shown], collapse = ", "))
   cat("PASS: a cube's floor names every category\n")
+})
+
+# ---------------------------------------------------------------------------
+# Zero is written 0 on an axis counted in thousands or millions: 0K and 0M read
+# as a quantity where there is none. The same block runs in all four bindings.
+# ---------------------------------------------------------------------------
+local({
+  t <- data.frame(g = c("a", "b", "c"), v = c(1200, 2500, 4100))
+  svg <- render_svg(data(t) + bar + x(g) + y(v))
+  if (!grepl(">0</text>", svg, fixed = TRUE) || grepl(">0K</text>", svg, fixed = TRUE))
+    stop("FAIL: zero should be written 0 on a thousands axis")
+  cat("PASS: zero is written 0 on a thousands axis\n")
 })

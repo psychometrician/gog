@@ -5876,7 +5876,7 @@ mod tests {
                 .collect::<Vec<_>>()
         };
         assert_eq!(ticks(&["a", "b"]), ticks(&["a", "b", "c"]), "one range, one set of ticks");
-        assert_eq!(ticks(&["a", "b"]).first().map(String::as_str), Some("0K"), "ticked from zero");
+        assert_eq!(ticks(&["a", "b"]).first().map(String::as_str), Some("0"), "ticked from zero");
     }
 
     /// **The band is the renderer's first curve.** Every other path in the crate

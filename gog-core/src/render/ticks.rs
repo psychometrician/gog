@@ -776,8 +776,16 @@ fn nice_number(x: f64, round: bool) -> f64 {
 
 /// Format a single tick value given the step size.
 /// Uses K/M suffixes for large ranges; shows only as many decimals as the step requires.
+///
+/// **Zero is written `0` whatever the tier.** A suffix names a unit, and zero is
+/// zero in every unit, so `0K` and `0M` read as a quantity where there is none;
+/// a value a hair below zero printed `-0M`. Only the suffixed tiers are affected:
+/// a decimal axis's `0.0` matches the precision of the ticks beside it.
 fn format_tick(v: f64, step: f64) -> String {
     let abs_step = step.abs();
+    if abs_step >= 1_000.0 && v.abs() < abs_step * 1e-9 {
+        return "0".to_string();
+    }
     if abs_step >= 1_000_000.0 {
         format!("{:.0}M", v / 1_000_000.0)
     } else if abs_step >= 1_000.0 {

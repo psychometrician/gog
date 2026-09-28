@@ -3265,7 +3265,7 @@ ok("a histogram's end bars are drawn whole")
 # in all four bindings.
 _ft = {"a": ["p", "p", "q", "q"], "b": ["u", "v", "u", "v"], "n": [900.0, 500.0, 300.0, 500.0]}
 _svg = render_svg(data(_ft, name="ft") + ribbon * flow(col.a, col.b) + y(col.n))
-assert ">0K</text>" in _svg and ">2K</text>" in _svg
+assert ">0</text>" in _svg and ">2K</text>" in _svg
 ok("a flow's count axis is ticked over its whole range")
 
 
@@ -3312,3 +3312,12 @@ _cf = {"life": [40.0 + i % 43 for i in builtins.range(60)],
 _svg = render_svg(data(_cf, name="cf") + bar * bin(12) + x(col.life) + y(col.continent) + space())
 assert all(f">{k}</text>" in _svg for k in _conts), [k for k in _conts if f">{k}</text>" not in _svg]
 ok("a cube's floor names every category")
+
+
+# --- Zero is written 0 on a thousands axis ---------------------------------------------
+# 0K and 0M read as a quantity where there is none. The same block runs in all four
+# bindings.
+_zk = render_svg(data({"g": ["a", "b", "c"], "v": [1200.0, 2500.0, 4100.0]}, name="zk")
+                 + bar + x(col.g) + y(col.v))
+assert ">0</text>" in _zk and ">0K</text>" not in _zk
+ok("zero is written 0 on a thousands axis")

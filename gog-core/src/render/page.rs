@@ -929,7 +929,7 @@ mod tests {
             svg.split("<text").skip(1)
                 .filter_map(|t| t.split_once('>').and_then(|(_, r)| r.split_once("</text>")))
                 .map(|(l, _)| l.to_string())
-                .filter(|l| l.ends_with('K'))
+                .filter(|l| l.ends_with('K') || l == "0")
                 .collect()
         };
         let page = PageSpec {

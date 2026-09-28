@@ -48,6 +48,9 @@ CRAN-style repositories and PyPI, `GrammarOfGraphics` on Julia's General, and
 
 ### Changed
 
+- **Zero is written `0` on an axis counted in thousands or millions.** It read
+  `0K` or `0M`, as if zero came in a unit.
+
 - **A cube names every category on its floor.** A category name that met its
   neighbor was dropped, the way crowded numbers are, so the floor of
   `bar * bin(12) + y(continent) + space()` lost "Americas" with no message.
