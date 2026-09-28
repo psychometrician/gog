@@ -973,11 +973,22 @@ impl BinCut {
 /// `n` decides Sturges' `k`, the span decides the width — which is why an
 /// explicit `bin(10)` did not rescue the faceted histogram either.
 pub(crate) fn bin_layout(xs: &[f64], spec: Option<&BinSpec>) -> Option<BinLayout> {
+    bin_layout_within(xs, spec, (None, None))
+}
+
+/// [`bin_layout`] over a stated domain (spec §10): a stated end is where the bins
+/// start or stop, and only an end left unstated is read off the rows. The rows
+/// outside a stated domain are already gone (`legality::limit_cut`), so the rows
+/// alone would cut over whatever range the survivors happen to span, and
+/// `x(bearing, limits = c(0, 360))` binned 2.6 to 359.7, not the turn it names.
+pub(crate) fn bin_layout_within(
+    xs: &[f64], spec: Option<&BinSpec>, stated: (Option<f64>, Option<f64>),
+) -> Option<BinLayout> {
     let n = xs.len();
     if n == 0 { return None; }
-    let mn = xs.iter().cloned().fold(f64::INFINITY, f64::min);
-    let mx = xs.iter().cloned().fold(f64::NEG_INFINITY, f64::max);
-    if !mn.is_finite() { return None; }
+    let mn = stated.0.unwrap_or_else(|| xs.iter().cloned().fold(f64::INFINITY, f64::min));
+    let mx = stated.1.unwrap_or_else(|| xs.iter().cloned().fold(f64::NEG_INFINITY, f64::max));
+    if !mn.is_finite() || !mx.is_finite() { return None; }
 
     let span = (mx - mn).max(1e-12);
     let (k, step) = match spec {
@@ -5831,6 +5842,22 @@ mod tests {
         assert_eq!(col(&out, "x").len(), 30, "explicit count overrides Sturges");
         // Every row still lands in exactly one bin.
         assert_eq!(col(&out, "count").iter().sum::<f64>(), 100.0);
+    }
+
+    /// A stated end is where the bins start or stop (spec §10): the rows cover
+    /// 2.6 to 359.7, the stated domain 0 to 360, and the ten bins are the compass
+    /// in 36-degree steps. An end left unstated is read off the rows.
+    #[test]
+    fn a_stated_domain_is_where_the_bins_start_and_stop() {
+        let xs = [2.6, 90.0, 181.0, 359.7];
+        let spec = BinSpec { bins: Some(10), width: None, tiling: None };
+        let l = bin_layout_within(&xs, Some(&spec), (Some(0.0), Some(360.0))).unwrap();
+        assert_eq!((l.mn, l.step, l.k), (0.0, 36.0, 10));
+        let l = bin_layout_within(&xs, Some(&spec), (Some(0.0), None)).unwrap();
+        assert_eq!(l.mn, 0.0);
+        assert!((l.mn + l.step * l.k as f64 - 359.7).abs() < 1e-9, "the upper end is the rows'");
+        let l = bin_layout(&xs, Some(&spec)).unwrap();
+        assert_eq!(l.mn, 2.6, "with nothing stated, the rows decide");
     }
 
     #[test]

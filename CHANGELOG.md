@@ -48,6 +48,13 @@ CRAN-style repositories and PyPI, `GrammarOfGraphics` on Julia's General, and
 
 ### Changed
 
+- **`bin` cuts on a stated domain.** With `x(v, limits = c(0, 10))`, the bins
+  now start at 0 and stop at 10. They started and stopped at the smallest and
+  largest values inside the limits. An end left unstated still comes from the
+  data. In `polar()`, `x(bearing, limits = c(0, 360))` is now the whole turn: the
+  wedges fill it with no gap at the top, and 0 is at the top instead of 16
+  degrees round.
+
 - **A step in `polar()` draws its closing jump.** On a categorical angle the
   last value was carried round to the first spoke and stopped there, with no
   jump back to the first category's value. `line`, `area` and `ribbon` already

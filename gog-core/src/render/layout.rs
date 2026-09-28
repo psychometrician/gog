@@ -62,6 +62,13 @@ pub(crate) struct Fit {
     /// the rest of this struct, never on the wire.
     pub(crate) ticks_x: Option<(f64, f64)>,
     pub(crate) ticks_y: Option<(f64, f64)>,
+    /// Whether the page wrote this axis's domain (`page::set_limits`): the range
+    /// the plots beside it share, margins and all, and not one the author stated.
+    /// A bin is cut on a domain the author stated and never on this one, or a
+    /// histogram composed beside a scatter would be cut differently from the same
+    /// histogram alone (Law 6). Page state, never on the wire.
+    pub(crate) shared_domain_x: bool,
+    pub(crate) shared_domain_y: bool,
     /// How far the y axis's name moves in from the cell's left edge, in pixels.
     ///
     /// The name sits one band in from the edge, which is beside its tick labels
@@ -82,6 +89,7 @@ impl Fit {
             draw_x_axis: true, draw_y_axis: true,
             cats_x: None, cats_y: None,
             ticks_x: None, ticks_y: None,
+            shared_domain_x: false, shared_domain_y: false,
             y_name_shift: 0.0,
         }
     }

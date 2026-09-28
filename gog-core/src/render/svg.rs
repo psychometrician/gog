@@ -736,6 +736,19 @@ impl SvgRenderer {
             (is_free(Channel::X), is_free(Channel::Y), is_free(Channel::Z));
         let any_free = free_x || free_y || free_z;
 
+        // The domain the author stated for an axis, in the axis's own units. A
+        // domain the page wrote to line this plot up with its neighbors is not one
+        // (`Fit::shared_domain_x`): it holds their margins, and nothing is cut on it.
+        let authored_domain = |ch: Channel, is_log: bool, base_of: f64| -> (Option<f64>, Option<f64>) {
+            let shared = match ch {
+                Channel::X => self.fit.shared_domain_x,
+                Channel::Y => self.fit.shared_domain_y,
+                _ => false,
+            };
+            if shared { return (None, None) }
+            stated_domain(scale::domain_of(spec.axis_def(&ch)), is_log, base_of)
+        };
+
         // One cut per layer, resolved from every panel's rows at once.
         //
         // Always, faceted or not: an unfaceted plot's single panel *is* the frame,
@@ -753,22 +766,28 @@ impl SvgRenderer {
                 // the transform caller below obeys — a cut of unlogged values
                 // displayed on a log axis is the unequal-width bar that rule exists
                 // to prevent.
-                let logged = |field: &str, is_log: bool, base_of: f64| -> Option<crate::transform::BinLayout> {
+                //
+                // A stated domain (spec §10) is where the bins start and stop: the
+                // rows outside it are gone already, and cutting over the survivors'
+                // own range left the stated ends out of every bin.
+                let logged = |ch: Channel, field: &str, is_log: bool, base_of: f64| -> Option<crate::transform::BinLayout> {
                     let df = if is_log { scale::log_column(&base, field, base_of) } else { base.clone() };
-                    df.float_col(field).and_then(|xs| crate::transform::bin_layout(xs, layer.bin.as_ref()))
+                    let stated = authored_domain(ch, is_log, base_of);
+                    df.float_col(field)
+                        .and_then(|xs| crate::transform::bin_layout_within(xs, layer.bin.as_ref(), stated))
                 };
                 // A two-dimensional reading cuts both axes; a one-dimensional one
                 // cuts whichever it groups by, and leaves the other alone.
                 if crate::legality::reads_two_dimensions(
                     &layer.mark, &layer.transforms, crate::legality::space_of(spec)) {
                     crate::transform::BinCut {
-                        x: logged(x_field, x_log, x_base),
-                        y: logged(y_field, y_log, y_base),
+                        x: logged(Channel::X, x_field, x_log, x_base),
+                        y: logged(Channel::Y, y_field, y_log, y_base),
                     }
                 } else if key_is_x(layer, &base) {
-                    crate::transform::BinCut { x: logged(x_field, x_log, x_base), y: None }
+                    crate::transform::BinCut { x: logged(Channel::X, x_field, x_log, x_base), y: None }
                 } else {
-                    crate::transform::BinCut { x: None, y: logged(y_field, y_log, y_base) }
+                    crate::transform::BinCut { x: None, y: logged(Channel::Y, y_field, y_log, y_base) }
                 }
         };
         let layer_cuts: Vec<crate::transform::BinCut> =
@@ -1726,8 +1745,15 @@ impl SvgRenderer {
         // support, which is what the categorical rule already says in its units.
         // Flat this question does not arise: an axis with two ends lets the end
         // slots overhang into the margin, and nothing wraps onto anything.
+        //
+        // A **stated** end is not widened. The stated domain is the turn (spec
+        // §10), and the bins are cut on it, so their support ends there already;
+        // half a slot more at each end opened a gap at the seam, a 35° one for
+        // `x(bearing, limits = c(0, 360))`, and moved 0 off the top.
         let xs = if is_polar && cat_x.is_none() && !bar_frames.is_empty() {
-            widen_to_slot_support(&bar_frames, x_field, xs)
+            let wide = widen_to_slot_support(&bar_frames, x_field, xs);
+            let stated = authored_domain(Channel::X, x_log, x_base);
+            (if stated.0.is_some() { xs.0 } else { wide.0 }, if stated.1.is_some() { xs.1 } else { wide.1 })
         } else {
             xs
         };
@@ -7298,6 +7324,36 @@ mod tests {
             let want = i as f64 * 0.25;
             assert!((c - want).abs() < 0.005, "category {i} centered at {c:.4} of a turn, wanted {want:.4}");
         }
+    }
+
+    /// A **stated** angular domain is the turn, flush (spec §10): the bins are cut
+    /// on it and the axis is not widened past it. Widened by half a bin at each
+    /// end, `x(bearing, limits = c(0, 360))` opened a 35-degree gap at the seam
+    /// and drew its 0 tick 16 degrees clockwise of the top.
+    #[test]
+    fn a_stated_angle_domain_is_the_whole_turn() {
+        let data: HashMap<String, DataFrame> = HashMap::from([(
+            "t".to_string(),
+            DataFrame::new().with_float("deg", (0..40).map(|i| 2.6 + i as f64 * 9.2).collect()),
+        )]);
+        let mut x = ChannelDef::field("deg");
+        x.limits = Some([Some(0.0), Some(360.0)]);
+        let mut spec = PlotSpec::new().data("t")
+            .coord(CoordSpace::Polar(crate::ir::PolarView::default()))
+            .layer(Layer::new(Mark::Bar).transform(Transform::Bin));
+        spec.channels.insert(Channel::X, x);
+        let svg = SvgRenderer::default().render(&spec, &data);
+        let (cx, _, _) = disc(&svg);
+        let zero = svg.lines().find(|l| l.contains(">0</text>")).expect("a 0 tick");
+        let x_of = zero.split(r#"x=""#).nth(1).and_then(|r| r.split('"').next())
+            .and_then(|v| v.parse::<f64>().ok()).unwrap();
+        assert!((x_of - cx).abs() < 0.01, "0 is at the top: {zero}");
+        // The first wedge starts on the top spoke.
+        let first = svg.lines().find(|l| l.contains(r#"<path d="M "#) && l.contains(" A "))
+            .expect("a wedge");
+        let start_x = first.split("M ").nth(1).and_then(|r| r.split(' ').next())
+            .and_then(|v| v.parse::<f64>().ok()).unwrap();
+        assert!((start_x - cx).abs() < 0.01, "the first wedge starts at north: {first}");
     }
 
     /// The half-slot rotation is for *categories*, which divide the turn into

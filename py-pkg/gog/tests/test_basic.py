@@ -3347,3 +3347,12 @@ _svg = render_svg(data({"g": ["a", "b", "c", "d"], "v": [1.0, 4.0, 2.0, 3.0]}, n
                   + step + x(col.g) + y(col.v) + polar())
 assert 'Z" stroke=' in _svg
 ok("a polar step draws its closing jump")
+
+
+# --- A stated angle domain is the whole turn -------------------------------------------
+# The bins are cut on it and the axis is not widened past it, so 0 is at the top.
+# The same block runs in all four bindings.
+_svg = render_svg(data({"deg": [2.6 + i * 9.2 for i in builtins.range(40)]}, name="sd")
+                  + bar * bin + x(col.deg, limits=(0, 360)) + polar())
+assert 'text-anchor="middle">0</text>' in _svg
+ok("a stated angle domain is the whole turn")

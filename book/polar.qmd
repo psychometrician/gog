@@ -350,6 +350,20 @@ turn is the span of the *bins*, from 2.6 to 359.7 degrees. The readings here
 cover nearly the whole compass, so north lands only 2.6 degrees counterclockwise
 of the top.
 
+Stating the domain with `limits`, as with the tide readings, puts north at the
+top:
+
+```{r}
+data(winds) + bar * bin + x(bearing, limits = c(0, 360)) + polar()
+```
+
+*"Given the winds: bars derived by bin, x is bearing from 0 to 360, in polar."*
+
+The turn now runs from 0 to 360 degrees, whatever the readings span. `bin` cuts
+its wedges on the stated domain as well. It makes ten wedges, as above, so each
+covers 36 degrees and the first starts at north. The label 0 at the top, missing
+from the rose above, marks where that wedge begins.
+
 ## The pie: where you put the category
 
 The roses so far put the direction on a *position*: `x(direction)` gave each

@@ -3513,3 +3513,11 @@ test("a polar step draws its closing jump", () => {
   const svg = render_svg(plot(data({ g: ["a", "b", "c", "d"], v: [1, 4, 2, 3] }), step, x(col.g), y(col.v), polar()));
   assert.ok(svg.includes('Z" stroke='));
 });
+
+// A stated angle domain is the whole turn: the bins are cut on it and the axis is
+// not widened past it, so 0 is at the top. The same block runs in all four bindings.
+test("a stated angle domain is the whole turn", () => {
+  const deg = [...Array(40).keys()].map((i) => 2.6 + i * 9.2);
+  const svg = render_svg(plot(data({ deg }), layer(bar, bin), x(col.deg, { limits: [0, 360] }), polar()));
+  assert.ok(svg.includes('text-anchor="middle">0</text>'));
+});

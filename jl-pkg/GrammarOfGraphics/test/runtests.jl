@@ -2884,3 +2884,10 @@ end
     svg = render_svg(data((g = ["a", "b", "c", "d"], v = [1.0, 4.0, 2.0, 3.0])) + step + x(:g) + y(:v) + polar())
     @test occursin("Z\" stroke=", svg)
 end
+
+# A stated angle domain is the whole turn: the bins are cut on it and the axis is
+# not widened past it, so 0 is at the top. The same block runs in all four bindings.
+@testset "a stated angle domain is the whole turn" begin
+    svg = render_svg(data((deg = [2.6 + i * 9.2 for i in 0:39],)) + bar * bin + x(:deg, limits = (0, 360)) + polar())
+    @test occursin("text-anchor=\"middle\">0</text>", svg)
+end

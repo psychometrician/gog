@@ -369,9 +369,12 @@ fn share(
                 };
                 // Only beside a domain the page stated: a plot whose caller stated
                 // one keeps its own, ticks and all (spec §10).
-                if set_limits(&mut specs[i], channel, out(lo), out(hi))
-                    && over.0.is_finite() && over.1.is_finite() && over.1 >= over.0
-                {
+                let stated = set_limits(&mut specs[i], channel, out(lo), out(hi));
+                match horizontal {
+                    true => fits[i].shared_domain_x |= stated,
+                    false => fits[i].shared_domain_y |= stated,
+                }
+                if stated && over.0.is_finite() && over.1.is_finite() && over.1 >= over.0 {
                     match horizontal {
                         true => fits[i].ticks_x = Some(over),
                         false => fits[i].ticks_y = Some(over),
@@ -1103,6 +1106,34 @@ mod tests {
         let cells = names(&two(Arrange::Below, plot("speed", "dist").into(), histogram.into()));
         assert!((cells[0].0 - cells[1].0).abs() < 1e-9, "the panels are lined up: {cells:?}");
         assert_eq!(cells[0].1, cells[1].1, "and so are their names: {cells:?}");
+    }
+
+    /// A page shares an axis by writing its range into each plot as a domain,
+    /// margins and all, and a bin is not cut on that: a histogram stacked over a
+    /// scatter keeps the bins it has alone (Law 6). Cut on the shared range, its
+    /// first bar started in the margin, at the panel's left edge.
+    #[test]
+    fn a_shared_axis_does_not_recut_a_histogram() {
+        let df = DataFrame::new()
+            .with_float("v", (1..=20).map(|i| i as f64).collect())
+            .with_float("w", (1..=20).map(|i| (i * 7 % 11) as f64).collect());
+        let data = HashMap::from([("t".to_string(), df)]);
+        let hist = PlotSpec::new().data("t").x("v")
+            .layer(Layer::new(Mark::Bar).transform(crate::ir::Transform::Bin));
+        let scatter = PlotSpec::new().data("t").x("v").y("w").layer(Layer::new(Mark::Point));
+        let page = PageSpec {
+            arrange: Arrange::Below, cells: vec![hist.into(), scatter.into()], theme: ThemeSpec::default(),
+        };
+        let (svg, _) = render(&page, &data, 800.0, 600.0);
+        let cell = svg.split("<svg ").nth(2).expect("the histogram's cell");
+        let num = |s: &str, key: &str| s.split(key).nth(1)?.split('"').next()?.parse::<f64>().ok();
+        let panel_left = cell.split("<clipPath").nth(1).and_then(|c| num(c, " x=\"")).unwrap();
+        let first_bar = cell.lines()
+            .filter(|l| l.contains("<rect") && l.contains("fill=\"#4e79a7\""))
+            .filter_map(|l| num(l, " x=\""))
+            .fold(f64::INFINITY, f64::min);
+        assert!(first_bar > panel_left + 1.0,
+            "the first bin starts at the data, not the page's margin: bar {first_bar}, panel {panel_left}");
     }
 
     /// A shared column gives its plots one extent only where each measured panel

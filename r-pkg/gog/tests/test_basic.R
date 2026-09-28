@@ -5391,3 +5391,16 @@ local({
     stop("FAIL: a polar step should close with its last jump")
   cat("PASS: a polar step draws its closing jump\n")
 })
+
+# ---------------------------------------------------------------------------
+# A stated domain on a polar histogram's angle is the whole turn: the bins are
+# cut on it and the axis is not widened past it, so 0 is at the top. The same
+# block runs in all four bindings.
+# ---------------------------------------------------------------------------
+local({
+  t <- data.frame(deg = 2.6 + (0:39) * 9.2)
+  svg <- render_svg(data(t) + bar * bin + x(deg, limits = c(0, 360)) + polar())
+  if (!grepl('text-anchor="middle">0</text>', svg, fixed = TRUE))
+    stop("FAIL: a stated turn should put 0 at the top")
+  cat("PASS: a stated angle domain is the whole turn\n")
+})
