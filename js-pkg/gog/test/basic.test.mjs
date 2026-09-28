@@ -2262,6 +2262,19 @@ test("brush dims the rows outside the bound and drops none", () => {
   assert.equal((svg.match(/<circle/g) || []).length, 6, "brush must dim, not filter");
 });
 
+// A shape `bounds` places is still one row, so a brush reaches it: the one zone
+// and the one whisker outside the bound are pushed back.
+test("a brush reaches the shapes bounds places, one row each", () => {
+  const d = { lo: [1, 3, 6], hi: [2, 5, 8], g: ["a", "b", "c"] };
+  const dimmed = (svg) => svg.split('<g opacity="0.150">')[1].split("</g>")[0];
+  const z = render_svg(plot(data(d, { name: "spb" }), layer(zone, bounds(col.lo, col.hi)),
+    brush(col.lo, { at: [0, 4] })));
+  assert.equal((dimmed(z).match(/<rect/g) || []).length, 1, "one zone pushed back");
+  const w = render_svg(plot(data(d, { name: "spb" }), layer(interval, bounds(col.lo, col.hi)),
+    x(col.g), brush(col.lo, { at: [0, 4] })));
+  assert.equal((dimmed(w).match(/<line/g) || []).length, 3, "one whisker pushed back");
+});
+
 test("a plot with no brush is untouched by selection", () => {
   const d = { v: [1, 2, 3], w: [2, 4, 1] };
   const svg = render_svg(plot(data(d, { name: "bt" }), point, x(col.v), y(col.w)));
@@ -2276,13 +2289,14 @@ test("brush on a category column selects slots", () => {
   assert.ok(svg.includes('<g opacity="0.150">'));
 });
 
-test("a line has no single row to select, and the refusal names the marks that do", () => {
+test("a line has no single row to select, and the refusal names the layers that do", () => {
   const d = { v: [1, 2, 3], w: [2, 4, 1] };
-  // Every mark that draws one row per shape is named, and `group()` is not: a grouped
-  // line is refused the same way, so the advice could not be followed.
+  // Every layer that draws one row per shape is named, an `interval` under `bounds`
+  // with its transform, and `group()` is not: a grouped line is refused the same
+  // way, so the advice could not be followed.
   assert.throws(() => render_svg(plot(data(d, { name: "bt" }), line,
     x(col.v), y(col.w), brush(col.v, { at: [1, 2] }))),
-    (e) => /one shape through many rows[\s\S]*`point`, `text`, `rule` and `zone`/.test(e.message)
+    (e) => /one shape through many rows[\s\S]*`point`, `text`, `rule`, `zone` and `interval \* bounds`/.test(e.message)
       && !e.message.includes("group()"));
   assert.throws(() => render_svg(plot(data(d, { name: "bt" }), area,
     x(col.v), y(col.w), brush(col.v, { at: [1, 2] }))),

@@ -1918,6 +1918,19 @@ _plain = render_svg(data(_brush_df, name="bt") + point + x(col.v) + y(col.w))
 assert "data-gog-panel" not in _plain and "<g opacity=" not in _plain
 ok("a plot with no brush is untouched by selection")
 
+# A shape `bounds` places is still one row, so a brush reaches it: the one zone
+# and the one whisker outside the bound are pushed back.
+_spans_b = {"lo": [1.0, 3.0, 6.0], "hi": [2.0, 5.0, 8.0], "g": ["a", "b", "c"]}
+def _dimmed(svg):
+    return svg.split(_DIM, 1)[1].split("</g>", 1)[0]
+_z = render_svg(data(_spans_b, name="spb") + zone * bounds(col.lo, col.hi)
+                + brush(col.lo, at=(0, 4)))
+assert _dimmed(_z).count("<rect") == 1, "a brush on zone * bounds pushes back one zone"
+_w = render_svg(data(_spans_b, name="spb") + interval * bounds(col.lo, col.hi) + x(col.g)
+                + brush(col.lo, at=(0, 4)))
+assert _dimmed(_w).count("<line") == 3, "a brush on interval * bounds pushes back one whisker"
+ok("a brush reaches the shapes bounds places, one row each")
+
 _cat = render_svg(data(_brush_df, name="bt") + point + x(col.v) + y(col.w)
                   + brush(col.kind, at="b"))
 assert _DIM in _cat, "brush() on a column of categories selected no slots"
@@ -1929,9 +1942,11 @@ try:
     raise AssertionError("a brushed line should refuse")
 except Exception as _e:
     _t = str(_e)
-    # Every mark that draws one row per shape is named, and `group()` is not: a
-    # grouped line is refused the same way, so the advice could not be followed.
-    assert "one shape through many rows" in _t and "`point`, `text`, `rule` and `zone`" in _t \
+    # Every layer that draws one row per shape is named, an `interval` under
+    # `bounds` with its transform, and `group()` is not: a grouped line is refused
+    # the same way, so the advice could not be followed.
+    assert "one shape through many rows" in _t \
+        and "`point`, `text`, `rule`, `zone` and `interval * bounds`" in _t \
         and "group()" not in _t, _t
 try:
     render_svg(data(_brush_df, name="bt") + area + x(col.v) + y(col.w)

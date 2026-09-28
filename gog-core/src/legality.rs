@@ -8421,9 +8421,21 @@ pub fn mark_takes_selection(mark: &Mark) -> bool {
 /// provenance debt (§14) made visible instead of silently approximated.
 ///
 /// The collision modifiers do not collapse: `dodge`, `stack`, `jitter` and
-/// `repel` move rows without merging them.
+/// `repel` move rows without merging them. Nor does `bounds`, which names each
+/// row's own two sides, so one row still draws one shape: a zone per recession, a
+/// whisker per estimate. It was counted as a summary, and a brush on such a layer
+/// was refused for a reason that was false (ruled 2026-09-28: it answers).
 fn transform_collapses_rows(t: &Transform) -> bool {
-    !is_collision_modifier(t)
+    !is_collision_modifier(t) && *t != Transform::Bounds
+}
+
+/// Can this layer's rows answer a selection? [`mark_takes_selection`] asks it of
+/// the mark, and the layer decides one case the mark cannot: an `interval` under
+/// `bounds` draws one whisker per row, the two sides that row names, where the
+/// mark in general joins many rows (a summary's spread) or splits by a column.
+pub fn layer_takes_selection(layer: &Layer) -> bool {
+    mark_takes_selection(&layer.mark)
+        || (layer.mark == Mark::Interval && layer.transforms.contains(&Transform::Bounds))
 }
 
 /// Can the engine *draw* this layer brushed today? The `renders` half.
@@ -8783,7 +8795,7 @@ fn check_brush(out: &mut Vec<Diagnostic>, spec: &PlotSpec, data: &HashMap<String
             continue;
         }
         let m = mark_name(&layer.mark);
-        if !mark_takes_selection(&layer.mark) {
+        if !layer_takes_selection(layer) {
             not_elements.push(m);
         } else if let Some(t) = layer.transforms.iter().find(|t| transform_collapses_rows(t)) {
             collapsed.push((m, format!("{t:?}").to_lowercase()));
@@ -8853,23 +8865,29 @@ fn check_brush(out: &mut Vec<Diagnostic>, spec: &PlotSpec, data: &HashMap<String
             ),
         });
     } else if let Some(m) = not_elements.first() {
-        // The marks named are the ones that take a selection and draw it, read off
-        // `mark_takes_selection` and `selection_draws` as the refusals above are, so
+        // The layers named are the ones that take a selection and draw it, read off
+        // `layer_takes_selection` and `selection_draws` as the refusals above are, so
         // none of them is refused in turn (a plain `bar` takes one and cannot draw
-        // it yet). It also said "Use `group()` to split it", and a grouped line is
-        // still refused here, since `group` splits one shape into several, never
-        // into rows.
-        let brushable: Vec<&str> = ALL_MARKS.iter()
-            .filter(|mk| is_drawable(mk) && mark_takes_selection(mk)
-                && selection_draws(&Layer::new((*mk).clone())).is_none())
-            .map(mark_name)
+        // it yet). A mark that answers only under `bounds` is named with it, after
+        // the marks that answer alone: the layer decides that case, not the mark.
+        // It also said "Use `group()` to split it", and a grouped line is still
+        // refused here, since `group` splits one shape into several, never into rows.
+        let answers = |layer: &Layer| layer_takes_selection(layer) && selection_draws(layer).is_none();
+        let drawable = || ALL_MARKS.iter().filter(|mk| is_drawable(mk));
+        let alone: Vec<&Mark> = drawable().filter(|mk| answers(&Layer::new((*mk).clone()))).collect();
+        let brushable: Vec<String> = alone.iter().map(|mk| mark_name(mk).to_string())
+            .chain(drawable()
+                .filter(|mk| !alone.contains(mk)
+                    && answers(&Layer::new((*mk).clone()).transform(Transform::Bounds)))
+                .map(|mk| format!("{} * bounds", mark_name(mk))))
             .collect();
+        let names: Vec<&str> = brushable.iter().map(String::as_str).collect();
         out.push(Diagnostic {
             kind: DiagnosticKind::Illegal,
             message: format!(
                 "gog: {} `{m}` draws one shape through many rows, so there is no single row \
-                 to select. Brush one of the marks that draw a selection: {}.",
-                article(m), code_list(&brushable)
+                 to select. Brush a layer that draws a selection: {}.",
+                article(m), code_list(&names)
             ),
         });
     }
@@ -13999,7 +14017,14 @@ mod tests {
                 assert_eq!(out.iter().any(|d| d.message.contains(&format!("`{}`", mark_name(m)))),
                     drawn, "{} offered wrongly: {:?}", mark_name(m), msgs(&out));
             }
+            // An `interval` answers only under `bounds`, so it is offered with it,
+            // last, and never bare: a bare one is refused for the line's reason.
+            assert!(out.iter().any(|d| d.message.ends_with("`zone` and `interval * bounds`.")),
+                "{:?}", msgs(&out));
         }
+        let out = brushed(Layer::new(Mark::Interval));
+        assert!(out.iter().any(|d| d.message.starts_with("gog: an `interval` draws")
+            && d.message.contains("`interval * bounds`")), "{:?}", msgs(&out));
         // The article follows the mark: "an `area`", "an `interval`".
         let out = brushed(Layer::new(Mark::Area));
         assert!(out.iter().any(|d| d.message.starts_with("gog: an `area` draws")), "{:?}", msgs(&out));

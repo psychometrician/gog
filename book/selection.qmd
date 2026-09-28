@@ -253,7 +253,9 @@ each atom follows its own rule, and this plot uses both.
 
 A selection marks rows, so a mark can be brushed only when *one row is one
 shape*. Four marks meet that test and draw a selection: `point`, `text`, `rule`
-and `zone`.
+and `zone`. An `interval` with the
+[`bounds`](transforms.qmd#bounds-a-pre-computed-lowhigh-pair) transform meets
+the test too, because each whisker's two ends come from one row.
 
 A plain `bar` meets the test as well and still refuses. One row is one bar, but
 a bar's thickness comes from the smallest gap between neighboring bars. The
@@ -283,8 +285,8 @@ data(gapminder_asia) + line + x(year) + y(life) + group(country) +
   brush(life, at = c(60, 80))
 ```
 
-The refusal lists the marks that draw a selection. A brushed plot needs at least
-one of them.
+The refusal lists the layers that draw a selection. A brushed plot needs at
+least one of them.
 
 A summarized layer refuses for a different reason. A bar of `bar * count` stands
 for as many as fifty-two countries at once. There is no way to draw "twelve of

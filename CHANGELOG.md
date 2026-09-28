@@ -56,6 +56,13 @@ CRAN-style repositories and PyPI, `GrammarOfGraphics` on Julia's General, and
 
 ### Changed
 
+- **A brush reaches a zone or an interval placed by `bounds`.** `zone *
+  bounds` and `interval * bounds` refused a brush, saying `bounds` summarizes
+  many rows. Each draws one shape per row, so a brush now dims the zones and
+  whiskers whose rows fall outside it, as it dims points. The refusal for a
+  brushed `line` or `area` now lists `interval * bounds` among the layers that
+  draw a selection.
+
 - **A brushed plot in the cube or on the globe reports its selection on a web
   page.** It drew the selection but gave no count and no way to list the rows.
   A line under the plot now gives the count and `show rows`, as under a flat

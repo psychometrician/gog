@@ -2751,15 +2751,33 @@ if (!grepl(dim_group, svg_cat, fixed = TRUE))
   stop("FAIL: brush() on a column of categories selected no slots")
 cat("PASS: brush() on a category column selects slots\n")
 
+# A shape `bounds` places is still one row, so a brush reaches it: the one zone
+# and the one whisker outside the bound are pushed back. Both were refused as
+# summaries, and the whisker's pair frame had dropped the column a brush tests.
+spans <- data.frame(lo = c(1, 3, 6), hi = c(2, 5, 8), g = c("a", "b", "c"),
+                    stringsAsFactors = FALSE)
+dimmed_part <- function(svg)
+  strsplit(strsplit(svg, dim_group, fixed = TRUE)[[1]][2], "</g>", fixed = TRUE)[[1]][1]
+count_in <- function(tag, svg) lengths(regmatches(svg, gregexpr(tag, svg, fixed = TRUE)))
+svg_zone <- render_svg(data(spans) + zone * bounds(lo, hi) + brush(lo, at = c(0, 4)))
+if (count_in("<rect", dimmed_part(svg_zone)) != 1)
+  stop("FAIL: a brush on zone * bounds should push back the one zone outside the bound")
+svg_whisker <- render_svg(data(spans) + interval * bounds(lo, hi) + x(g) +
+                          brush(lo, at = c(0, 4)))
+if (count_in("<line", dimmed_part(svg_whisker)) != 3)
+  stop("FAIL: a brush on interval * bounds should push back the one whisker outside the bound")
+cat("PASS: a brush reaches the shapes bounds places, one row each\n")
+
 m <- tryCatch({
   render_svg(data(brush_df) + line + x(v) + y(w) + brush(v, at = c(2, 4))); ""
 }, error = function(e) conditionMessage(e))
-# Every mark that draws one row per shape is named, and `group()` is not: a grouped
-# line is refused the same way, so the advice could not be followed.
+# Every layer that draws one row per shape is named, an `interval` under `bounds`
+# with its transform, and `group()` is not: a grouped line is refused the same way,
+# so the advice could not be followed.
 if (!grepl("one shape through many rows", m) ||
-    !grepl("`point`, `text`, `rule` and `zone`", m, fixed = TRUE) ||
+    !grepl("`point`, `text`, `rule`, `zone` and `interval * bounds`", m, fixed = TRUE) ||
     grepl("group()", m, fixed = TRUE))
-  stop("FAIL: a brushed line should refuse toward the marks that take a brush, got: ", m)
+  stop("FAIL: a brushed line should refuse toward the layers that take a brush, got: ", m)
 m_area <- tryCatch({
   render_svg(data(brush_df) + area + x(v) + y(w) + brush(v, at = c(2, 4))); ""
 }, error = function(e) conditionMessage(e))

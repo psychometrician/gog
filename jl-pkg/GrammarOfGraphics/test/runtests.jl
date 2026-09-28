@@ -1650,6 +1650,17 @@ end
                      brush(:kind, at = "b"))
     @test occursin("<g opacity=\"0.150\">", cat)
 
+    # A shape `bounds` places is still one row, so a brush reaches it: the one
+    # zone and the one whisker outside the bound are pushed back.
+    spans_b = Dict("lo" => [1.0, 3.0, 6.0], "hi" => [2.0, 5.0, 8.0], "g" => ["a", "b", "c"])
+    dimmed(s) = split(split(s, "<g opacity=\"0.150\">")[2], "</g>")[1]
+    z = render_svg(data(spans_b; name = "spb") + zone * bounds(:lo, :hi) +
+                   brush(:lo, at = (0.0, 4.0)))
+    @test length(collect(eachmatch(r"<rect", dimmed(z)))) == 1
+    w = render_svg(data(spans_b; name = "spb") + interval * bounds(:lo, :hi) + x(:g) +
+                   brush(:lo, at = (0.0, 4.0)))
+    @test length(collect(eachmatch(r"<line", dimmed(w)))) == 3
+
     line_msg = try
         render_svg(data(d; name = "bt") + line + x(:v) + y(:w) +
                    brush(:v, at = (2.0, 4.0)))
@@ -1658,9 +1669,10 @@ end
         sprint(showerror, e)
     end
     @test occursin("one shape through many rows", line_msg)
-    # Every mark that draws one row per shape is named, and `group()` is not: a
-    # grouped line is refused the same way, so the advice could not be followed.
-    @test occursin("`point`, `text`, `rule` and `zone`", line_msg)
+    # Every layer that draws one row per shape is named, an `interval` under
+    # `bounds` with its transform, and `group()` is not: a grouped line is refused
+    # the same way, so the advice could not be followed.
+    @test occursin("`point`, `text`, `rule`, `zone` and `interval * bounds`", line_msg)
     @test !occursin("group()", line_msg)
     area_msg = try
         render_svg(data(d; name = "bt") + area + x(:v) + y(:w) + brush(:v, at = (2.0, 4.0)))

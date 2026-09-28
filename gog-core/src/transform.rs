@@ -2855,19 +2855,29 @@ fn bounds(df: &DataFrame, key_field: &str, out_field: &str, spec: Option<&Bounds
         v
     };
 
+    // **Every other column rides along, repeated on both rows of its pair.** A
+    // row here is still one shape, so the shape keeps what its row held. A brush
+    // tests a row's own columns against the frame the mark is drawn from, and a
+    // frame holding only the key and the pair gave it nothing to test: a
+    // selection on `interval * bounds` drew every whisker at full strength and
+    // said nothing. The key and the pair are written over the copies below.
+    let carried = |n: usize| -> DataFrame {
+        if n == df.len() { df.repeat_rows(&vec![2; n]) } else { DataFrame::new() }
+    };
+
     // String key (a categorical error bar) — carry declared factor order via `keyed`.
     if let Some(xs) = df.str_col(key_field) {
         let n = xs.len().min(lo.len()).min(hi.len());
         let mut keys = Vec::with_capacity(n * 2);
         for i in 0..n { keys.push(xs[i].clone()); keys.push(xs[i].clone()); }
-        return keyed(DataFrame::new().with_float(out_field, interleave(n)), key_field, keys, df);
+        return keyed(carried(n).with_float(out_field, interleave(n)), key_field, keys, df);
     }
     // Numeric key (a band across a score / time). Input order preserved.
     if let Some(xs) = df.float_col(key_field) {
         let n = xs.len().min(lo.len()).min(hi.len());
         let mut kx = Vec::with_capacity(n * 2);
         for i in 0..n { kx.push(xs[i]); kx.push(xs[i]); }
-        return DataFrame::new().with_float(key_field, kx).with_float(out_field, interleave(n));
+        return carried(n).with_float(key_field, kx).with_float(out_field, interleave(n));
     }
     df.clone()
 }
@@ -7513,6 +7523,25 @@ mod tests {
         let out = bounds(&df, "x", "y", Some(&spec));
         assert_eq!(out.float_col("y").unwrap(), &[10.0, 15.0, 20.0, 25.0, 30.0, 35.0]);
         assert_eq!(out.float_col("x").unwrap(), &[1.0, 1.0, 2.0, 2.0, 3.0, 3.0]);
+    }
+
+    #[test]
+    fn bounds_carries_each_rows_other_columns_onto_its_pair() {
+        // A pair is still one row's shape, so the row's other columns ride along on
+        // both of its rows. A brush tests them against this frame, and a frame of
+        // the key and the pair alone left it nothing to test.
+        let df = DataFrame::new()
+            .with_str("g", vec!["a".into(), "b".into()])
+            .with_float("lo", vec![1.0, 3.0])
+            .with_float("hi", vec![2.0, 5.0])
+            .with_str("tag", vec!["p".into(), "q".into()]);
+        let spec = BoundsSpec { lower: Some("lo".into()), upper: Some("hi".into()), ..Default::default() };
+        let out = bounds(&df, "g", "y", Some(&spec));
+        assert_eq!(out.len(), 4);
+        assert_eq!(out.float_col("y").unwrap(), &[1.0, 2.0, 3.0, 5.0]);
+        assert_eq!(out.str_col("g").unwrap(), &["a", "a", "b", "b"]);
+        assert_eq!(out.float_col("lo").unwrap(), &[1.0, 1.0, 3.0, 3.0]);
+        assert_eq!(out.str_col("tag").unwrap(), &["p", "p", "q", "q"]);
     }
 
     // -- confidence --------------------------------------------------------

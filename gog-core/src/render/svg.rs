@@ -3377,7 +3377,7 @@ impl SvgRenderer {
             // Nothing selected: one pass, the whole frame, the resting state.
             return (!dim).then(|| std::borrow::Cow::Borrowed(df));
         };
-        let reachable = crate::legality::mark_takes_selection(&layer.mark)
+        let reachable = crate::legality::layer_takes_selection(layer)
             && crate::legality::layer_answers_selection(layer);
         if !reachable {
             return (!dim).then(|| std::borrow::Cow::Borrowed(df));
@@ -6745,6 +6745,43 @@ mod tests {
         // Two of the six rows sit inside 2.5..4.5, so four are pushed back.
         let dimmed = svg.split(&dim).nth(1).unwrap().split("</g>").next().unwrap();
         assert_eq!(circles(dimmed), 4, "the four rows outside the bound are the dimmed ones");
+    }
+
+    /// **A shape `bounds` places is still one row, so a brush reaches it.** A
+    /// `zone * bounds` draws a zone per row and an `interval * bounds` a whisker
+    /// per row. Both were refused as summaries, and once the refusal went the
+    /// interval still drew every whisker at full strength, because the pair frame
+    /// had dropped the column the brush tests (ruled 2026-09-28: it answers).
+    #[test]
+    fn a_brush_dims_each_row_a_bounds_layer_draws() {
+        let mut d = HashMap::new();
+        d.insert("t".to_string(), DataFrame::new()
+            .with_float("lo", vec![1.0, 3.0, 6.0])
+            .with_float("hi", vec![2.0, 5.0, 8.0])
+            .with_str("g", vec!["a", "b", "c"].into_iter().map(String::from).collect()));
+        let dim = format!(r#"<g opacity="{:.3}">"#, crate::render::encode::SELECTION_DIM);
+        let dimmed = |svg: &str| svg.split(&dim).nth(1).expect("a dimmed pass")
+            .split("</g>").next().unwrap().to_string();
+        let brush = || crate::ir::BrushDef::new("lo").at(0.0, 4.0);
+
+        let zone = PlotSpec::new().data("t")
+            .layer(Layer::new(Mark::Zone).bounds("lo", "hi")).brush(brush());
+        let out = crate::legality::check(&zone, &d);
+        assert!(!out.iter().any(|x| x.is_fatal()), "{:?}",
+            out.iter().map(|x| &x.message).collect::<Vec<_>>());
+        let svg = SvgRenderer::default().render(&zone, &d);
+        assert_eq!(dimmed(&svg).matches("<rect").count(), 1,
+            "the one zone outside the bound, and only it, is pushed back: {svg}");
+
+        let interval = PlotSpec::new().data("t").x("g")
+            .layer(Layer::new(Mark::Interval).bounds("lo", "hi")).brush(brush());
+        let out = crate::legality::check(&interval, &d);
+        assert!(!out.iter().any(|x| x.is_fatal()), "{:?}",
+            out.iter().map(|x| &x.message).collect::<Vec<_>>());
+        let svg = SvgRenderer::default().render(&interval, &d);
+        // A whisker is a span and two caps: three strokes for the one row outside.
+        assert_eq!(dimmed(&svg).matches("<line").count(), 3,
+            "one whisker is pushed back, not none and not all: {svg}");
     }
 
     /// Selecting on a column of categories is the same atom, and which of the two
