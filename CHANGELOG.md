@@ -56,6 +56,12 @@ CRAN-style repositories and PyPI, `GrammarOfGraphics` on Julia's General, and
 
 ### Changed
 
+- **What a globe hides is said once per table, and names it.** The note that
+  rows face away from the view, and the one for spikes below zero, now name the
+  layer's table, as in "3192 of 4150 row(s) of `world_borders`". Two tables with
+  the same counts printed one line, and a globe split into panels printed one
+  line per panel; each table now gets one line, counted over every panel.
+
 - **A log `z` is refused by the cube only in the cube.** "A log `z`-axis is
   not drawn yet" printed in `globe()`, `map()`, `polar()`, `nest()` and
   `network()` as well, first and above each space's own refusal of `z`. It is

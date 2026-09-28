@@ -3583,3 +3583,15 @@ for _k, _p in (("cube", _lz + point + x(col.lon) + y(col.lat) + z(col.v, scale="
 assert "log `z`-axis" in _said["cube"], _said["cube"]
 assert "log `z`-axis" not in _said["globe"] and "a `globe()` plot draws none" in _said["globe"], _said["globe"]
 ok("a log z is refused by the cube only in the cube")
+
+
+# --- A globe's hidden rows are said once per table, and name it -------------------------
+# Two tables with the same counts printed one unnamed line. The same block runs in all
+# four bindings.
+_places = {"lon": [-150.0, 10.0, 170.0], "lat": [61.0, 50.0, -20.0]}
+with contextlib.redirect_stderr(io.StringIO()) as _said:
+    render_svg(data(_places, name="cities") + point + x(col.lon) + y(col.lat)
+               + data(_places, name="copy") + point + x(col.lon) + y(col.lat) + globe())
+assert "row(s) of `cities` face away" in _said.getvalue() and \
+    "row(s) of `copy` face away" in _said.getvalue(), _said.getvalue()
+ok("a globe's hidden rows are said once per table, and name it")

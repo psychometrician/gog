@@ -2437,6 +2437,11 @@ impl SvgRenderer {
         // What every `point * dodge` swarm could not clear, over all panels and
         // moments, so a crowded plot says it once rather than once per panel.
         let mut swarm = crate::render::marks::SwarmTally::default();
+        // What the globe's far side hides and what sinks below its surface, per
+        // layer: (hidden, total, sunk), counted in every panel and said once after
+        // the loop, so a faceted globe gives one line per table rather than one per
+        // panel that no reader can tell apart.
+        let mut globe_tally = vec![(0usize, 0usize, 0usize); spec.layers.len()];
 
         for panel in &grid.panels {
             let l = &panel.rect;
@@ -2574,30 +2579,10 @@ impl SvgRenderer {
                             }
                         }
                     }
-                    let v = globe_view.unwrap_or_default();
-                    if hidden > 0 {
-                        remarks.push(Diagnostic {
-                            kind: crate::legality::DiagnosticKind::Assumption,
-                            message: format!(
-                                "gog: {hidden} of {total} row(s) face away from \
-                                 `globe(turn = {}, tilt = {})` and are hidden behind the \
-                                 sphere. Turn to face them, or put a second view beside \
-                                 this one with `|`.",
-                                v.turn, v.tilt
-                            ),
-                        });
-                    }
-                    if sunk > 0 {
-                        remarks.push(Diagnostic {
-                            kind: crate::legality::DiagnosticKind::Assumption,
-                            message: format!(
-                                "gog: {sunk} row(s) measure below zero, and a spike cannot \
-                                 point into the earth — they are left undrawn. A bar here \
-                                 stands on the surface and measures outward; shift the \
-                                 column in the host if the sign is a convention."
-                            ),
-                        });
-                    }
+                    let tally = &mut globe_tally[li];
+                    tally.0 += hidden;
+                    tally.1 += total;
+                    tally.2 += sunk;
                 }
                 // **A label is clipped by the panel, not the disk.** It names a place
                 // on the facing hemisphere, and a name set beside a place near the
@@ -3027,6 +3012,39 @@ impl SvgRenderer {
             ticks_over,
         };
         remarks.extend(swarm.remark());
+        // **Each globe note names its table.** Unnamed, two layers from two tables
+        // with the same counts printed one line, and a plot with several layers gave
+        // counts no reader could match to a layer. Two layers drawing one table hide
+        // the same rows, so they still print one line, through the dedup below.
+        if let Some(v) = globe_view {
+            for (layer, &(hidden, total, sunk)) in spec.layers.iter().zip(&globe_tally) {
+                let of = layer.data.as_ref().or(spec.data.as_ref())
+                    .map(|t| format!(" of `{t}`")).unwrap_or_default();
+                if hidden > 0 {
+                    remarks.push(Diagnostic {
+                        kind: crate::legality::DiagnosticKind::Assumption,
+                        message: format!(
+                            "gog: {hidden} of {total} row(s){of} face away from \
+                             `globe(turn = {}, tilt = {})` and are hidden behind the \
+                             sphere. Turn to face them, or put a second view beside \
+                             this one with `|`.",
+                            v.turn, v.tilt
+                        ),
+                    });
+                }
+                if sunk > 0 {
+                    remarks.push(Diagnostic {
+                        kind: crate::legality::DiagnosticKind::Assumption,
+                        message: format!(
+                            "gog: {sunk} row(s){of} measure below zero, and a spike cannot \
+                             point into the earth — they are left undrawn. A bar here \
+                             stands on the surface and measures outward; shift the \
+                             column in the host if the sign is a convention."
+                        ),
+                    });
+                }
+            }
+        }
         let mut seen = std::collections::HashSet::new();
         remarks.retain(|d| seen.insert(d.message.clone()));
         Drawn {
@@ -8608,6 +8626,45 @@ mod tests {
         assert!(id.ends_with("-labels"), "the labels' clip is the panel's: {id}");
         let rect = svg.split(&format!("<clipPath id=\"{id}\">")).nth(1).expect("the label clip");
         assert!(rect.starts_with("<rect"), "a rectangle, not the disk: {}", &rect[..40.min(rect.len())]);
+    }
+
+    /// **What a globe hides is said once per table, and names it.** Two tables with
+    /// the same counts printed one unnamed line, and a faceted globe one line per
+    /// panel; two layers drawing one table hide the same rows and share a line.
+    #[test]
+    fn a_globes_hidden_rows_are_said_once_per_table_and_name_it() {
+        let table = || DataFrame::new()
+            .with_float("lon", vec![-150.0, 10.0, 170.0])
+            .with_float("lat", vec![61.0, 50.0, -20.0])
+            .with_str("side", vec!["a".into(), "b".into(), "a".into()])
+            .with_str("name", vec!["Anchorage".into(), "Frankfurt".into(), "Suva".into()]);
+        let t: HashMap<String, DataFrame> =
+            HashMap::from([("cities".to_string(), table()), ("copy".to_string(), table())]);
+        let hidden = |spec: &PlotSpec| -> Vec<String> {
+            SvgRenderer::default().draw(spec, &t).remarks.into_iter()
+                .map(|d| d.message).filter(|m| m.contains("face away")).collect()
+        };
+        let globe = || CoordSpace::Globe(Default::default());
+        // Two tables, equal counts: two lines, each naming its table.
+        let two = PlotSpec::new().x("lon").y("lat").coord(globe())
+            .layer(Layer::new(Mark::Point).data("cities"))
+            .layer(Layer::new(Mark::Point).data("copy"));
+        let said = hidden(&two);
+        assert_eq!(said.len(), 2, "{said:?}");
+        assert!(said[0].contains("row(s) of `cities` face away")
+            && said[1].contains("row(s) of `copy` face away"), "{said:?}");
+        // One table under two marks: the same rows, one line.
+        let one = PlotSpec::new().data("cities").x("lon").y("lat").coord(globe())
+            .layer(Layer::new(Mark::Point))
+            .layer(Layer::new(Mark::Text).encode(Channel::Label, "name"));
+        assert_eq!(hidden(&one).len(), 1, "{:?}", hidden(&one));
+        // Split into panels: one line, counted over every panel.
+        let mut split = PlotSpec::new().data("cities").x("lon").y("lat").coord(globe())
+            .layer(Layer::new(Mark::Point));
+        split.facet = Some(crate::ir::FacetSpec { col: Some("side".into()), ..Default::default() });
+        let said = hidden(&split);
+        assert_eq!(said.len(), 1, "{said:?}");
+        assert!(said[0].contains("of 3 row(s) of `cities`"), "{said:?}");
     }
 
     /// A map's meridian is the curve its projection makes, ticked where it meets

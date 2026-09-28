@@ -3123,3 +3123,17 @@ end
     globed = said(data(t) + bar + x(:lon) + y(:lat) + z(:v, scale = "log") + globe())
     @test !occursin("log `z`-axis", globed) && occursin("a `globe()` plot draws none", globed)
 end
+
+# What a globe hides is said once per table, and names it. Two tables with the same
+# counts printed one unnamed line. The same block runs in all four bindings.
+@testset "a globe's hidden rows are said once per table, and name it" begin
+    places = (lon = [-150.0, 10.0, 170.0], lat = [61.0, 50.0, -20.0])
+    path, io = mktemp()
+    redirect_stderr(io) do
+        render_svg(data(places, name = "cities") + point + x(:lon) + y(:lat) +
+                   data(places, name = "copy") + point + x(:lon) + y(:lat) + globe())
+    end
+    close(io)
+    said = read(path, String)
+    @test occursin("row(s) of `cities` face away", said) && occursin("row(s) of `copy` face away", said)
+end

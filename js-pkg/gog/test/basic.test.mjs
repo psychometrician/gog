@@ -3730,3 +3730,19 @@ test("a log z is refused by the cube only in the cube", () => {
     (e) => !e.message.includes("log `z`-axis") && e.message.includes("a `globe()` plot draws none")
   );
 });
+
+// What a globe hides is said once per table, and names it. Two tables with the same
+// counts printed one unnamed line. The same block runs in all four bindings.
+test("a globe's hidden rows are said once per table, and name it", () => {
+  const places = { lon: [-150, 10, 170], lat: [61, 50, -20] };
+  const write = process.stderr.write;
+  let said = "";
+  process.stderr.write = (chunk) => { said += chunk; return true; };
+  try {
+    render_svg(plot(data(places, { name: "cities" }), point, x(col.lon), y(col.lat),
+      data(places, { name: "copy" }), point, x(col.lon), y(col.lat), globe()));
+  } finally {
+    process.stderr.write = write;
+  }
+  assert.ok(said.includes("row(s) of `cities` face away") && said.includes("row(s) of `copy` face away"), said);
+});

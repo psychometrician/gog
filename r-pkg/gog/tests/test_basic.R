@@ -5677,3 +5677,21 @@ local({
     stop("FAIL: a log z should be refused by the cube only in the cube: ", globed)
   cat("PASS: a log z is refused by the cube only in the cube\n")
 })
+
+# ---------------------------------------------------------------------------
+# What a globe hides is said once per table, and names it. Two tables with the
+# same counts printed one unnamed line. The same block runs in all four bindings.
+# ---------------------------------------------------------------------------
+local({
+  cities <- data.frame(lon = c(-150, 10, 170), lat = c(61, 50, -20))
+  copy <- cities
+  said <- character(0)
+  withCallingHandlers(
+    render_svg(data(cities) + point + x(lon) + y(lat) + data(copy) + point + x(lon) + y(lat) + globe()),
+    message = function(m) { said <<- c(said, conditionMessage(m)); invokeRestart("muffleMessage") })
+  said <- paste(said, collapse = "\n")
+  if (!grepl("row(s) of `cities` face away", said, fixed = TRUE) ||
+      !grepl("row(s) of `copy` face away", said, fixed = TRUE))
+    stop("FAIL: a globe's hidden rows should be said per table: ", said)
+  cat("PASS: a globe's hidden rows are said once per table, and name it\n")
+})
