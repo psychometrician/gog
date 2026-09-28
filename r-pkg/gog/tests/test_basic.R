@@ -5272,3 +5272,16 @@ local({
     stop("FAIL: a histogram's end bars should be drawn whole")
   cat("PASS: a histogram's end bars are drawn whole\n")
 })
+
+# ---------------------------------------------------------------------------
+# A flow's count axis is ticked over its whole range, as a partition's is: two
+# stages labeled 500 / 1000 / 1500 and left out 0 and 2000. The same block runs
+# in all four bindings.
+# ---------------------------------------------------------------------------
+local({
+  ft <- data.frame(a = c("p", "p", "q", "q"), b = c("u", "v", "u", "v"), n = c(900, 500, 300, 500))
+  svg <- render_svg(data(ft) + ribbon * flow(a, b) + y(n))
+  if (!grepl(">0K</text>", svg, fixed = TRUE) || !grepl(">2K</text>", svg, fixed = TRUE))
+    stop("FAIL: a flow's count axis should be ticked from zero")
+  cat("PASS: a flow's count axis is ticked over its whole range\n")
+})

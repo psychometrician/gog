@@ -3258,3 +3258,12 @@ _bars = re.findall(r'<rect x="([-0-9.]+)" y="[-0-9.]+" width="([0-9.]+)" height=
                    render_svg(data(_hv, name="hv") + bar * bin(3) + x(col.v)))
 assert len(_bars) == 3 and all(float(a) >= 0 and float(a) + float(w) <= 800 for a, w in _bars), _bars
 ok("a histogram's end bars are drawn whole")
+
+
+# --- A flow's count axis is ticked over its whole range ------------------------------
+# Two stages labeled 500 / 1000 / 1500 and left out 0 and 2000. The same block runs
+# in all four bindings.
+_ft = {"a": ["p", "p", "q", "q"], "b": ["u", "v", "u", "v"], "n": [900.0, 500.0, 300.0, 500.0]}
+_svg = render_svg(data(_ft, name="ft") + ribbon * flow(col.a, col.b) + y(col.n))
+assert ">0K</text>" in _svg and ">2K</text>" in _svg
+ok("a flow's count axis is ticked over its whole range")

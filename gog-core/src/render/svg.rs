@@ -1658,8 +1658,13 @@ impl SvgRenderer {
         // Only a plain numeric axis may choose its ticks again over the cells, with
         // the count `build_axis` chose with (5 unless stated). A partition's axes
         // always do, and every other mesh only when the center-chosen ticks miss.
+        // A **flow** as well: its count axis is ticked over the slots' centers,
+        // whose span depends on which stages are named, so `flow(class, survived)`
+        // labeled 500 / 1000 / 1500 on the same 0 to 2201 that `flow(class, sex,
+        // survived)` labeled 0K / 1K / 2K. The whole range is what it measures.
+        let flows = spec.layers.iter().any(|l| l.transforms.contains(&Transform::Flow));
         let retick = |ch: Channel, cats: bool, log: bool, time: bool| {
-            match (!cats && !log && !time, partitions) {
+            match (!cats && !log && !time, partitions || flows) {
                 (false, _) => Retick::Never,
                 (true, true) => Retick::Always(scale::tick_count_of(spec.axis_def(&ch)).unwrap_or(5)),
                 (true, false) => Retick::WhenMissed(scale::tick_count_of(spec.axis_def(&ch)).unwrap_or(5)),
@@ -5719,6 +5724,30 @@ mod tests {
         PlotSpec::new().data("t").y("n")
             .layer(Layer::new(Mark::Ribbon).flow(&["class", "survived"]))
             .layer(Layer::new(Mark::Zone).flow(&["class", "survived"]))
+    }
+
+    /// A flow's count axis is ticked over its whole range, as a partition's is, so
+    /// naming other stages cannot change its step: the slots' centers span a range
+    /// that depends on the stages, and the ticks chosen over them differed.
+    #[test]
+    fn a_flows_count_ticks_do_not_depend_on_its_stages() {
+        let s = |v: &[&str]| v.iter().map(|x| x.to_string()).collect::<Vec<_>>();
+        let t: HashMap<String, DataFrame> = HashMap::from([(
+            "t".to_string(),
+            DataFrame::new()
+                .with_str("a", s(&["p", "p", "q", "q", "p", "q"]))
+                .with_str("b", s(&["u", "v", "u", "v", "v", "u"]))
+                .with_str("c", s(&["x", "x", "y", "y", "y", "x"]))
+                .with_float("n", vec![400.0, 300.0, 350.0, 500.0, 250.0, 400.0]),
+        )]);
+        let ticks = |stages: &[&str]| {
+            let spec = PlotSpec::new().data("t").y("n").layer(Layer::new(Mark::Ribbon).flow(stages));
+            text_of(&SvgRenderer::default().render(&spec, &t)).into_iter()
+                .filter(|l| l.chars().next().is_some_and(|c| c.is_ascii_digit()))
+                .collect::<Vec<_>>()
+        };
+        assert_eq!(ticks(&["a", "b"]), ticks(&["a", "b", "c"]), "one range, one set of ticks");
+        assert_eq!(ticks(&["a", "b"]).first().map(String::as_str), Some("0K"), "ticked from zero");
     }
 
     /// **The band is the renderer's first curve.** Every other path in the crate

@@ -3433,3 +3433,12 @@ test("a histogram's end bars are drawn whole", () => {
   assert.equal(bars.length, 3);
   assert.ok(bars.every((m) => Number(m[1]) >= 0 && Number(m[1]) + Number(m[2]) <= 800));
 });
+
+// A flow's count axis is ticked over its whole range, as a partition's is: two
+// stages labeled 500 / 1000 / 1500 and left out 0 and 2000. The same block runs in
+// all four bindings.
+test("a flow's count axis is ticked over its whole range", () => {
+  const ft = { a: ["p", "p", "q", "q"], b: ["u", "v", "u", "v"], n: [900, 500, 300, 500] };
+  const svg = render_svg(plot(data(ft), layer(ribbon, flow(col.a, col.b)), y(col.n)));
+  assert.ok(svg.includes(">0K</text>") && svg.includes(">2K</text>"));
+});

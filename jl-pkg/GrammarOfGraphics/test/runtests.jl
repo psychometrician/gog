@@ -2808,3 +2808,12 @@ end
     @test all(parse(Float64, m.captures[1]) >= 0 &&
               parse(Float64, m.captures[1]) + parse(Float64, m.captures[2]) <= 800 for m in bars)
 end
+
+# A flow's count axis is ticked over its whole range, as a partition's is: two
+# stages labeled 500 / 1000 / 1500 and left out 0 and 2000. The same block runs in
+# all four bindings.
+@testset "a flow's count axis is ticked over its whole range" begin
+    ft = (a = ["p", "p", "q", "q"], b = ["u", "v", "u", "v"], n = [900.0, 500.0, 300.0, 500.0])
+    svg = render_svg(data(ft) + ribbon * flow(:a, :b) + y(:n))
+    @test occursin(">0K</text>", svg) && occursin(">2K</text>", svg)
+end

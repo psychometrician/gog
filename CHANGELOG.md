@@ -48,6 +48,12 @@ CRAN-style repositories and PyPI, `GrammarOfGraphics` on Julia's General, and
 
 ### Changed
 
+- **A flow's count axis is ticked the same way whatever stages it names.**
+  `flow(class, survived)` labeled its count axis 500 / 1000 / 1500 and left out
+  0 and 2000, while `flow(class, sex, survived)` over the same total labeled
+  0K / 1K / 2K. Every flow's count axis is now ticked over its whole range, as a
+  partition's is.
+
 - **A histogram's end bars are drawn whole.** Its axis was fitted to the bin
   centers with a small margin, which below eleven bins is less than half a bin,
   so the panel cut into the first and last bars: a quarter of each at six bins,
