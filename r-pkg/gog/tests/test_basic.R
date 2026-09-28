@@ -5404,3 +5404,18 @@ local({
     stop("FAIL: a stated turn should put 0 at the top")
   cat("PASS: a stated angle domain is the whole turn\n")
 })
+
+# ---------------------------------------------------------------------------
+# A value a statistic wrote outside a stated domain is left out, as a table's
+# own row is: a count of 3 has no place on `y(count, limits = c(0, 2))`, where it
+# was drawn cut off at the top. The same block runs in all four bindings.
+# ---------------------------------------------------------------------------
+local({
+  t <- data.frame(g = c("a", "a", "a", "b"))
+  svg <- suppressMessages(suppressWarnings(
+    render_svg(data(t) + bar * count + x(g) + y(count, limits = c(0, 2)))))
+  bars <- regmatches(svg, gregexpr('<rect[^>]*fill="#4e79a7"', svg))[[1]]
+  if (length(bars) != 1)
+    stop("FAIL: a count outside the stated domain should be left out, got ", length(bars), " bars")
+  cat("PASS: a written value outside a stated domain is left out\n")
+})

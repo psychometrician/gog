@@ -588,9 +588,25 @@ no row can satisfy and gog refuses instead, because the alternative is an empty
 panel with axes drawn over nothing.
 
 Keeping every country on the page and marking one group of them is a different
-operation, and it has a different word. `limits` runs before the transforms and
-removes rows. `brush` runs after the picture is composed and removes nothing.
+operation, and it has a different word. `limits` removes rows before the plot is
+drawn. `brush` removes nothing: it dims the rows outside its range.
 [Selection](selection.qmd) shows the two side by side.
+
+When a transform computes the values on an axis, as `count` does, a domain
+leaves out each bar or point whose value falls outside it. Here the count axis
+stops at 40, below Africa's count of 52:
+
+```{r}
+#| message: true
+data(gapminder_2007) + bar * count + x(continent) + y(count, limits = c(0, 40))
+```
+
+*"Given gapminder 2007: bars derived by count, x is continent, y is count from 0
+to 40."*
+
+Africa keeps its label and has no bar. A bar stopped at the top edge would show
+40, not 52. The note above the plot says how many values were left out, so the
+empty space above Africa does not mean zero.
 
 You can state one end alone. The end you leave out stays a free end, which is
 how you start an axis at zero and let the top follow the data:

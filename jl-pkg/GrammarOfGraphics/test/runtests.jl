@@ -2891,3 +2891,11 @@ end
     svg = render_svg(data((deg = [2.6 + i * 9.2 for i in 0:39],)) + bar * bin + x(:deg, limits = (0, 360)) + polar())
     @test occursin("text-anchor=\"middle\">0</text>", svg)
 end
+
+# A written value outside a stated domain is left out: a count of 3 has no place on
+# `y(:count, limits = (0, 2))`, where it was drawn cut off at the top. The same block
+# runs in all four bindings.
+@testset "a written value outside a stated domain is left out" begin
+    svg = render_svg(data((g = ["a", "a", "a", "b"],)) + bar * count + x(:g) + y(:count, limits = (0, 2)))
+    @test length(collect(eachmatch(r"<rect[^>]*fill=\"#4e79a7\"", svg))) == 1
+end

@@ -48,6 +48,14 @@ CRAN-style repositories and PyPI, `GrammarOfGraphics` on Julia's General, and
 
 ### Changed
 
+- **A computed value outside a stated domain is left out, and said.** On an
+  axis a transform computes, `y(count, limits = c(0, 40))` now leaves out a
+  count above 40 and says how many values fell outside, as it already did for
+  the table's own rows. Such a bar was drawn cut off at the top, as tall as 40,
+  and in `polar()` a sunburst's ring past `y(depth, limits = …)` was drawn
+  outside the circle. A `line`, `area`, `step`, `ribbon` or `path` that runs
+  past a stated end is drawn as before.
+
 - **`bin` cuts on a stated domain.** With `x(v, limits = c(0, 10))`, the bins
   now start at 0 and stop at 10. They started and stopped at the smallest and
   largest values inside the limits. An end left unstated still comes from the

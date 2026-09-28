@@ -3356,3 +3356,12 @@ _svg = render_svg(data({"deg": [2.6 + i * 9.2 for i in builtins.range(40)]}, nam
                   + bar * bin + x(col.deg, limits=(0, 360)) + polar())
 assert 'text-anchor="middle">0</text>' in _svg
 ok("a stated angle domain is the whole turn")
+
+
+# --- A written value outside a stated domain is left out -------------------------------
+# A count of 3 has no place on `y(count, limits = (0, 2))`, where it was drawn cut
+# off at the top. The same block runs in all four bindings.
+_svg = render_svg(data({"g": ["a", "a", "a", "b"]}, name="wo") + bar * count + x(col.g)
+                  + y(col.count, limits=(0, 2)))
+assert len(re.findall(r'<rect[^>]*fill="#4e79a7"', _svg)) == 1
+ok("a written value outside a stated domain is left out")

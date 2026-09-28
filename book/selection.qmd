@@ -64,10 +64,10 @@ A brush highlights rows and never removes them. That rule separates `brush`
 from an atom you already know. [`limits`](scales.qmd) also takes a range in a
 column's own units, and it puts that range to a different use.
 
-`limits` runs *before* the statistics. It removes rows, and the transform then
-reads the rows that are left as if they were the whole table. `brush` runs
-*after* the axes and statistics are computed. It removes nothing and recomputes
-nothing.
+`limits` on a column of the table runs *before* the statistics. It removes rows,
+and the transform then reads the rows that are left as if they were the whole
+table. `brush` runs *after* the axes and statistics are computed. It removes
+nothing and recomputes nothing.
 
 One range, one mark, two outcomes:
 

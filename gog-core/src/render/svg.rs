@@ -1397,6 +1397,33 @@ impl SvgRenderer {
         // under the data and turn a still point into a moving one: the motion
         // would be the scale's, not the data's. Nothing here had to be taught
         // that — one subset is one subset, whether it is a panel or a moment.
+        // **A value a statistic wrote outside a domain the author stated has no
+        // position** (spec §10; `unplace_outside_domains`). Not on a map, whose
+        // positions are projected by now while its domain is stated in degrees.
+        let stated_axes: Vec<StatedAxis> = if map_degrees.is_some() {
+            Vec::new()
+        } else {
+            [(Channel::X, x_field, x_log, x_base), (Channel::Y, y_field, y_log, y_base)]
+                .into_iter()
+                .filter(|&(_, field, _, _)| !field.is_empty())
+                .map(|(channel, field, log, base)| StatedAxis {
+                    judged: authored_domain(channel.clone(), log, base),
+                    quoted: authored_domain(channel.clone(), false, base),
+                    channel, field,
+                })
+                .filter(|a| a.judged.0.is_some() || a.judged.1.is_some())
+                .collect()
+        };
+        let mut outside = vec![(0usize, 0usize); stated_axes.len()];
+        if !stated_axes.is_empty() {
+            for frames in panel_eff.iter_mut() {
+                for (k, (gone, of)) in unplace_outside_domains(spec, frames, &stated_axes).into_iter().enumerate() {
+                    outside[k].0 += gone;
+                    outside[k].1 += of;
+                }
+            }
+        }
+
         let all_eff: Vec<&DataFrame> = panel_eff.iter().flat_map(|p| p.iter()).collect();
 
         // What drawing finds that the check could not — see [`Drawn::remarks`].
@@ -1412,6 +1439,7 @@ impl SvgRenderer {
 
         warn_unplaceable(&mut remarks, &all_eff, x_field, x_log, "x");
         warn_unplaceable(&mut remarks, &all_eff, y_field, y_log, "y");
+        warn_outside_domains(&mut remarks, &stated_axes, &outside);
 
         // A "plain bar" is a bar layer that has NOT gone through bin (so its
         // positions are discrete and each deserves its own tick label).
@@ -2115,7 +2143,9 @@ impl SvgRenderer {
         let color_frames: &[DataFrame] = if panel_eff.len() == 1 {
             &panel_eff[0]
         } else {
-            eff_global = eff_for(&[], None);
+            let mut whole = eff_for(&[], None);
+            unplace_outside_domains(spec, &mut whole, &stated_axes);
+            eff_global = whole;
             &eff_global
         };
         let color_map = build_color_map(spec, color_frames, &mut remarks);
@@ -5460,6 +5490,99 @@ fn thinned_names(axis: char, field: &str, n: usize, stride: usize, pitch: f64, a
     }
 }
 
+/// A position axis with a domain its author stated: judged in the axis's own
+/// units, a log axis's in decades, and quoted back in the data's.
+struct StatedAxis<'a> {
+    channel: Channel,
+    field: &'a str,
+    judged: (Option<f64>, Option<f64>),
+    quoted: (Option<f64>, Option<f64>),
+}
+
+/// **A value a transform wrote outside a stated domain has no position** (spec
+/// §10), which is what a logarithm meets at zero, and it gets the same mechanism:
+/// the value is blanked, every mark skips it as it skips one a log axis cannot
+/// place, and the count is said aloud. A table's own rows outside a domain are cut
+/// before any transform reads them (`legality::limit_cut`), and `bin` cuts inside
+/// the domain, so a value left outside here is one a statistic computed: a count
+/// taller than `y(count, limits = c(0, 20))`, a ring past `y(depth, limits = c(0,
+/// 3))`. Flat, the panel's clip cut them off at its edge, so a bar of 52 read as
+/// one of 20; in `polar()` the ring was drawn past the circle.
+///
+/// Judged per drawn element: its value on the axis, and a cell's two edges along
+/// it, since a ring that starts inside the domain and ends past it has no place
+/// either. Returns, per axis, how many values were left out and of how many.
+///
+/// **Not for a mark that joins its rows into one path** (`line`, `area`, `step`,
+/// `ribbon`, `path`). Each of those skips a value it cannot place by joining the
+/// values either side of it, which would draw a straight chord where the curve
+/// left the domain. Until a blank breaks the path there, such a curve is drawn as
+/// before: cut at a flat panel's edge, and past the circle in `polar()`.
+fn unplace_outside_domains(
+    spec: &PlotSpec, frames: &mut [DataFrame], axes: &[StatedAxis<'_>],
+) -> Vec<(usize, usize)> {
+    let mut counts = vec![(0usize, 0usize); axes.len()];
+    for (layer, df) in spec.layers.iter().zip(frames.iter_mut()) {
+        let joins = matches!(layer.mark, Mark::Line | Mark::Area | Mark::Step | Mark::Ribbon | Mark::Path);
+        if layer.transforms.is_empty() || joins { continue }
+        for (k, axis) in axes.iter().enumerate() {
+            let (lo, hi) = axis.judged;
+            let edges = match axis.channel {
+                Channel::X => [crate::transform::CELL_START, crate::transform::CELL_END],
+                _ => [crate::transform::CELL_LOWER, crate::transform::CELL_UPPER],
+            };
+            let cols: Vec<&str> = std::iter::once(axis.field).chain(edges)
+                .filter(|c| df.float_col(c).is_some())
+                .collect();
+            if cols.is_empty() { continue }
+            let tol = 1e-9 * (hi.unwrap_or(0.0) - lo.unwrap_or(0.0)).abs().max(1.0);
+            let outside = |v: f64| v.is_finite()
+                && (lo.is_some_and(|l| v < l - tol) || hi.is_some_and(|h| v > h + tol));
+            let mut gone = vec![false; df.len()];
+            let mut placed = vec![false; df.len()];
+            for c in &cols {
+                for (i, &v) in df.float_col(c).into_iter().flatten().enumerate() {
+                    placed[i] |= v.is_finite();
+                    gone[i] |= outside(v);
+                }
+            }
+            counts[k].1 += placed.iter().filter(|&&p| p).count();
+            let left_out = gone.iter().filter(|&&g| g).count();
+            if left_out == 0 { continue }
+            counts[k].0 += left_out;
+            for c in &cols {
+                let blanked: Vec<f64> = df.float_col(c).into_iter().flatten().zip(&gone)
+                    .map(|(&v, &g)| if g { f64::NAN } else { v })
+                    .collect();
+                *df = match df.time_unit(c) {
+                    Some(u) => std::mem::take(df).with_time(*c, blanked, u),
+                    None => std::mem::take(df).with_float(*c, blanked),
+                };
+            }
+        }
+    }
+    counts
+}
+
+/// What [`unplace_outside_domains`] left out, said the way a table's own rows are
+/// (`legality::check_limit_rows`), with the same direction.
+fn warn_outside_domains(out: &mut Vec<Diagnostic>, axes: &[StatedAxis<'_>], counts: &[(usize, usize)]) {
+    for (axis, &(left_out, total)) in axes.iter().zip(counts) {
+        if left_out == 0 { continue }
+        let c = if axis.channel == Channel::X { "x" } else { "y" };
+        let end = |v: Option<f64>| v.map_or("…".to_string(), |v| format!("{v}"));
+        out.push(Diagnostic {
+            kind: crate::legality::DiagnosticKind::Assumption,
+            message: format!(
+                "gog: `{c}({field}, limits = …)` leaves out {left_out} of {total} computed \
+                 values, which fall outside [{}, {}]. Stating a domain is what removes them — \
+                 widen the limits if they should be drawn.",
+                end(axis.quoted.0), end(axis.quoted.1), field = axis.field,
+            ),
+        });
+    }
+}
+
 /// Say how many rows a log axis could not place, when any survive to this point.
 ///
 /// `legality` refuses the plot outright when the *source* data has values a
@@ -7460,6 +7583,36 @@ mod tests {
         out.sort_by(|a, b| a.partial_cmp(b).unwrap());
         out.dedup();
         out
+    }
+
+    /// **A value a statistic wrote outside a stated domain is left out and said**
+    /// (spec §10), the table's own rule one stage later. A two-level sunburst under
+    /// `y(depth, limits = c(0, 2))` drew its outer ring past the circle, and flat the
+    /// panel's clip cut such a ring off in silence; a count taller than its stated
+    /// axis was drawn cut off at the top, as tall as the axis.
+    #[test]
+    fn a_written_value_outside_a_stated_domain_is_left_out_and_said() {
+        let spec = PlotSpec::new().data("t").x("v")
+            .coord(CoordSpace::Polar(crate::ir::PolarView::default()))
+            .y_limited(crate::transform::NODE_DEPTH, Some(0.0), Some(2.0))
+            .layer(Layer::new(Mark::Zone).transform(Transform::Partition).partition(&["g", "i"]));
+        let drawn = SvgRenderer::default().draw(&spec, &tree_data());
+        let (cx, cy, r) = disc(&drawn.svg);
+        let outer = sector_radii(&drawn.svg, cx, cy).iter().map(|s| s.1).fold(0.0, f64::max);
+        assert!(outer <= r + 1.0, "no ring past the circle: {outer} against {r}");
+        assert!(drawn.remarks.iter().any(|d| d.kind == crate::legality::DiagnosticKind::Assumption
+            && d.message.contains("leaves out")), "{:?}", drawn.remarks);
+
+        let t = HashMap::from([("t".to_string(), DataFrame::new()
+            .with_str("g", ["a", "a", "a", "b"].iter().map(|s| s.to_string()).collect()))]);
+        let bars = PlotSpec::new().data("t").x("g").y_limited("count", Some(0.0), Some(2.0))
+            .layer(Layer::new(Mark::Bar).transform(Transform::Count));
+        let drawn = SvgRenderer::default().draw(&bars, &t);
+        let drawn_bars = drawn.svg.lines()
+            .filter(|l| l.contains("<rect") && l.contains(&format!(r#"fill="{}""#, PALETTE_GOG[0])))
+            .count();
+        assert_eq!(drawn_bars, 1, "the count of 3 has no place on [0, 2]");
+        assert!(drawn.remarks.iter().any(|d| d.message.contains("leaves out 1 of 2")), "{:?}", drawn.remarks);
     }
 
     /// **A stated domain reaches the axis, even where a tiling is fitted to** —

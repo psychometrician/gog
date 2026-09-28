@@ -3521,3 +3521,11 @@ test("a stated angle domain is the whole turn", () => {
   const svg = render_svg(plot(data({ deg }), layer(bar, bin), x(col.deg, { limits: [0, 360] }), polar()));
   assert.ok(svg.includes('text-anchor="middle">0</text>'));
 });
+
+// A written value outside a stated domain is left out: a count of 3 has no place
+// on `y(count, limits = [0, 2])`, where it was drawn cut off at the top. The same
+// block runs in all four bindings.
+test("a written value outside a stated domain is left out", () => {
+  const svg = render_svg(plot(data({ g: ["a", "a", "a", "b"] }), layer(bar, count), x(col.g), y(col.count, { limits: [0, 2] })));
+  assert.equal((svg.match(/<rect[^>]*fill="#4e79a7"/g) || []).length, 1);
+});
