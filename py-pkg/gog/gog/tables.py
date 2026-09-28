@@ -112,8 +112,10 @@ def _columns(rows, text=()):
     """Turn a list of CSV row dicts into columns, with the right types.
 
     A CSV is text, so every value arrives as text. A column becomes numbers when
-    *every* value in it parses as one, and stays text otherwise. Naming a column
-    in ``text`` keeps it text no matter what it looks like.
+    every value in it parses as one, and stays text otherwise. In a column of
+    numbers an empty cell or ``NA`` is a missing value, as R's ``read.csv`` reads
+    it; either one turned the whole column into text. Naming a column in ``text``
+    keeps it text no matter what it looks like.
     """
     table = {}
     for key in rows[0]:
@@ -122,10 +124,16 @@ def _columns(rows, text=()):
             table[key] = values
             continue
         try:
-            table[key] = [float(value) for value in values]
+            table[key] = [None if value in _MISSING_CELLS else float(value)
+                          for value in values]
         except ValueError:
             table[key] = values
     return table
+
+
+# What R's `read.csv` reads as missing in a column of numbers: an empty cell, and
+# `NA`, which R writes for one.
+_MISSING_CELLS = ("", "NA")
 
 
 def gog_table(name, text=()):

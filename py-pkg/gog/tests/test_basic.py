@@ -3910,3 +3910,13 @@ else:
     _order = [l for l in re.findall(r">([^<>]+)</text>", _svg) if l in ("Low", "Medium", "High")]
     assert _order == ["Low", "Medium", "High"], _order
     ok("a polars Enum keeps its declared order")
+
+
+# --- An empty numeric cell is a missing value -------------------------------------------
+# gog_table()'s reader turned a column of numbers into text over one empty cell or one
+# `NA`; R's read.csv, the reference, reads both as missing. A text column keeps its text.
+# (JavaScript read the empty cell as 0; R needs no test, being the reference.)
+from gog.tables import _columns as _csv_columns
+_cols = _csv_columns([{"a": "1", "b": "x"}, {"a": "", "b": ""}, {"a": "NA", "b": "z"}, {"a": "4", "b": "w"}])
+assert _cols["a"] == [1.0, None, None, 4.0] and _cols["b"] == ["x", "", "z", "w"], _cols
+ok("an empty numeric cell is a missing value")

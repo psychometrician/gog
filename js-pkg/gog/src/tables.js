@@ -151,15 +151,21 @@ export function parse_csv(text) {
  * Turn parsed rows into columns with the right types.
  *
  * A CSV is text, so every value arrives as text. A column becomes numbers when
- * every value in it parses as one, and stays text otherwise. Naming a column in
- * `text` keeps it text no matter what it looks like.
+ * every value in it parses as one, and stays text otherwise. In a column of
+ * numbers an empty cell or `NA` is a missing value, as R's `read.csv` reads it:
+ * `Number("")` read an empty cell as 0, a cell of spaces too, and `NA` turned
+ * the whole column into text. Naming a column in `text` keeps it text no matter
+ * what it looks like.
  */
 export function columns(rows, text = []) {
   const [head, ...body] = rows;
+  const number = (value) =>
+    value === "" || value === "NA" ? null
+      : typeof value !== "string" || value.trim() === "" ? NaN : Number(value);
   return Object.fromEntries(head.map((key, i) => {
     const values = body.map((row) => row[i]);
     if (text.includes(key)) return [key, values];
-    const numbers = values.map(Number);
+    const numbers = values.map(number);
     return [key, numbers.some((n) => Number.isNaN(n)) ? values : numbers];
   }));
 }

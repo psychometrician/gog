@@ -3994,3 +3994,14 @@ test("an expression in a channel is refused with direction", () => {
   refuses(() => x(col.gdp / 1000), /not an expression[\s\S]*Compute the column in JavaScript first/);
   assert.equal(`${col.gdp}`, "col.gdp");
 });
+
+// An empty numeric cell is a missing value: gog_table()'s reader read it as 0, and a
+// cell of spaces too, and an `NA` turned the column into text. R's read.csv, the
+// reference, reads the empty cell and `NA` as missing; a text column keeps its text.
+test("an empty numeric cell is a missing value", async () => {
+  const { columns } = await import("../src/tables.js");
+  const cols = columns([["a", "b", "c"], ["1", "x", "1"], ["", "", " "], ["NA", "z", "3"], ["4", "w", "4"]]);
+  assert.deepEqual(cols.a, [1, null, null, 4]);
+  assert.deepEqual(cols.b, ["x", "", "z", "w"]);
+  assert.deepEqual(cols.c, ["1", " ", "3", "4"]);
+});

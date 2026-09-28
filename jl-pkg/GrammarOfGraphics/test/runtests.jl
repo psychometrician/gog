@@ -3402,3 +3402,14 @@ end
 @testset "an expression in a channel never reaches a plot" begin
     @test_throws MethodError x(:gdp / 1000)
 end
+
+# An empty numeric cell is a missing value: gog_table()'s reader turned a column of
+# numbers into text over one empty cell or one `NA`. R's read.csv, the reference, reads
+# both as missing; a text column keeps its text.
+@testset "an empty numeric cell is a missing value" begin
+    raw = ["1" "x"; "" ""; "NA" "z"; "4" "w"]
+    cols = GrammarOfGraphics._columns(raw, ["a" "b"], String[])
+    @test isequal(cols["a"], [1.0, missing, missing, 4.0])
+    @test eltype(cols["a"]) == Union{Missing,Float64}
+    @test cols["b"] == ["x", "", "z", "w"]
+end
