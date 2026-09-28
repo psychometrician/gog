@@ -3267,3 +3267,19 @@ end
     @test occursin("cross rather than cover each other", said) && occursin("`area * stack`", said) &&
           !occursin("(`stack`)", said)
 end
+
+# A transform written twice is told so once. `mean * mean` was offered "`bar * mean` or
+# `bar * mean`", and `proportion * proportion` was told about `stack(share = TRUE)`,
+# which it never wrote. The same block runs in all four bindings.
+@testset "a transform written twice is told so once" begin
+    t = (g = ["a", "a", "b", "b"], v = [1.0, 2.0, 3.0, 4.0])
+    said(p) = try
+        render_svg(p); ""
+    catch e
+        sprint(showerror, e)
+    end
+    meaned = said(data(t) + bar * mean * mean + x(:g) + y(:v))
+    shared = said(data(t) + bar * proportion * proportion + x(:g))
+    @test occursin("names `mean` twice", meaned) && !occursin("or `bar * mean`", meaned)
+    @test occursin("names `proportion` twice", shared) && !occursin("stack(share = TRUE)", shared)
+end

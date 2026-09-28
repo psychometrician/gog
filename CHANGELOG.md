@@ -56,6 +56,12 @@ CRAN-style repositories and PyPI, `GrammarOfGraphics` on Julia's General, and
 
 ### Changed
 
+- **A transform written twice is told so.** `bar * mean * mean` was offered
+  "`bar * mean` or `bar * mean`", as were `count`, `bin` and `density` written
+  twice, and `bar * proportion * proportion` was told about
+  `stack(share = TRUE)`, which it never wrote. Each now says the transform is
+  named twice and to keep one.
+
 - **`line * dodge` is not sent to `stack`.** Its refusal said a connected path
   is offset by accumulating, with `stack`, and `line * stack` is refused as
   well. It now says a line is a thin stroke with no width to subdivide, so

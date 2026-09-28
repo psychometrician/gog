@@ -3728,3 +3728,21 @@ except GogError as refusal:
     _s = str(refusal)
     assert "cross rather than cover each other" in _s and "`area * stack`" in _s and "(`stack`)" not in _s, _s
 ok("line * dodge is not sent to stack")
+
+
+# --- A transform written twice is told so once ------------------------------------------
+# `mean * mean` was offered "`bar * mean` or `bar * mean`", and `proportion * proportion`
+# was told about `stack(share = TRUE)`, which it never wrote. The same block runs in all
+# four bindings.
+_tw = data({"g": ["a", "a", "b", "b"], "v": [1.0, 2.0, 3.0, 4.0]}, name="t")
+def _twice(p):
+    try:
+        render_svg(p)
+    except GogError as refusal:
+        return str(refusal)
+    raise AssertionError("drew")
+_meaned = _twice(_tw + bar * mean * mean + x(col.g) + y(col.v))
+_shared = _twice(_tw + bar * proportion * proportion + x(col.g))
+assert "names `mean` twice" in _meaned and "or `bar * mean`" not in _meaned, _meaned
+assert "names `proportion` twice" in _shared and "stack(share = TRUE)" not in _shared, _shared
+ok("a transform written twice is told so once")

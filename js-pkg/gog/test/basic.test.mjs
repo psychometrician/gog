@@ -3864,3 +3864,18 @@ test("line * dodge is not sent to stack", () => {
       && !e.message.includes("(`stack`)")
   );
 });
+
+// A transform written twice is told so once. `mean * mean` was offered "`bar * mean` or
+// `bar * mean`", and `proportion * proportion` was told about `stack(share = TRUE)`,
+// which it never wrote. The same block runs in all four bindings.
+test("a transform written twice is told so once", () => {
+  const t = { g: ["a", "a", "b", "b"], v: [1, 2, 3, 4] };
+  assert.throws(
+    () => render_svg(plot(data(t), layer(bar, mean, mean), x(col.g), y(col.v))),
+    (e) => e.message.includes("names `mean` twice") && !e.message.includes("or `bar * mean`")
+  );
+  assert.throws(
+    () => render_svg(plot(data(t), layer(bar, proportion, proportion), x(col.g))),
+    (e) => e.message.includes("names `proportion` twice") && !e.message.includes("stack(share = TRUE)")
+  );
+});

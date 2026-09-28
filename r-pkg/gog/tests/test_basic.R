@@ -5838,3 +5838,22 @@ local({
     stop("FAIL: line * dodge should not be sent to stack: ", said)
   cat("PASS: line * dodge is not sent to stack\n")
 })
+
+# ---------------------------------------------------------------------------
+# A transform written twice is told so once. `mean * mean` was offered
+# "`bar * mean` or `bar * mean`", and `proportion * proportion` was told about
+# `stack(share = TRUE)`, which it never wrote. The same block runs in all four
+# bindings.
+# ---------------------------------------------------------------------------
+local({
+  t <- data.frame(g = c("a", "a", "b", "b"), v = c(1, 2, 3, 4))
+  said <- function(p) tryCatch({ render_svg(p); "" }, error = function(e) conditionMessage(e))
+  meaned <- said(data(t) + bar * mean * mean + x(g) + y(v))
+  shared <- said(data(t) + bar * proportion * proportion + x(g))
+  if (!grepl("names `mean` twice", meaned, fixed = TRUE) ||
+      grepl("or `bar * mean`", meaned, fixed = TRUE) ||
+      !grepl("names `proportion` twice", shared, fixed = TRUE) ||
+      grepl("stack(share = TRUE)", shared, fixed = TRUE))
+    stop("FAIL: a transform written twice should be told so once: ", meaned, "\n", shared)
+  cat("PASS: a transform written twice is told so once\n")
+})

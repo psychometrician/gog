@@ -3625,6 +3625,18 @@ fn chain_message(
     // The transform that is *not* the one a bespoke message names.
     let other = |t: &Transform| if ta == t { b } else { a };
 
+    // **One transform written twice** is the same job asked for twice, and every
+    // sentence below was written for two different transforms: `mean * mean` was
+    // offered "`bar * mean` or `bar * mean`", `count`, `bin` and `density` the same
+    // twice over, and `proportion * proportion` was told about
+    // `stack(share = TRUE)`, which it never wrote.
+    if ta == tb {
+        return format!(
+            "gog: `{m} * {a} * {a}` names `{a}` twice. Each transform does its job once, \
+             so one of the two would be discarded. Keep one: `{m} * {a}`."
+        );
+    }
+
     // **The three whole-picture layouts are refused in their own terms.** Each
     // claims every job (`transform::jobs`), so a second transform collides with it
     // on whichever job that one fills, and the per-job sentences below then
@@ -15917,6 +15929,30 @@ mod tests {
         // what a point takes: it offered `pattern`, which a point refuses.
         assert!(d[0].message.contains("Use `color` or `shape` to distinguish categories"),
             "{}", d[0].message);
+    }
+
+    /// **A transform written twice is told so once.** The pair sentences were written
+    /// for two different transforms: `mean * mean` was offered "`bar * mean` or `bar *
+    /// mean`", and `proportion * proportion` was told about `stack(share = TRUE)`.
+    #[test]
+    fn a_transform_written_twice_is_told_so_once() {
+        for (mark, t) in [
+            (Mark::Bar, Transform::Mean), (Mark::Bar, Transform::Sum), (Mark::Bar, Transform::Count),
+            (Mark::Bar, Transform::Bin), (Mark::Area, Transform::Density),
+            (Mark::Bar, Transform::Proportion), (Mark::Interval, Transform::Range),
+        ] {
+            let layer = Layer::new(mark.clone()).transform(t.clone()).transform(t.clone());
+            let d = check(&PlotSpec::new().data("t").x("continent").y("life").layer(layer), &data());
+            let n = transform_name(&t);
+            let said: Vec<_> = d.iter().filter(|x| x.message.contains(&format!("names `{n}` twice")))
+                .collect();
+            assert_eq!(said.len(), 1, "{t:?}: {:?}", msgs(&d));
+            assert!(said[0].message.ends_with(&format!("Keep one: `{} * {n}`.", mark_name(&mark))),
+                "{:?}", said[0]);
+            assert!(d.iter().all(|x| !x.message.contains("stack(share = TRUE)")
+                && !x.message.contains(&format!("or `{} * {n}`", mark_name(&mark)))),
+                "{t:?}: {:?}", msgs(&d));
+        }
     }
 
     /// **A channel a mark does not have is refused toward the marks that do.** The
