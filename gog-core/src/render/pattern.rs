@@ -15,14 +15,14 @@ use crate::render::Whole;
 use std::collections::{HashMap, HashSet};
 use std::fmt::Write;
 
-// The legal fill-texture vocabulary — `solid` plus the four hatchings — lives in
+// The legal fill-texture vocabulary — `solid` plus the five hatchings — lives in
 // `legality::FILL_TEXTURES`, the vocabulary owner one level down the dependency
-// graph (legality depends on this module never; this module names the four it can
-// *draw*, `legality` names the five it deems *legal*). `solid` is the no-texture
-// identity, so only the four hatchings appear here; a test below asserts the two
+// graph (legality depends on this module never; this module names the five it can
+// *draw*, `legality` names the six it deems *legal*). `solid` is the no-texture
+// identity, so only the five hatchings appear here; a test below asserts the two
 // lists never drift. The parts of speech split by geometry — a stroke takes line
 // *adjectives* (dashed, dotted), a fill takes texture *nouns* (hatch, crosshatch,
-// grid, dots) — the `shape` precedent of a small, plain, closed set.
+// stripes, grid, dots) — the `shape` precedent of a small, plain, closed set.
 
 /// The SVG `stroke-dasharray` attribute for a stroke's `style(pattern = )` value —
 /// empty for `"solid"`/unset (so a plain stroke stays byte-for-byte unchanged), a
@@ -76,7 +76,7 @@ impl FillTexture {
     /// The `fill` attribute value for a shape whose texture is `texture` (a name,
     /// or `None`), drawn in `color`. `None`, `"solid"`, a stroke's dash, or any
     /// unknown value collapse to the plain color — the identity an untextured plot
-    /// relies on. Each of the four hatchings emits its tile's `<defs>` into `svg`
+    /// relies on. Each of the five hatchings emits its tile's `<defs>` into `svg`
     /// the first time this (texture, color) pair is seen in the layer, then returns
     /// `url(#id)`.
     ///
@@ -152,7 +152,7 @@ impl PatternMap {
 }
 
 /// A fill mark maps a category index → texture: `solid` (the plain first series),
-/// then the four hatchings, cycling at five. Index 0 draws plain the way the first
+/// then the five hatchings, cycling at six. Index 0 draws plain the way the first
 /// line in a set is solid — the most legible, and it leaves `solid` meaning the
 /// same "no texture" it does as a setting.
 pub(crate) fn fill_texture_for_index(i: usize) -> &'static str {
@@ -166,8 +166,9 @@ pub(crate) fn fill_texture_for_index(i: usize) -> &'static str {
     }
 }
 
-/// A stroke mark maps a category index → dash: `solid`, `dashed`, `dotted`, cycling
-/// at three — a stroke carries fewer distinguishable textures than a fill.
+/// A stroke mark maps a category index → dash: `solid`, `dashed`, `dotted`,
+/// `dotdash`, `longdash`, cycling at five — a stroke carries fewer distinguishable
+/// textures than a fill.
 pub(crate) fn dash_for_index(i: usize) -> &'static str {
     match i % 5 {
         0 => "solid",

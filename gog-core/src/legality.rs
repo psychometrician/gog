@@ -110,11 +110,11 @@ const CANNOT: Rule = rule(Obligation::Cannot, VarType::Either, None);
 const SET_ONLY: Rule = CANNOT.settable();
 
 /// The legal fill-texture values for `style(pattern = )` on a fill mark: `solid`
-/// (the shared no-texture default) plus the four grayscale- and colorblind-safe
+/// (the shared no-texture default) plus the five grayscale- and colorblind-safe
 /// hatchings the renderer draws as `<pattern>` tiles (`render::pattern`). The one
 /// list both the legality check here and the renderer read — a stroke takes the
 /// dash values instead (`solid`/`dashed`/`dotted`), one realization per geometry
-/// (spec §4, the settable rule). Small and plain on the `shape` precedent: five
+/// (spec §4, the settable rule). Small and plain on the `shape` precedent: seven
 /// glyphs, five textures.
 pub(crate) const FILL_TEXTURES: [&str; 6] =
     ["solid", "hatch", "crosshatch", "stripes", "grid", "dots"];
@@ -410,10 +410,10 @@ pub fn rule_for(mark: &Mark, channel: &Channel) -> Rule {
 
         // A glyph mark whose glyph is a *string* — `point`'s sibling (§6). Both
         // place one glyph per row at (x, y); they differ in where the glyph comes
-        // from. `point` picks it from a closed set of five (`shape`); `text` takes
+        // from. `point` picks it from a closed set of seven (`shape`); `text` takes
         // it from a column — the `label` channel, which `text` therefore
         // **requires** (its minimum syllable, §7): x/y place it, `label` fills it.
-        // `shape` is refused (a string is not one of the five glyphs) and so is
+        // `shape` is refused (a string is not one of the seven glyphs) and so is
         // `group` (a per-row glyph, like a point, has nothing to connect). `color`
         // maps by category (the palette) or sets. Mapped `size`/`opacity` are
         // valid grammar not yet drawn (`renders: None` → Unsupported, not silent) —
@@ -426,7 +426,7 @@ pub fn rule_for(mark: &Mark, channel: &Channel) -> Rule {
             Color => rule(Can, Discrete, Some(Discrete)).settable(),
             Size => rule(Can, Continuous, None).settable(),    // font px: set now, map later
             Opacity => rule(Can, Continuous, None).settable(), // set now, map later
-            Shape => CANNOT, // a string is not one of the five glyphs
+            Shape => CANNOT, // a string is not one of the seven glyphs
             Pattern => CANNOT, // a string's form is its content, not a texture
             Group => CANNOT, // a per-row glyph, like a point, connects nothing
             Z => rule(Can, Either, None),
@@ -12884,7 +12884,7 @@ fn check_pattern(out: &mut Vec<Diagnostic>, mark: &Mark, style: &StyleSpec) {
         }
         // The fills — a hatch texture, the settable rule's fill arm (§4), now drawn
         // (`render::pattern`). `solid` (shared with the strokes) is the no-texture
-        // default; the four hatchings texture. A stroke's dash value or a typo is
+        // default; the five hatchings texture. A stroke's dash value or a typo is
         // refused with direction: the dash is a stroke's; a fill takes a texture.
         Some(Texture::Hatch) => {
             if !FILL_TEXTURES.contains(&p) {
