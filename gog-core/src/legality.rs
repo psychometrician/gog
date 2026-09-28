@@ -8903,7 +8903,11 @@ fn check_space(out: &mut Vec<Diagnostic>, spec: &PlotSpec) {
     // `z` is a linear axis in 3-D for M8a. A log z would be scaled nowhere and
     // then plotted on a linear cube edge — the silent drop §12 forbids — so it
     // is refused with direction instead.
-    if zdef.scale == Some(ScaleType::Log) {
+    //
+    // **Only in the cube.** Every other space refuses a bound `z` in its own words
+    // (a globe reads it as a spike's radius and refuses its `scale`), and this
+    // message printed first there, about an axis the plot was never going to have.
+    if zdef.scale == Some(ScaleType::Log) && projects {
         out.push(Diagnostic {
             kind: DiagnosticKind::Unsupported,
             message: "gog: a log `z`-axis is not drawn yet — `z` is linear in 3-D for now. \
@@ -17512,6 +17516,36 @@ mod tests {
         // §12: an Assumption renders. A refusal here would take the book's own
         // teaching plot off the page.
         assert!(!d.iter().any(|x| x.is_fatal()), "must still draw: {:?}", msgs(&d));
+    }
+
+    /// **The cube's log-`z` refusal speaks only in the cube.** Every other space
+    /// refuses a bound `z` in its own words, and a globe refuses its `scale`; this
+    /// message printed first in each, about an axis the plot was never going to
+    /// have.
+    #[test]
+    fn a_log_z_is_refused_by_the_cube_only_in_the_cube() {
+        let log_z = || PlotSpec::new().data("t").x("gdp").y("life")
+            .z_scaled("value", ScaleType::Log).layer(Layer::new(Mark::Point));
+        for spec in [log_z(), log_z().coord(CoordSpace::Space(crate::ir::SpaceView::default()))] {
+            let d = check(&spec, &data());
+            assert!(d.iter().any(|x| x.message.contains("log `z`-axis")), "{:?}", msgs(&d));
+        }
+        for coord in [
+            CoordSpace::Polar(crate::ir::PolarView::default()),
+            CoordSpace::Nest,
+            CoordSpace::Map(crate::ir::MapView::default()),
+            CoordSpace::Globe(crate::ir::GlobeView::default()),
+        ] {
+            let d = check(&log_z().coord(coord.clone()), &data());
+            assert!(d.iter().any(Diagnostic::is_fatal), "{coord:?} drew: {:?}", msgs(&d));
+            assert!(d.iter().all(|x| !x.message.contains("log `z`-axis")), "{coord:?}: {:?}", msgs(&d));
+        }
+        // Under `layout` the space is the network's, which refuses `z` itself.
+        let d = check(&PlotSpec::new().data("t").z_scaled("value", ScaleType::Log)
+            .coord(CoordSpace::Network(crate::ir::NetworkView::default()))
+            .layer(Layer::new(Mark::Point).layout("continent", "region")), &data());
+        assert!(d.iter().any(Diagnostic::is_fatal)
+            && d.iter().all(|x| !x.message.contains("log `z`-axis")), "{:?}", msgs(&d));
     }
 
     /// **A direction to declare an order names how in every language.** Both

@@ -5661,3 +5661,19 @@ local({
     stop("FAIL: a flat zone with group() should name every way it gets its sides: ", said)
   cat("PASS: a flat zone with group() names every transform that gives it sides\n")
 })
+
+# ---------------------------------------------------------------------------
+# The cube's log-`z` refusal speaks only in the cube. On a globe it printed
+# first, above the globe's own refusal of a `z` scale. The same block runs in
+# all four bindings.
+# ---------------------------------------------------------------------------
+local({
+  t <- data.frame(lon = c(1, 2, 3), lat = c(4, 5, 6), v = c(1, 10, 100))
+  said <- function(p) tryCatch({ render_svg(p); "" }, error = function(e) conditionMessage(e))
+  cube <- said(data(t) + point + x(lon) + y(lat) + z(v, scale = "log"))
+  globed <- said(data(t) + bar + x(lon) + y(lat) + z(v, scale = "log") + globe())
+  if (!grepl("log `z`-axis", cube, fixed = TRUE) || grepl("log `z`-axis", globed, fixed = TRUE) ||
+      !grepl("a `globe()` plot draws none", globed, fixed = TRUE))
+    stop("FAIL: a log z should be refused by the cube only in the cube: ", globed)
+  cat("PASS: a log z is refused by the cube only in the cube\n")
+})

@@ -3566,3 +3566,20 @@ try:
 except GogError as refusal:
     assert "`bin`, `count`, `density`, `proportion`, `bounds`, `partition` and `flow`" in str(refusal), refusal
 ok("a flat zone with group() names every transform that gives it sides")
+
+
+# --- A log z is refused by the cube only in the cube ------------------------------------
+# On a globe the cube's refusal printed first, above the globe's own refusal of a `z`
+# scale. The same block runs in all four bindings.
+_lz = data({"lon": [1.0, 2.0, 3.0], "lat": [4.0, 5.0, 6.0], "v": [1.0, 10.0, 100.0]}, name="t")
+_said = {}
+for _k, _p in (("cube", _lz + point + x(col.lon) + y(col.lat) + z(col.v, scale="log")),
+               ("globe", _lz + bar + x(col.lon) + y(col.lat) + z(col.v, scale="log") + globe())):
+    try:
+        render_svg(_p)
+        raise AssertionError(f"a log z drew in the {_k}")
+    except GogError as refusal:
+        _said[_k] = str(refusal)
+assert "log `z`-axis" in _said["cube"], _said["cube"]
+assert "log `z`-axis" not in _said["globe"] and "a `globe()` plot draws none" in _said["globe"], _said["globe"]
+ok("a log z is refused by the cube only in the cube")

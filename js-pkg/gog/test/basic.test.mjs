@@ -3715,3 +3715,18 @@ test("a flat zone with group() names every transform that gives it sides", () =>
     (e) => e.message.includes("`bin`, `count`, `density`, `proportion`, `bounds`, `partition` and `flow`")
   );
 });
+
+// The cube's log-`z` refusal speaks only in the cube. On a globe it printed first,
+// above the globe's own refusal of a `z` scale. The same block runs in all four
+// bindings.
+test("a log z is refused by the cube only in the cube", () => {
+  const t = { lon: [1, 2, 3], lat: [4, 5, 6], v: [1, 10, 100] };
+  assert.throws(
+    () => render_svg(plot(data(t), point, x(col.lon), y(col.lat), z(col.v, { scale: "log" }))),
+    (e) => e.message.includes("log `z`-axis")
+  );
+  assert.throws(
+    () => render_svg(plot(data(t), bar, x(col.lon), y(col.lat), z(col.v, { scale: "log" }), globe())),
+    (e) => !e.message.includes("log `z`-axis") && e.message.includes("a `globe()` plot draws none")
+  );
+});

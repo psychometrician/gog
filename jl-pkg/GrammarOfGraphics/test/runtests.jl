@@ -3108,3 +3108,18 @@ end
     end
     @test occursin("`bin`, `count`, `density`, `proportion`, `bounds`, `partition` and `flow`", said)
 end
+
+# The cube's log-`z` refusal speaks only in the cube. On a globe it printed first,
+# above the globe's own refusal of a `z` scale. The same block runs in all four
+# bindings.
+@testset "a log z is refused by the cube only in the cube" begin
+    t = (lon = [1.0, 2.0, 3.0], lat = [4.0, 5.0, 6.0], v = [1.0, 10.0, 100.0])
+    said(p) = try
+        render_svg(p); ""
+    catch e
+        sprint(showerror, e)
+    end
+    @test occursin("log `z`-axis", said(data(t) + point + x(:lon) + y(:lat) + z(:v, scale = "log")))
+    globed = said(data(t) + bar + x(:lon) + y(:lat) + z(:v, scale = "log") + globe())
+    @test !occursin("log `z`-axis", globed) && occursin("a `globe()` plot draws none", globed)
+end

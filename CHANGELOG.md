@@ -56,6 +56,11 @@ CRAN-style repositories and PyPI, `GrammarOfGraphics` on Julia's General, and
 
 ### Changed
 
+- **A log `z` is refused by the cube only in the cube.** "A log `z`-axis is
+  not drawn yet" printed in `globe()`, `map()`, `polar()`, `nest()` and
+  `network()` as well, first and above each space's own refusal of `z`. It is
+  now given only to a plot drawn in the cube.
+
 - **A flat `zone` with `group()` is told every way it gets its sides.** The
   refusal named a category's slot, `bounds`, `bin` and `density`, and left
   out `count`, `proportion`, `partition` and `flow`. It now lists all seven
