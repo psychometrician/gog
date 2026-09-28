@@ -38,9 +38,9 @@ from .render import Query, refusal_block, render_svg, save, show, svg_block
 
 
 # The five transforms whose names Python already uses for something else. R has
-# the same list against base R (`range`, `sum`, `min`, `max`, `data`, `text`,
-# `box`, `order`, `jitter`, `stack`) and answers it the same way: a DSL keeps
-# its own vocabulary. What differs is that Python's are *builtins*, so the
+# a longer list against base R, twenty names such as `range`, `sum`, `data`,
+# `text` and `order`, and answers it the same way: a DSL keeps its own
+# vocabulary. What differs is that Python's are *builtins*, so the
 # shadowing follows a star-import into the whole module rather than sitting in
 # the search path — which makes saying so, at the moment it bites, part of the
 # binding's job.
