@@ -3277,3 +3277,14 @@ _svg = render_svg((data(_mp, name="mp") + point + x(col.lon) + y(col.lat) + map(
                   / (data(_mp, name="mp") + point + x(col.lon) + y(col.lat) + map()))
 assert _svg.count(">0\u00b0</text>") == 4, _svg.count(">0\u00b0</text>")
 ok("only a flat plot offers its axes to a page")
+
+
+# --- A map's meridians are the curves its projection makes ----------------------------
+# Equal Earth bends them and Mercator keeps them straight; both were drawn straight.
+# The same block runs in all four bindings.
+_mt = {"lon": [176.0, 180.0, 186.0, 178.0], "lat": [-38.0, -20.0, -15.0, -30.0]}
+_curve = re.compile(r'<polyline points="[^"]*" fill="none"/>')
+assert _curve.search(render_svg(data(_mt, name="mt") + point + x(col.lon) + y(col.lat) + map()))
+assert not _curve.search(render_svg(data(_mt, name="mt") + point + x(col.lon) + y(col.lat)
+                                    + map(preserve="angle")))
+ok("a map's meridians are the curves its projection makes")

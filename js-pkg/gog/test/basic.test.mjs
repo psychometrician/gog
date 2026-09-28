@@ -3453,3 +3453,13 @@ test("only a flat plot offers its axes to a page", () => {
     plot(data(mp), point, x(col.lon), y(col.lat), map())));
   assert.equal(svg.split(">0\u00b0</text>").length - 1, 4);
 });
+
+// A map's meridians are the curves its projection makes: Equal Earth bends them,
+// and Mercator keeps them straight. They were drawn straight in both. The same
+// block runs in all four bindings.
+test("a map's meridians are the curves its projection makes", () => {
+  const mt = { lon: [176, 180, 186, 178], lat: [-38, -20, -15, -30] };
+  const curve = /<polyline points="[^"]*" fill="none"\/>/;
+  assert.match(render_svg(plot(data(mt), point, x(col.lon), y(col.lat), map())), curve);
+  assert.doesNotMatch(render_svg(plot(data(mt), point, x(col.lon), y(col.lat), map({ preserve: "angle" }))), curve);
+});

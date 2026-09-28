@@ -1846,34 +1846,52 @@ impl SvgRenderer {
         // `x(east, tick_count = 40)` rendered byte for byte as the default did, with
         // no message. It is counted over the degrees the map shows, and a count past
         // the ceiling widens as every other axis's does, and says so.
-        let (x_ticks, y_ticks) = match &map_degrees {
+        //
+        // **The edge is the panel's, and so is the test for a tick.** The meridian
+        // was met at the data's southernmost latitude and every gridline drawn
+        // straight up from there, so a gridline was right along that one parallel
+        // and off by up to 20 degrees elsewhere: on the Fiji plot the 180° line lay
+        // 192 px left of a point at 180° and -20°. A tick was also kept on its
+        // degrees alone, so 170° was labeled outside the panel. So the latitudes at
+        // the panel's own bottom and top are found (`Geo::lat_at_y`), each tick is
+        // placed where its line meets the panel's edge and kept only if that is
+        // inside the panel, and the meridians are drawn as the curves they are
+        // (`write_grid`), which under Mercator are the straight lines they were.
+        let (x_ticks, y_ticks, meridians) = match &map_degrees {
             Some((geo, (lon, lat))) => {
-                let degrees = |(lo, hi): (f64, f64), n: usize, at: &dyn Fn(f64) -> f64| {
+                let edge = (geo.lat_at_y(ys.0.min(ys.1)), geo.lat_at_y(ys.0.max(ys.1)));
+                let degrees = |(lo, hi): (f64, f64), n: usize, at: &dyn Fn(f64) -> f64, panel: (f64, f64)| {
                     let picked = crate::render::ticks::nice_ticks_within(lo, hi, n, Some((lo, hi)));
-                    let (values, labels) = picked
+                    let (pmin, pmax) = (panel.0.min(panel.1), panel.0.max(panel.1));
+                    let slack = 1e-9 * (pmax - pmin).abs().max(1e-12);
+                    let kept: Vec<(f64, f64, String)> = picked
                         .values
                         .iter()
                         .zip(picked.labels.iter())
                         .filter(|(v, _)| **v >= lo && **v <= hi)
-                        .map(|(v, l)| (at(*v), format!("{l}°")))
-                        .unzip();
-                    TickSpec {
+                        .map(|(v, l)| (*v, at(*v), format!("{l}°")))
+                        .filter(|(_, p, _)| *p >= pmin - slack && *p <= pmax + slack)
+                        .collect();
+                    let spec = TickSpec {
                         widened: picked.widened.clone().map(|w| crate::render::ticks::Widening {
                             asked: format!("{}°", w.asked),
                             drawn: format!("{}°", w.drawn),
                         }),
-                        ..crate::render::ticks::ticks_with_labels(values, labels)
-                    }
+                        ..crate::render::ticks::ticks_with_labels(
+                            kept.iter().map(|k| k.1).collect(),
+                            kept.iter().map(|k| k.2.clone()).collect(),
+                        )
+                    };
+                    (spec, kept.iter().map(|k| k.0).collect::<Vec<f64>>())
                 };
                 let count = |c: Channel, default: usize| {
                     scale::tick_count_of(spec.axis_def(&c)).unwrap_or(default)
                 };
-                (
-                    degrees(*lon, count(Channel::X, 7), &|v| geo.project(v, lat.0).0),
-                    degrees(*lat, count(Channel::Y, 5), &|v| geo.project(lon.0, v).1),
-                )
+                let (xt, lons) = degrees(*lon, count(Channel::X, 7), &|v| geo.project(v, edge.0).0, xs);
+                let (yt, _) = degrees(*lat, count(Channel::Y, 5), &|v| geo.project(lon.0, v).1, ys);
+                (xt, yt, Some((*geo, lons, edge)))
             }
-            None => (x_ticks, y_ticks),
+            None => (x_ticks, y_ticks, None),
         };
 
         // --- free scales: one fit per panel, for the axes that asked ---------
@@ -2699,7 +2717,8 @@ impl SvgRenderer {
                                 (has_plain_bar && !horizontal) || !theme.grid_x()
                                     || (clusters_a_tree && cat_x.is_some()),
                                 (has_plain_bar && horizontal) || !theme.grid_y()
-                                    || (clusters_a_tree && cat_y.is_some()));
+                                    || (clusters_a_tree && cat_y.is_some()),
+                                meridians.as_ref());
             }
 
             // The packing frame for this panel, built once and shared, on the same
@@ -3417,13 +3436,48 @@ impl SvgRenderer {
         // says which axis the bars stand on.
         skip_vertical: bool,
         skip_horizontal: bool,
+        // A map's meridians, in degrees, with its projection and the latitudes at
+        // the panel's bottom and top: under Equal Earth each is a curve, drawn
+        // through the projection between those two latitudes rather than straight
+        // up from where it meets the bottom edge.
+        meridians: Option<&(crate::render::geo::Geo, Vec<f64>, (f64, f64))>,
     ) {
         writeln!(svg, r##"  <g stroke="#d2d2da" stroke-width="1">"##).unwrap();
         if !skip_vertical {
-            for &v in &x_ticks.values {
-                let sx = l.map_x(v, xs.0, xs.1);
-                writeln!(svg, r#"    <line x1="{sx:.2}" y1="{y0:.2}" x2="{sx:.2}" y2="{y1:.2}"/>"#,
-                    y0 = l.y0, y1 = l.y1).unwrap();
+            match meridians.filter(|(geo, lons, _)| !geo.straight_meridians() && lons.len() == x_ticks.values.len()) {
+                Some((geo, lons, (south, north))) => {
+                    const STEPS: usize = 48;
+                    for &lon in lons {
+                        let at = |k: usize| {
+                            let lat = south + (north - south) * k as f64 / STEPS as f64;
+                            let (px, py) = geo.project(lon, lat);
+                            (l.map_x(px, xs.0, xs.1), l.map_y(py, ys.0, ys.1))
+                        };
+                        // Kept because it meets the bottom edge inside the panel,
+                        // but a meridian bends, and one near a side can leave
+                        // through it higher up: the curve ends where it crosses.
+                        let mut points = vec![at(0)];
+                        for k in 1..=STEPS {
+                            let (a, b) = (points[points.len() - 1], at(k));
+                            let side = if b.0 < l.x0 { Some(l.x0) } else if b.0 > l.x1 { Some(l.x1) } else { None };
+                            match side {
+                                Some(x) => {
+                                    let t = (x - a.0) / (b.0 - a.0);
+                                    points.push((x, a.1 + (b.1 - a.1) * t));
+                                    break;
+                                }
+                                None => points.push(b),
+                            }
+                        }
+                        let points: Vec<String> = points.iter().map(|(x, y)| format!("{x:.2},{y:.2}")).collect();
+                        writeln!(svg, r#"    <polyline points="{}" fill="none"/>"#, points.join(" ")).unwrap();
+                    }
+                }
+                None => for &v in &x_ticks.values {
+                    let sx = l.map_x(v, xs.0, xs.1);
+                    writeln!(svg, r#"    <line x1="{sx:.2}" y1="{y0:.2}" x2="{sx:.2}" y2="{y1:.2}"/>"#,
+                        y0 = l.y0, y1 = l.y1).unwrap();
+                },
             }
         }
         if !skip_horizontal {
@@ -8208,6 +8262,40 @@ mod tests {
         assert!(lines.iter().filter(|l| l.contains(second)).count() == 1
                 && lines.iter().any(|l| !l.contains("stroke-dasharray")),
                 "`a` is solid and `b` takes the second dash in its own panel: {lines:?}");
+    }
+
+    /// A map's meridian is the curve its projection makes, ticked where it meets
+    /// the panel's bottom edge: drawn straight up from the southernmost row, the
+    /// 180° line lay 192 px from a point at 180° and -20°, and 170° was labeled
+    /// outside the panel.
+    #[test]
+    fn a_maps_meridian_passes_through_its_points() {
+        let t: HashMap<String, DataFrame> = HashMap::from([(
+            "t".to_string(),
+            DataFrame::new()
+                .with_float("lon", vec![176.0, 180.0, 186.0, 178.0])
+                .with_float("lat", vec![-38.0, -20.0, -15.0, -30.0]),
+        )]);
+        let spec = PlotSpec::new().data("t").x("lon").y("lat")
+            .layer(Layer::new(Mark::Point)).coord(CoordSpace::Map(Default::default()));
+        let svg = SvgRenderer::default().render(&spec, &t);
+        let circle = svg.split("<circle cx=\"").nth(2).expect("the point at 180°, -20°");
+        let num = |s: &str| -> f64 { s.split('"').next().and_then(|v| v.parse().ok()).expect("a number") };
+        let (cx, cy) = (num(circle), num(circle.split(" cy=\"").nth(1).unwrap()));
+        // The curve that meets the bottom edge where "180°" is labeled.
+        let label_x = svg.split(">180°</text>").next().and_then(|before| before.rsplit("<text x=\"").next())
+            .map(num).expect("a 180° label");
+        let curves: Vec<Vec<(f64, f64)>> = svg.split("<polyline points=\"").skip(1)
+            .map(|c| c.split('"').next().unwrap().split(' ')
+                .map(|p| { let (a, b) = p.split_once(',').unwrap(); (a.parse().unwrap(), b.parse().unwrap()) })
+                .collect())
+            .collect();
+        let pts = curves.into_iter().find(|c: &Vec<(f64, f64)>| (c[0].0 - label_x).abs() < 0.01)
+            .expect("the 180° meridian starts under its label");
+        let x_at = pts.windows(2).find(|w| (w[0].1 - cy) * (w[1].1 - cy) <= 0.0)
+            .map(|w| w[0].0 + (w[1].0 - w[0].0) * (cy - w[0].1) / (w[1].1 - w[0].1))
+            .expect("the meridian spans the point's latitude");
+        assert!((x_at - cx).abs() < 1.0, "the 180° meridian at the point's latitude: {x_at} vs {cx}");
     }
 
     /// Only a flat plot offers its axes to a page: a map's, a globe's and a cube's

@@ -48,6 +48,13 @@ CRAN-style repositories and PyPI, `GrammarOfGraphics` on Julia's General, and
 
 ### Changed
 
+- **A map's longitude lines follow the projection.** Under the default
+  equal-area projection every longitude gridline was drawn straight up from the
+  data's southernmost latitude, so it was off by up to 20° elsewhere, and a
+  longitude could be labeled outside the panel. Each line is now the curve its
+  meridian makes, labeled where it meets the panel's bottom edge.
+  `map(preserve = "angle")` draws them straight, as before.
+
 - **Only a flat plot shares its axes on a page.** A map, a globe, a cube or a
   disc places its positions in its own space, but a page lined it up with any
   plot naming the same column: an equal-area map stacked over a Mercator one was

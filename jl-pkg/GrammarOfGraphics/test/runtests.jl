@@ -2827,3 +2827,13 @@ end
                      (data(mp) + point + x(:lon) + y(:lat) + map()))
     @test Base.count(">0\u00b0</text>", svg) == 4
 end
+
+# A map's meridians are the curves its projection makes: Equal Earth bends them,
+# and Mercator keeps them straight. They were drawn straight in both. The same
+# block runs in all four bindings.
+@testset "a map's meridians are the curves its projection makes" begin
+    mt = (lon = [176.0, 180.0, 186.0, 178.0], lat = [-38.0, -20.0, -15.0, -30.0])
+    curve = r"<polyline points=\"[^\"]*\" fill=\"none\"/>"
+    @test occursin(curve, render_svg(data(mt) + point + x(:lon) + y(:lat) + map()))
+    @test !occursin(curve, render_svg(data(mt) + point + x(:lon) + y(:lat) + map(preserve = "angle")))
+end

@@ -88,6 +88,27 @@ impl Geo {
             Preserve::Angle => Some(MERCATOR_LIMIT),
         }
     }
+
+    /// The latitude a projected `y` stands for, the inverse the axes need: a
+    /// panel's edges are projected numbers, and a meridian is drawn and ticked
+    /// between the latitudes at those edges. Both projections place `y` by
+    /// latitude alone and raise it with latitude, so halving the interval finds it;
+    /// fifty halvings leave it far below a pixel. Clamped to the drawable range.
+    pub(crate) fn lat_at_y(&self, y: f64) -> f64 {
+        let cap = self.limit().unwrap_or(90.0);
+        let (mut lo, mut hi) = (-cap, cap);
+        for _ in 0..50 {
+            let mid = (lo + hi) / 2.0;
+            if self.project(0.0, mid).1 < y { lo = mid } else { hi = mid }
+        }
+        (lo + hi) / 2.0
+    }
+
+    /// Whether a meridian is a straight line on the page: under Mercator a
+    /// longitude has one `x` at every latitude, and under Equal Earth it bends.
+    pub(crate) fn straight_meridians(&self) -> bool {
+        self.preserve == Preserve::Angle
+    }
 }
 
 /// **Equal Earth** (Šavrič, Patterson & Jenny 2018) — equal-area, and the default.

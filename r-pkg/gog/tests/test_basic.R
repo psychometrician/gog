@@ -5299,3 +5299,18 @@ local({
     stop("FAIL: each stacked map should label its own longitude and latitude")
   cat("PASS: only a flat plot offers its axes to a page\n")
 })
+
+# ---------------------------------------------------------------------------
+# A map's meridians are the curves its projection makes: Equal Earth bends them,
+# and Mercator keeps them straight. They were drawn straight in both. The same
+# block runs in all four bindings.
+# ---------------------------------------------------------------------------
+local({
+  t <- data.frame(lon = c(176, 180, 186, 178), lat = c(-38, -20, -15, -30))
+  curve <- '<polyline points="[^"]*" fill="none"/>'
+  bent <- render_svg(data(t) + point + x(lon) + y(lat) + map())
+  flat <- render_svg(data(t) + point + x(lon) + y(lat) + map(preserve = "angle"))
+  if (!grepl(curve, bent) || grepl(curve, flat))
+    stop("FAIL: Equal Earth's meridians should curve and Mercator's stay straight")
+  cat("PASS: a map's meridians are the curves its projection makes\n")
+})
