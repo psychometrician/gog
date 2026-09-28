@@ -5767,17 +5767,15 @@ fn check_marks_that_take_no_transform(out: &mut Vec<Diagnostic>, layer: &Layer) 
         .filter(|t| !(**t == Transform::Proportion
             && layer.transforms.contains(&Transform::Partition)))
         .collect();
-    // **A path is sent to `line` only with a statistic.** A summary replaces the
-    // rows a path would join, and `line` is the mark a statistic is drawn on. The
-    // four transforms that refuse a mark in their own check, naming the marks that
-    // draw them (`check_bounds`, `check_partition`, `check_flow`, `check_layout`),
-    // are left to it: `path * flow` was also told "Use `line * flow`", and a line
-    // refuses `flow`, `partition` and `layout` as well.
-    let refused: Vec<&Transform> = if layer.mark == Mark::Path {
-        refused.into_iter().filter(|t| !refuses_marks_itself(t)).collect()
-    } else {
-        refused
-    };
+    // **The four transforms that refuse a mark in their own check are left to it**
+    // (`check_bounds`, `check_partition`, `check_flow`, `check_layout`), each of
+    // which names the marks that draw it. Refused here as well, every one of these
+    // marks printed two refusals for one mistake, and some arms gave the wrong
+    // reason: a path was told "Use `line * flow`", which a line refuses too, and a
+    // text that `bounds` "replaces those rows with one summary per key". What is
+    // left here is the statistics, and for a path, `line` is their mark.
+    let refused: Vec<&Transform> =
+        refused.into_iter().filter(|t| !refuses_marks_itself(t)).collect();
     let names: Vec<&str> = refused.iter().map(|t| transform_name(t)).collect();
     if names.is_empty() {
         return;
@@ -5922,6 +5920,9 @@ fn cell_mark_takes(mark: &Mark) -> (String, String) {
 /// family written, so two transforms with one reason share it and a transform
 /// the author did not write is not explained.
 fn cell_refusal_reasons(refused: &[&Transform]) -> String {
+    // `layout`, `bounds`, `partition` and `flow` never reach here: each refuses a
+    // mark in its own check (`refuses_marks_itself`), which names the marks that
+    // draw it.
     let reason = |t: &Transform| -> (u8, &'static str, &'static str) {
         match t {
             Transform::Smooth | Transform::SmoothBand => (0,
@@ -5930,21 +5931,11 @@ fn cell_refusal_reasons(refused: &[&Transform]) -> String {
             Transform::Range | Transform::Confidence | Transform::Deviation => (1,
                 "gives a low and a high, where a cell holds one value",
                 "give a low and a high, where a cell holds one value"),
-            Transform::Layout => (2,
-                "places the nodes of a network, which `point * layout(<from>, <to>)` draws \
-                 in `network()`",
-                "place the nodes of a network"),
             Transform::Count | Transform::Proportion => (3,
                 "tallies into the cells two categories make, and slots leave air between \
                  them, so the tiles would not join into a sheet",
                 "tally into the cells two categories make, and slots leave air between them, \
                  so the tiles would not join into a sheet"),
-            Transform::Bounds => (4,
-                "gives each row two edges, a span rather than a height",
-                "give each row two edges"),
-            Transform::Partition | Transform::Flow => (5,
-                "divides the panel into regions of its own rather than a floor of cells",
-                "divide the panel into regions of their own rather than a floor of cells"),
             Transform::Cluster => (6,
                 "orders the categories of an axis, and this floor has none",
                 "order the categories of an axis"),
@@ -15965,6 +15956,26 @@ mod tests {
             "{}", d[0].message);
     }
 
+    /// **A transform that refuses a mark in its own check is refused once.** Each
+    /// of `path`, `rule`, `text`, `zone` and `surface` answered `bounds`,
+    /// `partition`, `flow` and `layout` in its own arm as well, so `surface *
+    /// bounds` printed two refusals of `bounds`, and a `text` was told that `bounds`
+    /// "replaces those rows with one summary per key".
+    #[test]
+    fn a_transform_that_refuses_a_mark_itself_is_refused_once() {
+        for mark in [Mark::Path, Mark::Rule, Mark::Text, Mark::Zone, Mark::Surface] {
+            for t in USER_TRANSFORMS.iter().filter(|t| refuses_marks_itself(t)) {
+                if mark_takes_transform(&mark, t) != TransformLegality::None { continue }
+                let d = check(&PlotSpec::new().data("t").x("gdp").y("life").z("value")
+                    .layer(Layer::new(mark.clone()).transform(t.clone())), &data());
+                let n = transform_name(t);
+                let naming: Vec<_> = d.iter()
+                    .filter(|x| x.is_fatal() && x.message.contains(&format!("`{n}`"))).collect();
+                assert_eq!(naming.len(), 1, "{mark:?} {t:?}: {:?}", msgs(&d));
+            }
+        }
+    }
+
     /// **A path is sent to `line` only with a statistic.** `path * flow`, `path *
     /// layout` and `path * partition` were told "Use `line * <t>`", which a line
     /// refuses too, beside each transform's own refusal; `path * bounds` got two
@@ -17118,6 +17129,17 @@ mod tests {
             for mark in [Mark::Zone, Mark::Surface] {
                 if mark_takes_transform(&mark, t) != TransformLegality::None { continue }
                 let m = msg(mark.clone(), t.clone());
+                // The four that refuse a mark in their own check are left to it, and
+                // the whole check still refuses them by name.
+                if refuses_marks_itself(t) {
+                    assert!(m.is_empty(), "{mark:?} {t:?} is its own check's: {m}");
+                    let d = check(&PlotSpec::new().data("t").x("gdp").y("life").z("value")
+                        .layer(Layer::new(mark.clone()).transform(t.clone())), &data());
+                    assert!(d.iter().any(|x| x.is_fatal()
+                        && x.message.contains(&format!("`{}`", transform_name(t)))),
+                        "{mark:?} {t:?}: {:?}", msgs(&d));
+                    continue;
+                }
                 assert!(m.contains(&format!("`{}`", transform_name(t))), "{mark:?} {t:?}: {m}");
                 if *t != Transform::Quantile {
                     assert!(!m.contains("is not among"), "{mark:?} {t:?} has no reason: {m}");

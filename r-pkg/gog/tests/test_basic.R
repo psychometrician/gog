@@ -5891,3 +5891,21 @@ local({
     stop("FAIL: a path should be sent to line only with a statistic: ", flowed, "\n", counted)
   cat("PASS: a path is sent to line only with a statistic\n")
 })
+
+# ---------------------------------------------------------------------------
+# A transform that refuses a mark in its own check is refused once. `surface *
+# bounds` printed two refusals of `bounds`, and a text was told that `bounds`
+# "replaces those rows with one summary per key". The same block runs in all
+# four bindings.
+# ---------------------------------------------------------------------------
+local({
+  t <- data.frame(a = c("u", "v", "w"), v = c(1, 2, 3), w = c(2, 3, 4), h = c(5, 6, 7))
+  said <- function(p) tryCatch({ render_svg(p); "" }, error = function(e) conditionMessage(e))
+  surfaced <- said(data(t) + surface * bounds(v, w) + x(v) + y(w) + z(h))
+  texted <- said(data(t) + text * bounds(v, w) + x(a) + label(a))
+  if (!grepl("`bounds` supplies", surfaced, fixed = TRUE) ||
+      grepl("gives each row two edges", surfaced, fixed = TRUE) ||
+      grepl("replaces those rows", texted, fixed = TRUE))
+    stop("FAIL: bounds should be refused once, in its own words: ", surfaced, "\n", texted)
+  cat("PASS: a transform that refuses a mark itself is refused once\n")
+})

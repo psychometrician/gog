@@ -3906,3 +3906,18 @@ test("a path is sent to line only with a statistic", () => {
     (e) => e.message.includes("Use `line * count`") && !e.message.includes("contours")
   );
 });
+
+// A transform that refuses a mark in its own check is refused once. `surface * bounds`
+// printed two refusals of `bounds`, and a text was told that `bounds` "replaces those
+// rows with one summary per key". The same block runs in all four bindings.
+test("a transform that refuses a mark itself is refused once", () => {
+  const t = { a: ["u", "v", "w"], v: [1, 2, 3], w: [2, 3, 4], h: [5, 6, 7] };
+  assert.throws(
+    () => render_svg(plot(data(t), layer(surface, bounds(col.v, col.w)), x(col.v), y(col.w), z(col.h))),
+    (e) => e.message.includes("`bounds` supplies") && !e.message.includes("gives each row two edges")
+  );
+  assert.throws(
+    () => render_svg(plot(data(t), layer(text, bounds(col.v, col.w)), x(col.a), label(col.a))),
+    (e) => !e.message.includes("replaces those rows")
+  );
+});

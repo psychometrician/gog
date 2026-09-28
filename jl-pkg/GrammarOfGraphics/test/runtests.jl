@@ -3313,3 +3313,19 @@ end
     @test !occursin("Use `line * flow`", flowed) && occursin("`flow` lays", flowed)
     @test occursin("Use `line * count`", counted) && !occursin("contours", counted)
 end
+
+# A transform that refuses a mark in its own check is refused once. `surface * bounds`
+# printed two refusals of `bounds`, and a text was told that `bounds` "replaces those
+# rows with one summary per key". The same block runs in all four bindings.
+@testset "a transform that refuses a mark itself is refused once" begin
+    t = (a = ["u", "v", "w"], v = [1.0, 2.0, 3.0], w = [2.0, 3.0, 4.0], h = [5.0, 6.0, 7.0])
+    said(p) = try
+        render_svg(p); ""
+    catch e
+        sprint(showerror, e)
+    end
+    surfaced = said(data(t) + surface * bounds(:v, :w) + x(:v) + y(:w) + z(:h))
+    @test occursin("`bounds` supplies", surfaced) && !occursin("gives each row two edges", surfaced)
+    texted = said(data(t) + text * bounds(:v, :w) + x(:a) + label(:a))
+    @test !isempty(texted) && !occursin("replaces those rows", texted)
+end

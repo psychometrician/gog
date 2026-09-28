@@ -56,6 +56,13 @@ CRAN-style repositories and PyPI, `GrammarOfGraphics` on Julia's General, and
 
 ### Changed
 
+- **`bounds`, `partition`, `flow` and `layout` on a mark that cannot draw them
+  are refused once.** Each already refuses such a mark itself and names the
+  marks that draw it. A `path`, `rule`, `text`, `zone` or `surface` refused it a
+  second time in its own words, so `surface * bounds` printed two refusals of
+  `bounds`, and a `text` was told that `bounds` replaces its rows with one
+  summary per key.
+
 - **A `path` is sent to `line` only with a statistic.** `path * flow`, `path *
   layout` and `path * partition` were told "Use `line * <transform>`", and a
   `line` refuses all three; each transform's own refusal, which names the marks
