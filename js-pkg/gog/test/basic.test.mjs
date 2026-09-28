@@ -2276,11 +2276,17 @@ test("brush on a category column selects slots", () => {
   assert.ok(svg.includes('<g opacity="0.150">'));
 });
 
-test("a line has no single row to select, and the refusal names group()", () => {
+test("a line has no single row to select, and the refusal names the marks that do", () => {
   const d = { v: [1, 2, 3], w: [2, 4, 1] };
+  // Every mark that draws one row per shape is named, and `group()` is not: a grouped
+  // line is refused the same way, so the advice could not be followed.
   assert.throws(() => render_svg(plot(data(d, { name: "bt" }), line,
     x(col.v), y(col.w), brush(col.v, { at: [1, 2] }))),
-    /one shape through many rows[\s\S]*group\(\)/);
+    (e) => /one shape through many rows[\s\S]*`point`, `text`, `rule` and `zone`/.test(e.message)
+      && !e.message.includes("group()"));
+  assert.throws(() => render_svg(plot(data(d, { name: "bt" }), area,
+    x(col.v), y(col.w), brush(col.v, { at: [1, 2] }))),
+    (e) => e.message.startsWith("gog: an `area` draws"));
 });
 
 test("`at` is two numbers or a set of names", () => {

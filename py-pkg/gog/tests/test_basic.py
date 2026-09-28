@@ -1929,7 +1929,16 @@ try:
     raise AssertionError("a brushed line should refuse")
 except Exception as _e:
     _t = str(_e)
-    assert "one shape through many rows" in _t and "group()" in _t, _t
+    # Every mark that draws one row per shape is named, and `group()` is not: a
+    # grouped line is refused the same way, so the advice could not be followed.
+    assert "one shape through many rows" in _t and "`point`, `text`, `rule` and `zone`" in _t \
+        and "group()" not in _t, _t
+try:
+    render_svg(data(_brush_df, name="bt") + area + x(col.v) + y(col.w)
+               + brush(col.v, at=(2.0, 4.0)))
+    raise AssertionError("a brushed area should refuse")
+except GogError as _e:
+    assert str(_e).startswith("gog: an `area` draws"), str(_e)
 ok("refused — a line has no single row to select")
 
 refuses("`at` is two numbers or a set of names",

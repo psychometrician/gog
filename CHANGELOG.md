@@ -56,6 +56,12 @@ CRAN-style repositories and PyPI, `GrammarOfGraphics` on Julia's General, and
 
 ### Changed
 
+- **A mark that cannot be brushed is not told to use `group()`.** A brushed
+  `line` was told to split it with `group()`, and a grouped line is refused the
+  same way. The refusal now names only the marks that draw a selection. Four
+  messages also wrote "a" before any mark's name, so they read "a `area`", "a
+  `interval`" and "a `edge`"; each now takes "an" where the name needs it.
+
 - **A line faceted by its own `x` is refused once.** `line + x(year) |
   facet(year)` on a number column was refused because every panel holds one
   `year`, and then again because a facet needs a category, with the advice to

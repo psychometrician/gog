@@ -2754,8 +2754,17 @@ cat("PASS: brush() on a category column selects slots\n")
 m <- tryCatch({
   render_svg(data(brush_df) + line + x(v) + y(w) + brush(v, at = c(2, 4))); ""
 }, error = function(e) conditionMessage(e))
-if (!grepl("one shape through many rows", m) || !grepl("group\\(\\)", m))
-  stop("FAIL: a brushed line should refuse and name group(), got: ", m)
+# Every mark that draws one row per shape is named, and `group()` is not: a grouped
+# line is refused the same way, so the advice could not be followed.
+if (!grepl("one shape through many rows", m) ||
+    !grepl("`point`, `text`, `rule` and `zone`", m, fixed = TRUE) ||
+    grepl("group()", m, fixed = TRUE))
+  stop("FAIL: a brushed line should refuse toward the marks that take a brush, got: ", m)
+m_area <- tryCatch({
+  render_svg(data(brush_df) + area + x(v) + y(w) + brush(v, at = c(2, 4))); ""
+}, error = function(e) conditionMessage(e))
+if (!startsWith(m_area, "gog: an `area` draws"))
+  stop("FAIL: the article should follow the mark, got: ", m_area)
 cat("PASS: refused — a line has no single row to select\n")
 
 m <- tryCatch({ brush(v, at = c(1, 2, 3)); "" }, error = function(e) conditionMessage(e))

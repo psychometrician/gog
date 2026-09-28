@@ -283,8 +283,8 @@ data(gapminder_asia) + line + x(year) + y(life) + group(country) +
   brush(life, at = c(60, 80))
 ```
 
-The refusal names two fixes. The first, `group()`, is already in the sentence.
-So use the second, and brush a mark that draws one shape per row.
+The refusal lists the marks that draw a selection. A brushed plot needs at least
+one of them.
 
 A summarized layer refuses for a different reason. A bar of `bar * count` stands
 for as many as fifty-two countries at once. There is no way to draw "twelve of

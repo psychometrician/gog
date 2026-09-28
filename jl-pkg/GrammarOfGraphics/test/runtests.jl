@@ -1658,7 +1658,17 @@ end
         sprint(showerror, e)
     end
     @test occursin("one shape through many rows", line_msg)
-    @test occursin("group()", line_msg)
+    # Every mark that draws one row per shape is named, and `group()` is not: a
+    # grouped line is refused the same way, so the advice could not be followed.
+    @test occursin("`point`, `text`, `rule` and `zone`", line_msg)
+    @test !occursin("group()", line_msg)
+    area_msg = try
+        render_svg(data(d; name = "bt") + area + x(:v) + y(:w) + brush(:v, at = (2.0, 4.0)))
+        ""
+    catch e
+        sprint(showerror, e)
+    end
+    @test startswith(area_msg, "gog: an `area` draws")
 
     @test_throws GogError brush(:v, at = (1, 2, 3))
 end

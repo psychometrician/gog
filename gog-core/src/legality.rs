@@ -3117,11 +3117,12 @@ fn check_span_needs_range(out: &mut Vec<Diagnostic>, spec: &PlotSpec, df: Option
         out.push(Diagnostic {
             kind: DiagnosticKind::Illegal,
             message: format!(
-                "gog: `{m} * density` estimates one curve, and a {m} needs two boundaries to \
+                "gog: `{m} * density` estimates one curve, and {} {m} needs two boundaries to \
                  span between. Bind a category and the estimate is drawn across its slot — \
                  `{m} * density + x(<category>) + y(<number>)` is the violin, one distribution \
                  per group. For the curve itself, `area * density + x(<number>)` fills it to \
-                 the baseline and `line * density + x(<number>)` traces it."
+                 the baseline and `line * density + x(<number>)` traces it.",
+                article(m)
             ),
         });
         return;
@@ -8733,8 +8734,9 @@ fn check_brush(out: &mut Vec<Diagnostic>, spec: &PlotSpec, data: &HashMap<String
         out.push(Diagnostic {
             kind: DiagnosticKind::Unsupported,
             message: format!(
-                "gog: a `{m}` cannot be brushed yet, because {why}. Brush a `point` or a \
-                 `text` layer, or drop the brush."
+                "gog: {} `{m}` cannot be brushed yet, because {why}. Brush a `point` or a \
+                 `text` layer, or drop the brush.",
+                article(m)
             ),
         });
     } else if let Some((m, t)) = collapsed.first() {
@@ -8747,12 +8749,23 @@ fn check_brush(out: &mut Vec<Diagnostic>, spec: &PlotSpec, data: &HashMap<String
             ),
         });
     } else if let Some(m) = not_elements.first() {
+        // The marks named are the ones that take a selection and draw it, read off
+        // `mark_takes_selection` and `selection_draws` as the refusals above are, so
+        // none of them is refused in turn (a plain `bar` takes one and cannot draw
+        // it yet). It also said "Use `group()` to split it", and a grouped line is
+        // still refused here, since `group` splits one shape into several, never
+        // into rows.
+        let brushable: Vec<&str> = ALL_MARKS.iter()
+            .filter(|mk| is_drawable(mk) && mark_takes_selection(mk)
+                && selection_draws(&Layer::new((*mk).clone())).is_none())
+            .map(mark_name)
+            .collect();
         out.push(Diagnostic {
             kind: DiagnosticKind::Illegal,
             message: format!(
-                "gog: a `{m}` draws one shape through many rows, so there is no single row to \
-                 select. Use `group()` to split it, or brush a mark that draws one shape per \
-                 row: `point`, `text`, `rule` or `zone`."
+                "gog: {} `{m}` draws one shape through many rows, so there is no single row \
+                 to select. Brush one of the marks that draw a selection: {}.",
+                article(m), code_list(&brushable)
             ),
         });
     }
@@ -11272,9 +11285,10 @@ fn check_domain_split(out: &mut Vec<Diagnostic>, spec: &PlotSpec, layer: &Layer)
         kind: DiagnosticKind::Illegal,
         message: format!(
             "gog: `{m}` reads a function along `x`, but `{split}` both cuts the plot into \
-             {noun} and supplies `x` — so every {one} holds a single `{split}`, and a \
+             {noun} and supplies `x` — so every {one} holds a single `{split}`, and {an} \
              {m} needs at least two positions to read between. {direction}",
             m = mark_name(&layer.mark),
+            an = article(mark_name(&layer.mark)),
             one = noun.trim_end_matches('s'),
         ),
     });
@@ -13854,17 +13868,28 @@ mod tests {
     }
 
     /// A mark whose rows are vertices has no single row to select, and the
-    /// refusal names both ways out: split it, or brush a mark that draws one
-    /// shape per row.
+    /// refusal names every mark that takes a selection and draws it, and no other:
+    /// a plain `bar` takes one and is refused for it. It offered `group()` as well,
+    /// and a grouped line is refused the same way: a group splits a shape into
+    /// shapes, never into rows.
     #[test]
     fn a_mark_whose_rows_are_vertices_cannot_be_brushed() {
-        let spec = base()
-            .layer(Layer::new(Mark::Line))
-            .brush(crate::ir::BrushDef::new("gdp").at(1.0, 2.0));
-        let out = check(&spec, &data());
-        assert!(out.iter().any(|d| d.kind == DiagnosticKind::Illegal
-            && d.message.contains("one shape through many rows")
-            && d.message.contains("`group()`")), "{:?}", msgs(&out));
+        let brushed = |layer: Layer| check(&base().layer(layer)
+            .brush(crate::ir::BrushDef::new("gdp").at(1.0, 2.0)), &data());
+        for layer in [Layer::new(Mark::Line), Layer::new(Mark::Line).encode(Channel::Group, "continent")] {
+            let out = brushed(layer);
+            assert!(out.iter().any(|d| d.kind == DiagnosticKind::Illegal
+                && d.message.contains("one shape through many rows")
+                && !d.message.contains("group()")), "{:?}", msgs(&out));
+            for m in ALL_MARKS.iter().filter(|m| is_drawable(m) && mark_takes_selection(m)) {
+                let drawn = selection_draws(&Layer::new((*m).clone())).is_none();
+                assert_eq!(out.iter().any(|d| d.message.contains(&format!("`{}`", mark_name(m)))),
+                    drawn, "{} offered wrongly: {:?}", mark_name(m), msgs(&out));
+            }
+        }
+        // The article follows the mark: "an `area`", "an `interval`".
+        let out = brushed(Layer::new(Mark::Area));
+        assert!(out.iter().any(|d| d.message.starts_with("gog: an `area` draws")), "{:?}", msgs(&out));
     }
 
     /// A summarized layer beside one that draws its rows: the plot draws, and the
@@ -17567,6 +17592,24 @@ mod tests {
         // §12: an Assumption renders. A refusal here would take the book's own
         // teaching plot off the page.
         assert!(!d.iter().any(|x| x.is_fatal()), "must still draw: {:?}", msgs(&d));
+    }
+
+    /// **A mark's article follows its name**, in the two refusals that wrote "a" in
+    /// front of any mark: `interval * density` read "a interval needs two
+    /// boundaries", and an `area` faceted by its own `x` "a area needs at least two
+    /// positions".
+    #[test]
+    fn a_marks_article_follows_its_name() {
+        let d = check(&PlotSpec::new().data("t").x("gdp")
+            .layer(Layer::new(Mark::Interval).transform(Transform::Density)), &data());
+        assert!(d.iter().any(|x| x.message.contains("and an interval needs two boundaries")),
+            "{:?}", msgs(&d));
+        let mut spec = PlotSpec::new().data("t").x("gdp").y("life").layer(Layer::new(Mark::Area));
+        spec.facet = Some(crate::ir::FacetSpec { col: Some("gdp".into()), ..Default::default() });
+        let d = check(&spec, &data());
+        assert!(d.iter().any(|x| x.message.contains("and an area needs at least two positions")),
+            "{:?}", msgs(&d));
+        assert!(d.iter().all(|x| !x.message.contains(" a area")), "{:?}", msgs(&d));
     }
 
     /// **A line cut into panels by its own `x` is refused once, for that.** On a
