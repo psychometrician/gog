@@ -56,6 +56,14 @@ CRAN-style repositories and PyPI, `GrammarOfGraphics` on Julia's General, and
 
 ### Changed
 
+- **A channel a mark does not have is refused toward the marks that do.** `point
+  + group(country)`, `bar + size(gold)`, `bar + style(size = 3)` and their like
+  said to "use a mark that has one" and named none. The refusal now lists them:
+  `group` sends a point to `line`, `area`, `step` and the other marks that map it,
+  and `style(size = )` sends a bar to the marks that have a width to set. An
+  `edge` bound to `x` or `y` is refused by the network alone, which says the
+  layout places it, where it was also sent to every flat mark that maps `x`.
+
 - **A column of the wrong type is offered only channels that take it.** The
   offer after a type refusal was the same for every mark: `size(continent)` on a
   `point` suggested `pattern`, which a point refuses, a numeric `pattern` on a

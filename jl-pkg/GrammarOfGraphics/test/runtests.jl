@@ -3235,3 +3235,21 @@ end
     @test occursin("Use `color` or `shape` to distinguish categories", sized) && !occursin("pattern", sized)
     @test occursin("Use `opacity` to show a numeric column", said(data(t) + bar + x(:g) + y(:v) + color(:w)))
 end
+
+# A channel a mark does not have is refused toward the marks that do. The mapping
+# refusal and its `style()` sibling said "use a mark that has one" and named none. The
+# same block runs in all four bindings.
+@testset "a missing feature is refused toward the marks that have it" begin
+    t = (g = ["a", "b", "c"], v = [1.0, 2.0, 3.0], w = [3.0, 5.0, 4.0])
+    said(p) = try
+        render_svg(p); ""
+    catch e
+        sprint(showerror, e)
+    end
+    @test occursin("use a mark that maps it: `line`, `area`", said(data(t) + point + x(:v) + y(:w) + group(:g)))
+    @test occursin("use a mark that has one: `point`, `line`",
+                   said(data(t) + bar + x(:g) + y(:v) + style(size = 3)))
+    # An edge's positions come from the layout, and the network says so alone.
+    edged = said(data(t) + edge + x(:v) + y(:w) + network())
+    @test !isempty(edged) && !occursin("cannot be bound to `edge`", edged)
+end

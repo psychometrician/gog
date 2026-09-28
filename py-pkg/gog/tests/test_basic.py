@@ -3698,3 +3698,20 @@ _sized = _typed(_ty + point + x(col.v) + y(col.w) + size(col.g))
 assert "Use `color` or `shape` to distinguish categories" in _sized and "pattern" not in _sized, _sized
 assert "Use `opacity` to show a numeric column" in _typed(_ty + bar + x(col.g) + y(col.v) + color(col.w))
 ok("a type refusal offers only the channels the mark takes")
+
+
+# --- A missing feature is refused toward the marks that have it -------------------------
+# The mapping refusal and its `style()` sibling said "use a mark that has one" and named
+# none. The same block runs in all four bindings.
+_ft = data({"g": ["a", "b", "c"], "v": [1.0, 2.0, 3.0], "w": [3.0, 5.0, 4.0]}, name="t")
+def _feature(p):
+    try:
+        render_svg(p)
+    except GogError as refusal:
+        return str(refusal)
+    raise AssertionError("drew")
+assert "use a mark that maps it: `line`, `area`" in _feature(_ft + point + x(col.v) + y(col.w) + group(col.g))
+assert "use a mark that has one: `point`, `line`" in _feature(_ft + bar + x(col.g) + y(col.v) + style(size=3))
+# An edge's positions come from the layout, and the network says so alone.
+assert "cannot be bound to `edge`" not in _feature(_ft + edge + x(col.v) + y(col.w) + network())
+ok("a missing feature is refused toward the marks that have it")

@@ -3832,3 +3832,23 @@ test("a type refusal offers only the channels the mark takes", () => {
     (e) => e.message.includes("Use `opacity` to show a numeric column")
   );
 });
+
+// A channel a mark does not have is refused toward the marks that do. The mapping
+// refusal and its `style()` sibling said "use a mark that has one" and named none. The
+// same block runs in all four bindings.
+test("a missing feature is refused toward the marks that have it", () => {
+  const t = { g: ["a", "b", "c"], v: [1, 2, 3], w: [3, 5, 4] };
+  assert.throws(
+    () => render_svg(plot(data(t), point, x(col.v), y(col.w), group(col.g))),
+    (e) => e.message.includes("use a mark that maps it: `line`, `area`")
+  );
+  assert.throws(
+    () => render_svg(plot(data(t), bar, x(col.g), y(col.v), style({ size: 3 }))),
+    (e) => e.message.includes("use a mark that has one: `point`, `line`")
+  );
+  // An edge's positions come from the layout, and the network says so alone.
+  assert.throws(
+    () => render_svg(plot(data(t), edge, x(col.v), y(col.w), network())),
+    (e) => !e.message.includes("cannot be bound to `edge`")
+  );
+});

@@ -5803,3 +5803,23 @@ local({
     stop("FAIL: a type refusal should offer only what the mark takes: ", sized, "\n", colored)
   cat("PASS: a type refusal offers only the channels the mark takes\n")
 })
+
+# ---------------------------------------------------------------------------
+# A channel a mark does not have is refused toward the marks that do. The
+# mapping refusal and its `style()` sibling said "use a mark that has one" and
+# named none. The same block runs in all four bindings.
+# ---------------------------------------------------------------------------
+local({
+  t <- data.frame(g = c("a", "b", "c"), v = c(1, 2, 3), w = c(3, 5, 4))
+  said <- function(p) tryCatch({ render_svg(p); "" }, error = function(e) conditionMessage(e))
+  grouped <- said(data(t) + point + x(v) + y(w) + group(g))
+  sized <- said(data(t) + bar + x(g) + y(v) + style(size = 3))
+  # An edge's positions come from the layout, and the network says so alone.
+  edged <- said(data(t) + edge + x(v) + y(w) + network())
+  if (!grepl("use a mark that maps it: `line`, `area`", grouped, fixed = TRUE) ||
+      !grepl("use a mark that has one: `point`, `line`", sized, fixed = TRUE) ||
+      grepl("cannot be bound to `edge`", edged, fixed = TRUE))
+    stop("FAIL: a missing feature should name the marks that have it: ", grouped, "\n", sized,
+         "\n", edged)
+  cat("PASS: a missing feature is refused toward the marks that have it\n")
+})

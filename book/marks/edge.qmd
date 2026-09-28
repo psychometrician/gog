@@ -187,9 +187,8 @@ row on the [companion grid](../combinations.qmd#marks-and-channels).
 
 The other marks take their positions from `x` and `y`, so binding them to an
 edge is the first thing most readers try. An `edge` with no `layout` has no
-endpoints to draw, and `x` and `y` cannot supply them. gog refuses the `x`
-binding, then the `y` binding, and then the `network()`, because no layer gives
-it a `layout` to draw:
+endpoints to draw, and `x` and `y` cannot supply them. gog refuses the sentence,
+because no layer gives `network()` a `layout` to draw:
 
 ```{r}
 #| error: true

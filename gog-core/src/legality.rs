@@ -5848,6 +5848,26 @@ fn channels_that_carry(mark: &Mark, asked: &Channel, actual: VarType) -> Vec<&'s
         .collect()
 }
 
+/// The marks that take a channel, mapped (`true`) or set (`false`), for a refusal
+/// that sends the reader to another mark: read off `rule_for` as the grid is, so
+/// the list names only marks that take it. "Use a mark that has one" named none. A
+/// mark the graph places is left out, since only a `layout` in a network gives it
+/// a position.
+fn marks_that_take(channel: &Channel, mapped: bool) -> Vec<&'static str> {
+    ALL_MARKS.iter()
+        .filter(|mk| is_drawable(mk) && !placed_by_the_graph(&Layer::new((*mk).clone())))
+        .filter(|mk| {
+            let r = rule_for(mk, channel);
+            if mapped {
+                r.obligation != Obligation::Cannot && r.renders.is_some()
+            } else {
+                r.settable
+            }
+        })
+        .map(mark_name)
+        .collect()
+}
+
 /// What a cell mark takes, read off `mark_takes_transform` as the grid is, split
 /// into the transforms that make or place its cells and the reductions that fill
 /// them. Returned as code lists for a message, so the list cannot drift from the
@@ -7592,6 +7612,18 @@ pub fn check(spec: &PlotSpec, data: &HashMap<String, DataFrame>) -> Vec<Diagnost
             let c = channel_name(channel);
             let r = rule_for(mark, channel);
 
+            // A layer the graph places takes its positions from the layout, and its
+            // own refusals say so: `check_layout` for a bound position under `layout`
+            // and for an `edge` with none, `check_network` for a network nothing
+            // feeds. Refused here as well, an `edge` bound to `x` was sent to every
+            // flat mark that maps `x`.
+            if r.obligation == Obligation::Cannot
+                && matches!(channel, Channel::X | Channel::Y | Channel::Z)
+                && placed_by_the_graph(layer)
+            {
+                continue;
+            }
+
             if r.obligation == Obligation::Cannot {
                 out.push(Diagnostic {
                     kind: DiagnosticKind::Illegal,
@@ -7611,8 +7643,8 @@ pub fn check(spec: &PlotSpec, data: &HashMap<String, DataFrame>) -> Vec<Diagnost
                         format!(
                             "gog: `{c}` cannot be bound to `{m}` — {} {m} takes one {c} for \
                              the whole layer, not one per row. Drop the `{field}` mapping and \
-                             set it with `style({c} = )`, or use a mark that maps `{c}`.",
-                            article(m)
+                             set it with `style({c} = )`, or use a mark that maps `{c}`: {}.",
+                            article(m), code_list_or(&marks_that_take(channel, true))
                         )
                     } else {
                         format!(
@@ -7629,8 +7661,9 @@ pub fn check(spec: &PlotSpec, data: &HashMap<String, DataFrame>) -> Vec<Diagnost
                             // it is a setting rather than a call the four bindings spell
                             // differently, and `check_style` already writes it that way.
                             "gog: `{c}` cannot be bound to `{m}` — {} {m} has no {c} feature. \
-                             Remove the `{field}` mapping from `{c}`, or use a mark that has one.",
-                            article(m)
+                             Remove the `{field}` mapping from `{c}`, or use a mark that maps \
+                             it: {}.",
+                            article(m), code_list_or(&marks_that_take(channel, true))
                         )
                     },
                 });
@@ -12443,8 +12476,8 @@ fn check_style(
                 kind: DiagnosticKind::Illegal,
                 message: format!(
                     "gog: `style({c} = {written})` — {} {m} has no {c} to set. \
-                     Remove it, or use a mark that has one.",
-                    article(m)
+                     Remove it, or use a mark that has one: {}.",
+                    article(m), code_list_or(&marks_that_take(&channel, false))
                 ),
             });
             continue;
@@ -15879,6 +15912,56 @@ mod tests {
         // what a point takes: it offered `pattern`, which a point refuses.
         assert!(d[0].message.contains("Use `color` or `shape` to distinguish categories"),
             "{}", d[0].message);
+    }
+
+    /// **A channel a mark does not have is refused toward the marks that do.** The
+    /// mapping refusal and its `style()` sibling said "use a mark that has one" and
+    /// named none. The list is read off `rule_for`, and no refused pair ends on an
+    /// empty one.
+    #[test]
+    fn a_missing_feature_is_refused_toward_the_marks_that_have_it() {
+        for m in ALL_MARKS.iter().filter(|m| is_drawable(m)) {
+            for c in &ALL_CHANNELS {
+                let r = rule_for(m, c);
+                if r.obligation == Obligation::Cannot {
+                    assert!(!marks_that_take(c, true).is_empty(), "{m:?} {c:?}: nothing maps it");
+                }
+                if !r.settable && matches!(c, Channel::Color | Channel::Size | Channel::Shape
+                    | Channel::Pattern | Channel::Opacity) {
+                    assert!(!marks_that_take(c, false).is_empty(), "{m:?} {c:?}: nothing sets it");
+                }
+            }
+        }
+        let d = check(&base().layer(Layer::new(Mark::Point).encode(Channel::Group, "continent")),
+            &data());
+        assert!(d[0].message.contains("use a mark that maps it: `line`, `area`, `step`, \
+            `interval`, `box`, `ribbon`, `path`, `zone` or `surface`."), "{:?}", d[0]);
+        let mut sized = Layer::new(Mark::Bar);
+        sized.style.size = Some(3.0);
+        let d = check(&PlotSpec::new().data("t").x("continent").y("life").layer(sized), &data());
+        assert!(d.iter().any(|x| x.message.contains("has no size to set. Remove it, or use a mark \
+            that has one: `point`")), "{:?}", msgs(&d));
+    }
+
+    /// **A graph-placed layer's bound position is refused by the graph alone.** An
+    /// `edge` bound to `x` was also told it "has no x feature" and sent to every
+    /// flat mark that maps `x`, beside the network's own refusal of the position.
+    #[test]
+    fn a_graph_placed_position_is_refused_by_the_graph_alone() {
+        let net = || CoordSpace::Network(crate::ir::NetworkView::default());
+        for (coord, layer) in [
+            (net(), Layer::new(Mark::Edge).layout("continent", "region")),
+            (net(), Layer::new(Mark::Edge)),
+            (CoordSpace::Flat, Layer::new(Mark::Edge)),
+            (CoordSpace::Flat, Layer::new(Mark::Edge).layout("continent", "region")),
+        ] {
+            let spec = PlotSpec::new().data("t").x("gdp").y("life").coord(coord.clone())
+                .layer(layer.clone());
+            let d = check(&spec, &data());
+            assert!(d.iter().any(Diagnostic::is_fatal), "{coord:?} {:?} drew", layer.transforms);
+            assert!(d.iter().all(|x| !x.message.contains("cannot be bound to `edge`")),
+                "{coord:?} {:?}: {:?}", layer.transforms, msgs(&d));
+        }
     }
 
     /// **Every channel a type refusal offers takes that column on that mark.** The
