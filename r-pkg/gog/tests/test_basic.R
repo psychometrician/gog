@@ -5967,3 +5967,25 @@ local({
     stop("FAIL: an atom after a facet should be told where it went: ", said)
   cat("PASS: an atom written after a facet is told to come before it\n")
 })
+
+# ---------------------------------------------------------------------------
+# The `%>%` warning said two tables piped this way "collide", and they do not:
+# `+` renames the name gog invented, so the second is `data2` and the plot
+# draws. The warning now says so. (R alone: the other three have no `%>%`.)
+# ---------------------------------------------------------------------------
+local({
+  if (!requireNamespace("magrittr", quietly = TRUE)) {
+    cat("SKIP: magrittr not installed\n"); return(invisible())
+  }
+  `%>%` <- magrittr::`%>%`
+  t <- data.frame(a = c(1, 2), b = c(3, 4)); u <- data.frame(a = c(1, 2), b = c(5, 6))
+  said <- character(0)
+  svg <- withCallingHandlers(
+    render_svg(t %>% data() + point + x(a) + y(b) + u %>% data() + line),
+    warning = function(w) { said <<- c(said, conditionMessage(w)); invokeRestart("muffleWarning") },
+    message = function(m) invokeRestart("muffleMessage"))
+  if (!nzchar(svg) || !length(said) || any(grepl("collide", said, fixed = TRUE)) ||
+      !all(grepl("a second table piped this way `data2`", said, fixed = TRUE)))
+    stop("FAIL: the %>% warning should say what happens: ", paste(said, collapse = " | "))
+  cat("PASS: the %>% warning says the second piped table is data2\n")
+})

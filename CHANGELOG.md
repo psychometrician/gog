@@ -56,6 +56,11 @@ CRAN-style repositories and PyPI, `GrammarOfGraphics` on Julia's General, and
 
 ### Changed
 
+- **The `%>%` warning says what happens to a second piped table.** In R,
+  `df %>% data()` warns that the pipe hid the table's name, and it added that
+  two tables piped this way collide. They do not: the second is called `data2`
+  and the plot draws. The warning now says so.
+
 - **In JavaScript, `data()` takes an array of rows.** An asynchronous database
   driver returns one object per row, and the refusals for `pg` and `mysql2`
   told you to pass those rows as `data(rows)`, which was then refused because a

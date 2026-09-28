@@ -340,12 +340,13 @@ data <- function(df, name = NULL) {
     # the name, so the message names the cause, and the fix is a different pipe
     # as much as a different call.
     if (is_lost_name(name)) {
+      # It said two tables piped this way "collide", and they do not: `+` and a
+      # page's merge rename a name gog invented, so the second is `data2`.
       warning("gog: magrittr's `%>%` replaced this table with its placeholder ",
               "`.` before `data()` could read the name, so the table is called ",
-              "`data`. A layer resolves its bare columns against the nearest ",
-              "table *by name*, so two tables piped this way collide. Either ",
-              "name it \u2014 `data(name = \"...\")` \u2014 or use R's native pipe, ",
-              "which keeps the name: `df |> data()` reads as `data(df)`.",
+              "`data`, and a second table piped this way `data2`. Either name ",
+              "it \u2014 `data(name = \"...\")` \u2014 or use R's native pipe, which ",
+              "keeps the name: `df |> data()` reads as `data(df)`.",
               call. = FALSE)
       name <- "data"
       return(new_gog_spec(new_spec(name), name, df, anonymous = name))
