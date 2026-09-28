@@ -56,6 +56,9 @@ CRAN-style repositories and PyPI, `GrammarOfGraphics` on Julia's General, and
 
 ### Changed
 
+- **The circular cluster tree's refusal names the tree's horizontal bars**, where
+  it said "treads", a word the book does not use.
+
 - **A transform refused on a `zone` or a `surface` is explained by name.** Each
   refusal was one fixed sentence whatever was written: the zone's called
   `bounds` refused, though `zone * bounds` draws, and listed four fewer

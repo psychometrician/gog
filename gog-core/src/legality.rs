@@ -5382,9 +5382,9 @@ fn check_cluster(
             out.push(Diagnostic {
                 kind: DiagnosticKind::Unsupported,
                 message: "gog: a circular cluster tree is valid grammar this \
-                          engine does not draw yet — the treads would bend into \
-                          arcs, and a path's segments draw straight. Drop \
-                          `polar()`, or wait for the feature."
+                          engine does not draw yet — the tree's horizontal bars \
+                          would bend into arcs, and a path's segments draw \
+                          straight. Drop `polar()`, or wait for the feature."
                     .to_string(),
             });
             return;

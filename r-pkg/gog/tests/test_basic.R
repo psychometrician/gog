@@ -5542,3 +5542,17 @@ local({
     stop("FAIL: a zone's transform refusal should say why and list the table: ", said)
   cat("PASS: a zone's transform refusal says why and lists what a zone takes\n")
 })
+
+# ---------------------------------------------------------------------------
+# The circular-tree refusal names the tree's horizontal bars, not "treads", a
+# word the book does not use. The same block runs in all four bindings.
+# ---------------------------------------------------------------------------
+local({
+  t <- data.frame(g = c("a", "a", "b", "b", "c", "c"), k = c("u", "v", "u", "v", "u", "v"),
+                  v = c(1, 2, 2, 1, 3, 3))
+  said <- tryCatch({ render_svg(data(t) + path * cluster(v, over = k) + x(g) + polar()); "" },
+                   error = function(e) conditionMessage(e))
+  if (!grepl("the tree's horizontal bars", said, fixed = TRUE) || grepl("treads", said, fixed = TRUE))
+    stop("FAIL: the circular-tree refusal should name the horizontal bars: ", said)
+  cat("PASS: the circular-tree refusal names the tree's horizontal bars\n")
+})

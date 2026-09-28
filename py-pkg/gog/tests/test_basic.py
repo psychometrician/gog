@@ -3462,3 +3462,16 @@ try:
 except GogError as refusal:
     assert "`smooth` fits a curve along a domain" in str(refusal) and "A zone takes `bin`" in str(refusal), refusal
 ok("a zone's transform refusal says why and lists what a zone takes")
+
+
+# --- The circular-tree refusal names the tree's horizontal bars -------------------------
+# Not "treads", a word the book does not use. The same block runs in all four
+# bindings.
+_ct = {"g": ["a", "a", "b", "b", "c", "c"], "k": ["u", "v", "u", "v", "u", "v"],
+       "v": [1.0, 2.0, 2.0, 1.0, 3.0, 3.0]}
+try:
+    render_svg(data(_ct, name="ct") + path * cluster(col.v, over=col.k) + x(col.g) + polar())
+    raise AssertionError("a circular cluster tree drew")
+except GogError as refusal:
+    assert "the tree's horizontal bars" in str(refusal) and "treads" not in str(refusal), refusal
+ok("the circular-tree refusal names the tree's horizontal bars")

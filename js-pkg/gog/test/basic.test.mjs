@@ -3612,3 +3612,13 @@ test("a zone's transform refusal says why and lists what a zone takes", () => {
     (e) => e.message.includes("`smooth` fits a curve along a domain") && e.message.includes("A zone takes `bin`")
   );
 });
+
+// The circular-tree refusal names the tree's horizontal bars, not "treads", a word
+// the book does not use. The same block runs in all four bindings.
+test("the circular-tree refusal names the tree's horizontal bars", () => {
+  const ct = { g: ["a", "a", "b", "b", "c", "c"], k: ["u", "v", "u", "v", "u", "v"], v: [1, 2, 2, 1, 3, 3] };
+  assert.throws(
+    () => render_svg(plot(data(ct), layer(path, cluster(col.v, { over: col.k })), x(col.g), polar())),
+    (e) => e.message.includes("the tree's horizontal bars") && !e.message.includes("treads")
+  );
+});

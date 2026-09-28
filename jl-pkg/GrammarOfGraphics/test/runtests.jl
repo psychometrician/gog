@@ -2998,3 +2998,16 @@ end
     end
     @test occursin("`smooth` fits a curve along a domain", said) && occursin("A zone takes `bin`", said)
 end
+
+# The circular-tree refusal names the tree's horizontal bars, not "treads", a word
+# the book does not use. The same block runs in all four bindings.
+@testset "the circular-tree refusal names the tree's horizontal bars" begin
+    ct = (g = ["a", "a", "b", "b", "c", "c"], k = ["u", "v", "u", "v", "u", "v"],
+          v = [1.0, 2.0, 2.0, 1.0, 3.0, 3.0])
+    said = try
+        render_svg(data(ct) + path * cluster(:v, over = :k) + x(:g) + polar()); ""
+    catch e
+        sprint(showerror, e)
+    end
+    @test occursin("the tree's horizontal bars", said) && !occursin("treads", said)
+end
