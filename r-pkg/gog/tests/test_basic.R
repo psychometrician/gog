@@ -5873,3 +5873,21 @@ local({
     stop("FAIL: a flow in polar should be refused once for every layer: ", said)
   cat("PASS: a flow in polar is refused once for every layer\n")
 })
+
+# ---------------------------------------------------------------------------
+# A path is sent to `line` only with a statistic. `path * flow` was also told
+# "Use `line * flow`", which a line refuses too; `path * count` was also told to
+# write `path * count + x() + y()`, refused in turn. The same block runs in all
+# four bindings.
+# ---------------------------------------------------------------------------
+local({
+  t <- data.frame(a = c("u", "u", "v"), b = c("p", "q", "q"), v = c(1, 2, 3), w = c(2, 3, 4))
+  said <- function(p) tryCatch({ render_svg(p); "" }, error = function(e) conditionMessage(e))
+  flowed <- said(data(t) + path * flow(a, b))
+  counted <- said(data(t) + path * count + x(v) + y(w))
+  if (grepl("Use `line * flow`", flowed, fixed = TRUE) || !grepl("`flow` lays", flowed, fixed = TRUE) ||
+      !grepl("Use `line * count`", counted, fixed = TRUE) ||
+      grepl("contours", counted, fixed = TRUE))
+    stop("FAIL: a path should be sent to line only with a statistic: ", flowed, "\n", counted)
+  cat("PASS: a path is sent to line only with a statistic\n")
+})

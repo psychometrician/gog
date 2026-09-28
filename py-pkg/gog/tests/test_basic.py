@@ -3759,3 +3759,22 @@ except GogError as refusal:
     _s = str(refusal)
     assert _s.count("chord diagram") == 1 and "a flow bent round a rim" in _s and "bands" not in _s, _s
 ok("a flow in polar is refused once for every layer")
+
+
+# --- A path is sent to line only with a statistic ---------------------------------------
+# `path * flow` was also told "Use `line * flow`", which a line refuses too; `path * count`
+# was also told to write `path * count + x() + y()`, refused in turn. The same block runs
+# in all four bindings.
+_pa = data({"a": ["u", "u", "v"], "b": ["p", "q", "q"], "v": [1.0, 2.0, 3.0], "w": [2.0, 3.0, 4.0]},
+           name="t")
+def _pathed(p):
+    try:
+        render_svg(p)
+    except GogError as refusal:
+        return str(refusal)
+    raise AssertionError("drew")
+_flowed = _pathed(_pa + path * flow(col.a, col.b))
+_counted = _pathed(_pa + path * count + x(col.v) + y(col.w))
+assert "Use `line * flow`" not in _flowed and "`flow` lays" in _flowed, _flowed
+assert "Use `line * count`" in _counted and "contours" not in _counted, _counted
+ok("a path is sent to line only with a statistic")

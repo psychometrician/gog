@@ -3891,3 +3891,18 @@ test("a flow in polar is refused once for every layer", () => {
       && !e.message.includes("bands")
   );
 });
+
+// A path is sent to `line` only with a statistic. `path * flow` was also told "Use
+// `line * flow`", which a line refuses too; `path * count` was also told to write
+// `path * count + x() + y()`, refused in turn. The same block runs in all four bindings.
+test("a path is sent to line only with a statistic", () => {
+  const t = { a: ["u", "u", "v"], b: ["p", "q", "q"], v: [1, 2, 3], w: [2, 3, 4] };
+  assert.throws(
+    () => render_svg(plot(data(t), layer(path, flow(col.a, col.b)))),
+    (e) => !e.message.includes("Use `line * flow`") && e.message.includes("`flow` lays")
+  );
+  assert.throws(
+    () => render_svg(plot(data(t), layer(path, count), x(col.v), y(col.w))),
+    (e) => e.message.includes("Use `line * count`") && !e.message.includes("contours")
+  );
+});

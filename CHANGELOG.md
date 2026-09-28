@@ -56,6 +56,14 @@ CRAN-style repositories and PyPI, `GrammarOfGraphics` on Julia's General, and
 
 ### Changed
 
+- **A `path` is sent to `line` only with a statistic.** `path * flow`, `path *
+  layout` and `path * partition` were told "Use `line * <transform>`", and a
+  `line` refuses all three; each transform's own refusal, which names the marks
+  that draw it, now stands alone, as does the one for `path * bounds`.
+  `path * count` is no longer also told to add both axes as a density's
+  contours, and a mark with no reading for `layout` in `network()` is refused
+  once, not twice.
+
 - **A flow in `polar()` is refused once, in words true of every layer.** The
   refusal said "the bands bent round a rim" for a `zone` and a `text` as well as
   a `ribbon`, once for each layer. It now says "a flow bent round a rim is the

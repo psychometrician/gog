@@ -3297,3 +3297,19 @@ end
     @test length(findall("chord diagram", said)) == 1
     @test occursin("a flow bent round a rim", said) && !occursin("bands", said)
 end
+
+# A path is sent to `line` only with a statistic. `path * flow` was also told "Use
+# `line * flow`", which a line refuses too; `path * count` was also told to write
+# `path * count + x() + y()`, refused in turn. The same block runs in all four bindings.
+@testset "a path is sent to line only with a statistic" begin
+    t = (a = ["u", "u", "v"], b = ["p", "q", "q"], v = [1.0, 2.0, 3.0], w = [2.0, 3.0, 4.0])
+    said(p) = try
+        render_svg(p); ""
+    catch e
+        sprint(showerror, e)
+    end
+    flowed = said(data(t) + path * flow(:a, :b))
+    counted = said(data(t) + path * count + x(:v) + y(:w))
+    @test !occursin("Use `line * flow`", flowed) && occursin("`flow` lays", flowed)
+    @test occursin("Use `line * count`", counted) && !occursin("contours", counted)
+end

@@ -5206,8 +5206,12 @@ fn check_network(out: &mut Vec<Diagnostic>, spec: &PlotSpec) {
 
     // The marks that stand here are the layout's three readers; everything else
     // reads a domain, a measure, or an extent along axes this space does not have.
+    // A layer that carries `layout` on a mark with no reading for it is refused by
+    // `check_layout`, which names the same three marks, so it is not said twice.
     for layer in &spec.layers {
-        if !mark_draws_in_space(&layer.mark, SpaceKind::Network) {
+        if !mark_draws_in_space(&layer.mark, SpaceKind::Network)
+            && !layer.transforms.contains(&Transform::Layout)
+        {
             out.push(Diagnostic {
                 kind: DiagnosticKind::Illegal,
                 message: format!(
@@ -5733,6 +5737,13 @@ pub fn cluster_orders(spec: &PlotSpec, channel: &Channel, field: &str) -> bool {
     })
 }
 
+/// The transforms that refuse a mark in their own check, with the marks that draw
+/// them named: `bounds` (`check_bounds`), `partition`, `flow` and `layout`. A
+/// general refusal beside theirs only repeats the mistake with a worse direction.
+fn refuses_marks_itself(t: &Transform) -> bool {
+    matches!(t, Transform::Bounds | Transform::Partition | Transform::Flow | Transform::Layout)
+}
+
 fn check_marks_that_take_no_transform(out: &mut Vec<Diagnostic>, layer: &Layer) {
     if !matches!(
         layer.mark,
@@ -5756,6 +5767,17 @@ fn check_marks_that_take_no_transform(out: &mut Vec<Diagnostic>, layer: &Layer) 
         .filter(|t| !(**t == Transform::Proportion
             && layer.transforms.contains(&Transform::Partition)))
         .collect();
+    // **A path is sent to `line` only with a statistic.** A summary replaces the
+    // rows a path would join, and `line` is the mark a statistic is drawn on. The
+    // four transforms that refuse a mark in their own check, naming the marks that
+    // draw them (`check_bounds`, `check_partition`, `check_flow`, `check_layout`),
+    // are left to it: `path * flow` was also told "Use `line * flow`", and a line
+    // refuses `flow`, `partition` and `layout` as well.
+    let refused: Vec<&Transform> = if layer.mark == Mark::Path {
+        refused.into_iter().filter(|t| !refuses_marks_itself(t)).collect()
+    } else {
+        refused
+    };
     let names: Vec<&str> = refused.iter().map(|t| transform_name(t)).collect();
     if names.is_empty() {
         return;
@@ -9525,6 +9547,15 @@ fn check_tiling(
 /// bindings that do mean something.
 fn check_field(out: &mut Vec<Diagnostic>, spec: &PlotSpec, layer: &Layer) {
     if !measures_cells(&layer.mark, &layer.transforms) {
+        return;
+    }
+    // A transform the mark does not take is refused on its own, toward the mark
+    // that takes it. Read here as a field, `path * count` was also told it traces
+    // the density's contours and to write `path * count + x(<column>) +
+    // y(<column>)`, a sentence refused in turn.
+    if layer.transforms.iter().any(|t| !is_collision_modifier(t)
+        && mark_takes_transform(&layer.mark, t) == TransformLegality::None)
+    {
         return;
     }
     // A *reduction* composed alongside is the doubly-measured cell, and
@@ -15932,6 +15963,39 @@ mod tests {
         // what a point takes: it offered `pattern`, which a point refuses.
         assert!(d[0].message.contains("Use `color` or `shape` to distinguish categories"),
             "{}", d[0].message);
+    }
+
+    /// **A path is sent to `line` only with a statistic.** `path * flow`, `path *
+    /// layout` and `path * partition` were told "Use `line * <t>`", which a line
+    /// refuses too, beside each transform's own refusal; `path * bounds` got two
+    /// refusals as well. `path * count` was also read as a field and told to write
+    /// `path * count + x(<column>) + y(<column>)`, a sentence refused in turn.
+    #[test]
+    fn a_path_is_sent_to_line_only_with_a_statistic() {
+        let net = CoordSpace::Network(crate::ir::NetworkView::default());
+        for (spec, owner) in [
+            (PlotSpec::new().data("t").layer(Layer::new(Mark::Path).flow(&["continent", "region"])),
+             "`flow` lays"),
+            (PlotSpec::new().data("t").coord(net)
+                .layer(Layer::new(Mark::Path).layout("continent", "region")), "`layout` places"),
+            (PlotSpec::new().data("t").y("gdp")
+                .layer(Layer::new(Mark::Path).partition(&["continent", "region"])), "`partition` divides"),
+            (PlotSpec::new().data("t").x("continent")
+                .layer(Layer::new(Mark::Path).bounds("life", "value")), "`bounds` supplies"),
+        ] {
+            let d = check(&spec, &data());
+            assert_eq!(d.len(), 1, "{owner}: {:?}", msgs(&d));
+            assert!(d[0].message.contains(owner) && !d[0].message.contains("Use `line *"),
+                "{:?}", d[0]);
+        }
+        for spec in [
+            PlotSpec::new().data("t").x("continent").layer(Layer::new(Mark::Path).transform(Transform::Count)),
+            PlotSpec::new().data("t").x("gdp").y("life").layer(Layer::new(Mark::Path).transform(Transform::Count)),
+        ] {
+            let d = check(&spec, &data());
+            assert_eq!(d.len(), 1, "{:?}", msgs(&d));
+            assert!(d[0].message.contains("Use `line * count`"), "{:?}", d[0]);
+        }
     }
 
     /// **A flow in `polar()` is refused once, in words true of every layer.** The
