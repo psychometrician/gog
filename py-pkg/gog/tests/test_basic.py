@@ -3835,3 +3835,18 @@ try:
 except GogError as refusal:
     assert "`x()` belongs to a plot" in str(refusal), refusal
 ok("a page written without parentheses is told to add them")
+
+
+# --- An atom written after a facet is told to come before it ----------------------------
+# `+` binds before `|`, so the atom joined the facet, and it was told there was "no plot
+# to join". The same block runs in all four bindings; Julia's `|` binds as `+` does, so
+# there the sentence draws.
+_ft2 = data({"a": [1.0, 2.0], "b": [3.0, 4.0], "g": ["u", "v"]}, name="t")
+try:
+    _ft2 + point + x(col.a) + y(col.b) | facet(col.g) + title("t")
+    raise AssertionError("an atom after a facet was taken")
+except GogError as refusal:
+    _s = str(refusal)
+    assert "`title()` was added to `facet(col.g)`" in _s \
+        and "`plot + title('...') | facet(col.g)`" in _s and "no plot to join" not in _s, _s
+ok("an atom written after a facet is told to come before it")

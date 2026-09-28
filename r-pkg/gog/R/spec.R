@@ -563,6 +563,16 @@ resolve_query <- function(q, table) {
   # `point + x(gdp)` with no data at all: both operands are atoms, and this
   # function is also `+.gog_atom`, so the missing subject can be said.
   if (inherits(lhs, "gog_atom")) {
+    # `plot | facet(g) + title("t")`: `+` binds before `|` and `/`, so the atom
+    # written after the facet joined the facet, not the plot. Said so, where "no
+    # plot to join" was false: the plot was on the left of the `|`.
+    if (lhs$type %in% c("facet", "facet_pair") && inherits(rhs, "gog_atom")) {
+      facet <- if (identical(lhs$type, "facet")) paste0("facet(", lhs$field, ")") else "facet(...)"
+      stop("gog: `", atom_shown(rhs), "` was added to `", facet, "`, and `+` binds ",
+           "before `|` and `/`, so it joined the facet instead of the plot. Write it ",
+           "before the facet: `plot + ", atom_example(rhs), " | ", facet, "`.",
+           call. = FALSE)
+    }
     stop("gog: these atoms have no plot to join \u2014 the sentence starts with ",
          "the data: `data(df) + point + x(gdp) + ...`.", call. = FALSE)
   }

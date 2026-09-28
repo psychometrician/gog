@@ -56,6 +56,13 @@ CRAN-style repositories and PyPI, `GrammarOfGraphics` on Julia's General, and
 
 ### Changed
 
+- **An atom written after `| facet(g)` is told where it went.** In R and
+  Python `+` binds before `|`, so `plot | facet(g) + title("t")` added the
+  title to the facet, and the refusal said the atoms had no plot to join. It now
+  says the atom joined the facet and to write it before: `plot + title("...") |
+  facet(g)`. Julia reads `|` as it reads `+`, left to right, and draws the
+  sentence, as JavaScript does in either order.
+
 - **A `/` page written without parentheses is told to add them.** `/` binds
   before `+`, so `… + y(b) / data(df) + …` joined `y()` to the next plot. R and
   Python refused it with the advice to facet a plot, and Julia raised a raw

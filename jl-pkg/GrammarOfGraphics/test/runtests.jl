@@ -3370,3 +3370,14 @@ end
     end
     @test occursin("`x()` belongs to a plot", positioned)
 end
+
+# An atom written after `| facet(:g)`: R and Python are told to write it before the
+# facet, since their `+` binds before `|`. Julia's `|` binds as `+` does, left to right,
+# so here the atom joins the faceted plot, and the sentence draws the same bytes as the
+# one with the atom written first.
+@testset "an atom written after a facet draws as one written before it" begin
+    t = (a = [1.0, 2.0], b = [3.0, 4.0], g = ["u", "v"])
+    after = render_svg(data(t) + point + x(:a) + y(:b) | facet(:g) + title("t"))
+    before = render_svg(data(t) + point + x(:a) + y(:b) + title("t") | facet(:g))
+    @test after == before
+end

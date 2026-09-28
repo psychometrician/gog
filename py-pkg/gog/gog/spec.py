@@ -98,6 +98,17 @@ class Atom:
     # -- `+` — an atom with no plot to join --------------------------------
 
     def __add__(self, other: Any) -> "Plot":
+        # `plot | facet(col.g) + title('t')`: `+` binds before `|` and `/`, so the
+        # atom written after the facet joined the facet, not the plot. Said so,
+        # where "no plot to join" was false: the plot was on the left of the `|`.
+        if self.kind in ("facet", "facet_pair") and isinstance(other, Atom):
+            facet = (f"facet(col.{self.fields['field']})" if self.kind == "facet"
+                     else "facet(...)")
+            raise GogError(
+                f"gog: `{_atom_shown(other)}` was added to `{facet}`, and `+` binds "
+                f"before `|` and `/`, so it joined the facet instead of the plot. Write "
+                f"it before the facet: `plot + {_atom_example(other)} | {facet}`."
+            )
         raise GogError(
             "gog: these atoms have no plot to join — the sentence starts with the "
             "data: `data(df) + point + x(col.a) + y(col.b)`."

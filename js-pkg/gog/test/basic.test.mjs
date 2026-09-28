@@ -3941,3 +3941,13 @@ test("a position atom on a page is named as it is written", () => {
   const p = plot(data(t), point, x(col.a), y(col.b));
   refuses(() => beside(p, p, x(col.a)), /`x\(\)` joins a plot rather than a page: `plot\(data\(df\), …, x\(…\)\)`/);
 });
+
+// An atom written after a facet: R and Python are told to write it before the facet,
+// since their `+` binds before `|`. In JavaScript `plot()` takes its atoms in any
+// order, so the two orders are one sentence and draw the same bytes.
+test("an atom written after a facet draws as one written before it", () => {
+  const t = { a: [1, 2], b: [3, 4], g: ["u", "v"] };
+  const after = render_svg(plot(data(t), point, x(col.a), y(col.b), across(col.g), title("t")));
+  const before = render_svg(plot(data(t), point, x(col.a), y(col.b), title("t"), across(col.g)));
+  assert.equal(after, before);
+});

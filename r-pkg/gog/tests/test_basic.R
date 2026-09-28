@@ -5950,3 +5950,20 @@ local({
     stop("FAIL: an unparenthesized page should be named: ", stacked, "\n", positioned)
   cat("PASS: a page written without parentheses is told to add them\n")
 })
+
+# ---------------------------------------------------------------------------
+# An atom written after `| facet(g)` joins the facet, since `+` binds before
+# `|`, and it was told there was "no plot to join". It is now told where it
+# went and to write it before the facet. The same block runs in all four
+# bindings; Julia's `|` binds as `+` does, so there the sentence draws.
+# ---------------------------------------------------------------------------
+local({
+  t <- data.frame(a = c(1, 2), b = c(3, 4), g = c("u", "v"))
+  said <- tryCatch({ data(t) + point + x(a) + y(b) | facet(g) + title("t"); "" },
+                   error = function(e) conditionMessage(e))
+  if (!grepl("`title()` was added to `facet(g)`", said, fixed = TRUE) ||
+      !grepl("`plot + title(\"...\") | facet(g)`", said, fixed = TRUE) ||
+      grepl("no plot to join", said, fixed = TRUE))
+    stop("FAIL: an atom after a facet should be told where it went: ", said)
+  cat("PASS: an atom written after a facet is told to come before it\n")
+})
