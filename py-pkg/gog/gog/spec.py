@@ -779,13 +779,27 @@ class Page:
             return Page(self.arrange, copy.deepcopy(self.cells), self.frames, theme,
                         self.anonymous)
 
+        # A plot on the right is placed on the page, not added to it.
+        if isinstance(other, Plot):
+            raise GogError(
+                "gog: `+` adds atoms to one plot, and the left side is a page of them. "
+                "To place another plot on the page, write `page | other_plot` or "
+                "`page / other_plot`."
+            )
         # Everything else belongs one level down. A title for the page as a whole
-        # is real and not built — designed, not implemented.
-        what = f"`{other.kind}()`" if isinstance(other, Atom) else "that"
+        # is real and not built — designed, not implemented. The atom is named as
+        # it is written, and so is the example: every atom was shown as
+        # `title('...')`, and a mark as `mark()`.
+        if isinstance(other, Atom):
+            raise GogError(
+                f"gog: `{_atom_shown(other)}` belongs to a plot, and the left side is a "
+                f"page of them. Write it into the plot it describes, before composing: "
+                f"`(plot + {_atom_example(other)}) | other_plot`."
+            )
         raise GogError(
-            f"gog: {what} belongs to a plot, and the left side is a page of them. "
-            f"Write it into the plot it describes, before composing: "
-            f"`(plot + title('...')) | other_plot`."
+            "gog: that belongs to a plot, and the left side is a page of them. "
+            "Write it into the plot it describes, before composing: "
+            "`(plot + title('...')) | other_plot`."
         )
 
     def _wire(self) -> Tuple[Dict[str, Any], Dict[str, Any]]:
@@ -822,6 +836,28 @@ class Page:
 
     def __repr__(self) -> str:
         return f"<gog page: {len(self.cells)} cells, {self.arrange}>"
+
+
+def _atom_shown(atom: Atom) -> str:
+    """How an atom is named in a message: a mark and a transform are bare words
+    (`point`, `mean`), and every other atom is a call (`color()`)."""
+    if atom.kind == "mark":
+        return atom.fields["mark"]
+    if atom.kind == "transform":
+        return atom.fields["transform"]
+    return f"{atom.kind}()"
+
+
+def _atom_example(atom: Atom) -> str:
+    """The atom written into a sentence, for an example: a transform joins a mark,
+    a label holds text, and every other atom takes something."""
+    if atom.kind == "mark":
+        return atom.fields["mark"]
+    if atom.kind == "transform":
+        return f"<mark> * {atom.fields['transform']}"
+    if atom.kind in ("title", "x_label", "y_label", "z_label"):
+        return f"{atom.kind}('...')"
+    return f"{atom.kind}(...)"
 
 
 def _figure_cells(figure: Any, arrange: str) -> List[Dict[str, Any]]:

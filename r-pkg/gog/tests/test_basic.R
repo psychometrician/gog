@@ -5909,3 +5909,24 @@ local({
     stop("FAIL: bounds should be refused once, in its own words: ", surfaced, "\n", texted)
   cat("PASS: a transform that refuses a mark itself is refused once\n")
 })
+
+# ---------------------------------------------------------------------------
+# An atom added to a page is named as it is written, and so is the example:
+# every atom was shown with `title("...")`, and a mark as `mark()`. A plot added
+# to a page is told to place it. The same block runs in all four bindings.
+# ---------------------------------------------------------------------------
+local({
+  t <- data.frame(a = c(1, 2), b = c(3, 4), g = c("u", "v"))
+  p <- data(t) + point + x(a) + y(b)
+  said <- function(e) tryCatch({ e; "" }, error = function(err) conditionMessage(err))
+  colored <- said((p | p) + color(g))
+  marked <- said((p | p) + point)
+  plotted <- said((p | p) + data(t))
+  if (!grepl("`color()` belongs to a plot", colored, fixed = TRUE) ||
+      !grepl("`(plot + color(...)) | other_plot`", colored, fixed = TRUE) ||
+      !grepl("`point` belongs to a plot", marked, fixed = TRUE) ||
+      !grepl("`page | other_plot`", plotted, fixed = TRUE))
+    stop("FAIL: a page refusal should name what it was given: ",
+         colored, "\n", marked, "\n", plotted)
+  cat("PASS: a page refusal names the atom it was given\n")
+})

@@ -3921,3 +3921,14 @@ test("a transform that refuses a mark itself is refused once", () => {
     (e) => !e.message.includes("replaces those rows")
   );
 });
+
+// An atom handed to `beside()` is named as it is written, and so is the example: every
+// atom was shown by its `typeof`, so `color(col.a)` read `plot(data(df), object, …)`.
+// The same block runs in all four bindings.
+test("a page refusal names the atom it was given", () => {
+  const t = { a: [1, 2], b: [3, 4], g: ["u", "v"] };
+  const p = plot(data(t), point, x(col.a), y(col.b));
+  refuses(() => beside(p, p, color(col.g)), /`color\(\)` joins a plot rather than a page: `plot\(data\(df\), …, color\(…\)\)`/);
+  refuses(() => beside(p, p, point), /`point` joins a plot/);
+  refuses(() => below(p, data(t)), /`data\(\)` holds a table for a plot rather than a plot: `below\(/);
+});

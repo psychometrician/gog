@@ -3329,3 +3329,22 @@ end
     texted = said(data(t) + text * bounds(:v, :w) + x(:a) + label(:a))
     @test !isempty(texted) && !occursin("replaces those rows", texted)
 end
+
+# An atom added to a page is named as it is written, and so is the example: every
+# atom was shown with `title("...")`, and a mark as `point()`. A plot added to a page
+# is told to place it, where it was a raw `MethodError`. The same block runs in all
+# four bindings.
+@testset "a page refusal names the atom it was given" begin
+    t = (a = [1.0, 2.0], b = [3.0, 4.0], g = ["u", "v"])
+    p = data(t) + point + x(:a) + y(:b)
+    said(rhs) = try
+        (p | p) + rhs; ""
+    catch e
+        sprint(showerror, e)
+    end
+    colored = said(color(:g))
+    @test occursin("`color()` belongs to a plot", colored) &&
+          occursin("`(plot + color(...)) | other_plot`", colored)
+    @test occursin("`point` belongs to a plot", said(point))
+    @test occursin("`page | other_plot`", said(data(t)))
+end

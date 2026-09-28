@@ -3796,3 +3796,21 @@ _surfaced = _bounded(_bd + surface * bounds(col.v, col.w) + x(col.v) + y(col.w) 
 assert "`bounds` supplies" in _surfaced and "gives each row two edges" not in _surfaced, _surfaced
 assert "replaces those rows" not in _bounded(_bd + text * bounds(col.v, col.w) + x(col.a) + label(col.a))
 ok("a transform that refuses a mark itself is refused once")
+
+
+# --- A page refusal names the atom it was given -----------------------------------------
+# Every atom was shown with `title('...')`, and a mark as `mark()`. A plot added to a page
+# is told to place it. The same block runs in all four bindings.
+_pt = data({"a": [1.0, 2.0], "b": [3.0, 4.0], "g": ["u", "v"]}, name="t")
+_pp = _pt + point + x(col.a) + y(col.b)
+def _paged(rhs):
+    try:
+        (_pp | _pp) + rhs
+    except GogError as refusal:
+        return str(refusal)
+    raise AssertionError("a page took it")
+_colored = _paged(color(col.g))
+assert "`color()` belongs to a plot" in _colored and "`(plot + color(...)) | other_plot`" in _colored, _colored
+assert "`point` belongs to a plot" in _paged(point)
+assert "`page | other_plot`" in _paged(_pt)
+ok("a page refusal names the atom it was given")

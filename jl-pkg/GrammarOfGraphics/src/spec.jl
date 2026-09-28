@@ -777,6 +777,26 @@ page_facet_refusal(operator::AbstractString) = throw(GogError(
 const PANEL_THEME = (:preset, :grid, :ratio, :tick_angle, :font_size,
                      :background, :strip, :strip_text, :frame, :axis_label)
 
+# How an atom is named in a message: a mark and a transform are bare words
+# (`point`, `mean`), and every other atom is a call (`color()`). Every atom was
+# shown as `title("...")` in the example below, and a mark as `point()`.
+atom_shown(a::Atom) = a.kind in (:mark, :transform) ? atom_name(a) : "$(a.kind)()"
+
+# The atom written into a sentence, for an example: a transform joins a mark, a
+# label holds text, and every other atom takes something.
+function atom_example(a::Atom)
+    a.kind === :mark && return atom_name(a)
+    a.kind === :transform && return "<mark> * $(atom_name(a))"
+    a.kind in (:title, :x_label, :y_label, :z_label) && return "$(a.kind)(\"...\")"
+    return "$(a.kind)(...)"
+end
+
+# A plot on the right is placed on the page, not added to it. Without this method
+# `page + data(t)` was a raw `MethodError`.
+Base.:+(left::Page, right::Plot) = throw(GogError(
+    "gog: `+` adds atoms to one plot, and the left side is a page of them. To place " *
+    "another plot on the page, write `page | other_plot` or `page / other_plot`."))
+
 # An atom belongs to a plot, not to the page — with the one exception whose
 # subject is the figure rather than a panel. `theme(height = 310)` says how big
 # this page is, which is the same sentence a plot writes about itself, and there
@@ -786,9 +806,9 @@ const PANEL_THEME = (:preset, :grid, :ratio, :tick_angle, :font_size,
 # deliberately not implemented yet.
 function Base.:+(left::Page, right::Atom)
     right.kind === :theme || throw(GogError(
-        "gog: `$(atom_name(right))()` belongs to a plot, and the left side is a page of " *
+        "gog: `$(atom_shown(right))` belongs to a plot, and the left side is a page of " *
         "them. Write it into the plot it describes, before composing: " *
-        "`(plot + title(\"...\")) | other_plot`."))
+        "`(plot + $(atom_example(right))) | other_plot`."))
 
     named = filter(k -> right.fields[k] !== nothing, collect(PANEL_THEME))
     if !isempty(named)

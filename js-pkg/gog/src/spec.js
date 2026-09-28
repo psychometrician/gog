@@ -326,6 +326,24 @@ function renameTable(cells, oldName, newName) {
   });
 }
 
+// Why an atom handed to `beside()` or `below()` is not a plot, and where it goes:
+// `data()` begins a plot, and every other atom joins one. A mark and a transform
+// are named as bare words (`point`, `mean`), every other atom as a call.
+function atomOnPage(atom, word) {
+  if (atom.kind === "data") {
+    return "`data()` holds a table for a plot rather than a plot: " +
+      `\`${word}(plot(data(df), …), other_plot)\``;
+  }
+  const shown = atom.kind === "mark" ? atom.fields.mark
+    : atom.kind === "transform" ? atom.fields.transform
+    : `${atom.kind}()`;
+  const example = atom.kind === "mark" ? atom.fields.mark
+    : atom.kind === "transform" ? `layer(<mark>, ${atom.fields.transform})`
+    : ["title", "x_label", "y_label", "z_label"].includes(atom.kind) ? `${atom.kind}("…")`
+    : `${atom.kind}(…)`;
+  return `\`${shown}\` joins a plot rather than a page: \`plot(data(df), …, ${example})\``;
+}
+
 function compose(arrange, figures, word) {
   // One group of cells per figure, flattened at the end. Keeping them apart is
   // what lets a rename reach exactly the cells that refer to the table.
@@ -340,9 +358,9 @@ function compose(arrange, figures, word) {
       continue;
     }
     if (!(figure instanceof Plot) && !(figure instanceof Page)) {
-      const hint = atom
-        ? `an atom joins a plot rather than a page: \`plot(data(df), ${describe(figure)}, …)\``
-        : `got ${describe(figure)}`;
+      // The atom is named as it is written, and so is the example: every atom was
+      // shown as `typeof`, so `color(col.a)` read `plot(data(df), object, …)`.
+      const hint = atom ? atomOnPage(atom, word) : `got ${describe(figure)}`;
       throw new GogError(`gog: \`${word}()\` arranges plots — ${hint}.`);
     }
     // A page already running this way is *flattened* into it, so

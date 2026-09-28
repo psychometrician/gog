@@ -56,6 +56,14 @@ CRAN-style repositories and PyPI, `GrammarOfGraphics` on Julia's General, and
 
 ### Changed
 
+- **An atom added to a page is named as it is written.** `(p | q) + color(g)`
+  was refused with the example `(plot + title("...")) | other_plot` whatever
+  the atom, a mark was called `mark()`, and in JavaScript `beside(p, q,
+  color(col.g))` showed `plot(data(df), object, …)`. The refusal now names the
+  atom and writes it into the example, as in `(plot + color(...)) |
+  other_plot`. A plot added to a page with `+` is told to place it with `|` or
+  `/`; in Julia that was a raw `MethodError`.
+
 - **`bounds`, `partition`, `flow` and `layout` on a mark that cannot draw them
   are refused once.** Each already refuses such a mark itself and names the
   marks that draw it. A `path`, `rule`, `text`, `zone` or `surface` refused it a

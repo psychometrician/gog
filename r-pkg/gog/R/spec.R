@@ -849,13 +849,44 @@ PANEL_THEME <- c("preset", "grid", "ratio", "tick_angle", "font_size",
     }
     return(lhs)
   }
+  # A plot on the right is placed on the page, not added to it.
+  if (inherits(rhs, "gog_spec")) {
+    stop("gog: `+` adds atoms to one plot, and the left side is a page of them. ",
+         "To place another plot on the page, write `page | other_plot` or ",
+         "`page / other_plot`.", call. = FALSE)
+  }
   # Everything else belongs one level down. Adding a title to the page as a
   # whole is real and not built — designed, not implemented — and saying so
-  # beats R's "non-numeric argument to binary operator".
-  what <- if (inherits(rhs, "gog_atom")) paste0("`", rhs$type, "()`") else "that"
-  stop("gog: ", what, " belongs to a plot, and the left side is a page of them. ",
+  # beats R's "non-numeric argument to binary operator". The atom is named as it
+  # is written, and so is the example: every atom was shown as `title("...")`,
+  # and a mark as `mark()`.
+  if (inherits(rhs, "gog_atom")) {
+    stop("gog: `", atom_shown(rhs), "` belongs to a plot, and the left side is a page ",
+         "of them. Write it into the plot it describes, before composing: ",
+         "`(plot + ", atom_example(rhs), ") | other_plot`.", call. = FALSE)
+  }
+  stop("gog: that belongs to a plot, and the left side is a page of them. ",
        "Write it into the plot it describes, before composing: ",
        "`(plot + title(\"...\")) | other_plot`.", call. = FALSE)
+}
+
+# How an atom is named in a message: a mark and a transform are bare words
+# (`point`, `mean`), and every other atom is a call (`color()`).
+atom_shown <- function(atom) {
+  switch(atom$type,
+    mark = atom$mark,
+    transform = atom$transform,
+    paste0(atom$type, "()"))
+}
+
+# The atom written into a sentence, for an example: a transform joins a mark,
+# a label holds text, and every other atom takes something.
+atom_example <- function(atom) {
+  if (identical(atom$type, "mark")) return(atom$mark)
+  if (identical(atom$type, "transform")) return(paste0("<mark> * ", atom$transform))
+  if (atom$type %in% c("title", "x_label", "y_label", "z_label"))
+    return(paste0(atom$type, "(\"...\")"))
+  paste0(atom$type, "(...)")
 }
 
 # From R 4.3, when the two operands of a binary operator carry *different* S3
