@@ -56,6 +56,13 @@ CRAN-style repositories and PyPI, `GrammarOfGraphics` on Julia's General, and
 
 ### Changed
 
+- **A clustered tile plot's refusals offer only what works.** With one position
+  bound, `zone * cluster(over = )` said the leaf axis named ``, a name the table
+  does not have; it now says the plot binds `x` but not `y` and that a clustered
+  tile plot needs a category on each position. When `over` names neither axis,
+  a numeric position is no longer offered as the profile, since naming it is
+  refused too.
+
 - **The circular cluster tree's refusal names the tree's horizontal bars**, where
   it said "treads", a word the book does not use.
 

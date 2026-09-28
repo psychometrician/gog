@@ -3622,3 +3622,14 @@ test("the circular-tree refusal names the tree's horizontal bars", () => {
     (e) => e.message.includes("the tree's horizontal bars") && !e.message.includes("treads")
   );
 });
+
+// A clustered tile plot with one position says it needs a category on each: it
+// refused the empty leaf axis as "``", a name the table does not have. The same
+// block runs in all four bindings.
+test("a clustered tile plot with one position says it needs a category on each", () => {
+  const tc = { g: ["a", "a", "b", "b"], k: ["u", "v", "u", "v"], v: [1, 2, 3, 4] };
+  assert.throws(
+    () => render_svg(plot(data(tc), layer(zone, cluster({ over: col.g })), x(col.g), color(col.v))),
+    (e) => e.message.includes("binds `x` but not `y`") && !e.message.includes("``")
+  );
+});

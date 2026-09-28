@@ -3011,3 +3011,16 @@ end
     end
     @test occursin("the tree's horizontal bars", said) && !occursin("treads", said)
 end
+
+# A clustered tile plot with one position says it needs a category on each: it
+# refused the empty leaf axis as "``", a name the table does not have. The same
+# block runs in all four bindings.
+@testset "a clustered tile plot with one position says it needs a category on each" begin
+    tc = (g = ["a", "a", "b", "b"], k = ["u", "v", "u", "v"], v = [1.0, 2.0, 3.0, 4.0])
+    said = try
+        render_svg(data(tc) + zone * cluster(over = :g) + x(:g) + color(:v)); ""
+    catch e
+        sprint(showerror, e)
+    end
+    @test occursin("binds `x` but not `y`", said) && !occursin("``", said)
+end

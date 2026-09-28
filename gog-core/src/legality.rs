@@ -5276,6 +5276,23 @@ fn check_cluster(
             x_def.as_ref().map(|d| d.field.clone()).unwrap_or_default(),
             y_def.as_ref().map(|d| d.field.clone()).unwrap_or_default(),
         );
+        let needs_both = "A clustered tile plot needs a category on each position: \
+            `zone * cluster(over = <profile>) + x(<leaves>) + y(<profile>) + color(<value>)`.";
+        // One position bound leaves no axis for the leaves or none for the
+        // profile. Checked first, because every message below assumes two: the
+        // leaf axis used to arrive empty and be refused as "`` ", a name this
+        // table does not have.
+        if xf.is_empty() || yf.is_empty() {
+            let (bound, missing) = if xf.is_empty() { ("y", "x") } else { ("x", "y") };
+            out.push(Diagnostic {
+                kind: DiagnosticKind::Illegal,
+                message: format!(
+                    "gog: `cluster` reorders a tile plot's slots, and this plot binds `{bound}` \
+                     but not `{missing}`. {needs_both}"
+                ),
+            });
+            return;
+        }
         if over.is_empty() {
             out.push(Diagnostic {
                 kind: DiagnosticKind::Illegal,
@@ -5288,12 +5305,23 @@ fn check_cluster(
             return;
         }
         if over != xf && over != yf {
+            // Offer only what would work. A numeric position was offered too, and
+            // `cluster(over = <it>)` is then refused as numeric; with one numeric
+            // position nothing works until it holds a category, so say that.
+            let numeric: Vec<&str> = [xf.as_str(), yf.as_str()].into_iter()
+                .filter(|f| df.and_then(|d| actual_type(d, f)) == Some(VarType::Continuous))
+                .collect();
+            let fix = match numeric.as_slice() {
+                [] => format!("Name `{xf}` or `{yf}`."),
+                [one] => format!("`{one}` is numeric. {needs_both}"),
+                _ => format!("`{xf}` and `{yf}` are numeric. {needs_both}"),
+            };
             out.push(Diagnostic {
                 kind: DiagnosticKind::Illegal,
                 message: format!(
                     "gog: `cluster(over = {over})` names a column neither axis \
                      holds. On a tile plot the profile axis is one of the two \
-                     positions — name `{xf}` or `{yf}`."
+                     positions. {fix}"
                 ),
             });
             return;

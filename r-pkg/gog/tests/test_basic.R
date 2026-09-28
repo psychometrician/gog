@@ -5556,3 +5556,17 @@ local({
     stop("FAIL: the circular-tree refusal should name the horizontal bars: ", said)
   cat("PASS: the circular-tree refusal names the tree's horizontal bars\n")
 })
+
+# ---------------------------------------------------------------------------
+# A clustered tile plot with one position bound says it needs a category on
+# each: it refused the empty leaf axis as "``", a name the table does not have.
+# The same block runs in all four bindings.
+# ---------------------------------------------------------------------------
+local({
+  t <- data.frame(g = c("a", "a", "b", "b"), k = c("u", "v", "u", "v"), v = c(1, 2, 3, 4))
+  said <- tryCatch({ render_svg(data(t) + zone * cluster(over = g) + x(g) + color(v)); "" },
+                   error = function(e) conditionMessage(e))
+  if (!grepl("binds `x` but not `y`", said, fixed = TRUE) || grepl("``", said, fixed = TRUE))
+    stop("FAIL: a one-position clustered tile plot should say it needs both: ", said)
+  cat("PASS: a clustered tile plot with one position says it needs a category on each\n")
+})
