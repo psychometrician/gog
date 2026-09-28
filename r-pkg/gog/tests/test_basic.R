@@ -5770,3 +5770,18 @@ local({
     stop("FAIL: a line faceted by its own x should be refused once: ", said)
   cat("PASS: a line faceted by its own x is refused once\n")
 })
+
+# ---------------------------------------------------------------------------
+# A `ribbon` with `z` hears only the cube. It was first told to add a range
+# transform, and `ribbon * range` with `z` was then refused by the cube alone.
+# The same block runs in all four bindings.
+# ---------------------------------------------------------------------------
+local({
+  t <- data.frame(east = c(1, 2, 3), north = c(2, 3, 4), altitude = c(10, 20, 30))
+  said <- tryCatch({ render_svg(data(t) + ribbon + x(east) + y(north) + z(altitude)); "" },
+                   error = function(e) conditionMessage(e))
+  if (!grepl("a cube has no left to right", said, fixed = TRUE) ||
+      grepl("produces those extents", said, fixed = TRUE))
+    stop("FAIL: a ribbon with z should hear only the cube: ", said)
+  cat("PASS: a ribbon with z hears only the cube\n")
+})

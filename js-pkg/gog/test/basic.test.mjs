@@ -3805,3 +3805,14 @@ test("a line faceted by its own x is refused once", () => {
       && !e.message.includes("splits on a number column")
   );
 });
+
+// A `ribbon` with `z` hears only the cube. It was first told to add a range transform,
+// and `ribbon * range` with `z` was then refused by the cube alone. The same block runs
+// in all four bindings.
+test("a ribbon with z hears only the cube", () => {
+  const t = { east: [1, 2, 3], north: [2, 3, 4], altitude: [10, 20, 30] };
+  assert.throws(
+    () => render_svg(plot(data(t), ribbon, x(col.east), y(col.north), z(col.altitude))),
+    (e) => e.message.includes("a cube has no left to right") && !e.message.includes("produces those extents")
+  );
+});

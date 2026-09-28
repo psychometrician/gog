@@ -3668,3 +3668,16 @@ except GogError as refusal:
     assert "both cuts the plot into panels and supplies `x`" in _s \
         and "splits on a number column" not in _s, _s
 ok("a line faceted by its own x is refused once")
+
+
+# --- A ribbon with z hears only the cube ------------------------------------------------
+# It was first told to add a range transform, and `ribbon * range` with `z` was then
+# refused by the cube alone. The same block runs in all four bindings.
+try:
+    render_svg(data({"east": [1.0, 2.0, 3.0], "north": [2.0, 3.0, 4.0], "altitude": [10.0, 20.0, 30.0]},
+                    name="t") + ribbon + x(col.east) + y(col.north) + z(col.altitude))
+    raise AssertionError("a ribbon with z drew")
+except GogError as refusal:
+    assert "a cube has no left to right" in str(refusal) \
+        and "produces those extents" not in str(refusal), refusal
+ok("a ribbon with z hears only the cube")

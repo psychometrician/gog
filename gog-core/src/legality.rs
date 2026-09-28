@@ -17681,6 +17681,25 @@ mod tests {
         }
     }
 
+    /// **A `ribbon` with `z` hears only the cube.** It was first told to add a range
+    /// transform, and `ribbon * range + … + z(<column>)` was then refused by the cube
+    /// alone. An `interval` does stand in the cube, so it is still asked for its range.
+    #[test]
+    fn a_ribbon_with_z_hears_only_the_cube() {
+        let raised = |layer: Layer| check(&PlotSpec::new().data("t").x("gdp").y("life").z("value")
+            .layer(layer), &data());
+        for layer in [Layer::new(Mark::Ribbon), Layer::new(Mark::Ribbon).transform(Transform::Range)] {
+            let d = raised(layer.clone());
+            assert_eq!(d.len(), 1, "{:?}: {:?}", layer.transforms, msgs(&d));
+            assert!(d[0].message.contains("a cube has no left to right"), "{:?}", d[0]);
+        }
+        let d = raised(Layer::new(Mark::Interval));
+        assert!(d.iter().any(|x| x.message.contains("produces those extents")), "{:?}", msgs(&d));
+        assert!(!check(&PlotSpec::new().data("t").x("continent").y("life").z("value")
+            .layer(Layer::new(Mark::Interval).transform(Transform::Range)), &data())
+            .iter().any(Diagnostic::is_fatal), "interval * range stands in the cube");
+    }
+
     /// **A span mark in a space that never draws it hears only the space.** On a
     /// `map()` or a `globe()` an `interval` or a `ribbon` was told first to add a
     /// range transform, and `interval * range` was then refused by the space.

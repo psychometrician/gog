@@ -3206,3 +3206,16 @@ end
     @test occursin("both cuts the plot into panels and supplies `x`", said) &&
           !occursin("splits on a number column", said)
 end
+
+# A `ribbon` with `z` hears only the cube. It was first told to add a range transform,
+# and `ribbon * range` with `z` was then refused by the cube alone. The same block runs
+# in all four bindings.
+@testset "a ribbon with z hears only the cube" begin
+    t = (east = [1.0, 2.0, 3.0], north = [2.0, 3.0, 4.0], altitude = [10.0, 20.0, 30.0])
+    said = try
+        render_svg(data(t) + ribbon + x(:east) + y(:north) + z(:altitude)); ""
+    catch e
+        sprint(showerror, e)
+    end
+    @test occursin("a cube has no left to right", said) && !occursin("produces those extents", said)
+end
