@@ -56,6 +56,14 @@ CRAN-style repositories and PyPI, `GrammarOfGraphics` on Julia's General, and
 
 ### Changed
 
+- **A column of the wrong type is offered only channels that take it.** The
+  offer after a type refusal was the same for every mark: `size(continent)` on a
+  `point` suggested `pattern`, which a point refuses, a numeric `pattern` on a
+  `bar` suggested `size` and `color`, which a bar refuses, and `bar +
+  color(<number>)` suggested nothing. The offer now names the channels that take
+  that type on that mark: `color` or `shape` for the point's categories, and
+  `opacity` for the bar's numbers.
+
 - **A mark that cannot be brushed is not told to use `group()`.** A brushed
   `line` was told to split it with `group()`, and a grouped line is refused the
   same way. The refusal now names only the marks that draw a selection. Four

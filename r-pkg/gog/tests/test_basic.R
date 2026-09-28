@@ -5785,3 +5785,21 @@ local({
     stop("FAIL: a ribbon with z should hear only the cube: ", said)
   cat("PASS: a ribbon with z hears only the cube\n")
 })
+
+# ---------------------------------------------------------------------------
+# A type refusal offers only the channels that take the column on that mark.
+# `size(<category>)` on a point offered `pattern`, which a point refuses, and
+# `bar + color(<number>)` was given no direction, though `opacity` draws it.
+# The same block runs in all four bindings.
+# ---------------------------------------------------------------------------
+local({
+  t <- data.frame(g = c("a", "b", "c"), v = c(1, 2, 3), w = c(3, 5, 4))
+  said <- function(p) tryCatch({ render_svg(p); "" }, error = function(e) conditionMessage(e))
+  sized <- said(data(t) + point + x(v) + y(w) + size(g))
+  colored <- said(data(t) + bar + x(g) + y(v) + color(w))
+  if (!grepl("Use `color` or `shape` to distinguish categories", sized, fixed = TRUE) ||
+      grepl("pattern", sized, fixed = TRUE) ||
+      !grepl("Use `opacity` to show a numeric column", colored, fixed = TRUE))
+    stop("FAIL: a type refusal should offer only what the mark takes: ", sized, "\n", colored)
+  cat("PASS: a type refusal offers only the channels the mark takes\n")
+})

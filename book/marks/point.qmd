@@ -469,9 +469,8 @@ data(gapminder_2007) + point + x(gdp) + y(life) + size(continent)
 ```
 
 Continents are names, not amounts, and a larger dot would claim an order the
-data does not have. The refusal names three channels that separate categories:
-`color`, `shape` and `pattern`. A point takes the first two, and the refusal
-below, of the `pattern` setting, shows why it takes no pattern at all.
+data does not have. The message suggests `color` or `shape` instead: each
+continent gets its own color or glyph.
 
 The second refusal is about texture. A pattern is a dash along a stroke or a
 hatch across an area, and a glyph is too small for either:

@@ -5820,6 +5820,34 @@ fn code_list(names: &[&str]) -> String {
     }
 }
 
+/// `a`, `a` or `b`, `a`, `b` or `c`: each name in code, as alternatives.
+fn code_list_or(names: &[&str]) -> String {
+    match names {
+        [] => String::new(),
+        [one] => format!("`{one}`"),
+        [init @ .., last] => format!(
+            "{} or `{last}`",
+            init.iter().map(|n| format!("`{n}`")).collect::<Vec<_>>().join(", ")),
+    }
+}
+
+/// The aesthetic channels that take a column of this type on this mark and draw
+/// it, the one asked for aside: the offers a type refusal can make without
+/// sending the reader to a second refusal.
+fn channels_that_carry(mark: &Mark, asked: &Channel, actual: VarType) -> Vec<&'static str> {
+    [Channel::Color, Channel::Size, Channel::Shape, Channel::Pattern, Channel::Opacity]
+        .iter()
+        .filter(|c| *c != asked)
+        .filter(|c| {
+            let r = rule_for(mark, c);
+            r.obligation != Obligation::Cannot
+                && r.accepts.accepts(actual)
+                && r.renders.is_some_and(|drawn| drawn.accepts(actual))
+        })
+        .map(channel_name)
+        .collect()
+}
+
 /// What a cell mark takes, read off `mark_takes_transform` as the grid is, split
 /// into the transforms that make or place its cells and the reductions that fill
 /// them. Returned as code lists for a message, so the list cannot drift from the
@@ -7728,13 +7756,23 @@ pub fn check(spec: &PlotSpec, data: &HashMap<String, DataFrame>) -> Vec<Diagnost
                 // type a *position* wants is a fact about the geometry, so the fix is
                 // a different mark rather than a different channel — the one shape
                 // this hint could not express while it matched on the channel alone.
-                let hint = match (mark, channel, actual) {
-                    (_, Channel::Size, VarType::Discrete) => {
-                        " Use `color`, `shape`, or `pattern` to distinguish categories."
-                    }
-                    (_, Channel::Shape, VarType::Continuous)
-                    | (_, Channel::Pattern, VarType::Continuous) => {
-                        " Use `size` or `color` to show a numeric column."
+                //
+                // **An aesthetic's hint names the channels that take this column on
+                // this mark**, read off `rule_for`, the same table that refused it. It
+                // was keyed on the channel alone, so `size(<category>)` offered
+                // `pattern` to a `point`, a numeric `pattern` offered `size` and
+                // `color` to a `bar`, which refuses both, and `bar + color(<number>)`,
+                // with no arm at all, was given no direction. Where no channel on the
+                // mark takes the type, the message says what `{c}` needs and no more.
+                let carriers = channels_that_carry(mark, channel, actual);
+                let hint: std::borrow::Cow<'static, str> = match (mark, channel, actual) {
+                    (_, Channel::Color | Channel::Size | Channel::Shape | Channel::Pattern
+                        | Channel::Opacity, _) if !carriers.is_empty() => {
+                        let job = match actual {
+                            VarType::Continuous => "show a numeric column",
+                            _ => "distinguish categories",
+                        };
+                        format!(" Use {} to {job}.", code_list_or(&carriers)).into()
                     }
                     // A face spans the gap between two samples and so asserts every
                     // value in it; between two categories there is no value to assert.
@@ -7757,7 +7795,7 @@ pub fn check(spec: &PlotSpec, data: &HashMap<String, DataFrame>) -> Vec<Diagnost
                          categories there is nothing to span. Over two categories, stand \
                          a column in each cell instead: `bar * count + x(<a>) + y(<b>) + \
                          space()` — a column stands in its own cell and claims nothing in \
-                         between."
+                         between.".into()
                     }
                     // **The path family's measure axis**, and this arm exists because
                     // these four were documented as "refused with direction" while
@@ -7781,9 +7819,9 @@ pub fn check(spec: &PlotSpec, data: &HashMap<String, DataFrame>) -> Vec<Diagnost
                          `line * mean + x(<category>) + y(<number>)` is the profile plot, \
                          and `area * mean` fills it. Unlike `bar`/`box`/`interval`, these \
                          marks do not read their orientation off the bindings, because \
-                         their two axes do not have the same role."
+                         their two axes do not have the same role.".into()
                     }
-                    _ => "",
+                    _ => "".into(),
                 };
                 out.push(Diagnostic {
                     kind: DiagnosticKind::Illegal,
@@ -15837,8 +15875,59 @@ mod tests {
         let d = check(&spec, &data());
         assert_eq!(kinds(&d), vec![DiagnosticKind::Illegal]);
         assert!(d[0].message.contains("needs a continuous"));
-        // The message must be directional, not merely a complaint.
-        assert!(d[0].message.contains("Use `color`, `shape`, or `pattern`"));
+        // The message must be directional, not merely a complaint, and name only
+        // what a point takes: it offered `pattern`, which a point refuses.
+        assert!(d[0].message.contains("Use `color` or `shape` to distinguish categories"),
+            "{}", d[0].message);
+    }
+
+    /// **Every channel a type refusal offers takes that column on that mark.** The
+    /// hint was keyed on the channel alone: a numeric `pattern` on a `bar` was
+    /// offered `size` and `color`, both refused there, and `bar + color(<number>)`
+    /// was offered nothing though `opacity` draws it. Checked over every drawable
+    /// mark and every aesthetic, by following each offer.
+    #[test]
+    fn every_channel_a_type_refusal_offers_draws() {
+        let aesthetics = [Channel::Color, Channel::Size, Channel::Shape, Channel::Pattern,
+                          Channel::Opacity];
+        let column = |t: VarType| if t == VarType::Continuous { "gdp" } else { "continent" };
+        let spec = |m: &Mark, c: &Channel, field: &str| {
+            let mut base = PlotSpec::new().data("t").x("continent").y("life");
+            if *m == Mark::Surface {
+                base = PlotSpec::new().data("t").x("gdp").y("life").z("value");
+            }
+            base.layer(Layer::new(m.clone()).encode(c.clone(), field))
+        };
+        let mut offered = 0;
+        for m in ALL_MARKS.iter().filter(|m| is_drawable(m) && **m != Mark::Edge) {
+            for c in &aesthetics {
+                for t in [VarType::Continuous, VarType::Discrete] {
+                    let r = rule_for(m, c);
+                    if r.obligation == Obligation::Cannot || r.accepts.accepts(t) {
+                        continue;
+                    }
+                    for other in channels_that_carry(m, c, t) {
+                        let ch = aesthetics.iter().find(|a| channel_name(a) == other).unwrap();
+                        let d = check(&spec(m, ch, column(t)), &data());
+                        assert!(d.iter().all(|x| !x.message.contains(&format!("`{other}(")) ||
+                            !x.is_fatal()),
+                            "{m:?}: `{}` refused {t:?} and offered `{other}`, refused too: {:?}",
+                            channel_name(c), msgs(&d));
+                        offered += 1;
+                    }
+                }
+            }
+        }
+        assert!(offered > 10, "the offers were exercised: {offered}");
+        // The two recorded cases, whole.
+        let bar = check(&PlotSpec::new().data("t").x("continent").y("life")
+            .layer(Layer::new(Mark::Bar).encode(Channel::Color, "gdp")), &data());
+        assert!(bar[0].message.contains("Use `opacity` to show a numeric column"), "{:?}", bar[0]);
+        let text = check(&PlotSpec::new().data("t").x("gdp").y("life")
+            .layer(Layer::new(Mark::Text).encode(Channel::Label, "continent")
+                .encode(Channel::Size, "continent")), &data());
+        assert!(text.iter().any(|x| x.message.contains("Use `color` to distinguish categories")),
+            "{:?}", msgs(&text));
     }
 
     #[test]

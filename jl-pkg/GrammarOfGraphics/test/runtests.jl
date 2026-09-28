@@ -3219,3 +3219,19 @@ end
     end
     @test occursin("a cube has no left to right", said) && !occursin("produces those extents", said)
 end
+
+# A type refusal offers only the channels that take the column on that mark.
+# `size(<category>)` on a point offered `pattern`, which a point refuses, and
+# `bar + color(<number>)` was given no direction, though `opacity` draws it. The same
+# block runs in all four bindings.
+@testset "a type refusal offers only the channels the mark takes" begin
+    t = (g = ["a", "b", "c"], v = [1.0, 2.0, 3.0], w = [3.0, 5.0, 4.0])
+    said(p) = try
+        render_svg(p); ""
+    catch e
+        sprint(showerror, e)
+    end
+    sized = said(data(t) + point + x(:v) + y(:w) + size(:g))
+    @test occursin("Use `color` or `shape` to distinguish categories", sized) && !occursin("pattern", sized)
+    @test occursin("Use `opacity` to show a numeric column", said(data(t) + bar + x(:g) + y(:v) + color(:w)))
+end

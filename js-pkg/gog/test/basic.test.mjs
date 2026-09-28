@@ -3816,3 +3816,19 @@ test("a ribbon with z hears only the cube", () => {
     (e) => e.message.includes("a cube has no left to right") && !e.message.includes("produces those extents")
   );
 });
+
+// A type refusal offers only the channels that take the column on that mark.
+// `size(<category>)` on a point offered `pattern`, which a point refuses, and
+// `bar + color(<number>)` was given no direction, though `opacity` draws it. The same
+// block runs in all four bindings.
+test("a type refusal offers only the channels the mark takes", () => {
+  const t = { g: ["a", "b", "c"], v: [1, 2, 3], w: [3, 5, 4] };
+  assert.throws(
+    () => render_svg(plot(data(t), point, x(col.v), y(col.w), size(col.g))),
+    (e) => e.message.includes("Use `color` or `shape` to distinguish categories") && !e.message.includes("pattern")
+  );
+  assert.throws(
+    () => render_svg(plot(data(t), bar, x(col.g), y(col.v), color(col.w))),
+    (e) => e.message.includes("Use `opacity` to show a numeric column")
+  );
+});

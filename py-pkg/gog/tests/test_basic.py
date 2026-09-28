@@ -3681,3 +3681,20 @@ except GogError as refusal:
     assert "a cube has no left to right" in str(refusal) \
         and "produces those extents" not in str(refusal), refusal
 ok("a ribbon with z hears only the cube")
+
+
+# --- A type refusal offers only the channels the mark takes -----------------------------
+# `size(<category>)` on a point offered `pattern`, which a point refuses, and
+# `bar + color(<number>)` was given no direction, though `opacity` draws it. The same
+# block runs in all four bindings.
+_ty = data({"g": ["a", "b", "c"], "v": [1.0, 2.0, 3.0], "w": [3.0, 5.0, 4.0]}, name="t")
+def _typed(p):
+    try:
+        render_svg(p)
+    except GogError as refusal:
+        return str(refusal)
+    raise AssertionError("drew")
+_sized = _typed(_ty + point + x(col.v) + y(col.w) + size(col.g))
+assert "Use `color` or `shape` to distinguish categories" in _sized and "pattern" not in _sized, _sized
+assert "Use `opacity` to show a numeric column" in _typed(_ty + bar + x(col.g) + y(col.v) + color(col.w))
+ok("a type refusal offers only the channels the mark takes")
