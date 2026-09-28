@@ -3746,3 +3746,16 @@ _shared = _twice(_tw + bar * proportion * proportion + x(col.g))
 assert "names `mean` twice" in _meaned and "or `bar * mean`" not in _meaned, _meaned
 assert "names `proportion` twice" in _shared and "stack(share = TRUE)" not in _shared, _shared
 ok("a transform written twice is told so once")
+
+
+# --- A flow in polar is refused once for every layer ------------------------------------
+# It said "the bands bent round a rim" for a zone and a text too, once per layer. The
+# same block runs in all four bindings.
+try:
+    render_svg(data({"a": ["u", "u", "v"], "b": ["p", "q", "q"]}, name="t")
+               + ribbon * flow(col.a, col.b) + zone * flow(col.a, col.b) + polar())
+    raise AssertionError("a flow in polar drew")
+except GogError as refusal:
+    _s = str(refusal)
+    assert _s.count("chord diagram") == 1 and "a flow bent round a rim" in _s and "bands" not in _s, _s
+ok("a flow in polar is refused once for every layer")

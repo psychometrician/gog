@@ -3879,3 +3879,15 @@ test("a transform written twice is told so once", () => {
     (e) => e.message.includes("names `proportion` twice") && !e.message.includes("stack(share = TRUE)")
   );
 });
+
+// A flow in `polar()` is refused once, in words true of every layer. It said "the bands
+// bent round a rim" for a zone and a text too, once per layer. The same block runs in
+// all four bindings.
+test("a flow in polar is refused once for every layer", () => {
+  const t = { a: ["u", "u", "v"], b: ["p", "q", "q"] };
+  assert.throws(
+    () => render_svg(plot(data(t), layer(ribbon, flow(col.a, col.b)), layer(zone, flow(col.a, col.b)), polar())),
+    (e) => e.message.split("chord diagram").length === 2 && e.message.includes("a flow bent round a rim")
+      && !e.message.includes("bands")
+  );
+});

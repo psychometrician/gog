@@ -5857,3 +5857,19 @@ local({
     stop("FAIL: a transform written twice should be told so once: ", meaned, "\n", shared)
   cat("PASS: a transform written twice is told so once\n")
 })
+
+# ---------------------------------------------------------------------------
+# A flow in `polar()` is refused once, in words true of every layer. It said
+# "the bands bent round a rim" for a zone and a text too, once per layer. The
+# same block runs in all four bindings.
+# ---------------------------------------------------------------------------
+local({
+  t <- data.frame(a = c("u", "u", "v"), b = c("p", "q", "q"))
+  said <- tryCatch({ render_svg(data(t) + ribbon * flow(a, b) + zone * flow(a, b) + polar()); "" },
+                   error = function(e) conditionMessage(e))
+  times <- lengths(regmatches(said, gregexpr("chord diagram", said, fixed = TRUE)))
+  if (times != 1 || !grepl("a flow bent round a rim", said, fixed = TRUE) ||
+      grepl("bands", said, fixed = TRUE))
+    stop("FAIL: a flow in polar should be refused once for every layer: ", said)
+  cat("PASS: a flow in polar is refused once for every layer\n")
+})

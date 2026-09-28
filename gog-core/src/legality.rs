@@ -4778,12 +4778,15 @@ fn check_flow(
     //    cell refuses as unbuilt rather than as wrong.
     match space_of(spec) {
         SpaceKind::Flat => {}
+        // Said of the whole flow, not of "the bands": a `zone` draws the stages' slots
+        // and a `text` their names, and each layer printed the ribbon's sentence. One
+        // sentence for every layer is also said once (`check` keeps one of each).
         SpaceKind::Polar => {
             out.push(Diagnostic {
                 kind: DiagnosticKind::Unsupported,
-                message: "gog: `flow` in `polar()` is valid grammar — the bands bent \
-                          round a rim are the chord diagram — but this engine does not \
-                          draw it yet. Draw the flow flat, or wait for the feature."
+                message: "gog: `flow` in `polar()` is valid grammar — a flow bent round \
+                          a rim is the chord diagram — but this engine does not draw it \
+                          yet. Draw the flow flat, or wait for the feature."
                     .to_string(),
             });
             return;
@@ -15929,6 +15932,22 @@ mod tests {
         // what a point takes: it offered `pattern`, which a point refuses.
         assert!(d[0].message.contains("Use `color` or `shape` to distinguish categories"),
             "{}", d[0].message);
+    }
+
+    /// **A flow in `polar()` is refused once, in words true of every layer.** The
+    /// refusal said "the bands bent round a rim" for a `zone`, which draws the
+    /// stages' slots, and a `text`, which draws their names, once per layer.
+    #[test]
+    fn a_flow_in_polar_is_refused_once_for_every_layer() {
+        let polar = || CoordSpace::Polar(crate::ir::PolarView::default());
+        let flow = |m: Mark| Layer::new(m).flow(&["continent", "region"]);
+        let spec = PlotSpec::new().data("t").coord(polar())
+            .layer(flow(Mark::Ribbon)).layer(flow(Mark::Zone));
+        let d = check(&spec, &data());
+        let said: Vec<_> = d.iter().filter(|x| x.message.contains("chord diagram")).collect();
+        assert_eq!(said.len(), 1, "{:?}", msgs(&d));
+        assert!(said[0].message.contains("a flow bent round a rim")
+            && !said[0].message.contains("bands"), "{:?}", said[0]);
     }
 
     /// **A transform written twice is told so once.** The pair sentences were written

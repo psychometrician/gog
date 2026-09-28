@@ -56,6 +56,11 @@ CRAN-style repositories and PyPI, `GrammarOfGraphics` on Julia's General, and
 
 ### Changed
 
+- **A flow in `polar()` is refused once, in words true of every layer.** The
+  refusal said "the bands bent round a rim" for a `zone` and a `text` as well as
+  a `ribbon`, once for each layer. It now says "a flow bent round a rim is the
+  chord diagram", once for the plot.
+
 - **A transform written twice is told so.** `bar * mean * mean` was offered
   "`bar * mean` or `bar * mean`", as were `count`, `bin` and `density` written
   twice, and `bar * proportion * proportion` was told about

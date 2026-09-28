@@ -3283,3 +3283,17 @@ end
     @test occursin("names `mean` twice", meaned) && !occursin("or `bar * mean`", meaned)
     @test occursin("names `proportion` twice", shared) && !occursin("stack(share = TRUE)", shared)
 end
+
+# A flow in `polar()` is refused once, in words true of every layer. It said "the bands
+# bent round a rim" for a zone and a text too, once per layer. The same block runs in
+# all four bindings.
+@testset "a flow in polar is refused once for every layer" begin
+    t = (a = ["u", "u", "v"], b = ["p", "q", "q"])
+    said = try
+        render_svg(data(t) + ribbon * flow(:a, :b) + zone * flow(:a, :b) + polar()); ""
+    catch e
+        sprint(showerror, e)
+    end
+    @test length(findall("chord diagram", said)) == 1
+    @test occursin("a flow bent round a rim", said) && !occursin("bands", said)
+end
