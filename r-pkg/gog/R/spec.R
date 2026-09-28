@@ -300,10 +300,10 @@ is_lost_name <- function(nm) identical(nm, ".")
 #'
 #' @export
 data <- function(df, name = NULL) {
-  # `data` masks `utils::data()`, R's dataset loader, and of the eight gog names
-  # that mask a base *function* this is the only one whose failure is silent:
-  # `data(mtcars)` is a legal sentence in both readings, so a caller who meant to
-  # load a dataset gets a `gog_spec` and no complaint. That collision cannot be
+  # `data` masks `utils::data()`, R's dataset loader, and of the eleven gog
+  # functions that mask a base *function* this is the only one whose failure is
+  # silent: `data(mtcars)` is a legal sentence in both readings, so a caller who
+  # meant to load a dataset gets a `gog_spec` and no complaint. That collision cannot be
   # resolved from in here (both intents are well-formed) and is documented
   # instead. What *is* catchable is the shape, and each case names the loader.
   arg <- paste(deparse(substitute(df)), collapse = " ")

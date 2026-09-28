@@ -2050,8 +2050,8 @@ style <- function(color = NULL, opacity = NULL, size = NULL, shape = NULL,
 #' }
 #' @export
 order <- function(field, desc = FALSE) {
-  # `order` is one of the eight gog names that mask a base *function* rather than
-  # a base object, and it is the one measured to fail worst. A reader doing
+  # `order` is one of the eleven gog functions that mask a base *function* rather
+  # than a base object, and it is the one measured to fail worst. A reader doing
   # ordinary host arithmetic beside a gog sentence writes `df[order(key), ]`, gets
   # this atom, and dies at `invalid subscript type 'list'` inside `[.data.frame` —
   # a message naming neither `order` nor gog, several frames from the line that
