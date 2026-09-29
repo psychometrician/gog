@@ -1174,6 +1174,21 @@ if (hs$y[which.max(hs$w)] != min(hs$y))
   stop("FAIL: order(desc) should put the largest bar at the top")
 cat("PASS: order(desc = TRUE) puts the largest bar at the top\n")
 
+# `order()` ranks a category by the layer's statistic over all of its rows, never
+# by one piece of a split. `a` totals 11 from a first piece of 1 and `b` totals 6
+# from a first piece of 5, so ranking by the first piece put `b` first.
+split_tbl <- data.frame(g = c("a", "a", "b", "b"), era = c("e1", "e2", "e1", "e2"),
+                        v = c(1, 10, 5, 1))
+tick_x <- function(svg, name) {
+  hit <- regmatches(svg, regexpr(paste0('<text x="[0-9.]+" y="[0-9.]+">', name, "</text>"), svg))
+  as.numeric(sub('^<text x="([0-9.]+)".*$', "\\1", hit))
+}
+split_svg <- render_svg(data(split_tbl) + bar * sum + x(g) + y(v) + color(era) +
+                          order(v, desc = TRUE))
+if (!(tick_x(split_svg, "a") < tick_x(split_svg, "b")))
+  stop("FAIL: order() should rank a split category by its whole statistic")
+cat("PASS: order() ranks a split category by its whole statistic\n")
+
 # A synthesizing transform writes to the measured axis, whichever that is.
 cts <- data.frame(g = c("a", "a", "b"))
 s <- render_svg(data(cts) + bar * count + y(g))

@@ -3274,6 +3274,24 @@ for _call, _said in [(lambda: order(desc=True), "`order(desc=True)` names no col
         assert _said in str(refusal) and "col.<category>" in str(refusal), refusal
 ok("order() with no column is refused by name")
 
+# `order()` ranks a category by the layer's statistic over all of its rows, never by
+# one piece of a split. `a` totals 11 from a first piece of 1 and `b` totals 6 from a
+# first piece of 5, so ranking by the first piece put `b` first.
+_split = {"g": ["a", "a", "b", "b"], "era": ["e1", "e2", "e1", "e2"],
+          "v": [1.0, 10.0, 5.0, 1.0]}
+
+
+def _tick_x(svg: str, name: str) -> float:
+    end = svg.index(f">{name}</text>")
+    start = svg.rindex('<text x="', 0, end) + len('<text x="')
+    return float(svg[start:].split('"')[0])
+
+
+_split_svg = render_svg(data(_split, name="split") + bar * sum + x(col.g) + y(col.v)
+                        + color(col.era) + order(col.v, desc=True))
+assert _tick_x(_split_svg, "a") < _tick_x(_split_svg, "b"), "ranked by one piece of the split"
+ok("order() ranks a split category by its whole statistic")
+
 
 # --- A nest refuses layers that pack different rows --------------------------------
 # A summed layer beside a plain one lays out two sets of regions, and the names

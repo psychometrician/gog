@@ -2800,6 +2800,20 @@ end
     @test occursin("`order()` names no column", said(() -> order()))
 end
 
+# `order()` ranks a category by the layer's statistic over all of its rows, never by
+# one piece of a split. `a` totals 11 from a first piece of 1 and `b` totals 6 from
+# a first piece of 5, so ranking by the first piece put `b` first.
+@testset "order() ranks a split category by its whole statistic" begin
+    pieces = (g = ["a", "a", "b", "b"], era = ["e1", "e2", "e1", "e2"], v = [1.0, 10.0, 5.0, 1.0])
+    svg = render_svg(data(pieces) + bar * sum + x(:g) + y(:v) + color(:era) + order(:v, desc = true))
+    function tick_x(name)
+        stop = first(findfirst(">$(name)</text>", svg))
+        from = last(findprev("<text x=\"", svg, stop)) + 1
+        parse(Float64, Base.split(svg[from:end], '"')[1])
+    end
+    @test tick_x("a") < tick_x("b")
+end
+
 # In a `nest()` every layer packs its own rows, so a summed layer beside a plain
 # one lays out two sets of regions, and the names landed in other groups'
 # regions. The same block runs in all four bindings.

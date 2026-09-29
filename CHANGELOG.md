@@ -56,6 +56,13 @@ CRAN-style repositories and PyPI, `GrammarOfGraphics` on Julia's General, and
 
 ### Changed
 
+- **`order()` ranks a category by its whole statistic.** When a channel split a
+  category's bar, `order()` ranked the category by its first piece, so under
+  `bar * sum + color(era)` each continent was ranked by its first era's
+  subtotal. It now ranks by the layer's statistic over all of the category's
+  rows: the total for `sum`, the mean of every row for `mean`, and for rows drawn
+  as they are, their sum.
+
 - **A `rule` in a cube takes one position, as on a flat plot.** `z` now counts
   as a rule's position: `rule + z(altitude)` is refused as a horizontal plane at
   each altitude, where it was told it had no position, and

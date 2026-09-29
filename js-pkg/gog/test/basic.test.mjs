@@ -3430,6 +3430,21 @@ test("order() with no column is refused by name", () => {
   assert.throws(() => order(), /`order\(\)` names no column/);
 });
 
+// `order()` ranks a category by the layer's statistic over all of its rows, never by
+// one piece of a split. `a` totals 11 from a first piece of 1 and `b` totals 6 from a
+// first piece of 5, so ranking by the first piece put `b` first.
+test("order() ranks a split category by its whole statistic", () => {
+  const pieces = { g: ["a", "a", "b", "b"], era: ["e1", "e2", "e1", "e2"], v: [1, 10, 5, 1] };
+  const svg = render_svg(plot(data(pieces), layer(bar, sum), x(col.g), y(col.v),
+    color(col.era), order(col.v, { desc: true })));
+  const tickX = (name) => {
+    const end = svg.indexOf(`>${name}</text>`);
+    const start = svg.lastIndexOf('<text x="', end) + '<text x="'.length;
+    return Number(svg.slice(start).split('"')[0]);
+  };
+  assert.ok(tickX("a") < tickX("b"), "ranked by one piece of the split");
+});
+
 // In a `nest()` every layer packs its own rows, so a summed layer beside a plain
 // one lays out two sets of regions, and the names landed in other groups'
 // regions. The same block runs in all four bindings.

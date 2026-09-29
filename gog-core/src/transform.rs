@@ -3354,6 +3354,63 @@ pub fn reduces_column(transforms: &[Transform], q: Option<&QuantileSpec>) -> Opt
     })
 }
 
+/// What `order()` ranks each category by when it names a column: the layer's own
+/// statistic over **all** of that category's rows, before any split (ruled
+/// 2026-09-28).
+///
+/// The renderer used to read the first row each category has after the
+/// transform, and when a channel splits the statistic that row is one piece: under
+/// `bar * sum + color(era)` it was the first era's subtotal, so Europe outranked
+/// the Americas and Africa, which it trails in total, and a packing sorted "largest
+/// first" was not. Reading the statistic before the split makes the order a fact
+/// about the category, which no way of dividing its bar can change.
+///
+/// A reduction runs over the category's values; `count` and `proportion` rank by
+/// how many rows the category has, which is what both measure. A layer with no
+/// statistic, whose rows are drawn as they are (a collision modifier moves them
+/// and nothing more), ranks by their **sum**: the one total every split of its
+/// rows adds back up to, and the height a stack of them draws. Any other
+/// transform answers `None`, and the caller falls back to the drawn rows.
+pub fn category_ranks(
+    df: &DataFrame,
+    key_field: &str,
+    value_field: &str,
+    transforms: &[Transform],
+    q: Option<&QuantileSpec>,
+) -> Option<Vec<(String, f64)>> {
+    let keys = df.str_col(key_field)?;
+    let agg = reduces_column(transforms, q);
+    let tally = agg.is_none()
+        && transforms.iter().any(|t| matches!(t, Transform::Count | Transform::Proportion));
+    let as_drawn = transforms.iter().all(|t| matches!(t,
+        Transform::Stack | Transform::Dodge | Transform::Jitter | Transform::Repel));
+    if agg.is_none() && !tally && !as_drawn {
+        return None;
+    }
+    let values = match tally {
+        true => None,
+        false => Some(df.float_col(value_field)?),
+    };
+    let mut order: Vec<&str> = Vec::new();
+    let mut groups: HashMap<&str, Vec<f64>> = HashMap::new();
+    for (i, key) in keys.iter().enumerate() {
+        let v = values.map_or(1.0, |vs| vs[i]);
+        groups.entry(key.as_str()).or_insert_with(|| {
+            order.push(key.as_str());
+            Vec::new()
+        }).push(v);
+    }
+    Some(order.into_iter().map(|key| {
+        let vals = groups.get_mut(key).expect("every key was grouped");
+        let rank = match agg {
+            Some(a) => a.reduce(vals),
+            None if tally => vals.len() as f64,
+            None => vals.iter().filter(|v| v.is_finite()).sum(),
+        };
+        (key.to_string(), rank)
+    }).collect())
+}
+
 /// Group rows by `x_field`, apply `agg_fn` to `y_field` within each group.
 /// Works on both string and numeric x columns.
 /// String x: preserves first-appearance order.
@@ -5781,6 +5838,29 @@ mod tests {
         let df = DataFrame::new().with_float("x", vec![1.0, 2.0]).with_float("n", vec![5.0, 3.0]);
         let lowest = col(&pile(&df, "n"), "n").iter().cloned().fold(f64::INFINITY, f64::min);
         assert_eq!(lowest, 1.0, "the bottom dot of every pile sits at one, not at the tally");
+    }
+
+    /// `order()` ranks by the layer's statistic over each category's unsplit rows:
+    /// its reduction, a tally's row count, and for rows drawn as they are, their
+    /// sum. A transform with no one statistic answers nothing, so the caller can
+    /// fall back to the drawn rows.
+    #[test]
+    fn a_category_is_ranked_by_its_whole_statistic() {
+        let df = DataFrame::new()
+            .with_str("g", ["a", "a", "b", "b", "c"].into_iter().map(String::from).collect())
+            .with_float("v", vec![1.0, 9.0, 4.0, 4.0, 7.0]);
+        let ranks = |ts: &[Transform]| category_ranks(&df, "g", "v", ts, None);
+        let owned = |pairs: &[(&str, f64)]| -> Option<Vec<(String, f64)>> {
+            Some(pairs.iter().map(|(k, v)| (k.to_string(), *v)).collect())
+        };
+        assert_eq!(ranks(&[Transform::Sum]), owned(&[("a", 10.0), ("b", 8.0), ("c", 7.0)]));
+        assert_eq!(ranks(&[Transform::Mean]), owned(&[("a", 5.0), ("b", 4.0), ("c", 7.0)]));
+        assert_eq!(ranks(&[Transform::Max, Transform::Stack]),
+                   owned(&[("a", 9.0), ("b", 4.0), ("c", 7.0)]));
+        assert_eq!(ranks(&[Transform::Count]), owned(&[("a", 2.0), ("b", 2.0), ("c", 1.0)]));
+        assert_eq!(ranks(&[]), owned(&[("a", 10.0), ("b", 8.0), ("c", 7.0)]),
+                   "rows drawn as they are rank by their sum, what a stack of them draws");
+        assert_eq!(ranks(&[Transform::Bin]), None);
     }
 
     #[test]

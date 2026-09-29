@@ -1523,10 +1523,24 @@ impl SvgRenderer {
         // is byte-for-byte what the straight-line version computed. A second
         // fitting routine for the free case is how `png.rs` drifted from
         // `svg.rs`, one level down.
+        // What `order()` ranks each category by when it names a column: the first
+        // layer's own statistic over all of a category's rows, read from its
+        // table rather than from its drawn pieces (`transform::category_ranks`).
+        // Over the whole table, so every panel and every frame agrees on one order.
+        let ranked = |field: &str| -> Option<Vec<(String, f64)>> {
+            let o = spec.order.as_ref().filter(|o| o.field != field)?;
+            spec.layers.iter().find_map(|layer| {
+                let df = ctx.resolve_data(&layer.data)?;
+                df.str_col(field)?;
+                crate::transform::category_ranks(
+                    df, field, &o.field, &layer.transforms, layer.quantile.as_ref())
+            })
+        };
+        let (ranked_x, ranked_y) = (ranked(x_field), ranked(y_field));
         let fit_axes = |panels: &[&Vec<DataFrame>]| -> PanelAxes {
             let eff: Vec<&DataFrame> = panels.iter().flat_map(|p| p.iter()).collect();
-            let cat_x = detect_categories(&eff, spec, x_field, false);
-            let cat_y = detect_categories(&eff, spec, y_field, true);
+            let cat_x = detect_categories(&eff, spec, x_field, false, ranked_x.as_deref());
+            let cat_y = detect_categories(&eff, spec, y_field, true, ranked_y.as_deref());
             // A composed page may have decided this axis's category order — a
             // clustered panel derived one, and a shared categorical axis takes
             // it (§9). The page's list arrives in axis order, is used only to
@@ -4663,6 +4677,10 @@ fn detect_categories(
     spec: &PlotSpec,
     field: &str,
     reverse: bool,
+    // Each category's rank when `order()` names another column, read from the
+    // layer's statistic over the category's unsplit rows; `None` falls back to
+    // the first drawn row, for a transform with no one statistic to rank by.
+    ranked: Option<&[(String, f64)]>,
 ) -> Option<Vec<String>> {
     let mut labels = crate::data::categories_across(eff, field);
     if labels.is_empty() {
@@ -4700,10 +4718,11 @@ fn detect_categories(
                 None => labels.sort(),
             }
         } else {
-            // By another column: build category → value from the first layer
-            // that carries both.
-            let mut sort_map: Vec<(String, f64)> = Vec::new();
-            for df in eff {
+            // By another column: the layer's statistic over each category's
+            // rows when there is one, else category → value from the first
+            // layer that carries both.
+            let mut sort_map: Vec<(String, f64)> = ranked.map(<[_]>::to_vec).unwrap_or_default();
+            for df in eff.iter().filter(|_| ranked.is_none()) {
                 let Some(keys) = df.str_col(field)        else { continue };
                 let Some(vals) = df.float_col(&s.field)   else { continue };
                 for (k, v) in keys.iter().zip(vals.iter()) {
@@ -8273,6 +8292,37 @@ mod tests {
         // have made `order()` a word with no effect.
         for w in areas.windows(2) {
             assert!(w[1] > w[0], "the packing reordered the rows: {areas:?}");
+        }
+    }
+
+    /// `order()` ranks a category by the layer's statistic over all its rows, never
+    /// by one piece of a split (ruled 2026-09-28). `a` totals 11 from a first piece
+    /// of 1 and `b` totals 6 from a first piece of 5, so ranking by the first piece
+    /// put `b` first under a color split; by the total, `a` comes first, as it does
+    /// with no split at all.
+    #[test]
+    fn order_ranks_a_split_category_by_its_whole_statistic() {
+        let data: HashMap<String, DataFrame> = HashMap::from([(
+            "t".to_string(),
+            DataFrame::new()
+                .with_str("g", ["a", "a", "b", "b"].into_iter().map(String::from).collect())
+                .with_str("era", ["e1", "e2", "e1", "e2"].into_iter().map(String::from).collect())
+                .with_float("v", vec![1.0, 10.0, 5.0, 1.0]),
+        )]);
+        let x_of = |svg: &str, name: &str| -> f64 {
+            let end = svg.find(&format!(">{name}</text>")).expect("the category is named");
+            let start = svg[..end].rfind("<text x=\"").expect("a tick label") + 9;
+            svg[start..].split('"').next().unwrap().parse().unwrap()
+        };
+        for split in [true, false] {
+            let mut layer = Layer::new(Mark::Bar).transform(Transform::Sum);
+            if split {
+                layer = layer.encode(Channel::Color, "era");
+            }
+            let spec = PlotSpec::new().data("t").x("g").y("v").layer(layer).order_desc("v");
+            let svg = SvgRenderer::default().render(&spec, &data);
+            assert!(x_of(&svg, "a") < x_of(&svg, "b"),
+                "split by color: {split}; `a` totals 11 and `b` 6, so `a` leads");
         }
     }
 
