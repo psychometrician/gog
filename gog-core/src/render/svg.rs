@@ -3159,6 +3159,34 @@ impl SvgRenderer {
                 }
             }
         }
+        // **A panel with no room to draw in is refused** (ruled 2026-09-29). The
+        // margins are measured from what sits beside the panel, its axes' numbers
+        // and names, a title, a legend, so only the drawing knows when they take
+        // the whole plot; `check_theme_size`'s floor of 40 px cannot. A plot 60 px
+        // wide drew a panel -9 px wide, off its own edge, with no message. A
+        // legend is already left out when it will not fit, so what is left here is
+        // the plot's own frame.
+        if let Some(r) = grid.panels.iter().map(|p| &p.rect).find(|r| r.w() < 1.0 || r.h() < 1.0) {
+            let (arg, dim, size, panel) = if r.w() < 1.0 {
+                ("width", "wide", self.width, r.w())
+            } else {
+                ("height", "tall", self.height, r.h())
+            };
+            let (its, which) = if grid.panels.len() > 1 {
+                ("its panels", "a panel")
+            } else {
+                ("its panel", "the panel")
+            };
+            remarks.push(Diagnostic {
+                kind: crate::legality::DiagnosticKind::Illegal,
+                message: format!(
+                    "gog: the plot is {size:.0} px {dim}, and what is drawn around {its}, \
+                     the axes' numbers and names and any title, takes all of that: {which} \
+                     would be {panel:.0} px {dim}, with no room to draw in. Give the plot \
+                     more {arg}, `theme({arg} = )`, or take something from around {its}."
+                ),
+            });
+        }
         let mut seen = std::collections::HashSet::new();
         remarks.retain(|d| seen.insert(d.message.clone()));
         Drawn {
@@ -9192,6 +9220,43 @@ mod tests {
         // Where there is room, nothing changes and nothing is said.
         let wide = SvgRenderer::for_theme(&spec.theme.resolved(), 600.0, 400.0).draw(&spec, &t);
         assert!(wide.svg.contains(">G</text>") && wide.remarks.is_empty(), "{:?}", wide.remarks);
+    }
+
+    /// **A panel with no room to draw in is refused** (ruled 2026-09-29). What is
+    /// drawn around a panel is measured, so only the drawing knows when it takes
+    /// the whole plot: 60 px of width drew a panel -9 px wide with no message. The
+    /// drawing says so as an Illegal, the gate refuses it, and under
+    /// `GOG_STRICT=0` the plot still draws, the message beside it.
+    #[test]
+    fn a_panel_with_no_room_to_draw_in_is_refused() {
+        let t: HashMap<String, DataFrame> = HashMap::from([(
+            "t".to_string(),
+            DataFrame::new().with_float("x", vec![1.0, 20000.0]).with_float("y", vec![1.0, 80.0]),
+        )]);
+        let sized = |w: f64, h: f64| {
+            let mut spec = PlotSpec::new().data("t").x("x").y("y").layer(Layer::new(Mark::Point));
+            spec.theme.width = Some(w);
+            spec.theme.height = Some(h);
+            spec
+        };
+        let figure = |spec: PlotSpec| crate::ir::Figure::Plot(Box::new(spec));
+        for (w, h, arg) in [(60.0, 400.0, "width"), (400.0, 50.0, "height")] {
+            let drawn = SvgRenderer::for_theme(&sized(w, h).theme.resolved(), w, h).draw(&sized(w, h), &t);
+            assert!(drawn.remarks.iter().any(|d| d.kind == crate::legality::DiagnosticKind::Illegal
+                && d.message.contains("with no room to draw in")
+                && d.message.contains(&format!("`theme({arg} = )`"))), "{:?}", drawn.remarks);
+            let refused = crate::plot::render_figure_with(&figure(sized(w, h)), &t,
+                crate::plot::Strictness::Strict);
+            assert!(refused.is_err(), "{w} by {h} is refused");
+            let drawn_anyway = crate::plot::render_figure_with(&figure(sized(w, h)), &t,
+                crate::plot::Strictness::Permissive);
+            assert!(drawn_anyway.is_ok_and(|d| d.diagnostics.iter().any(Diagnostic::is_fatal)),
+                "under GOG_STRICT=0 it draws, and says why");
+        }
+        // Room enough: nothing said.
+        let roomy = SvgRenderer::for_theme(&sized(300.0, 200.0).theme.resolved(), 300.0, 200.0)
+            .draw(&sized(300.0, 200.0), &t);
+        assert!(roomy.remarks.is_empty(), "{:?}", roomy.remarks);
     }
 
     /// Under a summary a dot is sized by its group's mean, so the key decodes the

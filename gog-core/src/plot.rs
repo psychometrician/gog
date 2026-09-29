@@ -170,6 +170,11 @@ pub fn render_figure_with(
             svg
         }
     };
+    // What the drawing found it cannot draw honestly is refused as the check's
+    // findings are: a panel left no room by what sits beside it (ruled 2026-09-29).
+    if strictness == Strictness::Strict && diagnostics.iter().any(Diagnostic::is_fatal) {
+        return Err(diagnostics);
+    }
 
     Ok(Drawing { svg, diagnostics })
 }
@@ -278,6 +283,10 @@ pub fn render_frames_with(
         .find_map(|l| l.encodings.get(&crate::ir::Channel::Play))
         .map_or(crate::ir::FRAME_SECONDS, |d| d.frame_seconds());
     let holds = crate::data::frame_holds(&levels).iter().map(|h| h * pace).collect();
+    // The drawing's own refusals, as in `render_figure_with`.
+    if strictness == Strictness::Strict && diagnostics.iter().any(Diagnostic::is_fatal) {
+        return Err(diagnostics);
+    }
     Ok(Frames { frames, holds, diagnostics })
 }
 

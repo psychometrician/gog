@@ -815,6 +815,11 @@ CRAN-style repositories and PyPI, `GrammarOfGraphics` on Julia's General, and
 Each of these sentences was accepted and drew something other than it said.
 Each is now refused, with what to write instead.
 
+- **A plot too small for what is drawn around its panel.** A scatter given
+  `theme(width = 60)` drew its panel -9 pixels wide, off its own edge, with no
+  message. It is refused with the plot's size and the panel's, and the
+  `theme()` argument that gives it room.
+
 - **`across(col.g, 3)` and `down(col.g, 3)` in JavaScript.** The count was
   dropped and the panels were not wrapped. The count goes in an options
   object: `across(col.g, { wrap: 3 })`.

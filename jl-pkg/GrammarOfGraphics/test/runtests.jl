@@ -3580,3 +3580,10 @@ end
     @test Base.count(l -> occursin("<line", l) && occursin("stroke-linecap=", l), lines) == 0
     @test Base.count(l -> occursin("<polyline", l), lines) == 2
 end
+
+# A plot too small for what is drawn around its panel is refused: 60 px of width drew a
+# panel -9 px wide with no message. The same block runs in all four bindings.
+@testset "a plot too small for its axes is refused" begin
+    @refuses render_svg(data((x = [1.0, 20000.0], y = [1.0, 80.0])) + point + x(:x) + y(:y) +
+                        theme(width = 60)) "with no room to draw in"
+end

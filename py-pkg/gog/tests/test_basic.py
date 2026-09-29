@@ -4149,3 +4149,11 @@ _lines = _ramped.splitlines()
 assert builtins.sum(1 for _l in _lines if "<line" in _l and "stroke-linecap=" in _l) == 0, "no segments"
 assert builtins.sum(1 for _l in _lines if "<polyline" in _l) == 2, "one polyline per route"
 ok("a ramped stroke is drawn as runs of one color")
+
+# --- A plot too small for what is drawn around its panel is refused ------------------------
+# 60 px of width drew a panel -9 px wide with no message. The same block runs in all four
+# bindings.
+_refused_with(lambda: render_svg(data({"x": [1.0, 20000.0], "y": [1.0, 80.0]}, name="t")
+                                 + point + x(col.x) + y(col.y) + theme(width=60)),
+              "with no room to draw in")
+ok("a plot too small for its axes is refused")

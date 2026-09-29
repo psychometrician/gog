@@ -6342,3 +6342,14 @@ local({
     stop("FAIL: a route of one color should be one polyline, got ", segments, " segments")
   cat("PASS: a ramped stroke is drawn as runs of one color\n")
 })
+
+# ---------------------------------------------------------------------------
+# A plot too small for what is drawn around its panel is refused: 60 px of width
+# drew a panel -9 px wide with no message. The same block runs in all four
+# bindings.
+# ---------------------------------------------------------------------------
+local({
+  t <- data.frame(x = c(1, 20000), y = c(1, 80))
+  refuses("a plot too small for its axes", render_svg(data(t) + point + x(x) + y(y) + theme(width = 60)),
+          "with no room to draw in")
+})

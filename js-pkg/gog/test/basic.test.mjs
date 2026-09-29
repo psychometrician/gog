@@ -4250,3 +4250,10 @@ test("a ramped stroke is drawn as runs of one color", () => {
   assert.equal(lines.filter((l) => l.includes("<line") && l.includes("stroke-linecap=")).length, 0);
   assert.equal(lines.filter((l) => l.includes("<polyline")).length, 2);
 });
+
+// A plot too small for what is drawn around its panel is refused: 60 px of width drew a
+// panel -9 px wide with no message. The same block runs in all four bindings.
+test("a plot too small for its axes is refused", () => {
+  refuses(() => render_svg(plot(data({ x: [1, 20000], y: [1, 80] }), point, x(col.x), y(col.y),
+    theme({ width: 60 }))), /with no room to draw in/);
+});
