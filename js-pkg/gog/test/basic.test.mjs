@@ -99,6 +99,7 @@ import {
   zone,
   surface,
   html_block,
+  show,
   to_wire,
 } from "../src/index.js";
 
@@ -4160,4 +4161,20 @@ test("a column two tables share is one set of categories", () => {
     for (const k of ["a", "b", "c", "d"]) assert.ok(svg.includes(`>${k}</text>`), `the key lists ${k}`);
   }
   assert.equal(both(shape).split("<polygon").length - 1, 4, "`c` and `d` take their own glyphs");
+});
+
+// Each `show()` writes its own file. The name counted the plot's layers, so two
+// one-layer plots shown in one run shared a path and the second overwrote the
+// first. JavaScript alone names the file itself; the other three bindings display
+// in a notebook or take a fresh temporary file.
+test("each show() writes its own file", () => {
+  const first = show(plot(data({ a: [1, 2], b: [3, 4] }, { name: "first" }), point, x(col.a), y(col.b)));
+  const second = show(plot(data({ a: [5, 6], b: [7, 8] }, { name: "second" }), point, x(col.a), y(col.b)));
+  try {
+    assert.notEqual(first, second);
+    assert.ok(fs.existsSync(first) && fs.existsSync(second));
+    assert.notEqual(fs.readFileSync(first, "utf8"), fs.readFileSync(second, "utf8"));
+  } finally {
+    for (const f of [first, second]) fs.rmSync(f, { force: true });
+  }
 });

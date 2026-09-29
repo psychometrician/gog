@@ -952,6 +952,10 @@ These still draw, and now say what they drew.
 
 These drew something other than the sentence said, and now draw what it says.
 
+- **`show()` in JavaScript, called twice in one run.** Two plots with the same
+  number of layers were written to the same file, so the second replaced the
+  first. Each call now writes a file of its own.
+
 - **A column two tables share, on `color`, `shape` or `pattern`.** Each
   table's categories were ordered on their own, so `shape(k)` drew the second
   table's first category in the first table's first glyph, and a `pattern` gave

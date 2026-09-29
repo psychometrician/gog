@@ -852,13 +852,15 @@ function hashOf(s) {
   return h | 0;
 }
 
+// How many plots `show` has written in this process, so each gets its own file.
+let shown = 0;
+
 // Draw the plot and write it to a standalone HTML file, for a script that wants
 // to look at one. Returns the path.
 export function show(plot) {
-  // A page has cells where a plot has layers; either way the count only has to
-  // keep two files in one process from colliding.
-  const parts = plot.spec.layers?.length ?? plot.spec.cells?.length ?? 0;
-  const file = path.join(os.tmpdir(), `gog-${process.pid}-${parts}.html`);
+  // One file per call. The name counted the plot's layers, so two one-layer
+  // plots shown in one run shared a path and the second overwrote the first.
+  const file = path.join(os.tmpdir(), `gog-${process.pid}-${++shown}.html`);
   fs.writeFileSync(
     file,
     "<!DOCTYPE html>\n<html>\n<head><meta charset='utf-8'>" +
