@@ -4178,3 +4178,24 @@ test("each show() writes its own file", () => {
     for (const f of [first, second]) fs.rmSync(f, { force: true });
   }
 });
+
+// What `repel` could not separate is said once per layer, naming the panels: a
+// faceted plot printed one unnamed line per panel. The same block runs in all four
+// bindings.
+test("a crowded repel is said once and names its panels", () => {
+  const crowd = {
+    x: [...Array(200).fill(5), 1, 9], y: [...Array(200).fill(5), 1, 9],
+    n: [...Array.from({ length: 200 }, (_, i) => `a rather long label, number ${i + 1}`), "p", "q"],
+    side: [...Array(200).fill("busy"), "calm", "calm"],
+  };
+  const write = process.stderr.write;
+  let said = "";
+  process.stderr.write = (chunk) => { said += chunk; return true; };
+  try {
+    render_svg(plot(data(crowd, { name: "crowd" }), layer(text, repel), x(col.x), y(col.y),
+      label(col.n), across(col.side)));
+  } finally {
+    process.stderr.write = write;
+  }
+  assert.ok(said.includes("in 1 of 2 panels: `busy` (") && !said.includes("`calm`"), said);
+});

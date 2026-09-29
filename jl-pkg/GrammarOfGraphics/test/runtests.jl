@@ -3516,3 +3516,20 @@ end
     end
     @test Base.count("<polygon", both(shape)) == 4
 end
+
+# What `repel` could not separate is said once per layer, naming the panels: a faceted
+# plot printed one unnamed line per panel. The same block runs in all four bindings.
+@testset "a crowded repel is said once and names its panels" begin
+    crowd = (x = [fill(5.0, 200); 1.0; 9.0], y = [fill(5.0, 200); 1.0; 9.0],
+             n = [["a rather long label, number $i" for i in 1:200]; "p"; "q"],
+             side = [fill("busy", 200); "calm"; "calm"])
+    path, io = mktemp()
+    redirect_stderr(io) do
+        render_svg(data(crowd; name = "crowd") + text * repel + x(:x) + y(:y) + label(:n) |
+                   facet(:side))
+    end
+    close(io)
+    said = read(path, String)
+    @test occursin("in 1 of 2 panels: `busy` (", said)
+    @test !occursin("`calm`", said)
+end

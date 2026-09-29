@@ -63,18 +63,19 @@ impl SvgRenderer {
         // out in silence would let a reader take the labeled cells for all of them
         // (§12). Empty in every other space, where a label always draws.
         remarks: &mut Vec<Diagnostic>,
-    ) {
+    ) -> Crowding {
         // The strings: the label column — a string drawn as-is, a number
         // formatted (the "value on each point" case). Its presence is the mark's
         // minimum syllable, guaranteed by legality.
-        let Some(label_field) = layer.encodings.get(&Channel::Label).map(|c| c.field.as_str()) else { return };
+        let Some(label_field) = layer.encodings.get(&Channel::Label).map(|c| c.field.as_str())
+            else { return Crowding::default() };
         let owned_labels: Vec<String>;
         let labels: &[String] = if let Some(s) = df.str_col(label_field) {
             s
         } else if let Some(nums) = df.float_col(label_field) {
             owned_labels = nums.iter().map(|v| fmt_label_num(*v)).collect();
             &owned_labels
-        } else { return };
+        } else { return Crowding::default() };
 
         // **The packed reading comes first, because it does not consult the axes
         // at all.** Everything below this branch is written in terms of a place on
@@ -84,13 +85,13 @@ impl SvgRenderer {
         if let Some(nst) = nest {
             self.write_text_nest(svg, layer, df, x_field, y_field, cat_x, labels,
                                  color_map, clip, ground, nst, remarks);
-            return;
+            return Crowding::default();
         }
 
         // Position: the one resolution every mark shares — `text` is `point`'s
         // sibling and places its glyph the same way, so no per-mark exception.
-        let Some(x_vals) = super::positions(df, x_field, cat_x) else { return };
-        let Some(y_vals) = super::positions(df, y_field, cat_y) else { return };
+        let Some(x_vals) = super::positions(df, x_field, cat_x) else { return Crowding::default() };
+        let Some(y_vals) = super::positions(df, y_field, cat_y) else { return Crowding::default() };
 
         // Color: a set color wins; else the group's palette hue (category →
         // color via the shared map). A numeric ramp on text is not drawn yet —
@@ -176,8 +177,12 @@ impl SvgRenderer {
                 .filter(|&&(x, y, _)| !anchored.contains(&key(x, y)) && seen.insert(key(x, y)))
                 .map(|&(x, y, _)| (x, y, widest[&key(x, y)] + 1.0))
                 .collect();
-            place_repelled(&rows, labels, fs, st.nudge.as_deref(), l, &own, &others, remarks)
+            place_repelled(&rows, labels, fs, st.nudge.as_deref(), l, &own, &others)
         });
+        let (repelled, crowding) = match repelled {
+            Some((boxes, crowding)) => (Some(boxes), crowding),
+            None => (None, Crowding::default()),
+        };
 
         let fill_for = |i: usize| -> String {
             if let Some(sc) = &set_color {
@@ -237,6 +242,7 @@ impl SvgRenderer {
             ).unwrap();
         }
         writeln!(svg, "  </g>").unwrap();
+        crowding
     }
 
     // -----------------------------------------------------------------------
@@ -572,8 +578,7 @@ fn place_repelled(
     // table under a label layer that names only a few of its rows. A label
     // steps off them exactly as it steps off another label's anchor.
     others: &[(f64, f64, f64)],
-    remarks: &mut Vec<Diagnostic>,
-) -> Vec<LabelBox> {
+) -> (Vec<LabelBox>, Crowding) {
     let mut bs: Vec<LabelBox> = rows
         .iter()
         .enumerate()
@@ -733,22 +738,73 @@ fn place_repelled(
     clamp_into_panel(&mut bs, l);
 
     // What is still touching — the *ink*, with the air taken back off, so the count
-    // names labels a reader can see running into each other. Reported once for the
-    // layer, as an Assumption: the plot drew, and every label is on it (§12).
+    // names labels a reader can see running into each other. Returned rather than
+    // said: the renderer says it once for the layer, naming the panels, as an
+    // Assumption (the plot drew, and every label is on it, §12).
     let shrink = (fs * REPEL_PAD_X, fs * REPEL_PAD_Y);
     let stuck = (0..n).filter(|&i| (0..n).any(|j| j != i && bs[i].hits(&bs[j], shrink))).count();
-    if stuck > 0 {
-        remarks.push(Diagnostic {
-            kind: DiagnosticKind::Assumption,
-            message: format!(
-                "gog: {stuck} of {n} labels still overlap another one after `repel` moved them — \
-                 there is no arrangement of this many words that fits this panel. Every label was \
-                 drawn, so none is missing; they are crowded. A larger plot (`theme(width =, \
-                 height =)`), a smaller `style(size = )`, or fewer rows in the layer separates them."
-            ),
-        });
+    (bs, Crowding { stuck, labels: n })
+}
+
+/// What `repel` could not separate in one drawing of a layer: how many labels
+/// still overlap another, of how many it placed.
+///
+/// **Returned to the renderer rather than said here**, because only the renderer
+/// knows which panel and which moment this was. Said by each drawing, a faceted
+/// plot printed one line per panel with nothing to tell the lines apart; the
+/// renderer keeps each panel's most crowded moment and says one line per layer,
+/// naming the panels ([`Crowding::remark`]).
+#[derive(Clone, Copy, Debug, Default, PartialEq)]
+pub(crate) struct Crowding {
+    pub(crate) stuck: usize,
+    pub(crate) labels: usize,
+}
+
+impl Crowding {
+    /// Two drawings of one moment, such as a selection's two passes, which draw
+    /// different rows of the one layer.
+    pub(crate) fn add(&mut self, other: Crowding) {
+        self.stuck += other.stuck;
+        self.labels += other.labels;
     }
-    bs
+
+    /// The Assumption one layer's crowding owes its reader, from each panel's most
+    /// crowded moment: `(the panel's name, what repel left there)`, `None` for the
+    /// plot's one panel. `panels` is how many the plot has, `moments` how many it
+    /// plays.
+    pub(crate) fn remark(crowded: &[(Option<String>, Crowding)], panels: usize, moments: usize)
+        -> Option<Diagnostic> {
+        let when = if moments > 1 { ", at the most crowded moment" } else { "" };
+        let rest = "Every label was drawn, so none is missing; they are crowded. A larger plot \
+                    (`theme(width =, height =)`), a smaller `style(size = )`, or fewer rows in the \
+                    layer separates them.";
+        let message = match crowded {
+            [] => return None,
+            [(None, c)] => format!(
+                "gog: {} of {} labels still overlap another one after `repel` moved them{when} — \
+                 there is no arrangement of this many words that fits this panel. {rest}",
+                c.stuck, c.labels
+            ),
+            _ => {
+                let each: Vec<String> = crowded.iter()
+                    .map(|(name, c)| format!("`{}` ({} of {})",
+                        name.as_deref().unwrap_or("?"), c.stuck, c.labels))
+                    .collect();
+                let listed = match each.as_slice() {
+                    [one] => one.clone(),
+                    [init @ .., last] => format!("{} and {last}", init.join(", ")),
+                    [] => String::new(),
+                };
+                format!(
+                    "gog: labels still overlap another one after `repel` moved them{when}, in {} \
+                     of {panels} panels: {listed}. There is no arrangement of that many words \
+                     that fits those panels. {rest}",
+                    crowded.len()
+                )
+            }
+        };
+        Some(Diagnostic { kind: DiagnosticKind::Assumption, message })
+    }
 }
 
 /// Hold every label inside the panel. The glyphs are clipped to it, so a label

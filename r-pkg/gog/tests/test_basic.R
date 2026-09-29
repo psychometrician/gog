@@ -6259,3 +6259,19 @@ local({
     stop("FAIL: `c` and `d` should take their own glyphs, not `a`'s and `b`'s")
   cat("PASS: a column two tables share is one set of categories\n")
 })
+
+# ---------------------------------------------------------------------------
+# What `repel` could not separate is said once per layer, naming the panels: a
+# faceted plot printed one unnamed line per panel. The same block runs in all
+# four bindings.
+# ---------------------------------------------------------------------------
+local({
+  crowd <- data.frame(x = c(rep(5, 200), 1, 9), y = c(rep(5, 200), 1, 9),
+                      n = c(paste("a rather long label, number", 1:200), "p", "q"),
+                      side = c(rep("busy", 200), "calm", "calm"))
+  said <- capture_msgs(render_svg(data(crowd) + text * repel + x(x) + y(y) + label(n) |
+                                    facet(side)))$msgs
+  if (!grepl("in 1 of 2 panels: `busy` (", said, fixed = TRUE) || grepl("`calm`", said, fixed = TRUE))
+    stop("FAIL: a crowded repel should be said once, naming its panel: ", said)
+  cat("PASS: a crowded repel is said once and names its panels\n")
+})

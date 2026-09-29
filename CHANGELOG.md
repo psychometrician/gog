@@ -56,6 +56,12 @@ CRAN-style repositories and PyPI, `GrammarOfGraphics` on Julia's General, and
 
 ### Changed
 
+- **A crowded `repel` is said once per layer, and names its panels.** Split
+  into panels, a plot said it once per panel with nothing to tell the lines
+  apart, and a played plot once per moment. The one line now names each
+  crowded panel with its count, `Asia` (2 of 33) and so on, and a played plot
+  counts its most crowded moment.
+
 - **Four messages that pointed the wrong way point at a spelling that draws.**
   The note for rows dropped over a missing value says they are left out of
   every layer drawn from that table, and how to keep them in another layer;

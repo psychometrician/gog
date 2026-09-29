@@ -4089,3 +4089,16 @@ for _svg in (_colored, _shaped):
     assert all(f">{k}</text>" in _svg for k in "abcd"), "a shared column keys all four"
 assert _shaped.count("<polygon") == 4, "`c` and `d` take their own glyphs"
 ok("a column two tables share is one set of categories")
+
+# --- What `repel` could not separate is said once, naming the panels -----------------------
+# A faceted plot printed one unnamed line per panel. The same block runs in all four
+# bindings.
+_crowd = {"x": [5.0] * 200 + [1.0, 9.0], "y": [5.0] * 200 + [1.0, 9.0],
+          "n": [f"a rather long label, number {i}" for i in builtins.range(1, 201)] + ["p", "q"],
+          "side": ["busy"] * 200 + ["calm", "calm"]}
+with contextlib.redirect_stderr(io.StringIO()) as _said:
+    render_svg(data(_crowd, name="crowd") + text * repel + x(col.x) + y(col.y) + label(col.n)
+               | facet(col.side))
+assert ("in 1 of 2 panels: `busy` (" in _said.getvalue()
+        and "`calm`" not in _said.getvalue()), _said.getvalue()
+ok("a crowded repel is said once and names its panels")

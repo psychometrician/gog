@@ -2476,6 +2476,11 @@ impl SvgRenderer {
         // the loop, so a faceted globe gives one line per table rather than one per
         // panel that no reader can tell apart.
         let mut globe_tally = vec![(0usize, 0usize, 0usize); spec.layers.len()];
+        // What `repel` could not separate, by layer, panel and moment, with a
+        // selection's two passes added together: said once per layer after the
+        // loop, from each panel's most crowded moment, naming the panels.
+        let mut repel_crowding: HashMap<(usize, usize, usize), crate::render::marks::Crowding> =
+            HashMap::new();
 
         for panel in &grid.panels {
             let l = &panel.rect;
@@ -2650,9 +2655,11 @@ impl SvgRenderer {
                                     } else {
                                         Vec::new()
                                     };
-                                    self.write_text(&mut svg, layer, df, l, xs, ys,
+                                    let crowding = self.write_text(&mut svg, layer, df, l, xs, ys,
                                         x_field, y_field, cat_x.as_deref(), cat_y.as_deref(),
-                                        &color_map, &label_clip, &ground, None, None, Some(g), &dots, &mut remarks)
+                                        &color_map, &label_clip, &ground, None, None, Some(g), &dots, &mut remarks);
+                                    let li = spec.layers.iter().position(|ly| std::ptr::eq(ly, layer)).unwrap_or(0);
+                                    repel_crowding.entry((li, panel.slot, fi)).or_default().add(crowding);
                                 }
                                 Mark::Path => self.write_path(&mut svg, layer, df, whole, l, xs, ys,
                                     x_field, y_field, cat_x.as_deref(), cat_y.as_deref(),
@@ -2884,7 +2891,9 @@ impl SvgRenderer {
                             } else {
                                 Vec::new()
                             };
-                            self.write_text(&mut svg, layer, df, l, xs, ys, x_field, y_field, cat_x.as_deref(), cat_y.as_deref(), &color_map, &clip, &ground, pol_ref, nst.as_ref(), None, &dots, &mut remarks)
+                            let crowding = self.write_text(&mut svg, layer, df, l, xs, ys, x_field, y_field, cat_x.as_deref(), cat_y.as_deref(), &color_map, &clip, &ground, pol_ref, nst.as_ref(), None, &dots, &mut remarks);
+                            let li = spec.layers.iter().position(|ly| std::ptr::eq(ly, layer)).unwrap_or(0);
+                            repel_crowding.entry((li, panel.slot, fi)).or_default().add(crowding);
                         }
                         // The stroke between two layout-supplied endpoints —
                         // only ever reached inside `network()`, where the
@@ -3046,6 +3055,27 @@ impl SvgRenderer {
             ticks_over,
         };
         remarks.extend(swarm.remark());
+        // **What `repel` could not separate is said once per layer, naming the
+        // panels.** Said by each drawing, a faceted plot printed one line per
+        // panel, and a played one per moment, with nothing to tell them apart.
+        for li in 0..spec.layers.len() {
+            let crowded: Vec<(Option<String>, crate::render::marks::Crowding)> = grid.panels.iter()
+                .filter_map(|panel| {
+                    let worst = (0..nframes)
+                        .filter_map(|fi| repel_crowding.get(&(li, panel.slot, fi)).copied())
+                        .max_by_key(|c| c.stuck)
+                        .filter(|c| c.stuck > 0)?;
+                    let name = match panel_levels.get(panel.slot).copied().unwrap_or((None, None)) {
+                        (Some(c), Some(r)) => Some(format!("{c} / {r}")),
+                        (Some(v), None) | (None, Some(v)) => Some(v.to_string()),
+                        (None, None) => None,
+                    };
+                    Some((name, worst))
+                })
+                .collect();
+            remarks.extend(crate::render::marks::Crowding::remark(
+                &crowded, grid.panels.len(), nframes));
+        }
         // **Each globe note names its table.** Unnamed, two layers from two tables
         // with the same counts printed one line, and a plot with several layers gave
         // counts no reader could match to a layer. Two layers drawing one table hide
@@ -10557,6 +10587,43 @@ mod tests {
             drawn.remarks.iter().any(|d| d.message.contains("still overlap")),
             "an impossible packing has to say so: {:?}", drawn.remarks
         );
+    }
+
+    /// **What `repel` could not separate is said once per layer, naming the
+    /// panels.** Said by each drawing, a faceted plot printed one line per panel
+    /// with nothing to tell them apart. Split into two panels, the crowded one is
+    /// named with its count, the clear one is not, and there is one line.
+    #[test]
+    fn a_crowded_repel_is_said_once_and_names_its_panels() {
+        let crowded = 200;
+        let mut xs = vec![5.0; crowded];
+        let mut names: Vec<String> = (0..crowded)
+            .map(|i| format!("a rather long label, number {i}")).collect();
+        let mut sides = vec!["busy".to_string(); crowded];
+        // Two short names far apart, which repel separates easily.
+        xs.extend([1.0, 9.0]);
+        names.extend(["p".to_string(), "q".to_string()]);
+        sides.extend(["calm".to_string(), "calm".to_string()]);
+        let data = HashMap::from([(
+            "t".to_string(),
+            DataFrame::new()
+                .with_float("x", xs.clone())
+                .with_float("y", xs)
+                .with_str("n", names)
+                .with_str("side", sides),
+        )]);
+        let mut spec = repel_spec(true);
+        spec.facet = Some(crate::ir::FacetSpec { col: Some("side".into()), ..Default::default() });
+        let said: Vec<String> = SvgRenderer::default().draw(&spec, &data).remarks.into_iter()
+            .map(|d| d.message).filter(|m| m.contains("still overlap")).collect();
+        assert_eq!(said.len(), 1, "one line for the layer: {said:?}");
+        assert!(said[0].contains("in 1 of 2 panels: `busy` (") && !said[0].contains("`calm`"),
+            "{said:?}");
+        // Drawn alone, the plot keeps the one-panel sentence.
+        let alone = SvgRenderer::default().draw(&repel_spec(true), &data).remarks.into_iter()
+            .map(|d| d.message).find(|m| m.contains("still overlap")).unwrap_or_default();
+        assert!(alone.contains("labels still overlap another one after `repel` moved them — there \
+                                is no arrangement of this many words that fits this panel"), "{alone}");
     }
 
     #[test]

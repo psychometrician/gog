@@ -23,6 +23,7 @@ mod rule;
 mod step;
 mod surface;
 mod text;
+pub(crate) use text::Crowding;
 // Not a mark — the slot reading of `density`, drawn by `area` and `ribbon` alike
 // (spec §5). It sits here because it *is* a drawing routine, and beside the two
 // marks whose geometry it is rather than inside either, since neither owns it.
