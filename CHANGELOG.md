@@ -56,6 +56,18 @@ CRAN-style repositories and PyPI, `GrammarOfGraphics` on Julia's General, and
 
 ### Changed
 
+- **A size asked for on a composed plot is pixels.** A page whose plots all
+  stated a height was stretched to fill 600 pixels, so two plots that asked for
+  230 and 200 pixels were drawn at 310 and 270. A page with no size of its own
+  is now exactly as big as its plots ask, plus 20 pixels between each plot and
+  the next. A height written into one of two plots side by side is the height of
+  both, where it was dropped. gog now counts the space between plots when it
+  checks that a page can hold them: two 300 pixel plots on a page stated at 600
+  pixels were drawn at 290, and are now refused. It also refuses a page stated at
+  a size its plots do not add up to, two plots side by side that ask for
+  different heights, and a page that leaves no room for a plot that asks for no
+  size.
+
 - **A refusal of something the engine does not draw says so in one wording, and
   promises nothing.** Every such refusal now says that the sentence is valid
   grammar but this engine does not draw it, where some said "yet", "for now",

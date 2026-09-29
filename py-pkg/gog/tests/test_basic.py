@@ -1382,8 +1382,8 @@ assert 'width="400" height="300"' in alone, "`theme(width=, height=)` should siz
 ok("`theme(width=, height=)` is the image alone and the cell composed")
 
 # And a *page* states its own size, which is the one sentence no cell can write.
-# Composed side by side, two plots divide the page's width and each keep the
-# whole of its height, so only the page can say how much height that is.
+# Composed side by side, two plots divide the page's width and share one
+# height, which the page states, or a plot on it asks for.
 sized_page = render_svg((scatter | scatter) + theme(height=310))
 assert 'width="800" height="310"' in sized_page, "a page is drawn at the size it states"
 assert 'width="800" height="600"' in render_svg(scatter | scatter), \
@@ -1430,13 +1430,24 @@ assert len(seq.spec["layers"]) + (1 if seq.current_layer else 0) == 2, \
     "a bare mid-sentence data() should still bind the next mark"
 ok("a bare mid-sentence `data()` still binds the next mark")
 refuses("an atom added to a page", lambda: (scatter | scatter) + title("Cars"))
-refuses(
-    "plots asking for more page than there is",
-    lambda: render_svg(
-        (data(cars, name="cars") + point + x(col.speed) + y(col.dist) + theme(height=500))
-        / (data(cars, name="cars") + point + x(col.speed) + y(col.dist) + theme(height=500))
-    ),
-)
+def _said(thunk) -> str:
+    try:
+        thunk()
+    except GogError as error:
+        return str(error)
+    raise AssertionError("the sentence was drawn, and should have been refused")
+
+
+_cars = lambda h: data(cars, name="cars") + point + x(col.speed) + y(col.dist) + theme(height=h)
+assert "makes 1020px; the page has 600" in _said(
+    lambda: render_svg(((_cars(500)) / (_cars(500))) + theme(height=600)))
+ok("plots asking for more page than the page states are refused")
+# An ask is pixels: a page with no size of its own is as big as its plots ask,
+# the gap between them included, and plots side by side share one height.
+assert 'width="800" height="620"' in render_svg((_cars(300)) / (_cars(300)))
+ok("a page with no size of its own is as tall as its plots ask")
+assert "share one height" in _said(lambda: render_svg((_cars(100)) | (_cars(200))))
+ok("two heights side by side are refused")
 
 
 # --- partition: a hierarchy in columns, one ring per level -------------------

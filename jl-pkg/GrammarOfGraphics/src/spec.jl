@@ -814,11 +814,10 @@ Base.:+(left::Page, right::Plot) = throw(GogError(
 
 # An atom belongs to a plot, not to the page — with the one exception whose
 # subject is the figure rather than a panel. `theme(height = 310)` says how big
-# this page is, which is the same sentence a plot writes about itself, and there
-# is nowhere else to write it: two plots side by side divide the page's width and
-# each keep the whole of its height, so only the page can say how much height
-# that is. A title for the page as a whole is real and not built — designed, and
-# deliberately not implemented yet.
+# this page is, which is the same sentence a plot writes about itself. When the
+# plots on a page ask for no size, the page is the one place the figure's size
+# can be written. A title for the page as a whole is real and not built — designed,
+# and deliberately not implemented yet.
 function Base.:+(left::Page, right::Atom)
     right.kind === :theme || throw(GogError(
         "gog: `$(atom_shown(right))` belongs to a plot, and the left side is a page of " *

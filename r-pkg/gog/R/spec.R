@@ -867,9 +867,8 @@ PANEL_THEME <- c("preset", "grid", "ratio", "tick_angle", "font_size",
   # A page is plots arranged, and an atom belongs to one of them — with the one
   # exception whose subject is the figure rather than a panel. `theme(width =,
   # height =)` says how big this page is, which is the same sentence a plot
-  # writes about itself, and there is nowhere else to write it: two plots side
-  # by side divide the page's width and each keep the whole of its height, so
-  # only the page can say how much height that is.
+  # writes about itself. When the plots on a page ask for no size, the page is
+  # the one place the figure's size can be written.
   if (inherits(rhs, "gog_atom") && identical(rhs$type, "theme")) {
     named <- PANEL_THEME[vapply(PANEL_THEME, function(k) !is.null(rhs[[k]]), logical(1))]
     if (length(named)) {

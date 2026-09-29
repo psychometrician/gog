@@ -3532,8 +3532,8 @@ if (!grepl('width="400" height="300"', alone, fixed = TRUE))
 cat("PASS: `theme(width =, height =)` is the image alone and the cell composed\n")
 
 # And a *page* states its own size, which is the one sentence no cell can write.
-# Composed side by side, two plots divide the page's width and each keep the
-# whole of its height, so only the page can say how much height that is. Until
+# Composed side by side, two plots divide the page's width and share one
+# height, which the page states, or a plot on it asks for. Until
 # it could, every composed figure was the 800x600 canvas whatever was on it —
 # which is what left two thirds of a composed cube's panel empty.
 sized_page <- render_svg((scatter | scatter) + theme(height = 310))
@@ -3555,10 +3555,22 @@ refuses("a panel property said about a page", (scatter | scatter) + theme(grid =
         "describes a panel")
 refuses("a preset said about a page", (scatter | scatter) + theme("minimal"),
         "describes a panel")
-refuses("plots asking for more page than there is",
-        render_svg((data(cars_df) + point + x(speed) + y(dist) + theme(height = 500)) /
-                   (data(cars_df) + point + x(speed) + y(dist) + theme(height = 500))),
-        "leave room")
+refuses("plots asking for more page than the page states",
+        render_svg(((data(cars_df) + point + x(speed) + y(dist) + theme(height = 500)) /
+                    (data(cars_df) + point + x(speed) + y(dist) + theme(height = 500))) +
+                     theme(height = 600)),
+        "makes 1020px; the page has 600")
+# An ask is pixels: a page with no size of its own is as big as its plots ask,
+# the gap between them included, and plots side by side share one height.
+tall <- render_svg((data(cars_df) + point + x(speed) + y(dist) + theme(height = 300)) /
+                   (data(cars_df) + point + x(speed) + y(dist) + theme(height = 300)))
+if (!grepl('width="800" height="620"', tall, fixed = TRUE))
+  stop("FAIL: two 300 px plots stacked should make a 620 px page")
+cat("PASS: a page with no size of its own is as tall as its plots ask\n")
+refuses("two heights side by side",
+        render_svg((data(cars_df) + point + x(speed) + y(dist) + theme(height = 100)) |
+                   (data(cars_df) + point + x(speed) + y(dist) + theme(height = 200))),
+        "share one height")
 
 # --- partition: a hierarchy in columns, one ring per level -------------------
 # The end-of-feature check for this atom is that all four bindings draw the same

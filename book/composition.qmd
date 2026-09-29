@@ -218,49 +218,60 @@ with a tree on two of its sides, each tree deciding one axis.
 
 ## How thin is the marginal histogram? `theme(width =, height =)`
 
-A plot states how much room it wants in pixels, and the plots that ask for
-nothing split what is left. A page that states no size is 800 by 600 pixels,
-which is what a plot drawn alone takes. The marginal plot needs nothing more
-than that. The top histogram asks for 130 pixels of height, and the right one
-for 130 pixels of width. The scatter asks for nothing, so it takes the rest.
+In the marginal plot, both histograms are thin because each one asks for a small
+size. The top histogram asks for 130 pixels of height, and the right-hand one
+for 130 pixels of width. A plot asks for room in pixels with `theme(width = )`
+and `theme(height = )`. The plots that ask for nothing divide what is left, so
+the scatter takes the rest.
 
-The same two arguments also size a plot drawn on its own. There they set the
-size of the whole image:
+On a plot drawn alone, the same two arguments set the size of the whole image:
 
 ```{r}
 data(gapminder_2007) + point + x(gdp) + y(life) + theme(width = 420, height = 320)
 ```
 
-That is Compositional Invariance, the sixth of the
-[nine laws](design-laws.qmd): one meaning in two places. A plot that asks for
-130 pixels of height is 130 pixels tall when it is drawn alone, and 130 pixels
-tall when it sits above another plot. Beside another plot the page decides the
-height, as the next section explains. Do not confuse `theme(width =, height =)`
-with [`theme(ratio = )`](style.qmd#theme-settings-that-belong-to-no-mark). The
+Alone or on a page, the two arguments mean the same thing, which is
+Compositional Invariance, the sixth of the [nine laws](design-laws.qmd). A plot
+that asks for 130 pixels of height is 130 pixels tall, whether it is drawn alone
+or above another plot. Beside another plot it is also 130 pixels tall, and the
+plot beside it takes the same height.
+
+Do not confuse `theme(width =, height =)` with
+[`theme(ratio = )`](style.qmd#theme-settings-that-belong-to-no-mark). The
 second one shapes the *panel* inside the room the plot was given, and it never
-resizes the image. A plot with a stated `ratio` keeps its own panel, and the page
-does not align it.
-
-Plots stacked with `/` that ask for more height than the page has are refused,
-and the message gives both numbers:
-
-```{r}
-#| error: true
-(data(gapminder_2007) + point + x(gdp) + y(life) + theme(height = 500)) /
-  (data(gapminder_2007) + point + x(gdp) + y(life) + theme(height = 500))
-```
+resizes the image. When a plot states a `ratio`, the page does not align its
+panel with the other panels.
 
 ## How big is the page itself?
 
-That refusal shows that a page has a size of its own: it added the two plots'
-heights and compared the total with the page's height. Two plots set side by
-side divide the page's width, and each cell keeps the full height of the page.
-A height written into one of those plots does not change that. The height
-belongs to the page, so write it on the page.
+A page that states no size is 800 by 600 pixels, the same as a plot that states
+none. Its plots can decide a different size. Plots one above the other that all
+ask for a height make the page as tall as their heights plus the gaps. Plots
+side by side that all ask for a width make it as wide as their widths plus the
+gaps. Each gap is 20 pixels.
 
-Put parentheses around the whole page before you add `theme()` to it. In R and
-Python, `+` is applied before `|`, so without them the `theme()` would go to the
-second plot instead of the page:
+Plots side by side divide the page's width and share one height. A height
+written into one of them is the height of all of them, and of the page. Plots
+side by side that ask for different heights are refused. Plots one above the
+other share one width, by the same rule. The marginal plot's page stays 800 by
+600, because the scatter asks for nothing.
+
+A plot that asks for nothing still needs room, so the other plots must leave
+some of the page's height for it:
+
+```{r}
+#| error: true
+(data(gapminder_2007) + point + x(gdp) + y(life) + theme(height = 700)) /
+  (data(gapminder_2007) + bar * count + x(continent))
+```
+
+The bottom plot asks for nothing, so the page keeps its 600 pixels. gog added the
+top plot's 700 pixels and the 20-pixel gap, and compared 720 with those 600.
+
+When the plots do not decide the page's size, you can choose it: give the page
+its own `theme()`. Put parentheses around the whole page before you add
+`theme()` to it. In R and Python, `+` is applied before `|`, so without them the
+`theme()` would go to the second plot instead of the page:
 
 ```{r}
 ((data(gapminder_2007) + point + x(gdp) + y(life)) |
@@ -301,9 +312,9 @@ atom added to a page is refused, and the message names where it belongs:
   (data(gapminder_2007) + bar * count + x(continent))) + title("Two views")
 ```
 
-gog draws no title over a whole page. On a stacked page, the top plot's title
-sits above everything else. Otherwise, write the title as the figure's caption
-in your document.
+gog draws no title over a whole page. On a page of plots one above the other,
+the top plot's title sits above everything else. Otherwise, write the title as
+the figure's caption in your document.
 
 And a page cannot be faceted, because a facet splits one plot by a column and a
 page is not one plot:

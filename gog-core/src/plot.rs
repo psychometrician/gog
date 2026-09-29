@@ -155,13 +155,16 @@ pub fn render_figure_with(
         // is one plot or a page of them. This arm read `CANVAS` unconditionally
         // until a page had a theme to read, which made the composed figure the
         // one thing in the grammar whose size nobody could state.
+        // A page with no size of its own takes the size its plots ask for, gaps
+        // included, when they all ask along a direction (`Figure::ask`): an ask is
+        // pixels, so a page of plots that each state a height is exactly as tall
+        // as they are, and only a page with an unstated cell takes the canvas.
         Figure::Page(spec) => {
-            let theme = spec.theme.resolved();
             let (svg, remarks) = page::render(
                 spec,
                 data,
-                theme.width.unwrap_or(CANVAS.0),
-                theme.height.unwrap_or(CANVAS.1),
+                figure.ask(true).unwrap_or(CANVAS.0),
+                figure.ask(false).unwrap_or(CANVAS.1),
             );
             diagnostics.extend(remarks);
             svg
@@ -404,11 +407,12 @@ mod tests {
 
     /// A composed figure is drawn at the size it asks for.
     ///
-    /// Two plots side by side split the *width* and each keep the whole height,
-    /// so a page that cannot say how tall it is gives every cell a plot's worth
-    /// of height however little is in it. That is what left two thirds of a
-    /// composed cube's panel empty: the cube fits its panel with one uniform
-    /// scale, the width bound it, and nothing could ask for a shorter figure.
+    /// Two plots side by side split the *width* and share one height, so when
+    /// neither asks for a height and the page cannot state one, every cell gets
+    /// a plot's worth of height however little is in it. That is what left two
+    /// thirds of a composed cube's panel empty: the cube fits its panel with one
+    /// uniform scale, the width bound it, and nothing could ask for a shorter
+    /// figure.
     #[test]
     fn a_page_is_drawn_at_the_size_it_states() {
         let theme = crate::ir::ThemeSpec { height: Some(310.0), ..Default::default() };

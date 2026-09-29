@@ -2898,6 +2898,11 @@ pub enum Arrange {
     Below,
 }
 
+/// The space between two cells of a page, in pixels. It lives beside the page
+/// because the page's size is counted with it (`Figure::ask`); the renderer
+/// places cells by the same number (`render::page`), which says why it is 20.
+pub const PAGE_GAP: f64 = 20.0;
+
 /// A page: cells running one way, each a plot or a page of its own.
 ///
 /// Nesting is what gives the marginal plot its shape — `top / (main | right)` is
@@ -2959,11 +2964,17 @@ impl Figure {
     /// `None` if it asks for nothing and will take an even share.
     ///
     /// `theme(width =, height =)` is where a figure asks, and both kinds of
-    /// figure have one. A page that states its size asks for that; one that does
-    /// not asks for what its cells add up to when they run the way the question
-    /// is asked, and for the widest of them when they run across it — and only
-    /// when every cell has asked, since one cell wanting to fill makes the whole
-    /// page want to.
+    /// figure have one. **An ask is pixels** (ruled 2026-09-28). A page that
+    /// states its size asks for that. One that does not asks, along the way its
+    /// cells run, for what they add up to **with the gaps between them** — and
+    /// only when every cell has asked, since one cell wanting to fill makes the
+    /// whole page want to. Across, its cells share one extent, so the page asks
+    /// for the one a cell asked for: a plot 130 px tall is 130 px tall beside
+    /// another, as it is alone, and the other takes that height too. Two cells
+    /// asking for different extents across is refused in `legality`, and the
+    /// larger is returned here so a drawing made anyway has room for both.
+    /// A composed page used to be read as proportions when every cell asked,
+    /// stretched to fill the canvas, while the check read pixels.
     ///
     /// **The page's own statement wins over the derivation** (Law 5). The two can
     /// disagree, and when they do the one a reader wrote is the one that meant
@@ -2985,12 +2996,16 @@ impl Figure {
                 }
                 let asks: Vec<Option<f64>> =
                     page.cells.iter().map(|c| c.ask(horizontal)).collect();
-                if asks.iter().any(Option::is_none) {
-                    return None;
-                }
                 let along = (page.arrange == Arrange::Beside) == horizontal;
-                let sizes = asks.into_iter().flatten();
-                Some(if along { sizes.sum() } else { sizes.fold(0.0, f64::max) })
+                if along {
+                    if asks.iter().any(Option::is_none) {
+                        return None;
+                    }
+                    let gaps = PAGE_GAP * asks.len().saturating_sub(1) as f64;
+                    Some(asks.into_iter().flatten().sum::<f64>() + gaps)
+                } else {
+                    asks.into_iter().flatten().reduce(f64::max)
+                }
             }
         }
     }

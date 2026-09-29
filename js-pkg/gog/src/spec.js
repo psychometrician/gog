@@ -269,9 +269,8 @@ const PANEL_THEME = ["preset", "grid", "ratio", "tick_angle", "font_size",
 // A `theme()` among the figures is the page's own, and the only atom a page
 // takes. Its subject is the figure rather than a panel: `theme({ height: 310 })`
 // says how big this page is, which is the same sentence a plot writes about
-// itself, and there is nowhere else to write it — plots set beside each other
-// divide the page's width and each keep the whole of its height, so only the
-// page can say how much height that is.
+// itself. When the plots on a page ask for no size, the page is the one place
+// the figure's size can be written.
 //
 // Written in the argument list because that is how JavaScript spells `+`
 // (spec §8): `beside(a, b, theme({ height: 310 }))` is R's

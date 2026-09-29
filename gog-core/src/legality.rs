@@ -5843,6 +5843,15 @@ fn placed_by_the_graph(layer: &Layer) -> bool {
     layer.mark == Mark::Edge || layer.transforms.contains(&Transform::Layout)
 }
 
+/// `a`, `a and b`, `a, b and c`: plain words, for a message.
+fn code_free_list(items: &[String]) -> String {
+    match items {
+        [] => String::new(),
+        [one] => one.clone(),
+        [init @ .., last] => format!("{} and {last}", init.join(", ")),
+    }
+}
+
 /// `a`, `a` and `b`, `a`, `b` and `c`: each name in code, for a message.
 fn code_list(names: &[&str]) -> String {
     match names {
@@ -7023,25 +7032,87 @@ fn check_page_fits(out: &mut Vec<Diagnostic>, figure: &Figure, canvas: (f64, f64
     let Figure::Page(page) = figure else { return };
     check_page_theme(out, page);
 
+    // **An ask is pixels, and a page honors each one or refuses** (ruled
+    // 2026-09-28). The page measures what it states, else what its cells give
+    // it (`Figure::ask`, gaps included), else the canvas it was handed. So a page
+    // whose plots all state a size is exactly as big as they are, and this check
+    // is left with what a page cannot do: hold more than it has, leave a plot
+    // that asked for nothing no room at all, be two sizes at once, or give two
+    // plots beside each other two heights. The gaps between cells used to go
+    // uncounted, so two 300 px plots passed a 600 px page and were drawn at 290.
     let canvas = (
-        page.theme.width.unwrap_or(canvas.0),
-        page.theme.height.unwrap_or(canvas.1),
+        figure.ask(true).unwrap_or(canvas.0),
+        figure.ask(false).unwrap_or(canvas.1),
     );
     let horizontal = page.arrange == crate::ir::Arrange::Beside;
-    let (limit, dimension, word) = if horizontal {
-        (canvas.0, "width", "beside")
+    let (limit, dimension, across, word) = if horizontal {
+        (canvas.0, "width", "height", "beside")
     } else {
-        (canvas.1, "height", "below")
+        (canvas.1, "height", "width", "below")
     };
-    let claimed: f64 = page.cells.iter().filter_map(|c| c.ask(horizontal)).sum();
-    if claimed > limit {
+    let asks: Vec<Option<f64>> = page.cells.iter().map(|c| c.ask(horizontal)).collect();
+    let claimed: f64 = asks.iter().flatten().sum();
+    let gaps = crate::ir::PAGE_GAP * page.cells.len().saturating_sub(1) as f64;
+    let unasked = asks.iter().filter(|a| a.is_none()).count();
+    let stated = if horizontal { page.theme.width } else { page.theme.height };
+    let whole = claimed + gaps;
+    let message = if whole > limit + 0.5 {
+        // Only a stated page can be too small for plots that all ask, since an
+        // unstated one takes what they ask; then the page is what to change.
+        let direction = if unasked > 0 {
+            format!(
+                "A `theme({dimension} = )` on a composed plot is how much of the page that \
+                 plot takes, so the ones that state it must leave room for the ones that do not."
+            )
+        } else {
+            format!(
+                "A page whose plots all state a size is as big as they are; drop the page's \
+                 `theme({dimension} = )`, or make a plot's smaller."
+            )
+        };
+        Some(format!(
+            "gog: the plots {word} each other ask for {claimed:.0}px of {dimension}, and the \
+             {gaps:.0}px between them makes {whole:.0}px; the page has {limit:.0}. {direction}"
+        ))
+    } else if unasked > 0 && whole >= limit - 0.5 {
+        let who = if unasked == 1 { "the plot that asks" } else { "the plots that ask" };
+        Some(format!(
+            "gog: the plots {word} each other ask for {claimed:.0}px of {dimension}, and with \
+             the {gaps:.0}px between them that is all {limit:.0}px the page has, which leaves \
+             no room for {who} for no size. Make a stated size smaller, or the page larger: \
+             `(…) + theme({dimension} = )`."
+        ))
+    } else if let (0, Some(s)) = (unasked, stated) {
+        ((whole - s).abs() > 0.5).then(|| format!(
+            "gog: the plots {word} each other ask for {claimed:.0}px of {dimension}, \
+             {whole:.0}px with the space between them, and the page states {s:.0}. A page \
+             whose plots all state a size is as big as they are; drop the page's \
+             `theme({dimension} = )`, or change a plot's."
+        ))
+    } else {
+        None
+    };
+    if let Some(message) = message {
+        out.push(Diagnostic { kind: DiagnosticKind::Illegal, message });
+    }
+    // Across the way the cells run, they share the page's one extent: plots side by
+    // side are as tall as the page. Two cells asking for two, or one asking for
+    // other than what the page states, is a page asked to be two sizes at once.
+    let mut crossing: Vec<f64> = page.cells.iter().filter_map(|c| c.ask(!horizontal)).collect();
+    let stated_across = if horizontal { page.theme.height } else { page.theme.width };
+    crossing.extend(stated_across);
+    crossing.sort_by(|a, b| a.partial_cmp(b).unwrap_or(std::cmp::Ordering::Equal));
+    crossing.dedup_by(|a, b| (*a - *b).abs() <= 0.5);
+    if crossing.len() > 1 {
+        let sizes: Vec<String> = crossing.iter().map(|v| format!("{v:.0}px")).collect();
+        let where_ = if stated_across.is_some() { " between them and the page" } else { "" };
         out.push(Diagnostic {
             kind: DiagnosticKind::Illegal,
             message: format!(
-                "gog: the plots {word} each other ask for {claimed:.0}px of {dimension} \
-                 between them, and the page has {limit:.0}. A `theme({dimension} = )` on a \
-                 composed plot is how much of the page that plot takes, so the ones that \
-                 state it must leave room for the ones that do not."
+                "gog: plots {word} each other share one {across}, and {} are asked for{where_}. \
+                 Give them one {across}, or state it once on the page: \
+                 `(…) + theme({across} = )`.",
+                code_free_list(&sizes)
             ),
         });
     }
@@ -14670,6 +14741,60 @@ mod tests {
         }
     }
 
+    /// **An ask is pixels, and a page honors each one or refuses** (ruled
+    /// 2026-09-28). A page with no size of its own is as big as its plots ask,
+    /// the gaps included; a page stated at a size refuses plots it cannot hold
+    /// exactly; plots side by side share one height; and a plot that asked for
+    /// nothing is never left without room.
+    #[test]
+    fn an_ask_is_pixels_and_a_page_honors_it_or_refuses() {
+        let tall = |h: f64| {
+            let mut p = base().layer(Layer::new(Mark::Point));
+            p.theme.height = Some(h);
+            p
+        };
+        let free = base().layer(Layer::new(Mark::Point));
+        let page = |arrange: crate::ir::Arrange, a: &PlotSpec, b: &PlotSpec, height: Option<f64>| {
+            Figure::Page(crate::ir::PageSpec {
+                arrange, cells: vec![a.clone().into(), b.clone().into()],
+                theme: crate::ir::ThemeSpec { height, ..Default::default() },
+            })
+        };
+        let said = |f: &Figure| msgs(&check_figure(f, &data())).join(" | ");
+        let (below, beside) = (crate::ir::Arrange::Below, crate::ir::Arrange::Beside);
+
+        // Two 300 px plots stacked: a 620 px page, no stretching and no refusal.
+        let stacked = page(below.clone(), &tall(300.0), &tall(300.0), None);
+        assert_eq!(stacked.ask(false), Some(620.0), "each ask plus the gap");
+        assert!(said(&stacked).is_empty(), "{}", said(&stacked));
+        // The same two on a page stated at 600: the gap is counted, and it cannot hold them.
+        let stated = page(below.clone(), &tall(300.0), &tall(300.0), Some(600.0));
+        assert!(said(&stated).contains("the 20px between them makes 620px; the page has 600"),
+            "{}", said(&stated));
+        // Every plot asked, so the page is what to change; with one that did not,
+        // the plots that asked are.
+        assert!(said(&stated).contains("drop the page's `theme(height = )`, or make a plot's smaller"),
+            "{}", said(&stated));
+        let over = page(below.clone(), &tall(700.0), &free, None);
+        assert!(said(&over).contains("makes 720px; the page has 600")
+            && said(&over).contains("must leave room for the ones that do not"),
+            "{}", said(&over));
+        // A page stated larger than its plots, which all ask: it cannot be both sizes.
+        let loose = page(below.clone(), &tall(100.0), &tall(100.0), Some(300.0));
+        assert!(said(&loose).contains("and the page states 300"), "{}", said(&loose));
+        // A plot that asks for nothing is not left with no room at all.
+        let squeezed = page(below.clone(), &tall(580.0), &free, None);
+        assert!(said(&squeezed).contains("leaves no room for the plot that asks for no size"),
+            "{}", said(&squeezed));
+        // Side by side, one height: a plot's height is the page's, and two differ.
+        let one = page(beside.clone(), &tall(100.0), &free, None);
+        assert_eq!(one.ask(false), Some(100.0), "the page takes the one height asked");
+        assert!(said(&one).is_empty(), "{}", said(&one));
+        let two = page(beside.clone(), &tall(100.0), &tall(200.0), None);
+        assert!(said(&two).contains("share one height, and 100px and 200px are asked for"),
+            "{}", said(&two));
+    }
+
     /// A shared axis lines up across a page, so a plot split into panels along it
     /// and one that is not cannot share it: the histogram over a faceted scatter
     /// spanned every panel and lined up with none. Both split the same way draw.
@@ -20355,7 +20480,7 @@ mod tests {
 
     /// **An Unsupported refusal says, in those words, that the grammar allows the
     /// sentence and this engine does not draw it, and no refusal promises a
-    /// future** (ruled 2026-09-28, R17). The kind is never printed, so the wording
+    /// future** (ruled 2026-09-28). The kind is never printed, so the wording
     /// is how a reader tells the two kinds apart; "yet", "for now" and "wait for
     /// the feature" promised a schedule. The three refusals that say a plot is
     /// drawn in one coordinate space state a rule, and are Illegal.

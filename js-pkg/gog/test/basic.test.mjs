@@ -1770,17 +1770,19 @@ test("theme({ width, height }) is the image alone and the cell composed", () => 
                                 theme({ width: 400, height: 300 })));
   assert.match(alone, /width="400" height="300"/);
   refuses(() => theme({ width: 10 }), /at least 40/);
-  refuses(
-    () => render_svg(below(
-      plot(data(cars, { name: "cars" }), point, x(col.speed), y(col.dist), theme({ height: 500 })),
-      plot(data(cars, { name: "cars" }), point, x(col.speed), y(col.dist), theme({ height: 500 })))),
-    /ask for 1000px/
-  );
+  const tall = (height) =>
+    plot(data(cars, { name: "cars" }), point, x(col.speed), y(col.dist), theme({ height }));
+  refuses(() => render_svg(below(tall(500), tall(500), theme({ height: 600 }))),
+    /makes 1020px; the page has 600/);
+  // An ask is pixels: a page with no size of its own is as big as its plots ask,
+  // the gap between them included, and plots side by side share one height.
+  assert.match(render_svg(below(tall(300), tall(300))), /width="800" height="620"/);
+  refuses(() => render_svg(beside(tall(100), tall(200))), /share one height/);
 });
 
 // And a *page* states its own size, which is the one sentence no cell can write.
-// Composed side by side, two plots divide the page's width and each keep the
-// whole of its height, so only the page can say how much height that is. A
+// Composed side by side, two plots divide the page's width and share one
+// height, which the page states, or a plot on it asks for. A
 // `theme()` among the figures is how JavaScript spells `(a | b) + theme(...)`.
 test("a page states its own size, and takes the canvas when it does not", () => {
   const sized = render_svg(beside(scatter(), scatter(), theme({ height: 310 })));

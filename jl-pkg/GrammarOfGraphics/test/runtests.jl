@@ -1295,10 +1295,12 @@ end
     # other one describes a panel, and a page has none.
     @refuses (scatter() | scatter()) + theme(grid = "none") "describes a panel"
     @refuses (scatter() | scatter()) + theme("minimal") "describes a panel"
-    @refuses render_svg(
-        (data(cars, name = "cars") + point + x(:speed) + y(:dist) + theme(height = 500)) /
-        (data(cars, name = "cars") + point + x(:speed) + y(:dist) + theme(height = 500))
-    ) "ask for 1000px"
+    tall(h) = data(cars, name = "cars") + point + x(:speed) + y(:dist) + theme(height = h)
+    @refuses render_svg(((tall(500)) / (tall(500))) + theme(height = 600)) "makes 1020px; the page has 600"
+    # An ask is pixels: a page with no size of its own is as big as its plots ask,
+    # the gap between them included, and plots side by side share one height.
+    @test occursin("width=\"800\" height=\"620\"", render_svg((tall(300)) / (tall(300))))
+    @refuses render_svg((tall(100)) | (tall(200))) "share one height"
 end
 
 @testset "partition — a hierarchy in columns, one ring per level" begin

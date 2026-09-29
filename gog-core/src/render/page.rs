@@ -69,7 +69,7 @@ use crate::render::{Drawn, Layout};
 /// which reads as crowded at any zoom below 1:1. Nothing was ever clipped, and
 /// the browser's own box for the label clears its cell by `10 * scale` px at
 /// every width; it simply looked wrong, which for a manual is the same problem.
-const CELL_GAP: f64 = 20.0;
+const CELL_GAP: f64 = crate::ir::PAGE_GAP;
 
 /// How much of a shared extent has to survive the intersection for the panels to
 /// be aligned to it, in px.
