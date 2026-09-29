@@ -219,6 +219,16 @@ test("a faceted cube projects one scene per panel", () => {
   assert.equal(count('stroke="#d8d8de"'), 2, "and each panel projects its own cube");
 });
 
+// The darker edges are the three the numbers are written along. They were the
+// three from the cube's back corner, which all start at one point.
+test("the cube darkens the three edges its numbers are written along", () => {
+  const svg = render_svg(plot(data({ ...df, z: [1, 5, 2, 6, 3] }), point, x(col.x), y(col.y), z(col.z)));
+  const dark = svg.match(/<g stroke="#9a9aa4" stroke-width="1.4"[\s\S]*?<\/g>/)[0];
+  const starts = [...dark.matchAll(/x1="[0-9.]+" y1="[0-9.]+"/g)].map((m) => m[0]);
+  assert.equal(starts.length, 3);
+  assert.ok(new Set(starts).size > 1, `${starts}`);
+});
+
 test("wrap folds the line of panels, and the word says which way it runs", () => {
   const wrapped = plot(data(df), point, x(col.x), y(col.y), across(col.group, { wrap: 4 }));
   assert.deepEqual(wrapped.spec.facet, { col: "group", row: null, wrap: 4 });

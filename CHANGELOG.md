@@ -56,6 +56,12 @@ CRAN-style repositories and PyPI, `GrammarOfGraphics` on Julia's General, and
 
 ### Changed
 
+- **A cube darkens the edges its numbers are written along.** Of the twelve
+  edges drawn around a cube, three are darker. They were the three that meet at
+  the cube's back corner, which carry no numbers at any ordinary angle. They are
+  now the three edges its axes are numbered along, so each darker edge has a
+  scale beside it.
+
 - **An axis that would show only two ticks shows more.** gog picks a round
   step for about five ticks, and on some ranges only two of them fell inside
   the axis: orders from 13 to 34 were ticked at 20 and 30 alone. Such an axis

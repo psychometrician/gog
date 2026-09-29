@@ -4027,7 +4027,8 @@ impl SvgRenderer {
     // -----------------------------------------------------------------------
 
     /// The **box** of a `space` plot's guides: the projected unit cube as a faint
-    /// wireframe, plus the three edges from the origin corner emphasized. Drawn
+    /// wireframe, plus the three edges its axes are numbered along drawn darker
+    /// (`FrameEdge::choose`, the edges `write_space_labels` writes along). Drawn
     /// before the marks so the box sits *behind* the cloud — a draw-order stand-in
     /// for true occlusion, which with front-edge culling is still M8b (spec §16).
     ///
@@ -4047,17 +4048,26 @@ impl SvgRenderer {
         }
         writeln!(svg, "  </g>").unwrap();
 
-        // The three axis edges from the origin corner (0,0,0), a touch darker.
+        // The three edges the numbers are written along, a touch darker, chosen by
+        // the rule `write_space_labels` places them by. These were the three edges
+        // from the origin corner (0,0,0), which at every ordinary angle is the
+        // corner farthest from the camera: the dark edges met at the back of the
+        // floor and carried no number, and the numbered edges were the faint ones
+        // (ruled 2026-09-28: emphasize the numbered edges).
         writeln!(svg, r##"  <g stroke="#9a9aa4" stroke-width="1.4" fill="none">"##).unwrap();
-        for &(a, b) in &[(0usize, 1usize), (0, 3), (0, 4)] {
+        for axis in [FrameAxis::X, FrameAxis::Y, FrameAxis::Z] {
+            let edge = FrameEdge::choose(scene, axis);
+            let (a, b) = (edge.at(0.0), edge.at(1.0));
+            let (pa, pb) = (scene.to_screen(a.0, a.1, a.2), scene.to_screen(b.0, b.1, b.2));
             writeln!(svg, r#"    <line x1="{:.2}" y1="{:.2}" x2="{:.2}" y2="{:.2}"/>"#,
-                corners[a].x, corners[a].y, corners[b].x, corners[b].y).unwrap();
+                pa.x, pa.y, pb.x, pb.y).unwrap();
         }
         writeln!(svg, "  </g>").unwrap();
     }
 
     /// The **labels** of a `space` plot's guides: tick numbers along the three
-    /// origin edges, and each axis named at its far end. Billboarded (always
+    /// edges `FrameEdge::choose` picks for this view (the ones `write_space_box`
+    /// darkens), and each axis named at its far end. Billboarded (always
     /// horizontal) and drawn *after* the marks, so a solid mesh cannot paint over
     /// the numbers that say what it measures.
     ///
@@ -9698,6 +9708,46 @@ mod tests {
                 assert_eq!(labels(&got), labels(&want),
                     "turn {turn} lost labels against {canonical}");
                 assert_eq!(got, want, "turn {turn} is not turn {canonical}");
+            }
+        }
+    }
+
+    /// **The dark edges are the numbered ones** (ruled 2026-09-28). The frame drew
+    /// the three edges from `(0,0,0)` a touch darker, and at every ordinary angle
+    /// that corner is the farthest from the camera: the dark edges met at the back
+    /// of the floor and carried no number, while the numbered edges were the faint
+    /// ones. Measured on the output: each dark edge has numbers written beside it.
+    #[test]
+    fn the_cube_darkens_the_edges_its_numbers_are_written_along() {
+        for view in [SpaceView::default(), SpaceView { turn: -60.0, tilt: 40.0 }] {
+            let svg = SvgRenderer::default().render(&sheet_spec(view.clone()), &sheet());
+            let start = svg.find(r##"<g stroke="#9a9aa4" stroke-width="1.4""##)
+                .expect("the cube's dark edges");
+            let group = &svg[start..start + svg[start..].find("</g>").unwrap()];
+            let num = |l: &str, k: &str| l.split(&format!(r#" {k}=""#)).nth(1).unwrap()
+                .split('"').next().unwrap().parse::<f64>().unwrap();
+            let edges: Vec<[f64; 4]> = group.lines().filter(|l| l.contains("<line"))
+                .map(|l| [num(l, "x1"), num(l, "y1"), num(l, "x2"), num(l, "y2")])
+                .collect();
+            assert_eq!(edges.len(), 3, "one dark edge per axis");
+            // How far a label's anchor sits from an edge, counted only beside the
+            // edge's middle: two floor edges share a corner, so a number by the
+            // corner would vouch for the wrong one.
+            let beside = |(px, py): (f64, f64), e: &[f64; 4]| {
+                let (dx, dy) = (e[2] - e[0], e[3] - e[1]);
+                let t = ((px - e[0]) * dx + (py - e[1]) * dy) / (dx * dx + dy * dy);
+                let d = ((px - e[0] - t * dx).powi(2) + (py - e[1] - t * dy).powi(2)).sqrt();
+                if (0.15..=0.85).contains(&t) { d } else { f64::INFINITY }
+            };
+            let numbers: Vec<(f64, f64)> = frame_labels_of(&svg).into_iter()
+                .filter(|(_, _, t)| t.chars().any(|c| c.is_ascii_digit()))
+                .map(|(x, y, _)| (x, y))
+                .collect();
+            for e in &edges {
+                let nearest = numbers.iter().map(|&p| beside(p, e)).fold(f64::INFINITY, f64::min);
+                assert!(nearest < 30.0,
+                    "{view:?}: the dark edge {e:?} carries no number beside it, the \
+                     nearest is {nearest:.1} px away");
             }
         }
     }

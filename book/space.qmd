@@ -59,6 +59,7 @@ The faint box behind the cloud of points is a guide rather than part of the
 data. A bare cloud of points gives you no way to tell which direction is `x`,
 which is `y` and which is `z`. The box draws the edges of the space the points
 stand in, and each of the three axes puts its numbers along one of those edges.
+Those three edges are drawn darker than the other nine.
 
 Now look at the flowers. At this opening angle *setosa* sits apart from the
 other two, as it did on the flat page, but *versicolor* and *virginica* overlap
@@ -599,18 +600,18 @@ and the cube sits inside the panel. A shared column of numbers beside the page
 would have nothing to point at. The tick reading -200 lands in a different place
 in every panel, because each panel projects from its own rectangle.
 
-Which edges carry the numbers is chosen per viewing angle, and the choice
-follows a rule. The cube offers four parallel edges per axis. The two domains
-take the floor edges nearest you, the pair that makes the V at the bottom of the
-picture. The measure axis takes whichever vertical edge sits on the cube's
-outline. All three lie outside the data, so nothing drawn inside the cube can be
-in front of them. The same choice is visible in
-[Surface](marks/surface.qmd#one-sheet-four-angles): the vertical edge on the
-outline still carries its heights while the surface fills the rest of the
-picture. Before any text is drawn, the engine checks the numbers and axis labels
-against each other for overlap. So two axes cannot print their numbers in the
-same place where their edges meet, and an axis label cannot land on its own last
-tick.
+A cube's three axes are its three darker edges. Which edges they are depends on
+the viewing angle, and the engine picks them by a rule. The cube has four edges
+parallel to each axis. `x` and `y` take the two floor edges nearest you. `z`
+takes the vertical edge on the left side of the cube's outline. Seen from above,
+the two floor edges form a V shape at the bottom of the picture. In that view
+all three lie on the outline, so their numbers sit outside the cube, away from
+the marks. [Surface](marks/surface.qmd#one-sheet-four-angles) shows the same
+rule: the surface fills most of the picture, and the height numbers still sit
+outside it. Before any text is drawn, the engine checks the numbers and axis
+labels against each other for overlap. Where two would overlap, it moves one of
+them farther out, or leaves it out. So numbers from two axes never overlap where
+their edges meet, and an axis label never covers its own last number.
 
 One case is left: an axis that is drawn very short. Tilt the eye up and the
 measure axis is drawn shorter, until its numbers no longer fit. Here is the same

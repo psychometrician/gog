@@ -70,6 +70,12 @@ end
     cube_svg = render_svg(data(cubes) + point + x(:x) + y(:y) + z(:z) | facet(:group))
     @test Base.count("fill=\"#f5f5f8\"", cube_svg) == 2
     @test Base.count("stroke=\"#d8d8de\"", cube_svg) == 2
+    # The darker edges are the three the numbers are written along. They were the
+    # three from the cube's back corner, which all start at one point.
+    solo = render_svg(data(cubes) + point + x(:x) + y(:y) + z(:z))
+    dark = match(r"<g stroke=\"#9a9aa4\" stroke-width=\"1.4\".*?</g>"s, solo).match
+    starts = [m.match for m in eachmatch(r"x1=\"[0-9.]+\" y1=\"[0-9.]+\"", dark)]
+    @test length(starts) == 3 && length(unique(starts)) > 1
 
     # `wrap` folds the line of panels into a rectangle. The count rides with the
     # column; which way the line runs is the operator's, so nothing says it twice.

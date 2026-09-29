@@ -144,6 +144,14 @@ assert svg.count('fill="#f5f5f8"') == _panels, "a faceted cube draws one panel p
 assert svg.count('stroke="#d8d8de"') == _panels, "and each panel projects its own cube"
 ok("`+ z(col.z) | facet(col.group)` draws one projected cube per panel")
 
+# The darker edges are the three the numbers are written along. They were the
+# three from the cube's back corner, which all start at one point.
+_solo = render_svg(data(_cube_df) + point + x(col.x) + y(col.y) + z(col.z))
+_dark = re.search(r'<g stroke="#9a9aa4" stroke-width="1.4".*?</g>', _solo, re.S).group(0)
+_starts = re.findall(r'x1="[0-9.]+" y1="[0-9.]+"', _dark)
+assert len(_starts) == 3 and len(set(_starts)) > 1, _starts
+ok("the cube darkens the three edges its numbers are written along")
+
 # `wrap` folds the line of panels into a rectangle. Ten levels wrapped at four
 # is a 4 x 3 rectangle holding ten panels: the two cells the fold left over are
 # slack, not combinations, so nothing is drawn in them.

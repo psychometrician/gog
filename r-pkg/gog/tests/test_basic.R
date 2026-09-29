@@ -1008,6 +1008,13 @@ local({
   for (t in c(390, 750, -330, -690))
     if (!identical(render_svg(cube(turn = t)), canonical))
       stop("FAIL: space(turn = ", t, ") is the same view as 30 and must draw the same bytes")
+  # The darker edges are the three the numbers are written along. They were the
+  # three from the cube's back corner, which all start at one point.
+  dark <- regmatches(canonical, regexpr('(?s)<g stroke="#9a9aa4" stroke-width="1.4".*?</g>',
+                                        canonical, perl = TRUE))
+  starts <- regmatches(dark, gregexpr('x1="[0-9.]+" y1="[0-9.]+"', dark))[[1]]
+  if (length(starts) != 3 || length(unique(starts)) == 1)
+    stop("FAIL: the cube should darken its three numbered edges, not the three from its back corner")
   cat("PASS: tilt has ends, turn wraps, and equal bearings draw alike\n")
 })
 
