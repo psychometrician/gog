@@ -326,6 +326,19 @@ refuses("a table with no `data()`", lambda: df + point)
 refuses("atoms with no plot", lambda: point + x(col.x))
 refuses("`facet()` joined with `+`", lambda: data(df) + point + x(col.x) + y(col.y) + facet(col.group))
 refuses("a shadowed builtin called as one", lambda: range(120))
+# `map` is the sixth shadowed builtin and the one Python used to answer itself,
+# with a count of arguments. Called as the builtin is, it gets gog's message, and
+# that message and `sum`'s both name all six, read from one list.
+for _call in (lambda: map(str, [1, 2]), lambda: sum([1, 2])):
+    try:
+        _call()
+        raise AssertionError("a builtin-shaped call should refuse")
+    except GogError as _e:
+        assert "shadows `bin`, `sum`, `min`, `max`, `range` and `map`" in str(_e), str(_e)
+        assert "`builtins." in str(_e), str(_e)
+ok("`map` and `sum` called as builtins name all six shadowed names")
+assert map("angle").fields["preserve"] == "angle" and map().fields["preserve"] == "area"
+ok("`map` still takes its one argument, positionally or by name")
 refuses("a bad scale name", lambda: x(col.x, scale="logarithmic"))
 
 # `category` is the third scale chosen from the column's *type*, and since

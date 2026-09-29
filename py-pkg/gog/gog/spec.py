@@ -44,7 +44,26 @@ from .render import Query, refusal_block, render_svg, save, show, svg_block
 # shadowing follows a star-import into the whole module rather than sitting in
 # the search path — which makes saying so, at the moment it bites, part of the
 # binding's job.
-_SHADOWED_BUILTINS = frozenset({"bin", "sum", "min", "max", "range"})
+#
+# `map` is the sixth: not a transform but the projected coordinate space, and
+# the one whose shadowing Python reported itself, as a wrong number of
+# arguments. So the list is kept once, in the order a message names it, and
+# every message that names the shadowing reads it from here, which is what
+# keeps a message from naming five of the six.
+_SHADOWED_IN_ORDER = ("bin", "sum", "min", "max", "range", "map")
+_SHADOWED_BUILTINS = frozenset(_SHADOWED_IN_ORDER)
+
+
+def _shadowed(name: str, what: str, use: str) -> str:
+    """The message for a builtin reached as gog's: what it is here, the whole
+    list of names the star import shadows, and how to reach either one."""
+    names = ", ".join(f"`{n}`" for n in _SHADOWED_IN_ORDER[:-1])
+    return (
+        f"gog: `{name}` here is {what}, not Python's builtin — "
+        f"`from gog import *` shadows {names} and `{_SHADOWED_IN_ORDER[-1]}`. "
+        f"For Python's: `from builtins import {name}`, or call "
+        f"`builtins.{name}(...)`. For gog's, {use}."
+    )
 
 
 class Atom:
@@ -148,12 +167,7 @@ class Atom:
         """
         name = self.fields.get("transform") or self.fields.get("mark") or self.kind
         if name in _SHADOWED_BUILTINS:
-            raise GogError(
-                f"gog: `{name}` here is gog's transform, not Python's builtin — "
-                f"`from gog import *` shadows `bin`, `sum`, `min`, `max` and `range`. "
-                f"For Python's: `from builtins import {name}`, or call "
-                f"`builtins.{name}(...)`. For gog's, use it bare: `bar * {name}`."
-            )
+            raise GogError(_shadowed(name, "gog's transform", f"use it bare: `bar * {name}`"))
         raise GogError(
             f"gog: `{name}` takes no parameters — use it bare, e.g. `bar * {name}`."
         )

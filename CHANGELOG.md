@@ -56,6 +56,13 @@ CRAN-style repositories and PyPI, `GrammarOfGraphics` on Julia's General, and
 
 ### Changed
 
+- **In Python, `map` called as the builtin names the shadowing.** After
+  `from gog import *`, `map(str, values)` failed with Python's own error about
+  the number of arguments. gog now answers it as it answers `sum([1, 2])`: `map`
+  is gog's projected coordinate space here, and the message says how to reach
+  Python's builtin. Both messages list all six names the import shadows, where
+  they listed five.
+
 - **`order()` ranks a category by its whole statistic.** When a channel split a
   category's bar, `order()` ranked the category by its first piece, so under
   `bar * sum + color(era)` each continent was ranked by its first era's

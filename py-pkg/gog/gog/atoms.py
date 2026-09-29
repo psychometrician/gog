@@ -25,7 +25,7 @@ from typing import Any, Dict, List, Mapping, Optional, Sequence, Union
 from .columns import Column, column_name
 from .errors import GogError
 from .render import _epoch_seconds
-from .spec import Atom, CallableAtom
+from .spec import Atom, CallableAtom, _shadowed
 
 # ---------------------------------------------------------------------------
 # Marks — the geometric forms
@@ -905,7 +905,18 @@ class _Map(CallableAtom):
 
     __slots__ = ()
 
-    def __call__(self, preserve: str = "area") -> Atom:
+    def __call__(self, *args: Any, **kwargs: Any) -> Atom:
+        # `from gog import *` puts this over Python's builtin, so `map(str, xs)`
+        # arrives here, and a one-argument signature answered it with Python's
+        # count of arguments, which says nothing about the shadowing. A call
+        # shaped like the builtin's, a function first or a second argument, is
+        # answered as `sum(...)` is: with what `map` is here and how to reach
+        # Python's.
+        if len(args) > 1 or (args and callable(args[0])) or set(kwargs) - {"preserve"}:
+            raise GogError(_shadowed(
+                "map", "gog's projected coordinate space",
+                'add it to a plot: `+ map` or `+ map(preserve="angle")`'))
+        preserve = args[0] if args else kwargs.get("preserve", "area")
         # Validated at the line the caller wrote, rather than at the wire. The
         # engine checks it too — a rule implemented in one binding is a rule the
         # other three get wrong — but a reader is owed the error where they typed

@@ -203,29 +203,29 @@ Python's does not. Each language is following the convention it already has.
 Six of gog's names are also Python **builtins**, the functions Python provides
 without any import: `bin`, `map`, `max`, `min`, `range` and `sum`. After
 `from gog import *`, those six names mean gog's atoms, not Python's builtins,
-for the rest of the file or notebook. The R package does the same to base R, and
-`max`, `min`, `range` and `sum` are among its names too. gog does not rename an
-atom to avoid a name the language already uses. Call `sum`, `min` or `max` as
-you would call Python's builtin, or `range` with numbers outside 0 to 1, and gog
-raises an error. The message says the name is gog's, and how to reach Python's
-builtin:
+for the rest of the file or notebook. gog's
+[R package shares names with R](r.qmd#twenty-names-r-already-uses) as well, and
+`max`, `min`, `range` and `sum` are four of them. gog does not rename an atom
+to avoid a name the language already uses. If you call `sum`, `min`, `max` or
+`map` as you would call Python's builtin, gog refuses the call. So does `range`
+with whole numbers outside 0 to 1. The message says the name is gog's, and how
+to reach Python's builtin:
 
 ```{r}
 #| echo: false
 py_show("try:\n    range(10)\nexcept GogError as error:\n    print(error)")
 ```
 
-That is `range`'s message. `sum`, `min` and `max` share another one, which also
-says how to reach Python's builtin.
+That is `range`'s message. Its word for this is *shadows*: after the import, the
+name reaches gog's atom instead of Python's builtin. `sum`, `min`, `max` and
+`map` share a different message, which lists all six names and says how to
+reach Python's builtin.
 
-The other two give no useful message. `bin(5)` returns a transform where Python
-would have returned a string, so nothing is reported at all. `map` does raise an
-error, but Python writes it, not gog. Python's `map` takes a function and a
-sequence, and gog's takes at most one argument. So the error is about the number
-of arguments, and it does not say that `map` is now gog's.
+One name, `bin`, gives no message at all. `bin(5)` is also how you ask gog for
+five bins, so it returns a transform instead of Python's string `'0b101'`.
 
-A module that needs Python's builtins as well as gog can write `import gog` and
-then `gog.point`, or import one builtin again with `from builtins import sum`.
+If a file needs Python's builtins as well as gog, write `import gog` and then
+`gog.point`, or restore one builtin with `from builtins import sum`.
 
 ## What does not change
 
