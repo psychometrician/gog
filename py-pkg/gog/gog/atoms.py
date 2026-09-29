@@ -733,7 +733,8 @@ def _check_legend(legend: Any) -> Optional[bool]:
 
 
 def _position(kind: str, name: str, field: Any, scale: Any, base: Any, limits: Any = None,
-              tick_count: Any = None, free: Any = None, legend: Any = None) -> Atom:
+              tick_count: Any = None, free: Any = None, legend: Any = None,
+              speed: Any = None) -> Atom:
     return Atom(
         kind,
         field=column_name(field, name),
@@ -741,30 +742,53 @@ def _position(kind: str, name: str, field: Any, scale: Any, base: Any, limits: A
         base=_check_base(base),
         limits=_check_limits(limits),
         tick_count=_check_tick_count(tick_count),
+        speed=_check_speed(speed),
         free=_check_free(free, name),
         legend=_check_legend(legend),
     )
 
 
+def _channel(kind: str, field: Any, scale: Any = None, base: Any = None, limits: Any = None,
+             tick_count: Any = None, speed: Any = None, free: Any = None,
+             legend: Any = None) -> Atom:
+    """A channel with every parameter a binding can carry, each checked for shape
+    and forwarded: the engine decides where one means nothing, and says so in the
+    same words in all four bindings, where Python would only raise `TypeError`."""
+    return Atom(
+        kind,
+        field=column_name(field, kind),
+        scale=_check_scale(scale),
+        base=_check_base(base),
+        limits=_check_limits(limits),
+        tick_count=_check_tick_count(tick_count),
+        speed=_check_speed(speed),
+        free=_check_free(free, kind),
+        legend=_check_legend(legend),
+    )
+
+
 def x(field: Column, scale: Optional[str] = None, base: Optional[float] = None,
-      limits: Limits = None, tick_count: Optional[int] = None,
+      limits: Limits = None, tick_count: Optional[int] = None, speed: Optional[float] = None,
       free: bool = False, legend: Optional[bool] = None) -> Atom:
     """Bind the x axis to a column."""
-    return _position("coord_x", "x", field, scale, base, limits, tick_count, free, legend)
+    return _position("coord_x", "x", field, scale, base, limits, tick_count, free, legend,
+                     speed)
 
 
 def y(field: Column, scale: Optional[str] = None, base: Optional[float] = None,
-      limits: Limits = None, tick_count: Optional[int] = None,
+      limits: Limits = None, tick_count: Optional[int] = None, speed: Optional[float] = None,
       free: bool = False, legend: Optional[bool] = None) -> Atom:
     """Bind the y axis to a column."""
-    return _position("coord_y", "y", field, scale, base, limits, tick_count, free, legend)
+    return _position("coord_y", "y", field, scale, base, limits, tick_count, free, legend,
+                     speed)
 
 
 def z(field: Column, scale: Optional[str] = None, base: Optional[float] = None,
-      limits: Limits = None, tick_count: Optional[int] = None,
+      limits: Limits = None, tick_count: Optional[int] = None, speed: Optional[float] = None,
       free: bool = False, legend: Optional[bool] = None) -> Atom:
     """Bind the z axis to a column — one more vowel, not a chart type."""
-    return _position("coord_z", "z", field, scale, base, limits, tick_count, free, legend)
+    return _position("coord_z", "z", field, scale, base, limits, tick_count, free, legend,
+                     speed)
 
 
 def _degrees(value, atom: str, name: str) -> float:
@@ -943,18 +967,11 @@ map = _Map("coord_map", preserve="area")
 
 
 def color(field: Column, scale: Optional[str] = None, base: Optional[float] = None,
-          limits: Limits = None, free: bool = False,
+          limits: Limits = None, tick_count: Optional[int] = None,
+          speed: Optional[float] = None, free: bool = False,
           legend: Optional[bool] = None) -> Atom:
     """Map fill/stroke color to a column. `legend=False` leaves its legend out."""
-    return Atom(
-        "color",
-        field=column_name(field, "color"),
-        scale=_check_scale(scale),
-        base=_check_base(base),
-        limits=_check_limits(limits),
-        free=_check_free(free, "color"),
-        legend=_check_legend(legend),
-    )
+    return _channel("color", field, scale, base, limits, tick_count, speed, free, legend)
 
 
 def colour(*args: Any, **kwargs: Any) -> Atom:
@@ -975,66 +992,60 @@ def colour(*args: Any, **kwargs: Any) -> Atom:
 
 
 def size(field: Column, scale: Optional[str] = None, base: Optional[float] = None,
-          limits: Limits = None, free: bool = False,
-          legend: Optional[bool] = None) -> Atom:
+         limits: Limits = None, tick_count: Optional[int] = None,
+         speed: Optional[float] = None, free: bool = False,
+         legend: Optional[bool] = None) -> Atom:
     """Map size to a numeric column. `legend=False` leaves its legend out."""
-    return Atom(
-        "size",
-        field=column_name(field, "size"),
-        scale=_check_scale(scale),
-        base=_check_base(base),
-        limits=_check_limits(limits),
-        free=_check_free(free, "size"),
-        legend=_check_legend(legend),
-    )
+    return _channel("size", field, scale, base, limits, tick_count, speed, free, legend)
 
 
 def opacity(field: Column, scale: Optional[str] = None, base: Optional[float] = None,
-          limits: Limits = None, free: bool = False,
-          legend: Optional[bool] = None) -> Atom:
+            limits: Limits = None, tick_count: Optional[int] = None,
+            speed: Optional[float] = None, free: bool = False,
+            legend: Optional[bool] = None) -> Atom:
     """Map opacity to a numeric column. `legend=False` leaves its legend out."""
-    return Atom(
-        "opacity",
-        field=column_name(field, "opacity"),
-        scale=_check_scale(scale),
-        base=_check_base(base),
-        limits=_check_limits(limits),
-        free=_check_free(free, "opacity"),
-        legend=_check_legend(legend),
-    )
+    return _channel("opacity", field, scale, base, limits, tick_count, speed, free, legend)
 
 
-def group(field: Column, free: bool = False, legend: Optional[bool] = None) -> Atom:
+def group(field: Column, scale: Optional[str] = None, base: Optional[float] = None,
+          limits: Limits = None, tick_count: Optional[int] = None,
+          speed: Optional[float] = None, free: bool = False,
+          legend: Optional[bool] = None) -> Atom:
     """Group a line/path by a column, without giving each group a color.
 
     `legend=` is taken only to be refused by the engine with direction: a group
     encodes nothing, so it draws no legend to leave out.
     """
-    return Atom("group", field=column_name(field, "group"), free=_check_free(free, "group"),
-                legend=_check_legend(legend))
+    return _channel("group", field, scale, base, limits, tick_count, speed, free, legend)
 
 
-def shape(field: Column, free: bool = False, legend: Optional[bool] = None) -> Atom:
+def shape(field: Column, scale: Optional[str] = None, base: Optional[float] = None,
+          limits: Limits = None, tick_count: Optional[int] = None,
+          speed: Optional[float] = None, free: bool = False,
+          legend: Optional[bool] = None) -> Atom:
     """Map glyph shape to a categorical column. `legend=False` leaves its legend out."""
-    return Atom("shape", field=column_name(field, "shape"), free=_check_free(free, "shape"),
-                legend=_check_legend(legend))
+    return _channel("shape", field, scale, base, limits, tick_count, speed, free, legend)
 
 
-def pattern(field: Column, free: bool = False, legend: Optional[bool] = None) -> Atom:
+def pattern(field: Column, scale: Optional[str] = None, base: Optional[float] = None,
+            limits: Limits = None, tick_count: Optional[int] = None,
+            speed: Optional[float] = None, free: bool = False,
+            legend: Optional[bool] = None) -> Atom:
     """Map paint texture to a categorical column — `shape`'s twin. `legend=False`
     leaves its legend out."""
-    return Atom("pattern", field=column_name(field, "pattern"),
-                free=_check_free(free, "pattern"), legend=_check_legend(legend))
+    return _channel("pattern", field, scale, base, limits, tick_count, speed, free, legend)
 
 
-def label(field: Column, free: bool = False, legend: Optional[bool] = None) -> Atom:
+def label(field: Column, scale: Optional[str] = None, base: Optional[float] = None,
+          limits: Limits = None, tick_count: Optional[int] = None,
+          speed: Optional[float] = None, free: bool = False,
+          legend: Optional[bool] = None) -> Atom:
     """Draw a column's values as text — the `text` mark's content.
 
     `legend=` is taken only to be refused by the engine with direction: a label
     is read where it is written, so it draws no legend.
     """
-    return Atom("label", field=column_name(field, "label"), free=_check_free(free, "label"),
-                legend=_check_legend(legend))
+    return _channel("label", field, scale, base, limits, tick_count, speed, free, legend)
 
 
 def _check_speed(speed: Optional[float]) -> Optional[float]:
@@ -1053,7 +1064,9 @@ def _check_speed(speed: Optional[float]) -> Optional[float]:
     return float(speed)
 
 
-def play(field: Column, speed: Optional[float] = None, free: bool = False,
+def play(field: Column, speed: Optional[float] = None, scale: Optional[str] = None,
+         base: Optional[float] = None, limits: Limits = None,
+         tick_count: Optional[int] = None, free: bool = False,
          legend: Optional[bool] = None) -> Atom:
     """Cut the plot into frames and play them — the time dimension.
 
@@ -1073,8 +1086,7 @@ def play(field: Column, speed: Optional[float] = None, free: bool = False,
     `legend=` is taken only to be refused by the engine with direction: each
     frame is named in the strip above the panel, so `play` draws no legend.
     """
-    return Atom("play", field=column_name(field, "play"), speed=_check_speed(speed),
-                free=_check_free(free, "play"), legend=_check_legend(legend))
+    return _channel("play", field, scale, base, limits, tick_count, speed, free, legend)
 
 
 def _check_brush_at(at):

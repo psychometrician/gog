@@ -4,10 +4,29 @@
 \alias{shape}
 \title{Map glyph shape to a categorical column.}
 \usage{
-shape(field, free = FALSE, legend = NULL)
+shape(
+  field,
+  scale = NULL,
+  base = NULL,
+  limits = NULL,
+  tick_count = NULL,
+  speed = NULL,
+  free = FALSE,
+  legend = NULL
+)
 }
 \arguments{
 \item{field}{Column to bind to the glyph shape, as a bare name.}
+
+\item{scale, base, limits}{Not taken: this channel distinguishes categories
+rather than measuring them, so there is no scale or range along it. gog
+refuses each of them here.}
+
+\item{tick_count}{Not taken: only a position, \code{x}, \code{y} or \code{z}, has an axis
+with ticks to count. gog refuses it here.}
+
+\item{speed}{Not taken: only \code{play} spends time, so there is no pace to set
+here. gog refuses it and says to put it on the frames.}
 
 \item{free}{Not taken: \code{free} fits an axis to each panel's own rows, and only
 a position, \code{x}, \code{y} or \code{z}, has an axis. gog refuses it here and says to
@@ -22,6 +41,6 @@ lines.}
 A \code{gog_atom} added to a plot with \code{+}.
 }
 \description{
-No \code{scale} argument: \code{shape} answers "which one?", and there is no
+A \code{scale} is refused: \code{shape} answers "which one?", and there is no
 distance between circle and square for a scale to run along.
 }

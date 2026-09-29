@@ -659,29 +659,38 @@ function check_legend(legend)
 end
 
 position_atom(kind::Symbol, name::AbstractString, field, scale, base, limits,
-              tick_count, free, legend = nothing) =
+              tick_count, free, legend = nothing, speed = nothing) =
+    channel_atom(kind, name, field; scale, base, limits, tick_count, speed, free, legend)
+
+# Every channel takes every parameter a binding can carry, checks its shape and
+# forwards it: the engine decides where one means nothing and says so in the same
+# words in all four bindings, where Julia would only raise a `MethodError`.
+channel_atom(kind::Symbol, name::AbstractString, field; scale = nothing, base = nothing,
+             limits = nothing, tick_count = nothing, speed = nothing, free = false,
+             legend = nothing) =
     Atom(kind, Dict{Symbol,Any}(:field => column_name(field, name),
                                 :scale => check_scale(scale),
                                 :base => check_base(base),
                                 :limits => check_limits(limits),
                                 :tick_count => check_tick_count(tick_count),
+                                :speed => check_speed(speed),
                                 :free => check_free(free, name),
                                 :legend => check_legend(legend)))
 
 """Bind the x axis to a column."""
 x(field; scale = nothing, base = nothing, limits = nothing, tick_count = nothing,
-  free = false, legend = nothing) =
-    position_atom(:coord_x, "x", field, scale, base, limits, tick_count, free, legend)
+  speed = nothing, free = false, legend = nothing) =
+    position_atom(:coord_x, "x", field, scale, base, limits, tick_count, free, legend, speed)
 
 """Bind the y axis to a column."""
 y(field; scale = nothing, base = nothing, limits = nothing, tick_count = nothing,
-  free = false, legend = nothing) =
-    position_atom(:coord_y, "y", field, scale, base, limits, tick_count, free, legend)
+  speed = nothing, free = false, legend = nothing) =
+    position_atom(:coord_y, "y", field, scale, base, limits, tick_count, free, legend, speed)
 
 """Bind the z axis to a column — one more vowel, not a chart type."""
 z(field; scale = nothing, base = nothing, limits = nothing, tick_count = nothing,
-  free = false, legend = nothing) =
-    position_atom(:coord_z, "z", field, scale, base, limits, tick_count, free, legend)
+  speed = nothing, free = false, legend = nothing) =
+    position_atom(:coord_z, "z", field, scale, base, limits, tick_count, free, legend, speed)
 
 # The four atoms that take an angle, each with its own call to show. JavaScript
 # has carried these examples since it was written and the other three did not,
@@ -795,20 +804,12 @@ const map = Atom(:coord_map, Dict{Symbol,Any}(:preserve => "area"),
 # ---------------------------------------------------------------------------
 
 scaled_channel(kind::Symbol, name::AbstractString) =
-    (field; scale = nothing, base = nothing, limits = nothing, free = false,
-     legend = nothing) ->
-        Atom(kind, Dict{Symbol,Any}(:field => column_name(field, name),
-                                    :scale => check_scale(scale),
-                                    :base => check_base(base),
-                                    :limits => check_limits(limits),
-                                    :free => check_free(free, name),
-                                    :legend => check_legend(legend)))
+    (field; kwargs...) -> channel_atom(kind, name, field; kwargs...)
 
+# The same parameters as a scaled channel; the name says which channels the engine
+# refuses a scale on, not which keywords the function takes.
 plain_channel(kind::Symbol, name::AbstractString) =
-    (field; free = false, legend = nothing) ->
-        Atom(kind, Dict{Symbol,Any}(:field => column_name(field, name),
-                                    :free => check_free(free, name),
-                                    :legend => check_legend(legend)))
+    (field; kwargs...) -> channel_atom(kind, name, field; kwargs...)
 
 """Map fill/stroke color to a column."""
 const color = scaled_channel(:color, "color")
@@ -867,11 +868,7 @@ stands still behind the marks that move.
 
 Unlike `facet`, a number is welcome: panels compete for page area, frames compete
 for time. A static image made from the plot shows the first frame."""
-play(field; speed = nothing, free = false, legend = nothing) =
-    Atom(:play, Dict{Symbol,Any}(:field => column_name(field, "play"),
-                                 :speed => check_speed(speed),
-                                 :free => check_free(free, "play"),
-                                 :legend => check_legend(legend)))
+play(field; kwargs...) = channel_atom(:play, "play", field; kwargs...)
 
 # What `at` was given, and which of the two readings it is. One keyword rather
 # than two, because the *value* answers the question the way a column answers it

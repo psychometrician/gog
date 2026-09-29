@@ -56,6 +56,14 @@ CRAN-style repositories and PyPI, `GrammarOfGraphics` on Julia's General, and
 
 ### Changed
 
+- **Every channel takes every channel parameter, and gog refuses the ones that
+  mean nothing there.** `speed` off `play`, `tick_count` off `x`, `y` and `z`,
+  and `scale`, `base` and `limits` on a channel that tells categories apart
+  (`shape`, `pattern`, `group`, `label`, `play`) met the language's own error
+  (R's "unused argument", Python's `TypeError`). Each now reaches gog's refusal,
+  which says where the parameter belongs, in the same words in all four
+  packages.
+
 - **`save()` is retired for `save_svg()`.** In JavaScript and Julia
   `save(plot, path)`, and in Python `plot.save(path)`, now refuse and name
   `save_svg()`, which writes the same drawing and says in its name that the file

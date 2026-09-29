@@ -681,14 +681,29 @@ ok("legend= on a channel with no key is refused with direction")
 refuses("a backwards domain", lambda: x(col.hour, limits=(20, 5)))
 refuses("one number as a domain", lambda: x(col.hour, limits=5))
 
-# `shape` measures nothing, so it offers no domain either — the same absence as
-# `scale`, which is what makes it one rule rather than two lists. Refused by the
-# signature, exactly as R's "unused argument" does it.
+# `shape` measures nothing, so a domain on it is refused — the same refusal as
+# `scale`, which is what makes it one rule rather than two lists. Every channel
+# takes the argument and the engine refuses it, in the words all four print.
 try:
-    shape(col.g, limits=(0, 1))
-    raise AssertionError("shape should take no limits")
-except TypeError:
-    ok("shape offers no limits to misuse")
+    render_svg(data({"g": ["a", "b"], "v": [1.0, 2.0]}, name="two") + point + x(col.v)
+               + y(col.v) + shape(col.g, limits=(0, 1)))
+    raise AssertionError("shape should refuse limits")
+except GogError as _e:
+    assert "`limits` on `shape(g)`" in str(_e), str(_e)
+    ok("shape refuses limits")
+
+# Every channel takes all seven parameters and forwards them, as `free` and
+# `legend` are, so each lands on the engine's refusal rather than a `TypeError`.
+_two = {"g": ["a", "b"], "v": [1.0, 2.0]}
+for _atom, _said in [(color(col.g, speed=2), "`speed` on `color(g)`"),
+                     (color(col.v, tick_count=5), "`tick_count` on `color(v)`"),
+                     (shape(col.g, scale="log"), "`scale` on `shape(g)`")]:
+    try:
+        render_svg(data(_two, name="two") + point + x(col.v) + y(col.v) + _atom)
+        raise AssertionError(f"{_said} should refuse")
+    except GogError as _e:
+        assert _said in str(_e), str(_e)
+ok("speed, tick_count and scale where they mean nothing reach the engine's refusal")
 
 # A domain on a temporal axis is written in dates, and the binding converts them
 # the way it converts the column — otherwise the two disagree by a factor of
@@ -815,11 +830,13 @@ assert set(few) <= set(many), f"a sparse axis invented labels: {set(few) - set(m
 ok("a sparse axis's ticks are a subset of a dense one's")
 
 # A legend is not a short axis: `limits` reaches all six magnitude channels,
-# `tick_count` only the three that draw an axis. Refused by the signature.
+# `tick_count` only the three that draw an axis, and the engine says so.
 try:
-    color(col.a, tick_count=4)
-    raise AssertionError("color should take no tick_count")
-except TypeError:
+    render_svg(data({"a": [1.0, 2.0]}, name="a") + point + x(col.a) + y(col.a)
+               + color(col.a, tick_count=4))
+    raise AssertionError("color should refuse a tick_count")
+except GogError as _e:
+    assert "`tick_count` on `color(a)`" in str(_e), str(_e)
     ok("a legend has no tick count to ask for")
 
 # Caught in the binding, at the line that wrote it.

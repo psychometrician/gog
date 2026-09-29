@@ -5,10 +5,29 @@
 \title{Group line/path marks by a column (connects points within the same group).
 Use color(field) when you also want color distinction — it implies grouping.}
 \usage{
-group(field, free = FALSE, legend = NULL)
+group(
+  field,
+  scale = NULL,
+  base = NULL,
+  limits = NULL,
+  tick_count = NULL,
+  speed = NULL,
+  free = FALSE,
+  legend = NULL
+)
 }
 \arguments{
 \item{field}{Column to group by, as a bare name.}
+
+\item{scale, base, limits}{Not taken: this channel distinguishes categories
+rather than measuring them, so there is no scale or range along it. gog
+refuses each of them here.}
+
+\item{tick_count}{Not taken: only a position, \code{x}, \code{y} or \code{z}, has an axis
+with ticks to count. gog refuses it here.}
+
+\item{speed}{Not taken: only \code{play} spends time, so there is no pace to set
+here. gog refuses it and says to put it on the frames.}
 
 \item{free}{Not taken: \code{free} fits an axis to each panel's own rows, and only
 a position, \code{x}, \code{y} or \code{z}, has an axis. gog refuses it here and says to

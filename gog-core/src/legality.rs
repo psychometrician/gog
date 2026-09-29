@@ -11619,9 +11619,9 @@ fn check_speed(
         out.push(Diagnostic {
             kind: DiagnosticKind::Illegal,
             message: format!(
-                "gog: `{c}({field}, speed = {s})` — `{c}` is drawn all at once, so it has \
-                 no pace to set. Only `play` spends time. Put `speed` on the frames — \
-                 `play(…, speed = {s})` — or leave it off."
+                "gog: `speed` on `{c}({field})`: `{c}` is drawn all at once, so it has no \
+                 pace to set. Only `play` spends time. Put `speed` on the frames, \
+                 `play(<column>)`, or drop it."
             ),
         });
         return;
@@ -11827,8 +11827,13 @@ fn check_scale(
         out.push(Diagnostic {
             kind: DiagnosticKind::Illegal,
             message: format!(
-                "gog: `{c}({field}, scale = …)` — `{c}` distinguishes categories rather than \
-                 measuring them, so there is no scale for it to run along. Remove the scale."
+                "gog: `{what}` on `{c}({field})`: `{c}` distinguishes categories rather than \
+                 measuring them, so there is no scale for it to run along. Drop `{what}`.",
+                what = match (def.scale.is_some(), def.base.is_some()) {
+                    (true, true) => "scale` and `base",
+                    (false, true) => "base",
+                    _ => "scale",
+                }
             ),
         });
         return;
@@ -12054,10 +12059,8 @@ fn check_tick_count(
         out.push(Diagnostic {
             kind: DiagnosticKind::Illegal,
             message: format!(
-                "gog: `{c}({field}, tick_count = {n})` — `{c}` is decoded by a legend rather \
-                 than by an axis, and a legend names three rows: both ends and the middle. \
-                 There is no count to choose. Put `tick_count` on a position — \
-                 `x({field}, tick_count = {n})` — or leave it off."
+                "gog: `tick_count` on `{c}({field})`: `{c}` has no axis, so there are no \
+                 ticks to count. Put `tick_count` on a position, `x`, `y` or `z`, or drop it."
             ),
         });
         return;
@@ -12117,9 +12120,9 @@ fn check_limits(
         out.push(Diagnostic {
             kind: DiagnosticKind::Illegal,
             message: format!(
-                "gog: `{c}({field}, limits = …)` — `{c}` distinguishes categories rather than \
-                 measuring them, so there is no range along it for limits to cut. Remove the \
-                 limits."
+                "gog: `limits` on `{c}({field})`: `{c}` distinguishes categories rather than \
+                 measuring them, so there is no range along it for limits to cut. Drop \
+                 `limits`."
             ),
         });
         return;
@@ -22083,7 +22086,7 @@ mod tests {
                 Layer::new(mark.clone()).encode_def(
                     c.clone(), ChannelDef::field("gdp").with_tick_count(8)));
             let refused = check(&spec, &data()).iter().any(|x|
-                x.message.contains("decoded by a legend rather than by an axis"));
+                x.message.contains("has no axis, so there are no ticks to count"));
             assert_eq!(refused, !position,
                 "{c:?} on {mark:?}: tick_count should be {} here",
                 if position { "accepted" } else { "refused" });

@@ -929,9 +929,10 @@ test("the named ramps render as themselves, and limits center a diverging one", 
     plot(data(cats), layer(bar, count), x(col.g), color(col.g), palette("soft")));
   assert.ok(bars.includes("#66c2a5"), "palette('soft') did not reach the bars");
   assert.ok(!bars.includes("#4e79a7"), "palette('soft') fell back to the default");
-  // `shape` measures nothing, so it offers no domain either — and JavaScript's
-  // options object refuses an unknown key rather than ignoring it.
-  refuses(() => shape(col.g, { limits: [0, 1] }), /limits/);
+  // `shape` measures nothing, so a domain on it is refused: every channel takes
+  // the argument and the engine refuses it, in the words all four bindings print.
+  refuses(() => render_svg(plot(data({ g: ["a", "b"], v: [1, 2] }), point, x(col.v), y(col.v),
+    shape(col.g, { limits: [0, 1] }))), /`limits` on `shape\(g\)`/);
 
   // A domain on a temporal axis is written in dates, and the binding converts
   // them the way it converts the column — otherwise the two disagree and every
@@ -1050,9 +1051,16 @@ test("tick_count states how many ticks an axis aims for", () => {
     `a sparse axis invented labels: ${few.filter((t) => !dense.has(t))}`);
 
   // A legend is not a short axis: `limits` reaches all six magnitude channels,
-  // `tick_count` only the three that draw an axis. JavaScript's options object
-  // refuses an unknown key rather than ignoring it.
-  refuses(() => color(col.a, { tick_count: 4 }), /tick_count/);
+  // `tick_count` only the three that draw an axis, and the engine says so.
+  refuses(() => render_svg(plot(data({ a: [1, 2] }), point, x(col.a), y(col.a),
+    color(col.a, { tick_count: 4 }))), /`tick_count` on `color\(a\)`/);
+  // Every channel takes all seven parameters and forwards them, so each lands on
+  // the engine's refusal rather than on "has no `speed`".
+  const two = { g: ["a", "b"], v: [1, 2] };
+  refuses(() => render_svg(plot(data(two), point, x(col.v), y(col.v), color(col.g, { speed: 2 }))),
+    /`speed` on `color\(g\)`/);
+  refuses(() => render_svg(plot(data(two), point, x(col.v), y(col.v), shape(col.g, { scale: "log" }))),
+    /`scale` on `shape\(g\)`/);
 
   // Caught in the binding, at the line that wrote it.
   refuses(() => x(col.a, { tick_count: 1 }), /at least two ticks/);

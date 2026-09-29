@@ -1405,6 +1405,25 @@ for (bad in list(
   cat("PASS: ", bad$what, " refuses with direction\n", sep = "")
 }
 
+# Every channel takes all seven parameters and forwards them, as `free` and
+# `legend` are, so a parameter written where it means nothing meets the engine's
+# refusal, the same words in all four bindings, never R's "unused argument".
+for (bad in list(
+  list(what = "speed off play", says = "`speed` on `color(g)`",
+       f = function() render_svg(data(free_df) + point + x(x) + y(y) + color(g, speed = 2))),
+  list(what = "tick_count off a position", says = "`tick_count` on `color(g)`",
+       f = function() render_svg(data(free_df) + point + x(x) + y(y) + color(g, tick_count = 5))),
+  list(what = "a scale on a categorical channel", says = "`scale` on `shape(g)`",
+       f = function() render_svg(data(free_df) + point + x(x) + y(y) + shape(g, scale = "log"))),
+  list(what = "limits on a categorical channel", says = "`limits` on `shape(g)`",
+       f = function() render_svg(data(free_df) + point + x(x) + y(y) +
+                                   shape(g, limits = c(0, 1)))))) {
+  msg <- tryCatch({ bad$f(); NULL }, error = function(e) conditionMessage(e))
+  if (is.null(msg) || !grepl(bad$says, msg, fixed = TRUE))
+    stop("FAIL: ", bad$what, " should reach the engine's refusal; got: ", msg)
+  cat("PASS: ", bad$what, " reaches the engine's refusal\n", sep = "")
+}
+
 err_free <- tryCatch({ y(life, free = "yes"); NULL }, error = function(e) conditionMessage(e))
 if (is.null(err_free) || !grepl("TRUE or FALSE", err_free))
   stop("FAIL: `free = \"yes\"` should refuse")
@@ -2189,10 +2208,13 @@ if (!("10M" %in% tick_labels(lg)))
        paste(tick_labels(lg), collapse = " "))
 cat("PASS: a log legend labels the geometric midpoint\n")
 
-# `shape` distinguishes rather than measures, so it offers no scale at all.
-e <- tryCatch({ shape(g, scale = "log"); NULL }, error = function(e) conditionMessage(e))
-if (is.null(e) || !grepl("unused argument", e)) stop("FAIL: shape should take no scale")
-cat("PASS: shape offers no scale to misuse\n")
+# `shape` distinguishes rather than measures, so a scale on it is refused, by the
+# engine, in the words all four bindings print.
+engine_says <- function(expr) tryCatch({ force(expr); "" }, error = function(e) conditionMessage(e))
+two_rows <- data.frame(g = c("a", "b"), v = c(1, 2))
+e <- engine_says(render_svg(data(two_rows) + point + x(v) + y(v) + shape(g, scale = "log")))
+if (!grepl("`scale` on `shape(g)`", e, fixed = TRUE)) stop("FAIL: shape should refuse a scale, got: ", e)
+cat("PASS: shape refuses a scale\n")
 
 # ---------------------------------------------------------------------------
 # limits — the domain, when the data is not the authority (spec §10)
@@ -2250,11 +2272,11 @@ e <- tryCatch({ x(hour, limits = 5); NULL }, error = function(e) conditionMessag
 if (is.null(e) || !grepl("needs two numbers", e)) stop("FAIL: one number is not a domain")
 cat("PASS: a malformed domain is refused at the binding\n")
 
-# `shape` measures nothing, so it offers no domain either — the same absence as
+# `shape` measures nothing, so a domain on it is refused too — the same refusal as
 # `scale`, which is what makes it one rule rather than two lists.
-e <- tryCatch({ shape(g, limits = c(0, 1)); NULL }, error = function(e) conditionMessage(e))
-if (is.null(e) || !grepl("unused argument", e)) stop("FAIL: shape should take no limits")
-cat("PASS: shape offers no limits to misuse\n")
+e <- engine_says(render_svg(data(two_rows) + point + x(v) + y(v) + shape(g, limits = c(0, 1))))
+if (!grepl("`limits` on `shape(g)`", e, fixed = TRUE)) stop("FAIL: shape should refuse limits, got: ", e)
+cat("PASS: shape refuses limits\n")
 
 # ---------------------------------------------------------------------------
 # tick_count — how many ticks an axis aims for (spec §10)
@@ -2296,9 +2318,9 @@ cat("PASS: the third axis honors a tick count too (", zfew, "->", zmany, ")\n")
 
 # The line between this and `limits`: a domain reaches all six magnitude
 # channels, a tick count only the three that draw an axis.
-e <- tryCatch({ color(a, tick_count = 4); NULL }, error = function(e) conditionMessage(e))
-if (is.null(e) || !grepl("unused argument", e))
-  stop("FAIL: color should take no tick_count")
+e <- engine_says(render_svg(data(two_rows) + point + x(v) + y(v) + color(v, tick_count = 4)))
+if (!grepl("`tick_count` on `color(v)`", e, fixed = TRUE))
+  stop("FAIL: color should refuse a tick_count, got: ", e)
 cat("PASS: a legend has no tick count to ask for\n")
 
 # Caught in the binding, at the line that wrote it.
@@ -4472,9 +4494,10 @@ local({
                          type = "message")
   if (!any(grepl("`color(v)` holds numbers", said, fixed = TRUE)))
     stop("FAIL: a ramped line's warning should name its color, got ", paste(said, collapse = " | "))
-  msg <- tryCatch(opacity(life, tick_count = 3), error = conditionMessage)
-  if (!grepl("unused argument", msg, fixed = TRUE))
-    stop("FAIL: opacity() should take no tick_count, as color() and size() take none")
+  msg <- tryCatch({ render_svg(data(ramp) + point + x(x) + y(y) + opacity(v, tick_count = 3)); "" },
+                  error = conditionMessage)
+  if (!grepl("`tick_count` on `opacity(v)`", msg, fixed = TRUE))
+    stop("FAIL: opacity() should refuse a tick_count, as color() and size() do, got: ", msg)
   cat("PASS: counts on every axis, calendar z, shared ticks, one key, transparent,",
       "names beside the panel, dashed edges, node labels\n")
 })

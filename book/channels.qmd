@@ -664,7 +664,8 @@ data(gapminder_2007) + point + x(gdp, scale = "log") + y(life) +
 ```
 
 `color`, `size` and `opacity` all take `scale =`, because all three answer "how
-far along?". `shape`, `pattern` and `group` do not: they answer "which one?".
+far along?". gog refuses it on `shape`, `pattern` and `group`: they answer "which
+one?".
 
 ### Custom colors
 

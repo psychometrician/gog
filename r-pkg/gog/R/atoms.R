@@ -1356,13 +1356,15 @@ check_speed <- function(speed) {
 #' @param legend  Not taken by a position, which is read off its axis rather
 #'   than from a legend; gog refuses it here and names the five channels that draw
 #'   a legend: `color`, `size`, `shape`, `pattern` and `opacity`.
+#' @param speed  Not taken: only `play` spends time, so there is no pace to set
+#'   here. gog refuses it and says to put it on the frames.
 #' @export
 x <- function(field, scale = NULL, base = NULL, limits = NULL, tick_count = NULL,
-              free = FALSE, legend = NULL) {
+              speed = NULL, free = FALSE, legend = NULL) {
   structure(list(type = "coord_x", field = column_name(substitute(field), "x"),
                  scale = check_scale(scale), base = check_base(base),
                  limits = check_limits(limits),
-                 tick_count = check_tick_count(tick_count),
+                 tick_count = check_tick_count(tick_count), speed = check_speed(speed),
                  free = check_free(free), legend = check_legend(legend)),
             class = "gog_atom")
 }
@@ -1379,13 +1381,15 @@ x <- function(field, scale = NULL, base = NULL, limits = NULL, tick_count = NULL
 #' @param legend  Not taken by a position, which is read off its axis rather
 #'   than from a legend; gog refuses it here and names the five channels that draw
 #'   a legend: `color`, `size`, `shape`, `pattern` and `opacity`.
+#' @param speed  Not taken: only `play` spends time, so there is no pace to set
+#'   here. gog refuses it and says to put it on the frames.
 #' @export
 y <- function(field, scale = NULL, base = NULL, limits = NULL, tick_count = NULL,
-              free = FALSE, legend = NULL) {
+              speed = NULL, free = FALSE, legend = NULL) {
   structure(list(type = "coord_y", field = column_name(substitute(field), "y"),
                  scale = check_scale(scale), base = check_base(base),
                  limits = check_limits(limits),
-                 tick_count = check_tick_count(tick_count),
+                 tick_count = check_tick_count(tick_count), speed = check_speed(speed),
                  free = check_free(free), legend = check_legend(legend)),
             class = "gog_atom")
 }
@@ -1402,13 +1406,15 @@ y <- function(field, scale = NULL, base = NULL, limits = NULL, tick_count = NULL
 #' @param legend  Not taken by a position, which is read off its axis rather
 #'   than from a legend; gog refuses it here and names the five channels that draw
 #'   a legend: `color`, `size`, `shape`, `pattern` and `opacity`.
+#' @param speed  Not taken: only `play` spends time, so there is no pace to set
+#'   here. gog refuses it and says to put it on the frames.
 #' @export
 z <- function(field, scale = NULL, base = NULL, limits = NULL, tick_count = NULL,
-              free = FALSE, legend = NULL) {
+              speed = NULL, free = FALSE, legend = NULL) {
   structure(list(type = "coord_z", field = column_name(substitute(field), "z"),
                  scale = check_scale(scale), base = check_base(base),
                  limits = check_limits(limits),
-                 tick_count = check_tick_count(tick_count),
+                 tick_count = check_tick_count(tick_count), speed = check_speed(speed),
                  free = check_free(free), legend = check_legend(legend)),
             class = "gog_atom")
 }
@@ -1625,15 +1631,20 @@ map <- function(preserve = "area") {
 #'   is still mapped; only the legend that decodes it is not drawn, for a plot that
 #'   says the same thing another way, such as names written at the ends of the
 #'   lines.
+#' @param tick_count  Not taken: only a position, `x`, `y` or `z`, has an axis
+#'   with ticks to count. gog refuses it here.
+#' @param speed  Not taken: only `play` spends time, so there is no pace to set
+#'   here. gog refuses it and says to put it on the frames.
 #' @param free  Not taken: `free` fits an axis to each panel's own rows, and only
 #'   a position, `x`, `y` or `z`, has an axis. gog refuses it here and says to
 #'   write it on a position.
 #' @export
-color <- function(field, scale = NULL, base = NULL, limits = NULL, free = FALSE,
-                  legend = NULL) {
+color <- function(field, scale = NULL, base = NULL, limits = NULL, tick_count = NULL,
+                  speed = NULL, free = FALSE, legend = NULL) {
   structure(list(type = "color", field = column_name(substitute(field), "color", settable = TRUE),
                  scale = check_scale(scale), base = check_base(base),
-                 limits = check_limits(limits), free = check_free(free),
+                 limits = check_limits(limits), tick_count = check_tick_count(tick_count),
+                 speed = check_speed(speed), free = check_free(free),
                  legend = check_legend(legend)),
             class = "gog_atom")
 }
@@ -1662,14 +1673,25 @@ colour <- function(...) {
 #' @param field  Column to group by, as a bare name.
 #' @param legend  Not taken: `group` splits without encoding anything, so it
 #'   draws no legend. gog refuses it here and names the five channels that do.
+#' @param scale,base,limits  Not taken: this channel distinguishes categories
+#'   rather than measuring them, so there is no scale or range along it. gog
+#'   refuses each of them here.
+#' @param tick_count  Not taken: only a position, `x`, `y` or `z`, has an axis
+#'   with ticks to count. gog refuses it here.
+#' @param speed  Not taken: only `play` spends time, so there is no pace to set
+#'   here. gog refuses it and says to put it on the frames.
 #' @param free  Not taken: `free` fits an axis to each panel's own rows, and only
 #'   a position, `x`, `y` or `z`, has an axis. gog refuses it here and says to
 #'   write it on a position.
 #' @return A `gog_atom` added to a plot with `+`.
 #' @export
-group <- function(field, free = FALSE, legend = NULL) {
+group <- function(field, scale = NULL, base = NULL, limits = NULL, tick_count = NULL,
+                  speed = NULL, free = FALSE, legend = NULL) {
   structure(list(type = "group", field = column_name(substitute(field), "group"),
-                 free = check_free(free), legend = check_legend(legend)),
+                 scale = check_scale(scale), base = check_base(base),
+                 limits = check_limits(limits), tick_count = check_tick_count(tick_count),
+                 speed = check_speed(speed), free = check_free(free),
+                 legend = check_legend(legend)),
             class = "gog_atom")
 }
 
@@ -1682,36 +1704,52 @@ group <- function(field, free = FALSE, legend = NULL) {
 #'   is still mapped; only the legend that decodes it is not drawn, for a plot that
 #'   says the same thing another way, such as names written at the ends of the
 #'   lines.
+#' @param tick_count  Not taken: only a position, `x`, `y` or `z`, has an axis
+#'   with ticks to count. gog refuses it here.
+#' @param speed  Not taken: only `play` spends time, so there is no pace to set
+#'   here. gog refuses it and says to put it on the frames.
 #' @param free  Not taken: `free` fits an axis to each panel's own rows, and only
 #'   a position, `x`, `y` or `z`, has an axis. gog refuses it here and says to
 #'   write it on a position.
 #' @export
-size <- function(field, scale = NULL, base = NULL, limits = NULL, free = FALSE,
-                 legend = NULL) {
+size <- function(field, scale = NULL, base = NULL, limits = NULL, tick_count = NULL,
+                 speed = NULL, free = FALSE, legend = NULL) {
   structure(list(type = "size", field = column_name(substitute(field), "size", settable = TRUE),
                  scale = check_scale(scale), base = check_base(base),
-                 limits = check_limits(limits), free = check_free(free),
+                 limits = check_limits(limits), tick_count = check_tick_count(tick_count),
+                 speed = check_speed(speed), free = check_free(free),
                  legend = check_legend(legend)),
             class = "gog_atom")
 }
 
 #' Map glyph shape to a categorical column.
 #'
-#' No \code{scale} argument: \code{shape} answers "which one?", and there is no
+#' A \code{scale} is refused: \code{shape} answers "which one?", and there is no
 #' distance between circle and square for a scale to run along.
 #' @param field  Column to bind to the glyph shape, as a bare name.
 #' @param legend  `FALSE` leaves this channel's legend out of the plot. The column
 #'   is still mapped; only the legend that decodes it is not drawn, for a plot that
 #'   says the same thing another way, such as names written at the ends of the
 #'   lines.
+#' @param scale,base,limits  Not taken: this channel distinguishes categories
+#'   rather than measuring them, so there is no scale or range along it. gog
+#'   refuses each of them here.
+#' @param tick_count  Not taken: only a position, `x`, `y` or `z`, has an axis
+#'   with ticks to count. gog refuses it here.
+#' @param speed  Not taken: only `play` spends time, so there is no pace to set
+#'   here. gog refuses it and says to put it on the frames.
 #' @param free  Not taken: `free` fits an axis to each panel's own rows, and only
 #'   a position, `x`, `y` or `z`, has an axis. gog refuses it here and says to
 #'   write it on a position.
 #' @return A `gog_atom` added to a plot with `+`.
 #' @export
-shape <- function(field, free = FALSE, legend = NULL) {
+shape <- function(field, scale = NULL, base = NULL, limits = NULL, tick_count = NULL,
+                  speed = NULL, free = FALSE, legend = NULL) {
   structure(list(type = "shape", field = column_name(substitute(field), "shape", settable = TRUE),
-                 free = check_free(free), legend = check_legend(legend)),
+                 scale = check_scale(scale), base = check_base(base),
+                 limits = check_limits(limits), tick_count = check_tick_count(tick_count),
+                 speed = check_speed(speed), free = check_free(free),
+                 legend = check_legend(legend)),
             class = "gog_atom")
 }
 
@@ -1722,8 +1760,8 @@ shape <- function(field, free = FALSE, legend = NULL) {
 #' hatch, on a stroke (\code{line}/\code{step}/\code{interval}) as a dash.  It is
 #' the color-free way to separate series, so it survives grayscale printing and
 #' color-blindness; pairing it with \code{color} on the same column is the
-#' redundant encoding that is the accessibility best practice.  No \code{scale}
-#' argument: like \code{shape} it answers "which one?", not "how much?".
+#' redundant encoding that is the accessibility best practice.  A \code{scale}
+#' is refused: like \code{shape} it answers "which one?", not "how much?".
 #'
 #' Distinct from the \code{style(pattern = )} \emph{setting}, which fixes one
 #' texture for the whole layer; \code{pattern()} \emph{maps} a column to several.
@@ -1732,14 +1770,25 @@ shape <- function(field, free = FALSE, legend = NULL) {
 #'   is still mapped; only the legend that decodes it is not drawn, for a plot that
 #'   says the same thing another way, such as names written at the ends of the
 #'   lines.
+#' @param scale,base,limits  Not taken: this channel distinguishes categories
+#'   rather than measuring them, so there is no scale or range along it. gog
+#'   refuses each of them here.
+#' @param tick_count  Not taken: only a position, `x`, `y` or `z`, has an axis
+#'   with ticks to count. gog refuses it here.
+#' @param speed  Not taken: only `play` spends time, so there is no pace to set
+#'   here. gog refuses it and says to put it on the frames.
 #' @param free  Not taken: `free` fits an axis to each panel's own rows, and only
 #'   a position, `x`, `y` or `z`, has an axis. gog refuses it here and says to
 #'   write it on a position.
 #' @return A `gog_atom` added to a plot with `+`.
 #' @export
-pattern <- function(field, free = FALSE, legend = NULL) {
+pattern <- function(field, scale = NULL, base = NULL, limits = NULL, tick_count = NULL,
+                    speed = NULL, free = FALSE, legend = NULL) {
   structure(list(type = "pattern", field = column_name(substitute(field), "pattern", settable = TRUE),
-                 free = check_free(free), legend = check_legend(legend)),
+                 scale = check_scale(scale), base = check_base(base),
+                 limits = check_limits(limits), tick_count = check_tick_count(tick_count),
+                 speed = check_speed(speed), free = check_free(free),
+                 legend = check_legend(legend)),
             class = "gog_atom")
 }
 
@@ -1752,15 +1801,20 @@ pattern <- function(field, free = FALSE, legend = NULL) {
 #'   is still mapped; only the legend that decodes it is not drawn, for a plot that
 #'   says the same thing another way, such as names written at the ends of the
 #'   lines.
+#' @param tick_count  Not taken: only a position, `x`, `y` or `z`, has an axis
+#'   with ticks to count. gog refuses it here.
+#' @param speed  Not taken: only `play` spends time, so there is no pace to set
+#'   here. gog refuses it and says to put it on the frames.
 #' @param free  Not taken: `free` fits an axis to each panel's own rows, and only
 #'   a position, `x`, `y` or `z`, has an axis. gog refuses it here and says to
 #'   write it on a position.
 #' @export
-opacity <- function(field, scale = NULL, base = NULL, limits = NULL, free = FALSE,
-                    legend = NULL) {
+opacity <- function(field, scale = NULL, base = NULL, limits = NULL, tick_count = NULL,
+                    speed = NULL, free = FALSE, legend = NULL) {
   structure(list(type = "opacity", field = column_name(substitute(field), "opacity", settable = TRUE),
                  scale = check_scale(scale), base = check_base(base),
-                 limits = check_limits(limits), free = check_free(free),
+                 limits = check_limits(limits), tick_count = check_tick_count(tick_count),
+                 speed = check_speed(speed), free = check_free(free),
                  legend = check_legend(legend)),
             class = "gog_atom")
 }
@@ -1771,19 +1825,30 @@ opacity <- function(field, scale = NULL, base = NULL, limits = NULL, free = FALS
 #' and \code{y} supply its position: \code{text + x(a) + y(b) + label(name)}.  A
 #' string column is drawn as-is, a numeric one is formatted.  It is \code{text}'s
 #' required channel — no other mark accepts it, so a labeled scatter is the
-#' superposition \code{point + text}.  No \code{scale}: a label is content, like
-#' \code{shape}, not a magnitude to run a scale along.
+#' superposition \code{point + text}.  A \code{scale} is refused: a label is
+#' content, like \code{shape}, not a magnitude to run a scale along.
 #' @param field  Column whose values are drawn as the text, as a bare name.
 #' @param legend  Not taken: a label is read where it is written, so it draws
 #'   no legend. gog refuses it here and names the five channels that do.
+#' @param scale,base,limits  Not taken: this channel distinguishes categories
+#'   rather than measuring them, so there is no scale or range along it. gog
+#'   refuses each of them here.
+#' @param tick_count  Not taken: only a position, `x`, `y` or `z`, has an axis
+#'   with ticks to count. gog refuses it here.
+#' @param speed  Not taken: only `play` spends time, so there is no pace to set
+#'   here. gog refuses it and says to put it on the frames.
 #' @param free  Not taken: `free` fits an axis to each panel's own rows, and only
 #'   a position, `x`, `y` or `z`, has an axis. gog refuses it here and says to
 #'   write it on a position.
 #' @return A `gog_atom` added to a plot with `+`.
 #' @export
-label <- function(field, free = FALSE, legend = NULL) {
+label <- function(field, scale = NULL, base = NULL, limits = NULL, tick_count = NULL,
+                  speed = NULL, free = FALSE, legend = NULL) {
   structure(list(type = "label", field = column_name(substitute(field), "label"),
-                 free = check_free(free), legend = check_legend(legend)),
+                 scale = check_scale(scale), base = check_base(base),
+                 limits = check_limits(limits), tick_count = check_tick_count(tick_count),
+                 speed = check_speed(speed), free = check_free(free),
+                 legend = check_legend(legend)),
             class = "gog_atom")
 }
 
@@ -1813,14 +1878,22 @@ label <- function(field, free = FALSE, legend = NULL) {
 #' @param legend  Not taken: each frame is named in the strip above the panel
 #'   as it is shown, so `play` draws no legend. gog refuses it here and names the
 #'   five channels that do.
+#' @param scale,base,limits  Not taken: this channel distinguishes categories
+#'   rather than measuring them, so there is no scale or range along it. gog
+#'   refuses each of them here.
+#' @param tick_count  Not taken: only a position, `x`, `y` or `z`, has an axis
+#'   with ticks to count. gog refuses it here.
 #' @param free  Not taken: `free` fits an axis to each panel's own rows, and only
 #'   a position, `x`, `y` or `z`, has an axis. gog refuses it here and says to
 #'   write it on a position.
 #' @return A `gog_atom` added to a plot with `+`.
 #' @export
-play <- function(field, speed = NULL, free = FALSE, legend = NULL) {
+play <- function(field, speed = NULL, scale = NULL, base = NULL, limits = NULL,
+                 tick_count = NULL, free = FALSE, legend = NULL) {
   structure(list(type = "play", field = column_name(substitute(field), "play"),
-                 speed = check_speed(speed), free = check_free(free),
+                 speed = check_speed(speed), scale = check_scale(scale),
+                 base = check_base(base), limits = check_limits(limits),
+                 tick_count = check_tick_count(tick_count), free = check_free(free),
                  legend = check_legend(legend)),
             class = "gog_atom")
 }

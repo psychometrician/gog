@@ -732,18 +732,28 @@ function checkLegend(legend) {
   return legend;
 }
 
-function positionAtom(kind, name, raw) {
-  const { field, scale, base, limits, tick_count: tickCount, free, legend } =
-    readArgs(raw, name, ["field", "scale", "base", "limits", "tick_count", "free", "legend"]);
+// Every channel takes every parameter a binding can carry, checks its shape and
+// forwards it: the engine decides where one means nothing and says so in the same
+// words in all four bindings, where JavaScript would only say "has no `speed`".
+const CHANNEL_ARGS = ["field", "scale", "base", "limits", "tick_count", "speed", "free", "legend"];
+
+function channelAtom(kind, name, raw, names = CHANNEL_ARGS) {
+  const { field, scale, base, limits, tick_count: tickCount, speed, free, legend } =
+    readArgs(raw, name, names);
   return new Atom(kind, {
     field: columnName(field, name),
     scale: checkScale(scale),
     base: checkBase(base),
     limits: checkLimits(limits),
     tick_count: checkTickCount(tickCount),
+    speed: checkSpeed(speed),
     free: checkFree(free, name),
     legend: checkLegend(legend),
   });
+}
+
+function positionAtom(kind, name, raw) {
+  return channelAtom(kind, name, raw);
 }
 
 // Bind the x axis to a column.
@@ -880,29 +890,13 @@ export const map = callableAtom(new Atom("coord_map", { preserve: "area" }), (..
 // ---------------------------------------------------------------------------
 
 function scaledChannel(kind) {
-  return (...raw) => {
-    const { field, scale, base, limits, free, legend } =
-      readArgs(raw, kind, ["field", "scale", "base", "limits", "free", "legend"]);
-    return new Atom(kind, {
-      field: columnName(field, kind),
-      scale: checkScale(scale),
-      base: checkBase(base),
-      limits: checkLimits(limits),
-      free: checkFree(free, kind),
-      legend: checkLegend(legend),
-    });
-  };
+  return (...raw) => channelAtom(kind, kind, raw);
 }
 
+// The same parameters as a scaled channel; the name says which channels the
+// engine refuses a scale on, not which arguments the function takes.
 function plainChannel(kind) {
-  return (...raw) => {
-    const { field, free, legend } = readArgs(raw, kind, ["field", "free", "legend"]);
-    return new Atom(kind, {
-      field: columnName(field, kind),
-      free: checkFree(free, kind),
-      legend: checkLegend(legend),
-    });
-  };
+  return (...raw) => channelAtom(kind, kind, raw);
 }
 
 function checkSpeed(speed) {
@@ -957,16 +951,9 @@ export const label = plainChannel("label");
 // every legend are fitted across the whole sequence rather than per frame, so the
 // axes hold still and only the data moves; a layer that does not bind `play` is
 // drawn in every frame. A static image made from the plot shows the first frame.
-export const play = (...raw) => {
-  const { field, speed, free, legend } =
-    readArgs(raw, "play", ["field", "speed", "free", "legend"]);
-  return new Atom("play", {
-    field: columnName(field, "play"),
-    speed: checkSpeed(speed),
-    free: checkFree(free, "play"),
-    legend: checkLegend(legend),
-  });
-};
+// `speed` stays second, where a positional one has always gone.
+export const play = (...raw) => channelAtom("play", "play", raw,
+  ["field", "speed", "scale", "base", "limits", "tick_count", "free", "legend"]);
 
 // What `at` was given, and which of the two readings it is. One option rather
 // than two, because the *value* answers the question the way a column answers it

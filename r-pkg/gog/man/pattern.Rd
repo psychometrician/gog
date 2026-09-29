@@ -4,10 +4,29 @@
 \alias{pattern}
 \title{Map paint texture to a categorical column --- \code{shape}'s twin.}
 \usage{
-pattern(field, free = FALSE, legend = NULL)
+pattern(
+  field,
+  scale = NULL,
+  base = NULL,
+  limits = NULL,
+  tick_count = NULL,
+  speed = NULL,
+  free = FALSE,
+  legend = NULL
+)
 }
 \arguments{
 \item{field}{Column to bind to the texture, as a bare name.}
+
+\item{scale, base, limits}{Not taken: this channel distinguishes categories
+rather than measuring them, so there is no scale or range along it. gog
+refuses each of them here.}
+
+\item{tick_count}{Not taken: only a position, \code{x}, \code{y} or \code{z}, has an axis
+with ticks to count. gog refuses it here.}
+
+\item{speed}{Not taken: only \code{play} spends time, so there is no pace to set
+here. gog refuses it and says to put it on the frames.}
 
 \item{free}{Not taken: \code{free} fits an axis to each panel's own rows, and only
 a position, \code{x}, \code{y} or \code{z}, has an axis. gog refuses it here and says to
@@ -27,8 +46,8 @@ fill (\code{bar}/\code{box}/\code{area}/\code{ribbon}) each category draws as a
 hatch, on a stroke (\code{line}/\code{step}/\code{interval}) as a dash.  It is
 the color-free way to separate series, so it survives grayscale printing and
 color-blindness; pairing it with \code{color} on the same column is the
-redundant encoding that is the accessibility best practice.  No \code{scale}
-argument: like \code{shape} it answers "which one?", not "how much?".
+redundant encoding that is the accessibility best practice.  A \code{scale}
+is refused: like \code{shape} it answers "which one?", not "how much?".
 }
 \details{
 Distinct from the \code{style(pattern = )} \emph{setting}, which fixes one

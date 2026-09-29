@@ -10,6 +10,7 @@ z(
   base = NULL,
   limits = NULL,
   tick_count = NULL,
+  speed = NULL,
   free = FALSE,
   legend = NULL
 )
@@ -34,6 +35,9 @@ end leaves that end fitted to the data.}
 
 \item{tick_count}{How many ticks the axis should aim for. A target, not a
 promise: the chosen values are rounded to readable numbers.}
+
+\item{speed}{Not taken: only \code{play} spends time, so there is no pace to set
+here. gog refuses it and says to put it on the frames.}
 
 \item{free}{When the plot is faceted, \code{TRUE} lets each panel fit this axis
 to its own rows instead of sharing one scale across all of them.}

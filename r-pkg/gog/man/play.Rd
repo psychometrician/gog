@@ -4,12 +4,28 @@
 \alias{play}
 \title{Cut the plot into frames and play them — the time dimension.}
 \usage{
-play(field, speed = NULL, free = FALSE, legend = NULL)
+play(
+  field,
+  speed = NULL,
+  scale = NULL,
+  base = NULL,
+  limits = NULL,
+  tick_count = NULL,
+  free = FALSE,
+  legend = NULL
+)
 }
 \arguments{
 \item{field}{Column whose distinct values become the frames, as a bare name.}
 
 \item{speed}{A multiple of the normal pace: \code{2} is twice as fast.}
+
+\item{scale, base, limits}{Not taken: this channel distinguishes categories
+rather than measuring them, so there is no scale or range along it. gog
+refuses each of them here.}
+
+\item{tick_count}{Not taken: only a position, \code{x}, \code{y} or \code{z}, has an axis
+with ticks to count. gog refuses it here.}
 
 \item{free}{Not taken: \code{free} fits an axis to each panel's own rows, and only
 a position, \code{x}, \code{y} or \code{z}, has an axis. gog refuses it here and says to

@@ -616,8 +616,16 @@ end
     @refuses x(:hour, limits = (5,)) "needs two numbers"
     @test x(:hour, limits = (0, missing)).fields[:limits] == [0.0, nothing]
 
-    # `shape` measures nothing, so it offers no domain either.
-    @test_throws MethodError shape(:g, limits = (0, 1))
+    # `shape` measures nothing, so a domain on it is refused, by the engine, in
+    # the words all four bindings print.
+    @refuses render_svg(data((g = ["a", "b"], v = [1.0, 2.0])) + point + x(:v) + y(:v) +
+                        shape(:g, limits = (0, 1))) "`limits` on `shape(g)`"
+    # Every channel takes all seven parameters and forwards them, so each lands on
+    # the engine's refusal rather than on a `MethodError`.
+    two = (g = ["a", "b"], v = [1.0, 2.0])
+    @refuses render_svg(data(two) + point + x(:v) + y(:v) + color(:g, speed = 2)) "`speed` on `color(g)`"
+    @refuses render_svg(data(two) + point + x(:v) + y(:v) + color(:v, tick_count = 5)) "`tick_count` on `color(v)`"
+    @refuses render_svg(data(two) + point + x(:v) + y(:v) + shape(:g, scale = "log")) "`scale` on `shape(g)`"
 
     # A domain on a temporal axis is written in dates, and the binding converts
     # them the way it converts the column — otherwise the two disagree and every
@@ -765,8 +773,9 @@ end
     @test issubset(Set(few), Set(many))
 
     # A legend is not a short axis: `limits` reaches all six magnitude channels,
-    # `tick_count` only the three that draw an axis.
-    @test_throws MethodError color(:a, tick_count = 4)
+    # `tick_count` only the three that draw an axis, and the engine says so.
+    @refuses render_svg(data((a = [1.0, 2.0],)) + point + x(:a) + y(:a) +
+                        color(:a, tick_count = 4)) "`tick_count` on `color(a)`"
 
     # Caught in the binding, at the line that wrote it.
     @refuses x(:a, tick_count = 1) "at least two ticks"

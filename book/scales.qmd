@@ -529,8 +529,15 @@ it is the arithmetic midpoint; on a log ramp it is the *geometric* one: √(min
 · max), about 16M rather than 660M. The label has to be the geometric midpoint,
 because it names the color painted at the middle of the ramp.
 
-`shape` and `group` take no `scale` argument. They answer *which one?*, and
-there is no distance between circle and square for a scale to run along.
+`shape`, `pattern` and `group` answer *which one?*, not *how far along?*: there
+is no distance between a circle and a square. So gog refuses `scale` on all
+three, as shown here for `shape`:
+
+```{r}
+#| error: true
+data(gapminder_2007) + point + x(gdp) + y(life) +
+  shape(continent, scale = "log")
+```
 
 ## `limits`: stating the range yourself
 
@@ -769,9 +776,9 @@ reaches only the three position channels that draw an axis: `x`, `y` and `z`. A
 color legend names three rows, both ends and the middle, and the scale, linear
 or log, sets their values, not a count you choose. The middle row is the
 midpoint explained above: the label for the color painted halfway along the
-ramp. So `color()`, `size()` and `opacity()` have no tick count to set, the same
-way `shape()` has no `scale` and no `limits`: there is nothing for the count to
-describe.
+ramp. So gog refuses a tick count on `color()`, `size()` or `opacity()`, the same
+way it refuses `scale` and `limits` on `shape()`: there is nothing for the count
+to describe.
 
 ### Crowding in the plane and in the cube
 

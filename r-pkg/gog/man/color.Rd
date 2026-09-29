@@ -9,6 +9,8 @@ color(
   scale = NULL,
   base = NULL,
   limits = NULL,
+  tick_count = NULL,
+  speed = NULL,
   free = FALSE,
   legend = NULL
 )
@@ -31,6 +33,12 @@ gridlines fall and how they are labeled.}
 
 \item{limits}{For a continuous column, the two ends of the color scale,
 as \code{c(low, high)}. \code{NA} on either end leaves that end fitted to the data.}
+
+\item{tick_count}{Not taken: only a position, \code{x}, \code{y} or \code{z}, has an axis
+with ticks to count. gog refuses it here.}
+
+\item{speed}{Not taken: only \code{play} spends time, so there is no pace to set
+here. gog refuses it and says to put it on the frames.}
 
 \item{free}{Not taken: \code{free} fits an axis to each panel's own rows, and only
 a position, \code{x}, \code{y} or \code{z}, has an axis. gog refuses it here and says to

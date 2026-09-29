@@ -4,10 +4,29 @@
 \alias{label}
 \title{Draw a column's values as text labels — the \code{text} mark's content.}
 \usage{
-label(field, free = FALSE, legend = NULL)
+label(
+  field,
+  scale = NULL,
+  base = NULL,
+  limits = NULL,
+  tick_count = NULL,
+  speed = NULL,
+  free = FALSE,
+  legend = NULL
+)
 }
 \arguments{
 \item{field}{Column whose values are drawn as the text, as a bare name.}
+
+\item{scale, base, limits}{Not taken: this channel distinguishes categories
+rather than measuring them, so there is no scale or range along it. gog
+refuses each of them here.}
+
+\item{tick_count}{Not taken: only a position, \code{x}, \code{y} or \code{z}, has an axis
+with ticks to count. gog refuses it here.}
+
+\item{speed}{Not taken: only \code{play} spends time, so there is no pace to set
+here. gog refuses it and says to put it on the frames.}
 
 \item{free}{Not taken: \code{free} fits an axis to each panel's own rows, and only
 a position, \code{x}, \code{y} or \code{z}, has an axis. gog refuses it here and says to
@@ -24,6 +43,6 @@ A \code{gog_atom} added to a plot with \code{+}.
 and \code{y} supply its position: \code{text + x(a) + y(b) + label(name)}.  A
 string column is drawn as-is, a numeric one is formatted.  It is \code{text}'s
 required channel — no other mark accepts it, so a labeled scatter is the
-superposition \code{point + text}.  No \code{scale}: a label is content, like
-\code{shape}, not a magnitude to run a scale along.
+superposition \code{point + text}.  A \code{scale} is refused: a label is
+content, like \code{shape}, not a magnitude to run a scale along.
 }
