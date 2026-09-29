@@ -712,7 +712,7 @@ class Plot:
         return render_svg(self)
 
     def save(self, path: str) -> str:
-        """Draw the plot and write the SVG to `path`."""
+        """Retired: refused toward `save_svg(plot, path)`, before anything is written."""
         return save(self, path)
 
     def show(self) -> None:
@@ -854,7 +854,7 @@ class Page:
         return render_svg(self)
 
     def save(self, path: str) -> str:
-        """Draw the page and write the SVG to `path`."""
+        """Retired: refused toward `save_svg(page, path)`, before anything is written."""
         return save(self, path)
 
     def show(self) -> None:

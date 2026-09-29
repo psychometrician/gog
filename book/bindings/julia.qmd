@@ -229,6 +229,15 @@ table](#the-table). To see the picture, assign the plot to a variable such as
 browser. [`render_svg(p)`](../utilities.qmd#render_svg) returns the same drawing
 as text.
 
+Julia also exports three functions that R and Python do not. You need them
+only to build a tool with gog, such as a web server, and never to write a
+sentence. `svg_block(svg)` puts the text from `render_svg()` in centered HTML for
+a web page. Given the plot too, `svg_block(svg, p)` adds its controls.
+`find_gog_cli()` returns the path of the engine the package found
+([Installing gog](#installing-gog)). `to_wire(table, name)` returns the table as
+gog sends it to the engine, before it becomes JSON; `name` labels its messages.
+JavaScript exports the same three.
+
 ## Reading from a database
 
 Your table may be stored in a database rather than in your session. `query()`

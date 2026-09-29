@@ -384,7 +384,6 @@ function not_a_plot(atom::Atom)
 end
 
 render_svg(atom::Atom) = throw(GogError(not_a_plot(atom)))
-save(atom::Atom, ::AbstractString) = throw(GogError(not_a_plot(atom)))
 save_gif(atom::Atom, ::AbstractString; scale::Real = 1) = throw(GogError(not_a_plot(atom)))
 
 function render_svg(plot::Union{Plot,Page})
@@ -583,17 +582,17 @@ function svg_block(svg::AbstractString, plot = nothing)
         sized * "\n" * block * "</div>"
 end
 
-"""Draw the plot and write the SVG to `path`. Returns the path."""
-function save(plot::Union{Plot,Page}, path::AbstractString)
-    # Draw first, write second. `open(path, "w")` truncates the moment it is
-    # called, so rendering *inside* it meant a refused plot emptied the file
-    # before the engine had said a word — and if that path held a good plot, it
-    # was gone. A refusal must cost nothing that was already on disk.
-    svg = render_svg(plot)
-    open(path, "w") do handle
-        write(handle, svg)
-    end
-    path
+"""
+Retired for `save_svg(plot, path)` (ruled 2026-09-28).
+
+Kept as a name so a call already written is answered with the new one rather than
+with a `MethodError`, and refused before anything is written, so a file already at
+`path` is left as it was: a refusal must cost nothing that was already on disk.
+"""
+function save(plot, path::AbstractString)
+    shown = endswith(lowercase(path), ".svg") ? path : "plot.svg"
+    throw(GogError("gog: `save()` is retired: `save_svg(p, \"$shown\")` writes the same " *
+                   "drawing, and its name says the file is an SVG, as `save_gif()`'s says a GIF."))
 end
 
 """    save_svg(plot, path)

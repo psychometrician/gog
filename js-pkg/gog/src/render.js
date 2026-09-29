@@ -558,13 +558,16 @@ export function svg_block(svg) {
   return `<div class="gog-plot" style="text-align:center;">\n${sized}\n</div>`;
 }
 
-// Draw the plot and write the SVG to `file`. Returns the path.
+// Retired for `save_svg(plot, file)` (ruled 2026-09-28). Kept as a name so a call
+// already written is answered with the new one rather than with "save is not a
+// function", and refused before anything is written, so a file already at `file`
+// is left as it was.
 export function save(plot, file) {
-  if (typeof file !== "string" || !file) {
-    throw new GogError('gog: `save()` needs a path — `save(plot, "plot.svg")`.');
-  }
-  fs.writeFileSync(file, render_svg(plot), "utf8");
-  return file;
+  const shown = typeof file === "string" && file.toLowerCase().endsWith(".svg") ? file : "plot.svg";
+  throw new GogError(
+    `gog: \`save()\` is retired: \`save_svg(p, "${shown}")\` writes the same drawing, ` +
+      "and its name says the file is an SVG, as `save_gif()`'s says a GIF."
+  );
 }
 
 // A leading `~` means the home folder, as R's `path.expand()`, Python's and

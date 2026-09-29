@@ -1796,11 +1796,15 @@ end
     bad = data(gm) + point + x(:gdp) + y(:life) + palette("okabe")   # nothing maps color
 
     path = joinpath(mktempdir(), "plot.svg")
-    save(good, path)
+    save_svg(good, path)
     before = read(path, String)
     @test !isempty(before)
 
-    @test_throws GogError save(bad, path)
+    @test_throws GogError save_svg(bad, path)
+    @test read(path, String) == before
+    # `save()` is retired for `save_svg()`. It refuses, naming the call that
+    # replaces it with the reader's own path, and it writes nothing either.
+    @refuses save(good, path) "`save()` is retired: `save_svg(p, \"$path\")`"
     @test read(path, String) == before
 end
 

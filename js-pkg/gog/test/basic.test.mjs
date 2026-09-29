@@ -505,11 +505,16 @@ test("a refused save() leaves an existing file alone", () => {
   const good = plot(data(df), point, x(col.x), y(col.y));
   const bad = plot(data(df), point, x(col.x), y(col.y), palette("okabe"));
 
-  save(good, file);
+  save_svg(good, file);
   const before = fs.readFileSync(file, "utf8");
   assert.ok(before.length > 0);
 
-  assert.throws(() => save(bad, file), GogError);
+  assert.throws(() => save_svg(bad, file), GogError);
+  assert.equal(fs.readFileSync(file, "utf8"), before);
+  // `save()` is retired for `save_svg()`. It refuses, naming the call that
+  // replaces it with the reader's own path, and it writes nothing either.
+  assert.throws(() => save(good, file),
+    (e) => e.message.startsWith(`gog: \`save()\` is retired: \`save_svg(p, "${file}")\``));
   assert.equal(fs.readFileSync(file, "utf8"), before);
 });
 

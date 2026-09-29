@@ -56,6 +56,11 @@ CRAN-style repositories and PyPI, `GrammarOfGraphics` on Julia's General, and
 
 ### Changed
 
+- **`save()` is retired for `save_svg()`.** In JavaScript and Julia
+  `save(plot, path)`, and in Python `plot.save(path)`, now refuse and name
+  `save_svg()`, which writes the same drawing and says in its name that the file
+  is an SVG. Nothing is written, so a file already at the path is left as it was.
+
 - **JavaScript reads every `Date` on the local clock.** A column whose values
   all fell on midnight UTC was read as calendar days, so in New York a column of
   19:00 readings, each a UTC midnight, drew a day late. Every `Date` is now read

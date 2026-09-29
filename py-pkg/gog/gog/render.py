@@ -743,15 +743,24 @@ def svg_block(svg: str, plot: Any = None) -> str:
     )
 
 
+def _retired_save(path: Any) -> str:
+    """The direction for a call to the retired `save()`: the same call, as
+    `save_svg()`, with the reader's own path when it already ends in `.svg`."""
+    shown = path if isinstance(path, str) and path.lower().endswith(".svg") else "plot.svg"
+    return (
+        f'gog: `save()` is retired: `save_svg(plot, "{shown}")` writes the same '
+        "drawing, and its name says the file is an SVG, as `save_gif()`'s says a GIF."
+    )
+
+
 def save(plot: Any, path: str) -> str:
-    """Draw the plot and write the SVG to `path`. Returns the path."""
-    svg = render_svg(plot)
-    # `newline=""` writes the text as it is, as `save_svg()` does: in text mode
-    # Windows turns each line break into two bytes, and the file then differs
-    # from the drawing `render_svg()` returns.
-    with open(path, "w", encoding="utf-8", newline="") as handle:
-        handle.write(svg)
-    return path
+    """Retired for `save_svg(plot, path)` (ruled 2026-09-28).
+
+    Kept as a name so a call already written is answered with the new one rather
+    than with an `AttributeError`, and refused before anything is written, so a
+    file already at `path` is left as it was.
+    """
+    raise GogError(_retired_save(path))
 
 
 def save_svg(plot: Any, path: str) -> str:

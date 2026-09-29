@@ -2123,25 +2123,24 @@ refuses("two different tables on one page under a name the author wrote",
 # --- a refusal must cost nothing that was already on disk ---------------------
 # Julia's `save()` opened the destination before it knew the render had
 # succeeded, and opening for writing truncates, so a refused plot emptied
-# whatever was there. Python's `plot.save()` renders before it opens and so
-# cannot, and this holds it to that: the ordering is easy to reverse while
-# tidying, and nothing else would notice.
+# whatever was there. `save()` is retired for `save_svg()`, whose own test holds
+# it to drawing first; the retired name refuses, naming the call that replaces
+# it with the reader's own path, and writes nothing either.
 _savedir = tempfile.mkdtemp()
 _savepath = os.path.join(_savedir, "plot.svg")
 _good = data(_left, name="one") + point + x(col.x) + y(col.y)
-_bad = data(_left, name="one") + point + x(col.x) + y(col.y) + palette("okabe")
-_good.save(_savepath)
+save_svg(_good, _savepath)
 with open(_savepath, encoding="utf-8") as _h:
     _before = _h.read()
-assert _before, "save() wrote nothing"
+assert _before, "save_svg() wrote nothing"
 try:
-    _bad.save(_savepath)
-    raise AssertionError("FAIL: a plot that maps no color should have been refused")
-except GogError:
-    pass
+    _good.save(_savepath)
+    raise AssertionError("FAIL: the retired save() wrote a file")
+except GogError as _retired:
+    assert f'`save()` is retired: `save_svg(plot, "{_savepath}")`' in str(_retired), _retired
 with open(_savepath, encoding="utf-8") as _h:
-    assert _h.read() == _before, "a refused save() destroyed the file already there"
-ok("a refused save() leaves an existing file alone")
+    assert _h.read() == _before, "the retired save() changed the file already there"
+ok("the retired save() refuses toward save_svg() and leaves an existing file alone")
 
 # --- a refusal in a notebook cell reads as the message, not as a crash --------
 # Raised into a display host, a refusal arrives as frames through this package
@@ -3998,14 +3997,3 @@ assert _cols["a"] == [1.0, None, None, 4.0] and _cols["b"] == ["x", "", "z", "w"
 ok("an empty numeric cell is a missing value")
 
 
-# --- save() writes the drawing's bytes ---------------------------------------------------
-# It opened the file in text mode, which on Windows turns each line break into two bytes;
-# `newline=""` writes the text as it is, as `save_svg()` does. (Python alone: the other
-# three write bytes already.)
-with tempfile.TemporaryDirectory() as _folder:
-    _sv = data({"a": [1.0, 2.0], "b": [3.0, 4.0]}, name="t") + point + x(col.a) + y(col.b)
-    _path = os.path.join(_folder, "p.svg")
-    _sv.save(_path) if hasattr(_sv, "save") else save(_sv, _path)
-    with open(_path, "rb") as _fh:
-        assert _fh.read() == render_svg(_sv).encode("utf-8")
-ok("save() writes the drawing's bytes")

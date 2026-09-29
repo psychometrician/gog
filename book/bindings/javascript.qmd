@@ -322,6 +322,18 @@ the plot object how it would be displayed, and each binding answers: R with
 `repr_html`, Python with `_repr_html_`, Julia with a show method. JavaScript has
 no such request to answer, so here it is a function you call.
 
+A script run outside a notebook has nowhere to put that HTML, so `show(plot)`
+saves it to a file in your computer's folder for temporary files. It returns the
+file's path. Unlike Python's `plot.show()`, it opens no browser.
+
+Three more functions are for building a tool with gog, such as a web server,
+and never for writing a sentence. `svg_block(svg)` puts an SVG string in centered
+HTML that shrinks to fit a web page, without the controls. `find_gog_cli()`
+returns the path of the engine the package found
+([Installing gog](#installing-gog)). `to_wire(table, name)` returns the table as
+gog sends it to the engine, before it becomes JSON; `name` labels its messages.
+Julia exports these three as well; R and Python do not.
+
 ## Reading from a database
 
 Your table may be stored in a database rather than held in your session. R,
