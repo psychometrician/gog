@@ -5269,14 +5269,25 @@ fn build_axis(
     // So a stated count asks for a finer step until at least two of its ticks land
     // inside the data's own range. It is the distinction `adopt_range` already
     // draws one line over: the guard exists because a *derivation* was the lesser
-    // thing to give up, and a count the caller wrote is not a derivation. The
-    // derived path is deliberately untouched, which is also why no existing plot
-    // moves.
+    // thing to give up, and a count the caller wrote is not a derivation.
+    //
+    // **A derived count is refined too, but only where it leaves two ticks.** The
+    // step comes from the range rounded *up* first (Heckbert's loose labeling),
+    // which assumes the axis runs out to the bracketing ticks; this axis is fitted
+    // to the data instead, so a range just above a round number keeps only the
+    // two ticks inside it. Orders from 13 to 34 round to a range of 50, a step of
+    // 10, and an axis ticked only at 20 and 30, which shows a place and a
+    // direction and nothing to read a value between. A finer step is taken only
+    // while fewer than three ticks land inside what the axis shows, and only when
+    // one reaches three, so every axis with three ticks or more is left exactly
+    // as it was (ruled 2026-09-28: the narrow change, which moves only the
+    // two-tick axes).
     let default_target = 5;
     // The ceiling on the count (`ticks::MAX_TICKS`) is counted over what the axis
     // will show: this fit, with a stated end put back by `close`.
     let (lo, hi) = fitted_range(mn, mx, bar_extent, flush);
-    let shown = Some((stated.0.unwrap_or(lo), stated.1.unwrap_or(hi)));
+    let (show_lo, show_hi) = (stated.0.unwrap_or(lo), stated.1.unwrap_or(hi));
+    let shown = Some((show_lo, show_hi));
     let (tlo, thi) = over(mn, mx);
     let mut t = nice_ticks_within(tlo, thi, tick_count.unwrap_or(default_target), shown);
     if tick_count.is_some() {
@@ -5287,6 +5298,18 @@ fn build_axis(
             if ticks_inside(&t, lo, hi).1 >= 2 { break }
             target += 1;
             t = nice_ticks_within(tlo, thi, target, shown);
+        }
+    } else if ticks_inside(&t, show_lo, show_hi).1 < 3 {
+        // Raising the target by one does not always change the step, so the
+        // bound is two turns of the 1-2-5 ladder rather than one.
+        let mut target = default_target;
+        for _ in 0..16 {
+            target += 1;
+            let finer = nice_ticks_within(tlo, thi, target, shown);
+            if ticks_inside(&finer, show_lo, show_hi).1 >= 3 {
+                t = finer;
+                break;
+            }
         }
     }
     let (t, range) = close(fit_axis(t, mn, mx, bar_extent, flush));
@@ -11977,6 +12000,28 @@ mod tests {
         assert!(!fitted.values.contains(&1940.0), "the dead 1940 tick is gone");
         assert!(fitted.values.contains(&1960.0) && fitted.values.contains(&2000.0));
         assert_eq!(fitted.values.len(), fitted.labels.len(), "labels trimmed with values");
+    }
+
+    /// **A derived axis left with two ticks takes a finer step** (ruled
+    /// 2026-09-28: the narrow change). Orders from 13 to 34 round to a range of
+    /// 50 and a step of 10, which left 20 and 30 alone on the axis. An axis that
+    /// already shows three ticks keeps exactly the ones it had, and a count the
+    /// caller states keeps its own rule, so two stated ticks stay two.
+    #[test]
+    fn a_derived_axis_left_with_two_ticks_takes_a_finer_step() {
+        let ticks = |lo: f64, hi: f64, count: Option<usize>| -> Vec<f64> {
+            let df = DataFrame::new().with_float("v", vec![lo, hi]);
+            let refs: Vec<&DataFrame> = vec![&df];
+            let (t, _, _) = build_axis(
+                &refs, &[], &[], "v", None, false, false, false, count, false, 10.0,
+                None, (None, None), (0.0, 0.0), None);
+            t.values
+        };
+        assert_eq!(ticks(13.0, 34.0, None), vec![15.0, 20.0, 25.0, 30.0, 35.0],
+            "two ticks, 20 and 30, were all a derived step of 10 left");
+        assert_eq!(ticks(0.0, 100.0, None), vec![0.0, 20.0, 40.0, 60.0, 80.0, 100.0],
+            "an axis with three ticks or more is left as it was");
+        assert_eq!(ticks(1952.0, 2007.0, Some(2)).len(), 2, "a stated count keeps its own rule");
     }
 
     #[test]

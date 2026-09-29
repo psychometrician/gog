@@ -2042,6 +2042,10 @@ end
     logged(; kw...) = labels(render_svg(data(wide) + point + x(:gdp; scale = "log", kw...) + y(:life)))
     @test !("2K" in logged())
     @test all(l -> l in logged(tick_count = 12), ["2K", "5K"])
+    # A derived axis left with two ticks takes a finer step: 13 to 34 had only 20
+    # and 30, and now reads 15, 20, 25, 30, 35.
+    orders = (v = [13.0, 34.0], w = [1.0, 2.0])
+    @test all(l -> l in labels(render_svg(data(orders) + point + x(:w) + y(:v))), ["15", "25", "35"])
     days = (day = [Date(2024, 3, 1) + Day(i) for i in 0:41],
             orders = repeat([20.0, 22.0, 24.0, 26.0, 28.0, 30.0, 32.0], 6))
     dated(; width = 800, kw...) = Base.count(l -> occursin(r"^(Feb|Mar|Apr) ", l),

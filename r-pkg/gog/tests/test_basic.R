@@ -4446,6 +4446,11 @@ local({
     data(wide) + point + x(gdp, scale = "log", ...) + y(life)))
   if ("2K" %in% logged() || !all(c("2K", "5K") %in% logged(tick_count = 12)))
     stop("FAIL: a stated count should reach a log axis")
+  # A derived axis left with two ticks takes a finer step: 13 to 34 had only 20
+  # and 30, and now reads 15, 20, 25, 30, 35.
+  orders <- data.frame(v = c(13, 34), w = c(1, 2))
+  if (!all(c("15", "25", "35") %in% tick_labels(render_svg(data(orders) + point + x(w) + y(v)))))
+    stop("FAIL: a derived axis left with two ticks should take a finer step")
   days <- data.frame(day = seq(as.Date("2024-03-01"), by = "day", length.out = 42),
                      orders = rep(c(20, 22, 24, 26, 28, 30, 32), 6))
   dated <- function(..., width = 800) sum(grepl("^(Feb|Mar|Apr) ", tick_labels(render_svg(

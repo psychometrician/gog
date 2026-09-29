@@ -71,9 +71,12 @@ data(gm_logged) + point + x(log_gdp) + y(life) +
   title("The same shape, with the axis in log units")
 ```
 
-The shape is identical, and the axis now reads 3 and 4. To know a country's
-income, the reader has to raise ten to that power. That arithmetic is what a
-scale does for the reader.
+Every point is in the same place as in the first plot, but the axis now reads
+2.5 to 4.5. Those numbers are logarithms, not dollars. The tick at 3.0 sits
+where the first plot has 1K, because ten to the power of 3 is 1,000. The tick at
+3.5 means ten to the power of 3.5. That is about 3,162 dollars, a number most
+readers need a calculator to find. A log scale does that calculation for the
+reader: its ticks are already in dollars.
 
 So the choice between the two is about what the quantity *is*. Take the
 logarithm of the column when that logarithm is itself the quantity of interest:

@@ -56,6 +56,13 @@ CRAN-style repositories and PyPI, `GrammarOfGraphics` on Julia's General, and
 
 ### Changed
 
+- **An axis that would show only two ticks shows more.** gog picks a round
+  step for about five ticks, and on some ranges only two of them fell inside
+  the axis: orders from 13 to 34 were ticked at 20 and 30 alone. Such an axis
+  now takes the next finer round step, so it reads 15, 20, 25, 30 and 35. An
+  axis that already shows three ticks or more is drawn as before, and a
+  `tick_count` you state keeps its own rule.
+
 - **A size asked for on a composed plot is pixels.** A page whose plots all
   stated a height was stretched to fill 600 pixels, so two plots that asked for
   230 and 200 pixels were drawn at 310 and 270. A page with no size of its own

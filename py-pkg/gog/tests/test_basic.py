@@ -2474,6 +2474,11 @@ def _logged(**kw):
 
 
 assert "2K" not in _logged() and {"2K", "5K"} <= set(_logged(tick_count=12)), _logged(tick_count=12)
+# A derived axis left with two ticks takes a finer step: 13 to 34 had only 20
+# and 30, and now reads 15, 20, 25, 30, 35.
+_two_ticks = _labels(render_svg(data({"v": [13.0, 34.0], "w": [1.0, 2.0]}, name="orders")
+                                + point + x(col.w) + y(col.v)))
+assert {"15", "25", "35"} <= set(_two_ticks), _two_ticks
 _days = {"day": [date(2024, 3, 1) + _timedelta(days=i) for i in builtins.range(42)],
          "orders": [20.0, 22.0, 24.0, 26.0, 28.0, 30.0, 32.0] * 6}
 

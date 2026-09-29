@@ -2641,6 +2641,10 @@ test("counts on every axis, calendar z, shared ticks, one key, and the rest", ()
     plot(data(wide), point, x(col.gdp, { scale: "log", ...opts }), y(col.life))));
   assert.ok(!logged().includes("2K"), `${logged()}`);
   assert.ok(["2K", "5K"].every((l) => logged({ tick_count: 12 }).includes(l)), `${logged({ tick_count: 12 })}`);
+  // A derived axis left with two ticks takes a finer step: 13 to 34 had only 20
+  // and 30, and now reads 15, 20, 25, 30, 35.
+  const twoTicks = labels(render_svg(plot(data({ v: [13, 34], w: [1, 2] }), point, x(col.w), y(col.v))));
+  assert.ok(["15", "25", "35"].every((l) => twoTicks.includes(l)), `${twoTicks}`);
   // Days at UTC midnight, so the table reads the same in every zone.
   const days = {
     day: [...Array(42).keys()].map((i) => new Date(Date.UTC(2024, 2, 1 + i))),
