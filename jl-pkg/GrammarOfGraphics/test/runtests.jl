@@ -3587,3 +3587,11 @@ end
     @refuses render_svg(data((x = [1.0, 20000.0], y = [1.0, 80.0])) + point + x(:x) + y(:y) +
                         theme(width = 60)) "with no room to draw in"
 end
+
+# A surface takes `quantile` beside `bin`, as it takes the other five reductions and as a
+# 3-D `bar` and a `zone` take it. The same block runs in all four bindings.
+@testset "a surface takes quantile" begin
+    grid = (a = [Float64(i % 5 + 1) for i in 0:19], b = [Float64(i ÷ 5 + 1) for i in 0:19],
+            v = [Float64((i + 1) % 7) for i in 0:19])
+    @test startswith(render_svg(data(grid) + surface * bin * quantile(0.9) + x(:a) + y(:b) + z(:v)), "<svg")
+end

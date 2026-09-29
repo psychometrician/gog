@@ -1185,14 +1185,14 @@ pub fn mark_takes_transform(mark: &Mark, transform: &Transform) -> TransformLega
     // `proportion` tally into cells two *categories* make, and the collision modifiers
     // need a width, a baseline or a cloud. `surface_takes_the_two_floor_transforms`
     // pins the whole row.
+    // The reductions are read off the family predicate `zone` asks, not listed: a
+    // list here named five and left out `quantile`, which a zone takes, so a sheet
+    // of each cell's median drew and one of its 90th percentile was refused with no
+    // reason (ruled 2026-09-29, Law 2).
     if *mark == Mark::Surface {
         return match transform {
             Transform::Density | Transform::Bin => Combines,
-            Transform::Sum
-            | Transform::Mean
-            | Transform::Median
-            | Transform::Max
-            | Transform::Min => Combines,
+            t if crate::transform::is_reduction(t) => Combines,
             _ => None,
         };
     }
@@ -15339,17 +15339,17 @@ mod tests {
     }
 
     #[test]
-    fn surface_takes_the_two_floor_transforms_and_the_five_that_reduce_into_them() {
+    fn surface_takes_the_two_floor_transforms_and_the_six_that_reduce_into_them() {
         // **A surface needs a floor whose cells tile without gaps, and two transforms
         // give it one** — `density` as nodes to interpolate between, `bin` as cells to
-        // lay lids on. The five reductions ride `bin`, exactly as they ride it on a 3-D
+        // lay lids on. The six reductions ride `bin`, exactly as they ride it on a 3-D
         // `bar` (Law 2). Pinned across the whole row rather than sampled, so a later
         // transform cannot quietly join one.
         for t in USER_TRANSFORMS {
             let expect = match t {
                 Transform::Density | Transform::Bin => TransformLegality::Combines,
                 Transform::Sum | Transform::Mean | Transform::Median
-                | Transform::Max | Transform::Min => TransformLegality::Combines,
+                | Transform::Max | Transform::Min | Transform::Quantile => TransformLegality::Combines,
                 _ => TransformLegality::None,
             };
             assert_eq!(mark_takes_transform(&Mark::Surface, &t), expect,

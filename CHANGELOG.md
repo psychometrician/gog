@@ -56,6 +56,11 @@ CRAN-style repositories and PyPI, `GrammarOfGraphics` on Julia's General, and
 
 ### Changed
 
+- **A `surface` takes `quantile`.** `surface * bin * quantile(0.9)` draws a
+  sheet of each cell's 90th percentile, as `sum`, `mean`, `median`, `max` and
+  `min` already drew theirs and as a 3-D `bar` and a `zone` take `quantile`. It
+  was refused without a reason.
+
 - **A stroke colored by a number is drawn in runs of one color.** A `path`,
   `line` or `step` whose `color` maps a measure was drawn one segment at a
   time, so a stretch where the color did not change was a row of overlapping

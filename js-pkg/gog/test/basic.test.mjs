@@ -4257,3 +4257,15 @@ test("a plot too small for its axes is refused", () => {
   refuses(() => render_svg(plot(data({ x: [1, 20000], y: [1, 80] }), point, x(col.x), y(col.y),
     theme({ width: 60 }))), /with no room to draw in/);
 });
+
+// A surface takes `quantile` beside `bin`, as it takes the other five reductions and as
+// a 3-D `bar` and a `zone` take it. The same block runs in all four bindings.
+test("a surface takes quantile", () => {
+  const grid = {
+    a: Array.from({ length: 20 }, (_, i) => (i % 5) + 1),
+    b: Array.from({ length: 20 }, (_, i) => Math.floor(i / 5) + 1),
+    v: Array.from({ length: 20 }, (_, i) => (i + 1) % 7),
+  };
+  assert.match(render_svg(plot(data(grid), layer(surface, bin, quantile(0.9)),
+    x(col.a), y(col.b), z(col.v))), /^<svg /);
+});

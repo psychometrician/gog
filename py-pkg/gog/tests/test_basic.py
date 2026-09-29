@@ -4157,3 +4157,13 @@ _refused_with(lambda: render_svg(data({"x": [1.0, 20000.0], "y": [1.0, 80.0]}, n
                                  + point + x(col.x) + y(col.y) + theme(width=60)),
               "with no room to draw in")
 ok("a plot too small for its axes is refused")
+
+# --- A surface takes `quantile` ---------------------------------------------------------------
+# Beside `bin`, as it takes the other five reductions and as a 3-D `bar` and a `zone` take
+# it. The same block runs in all four bindings.
+_grid = {"a": [float(i % 5 + 1) for i in builtins.range(20)],
+         "b": [float(i // 5 + 1) for i in builtins.range(20)],
+         "v": [float((i + 1) % 7) for i in builtins.range(20)]}
+assert render_svg(data(_grid, name="grid") + surface * bin * quantile(0.9)
+                  + x(col.a) + y(col.b) + z(col.v)).startswith("<svg")
+ok("a surface takes quantile")
