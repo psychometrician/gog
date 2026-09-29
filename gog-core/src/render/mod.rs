@@ -72,13 +72,22 @@ pub(crate) struct Whole<'a> {
     /// range is fitted over these rather than over `unsplit`, because a
     /// transform run per panel yields values the unsplit frame never holds.
     pub(crate) shares: Vec<&'a DataFrame>,
+    /// The plot-wide order of each column a `shape` or `pattern` maps, over every
+    /// layer that maps it. `None` for a frame drawn on its own.
+    ///
+    /// A glyph or a texture is handed out by a category's place in this order, so
+    /// the order has to be the plot's and not the layer's: `shape(k)` over two
+    /// tables gave each table's `k` an order of its own, the second table's first
+    /// category took the first table's first glyph, and the key listed the first
+    /// table's categories alone. A reader took `c` for `a`.
+    pub(crate) shared: Option<&'a HashMap<String, Vec<String>>>,
 }
 
 impl<'a> Whole<'a> {
     /// A frame drawn in one piece, which is its own whole.
     #[cfg(test)]
     pub(crate) fn of(df: &'a DataFrame) -> Self {
-        Whole { unsplit: df, shares: vec![df] }
+        Whole { unsplit: df, shares: vec![df], shared: None }
     }
 
     /// The scale `field` is read by: its range over every share, with the
@@ -110,9 +119,19 @@ impl<'a> Whole<'a> {
         }
     }
 
-    /// The order `field`'s categories take: the unsplit table's, then any a
-    /// transform made that the table does not hold.
+    /// The order `field`'s categories take: the plot's, when a legend channel
+    /// maps the column across layers ([`shared`](Self::shared)); otherwise the
+    /// unsplit table's, then any a transform made that the table does not hold.
     pub(crate) fn categories(&self, field: &str) -> Vec<String> {
+        if let Some(order) = self.shared.and_then(|m| m.get(field)).filter(|o| !o.is_empty()) {
+            return order.clone();
+        }
+        self.own_categories(field)
+    }
+
+    /// This layer's own order for `field`, whatever the rest of the plot holds:
+    /// what [`shared`](Self::shared) is joined from.
+    pub(crate) fn own_categories(&self, field: &str) -> Vec<String> {
         let frames: Vec<&DataFrame> = std::iter::once(self.unsplit)
             .chain(self.shares.iter().copied())
             .collect();

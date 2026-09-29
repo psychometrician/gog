@@ -287,7 +287,21 @@ pub(crate) fn collect_legends(
         // the key used to list it anyway in the first palette color: a `flow` that
         // left out Crew's rows for a missing stage keyed "Crew" in 1st class's blue
         // over bands that never drew it.
-        let rows: Vec<LegendRow> = categories_across(&[df], &def.field).into_iter()
+        //
+        // Every table whose layer colors by this column, joined in layer order as the
+        // map joined them. Read from the first table alone, a second table's
+        // categories were colored and never keyed: four colors under a key of two.
+        let mut labels: Vec<String> = Vec::new();
+        for other in &spec.layers {
+            if other.encodings.get(&Channel::Color).is_none_or(|d| d.field != def.field) { continue }
+            let Some(table) = ctx.resolve_data(&other.data) else { continue };
+            for label in categories_across(&[table], &def.field) {
+                if !labels.contains(&label) {
+                    labels.push(label);
+                }
+            }
+        }
+        let rows: Vec<LegendRow> = labels.into_iter()
             .filter_map(|label| {
                 let color = color_map.get(label.as_str())?.clone();
                 Some(LegendRow { label, swatch: LegendSwatch::ColorRect(color) })

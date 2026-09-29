@@ -2170,11 +2170,31 @@ impl SvgRenderer {
         // against these; the legend decodes them. Fitted per share, they drew a
         // played bubble chart with each year's largest country at the largest
         // size, whatever its population.
+        //
+        // **A column a `shape` or `pattern` maps is one set of categories across the
+        // plot**, joined from each layer's own order in layer order, which is how the
+        // color map joins its categories (`palette::build_color_map`). Each layer
+        // ordering its own table's categories drew a second table's first category in
+        // the first table's first glyph, under a key of the first table's alone.
+        let own = |li: usize| Whole {
+            unsplit: &color_frames[li],
+            shares: panel_eff.iter().map(|frames| &frames[li]).collect(),
+            shared: None,
+        };
+        let mut plot_categories: HashMap<String, Vec<String>> = HashMap::new();
+        for (li, layer) in spec.layers.iter().enumerate() {
+            for channel in [Channel::Shape, Channel::Pattern] {
+                let Some(def) = layer.encodings.get(&channel) else { continue };
+                let order = plot_categories.entry(def.field.clone()).or_default();
+                for c in own(li).own_categories(&def.field) {
+                    if !order.contains(&c) {
+                        order.push(c);
+                    }
+                }
+            }
+        }
         let wholes: Vec<Whole> = (0..spec.layers.len())
-            .map(|li| Whole {
-                unsplit: &color_frames[li],
-                shares: panel_eff.iter().map(|frames| &frames[li]).collect(),
-            })
+            .map(|li| Whole { shared: Some(&plot_categories), ..own(li) })
             .collect();
 
         let legends = collect_legends(&ctx, &color_map, color_frames, &wholes);
@@ -8785,6 +8805,46 @@ mod tests {
         let said = hidden(&split);
         assert_eq!(said.len(), 1, "{said:?}");
         assert!(said[0].contains("of 3 row(s) of `cities`"), "{said:?}");
+    }
+
+    /// **A column two tables share is one set of categories, drawn and keyed.** Each
+    /// layer ordered its own table's categories, so `shape(k)` over two tables drew
+    /// `c` in `a`'s circle and `d` in `b`'s square under a key of `a` and `b`, a
+    /// `pattern` gave `c` the texture of `a`, and `color(k)` colored four categories
+    /// and keyed two.
+    #[test]
+    fn a_column_two_tables_share_is_one_set_of_categories() {
+        let table = |xs: [f64; 2], ks: [&str; 2]| DataFrame::new()
+            .with_float("x", xs.to_vec()).with_float("y", xs.to_vec())
+            .with_str("k", ks.iter().map(|k| k.to_string()).collect());
+        let t: HashMap<String, DataFrame> = HashMap::from([
+            ("ta".to_string(), table([1.0, 2.0], ["a", "b"])),
+            ("tb".to_string(), table([3.0, 4.0], ["c", "d"])),
+        ]);
+        let two = |mark: Mark, channel: Channel| SvgRenderer::default().render(
+            &PlotSpec::new().x("x").y("y")
+                .layer(Layer::new(mark.clone()).data("ta").encode(channel.clone(), "k"))
+                .layer(Layer::new(mark).data("tb").encode(channel, "k")),
+            &t);
+        for (mark, channel) in [(Mark::Point, Channel::Color), (Mark::Point, Channel::Shape),
+                                (Mark::Bar, Channel::Pattern)] {
+            let svg = two(mark.clone(), channel.clone());
+            for k in ["a", "b", "c", "d"] {
+                assert!(svg.contains(&format!(">{k}</text>")), "{channel:?}: the key lists `{k}`");
+            }
+        }
+        // The four points are four glyphs: a circle, a square and two polygons, where
+        // the second table repeated the first table's circle and square.
+        let shapes = two(Mark::Point, Channel::Shape);
+        let plot = &shapes[..shapes.find("font-size=\"11\" fill=\"#3c3c46\">").unwrap_or(shapes.len())];
+        let glyphs: Vec<&str> = plot.lines()
+            .filter(|l| l.contains(r##"fill="#4e79a7""##))
+            .map(|l| l.trim_start().split(' ').next().unwrap())
+            .collect();
+        assert_eq!(glyphs, ["<circle", "<rect", "<polygon", "<polygon"], "{glyphs:?}");
+        let polygons: Vec<&str> = plot.lines().filter(|l| l.contains("<polygon")).collect();
+        assert_ne!(polygons[0].matches(',').count(), polygons[1].matches(',').count(),
+            "`c` and `d` are two different polygons: {polygons:?}");
     }
 
     /// A map's meridian is the curve its projection makes, ticked where it meets

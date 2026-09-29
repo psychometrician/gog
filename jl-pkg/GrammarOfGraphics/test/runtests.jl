@@ -3501,3 +3501,18 @@ end
     @refuses facet(:stage_a, :stage_b) "give each its own `facet()`: `| facet(:stage_a) / facet(:stage_b)`"
     @refuses facet(:stage_a, 3) "`facet(:stage_a, wrap = 3)`"
 end
+
+# A column two tables share is one set of categories: each table's `k` was ordered on
+# its own, so `shape(k)` drew the second table's `c` and `d` in the first table's circle
+# and square under a key of `a` and `b`, and `color(k)` colored four and keyed two. The
+# same block runs in all four bindings.
+@testset "a column two tables share is one set of categories" begin
+    ta = (x = [1.0, 2.0], y = [1.0, 2.0], k = ["a", "b"])
+    tb = (x = [3.0, 4.0], y = [3.0, 4.0], k = ["c", "d"])
+    both(channel) = render_svg(data(ta; name = "ta") + point + x(:x) + y(:y) + channel(:k) +
+                               data(tb; name = "tb") + point + x(:x) + y(:y) + channel(:k))
+    for svg in (both(color), both(shape)), k in ("a", "b", "c", "d")
+        @test occursin(">$k</text>", svg)
+    end
+    @test Base.count("<polygon", both(shape)) == 4
+end

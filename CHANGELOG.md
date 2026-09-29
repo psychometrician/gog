@@ -952,6 +952,14 @@ These still draw, and now say what they drew.
 
 These drew something other than the sentence said, and now draw what it says.
 
+- **A column two tables share, on `color`, `shape` or `pattern`.** Each
+  table's categories were ordered on their own, so `shape(k)` drew the second
+  table's first category in the first table's first glyph, and a `pattern` gave
+  it the first table's first texture: a point of `c` looked like a point of
+  `a`. The key listed the first table's categories alone, and `color(k)`
+  colored every category but keyed only those. The column is now one set of
+  categories across the plot, drawn and keyed in full.
+
 - **A bare `space()` over `bounds`, `partition` or a cluster tree.** Each drew
   an empty cube with a made-up 0 to 1 vertical axis and none of its marks. None
   of them has a height to stand up in the cube, so the plot is drawn flat with a

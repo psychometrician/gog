@@ -6236,3 +6236,26 @@ local({
           "give each its own `facet()`: `| facet(stage_a) / facet(stage_b)`")
   cat("PASS: four messages point at a spelling that draws\n")
 })
+
+# ---------------------------------------------------------------------------
+# A column two tables share is one set of categories: each table's `k` was
+# ordered on its own, so `shape(k)` drew the second table's `c` and `d` in the
+# first table's circle and square under a key of `a` and `b`, and `color(k)`
+# colored four and keyed two. The same block runs in all four bindings.
+# ---------------------------------------------------------------------------
+local({
+  ta <- data.frame(x = c(1, 2), y = c(1, 2), k = c("a", "b"))
+  tb <- data.frame(x = c(3, 4), y = c(3, 4), k = c("c", "d"))
+  colored <- render_svg(data(ta) + point + x(x) + y(y) + color(k) +
+                          data(tb) + point + x(x) + y(y) + color(k))
+  shaped <- render_svg(data(ta) + point + x(x) + y(y) + shape(k) +
+                         data(tb) + point + x(x) + y(y) + shape(k))
+  for (svg in list(colored, shaped))
+    for (k in c("a", "b", "c", "d"))
+      if (!grepl(paste0(">", k, "</text>"), svg, fixed = TRUE))
+        stop("FAIL: a column two tables share should key all four categories, missing ", k)
+  # A triangle and a diamond for `c` and `d`, in the plot and in the key.
+  if (lengths(regmatches(shaped, gregexpr("<polygon", shaped, fixed = TRUE))) != 4)
+    stop("FAIL: `c` and `d` should take their own glyphs, not `a`'s and `b`'s")
+  cat("PASS: a column two tables share is one set of categories\n")
+})

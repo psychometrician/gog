@@ -4145,3 +4145,19 @@ test("four messages point at a spelling that draws", () => {
     /split each way: `across\(col\.stage_a\), down\(col\.stage_b\)`/);
   refuses(() => down(col.stage_a, 3), /`down\(col\.stage_a, \{ wrap: 3 \}\)`/);
 });
+
+// A column two tables share is one set of categories: each table's `k` was ordered on
+// its own, so `shape(k)` drew the second table's `c` and `d` in the first table's
+// circle and square under a key of `a` and `b`, and `color(k)` colored four and keyed
+// two. The same block runs in all four bindings.
+test("a column two tables share is one set of categories", () => {
+  const ta = { x: [1, 2], y: [1, 2], k: ["a", "b"] };
+  const tb = { x: [3, 4], y: [3, 4], k: ["c", "d"] };
+  const both = (channel) => render_svg(plot(
+    data(ta, { name: "ta" }), point, x(col.x), y(col.y), channel(col.k),
+    data(tb, { name: "tb" }), point, x(col.x), y(col.y), channel(col.k)));
+  for (const svg of [both(color), both(shape)]) {
+    for (const k of ["a", "b", "c", "d"]) assert.ok(svg.includes(`>${k}</text>`), `the key lists ${k}`);
+  }
+  assert.equal(both(shape).split("<polygon").length - 1, 4, "`c` and `d` take their own glyphs");
+});

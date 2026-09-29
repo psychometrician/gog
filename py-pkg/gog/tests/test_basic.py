@@ -4074,3 +4074,18 @@ _refused_with(lambda: render_svg(data(_stages, name="stages") + ribbon * flow(co
 _refused_with(lambda: facet(col.stage_a, col.stage_b),
               "give each its own `facet()`: `| facet(col.stage_a) / facet(col.stage_b)`")
 ok("four messages point at a spelling that draws")
+
+# --- A column two tables share is one set of categories ----------------------------------
+# Each table's `k` was ordered on its own, so `shape(k)` drew the second table's `c` and
+# `d` in the first table's circle and square under a key of `a` and `b`, and `color(k)`
+# colored four and keyed two. The same block runs in all four bindings.
+_ta = {"x": [1.0, 2.0], "y": [1.0, 2.0], "k": ["a", "b"]}
+_tb = {"x": [3.0, 4.0], "y": [3.0, 4.0], "k": ["c", "d"]}
+_colored = render_svg(data(_ta, name="ta") + point + x(col.x) + y(col.y) + color(col.k)
+                      + data(_tb, name="tb") + point + x(col.x) + y(col.y) + color(col.k))
+_shaped = render_svg(data(_ta, name="ta") + point + x(col.x) + y(col.y) + shape(col.k)
+                     + data(_tb, name="tb") + point + x(col.x) + y(col.y) + shape(col.k))
+for _svg in (_colored, _shaped):
+    assert all(f">{k}</text>" in _svg for k in "abcd"), "a shared column keys all four"
+assert _shaped.count("<polygon") == 4, "`c` and `d` take their own glyphs"
+ok("a column two tables share is one set of categories")
