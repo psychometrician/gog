@@ -1444,12 +1444,13 @@ err <- tryCatch(
 if (is.null(err) || !grepl("\\|", err)) stop("FAIL: + facet() should refuse, pointing at | and /")
 cat("PASS: `+ facet()` refuses with direction\n")
 
-# A numeric facet column is Illegal, with direction toward factor().
+# A numeric facet column is Illegal, with direction toward storing it as text.
 err2 <- tryCatch(
   { render_svg(data(facet_df) + point + x(x) + y(y) | facet(y)); NULL },
   error = function(e) conditionMessage(e)
 )
-if (is.null(err2) || !grepl("factor", err2)) stop("FAIL: numeric facet should refuse with factor() advice")
+if (is.null(err2) || !grepl("as text or categories", err2, fixed = TRUE))
+  stop("FAIL: numeric facet should refuse toward storing it as text")
 cat("PASS: a numeric facet column refuses with direction\n")
 
 cat("\nfacet tests passed.\n")
@@ -1970,7 +1971,7 @@ cat("PASS: `legend = FALSE` leaves the key out of all five channels and keeps th
 
 refuses("legend on a position",
         render_svg(data(lvl) + point + x(a, legend = FALSE) + y(b)),
-        "`x(a, legend = FALSE)` \u2014 `x` is read off its axis")
+        "`x(a)` is given `legend` \u2014 `x` is read off its axis")
 refuses("legend on group",
         render_svg(data(lvl) + line + x(a) + y(b) + group(g, legend = FALSE)),
         "`group` splits the rows without encoding anything")
@@ -2013,8 +2014,8 @@ cat("PASS: saying `category` on a text column costs nothing\n")
 # Illegal rather than Unsupported — "not yet" promised a feature now ruled out.
 err <- tryCatch(render_svg(data(sdf) + point + x(gdp, scale = "category") + y(life)),
                 error = function(e) conditionMessage(e))
-if (!is.character(err) || !grepl("factor\\(gdp\\)", err))
-  stop("FAIL: `category` on a number should refuse toward `factor()`, got: ", err)
+if (!is.character(err) || !grepl("Store `gdp` as text or categories", err, fixed = TRUE))
+  stop("FAIL: `category` on a number should refuse toward storing it as text, got: ", err)
 if (!grepl("bin", err))
   stop("FAIL: the refusal should also name `bin`, the other reading, got: ", err)
 cat("PASS: `category` on a number refuses toward `factor()` and `bin`\n")
@@ -2759,9 +2760,9 @@ if (!grepl("logarithm", m))
 cat("PASS: a moment in time has no logarithm\n")
 
 m <- err_msg(render_svg(data(years_df) + point + x(sales, scale = "time") + y(sales)))
-if (!grepl("as.Date", m, fixed = TRUE))
-  stop("FAIL: time on a plain number should point at as.Date(), got: ", m)
-cat("PASS: a time scale on a plain number points at as.Date()\n")
+if (!grepl("Store it as dates", m, fixed = TRUE))
+  stop("FAIL: time on a plain number should say to store it as dates, got: ", m)
+cat("PASS: a time scale on a plain number says to store it as dates\n")
 
 m <- err_msg(render_svg(data(years_df) + bar + x(sales) + y(day)))
 if (!grepl("amount", m))
@@ -4555,7 +4556,7 @@ local({
     stop("FAIL: a spine plot's share axis should run 0 to 1, got ", paste(spine, collapse = " "))
   refuses("proportion beside a filled pile",
           render_svg(data(trips) + bar * stack(share = TRUE) * proportion + x(city) + color(mode)),
-          "`bar * count * stack(share = TRUE)` for shares within each pile")
+          "`bar * count * stack` with its `share` set to true for shares within each pile")
   refuses("jitter on a box", render_svg(data(trips) + box * jitter + x(city) + y(people)),
           "`dodge` sets them side by side")
   refuses("stack on a box", render_svg(data(trips) + box * stack + x(city) + y(people)),

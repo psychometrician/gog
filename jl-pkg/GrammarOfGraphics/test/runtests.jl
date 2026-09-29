@@ -278,7 +278,7 @@ end
     said = render_svg(data(t) + bar * mean + x(:place, scale = "category") + y(:life))
     @test said == plain
 
-    @refuses render_svg(data(t) + point + x(:gdp, scale = "category") + y(:life)) "factor(gdp)"
+    @refuses render_svg(data(t) + point + x(:gdp, scale = "category") + y(:life)) "Store `gdp` as text or categories"
 end
 
 @testset "`text * repel` separates a label crowd and keeps every label" begin
@@ -750,7 +750,7 @@ end
 end
 
 @testset "legend on a channel with no key is refused with direction" begin
-    @refuses render_svg(data(lvl) + point + x(:a, legend = false) + y(:b)) "`x(a, legend = FALSE)` — `x` is read off its axis"
+    @refuses render_svg(data(lvl) + point + x(:a, legend = false) + y(:b)) "`x(a)` is given `legend` — `x` is read off its axis"
     @refuses render_svg(data(lvl) + line + x(:a) + y(:b) + group(:g, legend = false)) "`group` splits the rows without encoding anything"
     @refuses render_svg(data(lvl) + text + x(:a) + y(:b) + label(:g, legend = false)) "`label` is the text a `text` mark writes"
     @refuses color(:g, legend = "no") "true or false"
@@ -2143,7 +2143,7 @@ end
     @test !("-0" in spine)
     @test "0.2" in spine && "1.0" in spine
     @refuses render_svg(data(trips) + bar * stack(share = true) * proportion + x(:city) +
-                        color(:mode)) "`bar * count * stack(share = TRUE)` for shares within each pile"
+                        color(:mode)) "`bar * count * stack` with its `share` set to true for shares within each pile"
     @refuses render_svg(data(trips) + box * jitter + x(:city) + y(:people)) "`dodge` sets them side by side"
 end
 

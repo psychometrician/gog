@@ -1769,7 +1769,10 @@ pub fn setting_values(mark: &Mark, setting: &str) -> &'static [&'static str] {
             Some(Texture::Hatch) => &FILL_TEXTURES,
             None => &[],
         },
-        "caps" | "center" => &["TRUE", "FALSE"],
+        // A yes-or-no setting is written in each binding's own spelling of true
+        // (`TRUE`, `True`, `true`), so there is no one word to list; the book says
+        // "true or false" (ruled 2026-09-29: the engine's words are neutral).
+        "caps" | "center" => &[],
         "nudge" => &NUDGES,
         "arrow" => &ARROW_ENDS,
         "reach" => &REACHES,
@@ -3809,11 +3812,7 @@ fn chain_message(
         // `proportion` was also the tally when nothing else measured, so the pile's
         // share has to count in its place.
         Job::Scale => {
-            let spell = |t: &Transform, n: &str| match t {
-                Transform::Stack => "stack(share = TRUE)".to_string(),
-                _ => n.to_string(),
-            };
-            let (a, b) = (spell(ta, a), spell(tb, b));
+            let (a, b) = (a.to_string(), b.to_string());
             // What made the measurement, kept in both sentences in the order written:
             // `bin * mean` as much as `sum`.
             let before: String = ts.iter()
@@ -3825,12 +3824,13 @@ fn chain_message(
                 .collect();
             let tally = if before.is_empty() { " * count" } else { before.as_str() };
             format!(
-                "gog: `{m} * {a} * {b}` rescales the measurement twice — `proportion` \
-                 divides it into shares of the whole plot and `stack(share = TRUE)` into \
-                 shares of each pile, and dividing twice does not read as shares of \
-                 anything. Keep whichever you meant: `{m}{before} * proportion * stack` \
-                 for shares of the whole plot, piled, or \
-                 `{m}{tally} * stack(share = TRUE)` for shares within each pile."
+                "gog: `{m} * {a} * {b}`, with the `stack` asked for shares (its `share` \
+                 set to true), rescales the measurement twice — `proportion` divides it \
+                 into shares of the whole plot and the `stack` into shares of each pile, \
+                 and dividing twice does not read as shares of anything. Keep whichever \
+                 you meant: `{m}{before} * proportion * stack` for shares of the whole \
+                 plot, piled, or `{m}{tally} * stack` with its `share` set to true for \
+                 shares within each pile."
             )
         }
         Job::Position => format!(
@@ -6218,7 +6218,7 @@ fn check_baseline(out: &mut Vec<Diagnostic>, spec: &PlotSpec, layer: &Layer) {
                  statement about a plane: in `{s}()` the measure is an angle or a radius \
                  or a height the space has already fixed, so moving the foot asks for a \
                  place that is not on the plot. Keep the space and drop the baseline \
-                 (`stack` alone, or `stack(share = TRUE)` for composition), or keep the \
+                 (`stack` alone, or with its `share` set to true for composition), or keep the \
                  baseline and draw it flat."
             ),
         });
@@ -8837,8 +8837,8 @@ fn check_brush(out: &mut Vec<Diagnostic>, spec: &PlotSpec, data: &HashMap<String
                 out.push(Diagnostic {
                     kind: DiagnosticKind::Illegal,
                     message: format!(
-                        "gog: `brush({}, at = c({lo}, {hi}))` selects nothing, because the \
-                         range does not run upward. Write the smaller number first.",
+                        "gog: `brush({})` at {lo} to {hi} selects nothing, because the range \
+                         does not run upward. Write the smaller number first.",
                         b.field
                     ),
                 });
@@ -9366,7 +9366,7 @@ fn check_layer_position(out: &mut Vec<Diagnostic>, spec: &PlotSpec, layer: &Laye
         // Which parameter it arrived through, so the direction names the one the
         // caller actually wrote rather than the commoner of the several.
         let (what, example) = if overrides(&own.limits, &axis.limits) {
-            ("its own limits", format!("{c}(<column>, limits = c(0, 24))"))
+            ("its own limits", format!("{c}(<column>, limits = )"))
         } else if overrides(&own.tick_count, &axis.tick_count) {
             ("its own tick count", format!("{c}(<column>, tick_count = 8)"))
         } else {
@@ -11292,8 +11292,8 @@ fn check_facet(out: &mut Vec<Diagnostic>, spec: &PlotSpec, data: &HashMap<String
                         message: format!(
                             "gog: `facet({field})` splits on a number column, but a facet \
                              variable names the panels, so it must be a category column. \
-                             Make `{field}` text — in R, `factor({field})` — or cut it \
-                             into named groups first."
+                             Store `{field}` as text or categories before plotting, or cut \
+                             it into named groups first."
                         ),
                     });
                     return;
@@ -11952,7 +11952,7 @@ fn check_scale(
                     message: format!(
                         "gog: `{c}({field}, scale = \"linear\")` — `{field}` is a date column, \
                          and a date always reads as a calendar. If you truly want raw epoch \
-                         numbers, convert the column with `as.numeric()`."
+                         numbers, store the column as numbers before plotting."
                     ),
                 });
             }
@@ -11968,8 +11968,8 @@ fn check_scale(
                     kind: DiagnosticKind::Illegal,
                     message: format!(
                         "gog: `{c}({field}, scale = \"time\")` — `{field}` is not a date column, \
-                         and a number alone does not say what moment it is. Convert it with \
-                         `as.Date()` (or `as.POSIXct()`); gog reads the calendar from the \
+                         and a number alone does not say what moment it is. Store it as dates, \
+                         or as date-times, before plotting; gog reads the calendar from the \
                          column's type."
                     ),
                 });
@@ -12048,8 +12048,8 @@ fn check_scale(
                         "gog: `{c}({field}, scale = \"category\")` — a scale says how a measured \
                          column is placed; whether an axis measures at all is the column's type. \
                          Removing the scale alone would leave the continuous axis you were trying \
-                         to escape. Make `{field}` text — in R, `factor({field})` — and drop the \
-                         scale. To cut the numbers into ranges instead, use `bin`."
+                         to escape. Store `{field}` as text or categories before plotting, and \
+                         drop the scale. To cut the numbers into ranges instead, use `bin`."
                     ),
                 });
             }
@@ -12236,9 +12236,9 @@ fn check_limits(
             out.push(Diagnostic {
                 kind: DiagnosticKind::Illegal,
                 message: format!(
-                    "gog: `{c}({field}, limits = c({l}, {h}))` runs backwards or has no width — \
-                     the first number is the low end. Write `c({}, {})`, or leave one end out \
-                     with `NA` to let the data decide it.",
+                    "gog: the `limits` of `{c}({field})`, {l} to {h}, run backwards or have no \
+                     width — the first number is the low end. Write {} to {}, or leave one end \
+                     missing to let the data decide it.",
                     l.min(h), l.max(h),
                 ),
             });
@@ -12443,13 +12443,12 @@ fn check_legend(out: &mut Vec<Diagnostic>, spec: &PlotSpec) {
     for layer in &spec.layers {
         written.extend(layer.encodings.iter());
     }
-    let said = |v: bool| if v { "TRUE" } else { "FALSE" };
 
     // Collected and sorted before they are pushed: the bindings sit in hash maps,
     // and two runs of one sentence must print one message in one order.
     let mut messages: Vec<String> = Vec::new();
     for (channel, def) in &written {
-        let Some(shown) = def.legend else { continue };
+        if def.legend.is_none() { continue }
         if earns_a_key(channel) {
             continue;
         }
@@ -12471,9 +12470,8 @@ fn check_legend(out: &mut Vec<Diagnostic>, spec: &PlotSpec) {
             _ => format!("`{c}` draws no legend."),
         };
         messages.push(format!(
-            "gog: `{c}({field}, legend = {})` — {why} `legend` belongs on the five channels \
-             that draw one: `color`, `size`, `shape`, `pattern` and `opacity`.",
-            said(shown),
+            "gog: `{c}({field})` is given `legend` — {why} `legend` belongs on the five \
+             channels that draw one: `color`, `size`, `shape`, `pattern` and `opacity`."
         ));
     }
 
@@ -12483,8 +12481,8 @@ fn check_legend(out: &mut Vec<Diagnostic>, spec: &PlotSpec) {
         if let (Some((_, off)), Some((_, on))) = (hidden, shown) {
             let c = channel_name(&channel);
             messages.push(format!(
-                "gog: `{c}({}, legend = FALSE)` and `{c}({}, legend = TRUE)` ask for opposite \
-                 things, and a plot draws one `{c}` legend. Keep one of them.",
+                "gog: `{c}({})` leaves its legend out and `{c}({})` shows it, which are \
+                 opposite things, and a plot draws one `{c}` legend. Keep one of them.",
                 off.field, on.field,
             ));
         }
@@ -13422,8 +13420,8 @@ fn check_palette_value(
                         message: format!(
                             "gog: `palette(\"{n}\")` hands out one color per category, but \
                              `color` is bound to a numeric column. Use a ramp — {} run one \
-                             way, {} diverge from a center — or give your own stops, e.g. \
-                             `palette(c(\"white\", \"navy\"))`.",
+                             way, {} diverge from a center — or give `palette()` your own \
+                             stops, the colors themselves, such as \"white\" and \"navy\".",
                             or_list(&tick(SEQUENTIAL_RAMPS)),
                             or_list(&tick(DIVERGING_RAMPS)),
                         ),
@@ -13476,7 +13474,7 @@ fn check_palette_value(
                 format!(
                     " `\"{name}\"` is a color, not a palette. To paint every mark one \
                      color use `style(color = \"{name}\")`; to give each category its own \
-                     color pass a vector: `palette(c(\"{name}\", ...))`."
+                     color, give `palette()` several colors, \"{name}\" among them."
                 )
             } else {
                 String::new()
@@ -13497,8 +13495,8 @@ fn check_palette_value(
             if colors.is_empty() {
                 out.push(Diagnostic {
                     kind: DiagnosticKind::Illegal,
-                    message: "gog: `palette()` was given no colors. Pass at least one, \
-                              e.g. `palette(c(\"steelblue\", \"tomato\"))`."
+                    message: "gog: `palette()` was given no colors. Give it at least one, \
+                              such as \"steelblue\" and \"tomato\"."
                         .into(),
                 });
                 return;
@@ -13627,8 +13625,8 @@ fn check_named_palette(
     if named.0.is_empty() {
         out.push(Diagnostic {
             kind: DiagnosticKind::Illegal,
-            message: "gog: `palette()` was given no colors. Pass at least one, e.g. \
-                      `palette(c(Asia = \"tomato\", Europe = \"steelblue\"))`."
+            message: "gog: `palette()` was given no colors. Give it at least one level and \
+                      its color, such as Asia as \"tomato\" and Europe as \"steelblue\"."
                 .into(),
         });
         return;
@@ -13684,7 +13682,7 @@ fn check_named_palette(
             message: format!(
                 "gog: `palette()` names levels, but `color` is bound to `{field}`, a column of \
                  numbers, and numbers have no levels to name. For a ramp, give its stops \
-                 without names — `palette(c(\"white\", \"navy\"))` — or name a ramp, such as \
+                 without names, such as \"white\" and \"navy\", or name a ramp, such as \
                  `palette(\"viridis\")`."
             ),
         });
@@ -16020,7 +16018,8 @@ mod tests {
         // Number: removing it hands back the continuous axis the caller was
         // escaping, so the message must not say to — it must say `factor`.
         let number = refusal("gdp", &frames);
-        assert!(number.contains("factor(gdp)"), "{number}");
+        assert!(number.contains("Store `gdp` as text or categories") && !number.contains("factor("),
+            "{number}");
         assert!(
             !number.contains("a text column already gets"),
             "the number branch must not repeat the text column's advice: {number}"
@@ -16109,7 +16108,8 @@ mod tests {
             .layer(Layer::new(Mark::Point));
         let d = check(&spec, &dated());
         assert_eq!(kinds(&d), vec![DiagnosticKind::Illegal]);
-        assert!(d[0].message.contains("as.Date"), "{}", d[0].message);
+        assert!(d[0].message.contains("Store it as dates") && !d[0].message.contains("as.Date"),
+            "{}", d[0].message);
     }
 
     #[test]
@@ -16131,7 +16131,8 @@ mod tests {
             .layer(Layer::new(Mark::Point));
         let d = check(&spec, &dated());
         assert_eq!(kinds(&d), vec![DiagnosticKind::Illegal]);
-        assert!(d[0].message.contains("as.numeric"), "{}", d[0].message);
+        assert!(d[0].message.contains("store the column as numbers")
+            && !d[0].message.contains("as.numeric"), "{}", d[0].message);
     }
 
     #[test]
@@ -16872,7 +16873,8 @@ mod tests {
         assert_eq!(kinds(&d), vec![DiagnosticKind::Illegal], "{:?}", msgs(&d));
         let m = &d[0].message;
         assert!(m.contains("`gdp`") && m.contains("numbers have no levels"), "{m}");
-        assert!(m.contains("palette(c(\"white\", \"navy\"))") && m.contains("viridis"), "{m}");
+        assert!(m.contains("such as \"white\" and \"navy\"") && m.contains("viridis")
+            && !m.contains("c("), "{m}");
     }
 
     #[test]
@@ -16962,10 +16964,10 @@ mod tests {
 
         let mut spec = base().layer(Layer::new(Mark::Point));
         spec.x = Some(off("gdp"));
-        refused(spec, "`x(gdp, legend = FALSE)` — `x` is read off its axis");
+        refused(spec, "`x(gdp)` is given `legend` — `x` is read off its axis");
         let mut spec = base().layer(Layer::new(Mark::Point));
         spec.y = Some(ChannelDef::field("life").with_legend(true));
-        refused(spec, "`y(life, legend = TRUE)`");
+        refused(spec, "`y(life)` is given `legend`");
         refused(base().layer(Layer::new(Mark::Line).encode_def(Channel::Group, off("continent"))),
             "`group` splits the rows without encoding anything");
         refused(base().layer(Layer::new(Mark::Text).encode_def(Channel::Label, off("continent"))),
@@ -16979,7 +16981,7 @@ mod tests {
         let mut spec = base().layer(Layer::new(Mark::Point)).layer(Layer::new(Mark::Line));
         spec.x = Some(ChannelDef::field("gdp").with_legend(false));
         let d = check(&spec, &data());
-        assert_eq!(d.iter().filter(|x| x.message.contains("legend = FALSE")).count(), 1,
+        assert_eq!(d.iter().filter(|x| x.message.contains("`x(gdp)` is given `legend`")).count(), 1,
             "{:?}", msgs(&d));
     }
 
@@ -16992,7 +16994,8 @@ mod tests {
             .layer(Layer::new(Mark::Line).encode_def(Channel::Color, on));
         let d = check(&spec, &data());
         assert!(d.iter().any(|x| x.kind == DiagnosticKind::Illegal
-            && x.message.contains("ask for opposite things")
+            && x.message.contains("leaves its legend out")
+            && x.message.contains("shows it, which are opposite things")
             && x.message.contains("one `color` legend")), "{:?}", msgs(&d));
 
         // Saying nothing beside `FALSE` is not a disagreement: the key is the
@@ -17966,7 +17969,8 @@ mod tests {
         let spec = base().layer(Layer::new(Mark::Point)).facet_col("gdp");
         let d = check(&spec, &data());
         assert_eq!(kinds(&d), [DiagnosticKind::Illegal]);
-        assert!(d[0].message.contains("factor(gdp)"), "{}", d[0].message);
+        assert!(d[0].message.contains("Store `gdp` as text or categories")
+            && !d[0].message.contains("factor("), "{}", d[0].message);
     }
 
     #[test]
@@ -21434,8 +21438,8 @@ mod tests {
             ..l
         };
         for (ts, head) in [
-            (vec![Transform::Proportion, Transform::Stack], "`bar * proportion * stack(share = TRUE)`"),
-            (vec![Transform::Stack, Transform::Proportion], "`bar * stack(share = TRUE) * proportion`"),
+            (vec![Transform::Proportion, Transform::Stack], "`bar * proportion * stack`, with the `stack` asked for shares"),
+            (vec![Transform::Stack, Transform::Proportion], "`bar * stack * proportion`, with the `stack` asked for shares"),
         ] {
             let layer = ts.iter().fold(Layer::new(Mark::Bar), |l, t| l.transform(t.clone()));
             let d = check(&PlotSpec::new().data("t").x("group")
@@ -21443,10 +21447,10 @@ mod tests {
             let m = msgs(&d).join("\n");
             assert!(m.contains(head), "the head names the filled pile: {m}");
             assert!(m.contains("`proportion` divides it into shares of the whole plot \
-                and `stack(share = TRUE)` into shares of each pile"), "{m}");
+                and the `stack` into shares of each pile"), "{m}");
             assert!(m.contains("`bar * proportion * stack` for shares of the whole plot")
-                && m.contains("`bar * count * stack(share = TRUE)` for shares within each pile"),
-                "the ways out draw: {m}");
+                && m.contains("`bar * count * stack` with its `share` set to true for shares within each pile")
+                && !m.contains("TRUE"), "the ways out draw: {m}");
         }
         // With a measurement of its own, both ways out keep it.
         let layer = Layer::new(Mark::Bar).transform(Transform::Sum)
@@ -21455,7 +21459,7 @@ mod tests {
             .layer(share(layer).encode(Channel::Color, "item")), &tree_data());
         let m = msgs(&d).join("\n");
         assert!(m.contains("`bar * sum * proportion * stack`")
-            && m.contains("`bar * sum * stack(share = TRUE)`"), "{m}");
+            && m.contains("`bar * sum * stack` with its `share` set to true"), "{m}");
         // A cut and the summary inside it are both kept, in the order written.
         let layer = Layer::new(Mark::Bar).transform(Transform::Bin).transform(Transform::Mean)
             .transform(Transform::Proportion).transform(Transform::Stack);
@@ -21463,7 +21467,7 @@ mod tests {
             .layer(share(layer).encode(Channel::Color, "item")), &tree_data());
         let m = msgs(&d).join("\n");
         assert!(m.contains("`bar * bin * mean * proportion * stack`")
-            && m.contains("`bar * bin * mean * stack(share = TRUE)`"), "{m}");
+            && m.contains("`bar * bin * mean * stack` with its `share` set to true"), "{m}");
     }
 
     /// What a check says about the *sentence*, leaving out the one note that reads the
@@ -22259,8 +22263,9 @@ mod tests {
         let spec = limited("gdp", Some(20.0), Some(5.0)).layer(Layer::new(Mark::Point));
         let d = check(&spec, &data());
         assert_eq!(kinds(&d), vec![DiagnosticKind::Illegal], "{:?}", msgs(&d));
-        assert!(d[0].message.contains("runs backwards"), "{}", d[0].message);
-        assert!(d[0].message.contains("c(5, 20)"), "it shows the fix: {}", d[0].message);
+        assert!(d[0].message.contains("run backwards"), "{}", d[0].message);
+        assert!(d[0].message.contains("Write 5 to 20") && !d[0].message.contains("c("),
+            "it shows the fix, in words every binding reads: {}", d[0].message);
     }
 
     #[test]

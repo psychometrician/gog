@@ -675,7 +675,7 @@ ok("legend=False leaves the key out of all five channels and keeps the mapping")
 
 _m = _refusal(lambda: render_svg(data(lvl, name="lvl") + point + x(col.a, legend=False)
                                  + y(col.b)))
-assert "`x(a, legend = FALSE)` — `x` is read off its axis" in _m, _m
+assert "`x(a)` is given `legend` — `x` is read off its axis" in _m, _m
 _m = _refusal(lambda: render_svg(data(lvl, name="lvl") + line + x(col.a) + y(col.b)
                                  + group(col.g, legend=False)))
 assert "`group` splits the rows without encoding anything" in _m, _m
@@ -2588,7 +2588,7 @@ for _what, _thunk, _fragment in [
     ("proportion beside a filled pile",
      lambda: render_svg(data(_trips, name="trips") + bar * stack(share=True) * proportion
                         + x(col.city) + color(col.mode)),
-     "`bar * count * stack(share = TRUE)` for shares within each pile"),
+     "`bar * count * stack` with its `share` set to true for shares within each pile"),
     ("jitter on a box",
      lambda: render_svg(data(_trips, name="trips") + box * jitter + x(col.city) + y(col.people)),
      "`dodge` sets them side by side"),

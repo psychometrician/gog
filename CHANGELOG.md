@@ -56,6 +56,15 @@ CRAN-style repositories and PyPI, `GrammarOfGraphics` on Julia's General, and
 
 ### Changed
 
+- **Messages no longer write R's syntax.** About a dozen refusals, which every
+  binding prints, wrote R: `stack(share = TRUE)`, `limits = c(0, 24)` and `NA`,
+  `as.Date()`, `as.numeric()`, `factor(year)`, `palette(c("white", "navy"))`,
+  `legend = FALSE`. They now say it in words: a `stack` "with its `share` set
+  to true", "write 5 to 20, or leave one end missing", "store the column as
+  dates", "the colors themselves, such as "white" and "navy"". The settings
+  table in each mark's chapter lists `caps` and `center` as "true or false",
+  where it printed R's `TRUE` and `FALSE`.
+
 - **`plot | facet(g) + title("…")` draws in R and Python.** In both, `+` binds
   before `|`, so an atom written after the facet reached the facet first, and it
   was refused with a message saying to write it before the facet, where Julia

@@ -250,9 +250,13 @@ glyph_grid <- function(corner, rows, cols, glyph) {
   }
 })
 
-# The four open-ended settings are the same on every mark, so describing them
-# once here cannot drift the way a per-chapter sentence could.
+# The settings described in words rather than listed are the same on every mark,
+# so describing them once here cannot drift the way a per-chapter sentence could.
+# A yes-or-no setting is among them: each language spells true its own way, so the
+# engine lists no values for it and the table says "true or false".
 .gog_open_values <- c(
+  caps         = "true or false",
+  center       = "true or false",
   color        = "any CSS color name or hex",
   border_color = "any CSS color name or hex",
   opacity      = "0 to 1",

@@ -429,7 +429,7 @@ test("`category` may be said on a text column, and refused on a number", () => {
 
   refuses(
     () => render_svg(plot(data(t), point, x(col.gdp, { scale: "category" }), y(col.life))),
-    /factor\(gdp\)/
+    /Store `gdp` as text or categories/
   );
 });
 
@@ -1028,7 +1028,7 @@ test("legend: false leaves the key out, keeps the mapping, and says nothing", ()
 
 test("legend on a channel with no key is refused with direction", () => {
   refuses(() => render_svg(plot(data(lvl), point, x(col.a, { legend: false }), y(col.b))),
-    /`x\(a, legend = FALSE\)` — `x` is read off its axis/);
+    /`x\(a\)` is given `legend` — `x` is read off its axis/);
   refuses(() => render_svg(plot(data(lvl), line, x(col.a), y(col.b),
     group(col.g, { legend: false }))), /`group` splits the rows without encoding anything/);
   refuses(() => render_svg(plot(data(lvl), text, x(col.a), y(col.b),
@@ -2767,7 +2767,7 @@ test("partition * proportion in shares, the spine plot's axis, and the filled pi
   assert.ok(!spine.includes("-0") && spine.includes("0.2") && spine.includes("1.0"), `${spine}`);
   assert.match(refusalOf(() => render_svg(plot(data(trips),
     layer(bar, stack({ share: true }), proportion), x(col.city), color(col.mode)))),
-    /`bar \* count \* stack\(share = TRUE\)` for shares within each pile/);
+    /`bar \* count \* stack` with its `share` set to true for shares within each pile/);
   assert.match(refusalOf(() => render_svg(plot(data(trips),
     layer(box, jitter), x(col.city), y(col.people)))), /`dodge` sets them side by side/);
 });
