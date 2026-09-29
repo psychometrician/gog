@@ -214,6 +214,11 @@ js_facets <- function(e, direction) {
     fn <- deparse(e[[1]])
     if (fn == "/")
       return(c(js_facets(e[[2]], direction), js_facets(e[[3]], "down")))
+    # An atom written after the facet, `plot | facet(g) + title(…)`: `+` joined it
+    # to the facet first, and it goes to the plot, where JavaScript writes every
+    # atom, after the facet's word.
+    if (fn == "+" && length(e) == 3)
+      return(c(js_facets(e[[2]], direction), js_flatten(e[[3]])))
     if (fn == "facet") {
       inner <- as.list(e)[-1]
       named <- names(inner)
@@ -327,14 +332,16 @@ js_flatten <- function(e) {
 # `plot | facet(g)` splits one plot; `plot | plot` arranges two. R tells them
 # apart by the operand's type at run time and this has only the source text, so
 # it asks the one question the text can answer: does the right side name
-# `facet()` — on its own, or as the `facet(a) / facet(b)` pair the crossed grid
-# is written with.
+# `facet()` — on its own, as the `facet(a) / facet(b)` pair the crossed grid is
+# written with, or with atoms after it, `facet(g) + title(…)`, which R and
+# Python group before the `|` because `+` binds tighter.
 js_is_facet <- function(e) {
   if (!is.call(e)) return(FALSE)
   fn <- deparse(e[[1]])
   if (fn == "facet") return(TRUE)
   if (fn == "(") return(js_is_facet(e[[2]]))
   if (fn %in% c("|", "/") && length(e) == 3) return(js_is_facet(e[[3]]))
+  if (fn == "+" && length(e) == 3) return(js_is_facet(e[[2]]))
   FALSE
 }
 

@@ -66,14 +66,19 @@ facet(g)`, the transform joins its mark first. Then `+` joins `data(table)`,
 `bar * bin` and `x(a)` into one plot, and the facet splits that plot into panels
 last. An atom written after the facet, such as a `title()`, is joined to the
 facet first, because `+` comes before `|`. When `|` is applied, the atom joins
-the plot, in the same way as an atom written before the facet. So a single plot
-needs no parentheses.
+the plot, in the same way as an atom written before the facet. With `/`
+instead of `|`, the same facet joins `x(a)` first, because `/` comes before
+`+`. It still splits the whole plot. So a single plot needs no parentheses.
 
 Two whole plots joined by `|` or `/` make a **page**, and this book writes each
-plot on a page inside its own parentheses. `/` is applied before `+`, so a page
-built with `/` is refused without them. Julia gives `+` and `|` the same
-precedence, so in Julia a page built with `|` needs them too. JavaScript spells
-the operators as words, so it has no precedence to remember.
+plot on a page inside its own parentheses. Without them, `/` joins the first
+plot's last atom to the second plot, because `/` comes before `+`. An atom
+joined to a facet, as above, is fine, because a facet splits the whole plot. An
+atom joined to a second plot is not, because `/` places whole plots, not single
+atoms. So gog refuses the sentence and names the atom. Julia gives `+` and `|`
+the same precedence, so in Julia a page built with `|` needs the parentheses
+too. JavaScript spells the operators as words, so it has no precedence to
+remember.
 
 **When gog refuses**, the message names the rule, and says what to write
 instead. **Illegal** means the grammar forbids the sentence you wrote: rewrite
