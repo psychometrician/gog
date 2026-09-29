@@ -346,18 +346,40 @@ js_composition <- function(e) {
   fn %in% c("|", "/") && length(e) == 3 && !js_is_facet(e[[3]])
 }
 
+# A page with atoms added to it, `(a | b) + theme(height = 260)`: the page and
+# its atoms, or NULL. JavaScript writes a page's own atoms as more arguments to
+# the page's word, `beside(a, b, theme({ height: 260 }))`, where R and Python add
+# them with `+`. A page takes `theme()` alone and refuses every other atom, in
+# each binding's own words, so a refused atom translates too.
+js_page_atoms <- function(e) {
+  atoms <- list()
+  while (is.call(e) && deparse(e[[1]]) == "+" && length(e) == 3) {
+    if (js_has_composition(e[[3]])) return(NULL)
+    atoms <- c(list(e[[3]]), atoms)
+    e <- e[[2]]
+  }
+  if (!length(atoms) || !js_composition(e)) return(NULL)
+  list(page = e, atoms = atoms)
+}
+
 # Does a page appear where R can put one and JavaScript cannot?
 #
-# R's refusals for a page — `(a | b) + title(…)`, `(a | b) | facet(g)` — are
-# about *operators applied to a page*, and this binding has neither: a page is a
-# value returned by `beside()`/`below()`, so there is no `+` to misapply and no
-# `facet()` to mis-join. Those sentences are declined the way the R chapter's
-# pipes are, rather than mistranslated into a `plot(…)` that draws.
+# `(a | b) | facet(g)` joins a facet to a page, and this binding has no word for
+# that: `across()` and `down()` split one plot, and a page is a value returned by
+# `beside()`/`below()`. A `+` that puts a page *inside* a plot, `a + (b | c)`, has
+# no JavaScript spelling either. Those sentences are declined the way the R
+# chapter's pipes are, rather than mistranslated into a `plot(…)` that draws.
+# Atoms added to a page do have one (`js_page_atoms`), so they translate.
 js_page_misused <- function(e) {
   if (!is.call(e)) return(FALSE)
   fn <- deparse(e[[1]])
   if (fn == "+" && length(e) == 3 &&
-      (js_has_composition(e[[2]]) || js_has_composition(e[[3]]))) return(TRUE)
+      (js_has_composition(e[[2]]) || js_has_composition(e[[3]]))) {
+    added <- js_page_atoms(e)
+    if (is.null(added)) return(TRUE)
+    return(js_page_misused(added$page) ||
+             any(vapply(added$atoms, js_page_misused, logical(1))))
+  }
   if (fn %in% c("|", "/") && length(e) == 3 && js_is_facet(e[[3]]) &&
       js_has_composition(e[[2]])) return(TRUE)
   any(vapply(as.list(e)[-1], js_page_misused, logical(1)))
@@ -379,6 +401,11 @@ js_page_misused <- function(e) {
 js_plus_group <- function(e) {
   if (!is.call(e)) return(FALSE)
   if (identical(deparse(e[[1]]), "+") && length(e) == 3) {
+    # Parentheses around a page that atoms are added to belong to the page, the
+    # composition case above: `(a | b) + theme(…)` is the page's argument list.
+    added <- js_page_atoms(e)
+    if (!is.null(added))
+      return(js_plus_group(added$page) || any(vapply(added$atoms, js_plus_group, logical(1))))
     for (side in list(e[[2]], e[[3]])) {
       if (is.call(side) && identical(deparse(side[[1]]), "(")) return(TRUE)
     }
@@ -405,6 +432,14 @@ js_sentence <- function(expr) {
     right <- js_sentence(expr[[3]])
     if (is.na(left) || is.na(right)) return(NA_character_)
     return(paste0(word, "(", left, ", ", right, ")"))
+  }
+  # A page's own atoms go last in its word's arguments.
+  added <- js_page_atoms(expr)
+  if (!is.null(added)) {
+    page <- js_sentence(added$page)
+    extra <- unlist(lapply(added$atoms, js_flatten))
+    if (is.na(page) || any(is.na(extra))) return(NA_character_)
+    return(sub("\\)$", paste0(", ", paste(extra, collapse = ", "), ")"), page))
   }
   items <- js_flatten(expr)
   if (any(is.na(items))) return(NA_character_)
@@ -469,7 +504,7 @@ translate_js <- function(source) {
     multiline <- !is.null(refs) && length(as.character(refs[[i]])) > 1L
     if (js_page_misused(expr))
       return(list(js = NA_character_,
-                  blocked = "an operator applied to a page — JavaScript has no `+` or `facet()` to apply"))
+                  blocked = "a facet joined to a page, or a page inside a plot — JavaScript has no word for either"))
     if (js_plus_group(expr))
       return(list(js = NA_character_,
                   blocked = "parentheses grouping marks — JavaScript's argument list has no parentheses to drop"))
