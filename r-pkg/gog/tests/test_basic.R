@@ -6311,3 +6311,17 @@ local({
     stop("FAIL: a cube's labels should be light on a black panel, got ", paste(inks, collapse = " "))
   cat("PASS: a cube's labels read on a dark panel\n")
 })
+
+# ---------------------------------------------------------------------------
+# A layer that stands still in a played plot is drawn once where that keeps its
+# place in the order: written before every played layer, once under the moments.
+# It was copied into every moment. The same block runs in all four bindings.
+# ---------------------------------------------------------------------------
+local({
+  t <- data.frame(x = c(1, 2, 3, 4), y = c(1, 2, 3, 4), year = c(1957, 1957, 1962, 1962))
+  svg <- render_svg(data(t) + rule + y(y) + point + x(x) + y(y) + play(year))
+  lines <- strsplit(svg, "\n")[[1]]
+  rules <- sum(grepl("<line", lines, fixed = TRUE) & grepl(" stroke=", lines, fixed = TRUE))
+  if (rules != 4) stop("FAIL: a still layer should be drawn once in a played plot, got ", rules, " rule lines")
+  cat("PASS: a still layer is drawn once in a played plot\n")
+})

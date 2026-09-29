@@ -56,6 +56,15 @@ CRAN-style repositories and PyPI, `GrammarOfGraphics` on Julia's General, and
 
 ### Changed
 
+- **A played plot draws a layer that stands still once.** A layer without
+  `play`, such as a map's borders under moving points, was copied into every
+  moment of the animation. It is now drawn once, under the moments or over
+  them as it was written, and a globe played over 53 weeks drops from 2.8 MB
+  to 0.8 MB; the picture is the same at every moment. A still layer written
+  between two played ones stays in every moment. The note on a played
+  globe's hidden rows counts such a layer's rows once, where it counted them
+  once for each moment.
+
 - **A crowded `repel` is said once per layer, and names its panels.** Split
   into panels, a plot said it once per panel with nothing to tell the lines
   apart, and a played plot once per moment. The one line now names each

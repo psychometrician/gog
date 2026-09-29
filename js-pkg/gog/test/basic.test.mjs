@@ -4226,3 +4226,13 @@ test("a cube's labels read on a dark panel", () => {
   const inks = new Set([...frame.matchAll(/fill="(#[0-9a-f]+)"/g)].map((m) => m[1]));
   assert.deepEqual([...inks], ["#ffffff"]);
 });
+
+// A layer that stands still in a played plot is drawn once where that keeps its place
+// in the order: written before every played layer, once under the moments. It was
+// copied into every moment. The same block runs in all four bindings.
+test("a still layer is drawn once in a played plot", () => {
+  const t = { x: [1, 2, 3, 4], y: [1, 2, 3, 4], year: [1957, 1957, 1962, 1962] };
+  const svg = render_svg(plot(data(t), rule, y(col.y), point, x(col.x), y(col.y), play(col.year)));
+  const rules = svg.split("\n").filter((l) => l.includes("<line") && l.includes(" stroke=")).length;
+  assert.equal(rules, 4);
+});

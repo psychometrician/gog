@@ -120,6 +120,49 @@ fn moment_filter<'a>(layer: &'a Layer, frame: Option<&'a crate::data::FrameLevel
     })
 }
 
+/// The order one panel's layers are drawn in, as `(moment, in that moment's group,
+/// the layers drawn)`: every layer in every moment, except that a played plot
+/// draws a layer that stands still **once** where that leaves the picture as it
+/// was. Those are the still layers written before every played one, drawn once
+/// under the moments, and those written after every played one, drawn once over
+/// them. A still layer between two played ones stays in every moment, since its
+/// place in the order is between theirs (Law 6: hoisting every still layer would
+/// put it behind the played ones whatever order it was written in).
+///
+/// Only where each moment would draw it the same: one selection pass (a
+/// selection draws each layer's unselected rows first and pushes them back, so a
+/// still layer's two passes sit between the played layers'), not a repelled
+/// `text` (it steps around the moment's dots) or an `edge` (its heads stop at the
+/// moment's nodes), and only where the caller's space draws the layers in their
+/// written order. A basemap under played points was copied into every moment:
+/// 28 KB of borders per frame on a globe, and its hidden rows counted once for
+/// each moment in the note that reports them.
+fn draw_steps(
+    spec: &PlotSpec, nframes: usize, passes: usize, in_order: bool,
+) -> Vec<(usize, bool, std::ops::Range<usize>)> {
+    let n = spec.layers.len();
+    let still = |l: &&Layer| !l.encodings.contains_key(&Channel::Play)
+        && l.mark != Mark::Edge
+        && !(l.mark == Mark::Text && l.transforms.contains(&Transform::Repel));
+    let (lead, trail) = if in_order && nframes >= 2 && passes == 1 {
+        let lead = spec.layers.iter().take_while(still).count();
+        if lead == n { (0, 0) } else { (lead, spec.layers.iter().rev().take_while(still).count()) }
+    } else {
+        (0, 0)
+    };
+    let mut steps = Vec::new();
+    if lead > 0 {
+        steps.push((0, false, 0..lead));
+    }
+    for fi in 0..nframes {
+        steps.push((fi, true, lead..n - trail));
+    }
+    if trail > 0 {
+        steps.push((0, false, n - trail..n));
+    }
+    steps
+}
+
 /// The columns that split a **two-dimensional reading** into one field per group.
 ///
 /// A split runs the whole reading once per group, the way every statistic in
@@ -2596,7 +2639,11 @@ impl SvgRenderer {
                     let spike_layer = layer.mark == Mark::Bar;
                     let top = zs.1.max(zs.0);
                     let (mut hidden, mut total, mut sunk) = (0usize, 0usize, 0usize);
-                    for fi in 0..nframes {
+                    // A layer that does not play holds the same rows in every
+                    // moment, so it is counted once: counted per moment, a
+                    // basemap's 4150 rows were reported as 49800 over 12 months.
+                    let moments = if layer.encodings.contains_key(&Channel::Play) { nframes } else { 1 };
+                    for fi in 0..moments {
                         let Some(df) = eff_at(fi).get(li) else { continue };
                         let (Some(lons), Some(lats)) =
                             (df.float_col(x_field), df.float_col(y_field)) else { continue };
@@ -2633,12 +2680,13 @@ impl SvgRenderer {
                         r#"  <clipPath id="{label_clip}"><rect x="{x0:.2}" y="{y0:.2}" width="{w:.2}" height="{h:.2}"/></clipPath>"#,
                         x0 = l.x0, y0 = l.y0, w = l.w(), h = l.h()).unwrap();
                 }
-                for fi in 0..nframes {
+                for (fi, framed, run) in draw_steps(spec, nframes, self.selection_passes(spec).len(), true) {
                     let eff = eff_at(fi);
-                    self.open_frame(&mut svg, fi, nframes);
+                    if framed { self.open_frame(&mut svg, fi, nframes); }
                     for &dim in self.selection_passes(spec) {
                         self.open_pass(&mut svg, dim);
-                        for ((layer, df), whole) in spec.layers.iter().zip(eff.iter()).zip(&wholes) {
+                        for (li, ((layer, df), whole)) in spec.layers.iter().zip(eff.iter()).zip(&wholes).enumerate() {
+                            if !run.contains(&li) { continue }
                             let Some(df) = self.pass_rows(spec, layer, df, dim) else { continue };
                             let df = &*df;
                             if df.is_empty() { continue }
@@ -2658,7 +2706,6 @@ impl SvgRenderer {
                                     let crowding = self.write_text(&mut svg, layer, df, l, xs, ys,
                                         x_field, y_field, cat_x.as_deref(), cat_y.as_deref(),
                                         &color_map, &label_clip, &ground, None, None, Some(g), &dots, &mut remarks);
-                                    let li = spec.layers.iter().position(|ly| std::ptr::eq(ly, layer)).unwrap_or(0);
                                     repel_crowding.entry((li, panel.slot, fi)).or_default().add(crowding);
                                 }
                                 Mark::Path => self.write_path(&mut svg, layer, df, whole, l, xs, ys,
@@ -2681,7 +2728,7 @@ impl SvgRenderer {
                         }
                         self.close_pass(&mut svg, dim);
                     }
-                    self.close_frame(&mut svg, fi, nframes, clock);
+                    if framed { self.close_frame(&mut svg, fi, nframes, clock); }
                 }
                 continue;
             }
@@ -2829,14 +2876,18 @@ impl SvgRenderer {
             // would be bytes spent making them flicker. At one frame this writes
             // no group and no timing, which is what leaves an unplayed plot
             // byte-for-byte what it was.
-            for fi in 0..nframes {
+            // A still layer is drawn once where that keeps the picture
+            // (`draw_steps`); a packing and a network draw their layers together.
+            let in_order = !is_nest && !is_network;
+            for (fi, framed, run) in draw_steps(spec, nframes, self.selection_passes(spec).len(), in_order) {
                 let eff = eff_at(fi);
-                self.open_frame(&mut svg, fi, nframes);
+                if framed { self.open_frame(&mut svg, fi, nframes); }
                 // One pass unless the reader has selected something, in which case
                 // the unselected rows are drawn first and pushed back.
                 for &dim in self.selection_passes(spec) {
                   self.open_pass(&mut svg, dim);
-                  for ((layer, df), whole) in spec.layers.iter().zip(eff.iter()).zip(&wholes) {
+                  for (li, ((layer, df), whole)) in spec.layers.iter().zip(eff.iter()).zip(&wholes).enumerate() {
+                    if !run.contains(&li) { continue }
                     let Some(df) = self.pass_rows(spec, layer, df, dim) else { continue };
                     let df = &*df;
                     if df.is_empty() { continue }
@@ -2892,7 +2943,6 @@ impl SvgRenderer {
                                 Vec::new()
                             };
                             let crowding = self.write_text(&mut svg, layer, df, l, xs, ys, x_field, y_field, cat_x.as_deref(), cat_y.as_deref(), &color_map, &clip, &ground, pol_ref, nst.as_ref(), None, &dots, &mut remarks);
-                            let li = spec.layers.iter().position(|ly| std::ptr::eq(ly, layer)).unwrap_or(0);
                             repel_crowding.entry((li, panel.slot, fi)).or_default().add(crowding);
                         }
                         // The stroke between two layout-supplied endpoints —
@@ -2927,7 +2977,7 @@ impl SvgRenderer {
                   }
                   self.close_pass(&mut svg, dim);
                 }
-                self.close_frame(&mut svg, fi, nframes, clock);
+                if framed { self.close_frame(&mut svg, fi, nframes, clock); }
             }
 
             // The tick labels go on last in both spaces, so they stay readable over
@@ -8857,6 +8907,30 @@ mod tests {
         assert!(said[0].contains("of 3 row(s) of `cities`"), "{said:?}");
     }
 
+    /// **A layer that stands still is counted once in a played globe's note.** The
+    /// note counted every layer's rows in every moment, so a basemap's 4150 rows
+    /// were reported as 49800 over twelve months; a layer that plays is counted
+    /// per moment, which is each of its rows once.
+    #[test]
+    fn a_played_globe_counts_a_still_layers_rows_once() {
+        let t: HashMap<String, DataFrame> = HashMap::from([
+            ("cities".to_string(), DataFrame::new()
+                .with_float("lon", vec![-150.0, 10.0, 170.0])
+                .with_float("lat", vec![61.0, 50.0, -20.0])),
+            ("moving".to_string(), DataFrame::new()
+                .with_float("lon", vec![-150.0, 10.0, 170.0, 20.0])
+                .with_float("lat", vec![61.0, 50.0, -20.0, 40.0])
+                .with_float("year", vec![1.0, 1.0, 2.0, 2.0])),
+        ]);
+        let spec = PlotSpec::new().x("lon").y("lat").coord(CoordSpace::Globe(Default::default()))
+            .layer(Layer::new(Mark::Point).data("cities"))
+            .layer(Layer::new(Mark::Point).data("moving").encode(Channel::Play, "year"));
+        let said: Vec<String> = SvgRenderer::default().draw(&spec, &t).remarks.into_iter()
+            .map(|d| d.message).filter(|m| m.contains("face away")).collect();
+        assert!(said.iter().any(|m| m.contains("of 3 row(s) of `cities`")), "{said:?}");
+        assert!(said.iter().any(|m| m.contains("of 4 row(s) of `moving`")), "{said:?}");
+    }
+
     /// **A column two tables share is one set of categories, drawn and keyed.** Each
     /// layer ordered its own table's categories, so `shape(k)` over two tables drew
     /// `c` in `a`'s circle and `d` in `b`'s square under a key of `a` and `b`, a
@@ -14505,8 +14579,16 @@ mod tests {
     /// The facet rule — a layer whose table lacks the column is drawn in every
     /// panel — arriving here through §8's scope resolution rather than through a
     /// second rule written for animation.
+    ///
+    /// **Drawn once where that keeps the order it was written in** (`draw_steps`).
+    /// Written before every played layer, it is drawn once under the moments;
+    /// after every one, once over them; between two, in every moment, since its
+    /// place is between theirs. Hoisting every still layer out of the moments would
+    /// put it behind the played ones whatever order it was written in, which is the
+    /// enclosing context reinterpreting an inner expression, and Law 6 forbids it.
+    /// Copied into every moment, a basemap under played points cost 28 KB a frame.
     #[test]
-    fn a_layer_that_does_not_play_is_drawn_in_every_moment() {
+    fn a_layer_that_does_not_play_stands_still_in_its_written_place() {
         let df = DataFrame::new()
             .with_float("x", vec![1.0, 2.0, 3.0, 4.0])
             .with_float("y", vec![1.0, 2.0, 3.0, 4.0])
@@ -14517,32 +14599,45 @@ mod tests {
         // never names it and so is never cut down. The rule names its own axis
         // (§8) because a table with a column for both leaves nothing to say which
         // one it marks — `check_rule` refuses that, and rightly.
-        let spec = PlotSpec::new().data("t").x("x").y("y")
-            .layer(Layer::new(Mark::Point).encode(Channel::Play, "year"))
-            .layer(Layer::new(Mark::Rule).encode(Channel::Y, "y"));
-        let svg = SvgRenderer::default().render(&spec, &data);
-        assert_eq!(frame_count(&svg), 4, "two moments, for the marks and for the strip");
+        let played = || Layer::new(Mark::Point).encode(Channel::Play, "year");
+        let still = || Layer::new(Mark::Rule).encode(Channel::Y, "y");
+        let draw = |layers: Vec<Layer>| {
+            let mut spec = PlotSpec::new().data("t").x("x").y("y");
+            for layer in layers { spec = spec.layer(layer) }
+            SvgRenderer::default().render(&spec, &data)
+        };
+        // Each moment runs from its group tag to its own `<animate>`, the last thing
+        // inside it. A rule's `<line>` carries its own stroke, where gridlines and
+        // ticks take theirs from their group, so these count the rule layer alone.
+        let moments = |svg: &str| -> Vec<String> {
+            svg.split(r#"<g display="#).skip(1).take(2)
+                .map(|m| m.split("<animate").next().unwrap().to_string()).collect()
+        };
+        let rules = |text: &str| text.lines()
+            .filter(|l| l.contains("<line") && l.contains(" stroke=")).count();
 
-        // Each moment holds two of the four rows — its own — and *all four*
-        // rules, because the rule layer never named `year` and so was never cut
-        // down. The still layer is redrawn inside each moment rather than hoisted
-        // out of them, and that is the deliberate choice: hoisting would put it
-        // behind every played layer whatever order it was written in, which is
-        // the enclosing context silently reinterpreting an inner expression that
-        // Law 6 forbids. The cost is a copy per frame; the alternative is wrong.
-        // Each moment runs from its group tag to its own `<animate>`, which is the
-        // last thing inside it — without that bound the slice would run on into
-        // the axes and the strip, which are not part of any moment.
-        let moments: Vec<&str> = svg.split(r#"<g display="#).skip(1).take(2)
-            .map(|m| m.split("<animate").next().unwrap()).collect();
-        assert_eq!(moments.len(), 2);
-        for (i, m) in moments.iter().enumerate() {
-            assert_eq!(m.matches("<circle").count(), 2,
-                "moment {i} shows only its own two rows");
-            // Gridlines are `<line>` too, but they are chrome and so are written
-            // outside the moments — inside one, every line is the rule layer's.
-            assert_eq!(m.matches("<line").count(), 4,
-                "moment {i} shows all four rules — the layer that does not play");
+        // After every played layer: drawn once, after the moments, so over them.
+        let over = draw(vec![played(), still()]);
+        assert_eq!(frame_count(&over), 4, "two moments, for the marks and for the strip");
+        for (i, m) in moments(&over).iter().enumerate() {
+            assert_eq!(m.matches("<circle").count(), 2, "moment {i} shows only its own two rows");
+            assert_eq!(rules(m), 0, "moment {i} holds no copy of the still layer");
+        }
+        assert_eq!(rules(&over), 4, "the four rules, drawn once");
+        let last_moment = over.find("<g display=\"none\">").unwrap();
+        assert!(over.find(r##"stroke="#4e79a7" stroke"##).unwrap() > last_moment,
+            "and after the moments, as it was written");
+
+        // Before every played layer: drawn once, before the moments, so under them.
+        let under = draw(vec![still(), played()]);
+        assert_eq!(rules(&under), 4, "the four rules, drawn once");
+        assert!(under.find(r##"stroke="#4e79a7" stroke"##).unwrap() < under.find("<g display=").unwrap(),
+            "and before the moments, as it was written");
+
+        // Between two played layers: in every moment, where its place is.
+        let between = draw(vec![played(), still(), played()]);
+        for (i, m) in moments(&between).iter().enumerate() {
+            assert_eq!(rules(m), 4, "moment {i} holds the still layer between its two played ones");
         }
     }
 

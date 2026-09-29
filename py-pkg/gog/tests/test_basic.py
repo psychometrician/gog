@@ -4126,3 +4126,13 @@ _night = render_svg(data({"a": [1.0, 2.0, 3.0], "b": [3.0, 1.0, 2.0], "c": [2.0,
 _night_frame = _night.split('paint-order="stroke"', 1)[1].split("</g>", 1)[0]
 assert set(re.findall(r'fill="(#[0-9a-f]+)"', _night_frame)) == {"#ffffff"}, _night_frame[:300]
 ok("a cube's labels read on a dark panel")
+
+# --- A still layer is drawn once in a played plot ------------------------------------------
+# Written before every played layer, it is drawn once under the moments; it was copied
+# into every moment. The same block runs in all four bindings.
+_still = render_svg(data({"x": [1.0, 2.0, 3.0, 4.0], "y": [1.0, 2.0, 3.0, 4.0],
+                          "year": [1957.0, 1957.0, 1962.0, 1962.0]}, name="t")
+                    + rule + y(col.y) + point + x(col.x) + y(col.y) + play(col.year))
+assert builtins.sum(1 for _l in _still.splitlines() if "<line" in _l and " stroke=" in _l) == 4, \
+    "a still layer is drawn once in a played plot"
+ok("a still layer is drawn once in a played plot")

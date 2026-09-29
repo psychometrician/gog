@@ -3559,3 +3559,12 @@ end
     frame = split(split(svg, "paint-order=\"stroke\"")[2], "</g>")[1]
     @test unique([m[1] for m in eachmatch(r"fill=\"(#[0-9a-f]+)\"", frame)]) == ["#ffffff"]
 end
+
+# A layer that stands still in a played plot is drawn once where that keeps its place in
+# the order: written before every played layer, once under the moments. It was copied
+# into every moment. The same block runs in all four bindings.
+@testset "a still layer is drawn once in a played plot" begin
+    t = (x = [1.0, 2.0, 3.0, 4.0], y = [1.0, 2.0, 3.0, 4.0], year = [1957.0, 1957.0, 1962.0, 1962.0])
+    svg = render_svg(data(t) + rule + y(:y) + point + x(:x) + y(:y) + play(:year))
+    @test Base.count(l -> occursin("<line", l) && occursin(" stroke=", l), split(svg, "\n")) == 4
+end
