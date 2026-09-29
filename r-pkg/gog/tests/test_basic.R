@@ -6275,3 +6275,24 @@ local({
     stop("FAIL: a crowded repel should be said once, naming its panel: ", said)
   cat("PASS: a crowded repel is said once and names its panels\n")
 })
+
+# ---------------------------------------------------------------------------
+# Seen from below, a cube's floor is numbered along its outline, not across the
+# data: the floor edges nearest the camera run through the middle of the
+# picture from below, and at `tilt = -25` their numbers sat on the points. The
+# same block runs in all four bindings.
+# ---------------------------------------------------------------------------
+local({
+  cube <- data.frame(a = c(1, 2, 3, 4, 5), b = c(5, 4, 3, 2, 1), c = c(2, 4, 1, 5, 3))
+  svg <- render_svg(data(cube) + point + x(a) + y(b) + z(c) + space(tilt = -25))
+  grab <- function(text, pattern) as.numeric(regmatches(text, gregexpr(pattern, text, perl = TRUE))[[1]])
+  cx <- grab(svg, '(?<=<circle cx=")[0-9.]+')
+  cy <- grab(svg, '(?<=<circle cx="[0-9.]{1,12}" cy=")[0-9.]+')
+  frame <- sub('</g>.*', "", sub('.*?paint-order="stroke"', "", svg))
+  lx <- grab(frame, '(?<=<text x=")[0-9.-]+')
+  ly <- grab(frame, '(?<=<text x="[0-9.-]{1,12}" y=")[0-9.-]+')
+  inside <- lx > min(cx) & lx < max(cx) & ly > min(cy) & ly < max(cy)
+  if (length(lx) == 0 || any(inside))
+    stop("FAIL: seen from below, a cube's numbers should sit outside the data")
+  cat("PASS: seen from below, a cube is numbered along its outline\n")
+})

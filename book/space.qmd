@@ -600,20 +600,28 @@ and the cube sits inside the panel. A shared column of numbers beside the page
 would have nothing to point at. The tick reading -200 lands in a different place
 in every panel, because each panel projects from its own rectangle.
 
-A cube's three axes are its three darker edges. Which edges they are depends on
-the viewing angle, and the engine picks them by a rule. The cube has four edges
-parallel to each axis. `x` and `y` take the two floor edges nearest you. `z`
-takes the vertical edge on the left side of the cube's outline. Seen from above,
-the two floor edges form a V shape at the bottom of the picture. In that view
-all three lie on the outline, so their numbers sit outside the cube, away from
-the marks. [Surface](marks/surface.qmd#one-sheet-four-angles) shows the same
-rule: the surface fills most of the picture, and the height numbers still sit
-outside it. Before any text is drawn, the engine checks the numbers and axis
-labels against each other for overlap. Where two would overlap, it moves one of
-them farther out, or leaves it out. So numbers from two axes never overlap where
-their edges meet, and an axis label never covers its own last number.
+Each axis puts its numbers along one of the three darker edges. Which edges they
+are depends on the viewing angle, and the engine picks them by a rule. The cube
+has four edges parallel to each axis. Two of the four edges parallel to `x` lie
+on the floor, and `x` takes the one that is lower in the picture. `y` does the
+same with its own two floor edges. Seen from above, with a positive `tilt`, the
+lower edges are the ones nearest you. Seen from below, with a negative `tilt`,
+they are the ones farthest from you. From below, the floor edges nearest you
+cross the middle of the picture, so numbers on them would cover the data. In
+both views, the two numbered edges form a V shape at the bottom of the picture.
+`z` takes the vertical edge on the left side of the cube's outline, the edges
+around the outside of the drawn cube. All three lie on that outline, so their
+numbers sit outside the cube, away from the marks.
+[Surface](marks/surface.qmd#one-sheet-four-angles) shows the same rule: the
+surface fills most of the picture, and the `z` numbers still sit outside the
+surface.
 
-One case is left: an axis that is drawn very short. Tilt the eye up and the
+Before any text is drawn, the engine checks the numbers and axis labels against
+each other for overlap. Where two would overlap, it moves one of them farther
+from the cube, or leaves it out. So numbers from two axes never overlap where
+their edges meet, and an axis label never covers its own numbers.
+
+One case is left: an axis that is drawn very short. Raise the tilt and the
 measure axis is drawn shorter, until its numbers no longer fit. Here is the same
 summary at two tilts; the second is seen from almost straight above:
 

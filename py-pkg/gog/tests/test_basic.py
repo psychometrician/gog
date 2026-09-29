@@ -4102,3 +4102,18 @@ with contextlib.redirect_stderr(io.StringIO()) as _said:
 assert ("in 1 of 2 panels: `busy` (" in _said.getvalue()
         and "`calm`" not in _said.getvalue()), _said.getvalue()
 ok("a crowded repel is said once and names its panels")
+
+# --- Seen from below, a cube's floor is numbered along its outline -----------------------
+# The floor edges nearest the camera run through the middle of the picture from below, and
+# at `tilt = -25` their numbers sat on the points. The same block runs in all four bindings.
+_below = render_svg(data({"a": [1.0, 2.0, 3.0, 4.0, 5.0], "b": [5.0, 4.0, 3.0, 2.0, 1.0],
+                          "c": [2.0, 4.0, 1.0, 5.0, 3.0]}, name="cube")
+                    + point + x(col.a) + y(col.b) + z(col.c) + space(tilt=-25))
+_dots = [(float(a), float(b)) for a, b in re.findall(r'<circle cx="([0-9.]+)" cy="([0-9.]+)"', _below)]
+_frame = _below.split('paint-order="stroke"', 1)[1].split("</g>", 1)[0]
+_labels = [(float(a), float(b)) for a, b in re.findall(r'<text x="([0-9.-]+)" y="([0-9.-]+)"', _frame)]
+_xs, _ys = [d[0] for d in _dots], [d[1] for d in _dots]
+assert _labels and not any(builtins.min(_xs) < lx < builtins.max(_xs)
+                           and builtins.min(_ys) < ly < builtins.max(_ys) for lx, ly in _labels), \
+    "seen from below, a cube's numbers sit outside the data"
+ok("seen from below, a cube is numbered along its outline")

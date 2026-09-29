@@ -4357,7 +4357,7 @@ impl SvgRenderer {
     /// not yet placed.
     ///
     /// Centered on its edge rather than at the far end, and that is structural
-    /// rather than cosmetic: the two domain edges are the two that meet at the near
+    /// rather than cosmetic: the two domain edges are the two that meet at the lowest
     /// corner, so their far ends are *the same corner* and M8a's two names arrived
     /// on top of each other there. The midpoint is also where a reader looks for an
     /// axis's name, and what the flat frame does — `write_labels` centers the x name
@@ -4434,7 +4434,7 @@ const FRAME_INSET: f64 = 0.14;
 const GLOBE_INSET: f64 = 0.04;
 
 /// Which axis of the 3-D frame a tick run belongs to.
-#[derive(Clone, Copy, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 enum FrameAxis {
     X,
     Y,
@@ -4467,9 +4467,10 @@ fn frame_channel_name(axis: FrameAxis) -> &'static str {
 ///
 /// The rule is measured, per axis, per view: **the edge on the outside of the
 /// projected silhouette.** A domain axis stays on the floor (`z = 0`), which is
-/// where the plane the data sits on is, and takes the floor edge **nearest the
-/// camera** — the two of them make the V at the bottom of the projection, below
-/// anything standing on the floor. The measure axis takes the vertical strut
+/// where the plane the data sits on is, and takes the floor edge **lowest on the
+/// screen** — the two of them make the V at the bottom of the projection, below
+/// anything standing on the floor. From above that is the edge nearest the camera,
+/// from below the farthest (`choose`). The measure axis takes the vertical strut
 /// **furthest from the projected center**, which is the cube's left or right
 /// silhouette and so is never inside the data either.
 #[derive(Clone, Copy)]
@@ -4505,12 +4506,27 @@ impl FrameEdge {
         const EPS: f64 = 1e-6;
         let edge = |fixed| FrameEdge { axis, fixed };
         match axis {
-            // A domain axis: on the floor, on whichever side is nearer the camera.
-            // A tie means the camera is looking straight down this axis, and goes
-            // to the low side.
+            // A domain axis: on the floor, along whichever of its two floor edges
+            // sits **lower on the screen**, which is the one on the outline. Seen
+            // from above that is the edge nearer the camera, the V at the bottom of
+            // the picture; seen from below the floor faces the camera and its near
+            // edges run across the middle of the picture, so the lower edge is the
+            // farther one. The rule was "nearer the camera", which held only from
+            // above: at `tilt = -25` it numbered the floor across the data. A tie
+            // (the floor seen edge-on, `tilt = 0`) falls back to the nearer edge,
+            // and a tie in that to the low side.
             FrameAxis::X | FrameAxis::Y => {
-                let (near, far) = (edge((1.0, 0.0)), edge((0.0, 0.0)));
-                if near.mid_depth(scene) < far.mid_depth(scene) - EPS { near } else { far }
+                let (a, b) = (edge((1.0, 0.0)), edge((0.0, 0.0)));
+                let (ya, yb) = (a.mid(scene).y, b.mid(scene).y);
+                if ya > yb + EPS {
+                    a
+                } else if yb > ya + EPS {
+                    b
+                } else if a.mid_depth(scene) < b.mid_depth(scene) - EPS {
+                    a
+                } else {
+                    b
+                }
             }
             // The measure axis: the strut whose projected midpoint sits furthest
             // from the cube's center across the screen — the cube's left or right
@@ -9838,6 +9854,36 @@ mod tests {
                 assert!(nearest < 30.0,
                     "{view:?}: the dark edge {e:?} carries no number beside it, the \
                      nearest is {nearest:.1} px away");
+            }
+        }
+    }
+
+    /// **A floor axis is numbered along the floor edge lowest on the screen**, the
+    /// one on the outline, from above and from below. The rule was the edge nearer
+    /// the camera, which is the same edge from above, checked here over a sweep of
+    /// views so no drawing from above moves, and the wrong one from below: at
+    /// `tilt = -25` the floor was numbered across the middle of the picture, over
+    /// the data. From below, the lower edge is the farther one.
+    #[test]
+    fn a_floor_axis_is_numbered_along_the_edge_on_the_outline_from_above_and_below() {
+        for turn in (-180..=180).step_by(15) {
+            for tilt in [-85, -60, -45, -25, -10, 10, 25, 45, 60, 85] {
+                let view = SpaceView { turn: turn as f64, tilt: tilt as f64 };
+                let scene = project::Scene::new(view, 0.0, 0.0, 600.0, 600.0, FRAME_INSET);
+                for axis in [FrameAxis::X, FrameAxis::Y] {
+                    let chosen = FrameEdge::choose(&scene, axis);
+                    let other = FrameEdge { axis, fixed: (1.0 - chosen.fixed.0, 0.0) };
+                    let (c, o) = (chosen.mid(&scene), other.mid(&scene));
+                    assert!(c.y >= o.y - 1e-6,
+                        "turn {turn}, tilt {tilt}: {axis:?} is numbered on the higher floor edge");
+                    if (c.y - o.y).abs() > 1e-6 {
+                        let nearer = c.depth < o.depth;
+                        assert_eq!(nearer, tilt > 0,
+                            "turn {turn}, tilt {tilt}: from {} the outline edge is the {} one",
+                            if tilt > 0 { "above" } else { "below" },
+                            if tilt > 0 { "nearer" } else { "farther" });
+                    }
+                }
             }
         }
     }

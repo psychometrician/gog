@@ -4199,3 +4199,19 @@ test("a crowded repel is said once and names its panels", () => {
   }
   assert.ok(said.includes("in 1 of 2 panels: `busy` (") && !said.includes("`calm`"), said);
 });
+
+// Seen from below, a cube's floor is numbered along its outline, not across the data:
+// the floor edges nearest the camera run through the middle of the picture from below,
+// and at `tilt = -25` their numbers sat on the points. The same block runs in all four
+// bindings.
+test("seen from below, a cube is numbered along its outline", () => {
+  const svg = render_svg(plot(data({ a: [1, 2, 3, 4, 5], b: [5, 4, 3, 2, 1], c: [2, 4, 1, 5, 3] }),
+    point, x(col.a), y(col.b), z(col.c), space({ tilt: -25 })));
+  const dots = [...svg.matchAll(/<circle cx="([0-9.]+)" cy="([0-9.]+)"/g)].map((m) => [+m[1], +m[2]]);
+  const frame = svg.split('paint-order="stroke"')[1].split("</g>")[0];
+  const labels = [...frame.matchAll(/<text x="([0-9.-]+)" y="([0-9.-]+)"/g)].map((m) => [+m[1], +m[2]]);
+  const xs = dots.map((d) => d[0]), ys = dots.map((d) => d[1]);
+  const inside = labels.filter(([lx, ly]) =>
+    lx > Math.min(...xs) && lx < Math.max(...xs) && ly > Math.min(...ys) && ly < Math.max(...ys));
+  assert.ok(labels.length > 0 && inside.length === 0, `${inside}`);
+});

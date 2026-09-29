@@ -3533,3 +3533,20 @@ end
     @test occursin("in 1 of 2 panels: `busy` (", said)
     @test !occursin("`calm`", said)
 end
+
+# Seen from below, a cube's floor is numbered along its outline, not across the data: the
+# floor edges nearest the camera run through the middle of the picture from below, and at
+# `tilt = -25` their numbers sat on the points. The same block runs in all four bindings.
+@testset "seen from below, a cube is numbered along its outline" begin
+    cube = (a = [1.0, 2.0, 3.0, 4.0, 5.0], b = [5.0, 4.0, 3.0, 2.0, 1.0], c = [2.0, 4.0, 1.0, 5.0, 3.0])
+    svg = render_svg(data(cube) + point + x(:a) + y(:b) + z(:c) + space(tilt = -25))
+    dots = [(parse(Float64, m[1]), parse(Float64, m[2]))
+            for m in eachmatch(r"<circle cx=\"([0-9.]+)\" cy=\"([0-9.]+)\"", svg)]
+    frame = split(split(svg, "paint-order=\"stroke\"")[2], "</g>")[1]
+    labels = [(parse(Float64, m[1]), parse(Float64, m[2]))
+              for m in eachmatch(r"<text x=\"([0-9.-]+)\" y=\"([0-9.-]+)\"", frame)]
+    xs, ys = first.(dots), last.(dots)
+    inside = [(lx, ly) for (lx, ly) in labels
+              if minimum(xs) < lx < maximum(xs) && minimum(ys) < ly < maximum(ys)]
+    @test !isempty(labels) && isempty(inside)
+end

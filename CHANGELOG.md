@@ -958,6 +958,12 @@ These still draw, and now say what they drew.
 
 These drew something other than the sentence said, and now draw what it says.
 
+- **A cube seen from below, `space(tilt = )` under 0.** The floor's two axes
+  were numbered along the floor edges nearest the camera, which from below run
+  across the middle of the picture, so their numbers sat on the data. They are
+  numbered along the two floor edges lowest in the picture, which are on the
+  cube's outline from above and from below.
+
 - **`show()` in JavaScript, called twice in one run.** Two plots with the same
   number of layers were written to the same file, so the second replaced the
   first. Each call now writes a file of its own.
