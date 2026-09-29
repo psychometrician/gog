@@ -3550,3 +3550,12 @@ end
               if minimum(xs) < lx < maximum(xs) && minimum(ys) < ly < maximum(ys)]
     @test !isempty(labels) && isempty(inside)
 end
+
+# A cube's numbers read on a dark panel: they were written in the dark defaults whatever
+# `theme(background = )` said, dark on dark. The same block runs in all four bindings.
+@testset "a cube's labels read on a dark panel" begin
+    cube = (a = [1.0, 2.0, 3.0], b = [3.0, 1.0, 2.0], c = [2.0, 3.0, 1.0])
+    svg = render_svg(data(cube) + point + x(:a) + y(:b) + z(:c) + theme(background = "black"))
+    frame = split(split(svg, "paint-order=\"stroke\"")[2], "</g>")[1]
+    @test unique([m[1] for m in eachmatch(r"fill=\"(#[0-9a-f]+)\"", frame)]) == ["#ffffff"]
+end

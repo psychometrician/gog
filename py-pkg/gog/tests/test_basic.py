@@ -4117,3 +4117,12 @@ assert _labels and not any(builtins.min(_xs) < lx < builtins.max(_xs)
                            and builtins.min(_ys) < ly < builtins.max(_ys) for lx, ly in _labels), \
     "seen from below, a cube's numbers sit outside the data"
 ok("seen from below, a cube is numbered along its outline")
+
+# --- A cube's numbers read on a dark panel -------------------------------------------------
+# They were written in the dark defaults whatever `theme(background=)` said, dark on dark.
+# The same block runs in all four bindings.
+_night = render_svg(data({"a": [1.0, 2.0, 3.0], "b": [3.0, 1.0, 2.0], "c": [2.0, 3.0, 1.0]}, name="cube")
+                    + point + x(col.a) + y(col.b) + z(col.c) + theme(background="black"))
+_night_frame = _night.split('paint-order="stroke"', 1)[1].split("</g>", 1)[0]
+assert set(re.findall(r'fill="(#[0-9a-f]+)"', _night_frame)) == {"#ffffff"}, _night_frame[:300]
+ok("a cube's labels read on a dark panel")

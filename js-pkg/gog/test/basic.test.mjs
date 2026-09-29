@@ -4215,3 +4215,14 @@ test("seen from below, a cube is numbered along its outline", () => {
     lx > Math.min(...xs) && lx < Math.max(...xs) && ly > Math.min(...ys) && ly < Math.max(...ys));
   assert.ok(labels.length > 0 && inside.length === 0, `${inside}`);
 });
+
+// A cube's numbers read on a dark panel: they were written in the dark defaults
+// whatever `theme({ background })` said, dark on dark. The same block runs in all four
+// bindings.
+test("a cube's labels read on a dark panel", () => {
+  const svg = render_svg(plot(data({ a: [1, 2, 3], b: [3, 1, 2], c: [2, 3, 1] }),
+    point, x(col.a), y(col.b), z(col.c), theme({ background: "black" })));
+  const frame = svg.split('paint-order="stroke"')[1].split("</g>")[0];
+  const inks = new Set([...frame.matchAll(/fill="(#[0-9a-f]+)"/g)].map((m) => m[1]));
+  assert.deepEqual([...inks], ["#ffffff"]);
+});

@@ -4320,9 +4320,13 @@ impl SvgRenderer {
             r##"  <g font-family="system-ui,sans-serif" text-anchor="middle" paint-order="stroke" stroke="{bg}" stroke-width="3" stroke-linejoin="round">"##
         ).unwrap();
         for l in &placed {
+            // On a panel dark enough that the dark default would disappear, the
+            // light ink: the facet strip's rule (`strip_ink`), one ground over.
+            // Written dark on dark, a night cube's numbers read as nothing.
+            let fill = crate::color::better_ink(&bg, l.fill, STRIP_INK_LIGHT).unwrap_or(l.fill);
             writeln!(svg,
                 r#"    <text x="{:.2}" y="{:.2}" font-size="{}" fill="{}">{}</text>"#,
-                l.x, l.y, l.font, l.fill, esc(&l.text)).unwrap();
+                l.x, l.y, l.font, fill, esc(&l.text)).unwrap();
         }
         writeln!(svg, "  </g>").unwrap();
     }
@@ -9886,6 +9890,30 @@ mod tests {
                 }
             }
         }
+    }
+
+    /// **A cube's labels read on a dark panel.** The numbers and names were written
+    /// in the dark defaults whatever `theme(background = )` said, so a night cube's
+    /// axes read as nothing. They take the light ink there, by the facet strip's
+    /// rule, and keep the dark ones on the default panel.
+    #[test]
+    fn a_cubes_labels_take_the_light_ink_on_a_dark_panel() {
+        let inks = |background: Option<&str>| -> Vec<String> {
+            let mut spec = sheet_spec(SpaceView::default());
+            spec.theme.background = background.map(str::to_string);
+            let svg = SvgRenderer::default().render(&spec, &sheet());
+            let start = svg.find(r#"paint-order="stroke""#).expect("the frame's labels");
+            let group = &svg[start..start + svg[start..].find("</g>").unwrap()];
+            let mut inks: Vec<String> = group.lines().filter(|l| l.contains("<text"))
+                .map(|l| l.split(r#"fill=""#).nth(1).unwrap().split('"').next().unwrap().to_string())
+                .collect();
+            inks.sort();
+            inks.dedup();
+            inks
+        };
+        assert_eq!(inks(Some("black")), [STRIP_INK_LIGHT], "white on a black panel");
+        assert_eq!(inks(Some("#112233")), [STRIP_INK_LIGHT], "white on a dark blue one");
+        assert_eq!(inks(None), ["#28283a", "#3c3c46"], "the dark defaults on the default panel");
     }
 
     #[test]

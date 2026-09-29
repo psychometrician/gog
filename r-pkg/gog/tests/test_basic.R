@@ -6296,3 +6296,18 @@ local({
     stop("FAIL: seen from below, a cube's numbers should sit outside the data")
   cat("PASS: seen from below, a cube is numbered along its outline\n")
 })
+
+# ---------------------------------------------------------------------------
+# A cube's numbers read on a dark panel: they were written in the dark defaults
+# whatever `theme(background = )` said, dark on dark. The same block runs in all
+# four bindings.
+# ---------------------------------------------------------------------------
+local({
+  cube <- data.frame(a = c(1, 2, 3), b = c(3, 1, 2), c = c(2, 3, 1))
+  svg <- render_svg(data(cube) + point + x(a) + y(b) + z(c) + theme(background = "black"))
+  frame <- sub("</g>.*", "", sub('.*?paint-order="stroke"', "", svg))
+  inks <- unique(regmatches(frame, gregexpr('fill="#[0-9a-f]+"', frame))[[1]])
+  if (!identical(inks, 'fill="#ffffff"'))
+    stop("FAIL: a cube's labels should be light on a black panel, got ", paste(inks, collapse = " "))
+  cat("PASS: a cube's labels read on a dark panel\n")
+})

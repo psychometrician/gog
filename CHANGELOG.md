@@ -958,6 +958,10 @@ These still draw, and now say what they drew.
 
 These drew something other than the sentence said, and now draw what it says.
 
+- **A cube's numbers and axis names on a dark `theme(background = )`.** They
+  were drawn in dark gray whatever the panel's color, so on a dark panel they
+  could not be read. They take a light ink there, as facet strips already do.
+
 - **A cube seen from below, `space(tilt = )` under 0.** The floor's two axes
   were numbered along the floor edges nearest the camera, which from below run
   across the middle of the picture, so their numbers sat on the data. They are
