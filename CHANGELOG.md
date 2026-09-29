@@ -56,6 +56,14 @@ CRAN-style repositories and PyPI, `GrammarOfGraphics` on Julia's General, and
 
 ### Changed
 
+- **`free` on a channel that is not a position is refused by gog.** `color()`,
+  `size()`, `opacity()`, `shape()`, `pattern()`, `group()`, `label()` and
+  `play()` now take `free` and pass it on, so writing it there meets gog's
+  refusal, which says to write it on `x`, `y` or `z`, instead of the language's
+  own error, such as R's "unused argument" or Python's `TypeError`. Every
+  refusal about `free` now names it without R's spelling, `free = TRUE`, since
+  all four packages print the same message.
+
 - **Plots on one page that read one table count each row once.** On a web page,
   the count under a composed figure added every brushed plot's rows, so two plots
   of one table read `66 of 284 selected`, `show rows` listed each row twice, and

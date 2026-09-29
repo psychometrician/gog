@@ -4,12 +4,16 @@
 \alias{play}
 \title{Cut the plot into frames and play them — the time dimension.}
 \usage{
-play(field, speed = NULL, legend = NULL)
+play(field, speed = NULL, free = FALSE, legend = NULL)
 }
 \arguments{
 \item{field}{Column whose distinct values become the frames, as a bare name.}
 
 \item{speed}{A multiple of the normal pace: \code{2} is twice as fast.}
+
+\item{free}{Not taken: \code{free} fits an axis to each panel's own rows, and only
+a position, \code{x}, \code{y} or \code{z}, has an axis. gog refuses it here and says to
+write it on a position.}
 
 \item{legend}{Not taken: each frame is named in the strip above the panel
 as it is shown, so \code{play} draws no legend. gog refuses it here and names the

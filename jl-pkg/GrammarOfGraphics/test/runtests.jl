@@ -114,6 +114,12 @@ end
     @test occursin(">20</text>", freed)
 
     @refuses render_svg(data(free) + point + x(:x) + y(:y, free = true)) "one panel"
+    # Every channel takes `free` and forwards it, so the engine's refusal is the one
+    # a reader meets rather than a `MethodError`, and it names the flag without any
+    # one binding's spelling of it.
+    @refuses render_svg(data(free) + point + x(:x) + y(:y) + color(:g, free = true) |
+                        facet(:g)) "`color(g)` cannot be freed"
+    @refuses color(:g, free = "yes") "`y(:<name>, free = true)` frees y"
     @refuses render_svg(data(free) + point + x(:x) +
                         y(:y, limits = (0, 300), free = true) | facet(:g)) "one scale per panel"
     @refuses y(:y, free = "yes") "true or false"

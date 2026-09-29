@@ -4,7 +4,14 @@
 \alias{size}
 \title{Map point radius to a numeric column.}
 \usage{
-size(field, scale = NULL, base = NULL, limits = NULL, legend = NULL)
+size(
+  field,
+  scale = NULL,
+  base = NULL,
+  limits = NULL,
+  free = FALSE,
+  legend = NULL
+)
 }
 \arguments{
 \item{field}{Column to bind (bare name).}
@@ -23,6 +30,10 @@ gridlines fall and how they are labeled.}
 
 \item{limits}{The two ends of the size scale, as \code{c(low, high)}. \code{NA} on
 either end leaves that end fitted to the data.}
+
+\item{free}{Not taken: \code{free} fits an axis to each panel's own rows, and only
+a position, \code{x}, \code{y} or \code{z}, has an axis. gog refuses it here and says to
+write it on a position.}
 
 \item{legend}{\code{FALSE} leaves this channel's legend out of the plot. The column
 is still mapped; only the legend that decodes it is not drawn, for a plot that

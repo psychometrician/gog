@@ -5,10 +5,14 @@
 \title{Group line/path marks by a column (connects points within the same group).
 Use color(field) when you also want color distinction — it implies grouping.}
 \usage{
-group(field, legend = NULL)
+group(field, free = FALSE, legend = NULL)
 }
 \arguments{
 \item{field}{Column to group by, as a bare name.}
+
+\item{free}{Not taken: \code{free} fits an axis to each panel's own rows, and only
+a position, \code{x}, \code{y} or \code{z}, has an axis. gog refuses it here and says to
+write it on a position.}
 
 \item{legend}{Not taken: \code{group} splits without encoding anything, so it
 draws no legend. gog refuses it here and names the five channels that do.}

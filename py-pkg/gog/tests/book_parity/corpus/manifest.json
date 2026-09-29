@@ -20,7 +20,7 @@
   "data": "6826e3a51a00cac708fb86ca41bf646c2b21cc52f864fb3c4a3e1912a51de6df",
   "design-laws": "70b4184289504a507b1e6a381f0549338914d60920ee6af3a8b31dd3b53b5aae",
   "encoding-scope": "eecc7f7f4f5acb1b12cd98eea9883d4557f8c198dc9f75af393796eabc18b296",
-  "faceting": "6f306b12867de6fced78adde68d33c06a672acd130c0dfafc65d8f29f355e742",
+  "faceting": "d409a28574c78052a1806384810c435705de0aa49b86241e652bed7ab27c9815",
   "first-plot": "1bde7a5b3a2941f3823fbce6538f73a17c13ccbc58a2430cfb520bda8641ba48",
   "flow": "0a3a7c86d82b5c7d246159f54248d05d8d93f8a332317487f11f13561ca84662",
   "globe": "67ef89184627c6b4b0c0f0e1b4d4800293e66f73c020406a582f8c0ef7556add",
@@ -65,6 +65,6 @@
   "utilities": "167d8c831fc0cdd0c1ece7dff1cfc1d743b20d70ee4d907dab91a17b7e92ffc3",
   "writing": "a7c1675fa4f0026e4d0e4fbb5c4c68bfbab2cfd3debbf22378ae07a3935ef676"
  },
- "engine": "ffa0e5fd193d6bacff76b9f5979fca80897f69c47de6abc91afd76e16dabd04a",
- "sentences": 890
+ "engine": "86ac40fbc8e365e359c24170bff554beaa322a392b9aa61bdcbfce4e688e80bd",
+ "sentences": 891
 }

@@ -1368,10 +1368,15 @@ if (!grepl(">200</text>", svg_free, fixed = TRUE) ||
   stop("FAIL: a freed y should tick each panel's own range")
 cat("PASS: `y(v, free = TRUE)` fits each panel from its own rows\n")
 
-# Refused where there are no panels to free a scale across. (`free` on a channel
-# that is not a position is refused by the engine, and cannot be written here at
-# all: `color()` takes no `free`, exactly as it takes no `tick_count`.)
+# Refused where there are no panels to free a scale across, and on a channel that
+# is not a position. Every channel takes `free` and forwards it, so the engine's
+# refusal is the one a reader meets, never R's "unused argument", and it names
+# the flag without R's spelling of it, since all four bindings print it.
 for (bad in list(
+  list(what = "free on a channel that is not a position",
+       f = function() render_svg(data(free_df) + point + x(x) + y(y) +
+                                   color(g, free = TRUE) | facet(g)),
+       says = "`color(g)` cannot be freed. `free` fits an axis to each panel's own rows"),
   list(what = "free with no facet",
        f = function() render_svg(data(free_df) + point + x(x) + y(y, free = TRUE)),
        says = "one panel"),

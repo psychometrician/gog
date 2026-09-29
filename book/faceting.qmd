@@ -347,11 +347,20 @@ see movement that comes from the changing axis rather than from the data. Across
 panels a free scale is safe. Across the frames of an animation, it would
 misreport the data.
 
-Only `x`, `y` and `z` take `free`. A channel that is not a position has no axis
-to free. It has a legend instead, and that one legend decodes the whole plot, so
-`color()` has no `free` to write. One more sentence is refused: `free` with no
-facet. A plot with no facet has one panel, and freeing its scale would change
-nothing:
+Only `x`, `y` and `z` can be freed. A channel that is not a position has no axis
+to free. `color()` has one legend for all the panels instead, so gog refuses
+`free` on `color()`:
+
+```{r}
+#| error: true
+data(gapminder_2007) + point + x(gdp) + y(life) +
+  color(continent, free = TRUE) | facet(continent)
+```
+
+The message tells you to drop `free`, or to write it inside a position instead.
+
+One more sentence is refused: `free` with no facet. A plot with no facet has one
+panel, and freeing its scale would change nothing:
 
 ```{r}
 #| error: true

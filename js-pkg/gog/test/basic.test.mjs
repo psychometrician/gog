@@ -257,6 +257,15 @@ test("a free scale is fitted per panel, and only the axis that asked", () => {
     /one scale per panel/
   );
   refuses(() => y(col.y, { free: "yes" }), /true or false/);
+  // Every channel takes `free` and forwards it, so the engine's refusal is the one
+  // a reader meets rather than "has no `free`", and it names the flag without any
+  // one binding's spelling of it.
+  refuses(
+    () => render_svg(plot(data(free), point, x(col.x), y(col.y),
+                          color(col.g, { free: true }), across(col.g))),
+    /`color\(g\)` cannot be freed[\s\S]*Write `free` on a position/
+  );
+  refuses(() => color(col.g, { free: "yes" }), /`y\(col\.<name>, \{ free: true \}\)` frees y/);
 });
 
 test("wrap draws one panel per level and names every one", () => {

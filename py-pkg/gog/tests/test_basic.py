@@ -193,6 +193,24 @@ refuses("a free scale beside a stated domain",
 refuses("`free=` given something other than True or False",
         lambda: y(col.y, free="yes"))
 
+# Every channel takes `free=` and forwards it, so the engine's refusal is the one
+# a reader meets rather than a bare `TypeError`, and it names the flag without
+# any one binding's spelling of it.
+try:
+    render_svg(data(free_df) + point + x(col.x) + y(col.y) + color(col.g, free=True)
+               | facet(col.g))
+    raise AssertionError("free on a channel that is not a position should refuse")
+except GogError as _e:
+    assert "`color(g)` cannot be freed" in str(_e) and "Write `free` on a position" in str(_e) \
+        and "free = TRUE" not in str(_e), str(_e)
+ok("`free=` on a channel that is not a position is the engine's to refuse, with direction")
+try:
+    color(col.g, free="yes")
+    raise AssertionError("a free= that is not True or False should refuse")
+except GogError as _e:
+    assert "`y(col.<name>, free=True)` frees y" in str(_e), str(_e)
+ok("the shape refusal for `free=` names a position even when written on another channel")
+
 # `play` is that same split read in time: one frame per distinct value, laid
 # out in sequence instead of across the page.
 play_df = {"x": [1.0, 2.0, 3.0, 10.0, 20.0, 30.0],

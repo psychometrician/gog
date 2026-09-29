@@ -1252,6 +1252,12 @@ check_limits <- function(limits) {
 # Which axis is freed is not stated: it is whichever channel this was written
 # on. A flag rather than a value for the same reason — there is one thing to
 # ask for, and the rest of the question was answered by where you asked it.
+#
+# Every channel takes it and forwards it, as every channel does `legend`, and
+# the engine decides where it means something: only a position draws an axis
+# in each panel, and on any other channel the engine refuses it with that
+# direction. Without the argument `color(continent, free = TRUE)` would meet R's
+# "unused argument", which names no fix. Only the shape is checked here.
 check_free <- function(free) {
   if (is.null(free) || isFALSE(free)) return(NULL)
   if (!isTRUE(free)) {
@@ -1619,11 +1625,16 @@ map <- function(preserve = "area") {
 #'   is still mapped; only the legend that decodes it is not drawn, for a plot that
 #'   says the same thing another way, such as names written at the ends of the
 #'   lines.
+#' @param free  Not taken: `free` fits an axis to each panel's own rows, and only
+#'   a position, `x`, `y` or `z`, has an axis. gog refuses it here and says to
+#'   write it on a position.
 #' @export
-color <- function(field, scale = NULL, base = NULL, limits = NULL, legend = NULL) {
+color <- function(field, scale = NULL, base = NULL, limits = NULL, free = FALSE,
+                  legend = NULL) {
   structure(list(type = "color", field = column_name(substitute(field), "color", settable = TRUE),
                  scale = check_scale(scale), base = check_base(base),
-                 limits = check_limits(limits), legend = check_legend(legend)),
+                 limits = check_limits(limits), free = check_free(free),
+                 legend = check_legend(legend)),
             class = "gog_atom")
 }
 
@@ -1651,11 +1662,14 @@ colour <- function(...) {
 #' @param field  Column to group by, as a bare name.
 #' @param legend  Not taken: `group` splits without encoding anything, so it
 #'   draws no legend. gog refuses it here and names the five channels that do.
+#' @param free  Not taken: `free` fits an axis to each panel's own rows, and only
+#'   a position, `x`, `y` or `z`, has an axis. gog refuses it here and says to
+#'   write it on a position.
 #' @return A `gog_atom` added to a plot with `+`.
 #' @export
-group <- function(field, legend = NULL) {
+group <- function(field, free = FALSE, legend = NULL) {
   structure(list(type = "group", field = column_name(substitute(field), "group"),
-                 legend = check_legend(legend)),
+                 free = check_free(free), legend = check_legend(legend)),
             class = "gog_atom")
 }
 
@@ -1668,11 +1682,16 @@ group <- function(field, legend = NULL) {
 #'   is still mapped; only the legend that decodes it is not drawn, for a plot that
 #'   says the same thing another way, such as names written at the ends of the
 #'   lines.
+#' @param free  Not taken: `free` fits an axis to each panel's own rows, and only
+#'   a position, `x`, `y` or `z`, has an axis. gog refuses it here and says to
+#'   write it on a position.
 #' @export
-size <- function(field, scale = NULL, base = NULL, limits = NULL, legend = NULL) {
+size <- function(field, scale = NULL, base = NULL, limits = NULL, free = FALSE,
+                 legend = NULL) {
   structure(list(type = "size", field = column_name(substitute(field), "size", settable = TRUE),
                  scale = check_scale(scale), base = check_base(base),
-                 limits = check_limits(limits), legend = check_legend(legend)),
+                 limits = check_limits(limits), free = check_free(free),
+                 legend = check_legend(legend)),
             class = "gog_atom")
 }
 
@@ -1685,11 +1704,14 @@ size <- function(field, scale = NULL, base = NULL, limits = NULL, legend = NULL)
 #'   is still mapped; only the legend that decodes it is not drawn, for a plot that
 #'   says the same thing another way, such as names written at the ends of the
 #'   lines.
+#' @param free  Not taken: `free` fits an axis to each panel's own rows, and only
+#'   a position, `x`, `y` or `z`, has an axis. gog refuses it here and says to
+#'   write it on a position.
 #' @return A `gog_atom` added to a plot with `+`.
 #' @export
-shape <- function(field, legend = NULL) {
+shape <- function(field, free = FALSE, legend = NULL) {
   structure(list(type = "shape", field = column_name(substitute(field), "shape", settable = TRUE),
-                 legend = check_legend(legend)),
+                 free = check_free(free), legend = check_legend(legend)),
             class = "gog_atom")
 }
 
@@ -1710,11 +1732,14 @@ shape <- function(field, legend = NULL) {
 #'   is still mapped; only the legend that decodes it is not drawn, for a plot that
 #'   says the same thing another way, such as names written at the ends of the
 #'   lines.
+#' @param free  Not taken: `free` fits an axis to each panel's own rows, and only
+#'   a position, `x`, `y` or `z`, has an axis. gog refuses it here and says to
+#'   write it on a position.
 #' @return A `gog_atom` added to a plot with `+`.
 #' @export
-pattern <- function(field, legend = NULL) {
+pattern <- function(field, free = FALSE, legend = NULL) {
   structure(list(type = "pattern", field = column_name(substitute(field), "pattern", settable = TRUE),
-                 legend = check_legend(legend)),
+                 free = check_free(free), legend = check_legend(legend)),
             class = "gog_atom")
 }
 
@@ -1727,11 +1752,16 @@ pattern <- function(field, legend = NULL) {
 #'   is still mapped; only the legend that decodes it is not drawn, for a plot that
 #'   says the same thing another way, such as names written at the ends of the
 #'   lines.
+#' @param free  Not taken: `free` fits an axis to each panel's own rows, and only
+#'   a position, `x`, `y` or `z`, has an axis. gog refuses it here and says to
+#'   write it on a position.
 #' @export
-opacity <- function(field, scale = NULL, base = NULL, limits = NULL, legend = NULL) {
+opacity <- function(field, scale = NULL, base = NULL, limits = NULL, free = FALSE,
+                    legend = NULL) {
   structure(list(type = "opacity", field = column_name(substitute(field), "opacity", settable = TRUE),
                  scale = check_scale(scale), base = check_base(base),
-                 limits = check_limits(limits), legend = check_legend(legend)),
+                 limits = check_limits(limits), free = check_free(free),
+                 legend = check_legend(legend)),
             class = "gog_atom")
 }
 
@@ -1746,11 +1776,14 @@ opacity <- function(field, scale = NULL, base = NULL, limits = NULL, legend = NU
 #' @param field  Column whose values are drawn as the text, as a bare name.
 #' @param legend  Not taken: a label is read where it is written, so it draws
 #'   no legend. gog refuses it here and names the five channels that do.
+#' @param free  Not taken: `free` fits an axis to each panel's own rows, and only
+#'   a position, `x`, `y` or `z`, has an axis. gog refuses it here and says to
+#'   write it on a position.
 #' @return A `gog_atom` added to a plot with `+`.
 #' @export
-label <- function(field, legend = NULL) {
+label <- function(field, free = FALSE, legend = NULL) {
   structure(list(type = "label", field = column_name(substitute(field), "label"),
-                 legend = check_legend(legend)),
+                 free = check_free(free), legend = check_legend(legend)),
             class = "gog_atom")
 }
 
@@ -1780,11 +1813,15 @@ label <- function(field, legend = NULL) {
 #' @param legend  Not taken: each frame is named in the strip above the panel
 #'   as it is shown, so `play` draws no legend. gog refuses it here and names the
 #'   five channels that do.
+#' @param free  Not taken: `free` fits an axis to each panel's own rows, and only
+#'   a position, `x`, `y` or `z`, has an axis. gog refuses it here and says to
+#'   write it on a position.
 #' @return A `gog_atom` added to a plot with `+`.
 #' @export
-play <- function(field, speed = NULL, legend = NULL) {
+play <- function(field, speed = NULL, free = FALSE, legend = NULL) {
   structure(list(type = "play", field = column_name(substitute(field), "play"),
-                 speed = check_speed(speed), legend = check_legend(legend)),
+                 speed = check_speed(speed), free = check_free(free),
+                 legend = check_legend(legend)),
             class = "gog_atom")
 }
 

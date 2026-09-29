@@ -620,13 +620,21 @@ end
 
 A flag rather than a value, because the rest of the question is answered by
 *where* it was written: `y(:life, free = true)` frees y, `x(...)` frees x.
+
+Every channel takes it and forwards it, as every channel does `legend`, and the
+engine decides where it means something: only a position draws an axis in each
+panel, and on any other channel the engine refuses it with that direction.
+Leaving it out of `color()` would answer `color(:continent, free = true)` with a
+`MethodError` that names no fix. Only the shape is checked here, and its example
+is a position's.
 """
 function check_free(free, name::AbstractString)
     (free === nothing || free === false) && return false
+    axis = name in ("x", "y", "z") ? name : "y"
     free === true || throw(GogError(
         "gog: `free = ` is true or false — it says whether this axis is fitted " *
         "per panel. Which axis is up to which binding you write it on: " *
-        "`$name(:<name>, free = true)` frees $name."))
+        "`$axis(:<name>, free = true)` frees $axis."))
     true
 end
 
@@ -787,16 +795,19 @@ const map = Atom(:coord_map, Dict{Symbol,Any}(:preserve => "area"),
 # ---------------------------------------------------------------------------
 
 scaled_channel(kind::Symbol, name::AbstractString) =
-    (field; scale = nothing, base = nothing, limits = nothing, legend = nothing) ->
+    (field; scale = nothing, base = nothing, limits = nothing, free = false,
+     legend = nothing) ->
         Atom(kind, Dict{Symbol,Any}(:field => column_name(field, name),
                                     :scale => check_scale(scale),
                                     :base => check_base(base),
                                     :limits => check_limits(limits),
+                                    :free => check_free(free, name),
                                     :legend => check_legend(legend)))
 
 plain_channel(kind::Symbol, name::AbstractString) =
-    (field; legend = nothing) ->
+    (field; free = false, legend = nothing) ->
         Atom(kind, Dict{Symbol,Any}(:field => column_name(field, name),
+                                    :free => check_free(free, name),
                                     :legend => check_legend(legend)))
 
 """Map fill/stroke color to a column."""
@@ -856,9 +867,10 @@ stands still behind the marks that move.
 
 Unlike `facet`, a number is welcome: panels compete for page area, frames compete
 for time. A static image made from the plot shows the first frame."""
-play(field; speed = nothing, legend = nothing) =
+play(field; speed = nothing, free = false, legend = nothing) =
     Atom(:play, Dict{Symbol,Any}(:field => column_name(field, "play"),
                                  :speed => check_speed(speed),
+                                 :free => check_free(free, "play"),
                                  :legend => check_legend(legend)))
 
 # What `at` was given, and which of the two readings it is. One keyword rather

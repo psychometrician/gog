@@ -784,14 +784,14 @@ resolve_query <- function(q, table) {
       lhs$spec$coord <- list(map = list(preserve = rhs$preserve))
     },
 
-    color   = { lhs <- set_channel(lhs, "color",   rhs$field, rhs$scale, rhs$base, rhs$limits, legend = rhs$legend) },
-    group   = { lhs <- set_channel(lhs, "group",   rhs$field, legend = rhs$legend) },
-    size    = { lhs <- set_channel(lhs, "size",    rhs$field, rhs$scale, rhs$base, rhs$limits, legend = rhs$legend) },
-    shape   = { lhs <- set_channel(lhs, "shape",   rhs$field, legend = rhs$legend) },
-    opacity = { lhs <- set_channel(lhs, "opacity", rhs$field, rhs$scale, rhs$base, rhs$limits, legend = rhs$legend) },
-    label   = { lhs <- set_channel(lhs, "label",   rhs$field, legend = rhs$legend) },
-    pattern = { lhs <- set_channel(lhs, "pattern", rhs$field, legend = rhs$legend) },
-    play    = { lhs <- set_channel(lhs, "play",    rhs$field, speed = rhs$speed, legend = rhs$legend) },
+    color   = { lhs <- set_channel(lhs, "color",   rhs$field, rhs$scale, rhs$base, rhs$limits, free = rhs$free, legend = rhs$legend) },
+    group   = { lhs <- set_channel(lhs, "group",   rhs$field, free = rhs$free, legend = rhs$legend) },
+    size    = { lhs <- set_channel(lhs, "size",    rhs$field, rhs$scale, rhs$base, rhs$limits, free = rhs$free, legend = rhs$legend) },
+    shape   = { lhs <- set_channel(lhs, "shape",   rhs$field, free = rhs$free, legend = rhs$legend) },
+    opacity = { lhs <- set_channel(lhs, "opacity", rhs$field, rhs$scale, rhs$base, rhs$limits, free = rhs$free, legend = rhs$legend) },
+    label   = { lhs <- set_channel(lhs, "label",   rhs$field, free = rhs$free, legend = rhs$legend) },
+    pattern = { lhs <- set_channel(lhs, "pattern", rhs$field, free = rhs$free, legend = rhs$legend) },
+    play    = { lhs <- set_channel(lhs, "play",    rhs$field, speed = rhs$speed, free = rhs$free, legend = rhs$legend) },
 
     # Plot-scoped, like `palette`: a predicate over rows is a fact about the
     # data, so every layer reading that column answers to it. `I()` keeps a
@@ -1301,8 +1301,8 @@ set_position <- function(gog, ch, rhs) {
 # render. Reaching forward from the plot level covers the useful case without
 # either problem, and matches how x/y/z have always worked.
 set_channel <- function(gog, ch, field, scale = NULL, base = NULL, limits = NULL,
-                        speed = NULL, legend = NULL) {
-  cd <- channel_def(field, scale, base, limits, speed = speed, legend = legend)
+                        speed = NULL, free = NULL, legend = NULL) {
+  cd <- channel_def(field, scale, base, limits, speed = speed, free = free, legend = legend)
   if (is.null(gog$current_layer)) {
     gog$spec$channels[[ch]] <- cd   # written before any mark → plot-scoped
   } else {

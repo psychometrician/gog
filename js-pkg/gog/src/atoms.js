@@ -694,13 +694,21 @@ function checkTickCount(tickCount) {
 //
 // A flag rather than a value, because the rest of the question is answered by
 // *where* it was written: `y(col.life, { free: true })` frees y, `x(...)` frees x.
+//
+// Every channel takes it and forwards it, as every channel does `legend`, and
+// the engine decides where it means something: only a position draws an axis
+// in each panel, and on any other channel the engine refuses it with that
+// direction. Leaving it out of `color()` would answer
+// `color(col.continent, { free: true })` with "has no `free`", which names no
+// fix. Only the shape is checked here, and its example is a position's.
 function checkFree(free, name) {
   if (free === undefined || free === null || free === false) return false;
   if (free !== true) {
+    const axis = ["x", "y", "z"].includes(name) ? name : "y";
     throw new GogError(
       `gog: \`free\` is true or false — it says whether this axis is fitted per ` +
         `panel. Which axis is up to which binding you write it on: ` +
-        `\`${name}(col.<name>, { free: true })\` frees ${name}.`
+        `\`${axis}(col.<name>, { free: true })\` frees ${axis}.`
     );
   }
   return true;
@@ -876,13 +884,14 @@ export const map = callableAtom(new Atom("coord_map", { preserve: "area" }), (..
 
 function scaledChannel(kind) {
   return (...raw) => {
-    const { field, scale, base, limits, legend } =
-      readArgs(raw, kind, ["field", "scale", "base", "limits", "legend"]);
+    const { field, scale, base, limits, free, legend } =
+      readArgs(raw, kind, ["field", "scale", "base", "limits", "free", "legend"]);
     return new Atom(kind, {
       field: columnName(field, kind),
       scale: checkScale(scale),
       base: checkBase(base),
       limits: checkLimits(limits),
+      free: checkFree(free, kind),
       legend: checkLegend(legend),
     });
   };
@@ -890,8 +899,12 @@ function scaledChannel(kind) {
 
 function plainChannel(kind) {
   return (...raw) => {
-    const { field, legend } = readArgs(raw, kind, ["field", "legend"]);
-    return new Atom(kind, { field: columnName(field, kind), legend: checkLegend(legend) });
+    const { field, free, legend } = readArgs(raw, kind, ["field", "free", "legend"]);
+    return new Atom(kind, {
+      field: columnName(field, kind),
+      free: checkFree(free, kind),
+      legend: checkLegend(legend),
+    });
   };
 }
 
@@ -948,10 +961,12 @@ export const label = plainChannel("label");
 // axes hold still and only the data moves; a layer that does not bind `play` is
 // drawn in every frame. A static image made from the plot shows the first frame.
 export const play = (...raw) => {
-  const { field, speed, legend } = readArgs(raw, "play", ["field", "speed", "legend"]);
+  const { field, speed, free, legend } =
+    readArgs(raw, "play", ["field", "speed", "free", "legend"]);
   return new Atom("play", {
     field: columnName(field, "play"),
     speed: checkSpeed(speed),
+    free: checkFree(free, "play"),
     legend: checkLegend(legend),
   });
 };

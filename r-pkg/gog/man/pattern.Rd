@@ -4,10 +4,14 @@
 \alias{pattern}
 \title{Map paint texture to a categorical column --- \code{shape}'s twin.}
 \usage{
-pattern(field, legend = NULL)
+pattern(field, free = FALSE, legend = NULL)
 }
 \arguments{
 \item{field}{Column to bind to the texture, as a bare name.}
+
+\item{free}{Not taken: \code{free} fits an axis to each panel's own rows, and only
+a position, \code{x}, \code{y} or \code{z}, has an axis. gog refuses it here and says to
+write it on a position.}
 
 \item{legend}{\code{FALSE} leaves this channel's legend out of the plot. The column
 is still mapped; only the legend that decodes it is not drawn, for a plot that

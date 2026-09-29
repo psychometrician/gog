@@ -11454,13 +11454,19 @@ fn check_free(
     // Only the three positions draw an axis. `limits` reaches all six magnitude
     // channels because every one of them has a domain, but a legend is one key
     // for the whole plot: a per-panel color scale would make it decode nothing.
+    // Every binding passes `free` from every channel so that this sentence is
+    // the one a reader meets, rather than their language's "unused argument"
+    // (ruled 2026-09-28). So each of these messages names `free` as a word and
+    // never as one binding's spelling of it: `free = TRUE` is R's, and the same
+    // engine answers Python's `free=True`, Julia's `free = true` and
+    // JavaScript's `{ free: true }`.
     if !matches!(channel, Channel::X | Channel::Y | Channel::Z) {
         out.push(Diagnostic {
             kind: DiagnosticKind::Illegal,
             message: format!(
-                "gog: `{c}({field}, free = TRUE)` — a free scale is fitted per panel, \
-                 and `{c}` is read from one key for the whole plot rather than from an \
-                 axis in each panel. Free a position instead: `y(<column>, free = TRUE)`."
+                "gog: `{c}({field})` cannot be freed. `free` fits an axis to each \
+                 panel's own rows, and only a position, `x`, `y` or `z`, has an axis. \
+                 Write `free` on a position instead, or drop it."
             ),
         });
         return;
@@ -11472,9 +11478,10 @@ fn check_free(
         out.push(Diagnostic {
             kind: DiagnosticKind::Illegal,
             message: format!(
-                "gog: `{c}({field}, limits = …, free = TRUE)` states the domain and then \
-                 asks each panel to choose its own. Keep `limits` for one scale across \
-                 every panel, or `free = TRUE` for one scale per panel."
+                "gog: `{c}({field})` states `limits` and asks for `free`. `limits` fixes \
+                 one domain for every panel, and `free` asks each panel to choose its \
+                 own. Keep `limits` for one scale across every panel, or `free` for one \
+                 scale per panel."
             ),
         });
         return;
@@ -11486,7 +11493,7 @@ fn check_free(
         out.push(Diagnostic {
             kind: DiagnosticKind::Illegal,
             message: format!(
-                "gog: `{c}({field}, free = TRUE)` frees an axis, and a `nest()` packing \
+                "gog: `free` on `{c}({field})` frees an axis, and a `nest()` packing \
                  has none — it has regions, whose shares are read inside each panel \
                  already. Drop `free`."
             ),
@@ -11512,7 +11519,7 @@ fn check_free(
         out.push(Diagnostic {
             kind: DiagnosticKind::Illegal,
             message: format!(
-                "gog: `{c}({field}, free = TRUE)` fits one scale per *panel*, and this \
+                "gog: `free` on `{c}({field})` fits one scale per *panel*, and this \
                  plot has frames rather than panels. A frame replaces the one before \
                  it, so an axis refitted per frame would move under the data and the \
                  motion would be the scale's rather than the data's. Facet the plot to \
@@ -11525,7 +11532,7 @@ fn check_free(
     out.push(Diagnostic {
         kind: DiagnosticKind::Illegal,
         message: format!(
-            "gog: `{c}({field}, free = TRUE)` fits one scale per panel, and this plot \
+            "gog: `free` on `{c}({field})` fits one scale per panel, and this plot \
              has one panel. Facet it — `plot | facet(<column>)` — or drop `free`."
         ),
     });
@@ -17816,8 +17823,10 @@ mod tests {
                              ChannelDef::field("continent").with_free());
         let d = check(&spec, &data());
         assert!(d.iter().any(|x| x.kind == DiagnosticKind::Illegal
-                             && x.message.contains("Free a position")),
+                             && x.message.contains("Write `free` on a position")),
                 "{d:?}");
+        // No binding's spelling of the flag: all four bindings meet this sentence.
+        assert!(d.iter().all(|x| !x.message.contains("free = TRUE")), "{d:?}");
     }
 
     #[test]

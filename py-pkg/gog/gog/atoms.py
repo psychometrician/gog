@@ -690,14 +690,22 @@ def _check_free(free: Any, name: str) -> bool:
 
     A flag rather than a value, because the rest of the question is answered by
     *where* it was written: `y(col.life, free=True)` frees y, `x(...)` frees x.
+
+    Every channel takes it and forwards it, as every channel does `legend=`, and
+    the engine decides where it means something: only a position draws an axis
+    in each panel, and on any other channel the engine refuses it with that
+    direction. Leaving it out of `color()` would answer
+    `color(col.continent, free=True)` with a bare `TypeError` that names no fix.
+    Only the shape is checked here, and its example is a position's.
     """
     if free is None or free is False:
         return False
     if free is not True:
+        axis = name if name in ("x", "y", "z") else "y"
         raise GogError(
             "gog: `free=` is True or False — it says whether this axis is fitted "
             "per panel. Which axis is up to which binding you write it on: "
-            f"`{name}(col.<name>, free=True)` frees {name}."
+            f"`{axis}(col.<name>, free=True)` frees {axis}."
         )
     return True
 
@@ -924,7 +932,8 @@ map = _Map("coord_map", preserve="area")
 
 
 def color(field: Column, scale: Optional[str] = None, base: Optional[float] = None,
-          limits: Limits = None, legend: Optional[bool] = None) -> Atom:
+          limits: Limits = None, free: bool = False,
+          legend: Optional[bool] = None) -> Atom:
     """Map fill/stroke color to a column. `legend=False` leaves its legend out."""
     return Atom(
         "color",
@@ -932,6 +941,7 @@ def color(field: Column, scale: Optional[str] = None, base: Optional[float] = No
         scale=_check_scale(scale),
         base=_check_base(base),
         limits=_check_limits(limits),
+        free=_check_free(free, "color"),
         legend=_check_legend(legend),
     )
 
@@ -954,7 +964,8 @@ def colour(*args: Any, **kwargs: Any) -> Atom:
 
 
 def size(field: Column, scale: Optional[str] = None, base: Optional[float] = None,
-          limits: Limits = None, legend: Optional[bool] = None) -> Atom:
+          limits: Limits = None, free: bool = False,
+          legend: Optional[bool] = None) -> Atom:
     """Map size to a numeric column. `legend=False` leaves its legend out."""
     return Atom(
         "size",
@@ -962,12 +973,14 @@ def size(field: Column, scale: Optional[str] = None, base: Optional[float] = Non
         scale=_check_scale(scale),
         base=_check_base(base),
         limits=_check_limits(limits),
+        free=_check_free(free, "size"),
         legend=_check_legend(legend),
     )
 
 
 def opacity(field: Column, scale: Optional[str] = None, base: Optional[float] = None,
-          limits: Limits = None, legend: Optional[bool] = None) -> Atom:
+          limits: Limits = None, free: bool = False,
+          legend: Optional[bool] = None) -> Atom:
     """Map opacity to a numeric column. `legend=False` leaves its legend out."""
     return Atom(
         "opacity",
@@ -975,37 +988,42 @@ def opacity(field: Column, scale: Optional[str] = None, base: Optional[float] = 
         scale=_check_scale(scale),
         base=_check_base(base),
         limits=_check_limits(limits),
+        free=_check_free(free, "opacity"),
         legend=_check_legend(legend),
     )
 
 
-def group(field: Column, legend: Optional[bool] = None) -> Atom:
+def group(field: Column, free: bool = False, legend: Optional[bool] = None) -> Atom:
     """Group a line/path by a column, without giving each group a color.
 
     `legend=` is taken only to be refused by the engine with direction: a group
     encodes nothing, so it draws no legend to leave out.
     """
-    return Atom("group", field=column_name(field, "group"), legend=_check_legend(legend))
+    return Atom("group", field=column_name(field, "group"), free=_check_free(free, "group"),
+                legend=_check_legend(legend))
 
 
-def shape(field: Column, legend: Optional[bool] = None) -> Atom:
+def shape(field: Column, free: bool = False, legend: Optional[bool] = None) -> Atom:
     """Map glyph shape to a categorical column. `legend=False` leaves its legend out."""
-    return Atom("shape", field=column_name(field, "shape"), legend=_check_legend(legend))
+    return Atom("shape", field=column_name(field, "shape"), free=_check_free(free, "shape"),
+                legend=_check_legend(legend))
 
 
-def pattern(field: Column, legend: Optional[bool] = None) -> Atom:
+def pattern(field: Column, free: bool = False, legend: Optional[bool] = None) -> Atom:
     """Map paint texture to a categorical column — `shape`'s twin. `legend=False`
     leaves its legend out."""
-    return Atom("pattern", field=column_name(field, "pattern"), legend=_check_legend(legend))
+    return Atom("pattern", field=column_name(field, "pattern"),
+                free=_check_free(free, "pattern"), legend=_check_legend(legend))
 
 
-def label(field: Column, legend: Optional[bool] = None) -> Atom:
+def label(field: Column, free: bool = False, legend: Optional[bool] = None) -> Atom:
     """Draw a column's values as text — the `text` mark's content.
 
     `legend=` is taken only to be refused by the engine with direction: a label
     is read where it is written, so it draws no legend.
     """
-    return Atom("label", field=column_name(field, "label"), legend=_check_legend(legend))
+    return Atom("label", field=column_name(field, "label"), free=_check_free(free, "label"),
+                legend=_check_legend(legend))
 
 
 def _check_speed(speed: Optional[float]) -> Optional[float]:
@@ -1024,7 +1042,8 @@ def _check_speed(speed: Optional[float]) -> Optional[float]:
     return float(speed)
 
 
-def play(field: Column, speed: Optional[float] = None, legend: Optional[bool] = None) -> Atom:
+def play(field: Column, speed: Optional[float] = None, free: bool = False,
+         legend: Optional[bool] = None) -> Atom:
     """Cut the plot into frames and play them — the time dimension.
 
     `play` is `facet` read in time. Both split the rows by a column's distinct
@@ -1044,7 +1063,7 @@ def play(field: Column, speed: Optional[float] = None, legend: Optional[bool] = 
     frame is named in the strip above the panel, so `play` draws no legend.
     """
     return Atom("play", field=column_name(field, "play"), speed=_check_speed(speed),
-                legend=_check_legend(legend))
+                free=_check_free(free, "play"), legend=_check_legend(legend))
 
 
 def _check_brush_at(at):

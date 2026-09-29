@@ -4,10 +4,14 @@
 \alias{label}
 \title{Draw a column's values as text labels — the \code{text} mark's content.}
 \usage{
-label(field, legend = NULL)
+label(field, free = FALSE, legend = NULL)
 }
 \arguments{
 \item{field}{Column whose values are drawn as the text, as a bare name.}
+
+\item{free}{Not taken: \code{free} fits an axis to each panel's own rows, and only
+a position, \code{x}, \code{y} or \code{z}, has an axis. gog refuses it here and says to
+write it on a position.}
 
 \item{legend}{Not taken: a label is read where it is written, so it draws
 no legend. gog refuses it here and names the five channels that do.}
