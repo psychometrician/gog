@@ -227,19 +227,22 @@ function isMissing(value) {
 // zone. Sending the instant (`getTime()`) drew the UTC clock instead, 03:00 in
 // Seoul, and JavaScript alone drew a different time from the other three.
 //
-// **One exception, and it is JavaScript's own.** An ISO date written without a
-// time, `new Date("2024-01-01")`, is parsed as *UTC* midnight, which on the local
-// clock is the evening before anywhere west of Greenwich. A run of values that
-// all sit at UTC midnight is therefore read as the calendar dates they spell, on
-// the UTC clock, which is what an ISO date means. The rule is decided once for
-// all the values given together, never value by value, so one timestamp that
-// happens to fall on UTC midnight cannot land a zone away from its neighbors.
+// **No exception.** There was one, for the ISO date JavaScript parses as *UTC*
+// midnight, `new Date("2024-01-01")`: a run of values all at UTC midnight was read
+// on the UTC clock, as the days they spell. But a local time can fall on a UTC
+// midnight too, and the two are one instant, so no reading of a `Date` can tell
+// them apart. In New York in winter every 19:00 is a UTC midnight, and a column
+// of evening readings drew a day late, in silence. So a `Date` is read on the
+// local clock, always, as JavaScript itself shows it (ruled 2026-09-28). A day is
+// written as the local midnight: `new Date(2024, 0, 1)`, or from text,
+// `new Date("2024-01-01T00:00")`, since a date with a time and no zone is local
+// time where a date alone is UTC. Text stays text, as it does in the other three
+// bindings: a column of `"2024-01-01"` strings is categories, not dates.
 //
 // Returns the seconds, and whether every one of them is a midnight: a column of
 // days, which the engine ticks by the calendar and never at 06:00.
 export function dateSeconds(dates) {
-  const isoDates = dates.every((d) => d.getTime() % 86400000 === 0);
-  const seconds = dates.map((d) => (isoDates ? d.getTime() / 1000 : wallClock(d)));
+  const seconds = dates.map(wallClock);
   return { seconds, days: seconds.every((s) => s % 86400 === 0) };
 }
 

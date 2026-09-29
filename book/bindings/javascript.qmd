@@ -242,12 +242,17 @@ values. Write `data(df, { name: "notes" })` when you want such a message to say
 `notes`.
 
 A column of `Date` values is drawn on a calendar axis. gog reads each `Date` in
-local time, the time your computer's clock shows. So `new Date(2024, 0, 1, 12)`,
-noon on January 1, is drawn at 12:00. A date written
-without a time is different. JavaScript reads `new Date("2024-01-01")` as
-midnight in UTC, which west of UTC is the evening before in local time. So when
-every value in a column is a UTC midnight, gog reads the values as calendar days,
-and `new Date("2024-01-01")` is drawn on January 1.
+local time, the time shown by the clock of the computer that runs your code. So
+`new Date(2024, 0, 1, 12)`, noon on January 1, is drawn at 12:00. JavaScript's
+`Date` type holds both a date and a date-time, so gog distinguishes the two by
+their values. If every value in a column is midnight in local time, as
+`new Date(2024, 0, 1)` is, gog reads the column as dates and never gives it clock
+ticks. JavaScript reads the text in `new Date("2024-01-01")` as midnight in UTC,
+the time every time zone is counted from. On a computer in New York, gog draws
+that value at 19:00 on December 31, 2023. On a computer in Seoul it is 09:00 on
+January 1: the right day, but not midnight, so the column is read as date-times.
+To get midnight in every time zone, write a time after the date:
+`new Date("2024-01-01T00:00")` is midnight in local time.
 
 Three more things have a JavaScript spelling. A missing value is `null`,
 `undefined` or `NaN`: a row with one in a column the plot maps is left out, and

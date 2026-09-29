@@ -56,6 +56,14 @@ CRAN-style repositories and PyPI, `GrammarOfGraphics` on Julia's General, and
 
 ### Changed
 
+- **JavaScript reads every `Date` on the local clock.** A column whose values
+  all fell on midnight UTC was read as calendar days, so in New York a column of
+  19:00 readings, each a UTC midnight, drew a day late. Every `Date` is now read
+  as the local clock shows it, and a column counts as dates when every value is
+  midnight in local time. `new Date("2024-01-01")`, which JavaScript sets to
+  midnight UTC, now draws on the evening before anywhere west of UTC: write
+  `new Date(2024, 0, 1)` or `new Date("2024-01-01T00:00")` for a day.
+
 - **In Python, `map` called as the builtin names the shadowing.** After
   `from gog import *`, `map(str, values)` failed with Python's own error about
   the number of arguments. gog now answers it as it answers `sum([1, 2])`: `map`

@@ -269,6 +269,12 @@ The third thing a CSV cannot record is which columns are dates. `six_weeks`,
 a calendar axis. After reading, convert the column to your language's date or
 timestamp type: in R, `as.Date()` for `six_weeks`, `revenue` and
 `quakes_2011`, and `as.POSIXct()` for `monitoring`, which also records the hour.
+In JavaScript, write a time after each date, so that it is midnight in local
+time: `six_weeks.day.map((d) => new Date(d + "T00:00"))`. For `monitoring`,
+which has a time already, replace the space with a `T`:
+`new Date(t.replace(" ", "T"))`. The
+[JavaScript](bindings/javascript.qmd#the-table-and-its-name) chapter explains
+why.
 [Scales](scales.qmd#time-a-date-column-gets-a-calendar-axis) shows the calendar
 axis you get.
 

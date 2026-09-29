@@ -634,15 +634,12 @@ function checkLimits(limits) {
     );
   }
   // A domain on a temporal axis is written in dates, not epoch arithmetic:
-  // `{ limits: [new Date("2024-01-01"), new Date("2024-12-31")] }`. The two ends
-  // are read together, by the rule a column is (`dateSeconds`), so an end and the
+  // `{ limits: [new Date(2024, 0, 1), new Date(2024, 11, 31)] }`. Each end is read
+  // by the rule a column is (`dateSeconds`), on the local clock, so an end and the
   // column it bounds agree about which clock a date is on.
-  const dated = limits.filter((end) => end instanceof Date);
-  const read = dated.length ? dateSeconds(dated).seconds : [];
-  let next = 0;
   const out = limits.map((end) => {
     if (end === null || end === undefined) return null;
-    if (end instanceof Date) return read[next++];
+    if (end instanceof Date) return dateSeconds([end]).seconds[0];
     if (typeof end !== "number" || !Number.isFinite(end)) {
       throw new GogError(
         "gog: `limits` needs two numbers, e.g. `x(col.hour, { limits: [0, 24] })`. " +

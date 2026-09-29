@@ -99,6 +99,7 @@ import {
   zone,
   surface,
   html_block,
+  to_wire,
 } from "../src/index.js";
 
 const df = {
@@ -2685,9 +2686,9 @@ test("counts on every axis, calendar z, shared ticks, one key, and the rest", ()
 // A `Date` is an instant with no zone of its own, and the engine draws a clock
 // with none. JavaScript sent the instant, so the axis showed the UTC clock: noon
 // in Seoul drew as 03:00, where the other three bindings draw the clock time the
-// reader wrote. It is now read on the session's clock, except a run of ISO dates,
-// which JavaScript parses as UTC midnight and which mean the calendar days they
-// spell. Asserted in three zones, each in a process of its own.
+// reader wrote. It is read on the session's clock, with no exception: a day is a
+// local midnight, `new Date("2024-01-01T00:00")`, which is a day in every zone.
+// Asserted in three zones, each in a process of its own.
 test("a Date is drawn on the clock the session shows it on, in every zone", () => {
   const index = new URL("../src/index.js", import.meta.url).href;
   const code = `
@@ -2695,16 +2696,16 @@ test("a Date is drawn on the clock the session shows it on, in every zone", () =
     const labels = (s) => [...s.matchAll(/>([^<>]*)<\\/text>/g)].map((m) => m[1]);
     const draw = (t) => labels(render_svg(plot(data(t), line, x(col.when), y(col.v))));
     const clock = { when: [new Date(2024, 0, 1, 12), new Date(2024, 0, 1, 16)], v: [1, 2] };
-    const iso = { when: [new Date("2024-01-01"), new Date("2024-01-08")], v: [1, 2] };
-    console.log(JSON.stringify([draw(clock), draw(iso)]));
+    const days = { when: [new Date("2024-01-01T00:00"), new Date("2024-01-08T00:00")], v: [1, 2] };
+    console.log(JSON.stringify([draw(clock), draw(days)]));
   `;
   for (const tz of ["Asia/Seoul", "America/Chicago", "UTC"]) {
     const run = spawnSync(process.execPath, ["--input-type=module", "-e", code],
       { env: { ...process.env, TZ: tz }, encoding: "utf8" });
     assert.equal(run.status, 0, run.stderr);
-    const [clock, iso] = JSON.parse(run.stdout);
+    const [clock, days] = JSON.parse(run.stdout);
     assert.ok(clock.includes("12:00") && clock.includes("16:00"), `${tz}: ${clock}`);
-    assert.ok(iso.includes("Jan 1") && !iso.some((l) => l.includes(":")), `${tz}: ${iso}`);
+    assert.ok(days.includes("Jan 1") && !days.some((l) => l.includes(":")), `${tz}: ${days}`);
   }
 });
 
@@ -3428,6 +3429,37 @@ test("order() with no column is refused by name", () => {
   assert.throws(() => order({ desc: true }),
     /`order\(\{ desc: true \}\)` names no column.*col\.<category>/s);
   assert.throws(() => order(), /`order\(\)` names no column/);
+});
+
+// A `Date` is read on the local clock, always. A column of UTC midnights was read
+// as calendar days, but a local time can be a UTC midnight too: in New York in
+// winter every 19:00 is one, and a column of evening readings drew a day late,
+// in silence. Run in that zone, so the test can fail wherever it runs.
+test("a Date is read on the local clock, even when it falls on a UTC midnight", () => {
+  const render = new URL("../src/render.js", import.meta.url).href;
+  const script = `
+    import { dateSeconds } from ${JSON.stringify(render)};
+    const evening = [new Date(2024, 0, 1, 19), new Date(2024, 0, 2, 19)];
+    const midnights = [new Date(2024, 0, 1), new Date("2024-01-02T00:00")];
+    const utc = [new Date("2024-01-01")];
+    console.log(JSON.stringify([dateSeconds(evening), dateSeconds(midnights), dateSeconds(utc)]));`;
+  const run = spawnSync(process.execPath, ["--input-type=module", "-e", script],
+    { env: { ...process.env, TZ: "America/New_York" }, encoding: "utf8" });
+  assert.equal(run.status, 0, run.stderr);
+  const [evening, midnights, utc] = JSON.parse(run.stdout);
+  assert.equal(evening.days, false, "19:00 is a time of day, not a day");
+  assert.equal(evening.seconds[0] % 86400, 19 * 3600, "read at 19:00, as the clock shows it");
+  assert.equal(midnights.days, true, "a column of local midnights is a column of dates");
+  assert.equal(utc.seconds[0], Date.UTC(2023, 11, 31, 19) / 1000,
+    "a UTC midnight is the evening before in New York, as JavaScript shows it");
+});
+
+// Text stays text, as it does in the other three bindings: a column of
+// `"2024-01-01"` strings is categories. Only a `Date` crosses as a date.
+test("a column of date-shaped text stays text", () => {
+  const wire = to_wire({ d: ["2024-01-01", "2024-03-04"], v: [1, 2] }, "t");
+  assert.deepEqual(wire.strings.d, ["2024-01-01", "2024-03-04"]);
+  assert.equal(wire.dates.d, undefined);
 });
 
 // `order()` ranks a category by the layer's statistic over all of its rows, never by

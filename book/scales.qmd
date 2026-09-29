@@ -406,10 +406,11 @@ The fix belongs in the data, where the answer is known: convert the column to
 your language's date or timestamp type, which in R is `as.Date()` or
 `as.POSIXct()`.
 
-Timezones are never converted. The engine draws the clock time you gave it. In
-R, a `POSIXct` is formatted in its own timezone when it is drawn, so the axis
-shows the times your session showed you.
-If two series must share an axis, put them in one timezone before plotting;
+Time zones are never converted. The engine draws the clock time you gave it. In
+R, a `POSIXct` is formatted in its own time zone when it is drawn, so the axis
+shows the times your session showed you. In JavaScript, a `Date` is drawn as
+your computer's clock shows it, in local time.
+If two series must share an axis, put them in one time zone before plotting;
 that decision belongs to the analysis, not the engine.
 
 ### Time on the other channels

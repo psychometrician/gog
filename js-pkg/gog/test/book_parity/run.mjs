@@ -57,10 +57,11 @@ const scalar = (value) => (Array.isArray(value) ? value[0] : value);
 // R sends a moment as the clock time it showed, counted in seconds on a clock
 // with no zone. A reader writing the same table in JavaScript writes that clock
 // time too, `new Date(2024, 2, 4, 9, 30)`, and the binding reads a `Date` on the
-// session's clock, so a date-time is rebuilt on the session's clock. A date stays
-// at UTC midnight, the way `new Date("2024-03-04")` writes one, which the binding
-// reads as the calendar day it names. Rebuilding every moment as the instant
-// `new Date(v * 1000)` only agreed with R while the binding drew the UTC clock.
+// session's clock, so every moment is rebuilt on the session's clock, a date as
+// its local midnight, `new Date(2024, 2, 4)`. A date used to stay at UTC
+// midnight, the way `new Date("2024-03-04")` writes one, while the binding read a
+// column of UTC midnights as days; it reads every `Date` on the local clock now,
+// so a UTC midnight is the evening before anywhere west of Greenwich.
 function onTheClock(v) {
   const civil = new Date(v * 1000);
   const moment = new Date(2000, 0, 1);
@@ -75,9 +76,8 @@ function rebuild(wire) {
   const dates = wire.dates || {};
   for (const [name, values] of Object.entries(wire.floats || {})) {
     const unit = scalar(dates[name]);
-    const moment = unit === "day" ? (v) => new Date(v * 1000) : onTheClock;
     table[name] = unit
-      ? values.map((v) => (v === null ? null : moment(v)))
+      ? values.map((v) => (v === null ? null : onTheClock(v)))
       : [...values];
   }
   for (const [name, values] of Object.entries(wire.strings || {})) {
