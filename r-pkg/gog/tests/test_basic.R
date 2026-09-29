@@ -6209,3 +6209,30 @@ local({
     stop("FAIL: an expression in a channel should be refused with direction: ", said)
   cat("PASS: an expression in a channel is refused with direction\n")
 })
+
+# ---------------------------------------------------------------------------
+# Messages that pointed the wrong way point at a spelling that draws: the
+# missing-value drop says it reaches every layer of its table, a density on the
+# axis it draws is sent to the axis it reads, a border on a flow's bands is sent
+# to the strata, and a second column in `facet()` is sent to the crossing. The
+# same block runs in all four bindings.
+# ---------------------------------------------------------------------------
+local({
+  gaps <- data.frame(x = c(1, 2, NA, 4), y = c(1, 2, 3, 4))
+  said <- capture_msgs(render_svg(data(gaps) + point + x(x) + y(y)))$msgs
+  if (!grepl("left out of every layer drawn from `gaps`", said, fixed = TRUE) ||
+      grepl("other plotting tools", said, fixed = TRUE))
+    stop("FAIL: the missing-value drop should say it reaches every layer: ", said)
+  spread <- data.frame(v = c(1, 2, 2, 3, 3, 3, 4))
+  refuses("a density on y with no x", render_svg(data(spread) + line * density + y(v)),
+          "write it on `x` instead: `line * density + x(v)`")
+  stages <- data.frame(stage_a = c("p", "p", "q"), stage_b = c("u", "v", "u"))
+  refuses("a border on a flow's bands",
+          render_svg(data(stages) + ribbon * flow(stage_a, stage_b) +
+                       style(border_color = "white")),
+          "`zone * flow(<a>, <b>) + style(border_color = \"white\")`")
+  refuses("two columns in one facet()",
+          data(stages) + point + x(stage_a) + y(stage_b) | facet(stage_a, stage_b),
+          "give each its own `facet()`: `| facet(stage_a) / facet(stage_b)`")
+  cat("PASS: four messages point at a spelling that draws\n")
+})

@@ -183,6 +183,21 @@ export function layer(...parts) {
 // `across(col.g, { wrap: 4 })` puts four to a row, `down(col.g, { wrap: 4 })`
 // four to a column.
 function facetAtom(kind, field, options, word) {
+  // A second column is a crossing, not options: one word for each direction.
+  if (options instanceof Column) {
+    const other = word === "across" ? "down" : "across";
+    throw new GogError(
+      `gog: \`${word}()\` splits the plot by one column, and \`${options}\` is a second ` +
+        `one. To cross two columns, split each way: \`${word}(${field}), ${other}(${options})\`.`
+    );
+  }
+  // A bare count destructured to nothing and was dropped in silence.
+  if (options !== undefined && options !== null && typeof options !== "object") {
+    throw new GogError(
+      `gog: \`${word}()\` takes the number of panels before the line turns in an ` +
+        `options object: \`${word}(${field}, { wrap: ${JSON.stringify(options)} })\`.`
+    );
+  }
   const { wrap = null, ...rest } = options ?? {};
   const unknown = Object.keys(rest);
   if (unknown.length) {

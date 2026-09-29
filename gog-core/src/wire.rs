@@ -147,15 +147,22 @@ pub fn decode(request: RenderRequest) -> (HashMap<String, DataFrame>, Vec<String
         }
 
         if dropped > 0 {
-            let cols = culprits
-                .iter()
-                .map(|c| format!("`{c}`"))
-                .collect::<Vec<_>>()
-                .join(", ");
+            let names: Vec<String> = culprits.iter().map(|c| format!("`{c}`")).collect();
+            let cols = match names.as_slice() {
+                [one] => one.clone(),
+                [init @ .., last] => format!("{} or {last}", init.join(", ")),
+                [] => String::new(),
+            };
+            let them = if names.len() == 1 { cols.clone() } else { "any of them".to_string() };
+            // The drop is per table, so it reaches every layer drawn from it: a
+            // label column's gaps cost the points beside it their rows too. The
+            // message said this was what other plotting tools do, and ggplot2
+            // drops per layer, so it now says what happens and how to avoid it.
             remarks.push(format!(
                 "gog: dropped {dropped} row{} of `{name}` with a missing value in {cols} — \
-                 a row with no value in a column the plot maps cannot be placed, so it is \
-                 left out (the same as other plotting tools drop NA).",
+                 a row with no value in a column the plot maps cannot be placed, and it is \
+                 left out of every layer drawn from `{name}`. To keep those rows in a layer \
+                 that does not map {them}, give that layer a table of its own.",
                 if dropped == 1 { "" } else { "s" },
             ));
         }
@@ -253,6 +260,9 @@ mod tests {
         assert_eq!(remarks.len(), 1, "and the drop is reported, never silent");
         assert!(remarks[0].contains("dropped 1 row"), "{}", remarks[0]);
         assert!(remarks[0].contains("`a`"), "names the column: {}", remarks[0]);
+        assert!(remarks[0].contains("left out of every layer drawn from `t`")
+            && !remarks[0].contains("other plotting tools"),
+            "says the drop reaches every layer of the table: {}", remarks[0]);
     }
 
     /// The policy's second half, and the reason it is not simply "drop any NA":

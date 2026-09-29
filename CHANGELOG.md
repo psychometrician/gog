@@ -56,6 +56,20 @@ CRAN-style repositories and PyPI, `GrammarOfGraphics` on Julia's General, and
 
 ### Changed
 
+- **Four messages that pointed the wrong way point at a spelling that draws.**
+  The note for rows dropped over a missing value says they are left out of
+  every layer drawn from that table, and how to keep them in another layer;
+  it had compared the drop with other plotting tools, some of which drop per
+  layer. `line * density + y(life)` with no `x` is pointed at `x(life)`, where
+  it was told to drop `y(life)` and was then refused for having no `x`. A
+  border on a `flow`'s bands is pointed at the strata, `zone * flow(<a>, <b>) +
+  style(border_color = )`, where it was told to layer a `line`, which `flow`
+  refuses. And `facet(continent, country)` is refused toward the crossing,
+  `| facet(continent) / facet(country)`, in all four bindings: R failed with its
+  own "object not found", Python and JavaScript read the second column as a
+  count, and Julia raised a `MethodError`, as it did for `facet(:g, 3)`, which
+  now names the `wrap` keyword.
+
 - **A cube darkens the edges its numbers are written along.** Of the twelve
   edges drawn around a cube, three are darker. They were the three that meet at
   the cube's back corner, which carry no numbers at any ordinary angle. They are
@@ -776,6 +790,10 @@ CRAN-style repositories and PyPI, `GrammarOfGraphics` on Julia's General, and
 
 Each of these sentences was accepted and drew something other than it said.
 Each is now refused, with what to write instead.
+
+- **`across(col.g, 3)` and `down(col.g, 3)` in JavaScript.** The count was
+  dropped and the panels were not wrapped. The count goes in an options
+  object: `across(col.g, { wrap: 3 })`.
 
 - **`jitter(amount)` above 1.25.** At 1.25 a point reaches the edge of its
   category's slot, and past it some points land in the next category.

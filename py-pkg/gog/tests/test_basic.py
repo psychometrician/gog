@@ -4042,3 +4042,35 @@ assert _cols["a"] == [1.0, None, None, 4.0] and _cols["b"] == ["x", "", "z", "w"
 ok("an empty numeric cell is a missing value")
 
 
+
+# --- Messages that pointed the wrong way point at a spelling that draws ----------------
+# The missing-value drop says it reaches every layer of its table, a density on the
+# axis it draws is sent to the axis it reads, a border on a flow's bands is sent to the
+# strata, and a second column in `facet()` is sent to the crossing. The same block runs
+# in all four bindings.
+with contextlib.redirect_stderr(io.StringIO()) as _said:
+    render_svg(data({"x": [1.0, 2.0, None, 4.0], "y": [1.0, 2.0, 3.0, 4.0]}, name="gaps")
+               + point + x(col.x) + y(col.y))
+assert ("left out of every layer drawn from `gaps`" in _said.getvalue()
+        and "other plotting tools" not in _said.getvalue()), _said.getvalue()
+
+
+def _refused_with(thunk, fragment):
+    try:
+        thunk()
+    except GogError as error:
+        assert fragment in str(error), str(error)
+        return
+    raise AssertionError(f"should have been refused with: {fragment}")
+
+
+_refused_with(lambda: render_svg(data({"v": [1.0, 2.0, 2.0, 3.0, 3.0, 4.0]}, name="spread")
+                                 + line * density + y(col.v)),
+              "write it on `x` instead: `line * density + x(v)`")
+_stages = {"stage_a": ["p", "p", "q"], "stage_b": ["u", "v", "u"]}
+_refused_with(lambda: render_svg(data(_stages, name="stages") + ribbon * flow(col.stage_a, col.stage_b)
+                                 + style(border_color="white")),
+              '`zone * flow(<a>, <b>) + style(border_color = "white")`')
+_refused_with(lambda: facet(col.stage_a, col.stage_b),
+              "give each its own `facet()`: `| facet(col.stage_a) / facet(col.stage_b)`")
+ok("four messages point at a spelling that draws")

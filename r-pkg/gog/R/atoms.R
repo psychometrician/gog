@@ -2244,14 +2244,30 @@ order <- function(field, desc = FALSE) {
 #'   (the default) leaves the panels in one line.
 #' @export
 facet <- function(field, wrap = NULL) {
-  if (!is.null(wrap) &&
-      !(is.numeric(wrap) && length(wrap) == 1 && !is.na(wrap) &&
-        wrap == as.integer(wrap))) {
+  # `wrap` is evaluated once, here, so a name that is not an object gets gog's
+  # refusal rather than R's own "object not found".
+  second <- substitute(wrap)
+  value <- tryCatch(wrap, error = function(e) NULL)
+  # A second argument written by position, and not a number, is a second column
+  # rather than a count: `facet(continent, country)` failed with R's "object not
+  # found" (or, for a name R already uses, such as `class`, handed a function to
+  # the count). Two columns are a crossing, which is one `facet()` for each.
+  call <- sys.call()
+  by_position <- length(call) >= 3 && (is.null(names(call)) || !nzchar(names(call)[3]))
+  if (by_position && !is.null(second) && !is.numeric(value)) {
+    shown <- if (is.character(second)) second else deparse(second)
+    stop("gog: `facet()` splits the plot by one column, and `", shown, "` is a ",
+         "second one. To cross two columns, give each its own `facet()`: `| facet(",
+         deparse(substitute(field)), ") / facet(", shown, ")`.", call. = FALSE)
+  }
+  if (!is.null(second) &&
+      !(is.numeric(value) && length(value) == 1 && !is.na(value) &&
+        value == as.integer(value))) {
     stop("gog: `facet(wrap = )` takes the number of panels to draw before the ",
          "line of them turns \u2014 one whole number, e.g. `wrap = 4`.", call. = FALSE)
   }
   structure(list(type = "facet", field = column_name(substitute(field), "facet"),
-                 wrap = if (is.null(wrap)) NULL else as.integer(wrap)),
+                 wrap = if (is.null(value)) NULL else as.integer(value)),
             class = "gog_atom")
 }
 

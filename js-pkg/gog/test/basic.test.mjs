@@ -4117,3 +4117,31 @@ test("an empty numeric cell is a missing value", async () => {
   assert.deepEqual(cols.b, ["x", "", "z", "w"]);
   assert.deepEqual(cols.c, ["1", " ", "3", "4"]);
 });
+
+// Messages that pointed the wrong way point at a spelling that draws: the missing-value
+// drop says it reaches every layer of its table, a density on the axis it draws is sent
+// to the axis it reads, a border on a flow's bands is sent to the strata, and a second
+// column in a facet word is sent to the crossing. A bare count where the options go was
+// dropped in silence. The same block runs in all four bindings.
+test("four messages point at a spelling that draws", () => {
+  const write = process.stderr.write;
+  let said = "";
+  process.stderr.write = (chunk) => { said += chunk; return true; };
+  try {
+    render_svg(plot(data({ x: [1, 2, null, 4], y: [1, 2, 3, 4] }, { name: "gaps" }),
+      point, x(col.x), y(col.y)));
+  } finally {
+    process.stderr.write = write;
+  }
+  assert.ok(said.includes("left out of every layer drawn from `gaps`")
+    && !said.includes("other plotting tools"), said);
+  refuses(() => render_svg(plot(data({ v: [1, 2, 2, 3, 3, 4] }, { name: "spread" }),
+    layer(line, density), y(col.v))), /write it on `x` instead: `line \* density \+ x\(v\)`/);
+  const stages = { stage_a: ["p", "p", "q"], stage_b: ["u", "v", "u"] };
+  refuses(() => render_svg(plot(data(stages, { name: "stages" }),
+    layer(ribbon, flow(col.stage_a, col.stage_b)), style({ border_color: "white" }))),
+    /`zone \* flow\(<a>, <b>\) \+ style\(border_color = "white"\)`/);
+  refuses(() => across(col.stage_a, col.stage_b),
+    /split each way: `across\(col\.stage_a\), down\(col\.stage_b\)`/);
+  refuses(() => down(col.stage_a, 3), /`down\(col\.stage_a, \{ wrap: 3 \}\)`/);
+});

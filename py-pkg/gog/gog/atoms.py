@@ -1282,6 +1282,13 @@ def facet(field: Column, wrap: Optional[int] = None) -> Atom:
     say: `| facet(col.g, wrap=4)` puts four to a row, `/ facet(col.g, wrap=4)`
     four to a column.
     """
+    # A second column is a crossing, not a count: one `facet()` for each.
+    if isinstance(wrap, Column):
+        raise GogError(
+            f"gog: `facet()` splits the plot by one column, and `{wrap!r}` is a second "
+            f"one. To cross two columns, give each its own `facet()`: "
+            f"`| facet({field!r}) / facet({wrap!r})`."
+        )
     if wrap is not None and (isinstance(wrap, bool) or not isinstance(wrap, int)):
         raise GogError(
             "gog: `facet(wrap=)` takes the number of panels to draw before the "

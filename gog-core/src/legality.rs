@@ -2329,7 +2329,15 @@ fn synth_axis_names_a_column(
                 "For how `{k}` and `{field}` spread together, the contour draws both: \
                  `path * density + x({k}) + y({field})`."
             ),
-            None => format!("Drop `{c}({field})` to draw the estimate on its own."),
+            // With no other position, dropping this one leaves the layer with none,
+            // which is the next refusal; the column wants the axis density reads.
+            None => {
+                let other = if *channel == Channel::X { "y" } else { "x" };
+                format!(
+                    "To estimate how `{field}` is spread, write it on `{other}` instead: \
+                     `{m} * density + {other}({field})`."
+                )
+            }
         },
         _ => format!(
             "To summarize `{field}` in each slot instead of counting rows, name a \
@@ -8132,7 +8140,7 @@ pub fn check(spec: &PlotSpec, data: &HashMap<String, DataFrame>) -> Vec<Diagnost
         // --- constant settings from `style()` -----------------------------
         check_style(&mut out, mark, &layer.style, &bound);
         check_nothing_to_fade(&mut out, mark, layer);
-        check_border(&mut out, mark, &layer.style);
+        check_border(&mut out, mark, &layer.style, &layer.transforms);
         check_halo_ground(&mut out, mark, &layer.style, spec);
         check_caps(&mut out, mark, &layer.style);
         check_arrow(&mut out, mark, &layer.style);
@@ -13140,7 +13148,7 @@ fn check_halo_ground(out: &mut Vec<Diagnostic>, mark: &Mark, style: &StyleSpec, 
     }
 }
 
-fn check_border(out: &mut Vec<Diagnostic>, mark: &Mark, style: &StyleSpec) {
+fn check_border(out: &mut Vec<Diagnostic>, mark: &Mark, style: &StyleSpec, transforms: &[Transform]) {
     if style.border_color.is_none() && style.border_size.is_none() {
         return;
     }
@@ -13210,6 +13218,15 @@ fn check_border(out: &mut Vec<Diagnostic>, mark: &Mark, style: &StyleSpec) {
             kind: DiagnosticKind::Illegal,
             message: "gog: an `area` has no border of its own — layer a `line` for a visible \
                       edge (`area + line`).".to_string(),
+        }),
+        // Under `flow` no mark traces a band's edge (`line * flow` is refused), so the
+        // direction is the one border a flow has: the strata a `zone` frames.
+        Mark::Ribbon if transforms.contains(&Transform::Flow) => out.push(Diagnostic {
+            kind: DiagnosticKind::Illegal,
+            message: "gog: the bands of a `flow` have no border, and no mark traces their \
+                      edges: `line * flow` is refused. The strata between the bands take one: \
+                      `zone * flow(<a>, <b>) + style(border_color = \"white\")` frames each \
+                      stratum.".to_string(),
         }),
         Mark::Ribbon => out.push(Diagnostic {
             kind: DiagnosticKind::Illegal,
@@ -18795,9 +18812,11 @@ mod tests {
         let center = || StyleSpec { center: Some(true), ..Default::default() };
         let nudge  = || StyleSpec { nudge: Some("up".into()), ..Default::default() };
         type Check = fn(&mut Vec<Diagnostic>, &Mark, &StyleSpec);
+        // A plain layer, with no transform: the grid speaks for the mark itself.
+        let plain_border: Check = |out, m, s| check_border(out, m, s, &[]);
         let cases: [(Setting, fn() -> StyleSpec, Check); 5] = [
-            (Setting::BorderColor, border, check_border),
-            (Setting::BorderSize,  border, check_border),
+            (Setting::BorderColor, border, plain_border),
+            (Setting::BorderSize,  border, plain_border),
             (Setting::Caps,        caps,   check_caps),
             (Setting::Center,      center, check_center),
             (Setting::Nudge,       nudge,  check_nudge),
@@ -22026,15 +22045,21 @@ mod tests {
         let style = StyleSpec { border_color: Some("black".into()), border_size: Some(1.0), ..Default::default() };
         for m in [Mark::Bar, Mark::Box, Mark::Point, Mark::Zone, Mark::Text] {
             let mut out = Vec::new();
-            check_border(&mut out, &m, &style);
+            check_border(&mut out, &m, &style, &[]);
             assert!(out.is_empty(), "{m:?} accepts a border with no complaint: {out:?}");
         }
         for m in [Mark::Area, Mark::Ribbon, Mark::Line, Mark::Step, Mark::Interval] {
             let mut out = Vec::new();
-            check_border(&mut out, &m, &style);
+            check_border(&mut out, &m, &style, &[]);
             assert!(out.iter().any(|d| d.kind == DiagnosticKind::Illegal),
                 "{m:?} refuses a border with direction: {out:?}");
         }
+        // Under `flow` no mark traces a band's edge (`line * flow` is refused), so a
+        // ribbon's direction is the strata, which take the border.
+        let mut out = Vec::new();
+        check_border(&mut out, &Mark::Ribbon, &style, &[Transform::Flow]);
+        assert!(out.iter().any(|d| d.message.contains("`zone * flow(<a>, <b>)")
+            && !d.message.contains("layer a `line`")), "{out:?}");
 
         // And the drift guard the two lists above cannot be: walk **every** mark and
         // require the class's two statements to agree. `mark_takes_setting` is what
@@ -22045,7 +22070,7 @@ mod tests {
         // class it describes.
         for m in &ALL_MARKS {
             let mut out = Vec::new();
-            check_border(&mut out, m, &style);
+            check_border(&mut out, m, &style, &[]);
             let refused = out.iter().any(|d| d.kind == DiagnosticKind::Illegal);
             assert_eq!(refused, !mark_takes_setting(m, Setting::BorderColor),
                 "{m:?}: `check_border` and `mark_takes_setting` disagree about the \
@@ -22598,6 +22623,14 @@ mod tests {
                 && d[0].message.contains(direction) && d[0].message.contains("`y_label()`"),
                 "{:?}", msgs(&d));
         }
+        // With no other position, dropping `y` would leave the layer none, which is
+        // the next refusal: the direction names the axis density reads instead.
+        let alone = check(&PlotSpec::new().data("t").y("life")
+            .layer(Layer::new(Mark::Line).transform(Transform::Density)), &data());
+        assert!(alone.iter().any(|d| d.message.contains(
+            "To estimate how `life` is spread, write it on `x` instead: `line * density + x(life)`")),
+            "{:?}", msgs(&alone));
+        assert!(!alone.iter().any(|d| d.message.contains("Drop `y(life)`")), "{:?}", msgs(&alone));
         // A name the table does not hold is the output's name, and titles the axis.
         assert!(on(Mark::Bar, &[Transform::Count], "continent", "count").is_empty());
         assert!(on(Mark::Bar, &[Transform::Bin], "gdp", "frequency").is_empty());

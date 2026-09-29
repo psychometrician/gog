@@ -3477,3 +3477,27 @@ end
     @test eltype(cols["a"]) == Union{Missing,Float64}
     @test cols["b"] == ["x", "", "z", "w"]
 end
+
+# Messages that pointed the wrong way point at a spelling that draws: the missing-value
+# drop says it reaches every layer of its table, a density on the axis it draws is sent
+# to the axis it reads, a border on a flow's bands is sent to the strata, and a second
+# column in `facet()` is sent to the crossing. A count written by position was a raw
+# `MethodError`. The same block runs in all four bindings.
+@testset "four messages point at a spelling that draws" begin
+    path, io = mktemp()
+    redirect_stderr(io) do
+        render_svg(data((x = [1.0, 2.0, missing, 4.0], y = [1.0, 2.0, 3.0, 4.0]); name = "gaps") +
+                   point + x(:x) + y(:y))
+    end
+    close(io)
+    said = read(path, String)
+    @test occursin("left out of every layer drawn from `gaps`", said)
+    @test !occursin("other plotting tools", said)
+    @refuses render_svg(data((v = [1.0, 2.0, 2.0, 3.0, 3.0, 4.0],); name = "spread") +
+                        line * density + y(:v)) "write it on `x` instead: `line * density + x(v)`"
+    stages = (stage_a = ["p", "p", "q"], stage_b = ["u", "v", "u"])
+    @refuses render_svg(data(stages; name = "stages") + ribbon * flow(:stage_a, :stage_b) +
+                        style(border_color = "white")) "`zone * flow(<a>, <b>) + style(border_color = \"white\")`"
+    @refuses facet(:stage_a, :stage_b) "give each its own `facet()`: `| facet(:stage_a) / facet(:stage_b)`"
+    @refuses facet(:stage_a, 3) "`facet(:stage_a, wrap = 3)`"
+end

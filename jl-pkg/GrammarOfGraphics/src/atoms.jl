@@ -1033,6 +1033,17 @@ panels before the line turns. Which *way* the line runs is the operator's to
 say: `| facet(:g, wrap = 4)` puts four to a row, `/ facet(:g, wrap = 4)` four
 to a column.
 """
+# A second column is a crossing, not a count: one `facet()` for each. A count
+# written by position belongs to the keyword. Without these two methods either
+# call was a raw `MethodError`.
+facet(field, second::Union{Symbol,AbstractString}; kw...) = throw(GogError(
+    "gog: `facet()` splits the plot by one column, and `$(repr(second))` is a second " *
+    "one. To cross two columns, give each its own `facet()`: " *
+    "`| facet($(repr(field))) / facet($(repr(second)))`."))
+facet(field, n::Integer; kw...) = throw(GogError(
+    "gog: `facet()` takes the number of panels before the line turns as a keyword: " *
+    "`facet($(repr(field)), wrap = $n)`."))
+
 function facet(field; wrap::Union{Integer,Nothing} = nothing)
     wrap isa Bool && throw(GogError(
         "gog: `facet(wrap = )` takes the number of panels to draw before the " *
