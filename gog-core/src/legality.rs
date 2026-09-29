@@ -7930,6 +7930,29 @@ pub fn check(spec: &PlotSpec, data: &HashMap<String, DataFrame>) -> Vec<Diagnost
                 // drawn yet" for a **decided** refusal promises a feature the design
                 // has already declined — the same defect as a book chunk claiming a
                 // refusal that stopped happening, one layer down. See `z_refusal`.
+                // A rule is refused as the plane its one position makes, named by
+                // that position; a layer naming two is `check_rule`'s to refuse,
+                // since there is no one plane to name.
+                None if *channel == Channel::Z && *mark == Mark::Rule => {
+                    let own: Vec<(&str, &str)> = [Channel::X, Channel::Y, Channel::Z].iter()
+                        .filter_map(|ch| layer.encodings.get(ch)
+                            .map(|d| (channel_name(ch), d.field.as_str())))
+                        .collect();
+                    let placed = match own.as_slice() {
+                        [one] => Some(*one),
+                        [] => rule_axis(spec, df, layer)
+                            .and_then(|ch| spec.axis_def(&ch)
+                                .map(|d| (channel_name(&ch), d.field.as_str())))
+                            .or(Some(("z", *field))),
+                        _ => None,
+                    };
+                    if let Some((axis, placed_by)) = placed {
+                        out.push(Diagnostic {
+                            kind: z_refusal_kind(mark),
+                            message: rule_plane(axis, placed_by),
+                        });
+                    }
+                }
                 None if *channel == Channel::Z => out.push(Diagnostic {
                     kind: z_refusal_kind(mark),
                     message: z_refusal(mark, field),
@@ -9343,21 +9366,9 @@ fn z_refusal(mark: &Mark, field: &str) -> String {
                  than drawn. {direction}: `path + x(<a>) + y(<b>) + z({field})`."
             )
         }
-        // **Blocked, and on the one thing M8a deliberately does not have.** A rule
-        // spans the axes it does not name; in a cube that is *two* of them, so the
-        // mark is a plane. Marks are depth-sorted by footprint, and a plane's
-        // footprint is the whole floor — so it can only land wholly in front of or
-        // wholly behind every mark, and a reference plane's entire job is to cut
-        // through them. That needs per-element occlusion, which is M8b (§16).
-        Mark::Rule => format!(
-            "gog: `rule` marks a value on one axis and spans the ones it does not name — in a \
-             cube that is *two* axes, so a rule here is a **plane**. Marks in space are sorted \
-             by their footprint, and a plane's footprint is the whole floor, so it could only \
-             be drawn wholly in front of or wholly behind the data when its job is to cut \
-             through it. Drawing it would mean working out, piece by piece, what hides what, \
-             and the engine cannot do that yet. Draw it flat, \
-             or mark the threshold on a floor axis with `bar`/`point` at `z({field})`."
-        ),
+        // A rule placed by `z`, the level plane; `rule_plane` words it for the axis
+        // a rule is actually placed by, which the caller knows and this does not.
+        Mark::Rule => rule_plane("z", field),
         // **Blocked for the same reason, plus a vocabulary gap that has to be
         // decided before it could be drawn at all.** `bounds` names two pairs — a
         // measure pair and a domain pair — so a zone can never be bounded on a
@@ -9366,8 +9377,9 @@ fn z_refusal(mark: &Mark, field: &str) -> String {
         Mark::Zone => format!(
             "gog: `zone` shades the region its `bounds` name and spans the axes they do not — \
              and `bounds` names two pairs, so in a cube a zone always spans one axis whole and \
-             is a **slab**. Like a 3-D `rule` it has no footprint to sort by, so it cannot be \
-             placed among the data until the engine can tell, piece by piece, what hides what. \
+             is a **slab**. Like a 3-D `rule`, its footprint runs across the whole floor, so it \
+             cannot be placed among the data until the engine can tell, piece by piece, what \
+             hides what. \
              Draw it flat, or stand a solid on the floor with `bar + x(<a>) + y(<b>) + z({field})`."
         ),
         // Anything else is an ordinary unbuilt cell, and says so.
@@ -9376,6 +9388,32 @@ fn z_refusal(mark: &Mark, field: &str) -> String {
              `z({field})` would have no visual effect. Remove it, or use a channel that renders."
         ),
     }
+}
+
+/// The 3-D `rule` refusal, worded for the sentence written: which axis the rule
+/// is placed by, and which two it spans.
+///
+/// **Blocked, and on the one thing M8a deliberately does not have.** A rule
+/// spans the axes it is not placed by; in a cube that is *two* of them, so the
+/// mark is a plane. Marks are depth-sorted by footprint, and a plane's footprint
+/// runs across the whole floor, a level plane covering it and an upright one
+/// crossing it, so it can only land wholly in front of or wholly behind every
+/// mark, and a reference plane's entire job is to cut through them. That needs
+/// per-element occlusion, which is M8b (§16). It said "spans the ones it does
+/// not name" and "a plane's footprint is the whole floor", which fit no sentence
+/// a reader writes: a rule names one position and a vertical plane's footprint
+/// is a line.
+fn rule_plane(axis: &str, field: &str) -> String {
+    let spans: Vec<&str> = ["x", "y", "z"].into_iter().filter(|a| *a != axis).collect();
+    format!(
+        "gog: `rule + {axis}({field})` in a cube is a **plane**: it marks `{field}` on \
+         `{axis}` and spans `{}` and `{}`. Marks in space are sorted by their footprint, and \
+         a plane's footprint runs across the whole floor, so it could only be drawn wholly in \
+         front of or wholly behind the data when its job is to cut through it. Drawing it \
+         would mean working out, piece by piece, what hides what, and the engine cannot do \
+         that yet. Draw the plot flat, where a rule is a line.",
+        spans[0], spans[1]
+    )
 }
 
 pub fn rule_axis(spec: &PlotSpec, df: &DataFrame, layer: &Layer) -> Option<Channel> {
@@ -9402,22 +9440,52 @@ fn check_rule(out: &mut Vec<Diagnostic>, spec: &PlotSpec, df: &DataFrame, layer:
     // `y` beside it used to go unread and unreported: a rug down one edge and none
     // up the other, from a sentence that named both (§12). Refused toward the two
     // layers the reader meant, which is how a rug on both axes is written.
-    if let (Some(xd), Some(yd)) =
-        (layer.encodings.get(&Channel::X), layer.encodings.get(&Channel::Y))
-    {
-        let (xf, yf) = (&xd.field, &yd.field);
+    //
+    // **In a cube `z` is a position like the other two** (ruled 2026-09-28). A rule
+    // there is placed by one of `x`, `y` or `z` and is a plane across the other
+    // two, so a layer naming two of the three is refused as it is on the page. It
+    // was read as the plane `x = a` with `z` only turning the cube on, which left
+    // the column `z` named with no effect, and `rule + z(altitude)`, the level
+    // plane a reader means by a ceiling, was told it had no position at all.
+    let own: Vec<String> = [Channel::X, Channel::Y, Channel::Z].iter()
+        .filter_map(|ch| layer.encodings.get(ch)
+            .map(|d| format!("{}({})", channel_name(ch), d.field)))
+        .collect();
+    if own.len() >= 2 {
+        let names: Vec<&str> = own.iter().map(String::as_str).collect();
+        let count = if own.len() == 2 { "two" } else { "three" };
+        let direction = match (layer.encodings.get(&Channel::X), layer.encodings.get(&Channel::Y)) {
+            (Some(xd), Some(yd)) if own.len() == 2 => format!(
+                "For lines on both axes, write two layers, one per axis: `rule + x({}) + rule + \
+                 y({})`.", xd.field, yd.field),
+            _ => format!(
+                "Write one position on each `rule` layer: {}.",
+                code_list_or(&own.iter().map(|p| format!("rule + {p}")).collect::<Vec<_>>()
+                    .iter().map(String::as_str).collect::<Vec<_>>())),
+        };
+        // A line on the page and a plane in a cube, so the cube's case says only
+        // what both share.
+        let lead = match layer.encodings.contains_key(&Channel::Z) {
+            true => "`rule` is placed by one column",
+            false => "`rule` draws one line per row, placed by one column",
+        };
         out.push(Diagnostic {
             kind: DiagnosticKind::Illegal,
             message: format!(
-                "gog: `rule` draws one line per row, placed by one column, and this layer \
-                 names two — `x({xf})` and `y({yf})` — so only one of them could be drawn. For \
-                 lines on both axes, write two layers, one per axis: \
-                 `rule + x({xf}) + rule + y({yf})`."
+                "gog: {lead}, and this layer names {count} — {} — so only one of them could \
+                 be drawn. {direction}",
+                code_list(&names)
             ),
         });
         return;
     }
-    if rule_axis(spec, df, layer).is_some() {
+    // One position named on the layer places it, `z` included.
+    if !own.is_empty() || rule_axis(spec, df, layer).is_some() {
+        return;
+    }
+    // A plot-wide `z` whose column this layer's table holds places it too, when
+    // neither `x` nor `y` does: the level plane again, written before the mark.
+    if spec.axis_def(&Channel::Z).is_some_and(|d| actual_type(df, &d.field).is_some()) {
         return;
     }
     let named = |c: Option<&ChannelDef>| c.map(|d| d.field.clone());
@@ -22164,6 +22232,38 @@ mod tests {
             .layer(Layer::new(Mark::Rule).encode(Channel::X, "gdp"))
             .layer(Layer::new(Mark::Rule).encode(Channel::Y, "life"));
         assert!(check(&two, &data()).is_empty(), "{:?}", msgs(&check(&two, &data())));
+    }
+
+    /// In a cube `z` is a position like `x` and `y`. A rule placed by one of the
+    /// three is the plane across the other two, refused as that plane and named by
+    /// its own axis, and a layer naming two of the three is refused as it is on the
+    /// page, with no plane to name. `rule + z(h)` was told it had no position, and
+    /// `rule + x(a) + z(h)` was read as the plane `x = a` with `h` unread.
+    #[test]
+    fn a_rule_in_a_cube_takes_one_position_and_is_named_by_it() {
+        let level = PlotSpec::new().data("t")
+            .layer(Layer::new(Mark::Rule).encode(Channel::Z, "gdp"));
+        let d = check(&level, &data());
+        assert_eq!(d.len(), 1, "the level plane has a position: {:?}", msgs(&d));
+        assert!(d[0].message.contains(
+            "`rule + z(gdp)` in a cube is a **plane**: it marks `gdp` on `z` and spans `x` and `y`"),
+            "{:?}", msgs(&d));
+
+        let upright = base().z("value").layer(Layer::new(Mark::Point))
+            .layer(Layer::new(Mark::Rule).encode(Channel::X, "gdp"));
+        let d = check(&upright, &data());
+        assert_eq!(d.len(), 1, "{:?}", msgs(&d));
+        assert!(d[0].message.contains(
+            "`rule + x(gdp)` in a cube is a **plane**: it marks `gdp` on `x` and spans `y` and `z`"),
+            "{:?}", msgs(&d));
+
+        let two = PlotSpec::new().data("t")
+            .layer(Layer::new(Mark::Rule).encode(Channel::X, "gdp").encode(Channel::Z, "value"));
+        let d = check(&two, &data());
+        assert_eq!(d.len(), 1, "one refusal, and no plane named: {:?}", msgs(&d));
+        assert!(d[0].message.contains("names two — `x(gdp)` and `z(value)`")
+            && d[0].message.contains("`rule + x(gdp)` or `rule + z(value)`")
+            && !d[0].message.contains("plane"), "{:?}", msgs(&d));
     }
 
     /// A mark that refuses a transform says so once. The group-by's questions and the

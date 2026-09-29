@@ -517,24 +517,25 @@ drawn at all.
 
 ## What the cube blocks
 
-The second reason is **blocked**, and it is a different kind of refusal. A
-`rule` in a cube is a **plane**. It marks a value on one axis and spans the
-other two. Here `x(east)` places the rule, and `z(altitude)` is what puts the
-plot in the cube, since a plot with no `z` is drawn flat:
+The second reason is blocked, and it is a different kind of refusal. A `rule`
+in a cube is a *plane*. It takes one position, as it does on a flat plot, and
+spans the other two axes. Here `z(altitude)` places the rule, so each row would
+be a horizontal plane at its own altitude, and the engine refuses the sentence:
 
 ```{r}
 #| error: true
-data(thermals) + rule + x(east) + z(altitude) + space()
+data(thermals) + rule + z(altitude) + space()
 ```
 
-Marks in the cube are painted far to near, and the engine decides when to paint
-a solid by where it stands on the floor. A plane stands across the whole floor,
-so part of it is nearer to you than a given point and part is farther away. It
-could only be drawn wholly in front of the data or wholly behind it, but cutting
-*through* the data is what a reference plane is for. A `zone` in a cube is a
-slab, a plane with thickness, and it fails for the same reason. Neither is
-drawn, because drawing one means working out, piece by piece, what hides what,
-and the renderer does not do that.
+Marks in the cube are painted in order, from far to near. The engine places each
+solid, such as a bar, in that order by its footprint, the part of the floor it
+stands on. A horizontal plane spans the whole floor, so part of it is nearer to
+you than a given point and part is farther away. Drawn in one piece, it could
+only be entirely in front of the data or entirely behind it, but its purpose is
+to cut *through* the data. A `zone` in a cube is a slab, a plane with thickness,
+and it is refused for the same reason. Neither is drawn, because drawing one
+means working out, piece by piece, what hides what, and the engine does not do
+that.
 
 The third reason is the simplest, and `text` is the example. A label at a third
 position is valid grammar, and no part of the grammar forbids it. The engine

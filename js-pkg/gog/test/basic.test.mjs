@@ -1325,7 +1325,7 @@ test("the cube's blanks say which of three things they are", () => {
   // Blocked on occlusion: a plane has no footprint to sort by. A different
   // sentence, and an `Unsupported` rather than an `Illegal`.
   refuses(
-    () => render_svg(plot(data(cubePlots), rule, x(col.yield), z(col.yield), space())),
+    () => render_svg(plot(data(cubePlots), rule, z(col.yield), space())),
     /footprint/
   );
 });
@@ -2550,6 +2550,12 @@ test("the refusals of 2026-09-23 refuse once, with direction", () => {
     /holds text/);
   refuses(() => render_svg(plot(data(strip), point, x(col.n), y(col.v), rule, x(col.n), y(col.v))),
     /`rule \+ x\(n\) \+ rule \+ y\(v\)`/);
+  // In a cube `z` is a position like the other two: a rule takes one, and is
+  // refused as the plane that one makes.
+  refuses(() => render_svg(plot(data(strip), rule, x(col.n), z(col.v))),
+    /`rule \+ x\(n\)` or `rule \+ z\(v\)`/);
+  refuses(() => render_svg(plot(data(strip), rule, z(col.v))),
+    /`rule \+ z\(v\)` in a cube is a \*\*plane\*\*/);
   refuses(() => render_svg(plot(data(strip), point, x(col.n), y(col.v),
     style({ color: "none", border_color: "steelblue", opacity: 0.3 }))), /#4682b44d/);
   refuses(() => render_svg(plot(data(strip), layer(zone, bin), x(col.g), y(col.k))),

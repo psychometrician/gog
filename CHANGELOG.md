@@ -56,6 +56,14 @@ CRAN-style repositories and PyPI, `GrammarOfGraphics` on Julia's General, and
 
 ### Changed
 
+- **A `rule` in a cube takes one position, as on a flat plot.** `z` now counts
+  as a rule's position: `rule + z(altitude)` is refused as a horizontal plane at
+  each altitude, where it was told it had no position, and
+  `rule + x(east) + z(altitude)` is refused for naming two positions, where it
+  was read as a plane at each `east` with `altitude` unread. The refusal for a
+  plane names the axis that places it and the two axes it spans, and the refusal
+  for a `zone` in a cube gives the same reason.
+
 - **`free` on a channel that is not a position is refused by gog.** `color()`,
   `size()`, `opacity()`, `shape()`, `pattern()`, `group()`, `label()` and
   `play()` now take `free` and pass it on, so writing it there meets gog's

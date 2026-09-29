@@ -2574,7 +2574,7 @@ cat("PASS: a 3-D line is refused with its ruling, not with a promise\n")
 
 # The two blocked on occlusion say *that*, which is a different sentence.
 m <- refuses("a rule in the cube",
-             render_svg(data(plots) + rule + x(yield) + z(yield) + space()),
+             render_svg(data(plots) + rule + z(yield) + space()),
         "footprint")
 if (!grepl("footprint", m)) stop("FAIL: the refusal should name the blocker, got ", m)
 cat("PASS: a 3-D rule is refused as a plane with no footprint\n")
@@ -4321,6 +4321,12 @@ local({
   refuses("a rule naming both positions",
           render_svg(data(strip) + point + x(n) + y(v) + rule + x(n) + y(v)),
           "`rule + x(n) + rule + y(v)`")
+  # In a cube `z` is a position like the other two: a rule takes one, and is
+  # refused as the plane that one makes.
+  refuses("a rule naming x and z, in a cube",
+          render_svg(data(strip) + rule + x(n) + z(v)), "`rule + x(n)` or `rule + z(v)`")
+  refuses("a rule placed by z alone",
+          render_svg(data(strip) + rule + z(v)), "`rule + z(v)` in a cube is a **plane**")
   refuses("opacity on a point with no fill",
           render_svg(data(strip) + point + x(n) + y(v) +
                        style(color = "none", border_color = "steelblue", opacity = 0.3)),

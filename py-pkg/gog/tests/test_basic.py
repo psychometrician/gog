@@ -1044,8 +1044,12 @@ except GogError as error:
 ok("a 3-D line is refused with its ruling, not with a promise")
 
 # The two blocked on occlusion say *that*, which is a different sentence.
-refuses("a rule in the cube",
-        lambda: render_svg(data(plots, name="plots") + rule + x(col["yield"]) + z(col["yield"]) + space))
+try:
+    render_svg(data(plots, name="plots") + rule + z(col["yield"]) + space)
+    raise AssertionError("a rule in the cube should refuse")
+except GogError as error:
+    assert "footprint" in str(error), str(error)
+ok("a 3-D rule is refused as a plane with no footprint")
 
 
 # ---------------------------------------------------------------------------
@@ -2344,6 +2348,14 @@ for _what, _thunk, _fragment in [
      lambda: render_svg(data(_strip) + point + x(col.n) + y(col.v)
                         + rule + x(col.n) + y(col.v)),
      "`rule + x(n) + rule + y(v)`"),
+    # In a cube `z` is a position like the other two: a rule takes one, and is
+    # refused as the plane that one makes.
+    ("a rule naming x and z, in a cube",
+     lambda: render_svg(data(_strip) + rule + x(col.n) + z(col.v)),
+     "`rule + x(n)` or `rule + z(v)`"),
+    ("a rule placed by z alone",
+     lambda: render_svg(data(_strip) + rule + z(col.v)),
+     "`rule + z(v)` in a cube is a **plane**"),
     ("opacity on a point with no fill",
      lambda: render_svg(data(_strip) + point + x(col.n) + y(col.v)
                         + style(color="none", border_color="steelblue", opacity=0.3)),
