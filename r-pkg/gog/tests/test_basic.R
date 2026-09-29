@@ -6325,3 +6325,20 @@ local({
   if (rules != 4) stop("FAIL: a still layer should be drawn once in a played plot, got ", rules, " rule lines")
   cat("PASS: a still layer is drawn once in a played plot\n")
 })
+
+# ---------------------------------------------------------------------------
+# A ramped stroke is drawn as runs of one color: a numeric `color` that does not
+# change along a route is one polyline, where it was a `<line>` per segment whose
+# caps overlapped at every vertex. The same block runs in all four bindings.
+# ---------------------------------------------------------------------------
+local({
+  t <- data.frame(x = c(1, 2, 3, 4, 1, 2, 3, 4), y = c(1, 3, 2, 4, 2, 4, 3, 5),
+                  g = rep(c("a", "b"), each = 4), band = rep(c(1, 2), each = 4))
+  svg <- render_svg(data(t) + path + x(x) + y(y) + group(g) + color(band))
+  lines <- strsplit(svg, "\n")[[1]]
+  # A data segment carries its own cap; the legend's divider does not.
+  segments <- sum(grepl("<line", lines, fixed = TRUE) & grepl("stroke-linecap=", lines, fixed = TRUE))
+  if (segments != 0 || sum(grepl("<polyline", lines, fixed = TRUE)) != 2)
+    stop("FAIL: a route of one color should be one polyline, got ", segments, " segments")
+  cat("PASS: a ramped stroke is drawn as runs of one color\n")
+})

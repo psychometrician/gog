@@ -335,14 +335,16 @@ impl SvgRenderer {
                 for chain in &chains {
                     if chain.len() < 2 { continue; }
                     if let Some(rc) = &ramp_color {
-                        for w in chain.windows(2) {
-                            let k = w[1].2.min(idxs.len() - 2);
-                            let c = rc.segment(idxs[k], idxs[k + 1]);
-                            svg.push_str(&super::segment_svg(
-                                (w[0].0, w[0].1), (w[1].0, w[1].1), &c,
-                                stroke_w, stroke_o, dash, run));
-                            run += super::seg_len((w[0].0, w[0].1), (w[1].0, w[1].1));
-                        }
+                        // A geodesic is resampled into many short pieces of one
+                        // pair's color, so its runs are long even where the ramp
+                        // changes at every row.
+                        let pts: Vec<(f64, f64)> = chain.iter().map(|&(x, y, _)| (x, y)).collect();
+                        let color_of = |j: usize| {
+                            let k = chain[j + 1].2.min(idxs.len() - 2);
+                            rc.segment(idxs[k], idxs[k + 1])
+                        };
+                        run = super::write_ramped_runs(svg, &pts, &color_of,
+                            stroke_w, stroke_o, dash, run, "round", "round");
                     } else {
                         let points: String = chain.iter()
                             .map(|(px, py, _)| format!("{px:.2},{py:.2}"))
@@ -407,12 +409,8 @@ impl SvgRenderer {
             // carrying the ramp color of the rows it joins. A categorical route
             // keeps the single polyline, byte for byte.
             if let Some(rc) = &ramp_color {
-                let mut run = 0.0;
-                for (k, w) in pts.windows(2).enumerate() {
-                    let c = rc.segment(idxs[k], idxs[k + 1]);
-                    svg.push_str(&super::segment_svg(w[0], w[1], &c, stroke_w, stroke_o, dash, run));
-                    run += super::seg_len(w[0], w[1]);
-                }
+                super::write_ramped_runs(svg, &pts, &|k| rc.segment(idxs[k], idxs[k + 1]),
+                    stroke_w, stroke_o, dash, 0.0, "round", "round");
             } else {
             let points: String = pts.iter()
                 .map(|(px, py)| format!("{px:.2},{py:.2}"))

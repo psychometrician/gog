@@ -180,25 +180,37 @@ impl SvgRenderer {
             if let Some(p) = polar {
                 let norm = |v: (f64, f64)| (unit_norm(v.0, xs), unit_norm(v.1, ys));
                 if let Some(rc) = &ramp_color {
+                    // A run of one color is one `<path>`, the rule
+                    // `write_ramped_runs` keeps on the flat plane, and a run of one
+                    // tread or riser is written as it always was.
                     let mut run = 0.0;
-                    for (k, w) in pts.windows(2).enumerate() {
+                    let mut k = 0;
+                    while k + 1 < pts.len() {
                         let c = rc.segment(rows[k], rows[k + 1]);
-                        let ((u0, v0), (u1, v1)) = (norm(w[0]), norm(w[1]));
-                        let mut d = String::new();
-                        p.move_to(&mut d, u0, v0);
-                        if is_tread(w[0], w[1]) { p.hold_to(&mut d, u0, u1, v0); }
-                        else { p.line_to(&mut d, u1, v1); }
                         let off = if dash.is_empty() { String::new() }
                                   else { format!(r#" stroke-dashoffset="{run:.2}""#) };
+                        let mut d = String::new();
+                        let (u_start, v_start) = norm(pts[k]);
+                        p.move_to(&mut d, u_start, v_start);
+                        let mut j = k;
+                        loop {
+                            let (w0, w1) = (pts[j], pts[j + 1]);
+                            let ((u0, v0), (u1, v1)) = (norm(w0), norm(w1));
+                            if is_tread(w0, w1) { p.hold_to(&mut d, u0, u1, v0); }
+                            else { p.line_to(&mut d, u1, v1); }
+                            // A tread's length is its **arc**, not the chord under it —
+                            // the dash phase advances along the ink, and using the chord
+                            // would let the pattern drift backwards round the circle.
+                            run += if is_tread(w0, w1) {
+                                p.radius(v0) * ((u1 - u0).abs() * std::f64::consts::TAU)
+                            } else {
+                                super::seg_len(p.at(u0, v0), p.at(u1, v1))
+                            };
+                            j += 1;
+                            if j + 1 >= pts.len() || rc.segment(rows[j], rows[j + 1]) != c { break; }
+                        }
                         writeln!(svg, r#"    <path d="{d}" stroke="{c}"{dash}{off} {stroke_attrs}/>"#).unwrap();
-                        // A tread's length is its **arc**, not the chord under it —
-                        // the dash phase advances along the ink, and using the chord
-                        // would let the pattern drift backwards round the circle.
-                        run += if is_tread(w[0], w[1]) {
-                            p.radius(v0) * ((u1 - u0).abs() * std::f64::consts::TAU)
-                        } else {
-                            super::seg_len(p.at(u0, v0), p.at(u1, v1))
-                        };
+                        k = j;
                     }
                     return;
                 }
@@ -228,16 +240,11 @@ impl SvgRenderer {
                 .map(|&(x, y)| (l.map_x(x, xs.0, xs.1), l.map_y(y, ys.0, ys.1)))
                 .collect();
             if let Some(rc) = &ramp_color {
-                let mut run = 0.0;
-                for (k, w) in px.windows(2).enumerate() {
-                    let c = rc.segment(rows[k], rows[k + 1]);
-                    // Butt caps, not the round ones a slanted stroke takes: a
-                    // staircase's corners are square, and rounding them would
-                    // round off the very thing that makes it a step.
-                    svg.push_str(&super::segment_svg_capped(
-                        w[0], w[1], &c, stroke_w, stroke_o, dash, run, "butt"));
-                    run += super::seg_len(w[0], w[1]);
-                }
+                // Butt caps and mitered corners, not the round ones a slanted
+                // stroke takes: a staircase's corners are square, and rounding them
+                // would round off the very thing that makes it a step.
+                super::write_ramped_runs(svg, &px, &|k| rc.segment(rows[k], rows[k + 1]),
+                    stroke_w, stroke_o, dash, 0.0, "butt", "miter");
                 return;
             }
             let points = px.iter().map(|(x, y)| format!("{x:.2},{y:.2}"))

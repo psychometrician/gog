@@ -4236,3 +4236,17 @@ test("a still layer is drawn once in a played plot", () => {
   const rules = svg.split("\n").filter((l) => l.includes("<line") && l.includes(" stroke=")).length;
   assert.equal(rules, 4);
 });
+
+// A ramped stroke is drawn as runs of one color: a numeric `color` that does not change
+// along a route is one polyline, where it was a `<line>` per segment whose caps
+// overlapped at every vertex. The same block runs in all four bindings.
+test("a ramped stroke is drawn as runs of one color", () => {
+  const t = {
+    x: [1, 2, 3, 4, 1, 2, 3, 4], y: [1, 3, 2, 4, 2, 4, 3, 5],
+    g: ["a", "a", "a", "a", "b", "b", "b", "b"], band: [1, 1, 1, 1, 2, 2, 2, 2],
+  };
+  const lines = render_svg(plot(data(t), path, x(col.x), y(col.y), group(col.g), color(col.band))).split("\n");
+  // A data segment carries its own cap; the legend's divider does not.
+  assert.equal(lines.filter((l) => l.includes("<line") && l.includes("stroke-linecap=")).length, 0);
+  assert.equal(lines.filter((l) => l.includes("<polyline")).length, 2);
+});

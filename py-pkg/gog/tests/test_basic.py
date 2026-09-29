@@ -4136,3 +4136,16 @@ _still = render_svg(data({"x": [1.0, 2.0, 3.0, 4.0], "y": [1.0, 2.0, 3.0, 4.0],
 assert builtins.sum(1 for _l in _still.splitlines() if "<line" in _l and " stroke=" in _l) == 4, \
     "a still layer is drawn once in a played plot"
 ok("a still layer is drawn once in a played plot")
+
+# --- A ramped stroke is drawn as runs of one color -----------------------------------------
+# A numeric `color` that does not change along a route is one polyline, where it was a
+# `<line>` per segment whose caps overlapped at every vertex. The same block runs in all
+# four bindings.
+_ramped = render_svg(data({"x": [1.0, 2.0, 3.0, 4.0] * 2, "y": [1.0, 3.0, 2.0, 4.0, 2.0, 4.0, 3.0, 5.0],
+                           "g": ["a"] * 4 + ["b"] * 4, "band": [1.0] * 4 + [2.0] * 4}, name="t")
+                     + path + x(col.x) + y(col.y) + group(col.g) + color(col.band))
+_lines = _ramped.splitlines()
+# A data segment carries its own cap; the legend's divider does not.
+assert builtins.sum(1 for _l in _lines if "<line" in _l and "stroke-linecap=" in _l) == 0, "no segments"
+assert builtins.sum(1 for _l in _lines if "<polyline" in _l) == 2, "one polyline per route"
+ok("a ramped stroke is drawn as runs of one color")

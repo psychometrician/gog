@@ -12842,19 +12842,20 @@ mod tests {
         assert!(crate::legality::check(&spec, &data).iter().all(|d| !d.is_fatal()));
         let svg = SvgRenderer::default().render(&spec, &data);
 
-        // A ring colored by its level is drawn segment by segment, each a round-capped
-        // `<line>`; counted, every segment must be traced once by each group.
-        let mut segments: std::collections::BTreeMap<&str, usize> = Default::default();
-        for chunk in svg.split("<line ").skip(1) {
+        // A ring colored by its level is one run of that color, a round-capped
+        // `<polyline>` (a `<line>` if it is one segment long); counted, every ring
+        // must be traced once by each group.
+        let mut rings: std::collections::BTreeMap<&str, usize> = Default::default();
+        for chunk in svg.split("<polyline ").skip(1).chain(svg.split("<line ").skip(1)) {
             let element = chunk.split("/>").next().unwrap_or("");
             if element.contains("stroke-linecap=\"round\"") {
-                *segments.entry(element).or_default() += 1;
+                *rings.entry(element).or_default() += 1;
             }
         }
-        assert!(segments.len() >= 100, "the field traces rings: {} segments", segments.len());
-        let odd = segments.values().filter(|&&n| n != 2).count();
-        assert_eq!(odd, 0, "the two groups must trace the same rings: {odd} of {} segments differ",
-                   segments.len());
+        assert!(rings.len() >= 4, "the field traces rings: {} rings", rings.len());
+        let odd = rings.values().filter(|&&n| n != 2).count();
+        assert_eq!(odd, 0, "the two groups must trace the same rings: {odd} of {} rings differ",
+                   rings.len());
     }
 
     /// `reach` is measured **from** the slot line, so past 0.5 a shape leaves its
@@ -15494,18 +15495,30 @@ mod tests {
             .flat_map(|p| p.split_whitespace().map(str::to_string))
             .collect();
         let line_pts: std::collections::HashSet<String> = traced.lines()
-            // A contour segment, not a gridline: only the data strokes carry a
+            // A contour stroke, not a gridline: only the data strokes carry a
             // linecap. Matching on `<line>` alone picked up the axis grid, which is
             // how this test first "failed" on coordinates that were never contours.
-            .filter(|l| l.contains("<line") && l.contains(r#"stroke-linecap="round""#))
-            .flat_map(|l| {
+            // A ring of one level is one `<polyline>`; a run one segment long is a
+            // `<line>`.
+            .filter(|l| l.contains(r#"stroke-linecap="round""#))
+            .flat_map(|l| -> Vec<String> {
                 let num = |k: &str| -> String {
                     let at = l.find(k).unwrap() + k.len();
                     let v: f64 = l[at..].split('"').next().unwrap().parse().unwrap();
                     format!("{v:.2}")
                 };
-                [format!("{},{}", num(r#"x1=""#), num(r#"y1=""#)),
-                 format!("{},{}", num(r#"x2=""#), num(r#"y2=""#))]
+                if l.contains("<polyline") {
+                    let at = l.find(r#"points=""#).unwrap() + r#"points=""#.len();
+                    l[at..].split('"').next().unwrap().split_whitespace().map(|p| {
+                        let (x, y) = p.split_once(',').unwrap();
+                        format!("{:.2},{:.2}", x.parse::<f64>().unwrap(), y.parse::<f64>().unwrap())
+                    }).collect()
+                } else if l.contains("<line") {
+                    vec![format!("{},{}", num(r#"x1=""#), num(r#"y1=""#)),
+                         format!("{},{}", num(r#"x2=""#), num(r#"y2=""#))]
+                } else {
+                    Vec::new()
+                }
             })
             .collect();
         assert!(!line_pts.is_empty(), "the traced contour drew segments");

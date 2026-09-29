@@ -3568,3 +3568,15 @@ end
     svg = render_svg(data(t) + rule + y(:y) + point + x(:x) + y(:y) + play(:year))
     @test Base.count(l -> occursin("<line", l) && occursin(" stroke=", l), split(svg, "\n")) == 4
 end
+
+# A ramped stroke is drawn as runs of one color: a numeric `color` that does not change
+# along a route is one polyline, where it was a `<line>` per segment whose caps
+# overlapped at every vertex. The same block runs in all four bindings.
+@testset "a ramped stroke is drawn as runs of one color" begin
+    t = (x = [1.0, 2.0, 3.0, 4.0, 1.0, 2.0, 3.0, 4.0], y = [1.0, 3.0, 2.0, 4.0, 2.0, 4.0, 3.0, 5.0],
+         g = ["a", "a", "a", "a", "b", "b", "b", "b"], band = [1.0, 1.0, 1.0, 1.0, 2.0, 2.0, 2.0, 2.0])
+    lines = split(render_svg(data(t) + path + x(:x) + y(:y) + group(:g) + color(:band)), "\n")
+    # A data segment carries its own cap; the legend's divider does not.
+    @test Base.count(l -> occursin("<line", l) && occursin("stroke-linecap=", l), lines) == 0
+    @test Base.count(l -> occursin("<polyline", l), lines) == 2
+end

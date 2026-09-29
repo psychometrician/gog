@@ -56,6 +56,15 @@ CRAN-style repositories and PyPI, `GrammarOfGraphics` on Julia's General, and
 
 ### Changed
 
+- **A stroke colored by a number is drawn in runs of one color.** A `path`,
+  `line` or `step` whose `color` maps a measure was drawn one segment at a
+  time, so a stretch where the color did not change was a row of overlapping
+  pieces: a darker bead at every vertex under a partial `opacity`, and a faint
+  seam at full. Each stretch of one color is now one stroke, the way a stroke
+  of one color always was, and a contour plot, whose rings each take one
+  level's color, is about a seventh of its size. Where the color changes at
+  every vertex, the stroke is drawn as before.
+
 - **A played plot draws a layer that stands still once.** A layer without
   `play`, such as a map's borders under moving points, was copied into every
   moment of the animation. It is now drawn once, under the moments or over

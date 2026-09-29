@@ -166,12 +166,8 @@ impl SvgRenderer {
                 let pts: Vec<(f64, f64)> = idxs.iter()
                     .map(|&i| super::place(l, polar, x_vals[i], y_vals[i], xs, ys))
                     .collect();
-                let mut run = 0.0;
-                for (k, w) in pts.windows(2).enumerate() {
-                    let c = rc.segment(idxs[k], idxs[k + 1]);
-                    svg.push_str(&super::segment_svg(w[0], w[1], &c, stroke_w, stroke_o, dash, run));
-                    run += super::seg_len(w[0], w[1]);
-                }
+                super::write_ramped_runs(svg, &pts, &|k| rc.segment(idxs[k], idxs[k + 1]),
+                    stroke_w, stroke_o, dash, 0.0, "round", "round");
                 continue;
             }
             let points: String = idxs.iter()

@@ -576,3 +576,94 @@ pub(crate) fn segment_svg_capped(
 pub(crate) fn seg_len(a: (f64, f64), b: (f64, f64)) -> f64 {
     ((b.0 - a.0).powi(2) + (b.1 - a.1).powi(2)).sqrt()
 }
+
+/// A ramped stroke through `pts`, written as **runs of one color**.
+///
+/// The ramp gives each segment the color of the rows it joins, so a measure that
+/// changes along a route needs an element per color, since an element takes one
+/// `stroke`. A stretch where the color does not change is one stroke, and drawn as
+/// one it has no seams: drawn as its separate segments it was a row of overlapping
+/// caps, a darker bead at every vertex under partial opacity and a faint seam at
+/// full, and several times the bytes (a contour ring of one level was hundreds of
+/// `<line>`s). So each run of equal colors is one `<polyline>`, joined and capped as
+/// the mark's single-color stroke is (`join`, `cap`), and a run of one segment is
+/// written exactly as before (`segment_svg_capped`), so a ramp whose color changes
+/// at every vertex draws the same bytes.
+///
+/// `color_of(k)` is segment `k`'s color, from `pts[k]` to `pts[k + 1]`. `run` is the
+/// dash phase the stroke starts at, and the phase at its end is returned, for a
+/// route drawn in pieces to carry on from.
+#[allow(clippy::too_many_arguments)]
+pub(crate) fn write_ramped_runs(
+    svg: &mut String, pts: &[(f64, f64)], color_of: &dyn Fn(usize) -> String,
+    width: f64, opacity: f64, dash: &str, mut run: f64, cap: &str, join: &str,
+) -> f64 {
+    let n = pts.len();
+    let mut k = 0;
+    while k + 1 < n {
+        let c = color_of(k);
+        // The run's last vertex: extend while the next segment keeps the color.
+        let mut j = k + 1;
+        while j + 1 < n && color_of(j) == c {
+            j += 1;
+        }
+        if j == k + 1 {
+            svg.push_str(&segment_svg_capped(pts[k], pts[j], &c, width, opacity, dash, run, cap));
+        } else {
+            let points = pts[k..=j].iter()
+                .map(|(x, y)| format!("{x:.2},{y:.2}"))
+                .collect::<Vec<_>>()
+                .join(" ");
+            let off = if dash.is_empty() { String::new() } else { format!(r#" stroke-dashoffset="{run:.2}""#) };
+            svg.push_str(&format!(
+                "    <polyline points=\"{points}\" fill=\"none\" stroke=\"{c}\" stroke-width=\"{width}\" \
+                 stroke-opacity=\"{opacity:.3}\"{dash}{off} stroke-linejoin=\"{join}\" \
+                 stroke-linecap=\"{cap}\"/>\n"));
+        }
+        for w in pts[k..=j].windows(2) {
+            run += seg_len(w[0], w[1]);
+        }
+        k = j;
+    }
+    run
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// **A run of one color is one stroke** (`write_ramped_runs`). Two colors in
+    /// two runs of two segments each are two polylines, where they were four
+    /// `<line>`s whose caps overlapped at every vertex; colors that change at every
+    /// vertex are separate lines, byte for byte what `segment_svg_capped` wrote;
+    /// and a dash carries its phase from one run into the next.
+    #[test]
+    fn a_ramped_stroke_is_written_as_runs_of_one_color() {
+        let pts = [(0.0, 0.0), (10.0, 0.0), (20.0, 0.0), (30.0, 0.0), (40.0, 0.0)];
+        let colors = |cs: [&'static str; 4]| move |k: usize| cs[k].to_string();
+
+        let mut runs = String::new();
+        let end = write_ramped_runs(&mut runs, &pts, &colors(["#a", "#a", "#b", "#b"]),
+            2.0, 1.0, "", 0.0, "round", "round");
+        assert_eq!(runs.matches("<polyline").count(), 2, "{runs}");
+        assert_eq!(runs.matches("<line").count(), 0, "{runs}");
+        assert!(runs.contains(r##"points="0.00,0.00 10.00,0.00 20.00,0.00" fill="none" stroke="#a""##), "{runs}");
+        assert!(runs.contains(r##"points="20.00,0.00 30.00,0.00 40.00,0.00" fill="none" stroke="#b""##), "{runs}");
+        assert!((end - 40.0).abs() < 1e-9, "the phase runs the whole route: {end}");
+
+        let mut each = String::new();
+        write_ramped_runs(&mut each, &pts, &colors(["#a", "#b", "#a", "#b"]),
+            2.0, 1.0, "", 0.0, "round", "round");
+        let by_segment: String = pts.windows(2).enumerate()
+            .map(|(k, w)| segment_svg_capped(w[0], w[1], ["#a", "#b", "#a", "#b"][k],
+                2.0, 1.0, "", 10.0 * k as f64, "round"))
+            .collect();
+        assert_eq!(each, by_segment, "a color per segment draws what it always drew");
+
+        let mut dashed = String::new();
+        write_ramped_runs(&mut dashed, &pts, &colors(["#a", "#a", "#b", "#b"]),
+            2.0, 1.0, r#" stroke-dasharray="4,2""#, 0.0, "butt", "miter");
+        assert!(dashed.contains(r#"stroke-dashoffset="20.00" stroke-linejoin="miter" stroke-linecap="butt""#),
+            "the second run starts its dash where the first left off: {dashed}");
+    }
+}
