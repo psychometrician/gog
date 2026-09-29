@@ -56,6 +56,12 @@ CRAN-style repositories and PyPI, `GrammarOfGraphics` on Julia's General, and
 
 ### Changed
 
+- **`plot | facet(g) + title("…")` draws in R and Python.** In both, `+` binds
+  before `|`, so an atom written after the facet reached the facet first, and it
+  was refused with a message saying to write it before the facet, where Julia
+  and JavaScript drew it. It now joins the plot, and the sentence draws exactly
+  what the atom written before the facet draws, in all four.
+
 - **A `surface` takes `quantile`.** `surface * bin * quantile(0.9)` draws a
   sheet of each cell's 90th percentile, as `sum`, `mean`, `median`, `max` and
   `min` already drew theirs and as a 3-D `bar` and a `zone` take `quantile`. It

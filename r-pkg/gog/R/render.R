@@ -217,7 +217,7 @@ df_to_wire <- function(df) {
 # sentence that facets a plot.
 not_a_plot <- function(x) {
   if (inherits(x, "gog_atom") &&
-      isTRUE(x$type %in% c("facet", "facet_pair", "atom_then_facet"))) {
+      isTRUE(x$type %in% c("facet", "facet_pair", "atom_then_facet", "facet_then_atom"))) {
     return(paste0("gog: this is `facet()` with no plot to split. A facet splits a ",
                   "plot by a column, so build the plot first and facet it: ",
                   "`data(df) + point + x(a) + y(b) | facet(g)`."))

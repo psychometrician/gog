@@ -3957,19 +3957,17 @@ except GogError as refusal:
 ok("a page written without parentheses is told to add them")
 
 
-# --- An atom written after a facet is told to come before it ----------------------------
-# `+` binds before `|`, so the atom joined the facet, and it was told there was "no plot
-# to join". The same block runs in all four bindings; Julia's `|` binds as `+` does, so
-# there the sentence draws.
-_ft2 = data({"a": [1.0, 2.0], "b": [3.0, 4.0], "g": ["u", "v"]}, name="t")
-try:
-    _ft2 + point + x(col.a) + y(col.b) | facet(col.g) + title("t")
-    raise AssertionError("an atom after a facet was taken")
-except GogError as refusal:
-    _s = str(refusal)
-    assert "`title()` was added to `facet(col.g)`" in _s \
-        and "`plot + title('...') | facet(col.g)`" in _s and "no plot to join" not in _s, _s
-ok("an atom written after a facet is told to come before it")
+# --- An atom written after a facet draws as one written before it -------------------------
+# `+` binds before `|`, so the atom reaches the facet first. It rides with the facet and
+# joins the plot after it, as it does in Julia and JavaScript; it was refused here. The
+# same block runs in all four bindings.
+_ft2 = {"a": [1.0, 2.0], "b": [3.0, 4.0], "g": ["u", "v"]}
+_after = render_svg(data(_ft2, name="t") + point + x(col.a) + y(col.b)
+                    | facet(col.g) + title("t") + x_label("A"))
+_before = render_svg(data(_ft2, name="t") + point + x(col.a) + y(col.b) + title("t")
+                     + x_label("A") | facet(col.g))
+assert _after == _before, "an atom after a facet draws as one written before it"
+ok("an atom written after a facet draws as one written before it")
 
 
 # --- range() points at builtins.range only for a call Python's own could be -------------

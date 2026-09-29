@@ -393,7 +393,8 @@ def _not_a_plot(obj: Any) -> str:
     """
     from .spec import Atom  # spec imports this module, so it is reached here
 
-    if isinstance(obj, Atom) and obj.kind in ("facet", "facet_pair", "atom_then_facet"):
+    if isinstance(obj, Atom) and obj.kind in ("facet", "facet_pair", "atom_then_facet",
+                                              "facet_then_atom"):
         return (
             "gog: this is `facet()` with no plot to split. A facet splits a plot by a "
             "column, so build the plot first and facet it: "

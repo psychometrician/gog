@@ -117,17 +117,17 @@ class Atom:
     # -- `+` — an atom with no plot to join --------------------------------
 
     def __add__(self, other: Any) -> "Plot":
-        # `plot | facet(col.g) + title('t')`: `+` binds before `|` and `/`, so the
-        # atom written after the facet joined the facet, not the plot. Said so,
-        # where "no plot to join" was false: the plot was on the left of the `|`.
+        # `plot | facet(col.g) + title('t')`: `+` binds before `|`, so the atom
+        # written after the facet reaches the facet first. It rides with the facet,
+        # as `atom_then_facet` carries the mirror case, and the `|` that brings the
+        # facet to its plot adds it after the facet: left to right, as written,
+        # which is the sentence Julia and JavaScript already read. This refused,
+        # saying where the atom went, while the other two bindings drew it.
         if self.kind in ("facet", "facet_pair") and isinstance(other, Atom):
-            facet = (f"facet(col.{self.fields['field']})" if self.kind == "facet"
-                     else "facet(...)")
-            raise GogError(
-                f"gog: `{_atom_shown(other)}` was added to `{facet}`, and `+` binds "
-                f"before `|` and `/`, so it joined the facet instead of the plot. Write "
-                f"it before the facet: `plot + {_atom_example(other)} | {facet}`."
-            )
+            return Atom("facet_then_atom", facet=self, atoms=[other])
+        if self.kind == "facet_then_atom" and isinstance(other, Atom):
+            return Atom("facet_then_atom", facet=self.fields["facet"],
+                        atoms=self.fields["atoms"] + [other])
         raise GogError(
             "gog: these atoms have no plot to join — the sentence starts with the "
             "data: `data(df) + point + x(col.a) + y(col.b)`."
@@ -1143,6 +1143,14 @@ def _facet_join(left: Any, right: Any, slot: str, operator: str) -> Any:
             f"the sentence with `data()`: `data(df) + point + x(col.a) + y(col.b) "
             f"{operator} facet(col.g)`."
         )
+
+    # The atoms written after the facet ride with it (`Atom.__add__`): the facet
+    # first, then each atom, as written.
+    if isinstance(right, Atom) and right.kind == "facet_then_atom":
+        plot = _facet_join(left, right.fields["facet"], slot, operator)
+        for atom in right.fields["atoms"]:
+            plot = plot + atom
+        return plot
 
     if not isinstance(right, Atom) or right.kind not in ("facet", "facet_pair"):
         raise GogError(

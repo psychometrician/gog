@@ -584,15 +584,19 @@ resolve_query <- function(q, table) {
   # `point + x(gdp)` with no data at all: both operands are atoms, and this
   # function is also `+.gog_atom`, so the missing subject can be said.
   if (inherits(lhs, "gog_atom")) {
-    # `plot | facet(g) + title("t")`: `+` binds before `|` and `/`, so the atom
-    # written after the facet joined the facet, not the plot. Said so, where "no
-    # plot to join" was false: the plot was on the left of the `|`.
+    # `plot | facet(g) + title("t")`: `+` binds before `|`, so the atom written
+    # after the facet reaches the facet first. It rides with the facet, as
+    # `atom_then_facet` carries the mirror case, and the `|` that brings the facet
+    # to its plot adds it after the facet: left to right, as written, which is the
+    # sentence Julia and JavaScript already read. This refused, saying where the
+    # atom went, while the other two bindings drew it.
     if (lhs$type %in% c("facet", "facet_pair") && inherits(rhs, "gog_atom")) {
-      facet <- if (identical(lhs$type, "facet")) paste0("facet(", lhs$field, ")") else "facet(...)"
-      stop("gog: `", atom_shown(rhs), "` was added to `", facet, "`, and `+` binds ",
-           "before `|` and `/`, so it joined the facet instead of the plot. Write it ",
-           "before the facet: `plot + ", atom_example(rhs), " | ", facet, "`.",
-           call. = FALSE)
+      return(structure(list(type = "facet_then_atom", facet = lhs, atoms = list(rhs)),
+                       class = "gog_atom"))
+    }
+    if (identical(lhs$type, "facet_then_atom") && inherits(rhs, "gog_atom")) {
+      lhs$atoms <- c(lhs$atoms, list(rhs))
+      return(lhs)
     }
     stop("gog: these atoms have no plot to join \u2014 the sentence starts with ",
          "the data: `data(df) + point + x(gdp) + ...`.", call. = FALSE)
@@ -1164,6 +1168,13 @@ facet_join <- function(lhs, rhs, slot, op) {
     stop("gog: `", op, "` facets a gog plot, and the left side is not one. ",
          "Start the sentence with `data()`: `data(df) + point + x(a) + y(b) ",
          op, " facet(g)`.", call. = FALSE)
+  }
+  # The atoms written after the facet ride with it (`+.gog_spec`): the facet
+  # first, then each atom, as written.
+  if (inherits(rhs, "gog_atom") && identical(rhs$type, "facet_then_atom")) {
+    lhs <- facet_join(lhs, rhs$facet, slot, op)
+    for (atom in rhs$atoms) lhs <- lhs + atom
+    return(lhs)
   }
   if (!inherits(rhs, "gog_atom") ||
       !(rhs$type %in% c("facet", "facet_pair"))) {

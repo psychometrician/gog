@@ -64,8 +64,10 @@ transforms](transforms.qmd#chaining-transforms) names the four jobs.
 and `/` come first, then `+`, then `|`. In `data(table) + bar * bin + x(a) |
 facet(g)`, the transform joins its mark first. Then `+` joins `data(table)`,
 `bar * bin` and `x(a)` into one plot, and the facet splits that plot into panels
-last. So a single plot needs no parentheses, as long as the facet is written
-last.
+last. An atom written after the facet, such as a `title()`, is joined to the
+facet first, because `+` comes before `|`. When `|` is applied, the atom joins
+the plot, in the same way as an atom written before the facet. So a single plot
+needs no parentheses.
 
 Two whole plots joined by `|` or `/` make a **page**, and this book writes each
 plot on a page inside its own parentheses. `/` is applied before `+`, so a page

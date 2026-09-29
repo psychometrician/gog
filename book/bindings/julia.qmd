@@ -117,9 +117,10 @@ groups, so the table compares four expressions in both languages:
 | `a * b + c` | `(a * b) + c` | the same |
 | `a \| b + c` | `(a \| b) + c` | `a \| (b + c)` |
 
-Only the last row differs: it is the only one with a `+` after the `|`. No facet
-sentence in this book has a `+` after its facet, and R refuses one that does.
-Julia draws that form, and adds the atom to the whole plot. A composed page can
+Only the last row differs: it is the only one with a `+` after the `|`. After a
+facet, the difference does not change the plot. R joins the atom to the facet
+first, and Julia joins it to the plot directly. Both then draw the same plot as
+the sentence that writes the atom before the facet. A composed page can
 have a `+` after the `|`, because the plot on the right starts with its own
 table and adds atoms to it. So every composed page in this book puts each plot
 in its own parentheses, and each plot is complete before `|` joins them. The

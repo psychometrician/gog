@@ -6137,20 +6137,19 @@ local({
 })
 
 # ---------------------------------------------------------------------------
-# An atom written after `| facet(g)` joins the facet, since `+` binds before
-# `|`, and it was told there was "no plot to join". It is now told where it
-# went and to write it before the facet. The same block runs in all four
-# bindings; Julia's `|` binds as `+` does, so there the sentence draws.
+# An atom written after `| facet(g)` reaches the facet first, since `+` binds
+# before `|`. It rides with the facet and joins the plot after it, so the
+# sentence draws the same bytes as the one with the atom written first, as it
+# does in Julia and JavaScript; it was refused here. The same block runs in all
+# four bindings.
 # ---------------------------------------------------------------------------
 local({
   t <- data.frame(a = c(1, 2), b = c(3, 4), g = c("u", "v"))
-  said <- tryCatch({ data(t) + point + x(a) + y(b) | facet(g) + title("t"); "" },
-                   error = function(e) conditionMessage(e))
-  if (!grepl("`title()` was added to `facet(g)`", said, fixed = TRUE) ||
-      !grepl("`plot + title(\"...\") | facet(g)`", said, fixed = TRUE) ||
-      grepl("no plot to join", said, fixed = TRUE))
-    stop("FAIL: an atom after a facet should be told where it went: ", said)
-  cat("PASS: an atom written after a facet is told to come before it\n")
+  after <- render_svg(data(t) + point + x(a) + y(b) | facet(g) + title("t") + x_label("A"))
+  before <- render_svg(data(t) + point + x(a) + y(b) + title("t") + x_label("A") | facet(g))
+  if (!identical(after, before))
+    stop("FAIL: an atom after a facet should draw as one written before it")
+  cat("PASS: an atom written after a facet draws as one written before it\n")
 })
 
 # ---------------------------------------------------------------------------
