@@ -1342,6 +1342,13 @@ test("the cube's blanks say which of three things they are", () => {
     () => render_svg(plot(data(cubePlots), rule, z(col.yield), space())),
     /footprint/
   );
+  // An Unsupported refusal says, in the shared words, that the grammar allows the
+  // sentence and this engine does not draw it, and it promises no future.
+  assert.throws(
+    () => render_svg(plot(data(cubePlots), rule, z(col.yield), space())),
+    (e) => /valid grammar, but this engine does not draw it/.test(e.message)
+      && !/\byet\b|for now|wait for/.test(e.message)
+  );
 });
 
 test("the composed cut: bin supplies the cells, a statistic measures them", () => {

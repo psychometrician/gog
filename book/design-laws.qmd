@@ -235,11 +235,11 @@ nothing looks wrong, and the person reading the plot is the one misled.
 ### Illegal is not the same as unsupported
 
 Refusing is not enough by itself. gog separates two kinds of refusal,
-because each one asks something different of you:
+because each one needs you to do something different:
 
 | Refusal | Meaning | What to do |
 |---|---|---|
-| **Illegal** | The grammar forbids it. It will never work. | Rewrite the expression. |
+| **Illegal** | The grammar forbids it. | Rewrite the sentence. |
 | **Unsupported** | The grammar allows it; this engine does not draw it. | Remove the atom the message names, or use one this engine draws. |
 
 Calling a valid combination "illegal" would teach you a rule that does not
@@ -271,17 +271,18 @@ data(medals) + bar + x(country) + y(gold) + size(gold)
 data(medals) + line + x(country) + y(gold) + z(silver)
 ```
 
-The third refusal is easy to mistake for a missing feature. It is not one: a
-3-D `line` is ruled out, and the refusal above gives the reason. In a cube you
+The third refusal is easy to mistake for an Unsupported one. It is not: the
+grammar forbids a 3-D `line`, and the refusal above gives the reason. In a cube you
 can look straight along `x`, and a line sorted along `x` would then have no
 order you can see. The refusal suggests `path` instead, which is `line` without
 that sort, and `path` draws in space.
 
-An Unsupported refusal looks different. Here is one:
+An Unsupported refusal is worded differently. It says that what you wrote *is
+valid grammar*, but *this engine does not draw it*:
 
 ```{r}
 #| error: true
-# Unsupported: `z` is valid grammar for `text`; this engine has not built it
+# Unsupported: `z` is valid grammar for `text`; this engine does not draw it
 data(medals) + text + x(country) + y(gold) + z(silver) + label(country)
 ```
 
@@ -289,11 +290,10 @@ In every case gog *refuses to render*. It does not quietly drop the channel and
 return a plot that looks finished. A silently ignored mapping is a silent
 letter in software. You wrote it, and it changes nothing in the picture.
 
-The Unsupported refusal marks a missing feature, which a later version of the
-engine can add. The three Illegal ones are rulings: what they refuse will never
-be built. That is the whole distinction. All four refusals are *live*: the
-engine prints them as this page is built, and a check re-runs every refusal in
-this book and fails if one starts drawing.
+An Illegal refusal instead says why the grammar forbids what you wrote. That is
+the whole distinction. All four refusals are *live*: the engine prints them when
+this page is built. A check re-runs every refused sentence in the book, and fails
+if one draws a plot.
 
 ### Drawing it anyway
 
@@ -568,8 +568,8 @@ The class decides which settings a mark takes, not the individual mark, and
 
 This prevents one particular surprise: you learn a setting on one mark, then
 find it missing on a sibling mark for no reason you can see. A setting written
-outside its class is refused, and the refusal is Illegal, a ruling rather than a
-missing feature.
+outside its class is refused, and the refusal is Illegal: the grammar forbids
+it.
 
 ## Why these laws matter
 

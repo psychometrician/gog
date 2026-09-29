@@ -765,8 +765,8 @@ fn check_mark(out: &mut Vec<Diagnostic>, mark: &Mark) -> bool {
     out.push(Diagnostic {
         kind: DiagnosticKind::Unsupported,
         message: format!(
-            "gog: `{}` is part of the grammar, but this engine does not draw it \
-             yet — the plot would come out empty. {direction}",
+            "gog: `{}` is valid grammar, but this engine does not draw it: the plot \
+             would come out empty. {direction}",
             mark_name(mark),
         ),
     });
@@ -4784,9 +4784,9 @@ fn check_flow(
         SpaceKind::Polar => {
             out.push(Diagnostic {
                 kind: DiagnosticKind::Unsupported,
-                message: "gog: `flow` in `polar()` is valid grammar — a flow bent round \
-                          a rim is the chord diagram — but this engine does not draw it \
-                          yet. Draw the flow flat, or wait for the feature."
+                message: "gog: `flow` in `polar()` is valid grammar, a flow bent round a \
+                          rim, which is the chord diagram, but this engine does not draw \
+                          it. Draw the flow flat."
                     .to_string(),
             });
             return;
@@ -5054,11 +5054,10 @@ fn check_layout(
     if layer.encodings.contains_key(&Channel::Play) {
         out.push(Diagnostic {
             kind: DiagnosticKind::Unsupported,
-            message: "gog: `play` under `layout` is valid grammar this engine does \
-                      not draw yet. Draw the frames as panels beside each other with \
-                      `| facet()` on the column you would have played: every panel \
-                      shares one layout, so each node keeps its place. Or wait for \
-                      the feature."
+            message: "gog: `play` under `layout` is valid grammar, but this engine \
+                      does not draw it. Draw the frames as panels beside each other \
+                      with `| facet()` on the column you would have played: every \
+                      panel shares one layout, so each node keeps its place."
                 .to_string(),
         });
     }
@@ -5233,8 +5232,8 @@ fn check_network(out: &mut Vec<Diagnostic>, spec: &PlotSpec) {
     {
         out.push(Diagnostic {
             kind: DiagnosticKind::Unsupported,
-            message: "gog: names in the network's cube are valid grammar this \
-                      engine does not draw yet. Drop the `text` layer, or drop \
+            message: "gog: names in the network's cube are valid grammar, but this \
+                      engine does not draw them. Drop the `text` layer, or drop \
                       the viewing angle and label the flat form."
                 .to_string(),
         });
@@ -5493,10 +5492,10 @@ fn check_cluster(
         if space_of(spec) == SpaceKind::Polar {
             out.push(Diagnostic {
                 kind: DiagnosticKind::Unsupported,
-                message: "gog: a circular cluster tree is valid grammar this \
-                          engine does not draw yet — the tree's horizontal bars \
+                message: "gog: a circular cluster tree is valid grammar, but this \
+                          engine does not draw it: the tree's horizontal bars \
                           would bend into arcs, and a path's segments draw \
-                          straight. Drop `polar()`, or wait for the feature."
+                          straight. Drop `polar()`."
                     .to_string(),
             });
             return;
@@ -5509,10 +5508,10 @@ fn check_cluster(
     if layer.encodings.contains_key(&Channel::Play) {
         out.push(Diagnostic {
             kind: DiagnosticKind::Unsupported,
-            message: "gog: `play` under `cluster` is valid grammar this engine \
-                      does not draw yet — each frame would re-cluster and re-sort \
+            message: "gog: `play` under `cluster` is valid grammar, but this engine \
+                      does not draw it: each frame would re-cluster and re-sort \
                       the leaf axis mid-animation. Filter to one moment where \
-                      your data lives, or wait."
+                      your data lives."
                 .to_string(),
         });
         return;
@@ -5520,8 +5519,8 @@ fn check_cluster(
     if spec.facet.is_some() {
         out.push(Diagnostic {
             kind: DiagnosticKind::Unsupported,
-            message: "gog: `facet` under `cluster` is valid grammar this engine \
-                      does not draw yet — each panel would derive its own leaf \
+            message: "gog: `facet` under `cluster` is valid grammar, but this engine \
+                      does not draw it: each panel would derive its own leaf \
                       order for one shared axis. Compose separate plots with `|` \
                       and `/` instead; each keeps its own axis."
                 .to_string(),
@@ -6600,11 +6599,12 @@ fn check_swarm(out: &mut Vec<Diagnostic>, spec: &PlotSpec, df: &DataFrame, layer
         SpaceKind::Polar => {
             out.push(Diagnostic {
                 kind: DiagnosticKind::Unsupported,
-                message: "gog: `point * dodge` sets points apart by the least distance that clears \
-                          them across a straight slot, and a `polar()` slot is a wedge that widens \
-                          with the radius, which the swarm does not draw yet. Drawn flat, drop \
-                          `polar()`; inside the wedges, `point * jitter` spreads the points by a \
-                          seeded amount instead."
+                message: "gog: `point * dodge` in `polar()` is valid grammar, but this engine \
+                          does not draw it: the swarm sets points apart by the least distance \
+                          that clears them across a straight slot, and a `polar()` slot is a \
+                          wedge that widens with the radius. Drawn flat, drop `polar()`; inside \
+                          the wedges, `point * jitter` spreads the points by a seeded amount \
+                          instead."
                     .to_string(),
             });
             return;
@@ -6612,9 +6612,10 @@ fn check_swarm(out: &mut Vec<Diagnostic>, spec: &PlotSpec, df: &DataFrame, layer
         SpaceKind::Space => {
             out.push(Diagnostic {
                 kind: DiagnosticKind::Unsupported,
-                message: "gog: `point * dodge` sets points apart across a category's slot on the \
-                          page, and in a cube that slot is a strip of floor seen at an angle, \
-                          which the swarm does not draw yet. Drop `z()` to draw the swarm flat."
+                message: "gog: `point * dodge` in a cube is valid grammar, but this engine does \
+                          not draw it: the swarm sets points apart across a category's slot on \
+                          the page, and in a cube that slot is a strip of floor seen at an \
+                          angle. Drop `z()` to draw the swarm flat."
                     .to_string(),
             });
             return;
@@ -7092,8 +7093,9 @@ fn check_page_theme(out: &mut Vec<Diagnostic>, page: &PageSpec) {
         out.push(Diagnostic {
             kind: DiagnosticKind::Unsupported,
             message: format!(
-                "gog: `{written}` describes a panel, and a page is plots arranged rather \
-                 than a panel of its own. On a page, `theme()` states how big the figure \
+                "gog: `{written}` on a page is valid grammar, but this engine does not \
+                 draw it: it describes a panel, and a page is plots arranged rather than a \
+                 panel of its own. On a page, `theme()` states how big the figure \
                  is — `theme(width = )` and `theme(height = )` — and nothing else. Write \
                  this into the plot it describes, before composing: \
                  `(plot + {written}) | other_plot`."
@@ -7961,7 +7963,7 @@ pub fn check(spec: &PlotSpec, data: &HashMap<String, DataFrame>) -> Vec<Diagnost
                     kind: DiagnosticKind::Unsupported,
                     message: format!(
                         "gog: `{c}` is valid grammar for `{m}`, but this engine does not draw \
-                         it yet — `{c}({field})` would have no visual effect. \
+                         it — `{c}({field})` would have no visual effect. \
                          Remove it, or use a channel that renders."
                     ),
                 }),
@@ -7972,10 +7974,10 @@ pub fn check(spec: &PlotSpec, data: &HashMap<String, DataFrame>) -> Vec<Diagnost
                 Some(supported) if !supported.accepts(actual) => out.push(Diagnostic {
                     kind: DiagnosticKind::Unsupported,
                     message: format!(
-                        "gog: `{c}({field})` is a {} column. `{c}` on `{m}` accepts {}, but this \
-                         engine only renders {} so far.",
+                        "gog: `{c}({field})` on `{m}` is valid grammar, but this engine does \
+                         not draw it: `{field}` is a {} column, and `{c}` on `{m}` draws {} \
+                         only.",
                         actual.describe(),
-                        r.accepts.describe(),
                         supported.describe(),
                     ),
                 }),
@@ -8368,8 +8370,8 @@ fn check_coord(out: &mut Vec<Diagnostic>, spec: &PlotSpec) {
     out.push(Diagnostic {
         kind: DiagnosticKind::Unsupported,
         message: format!(
-            "gog: `{s}()` names a coordinate space the engine cannot draw in — no mark \
-             stands there today. {direction}"
+            "gog: `{s}()` is valid grammar, but this engine does not draw it: no mark \
+             stands in that space. {direction}"
         ),
     });
 }
@@ -8873,8 +8875,8 @@ fn check_brush(out: &mut Vec<Diagnostic>, spec: &PlotSpec, data: &HashMap<String
         out.push(Diagnostic {
             kind: DiagnosticKind::Unsupported,
             message: format!(
-                "gog: {} `{m}` cannot be brushed yet, because {why}. Brush a `point` or a \
-                 `text` layer, or drop the brush.",
+                "gog: a brush on {} `{m}` is valid grammar, but this engine does not draw \
+                 it, because {why}. Brush a `point` or a `text` layer, or drop the brush.",
                 article(m)
             ),
         });
@@ -8882,9 +8884,10 @@ fn check_brush(out: &mut Vec<Diagnostic>, spec: &PlotSpec, data: &HashMap<String
         out.push(Diagnostic {
             kind: DiagnosticKind::Unsupported,
             message: format!(
-                "gog: `{m} * {t}` cannot be brushed, because `{t}` summarizes many rows into \
-                 one and the engine cannot say which of them you selected. Brush the layer \
-                 that draws the rows themselves, or drop the brush."
+                "gog: a brush on `{m} * {t}` is valid grammar, but this engine does not draw \
+                 it: `{t}` summarizes many rows into one, and the engine cannot say which of \
+                 them you selected. Brush the layer that draws the rows themselves, or drop \
+                 the brush."
             ),
         });
     } else if let Some(m) = not_elements.first() {
@@ -9103,8 +9106,9 @@ fn check_space(out: &mut Vec<Diagnostic>, spec: &PlotSpec) {
     if zdef.scale == Some(ScaleType::Log) && projects {
         out.push(Diagnostic {
             kind: DiagnosticKind::Unsupported,
-            message: "gog: a log `z`-axis is not drawn yet — `z` is linear in 3-D for now. \
-                      Drop `scale = \"log\"` on `z`, or put the log channel on `x`/`y`."
+            message: "gog: a log `z`-axis is valid grammar, but this engine does not draw it: \
+                      `z` is linear in 3-D. Drop `scale = \"log\"` on `z`, or put the log \
+                      channel on `x`/`y`."
                 .to_string(),
         });
     }
@@ -9377,14 +9381,14 @@ fn z_refusal(mark: &Mark, field: &str) -> String {
         Mark::Zone => format!(
             "gog: `zone` shades the region its `bounds` name and spans the axes they do not — \
              and `bounds` names two pairs, so in a cube a zone always spans one axis whole and \
-             is a **slab**. Like a 3-D `rule`, its footprint runs across the whole floor, so it \
-             cannot be placed among the data until the engine can tell, piece by piece, what \
-             hides what. \
+             is a **slab**. Like a 3-D `rule`, its footprint runs across the whole floor. A slab \
+             is valid grammar, but this engine does not draw it: placing it among the data would \
+             mean working out, piece by piece, what hides what. \
              Draw it flat, or stand a solid on the floor with `bar + x(<a>) + y(<b>) + z({field})`."
         ),
         // Anything else is an ordinary unbuilt cell, and says so.
         _ => format!(
-            "gog: `z` is valid grammar for `{m}`, but this engine does not draw it yet — \
+            "gog: `z` is valid grammar for `{m}`, but this engine does not draw it — \
              `z({field})` would have no visual effect. Remove it, or use a channel that renders."
         ),
     }
@@ -9409,9 +9413,9 @@ fn rule_plane(axis: &str, field: &str) -> String {
         "gog: `rule + {axis}({field})` in a cube is a **plane**: it marks `{field}` on \
          `{axis}` and spans `{}` and `{}`. Marks in space are sorted by their footprint, and \
          a plane's footprint runs across the whole floor, so it could only be drawn wholly in \
-         front of or wholly behind the data when its job is to cut through it. Drawing it \
-         would mean working out, piece by piece, what hides what, and the engine cannot do \
-         that yet. Draw the plot flat, where a rule is a line.",
+         front of or wholly behind the data when its job is to cut through it. A plane in a \
+         cube is valid grammar, but this engine does not draw it: that would mean working \
+         out, piece by piece, what hides what. Draw the plot flat, where a rule is a line.",
         spans[0], spans[1]
     )
 }
@@ -10091,7 +10095,7 @@ fn check_polar(out: &mut Vec<Diagnostic>, spec: &PlotSpec) {
     // so this is refused with direction rather than one of the two silently winning.
     if spec.axis_def(&Channel::Z).is_some() {
         out.push(Diagnostic {
-            kind: DiagnosticKind::Unsupported,
+            kind: DiagnosticKind::Illegal,
             message: "gog: a plot is drawn in one coordinate space, and `polar()` with `z(...)` \
                       asks for two — a circle and a cube. Drop `z(...)` to keep the polar plot, \
                       or drop `polar()` to keep the 3-D one."
@@ -10157,8 +10161,8 @@ fn check_polar(out: &mut Vec<Diagnostic>, spec: &PlotSpec) {
         out.push(Diagnostic {
             kind: DiagnosticKind::Unsupported,
             message: format!(
-                "gog: `{m}` is not drawn in polar coordinates yet. Drop `polar()` to draw it \
-                 flat, or use {}.",
+                "gog: `{m}` in `polar()` is valid grammar, but this engine does not draw it. \
+                 Drop `polar()` to draw it flat, or use {}.",
                 or_list(&drawn)
             ),
         });
@@ -10399,7 +10403,7 @@ fn check_globe(out: &mut Vec<Diagnostic>, spec: &PlotSpec, data: &HashMap<String
     let has_bar = spec.layers.iter().any(|l| l.mark == Mark::Bar);
     if spec.axis_def(&Channel::Z).is_some() && !has_bar {
         out.push(Diagnostic {
-            kind: DiagnosticKind::Unsupported,
+            kind: DiagnosticKind::Illegal,
             message: "gog: `z(...)` on a globe is the radius, and only a `bar` reads it — a \
                       spike standing at its place, measuring outward from the surface. Add a \
                       `bar` layer to raise spikes, drop `z(...)` to keep the marks drawn on \
@@ -10420,16 +10424,17 @@ fn check_globe(out: &mut Vec<Diagnostic>, spec: &PlotSpec, data: &HashMap<String
         if !layer.transforms.is_empty() {
             out.push(Diagnostic {
                 kind: DiagnosticKind::Unsupported,
-                message: "gog: a `bar` with a transform on the globe is the binned field on \
-                          a sphere, and its correct tiling is hexagonal — rectangular bins \
-                          do not cover equal area there — which is not built. Compute the \
+                message: "gog: a `bar` with a transform on the globe is valid grammar, but \
+                          this engine does not draw it: it is the binned field on a sphere, \
+                          whose correct tiling is hexagonal, since rectangular bins do not \
+                          cover equal area there. Compute the \
                           measure in the host and bind it: `bar + x(<lon>) + y(<lat>) + \
                           z(<column>)` raises a spike per row."
                     .to_string(),
             });
         } else if spec.axis_def(&Channel::Z).is_none() {
             out.push(Diagnostic {
-                kind: DiagnosticKind::Unsupported,
+                kind: DiagnosticKind::Illegal,
                 message: "gog: a `bar` on the globe stands at its place and measures along \
                           the radius — the one axis the sphere has to spare — and nothing \
                           names its measure. Bind `z(<column>)` to raise a spike per row, or \
@@ -10504,26 +10509,28 @@ fn check_globe(out: &mut Vec<Diagnostic>, spec: &PlotSpec, data: &HashMap<String
             .filter(|m| mark_draws_in_space(m, SpaceKind::Globe))
             .map(|m| format!("`{}`", mark_name(m)))
             .collect();
-        let message = if mark_draws_in_space(mark, SpaceKind::Map) {
+        // The first branch is valid grammar the engine does not draw; the second is
+        // the space's own rule, the map's, and Illegal (2026-09-29).
+        let (kind, message) = if mark_draws_in_space(mark, SpaceKind::Map) {
             // Designed and owed: the spec's staged build order, said honestly
             // rather than worn as a ruling.
-            format!(
-                "gog: `{m}` is designed for `globe()` and this engine does not draw it there \
-                 yet. Use {}, drop `globe()` to draw `{m}` flat, or use `map()`, which draws \
-                 it on the flattened sphere today.",
+            (DiagnosticKind::Unsupported, format!(
+                "gog: `{m}` on `globe()` is valid grammar, but this engine does not draw it. \
+                 Use {}, drop `globe()` to draw `{m}` flat, or use `map()`, which draws it on \
+                 the flattened sphere.",
                 or_list(&drawn)
-            )
+            ))
         } else {
-            format!(
+            (DiagnosticKind::Illegal, format!(
                 "gog: `{m}` measures along an axis, and a `globe()` plot has none to spare — \
                  longitude and latitude use both. Drop `globe()` to draw `{m}` flat, or use \
                  {}. To carry a quantity on the globe, put it on a channel instead of an \
                  axis: `point + size(<column>)` sizes each place by it, and \
                  `color(<column>)` shades it.",
                 or_list(&drawn)
-            )
+            ))
         };
-        out.push(Diagnostic { kind: DiagnosticKind::Unsupported, message });
+        out.push(Diagnostic { kind, message });
     }
 
     // A place is two numbers — the column-type question is legality's, the
@@ -10607,11 +10614,10 @@ fn check_globe(out: &mut Vec<Diagnostic>, spec: &PlotSpec, data: &HashMap<String
                 kind: DiagnosticKind::Unsupported,
                 message: "gog: `zone` on the globe takes its sides from a boundary — \
                           `zone + x(<lon>) + y(<lat>) + group(<region>)` fills each region \
-                          on the sphere. A binned or aggregated field here is designed and \
-                          not drawn yet: its correct tiling is hexagonal, because \
-                          rectangular bins do not cover equal area on a sphere, and that \
-                          equal-area grid is not built. Give the zone a boundary, or drop \
-                          `globe()`."
+                          on the sphere. A binned or aggregated field here is valid grammar, \
+                          but this engine does not draw it: its correct tiling is \
+                          hexagonal, because rectangular bins do not cover equal area on a \
+                          sphere. Give the zone a boundary, or drop `globe()`."
                     .to_string(),
             });
         }
@@ -10668,7 +10674,7 @@ fn check_map(out: &mut Vec<Diagnostic>, spec: &PlotSpec, data: &HashMap<String, 
     // different one.
     if spec.axis_def(&Channel::Z).is_some() {
         out.push(Diagnostic {
-            kind: DiagnosticKind::Unsupported,
+            kind: DiagnosticKind::Illegal,
             message: "gog: a plot is drawn in one coordinate space, and `map()` with `z(...)` \
                       asks for two — a map and a cube. Drop `z(...)` to keep the map, or drop \
                       `map()` to keep the 3-D plot. To carry a third number on a map, put it \
@@ -10701,8 +10707,10 @@ fn check_map(out: &mut Vec<Diagnostic>, spec: &PlotSpec, data: &HashMap<String, 
             "`{m}` measures along an axis, and a `map()` plot has none to spare — \
              longitude and latitude use both"
         );
+        // A rule of the space, Illegal since 2026-09-29: both positions are the
+        // place, so a mark that measures along one has nothing to measure on.
         out.push(Diagnostic {
-            kind: DiagnosticKind::Unsupported,
+            kind: DiagnosticKind::Illegal,
             message: format!(
                 "gog: {why}. Drop `map()` to draw `{m}` flat, or use {}. To carry a quantity \
                  on a map, put it on a channel instead of an axis: \
@@ -10791,7 +10799,7 @@ fn check_nest(out: &mut Vec<Diagnostic>, spec: &PlotSpec, data: &HashMap<String,
     // a different space and would be asked for differently.
     if spec.axis_def(&Channel::Z).is_some() {
         out.push(Diagnostic {
-            kind: DiagnosticKind::Unsupported,
+            kind: DiagnosticKind::Illegal,
             message: "gog: a plot is drawn in one coordinate space, and `nest()` with `z(...)` \
                       asks for two — a packing and a cube. Drop `z(...)` to keep the packed \
                       plot, or drop `nest()` to keep the 3-D one."
@@ -10909,9 +10917,9 @@ fn check_nest(out: &mut Vec<Diagnostic>, spec: &PlotSpec, data: &HashMap<String,
         // apart because it was *owed* rather than refused; it drew on 2026-07-27 and
         // the branch went with it. What is left is one verdict with one reason: a
         // packing has no positions, so a mark placed by one cannot be drawn here —
-        // a ruling, not a queue.
+        // a rule of the space, and Illegal since 2026-09-29.
         let (kind, why) = (
-            DiagnosticKind::Unsupported,
+            DiagnosticKind::Illegal,
             format!("`{m}` is placed by a position, and a packing has none to give it — its \
                      two directions are not axes, and two neighboring regions are not near \
                      each other in the data (Wilkinson §13.3.4.1)"),
@@ -13829,13 +13837,14 @@ mod tests {
     }
 
     /// The refusal a user meets in this space now comes from `check_globe`, and
-    /// it splits two ways the rule table decides: a mark `map` draws is **owed**
-    /// (designed, not drawn yet), and a mark that measures along an axis is
-    /// **ruled out** for `map`'s one reason. Both say what to write instead.
+    /// it splits two ways the rule table decides: a mark `map` draws is **not
+    /// built** here (valid grammar the engine does not draw, Unsupported), and a
+    /// mark that measures along an axis is **ruled out** for `map`'s one reason
+    /// (Illegal since 2026-09-29). Both say what to write instead.
     #[test]
-    fn a_globe_blank_says_whether_it_is_owed_or_ruled_out() {
+    fn a_globe_blank_says_whether_it_is_not_built_or_ruled_out() {
         // `zone` draws only its boundary form here: a mesh has no equal-area
-        // spherical grid to stand on yet, so a zone without a boundary is owed
+        // spherical grid to stand on, so a zone without a boundary is not built,
         // with the tiling reason named.
         let owed = base()
             .layer(Layer::new(Mark::Zone))
@@ -13844,7 +13853,7 @@ mod tests {
         assert!(
             out.iter().any(|d| d.kind == DiagnosticKind::Unsupported
                 && d.message.contains("sides from a boundary")),
-            "`zone` without a boundary should be owed, with direction: {:?}",
+            "`zone` without a boundary should be not built, with direction: {:?}",
             msgs(&out)
         );
 
@@ -13853,7 +13862,7 @@ mod tests {
             .coord(CoordSpace::Globe(crate::ir::GlobeView::default()));
         let out = check(&ruled, &data());
         assert!(
-            out.iter().any(|d| d.kind == DiagnosticKind::Unsupported
+            out.iter().any(|d| d.kind == DiagnosticKind::Illegal
                 && d.message.contains("measures along an axis")
                 && d.message.contains("size(<column>)")),
             "`line` on the globe should be ruled out with direction: {:?}",
@@ -13868,7 +13877,7 @@ mod tests {
             .coord(CoordSpace::Globe(crate::ir::GlobeView::default()));
         let out = check(&bare, &data());
         assert!(
-            out.iter().any(|d| d.kind == DiagnosticKind::Unsupported
+            out.iter().any(|d| d.kind == DiagnosticKind::Illegal
                 && d.message.contains("measures along the radius")
                 && d.message.contains("z(<column>)")),
             "`bar` without `z` should ask for its measure: {:?}",
@@ -20329,18 +20338,91 @@ mod tests {
     #[test]
     fn a_plot_is_drawn_in_one_space_not_two() {
         // `polar()` bends the plane the plot already has; `z` adds a dimension to
-        // it. Asking for both is asking for a cylinder, which is not built — so it
-        // is refused with direction rather than one of the two quietly winning.
+        // it. A plot is drawn in one coordinate space, so asking for both is
+        // refused as a rule (Illegal since 2026-09-29, as the spec records it)
+        // rather than one of the two quietly winning.
         let spec = PlotSpec::new().data("t").x("gdp").y("life").z("pop")
             .coord(CoordSpace::Polar(crate::ir::PolarView::default()))
             .layer(Layer::new(Mark::Point));
         let d = check(&spec, &data());
         assert!(
-            d.iter().any(|x| x.kind == DiagnosticKind::Unsupported
+            d.iter().any(|x| x.kind == DiagnosticKind::Illegal
                 && x.message.contains("one coordinate space")),
             "polar + z was not refused: {:?}",
             d.iter().map(|x| x.message.clone()).collect::<Vec<_>>()
         );
+    }
+
+    /// **An Unsupported refusal says, in those words, that the grammar allows the
+    /// sentence and this engine does not draw it, and no refusal promises a
+    /// future** (ruled 2026-09-28, R17). The kind is never printed, so the wording
+    /// is how a reader tells the two kinds apart; "yet", "for now" and "wait for
+    /// the feature" promised a schedule. The three refusals that say a plot is
+    /// drawn in one coordinate space state a rule, and are Illegal.
+    #[test]
+    fn an_unsupported_refusal_says_valid_grammar_and_none_promises_a_future() {
+        let mut log_z = base().z("value").layer(Layer::new(Mark::Point));
+        log_z.z = log_z.z.map(|c| ChannelDef { scale: Some(ScaleType::Log), ..c });
+        let unsupported = [
+            base().z("value").layer(Layer::new(Mark::Text).encode(Channel::Label, "continent")),
+            log_z,
+            base().layer(Layer::new(Mark::Bar)).brush(crate::ir::BrushDef::new("gdp").at(1.0, 2.0)),
+            PlotSpec::new().data("t").layer(Layer::new(Mark::Rule).encode(Channel::Z, "gdp")),
+        ];
+        let one_space = [
+            CoordSpace::Polar(crate::ir::PolarView::default()),
+            CoordSpace::Map(crate::ir::MapView::default()),
+            CoordSpace::Nest,
+        ].map(|coord| base().z("value").coord(coord).layer(Layer::new(Mark::Point)));
+        // The space rules: a map or a globe spends both positions on the place, a
+        // globe's `z` is its radius, and a packing has no positions at all. Rules,
+        // so Illegal, and never in the Unsupported words (2026-09-29).
+        let space_rules = [
+            base().coord(CoordSpace::Map(crate::ir::MapView::default()))
+                .layer(Layer::new(Mark::Bar)),
+            base().coord(CoordSpace::Nest).layer(Layer::new(Mark::Line)),
+            base().z("value").coord(CoordSpace::Globe(crate::ir::GlobeView::default()))
+                .layer(Layer::new(Mark::Point)),
+            base().coord(CoordSpace::Globe(crate::ir::GlobeView::default()))
+                .layer(Layer::new(Mark::Bar)),
+        ];
+        for spec in &space_rules {
+            let d = check(spec, &data());
+            assert!(!d.is_empty(), "a space rule must refuse: {:?}", spec.coord);
+            for x in &d {
+                assert!(!x.message.contains("valid grammar"),
+                    "a rule must not call itself valid grammar: {}", x.message);
+            }
+            assert!(d.iter().any(|x| x.kind == DiagnosticKind::Illegal), "{:?}", msgs(&d));
+        }
+        let future = ["yet", "for now", "so far", "today", "wait for", "or wait"];
+        for spec in &unsupported {
+            let d = check(spec, &data());
+            let u: Vec<&Diagnostic> =
+                d.iter().filter(|x| x.kind == DiagnosticKind::Unsupported).collect();
+            assert!(!u.is_empty(), "expected an Unsupported refusal: {:?}", msgs(&d));
+            for x in u {
+                assert!(x.message.contains("valid grammar") && x.message.contains("does not draw"),
+                    "an Unsupported refusal must say it in the shared words: {}", x.message);
+            }
+        }
+        for spec in &one_space {
+            let d = check(spec, &data());
+            assert!(d.iter().any(|x| x.kind == DiagnosticKind::Illegal
+                && x.message.contains("one coordinate space")), "{:?}", msgs(&d));
+        }
+        for spec in unsupported.iter().chain(one_space.iter()) {
+            for x in check(spec, &data()) {
+                let words: Vec<&str> = x.message
+                    .split(|ch: char| !ch.is_alphanumeric() && ch != ' ')
+                    .collect();
+                let text = words.join(" ");
+                for f in future {
+                    assert!(!format!(" {text} ").contains(&format!(" {f} ")),
+                        "a refusal promises a future ({f}): {}", x.message);
+                }
+            }
+        }
     }
 
     // The one relaxation of Law 7's minimum syllable (spec §15): a `bar` whose

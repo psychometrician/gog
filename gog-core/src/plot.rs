@@ -226,9 +226,11 @@ pub fn render_frames_with(
     let Figure::Plot(spec) = figure else {
         diagnostics.push(Diagnostic {
             kind: DiagnosticKind::Unsupported,
-            message: "gog: a composed page has no single sequence to write. Two \
-                      plots on one page keep two clocks, and nothing says which \
-                      one the file runs on. Save the played plot on its own."
+            message: "gog: a GIF of a composed page is valid grammar, but this engine \
+                      does not draw it: a composed page has no single sequence to \
+                      write. Two plots on one page keep two clocks, and nothing \
+                      says which one the file runs on. Save the played plot on its \
+                      own."
                 .to_string(),
         });
         return Err(diagnostics);
@@ -238,8 +240,9 @@ pub fn render_frames_with(
     if levels.len() < 2 {
         diagnostics.push(Diagnostic {
             kind: DiagnosticKind::Unsupported,
-            message: "gog: this plot does not play, so it has no frames to \
-                      write. Bind a column with an order to `play` — \
+            message: "gog: a GIF of a still plot is valid grammar, but this engine \
+                      does not draw it: this plot does not play, so it has no frames \
+                      to write. Bind a column with an order to `play` — \
                       `play(year)` — or save the still picture it already is."
                 .to_string(),
         });

@@ -973,6 +973,9 @@ end
 
     # The two blocked on occlusion say *that*, which is a different sentence.
     @refuses render_svg(data(plots) + rule + z(:yield) + space()) "footprint"
+    # An Unsupported refusal says, in the shared words, that the grammar allows the
+    # sentence and this engine does not draw it, and it promises no future.
+    @refuses render_svg(data(plots) + rule + z(:yield) + space()) "valid grammar, but this engine does not draw it"
 end
 
 @testset "the composed cut — bin supplies the cells, a statistic measures them" begin

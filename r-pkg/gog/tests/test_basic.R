@@ -2614,6 +2614,11 @@ m <- refuses("a rule in the cube",
              render_svg(data(plots) + rule + z(yield) + space()),
         "footprint")
 if (!grepl("footprint", m)) stop("FAIL: the refusal should name the blocker, got ", m)
+# An Unsupported refusal says, in the shared words, that the grammar allows the
+# sentence and this engine does not draw it, and it promises no future.
+if (!grepl("valid grammar, but this engine does not draw it", m, fixed = TRUE) ||
+    grepl("\\byet\\b|for now|wait for", m))
+  stop("FAIL: an Unsupported refusal should use the shared words, got ", m)
 cat("PASS: a 3-D rule is refused as a plane with no footprint\n")
 
 cat("\nspace tests passed.\n")

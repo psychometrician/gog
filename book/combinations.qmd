@@ -25,8 +25,8 @@ somewhere in these grids.
 Legal is not the same as useful. [Law 8](design-laws.qmd#law-8-pronounceable-usable), Pronounceable ≠
 Usable, guarantees only that the engine draws what a ✅ cell allows. Whether it
 should be drawn is your judgment. A cell the engine refuses teaches as much as
-one it draws. It records a real limit of the geometry, a ruling, or work the
-engine still owes, and never an oversight.
+one it draws. It records a real limit of the geometry, a ruling, or a part of
+the engine that is not built, and never an oversight.
 
 Every crossing here is generated live from the engine's own rule table, each
 time the book is built. That is the same table the engine consults to accept or
@@ -55,15 +55,15 @@ cells <- rules$cells
 
 # Five states, each a straight reading of the rule:
 #   ●  a required position (Must)
-#   ✅ a column maps here and the engine draws it today
+#   ✅ a column maps here and the engine draws it
 #   ○  not mappable per row, but style() can set it once for the layer
-#   ◌  valid grammar the renderer refuses today: owed or blocked; the refusal
-#      message says which, and the legend below splits them
+#   ◌  valid grammar the engine does not draw: not built or blocked; the legend
+#      below splits them
 #   —  the mark has no such feature, or the grammar does not allow the pairing
 glyph <- function(ob, renders, settable) {
   if (ob == "must")         "●"  # ●
   else if (!is.na(renders)) "✅"  # ✅
-  else if (ob == "can")     "◌"  # ◌  grammar-legal, not drawn yet
+  else if (ob == "can")     "◌"  # ◌  valid grammar, not drawn
   else if (settable)        "○"  # ○  set-only
   else                      "—"  # no such feature, or decided
 }
@@ -90,12 +90,12 @@ Reading the five glyphs:
   questions, not one](style.qmd#two-questions-not-one) shows in one table where
   each of five properties can be mapped and where it can only be set.
 - **◌ not drawn**: the engine refuses this pairing and gives you a
-  direction instead of a wrong picture. The glyph covers two verdicts, and the
-  refusal message tells you which you have. **Owed**: a mapped `size` or
-  `opacity` on `text`, and `z` on `text`. **Blocked** on
-  infrastructure: `z` on `rule` and on `zone`. Their 3-D forms are a plane and a
-  slab with no single depth to sort by, so they need an engine that can tell what
-  hides what.
+  direction instead of a wrong picture. The glyph covers two verdicts, and each
+  has its own refusal message. **Not built**: a mapped `size` or
+  `opacity` on `text`, and `z` on `text`. **Blocked**: `z` on `rule` and on
+  `zone`. Their 3-D forms are a plane and a slab with no single depth to sort by
+  ([Space](space.qmd#what-the-cube-blocks)). Drawing one means working out what
+  hides what, and the engine does not do that.
 - **— none**: the mark has no such feature, or the grammar does not allow the
   pairing. A `bar` has no glyph for `shape` to change, and a `point` has no line
   for `group` to divide. Either binding means nothing, and the engine says so.
@@ -444,10 +444,11 @@ Two glyphs here, not five. Either the engine draws this mark in this space,
 or it does not and says so:
 
 - **✅ drawn**: the mark renders in this space.
-- **— not drawn**: refused with direction, never half-drawn. Here `—` has
-  three verdicts: owed, blocked and decided. On the channel grid, owed and
-  blocked show as ◌, and decided shows as `—`. A few blanks are simpler: the mark
-  needs what the space lacks, as a `surface` needs the cube. The paragraphs under
+- **— not drawn**: refused with direction, never half-drawn. In the `space`
+  column, `—` has three verdicts: not built, blocked and decided. On the channel
+  grid, the verdicts *not built* and *blocked* show as ◌, and *decided* shows as
+  `—`. Every other blank is simpler: the mark needs what the space lacks, as a
+  `surface` needs the cube. The paragraphs under
   the table say why each column's blanks are blank.
 
 ```{r}
@@ -475,15 +476,15 @@ order, a `surface` is a sheet. `bar`, `interval` and `box` sit in a slot and
 measure along the other axis. A bar gives a length, an interval a span, a box a
 summary, and the grammar treats the three as one family.
 
-The blanks in that column are not one kind of thing, and the refusal message
-says which each is. `line`, `step`, `area` and `ribbon` read a *domain* left to
-right, and a cube has no left to right. So they are **decided**, a ruling rather
-than work still owed, and the refusal points to `path` instead. `rule` and
+The blanks in that column carry three different verdicts, and each has its own
+refusal message. `line`, `step`, `area` and `ribbon` read a *domain* left to
+right, and a cube has no left to right. So they are **decided**: the grammar
+forbids them in a cube, and the refusal points to `path` instead. `rule` and
 `zone` are **blocked**, the same verdict their `z` cells carry. A plane and a
-slab have no single depth to sort by, so placing them among the data needs an
-engine that can tell what hides what ([Space](space.qmd)). `text` is **owed**: the
-engine does not draw a label in the cube, and the message says so rather than
-drawing one flat ([Space](space.qmd)).
+slab have no single depth to sort by. Placing one among the data means working
+out what hides what, and the engine does not do that ([Space](space.qmd)).
+`text` is **not built**: the engine does not draw a label in the cube, so it
+refuses instead of drawing one flat ([Space](space.qmd)).
 
 `polar` matches `flat`: the same twelve marks draw, and the same two do not.
 Every mark that draws on the page also draws in the circle. Bending the plane

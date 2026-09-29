@@ -1079,6 +1079,10 @@ try:
     raise AssertionError("a rule in the cube should refuse")
 except GogError as error:
     assert "footprint" in str(error), str(error)
+    # An Unsupported refusal says, in the shared words, that the grammar allows
+    # the sentence and this engine does not draw it, and it promises no future.
+    assert "valid grammar, but this engine does not draw it" in str(error), str(error)
+    assert not re.search(r"\byet\b|for now|wait for", str(error)), str(error)
 ok("a 3-D rule is refused as a plane with no footprint")
 
 

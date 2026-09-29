@@ -56,6 +56,12 @@ CRAN-style repositories and PyPI, `GrammarOfGraphics` on Julia's General, and
 
 ### Changed
 
+- **A refusal of something the engine does not draw says so in one wording, and
+  promises nothing.** Every such refusal now says that the sentence is valid
+  grammar but this engine does not draw it, where some said "yet", "for now",
+  "so far" or "wait for the feature", and others did not say which kind of
+  refusal they were at all.
+
 - **Every channel takes every channel parameter, and gog refuses the ones that
   mean nothing there.** `speed` off `play`, `tick_count` off `x`, `y` and `z`,
   and `scale`, `base` and `limits` on a channel that tells categories apart
