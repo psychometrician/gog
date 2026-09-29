@@ -187,6 +187,11 @@ pub(crate) struct Drawn {
     pub(crate) panel: Layout,
     pub(crate) x: AxisFacts,
     pub(crate) y: AxisFacts,
+    /// Where the y axis's name was written, turned beside the panel, as an x in
+    /// this plot's own coordinates; `None` when no name was written there. With
+    /// `panel` it gives the name's distance from its panel, which is what a page
+    /// keeps when it moves one (`render::page::align`).
+    pub(crate) y_name: Option<f64>,
     /// What drawing the plot found that the legality check could not.
     ///
     /// **A stage that can drop something has to be able to say so** (§12), and a

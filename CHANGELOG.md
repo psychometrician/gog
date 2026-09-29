@@ -627,6 +627,13 @@ CRAN-style repositories and PyPI, `GrammarOfGraphics` on Julia's General, and
   moves with the panel. Plots stacked in one column keep their names in one
   column, as before.
 
+- **Plots stacked with a map keep their y names beside their panels.** A map
+  takes its panel's shape from its projection, so its panel sits inside its
+  cell, and the plots stacked with it line up on it. Their y names stayed at the
+  cell's edge, up to 250px from their panels, while the map's own sat beside it,
+  so two stacked maps wrote `Lat` in two places. The names now move in with the
+  panels, still in one column.
+
 - **A legend too wide for its plot is left out, and said.** A plot narrower
   than its legend drew its panel at a negative width, with no message: a scatter
   colored by continent at `theme(width = 150)`, or a thin marginal plot given a

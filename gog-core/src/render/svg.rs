@@ -3054,7 +3054,7 @@ impl SvgRenderer {
             }
             None => estimate_cap_height(self.font_sm),
         };
-        self.write_labels(&mut svg, &grid.outer, inset, outer_xl, outer_yl, spec,
+        let y_name = self.write_labels(&mut svg, &grid.outer, inset, grid.moved_x, outer_xl, outer_yl, spec,
                           !grid_xt.labels.is_empty(), x_band);
         if !legends.is_empty() {
             // The canvas is the floor, not the panel — a legend has always been
@@ -3194,6 +3194,7 @@ impl SvgRenderer {
             panel: area,
             x: facts(x_field, xs, cat_x.as_ref(), x_log, x_base, shared.x_extent),
             y: facts(y_field, ys, cat_y.as_ref(), y_log, y_base, shared.y_extent),
+            y_name,
             remarks,
         }
     }
@@ -4057,10 +4058,15 @@ impl SvgRenderer {
         // `ratio` narrowed, or a circle in a wider panel. The names are placed
         // beside the plot, so they move in by this much.
         inset: (f64, f64),
+        // How far a page moved the panel area in from the margin
+        // (`PanelGrid::moved_x`); the y name moves in with it.
+        moved_x: f64,
         x_label: &str, y_label: &str, spec: &PlotSpec, drew_x_ticks: bool,
         // The height of the x tick-label row as drawn, turned or upright.
         x_band: f64,
-    ) {
+    ) -> Option<f64> {
+        // Where the turned y name went, for the page (`Drawn::y_name`).
+        let mut y_name = None;
         let plot_cx = (l.x0 + l.x1) / 2.0;
         let label_h = estimate_cap_height(self.font_md);
         // `theme(axis_label = )`. One convention for both axes: `beside` centers
@@ -4115,7 +4121,8 @@ impl SvgRenderer {
                 // on the page. `layout` reserved exactly that band, and it moves
                 // in with the plot when the plot is inset, or when a page moved
                 // the panel to run under a plot on another line (`Fit`).
-                let lx = label_h + 2.0 + inset.0 + self.fit.y_name_shift;
+                let lx = self.fit.y_name_at.unwrap_or(label_h + 2.0 + inset.0 + moved_x);
+                y_name = Some(lx);
                 let ly = (l.y0 + l.y1) / 2.0;
                 writeln!(svg,
                     r##"  <text transform="rotate(-90 {lx:.2} {ly:.2})" x="{lx:.2}" y="{ly:.2}" font-family="system-ui,sans-serif" font-size="{fs}" fill="#28283a" text-anchor="middle">{y_label}</text>"##,
@@ -4148,6 +4155,7 @@ impl SvgRenderer {
                 fs = self.font_md, x_label = esc(x_label)
             ).unwrap();
         }
+        y_name
     }
 
     // -----------------------------------------------------------------------

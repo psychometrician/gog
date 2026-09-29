@@ -507,9 +507,9 @@ fn align(cells: &[Cell], measured: &[Drawn], fits: &mut [Fit]) {
             })
             .collect();
         let before = edges.clone();
-        // The cells whose panels this lines up on the edge the y axis lives on,
-        // for their names below.
-        let mut lined_up: Vec<usize> = Vec::new();
+        // The groups of cells whose panels this lines up on the edge the y axis
+        // lives on, for their names below.
+        let mut lined_up: Vec<Vec<usize>> = Vec::new();
 
         for far in [false, true] {
             let line = |i: usize| {
@@ -547,7 +547,7 @@ fn align(cells: &[Cell], measured: &[Drawn], fits: &mut [Fit]) {
             }
             for (_, members) in lines.into_iter().filter(|(_, m)| m.len() > 1) {
                 if horizontal && !far {
-                    lined_up.extend(members.iter().copied());
+                    lined_up.push(members.clone());
                 }
                 let to = if far {
                     members.iter().map(|&i| edges[i].1).fold(f64::INFINITY, f64::min)
@@ -576,18 +576,26 @@ fn align(cells: &[Cell], measured: &[Drawn], fits: &mut [Fit]) {
             }
         }
 
-        // **A y name goes where its panel went**, unless the panel was lined up
-        // with others that start on its line. Those keep one column of names at
-        // the edge, which is what makes an aligned stack read as one figure. Any
-        // other panel the page moved was moved to run under a plot on another
-        // line, by as much as a column of the page, and its name moves with it.
+        // **Panels lined up on one line keep their y names in one column**, which
+        // is what makes an aligned stack read as one figure. The column is the one
+        // nearest the panels that clears every member's tick labels: each name's
+        // own place beside its panel, at the distance it kept when drawn alone,
+        // and the leftmost of those. Where no panel is inset that is the edge,
+        // since the panels line up on the widest margin. Where one is, a map's
+        // projection narrowing it, the column moves in with it rather than
+        // leaving the other names at the edge, 250 px from their panels. Every
+        // other panel's name goes beside its panel, wherever the page moved it
+        // (`PanelGrid::moved_x`).
         if horizontal {
-            for i in 0..cells.len() {
-                if lined_up.contains(&i) {
-                    continue;
-                }
-                if let Some((x0, _)) = fits[i].panel_x {
-                    fits[i].y_name_shift = (x0 - measured[i].panel.x0).max(0.0);
+            for members in &lined_up {
+                // Each named member's place beside its panel, on the page.
+                let beside: Vec<(usize, f64)> = members.iter()
+                    .filter_map(|&i| measured[i].y_name
+                        .map(|name| (i, edges[i].0 - (measured[i].panel.x0 - name))))
+                    .collect();
+                let Some(column) = beside.iter().map(|&(_, x)| x).reduce(f64::min) else { continue };
+                for &(i, _) in &beside {
+                    fits[i].y_name_at = Some(column - origin(i));
                 }
             }
         }
@@ -1130,6 +1138,58 @@ mod tests {
         let cells = names(&two(Arrange::Below, plot("speed", "dist").into(), histogram.into()));
         assert!((cells[0].0 - cells[1].0).abs() < 1e-9, "the panels are lined up: {cells:?}");
         assert_eq!(cells[0].1, cells[1].1, "and so are their names: {cells:?}");
+    }
+
+    /// Lined-up names move in with a panel a map narrows. A map takes its
+    /// panel's shape from its projection, so its panel is inset in its cell, and
+    /// the panels stacked with it line up on it. Their names stayed at the edge,
+    /// 250 px from their panels, while the map's name sat beside its own: two
+    /// stacked maps named `Lat` in two places. The column moves in to the panels,
+    /// and it is still one column.
+    #[test]
+    fn lined_up_names_move_in_with_a_panel_a_map_narrows() {
+        let mut data = data();
+        data.insert("w".to_string(), DataFrame::new()
+            .with_float("lon", vec![-160.0, -80.0, 0.0, 80.0, 160.0, -160.0])
+            .with_float("lat", vec![-70.0, -20.0, 0.0, 20.0, 70.0, -70.0]));
+        // Each cell's panel left edge and its y name's x, in the cell's own terms.
+        let names = |page: &PageSpec| -> Vec<(f64, f64)> {
+            let (svg, _) = render(page, &data, 800.0, 600.0);
+            let first_number = |text: &str, after: &str, until: char| -> Option<f64> {
+                text.split(after).nth(1)?.split(until).next()?.parse().ok()
+            };
+            svg.split("<svg ").skip(2).map(|cell| {
+                let clip = cell.split("<clipPath").nth(1).expect("a clipped panel");
+                let panel = first_number(clip, "<rect x=\"", '"').expect("a panel edge");
+                let name = first_number(cell, "<text transform=\"rotate(-90 ", ' ')
+                    .expect("a y name");
+                (panel, name)
+            }).collect()
+        };
+        let map_of = |preserve: crate::ir::Preserve| {
+            PlotSpec::new().data("w").x("lon").y("lat")
+                .coord(crate::ir::CoordSpace::Map(crate::ir::MapView { preserve }))
+                .layer(Layer::new(Mark::Path))
+        };
+        let below = |a: Figure, b: Figure| PageSpec {
+            arrange: Arrange::Below, cells: vec![a, b], theme: ThemeSpec::default(),
+        };
+        let beside_its_panel = |cells: &[(f64, f64)]| {
+            cells.iter().all(|&(panel, name)| panel - name < 80.0)
+        };
+
+        let cells = names(&below(map_of(crate::ir::Preserve::Area).into(),
+                                 map_of(crate::ir::Preserve::Angle).into()));
+        assert!(cells[0].0 > 150.0, "the premise: a map's panel is inset: {cells:?}");
+        assert!(beside_its_panel(&cells), "each name sits beside its panel: {cells:?}");
+        assert!((cells[0].1 - cells[1].1).abs() < 1e-9, "in one column: {cells:?}");
+
+        // A plot with no inset of its own, stacked on a map, joins the column.
+        let scatter = PlotSpec::new().data("cars").x("speed").y("dist")
+            .layer(Layer::new(Mark::Point));
+        let cells = names(&below(scatter.into(), map_of(crate::ir::Preserve::Angle).into()));
+        assert!(beside_its_panel(&cells), "each name sits beside its panel: {cells:?}");
+        assert!((cells[0].1 - cells[1].1).abs() < 1e-9, "in one column: {cells:?}");
     }
 
     /// **An axis a plot gives up costs it no margin, under a shared extent too.**

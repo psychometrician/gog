@@ -69,16 +69,12 @@ pub(crate) struct Fit {
     /// histogram alone (Law 6). Page state, never on the wire.
     pub(crate) shared_domain_x: bool,
     pub(crate) shared_domain_y: bool,
-    /// How far the y axis's name moves in from the cell's left edge, in pixels.
-    ///
-    /// The name sits one band in from the edge, which is beside its tick labels
-    /// wherever the plot's own margin put the panel. A shared column can move the
-    /// panel much further, to run under a plot on another line of the page, and
-    /// the name stayed at the edge: 453px from its panel in `(a | b) / c`. The
-    /// page moves it by as far as it moved the panel, except where it lined up
-    /// panels that start on one line, whose names stay in one column at the edge
-    /// (`render::page::align`). Page state, never on the wire.
-    pub(crate) y_name_shift: f64,
+    /// Where the y axis's name goes, in the plot's own coordinates, when the page
+    /// lined its panel up with others that start on one line: the column their
+    /// names share (`render::page::align`). `None` puts the name beside the panel
+    /// wherever the page moved it ([`PanelGrid::moved_x`]). Page state, never on
+    /// the wire.
+    pub(crate) y_name_at: Option<f64>,
 }
 
 impl Fit {
@@ -90,7 +86,7 @@ impl Fit {
             cats_x: None, cats_y: None,
             ticks_x: None, ticks_y: None,
             shared_domain_x: false, shared_domain_y: false,
-            y_name_shift: 0.0,
+            y_name_at: None,
         }
     }
 }
@@ -156,6 +152,12 @@ pub(crate) struct PanelGrid {
     /// placing them. Without that a square panel in a wide image kept its y name
     /// at the image's edge, 135px from its own tick labels.
     pub(crate) inset: (f64, f64),
+    /// How far a page moved the panel area's left edge in from where the margins
+    /// put it, in px; 0 for a plot drawn alone. The y name moves in by as much,
+    /// so it stays beside its tick labels: left at the edge, it stood 453 px from
+    /// its panel in `(a | b) / c`, where a shared column ran the panel under a
+    /// plot on another line.
+    pub(crate) moved_x: f64,
 }
 
 impl PanelGrid {
@@ -349,6 +351,7 @@ impl PanelGrid {
         // `outer` moves with it: it is the rectangle the axis names and the
         // legend are placed against, and leaving it where the margins put it
         // would write them against an edge the panels no longer have.
+        let margin_x0 = outer.x0;
         if let Some((x0, x1)) = fit.panel_x {
             outer.x0 = x0;
             outer.x1 = x1 + strip_w;
@@ -440,8 +443,9 @@ impl PanelGrid {
             }
         }
 
+        let moved_x = outer.x0 - margin_x0;
         PanelGrid { outer, panels, nrows, ncols, col_values, row_values, wrap_values,
-                    inset: (inset_x, inset_y),
+                    inset: (inset_x, inset_y), moved_x,
                     play_strip, free }
     }
 
