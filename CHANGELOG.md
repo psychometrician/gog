@@ -172,12 +172,15 @@ CRAN-style repositories and PyPI, `GrammarOfGraphics` on Julia's General, and
   `save_svg()`, which writes the same drawing and says in its name that the file
   is an SVG. Nothing is written, so a file already at the path is left as it was.
 
-- **JavaScript reads every `Date` on the local clock.** A column whose values
-  all fell on midnight UTC was read as calendar days, so in New York a column of
-  19:00 readings, each a UTC midnight, drew a day late. Every `Date` is now read
-  as the local clock shows it, and a column counts as dates when every value is
-  midnight in local time. `new Date("2024-01-01")`, which JavaScript sets to
-  midnight UTC, now draws on the evening before anywhere west of UTC: write
+- **JavaScript reads every `Date` on the local clock**, as the other three
+  bindings read a date-time's own clock. `new Date(2024, 0, 1, 12)` is 12:00 on
+  the axis in every time zone; it drew the UTC clock, 03:00 in Seoul. A column
+  whose values all fell on midnight UTC was read as calendar days, so in New
+  York a column of 19:00 readings, each a UTC midnight, drew a day late. Every
+  `Date` is now read as the local clock shows it, and a column counts as dates
+  when every value is midnight in local time. `new Date("2024-01-01")`, which
+  JavaScript sets to midnight UTC, draws at that moment on the local clock: the
+  evening before west of UTC, and the morning of that day east of it. Write
   `new Date(2024, 0, 1)` or `new Date("2024-01-01T00:00")` for a day.
 
 - **In Python, `map` called as the builtin names the shadowing.** After
@@ -833,12 +836,6 @@ CRAN-style repositories and PyPI, `GrammarOfGraphics` on Julia's General, and
   page chose the step over a range that included each plot's margin, which can
   double it: `x(gdp, tick_count = 3)` beside `x(gdp, tick_count = 12)` drew 2
   and 6 ticks on the page and draws 3 and 11 now, as each does by itself.
-
-- **JavaScript reads a `Date` on the session's clock**, as the other three
-  bindings read a date-time's own clock. `new Date(2024, 0, 1, 12)` is 12:00 on
-  the axis in every time zone; it drew the UTC clock, 03:00 in Seoul. A column
-  of dates written without a time, `new Date("2024-01-01")`, which JavaScript
-  reads as midnight in UTC, is drawn as the days it names.
 
 - **R's `opacity()` no longer takes `tick_count`.** It accepted the argument and
   dropped it. A legend takes no tick count, and `color()`, `size()` and the
