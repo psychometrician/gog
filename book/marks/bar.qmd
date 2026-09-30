@@ -29,8 +29,8 @@ axis, and neighboring bars touch. In gog that plot is `bar * bin`, shown in
 
 ## Basic usage
 
-Which country won the most gold medals? Everything in this chapter is added to
-one sentence, the smallest that draws a bar: a source, the mark, and its two
+Which country won the most gold medals? Most examples in this chapter start from
+the smallest sentence that draws a bar: a source, the mark, and its two
 positions.
 
 ```{r}

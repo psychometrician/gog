@@ -135,7 +135,7 @@ the right.
         theme(width = 150)))
 ```
 
-*"Given nutrients: paths derived by cluster on amount, over nutrient, x is food,
+*"Given nutrients: paths derived by cluster on amount, over nutrient, x is food;
 above zones, x is food, y is nutrient, color by amount, beside paths derived by
 cluster on amount, over food, y is nutrient."*
 

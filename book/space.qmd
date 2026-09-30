@@ -84,23 +84,22 @@ to know where its circle starts. [Polar](polar.qmd) is the next chapter, and
 ```{r}
 data(iris_flowers) + point +
   x(petal_length) + y(sepal_length) + z(sepal_width) + color(species) +
-  space(turn = -50, tilt = 15)
+  space(turn = -95, tilt = 15)
 ```
 
 *"Given the iris flowers: points, x is petal length, y is sepal length, z is
-sepal width, color by species, turned -50, tilted 15."*
+sepal width, color by species, turned -95, tilted 15."*
 
-Same data and same bindings, turned 80 degrees from the default and seen from a
-little lower down. The choice matters. From this side both lengths grow toward
-the right of the page, and *virginica* is the longer flower on both, so it sits
-to the right of *versicolor*. At the default angle the two lengths ran in
-opposite directions across the page, so most of the difference between the two
-flowers was lost. They still overlap in the middle, because this side spreads
-the flowers by sepal length more than by petal length, and the two overlap far
-more on sepal length. A low tilt points the `z` axis up the page and flattens
-the floor, so in this view you can read sepal width easily and the two lengths
-less easily. A higher tilt does the reverse: the floor takes up more of the page
-and the heights grow shorter.
+This is the first cube again, seen from another side and from a little lower
+down. The choice matters. From this side petal length runs across the page, and
+sepal length runs into the page, away from you. *Virginica* has the longer
+petals, so it sits to the right of *versicolor*, and the two barely overlap. At
+the default angle the two lengths ran in opposite directions across the page, so
+most of the difference between the two species was lost. The low tilt points the
+`z` axis up the page and flattens the floor. Sepal width and petal length are
+easy to read, but the flat floor squeezes sepal length into a short axis. A
+higher tilt does the reverse: the floor takes up more of the page and the
+heights grow shorter.
 
 Turning the plot changes *how you look* at the data, never *what the plot
 claims* about it. That is why the angle is set in `space()`, and not by a
@@ -628,7 +627,7 @@ summary at two tilts; the second is seen from almost straight above:
 ```{r}
 ((data(gm_eras) + bar * mean + x(continent) + y(era) + z(life) + space() +
     style(color = "#2a9d8f") +
-    z_label("Mean life expectancy") + title("The three-quarter view")) |
+    z_label("Mean life expectancy") + title("The default view")) |
    (data(gm_eras) + bar * mean + x(continent) + y(era) + z(life) +
       space(tilt = 85) + style(color = "#2a9d8f") +
       z_label("Mean life expectancy") + title("Tilted up, with fewer numbers"))) +

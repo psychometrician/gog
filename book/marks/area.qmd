@@ -12,9 +12,9 @@ quantity rather than as a stroke.
 
 ## Basic usage
 
-How large were sales in each of five years? Everything in this chapter is added
-to one sentence, the smallest that draws an area: a source, the mark, and its
-two positions.
+How large were sales in each of five years? Most examples in this chapter start
+from the smallest sentence that draws an area: a source, the mark, and its two
+positions.
 
 ```{r}
 #| echo: false

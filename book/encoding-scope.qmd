@@ -155,38 +155,44 @@ other channels have no shared axis between layers. They follow the same rule:
 where you write a channel decides its scope.
 
 A channel is often meant for one layer alone. You may want the points colored
-by continent, and one line in a single color drawn through them. Written *after
-a mark*, a channel binds to that mark alone:
+by country, and one trend line in a single color, fitted to all of them
+together. Written *after a mark*, a channel binds to that mark alone. The table
+`gapminder_asia` holds five Asian countries, one row per country and year:
 
 ```{r}
-data(gapminder_2007) + x(gdp) + y(life) +
-  point + color(continent) +   # color applies to point only
-  line                         # line uses a single default color
+#| echo: false
+peek(gapminder_asia)
 ```
 
-*"Given gapminder 2007: x is gdp, y is life, points colored by continent, and
-also a line."*
+```{r}
+data(gapminder_asia) + x(year) + y(life) +
+  point + color(country) +   # color applies to point only
+  line * smooth              # the trend line uses a single default color
+```
 
-Each point is drawn in its continent's color. The line takes no `color`, so it
-is one dark gray stroke, joining the 142 countries in order of gdp. Whenever a
-plot has a color legend, a layer that neither maps nor sets `color` is drawn in
-this gray. No continent in the legend is gray, so the line cannot be mistaken
-for one.
+*"Given gapminder Asia: x is year, y is life, points colored by country, and
+also a line derived by smooth."*
+
+Each point is drawn in its country's color. The line takes no `color`, so it is
+one dark gray trend line, fitted to all five countries together. Whenever a plot
+has a color legend, a layer that neither maps nor sets `color` is drawn in this
+gray. No country in the legend is gray, so the line cannot be mistaken for one.
 
 Written *before any mark*, a channel has no mark to bind to. It binds to the
 plot instead, so every layer that can accept it gets it:
 
 ```{r}
-data(gapminder_2007) + x(gdp) + y(life) + color(continent) +
+data(gapminder_asia) + x(year) + y(life) + color(country) +
   point +
-  line
+  line * smooth
 ```
 
-*"Given gapminder 2007: x is gdp, y is life, color by continent, points and
-also a line."*
+*"Given gapminder Asia: x is year, y is life, color by country, points and
+also lines derived by smooth."*
 
-Now the line takes `color` as well. A line colored by a column splits into one
-line per category, so the plot draws five lines, one per continent.
+Now the line takes `color` as well. A line colored by a categorical column
+splits into one line per category, so the plot draws five trends, one per
+country.
 
 That is the same rule that `x` and `y` follow. Written before the marks, they
 apply to every mark. Written after one mark, they belong to that mark.
@@ -198,11 +204,6 @@ column of its own reads the first column written for that axis.
 Suppose you want the lines colored by country and only the points sized by
 population. A channel written after a mark binds to that mark alone, never to
 an earlier one:
-
-```{r}
-#| echo: false
-peek(gapminder_asia)
-```
 
 ```{r}
 # `size` is written after `point`, so it belongs to the points;

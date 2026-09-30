@@ -115,9 +115,20 @@ measure different things, rename one of them before you compose. Otherwise the
 plot with the smaller values is drawn in a small part of an axis sized for the
 larger.
 
+A page reads a shared column on one scale, so both plots must write the same
+`scale` and `limits` for it. When you write `x(gdp, scale = "log")` in one plot
+and plain `x(gdp)` in the other, gog refuses the page. This is true side by side
+as well as one above the other. The message names both scales:
+
+```{r}
+#| error: true
+(data(gapminder_2007) + bar * bin + x(gdp)) /
+  (data(gapminder_2007) + point + x(gdp, scale = "log") + y(life))
+```
+
 ### One axis, but not one legend
 
-You have just seen an axis merge, so you might expect two legends for one column
+You have seen an axis merge, so you might expect two legends for one column
 to merge the same way. Compose two plots that both map `color` and you get two
 legends, one for each:
 
@@ -137,10 +148,10 @@ thing.
 Axes merge and legends do not, and that difference is deliberate. Axes merge
 because there is an exact test: the same column on the same axis means one scale
 is correct for both plots. A legend has no such test. These two plots do
-agree, because both split by `continent`. But nothing in the grammar makes any
-two composed plots agree. The next pair may split by different columns, or map
-one column onto two scales. One legend over those two would be wrong for one of
-them. Nothing in the picture shows the error, because it still looks like a
+agree, because both split by `continent`. But nothing in the grammar makes two
+composed plots use color the same way. The next pair may split by different columns, or map
+one column onto two color scales. One legend over those two would be wrong for
+one of them. Nothing in the picture shows the error, because it still looks like a
 legend.
 
 So gog merges no legend. Two identical legends side by side tell you that the
@@ -166,7 +177,7 @@ type:
      (data(gapminder_2007) + bar * bin + y(life) + theme(width = 130)))
 ```
 
-*"Given gapminder 2007: bars derived by bin, x is gdp, above points, x is gdp, y
+*"Given gapminder 2007: bars derived by bin, x is gdp; above points, x is gdp, y
 is life, beside bars derived by bin, y is life."*
 
 That figure is built from three ordinary plots and two operators. The top

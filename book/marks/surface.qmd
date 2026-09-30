@@ -541,7 +541,7 @@ of it. Each of these changes exactly *one* of `turn`/`tilt` from the first:
 ```{r}
 ((data(maunga_whau) + surface + x(east) + y(north) + z(elevation) +
     color(elevation) + palette("viridis") + space(turn = 30, tilt = 25) +
-    z_label("Elevation (m)") + title("The reference three-quarter view")) |
+    z_label("Elevation (m)") + title("The default view")) |
  (data(maunga_whau) + surface + x(east) + y(north) + z(elevation) +
     color(elevation) + palette("viridis") + space(turn = 140, tilt = 25) +
     z_label("Elevation (m)") + title("Turned: the same sheet from the west"))) /

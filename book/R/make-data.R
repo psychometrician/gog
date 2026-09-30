@@ -799,9 +799,9 @@ routes <- merge(.legs, cities, by = "city", sort = FALSE)
 equator <- data.frame(lat = 0)
 
 capitals <- data.frame(
-  lon  = c(-0.13, 139.69, -74.01, 151.21, 18.42),
-  lat  = c(51.51,  35.69,  40.71, -33.87, -33.92),
-  name = c("London", "Tokyo", "New York", "Sydney", "Cape Town"))
+  lon  = c(-0.13, 139.69, -77.04, 149.13, 18.42),
+  lat  = c(51.51,  35.69,  38.91, -35.28, -33.92),
+  name = c("London", "Tokyo", "Washington", "Canberra", "Cape Town"))
 
 far_north <- data.frame(
   lon = c(0, 15, -45, 10),

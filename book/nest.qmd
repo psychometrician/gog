@@ -274,11 +274,12 @@ first appear in the table, or a declared order if the column has one. To sort
 them, you add `order()`:
 
 ```{r}
-data(gm_eras) + bar * sum + x(continent) + y(population) + color(continent) +
-  order(population, desc = TRUE) + nest() + title("Largest continent first")
+data(gapminder_2007) + bar * sum + x(continent) + y(population) +
+  color(continent) + order(population, desc = TRUE) + nest() +
+  title("Largest continent first")
 ```
 
-*"Given the gapminder eras: bars derived by sum, x is continent, y is
+*"Given gapminder 2007: bars derived by sum, x is continent, y is
 population, color by continent, ordered by population, largest first, in the
 nest."*
 

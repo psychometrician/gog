@@ -201,9 +201,19 @@ data(trade_partners) + point + network()
 
 A sentence can be right, and the table can still hold rows a layout cannot use.
 A row from a node to itself is refused, because such a stroke would have no
-length. Remove such rows from your table before you draw the plot. A row with a
-missing value in the *from* or the *to* column draws no stroke, and a message
-says how many rows were left out.
+length. The first row of this small table goes from China to China:
+
+```{r}
+#| error: true
+self_trade <- data.frame(exporter = c("China", "Mexico"),
+                         importer = c("China", "United States"),
+                         billions = c(500, 455))
+data(self_trade) + edge * layout(exporter, importer) + network()
+```
+
+Remove the rows that connect a node to itself before you draw the plot. A row
+with a missing value in the *from* or the *to* column is not refused: it draws
+no stroke, and a message says how many rows were left out.
 
 You may know more about each country than the edges say, such as its
 continent. gog does not read a second table describing the nodes, so a node

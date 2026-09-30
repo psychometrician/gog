@@ -29,9 +29,9 @@ names](../chart-names.qmd), instead of in the kernel.
 
 ## Basic usage
 
-Do people in richer countries live longer? Everything in this chapter is added
-to one sentence, the smallest that draws a point: a source, the mark, and its
-two positions.
+Do people in richer countries live longer? Most examples in this chapter start
+from the smallest sentence that draws a point: a source, the mark, and its two
+positions.
 
 ```{r}
 #| echo: false

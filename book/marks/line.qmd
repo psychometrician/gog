@@ -12,9 +12,9 @@ joining one row's point to the next, with nothing smoothed between them.
 
 ## Basic usage
 
-How did life expectancy change in five Asian countries? Everything in this
-chapter is added to one sentence, the smallest that draws a line: a source, the
-mark, and its two positions.
+How did life expectancy change in five Asian countries? Most examples in this
+chapter start from the smallest sentence that draws a line: a source, the mark,
+and its two positions.
 
 ```{r}
 #| echo: false

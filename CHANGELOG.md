@@ -949,7 +949,7 @@ Each is now refused, with what to write instead.
   for `across()` or `down()` written twice.
 
 - **Two plots on a page that read one column through different scales.** A
-  page draws one axis for a column, so a log scatter of `gdp` under a histogram
+  page reads a column on one scale, so a log scatter of `gdp` under a histogram
   of `gdp` put every point at the panel's edge, under an axis marked from
   10⁵⁸³¹, and `limits` on one of the two was read against the other's axis.
   It is refused, and the refusal asks for the same scale and limits in both,

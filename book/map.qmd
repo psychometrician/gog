@@ -120,7 +120,7 @@ data(world_borders) + path + x(lon) + y(lat) + group(piece) +
   style(color = "#c9ccd6") +
   data(quakes_fiji) + point + x(east) + y(north) +
   style(color = "tomato", opacity = 0.35, size = 3) +
-  map() + title("A thousand earthquakes, and where Fiji is")
+  map() + title("A thousand earthquakes near Fiji")
 ```
 
 *"Given the world borders: paths, x is lon, y is lat, grouped by piece; then
@@ -220,7 +220,7 @@ data(world_borders) + path + x(lon) + y(lat) + group(piece) +
   style(color = "#3d5a80", size = 5) +
   data(capitals) + text + x(lon) + y(lat) + label(name) +
   style(nudge = "up", size = 11) +
-  map() + title("Five cities")
+  map() + title("Five capitals")
 ```
 
 *"Given the world borders: paths, x is lon, y is lat, grouped by piece; then

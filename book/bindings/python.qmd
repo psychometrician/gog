@@ -11,9 +11,10 @@ specification, so a sentence means the same thing no matter who wrote it.
 Everything in this book up to here is as true in Python as it is in R. What
 differs is short enough to state in one chapter. The sections below cover how a
 column is named, how a sentence is written over several lines, and what counts
-as a table. Then come computed columns, showing a plot, the six names Python
-already uses, what stays the same, reading from a database, and installing the
-package.
+as a table. Then come computed columns, showing a plot, and the six names Python
+already uses. After them, two sections show what stays the same: the operators,
+and then the vocabulary and the refusals. Reading from a database and installing
+the package come last.
 
 Every Python block on this page was run when the page was built, through the
 same engine every other chapter uses. Each block runs after `from gog import *`,
@@ -227,13 +228,13 @@ five bins, so it returns a transform instead of Python's string `'0b101'`.
 If a file needs Python's builtins as well as gog, write `import gog` and then
 `gog.point`, or restore one builtin with `from builtins import sum`.
 
-## What does not change
+## The operators, and their precedence
 
-The four operators do not change, and neither does their **precedence**, the
-order in which they group. `*` groups before `+`, `+` before `|`, and `/` has the
-same precedence as `*`. Those are Python's own precedences, and R's are the
-same. So a derived layer and a facet are grouped exactly as in
-[Operators](../operators.qmd#what-groups-first):
+The four operators do not change from R to Python, and neither does their
+**precedence**, the order in which they group. `*` groups before `+`, `+` before
+`|`, and `/` has the same precedence as `*`. Those are Python's own precedences,
+and R's are the same. So `bar * mean` below becomes one derived layer before any
+`+` is applied, exactly as in [Operators](../operators.qmd#what-groups-first):
 
 ```{r}
 #| echo: false
@@ -243,10 +244,13 @@ py_plot("(data(gapminder_2007) + bar * mean + x(col.continent) + y(col.life)\n +
 *"Given gapminder 2007: bars derived by mean, x is continent, y is life, ordered
 by life, largest first."*
 
-The vocabulary does not change either: every mark, transform, channel, setting
-and plot-level atom in [the kernel card](../kernel-card.qmd) exists in Python
-under the same name. An engine refusal does not change either. The engine does
-not know which binding asked, so it sends you the same words it sends an R user:
+## The same vocabulary and the same refusals
+
+Like the operators, the vocabulary does not change: every mark, transform,
+channel, setting and plot-level atom in [the kernel card](../kernel-card.qmd)
+keeps its name in Python. An engine refusal does not change either. The engine
+does not know which binding asked, so it sends you the same words it sends an R
+user:
 
 ```{r}
 #| echo: false
@@ -256,17 +260,17 @@ py_error("data(gapminder_2007) + bar + x(col.continent)")
 The refusals that differ are the binding's own, like the two about the accessor.
 Each of those has to teach the spelling of the language you are writing in.
 
-The examples above are not the only evidence. On every change to the project,
+This chapter's examples are only a small sample. On every change to the project,
 its automated tests translate the book's sentences into Python and draw them
 again. How far the two spellings differ was measured that way, sentence by
-sentence. Of the book's 866 sentences, eleven have no Python spelling at all.
+sentence. Of the book's 896 sentences, eleven have no Python spelling at all.
 Nine are in the [R](r.qmd) chapter and use R's own syntax, such as the pipe. Two
 are the GIF exports in the [Play](../play.qmd) chapter. Every one of the rest was
-translated by rule and run through the Python binding. Of those, 663 drew the
-same plot, byte for byte, and 172 gave the same refusal, word for word. The
+translated by rule and run through the Python binding. Of those, 683 drew the
+same plot, byte for byte, and 182 gave the same refusal, word for word. The
 other 20 were refused in both languages, in a message worded for each one. Two
-rewrites do nearly all of the translating. The accessor is needed in 849
-sentences, and the parentheses in 586.
+rewrites do nearly all of the translating. The accessor is needed in 879
+sentences, and the parentheses in 610.
 
 ## Reading from a database
 
@@ -345,6 +349,6 @@ sets `GOG_CLI_PATH` to a local build before any Python runs.
 ## What comes next
 
 Python's differences are spelling rather than grammar. [Julia](julia.qmd) has
-four differences of its own. A column is a symbol, nine names need one extra
-import line, `|` has a different precedence, and the package has a different
-name.
+four differences of its own. A column is a symbol, `|` has a different
+precedence, nine names need one extra import line, and the package has a
+different name.

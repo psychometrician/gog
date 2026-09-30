@@ -182,10 +182,10 @@ can measure. The message above counts the frames and reports how long one loop
 takes. It offers two answers: [`speed`](#how-fast), or a column with fewer
 values.
 
-That judgment is worth making before anyone else sees the plot. A reader needs
-one glance to see that a facet was the wrong choice. A sequence asks a reader to
-watch, and keeps them for as long as the loop runs. If it then shows nothing
-new, the reader has waited for nothing, and usually notices.
+Choose between the facet and the sequence before anyone else sees the plot. A
+reader needs one glance to see that a facet was the wrong choice. A sequence
+has to be watched for as long as the loop runs. If it then shows nothing new,
+the reader has waited for nothing.
 
 The choice is easiest to see when the number of pieces is large. Imagine a year
 of hourly temperatures for New York, drawn as one curve for each day. As a facet

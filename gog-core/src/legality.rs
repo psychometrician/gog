@@ -6952,7 +6952,7 @@ fn check_page_scales(out: &mut Vec<Diagnostic>, figure: &Figure) {
                 kind: DiagnosticKind::Illegal,
                 message: format!(
                     "gog: `{f}` is on the {c} axis of two plots on this page, one read with \
-                     {a} and one with {b}. A page draws one axis for a column, so both plots \
+                     {a} and one with {b}. A page reads a column on one scale, so both plots \
                      have to read it the same way. Write the same scale and limits in both, or \
                      give the column another name in one of them.",
                     f = def.field, c = channel_name(&ch), a = describe(first), b = describe(def),

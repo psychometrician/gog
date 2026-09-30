@@ -25,16 +25,20 @@ data(gm) + bar * bin + x(:life) | facet(:era)
 ```
 
 The sections below cover how a column is written, how to break a sentence
-across lines, where Julia's precedence differs from R's, and the nine names gog
-shares with `Base`. Then come the tables Julia accepts, showing a plot, reading
-from a database, and installing the package.
+across lines, and where Julia's precedence differs from R's. Then come the
+tables Julia accepts, showing a plot, the nine names gog shares with `Base`,
+reading from a database, and installing the package.
 
 Every Julia block on this page that shows a plot, a refusal or printed output
 ran when the page was built, through the same engine every other chapter uses.
-The other blocks are shown but not run. Each block ran after two `using` lines,
-which [Nine names Julia already uses](#nine-names-julia-already-uses) explains,
-and after `gapminder_2007` was defined. [The table](#the-table) shows how to
-fetch it.
+The other blocks are shown but not run. Each block ran after `gapminder_2007`
+was fetched as [The table](#the-table) shows, and after these two lines, which
+[Nine names Julia already uses](#nine-names-julia-already-uses) explains:
+
+```julia
+using GrammarOfGraphics
+using GrammarOfGraphics: count, sum, min, max, range, size, step, stack, map
+```
 
 ## A column is a symbol
 
@@ -147,6 +151,60 @@ jl_plot("data(gapminder_2007) + bar * mean + x(:continent) + y(:life)")
 
 *"Given gapminder 2007: bars derived by mean, x is continent, y is life."*
 
+## The table
+
+Every sentence starts from a table. The simplest table in Julia is a named tuple
+of columns, which the language provides, so a first plot needs nothing
+installed:
+
+```{r}
+#| echo: false
+jl_plot("data((person = [\"Ada\", \"Alan\", \"Grace\"], cm = [160.0, 172.0, 181.0]),\n     name = \"heights\") + bar + x(:person) + y(:cm)")
+```
+
+The table holds three people and their heights, written directly inside the
+call. A `Dict` of columns works too. So does any object that supports
+`names(table)` and `table[!, col]`, as a DataFrame does. The package never
+imports DataFrames, so if you do not use one, you install nothing extra.
+
+The other plots use `gapminder_2007`, one of the book's shared tables, and
+`gapminder_2007 = gog_table("gapminder_2007")` fetches it. `gog_table()` fetches
+any of the shared tables by name, as it does in the other three languages
+([The book's data](../book-data.qmd)).
+
+Julia has both a `Date` and a `DateTime`. R and Python each have the same pair
+of types under their own names. A `Date` column never gets clock ticks, and a
+`DateTime` column can, because it stores a time of day
+([Scales](../scales.qmd)). The package tells the two apart by type, so nothing
+is guessed.
+
+In R, `data()` reads a table's name from the expression you wrote. In Julia,
+`data()` receives only the table itself, so an unnamed table gets a generated
+name instead: `data`, then `data2`. Some messages name the table they are about,
+such as the warning about missing values, so write `data(df, name = "notes")`
+when you want that message to say `notes` ([Data](../data.qmd)).
+
+## Showing the plot
+
+The plots on this page appear under their code. In your own session, where a
+plot appears depends on where you run it. In a notebook, such as Jupyter or
+Pluto, the notebook asks the package for a picture, and the plot is drawn under
+the cell. At the REPL, Julia's prompt in a terminal, a plot prints as one line
+of text, such as `<gog plot: bar on heights>` for the heights plot in [The
+table](#the-table). To see the picture, assign the plot to a variable such as
+`p`, write it to a file with `save_svg(p, "plot.svg")`, and open that file in a web
+browser. [`render_svg(p)`](../utilities.qmd#render_svg) returns the same drawing
+as text.
+
+Julia also exports three functions that R and Python do not. You need them
+only to build a tool with gog, such as a web server, and never to write a
+sentence. `svg_block(svg)` puts the text from `render_svg()` in centered HTML for
+a web page. Given the plot too, `svg_block(svg, p)` adds its controls.
+`find_gog_cli()` returns the path of the engine the package found
+([Installing gog](#installing-gog)). `to_wire(table, name)` returns the table as
+gog sends it to the engine, before it becomes JSON; `name` labels its messages.
+JavaScript exports the same three.
+
 ## Nine names Julia already uses
 
 Every plot above ran after two lines that its block leaves out, and this section
@@ -184,60 +242,6 @@ way. R's `range`, `sum` and `min` belong to base R, Python's `bin`,
 `sum` and `max` are builtins, and Julia's belong to `Base`. A grammar keeps its
 own vocabulary; what changes is how each language asks you to say which one you
 meant.
-
-## The table
-
-Every sentence starts from a table. The simplest table in Julia is a named tuple
-of columns, which the language provides, so a first plot needs nothing
-installed:
-
-```{r}
-#| echo: false
-jl_plot("data((person = [\"Ada\", \"Alan\", \"Grace\"], cm = [160.0, 172.0, 181.0]),\n     name = \"heights\") + bar + x(:person) + y(:cm)")
-```
-
-The table holds three people and their heights, written directly inside the
-call. A `Dict` of columns works too. So does any object that supports
-`names(table)` and `table[!, col]`, as a DataFrame does. The package never
-imports DataFrames, so if you do not use one, you install nothing extra.
-
-The plots above use `gapminder_2007`, one of the book's shared tables, and
-`gapminder_2007 = gog_table("gapminder_2007")` fetches it. `gog_table()` fetches
-any of the shared tables by name, as it does in the other three languages
-([The book's data](../book-data.qmd)).
-
-Julia has both a `Date` and a `DateTime`. R and Python each have the same pair
-of types under their own names. A `Date` column never gets clock ticks, and a
-`DateTime` column can, because it stores a time of day
-([Scales](../scales.qmd)). The package tells the two apart by type, so nothing
-is guessed.
-
-In R, `data()` reads a table's name from the expression you wrote. In Julia,
-`data()` receives only the table itself, so an unnamed table gets a generated
-name instead: `data`, then `data2`. Some messages name the table they are about,
-such as the warning about missing values, so write `data(df, name = "notes")`
-when you want that message to say `notes` ([Data](../data.qmd)).
-
-## Showing the plot
-
-The plots on this page appear under their code. In your own session, where a
-plot appears depends on where you run it. In a notebook, such as Jupyter or
-Pluto, the notebook asks the package for a picture, and the plot is drawn under
-the cell. At the REPL, Julia's prompt in a terminal, a plot prints as one line
-of text, such as `<gog plot: bar on heights>` for the heights plot in [The
-table](#the-table). To see the picture, assign the plot to a variable such as
-`p`, write it to a file with `save_svg(p, "plot.svg")`, and open that file in a web
-browser. [`render_svg(p)`](../utilities.qmd#render_svg) returns the same drawing
-as text.
-
-Julia also exports three functions that R and Python do not. You need them
-only to build a tool with gog, such as a web server, and never to write a
-sentence. `svg_block(svg)` puts the text from `render_svg()` in centered HTML for
-a web page. Given the plot too, `svg_block(svg, p)` adds its controls.
-`find_gog_cli()` returns the path of the engine the package found
-([Installing gog](#installing-gog)). `to_wire(table, name)` returns the table as
-gog sends it to the engine, before it becomes JSON; `name` labels its messages.
-JavaScript exports the same three.
 
 ## Reading from a database
 

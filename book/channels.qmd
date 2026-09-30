@@ -341,7 +341,7 @@ ask what color it is, so a measure can vary along it, and `color` on `line`,
 ```{r}
 data(gapminder_asia) + line + x(year) + y(life) + group(country) +
   color(gdp, scale = "log") + palette("viridis") +
-  y_label("Life expectancy") + title("One line per country, colored by income")
+  y_label("Life expectancy") + title("One line per country, colored by GDP per capita")
 ```
 
 *"Given gapminder Asia: lines, x is year, y is life, grouped by country, color
@@ -555,10 +555,10 @@ as by lightness. `cividis` separates them mostly by lightness, and that loss is
 acceptable whenever the ramp has to stay readable for a colorblind reader.
 
 `gray` is for the figure that will be photocopied. It is a ramp only, and there
-is no categorical gray palette. Readers cannot distinguish more than about four
-grays. For categories in a print figure, use [`shape`](#shape) on points and
-[`pattern`](#pattern) on bars and lines, which separate them and leave the
-`color` channel free. gog refuses `palette("gray")` on a categorical column, and
+is no categorical gray palette. Grays differ only in lightness, so readers can
+distinguish only a few of them. For categories in a print figure, use
+[`shape`](#shape) on points and [`pattern`](#pattern) on bars and lines, which
+separate them and leave the `color` channel free. gog refuses `palette("gray")` on a categorical column, and
 the refusal says why:
 
 ```{r}
@@ -594,7 +594,7 @@ peek(cashflow)
 ```{r}
 data(cashflow) + point + x(step) + y(delta) +
   color(delta) + palette("blue_red") + style(size = 9) +
-  title("The neutral lands at 44, not at 0")
+  title("44 is painted gray, not 0")
 ```
 
 State a symmetric domain and zero becomes the center of the scale, so zero is
@@ -603,7 +603,7 @@ the value painted gray. Read the "Closing" point, which is exactly zero:
 ```{r}
 data(cashflow) + point + x(step) + y(delta) +
   color(delta, limits = c(-120, 120)) + palette("blue_red") + style(size = 9) +
-  title("limits = c(-120, 120) puts zero on the neutral")
+  title("Symmetric limits paint zero gray")
 ```
 
 *"Given the cashflow table: points, x is step, y is delta, color by delta from
@@ -620,7 +620,7 @@ say so.
 Symmetric limits have one drawback. If a column runs from -2 to 100, limits of
 -100 to 100 leave almost all of the blue half unused, because the data reaches
 only a little way below zero. Accept that when the sign is what matters, since
-zero has to sit on the gray. When the sign does not matter, a sequential ramp
+zero has to be painted gray. When the sign does not matter, a sequential ramp
 such as `blue` uses its whole range.
 
 ### Stops of your own
@@ -651,17 +651,27 @@ data(gapminder_2007) + point + x(gdp) + y(life) +
 
 No ramp reads well on a skewed column, and changing the palette does not fix it.
 A linear ramp spreads its colors evenly across the domain, so when most rows sit
-in a narrow part of it they all receive almost the same color. Color by
-`population` and nearly every country falls at the light end, because two
-countries are several times larger than any other. The cause is the data, not
-the palette, so the fix is a [log scale](scales.qmd) on the channel, and on `x`
-as well, since GDP per capita is skewed the same way:
+in a narrow part of it they all receive almost the same color. When you color
+by `population`, nearly every country falls at the light end:
+
+```{r}
+data(gapminder_2007) + point + x(gdp) + y(life) + color(population) +
+  x_label("GDP per capita")
+```
+
+The two dark points are China and India, whose populations are several times
+larger than any other country's. The cause is the data, not the palette, so the
+fix is a [log scale](scales.qmd) on the channel, and on `x` as well, since GDP
+per capita is skewed the same way:
 
 ```{r}
 data(gapminder_2007) + point + x(gdp, scale = "log") + y(life) +
   color(population, scale = "log") +
   x_label("GDP per capita")
 ```
+
+On the log scale the colors spread along the whole ramp, so countries of
+different sizes get different colors.
 
 `color`, `size` and `opacity` all take `scale =`, because all three answer "how
 far along?". gog refuses it on `shape`, `pattern` and `group`: they answer "which
