@@ -72,6 +72,11 @@ CRAN-style repositories and PyPI, `GrammarOfGraphics` on Julia's General, and
   could not find, with advice to check a spelling that was right. It is now
   refused at `data()`, which says to write `const df = await gog_table("medals")`.
 
+- **JavaScript's refusal of an atom handed to `beside()` or `below()` reads as
+  the other three bindings' refusal of `page + atom`.** It says the atom
+  belongs to a plot and the call arranges plots, and to write the atom into the
+  plot it describes before composing, with that plot shown.
+
 - **`plot | facet(g) + title("…")` draws in R and Python.** In both, `+` binds
   before `|`, so an atom written after the facet reached the facet first, and it
   was refused with a message saying to write it before the facet, where Julia
@@ -270,7 +275,10 @@ CRAN-style repositories and PyPI, `GrammarOfGraphics` on Julia's General, and
   refused it as a misspelling, and JavaScript's `x(col.gdp / 1000)` said "Got
   number". Both now say gog has no computed channels and to compute the column
   first, as Python already did. Julia's `:gdp / 1000` still fails in Julia
-  itself, before gog sees it.
+  itself, before gog sees it. Python's and JavaScript's advice ended in
+  `y(col.ratio)` whichever channel held the expression; it now ends "then
+  `col.ratio` where the expression was", since the arithmetic is refused before
+  either can see the channel.
 
 - **Julia fetches the browser engine with the package.** A copy installed from
   General drew every plot and turned none: the engine that turns, brushes and

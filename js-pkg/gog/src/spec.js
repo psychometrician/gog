@@ -343,10 +343,16 @@ function renameTable(cells, oldName, newName) {
 // Why an atom handed to `beside()` or `below()` is not a plot, and where it goes:
 // `data()` begins a plot, and every other atom joins one. A mark and a transform
 // are named as bare words (`point`, `mean`), every other atom as a call.
+//
+// The same sentence R, Python and Julia say for `page + atom`, in the words
+// JavaScript has: there the page is "the left side" of an operator, here it is
+// the arranging call, and the direction is the same in all four — write the
+// atom into the plot it describes, before composing.
 function atomOnPage(atom, word) {
   if (atom.kind === "data") {
-    return "`data()` holds a table for a plot rather than a plot: " +
-      `\`${word}(plot(data(df), …), other_plot)\``;
+    return `gog: \`data()\` belongs to a plot, and \`${word}()\` arranges plots. ` +
+      "Write it into the plot it holds the table for, before composing: " +
+      `\`${word}(plot(data(df), …), other_plot)\`.`;
   }
   // A position or a space is held as `coord_x` or `coord_polar`, and written `x`.
   const kind = atom.kind.replace(/^coord_/, "");
@@ -357,7 +363,9 @@ function atomOnPage(atom, word) {
     : atom.kind === "transform" ? `layer(<mark>, ${atom.fields.transform})`
     : ["title", "x_label", "y_label", "z_label"].includes(atom.kind) ? `${atom.kind}("…")`
     : `${kind}(…)`;
-  return `\`${shown}\` joins a plot rather than a page: \`plot(data(df), …, ${example})\``;
+  return `gog: \`${shown}\` belongs to a plot, and \`${word}()\` arranges plots. ` +
+    "Write it into the plot it describes, before composing: " +
+    `\`${word}(plot(data(df), …, ${example}), other_plot)\`.`;
 }
 
 function compose(arrange, figures, word) {
@@ -376,8 +384,8 @@ function compose(arrange, figures, word) {
     if (!(figure instanceof Plot) && !(figure instanceof Page)) {
       // The atom is named as it is written, and so is the example: every atom was
       // shown as `typeof`, so `color(col.a)` read `plot(data(df), object, …)`.
-      const hint = atom ? atomOnPage(atom, word) : `got ${describe(figure)}`;
-      throw new GogError(`gog: \`${word}()\` arranges plots — ${hint}.`);
+      throw new GogError(atom ? atomOnPage(atom, word)
+        : `gog: \`${word}()\` arranges plots — got ${describe(figure)}.`);
     }
     // A page already running this way is *flattened* into it, so
     // `beside(a, b, c)` is one row of three rather than a row of a row. A page

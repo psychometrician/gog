@@ -778,7 +778,7 @@ def _retired_save(path: Any) -> str:
     `save_svg()`, with the reader's own path when it already ends in `.svg`."""
     shown = path if isinstance(path, str) and path.lower().endswith(".svg") else "plot.svg"
     return (
-        f'gog: `save()` is retired: `save_svg(plot, "{shown}")` writes the same '
+        f'gog: `save()` is retired: `save_svg(p, "{shown}")` writes the same '
         "drawing, and its name says the file is an SVG, as `save_gif()`'s says a GIF."
     )
 

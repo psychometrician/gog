@@ -57,7 +57,8 @@ export class Column {
       throw new GogError(
         "gog: a channel takes a column name, not an expression — gog has no " +
           "computed channels. Compute the column in JavaScript first and bind the " +
-          "result: `df.ratio = df.a.map((a, i) => a / df.b[i])`, then `y(col.ratio)`."
+          "result: `df.ratio = df.a.map((a, i) => a / df.b[i])`, then `col.ratio` " +
+          "where the expression was."
       );
     }
     return this.toString();

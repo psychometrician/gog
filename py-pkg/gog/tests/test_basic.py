@@ -2177,7 +2177,7 @@ try:
     _good.save(_savepath)
     raise AssertionError("FAIL: the retired save() wrote a file")
 except GogError as _retired:
-    assert f'`save()` is retired: `save_svg(plot, "{_savepath}")`' in str(_retired), _retired
+    assert f'`save()` is retired: `save_svg(p, "{_savepath}")`' in str(_retired), _retired
 with open(_savepath, encoding="utf-8") as _h:
     assert _h.read() == _before, "the retired save() changed the file already there"
 ok("the retired save() refuses toward save_svg() and leaves an existing file alone")

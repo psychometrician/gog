@@ -4054,9 +4054,13 @@ test("a transform that refuses a mark itself is refused once", () => {
 test("a page refusal names the atom it was given", () => {
   const t = { a: [1, 2], b: [3, 4], g: ["u", "v"] };
   const p = plot(data(t), point, x(col.a), y(col.b));
-  refuses(() => beside(p, p, color(col.g)), /`color\(\)` joins a plot rather than a page: `plot\(data\(df\), …, color\(…\)\)`/);
-  refuses(() => beside(p, p, point), /`point` joins a plot/);
-  refuses(() => below(p, data(t)), /`data\(\)` holds a table for a plot rather than a plot: `below\(/);
+  // The sentence R, Python and Julia say for `page + atom`, in JavaScript's words:
+  // it opens on what the atom belongs to and closes on where to write it.
+  refuses(() => beside(p, p, color(col.g)),
+    /`color\(\)` belongs to a plot, and `beside\(\)` arranges plots\. Write it into the plot it describes, before composing: `beside\(plot\(data\(df\), …, color\(…\)\), other_plot\)`/);
+  refuses(() => beside(p, p, point), /`point` belongs to a plot/);
+  refuses(() => below(p, data(t)),
+    /`data\(\)` belongs to a plot, and `below\(\)` arranges plots\. Write it into the plot it holds the table for, before composing: `below\(plot\(data\(df\), …\), other_plot\)`/);
 });
 
 // A position handed to `beside()` is named as it is written, `x()`, not the `coord_x()`
@@ -4065,7 +4069,8 @@ test("a page refusal names the atom it was given", () => {
 test("a position atom on a page is named as it is written", () => {
   const t = { a: [1, 2], b: [3, 4] };
   const p = plot(data(t), point, x(col.a), y(col.b));
-  refuses(() => beside(p, p, x(col.a)), /`x\(\)` joins a plot rather than a page: `plot\(data\(df\), …, x\(…\)\)`/);
+  refuses(() => beside(p, p, x(col.a)),
+    /`x\(\)` belongs to a plot, and `beside\(\)` arranges plots\. Write it into the plot it describes, before composing: `beside\(plot\(data\(df\), …, x\(…\)\), other_plot\)`/);
 });
 
 // An atom written after a facet draws as one written before it. In JavaScript `plot()`

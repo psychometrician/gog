@@ -71,7 +71,8 @@ class Column:
         raise GogError(
             "gog: a channel takes a column name, not an expression — gog has no "
             "computed channels. Compute the column in Python first and bind the "
-            "result: `df['ratio'] = df['a'] / df['b']`, then `y(col.ratio)`."
+            "result: `df['ratio'] = df['a'] / df['b']`, then `col.ratio` where the "
+            "expression was."
         )
 
     __add__ = __radd__ = _computed
