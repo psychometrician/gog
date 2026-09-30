@@ -2121,6 +2121,29 @@ end
     end
 end
 
+# The browser engine and its modules reach a released copy through the engine's
+# own artifact, which is the one place a package from General can hold them: it
+# tracks no `assets/` and sits in no checkout, so 0.3.0 drew every plot and
+# turned none. The artifact route answers last, after a staged `assets/` and the
+# checkout's own build, and it answers with the pair or with nothing, never with
+# an error: a plot with no browser engine stays static, as it does in print.
+@testset "the browser engine is looked for in the engine's artifact" begin
+    www = GrammarOfGraphics.artifact_www()
+    @test www === nothing || (length(www) == 2 && all(isfile, www))
+    if www !== nothing
+        @test basename(www[1]) == "gog.wasm" && basename(www[2]) == "interactive.js"
+        @test isfile(joinpath(dirname(www[2]), "view.js"))
+    end
+    # A checkout with the browser engine built answers with its own build, not
+    # the artifact's, for the reason the engine lookup does.
+    found = GrammarOfGraphics.find_wasm_assets()
+    if found !== nothing && www !== nothing
+        @test found != www || !isfile(joinpath(dirname(@__DIR__), "..", "..", "gog-wasm",
+                                               "target", "wasm32-unknown-unknown",
+                                               "release", "gog_wasm.wasm"))
+    end
+end
+
 # A partition read as proportion divides its measure axis by the total and keeps
 # its other axis's name; a spine plot's share axis runs 0 to 1 instead of -0 to 2;
 # the refusal of a proportion beside a filled pile names `stack(share = TRUE)` and a

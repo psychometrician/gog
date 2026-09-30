@@ -265,6 +265,13 @@ CRAN-style repositories and PyPI, `GrammarOfGraphics` on Julia's General, and
   first, as Python already did. Julia's `:gdp / 1000` still fails in Julia
   itself, before gog sees it.
 
+- **Julia fetches the browser engine with the package.** A copy installed from
+  General drew every plot and turned none: the engine that turns, brushes and
+  plays a plot in a notebook, and the two modules that drive it, were in no
+  file the package shipped, and a checkout finds the build beside it, so no
+  check saw the gap. They now ride in the engine artifact `Pkg.add` fetches,
+  beside `gog-cli`, so a released copy turns with the same build it draws with.
+
 - **An invented table name gives way to one you wrote.** In R, Python and
   JavaScript, a table gog had to name for you (piped with `%>%`, or passed
   unnamed) followed by a table you named `data` was refused as two tables with

@@ -451,7 +451,35 @@ function find_wasm_assets()
             root = parent
         end
     end
-    nothing
+
+    artifact_www()
+end
+
+"""
+The browser engine and its modules, from the artifact `Pkg.add` fetched.
+
+They ride in the engine's own artifact, beside `gog-cli`, so a released copy
+turns, brushes and plays with the same build it draws with. A package installed
+from General tracks no `assets/` and sits in no checkout, so until this route
+existed such a copy drew every plot and turned none, with no message: the two
+routes above answer for a staged copy and for a checkout, and every check ran in
+one of those. After them for the reason `artifact_cli` comes after
+`workspace_cli`: inside a checkout the artifact is the last release's build.
+"""
+function artifact_www()
+    toml = joinpath(dirname(@__DIR__), "Artifacts.toml")
+    isfile(toml) || return nothing
+    try
+        hash = artifact_hash("gog_cli", toml)
+        hash === nothing && return nothing
+        dir = artifact_path(hash)
+        pair = (joinpath(dir, "gog.wasm"), joinpath(dir, "interactive.js"))
+        all(isfile, pair) ? pair : nothing
+    catch
+        # An artifact store that cannot be read leaves the plot static, which is
+        # the same honest picture a host without JavaScript shows.
+        nothing
+    end
 end
 
 """The modules' own source, ready to sit inside `<script type="module">`.

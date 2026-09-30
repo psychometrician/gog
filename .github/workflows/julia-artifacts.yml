@@ -97,9 +97,38 @@ jobs:
           name: engine-${{ matrix.target }}
           path: dist/${{ matrix.target }}/*
 
+  # The browser half: the same bytes on every platform, built once and put
+  # beside every platform's engine by the generator. Without it the package
+  # from General draws and never turns, which is what 0.3.0 shipped: the
+  # package tracks no `assets/`, and the checkout that every check runs in
+  # finds the build beside it. The same steps `js-packages.yml` and
+  # `python-wheels.yml` take for their carriers.
+  www:
+    name: browser engine
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: wasm32-unknown-unknown
+
+      - name: Build the browser engine and stage it with its modules
+        run: |
+          cargo build --release --target wasm32-unknown-unknown \
+            --manifest-path gog-wasm/Cargo.toml
+          mkdir -p dist/www
+          cp gog-wasm/target/wasm32-unknown-unknown/release/gog_wasm.wasm dist/www/gog.wasm
+          cp js-pkg/gog/src/interactive.js js-pkg/gog/src/view.js dist/www/
+          ls -l dist/www
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: www
+          path: dist/www/*
+
   bind:
     name: tarballs, release, Artifacts.toml
-    needs: build
+    needs: [build, www]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -108,6 +137,13 @@ jobs:
         with:
           path: dist
           pattern: engine-*
+
+      # One artifact by name lands in `path` itself, so this is `dist/www/`,
+      # which is where the generator looks for the three files.
+      - uses: actions/download-artifact@v4
+        with:
+          name: www
+          path: dist/www
 
       # `download-artifact` names each directory after the artifact, so
       # `engine-darwin-arm64/` has to become `darwin-arm64/` — the generator

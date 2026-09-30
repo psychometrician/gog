@@ -45,9 +45,10 @@ install.
 **The engine comes with the package.** A plot is drawn by a compiled Rust
 binary, and `Pkg.add` fetches the one for your platform as an
 [artifact][artifacts], the normal Julia way to distribute a binary, so there is
-nothing to build and nothing to set. The book's [Julia chapter][jl-chapter] also
-shows how to work from a copy of the source, where the engine is the one your
-own checkout builds.
+nothing to build and nothing to set. The browser engine that turns, brushes and
+plays a plot in a notebook rides in the same artifact. The book's
+[Julia chapter][jl-chapter] also shows how to work from a copy of the source,
+where the engine is the one your own checkout builds.
 
 [artifacts]: https://pkgdocs.julialang.org/v1/artifacts/
 
