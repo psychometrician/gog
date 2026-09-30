@@ -8635,10 +8635,13 @@ pub fn why_not_placed(spec: &PlotSpec) -> Option<&'static str> {
             "dodge"
         } else if l.transforms.contains(&Transform::Stack) {
             "stack"
-        } else if !l.transforms.is_empty() {
-            "summary"
+        // Before `summary`: `bounds` is written as a transform, and a shape it
+        // places is one row, not a summary of many, which is what the page
+        // reads the word as.
         } else if l.bounds.is_some() {
             "bounds"
+        } else if !l.transforms.is_empty() {
+            "summary"
         } else {
             "mark"
         }

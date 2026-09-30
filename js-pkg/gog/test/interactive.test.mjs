@@ -1541,6 +1541,42 @@ test("a plot that cannot place a row says nothing, and says why", async () => {
   }
 });
 
+// A `bounds` pair lies along one axis, which therefore names no single field. A
+// brush on either column moves along it: matched against the field alone, a
+// brushed `interval * bounds(lo, hi)` was right as first drawn and no drag moved it.
+test("a brush on a bounds column moves with a drag", async () => {
+  const undo = stubDom();
+  try {
+    const engine = await loadEngine(fs.readFileSync(WASM));
+    const req = {
+      spec: {
+        data: "t", y: { field: "term" },
+        layers: [{ mark: "interval", encodings: {}, transforms: ["bounds"],
+                   bounds: { lower: "lo", upper: "hi" } }],
+        brush: [{ field: "lo", at: [0, 0.2] }],
+      },
+      data: { t: { strings: { term: ["Age", "Education", "Experience"] },
+                   floats: { lo: [0.02, 0.31, 0.11], hi: [0.18, 0.55, 0.29] } } },
+    };
+    const container = stubContainer();
+    const handle = attachBrush(engine, container, req);
+    assert.equal(handle.selection().kept, 2, "as first drawn: Age and Experience");
+    const g = container.querySelectorAll("[data-gog-panel]")[0];
+    assert.equal(g.getAttribute("data-x-fields"), "lo|hi", "the axis names both columns it draws");
+    assert.equal(g.getAttribute("data-gog-place"), "bounds", "and says each shape is one row");
+
+    const p = axesOf(g);
+    const y = (p.y0 + p.y1) / 2;
+    container.send("pointerdown", placeOn(p.x, 0.25), y);
+    container.send("pointermove", placeOn(p.x, 0.5), y);
+    container.send("pointerup", placeOn(p.x, 0.5), y);
+    assert.equal(handle.selection().kept, 1, "a band over 0.25 to 0.5 holds one lo, Education's");
+    handle.destroy();
+  } finally {
+    undo();
+  }
+});
+
 // The engine writes one word on a panel it cannot place rows on, and the page
 // turns it into a sentence. A word with no sentence prints the note's opening and
 // stops there, so both lists are read from their sources and held together.

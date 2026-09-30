@@ -3475,15 +3475,33 @@ impl SvgRenderer {
         // — reads as refused, which is the state a reader had before any of this
         // was built, and the safe way to be wrong.
         let place = format!(" data-gog-place=\"{}\"", facts.place.unwrap_or("row"));
+        // **Every column a `bounds` pair lays along each axis**, which a brush on
+        // either may move. Such an axis draws two columns at once, so it names no
+        // single field, and a brush the page matched to no axis had every drag
+        // dropped: a brushed `interval * bounds(lo, hi)` was right as first drawn
+        // and no drag moved it. Which axis each pair lies along is the bindings'
+        // answer (`legality::zone_orient`), as it is where the marks are drawn.
+        let turned = crate::legality::zone_orient(cat_x.is_some(), cat_y.is_some())
+            == crate::legality::Orient::Horizontal;
+        let (mut along_x, mut along_y): (Vec<&str>, Vec<&str>) = (Vec::new(), Vec::new());
+        for b in spec.layers.iter().filter_map(|l| l.bounds.as_ref()) {
+            let (on_x, on_y) = if turned { (b.measure(), b.domain()) } else { (b.domain(), b.measure()) };
+            if let Some((lo, hi)) = on_x { along_x.extend([lo, hi]); }
+            if let Some((lo, hi)) = on_y { along_y.extend([lo, hi]); }
+        }
+        let fields = |axis: &str, cols: &[&str]| if cols.is_empty() { String::new() } else {
+            format!(" data-{axis}-fields=\"{}\"", cols.iter()
+                .map(|c| crate::render::text::esc(c)).collect::<Vec<_>>().join("|"))
+        };
         writeln!(svg,
             concat!(r#"  <g data-gog-panel="{x0} {y0} {x1} {y1}" "#,
-                    r#"data-x-field="{xn}" data-x="{xf} {xt}"{xc}{xl} "#,
-                    r#"data-y-field="{yn}" data-y="{yf} {yt}"{yc}{yl}"#,
+                    r#"data-x-field="{xn}"{xa} data-x="{xf} {xt}"{xc}{xl} "#,
+                    r#"data-y-field="{yn}"{ya} data-y="{yf} {yt}"{yc}{yl}"#,
                     r#"{fc}{fr}{pp}{pl}/>"#),
             x0 = l.x0, y0 = l.y0, x1 = l.x1, y1 = l.y1,
-            xn = crate::render::text::esc(x_field), xf = xs.0, xt = xs.1,
+            xn = crate::render::text::esc(x_field), xa = fields("x", &along_x), xf = xs.0, xt = xs.1,
             xc = cats("x", cat_x), xl = base(x_log).replace("data-log", "data-x-log"),
-            yn = crate::render::text::esc(y_field), yf = ys.0, yt = ys.1,
+            yn = crate::render::text::esc(y_field), ya = fields("y", &along_y), yf = ys.0, yt = ys.1,
             yc = cats("y", cat_y), yl = base(y_log).replace("data-log", "data-y-log"),
             fc = slice("col", facts.facet_col), fr = slice("row", facts.facet_row),
             pp = play, pl = place,
@@ -6959,6 +6977,33 @@ mod tests {
             "a resting brush must change nothing but the panel metadata");
         assert!(resting.contains("data-gog-panel"),
             "and the metadata must be there before the first drag, or nothing can invert a pixel");
+    }
+
+    /// **A `bounds` panel names both columns its axis draws, and reads as one row
+    /// per shape.** The axis draws `lo` and `hi` at once, so it names no single
+    /// field, and the page, matching a brush's column to the axis field alone,
+    /// dropped every drag: a brushed `interval * bounds(lo, hi)` was right as
+    /// first drawn and never moved. And `bounds` is written as a transform, so the
+    /// panel read as `summary`, many rows per mark, where each whisker is one row.
+    #[test]
+    fn a_brushed_bounds_panel_names_its_columns_and_its_rows() {
+        let df = DataFrame::new()
+            .with_str("term", vec!["Age".into(), "Education".into(), "Experience".into()])
+            .with_float("lo", vec![0.02, 0.31, 0.11])
+            .with_float("hi", vec![0.18, 0.55, 0.29]);
+        let data = HashMap::from([("t".to_string(), df)]);
+        let mut layer = Layer::new(Mark::Interval).transform(Transform::Bounds);
+        layer.bounds = Some(crate::ir::BoundsSpec {
+            lower: Some("lo".into()), upper: Some("hi".into()), ..Default::default()
+        });
+        let spec = PlotSpec::new().data("t").y("term").layer(layer)
+            .brush(crate::ir::BrushDef::new("lo").at(0.0, 0.2));
+        let svg = SvgRenderer::default().render(&spec, &data);
+        let panel = svg.lines().find(|l| l.contains("data-gog-panel")).expect("the brush frame");
+        assert!(panel.contains(r#"data-x-fields="lo|hi""#), "both columns on the axis: {panel}");
+        assert!(panel.contains(r#"data-gog-place="bounds""#), "one row per shape: {panel}");
+        assert!(!svg.lines().filter(|l| l.contains("data-gog-panel")).any(|l| l.contains("data-y-fields")),
+                "and nothing along the axis no pair lies on");
     }
 
     /// **A selection pushes back what it was taken from**, rather than removing

@@ -579,8 +579,13 @@ export function attachBrush(engine, container, request, options = {}) {
         const [from, to] = span.split(" ").map(Number);
         const cats = g.getAttribute(`data-${name}-cats`);
         const log = g.getAttribute(`data-${name}-log`);
+        const drawn = g.getAttribute(`data-${name}-fields`);
         return {
           field: g.getAttribute(`data-${name}-field`),
+          // Every column the axis draws, where that is more than one: a
+          // `bounds` pair lies along one axis, which therefore names no single
+          // field, and a brush on either column moves along it.
+          fields: drawn === null ? [] : drawn.split("|"),
           from, to, lo, hi,
           log: log === null ? null : Number(log),
           cats: cats === null ? null : cats.split("|"),
@@ -620,6 +625,13 @@ export function attachBrush(engine, container, request, options = {}) {
         place: g.getAttribute("data-gog-place"),
       };
     });
+
+  // Does this axis draw that column? Its own field, or one of the columns a
+  // `bounds` pair lays along it. Asked wherever a brush is matched to an axis:
+  // matched against the field alone, a brush on `lo` found no axis on an
+  // `interval * bounds(lo, hi)` and every drag was dropped.
+  const reads = (axis, field) =>
+    !!axis && !!field && (axis.field === field || axis.fields.includes(field));
 
   // Where the pointer is, in this panel's own user space.
   const pointIn = (panel, event) => {
@@ -674,8 +686,8 @@ export function attachBrush(engine, container, request, options = {}) {
     // band is a rectangle from the first pixel of the drag.
     if (bare) return { x: panel.x, y: panel.y };
     return {
-      x: panel.x && fields.has(panel.x.field) ? panel.x : null,
-      y: panel.y && fields.has(panel.y.field) ? panel.y : null,
+      x: [...fields].some((f) => reads(panel.x, f)) ? panel.x : null,
+      y: [...fields].some((f) => reads(panel.y, f)) ? panel.y : null,
     };
   };
 
@@ -808,7 +820,7 @@ export function attachBrush(engine, container, request, options = {}) {
       // lit than the shape they drew holds. A bound on some *other* column is a
       // constraint the sentence made and stays.
       for (const entry of plot.brush) {
-        if (entry.field === panel.x.field || entry.field === panel.y.field) {
+        if (reads(panel.x, entry.field) || reads(panel.y, entry.field)) {
           delete entry.at;
           delete entry.levels;
         }
@@ -1444,7 +1456,7 @@ export function attachBrush(engine, container, request, options = {}) {
       }
       for (const entry of plot.brush ?? []) {
         for (const [axis, a, b] of [[panel.x, start.x, now.x], [panel.y, start.y, now.y]]) {
-          if (!axis || axis.field !== entry.field) continue;
+          if (!reads(axis, entry.field)) continue;
           delete entry.at;
           delete entry.levels;
           // A click clears the selection rather than selecting a point. Two
