@@ -124,16 +124,19 @@ def _columns(rows, text=()):
             table[key] = values
             continue
         try:
-            table[key] = [None if value in _MISSING_CELLS else float(value)
+            table[key] = [None if _missing(value) else float(value)
                           for value in values]
         except ValueError:
             table[key] = values
     return table
 
 
-# What R's `read.csv` reads as missing in a column of numbers: an empty cell, and
-# `NA`, which R writes for one.
-_MISSING_CELLS = ("", "NA")
+def _missing(value):
+    """What R's ``read.csv`` reads as missing in a column of numbers: a blank
+    cell, which a cell of nothing but spaces also is, and ``NA``, which R writes
+    for one. ``NA`` is matched whole: R does not trim it, so `` NA `` makes a
+    column text there, and it does here."""
+    return value == "NA" or value.strip() == ""
 
 
 def gog_table(name, text=()):

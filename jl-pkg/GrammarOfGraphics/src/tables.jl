@@ -142,9 +142,12 @@ _unreachable(name) =
 
 Turn a parsed CSV into columns with the right types. A CSV is text, so every
 value arrives as text. A column becomes numbers when every value in it parses as
-one, and stays text otherwise. In a column of numbers an empty cell or `NA` is a
+one, and stays text otherwise. In a column of numbers a blank cell or `NA` is a
 missing value, as R's `read.csv` reads it; either one turned the whole column
-into text. Naming a column in `text` keeps it text no matter what it looks like.
+into text. A cell of nothing but spaces is blank too: R reads it as missing, and
+reading it as text here drew a different plot from the same file. `NA` is
+matched whole, as R matches it. Naming a column in `text` keeps it text no matter
+what it looks like.
 """
 function _columns(raw, header, text)
     table = Dict{String,Any}()
@@ -155,7 +158,8 @@ function _columns(raw, header, text)
             table[key] = values
             continue
         end
-        parsed = [v in ("", "NA") ? missing : tryparse(Float64, String(v)) for v in values]
+        parsed = [v == "NA" || isempty(strip(v)) ? missing : tryparse(Float64, String(v))
+                  for v in values]
         table[key] = if any(isnothing, parsed)
             values
         elseif any(ismissing, parsed)

@@ -4030,14 +4030,18 @@ else:
     ok("a polars Enum keeps its declared order")
 
 
-# --- An empty numeric cell is a missing value -------------------------------------------
+# --- A blank numeric cell is a missing value --------------------------------------------
 # gog_table()'s reader turned a column of numbers into text over one empty cell or one
 # `NA`; R's read.csv, the reference, reads both as missing. A text column keeps its text.
+# A cell of nothing but spaces is blank too: R read it as missing while this read the
+# column as text, so one file drew two pictures. ` NA ` is not `NA`, in R or here.
 # (JavaScript read the empty cell as 0; R needs no test, being the reference.)
 from gog.tables import _columns as _csv_columns
-_cols = _csv_columns([{"a": "1", "b": "x"}, {"a": "", "b": ""}, {"a": "NA", "b": "z"}, {"a": "4", "b": "w"}])
+_cols = _csv_columns([{"a": "1", "b": "x", "c": "1", "d": "1"}, {"a": "", "b": "", "c": " ", "d": " NA "},
+                      {"a": "NA", "b": "z", "c": "3", "d": "3"}, {"a": "4", "b": "w", "c": "4", "d": "4"}])
 assert _cols["a"] == [1.0, None, None, 4.0] and _cols["b"] == ["x", "", "z", "w"], _cols
-ok("an empty numeric cell is a missing value")
+assert _cols["c"] == [1.0, None, 3.0, 4.0] and _cols["d"] == ["1", " NA ", "3", "4"], _cols
+ok("a blank numeric cell is a missing value")
 
 
 

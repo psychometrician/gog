@@ -4127,15 +4127,20 @@ test("an expression in a channel is refused with direction", () => {
   assert.equal(`${col.gdp}`, "col.gdp");
 });
 
-// An empty numeric cell is a missing value: gog_table()'s reader read it as 0, and a
-// cell of spaces too, and an `NA` turned the column into text. R's read.csv, the
-// reference, reads the empty cell and `NA` as missing; a text column keeps its text.
-test("an empty numeric cell is a missing value", async () => {
+// A blank numeric cell is a missing value: gog_table()'s reader read it as 0, and an
+// `NA` turned the column into text. R's read.csv, the reference, reads the empty cell
+// and `NA` as missing; a text column keeps its text. A cell of nothing but spaces is
+// blank too: R read it as missing while this read the column as text, so one file drew
+// two pictures. ` NA ` is not `NA`, in R or here. The same block runs in all four
+// bindings.
+test("a blank numeric cell is a missing value", async () => {
   const { columns } = await import("../src/tables.js");
-  const cols = columns([["a", "b", "c"], ["1", "x", "1"], ["", "", " "], ["NA", "z", "3"], ["4", "w", "4"]]);
+  const cols = columns([["a", "b", "c", "d"], ["1", "x", "1", "1"], ["", "", " ", " NA "],
+    ["NA", "z", "3", "3"], ["4", "w", "4", "4"]]);
   assert.deepEqual(cols.a, [1, null, null, 4]);
   assert.deepEqual(cols.b, ["x", "", "z", "w"]);
-  assert.deepEqual(cols.c, ["1", " ", "3", "4"]);
+  assert.deepEqual(cols.c, [1, null, 3, 4]);
+  assert.deepEqual(cols.d, ["1", " NA ", "3", "4"]);
 });
 
 // Messages that pointed the wrong way point at a spelling that draws: the missing-value

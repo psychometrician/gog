@@ -152,16 +152,18 @@ export function parse_csv(text) {
  *
  * A CSV is text, so every value arrives as text. A column becomes numbers when
  * every value in it parses as one, and stays text otherwise. In a column of
- * numbers an empty cell or `NA` is a missing value, as R's `read.csv` reads it:
- * `Number("")` read an empty cell as 0, a cell of spaces too, and `NA` turned
- * the whole column into text. Naming a column in `text` keeps it text no matter
- * what it looks like.
+ * numbers a blank cell or `NA` is a missing value, as R's `read.csv` reads it:
+ * `Number("")` read an empty cell as 0, and `NA` turned the whole column into
+ * text. A cell of nothing but spaces is blank too: R reads it as missing, and
+ * reading it as text here drew a different plot from the same file. `NA` is
+ * matched whole, as R matches it. Naming a column in `text` keeps it text no
+ * matter what it looks like.
  */
 export function columns(rows, text = []) {
   const [head, ...body] = rows;
   const number = (value) =>
-    value === "" || value === "NA" ? null
-      : typeof value !== "string" || value.trim() === "" ? NaN : Number(value);
+    typeof value !== "string" ? NaN
+      : value === "NA" || value.trim() === "" ? null : Number(value);
   return Object.fromEntries(head.map((key, i) => {
     const values = body.map((row) => row[i]);
     if (text.includes(key)) return [key, values];

@@ -262,11 +262,13 @@ CRAN-style repositories and PyPI, `GrammarOfGraphics` on Julia's General, and
   text mode, which on Windows turns each line break into two bytes. It now
   writes the text as it is, as `save_svg()` does.
 
-- **`gog_table()` reads an empty numeric cell as a missing value in every
-  language.** JavaScript read it as 0, and a cell of spaces too; Python and
-  Julia turned the whole column into text, as all three did for a cell reading
-  `NA`. In a column of numbers, an empty cell or `NA` is now missing, as R's
-  `read.csv` reads it, and a text column keeps its text.
+- **`gog_table()` reads a blank numeric cell as a missing value in every
+  language.** JavaScript read an empty cell as 0, and a cell of spaces too;
+  Python and Julia turned the whole column into text, as all three did for a
+  cell reading `NA`, and as all three did for a cell of nothing but spaces,
+  which R reads as missing, so one file drew two pictures. In a column of
+  numbers, a blank cell or `NA` is now missing in all four, as R's `read.csv`
+  reads it, and a text column keeps its text.
 
 - **In Python, a polars `Enum` keeps its declared order.** Its categories were
   lost, so the bars fell into row order without a word. They now follow the

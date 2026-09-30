@@ -3490,15 +3490,19 @@ end
     @test_throws MethodError x(:gdp / 1000)
 end
 
-# An empty numeric cell is a missing value: gog_table()'s reader turned a column of
+# A blank numeric cell is a missing value: gog_table()'s reader turned a column of
 # numbers into text over one empty cell or one `NA`. R's read.csv, the reference, reads
-# both as missing; a text column keeps its text.
-@testset "an empty numeric cell is a missing value" begin
-    raw = ["1" "x"; "" ""; "NA" "z"; "4" "w"]
-    cols = GrammarOfGraphics._columns(raw, ["a" "b"], String[])
+# both as missing; a text column keeps its text. A cell of nothing but spaces is blank
+# too: R read it as missing while this read the column as text, so one file drew two
+# pictures. ` NA ` is not `NA`, in R or here. The same block runs in all four bindings.
+@testset "a blank numeric cell is a missing value" begin
+    raw = ["1" "x" "1" "1"; "" "" " " " NA "; "NA" "z" "3" "3"; "4" "w" "4" "4"]
+    cols = GrammarOfGraphics._columns(raw, ["a" "b" "c" "d"], String[])
     @test isequal(cols["a"], [1.0, missing, missing, 4.0])
     @test eltype(cols["a"]) == Union{Missing,Float64}
     @test cols["b"] == ["x", "", "z", "w"]
+    @test isequal(cols["c"], [1.0, missing, 3.0, 4.0])
+    @test cols["d"] == ["1", " NA ", "3", "4"]
 end
 
 # Messages that pointed the wrong way point at a spelling that draws: the missing-value
