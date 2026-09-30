@@ -6157,16 +6157,20 @@ local({
 # The `%>%` warning said two tables piped this way "collide", and they do not:
 # `+` renames the name gog invented, so the second is `data2` and the plot
 # draws. The warning now says so. (R alone: the other three have no `%>%`.)
+# `t %>% data()` calls `data(.)` with `.` bound to `t`, so binding it here
+# reaches the same path. Calling magrittr instead made it a dependency of the
+# suite that `DESCRIPTION` does not declare, which `R CMD check` warns about
+# whether or not the package is installed.
 # ---------------------------------------------------------------------------
 local({
-  if (!requireNamespace("magrittr", quietly = TRUE)) {
-    cat("SKIP: magrittr not installed\n"); return(invisible())
-  }
-  `%>%` <- magrittr::`%>%`
   t <- data.frame(a = c(1, 2), b = c(3, 4)); u <- data.frame(a = c(1, 2), b = c(5, 6))
   said <- character(0)
-  svg <- withCallingHandlers(
-    render_svg(t %>% data() + point + x(a) + y(b) + u %>% data() + line),
+  svg <- withCallingHandlers({
+      . <- t
+      first <- data(.) + point + x(a) + y(b)
+      . <- u
+      render_svg(first + data(.) + line)
+    },
     warning = function(w) { said <<- c(said, conditionMessage(w)); invokeRestart("muffleWarning") },
     message = function(m) invokeRestart("muffleMessage"))
   if (!nzchar(svg) || !length(said) || any(grepl("collide", said, fixed = TRUE)) ||
@@ -6179,17 +6183,15 @@ local({
 # A table named by the reader takes its name from one the binding invented: a
 # piped table followed by `data(data)` was refused as two tables with one name,
 # while the other order drew. The invented name moves, as it does on a page. The
-# same block runs in all four bindings.
+# same block runs in all four bindings. `.` is bound as the pipe binds it, as
+# above.
 # ---------------------------------------------------------------------------
 local({
-  if (!requireNamespace("magrittr", quietly = TRUE)) {
-    cat("SKIP: magrittr not installed\n"); return(invisible())
-  }
-  `%>%` <- magrittr::`%>%`
   actuals <- data.frame(year = c(1, 2, 3), sales = c(4, 5, 6))
   data <- data.frame(year = c(4, 5), sales = c(7, 8))
+  . <- actuals
   piped <- suppressWarnings(render_svg(
-    actuals %>% data() + line + x(year) + y(sales) + data(data) + point))
+    data(.) + line + x(year) + y(sales) + data(data) + point))
   named <- render_svg(data(actuals, name = "data2") + line + x(year) + y(sales) +
                       data(data) + point)
   if (!identical(piped, named))
