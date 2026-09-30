@@ -63,7 +63,9 @@ CRAN-style repositories and PyPI, `GrammarOfGraphics` on Julia's General, and
   to true", "write 5 to 20, or leave one end missing", "store the column as
   dates", "the colors themselves, such as "white" and "navy"". The settings
   table in each mark's chapter lists `caps` and `center` as "true or false",
-  where it printed R's `TRUE` and `FALSE`.
+  where it printed R's `TRUE` and `FALSE`. The refusal of a `surface` with no
+  complete cell, which named `expand.grid()`, now says what a grid is: every
+  `x` value paired with every `y` value.
 
 - **In JavaScript, a Promise handed to `data()` is refused with its `await`.**
   `gog_table()` is asynchronous in JavaScript alone, so

@@ -3233,8 +3233,8 @@ fn check_surface(
             message: format!(
                 "gog: `surface` found no complete cell to draw a face on — \
                  {filled} rows over {} distinct `{xf}` and {} distinct `{yf}` values, which is a \
-                 scatter rather than a grid. A surface needs one row per (x, y) crossing, the \
-                 shape `expand.grid()` makes. For a cloud of scattered points use `point` with \
+                 scatter rather than a grid. A surface needs one row per (x, y) crossing: every \
+                 `{xf}` value paired with every `{yf}` value. For a cloud of scattered points use `point` with \
                  `z({})`; to estimate a field *from* them use \
                  `surface * density + x({xf}) + y({yf}) + space()`.",
                 lattice.xs.len(),
