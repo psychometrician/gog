@@ -4,7 +4,7 @@ All four packages share one version number and are released together: `gog` on
 CRAN-style repositories and PyPI, `GrammarOfGraphics` on Julia's General, and
 `grammar-of-graphics` on npm. A version means the same grammar in every one.
 
-## Unreleased
+## 0.4.0 (2026-09-30)
 
 ### Added
 
@@ -1217,7 +1217,7 @@ This one is in how a binding runs the engine.
   engine, with nothing on the screen. The engine now reads the request from a
   temporary file, which is removed when the call returns.
 
-## 0.3.0 (unreleased)
+## 0.3.0 (2026-09-20)
 
 ### Changed
 

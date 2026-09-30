@@ -1,3 +1,40 @@
+# gog 0.4.0 (2026-09-30)
+
+A `smooth` line can now carry its confidence band. `smooth_band` is to `smooth`
+what `confidence` is to `mean`, so `ribbon * smooth_band + line * smooth` draws
+the fitted curve inside its band. The level is 0.95 unless you name another, as
+in `smooth_band(0.99)`. It needs five rows in each group, because with fewer
+the curve passes through every row and nothing is left to measure the band
+from.
+
+Several sentences gog used to refuse now draw. Over a category, `point * dodge`
+is a beeswarm: each point moves across its slot only as far as it must to clear
+its neighbors, so the outline of each swarm shows its group's distribution.
+`text` takes a halo, a band of color under its letters set with
+`style(border_color =, border_size =)`, so a name stays readable over lines and
+dense points. A `surface` takes `quantile`, as it already took the other
+summaries. An atom written after a facet, as in `plot | facet(g) + title("A
+title")`, now draws in all four languages.
+
+Colors and legends follow what you name. `palette(c(Asia = "tomato", Europe =
+"steelblue"))` gives each category the color written beside it, whatever order
+the rows arrive in, and a misspelled name is answered with the category it was
+probably meant to be. `legend = FALSE` on a channel keeps the channel and leaves
+its legend out, for a plot that already names its categories on an axis or
+beside its marks.
+
+There is one way to write the drawing to a file. `save_svg(plot, "plot.svg")`
+writes it in all four languages, byte for byte what `render_svg()` returns, and
+a plot gog refuses leaves a file already at that path untouched. It replaces
+`save()` in Python, JavaScript and Julia, where `save()` now refuses and names
+it.
+
+On a web page, a selection reaches more plots. A brush moves across an
+`interval` or a `zone` placed by `bounds`, and a brushed plot in the cube or on
+the globe reports what its bound caught. Plots on one page that read one table
+count each row once, and the same plot twice on one page keeps its own controls
+and textures.
+
 # gog 0.3.0 (2026-09-20)
 
 Every plot with a y axis name looks different, and that is the headline rather

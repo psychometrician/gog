@@ -384,7 +384,7 @@ Six rules govern every page, and you can hold the book to them:
   engine's *no*, always with a direction, is half of what it teaches.
 
 One thing to be clear about before you start: this package is young. The
-version number is 0.3.0. A leading zero means the package has not reached its
+version number is 0.4.0. A leading zero means the package has not reached its
 first stable release. The grammar is settled
 enough to build on, and the implementation is not finished. What exists is a first
 working version, so do not expect everything to work the first time. If you use
@@ -615,7 +615,7 @@ chapters carries the longer version of this section: [R](bindings/r.qmd),
 [Python](bindings/python.qmd), [Julia](bindings/julia.qmd) and
 [JavaScript](bindings/javascript.qmd).
 
-Every one of these packages is at version 0.3.0. The grammar is settled and the
+Every one of these packages is at version 0.4.0. The grammar is settled and the
 engine draws this whole book, but the packaging is new, so releases will be
 frequent, and most of them will not change the vocabulary. One promise holds at every version:
 every page shows what the engine actually did. If a page shows a sentence, the
@@ -736,7 +736,7 @@ this package was never part of that job. It was built late at night, on
 weekends, and on vacation days. That time belonged to my wife and daughter, and
 I spent it talking to the Claude models on the cover instead. I am not
 going to call that devotion to the craft. To my wife and daughter: sorry.
-I would like to end by saying it is finished. It is not. The version is 0.3.0,
+I would like to end by saying it is finished. It is not. The version is 0.4.0,
 and what comes next will cost the same nights, weekends and vacation days.
 
 ## Thanks to Posit
