@@ -19,12 +19,29 @@
 # line outside a code chunk, the YAML block or a div fence that is not blank, not
 # a heading, and not part of a read-aloud sentence (a line opening with *" up to
 # the line closing with "*).
+#
+# **A section's first sentence does not lean on the text before its heading.** A
+# reader arrives at a section from the contents, a link or a search as often as
+# from the section above, and then "either", "too" or "as well" at the end of the
+# first clause points at a sentence they have not read. Splitting Python's "What
+# does not change" into two sections left "The vocabulary does not change
+# either:" under the second heading, pointing across it. A clause that names what
+# it adds to ("above", "earlier") is fine, and so is an additive word after a
+# comma, which leans on the clause before it in the same sentence ("a `path` has
+# no axis left over, and a `zone` has none either").
 
 check_sections <- function(book_dir = "book") {
   qmds <- list.files(book_dir, pattern = "[.]qmd$", recursive = TRUE, full.names = TRUE)
   qmds <- qmds[!grepl("/_book/", qmds, fixed = TRUE)]
 
   bad <- character(0)
+  leaning <- character(0)
+  # The first sentence's first clause ends on an additive word.
+  leans <- function(sentence) {
+    clause <- sub(",.*$", "", sentence)
+    grepl("\\b(either|too|as well)\\s*[.:;!?]?$", trimws(clause), ignore.case = TRUE) &&
+      !grepl("\\b(above|earlier|before|previous)\\b", clause, ignore.case = TRUE)
+  }
   for (f in qmds) {
     lines <- readLines(f, warn = FALSE)
     in_chunk <- FALSE
@@ -33,6 +50,8 @@ check_sections <- function(book_dir = "book") {
     heading  <- NULL     # c(line number, text) of the open section
     chunks   <- 0L
     prose    <- 0L
+    opening  <- character(0)  # the section's first paragraph, until its first sentence ends
+    opened   <- TRUE
 
     close_section <- function() {
       if (!is.null(heading) && chunks > 0L && prose == 0L) {
@@ -47,12 +66,14 @@ check_sections <- function(book_dir = "book") {
       if (grepl("^```", ln)) {
         if (!in_chunk && !is.null(heading)) chunks <- chunks + 1L
         in_chunk <- !in_chunk
+        if (length(opening)) opened <- TRUE
         next
       }
       if (in_chunk) next
       if (grepl("^#{1,6} ", ln)) {
         close_section()
         heading <- c(i, trimws(ln)); chunks <- 0L; prose <- 0L
+        opening <- character(0); opened <- !grepl("^#{2,6} ", ln)
         next
       }
       if (is.null(heading)) next
@@ -76,9 +97,21 @@ check_sections <- function(book_dir = "book") {
         }
         next
       }
-      if (!nzchar(trimws(ln))) next
-      if (grepl("^:::", ln)) next
+      if (!nzchar(trimws(ln))) { if (length(opening)) opened <- TRUE; next }
+      if (grepl("^:::", ln)) { if (length(opening)) opened <- TRUE; next }
       prose <- prose + 1L
+      # The first paragraph under a heading, read until its first sentence ends.
+      if (!opened && !grepl("^\\|", ln)) {
+        opening <- c(opening, ln)
+        text <- paste(opening, collapse = " ")
+        end <- regexpr("[.?!:](\\s|$)", text)
+        if (end > 0L) {
+          if (leans(substr(text, 1L, end)))
+            leaning <- c(leaning, sprintf("  %s:%s  %s  ||  %s", sub("^.*book/", "", f),
+                                          heading[1], heading[2], substr(text, 1L, end)))
+          opened <- TRUE
+        }
+      }
     }
     close_section()
   }
@@ -87,7 +120,16 @@ check_sections <- function(book_dir = "book") {
     cat("FAIL: a section holds a plot and says nothing about it\n")
     cat(paste(bad, collapse = "\n"), "\n")
     cat("  Say what the plot shows, in a sentence or two after its read-aloud sentence.\n")
-    stop("check_sections: ", length(bad), " section(s) hold a chunk and no prose")
+  }
+  if (length(leaning)) {
+    cat("FAIL: a section's first sentence leans on the text before its heading\n")
+    cat(paste(leaning, collapse = "\n"), "\n")
+    cat("  A reader can arrive at a section from the contents. Name what the clause adds to,\n")
+    cat("  as in \"Like the operators, the vocabulary does not change\".\n")
+  }
+  if (length(bad) || length(leaning)) {
+    stop("check_sections: ", length(bad), " section(s) hold a chunk and no prose, ",
+         length(leaning), " open(s) leaning on the text before the heading")
   }
   cat("PASS: every section with a plot says something about it (", length(qmds), "chapters )\n")
   invisible(TRUE)

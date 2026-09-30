@@ -110,8 +110,8 @@ openings you did not intend.
 
 ## A continuous floor
 
-A continent in one column and a year in another looks like a grid too, and a
-sheet over it is a reasonable thing to ask for. The two position columns make
+A table with a continent in one column and a year in another looks like the
+grids above, and a sheet over it is a reasonable thing to ask for. The two position columns make
 the sheet's **floor**, the plane under it, and both have to be continuous. A face
 stretches from one sample to the next and so claims every height *between* them,
 and between one category and the next there is nothing to claim. So a category

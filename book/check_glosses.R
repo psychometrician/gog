@@ -29,6 +29,20 @@
 # `bin` is new, and so is `speed =` after a bare `play`. A value change is not:
 # `bin(30)` after `bin(20)` repeats the sentence. The guard requires a
 # sentence; it never forbids one.
+#
+# **One rule of the sentence's grammar is checked against the code: number.**
+# A continuous mark takes an article, "a line", and turns plural once a channel
+# splits it, "lines" (the edit guide's §10). What splits it is `group` on any
+# column, or `color` or `pattern` on a column of categories, written before the
+# marks, where it reaches every layer, or after this mark. A sentence that says
+# "a line" over five drawn lines teaches the reader that where a channel is
+# written does not matter, which is the one thing `encoding-scope.qmd` exists to
+# say otherwise, and that is where it happened: "points and also a line derived
+# by smooth" under five trends. The column's type is read from the book's shared
+# tables; a table the chapter builds itself is skipped rather than guessed. Only
+# this direction is checked: a density over a categorical position also draws one
+# shape per category, a violin, and the code alone cannot tell that from one
+# stroke, so a plural is never refused.
 
 check_glosses <- function(book_dir = "book") {
   qmds <- list.files(book_dir, pattern = "[.]qmd$", recursive = TRUE, full.names = TRUE)
@@ -48,6 +62,74 @@ check_glosses <- function(book_dir = "book") {
 
   missing <- character(0)
   shape <- character(0)
+  number <- character(0)
+  n_number <- 0L
+
+  # The shared tables, for the type of a column a channel names.
+  tables <- new.env()
+  sys.source(file.path(book_dir, "R", "data.R"), envir = tables)
+  continuous <- list(line = c("a line", "lines"), area = c("an area", "areas"),
+                     ribbon = c("a ribbon", "ribbons"),
+                     step = c("a step outline", "step outlines"))
+  # Transforms that draw a picture of their own, where one shape per row or per
+  # flow is the mark's reading whatever splits it.
+  picture <- c("flow", "layout", "cluster", "partition", "bounds")
+  name_of <- function(e) if (is.name(e)) as.character(e) else if (is.call(e)) as.character(e[[1]])[1] else ""
+  lead <- function(e) { while (is.call(e) && name_of(e) == "*") e <- e[[2]]; e }
+  chain <- function(e) if (is.call(e) && name_of(e) == "*") c(chain(e[[2]]), chain(e[[3]])) else list(e)
+  is_facet <- function(e) is.call(e) && (name_of(e) == "facet" ||
+    (name_of(e) %in% c("|", "/", "+", "(") && any(vapply(as.list(e)[-1], is_facet, TRUE))))
+  # The terms of one plot in the order written, or NULL for a page of plots.
+  terms_of <- function(e) {
+    if (is.call(e)) {
+      fn <- name_of(e)
+      if (fn == "+" && length(e) == 3) return(c(terms_of(e[[2]]), terms_of(e[[3]])))
+      if (fn == "(") return(terms_of(e[[2]]))
+      if (fn %in% c("|", "/") && length(e) == 3)
+        return(if (is_facet(e[[3]])) terms_of(e[[2]]) else NULL)
+    }
+    list(e)
+  }
+  # Each continuous layer, in order, and whether a channel splits it: TRUE,
+  # FALSE, or NA when a column's type cannot be read.
+  splits_of <- function(sentence) {
+    ts <- terms_of(sentence)
+    if (is.null(ts)) return(list())
+    plot_table <- NA; pending <- NA; plot_ch <- list(); layers <- list()
+    for (t in ts) {
+      h <- name_of(lead(t))
+      if (h %in% c("data", "query")) {
+        tb <- if (is.call(t) && length(t) >= 2 && is.name(t[[2]])) as.character(t[[2]]) else NA
+        if (!length(layers) && is.na(plot_table)) plot_table <- tb else pending <- tb
+      } else if (h %in% marks) {
+        layers[[length(layers) + 1]] <- list(mark = h, ch = list(),
+          transforms = vapply(chain(t)[-1], name_of, ""),
+          table = if (!is.na(pending)) pending else plot_table)
+        pending <- NA
+      } else if (h %in% c("color", "group", "pattern") && is.call(t) && length(t) >= 2 &&
+                 is.name(t[[2]])) {
+        ch <- list(kind = h, col = as.character(t[[2]]))
+        if (!length(layers)) plot_ch[[length(plot_ch) + 1]] <- ch
+        else layers[[length(layers)]]$ch[[length(layers[[length(layers)]]$ch) + 1]] <- ch
+      }
+    }
+    out <- list()
+    for (L in layers) {
+      if (!L$mark %in% names(continuous)) next
+      split <- if (any(L$transforms %in% picture)) NA else FALSE
+      for (ch in c(plot_ch, L$ch)) {
+        if (is.na(split)) break
+        if (ch$kind == "group") { split <- TRUE; next }
+        df <- if (!is.na(L$table) && exists(L$table, envir = tables, inherits = FALSE))
+          get(L$table, envir = tables) else NULL
+        if (!is.data.frame(df) || !ch$col %in% names(df)) { split <- NA; break }
+        v <- df[[ch$col]]
+        if (is.character(v) || is.factor(v) || is.logical(v)) split <- TRUE
+      }
+      out[[length(out) + 1]] <- list(mark = L$mark, split = split)
+    }
+    out
+  }
   n_plots <- 0L
   n_glossed <- 0L
 
@@ -147,6 +229,29 @@ check_glosses <- function(book_dir = "book") {
         # deliberately extends the sentence just read.
         ok <- grepl('^\\*"(Given |…)', text) && grepl('\\."\\*$', text)
         if (!ok) shape <- c(shape, sprintf("%s  %s", where, substr(text, 1, 90)))
+        # Number: a continuous mark a channel splits is spoken in the plural.
+        if (!helper) {
+          exprs <- tryCatch(parse(text = body[!grepl("^#\\|", body)]), error = function(e) NULL)
+          layers <- if (length(exprs)) tryCatch(splits_of(exprs[[length(exprs)]]),
+                                                error = function(e) list()) else list()
+          count <- c(line = 0L, area = 0L, ribbon = 0L, step = 0L)
+          for (L in layers) {
+            count[L$mark] <- count[L$mark] + 1L
+            if (!isTRUE(L$split)) next
+            n_number <- n_number + 1L
+            forms <- continuous[[L$mark]]
+            at <- function(form) {
+              m <- gregexpr(sprintf("\\b%s\\b", form), text)[[1]]
+              as.integer(m[m > 0])
+            }
+            said <- rbind(data.frame(at = at(forms[1]), plural = rep(FALSE, length(at(forms[1])))),
+                          data.frame(at = at(forms[2]), plural = rep(TRUE, length(at(forms[2])))))
+            said <- said[base::order(said$at), , drop = FALSE]  # gog's own order() is attached
+            if (nrow(said) >= count[L$mark] && !said$plural[count[L$mark]])
+              number <- c(number, sprintf("%s  a %s split by a channel, spoken as \"%s\"",
+                                          where, L$mark, forms[1]))
+          }
+        }
       } else if (need) {
         why <- if (first) "the chapter's first plot" else paste("new:", paste(new, collapse = ", "))
         missing <- c(missing, sprintf("%s  %s", where, why))
@@ -156,7 +261,13 @@ check_glosses <- function(book_dir = "book") {
     }
   }
 
-  if (length(missing) || length(shape)) {
+  if (length(number)) {
+    cat("FAIL: a continuous mark a channel splits is spoken in the singular\n")
+    cat(paste(number, collapse = "\n"), "\n")
+    cat("  A color or pattern of categories, or any group, written before the marks or\n")
+    cat("  after this one splits it: \"lines\", \"areas\", \"ribbons\", \"step outlines\".\n")
+  }
+  if (length(missing) || length(shape) || length(number)) {
     if (length(missing)) {
       cat("FAIL: a plot introduces an element and has no read-aloud sentence after it\n")
       cat(paste(missing, collapse = "\n"), "\n")
@@ -169,9 +280,11 @@ check_glosses <- function(book_dir = "book") {
       cat("  It starts *\"Given <table>: and ends with a period inside the quotes.\n")
     }
     stop("check_glosses: ", length(missing), " plot(s) without a sentence, ",
-         length(shape), " sentence(s) off shape")
+         length(shape), " sentence(s) off shape, ", length(number),
+         " split mark(s) spoken in the singular")
   }
   cat("PASS: every plot that introduces an element carries its sentence (",
-      n_glossed, "sentences under", n_plots, "plots )\n")
+      n_glossed, "sentences under", n_plots, "plots;", n_number,
+      "split marks spoken in the plural )\n")
   invisible(TRUE)
 }
