@@ -6287,12 +6287,18 @@ local({
 local({
   cube <- data.frame(a = c(1, 2, 3, 4, 5), b = c(5, 4, 3, 2, 1), c = c(2, 4, 1, 5, 3))
   svg <- render_svg(data(cube) + point + x(a) + y(b) + z(c) + space(tilt = -25))
-  grab <- function(text, pattern) as.numeric(regmatches(text, gregexpr(pattern, text, perl = TRUE))[[1]])
-  cx <- grab(svg, '(?<=<circle cx=")[0-9.]+')
-  cy <- grab(svg, '(?<=<circle cx="[0-9.]{1,12}" cy=")[0-9.]+')
+  # The number is captured by a group rather than found behind a lookbehind: a
+  # lookbehind of variable length compiled on macOS and was refused on Linux,
+  # whose PCRE2 is older, so the suite passed here and stopped there.
+  grab <- function(text, pattern) {
+    hits <- regmatches(text, gregexpr(pattern, text, perl = TRUE))[[1]]
+    as.numeric(sub(pattern, "\\1", hits, perl = TRUE))
+  }
+  cx <- grab(svg, '<circle cx="([0-9.]+)"')
+  cy <- grab(svg, '<circle cx="[0-9.]+" cy="([0-9.]+)"')
   frame <- sub('</g>.*', "", sub('.*?paint-order="stroke"', "", svg))
-  lx <- grab(frame, '(?<=<text x=")[0-9.-]+')
-  ly <- grab(frame, '(?<=<text x="[0-9.-]{1,12}" y=")[0-9.-]+')
+  lx <- grab(frame, '<text x="([0-9.-]+)"')
+  ly <- grab(frame, '<text x="[0-9.-]+" y="([0-9.-]+)"')
   inside <- lx > min(cx) & lx < max(cx) & ly > min(cy) & ly < max(cy)
   if (length(lx) == 0 || any(inside))
     stop("FAIL: seen from below, a cube's numbers should sit outside the data")
