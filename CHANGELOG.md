@@ -65,6 +65,13 @@ CRAN-style repositories and PyPI, `GrammarOfGraphics` on Julia's General, and
   table in each mark's chapter lists `caps` and `center` as "true or false",
   where it printed R's `TRUE` and `FALSE`.
 
+- **In JavaScript, a Promise handed to `data()` is refused with its `await`.**
+  `gog_table()` is asynchronous in JavaScript alone, so
+  `data(gog_table("medals"))` without `await` is the commonest way to hand
+  `data()` a Promise, and it was refused later, for the first column the plot
+  could not find, with advice to check a spelling that was right. It is now
+  refused at `data()`, which says to write `const df = await gog_table("medals")`.
+
 - **`plot | facet(g) + title("…")` draws in R and Python.** In both, `+` binds
   before `|`, so an atom written after the facet reached the facet first, and it
   was refused with a message saying to write it before the facet, where Julia

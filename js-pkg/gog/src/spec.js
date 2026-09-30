@@ -468,6 +468,17 @@ export function data(table, options = {}) {
         "then the columns are named inside the plot: `x(col.gdp)`."
     );
   }
+  // `gog_table()` is asynchronous in JavaScript alone, so the commonest way to
+  // hand `data()` a Promise is to forget its `await`. A Promise is an object,
+  // so it passed the check below and the plot was refused later, for the first
+  // column it could not find, with advice to check a spelling that was right.
+  if (typeof table?.then === "function") {
+    throw new GogError(
+      "gog: `data()` got a Promise rather than a table. `gog_table()` is " +
+        "asynchronous in JavaScript, so await it first: " +
+        '`const df = await gog_table("medals")`, then `data(df)`.'
+    );
+  }
   if (table === null || typeof table !== "object") {
     throw new GogError(
       "gog: `data()` takes a table — an object of columns, " +

@@ -537,6 +537,19 @@ test("a plot starts with its table", () => {
   refuses(() => data("gm"), /takes a table/);
 });
 
+// `gog_table()` is asynchronous in JavaScript alone, so a forgotten `await` is the
+// commonest way a Promise reaches `data()`. It is an object, so it passed as a table
+// and the plot was refused later for a column it could not find, with advice to check
+// a spelling that was right. Refused at the door, naming the `await`. (The other three
+// bindings' `gog_table()` returns the table itself, so they have nothing to refuse.)
+test("a Promise handed to data() is refused with its await", () => {
+  const pending = Promise.resolve({ country: ["a"], gold: [1] });
+  refuses(() => data(pending), /got a Promise rather than a table[\s\S]*await gog_table/);
+  refuses(() => plot(data(pending), bar, x(col.country), y(col.gold)),
+    /await gog_table/);
+  return pending;
+});
+
 // ---------------------------------------------------------------------------
 // The wire, and the engine behind it
 // ---------------------------------------------------------------------------
