@@ -151,6 +151,11 @@ export function renderSpec(engine, request) {
  * The leaf question, asked per cell. The two spaces share their view words
  * (`turn`, `tilt`) and their gesture: a drag pins the thing drawn to the
  * pointer, whichever of the two it is. */
+// A plot drawn in `polar()`, where one axis bends into an angle.
+function plotIsPolar(spec) {
+  return !!(spec?.coord && typeof spec.coord === "object" && spec.coord.polar);
+}
+
 function plotIsSpatial(spec) {
   if (spec?.coord && typeof spec.coord === "object" && (spec.coord.space || spec.coord.globe)) return true;
   // A network with a *stated* angle is the cube form and turns; bare
@@ -870,9 +875,6 @@ export function attachBrush(engine, container, request, options = {}) {
   // is larger than the picture in front of the reader.
   // ---------------------------------------------------------------------
   let tip = null;
-  // Why the last refused panel a reader pointed at could not answer, or `null`
-  // while nobody has asked. The bar reads it.
-  let unplaced = null;
 
   // The moment showing now. Every frame is in the document and the clock chooses
   // between them: frame `i` is displayed over `[i*s, i*s + s)` and the sequence
@@ -1513,6 +1515,16 @@ export function attachBrush(engine, container, request, options = {}) {
     const all = panels();
     held = all.findIndex((p) => holds(p, pointIn(p, e)));
     if (held < 0) return;
+    // **A polar panel keeps the sentence's selection and takes no drag.** The
+    // band is read along straight axes and the plot draws `x` as an angle and `y`
+    // as a distance, so a band over the right half of the circle caught rows
+    // drawn on the left. Until the plot has a gesture of its own, a wedge around
+    // or a ring in and out, a drag there changes nothing rather than the wrong
+    // rows.
+    if (all[held].place === "polar") {
+      held = -1;
+      return;
+    }
     start = pointIn(all[held], e);
     moved = false;
     // A free shape is collected from the first sample. On a panel that measures
@@ -1529,13 +1541,10 @@ export function attachBrush(engine, container, request, options = {}) {
       // Not dragging: say what is under the pointer.
       const all = panels();
       const over = all.find((p) => holds(p, pointIn(p, e)));
-      // A panel that cannot place a row says so, once, and only after someone
-      // has pointed at it. Printing the reason under every such plot would put
-      // an apology on pages nobody was asking a question about.
-      if (over && over.place !== "row" && unplaced !== over.place) {
-        unplaced = over.place;
-        onSelect?.();
-      }
+      // A panel that cannot place a row shows no card, and says nothing about
+      // it. It used to print a reason under the plot, in the engine's terms,
+      // and readers could not use it; a hover that shows no card explains
+      // itself, and the reason is in the book's selection chapter.
       const hit = over && mode() === "select" ? nearest(over, pointIn(over, e)) : null;
       if (hit) showTip(over, hit);
       else hideTip();
@@ -1637,9 +1646,6 @@ export function attachBrush(engine, container, request, options = {}) {
      *  the count, because two gestures leave a count that looks untouched: a
      *  click empties the selection, and a drag can catch every row. */
     changed: () => eachPlot(req.spec).some((p, i) => selects(p.brush, p.region) !== said[i]),
-    /** Why pointing at this plot cannot name a row, once someone has tried it.
-     *  `null` until then, and on every plot that can answer. */
-    unplaced: () => unplaced,
     /** How many rows the reader has left on the picture. */
     stamps: () => pins.length,
     clearStamps,
@@ -1672,9 +1678,6 @@ export function attachBrush(engine, container, request, options = {}) {
     },
   };
 }
-
-
-
 
 
 /**
@@ -1784,36 +1787,6 @@ export function selectedRows(req, limit = PAGE_ROWS, offset = 0) {
   return result;
 }
 
-
-
-/**
- * Why pointing at a plot names nothing, in the reader's words rather than the
- * engine's. The engine ships one word on the panel (`data-gog-place`), because
- * it is the only side that knows a mark was moved off its value; the sentence
- * is written here, where the page speaks, and the selection bar shows it under
- * the plot once a reader has pointed.
- *
- * Every one of these says the same thing twice over: what the plot did to the
- * position, and therefore why a pointer cannot answer. A reader who knows the
- * first can predict the rest, which is the point of saying it rather than going
- * quiet.
- *
- * One entry for every word the engine can write on a brushed panel. A word with
- * no sentence here would print the note's opening and then nothing, so a test
- * holds the two lists together. `network` and `globe` are absent on purpose: a
- * brush is refused in a network, and a globe is turned rather than pointed at.
- */
-export const UNPLACED = {
-  jitter: "`jitter` draws each point beside its value, not on it, so pointing at one cannot say which row it is.",
-  repel: "`repel` moves each label until it is clear of the others, so a label no longer sits where its row does.",
-  dodge: "`dodge` sets each mark beside its value to clear its neighbors, so pointing at one cannot say which row it is.",
-  stack: "`stack` sets each mark on top of the one below, so where a mark sits is not where its value is.",
-  summary: "each mark here stands for many rows at once, so there is no one row under the pointer to name.",
-  bounds: "these shapes are placed by the bounds you gave them rather than by a row's value.",
-  mark: "this mark draws one shape through many rows, so no single row is under the pointer.",
-  polar: "a polar plot turns `x` into an angle and `y` into a distance from the center, and the page reads a value back along straight axes.",
-  map: "a map projects longitude and latitude to new positions before drawing, so a mark no longer stands at its row's values.",
-};
 
 /** The outlined text button: `show rows`, `clear` and `unstamp`. */
 const TEXT_BUTTON =
@@ -1992,9 +1965,6 @@ function addSelectionBar(container, handle, view) {
 
   const rows = caughtRows(handle.selection);
 
-  const note = document.createElement("span");
-  note.style.cssText = "opacity:.72;";
-
   const reset = document.createElement("button");
   reset.type = "button";
   reset.title = "clear the selection";
@@ -2045,11 +2015,7 @@ function addSelectionBar(container, handle, view) {
   controls.append(rows.toggle, reset, unstamp);
   bar.append(group, rows.readout, controls);
   placeBar(container, viewRow, bar);
-  // Under the bar rather than in it. It is a sentence and the bar is a line of
-  // labels, so putting it inline would push the buttons about the moment it
-  // appeared, on a plot the reader had only pointed at.
-  bar.after(note);
-  note.after(rows.table);
+  bar.after(rows.table);
   rows.table.after(rows.pager);
 
   const render = () => {
@@ -2066,9 +2032,6 @@ function addSelectionBar(container, handle, view) {
       b.style.color = on ? "#222" : "#777";
       b.setAttribute("aria-pressed", on ? "true" : "false");
     }
-    const why = handle.unplaced?.();
-    note.textContent = why ? `Pointing reads no row here: ${UNPLACED[why] ?? ""}` : "";
-    note.style.display = why ? "block" : "none";
     // `clear` asks a different question from `show rows`: is there a bound of
     // the sentence's to go back to? It used to ask the count, and the count
     // cannot see it. A click on empty space reads `0 of 0` and a drag over the
@@ -2441,6 +2404,26 @@ export async function mount(target, request, options = {}) {
       return { ...handle, opened: [] };
     }
     return null;
+  }
+
+  // **A brushed polar plot holds its selection still**, as a turnable plot does:
+  // the selection the sentence names, its count and `show rows`, and no drag, no
+  // `drag:` switcher and no `clear`, since no gesture here can move the bound.
+  // A band would be read along straight axes while the plot draws `x` as an
+  // angle and `y` as a distance, so a band over the right half of the circle
+  // caught rows drawn on the left. It needs no engine: nothing here redraws.
+  // Everything else is the view the same plot has unbrushed, `mountView`'s own,
+  // so zoomed in, a drag pans; built beside it, a zoomed polar plot could not be
+  // moved at all.
+  if (!spatial && eachPlot(request?.spec).every((p) => !p.brush?.length || plotIsPolar(p))) {
+    const caught = caughtRows((offset) => selectedRows(request, PAGE_ROWS, offset));
+    const line = controlBar("selection");
+    line.append(caught.readout, caught.toggle);
+    const handle = mountView(container, options, [line, caught.table, caught.pager]);
+    if (!handle) return null;
+    caught.show();
+    container.dataset.gogBuild = BUILD;
+    return { ...handle, opened: [] };
   }
 
   try {

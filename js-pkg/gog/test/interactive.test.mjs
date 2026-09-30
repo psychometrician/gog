@@ -35,7 +35,6 @@ import {
   nearestRow,
   redraw,
   renderSpec,
-  UNPLACED,
 } from "../src/interactive.js";
 import { addViewControls, controlBar, pngSize } from "../src/view.js";
 
@@ -1522,9 +1521,9 @@ test("a value with no place on a log axis does not silence the panel", () => {
 
 // A disc turns `x` into an angle and `y` into a distance from its center, and the
 // readout reads a value back along straight axes, so there is no answer to give.
-// Going quiet is the honest half; the bar says why once the reader has asked,
-// which is the other half.
-test("a plot that cannot place a row says nothing, and says why", async () => {
+// It shows no card, and prints nothing under the plot: the reason it used to
+// print was in the engine's terms, and readers could not use it.
+test("a plot that cannot place a row shows no card, and prints nothing", async () => {
   const undo = stubDom();
   try {
     const { handle, container, panels } = await hoverFixture(
@@ -1534,7 +1533,7 @@ test("a plot that cannot place a row says nothing, and says why", async () => {
 
     container.send("pointermove", placeOn(p.x, 50), placeOn(p.y, 50));
     assert.equal(onPage("gog-tip").length, 0, "no readout on a panel that cannot place");
-    assert.equal(handle.unplaced(), "polar", "and the bar has a reason to give");
+    assert.equal(handle.unplaced, undefined, "and no reason is kept for a line under the plot");
     handle.destroy();
   } finally {
     undo();
@@ -1577,36 +1576,74 @@ test("a brush on a bounds column moves with a drag", async () => {
   }
 });
 
-// The engine writes one word on a panel it cannot place rows on, and the page
-// turns it into a sentence. A word with no sentence prints the note's opening and
-// stops there, so both lists are read from their sources and held together.
-test("every word the engine can write on a brushed panel has a sentence", () => {
-  const legality = fs.readFileSync(path.join(ROOT, "gog-core/src/legality.rs"), "utf8");
-  const svg = fs.readFileSync(path.join(ROOT, "gog-core/src/render/svg.rs"), "utf8");
-  const layers = legality.split("pub fn why_not_placed")[1].split("\n}\n")[0];
-  const spaces = svg.split("let place = if is_polar")[1].split("};")[0];
-  const words = new Set([...layers.matchAll(/"([a-z]+)"/g), ...spaces.matchAll(/Some\("([a-z]+)"\)/g)]
-    .map((m) => m[1]));
-  assert.ok(words.has("jitter") && words.has("polar"), `both sources were read: ${[...words]}`);
-  // Never shown: a brush is refused in a network, and a globe turns instead.
-  words.delete("network");
-  words.delete("globe");
-  assert.deepEqual(Object.keys(UNPLACED).sort(), [...words].sort());
-
-  // A polar plot bends one axis, not two, and a map's positions are not "places
-  // on the page", the web page every other word in that bar means.
-  assert.match(UNPLACED.polar, /`x` into an angle and `y` into a distance from the center/);
-  assert.match(UNPLACED.map, /projects longitude and latitude to new positions/);
-  assert.ok(!/on the page/.test(UNPLACED.map));
-});
-
-test("nobody has asked, so there is nothing to explain", async () => {
+// A polar plot draws `x` as an angle and `y` as a distance, and a band is read
+// along straight axes, so a drag over the right half of the circle caught rows
+// drawn on the left. The plot keeps the sentence's selection and takes no drag.
+test("a drag on a polar panel keeps the sentence's selection", async () => {
   const undo = stubDom();
   try {
-    const { handle } = await hoverFixture(
-      { ...POINTS.spec, coord: { polar: {} } }, POINTS.data);
-    assert.equal(handle.unplaced(), null,
-      "the reason waits for a reader rather than sitting under every such plot");
+    const spec = { ...POINTS.spec, coord: { polar: {} }, brush: [{ field: "g", at: [0, 60] }] };
+    const { handle, container, panels } = await hoverFixture(spec, POINTS.data);
+    const before = handle.selection().kept;
+    const p = panels[0];
+    container.send("pointerdown", p.x0 + 5, p.y0 + 5);
+    container.send("pointermove", p.x1 - 5, p.y1 - 5);
+    container.send("pointerup", p.x1 - 5, p.y1 - 5);
+    assert.equal(handle.selection().kept, before, "the drag changed nothing");
+    handle.destroy();
+  } finally {
+    undo();
+  }
+});
+
+// And the bar says as much: the count and `show rows`, as under a turnable plot,
+// and no `clear`, since no gesture here can move the bound.
+test("a brushed polar plot shows its count and rows, and no clear", async () => {
+  const undo = stubDom();
+  try {
+    const spec = { ...POINTS.spec, coord: { polar: {} }, brush: [{ field: "g", at: [0, 60] }] };
+    const m = await mountFixture(spec, POINTS.data);
+    assert.match(m.count() ?? "", /^2 of 3 selected$/, `the sentence's selection is counted: ${m.count()}`);
+    assert.ok(m.button("show rows"), "and can be listed");
+    assert.equal(m.button("clear"), undefined, "no clear: no gesture can move the bound");
+  } finally {
+    undo();
+  }
+});
+
+// No drag moves its selection, and the rest is the view the same plot has
+// unbrushed: zoomed in, a drag pans. A view built beside `mountView` instead of
+// through it had no pan, so a zoomed polar plot could not be moved at all.
+test("a brushed polar plot pans once zoomed, as it would unbrushed", async () => {
+  const undo = stubDom();
+  try {
+    const container = stubContainer();
+    const host = globalThis.document.createElement("div");
+    host.appendChild(container);
+    container.parentNode = host;
+    container.dataset = {};
+    let box = "0 0 800 600";
+    container.querySelector = (sel) => (sel !== "svg" ? null : {
+      style: {},
+      getAttribute: (n) => (n === "viewBox" ? box : null),
+      setAttribute: (n, v) => { if (n === "viewBox") box = v; },
+      getBoundingClientRect: () => ({ left: 0, top: 0, right: 800, bottom: 600, width: 800, height: 600 }),
+    });
+    const spec = { ...POINTS.spec, coord: { polar: {} }, brush: [{ field: "g", at: [0, 60] }] };
+    const handle = await mount(container, { spec, data: POINTS.data }, { wasm: fs.readFileSync(WASM) });
+    const zoomIn = everythingUnder(host).find((n) => n.attrs?.["aria-label"] === "zoom in");
+    zoomIn.listeners.get("click")();
+    const zoomed = box;
+    assert.notEqual(zoomed, "0 0 800 600", "zoom in narrowed the window");
+
+    const send = (type, x, y) =>
+      container.listeners.get(type)?.({ clientX: x, clientY: y, pointerId: 1, preventDefault() {} });
+    send("pointerdown", 400, 300);
+    send("pointermove", 300, 250);
+    send("pointerup", 300, 250);
+    assert.notEqual(box, zoomed, "the drag moved the window, as it does on the plot unbrushed");
+    assert.match(everythingUnder(host).find((n) => / selected$/.test(n.textContent ?? ""))?.textContent ?? "",
+      /^2 of 3 selected$/, "and the selection is still the sentence's");
     handle.destroy();
   } finally {
     undo();

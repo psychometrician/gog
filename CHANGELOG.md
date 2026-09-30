@@ -231,12 +231,18 @@ CRAN-style repositories and PyPI, `GrammarOfGraphics` on Julia's General, and
   switched off, though the bound the sentence asked for was gone. It now
   follows the bounds rather than the count.
 
-- **The web page's note on a brushed polar plot or map says what the plot does
-  to a position.** Pointing at either names no row, and the line under the plot
-  says why. For a polar plot it said both axes bend around a circle, where only
-  `x` does: `x` becomes an angle and `y` a distance from the center. For a map
-  it spoke of places "on the page", the web page everywhere else in that line;
-  it now says the map projects longitude and latitude to new positions.
+- **A brushed plot prints no note under it about pointing.** Where the pointer
+  cannot name a row (a polar plot, a map, or a layer that moves or summarizes
+  its marks), the page showed a line under the plot giving the reason in the
+  engine's terms, which readers could not use. Pointing there still names no
+  row, and nothing is printed; the selection chapter says why.
+
+- **A drag no longer changes a brushed polar plot's selection.** The page read
+  a drag along straight axes while the plot draws `x` as an angle, so a band
+  over the right half of the circle selected rows drawn on the left. The
+  selection is now the one the sentence names, with its count and `show rows`
+  under the plot and no `clear`, as in the cube. Zoomed in, a drag moves the
+  picture, as it does on the same plot without a brush.
 
 - **Python's `save()` writes the drawing's bytes on Windows too.** It wrote in
   text mode, which on Windows turns each line break into two bytes. It now

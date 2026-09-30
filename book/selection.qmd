@@ -493,7 +493,9 @@ is why naming it matters even though a reader of the web edition can replace
 it: that reader starts from it too.
 
 A `brush` that names a column but no `at` also selects nothing until a reader
-drags.
+drags. On a polar plot, a drag never changes the selection, and the section
+[Where the page cannot find a row](#where-the-page-cannot-find-a-row) explains
+why.
 
 ## What the page adds
 
@@ -533,8 +535,9 @@ The second line is what a brush adds:
 | `clear` | Puts the selection back to what the sentence asked for |
 | `unstamp` | Removes every stamp at once ([Stamping a point](#stamping-a-point) explains stamps). With two or more, the button shows how many. Absent until you have made one |
 
-In the cube, this line holds only the count and `show rows`. It comes third,
-under the line that shows the angle.
+In the cube and on a polar plot, the line a brush adds holds only the count
+and `show rows`. In the cube it comes third, under the line that shows the
+angle.
 
 A control drawn as an icon names itself when the pointer rests on it. So do
 `clear` and `unstamp`, which say what they undo.
@@ -674,29 +677,41 @@ A sentence with
 and in all four languages. Stamp and save to keep this one picture. Write the
 labels down to keep the plot itself.
 
-### Where pointing cannot answer
+### Where the page cannot find a row
 
 On a brushed polar plot, the pointer shows no values. The reason is how the
-page finds a row. It computes where each row was drawn, from the row's own
-value and the two ends of the axis the panel records. That is exact wherever a
-mark stands at its value. A polar plot puts every mark somewhere else on
-purpose: it turns `x` into an angle and `y` into a distance from the center.
+page finds the row under the pointer. From each row's own values and the values
+at the ends of each axis, it computes where that row was drawn. That is exact
+when both axes are straight lines. A polar plot has no straight axes: it draws
+`x` as an angle and `y` as a distance from the center.
 
-So the pointer says nothing rather than naming a row that is not there, and a
-line under the plot gives the reason. Nothing can be stamped either. The page
-computes a position rather than reading one, so it stays silent wherever it
-cannot compute one.
+So the pointer shows nothing, rather than the values of the wrong row. Nothing
+can be stamped either. The page never reads positions from the picture itself.
+It only computes them.
 
-In the cube, the pointer shows no values either, and nothing can be stamped.
-There the viewing angle moves every mark, so the page cannot compute where each
-row was drawn.
+The same reason applies to a drag. The page would read the box you drag as a
+range of values on a straight axis. On a polar plot, the rows in that range are
+drawn somewhere else, not under the box. So on a brushed polar plot, a drag
+never changes the selection.
 
-A layer whose marks do not stand at their rows' values does not silence the
-pointer. `jitter` sets each point beside its value, `repel` moves each label
-away from the others, and a summary such as `bin` or `mean` draws one shape for
-many rows. As [What can be brushed](#what-can-be-brushed) showed, a layer like
-that either refuses the brush or is drawn whole beside a layer that answers it.
-The pointer then reads that other layer, whose marks stand at their values.
+The bound the sentence names still works: gog tests it against each row's
+values, so the count and the dimmed marks agree. That is why a polar plot keeps
+its brush and a map does not. As in the cube, the only way to choose the
+selection is to name the bound in the sentence. On a polar plot, a `brush` with
+no `at` never selects a row. The brush adds only the count and `show rows`
+under the plot.
+
+In the cube, as on a polar plot, the pointer shows no values, and nothing can
+be stamped. There the viewing angle moves every mark, so the page cannot
+compute where each row was drawn.
+
+The pointer still shows values on a plot with a layer whose marks do not stand
+at their rows' values. `jitter` sets each point beside its value, `repel` moves
+each label away from the others, and a summary such as `bin` or `mean` draws
+one shape for many rows. As [What can be brushed](#what-can-be-brushed)
+showed, a layer like that either refuses the brush or is drawn whole beside a
+layer that answers it. The pointer then reads that other layer, whose marks
+stand at their values.
 
 ### Looking closer
 
@@ -704,9 +719,11 @@ A crowded corner is easier to read when it is larger. `+` and `−` magnify the
 picture, and the frame button returns to the whole of it. Zooming in switches
 the drag to panning, because a reader who has just looked closer usually wants
 to move around inside the picture. The frame button sets the drag back to
-selecting. You can switch by hand at any time with the icons beside `drag:`. The
-pointer also tells you which mode you are in: a crosshair to draw a box, an open
-hand to move the picture.
+selecting. You can switch by hand at any time with the icons beside `drag:`.
+The pointer also tells you which mode you are in: a crosshair to draw a box, an
+open hand to move the picture. A brushed polar plot has no `drag:` icons,
+because a drag there never selects. There, once you zoom in, a drag moves the
+picture.
 
 This is a *view*, so it *recomputes nothing*. The bars are the same bars and the
 ticks are the same ticks, drawn larger. Zoom far enough into a histogram and you

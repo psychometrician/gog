@@ -823,10 +823,14 @@ export function placeBar(container, ...bars) {
  * one shared module and a line.
  *
  * @param {string|Element} target the container holding the static SVG
+ * @param {object} [options]
+ * @param {Element[]} [lines] what goes under the view's own bar, in order. A
+ *   brushed polar plot puts its count and `show rows` there: its view is the one
+ *   it has unbrushed, since no drag there moves the selection.
  * @returns {{destroy: () => void, reset: () => void}|null} `null` when the
  *   container is missing or controls were turned off.
  */
-export function mountView(target, options = {}) {
+export function mountView(target, options = {}, lines = []) {
   const container =
     typeof target === "string" ? document.getElementById(target) : target;
   if (!container || options.controls === false) return null;
@@ -841,7 +845,7 @@ export function mountView(target, options = {}) {
   // them — so this is where most sequences get their transport, beside the four
   // rather than under them. It returns null and costs nothing on a still plot.
   addTransport(bar, container, view);
-  placeBar(container, bar);
+  placeBar(container, bar, ...lines);
 
   // Drag pans, and it needs no button to say so. The selection chapter's rule is
   // that the sentence decides what a drag means; a plot naming no brush has said
@@ -894,6 +898,7 @@ export function mountView(target, options = {}) {
       container.removeEventListener("pointercancel", onUp);
       container.style.cursor = "";
       bar.remove();
+      for (const line of lines) line.remove();
     },
     reset() {
       view.reset();
