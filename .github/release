@@ -11,7 +11,11 @@
 #     .github/release --tag js      push js-v<version> → npm, after approval
 #     .github/release --r           push main:release → r-universe, and sync it
 #     .github/release --engines     build the Julia engines, before --julia
-#     .github/release --julia       trigger the Julia registration
+#     .github/release --julia notes.md
+#                                   try the release copy, then register it in
+#                                   General with the notes in notes.md
+#     .github/release --ci          run CI on commits main has not published,
+#                                   through a draft pull request
 #
 # `<version>` is the number you are moving *to*. The tree's current one is
 # whatever `--check` prints; nothing here guesses at the next.
@@ -280,11 +284,75 @@ build_engines() {
   note "when it finishes:  git pull    then  .github/release --julia"
 }
 
+# Below 1.0.0 the first nonzero component is the breaking one, so 0.3.0 → 0.4.0
+# and 0.0.4 → 0.0.5 both break, and AutoMerge stops either unless the notes say
+# what broke.
+breaking_bump() {
+  local a1 b1 c1 a2 b2 c2
+  IFS=. read -r a1 b1 c1 <<<"$1"
+  IFS=. read -r a2 b2 c2 <<<"$2"
+  if [ "$a1" != 0 ] || [ "$a2" != 0 ]; then [ "$a1" != "$a2" ]; return; fi
+  if [ "$b1" != 0 ] || [ "$b2" != 0 ]; then [ "$b1" != "$b2" ]; return; fi
+  [ "$c1" != "$c2" ]
+}
+
+# A registration is permanent, so the copy General will serve is installed and
+# drawn first: the package alone, from a directory with no checkout above it and
+# no staged `assets/`, so the engine and the browser files can come only from the
+# artifact `Artifacts.toml` names. 0.3.0 shipped a package whose browser half was
+# in no place a released copy looks, while every check passed in a checkout.
+probe_julia() {
+  command -v julia >/dev/null || die "julia is needed to try the release copy before registering"
+  local dir
+  dir="$(mktemp -d)"
+  cp -R jl-pkg/GrammarOfGraphics "$dir/GrammarOfGraphics"
+  rm -rf "$dir/GrammarOfGraphics/assets"
+  step "Installing the release copy, alone, and drawing from its artifact"
+  (cd "$dir" && env -u GOG_CLI_PATH julia --startup-file=no -e '
+    using Pkg
+    Pkg.activate(mktempdir(); io = devnull)
+    Pkg.develop(path = "GrammarOfGraphics"; io = devnull)
+    Pkg.instantiate(; io = devnull)
+    using GrammarOfGraphics
+    const G = GrammarOfGraphics
+    cli = G.find_gog_cli()
+    www = G.find_wasm_assets()
+    from_artifact = occursin("artifacts", cli) && www !== nothing &&
+                    all(p -> occursin("artifacts", p), www)
+    df = (a = [1.0, 2.0, 3.0], b = [3.0, 1.0, 2.0])
+    drew = startswith(render_svg(data(df) + point + x(:a) + y(:b)), "<svg")
+    turns = occursin("<script type=\"module\"",
+                     G.html_of(data(df) + point + x(:a) + y(:b) + brush(:a, at = [1.5, 3])))
+    println("  engine: ", cli)
+    println("  browser files: ", www === nothing ? "none" : dirname(first(www)))
+    (from_artifact && drew && turns) || exit(1)') ||
+    { rm -rf "$dir"; die "the release copy did not draw and turn from its artifact; do not register it"; }
+  rm -rf "$dir"
+  ok "a copy with no checkout draws, and its brushed block carries the browser module"
+}
+
 trigger_julia() {
-  local version sha
+  local notes="${1:-}" version sha last body
   version="$(declared_version)"
   sha="$(git rev-parse HEAD)"
   check_versions_agree "$version"
+
+  # **The notes go with the registration, every time.** Julia is the one registry
+  # that asks what changed, and AutoMerge stops a breaking version whose notes do
+  # not say. The comment used to go without them, so the breaking releases from
+  # 0.0.2 to 0.4.0 were each registered by hand. The file is posted as it is.
+  [ -n "$notes" ] && [ -s "$notes" ] ||
+    die "give the release notes as a file: .github/release --julia notes.md (with a '## Breaking changes' section when the bump breaks)"
+  git fetch -q origin main || die "could not fetch origin/main"
+  [ "$(git rev-parse origin/main)" = "$sha" ] ||
+    die "HEAD $(git rev-parse --short HEAD) is not origin/main; the registration names a commit GitHub has, so push first"
+  git fetch -q --tags origin 2>/dev/null || true
+  last="$(git tag -l 'GrammarOfGraphics-v*' --sort=-v:refname | head -1 | sed 's/^GrammarOfGraphics-v//')"
+  if [ -z "$last" ] || breaking_bump "$last" "$version"; then
+    grep -qi 'breaking' "$notes" ||
+      die "${last:-the last registered version} → $version is breaking below 1.0.0, and AutoMerge stops it unless the notes say what broke: add a '## Breaking changes' section to $notes"
+    ok "${last:-?} → $version is breaking, and the notes say what broke"
+  fi
 
   # **The engines have to be there first, and nothing else would notice.** A
   # registration is permanent, and a registered tree with no `Artifacts.toml` — or
@@ -298,16 +366,43 @@ trigger_julia() {
     die "$toml does not name engine-v$version; it has $(sed -n 's|.*/download/\(engine-v[^/]*\)/.*|\1|p' "$toml" | sort -u | tr '\n' ' ')— run --engines, then git pull"
   ok "$toml names engine-v$version on $(grep -c '^\[\[gog_cli\]\]' "$toml") platforms"
 
+  probe_julia
+
   step "Registering GrammarOfGraphics $version from $(git rev-parse --short HEAD)"
   note "an existing package auto-merges with no three-day hold"
   command -v gh >/dev/null || die "gh is needed to post the comment"
-  gh api "repos/psychometrician/gog/commits/$sha/comments" \
-     -f body='@JuliaRegistrator register subdir=jl-pkg/GrammarOfGraphics' >/dev/null \
-     && ok "commented on $sha" \
+  body="$(printf '@JuliaRegistrator register subdir=jl-pkg/GrammarOfGraphics\n\nRelease notes:\n\n%s\n' "$(cat "$notes")")"
+  gh api "repos/psychometrician/gog/commits/$sha/comments" -f body="$body" >/dev/null \
+     && ok "commented on $sha, with the notes in $notes" \
      || die "could not comment; post it by hand on the release commit"
   note "NEVER comment on the registration PR without the literal [noblock] —"
   note "a bare comment reads as an objection and sends it to manual review."
   note "TagBot writes GrammarOfGraphics-v$version once the registry PR merges."
+}
+
+# CI on commits `main` has not published. `tests.yml` runs on every pull request
+# and `book.yml` only on a push to `main`, so a draft pull request from this branch
+# runs every check, the Linux `installed` job included, and publishes nothing.
+# At 0.4.0 `main` had held 208 commits back for eight days, and the release push
+# was the first time CI saw two R failures written a day or two before it.
+ci_preview() {
+  command -v gh >/dev/null || die "gh is needed to open the draft pull request"
+  local branch="ci/preview" url
+  git fetch -q origin main || die "could not fetch origin/main"
+  [ "$(git rev-parse HEAD)" != "$(git rev-parse origin/main)" ] ||
+    die "HEAD is origin/main already, so CI runs on main itself"
+  git push -q -f origin "HEAD:refs/heads/$branch" || die "could not push $branch"
+  ok "$branch is at $(git rev-parse --short HEAD), $(git rev-list --count origin/main..HEAD) commit(s) past main"
+  url="$(gh pr view "$branch" --json url,state --jq 'select(.state == "OPEN") | .url' 2>/dev/null || true)"
+  if [ -z "$url" ]; then
+    url="$(gh pr create --draft --base main --head "$branch" \
+      --title "CI preview: not for merging" \
+      --body "Runs tests.yml on commits main has not published yet. Nothing publishes from here: the book, the packages and r-universe move only from main, tags and the release branch. Pushed again by the next preview.")" ||
+      die "could not open the draft pull request"
+  fi
+  ok "draft pull request: $url"
+  note "watch it:  gh pr checks $branch --watch"
+  note "the branch is public, as main is: the same privacy rules apply"
 }
 
 # --------------------------------------------------------------------------
@@ -321,9 +416,10 @@ case "${1:-}" in
   --tag)     push_tag "${2:-}" ;;
   --r)       release_r ;;
   --engines) build_engines ;;
-  --julia)   trigger_julia ;;
+  --julia)   trigger_julia "${2:-}" ;;
+  --ci)      ci_preview ;;
   "" | -h | --help)
-    sed -n '2,25p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'
+    awk 'NR > 1 && /^#/ { sub(/^# ?/, ""); print; next } NR > 1 { exit }' "${BASH_SOURCE[0]}"
     ;;
   *)
     want="$1"
@@ -344,6 +440,6 @@ case "${1:-}" in
     printf '    .github/release --tag js     %s→ npm, approve the npm environment%s\n' "$dim" "$off"
     printf '    .github/release --r          %s→ r-universe: push release, then sync%s\n' "$dim" "$off"
     printf '    .github/release --engines    %s→ the Julia engines; git pull after%s\n' "$dim" "$off"
-    printf '    .github/release --julia      %s→ General, auto-merges%s\n\n' "$dim" "$off"
+    printf '    .github/release --julia notes.md  %s→ General, with its release notes%s\n\n' "$dim" "$off"
     ;;
 esac

@@ -16,7 +16,7 @@ Two workflows here, and one service that is not here at all.
 |---|---|---|
 | `tests.yml` | every push to `main`, and every pull request | nothing |
 | `book.yml` | a push to `main` touching `book/`, `gog-core/`, `gog-cli/`, `r-pkg/`, `py-pkg/`, or itself | the manual, to `psychometrician/gog-book` |
-| **r-universe** | every commit, by polling — no workflow in this repository | the R package, at the version in `DESCRIPTION` |
+| **r-universe** | not a push to `main`: the `release` branch and a sync request (see *r-universe* below) | the R package, at the version in `DESCRIPTION` |
 
 `tests.yml` has no path filter on purpose: the engine and the four bindings are one
 grammar, so there is no change to any of them that cannot break another. Three jobs
@@ -33,6 +33,18 @@ does trigger a rebuild.
 The site is a single orphan commit force-pushed over whatever was there, published
 cross-repository with a deploy key. The workflow takes a `concurrency` group so that
 two pushes in quick succession do not race to be last.
+
+### CI without publishing: a draft pull request
+
+`tests.yml` runs on every pull request, and `book.yml` only on a push to `main`, so
+a draft pull request runs every check, the Linux `installed` job included, and
+publishes nothing. That matters whenever `main` holds work back. At 0.4.0, `main`
+had held 208 commits back for eight days, so Linux CI had seen none of them, and two
+R failures written a day or two earlier were found only by the release push. `.github/release --ci` pushes `HEAD` to the
+`ci/preview` branch and opens the draft pull request, or reuses the open one. Run it
+before a test round, and whenever `main` has held work back for more than a day.
+The branch is public, as `main` is, so everything that applies to a commit on
+`main` applies to it.
 
 ## A push to `main` cannot publish a package
 
@@ -333,9 +345,11 @@ registration to manual review, which turns a three-day wait into an indefinite o
 release notes.** This is not a formality and not specific to this package: SemVer
 provides no compatible range below `0.1.0`, so `0.0.1` and `0.0.2` are mutually
 incompatible and `^0.0.2` resolves to exactly `0.0.2`. AutoMerge asks for notes
-that mention "breaking" or "changelog", even if only to say there are none. Supply
-them by re-triggering Registrator with the notes appended; it updates the same pull
-request, and the version number does not change:
+that mention "breaking" or "changelog", even if only to say there are none.
+`.github/release --julia notes.md` posts them with the first comment, and refuses a
+breaking bump whose notes do not say what broke. If a registration still goes
+without them, re-trigger Registrator with the notes appended; it updates the same
+pull request, and the version number does not change:
 
 ```
 @JuliaRegistrator register subdir=jl-pkg/GrammarOfGraphics
@@ -413,11 +427,14 @@ error text names paths rather than the cause.
 `.github/release` does every mechanical step below and refuses to do the rest:
 
 ```bash
-.github/release --check      # verify the tree, change nothing
-.github/release <version>       # steps 2-6: bump, regenerate, test, dispatch
-.github/release --tag py     # → PyPI, then approve the `pypi` environment
-.github/release --tag js     # → npm, then approve the `npm` environment
-.github/release --julia      # → General, which auto-merges for an existing package
+.github/release --check            # verify the tree, change nothing
+.github/release --ci               # Linux CI on unpushed commits, publishing nothing
+.github/release <version>          # steps 2-6: bump, regenerate, test, dispatch
+.github/release --tag py           # → PyPI, then approve the `pypi` environment
+.github/release --tag js           # → npm, then approve the `npm` environment
+.github/release --r                # → r-universe, once tests.yml is green at HEAD
+.github/release --engines          # → the Julia engines; git pull when it finishes
+.github/release --julia notes.md   # → General, after the release copy draws
 ```
 
 It stops before the tags on purpose, because the packaging runs it dispatches are
@@ -473,10 +490,24 @@ do them by hand.
      git pull                      # the workflow commits Artifacts.toml to main
      ```
 
-     Then comment `@JuliaRegistrator register subdir=jl-pkg/GrammarOfGraphics` on
-     that commit, so the registered tree carries its own `Artifacts.toml`. The
-     `subdir=` is not optional: the package is not at the repository root, and
-     without it the bot looks for a `Project.toml` beside the README and fails.
+     Then register from that commit, so the registered tree carries its own
+     `Artifacts.toml`, with the release notes in a file:
+
+     ```bash
+     .github/release --julia notes.md
+     ```
+
+     It refuses without the notes, and refuses a breaking bump (below `1.0.0`,
+     any change to the first nonzero component) whose notes do not say what broke.
+     Then, because a registration is permanent, it installs the package alone,
+     from a directory with no checkout above it and no staged `assets/`, and
+     draws: the engine and the browser files must both come from the artifact,
+     which is all a copy from General has. Only then does it post the comment,
+     `@JuliaRegistrator register subdir=jl-pkg/GrammarOfGraphics` with the notes
+     below it. The `subdir=` is not optional: the package is not at the repository
+     root, and without it the bot looks for a `Project.toml` beside the README
+     and fails. Until 0.4.0 the script posted the comment bare, and every breaking
+     release was registered by hand.
    - R needs the branch pushed and the sync asked for, which is two commands and
      not nothing: `git push origin main:release`, then
      `curl -s -X PATCH https://psychometrician.r-universe.dev/api/sync`. This line
@@ -513,9 +544,17 @@ not the one with a web page.
 | | what lags | what to check instead |
 |---|---|---|
 | **PyPI** | the JSON API caches for a minute or two | `pypi.org/simple/gog/` with the JSON simple header — that is what pip reads |
-| **npm** | a packument can trail its own publish | the tarball URL directly, or `npm view <pkg>@<version>` |
+| **npm** | the packument, and the tarball itself, can trail the publish by minutes | the publish log's `+ <pkg>@<version>` lines, then each tarball URL until it returns 200 |
 | **Julia** | **three layers, in order** | see below |
 | **r-universe** | it is a build, not an upload | poll `…/api/packages/gog` for `Version` and `RemoteSha` |
+
+**npm's lag can look like a partial publish.** At 0.4.0 the publish job printed
+`+ grammar-of-graphics@0.4.0` for all six packages, and for about five minutes
+afterward `npm install` failed with `notarget`, `npm view` found some of the six
+and not others, and three tarball URLs returned 404, the binding's among them.
+Nothing was missing: npm had said each was "being processed". The log's `+` lines
+are the proof that a package went out, so the install check waits until all six
+tarballs download, and a 404 in the first minutes is not a reason to publish again.
 
 Julia is the one that surprises. `Pkg.add` does not read the registry on GitHub. It
 reads a periodic snapshot served by `pkg.julialang.org`, and JuliaHub is a third
