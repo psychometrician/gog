@@ -4270,3 +4270,29 @@ test("a surface takes quantile", () => {
   assert.match(render_svg(plot(data(grid), layer(surface, bin, quantile(0.9)),
     x(col.a), y(col.b), z(col.v))), /^<svg /);
 });
+
+// The engine reads its request from a file, never from `spawnSync`'s `input`. On
+// macOS that pipe can deliver every byte and never the end of it, so the engine
+// waited for the end of its input and node waited for the engine: the book's
+// parity run hung that way for 44 minutes and again for 20. The file lives in a
+// directory of its own and must not outlive the call.
+test("the engine reads its request from a file that does not outlive the call", () => {
+  const source = fs.readFileSync(new URL("../src/render.js", import.meta.url), "utf8");
+  assert.doesNotMatch(source, /\binput\s*:/,
+    "no engine call hands its request to spawnSync's `input`");
+  const before = process.env.TMPDIR;
+  const tmp = fs.mkdtempSync(`${os.tmpdir()}/gog-request-`);
+  process.env.TMPDIR = tmp;
+  try {
+    const svg = render_svg(plot(data({ a: [1, 2, 3], b: [3, 1, 2] }), point, x(col.a), y(col.b)));
+    assert.match(svg, /^<svg /);
+    assert.throws(() => render_svg(plot(data({ a: [1, 2] }), point, x(col.a), y(col.nope))),
+      GogError);
+    assert.deepEqual(fs.readdirSync(tmp), [],
+      "the request's file is removed after the call, whether the engine drew or refused");
+  } finally {
+    if (before === undefined) delete process.env.TMPDIR;
+    else process.env.TMPDIR = before;
+    fs.rmSync(tmp, { recursive: true, force: true });
+  }
+});

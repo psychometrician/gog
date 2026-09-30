@@ -502,6 +502,35 @@ function wirePayload(plot) {
   return JSON.stringify({ spec: plot.spec, data: wireData(plot) });
 }
 
+// **The engine reads its request from a file, never from a pipe.** On macOS,
+// `spawnSync` can write the whole of its `input` into the child's pipe and never
+// deliver the end of it: the engine then waits for the end of its input with every
+// byte in hand, and node waits for the engine, both idle, until one of them is
+// killed. The book's parity run hung that way twice, for 44 minutes and for 20, at
+// a plot that draws in a second. A file has an end the engine reaches by itself,
+// so nothing is left for node to close. It lives in a directory of its own, and
+// the directory is removed when the call returns, whatever the engine answered.
+function runEngine(args, input) {
+  let dir;
+  let fd;
+  try {
+    dir = fs.mkdtempSync(path.join(os.tmpdir(), "gog-"));
+    const file = path.join(dir, "request.json");
+    fs.writeFileSync(file, input);
+    fd = fs.openSync(file, "r");
+    return spawnSync(find_gog_cli(), args, {
+      stdio: [fd, "pipe", "pipe"],
+      encoding: "utf8",
+      maxBuffer: 256 * 1024 * 1024,
+    });
+  } catch (error) {
+    return { error, status: null, stdout: "", stderr: "" };
+  } finally {
+    if (fd !== undefined) fs.closeSync(fd);
+    if (dir !== undefined) fs.rmSync(dir, { recursive: true, force: true });
+  }
+}
+
 export function render_svg(plot) {
   if (!plot || typeof plot !== "object" || !plot.spec || !plot.frames) {
     throw new GogError(
@@ -515,11 +544,7 @@ export function render_svg(plot) {
 
   const payload = wirePayload(plot);
 
-  const result = spawnSync(find_gog_cli(), {
-    input: payload,
-    encoding: "utf8",
-    maxBuffer: 256 * 1024 * 1024,
-  });
+  const result = runEngine([], payload);
 
   if (result.error) {
     throw new GogError(`gog: could not run the engine — ${result.error.message}`);
@@ -640,10 +665,9 @@ export function save_gif(plot, file, options = {}) {
     );
   }
 
-  const result = spawnSync(
-    find_gog_cli(),
+  const result = runEngine(
     ["--gif", expandHome(file), "--scale", String(scale)],
-    { input: wirePayload(plot), encoding: "utf8", maxBuffer: 256 * 1024 * 1024 }
+    wirePayload(plot)
   );
 
   if (result.error) {
@@ -778,11 +802,7 @@ function specIsSpatial(spec) {
 function pruned(request) {
   let result;
   try {
-    result = spawnSync(find_gog_cli(), ["--prune"], {
-      input: request,
-      encoding: "utf8",
-      maxBuffer: 256 * 1024 * 1024,
-    });
+    result = runEngine(["--prune"], request);
   } catch {
     return request;
   }

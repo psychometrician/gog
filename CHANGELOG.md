@@ -1168,6 +1168,15 @@ different.
   `(data(life_bands) + x(level))`, is told to write its parts one after
   another.
 
+This one is in how a binding runs the engine.
+
+- **JavaScript no longer hangs now and then on macOS.** `render_svg()`,
+  `save_gif()` and `html_block()` handed the engine its request through Node's
+  `spawnSync` pipe, which on macOS can deliver every byte and never the end of
+  it: the engine waited for the rest of its request and Node waited for the
+  engine, with nothing on the screen. The engine now reads the request from a
+  temporary file, which is removed when the call returns.
+
 ## 0.3.0 (unreleased)
 
 ### Changed
