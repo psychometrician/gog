@@ -3595,3 +3595,23 @@ end
             v = [Float64((i + 1) % 7) for i in 0:19])
     @test startswith(render_svg(data(grid) + surface * bin * quantile(0.9) + x(:a) + y(:b) + z(:v)), "<svg")
 end
+
+# Two blocks of one plot share no id. Ids come from the drawing, and a page
+# resolves an id against the whole document, so the same plot twice on one page,
+# or in two notebooks JupyterLab holds in one document, shared its clips and
+# textures, and the second copy drew with the first's. Each block names them
+# after itself; `render_svg` stays one file.
+@testset "two blocks of one plot share no id" begin
+    p = data((g = ["a", "b"], v = [1.0, 2.0]); name = "d") + bar + x(:g) + y(:v) + pattern(:g)
+    svg_of(h) = match(r"<svg[\s\S]*</svg>", h).match
+    ids(s) = [m.captures[1] for m in eachmatch(r" id=\"([^\"]+)\"", s)]
+    refs(s) = [m.captures[1] for m in eachmatch(r"url\(#([^)]+)\)", s)]
+    a = svg_of(GrammarOfGraphics.html_of(p))
+    b = svg_of(GrammarOfGraphics.html_of(p))
+    @test !isempty(ids(a))
+    @test isempty(intersect(ids(a), ids(b)))
+    for s in (a, b)
+        @test all(r -> r in ids(s), refs(s))
+    end
+    @test render_svg(p) == render_svg(p)
+end

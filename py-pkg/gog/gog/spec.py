@@ -30,7 +30,7 @@ from typing import Any, Dict, List, Optional, Set, Tuple
 
 from .columns import Column
 from .errors import GogError
-from .render import Query, refusal_block, render_svg, save, show, svg_block
+from .render import Query, html_of, refusal_block, render_svg, save, show, svg_block
 
 # ---------------------------------------------------------------------------
 # Atoms
@@ -728,7 +728,7 @@ class Plot:
         # frontend, which presents it as a traceback through this file and
         # IPython's internals. `render_svg()` and `save()` still raise.
         try:
-            return svg_block(render_svg(self), self)
+            return html_of(self)
         except GogError as refusal:
             return refusal_block(str(refusal))
 
@@ -864,7 +864,7 @@ class Page:
         # A page is a figure like any other, and a refusal reaches a cell the
         # same way — shown, not raised. See `Plot._repr_html_`.
         try:
-            return svg_block(render_svg(self), self)
+            return html_of(self)
         except GogError as refusal:
             return refusal_block(str(refusal))
 

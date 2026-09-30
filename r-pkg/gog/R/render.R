@@ -226,7 +226,7 @@ not_a_plot <- function(x) {
          "`data()`: `data(df) + point + x(a) + y(b)`.")
 }
 
-wire_json <- function(gog) {
+wire_json <- function(gog, salt = NULL) {
   # Only a plot or a page draws. `facet(g) | facet(g)` builds a pair of facets
   # still waiting for a plot, and it reached the engine as an empty request,
   # which failed as a JSON parse error with exit 1 rather than as a refusal.
@@ -251,6 +251,10 @@ wire_json <- function(gog) {
   wire_data <- lapply(frames, df_to_wire)
 
   request <- list(spec = wire_spec, data = wire_data)
+  # A drawing embedded in a page names its ids after the block it sits in
+  # (`html_of()`); a drawing written to a file sends no salt and stays byte for
+  # byte the same.
+  if (!is.null(salt)) request$salt <- salt
 
   # digits = NA means full double precision. jsonlite's *default* is 4 decimal
   # places, which silently rounded every number on its way to the engine:
@@ -280,8 +284,11 @@ wire_json <- function(gog) {
 #' @param gog  A \code{gog_spec} object built with \code{data() + ...}.
 #' @return A character string containing the SVG.
 #' @export
-render_svg <- function(gog) {
-  json_str <- wire_json(gog)
+render_svg <- function(gog) draw_svg(gog)
+
+# `render_svg()`, with the salt a page block passes (`html_of()`).
+draw_svg <- function(gog, salt = NULL) {
+  json_str <- wire_json(gog, salt)
 
   cli_path <- find_gog_cli()
 
@@ -446,6 +453,23 @@ save_gif <- function(gog, path, scale = 1) {
 # Inline SVG for HTML hosts — knitr, Jupyter
 # ---------------------------------------------------------------------------
 
+# A block's id, unique on the page it lands on.
+block_id <- function() {
+  paste0("gog-", paste(sample(c(letters, 0:9), 10, replace = TRUE), collapse = ""))
+}
+
+# **The plot as a block for a web page, its ids its own.** The id is chosen first
+# and the drawing is asked for with it as the salt, so every clip and texture the
+# drawing minted is named after this block. Ids come from the drawing, and a page
+# resolves an id against the whole document, so the same plot twice on one page,
+# or in two notebooks JupyterLab holds in one document, shared its definitions,
+# and the second copy drew with the first's. `render_svg()` sends no salt, so a
+# saved file stays byte for byte the same.
+html_of <- function(gog) {
+  id <- block_id()
+  svg_block(draw_svg(gog, salt = id), gog, id)
+}
+
 # Two hosts embed the same HTML, so the wrapper lives here rather than staying
 # inside whichever method wrote it first. The engine draws a fixed canvas and
 # knows nothing about the column it lands in; the style attribute is what lets
@@ -458,7 +482,7 @@ save_gif <- function(gog, path, scale = 1) {
 # match is anchored inside the opening `<svg` tag because `[^>]` cannot cross the
 # tag's own `>`, which keeps it off the background `<rect>` that carries the same
 # two numbers a few characters later.
-svg_block <- function(svg_str, gog = NULL) {
+svg_block <- function(svg_str, gog = NULL, id = block_id()) {
   svg_str <- sub(
     '(<svg[^>]*) width="([0-9]+)" height="([0-9]+)"',
     '\\1 width="\\2" height="\\3" style="max-width:100%;height:auto;"',
@@ -471,7 +495,7 @@ svg_block <- function(svg_str, gog = NULL) {
   # engine loads — the script below only upgrades a picture that is already
   # there. When the assets are missing the plot simply stays still, which is the
   # same way `play` degrades in print.
-  interactive <- if (!is.null(gog)) interactive_block(gog) else ""
+  interactive <- if (!is.null(gog)) interactive_block(gog, id) else ""
 
   # **The script goes *inside* the container, and that is a layout rule rather
   # than a style choice.** Quarto's `layout-ncol` divides a chunk's output into
@@ -487,7 +511,7 @@ svg_block <- function(svg_str, gog = NULL) {
   # the SVG is still the container's first element, and the engine path's
   # `innerHTML` replacement can only remove a module script that has already run.
   paste0('\n<div class="gog-plot" style="text-align:center;"',
-         if (nzchar(interactive)) paste0(' id="', attr(interactive, "id"), '"') else "",
+         if (nzchar(interactive)) paste0(' id="', id, '"') else "",
          '>\n',
          svg_str, '\n',
          interactive,
@@ -610,7 +634,7 @@ pruned_request <- function(request) {
   text
 }
 
-interactive_block <- function(gog) {
+interactive_block <- function(gog, id) {
   spec <- if (inherits(gog, "gog_page")) gog$page else finalize_spec(gog)$spec
 
   # **Two questions, not one, and they used to be the same question.** Carrying
@@ -636,7 +660,6 @@ interactive_block <- function(gog) {
   js_option <- getOption("gog.js_url", NA_character_)
 
   if (!needs_engine) {
-    id <- paste0("gog-", paste(sample(c(letters, 0:9), 10, replace = TRUE), collapse = ""))
     head <- if (is.na(js_option)) {
       paste0(inline_modules(view_path), "\n")
     } else {
@@ -668,7 +691,6 @@ interactive_block <- function(gog) {
     auto_unbox = TRUE, null = "null", na = "null", force = TRUE, digits = NA
   ))
 
-  id <- paste0("gog-", paste(sample(c(letters, 0:9), 10, replace = TRUE), collapse = ""))
   block <- paste0(
     '<script type="module">\n', head,
     'mount("', id, '", ', request,
@@ -793,13 +815,13 @@ gog_fig_label <- function() {
 #' Called automatically by knitr when a gog_spec is the last expression
 #' in a code chunk.
 knit_print.gog_spec <- function(x, ...) {
-  svg_str <- render_svg(x)
-
+  # A PDF takes the file's drawing; a web page takes a block of its own
+  # (`html_of()`), so each branch draws once, and only what it shows.
   if (isTRUE(knitr::is_latex_output())) {
-    return(knitr::asis_output(latex_block(svg_str, gog_fig_label())))
+    return(knitr::asis_output(latex_block(render_svg(x), gog_fig_label())))
   }
 
-  knitr::asis_output(svg_block(svg_str, x))
+  knitr::asis_output(html_of(x))
 }
 
 # ---------------------------------------------------------------------------
@@ -845,7 +867,7 @@ refusal_block <- function(message) {
 # code or in R, and those must keep raising or a real bug becomes a grey box.
 display_or_refusal <- function(obj) {
   tryCatch(
-    svg_block(render_svg(obj), obj),
+    html_of(obj),
     error = function(e) {
       message_text <- conditionMessage(e)
       if (!startsWith(message_text, "gog: ")) stop(e)
@@ -923,7 +945,7 @@ if (requireNamespace("repr", quietly = TRUE)) {
 # ---------------------------------------------------------------------------
 
 render_and_display <- function(gog) {
-  svg_str <- render_svg(gog)
+  block <- html_of(gog)
 
   # Under Jupyter, hand the SVG to the kernel. Auto-display of a cell's last
   # value goes through repr_html above and never reaches here, but an explicit
@@ -931,8 +953,8 @@ render_and_display <- function(gog) {
   # `for (p in plots) print(p)`. Without this branch both would write a temp
   # file and open a browser tab next to the notebook.
   if ("IRkernel" %in% loadedNamespaces()) {
-    IRdisplay::display_html(svg_block(svg_str, gog))
-    return(invisible(svg_str))
+    IRdisplay::display_html(block)
+    return(invisible(block))
   }
 
   # `svg_block()` rather than the bare SVG, so a plot in the cube can be turned
@@ -952,7 +974,7 @@ render_and_display <- function(gog) {
     "<head><meta charset='utf-8'>",
     "<style>body{margin:0;background:#fff;display:flex;",
     "justify-content:center;padding:16px;}</style></head>\n",
-    "<body>\n", svg_block(svg_str, gog), "\n</body>\n</html>"
+    "<body>\n", block, "\n</body>\n</html>"
   )
 
   tmp <- tempfile(fileext = ".html")
@@ -965,5 +987,5 @@ render_and_display <- function(gog) {
     utils::browseURL(tmp) # system default browser
   }
 
-  invisible(svg_str)
+  invisible(block)
 }

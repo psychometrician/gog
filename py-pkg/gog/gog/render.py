@@ -406,7 +406,7 @@ def _not_a_plot(obj: Any) -> str:
     )
 
 
-def _payload(plot: Any) -> str:
+def _payload(plot: Any, salt: Optional[str] = None) -> str:
     """The engine's input for a plot or a page, as JSON.
 
     Split out of `render_svg` when `save_gif` became a second caller. Two
@@ -428,6 +428,11 @@ def _payload(plot: Any) -> str:
         "spec": spec,
         "data": {name: to_wire(frame, name) for name, frame in frames.items()},
     }
+    # A drawing embedded in a page names its ids after the block it sits in
+    # (`html_of`); a drawing written to a file sends no salt and stays byte for
+    # byte the same.
+    if salt is not None:
+        request["salt"] = salt
 
     # allow_nan=False is a backstop, not a policy: a NaN reaches the wire as the
     # bare token `NaN`, which is not JSON and which serde rejects with a parse
@@ -439,7 +444,12 @@ def _payload(plot: Any) -> str:
 
 def render_svg(plot: Any) -> str:
     """Draw a plot and return the SVG as a string."""
-    payload = _payload(plot)
+    return _draw_svg(plot)
+
+
+def _draw_svg(plot: Any, salt: Optional[str] = None) -> str:
+    """`render_svg`, with the salt a page block passes (`html_of`)."""
+    payload = _payload(plot, salt)
 
     result = subprocess.run(
         [find_gog_cli()],
@@ -706,7 +716,7 @@ def refusal_block(message: str) -> str:
     )
 
 
-def svg_block(svg: str, plot: Any = None) -> str:
+def svg_block(svg: str, plot: Any = None, container_id: Optional[str] = None) -> str:
     """The SVG wrapped for an HTML host, sized to fit its column.
 
     A plot in the cube also gets the script that makes it turnable. The static
@@ -734,7 +744,7 @@ def svg_block(svg: str, plot: Any = None) -> str:
         svg,
         count=1,
     )
-    container_id = "gog-" + uuid.uuid4().hex[:10]
+    container_id = container_id or _block_id()
     block = _interactive_block(plot, container_id) if plot is not None else ""
     if not block:
         return f'<div class="gog-plot" style="text-align:center;">\n{svg}\n</div>'
@@ -742,6 +752,25 @@ def svg_block(svg: str, plot: Any = None) -> str:
         f'<div class="gog-plot" id="{container_id}" style="text-align:center;">\n'
         f"{svg}\n{block}</div>"
     )
+
+
+def _block_id() -> str:
+    """A block's id, unique on the page it lands on."""
+    return "gog-" + uuid.uuid4().hex[:10]
+
+
+def html_of(plot: Any) -> str:
+    """The plot as a block for a web page, its ids its own.
+
+    The id is chosen first and the drawing is asked for with it as the salt, so
+    every clip and texture the drawing minted is named after this block. Ids come
+    from the drawing, and a page resolves an id against the whole document, so
+    the same plot twice on one page, or in two notebooks JupyterLab holds in one
+    document, shared its definitions, and the second copy drew with the first's.
+    `render_svg()` sends no salt, so a saved file stays byte for byte the same.
+    """
+    container_id = _block_id()
+    return svg_block(_draw_svg(plot, salt=container_id), plot, container_id)
 
 
 def _retired_save(path: Any) -> str:

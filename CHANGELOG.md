@@ -1168,6 +1168,16 @@ different.
   `(data(life_bands) + x(level))`, is told to write its parts one after
   another.
 
+- **The same plot twice on one web page keeps its own clips, textures and
+  controls.** A drawing named its definitions after its own content, so two
+  copies of one plot on a page, or in two notebooks JupyterLab holds in one
+  page, shared them: textures vanished while the other notebook's tab was
+  hidden, identical panels borrowed each other's clip, and in JavaScript the
+  second plot's controls landed on the first and left the second with none.
+  Each block a binding writes for a page now names them after itself, and so do
+  the page's redraws. `render_svg()` and `save_svg()` write the same file as
+  before.
+
 This one is in how a binding runs the engine.
 
 - **JavaScript no longer hangs now and then on macOS.** `render_svg()`,

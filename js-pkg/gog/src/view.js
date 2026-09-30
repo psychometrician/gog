@@ -830,6 +830,9 @@ export function mountView(target, options = {}) {
   const container =
     typeof target === "string" ? document.getElementById(target) : target;
   if (!container || options.controls === false) return null;
+  // Once per container: a script run twice would stack a second control bar.
+  if (container.dataset.gogView) return null;
+  container.dataset.gogView = "1";
 
   const view = attachView(container, options);
   const bar = controlBar("view");

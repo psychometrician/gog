@@ -149,8 +149,10 @@ fn render_to_string(input: &str) -> (String, i32) {
         Err(e) => return (format!("gog: JSON parse error: {e}"), STATUS_BAD_JSON),
     };
 
-    // `decode` consumes the tables, so the spec is taken first.
+    // `decode` consumes the tables, so the spec is taken first, and the salt the
+    // page sends for its own block.
     let spec = request.spec.clone();
+    let salt = request.salt.clone();
     let (data, remarks) = wire::decode(request);
 
     match gog_core::plot::render_figure(&spec, &data) {
@@ -163,7 +165,11 @@ fn render_to_string(input: &str) -> (String, i32) {
             // render's notes, or a host that polls `gog_notes` per frame reads
             // an old warning attributed to a frame that had nothing to say.
             NOTES.with(|n| *n.borrow_mut() = notes.join("\n"));
-            (drawing.svg, STATUS_OK)
+            let svg = match &salt {
+                Some(salt) => gog_core::plot::salted(&drawing.svg, salt),
+                None => drawing.svg,
+            };
+            (svg, STATUS_OK)
         }
         // The decode remarks ride ahead of the refusal, exactly as `gog-cli`
         // prints them before it exits 2 — a "dropped N rows" report must not
@@ -189,6 +195,25 @@ mod tests {
             "coord":{"space":{"turn":45,"tilt":25}}},
         "data": {"t": {"floats": {"a":[1.0,2.0,3.0],"b":[2.0,1.0,3.0],"c":[3.0,2.0,1.0]}}}
     }"#;
+
+    /// The page's redraws carry its block's id as a salt, so a redraw names its
+    /// clips and textures as the binding's first drawing of that block did, and
+    /// apart from any copy of the same plot elsewhere in the document.
+    #[test]
+    fn a_salted_request_salts_every_id() {
+        let request = r#"{
+            "spec": {"data":"t","layers":[{"mark":"bar","encodings":{
+                "x":{"field":"g"},"y":{"field":"v"},"pattern":{"field":"g"}},"transforms":[]}]},
+            "data": {"t": {"floats": {"v":[1.0,2.0]}, "strings": {"g":["a","b"]}}},
+            "salt": "gog-x1"
+        }"#;
+        let (svg, status) = render_to_string(request);
+        assert_eq!(status, STATUS_OK, "{svg}");
+        assert!(svg.contains("id=\"gog-x1-"), "every minted id carries the salt");
+        let refs = svg.matches("url(#").count();
+        assert!(refs > 0, "the premise: a textured bar refers to its definitions");
+        assert_eq!(svg.matches("url(#gog-x1-").count(), refs, "and so does every reference");
+    }
 
     #[test]
     fn a_cube_renders_to_svg() {

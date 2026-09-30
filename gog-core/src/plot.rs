@@ -74,6 +74,17 @@ impl Strictness {
     }
 }
 
+/// A drawing with `salt` mixed into every id it mints and every reference to one.
+///
+/// For a drawing that is embedded in a web page rather than saved: two copies of
+/// one drawing in one document otherwise share their clips and textures, and the
+/// second draws with the first's (`wire::RenderRequest::salt`). Both bridges call
+/// it on the request's salt, so the picture a binding embeds and the redraws the
+/// page asks for name their ids alike.
+pub fn salted(svg: &str, salt: &str) -> String {
+    crate::render::svg::salt_ids(svg, salt)
+}
+
 /// What to tell a reader whose plot was refused, after the diagnostics.
 ///
 /// Lives beside the policy rather than in the caller, for the reason the whole
@@ -312,6 +323,40 @@ mod tests {
 
     fn base() -> PlotSpec {
         PlotSpec::new().data("t").x("gdp").y("life")
+    }
+
+    /// **Two copies of one drawing keep their definitions apart once each is
+    /// salted.** Ids come from the drawing, so the same plot twice on one web page
+    /// named one texture and one clip twice, and the second copy drew with the
+    /// first's; in a hidden notebook tab the first's textures draw as nothing.
+    /// Salted, the copies share no id, every reference still lands in its own
+    /// copy, and a drawing with no salt is byte for byte what it was.
+    #[test]
+    fn a_salt_keeps_two_copies_of_one_drawing_apart() {
+        let spec = PlotSpec::new().data("t").x("continent").y("life")
+            .layer(Layer::new(Mark::Bar).encode(Channel::Pattern, "continent"));
+        let svg = render_with(&spec, &data(), Strictness::Strict).expect("draws").svg;
+        let ids = |svg: &str| -> Vec<String> {
+            svg.split("id=\"").skip(1)
+                .map(|s| s.split('"').next().unwrap_or("").to_string()).collect()
+        };
+        let refs = |svg: &str| -> Vec<String> {
+            svg.split("url(#").skip(1)
+                .map(|s| s.split(')').next().unwrap_or("").to_string()).collect()
+        };
+        assert!(svg.contains("<pattern") && !refs(&svg).is_empty(),
+                "the premise: a textured bar mints definitions and uses them");
+
+        let (a, b) = (salted(&svg, "gog-a1"), salted(&svg, "gog-b2"));
+        let (ids_a, ids_b) = (ids(&a), ids(&b));
+        assert!(ids_a.iter().all(|i| !ids_b.contains(i)), "two copies share no id");
+        for (copy, own) in [(&a, &ids_a), (&b, &ids_b)] {
+            for r in refs(copy) {
+                assert!(own.contains(&r), "`url(#{r})` finds its definition in its own copy");
+            }
+        }
+        assert_eq!(salted(&svg, "  "), svg, "a salt with nothing an id can carry salts nothing");
+        assert!(!svg.contains("gog-a1"), "an unsalted drawing carries no salt");
     }
 
     /// A legal plot draws, and says nothing.

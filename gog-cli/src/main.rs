@@ -114,8 +114,9 @@ fn main() {
     };
 
     // `decode` consumes the tables, so the spec is taken first; it is needed
-    // after, to render.
+    // after, to render. The salt likewise, for the drawing it goes into.
     let spec = request.spec.clone();
+    let salt = request.salt.clone();
 
     // Decoding — including which rows a missing value costs — is `gog_core::wire`'s,
     // not this bridge's. It moved down when a second caller appeared: the
@@ -191,7 +192,10 @@ fn main() {
             for d in &drawing.diagnostics {
                 eprintln!("{}", d.message);
             }
-            print!("{}", drawing.svg);
+            match &salt {
+                Some(salt) => print!("{}", gog_core::plot::salted(&drawing.svg, salt)),
+                None => print!("{}", drawing.svg),
+            }
         }
         Err(diagnostics) => {
             for d in &diagnostics {

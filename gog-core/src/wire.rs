@@ -55,6 +55,19 @@ pub struct RenderRequest {
     pub spec: Figure,
     #[serde(default)]
     pub data: HashMap<String, DataFrameJson>,
+    /// A word mixed into every id the drawing mints, so two copies of one drawing
+    /// on one web page keep their definitions apart (`plot::salted`).
+    ///
+    /// Ids are derived from the drawing, which keeps a saved file reproducible,
+    /// and a browser resolves an id against the whole document. So the same plot
+    /// twice in one page, or in two notebooks JupyterLab holds in one document,
+    /// named one clip and one texture twice, and the second copy drew with the
+    /// first's; when the first sat in a hidden tab its textures drew as nothing.
+    /// A binding embedding a drawing in a page sends the id of the block it
+    /// writes, and the page's own redraws send the same word. A file written to
+    /// disk sends none and stays byte for byte what it was.
+    #[serde(default)]
+    pub salt: Option<String>,
 }
 
 /// Turn the wire's tables into engine tables, dropping rows a missing value has

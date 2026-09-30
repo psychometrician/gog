@@ -14,6 +14,7 @@
 // table is already an object of arrays and the spec is already JSON.
 
 import { spawnSync } from "node:child_process";
+import { randomUUID } from "node:crypto";
 import fs from "node:fs";
 import { createRequire } from "node:module";
 import os from "node:os";
@@ -498,8 +499,13 @@ function wireRequest(plot) {
 // functions serializing the same object is two chances to disagree about a
 // number's precision or about what a missing value crosses as, and that
 // disagreement would surface as a GIF that does not match the plot beside it.
-function wirePayload(plot) {
-  return JSON.stringify({ spec: plot.spec, data: wireData(plot) });
+function wirePayload(plot, salt) {
+  // A drawing embedded in a page names its ids after the block it sits in
+  // (`html_block`); a drawing written to a file sends no salt and stays byte for
+  // byte the same.
+  const request = { spec: plot.spec, data: wireData(plot) };
+  if (salt) request.salt = salt;
+  return JSON.stringify(request);
 }
 
 // **The engine reads its request from a file, never from a pipe.** On macOS,
@@ -532,6 +538,11 @@ function runEngine(args, input) {
 }
 
 export function render_svg(plot) {
+  return drawSvg(plot);
+}
+
+// `render_svg`, with the salt a page block passes (`html_block`).
+function drawSvg(plot, salt) {
   if (!plot || typeof plot !== "object" || !plot.spec || !plot.frames) {
     throw new GogError(
       "gog: `render_svg()` draws a plot — `render_svg(plot(data(df), point, " +
@@ -542,7 +553,7 @@ export function render_svg(plot) {
   // a `spec` and its `frames` exactly as a plot does, and the engine tells the
   // two shapes apart itself (`ir::Figure`).
 
-  const payload = wirePayload(plot);
+  const payload = wirePayload(plot, salt);
 
   const result = runEngine([], payload);
 
@@ -811,7 +822,16 @@ function pruned(request) {
 }
 
 export function html_block(plot) {
-  const svg = render_svg(plot).replace(...FIT);
+  // **The id first, and the drawing named after it.** The id is this block's
+  // alone, and the drawing is asked for with it as the salt, so every clip and
+  // texture it minted is this block's too. Both used to come from the drawing,
+  // so a book build was reproducible, but a page resolves an id against the whole
+  // document: the same plot shown twice put the second plot's controls on the
+  // first and left the second with none, and in two notebooks JupyterLab holds in
+  // one document its textures drew as nothing. `render_svg()` sends no salt, so a
+  // saved file is still byte for byte the same.
+  const id = blockId();
+  const svg = drawSvg(plot, id).replace(...FIT);
   const spec = plot.spec ?? plot;
   // Two questions, not one. The *engine* has two reasons — an angle worth
   // dragging, a bound worth moving — and both redraw. The *module* has a third,
@@ -836,11 +856,10 @@ export function html_block(plot) {
     const head = assetUrls.js
       ? `import { mountView } from "${moduleSpecifier(assetUrls.js.replace("interactive.js", "view.js"))}";\n`
       : inlineModules([viewPath]) + "\n";
-    const vid = "gog-" + Math.abs(hashOf(svg)).toString(36).padStart(10, "0").slice(0, 10);
     return (
-      `<div class="gog-plot" id="${vid}" style="text-align:center;">\n${svg}\n` +
+      `<div class="gog-plot" id="${id}" style="text-align:center;">\n${svg}\n` +
       `<script type="module">\n${head}` +
-      `mountView("${vid}");\n</script>\n</div>`
+      `mountView("${id}");\n</script>\n</div>`
     );
   }
 
@@ -850,7 +869,6 @@ export function html_block(plot) {
   const head = assetUrls.js
     ? `import { mount } from "${moduleSpecifier(assetUrls.js)}";\n`
     : inlineModules([path.join(path.dirname(assets[1]), "view.js"), assets[1]]) + "\n";
-  const id = "gog-" + Math.abs(hashOf(svg)).toString(36).padStart(10, "0").slice(0, 10);
   const request = pruned(JSON.stringify(wireRequest(plot)));
 
   return (
@@ -860,16 +878,10 @@ export function html_block(plot) {
   );
 }
 
-// A stable id from the drawing itself. `Math.random` is avoided deliberately:
-// the same plot rendered twice should produce the same file, so a book build is
-// reproducible and a diff of two renders shows what actually changed.
-function hashOf(s) {
-  let h = 2166136261;
-  for (let i = 0; i < s.length; i++) {
-    h ^= s.charCodeAt(i);
-    h = Math.imul(h, 16777619);
-  }
-  return h | 0;
+// A block's id, unique on the page it lands on, as R, Python and Julia mint
+// theirs.
+function blockId() {
+  return "gog-" + randomUUID().replace(/-/g, "").slice(0, 10);
 }
 
 // How many plots `show` has written in this process, so each gets its own file.

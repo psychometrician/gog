@@ -1270,8 +1270,9 @@ function everythingUnder(node, out = []) {
  * is switched on is decided in that bar. So a handle can answer correctly while
  * the button stays off, and only a mounted plot can show which.
  */
-async function mountFixture(spec, data) {
+async function mountFixture(spec, data, id = undefined) {
   const container = stubContainer();
+  if (id) container.id = id;
   const host = globalThis.document.createElement("div");
   host.appendChild(container);
   container.parentNode = host;
@@ -1571,6 +1572,44 @@ test("nobody has asked, so there is nothing to explain", async () => {
     assert.equal(handle.unplaced(), null,
       "the reason waits for a reader rather than sitting under every such plot");
     handle.destroy();
+  } finally {
+    undo();
+  }
+});
+
+// A host that runs a block's script twice would stack a second bar and a second
+// drag on one picture.
+test("a plot mounts once, however many times its script runs", async () => {
+  const undo = stubDom();
+  try {
+    const m = await mountFixture(POINTS.spec, POINTS.data);
+    const again = await mount(m.container, { spec: POINTS.spec, data: POINTS.data },
+                              { wasm: fs.readFileSync(WASM) });
+    assert.equal(again, null, "the second mount attaches nothing");
+    m.handle.destroy?.();
+  } finally {
+    undo();
+  }
+});
+
+// Ids come from the drawing, and a page resolves an id against the whole
+// document, so the same plot twice on a page shared its clips and textures. The
+// binding names its first drawing after the block; every redraw must too.
+test("a redraw names its ids after the block it is drawn in", async () => {
+  const undo = stubDom();
+  try {
+    const m = await mountFixture(POINTS.spec, POINTS.data, "gog-salt1");
+    const p = m.panels[0];
+    m.container.send("pointerdown", placeOn(p.x, 20), placeOn(p.y, 20));
+    m.container.send("pointermove", placeOn(p.x, 60), placeOn(p.y, 60));
+    m.container.send("pointerup", placeOn(p.x, 60), placeOn(p.y, 60));
+    const html = m.container.innerHTML;
+    const ids = [...html.matchAll(/ id="([^"]+)"/g)].map((x) => x[1]);
+    assert.ok(ids.length > 0, "the premise: the redraw minted ids");
+    assert.ok(ids.every((i) => i.startsWith("gog-salt1-")), `every id is the block's: ${ids.slice(0, 3)}`);
+    const refs = [...html.matchAll(/url\(#([^)]+)\)/g)].map((x) => x[1]);
+    assert.ok(refs.every((r) => ids.includes(r)), "and every reference finds its own definition");
+    m.handle.destroy?.();
   } finally {
     undo();
   }

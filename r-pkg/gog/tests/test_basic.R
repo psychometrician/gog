@@ -6365,3 +6365,25 @@ local({
   if (!startsWith(svg, "<svg")) stop("FAIL: a surface should take quantile")
   cat("PASS: a surface takes quantile\n")
 })
+
+# Two blocks of one plot share no id. Ids come from the drawing, and a page
+# resolves an id against the whole document, so the same plot twice on one page,
+# or in two notebooks JupyterLab holds in one document, shared its clips and
+# textures, and the second copy drew with the first's. Each block names them
+# after itself; `render_svg()` stays one file.
+local({
+  d <- data.frame(g = c("a", "b"), v = c(1, 2))
+  p <- data(d) + bar + x(g) + y(v) + pattern(g)
+  svg_of <- function(h) regmatches(h, regexpr("<svg[\\s\\S]*</svg>", h, perl = TRUE))
+  ids <- function(s) sub('"$', "", sub('^ id="', "", regmatches(s, gregexpr(' id="[^"]+"', s))[[1]]))
+  refs <- function(s) sub("^url\\(#", "", regmatches(s, gregexpr("url\\(#[^)]+", s))[[1]])
+  a <- svg_of(gog:::html_of(p))
+  b <- svg_of(gog:::html_of(p))
+  if (length(ids(a)) == 0L) stop("FAIL: the premise: a textured bar mints ids")
+  if (any(ids(a) %in% ids(b))) stop("FAIL: two blocks of one plot share an id")
+  for (s in list(a, b)) {
+    if (!all(refs(s) %in% ids(s))) stop("FAIL: a reference left its own block")
+  }
+  if (!identical(render_svg(p), render_svg(p))) stop("FAIL: render_svg() is no longer one file")
+  cat("PASS: two blocks of one plot share no id; render_svg() stays one file\n")
+})

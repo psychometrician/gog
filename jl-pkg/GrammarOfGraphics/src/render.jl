@@ -336,7 +336,7 @@ Split out of `render_svg` when `save_gif` became a second caller. Two functions
 serializing the same object is two chances to disagree about a number's
 precision or about what a missing value crosses as, and that disagreement would
 surface as a GIF that does not match the plot beside it."""
-function wire_payload(plot::Union{Plot,Page})
+function wire_payload(plot::Union{Plot,Page}; salt = nothing)
     spec, frames = wire(plot)
     data = Dict{String,Any}()
     for (name, table) in frames
@@ -345,7 +345,12 @@ function wire_payload(plot::Union{Plot,Page})
         # sentence before the database is ever asked (the pushdown design).
         data[name] = to_wire(resolve_query(table, name), name)
     end
-    to_json(Dict{String,Any}("spec" => spec, "data" => data))
+    request = Dict{String,Any}("spec" => spec, "data" => data)
+    # A drawing embedded in a page names its ids after the block it sits in
+    # (`html_of`); a drawing written to a file sends no salt and stays byte for
+    # byte the same.
+    salt === nothing || (request["salt"] = salt)
+    to_json(request)
 end
 
 """The request holding only the columns its spec names, for a page to carry.
@@ -386,8 +391,11 @@ end
 render_svg(atom::Atom) = throw(GogError(not_a_plot(atom)))
 save_gif(atom::Atom, ::AbstractString; scale::Real = 1) = throw(GogError(not_a_plot(atom)))
 
-function render_svg(plot::Union{Plot,Page})
-    payload = wire_payload(plot)
+render_svg(plot::Union{Plot,Page}) = draw_svg(plot)
+
+# `render_svg`, with the salt a page block passes (`html_of`).
+function draw_svg(plot::Union{Plot,Page}; salt = nothing)
+    payload = wire_payload(plot; salt = salt)
 
     out = IOBuffer()
     errors = IOBuffer()
@@ -565,7 +573,7 @@ style choice. Quarto's `layout-ncol` divides a chunk's output into cells by
 counting top-level blocks, so a `<div>` with a sibling `<script>` is two cells
 and two plots become four — wrapping into two rows, each plot alone at full width
 beside an empty cell holding only its script. One element is one cell."""
-function svg_block(svg::AbstractString, plot = nothing)
+function svg_block(svg::AbstractString, plot = nothing; id::AbstractString = block_id())
     # **Whatever size the canvas is.** This matched the literal 800x600 for as
     # long as that was the only canvas, so `size()` on a plot quietly opted it
     # out of fitting. Anchored inside the opening `<svg` tag, because `[^>]`
@@ -574,12 +582,27 @@ function svg_block(svg::AbstractString, plot = nothing)
     sized = replace(svg, r"(<svg[^>]*) width=\"(\d+)\" height=\"(\d+)\"" =>
                          s"\1 width=\"\2\" height=\"\3\" style=\"max-width:100%;height:auto;\"",
                     count = 1)
-    id = "gog-" * randstring(['a':'z'; '0':'9'], 10)
     block = plot === nothing ? "" : interactive_block(plot, id)
     isempty(block) &&
         return "<div class=\"gog-plot\" style=\"text-align:center;\">\n" * sized * "\n</div>"
     "<div class=\"gog-plot\" id=\"" * id * "\" style=\"text-align:center;\">\n" *
         sized * "\n" * block * "</div>"
+end
+
+"""A block's id, unique on the page it lands on."""
+block_id() = "gog-" * randstring(['a':'z'; '0':'9'], 10)
+
+"""The plot as a block for a web page, its ids its own.
+
+The id is chosen first and the drawing is asked for with it as the salt, so every
+clip and texture the drawing minted is named after this block. Ids come from the
+drawing, and a page resolves an id against the whole document, so the same plot
+twice on one page, or in two notebooks JupyterLab holds in one document, shared
+its definitions, and the second copy drew with the first's. `render_svg` sends no
+salt, so a saved file stays byte for byte the same."""
+function html_of(plot::Union{Plot,Page})
+    id = block_id()
+    svg_block(draw_svg(plot; salt = id), plot; id = id)
 end
 
 """
@@ -692,7 +715,8 @@ end
 # answer to the question that was asked.
 function Base.show(io::IO, ::MIME"image/svg+xml", plot::Union{Plot,Page})
     try
-        print(io, render_svg(plot))
+        # Salted like a block: a host showing the bare SVG puts it in the page too.
+        print(io, draw_svg(plot; salt = block_id()))
     catch error
         error isa GogError || rethrow()
         text = replace(sprint(showerror, error),
@@ -715,7 +739,7 @@ end
 # flat plot the two differ only by the wrapping `<div>`.
 function Base.show(io::IO, ::MIME"text/html", plot::Union{Plot,Page})
     try
-        print(io, svg_block(render_svg(plot), plot))
+        print(io, html_of(plot))
     catch error
         error isa GogError || rethrow()
         print(io, refusal_block(sprint(showerror, error)))

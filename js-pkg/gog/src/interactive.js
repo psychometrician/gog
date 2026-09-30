@@ -50,7 +50,7 @@ export const DEFAULT_TILT = 25;
  */
 export { attachView, mountView } from "./view.js";
 
-export const BUILD = "2026-09-28";
+export const BUILD = "2026-09-29";
 
 /**
  * Engines already loaded, keyed by where they came from.
@@ -2390,6 +2390,16 @@ export async function mount(target, request, options = {}) {
   const container =
     typeof target === "string" ? document.getElementById(target) : target;
   if (!container) return null;
+  // **Once per container.** A host that runs a block's script a second time
+  // would otherwise stack a second bar and a second drag on the same picture.
+  if (container.dataset.gogMounted) return null;
+  container.dataset.gogMounted = "1";
+  // **Every redraw names its ids after this block**, as the binding's first
+  // drawing of it did (the request's `salt`). Ids come from the drawing, and a
+  // browser resolves one against the whole document, so the same plot twice on a
+  // page, or in two notebooks JupyterLab holds in one document, shared its clips
+  // and textures, and the second copy drew with the first's.
+  if (request && container.id && !request.salt) request = { ...request, salt: container.id };
 
   // Two reasons to load the **engine**: a plot in the cube has an angle worth
   // dragging, and a plot that names a brush has a bound worth moving. Both

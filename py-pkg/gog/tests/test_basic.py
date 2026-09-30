@@ -4165,3 +4165,22 @@ _grid = {"a": [float(i % 5 + 1) for i in builtins.range(20)],
 assert render_svg(data(_grid, name="grid") + surface * bin * quantile(0.9)
                   + x(col.a) + y(col.b) + z(col.v)).startswith("<svg")
 ok("a surface takes quantile")
+
+# Two blocks of one plot share no id. Ids come from the drawing, and a page
+# resolves an id against the whole document, so the same plot twice on one page,
+# or in two notebooks JupyterLab holds in one document, shared its clips and
+# textures, and the second copy drew with the first's. Each block names them
+# after itself; `render_svg()` stays one file.
+import re as _re
+from gog import render as _R2
+_sp = data({"g": ["a", "b"], "v": [1.0, 2.0]}, "d") + bar + x(col.g) + y(col.v) + pattern(col.g)
+_svg_of = lambda h: _re.search(r"<svg[\s\S]*</svg>", h).group(0)
+_ids = lambda s: _re.findall(r' id="([^"]+)"', s)
+_refs = lambda s: _re.findall(r"url\(#([^)]+)\)", s)
+_sa, _sb = _svg_of(_R2.html_of(_sp)), _svg_of(_R2.html_of(_sp))
+assert _ids(_sa), "the premise: a textured bar mints ids"
+assert not set(_ids(_sa)) & set(_ids(_sb)), "two blocks of one plot share an id"
+for _s in (_sa, _sb):
+    assert set(_refs(_s)) <= set(_ids(_s)), "a reference left its own block"
+assert render_svg(_sp) == render_svg(_sp), "render_svg() is no longer one file"
+print("PASS: two blocks of one plot share no id; render_svg() stays one file")

@@ -6185,6 +6185,26 @@ fn namespace_ids(svg: &str) -> String {
         .replace("url(#", &format!("url(#{prefix}"))
 }
 
+/// Every id the drawing minted, and every reference to one, with `salt` in front.
+///
+/// `namespace_ids` makes a drawing's ids its own among *different* drawings; this
+/// makes them its own among copies of one drawing, which content alone cannot do.
+/// The two forms it rewrites are the two `namespace_ids` writes, so a salted
+/// drawing resolves every reference exactly as the unsalted one did. The salt is
+/// reduced to letters, digits, `-` and `_`, the characters an id and a URL
+/// fragment both take unescaped; one left with none of them salts nothing.
+pub(crate) fn salt_ids(svg: &str, salt: &str) -> String {
+    let salt: String = salt
+        .chars()
+        .filter(|c| c.is_ascii_alphanumeric() || *c == '-' || *c == '_')
+        .collect();
+    if salt.is_empty() || !svg.contains("id=\"") {
+        return svg.to_string();
+    }
+    svg.replace("id=\"", &format!("id=\"{salt}-"))
+        .replace("url(#", &format!("url(#{salt}-"))
+}
+
 /// A clip id derived from the rectangle it clips.
 ///
 /// The book inlines many SVGs into one HTML page, where ids are global and the

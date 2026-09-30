@@ -4296,3 +4296,26 @@ test("the engine reads its request from a file that does not outlive the call", 
     fs.rmSync(tmp, { recursive: true, force: true });
   }
 });
+
+// Two blocks of one plot share no id. Ids come from the drawing, and a page
+// resolves an id against the whole document, so the same plot twice on one page,
+// or in two notebooks JupyterLab holds in one document, shared its clips and
+// textures: the second plot's controls landed on the first, and the second copy
+// drew with the first's. Each block names them after itself; `render_svg()`
+// stays one file.
+test("two blocks of one plot share no id", () => {
+  const p = plot(data({ g: ["a", "b"], v: [1, 2] }), bar, x(col.g), y(col.v), pattern(col.g));
+  const svgOf = (h) => /<svg[\s\S]*<\/svg>/.exec(h)[0];
+  const ids = (s) => [...s.matchAll(/ id="([^"]+)"/g)].map((m) => m[1]);
+  const refs = (s) => [...s.matchAll(/url\(#([^)]+)\)/g)].map((m) => m[1]);
+  const [ha, hb] = [html_block(p), html_block(p)];
+  const idOf = (h) => /<div class="gog-plot" id="([^"]+)"/.exec(h)?.[1];
+  if (idOf(ha)) assert.notEqual(idOf(ha), idOf(hb), "each block has its own container");
+  const [a, b] = [svgOf(ha), svgOf(hb)];
+  assert.ok(ids(a).length > 0, "the premise: a textured bar mints ids");
+  assert.ok(ids(a).every((i) => !ids(b).includes(i)), "two blocks of one plot share an id");
+  for (const s of [a, b]) {
+    assert.ok(refs(s).every((r) => ids(s).includes(r)), "a reference left its own block");
+  }
+  assert.equal(render_svg(p), render_svg(p), "render_svg() stays one file");
+});
