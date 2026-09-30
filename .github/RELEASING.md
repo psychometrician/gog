@@ -202,6 +202,30 @@ reports clean and means nothing. It asserts on the status line rather than the e
 code, since `R CMD check` exits 0 on a WARNING. All four failures above would have
 been caught at push time.
 
+#### 0.4.0: two more causes, caught only because the release waited for CI
+
+Neither reached r-universe, and how they were caught matters more than what they
+were. A local `R CMD check`, run on macOS exactly the way the `installed` job runs
+it, read **Status: OK** with the second one still in the tree.
+
+- **A package the tests call and `DESCRIPTION` does not declare.** Two tests called
+  `magrittr::` behind `requireNamespace()`. `R CMD check` warns under "checking for
+  unstated dependencies in 'tests'" on every platform, because it reads the call
+  instead of running it, so the skip does not help. The fix was to reach the same
+  code without the package (bind `.` and call `data(.)`, which is all the pipe
+  does), not to add a dependency.
+- **A regular expression macOS compiles and Linux refuses.** A test found a number
+  behind a lookbehind of variable length, `(?<=<circle cx="[0-9.]{1,12}" cy=")`. R
+  on macOS carries a recent PCRE2 that accepts it. The Ubuntu runner's is older and
+  stops with "lookbehind assertion is not fixed length", so the suite passed on the
+  laptop and died on Linux, where most of r-universe's targets run. Capture with a
+  group instead: `sub('<circle cx="[0-9.]+" cy="([0-9.]+)"', "\\1", hits)`.
+
+**So a check on this machine is not the r-universe check.** It reproduces the
+installed-package conditions and nothing about Linux. `main:release` is pushed
+only once `tests.yml` is green at that exact commit, the `installed` job included,
+and `.github/release --r` refuses until it is.
+
 ### Reading a check result
 
 The badge says `7 WARNING` without saying what any of them is. The job list, with
@@ -457,6 +481,10 @@ do them by hand.
      not nothing: `git push origin main:release`, then
      `curl -s -X PATCH https://psychometrician.r-universe.dev/api/sync`. This line
      read "R needs nothing" for three weeks after that stopped being true.
+     **Push the branch only once `tests.yml` is green at the commit**, the
+     `installed` job included: it is the r-universe check on Linux, and at 0.4.0 a
+     clean local check on macOS missed a failure only Linux shows (see *0.4.0: two
+     more causes* above). `.github/release --r` checks this and refuses otherwise.
 8. **Verify each one by installing it.** A green workflow proves an upload happened,
    not that the result works. The bar is the same one each binding was held to at
    `0.0.1`: install from the registry into a clean environment and draw from a

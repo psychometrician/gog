@@ -81,6 +81,29 @@ check_ci_green() {
   esac
 }
 
+# The release branch waits for CI, at this exact commit. r-universe builds most of
+# its targets on Linux, and a clean `R CMD check` on a Mac proved nothing about
+# Linux at 0.4.0: a regex macOS's PCRE2 compiled stopped the suite on Ubuntu, and
+# the local check had read Status: OK. `tests.yml`'s `installed` job is that check
+# on Linux, so `--r` refuses unless it has run here and passed.
+require_ci_green() {
+  command -v gh >/dev/null || die "gh is needed to read CI before releasing R"
+  local sha status
+  sha="$(git rev-parse HEAD)"
+  git fetch -q origin main || die "could not fetch origin/main"
+  [ "$(git rev-parse origin/main)" = "$sha" ] ||
+    die "HEAD $(git rev-parse --short HEAD) is not origin/main. Push main, let tests.yml run on it, then release."
+  status="$(gh run list --commit "$sha" --limit 20 \
+    --json name,conclusion,status --jq \
+    '[.[] | select(.name == "tests")] | if length == 0 then "none"
+       elif any(.status != "completed") then "running"
+       elif all(.conclusion == "success") then "green" else "red" end' 2>/dev/null || echo unknown)"
+  case "$status" in
+    green) ok "tests.yml is green at $(git rev-parse --short HEAD), the installed job included" ;;
+    *)     die "tests.yml is '$status' at $(git rev-parse --short HEAD). The release branch waits for it: its installed job is the r-universe check on Linux." ;;
+  esac
+}
+
 check_versions_agree() {
   local want="$1" bad=0 got
   for spec in \
@@ -225,6 +248,7 @@ release_r() {
   local version out
   version="$(declared_version)"
   check_versions_agree "$version"
+  require_ci_green
   step "Releasing gog $version to r-universe"
   git push origin main:release || die "could not push main:release"
   ok "release branch now at $(git rev-parse --short HEAD)"
