@@ -7,73 +7,73 @@
 [[gog_cli]]
 arch = "aarch64"
 os = "macos"
-git-tree-sha1 = "d6063a8da45fb74e3487ab398f815cb34cc6d474"
+git-tree-sha1 = "6014e2ba3cedf49edc7803b1fbfee975a304d835"
 lazy = false
 
     [[gog_cli.download]]
-    url = "https://github.com/psychometrician/gog/releases/download/engine-v0.4.0/gog-cli-darwin-arm64.tar.gz"
-    sha256 = "a9c2fd58849a137a62e43cf124ad1df1b56b3fec5d2c9960aaf56720fd8c1fae"
+    url = "https://github.com/psychometrician/gog/releases/download/engine-v0.4.1/gog-cli-darwin-arm64.tar.gz"
+    sha256 = "e19bd337507b4e54ecb987a433455c904c2415261bef5e6dc8a63e420d58211c"
 
 [[gog_cli]]
 arch = "x86_64"
 os = "macos"
-git-tree-sha1 = "79e76edd85e5398f17609a9633d0a8b12f8589f1"
+git-tree-sha1 = "df9066eedbdadd71bf1dc170b22f4c4b78f79f87"
 lazy = false
 
     [[gog_cli.download]]
-    url = "https://github.com/psychometrician/gog/releases/download/engine-v0.4.0/gog-cli-darwin-x64.tar.gz"
-    sha256 = "1c82a4c9425d2b34270e72dd12dc7933fe8ed6a9a85dd6825039786728a76b59"
+    url = "https://github.com/psychometrician/gog/releases/download/engine-v0.4.1/gog-cli-darwin-x64.tar.gz"
+    sha256 = "a862f9b9a2f1801a0e21f28b9c2a641e5de91385bfde20b8aebbb80351ea0af8"
 
 [[gog_cli]]
 arch = "x86_64"
 os = "linux"
 libc = "glibc"
-git-tree-sha1 = "7bf543f8be6603b9bee4c9a4d59b0672b824669f"
+git-tree-sha1 = "bbf051e25d0fe7567a945b6f8281055dd43cee45"
 lazy = false
 
     [[gog_cli.download]]
-    url = "https://github.com/psychometrician/gog/releases/download/engine-v0.4.0/gog-cli-linux-x64.tar.gz"
-    sha256 = "e26442bafc640d74c31c5a0de0f40c1f793558ab6603f85a7ae63eefc25b476e"
+    url = "https://github.com/psychometrician/gog/releases/download/engine-v0.4.1/gog-cli-linux-x64.tar.gz"
+    sha256 = "44694671ff28ce8bac391cd6af70fce78fc28ae35f8d31e9241e0d0e8c3fa132"
 
 [[gog_cli]]
 arch = "x86_64"
 os = "linux"
 libc = "musl"
-git-tree-sha1 = "7bf543f8be6603b9bee4c9a4d59b0672b824669f"
+git-tree-sha1 = "bbf051e25d0fe7567a945b6f8281055dd43cee45"
 lazy = false
 
     [[gog_cli.download]]
-    url = "https://github.com/psychometrician/gog/releases/download/engine-v0.4.0/gog-cli-linux-x64.tar.gz"
-    sha256 = "e26442bafc640d74c31c5a0de0f40c1f793558ab6603f85a7ae63eefc25b476e"
+    url = "https://github.com/psychometrician/gog/releases/download/engine-v0.4.1/gog-cli-linux-x64.tar.gz"
+    sha256 = "44694671ff28ce8bac391cd6af70fce78fc28ae35f8d31e9241e0d0e8c3fa132"
 
 [[gog_cli]]
 arch = "aarch64"
 os = "linux"
 libc = "glibc"
-git-tree-sha1 = "b5e98309851d72d23b3c053d89a4eb1ad6d82657"
+git-tree-sha1 = "920413bac71d210c27e0f012b39b8bf78ecc0579"
 lazy = false
 
     [[gog_cli.download]]
-    url = "https://github.com/psychometrician/gog/releases/download/engine-v0.4.0/gog-cli-linux-arm64.tar.gz"
-    sha256 = "198b7d4ef4173fdd9b0a80167b53250bee8c39353759e7f83427a531a4d644bf"
+    url = "https://github.com/psychometrician/gog/releases/download/engine-v0.4.1/gog-cli-linux-arm64.tar.gz"
+    sha256 = "0b050cd2ee91d90b8788f13a4f68b8355910f288ae590a389d577c92bb95148d"
 
 [[gog_cli]]
 arch = "aarch64"
 os = "linux"
 libc = "musl"
-git-tree-sha1 = "b5e98309851d72d23b3c053d89a4eb1ad6d82657"
+git-tree-sha1 = "920413bac71d210c27e0f012b39b8bf78ecc0579"
 lazy = false
 
     [[gog_cli.download]]
-    url = "https://github.com/psychometrician/gog/releases/download/engine-v0.4.0/gog-cli-linux-arm64.tar.gz"
-    sha256 = "198b7d4ef4173fdd9b0a80167b53250bee8c39353759e7f83427a531a4d644bf"
+    url = "https://github.com/psychometrician/gog/releases/download/engine-v0.4.1/gog-cli-linux-arm64.tar.gz"
+    sha256 = "0b050cd2ee91d90b8788f13a4f68b8355910f288ae590a389d577c92bb95148d"
 
 [[gog_cli]]
 arch = "x86_64"
 os = "windows"
-git-tree-sha1 = "dc3ded8529182a618a0cd803032b2310e7735530"
+git-tree-sha1 = "0efe4c92a98a6e3682158a9b333f4ad530d2b2c4"
 lazy = false
 
     [[gog_cli.download]]
-    url = "https://github.com/psychometrician/gog/releases/download/engine-v0.4.0/gog-cli-win32-x64.tar.gz"
-    sha256 = "4604573e05683571407e9415863dd3aeeb50c476e980dc51cb9809b9e9c1f0b7"
+    url = "https://github.com/psychometrician/gog/releases/download/engine-v0.4.1/gog-cli-win32-x64.tar.gz"
+    sha256 = "d43c9489a574577528e3b789b22fb3fc9f4c586391150539ce7cd068fd59aaef"
