@@ -15,6 +15,18 @@ CRAN-style repositories and PyPI, `GrammarOfGraphics` on Julia's General, and
   builds with Rust 1.75 or newer, and `DESCRIPTION` says so. Plots and GIFs are
   byte for byte the same as 0.4.0's.
 
+- **An R install that cannot build the engine says why.** When every Rust it
+  finds is too old, it stops before building, lists each one with its version,
+  names the version it needs, and gives the rustup command. When the build itself
+  fails, it points at cargo's output rather than at a staging step that had
+  worked. An old Rust first on `PATH` no longer hides a current one in
+  `~/.cargo/bin`, where rustup puts it: the install now builds with the newer.
+
+- **An R install no longer fails after the engine is built because rustup could
+  not add a target**, offline or with a system-wide rustup the user cannot write
+  to. The engine that turns 3-D plots in a browser is then left out, and plots
+  draw still, as was intended.
+
 ## 0.4.0 (2026-09-30)
 
 ### Added

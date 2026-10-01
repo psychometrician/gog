@@ -102,28 +102,94 @@ if [ -n "${GOG_WASM_HOST}" ]; then
   exit 1
 fi
 
-# Build `gog-cli` from a workspace manifest and report the binary's path on
-# success, nothing on failure. Shared by steps 4 and 5 so the two cannot drift in
-# the flags they pass — `-j 2` in one and not the other would be a difference
-# nobody would notice until CRAN complained.
+# ---------------------------------------------------------------------------
+# Which Rust builds the engine
+# ---------------------------------------------------------------------------
+#
+# Steps 4 and 5 below compile, and a compile needs a Rust at least as new as the
+# crates declare. That floor is read from `gog-cli/Cargo.toml`'s `rust-version`
+# rather than written here, so this script and the crates cannot disagree.
+#
+# **Every `cargo` within reach is asked, and the first one new enough builds.**
+# On Linux the first `cargo` on `PATH` is often the distribution's, which can be
+# older than the floor. The usual fix is rustup, which puts a current one in
+# `~/.cargo/bin`, and taking the first `cargo` on `PATH` regardless would build
+# with the old one again: the fix the message below gives would not work.
 #
 # `cargo` is looked for in `~/.cargo/bin` as well as on `PATH`, because rustup
 # installs it there and adds it to the *interactive* shell's profile — which the
 # non-interactive shell `R CMD INSTALL` runs has not read. Verified: `cargo` was
 # absent from a plain `sh -c` on the development machine until that path was
 # added by hand, so relying on `PATH` alone would fail for the common setup.
+#
+# **An old Rust is refused before it runs.** Left to try, it fails on whatever
+# it meets first. Rust 1.75 given 0.4.0 stopped at `lock file version 4 requires
+# -Znext-lockfile-bump`, which names neither the version it had nor the one it
+# needed, and the message below then blamed `.prepare`. A version this script
+# cannot read is not refused: the check exists to give direction, not to block
+# a build that may work.
+
+RUST_FLOOR=""   # the oldest Rust the crates declare, read by choose_cargo
+CARGO_BIN=""    # the cargo that builds, once one is new enough
+CARGO_PATH=""   # the PATH it builds with, so its own `rustc` is the one found
+RUST_STATE=""   # none | old | ok once a build has asked; empty if none did
+RUST_SEEN=""    # one line per cargo looked at, for the message at the bottom
+
+# 1.75 and 1.75.0 both become 1075, so two versions compare as integers in sh.
+# Anything that does not start with a number becomes 0, which means unknown.
+rust_version_number() {
+  echo "$1" | awk -F. '{ if ($1 ~ /^[0-9]+$/ && $2 ~ /^[0-9]+/) print $1 * 1000 + int($2); else print 0 }'
+}
+
+choose_cargo() {
+  RUST_FLOOR="$(sed -n 's/^rust-version *= *"\([0-9.]*\)".*/\1/p' "$1/gog-cli/Cargo.toml" | head -n 1)"
+  _need="$(rust_version_number "${RUST_FLOOR}")"
+  CARGO_BIN=""
+  CARGO_PATH=""
+  RUST_STATE="none"
+  RUST_SEEN=""
+  _onpath="$(command -v cargo 2>/dev/null || true)"
+  _prev=""
+  for _cand in "${_onpath}" "${HOME}/.cargo/bin/cargo"; do
+    [ -n "${_cand}" ] || continue
+    [ "${_cand}" != "${_prev}" ] || continue
+    _prev="${_cand}"
+    # The `cargo` on `PATH` builds with `PATH` as it is, which is how it always
+    # did. The one in `~/.cargo/bin` gets its directory put first, so the `rustc`
+    # it runs, and the one asked for a version here, is rustup's beside it rather
+    # than an older one earlier on `PATH`.
+    if [ "${_cand}" = "${_onpath}" ]; then
+      _path="${PATH}"
+    else
+      [ -x "${_cand}" ] || continue
+      _path="$(dirname "${_cand}"):${PATH}"
+    fi
+    _rustc="$(PATH="${_path}" rustc --version 2>/dev/null | head -n 1)"
+    _have="$(rust_version_number "$(echo "${_rustc}" | awk '{ print $2 }')")"
+    RUST_SEEN="${RUST_SEEN}  ${_cand}: ${_rustc:-reported no rustc version}
+"
+    if [ "${_need}" -eq 0 ] || [ "${_have}" -eq 0 ] || [ "${_have}" -ge "${_need}" ]; then
+      CARGO_BIN="${_cand}"
+      CARGO_PATH="${_path}"
+      RUST_STATE="ok"
+      return 0
+    fi
+    RUST_STATE="old"
+  done
+  return 0
+}
+
+# Build `gog-cli` from a workspace manifest with the cargo `choose_cargo` picked,
+# and report the binary's path on success, nothing on failure. Shared by steps 4
+# and 5 so the two cannot drift in the flags they pass — `-j 2` in one and not the
+# other would be a difference nobody would notice until CRAN complained.
 build_engine() {
   _root="$1"
-  _cargo=""
-  if command -v cargo >/dev/null 2>&1; then
-    _cargo="cargo"
-  elif [ -x "${HOME}/.cargo/bin/cargo" ]; then
-    _cargo="${HOME}/.cargo/bin/cargo"
-  fi
-  [ -n "${_cargo}" ] || return 0
+  [ -n "${CARGO_BIN}" ] || return 0
 
   echo "* gog: no prebuilt engine found — building it from ${_root}/." >&2
-  "${_cargo}" --version >&2 || true
+  PATH="${CARGO_PATH}" "${CARGO_BIN}" --version >&2 || true
+  PATH="${CARGO_PATH}" rustc --version >&2 || true
 
   # **Build from inside the workspace, not with `--manifest-path` from outside.**
   # Cargo looks for `.cargo/config.toml` by walking up from the *working
@@ -142,9 +208,12 @@ build_engine() {
   #
   # `-j 2` is CRAN's cap ("needs to be set explicitly to N=1 or 2"), honored here
   # so the CRAN route is not a different command with different behavior.
+  # `--locked` builds exactly the dependency versions the lockfile names, which
+  # are the ones CI builds at the floor. A Cargo older than 1.84 that had to choose
+  # versions itself would take the newest, whatever Rust they need.
   # `|| true` because a build failure should reach the message at the bottom of
   # this script, which names every fix, rather than exiting on cargo's alone.
-  ( cd "${_root}" && "${_cargo}" build --release -p gog-cli -j 2 ) >&2 || true
+  ( cd "${_root}" && PATH="${CARGO_PATH}" "${CARGO_BIN}" build --release --locked -p gog-cli -j 2 ) >&2 || true
 
   # **Report nothing, but report it successfully.** The caller reads this
   # function through a command substitution — `FOUND="$(build_engine …)"` — and
@@ -200,6 +269,7 @@ fi
 #    `remotes::install_github(…, build = FALSE)` install, where the tarball
 #    carries the whole tree.
 if [ -z "${FOUND}" ] && [ -f "${WORKSPACE}/Cargo.toml" ] && [ -f "${WORKSPACE}/gog-cli/Cargo.toml" ]; then
+  choose_cargo "${WORKSPACE}"
   FOUND="$(build_engine "${WORKSPACE}")"
 fi
 
@@ -207,12 +277,45 @@ fi
 #    subdirectory build, which is how r-universe and the CRAN route both arrive.
 #    There is no `../../` in that tarball, so this is the only source left.
 if [ -z "${FOUND}" ] && [ -f "${STAGED}/Cargo.toml" ] && [ -f "${STAGED}/gog-cli/Cargo.toml" ]; then
+  choose_cargo "${STAGED}"
   FOUND="$(build_engine "${STAGED}")"
 fi
 
 if [ -z "${FOUND}" ]; then
   echo "gog: this package carries the engine, and there is no engine to carry." >&2
   echo "" >&2
+  # The cause first, when a build was what failed: it is the one paragraph here
+  # that names the reader's own fix. `RUST_STATE` is empty when no source was
+  # found to build from, and only then is the staging paragraph below the cause.
+  RUSTUP_LINE="  curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y"
+  case "${RUST_STATE}" in
+    old)
+      echo "The engine is built from source here, which needs Rust ${RUST_FLOOR} or" >&2
+      echo "newer, and every Rust found is older:" >&2
+      printf '%s' "${RUST_SEEN}" >&2
+      echo "" >&2
+      echo "Install a current Rust with rustup, which needs no administrator rights:" >&2
+      echo "${RUSTUP_LINE}" >&2
+      echo "then install gog again. This step also looks in ~/.cargo/bin, where" >&2
+      echo "rustup puts it, so nothing has to be added to PATH first." >&2
+      echo "" >&2
+      ;;
+    none)
+      echo "The engine is built from source here, which needs Rust${RUST_FLOOR:+ ${RUST_FLOOR} or newer}," >&2
+      echo "and no Rust was found, on PATH or in ~/.cargo/bin. Install it with" >&2
+      echo "rustup, which needs no administrator rights:" >&2
+      echo "${RUSTUP_LINE}" >&2
+      echo "then install gog again." >&2
+      echo "" >&2
+      ;;
+    ok)
+      echo "The engine is built from source here, and the build with" >&2
+      echo "${CARGO_BIN} did not finish. The lines cargo printed above say why." >&2
+      echo "A build also needs a network connection, because cargo downloads the" >&2
+      echo "engine's dependencies." >&2
+      echo "" >&2
+      ;;
+  esac
   echo "None of the five sources had one:" >&2
   echo "  * a prebuilt engine in ${DEST}/" >&2
   echo "  * \$GOG_CLI_PATH" >&2
@@ -241,11 +344,13 @@ if [ -z "${FOUND}" ]; then
     echo "                          build = FALSE)" >&2
     echo "" >&2
   fi
-  echo "If this is a subdirectory build (r-universe, or a CRAN-style tarball)," >&2
-  echo "the likely cause is that .prepare did not run or did not finish: the" >&2
-  echo "farm invokes it as \`|| true\`, so its failure is swallowed and surfaces" >&2
-  echo "here instead. Check the build log for a \`gog/.prepare:\` line." >&2
-  echo "" >&2
+  if [ -z "${RUST_STATE}" ]; then
+    echo "If this is a subdirectory build (r-universe, or a CRAN-style tarball)," >&2
+    echo "the likely cause is that .prepare did not run or did not finish: the" >&2
+    echo "farm invokes it as \`|| true\`, so its failure is swallowed and surfaces" >&2
+    echo "here instead. Check the build log for a \`gog/.prepare:\` line." >&2
+    echo "" >&2
+  fi
   echo "Installing without it would produce a package that cannot draw a plot," >&2
   echo "which is the failure this check exists to make loud." >&2
   exit 1
@@ -313,11 +418,18 @@ elif [ -f "${STAGED}/gog-wasm/Cargo.toml" ] && [ -f "${STAGED}/interactive.js" ]
   # draws is required and already bundled by the time we get here; this one is an
   # improvement on a plot that is otherwise perfectly correct.
   echo "* gog: building the browser engine from the staged sources"
-  CARGO_BIN="$(command -v cargo || echo "${HOME}/.cargo/bin/cargo")"
-  if [ -x "${CARGO_BIN}" ]; then
+  # The cargo the engine was built with. An engine that came prebuilt or from
+  # `GOG_CLI_PATH` never asked for one, so the choice is made here instead.
+  [ -n "${RUST_STATE}" ] || choose_cargo "${STAGED}"
+  if [ -n "${CARGO_BIN}" ]; then
     RUSTUP_BIN="$(command -v rustup || echo "${HOME}/.cargo/bin/rustup")"
-    [ -x "${RUSTUP_BIN}" ] && "${RUSTUP_BIN}" target add wasm32-unknown-unknown >/dev/null 2>&1
-    if "${CARGO_BIN}" build --release --target wasm32-unknown-unknown \
+    # `|| true`, because under `set -e` a failing last command of an `&&` list
+    # ends the script: without it, a target rustup could not add (no network, or
+    # a system-wide rustup this user cannot write to) failed the whole install
+    # after the engine was already bundled.
+    [ -x "${RUSTUP_BIN}" ] && "${RUSTUP_BIN}" target add wasm32-unknown-unknown >/dev/null 2>&1 || true
+    if PATH="${CARGO_PATH}" "${CARGO_BIN}" build --release --locked \
+         --target wasm32-unknown-unknown \
          --manifest-path "${STAGED}/gog-wasm/Cargo.toml" >/dev/null 2>&1; then
       BUILT="${STAGED}/gog-wasm/target/wasm32-unknown-unknown/release/gog_wasm.wasm"
       if [ -f "${BUILT}" ]; then

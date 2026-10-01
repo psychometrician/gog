@@ -134,6 +134,38 @@ jobs:
       - name: Check the browser bridge at the floor
         run: cargo check --locked --manifest-path gog-wasm/Cargo.toml
 
+      # `configure` is what a Linux user's install runs, so it is run here the way
+      # that install meets it: under the system `sh`, which is dash on Ubuntu,
+      # from a package directory with the sources staged inside it and nothing
+      # above it. With the floor's Rust it must build and bundle the engine.
+      - name: configure builds the engine with the floor's Rust
+        run: |
+          (cd r-pkg/gog && sh .prepare)
+          cp -R r-pkg/gog "$RUNNER_TEMP/gog"
+          cd "$RUNNER_TEMP/gog"
+          sh ./configure
+          inst/bin/gog-cli --version
+
+      # And with only an older Rust within reach it must refuse before building
+      # and name the floor. The stub answers every command, so a configure that
+      # asked it to build anyway would reach the wrong message and fail the grep.
+      - name: configure refuses an older Rust and names the floor
+        run: |
+          stubs="$RUNNER_TEMP/old-rust"
+          mkdir -p "$stubs" "$RUNNER_TEMP/no-home"
+          printf '#!/bin/sh\necho "cargo 1.63.0"\n' > "$stubs/cargo"
+          printf '#!/bin/sh\necho "rustc 1.63.0 (4b91a6ea7 2022-08-08)"\n' > "$stubs/rustc"
+          chmod +x "$stubs/cargo" "$stubs/rustc"
+          cp -R r-pkg/gog "$RUNNER_TEMP/gog-old"
+          cd "$RUNNER_TEMP/gog-old"
+          if PATH="$stubs:/usr/bin:/bin" HOME="$RUNNER_TEMP/no-home" sh ./configure 2> refusal.txt; then
+            echo "::error::configure accepted a Rust older than the floor"
+            exit 1
+          fi
+          cat refusal.txt
+          grep -q "needs Rust ${{ steps.floor.outputs.version }} or" refusal.txt
+          test ! -e inst/bin/gog-cli
+
   bindings:
     name: ${{ matrix.name }}
     needs: engine
