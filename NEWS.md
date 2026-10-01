@@ -1,3 +1,14 @@
+# gog 0.4.1 (2026-10-01)
+
+On Linux the R package builds its engine from source, using the version of Rust
+already installed. It now builds with Rust 1.75 or newer, the version that Ubuntu
+22.04 and 24.04 provide, so the usual install command works there as it is. gog
+0.4.0 needed Rust 1.89 without saying so, and on those machines the install
+stopped with an error about a lock file. If every version of Rust that the
+install finds is too old, it now stops before building. The message names each
+version found, the version needed, and the command that installs a newer one.
+Plots draw exactly as they did in 0.4.0, in all four languages.
+
 # gog 0.4.0 (2026-09-30)
 
 A `smooth` line can now carry its confidence band. `smooth_band` is to `smooth`

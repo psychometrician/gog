@@ -124,8 +124,8 @@ JavaScript **ship the engine inside the package**, built for your platform, and 
 does the same on macOS and Windows. For those there is nothing else to install,
 nothing to put on your `PATH`, and no Rust toolchain to set up.
 
-On Linux the R package installs from source and compiles the engine, so that one
-needs Rust and a network connection.
+On Linux the R package installs from source and compiles the engine. That install
+needs Rust 1.75 or newer and a network connection.
 
 Each of those packages also carries a second copy of the engine, built for the
 browser. That is what lets a 3-D plot turn under the mouse on a web page. It is
@@ -204,7 +204,7 @@ nothing but `serde` and `serde_json`.
 
 ## Build from source
 
-Requires a Rust toolchain, and the language you want to drive it from.
+Requires Rust 1.75 or newer, and the language you want to drive it from.
 
 ```bash
 cargo build --release

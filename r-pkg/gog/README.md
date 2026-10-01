@@ -46,8 +46,9 @@ is why the `repos` line is there, and why the second entry is CRAN, so your othe
 packages still resolve. On macOS and Windows r-universe builds a binary that carries
 the engine, so nothing needs Rust installed.
 
-On Linux the same command installs from source and compiles the engine, which needs
-Rust and a network connection. Install Rust first if the machine does not have it:
+On Linux the same command installs from source and compiles the engine. That build
+needs Rust 1.75 or newer and a network connection. Install Rust first if the
+machine has none, or only an older version:
 
 ```sh
 curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y

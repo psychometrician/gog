@@ -359,8 +359,8 @@ already inside it, so installing needs no Rust toolchain. With an older version
 of R, the command installs from source, as it does on Linux.
 
 On Linux the same command installs from source, and the source build compiles
-the engine. That needs Rust and a network connection. If the machine does not
-have Rust, install it first:
+the engine. That needs Rust 1.75 or newer and a network connection. If the
+machine has no Rust, or only an older version, install the latest version first:
 
 ```bash
 curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
@@ -393,8 +393,8 @@ remotes::install_github("psychometrician/gog", subdir = "r-pkg/gog",
 
 A download from GitHub holds the whole repository, including the engine's Rust
 source code, and `configure` compiles the engine during the install. So
-installing this way needs a Rust toolchain on every system, including macOS and
-Windows, where the r-universe install needs none. The `build = FALSE` argument
+installing this way needs Rust 1.75 or newer on every system, including macOS and
+Windows, where the r-universe install needs no Rust. The `build = FALSE` argument
 keeps the Rust source in the download. Without it, `remotes` first copies the
 package folder alone into a new archive, the Rust source is left out, and the
 install stops with a message that names the argument. To install one particular
