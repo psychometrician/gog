@@ -193,7 +193,7 @@ pub fn within_limits(def: Option<&ChannelDef>, v: f64) -> bool {
         // Not a value the domain excludes — whatever drops a NaN, it is not this.
         return true;
     }
-    lo.is_none_or(|l| v >= l) && hi.is_none_or(|h| v <= h)
+    lo.map_or(true, |l| v >= l) && hi.map_or(true, |h| v <= h)
 }
 
 // ---------------------------------------------------------------------------

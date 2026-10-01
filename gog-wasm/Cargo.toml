@@ -2,6 +2,9 @@
 name    = "gog-wasm"
 version = "0.4.0"
 edition = "2021"
+# The floor, and why it is this one: the root workspace manifest. Declared here
+# too because this crate is not a member, so it inherits nothing from there.
+rust-version = "1.75"
 license = "Apache-2.0"
 description = "The browser bridge — the same JSON the CLI reads, over linear memory instead of stdin."
 

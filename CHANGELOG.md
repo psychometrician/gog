@@ -4,6 +4,17 @@ All four packages share one version number and are released together: `gog` on
 CRAN-style repositories and PyPI, `GrammarOfGraphics` on Julia's General, and
 `grammar-of-graphics` on npm. A version means the same grammar in every one.
 
+## Unreleased
+
+### Fixed
+
+- **The R package installs on Linux with the Rust that Ubuntu 22.04 and 24.04
+  provide.** On Linux, `install.packages()` builds the engine from source with
+  the machine's Rust. 0.4.0 needed Rust 1.89, so with Rust 1.75 the build stopped
+  at once: `lock file version 4 requires -Znext-lockfile-bump`. The engine now
+  builds with Rust 1.75 or newer, and `DESCRIPTION` says so. Plots and GIFs are
+  byte for byte the same as 0.4.0's.
+
 ## 0.4.0 (2026-09-30)
 
 ### Added

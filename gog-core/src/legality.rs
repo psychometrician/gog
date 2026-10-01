@@ -7713,7 +7713,7 @@ pub fn check(spec: &PlotSpec, data: &HashMap<String, DataFrame>) -> Vec<Diagnost
             match mark {
                 Mark::Zone => layer.transforms.contains(&Transform::Bounds)
                     || (layer.transforms.is_empty() && !layer.encodings.contains_key(&Channel::Group)),
-                Mark::Rule => df.is_none_or(|d| rule_axis(spec, d, layer).as_ref() != Some(channel)),
+                Mark::Rule => df.map_or(true, |d| rule_axis(spec, d, layer).as_ref() != Some(channel)),
                 _ => false,
             }
         };

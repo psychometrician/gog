@@ -1,0 +1,7 @@
+# Resolve dependencies against the engine's `rust-version`, 1.75. When a crate's
+# newest release needs a newer Rust, `cargo update` and `cargo add` take the
+# newest one that does not. Without this, one routine update can raise the floor
+# with nothing local to notice it, and the first to find out is a user whose
+# install fails. The root `Cargo.toml` says why the floor is 1.75.
+[resolver]
+incompatible-rust-versions = "fallback"

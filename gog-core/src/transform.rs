@@ -1238,6 +1238,20 @@ pub fn cell_bounds() -> BoundsSpec {
     }
 }
 
+/// The center of `a..b`, computed exactly as the standard library's
+/// `f64::midpoint` computes it. That method arrived in Rust 1.85 and the engine
+/// builds on 1.75, the Rust that Ubuntu's long-term releases install. Copying its
+/// definition, rather than writing `(a + b) / 2.0`, keeps every cell center the
+/// same bits it was, including near `f64::MAX`, where the plain sum overflows.
+fn midpoint(a: f64, b: f64) -> f64 {
+    const HI: f64 = f64::MAX * 0.5;
+    if a.abs() <= HI && b.abs() <= HI {
+        (a + b) * 0.5
+    } else {
+        a * 0.5 + b * 0.5
+    }
+}
+
 /// Cut **both** axes and count what lands in each cell — one `bin`, read in two
 /// dimensions, which is the heatmap.
 ///
@@ -1323,8 +1337,8 @@ pub fn bin2d(df: &DataFrame, x_field: &str, y_field: &str, spec: Option<&BinSpec
             }
             let (x0, x1) = (lx.mn + i as f64 * lx.step, lx.mn + (i + 1) as f64 * lx.step);
             let (y0, y1) = (ly.mn + j as f64 * ly.step, ly.mn + (j + 1) as f64 * ly.step);
-            cx.push(f64::midpoint(x0, x1));
-            cy.push(f64::midpoint(y0, y1));
+            cx.push(midpoint(x0, x1));
+            cy.push(midpoint(y0, y1));
             start.push(x0);
             end.push(x1);
             lower.push(y0);
@@ -1421,7 +1435,7 @@ fn bin2d_mixed(
             }
             let (a, b) = (l.mn + i as f64 * l.step, l.mn + (i + 1) as f64 * l.step);
             key_out.push(k.clone());
-            center.push(f64::midpoint(a, b));
+            center.push(midpoint(a, b));
             lo.push(a);
             hi.push(b);
             n.push(c as f64);
@@ -1695,7 +1709,7 @@ pub fn bin2d_agg(
             match &ax {
                 CellAxis::Cut(_, l) => {
                     let (a, b) = (l.mn + i as f64 * l.step, l.mn + (i + 1) as f64 * l.step);
-                    xs_out.push(f64::midpoint(a, b));
+                    xs_out.push(midpoint(a, b));
                     start.push(a);
                     end.push(b);
                 }
@@ -1704,7 +1718,7 @@ pub fn bin2d_agg(
             match &ay {
                 CellAxis::Cut(_, l) => {
                     let (a, b) = (l.mn + j as f64 * l.step, l.mn + (j + 1) as f64 * l.step);
-                    ys_out.push(f64::midpoint(a, b));
+                    ys_out.push(midpoint(a, b));
                     lower.push(a);
                     upper.push(b);
                 }
@@ -2452,8 +2466,8 @@ pub fn density2d_cells(
         for i in 0..f.nx - 1 {
             let (x0, x1) = (f.x(i), f.x(i + 1));
             let (y0, y1) = (f.y(j), f.y(j + 1));
-            cx.push(f64::midpoint(x0, x1));
-            cy.push(f64::midpoint(y0, y1));
+            cx.push(midpoint(x0, x1));
+            cy.push(midpoint(y0, y1));
             start.push(x0);
             end.push(x1);
             lower.push(y0);

@@ -1,3 +1,22 @@
 [workspace]
 members = ["gog-core", "gog-cli"]
 resolver = "2"
+
+# **The oldest Rust the engine builds with is 1.75**, declared as `rust-version`
+# in each crate's manifest, `gog-wasm`'s included. It is the Rust that Ubuntu
+# 22.04 and 24.04 install from apt, and so the one an R user on Linux usually
+# has: `install.packages()` builds the engine from source there. Three things
+# hold that floor, and a newer toolchain would break each of them without a word:
+#
+#   * `Cargo.lock` stays at format 3. Cargo older than 1.78 cannot read format 4,
+#     and fails before compiling anything. Cargo picks the format from
+#     `rust-version` and keeps 3 below 1.83, so the declaration holds it there.
+#   * Dependencies stay at versions that support 1.75. `.cargo/config.toml`
+#     makes `cargo update` and `cargo add` choose them. `resvg` is held at 0.45
+#     by hand, because 0.46 needs 1.87.
+#   * The engine uses no standard-library API newer than 1.75. CI's `msrv` job
+#     builds and tests on exactly that version, so a newer one fails there
+#     rather than in a user's install.
+#
+# `resolver = "3"` would have made the second point the default, and Cargo 1.75
+# refuses to read a manifest that says it.

@@ -204,7 +204,7 @@ impl DataFrame {
             return self.clone();
         }
         let idx: Vec<usize> = times.iter().enumerate()
-            .flat_map(|(i, &n)| std::iter::repeat_n(i, n))
+            .flat_map(|(i, &n)| std::iter::repeat(i).take(n))
             .collect();
         let mut out = DataFrame::new();
         for (name, col) in &self.columns {

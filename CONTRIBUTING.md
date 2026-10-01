@@ -300,6 +300,24 @@ Three of those are less obvious than they look:
   the package installs, so run
   `R CMD INSTALL --no-docs --library=$(mktemp -d) r-pkg/gog` before submitting.
 
+### The engine builds on Rust 1.75
+
+On Linux the R package builds the engine from source with whatever Rust the
+machine has, and Ubuntu 22.04 and 24.04 install 1.75. So the engine keeps to that
+version, and CI's `msrv` job builds and tests on exactly it. Two things follow:
+
+- **Newer parts of the standard library are out of reach.** `Option::is_none_or`,
+  `f64::midpoint` and `std::iter::repeat_n` all arrived after 1.75. The engine
+  writes `map_or(true, …)`, a copy of `midpoint`'s definition, and
+  `repeat(…).take(n)`, which mean the same.
+- **Each dependency stays at a version that supports 1.75.** `.cargo/config.toml`
+  makes `cargo update` and `cargo add` choose one. The root `Cargo.toml` says why
+  `resvg` is held at 0.45 by hand.
+
+To build at the floor locally, install it once with
+`rustup toolchain install 1.75 --profile minimal`, then run
+`cargo +1.75 test --release --locked`.
+
 ### If your change alters what a plot looks like
 
 It must appear in the book (`book/`) as a **live** ```` ```{r} ```` chunk. A

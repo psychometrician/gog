@@ -51,7 +51,9 @@ mod zone;
 /// `border_size = 0` is how a caller says *no* edge.
 pub(crate) fn border_edge(st: &crate::ir::StyleSpec) -> String {
     match (st.border_color.as_deref(), st.border_size) {
-        (None, None) | (_, Some(0.0)) => r#"stroke="none""#.to_string(),
+        // Compared rather than matched: a float literal in a pattern draws a
+        // warning from Rust 1.75, the oldest compiler the engine builds with.
+        (c, w) if (c.is_none() && w.is_none()) || w == Some(0.0) => r#"stroke="none""#.to_string(),
         (c, w) => format!(
             r#"stroke="{}" stroke-width="{:.2}""#,
             c.map(crate::render::text::esc).unwrap_or_else(|| crate::render::svg::PANEL_BG.to_string()),

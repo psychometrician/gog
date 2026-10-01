@@ -293,7 +293,7 @@ pub(crate) fn collect_legends(
         // categories were colored and never keyed: four colors under a key of two.
         let mut labels: Vec<String> = Vec::new();
         for other in &spec.layers {
-            if other.encodings.get(&Channel::Color).is_none_or(|d| d.field != def.field) { continue }
+            if other.encodings.get(&Channel::Color).map_or(true, |d| d.field != def.field) { continue }
             let Some(table) = ctx.resolve_data(&other.data) else { continue };
             for label in categories_across(&[table], &def.field) {
                 if !labels.contains(&label) {

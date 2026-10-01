@@ -3965,6 +3965,47 @@ if (file.exists("r-pkg/gog/DESCRIPTION")) {
   cat("PASS: all eight declarations agree on version ", versions[[1]], "\n", sep = "")
 }
 
+# --- the oldest Rust, one number ----------------------------------------------
+# On Linux `install.packages()` builds the engine from source with whatever Rust
+# the machine has, so the oldest Rust that can build it is a promise made to every
+# Linux user, and four files make it: `DESCRIPTION`'s `SystemRequirements`, which
+# is what a user reads, and the three crates' `rust-version`, which is what Cargo,
+# CI's `msrv` job and `configure` read. 0.4.0 stated it in none of them and needed
+# Rust 1.89, so an install with Ubuntu's Rust 1.75 failed on the lockfile's first
+# line. CI proves the number builds; this proves the four agree on it, and that
+# both lockfiles stay in a format Cargo of that age can read (format 4 needs 1.78).
+if (file.exists("r-pkg/gog/DESCRIPTION")) {
+  floor_of <- function(path) {
+    pattern <- "^rust-version *= *\"([0-9.]+)\".*$"
+    hit <- grep(pattern, readLines(path, warn = FALSE), value = TRUE)
+    if (!length(hit)) stop("FAIL: ", path, " declares no rust-version")
+    sub(pattern, "\\1", hit[1])
+  }
+  req <- unname(read.dcf("r-pkg/gog/DESCRIPTION", fields = "SystemRequirements")[1, 1])
+  if (!grepl("rustc \\(>= *[0-9.]+\\)", req))
+    stop("FAIL: SystemRequirements names no oldest rustc: ", req)
+  floors <- c(
+    "r-pkg/gog/DESCRIPTION" = sub("^.*rustc \\(>= *([0-9.]+)\\).*$", "\\1", req),
+    "gog-core/Cargo.toml"   = floor_of("gog-core/Cargo.toml"),
+    "gog-cli/Cargo.toml"    = floor_of("gog-cli/Cargo.toml"),
+    "gog-wasm/Cargo.toml"   = floor_of("gog-wasm/Cargo.toml"))
+  if (length(unique(floors)) != 1L)
+    stop("FAIL: the oldest Rust the engine builds with is declared differently —\n",
+         paste0("  ", format(names(floors)), "  ", floors, collapse = "\n"),
+         "\n  Change them together, and CI's msrv job follows gog-cli's.")
+  if (package_version(floors[[1]]) < "1.78") {
+    for (lock in c("Cargo.lock", "gog-wasm/Cargo.lock")) {
+      format_line <- grep("^version = ", readLines(lock, warn = FALSE), value = TRUE)[1]
+      if (!identical(format_line, "version = 3"))
+        stop("FAIL: ", lock, " reads '", format_line, "', which Cargo ", floors[[1]],
+             " cannot parse.\n  Set it back to `version = 3`; Cargo keeps it there ",
+             "while rust-version is below 1.83.")
+    }
+  }
+  cat("PASS: four declarations agree the engine builds on Rust ", floors[[1]],
+      ", and both lockfiles are in a format that Cargo reads\n", sep = "")
+}
+
 # --- one diagnostic, four bindings, the same punctuation ----------------------
 # R is the only binding that cannot write an em dash into a message directly:
 # `R CMD check` reports a non-ASCII byte in an R source file, so the character

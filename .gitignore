@@ -16,6 +16,10 @@
 !/gog-cli/
 !/gog-wasm/
 
+# Cargo's configuration for the engine: dependency updates keep to the oldest
+# Rust it builds with, which the root `Cargo.toml` explains.
+!/.cargo/
+
 # The four bindings
 !/r-pkg/
 !/py-pkg/

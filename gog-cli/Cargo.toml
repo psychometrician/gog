@@ -2,6 +2,9 @@
 name = "gog-cli"
 version = "0.4.0"
 edition = "2021"
+# The floor, and why it is this one: the workspace manifest. The R package's
+# `configure` reads this line to tell a user whose Rust is older what to do.
+rust-version = "1.75"
 license = "Apache-2.0"
 description = "Command-line renderer: reads a JSON render-request from stdin, writes SVG to stdout."
 
@@ -13,5 +16,9 @@ serde_json = "1"
 # a font stack and a rasterizer are a large dependency, and the engine every
 # binding's correctness rests on stays at serde. `resvg` reads the SVG this
 # binary already produced, so neither crate decides anything about the plot.
-resvg = "0.48"
+#
+# Held at 0.45, the last line that builds on Rust 1.75: 0.46 and later need 1.87
+# or newer. 0.48 writes the book's GIFs byte for byte the same as 0.45, so the
+# hold gives up nothing a plot shows.
+resvg = "0.45"
 gif = "0.14"

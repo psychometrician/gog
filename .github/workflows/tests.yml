@@ -91,6 +91,49 @@ jobs:
           name: gog-cli
           path: target/release/gog-cli
 
+  # ---------------------------------------------------------------------------
+  # The oldest Rust the engine claims to build with, built with.
+  #
+  # Every other job here takes the newest Rust, so none of them can see the
+  # failure a Linux user meets first. There `install.packages()` builds the
+  # engine from source with whatever Rust the machine has, and Ubuntu 22.04 and
+  # 24.04 install 1.75. 0.4.0 needed 1.89 and nothing here could tell: the first
+  # line of its lockfile was already unreadable to that Cargo.
+  #
+  # The version is read from `gog-cli`'s `rust-version`, so the number a user is
+  # promised and the number tested are one number, and raising the floor moves
+  # this job with it. `--locked` because the lockfile is what a user's build
+  # reads: an old Cargo cannot choose versions for its own age, so a job allowed
+  # to re-resolve would test a build no user gets. Warnings are denied for the
+  # reason the engine job gives, and an old compiler has warnings of its own.
+  msrv:
+    name: the oldest Rust the engine supports
+    runs-on: ubuntu-latest
+    env:
+      RUSTFLAGS: "-D warnings"
+    steps:
+      - uses: actions/checkout@v4
+      - name: Read the floor from the manifest
+        id: floor
+        run: |
+          floor=$(sed -n 's/^rust-version *= *"\([0-9.]*\)".*/\1/p' gog-cli/Cargo.toml)
+          test -n "$floor"
+          echo "version=$floor" >> "$GITHUB_OUTPUT"
+      - uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: ${{ steps.floor.outputs.version }}
+
+      - name: Build and test the engine at the floor
+        run: |
+          cargo --version
+          cargo build --release --locked -p gog-cli
+          cargo test --release --locked
+
+      # Not a member of the workspace, so neither command above reaches it, and
+      # `configure` builds it from the same staged sources when it can.
+      - name: Check the browser bridge at the floor
+        run: cargo check --locked --manifest-path gog-wasm/Cargo.toml
+
   bindings:
     name: ${{ matrix.name }}
     needs: engine
