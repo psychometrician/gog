@@ -4342,3 +4342,12 @@ test("two blocks of one plot share no id", () => {
   }
   assert.equal(render_svg(p), render_svg(p), "render_svg() stays one file");
 });
+
+test("a width puts an edge at zero, and the largest value gets a bin of its own", () => {
+  // Edges from the smallest value would put 39.6 and 44 in one bin, 39.6 to
+  // 44.6; folded into the last bin, 35 would share 34's bar.
+  const bars = (svg) =>
+    svg.split("\n").filter((l) => l.includes("<rect") && l.includes("fill-opacity")).length;
+  assert.equal(bars(render_svg(plot(data({ v: [39.6, 44, 82.6] }), layer(bar, bin({ width: 5 })), x(col.v)))), 3);
+  assert.equal(bars(render_svg(plot(data({ v: [34, 35] }), layer(bar, bin({ width: 1 })), x(col.v)))), 2);
+});

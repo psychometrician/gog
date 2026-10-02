@@ -170,6 +170,12 @@ mutually exclusive. gog refuses `bin(30, width = 5)` rather than guess which one
 you meant. For the same reason a bare number always means a count: on this data,
 five bins and bins five years wide are very different plots.
 
+A width also decides where the bins start: every edge is a multiple of the
+width. The five-year bins above therefore run from 35 to 40, from 40 to 45, and
+so on, not from the smallest value, 39.6.
+[Where the bin edges fall](marks/bar.qmd#where-the-bin-edges-fall) explains
+why, and how ggplot2 places its edges instead.
+
 ### Why `bar * bin`, not a `histogram()` shortcut?
 
 Because `bin` does the same computation regardless of the mark, and the *mark*

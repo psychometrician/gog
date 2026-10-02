@@ -4,6 +4,19 @@ All four packages share one version number and are released together: `gog` on
 CRAN-style repositories and PyPI, `GrammarOfGraphics` on Julia's General, and
 `grammar-of-graphics` on npm. A version means the same grammar in every one.
 
+## Unreleased
+
+### Changed
+
+- **`bin(width = )` puts one bin edge at zero.** Five-year bins of life
+  expectancy run 35 to 40, 40 to 45, and so on, instead of starting at the
+  smallest value. The largest value always gets a bin of its own, so a column of
+  whole numbers binned one unit wide no longer draws its 35 beside its 33. In
+  every histogram, a value exactly on the edge between two bins is counted in
+  the bin that starts there. `bin(30)` and the default `bin` still run from the
+  smallest value to the largest, and stated `limits` still set where the bins
+  start. The Bar chapter explains the rule and how it differs from ggplot2.
+
 ## 0.4.1 (2026-10-01)
 
 ### Fixed

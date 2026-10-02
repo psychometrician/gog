@@ -410,6 +410,61 @@ data(gapminder_2007) + bar * bin + y(life) +
   title("The same histogram, horizontal")
 ```
 
+### Where the bin edges fall
+
+In the histogram titled "Bins five years wide", the first bin starts at 35,
+although the shortest life expectancy in the table is 39.6. An edge is a value
+where one bin ends and the next begins, and where the edges fall is a choice.
+Each bar counts the rows between its two edges, such as the countries with a
+life expectancy from 40 to 45. If every edge moves by the same amount, some
+rows belong to a different bin. The counts change, and the shape can change
+with them.
+
+When you name a width, gog makes every edge a multiple of that width. The first
+bin is the one that holds the smallest value. For these countries, the
+five-year bins therefore run from 35 to 40, from 40 to 45, and so on up to 85.
+Every gridline in that plot, from 40 to 80, is also a bin edge. A value exactly
+on an edge is counted in the bin that starts there, so a life expectancy of 40
+belongs to the bin from 40 to 45.
+
+Edges on multiples of the width come from Leland Wilkinson's *The Grammar of
+Graphics*, the book that gog is named after [@wilkinson2005]. He advises one
+edge at zero. Every edge is then a multiple of the width, a round number that a
+reader can find on the axis. He also says it should not be a strict rule,
+because the edges change the shape of the histogram. Round edges are easy to
+read, but other edges can give a smoother shape.
+
+Wilkinson also treats one kind of column separately: a column that holds only
+a few distinct values, such as the whole numbers from 0 to 10. With bins one
+unit wide, every value of such a column sits exactly on an edge. The bar for 3
+is then drawn from 3 to 4, not centered on 3. He gives each possible value a
+bin of its own instead: a column that holds only 3 and 7 gets five bins, for 3,
+4, 5, 6 and 7. In gog you ask for this with `count` instead of `bin`.
+`bar * count` draws a bar for each distinct value, centered on that value, and
+a value that never occurs leaves a gap.
+
+When you give the number of bins instead of a width, the edges are placed
+differently. `bin(30)` divides the range from the smallest value to the largest
+into thirty equal bins. Here each bin would be 1.43 years wide, so the edges
+are not round numbers. For round edges, name a width instead. With no argument,
+`bin` chooses the number of bins itself, by Sturges' rule, so its edges also
+run from the smallest value to the largest.
+
+ggplot2 places its edges differently [@wickham2026ggplot2pkg]. Given a width,
+ggplot2 puts the center of a bin at zero, where gog puts an edge. Its five-year
+bins therefore run from 37.5 to 42.5, from 42.5 to 47.5, and so on. Given the
+number of bins, ggplot2 makes each bin slightly wider than gog does. Its first
+bin is then centered on the smallest value, and its last on the largest. A
+value exactly on an edge goes to the bin that ends there. Both packages count
+every row once, but the bins cover different years, so the shapes differ. On
+this table, gog's last five-year bin, 80 to 85, holds 13 countries, while
+ggplot2's, 82.5 to 87.5, holds only Japan.
+
+To put the edges anywhere else, state where the axis starts, and the first bin
+starts there too. `x(life, limits = c(37.5, 87.5))` gives the five-year edges
+that ggplot2 uses. [Scales](../scales.qmd#limits-stating-the-range-yourself)
+explains `limits`.
+
 ### Overlaid histograms: one distribution per group {#overlaid-histograms}
 
 The iris flowers table holds measurements of 150 flowers from three species. A

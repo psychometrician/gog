@@ -935,6 +935,35 @@ pub struct BinLayout {
     k: usize,
 }
 
+/// How near an edge a value must be, in bin widths, to count as lying on it.
+///
+/// A value on an edge belongs to the bin on its right, and without a tolerance
+/// rounding decides that instead of the rule. Thirty bins over 9 to 35 put an
+/// edge at 22, and so do thirty bins over the stated domain 8.55 to 35.45, but
+/// the quotient that finds 22's bin comes out as 15.0 in the first and as
+/// 14.999999999999998 in the second: the same value went right in one cut and
+/// left in the other. A ten-millionth of a bin is far above that rounding and
+/// far below any difference a drawn bin can show.
+const ON_EDGE: f64 = 1e-7;
+
+impl BinLayout {
+    /// The bin `v` falls in: the one whose left edge it reaches, so a value on an
+    /// edge is counted in the bin on its right (`[40, 45)` holds 40). The top
+    /// edge belongs to the last bin, because nothing lies to its right:
+    /// thirty bins over the rows end exactly at the largest value, and a stated
+    /// end is where the bins stop. A width read off the rows adds a bin instead
+    /// ([`bin_layout_within`]), so the largest value never joins its neighbor.
+    ///
+    /// A missing value never reaches it from a plot: the renderer drops the row,
+    /// with a warning, before any transform runs. Called directly, `NaN` lands
+    /// in the first bin and `+∞` in the last, where the bare cast always put
+    /// them, and the mesh builders skip non-finite values themselves.
+    fn cell(&self, v: f64) -> usize {
+        let at = ((v - self.mn) / self.step + ON_EDGE).floor();
+        (at.max(0.0) as usize).min(self.k - 1)
+    }
+}
+
 /// The cut a plot's `bin` makes on each domain axis, resolved **once** from every
 /// panel's rows rather than per panel.
 ///
@@ -962,8 +991,8 @@ impl BinCut {
 }
 
 /// Choose the bin layout for `xs`. The count comes from `spec`: an explicit
-/// `bins`, or a `width` (bins of exactly that many data units across the range),
-/// or — the common case, `spec` absent or empty — Sturges' rule. `bins` and
+/// `bins`, or a `width` (bins of exactly that many data units, with an edge at
+/// zero), or — the common case, `spec` absent or empty — Sturges' rule. `bins` and
 /// `width` are mutually exclusive; if both somehow arrive (the R binding refuses
 /// them upstream) `bins` wins. `None` when there is nothing finite to bin.
 ///
@@ -981,28 +1010,45 @@ pub(crate) fn bin_layout(xs: &[f64], spec: Option<&BinSpec>) -> Option<BinLayout
 /// outside a stated domain are already gone (`legality::limit_cut`), so the rows
 /// alone would cut over whatever range the survivors happen to span, and
 /// `x(bearing, limits = c(0, 360))` binned 2.6 to 359.7, not the turn it names.
+///
+/// **Where a width puts its edges** (spec §5). A count of bins spans the range
+/// exactly, smallest value to largest, because that is what thirty bins of the
+/// data means. A width has no range to fill, so its edges sit on multiples of
+/// the width, one of them at zero: five-year bins run 35–40, 40–45, not
+/// 39.6–44.6. That is Wilkinson's cutpoint at zero, and it makes the edges the
+/// round numbers a histogram is read by, the same edges for every plot cut at
+/// that width. A stated start still wins, which is how a reader puts the edges
+/// anywhere else. And since every bin of a width is half-open, the bins run on
+/// until the largest value has one of its own: folded into its neighbor's, the
+/// 35 of a whole-number column was drawn beside the 33, where a 34 would be.
 pub(crate) fn bin_layout_within(
     xs: &[f64], spec: Option<&BinSpec>, stated: (Option<f64>, Option<f64>),
 ) -> Option<BinLayout> {
     let n = xs.len();
     if n == 0 { return None; }
-    let mn = stated.0.unwrap_or_else(|| xs.iter().cloned().fold(f64::INFINITY, f64::min));
-    let mx = stated.1.unwrap_or_else(|| xs.iter().cloned().fold(f64::NEG_INFINITY, f64::max));
-    if !mn.is_finite() || !mx.is_finite() { return None; }
+    let lo = stated.0.unwrap_or_else(|| xs.iter().cloned().fold(f64::INFINITY, f64::min));
+    let hi = stated.1.unwrap_or_else(|| xs.iter().cloned().fold(f64::NEG_INFINITY, f64::max));
+    if !lo.is_finite() || !hi.is_finite() { return None; }
 
-    let span = (mx - mn).max(1e-12);
-    let (k, step) = match spec {
+    let span = (hi - lo).max(1e-12);
+    let (mn, k, step) = match spec {
         Some(BinSpec { bins: Some(b), .. }) => {
             let k = (*b).max(1);
-            (k, span / k as f64)
+            (lo, k, span / k as f64)
         }
         Some(BinSpec { width: Some(w), .. }) if *w > 0.0 => {
-            let k = (span / w).ceil().max(1.0) as usize;
-            (k, *w)
+            let mn = if stated.0.is_some() { lo } else { (lo / w + ON_EDGE).floor() * w };
+            let along = (hi - mn) / w;
+            let k = if stated.1.is_some() {
+                (along - ON_EDGE).ceil()        // the stated end closes the last bin
+            } else {
+                (along + ON_EDGE).floor() + 1.0 // the largest value opens one of its own
+            };
+            (mn, k.max(1.0) as usize, *w)
         }
         _ => {
             let k = ((n as f64).log2().ceil() as usize + 1).max(2);
-            (k, span / k as f64)
+            (lo, k, span / k as f64)
         }
     };
     Some(BinLayout { mn, step, k })
@@ -1026,19 +1072,18 @@ fn bin(df: &DataFrame, x_field: &str, y_field: &str, spec: Option<&BinSpec>, lay
     let Some(xs) = df.float_col(x_field) else { return DataFrame::new() };
 
     let owned;
-    let BinLayout { mn, step, k } = *match layout {
+    let l = *match layout {
         Some(l) => l,
         None => match bin_layout(xs, spec) {
             Some(l) => { owned = l; &owned }
             None    => return DataFrame::new(),
         },
     };
+    let BinLayout { mn, step, k } = l;
 
     let mut counts = vec![0u32; k];
     for &v in xs {
-        let mut b = ((v - mn) / step) as usize;
-        if b >= k { b = k - 1; }
-        counts[b] += 1;
+        counts[l.cell(v)] += 1;
     }
 
     let centers: Vec<f64> = (0..k).map(|i| mn + (i as f64 + 0.5) * step).collect();
@@ -1081,7 +1126,7 @@ fn bin_cut(df: &DataFrame, x_field: &str, spec: Option<&BinSpec>, layout: Option
     let Some(xs) = df.float_col(x_field) else { return DataFrame::new() };
 
     let owned;
-    let BinLayout { mn, step, k } = *match layout {
+    let l = *match layout {
         Some(l) => l,
         None => match bin_layout(xs, spec) {
             Some(l) => { owned = l; &owned }
@@ -1090,11 +1135,9 @@ fn bin_cut(df: &DataFrame, x_field: &str, spec: Option<&BinSpec>, layout: Option
     };
 
     let keep: Vec<bool> = xs.iter().map(|v| v.is_finite()).collect();
-    let centers: Vec<f64> = xs.iter().filter(|v| v.is_finite()).map(|&v| {
-        let mut b = ((v - mn) / step) as usize;
-        if b >= k { b = k - 1; }
-        mn + (b as f64 + 0.5) * step
-    }).collect();
+    let centers: Vec<f64> = xs.iter().filter(|v| v.is_finite())
+        .map(|&v| l.mn + (l.cell(v) as f64 + 0.5) * l.step)
+        .collect();
 
     df.keep_rows(&keep).with_float(x_field, centers)
 }
@@ -1307,19 +1350,12 @@ pub fn bin2d(df: &DataFrame, x_field: &str, y_field: &str, spec: Option<&BinSpec
         return bin2d_hex(x_field, y_field, xs, ys, &lx, &ly);
     }
 
-    let cell = |v: f64, l: &BinLayout| -> usize {
-        let i = ((v - l.mn) / l.step) as usize;
-        // The top edge belongs to the last cell, exactly as in one dimension:
-        // the maximum value is *in* the data, so it cannot fall outside the mesh.
-        i.min(l.k - 1)
-    };
-
     let mut counts = vec![0u32; lx.k * ly.k];
     for (&vx, &vy) in xs.iter().zip(ys.iter()) {
         if !vx.is_finite() || !vy.is_finite() {
             continue;
         }
-        counts[cell(vy, &ly) * lx.k + cell(vx, &lx)] += 1;
+        counts[ly.cell(vy) * lx.k + lx.cell(vx)] += 1;
     }
 
     let mut cx = Vec::new();
@@ -1399,8 +1435,6 @@ fn bin2d_mixed(
     let Some(l) = cut.copied().or_else(|| bin_layout(vs, spec)) else {
         return DataFrame::new();
     };
-    // The top edge belongs to the last cell, exactly as in one and two dimensions.
-    let cell = |v: f64| -> usize { (((v - l.mn) / l.step) as usize).min(l.k - 1) };
 
     // First-seen order for the categories, re-leveled by `keyed` below — the same
     // treatment every keyed transform gives its key column, so a declared factor's
@@ -1419,7 +1453,7 @@ fn bin2d_mixed(
                 cats.len() - 1
             }
         };
-        counts[ci * l.k + cell(v)] += 1;
+        counts[ci * l.k + l.cell(v)] += 1;
     }
 
     let mut key_out = Vec::new();
@@ -1624,9 +1658,7 @@ impl<'a> CellAxis<'a> {
         match self {
             CellAxis::Cut(vals, l) => {
                 let v = *vals.get(i)?;
-                // The top edge belongs to the last cell, exactly as everywhere else:
-                // the maximum is *in* the data, so it cannot fall outside the mesh.
-                v.is_finite().then(|| (((v - l.mn) / l.step) as usize).min(l.k - 1))
+                v.is_finite().then(|| l.cell(v))
             }
             CellAxis::Slot(vals, cats) => {
                 let v = vals.get(i)?;
@@ -5976,6 +6008,72 @@ mod tests {
         assert!((centers[1] - centers[0] - 10.0).abs() < 1e-9,
             "centers one width apart, got {}", centers[1] - centers[0]);
         assert_eq!(col(&out, "count").iter().sum::<f64>(), 100.0);
+    }
+
+    /// A width's edges sit on its multiples, one at zero (spec §5): five-year
+    /// bins of life expectancy run 35–40 … 80–85, not from the smallest value,
+    /// 39.6. Below zero the same holds, rather than mirroring around it.
+    #[test]
+    fn a_width_puts_an_edge_at_zero() {
+        let five = BinSpec { bins: None, width: Some(5.0), tiling: None };
+        let l = bin_layout(&[39.613, 60.0, 82.603], Some(&five)).unwrap();
+        assert_eq!((l.mn, l.step, l.k), (35.0, 5.0, 10), "35 to 85 in steps of five");
+        let one = BinSpec { bins: None, width: Some(1.0), tiling: None };
+        assert_eq!(bin_layout(&[-3.2, 4.0], Some(&one)).unwrap().mn, -4.0);
+        // A count spans the rows exactly, as it always has: thirty bins of the
+        // data start at its smallest value.
+        let thirty = BinSpec { bins: Some(30), width: None, tiling: None };
+        assert_eq!(bin_layout(&[39.613, 82.603], Some(&thirty)).unwrap().mn, 39.613);
+    }
+
+    /// The largest value of a width-cut column gets a bin of its own. Folded into
+    /// the last bin, the 35 of `mpg$cty` was drawn over 34–35, beside the 33, as
+    /// if a car did 34; it belongs over 35–36, with 34's bin left empty.
+    #[test]
+    fn the_largest_value_opens_a_bin_of_its_own() {
+        let one = BinSpec { bins: None, width: Some(1.0), tiling: None };
+        let out = bin(&num("x", &[9.0, 33.0, 35.0]), "x", "count", Some(&one), None);
+        let (centers, counts) = (col(&out, "x"), col(&out, "count"));
+        assert_eq!(centers.len(), 27, "9 to 36 in ones");
+        let at = |c: f64| counts[centers.iter().position(|x| (x - c).abs() < 1e-9).unwrap()];
+        assert_eq!((at(33.5), at(34.5), at(35.5)), (1.0, 0.0, 1.0));
+    }
+
+    /// A value on an edge is counted in the bin on its right in every cut, rather
+    /// than wherever rounding sends it. Thirty bins over 9 to 35 and over the
+    /// stated 8.55 to 35.45 both put an edge at 22; the second's quotient is
+    /// 14.999999999999998, which once sent 22 to the left.
+    #[test]
+    fn a_value_on_an_edge_goes_right_whatever_the_rounding() {
+        let thirty = BinSpec { bins: Some(30), width: None, tiling: None };
+        let half = 13.0 / 29.0;
+        let plain = bin_layout(&[9.0, 35.0], Some(&thirty)).unwrap();
+        let stated = bin_layout_within(&[9.0, 35.0], Some(&thirty), (Some(9.0 - half), Some(35.0 + half))).unwrap();
+        assert_eq!(plain.cell(22.0), 15);
+        assert_eq!(stated.cell(22.0), 15);
+        // The top edge of a count is the one exception: nothing lies right of it.
+        assert_eq!(plain.cell(35.0), 29);
+    }
+
+    /// A decimal width finds its edges without a phantom bin: 0.3 / 0.1 is
+    /// 2.9999999999999996, and flooring it bare started the cut at 0.2, one empty
+    /// bin below the data.
+    #[test]
+    fn a_decimal_width_has_no_phantom_first_bin() {
+        let tenth = BinSpec { bins: None, width: Some(0.1), tiling: None };
+        let out = bin(&num("x", &[0.3, 0.5, 0.7]), "x", "count", Some(&tenth), None);
+        assert_eq!(col(&out, "count"), &vec![1.0, 0.0, 1.0, 0.0, 1.0]);
+    }
+
+    /// A stated start is still where the bins start, which is how a reader puts
+    /// the edges somewhere other than on the multiples: from 8.5, whole numbers
+    /// sit in the middle of their bins.
+    #[test]
+    fn a_stated_start_overrides_the_edge_at_zero() {
+        let one = BinSpec { bins: None, width: Some(1.0), tiling: None };
+        let l = bin_layout_within(&[9.0, 35.0], Some(&one), (Some(8.5), None)).unwrap();
+        assert_eq!((l.mn, l.k), (8.5, 27));
+        assert_eq!((l.cell(9.0), l.cell(35.0)), (0, 26));
     }
 
     // -- bin in two dimensions (the tiling) --------------------------------

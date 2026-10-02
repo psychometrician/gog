@@ -4188,3 +4188,15 @@ for _s in (_sa, _sb):
     assert set(_refs(_s)) <= set(_ids(_s)), "a reference left its own block"
 assert render_svg(_sp) == render_svg(_sp), "render_svg() is no longer one file"
 print("PASS: two blocks of one plot share no id; render_svg() stays one file")
+
+# A width puts an edge at zero, and the largest value gets a bin of its own.
+# Edges from the smallest value would put 39.6 and 44 in one bin, 39.6 to 44.6;
+# folded into the last bin, 35 would share 34's bar.
+def drawn_bars(svg):
+    return builtins.sum(1 for l in svg.splitlines() if "<rect" in l and "fill-opacity" in l)
+
+assert drawn_bars(render_svg(data({"v": [39.6, 44.0, 82.6]}) + bar * bin(width=5) + x(col.v))) == 3, \
+    "bin(width=5) should cut at 35, 40, 45, so 39.6 and 44 fall in two bins"
+assert drawn_bars(render_svg(data({"v": [34.0, 35.0]}) + bar * bin(width=1) + x(col.v))) == 2, \
+    "bin(width=1) should give 35 a bin of its own, not fold it into 34's"
+print("PASS: a width puts an edge at zero, and the largest value gets its own bin")

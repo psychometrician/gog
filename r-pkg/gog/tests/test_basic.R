@@ -2054,6 +2054,17 @@ if (!grepl("not both", e))
   stop("FAIL: bin() with both bins and width should refuse: ", e)
 cat("PASS: bin() takes a count or a width, bare stays Sturges, both refused\n")
 
+# A width puts an edge at zero, and the largest value gets a bin of its own.
+# Edges from the smallest value would put 39.6 and 44 in one bin, 39.6 to 44.6;
+# folded into the last bin, 35 would share 34's bar.
+spread <- data.frame(v = c(39.6, 44, 82.6))
+top <- data.frame(v = c(34, 35))
+if (count_bars(data(spread) + bar * bin(width = 5) + x(v)) != 3)
+  stop("FAIL: bin(width = 5) should cut at 35, 40, 45, so 39.6 and 44 fall in two bins")
+if (count_bars(data(top) + bar * bin(width = 1) + x(v)) != 2)
+  stop("FAIL: bin(width = 1) should give 35 a bin of its own, not fold it into 34's")
+cat("PASS: a width puts an edge at zero, and the largest value gets its own bin\n")
+
 # range() takes the band's two ends as quantile probabilities. 1..10 by type 7
 # gives Q1 = 3.25 and Q3 = 7.75, which are the numbers `quantile()` returns, so
 # the axis has to reach them and no further.

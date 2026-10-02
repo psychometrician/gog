@@ -3642,3 +3642,11 @@ end
     end
     @test render_svg(p) == render_svg(p)
 end
+
+@testset "a width puts an edge at zero, and the largest value gets its own bin" begin
+    # Edges from the smallest value would put 39.6 and 44 in one bin, 39.6 to
+    # 44.6; folded into the last bin, 35 would share 34's bar.
+    bars(s) = Base.count(l -> occursin("<rect", l) && occursin("fill-opacity", l), split(s, "\n"))
+    @test bars(render_svg(data(Dict("v" => [39.6, 44.0, 82.6])) + bar * bin(width = 5) + x(:v))) == 3
+    @test bars(render_svg(data(Dict("v" => [34.0, 35.0])) + bar * bin(width = 1) + x(:v))) == 2
+end
