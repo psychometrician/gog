@@ -178,6 +178,66 @@ so on, not from the smallest value, 39.6.
 [Where the bin edges fall](marks/bar.qmd#where-the-bin-edges-fall) explains
 why, and how ggplot2 places its edges instead.
 
+### Choosing a width
+
+When you give a count of bins, you decide only how much detail to show:
+`bin(20)` draws fewer, wider bars than `bin(30)` on any column. When you give a
+width, you decide more, because a width is measured in the column's own units.
+Use a width when each bin should cover a span that means something, such as
+five years of life expectancy or half a centimeter of petal length. Because
+every edge is a multiple of the width, two histograms cut at the same width
+share their edges, even when their data cover different ranges. You can then
+compare them bin by bin.
+
+To choose a width, first decide roughly how many bars you want. Divide the
+column's range, its largest value minus its smallest, by that number. Then take
+a nearby round number in the column's units, such as 0.2, 0.5, 1, 2, 5 or 10.
+Life expectancy runs from 39.6 to 82.6 years, a range of 43. Ten bars would
+each be 4.3 years wide, and the nearest round number is 5.
+
+One more rule prevents tall bars and empty bins that come from the cut rather
+than from the data. The width should be a whole multiple of the distance
+between two neighboring values the column can hold. `quakes_fiji` holds a
+thousand earthquakes near Fiji, and it records each magnitude to one decimal
+place, so its possible values are 4.0, 4.1, 4.2 and so on, 0.1 apart:
+
+```{r}
+#| echo: false
+peek(quakes_fiji)
+```
+
+A width of 0.25 is not a whole multiple of 0.1. Its bins alternate between
+three possible values and two, so a bin with three collects more earthquakes
+for that reason alone:
+
+```{r}
+data(quakes_fiji) + bar * bin(width = 0.25) + x(magnitude) +
+  x_label("Magnitude") + title("Width 0.25: bins of three and two values")
+```
+
+The bar from 4.5 to 4.75 is far taller than the bars on either side. It holds
+4.5, 4.6 and 4.7, while each neighbor holds two: 4.3 and 4.4 before it, 4.8 and
+4.9 after it. A width of 0.2 puts two possible values in every bin, and the
+shape is smooth:
+
+```{r}
+data(quakes_fiji) + bar * bin(width = 0.2) + x(magnitude) +
+  x_label("Magnitude") + title("Width 0.2: two values in every bin")
+```
+
+The same rule applies when you give a number of bins, because the number sets
+the width. Suppose a column holds whole numbers from 9 to 35, so only 27 values
+are possible. Thirty bins are each 0.87 wide, and at least three must stay
+empty. For one bar per value, use [`bar * count`](#count-frequency-aggregation),
+which counts the rows at each value instead of binning them.
+
+Two kinds of axis treat a width differently. A time axis refuses a width, as
+[What a time axis refuses](scales.qmd#what-a-time-axis-refuses) shows, so give
+the number of bins there. On a log axis the bins are cut on the logarithms, so
+a width counts powers of the base. In the default base 10, `bin(width = 1)`
+makes bins from 100 to 1,000 and from 1,000 to 10,000. In base 2, each bin
+ends at twice its start.
+
 ### Why `bar * bin`, not a `histogram()` shortcut?
 
 Because `bin` does the same computation regardless of the mark, and the *mark*

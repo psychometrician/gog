@@ -226,9 +226,10 @@ data(gapminder_2007) + area * bin + x(life) +
 
 *"Given gapminder 2007: an area derived by bin, x is life."*
 
-`bin(30)` and `bin(width = 5)` set the intervals here exactly as they do for a
-bar; [Choosing the bin count](../transforms.qmd#choosing-the-bin-count) shows
-both.
+`bin(30)` and `bin(width = 5)` set the bins here exactly as they do for a bar.
+[Choosing the bin count](../transforms.qmd#choosing-the-bin-count) shows both,
+and [Choosing a width](../transforms.qmd#choosing-a-width) explains how to pick
+a width.
 
 `density` replaces the counts with a smooth curve, and the area fills the
 region under it:

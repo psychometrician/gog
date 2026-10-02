@@ -99,6 +99,11 @@ data(iris_flowers) + bar * bin(width = 0.5) + x(petal_length)
 
 *"Given the iris flowers: bars derived by bin at width 0.5, x is petal length."*
 
+The width 0.5 suits these lengths: they are recorded to one decimal place, so
+every bin holds exactly five possible values.
+[Choosing a width](../transforms.qmd#choosing-a-width) explains how to pick a
+width for your own column.
+
 A `line * bin` is the **frequency polygon**: a line through the same counts,
 placed at the center of each bin. Owning chapters: [Bar](../marks/bar.qmd),
 [Transforms](../transforms.qmd).

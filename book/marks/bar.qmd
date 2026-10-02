@@ -398,7 +398,8 @@ data(gapminder_2007) + bar * bin(width = 5) + x(life) + y(count) +
 
 `bin(30)` sets the number of bins instead. Both belong to the transform, and
 [Choosing the bin count](../transforms.qmd#choosing-the-bin-count) shows what
-each does to the picture.
+each does to the picture. [Choosing a width](../transforms.qmd#choosing-a-width)
+explains how to pick a width for your own column.
 
 A histogram can also be horizontal, by the rule in
 [Horizontal bars](#horizontal-bars). Bind the column you are binning to `y`,

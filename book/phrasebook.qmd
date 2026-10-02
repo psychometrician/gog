@@ -40,8 +40,9 @@ that does the same job is beside it on the right.
 | `geom_area()` | `area` |
 | `geom_col()` | `bar`, one bar per row; with several rows per category, `bar * sum` gives their total |
 | `geom_bar()`, which counts the rows for you | `bar * count`, because `bar` alone counts nothing |
-| `geom_histogram(bins = 30)` | `bar * bin(30)` |
-| `geom_freqpoly()` | `line * bin` |
+| `geom_histogram(bins = 30)` | `bar * bin(30)`. The thirty bins sit differently: gog's run exactly from the smallest value to the largest, while `geom_histogram()` makes each bin a little wider and centers the first and last on the smallest and largest values ([Where the bin edges fall](marks/bar.qmd#where-the-bin-edges-fall)) |
+| `geom_histogram(binwidth = 5)` | `bar * bin(width = 5)`. The width is the same, but the edges differ: gog puts an edge at zero, so the bins run 35 to 40, while `geom_histogram()` centers a bin on zero, so they run 37.5 to 42.5 ([Choosing a width](transforms.qmd#choosing-a-width)) |
+| `geom_freqpoly()` | `line * bin`. The line starts at the first bin's count and ends at the last one's. `geom_freqpoly()` adds an empty bin at each end, so its line starts and ends at zero. It also uses 30 bins by default, and `line * bin(30)` gives the same number |
 | `geom_density()` | `line * density` |
 | `geom_smooth()` | `ribbon * smooth_band + line * smooth`: the band and the curve are two layers. `smooth` fits a straight line locally and `geom_smooth()` fits a parabola, so the two curves can differ where the relationship is curved ([LOESS trend line](transforms.qmd#smooth-loess-trend-line)) |
 | `geom_smooth(se = FALSE)` | `line * smooth`: the curve of the row above, without its band |
