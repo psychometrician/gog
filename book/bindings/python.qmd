@@ -10,12 +10,13 @@ The grammar does not change when the language does. One engine reads one
 specification, so a sentence means the same thing no matter who wrote it.
 Everything in this book up to here is as true in Python as it is in R. What
 differs is short enough to state in one chapter. The sections below cover how a
-column is named, how a sentence is written over several lines, and what counts
-as a table. Then come computed columns, showing a plot, and the six names Python
-already uses. After them comes the operators section. Python groups the
-operators in the same order as R, and a page needs two kinds of parentheses. The
-vocabulary and the refusals follow, and they do not change. Reading from a
-database and installing the package come last.
+column is named, how a sentence is written over several lines, how values are
+written, and what counts as a table. Then come computed columns, showing a
+plot, and the six names Python already uses. After them comes the operators
+section. Python groups the operators in the same order as R, and a page needs
+two kinds of parentheses. The vocabulary and the refusals follow, and they do
+not change. Reading from a database and installing the
+package come last.
 
 Every Python block on this page was run when the page was built, through the
 same engine every other chapter uses. Each block runs after `from gog import *`,
@@ -108,8 +109,35 @@ continent, size by population."*
 
 That is Python's rule about lines, not a rule of gog's. Those parentheses and
 the accessor are nearly the only things you will type differently. The rest is
-as in R, except that values take Python's spelling: `True` for `TRUE`, a list
-for `c()`.
+as in R, except that values take Python's spelling.
+
+## How values are written
+
+In the other chapters, a code block that is a sentence has a tab for each
+language. Code written inside the text has none, so it is written in R, as in
+`x(life, limits = c(37.5, 87.5))`. Most of it reads the same in Python once
+`col.` is written before each column. The values are what change. R writes
+several values inside `c()`, and Python writes them in a list, inside square
+brackets. The table gives the Python spelling of each kind of value the book
+uses:
+
+| Kind of value | R | Python |
+|---|---|---|
+| true or false | `TRUE`, `FALSE` | `True`, `False` |
+| several numbers | `c(37.5, 87.5)` | `[37.5, 87.5]` |
+| several strings, such as colors | `c("tomato", "steelblue")` | `["tomato", "steelblue"]` |
+| a color for each category | `c(Asia = "tomato", Europe = "steelblue")` | `{"Asia": "tomato", "Europe": "steelblue"}` |
+| a missing value | `NA` | `None` |
+| the number *e* | `exp(1)` | `math.e`, after `import math` |
+| a declared order | `factor(values, levels = c("Low", "High"))` | `ordered(values, ["Low", "High"])` |
+
+So `x(life, limits = c(37.5, 87.5))` in the text is
+`x(col.life, limits=[37.5, 87.5])` in Python. A tuple works too:
+`limits=(37.5, 87.5)`. A named argument is written as in R, because Python has
+named arguments of its own: `legend = FALSE` is `legend=False`. `ordered()`
+declares the order of a column's categories, as R's `factor()` does. The next
+section says more about it, and about a pandas column that already carries an
+order.
 
 ## The table
 

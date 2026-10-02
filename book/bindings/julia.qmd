@@ -24,10 +24,11 @@ data(gm) + bar * bin + x(life) | facet(era)
 data(gm) + bar * bin + x(:life) | facet(:era)
 ```
 
-The sections below cover how a column is written, how to break a sentence
-across lines, and where Julia groups the operators differently from R. Then come
-the tables Julia accepts, showing a plot, the nine names gog shares with `Base`,
-reading from a database, and installing the package.
+The first sections cover how a column is written, how to break a sentence
+across lines, and how values are written. The next one shows where Julia groups
+the operators differently from R. Then come the tables Julia accepts, showing a
+plot, the nine names gog shares with `Base`, reading from a database, and
+installing the package.
 
 Every Julia block on this page that shows a plot, a refusal or printed output
 ran when the page was built, through the same engine every other chapter uses.
@@ -105,7 +106,35 @@ operator. Julia ends the statement at the line break and reads the next line on
 its own, so it reports an error about `+` instead of drawing. To write a
 sentence that way, put the whole sentence inside parentheses. The Python chapter
 writes every multi-line sentence this way ([Python](python.qmd)), and inside
-parentheses a line may begin with `+` in Julia too.
+parentheses a line may begin with `+` in Julia too. Values also take Julia's
+spelling, as the next section shows.
+
+## How values are written
+
+In the other chapters, a code block that is a sentence has a tab for each
+language. Code written inside the text has none, so it is written in R, as in
+`x(life, limits = c(37.5, 87.5))`. Most of it reads the same in Julia once each
+column is a symbol. The values are what change. R writes several values inside
+`c()`, and Julia writes them in a vector, inside square brackets. The table
+gives the Julia spelling of each kind of value the book uses:
+
+| Kind of value | R | Julia |
+|---|---|---|
+| true or false | `TRUE`, `FALSE` | `true`, `false` |
+| several numbers | `c(37.5, 87.5)` | `[37.5, 87.5]` |
+| several strings, such as colors | `c("tomato", "steelblue")` | `["tomato", "steelblue"]` |
+| a color for each category | `c(Asia = "tomato", Europe = "steelblue")` | `["Asia" => "tomato", "Europe" => "steelblue"]` |
+| a missing value | `NA` | `missing` |
+| the number *e* | `exp(1)` | `exp(1)`, or `ℯ` |
+| a declared order | `factor(values, levels = c("Low", "High"))` | `ordered(values, ["Low", "High"])` |
+
+So `x(life, limits = c(37.5, 87.5))` in the text is
+`x(:life, limits = [37.5, 87.5])` in Julia. Write several values in square
+brackets. A tuple in parentheses also works for `limits`, but `palette()` and
+`ordered()` do not accept one. A named argument is written as in R, because
+Julia has named arguments of its own: `legend = FALSE` is `legend = false`.
+`ordered()` declares the order of a column's categories, as R's `factor()` does,
+and the [Data](../data.qmd) chapter describes it.
 
 ## The operators, and their precedence
 

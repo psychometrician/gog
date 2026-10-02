@@ -559,6 +559,15 @@ alone. When a binding catches a mistake before the engine sees it, the advice
 names that language's own way of writing a column, and one message cannot serve
 four.
 
+Some code, such as `x(life, limits = c(37.5, 87.5))`, is written inside the
+text rather than in a code block. That code has no tabs, so it is written in R.
+In the other three languages, a column is written in that language's own way,
+and so are values such as `c(37.5, 87.5)` and `TRUE`. The chapter for each of
+those languages has a table that spells these values:
+[Python](bindings/python.qmd#how-values-are-written),
+[Julia](bindings/julia.qmd#how-values-are-written) and
+[JavaScript](bindings/javascript.qmd#how-values-are-written).
+
 ## Installing gog
 
 You have seen the plot the engine drew on this page. All four bindings
