@@ -967,6 +967,13 @@ test("the named ramps render as themselves, and limits center a diverging one", 
     x(col.day, { limits: [new Date(Date.UTC(2024, 0, 1)), new Date(Date.UTC(2024, 11, 31))] })));
   assert.match(year, />Jan 2024<\/text>/);
   assert.match(year, />Nov 2024<\/text>/);
+
+  // A width has no such conversion: a plain number does not say its unit, and
+  // the wire is seconds, so a width of 7 on dates cut 7-second bins.
+  const dated = data({ day: days, orders: days.map((_, i) => 20 + i) });
+  refuses(() => render_svg(plot(dated, layer(bar, bin({ width: 7 })), x(col.day))),
+    /does not say what unit[\s\S]*bin\(30\)/);
+  assert.match(render_svg(plot(dated, layer(bar, bin(6)), x(col.day))), /<rect/);
 });
 
 // ---------------------------------------------------------------------------

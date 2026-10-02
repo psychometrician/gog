@@ -409,6 +409,19 @@ The fix belongs in the data, where the answer is known: convert the column to
 your language's date or timestamp type, which in R is `as.Date()` or
 `as.POSIXct()`.
 
+For the same reason, a plain number cannot set the width of a bin on a time
+axis. `bin(width = 7)` does not say whether 7 counts days or seconds. The engine
+measures time in seconds, so these bins would be seven seconds wide, far too
+thin to see:
+
+```{r}
+#| error: true
+data(six_weeks) + bar * bin(width = 7) + x(day)
+```
+
+To cut a time axis into bins, give the number of bins instead: `bin(6)` cuts
+these six weeks into six bins.
+
 Time zones are never converted. The engine draws the clock time you gave it. In
 R, a `POSIXct` is formatted in its own time zone when it is drawn, so the axis
 shows the times your session showed you. In JavaScript, a `Date` is drawn as

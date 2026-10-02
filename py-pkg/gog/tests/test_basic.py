@@ -724,6 +724,17 @@ assert ">Jan 2024</text>" in year and ">Nov 2024</text>" in year, \
     "a stated year should tick across the year"
 ok("limits on a date axis are written in dates")
 
+# A width has no such conversion: a plain number does not say its unit, and the
+# wire is seconds, so `bin(width=7)` on dates cut 7-second bins, an empty panel.
+try:
+    render_svg(data(dts, name="dts") + bar * bin(width=7) + x(col.day))
+    raise AssertionError("a width on a date axis should be refused")
+except GogError as error:
+    assert "does not say what unit" in str(error) and "bin(30)" in str(error), str(error)
+assert render_svg(data(dts, name="dts") + bar * bin(6) + x(col.day)).count("fill-opacity") >= 6, \
+    "a count of bins should still cut a date axis"
+ok("a plain width cannot cut a date axis, and a count still can")
+
 
 # ---------------------------------------------------------------------------
 # surface — the sheet through the samples (spec §15)

@@ -2415,6 +2415,17 @@ if (!all(c("Jan 2024", "Nov 2024") %in% lab))
   stop("FAIL: a stated year should tick across the year, got ", paste(lab, collapse = " "))
 cat("PASS: limits on a date axis are written in dates\n")
 
+# A width has no such conversion: a plain number does not say its unit, and the
+# wire is seconds, so `bin(width = 7)` on dates cut 7-second bins, an empty panel.
+# Refused with the count as the direction; the count itself still draws.
+e <- tryCatch(render_svg(data(dts) + bar * bin(width = 7) + x(day)),
+              error = function(e) conditionMessage(e))
+if (!grepl("does not say what unit", e) || !grepl("bin(30)", e, fixed = TRUE))
+  stop("FAIL: a width on a date axis should be refused with direction, got: ", e)
+if (count_bars(data(dts) + bar * bin(6) + x(day)) != 6)
+  stop("FAIL: a count of bins should still cut a date axis")
+cat("PASS: a plain width cannot cut a date axis, and a count still can\n")
+
 # And the diagnostic quotes them back as dates — epoch seconds would tell the
 # caller nothing they can act on, which is the whole of what a message is for.
 msgs <- capture.output(

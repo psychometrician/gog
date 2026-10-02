@@ -17,6 +17,11 @@ CRAN-style repositories and PyPI, `GrammarOfGraphics` on Julia's General, and
   smallest value to the largest, and stated `limits` still set where the bins
   start. The Bar chapter explains the rule and how it differs from ggplot2.
 
+- **`bin(width = )` is refused on a date or time axis.** A plain number does not
+  say its unit, and gog measures time in seconds, so `bin(width = 7)` on a column
+  of dates drew bins seven seconds wide: an empty panel, with no message. gog now
+  refuses it and asks for the number of bins instead, such as `bin(30)`.
+
 ## 0.4.1 (2026-10-01)
 
 ### Fixed

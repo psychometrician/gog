@@ -26,7 +26,7 @@
 use crate::color::{css_rgb, edit_distance, is_valid_color, nearest_color, numbered_shade};
 use crate::data::DataFrame;
 use crate::ir::{
-    Channel, ChannelDef, CoordSpace, Figure, Layer, LevelColors, Mark, PageSpec, PaletteDef,
+    BinSpec, Channel, ChannelDef, CoordSpace, Figure, Layer, LevelColors, Mark, PageSpec, PaletteDef,
     PlotSpec, RangeSpec, ScaleType, StyleSpec, ThemeSpec, Transform,
 };
 use crate::transform::Job;
@@ -4428,6 +4428,62 @@ fn check_distribution_axis(
     }
 }
 
+/// A plain-number `bin(width = )` cannot cut a time axis, because the number does
+/// not say its unit (spec §5).
+///
+/// Every binding sends a moment as seconds since 1970, so `bin(width = 7)` on a
+/// column of dates cut bins seven *seconds* wide: twenty days drew 19 bars each 0
+/// pixels across, an empty panel with a count axis and no message, and ten years
+/// of dates held 45 million bins and 1.3 GB of memory to draw it. The reader meant
+/// days, very likely, and a number cannot say so: an R `Date` counts days, a
+/// JavaScript `Date` milliseconds, the engine seconds. So the width is refused,
+/// with the count as the direction, since `bin(30)` divides the range and needs no
+/// unit at all. The same units trap is why a time axis's `limits` are written in
+/// dates and converted by the binding (§10); a width written as a duration, each
+/// language's own, is the way out that is not built.
+fn check_bin_width_on_time(
+    out: &mut Vec<Diagnostic>,
+    spec: &PlotSpec,
+    df: &DataFrame,
+    layer: &Layer,
+) {
+    if !layer.transforms.contains(&Transform::Bin) { return; }
+    // `bins` wins when both arrive, so only a width the layout would use is asked.
+    let Some(BinSpec { width: Some(width), bins: None, .. }) = &layer.bin else { return };
+
+    let xd = spec.position_for(layer, &Channel::X);
+    let yd = spec.position_for(layer, &Channel::Y);
+    let xt = xd.and_then(|c| actual_type(df, &c.field));
+    let yt = yd.and_then(|c| actual_type(df, &c.field));
+    // The axes the cut is made on, decided as `check_distribution_axis` decides
+    // them: both in two dimensions, otherwise the key, which a slot mark on its
+    // side reads off `y`.
+    let cut: &[Channel] = if cuts_both_positions(&layer.mark, space_of(spec)) {
+        &[Channel::X, Channel::Y]
+    } else if is_slot_mark(&layer.mark) && slot_orient(xt, yt) == Orient::Horizontal {
+        &[Channel::Y]
+    } else {
+        &[Channel::X]
+    };
+    let Some((binding, unit)) = cut.iter().find_map(|ch| {
+        let cd = if matches!(ch, Channel::Y) { yd? } else { xd? };
+        let unit = df.time_unit(&cd.field)?;
+        Some((format!("{}({})", channel_name(ch), cd.field), unit))
+    }) else { return };
+    let holds = match unit {
+        crate::time::TimeUnit::Day => "dates",
+        crate::time::TimeUnit::Second => "times",
+    };
+    out.push(Diagnostic {
+        kind: DiagnosticKind::Illegal,
+        message: format!(
+            "gog: `bin(width = {width})` does not say what unit {width} is in, and `{binding}` \
+             holds {holds}. gog measures time in seconds, so these bins would be {width} \
+             seconds wide. Give the number of bins instead, such as `bin(30)`."
+        ),
+    });
+}
+
 /// The pair transforms `range`/`confidence` produce a low/high pair, which only
 /// the *span* marks draw (`interval` whiskers it, `ribbon` fills it, `line`/`step`
 /// trace its two boundaries). Composed onto a *locus* mark — `point`, `bar`,
@@ -7647,6 +7703,9 @@ pub fn check(spec: &PlotSpec, data: &HashMap<String, DataFrame>) -> Vec<Diagnost
             // they read must carry a number. Answered here rather than in
             // `transform.rs`, which could only warn and then draw anyway (§12).
             check_distribution_axis(&mut out, spec, df, layer);
+            // A width cuts in the axis's own units, and a time axis's are seconds
+            // that a plain number cannot name.
+            check_bin_width_on_time(&mut out, spec, df, layer);
             // And having a number to read is not the same as having enough of it.
             // Same reason it lives here: a transform can only warn.
             check_smooth_rows(&mut out, spec, df, layer);
@@ -16081,6 +16140,55 @@ mod tests {
         let mut m = HashMap::new();
         m.insert("t".to_string(), df);
         m
+    }
+
+    /// A plain-number width does not say its unit, and a time axis is measured in
+    /// seconds: `bin(width = 7)` on dates cut bins seven seconds wide, an empty
+    /// panel of 0-pixel bars. Refused wherever the cut lands on the time axis, with
+    /// the count as the direction; a count, a bare `bin` and a width on a number
+    /// all still draw.
+    #[test]
+    fn a_plain_width_cannot_cut_a_time_axis() {
+        let frames = || {
+            let mut m = dated();
+            let df = m.remove("t").unwrap()
+                .with_time("when", vec![3_600.0, 90_000.0, 176_400.0], crate::time::TimeUnit::Second);
+            m.insert("t".to_string(), df);
+            m
+        };
+        let binned = |mark: Mark, bins: Option<usize>, width: Option<f64>| {
+            let mut l = Layer::new(mark).transform(Transform::Bin);
+            l.bin = Some(crate::ir::BinSpec { bins, width, tiling: None });
+            l
+        };
+        let refused = |spec: PlotSpec| -> Option<String> {
+            check(&spec, &frames()).into_iter()
+                .find(|d| d.kind == DiagnosticKind::Illegal && d.message.contains("does not say what unit"))
+                .map(|d| d.message)
+        };
+
+        let m = refused(PlotSpec::new().data("t").x("day").layer(binned(Mark::Bar, None, Some(7.0))))
+            .expect("a width on dates is refused");
+        assert!(m.contains("`bin(width = 7)`") && m.contains("`x(day)` holds dates")
+            && m.contains("7 seconds wide") && m.contains("`bin(30)`"), "{m}");
+        let m = refused(PlotSpec::new().data("t").x("when").layer(binned(Mark::Bar, None, Some(3600.0))))
+            .expect("a width on timestamps is refused too");
+        assert!(m.contains("`x(when)` holds times"), "{m}");
+        // Wherever the cut lands: the key of a bar on its side, and either axis of a mesh.
+        assert!(refused(PlotSpec::new().data("t").y("day").layer(binned(Mark::Bar, None, Some(7.0)))).is_some());
+        assert!(refused(PlotSpec::new().data("t").x("day").y("sales")
+            .layer(binned(Mark::Zone, None, Some(7.0)))).is_some());
+
+        // What still draws: a count, `bins` winning over a width, and a width on a number.
+        for spec in [
+            PlotSpec::new().data("t").x("day").layer(binned(Mark::Bar, Some(30), None)),
+            PlotSpec::new().data("t").x("day").layer(binned(Mark::Bar, None, None)),
+            PlotSpec::new().data("t").x("day").layer(binned(Mark::Bar, Some(30), Some(7.0))),
+            PlotSpec::new().data("t").x("sales").layer(binned(Mark::Bar, None, Some(1.0))),
+        ] {
+            let d = check(&spec, &frames());
+            assert!(!d.iter().any(|x| x.message.contains("does not say what unit")), "{:?}", msgs(&d));
+        }
     }
 
     #[test]

@@ -642,6 +642,11 @@ end
                       x(:day, limits = (Date(2024, 1, 1), Date(2024, 12, 31))))
     @test occursin(">Jan 2024</text>", year)
     @test occursin(">Nov 2024</text>", year)
+
+    # A width has no such conversion: a plain number does not say its unit, and
+    # the wire is seconds, so `bin(width = 7)` on dates cut 7-second bins.
+    @refuses render_svg(data(dts) + bar * bin(width = 7) + x(:day)) "does not say what unit"
+    @test occursin("<rect", render_svg(data(dts) + bar * bin(6) + x(:day)))
 end
 
 @testset "the named ramps render as themselves, and limits center a diverging one" begin
