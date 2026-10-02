@@ -3126,6 +3126,23 @@ impl SvgRenderer {
         // side labeled a floor range neither had alone. An empty column joins no
         // share group, which is the rule for a plot with nothing bound.
         let offers = crate::legality::space_of(spec) == crate::legality::SpaceKind::Flat;
+        // **A share is not in its column's units, so its axis is offered to no
+        // page.** `stack(share = true)` and `proportion` divide what the column
+        // measured, so the measured axis reads fractions of one whatever `y(n)`
+        // named, the fact `axis_label` acts on when it writes "Share" over a named
+        // column. Offered under that name, a page gave it one scale with a plot of
+        // the counts beside it: the shares were drawn on an axis running to 885 and
+        // every pile was too short to draw. Like an unbound axis, a share is a
+        // measurement the plot made for itself. A partition's `proportion` divides
+        // its own measure axis rather than this one (`synth_y_label`).
+        let shares = share_stacked(spec) || spec.layers.iter().any(|l|
+            l.transforms.contains(&Transform::Proportion)
+                && !l.transforms.contains(&Transform::Partition));
+        let (x_offered, y_offered) = match (shares, horizontal) {
+            (true, false) => (x_field, ""),
+            (true, true) => ("", y_field),
+            (false, _) => (x_field, y_field),
+        };
         let facts = |field: &str, range: (f64, f64), cats: Option<&Vec<String>>, log: bool,
                      base: f64, ticks_over: (f64, f64)| AxisFacts {
             field: if offers { field.to_string() } else { String::new() },
@@ -3223,8 +3240,8 @@ impl SvgRenderer {
         Drawn {
             svg: namespace_ids(&svg),
             panel: area,
-            x: facts(x_field, xs, cat_x.as_ref(), x_log, x_base, shared.x_extent),
-            y: facts(y_field, ys, cat_y.as_ref(), y_log, y_base, shared.y_extent),
+            x: facts(x_offered, xs, cat_x.as_ref(), x_log, x_base, shared.x_extent),
+            y: facts(y_offered, ys, cat_y.as_ref(), y_log, y_base, shared.y_extent),
             y_name,
             remarks,
         }

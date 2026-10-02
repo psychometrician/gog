@@ -913,6 +913,97 @@ mod tests {
         }
     }
 
+    /// **A share is not in its column's units, so it shares no axis with them.**
+    ///
+    /// `stack(share = true)` and `proportion` divide what `y(n)` measured, so the
+    /// axis reads fractions of one whatever column it names. The page shared it
+    /// by that name with the counts beside it, so the shares were drawn on an axis
+    /// running to 885 and every pile was too short to draw, with no message. The
+    /// two plots of the counts themselves still share one axis.
+    ///
+    /// Pinned on the **marks**, since an empty panel is what a reader met, and on
+    /// the groups, since that is the mechanism.
+    #[test]
+    fn a_share_beside_its_counts_keeps_an_axis_of_its_own() {
+        let classes = ["1st", "2nd", "3rd", "Crew"];
+        let titanic = DataFrame::new()
+            .with_str("class", classes.iter().flat_map(|c| [c.to_string(), c.to_string()]).collect())
+            .with_str("survived", classes.iter().flat_map(|_| ["Yes".to_string(), "No".to_string()]).collect())
+            .with_float("n", vec![203.0, 122.0, 118.0, 167.0, 178.0, 528.0, 212.0, 673.0]);
+        let data = HashMap::from([("titanic".to_string(), titanic)]);
+        let bars = |ts: &[Transform], share: bool| {
+            let layer = ts.iter().fold(Layer::new(Mark::Bar), |l, t| l.transform(t.clone()));
+            let layer = Layer {
+                stack: share.then_some(crate::ir::StackSpec { share: Some(true), baseline: None }),
+                ..layer
+            };
+            PlotSpec::new().data("titanic").x("class").y("n")
+                .layer(layer.encode(Channel::Color, "survived"))
+        };
+        let page = PageSpec {
+            arrange: Arrange::Beside,
+            cells: vec![
+                bars(&[Transform::Sum, Transform::Stack], false).into(),
+                bars(&[Transform::Sum, Transform::Stack], true).into(),
+                bars(&[Transform::Sum, Transform::Proportion, Transform::Dodge], false).into(),
+                bars(&[Transform::Sum, Transform::Dodge], false).into(),
+            ],
+            theme: ThemeSpec::default(),
+        };
+
+        // The marks: each share plot draws its eight bars, and they reach up its
+        // panel rather than lying along the floor of an axis in counts.
+        let (svg, _) = render(&page, &data, 1200.0, 400.0);
+        let cells: Vec<&str> = svg.split("<svg x=").skip(1).collect();
+        assert_eq!(cells.len(), 4);
+        let grab = |r: &str, k: &str| -> Option<f64> {
+            let at = r.find(k)? + k.len();
+            r[at..].split('"').next()?.parse().ok()
+        };
+        // A bar carries a fill opacity and square corners; a legend key is rounded.
+        let bars_in = |cell: &str| -> Vec<(f64, f64)> {
+            cell.split("<rect ").skip(1)
+                .map(|r| r.split('>').next().unwrap_or(""))
+                .filter(|r| r.contains("fill-opacity=") && !r.contains("rx="))
+                .filter_map(|r| Some((grab(r, " x=\"").or_else(|| grab(r, "x=\""))?, grab(r, "height=\"")?)))
+                .collect()
+        };
+        let panel_h = |cell: &str| cell.split("<rect ").skip(1)
+            .find(|r| r.split('>').next().is_some_and(|h| h.contains(r##"fill="#f5f5f8""##)))
+            .and_then(|r| grab(r, "height=\""))
+            .expect("a panel");
+        for (i, what) in [(1, "stack(share = true)"), (2, "proportion")] {
+            let (drawn, room) = (bars_in(cells[i]), panel_h(cells[i]));
+            assert_eq!(drawn.len(), 8, "{what}: every bar is drawn, got {drawn:?}");
+            let tallest = drawn.iter().map(|b| b.1).fold(0.0, f64::max);
+            assert!(tallest > room / 4.0,
+                    "{what}: the bars stand on an axis of shares, the tallest {tallest:.1} \
+                     of a panel {room:.1} tall");
+        }
+        // The piles filled to one are one height, whatever each class's total.
+        let mut piles: Vec<(f64, f64)> = Vec::new();
+        for (x, h) in bars_in(cells[1]) {
+            match piles.iter_mut().find(|p| (p.0 - x).abs() < 0.5) {
+                Some(p) => p.1 += h,
+                None => piles.push((x, h)),
+            }
+        }
+        assert_eq!(piles.len(), 4, "{piles:?}");
+        assert!(piles.iter().all(|p| (p.1 - piles[0].1).abs() < 1.0), "{piles:?}");
+
+        // The mechanism: only the two plots of `n` itself are one y axis, and all
+        // four still share `class` along x.
+        let root = Figure::Page(page);
+        let mut placed = Vec::new();
+        place(&root, Layout { x0: 0.0, y0: 0.0, x1: 1200.0, y1: 400.0 }, &mut placed);
+        let measured: Vec<Drawn> = placed.iter()
+            .map(|c| SvgRenderer::for_theme(&c.spec.theme.resolved(), c.rect.w(), c.rect.h())
+                .draw(c.spec, &data))
+            .collect();
+        assert_eq!(groups(&measured, &Channel::Y), vec![vec![0, 3]]);
+        assert_eq!(groups(&measured, &Channel::X), vec![vec![0, 1, 2, 3]]);
+    }
+
     /// Two plots side by side on the same column: the same variable, so one
     /// scale — but two places, so neither gives up its axis. The intersection
     /// of their extents is empty and the rule notices rather than fitting both

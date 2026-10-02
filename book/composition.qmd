@@ -124,6 +124,14 @@ measure different things, rename one of them before you compose. Otherwise the
 plot with the smaller values is drawn in a small part of an axis sized for the
 larger.
 
+There is one case where gog does know what an axis measures, because its own
+transform changed it. With `stack(share = TRUE)` or `proportion`, an axis that
+names a column shows shares, numbers from 0 to 1, instead of that column's
+values. gog never merges such an axis with another, so the plot draws its own.
+The [Bar](marks/bar.qmd#grouped-stacked-or-100-stacked) chapter shows such a
+page: two plots of people use one axis, and the plot of shares beside them draws
+its own.
+
 A page reads a shared column on one scale, so both plots must write the same
 `scale` and `limits` for it. When you write `x(gdp, scale = "log")` in one plot
 and plain `x(gdp)` in the other, gog refuses the page. This is true side by side
@@ -155,8 +163,8 @@ Look at what that figure draws once, and what it draws twice. Both plots read
 thing.
 
 Axes merge and legends do not, and that difference is deliberate. Axes merge
-because there is an exact test: the same column on the same axis means one scale
-is correct for both plots. A legend has no such test. These two plots do
+because there is an exact test: when two plots show the same column's values on
+the same axis, one scale is correct for both. A legend has no such test. These two plots do
 agree, because both split by `continent`. But nothing in the grammar makes two
 composed plots use color the same way. The next pair may split by different columns, or map
 one column onto two color scales. One legend over those two would be wrong for
@@ -418,8 +426,8 @@ rule turns into a single axis.
 ## In short
 
 `|` and `/` mean faceting when a column splits one plot into panels, and
-composition when both sides are whole plots. Composed plots that name the same
-column on the same axis read it on one scale. On the axis the arrangement
+composition when both sides are whole plots. Composed plots that show the same
+column's values on the same axis read it on one scale. On the axis the arrangement
 aligns, that column is one axis, drawn once. A page draws no mark of its own,
 and its size is the only thing you can write on it.
 

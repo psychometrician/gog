@@ -52,6 +52,14 @@ CRAN-style repositories and PyPI, `GrammarOfGraphics` on Julia's General, and
   reports. A map's degree labels are thinned when they would run together, as on
   any other axis.
 
+- **A plot of shares keeps its own axis on a page.** Plots composed on a page
+  share an axis when they name the same column. A plot with
+  `stack(share = TRUE)` or `proportion` turns that column into shares, from 0 to
+  1, but it was drawn on the axis of the plot beside it. Beside a plot of counts
+  reaching 885, its bars were too short to draw. It now draws an axis of its
+  own. The Bar chapter draws `dodge`, `stack` and `stack(share = TRUE)` side by
+  side and says which question each answers.
+
 ## 0.4.1 (2026-10-01)
 
 ### Fixed

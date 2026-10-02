@@ -705,6 +705,80 @@ histogram beside this one. In ggplot2, `stack(share = TRUE)` is written
 `position = "fill"`. Its five-year bins have other edges, so its bars differ
 ([Where the bin edges fall](#where-the-bin-edges-fall)).
 
+## Grouped, stacked or 100% stacked? {#grouped-stacked-or-100-stacked}
+
+You have now seen three ways to place a color split. `dodge` sets the groups
+side by side, `stack` piles them up, and `stack(share = TRUE)` piles them up as
+shares. Each way makes one question easy to answer and another question hard,
+so the choice depends on the question your reader must answer. To see the
+difference, draw one table all three ways.
+
+The `titanic` table counts the people aboard the Titanic, the ship that sank in
+1912. Each row is one combination of `class`, `sex`, `age` and `survived`, and
+`n` says how many people match it, sometimes none. Each row already holds a
+count, so the plots add up `n` with `sum` rather than counting rows with
+`count`. `color(survived)` then splits each class into the people who survived
+and the people who died.
+
+The sentence below describes three plots and sets them side by side with `|`.
+Each plot sits in its own parentheses, so `|` joins three whole plots into one
+page. [Composition](../composition.qmd) explains such pages in full.
+`legend = FALSE` leaves the legend out of the first two plots, because one
+legend explains all three. The third plot asks for 330 pixels of the page's
+width with `theme(width = 330)`, so its legend has room. Outside the outer
+parentheses, `theme(height = 360)` sets the height of the whole page.
+
+```{r}
+#| echo: false
+peek(titanic)
+```
+
+```{r}
+((data(titanic) + bar * sum * dodge + x(class) + y(n) +
+    color(survived, legend = FALSE) + y_label("People") + title("dodge")) |
+  (data(titanic) + bar * sum * stack + x(class) + y(n) +
+    color(survived, legend = FALSE) + title("stack")) |
+  (data(titanic) + bar * sum * stack(share = TRUE) + x(class) + y(n) +
+    color(survived) + y_label("Share of the class") +
+    title("stack(share = TRUE)") + theme(width = 330))) +
+  theme(height = 360)
+```
+
+*"Given titanic: bars derived by sum and dodge, x is class, y is n, color by
+survived, without a legend, beside bars derived by sum and stack, x is class, y
+is n, color by survived, without a legend, beside bars derived by sum and stack
+as shares, x is class, y is n, color by survived."*
+
+All three plots start from the same eight sums, two for each class. The first
+two read `n` on the y axis, so they share one axis, drawn once at the left. That
+axis is sized for the crew's total, 885, which is why the dodge plot leaves room
+above its tallest bar, 673. The third plot divides each segment by its class's
+total, so it draws a separate axis, from 0 to 1. `y_label()` names that axis,
+because `Share` alone does not say a share of what.
+
+Each plot answers one kind of question best, and each one hides something. For
+each plot, the table gives both:
+
+| Plot | Answers best | Hides |
+|---|---|---|
+| `dodge` | Did more people survive or die in each class? Did more people die in third class or in the crew? | Each class's total. To see it, you must add two bar heights yourself. |
+| `stack` | How many people were in each class, and how many of them survived? | How the deaths compare across classes. The segments of the dead start at different heights. |
+| `stack(share = TRUE)` | In which class was a person most likely to survive? | How many people each class held. Second class held 285 people and the crew 885, but both bars reach 1. |
+
+`dodge` answers its questions because every bar starts at zero, so any two
+bars can be compared by height. In the first plot, for example, first class is
+the only class with more survivors than dead. In `stack`, only the bottom
+group, the survivors, starts at zero. `stack(share = TRUE)` makes every bar
+reach 1, so each segment's height is its share of the class.
+
+The crew and first class show why the choice depends on the question. If you
+count the survivors, as the first two plots do, the two have nearly the same
+number: 212 against 203. If you divide by each class's total, as the third plot
+does, they are far apart: 24% of the crew survived, against 62% of first class.
+Both facts are true, and each plot shows only one of them. So choose the plot by
+the question your reader must answer. When the reader needs more than one
+answer, draw more than one plot, as this section does.
+
 ## What you can set
 
 A setting changes how every bar looks without reading a column, and each mark
