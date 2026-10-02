@@ -360,6 +360,72 @@ shows life expectancy against GDP per capita, one point per country. The map
 shows that same `life` column. It answers a question the scatter cannot:
 *where*.
 
+## Two years on one color scale
+
+The map above shows a single year. Did life expectancy rise everywhere between
+1957 and 2007, or only in some places? To compare two years, draw the same map
+once for each year, as two panels of one plot. `gm_eras` holds life expectancy
+for both years, one row per country and year:
+
+```{r}
+#| echo: false
+peek(gm_eras)
+```
+
+It stores the year twice: `year` is a number, and `era` is the same year as a
+label. A facet needs the label, because a facet column names its panels
+([Faceting](faceting.qmd#the-facet-columns-type)).
+
+The join works as in the section above, and is again shown in R only. Each year
+is joined to its own copy of the outline, and the table `eras` holds both
+copies. Its `era` column says which year each copy shows:
+
+```{r}
+#| message: true
+e57 <- gm_eras[gm_eras$era == "1957", ]
+e07 <- gm_eras[gm_eras$era == "2007", ]
+then <- world_borders
+then$era <- "1957"
+then$life <- e57$life[match(then$country, e57$country)]
+now <- world_borders
+now$era <- "2007"
+now$life <- e07$life[match(now$country, e07$country)]
+eras <- rbind(then, now)
+eras <- eras[!is.na(eras$life), ]
+
+data(world_borders) + zone + x(lon) + y(lat) + group(country) +
+  style(color = "#e6e6ec") +
+  data(eras) + zone + x(lon) + y(lat) + group(country) + color(life) +
+  palette("viridis") + map() +
+  title("Life expectancy at birth, 1957 and 2007") / facet(era)
+```
+
+*"Given the world borders: zones, x is lon, y is lat, grouped by country; then
+given the eras table: zones, x is lon, y is lat, grouped by country, color by
+life, with the viridis palette, in the map space, split into panel rows by
+era."*
+
+`/ facet(era)` stacks the two panels, one above the other. In the default
+projection a world map is about twice as wide as it is tall, so side by side
+each map would be about half as wide. Both panels share one color scale, and
+that is what makes them comparable: the same shade means the same life
+expectancy in 1957 and in 2007.
+
+`palette("viridis")` colors the shortest life expectancy dark purple and the
+longest yellow. In the map above, dark meant the longest. Dark purple is clearly
+different from the pale gray of the unmatched countries, so a short life
+expectancy never looks like a missing value.
+
+Most countries are greener or yellower in 2007 than in 1957. Counted from the
+table, life expectancy rose in 117 of the 120 colored countries, and the median
+rose from 48 years to 72. Life expectancy fell only in Lesotho, Zambia and
+Zimbabwe, all three in the south of Africa.
+
+The gray layer appears in both panels. Its table, `world_borders`, has no `era`
+column, so gog draws that layer in every panel and says so in a message. [A
+layer without the facet column](faceting.qmd#a-layer-without-the-facet-column)
+explains the rule.
+
 ## Rings, and the country inside another country
 
 A `zone` groups by `country`, not by `piece`, so nothing in its sentence says
@@ -367,8 +433,8 @@ where one ring ends. gog finds each ring by closure: a ring ends where it
 returns to the point it started from. Boundary data is written that way, so
 nothing extra has to be said.
 
-Finding rings by closure is what lets a country contain a hole. Lesotho lies
-entirely inside South Africa, and South Africa's boundary has a second ring
+Finding rings by closure is what lets a country contain a hole. Lesotho, one of
+the three countries above, lies entirely inside South Africa, and South Africa's boundary has a second ring
 around Lesotho:
 
 ```{r}
