@@ -22,6 +22,21 @@ CRAN-style repositories and PyPI, `GrammarOfGraphics` on Julia's General, and
   of dates drew bins seven seconds wide: an empty panel, with no message. gog now
   refuses it and asks for the number of bins instead, such as `bin(30)`.
 
+### Fixed
+
+- **A page written without its parentheses is told to add them.** Julia groups
+  `|` together with `+`, so a page joined by `|` with no parentheses was refused
+  as if the second plot's mark had been added to the page. R, Python and Julia
+  did the same when only the first plot of a `/` page had parentheses. Both
+  refusals now say that the second plot held only its table, and that each plot
+  goes inside its own parentheses. The refusal of a `/` page with no parentheses
+  at all says that `/` *groups* before `+`, the word the book uses. A refusal
+  names a mark with its transforms as it was written, `bar * count`, or
+  `layer(bar, count)` in JavaScript, instead of `layer()`, which R, Python and
+  Julia do not have. The Operators chapter has a new section on where
+  parentheses go on a page, and each language's chapter gives that language's
+  order.
+
 ## 0.4.1 (2026-10-01)
 
 ### Fixed

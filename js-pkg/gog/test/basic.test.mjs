@@ -4066,6 +4066,10 @@ test("a page refusal names the atom it was given", () => {
   refuses(() => beside(p, p, color(col.g)),
     /`color\(\)` belongs to a plot, and `beside\(\)` arranges plots\. Write it into the plot it describes, before composing: `beside\(plot\(data\(df\), …, color\(…\)\), other_plot\)`/);
   refuses(() => beside(p, p, point), /`point` belongs to a plot/);
+  // A mark with its transforms is named with its parts, as the other three name it
+  // `bar * count`; it was `layer()`, which says nothing about which one.
+  refuses(() => beside(p, p, layer(bar, count, proportion)),
+    /`layer\(bar, count, proportion\)` belongs to a plot, and `beside\(\)` arranges plots\. Write it into the plot it describes, before composing: `beside\(plot\(data\(df\), …, layer\(bar, count, proportion\)\), other_plot\)`/);
   refuses(() => below(p, data(t)),
     /`data\(\)` belongs to a plot, and `below\(\)` arranges plots\. Write it into the plot it holds the table for, before composing: `below\(plot\(data\(df\), …\), other_plot\)`/);
 });

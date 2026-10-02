@@ -763,16 +763,43 @@ Base.:/(left::Atom, right::Atom) = facet_join(left, right, "row", "/")
 Base.:|(left::Atom, right::Union{Plot,Page}) = unparenthesized_page(left, "|")
 Base.:/(left::Atom, right::Union{Plot,Page}) = unparenthesized_page(left, "/")
 
+# Only `/` groups before `+`, so only `/` says so; an atom before `|` and a plot
+# after it can only have been written that way.
 unparenthesized_page(left::Atom, operator::AbstractString) = throw(GogError(
     "gog: `$operator` places one plot $(operator == "/" ? "below" : "beside") another, " *
-    "and it binds before `+`, so here it joined `$(atom_shown(left))` to the plot " *
-    "after it. Put each plot in parentheses: " *
+    "and $(operator == "/" ? "it groups before `+`, so " : "")here it joined " *
+    "`$(atom_shown(left))` to the plot after it. Put each plot in parentheses: " *
     "`(data(df) + point + ...) $operator (data(df) + bar + ...)`."))
 
 # Composition — dispatch on the *pair*, which is the whole design: a facet split
 # takes a plot and an atom, a page takes two figures.
-Base.:|(left::Union{Plot,Page}, right::Union{Plot,Page}) = compose(left, right, "beside")
-Base.:/(left::Union{Plot,Page}, right::Union{Plot,Page}) = compose(left, right, "below")
+Base.:|(left::Union{Plot,Page}, right::Union{Plot,Page}) =
+    compose(left, table_alone(right, "|"), "beside")
+Base.:/(left::Union{Plot,Page}, right::Union{Plot,Page}) =
+    compose(left, table_alone(right, "/"), "below")
+
+# A plot on the right that is only its table: the operator joined it before `+`
+# could add the rest of that plot. `/` groups before `+`, so `(a) / data(t) + bar`
+# arrives here, and Julia groups `|` with `+`, from left to right, so a page with
+# no parentheses at all does, `a … + y(:b) | data(t) + bar`. Each atom after it
+# then reached the page and was refused there, as if it belonged to a plot on the
+# left. Said here instead, where the parentheses are missing. R and Python group
+# `+` before `|`, so they check `/` alone.
+function table_alone(right, operator::AbstractString)
+    right isa Plot || return right
+    skeleton = new_plot().spec
+    skeleton["data"] = right.spec["data"]
+    (right.spec == skeleton && right.current_layer === nothing &&
+     right.pending_data === nothing) || return right
+    where, which, why = operator == "/" ?
+        ("below", "below", "`/` groups before `+`, so it") :
+        ("beside", "beside it", "Julia groups `|` with `+`, from left to right, so `|`")
+    throw(GogError(
+        "gog: `$operator` places one plot $where another, and the plot $which holds " *
+        "nothing but its table. $why joined that table before `+` could add the rest " *
+        "of its plot. Put each plot in parentheses: " *
+        "`(data(df) + point + ...) $operator (data(df) + bar + ...)`."))
+end
 
 # A page can only be composed further: a facet splits *one* plot by a column.
 Base.:|(left::Page, right::Atom) = page_facet_refusal("|")
@@ -791,8 +818,13 @@ const PANEL_THEME = (:preset, :grid, :ratio, :tick_angle, :font_size,
 
 # How an atom is named in a message: a mark and a transform are bare words
 # (`point`, `mean`), and every other atom is a call (`color()`). Every atom was
-# shown as `title("...")` in the example below, and a mark as `point()`.
-atom_shown(a::Atom) = a.kind in (:mark, :transform) ? atom_name(a) : "$(written_kind(a))()"
+# shown as `title("...")` in the example below, and a mark as `point()`. A mark
+# with its transforms is held as a `layer`, a word only JavaScript has, so it is
+# named the way it was written: `bar * count`.
+atom_shown(a::Atom) = a.kind in (:mark, :transform) ? atom_name(a) :
+                      a.kind === :layer ? compound_shown(a) : "$(written_kind(a))()"
+
+compound_shown(a::Atom) = join([String(a.fields[:mark]); String.(a.fields[:transforms])], " * ")
 
 # A position or a space is held as `coord_x` or `coord_polar`, and written `x`.
 written_kind(a::Atom) = replace(String(a.kind), r"^coord_" => "")
@@ -801,6 +833,7 @@ written_kind(a::Atom) = replace(String(a.kind), r"^coord_" => "")
 # label holds text, and every other atom takes something.
 function atom_example(a::Atom)
     a.kind === :mark && return atom_name(a)
+    a.kind === :layer && return compound_shown(a)
     a.kind === :transform && return "<mark> * $(atom_name(a))"
     a.kind in (:title, :x_label, :y_label, :z_label) && return "$(a.kind)(\"...\")"
     return "$(written_kind(a))(...)"

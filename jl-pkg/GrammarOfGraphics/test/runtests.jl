@@ -3439,6 +3439,11 @@ end
           occursin("`(plot + color(...)) | other_plot`", colored)
     @test occursin("`point` belongs to a plot", said(point))
     @test occursin("`page | other_plot`", said(data(t)))
+    # A mark with its transforms is held as a `layer`, JavaScript's word, and was
+    # named `layer()` here; it is named as written.
+    derived = said(bar * count * proportion)
+    @test occursin("`bar * count * proportion` belongs to a plot", derived) &&
+          occursin("`(plot + bar * count * proportion) | other_plot`", derived)
 end
 
 # A `/` page written without parentheses: `/` binds before `+`, so it joined the atom
@@ -3453,14 +3458,31 @@ end
     catch e
         sprint(showerror, e)
     end
-    @test occursin("places one plot below another, and it binds before `+`", stacked)
+    @test occursin("places one plot below another, and it groups before `+`", stacked)
     @test occursin("joined `y()`", stacked) && !occursin("MethodError", stacked)
+    said(f) = try
+        f(); ""
+    catch e
+        sprint(showerror, e)
+    end
+    @test occursin("joined `bar * count`",
+                   said(() -> data(t) + point + x(:a) + bar * count / data(t) + bar * count + x(:a)))
     positioned = try
         (p | p) + x(:a); ""
     catch e
         sprint(showerror, e)
     end
     @test occursin("`x()` belongs to a plot", positioned)
+    # Only the first plot in parentheses: `/` groups before `+`, so it joins the
+    # second plot's table alone, and the atoms after it reached the page.
+    alone = said(() -> (data(t) + point + x(:a) + y(:b)) / data(t) + bar * count + x(:a))
+    @test occursin("the plot below holds nothing but its table. `/` groups before `+`", alone)
+    @test occursin("Put each plot in parentheses", alone)
+    # Julia groups `|` with `+`, from left to right, so a `|` page with no
+    # parentheses joins the second plot's table alone too. R and Python draw it.
+    beside = said(() -> data(t) + point + x(:a) + y(:b) | data(t) + bar * count + x(:a))
+    @test occursin("Julia groups `|` with `+`, from left to right", beside)
+    @test occursin("Put each plot in parentheses: `(data(df) + point + ...) | ", beside)
 end
 
 # An atom written after `| facet(:g)` joins the faceted plot, and the sentence draws the

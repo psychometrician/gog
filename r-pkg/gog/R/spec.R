@@ -917,17 +917,23 @@ PANEL_THEME <- c("preset", "grid", "ratio", "tick_angle", "font_size",
 # How an atom is named in a message: a mark and a transform are bare words
 # (`point`, `mean`), and every other atom is a call (`color()`). A position or a
 # space is held as `coord_x` or `coord_polar` and written `x()` or `polar()`.
+# A mark with its transforms is held as a `layer`, a word only JavaScript has,
+# so it is named the way it was written: `bar * count`.
 atom_shown <- function(atom) {
   switch(atom$type,
     mark = atom$mark,
     transform = atom$transform,
+    layer = compound_shown(atom),
     paste0(sub("^coord_", "", atom$type), "()"))
 }
+
+compound_shown <- function(atom) paste(c(atom$mark, unlist(atom$transforms)), collapse = " * ")
 
 # The atom written into a sentence, for an example: a transform joins a mark,
 # a label holds text, and every other atom takes something.
 atom_example <- function(atom) {
   if (identical(atom$type, "mark")) return(atom$mark)
+  if (identical(atom$type, "layer")) return(compound_shown(atom))
   if (identical(atom$type, "transform")) return(paste0("<mark> * ", atom$transform))
   if (atom$type %in% c("title", "x_label", "y_label", "z_label"))
     return(paste0(atom$type, "(\"...\")"))
@@ -989,6 +995,12 @@ chooseOpsMethod.gog_atom <- chooseOpsMethod.gog_spec
 
 # A plot or a page — the two things composition takes on either side.
 is_figure <- function(x) inherits(x, "gog_spec") || inherits(x, "gog_page")
+
+# A plot that is only its table: `data(t)`, with nothing joined to it yet.
+only_a_table <- function(x) {
+  inherits(x, "gog_spec") && is.null(x$current_layer) && is.null(x$pending_data) &&
+    identical(x$spec, new_spec(x$spec$data))
+}
 
 # The wire form of one operand: a finalized spec, or a page's own node.
 figure_wire <- function(x) {
@@ -1108,6 +1120,20 @@ facet_join <- function(lhs, rhs, slot, op) {
   # plot — which is the door the design left open when `plot | plot` still
   # refused (spec §11).
   if (is_figure(lhs) && is_figure(rhs)) {
+    # `(a) / data(t) + bar + x(b)`: `/` groups before `+`, so it joined the second
+    # plot's table before `+` could add the rest of that plot. Each atom after it
+    # then reached the page and was refused there, as if it belonged to a plot on
+    # the left. Said here instead, where the parentheses are missing. Only `/` can
+    # arrive this way in R: `+` groups before `|`, so a table alone on the right of
+    # `|` was written that way, and the engine's refusal of a plot with no mark
+    # says what is missing. Julia groups `|` with `+`, so it checks both.
+    if (op == "/" && only_a_table(rhs)) {
+      stop("gog: `/` places one plot below another, and the plot below holds ",
+           "nothing but its table. `/` groups before `+`, so it joined that table ",
+           "before `+` could add the rest of its plot. Put each plot in ",
+           "parentheses: `(data(df) + point + ...) / (data(df) + bar + ...)`.",
+           call. = FALSE)
+    }
     return(page_compose(lhs, rhs, if (slot == "col") "beside" else "below", op))
   }
   # A page can only be composed further. `(a | b) | facet(g)` would be faceting
@@ -1151,9 +1177,12 @@ facet_join <- function(lhs, rhs, slot, op) {
     # A plot on the right means two plots were being placed, and the operator,
     # which R evaluates before `+`, caught the atom written just before it. The
     # facet advice sent that reader to split a plot they never meant to split.
+    # Only `/` groups before `+`, so only `/` says so; an atom before `|` and a
+    # plot after it can only have been written that way.
     if (inherits(rhs, "gog_spec") || inherits(rhs, "gog_page")) {
       stop("gog: `", op, "` places one plot ", if (op == "/") "below" else "beside",
-           " another, and it binds before `+`, so here it joined `", atom_shown(lhs),
+           " another, and ", if (op == "/") "it groups before `+`, so ",
+           "here it joined `", atom_shown(lhs),
            "` to the plot after it. Put each plot in parentheses: ",
            "`(data(df) + point + ...) ", op, " (data(df) + bar + ...)`.", call. = FALSE)
     }

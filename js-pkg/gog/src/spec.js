@@ -355,11 +355,17 @@ function atomOnPage(atom, word) {
       `\`${word}(plot(data(df), …), other_plot)\`.`;
   }
   // A position or a space is held as `coord_x` or `coord_polar`, and written `x`.
+  // A mark with its transforms is named with its parts, `layer(bar, count)`, as
+  // the other three bindings name it `bar * count`.
   const kind = atom.kind.replace(/^coord_/, "");
+  const compound = atom.kind === "layer"
+    ? `layer(${[atom.fields.mark, ...atom.fields.transforms].join(", ")})`
+    : null;
   const shown = atom.kind === "mark" ? atom.fields.mark
     : atom.kind === "transform" ? atom.fields.transform
-    : `${kind}()`;
+    : compound ?? `${kind}()`;
   const example = atom.kind === "mark" ? atom.fields.mark
+    : compound ? compound
     : atom.kind === "transform" ? `layer(<mark>, ${atom.fields.transform})`
     : ["title", "x_label", "y_label", "z_label"].includes(atom.kind) ? `${atom.kind}("…")`
     : `${kind}(…)`;

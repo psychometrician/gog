@@ -6171,12 +6171,17 @@ local({
   colored <- said((p | p) + color(g))
   marked <- said((p | p) + point)
   plotted <- said((p | p) + data(t))
+  # A mark with its transforms is held as a `layer`, JavaScript's word, and was
+  # named `layer()` here; it is named as written.
+  derived <- said((p | p) + bar * count * proportion)
   if (!grepl("`color()` belongs to a plot", colored, fixed = TRUE) ||
       !grepl("`(plot + color(...)) | other_plot`", colored, fixed = TRUE) ||
       !grepl("`point` belongs to a plot", marked, fixed = TRUE) ||
-      !grepl("`page | other_plot`", plotted, fixed = TRUE))
+      !grepl("`page | other_plot`", plotted, fixed = TRUE) ||
+      !grepl("`bar * count * proportion` belongs to a plot", derived, fixed = TRUE) ||
+      !grepl("`(plot + bar * count * proportion) | other_plot`", derived, fixed = TRUE))
     stop("FAIL: a page refusal should name what it was given: ",
-         colored, "\n", marked, "\n", plotted)
+         colored, "\n", marked, "\n", plotted, "\n", derived)
   cat("PASS: a page refusal names the atom it was given\n")
 })
 
@@ -6191,12 +6196,26 @@ local({
   p <- data(t) + point + x(a) + y(b)
   said <- function(e) tryCatch({ e; "" }, error = function(err) conditionMessage(err))
   stacked <- said(data(t) + point + x(a) + y(b) / data(t) + bar * count + x(a))
+  derived <- said(data(t) + point + x(a) + bar * count / data(t) + bar * count + x(a))
   positioned <- said((p | p) + x(a))
-  if (!grepl("places one plot below another, and it binds before `+`", stacked, fixed = TRUE) ||
+  # Only the first plot in parentheses: `/` groups before `+`, so it joins the
+  # second plot's table alone, and the atoms after it reached the page.
+  alone <- said((data(t) + point + x(a) + y(b)) / data(t) + bar * count + x(a))
+  if (!grepl("places one plot below another, and it groups before `+`", stacked, fixed = TRUE) ||
       !grepl("joined `y()`", stacked, fixed = TRUE) ||
       grepl("facets a *plot*", stacked, fixed = TRUE) ||
-      !grepl("`x()` belongs to a plot", positioned, fixed = TRUE))
-    stop("FAIL: an unparenthesized page should be named: ", stacked, "\n", positioned)
+      !grepl("joined `bar * count`", derived, fixed = TRUE) ||
+      !grepl("`x()` belongs to a plot", positioned, fixed = TRUE) ||
+      !grepl("the plot below holds nothing but its table. `/` groups before `+`",
+             alone, fixed = TRUE) ||
+      !grepl("Put each plot in parentheses", alone, fixed = TRUE))
+    stop("FAIL: an unparenthesized page should be named: ", stacked, "\n", derived,
+         "\n", positioned, "\n", alone)
+  # `+` groups before `|` in R, so the same page with `|` draws as written in
+  # parentheses.
+  if (!identical(render_svg(data(t) + point + x(a) + y(b) | data(t) + bar * count + x(a)),
+                 render_svg((data(t) + point + x(a) + y(b)) | (data(t) + bar * count + x(a)))))
+    stop("FAIL: a `|` page without parentheses should draw as one with them")
   cat("PASS: a page written without parentheses is told to add them\n")
 })
 

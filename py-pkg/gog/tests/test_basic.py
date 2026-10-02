@@ -3944,6 +3944,11 @@ _colored = _paged(color(col.g))
 assert "`color()` belongs to a plot" in _colored and "`(plot + color(...)) | other_plot`" in _colored, _colored
 assert "`point` belongs to a plot" in _paged(point)
 assert "`page | other_plot`" in _paged(_pt)
+# A mark with its transforms is held as a `layer`, JavaScript's word, and was named
+# `layer()` here; it is named as written.
+_derived = _paged(bar * count * proportion)
+assert "`bar * count * proportion` belongs to a plot" in _derived \
+    and "`(plot + bar * count * proportion) | other_plot`" in _derived, _derived
 ok("a page refusal names the atom it was given")
 
 
@@ -3958,13 +3963,31 @@ try:
     raise AssertionError("an unparenthesized page was taken")
 except GogError as refusal:
     _s = str(refusal)
-    assert "places one plot below another, and it binds before `+`" in _s and "joined `y()`" in _s \
+    assert "places one plot below another, and it groups before `+`" in _s and "joined `y()`" in _s \
         and "facets a *plot*" not in _s, _s
+try:
+    _st + point + x(col.a) + bar * count / _st + bar * count + x(col.a)
+    raise AssertionError("an unparenthesized page was taken")
+except GogError as refusal:
+    assert "joined `bar * count`" in str(refusal), refusal
 try:
     (_sp | _sp) + x(col.a)
     raise AssertionError("a page took x()")
 except GogError as refusal:
     assert "`x()` belongs to a plot" in str(refusal), refusal
+# Only the first plot in parentheses: `/` groups before `+`, so it joins the second
+# plot's table alone, and the atoms after it reached the page.
+try:
+    (_st + point + x(col.a) + y(col.b)) / _st + bar * count + x(col.a)
+    raise AssertionError("a half-parenthesized page was taken")
+except GogError as refusal:
+    _s = str(refusal)
+    assert "the plot below holds nothing but its table. `/` groups before `+`" in _s \
+        and "Put each plot in parentheses" in _s, _s
+# `+` groups before `|` in Python, so the same page with `|` draws as written in
+# parentheses.
+assert render_svg(_st + point + x(col.a) + y(col.b) | _st + bar * count + x(col.a)) == \
+    render_svg((_st + point + x(col.a) + y(col.b)) | (_st + bar * count + x(col.a)))
 ok("a page written without parentheses is told to add them")
 
 

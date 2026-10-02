@@ -874,13 +874,31 @@ class Page:
 
 def _atom_shown(atom: Atom) -> str:
     """How an atom is named in a message: a mark and a transform are bare words
-    (`point`, `mean`), and every other atom is a call (`color()`)."""
+    (`point`, `mean`), and every other atom is a call (`color()`). A mark with its
+    transforms is held as a `layer`, a word only JavaScript has, so it is named
+    the way it was written: `bar * count`."""
     if atom.kind == "mark":
         return atom.fields["mark"]
     if atom.kind == "transform":
         return atom.fields["transform"]
+    if atom.kind == "layer":
+        return _compound_shown(atom)
     # A position or a space is held as `coord_x` or `coord_polar`.
     return f"{atom.kind.removeprefix('coord_')}()"
+
+
+def _compound_shown(atom: Atom) -> str:
+    return " * ".join([atom.fields["mark"], *atom.fields["transforms"]])
+
+
+def _only_a_table(figure: Any) -> bool:
+    """A plot that is only its table: `data(t)`, with nothing joined to it yet."""
+    return (
+        isinstance(figure, Plot)
+        and figure.current_layer is None
+        and figure.pending_data is None
+        and figure.spec == _new_spec(figure.spec.get("data"))
+    )
 
 
 def _atom_example(atom: Atom) -> str:
@@ -888,6 +906,8 @@ def _atom_example(atom: Atom) -> str:
     a label holds text, and every other atom takes something."""
     if atom.kind == "mark":
         return atom.fields["mark"]
+    if atom.kind == "layer":
+        return _compound_shown(atom)
     if atom.kind == "transform":
         return f"<mark> * {atom.fields['transform']}"
     if atom.kind in ("title", "x_label", "y_label", "z_label"):
@@ -1088,6 +1108,21 @@ def _facet_join(left: Any, right: Any, slot: str, operator: str) -> Any:
     # plot — which is the door the design left open when `plot | plot` still
     # refused (spec §11).
     if isinstance(left, (Plot, Page)) and isinstance(right, (Plot, Page)):
+        # `(a) / data(t) + bar + x(col.b)`: `/` groups before `+`, so it joined the
+        # second plot's table before `+` could add the rest of that plot. Each atom
+        # after it then reached the page and was refused there, as if it belonged
+        # to a plot on the left. Said here instead, where the parentheses are
+        # missing. Only `/` can arrive this way in Python: `+` groups before `|`,
+        # so a table alone on the right of `|` was written that way, and the
+        # engine's refusal of a plot with no mark says what is missing. Julia
+        # groups `|` with `+`, so it checks both.
+        if operator == "/" and _only_a_table(right):
+            raise GogError(
+                "gog: `/` places one plot below another, and the plot below holds "
+                "nothing but its table. `/` groups before `+`, so it joined that table "
+                "before `+` could add the rest of its plot. Put each plot in "
+                "parentheses: `(data(df) + point + ...) / (data(df) + bar + ...)`."
+            )
         return _compose(left, right, "beside" if slot == "col" else "below")
 
     if isinstance(left, Page):
@@ -1124,12 +1159,15 @@ def _facet_join(left: Any, right: Any, slot: str, operator: str) -> Any:
             )
         # A plot on the right means two plots were being placed, and the operator,
         # which Python evaluates before `+`, caught the atom written just before it.
+        # Only `/` groups before `+`, so only `/` says so; an atom before `|` and a
+        # plot after it can only have been written that way.
         if isinstance(right, (Plot, Page)):
             where = "below" if operator == "/" else "beside"
+            why = "it groups before `+`, so " if operator == "/" else ""
             raise GogError(
-                f"gog: `{operator}` places one plot {where} another, and it binds before "
-                f"`+`, so here it joined `{_atom_shown(left)}` to the plot after it. Put "
-                f"each plot in parentheses: `(data(df) + point + ...) {operator} "
+                f"gog: `{operator}` places one plot {where} another, and {why}here it "
+                f"joined `{_atom_shown(left)}` to the plot after it. Put each plot in "
+                f"parentheses: `(data(df) + point + ...) {operator} "
                 f"(data(df) + bar + ...)`."
             )
         raise GogError(
