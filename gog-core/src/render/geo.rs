@@ -109,6 +109,46 @@ impl Geo {
     pub(crate) fn straight_meridians(&self) -> bool {
         self.preserve == Preserve::Angle
     }
+
+    /// The projected span of a domain stated in degrees (spec §10).
+    ///
+    /// `limits` on a map is written in degrees and the panel is fitted in projected
+    /// units, so the stated box has to be projected before it can bound the panel.
+    /// It was not: `x(lon, limits = c(-12, 40))` handed -12..40 to an axis whose
+    /// whole world spans about ±2.7, so every mark collapsed toward one point and
+    /// the tick labels piled up on it, drawn without a word.
+    ///
+    /// A latitude alone places `y` in both projections, so a stated latitude is
+    /// projected directly. A longitude's `x` also depends on the latitude under
+    /// Equal Earth, whose meridians bend inward toward the poles, so each stated
+    /// end takes its outermost `x` across the latitudes the panel covers: the
+    /// stated ones, or the data's where an end is left open. An open end stays
+    /// open, for the data to fill as it does on every other axis.
+    pub(crate) fn project_domain(
+        &self,
+        lon: (Option<f64>, Option<f64>),
+        lat: (Option<f64>, Option<f64>),
+        data_lat: (f64, f64),
+    ) -> ((Option<f64>, Option<f64>), (Option<f64>, Option<f64>)) {
+        let cap = self.limit().unwrap_or(90.0);
+        let south = lat.0.unwrap_or(data_lat.0).clamp(-cap, cap);
+        let north = lat.1.unwrap_or(data_lat.1).clamp(-cap, cap);
+        // A meridian is widest where it meets the equator, so the equator is
+        // sampled whenever the band crosses it.
+        let mut band: Vec<f64> =
+            (0..=64).map(|i| south + (north - south) * i as f64 / 64.0).collect();
+        if south < 0.0 && north > 0.0 {
+            band.push(0.0);
+        }
+        let west = lon.0.map(|l| {
+            band.iter().map(|&p| self.project(l, p).0).fold(f64::INFINITY, f64::min)
+        });
+        let east = lon.1.map(|l| {
+            band.iter().map(|&p| self.project(l, p).0).fold(f64::NEG_INFINITY, f64::max)
+        });
+        let y = |l: Option<f64>| l.map(|v| self.project(0.0, v.clamp(-cap, cap)).1);
+        ((west, east), (y(lat.0), y(lat.1)))
+    }
 }
 
 /// **Equal Earth** (Šavrič, Patterson & Jenny 2018) — equal-area, and the default.
@@ -379,5 +419,38 @@ mod tests {
         let (_, y) = g.project(0.0, 90.0);
         let ratio = (2.0 * x) / (2.0 * y);
         assert!((ratio - 2.05).abs() < 0.01, "the world came out {ratio:.4} : 1");
+    }
+
+    /// A domain stated in degrees is projected before it bounds the panel. Handed
+    /// over as degrees, -12..40 was read as projected units, about ten times the
+    /// width of the whole world, and the map collapsed toward one point.
+    #[test]
+    fn a_stated_box_is_projected_before_it_bounds_the_panel() {
+        for g in [area(), angle()] {
+            let ((west, east), (south, north)) =
+                g.project_domain((Some(-12.0), Some(40.0)), (Some(34.0), Some(60.0)), (34.0, 60.0));
+            let (west, east, south, north) =
+                (west.unwrap(), east.unwrap(), south.unwrap(), north.unwrap());
+            assert!(west < east && south < north, "the box turned over: {west} {east} {south} {north}");
+            assert!(west.abs() < 1.0 && east.abs() < 1.0, "x was left in degrees: {west}..{east}");
+            assert_eq!(south, g.project(0.0, 34.0).1);
+            assert_eq!(north, g.project(0.0, 60.0).1);
+            // Meridians bend toward the poles under Equal Earth, so the box is
+            // widest along its edge nearest the equator, here its southern one.
+            assert!((west - g.project(-12.0, 34.0).0).abs() < 1e-12, "west edge {west}");
+            assert!((east - g.project(40.0, 34.0).0).abs() < 1e-12, "east edge {east}");
+        }
+    }
+
+    /// A band that crosses the equator is widest on it, and an end left open stays
+    /// open for the data to fill.
+    #[test]
+    fn a_stated_longitude_is_widest_where_its_band_crosses_the_equator() {
+        let g = area();
+        let ((west, east), (south, north)) =
+            g.project_domain((None, Some(40.0)), (None, None), (-30.0, 30.0));
+        assert_eq!(west, None);
+        assert_eq!((south, north), (None, None));
+        assert!((east.unwrap() - g.project(40.0, 0.0).0).abs() < 1e-12, "east edge {east:?}");
     }
 }

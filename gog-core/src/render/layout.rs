@@ -366,13 +366,6 @@ impl PanelGrid {
         let area_y0 = outer.y0 + play_h + strip_h;
         let area_y1 = outer.y1;
 
-        let play_strip = has_play.then(|| Layout {
-            x0: area_x0,
-            y0: outer.y0,
-            x1: area_x1,
-            y1: outer.y0 + STRIP_H,
-        });
-
         let cell_w = ((area_x1 - area_x0) - gap * (ncols as f64 - 1.0)) / ncols as f64;
         let cell_h = ((area_y1 - area_y0) - gap * (nrows as f64 - 1.0)) / nrows as f64;
         // In a ribbon the cell holds a name *and* a panel, so the panel gets what
@@ -404,6 +397,18 @@ impl PanelGrid {
         let inset_x = (cell_w - panel_w) / 2.0;
         let inset_y = (cell_h - panel_h) / 2.0;
 
+        // A name sits against what it names, so the strips move with the panels a
+        // ratio centered. They stayed at the top of the area: seven maps in a row,
+        // each shortened to the projection's shape, had their continents' names a
+        // third of the page above them. With no ratio there is no slack, the inset
+        // is zero, and every strip is where it always was.
+        let play_strip = has_play.then(|| Layout {
+            x0: area_x0,
+            y0: outer.y0 + inset_y,
+            x1: area_x1,
+            y1: outer.y0 + inset_y + STRIP_H,
+        });
+
         let mut panels = Vec::with_capacity(nrows * ncols);
         for row in 0..nrows {
             for col in 0..ncols {
@@ -433,11 +438,13 @@ impl PanelGrid {
                     // narrows the panel inside its cell, and a name that narrowed
                     // with it would drift away from the column of names above and
                     // below it.
+                    // Down by the inset, though, so the name stays on top of the
+                    // panel it names rather than at the top of an empty cell.
                     strip: (cell_strip_h > 0.0).then(|| Layout {
                         x0: cell_x0 + cell_axis.0,
-                        y0: cell_y0,
+                        y0: cell_y0 + inset_y,
                         x1: cell_x0 + cell_axis.0 + cell_w,
-                        y1: cell_y0 + cell_strip_h,
+                        y1: cell_y0 + inset_y + cell_strip_h,
                     }),
                 });
             }

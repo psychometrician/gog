@@ -37,6 +37,21 @@ CRAN-style repositories and PyPI, `GrammarOfGraphics` on Julia's General, and
   parentheses go on a page, and each language's chapter gives that language's
   order.
 
+- **`limits` on a map frames the box it states.** `x(lon, limits = c(-12, 40)) +
+  y(lat, limits = c(34, 60)) + map()` drew an empty panel with its degree labels
+  piled on one spot, because the limits were read as projected units rather than
+  degrees. The stated box is now projected like the data, so the panel covers it
+  and is labeled in degrees across it. As before, the rows outside the box are
+  removed, and gog says how many.
+
+- **Facet strips stay on their panels, and long names fit.** A panel that keeps a
+  fixed shape, such as a map, is centered in its cell, and the strip naming it
+  stayed at the top of the plot, far above it. The strip now moves with its
+  panel. Names too long for their strips are written at one smaller size, and a
+  name still too long at the smallest size is shortened with "…", which gog
+  reports. A map's degree labels are thinned when they would run together, as on
+  any other axis.
+
 ## 0.4.1 (2026-10-01)
 
 ### Fixed

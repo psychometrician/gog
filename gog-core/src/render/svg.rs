@@ -1427,6 +1427,24 @@ impl SvgRenderer {
         } else {
             None
         };
+        // A stated domain on a map is written in degrees, and the panel is fitted in
+        // projected units, so the box is projected once here for every fit below
+        // (`Geo::project_domain`). Read as projected numbers, `limits = c(-12, 40)`
+        // drew an empty panel with its tick labels piled on one spot. The rows
+        // outside the box are already gone, cut in degrees by `limit_cut` before
+        // anything was projected.
+        let map_domain = map_degrees.as_ref().map(|(geo, (_, lat))| {
+            geo.project_domain(
+                scale::domain_of(spec.axis_def(&Channel::X)),
+                scale::domain_of(spec.axis_def(&Channel::Y)),
+                *lat,
+            )
+        });
+        let fit_domain = |ch: Channel| match (&map_domain, &ch) {
+            (Some((x, _)), Channel::X) => *x,
+            (Some((_, y)), Channel::Y) => *y,
+            _ => scale::domain_of(spec.axis_def(&ch)),
+        };
 
         // Ranges, categories and ticks are computed across every panel's frames.
         // The fixed, shared scale is what makes the panels comparable, which is
@@ -1704,7 +1722,7 @@ impl SvgRenderer {
             flush_x,
             scale::tick_count_of(spec.axis_def(&Channel::X)),
             x_log, x_base, x_time,
-            scale::domain_of(spec.axis_def(&Channel::X)),
+            fit_domain(Channel::X),
             crate::legality::slot_reach(spec, data, Channel::X),
             self.fit.ticks_x,
         );
@@ -1723,7 +1741,7 @@ impl SvgRenderer {
             measure_on_angle,
             scale::tick_count_of(spec.axis_def(&Channel::Y)),
             y_log, y_base, y_time,
-            scale::domain_of(spec.axis_def(&Channel::Y)),
+            fit_domain(Channel::Y),
             crate::legality::slot_reach(spec, data, Channel::Y),
             self.fit.ticks_y,
         );
@@ -1778,12 +1796,12 @@ impl SvgRenderer {
         let (x_ticks, xs) = fit_to_cells(
             &cell_frames, crate::transform::CELL_START, crate::transform::CELL_END,
             crate::transform::CELL_X, crate::transform::CELL_DX, x_ticks, xs,
-            stated_domain(scale::domain_of(spec.axis_def(&Channel::X)), x_log, x_base),
+            stated_domain(fit_domain(Channel::X), x_log, x_base),
             retick(Channel::X, cat_x.is_some(), x_log, x_time.is_some()));
         let (y_ticks, ys) = fit_to_cells(
             &cell_frames, crate::transform::CELL_LOWER, crate::transform::CELL_UPPER,
             crate::transform::CELL_Y, crate::transform::CELL_DY, y_ticks, ys,
-            stated_domain(scale::domain_of(spec.axis_def(&Channel::Y)), y_log, y_base),
+            stated_domain(fit_domain(Channel::Y), y_log, y_base),
             retick(Channel::Y, cat_y.is_some(), y_log, y_time.is_some()));
 
         // A **network** is fitted to the unit square by statement, not from its
@@ -1999,8 +2017,15 @@ impl SvgRenderer {
                 let count = |c: Channel, default: usize| {
                     scale::tick_count_of(spec.axis_def(&c)).unwrap_or(default)
                 };
-                let (xt, lons) = degrees(*lon, count(Channel::X, 7), &|v| geo.project(v, edge.0).0, xs);
-                let (yt, _) = degrees(*lat, count(Channel::Y, 5), &|v| geo.project(lon.0, v).1, ys);
+                // The ticks span what the panel spans: a stated end in degrees,
+                // else the data's, so a map cut to a box is ticked across the box.
+                let span = |ch: Channel, data: (f64, f64)| {
+                    let (lo, hi) = scale::domain_of(spec.axis_def(&ch));
+                    (lo.unwrap_or(data.0), hi.unwrap_or(data.1))
+                };
+                let (lon, lat) = (span(Channel::X, *lon), span(Channel::Y, *lat));
+                let (xt, lons) = degrees(lon, count(Channel::X, 7), &|v| geo.project(v, edge.0).0, xs);
+                let (yt, _) = degrees(lat, count(Channel::Y, 5), &|v| geo.project(lon.0, v).1, ys);
                 (xt, yt, Some((*geo, lons, edge)))
             }
             None => (x_ticks, y_ticks, None),
@@ -2395,12 +2420,15 @@ impl SvgRenderer {
         let y_labeled = !grid_yt.labels.is_empty();
         let x_names = !is_polar && !free_x && cat_x.is_some() && x_labeled;
         let y_names = !is_polar && !free_y && cat_y.is_some() && y_labeled;
-        // A map's degrees are placed by its projection, not along a straight
-        // axis, so the straight measure above does not hold there; its axes keep
-        // every tick, as a polar plot's do.
+        // A map's degrees are placed by its projection, but each label is written
+        // where its line meets the panel's straight edge, so the measure above
+        // holds there too. Map axes kept every tick until seven maps in a row
+        // printed "-100° 0° 100°" through each other. The labels' values are
+        // projected positions rather than round degrees, so a thinned map axis
+        // keeps every `stride`-th label from the first, as a log axis does.
         let projected = matches!(spec.coord, CoordSpace::Map(_));
-        let x_numbers = !is_polar && !projected && !free_x && cat_x.is_none() && x_labeled;
-        let y_numbers = !is_polar && !projected && !free_y && cat_y.is_none() && y_labeled;
+        let x_numbers = !is_polar && !free_x && cat_x.is_none() && x_labeled;
+        let y_numbers = !is_polar && !free_y && cat_y.is_none() && y_labeled;
         let across = crate::render::layout::name_pitch(self.font_sm);
         let widths = |t: &TickSpec| -> Vec<f64> {
             t.labels.iter().map(|s| estimate_text_width(s, self.font_sm)).collect()
@@ -2419,8 +2447,8 @@ impl SvgRenderer {
             false => stated_angle,
         };
         let grid = if tick_angle != stated_angle { compute_grid(grid_xt, grid_yt, tick_angle) } else { grid };
-        let x_linear = !x_log && x_time.is_none();
-        let y_linear = !y_log && y_time.is_none();
+        let x_linear = !x_log && x_time.is_none() && !projected;
+        let y_linear = !y_log && y_time.is_none() && !projected;
         let x_stride = match (x_names, x_numbers, tick_angle) {
             (true, _, a) | (_, true, a @ Some(_)) => crate::render::layout::names_stride(
                 &x_at(&grid, grid_xt), &widths(grid_xt), across, a.unwrap_or(0.0)),
@@ -3004,7 +3032,10 @@ impl SvgRenderer {
             }
         }
 
-        self.write_strips(&mut svg, &grid, &spec.theme.resolved());
+        let shortened = self.write_strips(&mut svg, &grid, &spec.theme.resolved());
+        if shortened > 0 {
+            remarks.push(shortened_strip_names(shortened));
+        }
         self.write_play_strip(&mut svg, &grid, &play_levels, clock,
                               &spec.theme.resolved());
         // In 3-D the axis names sit on the cube's edges, so the outer margin
@@ -3245,21 +3276,28 @@ impl SvgRenderer {
     // panel for it (`Panel::strip`); this only fills them.
     // -----------------------------------------------------------------------
 
-    fn write_strips(&self, svg: &mut String, grid: &PanelGrid, theme: &ThemeSpec) {
+    /// The facet strips. Returns how many names had to be shortened to fit their
+    /// strips (`fit_strip_names`), so the caller can say so.
+    fn write_strips(&self, svg: &mut String, grid: &PanelGrid, theme: &ThemeSpec) -> usize {
         let strip_bg = theme.strip_or(STRIP_BG);
         let strip_fg = strip_ink(theme, &strip_bg);
         use crate::render::layout::{STRIP_H, STRIP_W};
         const STRIP_GAP: f64 = 4.0; // between the strip box and its panel
-        let cap = estimate_cap_height(self.font_sm);
+        let mut shortened = 0usize;
 
         if !grid.wrap_values.is_empty() {
+            let bands: Vec<(&Layout, &str)> = grid.panels.iter()
+                .filter_map(|panel| Some((panel.strip.as_ref()?, grid.wrap_values.get(panel.slot)?.as_str())))
+                .collect();
+            let room = bands.iter().map(|(b, _)| b.w()).fold(f64::INFINITY, f64::min) - STRIP_PAD;
+            let names: Vec<&str> = bands.iter().map(|(_, v)| *v).collect();
+            let (fs, names, cut) = fit_strip_names(&names, room, self.font_sm);
+            shortened += cut;
+            let cap = estimate_cap_height(fs);
             writeln!(svg,
-                r##"  <g font-family="system-ui,sans-serif" font-size="{fs}" fill="{strip_fg}" text-anchor="middle">"##,
-                fs = self.font_sm
+                r##"  <g font-family="system-ui,sans-serif" font-size="{fs}" fill="{strip_fg}" text-anchor="middle">"##
             ).unwrap();
-            for panel in &grid.panels {
-                let (Some(band), Some(value)) = (&panel.strip, grid.wrap_values.get(panel.slot))
-                    else { continue };
+            for ((band, _), value) in bands.iter().zip(names.iter()) {
                 let bh = band.h() - STRIP_GAP;
                 writeln!(svg,
                     r##"    <rect x="{x:.2}" y="{y:.2}" width="{w:.2}" height="{bh:.2}" fill="{strip_bg}"/>"##,
@@ -3272,21 +3310,28 @@ impl SvgRenderer {
                 ).unwrap();
             }
             writeln!(svg, "  </g>").unwrap();
-            return;
+            return shortened;
         }
 
         if !grid.col_values.is_empty() {
+            // Row 0 comes first in row-major order, so panel `c` is column `c`'s top.
+            let room = (0..grid.col_values.len())
+                .map(|c| grid.panels[c].rect.w()).fold(f64::INFINITY, f64::min) - STRIP_PAD;
+            let names: Vec<&str> = grid.col_values.iter().map(String::as_str).collect();
+            let (fs, names, cut) = fit_strip_names(&names, room, self.font_sm);
+            shortened += cut;
+            let cap = estimate_cap_height(fs);
             writeln!(svg,
-                r##"  <g font-family="system-ui,sans-serif" font-size="{fs}" fill="{strip_fg}" text-anchor="middle">"##,
-                fs = self.font_sm
+                r##"  <g font-family="system-ui,sans-serif" font-size="{fs}" fill="{strip_fg}" text-anchor="middle">"##
             ).unwrap();
-            for (c, value) in grid.col_values.iter().enumerate() {
-                let p = &grid.panels[c].rect; // row 0 comes first in row-major order
+            for (c, value) in names.iter().enumerate() {
+                let p = &grid.panels[c].rect;
                 // Below the play strip when there is one: that band names the
                 // moment every panel is showing, so it sits above the names of the
                 // panels themselves. Without `play` this is `outer.y0` exactly, and
-                // the faceted plot is unmoved.
-                let by = grid.play_strip.as_ref().map_or(grid.outer.y0, |p| p.y1);
+                // the faceted plot is unmoved. Down by the grid's inset as well,
+                // so a strip stays on top of a panel a ratio centered in its cell.
+                let by = grid.play_strip.as_ref().map_or(grid.outer.y0 + grid.inset.1, |p| p.y1);
                 let bh = STRIP_H - STRIP_GAP;
                 writeln!(svg,
                     r##"    <rect x="{x:.2}" y="{by:.2}" width="{w:.2}" height="{bh:.2}" fill="{strip_bg}"/>"##,
@@ -3301,14 +3346,22 @@ impl SvgRenderer {
         }
 
         if !grid.row_values.is_empty() {
+            let rows: Vec<&Layout> = (0..grid.row_values.len())
+                .map(|r| &grid.panels[r * grid.ncols + grid.ncols - 1].rect).collect();
+            // A row's name is turned to read downward, so its room is the panel's height.
+            let room = rows.iter().map(|p| p.h()).fold(f64::INFINITY, f64::min) - STRIP_PAD;
+            let names: Vec<&str> = grid.row_values.iter().map(String::as_str).collect();
+            let (fs, names, cut) = fit_strip_names(&names, room, self.font_sm);
+            shortened += cut;
+            let cap = estimate_cap_height(fs);
             writeln!(svg,
-                r##"  <g font-family="system-ui,sans-serif" font-size="{fs}" fill="{strip_fg}" text-anchor="middle">"##,
-                fs = self.font_sm
+                r##"  <g font-family="system-ui,sans-serif" font-size="{fs}" fill="{strip_fg}" text-anchor="middle">"##
             ).unwrap();
-            for (r, value) in grid.row_values.iter().enumerate() {
-                let p = &grid.panels[r * grid.ncols + grid.ncols - 1].rect;
+            for (p, value) in rows.iter().zip(names.iter()) {
                 let bw = STRIP_W - STRIP_GAP;
-                let bx = grid.outer.x1 - bw;
+                // Left by the grid's inset, so the strip stays beside a panel a
+                // ratio centered in its cell.
+                let bx = grid.outer.x1 - bw - grid.inset.0;
                 writeln!(svg,
                     r##"    <rect x="{bx:.2}" y="{y:.2}" width="{bw:.2}" height="{h:.2}" fill="{strip_bg}"/>"##,
                     y = p.y0, h = p.h()
@@ -3325,6 +3378,7 @@ impl SvgRenderer {
             }
             writeln!(svg, "  </g>").unwrap();
         }
+        shortened
     }
 
     // -----------------------------------------------------------------------
@@ -5701,6 +5755,67 @@ fn thinned_numbers(axis: char, field: &str, asked: usize, chosen: usize, kept: u
 /// buys every name a line; a column of names already down the side just needs
 /// the taller plot.
 #[allow(clippy::too_many_arguments)]
+/// The room a strip name keeps clear of its strip's ends, in pixels.
+const STRIP_PAD: f64 = 4.0;
+
+/// The smallest share of the usual size a strip name may be shrunk to before it
+/// is shortened instead: below this it stops being readable.
+const STRIP_FONT_FLOOR: f64 = 0.7;
+
+/// The size a family of strip names is written at, the names to write, and how
+/// many had to be shortened.
+///
+/// Every name has to fit the room its strip gives it, or the names run into each
+/// other and the strips stop saying which panel is which. They did: seven maps in
+/// a row, one per continent, wrote "Seven seas (open ocean)" across its
+/// neighbor's name. One size for the whole family, so that no strip reads as more
+/// important than another, shrunk only as far as the longest name needs and never
+/// below `STRIP_FONT_FLOOR`. A name still too long there is cut short with an
+/// ellipsis, and the count goes back to the caller, which says so. Names that
+/// already fit come back unchanged, at the usual size, so a plot whose names fit
+/// is drawn exactly as before.
+fn fit_strip_names(names: &[&str], room: f64, font: f64) -> (f64, Vec<String>, usize) {
+    let widest = names.iter().map(|n| estimate_text_width(n, font)).fold(0.0, f64::max);
+    if widest <= room.max(0.0) || widest <= 0.0 {
+        return (font, names.iter().map(|n| n.to_string()).collect(), 0);
+    }
+    let floor = font * STRIP_FONT_FLOOR;
+    // Two decimals, so the size reads as a size in the SVG.
+    let size = ((font * room.max(0.0) / widest).max(floor) * 100.0).floor() / 100.0;
+    let mut shortened = 0;
+    let out = names.iter().map(|&n| {
+        if estimate_text_width(n, size) <= room {
+            return n.to_string();
+        }
+        shortened += 1;
+        let mut kept: Vec<char> = n.chars().collect();
+        while !kept.is_empty() {
+            kept.pop();
+            let candidate = format!("{}…", kept.iter().collect::<String>().trim_end());
+            if estimate_text_width(&candidate, size) <= room {
+                return candidate;
+            }
+        }
+        "…".to_string()
+    }).collect();
+    (size, out, shortened)
+}
+
+/// Strip names cut short to fit (`fit_strip_names`).
+fn shortened_strip_names(n: usize) -> Diagnostic {
+    let (count, verb) = if n == 1 { ("1 panel name".to_string(), "does") } else { (format!("{n} panel names"), "do") };
+    Diagnostic {
+        kind: crate::legality::DiagnosticKind::Assumption,
+        message: format!(
+            "gog: {count} {verb} not fit {}, even at a smaller size, and {} shortened with \"…\". \
+             A wider plot (`theme(width = )`) or fewer panels in a row (`wrap = `) shows {} in full.",
+            if n == 1 { "its strip" } else { "their strips" },
+            if n == 1 { "is" } else { "are" },
+            if n == 1 { "it" } else { "them" },
+        ),
+    }
+}
+
 fn thinned_names(axis: char, field: &str, n: usize, stride: usize, pitch: f64, across: f64,
                  angle: Option<f64>, height: f64) -> Diagnostic {
     let field = if field.is_empty() { "<column>" } else { field };
@@ -6760,6 +6875,163 @@ mod tests {
         assert!(svg.contains("°</text>"), "no degree labels: {svg}");
         for bare in [">-2</text>", ">2</text>", ">-1</text>", ">1</text>"] {
             assert!(!svg.contains(bare), "a projected unit reached the axis: {bare}");
+        }
+    }
+
+    /// **`limits` on a map is a domain in degrees, and the panel is fitted to it
+    /// projected.** Read as projected numbers, -12..40 was about ten times the
+    /// width of the whole world, so the panel came out empty, with its degree
+    /// labels piled on one spot and nothing said.
+    #[test]
+    fn a_map_with_limits_frames_the_box_it_states() {
+        for preserve in [crate::ir::Preserve::Area, crate::ir::Preserve::Angle] {
+            let df = DataFrame::new()
+                .with_float("lon", vec![-10.0, 0.0, 20.0, 38.0, 100.0])
+                .with_float("lat", vec![36.0, 50.0, 45.0, 58.0, 10.0]);
+            let data = HashMap::from([("t".to_string(), df)]);
+            let mut spec = world_map(preserve);
+            spec.x = Some(crate::ir::ChannelDef::field("lon").with_limits(Some(-12.0), Some(40.0)));
+            spec.y = Some(crate::ir::ChannelDef::field("lat").with_limits(Some(34.0), Some(60.0)));
+            let svg = SvgRenderer::default().render(&spec, &data);
+            let pts = centers(&svg);
+            assert_eq!(pts.len(), 4, "{preserve:?}: the row outside the box is cut, the four inside drawn");
+            let (west, east) = pts.iter().fold((f64::INFINITY, f64::NEG_INFINITY), |(lo, hi), p| (lo.min(p.0), hi.max(p.0)));
+            assert!(east - west > 300.0, "{preserve:?}: the four places collapsed together: {west:.1}..{east:.1}");
+            let labels = text_of(&svg);
+            for tick in ["0°", "20°", "40°", "50°"] {
+                assert!(labels.iter().any(|l| l == tick), "{preserve:?}: no {tick} tick: {labels:?}");
+            }
+        }
+    }
+
+    /// Every strip and panel rectangle, `(y0, y1)`, by its fill.
+    fn rects_filled(svg: &str, fill: &str) -> Vec<(f64, f64)> {
+        let key = format!(r#"fill="{fill}""#);
+        svg.split("<rect ").skip(1).filter(|r| r.split('>').next().is_some_and(|head| head.contains(&key)))
+            .filter_map(|r| {
+                let grab = |k: &str| -> Option<f64> {
+                    let at = r.find(k)? + k.len();
+                    r[at..].split('"').next()?.parse().ok()
+                };
+                Some((grab(" y=\"").or_else(|| grab("y=\""))?, grab("height=\"")?))
+            })
+            .map(|(y, h)| (y, y + h))
+            .collect()
+    }
+
+    /// **A name sits against what it names.** A map keeps its projection's shape,
+    /// so in a tall cell the panel is centered and the slack goes above and below
+    /// it. The strip naming the panel stayed at the top of the area: seven maps in
+    /// a row had their continents' names a third of the page above them.
+    #[test]
+    fn a_strip_stays_on_a_panel_its_ratio_centered() {
+        let df = DataFrame::new()
+            .with_float("lon", vec![0.0, 90.0, -90.0, 30.0])
+            .with_float("lat", vec![0.0, 30.0, -30.0, 10.0])
+            .with_str("half", ["a", "a", "b", "b"].map(String::from).to_vec());
+        let data = HashMap::from([("t".to_string(), df)]);
+        let spec = world_map(crate::ir::Preserve::Area).facet_col("half");
+        let svg = SvgRenderer::default().render(&spec, &data);
+        let strips = rects_filled(&svg, STRIP_BG);
+        let panels = rects_filled(&svg, PANEL_BG);
+        assert_eq!(strips.len(), 2, "two strips: {strips:?}");
+        let top = panels.iter().map(|p| p.0).fold(f64::INFINITY, f64::min);
+        assert!(top > 60.0, "the map should leave slack above it in an 800 x 600 plot: {top}");
+        for (_, bottom) in strips {
+            assert!((top - bottom - 4.0).abs() < 0.5, "a strip ends at {bottom:.1}, its panel starts at {top:.1}");
+        }
+    }
+
+    /// Strip names that fit are left alone; names too long shrink together, one
+    /// size for the family; past the floor they are shortened and counted.
+    #[test]
+    fn strip_names_shrink_together_and_are_shortened_only_past_the_floor() {
+        let font = 11.0;
+        let (size, names, cut) = fit_strip_names(&["Asia", "Europe"], 200.0, font);
+        assert_eq!((size, cut), (font, 0));
+        assert_eq!(names, vec!["Asia", "Europe"]);
+
+        let long = "Seven seas (open ocean)";
+        let room = estimate_text_width(long, font) * 0.85;
+        let (size, names, cut) = fit_strip_names(&["Asia", long], room, font);
+        assert!(size < font && size >= font * STRIP_FONT_FLOOR, "shrunk to {size}");
+        assert_eq!(cut, 0);
+        assert_eq!(names, vec!["Asia", long]);
+        assert!(estimate_text_width(long, size) <= room);
+
+        let room = estimate_text_width(long, font) * 0.4;
+        let (size, names, cut) = fit_strip_names(&["Asia", long], room, font);
+        assert_eq!(size, ((font * STRIP_FONT_FLOOR) * 100.0).floor() / 100.0);
+        assert_eq!(cut, 1);
+        assert_eq!(names[0], "Asia");
+        assert!(names[1].ends_with('…') && names[1].len() < long.len(), "{}", names[1]);
+        assert!(estimate_text_width(&names[1], size) <= room);
+    }
+
+    /// **A map's degree labels thin when they would run together.** Its axes kept
+    /// every label, and seven maps in a row printed "-100° 0° 100°" through each
+    /// other under every panel. Nine panels across 800 pixels are narrow enough
+    /// that the three labels overlap.
+    #[test]
+    fn a_maps_degree_labels_thin_when_panels_are_narrow() {
+        let n = 9;
+        // The whole globe in every panel, as a world map's outlines span it.
+        let lon: Vec<f64> = (0..n * 2).map(|i| if i % 2 == 0 { -180.0 } else { 180.0 }).collect();
+        let lat: Vec<f64> = (0..n * 2).map(|i| if i % 2 == 0 { -60.0 } else { 80.0 }).collect();
+        let group: Vec<String> = (0..n * 2).map(|i| format!("g{}", i / 2)).collect();
+        let df = DataFrame::new().with_float("lon", lon).with_float("lat", lat).with_str("g", group);
+        let data = HashMap::from([("t".to_string(), df)]);
+        let spec = world_map(crate::ir::Preserve::Area).facet_col("g");
+        let r = SvgRenderer::default();
+        let svg = r.render(&spec, &data);
+        // Every degree label's drawn extent; the x axis's are the lowest row. A
+        // label near a panel's edge is anchored at its start or end rather than
+        // its middle, so it is measured the way it is drawn.
+        let labels: Vec<(f64, f64, f64, String)> = svg.split("<text ").skip(1)
+            .filter_map(|t| {
+                let (head, rest) = t.split_once('>')?;
+                let label = rest.split_once("</text>")?.0.to_string();
+                let grab = |k: &str| -> Option<f64> {
+                    let at = head.find(k)? + k.len();
+                    head[at..].split('"').next()?.parse().ok()
+                };
+                let (x, y) = (grab(" x=\"").or_else(|| grab("x=\""))?, grab(" y=\"")?);
+                let w = estimate_text_width(&label, r.font_sm);
+                let (lo, hi) = if head.contains(r#"text-anchor="start""#) { (x, x + w) }
+                    else if head.contains(r#"text-anchor="end""#) { (x - w, x) }
+                    else { (x - w / 2.0, x + w / 2.0) };
+                label.ends_with('°').then_some((lo, hi, y, label))
+            })
+            .collect();
+        let bottom = labels.iter().map(|l| l.2).fold(f64::NEG_INFINITY, f64::max);
+        let mut row: Vec<(f64, f64, String)> = labels.into_iter()
+            .filter(|l| (l.2 - bottom).abs() < 0.5).map(|l| (l.0, l.1, l.3)).collect();
+        row.sort_by(|a, b| a.0.total_cmp(&b.0));
+        assert!(row.len() >= n, "every panel keeps a label: {row:?}");
+        for w in row.windows(2) {
+            assert!(w[0].1 <= w[1].0, "{:?} and {:?} overlap", w[0], w[1]);
+        }
+        // And each stays inside its own panel, where a neighbor's labels cannot
+        // reach it: a label hanging past the edge is what ran them together.
+        let panels: Vec<(f64, f64)> = svg.split("<rect ").skip(1)
+            .filter(|r| r.split('>').next().is_some_and(|h| h.contains(&format!(r#"fill="{PANEL_BG}""#))))
+            .filter_map(|r| {
+                let grab = |k: &str| -> Option<f64> {
+                    let at = r.find(k)? + k.len();
+                    r[at..].split('"').next()?.parse().ok()
+                };
+                Some((grab("x=\"")?, grab("width=\"")?))
+            })
+            .map(|(x, w)| (x, x + w))
+            .collect();
+        assert_eq!(panels.len(), n, "one panel per group: {panels:?}");
+        for (lo, hi, label) in &row {
+            let mid = (lo + hi) / 2.0;
+            let (x0, x1) = panels.iter().copied()
+                .min_by(|a, b| ((a.0 + a.1) / 2.0 - mid).abs().total_cmp(&((b.0 + b.1) / 2.0 - mid).abs()))
+                .unwrap();
+            assert!(*lo >= x0 - 0.5 && *hi <= x1 + 0.5,
+                "{label} runs {lo:.1}..{hi:.1}, outside its panel {x0:.1}..{x1:.1}");
         }
     }
 
