@@ -455,8 +455,38 @@ drawn wider than fifty-two. Oceania's two values are one year apart, so its
 shape covers the shortest stretch of the axis. To hold the same area as the
 others in that short stretch, it has to be the widest. The widest shape in a
 panel sets the scale, so every other violin is drawn in proportion to it.
-Each plot answers a different question, so gog draws the weighted width unless
-you write `compare = "shape"`.
+Each plot answers a different question, so gog weights each area by row count
+unless you write `compare = "shape"`.
+
+### Compared with ggplot2's violin
+
+If you have used ggplot2, you will notice that gog's violins differ from those
+`geom_violin()` draws on the same data. Three choices cause the difference, and
+gog makes each one on purpose.
+
+First, the ends narrow to a point. A violin is the density curve mirrored, and
+gog draws the whole curve. The curve runs three bandwidths past each group's
+smallest and largest value. The bandwidth is the width of the bell-shaped
+kernel that `density` places on each value. No row in the table lies in these
+tails. Oceania's two countries lie at 80.2 and 81.2 years, but with the
+bandwidth of 2.04 years that all five violins share, its violin runs from 74.1
+to 87.4. Split by `color(continent)`, `line * density` draws these same tails,
+so the violin and the curve show one estimate. `geom_violin()` stops each
+violin at its group's smallest and largest value, so its ends are flat. With
+`trim = FALSE`, it draws tails the same way, three bandwidths long.
+
+Second, each violin's area is weighted by its row count, as
+[What the width means](#what-the-width-means) explains. `geom_violin()` draws
+every violin to the same area, which is what `compare = "shape"` draws in gog.
+
+Third, every violin in a plot is smoothed by one bandwidth, so a difference in
+shape comes from the data and not from the smoothing
+([One transform, four readings](../transforms.qmd#one-transform-four-readings)).
+`geom_violin()` gives each violin its own bandwidth.
+
+In gog, only the second choice can be changed to match `geom_violin()`. The
+ends always narrow to a point, and every violin shares one bandwidth, whether
+gog chooses it or you set it.
 
 ### Sideways, and halved
 

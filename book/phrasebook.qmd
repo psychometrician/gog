@@ -47,7 +47,7 @@ that does the same job is beside it on the right.
 | `geom_smooth(se = FALSE)` | `line * smooth`: the curve of the row above, without its band |
 | `stat_summary(fun = mean, geom = "bar")` | `bar * mean` |
 | `geom_boxplot()` | `box`, which computes its own summary, as `geom_boxplot()` does |
-| `geom_violin()` | `ribbon * density`, with the categories on `x` |
+| `geom_violin()` | `ribbon * density`, with the categories on `x`. The default shapes differ. gog's violins run past the data and narrow to a point, weight each area by row count, and share one bandwidth. `geom_violin()` cuts each end flat, draws equal areas, and gives each violin its own bandwidth. `density(compare = "shape")` gives equal areas ([Compared with ggplot2's violin](marks/ribbon.qmd#compared-with-ggplot2s-violin)) |
 | `geom_jitter()` | `point * jitter`, on a categorical axis. On two continuous axes gog refuses it and suggests `style(opacity = )` instead. |
 | `geom_errorbar()`, `geom_linerange()` | `interval * bounds(lower, upper)` for ends you already have, or `interval * confidence` to compute them; `style(caps = FALSE)` removes the caps, which gives a linerange |
 | `geom_ribbon()` | `ribbon * bounds(lower, upper)` |
