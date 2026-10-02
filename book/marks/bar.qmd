@@ -677,6 +677,34 @@ name. The two divide by different totals. `proportion` divides by the whole
 plot's total, so its bars still show how large each category is. This one
 divides by the bar's own total.
 
+`stack(share = TRUE)` works the same way on a histogram. `bin` cuts the axis
+into bins, and each segment is then divided by its own bin's total. The question
+changes from how many countries fall in each bin to which continents those
+countries are in:
+
+```{r}
+data(gapminder_2007) + bar * bin(width = 5) * stack(share = TRUE) + x(life) +
+  color(continent) + x_label("Life expectancy (years)") +
+  y_label("Share of the countries in the bin") +
+  title("Each continent's share of each five-year bin, 2007")
+```
+
+*"Given gapminder 2007: bars derived by bin at width 5 and stack as shares, x is
+life, color by continent."*
+
+Below 60 years, more than 80% of the countries in each bin are in Africa. From
+60 to 70, Asia has the largest share, and Africa and the Americas hold the rest.
+Europe first appears in the bin from 70 to 75. From 75 to 85, about half of the
+countries in each bin are European. Oceania's two countries both fall in the
+last bin.
+
+This plot hides what the histogram titled "Bins five years wide" shows: how many
+countries each bin holds. The bin from 35 to 40 holds one country and the bin
+from 70 to 75 holds 39, but both bars reach 1. When the counts matter, draw that
+histogram beside this one. In ggplot2, `stack(share = TRUE)` is written
+`position = "fill"`. Its five-year bins have other edges, so its bars differ
+([Where the bin edges fall](#where-the-bin-edges-fall)).
+
 ## What you can set
 
 A setting changes how every bar looks without reading a column, and each mark

@@ -42,6 +42,7 @@ that does the same job is beside it on the right.
 | `geom_bar()`, which counts the rows for you | `bar * count`, because `bar` alone counts nothing |
 | `geom_histogram(bins = 30)` | `bar * bin(30)`. The thirty bins sit differently: gog's run exactly from the smallest value to the largest, while `geom_histogram()` makes each bin a little wider and centers the first and last on the smallest and largest values ([Where the bin edges fall](marks/bar.qmd#where-the-bin-edges-fall)) |
 | `geom_histogram(binwidth = 5)` | `bar * bin(width = 5)`. The width is the same, but the edges differ: gog puts an edge at zero, so the bins run 35 to 40, while `geom_histogram()` centers a bin on zero, so they run 37.5 to 42.5 ([Choosing a width](transforms.qmd#choosing-a-width)) |
+| `position = "stack"`, `"dodge"` or `"fill"` inside a `geom_*()` | a collision modifier after the statistic: `bar * count * stack`, `bar * count * dodge` or `bar * count * stack(share = TRUE)`, and the same after `bin` for a histogram. With `share = TRUE`, each segment is divided by its bar's total, so every bar reaches 1. With no position written, ggplot2 stacks the groups and gog overlays them, so write `stack` to get ggplot2's default ([The 100% stacked bar](marks/bar.qmd#the-100-stacked-bar)) |
 | `geom_freqpoly()` | `line * bin`. The line starts at the first bin's count and ends at the last one's. `geom_freqpoly()` adds an empty bin at each end, so its line starts and ends at zero. It also uses 30 bins by default, and `line * bin(30)` gives the same number |
 | `geom_density()` | `line * density` |
 | `geom_smooth()` | `ribbon * smooth_band + line * smooth`: the band and the curve are two layers. `smooth` fits a straight line locally and `geom_smooth()` fits a parabola, so the two curves can differ where the relationship is curved ([LOESS trend line](transforms.qmd#smooth-loess-trend-line)) |
@@ -53,6 +54,9 @@ that does the same job is beside it on the right.
 | `geom_errorbar()`, `geom_linerange()` | `interval * bounds(lower, upper)` for ends you already have, or `interval * confidence` to compute them; `style(caps = FALSE)` removes the caps, which gives a linerange |
 | `geom_ribbon()` | `ribbon * bounds(lower, upper)` |
 | `geom_tile()` | `zone + x(a) + y(b) + color(v)`, with `a` and `b` categorical: each category gets its own slot |
+| `geom_bin_2d()`, `geom_bin2d()` | `zone * bin + x(a) + y(b)`: `bin` cuts both axes into cells, and the count in each cell becomes its color, with no `color()` written ([Cells cut from the data: the heatmap](marks/zone.qmd#cells-cut-from-the-data-the-heatmap)) |
+| `geom_hex()` | `zone * bin(tiling = "hex") + x(a) + y(b)`: the same count, in hexagonal cells ([Hexagons: the other mesh](marks/zone.qmd#hexagons-the-other-mesh)) |
+| `stat_summary_2d(aes(z = v), fun = mean)` | `zone * bin * mean + x(a) + y(b) + color(v)`: the column to summarize goes on `color`, because a zone shows its value as color. `sum`, `median`, `max` and `min` work the same way ([Cells cut, then summarized: the summary heatmap](marks/zone.qmd#cells-cut-then-summarized-the-summary-heatmap)) |
 | `geom_hline()`, `geom_vline()` | `data(t) + rule + y(v)` for horizontal lines, and `x(v)` for vertical ones, where the table `t` holds the positions |
 | `geom_text()` | `text + label(g)` |
 | `geom_path()` | `path`, which joins the rows in the table's order |
@@ -64,6 +68,7 @@ that does the same job is beside it on the right.
 | `aes(linetype = g)` | `pattern(g)`: a dash on a line, a hatch on a filled region |
 | `aes(group = g)` | `group(g)` |
 | `scale_x_log10()` | `x(v, scale = "log")` |
+| `xlim(58, 68)`, `scale_x_continuous(limits = c(58, 68))` | `x(v, limits = c(58, 68))`. As in ggplot2, the rows outside the limits are removed, and both report how many. When no row is left, gog refuses, where ggplot2 draws an empty panel ([`limits`: stating the range yourself](scales.qmd#limits-stating-the-range-yourself)) |
 | `scale_color_viridis_c()` | `color(v) + palette("viridis")` |
 | `scale_color_manual(values = c(a = "red", b = "blue"))` | `color(g) + palette(c(a = "red", b = "blue"))`: each color is written beside its category's name, so sorting the rows cannot change it. gog refuses a name the column does not hold and a category left without a name ([Colors by name](channels.qmd#colors-by-name)) |
 | `guides(color = "none")`, `show.legend = FALSE` | `color(g, legend = FALSE)`, written on the channel whose legend you leave out |
