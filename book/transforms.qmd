@@ -137,7 +137,9 @@ only the shape changes:
 `zone * bin` cuts two axes instead of one, which is the heatmap, and
 `surface * bin` raises the same cells into the cube.
 
-**Bin count** defaults to Sturges' rule [@sturges1926]: `k = ⌈log₂(n)⌉ + 1`.
+**Bin count** defaults to Sturges' rule [@sturges1926]: `k = ⌈log₂(n)⌉ + 1`,
+where *n* is the number of rows and *k* the number of bins. In words, each time
+the number of rows doubles, the histogram gets one more bin.
 Notice there is no `y()` in the expression: `bin` invents the count column
 internally, and the y axis is labeled "Count" automatically.
 

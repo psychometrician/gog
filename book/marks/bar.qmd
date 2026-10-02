@@ -383,8 +383,10 @@ and only the shape changes:
 
 The width of each bin decides what the histogram shows. With no argument, `bin`
 picks the number of bins from the number of rows, by Sturges' rule
-[@sturges1926]. The 142 countries here get 9 bins. Name a width to cut the axis
-in the data's own units, here five years:
+[@sturges1926]. The rule is simple: each time the number of rows doubles, the
+histogram gets one more bin. So 100 rows get 8 bins, the 142 countries here get
+9, and 1,000 rows get 11. Name a width to cut the axis in the data's own units,
+here five years:
 
 ```{r}
 data(gapminder_2007) + bar * bin(width = 5) + x(life) + y(count) +
