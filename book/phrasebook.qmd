@@ -43,8 +43,8 @@ that does the same job is beside it on the right.
 | `geom_histogram(bins = 30)` | `bar * bin(30)` |
 | `geom_freqpoly()` | `line * bin` |
 | `geom_density()` | `line * density` |
-| `geom_smooth()` | `ribbon * smooth_band + line * smooth`: the band and the curve are two layers |
-| `geom_smooth(se = FALSE)` | `line * smooth` |
+| `geom_smooth()` | `ribbon * smooth_band + line * smooth`: the band and the curve are two layers. `smooth` fits a straight line locally and `geom_smooth()` fits a parabola, so the two curves can differ where the relationship is curved ([LOESS trend line](transforms.qmd#smooth-loess-trend-line)) |
+| `geom_smooth(se = FALSE)` | `line * smooth`: the curve of the row above, without its band |
 | `stat_summary(fun = mean, geom = "bar")` | `bar * mean` |
 | `geom_boxplot()` | `box`, which computes its own summary, as `geom_boxplot()` does |
 | `geom_violin()` | `ribbon * density`, with the categories on `x` |

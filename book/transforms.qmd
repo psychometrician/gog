@@ -861,12 +861,11 @@ through the cloud states that relationship more plainly than 142 separate
 points.
 
 `smooth` fits a locally weighted linear regression (LOESS) through the `(x, y)`
-points and evaluates it at 100 evenly spaced x positions [@cleveland1979]. The
-curve is the engine's own, and it makes no second pass to reduce the effect of
-outliers, so it is identical in all four languages and differs from
-`geom_smooth()`, whose default fit is a local quadratic.
+points and evaluates it at 100 evenly spaced x positions [@cleveland1979]. Each
+local regression is fitted once, with no second fit that gives outliers less
+weight. The curve is the engine's own, so it is identical in all four languages.
 
-Combine it with `line` to overlay a trend line on a scatterplot:
+Combine `smooth` with `line` to overlay a trend line on a scatterplot:
 
 ```{r}
 data(gapminder_2007) + x(gdp) + y(life) +
@@ -896,6 +895,14 @@ so the span cannot be changed. `smooth` needs continuous columns on `x` and
 chapter, under [What `bin`, `density` and `smooth`
 refuse](#what-bin-density-and-smooth-refuse). It writes its fitted values under
 the same `x` and `y` names, so the axes keep their labels.
+
+ggplot2's `geom_smooth()` uses the same span, 0.75, but differs in two ways.
+First, its default fit is a local quadratic: a small parabola around each x
+position, not a straight line. So the two curves can differ where the
+relationship is curved, most often at their left and right ends. Second, when
+any group has 1,000 rows or more, `geom_smooth()` fits a generalized additive
+model instead of LOESS. In that case, the two curves come from different
+methods, and the difference can be larger.
 
 ### `smooth_band`: the band around the curve
 
