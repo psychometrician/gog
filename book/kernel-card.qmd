@@ -60,25 +60,20 @@ its own step. So the order you write them in does not change the picture, and
 writing them in the order they happen is the convention. [Chaining
 transforms](transforms.qmd#chaining-transforms) names the four jobs.
 
-**Precedence** decides which operator is applied first. In R and Python, `*`
-and `/` come first, then `+`, then `|`. In `data(table) + bar * bin + x(a) |
-facet(g)`, the transform joins its mark first. Then `+` joins `data(table)`,
-`bar * bin` and `x(a)` into one plot, and the facet splits that plot into panels
-last. An atom written after the facet, such as a `title()`, is joined to the
-facet first, because `+` comes before `|`. When `|` is applied, the atom joins
-the plot, in the same way as an atom written before the facet. With `/`
-instead of `|`, the same facet joins `x(a)` first, because `/` comes before
-`+`. It still splits the whole plot. So a single plot needs no parentheses.
+**Precedence** is the order in which a language groups its operators. In R and
+Python, `*` and `/` group first, then `+`, then `|`. Julia groups `|` together
+with `+`, from left to right. JavaScript spells the operators as words, so it
+has no precedence to remember. In every language, one plot needs no
+parentheses, even with a facet: `data(table) + bar * bin + x(a) | facet(g)`.
 
-Two whole plots joined by `|` or `/` make a **page**, and this book writes each
-plot on a page inside its own parentheses. Without them, `/` joins the first
-plot's last atom to the second plot, because `/` comes before `+`. An atom
-joined to a facet, as above, is fine, because a facet splits the whole plot. An
-atom joined to a second plot is not, because `/` places whole plots, not single
-atoms. So gog refuses the sentence and names the atom. Julia gives `+` and `|`
-the same precedence, so in Julia a page built with `|` needs the parentheses
-too. JavaScript spells the operators as words, so it has no precedence to
-remember.
+Two whole plots joined by `|` or `/` make a **page**. On a page, put each plot
+inside its own parentheses: `(…) / (…)`. Without them, `/` groups before `+` and
+joins the first plot's last atom to the second plot's `data()`, and gog refuses
+that sentence. Put parentheses around a page inside a page too:
+`((…) | (…)) / (…)`. Put them around a whole page before you add a `theme()` to
+it. [What groups first](operators.qmd#what-groups-first) gives the order in each
+language, and [Parentheses on a page](operators.qmd#parentheses-on-a-page) shows
+how each one groups a page.
 
 **When gog refuses**, the message names the rule, and says what to write
 instead. **Illegal** means the grammar forbids the sentence you wrote: rewrite

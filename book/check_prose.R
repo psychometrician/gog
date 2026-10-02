@@ -138,7 +138,11 @@ check_prose <- function(dirs = "book") {
     # whole," for *in general* (with its comma, which is the idiom: the book
     # also writes "on the whole plot", literally). "Leave alone", for *does not
     # change*, is a pattern below, since it takes words in its middle.
-    "goes by", "to spare", "clear of", "on the whole,", "and friends"
+    "goes by", "to spare", "clear of", "on the whole,", "and friends",
+    # Found in the new section on parentheses in `operators.qmd` by a
+    # reader-review: "the order can work against you" for *can group a sentence
+    # in a way you did not mean*. Every inflection, since matching is fixed.
+    "work against", "works against", "worked against", "working against"
   )
 
   # The announcement: a clause saying a point is worth knowing, seeing or stating,
@@ -158,8 +162,12 @@ check_prose <- function(dirs = "book") {
   # none); valid grammar, the engine's word; the PDF, one of the two editions'
   # names; a closed-shape fill, since *glyph* names a point's symbol alone.
   # Only forms that cannot be literal are listed: `style.qmd` prints gray on
-  # paper, and the preface's author drew on paper.
+  # paper, and the preface's author drew on paper. A mark joined to its
+  # transforms by `*` is a compound mark, a term the Operators chapter
+  # introduces; "derived layer" was its second name, in the Python chapter,
+  # until October 2026.
   retired <- c("the mouse" = "the pointer", "legal grammar" = "valid grammar",
+               "derived layer" = "compound mark",
                "the printed page" = "the PDF", "the printed figure" = "the PDF",
                "printed sequence" = "the PDF", "on paper and in the pdf" = "in the PDF",
                "picture-computing" = "a transform that computes a whole picture",
@@ -457,6 +465,35 @@ check_prose <- function(dirs = "book") {
       # place", so they are left out here rather than reported twice.
       if (starts_here("\\bearns? (a|an|no|none|the|neither|one)\\b(?! (place|shortcut))"))
         bad_idiom <- c(bad_idiom, sprintf("  %s:%d  \"%s\"", short, i, "earns a legend"))
+
+      # The order in which operators combine has one verb, *groups*: `*` groups
+      # before `+`, and Julia groups `|` together with `+`, from left to right.
+      # The order itself is precedence. Ruled in October 2026, when a review
+      # found that one rule worded six ways in the chapters that teach it ("is
+      # applied before", "comes before", "has higher precedence", "the same
+      # precedence as", "a precedence table", "puts `|` below `+`"), twenty
+      # times in six chapters. A reader could not tell whether six wordings
+      # meant six rules. "Binds before" is listed as well: a refusal said it
+      # until the same change. Read across the line break, like the two
+      # patterns above. "Is applied" stays legal for anything but an operator,
+      # since a log scale is applied before `bin` cuts. A `*` arrives here as an
+      # empty code span, because the emphasis markers were removed from the
+      # line, so each class of operators allows the empty one.
+      precedence <- list(
+        c("`[+|/]?` (is|are) applied\\b", "`+` is applied", "`+` groups"),
+        c("\\boperators? (is|are) applied (first|before|after|last)\\b",
+          "an operator is applied first", "an operator groups first"),
+        c("`[+|/]?` (come|comes) (first|before|after|last)\\b",
+          "`+` comes before", "`+` groups before"),
+        c("\\bsame precedence\\b", "the same precedence", "groups together with"),
+        c("\\b(higher|lower) precedence\\b", "higher precedence", "groups before"),
+        c("\\bprecedence table\\b", "precedence table", "precedence"),
+        c("\\bbinds (before|after|tighter|looser)\\b", "binds before", "groups before"),
+        c("`[+|/]?` (below|above) `[+|/]?`", "puts `|` below `+`", "groups `|` after `+`"))
+      for (q in precedence) {
+        if (starts_here(q[1]))
+          bad_retired <- c(bad_retired, sprintf("  %s:%d  \"%s\" -> %s", short, i, q[2], q[3]))
+      }
 
       # --- R-only wording ---------------------------------------------------
       if (!grepl("^(bindings/|index\\.qmd)", short)) {

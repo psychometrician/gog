@@ -457,11 +457,11 @@ The first rows are 0 because the first days of May were cooler than the mean,
 so those days have nothing in the warm bands.
 
 ```{r}
-(data(nyc_horizon) + area + x(day) + y(degrees) + color(band) +
-   palette(c(warm = "#fcbba1", warmer = "#fb6a4a", warmest = "#a50f15",
-             cool = "#c6dbef", cooler = "#6baed6", coolest = "#08519c")) +
-   style(opacity = 1) + y_label("") +
-   title("New York's daily highs, May to September 1973")) / facet(month)
+data(nyc_horizon) + area + x(day) + y(degrees) + color(band) +
+  palette(c(warm = "#fcbba1", warmer = "#fb6a4a", warmest = "#a50f15",
+            cool = "#c6dbef", cooler = "#6baed6", coolest = "#08519c")) +
+  style(opacity = 1) + y_label("") +
+  title("New York's daily highs, May to September 1973") / facet(month)
 ```
 
 *"Given the nyc horizon table: areas, x is day, y is degrees, color by band,

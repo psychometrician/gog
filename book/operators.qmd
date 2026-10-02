@@ -403,54 +403,120 @@ first.
 
 ### What groups first
 
-Those three kinds are about where you may put a word. Precedence is a
-different question: how the words you did write get grouped. It is what lets
-the sentence below carry no parentheses at all:
+Those three kinds are about where you may put a word. **Precedence** answers a
+different question: when a sentence holds more than one operator, which one
+groups first. Arithmetic has the same idea. `2 + 3 * 4` is 14 and not 20,
+because `*` groups before `+`. It is read as `2 + (3 * 4)`, as if the
+parentheses were written. A sentence in gog is read the same way, so precedence
+decides which atoms each operator joins.
+
+This order of grouping belongs to the language you write in, not to gog, and
+gog cannot change it. R and Python share one order. Julia differs in one place:
+it groups `|` together with `+`. When the two meet, the one written first groups
+first. The table gives the order in each of the three languages:
+
+| Groups | R | Python | Julia |
+|---|---|---|---|
+| First | `*` and `/` | `*` and `/` | `*` and `/` |
+| Next | `+` | `+` | `+` and `\|`, from left to right |
+| Last | `\|` | `\|` | |
+
+JavaScript has no column in the table, because it spells each operator as a
+word, such as `beside()`. The things the word joins are written inside its
+parentheses, so you see the grouping instead of remembering it
+([JavaScript](bindings/javascript.qmd)).
+
+For one plot, this is the order you want in all three languages. So a plot needs
+no parentheses of its own, even with a facet:
 
 ```{r}
 data(gapminder_2007) + bar * bin + x(life) | facet(continent)
 ```
 
-`*` and `/` group first, then `+`, then `|`. So the transform joins its mark
-first, the atoms join the plot next, and the facet splits the finished plot
-last. `/` has the same precedence as `*`, so in the row facet drawn earlier,
-`y(life) / facet(continent)` groups first. The engine still splits the whole
-plot: that sentence draws the same file as the one with the plot in parentheses.
+R reads that sentence as
+`(data(gapminder_2007) + (bar * bin) + x(life)) | facet(continent)`. The
+transform joins its mark first, the atoms join the plot next, and the facet
+splits the finished plot last. Python and Julia read it the same way.
 
-An atom can also be written after a facet, like the title in the sentence
-below. `+` groups before `|`, so `title()` joins the facet first. When `|` is
-applied, the title joins the plot:
+`/` groups before `+`, so a row facet is grouped in a different order. In the
+row facet drawn earlier, `y(life) / facet(continent)` is grouped first, and `+`
+then joins that pair to the plot. A facet always splits the whole plot, whichever
+atom it was grouped with. So that sentence draws the same file as
+`(data(gm_two) + point + x(gdp) + y(life)) / facet(continent)`.
+
+An atom can also be written after a facet, like the title in the sentence below:
 
 ```{r}
 data(gapminder_2007) + point + x(gdp) + y(life) |
   facet(continent) + title("Each continent in its own panel")
 ```
 
-The title appears once, above all five panels, as it does when written before
-the facet.
+In R and Python, `+` groups before `|`, so `title()` joins the facet first, and
+then both join the plot. Julia groups `|` together with `+`, from left to right,
+so the facet joins the plot first and the title joins after it. The title
+appears once, above all five panels, in every language.
 
-R and Python both group `+` before `|`. Julia has one difference: it gives
-`|` the same precedence as `+`. So Julia groups the sentence above differently,
-and joins the title to the plot directly. Both groupings draw the same plot.
-When `|` joins two plots, the two groupings do not draw the same page. So each
-plot on a page has its own parentheses. The [Julia](bindings/julia.qmd) chapter
-shows three more expressions, and all three group the same way in both
-languages.
-JavaScript can give no operator a meaning of its own, so it spells the four as
-words, which makes the grouping something you see instead of something you
-remember ([JavaScript](bindings/javascript.qmd)).
+### Parentheses on a page
+
+That order works for one plot. On a page, it can group a sentence in a way you
+did not mean. Both sides of `|` or `/` should be whole plots, and precedence can
+group part of one plot with part of the other before both plots are complete.
+Here are the two plots from earlier in this chapter, set one above the other
+with no parentheses:
+
+```{r}
+#| error: true
+data(gapminder_2007) + point + x(gdp) + y(life) /
+  data(gapminder_2007) + bar * count + x(continent)
+```
+
+`/` groups before `+`, so it joins only the two atoms on either side of it:
+`y(life)` and the second `data()`. R reads the sentence as
+`… + x(gdp) + (y(life) / data(gapminder_2007)) + …`. A facet can be grouped with
+one atom, because it splits the whole plot anyway. A plot cannot: `/` places a
+whole plot below another, and `y(life)` is not a plot. So gog refuses the
+sentence. Its message names `y()`, the atom that `/` joined. gog gives the same
+refusal in Python and Julia.
+
+Written with `|` instead, the same sentence draws in R and Python. In those two
+languages, `|` groups last, so both plots are complete before `|` joins them.
+Julia groups `|` together with `+`, from left to right. So `|` joins the first
+plot to the second plot's `data()` alone, and gog refuses the sentence.
+
+So whenever this book composes plots in R, Python or Julia, it writes each plot
+inside its own parentheses. Then every plot is complete before `|` or `/` joins
+it, and the page means the same thing in all three languages. In JavaScript each
+plot is written as `plot(…)`, so it is complete already.
+
+Two more places need parentheses. The first is a page inside a page. `/` groups
+before `|`, so `a | b / c` is read as `a | (b / c)`: one plot beside two plots,
+one above the other. To put a row of two above a third plot, write
+`(a | b) / c`. The second is a `theme()` for the whole page: put parentheses
+around the page before you add it. Without them, R and Python give the
+`theme()` to the second plot, because `+` groups before `|`. Julia gives it to
+the page ([How big is the page itself?](composition.qmd#how-big-is-the-page-itself)).
+
+The table collects the rules for a page. Each `(…)` holds one whole plot, from
+its `data()` to its last atom, and the last column gives the same page in
+JavaScript's words:
+
+| Page | R, Python and Julia | JavaScript |
+|---|---|---|
+| Two plots side by side | `(…) \| (…)` | `beside(plot(…), plot(…))` |
+| One plot above another | `(…) / (…)` | `below(plot(…), plot(…))` |
+| A row of two above a third | `((…) \| (…)) / (…)` | `below(beside(plot(…), plot(…)), plot(…))` |
+| A height for the whole page | `((…) \| (…)) + theme(height = 260)` | `beside(plot(…), plot(…), theme({ height: 260 }))` |
+
+Each language's chapter shows these rules in its own spelling:
+[R](bindings/r.qmd), [Python](bindings/python.qmd), [Julia](bindings/julia.qmd)
+and [JavaScript](bindings/javascript.qmd).
 
 ### What parentheses may group
 
-Precedence decides the grouping when you write no parentheses, and parentheses
-are how you change it. That is the whole of what they do. They group **plots**,
-which is why a composed page uses them. `/` is applied before `|`, so
-`a | b / c` reads as `a | (b / c)` unless you say otherwise
-([Composition](composition.qmd)).
-
-They do not group **marks**. A second `data()` applies to the mark written
-directly after it ([Data](data.qmd)). Parentheses around several marks do not
-extend that table to all of them:
+The table above shows what parentheses group: whole plots and whole pages. You
+might also try them around several marks, to give a second table to all of
+them. That does not work, because parentheses do not group *marks*. A second
+`data()` applies only to the mark written directly after it ([Data](data.qmd)):
 
 ```{r}
 #| echo: false
@@ -562,8 +628,8 @@ two readings each:
 |----------|----------|---------|
 | `+` | "…and also…" | `point + line` |
 | `*` | "…derived by…" | `bar * bin` |
-| <code>&#124;</code> | "…split into panel columns by…" | <code>(data(gm) + point + x(gdp) + y(life)) &#124; facet(continent)</code> |
-| `/` | "…split into panel rows by…" | `(data(gm) + point + x(gdp) + y(life)) / facet(era)` |
+| <code>&#124;</code> | "…split into panel columns by…" | <code>data(gm) + point + x(gdp) + y(life) &#124; facet(continent)</code> |
+| `/` | "…split into panel rows by…" | `data(gm) + point + x(gdp) + y(life) / facet(era)` |
 | <code>&#124;</code> | "…beside…" | <code>(one specification) &#124; (another)</code> |
 | `/` | "…above…" | `(one specification) / (another)` |
 

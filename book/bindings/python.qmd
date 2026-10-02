@@ -12,9 +12,10 @@ Everything in this book up to here is as true in Python as it is in R. What
 differs is short enough to state in one chapter. The sections below cover how a
 column is named, how a sentence is written over several lines, and what counts
 as a table. Then come computed columns, showing a plot, and the six names Python
-already uses. After them, two sections show what stays the same: the operators,
-and then the vocabulary and the refusals. Reading from a database and installing
-the package come last.
+already uses. After them comes the operators section. Python groups the
+operators in the same order as R, and a page needs two kinds of parentheses. The
+vocabulary and the refusals follow, and they do not change. Reading from a
+database and installing the package come last.
 
 Every Python block on this page was run when the page was built, through the
 same engine every other chapter uses. Each block runs after `from gog import *`,
@@ -245,10 +246,10 @@ If a file needs Python's builtins as well as gog, write `import gog` and then
 ## The operators, and their precedence
 
 The four operators do not change from R to Python, and neither does their
-**precedence**, the order in which they group. `*` groups before `+`, `+` before
-`|`, and `/` has the same precedence as `*`. Those are Python's own precedences,
-and R's are the same. So `bar * mean` below becomes one derived layer before any
-`+` is applied, exactly as in [Operators](../operators.qmd#what-groups-first):
+**precedence**, the order in which they group. `*` and `/` group first, then
+`+`, then `|`. That order is Python's own, and R's is the same. So `bar * mean`
+below becomes one compound mark before any `+` joins it, exactly as in
+[Operators](../operators.qmd#what-groups-first):
 
 ```{r}
 #| echo: false
@@ -257,6 +258,40 @@ py_plot("(data(gapminder_2007) + bar * mean + x(col.continent) + y(col.life)\n +
 
 *"Given gapminder 2007: bars derived by mean, x is continent, y is life, ordered
 by life, largest first."*
+
+The same order decides where a page needs parentheses. On a page, Python has
+two kinds of parentheses, and they do different jobs. The outer pair, around the
+whole sentence, lets it continue on the next line ([A sentence over several
+lines](#a-sentence-over-several-lines)). It groups nothing inside the sentence.
+So a page inside that pair alone is still refused when `/` joins its plots. `/`
+groups before `+`, so it joins the first plot's last atom to the second plot's
+`data()`:
+
+```{r}
+#| echo: false
+py_error("(data(gapminder_2007) + point + x(col.gdp) + y(col.life) /\n  data(gapminder_2007) + bar * count + x(col.continent))")
+```
+
+The inner pairs, one around each plot, are the ones that group. Each plot is
+then complete before `/` joins it. This book writes both kinds whenever it
+composes plots:
+
+```{r}
+#| echo: false
+py_plot("((data(gapminder_2007) + point + x(col.gdp) + y(col.life)) /\n  (data(gapminder_2007) + bar * count + x(col.continent)))")
+```
+
+*"Given gapminder 2007: points, x is gdp, y is life, above bars derived by
+count, x is continent."*
+
+With `|` between the plots, gog draws the page without the inner pairs,
+because `|` groups after `+`. Write them anyway. The page then means the same
+thing with either operator, and the same as in Julia, which groups `|` together
+with `+`. A page inside a page needs a pair of its own too, and so does a whole
+page before a `theme()` for it. Inside a page, `/` groups before `|`, so
+`a | b / c` is read as `a | (b / c)`. Without the pair around a whole page, `+`
+groups before `|`, and the `theme()` goes to the second plot ([Parentheses on a
+page](../operators.qmd#parentheses-on-a-page)).
 
 ## The same vocabulary and the same refusals
 

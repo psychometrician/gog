@@ -439,11 +439,14 @@ its own coordinate space:
 *"Given gapminder 2007: points, x is gdp, y is life, beside bars derived by
 count, x is continent."*
 
-The parentheses group each plot; write them on every composed page. R and
-Python would read this sentence the same way without them, because in those two
-languages `+` has higher precedence than `|`. Julia gives `+` and `|` the same precedence, so in Julia the parentheses
-are what keep each plot whole. [What parentheses may
-group](operators.qmd#what-parentheses-may-group) has the rule.
+The parentheses keep each plot whole until `|` joins the two. Each language
+groups its operators in a fixed order. Arithmetic does the same: it groups `*`
+before `+` and reads `2 + 3 * 4` as `2 + (3 * 4)`. In R and Python, `|` groups
+after `+`, so gog would draw this sentence without the parentheses. `/` groups
+before `+`, so the same two plots joined by `/` would be refused. In Julia, gog
+refuses both. So whenever this book composes plots, each plot goes inside its
+own parentheses. [Parentheses on a page](operators.qmd#parentheses-on-a-page)
+shows how each language groups a page.
 
 Composed plots share nothing by default. The arrangement decides which axis is
 aligned: `x` when one plot is above the other, `y` when they sit side by side.

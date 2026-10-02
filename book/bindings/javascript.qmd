@@ -152,8 +152,9 @@ is life."*
 
 The two words come from an algebra of pictures published in 1982. Henderson's
 *Functional Geometry* [@henderson1982] combines pictures with `beside` and
-`above`, and `below()` is this book's name for `above`.
-[Composition](../composition.qmd) gives the history. Both words also take a
+`above`. His `above(a, b)` and gog's `below(a, b)` draw the same picture, with
+`a` on top and `b` under it. [Composition](../composition.qmd) gives the
+history. Both words also take a
 page, the result of an earlier `beside()` or `below()`, so one page can hold
 another. `below(top, beside(main, right))` is the marginal plot, exactly as
 `top / (main | right)` is in R: a histogram above a scatter, and another to its
@@ -162,6 +163,29 @@ does. Plots one above the other align their `x` axes, and plots side by side
 align their `y` axes. When both plots put the same column on that aligned axis,
 it becomes one axis: one scale, both panels the same length along it, drawn
 once.
+
+That marginal plot, `below(top, beside(main, right))`, needs no parentheses
+beyond the calls themselves. In R, Python and Julia, this book puts each plot on
+a page inside its own parentheses. Without them, precedence can group parts of
+two plots together ([Parentheses on a
+page](../operators.qmd#parentheses-on-a-page)). JavaScript needs none of those
+parentheses. Each plot is already one `plot()` call, and `beside()` and
+`below()` take whole plots and pages as their arguments, so the nesting shows
+the grouping. This book writes a `theme()` for the whole page as the last
+argument of `beside()` or `below()`:
+
+```{r}
+#| echo: false
+js_plot("beside(plot(data(gapminder_2007), point, x(col.gdp), y(col.life)), plot(data(gapminder_2007), layer(bar, count), x(col.continent)), theme({ height: 260 }))")
+```
+
+*"Given gapminder 2007: points, x is gdp, y is life, beside bars derived by
+count, x is continent."*
+
+In R, Python and Julia, a `theme()` for the whole page follows parentheses
+around the page, as in `((…) | (…)) + theme(height = 260)`. In JavaScript, the
+`theme()` goes inside the call that makes the page, so no extra parentheses are
+needed.
 
 ## A column is written `col.gdp`
 

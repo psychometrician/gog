@@ -24,7 +24,8 @@ the two you get: what you write on the right of the operator.
 ## Two plots, one page
 
 Two views of one table often belong side by side, even when they share no
-axis. Write each plot in full, then put `|` between them:
+axis. Describe each plot in full, inside its own parentheses, then put `|`
+between them:
 
 ```{r}
 #| echo: false
@@ -61,11 +62,19 @@ count, x is continent."*
 One above the other, the two panels align at the left and the right, even when
 one plot's tick labels are wider.
 
+Here the parentheses are required. `/` groups before `+`, so without them `/`
+would join only `y(life)` and the second `data()`, and gog would refuse that
+sentence. With `|`, gog draws the page without them in R and Python, but refuses
+it in Julia. So whenever this book composes plots, each plot goes inside its own
+parentheses, whichever operator joins them. [Parentheses on a
+page](operators.qmd#parentheses-on-a-page) shows how each language groups a
+page.
+
 Both operators take pages as well as plots, so a page can hold another page.
 `(a | b) / c` is a row of two plots above a third. The marginal plot later in
 this chapter is built the other way: one plot above a row of two.
 
-In R, Python and Julia, `/` is applied before `|`, so `a | b / c` reads as `a |
+In R, Python and Julia, `/` groups before `|`, so `a | b / c` reads as `a |
 (b / c)`. Write the parentheses whenever you mix the two operators. JavaScript
 spells the operators as words, so there is no order to remember. The
 [JavaScript](bindings/javascript.qmd) chapter shows those words.
@@ -281,8 +290,10 @@ top plot's 700 pixels and the 20-pixel gap, and compared 720 with those 600.
 
 When the plots do not decide the page's size, you can choose it: give the page
 its own `theme()`. Put parentheses around the whole page before you add
-`theme()` to it. In R and Python, `+` is applied before `|`, so without them the
-`theme()` would go to the second plot instead of the page:
+`theme()` to it. In R and Python, `+` groups before `|`, so without them the
+`theme()` would go to the second plot instead of the page. Julia would give it
+to the page, so the parentheses also make the sentence mean the same thing in
+every language:
 
 ```{r}
 ((data(gapminder_2007) + point + x(gdp) + y(life)) |
@@ -291,6 +302,11 @@ its own `theme()`. Put parentheses around the whole page before you add
 
 The page is now 260 pixels tall instead of 600, and both plots take that full
 height. A page takes the same two size arguments as a plot.
+
+Without the outer parentheses, this sentence would draw the same picture,
+because plots side by side share one height. A `width` would show the
+difference in R and Python: without the parentheses, only the second plot would
+change.
 
 Sizing the page matters most when a plot cannot be stretched to fill its cell. A
 [cube](space.qmd) is drawn with one scale in both screen directions, so its
@@ -361,7 +377,9 @@ places pictures with `beside` and `above`. The textbook *Structure and
 Interpretation of Computer Programs* teaches the same picture language. Haskell's
 diagrams library spells the two operations `|||` and `===`. The JavaScript
 binding has no operators to overload, so it spells the two operations as words:
-`beside()`, and `below()` for what Henderson called `above`.
+`beside()`, and `below()` for what Henderson called `above`. His `above(a, b)`
+and gog's `below(a, b)` draw the same picture, with `a` on top and `b` under
+it.
 
 gog follows Wilkinson in most of its decisions, and this is one place where it
 does not. His graph algebra also has a `/`, and there it means *nesting*

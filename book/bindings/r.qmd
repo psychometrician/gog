@@ -7,11 +7,12 @@ source("../R/setup.R")
 
 Every sentence in this book so far was written first in R, and each tab for
 another language shows a translation of it. So this chapter adds nothing to the
-grammar. It answers the five questions R raises: how the two
-pipes reach `data()`, where a plot appears, which of gog's words R's own
-packages already use, how a database table reaches a plot, and how the package
-installs. [Data](../data.qmd) covers what a table is and how you pass one. A
-table is an ordinary R data frame, and needs no package of its own.
+grammar. It answers the six questions R raises. The first two are how the two
+pipes reach `data()` and how R groups the operators. Then come where a plot
+appears, which of gog's words R's own packages already use, how a database table
+reaches a plot, and how the package installs. [Data](../data.qmd) covers what a
+table is and how you pass one. A table is an ordinary R data frame, and needs no
+package of its own.
 
 Every R block on this page ran when the page was built, except the database and
 install commands, which are shown but not run. Every plot came from the same
@@ -47,7 +48,7 @@ quote(gapminder_2007 |> data() + point + x(gdp) + y(life))
 
 Two facts about R make that work, and both are needed.
 
-The first is precedence, which decides what groups first
+The first is **precedence**, the order in which a language groups its operators
 ([Operators](../operators.qmd#what-groups-first)). `|>` groups before `+`, so
 `gapminder_2007 |> data()` is complete before `+` joins anything to it. `*`
 groups after `|>` and before `+`, so a transform still joins its mark first:
@@ -155,11 +156,34 @@ The pipe question is R's alone. Julia has a `|>`, but Julia's `data()` never
 reads a table's name from your code, so its pipe changes nothing. Neither Python
 nor JavaScript has a pipe operator. The other three chapters do not raise it.
 
+## The operators, and their precedence
+
+That was the first question. The second is how R groups the four operators of a
+sentence. The pipe section used one case of precedence: `|>` groups before `*`
+and `+`. Among gog's operators, R groups `*` and `/` first, then `+`, then `|`.
+That order is R's, not gog's, so it applies to every sentence you write ([What
+groups first](../operators.qmd#what-groups-first)).
+
+In that order, one plot needs no parentheses, even with a facet. A page is
+different, because R groups `/` before `+` and `|` after it. gog draws a page
+written with `|` and no parentheses, because `|` groups last, after both plots
+are complete. It refuses the same page written with `/`, because `/` joins the
+first plot's last atom to the second plot's `data()`. Inside a page, `/` also
+groups before `|`, so `a | b / c` is read as `a | (b / c)`. And a `theme()`
+added after a page with no parentheses around it goes to the second plot, not to
+the page, because `+` groups before `|`.
+
+So write each plot on a page inside its own parentheses, whichever operator
+joins them. Put a page inside a page in parentheses too, and the whole page
+before a `theme()` for it. The page then means the same thing in all three
+languages, including Julia, which groups `|` together with `+` ([Parentheses on
+a page](../operators.qmd#parentheses-on-a-page)).
+
 ## Showing the plot
 
-That was the first question. The second is where a plot appears once you have
-written its sentence. You do not call anything to show it: R shows a plot as
-soon as you run its sentence, and where it appears depends on where you work:
+The third question is where a plot appears once you have written its sentence.
+You do not call anything to show it: R shows a plot as soon as you run its
+sentence, and where it appears depends on where you work:
 
 - At the console, it opens in the viewer pane of RStudio or Positron. Without a
   viewer pane, it opens in your web browser.
@@ -173,7 +197,7 @@ returns it as text.
 
 ## Twenty names R already uses
 
-The third question is which of gog's words are already R's. Twenty of the names
+The fourth question is which of gog's words are already R's. Twenty of the names
 gog provides are also names in the packages R loads when it starts, and
 `library(gog)` lists eleven of them. Here are all twenty:
 
@@ -313,7 +337,7 @@ belong to `stats`, and `text` belongs to `graphics`, so write `stats::median`;
 
 ## Reading from a database
 
-The fourth question is how a table in a database reaches a plot. `query()` runs
+The fifth question is how a table in a database reaches a plot. `query()` runs
 a query on a database, and it takes a **DBI** connection. DBI is R's database
 standard, so the same call reaches SQLite, Postgres, MariaDB, BigQuery, and
 anything with an ODBC driver.

@@ -25,8 +25,8 @@ data(gm) + bar * bin + x(:life) | facet(:era)
 ```
 
 The sections below cover how a column is written, how to break a sentence
-across lines, and where Julia's precedence differs from R's. Then come the
-tables Julia accepts, showing a plot, the nine names gog shares with `Base`,
+across lines, and where Julia groups the operators differently from R. Then come
+the tables Julia accepts, showing a plot, the nine names gog shares with `Base`,
 reading from a database, and installing the package.
 
 Every Julia block on this page that shows a plot, a refusal or printed output
@@ -110,26 +110,26 @@ parentheses a line may begin with `+` in Julia too.
 ## The operators, and their precedence
 
 A sentence can use up to four operators, so it matters which one Julia groups
-first. Julia's precedence table is not R's. R puts `|` below `+`; Julia gives
-`|` the same precedence as `+`. That difference could change how a sentence
-groups, so the table compares four expressions in both languages:
+first. That order is called **precedence**, and Julia's is not R's. R and
+Python group `|` after `+`, and Julia groups `|` together with `+`, from left to
+right. That difference could change how a sentence is grouped, so the table
+compares four expressions in the three languages:
 
-| Written | Julia builds | R builds |
+| Written | Julia reads it as | R and Python read it as |
 |---|---|---|
 | `a + b + c \| d` | `(a + b + c) \| d` | the same |
 | `a \| b / c` | `a \| (b / c)` | the same |
 | `a * b + c` | `(a * b) + c` | the same |
 | `a \| b + c` | `(a \| b) + c` | `a \| (b + c)` |
 
-Only the last row differs: it is the only one with a `+` after the `|`. After a
-facet, the difference does not change the plot. R joins the atom to the facet
-first, and Julia joins it to the plot directly. Both then draw the same plot as
-the sentence that writes the atom before the facet. A composed page can
-have a `+` after the `|`, because the plot on the right starts with its own
-table and adds atoms to it. So every composed page in this book puts each plot
-in its own parentheses, and each plot is complete before `|` joins them. The
-first row is safe for a different reason: Julia groups operators of equal
-precedence from left to right, so everything left of the `|` is joined first.
+The first three rows are read the same way in all three languages. In the
+first, Julia groups `|` together with `+`, from left to right, so everything
+left of the `|` is joined first. In the second and third, `*` and `/` group
+first in every language. Only the last row differs, because it is the only one
+with a `+` after the `|`. When `b` is a facet and `c` an atom such as `title()`,
+the difference does not change the plot. R joins the atom to the facet first,
+and Julia joins it to the plot directly. Both draw the same plot as a sentence
+with the atom written before the facet.
 
 Faceting therefore reads exactly as it does in R:
 
@@ -141,8 +141,8 @@ jl_plot("data(gapminder_2007) + point + x(:gdp, scale = \"log\") + y(:life) | fa
 *"Given gapminder 2007: points, x is gdp on a log scale, y is life, split into
 panel columns by continent."*
 
-A transform groups as it does in R, because `*` groups before `+` in both
-languages:
+A transform joins its mark first, as in R, because `*` groups before `+` in
+both languages:
 
 ```{r}
 #| echo: false
@@ -150,6 +150,35 @@ jl_plot("data(gapminder_2007) + bar * mean + x(:continent) + y(:life)")
 ```
 
 *"Given gapminder 2007: bars derived by mean, x is continent, y is life."*
+
+A page is where the last row matters. The plot on the right of `|` starts with
+its own `data()`, and its other atoms follow with `+`. So a page written out in
+full has a `+` after the `|`. Without parentheses, Julia groups the first plot
+with that `data()` alone, and gog refuses a page that it draws in R and Python:
+
+```{r}
+#| echo: false
+jl_error("data(gapminder_2007) + point + x(:gdp) + y(:life) |\n  data(gapminder_2007) + bar * count + x(:continent)")
+```
+
+So put each plot on a page inside its own parentheses, with `|` as well as with
+`/`, which groups before `+` in all three languages. Each plot is then complete
+before `|` joins it, and the page draws as it does in R:
+
+```{r}
+#| echo: false
+jl_plot("(data(gapminder_2007) + point + x(:gdp) + y(:life)) |\n  (data(gapminder_2007) + bar * count + x(:continent))")
+```
+
+*"Given gapminder 2007: points, x is gdp, y is life, beside bars derived by
+count, x is continent."*
+
+The same row decides where a `theme()` for the whole page goes. Written after a
+page with no parentheses around it, the `theme()` goes to the page in Julia, and
+to the second plot in R and Python. Put parentheses around the page before the
+`theme()`, as in `((…) | (…)) + theme(height = 260)`. Then the `theme()` goes
+to the page in all three languages ([Parentheses on a
+page](../operators.qmd#parentheses-on-a-page)).
 
 ## The table
 
