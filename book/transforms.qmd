@@ -2180,10 +2180,11 @@ data(gapminder_2007) + point * jitter(0.5) + x(continent) + y(life) +
 *"Given gapminder 2007: points derived by jitter at 0.5, x is continent, y is
 life."*
 
-The widest spread is `jitter(1.25)`, which moves a point up to half a slot, to
-the edge of its slot. gog refuses a larger amount, because it would move some
-points into a neighboring category, where they would be read as that category's
-rows:
+The amount can be any number from 0 to 1.25. `jitter(0)` moves no point. It is
+harmless, so gog draws the plot and prints a note that the `jitter` did nothing.
+At the other end, `jitter(1.25)` moves a point up to half a slot, to the edge of
+its slot. gog refuses a larger amount, because it would move some points into a
+neighboring category, where they would be read as that category's rows:
 
 ```{r}
 #| error: true
@@ -2199,9 +2200,7 @@ multiple of an automatic value. It is there for the same reason `density` and
 *legibility choice* with no single right value, whereas gog computes `dodge`'s
 offsets itself: from the group count on a bar, and from the other points in the
 slot on a point. A value you must choose takes a parameter; a
-value gog can compute does not. (`jitter(0)` is legal and draws the plain strip
-plot, un-spread, with a note that it moves no point: gog never forbids the
-harmless, and never lets a word do nothing without saying so.)
+value gog can compute does not.
 
 Like `dodge` on a point, `jitter` needs *no `color` split*. It separates a
 mark's own points where they land on one another, so `point * jitter` with only
