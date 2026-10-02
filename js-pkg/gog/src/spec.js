@@ -279,7 +279,8 @@ export class Page {
 // page. The engine holds the same list in `check_page_theme`; this copy is what
 // puts the refusal on the line that wrote it.
 const PANEL_THEME = ["preset", "grid", "ratio", "tick_angle", "font_size",
-                     "background", "strip", "strip_text", "frame", "axis_label"];
+                     "background", "strip", "strip_text", "frame", "axis_label",
+                     "legend"];
 
 // A `theme()` among the figures is the page's own, and the only atom a page
 // takes. Its subject is the figure rather than a panel: `theme({ height: 310 })`
@@ -887,7 +888,7 @@ class Builder {
         // (spec §7).
         if (!this.spec.theme) this.spec.theme = {};
         for (const key of ["preset", "grid", "ratio", "tick_angle", "font_size", "background", "strip", "strip_text", "axis_label",
-                           "frame", "width", "height"]) {
+                           "legend", "frame", "width", "height"]) {
           if (atom.fields[key] !== null && atom.fields[key] !== undefined) {
             this.spec.theme[key] = atom.fields[key];
           }

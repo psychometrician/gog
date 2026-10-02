@@ -2369,6 +2369,33 @@ refuses("an axis_label placement that does not exist",
         lambda: theme(axis_label="sideways"))
 
 
+# --- `theme(legend=)`: the side of the plot the keys sit on -------------------
+_lg = dict(a=[1.0, 2.0, 3.0], b=[4.0, 5.0, 6.0], g=["p", "q", "r"])
+_lbase = data(_lg) + point + x(col.a) + y(col.b) + color(col.g) + x_label("A")
+
+
+def _y_of(svg: str, label: str) -> float:
+    """Where a piece of text was written, read off the drawing."""
+    tag = re.search(r"<text [^>]*>" + label + "</text>", svg).group(0)
+    return float(re.search(r' y="([0-9.]+)"', tag).group(1))
+
+
+_right, _bottom = render_svg(_lbase), render_svg(_lbase + theme(legend="bottom"))
+assert _y_of(_right, "G") < _y_of(_right, "A"), "by default the legend sits beside the plot"
+assert _y_of(_bottom, "G") > _y_of(_bottom, "A"), \
+    "`theme(legend=\"bottom\")` should put the legend under the x axis's name"
+ok("Python moves the legend to the side `theme(legend=)` names")
+try:
+    theme(legend=False)
+    raise AssertionError("FAIL: theme(legend=False) was accepted")
+except GogError as error:
+    assert "`legend=False` on the channel" in str(error), str(error)
+ok("theme(legend=False) points at the channel's own legend=False")
+refuses("a legend side that is not one of four", lambda: theme(legend="none"))
+refuses("a page's legend, which a page does not draw",
+        lambda: (_lbase | _lbase) + theme(legend="bottom"))
+
+
 # --- two plots in one document may not share an id ---------------------------
 import re as _re
 _p1 = render_svg(data(dict(g=["a", "b", "c"], v=[1.0, 2.0, 3.0]))

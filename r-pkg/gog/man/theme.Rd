@@ -15,6 +15,7 @@ theme(
   strip_text = NULL,
   frame = NULL,
   axis_label = NULL,
+  legend = NULL,
   width = NULL,
   height = NULL
 )
@@ -64,6 +65,12 @@ default, bottom and left only) or \code{"none"}.}
 \item{axis_label}{Where each axis's name sits: \code{"beside"} (the default,
 centered along its own axis, which turns the y name through 90 degrees) or
 \code{"end"} (at the axis's far end, horizontal, so nothing is read sideways).}
+
+\item{legend}{Which side of the plot its legends sit on: \code{"right"} (the
+default), \code{"left"}, \code{"top"} or \code{"bottom"}. Above or below the plot the keys
+are laid in a row, which leaves the width beside the panel to the panel. To
+leave one legend out, write \code{legend = FALSE} on its channel instead, as in
+\code{color(continent, legend = FALSE)}.}
 
 \item{width, height}{How many pixels the plot asks for. On its own that is the
 image; composed onto a page with \code{|} or \code{/} it is the plot's \emph{cell}, and

@@ -12,12 +12,15 @@ use crate::ir::{Channel, CoordSpace, Layer, Mark, PlotSpec, SpaceView, ThemeSpec
 use crate::legality::Diagnostic;
 use crate::render::ticks::{auto_label, log_ticks, log_ticks_counted, nice_ticks_within, ticks_at, ticks_with_labels, time_ticks, time_ticks_counted, TickSpec};
 use crate::scale;
-use crate::render::layout::{Fit, PanelGrid};
+use crate::render::layout::{Fit, LegendRoom, PanelGrid};
 use crate::render::nest::Nest;
 use crate::render::polar::Polar;
 use crate::render::project::{self, Screen};
 use crate::render::{AxisFacts, Drawn, Layout, RenderContext, Whole};
-use crate::render::legend::{collect_legends, write_legends, LEGEND_PADDING, LEGEND_PLOT_GAP};
+use crate::render::legend::{
+    collect_legends, plan_across, write_legends, write_legends_across, LegendSide,
+    LEGEND_ACROSS_GAP, LEGEND_EDGE, LEGEND_PADDING, LEGEND_PLOT_GAP,
+};
 use crate::render::palette::{build_color_map, resolve_ramp};
 use crate::render::text::{esc, estimate_cap_height, estimate_text_width};
 
@@ -2266,10 +2269,42 @@ impl SvgRenderer {
             .collect();
 
         let legends = collect_legends(&ctx, &color_map, color_frames, &wholes);
-        let legend_panel_w = if legends.is_empty() { 0.0 } else {
-            LEGEND_PLOT_GAP + legends.iter()
-                .map(|b| b.width(self.font_sm, self.font_md))
-                .fold(0.0_f64, f64::max)
+        // **Which side the keys sit on, and the room they take there**
+        // (`theme(legend = )`). Beside the plot the cards stand in a column and
+        // cost width: the widest card and the gap that parts it from the plot.
+        // Above or below the plot they are laid across (`legend::Across`) and cost
+        // height, wrapped to the canvas less an edge on each side. A card too wide
+        // for that even with one key to a line is left out and said, the rule a
+        // column too tall for its canvas already keeps (`write_legends`).
+        let side = LegendSide::of(&spec.theme.resolved());
+        let fonts = (self.font_sm, self.font_md);
+        let across_w = (self.width - 2.0 * LEGEND_EDGE).max(0.0);
+        let legends = match side.across() && !legends.is_empty() {
+            false => legends,
+            true => {
+                let (_, left_out) = plan_across(&legends, fonts, across_w);
+                if !left_out.is_empty() {
+                    remarks.push(legend_too_wide_across(&legends, &left_out, fonts, across_w));
+                }
+                legends.into_iter().enumerate()
+                    .filter(|(i, _)| !left_out.contains(i))
+                    .map(|(_, b)| b)
+                    .collect()
+            }
+        };
+        let plan = side.across().then(|| plan_across(&legends, fonts, across_w).0);
+        let plan_h = plan.as_ref().map_or(0.0, |p| p.height);
+        let widest = legends.iter()
+            .map(|b| b.width(self.font_sm, self.font_md))
+            .fold(0.0_f64, f64::max);
+        let room = match (side, legends.is_empty()) {
+            (_, true) => LegendRoom::default(),
+            (LegendSide::Right, false) => LegendRoom { right: LEGEND_PLOT_GAP + widest, ..LegendRoom::default() },
+            (LegendSide::Left, false) => LegendRoom {
+                left: LEGEND_EDGE + widest + LEGEND_PLOT_GAP, ..LegendRoom::default()
+            },
+            (LegendSide::Top, false) => LegendRoom { top: plan_h + LEGEND_ACROSS_GAP, ..LegendRoom::default() },
+            (LegendSide::Bottom, false) => LegendRoom { bottom: LEGEND_ACROSS_GAP + plan_h, ..LegendRoom::default() },
         };
 
         // A 3-D plot reserves no margin for 2-D tick labels or axis titles —
@@ -2344,13 +2379,13 @@ impl SvgRenderer {
         // lists and the angle is the same question every time. The legend's
         // width and the page's fit are open as well, for the one question asked
         // before the layout is settled: whether the legend fits at all (below).
-        let grid_with = |xt: &TickSpec, yt: &TickSpec, angle: Option<f64>, legend_w: f64, fit: Fit|
+        let grid_with = |xt: &TickSpec, yt: &TickSpec, angle: Option<f64>, legend: LegendRoom, fit: Fit|
             PanelGrid::compute(
                 self.width, self.height,
                 (self.font_sm, self.font_md, self.font_lg),
                 xt, yt, grid_xl, grid_yl,
                 spec.title.is_some(),
-                legend_w,
+                legend,
                 // Cloned because `panel_levels` borrows both, and each panel now
                 // states its own level when it writes itself out, which is after
                 // this. One short list of level names per facet, copied once.
@@ -2378,21 +2413,35 @@ impl SvgRenderer {
         // so a page's two passes reach one answer: the second may drop a shared
         // axis and gain room, and a legend kept there but not in the measuring
         // pass would be drawn beside a panel the page had already placed.
-        let (legends, legend_panel_w) = match legends.is_empty() {
-            true => (legends, legend_panel_w),
+        //
+        // **Laid across, the same rule reads down.** A legend above or below the
+        // plot that would leave the panels shorter than itself is left out and
+        // said, with `theme(height = )` as the way to give it room.
+        let (legends, room) = match legends.is_empty() {
+            true => (legends, room),
             false => {
-                let widest = legend_panel_w - LEGEND_PLOT_GAP;
-                let alone = grid_with(grid_xt, grid_yt, stated_angle, legend_panel_w, Fit::free());
-                if alone.outer.w() >= widest {
-                    (legends, legend_panel_w)
+                let widest = match side {
+                    LegendSide::Right => room.right - LEGEND_PLOT_GAP,
+                    _ => widest,
+                };
+                let alone = grid_with(grid_xt, grid_yt, stated_angle, room, Fit::free());
+                let fits = match side.across() {
+                    false => alone.outer.w() >= widest,
+                    true => alone.outer.h() >= plan_h,
+                };
+                if fits {
+                    (legends, room)
                 } else {
-                    remarks.push(legend_too_wide(&legends, widest, self.width));
-                    (Vec::new(), 0.0)
+                    remarks.push(match side.across() {
+                        false => legend_too_wide(&legends, widest, self.width),
+                        true => legend_too_tall_across(&legends, side, plan_h, self.height),
+                    });
+                    (Vec::new(), LegendRoom::default())
                 }
             }
         };
         let compute_grid = |xt: &TickSpec, yt: &TickSpec, angle: Option<f64>|
-            grid_with(xt, yt, angle, legend_panel_w, self.fit.clone());
+            grid_with(xt, yt, angle, room, self.fit.clone());
         let grid = compute_grid(grid_xt, grid_yt, stated_angle);
 
         // **Crowded category names: turn them, then thin them, never print one
@@ -3085,21 +3134,56 @@ impl SvgRenderer {
             }
             None => estimate_cap_height(self.font_sm),
         };
-        let y_name = self.write_labels(&mut svg, &grid.outer, inset, grid.moved_x, outer_xl, outer_yl, spec,
-                          !grid_xt.labels.is_empty(), x_band);
+        let y_name = self.write_labels(&mut svg, &grid.outer, inset, grid.moved_x, room, outer_xl,
+                          outer_yl, spec, !grid_xt.labels.is_empty(), x_band);
         if !legends.is_empty() {
             // The canvas is the floor, not the panel — a legend has always been
             // allowed to run past the panel's bottom edge into the margin beside
             // the x tick labels, and bounding it at `grid.outer.y1` would drop
             // legends that fit the image.
-            let beside = Layout {
-                x1: grid.outer.x1 - inset.0,
-                y0: grid.outer.y0 + inset.1,
-                ..grid.outer
-            };
-            write_legends(&mut svg, &beside, &legends, (self.font_sm, self.font_md),
-                          self.height - LEGEND_PADDING, see_through, &mut remarks);
+            let floor = self.height - LEGEND_PADDING;
+            let top = grid.outer.y0 + inset.1;
+            match (side, plan.as_ref()) {
+                (LegendSide::Left, _) => write_legends(
+                    &mut svg, LEGEND_EDGE + inset.0 + grid.moved_x, top, &legends, fonts, floor,
+                    see_through, &mut remarks),
+                (LegendSide::Top | LegendSide::Bottom, Some(plan)) => {
+                    // Centered on the plot as drawn, held inside the canvas. Above
+                    // the plot the band sits under the title, where `layout` set
+                    // it aside, and moves down with a panel a `ratio` centered, as
+                    // the title does. Below, it sits under the x axis's name, which
+                    // is placed by `write_labels` on the same arithmetic as here.
+                    let mid = (grid.outer.x0 + grid.outer.x1) / 2.0;
+                    let x = (mid - plan.width / 2.0)
+                        .clamp(LEGEND_EDGE, (self.width - LEGEND_EDGE - plan.width).max(LEGEND_EDGE));
+                    let y = match side {
+                        LegendSide::Top => grid.outer.y0 + title_drop(spec, inset)
+                            - y_name_above(outer_yl, &spec.theme, self.font_md) - room.top,
+                        _ => {
+                            let tick_row = if grid_xt.labels.is_empty() { 0.0 } else { 5.0 + x_band };
+                            let name_row = match outer_xl.is_empty() {
+                                true => 0.0,
+                                false => 8.0 + estimate_cap_height(self.font_md) + 4.0,
+                            };
+                            grid.outer.y1 - inset.1 + tick_row + name_row + LEGEND_ACROSS_GAP
+                        }
+                    };
+                    write_legends_across(&mut svg, &legends, plan, fonts, x, y, see_through);
+                }
+                _ => write_legends(
+                    &mut svg, grid.outer.x1 - inset.0 + LEGEND_PLOT_GAP, top, &legends, fonts, floor,
+                    see_through, &mut remarks),
+            }
         }
+        // **A plot with its legend on the left keeps its own y name** rather than
+        // joining a page's column of them (`page::align`). The column is the
+        // leftmost of the names beside their panels, which on a page beside a plot
+        // with wider tick labels lands inside this plot's legend. Beside its own
+        // panel the name always clears the legend, which `layout` placed outside it.
+        let y_name = match (side, legends.is_empty()) {
+            (LegendSide::Left, false) => None,
+            _ => y_name,
+        };
         self.write_footer(&mut svg);
 
         // What a page needs back: where the panels ended up, and what each axis
@@ -4150,6 +4234,10 @@ impl SvgRenderer {
         // How far a page moved the panel area in from the margin
         // (`PanelGrid::moved_x`); the y name moves in with it.
         moved_x: f64,
+        // The legend's band (`theme(legend = )`). Above the plot it stands between
+        // the title and the panel, so the title goes up by as much; on the left it
+        // stands outside the y name, so the name goes right by as much.
+        legend: LegendRoom,
         x_label: &str, y_label: &str, spec: &PlotSpec, drew_x_ticks: bool,
         // The height of the x tick-label row as drawn, turned or upright.
         x_band: f64,
@@ -4164,21 +4252,15 @@ impl SvgRenderer {
         // the default, so there is no third, unnamed arrangement.
         let x_at_end = spec.theme.resolved().axis_label.as_deref() == Some("end");
         let y_beside = !x_at_end;
+        let drop = title_drop(spec, inset);
 
         // Title
         if let Some(title) = &spec.title {
             // A y name that has moved beside its axis is no longer above the
             // panel, so the title stops making room for it.
-            let y_label_offset =
-                if !y_label.is_empty() && !y_beside { label_h + 6.0 } else { 0.0 };
-            // **Above the plot as drawn**, as the names beside it are: a panel a
-            // `ratio` narrowed, or a circle in a taller panel, sits `inset.1` below
-            // the top of `l`, and a title left at that top stood 78 px over a map
-            // set beside a globe. Not where a facet's strips run along the top of
-            // the grid, which do not move with the panel and would be under it.
-            let strips_on_top = spec.facet.as_ref().is_some_and(|f| f.col.is_some() || f.wrap.is_some());
-            let drop = if strips_on_top { 0.0 } else { inset.1 };
-            let ty = l.y0 + drop - y_label_offset - estimate_cap_height(self.font_lg) * 0.3 - 8.0;
+            let y_label_offset = y_name_above(y_label, &spec.theme, self.font_md);
+            let ty = l.y0 + drop - y_label_offset - legend.top
+                - estimate_cap_height(self.font_lg) * 0.3 - 8.0;
             // **Centered on the panel, then held inside the canvas.** The panel is
             // the thing the title names, so it centers there and not over the
             // legend beside it — but a legend pushes that center left, and a title
@@ -4210,7 +4292,7 @@ impl SvgRenderer {
                 // on the page. `layout` reserved exactly that band, and it moves
                 // in with the plot when the plot is inset, or when a page moved
                 // the panel to run under a plot on another line (`Fit`).
-                let lx = self.fit.y_name_at.unwrap_or(label_h + 2.0 + inset.0 + moved_x);
+                let lx = self.fit.y_name_at.unwrap_or(label_h + 2.0 + inset.0 + moved_x + legend.left);
                 y_name = Some(lx);
                 let ly = (l.y0 + l.y1) / 2.0;
                 writeln!(svg,
@@ -4218,7 +4300,11 @@ impl SvgRenderer {
                     fs = self.font_md, y_label = esc(y_label)
                 ).unwrap();
             } else {
-                let ty = l.y0 - 6.0;
+                // Over the plot as drawn, on the title's rule (`title_drop`): above
+                // the top of `l`, a panel a `ratio` centered lower left its name
+                // behind, and a legend laid above the plot moves down with the
+                // panel and would have met it there.
+                let ty = l.y0 + drop - 6.0;
                 writeln!(svg,
                     r##"  <text x="{x:.2}" y="{ty:.2}" font-family="system-ui,sans-serif" font-size="{fs}" fill="#28283a" text-anchor="start">{y_label}</text>"##,
                     x = l.x0 + inset.0, fs = self.font_md, y_label = esc(y_label)
@@ -5727,6 +5813,76 @@ fn thin_numbers(t: &TickSpec, stride: usize, linear: bool) -> TickSpec {
 /// wrote is a request the drawing now departs from (Law 5).
 /// The note for a legend left out because the plot is too narrow for it: the
 /// height check's sentence (`legend::write_legends`), read across.
+/// How far the text over the plot moves down with the plot as drawn: the title,
+/// a y name at its axis's end, and a legend laid above.
+///
+/// **Above the plot as drawn**, as the names beside it are: a panel a `ratio`
+/// narrowed, or a circle in a taller panel, sits `inset.1` below the top of the
+/// area, and a title left at that top stood 78 px over a map set beside a globe.
+/// Not where a facet's strips run along the top of the grid, which were placed
+/// there before they moved with their panels, and which a title moved down could
+/// land on.
+fn title_drop(spec: &PlotSpec, inset: (f64, f64)) -> f64 {
+    let strips_on_top = spec.facet.as_ref().is_some_and(|f| f.col.is_some() || f.wrap.is_some());
+    if strips_on_top { 0.0 } else { inset.1 }
+}
+
+/// The band a y name written at its axis's end takes above the panel, and that
+/// the title and a legend laid above the plot stand over. A name beside its axis
+/// is turned into the left margin and takes none.
+fn y_name_above(y_label: &str, theme: &ThemeSpec, font_md: f64) -> f64 {
+    let at_end = theme.resolved().axis_label.as_deref() == Some("end");
+    if !y_label.is_empty() && at_end { estimate_cap_height(font_md) + 6.0 } else { 0.0 }
+}
+
+/// The names of some legends, as one subject with its verb: "the `G` legend
+/// needs", "the `G` and `S` legends need".
+fn legends_named(legends: &[&crate::render::legend::LegendBox]) -> (String, &'static str, &'static str) {
+    let names: Vec<String> = legends.iter().map(|b| format!("`{}`", b.title)).collect();
+    match names.as_slice() {
+        [one] => (format!("{one} legend"), "needs", "it was"),
+        [init @ .., last] => (format!("{} and {last} legends", init.join(", ")), "need", "they were"),
+        [] => (String::from("legend"), "needs", "it was"),
+    }
+}
+
+/// A legend laid across that is wider than the plot even with one key to a line.
+fn legend_too_wide_across(
+    legends: &[crate::render::legend::LegendBox], left_out: &[usize], fonts: (f64, f64), room: f64,
+) -> Diagnostic {
+    let out: Vec<&crate::render::legend::LegendBox> = left_out.iter().map(|&i| &legends[i]).collect();
+    let needs = out.iter().map(|b| b.across(fonts, room).least).fold(0.0_f64, f64::max);
+    let (which, verb, it) = legends_named(&out);
+    Diagnostic {
+        kind: crate::legality::DiagnosticKind::Assumption,
+        message: format!(
+            "gog: the {which} {verb} {needs:.0}px of width even with one key to a line, and \
+             laid across the plot there is room for {room:.0}, so {it} left out. Give the plot \
+             more room with `theme(width = )`, or put the legend beside the plot with \
+             `theme(legend = \"right\")`."
+        ),
+    }
+}
+
+/// A legend laid across that would leave the panels shorter than itself: the
+/// width rule (`legend_too_wide`) read down instead of across.
+fn legend_too_tall_across(
+    legends: &[crate::render::legend::LegendBox], side: LegendSide, band: f64, height: f64,
+) -> Diagnostic {
+    let all: Vec<&crate::render::legend::LegendBox> = legends.iter().collect();
+    let (which, verb, it) = legends_named(&all);
+    let place = if side == LegendSide::Top { "above" } else { "below" };
+    Diagnostic {
+        kind: crate::legality::DiagnosticKind::Assumption,
+        message: format!(
+            "gog: the {which} {verb} {band:.0}px of height, and {place} the {height:.0}px plot \
+             that would leave its panel shorter than that, so {it} left out and the panel takes \
+             the room. Give the plot more room with `theme(height = )` — on a composed page \
+             that is a share of the page, so the other plots have to give some up."
+        ),
+    }
+}
+
 fn legend_too_wide(legends: &[crate::render::legend::LegendBox], widest: f64, width: f64) -> Diagnostic {
     let names: Vec<String> = legends.iter().map(|b| format!("`{}`", b.title)).collect();
     let (which, verb, it) = match names.as_slice() {
@@ -13609,6 +13765,197 @@ mod tests {
         assert!(!set.contains(">x<"), "a set color must not produce a legend");
         // A legend also reserves right-hand margin, so the panel must be wider.
         assert!(set.len() < mapped.len());
+    }
+
+    // -- the side a legend sits on (`theme(legend = )`) ----------------------
+
+    /// Five continents, so a key of five that fits across a full plot.
+    fn five_keyed(side: Option<&str>) -> (PlotSpec, HashMap<String, DataFrame>) {
+        let s = |v: &[&str]| v.iter().map(|x| x.to_string()).collect::<Vec<_>>();
+        let t = DataFrame::new()
+            .with_float("x", vec![1.0, 2.0, 3.0, 4.0, 5.0])
+            .with_float("y", vec![2.0, 1.0, 4.0, 3.0, 5.0])
+            .with_str("g", s(&["Asia", "Europe", "Africa", "Americas", "Oceania"]));
+        let mut spec = PlotSpec::new().data("t").x("x").y("y")
+            .layer(Layer::new(Mark::Point).encode(Channel::Color, "g"));
+        spec.theme.legend = side.map(String::from);
+        (spec, HashMap::from([("t".to_string(), t)]))
+    }
+
+    fn draw_at(spec: &PlotSpec, t: &HashMap<String, DataFrame>, w: f64, h: f64) -> Drawn {
+        SvgRenderer::for_theme(&spec.theme.resolved(), w, h).draw(spec, t)
+    }
+
+    /// Every rectangle whose tag holds `key`, as (x0, y0, x1, y1). A legend's card
+    /// is the one with `rx="4"`, a key's swatch `rx="2"`, the panel `#f5f5f8`.
+    fn rects_with(svg: &str, key: &str) -> Vec<(f64, f64, f64, f64)> {
+        svg.split("<rect ").skip(1)
+            .map(|r| r.split('>').next().unwrap_or(""))
+            .filter(|tag| tag.contains(key))
+            .filter_map(|tag| {
+                let grab = |k: &str| -> Option<f64> {
+                    let at = tag.find(k)? + k.len();
+                    tag[at..].split('"').next()?.parse().ok()
+                };
+                let (x, y) = (grab("x=\"")?, grab("y=\"")?);
+                Some((x, y, x + grab("width=\"")?, y + grab("height=\"")?))
+            })
+            .collect()
+    }
+
+    /// **A legend sits on the side `theme(legend = )` names**, clear of the panel
+    /// and inside the canvas, and the side nobody names is the right.
+    #[test]
+    fn a_legend_sits_on_the_side_the_theme_names() {
+        let draw = |side: Option<&str>| {
+            let (spec, t) = five_keyed(side);
+            draw_at(&spec, &t, 800.0, 600.0)
+        };
+        assert_eq!(draw(None).svg, draw(Some("right")).svg, "the right is the default, said out loud");
+        for side in ["right", "left", "top", "bottom"] {
+            let drawn = draw(Some(side));
+            let cards = rects_with(&drawn.svg, r#"rx="4""#);
+            let panel = rects_with(&drawn.svg, r##"fill="#f5f5f8""##)[0];
+            assert_eq!(cards.len(), 1, "{side}: one card");
+            let c = cards[0];
+            let clear = match side {
+                "right" => c.0 >= panel.2 + 20.0,
+                "left" => c.2 <= panel.0 - 20.0,
+                "top" => c.3 <= panel.1,
+                _ => c.1 >= panel.3,
+            };
+            assert!(clear, "{side}: the card {c:?} stands clear of the panel {panel:?}");
+            assert!(c.0 >= 0.0 && c.1 >= 0.0 && c.2 <= 800.0 && c.3 <= 600.0,
+                    "{side}: the card {c:?} is inside the canvas");
+            assert!(drawn.remarks.is_empty(), "{side}: {:?}", drawn.remarks);
+        }
+        // Above or below the plot the key costs height rather than width, which is
+        // the reason to put it there: the panel is wider than beside it, and shorter.
+        let panel = |side| rects_with(&draw(Some(side)).svg, r##"fill="#f5f5f8""##)[0];
+        let (beside, under) = (panel("right"), panel("bottom"));
+        assert!(under.2 - under.0 > beside.2 - beside.0 + 50.0 && under.3 - under.1 < beside.3 - beside.1,
+                "beside {beside:?}, under {under:?}");
+    }
+
+    /// **Laid across, the keys stand in one row, and wrap only when the plot is too
+    /// narrow for them.** Read off the swatches: one row is one height.
+    #[test]
+    fn a_legend_laid_across_puts_its_keys_in_a_row_that_wraps() {
+        let rows_at = |w: f64| {
+            let (spec, t) = five_keyed(Some("bottom"));
+            let drawn = draw_at(&spec, &t, w, 500.0);
+            let keys = rects_with(&drawn.svg, r#"rx="2""#);
+            assert_eq!(keys.len(), 5, "every key is drawn at {w}px: {:?}", drawn.remarks);
+            assert!(keys.iter().all(|k| k.0 >= 0.0 && k.2 <= w), "inside the canvas at {w}px: {keys:?}");
+            let mut tops: Vec<f64> = keys.iter().map(|k| k.1).collect();
+            tops.sort_by(f64::total_cmp);
+            tops.dedup_by(|a, b| (*a - *b).abs() < 0.5);
+            tops.len()
+        };
+        assert_eq!(rows_at(800.0), 1, "a full plot holds the five keys in one row");
+        assert!(rows_at(260.0) > 1, "a narrow plot wraps them");
+    }
+
+    /// A continuous color laid across is one strip running left to right, with
+    /// its smallest number on the left, as a number line reads.
+    #[test]
+    fn a_ramp_laid_across_runs_left_to_right_smallest_first() {
+        let t = HashMap::from([("t".to_string(), DataFrame::new()
+            .with_float("x", vec![1.0, 2.0, 3.0])
+            .with_float("y", vec![1.0, 2.0, 3.0])
+            .with_float("v", vec![10.0, 20.0, 30.0]))]);
+        let svg = |side: &str| {
+            let mut spec = PlotSpec::new().data("t").x("x").y("y")
+                .layer(Layer::new(Mark::Point).encode(Channel::Color, "v"));
+            spec.theme.legend = Some(side.into());
+            draw_at(&spec, &t, 800.0, 600.0).svg
+        };
+        let (up, across) = (svg("right"), svg("bottom"));
+        assert!(up.contains(r#"x1="0" y1="1" x2="0" y2="0""#), "upright, bottom to top");
+        assert!(across.contains(r#"x1="0" y1="0" x2="1" y2="0""#), "across, left to right");
+        // The numbers under the strip, read where they are drawn.
+        let key = across.split("</linearGradient></defs>").nth(1).expect("the strip");
+        let x_of = |label: &str| -> f64 {
+            let tag = key.split("<text ").find(|t| t.contains(&format!(">{label}<"))).expect(label);
+            tag.split("x=\"").nth(1).and_then(|r| r.split('"').next()).and_then(|v| v.parse().ok())
+                .expect("an x")
+        };
+        assert!(x_of("10") < x_of("20") && x_of("20") < x_of("30"), "smallest on the left");
+    }
+
+    /// A legend laid across that cannot fit is left out and said, both ways: too
+    /// wide even with one key to a line, and too tall for the plot it sits under.
+    #[test]
+    fn a_legend_laid_across_that_cannot_fit_is_left_out_and_said() {
+        let (spec, t) = five_keyed(Some("bottom"));
+        let thin = draw_at(&spec, &t, 100.0, 400.0);
+        assert!(rects_with(&thin.svg, r#"rx="4""#).is_empty(), "no card is drawn past the canvas");
+        assert!(thin.remarks.iter().any(|d| d.message.contains("even with one key to a line")
+                && d.message.contains("theme(width = )")), "{:?}", thin.remarks);
+
+        let many: Vec<String> = (0..60).map(|i| format!("category {i}")).collect();
+        let t = HashMap::from([("t".to_string(), DataFrame::new()
+            .with_float("x", (0..60).map(f64::from).collect())
+            .with_float("y", (0..60).map(f64::from).collect())
+            .with_str("g", many))]);
+        let mut spec = PlotSpec::new().data("t").x("x").y("y")
+            .layer(Layer::new(Mark::Point).encode(Channel::Color, "g"));
+        spec.theme.legend = Some("top".into());
+        let short = draw_at(&spec, &t, 400.0, 300.0);
+        assert!(rects_with(&short.svg, r#"rx="4""#).is_empty(), "no card takes the panel's room");
+        assert!(short.remarks.iter().any(|d| d.message.contains("px of height, and above the")
+                && d.message.contains("theme(height = )")), "{:?}", short.remarks);
+    }
+
+    /// **A plot with its legend on the left keeps its own y name.** A page puts
+    /// the names of panels on one line in one column, the leftmost of their
+    /// places, and that column could land inside this plot's legend. So the plot
+    /// offers no name to the column, and its name stays right of its legend.
+    #[test]
+    fn a_plot_with_its_legend_on_the_left_keeps_its_own_y_name() {
+        let (right, t) = five_keyed(Some("right"));
+        assert!(draw_at(&right, &t, 800.0, 600.0).y_name.is_some());
+        let (left, t) = five_keyed(Some("left"));
+        let drawn = draw_at(&left, &t, 800.0, 600.0);
+        assert!(drawn.y_name.is_none(), "a page must not move this name into the legend");
+        // Composed above a plot with wider tick labels, whose name sits further left.
+        let wide = DataFrame::new()
+            .with_float("x", vec![1.0, 5.0])
+            .with_float("y", vec![1_000_000.0, 9_000_000.0]);
+        let mut data = t.clone();
+        data.insert("w".to_string(), wide);
+        let page = crate::ir::PageSpec {
+            arrange: crate::ir::Arrange::Below,
+            cells: vec![
+                left.into(),
+                PlotSpec::new().data("w").x("x").y("y").layer(Layer::new(Mark::Point)).into(),
+            ],
+            theme: ThemeSpec::default(),
+        };
+        let (svg, _) = crate::render::page::render(&page, &data, 800.0, 600.0);
+        let top = svg.split("<svg x=").nth(1).expect("the top cell");
+        let card = rects_with(top, r#"rx="4""#)[0];
+        let name_x: f64 = top.split(r#"<text transform="rotate(-90 "#).nth(1)
+            .and_then(|r| r.split(' ').next()).and_then(|v| v.parse().ok()).expect("a turned y name");
+        assert!(name_x > card.2, "the y name at {name_x} is right of the legend, which ends at {}", card.2);
+    }
+
+    /// A y name at its axis's end sits over the panel as drawn, on the title's
+    /// rule: a `ratio` that centers the panel lower in the plot takes the name
+    /// down with it. Left at the top of the area it stood far above the panel, and
+    /// a legend laid above the plot, which moves down with the panel, met it.
+    #[test]
+    fn a_y_name_at_its_end_moves_down_with_its_panel() {
+        let (mut spec, t) = five_keyed(None);
+        spec.theme.axis_label = Some("end".into());
+        spec.theme.ratio = Some(4.0);
+        let drawn = draw_at(&spec, &t, 600.0, 600.0);
+        let panel = rects_with(&drawn.svg, r##"fill="#f5f5f8""##)[0];
+        let name = drawn.svg.split("<text ").find(|t| t.contains(r#"text-anchor="start">Y<"#))
+            .expect("the y name at its end");
+        let y: f64 = name.split(" y=\"").nth(1).and_then(|r| r.split('"').next())
+            .and_then(|v| v.parse().ok()).expect("a y");
+        assert!((panel.1 - 6.0 - y).abs() < 0.5, "the name sits 6px over the panel's top: {y}, {}", panel.1);
     }
 
     // -- a legend turned off (spec §10) ------------------------------------

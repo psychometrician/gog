@@ -97,6 +97,20 @@ impl Default for Fit {
     }
 }
 
+/// The room a plot's legends take on each side of it, in px, set aside before
+/// the panels are laid out so that a legend never takes the panels' room.
+///
+/// `theme(legend = )` names one side, so one field is ever above zero. The four
+/// are kept apart so each margin reads the band that belongs to it: beside the
+/// plot a legend costs width, above or below it a legend costs height.
+#[derive(Clone, Copy, Debug, Default, PartialEq)]
+pub(crate) struct LegendRoom {
+    pub(crate) left: f64,
+    pub(crate) right: f64,
+    pub(crate) top: f64,
+    pub(crate) bottom: f64,
+}
+
 /// One cell of the facet grid — a frame with its place in the crossing.
 pub(crate) struct Panel {
     pub(crate) rect: Layout,
@@ -164,9 +178,10 @@ impl PanelGrid {
     /// Compute the margins and divide what remains into panels.
     ///
     /// The margin arithmetic is exactly what the single-panel renderer always
-    /// did: space for ticks, labels and the title, plus the legend panel on
-    /// the right. Faceting adds only the strips — a row of names above the
-    /// panels, a column of names beside them — and the division into cells.
+    /// did: space for ticks, labels and the title, plus the legend's band on the
+    /// side `theme(legend = )` names, the right unless it names another.
+    /// Faceting adds only the strips — a row of names above the panels, a
+    /// column of names beside them — and the division into cells.
     #[allow(clippy::too_many_arguments)]
     pub(crate) fn compute(
         width: f64,
@@ -177,7 +192,10 @@ impl PanelGrid {
         x_label: &str,
         y_label: &str,
         has_title: bool,
-        legend_extra_width: f64,
+        // The legend's band, on the one side it sits (see [`LegendRoom`]). Above
+        // the plot it sits between the title and what is under the title; below,
+        // under the x axis's name; on the left, outside the y axis's name.
+        legend: LegendRoom,
         col_values: Vec<String>,
         row_values: Vec<String>,
         // `theme(ratio = )` — the panel's width ÷ height, or `None` to fill the cell.
@@ -224,6 +242,7 @@ impl PanelGrid {
         let y_label_band = !y_label.is_empty();
         let pad_top = 16.0
             + if has_title { title_h + 12.0 } else { 0.0 }
+            + legend.top
             + if y_label_band && !y_label_beside { label_h + 6.0 } else { 0.0 };
 
         // A turned x label is taller than an upright one by as much of its own
@@ -255,10 +274,12 @@ impl PanelGrid {
 
         let pad_bottom = tick_band
             + if !x_label.is_empty() { label_h + 8.0 } else { 0.0 }
-            + 10.0;
+            + 10.0
+            + legend.bottom;
 
         let pad_left = y_tick_w + 24.0
-            + if y_label_band && y_label_beside { label_h + 8.0 } else { 0.0 };
+            + if y_label_band && y_label_beside { label_h + 8.0 } else { 0.0 }
+            + legend.left;
 
         // A turned label hangs *left* of its tick rather than straddling it (it
         // is anchored at its end), so the right margin no longer has to hold half
@@ -287,7 +308,7 @@ impl PanelGrid {
                     .unwrap_or(0.0),
             }
         };
-        let pad_right = last_x_tick_half + 12.0 + legend_extra_width;
+        let pad_right = last_x_tick_half + 12.0 + legend.right;
 
         let mut outer = Layout {
             x0: pad_left,
@@ -764,7 +785,7 @@ mod tests {
             "X",
             "Y",
             false,
-            0.0,
+            LegendRoom::default(),
             cols.into_iter().map(String::from).collect(),
             rows.into_iter().map(String::from).collect(),
             ratio,
@@ -794,7 +815,7 @@ mod tests {
         let ticked = nice_ticks(0.0, 10.0, 5);
         let bare = |xt: &TickSpec, yt: &TickSpec, xl: &str, yl: &str| {
             PanelGrid::compute(800.0, 600.0, (12.0, 14.0, 18.0), xt, yt, xl, yl,
-                               false, 0.0, vec![], vec![], None, None, false, false,
+                               false, LegendRoom::default(), vec![], vec![], None, None, false, false,
                                None, (false, false), (0.0, 0.0), Fit::free())
         };
         let cube = bare(&empty, &empty, "", "");

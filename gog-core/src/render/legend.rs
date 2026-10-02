@@ -14,14 +14,14 @@ use std::collections::HashMap;
 use std::fmt::Write;
 
 use crate::data::{categories_across, DataFrame};
-use crate::ir::{Channel, ChannelDef, Layer, Mark, PlotSpec};
+use crate::ir::{Channel, ChannelDef, Layer, Mark, PlotSpec, ThemeSpec};
 use crate::legality::{Diagnostic, DiagnosticKind};
 use crate::render::palette::{ramp_at, resolve_ramp, NEUTRAL_INK, PALETTE_GOG};
 use crate::render::pattern::{dash_for_index, fill_texture_for_index, pattern_dasharray, FillTexture};
 use crate::render::shape::{shape_at_index, write_shape, ShapeKind};
 use crate::render::text::{esc, estimate_cap_height, estimate_text_width};
 use crate::render::ticks::auto_label;
-use crate::render::{Layout, RenderContext, Whole};
+use crate::render::{RenderContext, Whole};
 use crate::render::encode::{opacity_at, radius_at, OPACITY_DEFAULT, SIZE_MAX_R};
 use crate::scale::ChannelScale;
 
@@ -85,6 +85,48 @@ pub(crate) const LEGEND_RAMP_ROW_H: f64 = LEGEND_ROW_H * 2.5;
 pub(crate) const LEGEND_PLOT_GAP: f64 = 24.0;
 pub(crate) const LEGEND_PADDING: f64 = 10.0;
 pub(crate) const LEGEND_BOX_GAP: f64 = 12.0;
+/// Between the canvas's edge and a legend on the left, and on each side of a
+/// band of legends laid across.
+pub(crate) const LEGEND_EDGE: f64 = 10.0;
+/// Between a legend laid across and the plot's own text above or below it: the
+/// title over a legend on top, the x axis's name over a legend at the bottom.
+pub(crate) const LEGEND_ACROSS_GAP: f64 = 12.0;
+/// Between two keys in one row of a legend laid across.
+const LEGEND_KEY_GAP: f64 = 14.0;
+/// On each side of the rule that parts a title from its keys, laid across.
+const LEGEND_SEP_GAP: f64 = 8.0;
+/// Between two rows of keys, when a legend laid across wraps.
+const LEGEND_LINE_GAP: f64 = 4.0;
+/// How thick a continuous color's strip is, laid across.
+const LEGEND_RAMP_ACROSS_H: f64 = 10.0;
+
+/// Which side of the plot its legends sit on (`theme(legend = )`).
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub(crate) enum LegendSide {
+    Right,
+    Left,
+    Top,
+    Bottom,
+}
+
+impl LegendSide {
+    /// The side a theme names, the right when it names none. `check_theme` has
+    /// refused any other word, so an unknown one only reaches here under
+    /// `GOG_STRICT=0`, and the plot is drawn as if it had not been written.
+    pub(crate) fn of(theme: &ThemeSpec) -> LegendSide {
+        match theme.legend.as_deref() {
+            Some("left") => LegendSide::Left,
+            Some("top") => LegendSide::Top,
+            Some("bottom") => LegendSide::Bottom,
+            _ => LegendSide::Right,
+        }
+    }
+
+    /// Above or below the plot, where a legend is laid across rather than down.
+    pub(crate) fn across(self) -> bool {
+        matches!(self, LegendSide::Top | LegendSide::Bottom)
+    }
+}
 
 #[derive(Clone)]
 pub(crate) enum LegendSwatch {
@@ -562,12 +604,17 @@ fn drawn_categories(whole: Option<&Whole<'_>>, df: &DataFrame, field: &str) -> V
 /// key, and silently omitting one is what §12 forbids; a remark is the third
 /// option both of those refuse.
 /// `bottom` is the lowest y a legend may occupy, which is the **canvas**, not
-/// the panel: `l` positions the stack (its top aligns with the panel's) but a
-/// legend taller than the panel may run down into the margin the x axis labels
-/// live beside, and always could. Measuring the room against `l.y1` instead
-/// would drop legends that fit the image perfectly well.
+/// the panel: `top` places the stack level with the panel's top, but a legend
+/// taller than the panel may run down into the margin the x axis labels live
+/// beside, and always could. Measuring the room against the panel's foot
+/// instead would drop legends that fit the image perfectly well.
+///
+/// `lx` is the stack's left edge: `LEGEND_PLOT_GAP` right of the panel for a
+/// legend on the right, `LEGEND_EDGE` in from the canvas for one on the left.
+/// The column is the same either way, which is what lets one routine draw both.
+#[allow(clippy::too_many_arguments)]
 pub(crate) fn write_legends(
-    svg: &mut String, l: &Layout, boxes: &[LegendBox], fonts: (f64, f64),
+    svg: &mut String, lx: f64, top: f64, boxes: &[LegendBox], fonts: (f64, f64),
     bottom: f64,
     // The figure paints nothing behind itself (a `transparent` background), so
     // the card each key sits on paints nothing either and keeps only its outline.
@@ -579,8 +626,7 @@ pub(crate) fn write_legends(
             .map(|b| b.width(font_sm, font_md))
             .fold(0.0_f64, f64::max);
 
-        let lx = l.x1 + LEGEND_PLOT_GAP;
-        let mut cur_y = l.y0;
+        let mut cur_y = top;
         let title_cap_h = estimate_cap_height(font_md);
         // Everything in a box that is not rows: two paddings, the title, and the
         // gap above the separator. Fixed — shrinking a title to fit a panel is
@@ -670,23 +716,7 @@ pub(crate) fn write_legends(
                 let strip_h = ramp_row_h * (n - 1.0);
                 let strip_w = LEGEND_SWATCH_W;
                 let strip_x = swatch_cx - strip_w / 2.0;
-                // The id must be unique per gradient *content*, not per box.
-                // The book inlines many SVGs into one HTML document, and SVG
-                // ids are document-global there: the first definition wins for
-                // every reference on the page. The old geometry hash collided
-                // the moment two plots shared a layout, and a viridis legend
-                // upstream painted its colors into a white–navy strip
-                // downstream. Hashing the stops instead means two ids only
-                // collide when the gradients are identical — the one
-                // collision that cannot mislead.
-                let mut h: u64 = 0xcbf2_9ce4_8422_2325;
-                for c in stops {
-                    for b in c.bytes() {
-                        h = (h ^ b as u64).wrapping_mul(0x0100_0000_01b3);
-                    }
-                    h = (h ^ 0xff).wrapping_mul(0x0100_0000_01b3);
-                }
-                let gid = format!("ramp{h:016x}");
+                let gid = ramp_id(stops);
                 writeln!(svg, r#"    <defs><linearGradient id="{gid}" x1="0" y1="1" x2="0" y2="0">"#).unwrap();
                 let last = stops.len().saturating_sub(1).max(1) as f64;
                 for (i, c) in stops.iter().enumerate() {
@@ -719,56 +749,7 @@ pub(crate) fn write_legends(
                 let swatch_cy = row_y + row_h / 2.0;
                 let text_y   = swatch_cy + estimate_cap_height(font_sm) / 2.0;
 
-                match row.swatch {
-                    LegendSwatch::ColorRect(ref color) => {
-                        let s = 6.0;
-                        writeln!(svg,
-                            r#"    <rect x="{x:.2}" y="{y:.2}" width="{w:.2}" height="{w:.2}" fill="{color}" fill-opacity="{o}" rx="2"/>"#,
-                            x = swatch_cx - s, y = swatch_cy - s, w = s * 2.0, o = swatch_opacity(lb.opacity)
-                        ).unwrap();
-                    }
-                    LegendSwatch::ShapeMark(kind, ref color) => {
-                        let ink = color.as_deref().unwrap_or("#3c3c46");
-                        write_shape(svg, kind, swatch_cx, swatch_cy, 5.5, ink,
-                                    lb.opacity.unwrap_or(OPACITY_DEFAULT), None);
-                    }
-                    LegendSwatch::OpacityRect(o) => {
-                        let s = 6.0;
-                        writeln!(svg,
-                            r##"    <rect x="{x:.2}" y="{y:.2}" width="{w:.2}" height="{w:.2}" fill="#3c3c46" fill-opacity="{o:.3}" rx="2"/>"##,
-                            x = swatch_cx - s, y = swatch_cy - s, w = s * 2.0
-                        ).unwrap();
-                    }
-                    LegendSwatch::SizeCircle(rad) => {
-                        writeln!(svg,
-                            r##"    <circle cx="{swatch_cx:.2}" cy="{swatch_cy:.2}" r="{rad:.2}" fill="#3c3c46" fill-opacity="0.60"/>"##,
-                        ).unwrap();
-                    }
-                    LegendSwatch::PatternFill { texture, ref color } => {
-                        // A hatched rect in the category's color — `solid` (index 0)
-                        // draws a plain fill. The thin outline keeps a faint hatch
-                        // legible in the small swatch.
-                        let s = 6.0;
-                        let fill = swatch_tex.fill(svg, Some(texture), color);
-                        writeln!(svg,
-                            r#"    <rect x="{x:.2}" y="{y:.2}" width="{w:.2}" height="{w:.2}" fill="{fill}" fill-opacity="{o}" stroke="{color}" stroke-width="0.6" rx="2"/>"#,
-                            x = swatch_cx - s, y = swatch_cy - s, w = s * 2.0, o = swatch_opacity(lb.opacity)
-                        ).unwrap();
-                    }
-                    LegendSwatch::PatternStroke { dash, ref color } => {
-                        // A short line with the dash — round caps so `dotted` reads as
-                        // dots, matching the stroke marks.
-                        let dash_attr = pattern_dasharray(Some(dash));
-                        // Half the dash column, less a hair so a round cap does
-                        // not sit on the column's edge.
-                        let half = LEGEND_DASH_SWATCH_W / 2.0 - 1.0;
-                        let faded = lb.opacity.map(|o| format!(r#" stroke-opacity="{o:.3}""#)).unwrap_or_default();
-                        writeln!(svg,
-                            r##"    <line x1="{:.2}" y1="{swatch_cy:.2}" x2="{:.2}" y2="{swatch_cy:.2}" stroke="{color}" stroke-width="2"{dash_attr}{faded} stroke-linecap="round"/>"##,
-                            swatch_cx - half, swatch_cx + half
-                        ).unwrap();
-                    }
-                }
+                write_swatch(svg, &row.swatch, swatch_cx, swatch_cy, lb.opacity, &mut swatch_tex);
                 writeln!(svg, r#"    <text x="{text_x:.2}" y="{text_y:.2}">{label}</text>"#,
                     label = esc(&row.label)).unwrap();
                 row_y += row_h;
@@ -778,6 +759,329 @@ pub(crate) fn write_legends(
             cur_y += box_h + LEGEND_BOX_GAP;
         }
     }
+
+/// The id of a ramp's gradient.
+///
+/// It must be unique per gradient *content*, not per box. The book inlines many
+/// SVGs into one HTML document, and SVG ids are document-global there: the first
+/// definition wins for every reference on the page. The old geometry hash
+/// collided the moment two plots shared a layout, and a viridis legend upstream
+/// painted its colors into a white–navy strip downstream. Hashing the stops
+/// instead means two ids only collide when the gradients are identical, the one
+/// collision that cannot mislead. A strip laid across shares the id of an upright
+/// one with the same stops, which is safe for a reason one level up: a plot keys
+/// on one side only, and `svg::namespace_ids` prefixes every id with a hash of
+/// the drawing it belongs to.
+fn ramp_id(stops: &[String]) -> String {
+    let mut h: u64 = 0xcbf2_9ce4_8422_2325;
+    for c in stops {
+        for b in c.bytes() {
+            h = (h ^ b as u64).wrapping_mul(0x0100_0000_01b3);
+        }
+        h = (h ^ 0xff).wrapping_mul(0x0100_0000_01b3);
+    }
+    format!("ramp{h:016x}")
+}
+
+/// One key's swatch, centered on (`cx`, `cy`). The same drawing whichever way the
+/// legend is laid, so a key reads the same beside the plot as under it.
+fn write_swatch(svg: &mut String, swatch: &LegendSwatch, cx: f64, cy: f64,
+                opacity: Option<f64>, tex: &mut FillTexture) {
+    match swatch {
+        LegendSwatch::ColorRect(color) => {
+            let s = 6.0;
+            writeln!(svg,
+                r#"    <rect x="{x:.2}" y="{y:.2}" width="{w:.2}" height="{w:.2}" fill="{color}" fill-opacity="{o}" rx="2"/>"#,
+                x = cx - s, y = cy - s, w = s * 2.0, o = swatch_opacity(opacity)
+            ).unwrap();
+        }
+        LegendSwatch::ShapeMark(kind, color) => {
+            let ink = color.as_deref().unwrap_or("#3c3c46");
+            write_shape(svg, *kind, cx, cy, 5.5, ink, opacity.unwrap_or(OPACITY_DEFAULT), None);
+        }
+        LegendSwatch::OpacityRect(o) => {
+            let s = 6.0;
+            writeln!(svg,
+                r##"    <rect x="{x:.2}" y="{y:.2}" width="{w:.2}" height="{w:.2}" fill="#3c3c46" fill-opacity="{o:.3}" rx="2"/>"##,
+                x = cx - s, y = cy - s, w = s * 2.0
+            ).unwrap();
+        }
+        LegendSwatch::SizeCircle(rad) => {
+            writeln!(svg,
+                r##"    <circle cx="{cx:.2}" cy="{cy:.2}" r="{rad:.2}" fill="#3c3c46" fill-opacity="0.60"/>"##,
+            ).unwrap();
+        }
+        LegendSwatch::PatternFill { texture, color } => {
+            // A hatched rect in the category's color — `solid` (index 0)
+            // draws a plain fill. The thin outline keeps a faint hatch
+            // legible in the small swatch.
+            let s = 6.0;
+            let fill = tex.fill(svg, Some(texture), color);
+            writeln!(svg,
+                r#"    <rect x="{x:.2}" y="{y:.2}" width="{w:.2}" height="{w:.2}" fill="{fill}" fill-opacity="{o}" stroke="{color}" stroke-width="0.6" rx="2"/>"#,
+                x = cx - s, y = cy - s, w = s * 2.0, o = swatch_opacity(opacity)
+            ).unwrap();
+        }
+        LegendSwatch::PatternStroke { dash, color } => {
+            // A short line with the dash — round caps so `dotted` reads as
+            // dots, matching the stroke marks.
+            let dash_attr = pattern_dasharray(Some(dash));
+            // Half the dash column, less a hair so a round cap does
+            // not sit on the column's edge.
+            let half = LEGEND_DASH_SWATCH_W / 2.0 - 1.0;
+            let faded = opacity.map(|o| format!(r#" stroke-opacity="{o:.3}""#)).unwrap_or_default();
+            writeln!(svg,
+                r##"    <line x1="{:.2}" y1="{cy:.2}" x2="{:.2}" y2="{cy:.2}" stroke="{color}" stroke-width="2"{dash_attr}{faded} stroke-linecap="round"/>"##,
+                cx - half, cx + half
+            ).unwrap();
+        }
+    }
+}
+
+// ---------------------------------------------------------------------------
+// Laid across — `theme(legend = "top")` and `"bottom"`
+// ---------------------------------------------------------------------------
+
+/// One legend laid across the plot: its title on the left, a rule, then its
+/// keys in a row that wraps when the plot is too narrow for them. A continuous
+/// color is one strip laid across, with its numbers under it, smallest first.
+///
+/// Laid this way so that a legend above or below the plot costs height and not
+/// width, which is the whole reason to move it there. A column of keys under
+/// the plot would cost as much height as the plot has keys.
+pub(crate) struct Across {
+    pub(crate) width: f64,
+    pub(crate) height: f64,
+    /// The narrowest this card can be: its title and its widest key. A card that
+    /// even this is too wide for is not drawn, and that is said.
+    pub(crate) least: f64,
+    /// The keys on each line, as row indices, and the line's height.
+    lines: Vec<(Vec<usize>, f64)>,
+    /// A ramp's strip: its length, and how far its first label overhangs its
+    /// left end, since each label is centered on the value it names.
+    ramp: Option<(f64, f64)>,
+}
+
+impl LegendBox {
+    /// What comes before the keys: the padding, the title, and the rule with a
+    /// gap on each side of it.
+    fn head_across(&self, font_md: f64) -> f64 {
+        LEGEND_PADDING + estimate_text_width(&self.title, font_md) + 2.0 * LEGEND_SEP_GAP
+    }
+
+    /// One key's height, the height its row takes in an upright legend.
+    fn key_h(row: &LegendRow) -> f64 {
+        match row.swatch {
+            LegendSwatch::SizeCircle(r) => (r * 2.0 + 6.0).max(LEGEND_ROW_H),
+            _ => LEGEND_ROW_H,
+        }
+    }
+
+    /// This legend laid across a band `room` px wide.
+    pub(crate) fn across(&self, fonts: (f64, f64), room: f64) -> Across {
+        let (font_sm, font_md) = fonts;
+        let head = self.head_across(font_md);
+        if self.gradient.is_some() {
+            // Read left to right, smallest first: the rows run from the top of an
+            // upright strip, which is its largest value, down.
+            let widths: Vec<f64> = self.rows.iter().rev()
+                .map(|r| estimate_text_width(&r.label, font_sm)).collect();
+            let n = widths.len().max(2) as f64;
+            let widest = widths.iter().copied().fold(0.0_f64, f64::max);
+            // As long as an upright strip, and long enough that no two of the
+            // labels centered along it meet.
+            let len = (LEGEND_RAMP_ROW_H * (n - 1.0)).max((n - 1.0) * (widest + LEGEND_KEY_GAP));
+            let over_l = widths.first().copied().unwrap_or(0.0) / 2.0;
+            let over_r = widths.last().copied().unwrap_or(0.0) / 2.0;
+            let line = LEGEND_RAMP_ACROSS_H + 4.0 + estimate_cap_height(font_sm) + 4.0;
+            let width = head + over_l + len + over_r + LEGEND_PADDING;
+            return Across {
+                width,
+                height: 2.0 * LEGEND_PADDING + line,
+                least: width,
+                lines: vec![(Vec::new(), line)],
+                ramp: Some((len, over_l)),
+            };
+        }
+        let col = self.swatch_col_w();
+        let keys: Vec<f64> = self.rows.iter()
+            .map(|r| col + LEGEND_SWATCH_GAP + estimate_text_width(&r.label, font_sm))
+            .collect();
+        let room_for_keys = room - head - LEGEND_PADDING;
+        let mut lines: Vec<(Vec<usize>, f64)> = Vec::new();
+        let mut widest_line = 0.0_f64;
+        let (mut line, mut line_w, mut line_h): (Vec<usize>, f64, f64) = (Vec::new(), 0.0, 0.0);
+        for (i, w) in keys.iter().enumerate() {
+            if !line.is_empty() && line_w + LEGEND_KEY_GAP + w > room_for_keys {
+                widest_line = widest_line.max(line_w);
+                lines.push((std::mem::take(&mut line), line_h));
+                line_w = 0.0;
+                line_h = 0.0;
+            }
+            line_w += if line.is_empty() { *w } else { LEGEND_KEY_GAP + w };
+            line_h = line_h.max(Self::key_h(&self.rows[i]));
+            line.push(i);
+        }
+        if !line.is_empty() {
+            widest_line = widest_line.max(line_w);
+            lines.push((line, line_h));
+        }
+        let rows_h = lines.iter().map(|(_, h)| h).sum::<f64>()
+            + LEGEND_LINE_GAP * lines.len().saturating_sub(1) as f64;
+        let widest_key = keys.iter().copied().fold(0.0_f64, f64::max);
+        Across {
+            width: head + widest_line + LEGEND_PADDING,
+            height: 2.0 * LEGEND_PADDING + rows_h.max(LEGEND_ROW_H),
+            least: head + widest_key + LEGEND_PADDING,
+            lines,
+            ramp: None,
+        }
+    }
+}
+
+/// The legends laid across, as one band: each card's layout, and which cards
+/// share a row. Cards sit side by side and wrap onto a new row, as the keys
+/// inside each one do.
+pub(crate) struct AcrossPlan {
+    /// The cards drawn, each with the index of the legend it lays out.
+    cards: Vec<(usize, Across)>,
+    /// The cards on each row, as indices into `cards`, with the row's width and
+    /// height.
+    rows: Vec<(Vec<usize>, f64, f64)>,
+    pub(crate) width: f64,
+    pub(crate) height: f64,
+}
+
+/// Lay the legends across a band `room` px wide. A legend whose narrowest card
+/// is still wider than the band cannot be drawn, so it is left out, and its
+/// index comes back for the caller to say so (§12).
+pub(crate) fn plan_across(boxes: &[LegendBox], fonts: (f64, f64), room: f64) -> (AcrossPlan, Vec<usize>) {
+    let mut cards = Vec::new();
+    let mut left_out = Vec::new();
+    for (i, b) in boxes.iter().enumerate() {
+        let card = b.across(fonts, room);
+        if card.least > room { left_out.push(i) } else { cards.push((i, card)) }
+    }
+    let mut rows: Vec<(Vec<usize>, f64, f64)> = Vec::new();
+    let (mut row, mut row_w, mut row_h): (Vec<usize>, f64, f64) = (Vec::new(), 0.0, 0.0);
+    for (ci, (_, card)) in cards.iter().enumerate() {
+        if !row.is_empty() && row_w + LEGEND_BOX_GAP + card.width > room {
+            rows.push((std::mem::take(&mut row), row_w, row_h));
+            row_w = 0.0;
+            row_h = 0.0;
+        }
+        row_w += if row.is_empty() { card.width } else { LEGEND_BOX_GAP + card.width };
+        row_h = row_h.max(card.height);
+        row.push(ci);
+    }
+    if !row.is_empty() {
+        rows.push((row, row_w, row_h));
+    }
+    let width = rows.iter().map(|r| r.1).fold(0.0_f64, f64::max);
+    let height = rows.iter().map(|r| r.2).sum::<f64>()
+        + LEGEND_BOX_GAP * rows.len().saturating_sub(1) as f64;
+    (AcrossPlan { cards, rows, width, height }, left_out)
+}
+
+/// Draw the legends laid across, the band's top left corner at (`x`, `y`). A
+/// row of cards narrower than the band is centered in it.
+pub(crate) fn write_legends_across(
+    svg: &mut String, boxes: &[LegendBox], plan: &AcrossPlan, fonts: (f64, f64),
+    x: f64, y: f64, see_through: bool,
+) {
+    let mut row_y = y;
+    for (members, row_w, row_h) in &plan.rows {
+        let mut card_x = x + (plan.width - row_w) / 2.0;
+        for &ci in members {
+            let (bi, card) = &plan.cards[ci];
+            write_card_across(svg, &boxes[*bi], card, fonts, card_x, row_y, see_through);
+            card_x += card.width + LEGEND_BOX_GAP;
+        }
+        row_y += row_h + LEGEND_BOX_GAP;
+    }
+}
+
+fn write_card_across(
+    svg: &mut String, lb: &LegendBox, card: &Across, fonts: (f64, f64),
+    x: f64, y: f64, see_through: bool,
+) {
+    let (font_sm, font_md) = fonts;
+    let fill = if see_through { "none" } else { "white" };
+    writeln!(svg,
+        r##"  <rect x="{x:.2}" y="{y:.2}" width="{w:.2}" height="{h:.2}" fill="{fill}" stroke="#d2d2da" stroke-width="1" rx="4"/>"##,
+        w = card.width, h = card.height,
+    ).unwrap();
+
+    // The title, level with the first line of keys.
+    let first = card.lines.first().map_or(LEGEND_ROW_H, |l| l.1);
+    let title_y = y + LEGEND_PADDING + first / 2.0 + estimate_cap_height(font_md) / 2.0;
+    writeln!(svg,
+        r##"  <text x="{tx:.2}" y="{title_y:.2}" font-family="system-ui,sans-serif" font-size="{fs}" font-weight="600" fill="#28283a">{title}</text>"##,
+        tx = x + LEGEND_PADDING, fs = font_md, title = esc(&lb.title),
+    ).unwrap();
+
+    // The rule parting the title from its keys: an upright legend's line under
+    // its title, turned to stand between them.
+    let rule_x = x + LEGEND_PADDING + estimate_text_width(&lb.title, font_md) + LEGEND_SEP_GAP;
+    writeln!(svg,
+        r##"  <line x1="{rule_x:.2}" y1="{y:.2}" x2="{rule_x:.2}" y2="{y2:.2}" stroke="#d2d2da" stroke-width="1"/>"##,
+        y2 = y + card.height,
+    ).unwrap();
+    let keys_x = rule_x + LEGEND_SEP_GAP;
+
+    writeln!(svg,
+        r##"  <g font-family="system-ui,sans-serif" font-size="{}" fill="#3c3c46">"##,
+        font_sm
+    ).unwrap();
+    if let (Some(stops), Some((len, over_l))) = (&lb.gradient, card.ramp) {
+        let gid = ramp_id(stops);
+        writeln!(svg, r#"    <defs><linearGradient id="{gid}" x1="0" y1="0" x2="1" y2="0">"#).unwrap();
+        let last = stops.len().saturating_sub(1).max(1) as f64;
+        for (i, c) in stops.iter().enumerate() {
+            writeln!(svg,
+                r#"      <stop offset="{o:.4}" stop-color="{c}"/>"#,
+                o = i as f64 / last
+            ).unwrap();
+        }
+        writeln!(svg, r#"    </linearGradient></defs>"#).unwrap();
+        let strip_x = keys_x + over_l;
+        let strip_y = y + LEGEND_PADDING;
+        writeln!(svg,
+            r##"    <rect x="{strip_x:.2}" y="{strip_y:.2}" width="{len:.2}" height="{h:.2}" fill="url(#{gid})" fill-opacity="0.9" stroke="#d2d2da" stroke-width="0.5" rx="2"/>"##,
+            h = LEGEND_RAMP_ACROSS_H,
+        ).unwrap();
+        // Each number centered under the value it names, smallest on the left.
+        let n = lb.rows.len().max(2) as f64;
+        let text_y = strip_y + LEGEND_RAMP_ACROSS_H + 4.0 + estimate_cap_height(font_sm);
+        for (i, row) in lb.rows.iter().rev().enumerate() {
+            writeln!(svg,
+                r#"    <text x="{tx:.2}" y="{text_y:.2}" text-anchor="middle">{label}</text>"#,
+                tx = strip_x + len * i as f64 / (n - 1.0), label = esc(&row.label)
+            ).unwrap();
+        }
+    } else {
+        let col = lb.swatch_col_w();
+        // Dedups any repeated (texture, color) tile across this card's swatches.
+        let mut tex = FillTexture::new();
+        let mut line_y = y + LEGEND_PADDING;
+        for (keys, h) in &card.lines {
+            let mut key_x = keys_x;
+            let cy = line_y + h / 2.0;
+            for &ri in keys {
+                let row = &lb.rows[ri];
+                write_swatch(svg, &row.swatch, key_x + col / 2.0, cy, lb.opacity, &mut tex);
+                writeln!(svg, r#"    <text x="{tx:.2}" y="{ty:.2}">{label}</text>"#,
+                    tx = key_x + col + LEGEND_SWATCH_GAP,
+                    ty = cy + estimate_cap_height(font_sm) / 2.0,
+                    label = esc(&row.label)).unwrap();
+                key_x += col + LEGEND_SWATCH_GAP + estimate_text_width(&row.label, font_sm)
+                    + LEGEND_KEY_GAP;
+            }
+            line_y += h + LEGEND_LINE_GAP;
+        }
+    }
+    writeln!(svg, "  </g>").unwrap();
+}
 
 #[cfg(test)]
 mod tests {

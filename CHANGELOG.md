@@ -6,6 +6,19 @@ CRAN-style repositories and PyPI, `GrammarOfGraphics` on Julia's General, and
 
 ## Unreleased
 
+### Added
+
+- **`theme(legend = )` puts a plot's legends on the side it names.** The sides
+  are `"right"` (the default), `"left"`, `"top"` and `"bottom"`. Above or below
+  the panel, a legend's entries are placed side by side, on more than one line
+  if needed, so the panel gets shorter instead of narrower. A continuous
+  color's legend is drawn horizontally there. On any side, a legend that does
+  not fit is left out, and gog prints a message. On a page, gog refuses the
+  setting and asks for it on each plot, which keeps its own legends.
+  `theme(legend = FALSE)` is refused too, and the message says to write
+  `legend = FALSE` on the channel instead. A channel's `legend =` given
+  anything but true or false now names `theme(legend = )`.
+
 ### Changed
 
 - **`bin(width = )` puts one bin edge at zero.** Five-year bins of life
@@ -59,6 +72,11 @@ CRAN-style repositories and PyPI, `GrammarOfGraphics` on Julia's General, and
   reaching 885, its bars were too short to draw. It now draws an axis of its
   own. The Bar chapter draws `dodge`, `stack` and `stack(share = TRUE)` side by
   side and says which question each answers.
+
+- **A y axis's name at the axis's far end stays just above its panel.** With
+  `theme(axis_label = "end")`, the y name stayed at the top of the plot, above
+  empty space, when `theme(ratio = )` or a map's shape made the panel shorter
+  and centered it. The name now moves down with the panel, as the title does.
 
 ## 0.4.1 (2026-10-01)
 

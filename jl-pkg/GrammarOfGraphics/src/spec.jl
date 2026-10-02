@@ -520,7 +520,7 @@ function Base.:+(left::Plot, right::Atom)
         # (spec §7).
         haskey(plot.spec, "theme") || (plot.spec["theme"] = Dict{String,Any}())
         for key in (:preset, :grid, :ratio, :tick_angle, :font_size, :background, :strip, :strip_text, :frame, :axis_label,
-                    :width, :height)
+                    :legend, :width, :height)
             value = right.fields[key]
             value === nothing || (plot.spec["theme"][String(key)] = value)
         end
@@ -814,7 +814,8 @@ page_facet_refusal(operator::AbstractString) = throw(GogError(
 # page. The engine holds the same list in `check_page_theme`; this copy is what
 # puts the refusal on the line that wrote it.
 const PANEL_THEME = (:preset, :grid, :ratio, :tick_angle, :font_size,
-                     :background, :strip, :strip_text, :frame, :axis_label)
+                     :background, :strip, :strip_text, :frame, :axis_label,
+                     :legend)
 
 # How an atom is named in a message: a mark and a transform are bare words
 # (`point`, `mean`), and every other atom is a call (`color()`). Every atom was

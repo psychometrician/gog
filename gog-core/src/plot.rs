@@ -520,6 +520,34 @@ mod tests {
         assert!(drawn.svg.contains(r#"height="310""#));
     }
 
+    /// `theme(legend = )` names a side of the plot, one of four, and nothing else.
+    /// `none` is the likeliest other word, so its refusal says where a key is left
+    /// out: on its channel. A page draws no legend of its own, so it refuses the
+    /// property toward the plot whose keys it would move.
+    #[test]
+    fn a_legend_side_is_one_of_four_and_a_page_has_none() {
+        let keyed = |side: &str| {
+            let mut spec = base().layer(Layer::new(Mark::Point).encode(Channel::Color, "continent"));
+            spec.theme.legend = Some(side.to_string());
+            Figure::Plot(Box::new(spec))
+        };
+        for side in ["right", "left", "top", "bottom"] {
+            assert!(render_figure_with(&keyed(side), &data(), Strictness::Strict).is_ok(), "{side}");
+        }
+        let refused = render_figure_with(&keyed("none"), &data(), Strictness::Strict)
+            .err().expect("`none` is not a side");
+        assert!(refused.iter().any(|d| d.kind == DiagnosticKind::Illegal
+            && d.message.contains("`theme(legend = \"none\")` is not a side of the plot")
+            && d.message.contains("set `legend` to false on the channel it decodes")),
+            "{refused:?}");
+
+        let theme = crate::ir::ThemeSpec { legend: Some("bottom".to_string()), ..Default::default() };
+        let page = render_figure_with(&beside(two_plots(), theme), &data(), Strictness::Strict)
+            .err().expect("a page has no legend to place");
+        assert!(page.iter().any(|d| d.kind == DiagnosticKind::Unsupported
+            && d.message.contains("theme(legend = )")), "{page:?}");
+    }
+
     // -- the palette vocabulary, checked across the two layers that hold it ---
     //
     // `legality` says which names may be written; `render::palette` says what

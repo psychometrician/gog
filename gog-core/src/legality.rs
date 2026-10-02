@@ -7203,7 +7203,7 @@ fn check_page_fits(out: &mut Vec<Diagnostic>, figure: &Figure, canvas: (f64, f64
 /// is the double meaning §13 exists to catch.
 fn check_page_theme(out: &mut Vec<Diagnostic>, page: &PageSpec) {
     let t = &page.theme;
-    let panel_properties: [(&str, bool); 10] = [
+    let panel_properties: [(&str, bool); 11] = [
         ("preset", t.preset.is_some()),
         ("grid", t.grid.is_some()),
         ("ratio", t.ratio.is_some()),
@@ -7214,6 +7214,8 @@ fn check_page_theme(out: &mut Vec<Diagnostic>, page: &PageSpec) {
         ("strip_text", t.strip_text.is_some()),
         ("frame", t.frame.is_some()),
         ("axis_label", t.axis_label.is_some()),
+        // A page draws no legend of its own: each plot keeps its keys.
+        ("legend", t.legend.is_some()),
     ];
     for (name, stated) in panel_properties {
         if !stated {
@@ -8332,6 +8334,23 @@ fn check_theme(out: &mut Vec<Diagnostic>, spec: &PlotSpec) {
                      horizontal, and `\"beside\"` centers it along the axis, turning the \
                      y name through 90 degrees.",
                     or_list(&PLACE.iter().map(|s| format!("`{s}`")).collect::<Vec<_>>())
+                ),
+            });
+        }
+    }
+
+    // A side, and nothing else. `none` is the likeliest other word, so the
+    // refusal names where leaving a key out is written: on the channel it decodes.
+    if let Some(side) = spec.theme.legend.as_deref() {
+        const SIDE: &[&str] = &["right", "left", "top", "bottom"];
+        if !SIDE.contains(&side) {
+            out.push(Diagnostic {
+                kind: DiagnosticKind::Illegal,
+                message: format!(
+                    "gog: `theme(legend = \"{side}\")` is not a side of the plot. gog has {} \
+                     — `\"bottom\"` lays the keys in a row under the plot. To leave a legend \
+                     out, set `legend` to false on the channel it decodes, such as `color`.",
+                    or_list(&SIDE.iter().map(|s| format!("`\"{s}\"`")).collect::<Vec<_>>())
                 ),
             });
         }

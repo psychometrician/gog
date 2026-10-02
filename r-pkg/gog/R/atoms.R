@@ -1283,7 +1283,8 @@ check_legend <- function(legend) {
   if (!isTRUE(legend) && !isFALSE(legend)) {
     stop("gog: `legend = ` is TRUE or FALSE \u2014 FALSE leaves this channel's legend out ",
          "of the plot, e.g. `color(continent, legend = FALSE)` when the names are ",
-         "written on the plot instead.", call. = FALSE)
+         "written on the plot instead. To choose the side of the plot the legends sit ",
+         "on, write `theme(legend = \"bottom\")`.", call. = FALSE)
   }
   legend
 }
@@ -2387,6 +2388,11 @@ palette <- function(pal) {
 #' @param axis_label Where each axis's name sits: `"beside"` (the default,
 #'   centered along its own axis, which turns the y name through 90 degrees) or
 #'   `"end"` (at the axis's far end, horizontal, so nothing is read sideways).
+#' @param legend Which side of the plot its legends sit on: `"right"` (the
+#'   default), `"left"`, `"top"` or `"bottom"`. Above or below the plot the keys
+#'   are laid in a row, which leaves the width beside the panel to the panel. To
+#'   leave one legend out, write `legend = FALSE` on its channel instead, as in
+#'   `color(continent, legend = FALSE)`.
 #' @param width,height How many pixels the plot asks for. On its own that is the
 #'   image; composed onto a page with `|` or `/` it is the plot's *cell*, and
 #'   the plots that ask for nothing split what is left — which is how a marginal
@@ -2397,7 +2403,7 @@ palette <- function(pal) {
 theme <- function(preset = NULL, grid = NULL, ratio = NULL, tick_angle = NULL,
                   font_size = NULL, background = NULL, strip = NULL,
                   strip_text = NULL, frame = NULL, axis_label = NULL,
-                  width = NULL, height = NULL) {
+                  legend = NULL, width = NULL, height = NULL) {
   if (!is.null(preset) && !(is.character(preset) && length(preset) == 1)) {
     stop("gog: `theme()` takes a preset name first \u2014 `theme(\"minimal\")` \u2014 and ",
          "everything else by name: `theme(grid = \"none\")`.", call. = FALSE)
@@ -2405,7 +2411,7 @@ theme <- function(preset = NULL, grid = NULL, ratio = NULL, tick_angle = NULL,
   if (is.null(preset) && is.null(grid) && is.null(ratio) && is.null(tick_angle) &&
       is.null(font_size) && is.null(background) && is.null(strip) &&
       is.null(strip_text) && is.null(frame) && is.null(axis_label) &&
-      is.null(width) && is.null(height)) {
+      is.null(legend) && is.null(width) && is.null(height)) {
     stop("gog: `theme()` sets nothing. Name a preset or a property, e.g. ",
          "`theme(\"minimal\")` or `theme(grid = \"none\", ratio = 1)`.", call. = FALSE)
   }
@@ -2456,6 +2462,20 @@ theme <- function(preset = NULL, grid = NULL, ratio = NULL, tick_angle = NULL,
          call. = FALSE)
   }
 
+  # `legend = FALSE` is how a channel leaves its own key out, so it is the likeliest
+  # thing to be written here too; the refusal points at the channel.
+  if (is.logical(legend)) {
+    stop("gog: `theme(legend = )` says which side of the plot the legends sit on: ",
+         "\"right\", \"left\", \"top\" or \"bottom\". To leave a legend out, write ",
+         "`legend = FALSE` on the channel it decodes, as in ",
+         "`color(continent, legend = FALSE)`.", call. = FALSE)
+  }
+  if (!is.null(legend) && !(is.character(legend) && length(legend) == 1 &&
+                            legend %in% c("right", "left", "top", "bottom"))) {
+    stop("gog: `theme(legend = )` is one of \"right\", \"left\", \"top\" or ",
+         "\"bottom\": the side of the plot its legends sit on. To leave a legend out, ",
+         "write `legend = FALSE` on its channel.", call. = FALSE)
+  }
   if (!is.null(strip_text) && !(is.character(strip_text) && length(strip_text) == 1)) {
     stop("gog: `theme(strip_text = )` needs a single color for the strip's label. ",
          "Leave it out and gog picks the one that reads on the band.", call. = FALSE)
@@ -2475,7 +2495,7 @@ theme <- function(preset = NULL, grid = NULL, ratio = NULL, tick_angle = NULL,
                  ratio = ratio, tick_angle = tick_angle, font_size = font_size,
                  background = background, strip = strip,
                  strip_text = strip_text, frame = frame,
-                 axis_label = axis_label,
+                 axis_label = axis_label, legend = legend,
                  width = width, height = height),
             class = "gog_atom")
 }

@@ -2548,6 +2548,25 @@ test("axis_label places both axis names by one rule", () => {
   assert.throws(() => theme({ axis_label: "sideways" }), /end|beside/);
 });
 
+// `theme({ legend })` names the side of the plot the keys sit on.
+test("legend sits on the side the theme names", () => {
+  const d = data({ a: [1, 2, 3], b: [4, 5, 6], g: ["p", "q", "r"] });
+  const base = [d, point, x(col.a), y(col.b), color(col.g), x_label("A")];
+  // Where a piece of text was written, read off the drawing.
+  const yOf = (svg, label) => {
+    const tag = svg.match(new RegExp(`<text [^>]*>${label}</text>`))[0];
+    return Number(tag.match(/ y="([0-9.]+)"/)[1]);
+  };
+  const right = render_svg(plot(...base));
+  const bottom = render_svg(plot(...base, theme({ legend: "bottom" })));
+  assert.ok(yOf(right, "G") < yOf(right, "A"), "by default the legend sits beside the plot");
+  assert.ok(yOf(bottom, "G") > yOf(bottom, "A"), "at the bottom it sits under the x axis's name");
+  refuses(() => theme({ legend: false }), /`legend: false` on the channel/);
+  refuses(() => theme({ legend: "none" }), /"bottom"/);
+  refuses(() => beside(plot(...base), plot(...base), theme({ legend: "bottom" })),
+    /theme\(\{ legend: … \}\)/);
+});
+
 // Two plots in one document may not share an id: a notebook is one document, and
 // a second plot borrowing the first's <pattern> draws nothing once a host
 // detaches the owning cell.

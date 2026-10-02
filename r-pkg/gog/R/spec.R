@@ -821,7 +821,7 @@ resolve_query <- function(q, table) {
       if (is.null(lhs$spec$theme)) lhs$spec$theme <- list()
       for (key in c("preset", "grid", "ratio", "tick_angle", "font_size",
                     "background", "strip", "strip_text", "frame", "axis_label",
-                    "width", "height")) {
+                    "legend", "width", "height")) {
         if (!is.null(rhs[[key]])) lhs$spec$theme[[key]] <- rhs[[key]]
       }
     },
@@ -864,7 +864,8 @@ resolve_query <- function(q, table) {
 # page. The engine holds the same list in `check_page_theme`; this copy is what
 # puts the refusal on the line that wrote it.
 PANEL_THEME <- c("preset", "grid", "ratio", "tick_angle", "font_size",
-                 "background", "strip", "strip_text", "frame", "axis_label")
+                 "background", "strip", "strip_text", "frame", "axis_label",
+                 "legend")
 
 #' @export
 `+.gog_page` <- function(lhs, rhs) {

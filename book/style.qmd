@@ -596,6 +596,26 @@ data(gapminder_2007) + point + x(gdp, scale = "log") + y(life) +
 *"Given gapminder 2007: points, x is gdp on a log scale, y is life, with the
 axis names at their ends."*
 
+A legend on the right makes the panel narrower by the legend's own width. On a
+narrow figure, such as one column of a journal page, that leaves little room for
+the data. `legend` says which side of the plot the legends sit on. The default
+is `"right"`, and the other sides are `"left"`, `"top"` and `"bottom"`. Above or
+below the panel, a legend's entries are placed side by side, so the panel gets
+shorter instead of narrower:
+
+```{r}
+data(gapminder_2007) + point + x(gdp, scale = "log") + y(life) +
+  color(continent) + theme(legend = "bottom")
+```
+
+*"Given gapminder 2007: points, x is gdp on a log scale, y is life, color by
+continent, with the legend at the bottom."*
+
+The panel now takes the width the legend used beside it, and the five
+continents are listed side by side under the x axis's name. To leave one legend
+out instead, write `legend = FALSE` on its channel ([Leaving a legend
+out](channels.qmd#leaving-a-legend-out)).
+
 `font_size` sets how big the plot's text is. It is *one* number, not three. The
 number itself is the size of a tick label, in pixels. The axis names and the
 title are a fixed proportion larger. The default of `11` draws tick labels at

@@ -654,7 +654,8 @@ function check_legend(legend)
     legend isa Bool || throw(GogError(
         "gog: `legend = ` is true or false — false leaves this channel's legend out of " *
         "the plot, e.g. `color(:continent, legend = false)` when the names are " *
-        "written on the plot instead."))
+        "written on the plot instead. To choose the side of the plot the legends " *
+        "sit on, write `theme(legend = \"bottom\")`."))
     legend
 end
 
@@ -1102,6 +1103,7 @@ end
 const THEME_PRESETS = ("gog", "minimal", "bw")
 const GRID_VALUES = ("both", "x", "y", "none")
 const FRAME_VALUES = ("full", "axes", "none")
+const LEGEND_SIDES = ("right", "left", "top", "bottom")
 
 """
     theme(preset = nothing; grid, ratio, tick_angle, font_size)
@@ -1132,6 +1134,12 @@ reproduces poorly in print, which is the one place that preset is for.
 its two defaults reads on the band, so `theme(strip = "black")` already gives white
 type; name it when the ink is a real choice, such as navy with gold type.
 
+`legend` is which side of the plot its legends sit on: `"right"` (the default),
+`"left"`, `"top"` or `"bottom"`. Above or below the plot the keys are laid in a
+row, which leaves the width beside the panel to the panel. To leave one legend out,
+write `legend = false` on its channel instead, as in
+`color(:continent, legend = false)`.
+
 `width` and `height` are how many pixels the plot asks for. Alone that is the
 image; composed onto a page with `|` or `/` it is the plot's *cell*, and the
 plots that ask for nothing split what is left — which is how a marginal
@@ -1142,7 +1150,7 @@ given.
 function theme(args...; grid = nothing, ratio = nothing, tick_angle = nothing,
                font_size = nothing, background = nothing, strip = nothing,
                strip_text = nothing, frame = nothing, axis_label = nothing,
-               width = nothing, height = nothing)
+               legend = nothing, width = nothing, height = nothing)
     preset = length(args) > 1 ?
         throw(GogError("gog: `theme()` takes a preset name first — " *
                        "`theme(\"minimal\")` — and everything else by name: " *
@@ -1152,7 +1160,7 @@ function theme(args...; grid = nothing, ratio = nothing, tick_angle = nothing,
     if preset === nothing && grid === nothing && ratio === nothing &&
        tick_angle === nothing && font_size === nothing &&
        background === nothing && strip === nothing && strip_text === nothing &&
-       frame === nothing && axis_label === nothing &&
+       frame === nothing && axis_label === nothing && legend === nothing &&
        width === nothing && height === nothing
         throw(GogError("gog: `theme()` sets nothing. Name a preset or a property, " *
                        "e.g. `theme(\"minimal\")` or `theme(grid = \"none\", ratio = 1)`."))
@@ -1200,6 +1208,18 @@ function theme(args...; grid = nothing, ratio = nothing, tick_angle = nothing,
         throw(GogError("gog: `theme(axis_label = )` is \"end\" or \"beside\" — " *
                        "where each axis's name sits: at the axis's far end, or " *
                        "centered along it."))
+    # `legend = false` is how a channel leaves its own key out, so it is the
+    # likeliest thing to be written here too; the refusal points at the channel.
+    legend isa Bool &&
+        throw(GogError("gog: `theme(legend = )` says which side of the plot the " *
+                       "legends sit on: \"right\", \"left\", \"top\" or \"bottom\". " *
+                       "To leave a legend out, write `legend = false` on the channel " *
+                       "it decodes, as in `color(:continent, legend = false)`."))
+    legend === nothing || legend in LEGEND_SIDES ||
+        throw(GogError("gog: `theme(legend = )` is one of \"right\", \"left\", " *
+                       "\"top\" or \"bottom\": the side of the plot its legends " *
+                       "sit on. To leave a legend out, write `legend = false` on " *
+                       "its channel."))
     strip_text === nothing || strip_text isa AbstractString ||
         throw(GogError("gog: `theme(strip_text = )` needs a single color for the " *
                        "strip's label. Leave it out and gog picks the one that " *
@@ -1228,6 +1248,7 @@ function theme(args...; grid = nothing, ratio = nothing, tick_angle = nothing,
         :strip_text => strip_text === nothing ? nothing : String(strip_text),
         :frame => frame === nothing ? nothing : String(frame),
         :axis_label => axis_label === nothing ? nothing : String(axis_label),
+        :legend => legend === nothing ? nothing : String(legend),
         :width => width === nothing ? nothing : Float64(width),
         :height => height === nothing ? nothing : Float64(height)))
 end

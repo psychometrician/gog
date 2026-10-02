@@ -1950,6 +1950,23 @@ end
     @refuses theme(axis_label = "sideways") "beside"
 end
 
+# `theme(legend = )` names the side of the plot the keys sit on.
+@testset "legend sits on the side the theme names" begin
+    tbl = (a = [1.0, 2.0, 3.0], b = [4.0, 5.0, 6.0], g = ["p", "q", "r"])
+    base = data(tbl) + point + x(:a) + y(:b) + color(:g) + x_label("A")
+    # Where a piece of text was written, read off the drawing.
+    function y_of(svg, label)
+        tag = match(Regex("<text [^>]*>" * label * "</text>"), svg).match
+        parse(Float64, match(r" y=\"([0-9.]+)\"", tag).captures[1])
+    end
+    right, bottom = render_svg(base), render_svg(base + theme(legend = "bottom"))
+    @test y_of(right, "G") < y_of(right, "A")
+    @test y_of(bottom, "G") > y_of(bottom, "A")
+    @refuses theme(legend = false) "`legend = false` on the channel"
+    @refuses theme(legend = "none") "\"bottom\""
+    @refuses (base | base) + theme(legend = "bottom") "theme(legend = )"
+end
+
 # Two plots in one document may not share an id: a notebook is one document, and
 # a second plot borrowing the first's <pattern> draws nothing once a host
 # detaches the owning cell.

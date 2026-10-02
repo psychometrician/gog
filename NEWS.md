@@ -1,3 +1,12 @@
+# gog (development version)
+
+A plot's legends can now sit on any side of it. `theme(legend = "bottom")`
+places each legend's entries side by side under the plot, so the panel gets
+shorter instead of narrower. The legend of a continuous color is drawn
+horizontally. `"top"` and `"left"` are the other two sides, and `"right"` is
+still the default. `theme(legend = )` only chooses the side: to leave one
+legend out, write `legend = FALSE` on its channel, as before.
+
 # gog 0.4.1 (2026-10-01)
 
 On Linux the R package builds its engine from source, using the version of Rust

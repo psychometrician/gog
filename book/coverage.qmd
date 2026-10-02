@@ -257,7 +257,6 @@ and nothing about them is disputed.
 | In ggplot2 | Here |
 |---|---|
 | `labs(subtitle =, caption =)` | more of the label family; `title()` is the one that exists |
-| `theme(legend.position = )` | `theme()` is where this would be written. Every legend sits to the right of the plot area, and no setting moves it |
 | `geom_sf()`, `geom_map()`, `coord_sf()`, `borders()` | the `map` space draws, so a mark at a place on a projected earth is an ordinary sentence, and `zone` with `group(country)` fills each region from a boundary the data carries, holes included ([Map](map.qmd)). gog reads no spatial file. A boundary arrives as an ordinary table of points, which is the shape `map_data()` returns |
 | `geom_dotplot()` | gog would need a mesh that follows the data's clusters, and a second rule for choosing bin edges |
 | `scale_x_binned()`, equal-count bins | the other cutpoint rule, the same parameter |

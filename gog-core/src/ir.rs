@@ -2062,6 +2062,18 @@ pub struct ThemeSpec {
     /// existed, y at its end and x beside its own, which no chapter could explain.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub axis_label: Option<String>,
+    /// Which side of the plot its legends sit on: `right` (the default), `left`,
+    /// `top` or `bottom`.
+    ///
+    /// One property for every legend the plot draws, because it states where the
+    /// plot keeps its keys rather than where one key goes. Above or below the
+    /// plot a legend is laid across, its keys in a row, which is what frees the
+    /// width beside the panel: the forcing case was a clustered heatmap whose key
+    /// stood between the tiles and the tree that orders them. There is no
+    /// `none`: a channel's own `legend = false` already leaves its key out, and a
+    /// second spelling of that would be a second rule to keep in step.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub legend: Option<String>,
     /// Degrees to rotate the x tick labels, counterclockwise from horizontal.
     #[serde(default)]
     pub tick_angle: Option<f64>,

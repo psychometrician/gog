@@ -72,6 +72,7 @@ that does the same job is beside it on the right.
 | `scale_color_viridis_c()` | `color(v) + palette("viridis")` |
 | `scale_color_manual(values = c(a = "red", b = "blue"))` | `color(g) + palette(c(a = "red", b = "blue"))`: each color is written beside its category's name, so sorting the rows cannot change it. gog refuses a name the column does not hold and a category left without a name ([Colors by name](channels.qmd#colors-by-name)) |
 | `guides(color = "none")`, `show.legend = FALSE` | `color(g, legend = FALSE)`, written on the channel whose legend you leave out |
+| `theme(legend.position = "bottom")` | `theme(legend = "bottom")`. The other sides are `"top"` and `"left"`, and `"right"` is the default. Above or below the panel, a legend's entries are placed side by side ([Legend placement](channels.qmd#legend-placement)). ggplot2's `legend.position = "none"` removes every legend, and in gog you write `legend = FALSE` on each channel, as in `color(g, legend = FALSE)` |
 | `facet_grid(r ~ c)` | `\| facet(c) / facet(r)` |
 | `facet_wrap(~ g, ncol = 4)` | `\| facet(g, wrap = 4)` puts four panels in each row, and `/ facet(g, wrap = 4)` puts four in each column. The operator says the direction, so one number replaces both `nrow` and `ncol`. |
 | `facet_*(scales = "free_y")` | `y(v, free = TRUE)`, written on the axis you are freeing. You do not choose the axis a second time, because the binding already says which one. |

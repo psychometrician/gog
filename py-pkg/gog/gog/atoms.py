@@ -727,7 +727,8 @@ def _check_legend(legend: Any) -> Optional[bool]:
         raise GogError(
             "gog: `legend=` is True or False — False leaves this channel's legend out "
             "of the plot, e.g. `color(col.continent, legend=False)` when the names "
-            "are written on the plot instead."
+            "are written on the plot instead. To choose the side of the plot the "
+            "legends sit on, write `theme(legend=\"bottom\")`."
         )
     return legend
 
@@ -1343,6 +1344,7 @@ def _text_value(value: Any, atom: str) -> str:
 THEME_PRESETS = ("gog", "minimal", "bw")
 _GRID_VALUES = ("both", "x", "y", "none")
 _FRAME_VALUES = ("full", "axes", "none")
+_LEGEND_SIDES = ("right", "left", "top", "bottom")
 
 
 def theme(
@@ -1357,6 +1359,7 @@ def theme(
     strip_text: Optional[str] = None,
     frame: Optional[str] = None,
     axis_label: Optional[str] = None,
+    legend: Optional[str] = None,
     width: Optional[float] = None,
     height: Optional[float] = None,
 ) -> Atom:
@@ -1387,6 +1390,12 @@ def theme(
     already gives white type; name it when the ink is a real choice, such as a
     navy strip with gold type.
 
+    `legend` is which side of the plot its legends sit on: `"right"` (the
+    default), `"left"`, `"top"` or `"bottom"`. Above or below the plot the keys
+    are laid in a row, which leaves the width beside the panel to the panel. To
+    leave one legend out, write `legend=False` on its channel instead, as in
+    `color(col.continent, legend=False)`.
+
     `width` and `height` are how many pixels the plot asks for. On its own that
     is the image; composed onto a page with `|` or `/` it is the plot's *cell*,
     and the plots that ask for nothing split what is left — which is how a
@@ -1397,7 +1406,7 @@ def theme(
     if (preset is None and grid is None and ratio is None and tick_angle is None
             and font_size is None and background is None and strip is None
             and strip_text is None and frame is None and axis_label is None
-            and width is None and height is None):
+            and legend is None and width is None and height is None):
         raise GogError(
             "gog: `theme()` sets nothing. Name a preset or a property, e.g. "
             "`theme(\"minimal\")` or `theme(grid=\"none\", ratio=1)`."
@@ -1446,6 +1455,21 @@ def theme(
             "gog: `theme(axis_label=)` is \"end\" or \"beside\" \u2014 where each axis's "
             "name sits: at the axis's far end, or centered along it."
         )
+    # `legend=False` is how a channel leaves its own key out, so it is the
+    # likeliest thing to be written here too; the refusal points at the channel.
+    if isinstance(legend, bool):
+        raise GogError(
+            "gog: `theme(legend=)` says which side of the plot the legends sit on: "
+            "\"right\", \"left\", \"top\" or \"bottom\". To leave a legend out, write "
+            "`legend=False` on the channel it decodes, as in "
+            "`color(col.continent, legend=False)`."
+        )
+    if legend is not None and legend not in _LEGEND_SIDES:
+        raise GogError(
+            "gog: `theme(legend=)` is one of \"right\", \"left\", \"top\" or "
+            "\"bottom\": the side of the plot its legends sit on. To leave a legend "
+            "out, write `legend=False` on its channel."
+        )
     if frame is not None and frame not in _FRAME_VALUES:
         raise GogError(
             "gog: `theme(frame=)` is one of \"full\" (a rectangle round the panel), "
@@ -1489,6 +1513,7 @@ def theme(
         strip_text=strip_text,
         frame=frame,
         axis_label=axis_label,
+        legend=legend,
         width=None if width is None else float(width),
         height=None if height is None else float(height),
     )

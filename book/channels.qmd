@@ -764,12 +764,17 @@ data(gapminder_2007) + point + x(gdp) + y(life) + color(continent) +
 
 ## Legend placement
 
-Every plot above that maps a refining channel drew a legend automatically, and
-gog also decides where the legend goes: to the right of the plot area. The plot
-area shrinks by itself to make room, so there is no margin to set and no
-position to choose. A legend too tall for the plot is left out rather than drawn
-past the edge. gog says so, and names `theme(height = )` as the way to give it
-room.
+Every plot above that maps a refining channel drew a legend automatically, to
+the right of the panel. The panel shrinks by itself to make room, so there is no
+margin to set. To move all of a plot's legends to another side, write
+`theme(legend = )` with `"bottom"`, `"top"` or `"left"`. Above or below the
+panel, a legend's entries are placed side by side, and they continue on a new
+line when the plot is too narrow. The panel then gets shorter instead of
+narrower. The legend of a continuous color is drawn horizontally there, with the
+smallest value on the left. [Style](style.qmd#theme-settings-that-belong-to-no-mark)
+draws a plot with its legend below the panel. A legend too big for the plot is
+left out rather than drawn outside the image. gog says so, and names the
+`theme()` width or height that would give it room.
 
 ### Leaving a legend out
 
@@ -787,7 +792,7 @@ data(gapminder_2007) + bar * count + x(continent) +
 continent, without a legend."*
 
 The bars keep their colors, because the channel still maps the column. Only the
-legend is gone, and the plot area takes the legend's space. `legend` belongs to
+legend is gone, and the panel takes the legend's space. `legend` belongs to
 the five refining channels, the ones that draw a legend. `x`, `y` and `z` are
 read from their axes, and `group`, `label` and `play` draw no legend. gog
 refuses `legend` on all six:

@@ -594,7 +594,7 @@ class Plot:
             # default" (spec §7).
             theme = plot.spec.setdefault("theme", {})
             for key in ("preset", "grid", "ratio", "tick_angle", "font_size", "background", "strip", "strip_text",
-                        "frame", "axis_label", "width", "height"):
+                        "frame", "axis_label", "legend", "width", "height"):
                 if other.fields.get(key) is not None:
                     theme[key] = other.fields[key]
 
@@ -762,7 +762,8 @@ class Plot:
 # page. The engine holds the same list in `check_page_theme`; this copy is what
 # puts the refusal on the line that wrote it.
 PANEL_THEME = ("preset", "grid", "ratio", "tick_angle", "font_size",
-               "background", "strip", "strip_text", "frame", "axis_label")
+               "background", "strip", "strip_text", "frame", "axis_label",
+               "legend")
 
 
 class Page:

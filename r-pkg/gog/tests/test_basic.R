@@ -225,6 +225,37 @@ local({
   cat("PASS: refused \u2014 an axis_label placement that does not exist\n")
 })
 
+# --- `theme(legend = )`: the side of the plot the keys sit on --------------------
+local({
+  df <- data.frame(a = c(1, 2, 3), b = c(4, 5, 6), g = c("p", "q", "r"))
+  base <- data(df) + point + x(a) + y(b) + color(g) + x_label("A")
+  # Where a piece of text was written, read off the drawing.
+  y_of <- function(svg, label) {
+    tag <- regmatches(svg, regexpr(paste0("<text [^>]*>", label, "</text>"), svg))
+    as.numeric(sub('.* y="([0-9.]+)".*', "\\1", tag))
+  }
+  right  <- render_svg(base)
+  bottom <- render_svg(base + theme(legend = "bottom"))
+  if (!(y_of(right, "G") < y_of(right, "A")))
+    stop("FAIL: by default the legend sits beside the plot, above the x axis's name")
+  if (!(y_of(bottom, "G") > y_of(bottom, "A")))
+    stop("FAIL: `theme(legend = \"bottom\")` should put the legend under the x axis's name")
+  cat("PASS: `theme(legend = )` moves the legend to the side it names\n")
+  for (bad in list(FALSE, "none")) {
+    said <- tryCatch({ theme(legend = bad); "drew" }, error = function(e) conditionMessage(e))
+    if (!grepl("\"bottom\"", said, fixed = TRUE))
+      stop("FAIL: theme(legend = ", deparse(bad), ") should name the four sides")
+  }
+  said <- tryCatch({ theme(legend = FALSE); "drew" }, error = function(e) conditionMessage(e))
+  if (!grepl("`legend = FALSE` on the channel", said, fixed = TRUE))
+    stop("FAIL: theme(legend = FALSE) should point at the channel's own legend = FALSE")
+  page <- tryCatch({ (base | base) + theme(legend = "bottom"); "drew" },
+                   error = function(e) conditionMessage(e))
+  if (!grepl("theme(legend = )", page, fixed = TRUE))
+    stop("FAIL: a page draws no legend of its own, so it should refuse theme(legend = )")
+  cat("PASS: refused \u2014 a legend side that is not one of four, and a page's legend\n")
+})
+
 # --- two plots in one document may not share an id -----------------------------
 # A notebook is one document and an id resolves against the whole of it, so a
 # second plot borrowing the first's `<pattern>` draws nothing once a host

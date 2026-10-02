@@ -726,7 +726,8 @@ function checkLegend(legend) {
     throw new GogError(
       "gog: `legend` is true or false — false leaves this channel's legend out of " +
         "the plot, e.g. `color(col.continent, { legend: false })` when the names " +
-        "are written on the plot instead."
+        "are written on the plot instead. To choose the side of the plot the " +
+        'legends sit on, write `theme({ legend: "bottom" })`.'
     );
   }
   return legend;
@@ -1154,6 +1155,7 @@ export function palette(pal) {
 export const THEME_PRESETS = ["gog", "minimal", "bw"];
 const GRID_VALUES = ["both", "x", "y", "none"];
 const FRAME_VALUES = ["full", "axes", "none"];
+const LEGEND_SIDES = ["right", "left", "top", "bottom"];
 
 // Set the plot's furniture — the page rather than the ink.
 //
@@ -1177,6 +1179,11 @@ const FRAME_VALUES = ["full", "axes", "none"];
 // `strip_text` is the ink of the strip's label. Leave it out and gog picks whichever
 // of its two defaults reads on the band, so `theme({ strip: "black" })` already gives
 // white type; name it when the ink is a real choice, such as navy with gold type.
+// `legend` is which side of the plot its legends sit on: "right" (the default),
+// "left", "top" or "bottom". Above or below the plot the keys are laid in a row,
+// which leaves the width beside the panel to the panel. To leave one legend out,
+// write `legend: false` on its channel instead, as in
+// `color(col.continent, { legend: false })`.
 // `width` and `height` are how many pixels the plot asks for. Alone that is the
 // image; composed onto a page with `beside()` or `below()` it is the plot's
 // *cell*, and the plots that ask for nothing split what is left — which is how a
@@ -1186,7 +1193,7 @@ const FRAME_VALUES = ["full", "axes", "none"];
 export function theme(...raw) {
   const {
     preset, grid, ratio, tick_angle, font_size, background, strip, strip_text,
-    axis_label,
+    axis_label, legend,
     frame, width, height,
   } = readArgs(raw, "theme", [
     "preset",
@@ -1199,6 +1206,7 @@ export function theme(...raw) {
     "strip_text",
     "frame",
     "axis_label",
+    "legend",
     "width",
     "height",
   ]);
@@ -1207,7 +1215,7 @@ export function theme(...raw) {
       tick_angle === undefined && font_size === undefined &&
       background === undefined && strip === undefined &&
       strip_text === undefined && frame === undefined && axis_label === undefined &&
-      width === undefined && height === undefined) {
+      legend === undefined && width === undefined && height === undefined) {
     throw new GogError(
       "gog: `theme()` sets nothing. Name a preset or a property, e.g. " +
         '`theme("minimal")` or `theme({ grid: "none", ratio: 1 })`.'
@@ -1273,6 +1281,23 @@ export function theme(...raw) {
       'gog: `theme({ axis_label: … })` is "end" or "beside" \u2014 where each ' +
       "axis's name sits: at the axis's far end, or centered along it.");
   }
+  // `legend: false` is how a channel leaves its own key out, so it is the likeliest
+  // thing to be written here too; the refusal points at the channel.
+  if (typeof legend === "boolean") {
+    throw new GogError(
+      "gog: `theme({ legend: … })` says which side of the plot the legends sit on: " +
+        '"right", "left", "top" or "bottom". To leave a legend out, write ' +
+        "`legend: false` on the channel it decodes, as in " +
+        "`color(col.continent, { legend: false })`."
+    );
+  }
+  if (legend !== undefined && !LEGEND_SIDES.includes(legend)) {
+    throw new GogError(
+      'gog: `theme({ legend: … })` is one of "right", "left", "top" or "bottom": ' +
+        "the side of the plot its legends sit on. To leave a legend out, write " +
+        "`legend: false` on its channel."
+    );
+  }
   if (strip_text !== undefined && typeof strip_text !== "string") {
     throw new GogError(
       "gog: `theme({ strip_text: … })` needs a single color for the strip's label. " +
@@ -1304,6 +1329,7 @@ export function theme(...raw) {
     strip_text: strip_text ?? null,
     frame: frame ?? null,
     axis_label: axis_label ?? null,
+    legend: legend ?? null,
     width: width ?? null,
     height: height ?? null,
   });
