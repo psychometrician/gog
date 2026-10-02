@@ -304,10 +304,68 @@ data(actuals) + x(year) + y(sales) +
 Each mark opens a new layer. The layers are drawn in the order you wrote them,
 so the first mark is at the bottom and every later mark is drawn over it.
 
+### Which marks a channel reaches
+
+Once a sentence has two marks, you need to know which mark each channel
+changes. A channel written before any mark reaches every mark. In the
+bars-and-points sentence above, `x(year)` and `y(sales)` come first, so both
+marks use them. A channel such as `color`, written after a mark, belongs only
+to the mark just before it. Positions are shared in any case, because every
+mark uses the same axes, so moving `x` and `y` past a mark changes nothing.
+
+The rule matters most for a line, because `color` splits a line into one line
+per category. `gapminder_asia` has one row for each of five Asian countries in
+each of twelve years, 1952 to 2007:
+
+```{r}
+#| echo: false
+peek(gapminder_asia)
+```
+
+Here `color(country)` comes before both marks, so the lines and the points
+both use it, and each country gets its own line:
+
+```{r}
+data(gapminder_asia) + x(year) + y(life) + color(country) + line + point
+```
+
+*"Given gapminder Asia: x is year, y is life, color by country, lines and also
+points."*
+
+Written last, just after `point`, the same `color(country)` belongs to the
+points alone. Nothing splits the line, so one line joins the points of all five
+countries. A line joins its rows in x order, and here five rows share each
+year, so the line zigzags up and down at every year:
+
+```{r}
+#| message: true
+data(gapminder_asia) + x(year) + y(life) + line + point + color(country)
+```
+
+*"Given gapminder Asia: x is year, y is life, a line and also points colored by
+country."*
+
+gog prints a warning about the zigzag and suggests `color(<field>)` or
+`group(<field>)`, although the sentence already has `color(country)`. That
+color belongs to the points, so nothing splits the line.
+
+The English sentence under each plot also says which marks a channel reaches.
+"Color by country" names no mark, so it reaches every mark. "Points colored by
+country" reaches the points only.
+
+With one mark, it makes no difference where you write a channel:
+`data(gapminder_2007) + point + x(gdp) + y(life)` and
+`data(gapminder_2007) + x(gdp) + y(life) + point` draw the same plot. This book
+writes the mark first, because the mark is the subject of the sentence
+([The order of `+`](operators.qmd#the-order-of-data-mark-positions-refinements)).
+With several marks, write first what every mark shares. Then write each mark,
+followed by what belongs to that mark alone.
+
 Order appears more than once in this grammar, and it does not mean the same
 thing every time. [Which orders matter](operators.qmd#which-orders-matter)
 gathers all of it in one place: what you may rearrange freely, what the engine
 refuses, and the two arrangements that change the picture with no warning.
+[Encoding scope](encoding-scope.qmd) gives the rule for every kind of word.
 
 ## The `*` operator: combining
 
