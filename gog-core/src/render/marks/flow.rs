@@ -119,6 +119,10 @@ impl SvgRenderer {
         let st = &layer.style;
         let opacity = st.opacity.unwrap_or(1.0);
         let edge = slot_edge(st);
+        // A layered flow's slots are thin boxes beside their names, and each is a
+        // place of both columns, so a click reads either one or `name`.
+        let layered = layer.flow_is_layered();
+        let fields = slot_fields(layer);
         writeln!(svg, r#"  <g clip-path="url(#{clip})">"#).unwrap();
         // A slot is a fill, so `pattern` hatches it as it hatches every other
         // fill (the settable rule). `check_flow` took the setting and this
@@ -130,11 +134,17 @@ impl SvgRenderer {
         for r in 0..stage.len() {
             let Some(k) = cats.iter().position(|c| *c == stage[r]) else { continue };
             let (x0, x1, y0, y1) = if down {
-                let (a, b) = (l.map_y(k as f64 - SLOT_HALF, ys.0, ys.1), l.map_y(k as f64 + SLOT_HALF, ys.0, ys.1));
+                let (a, b) = match layered {
+                    true => layered_edges(l.map_y(k as f64, ys.0, ys.1)),
+                    false => (l.map_y(k as f64 - SLOT_HALF, ys.0, ys.1), l.map_y(k as f64 + SLOT_HALF, ys.0, ys.1)),
+                };
                 (l.map_x(lo[r], xs.0, xs.1), l.map_x(hi[r], xs.0, xs.1), a.min(b), a.max(b))
             } else {
-                (l.map_x(k as f64 - SLOT_HALF, xs.0, xs.1), l.map_x(k as f64 + SLOT_HALF, xs.0, xs.1),
-                 l.map_y(hi[r], ys.0, ys.1), l.map_y(lo[r], ys.0, ys.1))
+                let (a, b) = match layered {
+                    true => layered_edges(l.map_x(k as f64, xs.0, xs.1)),
+                    false => (l.map_x(k as f64 - SLOT_HALF, xs.0, xs.1), l.map_x(k as f64 + SLOT_HALF, xs.0, xs.1)),
+                };
+                (a, b, l.map_y(hi[r], ys.0, ys.1), l.map_y(lo[r], ys.0, ys.1))
             };
             writeln!(
                 svg,
@@ -143,8 +153,11 @@ impl SvgRenderer {
             ).unwrap();
             if brushed {
                 if let Some(n) = name.and_then(|n| n.get(r)) {
-                    write_slot_shape(svg, &format!("{}|{NODE_NAME}", stage[r]), n,
-                                     &[(x0, y0), (x1, y0), (x1, y1), (x0, y1)]);
+                    let field = match layered {
+                        true => fields.clone(),
+                        false => format!("{}|{NODE_NAME}", stage[r]),
+                    };
+                    write_slot_shape(svg, &field, n, &[(x0, y0), (x1, y0), (x1, y1), (x0, y1)]);
                 }
             }
         }
@@ -180,6 +193,7 @@ impl SvgRenderer {
             return;
         };
         let Some(cats) = (if down { cat_y } else { cat_x }) else { return };
+        let layered = layer.flow_is_layered();
         let st = &layer.style;
         let opacity = st.opacity.unwrap_or(BAND_OPACITY);
         let hue_col = layer.encodings.get(&Channel::Color)
@@ -203,10 +217,14 @@ impl SvgRenderer {
             // The band leaves the side of one slot that faces the next and enters
             // the facing side of the next, curving across the gap between them.
             // Down a page the stages are rows, so the same shape is drawn with its
-            // two coordinates exchanged.
+            // two coordinates exchanged. A layered flow's band can skip a layer,
+            // and is one curve across every gap it skips.
             let d = if down {
                 let (c0, c1) = (l.map_y(k0 as f64, ys.0, ys.1), l.map_y(k1 as f64, ys.0, ys.1));
-                let half = (l.map_y(k0 as f64 + SLOT_HALF, ys.0, ys.1) - c0).abs();
+                let half = match layered {
+                    true => LAYERED_SLOT_PX / 2.0,
+                    false => (l.map_y(k0 as f64 + SLOT_HALF, ys.0, ys.1) - c0).abs(),
+                };
                 let toward = if c1 >= c0 { 1.0 } else { -1.0 };
                 let (y0, y1) = (c0 + toward * half, c1 - toward * half);
                 let my = (y0 + y1) / 2.0;
@@ -217,8 +235,11 @@ impl SvgRenderer {
                 format!("M {a_lo:.2},{y0:.2} C {a_lo:.2},{my:.2} {b_lo:.2},{my:.2} {b_lo:.2},{y1:.2} \
                          L {b_hi:.2},{y1:.2} C {b_hi:.2},{my:.2} {a_hi:.2},{my:.2} {a_hi:.2},{y0:.2} Z")
             } else {
-                let x0 = l.map_x(k0 as f64 + SLOT_HALF, xs.0, xs.1);
-                let x1 = l.map_x(k1 as f64 - SLOT_HALF, xs.0, xs.1);
+                let (x0, x1) = match layered {
+                    true => (layered_edges(l.map_x(k0 as f64, xs.0, xs.1)).1,
+                             layered_edges(l.map_x(k1 as f64, xs.0, xs.1)).0),
+                    false => (l.map_x(k0 as f64 + SLOT_HALF, xs.0, xs.1), l.map_x(k1 as f64 - SLOT_HALF, xs.0, xs.1)),
+                };
                 let mx = (x0 + x1) / 2.0;
                 let a_hi = l.map_y(hi[r], ys.0, ys.1);
                 let a_lo = l.map_y(lo[r], ys.0, ys.1);
@@ -245,6 +266,71 @@ impl SvgRenderer {
         writeln!(svg, "  </g>").unwrap();
     }
 
+    /// A layered flow's names, each beside its slot: after it along the layers,
+    /// and before it in the last layer, where nothing follows. The slots are
+    /// too thin to hold a name, so the name sits over the bands leaving the
+    /// place, which are translucent, as most published Sankey diagrams put it.
+    #[allow(clippy::too_many_arguments)]
+    pub(crate) fn write_layered_names(
+        &self,
+        svg: &mut String,
+        layer: &Layer,
+        df: &DataFrame,
+        l: &Layout,
+        xs: (f64, f64),
+        ys: (f64, f64),
+        cat_x: Option<&[String]>,
+        cat_y: Option<&[String]>,
+        down: bool,
+    ) {
+        let label_field = layer.encodings.get(&Channel::Label).map(|c| c.field.as_str())
+            .unwrap_or(NODE_NAME);
+        let (lo_name, hi_name) = if down { (CELL_START, CELL_END) } else { (CELL_LOWER, CELL_UPPER) };
+        let (Some(names), Some(stage), Some(lo), Some(hi)) = (
+            df.str_col(label_field), df.str_col(FLOW_STAGE), df.float_col(lo_name), df.float_col(hi_name),
+        ) else {
+            return;
+        };
+        let Some(cats) = (if down { cat_y } else { cat_x }) else { return };
+        let st = &layer.style;
+        let fs = st.size.unwrap_or(self.font_md);
+        let opacity = st.opacity.unwrap_or(1.0);
+        let fill = st.color.as_deref().map(esc).unwrap_or_else(|| NEUTRAL_INK.to_string());
+        let cap = estimate_cap_height(fs);
+        // Which layer comes last is read off the layers' numbers, among every
+        // layer the axis holds: not the axis's list order, which runs bottom to
+        // top down a page, and not this frame's rows, which a selection's pass
+        // cuts down to the places it draws.
+        let number = |s: &str| s.parse::<usize>().unwrap_or(0);
+        let last = cats.iter().map(|c| number(c)).max().unwrap_or(0);
+        writeln!(svg, r##"  <g font-family="system-ui,sans-serif" font-size="{fs}">"##).unwrap();
+        for r in 0..names.len().min(stage.len()).min(lo.len()).min(hi.len()) {
+            let Some(k) = cats.iter().position(|c| *c == stage[r]) else { continue };
+            let mid = (lo[r] + hi[r]) / 2.0;
+            let after = number(&stage[r]) < last;
+            let (x, y, anchor) = if down {
+                let (a, b) = layered_edges(l.map_y(k as f64, ys.0, ys.1));
+                let x = l.map_x(mid, xs.0, xs.1);
+                match after {
+                    true => (x, a.max(b) + LAYERED_NAME_GAP + cap, "middle"),
+                    false => (x, a.min(b) - LAYERED_NAME_GAP, "middle"),
+                }
+            } else {
+                let (a, b) = layered_edges(l.map_x(k as f64, xs.0, xs.1));
+                let y = l.map_y(mid, ys.0, ys.1) + cap / 2.0;
+                match after {
+                    true => (b + LAYERED_NAME_GAP, y, "start"),
+                    false => (a - LAYERED_NAME_GAP, y, "end"),
+                }
+            };
+            writeln!(svg,
+                r#"    <text x="{x:.2}" y="{y:.2}" text-anchor="{anchor}" fill="{fill}" fill-opacity="{opacity:.3}">{}</text>"#,
+                esc(&names[r]),
+            ).unwrap();
+        }
+        writeln!(svg, "  </g>").unwrap();
+    }
+
     // -----------------------------------------------------------------------
     // The shared flow — two columns that name one set of places
     //
@@ -263,7 +349,7 @@ impl SvgRenderer {
     /// two parts with no line between them. The first part holds the ends where
     /// the place is named in the first column and is drawn in the slot's fill;
     /// the second holds the ends where it is named in the second column and is
-    /// drawn a shade darker. One outline goes round the whole place.
+    /// drawn a shade darker. One outline goes around the whole place.
     #[allow(clippy::too_many_arguments)]
     pub(crate) fn write_shared_slots(
         &self,
@@ -481,6 +567,19 @@ impl SvgRenderer {
     }
 }
 
+/// A layered flow's slot thickness along the layers, in pixels. Thin, as a
+/// Sankey diagram's boxes are, since the layers stand far apart and the names
+/// stand beside the slots rather than in them; it carries no data.
+pub(crate) const LAYERED_SLOT_PX: f64 = 14.0;
+
+/// The gap between a layered flow's slot and its name, in pixels.
+const LAYERED_NAME_GAP: f64 = 5.0;
+
+/// A layered slot's two edges along the layers, around its layer's center.
+fn layered_edges(center: f64) -> (f64, f64) {
+    (center - LAYERED_SLOT_PX / 2.0, center + LAYERED_SLOT_PX / 2.0)
+}
+
 /// The gap between a flat shared flow's axis and the names beyond it, in pixels,
 /// where a tick and its number would have stood.
 const SHARED_NAME_GAP: f64 = 6.0;
@@ -633,8 +732,9 @@ fn ring_band(p: &Polar, a: (f64, f64), b: (f64, f64), xs: (f64, f64), ys: (f64, 
     d
 }
 
-/// **A shared flow is drawn on white and with no frame, unless `theme()` says
-/// otherwise** (2026-10-03, at the author's word). Neither of its axes measures
+/// **A shared or layered flow is drawn on white and with no frame, unless
+/// `theme()` says otherwise** (2026-10-03, at the author's word; the layered
+/// flow joined the same day, for the same reason). Neither of its axes measures
 /// anything a reader can use, so neither is drawn, and the frame's two lines
 /// were left bounding nothing: along the count the slots stand on the line and
 /// draw it themselves, and the line across it was an axis with nothing on it.
@@ -643,8 +743,8 @@ fn ring_band(p: &Polar, a: (f64, f64), b: (f64, f64), xs: (f64, f64), ys: (f64, 
 /// are defaults and not rulings: `theme(background = "#f5f5f8", frame = "axes")`
 /// draws the panel every other plot has. Runs on the renderer's resolved copy of
 /// the spec, so nothing the author wrote changes.
-pub(crate) fn shared_flow_ground(spec: &mut crate::ir::PlotSpec) {
-    if !spec.layers.iter().any(|l| l.flow_is_shared()) {
+pub(crate) fn link_flow_ground(spec: &mut crate::ir::PlotSpec) {
+    if !spec.layers.iter().any(|l| l.flow_reads_links()) {
         return;
     }
     let mut theme = spec.theme.resolved();

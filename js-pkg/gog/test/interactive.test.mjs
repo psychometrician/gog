@@ -1233,6 +1233,50 @@ test("a click on an arc diagram's slot selects the place at both ends", async ()
   }
 });
 
+// **The Sankey diagram takes the same click.** A layered flow's slots are thin
+// boxes, each a place of both columns, so a bare brush's click becomes a bound
+// on `name` and keeps the place's own links: the two incomes into `Income` and
+// its two links out, four of the six rows.
+test("a click on a layered flow's slot selects the place's own links", async () => {
+  const undo = stubDom();
+  try {
+    const engine = await loadEngine(fs.readFileSync(WASM));
+    const req = {
+      spec: {
+        data: "t",
+        y: { field: "amount" },
+        layers: ["ribbon", "zone"].map((mark) => ({
+          mark, encodings: {}, transforms: ["flow"],
+          flow: { stages: ["source", "target"], layered: true },
+        })),
+        brush: [{ field: "" }],
+      },
+      data: {
+        t: {
+          strings: {
+            source: ["Salary", "Side", "Income", "Income", "Housing", "Housing"],
+            target: ["Income", "Income", "Taxes", "Housing", "Rent", "Repairs"],
+          },
+          floats: { amount: [30, 10, 15, 25, 20, 5] },
+        },
+      },
+    };
+    const container = stubContainer();
+    const handle = attachBrush(engine, container, req);
+    assert.equal(container.querySelectorAll("[data-gog-slot]").length, 7, "one outline per place");
+    assert.equal(container.querySelectorAll("[data-gog-panel]")[0].getAttribute("data-gog-place"), "flow");
+    clickAt(container, slotCenter(container, "name", "Income"));
+    const seen = handle.selection();
+    assert.equal(seen.kept, 4, "Income's own links, and not Housing's");
+    assert.deepEqual(seen.columns, ["amount", "source", "target"]);
+    clickAt(container, slotCenter(container, "name", "Income"));
+    assert.equal(handle.selection().kept, 0, "a second click clears it");
+    handle.destroy();
+  } finally {
+    undo();
+  }
+});
+
 test("a bare brush on a flow takes its column from the slot a reader clicks", async () => {
   const undo = stubDom();
   try {

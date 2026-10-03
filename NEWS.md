@@ -13,6 +13,13 @@ circle. A flow can also be brushed now.
 dims the rest, and in the browser a click on a country's slot selects that
 country instead.
 
+The Sankey diagram is drawn from a table of links.
+`flow(source, target, layered = TRUE)` puts each place in a layer computed from
+the links, so a band can skip a layer and a flow can stop early: in a
+household's budget, taxes come one step after the income while the energy bill
+lies three steps on. Click a place, or write `brush(name, at = ...)`, to keep
+that place's own links.
+
 A plot's legends can now sit on any side of it. `theme(legend = "bottom")`
 places each legend's entries side by side under the plot, so the panel gets
 shorter instead of narrower. The legend of a continuous color is drawn

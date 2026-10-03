@@ -59,7 +59,7 @@ check_prose <- function(dirs = "book") {
     "silver bullet", "best of both worlds", "from scratch", "bells and whistles",
     "apples to apples", "cuts both ways", "no free lunch",
     "elephant in the room", "tip of the iceberg", "second nature",
-    "load-bearing", "the expert's convenience",
+    "load-bearing", "the expert's convenience", "takes the part of", "take the part of",
     # Added after each one was written into a post on the site and read past by the
     # author, the reviewer and this guard. Every phrase here means something
     # other than the sum of its words, so a translator has to guess: "held" for
@@ -305,7 +305,7 @@ check_prose <- function(dirs = "book") {
   proper <- c("R", "Python", "Julia", "JavaScript", "LOESS", "SVG", "PDF",
               "GIF", "HTML", "CSS", "SQL", "CSV", "JSON", "Quarto", "Quarto's", "Posit",
               "Arrow", "Anthropic", "Wilkinson", "Playfair", "Herschel", "Bertin",
-              "Tufte", "Sejong", "Hangeul", "Hunminjeongeum", "Mercator",
+              "Tufte", "Sejong", "Hangeul", "Hunminjeongeum", "Mercator", "Sankey",
               "Korean", "English", "American", "Law", "Part", "Jupyter",
               "RStudio", "Windows", "macOS", "Linux", "CRAN", "PyPI", "ISO",
               "Cartesian", "Continuous", "Categorical", "Nine", "Laws",

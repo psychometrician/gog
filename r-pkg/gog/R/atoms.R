@@ -881,20 +881,32 @@ partition <- function(..., cross = FALSE) {
 #' one place and arriving at another, gives each place one slot whichever column
 #' names it, and lays every slot on the one count axis.  Flat, that draws the arc
 #' diagram, each band arching from one place to the other; in [polar()] the
-#' count goes round the circle and it draws the chord diagram.  Each slot is in
+#' count goes around the circle and it draws the chord diagram.  Each slot is in
 #' two parts with no line between them: the ends where the place is named in the
 #' first column, in the slot's color, then the ends where it is named in the
 #' second, a shade darker.  So `flow(importer, exporter, shared = TRUE)` shades
 #' the exports instead of the imports.  The panel is white and has no frame
 #' unless [theme()] says otherwise, since the plot has no numbers to read.
 #'
+#' **A list of links whose places stand in layers** takes `layered = TRUE`:
+#' `flow(source, target, layered = TRUE)` reads each row as an amount moving
+#' from one place to another, and puts each place in the first layer after
+#' every place that sends to it.  That draws the Sankey diagram: a band may
+#' skip a layer, and a flow may stop before the last layer.  Each layer is
+#' sorted by where its places' partners are, the places of a layer stand a gap
+#' apart, and each name stands beside its slot.  Links that form a cycle have
+#' no layers and are refused.
+#'
 #' @param ... The stage columns, bare names, in reading order.  At least two:
 #'   one column has no between.
 #' @param shared `TRUE` when the two columns name one set of places, the place
-#'   each amount leaves and the place it arrives at.  `FALSE`, the default, runs
-#'   the columns as stages side by side.
+#'   each amount leaves and the place it arrives at, laid on one axis.
+#'   `FALSE`, the default, runs the columns as stages side by side.
+#' @param layered `TRUE` when each row is a link between two places, and the
+#'   places stand in layers worked out from the links: the Sankey diagram.
+#'   Not together with `shared = TRUE`.
 #' @export
-flow <- function(..., shared = FALSE) {
+flow <- function(..., shared = FALSE, layered = FALSE) {
   stages <- vapply(as.list(substitute(list(...)))[-1L], deparse, character(1))
   if (length(stages) < 2L) {
     stop("gog: `flow()` needs at least two stage columns, in reading order \u2014 ",
@@ -906,8 +918,15 @@ flow <- function(..., shared = FALSE) {
          "one set of places on one axis, `flow(exporter, importer, shared = TRUE)`; ",
          "FALSE runs the columns as stages side by side.", call. = FALSE)
   }
+  if (!is.logical(layered) || length(layered) != 1L || is.na(layered)) {
+    stop("gog: `flow(layered = )` is TRUE or FALSE. TRUE reads each row as a ",
+         "link and stands the places in layers worked out from the links, ",
+         "`flow(source, target, layered = TRUE)`; FALSE runs the columns as ",
+         "stages side by side.", call. = FALSE)
+  }
   structure(
-    list(type = "transform", transform = "flow", stages = stages, shared = shared),
+    list(type = "transform", transform = "flow", stages = stages, shared = shared,
+         layered = layered),
     class = "gog_atom"
   )
 }

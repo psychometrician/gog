@@ -488,7 +488,7 @@ def partition(*levels: Column, cross: bool = False) -> Atom:
     )
 
 
-def flow(*stages: Column, shared: bool = False) -> Atom:
+def flow(*stages: Column, shared: bool = False, layered: bool = False) -> Atom:
     """Lay a magnitude through its stages — the flow diagram.
 
     The stages arrive as **columns**, in reading order: one row of the table is
@@ -512,13 +512,22 @@ def flow(*stages: Column, shared: bool = False) -> Atom:
     `flow(col.exporter, col.importer, shared=True)` reads each row as an amount
     leaving one place and arriving at another, gives each place one slot
     whichever column names it, and lays every slot on the one count axis. Flat,
-    that draws the arc diagram; in `polar()` the count goes round the circle and
+    that draws the arc diagram; in `polar()` the count goes around the circle and
     it draws the chord diagram. Each slot is in two parts with no line between
     them: the ends where the place is named in the first column, in the slot's
     color, then the ends where it is named in the second, a shade darker. So
     `flow(col.importer, col.exporter, shared=True)` shades the exports instead of
     the imports. The panel is white and has no frame unless `theme()` says
     otherwise, since the plot has no numbers to read.
+
+    **A list of links whose places stand in layers** takes `layered=True`:
+    `flow(col.source, col.target, layered=True)` reads each row as an amount
+    moving from one place to another, and puts each place in the first layer
+    after every place that sends to it. That draws the Sankey diagram: a band
+    may skip a layer, and a flow may stop before the last layer. Each layer is
+    sorted by where its places' partners are, the places of a layer stand a gap
+    apart, and each name stands beside its slot. Links that form a cycle have no
+    layers and are refused.
     """
     if len(stages) < 2:
         raise GogError(
@@ -532,6 +541,13 @@ def flow(*stages: Column, shared: bool = False) -> Atom:
             "one set of places on one axis, `flow(col.exporter, col.importer, "
             "shared=True)`; False runs the columns as stages side by side."
         )
+    if not isinstance(layered, bool):
+        raise GogError(
+            "gog: `flow(layered=)` is True or False. True reads each row as a link "
+            "and stands the places in layers worked out from the links, "
+            "`flow(col.source, col.target, layered=True)`; False runs the columns "
+            "as stages side by side."
+        )
     return Atom(
         "transform",
         transform="flow",
@@ -539,6 +555,7 @@ def flow(*stages: Column, shared: bool = False) -> Atom:
         # Sent only when True, as `partition`'s `cross` is, so a stage flow's
         # wire form is the bytes it always was.
         shared=True if shared else None,
+        layered=True if layered else None,
     )
 
 

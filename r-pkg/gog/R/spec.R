@@ -145,6 +145,7 @@ carry_partition_params <- function(layer, tr) {
     # Sent only when TRUE, as `cross` is, so a stage flow's wire form is the
     # bytes it always was.
     if (isTRUE(tr$shared)) layer$flow$shared <- TRUE
+    if (isTRUE(tr$layered)) layer$flow$layered <- TRUE
   }
   # And a layout its two endpoints.
   if (identical(tr$transform, "layout")) {

@@ -224,6 +224,32 @@ winds <- data.frame(
 winds$bearing <- winds$bearing %% 360
 rm(.compass, .n_by_dir)
 
+# -- A month of a household's money, as links (the Sankey diagram) ----------
+# One row per link: an amount moving from one place to the next, from two
+# incomes into one, and on through spending groups to items and their parts.
+# The groups, items and parts carry the `spending` table's own amounts, so the
+# Sankey diagram and the sunburst draw one household. The branches stop at
+# different depths, taxes and savings one step after the income, rent two
+# steps, energy three, which is what stage columns cannot hold.
+budget <- data.frame(
+  source = c("Salary", "Side work", "Income", "Income", "Income", "Income",
+             "Income", "Income", "Housing", "Housing", "Housing", "Utilities",
+             "Utilities", "Food", "Food", "Transport", "Transport", "Car", "Car",
+             "Leisure", "Leisure", "Leisure"),
+  target = c("Income", "Income", "Taxes", "Housing", "Food", "Transport",
+             "Leisure", "Savings", "Rent", "Utilities", "Repairs", "Energy",
+             "Water", "Groceries", "Eating out", "Car", "Season ticket", "Fuel",
+             "Insurance", "Holidays", "Hobbies", "Subscriptions"),
+  amount = c(3400, 600, 900, 1275, 605, 315, 295, 610, 980, 175, 120, 140, 35,
+             420, 185, 205, 110, 130, 75, 160, 90, 45),
+  stringsAsFactors = FALSE
+)
+stopifnot(
+  # What comes in is what goes out, at every place a link passes through.
+  sum(budget$amount[budget$target == "Income"]) == sum(budget$amount[budget$source == "Income"]),
+  sum(budget$amount[budget$target == "Housing"]) == sum(budget$amount[budget$source == "Housing"])
+)
+
 # -- What killed the British army in the East (Nightingale's rose) -----------
 # The polar chapter opens with Florence Nightingale's 1858 diagram, so it draws
 # her data rather than an imitation of it: the deaths in each month from April

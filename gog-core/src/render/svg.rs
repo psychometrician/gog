@@ -392,7 +392,7 @@ impl SvgRenderer {
         // same resolution inside `legality::check`.
         let mut resolved = crate::legality::resolve_scopes(spec);
         crate::render::legend::neutral_beside_a_color_guide(&mut resolved);
-        crate::render::marks::shared_flow_ground(&mut resolved);
+        crate::render::marks::link_flow_ground(&mut resolved);
         let spec = &resolved;
         let ctx = RenderContext::new(spec, data);
 
@@ -470,7 +470,11 @@ impl SvgRenderer {
         // that room). So neither axis has ticks, numbers, a name or gridlines.
         let shared_flow = spec.layers.iter().any(|l| l.flow_is_shared());
         let shared_down = shared_flow && spec.layers.iter().any(|l| crate::legality::flow_runs_down(spec, l));
-        let (blank_x, blank_y) = (shared_flow, shared_flow);
+        // A layered flow's axes are blank for the same reasons: its layers are
+        // worked out from the links and have no names, and its places stand a gap
+        // apart, so a count along the axis runs past every layer's total.
+        let link_flow = spec.layers.iter().any(|l| l.flow_reads_links());
+        let (blank_x, blank_y) = (link_flow, link_flow);
         let draw_x_axis = draw_x_axis && !blank_x;
         let draw_y_axis = draw_y_axis && !blank_y;
         let draw_z_axis = !spec.hides_axis(&Channel::Z);
@@ -1118,6 +1122,18 @@ impl SvgRenderer {
                                     split.push(def.field.clone());
                                 }
                             }
+                        }
+                        // A list of links whose places stand in layers worked out
+                        // from it: the Sankey diagram. Its frames have the stage
+                        // flow's shape, a layer standing for a stage.
+                        if layer.flow_is_layered() && stages.len() == 2 {
+                            let (from, to) = (stages[0].as_str(), stages[1].as_str());
+                            return match layer.mark {
+                                Mark::Ribbon => crate::transform::layered_flow_bands(
+                                    &base, from, to, &split, measure, measure_out, flow_down),
+                                _ => crate::transform::layered_flow_nodes(
+                                    &base, from, to, measure, measure_out, flow_down),
+                            };
                         }
                         // Two columns that share one set of places lie on one axis:
                         // the arc diagram, or the chord diagram on a ring.
@@ -3155,6 +3171,10 @@ impl SvgRenderer {
                             self.write_shared_slots(&mut svg, layer, df, l, xs, ys, flow_down, &clip, !spec.brush.is_empty(), pol_ref),
                         Mark::Text if layer.flow_is_shared() =>
                             self.write_shared_names(&mut svg, layer, df, l, xs, ys, flow_down, pol_ref, tick_angle),
+                        // A layered flow's names stand beside its thin slots; its
+                        // slots and bands are the stage flow's writers'.
+                        Mark::Text if layer.flow_is_layered() =>
+                            self.write_layered_names(&mut svg, layer, df, l, xs, ys, cat_x.as_deref(), cat_y.as_deref(), flow_down),
                         Mark::Ribbon if layer.transforms.contains(&Transform::Flow) =>
                             self.write_flow_bands(&mut svg, layer, df, whole, l, xs, ys, cat_x.as_deref(), cat_y.as_deref(), flow_down, &color_map, &clip),
                         Mark::Ribbon => self.write_ribbon(&mut svg, layer, df, whole, l, xs, ys, x_field, y_field, cat_x.as_deref(), &color_map, &clip, pol_ref),
@@ -7196,6 +7216,61 @@ mod tests {
         assert_eq!(dim.matches(r#"fill="white""#).count(), 2, "and the slots of b and c: {dim}");
         assert!(svg.contains(r#"data-gog-slot="a" data-gog-slot-field="from|to|name""#),
             "a slot is a place of both columns and of `name`: {svg}");
+    }
+
+    /// A household's month, in links, for the layered flow's drawings.
+    fn link_table() -> HashMap<String, DataFrame> {
+        let s = |v: &[&str]| v.iter().map(|x| x.to_string()).collect::<Vec<_>>();
+        HashMap::from([("t".to_string(), DataFrame::new()
+            .with_str("source", s(&["Salary", "Side", "Income", "Income", "Housing", "Housing"]))
+            .with_str("target", s(&["Income", "Income", "Taxes", "Housing", "Rent", "Repairs"]))
+            .with_float("amount", vec![30.0, 10.0, 15.0, 25.0, 20.0, 5.0]))])
+    }
+
+    fn layered_spec() -> PlotSpec {
+        PlotSpec::new().data("t").y("amount")
+            .layer(Layer::new(Mark::Ribbon).flow_layered("source", "target"))
+            .layer(Layer::new(Mark::Zone).flow_layered("source", "target"))
+            .layer(Layer::new(Mark::Text).flow_layered("source", "target")
+                .encode(Channel::Label, crate::transform::NODE_NAME))
+    }
+
+    /// **A layered flow is the Sankey diagram** (2026-10-03). Six links are six
+    /// bands of two curves each, and seven places are seven thin slots, 14 px
+    /// across. Neither axis is drawn and the panel is white with no frame, as
+    /// for the shared flow. A name stands after its slot, over the bands that
+    /// leave it, and before it in the last layer, where nothing leaves.
+    #[test]
+    fn a_layered_flow_is_the_sankey_diagram() {
+        let svg = SvgRenderer::default().render(&layered_spec(), &link_table());
+        assert_eq!(svg.matches(" C ").count(), 12, "six bands of two curves: {svg}");
+        let slots: Vec<&str> = svg.lines()
+            .filter(|l| l.contains("<rect") && l.contains(r#"fill="white" fill-opacity="1.000""#)).collect();
+        assert_eq!(slots.len(), 7, "one slot per place: {svg}");
+        assert!(slots.iter().all(|l| l.contains(r#"width="14.00""#)), "thin slots: {slots:?}");
+        assert!(!svg.contains(r##"<g stroke="#5a5a64" stroke-width="1.5" fill="none">"##), "no frame");
+        let name = |p: &str| svg.lines().find(|l| l.contains(&format!(">{p}</text>")))
+            .unwrap_or_else(|| panic!("{p} is named: {svg}")).to_string();
+        assert!(name("Salary").contains(r#"text-anchor="start""#), "after the first layer's slot");
+        assert!(name("Income").contains(r#"text-anchor="start""#), "after a middle layer's slot");
+        assert!(name("Rent").contains(r#"text-anchor="end""#), "before the last layer's slot");
+    }
+
+    /// **A brush on a layered flow's `name` keeps the place's own links**, one
+    /// step each way: the two incomes into `Income` and its links to `Taxes` and
+    /// `Housing` stay, while `Housing`'s own links step back, since a band out of
+    /// `Housing` cannot say how much of it came through `Income`. Every other
+    /// place's slot steps back too, as on the shared flow, and each slot names
+    /// both columns and `name` for the page's click.
+    #[test]
+    fn a_brush_on_a_layered_flows_name_keeps_the_places_own_links() {
+        let spec = layered_spec().brush(crate::ir::BrushDef::new("name").levels(vec!["Income".to_string()]));
+        let svg = SvgRenderer::default().render(&spec, &link_table());
+        let dim = dimmed_pass(&svg);
+        assert_eq!(dim.matches(" C ").count(), 4, "Housing's two links step back: {dim}");
+        assert_eq!(dim.matches(r#"fill="white" fill-opacity"#).count(), 6, "every slot but Income's: {dim}");
+        assert!(svg.contains(r#"data-gog-slot="Income" data-gog-slot-field="source|target|name""#), "{svg}");
+        assert!(svg.contains(r#"data-gog-place="flow""#), "a drag selects nothing here");
     }
 
     /// **On a stage flow, a brush on `name` speaks to the stage where it names a

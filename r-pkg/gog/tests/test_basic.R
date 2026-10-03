@@ -3025,6 +3025,29 @@ refuses("flow(shared = ) that is not TRUE or FALSE", flow(from, to, shared = "ye
         "TRUE or FALSE")
 cat("PASS: a shared flow draws the arc diagram flat and the chord diagram in polar\n")
 
+# A list of links whose places stand in layers is the Sankey diagram: two
+# incomes into one, and where it went. Six links are six bands of two curves,
+# seven places seven thin slots; a brush on `name` keeps the place's own links,
+# so Housing's two links step back; links that form a cycle are refused.
+links <- data.frame(source = c("Salary", "Side", "Income", "Income", "Housing", "Housing"),
+                    target = c("Income", "Income", "Taxes", "Housing", "Rent", "Repairs"),
+                    amount = c(30, 10, 15, 25, 20, 5), stringsAsFactors = FALSE)
+sankey <- data(links) + y(amount) + ribbon * flow(source, target, layered = TRUE) +
+  zone * flow(source, target, layered = TRUE)
+drawn <- render_svg(sankey)
+if (count_in(" C ", drawn) != 12) stop("FAIL: a layered flow should draw six bands")
+if (count_in('width="14.00"', drawn) != 7) stop("FAIL: a layered flow should draw seven thin slots")
+if (count_in(" C ", flow_dimmed(render_svg(sankey + brush(name, at = "Income")))) != 4)
+  stop("FAIL: brush(name) on a layered flow should keep the place's own links")
+ring <- data.frame(source = c("A", "B"), target = c("B", "A"), amount = c(1, 2),
+                   stringsAsFactors = FALSE)
+refuses("a layered flow whose links form a cycle",
+        render_svg(data(ring) + y(amount) + ribbon * flow(source, target, layered = TRUE)),
+        "form a cycle")
+refuses("flow(layered = ) that is not TRUE or FALSE", flow(source, target, layered = "yes"),
+        "TRUE or FALSE")
+cat("PASS: a layered flow draws the Sankey diagram\n")
+
 m <- tryCatch({
   render_svg(data(brush_df) + line + x(v) + y(w) + brush(v, at = c(2, 4))); ""
 }, error = function(e) conditionMessage(e))

@@ -940,7 +940,8 @@ pub struct PartitionSpec {
 /// Slot order is the category order the axis already owns (`order()` composes),
 /// the stacks are contiguous so the measure axis stays honest, and a quality
 /// knob waits for a measured defect — §18's `tri` refusal is the standing
-/// warning against finishing someone else's list.
+/// warning against finishing someone else's list. A layered flow (below) does
+/// order and space its places, but by one fixed rule each, with no field.
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 pub struct FlowSpec {
     /// The stages, in reading order: `flow(class, sex, survived)` puts `class`
@@ -958,6 +959,16 @@ pub struct FlowSpec {
     /// would invite a third reading.
     #[serde(default, skip_serializing_if = "std::ops::Not::not")]
     pub shared: bool,
+    /// **Each row is a link, and the places stand in layers worked out from the
+    /// links** (`flow(source, target, layered = TRUE)`, 2026-10-03, at the
+    /// author's word): the Sankey diagram drawn from a list of links. A place
+    /// stands in the first layer after every place that sends to it, so a band
+    /// may skip a layer or stop before the last one, which stage columns cannot
+    /// say. Its own boolean rather than a value of `shared`: the two say where
+    /// the places stand, one axis or layers, and a sentence that says both is
+    /// refused as a contradiction rather than ranked.
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub layered: bool,
 }
 
 /// The two endpoint columns for the `layout` transform (`layout(from, to)`),
@@ -1771,6 +1782,7 @@ impl Layer {
         self.flow = Some(FlowSpec {
             stages: stages.iter().map(|s| s.to_string()).collect(),
             shared: false,
+            layered: false,
         });
         self
     }
@@ -1783,6 +1795,20 @@ impl Layer {
         self.flow = Some(FlowSpec {
             stages: vec![from.to_string(), to.to_string()],
             shared: true,
+            layered: false,
+        });
+        self
+    }
+
+    /// Attach a `flow` whose rows are links and whose places stand in layers
+    /// worked out from them (`flow(source, target, layered = TRUE)`): the Sankey
+    /// diagram.
+    pub fn flow_layered(mut self, from: &str, to: &str) -> Self {
+        self.transforms.push(Transform::Flow);
+        self.flow = Some(FlowSpec {
+            stages: vec![from.to_string(), to.to_string()],
+            shared: false,
+            layered: true,
         });
         self
     }
@@ -1790,6 +1816,20 @@ impl Layer {
     /// Does this layer read a flow whose columns share one set of places?
     pub fn flow_is_shared(&self) -> bool {
         self.flow.as_ref().is_some_and(|f| f.shared)
+    }
+
+    /// Does this layer read a flow whose places stand in layers worked out from
+    /// its links?
+    pub fn flow_is_layered(&self) -> bool {
+        self.flow.as_ref().is_some_and(|f| f.layered)
+    }
+
+    /// Does this layer read its flow's rows as links between one set of places,
+    /// the shared flow's reading and the layered flow's alike? Both columns then
+    /// name places of either end, which is what a brush and a click on a slot
+    /// read.
+    pub fn flow_reads_links(&self) -> bool {
+        self.flow.as_ref().is_some_and(|f| f.shared || f.layered)
     }
 
     /// Attach a `layout` transform naming the two endpoint columns

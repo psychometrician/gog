@@ -899,6 +899,39 @@ end
     @test occursin(frame_line, render_svg(shared_flow + theme(frame = "axes")))
 end
 
+# A list of links whose places stand in layers is the Sankey diagram: six links
+# are six bands, seven places seven thin slots; a brush on `name` keeps the
+# place's own links; links that form a cycle are refused.
+@testset "a layered flow draws the Sankey diagram" begin
+    links = Dict("source" => ["Salary", "Side", "Income", "Income", "Housing", "Housing"],
+                 "target" => ["Income", "Income", "Taxes", "Housing", "Rent", "Repairs"],
+                 "amount" => [30.0, 10.0, 15.0, 25.0, 20.0, 5.0])
+    sankey = data(links; name = "links") + y(:amount) +
+             ribbon * flow(:source, :target; layered = true) +
+             zone * flow(:source, :target; layered = true)
+    drawn = render_svg(sankey)
+    @test Base.count(" C ", drawn) == 12
+    @test Base.count("width=\"14.00\"", drawn) == 7
+    picked = render_svg(sankey + brush(:name, at = "Income"))
+    rest = Base.split(picked, "<g opacity=\"0.150\">"; limit = 2)[2]
+    depth = 1
+    kept = String[]
+    for line in Base.split(rest, "\n")
+        t = strip(line)
+        if startswith(t, "</g>")
+            depth -= 1
+            depth == 0 && break
+        elseif startswith(t, "<g") && !endswith(t, "/>")
+            depth += 1
+        end
+        push!(kept, line)
+    end
+    @test Base.count(" C ", Base.join(kept, "\n")) == 4
+    ring = Dict("source" => ["A", "B"], "target" => ["B", "A"], "amount" => [1.0, 2.0])
+    @refuses render_svg(data(ring; name = "ring") + y(:amount) +
+                        ribbon * flow(:source, :target; layered = true)) "form a cycle"
+end
+
 # ---------------------------------------------------------------------------
 # tick_count — how many ticks an axis aims for (spec §10)
 #

@@ -522,13 +522,22 @@ export function partition(...levels) {
  * `flow(col.exporter, col.importer, { shared: true })` reads each row as an
  * amount leaving one place and arriving at another, gives each place one slot
  * whichever column names it, and lays every slot on the one count axis. Flat,
- * that draws the arc diagram; in `polar()` the count goes round the circle and
+ * that draws the arc diagram; in `polar()` the count goes around the circle and
  * it draws the chord diagram. Each slot is in two parts with no line between
  * them: the ends where the place is named in the first column, in the slot's
  * color, then the ends where it is named in the second, a shade darker. So
  * `flow(col.importer, col.exporter, { shared: true })` shades the exports
  * instead of the imports. The panel is white and has no frame unless `theme()`
  * says otherwise, since the plot has no numbers to read.
+ *
+ * **A list of links whose places stand in layers** takes `{ layered: true }`:
+ * `flow(col.source, col.target, { layered: true })` reads each row as an amount
+ * moving from one place to another, and puts each place in the first layer
+ * after every place that sends to it. That draws the Sankey diagram: a band may
+ * skip a layer, and a flow may stop before the last layer. Each layer is sorted
+ * by where its places' partners are, the places of a layer stand a gap apart,
+ * and each name stands beside its slot. Links that form a cycle have no layers
+ * and are refused.
  */
 export function flow(...stages) {
   let options = {};
@@ -542,13 +551,14 @@ export function flow(...stages) {
         "`col.class` to its `col.survived`. One column has no between."
     );
   }
-  const { shared = false, ...rest } = options;
+  const { shared = false, layered = false, ...rest } = options;
   const unknown = Object.keys(rest);
   if (unknown.length) {
     throw new GogError(
-      "gog: `flow()` takes `shared` — `flow(col.exporter, col.importer, " +
-        `{ shared: true })\` lays two columns that name one set of places on one axis. ` +
-        `Got: \`${unknown.join("`, `")}\`.`
+      "gog: `flow()` takes `shared` and `layered` — `flow(col.exporter, col.importer, " +
+        `{ shared: true })\` lays two columns that name one set of places on one axis, ` +
+        "and `flow(col.source, col.target, { layered: true })` stands them in layers " +
+        `worked out from the links. Got: \`${unknown.join("`, `")}\`.`
     );
   }
   if (typeof shared !== "boolean") {
@@ -558,12 +568,21 @@ export function flow(...stages) {
         "{ shared: true })`; false runs the columns as stages side by side."
     );
   }
+  if (typeof layered !== "boolean") {
+    throw new GogError(
+      "gog: `flow({ layered })` is true or false. true reads each row as a link " +
+        "and stands the places in layers worked out from the links, " +
+        "`flow(col.source, col.target, { layered: true })`; false runs the " +
+        "columns as stages side by side."
+    );
+  }
   return new Atom("transform", {
     transform: "flow",
     stages: stages.map((stage) => columnName(stage, "flow")),
     // Sent only when true, as `partition`'s `cross` is, so a stage flow's wire
     // form is the bytes it always was — `carry` drops an `undefined`.
     shared: shared ? true : undefined,
+    layered: layered ? true : undefined,
   });
 }
 

@@ -1211,6 +1211,42 @@ test("a shared flow draws the arc diagram flat and the chord diagram in polar", 
   refuses(() => flow(col.from, col.to, { shared: "yes" }), /true or false/);
 });
 
+// A list of links whose places stand in layers is the Sankey diagram: six links
+// are six bands, seven places seven thin slots; a brush on `name` keeps the
+// place's own links; links that form a cycle are refused.
+test("a layered flow draws the Sankey diagram", () => {
+  const links = {
+    source: ["Salary", "Side", "Income", "Income", "Housing", "Housing"],
+    target: ["Income", "Income", "Taxes", "Housing", "Rent", "Repairs"],
+    amount: [30, 10, 15, 25, 20, 5],
+  };
+  const count = (s, part) => s.split(part).length - 1;
+  const parts = (...more) => plot(data(links, { name: "links" }), y(col.amount),
+    layer(ribbon, flow(col.source, col.target, { layered: true })),
+    layer(zone, flow(col.source, col.target, { layered: true })), ...more);
+  const drawn = render_svg(parts());
+  assert.equal(count(drawn, " C "), 12, "six bands");
+  assert.equal(count(drawn, 'width="14.00"'), 7, "seven thin slots");
+  const picked = render_svg(parts(brush(col.name, { at: "Income" })));
+  let depth = 1;
+  const kept = [];
+  for (const line of picked.split('<g opacity="0.150">')[1].split("\n")) {
+    const t = line.trim();
+    if (t.startsWith("</g>")) {
+      depth -= 1;
+      if (depth === 0) break;
+    } else if (t.startsWith("<g") && !t.endsWith("/>")) {
+      depth += 1;
+    }
+    kept.push(line);
+  }
+  assert.equal(count(kept.join("\n"), " C "), 4, "brush(name) keeps the place's own links");
+  const ring = { source: ["A", "B"], target: ["B", "A"], amount: [1, 2] };
+  refuses(() => render_svg(plot(data(ring, { name: "ring" }), y(col.amount),
+    layer(ribbon, flow(col.source, col.target, { layered: true })))), /form a cycle/);
+  refuses(() => flow(col.source, col.target, { layered: "yes" }), /true or false/);
+});
+
 // ---------------------------------------------------------------------------
 // tick_count — how many ticks an axis aims for (spec §10)
 //

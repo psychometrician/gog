@@ -4571,15 +4571,27 @@ fn shared_places(df: &DataFrame, from: &str, to: &str) -> Option<Vec<String>> {
     Some(places)
 }
 
-fn shared_layout(
-    df: &DataFrame, from: &str, to: &str, split: &[String], measure: Option<&str>,
-) -> Option<SharedLayout> {
-    let places = shared_places(df, from, to)?;
+/// One part of a link: the rows that name one pair of places and one value of
+/// each splitting column, their amounts added, as a stage flow's rows sharing a
+/// path are. `split_ranks` is each splitting value's place in its column's
+/// order, which orders a link's parts. Shared by the shared flow and the
+/// layered flow, so the two cannot disagree about which rows make a link.
+struct LinkPart {
+    at: [usize; 2],
+    values: [String; 2],
+    split: Vec<String>,
+    split_ranks: Vec<usize>,
+    w: f64,
+}
+
+/// The parts of a list of links between `places`, in the order they first
+/// appear, each with an amount above zero. A row whose amount is missing,
+/// negative or not a number weighs nothing, and a row naming no place at
+/// either end is no link.
+fn link_parts(
+    df: &DataFrame, from: &str, to: &str, split: &[String], measure: Option<&str>, places: &[String],
+) -> Option<Vec<LinkPart>> {
     let (a, b) = (df.str_col(from)?, df.str_col(to)?);
-    let n = places.len();
-    if n == 0 {
-        return None;
-    }
     let weight = |r: usize| -> f64 {
         match measure.and_then(|m| df.float_col(m)) {
             Some(v) => v.get(r).copied().filter(|x| x.is_finite() && *x >= 0.0).unwrap_or(0.0),
@@ -4601,11 +4613,7 @@ fn shared_layout(
             }
         })
         .collect();
-
-    // Rows sharing a pair of places, and the splitting columns' values, are one
-    // band: their amounts add, as a stage flow's rows sharing a path do.
-    struct Pending { at: [usize; 2], values: [String; 2], split: Vec<String>, split_ranks: Vec<usize>, w: f64 }
-    let mut pending: Vec<Pending> = Vec::new();
+    let mut parts: Vec<LinkPart> = Vec::new();
     for r in 0..a.len().min(b.len()) {
         if a[r].is_empty() || b[r].is_empty() {
             continue;
@@ -4617,14 +4625,28 @@ fn shared_layout(
             .map(|(v, cs)| cs.iter().position(|c| c == v).unwrap_or(cs.len()))
             .collect();
         let w = weight(r);
-        match pending.iter_mut().find(|p| p.at == [i, j] && p.split == part) {
+        match parts.iter_mut().find(|p| p.at == [i, j] && p.split == part) {
             Some(p) => p.w += w,
-            None => pending.push(Pending {
+            None => parts.push(LinkPart {
                 at: [i, j], values: [a[r].clone(), b[r].clone()], split: part, split_ranks: ranks, w,
             }),
         }
     }
-    pending.retain(|p| p.w > 0.0);
+    parts.retain(|p| p.w > 0.0);
+    Some(parts)
+}
+
+fn shared_layout(
+    df: &DataFrame, from: &str, to: &str, split: &[String], measure: Option<&str>,
+) -> Option<SharedLayout> {
+    let places = shared_places(df, from, to)?;
+    let n = places.len();
+    if n == 0 {
+        return None;
+    }
+    // Rows sharing a pair of places, and the splitting columns' values, are one
+    // band: their amounts add, as a stage flow's rows sharing a path do.
+    let pending = link_parts(df, from, to, split, measure, &places)?;
     if pending.is_empty() {
         return None;
     }
@@ -4745,6 +4767,489 @@ pub fn shared_flow_bands(
     let mut out = DataFrame::new()
         .with_str(FLOW_PATH, path)
         .with_str(FLOW_END, end)
+        .with_float(lo_name, lo)
+        .with_float(hi_name, hi);
+    if !measure_out.is_empty() && measure_out != FLOW_STAGE {
+        out = out.with_float(measure_out, mid);
+    }
+    for (c, col) in [from, to].into_iter().zip(carried) {
+        out = match df.levels(c) {
+            Some(lv) => out.with_levels(c.to_string(), col, lv.to_vec()),
+            None => out.with_str(c.to_string(), col),
+        };
+    }
+    for (name, col) in split_names.into_iter().zip(split_carried) {
+        if name == from || name == to {
+            continue;
+        }
+        out = match df.levels(name) {
+            Some(lv) => out.with_levels(name.clone(), col, lv.to_vec()),
+            None => out.with_str(name.clone(), col),
+        };
+    }
+    out
+}
+
+// ---------------------------------------------------------------------------
+// The layered flow — a list of links, its places in layers
+//
+// `flow(source, target, layered = TRUE)` reads each row as a link, as the shared
+// flow does, and stands the places in layers worked out from the links: the
+// Sankey diagram in its general form. Three rules place everything, each fixed
+// and with no setting, chosen by the author from renders on 2026-10-03:
+//
+// 1. **A place stands in the first layer after every place that sends to it.**
+//    A place nothing reaches stands in the first layer, so every flow starts
+//    there, and a band may skip a layer or stop before the last one, which
+//    stage columns cannot say.
+// 2. **Each layer is sorted by where its partners are**: a place's key is the
+//    amount-weighted mean height of the places it links to on one side, read
+//    off every layer stacked in its current order. Four sweeps, forward over the
+//    places' senders, then back over their receivers.
+// 3. **Then each place moves toward its partners, keeping that order**: 32
+//    passes, each place pulled to where its links would run level, the pull
+//    shrinking pass by pass, and places that overlap pushed apart. This is the
+//    relaxation the d3-sankey layout uses, with its re-sorting left out: re-sorted,
+//    a small place could jump past a large one, which drew Wind and Solar below
+//    Oil in the energy prototype and crossed their bands over it.
+//
+// Places in one layer stand a fixed share of the axis apart, so the count axis
+// runs past the largest layer's total and its numbers are no reading of the
+// data; the renderer leaves both axes blank, as it does for the shared flow.
+// ---------------------------------------------------------------------------
+
+/// The gap between two places of one layer, as a share of the count axis.
+const LAYERED_GAP: f64 = 0.035;
+/// The partner sort's sweeps and the relaxation's passes.
+const LAYERED_SWEEPS: usize = 4;
+const LAYERED_PASSES: usize = 32;
+
+/// A layered flow's layout: each place's layer and interval, and each link
+/// part's two ends.
+struct LayeredLayout {
+    places: Vec<String>,
+    /// Each place's layer, from 0; `None` for a place no amount reaches.
+    layer: Vec<Option<usize>>,
+    layers: usize,
+    slots: Vec<(f64, f64)>,
+    bands: Vec<LayeredBand>,
+}
+
+struct LayeredBand {
+    /// The source place's index, then the target's.
+    at: [usize; 2],
+    ends: [(f64, f64); 2],
+    values: [String; 2],
+    split: Vec<String>,
+}
+
+/// A layer's name on the stage axis: its number, from 1. The axis is drawn
+/// blank, so the names only key the slots to their layer.
+fn layer_label(k: usize) -> String {
+    (k + 1).to_string()
+}
+
+/// The links of a list, each pair of places once, its amount the sum of its
+/// parts, in the order the pairs first appear.
+fn link_pairs(parts: &[LinkPart]) -> Vec<([usize; 2], f64)> {
+    let mut pairs: Vec<([usize; 2], f64)> = Vec::new();
+    for p in parts {
+        match pairs.iter_mut().find(|(at, _)| *at == p.at) {
+            Some((_, w)) => *w += p.w,
+            None => pairs.push((p.at, p.w)),
+        }
+    }
+    pairs
+}
+
+/// A cycle among a list of links, as the places along it with the first one
+/// again at the end (`["A", "B", "A"]`), or `None`. A link from a place to
+/// itself is a cycle of one. Rows that weigh nothing are no links, as in the
+/// layout. A layered flow places each place after every place that sends to
+/// it, so a cycle has no order, and `check_flow` refuses it with this path.
+pub fn flow_cycle(df: &DataFrame, from: &str, to: &str, measure: Option<&str>) -> Option<Vec<String>> {
+    let places = shared_places(df, from, to)?;
+    let pairs = link_pairs(&link_parts(df, from, to, &[], measure, &places)?);
+    let n = places.len();
+    let mut outs: Vec<Vec<usize>> = vec![Vec::new(); n];
+    for (at, _) in &pairs {
+        outs[at[0]].push(at[1]);
+    }
+    // Depth-first, in place order: 0 unseen, 1 on the current path, 2 done.
+    let mut state = vec![0u8; n];
+    let mut path: Vec<usize> = Vec::new();
+    fn visit(i: usize, outs: &[Vec<usize>], state: &mut [u8], path: &mut Vec<usize>) -> Option<Vec<usize>> {
+        state[i] = 1;
+        path.push(i);
+        for &j in &outs[i] {
+            if state[j] == 1 {
+                let from = path.iter().position(|&p| p == j).unwrap_or(0);
+                let mut cycle = path[from..].to_vec();
+                cycle.push(j);
+                return Some(cycle);
+            }
+            if state[j] == 0 {
+                if let Some(c) = visit(j, outs, state, path) {
+                    return Some(c);
+                }
+            }
+        }
+        path.pop();
+        state[i] = 2;
+        None
+    }
+    for i in 0..n {
+        if state[i] == 0 {
+            if let Some(c) = visit(i, &outs, &mut state, &mut path) {
+                return Some(c.into_iter().map(|k| places[k].clone()).collect());
+            }
+        }
+    }
+    None
+}
+
+fn layered_layout(
+    df: &DataFrame, from: &str, to: &str, split: &[String], measure: Option<&str>,
+) -> Option<LayeredLayout> {
+    let places = shared_places(df, from, to)?;
+    let n = places.len();
+    let parts = link_parts(df, from, to, split, measure, &places)?;
+    let pairs = link_pairs(&parts);
+    if pairs.is_empty() || pairs.iter().any(|(at, _)| at[0] == at[1]) {
+        return None;
+    }
+    let mut outs: Vec<Vec<usize>> = vec![Vec::new(); n];
+    let mut ins: Vec<Vec<usize>> = vec![Vec::new(); n];
+    for (k, (at, _)) in pairs.iter().enumerate() {
+        outs[at[0]].push(k);
+        ins[at[1]].push(k);
+    }
+
+    // Rule 1: each place's layer, in an order that reaches a place only after
+    // every place that sends to it. A list that never empties is a cycle, which
+    // `check_flow` has refused before a layout is asked for.
+    let mut waiting: Vec<usize> = ins.iter().map(Vec::len).collect();
+    let mut ready: std::collections::VecDeque<usize> = (0..n).filter(|&i| waiting[i] == 0).collect();
+    let mut order = Vec::with_capacity(n);
+    while let Some(i) = ready.pop_front() {
+        order.push(i);
+        for &k in &outs[i] {
+            let j = pairs[k].0[1];
+            waiting[j] -= 1;
+            if waiting[j] == 0 {
+                ready.push_back(j);
+            }
+        }
+    }
+    if order.len() != n {
+        return None;
+    }
+    let mut depth = vec![0usize; n];
+    for &i in &order {
+        depth[i] = ins[i].iter().map(|&k| depth[pairs[k].0[0]] + 1).max().unwrap_or(0);
+    }
+    let amount = |ks: &[usize]| ks.iter().map(|&k| pairs[k].1).sum::<f64>();
+    let value: Vec<f64> = (0..n).map(|i| amount(&outs[i]).max(amount(&ins[i]))).collect();
+    let layers = (0..n).filter(|&i| value[i] > 0.0).map(|i| depth[i]).max()? + 1;
+    let mut cols: Vec<Vec<usize>> = vec![Vec::new(); layers];
+    for i in 0..n {
+        if value[i] > 0.0 {
+            cols[depth[i]].push(i);
+        }
+    }
+
+    // Rule 2: each layer sorted by its places' partners. The sort is stable, so
+    // places with one key keep the order they had, the table's to begin with.
+    let centers = |cols: &[Vec<usize>]| -> Vec<f64> {
+        let mut pos = vec![0.0; n];
+        for c in cols {
+            let total: f64 = c.iter().map(|&i| value[i]).sum();
+            let mut at = 0.0;
+            for &i in c {
+                pos[i] = (at + value[i] / 2.0) / total;
+                at += value[i];
+            }
+        }
+        pos
+    };
+    for _ in 0..LAYERED_SWEEPS {
+        for forward in [true, false] {
+            let span: Vec<usize> = if forward {
+                (1..layers).collect()
+            } else {
+                (0..layers.saturating_sub(1)).rev().collect()
+            };
+            for li in span {
+                let pos = centers(&cols);
+                let key = |i: usize| -> f64 {
+                    let (links, end) = if forward { (&ins[i], 0) } else { (&outs[i], 1) };
+                    let w = amount(links);
+                    if w <= 0.0 {
+                        return pos[i];
+                    }
+                    links.iter().map(|&k| pos[pairs[k].0[end]] * pairs[k].1).sum::<f64>() / w
+                };
+                let mut keyed: Vec<(usize, f64)> = cols[li].iter().map(|&i| (i, key(i))).collect();
+                keyed.sort_by(|x, y| x.1.partial_cmp(&y.1).unwrap_or(std::cmp::Ordering::Equal));
+                cols[li] = keyed.into_iter().map(|(i, _)| i).collect();
+            }
+        }
+    }
+
+    // The axis, and the gap: a fixed share of the axis, so the layer whose
+    // places and gaps need the most room fills it.
+    let most = cols.iter().map(Vec::len).max().unwrap_or(1);
+    let share = if most > 1 { LAYERED_GAP.min(0.8 / (most - 1) as f64) } else { LAYERED_GAP };
+    let height = cols.iter()
+        .map(|c| c.iter().map(|&i| value[i]).sum::<f64>() / (1.0 - c.len().saturating_sub(1) as f64 * share))
+        .fold(0.0, f64::max);
+    let gap = share * height;
+
+    // Each layer stacked in its order, its spare room shared out evenly above,
+    // between and below its places.
+    let mut y0 = vec![0.0; n];
+    for c in &cols {
+        let mut y = 0.0;
+        for &i in c {
+            y0[i] = y;
+            y += value[i] + gap;
+        }
+        let spare = (height - (y - gap)) / (c.len() + 1) as f64;
+        for (k, &i) in c.iter().enumerate() {
+            y0[i] += spare * (k + 1) as f64;
+        }
+    }
+
+    // Rule 3: each place pulled toward its partners. A link's ends sit in each
+    // place in the order of the places at its other end, so a place's ideal
+    // height is where its links would run level; the pull shrinks pass by pass
+    // and places that overlap are pushed apart, the layer's order kept.
+    let sort_links = |outs: &mut [Vec<usize>], ins: &mut [Vec<usize>], y0: &[f64]| {
+        for list in outs.iter_mut() {
+            list.sort_by(|&p, &q| y0[pairs[p].0[1]].partial_cmp(&y0[pairs[q].0[1]])
+                .unwrap_or(std::cmp::Ordering::Equal).then(p.cmp(&q)));
+        }
+        for list in ins.iter_mut() {
+            list.sort_by(|&p, &q| y0[pairs[p].0[0]].partial_cmp(&y0[pairs[q].0[0]])
+                .unwrap_or(std::cmp::Ordering::Equal).then(p.cmp(&q)));
+        }
+    };
+    sort_links(&mut outs, &mut ins, &y0);
+    // Where `target` would stand for the link from `source` to run level.
+    let level_target = |source: usize, target: usize, outs: &[Vec<usize>], ins: &[Vec<usize>], y0: &[f64]| {
+        let mut y = y0[source] - (outs[source].len() as f64 - 1.0) * gap / 2.0;
+        for &k in &outs[source] {
+            if pairs[k].0[1] == target {
+                break;
+            }
+            y += pairs[k].1 + gap;
+        }
+        for &k in &ins[target] {
+            if pairs[k].0[0] == source {
+                break;
+            }
+            y -= pairs[k].1;
+        }
+        y
+    };
+    let level_source = |source: usize, target: usize, outs: &[Vec<usize>], ins: &[Vec<usize>], y0: &[f64]| {
+        let mut y = y0[target] - (ins[target].len() as f64 - 1.0) * gap / 2.0;
+        for &k in &ins[target] {
+            if pairs[k].0[0] == source {
+                break;
+            }
+            y += pairs[k].1 + gap;
+        }
+        for &k in &outs[source] {
+            if pairs[k].0[1] == target {
+                break;
+            }
+            y -= pairs[k].1;
+        }
+        y
+    };
+    let separate = |c: &[usize], y0: &mut [f64], pull: f64| {
+        let bottom = |y0: &[f64], i: usize| y0[i] + value[i];
+        // Push down from `y`, from index `i` on.
+        let down = |y0: &mut [f64], mut y: f64, from: usize| {
+            for &i in &c[from.min(c.len())..] {
+                let dy = (y - y0[i]) * pull;
+                if dy > 1e-9 {
+                    y0[i] += dy;
+                }
+                y = bottom(y0, i) + gap;
+            }
+        };
+        // Push up from `y`, from index `i` back to the first.
+        let up = |y0: &mut [f64], mut y: f64, from: isize| {
+            let mut k = from;
+            while k >= 0 {
+                let i = c[k as usize];
+                let dy = (bottom(y0, i) - y) * pull;
+                if dy > 1e-9 {
+                    y0[i] -= dy;
+                }
+                y = y0[i] - gap;
+                k -= 1;
+            }
+        };
+        if c.is_empty() {
+            return;
+        }
+        let mid = c.len() / 2;
+        let subject = c[mid];
+        up(y0, y0[subject] - gap, mid as isize - 1);
+        down(y0, bottom(y0, subject) + gap, mid + 1);
+        up(y0, height, c.len() as isize - 1);
+        down(y0, 0.0, 0);
+    };
+    for pass in 0..LAYERED_PASSES {
+        let alpha = 0.99f64.powi(pass as i32);
+        let beta = (1.0 - alpha).max((pass + 1) as f64 / LAYERED_PASSES as f64);
+        // Back to front, each place toward the places it sends to.
+        for col in cols.iter().take(layers.saturating_sub(1)).rev() {
+            for &i in col {
+                let (mut y, mut w) = (0.0, 0.0);
+                for &k in &outs[i] {
+                    let t = pairs[k].0[1];
+                    let v = pairs[k].1 * (depth[t] - depth[i]) as f64;
+                    y += level_source(i, t, &outs, &ins, &y0) * v;
+                    w += v;
+                }
+                if w > 0.0 {
+                    y0[i] += (y / w - y0[i]) * alpha;
+                    sort_links(&mut outs, &mut ins, &y0);
+                }
+            }
+            separate(col, &mut y0, beta);
+        }
+        // Front to back, each place toward the places that send to it.
+        for col in cols.iter().skip(1) {
+            for &i in col {
+                let (mut y, mut w) = (0.0, 0.0);
+                for &k in &ins[i] {
+                    let s = pairs[k].0[0];
+                    let v = pairs[k].1 * (depth[i] - depth[s]) as f64;
+                    y += level_target(s, i, &outs, &ins, &y0) * v;
+                    w += v;
+                }
+                if w > 0.0 {
+                    y0[i] += (y / w - y0[i]) * alpha;
+                    sort_links(&mut outs, &mut ins, &y0);
+                }
+            }
+            separate(col, &mut y0, beta);
+        }
+    }
+    sort_links(&mut outs, &mut ins, &y0);
+
+    // Each link's two ends, in its places' link order, and each link's parts in
+    // their splitting values' order across it.
+    let mut link_ends = vec![[(0.0, 0.0); 2]; pairs.len()];
+    for i in 0..n {
+        let mut at = y0[i];
+        for &k in &outs[i] {
+            link_ends[k][0] = (at, at + pairs[k].1);
+            at += pairs[k].1;
+        }
+        let mut at = y0[i];
+        for &k in &ins[i] {
+            link_ends[k][1] = (at, at + pairs[k].1);
+            at += pairs[k].1;
+        }
+    }
+    let mut owned: Vec<(usize, &LinkPart)> = parts.iter()
+        .map(|p| (pairs.iter().position(|(at, _)| *at == p.at).unwrap_or(0), p))
+        .collect();
+    owned.sort_by(|x, y| x.0.cmp(&y.0).then_with(|| x.1.split_ranks.cmp(&y.1.split_ranks)));
+    let mut filled = vec![0.0; pairs.len()];
+    let mut bands = Vec::with_capacity(owned.len());
+    for (k, p) in owned {
+        let off = filled[k];
+        filled[k] += p.w;
+        let [(s0, _), (t0, _)] = link_ends[k];
+        bands.push(LayeredBand {
+            at: p.at,
+            ends: [(s0 + off, s0 + off + p.w), (t0 + off, t0 + off + p.w)],
+            values: p.values.clone(),
+            split: p.split.clone(),
+        });
+    }
+    let slots = (0..n).map(|i| (y0[i], y0[i] + value[i])).collect();
+    let layer = (0..n).map(|i| (value[i] > 0.0).then_some(depth[i])).collect();
+    Some(LayeredLayout { places, layer, layers, slots, bands })
+}
+
+/// A layered flow's slots: one row per place, read by `zone` (the slot) and
+/// `text` (its name), with its layer under [`FLOW_STAGE`], its interval under
+/// the measure pair, and its middle under the measure's own name.
+pub fn layered_flow_nodes(
+    df: &DataFrame, from: &str, to: &str, measure: Option<&str>, measure_out: &str, down: bool,
+) -> DataFrame {
+    let Some(fl) = layered_layout(df, from, to, &[], measure) else {
+        return DataFrame::new();
+    };
+    let (mut name, mut stage, mut lo, mut hi, mut mid) = (Vec::new(), Vec::new(), Vec::new(), Vec::new(), Vec::new());
+    for (i, p) in fl.places.iter().enumerate() {
+        let Some(k) = fl.layer[i] else { continue };
+        let (a, b) = fl.slots[i];
+        name.push(p.clone());
+        stage.push(layer_label(k));
+        lo.push(a);
+        hi.push(b);
+        mid.push((a + b) / 2.0);
+    }
+    let (lo_name, hi_name) = flow_interval_names(down);
+    let out = DataFrame::new()
+        .with_levels(NODE_NAME, name, fl.places.clone())
+        .with_levels(FLOW_STAGE, stage, (0..fl.layers).map(layer_label).collect())
+        .with_float(lo_name, lo)
+        .with_float(hi_name, hi);
+    match measure_out.is_empty() || measure_out == FLOW_STAGE {
+        true => out,
+        false => out.with_float(measure_out, mid),
+    }
+}
+
+/// A layered flow's bands: two rows per band, the end at its source and then
+/// the end at its target, sharing one [`FLOW_PATH`] key, each with its layer
+/// and its interval, so the stage flow's band writer pairs them as it pairs
+/// adjacent stages; a link that skips a layer is one band across the gap.
+/// Both columns ride on both rows, with their declared levels, and so do the
+/// splitting columns.
+pub fn layered_flow_bands(
+    df: &DataFrame, from: &str, to: &str, split: &[String], measure: Option<&str>,
+    measure_out: &str, down: bool,
+) -> DataFrame {
+    let Some(fl) = layered_layout(df, from, to, split, measure) else {
+        return DataFrame::new();
+    };
+    let mut path = Vec::new();
+    let mut stage = Vec::new();
+    let (mut lo, mut hi, mut mid) = (Vec::new(), Vec::new(), Vec::new());
+    let mut carried: [Vec<String>; 2] = [Vec::new(), Vec::new()];
+    let split_names: Vec<&String> = split.iter().filter(|s| df.str_col(s).is_some()).collect();
+    let mut split_carried: Vec<Vec<String>> = vec![Vec::new(); split_names.len()];
+    for (k, band) in fl.bands.iter().enumerate() {
+        for side in 0..2 {
+            path.push(format!("p{k}"));
+            stage.push(layer_label(fl.layer[band.at[side]].unwrap_or(0)));
+            let (a, b) = band.ends[side];
+            lo.push(a);
+            hi.push(b);
+            mid.push((a + b) / 2.0);
+            for (c, col) in carried.iter_mut().enumerate() {
+                col.push(band.values[c].clone());
+            }
+            for (s, col) in split_carried.iter_mut().enumerate() {
+                col.push(band.split[s].clone());
+            }
+        }
+    }
+    let (lo_name, hi_name) = flow_interval_names(down);
+    let mut out = DataFrame::new()
+        .with_str(FLOW_PATH, path)
+        .with_levels(FLOW_STAGE, stage, (0..fl.layers).map(layer_label).collect())
         .with_float(lo_name, lo)
         .with_float(hi_name, hi);
     if !measure_out.is_empty() && measure_out != FLOW_STAGE {
@@ -5589,6 +6094,135 @@ mod tests {
         let arrive = nodes.float_col(FLOW_ARRIVE).expect("each slot carries where its second part begins");
         assert_eq!(arrive, &vec![8.0, 13.0, 23.0, 26.0]);
         assert_eq!(arrive[3], lo[3], "a place that only receives is all second part");
+    }
+
+    /// A household's month, in links: two incomes into one, and where it went,
+    /// with branches that stop at different depths.
+    fn link_frame() -> DataFrame {
+        let s = |v: &[&str]| v.iter().map(|x| x.to_string()).collect::<Vec<_>>();
+        DataFrame::new()
+            .with_str("source", s(&["Salary", "Side", "Income", "Income", "Housing", "Housing"]))
+            .with_str("target", s(&["Income", "Income", "Taxes", "Housing", "Rent", "Repairs"]))
+            .with_float("amount", vec![30.0, 10.0, 15.0, 25.0, 20.0, 5.0])
+    }
+
+    /// **A layered flow stands each place in the first layer after every place
+    /// that sends to it** (2026-10-03). The incomes start, `Income` follows them,
+    /// `Taxes` stops one layer later while `Housing` goes on to `Rent` and
+    /// `Repairs`. Each slot is as long as the larger of what enters and what
+    /// leaves the place, and the places of one layer stand a gap apart.
+    #[test]
+    fn a_layered_flow_stands_each_place_after_the_places_that_send_to_it() {
+        let nodes = layered_flow_nodes(&link_frame(), "source", "target", Some("amount"), "count", false);
+        let name = nodes.str_col(NODE_NAME).unwrap();
+        let stage = nodes.str_col(FLOW_STAGE).unwrap();
+        let lo = nodes.float_col(CELL_LOWER).unwrap();
+        let hi = nodes.float_col(CELL_UPPER).unwrap();
+        let at = |p: &str| name.iter().position(|n| n == p).unwrap();
+        for (p, layer, length) in [("Salary", "1", 30.0), ("Side", "1", 10.0), ("Income", "2", 40.0),
+                                   ("Taxes", "3", 15.0), ("Housing", "3", 25.0), ("Rent", "4", 20.0),
+                                   ("Repairs", "4", 5.0)] {
+            let i = at(p);
+            assert_eq!(stage[i], layer, "{p}'s layer");
+            assert!((hi[i] - lo[i] - length).abs() < 1e-9, "{p} is {length} long");
+        }
+        let (t, h) = (at("Taxes"), at("Housing"));
+        let gap = if lo[t] < lo[h] { lo[h] - hi[t] } else { lo[t] - hi[h] };
+        assert!(gap > 1.0, "two places of one layer stand apart: {gap}");
+    }
+
+    /// **A band is as wide at both ends, and may skip a layer.** A link from
+    /// `Salary` straight to `Rent` crosses two layers in one band. Every band's
+    /// two ends lie inside their places' slots, and the ends at one place do not
+    /// overlap.
+    #[test]
+    fn a_layered_flows_band_is_as_wide_at_both_ends_and_may_skip_a_layer() {
+        let s = |v: &[&str]| v.iter().map(|x| x.to_string()).collect::<Vec<_>>();
+        let mut df = link_frame();
+        df = DataFrame::new()
+            .with_str("source", { let mut v = df.str_col("source").unwrap().clone(); v.extend(s(&["Salary"])); v })
+            .with_str("target", { let mut v = df.str_col("target").unwrap().clone(); v.extend(s(&["Rent"])); v })
+            .with_float("amount", { let mut v = df.float_col("amount").unwrap().clone(); v.push(2.0); v });
+        let bands = layered_flow_bands(&df, "source", "target", &[], Some("amount"), "count", false);
+        let nodes = layered_flow_nodes(&df, "source", "target", Some("amount"), "count", false);
+        let (path, stage) = (bands.str_col(FLOW_PATH).unwrap(), bands.str_col(FLOW_STAGE).unwrap());
+        let (from, to) = (bands.str_col("source").unwrap(), bands.str_col("target").unwrap());
+        let (lo, hi) = (bands.float_col(CELL_LOWER).unwrap(), bands.float_col(CELL_UPPER).unwrap());
+        assert_eq!(path.len(), 14, "seven links, two rows each");
+        let names = nodes.str_col(NODE_NAME).unwrap();
+        let slot = |p: &str| {
+            let i = names.iter().position(|n| n == p).unwrap();
+            (nodes.float_col(CELL_LOWER).unwrap()[i], nodes.float_col(CELL_UPPER).unwrap()[i])
+        };
+        let mut ends_at: std::collections::HashMap<String, Vec<(f64, f64)>> = Default::default();
+        for r in (0..path.len()).step_by(2) {
+            assert_eq!(path[r], path[r + 1]);
+            assert!((hi[r] - lo[r] - (hi[r + 1] - lo[r + 1])).abs() < 1e-9, "both ends as wide");
+            for (row, place) in [(r, &from[r]), (r + 1, &to[r])] {
+                let (a, b) = slot(place);
+                assert!(lo[row] >= a - 1e-9 && hi[row] <= b + 1e-9, "{place}'s end lies in its slot");
+                ends_at.entry(format!("{place}{}", row - r)).or_default().push((lo[row], hi[row]));
+            }
+            if from[r] == "Salary" && to[r] == "Rent" {
+                assert_eq!((stage[r].as_str(), stage[r + 1].as_str()), ("1", "4"), "one band across two layers");
+            }
+        }
+        for (place, mut ends) in ends_at {
+            ends.sort_by(|x, y| x.0.partial_cmp(&y.0).unwrap());
+            for w in ends.windows(2) {
+                assert!(w[0].1 <= w[1].0 + 1e-9, "the ends at {place} do not overlap: {ends:?}", ends = w);
+            }
+        }
+    }
+
+    /// **Links that form a cycle have no layers, and the cycle is named.** The layout
+    /// gives nothing for them and `flow_cycle` gives the places along the cycle,
+    /// so the refusal can say which links to change. A place linked to itself is
+    /// a cycle of one, and links that weigh nothing are no links.
+    #[test]
+    fn a_layered_flows_cycle_is_found_and_named() {
+        let s = |v: &[&str]| v.iter().map(|x| x.to_string()).collect::<Vec<_>>();
+        let ring = DataFrame::new()
+            .with_str("a", s(&["A", "B", "C", "D"]))
+            .with_str("b", s(&["B", "C", "A", "A"]))
+            .with_float("n", vec![1.0, 2.0, 3.0, 4.0]);
+        assert_eq!(flow_cycle(&ring, "a", "b", Some("n")), Some(s(&["A", "B", "C", "A"])));
+        assert!(layered_flow_nodes(&ring, "a", "b", Some("n"), "count", false).is_empty());
+        let selfish = DataFrame::new().with_str("a", s(&["A"])).with_str("b", s(&["A"]));
+        assert_eq!(flow_cycle(&selfish, "a", "b", None), Some(s(&["A", "A"])));
+        let weightless = ring.clone().with_float("n", vec![1.0, 2.0, 0.0, 4.0]);
+        assert_eq!(flow_cycle(&weightless, "a", "b", Some("n")), None, "a link weighing nothing");
+        assert_eq!(flow_cycle(&link_frame(), "source", "target", Some("amount")), None);
+    }
+
+    /// **A layer is sorted by its places' partners, and the order is kept while
+    /// the places move** (the author's choice from the prototype's renders). In
+    /// the prototype's energy table, five sources feed `Electricity`, `Gas` also
+    /// feeds two sectors, and `Oil` feeds `Transport`. d3's layout, which starts
+    /// from the table's order and re-sorts each layer as it moves the places,
+    /// pushed `Wind` and `Solar` past `Oil`, so their bands crossed it (this
+    /// test fails under that rule, seen 2026-10-03); sorted by partners first
+    /// and kept in that order, no place that feeds only `Electricity` stands
+    /// beyond `Oil`.
+    #[test]
+    fn a_layered_flow_keeps_a_places_feeders_together() {
+        let s = |v: &[&str]| v.iter().map(|x| x.to_string()).collect::<Vec<_>>();
+        let df = DataFrame::new()
+            .with_str("a", s(&["Coal", "Gas", "Nuclear", "Wind", "Solar", "Gas", "Gas", "Oil", "Oil",
+                               "Electricity", "Electricity", "Electricity", "Electricity", "Homes", "Homes",
+                               "Industry", "Industry", "Offices", "Offices", "Transport", "Transport"]))
+            .with_str("b", s(&["Electricity", "Electricity", "Electricity", "Electricity", "Electricity",
+                               "Homes", "Industry", "Transport", "Industry", "Homes", "Industry", "Offices",
+                               "Losses", "Used", "Losses", "Used", "Losses", "Used", "Losses", "Used", "Losses"]))
+            .with_float("n", vec![90.0, 120.0, 80.0, 40.0, 20.0, 50.0, 60.0, 270.0, 30.0, 60.0, 50.0, 60.0,
+                                  180.0, 70.0, 40.0, 100.0, 40.0, 40.0, 20.0, 60.0, 210.0]);
+        let nodes = layered_flow_nodes(&df, "a", "b", Some("n"), "count", false);
+        let name = nodes.str_col(NODE_NAME).unwrap();
+        let lo = nodes.float_col(CELL_LOWER).unwrap();
+        let at = |p: &str| lo[name.iter().position(|n| n == p).unwrap()];
+        let oil = at("Oil");
+        let side: Vec<bool> = ["Coal", "Nuclear", "Wind", "Solar"].iter().map(|p| at(p) < oil).collect();
+        assert!(side.iter().all(|x| *x == side[0]), "Electricity's feeders on one side of Oil: {side:?}");
     }
 
     /// **A column that is not a stage splits each path, and its parts stay

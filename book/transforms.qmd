@@ -1608,9 +1608,11 @@ padding, so the measure axis is drawn with its usual ticks and reads true
 counts. A `text` layer names the slots. With `shared = TRUE`, two columns such
 as `exporter` and `importer` name one set of places, and every place lies on one
 axis, which carries no numbers. Drawn flat, it is the arc diagram; in `polar()`,
-it is the chord diagram. The [Flow](flow.qmd)
-chapter builds the full diagram and gives the rules; this section only shows
-where the atom fits among the transforms.
+it is the chord diagram. With `layered = TRUE`, each row is a link from one
+place to another, and gog computes a layer for each place from the links. That
+picture is the Sankey diagram. The [Flow](flow.qmd) chapter builds the full
+diagram and gives the rules; this section only shows where the atom fits among
+the transforms.
 
 ---
 

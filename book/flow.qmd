@@ -10,9 +10,10 @@ that some amount started in one place and finished in another. A flow diagram
 draws that movement. The places are grouped into stages, and the stages are
 drawn side by side. Bands carry each amount from stage to stage. The thicker the
 band, the larger the amount it carries. This picture is an **alluvial diagram**,
-one kind of **Sankey diagram**. [Where the limits are](#where-the-limits-are),
-near the end of this chapter, says which Sankey diagrams gog does not draw. No
-atom spells either name, just as there is no `pie()` atom.
+one kind of **Sankey diagram**. The section [Links in layers](#links-in-layers)
+shows a Sankey diagram drawn from a table of links, and [Where the limits
+are](#where-the-limits-are) says what gog does not draw. No atom spells either
+name, just as there is no `pie()` atom.
 
 gog builds that picture out of the table's own columns. A **stage** is one of
 the table's categorical columns. Its distinct values are the possible places at
@@ -198,7 +199,8 @@ With three stages the bands cross one another, and when every band has the same
 color, one band is hard to follow through a crossing. A band runs through every
 stage, so any stage can color it. The finished diagram at the start of this
 chapter colors each band by `survived`, the slot it arrives at. Coloring by
-`class` gives each band the color of the slot it starts from instead:
+`class` gives each band the color of the slot it leaves at the first stage
+instead:
 
 ```{r}
 data(titanic) + y(n) +
@@ -613,6 +615,89 @@ slot is dimmed. On a flow with stages, `brush(name, at = "Female")` keeps the
 same bands as `brush(sex, at = "Female")`. The two differ only when one name
 stands at two stages, and `name` then selects both.
 
+## Links in layers
+
+Some tables record movement whose paths do not all pass through the same
+stages. `budget` holds one household's money for a month. Two incomes are added
+into one, Income. From there the money goes to Taxes, Savings and four groups of
+spending, and each group divides again. Each row is one **link**, an amount that
+moves from one place to the next:
+
+```{r}
+#| echo: false
+peek(budget)
+```
+
+Taxes and Savings are one step after Income, and no band leaves them. Rent is
+one step later, and no band leaves it either. Utilities, at the same step as
+Rent, divides again into Energy and Water. Stage columns cannot hold that,
+because every row would need a value at every stage. `layered = TRUE` says that
+each row is a link between two places. gog then puts the places in **layers**. A
+layer is drawn like a stage, but gog computes it from the links instead of
+reading a column. It is a different thing from a layer of the sentence, such as
+the `ribbon` layer:
+
+```{r}
+data(budget) + y(amount) +
+  ribbon * flow(source, target, layered = TRUE) + color(source) +
+  zone * flow(source, target, layered = TRUE) +
+  text * flow(source, target, layered = TRUE) + label(name) +
+  title("A month of a household's money")
+```
+
+*"Given the budget: y is amount, ribbons derived by flow through source and
+target, layered, colored by source, and also zones derived by flow through source
+and target, layered, and text derived by flow through source and target,
+layered, label by name."*
+
+This picture is a Sankey diagram. Each place stands in the first layer that
+comes after every place that sends to it. Salary and Side work send to Income,
+so Income stands in the second layer. Taxes stands in the third layer, and no
+band leaves it. Energy stands in the fifth layer, after Housing in the third and
+Utilities in the fourth. Each slot is as tall as the larger of what arrives at
+the place and what leaves it. A small gap separates the places of one layer.
+`color(source)` gives each band the color of the place it leaves.
+
+gog also computes the order of the places in each layer. It puts each place
+near the places it links to, so that few bands cross. The slots are too narrow
+to hold a name, so each name stands beside its slot. In every layer but the
+last, it stands to the right, on top of any bands that leave the place. In the
+last layer it stands to the left. Like the shared flow, a layered flow writes no numbers on its axes.
+Its layers have no names to write along one axis. Along the other, the gaps
+between places take space too, so the edge of a slot is not a running total
+there.
+
+## A Sankey diagram and an alluvial diagram
+
+A layered flow adds up the amounts that arrive at a place. Salary and Side work
+both arrive at Income. The band from Income to Housing holds money from each,
+and the picture cannot show how much. The alluvial diagram at the start of this
+chapter keeps each group of people on its own band, from the first stage to the
+last. So when every row has a value at every stage, name those columns as
+stages, and each band keeps its group. Use `layered = TRUE` for a table of
+links, which stage columns cannot hold.
+
+Adding up at each place also decides what a selection keeps.
+`brush(name, at = "Housing")` keeps the links of Housing itself: the band that
+arrives at Housing, and the bands that leave it for Rent, Utilities and
+Repairs:
+
+```{r}
+data(budget) + y(amount) +
+  ribbon * flow(source, target, layered = TRUE) + color(source) +
+  zone * flow(source, target, layered = TRUE) +
+  text * flow(source, target, layered = TRUE) + label(name) +
+  brush(name, at = "Housing") +
+  title("What arrives at Housing and what leaves it")
+```
+
+The bands from Utilities to Energy and Water stay dimmed, although here all of
+their money passed through Housing. A place can receive money from several
+places, as Income does. A band that leaves such a place carries some of each,
+and the picture cannot show how much. So a selection keeps only the bands that
+arrive at the place or leave it, whatever the table holds. In the web edition, a click on a slot
+selects that place, as on the other flows.
+
 ## What flow refuses
 
 A flow needs at least two stages, because movement needs a place to start and
@@ -650,8 +735,8 @@ data(titanic) + y(n) + ribbon * flow(class, survived) + color(n)
 
 ## Where the limits are
 
-The two limits below are not mistakes in your sentence. The engine does not
-draw the first, and it does not compute the second.
+The two limits below are not mistakes in your sentence. Each is valid grammar
+that this engine does not draw.
 
 A flow with stages is valid grammar in [`polar()`](polar.qmd) too. Each stage
 would get a ring of its own, so the picture would be a circular alluvial
@@ -663,16 +748,71 @@ message points to `shared = TRUE` for two columns that name one set of places:
 data(titanic) + y(n) + ribbon * flow(class, survived) + polar()
 ```
 
-The layout has a limit too. A flow with stages reads one place for each stage
-from every row, so every path passes through every stage, and every stage has
-the same total. Some tools read a list of links instead, and set each place's
-position from left to right by counting the links from the start of its flow.
-Their diagrams can show a flow that begins partway across, skips over places, or comes
-back to a place it already passed. A flow does not arrange places that way. A
-shared flow reads a list of links too, but it puts every place on one axis.
+A layered flow has a limit too. Its bands may skip a layer, or stop before the
+last layer, but its links may not form a cycle. Links that form a cycle have no
+layers, because no place in the cycle comes first. A household that moves money
+from its checking account to its savings account, and back again, makes a
+cycle. gog refuses it, and the message names the cycle:
+
+```{r}
+#| error: true
+accounts <- data.frame(source = c("Checking", "Savings"),
+                       target = c("Savings", "Checking"), amount = c(200, 50))
+data(accounts) + y(amount) + ribbon * flow(source, target, layered = TRUE)
+```
+
+Some tools draw a cycle as a band that runs back across the diagram. The
+message points to `shared = TRUE` instead, which puts every place on one axis
+and draws the same links as arcs.
+
+## Choosing a flow diagram
+
+This chapter has drawn four kinds of flow diagram: alluvial, Sankey, arc and
+chord. To choose one, start from what one row of your table says. The last row
+of the table is a fifth choice, the network diagram:
+
+| What one row says | A question it answers | The diagram |
+|---|---|---|
+| a group and its place at each of several stages, as in `titanic` | How did each group move from stage to stage? | an alluvial diagram ([The finished diagram](#the-finished-diagram)) |
+| a link, an amount that moves from one place to the next, with no cycles, as in `budget` | Where does the total go, step by step? | a Sankey diagram ([Links in layers](#links-in-layers)) |
+| an amount between two places of one kind, often in both directions, as in `trade_partners` | Who sends to whom, and how much each way? | an arc diagram, or the same links on a ring, a chord diagram ([Two columns that name the same places](#two-columns-that-name-the-same-places)) |
+| a connection between two places, when who is connected matters more than how much | What is connected to what? | a network diagram ([Network](network.qmd)) |
+
+A flow diagram shows the pattern of the movement, but a band is hard to compare
+with a band in another part of the picture. A [tile
+plot](marks/zone.qmd#cells-the-axes-already-made-the-tile-plot) gives each pair
+of places its own cell, so every pair has a fixed place in a grid:
+
+```{r}
+data(trade_partners) + zone + x(importer) + y(exporter) + color(billions) +
+  title("Trade between countries, one cell per pair")
+```
+
+*"Given trade partners: zones, x is importer, y is exporter, color by
+billions."*
+
+Each row of cells is an exporter, and each column of cells is an importer. The
+darkest cell is China's exports to the United States, the largest amount in the
+table. The cells for Mexico and Canada are nearly as dark, so the shades alone
+do not say which is larger. A reader compares lengths more accurately than
+shades of a color, so draw the amounts as bars when the comparison must be
+precise.
+
+Four more suggestions help you draw a flow diagram. First, color the bands by
+the column that answers your question. On a flow with stages, the first stage
+shows where each group goes, and the last shows the outcomes. Second, add
+`brush` to select one place: the bands that meet it keep their colors, and the
+others are dimmed. With `brush` written, a click on a slot in the web edition
+selects another place. Third, use few places. Before you draw, give the small
+places one shared name in your table, such as Other. On a layered flow, give it
+only to places that do not link to each other: a link from Other to Other is a
+cycle. Fourth, in an arc or a chord diagram, the order of the places decides how
+long the bands are and how often they cross. So declare an order that means
+something, such as by continent.
 
 ## What comes next
 
-A flow draws its stages in the order you name them, and it never computes an
-order itself. [Cluster](cluster.qmd) computes one from the data: it joins the
-most alike categories into a tree, and puts an axis in the tree's order.
+A flow with stages stacks each stage's slots in the order you declare, or else
+in the table's order. [Cluster](cluster.qmd) computes an order from the data
+instead: it joins the categories that are most alike into a tree, and puts an
+axis in the tree's order.

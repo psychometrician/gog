@@ -30,7 +30,7 @@ pub(crate) use text::Crowding;
 pub(crate) mod violin;
 mod edge;
 mod flow;
-pub(crate) use flow::shared_flow_ground;
+pub(crate) use flow::link_flow_ground;
 mod zone;
 
 /// `style(border_color =, border_size =)` as an SVG stroke — the frame round each

@@ -108,6 +108,9 @@ census$age <- .gog_ordered(census$age, as.character(seq(0, 85, by = 5)))
 
 trade_partners <- .gog_read("trade_partners")
 
+# A month of a household's money as links, the layered flow's table.
+budget <- .gog_read("budget")
+
 titanic <- .gog_read("titanic")
 titanic$class    <- .gog_ordered(titanic$class, c("1st", "2nd", "3rd", "Crew"))
 titanic$survived <- .gog_ordered(titanic$survived, c("Yes", "No"))

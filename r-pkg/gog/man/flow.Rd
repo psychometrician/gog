@@ -4,15 +4,19 @@
 \alias{flow}
 \title{Lay a magnitude through its stages — the flow diagram.}
 \usage{
-flow(..., shared = FALSE)
+flow(..., shared = FALSE, layered = FALSE)
 }
 \arguments{
 \item{...}{The stage columns, bare names, in reading order.  At least two:
 one column has no between.}
 
 \item{shared}{\code{TRUE} when the two columns name one set of places, the place
-each amount leaves and the place it arrives at.  \code{FALSE}, the default, runs
-the columns as stages side by side.}
+each amount leaves and the place it arrives at, laid on one axis.
+\code{FALSE}, the default, runs the columns as stages side by side.}
+
+\item{layered}{\code{TRUE} when each row is a link between two places, and the
+places stand in layers worked out from the links: the Sankey diagram.
+Not together with \code{shared = TRUE}.}
 }
 \description{
 The stages arrive as \strong{columns}, in reading order: one row of the table is
@@ -42,10 +46,19 @@ The stage axis is drawn from the atom's own columns, so there is nothing for
 one place and arriving at another, gives each place one slot whichever column
 names it, and lays every slot on the one count axis.  Flat, that draws the arc
 diagram, each band arching from one place to the other; in \code{\link[=polar]{polar()}} the
-count goes round the circle and it draws the chord diagram.  Each slot is in
+count goes around the circle and it draws the chord diagram.  Each slot is in
 two parts with no line between them: the ends where the place is named in the
 first column, in the slot's color, then the ends where it is named in the
 second, a shade darker.  So \code{flow(importer, exporter, shared = TRUE)} shades
 the exports instead of the imports.  The panel is white and has no frame
 unless \code{\link[=theme]{theme()}} says otherwise, since the plot has no numbers to read.
+
+\strong{A list of links whose places stand in layers} takes \code{layered = TRUE}:
+\code{flow(source, target, layered = TRUE)} reads each row as an amount moving
+from one place to another, and puts each place in the first layer after
+every place that sends to it.  That draws the Sankey diagram: a band may
+skip a layer, and a flow may stop before the last layer.  Each layer is
+sorted by where its places' partners are, the places of a layer stand a gap
+apart, and each name stands beside its slot.  Links that form a cycle have
+no layers and are refused.
 }

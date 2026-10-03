@@ -17,7 +17,7 @@ CRAN-style repositories and PyPI, `GrammarOfGraphics` on Julia's General, and
   country's exports and its imports are told apart where the bands meet it.
   Naming the two columns the other way round shades the other part. Flat, each
   band arches from one place to another: the arc diagram. With `polar()`, the
-  amounts go round the circle, the slots make one ring, and each band curves
+  amounts go around the circle, the slots make one ring, and each band curves
   toward the center: the chord diagram. Neither axis carries numbers, since
   every amount stands twice on the axis, so the panel is white and has no frame
   unless `theme()` says otherwise, and a `text * flow(...)` layer writes the
@@ -26,6 +26,18 @@ CRAN-style repositories and PyPI, `GrammarOfGraphics` on Julia's General, and
   flow with stages in `polar()` is still refused, and its message now points to
   `shared = TRUE`; it used to call that picture the chord diagram, which it is
   not.
+
+- **A list of links draws the Sankey diagram.** `flow(source, target, layered
+  = TRUE)` reads each row as an amount moving from one place to another and
+  puts each place in the first layer after every place that sends to it, so a
+  band can skip a layer and a flow can stop before the last layer. Each layer
+  is sorted by where its places' partners are, the places of a layer stand a
+  gap apart, and each name stands beside its slot. Neither axis has numbers,
+  and the panel is white with no frame unless `theme()` says otherwise.
+  `brush(name, at = ...)` and a click on a slot keep the place's own links, one
+  step each way. Links that form a cycle are refused with the cycle named, and
+  so are `layered = TRUE` beside `shared = TRUE`, a third column, and
+  `polar()`.
 
 - **A flow can be brushed, and a click on a slot selects it.**
   `brush(sex, at = "Female")` on a flow keeps the bands that pass through

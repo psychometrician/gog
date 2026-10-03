@@ -4986,6 +4986,35 @@ fn check_flow(
     //     leaves and the place it arrives at. A third column would make each row a
     //     route through three places on one axis, which this engine does not draw.
     let shared = layer.flow_is_shared();
+    let layered = layer.flow_is_layered();
+    // 2d. Two answers to where the places stand: one axis, or layers worked out
+    //     from the links. A contradiction, so refused rather than ranked.
+    if shared && layered {
+        out.push(Diagnostic {
+            kind: DiagnosticKind::Illegal,
+            message: format!(
+                "gog: `flow({}, {}, shared = TRUE, layered = TRUE)` says two things about \
+                 where the places stand. `shared = TRUE` puts every place on one axis, the \
+                 arc diagram, and `layered = TRUE` stands them in layers worked out from \
+                 the links, the Sankey diagram. Keep one.",
+                stages[0], stages[1]
+            ),
+        });
+        return;
+    }
+    if layered && stages.len() != 2 {
+        out.push(Diagnostic {
+            kind: DiagnosticKind::Unsupported,
+            message: format!(
+                "gog: `flow(..., layered = TRUE)` with {} columns is valid grammar, but \
+                 this engine draws a layered flow between two columns only: the place \
+                 each amount leaves, then the place it arrives at, as in \
+                 `flow({}, {}, layered = TRUE)`.",
+                stages.len(), stages[0], stages[1]
+            ),
+        });
+        return;
+    }
     if shared && stages.len() != 2 {
         out.push(Diagnostic {
             kind: DiagnosticKind::Unsupported,
@@ -5011,6 +5040,21 @@ fn check_flow(
     match space_of(spec) {
         SpaceKind::Flat => {}
         SpaceKind::Polar if shared => {}
+        // Layers bent into rings would be a circular Sankey diagram, which no
+        // part of this engine draws; the chord diagram is one word away.
+        SpaceKind::Polar if layered => {
+            out.push(Diagnostic {
+                kind: DiagnosticKind::Unsupported,
+                message: format!(
+                    "gog: a layered flow in `polar()` is valid grammar, its layers bent \
+                     into rings, but this engine does not draw it. Draw it flat, or write \
+                     `flow({}, {}, shared = TRUE)` in `polar()` for the chord diagram, \
+                     which puts every place on one ring.",
+                    stages[0], stages[1]
+                ),
+            });
+            return;
+        }
         // Said of the whole flow, not of "the bands": a `zone` draws the stages' slots
         // and a `text` their names, and each layer printed the ribbon's sentence. One
         // sentence for every layer is also said once (`check` keeps one of each).
@@ -5178,6 +5222,28 @@ fn check_flow(
                      negative: those paths would be dropped, and every stage would sum to \
                      less than the table. Filter or offset the column.",
                     y.field,
+                ),
+            });
+            return;
+        }
+    }
+
+    // 7b. A layered flow stands each place after every place that sends to it,
+    //     so links that form a cycle have no order to stand in. Named,
+    //     with the way that draws them.
+    if layered {
+        let measure = weight.map(|(_, d)| d.field.as_str());
+        if let Some(cycle) = crate::transform::flow_cycle(df, &stages[0], &stages[1], measure) {
+            out.push(Diagnostic {
+                kind: DiagnosticKind::Unsupported,
+                message: format!(
+                    "gog: these links form a cycle, {}, and a layered flow stands \
+                     each place after every place that sends to it, so a cycle has no \
+                     order. A cycle drawn as a loop is valid grammar this engine does not \
+                     draw. Write `flow({}, {}, shared = TRUE)` instead, which puts every \
+                     place on one axis and draws a cycle as arcs, or remove one of the \
+                     links.",
+                    cycle.join(" → "), stages[0], stages[1]
                 ),
             });
             return;
@@ -9118,13 +9184,16 @@ pub fn brush_keeps(spec: &PlotSpec, df: &DataFrame) -> Option<Vec<bool>> {
 /// stage where the bound names a place. A bound on another stage says nothing about
 /// it, since a `1st` slot holds women and men alike, and dimming it either way
 /// would be the dishonest picture `transform_collapses_rows` exists to prevent.
+/// A layered flow's layers are not stages a path passes through: a slot in
+/// another layer need hold nothing of the selection, so a layered flow reads a
+/// bound as the shared flow does, and every other place's slot steps back.
 /// Such a slot is drawn at full strength with the selection. `None` when no bound
 /// speaks about these rows, so the layer is drawn once and whole, as a layer
 /// without the brushed column is.
 pub fn flow_slot_keeps(spec: &PlotSpec, layer: &Layer, df: &DataFrame) -> Option<Vec<bool>> {
     let name = df.str_col(crate::transform::NODE_NAME)?;
     let stage = df.str_col(crate::transform::FLOW_STAGE);
-    let shared = layer.flow_is_shared();
+    let shared = layer.flow_reads_links();
     let columns: Vec<&str> = layer.flow.as_ref()
         .map(|f| f.stages.iter().map(String::as_str).collect()).unwrap_or_default();
     let mut keep = vec![true; df.len()];
@@ -9142,8 +9211,10 @@ pub fn flow_slot_keeps(spec: &PlotSpec, layer: &Layer, df: &DataFrame) -> Option
             .map(stage_of)
             .collect();
         for (i, k) in keep.iter_mut().enumerate() {
+            // A flow read as links has no stages to speak at: each slot is a
+            // place of both columns, so a bound on `name` speaks to every one.
             let speaks = if b.field == crate::transform::NODE_NAME {
-                named_at.contains(&stage_of(i))
+                shared || named_at.contains(&stage_of(i))
             } else {
                 (shared && columns.contains(&b.field.as_str())) || stage_of(i) == Some(&b.field)
             };
@@ -17125,6 +17196,44 @@ mod tests {
             .brush(crate::ir::BrushDef::new("name").levels(vec!["Asia".into()]));
         let d = check(&named, &data());
         assert!(!d.iter().any(|x| x.is_fatal()), "a brush on `name`: {:?}", msgs(&d));
+    }
+
+    /// **A layered flow is the Sankey diagram, between two columns, drawn flat**
+    /// (2026-10-03). It draws with a brush on `name`; a third column, `polar()`,
+    /// and `shared = TRUE` beside it are refused, and links that form a
+    /// cycle are refused with the cycle named and the shared flow offered.
+    #[test]
+    fn a_layered_flow_is_flat_between_two_columns_and_has_no_cycle() {
+        let layered = |m: Mark| Layer::new(m).flow_layered("continent", "region");
+        let sankey = PlotSpec::new().data("t").y("gdp").layer(layered(Mark::Ribbon)).layer(layered(Mark::Zone))
+            .brush(crate::ir::BrushDef::new("name").levels(vec!["Asia".into()]));
+        let d = check(&sankey, &data());
+        assert!(!d.iter().any(|x| x.is_fatal()), "the Sankey diagram draws: {:?}", msgs(&d));
+
+        let mut both = layered(Mark::Ribbon);
+        both.flow.as_mut().unwrap().shared = true;
+        let said = msgs(&check(&PlotSpec::new().data("t").y("gdp").layer(both), &data()));
+        assert!(said.iter().any(|m| m.contains("Keep one")), "{said:?}");
+
+        let mut three = Layer::new(Mark::Ribbon).flow(&["continent", "region", "life"]);
+        three.flow.as_mut().unwrap().layered = true;
+        let said = msgs(&check(&PlotSpec::new().data("t").y("gdp").layer(three), &data()));
+        assert!(said.iter().any(|m| m.contains("a layered flow between two columns only")), "{said:?}");
+
+        let bent = PlotSpec::new().data("t").y("gdp").layer(layered(Mark::Ribbon))
+            .coord(CoordSpace::Polar(crate::ir::PolarView::default()));
+        let said = msgs(&check(&bent, &data()));
+        assert!(said.iter().any(|m| m.contains("a layered flow in `polar()`")), "{said:?}");
+
+        let s = |v: &[&str]| v.iter().map(|x| x.to_string()).collect::<Vec<_>>();
+        let ring = HashMap::from([("r".to_string(), DataFrame::new()
+            .with_str("a", s(&["A", "B", "C"])).with_str("b", s(&["B", "C", "A"]))
+            .with_float("n", vec![1.0, 2.0, 3.0]))]);
+        let looped = PlotSpec::new().data("r").y("n")
+            .layer(Layer::new(Mark::Ribbon).flow_layered("a", "b"));
+        let d = check(&looped, &ring);
+        assert!(d.iter().any(|x| x.is_fatal() && x.message.contains("A → B → C → A")
+            && x.message.contains("`flow(a, b, shared = TRUE)`")), "{:?}", msgs(&d));
     }
 
     /// **A transform written twice is told so once.** The pair sentences were written

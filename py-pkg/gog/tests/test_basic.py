@@ -2166,6 +2166,31 @@ refuses("flow(shared=) that is not True or False",
         lambda: flow(col["from"], col.to, shared="yes"))
 ok("a shared flow draws the arc diagram flat and the chord diagram in polar")
 
+# A list of links whose places stand in layers is the Sankey diagram: six links
+# are six bands, seven places seven thin slots; a brush on `name` keeps the
+# place's own links; links that form a cycle are refused.
+_links = {"source": ["Salary", "Side", "Income", "Income", "Housing", "Housing"],
+          "target": ["Income", "Income", "Taxes", "Housing", "Rent", "Repairs"],
+          "amount": [30.0, 10.0, 15.0, 25.0, 20.0, 5.0]}
+_sankey = (data(_links, name="links") + y(col.amount)
+           + ribbon * flow(col.source, col.target, layered=True)
+           + zone * flow(col.source, col.target, layered=True))
+_drawn = render_svg(_sankey)
+assert _drawn.count(" C ") == 12, "a layered flow draws six bands"
+assert _drawn.count('width="14.00"') == 7, "and seven thin slots"
+assert _flow_dimmed(render_svg(_sankey + brush(col.name, at="Income"))).count(" C ") == 4, \
+    "brush(name) keeps the place's own links"
+_ring = {"source": ["A", "B"], "target": ["B", "A"], "amount": [1.0, 2.0]}
+try:
+    render_svg(data(_ring, name="ring") + y(col.amount)
+               + ribbon * flow(col.source, col.target, layered=True))
+    raise AssertionError("FAIL: a layered flow whose links form a cycle was accepted")
+except GogError as _cycle:
+    assert "form a cycle" in str(_cycle), str(_cycle)
+refuses("flow(layered=) that is not True or False",
+        lambda: flow(col.source, col.target, layered="yes"))
+ok("a layered flow draws the Sankey diagram")
+
 _cat = render_svg(data(_brush_df, name="bt") + point + x(col.v) + y(col.w)
                   + brush(col.kind, at="b"))
 assert _DIM in _cat, "brush() on a column of categories selected no slots"
