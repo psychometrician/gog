@@ -725,6 +725,12 @@ The panel now has a line on all four sides. It is called `frame` and not
 else. A border belongs to a *mark*, such as a bar or a point. A frame surrounds
 the panel.
 
+A [flow whose two columns name one set of
+places](flow.qmd#two-columns-that-name-the-same-places), `flow(a, b, shared =
+TRUE)`, has two other defaults. It has no numbers to read values from, so its
+panel has no frame and is white instead of gray. `frame` and
+[`background`](#the-panels-background) change both, as on any other plot.
+
 ## A figure for a journal
 
 A journal often asks for a figure on a white background inside a framed panel.

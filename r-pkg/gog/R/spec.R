@@ -142,6 +142,9 @@ carry_partition_params <- function(layer, tr) {
   # A flow carries its stage columns the same way, for the same reason.
   if (identical(tr$transform, "flow")) {
     layer$flow <- list(stages = I(as.character(tr$stages)))
+    # Sent only when TRUE, as `cross` is, so a stage flow's wire form is the
+    # bytes it always was.
+    if (isTRUE(tr$shared)) layer$flow$shared <- TRUE
   }
   # And a layout its two endpoints.
   if (identical(tr$transform, "layout")) {

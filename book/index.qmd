@@ -488,11 +488,11 @@ once, here:
 - **`titanic`**: the passengers and crew of the Titanic as 32 groups, with
   `class`, `sex`, `age`, `survived`, and `n` (the number of people in each
   group). R's own classic table [@rcore2026], reshaped to long form, and the
-  book's table of movement. Every flow diagram reads it.
+  book's table of movement. Every flow diagram with stages reads it.
 - **`trade_partners`**: 22 trade relations between 15 economies, with
   `exporter`, `importer`, and `billions` (the value of the goods traded, in
-  billions of dollars, rounded). The book's one table of relations, and every
-  network diagram reads it.
+  billions of dollars, rounded). The book's one table of relations. Every
+  network diagram reads it, and so do the arc diagram and the chord diagram.
 
 Those eight families answer most of the questions asked here. A few
 questions need a shape none of them has, and each of those tables is

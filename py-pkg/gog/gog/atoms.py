@@ -488,7 +488,7 @@ def partition(*levels: Column, cross: bool = False) -> Atom:
     )
 
 
-def flow(*stages: Column) -> Atom:
+def flow(*stages: Column, shared: bool = False) -> Atom:
     """Lay a magnitude through its stages — the flow diagram.
 
     The stages arrive as **columns**, in reading order: one row of the table is
@@ -507,6 +507,18 @@ def flow(*stages: Column) -> Atom:
 
     The stage axis is drawn from the atom's own columns, so there is nothing
     for `x()` to say — to reorder the stages, reorder the arguments.
+
+    **Two columns that name one set of places** take `shared=True`:
+    `flow(col.exporter, col.importer, shared=True)` reads each row as an amount
+    leaving one place and arriving at another, gives each place one slot
+    whichever column names it, and lays every slot on the one count axis. Flat,
+    that draws the arc diagram; in `polar()` the count goes round the circle and
+    it draws the chord diagram. Each slot is in two parts with no line between
+    them: the ends where the place is named in the first column, in the slot's
+    color, then the ends where it is named in the second, a shade darker. So
+    `flow(col.importer, col.exporter, shared=True)` shades the exports instead of
+    the imports. The panel is white and has no frame unless `theme()` says
+    otherwise, since the plot has no numbers to read.
     """
     if len(stages) < 2:
         raise GogError(
@@ -514,10 +526,19 @@ def flow(*stages: Column) -> Atom:
             '`flow(col["class"], col.sex, col.survived)` runs each row from its '
             '`col["class"]` to its `col.survived`. One column has no between.'
         )
+    if not isinstance(shared, bool):
+        raise GogError(
+            "gog: `flow(shared=)` is True or False. True lays two columns that name "
+            "one set of places on one axis, `flow(col.exporter, col.importer, "
+            "shared=True)`; False runs the columns as stages side by side."
+        )
     return Atom(
         "transform",
         transform="flow",
         stages=[column_name(stage, "flow") for stage in stages],
+        # Sent only when True, as `partition`'s `cross` is, so a stage flow's
+        # wire form is the bytes it always was.
+        shared=True if shared else None,
     )
 
 

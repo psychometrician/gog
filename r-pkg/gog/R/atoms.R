@@ -876,18 +876,38 @@ partition <- function(..., cross = FALSE) {
 #' The stage axis is drawn from the atom's own columns, so there is nothing for
 #' `x()` to say — to reorder the stages, reorder the arguments.
 #'
+#' **Two columns that name one set of places** take `shared = TRUE`:
+#' `flow(exporter, importer, shared = TRUE)` reads each row as an amount leaving
+#' one place and arriving at another, gives each place one slot whichever column
+#' names it, and lays every slot on the one count axis.  Flat, that draws the arc
+#' diagram, each band arching from one place to the other; in [polar()] the
+#' count goes round the circle and it draws the chord diagram.  Each slot is in
+#' two parts with no line between them: the ends where the place is named in the
+#' first column, in the slot's color, then the ends where it is named in the
+#' second, a shade darker.  So `flow(importer, exporter, shared = TRUE)` shades
+#' the exports instead of the imports.  The panel is white and has no frame
+#' unless [theme()] says otherwise, since the plot has no numbers to read.
+#'
 #' @param ... The stage columns, bare names, in reading order.  At least two:
 #'   one column has no between.
+#' @param shared `TRUE` when the two columns name one set of places, the place
+#'   each amount leaves and the place it arrives at.  `FALSE`, the default, runs
+#'   the columns as stages side by side.
 #' @export
-flow <- function(...) {
+flow <- function(..., shared = FALSE) {
   stages <- vapply(as.list(substitute(list(...)))[-1L], deparse, character(1))
   if (length(stages) < 2L) {
     stop("gog: `flow()` needs at least two stage columns, in reading order \u2014 ",
          "`flow(class, sex, survived)` runs each row from its `class` to its ",
          "`survived`. One column has no between.", call. = FALSE)
   }
+  if (!is.logical(shared) || length(shared) != 1L || is.na(shared)) {
+    stop("gog: `flow(shared = )` is TRUE or FALSE. TRUE lays two columns that name ",
+         "one set of places on one axis, `flow(exporter, importer, shared = TRUE)`; ",
+         "FALSE runs the columns as stages side by side.", call. = FALSE)
+  }
   structure(
-    list(type = "transform", transform = "flow", stages = stages),
+    list(type = "transform", transform = "flow", stages = stages, shared = shared),
     class = "gog_atom"
   )
 }

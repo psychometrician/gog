@@ -4496,6 +4496,278 @@ pub fn flow_bands(
     out
 }
 
+/// Which end of a shared flow's band a row is: the place the amount leaves, or
+/// the place it arrives at. A band's two rows are consecutive in the frame, the
+/// leaving end first, so the writer pairs them as it pairs a stage flow's rows.
+pub const FLOW_END: &str = "end";
+
+/// A shared flow's layout (`flow(from, to, shared = TRUE)`): one count axis, one
+/// slot per place, and each band's two ends on it.
+///
+/// **A place is one slot, whichever column names it.** Its interval is as long as
+/// the amounts leaving it and arriving at it together, so the axis runs from 0 to
+/// twice the total: every amount is counted once at each of its two ends, which is
+/// what makes each end of a band as wide as the band. The stacks are contiguous,
+/// as a stage flow's are, so the count axis keeps its real ticks.
+///
+/// **A slot is in two parts: the ends where its place is named in the first
+/// column, then the ends where it is named in the second** (2026-10-03, at the
+/// author's word). In a table of trade that is what a country sends and then what
+/// it receives, so a reader can tell the two apart by where a band meets the slot.
+/// The bands' color could not say it: colored by exporter, every band at China
+/// was either China's own color, an export, or a partner's, an import, and the two
+/// were interleaved along one run. The writer shades the second part.
+///
+/// **Within a part, the ends are ordered by where their partner is.** Going
+/// forward from the place, the partner reached last attaches first and the partner
+/// reached first attaches last, so a band to a neighbor before the place leaves
+/// from the start of its part and one to a neighbor after it from the end. On a
+/// line that nests each part's arches; on a ring, where the same order is read
+/// around the circle, it keeps two bands of one part from crossing at their roots.
+/// Ties fall to the column the bands are split by, then to the table's order, so
+/// the layout is one total order.
+struct SharedLayout {
+    places: Vec<String>,
+    /// Each place's interval on the count axis, in place order.
+    slots: Vec<(f64, f64)>,
+    /// Where each place's second part begins: the slot's end when nothing arrives
+    /// at the place, its start when nothing leaves it.
+    arrive: Vec<f64>,
+    bands: Vec<SharedBand>,
+}
+
+struct SharedBand {
+    /// Each end's interval on the count axis: the leaving end, then the arriving one.
+    ends: [(f64, f64); 2],
+    /// The two columns' values, and the splitting columns' values.
+    values: [String; 2],
+    split: Vec<String>,
+}
+
+/// The order of a shared flow's places: the declared levels of either column,
+/// the first column's first, where they have them; then every other value in the
+/// order it first appears, reading each row's two columns left to right. One
+/// list for both columns, since a place is one place whichever column names it.
+fn shared_places(df: &DataFrame, from: &str, to: &str) -> Option<Vec<String>> {
+    let (a, b) = (df.str_col(from)?, df.str_col(to)?);
+    let present = |v: &String| a.iter().chain(b.iter()).any(|x| x == v);
+    let mut places: Vec<String> = Vec::new();
+    for col in [from, to] {
+        if let Some(lv) = df.levels(col) {
+            for v in lv {
+                if !places.contains(v) && present(v) {
+                    places.push(v.clone());
+                }
+            }
+        }
+    }
+    for r in 0..a.len().min(b.len()) {
+        for v in [&a[r], &b[r]] {
+            if !v.is_empty() && !places.contains(v) {
+                places.push(v.clone());
+            }
+        }
+    }
+    Some(places)
+}
+
+fn shared_layout(
+    df: &DataFrame, from: &str, to: &str, split: &[String], measure: Option<&str>,
+) -> Option<SharedLayout> {
+    let places = shared_places(df, from, to)?;
+    let (a, b) = (df.str_col(from)?, df.str_col(to)?);
+    let n = places.len();
+    if n == 0 {
+        return None;
+    }
+    let weight = |r: usize| -> f64 {
+        match measure.and_then(|m| df.float_col(m)) {
+            Some(v) => v.get(r).copied().filter(|x| x.is_finite() && *x >= 0.0).unwrap_or(0.0),
+            None => 1.0,
+        }
+    };
+    let split_cols: Vec<&Vec<String>> = split.iter().filter_map(|s| df.str_col(s)).collect();
+    let split_cats: Vec<Vec<String>> = split.iter().zip(&split_cols)
+        .map(|(s, col)| match df.levels(s) {
+            Some(lv) => lv.iter().filter(|c| col.iter().any(|v| v == *c)).cloned().collect(),
+            None => {
+                let mut seen: Vec<String> = Vec::new();
+                for v in col.iter() {
+                    if !seen.contains(v) {
+                        seen.push(v.clone());
+                    }
+                }
+                seen
+            }
+        })
+        .collect();
+
+    // Rows sharing a pair of places, and the splitting columns' values, are one
+    // band: their amounts add, as a stage flow's rows sharing a path do.
+    struct Pending { at: [usize; 2], values: [String; 2], split: Vec<String>, split_ranks: Vec<usize>, w: f64 }
+    let mut pending: Vec<Pending> = Vec::new();
+    for r in 0..a.len().min(b.len()) {
+        if a[r].is_empty() || b[r].is_empty() {
+            continue;
+        }
+        let (Some(i), Some(j)) = (places.iter().position(|p| *p == a[r]),
+                                  places.iter().position(|p| *p == b[r])) else { continue };
+        let part: Vec<String> = split_cols.iter().map(|c| c[r].clone()).collect();
+        let ranks: Vec<usize> = part.iter().zip(&split_cats)
+            .map(|(v, cs)| cs.iter().position(|c| c == v).unwrap_or(cs.len()))
+            .collect();
+        let w = weight(r);
+        match pending.iter_mut().find(|p| p.at == [i, j] && p.split == part) {
+            Some(p) => p.w += w,
+            None => pending.push(Pending {
+                at: [i, j], values: [a[r].clone(), b[r].clone()], split: part, split_ranks: ranks, w,
+            }),
+        }
+    }
+    pending.retain(|p| p.w > 0.0);
+    if pending.is_empty() {
+        return None;
+    }
+
+    // Every end, then each place's ends in the order the doc comment states.
+    // (band, side): side 0 leaves, side 1 arrives.
+    let mut ends: Vec<(usize, usize)> = (0..pending.len()).flat_map(|k| [(k, 0), (k, 1)]).collect();
+    let forward = |place: usize, partner: usize| (partner + n - place) % n;
+    ends.sort_by(|&(k1, s1), &(k2, s2)| {
+        let (p1, q1) = (pending[k1].at[s1], pending[k1].at[1 - s1]);
+        let (p2, q2) = (pending[k2].at[s2], pending[k2].at[1 - s2]);
+        p1.cmp(&p2)
+            .then_with(|| s1.cmp(&s2))
+            .then_with(|| forward(p2, q2).cmp(&forward(p1, q1)))
+            .then_with(|| pending[k1].split_ranks.cmp(&pending[k2].split_ranks))
+            .then_with(|| k1.cmp(&k2))
+    });
+    let mut at = 0.0;
+    let mut slots = vec![(0.0, 0.0); n];
+    let mut arrive = vec![0.0; n];
+    let mut placed = vec![[(0.0, 0.0); 2]; pending.len()];
+    let mut i = 0;
+    for (p, slot) in slots.iter_mut().enumerate() {
+        let start = at;
+        let mut turn = None;
+        while i < ends.len() && pending[ends[i].0].at[ends[i].1] == p {
+            let (k, s) = ends[i];
+            if s == 1 && turn.is_none() {
+                turn = Some(at);
+            }
+            placed[k][s] = (at, at + pending[k].w);
+            at += pending[k].w;
+            i += 1;
+        }
+        *slot = (start, at);
+        arrive[p] = turn.unwrap_or(at);
+    }
+    let bands = pending.into_iter().zip(placed)
+        .map(|(p, e)| SharedBand { ends: e, values: p.values, split: p.split })
+        .collect();
+    Some(SharedLayout { places, slots, arrive, bands })
+}
+
+/// Where a shared flow's slot turns from its first part to its second, on the
+/// count axis: the ends where the place is named in the first column lie before
+/// it, and the ends where it is named in the second from it on. The writer shades
+/// the part after it.
+pub const FLOW_ARRIVE: &str = "flow_arrive";
+
+/// A shared flow's slots: one row per place, read by `zone` (the slot) and
+/// `text` (its name), with the place's interval under the measure pair, where its
+/// second part begins under [`FLOW_ARRIVE`], and its middle under the measure's
+/// own name. A place no amount reaches has no row.
+pub fn shared_flow_nodes(
+    df: &DataFrame, from: &str, to: &str, measure: Option<&str>, measure_out: &str, down: bool,
+) -> DataFrame {
+    let Some(fl) = shared_layout(df, from, to, &[], measure) else {
+        return DataFrame::new();
+    };
+    let (mut name, mut lo, mut hi, mut mid) = (Vec::new(), Vec::new(), Vec::new(), Vec::new());
+    let mut arrive = Vec::new();
+    for ((p, &(a, b)), &turn) in fl.places.iter().zip(&fl.slots).zip(&fl.arrive) {
+        if b > a {
+            name.push(p.clone());
+            lo.push(a);
+            hi.push(b);
+            mid.push((a + b) / 2.0);
+            arrive.push(turn);
+        }
+    }
+    let (lo_name, hi_name) = flow_interval_names(down);
+    let out = DataFrame::new()
+        .with_levels(NODE_NAME, name, fl.places.clone())
+        .with_float(lo_name, lo)
+        .with_float(hi_name, hi)
+        .with_float(FLOW_ARRIVE, arrive);
+    match measure_out.is_empty() || measure_out == FLOW_STAGE {
+        true => out,
+        false => out.with_float(measure_out, mid),
+    }
+}
+
+/// A shared flow's bands: two rows per band, its leaving end and then its arriving
+/// end, sharing one [`FLOW_PATH`] key, each with its interval on the count axis.
+/// Both columns' values ride on both rows, with their declared levels, so a
+/// `color` or a `brush` on either column reads the band's own place there; the
+/// splitting columns ride along for the parts they make.
+pub fn shared_flow_bands(
+    df: &DataFrame, from: &str, to: &str, split: &[String], measure: Option<&str>,
+    measure_out: &str, down: bool,
+) -> DataFrame {
+    let Some(fl) = shared_layout(df, from, to, split, measure) else {
+        return DataFrame::new();
+    };
+    let mut path = Vec::new();
+    let mut end = Vec::new();
+    let (mut lo, mut hi, mut mid) = (Vec::new(), Vec::new(), Vec::new());
+    let mut carried: [Vec<String>; 2] = [Vec::new(), Vec::new()];
+    let split_names: Vec<&String> = split.iter().filter(|s| df.str_col(s).is_some()).collect();
+    let mut split_carried: Vec<Vec<String>> = vec![Vec::new(); split_names.len()];
+    for (k, band) in fl.bands.iter().enumerate() {
+        for side in 0..2 {
+            path.push(format!("p{k}"));
+            end.push(if side == 0 { "from".to_string() } else { "to".to_string() });
+            let (a, b) = band.ends[side];
+            lo.push(a);
+            hi.push(b);
+            mid.push((a + b) / 2.0);
+            for (c, col) in carried.iter_mut().enumerate() {
+                col.push(band.values[c].clone());
+            }
+            for (s, col) in split_carried.iter_mut().enumerate() {
+                col.push(band.split[s].clone());
+            }
+        }
+    }
+    let (lo_name, hi_name) = flow_interval_names(down);
+    let mut out = DataFrame::new()
+        .with_str(FLOW_PATH, path)
+        .with_str(FLOW_END, end)
+        .with_float(lo_name, lo)
+        .with_float(hi_name, hi);
+    if !measure_out.is_empty() && measure_out != FLOW_STAGE {
+        out = out.with_float(measure_out, mid);
+    }
+    for (c, col) in [from, to].into_iter().zip(carried) {
+        out = match df.levels(c) {
+            Some(lv) => out.with_levels(c.to_string(), col, lv.to_vec()),
+            None => out.with_str(c.to_string(), col),
+        };
+    }
+    for (name, col) in split_names.into_iter().zip(split_carried) {
+        if name == from || name == to {
+            continue;
+        }
+        out = match df.levels(name) {
+            Some(lv) => out.with_levels(name.clone(), col, lv.to_vec()),
+            None => out.with_str(name.clone(), col),
+        };
+    }
+    out
+}
+
 /// The graph's connected parts, each a list of node indices in first-appearance
 /// order, largest part first. Parts of one size are ordered by their
 /// alphabetically first node name, so the order is the graph's and not the
@@ -5233,6 +5505,90 @@ mod tests {
                          vec!["p".into(), "q".into()])
             .with_str("b", vec!["u".into(), "v".into(), "u".into(), "v".into(), "u".into()])
             .with_float("n", vec![2.0, 3.0, 4.0, 1.0, 5.0])
+    }
+
+    /// An edge list of four places: `a` sends to `b` and `c`, `b` and `c` send
+    /// back, and `d` only receives.
+    fn shared_frame() -> DataFrame {
+        let s = |v: &[&str]| v.iter().map(|x| x.to_string()).collect::<Vec<_>>();
+        DataFrame::new()
+            .with_str("from", s(&["a", "a", "b", "c", "c"]))
+            .with_str("to", s(&["b", "c", "a", "a", "d"]))
+            .with_float("n", vec![5.0, 3.0, 2.0, 1.0, 4.0])
+    }
+
+    /// **A shared flow gives each place one slot, whichever column names it**
+    /// (2026-10-03). `a` appears as a sender and as a receiver and is one slot,
+    /// as long as everything it sends and receives (5 + 3 + 2 + 1); `d`, which
+    /// only receives, is a slot too. The places follow first appearance, reading
+    /// each row's two columns in turn, and the axis runs from 0 to twice the
+    /// total, since every amount stands at both its ends.
+    #[test]
+    fn a_shared_flow_gives_each_place_one_slot_as_long_as_it_sends_and_receives() {
+        let nodes = shared_flow_nodes(&shared_frame(), "from", "to", Some("n"), "count", false);
+        let names = nodes.str_col(NODE_NAME).unwrap();
+        assert_eq!(names, &vec!["a".to_string(), "b".into(), "c".into(), "d".into()]);
+        let lo = nodes.float_col(CELL_LOWER).unwrap();
+        let hi = nodes.float_col(CELL_UPPER).unwrap();
+        let lengths: Vec<f64> = lo.iter().zip(hi).map(|(a, b)| b - a).collect();
+        assert_eq!(lengths, vec![11.0, 7.0, 8.0, 4.0], "a: 5+3+2+1, b: 5+2, c: 3+1+4, d: 4");
+        assert_eq!(lo[0], 0.0);
+        assert_eq!(hi[3], 30.0, "the axis is twice the total of 15");
+        for k in 1..4 {
+            assert_eq!(lo[k], hi[k - 1], "the stacks are contiguous, as a stage flow's are");
+        }
+    }
+
+    /// **A band's two ends are each as wide as the band, and a slot holds what its
+    /// place sends before what it receives** (2026-10-03). At `a`, the bands to `c`
+    /// and `b` come first, then the bands back from them. Within each part the
+    /// partner reached later going forward attaches first, so `c`'s band comes
+    /// before `b`'s, and the band back from `b`, the next place, ends the slot.
+    /// Both columns ride on both of a band's rows, so a color or a brush on either
+    /// reads the band.
+    #[test]
+    fn a_shared_flows_band_ends_follow_their_partners_around_the_axis() {
+        let bands = shared_flow_bands(&shared_frame(), "from", "to", &[], Some("n"), "count", false);
+        let path = bands.str_col(FLOW_PATH).unwrap();
+        let end = bands.str_col(FLOW_END).unwrap();
+        let from = bands.str_col("from").unwrap();
+        let to = bands.str_col("to").unwrap();
+        let lo = bands.float_col(CELL_LOWER).unwrap();
+        let hi = bands.float_col(CELL_UPPER).unwrap();
+        assert_eq!(path.len(), 10, "five bands, two rows each");
+        for r in (0..10).step_by(2) {
+            assert_eq!(path[r], path[r + 1], "a band's two rows are consecutive");
+            assert_eq!((end[r].as_str(), end[r + 1].as_str()), ("from", "to"));
+            assert_eq!(hi[r] - lo[r], hi[r + 1] - lo[r + 1], "both ends are as wide as the band");
+            assert_eq!((&from[r], &to[r]), (&from[r + 1], &to[r + 1]), "both rows carry both columns");
+        }
+        // The end of each band at `a`, by its partner and direction.
+        let at_a = |f: &str, t: &str, side: &str| -> (f64, f64) {
+            let r = (0..10).find(|&r| from[r] == f && to[r] == t && end[r] == side).unwrap();
+            (lo[r], hi[r])
+        };
+        let to_c = at_a("a", "c", "from");
+        let from_c = at_a("c", "a", "to");
+        let to_b = at_a("a", "b", "from");
+        let from_b = at_a("b", "a", "to");
+        assert!(to_c.1 <= to_b.0 && to_b.1 <= from_c.0 && from_c.1 <= from_b.0,
+            "what a sends, c before b, then what it receives, c before b: \
+             {to_c:?} {to_b:?} {from_c:?} {from_b:?}");
+        assert_eq!(from_b.1, 11.0, "the band back from b, the next place, ends a's slot");
+    }
+
+    /// **Each slot says where its second part begins** (2026-10-03). `a` sends
+    /// 5 + 3 and then receives, so its second part begins 8 into the axis; `b`'s
+    /// slot starts at 11 and sends 2; `c`'s starts at 18 and sends 1 + 4. `d` only
+    /// receives, so its second part is the whole slot, and a place that only sent
+    /// would have none.
+    #[test]
+    fn a_shared_flows_slot_turns_from_what_it_sends_to_what_it_receives() {
+        let nodes = shared_flow_nodes(&shared_frame(), "from", "to", Some("n"), "count", false);
+        let lo = nodes.float_col(CELL_LOWER).unwrap();
+        let arrive = nodes.float_col(FLOW_ARRIVE).expect("each slot carries where its second part begins");
+        assert_eq!(arrive, &vec![8.0, 13.0, 23.0, 26.0]);
+        assert_eq!(arrive[3], lo[3], "a place that only receives is all second part");
     }
 
     /// **A column that is not a stage splits each path, and its parts stay

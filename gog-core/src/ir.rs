@@ -948,6 +948,16 @@ pub struct FlowSpec {
     /// column, and one row of the table is one path through all of them.
     #[serde(default)]
     pub stages: Vec<String>,
+    /// **The two columns share one set of places** (`flow(exporter, importer,
+    /// shared = TRUE)`, 2026-10-03, at the author's word). A place is one slot
+    /// whichever column names it, as long as its rows' amounts leaving and
+    /// arriving, and every slot lies on the one count axis: flat that is the arc
+    /// diagram, and in `polar()`, where the count goes on the angle by the pie's
+    /// rule, the chord diagram. A boolean, on `cross`'s precedent: the columns
+    /// either are stages side by side or name one set of places, and a string
+    /// would invite a third reading.
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub shared: bool,
 }
 
 /// The two endpoint columns for the `layout` transform (`layout(from, to)`),
@@ -1760,8 +1770,26 @@ impl Layer {
         self.transforms.push(Transform::Flow);
         self.flow = Some(FlowSpec {
             stages: stages.iter().map(|s| s.to_string()).collect(),
+            shared: false,
         });
         self
+    }
+
+    /// Attach a `flow` whose two columns share one set of places
+    /// (`flow(from, to, shared = TRUE)`): the arc diagram, or the chord diagram
+    /// in `polar()`.
+    pub fn flow_shared(mut self, from: &str, to: &str) -> Self {
+        self.transforms.push(Transform::Flow);
+        self.flow = Some(FlowSpec {
+            stages: vec![from.to_string(), to.to_string()],
+            shared: true,
+        });
+        self
+    }
+
+    /// Does this layer read a flow whose columns share one set of places?
+    pub fn flow_is_shared(&self) -> bool {
+        self.flow.as_ref().is_some_and(|f| f.shared)
     }
 
     /// Attach a `layout` transform naming the two endpoint columns

@@ -885,7 +885,7 @@ const onPage = (cls) =>
  *  All of them, not the first: a faceted plot writes one per panel, and reading
  *  only the first is how a test of faceted behavior would quietly become a test
  *  of one panel's. */
-function panelFrom(svg) {
+function panelFrom(svg, kind = "panel") {
   // The panel's place on the screen. Identity by default, so client coordinates
   // *are* user coordinates and a pointer test reads as arithmetic. A test that
   // cares whether something re-reads the transform rather than merely staying
@@ -911,7 +911,9 @@ function panelFrom(svg) {
   const owner = { createSVGPoint: point, getCurrentTime: () => CLOCK.t };
   const frames = [];
   const cells = [[0, 0]];
-  for (const [tag] of svg.matchAll(/<svg\b[^>]*>|<\/svg>|<g data-gog-panel[^>]*\/>/g)) {
+  // A flow's slot outlines are read the same way, since each is an empty `<g>`
+  // in its cell's units, which is all a panel is to this parser.
+  for (const [tag] of svg.matchAll(new RegExp(`<svg\\b[^>]*>|</svg>|<g data-gog-${kind}[^>]*/>`, "g"))) {
     if (tag.startsWith("</svg")) {
       cells.pop();
       continue;
@@ -945,18 +947,20 @@ function stubContainer() {
   const listeners = new Map();
   let html = "";
   let panels = [];
+  let slots = [];
   return {
     style: {},
     listeners,
-    set innerHTML(v) { html = v; panels = panelFrom(v); },
+    set innerHTML(v) { html = v; panels = panelFrom(v); slots = panelFrom(v, "slot"); },
     get innerHTML() { return html; },
-    set textContent(v) { html = v; panels = []; },
+    set textContent(v) { html = v; panels = []; slots = []; },
     // `style` because every real element has one, and `redraw` tells the
     // incoming picture to fit its column through it. A double without it lets
     // production code look wrong when it is the double that is thin.
     querySelector: (sel) =>
       (sel === "svg" ? { style: {}, getCurrentTime: () => CLOCK.t } : null),
-    querySelectorAll: (sel) => (sel === "[data-gog-panel]" ? panels : []),
+    querySelectorAll: (sel) =>
+      (sel === "[data-gog-panel]" ? panels : sel === "[data-gog-slot]" ? slots : []),
     addEventListener(type, fn) { listeners.set(type, fn); },
     removeEventListener(type) { listeners.delete(type); },
     setPointerCapture() {},
@@ -1051,6 +1055,198 @@ test("a free shape is not offered where an axis carries categories", async () =>
     const caught = handle.selection();
     assert.ok(caught.kept > 0 && caught.kept < caught.total,
       `the drag still selected slots: ${caught.kept} of ${caught.total}`);
+    handle.destroy();
+  } finally {
+    undo();
+  }
+});
+
+// **A flow selects by a click on a slot, never by a drag** (2026-10-03). Its axes
+// are its stages and a running sum, and a range over either is not a selection
+// anyone means. The engine writes each slot's outline beside it, and the page
+// tests the pointer against that outline.
+const FLOW_REQ = (brush) => ({
+  spec: {
+    data: "t",
+    y: { field: "n" },
+    layers: ["ribbon", "zone"].map((mark) => ({
+      mark, encodings: {}, transforms: ["flow"], flow: { stages: ["class", "survived"] },
+    })),
+    brush,
+  },
+  data: {
+    t: {
+      strings: { class: ["First", "First", "Third", "Third"], survived: ["yes", "no", "yes", "no"] },
+      floats: { n: [203, 122, 178, 528] },
+    },
+  },
+});
+
+/** The middle of the slot the engine says holds `place` on `field`. */
+function slotCenter(container, field, place) {
+  // A slot names every column it is a place of, `|`-separated: its stage, or both
+  // columns of a shared flow, and the flow's own `name`.
+  const slot = container.querySelectorAll("[data-gog-slot]").find((s) =>
+    s.getAttribute("data-gog-slot-field").split("|").includes(field) &&
+    s.getAttribute("data-gog-slot") === place);
+  assert.ok(slot, `a slot for ${field} = ${place}`);
+  const pts = slot.getAttribute("data-gog-shape").split(" ").map((p) => p.split(",").map(Number));
+  return [pts.reduce((a, p) => a + p[0], 0) / pts.length, pts.reduce((a, p) => a + p[1], 0) / pts.length];
+}
+
+const clickAt = (container, [x, y]) => {
+  container.send("pointerdown", x, y);
+  container.send("pointerup", x, y);
+};
+
+test("a click on a flow's slot selects it, a second click clears it, and a drag selects nothing", async () => {
+  const undo = stubDom();
+  try {
+    const engine = await loadEngine(fs.readFileSync(WASM));
+    const container = stubContainer();
+    const handle = attachBrush(engine, container, FLOW_REQ([{ field: "class" }]));
+    assert.equal(container.querySelectorAll("[data-gog-slot]").length, 4, "one outline per slot");
+    const dim = '<g opacity="0.150">';
+
+    clickAt(container, slotCenter(container, "class", "First"));
+    assert.equal(handle.selection().kept, 2, "the two rows through First");
+    assert.ok(container.innerHTML.includes(dim), "and the bands through Third are pushed back");
+
+    // A slot on a stage the sentence did not brush is not this brush's to move.
+    clickAt(container, slotCenter(container, "survived", "no"));
+    assert.equal(handle.selection().kept, 2, "the bound on class stays where it was");
+
+    clickAt(container, slotCenter(container, "class", "First"));
+    assert.equal(handle.selection().kept, 0, "a second click on the selected slot clears it");
+    assert.ok(!container.innerHTML.includes(dim), "and the picture is one pass again");
+
+    clickAt(container, slotCenter(container, "class", "Third"));
+    assert.equal(handle.selection().kept, 2, "Third is selected");
+    const g = container.querySelectorAll("[data-gog-panel]")[0];
+    assert.equal(g.getAttribute("data-gog-place"), "flow");
+    const [x0, y0, x1, y1] = g.getAttribute("data-gog-panel").split(" ").map(Number);
+    container.send("pointerdown", x0 + 2, y0 + 2);
+    container.send("pointermove", x1 - 2, y1 - 2);
+    container.send("pointerup", x1 - 2, y1 - 2);
+    assert.equal(handle.selection().kept, 2, "a drag across the flow moves nothing");
+    assert.equal(handle.drags(), false, "and the page offers no drag to select with");
+
+    // Between the two stages, off every slot.
+    clickAt(container, [(x0 + x1) / 2, y0 + 2]);
+    assert.equal(handle.selection().kept, 0, "a click off every slot clears");
+    handle.destroy();
+  } finally {
+    undo();
+  }
+});
+
+// **A chord diagram takes the same click, on its ring.** A drag along straight
+// axes cannot select on a disc, so a polar panel takes none, but a slot's outline
+// is the curved piece of ring it was drawn as, so the click lands where the
+// reader sees the place. A bare `brush` becomes a bound on the flow's `name`,
+// which keeps what a place sends and what it receives: three of the four rows
+// leave `a` or arrive at it.
+test("a click on a chord diagram's ring selects the place at both ends", async () => {
+  const undo = stubDom();
+  try {
+    const engine = await loadEngine(fs.readFileSync(WASM));
+    const req = {
+      spec: {
+        data: "t",
+        y: { field: "n" },
+        layers: ["ribbon", "zone"].map((mark) => ({
+          mark, encodings: {}, transforms: ["flow"],
+          flow: { stages: ["from", "to"], shared: true },
+        })),
+        coord: { polar: {} },
+        brush: [{ field: "" }],
+      },
+      data: {
+        t: {
+          strings: { from: ["a", "a", "b", "c"], to: ["b", "c", "c", "a"] },
+          floats: { n: [3, 2, 4, 1] },
+        },
+      },
+    };
+    const container = stubContainer();
+    const handle = attachBrush(engine, container, req);
+    const slots = container.querySelectorAll("[data-gog-slot]");
+    assert.equal(slots.length, 3, "one piece of ring per place");
+    const ring = slots.find((s) => s.getAttribute("data-gog-slot") === "a");
+    assert.deepEqual(ring.getAttribute("data-gog-slot-field").split("|"), ["from", "to", "name"]);
+    // The middle of the piece: halfway along its outer arc, and halfway back
+    // along its inner one, averaged, which lies inside however long the arc is.
+    const pts = ring.getAttribute("data-gog-shape").split(" ").map((p) => p.split(",").map(Number));
+    const [o, i] = [pts[Math.floor(pts.length / 4)], pts[Math.floor((3 * pts.length) / 4)]];
+    const at = [(o[0] + i[0]) / 2, (o[1] + i[1]) / 2];
+
+    assert.equal(container.querySelectorAll("[data-gog-panel]")[0].getAttribute("data-gog-place"), "polar");
+    clickAt(container, at);
+    assert.equal(handle.selection().kept, 3, "every row that leaves a or arrives at it");
+    assert.ok(container.innerHTML.includes('<g opacity="0.150">'), "and the band between b and c steps back");
+    clickAt(container, at);
+    assert.equal(handle.selection().kept, 0, "a second click clears it");
+    handle.destroy();
+  } finally {
+    undo();
+  }
+});
+
+// **The arc diagram takes it on the plane.** The same click on a slot standing on
+// the axis, which the first build drew zero pixels tall, so no click could land.
+test("a click on an arc diagram's slot selects the place at both ends", async () => {
+  const undo = stubDom();
+  try {
+    const engine = await loadEngine(fs.readFileSync(WASM));
+    const req = {
+      spec: {
+        data: "t",
+        x: { field: "n" },
+        layers: ["ribbon", "zone"].map((mark) => ({
+          mark, encodings: {}, transforms: ["flow"],
+          flow: { stages: ["from", "to"], shared: true },
+        })),
+        brush: [{ field: "" }],
+      },
+      data: {
+        t: {
+          strings: { from: ["a", "a", "b", "c"], to: ["b", "c", "c", "a"] },
+          floats: { n: [3, 2, 4, 1] },
+        },
+      },
+    };
+    const container = stubContainer();
+    const handle = attachBrush(engine, container, req);
+    assert.equal(container.querySelectorAll("[data-gog-panel]")[0].getAttribute("data-gog-place"), "flow");
+    clickAt(container, slotCenter(container, "name", "a"));
+    const seen = handle.selection();
+    assert.equal(seen.kept, 3, "every row that leaves a or arrives at it");
+    // The rows name both of the flow's columns, which no channel binds: without
+    // `to`, a row from `a` could not be told a band leaving it from one arriving.
+    assert.deepEqual(seen.columns, ["n", "from", "to"]);
+    assert.deepEqual(seen.rows, [[3, "a", "b"], [2, "a", "c"], [1, "c", "a"]]);
+    clickAt(container, slotCenter(container, "name", "a"));
+    assert.equal(handle.selection().kept, 0, "a second click clears it");
+    handle.destroy();
+  } finally {
+    undo();
+  }
+});
+
+test("a bare brush on a flow takes its column from the slot a reader clicks", async () => {
+  const undo = stubDom();
+  try {
+    const engine = await loadEngine(fs.readFileSync(WASM));
+    const container = stubContainer();
+    const handle = attachBrush(engine, container, FLOW_REQ([{ field: "" }]));
+
+    clickAt(container, slotCenter(container, "survived", "no"));
+    assert.equal(handle.selection().kept, 2, "the two rows that did not survive");
+    clickAt(container, slotCenter(container, "class", "First"));
+    assert.equal(handle.selection().kept, 2, "a click on another stage moves the selection there");
+    assert.ok(handle.changed(), "and the selection differs from the sentence's");
+    handle.reset();
+    assert.equal(handle.selection().kept, 0, "reset goes back to the declaration");
     handle.destroy();
   } finally {
     undo();

@@ -400,7 +400,7 @@ function partition(levels...; cross::Bool = false)
 end
 
 """
-    flow(stages...)
+    flow(stages...; shared = false)
 
 Lay a magnitude through its stages — the flow diagram.
 
@@ -419,17 +419,32 @@ band by its values; the slots take their paint from `style()`.
 
 The stage axis is drawn from the atom's own columns, so there is nothing for
 `x()` to say — to reorder the stages, reorder the arguments.
+
+**Two columns that name one set of places** take `shared = true`:
+`flow(:exporter, :importer; shared = true)` reads each row as an amount leaving
+one place and arriving at another, gives each place one slot whichever column
+names it, and lays every slot on the one count axis. Flat, that draws the arc
+diagram; in `polar()` the count goes round the circle and it draws the chord
+diagram. Each slot is in two parts with no line between them: the ends where the
+place is named in the first column, in the slot's color, then the ends where it
+is named in the second, a shade darker. So `flow(:importer, :exporter; shared =
+true)` shades the exports instead of the imports. The panel is white and has no
+frame unless `theme()` says otherwise, since the plot has no numbers to read.
 """
-function flow(stages...)
+function flow(stages...; shared::Bool = false)
     if length(stages) < 2
         throw(GogError(
             "gog: `flow()` needs at least two stage columns, in reading order — " *
             "`flow(:class, :sex, :survived)` runs each row from its `:class` " *
             "to its `:survived`. One column has no between."))
     end
-    Atom(:transform, Dict{Symbol,Any}(
+    fields = Dict{Symbol,Any}(
         :transform => "flow",
-        :stages => [column_name(st, "flow") for st in stages]))
+        :stages => [column_name(st, "flow") for st in stages])
+    # Sent only when true, as `partition`'s `cross` is, so a stage flow's wire
+    # form is the bytes it always was.
+    shared && (fields[:shared] = true)
+    Atom(:transform, fields)
 end
 
 """

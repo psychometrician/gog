@@ -828,6 +828,77 @@ end
                      Base.split(split_svg, "\n")) == 4
 end
 
+# A brush on a flow's stage selects whole bands. Of the two paths, the one through
+# `b` is pushed back, and so is the `b` slot, while the slots of the other stage
+# stay at full strength. A flow's pass nests a clipped group per layer, so the
+# dimmed group is read to its own closing tag. A brush on the weight would cut
+# across the bands, so it is refused toward a stage.
+@testset "a brush on a flow's stage selects whole bands and its own slots" begin
+    function flow_dimmed(svg)
+        rest = Base.split(svg, "<g opacity=\"0.150\">"; limit = 2)[2]
+        depth = 1
+        kept = String[]
+        for line in Base.split(rest, "\n")
+            t = strip(line)
+            if startswith(t, "</g>")
+                depth -= 1
+                depth == 0 && break
+            elseif startswith(t, "<g") && !endswith(t, "/>")
+                depth += 1
+            end
+            push!(kept, line)
+        end
+        Base.join(kept, "\n")
+    end
+    fb = render_svg(data(sp) + y(:n) + ribbon * flow(:from, :to) + zone * flow(:from, :to) +
+                    brush(:from, at = "a"))
+    pushed = flow_dimmed(fb)
+    @test Base.count(" C ", pushed) == 2
+    @test Base.count("fill-opacity=\"1.000\"", pushed) == 1
+    @test Base.count("data-gog-slot=", fb) == 4
+    @refuses render_svg(data(sp) + y(:n) + ribbon * flow(:from, :to) +
+                        brush(:n, at = (1.0, 2.0))) "`n` measures"
+end
+
+# Two columns that name one set of places share one axis: flat it is the arc
+# diagram, four arches of two curves each, and in `polar()` the chord diagram,
+# each band curving through the center twice. A brush on the flow's own `name`
+# keeps what a place sends and what it receives: only the band from b to c steps
+# back.
+@testset "a shared flow draws the arc diagram flat and the chord diagram in polar" begin
+    tp = Dict("from" => ["a", "a", "b", "c"], "to" => ["b", "c", "c", "a"],
+              "n" => [3.0, 2.0, 4.0, 1.0])
+    shared_flow = data(tp; name = "tp") + y(:n) + ribbon * flow(:from, :to; shared = true) +
+                  zone * flow(:from, :to; shared = true)
+    @test Base.count(" C ", render_svg(shared_flow)) == 8
+    chord = render_svg(shared_flow + polar())
+    disc = match(r"<circle cx=\"([0-9.]+)\" cy=\"([0-9.]+)\"", chord)
+    @test Base.count("Q $(disc[1]) $(disc[2]) ", chord) == 8
+    picked = render_svg(shared_flow + brush(:name, at = "a"))
+    rest = Base.split(picked, "<g opacity=\"0.150\">"; limit = 2)[2]
+    depth = 1
+    kept = String[]
+    for line in Base.split(rest, "\n")
+        t = strip(line)
+        if startswith(t, "</g>")
+            depth -= 1
+            depth == 0 && break
+        elseif startswith(t, "<g") && !endswith(t, "/>")
+            depth += 1
+        end
+        push!(kept, line)
+    end
+    @test Base.count(" C ", Base.join(kept, "\n")) == 2
+    # Each slot holds what its place sends and then what it receives, the second
+    # part shaded and no line between them. The panel has no frame, since neither
+    # axis carries numbers, until the theme asks for one.
+    flat = render_svg(shared_flow)
+    @test Base.count("fill=\"black\" fill-opacity=\"0.100\"", flat) == 3
+    frame_line = "<g stroke=\"#5a5a64\" stroke-width=\"1.5\" fill=\"none\">"
+    @test !occursin(frame_line, flat)
+    @test occursin(frame_line, render_svg(shared_flow + theme(frame = "axes")))
+end
+
 # ---------------------------------------------------------------------------
 # tick_count — how many ticks an axis aims for (spec §10)
 #

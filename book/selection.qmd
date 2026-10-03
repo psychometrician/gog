@@ -251,9 +251,9 @@ each atom follows its own rule, and this plot uses both.
 
 ## What can be brushed
 
-A selection marks rows, so a mark can be brushed only when *one row is one
-shape*. Four marks meet that test and draw a selection: `point`, `text`, `rule`
-and `zone`. An `interval` with the
+A selection marks rows, so a shape can be brushed only when all of its rows are
+selected, or none are. The simplest case is *one row is one shape*. Four marks
+meet that test and draw a selection: `point`, `text`, `rule` and `zone`. An `interval` with the
 [`bounds`](transforms.qmd#bounds-a-pre-computed-lowhigh-pair) transform meets
 the test too, because each whisker's two ends come from one row.
 
@@ -299,7 +299,11 @@ data(gapminder_2007) + bar * count + x(continent) +
   brush(gdp, at = c(20000, 60000))
 ```
 
-Apart from the `edge`'s, none of these refusals applies when the plot also
+A [flow](flow.qmd#selecting-one-place) is the only summary that answers a
+brush. Each band stands for the rows that share a place at every stage, so a
+brush on a stage keeps or dims a whole band, and never part of one.
+
+Apart from the `edge`'s, none of the refusals above applies when the plot also
 carries a layer that *can* answer. The plot draws, and gog reports which layer
 it left whole:
 
@@ -480,7 +484,9 @@ selected rows while you turn it.
 
 After the first one, every brushed plot in this chapter states where its
 selection starts. In the web edition, drag across a flat panel and your range
-replaces the sentence's bound. The plot redraws as you drag.
+replaces the sentence's bound. The plot redraws as you drag. On a flow, a click
+on a slot moves the bound instead, as [Selecting one
+place](flow.qmd#selecting-one-place) shows.
 
 This changes nothing about the sentence, and it is the same arrangement the cube
 uses. `space(turn =, tilt =)` chooses the angle a plot starts at, and the
@@ -529,7 +535,7 @@ The second line is what a brush adds:
 
 | Control | What it does |
 |---|---|
-| `drag:` and its icons | Says what dragging the plot will do, and switches it: a rectangle, a free shape, or moving the picture |
+| `drag:` and its icons | Says what dragging the plot will do, and switches it: a rectangle, a free shape, or moving the picture. Absent on a flow, where a click on a slot selects |
 | `40 of 142 selected` | How many rows the current bound selects. On a played plot this counts every frame, not the one on screen. Plots composed with `|` or `/` share this count. When they read the same table, each row is counted once, and only if all their bounds select it |
 | `show rows` | Opens a table of those rows; while the table is open the button reads `hide rows`. A long selection arrives ten at a time, with `‹` and `›` under the table |
 | `clear` | Puts the selection back to what the sentence asked for |
@@ -590,15 +596,17 @@ because no sentence can state a drawn shape.
 The dimming shows where a group sits, but not which rows are in it. The count
 says how many rows are selected, and `show rows` opens the row table.
 It lists the columns the sentence maps, not every column of your data, because
-the columns you did not plot are not what you are looking at.
+the columns you did not plot are not what you are looking at. On a
+[flow](flow.qmd#selecting-a-place-in-either-column) it also lists the columns
+named in `flow()`, so each row shows its place in each of them.
 
 A long selection arrives ten rows at a time. The line under the table says which
 rows you are reading, as `11–20 of 40`, and the two arrows beside it move you
 through the rest. Every row you selected is reachable, and none of them pushes
 the plot off the screen. A selection short enough to fit shows no arrows at all.
 
-The row table lists every row you selected, with the columns the sentence maps,
-in one place, away from the picture. It shows country names only when the
+The row table lists every row you selected, with those columns, in one place,
+away from the picture. It shows country names only when the
 sentence maps `country`, as the labeled plot in
 [Which one is that?](#which-one-is-that) does. Draw a bound tight around one
 point and the table lists that point alone.
@@ -711,7 +719,9 @@ each label away from the others, and a summary such as `bin` or `mean` draws
 one shape for many rows. As [What can be brushed](#what-can-be-brushed)
 showed, a layer like that either refuses the brush or is drawn whole beside a
 layer that answers it. The pointer then reads that other layer, whose marks
-stand at their values.
+stand at their values. A flow is the exception. Its layers answer the brush, but
+none of its marks stands at a row's value, so the pointer shows no values
+there.
 
 ### Looking closer
 

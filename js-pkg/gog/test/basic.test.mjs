@@ -1139,6 +1139,78 @@ test("a band colored by a column that is not a stage is split by it", () => {
   assert.equal(parts, 4, "color(who) should split each of the two bands in two");
 });
 
+// A brush on a flow's stage selects whole bands. Of the two paths, the one through
+// `b` is pushed back, and so is the `b` slot, while the slots of the other stage
+// stay at full strength. A flow's pass nests a clipped group per layer, so the
+// dimmed group is read to its own closing tag. A brush on the weight would cut
+// across the bands, so it is refused toward a stage.
+test("a brush on a flow's stage selects whole bands and its own slots", () => {
+  const flowDimmed = (svg) => {
+    let depth = 1;
+    const kept = [];
+    for (const line of svg.split('<g opacity="0.150">')[1].split("\n")) {
+      const t = line.trim();
+      if (t.startsWith("</g>")) {
+        depth -= 1;
+        if (depth === 0) break;
+      } else if (t.startsWith("<g") && !t.endsWith("/>")) {
+        depth += 1;
+      }
+      kept.push(line);
+    }
+    return kept.join("\n");
+  };
+  const count = (s, part) => s.split(part).length - 1;
+  const svg = render_svg(plot(data(sp), y(col.n), layer(ribbon, flow(col.from, col.to)),
+    layer(zone, flow(col.from, col.to)), brush(col.from, { at: "a" })));
+  const pushed = flowDimmed(svg);
+  assert.equal(count(pushed, " C "), 2, "the one band through b is pushed back");
+  assert.equal(count(pushed, 'fill-opacity="1.000"'), 1, "and the b slot");
+  assert.equal(count(svg, "data-gog-slot="), 4, "one outline per slot for the page");
+  refuses(() => render_svg(plot(data(sp), y(col.n), layer(ribbon, flow(col.from, col.to)),
+    brush(col.n, { at: [1, 2] }))), /`n` measures/);
+});
+
+// Two columns that name one set of places share one axis: flat it is the arc
+// diagram, four arches of two curves each, and in `polar()` the chord diagram,
+// each band curving through the center twice. A brush on the flow's own `name`
+// keeps what a place sends and what it receives: only the band from b to c steps
+// back.
+test("a shared flow draws the arc diagram flat and the chord diagram in polar", () => {
+  const tp = { from: ["a", "a", "b", "c"], to: ["b", "c", "c", "a"], n: [3, 2, 4, 1] };
+  const count = (s, part) => s.split(part).length - 1;
+  const parts = (...more) => plot(data(tp, { name: "tp" }), y(col.n),
+    layer(ribbon, flow(col.from, col.to, { shared: true })),
+    layer(zone, flow(col.from, col.to, { shared: true })), ...more);
+  assert.equal(count(render_svg(parts()), " C "), 8, "a shared flow draws four arches");
+  const chord = render_svg(parts(polar()));
+  const [, cx, cy] = /<circle cx="([0-9.]+)" cy="([0-9.]+)"/.exec(chord);
+  assert.equal(count(chord, `Q ${cx} ${cy} `), 8, "every chord crosses the center");
+  const picked = render_svg(parts(brush(col.name, { at: "a" })));
+  let depth = 1;
+  const kept = [];
+  for (const line of picked.split('<g opacity="0.150">')[1].split("\n")) {
+    const t = line.trim();
+    if (t.startsWith("</g>")) {
+      depth -= 1;
+      if (depth === 0) break;
+    } else if (t.startsWith("<g") && !t.endsWith("/>")) {
+      depth += 1;
+    }
+    kept.push(line);
+  }
+  assert.equal(count(kept.join("\n"), " C "), 2, "brush(name) keeps both ends of a place");
+  // Each slot holds what its place sends and then what it receives, the second
+  // part shaded and no line between them. The panel has no frame, since neither
+  // axis carries numbers, until the theme asks for one.
+  const flat = render_svg(parts());
+  assert.equal(count(flat, 'fill="black" fill-opacity="0.100"'), 3, "each second part is shaded");
+  const frameLine = '<g stroke="#5a5a64" stroke-width="1.5" fill="none">';
+  assert.ok(!flat.includes(frameLine), "a shared flow draws no frame by default");
+  assert.ok(render_svg(parts(theme({ frame: "axes" }))).includes(frameLine), "the theme's frame is drawn");
+  refuses(() => flow(col.from, col.to, { shared: "yes" }), /true or false/);
+});
+
 // ---------------------------------------------------------------------------
 // tick_count — how many ticks an axis aims for (spec §10)
 //

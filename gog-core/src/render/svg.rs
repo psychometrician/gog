@@ -392,6 +392,7 @@ impl SvgRenderer {
         // same resolution inside `legality::check`.
         let mut resolved = crate::legality::resolve_scopes(spec);
         crate::render::legend::neutral_beside_a_color_guide(&mut resolved);
+        crate::render::marks::shared_flow_ground(&mut resolved);
         let spec = &resolved;
         let ctx = RenderContext::new(spec, data);
 
@@ -459,6 +460,19 @@ impl SvgRenderer {
         // taken. The ticks are still chosen, because the gridlines stand on them.
         let draw_x_axis = self.fit.draw_x_axis && !spec.hides_axis(&Channel::X);
         let draw_y_axis = self.fit.draw_y_axis && !spec.hides_axis(&Channel::Y);
+        // **A shared flow draws neither axis** (2026-10-03, at the author's word).
+        // The axis across the count measures nothing: the bands reach into the
+        // panel by a convention. The count axis is a running total in which every
+        // amount stands twice, once at each end, so its numbers are no reading of
+        // the data, and a ring shows none either. Its places are what a reader
+        // needs along it, and the `text` layer writes their names just beyond the
+        // slots, where the numbers would have stood (`shared_names` below sizes
+        // that room). So neither axis has ticks, numbers, a name or gridlines.
+        let shared_flow = spec.layers.iter().any(|l| l.flow_is_shared());
+        let shared_down = shared_flow && spec.layers.iter().any(|l| crate::legality::flow_runs_down(spec, l));
+        let (blank_x, blank_y) = (shared_flow, shared_flow);
+        let draw_x_axis = draw_x_axis && !blank_x;
+        let draw_y_axis = draw_y_axis && !blank_y;
         let draw_z_axis = !spec.hides_axis(&Channel::Z);
 
         // Whether a browser can work back from a value to the place this plot
@@ -498,9 +512,11 @@ impl SvgRenderer {
         // Read as a pie, its rings lost the axis they stand on and every sector
         // came out at radius 0: eight zero-radius arcs stacked on the center, a
         // blank circle from a sentence the book tells readers to write.
+        // A shared flow supplies its count interval and nothing on the other axis,
+        // so like the pie it has one position, and the angle takes it.
         let supplies_positions = spec.layers.iter()
             .any(|l| l.transforms.contains(&Transform::Partition)
-                || l.transforms.contains(&Transform::Flow));
+                || (l.transforms.contains(&Transform::Flow) && !l.flow_is_shared()));
         // Nested only, for the radial fallback below: crossed, the second axis is
         // apportioning the measure one level down rather than stepping a ring, so
         // its synthesized column is a share and not a depth.
@@ -508,7 +524,11 @@ impl SvgRenderer {
             l.transforms.contains(&Transform::Partition)
                 && !l.partition.as_ref().map(|p| p.cross).unwrap_or(false)
         });
-        let measure_on_angle = is_polar && x_field.is_empty() && !supplies_positions;
+        // A shared flow's count goes on the angle whichever axis it was bound to:
+        // its radius measures nothing, so a ring or a spoke would decode nothing,
+        // and its running count round the rim would sit among the place names.
+        let measure_on_angle = is_polar
+            && ((x_field.is_empty() && !supplies_positions) || shared_flow);
         let view = match &spec.coord {
             CoordSpace::Space(v) => *v,
             // A network with a stated angle is a cube seen from it, each
@@ -572,8 +592,14 @@ impl SvgRenderer {
         // domain axis reads the stage column the layout published — categorical,
         // its levels the atom's argument order — and an unbound measure axis
         // reads the tally's name, exactly as a 3-D reading's synthesized `z` does.
-        let stages_the_domain = spec.layers.iter()
+        // A shared flow has no stage axis at all: its places lie on the count axis,
+        // so the other axis is left empty, as a stacked bar's is, and in `polar()`
+        // the count goes on the angle by the pie's rule. Its count still falls
+        // back to the tally's name when nothing is bound.
+        let any_flow = spec.layers.iter()
             .any(|l| l.transforms.contains(&Transform::Flow));
+        let stages_the_domain = spec.layers.iter()
+            .any(|l| l.transforms.contains(&Transform::Flow) && !l.flow_is_shared());
         // **Top to bottom when the count is on `x`** (`legality::flow_runs_down`):
         // orientation read off the bindings, as a bar's is, so the stages take the
         // axis the count left unbound. A categorical `y` axis lists its first
@@ -586,6 +612,10 @@ impl SvgRenderer {
         let y_field = match (y_field, stages_the_domain, flow_down) {
             ("", true, true) => crate::transform::FLOW_STAGE,
             ("", true, false) => crate::transform::CELL_COUNT,
+            _ => y_field,
+        };
+        let y_field = match (y_field, any_flow && !stages_the_domain && !flow_down) {
+            ("", true) => crate::transform::CELL_COUNT,
             _ => y_field,
         };
 
@@ -1088,6 +1118,17 @@ impl SvgRenderer {
                                     split.push(def.field.clone());
                                 }
                             }
+                        }
+                        // Two columns that share one set of places lie on one axis:
+                        // the arc diagram, or the chord diagram on a ring.
+                        if layer.flow_is_shared() && stages.len() == 2 {
+                            let (from, to) = (stages[0].as_str(), stages[1].as_str());
+                            return match layer.mark {
+                                Mark::Ribbon => crate::transform::shared_flow_bands(
+                                    &base, from, to, &split, measure, measure_out, flow_down),
+                                _ => crate::transform::shared_flow_nodes(
+                                    &base, from, to, measure, measure_out, flow_down),
+                            };
                         }
                         return match layer.mark {
                             Mark::Ribbon => crate::transform::flow_bands(
@@ -2349,6 +2390,26 @@ impl SvgRenderer {
         // fed empty ones and the cube takes the whole panel. The ranges above
         // are still needed to normalize coordinates; only the layout hints change.
         let no_ticks = TickSpec::empty();
+        // The places a flat shared flow names beyond its slots, each at its slot's
+        // middle on the count axis, read off the first panel's `text * flow`
+        // frame: the tick list the layout sizes their room from, and turns.
+        let shared_names: Option<TickSpec> = if shared_flow && !is_polar {
+            spec.layers.iter().position(|l| l.mark == Mark::Text && l.flow_is_shared())
+                .and_then(|li| panel_eff.first().and_then(|f| f.get(li)))
+                .and_then(|df| {
+                    let (lo_name, hi_name) = if shared_down {
+                        (crate::transform::CELL_START, crate::transform::CELL_END)
+                    } else {
+                        (crate::transform::CELL_LOWER, crate::transform::CELL_UPPER)
+                    };
+                    let names = df.str_col(crate::transform::NODE_NAME)?;
+                    let (lo, hi) = (df.float_col(lo_name)?, df.float_col(hi_name)?);
+                    let values = lo.iter().zip(hi).map(|(a, b)| (a + b) / 2.0).collect();
+                    Some(TickSpec { values, labels: names.clone(), step: 1.0, widened: None })
+                })
+        } else {
+            None
+        };
         // A polar plot reserves no tick-label margin either — its angular labels
         // ring the circle and its radial ones run up the spoke, both *inside* the
         // panel. It keeps the axis names, though, unlike 3-D: they still say what
@@ -2386,9 +2447,14 @@ impl SvgRenderer {
                 // against the scatter below it rather than a tick label's worth
                 // of white away from it. The ticks themselves are unchanged, so
                 // the gridlines still stand where the shared axis says they do.
+                //
+                // A shared flow's place names stand where its count axis's numbers
+                // would, so the layout sizes that margin from them, turned as
+                // crowded category names turn, and the `text` layer writes them.
+                let names = shared_names.as_ref();
                 (
-                    if draw_x_axis { &x_ticks } else { &no_ticks },
-                    if draw_y_axis { &y_ticks } else { &no_ticks },
+                    if draw_x_axis { &x_ticks } else if shared_down { names.unwrap_or(&no_ticks) } else { &no_ticks },
+                    if draw_y_axis { &y_ticks } else if shared_flow && !shared_down { names.unwrap_or(&no_ticks) } else { &no_ticks },
                     if draw_x_axis { x_label.as_str() } else { "" },
                     if draw_y_axis { y_label.as_str() } else { "" },
                 )
@@ -2510,6 +2576,11 @@ impl SvgRenderer {
         let y_labeled = !grid_yt.labels.is_empty();
         let x_names = !is_polar && !free_x && cat_x.is_some() && x_labeled;
         let y_names = !is_polar && !free_y && cat_y.is_some() && y_labeled;
+        // A shared flow's place names under its count axis turn as category names
+        // do. They are never thinned: the `text` layer writes every one. And they
+        // are not numbers, so the numbers' thinning below must not take them.
+        let shared_x_names = shared_names.is_some() && shared_down && x_labeled;
+        let shared_y_names = shared_names.is_some() && !shared_down && y_labeled;
         // A map's degrees are placed by its projection, but each label is written
         // where its line meets the panel's straight edge, so the measure above
         // holds there too. Map axes kept every tick until seven maps in a row
@@ -2517,8 +2588,8 @@ impl SvgRenderer {
         // projected positions rather than round degrees, so a thinned map axis
         // keeps every `stride`-th label from the first, as a log axis does.
         let projected = matches!(spec.coord, CoordSpace::Map(_));
-        let x_numbers = !is_polar && !free_x && cat_x.is_none() && x_labeled;
-        let y_numbers = !is_polar && !free_y && cat_y.is_none() && y_labeled;
+        let x_numbers = !is_polar && !free_x && cat_x.is_none() && x_labeled && !shared_x_names;
+        let y_numbers = !is_polar && !free_y && cat_y.is_none() && y_labeled && !shared_y_names;
         let across = crate::render::layout::name_pitch(self.font_sm);
         let widths = |t: &TickSpec| -> Vec<f64> {
             t.labels.iter().map(|s| estimate_text_width(s, self.font_sm)).collect()
@@ -2531,7 +2602,7 @@ impl SvgRenderer {
             g.panels.first().map_or_else(Vec::new, |p|
                 t.values.iter().map(|&v| p.rect.map_y(v, ys.0, ys.1)).collect())
         };
-        let tick_angle = match x_names {
+        let tick_angle = match x_names || shared_x_names {
             true => crate::render::layout::names_angle(
                 &x_at(&grid, grid_xt), &widths(grid_xt), stated_angle),
             false => stated_angle,
@@ -2595,8 +2666,10 @@ impl SvgRenderer {
         if let (true, true, Some(n)) = (y_stride > 1, y_numbers, y_asked) {
             remarks.push(thinned_numbers('y', y_field, n, y_chosen, y_ticks.labels.len()));
         }
-        let grid_xt: &TickSpec = if x_labeled { &x_ticks } else { &no_ticks };
-        let grid_yt: &TickSpec = if y_labeled { &y_ticks } else { &no_ticks };
+        // The names keep sizing their room through every layout asked for below.
+        let names = shared_names.as_ref().unwrap_or(&no_ticks);
+        let grid_xt: &TickSpec = if shared_x_names { names } else if x_labeled { &x_ticks } else { &no_ticks };
+        let grid_yt: &TickSpec = if shared_y_names { names } else if y_labeled { &y_ticks } else { &no_ticks };
         let grid = if x_stride > 1 || y_stride > 1 { compute_grid(grid_xt, grid_yt, tick_angle) } else { grid };
 
         // A dot plot whose piles have outgrown their dots is still drawn, and said
@@ -2690,6 +2763,25 @@ impl SvgRenderer {
             let pol = polar_view.map(|v| Polar::new(
                 l, v, POLAR_RIM_GAP + estimate_cap_height(self.font_sm) + 4.0,
                 measure_on_angle, angle_slots));
+            // A chord diagram's place names stand outside its ring, turned outward,
+            // so the ring leaves them the room the widest one takes. A pie keeps
+            // that room, having no names round its rim.
+            let ring_names = spec.layers.iter()
+                .filter(|ly| ly.mark == Mark::Text && ly.flow_is_shared())
+                .filter_map(|ly| {
+                    let df = data.get(ly.data.as_ref().or(spec.data.as_ref())?)?;
+                    let fs = ly.style.size.unwrap_or(self.font_md);
+                    Some(ly.flow.as_ref()?.stages.iter().filter_map(|c| df.str_col(c))
+                        .flat_map(|col| col.iter())
+                        .map(|v| estimate_text_width(v, fs))
+                        .fold(0.0, f64::max))
+                })
+                .fold(0.0, f64::max);
+            let pol = pol.map(|p| if ring_names > 0.0 {
+                p.leave_room(l, ring_names + crate::render::polar::RING_NAME_GAP + 4.0)
+            } else {
+                p
+            });
             // The globe's panel is the disk, built once per panel like `Polar`
             // and `Scene` so the frame, the graticule and every mark read one
             // fit. Its frame routine owns the background, the clip and the
@@ -2986,9 +3078,9 @@ impl SvgRenderer {
                 let theme = spec.theme.resolved();
                 self.write_grid(&mut svg, l, &x_ticks, xs, &y_ticks, ys,
                                 (has_plain_bar && !horizontal) || !theme.grid_x()
-                                    || (clusters_a_tree && cat_x.is_some()),
+                                    || (clusters_a_tree && cat_x.is_some()) || blank_x,
                                 (has_plain_bar && horizontal) || !theme.grid_y()
-                                    || (clusters_a_tree && cat_y.is_some()),
+                                    || (clusters_a_tree && cat_y.is_some()) || blank_y,
                                 meridians.as_ref());
             }
 
@@ -3055,6 +3147,14 @@ impl SvgRenderer {
                         // The flow's band reading arrives here on the ribbon, the
                         // violin's dispatch shape one transform over: the mark is
                         // the reader's name, the writer is the reading's.
+                        // A shared flow's three readers draw along one axis, or round
+                        // one ring in `polar()`, which the stage flow's never do.
+                        Mark::Ribbon if layer.flow_is_shared() =>
+                            self.write_shared_bands(&mut svg, layer, df, whole, l, xs, ys, flow_down, &color_map, &clip, pol_ref),
+                        Mark::Zone if layer.flow_is_shared() =>
+                            self.write_shared_slots(&mut svg, layer, df, l, xs, ys, flow_down, &clip, !spec.brush.is_empty(), pol_ref),
+                        Mark::Text if layer.flow_is_shared() =>
+                            self.write_shared_names(&mut svg, layer, df, l, xs, ys, flow_down, pol_ref, tick_angle),
                         Mark::Ribbon if layer.transforms.contains(&Transform::Flow) =>
                             self.write_flow_bands(&mut svg, layer, df, whole, l, xs, ys, cat_x.as_deref(), cat_y.as_deref(), flow_down, &color_map, &clip),
                         Mark::Ribbon => self.write_ribbon(&mut svg, layer, df, whole, l, xs, ys, x_field, y_field, cat_x.as_deref(), &color_map, &clip, pol_ref),
@@ -3092,7 +3192,7 @@ impl SvgRenderer {
                         // branch above), so it reads them straight off the table.
                         // The flow's slot reading, the band's twin above.
                         Mark::Zone if layer.transforms.contains(&Transform::Flow) =>
-                            self.write_flow_nodes(&mut svg, layer, df, l, xs, ys, cat_x.as_deref(), cat_y.as_deref(), flow_down, &clip),
+                            self.write_flow_nodes(&mut svg, layer, df, l, xs, ys, cat_x.as_deref(), cat_y.as_deref(), flow_down, &clip, !spec.brush.is_empty()),
                         Mark::Zone => self.write_zone(&mut svg, layer, df, whole, l, xs, ys, x_field, y_field, cat_x.as_deref(), cat_y.as_deref(), &color_map, &ramp, &clip, pol_ref, None),
                         // A surface draws in the cube and nowhere else, so it is handled
                         // in the 3-D branch above and a *flat* one never arrives — it is
@@ -3747,7 +3847,18 @@ impl SvgRenderer {
         df: &'a DataFrame,
         dim: bool,
     ) -> Option<std::borrow::Cow<'a, DataFrame>> {
-        let Some(keep) = crate::legality::brush_keeps(spec, df) else {
+        // A flow's slots and their names stand one row per place, and only a
+        // bound naming their own place can select one (`flow_slot_keeps`). Its
+        // bands carry every stage's value on every row, so they take the plain
+        // test, with a bound on the flow's `name` read across all of their stages
+        // (`flow_band_keeps`).
+        let flows = layer.transforms.contains(&crate::ir::Transform::Flow);
+        let keeps = match (flows, layer.mark == Mark::Ribbon) {
+            (true, false) => crate::legality::flow_slot_keeps(spec, layer, df),
+            (true, true) => crate::legality::flow_band_keeps(spec, layer, df),
+            (false, _) => crate::legality::brush_keeps(spec, df),
+        };
+        let Some(keep) = keeps else {
             // Nothing selected: one pass, the whole frame, the resting state.
             return (!dim).then(|| std::borrow::Cow::Borrowed(df));
         };
@@ -6531,12 +6642,13 @@ fn namespace_ids(svg: &str) -> String {
     // fail if the attribute they turn on reached this hash.
     //
     // So this list *is* the definition of "draws nothing", and an attribute of
-    // that kind added later belongs in it.
+    // that kind added later belongs in it. A flow's slot outlines, written beside
+    // its slots for the page's click, are the second such line.
     let ink = without_accessible_name(svg)
         .replace(r#" display="inline""#, "")
         .replace(r#" display="none""#, "");
     let mut h: u64 = 0xcbf2_9ce4_8422_2325;
-    for line in ink.lines().filter(|l| !l.contains("data-gog-panel")) {
+    for line in ink.lines().filter(|l| !l.contains("data-gog-panel") && !l.contains("data-gog-slot")) {
         for b in line.bytes() {
             h = (h ^ b as u64).wrapping_mul(0x0100_0000_01b3);
         }
@@ -6866,6 +6978,264 @@ mod tests {
         assert_eq!(SvgRenderer::default().render(&layer_scoped, &flow_table()),
             SvgRenderer::default().render(&flow_spec(), &flow_table()),
             "the only count, written after one layer, weighs both");
+    }
+
+    /// What a selection pushed back: the dimmed group, read to its own closing
+    /// tag. A flow's pass nests a clipped group per layer, so the first `</g>`
+    /// after the dimmed group's opening closes one of those, not it.
+    fn dimmed_pass(svg: &str) -> String {
+        let open = format!(r#"<g opacity="{:.3}">"#, crate::render::encode::SELECTION_DIM);
+        let (_, rest) = svg.split_once(&open).expect("a dimmed pass");
+        let mut depth = 1usize;
+        let mut out = String::new();
+        for line in rest.lines() {
+            let t = line.trim_start();
+            if t.starts_with("</g>") {
+                depth -= 1;
+                if depth == 0 {
+                    break;
+                }
+            } else if t.starts_with("<g") && !t.ends_with("/>") {
+                depth += 1;
+            }
+            out.push_str(line);
+            out.push('\n');
+        }
+        out
+    }
+
+    /// **A brush on a flow's stage selects whole bands** (2026-10-03, at the
+    /// author's word). A path holds one place at each stage, so the bound keeps or
+    /// leaves the whole of it: of the four paths, the two through `First` are drawn
+    /// at full strength and the two through `Third` are pushed back, and no band is
+    /// cut or drawn twice. The brushed stage's slots answer by their own place, and
+    /// a slot at the other stage, which paths of both kinds pass through, stays at
+    /// full strength rather than being called selected or not.
+    #[test]
+    fn a_brush_on_a_flow_stage_selects_whole_bands_and_its_own_slots() {
+        let spec = flow_spec()
+            .brush(crate::ir::BrushDef::new("class").levels(vec!["First".to_string()]));
+        let svg = SvgRenderer::default().render(&spec, &flow_table());
+        let bands = |s: &str| s.matches(" C ").count() / 2;
+        let slots = |s: &str| s.matches(r#"fill-opacity="1.000""#).count();
+        let dim = dimmed_pass(&svg);
+        assert_eq!(bands(&svg), 4, "every band is drawn once: {svg}");
+        assert_eq!(bands(&dim), 2, "the two bands through `Third` are pushed back: {dim}");
+        assert_eq!(slots(&svg), 4, "every slot is drawn once");
+        assert_eq!(slots(&dim), 1, "of the slots, only `Third` is pushed back: {dim}");
+        assert!(dim.contains(r#"data-gog-slot="Third""#), "{dim}");
+        // The positions come from the whole table, so a dimmed band sits exactly
+        // where it sits unbrushed: the two passes differ only in strength.
+        let plain = SvgRenderer::default().render(&flow_spec(), &flow_table());
+        let curves = |s: &str| {
+            let mut v: Vec<String> = s.lines().filter(|l| l.contains(" C "))
+                .map(|l| l.trim().to_string()).collect();
+            v.sort();
+            v
+        };
+        assert_eq!(curves(&svg), curves(&plain), "no band moved");
+    }
+
+    /// Four amounts among three places: `a` sends to `b` and `c`, `b` to `c`, and
+    /// `c` back to `a`.
+    fn shared_table() -> HashMap<String, DataFrame> {
+        let s = |v: &[&str]| v.iter().map(|x| x.to_string()).collect::<Vec<_>>();
+        HashMap::from([("t".to_string(), DataFrame::new()
+            .with_str("from", s(&["a", "a", "b", "c"]))
+            .with_str("to", s(&["b", "c", "c", "a"]))
+            .with_float("n", vec![3.0, 2.0, 4.0, 1.0]))])
+    }
+
+    fn shared_spec() -> PlotSpec {
+        PlotSpec::new().data("t").y("n")
+            .layer(Layer::new(Mark::Ribbon).flow_shared("from", "to"))
+            .layer(Layer::new(Mark::Zone).flow_shared("from", "to"))
+            .layer(Layer::new(Mark::Text).flow_shared("from", "to")
+                .encode(Channel::Label, crate::transform::NODE_NAME))
+    }
+
+    /// **Flat, a shared flow is the arc diagram** (2026-10-03). Its three places
+    /// stand on one axis as three slots, and each band arches from one place to
+    /// another. Neither axis draws ticks, numbers or gridlines: across the count
+    /// nothing is measured, and along it every amount stands twice. The names
+    /// stand where the numbers would have, beyond the slots: left of the axis
+    /// when it runs up the page, in the room the frame left them.
+    #[test]
+    fn a_shared_flow_flat_is_an_arc_diagram_named_beyond_its_slots() {
+        let svg = SvgRenderer::default().render(&shared_spec(), &shared_table());
+        assert_eq!(svg.matches(" C ").count(), 8, "four bands, each an arch of two curves: {svg}");
+        assert_eq!(svg.matches(r#"fill="white" fill-opacity="1.000""#).count(), 3, "three slots");
+        // Each slot has a body: as wide as the slot's thickness across the axis,
+        // and as long as its place along it. Every slot was once drawn zero
+        // pixels across, so the places had no boundaries and no click could land.
+        for slot in svg.lines().filter(|l| l.contains(r#"fill="white" fill-opacity="1.000""#)) {
+            let d = slot.split(r#"d=""#).nth(1).and_then(|v| v.split('"').next()).unwrap();
+            let pts: Vec<(f64, f64)> = d.split(|c: char| c == 'M' || c == 'L' || c == 'Z')
+                .filter_map(|t| {
+                    let (x, y) = t.trim().split_once(',')?;
+                    Some((x.parse().ok()?, y.parse().ok()?))
+                })
+                .collect();
+            let span = |f: &dyn Fn(&(f64, f64)) -> f64| {
+                let v: Vec<f64> = pts.iter().map(f).collect();
+                v.iter().cloned().fold(f64::NEG_INFINITY, f64::max)
+                    - v.iter().cloned().fold(f64::INFINITY, f64::min)
+            };
+            assert!(span(&|p| p.0) > 1.0 && span(&|p| p.1) > 1.0, "a slot with a body: {slot}");
+        }
+        let grid = svg.split(r##"<g stroke="#d2d2da" stroke-width="1">"##).nth(1)
+            .and_then(|g| g.split("</g>").next()).unwrap_or("");
+        assert!(!grid.contains("<line"), "no gridlines: {grid}");
+        let panel = svg.lines().find(|l| l.contains("<clipPath")).expect("the panel's clip");
+        let left: f64 = panel.split(r#" x=""#).nth(1).and_then(|v| v.split('"').next())
+            .and_then(|v| v.parse().ok()).unwrap();
+        for place in ["a", "b", "c"] {
+            let name = svg.lines().find(|l| l.contains(&format!(">{place}</text>")))
+                .unwrap_or_else(|| panic!("the place {place} is named: {svg}"));
+            let x: f64 = name.split(r#" x=""#).nth(1).and_then(|v| v.split('"').next())
+                .and_then(|v| v.parse().ok()).unwrap();
+            assert!(x < left && name.contains(r#"text-anchor="end""#),
+                "{place} stands left of the panel, ending at the axis: {name}");
+        }
+    }
+
+    /// **In `polar()` it is the chord diagram.** The count goes round the circle,
+    /// as a pie's does, so the slots make one ring, each band curves through the
+    /// center from one place to another, and the names stand outside the ring,
+    /// where the disc's clip would cut them.
+    #[test]
+    fn a_shared_flow_in_polar_is_the_chord_diagram() {
+        let spec = shared_spec().coord(CoordSpace::Polar(crate::ir::PolarView::default()));
+        let d = crate::legality::check(&spec, &shared_table());
+        assert!(!d.iter().any(|x| x.is_fatal()), "{:?}", d.iter().map(|x| &x.message).collect::<Vec<_>>());
+        let svg = SvgRenderer::default().render(&spec, &shared_table());
+        let disc = svg.lines().find(|l| l.contains("<circle")).expect("the disc");
+        let at = |k: &str| disc.split(k).nth(1).and_then(|v| v.split('"').next()).unwrap().to_string();
+        let center = format!("Q {} {} ", at(r#" cx=""#), at(r#" cy=""#));
+        assert_eq!(svg.matches(&center).count(), 8, "each of four bands crosses the center twice: {svg}");
+        let ring: Vec<&str> = svg.lines()
+            .filter(|l| l.contains(r#"fill="white""#) && l.contains(" A ")).collect();
+        assert_eq!(ring.len(), 3, "three pieces of ring: {svg}");
+        let names = svg.lines().find(|l| l.contains("font-family") && !l.contains("clip-path")
+            && svg.contains(">a</text>"));
+        assert!(names.is_some(), "the names are drawn outside the disc's clip: {svg}");
+    }
+
+    /// **A shared flow's slot holds what its place sends, then what it receives,
+    /// the second part shaded and no line between the two** (2026-10-03, at the
+    /// author's word). Each of the three places sends and receives, so each slot
+    /// is one fill, one shade over its second part, and one outline round the
+    /// whole place, flat and on the ring alike. The fill and the shade carry no
+    /// line of their own, so nothing divides a place in two.
+    #[test]
+    fn a_shared_flows_slot_shades_what_arrives_with_no_line_inside_a_place() {
+        let ring = shared_spec().coord(CoordSpace::Polar(crate::ir::PolarView::default()));
+        for spec in [shared_spec(), ring] {
+            let svg = SvgRenderer::default().render(&spec, &shared_table());
+            let shades: Vec<&str> = svg.lines()
+                .filter(|l| l.contains(r#"fill="black" fill-opacity="0.100""#)).collect();
+            assert_eq!(shades.len(), 3, "one shade per place that receives: {svg}");
+            let fills: Vec<&str> = svg.lines()
+                .filter(|l| l.contains("<path") && l.contains(r#"fill="white""#)).collect();
+            assert_eq!(fills.len(), 3, "one fill per place: {svg}");
+            for part in shades.iter().chain(&fills) {
+                assert!(!part.contains("stroke"), "no line inside a place: {part}");
+            }
+            let outlines = svg.lines()
+                .filter(|l| l.contains(r#"fill="none" stroke="black""#)).count();
+            assert_eq!(outlines, 3, "one outline round each whole place: {svg}");
+        }
+    }
+
+    /// **A shared flow is drawn on white and with no frame unless `theme()`
+    /// says otherwise** (2026-10-03, at the author's word). Its axes measure
+    /// nothing a reader can use, so the frame's two lines bounded nothing. A
+    /// background or a frame the theme names is kept, and so is a preset's.
+    #[test]
+    fn a_shared_flow_is_drawn_on_white_with_no_frame_unless_the_theme_says() {
+        let frame = r##"<g stroke="#5a5a64" stroke-width="1.5" fill="none">"##;
+        let panel_fill = |svg: &str| -> String {
+            let rect = svg.lines().take_while(|l| !l.contains("<clipPath"))
+                .filter(|l| l.contains("<rect")).last().unwrap().to_string();
+            rect.split(r#"fill=""#).nth(1).and_then(|v| v.split('"').next()).unwrap().to_string()
+        };
+        let plain = SvgRenderer::default().render(&shared_spec(), &shared_table());
+        assert_eq!(panel_fill(&plain), "white");
+        assert!(!plain.contains(frame), "no frame: {plain}");
+
+        let mut asked = shared_spec();
+        asked.theme = crate::ir::ThemeSpec {
+            background: Some(PANEL_BG.to_string()), frame: Some("axes".to_string()), ..Default::default()
+        };
+        let asked = SvgRenderer::default().render(&asked, &shared_table());
+        assert_eq!(panel_fill(&asked), PANEL_BG);
+        assert!(asked.contains(frame), "the two lines the theme asked for: {asked}");
+
+        let mut bw = shared_spec();
+        bw.theme = crate::ir::ThemeSpec { preset: Some("bw".to_string()), ..Default::default() };
+        let bw = SvgRenderer::default().render(&bw, &shared_table());
+        assert!(bw.split(frame).nth(1).is_some_and(|g| g.trim_start().starts_with("<rect")),
+            "the preset's full frame is kept: {bw}");
+
+        // A stage flow keeps the panel every other plot has.
+        let stage = SvgRenderer::default().render(&flow_spec(), &flow_table());
+        assert_eq!(panel_fill(&stage), PANEL_BG);
+        assert!(stage.contains(frame));
+    }
+
+    /// **A brush on a shared flow's `name` keeps what a place sends and what it
+    /// receives**, the chord diagram's one-place-at-a-time reading: three of the
+    /// four bands touch `a` and stay, the band from `b` to `c` steps back, and
+    /// so do the slots of `b` and `c`.
+    #[test]
+    fn a_brush_on_a_shared_flows_name_keeps_both_ends_of_a_place() {
+        let spec = shared_spec().brush(crate::ir::BrushDef::new("name").levels(vec!["a".to_string()]));
+        let svg = SvgRenderer::default().render(&spec, &shared_table());
+        let dim = dimmed_pass(&svg);
+        assert_eq!(dim.matches(" C ").count(), 2, "only the band from b to c is pushed back: {dim}");
+        assert_eq!(dim.matches(r#"fill="white""#).count(), 2, "and the slots of b and c: {dim}");
+        assert!(svg.contains(r#"data-gog-slot="a" data-gog-slot-field="from|to|name""#),
+            "a slot is a place of both columns and of `name`: {svg}");
+    }
+
+    /// **On a stage flow, a brush on `name` speaks to the stage where it names a
+    /// place.** `First` is a class, so the `Third` slot steps back beside it, and
+    /// the outcome slots, which hold both classes, stay at full strength, as a
+    /// brush on `class` itself leaves them.
+    #[test]
+    fn a_brush_on_a_flows_name_dims_only_the_named_places_siblings() {
+        let by_name = flow_spec().brush(crate::ir::BrushDef::new("name").levels(vec!["First".to_string()]));
+        let by_class = flow_spec().brush(crate::ir::BrushDef::new("class").levels(vec!["First".to_string()]));
+        let (a, b) = (SvgRenderer::default().render(&by_name, &flow_table()),
+                      SvgRenderer::default().render(&by_class, &flow_table()));
+        let ink = |s: &str| s.lines().filter(|l| !l.contains("data-gog-")).collect::<Vec<_>>().join("\n");
+        assert_eq!(ink(&dimmed_pass(&a)), ink(&dimmed_pass(&b)),
+            "the same bands and slots step back either way");
+    }
+
+    /// **A brush nobody has moved draws a flow's same ink**, the promise
+    /// `a_resting_brush_draws_exactly_the_same_ink` makes for a scatter. What the
+    /// declared brush adds is metadata the page needs before the first click: the
+    /// panel's facts, and each slot's place and outline. A flow with no brush
+    /// carries neither.
+    #[test]
+    fn a_resting_brush_on_a_flow_adds_only_the_slots_outlines() {
+        let plain = SvgRenderer::default().render(&flow_spec(), &flow_table());
+        assert!(!plain.contains("data-gog-slot"), "a flow with no brush carries no outlines");
+        let resting = SvgRenderer::default()
+            .render(&flow_spec().brush(crate::ir::BrushDef::new("class")), &flow_table());
+        let ink: String = resting.lines().filter(|l| !l.contains("data-gog-"))
+            .collect::<Vec<_>>().join("\n");
+        assert_eq!(ink.trim(), plain.trim(), "a resting brush changes no ink and no id");
+        let outlines: Vec<&str> = resting.lines().filter(|l| l.contains("data-gog-slot=")).collect();
+        assert_eq!(outlines.len(), 4, "one outline per slot: {outlines:?}");
+        // A slot names its stage and the flow's own `name`, the two bounds a click
+        // on it can move.
+        assert!(outlines.iter().any(|l| l.contains(r#"data-gog-slot="First" data-gog-slot-field="class|name""#)));
+        assert!(outlines.iter().any(|l| l.contains(r#"data-gog-slot="no" data-gog-slot-field="survived|name""#)));
+        assert!(outlines.iter().all(|l| l.contains("data-gog-shape=")), "{outlines:?}");
+        // And the panel tells the page that a drag selects nothing here.
+        assert!(resting.contains(r#"data-gog-place="flow""#), "{resting}");
     }
 
     // -----------------------------------------------------------------------

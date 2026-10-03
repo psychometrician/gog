@@ -1,5 +1,18 @@
 # gog (development version)
 
+Two columns that name one set of places now draw the arc diagram and the chord
+diagram. `flow(exporter, importer, shared = TRUE)` gives each country one slot,
+whichever column names it, as long as everything the country exports and
+imports. The slot shows its exports first and its imports after them, shaded,
+so a reader can tell the two apart where the bands meet it. Flat, each band
+arches from one country to another along one axis, and the countries' names
+stand under it. Add `polar()` to the same sentence,
+and the axis bends into a ring: each band curves toward the center of the
+circle. A flow can also be brushed now.
+`brush(name, at = "China")` keeps every band that leaves or reaches China and
+dims the rest, and in the browser a click on a country's slot selects that
+country instead.
+
 A plot's legends can now sit on any side of it. `theme(legend = "bottom")`
 places each legend's entries side by side under the plot, so the panel gets
 shorter instead of narrower. The legend of a continuous color is drawn

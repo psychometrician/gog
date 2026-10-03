@@ -8,6 +8,42 @@ CRAN-style repositories and PyPI, `GrammarOfGraphics` on Julia's General, and
 
 ### Added
 
+- **Two columns that name one set of places draw the arc diagram and the
+  chord diagram.** `flow(exporter, importer, shared = TRUE)` gives each place
+  one slot, whichever column names it, as long as everything it sends and
+  receives, and lays every slot on one axis. Each slot is in two parts with no
+  line between them: first the ends where the place is named in the first
+  column, then, shaded, the ends where it is named in the second, so a
+  country's exports and its imports are told apart where the bands meet it.
+  Naming the two columns the other way round shades the other part. Flat, each
+  band arches from one place to another: the arc diagram. With `polar()`, the
+  amounts go round the circle, the slots make one ring, and each band curves
+  toward the center: the chord diagram. Neither axis carries numbers, since
+  every amount stands twice on the axis, so the panel is white and has no frame
+  unless `theme()` says otherwise, and a `text * flow(...)` layer writes the
+  place names where the numbers would stand, turned when they do not fit side
+  by side. A shared flow joins two columns, and a third is refused. A
+  flow with stages in `polar()` is still refused, and its message now points to
+  `shared = TRUE`; it used to call that picture the chord diagram, which it is
+  not.
+
+- **A flow can be brushed, and a click on a slot selects it.**
+  `brush(sex, at = "Female")` on a flow keeps the bands that pass through
+  `Female` at full strength and dims the rest. No band is cut, because each
+  band holds one place at every stage. At the brushed stage, the slots that are
+  not selected dim as well, and the slots at other stages stay as they are.
+  `brush(name, at = "China")` brushes the flow's own `name`, which selects a
+  place wherever a band meets it: at either end on a shared flow, so China's
+  exports and imports both stay, and at whichever stage it stands on a flow
+  with stages. In the browser, a click on a slot selects it, on the plane and
+  on a chord diagram's ring alike; a second click, or a click away from every
+  slot, clears it; and a bare `brush` makes the first click a brush on `name`.
+  A drag selects nothing on a flow. `show rows` lists the columns named in
+  `flow()` beside the mapped ones, so each selected row shows its place in each
+  of them: on a chord diagram, its exporter and its importer. Any other column is refused unless it is a
+  stage, a column of a shared flow, or a column given to the bands' `color` or
+  `pattern`, with the ways to brush instead. Brushing a flow was refused.
+
 - **A flow's bands take their color from any categorical column.** A stage
   colors each band by its place there, as before. Any other categorical column,
   as in `ribbon * flow(class, sex) + color(survived)`, now splits each band

@@ -50,7 +50,7 @@ export const DEFAULT_TILT = 25;
  */
 export { attachView, mountView } from "./view.js";
 
-export const BUILD = "2026-09-29";
+export const BUILD = "2026-10-03";
 
 /**
  * Engines already loaded, keyed by where they came from.
@@ -154,6 +154,13 @@ export function renderSpec(engine, request) {
 // A plot drawn in `polar()`, where one axis bends into an angle.
 function plotIsPolar(spec) {
   return !!(spec?.coord && typeof spec.coord === "object" && spec.coord.polar);
+}
+
+// A plot with a `flow` layer, whose brush moves by a click on a slot. That
+// click works on a ring as well as on the plane, so a flow in `polar()` takes
+// it where a polar plot of any other kind takes no gesture at all.
+function plotIsFlow(spec) {
+  return (spec?.layers ?? []).some((l) => (l.transforms ?? []).includes("flow"));
 }
 
 function plotIsSpatial(spec) {
@@ -653,6 +660,103 @@ export function attachBrush(engine, container, request, options = {}) {
   const holds = (panel, at) =>
     at !== null && at.x >= panel.x0 && at.x <= panel.x1 &&
     at.y >= panel.y0 && at.y <= panel.y1;
+
+  // ---------------------------------------------------------------------
+  // The slot under the pointer
+  //
+  // **A flow's brush moves by a click on a slot**, because a drag has nothing
+  // to read there: a flow's axes are its stages and a running sum, and a range
+  // over either is not a selection anyone means. A slot is one place at one
+  // stage, and choosing a slot is what a brush on a column of categories already
+  // does along an axis. Here it is done where the slot is drawn.
+  //
+  // The page cannot find a slot by arithmetic, since a slot's extent is the
+  // flow's running sum, which only the engine's layout knows. So the engine
+  // writes each slot's outline beside it, in the slot's own user space, and the
+  // pointer is tested against that outline with the rule a traced region uses.
+  // The outline is the shape that was drawn, which is why the same click works
+  // on a ring, where a drag along straight axes cannot.
+  // ---------------------------------------------------------------------
+  const slotAt = (event) => {
+    for (const el of container.querySelectorAll("[data-gog-slot]")) {
+      const owner = el.ownerSVGElement;
+      const ctm = typeof el.getScreenCTM === "function" ? el.getScreenCTM() : null;
+      if (!owner || !ctm) continue;
+      const pt = owner.createSVGPoint();
+      pt.x = event.clientX;
+      pt.y = event.clientY;
+      const at = pt.matrixTransform(ctm.inverse());
+      const shape = (el.getAttribute("data-gog-shape") ?? "").trim().split(/\s+/)
+        .map((p) => p.split(",").map(Number));
+      if (holdsIn(shape, at.x, at.y)) {
+        return { field: el.getAttribute("data-gog-slot-field"), place: el.getAttribute("data-gog-slot") };
+      }
+    }
+    return null;
+  };
+
+  // A click on a slot selects that one place, on every plot on the page that
+  // brushes a column the slot is a place of, which is linked brushing by the
+  // same rule a drag follows. A slot names its columns: a stage flow's slot its
+  // stage, a shared flow's slot both columns, and either one the flow's own
+  // `name`. A second click on the selected slot clears it, as a click on empty
+  // space clears a bound. A bare `brush` let the reader choose, so its first
+  // click makes it a bound on `name`: the place itself, at any stage of a flow
+  // and at either end of a shared one.
+  const applySlot = (slot) => {
+    const fields = slot.field.split("|");
+    let moved = false;
+    eachPlot(req.spec).forEach((plot, i) => {
+      if (!(plot.brush ?? []).length) return;
+      const declared = opened[i] ?? [];
+      const bare = declared.some((b) => !b.field);
+      const named = plot.brush.filter((b) => fields.includes(b.field));
+      if (!named.length && !bare) return;
+      const again = named.length > 0 && named.every((b) =>
+        Array.isArray(b.levels) && b.levels.length === 1 && b.levels[0] === slot.place);
+      if (bare) {
+        plot.brush = declared.filter((b) => b.field).map((b) => JSON.parse(JSON.stringify(b)));
+        if (!plot.brush.some((b) => fields.includes(b.field))) plot.brush.push({ field: "name" });
+      }
+      for (const entry of plot.brush) {
+        if (!fields.includes(entry.field)) continue;
+        delete entry.at;
+        delete entry.levels;
+        if (!again) entry.levels = [slot.place];
+      }
+      moved = true;
+    });
+    return moved;
+  };
+
+  // A click on a flow's empty space selects nothing, as it does on any other
+  // panel: every bound on a column the page's slots stand for is emptied, and a
+  // bare `brush` goes back to being a declaration.
+  const clearSlots = () => {
+    const fields = new Set(Array.from(container.querySelectorAll("[data-gog-slot]"),
+      (el) => (el.getAttribute("data-gog-slot-field") ?? "").split("|")).flat());
+    let had = false;
+    eachPlot(req.spec).forEach((plot, i) => {
+      const declared = opened[i] ?? [];
+      if (declared.some((b) => !b.field)) {
+        if ((plot.brush ?? []).some((b) => b.at || b.levels)) had = true;
+        plot.brush = JSON.parse(JSON.stringify(declared));
+        return;
+      }
+      for (const entry of plot.brush ?? []) {
+        if (fields.has(entry.field) && (entry.at || entry.levels)) {
+          delete entry.at;
+          delete entry.levels;
+          had = true;
+        }
+      }
+    });
+    return had;
+  };
+
+  // A panel a drag cannot select on: a disc, whose `x` is an angle and `y` a
+  // distance, and a flow, whose axes are its stages and a running sum.
+  const noDrag = (panel) => panel.place === "polar" || panel.place === "flow";
 
   // ---------------------------------------------------------------------
   // The band under the pointer
@@ -1488,6 +1592,15 @@ export function attachBrush(engine, container, request, options = {}) {
   let moved = false;
 
   let panning = null;
+  // A press that may turn out to be a click: where it landed, the slot under
+  // it, and whether it landed on a panel no drag selects on. Kept apart from
+  // `held`, which belongs to a drag, so a click on a slot is still a click when
+  // it ends a pan that never moved.
+  let press = null;
+  // Whether the pointer is over a slot, so the cursor changes once on the way
+  // in and once on the way out, and what it was before.
+  let pointing = false;
+  let resting = "";
 
   const schedule = () => {
     if (queued) return;
@@ -1499,6 +1612,8 @@ export function attachBrush(engine, container, request, options = {}) {
   };
 
   const onDown = (e) => {
+    const on = panels().find((p) => holds(p, pointIn(p, e)));
+    press = { x: e.clientX, y: e.clientY, slot: slotAt(e), still: !!on && noDrag(on), moved: false };
     // This plot said `brush`, so the plain drag belongs to the selection and
     // panning asks with a modifier. On a plot that said nothing there is a
     // spare drag and `attachPan` takes it instead.
@@ -1520,9 +1635,19 @@ export function attachBrush(engine, container, request, options = {}) {
     // as a distance, so a band over the right half of the circle caught rows
     // drawn on the left. Until the plot has a gesture of its own, a wedge around
     // or a ring in and out, a drag there changes nothing rather than the wrong
-    // rows.
-    if (all[held].place === "polar") {
+    // rows. **Nor does a flow's**: it selects by a click on a slot. Zoomed in, a
+    // drag on either moves the picture, as it does on a plot with no brush.
+    if (noDrag(all[held])) {
       held = -1;
+      if (view?.zoomed?.()) {
+        panning = { x: e.clientX, y: e.clientY };
+        container.style.cursor = "grabbing";
+        try {
+          container.setPointerCapture?.(e.pointerId);
+        } catch {
+          /* no active pointer to capture */
+        }
+      }
       return;
     }
     start = pointIn(all[held], e);
@@ -1537,6 +1662,10 @@ export function attachBrush(engine, container, request, options = {}) {
     }
   };
   const onMove = (e) => {
+    // A press that travels is a drag or a pan, never a click on what it began on.
+    if (press && !press.moved && Math.hypot(e.clientX - press.x, e.clientY - press.y) >= MIN_DRAG) {
+      press.moved = true;
+    }
     if (held < 0 && !panning) {
       // Not dragging: say what is under the pointer.
       const all = panels();
@@ -1548,6 +1677,14 @@ export function attachBrush(engine, container, request, options = {}) {
       const hit = over && mode() === "select" ? nearest(over, pointIn(over, e)) : null;
       if (hit) showTip(over, hit);
       else hideTip();
+      // A slot is something to click, and the pointer says so, the way a link's
+      // does. Only while no button is down, so a pan keeps its own hand.
+      const onSlot = !press && slotAt(e) !== null;
+      if (onSlot !== pointing) {
+        if (onSlot) resting = container.style.cursor ?? "";
+        container.style.cursor = onSlot ? "pointer" : resting;
+        pointing = onSlot;
+      }
       return;
     }
     if (panning) {
@@ -1578,6 +1715,20 @@ export function attachBrush(engine, container, request, options = {}) {
     schedule();
   };
   const onUp = (e) => {
+    // **A press that never moved, on a flow, is the selection's own act.** On a
+    // slot it selects that place, and it has to end on the slot it began on, as
+    // a button's click does. On the flow's empty space it clears, as a click on
+    // empty space clears a bound on every other panel.
+    if (press && e && !press.moved &&
+        Math.hypot(e.clientX - press.x, e.clientY - press.y) < MIN_DRAG) {
+      const slot = press.slot ? slotAt(e) : null;
+      if (slot && slot.field === press.slot.field && slot.place === press.slot.place) {
+        if (applySlot(slot)) schedule();
+      } else if (!press.slot && press.still && clearSlots()) {
+        schedule();
+      }
+    }
+    press = null;
     // A click means one of two things, and which one is decided by what it
     // landed on. **On a mark it stamps**, because the reader pointed at a row
     // and asked for it to stay. **On empty space it clears**, which is what a
@@ -1652,6 +1803,9 @@ export function attachBrush(engine, container, request, options = {}) {
     /** What a plain drag does now. Zooming in switches it, because a reader who
      *  has just magnified something almost always wants to move around in it. */
     mode,
+    /** Whether a drag selects on any panel here. A page of flows selects by a
+     *  click on a slot, so it offers no `drag:` modes and no crosshair. */
+    drags: () => panels().some((p) => !noDrag(p)),
     /** The last mode that *selects*, so returning from a pan comes back to the
      *  one the reader chose rather than always to the rectangle. */
     picked: () => picked,
@@ -1662,8 +1816,12 @@ export function attachBrush(engine, container, request, options = {}) {
       // The pointer says what the drag will do before the reader tries it. An
       // open hand is the universal "you can move this"; a crosshair is the
       // universal "you can draw here", for a rectangle and for a free shape
-      // alike — which is why the toolbar shows which of the two is on.
-      container.style.cursor = dragMode === "pan" ? "grab" : "crosshair";
+      // alike — which is why the toolbar shows which of the two is on. Where
+      // no panel takes a selecting drag there is nothing to draw, so the pointer
+      // stays plain until it is over a slot.
+      const draws = panels().some((p) => !noDrag(p));
+      container.style.cursor = dragMode === "pan" ? "grab" : (draws ? "crosshair" : "");
+      pointing = false;
     },
     reset() {
       // Back to what the sentence said, which for a bare brush is the
@@ -1695,7 +1853,9 @@ export function attachBrush(engine, container, request, options = {}) {
  *
  * Columns are the ones the sentence *maps*, not every column in the table. A
  * twelve-column CSV is unreadable as a readout, and the mapped ones are the
- * ones the reader is already looking at.
+ * ones the reader is already looking at. A flow's columns join them, since its
+ * atom names them where another plot would map them: they are where each row's
+ * amount went.
  *
  * **`offset` is a window into the selection, not a second selection.** A reader
  * who catches forty rows wants all forty, and a table forty rows long would push
@@ -1715,6 +1875,14 @@ export function attachBrush(engine, container, request, options = {}) {
  * plot's values sat under the first plot's names.
  */
 export const PAGE_ROWS = 10;
+
+/** The columns a plot's flows read, each once: a stage flow's stages, a shared
+ *  flow's two columns. Empty for a plot with no flow. */
+function flowColumns(plot) {
+  return [...new Set((plot?.layers ?? [])
+    .filter((l) => (l.transforms ?? []).includes("flow"))
+    .flatMap((l) => l.flow?.stages ?? []))];
+}
 
 export function selectedRows(req, limit = PAGE_ROWS, offset = 0) {
   const result = { kept: 0, total: 0, columns: [], rows: [], capped: false,
@@ -1743,6 +1911,11 @@ export function selectedRows(req, limit = PAGE_ROWS, offset = 0) {
   for (const { df, tests } of tables.values()) {
     for (const { plot, bounds, region } of tests) {
       for (const c of [plot.x, plot.y, plot.z]) add(df, c?.field);
+      // A flow names its columns in the atom rather than on a channel, and they
+      // are what says where each row went: without them a selected place showed
+      // only the amount and the band's color column, so a row from China could
+      // not be told an export from an import.
+      for (const f of flowColumns(plot)) add(df, f);
       for (const c of Object.values(plot.channels ?? {})) add(df, c?.field);
       for (const layer of plot.layers ?? []) {
         for (const c of Object.values(layer.encodings ?? {})) add(df, c?.field);
@@ -1761,7 +1934,12 @@ export function selectedRows(req, limit = PAGE_ROWS, offset = 0) {
     const value = (field, i) =>
       floats[field] ? floats[field][i] : strings[field]?.[i];
     const rows = Object.values(floats)[0]?.length ?? Object.values(strings)[0]?.length ?? 0;
-    const catches = ({ bounds, region }, i) => bounds.every((b) => {
+    const catches = ({ plot, bounds, region }, i) => bounds.every((b) => {
+      // A bound on a flow's `name` names a place at any of the flow's stages, or
+      // at either end of a shared flow, which is how the engine reads it: a row
+      // is caught when any of those columns holds a named place.
+      const places = b.field === "name" ? flowColumns(plot) : [];
+      if (places.length) return places.some((c) => b.levels?.includes(value(c, i)));
       const v = value(b.field, i);
       if (b.at) return typeof v === "number" && Number.isFinite(v) && v >= b.at[0] && v <= b.at[1];
       return b.levels.includes(v);
@@ -2013,7 +2191,9 @@ function addSelectionBar(container, handle, view) {
   const controls = document.createElement("span");
   controls.style.cssText = "display:inline-flex;gap:.75em;align-items:center;";
   controls.append(rows.toggle, reset, unstamp);
-  bar.append(group, rows.readout, controls);
+  // A page of flows selects by a click on a slot, so there is no drag for the
+  // modes to choose between. A zoomed one still pans with a drag.
+  bar.append(...(handle.drags?.() === false ? [] : [group]), rows.readout, controls);
   placeBar(container, viewRow, bar);
   bar.after(rows.table);
   rows.table.after(rows.pager);
@@ -2415,7 +2595,8 @@ export async function mount(target, request, options = {}) {
   // Everything else is the view the same plot has unbrushed, `mountView`'s own,
   // so zoomed in, a drag pans; built beside it, a zoomed polar plot could not be
   // moved at all.
-  if (!spatial && eachPlot(request?.spec).every((p) => !p.brush?.length || plotIsPolar(p))) {
+  if (!spatial && eachPlot(request?.spec)
+    .every((p) => !p.brush?.length || (plotIsPolar(p) && !plotIsFlow(p)))) {
     const caught = caughtRows((offset) => selectedRows(request, PAGE_ROWS, offset));
     const line = controlBar("selection");
     line.append(caught.readout, caught.toggle);
@@ -2442,7 +2623,8 @@ export async function mount(target, request, options = {}) {
       });
       if (options.controls !== false) show = addSelectionBar(container, handle, view);
       show();
-      container.style.cursor = "crosshair";
+      // A crosshair says "draw here", which a page of flows does not take.
+      container.style.cursor = handle.drags() ? "crosshair" : "";
       container.dataset.gogInteractive = "true";
       container.dataset.gogBuild = BUILD;
       return handle;

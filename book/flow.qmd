@@ -396,6 +396,223 @@ men did not. The exact counts are gone from the picture, so give them in the
 paragraph beside the plot, as [The finished diagram](#the-finished-diagram)
 does.
 
+## Selecting one place
+
+Color tells the bands apart, but it does not show where the people in one place
+went. `brush` keeps the color of the bands that pass through one place and dims
+the rest. Name a stage, and use `at` to name the place the selection starts
+with, as a brush on a [categorical
+column](selection.qmd#a-categorical-column-selects-slots) does:
+
+```{r}
+data(titanic) + y(n) +
+  ribbon * flow(class, sex, survived) + color(survived) +
+  zone * flow(class, sex, survived) +
+  text * flow(class, sex, survived) + label(name) +
+  brush(sex, at = "Female") +
+  title("The women and girls, and where they went")
+```
+
+*"Given titanic: y is n, ribbons derived by flow through class, sex and
+survived, colored by survived, and also zones derived by flow through class, sex
+and survived, and text derived by flow through class, sex and survived, label by
+name, and let the reader select sex, starting with Female."*
+
+The bands that pass through `Female` keep their colors, and every other band is
+dimmed. A brush on a stage never cuts a band in two. A band is a group of people
+who share a place at every stage, so either all of them are in the selection or
+none of them are. The `Male` slot is dimmed as well. The slots at the other two
+stages hold both women and men, so they are not dimmed.
+
+In the web edition, a click on a `sex` slot selects it. Click `Male` and the
+selection moves there. Click the selected slot again, a band, or an empty part
+of the panel, and nothing is dimmed. With a bare `brush`, a click selects a slot
+at any stage. A drag selects nothing on a flow, and the pointer shows no values,
+because each band and each slot stands for many rows. In the PDF, the plot keeps
+the selection the sentence states.
+
+A flow keeps or dims each band, or each part of a band, as a whole. So the
+brushed column must be one that each band, or each part, holds a single value
+of. A stage is one. So is a column given to the bands' `color`, because it
+splits each band into parts, as [Color from another
+column](#color-from-another-column) shows. Any other column can hold two values
+in one band, and gog refuses it. `age` is a column of `titanic`, but not a stage
+of this flow:
+
+```{r}
+#| error: true
+data(titanic) + y(n) +
+  ribbon * flow(class, sex, survived) + color(survived) +
+  zone * flow(class, sex, survived) +
+  brush(age, at = "Child")
+```
+
+## Two columns that name the same places
+
+So far each column named in `flow()` has been a stage of its own. Some tables
+record amounts between places of one kind instead. `trade_partners`, from the
+[Network](network.qmd) chapter, records trade between countries: each row says
+how much one country exported to another, in billions of dollars:
+
+```{r}
+#| echo: false
+peek(trade_partners)
+```
+
+China appears in both columns. It exports to the United States, and it imports
+from Korea. A flow through `exporter` and `importer` would put each column at a
+stage of its own, so China would get two slots. `shared = TRUE` says that the two
+columns name one set of places. Each country then gets one slot, and every slot
+lies on one axis. The length of a country's slot is the total of its exports and
+imports:
+
+```{r}
+data(trade_partners) + x(billions) +
+  ribbon * flow(exporter, importer, shared = TRUE) + color(exporter) +
+  zone * flow(exporter, importer, shared = TRUE) +
+  text * flow(exporter, importer, shared = TRUE) + label(name) +
+  title("Trade between countries, as arcs")
+```
+
+*"Given trade partners: x is billions, ribbons derived by flow through exporter
+and importer, shared, colored by exporter, and also zones derived by flow through
+exporter and importer, shared, and text derived by flow through exporter and
+importer, shared, label by name."*
+
+This picture is an **arc diagram**. Each band rises from the country that
+exports and comes down at the country that imports. The farther apart the two
+countries are on the axis, the higher the band rises. Each end of a band is as
+wide as the amount it carries. `color(exporter)` gives each band the color of the
+country it leaves.
+
+A country's slot has up to two parts, with no line between them. The bands of
+its exports leave the white part, and the bands of its imports arrive at the
+gray part, to the right of the white part. Vietnam only imports, so its slot is
+all gray. At China, the band to the United States leaves the white part, and the
+band from Korea arrives at the gray part. The colors show this too: every band
+of China's exports has China's color. The two parts show it even without the
+legend. A `style(color = )` on the `zone` layer colors the white part, and the
+gray part becomes a darker shade of that color.
+
+The white part is for the first column in `flow()`, and the gray part is for the
+second. To put the exports in the gray part instead, name `importer` first:
+
+```{r}
+data(trade_partners) + x(billions) +
+  ribbon * flow(importer, exporter, shared = TRUE) + color(exporter) +
+  zone * flow(importer, exporter, shared = TRUE) +
+  text * flow(importer, exporter, shared = TRUE) + label(name) +
+  title("Trade between countries, imports first")
+```
+
+Each slot now starts with the country's imports, in white, and its exports
+follow in gray. The order of the countries changes too, but only at the start:
+the United States now comes first and China second. gog puts the countries in
+the order it first reads their names. In each row it reads the first column in
+`flow()` before the second, so the first row now gives the United States before
+China. If the columns have a declared order, gog uses that order instead.
+
+The axis carries no numbers. Each amount takes space on the axis twice, once at
+each end of its band, so an axis with numbers would end at twice the total
+trade. The country names are written in place of the numbers, turned to read
+upward when they do not fit side by side. With the amount on `y`, as in
+`y(billions)`, the axis runs up the page, the names stand at its left, and the
+bands reach to the right.
+
+The panel is white and has no frame, because the plot has no numbers to read
+values from. `theme()` changes both, as it does for any plot: `background`
+colors the panel, and `frame = "axes"` draws the two lines along the bottom and
+the left ([Axes, legends, gridlines and the
+frame](style.qmd#axes-legends-gridlines-and-the-frame)).
+
+A shared flow, one with `shared = TRUE`, reads two columns: the place each
+amount leaves, and the place it arrives at. A third column, for a route through
+three places, would be valid grammar, but this engine does not draw it.
+
+## The chord diagram
+
+Add `polar()` to the arc diagram's sentence, the one with `exporter` first.
+`polar()` puts the amounts on the angle, as it does for a pie, so the axis bends
+into a ring. This picture is a **chord diagram**:
+
+```{r}
+data(trade_partners) + x(billions) +
+  ribbon * flow(exporter, importer, shared = TRUE) + color(exporter) +
+  zone * flow(exporter, importer, shared = TRUE) +
+  text * flow(exporter, importer, shared = TRUE) + label(name) +
+  polar() + title("Trade between countries, as chords")
+```
+
+*"Given trade partners: x is billions, ribbons derived by flow through exporter
+and importer, shared, colored by exporter, and also zones derived by flow through
+exporter and importer, shared, and text derived by flow through exporter and
+importer, shared, label by name, in polar."*
+
+Each country's slot is now a piece of the ring, and its length is still the
+total of the country's exports and imports. It keeps its two parts, white for
+exports and gray for imports. Each band curves toward the center
+of the circle, from the country that exports to the country that imports. Like
+the arc diagram's axis, the ring carries no numbers, and the names stand outside
+it.
+
+In a chord diagram, a band's area can mislead. A band's width at its two ends is
+the amount it carries, but its area is not. A band between countries far apart
+on the ring is long, and a band between two countries side by side on the ring
+is short. The countries stand
+around the ring in the order they first appear in the table, so the length of a
+band says nothing about the amounts. Canada exported 420 billion dollars to the
+United States, and China exported 500. Yet Canada's band covers more of the
+picture, because China sits next to the United States. Read a band at its two
+ends. The next section shows an easier way to read the diagram: one country at a
+time.
+
+## Selecting a place in either column
+
+A brush on one column selects by that column alone. `brush(exporter, at =
+"China")` keeps the bands that leave China and dims the bands that arrive there.
+To keep both, brush the flow's own `name`, the column that `label(name)` reads.
+That brush keeps every band that leaves or arrives at the place. Each band holds
+two names, one at each end. [Selecting one place](#selecting-one-place) refuses
+a column with two values in one band, and `name` is the one exception.
+
+```{r}
+data(trade_partners) + x(billions) +
+  ribbon * flow(exporter, importer, shared = TRUE) + color(exporter) +
+  zone * flow(exporter, importer, shared = TRUE) +
+  text * flow(exporter, importer, shared = TRUE) + label(name) +
+  brush(name, at = "China") +
+  title("What China exports and imports")
+```
+
+*"Given trade partners: x is billions, ribbons derived by flow through exporter
+and importer, shared, colored by exporter, and also zones derived by flow through
+exporter and importer, shared, and text derived by flow through exporter and
+importer, shared, label by name, and let the reader select name, starting with
+China."*
+
+Every band that leaves or arrives at China keeps its color. Every other band
+is dimmed, and so is every other country's slot. In the web edition, a click on
+a country's slot selects that country instead. A click on the selected slot, on
+a band, or on an empty part of the panel clears the selection. `show rows` lists
+the selected rows with both `exporter` and `importer`, so each row says whether
+it is an export from China or an import into China.
+
+The same brush and the same click work on the chord diagram:
+
+```{r}
+data(trade_partners) + x(billions) +
+  ribbon * flow(exporter, importer, shared = TRUE) + color(exporter) +
+  zone * flow(exporter, importer, shared = TRUE) +
+  text * flow(exporter, importer, shared = TRUE) + label(name) +
+  polar() + brush(name, at = "China") +
+  title("What China exports and imports, as chords")
+```
+
+In the ring too, China's bands keep their colors, and every other band and
+slot is dimmed. On a flow with stages, `brush(name, at = "Female")` keeps the
+same bands as `brush(sex, at = "Female")`. The two differ only when one name
+stands at two stages, and `name` then selects both.
+
 ## What flow refuses
 
 A flow needs at least two stages, because movement needs a place to start and
@@ -434,25 +651,25 @@ data(titanic) + y(n) + ribbon * flow(class, survived) + color(n)
 ## Where the limits are
 
 The two limits below are not mistakes in your sentence. The engine does not
-draw the first, and it does not read the second.
+draw the first, and it does not compute the second.
 
-Every mark that draws on the page also bends into a circle, so you would expect
-a flow's bands to bend as well. [`polar()`](polar.qmd) is what bends a plot,
-and a flow in `polar()` is valid grammar. The bands bent around a circle make a
-**chord diagram**, which this engine does not draw:
+A flow with stages is valid grammar in [`polar()`](polar.qmd) too. Each stage
+would get a ring of its own, so the picture would be a circular alluvial
+diagram, not the chord diagram above. This engine does not draw it, and the
+message points to `shared = TRUE` for two columns that name one set of places:
 
 ```{r}
 #| error: true
 data(titanic) + y(n) + ribbon * flow(class, survived) + polar()
 ```
 
-The input has a limit too. A flow reads its stages as columns of one table, so
-each row has one place at every stage. Some tools accept a different shape. They
-take a list of nodes, which are the slots, and a list of links between those
-nodes. That shape can also describe flows that begin partway, skip a stage, or
-return to a stage they already visited. A flow does not read it. In the
-stage-column shape, every path passes through every stage, so every stage has
-the same total. No path can return to a stage it already visited.
+The layout has a limit too. A flow with stages reads one place for each stage
+from every row, so every path passes through every stage, and every stage has
+the same total. Some tools read a list of links instead, and set each place's
+position from left to right by counting the links from the start of its flow.
+Their diagrams can show a flow that begins partway across, skips over places, or comes
+back to a place it already passed. A flow does not arrange places that way. A
+shared flow reads a list of links too, but it puts every place on one axis.
 
 ## What comes next
 

@@ -4982,22 +4982,49 @@ fn check_flow(
         return;
     }
 
+    // 2c. A shared flow is a relation between two columns: the place each amount
+    //     leaves and the place it arrives at. A third column would make each row a
+    //     route through three places on one axis, which this engine does not draw.
+    let shared = layer.flow_is_shared();
+    if shared && stages.len() != 2 {
+        out.push(Diagnostic {
+            kind: DiagnosticKind::Unsupported,
+            message: format!(
+                "gog: `flow(..., shared = TRUE)` with {} columns is valid grammar, but \
+                 this engine draws a shared flow between two columns only: the place \
+                 each amount leaves, then the place it arrives at, as in \
+                 `flow({}, {}, shared = TRUE)`.",
+                stages.len(), stages[0], stages[1]
+            ),
+        });
+        return;
+    }
+
     // 3. The space. A flow reads its stages along one axis and its magnitude up
-    //    the other, which only the flat plane offers today. Polar is the one
-    //    future: the same geometry bent round a rim is the chord diagram, so that
-    //    cell refuses as unbuilt rather than as wrong.
+    //    the other, which only the flat plane offers. A **shared** flow has one
+    //    axis, its count, so `polar()` puts that on the angle, as a pie's, and the
+    //    slots make one ring: the chord diagram, drawn. A stage flow bent round a
+    //    rim keeps a ring or an angle per stage, a circular alluvial and not the
+    //    chord diagram (which this cell once claimed it was, 2026-10-03); it
+    //    refuses as unbuilt rather than as wrong, and points at the chord diagram
+    //    for two columns that name one set of places.
     match space_of(spec) {
         SpaceKind::Flat => {}
+        SpaceKind::Polar if shared => {}
         // Said of the whole flow, not of "the bands": a `zone` draws the stages' slots
         // and a `text` their names, and each layer printed the ribbon's sentence. One
         // sentence for every layer is also said once (`check` keeps one of each).
         SpaceKind::Polar => {
             out.push(Diagnostic {
                 kind: DiagnosticKind::Unsupported,
-                message: "gog: `flow` in `polar()` is valid grammar, a flow bent round a \
-                          rim, which is the chord diagram, but this engine does not draw \
-                          it. Draw the flow flat."
-                    .to_string(),
+                message: format!(
+                    "gog: `flow` in `polar()` is valid grammar, a flow bent round a rim \
+                     with a ring for each stage, but this engine does not draw it. Draw \
+                     the flow flat. If two columns name one set of places, \
+                     `flow({}, {}, shared = TRUE)` in `polar()` draws them as the chord \
+                     diagram.",
+                    stages[0], stages[1]
+                ),
             });
             return;
         }
@@ -8861,6 +8888,10 @@ fn transform_collapses_rows(t: &Transform) -> bool {
 pub fn layer_takes_selection(layer: &Layer) -> bool {
     mark_takes_selection(&layer.mark)
         || (layer.mark == Mark::Interval && layer.transforms.contains(&Transform::Bounds))
+        // A flow's band is one path, and every row on a path holds the same
+        // place at every stage. So a bound on a stage keeps or leaves a whole
+        // band, which a ribbon's band between two curves never could.
+        || (layer.mark == Mark::Ribbon && layer.transforms.contains(&Transform::Flow))
 }
 
 /// Can the engine *draw* this layer brushed today? The `renders` half.
@@ -8906,6 +8937,17 @@ fn selection_draws(layer: &Layer) -> Option<&'static str> {
 /// question the renderer needs. Kept here rather than in the renderer so the
 /// picture cannot disagree with the diagnostic the reader was given.
 pub fn layer_answers_selection(layer: &Layer) -> bool {
+    // **A flow answers by its paths, not by its rows** (2026-10-03, at the
+    // author's word). It sums rows into paths, which is what `transform_collapses_rows`
+    // refuses everywhere else, but the sum never mixes two paths: a band is the
+    // rows that share a place at every stage. A bound on a stage, or on a column
+    // that splits the bands, is therefore all or nothing for each band, and
+    // `check_brush` refuses every other column on a flow. The slots answer by
+    // their own stage (`flow_slot_keeps`), and the positions come from the whole
+    // table before either pass is drawn, so both passes put a band in one place.
+    if layer.transforms.contains(&Transform::Flow) {
+        return true;
+    }
     !layer.transforms.iter().any(transform_collapses_rows) && selection_draws(layer).is_none()
 }
 
@@ -8943,6 +8985,14 @@ pub fn why_not_placed(spec: &PlotSpec) -> Option<&'static str> {
     // reader cannot mean, so the readout's word comes first and is its own.
     if matches!(spec.coord, CoordSpace::Network(_)) {
         return Some("network");
+    }
+    // A flow's bands and slots are placed by the paths' running sums, not by
+    // any row's value, and its own word tells the page two things: a pointer
+    // names no row there, and a drag selects nothing, since a range over the
+    // stages or the running count is not a selection a reader can mean. A
+    // click on a slot is what moves a flow's brush.
+    if spec.layers.iter().any(|l| l.transforms.contains(&Transform::Flow)) {
+        return Some("flow");
     }
     if spec.layers.iter().any(layer_places_rows) {
         return None;
@@ -9058,6 +9108,80 @@ pub fn brush_keeps(spec: &PlotSpec, df: &DataFrame) -> Option<Vec<bool>> {
     read_any.then_some(keep)
 }
 
+/// Which of a flow's slots a brush keeps — [`brush_keeps`] for the rows
+/// `flow_nodes` writes, one per place at each stage, which `zone` and `text` read.
+///
+/// A slot stands for every path through its place, so only a bound that names
+/// **its own place** can say whether it is selected: a bound on its own stage
+/// (`brush(sex, at = "Female")` keeps `Female` and dims `Male`), on either column
+/// of a shared flow, whose slots are places of both, or on the flow's `name` at a
+/// stage where the bound names a place. A bound on another stage says nothing about
+/// it, since a `1st` slot holds women and men alike, and dimming it either way
+/// would be the dishonest picture `transform_collapses_rows` exists to prevent.
+/// Such a slot is drawn at full strength with the selection. `None` when no bound
+/// speaks about these rows, so the layer is drawn once and whole, as a layer
+/// without the brushed column is.
+pub fn flow_slot_keeps(spec: &PlotSpec, layer: &Layer, df: &DataFrame) -> Option<Vec<bool>> {
+    let name = df.str_col(crate::transform::NODE_NAME)?;
+    let stage = df.str_col(crate::transform::FLOW_STAGE);
+    let shared = layer.flow_is_shared();
+    let columns: Vec<&str> = layer.flow.as_ref()
+        .map(|f| f.stages.iter().map(String::as_str).collect()).unwrap_or_default();
+    let mut keep = vec![true; df.len()];
+    let mut read_any = false;
+    let stage_of = |i: usize| stage.and_then(|s| s.get(i));
+    for b in spec.brush.iter().filter(|b| !b.is_resting()) {
+        // A place is a category, so a bound on one is a list of them.
+        let Some(levels) = &b.levels else { continue };
+        // A bound on `name` speaks to the stages where it names a place: there the
+        // named slots are selected and their siblings are not, and a stage it names
+        // nothing at holds selected and unselected paths alike. A shared flow's
+        // slots all stand on one axis, so it speaks to every one of them.
+        let named_at: Vec<Option<&String>> = (0..df.len())
+            .filter(|&i| name.get(i).is_some_and(|n| levels.contains(n)))
+            .map(stage_of)
+            .collect();
+        for (i, k) in keep.iter_mut().enumerate() {
+            let speaks = if b.field == crate::transform::NODE_NAME {
+                named_at.contains(&stage_of(i))
+            } else {
+                (shared && columns.contains(&b.field.as_str())) || stage_of(i) == Some(&b.field)
+            };
+            if speaks {
+                read_any = true;
+                *k &= name.get(i).is_some_and(|n| levels.contains(n));
+            }
+        }
+    }
+    read_any.then_some(keep)
+}
+
+/// Which of a flow's bands a brush keeps. A bound on a column the bands carry (a
+/// stage, either column of a shared flow, or a column that splits them) is
+/// [`brush_keeps`] itself. A bound on the flow's **`name`** keeps a band that
+/// passes through a named place at *any* of its stages, so on a shared flow it
+/// keeps both what a place sends and what it receives: the chord diagram's
+/// one-place-at-a-time reading, which no single column can state, since two
+/// bounds on two columns would keep only what both select.
+pub fn flow_band_keeps(spec: &PlotSpec, layer: &Layer, df: &DataFrame) -> Option<Vec<bool>> {
+    let plain = brush_keeps(spec, df);
+    let named: Vec<&crate::ir::BrushDef> = spec.brush.iter()
+        .filter(|b| !b.is_resting() && b.field == crate::transform::NODE_NAME).collect();
+    if named.is_empty() {
+        return plain;
+    }
+    let cols: Vec<&Vec<String>> = layer.flow.as_ref()
+        .map(|f| f.stages.iter().filter_map(|c| df.str_col(c)).collect()).unwrap_or_default();
+    let mut keep = plain.unwrap_or_else(|| vec![true; df.len()]);
+    for b in named {
+        let Some(levels) = &b.levels else { continue };
+        for (i, k) in keep.iter_mut().enumerate() {
+            *k &= cols.iter().any(|c| c.get(i).is_some_and(|v| levels.contains(v)));
+        }
+    }
+    Some(keep)
+}
+
 /// The plot-scoped rule, which is `size`'s rule word for word: apply the binding
 /// where it fits, say where it did not, and refuse only when it fits nowhere.
 fn check_brush(out: &mut Vec<Diagnostic>, spec: &PlotSpec, data: &HashMap<String, DataFrame>) {
@@ -9130,9 +9254,12 @@ fn check_brush(out: &mut Vec<Diagnostic>, spec: &PlotSpec, data: &HashMap<String
                         .to_string(),
                 });
             }
+            // A flow needs no bound position for it: the reader picks a column by
+            // clicking one of its slots, so the stages are what is selectable.
             let placed = spec.x.is_some() || spec.y.is_some()
                 || spec.layers.iter().any(|l| {
                     l.encodings.contains_key(&Channel::X) || l.encodings.contains_key(&Channel::Y)
+                        || l.transforms.contains(&Transform::Flow)
                 });
             if !placed {
                 out.push(Diagnostic {
@@ -9190,8 +9317,12 @@ fn check_brush(out: &mut Vec<Diagnostic>, spec: &PlotSpec, data: &HashMap<String
             });
         }
         // A column no bound table carries is the silent drop §12 forbids: the
-        // brush would be accepted and would select nothing, forever.
-        let known = spec.layers.iter().any(|l| {
+        // brush would be accepted and would select nothing, forever. A flow's
+        // `name` is the one exception, a column the flow itself publishes, as
+        // `label(name)` reads it.
+        let flow_name = b.field == crate::transform::NODE_NAME
+            && spec.layers.iter().any(|l| l.transforms.contains(&Transform::Flow));
+        let known = flow_name || spec.layers.iter().any(|l| {
             l.data
                 .as_ref()
                 .or(spec.data.as_ref())
@@ -9211,6 +9342,58 @@ fn check_brush(out: &mut Vec<Diagnostic>, spec: &PlotSpec, data: &HashMap<String
         }
     }
 
+    // **A flow selects whole bands, so its brush names a column every band holds
+    // one value of** (2026-10-03, at the author's word): a stage, which each path
+    // passes through at one place, or a column of categories that colors or
+    // patterns the bands, which splits each path into parts that hold one value
+    // each. Any other column cuts across a band, and a band drawn half selected
+    // has no honest picture, so the brush would select nothing the reader could
+    // see. That is the silent drop §12 forbids, so it is refused, with the two
+    // ways to make the column one a band holds.
+    let flows: Vec<&Layer> = spec.layers.iter()
+        .filter(|l| l.transforms.contains(&Transform::Flow)).collect();
+    if !flows.is_empty() {
+        let stages: Vec<&str> = flows.iter().filter_map(|l| l.flow.as_ref())
+            .flat_map(|f| f.stages.iter().map(String::as_str)).collect();
+        let splits: Vec<&str> = flows.iter().filter(|l| l.mark == Mark::Ribbon)
+            .flat_map(|l| [Channel::Color, Channel::Pattern].into_iter()
+                .filter_map(|ch| l.encodings.get(&ch)).map(|d| d.field.as_str()))
+            .collect();
+        for b in spec.brush.iter().filter(|b| !b.is_positions()) {
+            if stages.contains(&b.field.as_str()) || splits.contains(&b.field.as_str())
+                || b.field == crate::transform::NODE_NAME
+            {
+                continue;
+            }
+            let first = stages.first().copied().unwrap_or("<stage>");
+            // A number cannot split a band (a band's `color` must be a category), so
+            // the second way out is offered only for a column of categories.
+            let measures = flows.iter().any(|l| {
+                l.data.as_ref().or(spec.data.as_ref()).and_then(|n| data.get(n))
+                    .is_some_and(|df| df.float_col(&b.field).is_some())
+            });
+            let message = if measures {
+                format!(
+                    "gog: `brush({0})` on a flow is valid grammar, but this engine does not \
+                     draw it. A flow selects whole bands by a column of categories, and \
+                     `{0}` measures, so a range on it would cut across the bands. Brush a \
+                     stage, such as `brush({first}, at = ...)`.",
+                    b.field
+                )
+            } else {
+                format!(
+                    "gog: `brush({0})` on a flow is valid grammar, but this engine does not \
+                     draw it. A flow selects whole bands, and `{0}` is neither a stage nor a \
+                     column that colors the bands, so it would cut across them. Brush a \
+                     stage, such as `brush({first}, at = ...)`, or map `{0}` to the `ribbon` \
+                     layer's `color` or `pattern`, which splits each band by its values.",
+                    b.field
+                )
+            };
+            out.push(Diagnostic { kind: DiagnosticKind::Unsupported, message });
+        }
+    }
+
     // Which layers can answer a selection at all, and which the engine can draw.
     let mut answers = Vec::new();
     let mut undrawn = Vec::new();
@@ -9223,6 +9406,12 @@ fn check_brush(out: &mut Vec<Diagnostic>, spec: &PlotSpec, data: &HashMap<String
             continue;
         }
         let m = mark_name(&layer.mark);
+        // Every flow layer answers: the bands by their paths, the slots and their
+        // names by their own stage. Which columns it answers on is settled above.
+        if layer.transforms.contains(&Transform::Flow) {
+            answers.push(m);
+            continue;
+        }
         if !layer_takes_selection(layer) {
             not_elements.push(m);
         } else if let Some(t) = layer.transforms.iter().find(|t| transform_collapses_rows(t)) {
@@ -16850,6 +17039,92 @@ mod tests {
         assert_eq!(said.len(), 1, "{:?}", msgs(&d));
         assert!(said[0].message.contains("a flow bent round a rim")
             && !said[0].message.contains("bands"), "{:?}", said[0]);
+    }
+
+    /// **A brush on a flow names a column every band holds one value of**
+    /// (2026-10-03). A stage passes, and so does a column of categories that
+    /// colors the bands, since it splits each band into parts that hold one value
+    /// each. A column of categories that is neither would cut across the bands,
+    /// and a number cannot split one at all, so both are refused with what to
+    /// brush instead. Bare `brush` passes on a flow with no bound count: the
+    /// reader names the column by clicking one of its slots.
+    #[test]
+    fn a_brush_on_a_flow_names_a_stage_or_a_column_that_splits_its_bands() {
+        let flow = |m: Mark| Layer::new(m).flow(&["continent", "region"]);
+        let flows = || PlotSpec::new().data("t").y("gdp")
+            .layer(flow(Mark::Ribbon)).layer(flow(Mark::Zone));
+        let unsupported = |spec: &PlotSpec| check(spec, &data()).into_iter()
+            .filter(|x| x.message.contains("on a flow")).collect::<Vec<_>>();
+
+        let stage = flows().brush(crate::ir::BrushDef::new("region").levels(vec!["North".into()]));
+        let d = check(&stage, &data());
+        assert!(!d.iter().any(|x| x.is_fatal()), "a stage is brushed: {:?}", msgs(&d));
+        assert!(d.iter().all(|x| !x.message.contains("drawn whole")),
+            "every flow layer answers, so none is reported left whole: {:?}", msgs(&d));
+
+        let mut colored = flows();
+        colored.layers[0] = flow(Mark::Ribbon).encode(Channel::Color, "continent");
+        let split = colored.brush(crate::ir::BrushDef::new("continent"));
+        assert!(unsupported(&split).is_empty(), "a coloring column is brushed too");
+
+        let measured = flows().brush(crate::ir::BrushDef::new("life").at(4.0, 5.0));
+        let said = unsupported(&measured);
+        assert_eq!(said.len(), 1, "{:?}", msgs(&check(&measured, &data())));
+        assert_eq!(said[0].kind, DiagnosticKind::Unsupported);
+        assert!(said[0].message.contains("`life` measures")
+            && said[0].message.contains("brush(continent, at = ...)")
+            && !said[0].message.contains("`color` or `pattern`"),
+            "a number is told to brush a stage, never to color the bands: {:?}", said[0]);
+
+        let other = Layer::new(Mark::Ribbon).flow(&["continent", "continent2"]);
+        let mut d = data();
+        let t = d.remove("t").unwrap();
+        let t = t.with_str("continent2", vec!["x".into(), "y".into(), "x".into()]);
+        d.insert("t".to_string(), t);
+        let across = PlotSpec::new().data("t").y("gdp").layer(other)
+            .brush(crate::ir::BrushDef::new("region").levels(vec!["North".into()]));
+        let said: Vec<_> = check(&across, &d).into_iter()
+            .filter(|x| x.message.contains("on a flow")).collect();
+        assert_eq!(said.len(), 1, "a column of categories that is not a stage: {said:?}");
+        assert!(said[0].message.contains("map `region` to the `ribbon` layer's `color` or `pattern`"),
+            "{:?}", said[0]);
+
+        let tally = PlotSpec::new().data("t").layer(flow(Mark::Ribbon)).brush(crate::ir::BrushDef::positions());
+        let d = check(&tally, &data());
+        assert!(!d.iter().any(|x| x.is_fatal()),
+            "a bare brush on a flow needs no bound position: {:?}", msgs(&d));
+    }
+
+    /// **A shared flow draws in `polar()`, and a stage flow there points at it**
+    /// (2026-10-03). Bent, a stage flow keeps a ring or an angle per stage, a
+    /// circular alluvial, so it refuses as unbuilt and names `shared = TRUE` for two
+    /// columns that name one set of places; a shared flow's one axis bends into the
+    /// ring, the chord diagram. A shared flow joins two columns, and a third is
+    /// refused. A brush on the flow's own `name` passes, though no table has it.
+    #[test]
+    fn a_shared_flow_draws_in_polar_and_joins_two_columns() {
+        let polar = || CoordSpace::Polar(crate::ir::PolarView::default());
+        let shared = |m: Mark| Layer::new(m).flow_shared("continent", "region");
+        let chord = PlotSpec::new().data("t").y("gdp").coord(polar())
+            .layer(shared(Mark::Ribbon)).layer(shared(Mark::Zone));
+        let d = check(&chord, &data());
+        assert!(!d.iter().any(|x| x.is_fatal()), "the chord diagram draws: {:?}", msgs(&d));
+
+        let stage = PlotSpec::new().data("t").y("gdp").coord(polar())
+            .layer(Layer::new(Mark::Ribbon).flow(&["continent", "region"]));
+        let said = msgs(&check(&stage, &data()));
+        assert!(said.iter().any(|m| m.contains("a ring for each stage")
+            && m.contains("`flow(continent, region, shared = TRUE)`")), "{said:?}");
+
+        let mut three = Layer::new(Mark::Ribbon).flow(&["continent", "region", "life"]);
+        three.flow.as_mut().unwrap().shared = true;
+        let said = msgs(&check(&PlotSpec::new().data("t").y("gdp").layer(three), &data()));
+        assert!(said.iter().any(|m| m.contains("between two columns only")), "{said:?}");
+
+        let named = PlotSpec::new().data("t").y("gdp").layer(shared(Mark::Ribbon))
+            .brush(crate::ir::BrushDef::new("name").levels(vec!["Asia".into()]));
+        let d = check(&named, &data());
+        assert!(!d.iter().any(|x| x.is_fatal()), "a brush on `name`: {:?}", msgs(&d));
     }
 
     /// **A transform written twice is told so once.** The pair sentences were written

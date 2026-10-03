@@ -2103,6 +2103,69 @@ _w = render_svg(data(_spans_b, name="spb") + interval * bounds(col.lo, col.hi) +
 assert _dimmed(_w).count("<line") == 3, "a brush on interval * bounds pushes back one whisker"
 ok("a brush reaches the shapes bounds places, one row each")
 
+
+# A brush on a flow's stage selects whole bands. Of the two paths, the one through
+# `b` is pushed back, and so is the `b` slot, while the slots of the other stage
+# stay at full strength. A flow's pass nests a clipped group per layer, so the
+# dimmed group is read to its own closing tag. A brush on the weight would cut
+# across the bands, so it is refused toward a stage.
+def _flow_dimmed(svg):
+    depth, kept = 1, []
+    for line in svg.split(_DIM, 1)[1].split("\n"):
+        t = line.strip()
+        if t.startswith("</g>"):
+            depth -= 1
+            if depth == 0:
+                break
+        elif t.startswith("<g") and not t.endswith("/>"):
+            depth += 1
+        kept.append(line)
+    return "\n".join(kept)
+
+
+_fb = render_svg(data(_sp, name="sp") + y(col.n) + ribbon * flow(col["from"], col.to)
+                 + zone * flow(col["from"], col.to) + brush(col["from"], at="a"))
+_pushed = _flow_dimmed(_fb)
+assert _pushed.count(" C ") == 2 and _pushed.count('fill-opacity="1.000"') == 1, _pushed
+assert _fb.count("data-gog-slot=") == 4, "one outline per slot for the page"
+# Inline rather than through `_refusal`: an `except ... as _refusal` above
+# deletes that name for the rest of the file, until it is defined again below.
+try:
+    render_svg(data(_sp, name="sp") + y(col.n) + ribbon * flow(col["from"], col.to)
+               + brush(col.n, at=(1, 2)))
+except GogError as _e:
+    assert "`n` measures" in str(_e), str(_e)
+else:
+    raise AssertionError("FAIL: a brush on a flow's weight was accepted")
+ok("a brush on a flow's stage selects whole bands and its own slots")
+
+# Two columns that name one set of places share one axis: flat it is the arc
+# diagram, four arches of two curves each, and in `polar()` the chord diagram,
+# each band curving through the center twice. A brush on the flow's own `name`
+# keeps what a place sends and what it receives: only the band from b to c steps
+# back.
+_tp = {"from": ["a", "a", "b", "c"], "to": ["b", "c", "c", "a"], "n": [3.0, 2.0, 4.0, 1.0]}
+_shared = (data(_tp, name="tp") + y(col.n)
+           + ribbon * flow(col["from"], col.to, shared=True)
+           + zone * flow(col["from"], col.to, shared=True))
+assert render_svg(_shared).count(" C ") == 8, "a shared flow draws four arches"
+_chord = render_svg(_shared + polar())
+_disc = re.search(r'<circle cx="([0-9.]+)" cy="([0-9.]+)"', _chord)
+assert _chord.count(f"Q {_disc.group(1)} {_disc.group(2)} ") == 8, "every chord crosses the center"
+assert _flow_dimmed(render_svg(_shared + brush(col.name, at="a"))).count(" C ") == 2, \
+    "brush(name) keeps both ends of a place"
+# Each slot holds what its place sends and then what it receives, the second
+# part shaded and no line between them. The panel has no frame, since neither
+# axis carries numbers, until the theme asks for one.
+_flat = render_svg(_shared)
+assert _flat.count('fill="black" fill-opacity="0.100"') == 3, "each second part is shaded"
+_frame_line = '<g stroke="#5a5a64" stroke-width="1.5" fill="none">'
+assert _frame_line not in _flat, "a shared flow draws no frame by default"
+assert _frame_line in render_svg(_shared + theme(frame="axes")), "the theme's frame is drawn"
+refuses("flow(shared=) that is not True or False",
+        lambda: flow(col["from"], col.to, shared="yes"))
+ok("a shared flow draws the arc diagram flat and the chord diagram in polar")
+
 _cat = render_svg(data(_brush_df, name="bt") + point + x(col.v) + y(col.w)
                   + brush(col.kind, at="b"))
 assert _DIM in _cat, "brush() on a column of categories selected no slots"

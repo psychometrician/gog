@@ -1605,9 +1605,12 @@ Three marks read a flow, and a full diagram layers all three:
 The `ribbon` layer draws the bands, one per path, as thick as the path's total
 at both ends. The `zone` layer draws each stage's slots, stacked with no
 padding, so the measure axis is drawn with its usual ticks and reads true
-counts. A `text` layer names the slots. The [Flow](flow.qmd) chapter builds the
-full diagram and gives the rules; this section only shows where the atom fits
-among the transforms.
+counts. A `text` layer names the slots. With `shared = TRUE`, two columns such
+as `exporter` and `importer` name one set of places, and every place lies on one
+axis, which carries no numbers. Drawn flat, it is the arc diagram; in `polar()`,
+it is the chord diagram. The [Flow](flow.qmd)
+chapter builds the full diagram and gives the rules; this section only shows
+where the atom fits among the transforms.
 
 ---
 

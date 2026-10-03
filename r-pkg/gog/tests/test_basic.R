@@ -2958,6 +2958,73 @@ if (count_in("<line", dimmed_part(svg_whisker)) != 3)
   stop("FAIL: a brush on interval * bounds should push back the one whisker outside the bound")
 cat("PASS: a brush reaches the shapes bounds places, one row each\n")
 
+# A brush on a flow's stage selects whole bands. Of the two paths, the one through
+# `b` is pushed back, and so is the `b` slot, while the slots of the other stage
+# stay at full strength. A flow's pass nests a clipped group per layer, so the
+# dimmed group is read to its own closing tag. A brush on the weight would cut
+# across the bands, so it is refused toward a stage.
+flow_dimmed <- function(svg) {
+  lines <- strsplit(strsplit(svg, dim_group, fixed = TRUE)[[1]][2], "\n")[[1]]
+  depth <- 1L
+  kept <- character()
+  for (l in lines) {
+    t <- trimws(l)
+    if (startsWith(t, "</g>")) {
+      depth <- depth - 1L
+      if (depth == 0L) break
+    } else if (startsWith(t, "<g") && !endsWith(t, "/>")) {
+      depth <- depth + 1L
+    }
+    kept <- c(kept, l)
+  }
+  paste(kept, collapse = "\n")
+}
+svg_flow <- render_svg(data(sp) + y(n) + ribbon * flow(from, to) +
+                       zone * flow(from, to) + brush(from, at = "a"))
+pushed <- flow_dimmed(svg_flow)
+if (count_in(" C ", pushed) != 2 || count_in('fill-opacity="1.000"', pushed) != 1)
+  stop("FAIL: brush(from, at = \"a\") should push back one band and one slot")
+if (count_in("data-gog-slot=", svg_flow) != 4)
+  stop("FAIL: a brushed flow should write one outline per slot for the page")
+refuses("a brush on a flow's weight",
+        render_svg(data(sp) + y(n) + ribbon * flow(from, to) + brush(n, at = c(1, 2))),
+        "`n` measures")
+cat("PASS: a brush on a flow's stage selects whole bands and its own slots\n")
+
+# Two columns that name one set of places share one axis: flat it is the arc
+# diagram, four arches of two curves each, and in `polar()` the chord diagram,
+# each band curving through the center twice. A brush on the flow's own `name`
+# keeps what a place sends and what it receives: only the band from b to c steps
+# back.
+tp <- data.frame(from = c("a", "a", "b", "c"), to = c("b", "c", "c", "a"),
+                 n = c(3, 2, 4, 1), stringsAsFactors = FALSE)
+shared_flow <- data(tp) + y(n) + ribbon * flow(from, to, shared = TRUE) +
+  zone * flow(from, to, shared = TRUE)
+if (count_in(" C ", render_svg(shared_flow)) != 8)
+  stop("FAIL: a shared flow should draw four arches")
+chord <- render_svg(shared_flow + polar())
+disc <- regmatches(chord, regexpr('<circle cx="[0-9.]+" cy="[0-9.]+"', chord))
+center <- paste0("Q ", sub('.*cx="([0-9.]+)".*', "\\1", disc), " ",
+                 sub('.*cy="([0-9.]+)".*', "\\1", disc), " ")
+if (count_in(center, chord) != 8)
+  stop("FAIL: every chord should curve through the center of the ring")
+if (count_in(" C ", flow_dimmed(render_svg(shared_flow + brush(name, at = "a")))) != 2)
+  stop("FAIL: brush(name) should keep both ends of a place")
+# Each slot holds what its place sends and then what it receives, the second
+# part shaded and no line between them. The panel has no frame, since neither
+# axis carries numbers, until the theme asks for one.
+flat <- render_svg(shared_flow)
+if (count_in('fill="black" fill-opacity="0.100"', flat) != 3)
+  stop("FAIL: each place's second part should be shaded")
+frame_line <- '<g stroke="#5a5a64" stroke-width="1.5" fill="none">'
+if (grepl(frame_line, flat, fixed = TRUE))
+  stop("FAIL: a shared flow should draw no frame by default")
+if (!grepl(frame_line, render_svg(shared_flow + theme(frame = "axes")), fixed = TRUE))
+  stop("FAIL: theme(frame = \"axes\") should draw a shared flow's frame")
+refuses("flow(shared = ) that is not TRUE or FALSE", flow(from, to, shared = "yes"),
+        "TRUE or FALSE")
+cat("PASS: a shared flow draws the arc diagram flat and the chord diagram in polar\n")
+
 m <- tryCatch({
   render_svg(data(brush_df) + line + x(v) + y(w) + brush(v, at = c(2, 4))); ""
 }, error = function(e) conditionMessage(e))

@@ -52,6 +52,11 @@ pub(crate) struct Polar {
     wraps: bool,
 }
 
+/// The gap between a ring and a name standing outside it, turned outward: a chord
+/// diagram's place names. Here rather than in the flow's writer because the frame
+/// leaves the names their room (`Polar::leave_room`) before any mark is drawn.
+pub(crate) const RING_NAME_GAP: f64 = 6.0;
+
 /// Extra room a rim label needs *sideways* beyond its height — a name at three
 /// o'clock runs outward from its tick, where one at the top only stands above it.
 /// Half a typical label's width, so the widest names still clear the panel.
@@ -129,6 +134,14 @@ impl Polar {
             measure_on_angle,
             wraps: angle_slots.is_some(),
         }
+    }
+
+    /// The same circle, shrunk so `room` pixels are left beyond its rim on every
+    /// side: the room a chord diagram's names take, turned outward from the ring.
+    /// The center stays put, so every mark still shares one frame.
+    pub(crate) fn leave_room(mut self, l: &Layout, room: f64) -> Self {
+        self.r_max = (l.w() / 2.0 - room).min(l.h() / 2.0 - room).min(self.r_max).max(1.0);
+        self
     }
 
     /// Does the angular domain come back to its first value with nothing repeated?

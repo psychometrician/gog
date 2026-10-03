@@ -51,7 +51,8 @@ ALL_COLUMN_ARGS = {"bounds", "partition", "flow", "layout", "cluster"}
 # one flag, and without this the flag is rewritten to `col.TRUE` — `TRUE` being a
 # perfectly good Python identifier, so nothing complains until the sentence is
 # executed. Keyed by atom, because `cross` would be a column name anywhere else.
-KNOBS = {"partition": {"cross"}}
+# `flow(exporter, importer, shared = TRUE)` is the second, the same shape.
+KNOBS = {"partition": {"cross"}, "flow": {"shared"}}
 
 
 def _is_bare_name(text: str) -> bool:
