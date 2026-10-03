@@ -847,6 +847,48 @@ Every bar is still drawn, and a bar without a name keeps its place between two
 named ones. The message gives two ways to name every country: put `country` on
 the y axis in a taller plot, or draw fewer rows.
 
+## `axis`: leaving an axis out
+
+An axis lets a reader decode a position, as a legend lets a reader decode a
+color. Sometimes the reader does not need it. On a map, a reader finds a place by
+its shape and its neighbors, not by its longitude and latitude. Write
+`axis = FALSE` on the binding, beside `scale` and `limits`, and the axis is left
+out: its tick marks, its numbers and its name. The map below draws
+`world_borders`, which holds one row for each point along a coastline or a
+border:
+
+```{r}
+#| echo: false
+peek(world_borders)
+```
+
+```{r}
+data(world_borders) + path + x(lon, axis = FALSE) + y(lat, axis = FALSE) +
+  group(piece) + map() + title("The coastlines, without axes")
+```
+
+*"Given the world borders: paths, x is lon without an axis, y is lat without an
+axis, grouped by piece, in the map space."*
+
+The scale is unchanged, so every point is drawn where it would be with the
+axes. The panel takes the room the axes would have used. The gridlines stay, and
+so does the frame: the two lines along the bottom and the left of the panel.
+Both belong to the whole plot rather than to one axis.
+[`theme()`](style.qmd#axes-legends-gridlines-and-the-frame) removes them with
+`grid = "none"` and `frame = "none"`. In [Map](map.qmd#one-state-over-three-elections),
+three small maps of Ohio leave out both axes, the gridlines and the frame.
+
+`axis` is written on the three positions, `x`, `y` and `z`, because they are
+the channels that draw an axis. On any other channel gog refuses it and names
+the three. The name is part of the axis, so gog refuses `x_label()` for an axis
+that is left out, even `x_label("")`:
+
+```{r}
+#| error: true
+data(gapminder_2007) + point + x(gdp, axis = FALSE) + y(life) +
+  x_label("GDP per person")
+```
+
 ## In short
 
 A scale changes where a number lands on the axis. It never changes the number
@@ -854,6 +896,7 @@ itself. `limits` states the domain: narrowing it removes rows and reports how
 many, while a brush removes none. `tick_count` is a target, not an exact
 number. A crowded continuous axis, flat or in a cube, draws fewer numbers. A crowded
 categorical axis turns its names, then leaves some out and says so.
+`axis = FALSE` leaves an axis out and keeps its scale.
 
 ## What comes next
 

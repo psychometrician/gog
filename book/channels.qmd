@@ -802,15 +802,18 @@ refuses `legend` on all six:
 data(gapminder_2007) + bar * count + x(continent, legend = FALSE)
 ```
 
+A legend is one kind of **guide**, the part of a plot that decodes a channel. A
+position's guide is its axis, and `axis = FALSE` on the position leaves it out,
+as [Scales](scales.qmd#axis-leaving-an-axis-out) shows.
+
 ## In short
 
-A channel takes a column and never a value, so gog refuses `color("red")` and
-points you to `style()`. The five refining channels get a legend unless
-`legend = FALSE` leaves it out; `x`, `y` and `z` get an axis. `group` and
-`label` get neither, and `play` gets a strip that names the frame. Which
-channels a mark accepts follows from its geometry. `palette()` chooses the
-colors: a categorical palette for a categorical column, and a ramp for a
-continuous one.
+A channel takes a column, never a value: gog refuses `color("red")` and points
+to `style()`. The five refining channels get a legend, and `x`, `y` and `z` get
+an axis; `legend = FALSE` and `axis = FALSE` leave them out. `group` and `label`
+get neither, and `play` gets a strip that names the frame. A mark's geometry
+decides which channels it accepts. `palette()` chooses the colors: a categorical
+palette for a categorical column, a ramp for a continuous one.
 
 ## What comes next
 

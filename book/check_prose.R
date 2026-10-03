@@ -165,9 +165,12 @@ check_prose <- function(dirs = "book") {
   # paper, and the preface's author drew on paper. A mark joined to its
   # transforms by `*` is a compound mark, a term the Operators chapter
   # introduces; "derived layer" was its second name, in the Python chapter,
-  # until October 2026.
+  # until October 2026. The lines `theme(frame = )` draws around a panel are the
+  # frame: "the axis lines" made them part of an axis, which `axis = FALSE` does
+  # not remove, and "the panel's lines" did not say which lines.
   retired <- c("the mouse" = "the pointer", "legal grammar" = "valid grammar",
                "derived layer" = "compound mark",
+               "the axis lines" = "the frame", "the panel's lines" = "the frame",
                "the printed page" = "the PDF", "the printed figure" = "the PDF",
                "printed sequence" = "the PDF", "on paper and in the pdf" = "in the PDF",
                "picture-computing" = "a transform that computes a whole picture",
@@ -211,11 +214,10 @@ check_prose <- function(dirs = "book") {
                   "writing the plot", "wrote the plot", "written the plot",
                   "write plots", "writing plots")
 
-  # One spelling, the American one. The edit guide's decided-words table records
-  # spelling as *not checked*, and on 2026-09-18 that showed: Law 8 was written
-  # `Pronounceable ≠ Useable` in `combinations.qmd`, `CONTRIBUTING.md`, the
-  # working agreement and the spec, and `Pronounceable ≠ Usable` in the heading
-  # that names it. The heading was right twice over, since American English takes
+  # One spelling, the American one. Spelling went unchecked until 2026-09-18,
+  # and that day showed the cost: Law 8 was written `Pronounceable ≠ Useable` in
+  # `combinations.qmd` and `CONTRIBUTING.md`, and `Pronounceable ≠ Usable` in the
+  # heading that names it. The heading was right twice over, since American English takes
   # `usable` and `marks/bar.qmd` already links to the anchor built from it.
   #
   # Only variants that cannot appear as data are listed. `colour` is deliberately
@@ -277,8 +279,8 @@ check_prose <- function(dirs = "book") {
     s
   }
 
-  # The Nine Laws carry official names, set in spec §4 and repeated in the
-  # working agreement. `## Law 5: Explicit Over Implicit` is that name, not Title
+  # The Nine Laws carry official names, set in spec §4.
+  # `## Law 5: Explicit Over Implicit` is that name, not Title
   # Case drift, and rewriting it here would desync the chapter from the law.
   law_heading <- "^#+\\s*Law\\s+[0-9]"
 

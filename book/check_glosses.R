@@ -32,7 +32,7 @@
 #
 # **One rule of the sentence's grammar is checked against the code: number.**
 # A continuous mark takes an article, "a line", and turns plural once a channel
-# splits it, "lines" (the edit guide's §10). What splits it is `group` on any
+# splits it, "lines". What splits it is `group` on any
 # column, or `color` or `pattern` on a column of categories, written before the
 # marks, where it reaches every layer, or after this mark. A sentence that says
 # "a line" over five drawn lines teaches the reader that where a channel is
@@ -194,6 +194,7 @@ check_glosses <- function(book_dir = "book") {
       if (grepl('scale\\s*=\\s*"category"', raw)) el <- c(el, "category scale")
       if (grepl("\\blimits\\s*=", raw)) el <- c(el, "limits")
       if (grepl("\\bfree\\s*=\\s*TRUE|free:\\s*true", raw)) el <- c(el, "free")
+      if (grepl("\\baxis\\s*=\\s*(FALSE|false)|axis:\\s*false", raw)) el <- c(el, "axis left out")
       if (lengths(regmatches(code, gregexpr("\\b(data|query)\\(", code))) > 1) el <- c(el, "second table")
       # Named arguments with a spoken form, and the positional number a
       # transform takes (bin(20), density(2), jitter(0.5), range(0.1, 0.9)).

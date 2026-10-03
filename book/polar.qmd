@@ -745,7 +745,9 @@ carries. It never knows that the plot is a sunburst, in the same way that it
 never knows a pie is a pie: in both, what is drawn follows from what the
 sentence binds. The amount around the circle keeps its ticks and its name,
 because it is a quantity in the data's own units. `x_label("")` removes the name
-and leaves the ticks.
+and leaves the ticks. To leave out both, drop `x_label("")` and write
+`x(amount, axis = FALSE)`, as [Scales](scales.qmd#axis-leaving-an-axis-out)
+explains. gog refuses the two together, because the name is part of the axis.
 
 ## What a tree lets the grammar check
 

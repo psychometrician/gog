@@ -293,8 +293,8 @@ settings in a section called *What you can set*, starting with
 
 ### CSS colors
 
-A color usually comes as a hex value from a style guide, or as a name remembered
-from another tool. Not every name you remember is one gog knows.
+A color usually comes as a hex value copied from a design document, or as a
+name remembered from another tool. Not every name you remember is one gog knows.
 
 A name from CSS, the language web pages are styled with, and a hex value both
 work anywhere a color is accepted, in `style()` and in `palette()`:
@@ -668,12 +668,67 @@ gog has three presets: `"gog"`, the default, `"minimal"` and `"bw"`. `"minimal"`
 removes the gridlines, the same as `theme(grid = "none")`, and `ratio = 1` then
 makes the panel square.
 
+## Axes, legends, gridlines and the frame
+
+A map, a small figure or a slide often needs less around the data than gog
+draws by default. The settings that leave each part out are explained in
+different places, so this section collects them in one table. An axis and a
+legend are **guides**: each one decodes a channel, so you leave it out inside
+that channel's call, as in `color(continent, legend = FALSE)`. The gridlines and
+the side where the legends sit belong to the whole plot, so `theme()` sets them.
+`theme()` also sets the frame: by default, the two lines along the bottom and
+the left of the panel.
+
+| To | Write | Explained in |
+|---|---|---|
+| leave out an axis: its tick marks, its numbers and its name | `x(gdp, axis = FALSE)` | [Scales](scales.qmd#axis-leaving-an-axis-out) |
+| leave out only an axis's name | `x_label("")` | this section, below |
+| leave out a legend | `color(continent, legend = FALSE)` | [Channels](channels.qmd#leaving-a-legend-out) |
+| leave out the gridlines | `theme(grid = "none")`, or `"x"` or `"y"` to keep one set | [`theme`](#theme-settings-that-belong-to-no-mark), above |
+| leave out the frame, or draw all four sides | `theme(frame = "none")`, or `"full"` for all four sides | this section, below |
+| put the legends on another side | `theme(legend = "bottom")`, `"top"` or `"left"` | [`theme`](#theme-settings-that-belong-to-no-mark), above, and [Channels](channels.qmd#legend-placement) |
+
+The plot below uses four of them at once:
+
+```{r}
+data(gapminder_2007) + point + x(gdp, scale = "log") + y(life, axis = FALSE) +
+  color(continent) + theme(grid = "x", frame = "none", legend = "bottom")
+```
+
+*"Given gapminder 2007: points, x is gdp on a log scale, y is life without an
+axis, color by continent, with the legend at the bottom."*
+
+The y axis is gone, with its numbers and its name, and `grid = "x"` keeps only
+the gridlines of the x axis. The panel has no frame, and the legend lists the
+continents side by side under the x axis's name. Each point keeps its place
+among the others, because none of these settings changes the data. With the y
+axis left out, though, a reader can see which points are higher, but not by how
+many years. So leave out an axis only when its numbers are not needed, as on a
+[map](map.qmd#one-state-over-three-elections).
+
+To leave out only an axis's name, give it an empty one: `x_label("")`. The tick
+marks and the numbers stay, so the reader can still read values from the axis.
+
+`frame` says which sides of the panel get a line, and it takes three values. `"axes"`, the
+default, draws one line along the bottom and one along the left, where the axes
+sit. `"full"` draws all four sides, and `"none"` draws none:
+
+```{r}
+data(gapminder_2007) + bar * mean + x(continent) + y(life) +
+  theme(frame = "full", grid = "y")
+```
+
+The panel now has a line on all four sides. It is called `frame` and not
+`border` because `style(border_color = )` already uses that word for something
+else. A border belongs to a *mark*, such as a bar or a point. A frame surrounds
+the panel.
+
 ## A figure for a journal
 
 A journal often asks for a figure on a white background inside a framed panel.
 
-`theme("bw")` is the one most often wanted for publication: a white panel inside
-a full rectangle.
+`theme("bw")` is the preset most often wanted for publication: a white panel
+inside a full rectangle.
 
 ```{r}
 data(gapminder_2007) + point + x(gdp, scale = "log") + y(life) +
@@ -694,8 +749,8 @@ data(gapminder_2007) + point + x(gdp, scale = "log") + y(life) +
 ```
 
 Here `background` makes the panel white and `frame` draws a rectangle around it.
-`strip` is explained in the next section, and the other two at the end of this
-chapter.
+`frame` is explained in the section above, `strip` in the next section, and
+`background` in [The panel's background](#the-panels-background).
 
 Every preset in gog follows the same rule: a preset only names settings you
 could have written yourself. A preset that did more than that would be a second
@@ -790,19 +845,9 @@ A `"transparent"` band gives gog no color to read, because it shows whatever is
 behind it. So the label stays dark, which suits the white page a band usually
 sits on.
 
-`frame` says how the panel is bounded, and it takes three values. `"full"`
-closes the axis lines into a rectangle, `"axes"` is the default pair along the
-bottom and left, and `"none"` removes them:
+## The panel's background
 
-```{r}
-data(gapminder_2007) + bar * mean + x(continent) + y(life) +
-  theme(frame = "none", grid = "y")
-```
-
-It is called `frame` and not `border` because `style(border_color = )` already
-uses that word for something else. A border belongs to a *mark*, such as a bar
-or a point. A frame bounds the panel. One word, one meaning.
-
+A slide or a journal may need a panel in a color other than gog's light gray.
 `background` colors the panel, and it takes any color the rest of the grammar
 takes, a CSS name such as `linen` among them:
 
@@ -817,27 +862,34 @@ panel were transparent, the margin around it would still be painted. So
 page under the figure shows through. A journal often asks for this, because it
 prints the figure on a page whose color gog does not know.
 
-Everything `theme()` accepts is validated, and a name it does not know is
-refused rather than quietly ignored:
+## What `theme()` refuses
+
+`theme()` checks every name you give it, and refuses one it does not know
+rather than ignoring it:
 
 ```{r}
 #| error: true
 data(gapminder_2007) + point + x(gdp) + y(life) + theme("dark")
 ```
 
+The gridlines are named by their axis, `"x"` or `"y"`, and not by the direction
+they run, so `grid = "vertical"` is refused:
+
 ```{r}
 #| error: true
 data(gapminder_2007) + point + x(gdp) + y(life) + theme(grid = "vertical")
 ```
 
+## `style` and `theme`
+
 `style()` and `theme()` differ in what they belong to. `style()` belongs to a
 mark, and a plot with three layers can carry three different ones. `theme()`
 belongs to the whole plot, and there is only one of it: no single layer has
-gridlines or a background of its own. The two never overlap, and that is why
-they are two words rather than one.
+gridlines or a background of its own. The two never set the same property,
+and that is why they are two words rather than one.
 
-Text size is where that split is easiest to see, because both atoms can set a
-size. `style(size = 17)` on a [`text`](marks/text.qmd) layer sets how big *those
+Text size shows the split best: both atoms have a size setting, but each sets
+the size of different text. `style(size = 17)` on a [`text`](marks/text.qmd) layer sets how big *those
 labels* are, and they are labels that come from a column.
 `theme(font_size = 16)` sets how big the tick labels, the axis names and the
 title are, and those belong to the whole plot. One is a property of a mark and
