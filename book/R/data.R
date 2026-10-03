@@ -117,6 +117,14 @@ winds$direction <- .gog_ordered(winds$direction,
                                 c("N", "NE", "E", "SE", "S", "SW", "W", "NW"))
 winds$season <- .gog_ordered(winds$season, c("Summer", "Winter"))
 
+# Florence Nightingale's table of the British army's deaths in the Crimean War,
+# April 1854 to March 1856. Her year of the war starts in April, as her diagram
+# does, and her three causes keep the order of her legend.
+nightingale <- .gog_read("nightingale")
+nightingale$month <- .gog_ordered(nightingale$month,
+  c("Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec", "Jan", "Feb", "Mar"))
+nightingale$cause <- .gog_ordered(nightingale$cause, c("Disease", "Wounds", "Other"))
+
 listening <- .gog_read("listening")
 listening$genre <- .gog_ordered(listening$genre,
                                 c("Folk", "Jazz", "Techno", "Ambient"))

@@ -81,7 +81,7 @@ needs a note as well, the note follows the sentence in the same cell.
 | Connected scatterplot | `path + x(a) + y(b)`, the rows joined in the table's order rather than sorted by x; `style(arrow = "end")` says which end is last |
 | Trajectory / route / hysteresis loop | the same sentence: when the row order in the table is the reading order, the mark is `path`, not `line` |
 | Annotation arrow / callout | `data(two_rows) + path + style(arrow = "end")`, layered over the plot; the note itself is `data(one_row) + text + label(note)` |
-| Rose / coxcomb / polar area diagram / wind rose | `bar * count + x(direction) + polar()`, the bar chart read in a circle. The count sets each wedge's radius, so a count twice as large gets four times the area; Nightingale's polar area diagram put the count in the area instead ([Polar](polar.qmd#what-a-circle-makes-harder-to-read)) |
+| Rose / coxcomb / polar area diagram / wind rose | `bar * count + x(direction) + polar()`, the bar chart read in a circle. The count sets each wedge's radius, so a count twice as large gets four times the area; Nightingale's polar area diagram put her value, a death rate, in the area instead ([Polar](polar.qmd#nightingales-rose)) |
 | Radar / spider / star plot / Kiviat diagram | `line * mean + x(category) + y(measure) + polar()`, the profile bent into a circle; `area` fills it |
 | Radar band | `ribbon * range + x(category) + y(measure) + polar()`, a band around the circle from each category's lowest value to its highest ([Polar](polar.qmd#the-marks-in-a-circle)) |
 | Pie chart | `bar * count * stack + color(category) + polar()`, a stacked bar in polar coordinates; the category is a *split*, not a position |

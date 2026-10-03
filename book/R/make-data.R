@@ -224,6 +224,43 @@ winds <- data.frame(
 winds$bearing <- winds$bearing %% 360
 rm(.compass, .n_by_dir)
 
+# -- What killed the British army in the East (Nightingale's rose) -----------
+# The polar chapter opens with Florence Nightingale's 1858 diagram, so it draws
+# her data rather than an imitation of it: the deaths in each month from April
+# 1854 to March 1856, from three causes, as she compiled them (transcribed by
+# Pearson and Short 2007, published in Friendly's HistData package as
+# `Nightingale`). Her diagram draws each month's yearly death rate per 1,000
+# soldiers; the chapter draws these counts, and says so. Literals rather than a dependency, since 72 counts
+# are shorter than the install. Her year of the war runs April to March, which
+# is where her diagram starts and why `period` cuts there, and her causes keep
+# her legend's order: preventable disease, wounds, everything else.
+.months <- c("Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
+             "Jan", "Feb", "Mar")
+.deaths <- list(
+  Disease = c(1, 12, 11, 359, 828, 788, 503, 844, 1725, 2761, 2120, 1205,
+              477, 508, 802, 382, 483, 189, 128, 178, 91, 42, 24, 15),
+  Wounds  = c(0, 0, 0, 0, 1, 81, 132, 287, 114, 83, 42, 32,
+              48, 49, 209, 134, 164, 276, 53, 33, 18, 2, 0, 0),
+  Other   = c(5, 9, 6, 23, 30, 70, 128, 106, 131, 324, 361, 172,
+              57, 37, 31, 33, 25, 20, 18, 32, 28, 48, 19, 35)
+)
+nightingale <- do.call(rbind, lapply(seq_len(24), function(i) data.frame(
+  period = if (i <= 12) "1854-55" else "1855-56",
+  month  = .months[(i - 1) %% 12 + 1],
+  cause  = names(.deaths),
+  deaths = vapply(.deaths, `[`, numeric(1), i),
+  stringsAsFactors = FALSE, row.names = NULL
+)))
+nightingale$month <- factor(nightingale$month, levels = .months)
+nightingale$cause <- factor(nightingale$cause, levels = names(.deaths))
+stopifnot(
+  nrow(nightingale) == 72,
+  # Her totals for the two years, a check on the transcription.
+  sum(nightingale$deaths[nightingale$period == "1854-55"]) == 13294,
+  sum(nightingale$deaths[nightingale$period == "1855-56"]) == 4688
+)
+rm(.months, .deaths)
+
 # -- One day, around the clock (periodic-axis examples) ----------------------
 # Hourly readings that come back to where they started: the count at 24:00 *is*
 # the count at 00:00, and both endpoints are present because both were measured.

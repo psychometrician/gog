@@ -20,10 +20,12 @@ Florence Nightingale's 1858 diagram of what killed British soldiers in the
 Crimea [@nightingale1858] is a bar chart in polar coordinates. It has three
 names: a **coxcomb**, a **rose**, or, most precisely, a **polar area diagram**.
 That third name is the only one that says what the wedges mean. Her wedges put
-each month's death count into the wedge's *area*, so their radius grows as the
-square root of the number. In gog, a polar bar maps the value directly to the
+each month's death rate into the wedge's *area*, so their radius grows as the
+square root of the rate. In gog, a polar bar maps the value directly to the
 radius. Both are correct drawings, but they are not the same drawing, so check
-which one you have before you compare them.
+which one you have before you compare them. The section [Nightingale's
+rose](#nightingales-rose), later in this chapter, draws a rose from her own
+numbers.
 
 The line version has even more names: **radar** plot, **spider** plot, **star**
 plot, and **Kiviat** diagram in engineering. As with the rose and the pie, none
@@ -443,6 +445,64 @@ only means something *along* an axis:
 #| error: true
 data(winds) + bar * bin * stack + color(season) + polar()
 ```
+
+## Nightingale's rose
+
+The start of this chapter named Florence Nightingale's diagram of the deaths in
+the British army during the Crimean War. The numbers behind it are in the
+`nightingale` table: the deaths in each month from April 1854 to March 1856,
+from three causes:
+
+```{r}
+#| echo: false
+peek(nightingale)
+```
+
+Each row is one month and one cause, and `deaths` counts the soldiers who died
+of it. The cause `Disease` means infectious diseases, which she called
+preventable or mitigable. `Wounds` means wounds, and `Other` every other cause.
+`period` says which year of the war a month belongs to. Each of her years runs
+from April to March, so the second year begins in April 1855. A sanitary
+commission arrived in March 1855 to improve the hygiene of the camps and the
+hospitals. Her two years compare the deaths before it and after it.
+
+```{r}
+data(nightingale) + bar * stack + x(month) + y(deaths) + color(cause) +
+  palette(c(Disease = "lightsteelblue", Wounds = "lightcoral",
+            Other = "dimgray")) +
+  polar(start = -90) +
+  title("Deaths in the British army in the Crimean War, by cause") |
+  facet(period)
+```
+
+*"Given the nightingale table: bars derived by stack, x is month, y is deaths,
+color by cause, with a palette naming Disease lightsteelblue, Wounds lightcoral
+and Other dimgray, in polar, starting at -90, split into panel columns by
+period."*
+
+Each wedge is one month, and its length from the center is the number of
+soldiers who died that month. The blue segment shows the deaths from disease,
+and the pink and gray segments outside it show the deaths from wounds and from
+other causes. `polar(start = -90)` turns the circle 90 degrees counterclockwise,
+so April, the first month, sits on the left, where her diagrams start. Two atoms
+are new to this chapter. The
+[palette](style.qmd#palette-choosing-the-colors-a-mapping-uses) gives each cause
+a lighter form of her blue, red and black, and `| facet(period)` draws one panel
+for each year, earliest first ([Faceting](faceting.qmd)).
+
+The first winter has the longest wedges. In January 1855, 3,168 soldiers died:
+2,761 of disease, 83 of wounds and 324 of other causes. A year later, January
+1856 is a small wedge near the center: 92 deaths from all three causes together.
+
+Her diagram differs from this one in four ways. She put her first year on the
+right. She drew the three causes on top of each other, each measured from the
+center, while `stack` piles them, so each wedge here reaches the month's total.
+Her wedges show the yearly death rate per 1,000 soldiers, which allows for an
+army that grew from about 8,600 men to over 40,000. And her radius grows as the
+square root of that rate, so a wedge's area is in proportion to it. Here the
+radius is the number of deaths itself, as for every polar bar in gog. So the
+first winter looks larger, beside the other months, than it does in her
+diagram. The next section explains why that matters.
 
 ## What a circle makes harder to read
 

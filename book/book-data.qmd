@@ -197,8 +197,10 @@ Three other tables need a declared order too: `survived` in `titanic` (Yes, then
 No), `slab` in `quakes_fiji` (shallowest band first) and `weekday` in
 `six_weeks` (Monday first). So do `age` in `quakes_2011` ("this week" first),
 and `month` and `category` in `cyclones` (January first, and the weakest
-category first). `age` in `census` needs a declared order as well, youngest band first, although `census.csv` already lists its
-bands in that order. The next section explains why.
+category first). `age` in `census` needs a declared order as well, youngest band
+first, and so do `month` and `cause` in `nightingale`, April first and in the
+order of her legend. Their files already list them in that order. The next
+section explains why.
 
 ### Labels that look like numbers
 
@@ -305,7 +307,9 @@ Not every table here holds real data. The tables whose names begin with
 them into the public domain. `healthy_band`, `world_median` and
 `population_spikes` are computed from those figures. `iris_flowers`,
 `maunga_whau`, `quakes_fiji` and `titanic` are reshaped from tables included
-with R, and carry R's own license. `world_borders` is Natural Earth's
+with R, and carry R's own license. `nightingale` is Florence Nightingale's table
+of the British army's deaths in the Crimean War, 1854 to 1856. It comes from the
+HistData package, under the same license. `world_borders` is Natural Earth's
 public-domain outline of the countries. `cyclones`, `quakes_2011`,
 `us_counties` and `ohio_turnout` are US government records: the National
 Oceanic and Atmospheric Administration's storms of hurricane strength, 1980 to

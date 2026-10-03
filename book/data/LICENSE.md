@@ -51,9 +51,10 @@ dedication, so no permission or attribution is required. It is credited anyway:
 the package is by Jennifer Bryan, and the underlying figures are the Gapminder
 Foundation's — <https://www.gapminder.org/data/>.
 
-## Derived from R's `datasets` package — GPL-2 | GPL-3
+## Derived from R's `datasets` package and HistData — GPL-2 | GPL-3
 
-These frames are reshaped from tables that ship with R itself:
+These frames are reshaped from tables that ship with R itself, and one from
+Michael Friendly's HistData package, which carries the same license:
 
 | Frame | From | Reshaping |
 |---|---|---|
@@ -61,18 +62,22 @@ These frames are reshaped from tables that ship with R itself:
 | `maunga_whau` | `datasets::volcano` | matrix unrolled to long form, every second row and column |
 | `quakes_fiji` | `datasets::quakes` | depth negated to an elevation, and cut into 90 km bands |
 | `titanic` | `datasets::Titanic` | the four-way table unrolled to long form, columns renamed to bare words |
+| `nightingale` | `HistData::Nightingale` | the monthly deaths from each of three causes unrolled to long form, one row per month and cause; `period` names the year of the war, April to March, and the rates and army sizes are left out |
 
 **These are GPL, and that is why nothing here is shipped inside a package.** R's
-`datasets` is licensed GPL-2 | GPL-3, which is copyleft and cannot be absorbed
-into an Apache-2.0 wheel or tarball. Hosting them beside the book is ordinary
+`datasets` is licensed GPL-2 | GPL-3, and HistData `GPL`, which R reads as the
+same two versions. That is copyleft, and it cannot be absorbed into an
+Apache-2.0 wheel or tarball. Hosting them beside the book is ordinary
 distribution, which the GPL permits when its terms travel with the files — this
 note is that. A reader who uses these frames is using GPL data and should
 treat it accordingly.
 
 The underlying observations are old and public: Edgar Anderson's iris
 measurements published by R. A. Fisher in 1936, a 1967 topographic survey of
-Maungawhau in Auckland, and seismic events near Fiji. The GPL attaches to R's
-compilation of them, not to the facts.
+Maungawhau in Auckland, seismic events near Fiji, and the deaths in the British
+army in the Crimean War from 1854 to 1856, which Florence Nightingale compiled
+and which Pearson and Short transcribed in 2007. The GPL attaches to the
+packages' compilations of them, not to the facts.
 
 ## Derived from Natural Earth — public domain
 
