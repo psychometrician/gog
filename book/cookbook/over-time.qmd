@@ -68,6 +68,64 @@ matter, swap `color` for `group`. It splits the rows in the same way, draws
 every line in one color, and adds no legend.
 [Many groups](groups.qmd#grouping-without-a-legend) draws that plot.
 
+## How did many things change?
+
+The recipe above drew five countries, and each of the five lines can be
+followed on its own. Thirty-three lines cannot: the lines cross each other, and no
+reader can match 33 legend colors to 33 lines. The `gm_asia` table holds the 33
+countries of Asia in the gapminder data, each with one row for the same twelve
+years. In the gapminder data, Asia includes Western Asia, so Iraq, Israel and
+Saudi Arabia are among the 33. A **heatmap** gives each country a row and each
+year a column, and colors each cell by life expectancy:
+
+```{r}
+#| echo: false
+peek(gm_asia)
+```
+
+```{r}
+data(gm_asia) + zone * bin(width = 5) * mean + x(year) + y(country) +
+  color(life) + order(life, desc = TRUE) + palette("cividis") +
+  style(border_color = "white") + theme(legend = "top") +
+  title("Life expectancy in Asia, 1952 to 2007")
+```
+
+*"Given the gm Asia table: zones derived by bin at width 5 and mean, x is year,
+y is country, color by life, ordered by life, largest first, with the cividis
+palette."*
+
+A zone needs sides, and a year is a number, which has no width.
+`bin(width = 5)` gives the years their sides. It cuts the axis into cells five
+years wide, from 1950 to 2010, and each cell holds one of the table's twelve
+years. `mean` then colors each cell by `life`. A cell holds one row, so its mean
+is that row's own value. Leave out either atom and gog refuses the sentence, as
+[Zone](../marks/zone.qmd#what-it-refuses) shows.
+
+`order(life, desc = TRUE)` sorts the countries by their mean life expectancy
+over all twelve years, with the longest lives at the top. `palette("cividis")`
+runs from dark blue for short lives to yellow for long ones.
+`style(border_color = "white")` draws a thin line around each cell, and
+`theme(legend = "top")` puts the legend above the panel.
+
+Read across a row for one country's change, and down a column to compare the
+countries in one year.
+Sorted this way, the colors run from dark at the bottom left (Afghanistan in
+1952) to light at the top right (Japan in 2007). Life expectancy was higher in
+2007 than in 1952 in every country, and Oman gained the most, from 38 years to
+76. Life expectancy fell by more than five years from one column to the next in
+only three countries. Each fall is a cell much darker than the cell to its left.
+In China, it fell from 50.5 years in 1957 to 44.5 in 1962. In Cambodia, it fell
+twice: from 45.4 years in 1967 to 40.3 in 1972, then to 31.2 in 1977. In Iraq,
+it fell from 65.0 years in 1987 to 59.5 in 1992, and it was still below 65 in
+2007. Owning chapters:
+[Zone](../marks/zone.qmd#cells-cut-then-summarized-the-summary-heatmap),
+[Channels](../channels.qmd).
+
+**One atom away.** Leave out `order()`, and the countries keep the table's
+order, which is alphabetical. Each cell keeps its color, but dark rows and light
+rows are now mixed together. The pattern from dark at the bottom left to light
+at the top right is gone.
+
 ## What about a date column?
 
 The recipes above put a plain number on `x`. The `six_weeks` table holds one row

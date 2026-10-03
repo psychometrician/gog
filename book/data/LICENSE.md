@@ -40,7 +40,7 @@ renamed for readability (`gdpPercap` → `gdp`, `lifeExp` → `life`,
 `gm_europe`'s life expectancies sorted, with the running share of countries
 beside each one.
 
-`gm_all` · `gapminder_2007` · `gapminder_asia` · `gm_continents` · `gm_eras` ·
+`gm_all` · `gapminder_2007` · `gapminder_asia` · `gm_asia` · `gm_continents` · `gm_eras` ·
 `gm_europe` · `gm_europe_cdf` · `healthy_band` · `world_median`
 
 `population_spikes` draws on this table and on Natural Earth's, below: a

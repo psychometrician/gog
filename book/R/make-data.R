@@ -47,6 +47,14 @@ gm_eras$era <- factor(gm_eras$year)
 # would collapse to a zero-width band. Three continents keep the split legible.
 gm_continents <- gm_all[gm_all$continent %in% c("Americas", "Europe", "Asia"), ]
 
+# -- Asia over time, one row per country (the heatmap) ----------------------
+# gapminder's own Asia: 33 countries at every fifth year from 1952 to 2007,
+# eleven of them in Western Asia, the Middle East, which is where the UN's
+# regions put them too. Few enough rows to name each one in a heatmap, which the
+# whole table's 142 are not, and too many for a line chart to stay readable.
+gm_asia <- gm_all[gm_all$continent == "Asia", ]
+stopifnot(length(unique(gm_asia$country)) == 33, nrow(gm_asia) == 33 * 12)
+
 # -- Europe in 2007 (the dot plot: one continuous column at small n) --------
 # Thirty rows, which is the size the dot plot exists for — few enough that a
 # histogram's bin width invents or hides structure and a density estimate is

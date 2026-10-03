@@ -59,6 +59,7 @@ gm_all         <- .gog_read("gm_all")
 gapminder_2007 <- .gog_read("gapminder_2007")
 gapminder_asia <- .gog_read("gapminder_asia")
 gm_continents  <- .gog_read("gm_continents")
+gm_asia        <- .gog_read("gm_asia")
 gm_europe      <- .gog_read("gm_europe")
 gm_populous    <- .gog_read("gm_populous")
 asia_2007      <- .gog_read("asia_2007")
@@ -231,6 +232,7 @@ stopifnot(
   nrow(gm_europe) == 30,
   nrow(gm_populous) == 10,
   length(unique(gapminder_asia$country)) == 5,
+  length(unique(gm_asia$country)) == 33,
   nrow(quakes_fiji) == 1000,
   !anyNA(quakes_fiji$slab),
   !anyNA(census$age),
