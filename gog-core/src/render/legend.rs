@@ -257,6 +257,10 @@ fn keyed(spec: &PlotSpec, channel: &Channel) -> bool {
 /// `color` mapping nor a set color is given [`NEUTRAL_INK`] as its set color,
 /// which every mark's drawing honors. A plot with no color legend keeps the
 /// default ink, a set color is never replaced, and `text` keeps its own ink.
+/// So does a flow's slot: its default is white inside a black line, which is in
+/// no palette and cannot be read as a category, and the neutral ink put in its
+/// place drew every slot dark gray beside a legend of the bands' colors, with
+/// the names' ink unreadable on it (2026-10-03).
 /// Runs on the renderer's resolved copy of the spec, so nothing the author wrote
 /// changes.
 pub(crate) fn neutral_beside_a_color_guide(spec: &mut PlotSpec) {
@@ -271,7 +275,9 @@ pub(crate) fn neutral_beside_a_color_guide(spec: &mut PlotSpec) {
         let described = layer.encodings.contains_key(&Channel::Color)
             || layer.style.color.is_some()
             || crate::legality::field_measure(layer).is_some()
-            || layer.mark == Mark::Text;
+            || layer.mark == Mark::Text
+            || (layer.mark == Mark::Zone
+                && layer.transforms.contains(&crate::ir::Transform::Flow));
         if !described {
             layer.style.color = Some(NEUTRAL_INK.to_string());
         }

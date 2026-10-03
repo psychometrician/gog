@@ -46,6 +46,15 @@ CRAN-style repositories and PyPI, `GrammarOfGraphics` on Julia's General, and
   `text * flow` layer writes fits inside its slot instead of spilling across
   the bands. Every flow diagram draws a little differently.
 
+- **A flow's slots are white with a thin black line around them by
+  default.** They were filled with the bands' own blue, solid, with no line
+  between one slot and the next, so a flow needed
+  `style(color = "white", border_color = "black")` on its `zone` layer to be
+  read. That is now what `zone * flow(...)` draws on its own, beside a color
+  legend as well. `style()` still sets the fill, the line's color
+  and width, the opacity and the pattern, and `border_size = 0` removes the
+  line.
+
 - **`bin(width = )` puts one bin edge at zero.** Five-year bins of life
   expectancy run 35 to 40, 40 to 45, and so on, instead of starting at the
   smallest value. The largest value always gets a bin of its own, so a column of
@@ -61,6 +70,9 @@ CRAN-style repositories and PyPI, `GrammarOfGraphics` on Julia's General, and
   refuses it and asks for the number of bins instead, such as `bin(30)`.
 
 ### Fixed
+
+- **`style(pattern = )` on a flow's slots draws its hatch.** It was accepted and
+  the slots drew plain, as a flow's bands did before 0.4.0.
 
 - **A `flow`, `partition` or `cluster` layer that names no column reads the
   first one written.** That is the rule every other layer follows, and gog

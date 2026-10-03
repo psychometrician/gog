@@ -6717,6 +6717,82 @@ mod tests {
             "the final stage's name is on the axis without a zone layer to carry it");
     }
 
+    /// The slot rectangles of a rendered flow: every opaque `<rect>` inside the
+    /// clipped groups, which in `flow_table()`'s sentences is a slot and nothing else.
+    fn slot_rects(svg: &str) -> Vec<String> {
+        svg.lines()
+            .filter(|l| l.trim_start().starts_with("<rect ") && l.contains("fill-opacity="))
+            .filter(|l| !l.contains(r#"fill="none""#))
+            .map(str::to_string)
+            .collect()
+    }
+
+    /// **A slot is white inside a thin black line unless `style()` says otherwise**
+    /// (2026-10-03). It was the palette's first color, solid, the bands' own blue
+    /// with no line between one slot and the next, so every flow in the book set
+    /// `style(color = "white", border_color = "black")`. A width alone keeps the
+    /// black line rather than taking the panel's color, as other fills do, and a
+    /// width of 0 removes it.
+    #[test]
+    fn a_flow_slot_is_white_inside_a_black_line_by_default() {
+        let slots = slot_rects(&SvgRenderer::default().render(&flow_spec(), &flow_table()));
+        assert_eq!(slots.len(), 4, "{slots:?}");
+        for s in &slots {
+            assert!(s.contains(r#"fill="white""#) && s.contains(r#"stroke="black" stroke-width="1.00""#),
+                "a default slot: {s}");
+        }
+        let styled = |f: &dyn Fn(&mut Layer)| {
+            let mut zone = Layer::new(Mark::Zone).flow(&["class", "survived"]);
+            f(&mut zone);
+            let spec = PlotSpec::new().data("t").y("n")
+                .layer(Layer::new(Mark::Ribbon).flow(&["class", "survived"]))
+                .layer(zone);
+            slot_rects(&SvgRenderer::default().render(&spec, &flow_table()))
+        };
+        let wide = styled(&|z| z.style.border_size = Some(2.0));
+        assert!(wide.iter().all(|s| s.contains(r#"stroke="black" stroke-width="2.00""#)), "{wide:?}");
+        let bare = styled(&|z| { z.style.border_size = Some(0.0); z.style.color = Some("gold".into()); });
+        assert!(bare.iter().all(|s| s.contains(r#"stroke="none""#) && s.contains(r#"fill="gold""#)),
+            "{bare:?}");
+    }
+
+    /// **A slot stays white beside a color legend.** A plot whose bands are
+    /// colored by a stage has a color legend, and every layer with no color of
+    /// its own is then given the neutral ink, so it cannot be read as the
+    /// legend's first category. The white slot is in no palette, so it keeps its
+    /// own paint, as `text` keeps its ink; given the ink, every slot drew dark
+    /// gray and the names on it could not be read.
+    #[test]
+    fn a_flow_slot_stays_white_beside_a_color_legend() {
+        let spec = PlotSpec::new().data("t").y("n")
+            .layer(Layer::new(Mark::Ribbon).flow(&["class", "survived"])
+                .encode(Channel::Color, "survived"))
+            .layer(Layer::new(Mark::Zone).flow(&["class", "survived"]));
+        let svg = SvgRenderer::default().render(&spec, &flow_table());
+        let slots: Vec<String> = slot_rects(&svg).into_iter()
+            .filter(|s| s.contains(r#"stroke="black""#)).collect();
+        assert_eq!(slots.len(), 4, "{svg}");
+        assert!(slots.iter().all(|s| s.contains(r#"fill="white""#)), "{slots:?}");
+    }
+
+    /// **A slot draws the hatch `style(pattern = )` gives it** (2026-10-03). The
+    /// setting was accepted, and the slot writer had no texture code, so the slots
+    /// drew plain: the defect the bands carried until 2026-09-27, one writer over.
+    #[test]
+    fn a_flow_slot_draws_the_pattern_it_is_given() {
+        let mut zone = Layer::new(Mark::Zone).flow(&["class", "survived"]);
+        zone.style.pattern = Some("hatch".into());
+        zone.style.color = Some("steelblue".into());
+        let spec = PlotSpec::new().data("t").y("n")
+            .layer(Layer::new(Mark::Ribbon).flow(&["class", "survived"]))
+            .layer(zone);
+        let svg = SvgRenderer::default().render(&spec, &flow_table());
+        assert!(svg.contains("<pattern"), "a hatch tile is defined:\n{svg}");
+        let slots = slot_rects(&svg);
+        assert!(!slots.is_empty() && slots.iter().all(|s| s.contains(r#"fill="url(#"#)),
+            "every slot takes the hatch: {slots:?}");
+    }
+
     /// **A flow layer that names no count reads the first one written**
     /// (2026-10-02), the scope rule every other reading follows, and the one
     /// `check_flow` already validated the weight by. The renderer read the plot's

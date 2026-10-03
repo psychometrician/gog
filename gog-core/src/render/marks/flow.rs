@@ -13,6 +13,13 @@
 //! is the interval it spans on the measure axis — so, like a bar's arbitrary
 //! thickness, it is a convention, and the thin one leaves the gap between
 //! stages to the bands, which are the ink a reader follows.
+//!
+//! **And white inside a black line unless the sentence says otherwise**
+//! (2026-10-03, at the author's word). The default was the palette's first
+//! color, solid: the bands' own blue, with nothing marking where one slot ends,
+//! so every flow in the book wrote `style(color = "white", border_color =
+//! "black")` to make its slots readable. A default every reader has to override
+//! is the wrong default; ggalluvial's strata draw the same white and black.
 use std::fmt::Write;
 use crate::data::DataFrame;
 use crate::ir::{Channel, Layer};
@@ -38,6 +45,25 @@ const SLOT_HALF: f64 = 0.12;
 /// A band's paint is deliberately translucent: bands cross, and a crossing two
 /// opaque ribbons would hide is most of what an alluvial diagram shows.
 const BAND_OPACITY: f64 = 0.45;
+
+/// A slot's fill and outline when `style()` names neither (see the module note).
+const SLOT_FILL: &str = "white";
+const SLOT_LINE: &str = "black";
+
+/// A slot's outline. `border_edge` gives every other fill no line until one is
+/// asked for, and a line in the panel's color when only its width is; a slot
+/// keeps its black line in both cases, since the line is what separates one
+/// slot from the next. `border_size = 0` removes it.
+fn slot_edge(st: &crate::ir::StyleSpec) -> String {
+    match st.border_size {
+        Some(w) if w == 0.0 => r#"stroke="none""#.to_string(),
+        w => format!(
+            r#"stroke="{}" stroke-width="{:.2}""#,
+            st.border_color.as_deref().map(esc).unwrap_or_else(|| SLOT_LINE.to_string()),
+            w.unwrap_or(1.0),
+        ),
+    }
+}
 
 impl SvgRenderer {
     /// The node slots — one rectangle per (stage, category), spanning the
@@ -66,10 +92,16 @@ impl SvgRenderer {
         };
         let Some(cats) = (if down { cat_y } else { cat_x }) else { return };
         let st = &layer.style;
-        let fill = st.color.as_deref().unwrap_or(PALETTE_GOG[0]);
         let opacity = st.opacity.unwrap_or(1.0);
-        let edge = super::border_edge(st);
+        let edge = slot_edge(st);
         writeln!(svg, r#"  <g clip-path="url(#{clip})">"#).unwrap();
+        // A slot is a fill, so `pattern` hatches it as it hatches every other
+        // fill (the settable rule). `check_flow` took the setting and this
+        // writer had no texture code until 2026-10-03, the defect the bands
+        // carried until 2026-09-27. One paint serves every slot: a slot takes no
+        // mapped aesthetic, so nothing varies it row by row.
+        let fill = FillTexture::new().fill(svg, st.pattern.as_deref(),
+                                           st.color.as_deref().unwrap_or(SLOT_FILL));
         for r in 0..stage.len() {
             let Some(k) = cats.iter().position(|c| *c == stage[r]) else { continue };
             let (x0, x1, y0, y1) = if down {
@@ -82,7 +114,7 @@ impl SvgRenderer {
             writeln!(
                 svg,
                 r#"    <rect x="{:.2}" y="{:.2}" width="{:.2}" height="{:.2}" fill="{}" fill-opacity="{:.3}" {}/>"#,
-                x0, y0, x1 - x0, y1 - y0, esc(fill), opacity, edge,
+                x0, y0, x1 - x0, y1 - y0, esc(&fill), opacity, edge,
             ).unwrap();
         }
         writeln!(svg, "  </g>").unwrap();
