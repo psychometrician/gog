@@ -315,6 +315,44 @@ those marks. It never hides another label's letters, because every halo in a
 layer is drawn before any letter. It does not move overlapping labels apart.
 That is the job of [`repel`](#repel-moving-labels-off-each-other).
 
+## Turning a label
+
+A note beside a vertical line is easiest to read when it is written along the
+line, not across it. `style(angle = )` turns every label in its layer by the
+number of degrees you give, counterclockwise from horizontal, so `90` reads
+upward and `-90` downward. Each label turns around its own position, the point
+its `x` and `y` give. The `milestones` table holds two notes. Each is drawn at
+the income in `at` and the height in `value`:
+
+```{r}
+#| echo: false
+peek(milestones)
+```
+
+In this plot a vertical `rule` marks each income, and each note is drawn along
+its rule:
+
+```{r}
+data(gapminder_2007) + point + x(gdp, scale = "log") + y(life) +
+  style(color = "#9e9e9e") +
+  data(milestones) + rule + x(at) + style(color = "steelblue") +
+  data(milestones) + text + x(at) + y(value) + label(note) +
+  style(angle = 90, border_size = 3) +
+  x_label("GDP per person") + y_label("Life expectancy") +
+  title("Notes turned 90 degrees")
+```
+
+*"Given gapminder 2007: points, x is gdp on a log scale, y is life; then given
+the milestones: rules, x is at; then given the milestones: text, x is at, y is
+value, label by note, with angle 90."*
+
+Each note is now parallel to its line, and the halo from the section above
+hides the line behind its letters. gog measures a turned label by the space it
+takes after turning. `repel` uses that space to keep labels apart, and in
+[`nest`](../nest.qmd#naming-the-regions) a name is drawn only if it fits its
+rectangle when turned. A [flow](../flow.qmd#room-for-long-names) draws every
+name, so turning is how a long name stays inside its tall, narrow slot.
+
 ## Why `label` is a channel
 
 A setting is a value you type into the sentence. You might expect to type a

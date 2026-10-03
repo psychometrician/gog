@@ -59,6 +59,7 @@ that does the same job is beside it on the right.
 | `stat_summary_2d(aes(z = v), fun = mean)` | `zone * bin * mean + x(a) + y(b) + color(v)`: the column to summarize goes on `color`, because a zone shows its value as color. `sum`, `median`, `max` and `min` work the same way ([Cells cut, then summarized: the summary heatmap](marks/zone.qmd#cells-cut-then-summarized-the-summary-heatmap)) |
 | `geom_hline()`, `geom_vline()` | `data(t) + rule + y(v)` for horizontal lines, and `x(v)` for vertical ones, where the table `t` holds the positions |
 | `geom_text()` | `text + label(g)` |
+| `geom_text(angle = 90)` | `text + label(g) + style(angle = 90)`: one angle for every label in the layer, in degrees counterclockwise ([Turning a label](marks/text.qmd#turning-a-label)) |
 | `geom_path()` | `path`, which joins the rows in the table's order |
 | `aes(color = g)` | `color(g)` |
 | `aes(fill = g)` | `color(g)`: one channel colors a bar's fill and a line's stroke, and there is no `fill` |

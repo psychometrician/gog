@@ -10,31 +10,76 @@ that some amount started in one place and finished in another. A flow diagram
 draws that movement. The places are grouped into stages, and the stages are
 drawn side by side. Bands carry each amount from stage to stage. The thicker the
 band, the larger the amount it carries. This picture is an **alluvial diagram**,
-one kind of **Sankey diagram**. The last section of this chapter says which
-Sankey diagrams gog does not draw. No atom spells either name, just as there is
-no `pie()` atom.
+one kind of **Sankey diagram**. [Where the limits are](#where-the-limits-are),
+near the end of this chapter, says which Sankey diagrams gog does not draw. No
+atom spells either name, just as there is no `pie()` atom.
 
 gog builds that picture out of the table's own columns. A **stage** is one of
 the table's categorical columns. Its distinct values are the possible places at
 that stage, and each row sits in one of them. The `flow` transform computes the
-whole diagram from one table of such columns. This chapter builds the diagram
-one layer at a time, using the passengers and crew of the Titanic. `titanic`
-holds one row per group of people. Four columns describe each group: `class`,
-`sex`, `age` (child or adult) and `survived`. A fifth, `n`, counts the people in
-that group. The table has one row for every combination of those four columns,
-so some rows count zero people:
+whole diagram from one table of such columns. This chapter uses the passengers
+and crew of the Titanic, the ship that sank in 1912. `titanic` holds one row per
+group of people. Four
+columns describe each group: `class`, `sex`, `age` (child or adult) and
+`survived`. A fifth, `n`, counts the people in that group. The table has one row
+for every combination of those four columns, so some rows count zero people:
 
 ```{r}
 #| echo: false
 peek(titanic)
 ```
 
-## From rows to bands
+## The finished diagram
 
-The first question to ask of `titanic` is who survived, and whether a person's
-class changed their chance of survival. Class is one stage and the outcome is
-another, so this is a flow with two stages. Name the stages in the atom, left to
-right, and bind the count to `y`:
+Who survived the sinking, and did class and sex change their chance of
+survival? The diagram below answers both:
+
+```{r}
+data(titanic) + y(n) +
+  ribbon * flow(class, sex, survived) + color(survived) +
+  zone * flow(class, sex, survived) +
+  text * flow(class, sex, survived) + label(name) +
+  title("Who survived, by class and sex")
+```
+
+*"Given titanic: y is n, ribbons derived by flow through class, sex and
+survived, colored by survived, and also zones derived by flow through class, sex
+and survived, and text derived by flow through class, sex and survived, label by
+name."*
+
+Read it from left to right. Each white rectangle marks a **slot**: the part of a
+stage that one place takes, such as a class, a sex or an outcome. Each band is a group of people who
+share a class, a sex and an outcome, and its color is the outcome: blue for the
+people who survived, orange for the people who did not. The blue bands that
+leave the `Female` slot are much thicker than the orange ones, because 344 of
+the 470 women and girls survived. At the `Male` slot the orange bands are
+thicker, because only 367 of the 1,731 men and boys survived. Class mattered
+too. 203 of the 325 people in first class survived, compared with 178 of the 706 in
+third class.
+
+## Three layers
+
+The sentence above has three layers. In each one, `*` joins the same
+transform, `flow(...)`, to a different mark, and each mark draws one part of the
+picture:
+
+| Layer | What it draws |
+|---|---|
+| `ribbon * flow(...)` | the bands, which carry the counts from stage to stage |
+| `zone * flow(...)` | the slots, one rectangle for each place at each stage |
+| `text * flow(...) + label(name)` | the names, one inside each slot |
+
+The three layers compute the same positions from the same stages. So the bands
+end at the edges of the slots, and each name sits inside its slot. The next
+three sections add the layers one at a time, in the order of the table. They use
+two stages, `class` and `survived`, and [Adding a stage](#adding-a-stage) then
+adds `sex` between them.
+
+## The bands
+
+To build the diagram, start with the bands alone. Class is one stage and the
+outcome is another. Name the stages inside `flow()`, from left to right, and
+bind the count to `y`:
 
 ```{r}
 data(titanic) + ribbon * flow(class, survived) + y(n) +
@@ -44,100 +89,280 @@ data(titanic) + ribbon * flow(class, survived) + y(n) +
 *"Given titanic: ribbons derived by flow through class and survived, y is n."*
 
 Each band is one **path**: one place at each stage, here a class and then an
-outcome. Each place takes a **slot**, the part of its stage that its bands fill.
-This plot neither draws nor names the slots, so find a path by its position.
-Inside each stage the slots stack from the bottom, in the order the column
-declares: `1st` to `Crew`, and `Yes` before `No`. So the lowest band leaves the
+outcome. This plot does not outline the slots or name them, so find a path by
+its position. Inside each stage the slots stack from the bottom, in the order
+the column declares: `1st` to `Crew`, and `Yes` before `No`. So the lowest band leaves the
 `1st` slot and arrives at the `Yes` slot. It carries the 203 first-class
 passengers who survived, and it keeps that thickness at both ends. Rows that
 share a path become one band: their counts are added, and the band carries the
 total. The four `1st` rows that end in `Yes` differ only in `sex` and `age`, and
 the atom names neither, so the four become one band.
 
-The plot answers the question. The lowest band fills most of the `1st` slot: 203
-of the 325 people in first class survived. In third class only 178 of 706 did,
-so class did change the chance of survival.
+`flow()` also sets both axes. With the count on `y`, the stages are drawn along
+the horizontal axis, each named by its column, in the order you name them inside
+`flow()`. The vertical axis is a continuous axis for the count. The bands at
+each stage stack from zero with no gaps. So the top edge of any band is the
+total of that band and every band below it.
 
-`flow()` also sets both axes. The stages are drawn along the horizontal axis,
-each named by its column, in the order you name them inside `flow()`. The
-vertical axis is a continuous axis for the count. The bands at each stage stack
-from zero with no gaps. So the top edge of any band is the total of that band and
-every band below it.
-
-The count on `y` is optional. Bind nothing and every row counts as 1, and the
+The count is optional. Bind nothing and every row counts as 1, and the
 diagram counts rows instead of summing a column. `partition` uses that default
 too, and `count` tallies rows the same way. This table needs `y(n)`: it holds
 one row per combination, so counting its rows would count combinations rather
 than people.
 
-## Adding a stage
+## The slots
 
-The next question is whether women survived more often than men. The two-stage
-diagram cannot answer it, because nothing in it records a person's sex. Add a
-stage by naming one more column inside `flow()`. Each path now passes through
-three stages, and each band is as thick as its count at every one:
+In the plot above, the bands that leave one place touch the bands that leave
+the next, so you cannot see where one place ends and the next begins. A `zone`
+layer draws the slots. Add `zone * flow(class, survived)`, with the same stages
+as the bands. Both layers now use the count, so write `y(n)` before any mark,
+where it belongs to the plot and every layer reads it ([Encoding
+scope](encoding-scope.qmd#the-rule)):
 
 ```{r}
-data(titanic) + ribbon * flow(class, sex, survived) + y(n) +
-  title("Class, then sex, then survival")
+data(titanic) + y(n) +
+  ribbon * flow(class, survived) +
+  zone * flow(class, survived) +
+  title("The same flow, with its slots")
 ```
 
-*"Given titanic: ribbons derived by flow through class, sex and survived, y is
-n."*
+*"Given titanic: y is n, ribbons derived by flow through class and survived, and
+also zones derived by flow through class and survived."*
+
+Each rectangle marks one slot. It covers the same part of the count axis as the
+bands that leave it or arrive at it, so each slot is as tall as the number of
+people at that place. A [categorical
+axis](scales.qmd#the-columns-type-picks-the-axis) also gives each category a
+slot, but there every slot is the same size. The top slot of the class stage is
+the crew, the largest group, with 885 people. At the outcome stage the larger
+slot is `No`: 1,490 of the 2,201 people did not survive.
+
+Each slot is white with a thin black line around it, so only the bands have
+color and the edge of every slot is visible. Those are the defaults, and
+[Choosing the colors](#choosing-the-colors) shows how to change them. The slots
+still have no names, so you still count from the bottom to find each slot.
+
+## The names
+
+A `text` layer names the slots. The transform writes each slot's name into a
+column called `name`, exactly as `partition` does. Add a third layer,
+`text * flow(class, survived)`, with the same stages again, and bind
+`label(name)` to draw that column:
+
+```{r}
+data(titanic) + y(n) +
+  ribbon * flow(class, survived) +
+  zone * flow(class, survived) +
+  text * flow(class, survived) + label(name) +
+  title("The same flow, with its slots named")
+```
+
+*"Given titanic: y is n, ribbons derived by flow through class and survived, and
+also zones derived by flow through class and survived, and text derived by flow
+through class and survived, label by name."*
+
+Each name is drawn at the center of its slot. The layers are drawn in the order
+they are written, so the `text` layer comes last. If the `text` layer came
+before the `zone` layer, the white slots would hide the names.
+
+The `1st` slot is now easy to find, and the thicker of its two bands arrives
+at `Yes`. It carries the 203 of the 325 people in first class who survived, the
+number given under the finished diagram. Every later plot in this chapter keeps
+the three layers.
+
+## Adding a stage
+
+The finished diagram has a third stage, `sex`, between class and the outcome.
+Add it by naming one more column inside `flow()`, in all three layers. Each path
+now passes through three stages, and each band is as thick as its count at
+every one:
+
+```{r}
+data(titanic) + y(n) +
+  ribbon * flow(class, sex, survived) +
+  zone * flow(class, sex, survived) +
+  text * flow(class, sex, survived) + label(name) +
+  title("Class, then sex, then survival")
+```
 
 Each band is now a group of people with one class, one sex and one outcome.
 `sex` declares no order, so its slots follow the order its values first appear
 in the table: `Male` at the bottom, then `Female`. The band from `1st` through
 `Female` to `Yes` carries 141 people, the women and girls in first class who
 survived. Most people in the `Female` slot arrive at `Yes`, and most in the
-`Male` slot arrive at `No`. Of 470 women and girls, 344 survived. Of 1,731 men
-and boys, 367 did.
+`Male` slot arrive at `No`, as in the finished diagram.
 
 ## Color from a stage
 
 With three stages the bands cross one another, and when every band has the same
 color, one band is hard to follow through a crossing. A band runs through every
-stage, so any stage can color it. Write `color()` after the `ribbon` layer and
-name the stage whose value gives each band its color:
-
-```{r}
-data(titanic) + ribbon * flow(class, sex, survived) + y(n) + color(class) +
-  title("The same paths, colored by class")
-```
-
-*"Given titanic: ribbons derived by flow through class, sex and survived, y is
-n, color by class."*
-
-Coloring by `class` gives each band the color of its class, the slot it starts
-from. You can then see which classes arrive in each later slot. Coloring by
-`survived` would instead give each band the color of its outcome, the slot it
-arrives at. Only a stage can color a band. The rows in one band can differ in
-any other column, but they share one value at each stage.
-
-## The slots and their names
-
-So far you have found a path by its position, because no slot has a name. Two
-more layers finish the diagram. A `zone` layer draws each stage's slots, which
-are the stacked blocks where the bands meet each stage. A `text` layer names
-them. All three layers repeat the same `flow(...)`, so they compute the same
-positions for the bands, slots and names:
+stage, so any stage can color it. The finished diagram at the start of this
+chapter colors each band by `survived`, the slot it arrives at. Coloring by
+`class` gives each band the color of the slot it starts from instead:
 
 ```{r}
 data(titanic) + y(n) +
   ribbon * flow(class, sex, survived) + color(class) +
-  zone * flow(class, sex, survived) + style(color = "gray") +
+  zone * flow(class, sex, survived) +
   text * flow(class, sex, survived) + label(name) +
-  title("The full diagram: bands, slots, names")
+  title("The same paths, colored by class")
+```
+
+Now you can see which classes arrive in each later slot. Coloring by `survived`
+and coloring by `class` answer two questions: who lived, and where each class
+went.
+
+`color()` is written after the `ribbon` layer, so it belongs to the bands alone.
+Written before the marks, it would reach the slots and the names as well. gog
+refuses that, because a slot and its name take their color from `style()`. Only
+a stage can color a band. The rows in one band can differ in any other column,
+but they share one value at each stage.
+
+## Choosing the colors
+
+Every color in this chapter so far is a default. The bands take gog's default
+palette and are translucent, the slots are white with a thin black line around
+them, and the names are near-black. You choose each one in its own layer.
+
+A band takes its color from a stage, and `palette()` chooses the color for each
+value of that stage. Write each value beside the color you want, as
+[Colors by name](channels.qmd#colors-by-name) explains. Name every value, since
+gog refuses a palette that leaves one out:
+
+```{r}
+data(titanic) + y(n) +
+  ribbon * flow(class, sex, survived) + color(survived) +
+  palette(c(Yes = "steelblue", No = "darkgray")) +
+  zone * flow(class, sex, survived) +
+  text * flow(class, sex, survived) + label(name) +
+  title("The survivors in blue")
 ```
 
 *"Given titanic: y is n, ribbons derived by flow through class, sex and
-survived, color by class, and also zones derived by flow through class, sex and
-survived, and text derived by flow through class, sex and survived, label by
+survived, colored by survived, with a palette naming Yes steelblue and No
+darkgray, and also zones derived by flow through class, sex and survived, and
+text derived by flow through class, sex and survived, label by name."*
+
+The bands of the survivors are blue and the others are gray, so the survivors
+are easy to find. A band is translucent, so it looks lighter than the color you
+name, and two bands that cross both stay visible. To give every band the same
+color, leave out `color()` and write `style(color = )` after the `ribbon` layer.
+`style(opacity = )` there sets how translucent the bands are, with or without
+`color()`.
+
+A slot sits at one stage, so no single column can color every slot, and the
+same is true of the names. The `zone` and `text` layers take their settings from
+`style()` instead, one value for each layer. On the `zone` layer,
+`color` fills the slots, and `border_color` and `border_size` draw the line
+around each one. On the `text` layer, `color` and `size` set the color and the
+size of the names:
+
+```{r}
+data(titanic) + y(n) +
+  ribbon * flow(class, sex, survived) + color(survived) +
+  palette(c(Yes = "steelblue", No = "darkgray")) +
+  zone * flow(class, sex, survived) +
+  style(color = "midnightblue", border_color = "white", border_size = 2) +
+  text * flow(class, sex, survived) + label(name) +
+  style(color = "white", size = 14) +
+  title("Dark slots with white names")
+```
+
+*"Given titanic: y is n, ribbons derived by flow through class, sex and
+survived, colored by survived, with a palette naming Yes steelblue and No
+darkgray, and also zones derived by flow through class, sex and survived,
+colored midnightblue, with border color white and border size 2, and text
+derived by flow through class, sex and survived, label by name, colored white,
+with size 14."*
+
+Each `style()` is written after the mark it changes, so it changes that layer
+and no other. On the dark fill, the white line shows where each slot ends, and
+`border_size = 0` would remove it. The `zone` layer also takes `opacity`, as
+every mark does, and `pattern`, as the five filled regions do
+([Style](style.qmd#what-you-can-set)).
+
+## Room for long names
+
+In a flow that runs left to right the slots are tall and narrow. The names in
+`titanic` are short, so every one fits. A longer name, such as
+`Member of the crew`, would be wider than its slot, and gog would draw it across
+the slot's edges, over the bands. There are two ways to give it more space.
+
+The first turns the names. `style(angle = 90)` on the `text` layer turns every
+name upward, so it runs along its slot, as [Turning a
+label](marks/text.qmd#turning-a-label) explains:
+
+```{r}
+data(titanic) + y(n) +
+  ribbon * flow(class, sex, survived) + color(survived) +
+  zone * flow(class, sex, survived) +
+  text * flow(class, sex, survived) + label(name) + style(angle = 90) +
+  title("Names turned 90 degrees")
+```
+
+*"Given titanic: y is n, ribbons derived by flow through class, sex and
+survived, colored by survived, and also zones derived by flow through class, sex
+and survived, and text derived by flow through class, sex and survived, label by
+name, with angle 90."*
+
+Each name is now written upward, so it must fit the slot's height, not the
+slot's width.
+
+The second places the stages from top to bottom. Bind the count to `x` instead
+of `y`, and the first stage is at the top of the plot. Each slot is then wide
+and short, so a long name fits across it unless the slot's count is small. The
+sentence is the finished diagram's, with `x(n)` in place of `y(n)` and a new
+title. gog takes the direction from the axis that holds the count, as it does
+for a bar chart ([Horizontal bars](marks/bar.qmd#horizontal-bars)):
+
+```{r}
+data(titanic) + x(n) +
+  ribbon * flow(class, sex, survived) + color(survived) +
+  zone * flow(class, sex, survived) +
+  text * flow(class, sex, survived) + label(name) +
+  title("The same flow, from top to bottom")
+```
+
+*"Given titanic: x is n, ribbons derived by flow through class, sex and
+survived, colored by survived, and also zones derived by flow through class, sex
+and survived, and text derived by flow through class, sex and survived, label by
 name."*
 
-The slots take their color from `style()`, which makes them gray so that only
-the bands are colored. The names come from `label(name)`: the transform writes
-each slot's name into a column called `name`, exactly as `partition` does.
+The stage names are now on the left: `class` at the top, then `sex`, then
+`survived`. The count is on the bottom axis, and each name fits inside its slot.
+
+## Leaving out the count axis
+
+The count axis helped while the diagram was being built: it showed that the
+bands at each stage add up to the same total, just over 2,000 people. A reader of the finished
+diagram compares the thicknesses of the bands and the slots, and needs no
+numbers for that. So the count axis, the gridlines and the frame (the two lines
+along the bottom and the left of the panel) can be left out, and the gray panel
+can be white. Write `axis = FALSE` on the count. In
+`theme()`, `grid = "none"` and `frame = "none"` leave out the gridlines and the
+frame, and `background = "white"` colors the panel ([Axes, legends, gridlines
+and the frame](style.qmd#axes-legends-gridlines-and-the-frame)). The stage names
+stay, because they belong to the other axis, which is still drawn:
+
+```{r}
+data(titanic) + y(n, axis = FALSE) +
+  ribbon * flow(class, sex, survived) + color(survived) +
+  zone * flow(class, sex, survived) +
+  text * flow(class, sex, survived) + label(name) +
+  theme(grid = "none", frame = "none", background = "white") +
+  title("Who survived, by class and sex")
+```
+
+*"Given titanic: y is n without an axis, ribbons derived by flow through class,
+sex and survived, colored by survived, and also zones derived by flow through
+class, sex and survived, and text derived by flow through class, sex and
+survived, label by name."*
+
+Only the bands, the slots with their names, the legend and the stage names are
+left. A reader can still see that most of the women survived and most of the
+men did not. The exact counts are gone from the picture, so give them in the
+paragraph beside the plot, as [The finished diagram](#the-finished-diagram)
+does.
 
 ## What flow refuses
 
@@ -149,12 +374,13 @@ a place to finish:
 data(titanic) + y(n) + ribbon * flow(class)
 ```
 
-The stage axis is drawn from the atom's own columns, so gog refuses an `x()`
-you write:
+`flow()` puts the stages on the axis that does not hold the count. With `y(n)`
+that is the x axis, so `x(class)` asks for the same axis as the stages, and gog
+refuses it:
 
 ```{r}
 #| error: true
-data(titanic) + x(class) + ribbon * flow(class, survived)
+data(titanic) + y(n) + x(class) + ribbon * flow(class, survived)
 ```
 
 Only `ribbon`, `zone` and `text` can read what `flow` computes. Any other mark
@@ -179,7 +405,7 @@ The two limits below are not mistakes in your sentence. The engine does not
 draw the first, and it does not read the second.
 
 Every mark that draws on the page also bends into a circle, so you would expect
-a flow's ribbons to bend as well. [`polar()`](polar.qmd) is what bends a plot,
+a flow's bands to bend as well. [`polar()`](polar.qmd) is what bends a plot,
 and a flow in `polar()` is valid grammar. The bands bent around a circle make a
 **chord diagram**, which this engine does not draw:
 

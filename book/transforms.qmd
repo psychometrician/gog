@@ -1588,20 +1588,19 @@ peek(titanic)
 data(titanic) + y(n) +
   ribbon * flow(class, survived) + color(class) +
   zone * flow(class, survived) +
-  style(color = "gray") +
   title("Who survived, by class")
 ```
 
 *"Given titanic: y is n, ribbons derived by flow through class and survived,
-color by class, and also zones derived by flow through class and survived."*
+colored by class, and also zones derived by flow through class and survived."*
 
 Three marks read a flow, and a full diagram layers all three:
 
 | Mark derived by `flow` | Shape |
 |---|---|
-| `zone * flow` | the block at each stage |
-| `text * flow` | the name on each block |
-| `ribbon * flow` | the streams between the stages, the plot above |
+| `ribbon * flow` | the bands between the stages, the plot above |
+| `zone * flow` | the slots at each stage |
+| `text * flow` | the name of each slot |
 
 The `ribbon` layer draws the bands, one per path, as thick as the path's total
 at both ends. The `zone` layer draws each stage's slots, stacked with no

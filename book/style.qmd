@@ -197,13 +197,15 @@ outline, so a border on a `cross`-shaped glyph has nothing to draw on, and gog
 refuses it. When `shape` is mapped to a column, the categories drawn as crosses
 go without a border, and gog prints a message that names them.
 
-The last five rows of the grid above each control one piece of a mark's
-drawing. `caps` shows or hides the caps at the ends of a whisker, on an
+The last six rows of [the grid](#what-you-can-set) above each control one part
+of a mark's drawing. `caps` shows or hides the caps at the ends of a whisker, on an
 [`interval`](marks/interval.qmd) and a [`box`](marks/box.qmd). `center` shows or
 hides an interval's center dot. `nudge` moves a [`text`](marks/text.qmd) label
-off its point. `arrow` draws an arrowhead at one end, or both ends, of a
-[`path`](marks/path.qmd) or an [`edge`](marks/edge.qmd). And `reach` says how
-far a [`rule`](marks/rule.qmd) reaches across the panel. A row has a ✅ under
+off its position. `arrow` draws an arrowhead at one end, or both ends, of a
+[`path`](marks/path.qmd) or an [`edge`](marks/edge.qmd). `reach` says how far a
+[`rule`](marks/rule.qmd) reaches across the panel. And `angle` turns the labels
+of a `text` layer by a number of degrees ([Turning a
+label](marks/text.qmd#turning-a-label)). A row has a ✅ under
 every mark that has the part its setting controls. For `caps` that part is a
 whisker; for `arrow`, a start and an end that come from the data.
 
