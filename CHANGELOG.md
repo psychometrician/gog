@@ -26,6 +26,11 @@ CRAN-style repositories and PyPI, `GrammarOfGraphics` on Julia's General, and
   in `nest` that a name fits its rectangle, both measure the turned label. gog
   refuses `angle` on any other mark.
 
+- **A flow can run from top to bottom.** Bind the count to `x` instead of `y`,
+  as in `x(n)`, and the stages run down the page, the first at the top, with the
+  count along the bottom. A category on `x` is still refused, and so is a count
+  bound to both axes.
+
 - **`axis = FALSE` leaves a position's axis out.** Written on `x`, `y` or `z`,
   as in `x(lon, axis = FALSE)`, it removes that axis's tick marks, numbers and
   name, and the panel takes their room. The scale does not change, and the
@@ -36,6 +41,10 @@ CRAN-style repositories and PyPI, `GrammarOfGraphics` on Julia's General, and
   shared by several plots is left out of all of them.
 
 ### Changed
+
+- **A flow's slots are wider**, about twice as wide as before, so the name a
+  `text * flow` layer writes fits inside its slot instead of spilling across
+  the bands. Every flow diagram draws a little differently.
 
 - **`bin(width = )` puts one bin edge at zero.** Five-year bins of life
   expectancy run 35 to 40, 40 to 45, and so on, instead of starting at the

@@ -4813,6 +4813,16 @@ fn has_negative(df: &DataFrame, field: &str) -> bool {
     df.float_col(field).is_some_and(|c| c.iter().any(|v| v.is_finite() && *v < 0.0))
 }
 
+/// Does this flow run its stages top to bottom? It does when its count is bound
+/// to `x` and nothing to `y`: orientation read off the bindings, as `bar`'s is
+/// (spec §6), so there is no word for it. A categorical `x` is refused by
+/// `check_flow` and never reaches the renderer asking this.
+pub(crate) fn flow_runs_down(spec: &PlotSpec, layer: &Layer) -> bool {
+    layer.transforms.contains(&Transform::Flow)
+        && spec.position_for(layer, &Channel::X).is_some()
+        && spec.position_for(layer, &Channel::Y).is_none()
+}
+
 /// Every way a flow can be malformed, `check_partition`'s shape one family over.
 /// The first branches are facts about the sentence and refuse without a table;
 /// the column checks run when the frame is there to ask.
@@ -4909,17 +4919,36 @@ fn check_flow(
         }
     }
 
-    // 4. A bound `x` under a transform that draws its own domain. Refused rather
-    //    than reconciled: two answers to where the stages sit is Law 5's
-    //    ambiguity, and the atom's argument order is already the spelling.
-    if spec.position_for(layer, &Channel::X).is_some() {
-        out.push(Diagnostic {
-            kind: DiagnosticKind::Illegal,
-            message: "gog: under `flow` the stage axis is drawn from the atom's own \
-                      columns, so `x(...)` has nothing left to say. Remove it — to \
-                      reorder the stages, reorder `flow(...)`'s arguments."
-                .to_string(),
-        });
+    // 4. Which axis the stages take is read off the bindings, as a bar's
+    //    orientation is (spec §6): the count on `y` runs the stages left to right,
+    //    and the count on `x` runs them top to bottom (2026-10-02, at the author's
+    //    word). A *category* on `x` is a second answer to where the stages sit,
+    //    Law 5's ambiguity, and a count on both axes is two weights for one path.
+    if let Some(x) = spec.position_for(layer, &Channel::X) {
+        let categorical = df.and_then(|d| actual_type(d, &x.field)) == Some(VarType::Discrete);
+        if let Some(y) = spec.position_for(layer, &Channel::Y) {
+            out.push(Diagnostic {
+                kind: DiagnosticKind::Illegal,
+                message: format!(
+                    "gog: under `flow` one axis carries the count and the other the \
+                     stages, and both `x({})` and `y({})` are bound. Keep `y(<amount>)` \
+                     to run the stages left to right, or `x(<amount>)` to run them top \
+                     to bottom.",
+                    x.field, y.field,
+                ),
+            });
+        } else if categorical {
+            out.push(Diagnostic {
+                kind: DiagnosticKind::Illegal,
+                message: format!(
+                    "gog: under `flow` the stage axis is drawn from the atom's own \
+                     columns, so `x({})` has nothing left to say. Remove it: to reorder \
+                     the stages, reorder `flow(...)`'s arguments. To run the stages top \
+                     to bottom, bind the count to `x` instead: `x(<amount>)`.",
+                    x.field,
+                ),
+            });
+        }
     }
 
     // 5. Mapped aesthetics. A band is a whole path, so any *stage* names
@@ -5005,15 +5034,19 @@ fn check_flow(
         }
     }
 
-    // 7. The weight is the bound `y`, so it has to be a number.
-    if let Some(y) = spec.position_for(layer, &Channel::Y) {
+    // 7. The weight is the bound `y`, or the bound `x` of a flow that runs top to
+    //    bottom, so it has to be a number. (A category on `x` was refused above.)
+    let weight = spec.position_for(layer, &Channel::Y).map(|d| ("y", d))
+        .or_else(|| flow_runs_down(spec, layer)
+            .then(|| spec.position_for(layer, &Channel::X).map(|d| ("x", d))).flatten());
+    if let Some((c, y)) = weight {
         if actual_type(df, &y.field) == Some(VarType::Discrete) {
             out.push(Diagnostic {
                 kind: DiagnosticKind::Illegal,
                 message: format!(
-                    "gog: `y({0})` is what each path is weighed by, and `{0}` holds \
+                    "gog: `{c}({0})` is what each path is weighed by, and `{0}` holds \
                      categories rather than numbers. Name the column that carries the \
-                     amount — `y(<amount>)` — or bind nothing at all, in which case \
+                     amount — `{c}(<amount>)` — or bind nothing at all, in which case \
                      every path weighs 1 and the flow tallies them.",
                     y.field,
                 ),
@@ -5027,7 +5060,7 @@ fn check_flow(
             out.push(Diagnostic {
                 kind: DiagnosticKind::Illegal,
                 message: format!(
-                    "gog: `y({0})` weighs each path, and `{0}` has negative values. A flow \
+                    "gog: `{c}({0})` weighs each path, and `{0}` has negative values. A flow \
                      draws a weight as the thickness of a band, and a thickness cannot be \
                      negative: those paths would be dropped, and every stage would sum to \
                      less than the table. Filter or offset the column.",
@@ -8280,6 +8313,11 @@ pub fn check(spec: &PlotSpec, data: &HashMap<String, DataFrame>) -> Vec<Diagnost
             // same optionality `partition` has, for the same reason: the
             // transform supplies both positions and a binding refines one.
             if channel == Channel::Y && layer.transforms.contains(&Transform::Flow) {
+                continue;
+            }
+            // And its `x`, which carries the count when the flow runs top to bottom
+            // and is refused by `check_flow` in every other use.
+            if channel == Channel::X && layer.transforms.contains(&Transform::Flow) {
                 continue;
             }
             // In the network every position is the layout's, so `y` stands
@@ -21567,13 +21605,27 @@ mod tests {
                 && x.message.contains("at least two stage columns")),
                 "one stage is refused: {:?}", msgs(&d));
 
-            // A bound `x` has nothing left to say under a transform that draws
-            // its own domain.
-            let d = check(&PlotSpec::new().data("t").x("gdp")
+            // A categorical `x` has nothing left to say under a transform that
+            // draws its own domain, and the refusal names both directions.
+            let d = check(&PlotSpec::new().data("t").x("continent")
                 .layer(Layer::new(Mark::Ribbon).flow(&["continent", "region"])), &data());
             assert!(d.iter().any(|x| x.kind == DiagnosticKind::Illegal
-                && x.message.contains("reorder `flow(...)`'s arguments")),
-                "x under flow is refused with the reordering direction: {:?}", msgs(&d));
+                && x.message.contains("reorder `flow(...)`'s arguments")
+                && x.message.contains("top to bottom")),
+                "a category on x under flow is refused with direction: {:?}", msgs(&d));
+
+            // A numeric `x` with no `y` is the count, and the flow runs top to
+            // bottom (2026-10-02): orientation read off the bindings.
+            let d = check(&PlotSpec::new().data("t").x("gdp")
+                .layer(Layer::new(Mark::Ribbon).flow(&["continent", "region"])), &data());
+            assert!(!d.iter().any(|x| x.is_fatal()), "x(gdp) runs the flow down: {:?}", msgs(&d));
+
+            // The count on both axes is two weights for one path.
+            let d = check(&PlotSpec::new().data("t").x("gdp").y("life")
+                .layer(Layer::new(Mark::Ribbon).flow(&["continent", "region"])), &data());
+            assert!(d.iter().any(|x| x.kind == DiagnosticKind::Illegal
+                && x.message.contains("both `x(gdp)` and `y(life)` are bound")),
+                "{:?}", msgs(&d));
 
             // A band's color must name a stage; anything else names nothing every
             // band holds.

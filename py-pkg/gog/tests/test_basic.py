@@ -734,6 +734,23 @@ assert "`style(angle = )` is a `text` setting" in _m, _m
 refuses("angle= that is not a number", lambda: style(angle="up"))
 ok("style(angle=) turns text, and only text")
 
+# A flow with its count on `x` runs its stages top to bottom.
+_fl = {"from": ["a", "a", "b"], "to": ["x", "y", "x"], "n": [1.0, 2.0, 3.0]}
+
+
+def _tick_y(svg: str, name: str) -> float:
+    line = next(l for l in svg.splitlines() if f">{name}</text>" in l)
+    return float(re.search(r' y="([0-9.]+)"', line).group(1))
+
+
+_down = render_svg(data(_fl, name="fl") + x(col.n) + ribbon * flow(col["from"], col.to)
+                   + zone * flow(col["from"], col.to))
+assert _tick_y(_down, "from") < _tick_y(_down, "to"), "x(n) should run the flow top to bottom"
+_m = _refusal(lambda: render_svg(data(_fl, name="fl") + x(col.n) + y(col.n)
+                                 + ribbon * flow(col["from"], col.to)))
+assert "both `x(n)` and `y(n)` are bound" in _m, _m
+ok("a flow's count on x runs its stages top to bottom")
+
 # Caught in the binding, at the line that wrote it.
 refuses("a backwards domain", lambda: x(col.hour, limits=(20, 5)))
 refuses("one number as a domain", lambda: x(col.hour, limits=5))
@@ -1602,8 +1619,8 @@ refuses(
                        + bar * flow(col.klass, col.survived)),
 )
 refuses(
-    "x bound under flow",
-    lambda: render_svg(data(voyage, name="voyage") + x(col.n)
+    "a category on x under flow",
+    lambda: render_svg(data(voyage, name="voyage") + x(col.klass)
                        + ribbon * flow(col.klass, col.survived)),
 )
 refuses(

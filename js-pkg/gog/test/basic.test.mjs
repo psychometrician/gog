@@ -1107,6 +1107,17 @@ test("style({ angle }) turns text, and only text", () => {
   refuses(() => style({ angle: "up" }), /needs a single number/);
 });
 
+test("a flow's count on x runs its stages top to bottom", () => {
+  const fl = { from: ["a", "a", "b"], to: ["x", "y", "x"], n: [1, 2, 3] };
+  const tickY = (svg, name) => Number(svg.split("\n").find((l) => l.includes(`>${name}</text>`))
+    .match(/ y="([0-9.]+)"/)[1]);
+  const down = render_svg(plot(data(fl), x(col.n), layer(ribbon, flow(col.from, col.to)),
+    layer(zone, flow(col.from, col.to))));
+  assert.ok(tickY(down, "from") < tickY(down, "to"), "x(n) should run the flow top to bottom");
+  refuses(() => render_svg(plot(data(fl), x(col.n), y(col.n), layer(ribbon, flow(col.from, col.to)))),
+    /both `x\(n\)` and `y\(n\)` are bound/);
+});
+
 // ---------------------------------------------------------------------------
 // tick_count — how many ticks an axis aims for (spec §10)
 //
@@ -1955,7 +1966,7 @@ test("`flow` lays bands, slots and names from one layout", () => {
   }
   refuses(() => render_svg(plot(data(voyage, { name: "voyage" }), y(col.n),
     layer(bar, flow(col.klass, col.survived)))), /no reading for that/);
-  refuses(() => render_svg(plot(data(voyage, { name: "voyage" }), x(col.n),
+  refuses(() => render_svg(plot(data(voyage, { name: "voyage" }), x(col.klass),
     layer(ribbon, flow(col.klass, col.survived)))), /reorder `flow\(\.\.\.\)`'s arguments/);
   refuses(() => render_svg(plot(data(voyage, { name: "voyage" }), y(col.n),
     layer(ribbon, flow(col.klass, col.survived)), color(col.n))),

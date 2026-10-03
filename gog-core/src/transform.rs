@@ -4328,13 +4328,21 @@ fn nearest_stages_first(k: usize, n: usize) -> Vec<usize> {
     out
 }
 
+/// The two column names a flow's count interval is published under: the measure
+/// axis's pair, which is `y`'s when the stages run left to right and `x`'s when
+/// they run top to bottom (`down`). The fitter of each axis reads its own pair,
+/// so publishing under the other axis's names is the whole of turning the flow.
+fn flow_interval_names(down: bool) -> (&'static str, &'static str) {
+    if down { (CELL_START, CELL_END) } else { (CELL_LOWER, CELL_UPPER) }
+}
+
 /// The node projection: one row per (stage, category), read by `zone` (the
 /// slot) and `text` (the name at its center, `label(name)` as under
 /// `partition`). Publishes the measure pair only — the domain axis is the
 /// slotted one, which is the mixed mesh's shape: "the cut axis's two edges,
 /// nothing for the slotted one."
 pub fn flow_nodes(
-    df: &DataFrame, stages: &[String], measure: Option<&str>, measure_out: &str,
+    df: &DataFrame, stages: &[String], measure: Option<&str>, measure_out: &str, down: bool,
 ) -> DataFrame {
     let Some(fl) = flow_layout(df, stages, measure) else {
         return DataFrame::new();
@@ -4362,11 +4370,12 @@ pub fn flow_nodes(
             center.push((lo + hi) / 2.0);
         }
     }
+    let (lo_name, hi_name) = flow_interval_names(down);
     let out = DataFrame::new()
         .with_levels(FLOW_STAGE, stage_col, fl.stages.clone())
         .with_str(NODE_NAME, name)
-        .with_float(CELL_LOWER, lower)
-        .with_float(CELL_UPPER, upper);
+        .with_float(lo_name, lower)
+        .with_float(hi_name, upper);
     match measure_out.is_empty() || measure_out == FLOW_STAGE {
         true => out,
         false => out.with_float(measure_out, center),
@@ -4384,7 +4393,7 @@ pub fn flow_nodes(
 /// precisely because a band is a whole path's slice, never a merged
 /// aggregate.
 pub fn flow_bands(
-    df: &DataFrame, stages: &[String], measure: Option<&str>, measure_out: &str,
+    df: &DataFrame, stages: &[String], measure: Option<&str>, measure_out: &str, down: bool,
 ) -> DataFrame {
     let Some(fl) = flow_layout(df, stages, measure) else {
         return DataFrame::new();
@@ -4413,11 +4422,12 @@ pub fn flow_bands(
             }
         }
     }
+    let (lo_name, hi_name) = flow_interval_names(down);
     let mut out = DataFrame::new()
         .with_str(FLOW_PATH, path_key)
         .with_levels(FLOW_STAGE, stage_col, fl.stages.clone())
-        .with_float(CELL_LOWER, lo)
-        .with_float(CELL_UPPER, hi);
+        .with_float(lo_name, lo)
+        .with_float(hi_name, hi);
     if !measure_out.is_empty() && measure_out != FLOW_STAGE {
         out = out.with_float(measure_out, center);
     }
@@ -5177,7 +5187,7 @@ mod tests {
     fn a_flow_conserves_its_total_at_every_stage() {
         let stages = vec!["a".to_string(), "b".to_string()];
         let nodes = flow_frame();
-        let out = flow_nodes(&nodes, &stages, Some("n"), "count");
+        let out = flow_nodes(&nodes, &stages, Some("n"), "count", false);
         let stage = out.str_col(FLOW_STAGE).unwrap();
         let lo = out.float_col(CELL_LOWER).unwrap();
         let hi = out.float_col(CELL_UPPER).unwrap();
@@ -5204,7 +5214,7 @@ mod tests {
     #[test]
     fn a_flow_aggregates_paths_and_keeps_thickness_at_both_ends() {
         let stages = vec!["a".to_string(), "b".to_string()];
-        let out = flow_bands(&flow_frame(), &stages, Some("n"), "count");
+        let out = flow_bands(&flow_frame(), &stages, Some("n"), "count", false);
         let key = out.str_col(FLOW_PATH).unwrap();
         let stage = out.str_col(FLOW_STAGE).unwrap();
         let lo = out.float_col(CELL_LOWER).unwrap();
@@ -5229,12 +5239,12 @@ mod tests {
     #[test]
     fn a_flow_is_ordered_by_the_atom_and_deterministic() {
         let stages = vec!["a".to_string(), "b".to_string()];
-        let nodes = flow_nodes(&flow_frame(), &stages, Some("n"), "count");
+        let nodes = flow_nodes(&flow_frame(), &stages, Some("n"), "count", false);
         assert_eq!(nodes.levels(FLOW_STAGE).unwrap(), &["a".to_string(), "b".to_string()]);
-        let bands = flow_bands(&flow_frame(), &stages, Some("n"), "count");
+        let bands = flow_bands(&flow_frame(), &stages, Some("n"), "count", false);
         assert_eq!(bands.levels("a").unwrap(), &["p".to_string(), "q".to_string()],
             "a carried stage keeps its declared levels");
-        let again = flow_bands(&flow_frame(), &stages, Some("n"), "count");
+        let again = flow_bands(&flow_frame(), &stages, Some("n"), "count", false);
         for col in [CELL_LOWER, CELL_UPPER] {
             assert_eq!(bands.float_col(col), again.float_col(col),
                 "one table, one layout, every run (`{col}`)");
@@ -5258,7 +5268,7 @@ mod tests {
             .with_levels("c", vec!["x".into(), "x".into()], vec!["x".into()])
             .with_float("n", vec![1.0, 1.0]);
         let stages = vec!["a".to_string(), "b".to_string(), "c".to_string()];
-        let bands = flow_bands(&df, &stages, Some("n"), "count");
+        let bands = flow_bands(&df, &stages, Some("n"), "count", false);
         let stage = bands.str_col(FLOW_STAGE).unwrap();
         let a = bands.str_col("a").unwrap();
         let lo = bands.float_col(CELL_LOWER).unwrap();
@@ -5279,7 +5289,7 @@ mod tests {
         let df = DataFrame::new()
             .with_str("a", vec!["p".into(), "p".into(), "".into()])
             .with_str("b", vec!["u".into(), "u".into(), "u".into()]);
-        let out = flow_bands(&df, &stages, None, "count");
+        let out = flow_bands(&df, &stages, None, "count", false);
         let hi = out.float_col(CELL_UPPER).unwrap();
         assert_eq!(hi.len(), 2, "one path survives, one row per stage");
         assert_eq!(hi[0], 2.0, "the tally weighs each surviving row 1");

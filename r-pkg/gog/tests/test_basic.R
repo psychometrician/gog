@@ -2060,6 +2060,21 @@ refuses("angle on a point", render_svg(data(lvl) + point + x(a) + y(b) + style(a
 refuses("angle that is not a number", style(angle = "up"), "needs a single number")
 cat("PASS: `style(angle = )` turns text, and only text\n")
 
+# A flow with its count on `x` runs its stages top to bottom: the first stage's
+# name sits above the second's on the y axis.
+fl <- data.frame(from = c("a", "a", "b"), to = c("x", "y", "x"), n = c(1, 2, 3))
+down <- render_svg(data(fl) + x(n) + ribbon * flow(from, to) + zone * flow(from, to))
+tick_y <- function(svg, name) {
+  line <- grep(paste0(">", name, "</text>"), strsplit(svg, "\n")[[1]], value = TRUE)[1]
+  as.numeric(sub('.* y="([0-9.]+)".*', "\\1", line))
+}
+if (!(tick_y(down, "from") < tick_y(down, "to")))
+  stop("FAIL: a flow with x(n) should run from top to bottom")
+refuses("a flow weighed on both axes",
+        render_svg(data(fl) + x(n) + y(n) + ribbon * flow(from, to)),
+        "both `x(n)` and `y(n)` are bound")
+cat("PASS: a flow's count on x runs its stages top to bottom\n")
+
 cat("\nnamed palette and legend tests passed.\n")
 
 # ---------------------------------------------------------------------------
@@ -3821,8 +3836,8 @@ local({
 refuses("a mark with no flow reading",
         render_svg(data(voyage) + y(n) + bar * flow(class, survived)),
         "no reading for that")
-refuses("x bound under flow",
-        render_svg(data(voyage) + x(n) + ribbon * flow(class, survived)),
+refuses("a category on x under flow",
+        render_svg(data(voyage) + x(class) + ribbon * flow(class, survived)),
         "reorder `flow(...)`'s arguments")
 refuses("a band colored by a column that is not a stage",
         render_svg(data(voyage) + y(n) +

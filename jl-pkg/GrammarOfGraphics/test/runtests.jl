@@ -801,6 +801,15 @@ end
     @refuses style(angle = "up") "needs a single number"
 end
 
+@testset "a flow's count on x runs its stages top to bottom" begin
+    fl = Dict("from" => ["a", "a", "b"], "to" => ["x", "y", "x"], "n" => [1.0, 2.0, 3.0])
+    tick_y(svg, name) = parse(Float64, match(r" y=\"([0-9.]+)\"",
+        first(filter(l -> occursin(">$name</text>", l), split(svg, "\n")))).captures[1])
+    down = render_svg(data(fl) + x(:n) + ribbon * flow(:from, :to) + zone * flow(:from, :to))
+    @test tick_y(down, "from") < tick_y(down, "to")
+    @refuses render_svg(data(fl) + x(:n) + y(:n) + ribbon * flow(:from, :to)) "both `x(n)` and `y(n)` are bound"
+end
+
 # ---------------------------------------------------------------------------
 # tick_count — how many ticks an axis aims for (spec §10)
 #
@@ -1413,7 +1422,7 @@ end
     end
     @refuses render_svg(data(voyage, name = "voyage") + y(:n) +
                         bar * flow(:class, :survived)) "no reading for that"
-    @refuses render_svg(data(voyage, name = "voyage") + x(:n) +
+    @refuses render_svg(data(voyage, name = "voyage") + x(:class) +
                         ribbon * flow(:class, :survived)) "reorder `flow(...)`'s arguments"
     @refuses render_svg(data(voyage, name = "voyage") + y(:n) +
                         ribbon * flow(:class, :survived) + color(:n)) "must name one of the atom's stages"

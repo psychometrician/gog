@@ -574,12 +574,18 @@ impl SvgRenderer {
         // reads the tally's name, exactly as a 3-D reading's synthesized `z` does.
         let stages_the_domain = spec.layers.iter()
             .any(|l| l.transforms.contains(&Transform::Flow));
-        let x_field = match (x_field, stages_the_domain) {
+        // **Top to bottom when the count is on `x`** (`legality::flow_runs_down`):
+        // orientation read off the bindings, as a bar's is, so the stages take the
+        // axis the count left unbound. A categorical `y` axis lists its first
+        // category at the top, so the first stage is the top one.
+        let flow_down = spec.layers.iter().any(|l| crate::legality::flow_runs_down(spec, l));
+        let x_field = match (x_field, stages_the_domain && !flow_down) {
             ("", true) => crate::transform::FLOW_STAGE,
             _ => x_field,
         };
-        let y_field = match (y_field, stages_the_domain) {
-            ("", true) => crate::transform::CELL_COUNT,
+        let y_field = match (y_field, stages_the_domain, flow_down) {
+            ("", true, true) => crate::transform::FLOW_STAGE,
+            ("", true, false) => crate::transform::CELL_COUNT,
             _ => y_field,
         };
 
@@ -1059,14 +1065,19 @@ impl SvgRenderer {
                     if layer.transforms.contains(&crate::ir::Transform::Flow) {
                         let stages: Vec<String> = layer.flow.as_ref()
                             .map(|f| f.stages.clone()).unwrap_or_default();
-                        let measure = layer.encodings.get(&Channel::Y)
-                            .or(spec.y.as_ref())
+                        // The count rides `y`, or `x` when the flow runs down.
+                        let (count_on, measure_out) = match flow_down {
+                            true => (Channel::X, x_field),
+                            false => (Channel::Y, y_field),
+                        };
+                        let measure = layer.encodings.get(&count_on)
+                            .or(spec.position(&count_on))
                             .map(|e| e.field.as_str());
                         return match layer.mark {
                             Mark::Ribbon => crate::transform::flow_bands(
-                                &base, &stages, measure, y_field),
+                                &base, &stages, measure, measure_out, flow_down),
                             _ => crate::transform::flow_nodes(
-                                &base, &stages, measure, y_field),
+                                &base, &stages, measure, measure_out, flow_down),
                         };
                     }
                     // A **layout** takes the same door a third time: its two
@@ -3029,7 +3040,7 @@ impl SvgRenderer {
                         // violin's dispatch shape one transform over: the mark is
                         // the reader's name, the writer is the reading's.
                         Mark::Ribbon if layer.transforms.contains(&Transform::Flow) =>
-                            self.write_flow_bands(&mut svg, layer, df, whole, l, xs, ys, cat_x.as_deref(), &color_map, &clip),
+                            self.write_flow_bands(&mut svg, layer, df, whole, l, xs, ys, cat_x.as_deref(), cat_y.as_deref(), flow_down, &color_map, &clip),
                         Mark::Ribbon => self.write_ribbon(&mut svg, layer, df, whole, l, xs, ys, x_field, y_field, cat_x.as_deref(), &color_map, &clip, pol_ref),
                         Mark::Text => {
                             // A repelled label steps around every dot drawn in
@@ -3065,7 +3076,7 @@ impl SvgRenderer {
                         // branch above), so it reads them straight off the table.
                         // The flow's slot reading, the band's twin above.
                         Mark::Zone if layer.transforms.contains(&Transform::Flow) =>
-                            self.write_flow_nodes(&mut svg, layer, df, l, xs, ys, cat_x.as_deref(), &clip),
+                            self.write_flow_nodes(&mut svg, layer, df, l, xs, ys, cat_x.as_deref(), cat_y.as_deref(), flow_down, &clip),
                         Mark::Zone => self.write_zone(&mut svg, layer, df, whole, l, xs, ys, x_field, y_field, cat_x.as_deref(), cat_y.as_deref(), &color_map, &ramp, &clip, pol_ref, None),
                         // A surface draws in the cube and nowhere else, so it is handled
                         // in the 3-D branch above and a *flat* one never arrives — it is
@@ -6593,6 +6604,55 @@ mod tests {
         PlotSpec::new().data("t").y("n")
             .layer(Layer::new(Mark::Ribbon).flow(&["class", "survived"]))
             .layer(Layer::new(Mark::Zone).flow(&["class", "survived"]))
+    }
+
+    /// **The count on `x` runs the stages top to bottom** (2026-10-02): the stage
+    /// names move to the y axis, first stage at the top, the slots span the count
+    /// along `x`, and each band curves down from one stage to the next. Nothing in
+    /// the sentence names a direction; the binding does, as a bar's does.
+    #[test]
+    fn a_flow_with_its_count_on_x_runs_top_to_bottom() {
+        let down = PlotSpec::new().data("t").x("n")
+            .layer(Layer::new(Mark::Ribbon).flow(&["class", "survived"]))
+            .layer(Layer::new(Mark::Zone).flow(&["class", "survived"]))
+            .layer(Layer::new(Mark::Text).flow(&["class", "survived"])
+                .encode(Channel::Label, crate::transform::NODE_NAME));
+        let svg = SvgRenderer::default().render(&down, &flow_table());
+        let y_of = |name: &str| -> f64 {
+            let line = svg.lines().find(|l| l.contains(&format!(">{name}</text>")))
+                .unwrap_or_else(|| panic!("no `{name}` tick: {svg}"));
+            line.split(r#" y=""#).nth(1).and_then(|r| r.split('"').next())
+                .and_then(|v| v.parse::<f64>().ok()).unwrap()
+        };
+        assert!(y_of("class") < y_of("survived"), "the first stage is the top one");
+        // The slots are wide along x and short along y: four of them, each
+        // spanning its count, so their widths add to the total at each stage.
+        let rects: Vec<(f64, f64)> = svg.split("<rect ").skip(1)
+            .filter(|r| r.contains(r#"fill-opacity="1.000""#))
+            .filter_map(|r| {
+                let grab = |k: &str| r.split(k).nth(1).and_then(|v| v.split('"').next())
+                    .and_then(|v| v.parse::<f64>().ok());
+                Some((grab(r#"width=""#)?, grab(r#"height=""#)?))
+            })
+            .collect();
+        assert_eq!(rects.len(), 4, "{rects:?}");
+        assert!(rects.iter().all(|(w, h)| w > h), "slots lie across the page: {rects:?}");
+        // A band leaves a slot's lower side and enters the next one's upper side,
+        // so its curve's control points share the band's x at each end.
+        let band = svg.lines().find(|l| l.contains("<path d=\"M ") && l.contains(" C "))
+            .expect("a band");
+        let nums: Vec<f64> = band.split(|c: char| !(c.is_ascii_digit() || c == '.' || c == '-'))
+            .filter_map(|t| t.parse().ok()).collect();
+        assert_eq!(nums[0], nums[2], "the curve leaves straight down: {band}");
+        // And the count on `y` keeps the stages along the bottom, left to right.
+        let across = SvgRenderer::default().render(&flow_spec(), &flow_table());
+        let at = |name: &str, key: &str| -> f64 {
+            let line = across.lines().find(|l| l.contains(&format!(">{name}</text>"))).unwrap();
+            line.split(key).nth(1).and_then(|r| r.split('"').next())
+                .and_then(|v| v.parse::<f64>().ok()).unwrap()
+        };
+        assert!(at("class", r#" x=""#) < at("survived", r#" x=""#), "left to right");
+        assert_eq!(at("class", r#" y=""#), at("survived", r#" y=""#), "on one axis line");
     }
 
     /// A flow's count axis is ticked over its whole range, as a partition's is, so

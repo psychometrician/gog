@@ -21,20 +21,29 @@ use crate::render::pattern::{FillTexture, PatternMap};
 use crate::render::svg::SvgRenderer;
 use crate::render::text::esc;
 use crate::render::{Layout, Whole};
-use crate::transform::{CELL_LOWER, CELL_UPPER, FLOW_PATH, FLOW_STAGE};
+use crate::transform::{CELL_END, CELL_LOWER, CELL_START, CELL_UPPER, FLOW_PATH, FLOW_STAGE};
 
 /// Half a slot's thickness, in category units — a stage sits at integer `k` and
 /// its slots run `k ± this`. One constant, no knob: the width carries no data,
 /// so a parameter would be a taste dial (§18's `tri` warning).
-const SLOT_HALF: f64 = 0.055;
+///
+/// **Wide enough to hold a name** (0.12 since 2026-10-02, from 0.055). A slot is
+/// where a reader finds which place a band passes through, and at 0.055 the names
+/// a `text * flow` layer writes spilled across the bands on either side, so a
+/// diagram with every slot named still read as unlabeled. Chosen by the author
+/// from renders at 0.055, 0.12 and 0.17, the last being ggalluvial's default.
+/// 0.12 holds "Female" at the book's size and leaves the bands room to curve.
+const SLOT_HALF: f64 = 0.12;
 
 /// A band's paint is deliberately translucent: bands cross, and a crossing two
 /// opaque ribbons would hide is most of what an alluvial diagram shows.
 const BAND_OPACITY: f64 = 0.45;
 
 impl SvgRenderer {
-    /// The node slots — one thin rectangle per (stage, category), spanning the
-    /// interval the layout stacked for it.
+    /// The node slots — one rectangle per (stage, category), spanning the
+    /// interval the layout stacked for it. Stages run along `x` and the count up
+    /// `y`, or, in a flow that runs top to bottom (`down`), stages down `y` and
+    /// the count along `x`.
     #[allow(clippy::too_many_arguments)]
     pub(crate) fn write_flow_nodes(
         &self,
@@ -45,14 +54,17 @@ impl SvgRenderer {
         xs: (f64, f64),
         ys: (f64, f64),
         cat_x: Option<&[String]>,
+        cat_y: Option<&[String]>,
+        down: bool,
         clip: &str,
     ) {
+        let (lo_name, hi_name) = if down { (CELL_START, CELL_END) } else { (CELL_LOWER, CELL_UPPER) };
         let (Some(stage), Some(lo), Some(hi)) = (
-            df.str_col(FLOW_STAGE), df.float_col(CELL_LOWER), df.float_col(CELL_UPPER),
+            df.str_col(FLOW_STAGE), df.float_col(lo_name), df.float_col(hi_name),
         ) else {
             return;
         };
-        let Some(cats) = cat_x else { return };
+        let Some(cats) = (if down { cat_y } else { cat_x }) else { return };
         let st = &layer.style;
         let fill = st.color.as_deref().unwrap_or(PALETTE_GOG[0]);
         let opacity = st.opacity.unwrap_or(1.0);
@@ -60,10 +72,13 @@ impl SvgRenderer {
         writeln!(svg, r#"  <g clip-path="url(#{clip})">"#).unwrap();
         for r in 0..stage.len() {
             let Some(k) = cats.iter().position(|c| *c == stage[r]) else { continue };
-            let x0 = l.map_x(k as f64 - SLOT_HALF, xs.0, xs.1);
-            let x1 = l.map_x(k as f64 + SLOT_HALF, xs.0, xs.1);
-            let y0 = l.map_y(hi[r], ys.0, ys.1);
-            let y1 = l.map_y(lo[r], ys.0, ys.1);
+            let (x0, x1, y0, y1) = if down {
+                let (a, b) = (l.map_y(k as f64 - SLOT_HALF, ys.0, ys.1), l.map_y(k as f64 + SLOT_HALF, ys.0, ys.1));
+                (l.map_x(lo[r], xs.0, xs.1), l.map_x(hi[r], xs.0, xs.1), a.min(b), a.max(b))
+            } else {
+                (l.map_x(k as f64 - SLOT_HALF, xs.0, xs.1), l.map_x(k as f64 + SLOT_HALF, xs.0, xs.1),
+                 l.map_y(hi[r], ys.0, ys.1), l.map_y(lo[r], ys.0, ys.1))
+            };
             writeln!(
                 svg,
                 r#"    <rect x="{:.2}" y="{:.2}" width="{:.2}" height="{:.2}" fill="{}" fill-opacity="{:.3}" {}/>"#,
@@ -89,16 +104,19 @@ impl SvgRenderer {
         xs: (f64, f64),
         ys: (f64, f64),
         cat_x: Option<&[String]>,
+        cat_y: Option<&[String]>,
+        down: bool,
         color_map: &std::collections::HashMap<String, String>,
         clip: &str,
     ) {
+        let (lo_name, hi_name) = if down { (CELL_START, CELL_END) } else { (CELL_LOWER, CELL_UPPER) };
         let (Some(path), Some(stage), Some(lo), Some(hi)) = (
             df.str_col(FLOW_PATH), df.str_col(FLOW_STAGE),
-            df.float_col(CELL_LOWER), df.float_col(CELL_UPPER),
+            df.float_col(lo_name), df.float_col(hi_name),
         ) else {
             return;
         };
-        let Some(cats) = cat_x else { return };
+        let Some(cats) = (if down { cat_y } else { cat_x }) else { return };
         let st = &layer.style;
         let opacity = st.opacity.unwrap_or(BAND_OPACITY);
         let hue_col = layer.encodings.get(&Channel::Color)
@@ -119,13 +137,33 @@ impl SvgRenderer {
             ) else {
                 continue;
             };
-            let x0 = l.map_x(k0 as f64 + SLOT_HALF, xs.0, xs.1);
-            let x1 = l.map_x(k1 as f64 - SLOT_HALF, xs.0, xs.1);
-            let mx = (x0 + x1) / 2.0;
-            let a_hi = l.map_y(hi[r], ys.0, ys.1);
-            let a_lo = l.map_y(lo[r], ys.0, ys.1);
-            let b_hi = l.map_y(hi[r + 1], ys.0, ys.1);
-            let b_lo = l.map_y(lo[r + 1], ys.0, ys.1);
+            // The band leaves the side of one slot that faces the next and enters
+            // the facing side of the next, curving across the gap between them.
+            // Down a page the stages are rows, so the same shape is drawn with its
+            // two coordinates exchanged.
+            let d = if down {
+                let (c0, c1) = (l.map_y(k0 as f64, ys.0, ys.1), l.map_y(k1 as f64, ys.0, ys.1));
+                let half = (l.map_y(k0 as f64 + SLOT_HALF, ys.0, ys.1) - c0).abs();
+                let toward = if c1 >= c0 { 1.0 } else { -1.0 };
+                let (y0, y1) = (c0 + toward * half, c1 - toward * half);
+                let my = (y0 + y1) / 2.0;
+                let a_lo = l.map_x(lo[r], xs.0, xs.1);
+                let a_hi = l.map_x(hi[r], xs.0, xs.1);
+                let b_lo = l.map_x(lo[r + 1], xs.0, xs.1);
+                let b_hi = l.map_x(hi[r + 1], xs.0, xs.1);
+                format!("M {a_lo:.2},{y0:.2} C {a_lo:.2},{my:.2} {b_lo:.2},{my:.2} {b_lo:.2},{y1:.2} \
+                         L {b_hi:.2},{y1:.2} C {b_hi:.2},{my:.2} {a_hi:.2},{my:.2} {a_hi:.2},{y0:.2} Z")
+            } else {
+                let x0 = l.map_x(k0 as f64 + SLOT_HALF, xs.0, xs.1);
+                let x1 = l.map_x(k1 as f64 - SLOT_HALF, xs.0, xs.1);
+                let mx = (x0 + x1) / 2.0;
+                let a_hi = l.map_y(hi[r], ys.0, ys.1);
+                let a_lo = l.map_y(lo[r], ys.0, ys.1);
+                let b_hi = l.map_y(hi[r + 1], ys.0, ys.1);
+                let b_lo = l.map_y(lo[r + 1], ys.0, ys.1);
+                format!("M {x0:.2},{a_hi:.2} C {mx:.2},{a_hi:.2} {mx:.2},{b_hi:.2} {x1:.2},{b_hi:.2} \
+                         L {x1:.2},{b_lo:.2} C {mx:.2},{b_lo:.2} {mx:.2},{a_lo:.2} {x0:.2},{a_lo:.2} Z")
+            };
             let fill = hue_col
                 .and_then(|c| c.get(r))
                 .and_then(|v| color_map.get(v))
@@ -137,7 +175,7 @@ impl SvgRenderer {
             let fill = tex.fill(svg, texture, fill);
             writeln!(
                 svg,
-                r#"    <path d="M {x0:.2},{a_hi:.2} C {mx:.2},{a_hi:.2} {mx:.2},{b_hi:.2} {x1:.2},{b_hi:.2} L {x1:.2},{b_lo:.2} C {mx:.2},{b_lo:.2} {mx:.2},{a_lo:.2} {x0:.2},{a_lo:.2} Z" fill="{}" fill-opacity="{opacity:.3}"/>"#,
+                r#"    <path d="{d}" fill="{}" fill-opacity="{opacity:.3}"/>"#,
                 esc(&fill),
             ).unwrap();
         }
