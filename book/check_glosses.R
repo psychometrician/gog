@@ -51,10 +51,11 @@
 # two forms are how a reader hears where the channel was written, which is the
 # one thing that decides what it reaches. On 2026-10-03, 25 sentences used the
 # participle and 18 did not, in 12 chapters, so the rule was being followed
-# chapter by chapter rather than kept. `color`, `size` and `pattern` are
-# checked, the three with a participle in use. `shape` is not: "shaped by"
-# also means *influenced by*, no sentence has needed it yet, and its spoken
-# form is still to be decided. `label` reads "label by" everywhere, after the
+# chapter by chapter rather than kept. `color`, `size`, `pattern` and `shape`
+# are checked. `shape` reads "shaped by" (ruled 2026-10-03): "shaped by" also
+# means *influenced by*, but after a mark's name, "points shaped by species",
+# it can only mean the drawn shape, and one pattern for the four channels is one
+# rule for a translator to learn. `label` reads "label by" everywhere, after the
 # `text` mark it always follows.
 
 check_glosses <- function(book_dir = "book") {
@@ -79,7 +80,8 @@ check_glosses <- function(book_dir = "book") {
   n_number <- 0L
   scope <- character(0)
   n_scope <- 0L
-  participle <- c(color = "colored", size = "sized", pattern = "patterned")
+  participle <- c(color = "colored", size = "sized", pattern = "patterned",
+                  shape = "shaped")
 
   # The shared tables, for the type of a column a channel names.
   tables <- new.env()

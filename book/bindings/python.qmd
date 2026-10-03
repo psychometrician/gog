@@ -340,14 +340,14 @@ Each of those has to teach the spelling of the language you are writing in.
 This chapter's examples are only a small sample. On every change to the project,
 its automated tests translate the book's sentences into Python and draw them
 again. How far the two spellings differ was measured that way, sentence by
-sentence. Of the book's 924 sentences, eleven have no Python spelling at all.
+sentence. Of the book's 926 sentences, eleven have no Python spelling at all.
 Nine are in the [R](r.qmd) chapter and use R's own syntax, such as the pipe. Two
 are the GIF exports in the [Play](../play.qmd) chapter. Every one of the rest was
-translated by rule and run through the Python binding. Of those, 707 drew the
-same plot, byte for byte, and 186 gave the same refusal, word for word. The
+translated by rule and run through the Python binding. Of those, 708 drew the
+same plot, byte for byte, and 187 gave the same refusal, word for word. The
 other 20 were refused in both languages, in a message worded for each one. Two
-rewrites do nearly all of the translating. The accessor is needed in 907
-sentences, and the parentheses in 634.
+rewrites do nearly all of the translating. The accessor is needed in 909
+sentences, and the parentheses in 635.
 
 ## Reading from a database
 
