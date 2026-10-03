@@ -819,6 +819,15 @@ sp = Dict("from" => ["a", "a", "b", "b"], "to" => ["x", "x", "y", "y"],
 @testset "a zone cell whose rows disagree is refused" begin
     @refuses render_svg(data(sp) + zone + x(:from) + y(:to) + color(:n)) "rows would be hidden"
 end
+
+# A band colored by a column that is not a stage is split by it, one part for
+# each of its values.
+@testset "a band colored by a column that is not a stage is split by it" begin
+    split_svg = render_svg(data(sp) + y(:n) + ribbon * flow(:from, :to) + color(:who))
+    @test Base.count(l -> startswith(strip(l), "<path d=\"M ") && occursin(" C ", l),
+                     Base.split(split_svg, "\n")) == 4
+end
+
 # ---------------------------------------------------------------------------
 # tick_count — how many ticks an axis aims for (spec §10)
 #
@@ -1434,7 +1443,7 @@ end
     @refuses render_svg(data(voyage, name = "voyage") + x(:class) +
                         ribbon * flow(:class, :survived)) "reorder `flow(...)`'s arguments"
     @refuses render_svg(data(voyage, name = "voyage") + y(:n) +
-                        ribbon * flow(:class, :survived) + color(:n)) "must name one of the atom's stages"
+                        ribbon * flow(:class, :survived) + color(:n)) "needs a categorical"
 end
 
 @testset "network — a graph placed by its layout" begin

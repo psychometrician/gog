@@ -1075,9 +1075,23 @@ impl SvgRenderer {
                         };
                         let measure = spec.position_for(layer, &count_on)
                             .map(|e| e.field.as_str());
+                        // A band's `color` or `pattern` of categories that is not
+                        // a stage splits each band by its values, as it splits a
+                        // line; a stage needs no split, since a path already has
+                        // one value there.
+                        let mut split: Vec<String> = Vec::new();
+                        for ch in [Channel::Color, Channel::Pattern] {
+                            if let Some(def) = layer.encodings.get(&ch) {
+                                if !stages.contains(&def.field) && !split.contains(&def.field)
+                                    && base.str_col(&def.field).is_some()
+                                {
+                                    split.push(def.field.clone());
+                                }
+                            }
+                        }
                         return match layer.mark {
                             Mark::Ribbon => crate::transform::flow_bands(
-                                &base, &stages, measure, measure_out, flow_down),
+                                &base, &stages, &split, measure, measure_out, flow_down),
                             _ => crate::transform::flow_nodes(
                                 &base, &stages, measure, measure_out, flow_down),
                         };
@@ -6715,6 +6729,51 @@ mod tests {
         assert!(svg.contains(" C "), "two stages and one layer still draw bands");
         assert!(svg.contains(">class<") && svg.contains(">survived<"),
             "the final stage's name is on the axis without a zone layer to carry it");
+    }
+
+    /// **A band colored by a column that is not a stage is split by it**
+    /// (2026-10-03): each path is drawn as one band per value, in that value's
+    /// color, and the slots are unchanged. Refused until then, which kept a
+    /// third variable out of a two-stage flow unless it was drawn as a stage.
+    #[test]
+    fn a_flow_band_colored_by_another_column_is_split_by_it() {
+        let s = |v: &[&str]| v.iter().map(|x| x.to_string()).collect::<Vec<_>>();
+        let t: HashMap<String, DataFrame> = HashMap::from([(
+            "t".to_string(),
+            DataFrame::new()
+                .with_str("a", s(&["p", "p", "q", "q"]))
+                .with_str("b", s(&["u", "u", "v", "v"]))
+                .with_str("c", s(&["x", "y", "x", "y"]))
+                .with_float("n", vec![3.0, 2.0, 4.0, 1.0]),
+        )]);
+        let spec = |color: Option<&str>| {
+            let mut ribbon = Layer::new(Mark::Ribbon).flow(&["a", "b"]);
+            if let Some(c) = color {
+                ribbon = ribbon.encode(Channel::Color, c);
+            }
+            PlotSpec::new().data("t").y("n").layer(ribbon)
+                .layer(Layer::new(Mark::Zone).flow(&["a", "b"]))
+        };
+        let bands = |svg: &str| svg.lines()
+            .filter(|l| l.trim_start().starts_with("<path d=\"M ") && l.contains(" C "))
+            .map(str::to_string).collect::<Vec<_>>();
+        let whole = SvgRenderer::default().render(&spec(None), &t);
+        let split = SvgRenderer::default().render(&spec(Some("c")), &t);
+        assert_eq!(bands(&whole).len(), 2, "two paths");
+        let parts = bands(&split);
+        assert_eq!(parts.len(), 4, "each path split in two");
+        let fills: std::collections::HashSet<String> = parts.iter()
+            .filter_map(|l| l.split(r#"fill=""#).nth(1).and_then(|r| r.split('"').next()))
+            .map(String::from).collect();
+        assert_eq!(fills.len(), 2, "one color per value of `c`: {fills:?}");
+        // The legend narrows the panel, so the slots are compared by their
+        // vertical extent, which is the count they hold.
+        let extents = |svg: &str| slot_rects(svg).into_iter()
+            .filter(|r| r.contains(r#"stroke="black""#))
+            .map(|r| r.split(r#" y=""#).nth(1).unwrap().split(r#"" width"#).next().unwrap().to_string()
+                + r.split(r#"height=""#).nth(1).unwrap().split('"').next().unwrap())
+            .collect::<Vec<_>>();
+        assert_eq!(extents(&whole), extents(&split), "the slots do not change");
     }
 
     /// The slot rectangles of a rendered flow: every opaque `<rect>` inside the

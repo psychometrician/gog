@@ -2085,6 +2085,15 @@ refuses("a zone cell whose rows disagree",
         render_svg(data(sp) + zone + x(from) + y(to) + color(n)),
         "rows would be hidden")
 cat("PASS: a zone cell whose rows disagree is refused\n")
+
+# A band colored by a column that is not a stage is split by it, one part for
+# each of its values.
+split_svg <- render_svg(data(sp) + y(n) + ribbon * flow(from, to) + color(who))
+parts <- sum(grepl('<path d="M [^"]* C ', strsplit(split_svg, "\n")[[1]]))
+if (parts != 4)
+  stop("FAIL: color(who) should split each of the two bands in two, got ", parts)
+cat("PASS: a band colored by a column that is not a stage is split by it\n")
+
 cat("\nnamed palette and legend tests passed.\n")
 
 # ---------------------------------------------------------------------------
@@ -3912,10 +3921,10 @@ refuses("a mark with no flow reading",
 refuses("a category on x under flow",
         render_svg(data(voyage) + x(class) + ribbon * flow(class, survived)),
         "reorder `flow(...)`'s arguments")
-refuses("a band colored by a column that is not a stage",
+refuses("a band colored by a number",
         render_svg(data(voyage) + y(n) +
                      ribbon * flow(class, survived) + color(n)),
-        "must name one of the atom's stages")
+        "needs a categorical")
 
 # --- network: a graph placed by its layout ----------------------------------
 # Three marks read one placement inside network(): edge the connections, point

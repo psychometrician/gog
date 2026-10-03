@@ -5047,7 +5047,9 @@ fn check_flow(
     }
 
     // 5. Mapped aesthetics. A band is a whole path, so any *stage* names
-    //    something every band holds; a node aggregates paths whose other
+    //    something every band holds, and any other column of categories splits
+    //    a band into parts that each hold one value (2026-10-03, as a color of
+    //    categories splits a line). A node aggregates paths whose other
     //    categories differ, so nothing names a node but its own name.
     for (ch, def) in &layer.encodings {
         match ch {
@@ -5065,29 +5067,18 @@ fn check_flow(
                     });
                 }
             }
-            Channel::Color | Channel::Pattern if layer.mark == Mark::Ribbon => {
-                if !stages.iter().any(|s| *s == def.field) {
-                    out.push(Diagnostic {
-                        kind: DiagnosticKind::Illegal,
-                        message: format!(
-                            "gog: `{}({})` under `flow` must name one of the atom's \
-                             stages — a band is a path through them, and only a stage \
-                             holds a value every band carries. Name one of {}, or set \
-                             the paint for the whole layer with `style()`.",
-                            channel_name(ch), def.field,
-                            stages.iter().map(|s| format!("`{s}`"))
-                                .collect::<Vec<_>>().join(", "),
-                        ),
-                    });
-                }
-            }
+            // A stage, or any other column of categories, which splits each band.
+            // A number is refused by the ribbon's own rule, which asks every
+            // ribbon for a category on `color`, so it is not said twice here.
+            Channel::Color | Channel::Pattern if layer.mark == Mark::Ribbon => {}
             other => {
                 out.push(Diagnostic {
                     kind: DiagnosticKind::Illegal,
                     message: format!(
                         "gog: `{}()` does not combine with `{}` under `flow`. A band \
-                         takes `color(<stage>)` on the `ribbon` layer; a slot takes \
-                         its paint from `style()`; and `y(<amount>)` weighs the paths.",
+                         takes `color(<categorical column>)` on the `ribbon` layer; a \
+                         slot takes its paint from `style()`; and `y(<amount>)` weighs \
+                         the paths.",
                         channel_name(other), mark_name(&layer.mark),
                     ),
                 });
@@ -21756,14 +21747,29 @@ mod tests {
                 && x.message.contains("both `x(gdp)` and `y(life)` are bound")),
                 "{:?}", msgs(&d));
 
-            // A band's color must name a stage; anything else names nothing every
-            // band holds.
+            // A band's color from a number is refused: a band carries many rows,
+            // and a number differs among them. A column of categories that is not
+            // a stage splits the band instead (2026-10-03).
             let mut l = Layer::new(Mark::Ribbon).flow(&["continent", "region"]);
             l.encodings.insert(Channel::Color, ChannelDef::field("gdp"));
             let d = check(&PlotSpec::new().data("t").layer(l), &data());
             assert!(d.iter().any(|x| x.kind == DiagnosticKind::Illegal
-                && x.message.contains("must name one of the atom's stages")),
-                "a non-stage color on the bands is refused: {:?}", msgs(&d));
+                && x.message.contains("needs a categorical")),
+                "a numeric color on the bands is refused: {:?}", msgs(&d));
+            assert_eq!(d.iter().filter(|x| x.is_fatal()).count(), 1, "said once: {:?}", msgs(&d));
+
+            // A column of categories that is not a stage splits each band, so it
+            // is accepted on the bands (2026-10-03).
+            let three = HashMap::from([("t".to_string(), DataFrame::new()
+                .with_str("a", vec!["p".into(), "p".into(), "q".into()])
+                .with_str("b", vec!["u".into(), "v".into(), "u".into()])
+                .with_str("c", vec!["x".into(), "y".into(), "x".into()])
+                .with_float("n", vec![1.0, 2.0, 3.0]))]);
+            let mut l = Layer::new(Mark::Ribbon).flow(&["a", "b"]);
+            l.encodings.insert(Channel::Color, ChannelDef::field("c"));
+            let d = check(&PlotSpec::new().data("t").y("n").layer(l), &three);
+            assert!(!d.iter().any(|x| x.is_fatal()),
+                "a color of categories splits the bands: {:?}", msgs(&d));
 
             // The slots take their paint from `style()`, never from a mapping.
             let mut l = Layer::new(Mark::Zone).flow(&["continent", "region"]);

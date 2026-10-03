@@ -214,9 +214,41 @@ went.
 
 `color()` is written after the `ribbon` layer, so it belongs to the bands alone.
 Written before the marks, it would reach the slots and the names as well. gog
-refuses that, because a slot and its name take their color from `style()`. Only
-a stage can color a band. The rows in one band can differ in any other column,
-but they share one value at each stage.
+refuses that, because a slot and its name take their color from `style()`.
+
+## Color from another column
+
+Did the women in third class survive as often as the women in first class? A
+color can show it inside each band, with no third stage. Any categorical column
+can color the bands, not only a stage. A column that is not a stage splits each
+band into one part for each of its values. A categorical color splits a line the
+same way, into one line for each category. The parts of one band lie next to
+each other across its thickness and follow its path, and the slots are the same
+as without the color. With `survived` as a color instead of a stage, a flow
+through class and sex shows who survived in every band:
+
+```{r}
+data(titanic) + y(n) +
+  ribbon * flow(class, sex) + color(survived) +
+  zone * flow(class, sex) +
+  text * flow(class, sex) + label(name) +
+  title("Class, then sex, colored by survival")
+```
+
+*"Given titanic: y is n, ribbons derived by flow through class and sex, colored
+by survived, and also zones derived by flow through class and sex, and text
+derived by flow through class and sex, label by name."*
+
+Each band from a class to a sex now has a blue part for the people who survived
+and an orange part for the people who did not. The band from `1st` to `Female`
+is nearly all blue: 141 of its 145 people survived. The band from `3rd` to
+`Female` is less than half blue: 90 of 196. The finished diagram shows the same
+split with `survived` as a stage, where the outcome also gets slots of its own.
+As a color, the outcome needs no slots of its own, and the legend names its
+values.
+
+Only a categorical column can split a band, because its values are groups. A
+continuous column is refused, as it is on every `ribbon`.
 
 ## Choosing the colors
 
@@ -224,8 +256,8 @@ Every color in this chapter so far is a default. The bands take gog's default
 palette and are translucent, the slots are white with a thin black line around
 them, and the names are near-black. You choose each one in its own layer.
 
-A band takes its color from a stage, and `palette()` chooses the color for each
-value of that stage. Write each value beside the color you want, as
+The bands take their colors from a column, and `palette()` chooses the color for
+each value of that column. Write each value beside the color you want, as
 [Colors by name](channels.qmd#colors-by-name) explains. Name every value, since
 gog refuses a palette that leaves one out:
 
@@ -391,12 +423,12 @@ is refused, and the message names the three:
 data(titanic) + y(n) + bar * flow(class, survived)
 ```
 
-And the column that colors a band must be one of the stages. `age` is in the
-table, but the rows inside one band can differ in `age`:
+And a continuous column cannot color a band, just as it cannot color any
+`ribbon`. `n` is a continuous column:
 
 ```{r}
 #| error: true
-data(titanic) + y(n) + ribbon * flow(class, survived) + color(age)
+data(titanic) + y(n) + ribbon * flow(class, survived) + color(n)
 ```
 
 ## Where the limits are

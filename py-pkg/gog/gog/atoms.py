@@ -499,9 +499,11 @@ def flow(*stages: Column) -> Atom:
     Three marks read the one layout. `ribbon * flow(...)` draws the bands,
     `zone * flow(...)` the stacked slots, and `text * flow(...) +
     label(col.name)` names each slot where it sits. What each path is weighed
-    by rides on `y`; bind nothing and every path weighs 1. On the band layer,
-    `color(<stage>)` colors every band by the category its path holds there;
-    the slots take their paint from `style()`.
+    by rides on `y`; bind nothing and every path weighs 1. Bound to `x`
+    instead, the count runs the stages from top to bottom. On the band layer,
+    `color(<stage>)` colors every band by the category its path holds there,
+    and `color()` of any other categorical column splits each band by its
+    values; the slots take their paint from `style()`.
 
     The stage axis is drawn from the atom's own columns, so there is nothing
     for `x()` to say — to reorder the stages, reorder the arguments.

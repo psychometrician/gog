@@ -761,6 +761,16 @@ _m = _refusal(lambda: render_svg(data(_sp, name="sp") + zone + x(col["from"]) + 
                                  + color(col.n)))
 assert "rows would be hidden" in _m, _m
 ok("a zone cell whose rows disagree is refused")
+
+# A band colored by a column that is not a stage is split by it, one part for
+# each of its values.
+_split = render_svg(data(_sp, name="sp") + y(col.n) + ribbon * flow(col["from"], col.to)
+                    + color(col.who))
+_parts = builtins.sum(1 for _l in _split.split("\n")
+                      if _l.strip().startswith('<path d="M ') and " C " in _l)
+assert _parts == 4, f"color(who) should split each of the two bands in two, got {_parts}"
+ok("a band colored by a column that is not a stage is split by it")
+
 # Caught in the binding, at the line that wrote it.
 refuses("a backwards domain", lambda: x(col.hour, limits=(20, 5)))
 refuses("one number as a domain", lambda: x(col.hour, limits=5))

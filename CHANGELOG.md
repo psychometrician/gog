@@ -8,6 +8,14 @@ CRAN-style repositories and PyPI, `GrammarOfGraphics` on Julia's General, and
 
 ### Added
 
+- **A flow's bands take their color from any categorical column.** A stage
+  colors each band by its place there, as before. Any other categorical column,
+  as in `ribbon * flow(class, sex) + color(survived)`, now splits each band
+  into one part for each of its values, side by side, the way a categorical
+  color splits a line, and the slots do not change. It was refused. `pattern()`
+  splits the same way, and a continuous column is still refused, as it is on
+  every `ribbon`.
+
 - **`theme(legend = )` puts a plot's legends on the side it names.** The sides
   are `"right"` (the default), `"left"`, `"top"` and `"bottom"`. Above or below
   the panel, a legend's entries are placed side by side, on more than one line

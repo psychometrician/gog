@@ -4217,11 +4217,24 @@ struct FlowLayout {
 struct FlowPath {
     values: Vec<String>,
     ranks: Vec<usize>,
+    /// The path's values in the columns that split it without being stages
+    /// (a `color` or `pattern` of categories on the bands), and their ranks.
+    /// Empty for the slots, which no such column reaches.
+    split: Vec<String>,
+    split_ranks: Vec<usize>,
     weight: f64,
     offsets: Vec<f64>,
 }
 
-fn flow_layout(df: &DataFrame, stages: &[String], measure: Option<&str>) -> Option<FlowLayout> {
+/// `split` names the columns that divide a path without being stages: a band's
+/// `color` or `pattern` of categories that `flow(...)` does not list, read the
+/// way a color of categories splits a line. Each part of a path keeps its place
+/// at every stage and sorts after the stages, so the parts of one path lie side
+/// by side, in the column's order, and never cross one another. The slots are
+/// sums over the paths at each stage, so they are the same with or without it.
+fn flow_layout(
+    df: &DataFrame, stages: &[String], split: &[String], measure: Option<&str>,
+) -> Option<FlowLayout> {
     let n = df.len();
     if stages.len() < 2 || n == 0 {
         return None;
@@ -4256,9 +4269,27 @@ fn flow_layout(df: &DataFrame, stages: &[String], measure: Option<&str>) -> Opti
         })
         .collect();
 
-    // Aggregate rows into paths. A path is the full tuple of stage values; rows
-    // sharing one add their weights, which is what quietly marginalizes any
-    // column the atom did not name.
+    // The columns that split a path, each with its categories in order: the
+    // declared levels, first appearance otherwise, as for a stage.
+    let split_cols: Vec<&Vec<String>> = split.iter().filter_map(|s| df.str_col(s)).collect();
+    let split_cats: Vec<Vec<String>> = split.iter().zip(&split_cols)
+        .map(|(s, col)| match df.levels(s) {
+            Some(lv) => lv.iter().filter(|c| col.iter().any(|v| v == *c)).cloned().collect(),
+            None => {
+                let mut seen: Vec<String> = Vec::new();
+                for v in col.iter() {
+                    if !seen.contains(v) {
+                        seen.push(v.clone());
+                    }
+                }
+                seen
+            }
+        })
+        .collect();
+
+    // Aggregate rows into paths. A path is the full tuple of stage values, and
+    // of the splitting columns' values; rows sharing one add their weights, which
+    // is what quietly marginalizes any column the sentence did not name.
     let mut paths: Vec<FlowPath> = Vec::new();
     for r in 0..n {
         let values: Vec<String> = cols.iter().map(|c| c[r].clone()).collect();
@@ -4271,10 +4302,16 @@ fn flow_layout(df: &DataFrame, stages: &[String], measure: Option<&str>) -> Opti
         else {
             continue;
         };
+        let part: Vec<String> = split_cols.iter().map(|c| c[r].clone()).collect();
+        let split_ranks: Vec<usize> = part.iter().zip(&split_cats)
+            .map(|(v, cs)| cs.iter().position(|c| c == v).unwrap_or(cs.len()))
+            .collect();
         let w = weight(r);
-        match paths.iter_mut().find(|p| p.values == values) {
+        match paths.iter_mut().find(|p| p.values == values && p.split == part) {
             Some(p) => p.weight += w,
-            None => paths.push(FlowPath { values, ranks, weight: w, offsets: Vec::new() }),
+            None => paths.push(FlowPath {
+                values, ranks, split: part, split_ranks, weight: w, offsets: Vec::new(),
+            }),
         }
     }
     paths.retain(|p| p.weight > 0.0);
@@ -4297,6 +4334,7 @@ fn flow_layout(df: &DataFrame, stages: &[String], measure: Option<&str>) -> Opti
         order.sort_by(|&a, &b| {
             key.iter().map(|&s| paths[a].ranks[s])
                 .cmp(key.iter().map(|&s| paths[b].ranks[s]))
+                .then_with(|| paths[a].split_ranks.cmp(&paths[b].split_ranks))
         });
         // Each path is visited exactly once per stage, so `offsets[k]` lands on
         // the right index by construction.
@@ -4344,7 +4382,7 @@ fn flow_interval_names(down: bool) -> (&'static str, &'static str) {
 pub fn flow_nodes(
     df: &DataFrame, stages: &[String], measure: Option<&str>, measure_out: &str, down: bool,
 ) -> DataFrame {
-    let Some(fl) = flow_layout(df, stages, measure) else {
+    let Some(fl) = flow_layout(df, stages, &[], measure) else {
         return DataFrame::new();
     };
     let mut stage_col = Vec::new();
@@ -4393,22 +4431,26 @@ pub fn flow_nodes(
 /// precisely because a band is a whole path's slice, never a merged
 /// aggregate.
 pub fn flow_bands(
-    df: &DataFrame, stages: &[String], measure: Option<&str>, measure_out: &str, down: bool,
+    df: &DataFrame, stages: &[String], split: &[String], measure: Option<&str>,
+    measure_out: &str, down: bool,
 ) -> DataFrame {
-    let Some(fl) = flow_layout(df, stages, measure) else {
+    let Some(fl) = flow_layout(df, stages, split, measure) else {
         return DataFrame::new();
     };
     // Paths in one global order, each contributing its full run of stages, so
     // the writer pairs consecutive rows and the painting order is the path
     // order.
     let mut order: Vec<usize> = (0..fl.paths.len()).collect();
-    order.sort_by(|&a, &b| fl.paths[a].ranks.cmp(&fl.paths[b].ranks));
+    order.sort_by(|&a, &b| fl.paths[a].ranks.cmp(&fl.paths[b].ranks)
+        .then_with(|| fl.paths[a].split_ranks.cmp(&fl.paths[b].split_ranks)));
     let mut path_key = Vec::new();
     let mut stage_col = Vec::new();
     let mut lo = Vec::new();
     let mut hi = Vec::new();
     let mut center = Vec::new();
     let mut carried: Vec<Vec<String>> = vec![Vec::new(); fl.stages.len()];
+    let split_names: Vec<&String> = split.iter().filter(|s| df.str_col(s).is_some()).collect();
+    let mut split_carried: Vec<Vec<String>> = vec![Vec::new(); split_names.len()];
     for (slot, &i) in order.iter().enumerate() {
         let p = &fl.paths[i];
         for k in 0..fl.stages.len() {
@@ -4419,6 +4461,9 @@ pub fn flow_bands(
             center.push(p.offsets[k] + p.weight / 2.0);
             for (s, col) in carried.iter_mut().enumerate() {
                 col.push(p.values[s].clone());
+            }
+            for (s, col) in split_carried.iter_mut().enumerate() {
+                col.push(p.split[s].clone());
             }
         }
     }
@@ -4435,6 +4480,17 @@ pub fn flow_bands(
         out = match df.levels(&fl.stages[s]) {
             Some(lv) => out.with_levels(fl.stages[s].clone(), col, lv.to_vec()),
             None => out.with_str(fl.stages[s].clone(), col),
+        };
+    }
+    // The splitting columns ride along too, so the writer colors each part by
+    // its own value and the legend's order is the column's.
+    for (name, col) in split_names.into_iter().zip(split_carried) {
+        if fl.stages.contains(name) {
+            continue;
+        }
+        out = match df.levels(name) {
+            Some(lv) => out.with_levels(name.clone(), col, lv.to_vec()),
+            None => out.with_str(name.clone(), col),
         };
     }
     out
@@ -5179,6 +5235,42 @@ mod tests {
             .with_float("n", vec![2.0, 3.0, 4.0, 1.0, 5.0])
     }
 
+    /// **A column that is not a stage splits each path, and its parts stay
+    /// together** (2026-10-03). A band's `color` of categories that `flow(...)`
+    /// does not list divides each path by its values, as it divides a line. The
+    /// parts of one path lie side by side at every stage, in the column's order,
+    /// each as thick as its own rows, and the column rides along for the writer.
+    #[test]
+    fn a_flow_split_by_a_column_keeps_each_paths_parts_together() {
+        let df = flow_frame().with_str("c", vec!["x".into(), "y".into(), "x".into(), "y".into(), "y".into()]);
+        let stages = vec!["a".to_string(), "b".to_string()];
+        let out = flow_bands(&df, &stages, &["c".to_string()], Some("n"), "count", false);
+        let key = out.str_col(FLOW_PATH).unwrap();
+        let c = out.str_col("c").expect("the splitting column is carried");
+        let a = out.str_col("a").unwrap();
+        let b = out.str_col("b").unwrap();
+        let lo = out.float_col(CELL_LOWER).unwrap();
+        let hi = out.float_col(CELL_UPPER).unwrap();
+        assert_eq!(key.len(), 10, "five parts, one row per stage each");
+        let mut widths: Vec<f64> = (0..key.len()).step_by(2).map(|r| hi[r] - lo[r]).collect();
+        widths.sort_by(|x, y| x.partial_cmp(y).unwrap());
+        assert_eq!(widths, vec![1.0, 2.0, 3.0, 4.0, 5.0], "each part is as thick as its rows");
+        // The path p -> u holds 2 under x and 5 under y: at both stages its x part
+        // ends exactly where its y part begins.
+        let part = |cv: &str, st: usize| (0..key.len())
+            .find(|&r| a[r] == "p" && b[r] == "u" && c[r] == cv && r % 2 == st).unwrap();
+        for st in 0..2 {
+            assert_eq!(hi[part("x", st)], lo[part("y", st)], "the parts of p -> u touch at stage {st}");
+        }
+        // The slots do not change: the splitting column never reaches them.
+        let (with, without) = (flow_nodes(&df, &stages, Some("n"), "count", false),
+                               flow_nodes(&flow_frame(), &stages, Some("n"), "count", false));
+        for col in [CELL_LOWER, CELL_UPPER] {
+            assert_eq!(with.float_col(col), without.float_col(col), "{col}");
+        }
+        assert_eq!(with.str_col(NODE_NAME), without.str_col(NODE_NAME));
+    }
+
     /// **A flow conserves its total at every stage.** Each stage's node intervals
     /// tile `0 .. total` exactly — contiguous stacks, no invented padding — which
     /// is what keeps the measure axis honest, and the alluvial identity (a middle
@@ -5214,7 +5306,7 @@ mod tests {
     #[test]
     fn a_flow_aggregates_paths_and_keeps_thickness_at_both_ends() {
         let stages = vec!["a".to_string(), "b".to_string()];
-        let out = flow_bands(&flow_frame(), &stages, Some("n"), "count", false);
+        let out = flow_bands(&flow_frame(), &stages, &[], Some("n"), "count", false);
         let key = out.str_col(FLOW_PATH).unwrap();
         let stage = out.str_col(FLOW_STAGE).unwrap();
         let lo = out.float_col(CELL_LOWER).unwrap();
@@ -5241,10 +5333,10 @@ mod tests {
         let stages = vec!["a".to_string(), "b".to_string()];
         let nodes = flow_nodes(&flow_frame(), &stages, Some("n"), "count", false);
         assert_eq!(nodes.levels(FLOW_STAGE).unwrap(), &["a".to_string(), "b".to_string()]);
-        let bands = flow_bands(&flow_frame(), &stages, Some("n"), "count", false);
+        let bands = flow_bands(&flow_frame(), &stages, &[], Some("n"), "count", false);
         assert_eq!(bands.levels("a").unwrap(), &["p".to_string(), "q".to_string()],
             "a carried stage keeps its declared levels");
-        let again = flow_bands(&flow_frame(), &stages, Some("n"), "count", false);
+        let again = flow_bands(&flow_frame(), &stages, &[], Some("n"), "count", false);
         for col in [CELL_LOWER, CELL_UPPER] {
             assert_eq!(bands.float_col(col), again.float_col(col),
                 "one table, one layout, every run (`{col}`)");
@@ -5268,7 +5360,7 @@ mod tests {
             .with_levels("c", vec!["x".into(), "x".into()], vec!["x".into()])
             .with_float("n", vec![1.0, 1.0]);
         let stages = vec!["a".to_string(), "b".to_string(), "c".to_string()];
-        let bands = flow_bands(&df, &stages, Some("n"), "count", false);
+        let bands = flow_bands(&df, &stages, &[], Some("n"), "count", false);
         let stage = bands.str_col(FLOW_STAGE).unwrap();
         let a = bands.str_col("a").unwrap();
         let lo = bands.float_col(CELL_LOWER).unwrap();
@@ -5289,7 +5381,7 @@ mod tests {
         let df = DataFrame::new()
             .with_str("a", vec!["p".into(), "p".into(), "".into()])
             .with_str("b", vec!["u".into(), "u".into(), "u".into()]);
-        let out = flow_bands(&df, &stages, None, "count", false);
+        let out = flow_bands(&df, &stages, &[], None, "count", false);
         let hi = out.float_col(CELL_UPPER).unwrap();
         assert_eq!(hi.len(), 2, "one path survives, one row per stage");
         assert_eq!(hi[0], 2.0, "the tally weighs each surviving row 1");

@@ -867,9 +867,11 @@ partition <- function(..., cross = FALSE) {
 #' Layer any two or all three.
 #'
 #' What each path is weighed by rides on `y`: `+ y(count)` weighs that column,
-#' and binding nothing at all makes every path weigh 1.  On the band layer,
+#' and binding nothing at all makes every path weigh 1.  Bound to `x` instead,
+#' the count runs the stages from top to bottom.  On the band layer,
 #' `color(<stage>)` colors every band by the category its path holds at that
-#' stage; the slots take their paint from `style()`.
+#' stage, and `color()` of any other categorical column splits each band by its
+#' values; the slots take their paint from `style()`.
 #'
 #' The stage axis is drawn from the atom's own columns, so there is nothing for
 #' `x()` to say — to reorder the stages, reorder the arguments.

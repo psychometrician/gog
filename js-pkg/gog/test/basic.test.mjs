@@ -1128,6 +1128,17 @@ test("a zone cell whose rows disagree is refused", () => {
   refuses(() => render_svg(plot(data(sp), zone, x(col.from), y(col.to), color(col.n))),
     /rows would be hidden/);
 });
+
+// A band colored by a column that is not a stage is split by it, one part for
+// each of its values.
+test("a band colored by a column that is not a stage is split by it", () => {
+  const split = render_svg(plot(data(sp), y(col.n), layer(ribbon, flow(col.from, col.to)),
+    color(col.who)));
+  const parts = split.split("\n")
+    .filter((l) => l.trim().startsWith('<path d="M ') && l.includes(" C ")).length;
+  assert.equal(parts, 4, "color(who) should split each of the two bands in two");
+});
+
 // ---------------------------------------------------------------------------
 // tick_count — how many ticks an axis aims for (spec §10)
 //
@@ -1980,7 +1991,7 @@ test("`flow` lays bands, slots and names from one layout", () => {
     layer(ribbon, flow(col.klass, col.survived)))), /reorder `flow\(\.\.\.\)`'s arguments/);
   refuses(() => render_svg(plot(data(voyage, { name: "voyage" }), y(col.n),
     layer(ribbon, flow(col.klass, col.survived)), color(col.n))),
-    /must name one of the atom's stages/);
+    /needs a categorical/);
 });
 
 // --- network: a graph placed by its layout ----------------------------------
