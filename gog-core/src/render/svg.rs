@@ -1043,8 +1043,9 @@ impl SvgRenderer {
                             .map(|p| p.levels.clone()).unwrap_or_default();
                         let cross = layer.partition.as_ref()
                             .map(|p| p.cross).unwrap_or(false);
-                        let measure = layer.encodings.get(&Channel::X)
-                            .or(spec.x.as_ref())
+                        // The scope rule, as `check_partition` reads it: a
+                        // layer naming no measure reads the first one written.
+                        let measure = spec.position_for(layer, &Channel::X)
                             .map(|e| e.field.as_str());
                         let nodes = crate::transform::partition(
                             &base, &levels, measure, x_field, y_field, cross);
@@ -1065,13 +1066,14 @@ impl SvgRenderer {
                     if layer.transforms.contains(&crate::ir::Transform::Flow) {
                         let stages: Vec<String> = layer.flow.as_ref()
                             .map(|f| f.stages.clone()).unwrap_or_default();
-                        // The count rides `y`, or `x` when the flow runs down.
+                        // The count rides `y`, or `x` when the flow runs down,
+                        // and a layer naming none reads the first one written:
+                        // the scope rule `check_flow` validated the weight by.
                         let (count_on, measure_out) = match flow_down {
                             true => (Channel::X, x_field),
                             false => (Channel::Y, y_field),
                         };
-                        let measure = layer.encodings.get(&count_on)
-                            .or(spec.position(&count_on))
+                        let measure = spec.position_for(layer, &count_on)
                             .map(|e| e.field.as_str());
                         return match layer.mark {
                             Mark::Ribbon => crate::transform::flow_bands(
@@ -1119,9 +1121,9 @@ impl SvgRenderer {
                         // working field names — by the time this runs, the
                         // unbound position already carries the synthesized
                         // distance column's name, and mistaking that for a leaf
-                        // column clusters nothing.
-                        let x_bound = layer.encodings.get(&Channel::X)
-                            .or(spec.x.as_ref()).is_some();
+                        // column clusters nothing. A layer naming no leaves reads
+                        // the first leaf column written, as `check_cluster` does.
+                        let x_bound = spec.position_for(layer, &Channel::X).is_some();
                         let leaf = match layer.mark {
                             Mark::Zone => {
                                 let o = over.as_deref().unwrap_or("");
@@ -6715,6 +6717,22 @@ mod tests {
             "the final stage's name is on the axis without a zone layer to carry it");
     }
 
+    /// **A flow layer that names no count reads the first one written**
+    /// (2026-10-02), the scope rule every other reading follows, and the one
+    /// `check_flow` already validated the weight by. The renderer read the plot's
+    /// binding alone, so `y(n)` written after the `ribbon` layer reached the bands
+    /// and not the slots: the `zone` layer counted rows, and its slots shrank to
+    /// slivers at the foot of an axis the bands filled.
+    #[test]
+    fn a_flow_layer_naming_no_count_reads_the_first_one_written() {
+        let layer_scoped = PlotSpec::new().data("t")
+            .layer(Layer::new(Mark::Ribbon).flow(&["class", "survived"]).encode(Channel::Y, "n"))
+            .layer(Layer::new(Mark::Zone).flow(&["class", "survived"]));
+        assert_eq!(SvgRenderer::default().render(&layer_scoped, &flow_table()),
+            SvgRenderer::default().render(&flow_spec(), &flow_table()),
+            "the only count, written after one layer, weighs both");
+    }
+
     // -----------------------------------------------------------------------
     // Cluster — the tree of merges and the seriated tile plot (spec §5)
     // -----------------------------------------------------------------------
@@ -6751,6 +6769,22 @@ mod tests {
             "the leaf ticks run b a c d");
         assert_eq!(svg, SvgRenderer::default().render(&spec, &cluster_table()),
             "one sentence is one picture");
+    }
+
+    /// **A tree layer that names no leaves reads the first leaf column written**
+    /// (2026-10-02), as `check_cluster` reads it. The renderer asked the plot's
+    /// binding alone whether `x` held the leaves, so a second `path * cluster`
+    /// written after `path * cluster(..) + x(leaf)` took the distance column for
+    /// its leaves and drew nothing, with nothing said.
+    #[test]
+    fn a_tree_layer_naming_no_leaves_reads_the_first_leaf_column_written() {
+        let tree = || Layer::new(Mark::Path).cluster(Some("v"), Some("g"));
+        let plot = PlotSpec::new().data("t").x("leaf").layer(tree()).layer(tree());
+        let layer_scoped = PlotSpec::new().data("t")
+            .layer(tree().encode(Channel::X, "leaf")).layer(tree());
+        let svg = SvgRenderer::default().render(&layer_scoped, &cluster_table());
+        assert_eq!(svg.matches("<polyline").count(), 6, "two trees, three merges each");
+        assert_eq!(svg, SvgRenderer::default().render(&plot, &cluster_table()));
     }
 
     /// **The sideways tree is the same tree**: leaves on `y`, the distance
@@ -8839,6 +8873,24 @@ mod tests {
         assert_eq!(sunburst.iter().filter(|l| *l == "0").count(), 1, "{sunburst:?}");
         assert!(!sunburst.iter().any(|l| l == "8"),
             "the total, 8, is on 0's spoke and is not labeled: {sunburst:?}");
+    }
+
+    /// **A partition layer that names no measure reads the first one written**
+    /// (2026-10-02), as `check_partition` reads it. The renderer read the plot's
+    /// binding alone, so a `text * partition` written after `zone * partition +
+    /// x(v)` weighed every leaf 1 and piled its names at zero, under rectangles
+    /// weighed by `v`.
+    #[test]
+    fn a_partition_layer_naming_no_measure_reads_the_first_one_written() {
+        let zone = || Layer::new(Mark::Zone).transform(Transform::Partition).partition(&["g", "i"]);
+        let text = || Layer::new(Mark::Text).transform(Transform::Partition).partition(&["g", "i"])
+            .encode(Channel::Label, crate::transform::NODE_NAME);
+        let plot = PlotSpec::new().data("t").x("v").layer(zone()).layer(text());
+        let layer_scoped = PlotSpec::new().data("t")
+            .layer(zone().encode(Channel::X, "v")).layer(text());
+        assert_eq!(SvgRenderer::default().render(&layer_scoped, &tree_data()),
+            SvgRenderer::default().render(&plot, &tree_data()),
+            "the only measure, written after one layer, weighs both");
     }
 
     /// **A crossed partition with nothing bound draws on its panel.** With neither

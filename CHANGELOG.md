@@ -62,6 +62,16 @@ CRAN-style repositories and PyPI, `GrammarOfGraphics` on Julia's General, and
 
 ### Fixed
 
+- **A `flow`, `partition` or `cluster` layer that names no column reads the
+  first one written.** That is the rule every other layer follows, and gog
+  already checked these layers by it, but drew them without it. So
+  `ribbon * flow(a, b) + y(n) + zone * flow(a, b)` drew slots that counted rows
+  while the bands summed `n`, `zone * partition(g) + x(v) + text * partition(g)`
+  wrote every name at zero, and a second `path * cluster(...)` after one that
+  named `x(leaf)` drew nothing. Each now reads the column the first layer
+  named. A sentence that writes the column once, before the marks, draws as
+  before.
+
 - **A `zone` refuses a number beside a category instead of dropping it.**
   `zone + x(year) + y(country)` with a numeric `year` drew each row as bands
   across the whole panel, and `year` placed nothing. gog now refuses it and
