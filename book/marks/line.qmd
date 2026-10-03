@@ -365,6 +365,83 @@ Each layer here carries its own `style()`. Unlike a channel, `style()` cannot
 belong to the whole plot: written before any mark, it is an error, because a
 plot has no appearance of its own to style.
 
+## Each country and its continent's mean or median
+
+The plot above draws five countries and one trend. The `gm_all` table holds 142
+countries, measured every five years from 1952 to 2007. In one panel, 142 gray
+lines are too many to read. One trend through all of them would also hide how
+the continents differ. So draw one panel for each continent, with its countries
+in gray and their mean as one blue line.
+
+The sentence below has two `line` layers. The first draws one gray line for each
+country, as above. The second is `line * mean`. In each year, `mean` averages
+the values of the countries, so it leaves one value per year, and the line joins
+those values. `| facet(continent)` splits the whole plot into one panel per
+continent. Every layer is split the same way, so the blue line in each panel is
+the mean of that continent's countries. [Faceting](../faceting.qmd) explains the
+operator in full.
+
+```{r}
+#| echo: false
+peek(gm_all)
+```
+
+```{r}
+data(gm_all) + x(year) + y(life) +
+  line + group(country) + style(color = "lightgray") +
+  line * mean + style(color = "steelblue", size = 3) +
+  y_label("Life expectancy") +
+  title("Every country, and the continent's mean") | facet(continent)
+```
+
+*"Given all the gapminder years: x is year, y is life, lines grouped by country,
+and also a line derived by mean, split into panel columns by continent."*
+
+The blue line is the continent's mean, and the gray lines show how far each
+country was from it. Every continent's mean rose, but Africa's stopped rising
+for fifteen years. It rose from 39 years in 1952 to 53 in 1987, and in 2002 it
+was still 53. In 22 of Africa's 52 countries, life expectancy was lower in 2002
+than in 1987. In Zimbabwe it fell from 62 years to 40. The table has only two
+countries in Oceania, Australia and New Zealand, so the blue line almost covers
+their two gray lines.
+
+Income is a second way to compare the continents. The same two layers can draw
+GDP per person, with two changes to the sentence. The first change is the scale.
+GDP per person runs from a few hundred dollars to more than a hundred thousand,
+so the next plot draws it on a log scale. On this scale each labeled tick is ten
+times the one below it, so the poorer countries are not crowded together at the
+bottom.
+
+The second change is the summary. gog computes `mean` in dollars, and only then
+places the result on the log axis ([The measured value keeps its own
+units](../scales.qmd#the-measured-value-keeps-its-own-units)). In dollars, one
+very rich country can raise the mean far above most of the others. In 1952,
+Kuwait's GDP per person was 108,382 dollars, and Asia's mean was 5,195. Sorted
+from poorest to richest, the middle one of Asia's 33 countries had 1,207, less
+than a quarter of the mean. In the Asia panel, a mean line would therefore run
+above most of the gray lines. The
+[`median`](../transforms.qmd#aggregation-family-sum-mean-median-max-min-quantile)
+is that middle value, and sorting the countries gives the same order in dollars
+as in logarithms. So `line * median` has half of the gray lines above it and
+half below, on a log axis too:
+
+```{r}
+data(gm_all) + x(year) + y(gdp, scale = "log") +
+  line + group(country) + style(color = "lightgray") +
+  line * median + style(color = "steelblue", size = 3) +
+  y_label("GDP per person") +
+  title("GDP per person on five continents") | facet(continent)
+```
+
+*"Given all the gapminder years: x is year, y is gdp on a log scale, lines
+grouped by country, and also a line derived by median, split into panel columns
+by continent."*
+
+The medians grew at very different rates. Europe's rose from 5,142 dollars in
+1952 to 28,054 in 2007, more than five times its 1952 value. Africa's rose from
+987 dollars to 1,452, less than one and a half times its 1952 value. In 2002 it
+was lower than in 1972.
+
 ## What you can set
 
 A setting changes how the stroke looks without reading a column, and each

@@ -545,7 +545,9 @@ species, with border size 0."*
 When the groups overlap so much that the outlines are hard to distinguish, give
 each species its own panel instead. Adding
 [`| facet(species)`](../faceting.qmd) to the sentence draws the same three
-histograms side by side, on one shared scale.
+histograms side by side, on one shared scale. Or draw one smooth curve per
+species, as in [Area](area.qmd#with-transforms): curves cross at a point instead
+of sharing bin edges.
 
 ## Grouped bars: side by side
 

@@ -304,6 +304,45 @@ one side or two, and the category on either axis. Its
 [violin section](ribbon.qmd#the-violin-a-distribution-per-category) says what
 the width of a violin can mean.
 
+The half violin and the ridgeline give each group a place of its own. To
+compare the groups in one panel instead, overlay their curves. Histograms of
+several groups drawn in one panel overlap, as the Bar chapter's [Overlaid
+histograms](bar.qmd#overlaid-histograms) section showed with three species of
+iris. Smooth curves are easier to distinguish, because they cross at a point
+instead of sharing bin edges. In the iris flowers table, `color(species)` splits
+the rows, so `density` makes one estimate for each species, all in one panel.
+
+As in [Multiple series](#multiple-series), a low opacity lets each region show
+through the others. As in [Giving an area an edge](#giving-an-area-an-edge), a
+`line` layered on top draws each region's top edge. The line takes `density`
+too, so it traces the same curve the area fills. `color` is written before both
+marks, so it reaches both layers, as [Encoding scope](../encoding-scope.qmd)
+explains.
+
+```{r}
+#| echo: false
+peek(iris_flowers)
+```
+
+```{r}
+data(iris_flowers) + x(petal_length) + color(species) +
+  area * density + style(opacity = 0.25) +
+  line * density +
+  x_label("Petal length (cm)") + title("Petal length, one curve per species")
+```
+
+*"Given the iris flowers: x is petal length, color by species, areas derived by
+density and also lines derived by density."*
+
+The area under each density curve is 1, so the species whose petals vary least
+draws the tallest curve. Every setosa petal is between 1.0 and 1.9 cm long, so
+its curve is alone on the left and rises highest. Versicolor and virginica
+petals overlap from 4.5 to 5.1 cm, and around there each fill shows through the
+other. All three curves share one **bandwidth**, the width that decides how
+smooth each curve is. So a difference in their shapes comes from the data, not
+from the smoothing. [Transforms](../transforms.qmd#one-transform-four-readings)
+explains how the shared bandwidth is chosen.
+
 After `bin` and `density`, the third kind of transform is the aggregation
 family: `sum`, `mean`, `median`, `max`, `min` and `quantile`. Each leaves one
 value per year, and the area fills to those values, exactly as a bar would:
