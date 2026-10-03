@@ -810,6 +810,15 @@ end
     @refuses render_svg(data(fl) + x(:n) + y(:n) + ribbon * flow(:from, :to)) "both `x(n)` and `y(n)` are bound"
 end
 
+# Two cells, each holding two rows that differ in `n` and in `who`.
+sp = Dict("from" => ["a", "a", "b", "b"], "to" => ["x", "x", "y", "y"],
+          "who" => ["p", "q", "p", "q"], "n" => [3.0, 2.0, 4.0, 1.0])
+
+# A zone cell whose rows disagree is refused, with the number of rows it would
+# hide.
+@testset "a zone cell whose rows disagree is refused" begin
+    @refuses render_svg(data(sp) + zone + x(:from) + y(:to) + color(:n)) "rows would be hidden"
+end
 # ---------------------------------------------------------------------------
 # tick_count — how many ticks an axis aims for (spec §10)
 #

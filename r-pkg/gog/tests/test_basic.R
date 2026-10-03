@@ -2075,6 +2075,16 @@ refuses("a flow weighed on both axes",
         "both `x(n)` and `y(n)` are bound")
 cat("PASS: a flow's count on x runs its stages top to bottom\n")
 
+# Two cells, each holding two rows that differ in `n` and in `who`.
+sp <- data.frame(from = c("a", "a", "b", "b"), to = c("x", "x", "y", "y"),
+                 who = c("p", "q", "p", "q"), n = c(3, 2, 4, 1))
+
+# A zone cell whose rows disagree is refused, with the number of rows it would
+# hide.
+refuses("a zone cell whose rows disagree",
+        render_svg(data(sp) + zone + x(from) + y(to) + color(n)),
+        "rows would be hidden")
+cat("PASS: a zone cell whose rows disagree is refused\n")
 cat("\nnamed palette and legend tests passed.\n")
 
 # ---------------------------------------------------------------------------

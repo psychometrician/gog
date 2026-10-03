@@ -71,6 +71,14 @@ CRAN-style repositories and PyPI, `GrammarOfGraphics` on Julia's General, and
 
 ### Fixed
 
+- **A tile plot refuses cells whose rows would hide one another.** A plain
+  `zone` over categorical positions draws one opaque rectangle for each row, so
+  rows sharing a cell were drawn on top of each other and the cell showed only
+  the last one, with no message. gog now refuses it when those rows differ in a
+  mapped color, opacity or pattern, says how many rows would be hidden, and
+  names `zone * mean` for a number. Rows that agree, and rows in different
+  panels, draw as before.
+
 - **`style(pattern = )` on a flow's slots draws its hatch.** It was accepted and
   the slots drew plain, as a flow's bands did before 0.4.0.
 

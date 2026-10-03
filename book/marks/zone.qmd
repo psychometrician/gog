@@ -730,7 +730,21 @@ reads in shares: the fullest one holds about three percent of the 1704 rows.
 
 The wind table records more than which cell each observation fell in. Each row
 also carries a `speed`, and the question "how fast, on average, in each cell?"
-is not a tally at all; it is a summary of one column:
+is not a tally at all; it is a summary of one column.
+
+The first sentence to try is a plain tile plot, and it is refused. A `zone`
+draws one opaque rectangle for each row, and here many rows share each cell.
+Their rectangles would be drawn one on top of another, so each cell would show
+only the color of its last row. gog counts the rows that would be hidden, and
+names the summary to write instead:
+
+```{r}
+#| error: true
+data(winds) + zone + x(direction) + y(season) + color(speed)
+```
+
+`zone * mean` draws one rectangle for each cell, colored by the mean speed of its
+rows:
 
 ```{r}
 data(winds) + zone * mean + x(direction) + y(season) + color(speed) +

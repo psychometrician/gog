@@ -3282,6 +3282,101 @@ fn check_surface(
 /// - a pair on the same axis simply wins, being the more specific request (Law 5).
 ///   `zone * bounds(start = "Mar", end = "Jun")` says two named categories, and the
 ///   slot default was never a request to override.
+/// **A cell holds one row** (2026-10-03, at the author's word). A plain zone over
+/// categorical positions draws one opaque rectangle per row, so rows that share a
+/// cell are drawn on top of one another and the cell shows only the last of them.
+/// `zone + x(year) + y(continent) + color(life)`, with `year` stored as text, drew
+/// each continent's year in the color of its last country, while the legend's
+/// range came from rows nobody could see. That is the silent drop §12 forbids, and
+/// a contradiction the engine would settle by discarding rows, so it is refused.
+/// Only cells whose rows disagree on a mapped column count: rows that agree draw
+/// the same rectangle, and nothing is hidden. Rows in different panels or frames
+/// are in different cells. The message counts what would be hidden, which is what
+/// makes the refusal appealable.
+fn check_zone_cells(out: &mut Vec<Diagnostic>, spec: &PlotSpec, df: &DataFrame, layer: &Layer) {
+    if layer.mark != Mark::Zone || !layer.transforms.is_empty()
+        || layer.encodings.contains_key(&Channel::Group)
+    {
+        return;
+    }
+    let positions: Vec<&ChannelDef> = [Channel::X, Channel::Y].iter()
+        .filter_map(|ch| spec.position_for(layer, ch))
+        .collect();
+    if positions.is_empty()
+        || positions.iter().any(|d| actual_type(df, &d.field) != Some(VarType::Discrete))
+    {
+        return;
+    }
+    let painted: Vec<(Channel, &ChannelDef)> = [Channel::Color, Channel::Opacity, Channel::Pattern]
+        .into_iter()
+        .filter_map(|ch| layer.encodings.get(&ch).map(|d| (ch, d)))
+        .filter(|(_, d)| actual_type(df, &d.field).is_some())
+        .collect();
+    if painted.is_empty() {
+        return;
+    }
+    let text = |field: &str, r: usize| -> String {
+        df.str_col(field).and_then(|c| c.get(r).cloned())
+            .or_else(|| df.float_col(field).and_then(|c| c.get(r)).map(|v| v.to_string()))
+            .unwrap_or_default()
+    };
+    let mut keys: Vec<&str> = positions.iter().map(|d| d.field.as_str()).collect();
+    if let Some(f) = &spec.facet {
+        keys.extend(f.col.as_deref());
+        keys.extend(f.row.as_deref());
+    }
+    if let Some(p) = layer.encodings.get(&Channel::Play) {
+        keys.push(p.field.as_str());
+    }
+    let mut cells: HashMap<Vec<String>, Vec<usize>> = HashMap::new();
+    for r in 0..df.len() {
+        let key: Vec<String> = keys.iter().map(|k| text(k, r)).collect();
+        // A row with no category on a position has no slot, and draws nowhere.
+        if positions.iter().any(|d| text(&d.field, r).is_empty()) {
+            continue;
+        }
+        cells.entry(key).or_default().push(r);
+    }
+    let (mut crowded, mut hidden) = (0usize, 0usize);
+    for rows in cells.values() {
+        let disagree = rows.len() > 1 && painted.iter().any(|(_, d)| {
+            let first = text(&d.field, rows[0]);
+            rows.iter().any(|&r| text(&d.field, r) != first)
+        });
+        if disagree {
+            crowded += 1;
+            hidden += rows.len() - 1;
+        }
+    }
+    if crowded == 0 {
+        return;
+    }
+    let (ch, def) = &painted[0];
+    let call = format!("{}({})", channel_name(ch), def.field);
+    let advice = if actual_type(df, &def.field) == Some(VarType::Continuous) {
+        format!("For one value per cell, summarize the rows: `zone * mean + {call}` draws \
+                 each cell's mean, and `median`, `sum`, `max` and `min` do the same.")
+    } else {
+        "Keep one row per cell before plotting, or split the rows into panels with \
+         `facet(<column>)`."
+            .to_string()
+    };
+    let (holds, them, rows) = match (crowded, hidden) {
+        (1, 1) => ("holds", "that cell", "row"),
+        (1, _) => ("holds", "that cell", "rows"),
+        _ => ("hold", "each of those cells", "rows"),
+    };
+    out.push(Diagnostic {
+        kind: DiagnosticKind::Illegal,
+        message: format!(
+            "gog: a `zone` draws one opaque rectangle per row, and {crowded} of its {} \
+             cells {holds} rows with different `{call}`, so {them} would show only its \
+             last row, and {hidden} {rows} would be hidden. {advice}",
+            cells.len(),
+        ),
+    });
+}
+
 fn check_zone_extent(out: &mut Vec<Diagnostic>, spec: &PlotSpec, df: &DataFrame, layer: &Layer) {
     if layer.mark != Mark::Zone {
         return;
@@ -7827,6 +7922,8 @@ pub fn check(spec: &PlotSpec, data: &HashMap<String, DataFrame>) -> Vec<Diagnost
             // Where a `zone`'s sides come from. Data-aware because one of the four
             // answers is the axis itself: a category owns a slot, a number is a point.
             check_zone_extent(&mut out, spec, df, layer);
+            // A cell of a plain zone holds one row, or the others are hidden.
+            check_zone_cells(&mut out, spec, df, layer);
             // The two-dimensional group-by: a reduction read over a pair of keys
             // needs its measure channel bound to a numeric column, and both
             // positions categorical. Data-aware for the same reason `check_zone_extent`
@@ -14175,6 +14272,38 @@ fn check_named_palette(
 mod tests {
     use super::*;
     use crate::ir::{Layer, PlotSpec};
+
+    /// **A cell holds one row** (2026-10-03). Rows that share a cell of a plain
+    /// zone and disagree on a mapped column would be drawn one on another, the
+    /// last hiding the rest; refused, with the count, and toward `zone * mean`
+    /// for a number. Rows that agree hide nothing, rows in different panels are
+    /// in different cells, and a summarizing transform makes one row per cell.
+    #[test]
+    fn a_plain_zone_refuses_a_cell_whose_rows_disagree() {
+        let s = |v: &[&str]| v.iter().map(|x| x.to_string()).collect::<Vec<_>>();
+        let t = HashMap::from([("t".to_string(), DataFrame::new()
+            .with_str("a", s(&["p", "p", "q"]))
+            .with_str("b", s(&["u", "u", "v"]))
+            .with_str("g", s(&["one", "two", "one"]))
+            .with_str("same", s(&["k", "k", "k"]))
+            .with_float("v", vec![1.0, 2.0, 3.0]))]);
+        let tile = |color: &str| PlotSpec::new().data("t").x("a").y("b")
+            .layer(Layer::new(Mark::Zone).encode(Channel::Color, color));
+        let refused = |d: &[Diagnostic]| d.iter().find(|x| x.kind == DiagnosticKind::Illegal
+            && x.message.contains("one opaque rectangle per row")).map(|x| x.message.clone());
+
+        let m = refused(&check(&tile("v"), &t)).expect("a number that differs inside a cell");
+        assert!(m.contains("1 of its 2 cells holds rows with different `color(v)`")
+            && m.contains("1 row would be hidden") && m.contains("`zone * mean + color(v)`"), "{m}");
+        let m = refused(&check(&tile("g"), &t)).expect("a category that differs inside a cell");
+        assert!(m.contains("`facet(<column>)`"), "{m}");
+        assert!(refused(&check(&tile("same"), &t)).is_none(), "rows that agree hide nothing");
+        assert!(refused(&check(&tile("v").facet_col("g"), &t)).is_none(),
+            "rows in different panels are in different cells");
+        let mean = PlotSpec::new().data("t").x("a").y("b")
+            .layer(Layer::new(Mark::Zone).transform(Transform::Mean).encode(Channel::Color, "v"));
+        assert!(refused(&check(&mean, &t)).is_none(), "`zone * mean` draws one row per cell");
+    }
 
     fn data() -> HashMap<String, DataFrame> {
         let df = DataFrame::new()

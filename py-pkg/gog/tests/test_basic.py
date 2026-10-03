@@ -751,6 +751,16 @@ _m = _refusal(lambda: render_svg(data(_fl, name="fl") + x(col.n) + y(col.n)
 assert "both `x(n)` and `y(n)` are bound" in _m, _m
 ok("a flow's count on x runs its stages top to bottom")
 
+# Two cells, each holding two rows that differ in `n` and in `who`.
+_sp = {"from": ["a", "a", "b", "b"], "to": ["x", "x", "y", "y"],
+       "who": ["p", "q", "p", "q"], "n": [3.0, 2.0, 4.0, 1.0]}
+
+# A zone cell whose rows disagree is refused, with the number of rows it would
+# hide.
+_m = _refusal(lambda: render_svg(data(_sp, name="sp") + zone + x(col["from"]) + y(col.to)
+                                 + color(col.n)))
+assert "rows would be hidden" in _m, _m
+ok("a zone cell whose rows disagree is refused")
 # Caught in the binding, at the line that wrote it.
 refuses("a backwards domain", lambda: x(col.hour, limits=(20, 5)))
 refuses("one number as a domain", lambda: x(col.hour, limits=5))

@@ -1118,6 +1118,16 @@ test("a flow's count on x runs its stages top to bottom", () => {
     /both `x\(n\)` and `y\(n\)` are bound/);
 });
 
+// Two cells, each holding two rows that differ in `n` and in `who`.
+const sp = { from: ["a", "a", "b", "b"], to: ["x", "x", "y", "y"],
+  who: ["p", "q", "p", "q"], n: [3, 2, 4, 1] };
+
+// A zone cell whose rows disagree is refused, with the number of rows it would
+// hide.
+test("a zone cell whose rows disagree is refused", () => {
+  refuses(() => render_svg(plot(data(sp), zone, x(col.from), y(col.to), color(col.n))),
+    /rows would be hidden/);
+});
 // ---------------------------------------------------------------------------
 // tick_count — how many ticks an axis aims for (spec §10)
 //
